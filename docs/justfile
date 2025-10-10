@@ -1,0 +1,44 @@
+# CCR 文档 Justfile
+# 用于快速执行常用文档操作
+
+# 使用 bash 作为 shell
+set shell := ["bash", "-cu"]
+
+# 默认任务：显示帮助
+default: help
+
+# 显示所有可用任务
+help:
+  @just --list
+
+# 安装依赖
+install:
+  npm install
+
+# 启动开发服务器
+dev:
+  npm run dev
+
+# 构建文档
+build:
+  npm run build
+
+# 预览构建后的文档
+preview:
+  npm run preview
+
+# 清理构建产物
+clean:
+  rm -rf .vitepress/dist .vitepress/cache node_modules
+
+# 重新安装依赖
+reinstall: clean install
+
+# 更新依赖
+update:
+  npm update
+
+# 检查依赖是否有更新
+outdated:
+  npm outdated
+

@@ -1,0 +1,69 @@
+[package]
+name = "ccr"
+version = "0.2.0"
+edition = "2024"
+authors = ["Yonghang Li"]
+description = "Claude Code Configuration Switcher - Configuration management tool with complete audit trail"
+license = "MIT"
+
+[[bin]]
+name = "ccr"
+path = "src/main.rs"
+
+[dependencies]
+# CLI 参数解析
+clap = { version = "4.5.48", features = ["derive", "cargo"] }
+
+# 序列化与配置解析
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.143"
+toml = "0.9.7"
+
+# 错误处理
+anyhow = "1.0.99"
+thiserror = "2.0.17"
+
+# 跨平台用户目录
+dirs = "6.0.0"
+
+# 文件锁
+fs4 = "0.13.1"
+
+# 临时文件与原子写入
+tempfile = "3.20.0"
+
+# 日志记录
+log = "0.4.28"
+env_logger = "0.11.8"
+
+# 彩色终端输出
+colored = "3.0.0"
+
+# 时间戳与格式化
+chrono = { version = "0.4.42", features = ["serde"] }
+
+# 网络请求与异步（update命令预留）
+reqwest = { version = "0.12.23", features = ["json", "blocking"], optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
+
+# 当前操作者识别
+whoami = "1.5"
+
+# UUID生成
+uuid = { version = "1.18.1", features = ["v4", "serde"] }
+
+# HTTP 服务器 (用于 web 界面)
+tiny_http = "0.12"
+
+# 自动打开浏览器
+open = "5.0"
+
+[features]
+default = []
+update = ["reqwest", "tokio"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
