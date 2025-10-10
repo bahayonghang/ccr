@@ -175,7 +175,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "anyhow",
  "chrono",
@@ -183,6 +183,7 @@ dependencies = [
  "colored",
  "dirs",
  "env_logger",
+ "filetime",
  "fs4",
  "log",
  "open",

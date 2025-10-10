@@ -104,6 +104,17 @@ enum Commands {
         backup: bool,
     },
 
+    /// 清理旧备份文件
+    Clean {
+        /// 清理多少天前的备份（默认 7 天）
+        #[arg(short, long, default_value_t = 7)]
+        days: u64,
+
+        /// 模拟运行，不实际删除文件
+        #[arg(long)]
+        dry_run: bool,
+    },
+
     /// 显示版本信息
     #[command(alias = "ver")]
     Version,
@@ -138,6 +149,9 @@ fn main() {
                 commands::ImportMode::Replace
             };
             commands::import_command(input, mode, backup)
+        }
+        Some(Commands::Clean { days, dry_run }) => {
+            commands::clean_command(days, dry_run)
         }
         Some(Commands::Version) => {
             show_version();
@@ -201,6 +215,7 @@ fn show_version() {
     println!("  ccr history           查看历史");
     println!("  ccr export            导出配置");
     println!("  ccr import <file>     导入配置");
+    println!("  ccr clean             清理旧备份");
     println!("  ccr update            更新到最新版本");
     println!();
 

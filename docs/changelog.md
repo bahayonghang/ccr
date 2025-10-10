@@ -4,17 +4,18 @@ CCR 的所有重要变更都会记录在本文件中。
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [0.2.3] - 2025-01-10
+## [0.2.3] - 2025-10-10
 
 ### ✨ 新增
 
 - **配置初始化 (Init)**: 快速创建配置文件
   - 从内置模板自动创建 `~/.ccs_config.toml`
   - 包含 8 个常用 API 服务的预配置模板
-  - 智能检测现有配置，避免意外覆盖
-  - 交互式确认机制
-  - 自动备份现有配置
+  - **安全模式**：如果配置已存在，直接退出（不覆盖）
+  - 必须使用 `--force` 才能覆盖现有配置
+  - 使用 --force 时自动备份现有配置
   - 正确的文件权限设置（Unix: 644）
+  - 提供有用的后续操作提示
   
 - **配置导出 (Export)**: 导出配置到文件
   - **默认包含 API 密钥**，方便备份和迁移 🔑
@@ -30,6 +31,13 @@ CCR 的所有重要变更都会记录在本文件中。
   - 导入前自动备份现有配置（可选 `--no-backup` 禁用）
   - 配置验证和完整性检查
   - 详细的导入摘要报告
+
+- **备份清理 (Clean)**: 清理旧备份文件
+  - 自动清理指定天数前的备份文件
+  - 默认清理 7 天前的备份
+  - 模拟运行模式（`--dry-run`）预览清理结果
+  - 显示释放的磁盘空间
+  - 仅清理 `~/.claude/backups/` 中的 `.bak` 文件
 
 ### 🔧 改进
 
@@ -52,14 +60,18 @@ ccr export                  # 导出配置（含密钥）
 ccr export --no-secrets     # 导出配置（不含密钥）
 ccr import <file> --merge   # 合并导入
 ccr import <file>           # 替换导入
+ccr clean                   # 清理旧备份（7天前）
+ccr clean --days 30         # 清理 30 天前的备份
+ccr clean --dry-run         # 模拟运行预览
 ```
 
 ### 🧪 测试
 
-- 新增 6 个单元测试，全部通过
+- 新增 8 个单元测试，全部通过
   - `init::tests` - 3 个测试
   - `export::tests` - 2 个测试
   - `import::tests` - 1 个测试
+  - `clean::tests` - 2 个测试
 
 ### 📦 文件变更
 
@@ -67,18 +79,21 @@ ccr import <file>           # 替换导入
 - `src/commands/init.rs` (140 行)
 - `src/commands/export.rs` (120 行)
 - `src/commands/import.rs` (190 行)
+- `src/commands/clean.rs` (130 行)
 - `docs/FEATURES.md`
 - `docs/INIT_IMPORT_EXPORT.md`
 - `docs/README.md`
 
 **修改文件**:
+- `Cargo.toml` - 添加 filetime 依赖
 - `src/commands/mod.rs` - 导出新命令
 - `src/main.rs` - 集成新子命令
 - `README.md` - 更新功能说明
 - `README_CN.md` - 更新中文文档
 - `CLAUDE.md` - 更新开发文档
+- `docs/changelog.md` - 更新日志
 
-## [0.2.2] - 2025-01-09
+## [0.2.2] - 2025-10-10
 
 ### ✨ 新增
 
@@ -118,7 +133,7 @@ ccr update            # 执行更新
 - `src/commands/mod.rs` - 导出 update 命令
 - `src/main.rs` - 集成 update 子命令
 
-## [0.2.0] - 2025-01-10
+## [0.2.0] - 2025-10-10
 
 ### ✨ 新增
 
@@ -158,7 +173,7 @@ ccr update            # 执行更新
 - 修复配置验证时的边界条件处理
 - 修复 Web 界面在某些浏览器的兼容性问题
 
-## [0.1.0] - 2024-12-15
+## [0.1.0] - 2025-10-10
 
 ### ✨ 初始版本
 

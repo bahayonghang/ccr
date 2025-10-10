@@ -10,6 +10,7 @@ pub mod update;
 pub mod init;
 pub mod export;
 pub mod import;
+pub mod clean;
 
 pub use list::list_command;
 pub use current::current_command;
@@ -20,3 +21,4 @@ pub use update::update_command;
 pub use init::init_command;
 pub use export::export_command;
 pub use import::{import_command, ImportMode};
+pub use clean::clean_command;

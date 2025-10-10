@@ -187,6 +187,19 @@ ccr import config.toml --merge
 ccr import config.toml
 ```
 
+### 10. Clean Old Backups
+
+```bash
+# Clean backups older than 7 days (default)
+ccr clean
+
+# Clean backups older than 30 days
+ccr clean --days 30
+
+# Dry run (preview without deleting)
+ccr clean --dry-run
+```
+
 ## 📚 Command Reference
 
 ### init
@@ -198,13 +211,18 @@ ccr init
 
 Features:
 - Creates `~/.ccs_config.toml` from embedded template
-- Automatic backup of existing configuration
-- Interactive confirmation before overwriting
-- Sets proper file permissions
+- **Safe mode**: Refuses to overwrite existing config without --force
+- Automatic backup when using --force
+- Sets proper file permissions (Unix: 644)
+- Provides helpful hints on next steps
+
+Behavior:
+- If config exists: Shows warning and exits (safe)
+- With `--force`: Backs up and overwrites existing config
 
 Options:
 ```bash
-ccr init --force    # Force overwrite without confirmation
+ccr init --force    # Force overwrite with automatic backup
 ```
 
 ### list / ls
@@ -351,6 +369,33 @@ Features:
 - Configuration validation
 - Detailed import summary
 
+### clean
+Clean old backup files to free up disk space
+
+```bash
+# Clean backups older than 7 days (default)
+ccr clean
+
+# Clean backups older than 30 days
+ccr clean --days 30
+
+# Dry run (preview without deleting)
+ccr clean --dry-run
+```
+
+Features:
+- Automatic cleanup of old backup files
+- Configurable retention period (default: 7 days)
+- Dry run mode for preview
+- Shows freed disk space
+- Only removes `.bak` files in `~/.claude/backups/`
+
+Options:
+```bash
+ccr clean --days 14      # Clean backups older than 14 days
+ccr clean --dry-run      # Preview cleanup without deleting
+```
+
 ### version / ver
 Display version information and help
 
@@ -430,6 +475,10 @@ GET /api/history
 
 # Validate configuration
 POST /api/validate
+
+# Clean backups
+POST /api/clean
+Body: {"days": 7, "dry_run": false}
 
 # Add/Update/Delete configuration
 POST /api/config

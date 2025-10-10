@@ -187,6 +187,19 @@ ccr import config.toml --merge
 ccr import config.toml
 ```
 
+### 10. 清理旧备份
+
+```bash
+# 清理 7 天前的备份（默认）
+ccr clean
+
+# 清理 30 天前的备份
+ccr clean --days 30
+
+# 模拟运行（预览不删除）
+ccr clean --dry-run
+```
+
 ## 📚 命令详解
 
 ### init
@@ -198,13 +211,18 @@ ccr init
 
 功能：
 - 从内置模板创建 `~/.ccs_config.toml`
-- 自动备份现有配置
-- 覆盖前交互式确认
-- 设置正确的文件权限
+- **安全模式**：如果配置已存在，拒绝覆盖（除非使用 --force）
+- 使用 --force 时自动备份现有配置
+- 设置正确的文件权限（Unix: 644）
+- 提供有用的后续操作提示
+
+行为：
+- 如果配置存在：显示警告并退出（安全）
+- 使用 `--force`：备份并覆盖现有配置
 
 选项：
 ```bash
-ccr init --force    # 强制覆盖，不询问确认
+ccr init --force    # 强制覆盖，会自动备份
 ```
 
 ### list / ls
@@ -351,6 +369,33 @@ ccr import config.toml --no-backup
 - 配置验证
 - 详细的导入摘要
 
+### clean
+清理旧备份文件，释放磁盘空间
+
+```bash
+# 清理 7 天前的备份（默认）
+ccr clean
+
+# 清理 30 天前的备份
+ccr clean --days 30
+
+# 模拟运行（预览不删除）
+ccr clean --dry-run
+```
+
+特性：
+- 自动清理旧备份文件
+- 可配置保留天数（默认 7 天）
+- 模拟运行模式预览
+- 显示释放的磁盘空间
+- 仅删除 `~/.claude/backups/` 中的 `.bak` 文件
+
+选项：
+```bash
+ccr clean --days 14      # 清理 14 天前的备份
+ccr clean --dry-run      # 预览清理，不实际删除
+```
+
 ### version / ver
 显示版本信息和帮助
 
@@ -427,6 +472,10 @@ GET /api/history
 
 # 验证配置
 POST /api/validate
+
+# 清理备份
+POST /api/clean
+Body: {"days": 7, "dry_run": false}
 
 # 添加/更新/删除配置
 POST /api/config

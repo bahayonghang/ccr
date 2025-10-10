@@ -19,19 +19,25 @@ pub fn init_command(force: bool) -> Result<()> {
     let config_path = home.join(".ccs_config.toml");
 
     // 检查文件是否已存在
-    if config_path.exists() && !force {
-        ColorOutput::warning(&format!("配置文件已存在: {}", config_path.display()));
-        println!();
-        
-        if !ColorOutput::ask_confirmation("是否覆盖现有配置？", false) {
-            ColorOutput::info("操作已取消");
+    if config_path.exists() {
+        if !force {
+            ColorOutput::warning(&format!("配置文件已存在: {}", config_path.display()));
+            println!();
+            ColorOutput::info("配置文件已经初始化，无需重复执行");
+            ColorOutput::info("提示:");
+            println!("  • 查看配置: ccr list");
+            println!("  • 编辑配置: vim ~/.ccs_config.toml");
+            println!("  • 强制重新初始化: ccr init --force");
+            println!();
             return Ok(());
         }
         
-        // 备份现有配置
+        // 使用 --force 时，备份现有配置
+        ColorOutput::warning("使用 --force 模式，将覆盖现有配置");
         println!();
         ColorOutput::step("备份现有配置");
         backup_existing_config(&config_path)?;
+        println!();
     }
 
     // 写入配置文件

@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher - Configuration management tool with complete audit trail"
@@ -31,6 +31,9 @@ fs4 = "0.13.1"
 
 # 临时文件与原子写入
 tempfile = "3.20.0"
+
+# 文件时间操作
+filetime = "0.2"
 
 # 日志记录
 log = "0.4.28"

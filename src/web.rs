@@ -63,6 +63,28 @@ struct SwitchRequest {
     config_name: String,
 }
 
+/// 清理备份请求
+#[derive(Debug, Serialize, Deserialize)]
+struct CleanRequest {
+    #[serde(default = "default_days")]
+    days: u64,
+    #[serde(default)]
+    dry_run: bool,
+}
+
+fn default_days() -> u64 {
+    7
+}
+
+/// 清理备份响应
+#[derive(Debug, Serialize, Deserialize)]
+struct CleanResponse {
+    deleted_count: usize,
+    skipped_count: usize,
+    total_size_mb: f64,
+    dry_run: bool,
+}
+
 /// 更新配置请求
 #[derive(Debug, Serialize, Deserialize)]
 struct UpdateConfigRequest {
@@ -178,6 +200,7 @@ impl WebServer {
             }
             (Method::Get, "/api/history") => self.handle_get_history(&request),
             (Method::Post, "/api/validate") => self.handle_validate(),
+            (Method::Post, "/api/clean") => self.handle_clean(&mut request),
 
             // 404
             _ => self.serve_404(),
@@ -464,6 +487,89 @@ impl WebServer {
                 500,
             ),
         }
+    }
+
+    /// 处理清理备份
+    fn handle_clean(&self, request: &mut Request) -> Response<std::io::Cursor<Vec<u8>>> {
+        match self.clean_impl(request) {
+            Ok(data) => self.json_response(ApiResponse::success(data), 200),
+            Err(e) => self.json_response(
+                ApiResponse::<()>::error(e.user_message()),
+                500,
+            ),
+        }
+    }
+
+    fn clean_impl(&self, request: &mut Request) -> Result<CleanResponse> {
+        let mut body = String::new();
+        request.as_reader().read_to_string(&mut body).map_err(|e| {
+            CcrError::ConfigError(format!("读取请求体失败: {}", e))
+        })?;
+
+        let req: CleanRequest = serde_json::from_str(&body).unwrap_or(CleanRequest {
+            days: 7,
+            dry_run: false,
+        });
+
+        // 调用 clean 功能实现
+        use std::fs;
+        use std::time::{Duration, SystemTime};
+
+        let home = dirs::home_dir()
+            .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+        let backup_dir = home.join(".claude").join("backups");
+
+        if !backup_dir.exists() {
+            return Ok(CleanResponse {
+                deleted_count: 0,
+                skipped_count: 0,
+                total_size_mb: 0.0,
+                dry_run: req.dry_run,
+            });
+        }
+
+        let cutoff_time = SystemTime::now() - Duration::from_secs(req.days * 24 * 60 * 60);
+        let mut deleted_count = 0;
+        let mut skipped_count = 0;
+        let mut total_size = 0u64;
+
+        let entries = fs::read_dir(&backup_dir)
+            .map_err(|e| CcrError::ConfigError(format!("读取备份目录失败: {}", e)))?;
+
+        for entry in entries {
+            let entry = entry.map_err(|e| CcrError::ConfigError(format!("读取目录项失败: {}", e)))?;
+            let path = entry.path();
+
+            if !path.is_file() || path.extension().and_then(|s| s.to_str()) != Some("bak") {
+                continue;
+            }
+
+            let metadata = fs::metadata(&path)
+                .map_err(|e| CcrError::ConfigError(format!("读取文件元数据失败: {}", e)))?;
+
+            let modified_time = metadata.modified()
+                .map_err(|e| CcrError::ConfigError(format!("获取文件修改时间失败: {}", e)))?;
+
+            if modified_time < cutoff_time {
+                let file_size = metadata.len();
+                total_size += file_size;
+                deleted_count += 1;
+
+                if !req.dry_run {
+                    fs::remove_file(&path)
+                        .map_err(|e| CcrError::ConfigError(format!("删除文件失败: {}", e)))?;
+                }
+            } else {
+                skipped_count += 1;
+            }
+        }
+
+        Ok(CleanResponse {
+            deleted_count,
+            skipped_count,
+            total_size_mb: total_size as f64 / 1024.0 / 1024.0,
+            dry_run: req.dry_run,
+        })
     }
 
     /// 创建 JSON 响应

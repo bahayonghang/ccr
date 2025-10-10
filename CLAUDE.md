@@ -85,6 +85,10 @@ cargo run -- export --help
 
 # Test import
 cargo run -- import --help
+
+# Test clean
+cargo run -- clean --help
+cargo run -- clean --dry-run
 ```
 
 ## Architecture Overview
@@ -216,7 +220,7 @@ src/
 ├── settings.rs (400 lines)       # Settings JSON management ⭐
 ├── history.rs (400 lines)        # Audit trail management
 ├── web.rs (490 lines)            # Web server and API
-└── commands/ (1200+ lines total) # CLI command implementations
+└── commands/ (1400+ lines total) # CLI command implementations
     ├── list.rs
     ├── current.rs
     ├── switch.rs
@@ -225,7 +229,8 @@ src/
     ├── update.rs                 # Self-update functionality
     ├── init.rs                   # Configuration initialization
     ├── export.rs                 # Configuration export
-    └── import.rs                 # Configuration import
+    ├── import.rs                 # Configuration import
+    └── clean.rs                  # Backup cleanup
 ```
 
 ## Key Implementation Details

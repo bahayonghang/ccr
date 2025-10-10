@@ -942,6 +942,12 @@
                         ✓ 验证
                     </button>
                 </div>
+
+                <div class="sidebar-section">
+                    <button class="btn btn-warning" style="width: 100%;" onclick="openCleanModal()">
+                        🗑️ 清理备份
+                    </button>
+                </div>
             </aside>
 
             <!-- 配置区域 -->
@@ -1011,6 +1017,40 @@
                     <button type="submit" class="btn btn-primary">保存</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- 清理备份模态框 -->
+    <div id="cleanModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">清理备份文件</h2>
+                <button class="close-btn" onclick="closeCleanModal()">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <div class="form-group">
+                    <label class="form-label">保留天数</label>
+                    <input type="number" class="form-input" id="cleanDays" value="7" min="1" max="365" oninput="updateCleanDaysDisplay()">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                        将删除 <span id="cleanDaysDisplay" style="color: var(--accent-warning); font-weight: 600;">7</span> 天前的备份文件
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="cleanDryRun" checked>
+                        <span>模拟运行（预览不删除）</span>
+                    </label>
+                </div>
+                <div id="cleanPreview" style="margin-top: 20px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color); display: none;">
+                    <div style="font-size: 14px; font-weight: 500; margin-bottom: 10px; color: var(--accent-primary);">清理预览</div>
+                    <div id="cleanPreviewContent"></div>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCleanModal()">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="previewClean()">预览</button>
+                    <button type="button" class="btn btn-warning" onclick="executeClean()" id="cleanExecuteBtn">执行清理</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1334,10 +1374,114 @@
             }, 3000);
         }
 
+        // 清理备份相关函数
+        function openCleanModal() {
+            document.getElementById('cleanModal').style.display = 'flex';
+            document.getElementById('cleanPreview').style.display = 'none';
+            document.getElementById('cleanDays').value = 7;
+            document.getElementById('cleanDryRun').checked = true;
+            updateCleanDaysDisplay();
+        }
+
+        function closeCleanModal() {
+            document.getElementById('cleanModal').style.display = 'none';
+            document.getElementById('cleanPreview').style.display = 'none';
+        }
+
+        function updateCleanDaysDisplay() {
+            const days = document.getElementById('cleanDays').value;
+            document.getElementById('cleanDaysDisplay').textContent = days;
+        }
+
+        async function previewClean() {
+            const days = parseInt(document.getElementById('cleanDays').value);
+            
+            try {
+                const response = await fetch('/api/clean', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ days, dry_run: true })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const result = data.data;
+                    const preview = document.getElementById('cleanPreview');
+                    const content = document.getElementById('cleanPreviewContent');
+                    
+                    if (result.deleted_count === 0) {
+                        content.innerHTML = `
+                            <div style="color: var(--accent-success); margin-bottom: 8px;">✓ 没有需要清理的文件</div>
+                            <div style="font-size: 13px; color: var(--text-muted);">所有备份都在保留期内</div>
+                        `;
+                    } else {
+                        content.innerHTML = `
+                            <div style="margin-bottom: 8px;">
+                                <span style="color: var(--accent-warning);">⚠</span> 
+                                <span>将删除 ${result.deleted_count} 个文件</span>
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <span style="color: var(--accent-primary);">ℹ</span> 
+                                <span>保留 ${result.skipped_count} 个文件</span>
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <span style="color: var(--accent-success);">💾</span> 
+                                <span>将释放 ${result.total_size_mb.toFixed(2)} MB</span>
+                            </div>
+                        `;
+                    }
+                    
+                    preview.style.display = 'block';
+                } else {
+                    showNotification(data.message || '预览失败', 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        async function executeClean() {
+            const days = parseInt(document.getElementById('cleanDays').value);
+            const dryRun = document.getElementById('cleanDryRun').checked;
+
+            if (dryRun) {
+                showNotification('请取消勾选"模拟运行"以执行实际清理', 'warning');
+                return;
+            }
+
+            if (!confirm(`确定清理 ${days} 天前的备份文件吗？此操作不可恢复！`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/clean', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ days, dry_run: false })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const result = data.data;
+                    if (result.deleted_count > 0) {
+                        showNotification(`✓ 已删除 ${result.deleted_count} 个文件，释放 ${result.total_size_mb.toFixed(2)} MB`, 'success');
+                    } else {
+                        showNotification('✓ 没有需要清理的文件', 'success');
+                    }
+                    closeCleanModal();
+                } else {
+                    showNotification(data.message || '清理失败', 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误: ' + error.message, 'error');
+            }
+        }
+
         // ESC 关闭模态框
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeModal();
+                closeCleanModal();
             }
         });
     </script>
