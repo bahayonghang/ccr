@@ -73,6 +73,18 @@ cargo run -- list
 
 # Test validation
 cargo run -- validate
+
+# Test update check
+cargo run -- update --check
+
+# Test init
+cargo run -- init --help
+
+# Test export
+cargo run -- export --help
+
+# Test import
+cargo run -- import --help
 ```
 
 ## Architecture Overview
@@ -203,7 +215,17 @@ src/
 ├── config.rs (350 lines)         # Config TOML management
 ├── settings.rs (400 lines)       # Settings JSON management ⭐
 ├── history.rs (400 lines)        # Audit trail management
-└── commands/ (600 lines total)   # CLI command implementations
+├── web.rs (490 lines)            # Web server and API
+└── commands/ (1200+ lines total) # CLI command implementations
+    ├── list.rs
+    ├── current.rs
+    ├── switch.rs
+    ├── validate.rs
+    ├── history_cmd.rs
+    ├── update.rs                 # Self-update functionality
+    ├── init.rs                   # Configuration initialization
+    ├── export.rs                 # Configuration export
+    └── import.rs                 # Configuration import
 ```
 
 ## Key Implementation Details

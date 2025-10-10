@@ -65,6 +65,45 @@ enum Commands {
         port: u16,
     },
 
+    /// 检查并更新到最新版本
+    Update {
+        /// 仅检查更新，不执行安装
+        #[arg(short, long)]
+        check: bool,
+    },
+
+    /// 初始化配置文件
+    Init {
+        /// 强制覆盖现有配置
+        #[arg(short, long)]
+        force: bool,
+    },
+
+    /// 导出配置到文件
+    Export {
+        /// 输出文件路径（默认: ccs_config_export_<timestamp>.toml）
+        #[arg(short, long)]
+        output: Option<String>,
+
+        /// 排除敏感信息（API密钥等）
+        #[arg(long)]
+        no_secrets: bool,
+    },
+
+    /// 从文件导入配置
+    Import {
+        /// 输入文件路径
+        input: String,
+
+        /// 合并模式（保留现有配置，添加新的）
+        #[arg(short, long)]
+        merge: bool,
+
+        /// 导入前备份当前配置
+        #[arg(short, long, default_value_t = true)]
+        backup: bool,
+    },
+
     /// 显示版本信息
     #[command(alias = "ver")]
     Version,
@@ -87,6 +126,19 @@ fn main() {
             commands::history_command(Some(limit), filter_type)
         }
         Some(Commands::Web { port }) => web::web_command(Some(port)),
+        Some(Commands::Update { check }) => commands::update_command(check),
+        Some(Commands::Init { force }) => commands::init_command(force),
+        Some(Commands::Export { output, no_secrets }) => {
+            commands::export_command(output, !no_secrets)
+        }
+        Some(Commands::Import { input, merge, backup }) => {
+            let mode = if merge {
+                commands::ImportMode::Merge
+            } else {
+                commands::ImportMode::Replace
+            };
+            commands::import_command(input, mode, backup)
+        }
         Some(Commands::Version) => {
             show_version();
             Ok(())
@@ -141,11 +193,15 @@ fn show_version() {
     println!();
 
     ColorOutput::info("常用命令:");
+    println!("  ccr init              初始化配置文件");
     println!("  ccr list              列出所有配置");
     println!("  ccr current           显示当前状态");
     println!("  ccr switch <name>     切换配置");
     println!("  ccr validate          验证配置");
     println!("  ccr history           查看历史");
+    println!("  ccr export            导出配置");
+    println!("  ccr import <file>     导入配置");
+    println!("  ccr update            更新到最新版本");
     println!();
 
     ColorOutput::info("更多帮助: ccr --help");

@@ -43,6 +43,16 @@ CCR 是 Claude Code Configuration Switcher (CCS) 的 Rust 实现版本，提供�
 
 ## 📦 安装
 
+### 快速安装（推荐）
+
+使用 cargo 直接从 GitHub 安装 CCR：
+
+```bash
+cargo install --git https://github.com/bahayonghang/ccr
+```
+
+安装完成后，`ccr` 命令将自动添加到系统 PATH 中。
+
 ### 从源码构建
 
 ```bash
@@ -68,9 +78,15 @@ cargo run -- <command>
 
 ## 🚀 快速开始
 
-### 1. 准备配置文件
+### 1. 初始化配置文件
 
-CCR 使用与 CCS 相同的配置文件 `~/.ccs_config.toml`。如果已经安装了 CCS，可以直接使用现有配置。
+使用示例模板初始化 CCR 配置文件：
+
+```bash
+ccr init
+```
+
+这将创建 `~/.ccs_config.toml` 并包含示例配置。如果已经安装了 CCS，也可以直接使用现有配置。
 
 示例配置文件：
 
@@ -142,7 +158,54 @@ ccr web
 ccr web --port 8080
 ```
 
+### 8. 更新到最新版本
+
+```bash
+# 仅检查更新
+ccr update --check
+
+# 更新到最新版本
+ccr update
+```
+
+### 9. 配置导入导出
+
+```bash
+# 导出配置（默认包含 API 密钥）
+ccr export
+
+# 导出配置（不含密钥）
+ccr export --no-secrets
+
+# 导出到指定文件
+ccr export -o my-config.toml
+
+# 导入配置（合并模式）
+ccr import config.toml --merge
+
+# 导入配置（替换模式）
+ccr import config.toml
+```
+
 ## 📚 命令详解
+
+### init
+从模板初始化配置文件
+
+```bash
+ccr init
+```
+
+功能：
+- 从内置模板创建 `~/.ccs_config.toml`
+- 自动备份现有配置
+- 覆盖前交互式确认
+- 设置正确的文件权限
+
+选项：
+```bash
+ccr init --force    # 强制覆盖，不询问确认
+```
 
 ### list / ls
 列出所有可用配置，标注当前配置和验证状态
@@ -229,6 +292,64 @@ ccr web
 # 指定端口
 ccr web --port 3000
 ```
+
+### update
+检查并安装 CCR 最新版本
+
+```bash
+# 仅检查更新
+ccr update --check
+
+# 更新到最新版本
+ccr update
+```
+
+特性：
+- 自动从 GitHub releases 下载
+- 自动选择适配当前平台的二进制文件
+- 原子更新，带备份保护
+- 安装后自动验证
+
+### export
+导出配置到文件
+
+```bash
+# 导出完整配置（默认包含 API 密钥）
+ccr export
+
+# 导出配置（隐藏密钥）
+ccr export --no-secrets
+
+# 导出到指定文件
+ccr export -o backup.toml
+```
+
+特性：
+- 自动生成带时间戳的文件名
+- 默认包含 API 密钥，方便迁移
+- 可选的密钥掩码保护（--no-secrets）
+- TOML 格式易于编辑
+- 完美适用于备份和迁移
+
+### import
+从文件导入配置
+
+```bash
+# 合并模式（保留现有配置，添加新的）
+ccr import config.toml --merge
+
+# 替换模式（完全替换当前配置）
+ccr import config.toml
+
+# 导入时不备份
+ccr import config.toml --no-backup
+```
+
+特性：
+- 合并或替换模式
+- 导入前自动备份
+- 配置验证
+- 详细的导入摘要
 
 ### version / ver
 显示版本信息和帮助
@@ -459,8 +580,9 @@ chmod 644 ~/.ccs_config.toml
 
 - [x] Web 界面支持
 - [x] RESTful API
-- [ ] 在线更新功能
-- [ ] 配置导入/导出
+- [x] 在线更新功能
+- [x] 配置导入/导出
+- [x] 配置初始化
 - [ ] 配置模板系统
 - [ ] 更多统计和报表
 - [ ] 跨平台安装包

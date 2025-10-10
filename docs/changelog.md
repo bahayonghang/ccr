@@ -4,6 +4,120 @@ CCR 的所有重要变更都会记录在本文件中。
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.3] - 2025-01-10
+
+### ✨ 新增
+
+- **配置初始化 (Init)**: 快速创建配置文件
+  - 从内置模板自动创建 `~/.ccs_config.toml`
+  - 包含 8 个常用 API 服务的预配置模板
+  - 智能检测现有配置，避免意外覆盖
+  - 交互式确认机制
+  - 自动备份现有配置
+  - 正确的文件权限设置（Unix: 644）
+  
+- **配置导出 (Export)**: 导出配置到文件
+  - **默认包含 API 密钥**，方便备份和迁移 🔑
+  - 自动生成带时间戳的文件名
+  - 支持 `--no-secrets` 参数导出不含密钥的配置
+  - TOML 格式输出，易于编辑
+  - 完美适用于备份、迁移和团队协作
+  
+- **配置导入 (Import)**: 从文件导入配置
+  - 支持两种导入模式：
+    - **合并模式** (`--merge`): 保留现有配置，添加新的
+    - **替换模式** (默认): 完全替换现有配置
+  - 导入前自动备份现有配置（可选 `--no-backup` 禁用）
+  - 配置验证和完整性检查
+  - 详细的导入摘要报告
+
+### 🔧 改进
+
+- **导出默认行为优化**: 
+  - 从默认不包含密钥改为默认包含密钥
+  - 参数从 `--include-secrets` 改为 `--no-secrets`
+  - 更符合用户备份和迁移的实际需求
+  
+- **文档体系完善**:
+  - 新增 `docs/FEATURES.md` - 完整功能说明（12KB）
+  - 新增 `docs/INIT_IMPORT_EXPORT.md` - 详细的导入导出指南（11KB）
+  - 新增 `docs/README.md` - 文档中心索引
+  - 更新所有相关文档
+
+### 📝 新增命令
+
+```bash
+ccr init                    # 初始化配置文件
+ccr export                  # 导出配置（含密钥）
+ccr export --no-secrets     # 导出配置（不含密钥）
+ccr import <file> --merge   # 合并导入
+ccr import <file>           # 替换导入
+```
+
+### 🧪 测试
+
+- 新增 6 个单元测试，全部通过
+  - `init::tests` - 3 个测试
+  - `export::tests` - 2 个测试
+  - `import::tests` - 1 个测试
+
+### 📦 文件变更
+
+**新增文件**:
+- `src/commands/init.rs` (140 行)
+- `src/commands/export.rs` (120 行)
+- `src/commands/import.rs` (190 行)
+- `docs/FEATURES.md`
+- `docs/INIT_IMPORT_EXPORT.md`
+- `docs/README.md`
+
+**修改文件**:
+- `src/commands/mod.rs` - 导出新命令
+- `src/main.rs` - 集成新子命令
+- `README.md` - 更新功能说明
+- `README_CN.md` - 更新中文文档
+- `CLAUDE.md` - 更新开发文档
+
+## [0.2.2] - 2025-01-09
+
+### ✨ 新增
+
+- **自动更新功能 (Update)**: 一键更新到最新版本
+  - 自动从 GitHub releases 检查更新
+  - 智能版本比较算法
+  - 自动识别当前平台并下载对应二进制
+  - 支持多平台：
+    - Linux: x86_64, aarch64
+    - macOS: x86_64, Apple Silicon (aarch64)
+    - Windows: x86_64
+  - 原子更新机制，确保安全
+  - 安装后自动验证
+  - 下载进度显示
+
+### 🔧 改进
+
+- **依赖更新**:
+  - 新增 `self_update` v0.42 - 自更新功能核心
+  - 新增 `reqwest` v0.12.23 - HTTP 客户端
+  - 新增 `tokio` v1 - 异步运行时
+
+### 📝 新增命令
+
+```bash
+ccr update --check    # 检查更新
+ccr update            # 执行更新
+```
+
+### 📦 文件变更
+
+**新增文件**:
+- `src/commands/update.rs` (240 行)
+
+**修改文件**:
+- `Cargo.toml` - 添加更新相关依赖
+- `src/commands/mod.rs` - 导出 update 命令
+- `src/main.rs` - 集成 update 子命令
+
 ## [0.2.0] - 2025-01-10
 
 ### ✨ 新增
@@ -73,11 +187,12 @@ CCR 的所有重要变更都会记录在本文件中。
 
 ### [0.3.0] - 计划中
 
-- [ ] 配置导入/导出功能
+- [x] ~~配置导入/导出功能~~ (已在 v0.2.3 实现)
+- [x] ~~配置初始化~~ (已在 v0.2.3 实现)
 - [ ] 配置模板系统
 - [ ] 批量操作支持
-- [ ] 更详细的历史记录
-- [ ] 配置迁移工具
+- [ ] 更详细的历史记录筛选
+- [ ] 配置版本管理
 
 ### [0.4.0] - 规划中
 
@@ -115,6 +230,8 @@ CCR 的所有重要变更都会记录在本文件中。
 
 ---
 
-[0.2.0]: https://github.com/bahayonghang/ccs/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/bahayonghang/ccs/releases/tag/v0.1.0
+[0.2.3]: https://github.com/bahayonghang/ccr/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/bahayonghang/ccr/compare/v0.2.0...v0.2.2
+[0.2.0]: https://github.com/bahayonghang/ccr/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/bahayonghang/ccr/releases/tag/v0.1.0
 

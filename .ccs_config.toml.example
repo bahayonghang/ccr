@@ -1,0 +1,61 @@
+# Claude Code Configuration Switcher 配置文件
+# 请根据您的需要修改以下配置
+
+default_config = "anyrouter"
+
+# 当前激活配置（自动管理,请勿手动修改）
+current_config = "anyrouter"
+
+[anyrouter]
+description = "AnyRouter API服务"
+base_url = "https://anyrouter.top"
+auth_token = "sk-your-anyrouter-api-key-here"
+# model = ""  # 留空使用默认Claude模型
+# small_fast_model = ""  # 留空使用默认快速模型
+
+[glm]
+description = "智谱GLM API服务"
+base_url = "https://open.bigmodel.cn/api/paas/v4"
+auth_token = "your-glm-api-key-here"
+model = "glm-4"
+
+[anthropic]
+description = "Anthropic官方API"
+base_url = "https://api.anthropic.com"
+auth_token = "sk-ant-your-api-key-here"
+# model = ""  # 留空使用默认Claude模型
+# small_fast_model = ""  # 留空使用默认快速模型
+
+[openai]
+description = "OpenAI API配置"
+base_url = "https://api.openai.com/v1"
+auth_token = "sk-your-openai-api-key-here"
+model = "gpt-4"
+
+[aicodemirror]
+description = "AICodeMirror API服务"
+base_url = "https://aicodemirror.com/api"
+auth_token = "your-aicodemirror-api-key-here"
+# model = ""  # 留空使用默认Claude模型
+# small_fast_model = ""  # 留空使用默认快速模型
+
+[wenwen]
+description = "文文AI API服务"
+base_url = "https://api.wenwen.ai"
+auth_token = "your-wenwen-api-key-here"
+# model = ""  # 留空使用默认Claude模型
+# small_fast_model = ""  # 留空使用默认快速模型
+
+[moonshot]
+description = "月之暗面API服务"
+base_url = "https://api.moonshot.cn/v1"
+auth_token = "sk-your-moonshot-api-key-here"
+model = "kimi-k2-turbo-preview"
+small_fast_model = "kimi-k2-turbo-preview" 
+
+[siliconflow]
+description = "SiliconFlow API服务"
+base_url = "https://api.siliconflow.cn/v1"
+auth_token = "sk-your-siliconflow-api-key-here"
+model = "anthropic/claude-3-5-sonnet-20241022"
+small_fast_model = "anthropic/claude-3-5-haiku-20241022"

@@ -43,6 +43,16 @@ CCR is the Rust implementation of Claude Code Configuration Switcher (CCS), prov
 
 ## 📦 Installation
 
+### Quick Install (Recommended)
+
+Install CCR directly from GitHub using cargo:
+
+```bash
+cargo install --git https://github.com/bahayonghang/ccr
+```
+
+After installation, the `ccr` command will be available in your PATH.
+
 ### Build from Source
 
 ```bash
@@ -68,9 +78,15 @@ cargo run -- <command>
 
 ## 🚀 Quick Start
 
-### 1. Prepare Configuration File
+### 1. Initialize Configuration File
 
-CCR uses the same configuration file as CCS: `~/.ccs_config.toml`. If you already have CCS installed, you can use the existing configuration directly.
+Initialize CCR configuration file with example template:
+
+```bash
+ccr init
+```
+
+This will create `~/.ccs_config.toml` with example configurations. You can also use an existing CCS configuration if you have one.
 
 Example configuration file:
 
@@ -142,7 +158,54 @@ ccr web
 ccr web --port 8080
 ```
 
+### 8. Update to Latest Version
+
+```bash
+# Check for updates
+ccr update --check
+
+# Update to latest version
+ccr update
+```
+
+### 9. Export and Import Configurations
+
+```bash
+# Export configuration (includes API keys by default)
+ccr export
+
+# Export without secrets
+ccr export --no-secrets
+
+# Export to specific file
+ccr export -o my-config.toml
+
+# Import configuration (merge mode)
+ccr import config.toml --merge
+
+# Import configuration (replace mode)
+ccr import config.toml
+```
+
 ## 📚 Command Reference
+
+### init
+Initialize configuration file from template
+
+```bash
+ccr init
+```
+
+Features:
+- Creates `~/.ccs_config.toml` from embedded template
+- Automatic backup of existing configuration
+- Interactive confirmation before overwriting
+- Sets proper file permissions
+
+Options:
+```bash
+ccr init --force    # Force overwrite without confirmation
+```
 
 ### list / ls
 List all available configurations, marking the current configuration and validation status
@@ -229,6 +292,64 @@ ccr web
 # Specify port
 ccr web --port 3000
 ```
+
+### update
+Check for and install the latest version of CCR
+
+```bash
+# Check for updates only
+ccr update --check
+
+# Update to latest version
+ccr update
+```
+
+Features:
+- Automatically downloads from GitHub releases
+- Platform-specific binary selection
+- Atomic update with backup
+- Installation verification
+
+### export
+Export configuration to a file
+
+```bash
+# Export with full API keys (default)
+ccr export
+
+# Export without secrets (masked tokens)
+ccr export --no-secrets
+
+# Export to specific file
+ccr export -o backup.toml
+```
+
+Features:
+- Automatic timestamped filename
+- Includes API keys by default for easy migration
+- Optional secret masking with --no-secrets flag
+- TOML format for easy editing
+- Perfect for backup and migration
+
+### import
+Import configuration from a file
+
+```bash
+# Merge mode (preserve existing configs, add new ones)
+ccr import config.toml --merge
+
+# Replace mode (completely replace current config)
+ccr import config.toml
+
+# Import without backup
+ccr import config.toml --no-backup
+```
+
+Features:
+- Merge or replace modes
+- Automatic backup before import
+- Configuration validation
+- Detailed import summary
 
 ### version / ver
 Display version information and help
@@ -462,8 +583,9 @@ chmod 644 ~/.ccs_config.toml
 
 - [x] Web interface support
 - [x] RESTful API
-- [ ] Online update functionality
-- [ ] Configuration import/export
+- [x] Online update functionality
+- [x] Configuration import/export
+- [x] Configuration initialization
 - [ ] Configuration template system
 - [ ] More statistics and reports
 - [ ] Cross-platform installation packages
