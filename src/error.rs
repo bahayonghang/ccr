@@ -18,10 +18,6 @@ pub enum CcrError {
     #[error("配置节 '{0}' 不存在")]
     ConfigSectionNotFound(String),
 
-    /// 配置字段缺失
-    #[error("配置 '{section}' 缺少必填字段: {field}")]
-    ConfigFieldMissing { section: String, field: String },
-
     /// 配置格式无效
     #[error("配置格式无效: {0}")]
     ConfigFormatInvalid(String),
@@ -54,14 +50,6 @@ pub enum CcrError {
     #[error("IO 错误: {0}")]
     IoError(#[from] std::io::Error),
 
-    /// 网络错误
-    #[error("网络错误: {0}")]
-    NetworkError(String),
-
-    /// 权限拒绝
-    #[error("权限拒绝: {0}")]
-    PermissionDenied(String),
-
     /// 历史记录错误
     #[error("历史记录错误: {0}")]
     HistoryError(String),
@@ -69,14 +57,6 @@ pub enum CcrError {
     /// 验证失败
     #[error("验证失败: {0}")]
     ValidationError(String),
-
-    /// 无效参数
-    #[error("无效参数: {0}")]
-    InvalidArgument(String),
-
-    /// 未知错误
-    #[error("未知错误: {0}")]
-    Unknown(String),
 }
 
 impl CcrError {
@@ -88,7 +68,6 @@ impl CcrError {
             CcrError::ConfigError(_) => 10,
             CcrError::ConfigMissing(_) => 11,
             CcrError::ConfigSectionNotFound(_) => 12,
-            CcrError::ConfigFieldMissing { .. } => 13,
             CcrError::ConfigFormatInvalid(_) => 14,
             CcrError::SettingsError(_) => 20,
             CcrError::SettingsMissing(_) => 21,
@@ -97,12 +76,8 @@ impl CcrError {
             CcrError::JsonError(_) => 40,
             CcrError::TomlError(_) => 41,
             CcrError::IoError(_) => 50,
-            CcrError::NetworkError(_) => 60,
-            CcrError::PermissionDenied(_) => 70,
             CcrError::HistoryError(_) => 80,
             CcrError::ValidationError(_) => 90,
-            CcrError::InvalidArgument(_) => 100,
-            CcrError::Unknown(_) => 255,
         }
     }
 
@@ -112,10 +87,7 @@ impl CcrError {
     pub fn is_fatal(&self) -> bool {
         matches!(
             self,
-            CcrError::ConfigMissing(_)
-                | CcrError::SettingsMissing(_)
-                | CcrError::PermissionDenied(_)
-                | CcrError::IoError(_)
+            CcrError::ConfigMissing(_) | CcrError::SettingsMissing(_) | CcrError::IoError(_)
         )
     }
 
@@ -136,12 +108,6 @@ impl CcrError {
                     name
                 )
             }
-            CcrError::ConfigFieldMissing { section, field } => {
-                format!(
-                    "配置 '{}' 缺少必填字段: {}\n建议: 请在 ~/.ccs_config.toml 中为配置 '{}' 添加 '{}' 字段",
-                    section, field, section, field
-                )
-            }
             CcrError::SettingsMissing(path) => {
                 format!(
                     "Claude Code 设置文件不存在: {}\n建议: 请确保已安装 Claude Code，或检查 ~/.claude 目录是否存在",
@@ -154,21 +120,9 @@ impl CcrError {
                     resource
                 )
             }
-            CcrError::PermissionDenied(path) => {
-                format!(
-                    "权限拒绝: {}\n建议: 请检查文件权限，确保当前用户有读写权限",
-                    path
-                )
-            }
             CcrError::ValidationError(msg) => {
                 format!(
                     "验证失败: {}\n建议: 运行 'ccr validate' 查看详细的验证报告",
-                    msg
-                )
-            }
-            CcrError::InvalidArgument(msg) => {
-                format!(
-                    "无效参数: {}\n建议: 运行 'ccr help' 查看正确的命令用法",
                     msg
                 )
             }
@@ -194,7 +148,6 @@ mod tests {
     #[test]
     fn test_is_fatal() {
         assert!(CcrError::ConfigMissing("test".into()).is_fatal());
-        assert!(CcrError::PermissionDenied("test".into()).is_fatal());
         assert!(!CcrError::ConfigError("test".into()).is_fatal());
     }
 

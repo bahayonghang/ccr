@@ -123,6 +123,33 @@ struct EnvChangeJson {
     new_value: Option<String>,
 }
 
+/// Settings 响应
+#[derive(Debug, Serialize, Deserialize)]
+struct SettingsResponse {
+    settings: serde_json::Value,
+}
+
+/// Settings 备份响应
+#[derive(Debug, Serialize, Deserialize)]
+struct SettingsBackupsResponse {
+    backups: Vec<BackupItem>,
+}
+
+/// 备份项
+#[derive(Debug, Serialize, Deserialize)]
+struct BackupItem {
+    filename: String,
+    path: String,
+    created_at: String,
+    size_bytes: u64,
+}
+
+/// 恢复 Settings 请求
+#[derive(Debug, Serialize, Deserialize)]
+struct RestoreSettingsRequest {
+    backup_path: String,
+}
+
 /// Web 服务器
 pub struct WebServer {
     config_manager: Arc<ConfigManager>,
@@ -186,7 +213,7 @@ impl WebServer {
             // 静态文件
             (Method::Get, "/") => self.serve_html(),
 
-            // API 路由
+            // API 路由 - 配置管理
             (Method::Get, "/api/configs") => self.handle_list_configs(),
             (Method::Post, "/api/switch") => self.handle_switch_config(&mut request),
             (Method::Post, "/api/config") => self.handle_add_config(&mut request),
@@ -201,6 +228,11 @@ impl WebServer {
             (Method::Get, "/api/history") => self.handle_get_history(&request),
             (Method::Post, "/api/validate") => self.handle_validate(),
             (Method::Post, "/api/clean") => self.handle_clean(&mut request),
+
+            // API 路由 - Settings 管理
+            (Method::Get, "/api/settings") => self.handle_get_settings(),
+            (Method::Get, "/api/settings/backups") => self.handle_get_settings_backups(),
+            (Method::Post, "/api/settings/restore") => self.handle_restore_settings(&mut request),
 
             // 404
             _ => self.serve_404(),
@@ -570,6 +602,88 @@ impl WebServer {
             total_size_mb: total_size as f64 / 1024.0 / 1024.0,
             dry_run: req.dry_run,
         })
+    }
+
+    /// 处理获取 Settings
+    fn handle_get_settings(&self) -> Response<std::io::Cursor<Vec<u8>>> {
+        match self.get_settings_impl() {
+            Ok(data) => self.json_response(ApiResponse::success(data), 200),
+            Err(e) => self.json_response(
+                ApiResponse::<()>::error(e.user_message()),
+                500,
+            ),
+        }
+    }
+
+    fn get_settings_impl(&self) -> Result<SettingsResponse> {
+        let settings = self.settings_manager.load()?;
+        Ok(SettingsResponse {
+            settings: serde_json::to_value(&settings)
+                .map_err(|e| CcrError::ConfigError(format!("序列化设置失败: {}", e)))?,
+        })
+    }
+
+    /// 处理获取 Settings 备份列表
+    fn handle_get_settings_backups(&self) -> Response<std::io::Cursor<Vec<u8>>> {
+        match self.get_settings_backups_impl() {
+            Ok(data) => self.json_response(ApiResponse::success(data), 200),
+            Err(e) => self.json_response(
+                ApiResponse::<()>::error(e.user_message()),
+                500,
+            ),
+        }
+    }
+
+    fn get_settings_backups_impl(&self) -> Result<SettingsBackupsResponse> {
+        let backup_paths = self.settings_manager.list_backups()?;
+
+        let backups: Vec<BackupItem> = backup_paths
+            .iter()
+            .filter_map(|path| {
+                let metadata = std::fs::metadata(path).ok()?;
+                let created_at = metadata.modified().ok()?
+                    .duration_since(std::time::UNIX_EPOCH).ok()?;
+
+                Some(BackupItem {
+                    filename: path.file_name()?.to_string_lossy().to_string(),
+                    path: path.to_string_lossy().to_string(),
+                    created_at: chrono::DateTime::<chrono::Utc>::from(
+                        std::time::UNIX_EPOCH + std::time::Duration::from_secs(created_at.as_secs())
+                    ).to_rfc3339(),
+                    size_bytes: metadata.len(),
+                })
+            })
+            .collect();
+
+        Ok(SettingsBackupsResponse { backups })
+    }
+
+    /// 处理恢复 Settings
+    fn handle_restore_settings(&self, request: &mut Request) -> Response<std::io::Cursor<Vec<u8>>> {
+        match self.restore_settings_impl(request) {
+            Ok(_) => self.json_response(
+                ApiResponse::success("Settings 恢复成功"),
+                200,
+            ),
+            Err(e) => self.json_response(
+                ApiResponse::<()>::error(e.user_message()),
+                500,
+            ),
+        }
+    }
+
+    fn restore_settings_impl(&self, request: &mut Request) -> Result<()> {
+        let mut body = String::new();
+        request.as_reader().read_to_string(&mut body).map_err(|e| {
+            CcrError::ConfigError(format!("读取请求体失败: {}", e))
+        })?;
+
+        let req: RestoreSettingsRequest = serde_json::from_str(&body).map_err(|e| {
+            CcrError::ConfigError(format!("解析请求失败: {}", e))
+        })?;
+
+        self.settings_manager.restore(&req.backup_path)?;
+        Ok(())
     }
 
     /// 创建 JSON 响应

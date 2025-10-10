@@ -4,373 +4,203 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**CCR (Claude Code Configuration Switcher)** is a Rust-based CLI tool for managing Claude Code API configurations with complete audit trail capabilities. Unlike its shell-based counterpart (CCS), CCR directly writes to `~/.claude/settings.json`, providing atomic operations, file locking, and full history tracking.
-
-**Version**: 0.1.0
-**Language**: Rust (Edition 2021)
+CCR (Claude Code Configuration Switcher) is a Rust CLI tool that manages Claude Code configurations by directly manipulating `~/.claude/settings.json`. It provides configuration switching, audit trails, automatic backups, file locking, and a web interface.
 
 ## Development Commands
 
-### Build and Run
+### Building & Running
 
 ```bash
-# Build debug version
-cargo build
+# Quick development cycle
+cargo check              # Fast type checking (recommended during dev)
+cargo build              # Debug build
+cargo build --release    # Optimized release build
 
-# Build optimized release version
-cargo build --release
-
-# Run with debug build
+# Run with arguments
 cargo run -- <command>
+cargo run -- --help
+cargo run -- switch anthropic
 
-# Run release version
-./target/release/ccr <command>
+# Using justfile (if just is installed)
+just build               # Debug build
+just release             # Release build
+just run -- <args>       # Run debug build
+just run-release -- <args>  # Run release build
 ```
 
-### Testing
+### Testing & Code Quality
 
 ```bash
 # Run all tests
 cargo test
+just test
 
-# Run tests with output
-cargo test -- --nocapture
-
-# Run specific test
-cargo test test_config_section_validate
-
-# Run tests in a specific module
-cargo test config::tests
+# Code quality checks
+cargo clippy             # Linting
+just clippy              # Clippy with warnings as errors
+cargo fmt                # Format code
+just fmt
 ```
 
-### Code Quality
+### Installation
 
 ```bash
-# Check compilation without building
-cargo check
+# Install to ~/.cargo/bin
+cargo install --path . --locked
+just install
 
-# Run clippy linter
-cargo clippy
+# Reinstall (force)
+just reinstall
 
-# Format code
-cargo fmt
-
-# Check formatting without modifying
-cargo fmt -- --check
+# Uninstall
+cargo uninstall ccr
+just uninstall
 ```
 
-### Quick Test Commands
+### Documentation
 
 ```bash
-# Test help
-cargo run -- --help
-
-# Test version display
-cargo run -- version
-
-# Test list (requires ~/.ccs_config.toml)
-cargo run -- list
-
-# Test validation
-cargo run -- validate
-
-# Test update check
-cargo run -- update --check
-
-# Test init
-cargo run -- init --help
-
-# Test export
-cargo run -- export --help
-
-# Test import
-cargo run -- import --help
-
-# Test clean
-cargo run -- clean --help
-cargo run -- clean --dry-run
+cargo doc --no-deps      # Generate docs
+cargo doc --no-deps --open  # Generate and open in browser
+just doc-open
 ```
 
-## Architecture Overview
+## Architecture
 
-### Core Design Philosophy
+### Core Modules
 
-CCR follows a **layered architecture** with strict separation of concerns:
+- **`main.rs`**: CLI entry point using `clap` for argument parsing. Implements command routing and error handling with colored output.
 
-```
-CLI Layer (main.rs + commands/)
-    ↓
-Business Logic Layer (config.rs, settings.rs, history.rs)
-    ↓
-Infrastructure Layer (lock.rs, logging.rs, error.rs)
-```
+- **`commands/`**: Individual subcommand implementations:
+  - `list.rs`: Display all configurations with validation status
+  - `current.rs`: Show active configuration details
+  - `switch.rs`: Switch configurations with backup + atomic writes
+  - `validate.rs`: Validate config integrity and settings file
+  - `history_cmd.rs`: Display operation audit trail
+  - `init.rs`: Initialize config file from embedded template
+  - `export.rs` / `import.rs`: Configuration backup/restore
+  - `clean.rs`: Remove old backup files
+  - `update.rs`: Self-update from GitHub
 
-**Key Architectural Decisions**:
+- **`config.rs`**: Configuration file management (`~/.ccs_config.toml`). Handles parsing, validation, and updates. Implements desensitization for sensitive fields.
 
-1. **Atomic Operations**: All file writes use file locks + temp files + atomic rename to ensure data integrity
-2. **Settings Ownership**: CCR directly manages `~/.claude/settings.json` instead of environment variables, making changes immediately effective
-3. **Audit-First**: Every operation is logged to `~/.claude/ccr_history.json` with masked sensitive data
-4. **CCS Compatibility**: Shares `~/.ccs_config.toml` format to allow seamless migration
+- **`settings.rs`**: Claude Code settings manager (`~/.claude/settings.json`). Core functionality:
+  - Atomic writes using temp files + rename
+  - File locking via `fs4` crate (timeout: 10s)
+  - Automatic backup before modifications
+  - Environment variable mapping for `ANTHROPIC_*` keys
 
-### Data Flow: Configuration Switch
+- **`history.rs`**: Operation audit trail (`~/.claude/ccr_history.json`). Records all operations with UUID, timestamp, actor, and environment changes (with secret masking).
 
-The `switch` command demonstrates the complete data flow:
+- **`lock.rs`**: File locking abstraction. Cross-process lock using `fs4` with timeout protection and automatic cleanup via RAII.
 
-```
-1. Read & Validate Target Config (config.rs)
-   └─> ConfigManager::load() → CcsConfig::get_section() → ConfigSection::validate()
+- **`logging.rs`**: Colored terminal output using `colored` crate. Implements `ColorOutput` helper for consistent formatting (banners, key-value pairs, status messages).
 
-2. Backup Current Settings (settings.rs)
-   └─> SettingsManager::backup() → timestamped .bak file
+- **`web.rs`**: Embedded HTTP server using `tiny_http`. Serves static HTML interface and RESTful API for configuration management.
 
-3. Update Claude Settings (settings.rs) ⚡ CRITICAL PATH
-   ├─> LockManager::lock_settings() [acquire file lock]
-   ├─> ClaudeSettings::clear_anthropic_vars() [remove old env vars]
-   ├─> ClaudeSettings::update_from_config() [write new env vars]
-   └─> SettingsManager::save_atomic() [temp file + atomic rename]
+- **`error.rs`**: Custom error types with `thiserror`. Provides user-friendly error messages, exit codes, and fatal error classification.
 
-4. Update Config Pointer (config.rs)
-   └─> ConfigManager::save() → update current_config field
+### Key Design Patterns
 
-5. Record History (history.rs)
-   ├─> HistoryEntry::new() [UUID, timestamp, actor]
-   ├─> add_env_change() [record each var change with masking]
-   └─> HistoryManager::add() [append to history file]
-```
+1. **Atomic Operations**: All file writes use temp file + rename to prevent partial updates
+2. **File Locking**: Ensures multi-process safety when modifying settings
+3. **Audit Trail**: Every operation is logged with timestamp and actor
+4. **Backup Strategy**: Automatic backup before destructive operations
+5. **Desensitization**: API tokens are masked in display/logs (shows first/last chars only)
 
-### Critical Components
-
-#### settings.rs - The Core Differentiator
-
-This module is CCR's primary value proposition. It directly manipulates Claude Code's settings file:
-
-- **Structure**: `ClaudeSettings` has two parts:
-  - `env: HashMap<String, String>` - manages ANTHROPIC_* variables
-  - `other: HashMap<String, Value>` - preserves all other settings untouched (using `#[serde(flatten)]`)
-
-- **Why This Matters**: Traditional approach (CCS) sets shell environment variables, but Claude Code reads from `settings.json` at startup. CCR's direct write ensures immediate effect without shell reload.
-
-- **Atomic Safety**: Uses `NamedTempFile` + `persist()` to guarantee atomic replacement even under crash scenarios.
-
-#### lock.rs - Concurrency Control
-
-Implements cross-process file locking with timeout protection:
-
-- **LockManager** provides named resource locks (config, settings, history)
-- Default timeout: 10 seconds (see `lock_settings()` calls)
-- Lock files stored in `~/.claude/.locks/`
-- Automatic cleanup on `Drop` prevents orphaned locks
-
-#### history.rs - Audit Trail
-
-Complete operation tracking with structured logging:
-
-- Every `HistoryEntry` includes UUID, timestamp, actor (via `whoami` crate)
-- `EnvChange` records track old→new values with automatic masking for TOKEN/KEY/SECRET fields
-- Supports filtering by operation type and time range
-- Statistics generation for reporting
-
-### Module Relationships
+### Critical File Paths
 
 ```
-main.rs
-  ├─> commands/*.rs [CLI handlers]
-  │     └─> All commands use Result<()> for unified error handling
-  │
-  ├─> config.rs [manages ~/.ccs_config.toml]
-  │     └─> ConfigManager ←→ CcsConfig ←→ ConfigSection
-  │
-  ├─> settings.rs [manages ~/.claude/settings.json] ⭐
-  │     ├─> Uses LockManager for concurrency
-  │     ├─> Uses tempfile for atomic writes
-  │     └─> SettingsManager ←→ ClaudeSettings
-  │
-  ├─> history.rs [manages ~/.claude/ccr_history.json]
-  │     └─> HistoryManager ←→ HistoryEntry
-  │
-  ├─> lock.rs [file locking infrastructure]
-  │     └─> LockManager ←→ FileLock (fs4::FileExt)
-  │
-  ├─> logging.rs [colorized output]
-  │     └─> ColorOutput static methods
-  │
-  └─> error.rs [unified error handling]
-        └─> CcrError enum with exit codes
+~/.ccs_config.toml          # Main configuration (shared with CCS shell version)
+~/.claude/settings.json     # Claude Code settings (managed by CCR)
+~/.claude/backups/          # Automatic backups with timestamps
+~/.claude/ccr_history.json  # Operation audit trail
+~/.claude/.locks/           # File lock directory
 ```
 
-## Important Files and Paths
+## Development Guidelines
 
-### Runtime Files (User's System)
+### Adding New Commands
 
-- `~/.ccs_config.toml` - Configuration source (shared with CCS)
-- `~/.claude/settings.json` - Target file CCR modifies
-- `~/.claude/ccr_history.json` - Operation audit log
-- `~/.claude/backups/*.bak` - Automatic backups with timestamps
-- `~/.claude/.locks/*.lock` - Temporary lock files
+1. Create new module in `src/commands/<name>.rs`
+2. Implement command function with signature: `fn command() -> Result<(), CcrError>`
+3. Export in `src/commands/mod.rs`
+4. Add command variant in `main.rs` `Commands` enum with clap attributes
+5. Route command in `main.rs` match statement
 
-### Source Code Structure
+### Error Handling
 
-```
-src/
-├── main.rs (165 lines)           # CLI entry, clap parser
-├── error.rs (200 lines)          # CcrError enum, exit codes
-├── logging.rs (250 lines)        # ColorOutput utilities
-├── lock.rs (250 lines)           # FileLock, LockManager
-├── config.rs (350 lines)         # Config TOML management
-├── settings.rs (400 lines)       # Settings JSON management ⭐
-├── history.rs (400 lines)        # Audit trail management
-├── web.rs (490 lines)            # Web server and API
-└── commands/ (1400+ lines total) # CLI command implementations
-    ├── list.rs
-    ├── current.rs
-    ├── switch.rs
-    ├── validate.rs
-    ├── history_cmd.rs
-    ├── update.rs                 # Self-update functionality
-    ├── init.rs                   # Configuration initialization
-    ├── export.rs                 # Configuration export
-    ├── import.rs                 # Configuration import
-    └── clean.rs                  # Backup cleanup
-```
+- Use `CcrError` types from `error.rs`
+- Fatal errors return exit code 1, non-fatal return 0
+- Provide user-friendly messages via `user_message()` method
+- Use `ColorOutput` for consistent error display
 
-## Key Implementation Details
+### File Operations
 
-### Error Handling Strategy
+- **Read before write**: Always read existing file before modifications to ensure Edit tool compatibility
+- **Use settings manager**: Always use `SettingsManager` methods for `settings.json` operations to ensure locking/backup
+- **Use config manager**: Use `ConfigManager` for `~/.ccs_config.toml` operations to ensure validation
+- **Atomic writes**: Use `tempfile` + `fs::rename` for atomic updates
 
-All functions return `Result<T>` (aliased to `std::result::Result<T, CcrError>`):
+### Testing Approach
 
-- **13 error types** with specific exit codes (10-255 range)
-- `is_fatal()` method determines if program should immediately exit
-- `user_message()` provides localized, actionable error messages
-- Errors propagate with `?` operator, caught in `main()` for display
+- Unit tests for individual modules
+- Integration tests for command workflows
+- Mock file system operations where appropriate
+- Test error cases and edge conditions
 
-### Sensitive Data Masking
+## Common Tasks
 
-Implemented in multiple layers:
+### Running a Single Test
 
-1. **Display Level**: `ColorOutput::mask_sensitive()` - shows first 4 + last 4 chars
-2. **History Level**: `HistoryEntry::add_env_change()` - auto-detects TOKEN/KEY/SECRET in var names
-3. **CLI Output**: All commands use `mask_sensitive()` before printing tokens
-
-### File Format Compatibility
-
-**TOML (config.rs)**:
-- Uses `toml` crate for parsing `~/.ccs_config.toml`
-- Must preserve all fields when updating `current_config`
-- Supports both `"quoted"` and `'single-quoted'` strings
-
-**JSON (settings.rs)**:
-- Uses `serde_json` with pretty printing
-- `#[serde(flatten)]` preserves unknown fields
-- Only modifies `env` object, leaving other settings intact
-
-## Development Workflows
-
-### Adding a New Command
-
-1. Create `src/commands/newcmd.rs`:
-```rust
-use crate::error::Result;
-use crate::logging::ColorOutput;
-
-pub fn newcmd_command(args: YourArgs) -> Result<()> {
-    // Implementation
-    Ok(())
-}
-```
-
-2. Export in `src/commands/mod.rs`:
-```rust
-pub mod newcmd;
-pub use newcmd::newcmd_command;
-```
-
-3. Add to CLI in `src/main.rs`:
-```rust
-enum Commands {
-    // ...
-    Newcmd { /* args */ },
-}
-
-// In match block:
-Some(Commands::Newcmd { /* args */ }) => commands::newcmd_command(args),
-```
-
-### Modifying Settings Write Logic
-
-**CRITICAL**: Always acquire lock before modifying `settings.json`:
-
-```rust
-let settings_manager = SettingsManager::default()?;
-let _lock = settings_manager.lock_manager
-    .lock_settings(Duration::from_secs(10))?;  // Must hold lock
-
-// Safe to modify now
-settings_manager.save_atomic(&new_settings)?;
-```
-
-### Testing Configuration Changes
-
-Since CCR modifies real system files, use temporary directories for testing:
-
-```rust
-#[test]
-fn test_settings() {
-    let temp_dir = tempfile::tempdir().unwrap();
-    let settings_path = temp_dir.path().join("settings.json");
-    let lock_dir = temp_dir.path().join("locks");
-
-    let lock_manager = LockManager::new(lock_dir);
-    let manager = SettingsManager::new(settings_path, backup_dir, lock_manager);
-
-    // Test operations
-}
-```
-
-## Troubleshooting Development Issues
-
-### Compilation Warnings About Unused Code
-
-Some methods are intentionally unused as they're part of the public API for future features (e.g., `restore`, `list_backups`). This is expected and can be ignored.
-
-### Lock Timeout During Testing
-
-If tests hang, check for leaked locks:
 ```bash
-# Check lock files
-ls -la ~/.claude/.locks/
-
-# Force cleanup
-rm -rf ~/.claude/.locks/*
+cargo test test_name
+cargo test config::tests::test_validation
 ```
 
-### Type Mismatches in Commands
+### Debugging File Operations
 
-When working with references in loops over `config.list_sections()`:
-```rust
-// ❌ Wrong: takes ownership
-for section_name in sections {
-    let is_current = section_name == config.current_config; // Type mismatch
-}
-
-// ✅ Correct: borrows
-for section_name in &sections {
-    let is_current = section_name == &config.current_config;
-}
+Set log level to see detailed operation logs:
+```bash
+export CCR_LOG_LEVEL=debug  # trace, debug, info, warn, error
+ccr switch anthropic
 ```
 
-## CCS Compatibility Notes
+### Testing Web Interface Locally
 
-CCR maintains full compatibility with CCS (the shell version):
+```bash
+cargo run -- web --port 8080
+# Opens browser automatically to http://localhost:8080
+```
 
-- **Shared Config**: Both read/write `~/.ccs_config.toml`
-- **Migration Path**: Users can switch between `ccs` and `ccr` commands freely
-- **Behavioral Difference**: CCR writes to `settings.json` directly, CCS sets environment variables
+### Release Process
 
-When modifying config format, ensure backwards compatibility with CCS shell scripts.
+The project uses optimized release profile (Cargo.toml):
+- LTO enabled for smaller binary size
+- Symbols stripped for production
+- Single codegen unit for maximum optimization
 
-## Related Documentation
+```bash
+cargo build --release
+ls -lh target/release/ccr  # Check binary size
+```
 
-- `CCR_DESIGN.md` - Detailed design specification
-- `README.md` - User-facing documentation
-- `../CLAUDE.md` - CCS project guidance (parent directory)
+## Dependencies
+
+Key dependencies and their purposes:
+- `clap`: CLI argument parsing with derive macros
+- `serde`/`toml`/`serde_json`: Configuration serialization
+- `anyhow`/`thiserror`: Error handling
+- `fs4`: Cross-platform file locking
+- `tempfile`: Safe temporary file creation for atomic writes
+- `colored`: Terminal color output
+- `tiny_http`: Embedded web server
+- `whoami`: Current user identification for audit trail
+- `uuid`: Unique operation IDs for history tracking
+
+## Compatibility Notes
+
+CCR is designed to be fully compatible with CCS (shell implementation):
+- Shares same configuration file format (`~/.ccs_config.toml`)
+- Can coexist and alternate usage between CCR and CCS
+- Configuration changes made by either tool are immediately visible to the other

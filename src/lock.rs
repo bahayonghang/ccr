@@ -66,15 +66,6 @@ impl FileLock {
             }
         }
     }
-
-    /// 释放锁
-    pub fn unlock(self) -> Result<()> {
-        self.file
-            .unlock()
-            .map_err(|e| CcrError::FileLockError(format!("释放锁失败: {}", e)))?;
-        log::debug!("释放文件锁: {:?}", self.lock_path);
-        Ok(())
-    }
 }
 
 impl Drop for FileLock {
@@ -117,12 +108,6 @@ impl LockManager {
         self.lock_dir.join(format!("{}.lock", resource_name))
     }
 
-    /// 获取配置文件锁
-    pub fn lock_config(&self, timeout: Duration) -> Result<FileLock> {
-        let lock_path = self.create_lock_path("ccs_config");
-        FileLock::new(lock_path, timeout)
-    }
-
     /// 获取设置文件锁
     pub fn lock_settings(&self, timeout: Duration) -> Result<FileLock> {
         let lock_path = self.create_lock_path("claude_settings");
@@ -134,66 +119,6 @@ impl LockManager {
         let lock_path = self.create_lock_path("ccr_history");
         FileLock::new(lock_path, timeout)
     }
-
-    /// 获取自定义资源锁
-    pub fn lock_resource(&self, resource_name: &str, timeout: Duration) -> Result<FileLock> {
-        let lock_path = self.create_lock_path(resource_name);
-        FileLock::new(lock_path, timeout)
-    }
-
-    /// 清理过期的锁文件
-    ///
-    /// 删除所有超过指定时间未被修改的锁文件
-    pub fn cleanup_stale_locks(&self, max_age: Duration) -> Result<usize> {
-        if !self.lock_dir.exists() {
-            return Ok(0);
-        }
-
-        let mut cleaned = 0;
-        let now = std::time::SystemTime::now();
-
-        for entry in fs::read_dir(&self.lock_dir)
-            .map_err(|e| CcrError::FileLockError(format!("读取锁目录失败: {}", e)))?
-        {
-            let entry =
-                entry.map_err(|e| CcrError::FileLockError(format!("读取目录项失败: {}", e)))?;
-            let path = entry.path();
-
-            // 只处理 .lock 文件
-            if !path.extension().map_or(false, |ext| ext == "lock") {
-                continue;
-            }
-
-            // 检查文件修改时间
-            if let Ok(metadata) = fs::metadata(&path) {
-                if let Ok(modified) = metadata.modified() {
-                    if let Ok(age) = now.duration_since(modified) {
-                        if age > max_age {
-                            // 尝试删除过期锁文件
-                            if fs::remove_file(&path).is_ok() {
-                                log::info!("清理过期锁文件: {:?}", path);
-                                cleaned += 1;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(cleaned)
-    }
-}
-
-/// 创建标准锁路径
-///
-/// 统一生成锁文件路径的辅助函数
-pub fn create_lock_path(resource_name: &str) -> Result<PathBuf> {
-    let home = dirs::home_dir()
-        .ok_or_else(|| CcrError::FileLockError("无法获取用户主目录".into()))?;
-    Ok(home
-        .join(".claude")
-        .join(".locks")
-        .join(format!("{}.lock", resource_name)))
 }
 
 #[cfg(test)]
@@ -207,13 +132,12 @@ mod tests {
         let lock_path = temp_dir.path().join("test.lock");
 
         // 获取锁
-        let lock = FileLock::new(&lock_path, Duration::from_secs(5)).unwrap();
+        let _lock = FileLock::new(&lock_path, Duration::from_secs(5)).unwrap();
 
         // 锁应该被持有
         assert!(lock_path.exists());
 
-        // 释放锁
-        lock.unlock().unwrap();
+        // 锁在作用域结束时自动释放
     }
 
     #[test]
@@ -234,12 +158,12 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let manager = LockManager::new(temp_dir.path());
 
-        let lock = manager
-            .lock_resource("test_resource", Duration::from_secs(5))
+        let _lock = manager
+            .lock_settings(Duration::from_secs(5))
             .unwrap();
-        assert!(temp_dir.path().join("test_resource.lock").exists());
+        assert!(temp_dir.path().join("claude_settings.lock").exists());
 
-        lock.unlock().unwrap();
+        // 锁在作用域结束时自动释放
     }
 
     #[test]

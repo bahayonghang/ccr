@@ -95,33 +95,6 @@ impl ColorOutput {
         println!("{}{}: {}", padding, key.bold(), masked.dimmed());
     }
 
-    /// 输出表格标题
-    pub fn table_header(columns: &[&str]) {
-        let header = columns
-            .iter()
-            .map(|c| c.bold().to_string())
-            .collect::<Vec<_>>()
-            .join(" │ ");
-        println!("{}", header);
-        Self::separator();
-    }
-
-    /// 输出表格行
-    pub fn table_row(cells: &[&str]) {
-        let row = cells.join(" │ ");
-        println!("{}", row);
-    }
-
-    /// 输出进度指示器
-    pub fn progress(current: usize, total: usize, msg: &str) {
-        let percentage = (current as f32 / total as f32 * 100.0) as usize;
-        print!("\r{} [{}/{}] {}%", msg, current, total, percentage);
-        io::stdout().flush().unwrap();
-        if current == total {
-            println!(); // 完成后换行
-        }
-    }
-
     /// 输出当前配置标记（带颜色）
     pub fn current_marker() -> String {
         "▶".green().bold().to_string()

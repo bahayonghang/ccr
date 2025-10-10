@@ -69,12 +69,6 @@ impl ConfigSection {
         Ok(())
     }
 
-    /// 判断配置是否完整可用
-    pub fn is_complete(&self) -> bool {
-        self.base_url.as_ref().map_or(false, |s| !s.trim().is_empty())
-            && self.auth_token.as_ref().map_or(false, |s| !s.trim().is_empty())
-    }
-
     /// 获取配置的人类可读描述
     pub fn display_description(&self) -> String {
         self.description
@@ -100,15 +94,6 @@ pub struct CcsConfig {
 }
 
 impl CcsConfig {
-    /// 创建新的配置
-    pub fn new(default_config: String) -> Self {
-        Self {
-            current_config: default_config.clone(),
-            default_config,
-            sections: HashMap::new(),
-        }
-    }
-
     /// 获取指定配置节
     pub fn get_section(&self, name: &str) -> Result<&ConfigSection> {
         self.sections
@@ -230,68 +215,6 @@ impl ConfigManager {
         log::debug!("配置文件已保存: {:?}", self.config_path);
         Ok(())
     }
-
-    /// 更新当前配置并保存
-    pub fn update_current(&self, config_name: &str) -> Result<()> {
-        let mut config = self.load()?;
-        config.set_current(config_name)?;
-        self.save(&config)?;
-        Ok(())
-    }
-
-    /// 备份配置文件
-    pub fn backup(&self) -> Result<PathBuf> {
-        if !self.config_path.exists() {
-            return Err(CcrError::ConfigMissing(
-                self.config_path.display().to_string(),
-            ));
-        }
-
-        let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-        let backup_path = self
-            .config_path
-            .with_extension(format!("toml.{}.bak", timestamp));
-
-        fs::copy(&self.config_path, &backup_path).map_err(|e| {
-            CcrError::ConfigError(format!("备份配置文件失败: {}", e))
-        })?;
-
-        log::info!("配置文件已备份: {:?}", backup_path);
-        Ok(backup_path)
-    }
-
-    /// 从备份恢复配置文件
-    pub fn restore<P: AsRef<Path>>(&self, backup_path: P) -> Result<()> {
-        let backup_path = backup_path.as_ref();
-
-        if !backup_path.exists() {
-            return Err(CcrError::ConfigMissing(
-                backup_path.display().to_string(),
-            ));
-        }
-
-        // 先验证备份文件是否有效
-        let content = fs::read_to_string(backup_path).map_err(|e| {
-            CcrError::ConfigError(format!("读取备份文件失败: {}", e))
-        })?;
-
-        let _: CcsConfig = toml::from_str(&content).map_err(|e| {
-            CcrError::ConfigFormatInvalid(format!("备份文件格式无效: {}", e))
-        })?;
-
-        // 恢复前先备份当前配置
-        if self.config_path.exists() {
-            self.backup()?;
-        }
-
-        // 执行恢复
-        fs::copy(backup_path, &self.config_path).map_err(|e| {
-            CcrError::ConfigError(format!("恢复配置文件失败: {}", e))
-        })?;
-
-        log::info!("配置文件已从备份恢复: {:?}", backup_path);
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -325,18 +248,12 @@ mod tests {
     }
 
     #[test]
-    fn test_config_section_is_complete() {
-        let section = create_test_section();
-        assert!(section.is_complete());
-
-        let mut incomplete = section.clone();
-        incomplete.auth_token = None;
-        assert!(!incomplete.is_complete());
-    }
-
-    #[test]
     fn test_ccs_config() {
-        let mut config = CcsConfig::new("default".into());
+        let mut config = CcsConfig {
+            default_config: "default".into(),
+            current_config: "default".into(),
+            sections: HashMap::new(),
+        };
         assert_eq!(config.default_config, "default");
         assert_eq!(config.current_config, "default");
 
@@ -357,7 +274,11 @@ mod tests {
         let config_path = temp_dir.path().join("test_config.toml");
 
         // 创建测试配置
-        let mut config = CcsConfig::new("test".into());
+        let mut config = CcsConfig {
+            default_config: "test".into(),
+            current_config: "test".into(),
+            sections: HashMap::new(),
+        };
         config.set_section("test".into(), create_test_section());
 
         // 保存
@@ -369,31 +290,5 @@ mod tests {
         let loaded = manager.load().unwrap();
         assert_eq!(loaded.default_config, "test");
         assert!(loaded.get_section("test").is_ok());
-    }
-
-    #[test]
-    fn test_config_manager_backup_restore() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let config_path = temp_dir.path().join("test_config.toml");
-
-        // 创建原始配置
-        let mut config = CcsConfig::new("original".into());
-        config.set_section("test".into(), create_test_section());
-
-        let manager = ConfigManager::new(&config_path);
-        manager.save(&config).unwrap();
-
-        // 备份
-        let backup_path = manager.backup().unwrap();
-        assert!(backup_path.exists());
-
-        // 修改配置
-        config.default_config = "modified".into();
-        manager.save(&config).unwrap();
-
-        // 恢复
-        manager.restore(&backup_path).unwrap();
-        let restored = manager.load().unwrap();
-        assert_eq!(restored.default_config, "original");
     }
 }

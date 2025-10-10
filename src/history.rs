@@ -49,16 +49,6 @@ pub enum OperationResult {
     Warning(String),
 }
 
-impl OperationResult {
-    pub fn is_success(&self) -> bool {
-        matches!(self, OperationResult::Success)
-    }
-
-    pub fn is_failure(&self) -> bool {
-        matches!(self, OperationResult::Failure(_))
-    }
-}
-
 /// 环境变量变更记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnvChange {
@@ -150,12 +140,6 @@ impl HistoryEntry {
             value.to_string()
         }
     }
-
-    /// 设置备注
-    pub fn set_notes(mut self, notes: String) -> Self {
-        self.notes = Some(notes);
-        self
-    }
 }
 
 /// 历史记录管理器
@@ -245,19 +229,6 @@ impl HistoryManager {
         Ok(entries.into_iter().filter(|e| e.operation == op_type).collect())
     }
 
-    /// 按时间范围筛选
-    pub fn filter_by_time_range(
-        &self,
-        start: DateTime<Local>,
-        end: DateTime<Local>,
-    ) -> Result<Vec<HistoryEntry>> {
-        let entries = self.load()?;
-        Ok(entries
-            .into_iter()
-            .filter(|e| e.timestamp >= start && e.timestamp <= end)
-            .collect())
-    }
-
     /// 获取最近的 N 条记录
     pub fn get_recent(&self, limit: usize) -> Result<Vec<HistoryEntry>> {
         let mut entries = self.load()?;
@@ -290,25 +261,6 @@ impl HistoryManager {
         }
 
         Ok(stats)
-    }
-
-    /// 清理旧记录
-    pub fn cleanup_old(&self, max_age_days: i64) -> Result<usize> {
-        let _lock = self.lock_manager.lock_history(Duration::from_secs(10))?;
-
-        let entries = self.load()?;
-        let cutoff = Local::now() - chrono::Duration::days(max_age_days);
-
-        let original_count = entries.len();
-        let filtered: Vec<_> = entries.into_iter().filter(|e| e.timestamp >= cutoff).collect();
-        let removed_count = original_count - filtered.len();
-
-        if removed_count > 0 {
-            self.save(&filtered)?;
-            log::info!("清理了 {} 条旧的历史记录", removed_count);
-        }
-
-        Ok(removed_count)
     }
 }
 
@@ -350,16 +302,6 @@ mod tests {
     fn test_operation_type() {
         assert_eq!(OperationType::Switch.as_str(), "切换配置");
         assert_eq!(OperationType::Backup.as_str(), "备份");
-    }
-
-    #[test]
-    fn test_operation_result() {
-        assert!(OperationResult::Success.is_success());
-        assert!(!OperationResult::Success.is_failure());
-
-        let failure = OperationResult::Failure("error".into());
-        assert!(failure.is_failure());
-        assert!(!failure.is_success());
     }
 
     #[test]
