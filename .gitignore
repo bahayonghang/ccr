@@ -44,3 +44,6 @@ Thumbs.db
 *~
 # CLion
 cmake-build-*/
+
+.cursor/
+.claude/
