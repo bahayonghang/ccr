@@ -304,8 +304,9 @@ source ~/.bashrc  # 或 ~/.zshrc
 
 ## 🔗 相关资源
 
-- [安装指南](/installation/)
-- [命令参考](/commands/)
-- [常见问题](/installation/troubleshooting)
+- [项目主页](https://github.com/bahayonghang/ccr)
+- [完整文档 README](https://github.com/bahayonghang/ccr/blob/main/README.md)
+- [开发指南 CLAUDE.md](https://github.com/bahayonghang/ccr/blob/main/CLAUDE.md)
+- [更新日志](./changelog)
 - [GitHub Issues](https://github.com/bahayonghang/ccs/issues)
 

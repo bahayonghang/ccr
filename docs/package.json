@@ -1,37 +1,25 @@
 {
   "name": "ccr-docs",
-  "version": "0.2.0",
-  "description": "CCR (Claude Code Configuration Switcher) 技术文档",
-  "main": "index.js",
+  "version": "1.0.0",
+  "description": "Documentation for CCR - Claude Code Configuration Switcher",
+  "type": "module",
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",
-    "preview": "vitepress preview",
-    "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "preview": "vitepress preview"
   },
   "keywords": [
     "ccr",
     "claude",
-    "rust",
     "configuration",
-    "api-router"
+    "documentation"
   ],
-  "author": "Yonghang Li",
+  "author": "",
   "license": "MIT",
-  "type": "commonjs",
   "devDependencies": {
-    "vitepress": "^1.6.4",
-    "vitepress-plugin-mermaid": "^2.0.17",
-    "vue": "^3.5.22"
-  },
-  "dependencies": {
-    "@catppuccin/vitepress": "^0.1.2",
-    "mermaid": "^11.12.0"
+    "vitepress": "^1.0.0"
   },
   "overrides": {
-    "esbuild": "^0.25.10"
+    "esbuild": "^0.25.0"
   }
 }
-

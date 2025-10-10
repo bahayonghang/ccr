@@ -644,9 +644,6 @@ chmod 644 ~/.ccs_config.toml
 - [x] Online update functionality
 - [x] Configuration import/export
 - [x] Configuration initialization
-- [ ] Configuration template system
-- [ ] More statistics and reports
-- [ ] Cross-platform installation packages
 
 ## 📄 License
 

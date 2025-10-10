@@ -1,29 +1,3 @@
-# Dependencies
-node_modules/
-# Note: package-lock.json is tracked to lock dependency versions for security
-
-# VitePress build output
-.vitepress/dist/
-.vitepress/cache/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Temporary files
-*.tmp
-*.temp
-
-package-lock.json
+node_modules
+.vitepress/cache
+.vitepress/dist

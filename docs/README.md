@@ -1,166 +1,111 @@
-# CCR 文档中心
+# CCR Documentation
 
-欢迎来到 CCR (Claude Code Configuration Switcher) 文档中心！
+This directory contains the documentation for CCR (Claude Code Configuration Switcher), built with VitePress.
 
-## 📚 文档索引
+## Quick Start
 
-### 快速开始
-- [主 README](../README.md) - 项目概述、快速开始和基本使用
-- [中文 README](../README_CN.md) - 中文版项目文档
+### Using Just (Recommended)
 
-### 功能文档
-- [**完整功能说明** (FEATURES.md)](./FEATURES.md) ⭐ **推荐阅读**
-  - 所有功能的详细说明
-  - 命令参考和使用场景
-  - 最佳实践和故障排除
+If you have [just](https://github.com/casey/just) installed:
 
-- [配置初始化、导入导出 (INIT_IMPORT_EXPORT.md)](./INIT_IMPORT_EXPORT.md)
-  - init 命令详细说明
-  - export/import 功能使用
-  - 安全考虑和最佳实践
-
-### 开发文档
-- [开发指南 (CLAUDE.md)](../CLAUDE.md)
-  - 项目架构和设计
-  - 开发命令和测试
-  - 模块关系和代码结构
-
-## 📖 按主题浏览
-
-### 配置管理
 ```bash
-# 初始化配置
-参见: FEATURES.md > 配置初始化
+# 查看所有可用命令
+just
 
-# 列出和切换配置
-参见: FEATURES.md > 配置列表、配置切换
+# 安装依赖
+just install
 
-# 验证配置
-参见: FEATURES.md > 配置验证
+# 启动开发服务器
+just dev
+
+# 构建生产版本
+just build
+
+# 预览生产版本
+just preview
 ```
 
-### 导入导出
-```bash
-# 详细的导入导出指南
-参见: INIT_IMPORT_EXPORT.md
+### Using npm
 
-# 快速参考
-参见: FEATURES.md > 配置导出、配置导入
+```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 预览生产版本
+npm run preview
 ```
 
-### 高级功能
-```bash
-# 操作历史
-参见: FEATURES.md > 操作历史
+## Available Just Commands
 
-# Web 界面
-参见: FEATURES.md > Web 界面
+| Command | Description |
+|---------|-------------|
+| `just install` | 安装依赖 |
+| `just dev` | 启动开发服务器 |
+| `just build` | 构建生产版本 |
+| `just preview` | 预览生产构建 |
+| `just clean` | 清理构建文件和缓存 |
+| `just clean-all` | 完全清理（包括 node_modules） |
+| `just reinstall` | 重新安装依赖 |
+| `just audit` | 检查安全漏洞 |
+| `just audit-fix` | 修复安全漏洞 |
+| `just update` | 更新依赖 |
+| `just outdated` | 检查过期依赖 |
+| `just rebuild` | 快速重建 |
+| `just verify` | 验证构建 |
+| `just setup` | 开发环境完整设置 |
+| `just deploy` | 生产部署准备 |
 
-# 自动更新
-参见: FEATURES.md > 自动更新
+## Documentation Structure
+
+```
+docs/
+├── .vitepress/
+│   └── config.mjs          # VitePress configuration
+├── commands/               # Command documentation
+│   ├── index.md            # Commands overview
+│   ├── init.md             # init command
+│   ├── list.md             # list command
+│   ├── current.md          # current command
+│   ├── switch.md           # switch command
+│   ├── validate.md         # validate command
+│   ├── history.md          # history command
+│   ├── web.md              # web command
+│   ├── export.md           # export command
+│   ├── import.md           # import command
+│   ├── clean.md            # clean command
+│   ├── update.md           # update command
+│   └── version.md          # version command
+├── public/
+│   └── logo.svg            # Project logo
+├── index.md                # Home page
+├── quick-start.md          # Quick start guide
+├── configuration.md        # Configuration management
+├── changelog.md            # Change log
+├── migration.md            # Migration guide
+├── package.json            # Node.js dependencies
+└── justfile                # Build automation
 ```
 
-## 🎯 常见任务
+## Contributing
 
-### 首次使用 CCR
-1. 阅读 [README.md](../README.md) 了解基本概念
-2. 执行 `ccr init` 初始化配置
-3. 参考 [INIT_IMPORT_EXPORT.md](./INIT_IMPORT_EXPORT.md) 配置服务
+When adding new documentation:
 
-### 备份和迁移
-1. 参考 [INIT_IMPORT_EXPORT.md](./INIT_IMPORT_EXPORT.md) > 使用场景
-2. 使用 `ccr export` 导出配置
-3. 使用 `ccr import` 导入配置
+1. Create a new `.md` file in the `docs/` directory
+2. Update `.vitepress/config.mjs` to include the new page in navigation/sidebar
+3. Use VitePress markdown features for enhanced documentation
 
-### 团队协作
-1. 参考 [FEATURES.md](./FEATURES.md) > 使用场景 > 团队协作
-2. 使用 `ccr export --no-secrets` 创建模板
-3. 团队成员使用 `ccr import --merge` 导入
+## VitePress Features
 
-### 开发和贡献
-1. 阅读 [CLAUDE.md](../CLAUDE.md) 了解项目架构
-2. 参考开发命令进行本地开发
-3. 运行测试确保代码质量
+- **Markdown Extensions**: Enhanced markdown with syntax highlighting, code groups, and more
+- **Vue Components**: Use Vue components in markdown
+- **Search**: Built-in local search functionality
+- **Theme Customization**: Customizable default theme
+- **Internationalization**: Multi-language support (if needed)
 
-## 🔍 快速查找
-
-### 命令帮助
-```bash
-# 查看所有命令
-ccr --help
-
-# 查看特定命令帮助
-ccr <command> --help
-```
-
-### 按命令查找
-
-| 命令 | 文档位置 |
-|------|---------|
-| `ccr init` | [FEATURES.md](./FEATURES.md#1-配置初始化-init) |
-| `ccr list` | [FEATURES.md](./FEATURES.md#2-配置列表-list) |
-| `ccr switch` | [FEATURES.md](./FEATURES.md#3-配置切换-switch) |
-| `ccr current` | [FEATURES.md](./FEATURES.md#4-当前状态-current) |
-| `ccr validate` | [FEATURES.md](./FEATURES.md#5-配置验证-validate) |
-| `ccr export` | [FEATURES.md](./FEATURES.md#6-配置导出-export) + [INIT_IMPORT_EXPORT.md](./INIT_IMPORT_EXPORT.md#export-命令) |
-| `ccr import` | [FEATURES.md](./FEATURES.md#7-配置导入-import) + [INIT_IMPORT_EXPORT.md](./INIT_IMPORT_EXPORT.md#import-命令) |
-| `ccr history` | [FEATURES.md](./FEATURES.md#8-操作历史-history) |
-| `ccr web` | [FEATURES.md](./FEATURES.md#9-web-界面-web) |
-| `ccr update` | [FEATURES.md](./FEATURES.md#10-自动更新-update) |
-
-## 📝 文档版本
-
-| 文档 | 版本 | 最后更新 |
-|------|------|---------|
-| FEATURES.md | v0.2.3 | 2024-01-10 |
-| INIT_IMPORT_EXPORT.md | v0.2.3 | 2024-01-10 |
-| README.md | v0.2.3 | 2024-01-10 |
-| CLAUDE.md | v0.2.3 | 2024-01-10 |
-
-## 🆕 最新功能
-
-### v0.2.3 新增功能
-- ✅ **配置初始化** (`ccr init`) - 从模板快速创建配置
-- ✅ **配置导出** (`ccr export`) - 默认包含密钥，方便迁移
-- ✅ **配置导入** (`ccr import`) - 支持合并和替换模式
-
-详细说明请参阅:
-- [FEATURES.md](./FEATURES.md)
-- [INIT_IMPORT_EXPORT.md](./INIT_IMPORT_EXPORT.md)
-
-## 💡 提示
-
-### 新用户
-建议按以下顺序阅读：
-1. [README.md](../README.md) - 了解 CCR 是什么
-2. [FEATURES.md](./FEATURES.md) - 了解所有功能
-3. [INIT_IMPORT_EXPORT.md](./INIT_IMPORT_EXPORT.md) - 学习配置管理
-
-### 高级用户
-直接跳转到：
-- [FEATURES.md](./FEATURES.md) - 查看高级功能
-- [CLAUDE.md](../CLAUDE.md) - 了解内部实现
-
-### 开发者
-重点阅读：
-- [CLAUDE.md](../CLAUDE.md) - 项目架构
-- [FEATURES.md](./FEATURES.md) - API 和命令参考
-
-## 🔗 相关链接
-
-- [GitHub 仓库](https://github.com/bahayonghang/ccr)
-- [问题反馈](https://github.com/bahayonghang/ccr/issues)
-- [贡献指南](../README.md#contributing)
-
-## 📮 获取帮助
-
-如果你在使用过程中遇到问题：
-
-1. **查看文档**: 先查看相关文档
-2. **命令帮助**: 运行 `ccr <command> --help`
-3. **故障排除**: 参考 [FEATURES.md](./FEATURES.md#故障排除)
-4. **提交 Issue**: 在 GitHub 上提交问题
-
----
-
-**欢迎贡献！** 如果你发现文档有误或需要改进，请提交 PR。
+For more information, visit [VitePress Documentation](https://vitepress.dev/).
