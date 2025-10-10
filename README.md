@@ -312,10 +312,10 @@ ccr web --port 3000
 ```
 
 ### update
-Check for and install the latest version of CCR
+Update CCR to the latest version from GitHub
 
 ```bash
-# Check for updates only
+# Check what will be updated
 ccr update --check
 
 # Update to latest version
@@ -323,10 +323,19 @@ ccr update
 ```
 
 Features:
-- Automatically downloads from GitHub releases
-- Platform-specific binary selection
-- Atomic update with backup
-- Installation verification
+- Uses `cargo install --git` to get the latest code
+- Always gets the latest commit from GitHub
+- Requires Rust toolchain (cargo)
+- Automatic confirmation before updating
+
+Requirements:
+- Rust and Cargo must be installed
+- Network access to GitHub
+
+Equivalent to running:
+```bash
+cargo install --git https://github.com/bahayonghang/ccr --force
+```
 
 ### export
 Export configuration to a file

@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "0.2.4"
+version = "0.3.0"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher - Configuration management tool with complete audit trail"
@@ -44,13 +44,6 @@ colored = "3.0.0"
 
 # 时间戳与格式化
 chrono = { version = "0.4.42", features = ["serde"] }
-
-# 网络请求与异步（update命令预留）
-reqwest = { version = "0.12.23", features = ["json", "blocking"] }
-tokio = { version = "1", features = ["full"] }
-
-# 自更新功能
-self_update = { version = "0.42", features = ["archive-tar", "compression-flate2"] }
 
 # 当前操作者识别
 whoami = "1.5"

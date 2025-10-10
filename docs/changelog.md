@@ -41,6 +41,18 @@ CCR 的所有重要变更都会记录在本文件中。
 
 ### 🔧 改进
 
+- **Init 命令安全性增强**:
+  - 如果配置文件已存在，直接提示并退出（不覆盖）
+  - 必须使用 `--force` 参数才能覆盖
+  - 使用 `--force` 时自动备份现有配置
+  - 提供有用的后续操作提示
+
+- **Update 命令简化**:
+  - 改为直接执行 `cargo install --git` 命令
+  - 移除对 self_update、reqwest、tokio 的依赖
+  - 减小二进制大小
+  - 网络错误时提供友好的解决方案提示
+
 - **导出默认行为优化**: 
   - 从默认不包含密钥改为默认包含密钥
   - 参数从 `--include-secrets` 改为 `--no-secrets`
@@ -49,8 +61,15 @@ CCR 的所有重要变更都会记录在本文件中。
 - **文档体系完善**:
   - 新增 `docs/FEATURES.md` - 完整功能说明（12KB）
   - 新增 `docs/INIT_IMPORT_EXPORT.md` - 详细的导入导出指南（11KB）
+  - 新增 `docs/CLEAN_FEATURE.md` - 备份清理详细指南
   - 新增 `docs/README.md` - 文档中心索引
   - 更新所有相关文档
+
+- **Web 界面增强**:
+  - 集成备份清理功能
+  - 新增清理模态框
+  - 支持模拟运行预览
+  - 显示清理结果统计
 
 ### 📝 新增命令
 
@@ -82,54 +101,49 @@ ccr clean --dry-run         # 模拟运行预览
 - `src/commands/clean.rs` (130 行)
 - `docs/FEATURES.md`
 - `docs/INIT_IMPORT_EXPORT.md`
+- `docs/CLEAN_FEATURE.md`
 - `docs/README.md`
 
 **修改文件**:
-- `Cargo.toml` - 添加 filetime 依赖
+- `Cargo.toml` - 添加 filetime 依赖，移除 self_update/reqwest/tokio
 - `src/commands/mod.rs` - 导出新命令
+- `src/commands/update.rs` - 简化为调用 cargo install
 - `src/main.rs` - 集成新子命令
+- `web/index.html` - 添加清理备份功能界面
+- `src/web.rs` - 添加 /api/clean 端点
 - `README.md` - 更新功能说明
 - `README_CN.md` - 更新中文文档
 - `CLAUDE.md` - 更新开发文档
 - `docs/changelog.md` - 更新日志
+
+**移除依赖**:
+- `self_update` - 不再需要（改用 cargo install）
+- `reqwest` - 不再需要
+- `tokio` - 不再需要
 
 ## [0.2.2] - 2025-10-10
 
 ### ✨ 新增
 
 - **自动更新功能 (Update)**: 一键更新到最新版本
-  - 自动从 GitHub releases 检查更新
-  - 智能版本比较算法
-  - 自动识别当前平台并下载对应二进制
-  - 支持多平台：
-    - Linux: x86_64, aarch64
-    - macOS: x86_64, Apple Silicon (aarch64)
-    - Windows: x86_64
-  - 原子更新机制，确保安全
-  - 安装后自动验证
-  - 下载进度显示
-
-### 🔧 改进
-
-- **依赖更新**:
-  - 新增 `self_update` v0.42 - 自更新功能核心
-  - 新增 `reqwest` v0.12.23 - HTTP 客户端
-  - 新增 `tokio` v1 - 异步运行时
+  - 通过 `cargo install --git` 从 GitHub 获取最新代码
+  - 无需预编译的 releases
+  - 简单直接的更新方式
+  - 更新前确认机制
 
 ### 📝 新增命令
 
 ```bash
-ccr update --check    # 检查更新
+ccr update --check    # 查看将要执行的命令
 ccr update            # 执行更新
 ```
 
 ### 📦 文件变更
 
 **新增文件**:
-- `src/commands/update.rs` (240 行)
+- `src/commands/update.rs` (90 行，简化版）
 
 **修改文件**:
-- `Cargo.toml` - 添加更新相关依赖
 - `src/commands/mod.rs` - 导出 update 命令
 - `src/main.rs` - 集成 update 子命令
 
