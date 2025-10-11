@@ -62,6 +62,9 @@ tiny_http = "0.12"
 # 自动打开浏览器
 open = "5.0"
 
+# 系统信息获取
+sysinfo = "0.33"
+
 [features]
 default = []
 

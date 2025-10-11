@@ -160,12 +160,72 @@
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             loadData();
+            loadSystemInfo();
+            // 每 5 秒更新一次系统信息
+            setInterval(loadSystemInfo, 5000);
         });
 
         // 加载所有数据
         async function loadData() {
             await loadConfigs();
             await loadHistory();
+        }
+
+        // 加载系统信息
+        async function loadSystemInfo() {
+            try {
+                const response = await fetch('/api/system');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                if (result.success && result.data) {
+                    const data = result.data;
+                    
+                    // 更新主机名
+                    document.getElementById('sysHostname').textContent = data.hostname;
+                    
+                    // 更新系统信息
+                    document.getElementById('sysOS').textContent = `${data.os} ${data.os_version}`;
+                    
+                    // 更新 CPU 信息
+                    document.getElementById('sysCPU').textContent = `${data.cpu_cores} 核心`;
+                    
+                    // 更新 CPU 使用率
+                    const cpuUsage = Math.round(data.cpu_usage);
+                    document.getElementById('sysCPUUsage').textContent = `${cpuUsage}%`;
+                    document.getElementById('sysCPUBar').style.width = `${cpuUsage}%`;
+                    
+                    // 更新内存信息
+                    const usedMem = data.used_memory_gb.toFixed(1);
+                    const totalMem = data.total_memory_gb.toFixed(1);
+                    const memPercent = Math.round(data.memory_usage_percent);
+                    document.getElementById('sysMemory').textContent = `${usedMem} GB / ${totalMem} GB (${memPercent}%)`;
+                    document.getElementById('sysMemBar').style.width = `${memPercent}%`;
+                    
+                    // 更新运行时间
+                    document.getElementById('sysUptime').textContent = formatUptime(data.uptime_seconds);
+                }
+            } catch (error) {
+                console.error('加载系统信息失败:', error);
+                // 静默失败，不影响其他功能
+            }
+        }
+        
+        // 格式化运行时间
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            
+            if (days > 0) {
+                return `${days}天 ${hours}时`;
+            } else if (hours > 0) {
+                return `${hours}时 ${minutes}分`;
+            } else {
+                return `${minutes}分钟`;
+            }
         }
 
         // 加载配置列表

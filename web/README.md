@@ -64,6 +64,15 @@ http://localhost:8080
 - **状态指示**: 动态状态指示灯
 - **扫描动画**: 科技感扫描线效果
 
+#### 系统信息 (v1.0.2 新增)
+实时显示主机系统信息，每 5 秒自动刷新：
+- **主机名**: 当前主机的名称
+- **操作系统**: 系统类型和版本
+- **CPU**: 处理器型号和核心数
+- **CPU 使用率**: 实时 CPU 使用率，带动态进度条
+- **内存使用**: 已用/总内存（GB），带使用率进度条
+- **运行时间**: 系统启动后的运行时间
+
 #### 统计信息
 - **总配置数**: 系统中的配置总数
 - **历史记录数**: 操作历史记录数量
@@ -166,6 +175,35 @@ GET /api/history
 #### 验证所有配置
 ```http
 POST /api/validate
+```
+
+### 系统信息
+
+#### 获取系统信息 (v1.0.2 新增)
+```http
+GET /api/system
+```
+
+响应:
+```json
+{
+  "success": true,
+  "data": {
+    "hostname": "your-hostname",
+    "os": "Linux",
+    "os_version": "5.15.167.4",
+    "kernel_version": "5.15.167.4-microsoft-standard-WSL2",
+    "cpu_brand": "AMD Ryzen 7 5800X",
+    "cpu_cores": 8,
+    "cpu_usage": 45.2,
+    "total_memory_gb": 16.0,
+    "used_memory_gb": 8.2,
+    "memory_usage_percent": 67.5,
+    "total_swap_gb": 8.0,
+    "used_swap_gb": 0.0,
+    "uptime_seconds": 312480
+  }
+}
 ```
 
 ## 使用场景
@@ -427,10 +465,17 @@ fn serve_js(&self) -> Response<...> {
 
 ---
 
-**版本**: 1.0.1
+**版本**: 1.0.2
 **最后更新**: 2025-10-11
 
 ## 更新日志
+
+### v1.0.2 (2025-10-11)
+- 📊 新增实时系统信息显示（CPU、内存、运行时间等）
+- ⚡ 系统信息每 5 秒自动刷新
+- 🎨 新增动态进度条动画效果
+- 📡 新增 `/api/system` API 端点
+- 📦 添加 `sysinfo` 依赖库
 
 ### v1.0.1 (2025-10-11)
 - ✨ 文件结构重构：拆分为 HTML/CSS/JS 三个独立文件

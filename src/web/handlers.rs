@@ -10,6 +10,9 @@ use serde::Serialize;
 use std::sync::Arc;
 use tiny_http::{Header, Method, Request, Response, StatusCode};
 
+// 导入系统信息模块
+use crate::web::models::SystemInfoResponse;
+
 /// 🔌 请求处理器
 ///
 /// 持有所有 Service 的引用,处理 HTTP 请求
@@ -70,6 +73,7 @@ impl Handlers {
             (Method::Post, "/api/settings/restore") => self.handle_restore_settings(&mut request),
             (Method::Post, "/api/export") => self.handle_export(&mut request),
             (Method::Post, "/api/import") => self.handle_import(&mut request),
+            (Method::Get, "/api/system") => self.handle_get_system_info(),
 
             // 404
             _ => self.serve_404(),
@@ -539,6 +543,66 @@ impl Handlers {
                 self.json_response(error_response, 500)
             }
         }
+    }
+
+    /// 处理获取系统信息
+    fn handle_get_system_info(&self) -> Response<std::io::Cursor<Vec<u8>>> {
+        use sysinfo::System;
+
+        let mut sys = System::new_all();
+        
+        // 等待一小段时间以获取准确的 CPU 使用率
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        sys.refresh_cpu_all();
+        sys.refresh_memory();
+
+        let hostname = System::host_name().unwrap_or_else(|| "Unknown".to_string());
+        let os = System::name().unwrap_or_else(|| "Unknown".to_string());
+        let os_version = System::os_version().unwrap_or_else(|| "Unknown".to_string());
+        let kernel_version = System::kernel_version().unwrap_or_else(|| "Unknown".to_string());
+        
+        // 获取 CPU 信息
+        let cpus = sys.cpus();
+        let cpu_brand = if !cpus.is_empty() {
+            cpus[0].brand().to_string()
+        } else {
+            "Unknown".to_string()
+        };
+        let cpu_cores = cpus.len();
+        
+        // 计算平均 CPU 使用率
+        let cpu_usage = if !cpus.is_empty() {
+            cpus.iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / cpus.len() as f32
+        } else {
+            0.0
+        };
+        
+        let total_memory = sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
+        let used_memory = sys.used_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
+        let memory_usage_percent = (used_memory / total_memory * 100.0) as f32;
+        
+        let total_swap = sys.total_swap() as f64 / 1024.0 / 1024.0 / 1024.0;
+        let used_swap = sys.used_swap() as f64 / 1024.0 / 1024.0 / 1024.0;
+        
+        let uptime = System::uptime();
+
+        let system_info = SystemInfoResponse {
+            hostname,
+            os,
+            os_version,
+            kernel_version,
+            cpu_brand,
+            cpu_cores,
+            cpu_usage,
+            total_memory_gb: total_memory,
+            used_memory_gb: used_memory,
+            memory_usage_percent,
+            total_swap_gb: total_swap,
+            used_swap_gb: used_swap,
+            uptime_seconds: uptime,
+        };
+
+        self.json_response(ApiResponse::success(system_info), 200)
     }
 
     /// 创建 JSON 响应

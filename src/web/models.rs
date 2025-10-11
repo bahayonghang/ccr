@@ -193,3 +193,21 @@ pub struct ImportResponse {
     pub updated: usize,
     pub skipped: usize,
 }
+
+/// 系统信息响应
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SystemInfoResponse {
+    pub hostname: String,
+    pub os: String,
+    pub os_version: String,
+    pub kernel_version: String,
+    pub cpu_brand: String,
+    pub cpu_cores: usize,
+    pub cpu_usage: f32,
+    pub total_memory_gb: f64,
+    pub used_memory_gb: f64,
+    pub memory_usage_percent: f32,
+    pub total_swap_gb: f64,
+    pub used_swap_gb: f64,
+    pub uptime_seconds: u64,
+}
