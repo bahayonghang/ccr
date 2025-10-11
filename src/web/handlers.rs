@@ -162,6 +162,11 @@ impl Handlers {
                         small_fast_model: info.small_fast_model,
                         is_current: info.is_current,
                         is_default: info.is_default,
+                        // === 🆕 分类字段 ===
+                        provider: info.provider,
+                        provider_type: info.provider_type,
+                        account: info.account,
+                        tags: info.tags,
                     })
                     .collect();
 
@@ -234,6 +239,17 @@ impl Handlers {
             auth_token: Some(req.auth_token),
             model: req.model,
             small_fast_model: req.small_fast_model,
+            // === 🆕 分类字段 ===
+            provider: req.provider,
+            provider_type: req.provider_type.and_then(|t| {
+                match t.as_str() {
+                    "official_relay" => Some(crate::config::ProviderType::OfficialRelay),
+                    "third_party_model" => Some(crate::config::ProviderType::ThirdPartyModel),
+                    _ => None,
+                }
+            }),
+            account: req.account,
+            tags: req.tags,
         };
 
         match self.config_service.add_config(req.name, section) {
@@ -274,6 +290,17 @@ impl Handlers {
             auth_token: Some(req.auth_token),
             model: req.model,
             small_fast_model: req.small_fast_model,
+            // === 🆕 分类字段 ===
+            provider: req.provider,
+            provider_type: req.provider_type.and_then(|t| {
+                match t.as_str() {
+                    "official_relay" => Some(crate::config::ProviderType::OfficialRelay),
+                    "third_party_model" => Some(crate::config::ProviderType::ThirdPartyModel),
+                    _ => None,
+                }
+            }),
+            account: req.account,
+            tags: req.tags,
         };
 
         match self

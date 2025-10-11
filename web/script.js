@@ -1,6 +1,7 @@
         let currentEditingConfig = null;
         let allConfigs = [];
         let notificationTimeout = null;
+        let currentFilter = 'all'; // 当前过滤类型
 
         // ===== 工具函数 =====
 
@@ -257,6 +258,23 @@
             }
         }
 
+        // 🆕 过滤配置列表
+        function filterConfigsByType(type) {
+            currentFilter = type;
+
+            // 更新按钮激活状态
+            document.querySelectorAll('.type-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-type') === type) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // 重新渲染配置列表和导航
+            renderConfigs();
+            renderConfigNav();
+        }
+
         // 渲染配置列表
         function renderConfigs() {
             const container = document.getElementById('configsList');
@@ -265,15 +283,79 @@
                 return;
             }
 
-            container.innerHTML = allConfigs.map(config => `
+            // 🆕 根据 currentFilter 过滤配置
+            let filtered = allConfigs;
+            if (currentFilter === 'official_relay') {
+                filtered = allConfigs.filter(c => c.provider_type === 'OfficialRelay' || c.provider_type === 'official_relay');
+            } else if (currentFilter === 'third_party_model') {
+                filtered = allConfigs.filter(c => c.provider_type === 'ThirdPartyModel' || c.provider_type === 'third_party_model');
+            } else if (currentFilter === 'uncategorized') {
+                filtered = allConfigs.filter(c => !c.provider_type);
+            }
+            // else: 'all' - 显示全部配置
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px;">当前分类下暂无配置</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(config => {
+                // 🆕 生成提供商类型徽章
+                let providerTypeBadge = '';
+                if (config.provider_type) {
+                    const typeMap = {
+                        'OfficialRelay': { text: '🔄 官方中转', class: 'official-relay' },
+                        'official_relay': { text: '🔄 官方中转', class: 'official-relay' },
+                        'ThirdPartyModel': { text: '🤖 第三方模型', class: 'third-party-model' },
+                        'third_party_model': { text: '🤖 第三方模型', class: 'third-party-model' }
+                    };
+                    const type = typeMap[config.provider_type];
+                    if (type) {
+                        providerTypeBadge = `<span class="config-type-badge ${type.class}">${type.text}</span>`;
+                    }
+                }
+
+                // 🆕 生成标签列表
+                let tagsHtml = '';
+                if (config.tags && config.tags.length > 0) {
+                    tagsHtml = `
+                        <div class="config-tags">
+                            ${config.tags.map(tag => `<span class="config-tag">${tag}</span>`).join('')}
+                        </div>
+                    `;
+                }
+
+                return `
                 <div id="config-${config.name}" class="config-card ${config.is_current ? 'active' : ''}">
                     <div class="config-header">
                         <div class="config-info">
-                            <h3>${config.name}
+                            <h3 class="config-title">
+                                ${providerTypeBadge}
+                                <span class="config-name">${config.name}</span>
                                 ${config.is_current ? '<span class="badge badge-active">当前</span>' : ''}
                                 ${config.is_default ? '<span class="badge badge-default">默认</span>' : ''}
                             </h3>
-                            <div class="config-desc">${config.description || '无描述'}</div>
+                            <div class="config-description">
+                                <span class="desc-icon">📝</span>
+                                <span class="desc-text">${config.description || '无描述'}</span>
+                            </div>
+                            ${config.provider ? `
+                            <div class="config-meta">
+                                <div class="meta-item">
+                                    <span class="meta-icon">🏢</span>
+                                    <span class="meta-label">提供商:</span>
+                                    <span class="meta-value provider-name">${config.provider}</span>
+                                </div>
+                                ${config.account ? `
+                                <div class="meta-item">
+                                    <span class="meta-icon">👤</span>
+                                    <span class="meta-label">账号:</span>
+                                    <span class="meta-value account-name">${config.account}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                            ` : ''}
+                            ${tagsHtml}
                         </div>
                     </div>
                     <div class="config-details">
@@ -314,7 +396,8 @@
                         ` : ''}
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // 渲染配置目录导航
@@ -325,7 +408,23 @@
                 return;
             }
 
-            nav.innerHTML = allConfigs.map(config => `
+            // 🆕 根据 currentFilter 过滤配置
+            let filtered = allConfigs;
+            if (currentFilter === 'official_relay') {
+                filtered = allConfigs.filter(c => c.provider_type === 'OfficialRelay' || c.provider_type === 'official_relay');
+            } else if (currentFilter === 'third_party_model') {
+                filtered = allConfigs.filter(c => c.provider_type === 'ThirdPartyModel' || c.provider_type === 'third_party_model');
+            } else if (currentFilter === 'uncategorized') {
+                filtered = allConfigs.filter(c => !c.provider_type);
+            }
+            // else: 'all' - 显示全部配置
+
+            if (filtered.length === 0) {
+                nav.innerHTML = '<li class="config-nav-item"><span style="font-size: 12px; color: var(--text-muted);">当前分类下暂无配置</span></li>';
+                return;
+            }
+
+            nav.innerHTML = filtered.map(config => `
                 <li class="config-nav-item">
                     <a href="#config-${config.name}" class="config-nav-link" onclick="scrollToConfig('${config.name}', event)">
                         <span class="config-nav-badge ${config.is_current ? 'current' : config.is_default ? 'default' : ''}"></span>
@@ -421,6 +520,13 @@
             document.getElementById('configAuthToken').value = config.auth_token;
             document.getElementById('configModel').value = config.model || '';
             document.getElementById('configSmallModel').value = config.small_fast_model || '';
+
+            // 🆕 填充分类字段
+            document.getElementById('configProviderType').value = config.provider_type || '';
+            document.getElementById('configProvider').value = config.provider || '';
+            document.getElementById('configAccount').value = config.account || '';
+            document.getElementById('configTags').value = config.tags ? config.tags.join(', ') : '';
+
             document.getElementById('configModal').classList.add('show');
         }
 
@@ -431,13 +537,30 @@
             const submitBtn = event.target.querySelector('button[type="submit"]');
             setButtonLoading(submitBtn, true);
 
+            // 🆕 获取分类字段值
+            const providerTypeValue = document.getElementById('configProviderType').value;
+            const providerValue = document.getElementById('configProvider').value;
+            const accountValue = document.getElementById('configAccount').value;
+            const tagsValue = document.getElementById('configTags').value;
+
+            // 🆕 处理标签（逗号分隔转数组）
+            let tagsArray = null;
+            if (tagsValue && tagsValue.trim()) {
+                tagsArray = tagsValue.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+            }
+
             const configData = {
                 name: document.getElementById('configName').value,
                 description: document.getElementById('configDesc').value || null,
                 base_url: document.getElementById('configBaseUrl').value,
                 auth_token: document.getElementById('configAuthToken').value,
                 model: document.getElementById('configModel').value || null,
-                small_fast_model: document.getElementById('configSmallModel').value || null
+                small_fast_model: document.getElementById('configSmallModel').value || null,
+                // 🆕 分类字段
+                provider_type: providerTypeValue || null,
+                provider: providerValue || null,
+                account: accountValue || null,
+                tags: tagsArray
             };
 
             // 保存操作以供重试

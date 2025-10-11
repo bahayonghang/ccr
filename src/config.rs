@@ -14,6 +14,47 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// 🏢 提供商类型枚举
+///
+/// 用于分类不同类型的 API 服务提供商
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ProviderType {
+    /// 官方中转 - 提供官方 Claude 模型的中转服务
+    OfficialRelay,
+    /// 第三方模型 - 提供自己的模型服务（如 GLM、Kimi 等）
+    ThirdPartyModel,
+}
+
+impl ProviderType {
+    /// 获取类型的显示名称
+    #[allow(dead_code)]
+    pub fn display_name(&self) -> &str {
+        match self {
+            ProviderType::OfficialRelay => "官方中转",
+            ProviderType::ThirdPartyModel => "第三方模型",
+        }
+    }
+
+    /// 获取类型的图标（用于 CLI 显示）
+    #[allow(dead_code)]
+    pub fn icon(&self) -> &str {
+        match self {
+            ProviderType::OfficialRelay => "🔄",
+            ProviderType::ThirdPartyModel => "🤖",
+        }
+    }
+
+    /// 🆕 获取序列化字符串值（用于 API）
+    /// 返回 "official_relay" 或 "third_party_model"
+    pub fn to_string_value(&self) -> &str {
+        match self {
+            ProviderType::OfficialRelay => "official_relay",
+            ProviderType::ThirdPartyModel => "third_party_model",
+        }
+    }
+}
+
 /// 📝 配置节结构
 ///
 /// 代表一个具体的 API 配置(如 anthropic、anyrouter 等)
@@ -23,6 +64,7 @@ use std::path::{Path, PathBuf};
 /// - 🌐 API 基础 URL
 /// - 🔑 认证令牌
 /// - 🤖 模型配置
+/// - 🏢 提供商信息（新增分类字段）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigSection {
     /// 📝 配置描述(可选)
@@ -44,6 +86,26 @@ pub struct ConfigSection {
     /// ⚡ 快速小模型名称(可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub small_fast_model: Option<String>,
+
+    // === 🆕 分类字段 ===
+    /// 🏢 提供商名称（如 "anyrouter", "glm", "moonshot"）
+    /// 用于标识同一提供商的不同配置
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+
+    /// 🏷️ 提供商类型（官方中转/第三方模型）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider_type: Option<ProviderType>,
+
+    /// 👤 账号标识（用于区分同一提供商的不同账号）
+    /// 如 "github_5953", "linuxdo_79797"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account: Option<String>,
+
+    /// 🏷️ 标签列表（用于灵活分类和筛选）
+    /// 如 ["free", "stable", "high-speed"]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
 }
 
 impl Validatable for ConfigSection {
@@ -97,6 +159,54 @@ impl ConfigSection {
     /// 🎯 优化：返回 &str 避免克隆
     pub fn display_description(&self) -> &str {
         self.description.as_deref().unwrap_or("(无描述)")
+    }
+
+    /// 🏢 获取提供商显示名称
+    #[allow(dead_code)]
+    pub fn provider_display(&self) -> &str {
+        self.provider.as_deref().unwrap_or("未分类")
+    }
+
+    /// 🏷️ 获取提供商类型显示名称
+    #[allow(dead_code)]
+    pub fn provider_type_display(&self) -> &str {
+        self.provider_type
+            .as_ref()
+            .map(|t| t.display_name())
+            .unwrap_or("未分类")
+    }
+
+    /// 🎨 获取提供商类型图标
+    #[allow(dead_code)]
+    pub fn provider_type_icon(&self) -> &str {
+        self.provider_type
+            .as_ref()
+            .map(|t| t.icon())
+            .unwrap_or("❓")
+    }
+
+    /// 👤 获取账号显示名称
+    #[allow(dead_code)]
+    pub fn account_display(&self) -> &str {
+        self.account.as_deref().unwrap_or("")
+    }
+
+    /// 🏷️ 检查是否有指定标签
+    #[allow(dead_code)]
+    pub fn has_tag(&self, tag: &str) -> bool {
+        self.tags
+            .as_ref()
+            .map(|tags| tags.iter().any(|t| t == tag))
+            .unwrap_or(false)
+    }
+
+    /// 📋 获取所有标签
+    #[allow(dead_code)]
+    pub fn tags_display(&self) -> String {
+        self.tags
+            .as_ref()
+            .map(|tags| tags.join(", "))
+            .unwrap_or_default()
     }
 }
 
@@ -175,6 +285,96 @@ impl CcsConfig {
     /// 🎯 优化：使用 IndexMap 原生的 sort_by 方法，避免重新分配
     pub fn sort_sections(&mut self) {
         self.sections.sort_by(|k1, _, k2, _| k1.cmp(k2));
+    }
+
+    // === 🆕 分类和筛选方法 ===
+
+    /// 🏢 按提供商分组获取配置
+    ///
+    /// 返回 HashMap<提供商名称, Vec<配置名称>>
+    #[allow(dead_code)]
+    pub fn group_by_provider(&self) -> IndexMap<String, Vec<String>> {
+        let mut groups: IndexMap<String, Vec<String>> = IndexMap::new();
+
+        for (name, section) in &self.sections {
+            let provider = section.provider_display().to_string();
+            groups.entry(provider).or_default().push(name.clone());
+        }
+
+        // 排序每个组内的配置名称
+        for configs in groups.values_mut() {
+            configs.sort();
+        }
+
+        groups
+    }
+
+    /// 🏷️ 按提供商类型分组获取配置
+    ///
+    /// 返回 HashMap<提供商类型, Vec<配置名称>>
+    #[allow(dead_code)]
+    pub fn group_by_provider_type(&self) -> IndexMap<String, Vec<String>> {
+        let mut groups: IndexMap<String, Vec<String>> = IndexMap::new();
+
+        for (name, section) in &self.sections {
+            let provider_type = section.provider_type_display().to_string();
+            groups.entry(provider_type).or_default().push(name.clone());
+        }
+
+        // 排序每个组内的配置名称
+        for configs in groups.values_mut() {
+            configs.sort();
+        }
+
+        groups
+    }
+
+    /// 🔍 按标签筛选配置
+    ///
+    /// 返回包含指定标签的所有配置名称
+    #[allow(dead_code)]
+    pub fn filter_by_tag(&self, tag: &str) -> Vec<String> {
+        let mut names: Vec<String> = self
+            .sections
+            .iter()
+            .filter(|(_, section)| section.has_tag(tag))
+            .map(|(name, _)| name.clone())
+            .collect();
+
+        names.sort();
+        names
+    }
+
+    /// 🔍 按提供商筛选配置
+    ///
+    /// 返回属于指定提供商的所有配置名称
+    #[allow(dead_code)]
+    pub fn filter_by_provider(&self, provider: &str) -> Vec<String> {
+        let mut names: Vec<String> = self
+            .sections
+            .iter()
+            .filter(|(_, section)| section.provider.as_deref() == Some(provider))
+            .map(|(name, _)| name.clone())
+            .collect();
+
+        names.sort();
+        names
+    }
+
+    /// 🔍 按提供商类型筛选配置
+    ///
+    /// 返回属于指定提供商类型的所有配置名称
+    #[allow(dead_code)]
+    pub fn filter_by_provider_type(&self, provider_type: &ProviderType) -> Vec<String> {
+        let mut names: Vec<String> = self
+            .sections
+            .iter()
+            .filter(|(_, section)| section.provider_type.as_ref() == Some(provider_type))
+            .map(|(name, _)| name.clone())
+            .collect();
+
+        names.sort();
+        names
     }
 }
 
@@ -274,6 +474,10 @@ mod tests {
             auth_token: Some("sk-test-token".into()),
             model: Some("test-model".into()),
             small_fast_model: Some("test-small-model".into()),
+            provider: None,
+            provider_type: None,
+            account: None,
+            tags: None,
         }
     }
 

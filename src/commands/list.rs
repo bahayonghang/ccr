@@ -62,6 +62,22 @@ pub fn list_command() -> Result<()> {
                 println!("    Small Fast Model: {}", small_model);
             }
 
+            // === 🆕 显示分类信息 ===
+            if let Some(provider_type) = &config_info.provider_type {
+                println!("    类型: {}", provider_type.cyan());
+            }
+            if let Some(provider) = &config_info.provider {
+                println!("    提供商: {}", provider.cyan());
+            }
+            if let Some(account) = &config_info.account {
+                println!("    账号: {}", account.yellow());
+            }
+            if let Some(tags) = &config_info.tags {
+                if !tags.is_empty() {
+                    println!("    标签: {}", tags.join(", ").magenta());
+                }
+            }
+
             // 从原始配置获取 section 来验证
             let config = service.load_config()?;
             let section = config.get_section(&config_info.name)?;

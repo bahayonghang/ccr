@@ -18,6 +18,11 @@ pub struct ConfigInfo {
     pub small_fast_model: Option<String>,
     pub is_current: bool,
     pub is_default: bool,
+    // === 🆕 分类字段 ===
+    pub provider: Option<String>,
+    pub provider_type: Option<String>,
+    pub account: Option<String>,
+    pub tags: Option<Vec<String>>,
 }
 
 /// 📋 配置列表(用于展示)
@@ -75,6 +80,10 @@ impl ConfigService {
                     small_fast_model: section.small_fast_model.clone(),
                     is_current: name == &config.current_config,
                     is_default: name == &config.default_config,
+                    provider: section.provider.clone(),
+                    provider_type: section.provider_type.as_ref().map(|t| t.to_string_value().to_string()),
+                    account: section.account.clone(),
+                    tags: section.tags.clone(),
                 })
             })
             .collect();
@@ -100,6 +109,10 @@ impl ConfigService {
             small_fast_model: section.small_fast_model.clone(),
             is_current: true,
             is_default: config.current_config == config.default_config,
+            provider: section.provider.clone(),
+            provider_type: section.provider_type.as_ref().map(|t| t.to_string_value().to_string()),
+            account: section.account.clone(),
+            tags: section.tags.clone(),
         })
     }
 
@@ -117,6 +130,10 @@ impl ConfigService {
             small_fast_model: section.small_fast_model.clone(),
             is_current: name == config.current_config,
             is_default: name == config.default_config,
+            provider: section.provider.clone(),
+            provider_type: section.provider_type.as_ref().map(|t| t.to_string_value().to_string()),
+            account: section.account.clone(),
+            tags: section.tags.clone(),
         })
     }
 
@@ -385,6 +402,10 @@ mod tests {
             auth_token: Some("sk-test-token".into()),
             model: Some("test-model".into()),
             small_fast_model: Some("test-small".into()),
+            provider: None,
+            provider_type: None,
+            account: None,
+            tags: None,
         }
     }
 

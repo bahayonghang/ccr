@@ -55,6 +55,11 @@ pub struct ConfigItem {
     pub small_fast_model: Option<String>,
     pub is_current: bool,
     pub is_default: bool,
+    // === 🆕 分类字段 ===
+    pub provider: Option<String>,
+    pub provider_type: Option<String>,
+    pub account: Option<String>,
+    pub tags: Option<Vec<String>>,
 }
 
 /// 切换配置请求
@@ -94,6 +99,11 @@ pub struct UpdateConfigRequest {
     pub auth_token: String,
     pub model: Option<String>,
     pub small_fast_model: Option<String>,
+    // === 🆕 分类字段 ===
+    pub provider: Option<String>,
+    pub provider_type: Option<String>,
+    pub account: Option<String>,
+    pub tags: Option<Vec<String>>,
 }
 
 /// 历史记录响应

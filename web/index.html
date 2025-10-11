@@ -152,6 +152,21 @@
 
                 <!-- 配置列表 -->
                 <div id="configs-tab" class="tab-content active">
+                    <!-- 配置类型过滤 -->
+                    <div class="config-type-filter">
+                        <button class="type-filter-btn active" data-type="all" onclick="filterConfigsByType('all')">
+                            📋 全部配置
+                        </button>
+                        <button class="type-filter-btn" data-type="official_relay" onclick="filterConfigsByType('official_relay')">
+                            🔄 官方中转
+                        </button>
+                        <button class="type-filter-btn" data-type="third_party_model" onclick="filterConfigsByType('third_party_model')">
+                            🤖 第三方模型
+                        </button>
+                        <button class="type-filter-btn" data-type="uncategorized" onclick="filterConfigsByType('uncategorized')">
+                            ❓ 未分类
+                        </button>
+                    </div>
                     <div id="configsList"></div>
                 </div>
 
@@ -204,6 +219,36 @@
                 <div class="form-group">
                     <label class="form-label">Small Fast Model</label>
                     <input type="text" class="form-input" id="configSmallModel">
+                </div>
+                <!-- 🆕 分类字段 -->
+                <div class="form-group">
+                    <label class="form-label">提供商类型</label>
+                    <select class="form-input" id="configProviderType">
+                        <option value="">未分类</option>
+                        <option value="official_relay">🔄 官方中转</option>
+                        <option value="third_party_model">🤖 第三方模型</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">提供商名称</label>
+                    <input type="text" class="form-input" id="configProvider" placeholder="如: anyrouter, glm, moonshot">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        用于标识同一提供商的不同配置
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">账号标识</label>
+                    <input type="text" class="form-input" id="configAccount" placeholder="如: github_5953, personal, work">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        用于区分同一提供商的不同账号
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">标签</label>
+                    <input type="text" class="form-input" id="configTags" placeholder="用逗号分隔，如: free, stable, backup">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        用于灵活分类和筛选，多个标签用逗号分隔
+                    </div>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>

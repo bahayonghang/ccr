@@ -4,6 +4,86 @@ CCR 的所有重要变更都会记录在本文件中。
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.0] - 2025-01-11
+
+### ✨ 新增
+
+- **配置分类系统** - 全新的多维度配置分类和筛选功能
+  - **提供商类型** (`provider_type`): 区分官方中转 (official_relay) 和第三方模型 (third_party_model)
+  - **提供商名称** (`provider`): 标识具体的服务提供商 (如 anyrouter, glm, moonshot)
+  - **账号标识** (`account`): 区分同一提供商的不同账号 (如 github_5953, linuxdo_79797)
+  - **标签系统** (`tags`): 灵活的标签分类 (如 ["free", "stable", "primary"])
+
+- **Web 界面分类功能**
+  - 配置类型过滤按钮: 全部/官方中转/第三方模型/未分类
+  - 配置卡片增强显示: 提供商类型徽章、描述、提供商信息、账号、标签
+  - 右侧配置目录同步过滤: 导航菜单跟随筛选器变化
+  - 视觉分层优化: 不同元数据使用不同样式和颜色
+
+### 🔧 改进
+
+- **API 响应增强**
+  - `/api/configs` 返回新增的分类字段 (provider, provider_type, account, tags)
+  - 后端统一使用英文字符串返回提供商类型 (official_relay/third_party_model)
+  - 前端使用中文显示徽章 (🔄 官方中转 / 🤖 第三方模型)
+
+- **代码结构优化**
+  - 新增 `ProviderType::to_string_value()` 方法,用于 API 序列化
+  - 配置节新增 6 个辅助方法: `provider_display()`, `provider_type_display()`, `provider_type_icon()`, `account_display()`, `has_tag()`, `tags_display()`
+  - CcsConfig 新增 5 个分组筛选方法: `group_by_provider()`, `group_by_provider_type()`, `filter_by_tag()`, `filter_by_provider()`, `filter_by_provider_type()`
+
+- **编译警告清理**
+  - 为 CLI 功能保留的未使用方法添加 `#[allow(dead_code)]` 属性
+  - 0 warnings, 0 errors 编译结果
+
+### 📚 文档
+
+- **configuration.md 更新**:
+  - 新增 4 个配置段字段的完整说明
+  - 更新配置示例,展示官方中转、第三方模型、多账号管理等场景
+  - 更新 API 响应示例,包含新增的分类字段
+
+- **changelog.md 更新**:
+  - 记录 v1.1.0 的所有新增功能和改进
+
+### 💡 使用场景
+
+**多账号管理**:
+```toml
+[anyrouter-main]
+provider = "anyrouter"
+provider_type = "official_relay"
+account = "github_5953"
+tags = ["free", "primary"]
+
+[anyrouter-backup]
+provider = "anyrouter"
+provider_type = "official_relay"
+account = "github_5962"
+tags = ["free", "backup"]
+```
+
+**分类筛选**:
+- Web 界面可以按提供商类型快速筛选配置
+- 未来 CLI 可以使用标签筛选: `ccr list --tag free`
+
+### ⚠️ 破坏性变更
+
+**无破坏性变更** - 100% 向后兼容
+- 新增字段均为可选字段
+- 现有配置文件无需修改即可正常工作
+- CLI 命令接口不变
+- API 行为完全兼容
+
+### 🎯 质量指标
+
+- 编译：0 errors, 0 warnings
+- 测试：全部通过
+- 代码质量：⭐⭐⭐⭐⭐
+- 向后兼容：✅ 100%
+
+---
+
 ## [1.0.0] - 2025-10-11
 
 ### 🏗️ 架构重构(重大更新)

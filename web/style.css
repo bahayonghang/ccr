@@ -609,6 +609,117 @@ body {
     margin-bottom: 4px;
 }
 
+/* 🆕 配置标题样式 */
+.config-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.config-title .config-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'Monaco', 'Consolas', monospace;
+    letter-spacing: 0.5px;
+}
+
+/* 🆕 配置描述样式 */
+.config-description {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(139, 92, 246, 0.08);
+    border-left: 3px solid var(--accent-primary);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+[data-theme="light"] .config-description {
+    background: rgba(0, 122, 255, 0.06);
+    border-left-color: var(--accent-primary);
+}
+
+.config-description:hover {
+    background: rgba(139, 92, 246, 0.12);
+    transform: translateX(2px);
+}
+
+[data-theme="light"] .config-description:hover {
+    background: rgba(0, 122, 255, 0.1);
+}
+
+.desc-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
+.desc-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+/* 🆕 配置元数据样式 */
+.config-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 8px 0;
+    margin-top: 6px;
+}
+
+.config-meta .meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 11px;
+    transition: all 0.3s ease;
+}
+
+.config-meta .meta-item:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-small);
+}
+
+.meta-icon {
+    font-size: 13px;
+    line-height: 1;
+    opacity: 0.9;
+}
+
+.meta-label {
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.meta-value {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.provider-name {
+    color: var(--accent-secondary);
+}
+
+.account-name {
+    color: var(--accent-success);
+}
+
 .config-desc {
     font-size: 13px;
     color: var(--text-secondary);
@@ -1121,4 +1232,103 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent-secondary);
+}
+
+/* 配置类型过滤按钮 */
+.config-type-filter {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.type-filter-btn {
+    flex: 1;
+    padding: 10px 16px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.type-filter-btn:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    transform: translateY(-2px);
+}
+
+.type-filter-btn.active {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-color: var(--accent-primary);
+    color: white;
+    box-shadow: 0 0 15px var(--glow-primary);
+}
+
+/* 配置分类标签 */
+.config-type-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 6px;
+}
+
+.config-type-badge.official-relay {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.config-type-badge.third-party-model {
+    background: rgba(168, 85, 247, 0.2);
+    color: #a855f7;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.config-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.config-tag {
+    padding: 2px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.config-tag:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.btn-warning {
+    background: var(--accent-warning);
+    color: white;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 25px rgba(245, 158, 11, 0.5);
 }

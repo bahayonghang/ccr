@@ -47,8 +47,56 @@ model = "claude-sonnet-4-5-20250929"
 | `auth_token` | String | 是 | 认证令牌 |
 | `model` | String | 是 | 默认使用的模型 |
 | `small_fast_model` | String | 否 | 快速小模型(可选) |
+| `provider` | String | 否 | 提供商名称(如 "anyrouter", "glm", "moonshot") |
+| `provider_type` | Enum | 否 | 提供商类型: "official_relay"(官方中转) 或 "third_party_model"(第三方模型) |
+| `account` | String | 否 | 账号标识(用于区分同一提供商的不同账号) |
+| `tags` | Array | 否 | 标签列表(用于灵活分类和筛选) |
 
 ### 配置示例
+
+#### 官方中转服务
+
+```toml
+[anyrouter]
+description = "AnyRouter 主服务 (github_5953)"
+base_url = "https://anyrouter.top"
+auth_token = "sk-xxx"
+provider = "anyrouter"
+provider_type = "official_relay"
+account = "github_5953"
+tags = ["free", "stable", "primary"]
+
+[husan]
+description = "虎三api"
+base_url = "https://husanai.com"
+auth_token = "sk-xxx"
+provider = "husan"
+provider_type = "official_relay"
+tags = ["paid", "stable", "high-speed"]
+```
+
+#### 第三方模型服务
+
+```toml
+[glm]
+description = "智谱GLM API服务"
+base_url = "https://open.bigmodel.cn/api/anthropic"
+auth_token = "xxx.xxx"
+model = "glm-4.6"
+provider = "glm"
+provider_type = "third_party_model"
+tags = ["chinese", "official"]
+
+[moonshot]
+description = "月之暗面 Kimi K2"
+base_url = "https://api.moonshot.cn/anthropic"
+auth_token = "sk-xxx"
+model = "kimi-k2-turbo-preview"
+small_fast_model = "kimi-k2-turbo-preview"
+provider = "moonshot"
+provider_type = "third_party_model"
+tags = ["chinese", "kimi", "fast"]
+```
 
 #### Anthropic 官方 API
 
@@ -61,24 +109,27 @@ model = "claude-sonnet-4-5-20250929"
 small_fast_model = "claude-3-5-haiku-20241022"
 ```
 
-#### 第三方代理服务
+#### 多账号管理
 
 ```toml
-[anyrouter]
-description = "AnyRouter Proxy Service"
-base_url = "https://api.anyrouter.ai/v1"
-auth_token = "your-anyrouter-token"
-model = "claude-sonnet-4-5-20250929"
-```
+# 同一提供商的多个账号
+[anyrouter-main]
+description = "AnyRouter 主账号"
+base_url = "https://anyrouter.top"
+auth_token = "sk-xxx1"
+provider = "anyrouter"
+provider_type = "official_relay"
+account = "github_5953"
+tags = ["free", "primary"]
 
-#### 自建代理
-
-```toml
-[selfhosted]
-description = "Self-hosted Proxy"
-base_url = "http://localhost:8000"
-auth_token = "custom-token"
-model = "claude-sonnet-4-5-20250929"
+[anyrouter-backup]
+description = "AnyRouter 备用账号"
+base_url = "https://anyrouter.top"
+auth_token = "sk-xxx2"
+provider = "anyrouter"
+provider_type = "official_relay"
+account = "github_5962"
+tags = ["free", "backup"]
 ```
 
 ---
@@ -318,7 +369,25 @@ GET /api/configs
         "model": "claude-sonnet-4-5-20250929",
         "small_fast_model": "claude-3-5-haiku-20241022",
         "is_current": true,
-        "is_default": true
+        "is_default": true,
+        "provider": null,
+        "provider_type": null,
+        "account": null,
+        "tags": null
+      },
+      {
+        "name": "anyrouter",
+        "description": "AnyRouter 主服务",
+        "base_url": "https://anyrouter.top",
+        "auth_token": "sk-g...zi2",
+        "model": null,
+        "small_fast_model": null,
+        "is_current": false,
+        "is_default": false,
+        "provider": "anyrouter",
+        "provider_type": "official_relay",
+        "account": "github_5953",
+        "tags": ["free", "stable", "primary"]
       }
     ]
   }
@@ -355,7 +424,11 @@ Content-Type: application/json
   "description": "New Configuration",
   "base_url": "https://api.example.com",
   "auth_token": "your-token",
-  "model": "claude-sonnet-4-5-20250929"
+  "model": "claude-sonnet-4-5-20250929",
+  "provider": "example",
+  "provider_type": "official_relay",
+  "account": "main_account",
+  "tags": ["production", "high-priority"]
 }
 ```
 
