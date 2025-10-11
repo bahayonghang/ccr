@@ -50,7 +50,7 @@ impl SettingsService {
     /// - `section` - 配置节
     ///
     /// # Process
-    /// 1. 加载当前设置（或创建新设置）
+    /// 1. 加载当前设置(或创建新设置)
     /// 2. 清空旧的 ANTHROPIC_* 变量
     /// 3. 从配置节设置新的环境变量
     /// 4. 原子保存设置文件
@@ -69,7 +69,7 @@ impl SettingsService {
     /// 💾 备份当前设置
     ///
     /// # Arguments
-    /// - `name` - 备份名称（可选，会加入到文件名中）
+    /// - `name` - 备份名称(可选,会加入到文件名中)
     ///
     /// # Returns
     /// 备份文件的路径
@@ -84,7 +84,7 @@ impl SettingsService {
     ///
     /// # Process
     /// 1. 验证备份文件存在且格式有效
-    /// 2. 备份当前设置（pre_restore）
+    /// 2. 备份当前设置(pre_restore)
     /// 3. 从备份恢复
     pub fn restore_settings(&self, backup_path: &Path) -> Result<()> {
         self.settings_manager.restore(backup_path)
@@ -93,7 +93,7 @@ impl SettingsService {
     /// 📋 列出所有备份
     ///
     /// # Returns
-    /// 备份信息列表，按修改时间倒序排列（最新的在前）
+    /// 备份信息列表,按修改时间倒序排列(最新的在前)
     pub fn list_backups(&self) -> Result<Vec<BackupInfo>> {
         let backup_paths = self.settings_manager.list_backups()?;
 

@@ -1,6 +1,6 @@
 # update - 更新 CCR
 
-从 GitHub 自动更新 CCR 到最新版本，支持实时进度显示。
+从 GitHub 自动更新 CCR 到最新版本,支持实时进度显示。
 
 ## 用法
 
@@ -10,7 +10,7 @@ ccr update [OPTIONS]
 
 ## 选项
 
-- `--check, -c`: 仅检查更新模式，预览更新命令但不执行实际更新
+- `--check, -c`: 仅检查更新模式,预览更新命令但不执行实际更新
 
 ## 功能特性
 
@@ -35,7 +35,7 @@ cargo install --git https://github.com/bahayonghang/ccr --force
 
 ## 示例
 
-### 1. 检查更新（推荐先使用）
+### 1. 检查更新(推荐先使用)
 
 ```bash
 # 查看更新信息但不执行更新
@@ -72,7 +72,7 @@ CCR 自动更新
 ▶ 更新命令预览
   cargo install --git https://github.com/bahayonghang/ccr --force
 
-ℹ 💡 提示: 运行 'ccr update' 执行更新（去掉 --check 参数）
+ℹ 💡 提示: 运行 'ccr update' 执行更新(去掉 --check 参数)
 ```
 
 ### 执行更新
@@ -136,18 +136,18 @@ CCR 自动更新
 
 ### 1. 显示版本信息
 
-显示当前版本和仓库地址，让用户了解更新来源。
+显示当前版本和仓库地址,让用户了解更新来源。
 
 ### 2. 用户确认
 
-除非使用 `--check` 模式，否则会询问用户是否继续更新。
+除非使用 `--check` 模式,否则会询问用户是否继续更新。
 
 ### 3. 实时执行更新
 
 执行 cargo install 并实时显示：
 - Git 克隆进度
 - 依赖下载进度
-- 编译进度（每个 crate）
+- 编译进度(每个 crate)
 - 安装进度
 
 ### 4. 显示结果
@@ -162,7 +162,7 @@ CCR 自动更新
 # 每周检查是否有更新
 ccr update --check
 
-# 如果有新功能，执行更新
+# 如果有新功能,执行更新
 ccr update
 ```
 
@@ -199,7 +199,7 @@ echo "检查 CCR 更新..."
 ccr update --check
 
 if [ $? -eq 0 ]; then
-    read -p "发现可用更新，是否立即更新? [y/N] " -n 1 -r
+    read -p "发现可用更新,是否立即更新? [y/N] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         ccr export -o ~/backups/ccr-$(date +%Y%m%d).toml
@@ -243,7 +243,7 @@ ccr update
 ❌ 更新失败
 
 ℹ 可能的原因:
-  • 网络连接问题（无法访问 GitHub）
+  • 网络连接问题(无法访问 GitHub)
   • Git 未安装或配置不正确
 ```
 
@@ -255,7 +255,7 @@ ping github.com
 # 2. 检查 Git 是否安装
 git --version
 
-# 3. 配置代理（如需要）
+# 3. 配置代理(如需要)
 export https_proxy=http://proxy.example.com:8080
 export http_proxy=http://proxy.example.com:8080
 
@@ -280,7 +280,7 @@ error: failed to compile ccr v0.3.2
 # 1. 更新 Rust 工具链
 rustup update stable
 
-# 2. 检查 Rust 版本（需要较新版本）
+# 2. 检查 Rust 版本(需要较新版本)
 rustc --version
 
 # 3. 清理缓存
@@ -289,7 +289,7 @@ cargo clean
 # 4. 重试更新
 ccr update
 
-# 5. 如仍失败，尝试手动编译
+# 5. 如仍失败,尝试手动编译
 git clone https://github.com/bahayonghang/ccr
 cd ccr
 cargo build --release --locked
@@ -303,7 +303,7 @@ cargo install --path .
 error: failed to install
 
 ℹ 可能的原因:
-  • 权限不足（无法写入 ~/.cargo/bin）
+  • 权限不足(无法写入 ~/.cargo/bin)
 ```
 
 **解决方案：**
@@ -343,7 +343,7 @@ ccr version
 
 ## 版本回退
 
-如果更新后遇到问题，可以回退到之前的版本。
+如果更新后遇到问题,可以回退到之前的版本。
 
 ### 方法 1: 安装特定版本标签
 
@@ -426,7 +426,7 @@ ccr switch $CURRENT
 # 导出配置
 ccr export -o ~/backups/ccr-backup-$(date +%Y%m%d_%H%M%S).toml
 
-# 备份二进制（可选）
+# 备份二进制(可选)
 cp ~/.cargo/bin/ccr ~/.cargo/bin/ccr.$(ccr version | head -1 | awk '{print $2}')
 
 # 执行更新
@@ -436,7 +436,7 @@ ccr update
 ### 2. 定期检查更新
 
 ```bash
-# 添加到 crontab（每周一上午 9 点检查）
+# 添加到 crontab(每周一上午 9 点检查)
 0 9 * * 1 /home/user/.cargo/bin/ccr update --check > /tmp/ccr-update-check.log
 ```
 
@@ -488,7 +488,7 @@ echo "$(date): Now running $(ccr version)" >> ~/ccr-updates.log
 CCR 使用 `cargo install --git` 机制：
 
 1. 从 GitHub 克隆最新代码
-2. 编译 release 版本（带优化）
+2. 编译 release 版本(带优化)
 3. 安装到 `~/.cargo/bin/ccr`
 4. 替换旧版本
 
@@ -522,16 +522,16 @@ env!("CARGO_PKG_VERSION")  // 从 Cargo.toml 读取
 ## 常见问题 (FAQ)
 
 **Q: 更新会丢失配置吗？**
-A: 不会。配置存储在 `~/.ccs_config.toml` 和 `~/.claude/settings.json`，更新仅替换可执行文件。
+A: 不会。配置存储在 `~/.ccs_config.toml` 和 `~/.claude/settings.json`,更新仅替换可执行文件。
 
 **Q: 需要多长时间？**
-A: 通常 1-3 分钟，取决于网络速度和机器性能。
+A: 通常 1-3 分钟,取决于网络速度和机器性能。
 
 **Q: 可以跳过确认吗？**
-A: 当前不支持。为了安全，总是需要用户确认。
+A: 当前不支持。为了安全,总是需要用户确认。
 
 **Q: 可以自动更新吗？**
-A: 不建议完全自动化。可以自动检查（`--check`），但执行更新建议手动确认。
+A: 不建议完全自动化。可以自动检查(`--check`),但执行更新建议手动确认。
 
 **Q: 更新失败会影响当前版本吗？**
 A: 不会。只有成功编译后才会替换旧版本。

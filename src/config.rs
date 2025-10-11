@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 
 /// 📝 配置节结构
 ///
-/// 代表一个具体的 API 配置（如 anthropic、anyrouter 等）
+/// 代表一个具体的 API 配置(如 anthropic、anyrouter 等)
 ///
 /// 每个配置节包含:
 /// - 🏷️ 描述信息
@@ -25,23 +25,23 @@ use std::path::{Path, PathBuf};
 /// - 🤖 模型配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigSection {
-    /// 📝 配置描述（可选）
+    /// 📝 配置描述(可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 
-    /// 🌐 API 基础 URL（切换时必需）
+    /// 🌐 API 基础 URL(切换时必需)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
 
-    /// 🔑 认证令牌（切换时必需）
+    /// 🔑 认证令牌(切换时必需)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_token: Option<String>,
 
-    /// 🤖 默认模型名称（可选）
+    /// 🤖 默认模型名称(可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
 
-    /// ⚡ 快速小模型名称（可选）
+    /// ⚡ 快速小模型名称(可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub small_fast_model: Option<String>,
 }
@@ -81,7 +81,7 @@ impl Validatable for ConfigSection {
             return Err(CcrError::ValidationError("auth_token 不能为空".into()));
         }
 
-        // 🤖 检查 model（可选，如果提供了则不能为空）
+        // 🤖 检查 model(可选,如果提供了则不能为空)
         if let Some(model) = &self.model {
             if model.trim().is_empty() {
                 return Err(CcrError::ValidationError("model 不能为空字符串".into()));
@@ -117,7 +117,7 @@ pub struct CcsConfig {
     /// ▶️ 当前活跃配置名称
     pub current_config: String,
 
-    /// 📋 所有配置节（使用 flatten 序列化）
+    /// 📋 所有配置节(使用 flatten 序列化)
     #[serde(flatten)]
     pub sections: IndexMap<String, ConfigSection>,
 }
@@ -161,7 +161,7 @@ impl CcsConfig {
             .ok_or_else(|| CcrError::ConfigSectionNotFound(name.to_string()))
     }
 
-    /// 📜 列出所有配置节名称（已排序）
+    /// 📜 列出所有配置节名称(已排序)
     pub fn list_sections(&self) -> Vec<String> {
         let mut names: Vec<String> = self.sections.keys().cloned().collect();
         names.sort();
@@ -264,7 +264,7 @@ impl ConfigManager {
     /// 1. 📝 序列化为 TOML 格式
     /// 2. 💾 写入磁盘
     pub fn save(&self, config: &CcsConfig) -> Result<()> {
-        // 📝 序列化为 TOML（美化格式）
+        // 📝 序列化为 TOML(美化格式)
         let content = toml::to_string_pretty(config)
             .map_err(|e| CcrError::ConfigError(format!("配置序列化失败: {}", e)))?;
 

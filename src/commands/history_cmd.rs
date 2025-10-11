@@ -1,5 +1,5 @@
 // 📚 history 命令实现 - 显示操作历史
-// 🔍 展示所有操作的审计追踪，支持筛选和统计
+// 🔍 展示所有操作的审计追踪,支持筛选和统计
 
 use crate::error::Result;
 use crate::history::OperationType;
@@ -10,14 +10,14 @@ use colored::*;
 /// 📚 显示操作历史
 ///
 /// 显示内容:
-/// - 📊 操作统计（总数、成功、失败、警告）
-/// - 📋 历史记录列表（时间、操作、结果）
-/// - 🌍 环境变量变化（已掩码）
-/// - 📝 操作详情（from/to 配置、备份路径等）
+/// - 📊 操作统计(总数、成功、失败、警告)
+/// - 📋 历史记录列表(时间、操作、结果)
+/// - 🌍 环境变量变化(已掩码)
+/// - 📝 操作详情(from/to 配置、备份路径等)
 ///
 /// 参数:
-/// - limit: 显示记录数量（默认 20）
-/// - filter_type: 按操作类型筛选（switch/backup/restore/validate/update）
+/// - limit: 显示记录数量(默认 20)
+/// - filter_type: 按操作类型筛选(switch/backup/restore/validate/update)
 pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Result<()> {
     ColorOutput::title("操作历史记录");
     println!();
@@ -45,7 +45,7 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
         // 获取最近的 N 条
         service.get_recent(n)?
     } else {
-        // 获取所有记录，默认限制100条
+        // 获取所有记录,默认限制100条
         service.get_recent(100)?
     };
 
@@ -92,7 +92,7 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
             println!("   备份: {}", backup);
         }
 
-        // 显示环境变量变化（仅非空）
+        // 显示环境变量变化(仅非空)
         if !entry.env_changes.is_empty() {
             println!("   环境变量变化:");
             for change in &entry.env_changes {
@@ -119,7 +119,7 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
     if stats.total_operations > 100 {
         println!();
         ColorOutput::warning(&format!(
-            "历史记录较多 ({} 条)，建议定期清理旧记录",
+            "历史记录较多 ({} 条),建议定期清理旧记录",
             stats.total_operations
         ));
         ColorOutput::info("提示: 可以手动编辑 ~/.claude/ccr_history.json 或等待自动清理功能");

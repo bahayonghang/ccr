@@ -1,5 +1,5 @@
 // 📥 import 命令实现 - 导入配置
-// 🔄 从备份文件恢复配置，支持合并和覆盖两种模式
+// 🔄 从备份文件恢复配置,支持合并和覆盖两种模式
 
 use crate::config::{CcsConfig, ConfigManager};
 use crate::error::{CcrError, Result};
@@ -10,7 +10,7 @@ use std::path::PathBuf;
 /// 📋 导入模式
 #[derive(Debug, Clone, Copy)]
 pub enum ImportMode {
-    /// 🔗 合并模式：保留现有配置，只添加新的
+    /// 🔗 合并模式：保留现有配置,只添加新的
     Merge,
     /// 🔄 覆盖模式：完全替换现有配置
     Replace,
@@ -21,13 +21,13 @@ pub enum ImportMode {
 /// 执行流程:
 /// 1. ✅ 验证输入文件存在
 /// 2. 🔍 解析配置文件
-/// 3. 💾 备份当前配置（可选）
-/// 4. 🔄 执行导入（根据模式）
+/// 3. 💾 备份当前配置(可选)
+/// 4. 🔄 执行导入(根据模式)
 /// 5. 📊 显示导入摘要
 ///
 /// 参数:
 /// - input: 输入文件路径
-/// - mode: 导入模式（Merge/Replace）
+/// - mode: 导入模式(Merge/Replace)
 /// - backup: 是否备份当前配置
 pub fn import_command(input: String, mode: ImportMode, backup: bool) -> Result<()> {
     ColorOutput::title("导入配置");
@@ -46,19 +46,19 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool) -> Result<(
     ColorOutput::step("步骤 2/4: 解析配置文件");
     let import_config = parse_import_file(&input_path)?;
     ColorOutput::success(&format!(
-        "成功解析，包含 {} 个配置节",
+        "成功解析,包含 {} 个配置节",
         import_config.sections.len()
     ));
     println!();
 
-    // 备份现有配置（如果需要）
+    // 备份现有配置(如果需要)
     if backup {
         ColorOutput::step("步骤 3/4: 备份当前配置");
         let config_manager = ConfigManager::default()?;
         if config_manager.config_path().exists() {
             backup_current_config(&config_manager)?;
         } else {
-            ColorOutput::info("当前无配置文件，跳过备份");
+            ColorOutput::info("当前无配置文件,跳过备份");
         }
         println!();
     }
@@ -116,7 +116,7 @@ fn import_config_with_mode(import_config: CcsConfig, mode: ImportMode) -> Result
                 let mut current_config = config_manager.load()?;
                 merge_configs(&mut current_config, import_config)?
             } else {
-                // 没有现有配置，直接使用导入的
+                // 没有现有配置,直接使用导入的
                 config_manager.save(&import_config)?;
                 ImportResult {
                     added: import_config.sections.len(),
@@ -150,17 +150,17 @@ fn merge_configs(current: &mut CcsConfig, import: CcsConfig) -> Result<ImportRes
 
     for (name, section) in import.sections {
         if current.sections.contains_key(&name) {
-            // 已存在，更新
+            // 已存在,更新
             current.sections.insert(name, section);
             result.updated += 1;
         } else {
-            // 不存在，添加
+            // 不存在,添加
             current.sections.insert(name, section);
             result.added += 1;
         }
     }
 
-    // 如果导入配置中有 default_config，也更新它
+    // 如果导入配置中有 default_config,也更新它
     // 但保持 current_config 不变
     current.default_config = import.default_config;
 

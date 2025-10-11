@@ -1033,7 +1033,7 @@
                 <div class="form-group">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                         <input type="checkbox" id="cleanDryRun" checked>
-                        <span>模拟运行（预览不删除）</span>
+                        <span>模拟运行(预览不删除)</span>
                     </label>
                 </div>
                 <div id="cleanPreview" style="margin-top: 20px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color); display: none;">
@@ -1459,7 +1459,7 @@
                 if (data.success) {
                     const result = data.data;
                     if (result.deleted_count > 0) {
-                        showNotification(`✓ 已删除 ${result.deleted_count} 个文件，释放 ${result.total_size_mb.toFixed(2)} MB`, 'success');
+                        showNotification(`✓ 已删除 ${result.deleted_count} 个文件,释放 ${result.total_size_mb.toFixed(2)} MB`, 'success');
                     } else {
                         showNotification('✓ 没有需要清理的文件', 'success');
                     }

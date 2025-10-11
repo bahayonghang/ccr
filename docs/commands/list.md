@@ -1,6 +1,6 @@
 # list - 列出所有配置
 
-列出所有可用配置，标记当前配置和验证状态。
+列出所有可用配置,标记当前配置和验证状态。
 
 ## 用法
 
@@ -18,10 +18,10 @@ ccr ls
 - 每个配置的详细信息：
   - 配置名称和描述
   - Base URL
-  - Token（脱敏显示）
+  - Token(脱敏显示)
   - 模型名称
-  - 小型快速模型（如果有）
-  - 配置状态（完整 / 不完整）
+  - 小型快速模型(如果有)
+  - 配置状态(完整 / 不完整)
 
 ## 示例输出
 
@@ -56,12 +56,12 @@ Current Config: anthropic
 
 ### 状态指示
 
-- `✓ Configuration Complete` - 配置完整，包含所有必需字段
-- `⚠ Configuration Incomplete` - 配置不完整，缺少必需字段
+- `✓ Configuration Complete` - 配置完整,包含所有必需字段
+- `⚠ Configuration Incomplete` - 配置不完整,缺少必需字段
 
 ### 令牌脱敏
 
-为了安全，API 令牌会自动脱敏显示，仅显示首尾字符：
+为了安全,API 令牌会自动脱敏显示,仅显示首尾字符：
 
 ```
 原始: sk-ant-api03-abc123def456ghi789jkl012mno345pqr678
@@ -72,7 +72,7 @@ Current Config: anthropic
 
 ### 查看可用配置
 
-在切换配置前，先查看所有可用的配置：
+在切换配置前,先查看所有可用的配置：
 
 ```bash
 ccr list

@@ -1,6 +1,6 @@
 # history - 查看操作历史
 
-显示 CCR 的操作历史记录，包括所有切换、备份等操作。
+显示 CCR 的操作历史记录,包括所有切换、备份等操作。
 
 ## 用法
 
@@ -10,17 +10,17 @@ ccr history [OPTIONS]
 
 ## 选项
 
-- `--limit <N>`: 显示最近 N 条记录（默认：20）
-- `-t, --type <TYPE>`: 按操作类型过滤（如：switch、backup）
+- `--limit <N>`: 显示最近 N 条记录(默认：20)
+- `-t, --type <TYPE>`: 按操作类型过滤(如：switch、backup)
 
 ## 历史记录内容
 
 每条历史记录包含：
-- 操作 ID（UUID）
+- 操作 ID(UUID)
 - 时间戳
-- 操作者（系统用户名）
+- 操作者(系统用户名)
 - 操作类型
-- 环境变量变更（脱敏）
+- 环境变量变更(脱敏)
 - 操作结果
 - 备注信息
 
@@ -141,7 +141,7 @@ ccr history --limit 100 -t switch
 
 ### 故障排查
 
-当出现问题时，查看最近的操作：
+当出现问题时,查看最近的操作：
 
 ```bash
 ccr history --limit 5
@@ -172,7 +172,7 @@ ccr history -t switch | grep "switch" | wc -l
 历史记录: sk-a...r678
 ```
 
-这确保了即使历史文件被意外暴露，API 密钥也不会泄露。
+这确保了即使历史文件被意外暴露,API 密钥也不会泄露。
 
 ## 历史文件管理
 
@@ -191,7 +191,7 @@ cp ~/.claude/ccr_history.json ~/backups/ccr_history_$(date +%Y%m%d).json
 ### 清空历史
 
 ::: danger 警告
-清空历史记录将无法恢复，请谨慎操作！
+清空历史记录将无法恢复,请谨慎操作！
 :::
 
 ```bash
@@ -202,11 +202,11 @@ echo "[]" > ~/.claude/ccr_history.json
 
 ## 与日志的区别
 
-- **History**: 记录成功的操作，用于审计和追踪
-- **Logs**: 包含所有操作（成功和失败），用于调试
+- **History**: 记录成功的操作,用于审计和追踪
+- **Logs**: 包含所有操作(成功和失败),用于调试
 
 ## 相关命令
 
-- [switch](./switch) - 切换配置（会记录历史）
-- [export](./export) - 导出配置（会记录历史）
-- [import](./import) - 导入配置（会记录历史）
+- [switch](./switch) - 切换配置(会记录历史)
+- [export](./export) - 导出配置(会记录历史)
+- [import](./import) - 导入配置(会记录历史)

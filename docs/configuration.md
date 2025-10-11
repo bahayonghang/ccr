@@ -4,7 +4,7 @@ CCR 提供了强大而灵活的配置管理功能。本页面详细介绍配置�
 
 ## 配置文件格式
 
-CCR 使用 TOML 格式的配置文件 `~/.ccs_config.toml`，与 CCS 完全兼容。
+CCR 使用 TOML 格式的配置文件 `~/.ccs_config.toml`,与 CCS 完全兼容。
 
 ### 基本结构
 
@@ -46,7 +46,7 @@ model = "claude-sonnet-4-5-20250929"
 | `base_url` | String | 是 | API 端点地址 |
 | `auth_token` | String | 是 | 认证令牌 |
 | `model` | String | 是 | 默认使用的模型 |
-| `small_fast_model` | String | 否 | 快速小模型（可选） |
+| `small_fast_model` | String | 否 | 快速小模型(可选) |
 
 ### 配置示例
 
@@ -85,7 +85,7 @@ model = "claude-sonnet-4-5-20250929"
 
 ## 环境变量管理
 
-CCR 通过修改 `~/.claude/settings.json` 来管理环境变量，确保配置立即生效。
+CCR 通过修改 `~/.claude/settings.json` 来管理环境变量,确保配置立即生效。
 
 ### 管理的环境变量
 
@@ -100,7 +100,7 @@ CCR 管理以下 Claude Code 环境变量：
 
 ### 切换机制
 
-当执行 `ccr switch <config>` 时，CCR 会：
+当执行 `ccr switch <config>` 时,CCR 会：
 
 1. **清除现有变量**：删除所有 `ANTHROPIC_*` 前缀的环境变量
 2. **设置新变量**：根据目标配置设置新的环境变量
@@ -126,13 +126,13 @@ CCR 管理以下 Claude Code 环境变量：
 
 ## 备份与恢复
 
-CCR 提供自动备份机制，确保配置安全。
+CCR 提供自动备份机制,确保配置安全。
 
 ### 自动备份
 
 **触发时机：**
 - 执行 `ccr switch` 切换配置前
-- 执行 `ccr import` 导入配置前（除非使用 `--no-backup`）
+- 执行 `ccr import` 导入配置前(除非使用 `--no-backup`)
 - 执行 `ccr init --force` 强制初始化前
 
 **备份位置：**
@@ -155,7 +155,7 @@ settings_20250110_120530_anthropic.json.bak
 使用 `ccr clean` 命令清理旧备份：
 
 ```bash
-# 清理 7 天前的备份（默认）
+# 清理 7 天前的备份(默认)
 ccr clean
 
 # 清理 30 天前的备份
@@ -167,13 +167,13 @@ ccr clean --dry-run
 
 ### 手动恢复
 
-虽然 CCR 暂不支持命令行恢复，但你可以手动恢复：
+虽然 CCR 暂不支持命令行恢复,但你可以手动恢复：
 
 ```bash
 # 1. 查看可用备份
 ls -lh ~/.claude/backups/
 
-# 2. 手动恢复（复制备份到设置文件）
+# 2. 手动恢复(复制备份到设置文件)
 cp ~/.claude/backups/settings_20250110_120530_anthropic.json.bak \
    ~/.claude/settings.json
 ```
@@ -186,7 +186,7 @@ cp ~/.claude/backups/settings_20250110_120530_anthropic.json.bak \
 
 ## 操作历史
 
-CCR 记录所有操作的详细历史，存储在 `~/.claude/ccr_history.json`。
+CCR 记录所有操作的详细历史,存储在 `~/.claude/ccr_history.json`。
 
 ### 历史记录格式
 
@@ -221,17 +221,17 @@ CCR 记录所有操作的详细历史，存储在 `~/.claude/ccr_history.json`�
 
 | 字段 | 说明 |
 |------|------|
-| `id` | 操作唯一标识（UUID） |
+| `id` | 操作唯一标识(UUID) |
 | `timestamp` | 操作时间戳 |
-| `actor` | 操作者（系统用户名） |
-| `operation_type` | 操作类型（switch、backup、validate 等） |
-| `details` | 操作详情（包括环境变量变更） |
-| `result` | 操作结果（success、failure） |
+| `actor` | 操作者(系统用户名) |
+| `operation_type` | 操作类型(switch、backup、validate 等) |
+| `details` | 操作详情(包括环境变量变更) |
+| `result` | 操作结果(success、failure) |
 | `notes` | 备注信息 |
 
 ### 敏感信息保护
 
-历史记录中的敏感信息（如 API Token）会自动脱敏，仅显示首尾字符：
+历史记录中的敏感信息(如 API Token)会自动脱敏,仅显示首尾字符：
 
 ```
 原始: sk-ant-api03-xxxxxxxxxxxxxxxxxxxxx
@@ -242,7 +242,7 @@ CCR 记录所有操作的详细历史，存储在 `~/.claude/ccr_history.json`�
 
 ## Web API
 
-CCR 的 Web 界面提供完整的 RESTful API，基于全新的 Service 层架构。
+CCR 的 Web 界面提供完整的 RESTful API,基于全新的 Service 层架构。
 
 ### 启动 Web 服务
 
@@ -256,7 +256,7 @@ ccr web --port 8080
 
 Web API 采用分层架构：
 - **Handlers** - 处理 HTTP 请求
-- **Services** - 业务逻辑层（ConfigService, SettingsService 等）
+- **Services** - 业务逻辑层(ConfigService, SettingsService 等)
 - **Managers** - 数据访问层
 
 这确保了 API 的可靠性和可维护性。
@@ -479,18 +479,18 @@ CCR 实现了多层安全保护机制。
 ### 2. 文件权限
 
 **settings.json 权限：**
-- 自动设置为 600（仅所有者可读写）
+- 自动设置为 600(仅所有者可读写)
 - 防止其他用户访问敏感信息
 
 **配置文件权限：**
-- 推荐设置为 644（所有者可写，其他人只读）
+- 推荐设置为 644(所有者可写,其他人只读)
 
 ### 3. 并发控制
 
 **文件锁定机制：**
 - 跨进程文件锁定
-- 超时保护（默认 10 秒）
-- 自动锁资源释放（RAII）
+- 超时保护(默认 10 秒)
+- 自动锁资源释放(RAII)
 
 **原子写入：**
 - 使用临时文件 + rename 操作
@@ -618,7 +618,7 @@ model = "claude-sonnet-4-5-20250929"
 
 ### 配置验证失败
 
-**问题：** 配置验证失败，提示缺少必需字段
+**问题：** 配置验证失败,提示缺少必需字段
 
 **解决：**
 ```bash
@@ -645,7 +645,7 @@ vim ~/.ccs_config.toml
 # 检查正在运行的进程
 ps aux | grep ccr
 
-# 如果没有进程，清理锁文件
+# 如果没有进程,清理锁文件
 rm -rf ~/.claude/.locks/*
 ```
 
@@ -729,7 +729,7 @@ ccr history --limit 1
 
 ### 5. 使用 Web 界面
 
-对于频繁的配置管理，使用 Web 界面更方便：
+对于频繁的配置管理,使用 Web 界面更方便：
 
 ```bash
 ccr web --port 8080

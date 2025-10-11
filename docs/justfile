@@ -36,7 +36,7 @@ clean:
     rm -rf node_modules/.cache
     @echo "✅ 清理完成！"
 
-# 完全清理（包括 node_modules）
+# 完全清理(包括 node_modules)
 clean-all: clean
     @echo "🧹 完全清理..."
     rm -rf node_modules
@@ -51,7 +51,7 @@ audit:
     @echo "🔍 检查安全漏洞..."
     npm audit
 
-# 修复安全漏洞（非破坏性）
+# 修复安全漏洞(非破坏性)
 audit-fix:
     @echo "🔧 修复安全漏洞..."
     npm audit fix
@@ -67,11 +67,11 @@ outdated:
     @echo "📊 检查过期依赖..."
     npm outdated
 
-# 快速重建（清理后重新构建）
+# 快速重建(清理后重新构建)
 rebuild: clean build
     @echo "✅ 重建完成！"
 
-# 验证构建（构建并检查输出）
+# 验证构建(构建并检查输出)
 verify: build
     @echo "✅ 验证构建结果..."
     @ls -lh .vitepress/dist

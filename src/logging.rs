@@ -2,26 +2,26 @@
 // 💬 提供统一的日志初始化和彩色终端输出工具
 //
 // 核心功能:
-// - 🌈 彩色终端输出（使用 colored crate）
-// - 📝 统一的消息格式（成功/错误/警告/信息）
+// - 🌈 彩色终端输出(使用 colored crate)
+// - 📝 统一的消息格式(成功/错误/警告/信息)
 // - 🔐 敏感信息自动掩码
 // - 📊 键值对格式化输出
 // - 🎯 交互式确认提示
-// - 📚 日志级别控制（通过环境变量）
+// - 📚 日志级别控制(通过环境变量)
 
 use colored::*;
 use std::io::{self, Write};
 
 /// 🎨 彩色输出工具
 ///
-/// 提供各种格式化的彩色输出方法，用于改善用户体验
+/// 提供各种格式化的彩色输出方法,用于改善用户体验
 ///
 /// 消息类型:
-/// - ✅ success: 绿色（操作成功）
-/// - ℹ️ info: 蓝色（一般信息）
-/// - ⚠️ warning: 黄色（警告信息）
-/// - ❌ error: 红色（错误信息）
-/// - ▶️ step: 青色（步骤提示）
+/// - ✅ success: 绿色(操作成功)
+/// - ℹ️ info: 蓝色(一般信息)
+/// - ⚠️ warning: 黄色(警告信息)
+/// - ❌ error: 红色(错误信息)
+/// - ▶️ step: 青色(步骤提示)
 pub struct ColorOutput;
 
 impl ColorOutput {
@@ -90,7 +90,7 @@ impl ColorOutput {
     ///
     /// 掩码规则:
     /// - 长度 <= 10: 全部替换为 *
-    /// - 长度 > 10: 显示前 4 位和后 4 位，中间用 ... 代替
+    /// - 长度 > 10: 显示前 4 位和后 4 位,中间用 ... 代替
     ///
     /// 示例:
     /// - "sk-ant-1234567890abcdef" → "sk-a...cdef"
@@ -105,14 +105,14 @@ impl ColorOutput {
         println!("{}{}: {}", padding, key.bold(), value);
     }
 
-    /// 🔐 输出键值对（敏感信息自动掩码）
+    /// 🔐 输出键值对(敏感信息自动掩码)
     pub fn key_value_sensitive(key: &str, value: &str, indent: usize) {
         let padding = " ".repeat(indent);
         let masked = Self::mask_sensitive(value);
         println!("{}{}: {}", padding, key.bold(), masked.dimmed());
     }
 
-    /// ▶️ 输出当前配置标记（带颜色）
+    /// ▶️ 输出当前配置标记(带颜色)
     pub fn current_marker() -> String {
         "▶".green().bold().to_string()
     }
@@ -122,7 +122,7 @@ impl ColorOutput {
         " ".to_string()
     }
 
-    /// 🤔 询问用户确认（是/否）
+    /// 🤔 询问用户确认(是/否)
     ///
     /// 支持多种输入格式: y/yes/是
     pub fn ask_confirmation(question: &str, default: bool) -> bool {
@@ -184,7 +184,7 @@ impl ColorOutput {
 ///
 /// 默认配置:
 /// - 级别: info
-/// - 样式: auto（自动检测终端支持）
+/// - 样式: auto(自动检测终端支持)
 ///
 /// 日志格式:
 /// - 时间戳 [级别] 消息内容

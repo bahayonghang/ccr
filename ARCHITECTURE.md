@@ -2,7 +2,7 @@
 
 ## 概述
 
-CCR (Claude Code Configuration Switcher) 采用分层架构设计，清晰分离关注点，提高代码的可维护性和可扩展性。
+CCR (Claude Code Configuration Switcher) 采用分层架构设计,清晰分离关注点,提高代码的可维护性和可扩展性。
 
 ## 架构层次
 
@@ -30,7 +30,7 @@ CCR (Claude Code Configuration Switcher) 采用分层架构设计，清晰分离
 
 ## 模块详解
 
-### 📁 Presentation Layer（表示层）
+### 📁 Presentation Layer(表示层)
 
 #### CLI 子系统 (`commands/`)
 负责处理命令行交互和用户界面。
@@ -68,10 +68,10 @@ CCR (Claude Code Configuration Switcher) 采用分层架构设计，清晰分离
 - JSON 数据序列化
 - 静态文件服务
 
-### 🎯 Business Logic Layer（业务逻辑层）
+### 🎯 Business Logic Layer(业务逻辑层)
 
 #### Services (`services/`)
-封装核心业务逻辑，协调多个 Manager 的操作。
+封装核心业务逻辑,协调多个 Manager 的操作。
 
 **ConfigService** (`config_service.rs`)：
 - `list_configs()` - 列出所有配置
@@ -101,12 +101,12 @@ CCR (Claude Code Configuration Switcher) 采用分层架构设计，清晰分离
 - `scan_backup_directory()` - 扫描备份目录
 
 **优势**：
-- ✅ 业务逻辑集中，易于测试
+- ✅ 业务逻辑集中,易于测试
 - ✅ 可被 CLI 和 Web 共享
-- ✅ 事务性操作封装（备份+修改+历史记录）
+- ✅ 事务性操作封装(备份+修改+历史记录)
 - ✅ 统一错误处理
 
-### 📊 Data Access Layer（数据访问层）
+### 📊 Data Access Layer(数据访问层)
 
 #### Managers
 直接管理数据文件的读写。
@@ -118,7 +118,7 @@ CCR (Claude Code Configuration Switcher) 采用分层架构设计，清晰分离
 
 **SettingsManager** (`settings.rs`)：
 - 管理 `~/.claude/settings.json`
-- 原子性写入（temp file + rename）
+- 原子性写入(temp file + rename)
 - 文件锁保护
 - 自动备份
 
@@ -132,7 +132,7 @@ CCR (Claude Code Configuration Switcher) 采用分层架构设计，清晰分离
 - 💾 原子操作防止数据损坏
 - 📝 自动备份机制
 
-### 🏗️ Infrastructure Layer（基础设施层）
+### 🏗️ Infrastructure Layer(基础设施层)
 
 #### Core (`core/`)
 核心抽象和基础设施。
@@ -144,7 +144,7 @@ CCR (Claude Code Configuration Switcher) 采用分层架构设计，清晰分离
 
 **FileManager Trait** (`file_manager.rs`)：
 - 统一的文件管理接口
-- 泛型设计，支持多种数据类型
+- 泛型设计,支持多种数据类型
 
 #### Utils (`utils/`)
 通用工具函数。
@@ -175,7 +175,7 @@ CCR (Claude Code Configuration Switcher) 采用分层架构设计，清晰分离
 
 **CcrError**：
 - 13 种错误类型
-- 唯一退出码（10-99 范围）
+- 唯一退出码(10-99 范围)
 - 用户友好消息
 - 致命错误标识
 
@@ -193,7 +193,7 @@ CCR (Claude Code Configuration Switcher) 采用分层架构设计，清晰分离
 ### 1. 分层架构 (Layered Architecture)
 严格的层次依赖：
 - Presentation → Business Logic → Data Access → Infrastructure
-- 每层只依赖其下层，不跨层调用
+- 每层只依赖其下层,不跨层调用
 
 ### 2. 服务模式 (Service Pattern)
 业务逻辑封装在 Service 层：
@@ -269,7 +269,7 @@ JSON Response
 ```
 src/
 ├── main.rs              # 程序入口
-├── lib.rs               # 库入口（供测试使用）
+├── lib.rs               # 库入口(供测试使用)
 │
 ├── commands/            # 命令实现
 │   ├── mod.rs
@@ -321,8 +321,8 @@ web/
 
 **问题**：
 - 业务逻辑分散在 commands 和 web 中
-- 代码重复（CLI 和 Web 都要实现相同逻辑）
-- 难以测试（需要模拟完整命令流程）
+- 代码重复(CLI 和 Web 都要实现相同逻辑)
+- 难以测试(需要模拟完整命令流程)
 
 **解决方案**：
 - Service 层封装业务逻辑
@@ -340,7 +340,7 @@ web/
 - Service 专注于业务流程
 - 清晰的职责分离
 
-### 3. 为什么使用 Trait（Validatable, FileManager）？
+### 3. 为什么使用 Trait(Validatable, FileManager)？
 
 **问题**：
 - ConfigSection 和 ClaudeSettings 都需要验证
@@ -349,12 +349,12 @@ web/
 **解决方案**：
 - Validatable trait 统一验证接口
 - FileManager trait 统一文件操作
-- 减少代码重复，提高一致性
+- 减少代码重复,提高一致性
 
 ### 4. 为什么拆分 Web 模块？
 
 **问题**：
-- web.rs 753 行，过于臃肿
+- web.rs 753 行,过于臃肿
 - 混合了模型、路由、处理器、服务器
 
 **解决方案**：
@@ -362,7 +362,7 @@ web/
 - routes.rs - 路由定义
 - handlers.rs - 请求处理
 - server.rs - 服务器核心
-- 单一职责，易于维护
+- 单一职责,易于维护
 
 ## 测试策略
 
@@ -389,7 +389,7 @@ web/
 1. 创建 `src/services/new_service.rs`
 2. 定义 Service 结构和方法
 3. 在 `services/mod.rs` 中导出
-4. 在 lib.rs 中重新导出（如需公开）
+4. 在 lib.rs 中重新导出(如需公开)
 
 示例：
 ```rust

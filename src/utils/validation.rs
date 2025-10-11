@@ -36,6 +36,6 @@ pub trait Validatable {
     ///
     /// # Returns
     /// - `Ok(())` - 验证通过
-    /// - `Err(CcrError)` - 验证失败，包含错误详情
+    /// - `Err(CcrError)` - 验证失败,包含错误详情
     fn validate(&self) -> Result<()>;
 }

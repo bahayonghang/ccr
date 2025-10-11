@@ -50,7 +50,7 @@ npm run preview
 | `just build` | 构建生产版本 |
 | `just preview` | 预览生产构建 |
 | `just clean` | 清理构建文件和缓存 |
-| `just clean-all` | 完全清理（包括 node_modules） |
+| `just clean-all` | 完全清理(包括 node_modules) |
 | `just reinstall` | 重新安装依赖 |
 | `just audit` | 检查安全漏洞 |
 | `just audit-fix` | 修复安全漏洞 |

@@ -131,7 +131,7 @@ pub fn validate_command() -> Result<()> {
                     None => {
                         // ANTHROPIC_SMALL_FAST_MODEL 是可选的
                         if var_name.contains("SMALL_FAST_MODEL") {
-                            println!("  {} {}: {}", "○".dimmed(), var_name, "未设置（可选）");
+                            println!("  {} {}: {}", "○".dimmed(), var_name, "未设置(可选)");
                         } else {
                             println!("  {} {}: {}", "✗".red(), var_name, "未设置");
                             has_errors = true;
@@ -168,13 +168,13 @@ fn generate_report(has_errors: bool, has_warnings: bool) -> Result<()> {
     println!();
 
     if !has_errors && !has_warnings {
-        ColorOutput::success("✓ 所有验证通过，配置状态正常");
+        ColorOutput::success("✓ 所有验证通过,配置状态正常");
         println!();
         return Ok(());
     }
 
     if has_errors {
-        ColorOutput::error("✗ 发现配置错误，请修复后重试");
+        ColorOutput::error("✗ 发现配置错误,请修复后重试");
         println!();
         ColorOutput::info("建议:");
         println!("  1. 检查配置文件格式是否正确");
@@ -184,7 +184,7 @@ fn generate_report(has_errors: bool, has_warnings: bool) -> Result<()> {
     }
 
     if has_warnings {
-        ColorOutput::warning("⚠ 发现配置警告，建议检查");
+        ColorOutput::warning("⚠ 发现配置警告,建议检查");
     }
 
     println!();

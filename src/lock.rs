@@ -1,11 +1,11 @@
 // 🔒 CCR 文件锁模块
-// 🛡️ 提供跨进程的文件锁功能，确保并发安全
+// 🛡️ 提供跨进程的文件锁功能,确保并发安全
 //
 // 核心功能:
-// - 🔐 跨进程互斥锁（使用 fs4 crate）
-// - ⏱️ 超时机制（防止死锁）
-// - 🧹 RAII 自动释放（Drop trait）
-// - 🔄 重试机制（100ms 间隔）
+// - 🔐 跨进程互斥锁(使用 fs4 crate)
+// - ⏱️ 超时机制(防止死锁)
+// - 🧹 RAII 自动释放(Drop trait)
+// - 🔄 重试机制(100ms 间隔)
 //
 // 使用场景:
 // - 防止多个 CCR 进程同时修改 settings.json
@@ -19,11 +19,11 @@ use std::time::{Duration, Instant};
 
 /// 🔒 文件锁
 ///
-/// 提供跨进程的互斥锁功能，基于文件系统锁实现
+/// 提供跨进程的互斥锁功能,基于文件系统锁实现
 ///
 /// 特性:
 /// - 🛡️ 跨进程安全
-/// - 🧹 自动释放（通过 Drop trait）
+/// - 🧹 自动释放(通过 Drop trait)
 /// - ⏱️ 可配置超时
 pub struct FileLock {
     file: File,
@@ -42,7 +42,7 @@ impl FileLock {
     /// * `Err(CcrError)` - 获取锁失败或超时
     ///
     /// # 实现细节
-    /// - 循环尝试获取锁，每次失败后等待 100ms
+    /// - 循环尝试获取锁,每次失败后等待 100ms
     /// - 超时后返回 LockTimeout 错误
     /// - 锁文件位于 ~/.claude/.locks/ 目录
     pub fn new<P: AsRef<Path>>(lock_path: P, timeout: Duration) -> Result<Self> {
@@ -62,7 +62,7 @@ impl FileLock {
             .open(&lock_path)
             .map_err(|e| CcrError::FileLockError(format!("无法打开锁文件: {}", e)))?;
 
-        // 尝试获取锁，带超时
+        // 尝试获取锁,带超时
         let start = Instant::now();
         loop {
             match file.try_lock_exclusive() {
@@ -71,7 +71,7 @@ impl FileLock {
                     return Ok(FileLock { file, lock_path });
                 }
                 Err(_) if start.elapsed() < timeout => {
-                    // 未超时，等待一小段时间后重试
+                    // 未超时,等待一小段时间后重试
                     std::thread::sleep(Duration::from_millis(100));
                     continue;
                 }
@@ -90,7 +90,7 @@ impl FileLock {
 impl Drop for FileLock {
     /// 🧹 自动释放文件锁
     ///
-    /// 利用 RAII（Resource Acquisition Is Initialization）模式
+    /// 利用 RAII(Resource Acquisition Is Initialization)模式
     /// 当 FileLock 离开作用域时自动释放锁
     fn drop(&mut self) {
         // ✅ 确保锁总是被释放
@@ -101,7 +101,7 @@ impl Drop for FileLock {
 
 /// 🔧 文件锁管理器
 ///
-/// 统一管理多个资源的锁，提供一致的锁获取接口
+/// 统一管理多个资源的锁,提供一致的锁获取接口
 ///
 /// 管理的资源:
 /// - 📝 Claude Code settings.json
@@ -135,12 +135,12 @@ impl LockManager {
         self.lock_dir.join(format!("{}.lock", resource_name))
     }
 
-    /// 🔒 获取指定资源的锁（通用方法）
+    /// 🔒 获取指定资源的锁(通用方法)
     ///
-    /// 为任意资源获取文件锁，资源名称会被转换为锁文件路径
+    /// 为任意资源获取文件锁,资源名称会被转换为锁文件路径
     ///
     /// # Arguments
-    /// - `resource` - 资源名称（例如: "my_config", "temp_data"）
+    /// - `resource` - 资源名称(例如: "my_config", "temp_data")
     /// - `timeout` - 获取锁的超时时间
     ///
     /// # Returns

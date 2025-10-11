@@ -55,11 +55,11 @@ impl BackupService {
     /// 🧹 清理旧备份文件
     ///
     /// # Arguments
-    /// - `days` - 保留天数（删除 N 天前的文件）
-    /// - `dry_run` - 模拟运行（不实际删除）
+    /// - `days` - 保留天数(删除 N 天前的文件)
+    /// - `dry_run` - 模拟运行(不实际删除)
     ///
     /// # Returns
-    /// 清理结果（删除数量、跳过数量、释放空间）
+    /// 清理结果(删除数量、跳过数量、释放空间)
     pub fn clean_old_backups(&self, days: u64, dry_run: bool) -> Result<CleanResult> {
         if !self.backup_dir.exists() {
             return Ok(CleanResult {
@@ -111,7 +111,7 @@ impl BackupService {
             });
         }
 
-        // 按修改时间倒序排列（最新的在前）
+        // 按修改时间倒序排列(最新的在前)
         backups.sort_by(|a, b| b.modified.cmp(&a.modified));
 
         Ok(backups)
@@ -146,7 +146,7 @@ impl BackupService {
                 .map_err(|e| CcrError::ConfigError(format!("获取文件修改时间失败: {}", e)))?;
 
             if modified_time < cutoff_time {
-                // 文件超过指定天数，需要删除
+                // 文件超过指定天数,需要删除
                 let file_size = metadata.len();
 
                 if !dry_run {
@@ -157,7 +157,7 @@ impl BackupService {
                 result.deleted_count += 1;
                 result.total_size += file_size;
             } else {
-                // 文件较新，保留
+                // 文件较新,保留
                 result.skipped_count += 1;
             }
         }
@@ -202,7 +202,7 @@ mod tests {
 
         let service = BackupService::new(backup_dir);
 
-        // 清理 7 天前的文件（dry run）
+        // 清理 7 天前的文件(dry run)
         let result = service.clean_old_backups(7, true).unwrap();
         assert_eq!(result.deleted_count, 1); // old.bak 应该被标记删除
         assert_eq!(result.skipped_count, 1); // new.bak 应该被保留

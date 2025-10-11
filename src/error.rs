@@ -2,7 +2,7 @@
 // 🔧 提供统一的错误类型、错误码和用户友好的错误消息
 //
 // 设计原则:
-// - 📊 结构化错误类型（使用 thiserror）
+// - 📊 结构化错误类型(使用 thiserror)
 // - 🔢 每种错误对应唯一退出码
 // - 💬 提供用户友好的错误消息
 // - 🚨 区分致命错误和可恢复错误
@@ -11,7 +11,7 @@ use thiserror::Error;
 
 /// 🔢 错误退出码常量
 ///
-/// 每种错误类型对应唯一的退出码，便于脚本判断错误类型
+/// 每种错误类型对应唯一的退出码,便于脚本判断错误类型
 ///
 /// 退出码范围:
 /// - 10-19: 配置相关错误
@@ -64,7 +64,7 @@ pub mod exit_codes {
 
 /// ❌ CCR 错误类型枚举
 ///
-/// 涵盖所有可能的错误情况，每种错误都有专门的退出码
+/// 涵盖所有可能的错误情况,每种错误都有专门的退出码
 #[derive(Error, Debug)]
 pub enum CcrError {
     /// ⚙️ 配置文件相关错误
@@ -123,7 +123,7 @@ pub enum CcrError {
 impl CcrError {
     /// 🔢 获取错误退出码
     ///
-    /// 每种错误类型对应唯一的退出码，便于脚本判断错误类型
+    /// 每种错误类型对应唯一的退出码,便于脚本判断错误类型
     ///
     /// 使用 [exit_codes] 模块中定义的常量
     pub fn exit_code(&self) -> i32 {
@@ -146,7 +146,7 @@ impl CcrError {
 
     /// 🚨 判断错误是否致命
     ///
-    /// 致命错误需要立即终止程序执行，无法恢复
+    /// 致命错误需要立即终止程序执行,无法恢复
     ///
     /// 致命错误类型:
     /// - 配置文件缺失
@@ -166,25 +166,25 @@ impl CcrError {
         match self {
             CcrError::ConfigMissing(path) => {
                 format!(
-                    "配置文件不存在: {}\n建议: 请运行安装脚本创建配置文件，或检查配置文件路径是否正确",
+                    "配置文件不存在: {}\n建议: 请运行安装脚本创建配置文件,或检查配置文件路径是否正确",
                     path
                 )
             }
             CcrError::ConfigSectionNotFound(name) => {
                 format!(
-                    "配置节 '{}' 不存在\n建议: 运行 'ccr list' 查看可用配置，或编辑 ~/.ccs_config.toml 添加新配置",
+                    "配置节 '{}' 不存在\n建议: 运行 'ccr list' 查看可用配置,或编辑 ~/.ccs_config.toml 添加新配置",
                     name
                 )
             }
             CcrError::SettingsMissing(path) => {
                 format!(
-                    "Claude Code 设置文件不存在: {}\n建议: 请确保已安装 Claude Code，或检查 ~/.claude 目录是否存在",
+                    "Claude Code 设置文件不存在: {}\n建议: 请确保已安装 Claude Code,或检查 ~/.claude 目录是否存在",
                     path
                 )
             }
             CcrError::LockTimeout(resource) => {
                 format!(
-                    "获取文件锁超时: {}\n建议: 可能有其他 ccr 进程正在运行，请稍后重试或检查是否有僵死进程",
+                    "获取文件锁超时: {}\n建议: 可能有其他 ccr 进程正在运行,请稍后重试或检查是否有僵死进程",
                     resource
                 )
             }
@@ -199,7 +199,7 @@ impl CcrError {
     }
 }
 
-/// Result 类型别名，使用 CcrError 作为错误类型
+/// Result 类型别名,使用 CcrError 作为错误类型
 pub type Result<T> = std::result::Result<T, CcrError>;
 
 #[cfg(test)]

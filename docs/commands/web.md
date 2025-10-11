@@ -1,6 +1,6 @@
 # web - 启动 Web 界面
 
-启动内置的 Web 配置界面，通过浏览器管理配置。
+启动内置的 Web 配置界面,通过浏览器管理配置。
 
 ## 用法
 
@@ -10,7 +10,7 @@ ccr web [OPTIONS]
 
 ## 选项
 
-- `--port <PORT>`: 指定监听端口（默认：8080）
+- `--port <PORT>`: 指定监听端口(默认：8080)
 - `--no-browser`: 不自动打开浏览器
 
 ## 功能特性
@@ -65,7 +65,7 @@ ccr web --no-browser
 
 ## RESTful API
 
-Web 界面提供完整的 RESTful API，支持编程访问。
+Web 界面提供完整的 RESTful API,支持编程访问。
 
 ### 获取所有配置
 
@@ -117,8 +117,8 @@ GET http://localhost:8080/api/history?limit=20&type=switch
 ```
 
 **查询参数：**
-- `limit`: 返回记录数（默认：20）
-- `type`: 操作类型过滤（可选）
+- `limit`: 返回记录数(默认：20)
+- `type`: 操作类型过滤(可选)
 
 ### 验证配置
 
@@ -237,10 +237,10 @@ print(response.json())
 ## 安全注意事项
 
 ::: warning 安全提示
-Web 界面默认监听 `localhost`，仅本地访问。如需远程访问，请使用：
+Web 界面默认监听 `localhost`,仅本地访问。如需远程访问,请使用：
 - SSH 端口转发
 - VPN 连接
-- 反向代理（nginx/caddy）+ HTTPS
+- 反向代理(nginx/caddy)+ HTTPS
 - 防火墙限制访问 IP
 :::
 

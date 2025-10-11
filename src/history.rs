@@ -2,8 +2,8 @@
 // 🔍 提供完整的操作历史记录和审计功能
 //
 // 核心功能:
-// - 📝 记录所有操作（switch, backup, restore等）
-// - 🔐 敏感信息自动掩码（TOKEN, KEY, SECRET）
+// - 📝 记录所有操作(switch, backup, restore等)
+// - 🔐 敏感信息自动掩码(TOKEN, KEY, SECRET)
 // - 🔒 文件锁保证并发写入安全
 // - 📊 操作统计和筛选
 // - 🆔 UUID 唯一标识每个操作
@@ -54,7 +54,7 @@ pub enum OperationResult {
     Success,
     /// 失败
     Failure(String),
-    /// 警告（部分成功）
+    /// 警告(部分成功)
     Warning(String),
 }
 
@@ -63,22 +63,22 @@ pub enum OperationResult {
 pub struct EnvChange {
     /// 变量名
     pub var_name: String,
-    /// 旧值（已掩码）
+    /// 旧值(已掩码)
     pub old_value: Option<String>,
-    /// 新值（已掩码）
+    /// 新值(已掩码)
     pub new_value: Option<String>,
 }
 
 /// 操作详情
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OperationDetails {
-    /// 源配置（如果适用）
+    /// 源配置(如果适用)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from_config: Option<String>,
-    /// 目标配置（如果适用）
+    /// 目标配置(如果适用)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to_config: Option<String>,
-    /// 备份路径（如果适用）
+    /// 备份路径(如果适用)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backup_path: Option<String>,
     /// 其他详细信息
@@ -93,7 +93,7 @@ pub struct HistoryEntry {
     pub id: String,
     /// 时间戳
     pub timestamp: DateTime<Local>,
-    /// 操作者（系统用户名）
+    /// 操作者(系统用户名)
     pub actor: String,
     /// 操作类型
     pub operation: OperationType,
@@ -196,7 +196,7 @@ impl HistoryManager {
                 .map_err(|e| CcrError::HistoryError(format!("创建历史目录失败: {}", e)))?;
         }
 
-        // 序列化为 JSON（美化格式）
+        // 序列化为 JSON(美化格式)
         let content = serde_json::to_string_pretty(entries)
             .map_err(|e| CcrError::HistoryError(format!("序列化历史记录失败: {}", e)))?;
 

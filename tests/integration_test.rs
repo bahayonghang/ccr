@@ -112,7 +112,7 @@ fn test_validation_trait() {
     let valid_section = create_test_section("valid");
     assert!(valid_section.validate().is_ok());
 
-    // 测试无效配置（空 base_url）
+    // 测试无效配置(空 base_url)
     let invalid_section = ConfigSection {
         description: Some("Invalid".into()),
         base_url: Some("".into()),
@@ -122,7 +122,7 @@ fn test_validation_trait() {
     };
     assert!(invalid_section.validate().is_err());
 
-    // 测试无效配置（无效 URL 格式）
+    // 测试无效配置(无效 URL 格式)
     let invalid_section = ConfigSection {
         description: Some("Invalid".into()),
         base_url: Some("not-a-url".into()),

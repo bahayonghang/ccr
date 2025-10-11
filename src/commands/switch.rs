@@ -1,12 +1,12 @@
 // 🔄 switch 命令实现 - 切换配置
-// 💎 这是 CCR 最核心的命令，负责完整的配置切换流程
+// 💎 这是 CCR 最核心的命令,负责完整的配置切换流程
 //
-// 执行流程（5 个步骤）:
+// 执行流程(5 个步骤):
 // 1. 📖 读取并验证目标配置
 // 2. 💾 备份当前 settings.json
 // 3. ✏️ 更新 Claude Code 设置
 // 4. 📝 更新 ccs_config 当前配置标记
-// 5. 📚 记录操作历史（带环境变量变化）
+// 5. 📚 记录操作历史(带环境变量变化)
 
 use crate::config::ConfigManager;
 use crate::error::{CcrError, Result};
@@ -19,7 +19,7 @@ use crate::utils::Validatable;
 
 /// 🔄 切换到指定配置
 ///
-/// 这是一个原子性操作，确保配置切换的完整性和可追溯性
+/// 这是一个原子性操作,确保配置切换的完整性和可追溯性
 pub fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::title(&format!("切换配置: {}", config_name));
     println!();
@@ -55,15 +55,15 @@ pub fn switch_command(config_name: &str) -> Result<()> {
         ColorOutput::success(&format!("✅ 设置已备份: {}", path.display()));
         Some(path.display().to_string())
     } else {
-        ColorOutput::info("📝 设置文件不存在，跳过备份（这可能是首次使用）");
+        ColorOutput::info("📝 设置文件不存在,跳过备份(这可能是首次使用)");
         None
     };
     println!();
 
-    // ✏️ 步骤 3: 更新 settings.json（清空旧 ANTHROPIC_* 后写入新值）
+    // ✏️ 步骤 3: 更新 settings.json(清空旧 ANTHROPIC_* 后写入新值)
     ColorOutput::step("步骤 3/5: 更新 Claude Code 设置");
 
-    // 📊 记录旧的环境变量状态（用于历史对比）
+    // 📊 记录旧的环境变量状态(用于历史对比)
     let old_settings = settings_manager.load().ok();
     let old_env = old_settings
         .as_ref()
@@ -87,7 +87,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::success(&format!("✅ 当前配置已设置为: {}", config_name));
     println!();
 
-    // 📚 步骤 5: 记录历史（包含环境变量变化的掩码记录）
+    // 📚 步骤 5: 记录历史(包含环境变量变化的掩码记录)
     ColorOutput::step("步骤 5/5: 记录操作历史");
     let history_manager = HistoryManager::default()?;
 
@@ -140,7 +140,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
 
     // 最终验证
     match new_settings.validate() {
-        Ok(_) => ColorOutput::success("✓ 配置已生效，Claude Code 可以使用新的 API 配置"),
+        Ok(_) => ColorOutput::success("✓ 配置已生效,Claude Code 可以使用新的 API 配置"),
         Err(e) => ColorOutput::warning(&format!("⚠ 配置可能不完整: {}", e)),
     }
 

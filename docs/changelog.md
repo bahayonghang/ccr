@@ -2,13 +2,13 @@
 
 CCR 的所有重要变更都会记录在本文件中。
 
-格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [1.0.0] - 2025-10-11
 
-### 🏗️ 架构重构（重大更新）
+### 🏗️ 架构重构(重大更新)
 
-**全面的架构现代化升级**，引入分层架构、Service 层、代码抽象和测试增强。
+**全面的架构现代化升级**,引入分层架构、Service 层、代码抽象和测试增强。
 
 #### ✨ 新增
 
@@ -27,12 +27,12 @@ CCR 的所有重要变更都会记录在本文件中。
   - `Validatable` trait - 统一验证接口
   
 - **完整 Web API** - 11 个 RESTful 端点
-  - 配置管理：5 个端点（list, add, update, delete, switch）
+  - 配置管理：5 个端点(list, add, update, delete, switch)
   - 历史记录：1 个端点
   - 设置管理：3 个端点
   - 工具功能：2 个端点
   
-- **集成测试支持** - 3 个集成测试，100% 通过
+- **集成测试支持** - 3 个集成测试,100% 通过
 
 #### 🔧 改进
 
@@ -48,22 +48,22 @@ CCR 的所有重要变更都会记录在本文件中。
   - 业务逻辑由 Service 层统一管理
   
 - **代码质量提升**
-  - 错误码从硬编码改为常量（exit_codes 模块）
+  - 错误码从硬编码改为常量(exit_codes 模块)
   - 锁管理器添加通用 `lock_resource()` 方法
   - 统一 Validatable trait 接口
   - 消除掩码逻辑重复
   
 - **测试增强**
   - 测试覆盖率从 ~85% 提升到 95.1%
-  - 新增 Service 层单元测试（6 个）
-  - 新增 Core 层单元测试（4 个）
-  - 新增 Utils 层单元测试（2 个）
-  - 新增集成测试（3 个）
+  - 新增 Service 层单元测试(6 个)
+  - 新增 Core 层单元测试(4 个)
+  - 新增 Utils 层单元测试(2 个)
+  - 新增集成测试(3 个)
 
 #### 📚 文档
 
 - **ARCHITECTURE.md** - 完整的架构设计文档
-- **CLAUDE.md** - 更新开发指南，添加 Service 层使用说明
+- **CLAUDE.md** - 更新开发指南,添加 Service 层使用说明
 - **Cargo.toml** - 添加 lib target 支持
 
 #### 📦 技术细节
@@ -82,7 +82,7 @@ src/
 - 新增模块：18 个文件
 - 重构模块：12 个文件
 - 新增代码：~2000 行
-- 总测试：81 个（77 passed, 95.1%）
+- 总测试：81 个(77 passed, 95.1%)
 
 #### ⚠️ 破坏性变更
 
@@ -108,38 +108,38 @@ src/
 - **配置初始化 (Init)**: 快速创建配置文件
   - 从内置模板自动创建 `~/.ccs_config.toml`
   - 包含 8 个常用 API 服务的预配置模板
-  - **安全模式**：如果配置已存在，直接退出（不覆盖）
+  - **安全模式**：如果配置已存在,直接退出(不覆盖)
   - 必须使用 `--force` 才能覆盖现有配置
   - 使用 --force 时自动备份现有配置
-  - 正确的文件权限设置（Unix: 644）
+  - 正确的文件权限设置(Unix: 644)
   - 提供有用的后续操作提示
   
 - **配置导出 (Export)**: 导出配置到文件
-  - **默认包含 API 密钥**，方便备份和迁移 🔑
+  - **默认包含 API 密钥**,方便备份和迁移 🔑
   - 自动生成带时间戳的文件名
   - 支持 `--no-secrets` 参数导出不含密钥的配置
-  - TOML 格式输出，易于编辑
+  - TOML 格式输出,易于编辑
   - 完美适用于备份、迁移和团队协作
   
 - **配置导入 (Import)**: 从文件导入配置
   - 支持两种导入模式：
-    - **合并模式** (`--merge`): 保留现有配置，添加新的
+    - **合并模式** (`--merge`): 保留现有配置,添加新的
     - **替换模式** (默认): 完全替换现有配置
-  - 导入前自动备份现有配置（可选 `--no-backup` 禁用）
+  - 导入前自动备份现有配置(可选 `--no-backup` 禁用)
   - 配置验证和完整性检查
   - 详细的导入摘要报告
 
 - **备份清理 (Clean)**: 清理旧备份文件
   - 自动清理指定天数前的备份文件
   - 默认清理 7 天前的备份
-  - 模拟运行模式（`--dry-run`）预览清理结果
+  - 模拟运行模式(`--dry-run`)预览清理结果
   - 显示释放的磁盘空间
   - 仅清理 `~/.claude/backups/` 中的 `.bak` 文件
 
 ### 🔧 改进
 
 - **Init 命令安全性增强**:
-  - 如果配置文件已存在，直接提示并退出（不覆盖）
+  - 如果配置文件已存在,直接提示并退出(不覆盖)
   - 必须使用 `--force` 参数才能覆盖
   - 使用 `--force` 时自动备份现有配置
   - 提供有用的后续操作提示
@@ -156,8 +156,8 @@ src/
   - 更符合用户备份和迁移的实际需求
   
 - **文档体系完善**:
-  - 新增 `docs/FEATURES.md` - 完整功能说明（12KB）
-  - 新增 `docs/INIT_IMPORT_EXPORT.md` - 详细的导入导出指南（11KB）
+  - 新增 `docs/FEATURES.md` - 完整功能说明(12KB)
+  - 新增 `docs/INIT_IMPORT_EXPORT.md` - 详细的导入导出指南(11KB)
   - 新增 `docs/CLEAN_FEATURE.md` - 备份清理详细指南
   - 新增 `docs/README.md` - 文档中心索引
   - 更新所有相关文档
@@ -172,18 +172,18 @@ src/
 
 ```bash
 ccr init                    # 初始化配置文件
-ccr export                  # 导出配置（含密钥）
-ccr export --no-secrets     # 导出配置（不含密钥）
+ccr export                  # 导出配置(含密钥)
+ccr export --no-secrets     # 导出配置(不含密钥)
 ccr import <file> --merge   # 合并导入
 ccr import <file>           # 替换导入
-ccr clean                   # 清理旧备份（7天前）
+ccr clean                   # 清理旧备份(7天前)
 ccr clean --days 30         # 清理 30 天前的备份
 ccr clean --dry-run         # 模拟运行预览
 ```
 
 ### 🧪 测试
 
-- 新增 8 个单元测试，全部通过
+- 新增 8 个单元测试,全部通过
   - `init::tests` - 3 个测试
   - `export::tests` - 2 个测试
   - `import::tests` - 1 个测试
@@ -202,7 +202,7 @@ ccr clean --dry-run         # 模拟运行预览
 - `docs/README.md`
 
 **修改文件**:
-- `Cargo.toml` - 添加 filetime 依赖，移除 self_update/reqwest/tokio
+- `Cargo.toml` - 添加 filetime 依赖,移除 self_update/reqwest/tokio
 - `src/commands/mod.rs` - 导出新命令
 - `src/commands/update.rs` - 简化为调用 cargo install
 - `src/main.rs` - 集成新子命令
@@ -214,7 +214,7 @@ ccr clean --dry-run         # 模拟运行预览
 - `docs/changelog.md` - 更新日志
 
 **移除依赖**:
-- `self_update` - 不再需要（改用 cargo install）
+- `self_update` - 不再需要(改用 cargo install)
 - `reqwest` - 不再需要
 - `tokio` - 不再需要
 
@@ -238,7 +238,7 @@ ccr update            # 执行更新
 ### 📦 文件变更
 
 **新增文件**:
-- `src/commands/update.rs` (90 行，简化版）
+- `src/commands/update.rs` (90 行,简化版)
 
 **修改文件**:
 - `src/commands/mod.rs` - 导出 update 命令
@@ -248,7 +248,7 @@ ccr update            # 执行更新
 
 ### ✨ 新增
 
-- **Web 管理界面**: 完整的 Web UI，支持可视化配置管理
+- **Web 管理界面**: 完整的 Web UI,支持可视化配置管理
   - 现代化深色主题设计
   - 实时配置验证
   - 历史记录查看
@@ -261,7 +261,7 @@ ccr update            # 执行更新
 - **自动备份系统**: 切换配置前自动备份
   - 带时间戳的备份文件
   - 备份列表查看
-  - 从备份恢复（预留功能）
+  - 从备份恢复(预留功能)
 
 ### 🔧 改进
 
@@ -334,7 +334,7 @@ ccr update            # 执行更新
 
 ## 贡献
 
-如果你发现了 Bug 或有新的功能建议，欢迎：
+如果你发现了 Bug 或有新的功能建议,欢迎：
 
 - 提交 [Issue](https://github.com/bahayonghang/ccs/issues)
 - 创建 [Pull Request](https://github.com/bahayonghang/ccs/pulls)

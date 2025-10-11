@@ -6,7 +6,7 @@ use crate::error::{CcrError, Result};
 use crate::utils::Validatable;
 use std::sync::Arc;
 
-/// 📋 配置信息（用于展示）
+/// 📋 配置信息(用于展示)
 #[derive(Debug, Clone)]
 pub struct ConfigInfo {
     pub name: String,
@@ -19,7 +19,7 @@ pub struct ConfigInfo {
     pub is_default: bool,
 }
 
-/// 📋 配置列表（用于展示）
+/// 📋 配置列表(用于展示)
 #[derive(Debug, Clone)]
 pub struct ConfigList {
     pub current_config: String,
@@ -149,7 +149,7 @@ impl ConfigService {
 
         let mut config = self.config_manager.load()?;
 
-        // 如果名称改变，需要删除旧配置
+        // 如果名称改变,需要删除旧配置
         if old_name != new_name {
             config.remove_section(old_name)?;
 
@@ -188,8 +188,8 @@ impl ConfigService {
 
     /// 🔄 设置当前配置
     ///
-    /// 注意：这只更新配置文件中的 current_config 标记，
-    /// 不会修改 settings.json。要完整切换配置，应使用 switch_config。
+    /// 注意：这只更新配置文件中的 current_config 标记,
+    /// 不会修改 settings.json。要完整切换配置,应使用 switch_config。
     pub fn set_current(&self, name: &str) -> Result<()> {
         let mut config = self.config_manager.load()?;
         config.set_current(name)?;

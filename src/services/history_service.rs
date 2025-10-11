@@ -45,7 +45,7 @@ impl HistoryService {
     /// - `limit` - 限制返回的记录数量
     ///
     /// # Returns
-    /// 按时间倒序的记录列表（最新的在前）
+    /// 按时间倒序的记录列表(最新的在前)
     pub fn get_recent(&self, limit: usize) -> Result<Vec<HistoryEntry>> {
         self.history_manager.get_recent(limit)
     }
@@ -53,7 +53,7 @@ impl HistoryService {
     /// 🔍 按操作类型筛选
     ///
     /// # Arguments
-    /// - `op_type` - 操作类型（Switch, Backup, Restore等）
+    /// - `op_type` - 操作类型(Switch, Backup, Restore等)
     ///
     /// # Returns
     /// 匹配指定类型的所有记录
@@ -64,7 +64,7 @@ impl HistoryService {
     /// 📊 获取统计信息
     ///
     /// # Returns
-    /// 历史记录的统计信息（总数、成功数、失败数等）
+    /// 历史记录的统计信息(总数、成功数、失败数等)
     pub fn get_stats(&self) -> Result<HistoryStats> {
         self.history_manager.stats()
     }

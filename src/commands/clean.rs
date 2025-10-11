@@ -12,11 +12,11 @@ use crate::services::BackupService;
 /// 2. 🔍 识别 .bak 文件
 /// 3. 📅 检查文件修改时间
 /// 4. 🗑️ 删除超过指定天数的文件
-/// 5. 📊 统计清理结果（文件数、释放空间）
+/// 5. 📊 统计清理结果(文件数、释放空间)
 ///
 /// 参数:
-/// - days: 保留天数（删除 N 天前的文件）
-/// - dry_run: 模拟运行（不实际删除）
+/// - days: 保留天数(删除 N 天前的文件)
+/// - dry_run: 模拟运行(不实际删除)
 pub fn clean_command(days: u64, dry_run: bool) -> Result<()> {
     ColorOutput::title("清理备份文件");
     println!();
@@ -26,7 +26,7 @@ pub fn clean_command(days: u64, dry_run: bool) -> Result<()> {
     let backup_dir = service.backup_dir();
 
     if !backup_dir.exists() {
-        ColorOutput::info("备份目录不存在，无需清理");
+        ColorOutput::info("备份目录不存在,无需清理");
         return Ok(());
     }
 
@@ -34,7 +34,7 @@ pub fn clean_command(days: u64, dry_run: bool) -> Result<()> {
     ColorOutput::info(&format!("清理策略: 删除 {} 天前的备份", days));
 
     if dry_run {
-        ColorOutput::warning("⚠ 模拟运行模式（不会实际删除文件）");
+        ColorOutput::warning("⚠ 模拟运行模式(不会实际删除文件)");
     }
 
     println!();

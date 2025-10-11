@@ -1,5 +1,5 @@
 // 🔄 update 命令实现 - 自动更新 CCR
-// 📦 从 GitHub 仓库更新到最新版本（使用 cargo install）
+// 📦 从 GitHub 仓库更新到最新版本(使用 cargo install)
 
 use crate::error::{CcrError, Result};
 use crate::logging::ColorOutput;
@@ -9,12 +9,12 @@ use std::process::{Command, Stdio};
 ///
 /// 执行流程:
 /// 1. 📋 显示当前版本
-/// 2. 🤔 询问用户确认（非 check 模式）
-/// 3. 🔄 执行 cargo install --git --force（实时显示进度）
+/// 2. 🤔 询问用户确认(非 check 模式)
+/// 3. 🔄 执行 cargo install --git --force(实时显示进度)
 /// 4. ✅ 显示更新结果
 ///
 /// 参数:
-/// - check_only: 仅检查更新，不执行安装
+/// - check_only: 仅检查更新,不执行安装
 ///
 /// 依赖:
 /// - 需要本地安装 Rust 和 cargo
@@ -36,7 +36,7 @@ pub fn update_command(check_only: bool) -> Result<()> {
         ColorOutput::step("更新命令预览");
         println!("  cargo install --git https://github.com/bahayonghang/ccr --force");
         println!();
-        ColorOutput::info("💡 提示: 运行 'ccr update' 执行更新（去掉 --check 参数）");
+        ColorOutput::info("💡 提示: 运行 'ccr update' 执行更新(去掉 --check 参数)");
         println!();
         return Ok(());
     }
@@ -61,7 +61,7 @@ pub fn update_command(check_only: bool) -> Result<()> {
     ColorOutput::separator();
     println!();
 
-    // 执行 cargo install，实时显示输出
+    // 执行 cargo install,实时显示输出
     let mut child = Command::new("cargo")
         .args(&[
             "install",
@@ -99,9 +99,9 @@ pub fn update_command(check_only: bool) -> Result<()> {
         ColorOutput::error("❌ 更新失败");
         println!();
         ColorOutput::info("可能的原因:");
-        println!("  • 网络连接问题（无法访问 GitHub）");
+        println!("  • 网络连接问题(无法访问 GitHub)");
         println!("  • Git 未安装或配置不正确");
-        println!("  • 权限不足（无法写入 ~/.cargo/bin）");
+        println!("  • 权限不足(无法写入 ~/.cargo/bin)");
         println!("  • Rust 工具链版本过旧");
         println!();
         ColorOutput::info("解决方案:");
@@ -112,7 +112,7 @@ pub fn update_command(check_only: bool) -> Result<()> {
         println!();
 
         return Err(CcrError::ConfigError(format!(
-            "更新失败，退出码: {}",
+            "更新失败,退出码: {}",
             status.code().unwrap_or(-1)
         )));
     }

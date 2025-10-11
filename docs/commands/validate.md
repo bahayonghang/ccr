@@ -1,6 +1,6 @@
 # validate - 验证配置
 
-验证配置和设置的完整性，确保所有必需字段都已正确配置。
+验证配置和设置的完整性,确保所有必需字段都已正确配置。
 
 ## 用法
 
@@ -79,7 +79,7 @@ ccr validate
 
 ### 排查问题
 
-当切换失败时，验证配置完整性：
+当切换失败时,验证配置完整性：
 
 ```bash
 ccr validate
@@ -90,7 +90,7 @@ ccr validate
 定期验证配置状态：
 
 ```bash
-# 添加到 crontab（每天检查）
+# 添加到 crontab(每天检查)
 0 9 * * * ccr validate || echo "CCR configuration invalid!"
 ```
 
@@ -105,7 +105,7 @@ ccr validate
 [config_name]
 base_url = "https://api.example.com"
 
-# 错误格式（缺少引号）
+# 错误格式(缺少引号)
 [config_name]
 base_url = https://api.example.com
 ```
@@ -165,7 +165,7 @@ base_url = "api.anthropic.com"  # 缺少协议
 # 检查 TOML 语法
 cat ~/.ccs_config.toml
 
-# 重新初始化（会备份）
+# 重新初始化(会备份)
 ccr init --force
 ```
 

@@ -1,6 +1,6 @@
 # 迁移指南
 
-本指南帮助你从 CCS (Shell 版本) 迁移到 CCR (Rust 版本)，或在两者之间切换使用。
+本指南帮助你从 CCS (Shell 版本) 迁移到 CCR (Rust 版本),或在两者之间切换使用。
 
 ## 🔄 从 CCS 迁移到 CCR
 
@@ -8,8 +8,8 @@
 
 CCR 相比 CCS 提供了以下优势：
 
-✅ **直接生效**: 配置立即生效，无需 shell 重启  
-✅ **并发安全**: 文件锁保护，支持多进程使用  
+✅ **直接生效**: 配置立即生效,无需 shell 重启  
+✅ **并发安全**: 文件锁保护,支持多进程使用  
 ✅ **完整追踪**: 记录所有操作历史  
 ✅ **自动备份**: 配置切换前自动备份  
 ✅ **Web 界面**: 现代化的可视化管理  
@@ -19,7 +19,7 @@ CCR 相比 CCS 提供了以下优势：
 
 #### 1. 保持配置文件
 
-好消息！CCR 和 CCS 共享同一个配置文件 `~/.ccs_config.toml`，无需任何转换：
+好消息！CCR 和 CCS 共享同一个配置文件 `~/.ccs_config.toml`,无需任何转换：
 
 ```bash
 # 检查现有配置
@@ -42,7 +42,7 @@ model = "claude-sonnet-4-5-20250929"
 #### 2. 安装 CCR
 
 ```bash
-# 克隆仓库（如果还没有）
+# 克隆仓库(如果还没有)
 cd ccs/ccr
 
 # 构建并安装
@@ -56,7 +56,7 @@ cargo install --path . --locked
 # 检查版本
 ccr --version
 
-# 列出配置（应该看到与 ccs list 相同的输出）
+# 列出配置(应该看到与 ccs list 相同的输出)
 ccr list
 
 # 查看当前状态
@@ -98,15 +98,15 @@ cat ~/.claude/settings.json
 CCR 和 CCS 可以完全共存：
 
 ```bash
-# 使用 CCS（Shell 版本）
+# 使用 CCS(Shell 版本)
 ccs list
 ccs switch anthropic
 
-# 使用 CCR（Rust 版本）
+# 使用 CCR(Rust 版本)
 ccr list
 ccr switch anyrouter
 
-# 两者共享配置文件，可以自由切换
+# 两者共享配置文件,可以自由切换
 ```
 
 ## 🔀 配置差异
@@ -135,7 +135,7 @@ let config = config_manager.load()?;
 settings_manager.save_atomic(&settings)?;
 
 // 3. 配置立即生效
-// Claude Code 直接读取 settings.json，无需重启
+// Claude Code 直接读取 settings.json,无需重启
 ```
 
 ### 命令对比
@@ -191,11 +191,11 @@ ccr validate
 两者可以无缝切换：
 
 ```bash
-# 在服务器上使用 CCS（轻量级）
+# 在服务器上使用 CCS(轻量级)
 ssh server
 ccs switch production
 
-# 在本地使用 CCR（功能完整）
+# 在本地使用 CCR(功能完整)
 ccr list
 ccr web        # 使用 Web 界面管理
 ccr history    # 查看历史
@@ -206,7 +206,7 @@ ccr history    # 查看历史
 ### CCS 文件
 
 ```
-~/.ccs_config.toml           # 配置文件（共享）
+~/.ccs_config.toml           # 配置文件(共享)
 ~/.bashrc, ~/.zshrc          # Shell 配置
 ~/.ccs/                      # 脚本目录
 ```
@@ -214,7 +214,7 @@ ccr history    # 查看历史
 ### CCR 新增文件
 
 ```
-~/.ccs_config.toml           # 配置文件（共享）
+~/.ccs_config.toml           # 配置文件(共享)
 ~/.claude/settings.json      # 直接写入
 ~/.claude/ccr_history.json   # 历史记录
 ~/.claude/backups/           # 备份目录
@@ -278,7 +278,7 @@ chmod 644 ~/.ccs_config.toml
 # 1. 卸载 CCR
 cargo uninstall ccr
 
-# 2. 清理 CCR 文件（可选）
+# 2. 清理 CCR 文件(可选)
 rm ~/.claude/ccr_history.json
 rm -rf ~/.claude/backups/
 rm -rf ~/.claude/.locks/
@@ -290,7 +290,7 @@ ccs switch anthropic
 source ~/.bashrc  # 或 ~/.zshrc
 ```
 
-**注意**: `~/.ccs_config.toml` 配置文件会保留，可以继续使用。
+**注意**: `~/.ccs_config.toml` 配置文件会保留,可以继续使用。
 
 ## 🎉 迁移完成
 

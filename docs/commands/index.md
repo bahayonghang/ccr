@@ -23,7 +23,7 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 
 ### 配置管理
 
-- **[init](./init)** - 初始化配置文件，创建默认模板
+- **[init](./init)** - 初始化配置文件,创建默认模板
 - **[list](./list)** - 查看所有可用配置
 - **[current](./current)** - 显示当前使用的配置
 - **[switch](./switch)** - 切换到不同的配置
@@ -56,7 +56,7 @@ ccr init
 # 查看所有配置
 ccr list
 
-# 切换配置（两种方式）
+# 切换配置(两种方式)
 ccr switch anthropic
 ccr anthropic
 ```
@@ -106,12 +106,12 @@ CCR 支持以下环境变量：
 
 ### CCR_LOG_LEVEL
 
-设置日志级别，用于调试。
+设置日志级别,用于调试。
 
 **可选值：**
 - `trace` - 最详细的日志
 - `debug` - 调试信息
-- `info` - 一般信息（默认）
+- `info` - 一般信息(默认)
 - `warn` - 警告信息
 - `error` - 仅错误信息
 
@@ -126,7 +126,7 @@ ccr switch anthropic
 
 ### 1. 命令别名
 
-许多命令都有简短的别名，可以加快输入速度：
+许多命令都有简短的别名,可以加快输入速度：
 
 ```bash
 ccr ls              # 等同于 ccr list
@@ -160,7 +160,7 @@ ccr import config.toml --merge && ccr validate
 设置定期任务：
 
 ```bash
-# 每周清理旧备份（添加到 crontab）
+# 每周清理旧备份(添加到 crontab)
 0 0 * * 0 ccr clean --days 30
 
 # 每天导出配置备份

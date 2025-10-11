@@ -3,7 +3,7 @@
 
 default_config = "anyrouter"
 
-# 当前激活配置（自动管理,请勿手动修改）
+# 当前激活配置(自动管理,请勿手动修改)
 current_config = "anyrouter"
 
 [anyrouter]

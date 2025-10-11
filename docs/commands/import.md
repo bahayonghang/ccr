@@ -1,6 +1,6 @@
 # import - 导入配置
 
-从文件导入配置，支持合并或替换模式。
+从文件导入配置,支持合并或替换模式。
 
 ## 用法
 
@@ -10,11 +10,11 @@ ccr import <FILE> [OPTIONS]
 
 ## 参数
 
-- `<FILE>`: 要导入的配置文件路径（必需）
+- `<FILE>`: 要导入的配置文件路径(必需)
 
 ## 选项
 
-- `--merge`: 合并模式（保留现有配置，添加新配置）
+- `--merge`: 合并模式(保留现有配置,添加新配置)
 - `--no-backup`: 导入前不备份当前配置
 
 ## 功能特性
@@ -27,10 +27,10 @@ ccr import <FILE> [OPTIONS]
 ## 示例
 
 ```bash
-# 合并模式（推荐）
+# 合并模式(推荐)
 ccr import config.toml --merge
 
-# 替换模式（完全替换）
+# 替换模式(完全替换)
 ccr import config.toml
 
 # 导入时不备份
@@ -38,14 +38,14 @@ ccr import config.toml --no-backup
 ```
 
 ::: danger 警告
-使用替换模式会完全覆盖现有配置。除非你确定要这样做，否则建议使用 `--merge` 选项。
+使用替换模式会完全覆盖现有配置。除非你确定要这样做,否则建议使用 `--merge` 选项。
 :::
 
 ## 导入模式
 
-### 合并模式（--merge）
+### 合并模式(--merge)
 
-保留现有配置，添加或更新新配置：
+保留现有配置,添加或更新新配置：
 
 ```bash
 # 现有配置
@@ -58,7 +58,7 @@ ccr import config.toml --no-backup
 [newconfig]
 ...
 
-# 导入后（合并）
+# 导入后(合并)
 [anthropic]  # 保留
 ...
 [anyrouter]  # 添加/更新
@@ -67,7 +67,7 @@ ccr import config.toml --no-backup
 ...
 ```
 
-### 替换模式（默认）
+### 替换模式(默认)
 
 完全替换现有配置：
 
@@ -82,7 +82,7 @@ ccr import config.toml --no-backup
 [anyrouter]
 ...
 
-# 导入后（替换）
+# 导入后(替换)
 [anyrouter]  # 仅保留导入的配置
 ...
 # anthropic 和 oldconfig 被删除
@@ -138,10 +138,10 @@ Summary:
 从备份恢复配置：
 
 ```bash
-# 恢复完整备份（替换）
+# 恢复完整备份(替换)
 ccr import backup.toml
 
-# 恢复部分配置（合并）
+# 恢复部分配置(合并)
 ccr import partial-backup.toml --merge
 ```
 
@@ -235,7 +235,7 @@ Importing configuration...
 
 ## 自动备份
 
-默认情况下，导入前会自动备份当前配置：
+默认情况下,导入前会自动备份当前配置：
 
 ```bash
 # 备份位置
@@ -252,7 +252,7 @@ ccr import config.toml --no-backup
 ```
 
 ::: warning 注意
-禁用备份后，如果导入出错，将无法恢复原配置！
+禁用备份后,如果导入出错,将无法恢复原配置！
 :::
 
 ## 导入后操作
@@ -303,10 +303,10 @@ auth_token = "new-token"  # 使用导入的值
 
 ### Q: 如何仅导入特定配置？
 
-**A:** 编辑导入文件，仅保留需要的配置：
+**A:** 编辑导入文件,仅保留需要的配置：
 
 ```bash
-# 创建临时文件，仅包含需要的配置
+# 创建临时文件,仅包含需要的配置
 cat > temp-import.toml << EOF
 [needed-config]
 ...
@@ -330,7 +330,7 @@ cp ~/.ccs_config.toml.bak.20250110_120530 ~/.ccs_config.toml
 
 ### Q: 可以导入部分字段吗？
 
-**A:** 不可以。每个配置必须包含所有必需字段。如需部分更新，请手动编辑配置文件。
+**A:** 不可以。每个配置必须包含所有必需字段。如需部分更新,请手动编辑配置文件。
 
 ## 最佳实践
 

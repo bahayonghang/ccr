@@ -6,7 +6,7 @@ use crate::logging::ColorOutput;
 use std::fs;
 use std::path::PathBuf;
 
-/// 📋 示例配置文件内容（嵌入到二进制中）
+/// 📋 示例配置文件内容(嵌入到二进制中)
 /// 编译时从 .ccs_config.toml.example 读取
 const EXAMPLE_CONFIG: &str = include_str!("../../.ccs_config.toml.example");
 
@@ -14,7 +14,7 @@ const EXAMPLE_CONFIG: &str = include_str!("../../.ccs_config.toml.example");
 ///
 /// 执行流程:
 /// 1. ✅ 检查文件是否已存在
-/// 2. 💾 备份现有配置（--force 模式）
+/// 2. 💾 备份现有配置(--force 模式)
 /// 3. 📝 创建新配置文件
 /// 4. 🔒 设置文件权限 (644)
 /// 5. 💡 显示后续步骤提示
@@ -32,7 +32,7 @@ pub fn init_command(force: bool) -> Result<()> {
         if !force {
             ColorOutput::warning(&format!("配置文件已存在: {}", config_path.display()));
             println!();
-            ColorOutput::info("配置文件已经初始化，无需重复执行");
+            ColorOutput::info("配置文件已经初始化,无需重复执行");
             ColorOutput::info("提示:");
             println!("  • 查看配置: ccr list");
             println!("  • 编辑配置: vim ~/.ccs_config.toml");
@@ -41,8 +41,8 @@ pub fn init_command(force: bool) -> Result<()> {
             return Ok(());
         }
 
-        // 使用 --force 时，备份现有配置
-        ColorOutput::warning("使用 --force 模式，将覆盖现有配置");
+        // 使用 --force 时,备份现有配置
+        ColorOutput::warning("使用 --force 模式,将覆盖现有配置");
         println!();
         ColorOutput::step("备份现有配置");
         backup_existing_config(&config_path)?;
@@ -156,9 +156,9 @@ mod tests {
     #[test]
     fn test_init_command_preserves_existing_config() {
         // 注意：这个测试使用真实的 home 目录路径判断
-        // 但不会实际执行 init_command，只是验证逻辑
+        // 但不会实际执行 init_command,只是验证逻辑
         
-        // 测试逻辑：当配置文件已存在且不使用 --force 时，应该保护现有文件
+        // 测试逻辑：当配置文件已存在且不使用 --force 时,应该保护现有文件
         let temp_dir = tempfile::tempdir().unwrap();
         let config_path = temp_dir.path().join(".ccs_config.toml");
 
@@ -166,7 +166,7 @@ mod tests {
         let original_content = "existing config content";
         fs::write(&config_path, original_content).unwrap();
 
-        // 模拟检查：如果文件存在，不应该被覆盖（除非 --force）
+        // 模拟检查：如果文件存在,不应该被覆盖(除非 --force)
         if config_path.exists() {
             // 这是 init_command 的保护逻辑
             let content_after = fs::read_to_string(&config_path).unwrap();
@@ -183,7 +183,7 @@ mod tests {
         let original_content = "original config";
         fs::write(&config_path, original_content).unwrap();
 
-        // 备份现有配置（模拟 --force 的备份步骤）
+        // 备份现有配置(模拟 --force 的备份步骤)
         backup_existing_config(&config_path).unwrap();
 
         // 验证备份文件被创建
@@ -203,7 +203,7 @@ mod tests {
         let backup_content = fs::read_to_string(backup_path).unwrap();
         assert_eq!(backup_content, original_content, "备份文件应包含原始内容");
 
-        // 验证原文件未被修改（在备份阶段）
+        // 验证原文件未被修改(在备份阶段)
         let current_content = fs::read_to_string(&config_path).unwrap();
         assert_eq!(current_content, original_content, "备份操作不应修改原文件");
     }

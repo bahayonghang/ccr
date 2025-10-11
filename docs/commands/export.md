@@ -1,6 +1,6 @@
 # export - 导出配置
 
-将当前配置导出到文件，用于备份或迁移。
+将当前配置导出到文件,用于备份或迁移。
 
 ## 用法
 
@@ -10,13 +10,13 @@ ccr export [OPTIONS]
 
 ## 选项
 
-- `-o, --output <FILE>`: 指定输出文件（默认：自动生成带时间戳的文件名）
+- `-o, --output <FILE>`: 指定输出文件(默认：自动生成带时间戳的文件名)
 - `--no-secrets`: 导出时脱敏 API 密钥
 
 ## 功能特性
 
 - 自动生成带时间戳的文件名
-- 默认包含完整 API 密钥（便于迁移）
+- 默认包含完整 API 密钥(便于迁移)
 - 可选的敏感信息脱敏
 - TOML 格式便于编辑
 - 适合备份和迁移场景
@@ -24,7 +24,7 @@ ccr export [OPTIONS]
 ## 示例
 
 ```bash
-# 导出包含完整 API 密钥（默认）
+# 导出包含完整 API 密钥(默认)
 ccr export
 
 # 导出时脱敏敏感信息
@@ -54,7 +54,7 @@ Exporting configuration...
 
 ## 导出内容
 
-### 完整导出（默认）
+### 完整导出(默认)
 
 包含所有配置和完整的 API 密钥：
 
@@ -76,7 +76,7 @@ auth_token = "your-anyrouter-token-full"
 model = "claude-sonnet-4-5-20250929"
 ```
 
-### 脱敏导出（--no-secrets）
+### 脱敏导出(--no-secrets)
 
 敏感信息被脱敏处理：
 
@@ -108,7 +108,7 @@ model = "claude-sonnet-4-5-20250929"
 # 手动备份
 ccr export -o ~/backups/ccr-backup.toml
 
-# 使用 crontab 自动备份（每天）
+# 使用 crontab 自动备份(每天)
 0 0 * * * ccr export -o ~/backups/ccr-$(date +\%Y\%m\%d).toml
 ```
 
@@ -129,7 +129,7 @@ ccr import ccr-config.toml
 
 ### 3. 分享配置模板
 
-分享配置模板给团队（不含密钥）：
+分享配置模板给团队(不含密钥)：
 
 ```bash
 # 导出脱敏版本
@@ -141,13 +141,13 @@ ccr import team-template.toml --merge
 
 ### 4. 版本控制
 
-将配置纳入版本控制（脱敏）：
+将配置纳入版本控制(脱敏)：
 
 ```bash
 # 导出脱敏配置
 ccr export --no-secrets -o config.toml
 
-# 添加到 git（不会泄露密钥）
+# 添加到 git(不会泄露密钥)
 git add config.toml
 git commit -m "Update CCR configuration template"
 ```
@@ -199,7 +199,7 @@ toml-verify backup.toml
 ### 安全存储
 
 ```bash
-# 加密存储（包含密钥的导出）
+# 加密存储(包含密钥的导出)
 ccr export -o config.toml
 gpg -c config.toml  # 加密
 rm config.toml      # 删除明文
@@ -225,7 +225,7 @@ rclone copy ccr-backup.toml remote:backups/
 ## 注意事项
 
 ::: warning 安全提示
-- 默认导出包含完整 API 密钥，请妥善保管
+- 默认导出包含完整 API 密钥,请妥善保管
 - 使用 `--no-secrets` 导出用于分享的配置
 - 不要将包含密钥的导出文件提交到公开仓库
 :::

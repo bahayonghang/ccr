@@ -4,7 +4,7 @@ CCR 提供了简单而强大的配置管理功能。本指南将帮助你快速�
 
 ## 安装
 
-### 方式一：快速安装（推荐）
+### 方式一：快速安装(推荐)
 
 使用 cargo 从 GitHub 直接安装：
 
@@ -12,7 +12,7 @@ CCR 提供了简单而强大的配置管理功能。本指南将帮助你快速�
 cargo install --git https://github.com/bahayonghang/ccr
 ```
 
-安装完成后，`ccr` 命令将可在你的 PATH 中使用。
+安装完成后,`ccr` 命令将可在你的 PATH 中使用。
 
 ### 方式二：从源码构建
 
@@ -23,7 +23,7 @@ cd ccs/ccr
 # 构建 release 版本
 cargo build --release
 
-# 安装到系统路径（可选）
+# 安装到系统路径(可选)
 cargo install --path .
 ```
 
@@ -31,13 +31,13 @@ cargo install --path .
 
 ### 1. 初始化配置文件
 
-首次使用 CCR 时，需要初始化配置文件：
+首次使用 CCR 时,需要初始化配置文件：
 
 ```bash
 ccr init
 ```
 
-这将在 `~/.ccs_config.toml` 创建一个包含示例配置的文件。如果你已经有 CCS 的配置文件，可以跳过此步骤。
+这将在 `~/.ccs_config.toml` 创建一个包含示例配置的文件。如果你已经有 CCS 的配置文件,可以跳过此步骤。
 
 **示例配置文件：**
 
@@ -62,11 +62,11 @@ model = "claude-sonnet-4-5-20250929"
 ::: tip 配置说明
 - `default_config`: 默认配置名称
 - `current_config`: 当前使用的配置
-- 每个配置块（如 `[anthropic]`）代表一个可切换的配置
+- 每个配置块(如 `[anthropic]`)代表一个可切换的配置
 - `base_url`: API 端点地址
 - `auth_token`: 认证令牌
 - `model`: 默认模型
-- `small_fast_model`: 快速小模型（可选）
+- `small_fast_model`: 快速小模型(可选)
 :::
 
 ### 2. 查看可用配置
@@ -120,7 +120,7 @@ ccr anyrouter
 5. ✓ 记录操作历史
 
 ::: warning 注意
-切换配置会立即修改 Claude Code 的设置文件，配置立即生效。
+切换配置会立即修改 Claude Code 的设置文件,配置立即生效。
 :::
 
 ### 4. 查看当前配置状态
@@ -132,7 +132,7 @@ ccr status
 ccr show
 ```
 
-这将显示当前配置的详细信息，包括环境变量设置。
+这将显示当前配置的详细信息,包括环境变量设置。
 
 ### 5. 验证配置
 
@@ -176,7 +176,7 @@ ccr web
 ccr web --port 3000
 ```
 
-浏览器会自动打开配置界面，你可以：
+浏览器会自动打开配置界面,你可以：
 - 查看所有配置
 - 切换配置
 - 添加/编辑/删除配置
@@ -201,7 +201,7 @@ ccr anyrouter
 **导出配置：**
 
 ```bash
-# 导出包含完整 API 密钥（默认）
+# 导出包含完整 API 密钥(默认)
 ccr export
 
 # 导出时脱敏敏感信息
@@ -214,10 +214,10 @@ ccr export -o backup.toml
 **导入配置：**
 
 ```bash
-# 合并模式（保留现有配置，添加新配置）
+# 合并模式(保留现有配置,添加新配置)
 ccr import config.toml --merge
 
-# 替换模式（完全替换当前配置）
+# 替换模式(完全替换当前配置)
 ccr import config.toml
 
 # 导入时不备份
@@ -227,13 +227,13 @@ ccr import config.toml --no-backup
 ### 清理旧备份
 
 ```bash
-# 清理 7 天前的备份（默认）
+# 清理 7 天前的备份(默认)
 ccr clean
 
 # 清理 30 天前的备份
 ccr clean --days 30
 
-# 预览清理（不实际删除）
+# 预览清理(不实际删除)
 ccr clean --dry-run
 ```
 
@@ -252,7 +252,7 @@ ccr update
 CCR 使用以下文件和目录：
 
 ```
-~/.ccs_config.toml          # 配置文件（与 CCS 共享）
+~/.ccs_config.toml          # 配置文件(与 CCS 共享)
 ~/.claude/settings.json     # Claude Code 设置文件
 ~/.claude/backups/          # 自动备份目录
 ~/.claude/ccr_history.json  # 操作历史日志
@@ -267,7 +267,7 @@ CCR 使用以下文件和目录：
 # 检查配置文件
 ls -la ~/.ccs_config.toml
 
-# 如果不存在，初始化配置
+# 如果不存在,初始化配置
 ccr init
 ```
 
@@ -287,7 +287,7 @@ ccr switch <config>
 # 检查僵尸进程
 ps aux | grep ccr
 
-# 清理锁文件（谨慎使用）
+# 清理锁文件(谨慎使用)
 rm -rf ~/.claude/.locks/*
 ```
 

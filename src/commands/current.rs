@@ -11,7 +11,7 @@ use crate::utils::Validatable;
 /// 显示内容分为两部分:
 /// 1. 📝 配置文件信息
 ///    - 当前配置名称
-///    - 配置详情（描述、URL、Token、模型等）
+///    - 配置详情(描述、URL、Token、模型等)
 ///    - 配置验证状态
 ///
 /// 2. 🌍 Claude Code 环境变量状态
@@ -94,7 +94,7 @@ pub fn current_command() -> Result<()> {
                 Err(e) => {
                     ColorOutput::warning(&format!("无法加载 Claude Code 设置: {}", e));
                     ColorOutput::info(
-                        "提示: 可能是首次使用，运行 'ccr switch <config>' 来初始化设置",
+                        "提示: 可能是首次使用,运行 'ccr switch <config>' 来初始化设置",
                     );
                 }
             }

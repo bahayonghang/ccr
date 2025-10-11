@@ -1,5 +1,5 @@
 // 🚀 CCR (Claude Code Configuration Switcher) 主程序
-// 📦 配置管理工具，支持完整审计追踪
+// 📦 配置管理工具,支持完整审计追踪
 //
 // 核心功能：
 // - ⚙️  配置切换与管理
@@ -30,7 +30,7 @@ use logging::{ColorOutput, init_logger};
     long_about = "\
 🎯 CCR (Claude Code Configuration Router)
 
-一个强大的 Claude Code 配置管理工具，支持：
+一个强大的 Claude Code 配置管理工具,支持：
     • 多套配置快速切换
     • 完整的操作审计追踪
     • 自动备份和恢复
@@ -41,7 +41,7 @@ use logging::{ColorOutput, init_logger};
     ccr init              # 初始化配置文件
     ccr list              # 查看所有配置
     ccr switch <名称>      # 切换配置
-    ccr anthropic         # 快捷切换（省略 switch）
+    ccr anthropic         # 快捷切换(省略 switch)
 
 📖 获取帮助:
     ccr --help            # 显示此帮助
@@ -52,7 +52,7 @@ struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
-    /// 直接切换到指定配置（快捷方式，无需输入 switch 子命令）
+    /// 直接切换到指定配置(快捷方式,无需输入 switch 子命令)
     ///
     /// 示例：ccr anthropic  等同于  ccr switch anthropic
     config_name: Option<String>,
@@ -63,14 +63,14 @@ struct Cli {
 enum Commands {
     /// 列出所有可用的配置方案
     ///
-    /// 显示配置文件中定义的所有配置方案，包括配置名称、环境变量设置等信息
+    /// 显示配置文件中定义的所有配置方案,包括配置名称、环境变量设置等信息
     /// 别名: ls
     #[command(alias = "ls")]
     List,
 
     /// 显示当前激活的配置状态
     ///
-    /// 查看当前正在使用的配置方案详情，包括所有环境变量设置
+    /// 查看当前正在使用的配置方案详情,包括所有环境变量设置
     /// 别名: show, status
     #[command(alias = "show")]
     #[command(alias = "status")]
@@ -78,43 +78,43 @@ enum Commands {
 
     /// 切换到指定的配置方案
     ///
-    /// 将 Claude Code 的配置切换到指定方案，自动备份当前配置并应用新配置
+    /// 将 Claude Code 的配置切换到指定方案,自动备份当前配置并应用新配置
     /// 示例: ccr switch anthropic
     Switch {
-        /// 要切换到的配置方案名称（必须在配置文件中已定义）
+        /// 要切换到的配置方案名称(必须在配置文件中已定义)
         config_name: String,
     },
 
     /// 验证配置文件和设置的完整性
     ///
-    /// 检查配置文件格式是否正确，以及 Claude Code 设置文件是否有效
+    /// 检查配置文件格式是否正确,以及 Claude Code 设置文件是否有效
     /// 别名: check
     #[command(alias = "check")]
     Validate,
 
     /// 查看配置操作的历史记录
     ///
-    /// 显示所有配置切换、导入导出等操作的审计日志，支持按类型筛选
+    /// 显示所有配置切换、导入导出等操作的审计日志,支持按类型筛选
     /// 示例: ccr history -l 50 -t switch
     History {
-        /// 显示最近 N 条记录（默认显示 20 条）
+        /// 显示最近 N 条记录(默认显示 20 条)
         #[arg(short, long, default_value_t = 20)]
         limit: usize,
 
         /// 按操作类型筛选记录
         ///
-        /// 可选值: switch（切换）、backup（备份）、restore（恢复）、
-        ///         validate（验证）、update（更新）
+        /// 可选值: switch(切换)、backup(备份)、restore(恢复)、
+        ///         validate(验证)、update(更新)
         #[arg(short = 't', long)]
         filter_type: Option<String>,
     },
 
     /// 启动 Web 管理界面
     ///
-    /// 在浏览器中打开可视化的配置管理界面，支持所有配置操作
+    /// 在浏览器中打开可视化的配置管理界面,支持所有配置操作
     /// 示例: ccr web -p 3000
     Web {
-        /// 指定 Web 服务器监听端口（默认: 8080）
+        /// 指定 Web 服务器监听端口(默认: 8080)
         #[arg(short, long, default_value_t = 8080)]
         port: u16,
     },
@@ -124,24 +124,24 @@ enum Commands {
     /// 检查并安装 CCR 的最新版本
     /// 示例: ccr update --check  # 仅检查不安装
     Update {
-        /// 仅检查是否有新版本，不执行安装
+        /// 仅检查是否有新版本,不执行安装
         #[arg(short, long)]
         check: bool,
     },
 
     /// 初始化配置文件
     ///
-    /// 在 ~/.ccs_config.toml 创建配置文件模板，包含示例配置方案
+    /// 在 ~/.ccs_config.toml 创建配置文件模板,包含示例配置方案
     /// 示例: ccr init --force  # 强制覆盖现有配置
     Init {
-        /// 强制覆盖已存在的配置文件（危险操作，会丢失当前配置）
+        /// 强制覆盖已存在的配置文件(危险操作,会丢失当前配置)
         #[arg(short, long)]
         force: bool,
     },
 
     /// 导出配置到文件
     ///
-    /// 将当前配置导出为 TOML 文件，方便备份或分享
+    /// 将当前配置导出为 TOML 文件,方便备份或分享
     /// 示例: ccr export -o my_config.toml --no-secrets
     Export {
         /// 指定导出文件路径
@@ -150,47 +150,47 @@ enum Commands {
         #[arg(short, long)]
         output: Option<String>,
 
-        /// 导出时排除敏感信息（如 API 密钥），仅保留配置结构
+        /// 导出时排除敏感信息(如 API 密钥),仅保留配置结构
         #[arg(long)]
         no_secrets: bool,
     },
 
     /// 从文件导入配置
     ///
-    /// 从 TOML 文件导入配置方案，支持替换或合并模式
+    /// 从 TOML 文件导入配置方案,支持替换或合并模式
     /// 示例: ccr import config.toml --merge
     Import {
         /// 要导入的配置文件路径
         input: String,
 
-        /// 使用合并模式（保留现有配置，仅添加新配置方案）
+        /// 使用合并模式(保留现有配置,仅添加新配置方案)
         ///
-        /// 不指定此选项时，将完全替换现有配置文件
+        /// 不指定此选项时,将完全替换现有配置文件
         #[arg(short, long)]
         merge: bool,
 
-        /// 导入前自动备份当前配置文件（强烈建议保持开启）
+        /// 导入前自动备份当前配置文件(强烈建议保持开启)
         #[arg(short, long, default_value_t = true)]
         backup: bool,
     },
 
     /// 清理过期的备份文件
     ///
-    /// 删除 ~/.claude/backups/ 目录中的旧备份文件，释放磁盘空间
+    /// 删除 ~/.claude/backups/ 目录中的旧备份文件,释放磁盘空间
     /// 示例: ccr clean -d 30 --dry-run
     Clean {
-        /// 清理 N 天前的备份文件（默认: 7 天）
+        /// 清理 N 天前的备份文件(默认: 7 天)
         #[arg(short, long, default_value_t = 7)]
         days: u64,
 
-        /// 模拟运行（dry-run）：仅显示将要删除的文件，不实际删除
+        /// 模拟运行(dry-run)：仅显示将要删除的文件,不实际删除
         #[arg(long)]
         dry_run: bool,
     },
 
     /// 优化配置文件结构
     ///
-    /// 按照配置节名称的字母顺序重新排列配置文件，提升可读性
+    /// 按照配置节名称的字母顺序重新排列配置文件,提升可读性
     /// 示例: ccr optimize
     Optimize,
 
@@ -250,7 +250,7 @@ fn main() {
             Ok(())
         }
         None => {
-            // 💡 智能处理：有配置名称则切换，否则显示当前状态
+            // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {
                 commands::switch_command(&config_name)
             } else {
@@ -267,7 +267,7 @@ fn main() {
 
         // 🚨 致命错误额外提示
         if e.is_fatal() {
-            ColorOutput::error("这是一个致命错误，程序无法继续");
+            ColorOutput::error("这是一个致命错误,程序无法继续");
             ColorOutput::info("请检查错误信息并修复后重试");
             ColorOutput::info("运行 'ccr --help' 查看帮助信息");
         }

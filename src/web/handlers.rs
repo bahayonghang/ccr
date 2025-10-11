@@ -12,7 +12,7 @@ use tiny_http::{Header, Method, Request, Response, StatusCode};
 
 /// 🔌 请求处理器
 ///
-/// 持有所有 Service 的引用，处理 HTTP 请求
+/// 持有所有 Service 的引用,处理 HTTP 请求
 pub struct Handlers {
     config_service: Arc<ConfigService>,
     settings_service: Arc<SettingsService>,

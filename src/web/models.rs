@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 /// 📦 API 响应结构
 ///
-/// 统一的 API 响应格式，包含成功状态、数据和错误消息
+/// 统一的 API 响应格式,包含成功状态、数据和错误消息
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiResponse<T> {
     pub success: bool,

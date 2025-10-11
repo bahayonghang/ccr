@@ -1,5 +1,5 @@
 // 📝 原子写入器
-// 提供安全的原子文件写入功能，避免数据损坏
+// 提供安全的原子文件写入功能,避免数据损坏
 
 use crate::error::{CcrError, Result};
 use std::fs;
@@ -11,14 +11,14 @@ use tempfile::NamedTempFile;
 /// 使用临时文件 + 原子重命名模式确保文件写入的原子性
 ///
 /// 工作原理:
-/// 1. 创建临时文件在同一目录（确保在同一文件系统）
+/// 1. 创建临时文件在同一目录(确保在同一文件系统)
 /// 2. 写入内容到临时文件
 /// 3. 使用原子 rename 操作替换目标文件
 ///
 /// 优点:
-/// - ✅ 即使写入中断，原文件保持完整
+/// - ✅ 即使写入中断,原文件保持完整
 /// - ✅ 读取者不会看到部分写入的数据
-/// - ✅ 跨平台支持（Unix 和 Windows）
+/// - ✅ 跨平台支持(Unix 和 Windows)
 ///
 /// # Examples
 ///
@@ -74,7 +74,7 @@ impl AtomicWriter {
             })?;
         }
 
-        // 📄 在同一目录创建临时文件（确保在同一文件系统）
+        // 📄 在同一目录创建临时文件(确保在同一文件系统)
         let temp_file = if let Some(parent) = self.target_path.parent() {
             NamedTempFile::new_in(parent)
         } else {
@@ -95,7 +95,7 @@ impl AtomicWriter {
             ))
         })?;
 
-        // 🔄 原子替换（这是关键操作）
+        // 🔄 原子替换(这是关键操作)
         temp_file.persist(&self.target_path).map_err(|e| {
             CcrError::IoError(std::io::Error::new(
                 std::io::ErrorKind::Other,

@@ -1,5 +1,5 @@
 // 📤 export 命令实现 - 导出配置
-// 💾 将配置备份到文件，支持敏感信息脱敏
+// 💾 将配置备份到文件,支持敏感信息脱敏
 
 use crate::config::ConfigManager;
 use crate::error::{CcrError, Result};
@@ -11,12 +11,12 @@ use std::path::{Path, PathBuf};
 ///
 /// 执行流程:
 /// 1. 📖 读取当前配置
-/// 2. 🔒 处理敏感信息（根据 include_secrets）
+/// 2. 🔒 处理敏感信息(根据 include_secrets)
 /// 3. 📝 序列化为 TOML
 /// 4. 💾 保存到文件
 ///
 /// 参数:
-/// - output: 输出文件路径（默认: ccs_config_export_<timestamp>.toml）
+/// - output: 输出文件路径(默认: ccs_config_export_<timestamp>.toml)
 /// - include_secrets: 是否包含 API 密钥等敏感信息
 pub fn export_command(output: Option<String>, include_secrets: bool) -> Result<()> {
     ColorOutput::title("导出配置");
@@ -27,7 +27,7 @@ pub fn export_command(output: Option<String>, include_secrets: bool) -> Result<(
     let config_manager = ConfigManager::default()?;
     let config = config_manager.load()?;
     ColorOutput::success(&format!(
-        "已加载配置，共 {} 个配置节",
+        "已加载配置,共 {} 个配置节",
         config.sections.len()
     ));
     println!();
@@ -50,13 +50,13 @@ pub fn export_command(output: Option<String>, include_secrets: bool) -> Result<(
 
     if include_secrets {
         println!();
-        ColorOutput::warning("⚠ 已包含敏感信息（API密钥）");
-        ColorOutput::info("提示: 请妥善保管导出文件，避免泄露");
+        ColorOutput::warning("⚠ 已包含敏感信息(API密钥)");
+        ColorOutput::info("提示: 请妥善保管导出文件,避免泄露");
         ColorOutput::info("提示: 使用 --no-secrets 参数可导出不含密钥的配置");
     } else {
         println!();
         ColorOutput::info("✓ 敏感信息已移除");
-        ColorOutput::info("提示: 不使用 --no-secrets 可导出完整配置（包含密钥）");
+        ColorOutput::info("提示: 不使用 --no-secrets 可导出完整配置(包含密钥)");
     }
 
     Ok(())
@@ -82,11 +82,11 @@ fn export_to_file(
 ) -> Result<()> {
     let mut config = config_manager.load()?;
 
-    // 如果不包含密钥，则移除敏感信息
+    // 如果不包含密钥,则移除敏感信息
     if !include_secrets {
         for section in config.sections.values_mut() {
             if let Some(ref token) = section.auth_token {
-                // 只保留前4位和后4位，中间用星号替换
+                // 只保留前4位和后4位,中间用星号替换
                 section.auth_token = Some(mask_token(token));
             }
         }

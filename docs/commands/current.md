@@ -1,6 +1,6 @@
 # current - 显示当前配置
 
-显示当前配置的详细状态，包括环境变量设置。
+显示当前配置的详细状态,包括环境变量设置。
 
 ## 用法
 
@@ -15,7 +15,7 @@ ccr show
 
 - 配置名称和描述
 - Base URL
-- Auth Token（脱敏）
+- Auth Token(脱敏)
 - 模型设置
 - 环境变量配置状态
 
@@ -46,7 +46,7 @@ Status: ✓ Configuration Active
 
 ### 确认当前配置
 
-在执行重要操作前，确认当前使用的配置：
+在执行重要操作前,确认当前使用的配置：
 
 ```bash
 ccr current
@@ -62,7 +62,7 @@ ccr current | grep "ANTHROPIC_"
 
 ### 验证切换结果
 
-切换配置后，确认切换成功：
+切换配置后,确认切换成功：
 
 ```bash
 ccr switch anyrouter
