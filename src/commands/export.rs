@@ -8,13 +8,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// 📤 导出配置到文件
-/// 
+///
 /// 执行流程:
 /// 1. 📖 读取当前配置
 /// 2. 🔒 处理敏感信息（根据 include_secrets）
 /// 3. 📝 序列化为 TOML
 /// 4. 💾 保存到文件
-/// 
+///
 /// 参数:
 /// - output: 输出文件路径（默认: ccs_config_export_<timestamp>.toml）
 /// - include_secrets: 是否包含 API 密钥等敏感信息
@@ -121,7 +121,10 @@ mod tests {
 
     #[test]
     fn test_mask_token() {
-        assert_eq!(mask_token("sk-ant-1234567890abcdef"), "sk-a...cdef (已移除)");
+        assert_eq!(
+            mask_token("sk-ant-1234567890abcdef"),
+            "sk-a...cdef (已移除)"
+        );
         assert_eq!(mask_token("short"), "*****");
     }
 
@@ -137,4 +140,3 @@ mod tests {
         assert!(path.to_string_lossy().ends_with(".toml"));
     }
 }
-

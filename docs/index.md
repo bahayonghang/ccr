@@ -42,7 +42,7 @@ features:
 
   - icon: 🌐
     title: Web 界面
-    details: 基于浏览器的配置管理，RESTful API 支持，实时配置切换
+    details: 11 个完整 RESTful API 端点，基于 Service 层架构，模块化清晰
 
   - icon: 🔄
     title: CCS 完全兼容

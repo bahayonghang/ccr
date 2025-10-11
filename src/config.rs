@@ -8,6 +8,7 @@
 // - 📋 管理多个配置节
 
 use crate::error::{CcrError, Result};
+use crate::utils::Validatable;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -16,7 +17,7 @@ use std::path::{Path, PathBuf};
 /// 📝 配置节结构
 ///
 /// 代表一个具体的 API 配置（如 anthropic、anyrouter 等）
-/// 
+///
 /// 每个配置节包含:
 /// - 🏷️ 描述信息
 /// - 🌐 API 基础 URL
@@ -45,16 +46,18 @@ pub struct ConfigSection {
     pub small_fast_model: Option<String>,
 }
 
-impl ConfigSection {
+impl Validatable for ConfigSection {
     /// ✅ 验证配置节的完整性
-    /// 
+    ///
     /// 验证规则:
     /// 1. 🌐 base_url 必须存在且符合 URL 格式
     /// 2. 🔑 auth_token 必须存在且非空
     /// 3. 🤖 model 如果提供则不能为空字符串
-    pub fn validate(&self) -> Result<()> {
+    fn validate(&self) -> Result<()> {
         // 🌐 检查 base_url
-        let base_url = self.base_url.as_ref()
+        let base_url = self
+            .base_url
+            .as_ref()
             .ok_or_else(|| CcrError::ValidationError("base_url 不能为空".into()))?;
 
         if base_url.trim().is_empty() {
@@ -69,7 +72,9 @@ impl ConfigSection {
         }
 
         // 🔑 检查 auth_token
-        let auth_token = self.auth_token.as_ref()
+        let auth_token = self
+            .auth_token
+            .as_ref()
             .ok_or_else(|| CcrError::ValidationError("auth_token 不能为空".into()))?;
 
         if auth_token.trim().is_empty() {
@@ -85,7 +90,9 @@ impl ConfigSection {
 
         Ok(())
     }
+}
 
+impl ConfigSection {
     /// 📝 获取配置的人类可读描述
     pub fn display_description(&self) -> String {
         self.description
@@ -97,7 +104,7 @@ impl ConfigSection {
 /// 📦 CCS 配置文件总体结构
 ///
 /// 对应 ~/.ccs_config.toml 的完整结构
-/// 
+///
 /// 结构说明:
 /// - 🎯 default_config: 默认配置名
 /// - ▶️ current_config: 当前激活配置
@@ -129,7 +136,7 @@ impl CcsConfig {
     }
 
     /// 🔄 设置当前配置
-    /// 
+    ///
     /// 切换前会验证目标配置是否存在
     pub fn set_current(&mut self, name: &str) -> Result<()> {
         // ✅ 验证配置节存在
@@ -141,11 +148,13 @@ impl CcsConfig {
     }
 
     /// ➕ 添加或更新配置节
+    #[allow(dead_code)]
     pub fn set_section(&mut self, name: String, section: ConfigSection) {
         self.sections.insert(name, section);
     }
 
     /// ➖ 删除配置节
+    #[allow(dead_code)]
     pub fn remove_section(&mut self, name: &str) -> Result<ConfigSection> {
         self.sections
             .shift_remove(name)
@@ -186,7 +195,7 @@ impl CcsConfig {
 /// 🔧 配置管理器
 ///
 /// 负责配置文件的加载、保存和管理
-/// 
+///
 /// 主要功能:
 /// - 📖 从磁盘加载 TOML 配置
 /// - 💾 保存配置到磁盘
@@ -204,11 +213,11 @@ impl ConfigManager {
     }
 
     /// 🏠 使用默认配置路径创建管理器
-    /// 
+    ///
     /// 默认路径: ~/.ccs_config.toml
     pub fn default() -> Result<Self> {
-        let home = dirs::home_dir()
-            .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
         let config_path = home.join(".ccs_config.toml");
         Ok(Self::new(config_path))
     }
@@ -219,7 +228,7 @@ impl ConfigManager {
     }
 
     /// 📖 加载配置文件
-    /// 
+    ///
     /// 执行步骤:
     /// 1. ✅ 检查文件是否存在
     /// 2. 📄 读取文件内容
@@ -233,14 +242,12 @@ impl ConfigManager {
         }
 
         // 📄 读取文件内容
-        let content = fs::read_to_string(&self.config_path).map_err(|e| {
-            CcrError::ConfigError(format!("读取配置文件失败: {}", e))
-        })?;
+        let content = fs::read_to_string(&self.config_path)
+            .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
 
         // 🔍 解析 TOML
-        let config: CcsConfig = toml::from_str(&content).map_err(|e| {
-            CcrError::ConfigFormatInvalid(format!("TOML 解析失败: {}", e))
-        })?;
+        let config: CcsConfig = toml::from_str(&content)
+            .map_err(|e| CcrError::ConfigFormatInvalid(format!("TOML 解析失败: {}", e)))?;
 
         log::debug!(
             "✅ 成功加载配置文件: {:?}, 配置节数量: {}",
@@ -252,20 +259,18 @@ impl ConfigManager {
     }
 
     /// 💾 保存配置文件
-    /// 
+    ///
     /// 执行步骤:
     /// 1. 📝 序列化为 TOML 格式
     /// 2. 💾 写入磁盘
     pub fn save(&self, config: &CcsConfig) -> Result<()> {
         // 📝 序列化为 TOML（美化格式）
-        let content = toml::to_string_pretty(config).map_err(|e| {
-            CcrError::ConfigError(format!("配置序列化失败: {}", e))
-        })?;
+        let content = toml::to_string_pretty(config)
+            .map_err(|e| CcrError::ConfigError(format!("配置序列化失败: {}", e)))?;
 
         // 💾 写入文件
-        fs::write(&self.config_path, content).map_err(|e| {
-            CcrError::ConfigError(format!("写入配置文件失败: {}", e))
-        })?;
+        fs::write(&self.config_path, content)
+            .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
 
         log::debug!("✅ 配置文件已保存: {:?}", self.config_path);
         Ok(())

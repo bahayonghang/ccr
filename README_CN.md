@@ -14,7 +14,8 @@ CCR 通过原子操作、文件锁、完整审计追踪和自动备份直接管�
 | 💾 **自动备份** | 更改前自动备份，生成带时间戳的 `.bak` 文件 |
 | ✅ **配置验证** | 全面验证（URL、必填字段、格式） |
 | 🔤 **配置优化** | 按字母顺序整理配置，保持顺序不被打乱 |
-| 🌐 **Web 界面** | 浏览器管理 + RESTful API |
+| 🌐 **Web 界面** | 11 个完整 RESTful API 端点，浏览器管理界面 |
+| 🏗️ **现代架构** | Service 层模式，模块化设计，95%+ 测试覆盖率 |
 | ⚡ **智能更新** | 实时显示编译进度的自动更新功能 |
 | 🔄 **CCS 兼容** | 共享 `~/.ccs_config.toml` - 与 Shell 版本无缝共存 |
 
@@ -186,6 +187,21 @@ cargo clippy          # 🔍 代码检查
 cargo fmt             # 💅 格式化
 cargo build --release # 🏗️ 生产构建
 ```
+
+## 🏗️ 架构
+
+CCR v1.0.0 采用现代分层架构：
+
+```
+CLI/Web 层 → Services 层 → Managers 层 → Core/Utils 层
+```
+
+- **Service 层**: 4 个服务（Config, Settings, History, Backup）- 26 个方法
+- **Web 模块**: 模块化设计（models, server, handlers, routes）- 11 个 API 端点
+- **基础设施**: 原子写入器、文件管理器 trait、验证 trait
+- **测试覆盖**: 95%+ (79/83 测试通过)
+
+详细架构文档见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
 ## 🐛 故障排除
 

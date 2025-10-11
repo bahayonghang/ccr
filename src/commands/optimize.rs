@@ -68,7 +68,10 @@ pub fn optimize_command() -> Result<()> {
     println!();
     ColorOutput::title("优化完成");
     println!();
-    ColorOutput::success(&format!("✓ 配置节已按字母顺序排列（共 {} 个）", optimized_order.len()));
+    ColorOutput::success(&format!(
+        "✓ 配置节已按字母顺序排列（共 {} 个）",
+        optimized_order.len()
+    ));
     ColorOutput::info("配置内容保持不变，仅调整了顺序");
     println!();
 

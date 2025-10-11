@@ -1,26 +1,26 @@
 // ✅ validate 命令实现 - 验证配置和设置
 // 🔍 全面检查配置文件和 Claude Code 设置的完整性
 
-use crate::config::ConfigManager;
 use crate::error::Result;
 use crate::logging::ColorOutput;
-use crate::settings::SettingsManager;
+use crate::services::{ConfigService, SettingsService};
+use crate::utils::Validatable;
 use colored::*;
 
 /// ✅ 验证配置和设置
-/// 
+///
 /// 验证流程:
 /// 1. 📝 验证配置文件 (~/.ccs_config.toml)
 ///    - 文件是否存在
 ///    - 格式是否正确
 ///    - 所有配置节是否有效
 ///    - 当前配置是否存在
-/// 
+///
 /// 2. 🌍 验证 Claude Code 设置 (~/.claude/settings.json)
 ///    - 文件是否存在
 ///    - 必需环境变量是否设置
 ///    - 环境变量值是否有效
-/// 
+///
 /// 3. 📊 生成验证报告
 ///    - 显示错误和警告
 ///    - 提供修复建议
@@ -31,47 +31,46 @@ pub fn validate_command() -> Result<()> {
     let mut has_errors = false;
     let mut has_warnings = false;
 
-    // 验证配置文件
+    // 使用 ConfigService 验证配置文件
     ColorOutput::step("验证配置文件 (~/.ccs_config.toml)");
-    let config_manager = ConfigManager::default()?;
+    let config_service = ConfigService::default()?;
 
-    match config_manager.load() {
-        Ok(config) => {
-            ColorOutput::success(&format!("配置文件存在: {}", config_manager.config_path().display()));
+    match config_service.validate_all() {
+        Ok(report) => {
+            ColorOutput::success(&format!(
+                "配置文件存在: {}",
+                config_service.config_manager().config_path().display()
+            ));
 
-            // 验证所有配置节
-            let validation_results = config.validate_all();
-            let mut valid_count = 0;
-            let mut invalid_count = 0;
-
+            // 显示验证结果
             println!();
-            for (name, result) in &validation_results {
-                match result {
-                    Ok(_) => {
-                        println!("  {} {}", "✓".green(), name);
-                        valid_count += 1;
+            for (name, is_valid, error_msg) in &report.results {
+                if *is_valid {
+                    println!("  {} {}", "✓".green(), name);
+                } else {
+                    if let Some(msg) = error_msg {
+                        println!("  {} {} - {}", "✗".red(), name, msg);
+                    } else {
+                        println!("  {} {}", "✗".red(), name);
                     }
-                    Err(e) => {
-                        println!("  {} {} - {}", "✗".red(), name, e);
-                        invalid_count += 1;
-                        has_errors = true;
-                    }
+                    has_errors = true;
                 }
             }
 
             println!();
-            if invalid_count > 0 {
+            if report.invalid_count > 0 {
                 ColorOutput::warning(&format!(
                     "配置节验证: {} 个通过, {} 个失败",
-                    valid_count, invalid_count
+                    report.valid_count, report.invalid_count
                 ));
             } else {
-                ColorOutput::success(&format!("所有 {} 个配置节验证通过", valid_count));
+                ColorOutput::success(&format!("所有 {} 个配置节验证通过", report.valid_count));
             }
 
             // 验证当前配置
             println!();
             ColorOutput::step("当前配置验证");
+            let config = config_service.load_config()?;
             if config.sections.contains_key(&config.current_config) {
                 ColorOutput::success(&format!("当前配置 '{}' 存在", config.current_config));
             } else {
@@ -89,20 +88,26 @@ pub fn validate_command() -> Result<()> {
     ColorOutput::separator();
     println!();
 
-    // 验证 Claude Code 设置
+    // 使用 SettingsService 验证 Claude Code 设置
     ColorOutput::step("验证 Claude Code 设置 (~/.claude/settings.json)");
-    let settings_manager = match SettingsManager::default() {
-        Ok(m) => m,
+    let settings_service = match SettingsService::default() {
+        Ok(s) => s,
         Err(e) => {
-            ColorOutput::error(&format!("无法访问设置管理器: {}", e));
+            ColorOutput::error(&format!("无法访问设置服务: {}", e));
             has_errors = true;
             return generate_report(has_errors, has_warnings);
         }
     };
 
-    match settings_manager.load() {
+    match settings_service.get_current_settings() {
         Ok(settings) => {
-            ColorOutput::success(&format!("设置文件存在: {}", settings_manager.settings_path().display()));
+            ColorOutput::success(&format!(
+                "设置文件存在: {}",
+                settings_service
+                    .settings_manager()
+                    .settings_path()
+                    .display()
+            ));
 
             // 验证环境变量
             println!();
@@ -112,7 +117,12 @@ pub fn validate_command() -> Result<()> {
             for (var_name, value) in env_status {
                 match value {
                     Some(v) if !v.is_empty() => {
-                        println!("  {} {}: {}", "✓".green(), var_name, ColorOutput::mask_sensitive(&v));
+                        println!(
+                            "  {} {}: {}",
+                            "✓".green(),
+                            var_name,
+                            ColorOutput::mask_sensitive(&v)
+                        );
                     }
                     Some(_) => {
                         println!("  {} {}: {}", "⚠".yellow(), var_name, "值为空");

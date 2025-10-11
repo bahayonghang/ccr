@@ -9,20 +9,24 @@
 
 mod commands;
 mod config;
+mod core;
 mod error;
 mod history;
 mod lock;
 mod logging;
+mod services;
 mod settings;
+mod utils;
 mod web;
 
 use clap::{Parser, Subcommand};
-use logging::{init_logger, ColorOutput};
+use logging::{ColorOutput, init_logger};
 
 /// 🎯 Claude Code Configuration Switcher - 配置管理工具
 #[derive(Parser)]
 #[command(name = "ccr")]
-#[command(about = "Claude Code 配置管理工具 - 快速切换和管理多套配置",
+#[command(
+    about = "Claude Code 配置管理工具 - 快速切换和管理多套配置",
     long_about = "\
 🎯 CCR (Claude Code Configuration Router)
 
@@ -41,7 +45,8 @@ use logging::{init_logger, ColorOutput};
 
 📖 获取帮助:
     ccr --help            # 显示此帮助
-    ccr <命令> --help      # 显示特定命令的帮助")]
+    ccr <命令> --help      # 显示特定命令的帮助"
+)]
 #[command(version)]
 struct Cli {
     #[command(subcommand)]
@@ -198,7 +203,7 @@ enum Commands {
 }
 
 /// 🎯 主函数入口
-/// 
+///
 /// 执行流程:
 /// 1. 🔧 初始化日志系统
 /// 2. 📝 解析命令行参数
@@ -226,7 +231,11 @@ fn main() {
         Some(Commands::Export { output, no_secrets }) => {
             commands::export_command(output, !no_secrets)
         }
-        Some(Commands::Import { input, merge, backup }) => {
+        Some(Commands::Import {
+            input,
+            merge,
+            backup,
+        }) => {
             let mode = if merge {
                 commands::ImportMode::Merge
             } else {
@@ -234,9 +243,7 @@ fn main() {
             };
             commands::import_command(input, mode, backup)
         }
-        Some(Commands::Clean { days, dry_run }) => {
-            commands::clean_command(days, dry_run)
-        }
+        Some(Commands::Clean { days, dry_run }) => commands::clean_command(days, dry_run),
         Some(Commands::Optimize) => commands::optimize_command(),
         Some(Commands::Version) => {
             show_version();
@@ -271,7 +278,7 @@ fn main() {
 }
 
 /// 📋 显示版本信息和帮助
-/// 
+///
 /// 包含内容:
 /// - ℹ️ 版本号、作者、描述
 /// - ⭐ 核心特性列表

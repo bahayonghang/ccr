@@ -11,7 +11,6 @@
 
 use crate::error::{CcrError, Result};
 use crate::lock::LockManager;
-use crate::logging::ColorOutput;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -20,7 +19,7 @@ use std::time::Duration;
 use uuid::Uuid;
 
 /// 📋 操作类型枚举
-/// 
+///
 /// 定义所有可追踪的操作类型
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum OperationType {
@@ -130,25 +129,21 @@ impl HistoryEntry {
     }
 
     /// 添加环境变量变更记录
-    pub fn add_env_change(&mut self, var_name: String, old_value: Option<String>, new_value: Option<String>) {
+    pub fn add_env_change(
+        &mut self,
+        var_name: String,
+        old_value: Option<String>,
+        new_value: Option<String>,
+    ) {
         // 对敏感信息进行掩码处理
-        let old_masked = old_value.map(|v| Self::mask_if_sensitive(&var_name, &v));
-        let new_masked = new_value.map(|v| Self::mask_if_sensitive(&var_name, &v));
+        let old_masked = old_value.map(|v| crate::utils::mask_if_sensitive(&var_name, &v));
+        let new_masked = new_value.map(|v| crate::utils::mask_if_sensitive(&var_name, &v));
 
         self.env_changes.push(EnvChange {
             var_name,
             old_value: old_masked,
             new_value: new_masked,
         });
-    }
-
-    /// 掩码敏感信息
-    fn mask_if_sensitive(var_name: &str, value: &str) -> String {
-        if var_name.contains("TOKEN") || var_name.contains("KEY") || var_name.contains("SECRET") {
-            ColorOutput::mask_sensitive(value)
-        } else {
-            value.to_string()
-        }
     }
 }
 
@@ -169,8 +164,8 @@ impl HistoryManager {
 
     /// 使用默认路径创建管理器
     pub fn default() -> Result<Self> {
-        let home = dirs::home_dir()
-            .ok_or_else(|| CcrError::HistoryError("无法获取用户主目录".into()))?;
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::HistoryError("无法获取用户主目录".into()))?;
         let history_path = home.join(".claude").join("ccr_history.json");
         let lock_manager = LockManager::default()?;
 
@@ -184,9 +179,8 @@ impl HistoryManager {
             return Ok(Vec::new());
         }
 
-        let content = fs::read_to_string(&self.history_path).map_err(|e| {
-            CcrError::HistoryError(format!("读取历史文件失败: {}", e))
-        })?;
+        let content = fs::read_to_string(&self.history_path)
+            .map_err(|e| CcrError::HistoryError(format!("读取历史文件失败: {}", e)))?;
 
         let entries: Vec<HistoryEntry> = serde_json::from_str(&content)
             .map_err(|e| CcrError::HistoryError(format!("解析历史文件失败: {}", e)))?;
@@ -198,9 +192,8 @@ impl HistoryManager {
     fn save(&self, entries: &[HistoryEntry]) -> Result<()> {
         // 确保目录存在
         if let Some(parent) = self.history_path.parent() {
-            fs::create_dir_all(parent).map_err(|e| {
-                CcrError::HistoryError(format!("创建历史目录失败: {}", e))
-            })?;
+            fs::create_dir_all(parent)
+                .map_err(|e| CcrError::HistoryError(format!("创建历史目录失败: {}", e)))?;
         }
 
         // 序列化为 JSON（美化格式）
@@ -208,9 +201,8 @@ impl HistoryManager {
             .map_err(|e| CcrError::HistoryError(format!("序列化历史记录失败: {}", e)))?;
 
         // 写入文件
-        fs::write(&self.history_path, content).map_err(|e| {
-            CcrError::HistoryError(format!("写入历史文件失败: {}", e))
-        })?;
+        fs::write(&self.history_path, content)
+            .map_err(|e| CcrError::HistoryError(format!("写入历史文件失败: {}", e)))?;
 
         Ok(())
     }
@@ -236,7 +228,10 @@ impl HistoryManager {
     /// 按操作类型筛选
     pub fn filter_by_operation(&self, op_type: OperationType) -> Result<Vec<HistoryEntry>> {
         let entries = self.load()?;
-        Ok(entries.into_iter().filter(|e| e.operation == op_type).collect())
+        Ok(entries
+            .into_iter()
+            .filter(|e| e.operation == op_type)
+            .collect())
     }
 
     /// 获取最近的 N 条记录
@@ -261,7 +256,9 @@ impl HistoryManager {
                 OperationResult::Warning(_) => stats.warning_operations += 1,
             }
 
-            *stats.operations_by_type.entry(entry.operation.as_str().to_string())
+            *stats
+                .operations_by_type
+                .entry(entry.operation.as_str().to_string())
                 .or_insert(0) += 1;
         }
 
@@ -323,11 +320,7 @@ mod tests {
             extra: None,
         };
 
-        let mut entry = HistoryEntry::new(
-            OperationType::Switch,
-            details,
-            OperationResult::Success,
-        );
+        let mut entry = HistoryEntry::new(OperationType::Switch, details, OperationResult::Success);
 
         entry.add_env_change(
             "ANTHROPIC_AUTH_TOKEN".into(),
@@ -385,17 +378,21 @@ mod tests {
             extra: None,
         };
 
-        manager.add(HistoryEntry::new(
-            OperationType::Switch,
-            details.clone(),
-            OperationResult::Success,
-        )).unwrap();
+        manager
+            .add(HistoryEntry::new(
+                OperationType::Switch,
+                details.clone(),
+                OperationResult::Success,
+            ))
+            .unwrap();
 
-        manager.add(HistoryEntry::new(
-            OperationType::Backup,
-            details,
-            OperationResult::Success,
-        )).unwrap();
+        manager
+            .add(HistoryEntry::new(
+                OperationType::Backup,
+                details,
+                OperationResult::Success,
+            ))
+            .unwrap();
 
         // 筛选
         let switch_ops = manager.filter_by_operation(OperationType::Switch).unwrap();
@@ -422,17 +419,21 @@ mod tests {
             extra: None,
         };
 
-        manager.add(HistoryEntry::new(
-            OperationType::Switch,
-            details.clone(),
-            OperationResult::Success,
-        )).unwrap();
+        manager
+            .add(HistoryEntry::new(
+                OperationType::Switch,
+                details.clone(),
+                OperationResult::Success,
+            ))
+            .unwrap();
 
-        manager.add(HistoryEntry::new(
-            OperationType::Backup,
-            details.clone(),
-            OperationResult::Failure("error".into()),
-        )).unwrap();
+        manager
+            .add(HistoryEntry::new(
+                OperationType::Backup,
+                details.clone(),
+                OperationResult::Failure("error".into()),
+            ))
+            .unwrap();
 
         // 获取统计
         let stats = manager.stats().unwrap();

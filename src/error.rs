@@ -9,8 +9,61 @@
 
 use thiserror::Error;
 
+/// 🔢 错误退出码常量
+///
+/// 每种错误类型对应唯一的退出码，便于脚本判断错误类型
+///
+/// 退出码范围:
+/// - 10-19: 配置相关错误
+/// - 20-29: 设置相关错误
+/// - 30-39: 文件锁相关错误
+/// - 40-49: 序列化相关错误
+/// - 50-59: IO 相关错误
+/// - 80-89: 历史记录相关错误
+/// - 90-99: 验证相关错误
+pub mod exit_codes {
+    /// ⚙️ 配置文件错误
+    pub const CONFIG_ERROR: i32 = 10;
+
+    /// 📁 配置文件缺失
+    pub const CONFIG_MISSING: i32 = 11;
+
+    /// 🔍 配置节不存在
+    pub const CONFIG_SECTION_NOT_FOUND: i32 = 12;
+
+    /// 📋 配置格式无效
+    pub const CONFIG_FORMAT_INVALID: i32 = 14;
+
+    /// 📝 设置文件错误
+    pub const SETTINGS_ERROR: i32 = 20;
+
+    /// 📁 设置文件缺失
+    pub const SETTINGS_MISSING: i32 = 21;
+
+    /// 🔒 文件锁错误
+    pub const FILE_LOCK_ERROR: i32 = 30;
+
+    /// ⏱️ 获取锁超时
+    pub const LOCK_TIMEOUT: i32 = 31;
+
+    /// 📄 JSON 错误
+    pub const JSON_ERROR: i32 = 40;
+
+    /// 📄 TOML 错误
+    pub const TOML_ERROR: i32 = 41;
+
+    /// 💾 IO 错误
+    pub const IO_ERROR: i32 = 50;
+
+    /// 📚 历史记录错误
+    pub const HISTORY_ERROR: i32 = 80;
+
+    /// ✅ 验证错误
+    pub const VALIDATION_ERROR: i32 = 90;
+}
+
 /// ❌ CCR 错误类型枚举
-/// 
+///
 /// 涵盖所有可能的错误情况，每种错误都有专门的退出码
 #[derive(Error, Debug)]
 pub enum CcrError {
@@ -71,37 +124,30 @@ impl CcrError {
     /// 🔢 获取错误退出码
     ///
     /// 每种错误类型对应唯一的退出码，便于脚本判断错误类型
-    /// 
-    /// 退出码范围:
-    /// - 10-19: 配置相关错误
-    /// - 20-29: 设置相关错误
-    /// - 30-39: 文件锁相关错误
-    /// - 40-49: 序列化相关错误
-    /// - 50-59: IO 相关错误
-    /// - 80-89: 历史记录相关错误
-    /// - 90-99: 验证相关错误
+    ///
+    /// 使用 [exit_codes] 模块中定义的常量
     pub fn exit_code(&self) -> i32 {
         match self {
-            CcrError::ConfigError(_) => 10,
-            CcrError::ConfigMissing(_) => 11,
-            CcrError::ConfigSectionNotFound(_) => 12,
-            CcrError::ConfigFormatInvalid(_) => 14,
-            CcrError::SettingsError(_) => 20,
-            CcrError::SettingsMissing(_) => 21,
-            CcrError::FileLockError(_) => 30,
-            CcrError::LockTimeout(_) => 31,
-            CcrError::JsonError(_) => 40,
-            CcrError::TomlError(_) => 41,
-            CcrError::IoError(_) => 50,
-            CcrError::HistoryError(_) => 80,
-            CcrError::ValidationError(_) => 90,
+            CcrError::ConfigError(_) => exit_codes::CONFIG_ERROR,
+            CcrError::ConfigMissing(_) => exit_codes::CONFIG_MISSING,
+            CcrError::ConfigSectionNotFound(_) => exit_codes::CONFIG_SECTION_NOT_FOUND,
+            CcrError::ConfigFormatInvalid(_) => exit_codes::CONFIG_FORMAT_INVALID,
+            CcrError::SettingsError(_) => exit_codes::SETTINGS_ERROR,
+            CcrError::SettingsMissing(_) => exit_codes::SETTINGS_MISSING,
+            CcrError::FileLockError(_) => exit_codes::FILE_LOCK_ERROR,
+            CcrError::LockTimeout(_) => exit_codes::LOCK_TIMEOUT,
+            CcrError::JsonError(_) => exit_codes::JSON_ERROR,
+            CcrError::TomlError(_) => exit_codes::TOML_ERROR,
+            CcrError::IoError(_) => exit_codes::IO_ERROR,
+            CcrError::HistoryError(_) => exit_codes::HISTORY_ERROR,
+            CcrError::ValidationError(_) => exit_codes::VALIDATION_ERROR,
         }
     }
 
     /// 🚨 判断错误是否致命
     ///
     /// 致命错误需要立即终止程序执行，无法恢复
-    /// 
+    ///
     /// 致命错误类型:
     /// - 配置文件缺失
     /// - 设置文件缺失

@@ -2,18 +2,19 @@
 // 🔍 展示所有操作的审计追踪，支持筛选和统计
 
 use crate::error::Result;
-use crate::history::{HistoryManager, OperationType};
+use crate::history::OperationType;
 use crate::logging::ColorOutput;
+use crate::services::HistoryService;
 use colored::*;
 
 /// 📚 显示操作历史
-/// 
+///
 /// 显示内容:
 /// - 📊 操作统计（总数、成功、失败、警告）
 /// - 📋 历史记录列表（时间、操作、结果）
 /// - 🌍 环境变量变化（已掩码）
 /// - 📝 操作详情（from/to 配置、备份路径等）
-/// 
+///
 /// 参数:
 /// - limit: 显示记录数量（默认 20）
 /// - filter_type: 按操作类型筛选（switch/backup/restore/validate/update）
@@ -21,7 +22,8 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
     ColorOutput::title("操作历史记录");
     println!();
 
-    let history_manager = HistoryManager::default()?;
+    // 使用 HistoryService
+    let service = HistoryService::default()?;
 
     // 获取历史记录
     let entries = if let Some(type_str) = filter_type {
@@ -38,13 +40,13 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
                 return Ok(());
             }
         };
-        history_manager.filter_by_operation(op_type)?
+        service.filter_by_type(op_type)?
     } else if let Some(n) = limit {
         // 获取最近的 N 条
-        history_manager.get_recent(n)?
+        service.get_recent(n)?
     } else {
         // 获取所有记录，默认限制100条
-        history_manager.get_recent(100)?
+        service.get_recent(100)?
     };
 
     if entries.is_empty() {
@@ -53,7 +55,7 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
     }
 
     // 显示统计信息
-    let stats = history_manager.stats()?;
+    let stats = service.get_stats()?;
     ColorOutput::info(&format!("总操作数: {}", stats.total_operations));
     ColorOutput::info(&format!(
         "成功: {}, 失败: {}, 警告: {}",
@@ -94,16 +96,12 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
         if !entry.env_changes.is_empty() {
             println!("   环境变量变化:");
             for change in &entry.env_changes {
-                let old_display = change
-                    .old_value
-                    .as_deref()
-                    .unwrap_or("(无)")
-                    .dimmed();
-                let new_display = change
-                    .new_value
-                    .as_deref()
-                    .unwrap_or("(无)");
-                println!("     {} {} -> {}", change.var_name, old_display, new_display);
+                let old_display = change.old_value.as_deref().unwrap_or("(无)").dimmed();
+                let new_display = change.new_value.as_deref().unwrap_or("(无)");
+                println!(
+                    "     {} {} -> {}",
+                    change.var_name, old_display, new_display
+                );
             }
         }
 

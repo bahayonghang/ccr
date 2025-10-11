@@ -10,12 +10,15 @@
 
 use crate::config::ConfigManager;
 use crate::error::{CcrError, Result};
-use crate::history::{HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType};
+use crate::history::{
+    HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
+};
 use crate::logging::ColorOutput;
 use crate::settings::SettingsManager;
+use crate::utils::Validatable;
 
 /// 🔄 切换到指定配置
-/// 
+///
 /// 这是一个原子性操作，确保配置切换的完整性和可追溯性
 pub fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::title(&format!("切换配置: {}", config_name));

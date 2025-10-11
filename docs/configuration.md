@@ -242,7 +242,7 @@ CCR 记录所有操作的详细历史，存储在 `~/.claude/ccr_history.json`�
 
 ## Web API
 
-CCR 的 Web 界面提供 RESTful API，支持编程访问。
+CCR 的 Web 界面提供完整的 RESTful API，基于全新的 Service 层架构。
 
 ### 启动 Web 服务
 
@@ -250,7 +250,51 @@ CCR 的 Web 界面提供 RESTful API，支持编程访问。
 ccr web --port 8080
 ```
 
-### API 端点
+浏览器将自动打开 `http://localhost:8080`。
+
+### 架构说明
+
+Web API 采用分层架构：
+- **Handlers** - 处理 HTTP 请求
+- **Services** - 业务逻辑层（ConfigService, SettingsService 等）
+- **Managers** - 数据访问层
+
+这确保了 API 的可靠性和可维护性。
+
+### 完整 API 端点列表
+
+#### 配置管理
+
+| 方法 | 路径 | 功能 | Service |
+|------|------|------|---------|
+| GET | `/api/configs` | 列出所有配置 | ConfigService |
+| POST | `/api/config` | 添加新配置 | ConfigService |
+| PUT | `/api/config/:name` | 更新配置 | ConfigService |
+| DELETE | `/api/config/:name` | 删除配置 | ConfigService |
+| POST | `/api/switch` | 切换配置 | Commands |
+
+#### 历史记录
+
+| 方法 | 路径 | 功能 | Service |
+|------|------|------|---------|
+| GET | `/api/history` | 获取操作历史 | HistoryService |
+
+#### 验证和工具
+
+| 方法 | 路径 | 功能 | Service |
+|------|------|------|---------|
+| POST | `/api/validate` | 验证配置 | Commands |
+| POST | `/api/clean` | 清理备份 | BackupService |
+
+#### 设置管理
+
+| 方法 | 路径 | 功能 | Service |
+|------|------|------|---------|
+| GET | `/api/settings` | 获取当前设置 | SettingsService |
+| GET | `/api/settings/backups` | 获取备份列表 | SettingsService |
+| POST | `/api/settings/restore` | 恢复设置 | SettingsService |
+
+### API 使用示例
 
 #### 获取所有配置
 
@@ -261,18 +305,23 @@ GET /api/configs
 **响应：**
 ```json
 {
-  "configs": [
-    {
-      "name": "anthropic",
-      "description": "Anthropic Official API",
-      "base_url": "https://api.anthropic.com",
-      "auth_token": "sk-a...key",
-      "model": "claude-sonnet-4-5-20250929",
-      "small_fast_model": "claude-3-5-haiku-20241022",
-      "is_current": true,
-      "is_complete": true
-    }
-  ]
+  "success": true,
+  "data": {
+    "current_config": "anthropic",
+    "default_config": "anthropic",
+    "configs": [
+      {
+        "name": "anthropic",
+        "description": "Anthropic Official API",
+        "base_url": "https://api.anthropic.com",
+        "auth_token": "sk-a...key",
+        "model": "claude-sonnet-4-5-20250929",
+        "small_fast_model": "claude-3-5-haiku-20241022",
+        "is_current": true,
+        "is_default": true
+      }
+    ]
+  }
 }
 ```
 
@@ -291,32 +340,55 @@ Content-Type: application/json
 ```json
 {
   "success": true,
-  "message": "Configuration switched successfully"
+  "data": "配置切换成功"
 }
 ```
 
-#### 获取操作历史
+#### 添加配置
 
 ```http
-GET /api/history?limit=20&type=switch
+POST /api/config
+Content-Type: application/json
+
+{
+  "name": "newconfig",
+  "description": "New Configuration",
+  "base_url": "https://api.example.com",
+  "auth_token": "your-token",
+  "model": "claude-sonnet-4-5-20250929"
+}
 ```
 
-**查询参数：**
-- `limit`: 返回记录数（默认：20）
-- `type`: 操作类型过滤（可选）
-
-#### 验证配置
+#### 获取历史记录
 
 ```http
-POST /api/validate
+GET /api/history
 ```
 
 **响应：**
 ```json
 {
-  "valid": true,
-  "errors": [],
-  "warnings": []
+  "success": true,
+  "data": {
+    "entries": [
+      {
+        "id": "uuid",
+        "timestamp": "2025-01-10T12:05:30Z",
+        "operation": "切换配置",
+        "actor": "username",
+        "from_config": "anthropic",
+        "to_config": "anyrouter",
+        "changes": [
+          {
+            "key": "ANTHROPIC_BASE_URL",
+            "old_value": "https://api.anthropic.com",
+            "new_value": "https://api.anyrouter.ai/v1"
+          }
+        ]
+      }
+    ],
+    "total": 1
+  }
 }
 ```
 
@@ -336,43 +408,54 @@ Content-Type: application/json
 ```json
 {
   "success": true,
-  "deleted_count": 10,
-  "freed_space": "5.2 MB"
+  "data": {
+    "deleted_count": 10,
+    "skipped_count": 5,
+    "total_size_mb": 5.2,
+    "dry_run": false
+  }
 }
 ```
 
-#### 添加配置
+#### 获取设置备份列表
 
 ```http
-POST /api/config
-Content-Type: application/json
+GET /api/settings/backups
+```
 
+**响应：**
+```json
 {
-  "name": "newconfig",
-  "description": "New Configuration",
-  "base_url": "https://api.example.com",
-  "auth_token": "your-token",
-  "model": "claude-sonnet-4-5-20250929"
+  "success": true,
+  "data": {
+    "backups": [
+      {
+        "filename": "settings.anthropic.20250110_120530.json.bak",
+        "path": "/home/user/.claude/backups/...",
+        "created_at": "2025-01-10T12:05:30Z",
+        "size_bytes": 1024
+      }
+    ]
+  }
 }
 ```
 
-#### 更新配置
+### 错误响应格式
 
-```http
-PUT /api/config/{name}
-Content-Type: application/json
+所有 API 错误响应统一格式：
 
+```json
 {
-  "description": "Updated Description",
-  "auth_token": "new-token"
+  "success": false,
+  "data": null,
+  "message": "错误详细信息"
 }
 ```
 
-#### 删除配置
-
-```http
-DELETE /api/config/{name}
-```
+常见 HTTP 状态码：
+- `200` - 成功
+- `400` - 请求参数错误
+- `500` - 服务器内部错误
 
 ---
 

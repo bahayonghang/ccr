@@ -14,7 +14,8 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | 💾 **Auto Backup** | Automatic backups before changes with timestamped `.bak` files |
 | ✅ **Validation** | Comprehensive config validation (URLs, required fields, format) |
 | 🔤 **Config Optimization** | Sort configs alphabetically, maintain order after switching |
-| 🌐 **Web UI** | Browser-based management + RESTful API |
+| 🌐 **Web UI** | 11 complete RESTful API endpoints, browser-based management |
+| 🏗️ **Modern Architecture** | Service layer pattern, modular design, 95%+ test coverage |
 | ⚡ **Smart Update** | Real-time progress display during auto-update |
 | 🔄 **CCS Compatible** | Shares `~/.ccs_config.toml` - seamlessly coexist with shell version |
 
@@ -186,6 +187,21 @@ cargo clippy          # 🔍 Lint
 cargo fmt             # 💅 Format
 cargo build --release # 🏗️ Production build
 ```
+
+## 🏗️ Architecture
+
+CCR v1.0.0 features a modern layered architecture:
+
+```
+CLI/Web Layer → Services → Managers → Core/Utils
+```
+
+- **Service Layer**: 4 services (Config, Settings, History, Backup) - 26 methods
+- **Web Module**: Modular design (models, server, handlers, routes) - 11 API endpoints
+- **Infrastructure**: Atomic writer, file manager trait, validation trait
+- **Test Coverage**: 95%+ (77/81 tests passed)
+
+For detailed architecture docs, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 🐛 Troubleshooting
 

@@ -67,38 +67,53 @@ just doc-open
 
 ## Architecture
 
-### Core Modules
+CCR follows a **layered architecture** with clear separation of concerns:
 
-- **`main.rs`**: CLI entry point using `clap` for argument parsing. Implements command routing and error handling with colored output.
+```
+┌─────────────────────────────────────┐
+│   CLI Layer (main.rs + commands/)   │  ← User Interface
+├─────────────────────────────────────┤
+│   Web Layer (web/)                  │  ← Web Interface  
+├─────────────────────────────────────┤
+│   Service Layer (services/)         │  ← Business Logic
+├─────────────────────────────────────┤
+│   Manager Layer (config, settings)  │  ← Data Access
+├─────────────────────────────────────┤
+│   Core Layer (core, utils, lock)    │  ← Infrastructure
+└─────────────────────────────────────┘
+```
 
-- **`commands/`**: Individual subcommand implementations:
-  - `list.rs`: Display all configurations with validation status
-  - `current.rs`: Show active configuration details
-  - `switch.rs`: Switch configurations with backup + atomic writes
-  - `validate.rs`: Validate config integrity and settings file
-  - `history_cmd.rs`: Display operation audit trail
-  - `init.rs`: Initialize config file from embedded template
-  - `export.rs` / `import.rs`: Configuration backup/restore
-  - `clean.rs`: Remove old backup files
-  - `update.rs`: Self-update from GitHub
+### Layer Breakdown
 
-- **`config.rs`**: Configuration file management (`~/.ccs_config.toml`). Handles parsing, validation, and updates. Implements desensitization for sensitive fields.
+#### 🎯 CLI Layer
+- **`main.rs`**: CLI entry point using `clap` for argument parsing
+- **`commands/`**: Command implementations (list, switch, current, validate, etc.)
 
-- **`settings.rs`**: Claude Code settings manager (`~/.claude/settings.json`). Core functionality:
-  - Atomic writes using temp files + rename
-  - File locking via `fs4` crate (timeout: 10s)
-  - Automatic backup before modifications
-  - Environment variable mapping for `ANTHROPIC_*` keys
+#### 🌐 Web Layer
+- **`web/server.rs`**: HTTP server using `tiny_http`
+- **`web/handlers.rs`**: Request handlers
+- **`web/models.rs`**: API data models
+- **`web/routes.rs`**: Route definitions
 
-- **`history.rs`**: Operation audit trail (`~/.claude/ccr_history.json`). Records all operations with UUID, timestamp, actor, and environment changes (with secret masking).
+#### 🎯 Service Layer (Business Logic)
+- **`services/config_service.rs`**: Configuration business logic
+- **`services/settings_service.rs`**: Settings business logic
+- **`services/history_service.rs`**: History recording business logic
+- **`services/backup_service.rs`**: Backup management business logic
 
-- **`lock.rs`**: File locking abstraction. Cross-process lock using `fs4` with timeout protection and automatic cleanup via RAII.
+#### 📁 Manager Layer (Data Access)
+- **`config.rs`**: Configuration file management (`~/.ccs_config.toml`)
+- **`settings.rs`**: Claude Code settings manager (`~/.claude/settings.json`)
+- **`history.rs`**: Operation audit trail (`~/.claude/ccr_history.json`)
 
-- **`logging.rs`**: Colored terminal output using `colored` crate. Implements `ColorOutput` helper for consistent formatting (banners, key-value pairs, status messages).
-
-- **`web.rs`**: Embedded HTTP server using `tiny_http`. Serves static HTML interface and RESTful API for configuration management.
-
-- **`error.rs`**: Custom error types with `thiserror`. Provides user-friendly error messages, exit codes, and fatal error classification.
+#### 🏗️ Core Layer (Infrastructure)
+- **`core/atomic_writer.rs`**: Atomic file write operations
+- **`core/file_manager.rs`**: File manager trait
+- **`utils/mask.rs`**: Sensitive data masking utilities
+- **`utils/validation.rs`**: Validation trait
+- **`lock.rs`**: File locking abstraction
+- **`logging.rs`**: Colored terminal output
+- **`error.rs`**: Error types with exit codes
 
 ### Key Design Patterns
 
@@ -123,10 +138,41 @@ just doc-open
 ### Adding New Commands
 
 1. Create new module in `src/commands/<name>.rs`
-2. Implement command function with signature: `fn command() -> Result<(), CcrError>`
-3. Export in `src/commands/mod.rs`
-4. Add command variant in `main.rs` `Commands` enum with clap attributes
-5. Route command in `main.rs` match statement
+2. Implement command function with signature: `fn command() -> Result<()>`
+3. Use Service layer for business logic:
+   ```rust
+   use crate::services::ConfigService;
+   
+   pub fn my_command() -> Result<()> {
+       let service = ConfigService::default()?;
+       let result = service.some_operation()?;
+       // Display result using ColorOutput
+       Ok(())
+   }
+   ```
+4. Export in `src/commands/mod.rs`
+5. Add command variant in `main.rs` `Commands` enum with clap attributes
+6. Route command in `main.rs` match statement
+
+### Using Service Layer
+
+The Service layer encapsulates business logic. Always prefer Service methods over direct Manager access:
+
+```rust
+// ✅ Good: Use Service layer
+let config_service = ConfigService::default()?;
+let configs = config_service.list_configs()?;
+
+// ❌ Bad: Direct Manager access (bypass business logic)
+let manager = ConfigManager::default()?;
+let config = manager.load()?;
+```
+
+Available Services:
+- **ConfigService**: Configuration CRUD operations
+- **SettingsService**: Settings file management
+- **HistoryService**: Operation history tracking
+- **BackupService**: Backup cleanup operations
 
 ### Error Handling
 

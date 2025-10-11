@@ -80,9 +80,9 @@ pub fn update_command(check_only: bool) -> Result<()> {
         })?;
 
     // 等待命令执行完成
-    let status = child.wait().map_err(|e| {
-        CcrError::ConfigError(format!("等待 cargo 命令完成失败: {}", e))
-    })?;
+    let status = child
+        .wait()
+        .map_err(|e| CcrError::ConfigError(format!("等待 cargo 命令完成失败: {}", e)))?;
 
     println!();
     ColorOutput::separator();
@@ -133,4 +133,3 @@ mod tests {
         assert!(result.is_ok());
     }
 }
-

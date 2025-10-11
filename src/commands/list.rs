@@ -1,12 +1,14 @@
 // 📜 list 命令实现 - 列出所有可用配置
 // 📋 显示所有配置节，突出显示当前配置和默认配置
 
-use crate::config::ConfigManager;
 use crate::error::Result;
 use crate::logging::ColorOutput;
+use crate::services::ConfigService;
+use crate::utils::Validatable;
+use colored::*;
 
 /// 📜 列出所有可用配置
-/// 
+///
 /// 显示内容:
 /// - ⚙️ 配置文件路径
 /// - 🎯 默认配置和当前配置
@@ -15,53 +17,54 @@ use crate::logging::ColorOutput;
 pub fn list_command() -> Result<()> {
     ColorOutput::title("可用配置列表");
 
-    let config_manager = ConfigManager::default()?;
-    let config = config_manager.load()?;
+    // 使用 ConfigService
+    let service = ConfigService::default()?;
+    let list = service.list_configs()?;
 
     println!();
-    ColorOutput::info(&format!("配置文件: {}", config_manager.config_path().display()));
-    ColorOutput::info(&format!("默认配置: {}", config.default_config));
-    ColorOutput::info(&format!("当前配置: {}", config.current_config));
+    ColorOutput::info(&format!(
+        "配置文件: {}",
+        service.config_manager().config_path().display()
+    ));
+    ColorOutput::info(&format!("默认配置: {}", list.default_config));
+    ColorOutput::info(&format!("当前配置: {}", list.current_config));
     println!();
 
     ColorOutput::separator();
 
     // 列出所有配置节
-    let sections = config.list_sections();
-    if sections.is_empty() {
+    if list.configs.is_empty() {
         ColorOutput::warning("未找到任何配置节");
         return Ok(());
     }
 
-    let sections_count = sections.len();
+    let sections_count = list.configs.len();
 
-    for section_name in &sections {
-        let section = config.get_section(section_name)?;
-        let is_current = section_name == &config.current_config;
-
+    for config_info in &list.configs {
         ColorOutput::config_status(
-            &section_name,
-            is_current,
-            section.description.as_deref(),
+            &config_info.name,
+            config_info.is_current,
+            Some(&config_info.description),
         );
 
-        if is_current {
+        if config_info.is_current {
             // 显示当前配置的详细信息
-            if let Some(base_url) = &section.base_url {
+            if let Some(base_url) = &config_info.base_url {
                 println!("    Base URL: {}", base_url);
             }
-            if let Some(auth_token) = &section.auth_token {
-                println!(
-                    "    Token: {}",
-                    ColorOutput::mask_sensitive(auth_token)
-                );
+            if let Some(auth_token) = &config_info.auth_token {
+                println!("    Token: {}", ColorOutput::mask_sensitive(auth_token));
             }
-            if let Some(model) = &section.model {
+            if let Some(model) = &config_info.model {
                 println!("    Model: {}", model);
             }
-            if let Some(small_model) = &section.small_fast_model {
+            if let Some(small_model) = &config_info.small_fast_model {
                 println!("    Small Fast Model: {}", small_model);
             }
+
+            // 从原始配置获取 section 来验证
+            let config = service.load_config()?;
+            let section = config.get_section(&config_info.name)?;
 
             // 显示验证状态
             match section.validate() {
@@ -76,5 +79,3 @@ pub fn list_command() -> Result<()> {
 
     Ok(())
 }
-
-use colored::*;

@@ -17,14 +17,14 @@ pub enum ImportMode {
 }
 
 /// 📥 导入配置
-/// 
+///
 /// 执行流程:
 /// 1. ✅ 验证输入文件存在
 /// 2. 🔍 解析配置文件
 /// 3. 💾 备份当前配置（可选）
 /// 4. 🔄 执行导入（根据模式）
 /// 5. 📊 显示导入摘要
-/// 
+///
 /// 参数:
 /// - input: 输入文件路径
 /// - mode: 导入模式（Merge/Replace）
@@ -64,7 +64,11 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool) -> Result<(
     }
 
     // 执行导入
-    ColorOutput::step(if backup { "步骤 4/4: 执行导入" } else { "步骤 3/3: 执行导入" });
+    ColorOutput::step(if backup {
+        "步骤 4/4: 执行导入"
+    } else {
+        "步骤 3/3: 执行导入"
+    });
     let result = import_config_with_mode(import_config, mode)?;
 
     println!();
@@ -94,9 +98,8 @@ fn backup_current_config(config_manager: &ConfigManager) -> Result<()> {
         .config_path()
         .with_extension(format!("toml.import_backup_{}.bak", timestamp));
 
-    fs::copy(config_manager.config_path(), &backup_path).map_err(|e| {
-        CcrError::ConfigError(format!("备份失败: {}", e))
-    })?;
+    fs::copy(config_manager.config_path(), &backup_path)
+        .map_err(|e| CcrError::ConfigError(format!("备份失败: {}", e)))?;
 
     ColorOutput::success(&format!("已备份到: {}", backup_path.display()));
     Ok(())
@@ -250,4 +253,3 @@ mod tests {
         assert_eq!(current.default_config, "new_default");
     }
 }
-

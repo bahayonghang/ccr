@@ -20,7 +20,7 @@ use std::time::{Duration, Instant};
 /// 🔒 文件锁
 ///
 /// 提供跨进程的互斥锁功能，基于文件系统锁实现
-/// 
+///
 /// 特性:
 /// - 🛡️ 跨进程安全
 /// - 🧹 自动释放（通过 Drop trait）
@@ -40,7 +40,7 @@ impl FileLock {
     /// # 返回
     /// * `Ok(FileLock)` - 成功获取锁
     /// * `Err(CcrError)` - 获取锁失败或超时
-    /// 
+    ///
     /// # 实现细节
     /// - 循环尝试获取锁，每次失败后等待 100ms
     /// - 超时后返回 LockTimeout 错误
@@ -50,9 +50,8 @@ impl FileLock {
 
         // 确保锁文件目录存在
         if let Some(parent) = lock_path.parent() {
-            fs::create_dir_all(parent).map_err(|e| {
-                CcrError::FileLockError(format!("无法创建锁文件目录: {}", e))
-            })?;
+            fs::create_dir_all(parent)
+                .map_err(|e| CcrError::FileLockError(format!("无法创建锁文件目录: {}", e)))?;
         }
 
         // 打开或创建锁文件
@@ -90,7 +89,7 @@ impl FileLock {
 
 impl Drop for FileLock {
     /// 🧹 自动释放文件锁
-    /// 
+    ///
     /// 利用 RAII（Resource Acquisition Is Initialization）模式
     /// 当 FileLock 离开作用域时自动释放锁
     fn drop(&mut self) {
@@ -103,7 +102,7 @@ impl Drop for FileLock {
 /// 🔧 文件锁管理器
 ///
 /// 统一管理多个资源的锁，提供一致的锁获取接口
-/// 
+///
 /// 管理的资源:
 /// - 📝 Claude Code settings.json
 /// - 📚 CCR 历史记录文件
@@ -125,8 +124,8 @@ impl LockManager {
     ///
     /// 使用 ~/.claude/.locks 作为锁文件目录
     pub fn default() -> Result<Self> {
-        let home = dirs::home_dir()
-            .ok_or_else(|| CcrError::FileLockError("无法获取用户主目录".into()))?;
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::FileLockError("无法获取用户主目录".into()))?;
         let lock_dir = home.join(".claude").join(".locks");
         Ok(Self::new(lock_dir))
     }
@@ -136,20 +135,49 @@ impl LockManager {
         self.lock_dir.join(format!("{}.lock", resource_name))
     }
 
-    /// 📝 获取设置文件锁
-    /// 
-    /// 用于保护 ~/.claude/settings.json 的并发访问
-    pub fn lock_settings(&self, timeout: Duration) -> Result<FileLock> {
-        let lock_path = self.create_lock_path("claude_settings");
+    /// 🔒 获取指定资源的锁（通用方法）
+    ///
+    /// 为任意资源获取文件锁，资源名称会被转换为锁文件路径
+    ///
+    /// # Arguments
+    /// - `resource` - 资源名称（例如: "my_config", "temp_data"）
+    /// - `timeout` - 获取锁的超时时间
+    ///
+    /// # Returns
+    /// - `Ok(FileLock)` - 成功获取锁
+    /// - `Err(CcrError)` - 获取失败或超时
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use std::time::Duration;
+    ///
+    /// let lock_manager = LockManager::default()?;
+    /// let _lock = lock_manager.lock_resource("my_data", Duration::from_secs(5))?;
+    /// // 持有锁期间执行操作
+    /// // 锁在离开作用域时自动释放
+    /// ```
+    pub fn lock_resource(&self, resource: &str, timeout: Duration) -> Result<FileLock> {
+        let lock_path = self.create_lock_path(resource);
         FileLock::new(lock_path, timeout)
     }
 
+    /// 📝 获取设置文件锁
+    ///
+    /// 用于保护 ~/.claude/settings.json 的并发访问
+    ///
+    /// 这是 `lock_resource("claude_settings", timeout)` 的便捷方法
+    pub fn lock_settings(&self, timeout: Duration) -> Result<FileLock> {
+        self.lock_resource("claude_settings", timeout)
+    }
+
     /// 📚 获取历史文件锁
-    /// 
+    ///
     /// 用于保护 ~/.claude/ccr_history.json 的并发写入
+    ///
+    /// 这是 `lock_resource("ccr_history", timeout)` 的便捷方法
     pub fn lock_history(&self, timeout: Duration) -> Result<FileLock> {
-        let lock_path = self.create_lock_path("ccr_history");
-        FileLock::new(lock_path, timeout)
+        self.lock_resource("ccr_history", timeout)
     }
 }
 
@@ -190,9 +218,7 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let manager = LockManager::new(temp_dir.path());
 
-        let _lock = manager
-            .lock_settings(Duration::from_secs(5))
-            .unwrap();
+        let _lock = manager.lock_settings(Duration::from_secs(5)).unwrap();
         assert!(temp_dir.path().join("claude_settings.lock").exists());
 
         // 锁在作用域结束时自动释放
