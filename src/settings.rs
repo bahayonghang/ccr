@@ -21,6 +21,12 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tempfile::NamedTempFile;
 
+// 🎯 优化：定义常量避免重复分配字符串
+const ANTHROPIC_BASE_URL: &str = "ANTHROPIC_BASE_URL";
+const ANTHROPIC_AUTH_TOKEN: &str = "ANTHROPIC_AUTH_TOKEN";
+const ANTHROPIC_MODEL: &str = "ANTHROPIC_MODEL";
+const ANTHROPIC_SMALL_FAST_MODEL: &str = "ANTHROPIC_SMALL_FAST_MODEL";
+
 /// 🎨 Claude Code 设置结构
 ///
 /// 对应 ~/.claude/settings.json 的结构
@@ -74,25 +80,24 @@ impl ClaudeSettings {
         // 🌐 设置 base_url
         if let Some(base_url) = &section.base_url {
             self.env
-                .insert("ANTHROPIC_BASE_URL".to_string(), base_url.clone());
+                .insert(ANTHROPIC_BASE_URL.to_string(), base_url.clone());
         }
 
         // 🔑 设置 auth_token
         if let Some(auth_token) = &section.auth_token {
             self.env
-                .insert("ANTHROPIC_AUTH_TOKEN".to_string(), auth_token.clone());
+                .insert(ANTHROPIC_AUTH_TOKEN.to_string(), auth_token.clone());
         }
 
         // 🤖 设置 model
         if let Some(model) = &section.model {
-            self.env
-                .insert("ANTHROPIC_MODEL".to_string(), model.clone());
+            self.env.insert(ANTHROPIC_MODEL.to_string(), model.clone());
         }
 
         // ⚡ 设置 small_fast_model
         if let Some(small_model) = &section.small_fast_model {
             self.env.insert(
-                "ANTHROPIC_SMALL_FAST_MODEL".to_string(),
+                ANTHROPIC_SMALL_FAST_MODEL.to_string(),
                 small_model.clone(),
             );
         }
@@ -105,11 +110,11 @@ impl ClaudeSettings {
     /// 返回所有 ANTHROPIC 相关变量的当前值或 None
     pub fn anthropic_env_status(&self) -> HashMap<String, Option<String>> {
         let mut status = HashMap::new();
-        let vars = vec![
-            "ANTHROPIC_BASE_URL",
-            "ANTHROPIC_AUTH_TOKEN",
-            "ANTHROPIC_MODEL",
-            "ANTHROPIC_SMALL_FAST_MODEL",
+        let vars = [
+            ANTHROPIC_BASE_URL,
+            ANTHROPIC_AUTH_TOKEN,
+            ANTHROPIC_MODEL,
+            ANTHROPIC_SMALL_FAST_MODEL,
         ];
 
         for var in vars {
@@ -133,7 +138,7 @@ impl Validatable for ClaudeSettings {
     /// - ANTHROPIC_BASE_URL
     /// - ANTHROPIC_AUTH_TOKEN
     fn validate(&self) -> Result<()> {
-        let required_vars = vec!["ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN"];
+        let required_vars = [ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN];
 
         for var in required_vars {
             if !self.env.contains_key(var) || self.env.get(var).unwrap().is_empty() {

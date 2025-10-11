@@ -5,6 +5,7 @@ pub mod handlers;
 pub mod models;
 pub mod routes;
 pub mod server;
+pub mod system_info_cache;
 
 pub use server::web_command;
 

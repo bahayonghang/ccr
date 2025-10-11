@@ -64,6 +64,7 @@ impl FileLock {
 
         // 尝试获取锁,带超时
         let start = Instant::now();
+        let mut retry_count = 0;
         loop {
             match file.try_lock_exclusive() {
                 Ok(_) => {
@@ -71,8 +72,11 @@ impl FileLock {
                     return Ok(FileLock { file, lock_path });
                 }
                 Err(_) if start.elapsed() < timeout => {
-                    // 未超时,等待一小段时间后重试
-                    std::thread::sleep(Duration::from_millis(100));
+                    // 🎯 优化：使用指数退避策略，减少 CPU 消耗
+                    // 等待时间：50ms, 100ms, 200ms, 400ms...最多 400ms
+                    let wait_ms = 50 * (1 << retry_count).min(8);
+                    std::thread::sleep(Duration::from_millis(wait_ms));
+                    retry_count += 1;
                     continue;
                 }
                 Err(e) => {

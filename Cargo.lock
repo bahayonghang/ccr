@@ -112,7 +112,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "anyhow",
  "chrono",
@@ -125,6 +125,7 @@ dependencies = [
  "indexmap",
  "log",
  "open",
+ "rayon",
  "serde",
  "serde_json",
  "sysinfo",

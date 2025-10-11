@@ -6,6 +6,7 @@ use crate::error::{CcrError, Result};
 use crate::logging::ColorOutput;
 use crate::services::{BackupService, ConfigService, HistoryService, SettingsService};
 use crate::web::models::*;
+use crate::web::system_info_cache::SystemInfoCache;
 use serde::Serialize;
 use std::sync::Arc;
 use tiny_http::{Header, Method, Request, Response, StatusCode};
@@ -21,6 +22,7 @@ pub struct Handlers {
     settings_service: Arc<SettingsService>,
     history_service: Arc<HistoryService>,
     backup_service: Arc<BackupService>,
+    system_info_cache: Arc<SystemInfoCache>,
 }
 
 impl Handlers {
@@ -30,12 +32,14 @@ impl Handlers {
         settings_service: Arc<SettingsService>,
         history_service: Arc<HistoryService>,
         backup_service: Arc<BackupService>,
+        system_info_cache: Arc<SystemInfoCache>,
     ) -> Self {
         Self {
             config_service,
             settings_service,
             history_service,
             backup_service,
+            system_info_cache,
         }
     }
 
@@ -546,60 +550,25 @@ impl Handlers {
     }
 
     /// 处理获取系统信息
+    /// 🎯 优化：使用缓存避免每次请求都扫描系统
     fn handle_get_system_info(&self) -> Response<std::io::Cursor<Vec<u8>>> {
-        use sysinfo::System;
-
-        let mut sys = System::new_all();
-        
-        // 等待一小段时间以获取准确的 CPU 使用率
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        sys.refresh_cpu_all();
-        sys.refresh_memory();
-
-        let hostname = System::host_name().unwrap_or_else(|| "Unknown".to_string());
-        let os = System::name().unwrap_or_else(|| "Unknown".to_string());
-        let os_version = System::os_version().unwrap_or_else(|| "Unknown".to_string());
-        let kernel_version = System::kernel_version().unwrap_or_else(|| "Unknown".to_string());
-        
-        // 获取 CPU 信息
-        let cpus = sys.cpus();
-        let cpu_brand = if !cpus.is_empty() {
-            cpus[0].brand().to_string()
-        } else {
-            "Unknown".to_string()
-        };
-        let cpu_cores = cpus.len();
-        
-        // 计算平均 CPU 使用率
-        let cpu_usage = if !cpus.is_empty() {
-            cpus.iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / cpus.len() as f32
-        } else {
-            0.0
-        };
-        
-        let total_memory = sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
-        let used_memory = sys.used_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
-        let memory_usage_percent = (used_memory / total_memory * 100.0) as f32;
-        
-        let total_swap = sys.total_swap() as f64 / 1024.0 / 1024.0 / 1024.0;
-        let used_swap = sys.used_swap() as f64 / 1024.0 / 1024.0 / 1024.0;
-        
-        let uptime = System::uptime();
+        // 🚀 直接从缓存读取，极快！
+        let cached_info = self.system_info_cache.get();
 
         let system_info = SystemInfoResponse {
-            hostname,
-            os,
-            os_version,
-            kernel_version,
-            cpu_brand,
-            cpu_cores,
-            cpu_usage,
-            total_memory_gb: total_memory,
-            used_memory_gb: used_memory,
-            memory_usage_percent,
-            total_swap_gb: total_swap,
-            used_swap_gb: used_swap,
-            uptime_seconds: uptime,
+            hostname: cached_info.hostname,
+            os: cached_info.os,
+            os_version: cached_info.os_version,
+            kernel_version: cached_info.kernel_version,
+            cpu_brand: cached_info.cpu_brand,
+            cpu_cores: cached_info.cpu_cores,
+            cpu_usage: cached_info.cpu_usage,
+            total_memory_gb: cached_info.total_memory_gb,
+            used_memory_gb: cached_info.used_memory_gb,
+            memory_usage_percent: cached_info.memory_usage_percent,
+            total_swap_gb: cached_info.total_swap_gb,
+            used_swap_gb: cached_info.used_swap_gb,
+            uptime_seconds: cached_info.uptime_seconds,
         };
 
         self.json_response(ApiResponse::success(system_info), 200)

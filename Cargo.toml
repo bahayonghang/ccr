@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher - Configuration management tool with complete audit trail(Rust implementation)"
@@ -64,6 +64,9 @@ open = "5.0"
 
 # 系统信息获取
 sysinfo = "0.33"
+
+# 并行处理
+rayon = "1.10"
 
 [features]
 default = []

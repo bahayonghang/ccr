@@ -4,6 +4,7 @@
 use crate::config::{CcsConfig, ConfigManager, ConfigSection};
 use crate::error::{CcrError, Result};
 use crate::utils::Validatable;
+use rayon::prelude::*;
 use std::sync::Arc;
 
 /// 📋 配置信息(用于展示)
@@ -58,22 +59,22 @@ impl ConfigService {
     }
 
     /// 📋 列出所有配置
+    /// 🎯 优化：配合 config.rs 的优化，减少不必要的克隆
     pub fn list_configs(&self) -> Result<ConfigList> {
         let config = self.config_manager.load()?;
 
         let configs: Vec<ConfigInfo> = config
             .list_sections()
-            .into_iter()
             .filter_map(|name| {
-                config.get_section(&name).ok().map(|section| ConfigInfo {
+                config.get_section(name.as_str()).ok().map(|section| ConfigInfo {
                     name: name.clone(),
-                    description: section.display_description(),
+                    description: section.display_description().to_string(),
                     base_url: section.base_url.clone(),
                     auth_token: section.auth_token.clone(),
                     model: section.model.clone(),
                     small_fast_model: section.small_fast_model.clone(),
-                    is_current: name == config.current_config,
-                    is_default: name == config.default_config,
+                    is_current: name == &config.current_config,
+                    is_default: name == &config.default_config,
                 })
             })
             .collect();
@@ -92,7 +93,7 @@ impl ConfigService {
 
         Ok(ConfigInfo {
             name: config.current_config.clone(),
-            description: section.display_description(),
+            description: section.display_description().to_string(),
             base_url: section.base_url.clone(),
             auth_token: section.auth_token.clone(),
             model: section.model.clone(),
@@ -109,7 +110,7 @@ impl ConfigService {
 
         Ok(ConfigInfo {
             name: name.to_string(),
-            description: section.display_description(),
+            description: section.display_description().to_string(),
             base_url: section.base_url.clone(),
             auth_token: section.auth_token.clone(),
             model: section.model.clone(),
@@ -198,26 +199,27 @@ impl ConfigService {
     }
 
     /// ✅ 验证所有配置
+    /// 🎯 优化：使用 rayon 并行验证，提升性能
     pub fn validate_all(&self) -> Result<ValidationReport> {
         let config = self.config_manager.load()?;
-        let validation_results = config.validate_all();
 
-        let mut valid_count = 0;
-        let mut invalid_count = 0;
-        let mut results = Vec::new();
+        // 🚀 并行验证所有配置节
+        // 收集所有配置节的名称和引用，然后并行验证
+        let sections: Vec<(&String, &ConfigSection)> = config.sections.iter().collect();
 
-        for (name, result) in validation_results {
-            match result {
-                Ok(_) => {
-                    valid_count += 1;
-                    results.push((name, true, None));
+        let results: Vec<(String, bool, Option<String>)> = sections
+            .par_iter()
+            .map(|(name, section)| {
+                match section.validate() {
+                    Ok(_) => ((*name).clone(), true, None),
+                    Err(e) => ((*name).clone(), false, Some(e.to_string())),
                 }
-                Err(e) => {
-                    invalid_count += 1;
-                    results.push((name, false, Some(e.to_string())));
-                }
-            }
-        }
+            })
+            .collect();
+
+        // 统计验证结果
+        let valid_count = results.iter().filter(|(_, is_valid, _)| *is_valid).count();
+        let invalid_count = results.len() - valid_count;
 
         Ok(ValidationReport {
             valid_count,
@@ -247,12 +249,11 @@ impl ConfigService {
     pub fn export_config(&self, include_secrets: bool) -> Result<String> {
         let mut config = self.config_manager.load()?;
 
-        // 如果不包含密钥，则移除敏感信息
+        // 🎯 优化：统一使用 utils::mask_sensitive 进行掩码处理
         if !include_secrets {
             for section in config.sections.values_mut() {
                 if let Some(ref token) = section.auth_token {
-                    // 只保留前4位和后4位，中间用星号替换
-                    section.auth_token = Some(mask_token(token));
+                    section.auth_token = Some(crate::utils::mask_sensitive(token));
                 }
             }
         }
@@ -337,17 +338,6 @@ pub enum ImportMode {
     Merge,
     /// 🔄 覆盖模式：完全替换现有配置
     Replace,
-}
-
-/// 掩码处理 token
-fn mask_token(token: &str) -> String {
-    if token.len() <= 10 {
-        "*".repeat(token.len())
-    } else {
-        let prefix = &token[..4];
-        let suffix = &token[token.len() - 4..];
-        format!("{}...{} (已移除)", prefix, suffix)
-    }
 }
 
 /// 合并配置

@@ -5,7 +5,9 @@ use crate::error::{CcrError, Result};
 use crate::logging::ColorOutput;
 use crate::services::{BackupService, ConfigService, HistoryService, SettingsService};
 use crate::web::handlers::Handlers;
+use crate::web::system_info_cache::SystemInfoCache;
 use std::sync::Arc;
+use std::time::Duration;
 use tiny_http::Server;
 
 /// 🌐 Web 服务器
@@ -16,6 +18,7 @@ pub struct WebServer {
     settings_service: Arc<SettingsService>,
     history_service: Arc<HistoryService>,
     backup_service: Arc<BackupService>,
+    system_info_cache: Arc<SystemInfoCache>,
     port: u16,
 }
 
@@ -27,11 +30,15 @@ impl WebServer {
         let history_service = Arc::new(HistoryService::default()?);
         let backup_service = Arc::new(BackupService::default()?);
 
+        // 🎯 创建系统信息缓存，每 2 秒更新一次
+        let system_info_cache = Arc::new(SystemInfoCache::new(Duration::from_secs(2)));
+
         Ok(Self {
             config_service,
             settings_service,
             history_service,
             backup_service,
+            system_info_cache,
             port,
         })
     }
@@ -59,6 +66,7 @@ impl WebServer {
             self.settings_service.clone(),
             self.history_service.clone(),
             self.backup_service.clone(),
+            self.system_info_cache.clone(),
         );
 
         // 🔄 处理请求循环

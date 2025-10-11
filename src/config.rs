@@ -94,10 +94,9 @@ impl Validatable for ConfigSection {
 
 impl ConfigSection {
     /// 📝 获取配置的人类可读描述
-    pub fn display_description(&self) -> String {
-        self.description
-            .clone()
-            .unwrap_or_else(|| "(无描述)".to_string())
+    /// 🎯 优化：返回 &str 避免克隆
+    pub fn display_description(&self) -> &str {
+        self.description.as_deref().unwrap_or("(无描述)")
     }
 }
 
@@ -162,33 +161,20 @@ impl CcsConfig {
     }
 
     /// 📜 列出所有配置节名称(已排序)
-    pub fn list_sections(&self) -> Vec<String> {
-        let mut names: Vec<String> = self.sections.keys().cloned().collect();
+    /// 🎯 优化：返回迭代器避免分配，由调用方决定是否需要 Vec
+    pub fn list_sections(&self) -> impl Iterator<Item = &String> {
+        let mut names: Vec<&String> = self.sections.keys().collect();
         names.sort();
-        names
+        names.into_iter()
     }
 
     /// 🔄 按配置节名称排序
     ///
     /// 将所有配置节按照名称的字母顺序重新排列
     /// 这会直接修改内部的 IndexMap 顺序
+    /// 🎯 优化：使用 IndexMap 原生的 sort_by 方法，避免重新分配
     pub fn sort_sections(&mut self) {
-        // 收集所有配置节并按名称排序
-        let mut sorted: Vec<(String, ConfigSection)> = self.sections.drain(..).collect();
-        sorted.sort_by(|a, b| a.0.cmp(&b.0));
-
-        // 重新插入排序后的配置节
-        self.sections = sorted.into_iter().collect();
-    }
-
-    /// ✅ 验证所有配置节
-    ///
-    /// 返回每个配置节的验证结果 IndexMap
-    pub fn validate_all(&self) -> IndexMap<String, Result<()>> {
-        self.sections
-            .iter()
-            .map(|(name, section)| (name.clone(), section.validate()))
-            .collect()
+        self.sections.sort_by(|k1, _, k2, _| k1.cmp(k2));
     }
 }
 
