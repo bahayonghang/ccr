@@ -8,8 +8,8 @@
 // - 📋 管理多个配置节
 
 use crate::error::{CcrError, Result};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -112,7 +112,7 @@ pub struct CcsConfig {
 
     /// 📋 所有配置节（使用 flatten 序列化）
     #[serde(flatten)]
-    pub sections: HashMap<String, ConfigSection>,
+    pub sections: IndexMap<String, ConfigSection>,
 }
 
 impl CcsConfig {
@@ -148,7 +148,7 @@ impl CcsConfig {
     /// ➖ 删除配置节
     pub fn remove_section(&mut self, name: &str) -> Result<ConfigSection> {
         self.sections
-            .remove(name)
+            .shift_remove(name)
             .ok_or_else(|| CcrError::ConfigSectionNotFound(name.to_string()))
     }
 
@@ -159,10 +159,23 @@ impl CcsConfig {
         names
     }
 
+    /// 🔄 按配置节名称排序
+    ///
+    /// 将所有配置节按照名称的字母顺序重新排列
+    /// 这会直接修改内部的 IndexMap 顺序
+    pub fn sort_sections(&mut self) {
+        // 收集所有配置节并按名称排序
+        let mut sorted: Vec<(String, ConfigSection)> = self.sections.drain(..).collect();
+        sorted.sort_by(|a, b| a.0.cmp(&b.0));
+
+        // 重新插入排序后的配置节
+        self.sections = sorted.into_iter().collect();
+    }
+
     /// ✅ 验证所有配置节
-    /// 
-    /// 返回每个配置节的验证结果 HashMap
-    pub fn validate_all(&self) -> HashMap<String, Result<()>> {
+    ///
+    /// 返回每个配置节的验证结果 IndexMap
+    pub fn validate_all(&self) -> IndexMap<String, Result<()>> {
         self.sections
             .iter()
             .map(|(name, section)| (name.clone(), section.validate()))
@@ -294,7 +307,7 @@ mod tests {
         let mut config = CcsConfig {
             default_config: "default".into(),
             current_config: "default".into(),
-            sections: HashMap::new(),
+            sections: IndexMap::new(),
         };
         assert_eq!(config.default_config, "default");
         assert_eq!(config.current_config, "default");
@@ -319,7 +332,7 @@ mod tests {
         let mut config = CcsConfig {
             default_config: "test".into(),
             current_config: "test".into(),
-            sections: HashMap::new(),
+            sections: IndexMap::new(),
         };
         config.set_section("test".into(), create_test_section());
 

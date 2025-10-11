@@ -22,108 +22,177 @@ use logging::{init_logger, ColorOutput};
 /// 🎯 Claude Code Configuration Switcher - 配置管理工具
 #[derive(Parser)]
 #[command(name = "ccr")]
-#[command(about = "Claude Code Configuration Router - 配置管理工具", long_about = None)]
+#[command(about = "Claude Code 配置管理工具 - 快速切换和管理多套配置",
+    long_about = "\
+🎯 CCR (Claude Code Configuration Router)
+
+一个强大的 Claude Code 配置管理工具，支持：
+    • 多套配置快速切换
+    • 完整的操作审计追踪
+    • 自动备份和恢复
+    • 配置导入导出
+    • Web 可视化界面
+
+🚀 快速开始:
+    ccr init              # 初始化配置文件
+    ccr list              # 查看所有配置
+    ccr switch <名称>      # 切换配置
+    ccr anthropic         # 快捷切换（省略 switch）
+
+📖 获取帮助:
+    ccr --help            # 显示此帮助
+    ccr <命令> --help      # 显示特定命令的帮助")]
 #[command(version)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
-    /// 💡 直接切换到指定配置（简写形式）
-    /// 例如: ccr anthropic
+    /// 直接切换到指定配置（快捷方式，无需输入 switch 子命令）
+    ///
+    /// 示例：ccr anthropic  等同于  ccr switch anthropic
     config_name: Option<String>,
 }
 
 /// 📋 命令枚举 - 定义所有可用的 CLI 子命令
 #[derive(Subcommand)]
 enum Commands {
-    /// 📜 列出所有可用配置
+    /// 列出所有可用的配置方案
+    ///
+    /// 显示配置文件中定义的所有配置方案，包括配置名称、环境变量设置等信息
+    /// 别名: ls
     #[command(alias = "ls")]
     List,
 
-    /// 🔍 显示当前配置状态
+    /// 显示当前激活的配置状态
+    ///
+    /// 查看当前正在使用的配置方案详情，包括所有环境变量设置
+    /// 别名: show, status
     #[command(alias = "show")]
     #[command(alias = "status")]
     Current,
 
-    /// 🔄 切换到指定配置
+    /// 切换到指定的配置方案
+    ///
+    /// 将 Claude Code 的配置切换到指定方案，自动备份当前配置并应用新配置
+    /// 示例: ccr switch anthropic
     Switch {
-        /// 目标配置名称
+        /// 要切换到的配置方案名称（必须在配置文件中已定义）
         config_name: String,
     },
 
-    /// ✅ 验证配置和设置的完整性
+    /// 验证配置文件和设置的完整性
+    ///
+    /// 检查配置文件格式是否正确，以及 Claude Code 设置文件是否有效
+    /// 别名: check
     #[command(alias = "check")]
     Validate,
 
-    /// 📚 显示操作历史
+    /// 查看配置操作的历史记录
+    ///
+    /// 显示所有配置切换、导入导出等操作的审计日志，支持按类型筛选
+    /// 示例: ccr history -l 50 -t switch
     History {
-        /// 限制显示的记录数量
+        /// 显示最近 N 条记录（默认显示 20 条）
         #[arg(short, long, default_value_t = 20)]
         limit: usize,
 
-        /// 🏷️ 按操作类型筛选 (switch, backup, restore, validate, update)
+        /// 按操作类型筛选记录
+        ///
+        /// 可选值: switch（切换）、backup（备份）、restore（恢复）、
+        ///         validate（验证）、update（更新）
         #[arg(short = 't', long)]
         filter_type: Option<String>,
     },
 
-    /// 🌐 启动 Web 配置界面
+    /// 启动 Web 管理界面
+    ///
+    /// 在浏览器中打开可视化的配置管理界面，支持所有配置操作
+    /// 示例: ccr web -p 3000
     Web {
-        /// 🔌 指定端口（默认 8080）
+        /// 指定 Web 服务器监听端口（默认: 8080）
         #[arg(short, long, default_value_t = 8080)]
         port: u16,
     },
 
-    /// 🔄 检查并更新到最新版本
+    /// 从 GitHub 更新到最新版本
+    ///
+    /// 检查并安装 CCR 的最新版本
+    /// 示例: ccr update --check  # 仅检查不安装
     Update {
-        /// 仅检查更新，不执行安装
+        /// 仅检查是否有新版本，不执行安装
         #[arg(short, long)]
         check: bool,
     },
 
-    /// 🎬 初始化配置文件
+    /// 初始化配置文件
+    ///
+    /// 在 ~/.ccs_config.toml 创建配置文件模板，包含示例配置方案
+    /// 示例: ccr init --force  # 强制覆盖现有配置
     Init {
-        /// ⚠️ 强制覆盖现有配置
+        /// 强制覆盖已存在的配置文件（危险操作，会丢失当前配置）
         #[arg(short, long)]
         force: bool,
     },
 
-    /// 📤 导出配置到文件
+    /// 导出配置到文件
+    ///
+    /// 将当前配置导出为 TOML 文件，方便备份或分享
+    /// 示例: ccr export -o my_config.toml --no-secrets
     Export {
-        /// 📁 输出文件路径（默认: ccs_config_export_<timestamp>.toml）
+        /// 指定导出文件路径
+        ///
+        /// 不指定时自动生成文件名: ccs_config_export_<时间戳>.toml
         #[arg(short, long)]
         output: Option<String>,
 
-        /// 🔒 排除敏感信息（API密钥等）
+        /// 导出时排除敏感信息（如 API 密钥），仅保留配置结构
         #[arg(long)]
         no_secrets: bool,
     },
 
-    /// 📥 从文件导入配置
+    /// 从文件导入配置
+    ///
+    /// 从 TOML 文件导入配置方案，支持替换或合并模式
+    /// 示例: ccr import config.toml --merge
     Import {
-        /// 📁 输入文件路径
+        /// 要导入的配置文件路径
         input: String,
 
-        /// 🔗 合并模式（保留现有配置，添加新的）
+        /// 使用合并模式（保留现有配置，仅添加新配置方案）
+        ///
+        /// 不指定此选项时，将完全替换现有配置文件
         #[arg(short, long)]
         merge: bool,
 
-        /// 💾 导入前备份当前配置
+        /// 导入前自动备份当前配置文件（强烈建议保持开启）
         #[arg(short, long, default_value_t = true)]
         backup: bool,
     },
 
-    /// 🧹 清理旧备份文件
+    /// 清理过期的备份文件
+    ///
+    /// 删除 ~/.claude/backups/ 目录中的旧备份文件，释放磁盘空间
+    /// 示例: ccr clean -d 30 --dry-run
     Clean {
-        /// 📅 清理多少天前的备份（默认 7 天）
+        /// 清理 N 天前的备份文件（默认: 7 天）
         #[arg(short, long, default_value_t = 7)]
         days: u64,
 
-        /// 🔬 模拟运行，不实际删除文件
+        /// 模拟运行（dry-run）：仅显示将要删除的文件，不实际删除
         #[arg(long)]
         dry_run: bool,
     },
 
-    /// ℹ️ 显示版本信息
+    /// 优化配置文件结构
+    ///
+    /// 按照配置节名称的字母顺序重新排列配置文件，提升可读性
+    /// 示例: ccr optimize
+    Optimize,
+
+    /// 显示详细的版本信息
+    ///
+    /// 查看 CCR 版本号、特性列表和常用命令
+    /// 别名: ver
     #[command(alias = "ver")]
     Version,
 }
@@ -168,6 +237,7 @@ fn main() {
         Some(Commands::Clean { days, dry_run }) => {
             commands::clean_command(days, dry_run)
         }
+        Some(Commands::Optimize) => commands::optimize_command(),
         Some(Commands::Version) => {
             show_version();
             Ok(())
@@ -231,6 +301,7 @@ fn show_version() {
     println!("  ccr current           显示当前状态");
     println!("  ccr switch <name>     切换配置");
     println!("  ccr validate          验证配置");
+    println!("  ccr optimize          优化配置文件结构");
     println!("  ccr history           查看历史");
     println!("  ccr export            导出配置");
     println!("  ccr import <file>     导入配置");

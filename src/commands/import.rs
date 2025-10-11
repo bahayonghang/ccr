@@ -201,7 +201,7 @@ mod tests {
         let mut current = CcsConfig {
             default_config: "old_default".to_string(),
             current_config: "test1".to_string(),
-            sections: std::collections::HashMap::new(),
+            sections: indexmap::IndexMap::new(),
         };
 
         current.sections.insert(
@@ -218,7 +218,7 @@ mod tests {
         let mut import = CcsConfig {
             default_config: "new_default".to_string(),
             current_config: "test2".to_string(),
-            sections: std::collections::HashMap::new(),
+            sections: indexmap::IndexMap::new(),
         };
 
         import.sections.insert(
