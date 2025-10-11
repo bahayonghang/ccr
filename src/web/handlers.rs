@@ -47,6 +47,8 @@ impl Handlers {
         let response = match (method, url.as_str()) {
             // 静态文件
             (Method::Get, "/") => self.serve_html(),
+            (Method::Get, "/style.css") => self.serve_css(),
+            (Method::Get, "/script.js") => self.serve_js(),
 
             // API 路由 - 配置管理
             (Method::Get, "/api/configs") => self.handle_list_configs(),
@@ -108,6 +110,30 @@ impl Handlers {
                 Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..]).unwrap(),
             )
             .with_status_code(StatusCode(404))
+    }
+
+    /// 提供 CSS 样式文件
+    fn serve_css(&self) -> Response<std::io::Cursor<Vec<u8>>> {
+        let css = include_str!("../../web/style.css");
+        let content = css.as_bytes().to_vec();
+
+        Response::from_data(content)
+            .with_header(
+                Header::from_bytes(&b"Content-Type"[..], &b"text/css; charset=utf-8"[..]).unwrap(),
+            )
+            .with_status_code(StatusCode(200))
+    }
+
+    /// 提供 JavaScript 脚本文件
+    fn serve_js(&self) -> Response<std::io::Cursor<Vec<u8>>> {
+        let js = include_str!("../../web/script.js");
+        let content = js.as_bytes().to_vec();
+
+        Response::from_data(content)
+            .with_header(
+                Header::from_bytes(&b"Content-Type"[..], &b"application/javascript; charset=utf-8"[..]).unwrap(),
+            )
+            .with_status_code(StatusCode(200))
     }
 
     /// 处理列出配置

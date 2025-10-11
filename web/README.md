@@ -5,7 +5,8 @@ CCR (Claude Code Configuration Switcher) 的 Web 界面提供了一个现代化�
 ## 功能特点
 
 ### 🎨 现代化设计
-- **深色主题**: 优雅的深色界面,降低眼睛疲劳
+- **双主题支持**: 深色主题（紫色风格）和明色主题（Apple 风格），默认明色主题
+- **主题切换**: 一键切换主题，自动保存偏好设置到 localStorage
 - **动态背景**: 渐变色动画背景效果
 - **响应式设计**: 完美支持桌面和移动设备
 - **流畅动画**: 丰富的过渡动画和交互效果
@@ -16,6 +17,9 @@ CCR (Claude Code Configuration Switcher) 的 Web 界面提供了一个现代化�
 - **历史记录**: 完整的操作历史追踪
 - **实时验证**: 配置格式实时验证
 - **自动备份**: 配置更改自动备份
+- **导入导出**: 支持配置文件的导入和导出（可选包含敏感信息）
+- **备份清理**: 定期清理旧备份文件，释放磁盘空间
+- **错误重试**: 网络请求失败时自动提供重试选项
 
 ### 🔐 安全特性
 - **敏感信息掩码**: API Token 自动掩码显示
@@ -47,7 +51,10 @@ http://localhost:8080
 
 ### 1. 导航栏
 - **Logo**: CCR 品牌标识
+- **主题切换**: 切换深色/明色主题按钮
 - **刷新按钮**: 重新加载所有配置数据
+- **导入按钮**: 从文件导入配置
+- **导出按钮**: 导出配置到文件
 - **添加配置**: 打开新配置创建界面
 
 ### 2. 侧边栏
@@ -63,6 +70,7 @@ http://localhost:8080
 
 #### 快捷操作
 - **验证配置**: 一键验证所有配置完整性
+- **清理备份**: 清理过期的备份文件
 
 ### 3. 主内容区
 
@@ -205,28 +213,60 @@ POST /api/validate
 
 ## 技术架构
 
+### 文件结构
+Web 界面采用模块化文件结构，便于维护和开发：
+
+```
+web/
+├── index.html    # HTML 结构（266 行）
+├── style.css     # 所有 CSS 样式（~1000 行）
+├── script.js     # 所有 JavaScript 代码（~900 行）
+└── README.md     # 本文档
+```
+
+所有文件在编译时通过 `include_str!` 宏嵌入到 Rust 二进制文件中，实现单一可执行文件分发。
+
 ### 前端技术
-- **纯 HTML/CSS/JavaScript**: 无外部依赖
+- **纯 HTML/CSS/JavaScript**: 无外部依赖，所有资源嵌入二进制
+- **模块化设计**: HTML/CSS/JS 分离，便于维护
 - **响应式设计**: 支持各种屏幕尺寸
-- **现代 CSS**: 使用 CSS Grid 和 Flexbox
+- **现代 CSS**:
+  - CSS Custom Properties 实现主题切换
+  - CSS Grid 和 Flexbox 布局
+  - backdrop-filter 实现毛玻璃效果
 - **Fetch API**: 异步数据获取
+- **localStorage**: 主题偏好持久化
 
 ### 后端技术
 - **Rust + tiny_http**: 轻量级 HTTP 服务器
 - **RESTful API**: 标准化接口设计
+- **静态资源服务**: 提供 HTML/CSS/JS 三个文件
 - **文件锁机制**: 并发安全保证
 - **原子操作**: 数据一致性保证
 
 ### 数据流
 
 ```
-前端页面 (index.html)
-    ↓ Fetch API
-Web 服务器 (web.rs)
-    ↓
-配置管理器 (config.rs)
-    ↓
-配置文件 (~/.ccs_config.toml)
+前端页面
+  ├── index.html (HTML 结构)
+  ├── style.css (样式定义)
+  └── script.js (业务逻辑)
+      ↓ Fetch API
+Web 服务器 (src/web/handlers.rs)
+  ├── serve_html()  → 提供 HTML
+  ├── serve_css()   → 提供 CSS
+  └── serve_js()    → 提供 JavaScript
+      ↓
+Service 层 (src/services/)
+  ├── ConfigService
+  ├── SettingsService
+  ├── HistoryService
+  └── BackupService
+      ↓
+配置文件
+  ├── ~/.ccs_config.toml (配置源)
+  ├── ~/.claude/settings.json (Claude 设置)
+  └── ~/.claude/ccr_history.json (历史记录)
 ```
 
 ## 配置文件
@@ -295,33 +335,84 @@ ls -la ~/.claude/settings.json
 
 ### 修改前端界面
 
-编辑文件 `ccr/web/index.html`:
-- 所有 HTML、CSS 和 JavaScript 都在此文件中
-- 使用 `include_str!` 宏嵌入到编译后的二进制文件
+Web 界面采用模块化结构，方便独立修改各个部分：
+
+#### 修改 HTML 结构
+编辑 `web/index.html`:
+- 只包含 HTML 结构和页面布局
+- 通过 `<link>` 引用 `style.css`
+- 通过 `<script>` 引用 `script.js`
+- 文件会通过 `include_str!` 嵌入到二进制
+
+#### 修改样式
+编辑 `web/style.css`:
+- 包含所有 CSS 样式定义
+- 使用 CSS Custom Properties 实现主题切换
+- 支持深色主题和明色主题
+- 修改后需要重新编译
+
+#### 修改 JavaScript 逻辑
+编辑 `web/script.js`:
+- 包含所有前端业务逻辑
+- 主题管理、API 调用、UI 交互等
+- 修改后需要重新编译
 
 ### 添加新的 API 端点
 
-1. 在 `src/web.rs` 的 `handle_request` 方法中添加路由
+1. 在 `src/web/handlers.rs` 的 `handle_request` 方法中添加路由
 2. 实现对应的处理方法
-3. 更新前端 JavaScript 调用新接口
+3. 在 `web/script.js` 中添加前端调用代码
 
 ### 测试 Web 功能
 
 ```bash
-# 编译
+# 快速检查语法
+cargo check
+
+# 编译 debug 版本
 cargo build
 
 # 运行
 ./target/debug/ccr web
 
+# 或者直接编译运行
+cargo run -- web
+
 # 在浏览器中测试各种功能
 ```
 
+### 文件嵌入机制
+
+Web 界面的三个文件在编译时通过 Rust 的 `include_str!` 宏嵌入：
+
+```rust
+// src/web/handlers.rs
+fn serve_html(&self) -> Response<...> {
+    let html = include_str!("../../web/index.html");
+    // ...
+}
+
+fn serve_css(&self) -> Response<...> {
+    let css = include_str!("../../web/style.css");
+    // ...
+}
+
+fn serve_js(&self) -> Response<...> {
+    let js = include_str!("../../web/script.js");
+    // ...
+}
+```
+
+这确保了最终的二进制文件是自包含的，无需外部依赖。
+
 ## 未来计划
 
+- [x] 配置导入/导出
+- [x] 备份清理功能
+- [x] 双主题支持
+- [x] 错误重试机制
 - [ ] 身份认证和授权
 - [ ] HTTPS 支持
-- [ ] 配置导入/导出
 - [ ] 批量操作
 - [ ] 配置模板
 - [ ] 搜索和筛选
@@ -336,5 +427,16 @@ cargo build
 
 ---
 
-**版本**: 0.1.0
-**最后更新**: 2025-10-10
+**版本**: 1.0.1
+**最后更新**: 2025-10-11
+
+## 更新日志
+
+### v1.0.1 (2025-10-11)
+- ✨ 文件结构重构：拆分为 HTML/CSS/JS 三个独立文件
+- 🎨 新增双主题支持（深色紫色主题 + 明色 Apple 主题）
+- 📥 新增配置导入导出功能
+- 🗑️ 新增备份清理功能
+- 🔄 新增请求失败重试机制
+- 🎯 优化按钮加载状态显示
+- 📝 完善文档说明
