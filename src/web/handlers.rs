@@ -66,6 +66,8 @@ impl Handlers {
             (Method::Get, "/api/settings") => self.handle_get_settings(),
             (Method::Get, "/api/settings/backups") => self.handle_get_settings_backups(),
             (Method::Post, "/api/settings/restore") => self.handle_restore_settings(&mut request),
+            (Method::Post, "/api/export") => self.handle_export(&mut request),
+            (Method::Post, "/api/import") => self.handle_import(&mut request),
 
             // 404
             _ => self.serve_404(),
@@ -428,6 +430,83 @@ impl Handlers {
             .restore_settings(std::path::Path::new(&req.backup_path))
         {
             Ok(_) => self.json_response(ApiResponse::success("Settings 恢复成功"), 200),
+            Err(e) => {
+                let error_response: ApiResponse<()> =
+                    ApiResponse::error_without_data(e.user_message());
+                self.json_response(error_response, 500)
+            }
+        }
+    }
+
+    /// 处理导出配置
+    fn handle_export(&self, request: &mut Request) -> Response<std::io::Cursor<Vec<u8>>> {
+        let mut body = String::new();
+        if let Err(e) = request.as_reader().read_to_string(&mut body) {
+            let error_response: ApiResponse<()> =
+                ApiResponse::error_without_data(format!("读取请求体失败: {}", e));
+            return self.json_response(error_response, 400);
+        }
+
+        let req: ExportRequest = match serde_json::from_str(&body) {
+            Ok(r) => r,
+            Err(_) => ExportRequest {
+                include_secrets: true,
+            },
+        };
+
+        // 执行导出
+        match self.config_service.export_config(req.include_secrets) {
+            Ok(content) => {
+                // 生成文件名（带点号前缀，与配置文件命名一致）
+                let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+                let filename = format!(".ccs_config_{}.toml", timestamp);
+
+                let response_data = ExportResponse { content, filename };
+                self.json_response(ApiResponse::success(response_data), 200)
+            }
+            Err(e) => {
+                let error_response: ApiResponse<()> =
+                    ApiResponse::error_without_data(e.user_message());
+                self.json_response(error_response, 500)
+            }
+        }
+    }
+
+    /// 处理导入配置
+    fn handle_import(&self, request: &mut Request) -> Response<std::io::Cursor<Vec<u8>>> {
+        let mut body = String::new();
+        if let Err(e) = request.as_reader().read_to_string(&mut body) {
+            let error_response: ApiResponse<()> =
+                ApiResponse::error_without_data(format!("读取请求体失败: {}", e));
+            return self.json_response(error_response, 400);
+        }
+
+        let req: ImportRequest = match serde_json::from_str(&body) {
+            Ok(r) => r,
+            Err(e) => {
+                let error_response: ApiResponse<()> =
+                    ApiResponse::error_without_data(format!("解析请求失败: {}", e));
+                return self.json_response(error_response, 400);
+            }
+        };
+
+        // 解析导入模式
+        let mode = if req.mode == "replace" {
+            crate::services::config_service::ImportMode::Replace
+        } else {
+            crate::services::config_service::ImportMode::Merge
+        };
+
+        // 执行导入
+        match self.config_service.import_config(&req.content, mode, req.backup) {
+            Ok(result) => {
+                let response_data = ImportResponse {
+                    added: result.added,
+                    updated: result.updated,
+                    skipped: result.skipped,
+                };
+                self.json_response(ApiResponse::success(response_data), 200)
+            }
             Err(e) => {
                 let error_response: ApiResponse<()> =
                     ApiResponse::error_without_data(e.user_message());

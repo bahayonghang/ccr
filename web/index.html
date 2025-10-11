@@ -897,6 +897,12 @@
                 <button class="btn btn-secondary" onclick="loadData()">
                     🔄 刷新
                 </button>
+                <button class="btn btn-secondary" onclick="openImportModal()">
+                    📥 导入
+                </button>
+                <button class="btn btn-secondary" onclick="openExportModal()">
+                    📤 导出
+                </button>
                 <button class="btn btn-primary" onclick="openAddModal()">
                     ➕ 添加配置
                 </button>
@@ -1012,6 +1018,71 @@
                     <button type="submit" class="btn btn-primary">保存</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- 导出配置模态框 -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📤 导出配置</h2>
+                <button class="close-btn" onclick="closeExportModal()">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="exportIncludeSecrets" checked>
+                        <span>包含敏感信息 (API 密钥)</span>
+                    </label>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px; margin-left: 24px;">
+                        ⚠️ 如果勾选，导出文件将包含完整的 API 密钥，请妥善保管
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeExportModal()">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="executeExport()">📥 下载配置文件</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入配置模态框 -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📥 导入配置</h2>
+                <button class="close-btn" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <div class="form-group">
+                    <label class="form-label">选择配置文件 *</label>
+                    <input type="file" class="form-input" id="importFile" accept=".toml" style="padding: 8px;">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                        请选择 .toml 格式的配置文件
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">导入模式</label>
+                    <select class="form-input" id="importMode">
+                        <option value="merge">合并 - 保留现有配置，添加/更新导入的配置</option>
+                        <option value="replace">替换 - 完全替换为导入的配置</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="importBackup" checked>
+                        <span>导入前备份当前配置</span>
+                    </label>
+                </div>
+                <div id="importPreview" style="margin-top: 20px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color); display: none;">
+                    <div style="font-size: 14px; font-weight: 500; margin-bottom: 10px; color: var(--accent-primary);">文件预览</div>
+                    <div id="importPreviewContent" style="font-size: 12px; color: var(--text-secondary);"></div>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeImportModal()">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="executeImport()" id="importExecuteBtn">执行导入</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1472,11 +1543,166 @@
             }
         }
 
+        // 导出配置相关函数
+        function openExportModal() {
+            document.getElementById('exportModal').classList.add('show');
+            document.getElementById('exportIncludeSecrets').checked = true;
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.remove('show');
+        }
+
+        async function executeExport() {
+            const includeSecrets = document.getElementById('exportIncludeSecrets').checked;
+
+            try {
+                const response = await fetch('/api/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ include_secrets: includeSecrets })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // 创建下载链接
+                    const blob = new Blob([data.data.content], { type: 'text/plain;charset=utf-8' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = data.data.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+
+                    showNotification('✓ 配置导出成功', 'success');
+                    closeExportModal();
+                } else {
+                    showNotification(data.message || '导出失败', 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        // 导入配置相关函数
+        let importFileContent = null;
+
+        function openImportModal() {
+            document.getElementById('importModal').classList.add('show');
+            document.getElementById('importFile').value = '';
+            document.getElementById('importMode').value = 'merge';
+            document.getElementById('importBackup').checked = true;
+            document.getElementById('importPreview').style.display = 'none';
+            importFileContent = null;
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('show');
+        }
+
+        // 监听文件选择
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('importFile');
+            if (fileInput) {
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            importFileContent = event.target.result;
+                            
+                            // 显示预览
+                            const preview = document.getElementById('importPreview');
+                            const content = document.getElementById('importPreviewContent');
+                            
+                            // 尝试解析配置信息
+                            try {
+                                const lines = importFileContent.split('\n');
+                                const sectionCount = (importFileContent.match(/\[sections\./g) || []).length;
+                                const firstLines = lines.slice(0, 5).join('\n');
+                                
+                                content.innerHTML = `
+                                    <div style="margin-bottom: 8px;">
+                                        <span style="color: var(--accent-primary);">📄</span> 
+                                        <span>文件名: ${file.name}</span>
+                                    </div>
+                                    <div style="margin-bottom: 8px;">
+                                        <span style="color: var(--accent-success);">📊</span> 
+                                        <span>检测到 ${sectionCount} 个配置节</span>
+                                    </div>
+                                    <div style="margin-bottom: 8px;">
+                                        <span style="color: var(--text-muted);">前几行内容:</span>
+                                    </div>
+                                    <pre style="background: var(--bg-secondary); padding: 10px; border-radius: 6px; font-size: 11px; overflow-x: auto; color: var(--text-primary);">${firstLines}...</pre>
+                                `;
+                                preview.style.display = 'block';
+                            } catch (error) {
+                                content.innerHTML = `
+                                    <div style="color: var(--accent-danger);">
+                                        <span>⚠️</span> 文件格式可能有问题
+                                    </div>
+                                `;
+                                preview.style.display = 'block';
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                });
+            }
+        });
+
+        async function executeImport() {
+            if (!importFileContent) {
+                showNotification('请先选择配置文件', 'error');
+                return;
+            }
+
+            const mode = document.getElementById('importMode').value;
+            const backup = document.getElementById('importBackup').checked;
+
+            if (mode === 'replace' && !confirm('替换模式将完全覆盖现有配置，确定继续吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: importFileContent,
+                        mode: mode,
+                        backup: backup
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const result = data.data;
+                    let message = '✓ 配置导入成功\n';
+                    if (result.added > 0) message += `新增: ${result.added} 个\n`;
+                    if (result.updated > 0) message += `更新: ${result.updated} 个\n`;
+                    if (result.skipped > 0) message += `跳过: ${result.skipped} 个`;
+                    
+                    showNotification(message, 'success');
+                    closeImportModal();
+                    await loadData();
+                } else {
+                    showNotification(data.message || '导入失败', 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误: ' + error.message, 'error');
+            }
+        }
+
         // ESC 关闭模态框
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeModal();
                 closeCleanModal();
+                closeExportModal();
+                closeImportModal();
             }
         });
     </script>

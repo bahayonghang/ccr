@@ -240,6 +240,147 @@ impl ConfigService {
     pub fn save_config(&self, config: &CcsConfig) -> Result<()> {
         self.config_manager.save(config)
     }
+
+    /// 📤 导出配置
+    ///
+    /// 返回配置的 TOML 字符串
+    pub fn export_config(&self, include_secrets: bool) -> Result<String> {
+        let mut config = self.config_manager.load()?;
+
+        // 如果不包含密钥，则移除敏感信息
+        if !include_secrets {
+            for section in config.sections.values_mut() {
+                if let Some(ref token) = section.auth_token {
+                    // 只保留前4位和后4位，中间用星号替换
+                    section.auth_token = Some(mask_token(token));
+                }
+            }
+        }
+
+        // 序列化配置
+        let content = toml::to_string_pretty(&config)
+            .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
+
+        Ok(content)
+    }
+
+    /// 📥 导入配置
+    ///
+    /// 从 TOML 字符串导入配置
+    pub fn import_config(
+        &self,
+        content: &str,
+        mode: ImportMode,
+        backup: bool,
+    ) -> Result<ImportResult> {
+        // 解析导入的配置
+        let import_config: CcsConfig = toml::from_str(content)
+            .map_err(|e| CcrError::ConfigFormatInvalid(format!("解析 TOML 失败: {}", e)))?;
+
+        // 备份当前配置（如果需要）
+        if backup && self.config_manager.config_path().exists() {
+            let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+            let backup_path = self
+                .config_manager
+                .config_path()
+                .with_extension(format!("toml.import_backup_{}.bak", timestamp));
+
+            std::fs::copy(self.config_manager.config_path(), &backup_path)
+                .map_err(|e| CcrError::ConfigError(format!("备份失败: {}", e)))?;
+        }
+
+        // 根据模式导入
+        let result = match mode {
+            ImportMode::Merge => {
+                // 合并模式
+                if self.config_manager.config_path().exists() {
+                    let mut current_config = self.config_manager.load()?;
+                    merge_configs(&mut current_config, import_config, self.config_manager.as_ref())?
+                } else {
+                    // 没有现有配置，直接使用导入的
+                    self.config_manager.save(&import_config)?;
+                    ImportResult {
+                        added: import_config.sections.len(),
+                        updated: 0,
+                        skipped: 0,
+                    }
+                }
+            }
+            ImportMode::Replace => {
+                // 替换模式
+                let count = import_config.sections.len();
+                self.config_manager.save(&import_config)?;
+                ImportResult {
+                    added: count,
+                    updated: 0,
+                    skipped: 0,
+                }
+            }
+        };
+
+        Ok(result)
+    }
+}
+
+/// 📊 导入结果
+#[derive(Debug, Clone)]
+pub struct ImportResult {
+    pub added: usize,
+    pub updated: usize,
+    pub skipped: usize,
+}
+
+/// 📋 导入模式
+#[derive(Debug, Clone, Copy)]
+pub enum ImportMode {
+    /// 🔗 合并模式：保留现有配置，只添加新的
+    Merge,
+    /// 🔄 覆盖模式：完全替换现有配置
+    Replace,
+}
+
+/// 掩码处理 token
+fn mask_token(token: &str) -> String {
+    if token.len() <= 10 {
+        "*".repeat(token.len())
+    } else {
+        let prefix = &token[..4];
+        let suffix = &token[token.len() - 4..];
+        format!("{}...{} (已移除)", prefix, suffix)
+    }
+}
+
+/// 合并配置
+fn merge_configs(
+    current: &mut CcsConfig,
+    import: CcsConfig,
+    config_manager: &ConfigManager,
+) -> Result<ImportResult> {
+    let mut result = ImportResult {
+        added: 0,
+        updated: 0,
+        skipped: 0,
+    };
+
+    for (name, section) in import.sections {
+        if current.sections.contains_key(&name) {
+            // 已存在，更新
+            current.sections.insert(name, section);
+            result.updated += 1;
+        } else {
+            // 不存在，添加
+            current.sections.insert(name, section);
+            result.added += 1;
+        }
+    }
+
+    // 如果导入配置中有 default_config，也更新它
+    // 但保持 current_config 不变
+    current.default_config = import.default_config;
+
+    config_manager.save(current)?;
+
+    Ok(result)
 }
 
 #[cfg(test)]

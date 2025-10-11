@@ -149,3 +149,47 @@ pub struct BackupItem {
 pub struct RestoreSettingsRequest {
     pub backup_path: String,
 }
+
+/// 导出配置请求
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExportRequest {
+    #[serde(default = "default_include_secrets")]
+    pub include_secrets: bool,
+}
+
+fn default_include_secrets() -> bool {
+    true
+}
+
+/// 导出配置响应
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExportResponse {
+    pub content: String,
+    pub filename: String,
+}
+
+/// 导入配置请求
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ImportRequest {
+    pub content: String,
+    #[serde(default = "default_import_mode")]
+    pub mode: String, // "merge" or "replace"
+    #[serde(default = "default_backup")]
+    pub backup: bool,
+}
+
+fn default_import_mode() -> String {
+    "merge".to_string()
+}
+
+fn default_backup() -> bool {
+    true
+}
+
+/// 导入配置响应
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ImportResponse {
+    pub added: usize,
+    pub updated: usize,
+    pub skipped: usize,
+}

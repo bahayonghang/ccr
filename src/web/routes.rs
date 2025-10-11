@@ -44,6 +44,12 @@ pub enum Route {
     /// POST /api/settings/restore - 恢复设置
     RestoreSettings,
 
+    /// POST /api/export - 导出配置
+    ExportConfig,
+
+    /// POST /api/import - 导入配置
+    ImportConfig,
+
     /// 404 - 未找到
     NotFound,
 }
@@ -70,6 +76,8 @@ impl Route {
             ("GET", "/api/settings") => Route::GetSettings,
             ("GET", "/api/settings/backups") => Route::GetSettingsBackups,
             ("POST", "/api/settings/restore") => Route::RestoreSettings,
+            ("POST", "/api/export") => Route::ExportConfig,
+            ("POST", "/api/import") => Route::ImportConfig,
             _ => Route::NotFound,
         }
     }
