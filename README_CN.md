@@ -13,7 +13,9 @@ CCR 通过原子操作、文件锁、完整审计追踪和自动备份直接管�
 | 📝 **完整审计追踪** | 每个操作都有日志记录（UUID、时间戳、操作者），敏感数据已掩码 |
 | 💾 **自动备份** | 更改前自动备份，生成带时间戳的 `.bak` 文件 |
 | ✅ **配置验证** | 全面验证（URL、必填字段、格式） |
+| 🔤 **配置优化** | 按字母顺序整理配置，保持顺序不被打乱 |
 | 🌐 **Web 界面** | 浏览器管理 + RESTful API |
+| ⚡ **智能更新** | 实时显示编译进度的自动更新功能 |
 | 🔄 **CCS 兼容** | 共享 `~/.ccs_config.toml` - 与 Shell 版本无缝共存 |
 
 ## 📦 安装
@@ -84,12 +86,13 @@ ccr web               # 🌐 启动 Web 界面 (端口 8080)
 | `ccr current` | `show`, `status` | 🔍 显示当前配置和环境变量 |
 | `ccr switch <name>` | `<name>` | 🔄 切换配置（5 步原子操作） |
 | `ccr validate` | `check` | ✅ 验证所有配置和设置 |
+| `ccr optimize` | - | 🔤 按字母顺序优化配置文件结构 |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 显示操作历史（限制数量/按类型筛选） |
 | `ccr web [-p PORT]` | - | 🌐 启动 Web 界面（默认 8080 端口） |
 | `ccr export [-o FILE] [--no-secrets]` | - | 📤 导出配置（包含/不含 API 密钥） |
 | `ccr import FILE [--merge]` | - | 📥 导入配置（合并或替换） |
 | `ccr clean [-d DAYS] [--dry-run]` | - | 🧹 清理旧备份（默认 7 天） |
-| `ccr update [--check]` | - | 🔄 从 GitHub 更新 CCR |
+| `ccr update [--check]` | - | ⚡ 从 GitHub 更新 CCR（实时进度显示） |
 | `ccr version` | `ver` | ℹ️ 显示版本和功能 |
 
 **切换操作流程：**

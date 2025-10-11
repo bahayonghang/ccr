@@ -13,7 +13,9 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | 📝 **Complete Audit Trail** | Every operation logged with masked sensitive data (UUID, timestamp, actor) |
 | 💾 **Auto Backup** | Automatic backups before changes with timestamped `.bak` files |
 | ✅ **Validation** | Comprehensive config validation (URLs, required fields, format) |
+| 🔤 **Config Optimization** | Sort configs alphabetically, maintain order after switching |
 | 🌐 **Web UI** | Browser-based management + RESTful API |
+| ⚡ **Smart Update** | Real-time progress display during auto-update |
 | 🔄 **CCS Compatible** | Shares `~/.ccs_config.toml` - seamlessly coexist with shell version |
 
 ## 📦 Installation
@@ -84,12 +86,13 @@ ccr web               # 🌐 Launch web UI (port 8080)
 | `ccr current` | `show`, `status` | 🔍 Show current config and env variables |
 | `ccr switch <name>` | `<name>` | 🔄 Switch to configuration (5-step atomic operation) |
 | `ccr validate` | `check` | ✅ Validate all configs and settings |
+| `ccr optimize` | - | 🔤 Sort config sections alphabetically |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 Show operation history (limit/filter by type) |
 | `ccr web [-p PORT]` | - | 🌐 Launch web UI (default port 8080) |
 | `ccr export [-o FILE] [--no-secrets]` | - | 📤 Export configs (with/without API keys) |
 | `ccr import FILE [--merge]` | - | 📥 Import configs (merge or replace) |
 | `ccr clean [-d DAYS] [--dry-run]` | - | 🧹 Clean old backups (default 7 days) |
-| `ccr update [--check]` | - | 🔄 Update CCR from GitHub |
+| `ccr update [--check]` | - | ⚡ Update CCR from GitHub (with real-time progress) |
 | `ccr version` | `ver` | ℹ️ Show version and features |
 
 **Switch operation flow:**
