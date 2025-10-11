@@ -1,5 +1,11 @@
-// CCR (Claude Code Configuration Switcher) 主程序
-// 配置管理工具，支持完整审计追踪
+// 🚀 CCR (Claude Code Configuration Switcher) 主程序
+// 📦 配置管理工具，支持完整审计追踪
+//
+// 核心功能：
+// - ⚙️  配置切换与管理
+// - 📝 操作历史追踪
+// - 🔒 文件锁保证并发安全
+// - 🌐 Web 管理界面
 
 mod commands;
 mod config;
@@ -13,7 +19,7 @@ mod web;
 use clap::{Parser, Subcommand};
 use logging::{init_logger, ColorOutput};
 
-/// Claude Code Configuration Switcher - 配置管理工具
+/// 🎯 Claude Code Configuration Switcher - 配置管理工具
 #[derive(Parser)]
 #[command(name = "ccr")]
 #[command(about = "Claude Code Configuration Router - 配置管理工具", long_about = None)]
@@ -22,112 +28,121 @@ struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
-    /// 直接切换到指定配置（简写形式）
+    /// 💡 直接切换到指定配置（简写形式）
+    /// 例如: ccr anthropic
     config_name: Option<String>,
 }
 
+/// 📋 命令枚举 - 定义所有可用的 CLI 子命令
 #[derive(Subcommand)]
 enum Commands {
-    /// 列出所有可用配置
+    /// 📜 列出所有可用配置
     #[command(alias = "ls")]
     List,
 
-    /// 显示当前配置状态
+    /// 🔍 显示当前配置状态
     #[command(alias = "show")]
     #[command(alias = "status")]
     Current,
 
-    /// 切换到指定配置
+    /// 🔄 切换到指定配置
     Switch {
-        /// 要切换到的配置名称
+        /// 目标配置名称
         config_name: String,
     },
 
-    /// 验证配置和设置的完整性
+    /// ✅ 验证配置和设置的完整性
     #[command(alias = "check")]
     Validate,
 
-    /// 显示操作历史
+    /// 📚 显示操作历史
     History {
         /// 限制显示的记录数量
         #[arg(short, long, default_value_t = 20)]
         limit: usize,
 
-        /// 按操作类型筛选 (switch, backup, restore, validate, update)
+        /// 🏷️ 按操作类型筛选 (switch, backup, restore, validate, update)
         #[arg(short = 't', long)]
         filter_type: Option<String>,
     },
 
-    /// 启动 Web 配置界面
+    /// 🌐 启动 Web 配置界面
     Web {
-        /// 指定端口（默认 8080）
+        /// 🔌 指定端口（默认 8080）
         #[arg(short, long, default_value_t = 8080)]
         port: u16,
     },
 
-    /// 检查并更新到最新版本
+    /// 🔄 检查并更新到最新版本
     Update {
         /// 仅检查更新，不执行安装
         #[arg(short, long)]
         check: bool,
     },
 
-    /// 初始化配置文件
+    /// 🎬 初始化配置文件
     Init {
-        /// 强制覆盖现有配置
+        /// ⚠️ 强制覆盖现有配置
         #[arg(short, long)]
         force: bool,
     },
 
-    /// 导出配置到文件
+    /// 📤 导出配置到文件
     Export {
-        /// 输出文件路径（默认: ccs_config_export_<timestamp>.toml）
+        /// 📁 输出文件路径（默认: ccs_config_export_<timestamp>.toml）
         #[arg(short, long)]
         output: Option<String>,
 
-        /// 排除敏感信息（API密钥等）
+        /// 🔒 排除敏感信息（API密钥等）
         #[arg(long)]
         no_secrets: bool,
     },
 
-    /// 从文件导入配置
+    /// 📥 从文件导入配置
     Import {
-        /// 输入文件路径
+        /// 📁 输入文件路径
         input: String,
 
-        /// 合并模式（保留现有配置，添加新的）
+        /// 🔗 合并模式（保留现有配置，添加新的）
         #[arg(short, long)]
         merge: bool,
 
-        /// 导入前备份当前配置
+        /// 💾 导入前备份当前配置
         #[arg(short, long, default_value_t = true)]
         backup: bool,
     },
 
-    /// 清理旧备份文件
+    /// 🧹 清理旧备份文件
     Clean {
-        /// 清理多少天前的备份（默认 7 天）
+        /// 📅 清理多少天前的备份（默认 7 天）
         #[arg(short, long, default_value_t = 7)]
         days: u64,
 
-        /// 模拟运行，不实际删除文件
+        /// 🔬 模拟运行，不实际删除文件
         #[arg(long)]
         dry_run: bool,
     },
 
-    /// 显示版本信息
+    /// ℹ️ 显示版本信息
     #[command(alias = "ver")]
     Version,
 }
 
+/// 🎯 主函数入口
+/// 
+/// 执行流程:
+/// 1. 🔧 初始化日志系统
+/// 2. 📝 解析命令行参数
+/// 3. 🚀 路由并执行对应命令
+/// 4. ❌ 处理错误并返回退出码
 fn main() {
-    // 初始化日志系统
+    // 🔧 初始化日志系统
     init_logger();
 
-    // 解析命令行参数
+    // 📝 解析命令行参数
     let cli = Cli::parse();
 
-    // 执行命令并处理错误
+    // 🚀 执行命令并处理错误
     let result = match cli.command {
         Some(Commands::List) => commands::list_command(),
         Some(Commands::Current) => commands::current_command(),
@@ -158,35 +173,39 @@ fn main() {
             Ok(())
         }
         None => {
-            // 如果提供了配置名称，则执行切换
+            // 💡 智能处理：有配置名称则切换，否则显示当前状态
             if let Some(config_name) = cli.config_name {
                 commands::switch_command(&config_name)
             } else {
-                // 否则显示当前配置
                 commands::current_command()
             }
         }
     };
 
-    // 处理错误
+    // ❌ 错误处理与退出
     if let Err(e) = result {
         eprintln!();
         ColorOutput::error(&e.user_message());
         eprintln!();
 
-        // 如果是致命错误，提供额外的帮助信息
+        // 🚨 致命错误额外提示
         if e.is_fatal() {
             ColorOutput::error("这是一个致命错误，程序无法继续");
             ColorOutput::info("请检查错误信息并修复后重试");
             ColorOutput::info("运行 'ccr --help' 查看帮助信息");
         }
 
-        // 使用错误码退出
+        // 🔢 使用错误码退出
         std::process::exit(e.exit_code());
     }
 }
 
-/// 显示版本信息
+/// 📋 显示版本信息和帮助
+/// 
+/// 包含内容:
+/// - ℹ️ 版本号、作者、描述
+/// - ⭐ 核心特性列表
+/// - 📖 常用命令示例
 fn show_version() {
     let version = env!("CARGO_PKG_VERSION");
     ColorOutput::banner(version);

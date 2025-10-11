@@ -1,5 +1,13 @@
-// CCR Web 服务器模块
-// 提供配置管理的 Web 界面和 RESTful API
+// 🌐 CCR Web 服务器模块
+// 🖥️ 提供配置管理的 Web 界面和 RESTful API
+//
+// 核心功能:
+// - 🌐 嵌入式 HTTP 服务器（使用 tiny_http）
+// - 📄 静态 HTML 界面（嵌入到二进制）
+// - 🔌 RESTful API（配置管理、历史记录等）
+// - 🔄 完整的 CRUD 操作支持
+// - 💾 自动备份和清理功能
+// - 🔒 敏感信息自动掩码
 
 use crate::config::{ConfigManager, ConfigSection};
 use crate::error::{CcrError, Result};
@@ -10,7 +18,9 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
 
-/// API 响应结构
+/// 📦 API 响应结构
+/// 
+/// 统一的 API 响应格式，包含成功状态、数据和错误消息
 #[derive(Debug, Serialize, Deserialize)]
 struct ApiResponse<T> {
     success: bool,
@@ -19,6 +29,7 @@ struct ApiResponse<T> {
 }
 
 impl<T> ApiResponse<T> {
+    /// ✅ 创建成功响应
     fn success(data: T) -> Self {
         Self {
             success: true,
@@ -27,6 +38,7 @@ impl<T> ApiResponse<T> {
         }
     }
 
+    /// ❌ 创建错误响应
     fn error(message: String) -> Self {
         Self {
             success: false,
@@ -150,7 +162,29 @@ struct RestoreSettingsRequest {
     backup_path: String,
 }
 
-/// Web 服务器
+/// 🌐 Web 服务器
+/// 
+/// 管理整个 Web 服务的核心结构
+/// 
+/// 功能:
+/// - 🔌 HTTP 服务器（基于 tiny_http）
+/// - 🔄 路由处理（静态文件 + API）
+/// - 🔒 资源管理（使用 Arc 共享）
+/// - 🚀 自动打开浏览器
+/// 
+/// API 端点:
+/// - GET  /                      → HTML 界面
+/// - GET  /api/configs          → 列出所有配置
+/// - POST /api/switch           → 切换配置
+/// - POST /api/config           → 添加配置
+/// - PUT  /api/config/:name     → 更新配置
+/// - DELETE /api/config/:name   → 删除配置
+/// - GET  /api/history          → 获取历史记录
+/// - POST /api/validate         → 验证配置
+/// - POST /api/clean            → 清理备份
+/// - GET  /api/settings         → 获取设置
+/// - GET  /api/settings/backups → 获取备份列表
+/// - POST /api/settings/restore → 恢复设置
 pub struct WebServer {
     config_manager: Arc<ConfigManager>,
     settings_manager: Arc<SettingsManager>,
@@ -159,7 +193,7 @@ pub struct WebServer {
 }
 
 impl WebServer {
-    /// 创建新的 Web 服务器
+    /// 🏗️ 创建新的 Web 服务器
     pub fn new(port: u16) -> Result<Self> {
         let config_manager = Arc::new(ConfigManager::default()?);
         let settings_manager = Arc::new(SettingsManager::default()?);
@@ -173,28 +207,37 @@ impl WebServer {
         })
     }
 
-    /// 启动服务器
+    /// 🚀 启动服务器
+    /// 
+    /// 执行流程:
+    /// 1. 🔌 绑定端口并启动 HTTP 服务器
+    /// 2. 📢 显示访问地址
+    /// 3. 🌐 自动打开浏览器
+    /// 4. 🔄 进入请求处理循环
+    /// 
+    /// 监听地址: 0.0.0.0:{port}
+    /// 停止方式: Ctrl+C
     pub fn start(&self) -> Result<()> {
         let addr = format!("0.0.0.0:{}", self.port);
         let server = Server::http(&addr).map_err(|e| {
             CcrError::ConfigError(format!("无法启动 HTTP 服务器: {}", e))
         })?;
 
-        ColorOutput::success(&format!("CCR Web 服务器已启动"));
-        ColorOutput::info(&format!("地址: http://localhost:{}", self.port));
-        ColorOutput::info("按 Ctrl+C 停止服务器");
+        ColorOutput::success(&format!("🌐 CCR Web 服务器已启动"));
+        ColorOutput::info(&format!("📍 地址: http://localhost:{}", self.port));
+        ColorOutput::info("⏹️ 按 Ctrl+C 停止服务器");
         println!();
 
-        // 尝试自动打开浏览器
+        // 🌐 尝试自动打开浏览器
         if let Err(e) = open::that(format!("http://localhost:{}", self.port)) {
-            ColorOutput::warning(&format!("无法自动打开浏览器: {}", e));
-            ColorOutput::info(&format!("请手动访问 http://localhost:{}", self.port));
+            ColorOutput::warning(&format!("⚠️ 无法自动打开浏览器: {}", e));
+            ColorOutput::info(&format!("💡 请手动访问 http://localhost:{}", self.port));
         }
 
-        // 处理请求
+        // 🔄 处理请求循环
         for request in server.incoming_requests() {
             if let Err(e) = self.handle_request(request) {
-                log::error!("处理请求失败: {}", e);
+                log::error!("❌ 处理请求失败: {}", e);
             }
         }
 

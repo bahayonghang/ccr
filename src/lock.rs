@@ -1,5 +1,15 @@
-// CCR 文件锁模块
-// 提供跨进程的文件锁功能，确保并发安全
+// 🔒 CCR 文件锁模块
+// 🛡️ 提供跨进程的文件锁功能，确保并发安全
+//
+// 核心功能:
+// - 🔐 跨进程互斥锁（使用 fs4 crate）
+// - ⏱️ 超时机制（防止死锁）
+// - 🧹 RAII 自动释放（Drop trait）
+// - 🔄 重试机制（100ms 间隔）
+//
+// 使用场景:
+// - 防止多个 CCR 进程同时修改 settings.json
+// - 防止并发写入历史记录文件
 
 use crate::error::{CcrError, Result};
 use fs4::fs_std::FileExt;
@@ -7,16 +17,21 @@ use std::fs::{self, File, OpenOptions};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-/// 文件锁
+/// 🔒 文件锁
 ///
-/// 提供跨进程的互斥锁功能
+/// 提供跨进程的互斥锁功能，基于文件系统锁实现
+/// 
+/// 特性:
+/// - 🛡️ 跨进程安全
+/// - 🧹 自动释放（通过 Drop trait）
+/// - ⏱️ 可配置超时
 pub struct FileLock {
     file: File,
     lock_path: PathBuf,
 }
 
 impl FileLock {
-    /// 创建一个新的文件锁
+    /// 🔐 创建一个新的文件锁
     ///
     /// # 参数
     /// * `lock_path` - 锁文件的路径
@@ -25,6 +40,11 @@ impl FileLock {
     /// # 返回
     /// * `Ok(FileLock)` - 成功获取锁
     /// * `Err(CcrError)` - 获取锁失败或超时
+    /// 
+    /// # 实现细节
+    /// - 循环尝试获取锁，每次失败后等待 100ms
+    /// - 超时后返回 LockTimeout 错误
+    /// - 锁文件位于 ~/.claude/.locks/ 目录
     pub fn new<P: AsRef<Path>>(lock_path: P, timeout: Duration) -> Result<Self> {
         let lock_path = lock_path.as_ref().to_path_buf();
 
@@ -69,22 +89,30 @@ impl FileLock {
 }
 
 impl Drop for FileLock {
+    /// 🧹 自动释放文件锁
+    /// 
+    /// 利用 RAII（Resource Acquisition Is Initialization）模式
+    /// 当 FileLock 离开作用域时自动释放锁
     fn drop(&mut self) {
-        // 确保锁总是被释放
+        // ✅ 确保锁总是被释放
         let _ = self.file.unlock();
-        log::debug!("文件锁已自动释放: {:?}", self.lock_path);
+        log::debug!("🔓 文件锁已自动释放: {:?}", self.lock_path);
     }
 }
 
-/// 文件锁管理器
+/// 🔧 文件锁管理器
 ///
-/// 统一管理多个资源的锁
+/// 统一管理多个资源的锁，提供一致的锁获取接口
+/// 
+/// 管理的资源:
+/// - 📝 Claude Code settings.json
+/// - 📚 CCR 历史记录文件
 pub struct LockManager {
     lock_dir: PathBuf,
 }
 
 impl LockManager {
-    /// 创建新的锁管理器
+    /// 🏗️ 创建新的锁管理器
     ///
     /// # 参数
     /// * `lock_dir` - 锁文件存放目录
@@ -93,7 +121,7 @@ impl LockManager {
         Self { lock_dir }
     }
 
-    /// 获取默认锁管理器
+    /// 🏠 获取默认锁管理器
     ///
     /// 使用 ~/.claude/.locks 作为锁文件目录
     pub fn default() -> Result<Self> {
@@ -103,18 +131,22 @@ impl LockManager {
         Ok(Self::new(lock_dir))
     }
 
-    /// 为指定资源创建锁路径
+    /// 📁 为指定资源创建锁路径
     fn create_lock_path(&self, resource_name: &str) -> PathBuf {
         self.lock_dir.join(format!("{}.lock", resource_name))
     }
 
-    /// 获取设置文件锁
+    /// 📝 获取设置文件锁
+    /// 
+    /// 用于保护 ~/.claude/settings.json 的并发访问
     pub fn lock_settings(&self, timeout: Duration) -> Result<FileLock> {
         let lock_path = self.create_lock_path("claude_settings");
         FileLock::new(lock_path, timeout)
     }
 
-    /// 获取历史文件锁
+    /// 📚 获取历史文件锁
+    /// 
+    /// 用于保护 ~/.claude/ccr_history.json 的并发写入
     pub fn lock_history(&self, timeout: Duration) -> Result<FileLock> {
         let lock_path = self.create_lock_path("ccr_history");
         FileLock::new(lock_path, timeout)

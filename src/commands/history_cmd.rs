@@ -1,11 +1,22 @@
-// history 命令实现 - 显示操作历史
+// 📚 history 命令实现 - 显示操作历史
+// 🔍 展示所有操作的审计追踪，支持筛选和统计
 
 use crate::error::Result;
 use crate::history::{HistoryManager, OperationType};
 use crate::logging::ColorOutput;
 use colored::*;
 
-/// 显示操作历史
+/// 📚 显示操作历史
+/// 
+/// 显示内容:
+/// - 📊 操作统计（总数、成功、失败、警告）
+/// - 📋 历史记录列表（时间、操作、结果）
+/// - 🌍 环境变量变化（已掩码）
+/// - 📝 操作详情（from/to 配置、备份路径等）
+/// 
+/// 参数:
+/// - limit: 显示记录数量（默认 20）
+/// - filter_type: 按操作类型筛选（switch/backup/restore/validate/update）
 pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Result<()> {
     ColorOutput::title("操作历史记录");
     println!();

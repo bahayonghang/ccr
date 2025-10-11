@@ -1,9 +1,9 @@
 [package]
 name = "ccr"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2024"
 authors = ["Yonghang Li"]
-description = "Claude Code Configuration Switcher - Configuration management tool with complete audit trail"
+description = "Claude Code Configuration Switcher - Configuration management tool with complete audit trail(Rust implementation)"
 license = "MIT"
 
 [[bin]]

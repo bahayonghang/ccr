@@ -1,96 +1,53 @@
-# CCR - Claude Code Configuration Switcher
+# 🚀 CCR - Claude Code Configuration Switcher
 
-🚀 **Configuration Management Tool for Claude Code (Rust Implementation)**
+**Rust-powered configuration management tool for Claude Code**
 
-CCR is the Rust implementation of Claude Code Configuration Switcher (CCS), providing powerful configuration management features including complete audit trails, file locking mechanisms, and automatic backup/restore capabilities.
+CCR directly manages Claude Code's `settings.json` with atomic operations, file locking, complete audit trails, and automatic backups. The Rust implementation of CCS with enhanced reliability and performance.
 
-## ✨ Core Features
+## ✨ Why CCR?
 
-### 🎯 Direct Claude Code Settings Manipulation
-- Directly operates on `~/.claude/settings.json` file
-- No manual environment variable configuration needed
-- Configuration takes effect immediately
-
-### 🔐 Concurrency Safety
-- File locking mechanism ensures multi-process safety
-- Atomic write operations prevent data corruption
-- Timeout protection avoids deadlocks
-
-### 📝 Complete Audit Trail
-- Records all operation history
-- Tracks environment variable changes
-- Automatic masking of sensitive information
-
-### 💾 Automatic Backup & Recovery
-- Automatic backup before switching
-- Support for restoration from backups
-- Timestamped backup files
-
-### ✅ Configuration Validation
-- Automatic configuration integrity validation
-- Checks required fields
-- URL format validation
-
-### 🌐 Web Interface
-- Browser-based configuration management
-- RESTful API support
-- Real-time configuration switching
-
-### 🔄 Full CCS Compatibility
-- Shares `~/.ccs_config.toml` configuration file
-- Consistent command-line interface
-- Can coexist with CCS
+| Feature | Description |
+|---------|-------------|
+| 🎯 **Direct Settings Control** | Directly writes to `~/.claude/settings.json` - changes take effect immediately |
+| 🔒 **Concurrency Safe** | File locking + atomic operations prevent corruption across multiple processes |
+| 📝 **Complete Audit Trail** | Every operation logged with masked sensitive data (UUID, timestamp, actor) |
+| 💾 **Auto Backup** | Automatic backups before changes with timestamped `.bak` files |
+| ✅ **Validation** | Comprehensive config validation (URLs, required fields, format) |
+| 🌐 **Web UI** | Browser-based management + RESTful API |
+| 🔄 **CCS Compatible** | Shares `~/.ccs_config.toml` - seamlessly coexist with shell version |
 
 ## 📦 Installation
 
-### Quick Install (Recommended)
+First, you need to install Rust and Cargo, then execute the following commands:
 
-Install CCR directly from GitHub using cargo:
+**One-line install from GitHub:**
 
 ```bash
 cargo install --git https://github.com/bahayonghang/ccr
 ```
 
-After installation, the `ccr` command will be available in your PATH.
-
-### Build from Source
+**From source:**
 
 ```bash
-# Clone the repository
-cd ccs/ccr
-
-# Build release version
-cargo build --release
-
-# Install to system path (optional)
+git clone https://github.com/bahayonghang/ccr.git
+cd ccr
 cargo install --path .
 ```
 
-### Run the Program
-
-```bash
-# Run directly
-cargo run -- <command>
-
-# Or use compiled binary
-./target/release/ccr <command>
-```
+**Requirements:** Rust 1.85+ (for edition 2024 features)
 
 ## 🚀 Quick Start
 
-### 1. Initialize Configuration File
-
-Initialize CCR configuration file with example template:
+**1️⃣ Initialize config file:**
 
 ```bash
-ccr init
+ccr init  # Creates ~/.ccs_config.toml with examples
 ```
 
-This will create `~/.ccs_config.toml` with example configurations. You can also use an existing CCS configuration if you have one.
-
-Example configuration file:
+**2️⃣ Edit your configuration:**
 
 ```toml
+# ~/.ccs_config.toml
 default_config = "anthropic"
 current_config = "anthropic"
 
@@ -99,566 +56,151 @@ description = "Anthropic Official API"
 base_url = "https://api.anthropic.com"
 auth_token = "sk-ant-your-api-key"
 model = "claude-sonnet-4-5-20250929"
-small_fast_model = "claude-3-5-haiku-20241022"
 
 [anyrouter]
-description = "AnyRouter Proxy Service"
+description = "AnyRouter Proxy"
 base_url = "https://api.anyrouter.ai/v1"
 auth_token = "your-anyrouter-token"
 model = "claude-sonnet-4-5-20250929"
 ```
 
-### 2. View Available Configurations
+**3️⃣ Use CCR:**
 
 ```bash
-ccr list
-# or
-ccr ls
+ccr list              # 📋 List all configs
+ccr switch anthropic  # 🔄 Switch to a config (or just: ccr anthropic)
+ccr current           # 🔍 Show current status
+ccr validate          # ✅ Validate all configs
+ccr history           # 📚 View operation history
+ccr web               # 🌐 Launch web UI (port 8080)
 ```
 
-### 3. Switch Configuration
-
-```bash
-ccr switch anthropic
-# or shorthand
-ccr anthropic
-```
-
-### 4. View Current Status
-
-```bash
-ccr current
-# or
-ccr status
-```
-
-### 5. Validate Configuration
-
-```bash
-ccr validate
-# or
-ccr check
-```
-
-### 6. View History
-
-```bash
-ccr history
-# Limit display count
-ccr history --limit 10
-# Filter by type
-ccr history -t switch
-```
-
-### 7. Launch Web Interface
-
-```bash
-ccr web
-# Specify port
-ccr web --port 8080
-```
-
-### 8. Update to Latest Version
-
-```bash
-# Check for updates
-ccr update --check
-
-# Update to latest version
-ccr update
-```
-
-### 9. Export and Import Configurations
-
-```bash
-# Export configuration (includes API keys by default)
-ccr export
-
-# Export without secrets
-ccr export --no-secrets
-
-# Export to specific file
-ccr export -o my-config.toml
-
-# Import configuration (merge mode)
-ccr import config.toml --merge
-
-# Import configuration (replace mode)
-ccr import config.toml
-```
-
-### 10. Clean Old Backups
-
-```bash
-# Clean backups older than 7 days (default)
-ccr clean
-
-# Clean backups older than 30 days
-ccr clean --days 30
-
-# Dry run (preview without deleting)
-ccr clean --dry-run
-```
-
-## 📚 Command Reference
-
-### init
-Initialize configuration file from template
-
-```bash
-ccr init
-```
-
-Features:
-- Creates `~/.ccs_config.toml` from embedded template
-- **Safe mode**: Refuses to overwrite existing config without --force
-- Automatic backup when using --force
-- Sets proper file permissions (Unix: 644)
-- Provides helpful hints on next steps
-
-Behavior:
-- If config exists: Shows warning and exits (safe)
-- With `--force`: Backs up and overwrites existing config
-
-Options:
-```bash
-ccr init --force    # Force overwrite with automatic backup
-```
-
-### list / ls
-List all available configurations, marking the current configuration and validation status
-
-```bash
-ccr list
-```
-
-Output example:
-```
-Available Configurations
-════════════════════════════════════════════════════════════════
-Configuration File: /home/user/.ccs_config.toml
-Default Config: anthropic
-Current Config: anthropic
-────────────────────────────────────────────────────────────────
-▶ anthropic - Anthropic Official API
-    Base URL: https://api.anthropic.com
-    Token: sk-a...key
-    Model: claude-sonnet-4-5-20250929
-    Small Fast Model: claude-3-5-haiku-20241022
-    Status: ✓ Configuration Complete
-  anyrouter - AnyRouter Proxy Service
-
-✓ Found 2 configurations
-```
-
-### current / show / status
-Display detailed status of current configuration, including environment variables
-
-```bash
-ccr current
-```
-
-### switch <config>
-Switch to specified configuration
-
-```bash
-ccr switch anyrouter
-```
-
-Execution flow:
-1. ✓ Read and validate target configuration
-2. ✓ Backup current Claude Code settings
-3. ✓ Update `~/.claude/settings.json`
-4. ✓ Update configuration file `current_config`
-5. ✓ Record operation history
-
-### validate / check
-Validate configuration and settings integrity
-
-```bash
-ccr validate
-```
-
-Checks:
-- Configuration file format
-- Completeness of all configuration sections
-- Claude Code settings file
-- Required environment variables
-
-### history
-Display operation history
-
-```bash
-# Default: show last 20 entries
-ccr history
-
-# Custom count
-ccr history --limit 50
-
-# Filter by type
-ccr history -t switch   # Only show switch operations
-ccr history -t backup   # Only show backup operations
-```
-
-### web
-Launch web configuration interface
-
-```bash
-# Default port 8080
-ccr web
-
-# Specify port
-ccr web --port 3000
-```
-
-### update
-Update CCR to the latest version from GitHub
-
-```bash
-# Check what will be updated
-ccr update --check
-
-# Update to latest version
-ccr update
-```
-
-Features:
-- Uses `cargo install --git` to get the latest code
-- Always gets the latest commit from GitHub
-- Requires Rust toolchain (cargo)
-- Automatic confirmation before updating
-
-Requirements:
-- Rust and Cargo must be installed
-- Network access to GitHub
-
-Equivalent to running:
-```bash
-cargo install --git https://github.com/bahayonghang/ccr --force
-```
-
-### export
-Export configuration to a file
-
-```bash
-# Export with full API keys (default)
-ccr export
-
-# Export without secrets (masked tokens)
-ccr export --no-secrets
-
-# Export to specific file
-ccr export -o backup.toml
-```
-
-Features:
-- Automatic timestamped filename
-- Includes API keys by default for easy migration
-- Optional secret masking with --no-secrets flag
-- TOML format for easy editing
-- Perfect for backup and migration
-
-### import
-Import configuration from a file
-
-```bash
-# Merge mode (preserve existing configs, add new ones)
-ccr import config.toml --merge
-
-# Replace mode (completely replace current config)
-ccr import config.toml
-
-# Import without backup
-ccr import config.toml --no-backup
-```
-
-Features:
-- Merge or replace modes
-- Automatic backup before import
-- Configuration validation
-- Detailed import summary
-
-### clean
-Clean old backup files to free up disk space
-
-```bash
-# Clean backups older than 7 days (default)
-ccr clean
-
-# Clean backups older than 30 days
-ccr clean --days 30
-
-# Dry run (preview without deleting)
-ccr clean --dry-run
-```
-
-Features:
-- Automatic cleanup of old backup files
-- Configurable retention period (default: 7 days)
-- Dry run mode for preview
-- Shows freed disk space
-- Only removes `.bak` files in `~/.claude/backups/`
-
-Options:
-```bash
-ccr clean --days 14      # Clean backups older than 14 days
-ccr clean --dry-run      # Preview cleanup without deleting
-```
-
-### version / ver
-Display version information and help
-
-```bash
-ccr version
-```
-
-## 📁 File Structure
-
-CCR uses the following files and directories:
+## 📚 Commands
+
+| Command | Aliases | Description |
+|---------|---------|-------------|
+| `ccr init [--force]` | - | 🎬 Initialize config from template |
+| `ccr list` | `ls` | 📜 List all configurations with validation status |
+| `ccr current` | `show`, `status` | 🔍 Show current config and env variables |
+| `ccr switch <name>` | `<name>` | 🔄 Switch to configuration (5-step atomic operation) |
+| `ccr validate` | `check` | ✅ Validate all configs and settings |
+| `ccr history [-l N] [-t TYPE]` | - | 📚 Show operation history (limit/filter by type) |
+| `ccr web [-p PORT]` | - | 🌐 Launch web UI (default port 8080) |
+| `ccr export [-o FILE] [--no-secrets]` | - | 📤 Export configs (with/without API keys) |
+| `ccr import FILE [--merge]` | - | 📥 Import configs (merge or replace) |
+| `ccr clean [-d DAYS] [--dry-run]` | - | 🧹 Clean old backups (default 7 days) |
+| `ccr update [--check]` | - | 🔄 Update CCR from GitHub |
+| `ccr version` | `ver` | ℹ️ Show version and features |
+
+**Switch operation flow:**
+1. 📖 Read and validate target config
+2. 💾 Backup current settings.json
+3. ✏️ Update ~/.claude/settings.json (atomic write with lock)
+4. 📝 Update current_config marker
+5. 📚 Record to history with masked env changes
+
+## 📁 Files & Directories
 
 ```
-~/.ccs_config.toml          # Configuration file (shared with CCS)
-~/.claude/settings.json     # Claude Code settings file
-~/.claude/backups/          # Automatic backup directory
-~/.claude/ccr_history.json  # Operation history log
-~/.claude/.locks/           # File lock directory
+~/.ccs_config.toml          # 📝 Config file (shared with CCS)
+~/.claude/settings.json     # 🎯 Claude Code settings (CCR manages this)
+~/.claude/backups/          # 💾 Auto backups (timestamped .bak files)
+~/.claude/ccr_history.json  # 📚 Operation audit log
+~/.claude/.locks/           # 🔒 File locks (auto-cleanup)
 ```
 
-## 🔧 Advanced Features
+## 🔧 Key Features
 
-### Environment Variable Management
+### 🌍 Environment Variables
 
-CCR manages the following environment variables:
-
-- `ANTHROPIC_BASE_URL` - API endpoint address
-- `ANTHROPIC_AUTH_TOKEN` - Authentication token
+CCR manages these variables in `settings.json`:
+- `ANTHROPIC_BASE_URL` - API endpoint
+- `ANTHROPIC_AUTH_TOKEN` - Auth token (auto-masked in display/logs)
 - `ANTHROPIC_MODEL` - Default model
-- `ANTHROPIC_SMALL_FAST_MODEL` - Fast small model (optional)
+- `ANTHROPIC_SMALL_FAST_MODEL` - Fast model (optional)
 
-When switching configurations, CCR will:
-1. Clear all environment variables with `ANTHROPIC_*` prefix
-2. Set new environment variables based on target configuration
-3. Keep other settings unchanged
+### 📚 History & Audit
 
-### Backup & Recovery
-
-Automatic backup:
-- Automatic backup before each configuration switch
-- Backup files include timestamp and configuration name
-- Stored in `~/.claude/backups/` directory
-
-Manual recovery:
-```bash
-# List available backups
-ls ~/.claude/backups/
-
-# Restore from backup (use settings manager API)
-# Command-line restore support coming soon
-```
-
-### History Records
-
-History records include:
-- Operation ID (UUID)
-- Timestamp
-- Actor (system username)
-- Operation type
+Every operation logged with:
+- UUID + timestamp + system username
+- Operation type (switch/backup/restore/validate/update)
 - Environment variable changes (masked)
-- Operation result
-- Notes
+- From/to config + backup path
+- Result (success/failure/warning)
 
-### Web API
+### 🌐 Web API
 
-CCR provides RESTful API for programmatic access:
+RESTful endpoints (run `ccr web`):
+- `GET /api/configs` - List all
+- `POST /api/switch` - Switch config
+- `GET /api/history` - View history
+- `POST /api/validate` - Validate all
+- `POST /api/clean` - Clean backups
+- `POST/PUT/DELETE /api/config` - CRUD operations
 
-```bash
-# List configurations
-GET /api/configs
-
-# Switch configuration
-POST /api/switch
-Body: {"config_name": "anthropic"}
-
-# Get history
-GET /api/history
-
-# Validate configuration
-POST /api/validate
-
-# Clean backups
-POST /api/clean
-Body: {"days": 7, "dry_run": false}
-
-# Add/Update/Delete configuration
-POST /api/config
-PUT /api/config/{name}
-DELETE /api/config/{name}
-```
-
-### Logging & Debugging
-
-Set log level:
+### 🐛 Debugging
 
 ```bash
-# Set environment variable
-export CCR_LOG_LEVEL=debug  # trace, debug, info, warn, error
-
-# Run command
-ccr switch anthropic
+export CCR_LOG_LEVEL=debug  # trace|debug|info|warn|error
+ccr switch anthropic        # See detailed logs
 ```
-
-## 🔒 Security Features
-
-### Sensitive Information Protection
-- API tokens automatically masked for display
-- Sensitive values desensitized in history records
-- Only shows first and last characters of tokens
-
-### File Permissions
-- Settings file permissions set to 600 (owner read/write only)
-- Lock files automatically cleaned up
-- Atomic operations avoid race conditions
-
-### Concurrency Control
-- Cross-process file locking
-- Timeout protection (default 10 seconds)
-- Automatic lock resource release
 
 ## 🆚 CCR vs CCS
 
 | Feature | CCS (Shell) | CCR (Rust) |
-|---------|------------|-----------|
-| Configuration Switching | ✅ | ✅ |
-| Environment Variable Setting | ✅ | ✅ |
-| Direct settings.json Write | ❌ | ✅ |
-| File Locking Mechanism | ❌ | ✅ |
-| Operation History | ❌ | ✅ |
-| Automatic Backup | ❌ | ✅ |
-| Configuration Validation | Basic | Complete |
-| Concurrency Safety | ❌ | ✅ |
-| Web Interface | ❌ | ✅ |
+|---------|:-----------:|:----------:|
+| Config switching | ✅ | ✅ |
+| Direct settings.json write | ❌ | ✅ |
+| File locking | ❌ | ✅ |
+| Audit history | ❌ | ✅ |
+| Auto backup | ❌ | ✅ |
+| Validation | Basic | Complete |
+| Web UI | ❌ | ✅ |
 | Performance | Fast | Extremely Fast |
 
-## 🤝 CCS Compatibility
+**💡 Fully compatible** - Shares `~/.ccs_config.toml`, can coexist and switch between both tools seamlessly.
 
-CCR is fully compatible with CCS:
+## 🛠️ Development
 
-1. **Shared Configuration File** - Uses the same `~/.ccs_config.toml`
-2. **Seamless Switching** - Can alternate between CCS and CCR commands
-3. **Consistent Commands** - Core commands remain consistent
-4. **Coexistence** - Both can be installed simultaneously
-
-## 📝 Development
-
-### Project Structure
-
+**Project structure:**
 ```
-ccr/
-├── src/
-│   ├── main.rs          # Main program entry
-│   ├── error.rs         # Error handling
-│   ├── logging.rs       # Logging & colored output
-│   ├── lock.rs          # File locking
-│   ├── config.rs        # Configuration management
-│   ├── settings.rs      # Settings management
-│   ├── history.rs       # History records
-│   ├── web.rs           # Web server
-│   └── commands/        # CLI commands
-│       ├── mod.rs
-│       ├── list.rs
-│       ├── current.rs
-│       ├── switch.rs
-│       ├── validate.rs
-│       └── history_cmd.rs
-├── web/                 # Web interface HTML
-├── Cargo.toml           # Project configuration
-└── README.md            # This file
+src/
+├── main.rs           # 🚀 CLI entry
+├── error.rs          # ⚠️ Error types + exit codes
+├── config.rs         # ⚙️ Config management (.toml)
+├── settings.rs       # ⭐ Settings management (settings.json)
+├── history.rs        # 📚 Audit trail
+├── lock.rs           # 🔒 File locking
+├── logging.rs        # 🎨 Colored output
+├── web.rs            # 🌐 HTTP server + API
+└── commands/         # 📋 All CLI commands
 ```
 
-### Run Tests
-
+**Commands:**
 ```bash
-cargo test
-```
-
-### Code Checks
-
-```bash
-cargo check
-cargo clippy
-```
-
-### Formatting
-
-```bash
-cargo fmt
+cargo test            # 🧪 Run tests
+cargo clippy          # 🔍 Lint
+cargo fmt             # 💅 Format
+cargo build --release # 🏗️ Production build
 ```
 
 ## 🐛 Troubleshooting
 
-### Configuration File Not Found
+| Issue | Solution |
+|-------|----------|
+| Config file not found | Run `ccr init` to create `~/.ccs_config.toml` |
+| Lock timeout | Check for zombie processes: `ps aux \| grep ccr`<br>Clean locks: `rm -rf ~/.claude/.locks/*` |
+| Permission denied | Fix permissions:<br>`chmod 600 ~/.claude/settings.json`<br>`chmod 644 ~/.ccs_config.toml` |
+| Settings not found | Created automatically on first switch: `ccr switch <config>` |
 
-```bash
-# Check configuration file
-ls -la ~/.ccs_config.toml
+## 📄 License & Contributing
 
-# If not exists, install CCS first or create manually
-```
-
-### Claude Code Settings File Not Found
-
-```bash
-# Check Claude Code directory
-ls -la ~/.claude/
-
-# Will be created automatically on first use
-ccr switch <config>
-```
-
-### File Lock Timeout
-
-```bash
-# Check for zombie processes
-ps aux | grep ccr
-
-# Clean lock files (use with caution)
-rm -rf ~/.claude/.locks/*
-```
-
-### Permission Issues
-
-```bash
-# Check file permissions
-ls -la ~/.claude/settings.json
-ls -la ~/.ccs_config.toml
-
-# Fix permissions
-chmod 600 ~/.claude/settings.json
-chmod 644 ~/.ccs_config.toml
-```
-
-## 🛣️ Roadmap
-
-- [x] Web interface support
-- [x] RESTful API
-- [x] Online update functionality
-- [x] Configuration import/export
-- [x] Configuration initialization
-
-## 📄 License
-
-MIT License
-
-## 🤝 Contributing
-
-Issues and Pull Requests are welcome!
-
-## 📮 Contact
-
-- GitHub: https://github.com/bahayonghang/ccr
-- Project Home: https://github.com/bahayonghang/ccs/tree/main/ccr
+- **License:** MIT
+- **Issues & PRs:** Welcome! 🤝
+- **GitHub:** https://github.com/bahayonghang/ccr
+- **Status:** Active development - test thoroughly before production use
 
 ---
 
-**Note**: CCR is currently in active development. Thorough testing is recommended before use in production environments.
+Made with 💙 in Rust | Part of [CCS Project](https://github.com/bahayonghang/ccs)
 
