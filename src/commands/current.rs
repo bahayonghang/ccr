@@ -1,8 +1,8 @@
 // 🔍 current 命令实现 - 显示当前配置状态
 // 📊 显示当前激活的配置详情和 Claude Code 环境变量状态
 
-use crate::error::Result;
-use crate::logging::ColorOutput;
+use crate::core::error::Result;
+use crate::core::logging::ColorOutput;
 use crate::services::{ConfigService, SettingsService};
 use crate::utils::Validatable;
 

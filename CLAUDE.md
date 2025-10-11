@@ -67,7 +67,7 @@ just doc-open
 
 ## Architecture
 
-CCR follows a **layered architecture** with clear separation of concerns:
+CCR follows a strict **layered architecture** with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────┐
@@ -77,43 +77,101 @@ CCR follows a **layered architecture** with clear separation of concerns:
 ├─────────────────────────────────────┤
 │   Service Layer (services/)         │  ← Business Logic
 ├─────────────────────────────────────┤
-│   Manager Layer (config, settings)  │  ← Data Access
+│   Manager Layer (managers/)         │  ← Data Access
 ├─────────────────────────────────────┤
-│   Core Layer (core, utils, lock)    │  ← Infrastructure
+│   Core Layer (core/)                │  ← Infrastructure
+├─────────────────────────────────────┤
+│   Utils Layer (utils/)              │  ← Utilities
 └─────────────────────────────────────┘
+```
+
+### Directory Structure
+
+```
+src/
+├── main.rs                          # CLI entry point
+├── lib.rs                           # Library entry point
+│
+├── commands/                        # 🎯 CLI Layer
+│   ├── mod.rs
+│   ├── clean.rs, current.rs, export.rs
+│   ├── history_cmd.rs, import.rs, init.rs
+│   ├── list.rs, optimize.rs, switch.rs
+│   ├── update.rs, validate.rs
+│   └── [13 command files total]
+│
+├── web/                             # 🌐 Web Layer
+│   ├── mod.rs
+│   ├── handlers.rs                  # Request handlers
+│   ├── models.rs                    # API data models
+│   ├── routes.rs                    # Route definitions
+│   ├── server.rs                    # HTTP server
+│   └── system_info_cache.rs         # System info caching
+│
+├── services/                        # 🎯 Service Layer
+│   ├── mod.rs
+│   ├── backup_service.rs            # Backup operations
+│   ├── config_service.rs            # Configuration CRUD
+│   ├── history_service.rs           # History tracking
+│   └── settings_service.rs          # Settings management
+│
+├── managers/                        # 📁 Manager Layer
+│   ├── mod.rs
+│   ├── config.rs                    # ~/.ccs_config.toml manager
+│   ├── history.rs                   # Operation history manager
+│   └── settings.rs                  # ~/.claude/settings.json manager
+│
+├── core/                            # 🏗️ Core Layer
+│   ├── mod.rs
+│   ├── atomic_writer.rs             # Atomic file operations
+│   ├── error.rs                     # Error types & codes
+│   ├── file_manager.rs              # File manager trait
+│   ├── lock.rs                      # File locking mechanism
+│   └── logging.rs                   # Colored output & logging
+│
+└── utils/                           # 🛠️ Utils Layer
+    ├── mod.rs
+    ├── mask.rs                      # Sensitive data masking
+    └── validation.rs                # Validation trait
 ```
 
 ### Layer Breakdown
 
-#### 🎯 CLI Layer
+#### 🎯 CLI Layer (`main.rs` + `commands/`)
 - **`main.rs`**: CLI entry point using `clap` for argument parsing
-- **`commands/`**: Command implementations (list, switch, current, validate, etc.)
+- **`commands/`**: Command implementations (13 commands total)
+  - Each command in its own file
+  - Calls Service layer for business logic
+  - Handles user interaction and output formatting
 
-#### 🌐 Web Layer
-- **`web/server.rs`**: HTTP server using `tiny_http`
-- **`web/handlers.rs`**: Request handlers
-- **`web/models.rs`**: API data models
-- **`web/routes.rs`**: Route definitions
+#### 🌐 Web Layer (`web/`)
+- **`server.rs`**: HTTP server using `tiny_http`
+- **`handlers.rs`**: Request handlers for 11 API endpoints
+- **`models.rs`**: API data models (request/response)
+- **`routes.rs`**: Route definitions
+- **`system_info_cache.rs`**: System info caching for performance
 
-#### 🎯 Service Layer (Business Logic)
-- **`services/config_service.rs`**: Configuration business logic
-- **`services/settings_service.rs`**: Settings business logic
-- **`services/history_service.rs`**: History recording business logic
-- **`services/backup_service.rs`**: Backup management business logic
+#### 🎯 Service Layer (`services/`)
+- **`config_service.rs`**: Configuration business logic (CRUD, validation, import/export)
+- **`settings_service.rs`**: Settings management (apply config, backup/restore)
+- **`history_service.rs`**: Operation history tracking and querying
+- **`backup_service.rs`**: Backup cleanup and scanning
 
-#### 📁 Manager Layer (Data Access)
-- **`config.rs`**: Configuration file management (`~/.ccs_config.toml`)
-- **`settings.rs`**: Claude Code settings manager (`~/.claude/settings.json`)
-- **`history.rs`**: Operation audit trail (`~/.claude/ccr_history.json`)
+#### 📁 Manager Layer (`managers/`)
+- **`config.rs`**: ConfigManager - manages `~/.ccs_config.toml`
+- **`settings.rs`**: SettingsManager - manages `~/.claude/settings.json`
+- **`history.rs`**: HistoryManager - manages `~/.claude/ccr_history.json`
 
-#### 🏗️ Core Layer (Infrastructure)
-- **`core/atomic_writer.rs`**: Atomic file write operations
-- **`core/file_manager.rs`**: File manager trait
-- **`utils/mask.rs`**: Sensitive data masking utilities
-- **`utils/validation.rs`**: Validation trait
-- **`lock.rs`**: File locking abstraction
-- **`logging.rs`**: Colored terminal output
-- **`error.rs`**: Error types with exit codes
+#### 🏗️ Core Layer (`core/`)
+- **`atomic_writer.rs`**: Atomic file write operations
+- **`error.rs`**: Error types with exit codes (13 error types)
+- **`file_manager.rs`**: File manager trait definition
+- **`lock.rs`**: File locking mechanism with timeout protection
+- **`logging.rs`**: Colored terminal output utilities
+
+#### 🛠️ Utils Layer (`utils/`)
+- **`mask.rs`**: Sensitive data masking functions
+- **`validation.rs`**: Validation trait for data structures
 
 ### Key Design Patterns
 
@@ -160,33 +218,61 @@ The Service layer encapsulates business logic. Always prefer Service methods ove
 
 ```rust
 // ✅ Good: Use Service layer
+use crate::services::ConfigService;
+
 let config_service = ConfigService::default()?;
 let configs = config_service.list_configs()?;
 
 // ❌ Bad: Direct Manager access (bypass business logic)
+use crate::managers::config::ConfigManager;
+
 let manager = ConfigManager::default()?;
 let config = manager.load()?;
 ```
 
 Available Services:
-- **ConfigService**: Configuration CRUD operations
-- **SettingsService**: Settings file management
-- **HistoryService**: Operation history tracking
-- **BackupService**: Backup cleanup operations
+- **ConfigService** (`services/config_service.rs`): Configuration CRUD operations
+- **SettingsService** (`services/settings_service.rs`): Settings file management
+- **HistoryService** (`services/history_service.rs`): Operation history tracking
+- **BackupService** (`services/backup_service.rs`): Backup cleanup operations
 
 ### Error Handling
 
-- Use `CcrError` types from `error.rs`
+- Use `CcrError` types from `core::error`
 - Fatal errors return exit code 1, non-fatal return 0
 - Provide user-friendly messages via `user_message()` method
-- Use `ColorOutput` for consistent error display
+- Use `ColorOutput` from `core::logging` for consistent error display
+
+```rust
+use crate::core::error::{CcrError, Result};
+use crate::core::logging::ColorOutput;
+
+pub fn my_command() -> Result<()> {
+    // Your logic
+    Ok(())
+}
+```
 
 ### File Operations
 
 - **Read before write**: Always read existing file before modifications to ensure Edit tool compatibility
-- **Use settings manager**: Always use `SettingsManager` methods for `settings.json` operations to ensure locking/backup
-- **Use config manager**: Use `ConfigManager` for `~/.ccs_config.toml` operations to ensure validation
-- **Atomic writes**: Use `tempfile` + `fs::rename` for atomic updates
+- **Use managers**: Always use Manager layer for file operations:
+  - `SettingsManager` (`managers::settings`) for `~/.claude/settings.json`
+  - `ConfigManager` (`managers::config`) for `~/.ccs_config.toml`
+  - `HistoryManager` (`managers::history`) for `~/.claude/ccr_history.json`
+- **Atomic writes**: Managers use `core::atomic_writer` internally for atomic updates
+- **File locking**: Managers use `core::lock` for concurrent safety
+
+```rust
+use crate::managers::settings::SettingsManager;
+use crate::core::lock::LockManager;
+
+let lock_manager = LockManager::default()?;
+let settings_manager = SettingsManager::default()?;
+
+// Lock is automatically acquired when needed
+settings_manager.save_atomic(&settings)?;
+```
 
 ### Testing Approach
 
@@ -201,7 +287,9 @@ Available Services:
 
 ```bash
 cargo test test_name
-cargo test config::tests::test_validation
+cargo test managers::config::tests::test_validation
+cargo test services::config_service::tests
+cargo test --test integration_test
 ```
 
 ### Debugging File Operations

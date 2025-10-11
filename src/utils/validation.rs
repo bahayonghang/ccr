@@ -1,7 +1,7 @@
 // ✅ 验证 trait 定义
 // 为所有需要验证的数据结构提供统一接口
 
-use crate::error::Result;
+use crate::core::error::Result;
 
 /// ✅ 可验证 trait
 ///

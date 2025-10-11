@@ -1,9 +1,9 @@
 // 📝 设置服务
 // 封装 Claude Code 设置相关的业务逻辑
 
-use crate::config::ConfigSection;
-use crate::error::Result;
-use crate::settings::{ClaudeSettings, SettingsManager};
+use crate::managers::config::ConfigSection;
+use crate::core::error::Result;
+use crate::managers::settings::{ClaudeSettings, SettingsManager};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -127,8 +127,8 @@ impl SettingsService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::ConfigSection;
-    use crate::lock::LockManager;
+    use crate::managers::config::ConfigSection;
+    use crate::core::lock::LockManager;
     use tempfile::tempdir;
 
     fn create_test_section() -> ConfigSection {

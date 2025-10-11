@@ -1,8 +1,8 @@
 // ✅ validate 命令实现 - 验证配置和设置
 // 🔍 全面检查配置文件和 Claude Code 设置的完整性
 
-use crate::error::Result;
-use crate::logging::ColorOutput;
+use crate::core::error::Result;
+use crate::core::logging::ColorOutput;
 use crate::services::{ConfigService, SettingsService};
 use crate::utils::Validatable;
 use colored::*;

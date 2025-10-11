@@ -8,19 +8,14 @@
 // - 🌐 Web 管理界面
 
 mod commands;
-mod config;
 mod core;
-mod error;
-mod history;
-mod lock;
-mod logging;
+mod managers;
 mod services;
-mod settings;
 mod utils;
 mod web;
 
 use clap::{Parser, Subcommand};
-use logging::{ColorOutput, init_logger};
+use core::{init_logger, ColorOutput};
 
 /// 🎯 Claude Code Configuration Switcher - 配置管理工具
 #[derive(Parser)]

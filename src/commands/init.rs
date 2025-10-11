@@ -1,8 +1,8 @@
 // 🎬 init 命令实现 - 初始化配置文件
 // 📦 从嵌入的模板创建 ~/.ccs_config.toml 配置文件
 
-use crate::error::{CcrError, Result};
-use crate::logging::ColorOutput;
+use crate::core::error::{CcrError, Result};
+use crate::core::logging::ColorOutput;
 use std::fs;
 use std::path::PathBuf;
 

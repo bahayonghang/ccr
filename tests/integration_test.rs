@@ -1,7 +1,7 @@
 // 🧪 CCR 集成测试
 // 测试核心功能的端到端工作流程
 
-use ccr::config::{CcsConfig, ConfigManager, ConfigSection};
+use ccr::managers::config::{CcsConfig, ConfigManager, ConfigSection};
 use ccr::services::{ConfigService, SettingsService};
 use indexmap::IndexMap;
 use std::sync::Arc;
@@ -75,8 +75,8 @@ fn test_settings_service_workflow() {
     let backup_dir = temp_dir.path().join("backups");
     let lock_dir = temp_dir.path().join("locks");
 
-    let lock_manager = ccr::lock::LockManager::new(lock_dir);
-    let settings_manager = Arc::new(ccr::settings::SettingsManager::new(
+    let lock_manager = ccr::core::lock::LockManager::new(lock_dir);
+    let settings_manager = Arc::new(ccr::managers::settings::SettingsManager::new(
         settings_path,
         backup_dir,
         lock_manager,

@@ -8,13 +8,13 @@
 // 4. 📝 更新 ccs_config 当前配置标记
 // 5. 📚 记录操作历史(带环境变量变化)
 
-use crate::config::ConfigManager;
-use crate::error::{CcrError, Result};
-use crate::history::{
+use crate::managers::config::ConfigManager;
+use crate::core::error::{CcrError, Result};
+use crate::managers::history::{
     HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
 };
-use crate::logging::ColorOutput;
-use crate::settings::SettingsManager;
+use crate::core::logging::ColorOutput;
+use crate::managers::settings::SettingsManager;
 use crate::utils::Validatable;
 
 /// 🔄 切换到指定配置

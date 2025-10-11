@@ -1,8 +1,8 @@
 // 🔄 update 命令实现 - 自动更新 CCR
 // 📦 从 GitHub 仓库更新到最新版本(使用 cargo install)
 
-use crate::error::{CcrError, Result};
-use crate::logging::ColorOutput;
+use crate::core::error::{CcrError, Result};
+use crate::core::logging::ColorOutput;
 use std::process::{Command, Stdio};
 
 /// 🔄 执行自更新

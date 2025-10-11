@@ -1,7 +1,7 @@
 // 📝 原子写入器
 // 提供安全的原子文件写入功能,避免数据损坏
 
-use crate::error::{CcrError, Result};
+use crate::core::error::{CcrError, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::NamedTempFile;

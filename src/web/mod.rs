@@ -9,7 +9,7 @@ pub mod system_info_cache;
 
 pub use server::web_command;
 
-use crate::error::Result;
+use crate::core::error::Result;
 
 /// Web 命令入口
 #[allow(dead_code)]

@@ -1,8 +1,8 @@
 // 📚 历史记录服务
 // 封装历史记录相关的业务逻辑
 
-use crate::error::Result;
-use crate::history::{HistoryEntry, HistoryManager, HistoryStats, OperationType};
+use crate::core::error::Result;
+use crate::managers::history::{HistoryEntry, HistoryManager, HistoryStats, OperationType};
 use std::sync::Arc;
 
 /// 📚 历史记录服务
@@ -83,8 +83,8 @@ impl HistoryService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::history::{OperationDetails, OperationResult};
-    use crate::lock::LockManager;
+    use crate::managers::history::{OperationDetails, OperationResult};
+    use crate::core::lock::LockManager;
     use tempfile::tempdir;
 
     #[test]

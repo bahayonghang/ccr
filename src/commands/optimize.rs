@@ -1,9 +1,9 @@
 // 🔄 optimize 命令实现 - 优化配置文件结构
 // 📋 按字母顺序排列配置节,提升可读性
 
-use crate::config::ConfigManager;
-use crate::error::Result;
-use crate::logging::ColorOutput;
+use crate::managers::config::ConfigManager;
+use crate::core::error::Result;
+use crate::core::logging::ColorOutput;
 
 /// 🔄 优化配置文件结构
 ///

@@ -1,7 +1,7 @@
 // 📁 文件管理器 trait
 // 为配置文件和设置文件提供统一的加载/保存接口
 
-use crate::error::Result;
+use crate::core::error::Result;
 use std::path::Path;
 
 /// 📁 文件管理器 trait

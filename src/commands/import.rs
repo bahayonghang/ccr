@@ -1,9 +1,9 @@
 // 📥 import 命令实现 - 导入配置
 // 🔄 从备份文件恢复配置,支持合并和覆盖两种模式
 
-use crate::config::{CcsConfig, ConfigManager};
-use crate::error::{CcrError, Result};
-use crate::logging::ColorOutput;
+use crate::managers::config::{CcsConfig, ConfigManager};
+use crate::core::error::{CcrError, Result};
+use crate::core::logging::ColorOutput;
 use std::fs;
 use std::path::PathBuf;
 
@@ -197,7 +197,7 @@ fn print_import_summary(result: &ImportResult) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::ConfigSection;
+    use crate::managers::config::ConfigSection;
 
     #[test]
     fn test_merge_configs() {

@@ -170,14 +170,20 @@ ccr switch anthropic        # See detailed logs
 ```
 src/
 ├── main.rs           # 🚀 CLI entry
-├── error.rs          # ⚠️ Error types + exit codes
-├── config.rs         # ⚙️ Config management (.toml)
-├── settings.rs       # ⭐ Settings management (settings.json)
-├── history.rs        # 📚 Audit trail
-├── lock.rs           # 🔒 File locking
-├── logging.rs        # 🎨 Colored output
-├── web.rs            # 🌐 HTTP server + API
-└── commands/         # 📋 All CLI commands
+├── lib.rs            # 📚 Library entry
+├── commands/         # 🎯 CLI Layer (13 commands)
+├── web/              # 🌐 Web Layer (HTTP server + API)
+├── services/         # 🎯 Service Layer (business logic)
+├── managers/         # 📁 Manager Layer (data access)
+│   ├── config.rs     # ⚙️ Config management
+│   ├── settings.rs   # ⭐ Settings management
+│   └── history.rs    # 📚 Audit trail
+├── core/             # 🏗️ Core Layer (infrastructure)
+│   ├── error.rs      # ⚠️ Error types + exit codes
+│   ├── lock.rs       # 🔒 File locking
+│   ├── logging.rs    # 🎨 Colored output
+│   └── ...           # More core modules
+└── utils/            # 🛠️ Utils (masking, validation)
 ```
 
 **Commands:**
@@ -190,7 +196,7 @@ cargo build --release # 🏗️ Production build
 
 ## 🏗️ Architecture
 
-CCR v1.0.0 features a modern layered architecture:
+CCR v1.1.0 features a strict layered architecture:
 
 ```
 CLI/Web Layer → Services → Managers → Core/Utils

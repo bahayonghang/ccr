@@ -1,8 +1,8 @@
 // ⚙️ 配置服务
 // 封装配置相关的业务逻辑
 
-use crate::config::{CcsConfig, ConfigManager, ConfigSection};
-use crate::error::{CcrError, Result};
+use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection};
+use crate::core::error::{CcrError, Result};
 use crate::utils::Validatable;
 use rayon::prelude::*;
 use std::sync::Arc;

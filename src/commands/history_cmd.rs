@@ -1,9 +1,9 @@
 // 📚 history 命令实现 - 显示操作历史
 // 🔍 展示所有操作的审计追踪,支持筛选和统计
 
-use crate::error::Result;
-use crate::history::OperationType;
-use crate::logging::ColorOutput;
+use crate::core::error::Result;
+use crate::managers::history::OperationType;
+use crate::core::logging::ColorOutput;
 use crate::services::HistoryService;
 use colored::*;
 
@@ -73,9 +73,9 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
 
         // 根据结果选择颜色
         let result_str = match &entry.result {
-            crate::history::OperationResult::Success => "成功".green(),
-            crate::history::OperationResult::Failure(msg) => format!("失败: {}", msg).red(),
-            crate::history::OperationResult::Warning(msg) => format!("警告: {}", msg).yellow(),
+            crate::managers::history::OperationResult::Success => "成功".green(),
+            crate::managers::history::OperationResult::Failure(msg) => format!("失败: {}", msg).red(),
+            crate::managers::history::OperationResult::Warning(msg) => format!("警告: {}", msg).yellow(),
         };
 
         println!("{}. [{}] {} - {}", index + 1, time_str, op_str, result_str);

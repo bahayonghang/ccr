@@ -9,9 +9,9 @@
 // - 💾 自动备份机制
 // - 🌍 环境变量映射
 
-use crate::config::ConfigSection;
-use crate::error::{CcrError, Result};
-use crate::lock::LockManager;
+use crate::managers::config::ConfigSection;
+use crate::core::error::{CcrError, Result};
+use crate::core::lock::LockManager;
 use crate::utils::Validatable;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -400,7 +400,7 @@ impl SettingsManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::ConfigSection;
+    use crate::managers::config::ConfigSection;
 
     fn create_test_config_section() -> ConfigSection {
         ConfigSection {

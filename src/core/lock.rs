@@ -11,7 +11,7 @@
 // - 防止多个 CCR 进程同时修改 settings.json
 // - 防止并发写入历史记录文件
 
-use crate::error::{CcrError, Result};
+use crate::core::error::{CcrError, Result};
 use fs4::fs_std::FileExt;
 use std::fs::{self, File, OpenOptions};
 use std::path::{Path, PathBuf};

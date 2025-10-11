@@ -9,8 +9,8 @@
 // - 🆔 UUID 唯一标识每个操作
 // - 📅 时间戳和操作者追踪
 
-use crate::error::{CcrError, Result};
-use crate::lock::LockManager;
+use crate::core::error::{CcrError, Result};
+use crate::core::lock::LockManager;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::fs;

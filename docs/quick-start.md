@@ -307,4 +307,66 @@ chmod 644 ~/.ccs_config.toml
 
 - 查看 [核心命令](/commands/) 了解所有可用命令
 - 查看 [配置管理](/configuration) 了解高级配置选项
+- 查看 [架构文档](/architecture) 了解项目架构设计
 - 查看 [更新日志](/changelog) 了解最新功能
+
+## 开发者指南
+
+如果你想参与 CCR 开发或了解内部实现：
+
+### 项目架构
+
+CCR 采用严格的分层架构，详见 [架构文档](/architecture)：
+
+```
+CLI/Web Layer → Services → Managers → Core/Utils
+```
+
+### 目录结构
+
+```
+src/
+├── commands/         # CLI 命令实现
+├── web/              # Web 界面和 API
+├── services/         # 业务逻辑层
+├── managers/         # 数据访问层
+│   ├── config.rs     # 配置文件管理
+│   ├── settings.rs   # 设置文件管理
+│   └── history.rs    # 历史记录管理
+├── core/             # 核心基础设施
+│   ├── error.rs      # 错误处理
+│   ├── lock.rs       # 文件锁
+│   └── logging.rs    # 日志输出
+└── utils/            # 工具函数
+```
+
+### 开发命令
+
+```bash
+# 快速类型检查
+cargo check
+
+# 运行测试
+cargo test
+
+# 代码检查
+cargo clippy
+
+# 格式化代码
+cargo fmt
+
+# 构建开发版本
+cargo build
+
+# 构建生产版本
+cargo build --release
+```
+
+### 添加新功能
+
+1. **添加新命令**：在 `src/commands/` 创建新文件
+2. **添加 API 端点**：在 `src/web/handlers.rs` 添加处理器
+3. **添加业务逻辑**：在 `src/services/` 创建或扩展服务
+4. **修改数据结构**：在 `src/managers/` 修改相应管理器
+
+详细开发指南请查看项目根目录的 `CLAUDE.md` 文件。

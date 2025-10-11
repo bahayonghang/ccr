@@ -7,7 +7,7 @@
 // - ✅ 验证配置完整性
 // - 📋 管理多个配置节
 
-use crate::error::{CcrError, Result};
+use crate::core::error::{CcrError, Result};
 use crate::utils::Validatable;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};

@@ -1,9 +1,9 @@
 // 🔌 Web 请求处理器
 // 处理所有 HTTP 请求并调用相应的 Service
 
-use crate::config::ConfigSection;
-use crate::error::{CcrError, Result};
-use crate::logging::ColorOutput;
+use crate::managers::config::ConfigSection;
+use crate::core::error::{CcrError, Result};
+use crate::core::logging::ColorOutput;
 use crate::services::{BackupService, ConfigService, HistoryService, SettingsService};
 use crate::web::models::*;
 use crate::web::system_info_cache::SystemInfoCache;
@@ -243,8 +243,8 @@ impl Handlers {
             provider: req.provider,
             provider_type: req.provider_type.and_then(|t| {
                 match t.as_str() {
-                    "official_relay" => Some(crate::config::ProviderType::OfficialRelay),
-                    "third_party_model" => Some(crate::config::ProviderType::ThirdPartyModel),
+                    "official_relay" => Some(crate::managers::config::ProviderType::OfficialRelay),
+                    "third_party_model" => Some(crate::managers::config::ProviderType::ThirdPartyModel),
                     _ => None,
                 }
             }),
@@ -294,8 +294,8 @@ impl Handlers {
             provider: req.provider,
             provider_type: req.provider_type.and_then(|t| {
                 match t.as_str() {
-                    "official_relay" => Some(crate::config::ProviderType::OfficialRelay),
-                    "third_party_model" => Some(crate::config::ProviderType::ThirdPartyModel),
+                    "official_relay" => Some(crate::managers::config::ProviderType::OfficialRelay),
+                    "third_party_model" => Some(crate::managers::config::ProviderType::ThirdPartyModel),
                     _ => None,
                 }
             }),
