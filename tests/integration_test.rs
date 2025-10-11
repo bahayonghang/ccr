@@ -15,6 +15,10 @@ fn create_test_section(name: &str) -> ConfigSection {
         auth_token: Some(format!("sk-test-token-{}", name)),
         model: Some("test-model".into()),
         small_fast_model: Some("test-small".into()),
+        provider: None,
+        provider_type: None,
+        account: None,
+        tags: None,
     }
 }
 
@@ -119,6 +123,10 @@ fn test_validation_trait() {
         auth_token: Some("token".into()),
         model: None,
         small_fast_model: None,
+        provider: None,
+        provider_type: None,
+        account: None,
+        tags: None,
     };
     assert!(invalid_section.validate().is_err());
 
@@ -129,6 +137,10 @@ fn test_validation_trait() {
         auth_token: Some("token".into()),
         model: None,
         small_fast_model: None,
+        provider: None,
+        provider_type: None,
+        account: None,
+        tags: None,
     };
     assert!(invalid_section.validate().is_err());
 }

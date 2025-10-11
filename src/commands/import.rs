@@ -215,6 +215,10 @@ mod tests {
                 auth_token: Some("old_token".into()),
                 model: None,
                 small_fast_model: None,
+                provider: None,
+                provider_type: None,
+                account: None,
+                tags: None,
             },
         );
 
@@ -232,6 +236,10 @@ mod tests {
                 auth_token: Some("new_token".into()),
                 model: None,
                 small_fast_model: None,
+                provider: None,
+                provider_type: None,
+                account: None,
+                tags: None,
             },
         );
 
@@ -243,6 +251,10 @@ mod tests {
                 auth_token: Some("test2_token".into()),
                 model: None,
                 small_fast_model: None,
+                provider: None,
+                provider_type: None,
+                account: None,
+                tags: None,
             },
         );
 

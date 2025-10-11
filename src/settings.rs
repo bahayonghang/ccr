@@ -409,6 +409,10 @@ mod tests {
             auth_token: Some("sk-test-token".into()),
             model: Some("test-model".into()),
             small_fast_model: Some("test-small".into()),
+            provider: None,
+            provider_type: None,
+            account: None,
+            tags: None,
         }
     }
 
