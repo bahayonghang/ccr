@@ -245,6 +245,32 @@ async function handleDelete(name: string) {
 }
 
 // ============================================================================
+// 📍 配置导航跳转
+// ============================================================================
+
+function scrollToConfig(configName: string) {
+  // 确保在配置列表标签页
+  activeTab.value = 'configs'
+
+  // 延迟一小段时间确保 DOM 已更新
+  setTimeout(() => {
+    const element = document.getElementById(`config-${configName}`)
+    if (element) {
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      })
+
+      // 高亮效果
+      element.style.transform = 'scale(1.02)'
+      setTimeout(() => {
+        element.style.transform = 'scale(1)'
+      }, 300)
+    }
+  }, 100)
+}
+
+// ============================================================================
 // 🔔 通知系统
 // ============================================================================
 
@@ -449,6 +475,7 @@ onMounted(async () => {
               <div
                 v-for="config in filteredConfigs"
                 :key="config.name"
+                :id="`config-${config.name}`"
                 class="config-card"
                 :class="{ active: config.is_current }"
               >
@@ -547,7 +574,12 @@ onMounted(async () => {
               <span style="font-size: 12px; color: var(--text-muted);">暂无配置</span>
             </li>
             <li v-for="config in filteredConfigs" :key="config.name" class="config-nav-item">
-              <a href="#" class="config-nav-link" :class="{ active: config.is_current }">
+              <a
+                href="#"
+                class="config-nav-link"
+                :class="{ active: config.is_current }"
+                @click.prevent="scrollToConfig(config.name)"
+              >
                 <span class="config-nav-badge" :class="{
                   current: config.is_current,
                   default: config.is_default && !config.is_current
@@ -1007,6 +1039,7 @@ onMounted(async () => {
   padding: 16px;
   margin-bottom: 14px;
   transition: all 0.3s ease;
+  scroll-margin-top: 20px;
 }
 
 .config-card:hover {
@@ -1123,6 +1156,7 @@ onMounted(async () => {
   transition: all 0.3s ease;
   font-size: 13px;
   position: relative;
+  cursor: pointer;
 }
 
 .config-nav-link:hover {
