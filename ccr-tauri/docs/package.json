@@ -1,0 +1,23 @@
+{
+  "name": "ccr-tauri-docs",
+  "version": "1.1.2",
+  "description": "CCR Desktop (Tauri) 技术文档",
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0"
+  },
+  "keywords": [
+    "ccr",
+    "tauri",
+    "desktop",
+    "documentation",
+    "vitepress"
+  ],
+  "author": "哈雷酱",
+  "license": "MIT"
+}

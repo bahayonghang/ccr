@@ -1,0 +1,58 @@
+[package]
+name = "ccr-tauri"
+version = "1.1.2"
+edition = "2021"
+authors = ["Yonghang Li"]
+description = "CCR Desktop Application - Tauri-based GUI for Claude Code Configuration Management"
+license = "MIT"
+
+[lib]
+name = "ccr_tauri"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "ccr-tauri"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# 🚀 Tauri 核心依赖
+tauri = { version = "2", features = ["devtools"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-shell = "2"
+
+# 🎯 复用 CCR 核心库
+ccr = { path = ".." }
+
+# 序列化
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# 错误处理
+anyhow = "1.0"
+thiserror = "2.0"
+
+# 异步运行时
+tokio = { version = "1", features = ["full"] }
+
+# 日志
+log = "0.4"
+env_logger = "0.11"
+
+# 工具库
+dirs = "6.0"
+whoami = "1.5"
+humantime = "2.1"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
