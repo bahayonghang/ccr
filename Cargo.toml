@@ -25,8 +25,8 @@ clap = { version = "4.5.48", features = ["derive", "cargo"] }
 # 序列化与配置解析
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.143"
-toml = "0.9.7"
-indexmap = { version = "2.7.0", features = ["serde"] }
+toml = "0.9.8"
+indexmap = { version = "2.11.4", features = ["serde"] }
 
 # 错误处理
 anyhow = "1.0.99"
@@ -63,7 +63,7 @@ uuid = { version = "1.18.1", features = ["v4", "serde"] }
 # HTTP 服务器 (用于 web 界面)
 # 🎯 异步 Web 框架 - 高性能并发处理
 tokio = { version = "1.42", features = ["full"] }
-axum = "0.7"
+axum = "0.8.6"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 
@@ -71,7 +71,7 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 open = "5.0"
 
 # 系统信息获取
-sysinfo = "0.33"
+sysinfo = "0.37.2"
 
 # 并行处理
 rayon = "1.10"
