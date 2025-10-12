@@ -15,6 +15,7 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | ✅ **Validation** | Comprehensive config validation (URLs, required fields, format) |
 | 🔤 **Config Optimization** | Sort configs alphabetically, maintain order after switching |
 | 🌐 **Web UI** | 11 complete RESTful API endpoints, browser-based management |
+| 🖥️ **Desktop App** | Native Tauri desktop app with modern Vue 3 interface and dark mode |
 | 🏗️ **Modern Architecture** | Service layer pattern, modular design, 95%+ test coverage |
 | ⚡ **Smart Update** | Real-time progress display during auto-update |
 | 🔄 **CCS Compatible** | Shares `~/.ccs_config.toml` - seamlessly coexist with shell version |
@@ -38,6 +39,42 @@ cargo install --path .
 ```
 
 **Requirements:** Rust 1.85+ (for edition 2024 features)
+
+## 🖥️ Desktop Application
+
+CCR now includes a **native desktop application** built with Tauri 2.0 + Vue 3!
+
+### Features
+
+- 🎨 **Modern Interface**: Beautiful three-column layout with dark/light theme
+- 🔄 **Configuration Management**: Switch, create, edit, delete configs with GUI
+- 🏷️ **Smart Filtering**: Filter by type (Official Relay, Third-party Model, Uncategorized)
+- 📚 **History Tracking**: View all operations with detailed logs
+- 💾 **Backup Management**: List and restore backups easily
+- 📤 **Import/Export**: Import/export configs with GUI
+- ⚙️ **System Info**: Display hostname, username, paths at a glance
+
+### Quick Start
+
+```bash
+cd ccr-tauri
+
+# Install frontend dependencies
+cd src-ui && npm install && cd ..
+
+# Run in development mode
+cargo tauri dev
+
+# Build for production
+cargo tauri build
+```
+
+**📖 Full Documentation**: See `ccr-tauri/docs/` for complete architecture docs, API reference, and development guides (powered by VitePress).
+
+**🎯 Desktop vs CLI vs Web**:
+- **Desktop App**: Best for visual management and frequent switching
+- **CLI Tool**: Best for scripting and automation
+- **Web UI**: Best for remote access and team management
 
 ## 🚀 Quick Start
 
@@ -184,6 +221,26 @@ src/
 │   ├── logging.rs    # 🎨 Colored output
 │   └── ...           # More core modules
 └── utils/            # 🛠️ Utils (masking, validation)
+
+ccr-tauri/            # 🖥️ Desktop Application
+├── src/              # 🦀 Rust backend (Tauri commands)
+│   ├── main.rs       # Application entry
+│   ├── lib.rs        # Library exports
+│   └── commands/     # Tauri command definitions
+├── src-ui/           # 🎨 Vue 3 frontend
+│   ├── src/
+│   │   ├── App.vue   # Main component
+│   │   ├── api/      # API layer (Tauri invoke)
+│   │   ├── types/    # TypeScript definitions
+│   │   └── style.css # Global styles
+│   └── package.json  # Frontend dependencies
+├── docs/             # 📚 VitePress documentation
+│   ├── guide/        # User guides
+│   ├── api/          # API reference
+│   ├── architecture/ # Architecture docs
+│   └── development/  # Development guides
+├── capabilities/     # 🔐 Tauri 2.0 permissions
+└── tauri.conf.json   # Tauri configuration
 ```
 
 **Commands:**
