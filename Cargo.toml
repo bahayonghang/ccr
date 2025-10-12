@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "1.1.1"
+version = "1.1.2"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher - Configuration management tool with complete audit trail(Rust implementation)"
@@ -57,7 +57,11 @@ whoami = "1.5"
 uuid = { version = "1.18.1", features = ["v4", "serde"] }
 
 # HTTP 服务器 (用于 web 界面)
-tiny_http = "0.12"
+# 🎯 异步 Web 框架 - 高性能并发处理
+tokio = { version = "1.42", features = ["full"] }
+axum = "0.7"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # 自动打开浏览器
 open = "5.0"

@@ -110,7 +110,7 @@ mod tests {
     fn test_example_config_not_empty() {
         assert!(!EXAMPLE_CONFIG.is_empty());
         assert!(EXAMPLE_CONFIG.contains("default_config"));
-        assert!(EXAMPLE_CONFIG.contains("[anyrouter]"));
+        assert!(EXAMPLE_CONFIG.contains("[anyrouter_main]"));
     }
 
     #[test]

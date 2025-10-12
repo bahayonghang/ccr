@@ -77,41 +77,45 @@ impl BackupService {
     ///
     /// # Returns
     /// 所有 .bak 文件的信息列表
+    ///
+    /// 🎯 优化：使用 rayon 并行扫描文件，提升大量备份文件时的性能
     pub fn scan_backup_directory(&self) -> Result<Vec<BackupFileInfo>> {
+        use rayon::prelude::*;
+
         if !self.backup_dir.exists() {
             return Ok(Vec::new());
         }
 
-        let mut backups = Vec::new();
+        // 🚀 收集所有目录项
+        let entries: Vec<_> = fs::read_dir(&self.backup_dir)
+            .map_err(|e| CcrError::ConfigError(format!("读取备份目录失败: {}", e)))?
+            .filter_map(|e| e.ok())
+            .collect();
 
-        let entries = fs::read_dir(&self.backup_dir)
-            .map_err(|e| CcrError::ConfigError(format!("读取备份目录失败: {}", e)))?;
+        // 🚀 并行处理每个文件，收集备份信息
+        let mut backups: Vec<BackupFileInfo> = entries
+            .par_iter()
+            .filter_map(|entry| {
+                let path = entry.path();
 
-        for entry in entries {
-            let entry =
-                entry.map_err(|e| CcrError::ConfigError(format!("读取目录项失败: {}", e)))?;
-            let path = entry.path();
+                // 只处理 .bak 文件
+                if !path.is_file() || path.extension()?.to_str()? != "bak" {
+                    return None;
+                }
 
-            // 只处理 .bak 文件
-            if !path.is_file() || path.extension().and_then(|s| s.to_str()) != Some("bak") {
-                continue;
-            }
+                let metadata = fs::metadata(&path).ok()?;
+                let modified = metadata.modified().ok()?;
 
-            let metadata = fs::metadata(&path)
-                .map_err(|e| CcrError::ConfigError(format!("读取文件元数据失败: {}", e)))?;
-
-            let modified = metadata
-                .modified()
-                .map_err(|e| CcrError::ConfigError(format!("获取文件修改时间失败: {}", e)))?;
-
-            backups.push(BackupFileInfo {
-                path,
-                size: metadata.len(),
-                modified,
-            });
-        }
+                Some(BackupFileInfo {
+                    path,
+                    size: metadata.len(),
+                    modified,
+                })
+            })
+            .collect();
 
         // 按修改时间倒序排列(最新的在前)
+        // 注意：排序仍需串行，但扫描部分已并行化
         backups.sort_by(|a, b| b.modified.cmp(&a.modified));
 
         Ok(backups)
