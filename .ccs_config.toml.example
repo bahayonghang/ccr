@@ -1,6 +1,50 @@
 # CCR 配置示例文件（带分类体系）
 # 此示例展示了如何使用新的分类字段来更好地组织和管理配置
 
+
+# ========================================
+# 📝 配置说明
+# ========================================
+#
+# 字段说明：
+#
+# 基本字段（必需）：
+# - description: 配置描述
+# - base_url: API 基础 URL
+# - auth_token: 认证令牌
+#
+# 模型字段（可选）：
+# - model: 默认模型名称
+# - small_fast_model: 快速小模型名称
+#
+# 🆕 分类字段（可选但推荐）：
+# - provider: 提供商名称（如 "anyrouter", "glm", "moonshot"）
+#   用于标识同一提供商的不同配置，便于分组管理
+#
+# - provider_type: 提供商类型
+#   - "official_relay": 官方中转 - 提供官方 Claude 模型的中转服务
+#   - "third_party_model": 第三方模型 - 提供自己的模型服务
+#
+# - account: 账号标识（用于区分同一提供商的不同账号）
+#   如 "github_5953", "linuxdo_79797", "student_email"
+#
+# - tags: 标签列表（用于灵活分类和筛选）
+#   常用标签示例：
+#   - "free" / "paid": 免费/付费
+#   - "stable": 稳定
+#   - "high-speed": 高速
+#   - "backup": 备用
+#   - "chinese": 中文服务
+#   - "us-server" / "asia-server": 服务器位置
+#   - "student": 学生优惠
+#
+# 使用建议：
+# 1. 同一提供商的多个账号使用相同的 provider 值
+# 2. 根据服务类型设置正确的 provider_type
+# 3. 使用有意义的 account 标识来区分不同账号
+# 4. 使用标签进行灵活分类，便于筛选和管理
+
+
 default_config = "anyrouter"
 current_config = "husan"
 
@@ -44,25 +88,6 @@ provider = "anyrouter"
 provider_type = "official_relay"
 account = "Geekyhang_stumail"
 tags = ["free", "student"]
-
-# AnyRouter 不同节点示例（不同 base_url）
-[anyrouter_us]
-description = "AnyRouter 美国节点"
-base_url = "https://us.anyrouter.top"
-auth_token = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-provider = "anyrouter"
-provider_type = "official_relay"
-account = "us_node"
-tags = ["free", "us-server"]
-
-[anyrouter_asia]
-description = "AnyRouter 亚洲节点"
-base_url = "https://asia.anyrouter.top"
-auth_token = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-provider = "anyrouter"
-provider_type = "official_relay"
-account = "asia_node"
-tags = ["free", "asia-server", "low-latency"]
 
 [husan]
 description = "虎三api"
@@ -204,45 +229,3 @@ model = "Qwen/Qwen3-Coder-480B-A35B-Instruct"
 provider = "modelscope"
 provider_type = "third_party_model"
 tags = ["chinese", "qwen", "coding"]
-
-# ========================================
-# 📝 配置说明
-# ========================================
-#
-# 字段说明：
-#
-# 基本字段（必需）：
-# - description: 配置描述
-# - base_url: API 基础 URL
-# - auth_token: 认证令牌
-#
-# 模型字段（可选）：
-# - model: 默认模型名称
-# - small_fast_model: 快速小模型名称
-#
-# 🆕 分类字段（可选但推荐）：
-# - provider: 提供商名称（如 "anyrouter", "glm", "moonshot"）
-#   用于标识同一提供商的不同配置，便于分组管理
-#
-# - provider_type: 提供商类型
-#   - "official_relay": 官方中转 - 提供官方 Claude 模型的中转服务
-#   - "third_party_model": 第三方模型 - 提供自己的模型服务
-#
-# - account: 账号标识（用于区分同一提供商的不同账号）
-#   如 "github_5953", "linuxdo_79797", "student_email"
-#
-# - tags: 标签列表（用于灵活分类和筛选）
-#   常用标签示例：
-#   - "free" / "paid": 免费/付费
-#   - "stable": 稳定
-#   - "high-speed": 高速
-#   - "backup": 备用
-#   - "chinese": 中文服务
-#   - "us-server" / "asia-server": 服务器位置
-#   - "student": 学生优惠
-#
-# 使用建议：
-# 1. 同一提供商的多个账号使用相同的 provider 值
-# 2. 根据服务类型设置正确的 provider_type
-# 3. 使用有意义的 account 标识来区分不同账号
-# 4. 使用标签进行灵活分类，便于筛选和管理
