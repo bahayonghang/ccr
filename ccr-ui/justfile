@@ -76,10 +76,10 @@ alias f := fmt
 # ===== 开发 =====
 
 # 启动开发环境（前端 + 后端）
-dev:
+dev: dev-clean
     @echo "🚀 启动开发环境..."
     @echo "📍 后端: http://localhost:8081"
-    @echo "📍 前端: http://localhost:5173"
+    @echo "📍 前端: http://localhost:3000 (Next.js)"
     @echo ""
     @just dev-parallel
 
@@ -87,11 +87,31 @@ dev:
 dev-parallel:
     #!/usr/bin/env bash
     set -e
+    # 确保 logs 目录存在
+    mkdir -p logs
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
-    cd backend && cargo run &
+    # 后端日志由 Rust tracing 管理（自动按日分割）
+    cd backend && cargo run 2>&1 | tee -a ../logs/backend-console.log &
     sleep 2
-    cd frontend && npm run dev &
+    # 前端日志重定向到 logs/frontend.log，按日分割由 logrotate 或手动清理
+    cd frontend && npm run dev 2>&1 | tee -a ../logs/frontend.log &
     wait
+
+# 启动前清理（端口 + 缓存 + 残留进程）
+dev-clean:
+    #!/usr/bin/env bash
+    set -e
+    echo "🧹 开始清理开发环境..."
+    # 终止残留进程
+    pkill -9 -f "ccr-ui-backend" 2>/dev/null || true
+    pkill -9 -f "next-server" 2>/dev/null || true
+    pkill -9 -f "next dev" 2>/dev/null || true
+    # 释放端口
+    lsof -ti:8081 2>/dev/null | xargs -r kill -9 || true
+    lsof -ti:3000 2>/dev/null | xargs -r kill -9 || true
+    # 清理 Next.js 缓存和锁
+    rm -rf frontend/.next
+    echo "✅ 清理完成"
 
 # 仅启动后端开发服务器
 dev-backend:
@@ -204,6 +224,11 @@ clean-frontend:
     @echo "🧹 清理前端..."
     cd frontend && rm -rf dist node_modules
 
+
+# 清理旧日志文件（保留14天）
+clean-logs:
+    @echo "🧹 清理旧日志文件..."
+    @./clean-logs.sh
 # 深度清理（包括依赖）
 clean-all: clean
     @echo "🧹 深度清理（包括依赖）..."
@@ -265,17 +290,24 @@ info:
     @echo ""
     @echo "📁 项目结构:"
     @echo "  - backend/  : Actix Web (Rust)"
-    @echo "  - frontend/ : React + Vite (TypeScript)"
+    @echo "  - frontend/ : Next.js 16 Beta (TypeScript + Turbopack)"
+    @echo "  - logs/     : 日志文件（按日分割，保留14天）"
     @echo ""
     @echo "🌐 开发端口:"
     @echo "  - 后端: http://localhost:8081"
-    @echo "  - 前端: http://localhost:5173"
+    @echo "  - 前端: http://localhost:3000 (Next.js)"
+    @echo ""
+    @echo "📝 日志文件:"
+    @echo "  - logs/backend.log  : 后端日志（自动按日分割）"
+    @echo "  - logs/frontend.log : 前端日志"
+    @echo "  - just clean-logs   : 清理14天前的日志"
     @echo ""
     @echo "📦 常用命令:"
     @echo "  just install    - 安装所有依赖"
     @echo "  just dev        - 启动开发环境"
     @echo "  just build      - 构建生产版本"
     @echo "  just check      - 检查代码"
+    @echo "  just clean-logs - 清理旧日志"
     @echo "  just clean      - 清理构建产物"
     @echo ""
     @echo "📚 更多命令: just --list"

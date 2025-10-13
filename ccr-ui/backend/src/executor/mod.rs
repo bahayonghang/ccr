@@ -39,7 +39,7 @@ pub async fn execute_command_with_timeout(
 ) -> Result<CommandOutput> {
     let start = Instant::now();
 
-    log::info!("Executing command: ccr {}", args.join(" "));
+    tracing::info!("Executing command: ccr {}", args.join(" "));
 
     // Spawn the CCR process
     let mut child = Command::new("ccr")
@@ -109,7 +109,7 @@ pub async fn execute_command_with_timeout(
     let duration_ms = start.elapsed().as_millis() as u64;
     let exit_code = status.code().unwrap_or(-1);
 
-    log::info!(
+    tracing::info!(
         "Command completed: exit_code={}, duration={}ms",
         exit_code,
         duration_ms

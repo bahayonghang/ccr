@@ -1,0 +1,15 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 简化版 Logo 用作 Favicon -->
+  <circle cx="16" cy="16" r="15" fill="#3B82F6"/>
+  
+  <!-- 简化的齿轮图标 -->
+  <g transform="translate(16, 16)">
+    <!-- 齿轮外形 -->
+    <path d="M-6 -1.5 L-6 -3 L-4.5 -4 L-3 -3 L-3 -1.5 L-1.5 -1.5 L-1.5 -3 L0 -4 L1.5 -3 L1.5 -1.5 L3 -1.5 L3 -3 L4.5 -4 L6 -3 L6 -1.5 L6 1.5 L4.5 4 L3 3 L3 1.5 L1.5 1.5 L1.5 3 L0 4 L-1.5 3 L-1.5 1.5 L-3 1.5 L-3 3 L-4.5 4 L-6 3 L-6 1.5 Z" 
+          fill="white"/>
+    
+    <!-- 中心圆 -->
+    <circle cx="0" cy="0" r="3" fill="#3B82F6" stroke="white" stroke-width="0.5"/>
+    <circle cx="0" cy="0" r="1" fill="white"/>
+  </g>
+</svg>

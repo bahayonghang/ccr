@@ -9,7 +9,7 @@ use crate::models::*;
 /// POST /api/command/execute - Execute a CCR command
 #[post("/api/command/execute")]
 pub async fn execute_command(req: web::Json<CommandRequest>) -> impl Responder {
-    log::info!(
+    tracing::info!(
         "Executing command: {} with args: {:?}",
         req.command,
         req.args

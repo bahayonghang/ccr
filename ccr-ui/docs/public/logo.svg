@@ -1,0 +1,59 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆形 -->
+  <circle cx="32" cy="32" r="30" fill="url(#gradient)" stroke="url(#borderGradient)" stroke-width="2"/>
+  
+  <!-- 主要图标 - 配置齿轮 -->
+  <g transform="translate(32, 32)">
+    <!-- 外层齿轮 -->
+    <path d="M-12 -3 L-12 -6 L-9 -8 L-6 -6 L-6 -3 L-3 -3 L-3 -6 L0 -8 L3 -6 L3 -3 L6 -3 L6 -6 L9 -8 L12 -6 L12 -3 L12 3 L9 8 L6 6 L6 3 L3 3 L3 6 L0 8 L-3 6 L-3 3 L-6 3 L-6 6 L-9 8 L-12 6 L-12 3 Z" 
+          fill="white" opacity="0.9"/>
+    
+    <!-- 内层圆形 -->
+    <circle cx="0" cy="0" r="6" fill="url(#innerGradient)" stroke="white" stroke-width="1"/>
+    
+    <!-- 中心点 -->
+    <circle cx="0" cy="0" r="2" fill="white"/>
+  </g>
+  
+  <!-- 装饰性元素 - 代表配置切换 -->
+  <g opacity="0.7">
+    <!-- 左上角小圆点 -->
+    <circle cx="16" cy="16" r="2" fill="white"/>
+    <!-- 右上角小圆点 -->
+    <circle cx="48" cy="16" r="2" fill="white"/>
+    <!-- 左下角小圆点 -->
+    <circle cx="16" cy="48" r="2" fill="white"/>
+    <!-- 右下角小圆点 -->
+    <circle cx="48" cy="48" r="2" fill="white"/>
+  </g>
+  
+  <!-- 连接线 - 表示系统连接 -->
+  <g stroke="white" stroke-width="1" opacity="0.5" fill="none">
+    <path d="M18 18 Q24 24 30 24"/>
+    <path d="M46 18 Q40 24 34 24"/>
+    <path d="M18 46 Q24 40 30 40"/>
+    <path d="M46 46 Q40 40 34 40"/>
+  </g>
+  
+  <!-- 渐变定义 -->
+  <defs>
+    <!-- 主背景渐变 -->
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1E40AF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A8A;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 边框渐变 -->
+    <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 内部齿轮渐变 -->
+    <radialGradient id="innerGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+</svg>

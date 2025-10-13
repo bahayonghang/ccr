@@ -1,0 +1,25 @@
+{
+  "name": "ccr-ui-docs",
+  "version": "1.0.0",
+  "description": "CCR UI 项目文档",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "serve": "vitepress serve"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0"
+  },
+  "keywords": [
+    "ccr",
+    "documentation",
+    "vitepress",
+    "vue",
+    "react",
+    "rust"
+  ],
+  "author": "CCR UI Team",
+  "license": "MIT"
+}

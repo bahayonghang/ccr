@@ -1,31 +1,110 @@
+# ===================================
 # Backend (Rust)
+# ===================================
 backend/target/
 backend/Cargo.lock
 
-# Frontend (Node.js)
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
+# ===================================
+# Frontend (Next.js 16 Beta)
+# ===================================
 
-# IDE
+# Dependencies
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+frontend/.yarn/install-state.gz
+
+# Next.js build output
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# Next.js cache
+frontend/.next/cache/
+
+# TypeScript
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# ===================================
+# Package managers
+# ===================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Lock files (keep package-lock.json, ignore others)
+# frontend/package-lock.json  # 保留以确保依赖一致性
+frontend/yarn.lock
+frontend/pnpm-lock.yaml
+
+# ===================================
+# Environment variables
+# ===================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+!.env.example
+
+# ===================================
+# IDE / Editors
+# ===================================
 .vscode/
 .idea/
 *.swp
 *.swo
+*.swn
 *~
+.sublime-*
 
+# ===================================
 # OS
+# ===================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
+# ===================================
 # Logs
+# ===================================
+# 日志文件（按日分割，保留14天）
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+logs/
+backend.log
+frontend.log
 
-# Environment
-.env
-.env.local
-.env.*.local
+# Process IDs
+*.pid
+*.seed
+*.pid.lock
 
+# ===================================
+# Testing
+# ===================================
+coverage/
+.nyc_output/
+*.lcov
+
+# ===================================
+# Vercel (if deploying)
+# ===================================
+.vercel
+
+# ===================================
+# Miscellaneous
+# ===================================
+*.bak
+*.tmp
+*.temp
+.cache/
+
+node_modules/

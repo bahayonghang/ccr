@@ -4,6 +4,8 @@
 use actix_cors::Cors;
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use clap::Parser;
+use std::path::PathBuf;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 mod config_reader;
 mod executor;
@@ -24,33 +26,36 @@ struct Args {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // Initialize logger
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-
     // Parse command line arguments
     let args = Args::parse();
 
+    // Initialize logger with file rotation
+    setup_logging()?;
+
+    // Parse command line arguments (already done above)
+    // let args = Args::parse();
+
     let bind_addr = format!("{}:{}", args.host, args.port);
 
-    log::info!("Starting CCR UI Backend Server");
-    log::info!("Server binding to: {}", bind_addr);
-    log::info!("API endpoints:");
-    log::info!("  - Config Management: http://{}/api/configs", bind_addr);
-    log::info!("  - Command Execution: http://{}/api/command/execute", bind_addr);
-    log::info!("  - Command List: http://{}/api/command/list", bind_addr);
+    tracing::info!("Starting CCR UI Backend Server");
+    tracing::info!("Server binding to: {}", bind_addr);
+    tracing::info!("API endpoints:");
+    tracing::info!("  - Config Management: http://{}/api/configs", bind_addr);
+    tracing::info!("  - Command Execution: http://{}/api/command/execute", bind_addr);
+    tracing::info!("  - Command List: http://{}/api/command/list", bind_addr);
 
     // Verify CCR is available
     match executor::execute_command(vec!["version".to_string()]).await {
         Ok(output) if output.success => {
-            log::info!("CCR binary found and working");
-            log::info!("CCR Version: {}", output.stdout.trim());
+            tracing::info!("CCR binary found and working");
+            tracing::info!("CCR Version: {}", output.stdout.trim());
         }
         Ok(output) => {
-            log::warn!("CCR binary found but returned error: {}", output.stderr);
+            tracing::warn!("CCR binary found but returned error: {}", output.stderr);
         }
         Err(e) => {
-            log::error!("CCR binary not found or not working: {}", e);
-            log::error!("Please ensure 'ccr' is installed and in your PATH");
+            tracing::error!("CCR binary not found or not working: {}", e);
+            tracing::error!("Please ensure 'ccr' is installed and in your PATH");
             return Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
                 "CCR binary not found",
@@ -96,5 +101,41 @@ async fn main() -> std::io::Result<()> {
     .bind(&bind_addr)?
     .run()
     .await
+}
+
+/// Setup logging with daily rotation and 14-day retention
+fn setup_logging() -> std::io::Result<()> {
+    // Create logs directory
+    let log_dir = PathBuf::from("logs");
+    std::fs::create_dir_all(&log_dir)?;
+
+    // Create file appender with daily rotation
+    let file_appender = tracing_appender::rolling::daily(&log_dir, "backend.log");
+    
+    // Create stdout layer for console output
+    let stdout_layer = tracing_subscriber::fmt::layer()
+        .with_writer(std::io::stdout)
+        .with_ansi(true);
+
+    // Create file layer for file output
+    let file_layer = tracing_subscriber::fmt::layer()
+        .with_writer(file_appender)
+        .with_ansi(false);
+
+    // Set up env filter (default to "info" level)
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info"));
+
+    // Combine layers
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(stdout_layer)
+        .with(file_layer)
+        .init();
+
+    // Log cleanup task will be handled by external script
+    tracing::info!("Logging initialized - logs directory: {:?}", log_dir);
+    
+    Ok(())
 }
 
