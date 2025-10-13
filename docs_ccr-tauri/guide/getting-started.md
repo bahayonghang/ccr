@@ -40,6 +40,9 @@
 ```bash [macOS]
 # 安装 Xcode Command Line Tools
 xcode-select --install
+
+# 安装 Cocoa 依赖
+brew install openssl
 ```
 
 ```bash [Ubuntu/Debian]
@@ -68,6 +71,9 @@ sudo dnf install webkit2gtk4.0-devel \
 ```
 
 ```powershell [Windows]
+# 安装 Visual Studio Build Tools 2019+
+# 或 Visual Studio Community 2019+ (勾选 C++ 开发工具)
+
 # WebView2 已预装在 Windows 10/11
 # 无需额外安装
 ```
@@ -141,7 +147,7 @@ Rust 的首次编译需要下载并编译所有依赖，这可能需要 5-10 分
 
 成功启动后，你应该看到：
 
-1. **Vite 开发服务器** 在 `http://localhost:5173` 启动
+1. **Vite 开发服务器** 在 `http://localhost:1420` 启动
 2. **Tauri 应用窗口** 自动打开，显示 CCR Desktop 界面
 3. **终端日志** 显示编译和运行信息
 
@@ -153,7 +159,7 @@ Rust 的首次编译需要下载并编译所有依赖，这可能需要 5-10 分
 
   VITE v5.0.0  ready in 324 ms
 
-  ➜  Local:   http://localhost:5173/
+  ➜  Local:   http://localhost:1420/
   ➜  Network: use --host to expose
 ```
 :::
@@ -223,6 +229,18 @@ Rust 的首次编译需要下载并编译所有依赖，这可能需要 5-10 分
 2. 查看所有配置切换和修改操作
 3. 每条记录包含时间、操作类型、操作者信息
 
+### 备份与恢复
+
+1. 点击右上角的 **"备份"** 按钮
+2. 选择要备份的配置
+3. 备份文件将保存到指定位置
+
+恢复配置：
+1. 点击 **"恢复"** 按钮
+2. 选择备份文件
+3. 选择要恢复的配置
+4. 确认恢复操作
+
 ## 主题切换
 
 点击右上角的 **🌙/☀️** 图标，在深色和浅色主题间切换。
@@ -236,7 +254,7 @@ Rust 的首次编译需要下载并编译所有依赖，这可能需要 5-10 分
 现在你可以：
 
 - 📚 阅读 [架构设计](/architecture/overview) 了解内部实现
-- 🛠️ 查看 [开发指南](/development/structure) 学习如何添加新功能
+- 🛠️ 查看 [开发指南](/development/getting-started) 学习如何添加新功能
 - 🔧 配置 [Tauri 权限](/config/permissions) 自定义文件访问范围
 - 📦 学习如何 [构建发布版本](/guide/build)
 

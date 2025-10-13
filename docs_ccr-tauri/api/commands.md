@@ -66,10 +66,40 @@ ConfigInfo | null
 
 **前端调用**
 ```typescript
+import { getCurrentConfig } from '@/api'
+
 const current = await getCurrentConfig()
 if (current) {
   console.log(`当前配置: ${current.name}`)
 }
+```
+
+---
+
+### get_config
+
+获取指定配置的详细信息。
+
+**函数签名**
+```rust
+#[tauri::command]
+pub async fn get_config(name: String) -> Result<ConfigInfo, String>
+```
+
+**参数**
+- `name`: 配置名称
+
+**返回类型**
+```typescript
+ConfigInfo
+```
+
+**前端调用**
+```typescript
+import { get_config } from '@/api'
+
+const config = await get_config('my-config')
+console.log(`配置描述: ${config.description}`)
 ```
 
 ---
@@ -92,6 +122,8 @@ pub async fn switch_config(name: String) -> Result<String, String>
 
 **前端调用**
 ```typescript
+import { switchConfig } from '@/api'
+
 try {
   const message = await switchConfig('anthropic')
   console.log(message)  // "✅ 成功切换到配置: anthropic"
@@ -146,6 +178,8 @@ pub async fn create_config(
 
 **前端调用**
 ```typescript
+import { createConfig } from '@/api'
+
 await createConfig({
   name: 'my-config',
   description: '我的配置',
@@ -169,7 +203,15 @@ await createConfig({
 pub async fn update_config(
     old_name: String,
     new_name: String,
-    // ... 其他参数同 create_config
+    description: Option<String>,
+    base_url: Option<String>,
+    auth_token: Option<String>,
+    model: Option<String>,
+    small_fast_model: Option<String>,
+    provider: Option<String>,
+    provider_type: Option<String>,
+    account: Option<String>,
+    tags: Option<Vec<String>>,
 ) -> Result<String, String>
 ```
 
@@ -180,6 +222,8 @@ pub async fn update_config(
 
 **前端调用**
 ```typescript
+import { updateConfig } from '@/api'
+
 await updateConfig({
   old_name: 'my-config',
   new_name: 'my-config-v2',
@@ -198,6 +242,310 @@ await updateConfig({
 ```rust
 #[tauri::command]
 pub async fn delete_config(name: String) -> Result<String, String>
+```
+
+**参数**
+- `name`: 要删除的配置名称
+
+**前端调用**
+```typescript
+import { deleteConfig } from '@/api'
+
+try {
+  const message = await deleteConfig('old-config')
+  console.log(message)
+} catch (error) {
+  console.error('删除失败:', error)
+}
+```
+
+---
+
+### import_config
+
+导入配置文件内容。
+
+**函数签名**
+```rust
+#[tauri::command]
+pub async fn import_config(
+    content: String,
+    merge: bool,
+    backup: bool,
+) -> Result<String, String>
+```
+
+**参数**
+- `content`: 配置文件内容 (TOML 格式)
+- `merge`: 是否合并模式 (true: 合并, false: 替换)
+- `backup`: 是否备份现有配置
+
+**前端调用**
+```typescript
+import { importConfig } from '@/api'
+
+// 从文件读取内容
+const fileContent = await readFile('config.toml')
+await importConfig(fileContent, true, true)
+```
+
+---
+
+### export_config
+
+导出配置为 TOML 格式。
+
+**函数签名**
+```rust
+#[tauri::command]
+pub async fn export_config(include_secrets: bool) -> Result<String, String>
+```
+
+**参数**
+- `include_secrets`: 是否包含敏感信息 (auth_token 等)
+
+**前端调用**
+```typescript
+import { exportConfig } from '@/api'
+
+// 导出完整配置 (包含敏感信息)
+const fullConfig = await exportConfig(true)
+
+// 导出安全配置 (不包含敏感信息)
+const safeConfig = await exportConfig(false)
+```
+
+---
+
+### validate_all
+
+验证所有配置的有效性。
+
+**函数签名**
+```rust
+#[tauri::command]
+pub async fn validate_all() -> Result<String, String>
+```
+
+**返回**
+- 验证报告字符串
+
+**前端调用**
+```typescript
+import { validateAll } from '@/api'
+
+const report = await validateAll()
+console.log(report)
+// 输出示例:
+// "验证结果: 5/5 配置有效
+//  ✅ anthropic - 官方中转
+//  ✅ openai - 第三方模型
+//  ..."
+```
+
+## 历史记录
+
+### get_history
+
+获取操作历史记录。
+
+**函数签名**
+```rust
+#[tauri::command]
+pub async fn get_history(limit: Option<usize>) -> Result<Vec<HistoryEntry>, String>
+```
+
+**参数**
+- `limit`: 限制返回条数 (默认 50)
+
+**返回类型**
+```typescript
+interface HistoryEntry {
+  id: string;
+  timestamp: string;
+  operation: string;
+  from_config: string | null;
+  to_config: string | null;
+  actor: string;
+}
+```
+
+**前端调用**
+```typescript
+import { getHistory } from '@/api'
+
+// 获取最近 50 条记录
+const history = await getHistory()
+
+// 获取最近 10 条记录
+const recentHistory = await getHistory(10)
+```
+
+## 备份管理
+
+### list_backups
+
+列出所有备份文件。
+
+**函数签名**
+```rust
+#[tauri::command]
+pub async fn list_backups() -> Result<Vec<BackupInfo>, String>
+```
+
+**返回类型**
+```typescript
+interface BackupInfo {
+  filename: string;
+  path: string;
+  created_at: string;
+  size: number;
+}
+```
+
+**前端调用**
+```typescript
+import { listBackups } from '@/api'
+
+const backups = await listBackups()
+backups.forEach(backup => {
+  console.log(`${backup.filename} (${backup.size} bytes)`)
+})
+```
+
+---
+
+### restore_backup
+
+从备份恢复配置。
+
+**函数签名**
+```rust
+#[tauri::command]
+pub async fn restore_backup(backup_path: String) -> Result<String, String>
+```
+
+**参数**
+- `backup_path`: 备份文件路径
+
+**前端调用**
+```typescript
+import { restoreBackup } from '@/api'
+
+try {
+  const message = await restoreBackup('/path/to/backup.toml')
+  console.log(message)
+} catch (error) {
+  console.error('恢复失败:', error)
+}
+```
+
+## 系统信息
+
+### get_system_info
+
+获取系统信息。
+
+**函数签名**
+```rust
+#[tauri::command]
+pub async fn get_system_info() -> Result<SystemInfo, String>
+```
+
+**返回类型**
+```typescript
+interface SystemInfo {
+  hostname: string;
+  username: string;
+  os: string;
+  config_path: string;
+  settings_path: string;
+  backups_path: string;
+}
+```
+
+**前端调用**
+```typescript
+import { getSystemInfo } from '@/api'
+
+const info = await getSystemInfo()
+console.log(`系统: ${info.os}`)
+console.log(`配置路径: ${info.config_path}`)
+```
+
+## 错误处理
+
+所有命令都可能返回错误，前端应该适当处理：
+
+```typescript
+import { switchConfig } from '@/api'
+
+try {
+  await switchConfig('non-existent')
+} catch (error) {
+  // 错误是字符串类型
+  console.error('操作失败:', error)
+  
+  // 可以根据错误内容显示不同的提示
+  if (error.includes('不存在')) {
+    showError('配置不存在')
+  } else if (error.includes('权限')) {
+    showError('权限不足')
+  } else {
+    showError('未知错误')
+  }
+}
+```
+
+## 类型定义
+
+完整的 TypeScript 类型定义位于 `src-ui/src/types/index.ts`:
+
+```typescript
+// 配置信息
+export interface ConfigInfo {
+  name: string
+  description: string
+  base_url: string | null
+  auth_token: string | null
+  model: string | null
+  small_fast_model: string | null
+  is_current: boolean
+  is_default: boolean
+  provider: string | null
+  provider_type: string | null
+  account: string | null
+  tags: string[] | null
+}
+
+// 创建配置请求
+export interface CreateConfigRequest {
+  name: string
+  description?: string
+  base_url?: string
+  auth_token?: string
+  model?: string
+  small_fast_model?: string
+  provider?: string
+  provider_type?: string
+  account?: string
+  tags?: string[]
+}
+
+// 更新配置请求
+export interface UpdateConfigRequest {
+  old_name: string
+  new_name: string
+  description?: string
+  base_url?: string
+  auth_token?: string
+  model?: string
+  small_fast_model?: string
+  provider?: string
+  provider_type?: string
+  account?: string
+  tags?: string[]
+}
 ```
 
 **参数**

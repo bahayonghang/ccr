@@ -7,7 +7,7 @@ description = "CCR Desktop Application - Tauri-based GUI for Claude Code Configu
 license = "MIT"
 
 [lib]
-name = "ccr_tauri"
+name = "ccr_tauri_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]

@@ -19,7 +19,7 @@ export default defineConfig({
       { text: '快速开始', link: '/guide/getting-started' },
       { text: '架构', link: '/architecture/overview' },
       { text: 'API', link: '/api/commands' },
-      { text: 'GitHub', link: 'https://github.com/your-org/ccr' }
+      { text: 'GitHub', link: 'https://github.com/harleyqing/ccr' }
     ],
 
     sidebar: [
@@ -61,10 +61,10 @@ export default defineConfig({
       {
         text: '开发指南',
         items: [
+          { text: '开发入门', link: '/development/getting-started' },
           { text: '项目结构', link: '/development/structure' },
           { text: '添加新功能', link: '/development/add-feature' },
           { text: '调试技巧', link: '/development/debugging' },
-          { text: '测试', link: '/development/testing' },
           { text: '最佳实践', link: '/development/best-practices' }
         ]
       },
@@ -94,7 +94,7 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/your-org/ccr' }
+      { icon: 'github', link: 'https://github.com/harleyqing/ccr' }
     ],
 
     search: {
@@ -107,7 +107,7 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: 'https://github.com/your-org/ccr/edit/main/ccr-tauri/docs/:path',
+      pattern: 'https://github.com/harleyqing/ccr/edit/main/docs_ccr-tauri/:path',
       text: '在 GitHub 上编辑此页'
     },
 

@@ -210,6 +210,9 @@ VitePress 内置了本地搜索功能，无需额外配置。
 - 保持语言风格一致
 - 及时更新过时内容
 
+- 🐛 [问题反馈](https://github.com/harleyqing/ccr/issues)
+- 💬 [讨论区](https://github.com/harleyqing/ccr/discussions)
+
 ## 📝 待完善的文档
 
 目前已完成核心文档，以下页面待补充：

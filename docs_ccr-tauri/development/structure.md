@@ -458,7 +458,7 @@ serde_json = "1.0"
 {
   "build": {
     "frontendDist": "../src-ui/dist",
-    "devUrl": "http://localhost:5173"
+    "devUrl": "http://localhost:1420"
   },
   "bundle": {
     "identifier": "com.ccr.desktop",
@@ -483,7 +483,7 @@ export default defineConfig({
   plugins: [vue()],
   clearScreen: false,
   server: {
-    port: 5173,
+    port: 1420,
     strictPort: true,
   },
   build: {
@@ -506,7 +506,7 @@ cargo tauri dev
 
 **产物位置：**
 - Rust 编译产物：`target/debug/ccr-tauri`
-- 前端开发服务器：`http://localhost:5173`
+- 前端开发服务器：`http://localhost:1420`
 
 ### 生产模式
 

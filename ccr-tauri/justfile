@@ -14,27 +14,19 @@ BIN := "ccr-tauri"
 # 前端目录
 UI_DIR := "src-ui"
 
-# 使用 bash 作为执行入口 🧭
+# 跨平台 shell 配置 🧭
+# Windows: 使用 PowerShell, Linux/macOS: 使用系统 bash
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 set shell := ["bash", "-cu"]
-
-# ANSI 颜色代码
-BOLD := "\\033[1m"
-CYAN := "\\033[36m"
-GREEN := "\\033[32m"
-YELLOW := "\\033[33m"
-BLUE := "\\033[34m"
-MAGENTA := "\\033[35m"
-RED := "\\033[31m"
-RESET := "\\033[0m"
 
 # 默认任务：显示帮助菜单 ℹ️
 default: help
 
 # 显示所有可用任务 📜
 help:
-  @echo -e "{{CYAN}}{{BOLD}}╔═══════════════════════════════════════════════════════════╗{{RESET}}"
-  @echo -e "{{CYAN}}{{BOLD}}║        CCR Tauri Justfile - 可用命令列表                 ║{{RESET}}"
-  @echo -e "{{CYAN}}{{BOLD}}╚═══════════════════════════════════════════════════════════╝{{RESET}}"
+  @echo "╔═══════════════════════════════════════════════════════════╗"
+  @echo "║        CCR Tauri Justfile - 可用命令列表                 ║"
+  @echo "╚═══════════════════════════════════════════════════════════╝"
   @just --list
 
 # ═══════════════════════════════════════════════════════════
@@ -43,31 +35,30 @@ help:
 
 # 一键安装所有依赖 📦
 setup:
-  @echo -e "{{MAGENTA}}{{BOLD}}▶ 设置开发环境...{{RESET}}"
-  @echo -e "{{MAGENTA}}  步骤 1/3: 检查 Tauri CLI{{RESET}}"
-  @if ! command -v cargo-tauri &> /dev/null; then \
-    echo -e "{{YELLOW}}  ⚠ Tauri CLI 未安装，正在安装...{{RESET}}"; \
-    cargo install tauri-cli --version "^2.0.0" --locked; \
-    echo -e "{{GREEN}}  ✓ Tauri CLI 安装完成{{RESET}}"; \
-  else \
-    echo -e "{{GREEN}}  ✓ Tauri CLI 已安装: $$(cargo tauri --version){{RESET}}"; \
-  fi
-  @echo -e "{{MAGENTA}}  步骤 2/3: 检查 Rust 依赖{{RESET}}"
+  @echo "▶ 设置开发环境..."
+  @echo "  步骤 1/3: 安装 Tauri CLI"
+  just _install-tauri-cli
+  @echo "  步骤 2/3: 检查 Rust 依赖"
   cargo check
-  @echo -e "{{MAGENTA}}  步骤 3/3: 安装前端依赖{{RESET}}"
-  cd {{UI_DIR}} && npm install
-  @echo -e "{{GREEN}}{{BOLD}}✓ 环境设置完成！现在可以运行 'just dev' 启动开发模式{{RESET}}"
+  @echo "  步骤 3/3: 安装前端依赖"
+  npm install --prefix {{UI_DIR}}
+  @echo "✓ 环境设置完成！现在可以运行 'just dev' 启动开发模式"
+
+# 内部任务：安装 Tauri CLI（跨平台）
+_install-tauri-cli:
+  cargo install tauri-cli --version "^2.0.0"
 
 # 开发模式 (Tauri Dev) - 热重载支持 🔥
 dev:
-  @echo -e "{{BLUE}}{{BOLD}}▶ 启动 Tauri 开发模式...{{RESET}}"
-  @echo -e "{{BLUE}}  特性: Rust 后端 + Vue 前端热重载{{RESET}}"
-  @echo -e "{{BLUE}}  前端地址: http://localhost:5173{{RESET}}"
-  @if [ ! -d "{{UI_DIR}}/node_modules" ]; then \
-    echo -e "{{YELLOW}}  ⚠ 前端依赖未安装，正在安装...{{RESET}}"; \
-    cd {{UI_DIR}} && npm install; \
-  fi
+  @echo "▶ 启动 Tauri 开发模式..."
+  @echo "  特性: Rust 后端 + Vue 前端热重载"
+  @echo "  前端地址: http://localhost:5173"
+  just _check-node-modules
   cargo tauri dev
+
+# 内部任务：检查并安装前端依赖（跨平台）
+_check-node-modules:
+  npm install --prefix {{UI_DIR}}
 
 # ═══════════════════════════════════════════════════════════
 # 🏗️  构建命令
@@ -75,27 +66,27 @@ dev:
 
 # 调试构建 (Debug 模式) 🏗️
 build:
-  @echo -e "{{BLUE}}{{BOLD}}▶ 开始调试构建...{{RESET}}"
-  @echo -e "{{BLUE}}  后端: Rust Debug 模式{{RESET}}"
-  @echo -e "{{BLUE}}  前端: Vue 生产构建{{RESET}}"
+  @echo "▶ 开始调试构建..."
+  @echo "  后端: Rust Debug 模式"
+  @echo "  前端: Vue 生产构建"
   cargo build
-  @echo -e "{{GREEN}}{{BOLD}}✓ 调试构建完成{{RESET}} → target/debug/{{BIN}}"
+  @echo "✓ 调试构建完成 → target/debug/{{BIN}}"
 
 # 发布构建 (Release 优化) - 生成安装包 ⚡
 release:
-  @echo -e "{{MAGENTA}}{{BOLD}}▶ 开始发布构建...{{RESET}}"
-  @echo -e "{{MAGENTA}}  模式: Release 优化 (LTO + 符号剥离){{RESET}}"
-  @echo -e "{{MAGENTA}}  输出: 跨平台安装包{{RESET}}"
+  @echo "▶ 开始发布构建..."
+  @echo "  模式: Release 优化 (LTO + 符号剥离)"
+  @echo "  输出: 跨平台安装包"
   cargo tauri build
-  @echo -e "{{GREEN}}{{BOLD}}✓ 发布构建完成{{RESET}}"
-  @echo -e "{{GREEN}}  安装包位置: target/release/bundle/{{RESET}}"
+  @echo "✓ 发布构建完成"
+  @echo "  安装包位置: target/release/bundle/"
   @ls -lh target/release/{{BIN}} 2>/dev/null | awk '{print "  二进制大小: " $$5}' || true
 
 # 快速类型检查 (不生成可执行文件) 🩺
 check:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 运行 Rust 类型检查...{{RESET}}"
+  @echo "▶ 运行 Rust 类型检查..."
   cargo check
-  @echo -e "{{GREEN}}{{BOLD}}✓ Rust 类型检查通过{{RESET}}"
+  @echo "✓ Rust 类型检查通过"
 
 # ═══════════════════════════════════════════════════════════
 # 🎨 前端开发命令
@@ -103,37 +94,37 @@ check:
 
 # 安装前端依赖 📦
 ui-install:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 安装前端依赖...{{RESET}}"
-  cd {{UI_DIR}} && npm install
-  @echo -e "{{GREEN}}{{BOLD}}✓ 前端依赖安装完成{{RESET}}"
+  @echo "▶ 安装前端依赖..."
+  npm install --prefix {{UI_DIR}}
+  @echo "✓ 前端依赖安装完成"
 
 # 仅启动前端开发服务器 (无 Tauri) 🎨
 ui-dev:
-  @echo -e "{{BLUE}}{{BOLD}}▶ 启动前端开发服务器...{{RESET}}"
-  @echo -e "{{BLUE}}  地址: http://localhost:5173{{RESET}}"
-  @echo -e "{{YELLOW}}  注意: 这只是前端预览，Tauri Commands 不可用{{RESET}}"
-  cd {{UI_DIR}} && npm run dev
+  @echo "▶ 启动前端开发服务器..."
+  @echo "  地址: http://localhost:5173"
+  @echo "  注意: 这只是前端预览，Tauri Commands 不可用"
+  npm run dev --prefix {{UI_DIR}}
 
 # 前端生产构建 📦
 ui-build:
-  @echo -e "{{MAGENTA}}{{BOLD}}▶ 构建前端生产版本...{{RESET}}"
-  cd {{UI_DIR}} && npm run build
-  @echo -e "{{GREEN}}{{BOLD}}✓ 前端构建完成{{RESET}} → {{UI_DIR}}/dist"
+  @echo "▶ 构建前端生产版本..."
+  npm run build --prefix {{UI_DIR}}
+  @echo "✓ 前端构建完成 → {{UI_DIR}}/dist"
 
 # 前端 TypeScript 类型检查 ✅
 ui-check:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 检查前端 TypeScript 类型...{{RESET}}"
-  cd {{UI_DIR}} && npx vue-tsc --noEmit
-  @echo -e "{{GREEN}}{{BOLD}}✓ TypeScript 类型检查通过{{RESET}}"
+  @echo "▶ 检查前端 TypeScript 类型..."
+  npx --prefix {{UI_DIR}} vue-tsc --noEmit
+  @echo "✓ TypeScript 类型检查通过"
 
 # 前端预览生产构建 👀
 ui-preview:
-  @echo -e "{{BLUE}}{{BOLD}}▶ 预览前端生产构建...{{RESET}}"
+  @echo "▶ 预览前端生产构建..."
   @if [ ! -d "{{UI_DIR}}/dist" ]; then \
-    echo -e "{{YELLOW}}  ⚠ 未找到构建产物，正在构建...{{RESET}}"; \
+    echo "  ⚠ 未找到构建产物，正在构建..."; \
     just ui-build; \
   fi
-  cd {{UI_DIR}} && npm run preview
+  npm run preview --prefix {{UI_DIR}}
 
 # ═══════════════════════════════════════════════════════════
 # ✅ 测试命令
@@ -141,15 +132,15 @@ ui-preview:
 
 # 运行 Rust 测试 ✅
 test:
-  @echo -e "{{GREEN}}{{BOLD}}▶ 运行 Rust 测试套件...{{RESET}}"
+  @echo "▶ 运行 Rust 测试套件..."
   cargo test
-  @echo -e "{{GREEN}}{{BOLD}}✓ 所有测试通过{{RESET}}"
+  @echo "✓ 所有测试通过"
 
 # 运行所有测试 (包括忽略的测试) 🧪
 test-all:
-  @echo -e "{{GREEN}}{{BOLD}}▶ 运行完整测试套件...{{RESET}}"
+  @echo "▶ 运行完整测试套件..."
   cargo test -- --include-ignored
-  @echo -e "{{GREEN}}{{BOLD}}✓ 完整测试通过{{RESET}}"
+  @echo "✓ 完整测试通过"
 
 # ═══════════════════════════════════════════════════════════
 # ✨ 代码质量命令
@@ -157,26 +148,26 @@ test-all:
 
 # Rust 代码格式化 ✨
 fmt:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 格式化 Rust 代码...{{RESET}}"
+  @echo "▶ 格式化 Rust 代码..."
   cargo fmt
-  @echo -e "{{GREEN}}{{BOLD}}✓ Rust 代码格式化完成{{RESET}}"
+  @echo "✓ Rust 代码格式化完成"
 
 # 检查 Rust 代码格式 (不修改文件) 🔍
 fmt-check:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 检查 Rust 代码格式...{{RESET}}"
+  @echo "▶ 检查 Rust 代码格式..."
   cargo fmt -- --check
-  @echo -e "{{GREEN}}{{BOLD}}✓ Rust 代码格式符合规范{{RESET}}"
+  @echo "✓ Rust 代码格式符合规范"
 
 # Rust 静态检查 (Clippy) ❗
 clippy:
-  @echo -e "{{YELLOW}}{{BOLD}}▶ 运行 Clippy 静态检查...{{RESET}}"
-  @echo -e "{{YELLOW}}  模式: 所有警告视为错误{{RESET}}"
+  @echo "▶ 运行 Clippy 静态检查..."
+  @echo "  模式: 所有警告视为错误"
   cargo clippy --all-targets --all-features -- -D warnings
-  @echo -e "{{GREEN}}{{BOLD}}✓ Clippy 检查通过{{RESET}}"
+  @echo "✓ Clippy 检查通过"
 
 # 完整代码检查 (Rust + 前端) 🔧
 lint: fmt clippy ui-check
-  @echo -e "{{GREEN}}{{BOLD}}✓ 代码质量检查全部通过{{RESET}}"
+  @echo "✓ 代码质量检查全部通过"
 
 # ═══════════════════════════════════════════════════════════
 # 🚀 开发工作流命令
@@ -184,23 +175,23 @@ lint: fmt clippy ui-check
 
 # 快速开发循环 (检查 → 测试) ⚡
 quick: check test
-  @echo -e "{{GREEN}}{{BOLD}}✓ 开发验证完成{{RESET}}"
+  @echo "✓ 开发验证完成"
 
 # 完整 CI 流程 (格式检查 + Clippy + 测试 + 前端检查) 🎯
 ci: fmt-check clippy test ui-check
-  @echo -e "{{GREEN}}{{BOLD}}╔═══════════════════════════════════════════════════════════╗{{RESET}}"
-  @echo -e "{{GREEN}}{{BOLD}}║            ✓ CI 流程全部通过                             ║{{RESET}}"
-  @echo -e "{{GREEN}}{{BOLD}}╚═══════════════════════════════════════════════════════════╝{{RESET}}"
+  @echo "╔═══════════════════════════════════════════════════════════╗"
+  @echo "║            ✓ CI 流程全部通过                             ║"
+  @echo "╚═══════════════════════════════════════════════════════════╝"
 
 # 发布前检查 (CI + 构建测试) 🚢
 pre-release: ci
-  @echo -e "{{MAGENTA}}{{BOLD}}▶ 执行发布前检查...{{RESET}}"
-  @echo -e "{{MAGENTA}}  步骤: 测试发布构建{{RESET}}"
+  @echo "▶ 执行发布前检查..."
+  @echo "  步骤: 测试发布构建"
   just release
-  @echo -e "{{GREEN}}{{BOLD}}╔═══════════════════════════════════════════════════════════╗{{RESET}}"
-  @echo -e "{{GREEN}}{{BOLD}}║          ✓ 发布前检查全部通过                           ║{{RESET}}"
-  @echo -e "{{GREEN}}{{BOLD}}║          准备发布到生产环境                             ║{{RESET}}"
-  @echo -e "{{GREEN}}{{BOLD}}╚═══════════════════════════════════════════════════════════╝{{RESET}}"
+  @echo "╔═══════════════════════════════════════════════════════════╗"
+  @echo "║          ✓ 发布前检查全部通过                           ║"
+  @echo "║          准备发布到生产环境                             ║"
+  @echo "╚═══════════════════════════════════════════════════════════╝"
 
 # ═══════════════════════════════════════════════════════════
 # 📚 文档命令
@@ -208,13 +199,13 @@ pre-release: ci
 
 # 构建 Rust 文档 (不包含依赖) 📚
 doc:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 生成 Rust 文档...{{RESET}}"
+  @echo "▶ 生成 Rust 文档..."
   cargo doc --no-deps
-  @echo -e "{{GREEN}}{{BOLD}}✓ 文档生成完成{{RESET}}"
+  @echo "✓ 文档生成完成"
 
 # 构建并在浏览器中打开文档 🌐
 doc-open:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 生成并打开 Rust 文档...{{RESET}}"
+  @echo "▶ 生成并打开 Rust 文档..."
   cargo doc --no-deps --open
 
 # ═══════════════════════════════════════════════════════════
@@ -223,22 +214,22 @@ doc-open:
 
 # 清理 Rust 构建产物 🧹
 clean:
-  @echo -e "{{RED}}{{BOLD}}▶ 清理 Rust 构建产物...{{RESET}}"
+  @echo "▶ 清理 Rust 构建产物..."
   cargo clean
-  @echo -e "{{GREEN}}{{BOLD}}✓ Rust 构建清理完成{{RESET}}"
+  @echo "✓ Rust 构建清理完成"
 
 # 清理前端构建产物 🧹
 ui-clean:
-  @echo -e "{{RED}}{{BOLD}}▶ 清理前端构建产物...{{RESET}}"
+  @echo "▶ 清理前端构建产物..."
   rm -rf {{UI_DIR}}/dist
   rm -rf {{UI_DIR}}/node_modules
   rm -f {{UI_DIR}}/package-lock.json
-  @echo -e "{{GREEN}}{{BOLD}}✓ 前端构建清理完成{{RESET}}"
+  @echo "✓ 前端构建清理完成"
 
 # 深度清理 (Rust + 前端) 💣
 deep-clean: clean ui-clean
-  @echo -e "{{RED}}{{BOLD}}▶ 深度清理完成{{RESET}}"
-  @echo -e "{{YELLOW}}  提示: 运行 'just setup' 重新安装依赖{{RESET}}"
+  @echo "▶ 深度清理完成"
+  @echo "  提示: 运行 'just setup' 重新安装依赖"
 
 # ═══════════════════════════════════════════════════════════
 # 🔧 实用工具命令
@@ -246,54 +237,54 @@ deep-clean: clean ui-clean
 
 # 显示版本信息 🏷️
 version:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 版本信息{{RESET}}"
-  @echo -e "{{CYAN}}  Cargo.toml:{{RESET}}"
+  @echo "▶ 版本信息"
+  @echo "  Cargo.toml:"
   @grep '^version' Cargo.toml | head -1
-  @echo -e "{{CYAN}}  package.json:{{RESET}}"
+  @echo "  package.json:"
   @grep '"version"' {{UI_DIR}}/package.json | head -1
-  @echo -e "{{CYAN}}  tauri.conf.json:{{RESET}}"
+  @echo "  tauri.conf.json:"
   @grep '"version"' tauri.conf.json | head -1
 
 # 检查环境依赖 🔍
 check-env:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 检查开发环境...{{RESET}}"
-  @echo -e "{{CYAN}}  Rust:{{RESET}}"
+  @echo "▶ 检查开发环境..."
+  @echo "  Rust:"
   @rustc --version
   @cargo --version
-  @echo -e "{{CYAN}}  Node.js:{{RESET}}"
+  @echo "  Node.js:"
   @node --version
   @npm --version
-  @echo -e "{{CYAN}}  Tauri CLI:{{RESET}}"
+  @echo "  Tauri CLI:"
   @if command -v cargo-tauri &> /dev/null; then \
     cargo tauri --version; \
   else \
-    echo -e "{{YELLOW}}  ⚠ 未安装 - 运行 'just install-tauri-cli' 安装{{RESET}}"; \
+    echo "  ⚠ 未安装 - 运行 'just install-tauri-cli' 安装"; \
   fi
-  @echo -e "{{GREEN}}{{BOLD}}✓ 环境检查完成{{RESET}}"
+  @echo "✓ 环境检查完成"
 
 # 安装 Tauri CLI 🔧
 install-tauri-cli:
-  @echo -e "{{MAGENTA}}{{BOLD}}▶ 安装 Tauri CLI...{{RESET}}"
-  @echo -e "{{MAGENTA}}  版本: 2.x (最新稳定版){{RESET}}"
-  cargo install tauri-cli --version "^2.0.0" --locked
-  @echo -e "{{GREEN}}{{BOLD}}✓ Tauri CLI 安装完成{{RESET}}"
+  @echo "▶ 安装 Tauri CLI..."
+  @echo "  版本: 2.x (最新稳定版)"
+  cargo install tauri-cli --version "^2.0.0"
+  @echo "✓ Tauri CLI 安装完成"
   @cargo tauri --version
 
 # 查看构建产物 📦
 list-bundles:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 构建产物列表{{RESET}}"
+  @echo "▶ 构建产物列表"
   @if [ -d "target/release/bundle" ]; then \
     find target/release/bundle -type f \( -name "*.dmg" -o -name "*.app" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" \) -exec ls -lh {} \; | awk '{print "  " $$9 " (" $$5 ")"}'; \
   else \
-    echo -e "{{YELLOW}}  未找到构建产物，请先运行 'just release'{{RESET}}"; \
+    echo "  未找到构建产物，请先运行 'just release'"; \
   fi
 
 # 统计代码行数 📊
 loc:
-  @echo -e "{{CYAN}}{{BOLD}}▶ 代码统计{{RESET}}"
-  @echo -e "{{CYAN}}  Rust 后端:{{RESET}}"
+  @echo "▶ 代码统计"
+  @echo "  Rust 后端:"
   @find src -name "*.rs" | xargs wc -l | tail -1 | awk '{print "    " $$1 " 行"}'
-  @echo -e "{{CYAN}}  Vue 前端:{{RESET}}"
+  @echo "  Vue 前端:"
   @find {{UI_DIR}}/src -name "*.vue" -o -name "*.ts" | xargs wc -l 2>/dev/null | tail -1 | awk '{print "    " $$1 " 行"}' || echo "    0 行"
-  @echo -e "{{CYAN}}  总计:{{RESET}}"
+  @echo "  总计:"
   @(find src -name "*.rs"; find {{UI_DIR}}/src -name "*.vue" -o -name "*.ts" 2>/dev/null) | xargs wc -l 2>/dev/null | tail -1 | awk '{print "    " $$1 " 行"}' || echo "    统计中..."

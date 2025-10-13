@@ -4,14 +4,15 @@
   "version": "1.1.2",
   "identifier": "com.ccr.desktop",
   "build": {
-    "beforeDevCommand": "sh -c 'cd src-ui && npm run dev'",
-    "beforeBuildCommand": "sh -c 'cd src-ui && npm run build'",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
     "devUrl": "http://localhost:5173",
-    "frontendDist": "src-ui/dist"
+    "frontendDist": "../src-ui/dist"
   },
   "bundle": {
     "active": true,
     "targets": ["app", "dmg"],
+    "icon": ["icons/icon.png"],
     "copyright": "Copyright © 2025 Yonghang Li",
     "category": "DeveloperTool",
     "shortDescription": "Claude Code Configuration Manager",

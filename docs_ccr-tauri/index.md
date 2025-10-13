@@ -14,7 +14,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: 查看 GitHub
-      link: https://github.com/your-org/ccr
+      link: https://github.com/harleyqing/ccr
 
 features:
   - icon: 🎨
@@ -108,7 +108,7 @@ CCR Desktop 是 CCR (Claude Code Configuration Switcher) 的桌面版本，使�
 
 ```bash [npm]
 # 克隆仓库
-git clone https://github.com/your-org/ccr.git
+git clone https://github.com/harleyqing/ccr.git
 cd ccr/ccr-tauri
 
 # 安装依赖
@@ -120,7 +120,7 @@ cargo tauri dev
 
 ```bash [pnpm]
 # 克隆仓库
-git clone https://github.com/your-org/ccr.git
+git clone https://github.com/harleyqing/ccr.git
 cd ccr/ccr-tauri
 
 # 安装依赖
@@ -158,9 +158,9 @@ cargo tauri dev
 
 ## 社区
 
-- 💬 [讨论区](https://github.com/your-org/ccr/discussions)
-- 🐛 [问题反馈](https://github.com/your-org/ccr/issues)
-- 📖 [变更日志](https://github.com/your-org/ccr/releases)
+- 💬 [讨论区](https://github.com/harleyqing/ccr/discussions)
+- 🐛 [问题反馈](https://github.com/harleyqing/ccr/issues)
+- 📖 [变更日志](https://github.com/harleyqing/ccr/releases)
 
 ## 许可证
 

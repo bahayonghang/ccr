@@ -53,7 +53,7 @@ src-ui/
 │   ├── api/              # Tauri API 封装
 │   │   └── index.ts      # API 函数
 │   ├── types/            # TypeScript 类型定义
-│   │   └── index.ts
+│   │   └── index.ts      # 数据模型接口
 │   ├── components/       # Vue 组件 (可扩展)
 │   ├── stores/           # Pinia 状态管理 (可选)
 │   └── style.css         # 全局样式
@@ -76,7 +76,7 @@ src-ui/
 - **Tauri 2.0**: 桌面应用框架
 - **CCR Core**: 配置管理核心库
 - **serde**: 序列化/反序列化
-- **tokio**: 异步运行时 (可选)
+- **tokio**: 异步运行时
 
 **目录结构：**
 ```
@@ -205,7 +205,46 @@ pub async fn switch_config(name: String) -> Result<String, String> {
 
 ---
 
-## 安全策略
+## 安全模型
+
+### Tauri 2.0 权限系统
+
+CCR Desktop 使用 Tauri 2.0 的细粒度权限系统：
+
+```json
+// capabilities/ccr-capabilities.json
+{
+  "identifier": "ccr-capabilities",
+  "description": "CCR Desktop 应用权限",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "fs:default",
+    "shell:default"
+  ],
+  "scope": [
+    {
+      "allow": [
+        {
+          "path": "$HOME/.ccs_config.toml"
+        },
+        {
+          "path": "$HOME/.claude/settings.json"
+        },
+        {
+          "path": "$HOME/.claude/backups"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**权限说明：**
+- **文件系统访问**: 仅允许访问配置文件和备份目录
+- **对话框**: 用于文件选择和确认操作
+- **Shell**: 用于打开外部链接和文件
 
 ### 1. 文件系统权限
 
@@ -252,6 +291,82 @@ tauri::Builder::default()
   }
 }
 ```
+
+---
+
+## 构建系统
+
+### Tauri 构建流程
+
+```
+┌─────────────────┐
+│   前端构建      │
+│  (Vite + Vue)   │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   生成静态资源   │
+│  (dist/ 目录)   │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Rust 编译      │
+│  (Cargo + Tauri)│
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   打包应用       │
+│  (各平台安装包)  │
+└─────────────────┘
+```
+
+### Justfile 任务系统
+
+CCR Desktop 使用 Just 作为任务运行器，提供统一的开发命令：
+
+```makefile
+# 开发模式
+just dev          # 启动 Tauri 开发模式
+just ui-dev       # 仅启动前端开发服务器
+
+# 构建
+just build        # 调试构建
+just release      # 发布构建
+
+# 代码质量
+just fmt          # 格式化代码
+just clippy       # Rust 静态检查
+just lint         # 完整代码检查
+
+# 测试
+just test         # 运行测试
+just ci           # 完整 CI 流程
+```
+
+---
+
+## 部署架构
+
+### 跨平台支持
+
+CCR Desktop 支持三大主流平台：
+
+| 平台 | 构建产物 | 安装方式 |
+|-----|---------|---------|
+| macOS | `.app`, `.dmg` | 拖拽安装 |
+| Linux | `.AppImage`, `.deb` | 包管理器 |
+| Windows | `.msi`, `.exe` | 安装向导 |
+
+### 自动更新
+
+应用支持自动更新机制：
+1. 检查远程版本
+2. 下载更新包
+3. 应用更新
+4. 重启应用
 
 ---
 
@@ -347,27 +462,6 @@ async fn load_config_command() -> Result<Config, String> {
 
 ---
 
-## 部署架构
-
-### 跨平台支持
-
-CCR Desktop 支持三大平台，使用统一代码库：
-
-```
-┌────────────────────────────────────────┐
-│      统一代码库 (Vue 3 + Rust)          │
-└─────────┬──────────┬────────────┬──────┘
-          │          │            │
-    ┌─────▼────┐ ┌──▼────┐ ┌────▼─────┐
-    │  macOS   │ │ Linux │ │ Windows  │
-    │          │ │       │ │          │
-    │  .app    │ │ .deb  │ │  .msi    │
-    │  .dmg    │ │.AppImage│ │  .exe  │
-    └──────────┘ └───────┘ └──────────┘
-```
-
----
-
 ## 扩展性设计
 
 ### 添加新 Command
@@ -387,7 +481,94 @@ CCR Desktop 支持三大平台，使用统一代码库：
 └── utils.ts
 ```
 
+### 插件系统
+
+CCR Desktop 预留了插件扩展接口：
+
+```rust
+// 插件接口定义
+pub trait CcrPlugin {
+    fn name(&self) -> &str;
+    fn version(&self) -> &str;
+    fn init(&mut self) -> Result<(), Box<dyn Error>>;
+    fn execute(&self, cmd: &str, args: &[&str]) -> Result<String, Box<dyn Error>>;
+}
+```
+
+### 配置扩展
+
+支持通过配置文件扩展功能：
+
+```toml
+[plugins]
+enabled = ["backup", "history", "theme"]
+
+[backup]
+auto = true
+interval = "24h"
+max_files = 10
+
+[theme]
+default = "light"
+auto_switch = true
+```
+
 模块化设计，易于维护和测试！(^_^)b
+
+---
+
+## 监控与日志
+
+### 日志系统
+
+- **后端日志**: 使用 `env_logger` 记录系统日志
+- **前端日志**: Vue DevTools 集成
+- **日志级别**: 支持动态调整
+
+### 性能监控
+
+- **启动时间**: 记录各阶段耗时
+- **内存使用**: 监控内存占用
+- **操作响应**: 记录关键操作耗时
+
+---
+
+## 未来规划
+
+### 短期计划
+
+- [ ] 添加配置模板功能
+- [ ] 实现配置分组管理
+- [ ] 支持批量操作
+- [ ] 添加快捷键支持
+
+### 长期计划
+
+- [ ] 插件市场
+- [ ] 云端同步
+- [ ] 团队协作
+- [ ] API 服务
+
+---
+
+::: tip 架构原则
+CCR Desktop 遵循以下架构原则：
+
+1. **简单性**: 保持架构简单，避免过度设计
+2. **可维护性**: 清晰的模块划分和接口定义
+3. **可扩展性**: 预留扩展点，支持未来功能
+4. **安全性**: 最小权限原则，保护用户数据
+5. **性能**: 优化关键路径，提供流畅体验
+:::
+
+---
+
+::: warning 注意事项
+1. 所有文件操作都通过 CCR Core 进行，确保线程安全
+2. 前端不直接操作文件系统，必须通过 Tauri Commands
+3. 敏感信息（如 auth_token）在前端展示时需要脱敏
+4. 配置切换前会自动备份，确保数据安全
+:::
 
 ---
 

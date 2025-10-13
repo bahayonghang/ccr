@@ -1,0 +1,103 @@
+# CCR Documentation Justfile
+# 快速构建和管理文档的命令集合
+
+# 默认命令 - 显示帮助信息
+default:
+    @just --list
+
+# 安装依赖
+install:
+    @echo "📦 安装文档依赖..."
+    npm install
+
+# 启动开发服务器
+dev:
+    @echo "🚀 启动开发服务器..."
+    @echo "📝 访问 http://localhost:5173"
+    npm run docs:dev
+
+# 构建生产版本
+build:
+    @echo "🏗️  构建生产版本..."
+    npm run docs:build
+    @echo "✅ 构建完成！输出目录: .vitepress/dist"
+
+# 预览生产构建
+preview: build
+    @echo "👀 预览生产版本..."
+    @echo "📝 访问 http://localhost:4173"
+    npm run docs:preview
+
+# 清理构建文件和缓存
+clean:
+    @echo "🧹 清理构建文件..."
+    rm -rf .vitepress/dist
+    rm -rf .vitepress/cache
+    rm -rf node_modules/.cache
+    @echo "✅ 清理完成！"
+
+# 完全清理(包括 node_modules)
+clean-all: clean
+    @echo "🧹 完全清理..."
+    rm -rf node_modules
+    @echo "✅ 完全清理完成！"
+
+# 重新安装依赖
+reinstall: clean-all install
+    @echo "✅ 重新安装完成！"
+
+# 检查安全漏洞
+audit:
+    @echo "🔍 检查安全漏洞..."
+    npm audit
+
+# 修复安全漏洞(非破坏性)
+audit-fix:
+    @echo "🔧 修复安全漏洞..."
+    npm audit fix
+
+# 更新依赖到最新版本
+update:
+    @echo "⬆️  更新依赖..."
+    npm update
+    @echo "✅ 更新完成！"
+
+# 检查过期的依赖
+outdated:
+    @echo "📊 检查过期依赖..."
+    npm outdated
+
+# 快速重建(清理后重新构建)
+rebuild: clean build
+    @echo "✅ 重建完成！"
+
+# 验证构建(构建并检查输出)
+verify: build
+    @echo "✅ 验证构建结果..."
+    @ls -lh .vitepress/dist
+    @echo ""
+    @echo "📊 文件数量统计:"
+    @find .vitepress/dist -type f | wc -l
+    @echo ""
+    @echo "💾 总大小:"
+    @du -sh .vitepress/dist
+
+# 开发环境完整设置
+setup: install
+    @echo "🎉 开发环境设置完成！"
+    @echo ""
+    @echo "可用命令:"
+    @echo "  just dev      - 启动开发服务器"
+    @echo "  just build    - 构建生产版本"
+    @echo "  just preview  - 预览生产版本"
+    @echo ""
+
+# 生产部署准备
+deploy: clean build verify
+    @echo "🚀 生产部署准备完成！"
+    @echo "📦 部署目录: .vitepress/dist"
+
+# 格式化 justfile
+fmt:
+    @echo "✨ 格式化 justfile..."
+    just --fmt --unstable
