@@ -1,0 +1,340 @@
+# CCR UI Justfile
+# 一键安装、构建和启动前后端
+
+# 默认命令：显示帮助信息
+default:
+    @just help
+
+# 显示常用命令帮助
+help:
+    @echo "🚀 CCR UI - 常用命令"
+    @echo "===================="
+    @echo ""
+    @echo "快速启动:"
+    @echo "  just s          = 启动开发环境（dev 的简化命令）"
+    @echo "  just i          = 安装所有依赖（install 的简化命令）"
+    @echo "  just b          = 构建生产版本（build 的简化命令）"
+    @echo ""
+    @echo "最常用命令:"
+    @echo "  just quick-start    一键启动（检查 + 安装 + 开发）"
+    @echo "  just dev            启动开发环境（前端 + 后端）"
+    @echo "  just install        安装所有依赖"
+    @echo "  just build          构建生产版本"
+    @echo "  just check          检查代码"
+    @echo "  just test           运行测试"
+    @echo ""
+    @echo "单独操作:"
+    @echo "  just dev-backend    只启动后端"
+    @echo "  just dev-frontend   只启动前端"
+    @echo ""
+    @echo "其他:"
+    @echo "  just info           显示项目信息"
+    @echo "  just check-security 检查安全漏洞"
+    @echo "  just --list         显示所有命令（40+）"
+    @echo "  just clean          清理构建产物"
+    @echo ""
+    @echo "💡 提示: 运行 'just info' 查看详细项目信息"
+
+# ===== 安装 =====
+
+# 安装所有依赖（前端 + 后端）
+install: install-frontend install-backend
+    @echo "✅ 所有依赖安装完成"
+
+# 安装前端依赖
+install-frontend:
+    @echo "📦 安装前端依赖..."
+    cd frontend && npm install
+    @echo "✅ 前端依赖安装完成"
+
+# 安装后端依赖（构建一次以下载依赖）
+install-backend:
+    @echo "📦 安装后端依赖..."
+    cd backend && cargo build
+    @echo "✅ 后端依赖安装完成"
+
+# ===== 简化命令（别名） =====
+
+# 简化：启动开发环境
+alias s := dev
+
+# 简化：安装依赖
+alias i := install
+
+# 简化：构建生产版本
+alias b := build
+
+# 简化：检查代码
+alias c := check
+
+# 简化：运行测试
+alias t := test
+
+# 简化：格式化代码
+alias f := fmt
+
+# ===== 开发 =====
+
+# 启动开发环境（前端 + 后端）
+dev:
+    @echo "🚀 启动开发环境..."
+    @echo "📍 后端: http://localhost:8081"
+    @echo "📍 前端: http://localhost:5173"
+    @echo ""
+    @just dev-parallel
+
+# 并行启动前后端开发服务器
+dev-parallel:
+    #!/usr/bin/env bash
+    set -e
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT
+    cd backend && cargo run &
+    sleep 2
+    cd frontend && npm run dev &
+    wait
+
+# 仅启动后端开发服务器
+dev-backend:
+    @echo "🦀 启动后端开发服务器..."
+    cd backend && cargo run
+
+# 仅启动前端开发服务器
+dev-frontend:
+    @echo "⚛️  启动前端开发服务器..."
+    cd frontend && npm run dev
+
+# ===== 构建 =====
+
+# 构建生产版本（前端 + 后端）
+build: build-backend build-frontend
+    @echo "✅ 生产构建完成"
+    @echo "📦 后端二进制: backend/target/release/ccr-ui-backend"
+    @echo "📦 前端静态文件: frontend/dist/"
+
+# 构建后端生产版本
+build-backend:
+    @echo "🏗️  构建后端（Release）..."
+    cd backend && cargo build --release
+    @echo "✅ 后端构建完成"
+
+# 构建前端生产版本
+build-frontend:
+    @echo "🏗️  构建前端..."
+    cd frontend && npm run build
+    @echo "✅ 前端构建完成"
+
+# ===== 运行生产版本 =====
+
+# 运行生产版本后端
+run-prod:
+    @echo "🚀 启动生产版本后端..."
+    ./backend/target/release/ccr-ui-backend
+
+# 使用Python服务器运行前端静态文件
+serve-frontend:
+    @echo "🌐 启动前端静态文件服务器（端口5173）..."
+    cd frontend/dist && python3 -m http.server 5173
+
+# ===== 检查和测试 =====
+
+# 检查代码（不构建）
+check: check-backend check-frontend
+    @echo "✅ 所有检查通过"
+
+# 检查后端代码
+check-backend:
+    @echo "🔍 检查后端代码..."
+    cd backend && cargo check
+
+# 检查前端代码
+check-frontend:
+    @echo "🔍 检查前端代码..."
+    cd frontend && npm run lint
+
+# 检查前端安全漏洞
+check-security:
+    @echo "🔒 检查前端安全漏洞..."
+    cd frontend && npm audit
+    @echo ""
+    @echo "✅ 安全检查完成"
+
+# 运行测试
+test: test-backend
+    @echo "✅ 所有测试通过"
+
+# 运行后端测试
+test-backend:
+    @echo "🧪 运行后端测试..."
+    cd backend && cargo test
+
+# ===== 代码质量 =====
+
+# 格式化所有代码
+fmt: fmt-backend fmt-frontend
+    @echo "✅ 代码格式化完成"
+
+# 格式化后端代码
+fmt-backend:
+    @echo "💅 格式化后端代码..."
+    cd backend && cargo fmt
+
+# 格式化前端代码
+fmt-frontend:
+    @echo "💅 格式化前端代码..."
+    cd frontend && npm run lint --fix || true
+
+# Clippy 检查后端
+clippy:
+    @echo "📎 运行 Clippy..."
+    cd backend && cargo clippy -- -D warnings
+
+# ===== 清理 =====
+
+# 清理所有构建产物
+clean: clean-backend clean-frontend
+    @echo "✅ 清理完成"
+
+# 清理后端构建产物
+clean-backend:
+    @echo "🧹 清理后端..."
+    cd backend && cargo clean
+
+# 清理前端构建产物
+clean-frontend:
+    @echo "🧹 清理前端..."
+    cd frontend && rm -rf dist node_modules
+
+# 深度清理（包括依赖）
+clean-all: clean
+    @echo "🧹 深度清理（包括依赖）..."
+    cd frontend && rm -rf node_modules package-lock.json
+
+# ===== 工具 =====
+
+# 检查前置条件
+check-prereqs:
+    #!/usr/bin/env bash
+    echo "🔍 检查前置条件..."
+    
+    # 检查 Rust
+    if command -v rustc &> /dev/null; then
+        echo "✅ Rust: $(rustc --version)"
+    else
+        echo "❌ Rust 未安装"
+        exit 1
+    fi
+    
+    # 检查 Cargo
+    if command -v cargo &> /dev/null; then
+        echo "✅ Cargo: $(cargo --version)"
+    else
+        echo "❌ Cargo 未安装"
+        exit 1
+    fi
+    
+    # 检查 Node.js
+    if command -v node &> /dev/null; then
+        echo "✅ Node.js: $(node --version)"
+    else
+        echo "❌ Node.js 未安装"
+        exit 1
+    fi
+    
+    # 检查 npm
+    if command -v npm &> /dev/null; then
+        echo "✅ npm: $(npm --version)"
+    else
+        echo "❌ npm 未安装"
+        exit 1
+    fi
+    
+    # 检查 CCR
+    if command -v ccr &> /dev/null; then
+        echo "✅ CCR: $(ccr --version 2>/dev/null || echo 'installed')"
+    else
+        echo "⚠️  CCR 未安装（后端运行时需要）"
+    fi
+    
+    echo ""
+    echo "✅ 前置条件检查完成"
+
+# 显示项目信息
+info:
+    @echo "📊 CCR UI 项目信息"
+    @echo "=================="
+    @echo ""
+    @echo "📁 项目结构:"
+    @echo "  - backend/  : Actix Web (Rust)"
+    @echo "  - frontend/ : React + Vite (TypeScript)"
+    @echo ""
+    @echo "🌐 开发端口:"
+    @echo "  - 后端: http://localhost:8081"
+    @echo "  - 前端: http://localhost:5173"
+    @echo ""
+    @echo "📦 常用命令:"
+    @echo "  just install    - 安装所有依赖"
+    @echo "  just dev        - 启动开发环境"
+    @echo "  just build      - 构建生产版本"
+    @echo "  just check      - 检查代码"
+    @echo "  just clean      - 清理构建产物"
+    @echo ""
+    @echo "📚 更多命令: just --list"
+
+# 快速启动（检查 + 安装 + 开发）
+quick-start: check-prereqs install dev
+
+# 更新依赖
+update: update-backend update-frontend
+    @echo "✅ 依赖更新完成"
+
+# 更新后端依赖
+update-backend:
+    @echo "⬆️  更新后端依赖..."
+    cd backend && cargo update
+
+# 更新前端依赖
+update-frontend:
+    @echo "⬆️  更新前端依赖..."
+    cd frontend && npm update
+
+# ===== 辅助命令 =====
+
+# 查看后端日志（需要先启动）
+logs-backend:
+    @echo "📋 后端日志..."
+    # 这里可以添加日志查看命令
+
+# 查看前端日志（需要先启动）
+logs-frontend:
+    @echo "📋 前端日志..."
+    # 这里可以添加日志查看命令
+
+# 监视文件变化并自动重启后端
+watch-backend:
+    @echo "👀 监视后端文件变化..."
+    cd backend && cargo watch -x run
+
+# 运行后端性能测试
+bench-backend:
+    @echo "⚡ 运行后端性能测试..."
+    cd backend && cargo bench
+
+# 生成后端文档
+doc-backend:
+    @echo "📚 生成后端文档..."
+    cd backend && cargo doc --no-deps --open
+
+# ===== 部署相关 =====
+
+# 完整的 CI 流程
+ci: check test build
+    @echo "✅ CI 流程完成"
+
+# 准备发布
+prepare-release: clean build
+    @echo "✅ 发布准备完成"
+    @echo ""
+    @echo "📦 发布文件:"
+    @echo "  - backend/target/release/ccr-ui-backend"
+    @echo "  - frontend/dist/"
+

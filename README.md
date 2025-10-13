@@ -71,10 +71,48 @@ cargo tauri build
 
 **📖 Full Documentation**: See `ccr-tauri/docs/` for complete architecture docs, API reference, and development guides (powered by VitePress).
 
-**🎯 Desktop vs CLI vs Web**:
-- **Desktop App**: Best for visual management and frequent switching
+## 🌐 CCR UI - Full-Stack Web Application
+
+CCR UI is a modern **React + Actix Web** full-stack application for CCR management!
+
+### Features
+
+- ⚛️ **React Frontend**: Modern React 18 with TypeScript and Tailwind CSS
+- 🦀 **Actix Web Backend**: High-performance Rust async web server
+- 🖥️ **Config Management**: Visual config switching and validation
+- 💻 **Command Executor**: Execute all 13 CCR commands with visual output
+- 📊 **Syntax Highlighting**: Terminal-style output with color coding
+- ⚡ **Real-time Execution**: Async command execution with progress display
+
+### Super Quick Start
+
+```bash
+cd ccr-ui
+
+# One-letter command - that's it!
+just s    # Start development environment
+
+# First time? One command does it all:
+just quick-start    # Check prereqs + Install + Start
+```
+
+**Available simplified commands:**
+- `just s` - Start development (most used!)
+- `just i` - Install dependencies
+- `just b` - Build production
+- `just c` - Check code
+- `just t` - Run tests
+- `just f` - Format code
+
+**Not sure what to do?** Just run `just` to see help!
+
+**📖 Full Documentation**: See `ccr-ui/START_HERE.md` for ultra-simple guide or `ccr-ui/README.md` for complete docs.
+
+**🎯 Desktop vs CLI vs Web vs UI**:
+- **Desktop App (Tauri)**: Best for visual management and frequent switching
 - **CLI Tool**: Best for scripting and automation
-- **Web UI**: Best for remote access and team management
+- **Web UI (tiny_http)**: Best for embedded lightweight web interface
+- **CCR UI (Actix+React)**: Best for full-featured web application with command executor
 
 ## 🚀 Quick Start
 
