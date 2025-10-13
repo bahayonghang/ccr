@@ -3,16 +3,45 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Settings, Terminal, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import { Settings, Terminal, ChevronLeft, ChevronRight, Menu, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 
-const navigation = [
-  { name: '配置管理', href: '/configs', icon: Settings },
-  { name: '命令执行', href: '/commands', icon: Terminal },
+// 导航菜单结构 - 支持层级菜单
+const navigationGroups = [
+  {
+    title: 'Claude Code',
+    icon: Zap,
+    defaultExpanded: true, // 默认展开
+    items: [
+      { name: '配置管理', href: '/configs', icon: Settings },
+      { name: '命令执行', href: '/commands', icon: Terminal },
+    ],
+  },
+  // 可以在这里添加其他 CLI 工具的分组
+  // {
+  //   title: 'Other CLI',
+  //   icon: SomeIcon,
+  //   defaultExpanded: false,
+  //   items: [...],
+  // },
 ];
 
 export default function CollapsibleSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    // 初始化展开状态
+    navigationGroups.reduce((acc, group) => {
+      acc[group.title] = group.defaultExpanded ?? false;
+      return acc;
+    }, {} as Record<string, boolean>)
+  );
   const pathname = usePathname();
+
+  const toggleGroup = (groupTitle: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupTitle]: !prev[groupTitle],
+    }));
+  };
 
   return (
     <aside
@@ -53,42 +82,131 @@ export default function CollapsibleSidebar() {
         </button>
       </div>
 
-      {/* 导航链接 */}
+      {/* 导航链接 - 层级菜单 */}
       <nav className="space-y-2" aria-label="主导航">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
+        {navigationGroups.map((group, groupIndex) => {
+          const GroupIcon = group.icon;
+          const isExpanded = expandedGroups[group.title];
+          const hasActiveChild = group.items.some(item => pathname === item.href);
 
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-lg transition-all relative overflow-hidden group ${
-                isActive ? 'text-white' : ''
-              }`}
-              style={{
-                background: isActive
-                  ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))'
-                  : 'var(--bg-tertiary)',
-                border: `1px solid ${isActive ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-                boxShadow: isActive ? '0 0 15px var(--glow-primary)' : undefined,
-                color: isActive ? 'white' : 'var(--text-secondary)',
-              }}
-              title={collapsed ? item.name : undefined}
-              aria-current={isActive ? 'page' : undefined}
-            >
-              {/* 左侧指示器 */}
-              <span
-                className={`absolute left-0 top-0 w-1 h-full transition-transform ${
-                  isActive ? 'scale-y-100' : 'scale-y-0'
+            <div key={group.title} className="space-y-1">
+              {/* 分隔线（折叠状态且非第一个分组） */}
+              {collapsed && groupIndex > 0 && (
+                <div
+                  className="h-px mx-2 my-2"
+                  style={{ background: 'var(--border-color)' }}
+                  aria-hidden="true"
+                />
+              )}
+
+              {/* 分组头部 - 可点击展开/折叠 */}
+              <button
+                onClick={() => !collapsed && toggleGroup(group.title)}
+                className={`w-full flex items-center ${
+                  collapsed ? 'justify-center' : 'justify-between'
+                } px-4 py-3 rounded-lg transition-all hover:scale-[1.02] ${
+                  hasActiveChild ? 'text-white' : ''
                 }`}
-                style={{ background: 'var(--accent-primary)' }}
-                aria-hidden="true"
-              />
-              
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span className="font-medium text-sm">{item.name}</span>}
-            </Link>
+                style={{
+                  background: hasActiveChild
+                    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.2))'
+                    : 'var(--bg-tertiary)',
+                  border: `1px solid ${hasActiveChild ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                  color: hasActiveChild ? 'var(--accent-primary)' : 'var(--text-primary)',
+                }}
+                title={collapsed ? group.title : undefined}
+                aria-expanded={!collapsed && isExpanded}
+                aria-label={`${group.title} 菜单组`}
+              >
+                <div className={`flex items-center ${collapsed ? '' : 'space-x-3'}`}>
+                  <GroupIcon className="w-5 h-5 flex-shrink-0" />
+                  {!collapsed && (
+                    <span className="font-semibold text-sm">{group.title}</span>
+                  )}
+                </div>
+                {!collapsed && (
+                  isExpanded ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )
+                )}
+              </button>
+
+              {/* 子菜单项 - 仅在展开状态且非折叠时显示 */}
+              {!collapsed && isExpanded && (
+                <div className="ml-2 space-y-1 border-l-2" style={{ borderColor: 'var(--border-color)' }}>
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.href;
+                    const Icon = item.icon;
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center space-x-3 px-4 py-2.5 ml-2 rounded-lg transition-all relative overflow-hidden group hover:translate-x-0.5 ${
+                          isActive ? 'text-white' : ''
+                        }`}
+                        style={{
+                          background: isActive
+                            ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))'
+                            : 'transparent',
+                          border: `1px solid ${isActive ? 'var(--accent-primary)' : 'transparent'}`,
+                          boxShadow: isActive ? '0 0 15px var(--glow-primary)' : undefined,
+                          color: isActive ? 'white' : 'var(--text-secondary)',
+                        }}
+                        aria-current={isActive ? 'page' : undefined}
+                      >
+                        {/* 左侧指示器 */}
+                        <span
+                          className={`absolute left-0 top-0 w-1 h-full transition-all ${
+                            isActive ? 'scale-y-100' : 'scale-y-0 group-hover:scale-y-50'
+                          }`}
+                          style={{ background: 'var(--accent-primary)' }}
+                          aria-hidden="true"
+                        />
+                        
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="font-medium text-sm">{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 折叠状态下，显示子菜单作为独立项 */}
+              {collapsed && (
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.href;
+                    const Icon = item.icon;
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center justify-center px-4 py-3 rounded-lg transition-all relative overflow-hidden group ${
+                          isActive ? 'text-white' : ''
+                        }`}
+                        style={{
+                          background: isActive
+                            ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))'
+                            : 'var(--bg-tertiary)',
+                          border: `1px solid ${isActive ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                          boxShadow: isActive ? '0 0 15px var(--glow-primary)' : undefined,
+                          color: isActive ? 'white' : 'var(--text-secondary)',
+                        }}
+                        title={item.name}
+                        aria-current={isActive ? 'page' : undefined}
+                      >
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

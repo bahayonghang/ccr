@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { Play, Copy, Trash2 } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { listCommands, executeCommand } from '@/lib/api/client';
+import { listCommands, executeCommand, listConfigs, getHistory } from '@/lib/api/client';
 import type { CommandInfo, CommandResponse } from '@/lib/types';
+import Navbar from '@/components/layout/Navbar';
+import StatusHeader from '@/components/layout/StatusHeader';
 import CollapsibleSidebar from '@/components/layout/CollapsibleSidebar';
 
 export default function CommandExecutor() {
@@ -14,6 +16,9 @@ export default function CommandExecutor() {
   const [args, setArgs] = useState<string>('');
   const [output, setOutput] = useState<CommandResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [currentConfig, setCurrentConfig] = useState<string>('');
+  const [totalConfigs, setTotalConfigs] = useState(0);
+  const [historyCount, setHistoryCount] = useState(0);
 
   useEffect(() => {
     const loadCommands = async () => {
@@ -27,7 +32,22 @@ export default function CommandExecutor() {
         console.error('Failed to load commands:', err);
       }
     };
+
+    const loadStats = async () => {
+      try {
+        const configData = await listConfigs();
+        setCurrentConfig(configData.current_config);
+        setTotalConfigs(configData.configs.length);
+
+        const historyData = await getHistory();
+        setHistoryCount(historyData.total);
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+      }
+    };
+
     loadCommands();
+    loadStats();
   }, []);
 
   const handleExecute = async () => {
@@ -79,6 +99,16 @@ export default function CommandExecutor() {
   return (
     <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', padding: '20px' }}>
       <div className="max-w-[1800px] mx-auto">
+        {/* 导航栏 */}
+        <Navbar />
+
+        {/* 状态信息头部 */}
+        <StatusHeader
+          currentConfig={currentConfig}
+          totalConfigs={totalConfigs}
+          historyCount={historyCount}
+        />
+
         {/* 布局：可折叠侧边栏 + 主命令区域 */}
         <div className="grid grid-cols-[auto_1fr] gap-4">
           {/* 可折叠导航 */}

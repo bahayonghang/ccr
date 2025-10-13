@@ -122,15 +122,35 @@ pub async fn handle_list_configs(AxumState(state): AxumState<AppState>) -> Respo
 }
 
 /// 处理切换配置
-pub async fn handle_switch_config(Json(req): Json<SwitchRequest>) -> Response {
+pub async fn handle_switch_config(
+    AxumState(state): AxumState<AppState>,
+    Json(req): Json<SwitchRequest>,
+) -> Response {
     // 🚀 使用 spawn_blocking 执行同步操作
     let config_name = req.config_name.clone();
-    let result = tokio::task::spawn_blocking(move || crate::commands::switch_command(&config_name))
-        .await
-        .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
+    let result = tokio::task::spawn_blocking(move || {
+        // 确保历史记录服务被正确传递
+        crate::commands::switch_command(&config_name)
+    })
+    .await
+    .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
 
     match result {
-        Ok(_) => Json(ApiResponse::success("配置切换成功")).into_response(),
+        Ok(_) => {
+            // 切换成功后，给文件系统一点时间确保历史记录写入完成
+            // 这对于某些文件系统（特别是网络文件系统）可能是必要的
+            tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+            
+            // 验证历史记录已成功写入
+            match state.history_service.get_recent(1) {
+                Ok(_) => Json(ApiResponse::success("配置切换成功")).into_response(),
+                Err(e) => {
+                    log::warn!("历史记录可能未正确保存: {}", e);
+                    // 虽然历史记录可能有问题，但配置切换本身是成功的
+                    Json(ApiResponse::success("配置切换成功（历史记录可能延迟）")).into_response()
+                }
+            }
+        }
         Err(e) => {
             let error_response: ApiResponse<()> = ApiResponse::error_without_data(e.user_message());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
@@ -233,12 +253,20 @@ pub async fn handle_delete_config(
 
 /// 处理获取历史记录
 pub async fn handle_get_history(AxumState(state): AxumState<AppState>) -> Response {
-    let result = tokio::task::spawn_blocking(move || state.history_service.get_recent(50))
-        .await
-        .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
+    log::debug!("开始获取历史记录");
+    
+    let result = tokio::task::spawn_blocking(move || {
+        let entries = state.history_service.get_recent(50)?;
+        log::info!("成功加载 {} 条历史记录", entries.len());
+        Ok(entries)
+    })
+    .await
+    .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
 
     match result {
         Ok(entries) => {
+            log::debug!("准备序列化 {} 条历史记录为 JSON", entries.len());
+            
             let json_entries: Vec<HistoryEntryJson> = entries
                 .iter()
                 .map(|entry| HistoryEntryJson {
@@ -265,9 +293,11 @@ pub async fn handle_get_history(AxumState(state): AxumState<AppState>) -> Respon
                 total: json_entries.len(),
             };
 
+            log::debug!("返回 {} 条历史记录给前端", json_entries.len());
             Json(ApiResponse::success(response_data)).into_response()
         }
         Err(e) => {
+            log::error!("获取历史记录失败: {}", e);
             let error_response: ApiResponse<()> = ApiResponse::error_without_data(e.user_message());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
         }

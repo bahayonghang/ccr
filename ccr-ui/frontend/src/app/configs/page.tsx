@@ -6,7 +6,6 @@ import { listConfigs, switchConfig, validateConfigs, getHistory } from '@/lib/ap
 import type { ConfigItem, HistoryEntry } from '@/lib/types';
 import Navbar from '@/components/layout/Navbar';
 import StatusHeader from '@/components/layout/StatusHeader';
-import LeftSidebar from '@/components/sidebar/LeftSidebar';
 import RightSidebar from '@/components/sidebar/RightSidebar';
 import CollapsibleSidebar from '@/components/layout/CollapsibleSidebar';
 import HistoryList from '@/components/history/HistoryList';
@@ -73,7 +72,14 @@ export default function ConfigManagement() {
     try {
       await switchConfig(configName);
       alert(`✓ 成功切换到配置 "${configName}"`);
+
+      // 刷新配置列表和历史记录
       await loadConfigs();
+
+      // 如果当前在历史记录标签页，也刷新历史记录
+      if (activeTab === 'history') {
+        await loadHistory();
+      }
     } catch (err) {
       alert(`切换失败: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
@@ -120,6 +126,8 @@ export default function ConfigManagement() {
         {/* 导航栏 */}
         <Navbar
           onRefresh={loadConfigs}
+          onValidate={handleValidate}
+          onClean={() => alert('清理备份功能开发中')}
           onImport={() => alert('导入功能开发中')}
           onExport={() => alert('导出功能开发中')}
           onAdd={() => alert('添加功能开发中')}
@@ -136,17 +144,6 @@ export default function ConfigManagement() {
         <div className="grid grid-cols-[auto_1fr_280px] gap-4">
           {/* 可折叠导航 */}
           <CollapsibleSidebar />
-
-          {/* 左侧更新管理侧边栏 - 移除系统信息和当前配置，只保留版本管理 */}
-          <div className="hidden">
-            <LeftSidebar
-              currentConfig={currentConfig}
-              totalConfigs={configs.length}
-              historyCount={historyCount}
-              onValidate={handleValidate}
-              onClean={() => alert('清理备份功能开发中')}
-            />
-          </div>
 
           {/* 主内容区 */}
           <main
@@ -294,24 +291,12 @@ export default function ConfigManagement() {
             )}
           </main>
 
-          {/* 右侧综合侧边栏：配置导航 + 版本管理 */}
-          <div className="space-y-4">
-            {/* 配置导航 */}
-            <RightSidebar
-              configs={configs}
-              currentFilter={currentFilter}
-              onConfigClick={handleConfigClick}
-            />
-            
-            {/* 版本管理和操作按钮 */}
-            <LeftSidebar
-              currentConfig={currentConfig}
-              totalConfigs={configs.length}
-              historyCount={historyCount}
-              onValidate={handleValidate}
-              onClean={() => alert('清理备份功能开发中')}
-            />
-          </div>
+          {/* 右侧：配置导航 */}
+          <RightSidebar
+            configs={configs}
+            currentFilter={currentFilter}
+            onConfigClick={handleConfigClick}
+          />
         </div>
       </div>
     </div>
