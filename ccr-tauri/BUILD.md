@@ -10,15 +10,19 @@ cargo check
 # 2. 进入 Tauri 子项目
 cd ccr-tauri
 
-# 3. 安装前端依赖 (只需一次)
+# 3. 安装 Tauri CLI (只需一次)
+cargo install tauri-cli --version "^2.0.0" --locked
+# 或者使用 justfile: just install-tauri-cli
+
+# 4. 安装前端依赖 (只需一次)
 cd src-ui
 npm install
 cd ..
 
-# 4. 开发模式运行
+# 5. 开发模式运行
 cargo tauri dev
 
-# 5. 构建生产版本
+# 6. 构建生产版本
 cargo tauri build
 ```
 
@@ -30,6 +34,20 @@ cargo tauri build
 - Rust 1.70+ (`rustup update`)
 - Node.js 18+ (`node --version`)
 - npm 9+ (`npm --version`)
+- Tauri CLI 2.x (`cargo tauri --version`)
+
+**安装 Tauri CLI：**
+```bash
+# 安装最新的 Tauri 2.x CLI
+cargo install tauri-cli --version "^2.0.0" --locked
+
+# 验证安装
+cargo tauri --version
+```
+
+::: tip 提示
+如果您使用 justfile，可以运行 `just setup` 自动安装所有依赖，包括 Tauri CLI。
+:::
 
 ### 步骤 2: 系统依赖
 
@@ -224,7 +242,18 @@ cargo tauri build --debug
 
 ### 问题: `cargo tauri dev` 启动失败
 
-**可能原因 1: 端口占用**
+**可能原因 1: Tauri CLI 未安装**
+
+```bash
+# 错误信息: error: no such command: `tauri`
+# 解决方法: 安装 Tauri CLI
+cargo install tauri-cli --version "^2.0.0" --locked
+
+# 或使用 justfile
+just install-tauri-cli
+```
+
+**可能原因 2: 端口占用**
 
 ```bash
 # 检查 5173 端口
@@ -232,7 +261,17 @@ lsof -i :5173
 # 或修改 vite.config.ts 中的端口号
 ```
 
-**可能原因 2: 依赖未安装**
+**可能原因 3: 前端未构建**
+
+```bash
+# 错误信息: The `frontendDist` configuration is set to `"src-ui/dist"` but this path doesn't exist
+# 解决方法: 构建前端
+cd src-ui
+npm run build
+cd ..
+```
+
+**可能原因 4: 依赖未安装**
 
 ```bash
 cd src-ui

@@ -479,7 +479,36 @@ export async function switchConfig(name: string): Promise<string> {
 
 ## 常见问题排查
 
-### 问题 1: 应用启动失败
+### 问题 1: Tauri CLI 未安装
+
+**现象：**
+```
+error: no such command: `tauri`
+
+help: a command with a similar name exists: `miri`
+```
+
+**原因：** 系统中没有安装 `cargo-tauri` CLI 工具
+
+**解决方法：**
+
+```bash
+# 方法 1: 使用 cargo 直接安装
+cargo install tauri-cli --version "^2.0.0" --locked
+
+# 方法 2: 使用 justfile (推荐)
+just install-tauri-cli
+
+# 方法 3: 使用 setup 命令 (会自动检查并安装)
+just setup
+
+# 验证安装
+cargo tauri --version
+```
+
+---
+
+### 问题 2: 应用启动失败
 
 **现象：**
 ```
@@ -488,25 +517,31 @@ Error: Failed to run tauri application
 
 **排查步骤：**
 
-1. **检查依赖**
+1. **检查 Tauri CLI 是否安装**
+   ```bash
+   cargo tauri --version
+   # 如果提示未安装，参考问题 1
+   ```
+
+2. **检查其他依赖**
    ```bash
    cargo check
    cd src-ui && npm install
    ```
 
-2. **查看详细错误**
+3. **查看详细错误**
    ```bash
    cargo tauri dev --verbose
    ```
 
-3. **清理缓存**
+4. **清理缓存**
    ```bash
    cargo clean
    rm -rf target/
    cd src-ui && rm -rf node_modules/ dist/
    ```
 
-4. **重新安装**
+5. **重新安装**
    ```bash
    cargo build
    cd src-ui && npm install
@@ -514,7 +549,39 @@ Error: Failed to run tauri application
 
 ---
 
-### 问题 2: 前端资源加载失败
+### 问题 3: 前端未构建
+
+**现象：**
+```
+proc macro panicked
+message: The `frontendDist` configuration is set to `"src-ui/dist"` but this path doesn't exist
+```
+
+**原因：** Tauri 编译时需要前端构建产物 (`src-ui/dist`)，但该目录不存在
+
+**解决方法：**
+
+```bash
+# 方法 1: 手动构建前端
+cd ccr-tauri/src-ui
+npm run build
+cd ../..
+
+# 方法 2: 使用 justfile (推荐)
+cd ccr-tauri
+just ui-build
+
+# 验证 dist 目录已创建
+ls -la src-ui/dist
+```
+
+::: tip 提示
+首次克隆项目或运行清理命令后，都需要先构建前端。建议使用 `just setup` 一键完成所有设置。
+:::
+
+---
+
+### 问题 4: 前端资源加载失败
 
 **现象：**
 ```
@@ -548,7 +615,7 @@ Failed to load resource: net::ERR_FILE_NOT_FOUND
 
 ---
 
-### 问题 3: Command 调用失败
+### 问题 5: Command 调用失败
 
 **现象：**
 ```javascript
@@ -583,7 +650,7 @@ Error: Command not found
 
 ---
 
-### 问题 4: 类型不匹配
+### 问题 6: 类型不匹配
 
 **现象：**
 ```
@@ -618,7 +685,7 @@ TypeError: Cannot read property 'xxx' of null
 
 ---
 
-### 问题 5: 文件权限错误
+### 问题 7: 文件权限错误
 
 **现象：**
 ```

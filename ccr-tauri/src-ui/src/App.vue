@@ -10,7 +10,7 @@ import {
   updateConfig,
   deleteConfig
 } from './api'
-import type { ConfigInfo, ConfigList, HistoryEntry, SystemInfo } from './types'
+import type { ConfigInfo, HistoryEntry, SystemInfo } from './types'
 
 // ============================================================================
 // 🎯 状态管理

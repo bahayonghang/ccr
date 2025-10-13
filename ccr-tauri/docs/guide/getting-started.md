@@ -24,6 +24,15 @@
   npm --version
   ```
 
+- **Tauri CLI** 2.x
+  ```bash
+  # 检查 Tauri CLI 版本
+  cargo tauri --version
+
+  # 如果没有安装
+  cargo install tauri-cli --version "^2.0.0" --locked
+  ```
+
 ### 系统依赖
 
 ::: code-group
@@ -74,7 +83,28 @@ git clone https://github.com/your-org/ccr.git
 cd ccr/ccr-tauri
 ```
 
-### 2. 安装前端依赖
+### 2. 安装 Tauri CLI
+
+```bash
+# 安装 Tauri CLI 2.x (只需一次)
+cargo install tauri-cli --version "^2.0.0" --locked
+
+# 验证安装
+cargo tauri --version
+```
+
+::: tip 使用 justfile？
+如果项目使用 justfile，可以使用以下命令：
+```bash
+# 一键安装所有依赖 (包括 Tauri CLI 检查)
+just setup
+
+# 或单独安装 Tauri CLI
+just install-tauri-cli
+```
+:::
+
+### 3. 安装前端依赖
 
 ```bash
 cd src-ui
@@ -92,10 +122,13 @@ cd src-ui && yarn install && cd ..
 ```
 :::
 
-### 3. 运行开发版本
+### 4. 运行开发版本
 
 ```bash
 cargo tauri dev
+
+# 或使用 justfile
+just dev
 ```
 
 第一次运行需要编译 Rust 代码，可能需要几分钟时间。后续启动会快很多！(^_^)b

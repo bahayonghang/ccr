@@ -4,8 +4,8 @@
   "version": "1.1.2",
   "identifier": "com.ccr.desktop",
   "build": {
-    "beforeDevCommand": "cd /Users/lyh1999/Documents/GitHub/ccr/ccr-tauri/src-ui && npm run dev",
-    "beforeBuildCommand": "cd /Users/lyh1999/Documents/GitHub/ccr/ccr-tauri/src-ui && npm run build",
+    "beforeDevCommand": "sh -c 'cd src-ui && npm run dev'",
+    "beforeBuildCommand": "sh -c 'cd src-ui && npm run build'",
     "devUrl": "http://localhost:5173",
     "frontendDist": "src-ui/dist"
   },

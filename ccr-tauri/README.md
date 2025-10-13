@@ -31,6 +31,7 @@ CCR Desktop 是 CCR (Claude Code Configuration Switcher) 的 Tauri 桌面版本�
 
 - **Rust**: 1.70+ (已通过根项目安装)
 - **Node.js**: 18+ 和 npm
+- **Tauri CLI**: 2.x (`cargo install tauri-cli --version "^2.0.0" --locked`)
 - **系统依赖**:
   - macOS: Xcode Command Line Tools
   - Linux: `webkit2gtk-4.0`, `libgtk-3-dev`, `libayatana-appindicator3-dev`
@@ -38,22 +39,39 @@ CCR Desktop 是 CCR (Claude Code Configuration Switcher) 的 Tauri 桌面版本�
 
 ### 🛠️ 开发环境设置
 
-#### 1. 安装前端依赖
+#### 1. 安装 Tauri CLI
+
+```bash
+# 安装 Tauri CLI (只需一次)
+cargo install tauri-cli --version "^2.0.0" --locked
+
+# 验证安装
+cargo tauri --version
+```
+
+#### 2. 安装前端依赖
 
 ```bash
 cd ccr-tauri/src-ui
 npm install
 ```
 
-#### 2. 开发模式运行
+#### 3. 一键设置 (推荐)
+
+```bash
+# 使用 justfile 自动安装所有依赖
+cd ccr-tauri
+just setup
+```
+
+#### 4. 开发模式运行
 
 ```bash
 # 在 ccr-tauri 目录
 cargo tauri dev
 
-# 或者使用 npm scripts
-cd src-ui
-npm run tauri:dev
+# 或者使用 justfile
+just dev
 ```
 
 这将启动：

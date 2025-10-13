@@ -30,6 +30,6 @@ fn main() {
             commands::restore_backup,
             commands::get_system_info,
         ])
-        .run(tauri::generate_context!())
+        .run(tauri::generate_context!("tauri.conf.json"))
         .expect("启动 Tauri 应用失败！");
 }
