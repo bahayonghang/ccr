@@ -34,7 +34,7 @@ pub fn update_command(check_only: bool) -> Result<()> {
         ColorOutput::info("检查模式 - 不会执行实际更新");
         println!();
         ColorOutput::step("更新命令预览");
-        println!("  cargo install --git https://github.com/bahayonghang/ccr --force");
+        println!("  cargo install --git https://github.com/bahayonghang/ccr ccr --force");
         println!();
         ColorOutput::info("💡 提示: 运行 'ccr update' 执行更新(去掉 --check 参数)");
         println!();
@@ -56,7 +56,7 @@ pub fn update_command(check_only: bool) -> Result<()> {
     ColorOutput::step("开始更新 CCR");
     println!();
     ColorOutput::info("执行命令:");
-    println!("  cargo install --git https://github.com/bahayonghang/ccr --force");
+    println!("  cargo install --git https://github.com/bahayonghang/ccr ccr --force");
     println!();
     ColorOutput::separator();
     println!();
@@ -67,6 +67,7 @@ pub fn update_command(check_only: bool) -> Result<()> {
             "install",
             "--git",
             "https://github.com/bahayonghang/ccr",
+            "ccr", // 指定包名
             "--force",
         ])
         .stdout(Stdio::inherit()) // 实时显示标准输出
@@ -108,7 +109,7 @@ pub fn update_command(check_only: bool) -> Result<()> {
         println!("  1. 检查网络连接: ping github.com");
         println!("  2. 更新 Rust 工具链: rustup update");
         println!("  3. 检查 cargo 版本: cargo --version");
-        println!("  4. 手动安装: cargo install --git https://github.com/bahayonghang/ccr --force");
+        println!("  4. 手动安装: cargo install --git https://github.com/bahayonghang/ccr ccr --force");
         println!();
 
         return Err(CcrError::ConfigError(format!(

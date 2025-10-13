@@ -9,7 +9,7 @@ CCR 提供了简单而强大的配置管理功能。本指南将帮助你快速�
 使用 cargo 从 GitHub 直接安装：
 
 ```bash
-cargo install --git https://github.com/bahayonghang/ccr
+cargo install --git https://github.com/bahayonghang/ccr ccr
 ```
 
 安装完成后,`ccr` 命令将可在你的 PATH 中使用。

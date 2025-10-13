@@ -27,7 +27,7 @@ First, you need to install Rust and Cargo, then execute the following commands:
 **One-line install from GitHub:**
 
 ```bash
-cargo install --git https://github.com/bahayonghang/ccr
+cargo install --git https://github.com/bahayonghang/ccr ccr
 ```
 
 **From source:**

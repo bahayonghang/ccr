@@ -60,7 +60,7 @@ features:
 使用 cargo 从 GitHub 直接安装：
 
 ```bash
-cargo install --git https://github.com/bahayonghang/ccr
+cargo install --git https://github.com/bahayonghang/ccr ccr
 ```
 
 ### 从源码构建

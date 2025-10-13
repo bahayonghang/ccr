@@ -30,7 +30,7 @@ ccr update [OPTIONS]
 ## 等效命令
 
 ```bash
-cargo install --git https://github.com/bahayonghang/ccr --force
+cargo install --git https://github.com/bahayonghang/ccr ccr --force
 ```
 
 ## 示例
@@ -70,7 +70,7 @@ CCR 自动更新
 ℹ 检查模式 - 不会执行实际更新
 
 ▶ 更新命令预览
-  cargo install --git https://github.com/bahayonghang/ccr --force
+  cargo install --git https://github.com/bahayonghang/ccr ccr --force
 
 ℹ 💡 提示: 运行 'ccr update' 执行更新(去掉 --check 参数)
 ```
@@ -93,7 +93,7 @@ CCR 自动更新
 ▶ 开始更新 CCR
 
 ℹ 执行命令:
-  cargo install --git https://github.com/bahayonghang/ccr --force
+  cargo install --git https://github.com/bahayonghang/ccr ccr --force
 
 ────────────────────────────────────────────────────────────
 
@@ -332,7 +332,7 @@ which ccr
 find ~ -name ccr -type f 2>/dev/null
 
 # 3. 重新安装
-cargo install --git https://github.com/bahayonghang/ccr --force
+cargo install --git https://github.com/bahayonghang/ccr ccr --force
 
 # 4. 刷新 shell
 hash -r
@@ -352,14 +352,14 @@ ccr version
 git ls-remote --tags https://github.com/bahayonghang/ccr
 
 # 安装特定版本
-cargo install --git https://github.com/bahayonghang/ccr --tag v0.3.1 --force
+cargo install --git https://github.com/bahayonghang/ccr ccr --tag v0.3.1 --force
 ```
 
 ### 方法 2: 安装特定 Commit
 
 ```bash
 # 安装指定 commit
-cargo install --git https://github.com/bahayonghang/ccr --rev abc123def --force
+cargo install --git https://github.com/bahayonghang/ccr ccr --rev abc123def --force
 ```
 
 ### 方法 3: 从备份恢复

@@ -27,7 +27,7 @@ CCR 通过原子操作、文件锁、完整审计追踪和自动备份直接管�
 **一行命令从 GitHub 安装：**
 
 ```bash
-cargo install --git https://github.com/bahayonghang/ccr
+cargo install --git https://github.com/bahayonghang/ccr ccr
 ```
 
 **从源码构建：**

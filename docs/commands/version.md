@@ -62,7 +62,7 @@ CCR v0.3.1
 
 ```bash
 # 安装后
-cargo install --git https://github.com/bahayonghang/ccr
+cargo install --git https://github.com/bahayonghang/ccr ccr
 ccr version
 
 # 更新后
