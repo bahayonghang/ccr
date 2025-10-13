@@ -39,3 +39,6 @@ pnpm-debug.log*
 # 临时文件
 *.tmp
 *.temp
+
+# WSL 开发脚本（可选忽略，已提交）
+# dev-wsl.sh

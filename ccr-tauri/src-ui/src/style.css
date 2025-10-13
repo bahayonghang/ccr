@@ -51,7 +51,11 @@
 
 html {
     overflow-y: scroll;
+    overflow-x: hidden;
     scroll-behavior: smooth;
+    /* 🖱️ WSL WebKit 滚轮修复 */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 body {
@@ -63,11 +67,18 @@ body {
     overflow-x: hidden;
     overflow-y: auto;
     transition: background-color 0.3s ease, color 0.3s ease;
+    /* 🖱️ 关键修复：强制启用滚轮和触摸 */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
 }
 
 #app {
     width: 100%;
     min-height: 100vh;
+    /* 🖱️ 确保 app 容器可滚动 */
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* 动态背景 */
@@ -158,9 +169,31 @@ button:disabled, .btn:disabled {
     cursor: not-allowed;
 }
 
+/* 🖱️ 全局滚动修复 - WSL WebKit 支持 */
+* {
+    /* 强制所有元素支持滚轮和触摸 */
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 可滚动容器修复 */
+.scrollable,
+.sidebar-right,
+.modal-content,
+.configs-section,
+.tab-content {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
+    /* 确保滚轮事件不被阻止 */
+    pointer-events: auto !important;
+}
+
 /* 滚动条美化 */
 ::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {

@@ -2,7 +2,9 @@
 
 # 使用指南 📖
 # - 在 ccr-tauri 目录执行：`just --list` 查看所有任务
-# - 快速开发：`just dev` 启动 Tauri 开发模式 (热重载)
+# - 桌面开发：`just dev` 启动 Tauri 开发模式 (热重载)
+# - WSL 优化：`just dev-wsl` WSL 环境优化启动
+# - Web 调试：`just dev-web` 前端+后端,无桌面窗口 🌐
 # - 构建桌面应用：`just build` 或 `just release`
 # - 前端开发：`just ui-dev` 仅启动前端服务器
 # - 完整检查：`just ci` 运行 CI 流程
@@ -55,6 +57,180 @@ dev:
   @echo "  前端地址: http://localhost:5173"
   just _check-node-modules
   cargo tauri dev
+
+# WSL 优化开发模式 (抑制图形警告) 🪟🐧
+dev-wsl:
+  @echo "▶ 启动 Tauri 开发模式 (WSL 优化)..."
+  @echo "  特性: Rust 后端 + Vue 前端热重载"
+  @echo "  前端地址: http://localhost:5173"
+  @echo "  🔧 已抑制 libEGL/Mesa 警告"
+  just _check-node-modules
+  ./dev-wsl.sh
+
+# Web 调试模式 (前端+后端,无桌面窗口) 🌐🔧
+dev-web:
+  @echo "▶ 启动 Web 调试模式..."
+  @echo "  特性: 前端 + 后端 API 服务，无桌面窗口"
+  @echo "  前端地址: http://localhost:5173"
+  @echo "  后端 API: http://localhost:3030"
+  @echo "  🌐 适用于 WSL/远程服务器调试"
+  @echo ""
+  just _check-node-modules
+  just _start-web-servers
+
+# Web 调试模式 (仅前端,临时方案) 🌐🚧
+dev-web-frontend-only:
+  @echo "▶ 启动 Web 调试模式 (仅前端)..."
+  @echo "  特性: 前端界面预览，API 调用会失败"
+  @echo "  前端地址: http://localhost:5173"
+  @echo "  🚧 临时方案：后端 API 暂时不可用"
+  @echo ""
+  just _check-node-modules
+  @echo "🎨 启动前端开发服务器..."
+  @npm run dev --prefix {{UI_DIR}} &
+  @sleep 3
+  @echo ""
+  @echo "╔═══════════════════════════════════════════════════════════╗"
+  @echo "║  🌐 Web 前端调试模式已启动                               ║"
+  @echo "║                                                           ║"
+  @echo "║  🎨 前端界面: http://localhost:5173                       ║"
+  @echo "║  ⚠️  注意: API 功能不可用，仅用于 UI 测试                  ║"
+  @echo "║                                                           ║"
+  @echo "║  💡 用途:                                                  ║"
+  @echo "║    - 测试界面布局和样式                                   ║"
+  @echo "║    - 验证滚轮修复效果                                     ║"
+  @echo "║    - 响应式设计测试                                       ║"
+  @echo "║                                                           ║"
+  @echo "║  🔧 完整功能请使用 'just dev-wsl'                         ║"
+  @echo "╚═══════════════════════════════════════════════════════════╝"
+  @echo ""
+
+# 内部任务：启动前后端 Web 服务器（并发模式）
+_start-web-servers:
+  #!/usr/bin/env bash
+  set -e
+  
+  # 清理旧的 PID 文件
+  rm -f /tmp/ccr-web.pid /tmp/vite-dev.pid /tmp/ccr-web.log /tmp/vite-dev.log
+  
+  echo "📡 启动后端 API 服务器 (端口 3030)..."
+  cd .. && nohup ccr web -p 3030 > /tmp/ccr-web.log 2>&1 & echo $! > /tmp/ccr-web.pid
+  sleep 1
+  
+  echo "🎨 启动前端开发服务器 (端口 5173)..."
+  nohup npm run dev --prefix {{UI_DIR}} > /tmp/vite-dev.log 2>&1 & echo $! > /tmp/vite-dev.pid
+  sleep 3
+  
+  echo ""
+  echo "╔═══════════════════════════════════════════════════════════╗"
+  echo "║  🌐 Web 调试模式已启动                                   ║"
+  echo "║                                                           ║"
+  echo "║  🎨 前端界面: http://localhost:5173                       ║"
+  echo "║  📡 后端 API: http://localhost:3030                       ║"
+  echo "║                                                           ║"
+  echo "║  💡 使用方法:                                              ║"
+  echo "║    1. 在浏览器中打开 http://localhost:5173                ║"
+  echo "║    2. F12 打开 DevTools 查看 Network 请求                 ║"
+  echo "║    3. 前端调用后端 API 进行配置操作                       ║"
+  echo "║                                                           ║"
+  echo "║  📋 实时日志:                                              ║"
+  echo "║    tail -f /tmp/ccr-web.log    (后端 API 日志)            ║"
+  echo "║    tail -f /tmp/vite-dev.log   (前端构建日志)             ║"
+  echo "║                                                           ║"
+  echo "║  📊 进程状态:                                              ║"
+  echo "║    ps aux | grep -E '(ccr web|vite)'                      ║"
+  echo "║                                                           ║"
+  echo "║  ⏹️  停止服务: just stop-web                              ║"
+  echo "╚═══════════════════════════════════════════════════════════╝"
+  echo ""
+  
+  # 显示启动状态
+  if kill -0 $(cat /tmp/ccr-web.pid) 2>/dev/null; then
+    echo "✅ 后端服务器启动成功 (PID: $(cat /tmp/ccr-web.pid))"
+  else
+    echo "❌ 后端服务器启动失败，查看日志: cat /tmp/ccr-web.log"
+  fi
+  
+  if kill -0 $(cat /tmp/vite-dev.pid) 2>/dev/null; then
+    echo "✅ 前端服务器启动成功 (PID: $(cat /tmp/vite-dev.pid))"
+  else
+    echo "❌ 前端服务器启动失败，查看日志: cat /tmp/vite-dev.log"
+  fi
+  
+  echo ""
+  echo "🌐 在浏览器中访问: http://localhost:5173"
+  echo "💡 停止服务使用: just stop-web"
+
+# 停止 Web 调试模式的所有服务 ⏹️
+stop-web:
+  @echo "▶ 停止 Web 调试服务..."
+  @if [ -f "/tmp/ccr-web.pid" ]; then \
+    kill $(cat /tmp/ccr-web.pid) 2>/dev/null || true; \
+    rm -f /tmp/ccr-web.pid; \
+    echo "  ✓ CCR Web 服务器已停止"; \
+  fi
+  @if [ -f "/tmp/vite-dev.pid" ]; then \
+    kill $(cat /tmp/vite-dev.pid) 2>/dev/null || true; \
+    rm -f /tmp/vite-dev.pid; \
+    echo "  ✓ Vite 开发服务器已停止"; \
+  fi
+  @rm -f /tmp/ccr-web.log /tmp/vite-dev.log
+  @pkill -f "ccr web" 2>/dev/null || true
+  @pkill -f "vite.*5173" 2>/dev/null || true
+  @echo "✓ 所有 Web 调试服务已停止"
+
+# 查看 Web 调试模式服务状态 📊
+web-status:
+  @echo "▶ Web 调试服务状态..."
+  @echo ""
+  @if [ -f "/tmp/ccr-web.pid" ] && kill -0 $(cat /tmp/ccr-web.pid) 2>/dev/null; then \
+    echo "✅ 后端 API 服务器 (PID: $(cat /tmp/ccr-web.pid))"; \
+    echo "   📡 http://localhost:3030"; \
+  else \
+    echo "❌ 后端 API 服务器未运行"; \
+  fi
+  @if [ -f "/tmp/vite-dev.pid" ] && kill -0 $(cat /tmp/vite-dev.pid) 2>/dev/null; then \
+    echo "✅ 前端开发服务器 (PID: $(cat /tmp/vite-dev.pid))"; \
+    echo "   🎨 http://localhost:5173"; \
+  else \
+    echo "❌ 前端开发服务器未运行"; \
+  fi
+  @echo ""
+  @echo "📊 端口监听状态:"
+  @ss -tuln | grep -E "(3030|5173)" | awk '{print "   " $5 " → " $1}' || echo "   无相关端口监听"
+
+# 查看 Web 调试日志 📋
+web-logs:
+  @echo "▶ Web 调试日志..."
+  @echo ""
+  @if [ -f "/tmp/ccr-web.log" ]; then \
+    echo "📡 后端 API 日志 (最近 20 行):"; \
+    echo "   文件: /tmp/ccr-web.log"; \
+    tail -20 /tmp/ccr-web.log | sed 's/^/   /'; \
+    echo ""; \
+  fi
+  @if [ -f "/tmp/vite-dev.log" ]; then \
+    echo "🎨 前端开发日志 (最近 20 行):"; \
+    echo "   文件: /tmp/vite-dev.log"; \
+    tail -20 /tmp/vite-dev.log | sed 's/^/   /'; \
+  fi
+
+# 实时跟踪 Web 调试日志 📊
+web-logs-follow:
+  @echo "▶ 实时跟踪 Web 调试日志 (Ctrl+C 退出)..."
+  @echo ""
+  @if [ -f "/tmp/ccr-web.log" ] && [ -f "/tmp/vite-dev.log" ]; then \
+    echo "同时跟踪前端和后端日志:"; \
+    tail -f /tmp/ccr-web.log /tmp/vite-dev.log; \
+  elif [ -f "/tmp/ccr-web.log" ]; then \
+    echo "跟踪后端日志:"; \
+    tail -f /tmp/ccr-web.log; \
+  elif [ -f "/tmp/vite-dev.log" ]; then \
+    echo "跟踪前端日志:"; \
+    tail -f /tmp/vite-dev.log; \
+  else \
+    echo "❌ 未找到日志文件，请先运行 'just dev-web'"; \
+  fi
 
 # 内部任务：检查并安装前端依赖（跨平台）
 _check-node-modules:

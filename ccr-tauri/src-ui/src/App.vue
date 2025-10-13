@@ -8,7 +8,10 @@ import {
   getSystemInfo,
   createConfig,
   updateConfig,
-  deleteConfig
+  deleteConfig,
+  getRunMode,
+  getApiConfig,
+  testApiConnection
 } from './api'
 import type { ConfigInfo, HistoryEntry, SystemInfo } from './types'
 
@@ -31,6 +34,9 @@ const filterType = ref<'all' | 'official_relay' | 'third_party_model' | 'uncateg
 
 // 主题
 const theme = ref<'light' | 'dark'>('light')
+
+// 运行模式
+const runMode = ref<'tauri' | 'web'>('tauri')
 
 // 模态框状态
 const showConfigModal = ref(false)
@@ -84,6 +90,16 @@ async function loadData() {
     loading.value = true
     error.value = null
 
+    // 设置运行模式
+    runMode.value = getRunMode()
+    console.log(`🔧 运行模式: ${runMode.value === 'tauri' ? '🖥️ Tauri 桌面' : '🌐 Web 浏览器'}`)
+    
+    // 测试 API 连接
+    const apiConnected = await testApiConnection()
+    if (!apiConnected) {
+      throw new Error('API 连接失败，请检查后端服务是否启动')
+    }
+
     const [configList, currentConfigData, historyData, sysInfo] = await Promise.all([
       listConfigs(),
       getCurrentConfig(),
@@ -95,6 +111,11 @@ async function loadData() {
     currentConfig.value = currentConfigData
     history.value = historyData
     systemInfo.value = sysInfo
+    
+    // 显示 API 配置信息
+    if (runMode.value === 'web') {
+      getApiConfig()
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
     console.error('加载数据失败:', e)
@@ -327,10 +348,15 @@ onMounted(async () => {
           <div class="divider"></div>
           <div class="project-info">
             <div class="project-title">Claude Code Configuration Switcher</div>
-            <div class="project-meta" v-if="systemInfo">
-              <div class="meta-item">
+            <div class="project-meta">
+              <div class="meta-item" v-if="systemInfo">
                 <span class="meta-dot"></span>
                 <span>{{ systemInfo.username }}@{{ systemInfo.hostname }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="mode-indicator" :class="runMode">
+                  {{ runMode === 'tauri' ? '🖥️ 桌面' : '🌐 Web' }}
+                </span>
               </div>
             </div>
           </div>
@@ -676,12 +702,18 @@ onMounted(async () => {
 .app {
   width: 100%;
   min-height: 100vh;
+  /* 🖱️ 确保根容器可滚动 */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .container {
   max-width: 1600px;
   margin: 0 auto;
   padding: 20px;
+  /* 🖱️ 容器滚动支持 */
+  overflow-y: visible;
 }
 
 /* 导航栏 */
@@ -775,6 +807,29 @@ onMounted(async () => {
   background: var(--text-muted);
 }
 
+.mode-indicator {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+
+.mode-indicator.tauri {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+  box-shadow: 0 0 10px var(--glow-primary);
+}
+
+.mode-indicator.web {
+  background: linear-gradient(135deg, var(--accent-success), #22c55e);
+  color: white;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+  animation: pulse 3s infinite;
+}
+
 .nav-actions {
   display: flex;
   gap: 10px;
@@ -831,6 +886,11 @@ onMounted(async () => {
 .sidebar-right {
   max-height: calc(100vh - 120px);
   overflow-y: auto;
+  overflow-x: hidden;
+  /* 🖱️ WSL 滚轮修复 */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
 }
 
 .sidebar-section {
@@ -964,6 +1024,12 @@ onMounted(async () => {
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-small);
+  /* 🖱️ WSL 滚轮修复：确保内容区域可滚动 */
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 /* 标签页 */
@@ -1248,6 +1314,11 @@ onMounted(async () => {
   width: 90%;
   max-height: 85vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  /* 🖱️ WSL 模态框滚轮修复 */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
 }
 
 .modal-header {
