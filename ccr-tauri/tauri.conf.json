@@ -4,14 +4,12 @@
   "version": "1.1.2",
   "identifier": "com.ccr.desktop",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm -C src-ui run dev",
     "devUrl": "http://localhost:5173",
-    "frontendDist": "../src-ui/dist"
+    "frontendDist": "src-ui/dist"
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg"],
     "icon": ["icons/icon.png"],
     "copyright": "Copyright © 2025 Yonghang Li",
     "category": "DeveloperTool",

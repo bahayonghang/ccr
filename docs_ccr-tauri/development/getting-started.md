@@ -123,7 +123,9 @@ cargo build
 
 ### 3. 开发模式
 
-```bash
+::: code-group
+
+```bash [桌面模式 (推荐)]
 # 使用 Just (推荐)
 just dev
 
@@ -135,10 +137,53 @@ npm run tauri dev
 cargo tauri dev
 ```
 
+```bash [WSL 优化模式]
+# WSL 环境专用 (自动启用滚轮修复和图形优化)
+just dev-wsl
+
+# 或直接执行脚本
+./dev-wsl.sh
+```
+
+```bash [Web 调试模式]
+# 纯 Web 模式 (无桌面窗口，适合远程开发)
+just dev-web
+
+# 访问:
+# 前端界面: http://localhost:5173
+# 后端 API: http://localhost:3030
+
+# 查看状态
+just web-status
+
+# 查看日志
+just web-logs
+just web-logs-follow  # 实时跟踪
+
+# 停止服务
+just stop-web
+```
+
+:::
+
 开发模式会启动：
 - 前端开发服务器 (热重载)
 - Rust 后端进程 (自动重启)
-- Tauri 应用窗口
+- Tauri 应用窗口 (桌面模式)
+- 或浏览器访问 (Web 模式)
+
+::: tip Web 调试模式的优势
+Web 调试模式特别适合：
+- **WSL 环境**: 图形界面性能受限时的替代方案
+- **远程开发**: SSH 到服务器时无需 X11 转发
+- **前端调试**: 使用浏览器 DevTools 的完整功能
+- **并行开发**: 前后端独立测试和调试
+
+技术实现：
+- 前端：Vite 开发服务器 (端口 5173)
+- 后端：CCR Web API 服务器 (端口 3030)
+- API 适配器：`src-ui/src/api/index.ts` 自动适配双模式
+:::
 
 ### 4. 构建应用
 

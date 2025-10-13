@@ -7,12 +7,16 @@ export default defineConfig({
   base: '/ccr-tauri/',
 
   head: [
-    ['link', { rel: 'icon', href: '/ccr-tauri/favicon.ico' }]
+    ['link', { rel: 'icon', type: 'image/x-icon', href: '/ccr-tauri/favicon.ico' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/ccr-tauri/logo.svg' }],
+    ['meta', { name: 'theme-color', content: '#8b5cf6' }],
+    ['meta', { property: 'og:title', content: 'CCR Desktop 文档' }],
+    ['meta', { property: 'og:description', content: 'CCR Tauri 桌面应用 - 完整的技术文档' }]
   ],
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
-    logo: '⚡',
+    logo: '/logo.svg',
 
     nav: [
       { text: '首页', link: '/' },
@@ -36,6 +40,7 @@ export default defineConfig({
         items: [
           { text: '安装', link: '/guide/installation' },
           { text: '快速开始', link: '/guide/getting-started' },
+          { text: 'Web 调试模式', link: '/guide/web-debug-mode' },
           { text: '开发环境', link: '/guide/development' },
           { text: '构建发布', link: '/guide/build' }
         ]
@@ -88,6 +93,7 @@ export default defineConfig({
         text: '故障排查',
         items: [
           { text: '常见问题', link: '/troubleshooting/faq' },
+          { text: 'WSL 环境问题', link: '/troubleshooting/wsl-issues' },
           { text: '调试日志', link: '/troubleshooting/logging' }
         ]
       }
@@ -126,5 +132,11 @@ export default defineConfig({
       light: 'github-light',
       dark: 'github-dark'
     }
-  }
+  },
+
+  // 忽略本地开发链接的死链接检查
+  ignoreDeadLinks: [
+    // 忽略 localhost 链接
+    /^http:\/\/localhost/,
+  ]
 })

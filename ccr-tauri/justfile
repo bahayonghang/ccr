@@ -446,13 +446,206 @@ install-tauri-cli:
   @echo "✓ Tauri CLI 安装完成"
   @cargo tauri --version
 
+# ═══════════════════════════════════════════════════════════
+# 📦 智能打包命令（跨平台支持）
+# ═══════════════════════════════════════════════════════════
+
+# 🚀 智能打包 - 根据当前系统自动选择打包目标
+package:
+  @echo "╔═══════════════════════════════════════════════════════════╗"
+  @echo "║           📦 CCR Desktop 智能打包系统                    ║"
+  @echo "╚═══════════════════════════════════════════════════════════╝"
+  @echo ""
+  just _detect-and-package
+
+# 内部任务：检测系统并执行对应的打包
+_detect-and-package:
+  #!/usr/bin/env bash
+  set -e
+  
+  OS_TYPE=$(uname -s)
+  
+  echo "🔍 检测当前系统: $OS_TYPE"
+  echo ""
+  
+  case "$OS_TYPE" in
+    Linux*)
+      echo "🐧 检测到 Linux 系统"
+      just package-linux
+      ;;
+    Darwin*)
+      echo "🍎 检测到 macOS 系统"
+      just package-macos
+      ;;
+    MINGW*|MSYS*|CYGWIN*)
+      echo "🪟 检测到 Windows 系统"
+      just package-windows
+      ;;
+    *)
+      echo "❌ 未识别的系统: $OS_TYPE"
+      echo "💡 请手动使用 'just package-linux'、'just package-macos' 或 'just package-windows'"
+      exit 1
+      ;;
+  esac
+
+# 🐧 Linux 打包 - 生成 .deb + .AppImage
+package-linux:
+  @echo "╔═══════════════════════════════════════════════════════════╗"
+  @echo "║              🐧 Linux 平台打包                            ║"
+  @echo "╚═══════════════════════════════════════════════════════════╝"
+  @echo ""
+  @echo "📦 生成格式: .deb (Debian/Ubuntu) + .rpm (Fedora/RedHat)"
+  @echo "🔧 优化: LTO + 符号剥离"
+  @echo ""
+  just _check-node-modules
+  @echo "🎨 构建前端..."
+  npm run build --prefix {{UI_DIR}}
+  @echo ""
+  @echo "🦀 构建 Tauri 应用..."
+  cargo tauri build --bundles deb,rpm
+  @echo ""
+  @echo "✅ Linux 打包完成！"
+  @echo ""
+  just _show-linux-bundles
+
+# 🍎 macOS 打包 - 生成 .app + .dmg
+package-macos:
+  @echo "╔═══════════════════════════════════════════════════════════╗"
+  @echo "║              🍎 macOS 平台打包                            ║"
+  @echo "╚═══════════════════════════════════════════════════════════╝"
+  @echo ""
+  @echo "📦 生成格式: .app (应用包) + .dmg (安装镜像)"
+  @echo "🔧 优化: LTO + 符号剥离"
+  @echo ""
+  just _check-node-modules
+  @echo "🎨 构建前端..."
+  npm run build --prefix {{UI_DIR}}
+  @echo ""
+  @echo "🦀 构建 Tauri 应用..."
+  cargo tauri build --bundles app,dmg
+  @echo ""
+  @echo "✅ macOS 打包完成！"
+  @echo ""
+  just _show-macos-bundles
+
+# 🪟 Windows 打包 - 生成 .msi + .exe
+package-windows:
+  @echo "╔═══════════════════════════════════════════════════════════╗"
+  @echo "║             🪟 Windows 平台打包                           ║"
+  @echo "╚═══════════════════════════════════════════════════════════╝"
+  @echo ""
+  @echo "📦 生成格式: .msi (安装包) + .nsis (NSIS 安装程序)"
+  @echo "🔧 优化: LTO + 符号剥离"
+  @echo ""
+  just _check-node-modules
+  @echo "🎨 构建前端..."
+  npm run build --prefix {{UI_DIR}}
+  @echo ""
+  @echo "🦀 构建 Tauri 应用..."
+  cargo tauri build --bundles msi,nsis
+  @echo ""
+  @echo "✅ Windows 打包完成！"
+  @echo ""
+  just _show-windows-bundles
+
+# 🌍 全平台打包 (需要交叉编译工具链)
+package-all:
+  @echo "╔═══════════════════════════════════════════════════════════╗"
+  @echo "║           🌍 全平台打包（实验性）                        ║"
+  @echo "╚═══════════════════════════════════════════════════════════╝"
+  @echo ""
+  @echo "⚠️  注意: 跨平台打包需要配置对应的工具链"
+  @echo ""
+  @echo "🔧 推荐方案:"
+  @echo "  1. 在 Linux 上构建 Linux 包"
+  @echo "  2. 在 macOS 上构建 macOS 包"
+  @echo "  3. 在 Windows 上构建 Windows 包"
+  @echo ""
+  @echo "📋 或使用 GitHub Actions CI/CD 自动化构建"
+  @echo ""
+  just package
+
+# 内部任务：显示 Linux 构建产物
+_show-linux-bundles:
+  #!/usr/bin/env bash
+  echo "📦 构建产物位置:"
+  echo ""
+  
+  BUNDLE_DIR="target/release/bundle"
+  
+  if [ -d "$BUNDLE_DIR/deb" ]; then
+    echo "  📄 Debian 包 (.deb):"
+    find "$BUNDLE_DIR/deb" -name "*.deb" -exec ls -lh {} \; | awk '{print "    → " $$9 " [" $$5 "]"}'
+  fi
+  
+  if [ -d "$BUNDLE_DIR/appimage" ]; then
+    echo "  📦 AppImage 包:"
+    find "$BUNDLE_DIR/appimage" -name "*.AppImage" -exec ls -lh {} \; | awk '{print "    → " $$9 " [" $$5 "]"}'
+  fi
+  
+  if [ -d "$BUNDLE_DIR/rpm" ]; then
+    echo "  📦 RPM 包 (.rpm):"
+    find "$BUNDLE_DIR/rpm" -name "*.rpm" -exec ls -lh {} \; | awk '{print "    → " $$9 " [" $$5 "]"}'
+  fi
+  
+  echo ""
+  echo "💡 安装方法:"
+  echo "  Debian/Ubuntu: sudo dpkg -i ccr-desktop_*.deb"
+  echo "  通用 Linux:    chmod +x ccr-desktop_*.AppImage && ./ccr-desktop_*.AppImage"
+
+# 内部任务：显示 macOS 构建产物
+_show-macos-bundles:
+  #!/usr/bin/env bash
+  echo "📦 构建产物位置:"
+  echo ""
+  
+  BUNDLE_DIR="target/release/bundle"
+  
+  if [ -d "$BUNDLE_DIR/macos" ]; then
+    echo "  🍎 macOS 应用包 (.app):"
+    find "$BUNDLE_DIR/macos" -name "*.app" -type d -exec ls -ldh {} \; | awk '{print "    → " $$9}'
+  fi
+  
+  if [ -d "$BUNDLE_DIR/dmg" ]; then
+    echo "  💿 DMG 安装镜像:"
+    find "$BUNDLE_DIR/dmg" -name "*.dmg" -exec ls -lh {} \; | awk '{print "    → " $$9 " [" $$5 "]"}'
+  fi
+  
+  echo ""
+  echo "💡 安装方法:"
+  echo "  1. 双击打开 .dmg 文件"
+  echo "  2. 拖动应用到 Applications 文件夹"
+  echo "  3. 首次运行需右键点击「打开」(如未签名)"
+
+# 内部任务：显示 Windows 构建产物
+_show-windows-bundles:
+  #!/usr/bin/env bash
+  echo "📦 构建产物位置:"
+  echo ""
+  
+  BUNDLE_DIR="target/release/bundle"
+  
+  if [ -d "$BUNDLE_DIR/msi" ]; then
+    echo "  💾 MSI 安装包:"
+    find "$BUNDLE_DIR/msi" -name "*.msi" -exec ls -lh {} \; | awk '{print "    → " $$9 " [" $$5 "]"}'
+  fi
+  
+  if [ -d "$BUNDLE_DIR/nsis" ]; then
+    echo "  📦 NSIS 安装包:"
+    find "$BUNDLE_DIR/nsis" -name "*.exe" -exec ls -lh {} \; | awk '{print "    → " $$9 " [" $$5 "]"}'
+  fi
+  
+  echo ""
+  echo "💡 安装方法:"
+  echo "  双击 .msi 文件运行安装程序"
+
 # 查看构建产物 📦
 list-bundles:
   @echo "▶ 构建产物列表"
   @if [ -d "target/release/bundle" ]; then \
-    find target/release/bundle -type f \( -name "*.dmg" -o -name "*.app" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" \) -exec ls -lh {} \; | awk '{print "  " $$9 " (" $$5 ")"}'; \
+    find target/release/bundle -type f \( -name "*.dmg" -o -name "*.app" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" -o -name "*.rpm" \) -exec ls -lh {} \; | awk '{print "  " $$9 " (" $$5 ")"}'; \
   else \
-    echo "  未找到构建产物，请先运行 'just release'"; \
+    echo "  未找到构建产物，请先运行 'just package'"; \
   fi
 
 # 统计代码行数 📊

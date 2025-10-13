@@ -24,6 +24,12 @@ cargo tauri dev
 
 # 6. 构建生产版本
 cargo tauri build
+
+# 7. 🚀 智能打包（推荐）
+just package          # 自动检测系统并打包
+just package-linux    # Linux 平台 (.deb + .AppImage)
+just package-macos    # macOS 平台 (.app + .dmg)
+just package-windows  # Windows 平台 (.msi + .exe)
 ```
 
 ## 🔧 详细步骤
@@ -134,6 +140,124 @@ ccr-tauri/target/release/bundle/
 │   └── ccr-desktop_1.1.2_amd64.deb      # Debian 包
 └── msi/
     └── CCR Desktop_1.1.2_x64_en-US.msi  # Windows 安装包
+```
+
+## 📦 智能打包系统
+
+### 一键打包（推荐）
+
+使用 `just package` 命令会自动检测当前系统并执行对应的打包：
+
+```bash
+cd ccr-tauri
+just package
+```
+
+**工作流程：**
+
+1. 🔍 自动检测运行平台（Linux/macOS/Windows）
+2. 📦 选择对应的打包配置
+3. 🏗️ 执行 Tauri 构建（包含 LTO 优化 + 符号剥离）
+4. ✅ 显示构建产物位置和安装说明
+
+### 分平台打包
+
+#### 🐧 Linux 打包
+
+```bash
+just package-linux
+```
+
+**生成产物：**
+- ✅ `.deb` - Debian/Ubuntu 安装包 (3.6 MB)
+- ✅ `.rpm` - Fedora/RedHat 安装包 (3.6 MB)
+
+**安装方法：**
+```bash
+# Debian/Ubuntu
+sudo dpkg -i target/release/bundle/deb/CCR\ Desktop_*.deb
+sudo apt-get install -f  # 解决依赖
+
+# Fedora/RedHat
+sudo rpm -i target/release/bundle/rpm/CCR\ Desktop-*.rpm
+```
+
+**技术细节：**
+```bash
+# 自动执行：
+cargo tauri build --bundles deb,rpm
+```
+
+#### 🍎 macOS 打包
+
+```bash
+just package-macos
+```
+
+**生成产物：**
+- ✅ `.app` - macOS 应用包 (~15 MB)
+- ✅ `.dmg` - DMG 安装镜像 (~18 MB)
+
+**安装方法：**
+1. 双击打开 `.dmg` 文件
+2. 拖动 CCR Desktop.app 到 Applications 文件夹
+3. 首次运行需右键点击「打开」（如未签名）
+
+**技术细节：**
+```bash
+# 自动执行：
+cargo tauri build --bundles app,dmg
+```
+
+**代码签名（可选）：**
+```bash
+# 需要 Apple Developer 证书
+codesign --force --deep --sign "Developer ID Application: Your Name" \
+  target/release/bundle/macos/CCR\ Desktop.app
+```
+
+#### 🪟 Windows 打包
+
+```bash
+just package-windows
+```
+
+**生成产物：**
+- ✅ `.msi` - MSI 安装包 (~16 MB)
+- ✅ `.nsis` - NSIS 安装程序 (~16 MB)
+
+**安装方法：**
+```powershell
+# 标准安装
+msiexec /i "CCR Desktop_*.msi"
+
+# 静默安装
+msiexec /i "CCR Desktop_*.msi" /quiet
+```
+
+**技术细节：**
+```bash
+# 自动执行：
+cargo tauri build --bundles msi,nsis
+```
+
+**代码签名（可选）：**
+```powershell
+# 需要 Code Signing Certificate
+signtool sign /f certificate.pfx /p password /tr http://timestamp.digicert.com /td sha256 /fd sha256 "CCR Desktop_*.msi"
+```
+
+### 查看构建产物
+
+```bash
+just list-bundles
+```
+
+输出示例：
+```
+▶ 构建产物列表
+  target/release/bundle/deb/ccr-desktop_1.1.3_amd64.deb (12.5M)
+  target/release/bundle/appimage/ccr-desktop_1.1.3_amd64.AppImage (15.2M)
 ```
 
 ## 🎯 常用命令

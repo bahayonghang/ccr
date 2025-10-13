@@ -130,17 +130,61 @@ cd src-ui && yarn install && cd ..
 
 ### 4. 运行开发版本
 
-```bash
+::: code-group
+
+```bash [桌面模式 (推荐)]
+# 标准 Tauri 开发模式
 cargo tauri dev
 
 # 或使用 justfile
 just dev
 ```
 
+```bash [WSL 优化模式]
+# WSL 环境专用 (自动启用滚轮修复和图形优化)
+just dev-wsl
+
+# 或直接执行脚本
+./dev-wsl.sh
+```
+
+```bash [Web 调试模式]
+# 纯 Web 模式 (无桌面窗口)
+just dev-web
+
+# 访问 http://localhost:5173
+# 前端: http://localhost:5173
+# 后端 API: http://localhost:3030
+```
+
+:::
+
 第一次运行需要编译 Rust 代码，可能需要几分钟时间。后续启动会快很多！(^_^)b
 
 ::: warning 首次启动较慢
 Rust 的首次编译需要下载并编译所有依赖，这可能需要 5-10 分钟。请耐心等待～
+:::
+
+::: tip WSL 环境提示
+如果你在 WSL 环境中运行，推荐使用 `just dev-wsl` 命令，它会自动：
+- 启用鼠标滚轮支持
+- 抑制 libEGL/Mesa 图形警告
+- 启用平滑滚动
+- 优化 WebKit 渲染性能
+
+如果遇到滚轮无法滚动的问题，请查看 [WSL 故障排查](#wsl-环境问题)。
+:::
+
+::: tip Web 调试模式
+Web 调试模式适用于：
+- 远程开发环境
+- WSL 图形界面不可用时
+- 只需测试前端界面时
+- 需要浏览器 DevTools 调试时
+
+停止 Web 服务：`just stop-web`
+查看服务状态：`just web-status`
+查看日志：`just web-logs`
 :::
 
 ## 验证安装
@@ -255,12 +299,189 @@ Rust 的首次编译需要下载并编译所有依赖，这可能需要 5-10 分
 
 - 📚 阅读 [架构设计](/architecture/overview) 了解内部实现
 - 🛠️ 查看 [开发指南](/development/getting-started) 学习如何添加新功能
-- 🔧 配置 [Tauri 权限](/config/permissions) 自定义文件访问范围
-- 📦 学习如何 [构建发布版本](/guide/build)
+- 📦 学习如何构建发布版本
+- 🐛 查看下面的故障排查章节解决问题
 
 ::: tip 提示
-遇到问题？查看 [常见问题](/troubleshooting/faq) 或 [调试技巧](/development/debugging)
+遇到问题？查看下面的故障排查章节
 :::
+
+## 🐛 故障排查
+
+### WSL 环境问题
+
+#### 问题: 鼠标滚轮无法滚动
+
+**症状**: 在 WSL 环境中运行应用，界面显示正常，但鼠标滚轮无法滚动配置列表。
+
+**解决方案**:
+
+1. **使用 WSL 优化启动脚本**:
+   ```bash
+   cd ccr-tauri
+   just dev-wsl
+   ```
+
+2. **永久配置环境变量** (推荐):
+   
+   在 `~/.config/fish/config.fish` 中添加：
+   ```fish
+   # CCR Tauri WSL 滚轮修复
+   set -gx GDK_CORE_DEVICE_EVENTS 1
+   set -gx MOZ_USE_XINPUT2 1
+   set -gx WEBKIT_ENABLE_SMOOTH_SCROLLING 1
+   ```
+   
+   如果使用 bash，在 `~/.bashrc` 中添加：
+   ```bash
+   # CCR Tauri WSL 滚轮修复
+   export GDK_CORE_DEVICE_EVENTS=1
+   export MOZ_USE_XINPUT2=1
+   export WEBKIT_ENABLE_SMOOTH_SCROLLING=1
+   ```
+
+3. **重新加载配置**:
+   ```bash
+   # Fish shell
+   source ~/.config/fish/config.fish
+   
+   # Bash shell
+   source ~/.bashrc
+   ```
+
+4. **验证环境变量**:
+   ```bash
+   echo $GDK_CORE_DEVICE_EVENTS  # 应该输出 1
+   echo $MOZ_USE_XINPUT2         # 应该输出 1
+   echo $WEBKIT_ENABLE_SMOOTH_SCROLLING  # 应该输出 1
+   ```
+
+5. **重启应用**:
+   ```bash
+   just dev-wsl
+   ```
+
+**技术背景**:
+WSL 环境中 WebKit2GTK 的滚轮事件处理存在问题，需要通过以下措施解决：
+- **环境变量**: 启用 GTK/WebKit 的滚轮和触摸事件支持
+- **CSS 修复**: 强制启用 `-webkit-overflow-scrolling: touch`
+- **JavaScript 补丁**: 实现滚轮事件 polyfill，确保兼容性
+
+相关文件：
+- `ccr-tauri/dev-wsl.sh` - WSL 启动脚本
+- `ccr-tauri/src-ui/src/style.css` - 全局 CSS 滚轮修复
+- `ccr-tauri/src-ui/src/scroll-fix.ts` - JavaScript 滚轮 polyfill
+- `ccr-tauri/src-ui/src/App.vue` - 组件级滚轮样式
+
+#### 问题: libEGL 和 Mesa 警告
+
+**症状**: 启动应用时终端输出大量 `libEGL warning` 和 `MESA: error` 警告。
+
+**解决方案**:
+
+使用 WSL 优化脚本会自动抑制这些警告：
+```bash
+just dev-wsl
+```
+
+或手动设置环境变量：
+```bash
+export LIBGL_ALWAYS_SOFTWARE=1
+export WEBKIT_DISABLE_COMPOSITING_MODE=1
+export WEBKIT_DISABLE_DMABUF_RENDERER=1
+```
+
+**说明**: 这些警告是 WSLg (WSL GUI) 与硬件加速不完全兼容导致的，不影响应用功能，可以安全忽略。
+
+### Web 调试模式问题
+
+#### 问题: Web 服务无法启动
+
+**诊断步骤**:
+
+1. **检查服务状态**:
+   ```bash
+   just web-status
+   ```
+
+2. **查看日志**:
+   ```bash
+   just web-logs
+   ```
+
+3. **检查端口占用**:
+   ```bash
+   # 检查 5173 (前端) 和 3030 (后端) 端口
+   ss -tuln | grep -E "(5173|3030)"
+   ```
+
+4. **停止并重启**:
+   ```bash
+   just stop-web
+   just dev-web
+   ```
+
+#### 问题: 前端可以访问但 API 调用失败
+
+**原因**: 后端 API 服务未启动或启动失败。
+
+**解决方案**:
+
+1. 检查后端日志：
+   ```bash
+   tail -f /tmp/ccr-web.log
+   ```
+
+2. 确保 CCR 已安装并可用：
+   ```bash
+   which ccr
+   ccr --version
+   ```
+
+3. 手动启动后端服务测试：
+   ```bash
+   ccr web -p 3030
+   ```
+
+### 通用问题
+
+#### 问题: Tauri 构建失败
+
+**解决方案**:
+
+1. 清理构建缓存：
+   ```bash
+   cargo clean
+   just deep-clean
+   ```
+
+2. 更新依赖：
+   ```bash
+   cargo update
+   cd src-ui && npm install
+   ```
+
+3. 重新设置：
+   ```bash
+   just setup
+   ```
+
+#### 问题: 前端依赖安装失败
+
+**解决方案**:
+
+1. 删除 node_modules 和锁文件：
+   ```bash
+   cd src-ui
+   rm -rf node_modules package-lock.json
+   ```
+
+2. 重新安装：
+   ```bash
+   npm install
+   # 或使用 pnpm
+   pnpm install
+   ```
 
 ---
 

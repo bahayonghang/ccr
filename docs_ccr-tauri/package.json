@@ -11,6 +11,9 @@
   "devDependencies": {
     "vitepress": "^1.0.0"
   },
+  "overrides": {
+    "esbuild": "^0.25.0"
+  },
   "keywords": [
     "ccr",
     "tauri",

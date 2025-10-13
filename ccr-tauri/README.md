@@ -94,6 +94,36 @@ npm run tauri:build
 - **Linux**: `.AppImage`, `.deb`
 - **Windows**: `.msi`, `.exe`
 
+#### 4. 🚀 智能打包（推荐）
+
+使用 just 命令实现一键打包：
+
+```bash
+# 🎯 智能打包 - 自动检测系统
+just package
+
+# 📦 平台特定打包
+just package-linux    # Linux (.deb + .rpm)
+just package-macos    # macOS (.app + .dmg)
+just package-windows  # Windows (.msi + .nsis)
+
+# 📋 查看构建产物
+just list-bundles
+```
+
+### 各平台生成产物
+
+| 平台 | 格式 | 大小 | 说明 |
+|------|------|------|------|
+| **🐧 Linux** | .deb | 3.6 MB | Debian/Ubuntu 标准包 |
+|  | .rpm | 3.6 MB | Fedora/RedHat 标准包 |
+| **🍎 macOS** | .app | ~15 MB | 原生应用包 |
+|  | .dmg | ~18 MB | DMG 安装镜像 |
+| **🪟 Windows** | .msi | ~16 MB | 企业级安装包 |
+|  | .nsis | ~16 MB | NSIS 安装程序 |
+
+**详细说明请查看：** [📦 CROSS_PLATFORM_PACKAGING.md](./CROSS_PLATFORM_PACKAGING.md)
+
 ## 📁 项目结构
 
 ```

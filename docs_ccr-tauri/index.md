@@ -39,7 +39,11 @@ features:
 
   - icon: 🌍
     title: 跨平台
-    details: 支持 macOS、Linux、Windows，一套代码多平台运行
+    details: 支持 macOS、Linux、Windows，一套代码多平台运行。WSL 环境特别优化
+
+  - icon: 🌐
+    title: Web 调试模式
+    details: 支持纯 Web 模式运行，无需桌面窗口，适合远程开发和 WSL 调试
 
   - icon: 🎯
     title: TypeScript
@@ -89,6 +93,8 @@ CCR Desktop 是 CCR (Claude Code Configuration Switcher) 的桌面版本，使�
 - **备份恢复** - 自动备份，支持恢复历史版本
 - **历史记录** - 完整的操作历史追踪
 - **系统信息** - 实时显示系统资源使用情况
+- **双模式运行** - 支持桌面窗口模式和纯 Web 调试模式
+- **WSL 优化** - 针对 WSL 环境的滚轮和图形优化
 
 ### 🌟 为什么选择 Tauri？
 
@@ -106,28 +112,33 @@ CCR Desktop 是 CCR (Claude Code Configuration Switcher) 的桌面版本，使�
 
 ::: code-group
 
-```bash [npm]
+```bash [桌面模式]
 # 克隆仓库
 git clone https://github.com/harleyqing/ccr.git
 cd ccr/ccr-tauri
 
-# 安装依赖
-cd src-ui && npm install && cd ..
+# 一键安装依赖
+just setup
 
-# 运行开发版本
-cargo tauri dev
+# 运行桌面应用 (推荐 macOS/Linux)
+just dev
+
+# WSL 环境优化启动
+just dev-wsl
 ```
 
-```bash [pnpm]
+```bash [Web 调试模式]
 # 克隆仓库
 git clone https://github.com/harleyqing/ccr.git
 cd ccr/ccr-tauri
 
-# 安装依赖
-cd src-ui && pnpm install && cd ..
+# 一键安装依赖
+just setup
 
-# 运行开发版本
-cargo tauri dev
+# Web 模式运行 (无桌面窗口)
+just dev-web
+
+# 访问 http://localhost:5173
 ```
 
 :::
