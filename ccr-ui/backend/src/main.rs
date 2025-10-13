@@ -92,6 +92,10 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::get_command_help)
             // System info endpoint
             .service(handlers::get_system_info)
+            // Version management endpoints
+            .service(handlers::get_version)
+            .service(handlers::check_update)
+            .service(handlers::update_ccr)
             // Health check
             .route(
                 "/health",

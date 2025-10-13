@@ -140,3 +140,26 @@ export interface ImportResponse {
   skipped: number;
 }
 
+// Version management types
+export interface VersionInfo {
+  current_version: string;
+  build_time: string;
+  git_commit: string;
+}
+
+export interface UpdateCheckResponse {
+  current_version: string;
+  latest_version: string;
+  has_update: boolean;
+  release_url: string;
+  release_notes?: string;
+  published_at?: string;
+}
+
+export interface UpdateExecutionResponse {
+  success: boolean;
+  output: string;
+  error: string;
+  exit_code: number;
+}
+

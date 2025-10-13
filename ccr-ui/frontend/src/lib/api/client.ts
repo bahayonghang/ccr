@@ -16,6 +16,9 @@ import type {
   ExportResponse,
   ImportRequest,
   ImportResponse,
+  VersionInfo,
+  UpdateCheckResponse,
+  UpdateExecutionResponse,
 } from '../types';
 
 // 创建 axios 实例
@@ -139,6 +142,25 @@ export const getHistory = async (): Promise<HistoryResponse> => {
 
 export const getSystemInfo = async (): Promise<SystemInfo> => {
   const response = await api.get<ApiResponse<SystemInfo>>('/system');
+  return response.data.data!;
+};
+
+// ===================================
+// Version management APIs
+// ===================================
+
+export const getVersion = async (): Promise<VersionInfo> => {
+  const response = await api.get<ApiResponse<VersionInfo>>('/version');
+  return response.data.data!;
+};
+
+export const checkUpdate = async (): Promise<UpdateCheckResponse> => {
+  const response = await api.get<ApiResponse<UpdateCheckResponse>>('/version/check-update');
+  return response.data.data!;
+};
+
+export const updateCCR = async (): Promise<UpdateExecutionResponse> => {
+  const response = await api.post<ApiResponse<UpdateExecutionResponse>>('/version/update');
   return response.data.data!;
 };
 

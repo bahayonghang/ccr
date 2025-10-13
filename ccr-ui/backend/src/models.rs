@@ -212,3 +212,30 @@ pub struct ImportResponse {
     pub skipped: usize,
 }
 
+// ===== Version Management Models =====
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VersionInfo {
+    pub current_version: String,
+    pub build_time: String,
+    pub git_commit: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateCheckResponse {
+    pub current_version: String,
+    pub latest_version: String,
+    pub has_update: bool,
+    pub release_url: String,
+    pub release_notes: Option<String>,
+    pub published_at: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateExecutionResponse {
+    pub success: bool,
+    pub output: String,
+    pub error: String,
+    pub exit_code: i32,
+}
+
