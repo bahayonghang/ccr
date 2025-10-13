@@ -5,6 +5,7 @@ import { AlertCircle, FileText, Building2, User } from 'lucide-react';
 import { listConfigs, switchConfig, validateConfigs, getHistory } from '@/lib/api/client';
 import type { ConfigItem, HistoryEntry } from '@/lib/types';
 import Navbar from '@/components/layout/Navbar';
+import StatusHeader from '@/components/layout/StatusHeader';
 import LeftSidebar from '@/components/sidebar/LeftSidebar';
 import RightSidebar from '@/components/sidebar/RightSidebar';
 import CollapsibleSidebar from '@/components/layout/CollapsibleSidebar';
@@ -124,19 +125,28 @@ export default function ConfigManagement() {
           onAdd={() => alert('添加功能开发中')}
         />
 
-        {/* 四列布局：导航 + 状态侧边栏 + 主内容 + 配置导航 */}
-        <div className="grid grid-cols-[auto_260px_1fr_220px] gap-4">
+        {/* 状态信息头部 */}
+        <StatusHeader
+          currentConfig={currentConfig}
+          totalConfigs={configs.length}
+          historyCount={historyCount}
+        />
+
+        {/* 三列布局：导航 + 主内容 + 配置导航 */}
+        <div className="grid grid-cols-[auto_1fr_280px] gap-4">
           {/* 可折叠导航 */}
           <CollapsibleSidebar />
 
-          {/* 左侧状态侧边栏 */}
-          <LeftSidebar
-            currentConfig={currentConfig}
-            totalConfigs={configs.length}
-            historyCount={historyCount}
-            onValidate={handleValidate}
-            onClean={() => alert('清理备份功能开发中')}
-          />
+          {/* 左侧更新管理侧边栏 - 移除系统信息和当前配置，只保留版本管理 */}
+          <div className="hidden">
+            <LeftSidebar
+              currentConfig={currentConfig}
+              totalConfigs={configs.length}
+              historyCount={historyCount}
+              onValidate={handleValidate}
+              onClean={() => alert('清理备份功能开发中')}
+            />
+          </div>
 
           {/* 主内容区 */}
           <main
@@ -284,12 +294,24 @@ export default function ConfigManagement() {
             )}
           </main>
 
-          {/* 右侧导航 */}
-          <RightSidebar
-            configs={configs}
-            currentFilter={currentFilter}
-            onConfigClick={handleConfigClick}
-          />
+          {/* 右侧综合侧边栏：配置导航 + 版本管理 */}
+          <div className="space-y-4">
+            {/* 配置导航 */}
+            <RightSidebar
+              configs={configs}
+              currentFilter={currentFilter}
+              onConfigClick={handleConfigClick}
+            />
+            
+            {/* 版本管理和操作按钮 */}
+            <LeftSidebar
+              currentConfig={currentConfig}
+              totalConfigs={configs.length}
+              historyCount={historyCount}
+              onValidate={handleValidate}
+              onClean={() => alert('清理备份功能开发中')}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -330,7 +352,7 @@ function ConfigCard({ config, onSwitch }: { config: ConfigItem; onSwitch: (name:
   return (
     <article
       id={`config-${config.name}`}
-      className={`rounded-lg p-4 transition-all hover:scale-[1.01] ${
+      className={`card-enhanced rounded-lg p-4 ${
         config.is_current ? 'ring-2' : ''
       }`}
       style={{
@@ -447,7 +469,7 @@ function ConfigCard({ config, onSwitch }: { config: ConfigItem; onSwitch: (name:
         {!config.is_current && (
           <button
             onClick={() => onSwitch(config.name)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-white hover:scale-105"
+            className="btn-primary px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:scale-105"
             style={{
               background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
               boxShadow: '0 0 20px var(--glow-primary)',

@@ -116,28 +116,31 @@ fn setup_logging() -> std::io::Result<()> {
     // Create file appender with daily rotation
     let file_appender = tracing_appender::rolling::daily(&log_dir, "backend.log");
     
-    // Create stdout layer for console output
+    // Create stdout layer for console output (only warn and above)
+    // 终端输出：只显示 warning、error、critical 级别
+    let stdout_filter = EnvFilter::new("warn,ccr_ui_backend=warn,actix_web=warn");
     let stdout_layer = tracing_subscriber::fmt::layer()
         .with_writer(std::io::stdout)
-        .with_ansi(true);
+        .with_ansi(true)
+        .with_filter(stdout_filter);
 
-    // Create file layer for file output
+    // Create file layer for file output (all levels including info, debug)
+    // 文件输出：记录所有级别的日志
+    let file_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info,ccr_ui_backend=info,actix_web=info"));
     let file_layer = tracing_subscriber::fmt::layer()
         .with_writer(file_appender)
-        .with_ansi(false);
+        .with_ansi(false)
+        .with_filter(file_filter);
 
-    // Set up env filter (default to "info" level)
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
-
-    // Combine layers
+    // Combine layers (每个层都有自己的过滤器)
     tracing_subscriber::registry()
-        .with(env_filter)
         .with(stdout_layer)
         .with(file_layer)
         .init();
 
     // Log cleanup task will be handled by external script
+    // 这条 info 日志只会写入文件，不会显示在终端
     tracing::info!("Logging initialized - logs directory: {:?}", log_dir);
     
     Ok(())

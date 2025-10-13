@@ -25,7 +25,7 @@ import type {
 const createApiClient = (): AxiosInstance => {
   const api = axios.create({
     baseURL: '/api',
-    timeout: 30000,
+    timeout: 600000, // 10分钟超时，支持长时间编译更新
     headers: {
       'Content-Type': 'application/json',
     },
