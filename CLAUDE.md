@@ -4,337 +4,351 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CCR (Claude Code Configuration Switcher) is a Rust CLI tool that manages Claude Code configurations by directly manipulating `~/.claude/settings.json`. It provides configuration switching, audit trails, automatic backups, file locking, and a web interface.
+CCR (Claude Code Configuration Switcher) is a Rust-powered configuration management tool for Claude Code with complete audit trails, atomic operations, and multi-interface support (CLI + Web UI + Desktop App).
 
-## Development Commands
+**Version**: 1.1.5
+**Rust Edition**: 2024 (requires Rust 1.85+)
+**License**: MIT
 
-### Building & Running
+## Common Development Commands
+
+### Core Development Workflow
 
 ```bash
 # Quick development cycle
-cargo check              # Fast type checking (recommended during dev)
-cargo build              # Debug build
-cargo build --release    # Optimized release build
+just dev              # Check + test
+just watch            # Auto-rebuild on file changes (requires cargo-watch)
+just ci               # Full CI: format check + clippy + test + build
 
+# Building
+just build            # Debug build
+just release          # Release build (optimized with LTO)
+
+# Testing
+just test             # Run tests
+just test-all         # Include ignored tests
+
+# Code Quality
+just fmt              # Format code
+just fmt-check        # Check formatting (CI mode)
+just clippy           # Lint with Clippy (warnings as errors)
+just lint             # Format + Clippy
+
+# Installation
+just install          # Install to ~/.cargo/bin
+just reinstall        # Force reinstall
+
+# Documentation
+just doc              # Build docs
+just doc-open         # Build and open docs in browser
+
+# Cleanup
+just clean            # Remove build artifacts
+```
+
+### Running CCR Commands
+
+```bash
 # Run with arguments
-cargo run -- <command>
-cargo run -- --help
-cargo run -- switch anthropic
+just run -- <command> [args]
+just run -- --help
+just run -- list
+just run -- switch anthropic
 
-# Using justfile (if just is installed)
-just build               # Debug build
-just release             # Release build
-just run -- <args>       # Run debug build
-just run-release -- <args>  # Run release build
+# Run release version
+just run-release -- <command> [args]
 ```
 
-### Testing & Code Quality
+### CCR UI (Full-Stack Web App)
 
 ```bash
-# Run all tests
-cargo test
-just test
+cd ccr-ui
 
-# Code quality checks
-cargo clippy             # Linting
-just clippy              # Clippy with warnings as errors
-cargo fmt                # Format code
-just fmt
-```
+# Simplified commands (recommended)
+just s              # Start development (backend + frontend)
+just i              # Install dependencies
+just b              # Build production
+just c              # Check code
+just t              # Run tests
+just f              # Format code
 
-### Installation
+# Or full commands
+just dev            # Start development
+just build          # Build production
+just test           # Run tests
 
-```bash
-# Install to ~/.cargo/bin
-cargo install --path . --locked
-just install
-
-# Reinstall (force)
-just reinstall
-
-# Uninstall
-cargo uninstall ccr
-just uninstall
-```
-
-### Documentation
-
-```bash
-cargo doc --no-deps      # Generate docs
-cargo doc --no-deps --open  # Generate and open in browser
-just doc-open
+# Manual control
+just dev-backend    # Start backend only (port 8081)
+just dev-frontend   # Start frontend only (port 5173)
 ```
 
 ## Architecture
 
-CCR follows a strict **layered architecture** with clear separation of concerns:
+CCR follows a **strict layered architecture** with clear separation of concerns:
 
 ```
-┌─────────────────────────────────────┐
-│   CLI Layer (main.rs + commands/)   │  ← User Interface
-├─────────────────────────────────────┤
-│   Web Layer (web/)                  │  ← Web Interface  
-├─────────────────────────────────────┤
-│   Service Layer (services/)         │  ← Business Logic
-├─────────────────────────────────────┤
-│   Manager Layer (managers/)         │  ← Data Access
-├─────────────────────────────────────┤
-│   Core Layer (core/)                │  ← Infrastructure
-├─────────────────────────────────────┤
-│   Utils Layer (utils/)              │  ← Utilities
-└─────────────────────────────────────┘
+CLI Layer (main.rs + commands/)    → User Interface (13 commands)
+Web Layer (web/)                   → HTTP API (11 endpoints)
+Service Layer (services/)          → Business Logic (4 services, 26 methods)
+Manager Layer (managers/)          → Data Access (3 managers)
+Core Layer (core/)                 → Infrastructure (atomic writes, locks, logging)
+Utils Layer (utils/)               → Utilities (validation, masking)
 ```
 
-### Directory Structure
+### Layer Dependency Rules
+
+- **CLI/Web Layers** → call Service Layer only
+- **Service Layer** → calls Manager Layer + Core utilities
+- **Manager Layer** → uses Core infrastructure
+- **Core Layer** → provides primitives (no upward dependencies)
+- **Utils Layer** → standalone utilities
+
+**CRITICAL**: NEVER bypass layers (e.g., Commands directly accessing Managers).
+
+### Project Structure
 
 ```
 src/
-├── main.rs                          # CLI entry point
-├── lib.rs                           # Library entry point
-│
-├── commands/                        # 🎯 CLI Layer
-│   ├── mod.rs
-│   ├── clean.rs, current.rs, export.rs
-│   ├── history_cmd.rs, import.rs, init.rs
-│   ├── list.rs, optimize.rs, switch.rs
-│   ├── update.rs, validate.rs
-│   └── [13 command files total]
-│
-├── web/                             # 🌐 Web Layer
-│   ├── mod.rs
-│   ├── handlers.rs                  # Request handlers
-│   ├── models.rs                    # API data models
-│   ├── routes.rs                    # Route definitions
-│   ├── server.rs                    # HTTP server
-│   └── system_info_cache.rs         # System info caching
-│
-├── services/                        # 🎯 Service Layer
-│   ├── mod.rs
-│   ├── backup_service.rs            # Backup operations
-│   ├── config_service.rs            # Configuration CRUD
-│   ├── history_service.rs           # History tracking
-│   └── settings_service.rs          # Settings management
-│
-├── managers/                        # 📁 Manager Layer
-│   ├── mod.rs
-│   ├── config.rs                    # ~/.ccs_config.toml manager
-│   ├── history.rs                   # Operation history manager
-│   └── settings.rs                  # ~/.claude/settings.json manager
-│
-├── core/                            # 🏗️ Core Layer
-│   ├── mod.rs
-│   ├── atomic_writer.rs             # Atomic file operations
-│   ├── error.rs                     # Error types & codes
-│   ├── file_manager.rs              # File manager trait
-│   ├── lock.rs                      # File locking mechanism
-│   └── logging.rs                   # Colored output & logging
-│
-└── utils/                           # 🛠️ Utils Layer
-    ├── mod.rs
-    ├── mask.rs                      # Sensitive data masking
-    └── validation.rs                # Validation trait
+├── main.rs              # CLI entry point
+├── lib.rs               # Library exports
+├── commands/            # CLI commands (13 files)
+│   ├── init.rs          # Initialize config
+│   ├── list.rs          # List configs
+│   ├── current.rs       # Show current config
+│   ├── switch.rs        # Switch config (5-step atomic operation)
+│   ├── validate.rs      # Validate configs
+│   ├── optimize.rs      # Sort configs alphabetically
+│   ├── history_cmd.rs   # Show operation history
+│   ├── clean.rs         # Clean old backups
+│   ├── export.rs        # Export configs
+│   ├── import.rs        # Import configs
+│   └── update.rs        # Self-update from GitHub
+├── services/            # Business logic (4 services)
+│   ├── config_service.rs     # Config CRUD, validation
+│   ├── settings_service.rs   # Settings file management
+│   ├── history_service.rs    # Operation history
+│   └── backup_service.rs     # Backup management
+├── managers/            # Data access (3 managers)
+│   ├── config.rs        # ~/.ccs_config.toml management
+│   ├── settings.rs      # ~/.claude/settings.json management
+│   └── history.rs       # ~/.claude/ccr_history.json management
+├── core/                # Infrastructure
+│   ├── error.rs         # Error types + exit codes
+│   ├── atomic_writer.rs # Atomic file writes (temp + rename)
+│   ├── lock.rs          # File locking for multi-process safety
+│   ├── logging.rs       # Colored console output
+│   └── file_manager.rs  # File manager trait
+├── utils/               # Utilities
+│   ├── validation.rs    # Validation trait + implementations
+│   └── mask.rs          # API token masking
+└── web/                 # Web server (embedded tiny_http)
+    ├── mod.rs           # Server entry
+    ├── routes.rs        # Route definitions
+    ├── handlers.rs      # API handlers (11 endpoints)
+    ├── models.rs        # Request/response models
+    └── system_info_cache.rs  # System info caching
+
+ccr-ui/                  # Full-stack web application
+├── backend/             # Actix Web server
+│   ├── src/
+│   │   ├── main.rs      # Server entry
+│   │   ├── executor/    # CCR CLI subprocess executor
+│   │   ├── handlers/    # API route handlers
+│   │   └── models/      # Request/response types
+│   └── Cargo.toml
+└── frontend/            # React + TypeScript
+    ├── src/
+    │   ├── App.tsx
+    │   ├── pages/       # Page components
+    │   ├── components/  # Reusable components
+    │   ├── api/         # API client
+    │   └── types/       # TypeScript definitions
+    └── package.json
+
+tests/                   # Integration tests
+docs/                    # VitePress documentation
+examples/                # Example configs
 ```
 
-### Layer Breakdown
+## Critical Files & Paths
 
-#### 🎯 CLI Layer (`main.rs` + `commands/`)
-- **`main.rs`**: CLI entry point using `clap` for argument parsing
-- **`commands/`**: Command implementations (13 commands total)
-  - Each command in its own file
-  - Calls Service layer for business logic
-  - Handles user interaction and output formatting
+CCR manages these files in the user's home directory:
 
-#### 🌐 Web Layer (`web/`)
-- **`server.rs`**: HTTP server using `tiny_http`
-- **`handlers.rs`**: Request handlers for 11 API endpoints
-- **`models.rs`**: API data models (request/response)
-- **`routes.rs`**: Route definitions
-- **`system_info_cache.rs`**: System info caching for performance
+- `~/.ccs_config.toml` - Main configuration (shared with CCS shell version)
+- `~/.claude/settings.json` - Claude Code settings (CCR writes to this)
+- `~/.claude/backups/` - Automatic backups with timestamps
+- `~/.claude/ccr_history.json` - Operation audit trail
+- `~/.claude/.locks/` - File lock directory (auto-cleanup)
 
-#### 🎯 Service Layer (`services/`)
-- **`config_service.rs`**: Configuration business logic (CRUD, validation, import/export)
-- **`settings_service.rs`**: Settings management (apply config, backup/restore)
-- **`history_service.rs`**: Operation history tracking and querying
-- **`backup_service.rs`**: Backup cleanup and scanning
+## Key Design Patterns
 
-#### 📁 Manager Layer (`managers/`)
-- **`config.rs`**: ConfigManager - manages `~/.ccs_config.toml`
-- **`settings.rs`**: SettingsManager - manages `~/.claude/settings.json`
-- **`history.rs`**: HistoryManager - manages `~/.claude/ccr_history.json`
-
-#### 🏗️ Core Layer (`core/`)
-- **`atomic_writer.rs`**: Atomic file write operations
-- **`error.rs`**: Error types with exit codes (13 error types)
-- **`file_manager.rs`**: File manager trait definition
-- **`lock.rs`**: File locking mechanism with timeout protection
-- **`logging.rs`**: Colored terminal output utilities
-
-#### 🛠️ Utils Layer (`utils/`)
-- **`mask.rs`**: Sensitive data masking functions
-- **`validation.rs`**: Validation trait for data structures
-
-### Key Design Patterns
-
-1. **Atomic Operations**: All file writes use temp file + rename to prevent partial updates
-2. **File Locking**: Ensures multi-process safety when modifying settings
-3. **Audit Trail**: Every operation is logged with timestamp and actor
+1. **Atomic Operations**: All file writes use `tempfile + rename` pattern via `AtomicFileWriter`
+2. **File Locking**: Multi-process safety via `LockManager` (prevents concurrent writes)
+3. **Audit Trail**: Every operation logged in `ccr_history.json` with UUID, timestamp, actor
 4. **Backup Strategy**: Automatic backup before destructive operations
-5. **Desensitization**: API tokens are masked in display/logs (shows first/last chars only)
-
-### Critical File Paths
-
-```
-~/.ccs_config.toml          # Main configuration (shared with CCS shell version)
-~/.claude/settings.json     # Claude Code settings (managed by CCR)
-~/.claude/backups/          # Automatic backups with timestamps
-~/.claude/ccr_history.json  # Operation audit trail
-~/.claude/.locks/           # File lock directory
-```
+5. **Desensitization**: API tokens masked in display/logs via `mask` utility
 
 ## Development Guidelines
 
-### Adding New Commands
+### Code Quality Standards
 
-1. Create new module in `src/commands/<name>.rs`
-2. Implement command function with signature: `fn command() -> Result<()>`
-3. Use Service layer for business logic:
-   ```rust
-   use crate::services::ConfigService;
-   
-   pub fn my_command() -> Result<()> {
-       let service = ConfigService::default()?;
-       let result = service.some_operation()?;
-       // Display result using ColorOutput
-       Ok(())
-   }
-   ```
-4. Export in `src/commands/mod.rs`
-5. Add command variant in `main.rs` `Commands` enum with clap attributes
-6. Route command in `main.rs` match statement
+**Always follow these Rust patterns:**
 
-### Using Service Layer
+1. **Error Handling**: Use `?` operator, avoid explicit match for simple propagation
+2. **Option Handling**: Prefer combinator methods (`.map()`, `.unwrap_or_default()`)
+3. **String Parameters**: Use `&str` for function parameters, not `String`
+4. **Iterators**: Use iterator methods instead of manual loops
+5. **Paths**: Use `PathBuf` for owned paths, never string concatenation
+6. **Logging**: Use `ColorOutput::success/info/error/warning` for user messages
+7. **File Operations**: ALWAYS use `AtomicFileWriter::write_atomic`, never `std::fs::write`
+8. **Concurrency**: ALWAYS use `LockManager` for file access
 
-The Service layer encapsulates business logic. Always prefer Service methods over direct Manager access:
+### Service Layer Pattern
+
+When adding new features:
 
 ```rust
-// ✅ Good: Use Service layer
-use crate::services::ConfigService;
-
-let config_service = ConfigService::default()?;
-let configs = config_service.list_configs()?;
-
-// ❌ Bad: Direct Manager access (bypass business logic)
-use crate::managers::config::ConfigManager;
-
-let manager = ConfigManager::default()?;
-let config = manager.load()?;
-```
-
-Available Services:
-- **ConfigService** (`services/config_service.rs`): Configuration CRUD operations
-- **SettingsService** (`services/settings_service.rs`): Settings file management
-- **HistoryService** (`services/history_service.rs`): Operation history tracking
-- **BackupService** (`services/backup_service.rs`): Backup cleanup operations
-
-### Error Handling
-
-- Use `CcrError` types from `core::error`
-- Fatal errors return exit code 1, non-fatal return 0
-- Provide user-friendly messages via `user_message()` method
-- Use `ColorOutput` from `core::logging` for consistent error display
-
-```rust
+use crate::managers::{ConfigManager, SettingsManager};
 use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 
-pub fn my_command() -> Result<()> {
-    // Your logic
-    Ok(())
+pub struct MyService {
+    config_manager: ConfigManager,
+    settings_manager: SettingsManager,
+}
+
+impl MyService {
+    pub fn default() -> Result<Self> {
+        Ok(Self {
+            config_manager: ConfigManager::default()?,
+            settings_manager: SettingsManager::default()?,
+        })
+    }
+
+    pub fn business_operation(&self, param: &str) -> Result<ReturnType> {
+        // 1. Validate input
+        // 2. Load data via managers
+        // 3. Apply business logic
+        // 4. Save via managers
+        // 5. Record history
+        Ok(result)
+    }
 }
 ```
 
-### File Operations
+### Testing Requirements
 
-- **Read before write**: Always read existing file before modifications to ensure Edit tool compatibility
-- **Use managers**: Always use Manager layer for file operations:
-  - `SettingsManager` (`managers::settings`) for `~/.claude/settings.json`
-  - `ConfigManager` (`managers::config`) for `~/.ccs_config.toml`
-  - `HistoryManager` (`managers::history`) for `~/.claude/ccr_history.json`
-- **Atomic writes**: Managers use `core::atomic_writer` internally for atomic updates
-- **File locking**: Managers use `core::lock` for concurrent safety
+**Always use isolated test environments:**
 
 ```rust
-use crate::managers::settings::SettingsManager;
-use crate::core::lock::LockManager;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
 
-let lock_manager = LockManager::default()?;
-let settings_manager = SettingsManager::default()?;
+    #[test]
+    fn test_operation_success() {
+        // Arrange: Use tempfile for isolation
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join(".ccs_config.toml");
 
-// Lock is automatically acquired when needed
-settings_manager.save_atomic(&settings)?;
+        // Act: Execute operation
+        let result = my_function(&config_path);
+
+        // Assert: Verify expectations
+        assert!(result.is_ok());
+    }
+}
 ```
 
-### Testing Approach
+**Rules:**
+- ALWAYS use `tempfile::TempDir` for file system tests
+- NEVER test with real user files (`~/.claude/`, `~/.ccs_config.toml`)
+- TEST both success and error paths
+- NAME tests: `test_<function>_<scenario>_<expected>`
 
-- Unit tests for individual modules
-- Integration tests for command workflows
-- Mock file system operations where appropriate
-- Test error cases and edge conditions
+### Adding New Commands
 
-## Common Tasks
+When adding a new CLI command:
 
-### Running a Single Test
+1. Create `src/commands/my_command.rs`
+2. Implement command logic using Service layer
+3. Add to `src/commands/mod.rs` exports
+4. Add command definition in `src/main.rs` CLI parser
+5. Add tests in the same file under `#[cfg(test)]`
+6. Update documentation
+
+### Adding Web API Endpoints
+
+When adding a new API endpoint:
+
+1. Add request/response models in `src/web/models.rs`
+2. Implement handler in `src/web/handlers.rs` using Service layer
+3. Add route in `src/web/routes.rs`
+4. Test with `ccr web` and manual HTTP requests
+
+## Troubleshooting
+
+### Common Issues
+
+**Build Failures:**
+- Ensure Rust 1.85+ is installed: `rustc --version`
+- Update toolchain: `rustup update stable`
+
+**Test Failures:**
+- Clean and rebuild: `just clean && just test`
+- Run single test: `cargo test test_name -- --nocapture`
+
+**Lock Timeout Errors:**
+- Check for zombie processes: `ps aux | grep ccr`
+- Clean locks manually: `rm -rf ~/.claude/.locks/*`
+
+**Permission Denied:**
+- Fix settings.json: `chmod 600 ~/.claude/settings.json`
+- Fix config: `chmod 644 ~/.ccs_config.toml`
+
+### Debug Logging
+
+Enable verbose logging:
 
 ```bash
-cargo test test_name
-cargo test managers::config::tests::test_validation
-cargo test services::config_service::tests
-cargo test --test integration_test
-```
-
-### Debugging File Operations
-
-Set log level to see detailed operation logs:
-```bash
-export CCR_LOG_LEVEL=debug  # trace, debug, info, warn, error
+export CCR_LOG_LEVEL=debug  # trace|debug|info|warn|error
 ccr switch anthropic
 ```
 
-### Testing Web Interface Locally
+## CI/CD
+
+The project uses GitHub Actions. Before committing:
 
 ```bash
-cargo run -- web --port 8080
-# Opens browser automatically to http://localhost:8080
+just ci  # Run full CI pipeline locally
 ```
 
-### Release Process
+This runs:
+1. `cargo fmt --check` - Format validation
+2. `cargo clippy -- -D warnings` - Lint with warnings as errors
+3. `cargo test` - All tests
+4. `cargo build --release` - Release build
 
-The project uses optimized release profile (Cargo.toml):
-- LTO enabled for smaller binary size
-- Symbols stripped for production
-- Single codegen unit for maximum optimization
+## Performance Notes
 
-```bash
-cargo build --release
-ls -lh target/release/ccr  # Check binary size
-```
+- Release builds use `opt-level = 3`, `lto = true`, `strip = true`
+- Parallel processing with `rayon` for operations on multiple configs
+- Async web server with `axum` + `tokio` for CCR UI backend
+- System info caching for frequently accessed data
 
-## Dependencies
+## Related Documentation
 
-Key dependencies and their purposes:
-- `clap`: CLI argument parsing with derive macros
-- `serde`/`toml`/`serde_json`: Configuration serialization
-- `anyhow`/`thiserror`: Error handling
-- `fs4`: Cross-platform file locking
-- `tempfile`: Safe temporary file creation for atomic writes
-- `colored`: Terminal color output
-- `tiny_http`: Embedded web server
-- `whoami`: Current user identification for audit trail
-- `uuid`: Unique operation IDs for history tracking
+- Main README: `README.md` (English) / `README_CN.md` (Chinese)
+- CCR UI Guide: `ccr-ui/README.md`
+- Architecture Details: `ccr-ui/ARCHITECTURE.md`
+- VitePress Docs: `docs/` (run with `cd docs && npm run dev`)
 
-## Compatibility Notes
+## Important Reminders
 
-CCR is designed to be fully compatible with CCS (shell implementation):
-- Shares same configuration file format (`~/.ccs_config.toml`)
-- Can coexist and alternate usage between CCR and CCS
-- Configuration changes made by either tool are immediately visible to the other
+1. **Never bypass the layered architecture** - always use Services → Managers → Core
+2. **Always use atomic file operations** via `AtomicFileWriter`
+3. **Always use file locking** via `LockManager` for concurrent safety
+4. **Always mask sensitive data** (API tokens) in logs and display
+5. **Always write tests** for new features using `tempfile::TempDir`
+6. **Always run `just ci`** before committing
+7. **Read existing code** before modifying - use Read tool to understand context

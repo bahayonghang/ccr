@@ -11,6 +11,19 @@ const nextConfig = {
     root: process.cwd(),
   },
 
+  // 日志配置 - 减少开发服务器的输出噪音
+  logging: {
+    fetches: {
+      fullUrl: false,
+    },
+  },
+
+  // 禁用编译指示器（减少控制台输出）
+  devIndicators: {
+    buildActivity: false,
+    buildActivityPosition: 'bottom-right',
+  },
+
   // 生产构建优化
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
