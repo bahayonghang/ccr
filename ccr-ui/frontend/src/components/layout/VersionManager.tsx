@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, RefreshCw, Zap } from 'lucide-react';
+import { RefreshCw, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getVersion, checkUpdate, updateCCR } from '@/lib/api/client';
 import type { VersionInfo, UpdateCheckResponse } from '@/lib/types';

@@ -8,96 +8,186 @@
 
 ```typescript
 // src/lib/api/client.ts
-import axios from 'axios'
+import axios, { type AxiosInstance } from 'axios';
 
-// Next.js 使用 API 路由代理，无需直接配置后端 URL
-const apiClient = axios.create({
-  baseURL: '/api', // 通过 Next.js rewrites 代理到后端
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+// 创建 axios 实例
+const createApiClient = (): AxiosInstance => {
+  const api = axios.create({
+    baseURL: '/api',
+    timeout: 600000, // 10分钟超时，支持长时间编译更新
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-// 请求拦截器
-apiClient.interceptors.request.use(
-  (config) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('API Request:', config.method?.toUpperCase(), config.url)
+  // 请求拦截器
+  api.interceptors.request.use(
+    (config) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  // 响应拦截器
+  api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      console.error('[API Error]:', error.response?.data || error.message);
+      return Promise.reject(error);
     }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
+  );
 
-// 响应拦截器
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error.response?.data || error.message)
-    return Promise.reject(error)
-  }
-)
+  return api;
+};
 
-export { apiClient }
+export const apiClient = createApiClient();
 ```
 
-### API 代理配置
+### Next.js 代理配置
 
 ```javascript
 // next.config.mjs
-export default {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8081/api/:path*', // 开发环境
+        destination: 'http://localhost:8081/api/:path*',
       },
-    ]
+    ];
   },
-}
+};
+
+export default nextConfig;
 ```
-
-### 环境变量配置
-
-```bash
-# .env.local (开发环境)
-NEXT_PUBLIC_API_URL=http://localhost:8081/api
-
-# .env.production (生产环境)
-NEXT_PUBLIC_API_URL=https://api.your-domain.com/api
-```
-
-::: tip Next.js 环境变量规则
-- `NEXT_PUBLIC_*` 前缀的变量会暴露给浏览器
-- 无前缀的变量仅在服务器端可用
-- 在 Server Components 中可以直接使用 `process.env`
-:::
 
 ## 📊 数据类型定义
 
-### 通用类型
+### 通用 API 响应类型
 
 ```typescript
-// src/types/api.ts
+// src/lib/types/index.ts
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
-  error?: string;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
+  message?: string;
 }
 ```
 
-### 配置相关类型
+### 配置管理类型
 
 ```typescript
-// src/types/config.ts
+export interface ConfigItem {
+  name: string;
+  description: string;
+  base_url: string;
+  auth_token: string;
+  model?: string;
+  small_fast_model?: string;
+  is_current: boolean;
+  is_default: boolean;
+  provider?: string;
+  provider_type?: string;
+  account?: string;
+  tags?: string[];
+}
+
+export interface ConfigListResponse {
+  current_config: string;
+  default_config: string;
+  configs: ConfigItem[];
+}
+
+export interface SwitchRequest {
+  config_name: string;
+}
+```
+
+### MCP 服务器类型
+
+```typescript
+export interface McpServer {
+  name: string;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  disabled: boolean;
+}
+
+export interface McpServerRequest {
+  name: string;
+  command: string;
+  args: string[];
+  env?: Record<string, string>;
+  disabled?: boolean;
+}
+```
+
+### Agent 管理类型
+
+```typescript
+export interface Agent {
+  name: string;
+  model: string;
+  tools: string[];
+  system_prompt?: string;
+  disabled: boolean;
+  folder: string;
+}
+
+export interface AgentRequest {
+  name: string;
+  model: string;
+  tools?: string[];
+  system_prompt?: string;
+  disabled?: boolean;
+}
+```
+
+### 斜杠命令类型
+
+```typescript
+export interface SlashCommand {
+  name: string;
+  description: string;
+  command: string;
+  args?: string[];
+  disabled: boolean;
+  folder: string;
+}
+
+export interface SlashCommandRequest {
+  name: string;
+  description: string;
+  command: string;
+  args?: string[];
+  disabled?: boolean;
+}
+```
+
+### 插件管理类型
+
+```typescript
+export interface Plugin {
+  id: string;
+  name: string;
+  version: string;
+  enabled: boolean;
+  config?: any;
+}
+
+export interface PluginRequest {
+  id: string;
+  name: string;
+  version: string;
+  enabled?: boolean;
+  config?: any;
+}
+```
 export interface Config {
   name: string;
   path: string;

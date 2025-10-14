@@ -19,6 +19,16 @@ import type {
   VersionInfo,
   UpdateCheckResponse,
   UpdateExecutionResponse,
+  McpServer,
+  McpServerRequest,
+  McpServersResponse,
+  SlashCommandRequest,
+  SlashCommandsResponse,
+  AgentRequest,
+  AgentsResponse,
+  Plugin,
+  PluginRequest,
+  PluginsResponse,
 } from '../types';
 
 // 创建 axios 实例
@@ -161,6 +171,122 @@ export const checkUpdate = async (): Promise<UpdateCheckResponse> => {
 
 export const updateCCR = async (): Promise<UpdateExecutionResponse> => {
   const response = await api.post<ApiResponse<UpdateExecutionResponse>>('/version/update');
+  return response.data.data!;
+};
+
+// ===================================
+// MCP Server Management APIs
+// ===================================
+
+export const listMcpServers = async (): Promise<McpServer[]> => {
+  const response = await api.get<ApiResponse<McpServersResponse>>('/mcp');
+  return response.data.data!.servers;
+};
+
+export const addMcpServer = async (request: McpServerRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/mcp', request);
+  return response.data.data!;
+};
+
+export const updateMcpServer = async (name: string, request: McpServerRequest): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/mcp/${encodeURIComponent(name)}`, request);
+  return response.data.data!;
+};
+
+export const deleteMcpServer = async (name: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(`/mcp/${encodeURIComponent(name)}`);
+  return response.data.data!;
+};
+
+export const toggleMcpServer = async (name: string): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/mcp/${encodeURIComponent(name)}/toggle`);
+  return response.data.data!;
+};
+
+// ===================================
+// Slash Command Management APIs
+// ===================================
+
+export const listSlashCommands = async (): Promise<SlashCommandsResponse> => {
+  const response = await api.get<ApiResponse<SlashCommandsResponse>>('/slash-commands');
+  return response.data.data!;
+};
+
+export const addSlashCommand = async (request: SlashCommandRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/slash-commands', request);
+  return response.data.data!;
+};
+
+export const updateSlashCommand = async (name: string, request: SlashCommandRequest): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/slash-commands/${encodeURIComponent(name)}`, request);
+  return response.data.data!;
+};
+
+export const deleteSlashCommand = async (name: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(`/slash-commands/${encodeURIComponent(name)}`);
+  return response.data.data!;
+};
+
+export const toggleSlashCommand = async (name: string): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/slash-commands/${encodeURIComponent(name)}/toggle`);
+  return response.data.data!;
+};
+
+// ===================================
+// Agent Management APIs
+// ===================================
+
+export const listAgents = async (): Promise<AgentsResponse> => {
+  const response = await api.get<ApiResponse<AgentsResponse>>('/agents');
+  return response.data.data!;
+};
+
+export const addAgent = async (request: AgentRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/agents', request);
+  return response.data.data!;
+};
+
+export const updateAgent = async (name: string, request: AgentRequest): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/agents/${encodeURIComponent(name)}`, request);
+  return response.data.data!;
+};
+
+export const deleteAgent = async (name: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(`/agents/${encodeURIComponent(name)}`);
+  return response.data.data!;
+};
+
+export const toggleAgent = async (name: string): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/agents/${encodeURIComponent(name)}/toggle`);
+  return response.data.data!;
+};
+
+// ===================================
+// Plugin Management APIs
+// ===================================
+
+export const listPlugins = async (): Promise<Plugin[]> => {
+  const response = await api.get<ApiResponse<PluginsResponse>>('/plugins');
+  return response.data.data!.plugins;
+};
+
+export const addPlugin = async (request: PluginRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/plugins', request);
+  return response.data.data!;
+};
+
+export const updatePlugin = async (id: string, request: PluginRequest): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/plugins/${encodeURIComponent(id)}`, request);
+  return response.data.data!;
+};
+
+export const deletePlugin = async (id: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(`/plugins/${encodeURIComponent(id)}`);
+  return response.data.data!;
+};
+
+export const togglePlugin = async (id: string): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/plugins/${encodeURIComponent(id)}/toggle`);
   return response.data.data!;
 };
 

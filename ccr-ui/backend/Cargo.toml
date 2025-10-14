@@ -42,3 +42,7 @@ dirs = "6.0"
 # HTTP client for checking updates
 reqwest = { version = "0.12", features = ["json"] }
 
+# Atomic file operations
+tempfile = "3.10"
+serde_yaml = "0.9"
+

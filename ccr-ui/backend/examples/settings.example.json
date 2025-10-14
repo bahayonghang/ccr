@@ -1,0 +1,187 @@
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "sk-ant-api03-your-token-here",
+    "ANTHROPIC_BASE_URL": "https://api.anthropic.com"
+  },
+  "outputStyle": "nekomata-engineer",
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "mcpServers": {
+    "filesystem-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/user/documents"
+      ],
+      "disabled": false
+    },
+    "git-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-git"
+      ],
+      "env": {
+        "GIT_AUTHOR_NAME": "John Doe",
+        "GIT_AUTHOR_EMAIL": "john@example.com"
+      },
+      "disabled": false
+    },
+    "postgres-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres"
+      ],
+      "env": {
+        "DATABASE_URL": "postgresql://localhost/mydb"
+      },
+      "disabled": true
+    }
+  },
+  "slashCommands": [
+    {
+      "name": "analyze-code",
+      "description": "Analyze code structure and complexity",
+      "command": "node",
+      "args": [
+        "scripts/analyze.js",
+        "--verbose",
+        "--output",
+        "json"
+      ],
+      "disabled": false
+    },
+    {
+      "name": "git-summary",
+      "description": "Generate git commit summary for current branch",
+      "command": "git",
+      "args": [
+        "log",
+        "--oneline",
+        "--graph",
+        "--decorate",
+        "--max-count=20"
+      ],
+      "disabled": false
+    },
+    {
+      "name": "stats",
+      "description": "Show project statistics using cloc",
+      "command": "cloc",
+      "args": [
+        ".",
+        "--exclude-dir=node_modules,.git,dist"
+      ],
+      "disabled": false
+    },
+    {
+      "name": "test",
+      "description": "Run project test suite",
+      "command": "npm",
+      "args": [
+        "test"
+      ],
+      "disabled": true
+    }
+  ],
+  "agents": [
+    {
+      "name": "code-reviewer",
+      "model": "claude-sonnet-4-5-20250929",
+      "tools": [
+        "search_files",
+        "read_file",
+        "grep",
+        "codebase_search",
+        "read_lints"
+      ],
+      "system_prompt": "You are an expert code reviewer with 15+ years of experience. Focus on:\n1. Security vulnerabilities\n2. Performance optimizations\n3. Code maintainability\n4. Best practices adherence\n\nProvide actionable, specific feedback with code examples.",
+      "disabled": false
+    },
+    {
+      "name": "doc-writer",
+      "model": "claude-3-5-haiku-20241022",
+      "tools": [
+        "read_file",
+        "write",
+        "search_replace",
+        "list_dir"
+      ],
+      "system_prompt": "You are a technical documentation specialist. Write clear, concise, and comprehensive documentation. Use examples, diagrams when helpful, and maintain consistency in style and terminology.",
+      "disabled": false
+    },
+    {
+      "name": "bug-hunter",
+      "model": "claude-sonnet-4-5-20250929",
+      "tools": [
+        "codebase_search",
+        "grep",
+        "read_file",
+        "read_lints",
+        "run_terminal_cmd"
+      ],
+      "system_prompt": "You are a debugging expert. Find bugs, edge cases, race conditions, and potential issues. Provide root cause analysis and suggested fixes.",
+      "disabled": false
+    },
+    {
+      "name": "test-writer",
+      "model": "claude-3-5-haiku-20241022",
+      "tools": [
+        "read_file",
+        "write",
+        "search_replace",
+        "codebase_search"
+      ],
+      "system_prompt": "You are a test automation expert. Write comprehensive unit tests, integration tests, and end-to-end tests. Follow testing best practices and aim for high code coverage.",
+      "disabled": true
+    }
+  ],
+  "plugins": [
+    {
+      "id": "custom-linter",
+      "name": "Custom ESLint Integration",
+      "version": "2.1.0",
+      "enabled": true,
+      "config": {
+        "rules": [
+          "no-console",
+          "prefer-const",
+          "no-unused-vars"
+        ],
+        "autoFix": true,
+        "extensions": [
+          ".js",
+          ".ts",
+          ".jsx",
+          ".tsx"
+        ]
+      }
+    },
+    {
+      "id": "ai-autocomplete",
+      "name": "AI-Powered Code Completion",
+      "version": "1.5.3",
+      "enabled": true,
+      "config": {
+        "maxSuggestions": 5,
+        "triggerDelay": 300,
+        "contextLines": 50
+      }
+    },
+    {
+      "id": "git-integration",
+      "name": "Enhanced Git Integration",
+      "version": "3.0.1",
+      "enabled": false,
+      "config": {
+        "autoCommit": false,
+        "commitMessageTemplate": "feat: {summary}",
+        "branchNamingConvention": "feature/{name}"
+      }
+    }
+  ]
+}
+

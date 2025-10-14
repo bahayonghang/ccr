@@ -9,17 +9,28 @@ ccr-ui/
 ├── backend/                    # Rust 后端服务
 │   ├── src/                   # 源代码
 │   │   ├── main.rs           # 应用入口点
-│   │   ├── config_reader.rs  # 配置文件读取
+│   │   ├── config_reader.rs  # CCR 配置文件读取
 │   │   ├── models.rs         # 数据模型定义
+│   │   ├── claude_config_manager.rs  # Claude 配置管理
+│   │   ├── markdown_manager.rs       # Markdown 文件管理
+│   │   ├── plugins_manager.rs        # 插件管理
+│   │   ├── settings_manager.rs       # 设置管理
 │   │   ├── handlers/         # HTTP 请求处理器
 │   │   │   ├── mod.rs
 │   │   │   ├── config.rs     # 配置相关接口
 │   │   │   ├── command.rs    # 命令执行接口
-│   │   │   └── system.rs     # 系统信息接口
+│   │   │   ├── system.rs     # 系统信息接口
+│   │   │   ├── version.rs    # 版本管理接口
+│   │   │   ├── mcp.rs        # MCP 服务器管理
+│   │   │   ├── agents.rs     # Agent 管理
+│   │   │   ├── plugins.rs    # 插件管理
+│   │   │   └── slash_commands.rs # 斜杠命令管理
 │   │   └── executor/         # 命令执行器
 │   │       ├── mod.rs
 │   │       └── cli_executor.rs # CLI 命令执行
 │   ├── Cargo.toml            # Rust 项目配置
+│   ├── examples/             # 示例配置文件
+│   │   └── settings.example.json
 │   └── README.md             # 后端说明文档
 ├── frontend/                  # Next.js 16 Beta 前端应用
 │   ├── public/               # 静态资源
@@ -31,14 +42,32 @@ ccr-ui/
 │   │   │   ├── globals.css # 全局样式
 │   │   │   ├── configs/    # 配置管理页面
 │   │   │   │   └── page.tsx
-│   │   │   └── commands/   # 命令执行页面
+│   │   │   ├── commands/   # 命令执行页面
+│   │   │   │   └── page.tsx
+│   │   │   ├── mcp/        # MCP 服务器管理页面
+│   │   │   │   └── page.tsx
+│   │   │   ├── agents/     # Agent 管理页面
+│   │   │   │   └── page.tsx
+│   │   │   ├── plugins/    # 插件管理页面
+│   │   │   │   └── page.tsx
+│   │   │   └── slash-commands/ # 斜杠命令管理页面
 │   │   │       └── page.tsx
 │   │   ├── components/      # 可复用组件
 │   │   │   ├── providers/  # Context Providers
+│   │   │   │   └── ThemeProvider.tsx
 │   │   │   ├── layout/     # 布局组件
+│   │   │   │   ├── CollapsibleSidebar.tsx
+│   │   │   │   ├── Navbar.tsx
+│   │   │   │   ├── StatusHeader.tsx
+│   │   │   │   └── VersionManager.tsx
 │   │   │   ├── sidebar/    # 侧边栏组件
+│   │   │   │   ├── LeftSidebar.tsx
+│   │   │   │   └── RightSidebar.tsx
 │   │   │   ├── history/    # 历史记录组件
+│   │   │   │   └── HistoryList.tsx
 │   │   │   └── ui/         # 基础 UI 组件
+│   │   │       ├── ThemeToggle.tsx
+│   │   │       └── UpdateModal.tsx
 │   │   └── lib/            # 工具库
 │   │       ├── api/        # API 客户端
 │   │       │   └── client.ts
@@ -47,7 +76,35 @@ ccr-ui/
 │   ├── package.json        # Node.js 项目配置
 │   ├── next.config.mjs     # Next.js 配置
 │   ├── tailwind.config.ts  # Tailwind CSS 配置
-│   └── tsconfig.json       # TypeScript 配置
+│   ├── postcss.config.mjs  # PostCSS 配置
+│   ├── tsconfig.json       # TypeScript 配置
+│   ├── .eslintrc.json      # ESLint 配置
+│   └── README.md           # 前端说明文档
+├── docs/                   # 项目文档
+│   ├── .vitepress/         # VitePress 配置
+│   │   └── config.ts
+│   ├── backend/            # 后端文档
+│   │   ├── api.md         # API 接口文档
+│   │   └── architecture.md # 架构设计文档
+│   ├── frontend/           # 前端文档
+│   │   ├── api.md         # API 调用文档
+│   │   ├── development.md # 开发指南
+│   │   └── overview.md    # 前端概览
+│   ├── guide/              # 用户指南
+│   │   ├── getting-started.md # 快速开始
+│   │   └── project-structure.md # 项目结构
+│   ├── index.md            # 文档首页
+│   ├── contributing.md     # 贡献指南
+│   ├── faq.md             # 常见问题
+│   ├── package.json       # 文档构建配置
+│   └── public/            # 文档静态资源
+│       ├── favicon.ico
+│       └── logo.svg
+├── clean-logs.sh           # 日志清理脚本
+├── justfile               # Just 任务配置
+├── .gitignore             # Git 忽略文件
+├── ARCHITECTURE.md        # 架构说明
+└── README.md              # 项目说明
 ├── docs/                    # 项目文档 (VitePress)
 │   ├── .vitepress/         # VitePress 配置
 │   │   └── config.ts       # 文档站点配置

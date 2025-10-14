@@ -18,8 +18,8 @@ CCR UI 的后端是一个基于 Rust 和 Actix Web 构建的高性能 Web 服务
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (React)                         │
-│                 http://localhost:5173                       │
+│                    Frontend (Next.js 16)                    │
+│                 http://localhost:3000                       │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          │ HTTP/JSON API
@@ -33,6 +33,8 @@ CCR UI 的后端是一个基于 Rust 和 Actix Web 构建的高性能 Web 服务
 │  │                HTTP Router                           │  │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌───────────┐ │  │
 │  │  │Config Handler│  │Command Handler│ │Sys Handler│ │  │
+│  │  │MCP Handler   │  │Agent Handler  │ │Plugin Mgr │ │  │
+│  │  │Slash Commands│  │Version Mgr    │ │History    │ │  │
 │  │  └──────────────┘  └──────────────┘  └───────────┘ │  │
 │  └──────────────────────────────────────────────────────┘  │
 │                         │                                   │
@@ -42,12 +44,33 @@ CCR UI 的后端是一个基于 Rust 和 Actix Web 构建的高性能 Web 服务
 │  │            CLI Executor (Tokio Process)              │  │
 │  │  • Spawns 'ccr' subprocess                           │  │
 │  │  • Captures stdout/stderr                            │  │
-│  │  • Handles timeout (30s)                             │  │
+│  │  • Handles timeout (600s)                            │  │
 │  │  • Returns CommandOutput                             │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                         │                                   │
+│                         │ File System Access               │
+│                         ▼                                   │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              Configuration Managers                  │  │
+│  │  • ClaudeConfigManager (.claude.json)                │  │
+│  │  • MarkdownManager (agents, commands)                │  │
+│  │  • SettingsManager (plugins)                         │  │
+│  │  • ConfigReader (CCR configs)                        │  │
 │  └──────────────────────────────────────────────────────┘  │
 └────────────────────────┬────────────────────────────────────┘
                          │
-                         │ Subprocess spawn
+                         │ File System Operations
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    File System                              │
+│  ~/.claude.json (MCP servers)                              │
+│  ~/.claude/configs/ (CCR configurations)                   │
+│  ~/.claude/agents/ (AI agents)                             │
+│  ~/.claude/commands/ (Slash commands)                      │
+│  ~/.claude/plugins/ (Plugin configurations)               │
+│  ~/.claude/history/ (Change history)                      │
+└─────────────────────────────────────────────────────────────┘
+```
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐

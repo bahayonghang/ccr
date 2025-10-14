@@ -7,17 +7,11 @@ import type { VersionInfo, UpdateCheckResponse } from '@/lib/types';
 import UpdateModal from '../ui/UpdateModal';
 
 interface LeftSidebarProps {
-  currentConfig: string;
-  totalConfigs: number;
-  historyCount: number;
   onValidate?: () => void;
   onClean?: () => void;
 }
 
 export default function LeftSidebar({
-  currentConfig,
-  totalConfigs,
-  historyCount,
   onValidate,
   onClean,
 }: LeftSidebarProps) {

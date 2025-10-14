@@ -14,8 +14,8 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | 💾 **Auto Backup** | Automatic backups before changes with timestamped `.bak` files |
 | ✅ **Validation** | Comprehensive config validation (URLs, required fields, format) |
 | 🔤 **Config Optimization** | Sort configs alphabetically, maintain order after switching |
-| 🌐 **Web UI** | 11 complete RESTful API endpoints, browser-based management |
-| 🖥️ **Desktop App** | Native Tauri desktop app with modern Vue 3 interface and dark mode |
+| 🌐 **Web Server** | Built-in Axum web server with 11 RESTful API endpoints |
+| 🖥️ **Full-Stack Web UI** | Modern React + Actix Web application for visual management |
 | 🏗️ **Modern Architecture** | Service layer pattern, modular design, 95%+ test coverage |
 | ⚡ **Smart Update** | Real-time progress display during auto-update |
 | 🔄 **CCS Compatible** | Shares `~/.ccs_config.toml` - seamlessly coexist with shell version |
@@ -39,37 +39,6 @@ cargo install --path .
 ```
 
 **Requirements:** Rust 1.85+ (for edition 2024 features)
-
-## 🖥️ Desktop Application
-
-CCR now includes a **native desktop application** built with Tauri 2.0 + Vue 3!
-
-### Features
-
-- 🎨 **Modern Interface**: Beautiful three-column layout with dark/light theme
-- 🔄 **Configuration Management**: Switch, create, edit, delete configs with GUI
-- 🏷️ **Smart Filtering**: Filter by type (Official Relay, Third-party Model, Uncategorized)
-- 📚 **History Tracking**: View all operations with detailed logs
-- 💾 **Backup Management**: List and restore backups easily
-- 📤 **Import/Export**: Import/export configs with GUI
-- ⚙️ **System Info**: Display hostname, username, paths at a glance
-
-### Quick Start
-
-```bash
-cd ccr-tauri
-
-# Install frontend dependencies
-cd src-ui && npm install && cd ..
-
-# Run in development mode
-cargo tauri dev
-
-# Build for production
-cargo tauri build
-```
-
-**📖 Full Documentation**: See `ccr-tauri/docs/` for complete architecture docs, API reference, and development guides (powered by VitePress).
 
 ## 🌐 CCR UI - Full-Stack Web Application
 
@@ -108,11 +77,10 @@ just quick-start    # Check prereqs + Install + Start
 
 **📖 Full Documentation**: See `ccr-ui/START_HERE.md` for ultra-simple guide or `ccr-ui/README.md` for complete docs.
 
-**🎯 Desktop vs CLI vs Web vs UI**:
-- **Desktop App (Tauri)**: Best for visual management and frequent switching
-- **CLI Tool**: Best for scripting and automation
-- **Web UI (tiny_http)**: Best for embedded lightweight web interface
-- **CCR UI (Actix+React)**: Best for full-featured web application with command executor
+**🎯 CLI vs Web Server vs CCR UI**:
+- **CLI Tool**: Best for scripting, automation, and quick operations
+- **Web Server** (`ccr web`): Built-in lightweight Axum server for API access
+- **CCR UI** (Actix+React): Full-featured web application for visual management
 
 ## 🚀 Quick Start
 
@@ -247,7 +215,7 @@ src/
 ├── main.rs           # 🚀 CLI entry
 ├── lib.rs            # 📚 Library entry
 ├── commands/         # 🎯 CLI Layer (13 commands)
-├── web/              # 🌐 Web Layer (HTTP server + API)
+├── web/              # 🌐 Web Layer (Axum server + API)
 ├── services/         # 🎯 Service Layer (business logic)
 ├── managers/         # 📁 Manager Layer (data access)
 │   ├── config.rs     # ⚙️ Config management
@@ -260,29 +228,32 @@ src/
 │   └── ...           # More core modules
 └── utils/            # 🛠️ Utils (masking, validation)
 
-ccr-tauri/            # 🖥️ Desktop Application
-├── src/              # 🦀 Rust backend (Tauri commands)
-│   ├── main.rs       # Application entry
-│   ├── lib.rs        # Library exports
-│   └── commands/     # Tauri command definitions
-├── src-ui/           # 🎨 Vue 3 frontend
+ccr-ui/               # 🌐 Full-Stack Web Application
+├── backend/          # 🦀 Actix Web server
 │   ├── src/
-│   │   ├── App.vue   # Main component
-│   │   ├── api/      # API layer (Tauri invoke)
-│   │   ├── types/    # TypeScript definitions
-│   │   └── style.css # Global styles
-│   └── package.json  # Frontend dependencies
-├── docs/             # 📚 VitePress documentation
-│   ├── guide/        # User guides
-│   ├── api/          # API reference
-│   ├── architecture/ # Architecture docs
-│   └── development/  # Development guides
-├── capabilities/     # 🔐 Tauri 2.0 permissions
-└── tauri.conf.json   # Tauri configuration
+│   │   ├── main.rs      # Server entry
+│   │   ├── executor/    # CCR CLI subprocess executor
+│   │   ├── handlers/    # API route handlers
+│   │   └── models/      # Request/response types
+│   └── Cargo.toml
+└── frontend/         # ⚛️ React + TypeScript
+    ├── src/
+    │   ├── App.tsx
+    │   ├── pages/       # Page components
+    │   ├── components/  # Reusable components
+    │   ├── api/         # API client
+    │   └── types/       # TypeScript definitions
+    └── package.json
 ```
 
 **Commands:**
 ```bash
+# Development workflow (use justfile)
+just dev              # Quick check + test
+just watch            # Auto-rebuild on changes
+just ci               # Full CI pipeline
+
+# Or use cargo directly
 cargo test            # 🧪 Run tests
 cargo clippy          # 🔍 Lint
 cargo fmt             # 💅 Format
@@ -291,18 +262,26 @@ cargo build --release # 🏗️ Production build
 
 ## 🏗️ Architecture
 
-CCR v1.1.0 features a strict layered architecture:
+CCR v1.1.5 features a **strict layered architecture** with clear separation of concerns:
 
 ```
 CLI/Web Layer → Services → Managers → Core/Utils
 ```
 
+**Key Components:**
 - **Service Layer**: 4 services (Config, Settings, History, Backup) - 26 methods
-- **Web Module**: Modular design (models, server, handlers, routes) - 11 API endpoints
-- **Infrastructure**: Atomic writer, file manager trait, validation trait
-- **Test Coverage**: 95%+ (77/81 tests passed)
+- **Manager Layer**: 3 managers (Config, Settings, History) - Data access & file operations
+- **Web Module**: Axum-based server with 11 RESTful API endpoints
+- **Core Infrastructure**: Atomic writer, file locking, error handling, logging
+- **Test Coverage**: 95%+ comprehensive test suite
 
-For detailed architecture docs, see [ARCHITECTURE.md](ARCHITECTURE.md).
+**Design Patterns:**
+- Atomic file operations (temp file + rename)
+- Multi-process safety via file locking
+- Complete audit trail with UUID tracking
+- Automatic backups before destructive operations
+
+For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 🐛 Troubleshooting
 

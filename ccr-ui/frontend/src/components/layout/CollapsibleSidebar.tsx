@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Settings, Terminal, ChevronLeft, ChevronRight, Menu, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { Settings, Terminal, ChevronLeft, ChevronRight, Menu, ChevronDown, ChevronUp, Zap, Server, Command, Bot, Puzzle } from 'lucide-react';
 
 // 导航菜单结构 - 支持层级菜单
 const navigationGroups = [
@@ -14,6 +14,10 @@ const navigationGroups = [
     items: [
       { name: '配置管理', href: '/configs', icon: Settings },
       { name: '命令执行', href: '/commands', icon: Terminal },
+      { name: 'MCP 管理', href: '/mcp', icon: Server },
+      { name: 'Slash Commands', href: '/slash-commands', icon: Command },
+      { name: 'Agents 管理', href: '/agents', icon: Bot },
+      { name: '插件管理', href: '/plugins', icon: Puzzle },
     ],
   },
   // 可以在这里添加其他 CLI 工具的分组

@@ -11,6 +11,9 @@ mod config_reader;
 mod executor;
 mod handlers;
 mod models;
+mod claude_config_manager;
+mod markdown_manager;
+mod plugins_manager;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -96,6 +99,30 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::get_version)
             .service(handlers::check_update)
             .service(handlers::update_ccr)
+            // MCP server management endpoints
+            .service(handlers::list_mcp_servers)
+            .service(handlers::add_mcp_server)
+            .service(handlers::update_mcp_server)
+            .service(handlers::delete_mcp_server)
+            .service(handlers::toggle_mcp_server)
+            // Slash command management endpoints
+            .service(handlers::list_slash_commands)
+            .service(handlers::add_slash_command)
+            .service(handlers::update_slash_command)
+            .service(handlers::delete_slash_command)
+            .service(handlers::toggle_slash_command)
+            // Agent management endpoints
+            .service(handlers::list_agents)
+            .service(handlers::add_agent)
+            .service(handlers::update_agent)
+            .service(handlers::delete_agent)
+            .service(handlers::toggle_agent)
+            // Plugin management endpoints
+            .service(handlers::list_plugins)
+            .service(handlers::add_plugin)
+            .service(handlers::update_plugin)
+            .service(handlers::delete_plugin)
+            .service(handlers::toggle_plugin)
             // Health check
             .route(
                 "/health",

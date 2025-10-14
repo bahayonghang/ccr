@@ -14,8 +14,8 @@ CCR 通过原子操作、文件锁、完整审计追踪和自动备份直接管�
 | 💾 **自动备份** | 更改前自动备份,生成带时间戳的 `.bak` 文件 |
 | ✅ **配置验证** | 全面验证(URL、必填字段、格式) |
 | 🔤 **配置优化** | 按字母顺序整理配置,保持顺序不被打乱 |
-| 🌐 **Web 界面** | 11 个完整 RESTful API 端点,浏览器管理界面 |
-| 🖥️ **桌面应用** | 基于 Tauri 的原生桌面应用,Vue 3 现代界面,支持深色模式 |
+| 🌐 **Web 服务器** | 内置 Axum Web 服务器,提供 11 个 RESTful API 端点 |
+| 🖥️ **全栈 Web UI** | 现代化 React + Actix Web 应用,可视化管理界面 |
 | 🏗️ **现代架构** | Service 层模式,模块化设计,95%+ 测试覆盖率 |
 | ⚡ **智能更新** | 实时显示编译进度的自动更新功能 |
 | 🔄 **CCS 兼容** | 共享 `~/.ccs_config.toml` - 与 Shell 版本无缝共存 |
@@ -40,41 +40,47 @@ cargo install --path .
 
 **系统要求：** Rust 1.85+ (支持 edition 2024 特性)
 
-## 🖥️ 桌面应用
+## 🌐 CCR UI - 全栈 Web 应用
 
-CCR 现在提供基于 **Tauri 2.0 + Vue 3** 构建的原生桌面应用！
+CCR UI 是一个现代化的 **React + Actix Web** 全栈应用，用于 CCR 配置管理！
 
 ### 功能特性
 
-- 🎨 **现代化界面**：精美的三栏布局设计,支持深色/浅色主题切换
-- 🔄 **配置管理**：通过图形界面切换、创建、编辑、删除配置
-- 🏷️ **智能筛选**：按类型筛选配置（官方中转、第三方模型、未分类）
-- 📚 **历史追踪**：查看所有操作记录和详细日志
-- 💾 **备份管理**：轻松列出和恢复备份文件
-- 📤 **导入导出**：图形化配置导入导出功能
-- ⚙️ **系统信息**：一目了然地显示主机名、用户名、路径等信息
+- ⚛️ **React 前端**：现代化 React 18 + TypeScript + Tailwind CSS
+- 🦀 **Actix Web 后端**：高性能 Rust 异步 Web 服务器
+- 🖥️ **配置管理**：可视化配置切换和验证
+- 💻 **命令执行器**：执行所有 13 个 CCR 命令，可视化输出
+- 📊 **语法高亮**：终端风格输出，带颜色编码
+- ⚡ **实时执行**：异步命令执行，带进度显示
 
-### 快速启动
+### 超快启动
 
 ```bash
-cd ccr-tauri
+cd ccr-ui
 
-# 安装前端依赖
-cd src-ui && npm install && cd ..
+# 一键命令 - 就这么简单！
+just s    # 启动开发环境
 
-# 开发模式运行
-cargo tauri dev
-
-# 构建生产版本
-cargo tauri build
+# 第一次使用？一条命令搞定：
+just quick-start    # 检查前置条件 + 安装 + 启动
 ```
 
-**📖 完整文档**：查看 `ccr-tauri/docs/` 获取完整的架构文档、API 参考和开发指南（基于 VitePress 构建）。
+**可用的简化命令：**
+- `just s` - 启动开发环境（最常用！）
+- `just i` - 安装依赖
+- `just b` - 构建生产版本
+- `just c` - 检查代码
+- `just t` - 运行测试
+- `just f` - 格式化代码
 
-**🎯 桌面 vs CLI vs Web**：
-- **桌面应用**：适合可视化管理和频繁切换配置
-- **CLI 工具**：适合脚本和自动化场景
-- **Web 界面**：适合远程访问和团队管理
+**不确定做什么？** 直接运行 `just` 查看帮助！
+
+**📖 完整文档**：查看 `ccr-ui/START_HERE.md` 获取超简单指南，或 `ccr-ui/README.md` 查看完整文档。
+
+**🎯 CLI vs Web 服务器 vs CCR UI**：
+- **CLI 工具**：适合脚本、自动化和快速操作
+- **Web 服务器** (`ccr web`)：内置轻量级 Axum 服务器，用于 API 访问
+- **CCR UI** (Actix+React)：全功能 Web 应用，用于可视化管理
 
 ## 🚀 快速开始
 
@@ -209,7 +215,7 @@ src/
 ├── main.rs           # 🚀 CLI 入口
 ├── lib.rs            # 📚 库入口
 ├── commands/         # 🎯 CLI 层（13 个命令）
-├── web/              # 🌐 Web 层（HTTP 服务器 + API）
+├── web/              # 🌐 Web 层（Axum 服务器 + API）
 ├── services/         # 🎯 Service 层（业务逻辑）
 ├── managers/         # 📁 Manager 层（数据访问）
 │   ├── config.rs     # ⚙️ 配置管理
@@ -222,29 +228,32 @@ src/
 │   └── ...           # 更多核心模块
 └── utils/            # 🛠️ 工具（掩码、验证）
 
-ccr-tauri/            # 🖥️ 桌面应用
-├── src/              # 🦀 Rust 后端（Tauri commands）
-│   ├── main.rs       # 应用入口
-│   ├── lib.rs        # 库导出
-│   └── commands/     # Tauri 命令定义
-├── src-ui/           # 🎨 Vue 3 前端
+ccr-ui/               # 🌐 全栈 Web 应用
+├── backend/          # 🦀 Actix Web 服务器
 │   ├── src/
-│   │   ├── App.vue   # 主组件
-│   │   ├── api/      # API 层（Tauri invoke）
-│   │   ├── types/    # TypeScript 类型定义
-│   │   └── style.css # 全局样式
-│   └── package.json  # 前端依赖
-├── docs/             # 📚 VitePress 文档
-│   ├── guide/        # 使用指南
-│   ├── api/          # API 参考
-│   ├── architecture/ # 架构文档
-│   └── development/  # 开发指南
-├── capabilities/     # 🔐 Tauri 2.0 权限配置
-└── tauri.conf.json   # Tauri 配置文件
+│   │   ├── main.rs      # 服务器入口
+│   │   ├── executor/    # CCR CLI 子进程执行器
+│   │   ├── handlers/    # API 路由处理器
+│   │   └── models/      # 请求/响应类型
+│   └── Cargo.toml
+└── frontend/         # ⚛️ React + TypeScript
+    ├── src/
+    │   ├── App.tsx
+    │   ├── pages/       # 页面组件
+    │   ├── components/  # 可复用组件
+    │   ├── api/         # API 客户端
+    │   └── types/       # TypeScript 类型定义
+    └── package.json
 ```
 
 **命令：**
 ```bash
+# 开发工作流（使用 justfile）
+just dev              # 快速检查 + 测试
+just watch            # 文件变化时自动重建
+just ci               # 完整 CI 流程
+
+# 或直接使用 cargo
 cargo test            # 🧪 运行测试
 cargo clippy          # 🔍 代码检查
 cargo fmt             # 💅 格式化
@@ -253,16 +262,24 @@ cargo build --release # 🏗️ 生产构建
 
 ## 🏗️ 架构
 
-CCR v1.1.0 采用严格的分层架构：
+CCR v1.1.5 采用**严格的分层架构**，职责清晰分离：
 
 ```
 CLI/Web 层 → Services 层 → Managers 层 → Core/Utils 层
 ```
 
-- **Service 层**: 4 个服务(Config, Settings, History, Backup)- 26 个方法
-- **Web 模块**: 模块化设计(models, server, handlers, routes)- 11 个 API 端点
-- **基础设施**: 原子写入器、文件管理器 trait、验证 trait
-- **测试覆盖**: 95%+ (79/83 测试通过)
+**核心组件：**
+- **Service 层**: 4 个服务（Config、Settings、History、Backup）- 26 个方法
+- **Manager 层**: 3 个管理器（Config、Settings、History）- 数据访问与文件操作
+- **Web 模块**: 基于 Axum 的服务器，提供 11 个 RESTful API 端点
+- **Core 基础设施**: 原子写入器、文件锁、错误处理、日志记录
+- **测试覆盖**: 95%+ 全面测试套件
+
+**设计模式：**
+- 原子文件操作（临时文件 + 重命名）
+- 通过文件锁实现多进程安全
+- 完整的 UUID 追踪审计日志
+- 破坏性操作前自动备份
 
 详细架构文档见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 

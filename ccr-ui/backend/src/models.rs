@@ -239,3 +239,134 @@ pub struct UpdateExecutionResponse {
     pub exit_code: i32,
 }
 
+// ===== MCP Server Management Models =====
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct McpServerWithName {
+    pub name: String,
+    pub command: String,
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub env: std::collections::HashMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "type")]
+    pub server_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub disabled: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct McpServerRequest {
+    pub name: String,
+    pub command: String,
+    pub args: Vec<String>,
+    pub env: Option<std::collections::HashMap<String, String>>,
+    pub disabled: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct McpServersResponse {
+    pub success: bool,
+    pub data: serde_json::Value,
+    pub message: Option<String>,
+}
+
+// ===== Slash Command Management Models =====
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SlashCommand {
+    pub name: String,
+    pub description: String,
+    pub command: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub args: Option<Vec<String>>,
+    #[serde(default)]
+    pub disabled: bool,
+    /// Folder path (empty for root, "subfolder" for subfolder, etc.)
+    #[serde(default)]
+    pub folder: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SlashCommandRequest {
+    pub name: String,
+    pub description: String,
+    pub command: String,
+    pub args: Option<Vec<String>>,
+    pub disabled: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SlashCommandsResponse {
+    pub success: bool,
+    pub data: serde_json::Value,
+    pub message: Option<String>,
+}
+
+// ===== Agent Management Models =====
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Agent {
+    pub name: String,
+    pub model: String,
+    #[serde(default)]
+    pub tools: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system_prompt: Option<String>,
+    #[serde(default)]
+    pub disabled: bool,
+    /// Folder path (empty for root, "kfc" for subfolder, etc.)
+    #[serde(default)]
+    pub folder: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AgentRequest {
+    pub name: String,
+    pub model: String,
+    pub tools: Option<Vec<String>>,
+    pub system_prompt: Option<String>,
+    pub disabled: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AgentsResponse {
+    pub success: bool,
+    pub data: serde_json::Value,
+    pub message: Option<String>,
+}
+
+// ===== Plugin Management Models =====
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Plugin {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config: Option<serde_json::Value>,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PluginRequest {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub enabled: Option<bool>,
+    pub config: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PluginsResponse {
+    pub success: bool,
+    pub data: serde_json::Value,
+    pub message: Option<String>,
+}
+
