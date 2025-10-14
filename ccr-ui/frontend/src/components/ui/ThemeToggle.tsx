@@ -1,19 +1,19 @@
 'use client';
 
 import { Moon, Sun } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // 从 localStorage 加载主题
-    const savedTheme = (localStorage.getItem('ccr-theme') as 'light' | 'dark') || 'light';
-    setTheme(savedTheme);
-    document.documentElement.setAttribute('data-theme', savedTheme);
-  }, []);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light';
+    const saved = localStorage.getItem('ccr-theme') as 'light' | 'dark' | null;
+    const initial = saved || 'light';
+    // 立即应用主题
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', initial);
+    }
+    return initial;
+  });
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -21,22 +21,6 @@ export default function ThemeToggle() {
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('ccr-theme', newTheme);
   };
-
-  // 防止服务端渲染不匹配
-  if (!mounted) {
-    return (
-      <button
-        className="w-10 h-10 rounded-full flex items-center justify-center"
-        style={{
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-color)',
-        }}
-        aria-label="Toggle theme"
-      >
-        <Sun className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-      </button>
-    );
-  }
 
   return (
     <button
@@ -58,4 +42,3 @@ export default function ThemeToggle() {
     </button>
   );
 }
-

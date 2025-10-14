@@ -45,29 +45,6 @@ impl MarkdownManager {
         Ok(Self { directory })
     }
 
-    /// List all .md files in the directory
-    pub fn list_files(&self) -> io::Result<Vec<String>> {
-        if !self.directory.exists() {
-            return Ok(Vec::new());
-        }
-
-        let entries = fs::read_dir(&self.directory)?;
-        let mut files = Vec::new();
-
-        for entry in entries {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("md") {
-                if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
-                    files.push(name.to_string());
-                }
-            }
-        }
-
-        files.sort();
-        Ok(files)
-    }
-
     /// List all files with their folder information (recursive)
     /// Returns a vector of tuples: (file_name, folder_path_relative)
     /// folder_path_relative is empty string for root files, or "subfolder" for files in subfolders

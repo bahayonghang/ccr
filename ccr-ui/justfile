@@ -7,13 +7,6 @@ is_windows := if os() == "windows" { "true" } else { "false" }
 is_macos := if os() == "macos" { "true" } else { "false" }
 is_linux := if os() == "linux" { "true" } else { "false" }
 
-# 🛠️ 统一 shell 入口：Windows 使用 PowerShell，其余使用 Bash
-set shell := if os() == "windows" {
-    ["pwsh", "-NoLogo", "-NoProfile", "-Command"]
-} else {
-    ["/usr/bin/env", "bash", "-cu"]
-}
-
 # 默认命令：显示帮助信息
 default:
     @just help
@@ -138,7 +131,7 @@ _dev-start-windows:
     @echo 🚀 启动开发环境...
     @echo 📍 后端: http://localhost:8081
     @echo 📍 前端: http://localhost:3000 (Next.js)
-    @echo.
+    @echo ""
     @just dev-parallel
 
 # 并行启动前后端开发服务器（跨平台）
@@ -409,7 +402,7 @@ _check-security-macos:
 _check-security-windows:
     @echo 🔒 检查前端安全漏洞...
     @powershell -Command "Set-Location frontend; npm audit"
-    @echo.
+    @echo ""
     @echo ✅ 安全检查完成
 
 # 运行测试
@@ -662,13 +655,13 @@ _check-prereqs-macos:
 _check-prereqs-windows:
     @echo 🔍 检查前置条件...
     @echo 当前系统: Windows
-    @echo.
+    @echo ""
     @powershell -Command "try { $v = rustc --version; Write-Host \"✅ Rust: $v\" } catch { Write-Host \"❌ Rust 未安装\"; exit 1 }"
     @powershell -Command "try { $v = cargo --version; Write-Host \"✅ Cargo: $v\" } catch { Write-Host \"❌ Cargo 未安装\"; exit 1 }"
     @powershell -Command "try { $v = node --version; Write-Host \"✅ Node.js: $v\" } catch { Write-Host \"❌ Node.js 未安装\"; exit 1 }"
     @powershell -Command "try { $v = npm --version; Write-Host \"✅ npm: $v\" } catch { Write-Host \"❌ npm 未安装\"; exit 1 }"
     @powershell -Command "try { $v = ccr --version 2>$null; if ($v) { Write-Host \"✅ CCR: $v\" } else { Write-Host \"✅ CCR: installed\" } } catch { Write-Host \"⚠️  CCR 未安装（后端运行时需要）\" }"
-    @echo.
+    @echo ""
     @echo ✅ 前置条件检查完成
 
 # 显示项目信息
@@ -740,23 +733,23 @@ _info-macos:
 _info-windows:
     @echo 📊 CCR UI 项目信息
     @echo ====================
-    @echo.
+    @echo ""
     @echo 💻 当前系统: Windows
-    @echo.
+    @echo ""
     @echo 📁 项目结构:
     @echo   - backend/  : Actix Web (Rust)
     @echo   - frontend/ : Next.js 16 Beta (TypeScript + Turbopack)
     @echo   - logs/     : 日志文件（按日分割，保留14天）
-    @echo.
+    @echo ""
     @echo 🌐 开发端口:
     @echo   - 后端: http://localhost:8081
     @echo   - 前端: http://localhost:3000 (Next.js)
-    @echo.
+    @echo ""
     @echo 📝 日志文件:
     @echo   - logs/backend.log  : 后端日志（自动按日分割）
     @echo   - logs/frontend.log : 前端日志
     @echo   - just clean-logs   : 清理14天前的日志
-    @echo.
+    @echo ""
     @echo 📦 常用命令:
     @echo   just install    - 安装所有依赖
     @echo   just dev        - 启动开发环境
@@ -764,7 +757,7 @@ _info-windows:
     @echo   just check      - 检查代码
     @echo   just clean-logs - 清理旧日志
     @echo   just clean      - 清理构建产物
-    @echo.
+    @echo ""
     @echo 📚 更多命令: just --list
 
 # 快速启动（检查 + 安装 + 开发）
