@@ -128,10 +128,10 @@ _dev-start-macos:
     @just dev-parallel
 
 _dev-start-windows:
-    @echo 🚀 启动开发环境...
-    @echo 📍 后端: http://localhost:8081
-    @echo 📍 前端: http://localhost:3000 (Next.js)
-    @echo ""
+    @powershell -Command "Write-Output '🚀 启动开发环境...'"
+    @powershell -Command "Write-Output '📍 后端: http://localhost:8081'"
+    @powershell -Command "Write-Output '📍 前端: http://localhost:3000 (Next.js)'"
+    @powershell -Command "Write-Output ''"
     @just dev-parallel
 
 # 并行启动前后端开发服务器（跨平台）
@@ -200,13 +200,11 @@ _dev-clean-macos:
 
 # 清理开发环境 - Windows
 _dev-clean-windows:
-    @echo "🧹 开始清理开发环境..."
-    @powershell -Command "Get-Process | Where-Object { $_.ProcessName -like '*ccr-ui-backend*' } | Stop-Process -Force -ErrorAction SilentlyContinue"
-    @powershell -Command "Get-Process | Where-Object { $_.ProcessName -like '*node*' -and $_.CommandLine -like '*next*' } | Stop-Process -Force -ErrorAction SilentlyContinue"
-    @powershell -Command "$port8081 = Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue; if ($port8081) { Stop-Process -Id $port8081.OwningProcess -Force -ErrorAction SilentlyContinue }"
-    @powershell -Command "$port3000 = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue; if ($port3000) { Stop-Process -Id $port3000.OwningProcess -Force -ErrorAction SilentlyContinue }"
+    @powershell -Command "Write-Output '🧹 开始清理开发环境...'"
+    @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1
+    @powershell -Command "Write-Output '... 清理前端构建目录...'"
     @powershell -Command "if (Test-Path frontend\\.next) { Remove-Item -Recurse -Force frontend\\.next }"
-    @echo ✅ 清理完成
+    @powershell -Command "Write-Output '✅ 清理完成'"
 
 # 仅启动后端开发服务器
 dev-backend:
@@ -551,6 +549,7 @@ _clean-logs-macos:
 _clean-logs-windows:
     @powershell -Command "Write-Output '🧹 清理旧日志文件...'; $date = (Get-Date).AddDays(-14); if (Test-Path logs) { Get-ChildItem -Path logs -Filter *.log -Recurse | Where-Object { $_.LastWriteTime -lt $date } | Remove-Item -Force }"
     @powershell -Command "Write-Output '✅ 已删除14天前的日志'"
+
 # 深度清理（包括依赖）
 clean-all: clean
     @just _clean-all-{{os()}}
@@ -656,11 +655,11 @@ _check-prereqs-windows:
     @echo 🔍 检查前置条件...
     @echo 当前系统: Windows
     @echo ""
-    @powershell -Command "try { $v = rustc --version; Write-Host \"✅ Rust: $v\" } catch { Write-Host \"❌ Rust 未安装\"; exit 1 }"
-    @powershell -Command "try { $v = cargo --version; Write-Host \"✅ Cargo: $v\" } catch { Write-Host \"❌ Cargo 未安装\"; exit 1 }"
-    @powershell -Command "try { $v = node --version; Write-Host \"✅ Node.js: $v\" } catch { Write-Host \"❌ Node.js 未安装\"; exit 1 }"
-    @powershell -Command "try { $v = npm --version; Write-Host \"✅ npm: $v\" } catch { Write-Host \"❌ npm 未安装\"; exit 1 }"
-    @powershell -Command "try { $v = ccr --version 2>$null; if ($v) { Write-Host \"✅ CCR: $v\" } else { Write-Host \"✅ CCR: installed\" } } catch { Write-Host \"⚠️  CCR 未安装（后端运行时需要）\" }"
+    @echo ✅ Rust && rustc --version || echo ❌ Rust 未安装
+    @echo ✅ Cargo && cargo --version || echo ❌ Cargo 未安装
+    @echo ✅ Node.js && node --version || echo ❌ Node.js 未安装
+    @echo ✅ npm && npm --version || echo ❌ npm 未安装
+    @echo ✅ CCR && ccr --version || echo ⚠️  CCR 未安装（后端运行时需要）
     @echo ""
     @echo ✅ 前置条件检查完成
 
@@ -743,7 +742,7 @@ _info-windows:
     @echo ""
     @echo 🌐 开发端口:
     @echo   - 后端: http://localhost:8081
-    @echo   - 前端: http://localhost:3000 (Next.js)
+    @eqcho   - 前端: http://localhost:3000 (Next.js)
     @echo ""
     @echo 📝 日志文件:
     @echo   - logs/backend.log  : 后端日志（自动按日分割）
@@ -817,4 +816,3 @@ prepare-release: clean build
     @echo "📦 发布文件:"
     @echo "  - backend/target/release/ccr-ui-backend"
     @echo "  - frontend/dist/"
-
