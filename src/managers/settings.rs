@@ -285,6 +285,7 @@ impl SettingsManager {
     /// 2. 📁 确保备份目录存在
     /// 3. 🏷️ 生成带时间戳的备份文件名
     /// 4. 📋 复制文件到备份目录
+    /// 5. 🧹 自动清理旧备份(只保留最近10个)
     ///
     /// 文件名格式:
     /// - 有配置名: settings.{config_name}.{timestamp}.json.bak
@@ -316,6 +317,27 @@ impl SettingsManager {
             .map_err(|e| CcrError::SettingsError(format!("备份设置文件失败: {}", e)))?;
 
         log::info!("💾 设置文件已备份: {:?}", backup_path);
+
+        // 🧹 自动清理旧备份(只保留最近10个)
+        const MAX_BACKUPS: usize = 10;
+        if let Ok(backups) = self.list_backups() {
+            if backups.len() > MAX_BACKUPS {
+                let to_delete = &backups[MAX_BACKUPS..];
+                for old_backup in to_delete {
+                    if let Err(e) = fs::remove_file(old_backup) {
+                        log::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
+                    } else {
+                        log::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
+                    }
+                }
+                log::info!(
+                    "🧹 已自动清理 {} 个旧备份,保留最近 {} 个",
+                    to_delete.len(),
+                    MAX_BACKUPS
+                );
+            }
+        }
+
         Ok(backup_path)
     }
 
@@ -527,5 +549,42 @@ mod tests {
             restored.env.get("ANTHROPIC_BASE_URL"),
             Some(&"original".to_string())
         );
+    }
+
+    #[test]
+    fn test_backup_auto_cleanup() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let settings_path = temp_dir.path().join("settings.json");
+        let backup_dir = temp_dir.path().join("backups");
+        let lock_dir = temp_dir.path().join("locks");
+
+        let lock_manager = LockManager::new(lock_dir);
+        let manager = SettingsManager::new(settings_path, backup_dir, lock_manager);
+
+        // 创建初始设置
+        let mut settings = ClaudeSettings::new();
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "test".into());
+        manager.save_atomic(&settings).unwrap();
+
+        // 创建15个备份
+        for i in 0..15 {
+            manager.backup(Some(&format!("config{}", i))).unwrap();
+            // 短暂延迟确保时间戳不同
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+
+        // 验证只保留了最近10个备份
+        let backups = manager.list_backups().unwrap();
+        assert_eq!(
+            backups.len(),
+            10,
+            "应该只保留10个备份,但实际有 {} 个",
+            backups.len()
+        );
+
+        // 验证保留的是最新的10个(按时间倒序,最新的在前)
+        assert!(backups.len() <= 10);
     }
 }

@@ -162,11 +162,12 @@ _dev-parallel-macos:
 # 并行启动 - Windows
 # ⚠️ Windows 使用 Start-Process 以保持子进程在后台运行
 _dev-parallel-windows:
-    @powershell -Command "if (-not (Test-Path logs)) { New-Item -ItemType Directory -Path logs }"
-    @powershell -Command "Write-Output '🦀 启动后端服务器...'; Start-Process cmd -ArgumentList '/C', 'cd backend && cargo run >> ..\\logs\\backend-console.log 2>&1'"
+    @powershell -Command "if (-not (Test-Path logs)) { New-Item -ItemType Directory -Path logs -Force | Out-Null }"
+    @powershell -Command "Write-Output '🦀 启动后端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd backend; cargo run 2>&1 | Tee-Object -FilePath ../logs/backend-console.log' -WindowStyle Normal"
     @powershell -Command "Start-Sleep -Seconds 2"
-    @powershell -Command "Write-Output '⚛️ 启动前端服务器...'; Start-Process cmd -ArgumentList '/C', 'cd frontend && npm run dev >> ..\\logs\\frontend.log 2>&1'"
+    @powershell -Command "Write-Output '⚛️ 启动前端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd frontend; npm run dev 2>&1 | Tee-Object -FilePath ../logs/frontend.log' -WindowStyle Normal"
     @powershell -Command "Write-Output '📜 日志位于 logs/backend-console.log 与 logs/frontend.log'"
+    @powershell -Command "Write-Output '💡 提示: 两个新窗口已打开，关闭窗口即可停止服务器'"
 
 # 启动前清理（端口 + 缓存 + 残留进程）
 dev-clean:
@@ -203,7 +204,7 @@ _dev-clean-windows:
     @powershell -Command "Write-Output '🧹 开始清理开发环境...'"
     @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1
     @powershell -Command "Write-Output '... 清理前端构建目录...'"
-    @powershell -Command "if (Test-Path frontend\\.next) { Remove-Item -Recurse -Force frontend\\.next }"
+    @powershell -Command "if (Test-Path 'frontend/.next') { Remove-Item -Recurse -Force 'frontend/.next' }"
     @powershell -Command "Write-Output '✅ 清理完成'"
 
 # 仅启动后端开发服务器
@@ -256,8 +257,8 @@ _build-summary-macos:
 
 _build-summary-windows:
     @echo ✅ 生产构建完成
-    @echo 📦 后端二进制: backend\\target\\release\\ccr-ui-backend.exe
-    @echo 📦 前端静态文件: frontend\\dist
+    @echo 📦 后端二进制: backend/target/release/ccr-ui-backend.exe
+    @echo 📦 前端静态文件: frontend/dist
 
 # 构建后端生产版本
 build-backend:
@@ -315,7 +316,7 @@ _run-prod-macos:
 # 运行生产版本 - Windows
 _run-prod-windows:
     @echo 🚀 启动生产版本后端...
-    @backend\\target\\release\\ccr-ui-backend.exe
+    @backend/target/release/ccr-ui-backend.exe
 
 # 使用Python服务器运行前端静态文件
 serve-frontend:
@@ -475,7 +476,7 @@ _fmt-frontend-macos:
     cd frontend && npm run lint --fix || true
 
 _fmt-frontend-windows:
-    @powershell -Command "Write-Output '💅 格式化前端代码...'; try { Set-Location frontend; npm run lint --fix } catch { Write-Host '⚠️ 前端格式化遇到问题，但继续流程' }"
+    @powershell -Command "Write-Output '💅 格式化前端代码...'; Set-Location frontend; npm run lint --fix; if (-not $?) { Write-Host '⚠️ 前端格式化遇到问题，但继续流程' -ForegroundColor Yellow }"
 
 # Clippy 检查后端
 clippy:
@@ -527,8 +528,8 @@ _clean-frontend-macos:
 
 # 清理前端 - Windows
 _clean-frontend-windows:
-    @powershell -Command "Write-Output '🧹 清理前端...'; if (Test-Path frontend\\dist) { Remove-Item -Recurse -Force frontend\\dist }"
-    @powershell -Command "if (Test-Path frontend\\node_modules) { Remove-Item -Recurse -Force frontend\\node_modules }"
+    @powershell -Command "Write-Output '🧹 清理前端...'; if (Test-Path 'frontend/dist') { Remove-Item -Recurse -Force 'frontend/dist' }"
+    @powershell -Command "if (Test-Path 'frontend/node_modules') { Remove-Item -Recurse -Force 'frontend/node_modules' }"
 
 # 清理旧日志文件（保留14天）
 clean-logs:
@@ -565,8 +566,8 @@ _clean-all-macos:
 
 # 深度清理 - Windows
 _clean-all-windows:
-    @powershell -Command "Write-Output '🧹 深度清理（包括依赖）...'; if (Test-Path frontend\\node_modules) { Remove-Item -Recurse -Force frontend\\node_modules }"
-    @powershell -Command "if (Test-Path frontend\\package-lock.json) { Remove-Item -Force frontend\\package-lock.json }"
+    @powershell -Command "Write-Output '🧹 深度清理（包括依赖）...'; if (Test-Path 'frontend/node_modules') { Remove-Item -Recurse -Force 'frontend/node_modules' }"
+    @powershell -Command "if (Test-Path 'frontend/package-lock.json') { Remove-Item -Force 'frontend/package-lock.json' }"
     @powershell -Command "Write-Output '✅ 深度清理完成'"
 
 # ===== 工具 =====
@@ -654,13 +655,13 @@ _check-prereqs-macos:
 _check-prereqs-windows:
     @echo 🔍 检查前置条件...
     @echo 当前系统: Windows
-    @echo ""
-    @echo ✅ Rust && rustc --version || echo ❌ Rust 未安装
-    @echo ✅ Cargo && cargo --version || echo ❌ Cargo 未安装
-    @echo ✅ Node.js && node --version || echo ❌ Node.js 未安装
-    @echo ✅ npm && npm --version || echo ❌ npm 未安装
-    @echo ✅ CCR && ccr --version || echo ⚠️  CCR 未安装（后端运行时需要）
-    @echo ""
+    @echo.
+    @powershell -Command "if (Get-Command rustc -ErrorAction SilentlyContinue) { Write-Host '✅ Rust:' (rustc --version) } else { Write-Host '❌ Rust 未安装' }"
+    @powershell -Command "if (Get-Command cargo -ErrorAction SilentlyContinue) { Write-Host '✅ Cargo:' (cargo --version) } else { Write-Host '❌ Cargo 未安装' }"
+    @powershell -Command "if (Get-Command node -ErrorAction SilentlyContinue) { Write-Host '✅ Node.js:' (node --version) } else { Write-Host '❌ Node.js 未安装' }"
+    @powershell -Command "if (Get-Command npm -ErrorAction SilentlyContinue) { Write-Host '✅ npm:' (npm --version) } else { Write-Host '❌ npm 未安装' }"
+    @powershell -Command "if (Get-Command ccr -ErrorAction SilentlyContinue) { try { Write-Host '✅ CCR:' (ccr --version) } catch { Write-Host '✅ CCR: installed' } } else { Write-Host '⚠️  CCR 未安装（后端运行时需要）' }"
+    @echo.
     @echo ✅ 前置条件检查完成
 
 # 显示项目信息
@@ -742,7 +743,7 @@ _info-windows:
     @echo ""
     @echo 🌐 开发端口:
     @echo   - 后端: http://localhost:8081
-    @eqcho   - 前端: http://localhost:3000 (Next.js)
+    @echo   - 前端: http://localhost:3000 (Next.js)
     @echo ""
     @echo 📝 日志文件:
     @echo   - logs/backend.log  : 后端日志（自动按日分割）
