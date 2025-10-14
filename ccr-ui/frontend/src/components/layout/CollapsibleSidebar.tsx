@@ -3,30 +3,70 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Settings, Terminal, ChevronLeft, ChevronRight, Menu, ChevronDown, ChevronUp, Zap, Server, Command, Bot, Puzzle } from 'lucide-react';
+import { Settings, Terminal, ChevronLeft, ChevronRight, Menu, ChevronDown, ChevronUp, Zap, Server, Command, Bot, Puzzle, Sparkles, Gem, Workflow } from 'lucide-react';
 
 // 导航菜单结构 - 支持层级菜单
 const navigationGroups = [
+  // CCR 命令执行 - 包含所有 CLI 客户端
+  {
+    title: 'CCR 命令执行',
+    icon: Terminal,
+    defaultExpanded: false,
+    items: [
+      { name: 'CCR 命令', href: '/commands/ccr', icon: Zap },
+      { name: 'Claude Code 命令', href: '/commands/claude-code', icon: Zap },
+      { name: 'Claude 命令', href: '/commands/claude', icon: Zap },
+      { name: 'Qwen 命令', href: '/commands/qwen', icon: Sparkles },
+      { name: 'Gemini 命令', href: '/commands/gemini', icon: Gem },
+      { name: 'IFLOW 命令', href: '/commands/iflow', icon: Workflow },
+    ],
+  },
+  // 各个 CLI 工具配置管理
   {
     title: 'Claude Code',
     icon: Zap,
     defaultExpanded: true, // 默认展开
     items: [
       { name: '配置管理', href: '/configs', icon: Settings },
-      { name: '命令执行', href: '/commands', icon: Terminal },
       { name: 'MCP 管理', href: '/mcp', icon: Server },
       { name: 'Slash Commands', href: '/slash-commands', icon: Command },
       { name: 'Agents 管理', href: '/agents', icon: Bot },
       { name: '插件管理', href: '/plugins', icon: Puzzle },
     ],
   },
-  // 可以在这里添加其他 CLI 工具的分组
-  // {
-  //   title: 'Other CLI',
-  //   icon: SomeIcon,
-  //   defaultExpanded: false,
-  //   items: [...],
-  // },
+  {
+    title: 'Qwen',
+    icon: Sparkles,
+    defaultExpanded: false,
+    items: [
+      { name: 'MCP 管理', href: '/qwen/mcp', icon: Server },
+      { name: 'Slash Commands', href: '/qwen/slash-commands', icon: Command },
+      { name: 'Agents 管理', href: '/qwen/agents', icon: Bot },
+      { name: '插件管理', href: '/qwen/plugins', icon: Puzzle },
+    ],
+  },
+  {
+    title: 'Gemini Cli',
+    icon: Gem,
+    defaultExpanded: false,
+    items: [
+      { name: 'MCP 管理', href: '/gemini-cli/mcp', icon: Server },
+      { name: 'Slash Commands', href: '/gemini-cli/slash-commands', icon: Command },
+      { name: 'Agents 管理', href: '/gemini-cli/agents', icon: Bot },
+      { name: '插件管理', href: '/gemini-cli/plugins', icon: Puzzle },
+    ],
+  },
+  {
+    title: 'IFLOW',
+    icon: Workflow,
+    defaultExpanded: false,
+    items: [
+      { name: 'MCP 管理', href: '/iflow/mcp', icon: Server },
+      { name: 'Slash Commands', href: '/iflow/slash-commands', icon: Command },
+      { name: 'Agents 管理', href: '/iflow/agents', icon: Bot },
+      { name: '插件管理', href: '/iflow/plugins', icon: Puzzle },
+    ],
+  },
 ];
 
 export default function CollapsibleSidebar() {
@@ -104,39 +144,39 @@ export default function CollapsibleSidebar() {
                 />
               )}
 
-              {/* 分组头部 - 可点击展开/折叠 */}
+              {/* 分组头部 */}
               <button
-                onClick={() => !collapsed && toggleGroup(group.title)}
-                className={`w-full flex items-center ${
-                  collapsed ? 'justify-center' : 'justify-between'
-                } px-4 py-3 rounded-lg transition-all hover:scale-[1.02] ${
-                  hasActiveChild ? 'text-white' : ''
-                }`}
-                style={{
-                  background: hasActiveChild
-                    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.2))'
-                    : 'var(--bg-tertiary)',
-                  border: `1px solid ${hasActiveChild ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-                  color: hasActiveChild ? 'var(--accent-primary)' : 'var(--text-primary)',
-                }}
-                title={collapsed ? group.title : undefined}
-                aria-expanded={!collapsed && isExpanded}
-                aria-label={`${group.title} 菜单组`}
-              >
-                <div className={`flex items-center ${collapsed ? '' : 'space-x-3'}`}>
-                  <GroupIcon className="w-5 h-5 flex-shrink-0" />
+                  onClick={() => !collapsed && toggleGroup(group.title)}
+                  className={`w-full flex items-center ${
+                    collapsed ? 'justify-center' : 'justify-between'
+                  } px-4 py-3 rounded-lg transition-all hover:scale-[1.02] ${
+                    hasActiveChild ? 'text-white' : ''
+                  }`}
+                  style={{
+                    background: hasActiveChild
+                      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.2))'
+                      : 'var(--bg-tertiary)',
+                    border: `1px solid ${hasActiveChild ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                    color: hasActiveChild ? 'var(--accent-primary)' : 'var(--text-primary)',
+                  }}
+                  title={collapsed ? group.title : undefined}
+                  aria-expanded={!collapsed && isExpanded}
+                  aria-label={`${group.title} 菜单组`}
+                >
+                  <div className={`flex items-center ${collapsed ? '' : 'space-x-3'}`}>
+                    <GroupIcon className="w-5 h-5 flex-shrink-0" />
+                    {!collapsed && (
+                      <span className="font-semibold text-sm">{group.title}</span>
+                    )}
+                  </div>
                   {!collapsed && (
-                    <span className="font-semibold text-sm">{group.title}</span>
+                    isExpanded ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )
                   )}
-                </div>
-                {!collapsed && (
-                  isExpanded ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )
-                )}
-              </button>
+                </button>
 
               {/* 子菜单项 - 仅在展开状态且非折叠时显示 */}
               {!collapsed && isExpanded && (
