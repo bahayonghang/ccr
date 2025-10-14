@@ -1,5 +1,18 @@
 # CCR UI Justfile
 # 一键安装、构建和启动前后端
+# 支持 Windows、Linux、macOS 跨平台
+
+# 🌍 操作系统检测（供条件判断使用）
+is_windows := if os() == "windows" { "true" } else { "false" }
+is_macos := if os() == "macos" { "true" } else { "false" }
+is_linux := if os() == "linux" { "true" } else { "false" }
+
+# 🛠️ 统一 shell 入口：Windows 使用 PowerShell，其余使用 Bash
+set shell := if os() == "windows" {
+    ["pwsh", "-NoLogo", "-NoProfile", "-Command"]
+} else {
+    ["/usr/bin/env", "bash", "-cu"]
+}
 
 # 默认命令：显示帮助信息
 default:
@@ -40,20 +53,48 @@ help:
 # 安装所有依赖（前端 + 后端）
 install: install-frontend install-backend
     @echo "✅ 所有依赖安装完成"
+    @echo "💡 提示：可运行 just quick-start 一键启动开发环境"
 
 # 安装前端依赖
 install-frontend:
+    @just _install-frontend-{{os()}}
+
+_install-frontend-linux:
     @echo "📦 安装前端依赖..."
     cd frontend && npm install
     @echo "✅ 前端依赖安装完成"
 
+_install-frontend-macos:
+    @echo "📦 安装前端依赖..."
+    cd frontend && npm install
+    @echo "✅ 前端依赖安装完成"
+
+_install-frontend-windows:
+    @echo 📦 安装前端依赖...
+    @powershell -Command "Write-Output '📦 安装前端依赖...'; Set-Location frontend; npm install"
+    @echo ✅ 前端依赖安装完成
+
 # 安装后端依赖（构建一次以下载依赖）
 install-backend:
+    @just _install-backend-{{os()}}
+
+_install-backend-linux:
     @echo "📦 安装后端依赖..."
     cd backend && cargo build
     @echo "✅ 后端依赖安装完成"
 
+_install-backend-macos:
+    @echo "📦 安装后端依赖..."
+    cd backend && cargo build
+    @echo "✅ 后端依赖安装完成"
+
+_install-backend-windows:
+    @echo 📦 安装后端依赖...
+    @powershell -Command "Write-Output '📦 安装后端依赖...'; Set-Location backend; cargo build"
+    @echo ✅ 后端依赖安装完成
+
 # ===== 简化命令（别名） =====
+# 快捷别名保持跨平台一致
 
 # 简化：启动开发环境
 alias s := dev
@@ -77,136 +118,388 @@ alias f := fmt
 
 # 启动开发环境（前端 + 后端）
 dev: dev-clean
+    @just _dev-start-{{os()}}
+
+_dev-start-linux:
     @echo "🚀 启动开发环境..."
     @echo "📍 后端: http://localhost:8081"
     @echo "📍 前端: http://localhost:3000 (Next.js)"
     @echo ""
     @just dev-parallel
 
-# 并行启动前后端开发服务器
+_dev-start-macos:
+    @echo "🚀 启动开发环境..."
+    @echo "📍 后端: http://localhost:8081"
+    @echo "📍 前端: http://localhost:3000 (Next.js)"
+    @echo ""
+    @just dev-parallel
+
+_dev-start-windows:
+    @echo 🚀 启动开发环境...
+    @echo 📍 后端: http://localhost:8081
+    @echo 📍 前端: http://localhost:3000 (Next.js)
+    @echo.
+    @just dev-parallel
+
+# 并行启动前后端开发服务器（跨平台）
 dev-parallel:
+    @just _dev-parallel-{{os()}}
+
+# 并行启动 - Unix/Linux/macOS
+_dev-parallel-linux:
     #!/usr/bin/env bash
     set -e
-    # 确保 logs 目录存在
     mkdir -p logs
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
-    # 后端日志由 Rust tracing 管理（自动按日分割）
     cd backend && cargo run 2>&1 | tee -a ../logs/backend-console.log &
     sleep 2
-    # 前端日志重定向到 logs/frontend.log，按日分割由 logrotate 或手动清理
     cd frontend && npm run dev 2>&1 | tee -a ../logs/frontend.log &
     wait
 
+_dev-parallel-macos:
+    #!/usr/bin/env bash
+    set -e
+    mkdir -p logs
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT
+    cd backend && cargo run 2>&1 | tee -a ../logs/backend-console.log &
+    sleep 2
+    cd frontend && npm run dev 2>&1 | tee -a ../logs/frontend.log &
+    wait
+
+# 并行启动 - Windows
+# ⚠️ Windows 使用 Start-Process 以保持子进程在后台运行
+_dev-parallel-windows:
+    @powershell -Command "if (-not (Test-Path logs)) { New-Item -ItemType Directory -Path logs }"
+    @powershell -Command "Write-Output '🦀 启动后端服务器...'; Start-Process cmd -ArgumentList '/C', 'cd backend && cargo run >> ..\\logs\\backend-console.log 2>&1'"
+    @powershell -Command "Start-Sleep -Seconds 2"
+    @powershell -Command "Write-Output '⚛️ 启动前端服务器...'; Start-Process cmd -ArgumentList '/C', 'cd frontend && npm run dev >> ..\\logs\\frontend.log 2>&1'"
+    @powershell -Command "Write-Output '📜 日志位于 logs/backend-console.log 与 logs/frontend.log'"
+
 # 启动前清理（端口 + 缓存 + 残留进程）
 dev-clean:
+    @just _dev-clean-{{os()}}
+
+# 清理开发环境 - Linux
+_dev-clean-linux:
     #!/usr/bin/env bash
     set -e
     echo "🧹 开始清理开发环境..."
-    # 终止残留进程
     pkill -9 -f "ccr-ui-backend" 2>/dev/null || true
     pkill -9 -f "next-server" 2>/dev/null || true
     pkill -9 -f "next dev" 2>/dev/null || true
-    # 释放端口
     lsof -ti:8081 2>/dev/null | xargs -r kill -9 || true
     lsof -ti:3000 2>/dev/null | xargs -r kill -9 || true
-    # 清理 Next.js 缓存和锁
     rm -rf frontend/.next
     echo "✅ 清理完成"
 
+# 清理开发环境 - macOS
+_dev-clean-macos:
+    #!/usr/bin/env bash
+    set -e
+    echo "🧹 开始清理开发环境..."
+    pkill -9 -f "ccr-ui-backend" 2>/dev/null || true
+    pkill -9 -f "next-server" 2>/dev/null || true
+    pkill -9 -f "next dev" 2>/dev/null || true
+    lsof -ti:8081 2>/dev/null | xargs kill -9 || true
+    lsof -ti:3000 2>/dev/null | xargs kill -9 || true
+    rm -rf frontend/.next
+    echo "✅ 清理完成"
+
+# 清理开发环境 - Windows
+_dev-clean-windows:
+    @echo "🧹 开始清理开发环境..."
+    @powershell -Command "Get-Process | Where-Object { $_.ProcessName -like '*ccr-ui-backend*' } | Stop-Process -Force -ErrorAction SilentlyContinue"
+    @powershell -Command "Get-Process | Where-Object { $_.ProcessName -like '*node*' -and $_.CommandLine -like '*next*' } | Stop-Process -Force -ErrorAction SilentlyContinue"
+    @powershell -Command "$port8081 = Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue; if ($port8081) { Stop-Process -Id $port8081.OwningProcess -Force -ErrorAction SilentlyContinue }"
+    @powershell -Command "$port3000 = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue; if ($port3000) { Stop-Process -Id $port3000.OwningProcess -Force -ErrorAction SilentlyContinue }"
+    @powershell -Command "if (Test-Path frontend\\.next) { Remove-Item -Recurse -Force frontend\\.next }"
+    @echo ✅ 清理完成
+
 # 仅启动后端开发服务器
 dev-backend:
+    @just _dev-backend-{{os()}}
+
+_dev-backend-linux:
     @echo "🦀 启动后端开发服务器..."
     cd backend && cargo run
 
+_dev-backend-macos:
+    @echo "🦀 启动后端开发服务器..."
+    cd backend && cargo run
+
+_dev-backend-windows:
+    @echo 🦀 启动后端开发服务器...
+    @powershell -Command "Set-Location backend; cargo run"
+
 # 仅启动前端开发服务器
 dev-frontend:
+    @just _dev-frontend-{{os()}}
+
+_dev-frontend-linux:
     @echo "⚛️  启动前端开发服务器..."
     cd frontend && npm run dev
+
+_dev-frontend-macos:
+    @echo "⚛️  启动前端开发服务器..."
+    cd frontend && npm run dev
+
+_dev-frontend-windows:
+    @echo ⚛️  启动前端开发服务器...
+    @powershell -Command "Set-Location frontend; npm run dev"
 
 # ===== 构建 =====
 
 # 构建生产版本（前端 + 后端）
 build: build-backend build-frontend
+    @just _build-summary-{{os()}}
+
+_build-summary-linux:
     @echo "✅ 生产构建完成"
     @echo "📦 后端二进制: backend/target/release/ccr-ui-backend"
     @echo "📦 前端静态文件: frontend/dist/"
 
+_build-summary-macos:
+    @echo "✅ 生产构建完成"
+    @echo "📦 后端二进制: backend/target/release/ccr-ui-backend"
+    @echo "📦 前端静态文件: frontend/dist/"
+
+_build-summary-windows:
+    @echo ✅ 生产构建完成
+    @echo 📦 后端二进制: backend\\target\\release\\ccr-ui-backend.exe
+    @echo 📦 前端静态文件: frontend\\dist
+
 # 构建后端生产版本
 build-backend:
+    @just _build-backend-{{os()}}
+
+_build-backend-linux:
     @echo "🏗️  构建后端（Release）..."
     cd backend && cargo build --release
     @echo "✅ 后端构建完成"
 
+_build-backend-macos:
+    @echo "🏗️  构建后端（Release）..."
+    cd backend && cargo build --release
+    @echo "✅ 后端构建完成"
+
+_build-backend-windows:
+    @echo 🏗️  构建后端（Release）...
+    @powershell -Command "Set-Location backend; cargo build --release"
+    @echo ✅ 后端构建完成
+
 # 构建前端生产版本
 build-frontend:
+    @just _build-frontend-{{os()}}
+
+_build-frontend-linux:
     @echo "🏗️  构建前端..."
     cd frontend && npm run build
     @echo "✅ 前端构建完成"
+
+_build-frontend-macos:
+    @echo "🏗️  构建前端..."
+    cd frontend && npm run build
+    @echo "✅ 前端构建完成"
+
+_build-frontend-windows:
+    @echo 🏗️  构建前端...
+    @powershell -Command "Set-Location frontend; npm run build"
+    @echo ✅ 前端构建完成
 
 # ===== 运行生产版本 =====
 
 # 运行生产版本后端
 run-prod:
+    @just _run-prod-{{os()}}
+
+# 运行生产版本 - Unix/Linux/macOS
+_run-prod-linux:
     @echo "🚀 启动生产版本后端..."
     ./backend/target/release/ccr-ui-backend
 
+_run-prod-macos:
+    @echo "🚀 启动生产版本后端..."
+    ./backend/target/release/ccr-ui-backend
+
+# 运行生产版本 - Windows
+_run-prod-windows:
+    @echo 🚀 启动生产版本后端...
+    @backend\\target\\release\\ccr-ui-backend.exe
+
 # 使用Python服务器运行前端静态文件
 serve-frontend:
+    @just _serve-frontend-{{os()}}
+
+# 启动前端静态服务 - Unix/Linux/macOS
+_serve-frontend-linux:
     @echo "🌐 启动前端静态文件服务器（端口5173）..."
     cd frontend/dist && python3 -m http.server 5173
+
+_serve-frontend-macos:
+    @echo "🌐 启动前端静态文件服务器（端口5173）..."
+    cd frontend/dist && python3 -m http.server 5173
+
+# 启动前端静态服务 - Windows
+_serve-frontend-windows:
+    @powershell -Command "Write-Output '🌐 启动前端静态文件服务器（端口5173）...'; Set-Location frontend/dist; python -m http.server 5173"
 
 # ===== 检查和测试 =====
 
 # 检查代码（不构建）
 check: check-backend check-frontend
+    @just _check-summary-{{os()}}
+
+_check-summary-linux:
     @echo "✅ 所有检查通过"
+
+_check-summary-macos:
+    @echo "✅ 所有检查通过"
+
+_check-summary-windows:
+    @echo ✅ 所有检查通过
 
 # 检查后端代码
 check-backend:
+    @just _check-backend-{{os()}}
+
+_check-backend-linux:
     @echo "🔍 检查后端代码..."
     cd backend && cargo check
 
+_check-backend-macos:
+    @echo "🔍 检查后端代码..."
+    cd backend && cargo check
+
+_check-backend-windows:
+    @echo 🔍 检查后端代码...
+    @powershell -Command "Set-Location backend; cargo check"
+
 # 检查前端代码
 check-frontend:
+    @just _check-frontend-{{os()}}
+
+_check-frontend-linux:
     @echo "🔍 检查前端代码..."
     cd frontend && npm run lint
 
+_check-frontend-macos:
+    @echo "🔍 检查前端代码..."
+    cd frontend && npm run lint
+
+_check-frontend-windows:
+    @echo 🔍 检查前端代码...
+    @powershell -Command "Set-Location frontend; npm run lint"
+
 # 检查前端安全漏洞
 check-security:
+    @just _check-security-{{os()}}
+
+_check-security-linux:
     @echo "🔒 检查前端安全漏洞..."
     cd frontend && npm audit
     @echo ""
     @echo "✅ 安全检查完成"
 
+_check-security-macos:
+    @echo "🔒 检查前端安全漏洞..."
+    cd frontend && npm audit
+    @echo ""
+    @echo "✅ 安全检查完成"
+
+_check-security-windows:
+    @echo 🔒 检查前端安全漏洞...
+    @powershell -Command "Set-Location frontend; npm audit"
+    @echo.
+    @echo ✅ 安全检查完成
+
 # 运行测试
 test: test-backend
+    @just _test-summary-{{os()}}
+
+_test-summary-linux:
     @echo "✅ 所有测试通过"
+
+_test-summary-macos:
+    @echo "✅ 所有测试通过"
+
+_test-summary-windows:
+    @echo ✅ 所有测试通过
 
 # 运行后端测试
 test-backend:
+    @just _test-backend-{{os()}}
+
+_test-backend-linux:
     @echo "🧪 运行后端测试..."
     cd backend && cargo test
+
+_test-backend-macos:
+    @echo "🧪 运行后端测试..."
+    cd backend && cargo test
+
+_test-backend-windows:
+    @echo 🧪 运行后端测试...
+    @powershell -Command "Set-Location backend; cargo test"
 
 # ===== 代码质量 =====
 
 # 格式化所有代码
 fmt: fmt-backend fmt-frontend
+    @just _fmt-summary-{{os()}}
+
+_fmt-summary-linux:
     @echo "✅ 代码格式化完成"
+
+_fmt-summary-macos:
+    @echo "✅ 代码格式化完成"
+
+_fmt-summary-windows:
+    @echo ✅ 代码格式化完成
 
 # 格式化后端代码
 fmt-backend:
+    @just _fmt-backend-{{os()}}
+
+_fmt-backend-linux:
     @echo "💅 格式化后端代码..."
     cd backend && cargo fmt
 
+_fmt-backend-macos:
+    @echo "💅 格式化后端代码..."
+    cd backend && cargo fmt
+
+_fmt-backend-windows:
+    @powershell -Command "Write-Output '💅 格式化后端代码...'; Set-Location backend; cargo fmt"
+
 # 格式化前端代码
 fmt-frontend:
+    @just _fmt-frontend-{{os()}}
+
+_fmt-frontend-linux:
     @echo "💅 格式化前端代码..."
     cd frontend && npm run lint --fix || true
 
+_fmt-frontend-macos:
+    @echo "💅 格式化前端代码..."
+    cd frontend && npm run lint --fix || true
+
+_fmt-frontend-windows:
+    @powershell -Command "Write-Output '💅 格式化前端代码...'; try { Set-Location frontend; npm run lint --fix } catch { Write-Host '⚠️ 前端格式化遇到问题，但继续流程' }"
+
 # Clippy 检查后端
 clippy:
+    @just _clippy-{{os()}}
+
+_clippy-linux:
     @echo "📎 运行 Clippy..."
     cd backend && cargo clippy -- -D warnings
+
+_clippy-macos:
+    @echo "📎 运行 Clippy..."
+    cd backend && cargo clippy -- -D warnings
+
+_clippy-windows:
+    @powershell -Command "Write-Output '📎 运行 Clippy...'; Set-Location backend; cargo clippy -- -D warnings"
 
 # ===== 清理 =====
 
@@ -214,79 +507,180 @@ clippy:
 clean: clean-backend clean-frontend
     @echo "✅ 清理完成"
 
-# 清理后端构建产物
 clean-backend:
+    @just _clean-backend-{{os()}}
+
+_clean-backend-linux:
     @echo "🧹 清理后端..."
     cd backend && cargo clean
 
+_clean-backend-macos:
+    @echo "🧹 清理后端..."
+    cd backend && cargo clean
+
+_clean-backend-windows:
+    @powershell -Command "Write-Output '🧹 清理后端...'; Set-Location backend; cargo clean"
+
 # 清理前端构建产物
 clean-frontend:
+    @just _clean-frontend-{{os()}}
+
+# 清理前端 - Unix/Linux/macOS
+_clean-frontend-linux:
     @echo "🧹 清理前端..."
     cd frontend && rm -rf dist node_modules
 
+_clean-frontend-macos:
+    @echo "🧹 清理前端..."
+    cd frontend && rm -rf dist node_modules
+
+# 清理前端 - Windows
+_clean-frontend-windows:
+    @powershell -Command "Write-Output '🧹 清理前端...'; if (Test-Path frontend\\dist) { Remove-Item -Recurse -Force frontend\\dist }"
+    @powershell -Command "if (Test-Path frontend\\node_modules) { Remove-Item -Recurse -Force frontend\\node_modules }"
 
 # 清理旧日志文件（保留14天）
 clean-logs:
+    @just _clean-logs-{{os()}}
+
+# 清理日志 - Unix/Linux/macOS
+_clean-logs-linux:
     @echo "🧹 清理旧日志文件..."
-    @./clean-logs.sh
+    @find logs -name "*.log" -mtime +14 -delete 2>/dev/null || true
+    @echo "✅ 已删除14天前的日志"
+
+_clean-logs-macos:
+    @echo "🧹 清理旧日志文件..."
+    @find logs -name "*.log" -mtime +14 -delete 2>/dev/null || true
+    @echo "✅ 已删除14天前的日志"
+
+# 清理日志 - Windows
+_clean-logs-windows:
+    @powershell -Command "Write-Output '🧹 清理旧日志文件...'; $date = (Get-Date).AddDays(-14); if (Test-Path logs) { Get-ChildItem -Path logs -Filter *.log -Recurse | Where-Object { $_.LastWriteTime -lt $date } | Remove-Item -Force }"
+    @powershell -Command "Write-Output '✅ 已删除14天前的日志'"
 # 深度清理（包括依赖）
 clean-all: clean
+    @just _clean-all-{{os()}}
+
+# 深度清理 - Unix/Linux/macOS
+_clean-all-linux:
     @echo "🧹 深度清理（包括依赖）..."
     cd frontend && rm -rf node_modules package-lock.json
+
+_clean-all-macos:
+    @echo "🧹 深度清理（包括依赖）..."
+    cd frontend && rm -rf node_modules package-lock.json
+
+# 深度清理 - Windows
+_clean-all-windows:
+    @powershell -Command "Write-Output '🧹 深度清理（包括依赖）...'; if (Test-Path frontend\\node_modules) { Remove-Item -Recurse -Force frontend\\node_modules }"
+    @powershell -Command "if (Test-Path frontend\\package-lock.json) { Remove-Item -Force frontend\\package-lock.json }"
+    @powershell -Command "Write-Output '✅ 深度清理完成'"
 
 # ===== 工具 =====
 
 # 检查前置条件
 check-prereqs:
+    @just _check-prereqs-{{os()}}
+
+# 检查前置条件 - Unix/Linux/macOS
+_check-prereqs-linux:
     #!/usr/bin/env bash
     echo "🔍 检查前置条件..."
-    
-    # 检查 Rust
+    echo "当前系统: Linux"
+    echo ""
     if command -v rustc &> /dev/null; then
         echo "✅ Rust: $(rustc --version)"
     else
         echo "❌ Rust 未安装"
         exit 1
     fi
-    
-    # 检查 Cargo
     if command -v cargo &> /dev/null; then
         echo "✅ Cargo: $(cargo --version)"
     else
         echo "❌ Cargo 未安装"
         exit 1
     fi
-    
-    # 检查 Node.js
     if command -v node &> /dev/null; then
         echo "✅ Node.js: $(node --version)"
     else
         echo "❌ Node.js 未安装"
         exit 1
     fi
-    
-    # 检查 npm
     if command -v npm &> /dev/null; then
         echo "✅ npm: $(npm --version)"
     else
         echo "❌ npm 未安装"
         exit 1
     fi
-    
-    # 检查 CCR
     if command -v ccr &> /dev/null; then
         echo "✅ CCR: $(ccr --version 2>/dev/null || echo 'installed')"
     else
         echo "⚠️  CCR 未安装（后端运行时需要）"
     fi
-    
     echo ""
     echo "✅ 前置条件检查完成"
 
+_check-prereqs-macos:
+    #!/usr/bin/env bash
+    echo "🔍 检查前置条件..."
+    echo "当前系统: macOS"
+    echo ""
+    if command -v rustc &> /dev/null; then
+        echo "✅ Rust: $(rustc --version)"
+    else
+        echo "❌ Rust 未安装"
+        exit 1
+    fi
+    if command -v cargo &> /dev/null; then
+        echo "✅ Cargo: $(cargo --version)"
+    else
+        echo "❌ Cargo 未安装"
+        exit 1
+    fi
+    if command -v node &> /dev/null; then
+        echo "✅ Node.js: $(node --version)"
+    else
+        echo "❌ Node.js 未安装"
+        exit 1
+    fi
+    if command -v npm &> /dev/null; then
+        echo "✅ npm: $(npm --version)"
+    else
+        echo "❌ npm 未安装"
+        exit 1
+    fi
+    if command -v ccr &> /dev/null; then
+        echo "✅ CCR: $(ccr --version 2>/dev/null || echo 'installed')"
+    else
+        echo "⚠️  CCR 未安装（后端运行时需要）"
+    fi
+    echo ""
+    echo "✅ 前置条件检查完成"
+
+# 检查前置条件 - Windows
+_check-prereqs-windows:
+    @echo 🔍 检查前置条件...
+    @echo 当前系统: Windows
+    @echo.
+    @powershell -Command "try { $v = rustc --version; Write-Host \"✅ Rust: $v\" } catch { Write-Host \"❌ Rust 未安装\"; exit 1 }"
+    @powershell -Command "try { $v = cargo --version; Write-Host \"✅ Cargo: $v\" } catch { Write-Host \"❌ Cargo 未安装\"; exit 1 }"
+    @powershell -Command "try { $v = node --version; Write-Host \"✅ Node.js: $v\" } catch { Write-Host \"❌ Node.js 未安装\"; exit 1 }"
+    @powershell -Command "try { $v = npm --version; Write-Host \"✅ npm: $v\" } catch { Write-Host \"❌ npm 未安装\"; exit 1 }"
+    @powershell -Command "try { $v = ccr --version 2>$null; if ($v) { Write-Host \"✅ CCR: $v\" } else { Write-Host \"✅ CCR: installed\" } } catch { Write-Host \"⚠️  CCR 未安装（后端运行时需要）\" }"
+    @echo.
+    @echo ✅ 前置条件检查完成
+
 # 显示项目信息
 info:
+    @just _info-{{os()}}
+
+# 项目信息 - Unix/Linux/macOS
+_info-linux:
     @echo "📊 CCR UI 项目信息"
     @echo "=================="
+    @echo ""
+    @echo "💻 当前系统: Linux"
     @echo ""
     @echo "📁 项目结构:"
     @echo "  - backend/  : Actix Web (Rust)"
@@ -311,6 +705,67 @@ info:
     @echo "  just clean      - 清理构建产物"
     @echo ""
     @echo "📚 更多命令: just --list"
+
+_info-macos:
+    @echo "📊 CCR UI 项目信息"
+    @echo "=================="
+    @echo ""
+    @echo "💻 当前系统: macOS"
+    @echo ""
+    @echo "📁 项目结构:"
+    @echo "  - backend/  : Actix Web (Rust)"
+    @echo "  - frontend/ : Next.js 16 Beta (TypeScript + Turbopack)"
+    @echo "  - logs/     : 日志文件（按日分割，保留14天）"
+    @echo ""
+    @echo "🌐 开发端口:"
+    @echo "  - 后端: http://localhost:8081"
+    @echo "  - 前端: http://localhost:3000 (Next.js)"
+    @echo ""
+    @echo "📝 日志文件:"
+    @echo "  - logs/backend.log  : 后端日志（自动按日分割）"
+    @echo "  - logs/frontend.log : 前端日志"
+    @echo "  - just clean-logs   : 清理14天前的日志"
+    @echo ""
+    @echo "📦 常用命令:"
+    @echo "  just install    - 安装所有依赖"
+    @echo "  just dev        - 启动开发环境"
+    @echo "  just build      - 构建生产版本"
+    @echo "  just check      - 检查代码"
+    @echo "  just clean-logs - 清理旧日志"
+    @echo "  just clean      - 清理构建产物"
+    @echo ""
+    @echo "📚 更多命令: just --list"
+
+# 项目信息 - Windows
+_info-windows:
+    @echo 📊 CCR UI 项目信息
+    @echo ====================
+    @echo.
+    @echo 💻 当前系统: Windows
+    @echo.
+    @echo 📁 项目结构:
+    @echo   - backend/  : Actix Web (Rust)
+    @echo   - frontend/ : Next.js 16 Beta (TypeScript + Turbopack)
+    @echo   - logs/     : 日志文件（按日分割，保留14天）
+    @echo.
+    @echo 🌐 开发端口:
+    @echo   - 后端: http://localhost:8081
+    @echo   - 前端: http://localhost:3000 (Next.js)
+    @echo.
+    @echo 📝 日志文件:
+    @echo   - logs/backend.log  : 后端日志（自动按日分割）
+    @echo   - logs/frontend.log : 前端日志
+    @echo   - just clean-logs   : 清理14天前的日志
+    @echo.
+    @echo 📦 常用命令:
+    @echo   just install    - 安装所有依赖
+    @echo   just dev        - 启动开发环境
+    @echo   just build      - 构建生产版本
+    @echo   just check      - 检查代码
+    @echo   just clean-logs - 清理旧日志
+    @echo   just clean      - 清理构建产物
+    @echo.
+    @echo 📚 更多命令: just --list
 
 # 快速启动（检查 + 安装 + 开发）
 quick-start: check-prereqs install dev

@@ -14,8 +14,8 @@ CCR 通过原子操作、文件锁、完整审计追踪和自动备份直接管�
 | 💾 **自动备份** | 更改前自动备份,生成带时间戳的 `.bak` 文件 |
 | ✅ **配置验证** | 全面验证(URL、必填字段、格式) |
 | 🔤 **配置优化** | 按字母顺序整理配置,保持顺序不被打乱 |
-| 🌐 **Web 服务器** | 内置 Axum Web 服务器,提供 11 个 RESTful API 端点 |
-| 🖥️ **全栈 Web UI** | 现代化 React + Actix Web 应用,可视化管理界面 |
+| 🌐 **Web 服务器** | 内置 Axum Web 服务器,提供 14 个 RESTful API 端点（配置、历史、备份、系统信息等） |
+| 🖥️ **全栈 Web UI** | 基于 Next.js 16（React 19）+ Actix Web 的可视化管理界面 |
 | 🏗️ **现代架构** | Service 层模式,模块化设计,95%+ 测试覆盖率 |
 | ⚡ **智能更新** | 实时显示编译进度的自动更新功能 |
 | 🔄 **CCS 兼容** | 共享 `~/.ccs_config.toml` - 与 Shell 版本无缝共存 |
@@ -42,16 +42,19 @@ cargo install --path .
 
 ## 🌐 CCR UI - 全栈 Web 应用
 
-CCR UI 是一个现代化的 **React + Actix Web** 全栈应用，用于 CCR 配置管理！
+CCR UI 是一个现代化的 **Next.js + Actix Web** 全栈应用，用于 CCR 配置管理！
+
+前端使用 App Router 架构与 React 19，结合 Tailwind 构建交互界面；后端基于 Actix 包装 CCR CLI，并额外提供 MCP 服务器、斜杠命令、智能体与插件的管理 API。
 
 ### 功能特性
 
-- ⚛️ **React 前端**：现代化 React 18 + TypeScript + Tailwind CSS
+- ⚛️ **Next.js 前端**：Next.js 16（React 19）App Router，配合 TypeScript 与 Tailwind CSS
 - 🦀 **Actix Web 后端**：高性能 Rust 异步 Web 服务器
 - 🖥️ **配置管理**：可视化配置切换和验证
 - 💻 **命令执行器**：执行所有 13 个 CCR 命令，可视化输出
 - 📊 **语法高亮**：终端风格输出，带颜色编码
 - ⚡ **实时执行**：异步命令执行，带进度显示
+- 🧩 **扩展控制台**：内置 MCP、斜杠命令、智能体与插件管理 API
 
 ### 超快启动
 
@@ -80,7 +83,7 @@ just quick-start    # 检查前置条件 + 安装 + 启动
 **🎯 CLI vs Web 服务器 vs CCR UI**：
 - **CLI 工具**：适合脚本、自动化和快速操作
 - **Web 服务器** (`ccr web`)：内置轻量级 Axum 服务器，用于 API 访问
-- **CCR UI** (Actix+React)：全功能 Web 应用，用于可视化管理
+- **CCR UI** (Actix + Next.js)：全功能 Web 应用，用于可视化管理
 
 ## 🚀 快速开始
 
@@ -178,12 +181,21 @@ CCR 在 `settings.json` 中管理这些变量：
 ### 🌐 Web API
 
 RESTful 端点(运行 `ccr web`)：
-- `GET /api/configs` - 列出所有
-- `POST /api/switch` - 切换配置
-- `GET /api/history` - 查看历史
-- `POST /api/validate` - 验证所有
+当前内置服务器提供 14 个端点，覆盖配置管理、备份生命周期与系统监控。
+- `GET /api/configs` - 列出所有配置
+- `POST /api/switch` - 切换指定配置
+- `POST /api/config` - 新增配置节
+- `POST /api/config/{name}` - 更新配置节
+- `DELETE /api/config/{name}` - 删除配置节
+- `GET /api/history` - 查看审计历史
+- `POST /api/validate` - 验证配置与设置文件
 - `POST /api/clean` - 清理备份
-- `POST/PUT/DELETE /api/config` - 增删改操作
+- `GET /api/settings` - 获取 Claude Code 设置快照
+- `GET /api/settings/backups` - 列出设置备份
+- `POST /api/settings/restore` - 恢复设置备份
+- `POST /api/export` - 导出配置文件
+- `POST /api/import` - 导入配置文件
+- `GET /api/system` - 查看缓存的系统信息
 
 ### 🐛 调试
 
@@ -231,19 +243,22 @@ src/
 ccr-ui/               # 🌐 全栈 Web 应用
 ├── backend/          # 🦀 Actix Web 服务器
 │   ├── src/
-│   │   ├── main.rs      # 服务器入口
-│   │   ├── executor/    # CCR CLI 子进程执行器
-│   │   ├── handlers/    # API 路由处理器
-│   │   └── models/      # 请求/响应类型
+│   │   ├── main.rs               # 服务器入口
+│   │   ├── executor/             # CCR CLI 子进程执行器
+│   │   ├── handlers/             # API 路由处理器（配置、命令、MCP 等）
+│   │   ├── models.rs             # 请求/响应类型
+│   │   ├── settings_manager.rs   # Claude 设置文件原子读写
+│   │   ├── plugins_manager.rs    # 插件仓库管理
+│   │   ├── claude_config_manager.rs # 配置文件辅助工具
+│   │   └── markdown_manager.rs   # Markdown 知识库管理
 │   └── Cargo.toml
-└── frontend/         # ⚛️ React + TypeScript
+└── frontend/         # ⚛️ Next.js 16 App Router
     ├── src/
-    │   ├── App.tsx
-    │   ├── pages/       # 页面组件
-    │   ├── components/  # 可复用组件
-    │   ├── api/         # API 客户端
-    │   └── types/       # TypeScript 类型定义
-    └── package.json
+    │   ├── app/              # 路由分段（configs、commands、agents 等）
+    │   ├── components/       # 可复用 UI 组件
+    │   └── lib/              # API 客户端与工具
+    ├── package.json
+    └── next.config.mjs
 ```
 
 **命令：**
@@ -271,7 +286,7 @@ CLI/Web 层 → Services 层 → Managers 层 → Core/Utils 层
 **核心组件：**
 - **Service 层**: 4 个服务（Config、Settings、History、Backup）- 26 个方法
 - **Manager 层**: 3 个管理器（Config、Settings、History）- 数据访问与文件操作
-- **Web 模块**: 基于 Axum 的服务器，提供 11 个 RESTful API 端点
+- **Web 模块**: 基于 Axum 的服务器，提供 14 个 RESTful API 端点
 - **Core 基础设施**: 原子写入器、文件锁、错误处理、日志记录
 - **测试覆盖**: 95%+ 全面测试套件
 

@@ -14,8 +14,8 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | 💾 **Auto Backup** | Automatic backups before changes with timestamped `.bak` files |
 | ✅ **Validation** | Comprehensive config validation (URLs, required fields, format) |
 | 🔤 **Config Optimization** | Sort configs alphabetically, maintain order after switching |
-| 🌐 **Web Server** | Built-in Axum web server with 11 RESTful API endpoints |
-| 🖥️ **Full-Stack Web UI** | Modern React + Actix Web application for visual management |
+| 🌐 **Web Server** | Built-in Axum web server exposing 14 RESTful API endpoints (config, history, backups, system info, etc.) |
+| 🖥️ **Full-Stack Web UI** | Next.js 16 (React 19) + Actix Web application for visual management |
 | 🏗️ **Modern Architecture** | Service layer pattern, modular design, 95%+ test coverage |
 | ⚡ **Smart Update** | Real-time progress display during auto-update |
 | 🔄 **CCS Compatible** | Shares `~/.ccs_config.toml` - seamlessly coexist with shell version |
@@ -42,16 +42,19 @@ cargo install --path .
 
 ## 🌐 CCR UI - Full-Stack Web Application
 
-CCR UI is a modern **React + Actix Web** full-stack application for CCR management!
+CCR UI is a modern **Next.js + Actix Web** full-stack application for CCR management!
+
+The App Router frontend delivers a React 19 experience with Tailwind-driven UI, while the Actix backend wraps the CCR CLI and exposes extended management APIs for MCP servers, slash commands, agents, and plugins.
 
 ### Features
 
-- ⚛️ **React Frontend**: Modern React 18 with TypeScript and Tailwind CSS
+- ⚛️ **Next.js Frontend**: Next.js 16 (React 19) App Router with TypeScript and Tailwind CSS
 - 🦀 **Actix Web Backend**: High-performance Rust async web server
 - 🖥️ **Config Management**: Visual config switching and validation
 - 💻 **Command Executor**: Execute all 13 CCR commands with visual output
 - 📊 **Syntax Highlighting**: Terminal-style output with color coding
 - ⚡ **Real-time Execution**: Async command execution with progress display
+- 🧩 **Extensible Control**: Manage MCP servers, slash commands, agents, and plugins via dedicated APIs
 
 ### Super Quick Start
 
@@ -80,7 +83,7 @@ just quick-start    # Check prereqs + Install + Start
 **🎯 CLI vs Web Server vs CCR UI**:
 - **CLI Tool**: Best for scripting, automation, and quick operations
 - **Web Server** (`ccr web`): Built-in lightweight Axum server for API access
-- **CCR UI** (Actix+React): Full-featured web application for visual management
+- **CCR UI** (Actix + Next.js): Full-featured web application for visual management
 
 ## 🚀 Quick Start
 
@@ -178,12 +181,21 @@ Every operation logged with:
 ### 🌐 Web API
 
 RESTful endpoints (run `ccr web`):
-- `GET /api/configs` - List all
-- `POST /api/switch` - Switch config
-- `GET /api/history` - View history
-- `POST /api/validate` - Validate all
-- `POST /api/clean` - Clean backups
-- `POST/PUT/DELETE /api/config` - CRUD operations
+The built-in server currently exposes 14 endpoints covering configuration management, backups, and system telemetry.
+- `GET /api/configs` – List configurations
+- `POST /api/switch` – Switch configuration
+- `POST /api/config` – Create configuration section
+- `POST /api/config/{name}` – Update configuration section
+- `DELETE /api/config/{name}` – Delete configuration section
+- `GET /api/history` – View operation history
+- `POST /api/validate` – Validate configs and settings
+- `POST /api/clean` – Clean backups
+- `GET /api/settings` – Inspect Claude Code settings.json snapshot
+- `GET /api/settings/backups` – List settings backups
+- `POST /api/settings/restore` – Restore settings backup
+- `POST /api/export` – Export configuration file
+- `POST /api/import` – Import configuration file
+- `GET /api/system` – Read cached system information
 
 ### 🐛 Debugging
 
@@ -231,19 +243,22 @@ src/
 ccr-ui/               # 🌐 Full-Stack Web Application
 ├── backend/          # 🦀 Actix Web server
 │   ├── src/
-│   │   ├── main.rs      # Server entry
-│   │   ├── executor/    # CCR CLI subprocess executor
-│   │   ├── handlers/    # API route handlers
-│   │   └── models/      # Request/response types
+│   │   ├── main.rs               # Server entry
+│   │   ├── executor/             # CCR CLI subprocess executor
+│   │   ├── handlers/             # API route handlers (config, command, MCP, etc.)
+│   │   ├── models.rs             # Request/response types
+│   │   ├── settings_manager.rs   # Claude settings I/O with atomic writes
+│   │   ├── plugins_manager.rs    # Plugin repository management
+│   │   ├── claude_config_manager.rs # Config file helpers
+│   │   └── markdown_manager.rs   # Markdown knowledge base utilities
 │   └── Cargo.toml
-└── frontend/         # ⚛️ React + TypeScript
+└── frontend/         # ⚛️ Next.js 16 App Router
     ├── src/
-    │   ├── App.tsx
-    │   ├── pages/       # Page components
-    │   ├── components/  # Reusable components
-    │   ├── api/         # API client
-    │   └── types/       # TypeScript definitions
-    └── package.json
+    │   ├── app/              # Route segments (configs, commands, agents, ...)
+    │   ├── components/       # Reusable UI components
+    │   └── lib/              # API clients & helpers
+    ├── package.json
+    └── next.config.mjs
 ```
 
 **Commands:**
@@ -271,7 +286,7 @@ CLI/Web Layer → Services → Managers → Core/Utils
 **Key Components:**
 - **Service Layer**: 4 services (Config, Settings, History, Backup) - 26 methods
 - **Manager Layer**: 3 managers (Config, Settings, History) - Data access & file operations
-- **Web Module**: Axum-based server with 11 RESTful API endpoints
+- **Web Module**: Axum-based server with 14 RESTful API endpoints
 - **Core Infrastructure**: Atomic writer, file locking, error handling, logging
 - **Test Coverage**: 95%+ comprehensive test suite
 
@@ -302,4 +317,3 @@ For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 ---
 
 Made with 💙 in Rust | Part of [CCS Project](https://github.com/bahayonghang/ccs)
-
