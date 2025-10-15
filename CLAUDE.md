@@ -185,7 +185,10 @@ CCR manages these files in the user's home directory:
 1. **Atomic Operations**: All file writes use `tempfile + rename` pattern via `AtomicFileWriter`
 2. **File Locking**: Multi-process safety via `LockManager` (prevents concurrent writes)
 3. **Audit Trail**: Every operation logged in `ccr_history.json` with UUID, timestamp, actor
-4. **Backup Strategy**: Automatic backup before destructive operations
+4. **Backup Strategy**: Automatic backup before destructive operations with smart cleanup
+   - **Auto-cleanup**: Keeps only the most recent 10 backups
+   - **Cleanup timing**: Triggered automatically on each backup creation
+   - **Error resilience**: Cleanup failures don't affect main operations
 5. **Desensitization**: API tokens masked in display/logs via `mask` utility
 
 ## Development Guidelines
@@ -340,7 +343,7 @@ This runs:
 
 - Main README: `README.md` (English) / `README_CN.md` (Chinese)
 - CCR UI Guide: `ccr-ui/README.md`
-- Architecture Details: `ccr-ui/ARCHITECTURE.md`
+- Backup Management: `docs/backup-management.md` (auto-cleanup feature details)
 - VitePress Docs: `docs/` (run with `cd docs && npm run dev`)
 
 ## Important Reminders

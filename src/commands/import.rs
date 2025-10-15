@@ -93,14 +93,7 @@ fn parse_import_file(path: &PathBuf) -> Result<CcsConfig> {
 
 /// 备份当前配置
 fn backup_current_config(config_manager: &ConfigManager) -> Result<()> {
-    let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-    let backup_path = config_manager
-        .config_path()
-        .with_extension(format!("toml.import_backup_{}.bak", timestamp));
-
-    fs::copy(config_manager.config_path(), &backup_path)
-        .map_err(|e| CcrError::ConfigError(format!("备份失败: {}", e)))?;
-
+    let backup_path = config_manager.backup(Some("import_backup"))?;
     ColorOutput::success(&format!("已备份到: {}", backup_path.display()));
     Ok(())
 }

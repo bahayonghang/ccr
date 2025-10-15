@@ -224,13 +224,17 @@ ccr import config.toml
 ccr import config.toml --no-backup
 ```
 
-### 清理旧备份
+### 备份管理
+
+::: tip 智能备份管理
+CCR 会自动保留最近10个备份，无需手动清理。大多数情况下你不需要运行 `clean` 命令。
+:::
 
 ```bash
-# 清理 7 天前的备份(默认)
+# 清理更早期的备份(超过7天)
 ccr clean
 
-# 清理 30 天前的备份
+# 清理更早期的备份(超过30天)
 ccr clean --days 30
 
 # 预览清理(不实际删除)

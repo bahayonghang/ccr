@@ -21,6 +21,7 @@ ccr import <FILE> [OPTIONS]
 
 - 支持合并或替换模式
 - 导入前自动备份
+- **智能备份管理**：自动保留最近10个配置备份
 - 配置验证
 - 详细的导入摘要
 
@@ -239,11 +240,15 @@ Importing configuration...
 
 ```bash
 # 备份位置
-~/.ccs_config.toml.bak.<timestamp>
+~/.ccs_config.toml.import_backup_<timestamp>.bak
 
 # 示例
-~/.ccs_config.toml.bak.20250110_120530
+~/.ccs_config.toml.import_backup_20250110_120530.bak
 ```
+
+::: tip 智能备份管理
+CCR 会自动保留最近10个配置备份文件，无需手动清理。当备份超过10个时，会自动删除最旧的备份。
+:::
 
 禁用备份：
 

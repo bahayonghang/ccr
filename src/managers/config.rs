@@ -461,6 +461,119 @@ impl ConfigManager {
         log::debug!("✅ 配置文件已保存: {:?}", self.config_path);
         Ok(())
     }
+
+    /// 💾 备份配置文件
+    ///
+    /// 执行流程:
+    /// 1. ✅ 验证源文件存在
+    /// 2. 🏷️ 生成带时间戳的备份文件名
+    /// 3. 📋 复制文件到备份位置
+    /// 4. 🧹 自动清理旧备份(只保留最近10个)
+    ///
+    /// 文件名格式:
+    /// - 有标签: .ccs_config.toml.{tag}_{timestamp}.bak
+    /// - 无标签: .ccs_config.toml.{timestamp}.bak
+    ///
+    /// 备份位置: 与配置文件同目录
+    pub fn backup(&self, tag: Option<&str>) -> Result<PathBuf> {
+        // ✅ 验证源文件存在
+        if !self.config_path.exists() {
+            return Err(CcrError::ConfigMissing(
+                self.config_path.display().to_string(),
+            ));
+        }
+
+        // 🏷️ 生成备份文件名(带时间戳)
+        let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+        let backup_path = if let Some(tag_str) = tag {
+            self.config_path
+                .with_extension(format!("toml.{}_{}.bak", tag_str, timestamp))
+        } else {
+            self.config_path
+                .with_extension(format!("toml.{}.bak", timestamp))
+        };
+
+        // 📋 复制文件
+        fs::copy(&self.config_path, &backup_path)
+            .map_err(|e| CcrError::ConfigError(format!("备份配置文件失败: {}", e)))?;
+
+        log::info!("💾 配置文件已备份: {:?}", backup_path);
+
+        // 🧹 自动清理旧备份(只保留最近10个)
+        const MAX_BACKUPS: usize = 10;
+        if let Ok(backups) = self.list_backups() {
+            if backups.len() > MAX_BACKUPS {
+                let to_delete = &backups[MAX_BACKUPS..];
+                for old_backup in to_delete {
+                    if let Err(e) = fs::remove_file(old_backup) {
+                        log::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
+                    } else {
+                        log::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
+                    }
+                }
+                log::info!(
+                    "🧹 已自动清理 {} 个旧配置备份,保留最近 {} 个",
+                    to_delete.len(),
+                    MAX_BACKUPS
+                );
+            }
+        }
+
+        Ok(backup_path)
+    }
+
+    /// 📋 列出所有配置备份文件
+    ///
+    /// 返回所有配置文件的 .bak 备份,按修改时间倒序排列(最新的在前)
+    pub fn list_backups(&self) -> Result<Vec<PathBuf>> {
+        let config_dir = self
+            .config_path
+            .parent()
+            .ok_or_else(|| CcrError::ConfigError("无法获取配置目录".into()))?;
+
+        if !config_dir.exists() {
+            return Ok(vec![]);
+        }
+
+        let config_filename = self
+            .config_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .ok_or_else(|| CcrError::ConfigError("无效的配置文件名".into()))?;
+
+        let mut backups = Vec::new();
+
+        // 📂 遍历配置目录
+        for entry in fs::read_dir(config_dir)
+            .map_err(|e| CcrError::ConfigError(format!("读取配置目录失败: {}", e)))?
+        {
+            let entry =
+                entry.map_err(|e| CcrError::ConfigError(format!("读取目录项失败: {}", e)))?;
+
+            let path = entry.path();
+            let filename = path.file_name().and_then(|n| n.to_str());
+
+            // 🔍 只收集配置文件的 .bak 文件
+            // 例如: .ccs_config.toml.20240101_120000.bak
+            if let Some(name) = filename {
+                if path.is_file()
+                    && name.starts_with(config_filename)
+                    && name.ends_with(".bak")
+                {
+                    backups.push(path);
+                }
+            }
+        }
+
+        // 📅 按修改时间排序(最新的在前)
+        backups.sort_by(|a, b| {
+            let a_time = fs::metadata(a).and_then(|m| m.modified()).ok();
+            let b_time = fs::metadata(b).and_then(|m| m.modified()).ok();
+            b_time.cmp(&a_time)
+        });
+
+        Ok(backups)
+    }
 }
 
 #[cfg(test)]
@@ -540,5 +653,64 @@ mod tests {
         let loaded = manager.load().unwrap();
         assert_eq!(loaded.default_config, "test");
         assert!(loaded.get_section("test").is_ok());
+    }
+
+    #[test]
+    fn test_config_manager_backup() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join(".ccs_config.toml");
+
+        // 创建测试配置
+        let mut config = CcsConfig {
+            default_config: "test".into(),
+            current_config: "test".into(),
+            sections: IndexMap::new(),
+        };
+        config.set_section("test".into(), create_test_section());
+
+        let manager = ConfigManager::new(&config_path);
+        manager.save(&config).unwrap();
+
+        // 测试备份
+        let backup_path = manager.backup(Some("test")).unwrap();
+        assert!(backup_path.exists());
+        assert!(backup_path.to_string_lossy().contains("test_"));
+
+        // 测试列出备份
+        let backups = manager.list_backups().unwrap();
+        assert_eq!(backups.len(), 1);
+    }
+
+    #[test]
+    fn test_config_backup_auto_cleanup() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join(".ccs_config.toml");
+
+        // 创建测试配置
+        let mut config = CcsConfig {
+            default_config: "test".into(),
+            current_config: "test".into(),
+            sections: IndexMap::new(),
+        };
+        config.set_section("test".into(), create_test_section());
+
+        let manager = ConfigManager::new(&config_path);
+        manager.save(&config).unwrap();
+
+        // 创建15个备份
+        for i in 0..15 {
+            manager.backup(Some(&format!("tag{}", i))).unwrap();
+            // 短暂延迟确保时间戳不同
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+
+        // 验证只保留了最近10个备份
+        let backups = manager.list_backups().unwrap();
+        assert_eq!(
+            backups.len(),
+            10,
+            "应该只保留10个配置备份,但实际有 {} 个",
+            backups.len()
+        );
     }
 }

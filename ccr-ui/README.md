@@ -33,15 +33,13 @@ ccr-ui/
 │   │   ├── handlers/  # API route handlers
 │   │   └── models/    # Request/response models
 │   └── Cargo.toml
-├── frontend/          # React application (TypeScript)
+├── frontend/          # Next.js application (TypeScript)
 │   ├── src/
-│   │   ├── App.tsx
-│   │   ├── pages/     # Page components
+│   │   ├── app/       # Next.js App Router pages
 │   │   ├── components/# Reusable components
-│   │   ├── api/       # API client
-│   │   └── types/     # TypeScript definitions
+│   │   └── lib/       # API client & utilities
 │   ├── package.json
-│   └── vite.config.ts
+│   └── next.config.mjs
 └── README.md
 ```
 
@@ -231,20 +229,19 @@ The built files will be in `frontend/dist/`.
 ## Technologies
 
 ### Backend
-- **Actix Web** - Fast async web framework
-- **Tokio** - Async runtime
+- **Actix Web 4.9** - Fast async web framework
+- **Tokio 1.42** - Async runtime
 - **Serde** - Serialization
 - **Chrono** - Date/time handling
 
 ### Frontend
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **React Router** - Navigation
-- **Tailwind CSS** - Styling
+- **Next.js 16 (canary)** - React framework with App Router
+- **React 19** - UI library
+- **TypeScript 5.6** - Type safety
+- **Tailwind CSS 3.4** - Styling
 - **Axios** - HTTP client
 - **Lucide React** - Icons
-- **React Syntax Highlighter** - Code highlighting
+- **ANSI to HTML** - Terminal output rendering
 
 ## Configuration
 
@@ -257,20 +254,15 @@ Change via command line:
 cargo run -- --port 3000
 ```
 
-### Frontend API Proxy
+### Frontend API Configuration
 
-The frontend proxies `/api` requests to the backend. Configure in `vite.config.ts`:
+The frontend connects to the backend API. Configure in `src/lib/api/config.ts` if needed:
 
 ```typescript
-server: {
-  proxy: {
-    '/api': {
-      target: 'http://localhost:8081',
-      changeOrigin: true,
-    },
-  },
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
 ```
+
+For production, set the `NEXT_PUBLIC_API_URL` environment variable.
 
 ## Security Notes
 
@@ -290,7 +282,7 @@ server: {
 ### Frontend can't connect to backend
 - Ensure backend is running on port 8081
 - Check browser console for CORS errors
-- Verify proxy configuration in `vite.config.ts`
+- Verify API configuration in `src/lib/api/config.ts`
 
 ### Commands fail to execute
 - Ensure CCR is in your PATH
@@ -301,7 +293,7 @@ server: {
 
 ### Hot Reload
 Both frontend and backend support hot reload during development:
-- Frontend: Vite auto-reloads on file changes
+- Frontend: Next.js with Turbopack auto-reloads on file changes
 - Backend: Use `just watch-backend` for auto-restart (requires `cargo-watch`)
 
 ### Debugging

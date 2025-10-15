@@ -2,6 +2,10 @@
 
 清理旧的备份文件以释放磁盘空间。
 
+::: tip 重要更新
+从 CCR 1.1.5 开始，所有备份操作（`switch`、`init --force`、`import`）都会**自动保留最近10个备份**，无需手动清理。`clean` 命令主要用于清理更早期的备份或手动管理备份策略。
+:::
+
 ## 用法
 
 ```bash
@@ -20,6 +24,7 @@ ccr clean [OPTIONS]
 - 预览模式可先查看将删除的文件
 - 显示释放的磁盘空间
 - 仅删除 `~/.claude/backups/` 中的 `.bak` 文件
+- **智能备份管理**：自动保留最近10个备份
 
 ## 示例
 
@@ -93,6 +98,7 @@ All backups are within retention period
 
 CCR 的备份文件遵循以下命名规则：
 
+### Settings 备份
 ```
 settings_<timestamp>_<config_name>.json.bak
 ```
@@ -101,11 +107,24 @@ settings_<timestamp>_<config_name>.json.bak
 - `settings_20250110_120530_anthropic.json.bak`
 - `settings_20250109_083022_anyrouter.json.bak`
 
+### Config 备份
+```
+.ccs_config.toml.<tag>_<timestamp>.bak
+```
+
+示例：
+- `.ccs_config.toml.init_20250110_120530.bak`
+- `.ccs_config.toml.import_backup_20250109_083022.bak`
+
 ## 使用场景
 
-### 1. 定期清理
+::: tip 自动备份管理
+CCR 现在会自动管理备份，大多数情况下你不需要手动运行 `clean` 命令。以下场景可能需要手动清理：
+:::
 
-设置定期任务清理旧备份：
+### 1. 长期备份管理
+
+设置定期任务清理更早期的备份：
 
 ```bash
 # 每周日清理 30 天前的备份

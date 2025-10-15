@@ -3,6 +3,7 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
+use crate::managers::ConfigManager;
 use std::fs;
 use std::path::PathBuf;
 
@@ -92,12 +93,8 @@ fn create_config_file(config_path: &PathBuf) -> Result<()> {
 
 /// 备份现有配置
 fn backup_existing_config(config_path: &PathBuf) -> Result<()> {
-    let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-    let backup_path = config_path.with_extension(format!("toml.{}.bak", timestamp));
-
-    fs::copy(config_path, &backup_path)
-        .map_err(|e| CcrError::ConfigError(format!("备份配置文件失败: {}", e)))?;
-
+    let config_manager = ConfigManager::new(config_path);
+    let backup_path = config_manager.backup(Some("init"))?;
     ColorOutput::success(&format!("已备份到: {}", backup_path.display()));
     Ok(())
 }
