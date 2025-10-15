@@ -1,5 +1,10 @@
 // API Models - Request and Response structures
 
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use serde::{Deserialize, Serialize};
 
 // ===== Generic API Response =====
@@ -26,6 +31,18 @@ impl<T> ApiResponse<T> {
             data: None,
             message: Some(message),
         }
+    }
+}
+
+// Implement IntoResponse for Axum
+impl<T: Serialize> IntoResponse for ApiResponse<T> {
+    fn into_response(self) -> Response {
+        let status = if self.success {
+            StatusCode::OK
+        } else {
+            StatusCode::BAD_REQUEST
+        };
+        (status, Json(self)).into_response()
     }
 }
 
@@ -297,13 +314,6 @@ pub struct SlashCommandRequest {
     pub disabled: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SlashCommandsResponse {
-    pub success: bool,
-    pub data: serde_json::Value,
-    pub message: Option<String>,
-}
-
 // ===== Agent Management Models =====
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -328,13 +338,6 @@ pub struct AgentRequest {
     pub tools: Option<Vec<String>>,
     pub system_prompt: Option<String>,
     pub disabled: Option<bool>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AgentsResponse {
-    pub success: bool,
-    pub data: serde_json::Value,
-    pub message: Option<String>,
 }
 
 // ===== Plugin Management Models =====
@@ -362,11 +365,3 @@ pub struct PluginRequest {
     pub enabled: Option<bool>,
     pub config: Option<serde_json::Value>,
 }
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PluginsResponse {
-    pub success: bool,
-    pub data: serde_json::Value,
-    pub message: Option<String>,
-}
-

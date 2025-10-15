@@ -1,19 +1,29 @@
 // CCR UI Backend Server
-// Actix Web server that executes CCR CLI commands as subprocesses
+// Axum server that executes CCR CLI commands as subprocesses
 
-use actix_cors::Cors;
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use axum::{
+    routing::{delete, get, post, put},
+    Router,
+};
 use clap::Parser;
-use std::path::PathBuf;
+use std::{fs, net::SocketAddr, path::PathBuf};
+use tower::ServiceBuilder;
+use tower_http::{
+    compression::CompressionLayer,
+    cors::{Any, CorsLayer},
+    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
+};
+use tracing::{info, warn, Level};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
+mod claude_config_manager;
 mod config_reader;
 mod executor;
 mod handlers;
-mod models;
-mod claude_config_manager;
 mod markdown_manager;
+mod models;
 mod plugins_manager;
+mod settings_manager;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -27,7 +37,7 @@ struct Args {
     host: String,
 }
 
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> std::io::Result<()> {
     // Parse command line arguments
     let args = Args::parse();
@@ -35,26 +45,27 @@ async fn main() -> std::io::Result<()> {
     // Initialize logger with file rotation
     setup_logging()?;
 
-    // Parse command line arguments (already done above)
-    // let args = Args::parse();
+    let bind_addr: SocketAddr = format!("{}:{}", args.host, args.port)
+        .parse()
+        .expect("Failed to parse bind address");
 
-    let bind_addr = format!("{}:{}", args.host, args.port);
-
-    tracing::info!("Starting CCR UI Backend Server");
-    tracing::info!("Server binding to: {}", bind_addr);
-    tracing::info!("API endpoints:");
-    tracing::info!("  - Config Management: http://{}/api/configs", bind_addr);
-    tracing::info!("  - Command Execution: http://{}/api/command/execute", bind_addr);
-    tracing::info!("  - Command List: http://{}/api/command/list", bind_addr);
+    info!("Starting CCR UI Backend Server");
+    info!("Server binding to: {}", bind_addr);
+    info!("API endpoints:");
+    info!("  - Health Check: http://{}/health", bind_addr);
+    info!("  - Config Management: http://{}/api/configs", bind_addr);
+    info!("  - Command Execution: http://{}/api/command/execute", bind_addr);
+    info!("  - System Info: http://{}/api/system", bind_addr);
+    info!("  - Version Info: http://{}/api/version", bind_addr);
 
     // Verify CCR is available
     match executor::execute_command(vec!["version".to_string()]).await {
         Ok(output) if output.success => {
-            tracing::info!("CCR binary found and working");
-            tracing::info!("CCR Version: {}", output.stdout.trim());
+            info!("CCR binary found and working");
+            info!("CCR Version: {}", output.stdout.trim());
         }
         Ok(output) => {
-            tracing::warn!("CCR binary found but returned error: {}", output.stderr);
+            warn!("CCR binary found but returned error: {}", output.stderr);
         }
         Err(e) => {
             tracing::error!("CCR binary not found or not working: {}", e);
@@ -66,110 +77,129 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
-    // Start HTTP server
-    HttpServer::new(|| {
-        // Configure CORS
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_method()
-            .allow_any_header()
-            .max_age(3600);
+    // Build the router with all routes
+    let app = create_router();
 
-        App::new()
-            .wrap(Logger::default())
-            .wrap(cors)
-            // Config management endpoints
-            .service(handlers::list_configs)
-            .service(handlers::switch_config)
-            .service(handlers::validate_configs)
-            .service(handlers::clean_backups)
-            .service(handlers::export_config)
-            .service(handlers::import_config)
-            .service(handlers::get_history)
-            .service(handlers::add_config)
-            .service(handlers::update_config)
-            .service(handlers::delete_config)
-            // Command execution endpoints
-            .service(handlers::execute_command)
-            .service(handlers::list_commands)
-            .service(handlers::get_command_help)
-            // System info endpoint
-            .service(handlers::get_system_info)
-            // Version management endpoints
-            .service(handlers::get_version)
-            .service(handlers::check_update)
-            .service(handlers::update_ccr)
-            // MCP server management endpoints
-            .service(handlers::list_mcp_servers)
-            .service(handlers::add_mcp_server)
-            .service(handlers::update_mcp_server)
-            .service(handlers::delete_mcp_server)
-            .service(handlers::toggle_mcp_server)
-            // Slash command management endpoints
-            .service(handlers::list_slash_commands)
-            .service(handlers::add_slash_command)
-            .service(handlers::update_slash_command)
-            .service(handlers::delete_slash_command)
-            .service(handlers::toggle_slash_command)
-            // Agent management endpoints
-            .service(handlers::list_agents)
-            .service(handlers::add_agent)
-            .service(handlers::update_agent)
-            .service(handlers::delete_agent)
-            .service(handlers::toggle_agent)
-            // Plugin management endpoints
-            .service(handlers::list_plugins)
-            .service(handlers::add_plugin)
-            .service(handlers::update_plugin)
-            .service(handlers::delete_plugin)
-            .service(handlers::toggle_plugin)
-            // Health check
-            .route(
-                "/health",
-                web::get().to(|| async { actix_web::HttpResponse::Ok().body("OK") }),
-            )
-    })
-    .bind(&bind_addr)?
-    .run()
-    .await
+    // Start the server
+    let listener = tokio::net::TcpListener::bind(bind_addr).await?;
+    info!("Server started successfully, listening on {}", bind_addr);
+
+    axum::serve(listener, app)
+        .await
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+}
+
+/// Create the main application router with all middlewares and routes
+fn create_router() -> Router {
+    // Create middleware stack
+    let middleware = ServiceBuilder::new()
+        // Logging middleware
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+        )
+        // CORS middleware
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any)
+                .max_age(std::time::Duration::from_secs(3600)),
+        )
+        // Compression middleware
+        .layer(CompressionLayer::new());
+
+    // Build the router with all routes
+    Router::new()
+        // Health check
+        .route("/health", get(health_check))
+        // Config management endpoints
+        .route("/api/configs", get(handlers::config::list_configs))
+        .route("/api/switch", post(handlers::config::switch_config))
+        .route("/api/validate", get(handlers::config::validate_configs))
+        .route("/api/clean", post(handlers::config::clean_backups))
+        .route("/api/export", post(handlers::config::export_config))
+        .route("/api/import", post(handlers::config::import_config))
+        .route("/api/history", get(handlers::config::get_history))
+        .route("/api/configs", post(handlers::config::add_config))
+        .route("/api/configs/:name", put(handlers::config::update_config))
+        .route("/api/configs/:name", delete(handlers::config::delete_config))
+        // Command execution endpoints
+        .route("/api/command/execute", post(handlers::command::execute_command))
+        .route("/api/command/list", get(handlers::command::list_commands))
+        .route("/api/command/help/:command", get(handlers::command::get_command_help))
+        // System info endpoint
+        .route("/api/system", get(handlers::system::get_system_info))
+        // Version management endpoints
+        .route("/api/version", get(handlers::version::get_version))
+        .route("/api/version/check-update", get(handlers::version::check_update))
+        .route("/api/version/update", post(handlers::version::update_ccr))
+        // MCP server management endpoints
+        .route("/api/mcp", get(handlers::mcp::list_mcp_servers))
+        .route("/api/mcp", post(handlers::mcp::add_mcp_server))
+        .route("/api/mcp/:name", put(handlers::mcp::update_mcp_server))
+        .route("/api/mcp/:name", delete(handlers::mcp::delete_mcp_server))
+        .route("/api/mcp/:name/toggle", put(handlers::mcp::toggle_mcp_server))
+        // Slash command management endpoints
+        .route("/api/slash-commands", get(handlers::slash_commands::list_slash_commands))
+        .route("/api/slash-commands", post(handlers::slash_commands::add_slash_command))
+        .route("/api/slash-commands/:name", put(handlers::slash_commands::update_slash_command))
+        .route("/api/slash-commands/:name", delete(handlers::slash_commands::delete_slash_command))
+        .route("/api/slash-commands/:name/toggle", put(handlers::slash_commands::toggle_slash_command))
+        // Agent management endpoints
+        .route("/api/agents", get(handlers::agents::list_agents))
+        .route("/api/agents", post(handlers::agents::add_agent))
+        .route("/api/agents/:name", put(handlers::agents::update_agent))
+        .route("/api/agents/:name", delete(handlers::agents::delete_agent))
+        .route("/api/agents/:name/toggle", put(handlers::agents::toggle_agent))
+        // Plugin management endpoints
+        .route("/api/plugins", get(handlers::plugins::list_plugins))
+        .route("/api/plugins", post(handlers::plugins::add_plugin))
+        .route("/api/plugins/:id", put(handlers::plugins::update_plugin))
+        .route("/api/plugins/:id", delete(handlers::plugins::delete_plugin))
+        .route("/api/plugins/:id/toggle", put(handlers::plugins::toggle_plugin))
+        // Apply middleware
+        .layer(middleware)
+}
+
+/// Health check endpoint
+async fn health_check() -> &'static str {
+    "OK"
 }
 
 /// Setup logging with daily rotation and 14-day retention
 fn setup_logging() -> std::io::Result<()> {
     // Create logs directory
     let log_dir = PathBuf::from("logs");
-    std::fs::create_dir_all(&log_dir)?;
+    fs::create_dir_all(&log_dir)?;
 
     // Create file appender with daily rotation
     let file_appender = tracing_appender::rolling::daily(&log_dir, "backend.log");
-    
+
     // Create stdout layer for console output (only warn and above)
-    // 终端输出：只显示 warning、error、critical 级别
-    let stdout_filter = EnvFilter::new("warn,ccr_ui_backend=warn,actix_web=warn");
+    let stdout_filter = EnvFilter::new("warn,ccr_ui_backend=warn");
     let stdout_layer = tracing_subscriber::fmt::layer()
         .with_writer(std::io::stdout)
         .with_ansi(true)
         .with_filter(stdout_filter);
 
     // Create file layer for file output (all levels including info, debug)
-    // 文件输出：记录所有级别的日志
     let file_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info,ccr_ui_backend=info,actix_web=info"));
+        .unwrap_or_else(|_| EnvFilter::new("info,ccr_ui_backend=info"));
     let file_layer = tracing_subscriber::fmt::layer()
         .with_writer(file_appender)
         .with_ansi(false)
         .with_filter(file_filter);
 
-    // Combine layers (每个层都有自己的过滤器)
+    // Combine layers
     tracing_subscriber::registry()
         .with(stdout_layer)
         .with(file_layer)
         .init();
 
-    // Log cleanup task will be handled by external script
-    // 这条 info 日志只会写入文件，不会显示在终端
-    tracing::info!("Logging initialized - logs directory: {:?}", log_dir);
-    
+    // Log initialization
+    info!("Logging initialized - logs directory: {:?}", log_dir);
+
     Ok(())
 }
-

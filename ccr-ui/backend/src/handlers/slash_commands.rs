@@ -1,259 +1,339 @@
-use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
+use axum::{extract::Path, http::StatusCode, response::IntoResponse, Json};
 use serde_json::json;
-use std::fs;
-use std::path::Path;
-use crate::markdown_manager::{CommandFrontmatter, MarkdownFile, MarkdownManager};
-use crate::models::{SlashCommand, SlashCommandRequest, SlashCommandsResponse};
 
-/// 从 Markdown 内容中提取描述
+use crate::markdown_manager::{CommandFrontmatter, MarkdownManager};
+use crate::models::{SlashCommand, SlashCommandRequest};
+use crate::settings_manager::SettingsManager;
+
+/// Extract description from markdown content
 fn extract_description_from_content(content: &str, name: &str) -> String {
-    // 尝试查找 ## Context 或 ## Usage 后的内容
+    // Try to extract first paragraph or heading
     for line in content.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with("## Context") || trimmed.starts_with("## Your Role") {
-            // 找到下一行非空内容
-            if let Some(desc_line) = content.lines()
-                .skip_while(|l| !l.trim().starts_with("## Context") && !l.trim().starts_with("## Your Role"))
-                .skip(1)
-                .find(|l| !l.trim().is_empty() && !l.trim().starts_with('-') && !l.trim().starts_with('#')) {
-                let desc = desc_line.trim();
-                if desc.len() > 10 && desc.len() < 200 {
-                    return desc.to_string();
-                }
-            }
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if !line.is_empty() {
+            return line.to_string();
         }
     }
-    
-    // 如果找不到，使用默认描述
     format!("Slash command: {}", name)
 }
 
-#[get("/api/slash-commands")]
-async fn list_slash_commands() -> impl Responder {
-    let manager = match MarkdownManager::from_home_subdir("commands") {
-        Ok(m) => m,
-        Err(e) => {
-            return HttpResponse::InternalServerError().json(json!({
-                "success": false,
-                "data": null,
-                "message": format!("Failed to initialize commands manager: {}", e)
-            }))
-        }
-    };
-
-    // Get all files with their folder information
-    match manager.list_files_with_folders() {
-        Ok(files_with_folders) => {
+/// GET /api/slash-commands - List all slash commands
+pub async fn list_slash_commands() -> impl IntoResponse {
+    // Try markdown files first (primary source with richer data)
+    if let Ok(manager) = MarkdownManager::from_home_subdir("commands") {
+        if let Ok(files) = manager.list_files_with_folders() {
             let mut commands = Vec::new();
 
-            for (name, folder) in files_with_folders {
-                // 构建完整路径
-                let full_path = if folder.is_empty() {
-                    name.clone()
+            for (file_name, folder_path) in files {
+                // Build full path for reading (e.g., "subfolder/command" for subfolder files)
+                let full_name = if folder_path.is_empty() {
+                    file_name.clone()
                 } else {
-                    format!("{}/{}", folder, name)
+                    format!("{}/{}", folder_path, file_name)
                 };
 
-                // 尝试读取带 frontmatter 的文件
-                match manager.read_file::<CommandFrontmatter>(&full_path) {
+                // Try to read with frontmatter first
+                let description = match manager.read_file::<CommandFrontmatter>(&full_name) {
                     Ok(file) => {
-                        // 有 frontmatter 的情况
-                        commands.push(SlashCommand {
-                            name: file.frontmatter.name.unwrap_or(name.clone()),
-                            description: file.frontmatter.description.unwrap_or_default(),
-                            command: name,
-                            args: None,
-                            disabled: false,
-                            folder: folder.clone(),
-                        });
+                        file.frontmatter
+                            .description
+                            .clone()
+                            .unwrap_or_else(|| {
+                                extract_description_from_content(&file.content, &file_name)
+                            })
                     }
                     Err(_) => {
-                        // 无 frontmatter 的情况，直接读取文件内容
-                        let home = std::env::var("HOME").unwrap_or_default();
-                        let file_path = Path::new(&home)
-                            .join(".claude")
-                            .join("commands")
-                            .join(format!("{}.md", &full_path));
+                        // If frontmatter parsing fails, try to read as plain markdown
+                        let path = std::env::var("HOME")
+                            .ok()
+                            .map(|home| {
+                                std::path::Path::new(&home)
+                                    .join(".claude")
+                                    .join("commands")
+                                    .join(format!("{}.md", full_name))
+                            });
                         
-                        let description = if let Ok(content) = fs::read_to_string(&file_path) {
-                            extract_description_from_content(&content, &name)
+                        if let Some(path) = path {
+                            if let Ok(content) = std::fs::read_to_string(&path) {
+                                extract_description_from_content(&content, &file_name)
+                            } else {
+                                tracing::warn!("Failed to read slash command file: {}", full_name);
+                                continue;
+                            }
                         } else {
-                            format!("Slash command: {}", &name)
-                        };
-
-                        tracing::info!("Command '{}' in folder '{}' has no frontmatter", name, folder);
-                        
-                        commands.push(SlashCommand {
-                            name: name.clone(),
-                            description,
-                            command: name,
-                            args: None,
-                            disabled: false,
-                            folder: folder.clone(),
-                        });
+                            tracing::warn!("Failed to get HOME directory");
+                            continue;
+                        }
                     }
-                }
+                };
+
+                commands.push(SlashCommand {
+                    name: file_name.clone(),
+                    description,
+                    command: String::new(),
+                    args: None,
+                    disabled: false,
+                    folder: folder_path,
+                });
             }
 
-            // Also return list of subdirectories
-            let subdirs = manager.list_subdirs().unwrap_or_default();
+            if !commands.is_empty() {
+                // Collect unique folders
+                let folders: Vec<String> = commands
+                    .iter()
+                    .filter_map(|c| {
+                        if !c.folder.is_empty() {
+                            Some(c.folder.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<std::collections::HashSet<_>>()
+                    .into_iter()
+                    .collect();
+                
+                return (
+                    StatusCode::OK,
+                    Json(json!({
+                        "success": true,
+                        "data": { 
+                            "commands": commands,
+                            "folders": folders
+                        },
+                        "message": null
+                    })),
+                )
+                    .into_response();
+            }
+        }
+    }
 
-            HttpResponse::Ok().json(SlashCommandsResponse {
-                success: true,
-                data: json!({ 
-                    "commands": commands,
-                    "folders": subdirs
-                }),
-                message: None,
+    // Fallback to settings.json
+    let settings_result = SettingsManager::default().and_then(|manager| manager.load());
+
+    if let Ok(settings) = settings_result {
+        let commands: Vec<SlashCommand> = settings
+            .slash_commands
+            .into_iter()
+            .map(|cmd| SlashCommand {
+                name: cmd.name,
+                description: cmd.description,
+                command: cmd.command,
+                args: cmd.args,
+                disabled: cmd.disabled,
+                folder: String::new(), // Settings don't have folder concept
             })
-        }
-        Err(e) => HttpResponse::InternalServerError().json(json!({
+            .collect();
+
+        return (
+            StatusCode::OK,
+            Json(json!({
+                "success": true,
+                "data": { 
+                    "commands": commands,
+                    "folders": Vec::<String>::new()
+                },
+                "message": null
+            })),
+        )
+            .into_response();
+    }
+
+    // Both sources failed
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({
             "success": false,
             "data": null,
-            "message": format!("Failed to list slash commands: {}", e)
+            "message": "Failed to load slash commands from both markdown files and settings.json"
         })),
-    }
+    )
+        .into_response()
 }
 
-#[post("/api/slash-commands")]
-async fn add_slash_command(req: web::Json<SlashCommandRequest>) -> impl Responder {
-    let manager = match MarkdownManager::from_home_subdir("commands") {
-        Ok(m) => m,
-        Err(e) => {
-            return HttpResponse::InternalServerError().json(json!({
-                "success": false,
-                "data": null,
-                "message": format!("Failed to initialize commands manager: {}", e)
-            }))
+/// POST /api/slash-commands - Add a new slash command
+pub async fn add_slash_command(Json(req): Json<SlashCommandRequest>) -> impl IntoResponse {
+    // Try settings.json first
+    if let Ok(settings_manager) = SettingsManager::default() {
+        if let Ok(mut settings) = settings_manager.load() {
+            let new_command = crate::settings_manager::SlashCommand {
+                name: req.name.clone(),
+                description: req.description.clone(),
+                command: req.command.clone(),
+                args: req.args.clone(),
+                disabled: req.disabled.unwrap_or(false),
+            };
+
+            settings.slash_commands.push(new_command);
+
+            if settings_manager.save(&settings).is_ok() {
+                return (
+                    StatusCode::OK,
+                    Json(json!({
+                        "success": true,
+                        "data": "Slash command added successfully",
+                        "message": null
+                    })),
+                )
+                    .into_response();
+            }
         }
-    };
+    }
 
-    let frontmatter = CommandFrontmatter {
-        name: Some(req.name.clone()),
-        description: Some(req.description.clone()),
-        argument_hint: None,
-    };
-
-    // Generate a simple default content
-    let content = format!("## Usage\n\n`/{} <ARGUMENTS>`\n\n## Description\n\n{}\n\n## Content\n\n{}", 
-        req.name, 
-        req.description,
-        req.command
-    );
-
-    let md_file = MarkdownFile {
-        frontmatter,
-        content,
-    };
-
-    match manager.write_file(&req.name, &md_file) {
-        Ok(_) => HttpResponse::Ok().json(json!({
-            "success": true,
-            "data": "Slash command added successfully",
-            "message": null
-        })),
-        Err(e) => HttpResponse::InternalServerError().json(json!({
+    // Fallback to markdown files
+    (
+        StatusCode::NOT_IMPLEMENTED,
+        Json(json!({
             "success": false,
             "data": null,
-            "message": format!("Failed to add slash command: {}", e)
+            "message": "Slash command addition via markdown files not implemented"
         })),
-    }
+    )
+        .into_response()
 }
 
-#[put("/api/slash-commands/{name}")]
-async fn update_slash_command(
-    path: web::Path<String>,
-    req: web::Json<SlashCommandRequest>,
-) -> impl Responder {
-    let name = path.into_inner();
-    let manager = match MarkdownManager::from_home_subdir("commands") {
-        Ok(m) => m,
-        Err(e) => {
-            return HttpResponse::InternalServerError().json(json!({
-                "success": false,
-                "data": null,
-                "message": format!("Failed to initialize commands manager: {}", e)
-            }))
+/// PATCH /api/slash-commands/:name - Update a slash command
+pub async fn update_slash_command(
+    Path(name): Path<String>,
+    Json(req): Json<SlashCommandRequest>,
+) -> impl IntoResponse {
+    // Try settings.json first
+    if let Ok(settings_manager) = SettingsManager::default() {
+        if let Ok(mut settings) = settings_manager.load() {
+            if let Some(cmd) = settings.slash_commands.iter_mut().find(|c| c.name == name) {
+                cmd.name = req.name;
+                cmd.description = req.description;
+                cmd.command = req.command;
+                cmd.args = req.args;
+                if let Some(disabled) = req.disabled {
+                    cmd.disabled = disabled;
+                }
+
+                if settings_manager.save(&settings).is_ok() {
+                    return (
+                        StatusCode::OK,
+                        Json(json!({
+                            "success": true,
+                            "data": "Slash command updated successfully",
+                            "message": null
+                        })),
+                    )
+                        .into_response();
+                }
+            } else {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "success": false,
+                        "data": null,
+                        "message": "Slash command not found"
+                    })),
+                )
+                    .into_response();
+            }
         }
-    };
-
-    // Try to read existing file to preserve content
-    let existing_content = match manager.read_file::<CommandFrontmatter>(&name) {
-        Ok(file) => file.content,
-        Err(_) => format!("## Usage\n\n`/{} <ARGUMENTS>`\n\n## Description\n\n{}\n\n## Content\n\n{}", 
-            req.name, 
-            req.description,
-            req.command
-        ),
-    };
-
-    let frontmatter = CommandFrontmatter {
-        name: Some(req.name.clone()),
-        description: Some(req.description.clone()),
-        argument_hint: None,
-    };
-
-    let md_file = MarkdownFile {
-        frontmatter,
-        content: existing_content,
-    };
-
-    // Delete old file if name changed
-    if name != req.name {
-        let _ = manager.delete_file(&name);
     }
 
-    match manager.write_file(&req.name, &md_file) {
-        Ok(_) => HttpResponse::Ok().json(json!({
-            "success": true,
-            "data": "Slash command updated successfully",
-            "message": null
-        })),
-        Err(e) => HttpResponse::InternalServerError().json(json!({
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({
             "success": false,
             "data": null,
-            "message": format!("Failed to update slash command: {}", e)
+            "message": "Failed to update slash command"
         })),
-    }
+    )
+        .into_response()
 }
 
-#[delete("/api/slash-commands/{name}")]
-async fn delete_slash_command(path: web::Path<String>) -> impl Responder {
-    let name = path.into_inner();
-    let manager = match MarkdownManager::from_home_subdir("commands") {
-        Ok(m) => m,
-        Err(e) => {
-            return HttpResponse::InternalServerError().json(json!({
-                "success": false,
-                "data": null,
-                "message": format!("Failed to initialize commands manager: {}", e)
-            }))
-        }
-    };
+/// DELETE /api/slash-commands/:name - Delete a slash command
+pub async fn delete_slash_command(Path(name): Path<String>) -> impl IntoResponse {
+    // Try settings.json first
+    if let Ok(settings_manager) = SettingsManager::default() {
+        if let Ok(mut settings) = settings_manager.load() {
+            let original_len = settings.slash_commands.len();
+            settings.slash_commands.retain(|c| c.name != name);
 
-    match manager.delete_file(&name) {
-        Ok(_) => HttpResponse::Ok().json(json!({
-            "success": true,
-            "data": "Slash command deleted successfully",
-            "message": null
-        })),
-        Err(e) => HttpResponse::NotFound().json(json!({
+            if settings.slash_commands.len() < original_len {
+                if settings_manager.save(&settings).is_ok() {
+                    return (
+                        StatusCode::OK,
+                        Json(json!({
+                            "success": true,
+                            "data": "Slash command deleted successfully",
+                            "message": null
+                        })),
+                    )
+                        .into_response();
+                }
+            } else {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "success": false,
+                        "data": null,
+                        "message": "Slash command not found"
+                    })),
+                )
+                    .into_response();
+            }
+        }
+    }
+
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({
             "success": false,
             "data": null,
-            "message": format!("Failed to delete slash command: {}", e)
+            "message": "Failed to delete slash command"
         })),
-    }
+    )
+        .into_response()
 }
 
-#[put("/api/slash-commands/{name}/toggle")]
-async fn toggle_slash_command(path: web::Path<String>) -> impl Responder {
-    // Note: Slash command markdown files don't support a "disabled" field
-    // This endpoint exists for API compatibility
-    let _name = path.into_inner();
+/// PATCH /api/slash-commands/:name/toggle - Toggle slash command enabled/disabled state
+pub async fn toggle_slash_command(Path(name): Path<String>) -> impl IntoResponse {
+    // Try settings.json first
+    if let Ok(settings_manager) = SettingsManager::default() {
+        if let Ok(mut settings) = settings_manager.load() {
+            if let Some(cmd) = settings.slash_commands.iter_mut().find(|c| c.name == name) {
+                cmd.disabled = !cmd.disabled;
+                let new_state = if cmd.disabled { "disabled" } else { "enabled" };
 
-    HttpResponse::Ok().json(json!({
-        "success": true,
-        "data": "Toggle not supported for slash commands",
-        "message": "Slash command files don't have a disabled field"
-    }))
+                if settings_manager.save(&settings).is_ok() {
+                    return (
+                        StatusCode::OK,
+                        Json(json!({
+                            "success": true,
+                            "data": format!("Slash command toggled to {}", new_state),
+                            "message": null
+                        })),
+                    )
+                        .into_response();
+                }
+            } else {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "success": false,
+                        "data": null,
+                        "message": "Slash command not found"
+                    })),
+                )
+                    .into_response();
+            }
+        }
+    }
+
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({
+            "success": false,
+            "data": null,
+            "message": "Failed to toggle slash command"
+        })),
+    )
+        .into_response()
 }

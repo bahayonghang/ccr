@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   // 站点基础配置
   title: 'CCR UI 文档',
   description: 'CCR UI - 现代化的 CCR 配置管理 Web 应用程序',
@@ -185,4 +186,4 @@ export default defineConfig({
   build: {
     outDir: '../dist/docs'
   }
-})
+}))  // withMermaid 闭合括号

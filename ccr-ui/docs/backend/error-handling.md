@@ -2,6 +2,8 @@
 
 本文档详细介绍 CCR UI 后端的错误处理机制，包括错误类型定义、处理策略、日志记录、监控告警和最佳实践。
 
+> **📢 重要更新**: v1.2.0 版本已从 Actix Web 迁移到 Axum。错误处理机制已优化为使用 Axum 的 `IntoResponse` trait。详见 [Axum 迁移说明](./MIGRATION_AXUM.md)。
+
 ## 🎯 错误处理概览
 
 ### 设计原则
@@ -14,30 +16,24 @@
 
 ### 错误处理架构
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    HTTP Request                         │
-└─────────────────┬───────────────────────────────────────┘
-                  │
-┌─────────────────┴───────────────────────────────────────┐
-│                 Handler Layer                           │
-│              (业务逻辑处理)                              │
-└─────────────────┬───────────────────────────────────────┘
-                  │
-┌─────────────────┴───────────────────────────────────────┐
-│                Service Layer                            │
-│              (服务层错误处理)                            │
-└─────────────────┬───────────────────────────────────────┘
-                  │
-┌─────────────────┴───────────────────────────────────────┐
-│               Repository Layer                          │
-│              (数据访问错误处理)                          │
-└─────────────────┬───────────────────────────────────────┘
-                  │
-┌─────────────────┴───────────────────────────────────────┐
-│              Global Error Handler                       │
-│            (统一错误响应处理)                            │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    Request["HTTP Request"]
+    Handler["Handler Layer<br/>(业务逻辑处理)"]
+    Service["Service Layer<br/>(服务层错误处理)"]
+    Repository["Repository Layer<br/>(数据访问错误处理)"]
+    GlobalHandler["Global Error Handler<br/>(统一错误响应处理)"]
+    
+    Request --> Handler
+    Handler --> Service
+    Service --> Repository
+    Repository --> GlobalHandler
+    
+    style Request fill:#e1f5fe
+    style Handler fill:#f3e5f5
+    style Service fill:#e8f5e9
+    style Repository fill:#fff3e0
+    style GlobalHandler fill:#fce4ec
 ```
 
 ## 🔧 错误类型定义

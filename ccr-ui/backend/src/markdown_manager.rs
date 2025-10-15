@@ -91,6 +91,7 @@ impl MarkdownManager {
     }
 
     /// List all subdirectories
+    #[allow(dead_code)]
     pub fn list_subdirs(&self) -> io::Result<Vec<String>> {
         if !self.directory.exists() {
             return Ok(Vec::new());
@@ -131,6 +132,7 @@ impl MarkdownManager {
     }
 
     /// Write a markdown file with frontmatter
+    #[allow(dead_code)]
     pub fn write_file<T>(&self, name: &str, file: &MarkdownFile<T>) -> io::Result<()>
     where
         T: Serialize,
@@ -153,6 +155,7 @@ impl MarkdownManager {
     }
 
     /// Delete a markdown file
+    #[allow(dead_code)]
     pub fn delete_file(&self, name: &str) -> io::Result<()> {
         let path = self.directory.join(format!("{}.md", name));
         if !path.exists() {

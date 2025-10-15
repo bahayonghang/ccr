@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# Web framework
-actix-web = "4.9"
-actix-cors = "0.7"
+# Web framework (Axum + Tower ecosystem)
+axum = { version = "0.7", features = ["macros"] }
+tower = { version = "0.5", features = ["timeout", "limit"] }
+tower-http = { version = "0.6", features = ["fs", "trace", "cors", "compression-full"] }
 
 # Async runtime
 tokio = { version = "1.42", features = ["full"] }

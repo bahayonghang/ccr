@@ -2,6 +2,8 @@
 
 本文档详细介绍 CCR UI 后端提供的所有 REST API 接口。
 
+> **📢 重要更新**: v1.2.0 版本已从 Actix Web 迁移到 Axum。API 接口保持向后兼容，但内部实现已优化。详见 [Axum 迁移说明](./MIGRATION_AXUM.md)。
+
 ## 📋 API 概览
 
 ### 基础信息

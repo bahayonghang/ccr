@@ -1,7 +1,7 @@
 // Version Management Handler
 // Get version information by executing 'ccr --version' and check for updates from GitHub Cargo.toml
 
-use actix_web::{get, post, HttpResponse, Responder};
+use axum::response::IntoResponse;
 use reqwest;
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
@@ -9,12 +9,12 @@ use std::process::{Command, Stdio};
 use crate::models::*;
 
 // GitHub raw Cargo.toml URL for CCR
-const GITHUB_CARGO_TOML_URL: &str = "https://raw.githubusercontent.com/liyonghang/ccr/main/Cargo.toml";
+const GITHUB_CARGO_TOML_URL: &str =
+    "https://raw.githubusercontent.com/liyonghang/ccr/main/Cargo.toml";
 const GITHUB_REPO_URL: &str = "https://github.com/liyonghang/ccr";
 
 /// GET /api/version - Get current CCR version by executing 'ccr --version'
-#[get("/api/version")]
-pub async fn get_version() -> impl Responder {
+pub async fn get_version() -> impl IntoResponse {
     tracing::info!("Getting CCR version information");
 
     match get_ccr_version() {
@@ -24,23 +24,18 @@ pub async fn get_version() -> impl Responder {
                 build_time: "N/A".to_string(),
                 git_commit: "N/A".to_string(),
             };
-            HttpResponse::Ok().json(ApiResponse::success(version_info))
+            ApiResponse::success(version_info)
         }
         Err(e) => {
             tracing::error!("Failed to get CCR version: {}", e);
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(format!(
-                "Failed to get CCR version: {}",
-                e
-            )))
+            ApiResponse::<VersionInfo>::error(format!("Failed to get CCR version: {}", e))
         }
     }
 }
 
 /// Execute 'ccr --version' to get current version
 fn get_ccr_version() -> Result<String, Box<dyn std::error::Error>> {
-    let output = Command::new("ccr")
-        .arg("--version")
-        .output()?;
+    let output = Command::new("ccr").arg("--version").output()?;
 
     if !output.status.success() {
         return Err("CCR command failed".into());
@@ -57,9 +52,8 @@ fn get_ccr_version() -> Result<String, Box<dyn std::error::Error>> {
     Ok(version)
 }
 
-/// GET /api/version/check-update - Check for updates from GitHub Cargo.toml
-#[get("/api/version/check-update")]
-pub async fn check_update() -> impl Responder {
+/// GET /api/version/check - Check for updates from GitHub Cargo.toml
+pub async fn check_update() -> impl IntoResponse {
     tracing::info!("Checking for updates from GitHub Cargo.toml");
 
     // Get current version
@@ -67,10 +61,10 @@ pub async fn check_update() -> impl Responder {
         Ok(v) => v,
         Err(e) => {
             tracing::error!("Failed to get current CCR version: {}", e);
-            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(format!(
+            return ApiResponse::<UpdateCheckResponse>::error(format!(
                 "Failed to get current CCR version: {}",
                 e
-            )));
+            ));
         }
     };
 
@@ -95,35 +89,27 @@ pub async fn check_update() -> impl Responder {
                 has_update
             );
 
-            HttpResponse::Ok().json(ApiResponse::success(response))
+            ApiResponse::success(response)
         }
         Err(e) => {
             tracing::error!("Failed to check for updates: {}", e);
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(format!(
-                "Failed to check for updates: {}",
-                e
-            )))
+            ApiResponse::<UpdateCheckResponse>::error(format!("Failed to check for updates: {}", e))
         }
     }
 }
 
 /// Fetch the latest version from GitHub Cargo.toml
 async fn fetch_latest_version_from_github() -> Result<String, Box<dyn std::error::Error>> {
-    let client = reqwest::Client::builder()
-        .user_agent("ccr-ui")
-        .build()?;
+    let client = reqwest::Client::builder().user_agent("ccr-ui").build()?;
 
-    let response = client
-        .get(GITHUB_CARGO_TOML_URL)
-        .send()
-        .await?;
+    let response = client.get(GITHUB_CARGO_TOML_URL).send().await?;
 
     if !response.status().is_success() {
         return Err(format!("GitHub returned status: {}", response.status()).into());
     }
 
     let cargo_toml_content = response.text().await?;
-    
+
     // Parse version from Cargo.toml
     for line in cargo_toml_content.lines() {
         let line = line.trim();
@@ -144,8 +130,7 @@ async fn fetch_latest_version_from_github() -> Result<String, Box<dyn std::error
 }
 
 /// POST /api/version/update - Execute 'ccr update' command
-#[post("/api/version/update")]
-pub async fn update_ccr() -> impl Responder {
+pub async fn update_ccr() -> impl IntoResponse {
     tracing::info!("Executing CCR update command");
 
     match execute_ccr_update() {
@@ -163,14 +148,14 @@ pub async fn update_ccr() -> impl Responder {
                 tracing::warn!("CCR update failed with exit code: {}", response.exit_code);
             }
 
-            HttpResponse::Ok().json(ApiResponse::success(response))
+            ApiResponse::success(response)
         }
         Err(e) => {
             tracing::error!("Failed to execute CCR update: {}", e);
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(format!(
+            ApiResponse::<UpdateExecutionResponse>::error(format!(
                 "Failed to execute CCR update: {}",
                 e
-            )))
+            ))
         }
     }
 }
@@ -229,7 +214,7 @@ fn compare_versions(current: &str, latest: &str) -> bool {
         .split('.')
         .filter_map(|s| s.parse().ok())
         .collect();
-    
+
     let latest_parts: Vec<u32> = latest
         .split('.')
         .filter_map(|s| s.parse().ok())
@@ -260,16 +245,15 @@ mod tests {
         assert!(compare_versions("1.0.0", "1.1.0"));
         assert!(compare_versions("1.0.0", "2.0.0"));
         assert!(compare_versions("1.2.3", "1.2.4"));
-        
+
         // Current is greater or equal
         assert!(!compare_versions("1.1.0", "1.0.0"));
         assert!(!compare_versions("2.0.0", "1.0.0"));
         assert!(!compare_versions("1.2.4", "1.2.3"));
         assert!(!compare_versions("1.0.0", "1.0.0"));
-        
+
         // Different lengths
         assert!(compare_versions("1.0", "1.0.1"));
         assert!(!compare_versions("1.0.1", "1.0"));
     }
 }
-

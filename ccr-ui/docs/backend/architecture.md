@@ -1,6 +1,6 @@
 # 后端架构设计
 
-CCR UI 的后端是一个基于 Rust 和 Actix Web 构建的高性能 Web 服务，负责处理前端请求、执行 CCR 命令并返回结果。
+CCR UI 的后端是一个基于 Rust 和 Axum 构建的高性能 Web 服务，负责处理前端请求、执行 CCR 命令并返回结果。v1.2.0 版本已从 Actix Web 迁移到 Axum，提供更好的性能和类型安全。
 
 ## 🎯 设计目标
 
@@ -16,99 +16,202 @@ CCR UI 的后端是一个基于 Rust 和 Actix Web 构建的高性能 Web 服务
 
 ### 系统架构图
 
+```mermaid
+graph TB
+    subgraph "前端层"
+        Frontend["React + TypeScript<br/>📱 http://localhost:5173"]
+    end
+    
+    subgraph "后端层 - Axum Server :8081"
+        subgraph "入口 & 中间件"
+            Server["🚀 Axum HTTP Server"]
+            Middleware["🔧 Middleware Stack<br/>├─ CORS<br/>├─ Compression (gzip/br/zstd)<br/>├─ Tracing<br/>└─ Error Handling"]
+            Router["🛣️ Router<br/>11 Routes / 4 Methods"]
+        end
+        
+        subgraph "Handlers (API 层)"
+            HConfig["📋 Config Handler<br/>list/switch/validate/<br/>history/export/import"]
+            HCommand["⚡ Command Handler<br/>execute/list/help"]
+            HMCP["🔌 MCP Handler<br/>CRUD + toggle"]
+            HAgent["🤖 Agent Handler<br/>CRUD + toggle"]
+            HSlash["💬 Slash Cmd Handler<br/>CRUD + toggle"]
+            HPlugin["🧩 Plugin Handler<br/>CRUD + toggle"]
+            HSystem["💻 System Handler<br/>info/stats"]
+            HVersion["🏷️ Version Handler<br/>check/update"]
+        end
+        
+        subgraph "Manager 层 (数据访问)"
+            MClaudeConfig["📄 ClaudeConfigManager<br/>~/.claude.json"]
+            MSettings["⚙️ SettingsManager<br/>~/.claude/settings.json"]
+            MMarkdown["📝 MarkdownManager<br/>Frontmatter + Content"]
+            MPlugins["🔌 PluginsManager<br/>~/.claude/plugins/"]
+            MConfigReader["📖 ConfigReader<br/>~/.ccs_config.toml"]
+        end
+        
+        subgraph "Executor 层"
+            Executor["🚀 CLI Executor<br/>Tokio Process<br/>├─ Spawn 'ccr' subprocess<br/>├─ Timeout: 600s<br/>├─ Capture stdout/stderr<br/>└─ Return CommandOutput"]
+        end
+    end
+    
+    subgraph "文件系统"
+        FSClaudeJSON["~/.claude.json<br/>(MCP servers)"]
+        FSSettings["~/.claude/settings.json<br/>(All configs)"]
+        FSAgents["~/.claude/agents/<br/>(Markdown files)"]
+        FSCommands["~/.claude/commands/<br/>(Markdown files)"]
+        FSPlugins["~/.claude/plugins/<br/>(config.json)"]
+        FSCcsConfig["~/.ccs_config.toml<br/>(CCR configs)"]
+    end
+    
+    subgraph "CCR CLI"
+        CLI["⚙️ CCR Binary<br/>(Installed in PATH)"]
+    end
+    
+    Frontend ==>|"HTTP/JSON API"| Server
+    Server --> Middleware
+    Middleware --> Router
+    
+    Router -.->|route| HConfig
+    Router -.->|route| HCommand
+    Router -.->|route| HMCP
+    Router -.->|route| HAgent
+    Router -.->|route| HSlash
+    Router -.->|route| HPlugin
+    Router -.->|route| HSystem
+    Router -.->|route| HVersion
+    
+    HConfig -->|use| MClaudeConfig
+    HConfig -->|use| MConfigReader
+    HCommand -->|use| Executor
+    HMCP -->|use| MClaudeConfig
+    HAgent -->|use| MMarkdown
+    HAgent -->|use| MSettings
+    HSlash -->|use| MMarkdown
+    HSlash -->|use| MSettings
+    HPlugin -->|use| MPlugins
+    HPlugin -->|use| MSettings
+    
+    MClaudeConfig -->|read/write| FSClaudeJSON
+    MSettings -->|read/write| FSSettings
+    MMarkdown -->|read/write| FSAgents
+    MMarkdown -->|read/write| FSCommands
+    MPlugins -->|read/write| FSPlugins
+    MConfigReader -->|read| FSCcsConfig
+    
+    Executor -->|spawn| CLI
+    
+    style Frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style Server fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style Middleware fill:#fce4ec,stroke:#c2185b,stroke-width:1px
+    style Router fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
+    style Executor fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style CLI fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+    
+    classDef handlerStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:1px
+    classDef managerStyle fill:#fff9c4,stroke:#f9a825,stroke-width:1px
+    classDef fileStyle fill:#efebe9,stroke:#5d4037,stroke-width:1px
+    
+    class HConfig,HCommand,HMCP,HAgent,HSlash,HPlugin,HSystem,HVersion handlerStyle
+    class MClaudeConfig,MSettings,MMarkdown,MPlugins,MConfigReader managerStyle
+    class FSClaudeJSON,FSSettings,FSAgents,FSCommands,FSPlugins,FSCcsConfig fileStyle
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (Next.js 16)                    │
-│                 http://localhost:3000                       │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         │ HTTP/JSON API
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                Backend (Actix Web + Rust)                   │
-│                http://localhost:8081                        │
-│                                                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │                HTTP Router                           │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌───────────┐ │  │
-│  │  │Config Handler│  │Command Handler│ │Sys Handler│ │  │
-│  │  │MCP Handler   │  │Agent Handler  │ │Plugin Mgr │ │  │
-│  │  │Slash Commands│  │Version Mgr    │ │History    │ │  │
-│  │  └──────────────┘  └──────────────┘  └───────────┘ │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                         │                                   │
-│                         │ Uses                              │
-│                         ▼                                   │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │            CLI Executor (Tokio Process)              │  │
-│  │  • Spawns 'ccr' subprocess                           │  │
-│  │  • Captures stdout/stderr                            │  │
-│  │  • Handles timeout (600s)                            │  │
-│  │  • Returns CommandOutput                             │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                         │                                   │
-│                         │ File System Access               │
-│                         ▼                                   │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │              Configuration Managers                  │  │
-│  │  • ClaudeConfigManager (.claude.json)                │  │
-│  │  • MarkdownManager (agents, commands)                │  │
-│  │  • SettingsManager (plugins)                         │  │
-│  │  • ConfigReader (CCR configs)                        │  │
-│  └──────────────────────────────────────────────────────┘  │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         │ File System Operations
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    File System                              │
-│  ~/.claude.json (MCP servers)                              │
-│  ~/.claude/configs/ (CCR configurations)                   │
-│  ~/.claude/agents/ (AI agents)                             │
-│  ~/.claude/commands/ (Slash commands)                      │
-│  ~/.claude/plugins/ (Plugin configurations)               │
-│  ~/.claude/history/ (Change history)                      │
-└─────────────────────────────────────────────────────────────┘
-```
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   CCR CLI Binary                            │
-│                 (Installed in PATH)                         │
-└─────────────────────────────────────────────────────────────┘
+
+### 数据流示例
+
+以下展示一个典型的 **Agent 管理** 请求处理流程：
+
+```mermaid
+sequenceDiagram
+    participant F as 前端 (React)
+    participant S as Axum Server
+    participant M as Middleware
+    participant R as Router
+    participant H as Agent Handler
+    participant MM as MarkdownManager
+    participant SM as SettingsManager
+    participant FS as File System
+
+    F->>+S: GET /api/agents
+    S->>+M: Apply CORS/Compression/Trace
+    M->>+R: Route to handler
+    R->>+H: list_agents()
+    
+    Note over H: 尝试 Markdown 文件 (优先级高)
+    H->>+MM: list_files_with_folders()
+    MM->>+FS: Read ~/.claude/agents/**/*.md
+    FS-->>-MM: Markdown files with frontmatter
+    MM-->>-H: Vec<(name, folder_path)>
+    
+    Note over H: 解析 Frontmatter
+    loop For each file
+        H->>+MM: read_file<AgentFrontmatter>(name)
+        MM->>FS: Read file content
+        FS-->>MM: Raw markdown
+        MM->>MM: Parse YAML frontmatter
+        MM-->>H: MarkdownFile<AgentFrontmatter>
+    end
+    
+    Note over H: Fallback to settings.json (if needed)
+    alt Markdown files empty
+        H->>+SM: load()
+        SM->>FS: Read ~/.claude/settings.json
+        FS-->>SM: JSON content
+        SM-->>-H: ClaudeSettings.agents
+    end
+    
+    Note over H: 构建响应
+    H->>H: Build ApiResponse<AgentsResponse>
+    H-->>-R: JSON response
+    R-->>-M: Response
+    M-->>-S: Compressed JSON
+    S-->>-F: HTTP 200 + JSON
+    
+    Note over F: 前端渲染 Agents 列表<br/>支持文件夹分组
 ```
 
 ### 技术栈
 
 | 组件 | 技术 | 版本 | 用途 |
 |------|------|------|------|
-| Web 框架 | Actix Web | 4.9 | HTTP 服务器和路由 |
+| Web 框架 | Axum | 0.7 | HTTP 服务器和路由 |
+| 中间件 | Tower + Tower-HTTP | 0.5/0.6 | CORS、压缩、日志 |
 | 异步运行时 | Tokio | 1.42 | 异步任务执行 |
 | 序列化 | Serde | 1.0 | JSON 序列化/反序列化 |
 | 错误处理 | Anyhow/Thiserror | 1.0/2.0 | 错误处理和传播 |
-| 日志 | Log/Env_logger | 0.4/0.11 | 日志记录 |
+| 日志 | Tracing | 0.1 | 结构化日志记录 |
 | CLI 解析 | Clap | 4.5 | 命令行参数解析 |
-| 系统信息 | Whoami/Num_cpus | 1.5/1.16 | 系统信息获取 |
+| 系统信息 | Sysinfo | 0.32 | 系统信息获取 |
 
 ## 📁 项目结构
 
-```
-backend/
-├── src/
-│   ├── main.rs              # 应用入口点
-│   ├── config_reader.rs     # 配置文件读取
-│   ├── models.rs            # 数据模型定义
-│   ├── handlers/            # HTTP 请求处理器
-│   │   ├── mod.rs
-│   │   ├── config.rs        # 配置相关接口
-│   │   ├── command.rs       # 命令执行接口
-│   │   └── system.rs        # 系统信息接口
-│   └── executor/            # 命令执行器
-│       ├── mod.rs
-│       └── cli_executor.rs  # CLI 命令执行
-├── Cargo.toml              # 项目配置和依赖
-└── README.md               # 项目说明
+```mermaid
+graph TD
+    Backend["backend/"]
+    Src["src/"]
+    Handlers["handlers/"]
+    Executor["executor/"]
+    
+    Backend --> Src
+    Backend --> Cargo["Cargo.toml<br/>(项目配置和依赖)"]
+    Backend --> Readme["README.md<br/>(项目说明)"]
+    
+    Src --> Main["main.rs<br/>(应用入口点)"]
+    Src --> ConfigReader["config_reader.rs<br/>(配置文件读取)"]
+    Src --> Models["models.rs<br/>(数据模型定义)"]
+    Src --> Handlers
+    Src --> Executor
+    
+    Handlers --> HMod["mod.rs"]
+    Handlers --> HConfig["config.rs<br/>(配置相关接口)"]
+    Handlers --> HCommand["command.rs<br/>(命令执行接口)"]
+    Handlers --> HSystem["system.rs<br/>(系统信息接口)"]
+    
+    Executor --> EMod["mod.rs"]
+    Executor --> ECliExecutor["cli_executor.rs<br/>(CLI 命令执行)"]
+    
+    style Backend fill:#e3f2fd
+    style Src fill:#f3e5f5
+    style Handlers fill:#e8f5e9
+    style Executor fill:#fff3e0
 ```
 
 ## 🔧 核心模块设计
@@ -116,41 +219,57 @@ backend/
 ### 1. 主应用模块 (main.rs)
 
 ```rust
-use actix_web::{web, App, HttpServer, middleware::Logger};
-use actix_cors::Cors;
+use axum::{
+    routing::{get, post, put, delete},
+    Router,
+};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    compression::CompressionLayer,
+    trace::TraceLayer,
+};
+use tower::ServiceBuilder;
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() {
     // 初始化日志
-    env_logger::init();
+    tracing_subscriber::fmt::init();
     
     // 解析命令行参数
     let args = Args::parse();
     
-    log::info!("Starting CCR UI Backend on port {}", args.port);
+    tracing::info!("Starting CCR UI Backend on {}:{}", args.host, args.port);
     
-    // 启动 HTTP 服务器
-    HttpServer::new(|| {
-        App::new()
-            .wrap(Logger::default())
-            .wrap(cors_config())
-            .configure(configure_routes)
-    })
-    .bind(format!("127.0.0.1:{}", args.port))?
-    .run()
-    .await
-}
-
-fn configure_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api")
-            .service(handlers::config::get_configs)
-            .service(handlers::config::switch_config)
-            .service(handlers::config::validate_configs)
-            .service(handlers::command::execute_command)
-            .service(handlers::command::list_commands)
-            .service(handlers::system::get_system_info)
-    );
+    // 配置中间件
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+    
+    let middleware = ServiceBuilder::new()
+        .layer(TraceLayer::new_for_http())
+        .layer(CompressionLayer::new())
+        .layer(cors);
+    
+    // 创建路由
+    let app = Router::new()
+        .route("/health", get(health_check))
+        .route("/api/configs", get(handlers::config::list_configs))
+        .route("/api/switch", post(handlers::config::switch_config))
+        .route("/api/history", get(handlers::config::get_history))
+        .route("/api/configs/:name", put(handlers::config::update_config))
+        .route("/api/configs/:name", delete(handlers::config::delete_config))
+        .route("/api/command/execute", post(handlers::command::execute_command))
+        .route("/api/command/list", get(handlers::command::list_commands))
+        .route("/api/system", get(handlers::system::get_system_info))
+        .layer(middleware);
+    
+    // 启动服务器
+    let listener = tokio::net::TcpListener::bind(format!("{}:{}", args.host, args.port))
+        .await
+        .unwrap();
+    
+    axum::serve(listener, app).await.unwrap();
 }
 ```
 
@@ -158,6 +277,7 @@ fn configure_routes(cfg: &mut web::ServiceConfig) {
 
 ```rust
 use serde::{Deserialize, Serialize};
+use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -196,45 +316,60 @@ pub struct SystemInfo {
 }
 
 #[derive(Debug, Serialize)]
-pub struct ApiResponse<T> {
+pub struct ApiResponse<T: Serialize> {
     pub success: bool,
     pub data: Option<T>,
-    pub error: Option<String>,
+    pub message: Option<String>,
+}
+
+// 实现 IntoResponse 用于 Axum
+impl<T: Serialize> IntoResponse for ApiResponse<T> {
+    fn into_response(self) -> Response {
+        let status = if self.success {
+            StatusCode::OK
+        } else {
+            StatusCode::BAD_REQUEST
+        };
+        (status, Json(self)).into_response()
+    }
 }
 ```
 
 ### 3. 配置处理器 (handlers/config.rs)
 
 ```rust
-use actix_web::{web, HttpResponse, Result};
-use crate::{models::*, executor::cli_executor::execute_ccr_command};
+use axum::{
+    extract::{Path, Json},
+    http::StatusCode,
+    response::IntoResponse,
+};
+use crate::{models::*, config_reader::ConfigReader};
 
-#[actix_web::get("/configs")]
-pub async fn get_configs() -> Result<HttpResponse> {
-    match execute_ccr_command("list", &[]).await {
-        Ok(output) => {
-            if output.success {
-                let configs = parse_config_list(&output.stdout)?;
-                Ok(HttpResponse::Ok().json(ApiResponse {
-                    success: true,
-                    data: Some(configs),
-                    error: None,
-                }))
-            } else {
-                Ok(HttpResponse::InternalServerError().json(ApiResponse::<Vec<Config>> {
-                    success: false,
-                    data: None,
-                    error: Some(output.stderr),
-                }))
+/// GET /api/configs - 列出所有配置
+pub async fn list_configs() -> impl IntoResponse {
+    let reader = ConfigReader::new();
+    match reader.read_configs() {
+        Ok(configs) => {
+            let current = reader.get_current_config();
+            let default = reader.get_default_config();
+            
+            ApiResponse {
+                success: true,
+                data: Some(ConfigListResponse {
+                    current_config: current,
+                    default_config: default,
+                    configs,
+                }),
+                message: None,
             }
         }
         Err(e) => {
-            log::error!("Failed to get configs: {}", e);
-            Ok(HttpResponse::InternalServerError().json(ApiResponse::<Vec<Config>> {
+            tracing::error!("Failed to read configs: {}", e);
+            ApiResponse::<ConfigListResponse> {
                 success: false,
                 data: None,
-                error: Some(e.to_string()),
-            }))
+                message: Some(format!("Failed to read configs: {}", e)),
+            }
         }
     }
 }

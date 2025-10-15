@@ -2,6 +2,8 @@
 
 本文档提供 CCR UI 后端开发的完整指南，包括环境搭建、开发流程、代码规范和最佳实践。
 
+> **📢 重要更新**: v1.2.0 版本已从 Actix Web 迁移到 Axum。开发流程有所调整，请查看 [Axum 迁移说明](./MIGRATION_AXUM.md)。
+
 ## 🚀 快速开始
 
 ### 系统要求
@@ -97,7 +99,7 @@ nano .env
 ```
 
 **环境配置** (`.env`):
-```env
+```bash
 # 数据库配置
 DATABASE_URL=postgresql://ccr_user:your_password@localhost:5432/ccr_ui_db
 
@@ -865,7 +867,7 @@ CMD ["ccr-ui-backend"]
 ### 环境配置
 
 **生产环境配置**:
-```env
+```bash
 # .env.production
 DATABASE_URL=postgresql://ccr_user:secure_password@db:5432/ccr_ui_db
 HOST=0.0.0.0

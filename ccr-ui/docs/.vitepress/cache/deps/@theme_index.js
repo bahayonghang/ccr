@@ -7,6 +7,7 @@ import {
   shallowRef,
   watch
 } from "./chunk-XV6CE6JT.js";
+import "./chunk-BUSYA2B4.js";
 
 // node_modules/vitepress/dist/client/theme-default/index.js
 import "/home/lyh/Documents/Github/ccr/ccr-ui/docs/node_modules/vitepress/dist/client/theme-default/styles/fonts.css";
