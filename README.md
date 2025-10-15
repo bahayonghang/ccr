@@ -9,6 +9,7 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | Feature | Description |
 |---------|-------------|
 | 🎯 **Direct Settings Control** | Directly writes to `~/.claude/settings.json` - changes take effect immediately |
+| 📊 **Beautiful Table UI** | Display config info with comfy-table, compare configs at a glance with color highlights and icons |
 | 🔒 **Concurrency Safe** | File locking + atomic operations prevent corruption across multiple processes |
 | 📝 **Complete Audit Trail** | Every operation logged with masked sensitive data (UUID, timestamp, actor) |
 | 💾 **Auto Backup** | Automatic backups before changes with timestamped `.bak` files |
@@ -116,9 +117,9 @@ model = "claude-sonnet-4-5-20250929"
 **3️⃣ Use CCR:**
 
 ```bash
-ccr list              # 📋 List all configs
-ccr switch anthropic  # 🔄 Switch to a config (or just: ccr anthropic)
-ccr current           # 🔍 Show current status
+ccr list              # 📊 List all configs in table format (compare at a glance)
+ccr switch anthropic  # 🔄 Switch config (shows tables with changes, or just: ccr anthropic)
+ccr current           # 🔍 Show current config and env status in tables
 ccr validate          # ✅ Validate all configs
 ccr history           # 📚 View operation history
 ccr web               # 🌐 Launch web UI (port 8080)
@@ -129,9 +130,9 @@ ccr web               # 🌐 Launch web UI (port 8080)
 | Command | Aliases | Description |
 |---------|---------|-------------|
 | `ccr init [--force]` | - | 🎬 Initialize config from template |
-| `ccr list` | `ls` | 📜 List all configurations with validation status |
-| `ccr current` | `show`, `status` | 🔍 Show current config and env variables |
-| `ccr switch <name>` | `<name>` | 🔄 Switch to configuration (5-step atomic operation) |
+| `ccr list` | `ls` | 📊 List all configs in table format (status, provider, URL, models, validation) |
+| `ccr current` | `show`, `status` | 🔍 Show current config details and env variables in dual tables |
+| `ccr switch <name>` | `<name>` | 🔄 Switch config (shows new config table and env changes comparison) |
 | `ccr validate` | `check` | ✅ Validate all configs and settings |
 | `ccr optimize` | - | 🔤 Sort config sections alphabetically |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 Show operation history (limit/filter by type) |

@@ -106,6 +106,7 @@ impl ColorOutput {
     }
 
     /// 🔐 输出键值对(敏感信息自动掩码)
+    #[allow(dead_code)]
     pub fn key_value_sensitive(key: &str, value: &str, indent: usize) {
         let padding = " ".repeat(indent);
         let masked = Self::mask_sensitive(value);
@@ -113,11 +114,13 @@ impl ColorOutput {
     }
 
     /// ▶️ 输出当前配置标记(带颜色)
+    #[allow(dead_code)]
     pub fn current_marker() -> String {
         "▶".green().bold().to_string()
     }
 
     /// ○ 输出普通项目标记
+    #[allow(dead_code)]
     pub fn normal_marker() -> String {
         " ".to_string()
     }
@@ -142,6 +145,7 @@ impl ColorOutput {
     }
 
     /// 输出配置节状态
+    #[allow(dead_code)]
     pub fn config_status(name: &str, is_current: bool, description: Option<&str>) {
         let marker = if is_current {
             Self::current_marker()
@@ -157,6 +161,7 @@ impl ColorOutput {
     }
 
     /// 输出环境变量状态
+    #[allow(dead_code)]
     pub fn env_status(var_name: &str, value: Option<&str>, is_sensitive: bool) {
         match value {
             Some(v) => {

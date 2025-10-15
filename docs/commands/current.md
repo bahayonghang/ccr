@@ -1,6 +1,6 @@
 # current - 显示当前配置
 
-显示当前配置的详细状态,包括环境变量设置。
+以表格形式展示当前配置的完整详情和环境变量状态，让配置信息一目了然。
 
 ## 用法
 
@@ -13,66 +13,141 @@ ccr show
 
 ## 输出信息
 
-- 配置名称和描述
-- Base URL
-- Auth Token(脱敏)
-- 模型设置
-- 环境变量配置状态
+以两个精美表格展示：
+1. **配置详情表** - 当前配置的所有关键信息
+2. **环境变量表** - Claude Code 环境变量的状态和值
 
 ## 示例输出
 
-```
-Current Configuration
-════════════════════════════════════════════════════════════════
-Name: anthropic
-Description: Anthropic Official API
-────────────────────────────────────────────────────────────────
-Configuration Details:
-  Base URL: https://api.anthropic.com
-  Auth Token: sk-a...key
-  Model: claude-sonnet-4-5-20250929
-  Small Fast Model: claude-3-5-haiku-20241022
+### 表格 1: 配置详情
 
-Environment Variables:
-  ANTHROPIC_BASE_URL: https://api.anthropic.com
-  ANTHROPIC_AUTH_TOKEN: sk-a...key
-  ANTHROPIC_MODEL: claude-sonnet-4-5-20250929
-  ANTHROPIC_SMALL_FAST_MODEL: claude-3-5-haiku-20241022
-
-Status: ✓ Configuration Active
 ```
+当前配置详情
+═══════════════════════════════════════════════════════════════
+
+╔═══════════════╤═══════════════════════════════════════════════╗
+║ 属性          │ 值                                            ║
+╠═══════════════╪═══════════════════════════════════════════════╣
+║ 配置名称      │ anyrouter_main                                ║
+║ 描述          │ Anyrouter 主要配置 - 高速稳定                ║
+║ 提供商类型    │ 🔄 官方中转                                   ║
+║ 提供商        │ anyrouter                                     ║
+║ Base URL      │ https://api.anyrouter.ai/v1                   ║
+║ Auth Token    │ sk-a...cdef (已脱敏)                          ║
+║ 主模型        │ claude-3-5-sonnet-20241022                    ║
+║ 快速小模型    │ claude-3-5-haiku-20241022                     ║
+║ 账号标识      │ 👤 github_5953                                ║
+║ 标签          │ 🏷️  stable, high-speed, recommended          ║
+╚═══════════════╧═══════════════════════════════════════════════╝
+```
+
+### 表格 2: 环境变量状态
+
+```
+Claude Code 环境变量
+═══════════════════════════════════════════════════════════════
+
+╔═══════════════════════════╤═══════════════════════════════════════════╤═══════════╗
+║ 环境变量                  │ 当前值                                    │ 状态      ║
+╠═══════════════════════════╪═══════════════════════════════════════════╪═══════════╣
+║ ANTHROPIC_BASE_URL        │ https://api.anyrouter.ai/v1               │ ✓ 已设置  ║
+║ ANTHROPIC_AUTH_TOKEN      │ sk-a...cdef                               │ ✓ 已设置  ║
+║ ANTHROPIC_MODEL           │ claude-3-5-sonnet-20241022                │ ✓ 已设置  ║
+║ ANTHROPIC_SMALL_FAST_MODEL│ claude-3-5-haiku-20241022                 │ ✓ 已设置  ║
+╚═══════════════════════════╧═══════════════════════════════════════════╧═══════════╝
+
+✓ 当前配置: anyrouter_main
+─────────────────────────────────────────────────────────
+💡 提示: 使用 'ccr list' 查看所有配置
+```
+
+**颜色说明：**
+- ✓ 绿色 - 环境变量已正确设置（必需）
+- ○ 黄色 - 环境变量未设置（可选）
+- 敏感信息自动脱敏显示
+
+## 输出详解
+
+### 配置详情表说明
+
+| 属性 | 说明 | 示例 |
+|------|------|------|
+| 配置名称 | 当前配置的标识符 | `anyrouter_main` |
+| 描述 | 配置用途描述 | `Anyrouter 主要配置 - 高速稳定` |
+| 提供商类型 | 🔄 官方中转 / 🤖 第三方模型 | `🔄 官方中转` |
+| 提供商 | 服务提供商名称 | `anyrouter` |
+| Base URL | API 端点地址 | `https://api.anyrouter.ai/v1` |
+| Auth Token | API 令牌（自动脱敏） | `sk-a...cdef` |
+| 主模型 | 默认使用的 AI 模型 | `claude-3-5-sonnet-20241022` |
+| 快速小模型 | 轻量级快速模型 | `claude-3-5-haiku-20241022` |
+| 账号标识 | 账号识别信息 | `👤 github_5953` |
+| 标签 | 配置分类标签 | `🏷️  stable, high-speed` |
+
+### 环境变量表说明
+
+显示 Claude Code 实际使用的环境变量：
+
+| 环境变量 | 用途 | 必需性 |
+|----------|------|--------|
+| `ANTHROPIC_BASE_URL` | API 端点地址 | ✓ 必需 |
+| `ANTHROPIC_AUTH_TOKEN` | API 认证令牌 | ✓ 必需 |
+| `ANTHROPIC_MODEL` | 默认 AI 模型 | ✓ 必需 |
+| `ANTHROPIC_SMALL_FAST_MODEL` | 轻量级模型 | ○ 可选 |
+
+**状态指示：**
+- **✓ 已设置** (绿色) - 必需变量已正确配置
+- **○ 未设置** (黄色) - 可选变量未配置
 
 ## 使用场景
 
 ### 确认当前配置
 
-在执行重要操作前,确认当前使用的配置：
+在执行重要操作前，通过表格快速确认配置：
 
 ```bash
 ccr current
+# 查看配置详情表，确认 Base URL、模型等关键信息
 ```
 
 ### 检查环境变量
 
-查看 Claude Code 的环境变量设置：
+通过环境变量表验证 Claude Code 的配置：
 
 ```bash
-ccr current | grep "ANTHROPIC_"
+ccr current
+# 查看环境变量表，确认所有必需变量都已设置（✓ 标记）
 ```
 
 ### 验证切换结果
 
-切换配置后,确认切换成功：
+切换配置后，立即查看新配置的详情：
 
 ```bash
 ccr switch anyrouter
 ccr current
+# 通过表格对比，确认切换是否成功
+```
+
+### 诊断配置问题
+
+当 Claude Code 行为异常时，检查配置：
+
+```bash
+ccr current
+# 检查环境变量表，查看是否有未设置的必需变量
+# 确认 Auth Token 是否正确（脱敏显示）
 ```
 
 ## 与 list 的区别
 
-- **list**: 显示所有可用配置的概览
-- **current**: 仅显示当前配置的详细信息
+| 命令 | 展示内容 | 使用场景 |
+|------|----------|----------|
+| `ccr list` | 所有配置的概览表格 | 对比多个配置，选择切换目标 |
+| `ccr current` | 当前配置的详细信息 | 查看当前配置的完整细节 |
+
+**选择建议：**
+- 需要**对比**多个配置 → 使用 `ccr list`
+- 需要查看**当前**配置详情 → 使用 `ccr current`
 
 ## 相关命令
 

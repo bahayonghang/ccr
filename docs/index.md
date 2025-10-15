@@ -22,35 +22,39 @@ hero:
 features:
   - icon: 🚀
     title: 快速切换配置
-    details: 直接操作 settings.json,配置立即生效,无需重启或手动设置环境变量
+    details: 直接操作 settings.json，配置立即生效，无需重启或手动设置环境变量
+
+  - icon: 📊
+    title: 精美表格界面
+    details: 使用 comfy-table 展示配置信息，一目了然对比不同配置，支持颜色高亮和图标标识
 
   - icon: 🔐
     title: 并发安全
-    details: 文件锁定机制确保多进程安全,原子写入操作防止数据损坏
+    details: 文件锁定机制确保多进程安全，原子写入操作防止数据损坏
 
   - icon: 📝
     title: 完整审计追踪
-    details: 记录所有操作历史,跟踪环境变量变更,自动脱敏敏感信息
+    details: 记录所有操作历史，跟踪环境变量变更，自动脱敏敏感信息
 
   - icon: 💾
     title: 智能备份管理
-    details: 自动保留最近10个备份,无需手动清理,支持从备份恢复,时间戳标记备份文件
+    details: 自动保留最近10个备份，无需手动清理，支持从备份恢复，时间戳标记备份文件
 
   - icon: ✅
     title: 配置验证
-    details: 自动验证配置完整性,检查必填字段,验证 URL 格式
+    details: 自动验证配置完整性，检查必填字段，验证 URL 格式
 
   - icon: 🌐
     title: Web 界面
-    details: 11 个完整 RESTful API 端点,基于 Service 层架构,模块化清晰
+    details: 11 个完整 RESTful API 端点，基于 Service 层架构，模块化清晰
 
   - icon: 🔄
     title: CCS 完全兼容
-    details: 共享 ~/.ccs_config.toml 配置文件,命令行接口一致,可与 CCS 共存
+    details: 共享 ~/.ccs_config.toml 配置文件，命令行接口一致，可与 CCS 共存
 
   - icon: ⚡
     title: 高性能
-    details: Rust 实现,性能卓越,快速响应,资源占用低
+    details: Rust 实现，性能卓越，快速响应，资源占用低
 ---
 
 ## 安装
