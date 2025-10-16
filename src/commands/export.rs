@@ -1,9 +1,9 @@
 // 📤 export 命令实现 - 导出配置
 // 💾 将配置备份到文件,支持敏感信息脱敏
 
-use crate::managers::config::ConfigManager;
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
+use crate::managers::config::ConfigManager;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -26,10 +26,7 @@ pub fn export_command(output: Option<String>, include_secrets: bool) -> Result<(
     ColorOutput::step("步骤 1/3: 读取配置");
     let config_manager = ConfigManager::default()?;
     let config = config_manager.load()?;
-    ColorOutput::success(&format!(
-        "已加载配置,共 {} 个配置节",
-        config.sections.len()
-    ));
+    ColorOutput::success(&format!("已加载配置,共 {} 个配置节", config.sections.len()));
     println!();
 
     // 确定输出路径

@@ -51,7 +51,10 @@ impl SystemInfoCache {
         // 🔄 启动后台更新线程
         let cache_clone = Arc::clone(&cache);
         thread::spawn(move || {
-            log::info!("🔄 系统信息缓存后台线程已启动，更新间隔: {:?}", update_interval);
+            log::info!(
+                "🔄 系统信息缓存后台线程已启动，更新间隔: {:?}",
+                update_interval
+            );
             loop {
                 thread::sleep(update_interval);
                 let new_info = Self::fetch_system_info();
@@ -72,10 +75,7 @@ impl SystemInfoCache {
     ///
     /// 这是一个非常快速的操作，因为数据已经在内存中
     pub fn get(&self) -> CachedSystemInfo {
-        self.cache
-            .read()
-            .expect("读取系统信息缓存失败")
-            .clone()
+        self.cache.read().expect("读取系统信息缓存失败").clone()
     }
 
     /// 🔍 获取系统信息（内部方法）

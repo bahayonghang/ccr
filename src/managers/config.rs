@@ -556,10 +556,7 @@ impl ConfigManager {
             // 🔍 只收集配置文件的 .bak 文件
             // 例如: .ccs_config.toml.20240101_120000.bak
             if let Some(name) = filename {
-                if path.is_file()
-                    && name.starts_with(config_filename)
-                    && name.ends_with(".bak")
-                {
+                if path.is_file() && name.starts_with(config_filename) && name.ends_with(".bak") {
                     backups.push(path);
                 }
             }

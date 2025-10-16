@@ -2,17 +2,17 @@
 // 处理所有 HTTP 请求并调用相应的 Service
 // 🎯 异步架构 - 使用 Axum 提供高性能处理
 
-use crate::managers::config::ConfigSection;
 use crate::core::error::CcrError;
 use crate::core::logging::ColorOutput;
+use crate::managers::config::ConfigSection;
 use crate::services::{BackupService, ConfigService, HistoryService, SettingsService};
 use crate::web::models::*;
 use crate::web::system_info_cache::SystemInfoCache;
 use axum::{
+    Json,
     extract::{Path, State as AxumState},
     http::StatusCode,
     response::{Html, IntoResponse, Response},
-    Json,
 };
 use std::sync::Arc;
 
@@ -140,7 +140,7 @@ pub async fn handle_switch_config(
             // 切换成功后，给文件系统一点时间确保历史记录写入完成
             // 这对于某些文件系统（特别是网络文件系统）可能是必要的
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-            
+
             // 验证历史记录已成功写入
             match state.history_service.get_recent(1) {
                 Ok(_) => Json(ApiResponse::success("配置切换成功")).into_response(),
@@ -180,9 +180,10 @@ pub async fn handle_add_config(
     };
 
     let name = req.name.clone();
-    let result = tokio::task::spawn_blocking(move || state.config_service.add_config(name, section))
-        .await
-        .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
+    let result =
+        tokio::task::spawn_blocking(move || state.config_service.add_config(name, section))
+            .await
+            .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
 
     match result {
         Ok(_) => Json(ApiResponse::success("配置添加成功")).into_response(),
@@ -254,7 +255,7 @@ pub async fn handle_delete_config(
 /// 处理获取历史记录
 pub async fn handle_get_history(AxumState(state): AxumState<AppState>) -> Response {
     log::debug!("开始获取历史记录");
-    
+
     let result = tokio::task::spawn_blocking(move || {
         let entries = state.history_service.get_recent(50)?;
         log::info!("成功加载 {} 条历史记录", entries.len());
@@ -266,7 +267,7 @@ pub async fn handle_get_history(AxumState(state): AxumState<AppState>) -> Respon
     match result {
         Ok(entries) => {
             log::debug!("准备序列化 {} 条历史记录为 JSON", entries.len());
-            
+
             let json_entries: Vec<HistoryEntryJson> = entries
                 .iter()
                 .map(|entry| HistoryEntryJson {
@@ -326,11 +327,10 @@ pub async fn handle_clean(
 ) -> Response {
     let days = req.days;
     let dry_run = req.dry_run;
-    let result = tokio::task::spawn_blocking(move || {
-        state.backup_service.clean_old_backups(days, dry_run)
-    })
-    .await
-    .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
+    let result =
+        tokio::task::spawn_blocking(move || state.backup_service.clean_old_backups(days, dry_run))
+            .await
+            .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
 
     match result {
         Ok(result) => {
@@ -351,10 +351,9 @@ pub async fn handle_clean(
 
 /// 处理获取 Settings
 pub async fn handle_get_settings(AxumState(state): AxumState<AppState>) -> Response {
-    let result =
-        tokio::task::spawn_blocking(move || state.settings_service.get_current_settings())
-            .await
-            .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
+    let result = tokio::task::spawn_blocking(move || state.settings_service.get_current_settings())
+        .await
+        .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
 
     match result {
         Ok(settings) => match serde_json::to_value(&settings) {
@@ -438,9 +437,10 @@ pub async fn handle_export(
     Json(req): Json<ExportRequest>,
 ) -> Response {
     let include_secrets = req.include_secrets;
-    let result = tokio::task::spawn_blocking(move || state.config_service.export_config(include_secrets))
-        .await
-        .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
+    let result =
+        tokio::task::spawn_blocking(move || state.config_service.export_config(include_secrets))
+            .await
+            .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
 
     match result {
         Ok(content) => {
@@ -471,9 +471,7 @@ pub async fn handle_import(
     let content = req.content.clone();
     let backup = req.backup;
     let result = tokio::task::spawn_blocking(move || {
-        state
-            .config_service
-            .import_config(&content, mode, backup)
+        state.config_service.import_config(&content, mode, backup)
     })
     .await
     .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));

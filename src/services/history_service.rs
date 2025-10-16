@@ -83,8 +83,8 @@ impl HistoryService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::managers::history::{OperationDetails, OperationResult};
     use crate::core::lock::LockManager;
+    use crate::managers::history::{OperationDetails, OperationResult};
     use tempfile::tempdir;
 
     #[test]

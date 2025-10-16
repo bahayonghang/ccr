@@ -144,7 +144,7 @@ mod tests {
             .collect();
 
         assert_eq!(backup_files.len(), 1);
-        
+
         // 验证原文件内容未改变
         let content = fs::read_to_string(&config_path).unwrap();
         assert_eq!(content, "test content");
@@ -154,7 +154,7 @@ mod tests {
     fn test_init_command_preserves_existing_config() {
         // 注意：这个测试使用真实的 home 目录路径判断
         // 但不会实际执行 init_command,只是验证逻辑
-        
+
         // 测试逻辑：当配置文件已存在且不使用 --force 时,应该保护现有文件
         let temp_dir = tempfile::tempdir().unwrap();
         let config_path = temp_dir.path().join(".ccs_config.toml");

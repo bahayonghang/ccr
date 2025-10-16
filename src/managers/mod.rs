@@ -22,4 +22,3 @@ pub use history::{
 };
 #[allow(unused_imports)]
 pub use settings::{ClaudeSettings, SettingsManager};
-

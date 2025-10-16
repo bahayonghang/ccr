@@ -9,9 +9,9 @@
 // - 💾 自动备份机制
 // - 🌍 环境变量映射
 
-use crate::managers::config::ConfigSection;
 use crate::core::error::{CcrError, Result};
 use crate::core::lock::LockManager;
+use crate::managers::config::ConfigSection;
 use crate::utils::Validatable;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -96,10 +96,8 @@ impl ClaudeSettings {
 
         // ⚡ 设置 small_fast_model
         if let Some(small_model) = &section.small_fast_model {
-            self.env.insert(
-                ANTHROPIC_SMALL_FAST_MODEL.to_string(),
-                small_model.clone(),
-            );
+            self.env
+                .insert(ANTHROPIC_SMALL_FAST_MODEL.to_string(), small_model.clone());
         }
 
         log::info!("✅ 环境变量已从配置更新");

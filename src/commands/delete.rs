@@ -81,7 +81,8 @@ pub fn delete_command(config_name: &str, force: bool) -> Result<()> {
         ColorOutput::warning("此操作不可恢复！");
         println!();
 
-        if !ColorOutput::ask_confirmation(&format!("确认删除配置 '{}'?", config_name), false) {
+        if !ColorOutput::ask_confirmation(&format!("确认删除配置 '{}'?", config_name), false)
+        {
             println!();
             ColorOutput::info("已取消删除");
             return Ok(());
@@ -171,7 +172,9 @@ mod tests {
         };
 
         config.sections.insert("test".into(), create_test_section());
-        config.sections.insert("default".into(), create_test_section());
+        config
+            .sections
+            .insert("default".into(), create_test_section());
 
         let manager = ConfigManager::new(&config_path);
         manager.save(&config).unwrap();
@@ -190,4 +193,3 @@ mod tests {
         assert!(!final_config.sections.contains_key("test"));
     }
 }
-

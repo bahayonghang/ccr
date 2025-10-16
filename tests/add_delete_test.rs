@@ -33,7 +33,9 @@ fn test_add_delete_config_flow() {
         account: None,
         tags: None,
     };
-    config.sections.insert("default".to_string(), default_section);
+    config
+        .sections
+        .insert("default".to_string(), default_section);
 
     // 保存初始配置
     manager.save(&config).unwrap();
@@ -54,12 +56,17 @@ fn test_add_delete_config_flow() {
 
     // 添加测试配置
     let mut updated_config = manager.load().unwrap();
-    updated_config.sections.insert("test_config".to_string(), test_section.clone());
+    updated_config
+        .sections
+        .insert("test_config".to_string(), test_section.clone());
     manager.save(&updated_config).unwrap();
 
     // 验证配置已添加
     let reloaded = manager.load().unwrap();
-    assert!(reloaded.sections.contains_key("test_config"), "配置应该已添加");
+    assert!(
+        reloaded.sections.contains_key("test_config"),
+        "配置应该已添加"
+    );
     assert_eq!(reloaded.sections.len(), 2, "应该有2个配置");
 
     // 验证添加的配置内容
@@ -96,7 +103,10 @@ fn test_add_delete_config_flow() {
 
     // 验证配置已删除
     let after_delete = manager.load().unwrap();
-    assert!(!after_delete.sections.contains_key("test_config"), "配置应该已删除");
+    assert!(
+        !after_delete.sections.contains_key("test_config"),
+        "配置应该已删除"
+    );
     assert_eq!(after_delete.sections.len(), 1, "应该只剩1个配置");
 
     println!("✅ 配置删除测试通过");
@@ -143,7 +153,9 @@ fn test_add_config_validation() {
         account: None,
         tags: None,
     };
-    config.sections.insert("default".to_string(), default_section);
+    config
+        .sections
+        .insert("default".to_string(), default_section);
     manager.save(&config).unwrap();
 
     // 测试添加无效配置（缺少 base_url）
@@ -232,4 +244,3 @@ fn test_delete_current_config_warning() {
     drop(manager);
     fs::remove_dir_all(temp_dir).unwrap();
 }
-

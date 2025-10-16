@@ -6,7 +6,9 @@ use crate::core::logging::ColorOutput;
 use crate::services::ConfigService;
 use crate::utils::Validatable;
 use colored::Colorize;
-use comfy_table::{presets::UTF8_FULL, Attribute, Cell, Color as TableColor, ContentArrangement, Table};
+use comfy_table::{
+    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
+};
 
 /// 📜 列出所有可用配置
 ///
@@ -28,8 +30,14 @@ pub fn list_command() -> Result<()> {
         "配置文件: {}",
         service.config_manager().config_path().display()
     ));
-    ColorOutput::info(&format!("默认配置: {}", list.default_config.bright_yellow()));
-    ColorOutput::info(&format!("当前配置: {}", list.current_config.bright_green().bold()));
+    ColorOutput::info(&format!(
+        "默认配置: {}",
+        list.default_config.bright_yellow()
+    ));
+    ColorOutput::info(&format!(
+        "当前配置: {}",
+        list.current_config.bright_green().bold()
+    ));
     println!();
 
     // 列出所有配置节
@@ -44,19 +52,35 @@ pub fn list_command() -> Result<()> {
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("状态").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-            Cell::new("配置名称").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-            Cell::new("提供商").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-            Cell::new("Base URL").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-            Cell::new("模型").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-            Cell::new("账号/标签").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-            Cell::new("验证").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
+            Cell::new("状态")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("配置名称")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("提供商")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("Base URL")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("模型")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("账号/标签")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("验证")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
         ]);
 
     for config_info in &list.configs {
         // 状态列
         let status = if config_info.is_current {
-            Cell::new("▶ 当前").fg(TableColor::Green).add_attribute(Attribute::Bold)
+            Cell::new("▶ 当前")
+                .fg(TableColor::Green)
+                .add_attribute(Attribute::Bold)
         } else if config_info.is_default {
             Cell::new("⭐ 默认").fg(TableColor::Yellow)
         } else {
@@ -65,7 +89,9 @@ pub fn list_command() -> Result<()> {
 
         // 配置名称
         let name_cell = if config_info.is_current {
-            Cell::new(&config_info.name).fg(TableColor::Green).add_attribute(Attribute::Bold)
+            Cell::new(&config_info.name)
+                .fg(TableColor::Green)
+                .add_attribute(Attribute::Bold)
         } else {
             Cell::new(&config_info.name)
         };
@@ -127,8 +153,12 @@ pub fn list_command() -> Result<()> {
         // 验证状态
         let section = config.get_section(&config_info.name)?;
         let validation_cell = match section.validate() {
-            Ok(_) => Cell::new("✓").fg(TableColor::Green).add_attribute(Attribute::Bold),
-            Err(_) => Cell::new("✗").fg(TableColor::Red).add_attribute(Attribute::Bold),
+            Ok(_) => Cell::new("✓")
+                .fg(TableColor::Green)
+                .add_attribute(Attribute::Bold),
+            Err(_) => Cell::new("✗")
+                .fg(TableColor::Red)
+                .add_attribute(Attribute::Bold),
         };
 
         table.add_row(vec![
@@ -144,7 +174,7 @@ pub fn list_command() -> Result<()> {
 
     println!("{}", table);
     println!();
-    
+
     ColorOutput::success(&format!("共找到 {} 个配置", list.configs.len()));
     println!();
     ColorOutput::info("提示:");

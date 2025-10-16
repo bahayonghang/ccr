@@ -3,7 +3,9 @@
 
 use ccr::core::lock::{FileLock, LockManager};
 use ccr::managers::config::{CcsConfig, ConfigManager, ConfigSection};
-use ccr::managers::history::{HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType};
+use ccr::managers::history::{
+    HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
+};
 use ccr::managers::settings::{ClaudeSettings, SettingsManager};
 use ccr::utils::Validatable;
 use indexmap::IndexMap;
@@ -38,20 +40,20 @@ fn test_file_lock_exclusivity() {
 
     // 第一个锁
     let lock1 = FileLock::new(&lock_path, Duration::from_secs(5)).unwrap();
-    
+
     // 在另一个作用域尝试获取锁（应该失败）
     let lock2_result = FileLock::new(&lock_path, Duration::from_millis(20));
-    
+
     // 释放第一个锁
     drop(lock1);
-    
+
     // 等待确保锁完全释放
     thread::sleep(Duration::from_millis(100));
-    
+
     // 现在应该能获取锁
     let lock3 = FileLock::new(&lock_path, Duration::from_secs(1));
     assert!(lock3.is_ok(), "释放后应该能获取锁");
-    
+
     // 验证锁的排他性：如果第二个锁失败，说明锁是排他的
     if lock2_result.is_err() {
         println!("✓ 锁机制正常：第二个锁获取失败（排他性验证通过）");
@@ -68,7 +70,9 @@ fn test_lock_manager_multiple_resources() {
     // 同时获取多个不同资源的锁
     let lock1 = lock_manager.lock_settings(Duration::from_secs(5)).unwrap();
     let lock2 = lock_manager.lock_history(Duration::from_secs(5)).unwrap();
-    let lock3 = lock_manager.lock_resource("custom", Duration::from_secs(5)).unwrap();
+    let lock3 = lock_manager
+        .lock_resource("custom", Duration::from_secs(5))
+        .unwrap();
 
     // 所有锁都应该成功获取（不同资源）
     assert!(temp_dir.path().join("claude_settings.lock").exists());
@@ -92,7 +96,11 @@ fn test_settings_manager_concurrent_writes() {
     let lock_dir = temp_dir.path().join("locks");
 
     let lock_manager = LockManager::new(&lock_dir);
-    let manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+    let manager = Arc::new(SettingsManager::new(
+        &settings_path,
+        &backup_dir,
+        lock_manager,
+    ));
 
     // 使用 Barrier 确保线程同时开始
     let barrier = Arc::new(Barrier::new(5));
@@ -143,7 +151,11 @@ fn test_settings_manager_sequential_consistency() {
     let lock_dir = temp_dir.path().join("locks");
 
     let lock_manager = LockManager::new(&lock_dir);
-    let manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+    let manager = Arc::new(SettingsManager::new(
+        &settings_path,
+        &backup_dir,
+        lock_manager,
+    ));
 
     let start_time = Instant::now();
     let mut handles = vec![];
@@ -167,7 +179,7 @@ fn test_settings_manager_sequential_consistency() {
     }
 
     let elapsed = start_time.elapsed();
-    
+
     // 由于文件锁的存在，操作应该是串行的
     // 但因为指数退避优化，实际时间会少于预期
     println!("并发写入耗时: {:?}", elapsed);
@@ -227,7 +239,11 @@ fn test_history_manager_concurrent_adds() {
     }
 
     println!("顺序并发添加成功: {}/10", success_count);
-    assert!(success_count >= 8, "至少 80% 的操作应该成功，实际成功: {}/10", success_count);
+    assert!(
+        success_count >= 8,
+        "至少 80% 的操作应该成功，实际成功: {}/10",
+        success_count
+    );
 
     // 验证记录数量
     let entries = manager.load().unwrap();
@@ -246,11 +262,17 @@ fn test_concurrent_read_write_settings() {
     let lock_dir = temp_dir.path().join("locks");
 
     let lock_manager = LockManager::new(&lock_dir);
-    let manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+    let manager = Arc::new(SettingsManager::new(
+        &settings_path,
+        &backup_dir,
+        lock_manager,
+    ));
 
     // 初始设置
     let mut initial = ClaudeSettings::new();
-    initial.env.insert("ANTHROPIC_BASE_URL".into(), "initial".into());
+    initial
+        .env
+        .insert("ANTHROPIC_BASE_URL".into(), "initial".into());
     manager.save_atomic(&initial).unwrap();
 
     let mut handles = vec![];
@@ -319,10 +341,17 @@ fn test_lock_timeout_prevents_deadlock() {
     let result = FileLock::new(&lock_path, Duration::from_millis(50));
     let elapsed = start.elapsed();
 
-    println!("锁获取尝试耗时: {:?}, 结果: {}", elapsed, if result.is_ok() { "成功" } else { "失败" });
+    println!(
+        "锁获取尝试耗时: {:?}, 结果: {}",
+        elapsed,
+        if result.is_ok() { "成功" } else { "失败" }
+    );
 
     // 验证超时机制：即使失败，也应该在合理时间内返回
-    assert!(elapsed < Duration::from_secs(3), "超时机制应该在合理时间内返回");
+    assert!(
+        elapsed < Duration::from_secs(3),
+        "超时机制应该在合理时间内返回"
+    );
 
     // 注意：由于指数退避优化，在很短的时间内可能获取到锁
     // 这里主要验证不会永久阻塞
@@ -352,9 +381,11 @@ fn test_lock_manager_resource_isolation() {
             barrier_clone.wait();
 
             let resource = format!("resource{}", i);
-            let _lock = manager_clone.lock_resource(&resource, Duration::from_secs(5)).unwrap();
+            let _lock = manager_clone
+                .lock_resource(&resource, Duration::from_secs(5))
+                .unwrap();
             thread::sleep(Duration::from_millis(100));
-            
+
             Ok::<(), ccr::core::error::CcrError>(())
         });
 
@@ -383,7 +414,9 @@ fn test_concurrent_config_operations() {
         current_config: "config0".into(),
         sections: IndexMap::new(),
     };
-    config.sections.insert("config0".into(), create_test_config("config0"));
+    config
+        .sections
+        .insert("config0".into(), create_test_config("config0"));
 
     let manager = Arc::new(ConfigManager::new(&config_path));
     manager.save(&config).unwrap();
@@ -421,7 +454,7 @@ fn test_concurrent_history_recording() {
     // 10 个线程顺序记录历史（更稳定的测试方式）
     for i in 0..10 {
         let manager_clone = Arc::clone(&manager);
-        
+
         let handle = thread::spawn(move || {
             // 错开启动时间
             thread::sleep(Duration::from_millis(i as u64 * 15));
@@ -450,7 +483,11 @@ fn test_concurrent_history_recording() {
     }
 
     println!("顺序并发记录成功: {}/10", success_count);
-    assert!(success_count >= 8, "至少 80% 的操作应该成功，实际成功: {}/10", success_count);
+    assert!(
+        success_count >= 8,
+        "至少 80% 的操作应该成功，实际成功: {}/10",
+        success_count
+    );
 
     let entries = manager.load().unwrap();
     assert_eq!(entries.len(), success_count, "记录数量应该等于成功次数");
@@ -468,7 +505,11 @@ fn test_high_concurrency_settings_writes() {
     let lock_dir = temp_dir.path().join("locks");
 
     let lock_manager = LockManager::new(&lock_dir);
-    let manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+    let manager = Arc::new(SettingsManager::new(
+        &settings_path,
+        &backup_dir,
+        lock_manager,
+    ));
 
     // 初始化
     let initial = ClaudeSettings::new();
@@ -485,7 +526,7 @@ fn test_high_concurrency_settings_writes() {
         let handle = thread::spawn(move || {
             let mut settings = ClaudeSettings::new();
             settings.env.insert("THREAD_ID".into(), i.to_string());
-            
+
             if manager_clone.save_atomic(&settings).is_ok() {
                 let mut count = count_clone.lock().unwrap();
                 *count += 1;
@@ -525,15 +566,15 @@ fn test_lock_fairness() {
 
         let handle = thread::spawn(move || {
             let _lock = FileLock::new(lock_path_clone.as_ref(), Duration::from_secs(10)).unwrap();
-            
+
             // 临界区
             let mut count = counter_clone.lock().unwrap();
             *count += 1;
             let current = *count;
             drop(count);
-            
+
             thread::sleep(Duration::from_millis(50)); // 模拟工作
-            
+
             println!("Thread {} acquired lock, counter = {}", i, current);
         });
 
@@ -548,4 +589,3 @@ fn test_lock_fairness() {
     let final_count = *counter.lock().unwrap();
     assert_eq!(final_count, 5, "所有线程都应该成功执行");
 }
-

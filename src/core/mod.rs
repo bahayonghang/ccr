@@ -24,4 +24,4 @@ pub use error::{CcrError, Result};
 pub use file_manager::FileManager;
 #[allow(unused_imports)]
 pub use lock::{FileLock, LockManager};
-pub use logging::{init_logger, ColorOutput};
+pub use logging::{ColorOutput, init_logger};

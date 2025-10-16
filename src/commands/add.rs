@@ -102,7 +102,10 @@ pub fn add_command() -> Result<()> {
         println!("  描述: {}", desc);
     }
     println!("  Base URL: {}", section.base_url.as_ref().unwrap());
-    println!("  Auth Token: {}", ColorOutput::mask_sensitive(section.auth_token.as_ref().unwrap()));
+    println!(
+        "  Auth Token: {}",
+        ColorOutput::mask_sensitive(section.auth_token.as_ref().unwrap())
+    );
     if let Some(m) = &section.model {
         println!("  主模型: {}", m);
     }
@@ -225,11 +228,7 @@ fn prompt_tags() -> Option<Vec<String>> {
             .filter(|s| !s.is_empty())
             .collect();
 
-        if tags.is_empty() {
-            None
-        } else {
-            Some(tags)
-        }
+        if tags.is_empty() { None } else { Some(tags) }
     }
 }
 
@@ -245,4 +244,3 @@ mod tests {
         assert!(true);
     }
 }
-

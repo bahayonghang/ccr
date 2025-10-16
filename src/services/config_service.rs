@@ -1,8 +1,8 @@
 // ⚙️ 配置服务
 // 封装配置相关的业务逻辑
 
-use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection};
 use crate::core::error::{CcrError, Result};
+use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection};
 use crate::utils::Validatable;
 use rayon::prelude::*;
 use std::sync::Arc;
@@ -71,20 +71,26 @@ impl ConfigService {
         let configs: Vec<ConfigInfo> = config
             .list_sections()
             .filter_map(|name| {
-                config.get_section(name.as_str()).ok().map(|section| ConfigInfo {
-                    name: name.clone(),
-                    description: section.display_description().to_string(),
-                    base_url: section.base_url.clone(),
-                    auth_token: section.auth_token.clone(),
-                    model: section.model.clone(),
-                    small_fast_model: section.small_fast_model.clone(),
-                    is_current: name == &config.current_config,
-                    is_default: name == &config.default_config,
-                    provider: section.provider.clone(),
-                    provider_type: section.provider_type.as_ref().map(|t| t.to_string_value().to_string()),
-                    account: section.account.clone(),
-                    tags: section.tags.clone(),
-                })
+                config
+                    .get_section(name.as_str())
+                    .ok()
+                    .map(|section| ConfigInfo {
+                        name: name.clone(),
+                        description: section.display_description().to_string(),
+                        base_url: section.base_url.clone(),
+                        auth_token: section.auth_token.clone(),
+                        model: section.model.clone(),
+                        small_fast_model: section.small_fast_model.clone(),
+                        is_current: name == &config.current_config,
+                        is_default: name == &config.default_config,
+                        provider: section.provider.clone(),
+                        provider_type: section
+                            .provider_type
+                            .as_ref()
+                            .map(|t| t.to_string_value().to_string()),
+                        account: section.account.clone(),
+                        tags: section.tags.clone(),
+                    })
             })
             .collect();
 
@@ -110,7 +116,10 @@ impl ConfigService {
             is_current: true,
             is_default: config.current_config == config.default_config,
             provider: section.provider.clone(),
-            provider_type: section.provider_type.as_ref().map(|t| t.to_string_value().to_string()),
+            provider_type: section
+                .provider_type
+                .as_ref()
+                .map(|t| t.to_string_value().to_string()),
             account: section.account.clone(),
             tags: section.tags.clone(),
         })
@@ -131,7 +140,10 @@ impl ConfigService {
             is_current: name == config.current_config,
             is_default: name == config.default_config,
             provider: section.provider.clone(),
-            provider_type: section.provider_type.as_ref().map(|t| t.to_string_value().to_string()),
+            provider_type: section
+                .provider_type
+                .as_ref()
+                .map(|t| t.to_string_value().to_string()),
             account: section.account.clone(),
             tags: section.tags.clone(),
         })
@@ -226,11 +238,9 @@ impl ConfigService {
 
         let results: Vec<(String, bool, Option<String>)> = sections
             .par_iter()
-            .map(|(name, section)| {
-                match section.validate() {
-                    Ok(_) => ((*name).clone(), true, None),
-                    Err(e) => ((*name).clone(), false, Some(e.to_string())),
-                }
+            .map(|(name, section)| match section.validate() {
+                Ok(_) => ((*name).clone(), true, None),
+                Err(e) => ((*name).clone(), false, Some(e.to_string())),
             })
             .collect();
 
@@ -313,7 +323,11 @@ impl ConfigService {
                 // 合并模式
                 if self.config_manager.config_path().exists() {
                     let mut current_config = self.config_manager.load()?;
-                    merge_configs(&mut current_config, import_config, self.config_manager.as_ref())?
+                    merge_configs(
+                        &mut current_config,
+                        import_config,
+                        self.config_manager.as_ref(),
+                    )?
                 } else {
                     // 没有现有配置，直接使用导入的
                     self.config_manager.save(&import_config)?;

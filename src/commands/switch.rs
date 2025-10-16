@@ -8,16 +8,18 @@
 // 4. 📝 更新 ccs_config 当前配置标记
 // 5. 📚 记录操作历史(带环境变量变化)
 
-use crate::managers::config::ConfigManager;
 use crate::core::error::{CcrError, Result};
+use crate::core::logging::ColorOutput;
+use crate::managers::config::ConfigManager;
 use crate::managers::history::{
     HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
 };
-use crate::core::logging::ColorOutput;
 use crate::managers::settings::SettingsManager;
 use crate::utils::Validatable;
-use comfy_table::{presets::UTF8_FULL, Attribute, Cell, Color as TableColor, ContentArrangement, Table};
 use colored::Colorize;
+use comfy_table::{
+    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
+};
 
 /// 🔄 切换到指定配置
 ///
@@ -111,7 +113,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     // 记录环境变量变化
     let new_env = new_settings.anthropic_env_status();
     let new_env_display = new_env.clone(); // 克隆一份用于后续展示
-    
+
     for (var_name, new_value) in new_env {
         let old_value = old_env.get(&var_name).and_then(|v| v.clone());
         history_entry.add_env_change(var_name, old_value, new_value);
@@ -133,14 +135,20 @@ pub fn switch_command(config_name: &str) -> Result<()> {
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("属性").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-            Cell::new("新配置").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
+            Cell::new("属性")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("新配置")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
         ]);
 
     // 配置名称
     config_table.add_row(vec![
         Cell::new("配置名称").fg(TableColor::Yellow),
-        Cell::new(config_name).fg(TableColor::Green).add_attribute(Attribute::Bold),
+        Cell::new(config_name)
+            .fg(TableColor::Green)
+            .add_attribute(Attribute::Bold),
     ]);
 
     // 描述
@@ -173,7 +181,9 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     // Base URL
     if let Some(base_url) = &target_section.base_url {
         config_table.add_row(vec![
-            Cell::new("Base URL").fg(TableColor::Yellow).add_attribute(Attribute::Bold),
+            Cell::new("Base URL")
+                .fg(TableColor::Yellow)
+                .add_attribute(Attribute::Bold),
             Cell::new(base_url).fg(TableColor::Blue),
         ]);
     }
@@ -181,7 +191,9 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     // Auth Token (脱敏)
     if let Some(auth_token) = &target_section.auth_token {
         config_table.add_row(vec![
-            Cell::new("Auth Token").fg(TableColor::Yellow).add_attribute(Attribute::Bold),
+            Cell::new("Auth Token")
+                .fg(TableColor::Yellow)
+                .add_attribute(Attribute::Bold),
             Cell::new(ColorOutput::mask_sensitive(auth_token)).fg(TableColor::DarkGrey),
         ]);
     }
@@ -232,8 +244,12 @@ pub fn switch_command(config_name: &str) -> Result<()> {
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("环境变量").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-            Cell::new("变化").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
+            Cell::new("环境变量")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("变化")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
         ]);
 
     // 显示环境变量变化
@@ -249,7 +265,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
         let new_val = new_env_display.get(var_name).and_then(|v| v.as_ref());
 
         let is_sensitive = var_name.contains("TOKEN") || var_name.contains("KEY");
-        
+
         let change_display = match (old_val, new_val) {
             (None, None) => "-".to_string(),
             (None, Some(new)) => {
@@ -305,10 +321,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
             Cell::new(change_display).fg(TableColor::DarkGrey)
         };
 
-        env_changes_table.add_row(vec![
-            Cell::new(var_name),
-            change_cell,
-        ]);
+        env_changes_table.add_row(vec![Cell::new(var_name), change_cell]);
     }
 
     println!("{}", env_changes_table);

@@ -209,9 +209,12 @@ impl HistoryManager {
 
     /// 添加历史记录条目
     pub fn add(&self, entry: HistoryEntry) -> Result<()> {
-        log::debug!("开始添加历史记录: operation={:?}, to_config={:?}", 
-                    entry.operation, entry.details.to_config);
-        
+        log::debug!(
+            "开始添加历史记录: operation={:?}, to_config={:?}",
+            entry.operation,
+            entry.details.to_config
+        );
+
         // 获取文件锁
         let _lock = self.lock_manager.lock_history(Duration::from_secs(10))?;
         log::debug!("已获取历史记录文件锁");
@@ -226,10 +229,14 @@ impl HistoryManager {
 
         // 保存
         self.save(&entries)?;
-        log::info!("✅ 历史记录已添加 (ID: {}, 总数: {} -> {})", 
-                   entry.id, old_count, entries.len());
+        log::info!(
+            "✅ 历史记录已添加 (ID: {}, 总数: {} -> {})",
+            entry.id,
+            old_count,
+            entries.len()
+        );
         log::debug!("历史记录文件路径: {:?}", self.history_path);
-        
+
         Ok(())
     }
 

@@ -8,8 +8,8 @@ use crate::services::{BackupService, ConfigService, HistoryService, SettingsServ
 use crate::web::handlers::{self, AppState};
 use crate::web::system_info_cache::SystemInfoCache;
 use axum::{
-    routing::{delete, get, post},
     Router,
+    routing::{delete, get, post},
 };
 use std::sync::Arc;
 use std::time::Duration;

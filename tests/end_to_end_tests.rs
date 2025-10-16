@@ -3,7 +3,9 @@
 
 use ccr::core::lock::LockManager;
 use ccr::managers::config::{CcsConfig, ConfigManager, ConfigSection};
-use ccr::managers::history::{HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType};
+use ccr::managers::history::{
+    HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
+};
 use ccr::managers::settings::SettingsManager;
 use ccr::services::{ConfigService, HistoryService, SettingsService};
 use ccr::utils::Validatable;
@@ -22,7 +24,7 @@ struct TestEnvironment {
 impl TestEnvironment {
     fn new() -> Self {
         let temp_dir = tempdir().unwrap();
-        
+
         // 直接在临时目录下创建文件
         let config_path = temp_dir.path().join("config.toml");
         let settings_path = temp_dir.path().join("settings.json");
@@ -37,7 +39,11 @@ impl TestEnvironment {
         let config_manager = Arc::new(ConfigManager::new(&config_path));
         let lock_manager_settings = LockManager::new(&lock_dir);
         let lock_manager_history = LockManager::new(&lock_dir);
-        let settings_manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager_settings));
+        let settings_manager = Arc::new(SettingsManager::new(
+            &settings_path,
+            &backup_dir,
+            lock_manager_settings,
+        ));
         let history_manager = Arc::new(HistoryManager::new(&history_path, lock_manager_history));
 
         Self {
@@ -106,17 +112,32 @@ fn test_complete_switch_workflow() {
     assert_eq!(list.current_config, "anthropic");
 
     // 步骤 2: 应用初始配置到 settings
-    let section1 = env.config_service.load_config().unwrap().get_section("anthropic").unwrap().clone();
+    let section1 = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anthropic")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section1).unwrap();
 
     // 验证设置已应用
     let settings = env.settings_service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.anthropic.com".to_string()));
-    assert_eq!(settings.env.get("ANTHROPIC_AUTH_TOKEN"), Some(&"sk-ant-official-token-12345".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.anthropic.com".to_string())
+    );
+    assert_eq!(
+        settings.env.get("ANTHROPIC_AUTH_TOKEN"),
+        Some(&"sk-ant-official-token-12345".to_string())
+    );
     assert!(settings.validate().is_ok());
 
     // 步骤 3: 备份当前设置
-    let backup_path = env.settings_service.backup_settings(Some("before_switch")).unwrap();
+    let backup_path = env
+        .settings_service
+        .backup_settings(Some("before_switch"))
+        .unwrap();
     assert!(backup_path.exists());
 
     // 步骤 4: 记录切换操作
@@ -130,7 +151,7 @@ fn test_complete_switch_workflow() {
         },
         OperationResult::Success,
     );
-    
+
     entry.add_env_change(
         "ANTHROPIC_BASE_URL".into(),
         Some("https://api.anthropic.com".into()),
@@ -140,7 +161,13 @@ fn test_complete_switch_workflow() {
     env.history_service.record_operation(entry).unwrap();
 
     // 步骤 5: 切换到新配置
-    let section2 = env.config_service.load_config().unwrap().get_section("anyrouter").unwrap().clone();
+    let section2 = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anyrouter")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section2).unwrap();
 
     // 步骤 6: 更新当前配置标记
@@ -148,8 +175,14 @@ fn test_complete_switch_workflow() {
 
     // 验证切换成功
     let settings = env.settings_service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.anyrouter.ai/v1".to_string()));
-    assert_eq!(settings.env.get("ANTHROPIC_AUTH_TOKEN"), Some(&"sk-anyrouter-token-67890".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.anyrouter.ai/v1".to_string())
+    );
+    assert_eq!(
+        settings.env.get("ANTHROPIC_AUTH_TOKEN"),
+        Some(&"sk-anyrouter-token-67890".to_string())
+    );
 
     let current_config = env.config_service.load_config().unwrap();
     assert_eq!(current_config.current_config, "anyrouter");
@@ -168,27 +201,48 @@ fn test_multi_config_switch_with_rollback() {
     env.setup_configs();
 
     // 应用初始配置
-    let section = env.config_service.load_config().unwrap().get_section("anthropic").unwrap().clone();
+    let section = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anthropic")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section).unwrap();
 
     // 备份
-    let backup1 = env.settings_service.backup_settings(Some("state1")).unwrap();
+    let backup1 = env
+        .settings_service
+        .backup_settings(Some("state1"))
+        .unwrap();
 
     // 切换到 anyrouter
-    let section = env.config_service.load_config().unwrap().get_section("anyrouter").unwrap().clone();
+    let section = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anyrouter")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section).unwrap();
     env.config_service.set_current("anyrouter").unwrap();
 
     // 验证切换
     let settings = env.settings_service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.anyrouter.ai/v1".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.anyrouter.ai/v1".to_string())
+    );
 
     // 回滚到备份
     env.settings_service.restore_settings(&backup1).unwrap();
 
     // 验证回滚成功
     let settings = env.settings_service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.anthropic.com".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.anthropic.com".to_string())
+    );
 }
 
 #[test]
@@ -203,27 +257,32 @@ fn test_import_export_roundtrip() {
     assert!(exported.contains("sk-ant-official-token-12345"));
 
     // 添加新配置
-    env.config_service.add_config(
-        "new_config".into(),
-        ConfigSection {
-            description: Some("New".into()),
-            base_url: Some("https://api.new.com".into()),
-            auth_token: Some("sk-new-token".into()),
-            model: Some("new-model".into()),
-            small_fast_model: None,
-            provider: None,
-            provider_type: None,
-            account: None,
-            tags: None,
-        },
-    ).unwrap();
+    env.config_service
+        .add_config(
+            "new_config".into(),
+            ConfigSection {
+                description: Some("New".into()),
+                base_url: Some("https://api.new.com".into()),
+                auth_token: Some("sk-new-token".into()),
+                model: Some("new-model".into()),
+                small_fast_model: None,
+                provider: None,
+                provider_type: None,
+                account: None,
+                tags: None,
+            },
+        )
+        .unwrap();
 
     // 导入之前导出的配置（合并模式）
-    let _result = env.config_service.import_config(
-        &exported,
-        ccr::services::config_service::ImportMode::Merge,
-        false,
-    ).unwrap();
+    let _result = env
+        .config_service
+        .import_config(
+            &exported,
+            ccr::services::config_service::ImportMode::Merge,
+            false,
+        )
+        .unwrap();
 
     // 验证导入结果
     // new_config 应该被保留，原有配置被更新
@@ -237,7 +296,13 @@ fn test_validation_workflow() {
     env.setup_configs();
 
     // 应用配置
-    let section = env.config_service.load_config().unwrap().get_section("anthropic").unwrap().clone();
+    let section = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anthropic")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section).unwrap();
 
     // 验证配置文件
@@ -280,7 +345,13 @@ fn test_daily_usage_scenario() {
 
     // 上午：使用 Anthropic 官方 API
     println!("上午：切换到 Anthropic");
-    let section = env.config_service.load_config().unwrap().get_section("anthropic").unwrap().clone();
+    let section = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anthropic")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section).unwrap();
     env.config_service.set_current("anthropic").unwrap();
 
@@ -298,9 +369,18 @@ fn test_daily_usage_scenario() {
 
     // 中午：切换到 AnyRouter 节省成本
     println!("中午：切换到 AnyRouter");
-    let backup_noon = env.settings_service.backup_settings(Some("noon_backup")).unwrap();
-    
-    let section = env.config_service.load_config().unwrap().get_section("anyrouter").unwrap().clone();
+    let backup_noon = env
+        .settings_service
+        .backup_settings(Some("noon_backup"))
+        .unwrap();
+
+    let section = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anyrouter")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section).unwrap();
     env.config_service.set_current("anyrouter").unwrap();
 
@@ -338,7 +418,10 @@ fn test_daily_usage_scenario() {
     assert_eq!(current.current_config, "anyrouter");
 
     let final_settings = env.settings_service.get_current_settings().unwrap();
-    assert_eq!(final_settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.anyrouter.ai/v1".to_string()));
+    assert_eq!(
+        final_settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.anyrouter.ai/v1".to_string())
+    );
 }
 
 #[test]
@@ -347,18 +430,36 @@ fn test_backup_and_recovery_scenario() {
     env.setup_configs();
 
     // 初始配置：Anthropic
-    let section = env.config_service.load_config().unwrap().get_section("anthropic").unwrap().clone();
+    let section = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anthropic")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section).unwrap();
 
     // 备份点 1
-    let backup1 = env.settings_service.backup_settings(Some("checkpoint1")).unwrap();
+    let backup1 = env
+        .settings_service
+        .backup_settings(Some("checkpoint1"))
+        .unwrap();
 
     // 切换到 AnyRouter
-    let section = env.config_service.load_config().unwrap().get_section("anyrouter").unwrap().clone();
+    let section = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anyrouter")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section).unwrap();
 
     // 备份点 2
-    let backup2 = env.settings_service.backup_settings(Some("checkpoint2")).unwrap();
+    let backup2 = env
+        .settings_service
+        .backup_settings(Some("checkpoint2"))
+        .unwrap();
 
     // 验证有 2 个备份
     let backups = env.settings_service.list_backups().unwrap();
@@ -367,12 +468,18 @@ fn test_backup_and_recovery_scenario() {
     // 恢复到备份点 1
     env.settings_service.restore_settings(&backup1).unwrap();
     let settings = env.settings_service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.anthropic.com".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.anthropic.com".to_string())
+    );
 
     // 恢复到备份点 2
     env.settings_service.restore_settings(&backup2).unwrap();
     let settings = env.settings_service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.anyrouter.ai/v1".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.anyrouter.ai/v1".to_string())
+    );
 }
 
 #[test]
@@ -381,11 +488,20 @@ fn test_error_recovery_scenario() {
     env.setup_configs();
 
     // 应用有效配置
-    let section = env.config_service.load_config().unwrap().get_section("anthropic").unwrap().clone();
+    let section = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anthropic")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section).unwrap();
 
     // 备份
-    let backup = env.settings_service.backup_settings(Some("safety_backup")).unwrap();
+    let backup = env
+        .settings_service
+        .backup_settings(Some("safety_backup"))
+        .unwrap();
 
     // 尝试应用无效配置（应该失败）
     let invalid_section = ConfigSection {
@@ -404,7 +520,10 @@ fn test_error_recovery_scenario() {
 
     // 由于验证失败，设置不应该被更新
     let settings = env.settings_service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.anthropic.com".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.anthropic.com".to_string())
+    );
 
     // 验证备份仍然有效
     assert!(backup.exists());
@@ -429,11 +548,14 @@ provider = "glm"
 tags = ["third_party", "chinese"]
     "#;
 
-    let result = env.config_service.import_config(
-        import_toml,
-        ccr::services::config_service::ImportMode::Merge,
-        false,
-    ).unwrap();
+    let result = env
+        .config_service
+        .import_config(
+            import_toml,
+            ccr::services::config_service::ImportMode::Merge,
+            false,
+        )
+        .unwrap();
 
     assert_eq!(result.added, 1); // GLM 是新增的
     assert_eq!(result.updated, 0); // anthropic 和 anyrouter 保持不变
@@ -444,7 +566,10 @@ tags = ["third_party", "chinese"]
 
     let glm_config = env.config_service.get_config("glm").unwrap();
     assert_eq!(glm_config.description, "GLM API");
-    assert_eq!(glm_config.tags, Some(vec!["third_party".into(), "chinese".into()]));
+    assert_eq!(
+        glm_config.tags,
+        Some(vec!["third_party".into(), "chinese".into()])
+    );
 }
 
 #[test]
@@ -456,30 +581,35 @@ fn test_config_export_import_replace_workflow() {
     let exported = env.config_service.export_config(true).unwrap();
 
     // 添加临时配置
-    env.config_service.add_config(
-        "temp".into(),
-        ConfigSection {
-            description: Some("Temp".into()),
-            base_url: Some("https://temp.com".into()),
-            auth_token: Some("temp-token".into()),
-            model: None,
-            small_fast_model: None,
-            provider: None,
-            provider_type: None,
-            account: None,
-            tags: None,
-        },
-    ).unwrap();
+    env.config_service
+        .add_config(
+            "temp".into(),
+            ConfigSection {
+                description: Some("Temp".into()),
+                base_url: Some("https://temp.com".into()),
+                auth_token: Some("temp-token".into()),
+                model: None,
+                small_fast_model: None,
+                provider: None,
+                provider_type: None,
+                account: None,
+                tags: None,
+            },
+        )
+        .unwrap();
 
     let list = env.config_service.list_configs().unwrap();
     assert_eq!(list.configs.len(), 3); // anthropic + anyrouter + temp
 
     // 导入之前导出的配置（替换模式）
-    let result = env.config_service.import_config(
-        &exported,
-        ccr::services::config_service::ImportMode::Replace,
-        false,
-    ).unwrap();
+    let result = env
+        .config_service
+        .import_config(
+            &exported,
+            ccr::services::config_service::ImportMode::Replace,
+            false,
+        )
+        .unwrap();
 
     assert_eq!(result.added, 2); // anthropic + anyrouter
 
@@ -555,13 +685,22 @@ fn test_history_tracking_across_operations() {
     assert_eq!(stats.failed_operations, 1);
 
     // 按类型筛选
-    let switches = env.history_service.filter_by_type(OperationType::Switch).unwrap();
+    let switches = env
+        .history_service
+        .filter_by_type(OperationType::Switch)
+        .unwrap();
     assert_eq!(switches.len(), 2);
 
-    let backups = env.history_service.filter_by_type(OperationType::Backup).unwrap();
+    let backups = env
+        .history_service
+        .filter_by_type(OperationType::Backup)
+        .unwrap();
     assert_eq!(backups.len(), 1);
 
-    let validates = env.history_service.filter_by_type(OperationType::Validate).unwrap();
+    let validates = env
+        .history_service
+        .filter_by_type(OperationType::Validate)
+        .unwrap();
     assert_eq!(validates.len(), 1);
 }
 
@@ -571,12 +710,21 @@ fn test_full_lifecycle_with_cleanup() {
     env.setup_configs();
 
     // 1. 初始化：应用配置
-    let section = env.config_service.load_config().unwrap().get_section("anthropic").unwrap().clone();
+    let section = env
+        .config_service
+        .load_config()
+        .unwrap()
+        .get_section("anthropic")
+        .unwrap()
+        .clone();
     env.settings_service.apply_config(&section).unwrap();
 
     // 2. 多次切换生成备份
     for i in 0..5 {
-        let backup = env.settings_service.backup_settings(Some(&format!("auto_backup_{}", i))).unwrap();
+        let backup = env
+            .settings_service
+            .backup_settings(Some(&format!("auto_backup_{}", i)))
+            .unwrap();
         assert!(backup.exists());
         std::thread::sleep(std::time::Duration::from_millis(50)); // 确保时间戳不同
     }
@@ -587,7 +735,11 @@ fn test_full_lifecycle_with_cleanup() {
     for backup in &backups {
         println!("  - {}", backup.filename);
     }
-    assert!(backups.len() >= 4, "应该至少有 4 个备份文件，实际: {}", backups.len());
+    assert!(
+        backups.len() >= 4,
+        "应该至少有 4 个备份文件，实际: {}",
+        backups.len()
+    );
 
     // 4. 清理旧备份（这里使用 BackupService）
     // 注意：这需要正确的备份目录路径
@@ -638,11 +790,20 @@ fn test_configuration_persistence() {
         let config_service = ConfigService::new(config_manager);
 
         let lock_manager = LockManager::new(&lock_dir);
-        let settings_manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+        let settings_manager = Arc::new(SettingsManager::new(
+            &settings_path,
+            &backup_dir,
+            lock_manager,
+        ));
         let settings_service = SettingsService::new(settings_manager);
 
         // 应用到 settings
-        let section = config_service.load_config().unwrap().get_section("test").unwrap().clone();
+        let section = config_service
+            .load_config()
+            .unwrap()
+            .get_section("test")
+            .unwrap()
+            .clone();
         settings_service.apply_config(&section).unwrap();
     }
 
@@ -652,7 +813,11 @@ fn test_configuration_persistence() {
         let config_service = ConfigService::new(config_manager);
 
         let lock_manager = LockManager::new(&lock_dir);
-        let settings_manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+        let settings_manager = Arc::new(SettingsManager::new(
+            &settings_path,
+            &backup_dir,
+            lock_manager,
+        ));
         let settings_service = SettingsService::new(settings_manager);
 
         // 验证配置持久化
@@ -662,8 +827,10 @@ fn test_configuration_persistence() {
 
         // 验证设置持久化
         let settings = settings_service.get_current_settings().unwrap();
-        assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.test.com".to_string()));
+        assert_eq!(
+            settings.env.get("ANTHROPIC_BASE_URL"),
+            Some(&"https://api.test.com".to_string())
+        );
         assert!(settings.validate().is_ok());
     }
 }
-

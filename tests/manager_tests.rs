@@ -3,7 +3,9 @@
 
 use ccr::core::lock::LockManager;
 use ccr::managers::config::{CcsConfig, ConfigManager, ConfigSection};
-use ccr::managers::history::{HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType};
+use ccr::managers::history::{
+    HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
+};
 use ccr::managers::settings::{ClaudeSettings, SettingsManager};
 use ccr::utils::Validatable;
 use indexmap::IndexMap;
@@ -39,8 +41,12 @@ fn test_config_manager_lifecycle() {
         current_config: "anthropic".into(),
         sections: IndexMap::new(),
     };
-    config.sections.insert("anthropic".into(), create_test_config_section("anthropic"));
-    config.sections.insert("anyrouter".into(), create_test_config_section("anyrouter"));
+    config
+        .sections
+        .insert("anthropic".into(), create_test_config_section("anthropic"));
+    config
+        .sections
+        .insert("anyrouter".into(), create_test_config_section("anyrouter"));
 
     // 保存
     let manager = ConfigManager::new(&config_path);
@@ -66,7 +72,9 @@ fn test_config_manager_section_operations() {
         current_config: "test".into(),
         sections: IndexMap::new(),
     };
-    config.sections.insert("test".into(), create_test_config_section("test"));
+    config
+        .sections
+        .insert("test".into(), create_test_config_section("test"));
 
     let manager = ConfigManager::new(&config_path);
     manager.save(&config).unwrap();
@@ -77,7 +85,9 @@ fn test_config_manager_section_operations() {
     assert!(loaded.get_section("nonexistent").is_err());
 
     // 测试添加配置节
-    loaded.sections.insert("new".into(), create_test_config_section("new"));
+    loaded
+        .sections
+        .insert("new".into(), create_test_config_section("new"));
     manager.save(&loaded).unwrap();
     let reloaded = manager.load().unwrap();
     assert_eq!(reloaded.sections.len(), 2);
@@ -135,9 +145,15 @@ fn test_config_sorting_and_filtering() {
     };
 
     // 添加多个配置（无序）
-    config.sections.insert("zebra".into(), create_test_config_section("zebra"));
-    config.sections.insert("apple".into(), create_test_config_section("apple"));
-    config.sections.insert("mango".into(), create_test_config_section("mango"));
+    config
+        .sections
+        .insert("zebra".into(), create_test_config_section("zebra"));
+    config
+        .sections
+        .insert("apple".into(), create_test_config_section("apple"));
+    config
+        .sections
+        .insert("mango".into(), create_test_config_section("mango"));
 
     // 排序前
     let names_before: Vec<&String> = config.sections.keys().collect();
@@ -167,8 +183,13 @@ fn test_settings_manager_atomic_operations() {
 
     // 创建设置
     let mut settings = ClaudeSettings::new();
-    settings.env.insert("ANTHROPIC_BASE_URL".into(), "https://api.anthropic.com".into());
-    settings.env.insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-test-token".into());
+    settings.env.insert(
+        "ANTHROPIC_BASE_URL".into(),
+        "https://api.anthropic.com".into(),
+    );
+    settings
+        .env
+        .insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-test-token".into());
 
     // 原子保存
     manager.save_atomic(&settings).unwrap();
@@ -176,8 +197,14 @@ fn test_settings_manager_atomic_operations() {
 
     // 加载并验证
     let loaded = manager.load().unwrap();
-    assert_eq!(loaded.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.anthropic.com".to_string()));
-    assert_eq!(loaded.env.get("ANTHROPIC_AUTH_TOKEN"), Some(&"sk-test-token".to_string()));
+    assert_eq!(
+        loaded.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.anthropic.com".to_string())
+    );
+    assert_eq!(
+        loaded.env.get("ANTHROPIC_AUTH_TOKEN"),
+        Some(&"sk-test-token".to_string())
+    );
 }
 
 #[test]
@@ -192,10 +219,22 @@ fn test_settings_update_from_config() {
     settings.update_from_config(&config);
 
     // 验证更新后的值
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.test.com".to_string()));
-    assert_eq!(settings.env.get("ANTHROPIC_AUTH_TOKEN"), Some(&"sk-test-token-test".to_string()));
-    assert_eq!(settings.env.get("ANTHROPIC_MODEL"), Some(&"claude-sonnet-4".to_string()));
-    assert_eq!(settings.env.get("ANTHROPIC_SMALL_FAST_MODEL"), Some(&"claude-haiku".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.test.com".to_string())
+    );
+    assert_eq!(
+        settings.env.get("ANTHROPIC_AUTH_TOKEN"),
+        Some(&"sk-test-token-test".to_string())
+    );
+    assert_eq!(
+        settings.env.get("ANTHROPIC_MODEL"),
+        Some(&"claude-sonnet-4".to_string())
+    );
+    assert_eq!(
+        settings.env.get("ANTHROPIC_SMALL_FAST_MODEL"),
+        Some(&"claude-haiku".to_string())
+    );
 }
 
 #[test]
@@ -210,7 +249,9 @@ fn test_settings_backup_and_restore() {
 
     // 创建原始设置
     let mut original_settings = ClaudeSettings::new();
-    original_settings.env.insert("ANTHROPIC_BASE_URL".into(), "original-url".into());
+    original_settings
+        .env
+        .insert("ANTHROPIC_BASE_URL".into(), "original-url".into());
     manager.save_atomic(&original_settings).unwrap();
 
     // 备份
@@ -220,37 +261,53 @@ fn test_settings_backup_and_restore() {
 
     // 修改设置
     let mut modified_settings = ClaudeSettings::new();
-    modified_settings.env.insert("ANTHROPIC_BASE_URL".into(), "modified-url".into());
+    modified_settings
+        .env
+        .insert("ANTHROPIC_BASE_URL".into(), "modified-url".into());
     manager.save_atomic(&modified_settings).unwrap();
 
     // 验证修改
     let loaded = manager.load().unwrap();
-    assert_eq!(loaded.env.get("ANTHROPIC_BASE_URL"), Some(&"modified-url".to_string()));
+    assert_eq!(
+        loaded.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"modified-url".to_string())
+    );
 
     // 从备份恢复
     manager.restore(&backup_path).unwrap();
 
     // 验证恢复
     let restored = manager.load().unwrap();
-    assert_eq!(restored.env.get("ANTHROPIC_BASE_URL"), Some(&"original-url".to_string()));
+    assert_eq!(
+        restored.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"original-url".to_string())
+    );
 }
 
 #[test]
 fn test_settings_validation() {
     // 有效设置
     let mut valid_settings = ClaudeSettings::new();
-    valid_settings.env.insert("ANTHROPIC_BASE_URL".into(), "https://api.test.com".into());
-    valid_settings.env.insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-token".into());
+    valid_settings
+        .env
+        .insert("ANTHROPIC_BASE_URL".into(), "https://api.test.com".into());
+    valid_settings
+        .env
+        .insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-token".into());
     assert!(valid_settings.validate().is_ok());
 
     // 无效：缺少 base_url
     let mut invalid_settings = ClaudeSettings::new();
-    invalid_settings.env.insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-token".into());
+    invalid_settings
+        .env
+        .insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-token".into());
     assert!(invalid_settings.validate().is_err());
 
     // 无效：缺少 auth_token
     let mut invalid_settings = ClaudeSettings::new();
-    invalid_settings.env.insert("ANTHROPIC_BASE_URL".into(), "https://api.test.com".into());
+    invalid_settings
+        .env
+        .insert("ANTHROPIC_BASE_URL".into(), "https://api.test.com".into());
     assert!(invalid_settings.validate().is_err());
 }
 
@@ -317,10 +374,34 @@ fn test_history_manager_filtering() {
     };
 
     // 添加不同类型的记录
-    manager.add(HistoryEntry::new(OperationType::Switch, details.clone(), OperationResult::Success)).unwrap();
-    manager.add(HistoryEntry::new(OperationType::Backup, details.clone(), OperationResult::Success)).unwrap();
-    manager.add(HistoryEntry::new(OperationType::Switch, details.clone(), OperationResult::Success)).unwrap();
-    manager.add(HistoryEntry::new(OperationType::Validate, details, OperationResult::Success)).unwrap();
+    manager
+        .add(HistoryEntry::new(
+            OperationType::Switch,
+            details.clone(),
+            OperationResult::Success,
+        ))
+        .unwrap();
+    manager
+        .add(HistoryEntry::new(
+            OperationType::Backup,
+            details.clone(),
+            OperationResult::Success,
+        ))
+        .unwrap();
+    manager
+        .add(HistoryEntry::new(
+            OperationType::Switch,
+            details.clone(),
+            OperationResult::Success,
+        ))
+        .unwrap();
+    manager
+        .add(HistoryEntry::new(
+            OperationType::Validate,
+            details,
+            OperationResult::Success,
+        ))
+        .unwrap();
 
     // 按类型筛选
     let switch_ops = manager.filter_by_operation(OperationType::Switch).unwrap();
@@ -329,7 +410,9 @@ fn test_history_manager_filtering() {
     let backup_ops = manager.filter_by_operation(OperationType::Backup).unwrap();
     assert_eq!(backup_ops.len(), 1);
 
-    let validate_ops = manager.filter_by_operation(OperationType::Validate).unwrap();
+    let validate_ops = manager
+        .filter_by_operation(OperationType::Validate)
+        .unwrap();
     assert_eq!(validate_ops.len(), 1);
 }
 
@@ -351,7 +434,13 @@ fn test_history_manager_recent_limit() {
 
     // 添加 10 条记录
     for _ in 0..10 {
-        manager.add(HistoryEntry::new(OperationType::Switch, details.clone(), OperationResult::Success)).unwrap();
+        manager
+            .add(HistoryEntry::new(
+                OperationType::Switch,
+                details.clone(),
+                OperationResult::Success,
+            ))
+            .unwrap();
         std::thread::sleep(std::time::Duration::from_millis(10)); // 确保时间戳不同
     }
 
@@ -382,10 +471,34 @@ fn test_history_manager_stats() {
     };
 
     // 添加不同结果的记录
-    manager.add(HistoryEntry::new(OperationType::Switch, details.clone(), OperationResult::Success)).unwrap();
-    manager.add(HistoryEntry::new(OperationType::Switch, details.clone(), OperationResult::Success)).unwrap();
-    manager.add(HistoryEntry::new(OperationType::Backup, details.clone(), OperationResult::Failure("error".into()))).unwrap();
-    manager.add(HistoryEntry::new(OperationType::Validate, details, OperationResult::Warning("warning".into()))).unwrap();
+    manager
+        .add(HistoryEntry::new(
+            OperationType::Switch,
+            details.clone(),
+            OperationResult::Success,
+        ))
+        .unwrap();
+    manager
+        .add(HistoryEntry::new(
+            OperationType::Switch,
+            details.clone(),
+            OperationResult::Success,
+        ))
+        .unwrap();
+    manager
+        .add(HistoryEntry::new(
+            OperationType::Backup,
+            details.clone(),
+            OperationResult::Failure("error".into()),
+        ))
+        .unwrap();
+    manager
+        .add(HistoryEntry::new(
+            OperationType::Validate,
+            details,
+            OperationResult::Warning("warning".into()),
+        ))
+        .unwrap();
 
     // 获取统计
     let stats = manager.stats().unwrap();
@@ -454,7 +567,9 @@ fn test_config_and_settings_integration() {
         current_config: "test".into(),
         sections: IndexMap::new(),
     };
-    config.sections.insert("test".into(), create_test_config_section("test"));
+    config
+        .sections
+        .insert("test".into(), create_test_config_section("test"));
 
     let config_manager = ConfigManager::new(&config_path);
     config_manager.save(&config).unwrap();
@@ -479,4 +594,3 @@ fn test_config_and_settings_integration() {
         Some(&"https://api.test.com".to_string())
     );
 }
-

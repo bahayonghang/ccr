@@ -5,8 +5,10 @@ use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::services::{ConfigService, SettingsService};
 use crate::utils::Validatable;
-use comfy_table::{presets::UTF8_FULL, Attribute, Cell, Color as TableColor, ContentArrangement, Table};
 use colored::Colorize;
+use comfy_table::{
+    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
+};
 
 /// 🔍 显示当前配置状态
 ///
@@ -30,12 +32,12 @@ pub fn current_command() -> Result<()> {
     println!();
     ColorOutput::info(&format!(
         "配置文件: {}",
-        config_service
-            .config_manager()
-            .config_path()
-            .display()
+        config_service.config_manager().config_path().display()
     ));
-    ColorOutput::info(&format!("默认配置: {}", config.default_config.bright_yellow()));
+    ColorOutput::info(&format!(
+        "默认配置: {}",
+        config.default_config.bright_yellow()
+    ));
     println!();
 
     // === 第一部分：配置详情表格 ===
@@ -47,14 +49,20 @@ pub fn current_command() -> Result<()> {
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("属性").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-            Cell::new("值").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
+            Cell::new("属性")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("值")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
         ]);
 
     // 配置名称
     config_table.add_row(vec![
         Cell::new("配置名称").fg(TableColor::Yellow),
-        Cell::new(&current_info.name).fg(TableColor::Green).add_attribute(Attribute::Bold),
+        Cell::new(&current_info.name)
+            .fg(TableColor::Green)
+            .add_attribute(Attribute::Bold),
     ]);
 
     // 描述
@@ -87,7 +95,9 @@ pub fn current_command() -> Result<()> {
     // Base URL
     if let Some(base_url) = &current_info.base_url {
         config_table.add_row(vec![
-            Cell::new("Base URL").fg(TableColor::Yellow).add_attribute(Attribute::Bold),
+            Cell::new("Base URL")
+                .fg(TableColor::Yellow)
+                .add_attribute(Attribute::Bold),
             Cell::new(base_url).fg(TableColor::Blue),
         ]);
     }
@@ -95,7 +105,9 @@ pub fn current_command() -> Result<()> {
     // Auth Token (脱敏)
     if let Some(auth_token) = &current_info.auth_token {
         config_table.add_row(vec![
-            Cell::new("Auth Token").fg(TableColor::Yellow).add_attribute(Attribute::Bold),
+            Cell::new("Auth Token")
+                .fg(TableColor::Yellow)
+                .add_attribute(Attribute::Bold),
             Cell::new(ColorOutput::mask_sensitive(auth_token)).fg(TableColor::DarkGrey),
         ]);
     }
@@ -137,8 +149,12 @@ pub fn current_command() -> Result<()> {
     // 验证状态
     let section = config.get_current_section()?;
     let validation_status = match section.validate() {
-        Ok(_) => Cell::new("✓ 配置完整").fg(TableColor::Green).add_attribute(Attribute::Bold),
-        Err(e) => Cell::new(format!("✗ 配置不完整: {}", e)).fg(TableColor::Red).add_attribute(Attribute::Bold),
+        Ok(_) => Cell::new("✓ 配置完整")
+            .fg(TableColor::Green)
+            .add_attribute(Attribute::Bold),
+        Err(e) => Cell::new(format!("✗ 配置不完整: {}", e))
+            .fg(TableColor::Red)
+            .add_attribute(Attribute::Bold),
     };
     config_table.add_row(vec![
         Cell::new("验证状态").fg(TableColor::Yellow),
@@ -163,9 +179,15 @@ pub fn current_command() -> Result<()> {
                         .load_preset(UTF8_FULL)
                         .set_content_arrangement(ContentArrangement::Dynamic)
                         .set_header(vec![
-                            Cell::new("环境变量").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-                            Cell::new("当前值").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
-                            Cell::new("状态").add_attribute(Attribute::Bold).fg(TableColor::Cyan),
+                            Cell::new("环境变量")
+                                .add_attribute(Attribute::Bold)
+                                .fg(TableColor::Cyan),
+                            Cell::new("当前值")
+                                .add_attribute(Attribute::Bold)
+                                .fg(TableColor::Cyan),
+                            Cell::new("状态")
+                                .add_attribute(Attribute::Bold)
+                                .fg(TableColor::Cyan),
                         ]);
 
                     let env_status = settings.anthropic_env_status();
@@ -178,7 +200,7 @@ pub fn current_command() -> Result<()> {
 
                     for (var_name, is_required) in env_vars {
                         let value = env_status.get(var_name).and_then(|v| v.as_ref());
-                        
+
                         let var_cell = if is_required {
                             Cell::new(format!("{} *", var_name)).fg(TableColor::Yellow)
                         } else {
@@ -187,7 +209,8 @@ pub fn current_command() -> Result<()> {
 
                         let (value_cell, status_cell) = match value {
                             Some(v) => {
-                                let is_sensitive = var_name.contains("TOKEN") || var_name.contains("KEY");
+                                let is_sensitive =
+                                    var_name.contains("TOKEN") || var_name.contains("KEY");
                                 let display_value = if is_sensitive {
                                     ColorOutput::mask_sensitive(v)
                                 } else {
@@ -199,14 +222,18 @@ pub fn current_command() -> Result<()> {
                                 };
                                 (
                                     Cell::new(display_value).fg(TableColor::Blue),
-                                    Cell::new("✓").fg(TableColor::Green).add_attribute(Attribute::Bold),
+                                    Cell::new("✓")
+                                        .fg(TableColor::Green)
+                                        .add_attribute(Attribute::Bold),
                                 )
                             }
                             None => {
                                 if is_required {
                                     (
                                         Cell::new("(未设置)").fg(TableColor::Red),
-                                        Cell::new("✗").fg(TableColor::Red).add_attribute(Attribute::Bold),
+                                        Cell::new("✗")
+                                            .fg(TableColor::Red)
+                                            .add_attribute(Attribute::Bold),
                                     )
                                 } else {
                                     (

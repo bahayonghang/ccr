@@ -69,7 +69,7 @@ impl ColorOutput {
 ║  ╚██████╗ ╚██████╗██║  ██║                                  ║
 ║   ╚═════╝  ╚═════╝╚═╝  ╚═╝                                  ║
 ║                                                              ║
-║  Claude Code Configuration Switcher - Configuration Management Tool         ║
+║  Claude Code Configuration Switcher (Rust Version)          ║
 ║  Version: {:<50} ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝

@@ -15,7 +15,7 @@ mod utils;
 mod web;
 
 use clap::{Parser, Subcommand};
-use core::{init_logger, ColorOutput};
+use core::{ColorOutput, init_logger};
 
 /// 🎯 Claude Code Configuration Switcher - 配置管理工具
 #[derive(Parser)]
@@ -23,7 +23,7 @@ use core::{init_logger, ColorOutput};
 #[command(
     about = "Claude Code 配置管理工具 - 快速切换和管理多套配置",
     long_about = "\
-🎯 CCR (Claude Code Configuration Router)
+🎯 Claude Code Configuration Switcher (Rust Version)
 
 一个强大的 Claude Code 配置管理工具,支持：
     • 多套配置快速切换
@@ -43,6 +43,18 @@ use core::{init_logger, ColorOutput};
     ccr <命令> --help      # 显示特定命令的帮助"
 )]
 #[command(version)]
+#[command(
+    help_template = "\
+{before-help}{name} {version}
+{about-with-newline}
+{usage-heading} {usage}
+
+{all-args}{after-help}
+",
+    override_usage = "ccr [配置名称] [命令]",
+    disable_help_flag = true,
+    disable_version_flag = true
+)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -51,6 +63,14 @@ struct Cli {
     ///
     /// 示例：ccr anthropic  等同于  ccr switch anthropic
     config_name: Option<String>,
+
+    /// 显示帮助信息（使用 '-h' 查看简短摘要）
+    #[arg(short = 'h', long = "help", action = clap::ArgAction::Help)]
+    help: Option<bool>,
+
+    /// 显示版本信息
+    #[arg(short = 'V', long = "version", action = clap::ArgAction::Version)]
+    version: Option<bool>,
 }
 
 /// 📋 命令枚举 - 定义所有可用的 CLI 子命令
@@ -236,7 +256,9 @@ fn main() {
         Some(Commands::Current) => commands::current_command(),
         Some(Commands::Switch { config_name }) => commands::switch_command(&config_name),
         Some(Commands::Add) => commands::add_command(),
-        Some(Commands::Delete { config_name, force }) => commands::delete_command(&config_name, force),
+        Some(Commands::Delete { config_name, force }) => {
+            commands::delete_command(&config_name, force)
+        }
         Some(Commands::Validate) => commands::validate_command(),
         Some(Commands::History { limit, filter_type }) => {
             commands::history_command(Some(limit), filter_type)

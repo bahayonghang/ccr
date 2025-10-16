@@ -109,7 +109,9 @@ pub fn update_command(check_only: bool) -> Result<()> {
         println!("  1. 检查网络连接: ping github.com");
         println!("  2. 更新 Rust 工具链: rustup update");
         println!("  3. 检查 cargo 版本: cargo --version");
-        println!("  4. 手动安装: cargo install --git https://github.com/bahayonghang/ccr ccr --force");
+        println!(
+            "  4. 手动安装: cargo install --git https://github.com/bahayonghang/ccr ccr --force"
+        );
         println!();
 
         return Err(CcrError::ConfigError(format!(

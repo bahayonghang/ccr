@@ -42,7 +42,9 @@ fn test_config_service_crud_workflow() {
         current_config: "initial".into(),
         sections: IndexMap::new(),
     };
-    config.sections.insert("initial".into(), create_test_section("initial"));
+    config
+        .sections
+        .insert("initial".into(), create_test_section("initial"));
 
     let manager = Arc::new(ConfigManager::new(&config_path));
     manager.save(&config).unwrap();
@@ -50,7 +52,9 @@ fn test_config_service_crud_workflow() {
     let service = ConfigService::new(manager);
 
     // 测试添加配置
-    service.add_config("new_config".into(), create_test_section("new")).unwrap();
+    service
+        .add_config("new_config".into(), create_test_section("new"))
+        .unwrap();
 
     // 验证列表
     let list = service.list_configs().unwrap();
@@ -65,7 +69,9 @@ fn test_config_service_crud_workflow() {
     // 测试更新配置
     let mut updated_section = create_test_section("updated");
     updated_section.description = Some("Updated description".into());
-    service.update_config("new_config", "renamed_config".into(), updated_section).unwrap();
+    service
+        .update_config("new_config", "renamed_config".into(), updated_section)
+        .unwrap();
 
     let list = service.list_configs().unwrap();
     assert!(list.configs.iter().any(|c| c.name == "renamed_config"));
@@ -76,12 +82,12 @@ fn test_config_service_crud_workflow() {
 
     // 先切换当前配置，然后修改默认配置，最后才能删除
     service.set_current("renamed_config").unwrap();
-    
+
     // 修改默认配置为新的配置
     let mut config = service.load_config().unwrap();
     config.default_config = "renamed_config".to_string();
     service.save_config(&config).unwrap();
-    
+
     // 现在可以删除 initial 了
     service.delete_config("initial").unwrap();
 
@@ -101,7 +107,9 @@ fn test_config_service_validation() {
         current_config: "valid".into(),
         sections: IndexMap::new(),
     };
-    config.sections.insert("valid".into(), create_test_section("valid"));
+    config
+        .sections
+        .insert("valid".into(), create_test_section("valid"));
 
     // 添加无效配置
     let invalid_section = ConfigSection {
@@ -128,10 +136,18 @@ fn test_config_service_validation() {
     assert_eq!(report.invalid_count, 1);
 
     // 检查结果
-    let valid_result = report.results.iter().find(|(name, _, _)| name == "valid").unwrap();
+    let valid_result = report
+        .results
+        .iter()
+        .find(|(name, _, _)| name == "valid")
+        .unwrap();
     assert!(valid_result.1); // is_valid
 
-    let invalid_result = report.results.iter().find(|(name, _, _)| name == "invalid").unwrap();
+    let invalid_result = report
+        .results
+        .iter()
+        .find(|(name, _, _)| name == "invalid")
+        .unwrap();
     assert!(!invalid_result.1); // is_invalid
     assert!(invalid_result.2.is_some()); // 有错误消息
 }
@@ -147,7 +163,9 @@ fn test_config_service_export_import() {
         current_config: "test".into(),
         sections: IndexMap::new(),
     };
-    config.sections.insert("test".into(), create_test_section("test"));
+    config
+        .sections
+        .insert("test".into(), create_test_section("test"));
 
     let manager = Arc::new(ConfigManager::new(&config_path));
     manager.save(&config).unwrap();
@@ -174,7 +192,13 @@ base_url = "https://api.imported.com"
 auth_token = "sk-imported-token"
     "#;
 
-    let result = service.import_config(import_config, ccr::services::config_service::ImportMode::Replace, false).unwrap();
+    let result = service
+        .import_config(
+            import_config,
+            ccr::services::config_service::ImportMode::Replace,
+            false,
+        )
+        .unwrap();
     assert_eq!(result.added, 1);
 
     let list = service.list_configs().unwrap();
@@ -194,7 +218,11 @@ fn test_settings_service_apply_and_get() {
     let lock_dir = temp_dir.path().join("locks");
 
     let lock_manager = LockManager::new(lock_dir);
-    let settings_manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+    let settings_manager = Arc::new(SettingsManager::new(
+        &settings_path,
+        &backup_dir,
+        lock_manager,
+    ));
     let service = SettingsService::new(settings_manager);
 
     // 应用配置
@@ -203,8 +231,14 @@ fn test_settings_service_apply_and_get() {
 
     // 获取当前设置
     let settings = service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.test.com".to_string()));
-    assert_eq!(settings.env.get("ANTHROPIC_AUTH_TOKEN"), Some(&"sk-test-token-test".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.test.com".to_string())
+    );
+    assert_eq!(
+        settings.env.get("ANTHROPIC_AUTH_TOKEN"),
+        Some(&"sk-test-token-test".to_string())
+    );
 }
 
 #[test]
@@ -215,11 +249,17 @@ fn test_settings_service_backup_workflow() {
     let lock_dir = temp_dir.path().join("locks");
 
     let lock_manager = LockManager::new(lock_dir);
-    let settings_manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+    let settings_manager = Arc::new(SettingsManager::new(
+        &settings_path,
+        &backup_dir,
+        lock_manager,
+    ));
     let service = SettingsService::new(settings_manager);
 
     // 创建初始设置
-    service.apply_config(&create_test_section("initial")).unwrap();
+    service
+        .apply_config(&create_test_section("initial"))
+        .unwrap();
 
     // 备份
     let backup_path = service.backup_settings(Some("test_backup")).unwrap();
@@ -231,14 +271,19 @@ fn test_settings_service_backup_workflow() {
     assert!(backups[0].filename.contains("test_backup"));
 
     // 修改设置
-    service.apply_config(&create_test_section("modified")).unwrap();
+    service
+        .apply_config(&create_test_section("modified"))
+        .unwrap();
 
     // 恢复
     service.restore_settings(&backup_path).unwrap();
 
     // 验证恢复
     let settings = service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.initial.com".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.initial.com".to_string())
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -252,7 +297,10 @@ fn test_history_service_record_and_query() {
     let lock_dir = temp_dir.path().join("locks");
 
     let lock_manager = LockManager::new(lock_dir);
-    let history_manager = Arc::new(ccr::managers::history::HistoryManager::new(&history_path, lock_manager));
+    let history_manager = Arc::new(ccr::managers::history::HistoryManager::new(
+        &history_path,
+        lock_manager,
+    ));
     let service = HistoryService::new(history_manager);
 
     // 记录操作
@@ -293,9 +341,18 @@ fn test_backup_service_clean_workflow() {
     let new_backup = backup_dir.join("new_backup.bak");
     let other_file = backup_dir.join("other.txt");
 
-    fs::File::create(&old_backup).unwrap().write_all(b"old").unwrap();
-    fs::File::create(&new_backup).unwrap().write_all(b"new").unwrap();
-    fs::File::create(&other_file).unwrap().write_all(b"other").unwrap();
+    fs::File::create(&old_backup)
+        .unwrap()
+        .write_all(b"old")
+        .unwrap();
+    fs::File::create(&new_backup)
+        .unwrap()
+        .write_all(b"new")
+        .unwrap();
+    fs::File::create(&other_file)
+        .unwrap()
+        .write_all(b"other")
+        .unwrap();
 
     // 设置旧文件的时间为 10 天前
     let old_time = std::time::SystemTime::now() - std::time::Duration::from_secs(10 * 24 * 60 * 60);
@@ -360,8 +417,12 @@ fn test_complete_config_switch_workflow() {
         current_config: "config1".into(),
         sections: IndexMap::new(),
     };
-    config.sections.insert("config1".into(), create_test_section("config1"));
-    config.sections.insert("config2".into(), create_test_section("config2"));
+    config
+        .sections
+        .insert("config1".into(), create_test_section("config1"));
+    config
+        .sections
+        .insert("config2".into(), create_test_section("config2"));
 
     let config_manager = Arc::new(ConfigManager::new(&config_path));
     config_manager.save(&config).unwrap();
@@ -370,26 +431,48 @@ fn test_complete_config_switch_workflow() {
     let config_service = ConfigService::new(config_manager);
 
     let lock_manager = LockManager::new(&lock_dir);
-    let settings_manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+    let settings_manager = Arc::new(SettingsManager::new(
+        &settings_path,
+        &backup_dir,
+        lock_manager,
+    ));
     let settings_service = SettingsService::new(settings_manager);
 
     // 步骤 1: 应用 config1
-    let section1 = config_service.load_config().unwrap().get_section("config1").unwrap().clone();
+    let section1 = config_service
+        .load_config()
+        .unwrap()
+        .get_section("config1")
+        .unwrap()
+        .clone();
     settings_service.apply_config(&section1).unwrap();
 
     let settings = settings_service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.config1.com".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.config1.com".to_string())
+    );
 
     // 步骤 2: 备份当前设置
-    let backup_path = settings_service.backup_settings(Some("before_switch")).unwrap();
+    let backup_path = settings_service
+        .backup_settings(Some("before_switch"))
+        .unwrap();
     assert!(backup_path.exists());
 
     // 步骤 3: 切换到 config2
-    let section2 = config_service.load_config().unwrap().get_section("config2").unwrap().clone();
+    let section2 = config_service
+        .load_config()
+        .unwrap()
+        .get_section("config2")
+        .unwrap()
+        .clone();
     settings_service.apply_config(&section2).unwrap();
 
     let settings = settings_service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.config2.com".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.config2.com".to_string())
+    );
 
     // 步骤 4: 验证备份存在
     let backups = settings_service.list_backups().unwrap();
@@ -399,7 +482,10 @@ fn test_complete_config_switch_workflow() {
     settings_service.restore_settings(&backup_path).unwrap();
 
     let settings = settings_service.get_current_settings().unwrap();
-    assert_eq!(settings.env.get("ANTHROPIC_BASE_URL"), Some(&"https://api.config1.com".to_string()));
+    assert_eq!(
+        settings.env.get("ANTHROPIC_BASE_URL"),
+        Some(&"https://api.config1.com".to_string())
+    );
 }
 
 #[test]
@@ -440,7 +526,10 @@ fn test_config_service_list_with_classification() {
     let anthropic_info = list.configs.iter().find(|c| c.name == "anthropic").unwrap();
     assert_eq!(anthropic_info.provider, Some("anthropic".into()));
     assert_eq!(anthropic_info.provider_type, Some("official_relay".into()));
-    assert_eq!(anthropic_info.tags, Some(vec!["official".into(), "stable".into()]));
+    assert_eq!(
+        anthropic_info.tags,
+        Some(vec!["official".into(), "stable".into()])
+    );
 }
 
 #[test]
@@ -451,7 +540,11 @@ fn test_settings_service_multiple_switches() {
     let lock_dir = temp_dir.path().join("locks");
 
     let lock_manager = LockManager::new(&lock_dir);
-    let settings_manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+    let settings_manager = Arc::new(SettingsManager::new(
+        &settings_path,
+        &backup_dir,
+        lock_manager,
+    ));
     let service = SettingsService::new(settings_manager);
 
     // 多次切换配置
@@ -483,7 +576,10 @@ fn test_history_service_workflow() {
     let lock_dir = temp_dir.path().join("locks");
 
     let lock_manager = LockManager::new(&lock_dir);
-    let history_manager = Arc::new(ccr::managers::history::HistoryManager::new(&history_path, lock_manager));
+    let history_manager = Arc::new(ccr::managers::history::HistoryManager::new(
+        &history_path,
+        lock_manager,
+    ));
     let service = HistoryService::new(history_manager);
 
     // 记录多个操作
@@ -511,10 +607,14 @@ fn test_history_service_workflow() {
     assert_eq!(recent.len(), 5);
 
     // 测试按类型筛选
-    let switch_ops = service.filter_by_type(ccr::managers::history::OperationType::Switch).unwrap();
+    let switch_ops = service
+        .filter_by_type(ccr::managers::history::OperationType::Switch)
+        .unwrap();
     assert_eq!(switch_ops.len(), 5);
 
-    let backup_ops = service.filter_by_type(ccr::managers::history::OperationType::Backup).unwrap();
+    let backup_ops = service
+        .filter_by_type(ccr::managers::history::OperationType::Backup)
+        .unwrap();
     assert_eq!(backup_ops.len(), 5);
 
     // 测试统计
@@ -538,7 +638,9 @@ fn test_config_service_error_handling() {
         current_config: "test".into(),
         sections: IndexMap::new(),
     };
-    config.sections.insert("test".into(), create_test_section("test"));
+    config
+        .sections
+        .insert("test".into(), create_test_section("test"));
 
     let manager = Arc::new(ConfigManager::new(&config_path));
     manager.save(&config).unwrap();
@@ -570,7 +672,11 @@ fn test_settings_service_error_handling() {
     let lock_dir = temp_dir.path().join("locks");
 
     let lock_manager = LockManager::new(&lock_dir);
-    let settings_manager = Arc::new(SettingsManager::new(&settings_path, &backup_dir, lock_manager));
+    let settings_manager = Arc::new(SettingsManager::new(
+        &settings_path,
+        &backup_dir,
+        lock_manager,
+    ));
     let service = SettingsService::new(settings_manager);
 
     // 测试备份不存在的设置
@@ -581,4 +687,3 @@ fn test_settings_service_error_handling() {
     let result = service.restore_settings(temp_dir.path().join("nonexistent.bak").as_path());
     assert!(result.is_err());
 }
-
