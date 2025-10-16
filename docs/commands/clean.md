@@ -346,3 +346,5 @@ sudo photorec
 - [export](./export) - 导出配置作为长期备份
 - [import](./import) - 从备份恢复配置
 - [switch](./switch) - 切换配置(会创建自动备份)
+- [add](./add) - 添加新配置
+- [delete](./delete) - 删除配置

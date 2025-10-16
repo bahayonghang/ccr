@@ -78,5 +78,6 @@ model = "claude-sonnet-4-5-20250929"
 ## 相关命令
 
 - [list](./list) - 查看所有配置
+- [add](./add) - 添加新配置
 - [validate](./validate) - 验证配置完整性
 - [export](./export) - 导出配置备份

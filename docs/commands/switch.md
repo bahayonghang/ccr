@@ -205,6 +205,8 @@ ccr switch anthropic && ccr history --limit 1
 ## 相关命令
 
 - [list](./list) - 查看可用配置
+- [add](./add) - 添加新配置
+- [delete](./delete) - 删除配置
 - [current](./current) - 查看当前配置
 - [validate](./validate) - 验证配置
 - [history](./history) - 查看切换历史

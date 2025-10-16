@@ -80,6 +80,25 @@ enum Commands {
         config_name: String,
     },
 
+    /// 添加新的配置方案
+    ///
+    /// 交互式地添加新配置,按照提示输入配置信息
+    /// 示例: ccr add
+    Add,
+
+    /// 删除指定的配置方案
+    ///
+    /// 删除配置文件中的指定配置节
+    /// 示例: ccr delete my_config
+    Delete {
+        /// 要删除的配置方案名称
+        config_name: String,
+
+        /// 跳过确认提示，直接删除（危险操作）
+        #[arg(short, long)]
+        force: bool,
+    },
+
     /// 验证配置文件和设置的完整性
     ///
     /// 检查配置文件格式是否正确,以及 Claude Code 设置文件是否有效
@@ -216,6 +235,8 @@ fn main() {
         Some(Commands::List) => commands::list_command(),
         Some(Commands::Current) => commands::current_command(),
         Some(Commands::Switch { config_name }) => commands::switch_command(&config_name),
+        Some(Commands::Add) => commands::add_command(),
+        Some(Commands::Delete { config_name, force }) => commands::delete_command(&config_name, force),
         Some(Commands::Validate) => commands::validate_command(),
         Some(Commands::History { limit, filter_type }) => {
             commands::history_command(Some(limit), filter_type)
@@ -302,6 +323,8 @@ fn show_version() {
     println!("  ccr list              列出所有配置");
     println!("  ccr current           显示当前状态");
     println!("  ccr switch <name>     切换配置");
+    println!("  ccr add               添加新配置");
+    println!("  ccr delete <name>     删除配置");
     println!("  ccr validate          验证配置");
     println!("  ccr optimize          优化配置文件结构");
     println!("  ccr history           查看历史");

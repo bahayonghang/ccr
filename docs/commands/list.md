@@ -129,5 +129,7 @@ ccr list
 ## 相关命令
 
 - [current](./current) - 显示当前配置详情
+- [add](./add) - 添加新配置
+- [delete](./delete) - 删除配置
 - [validate](./validate) - 验证所有配置
 - [switch](./switch) - 切换到其他配置

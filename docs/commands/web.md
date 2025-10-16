@@ -274,6 +274,8 @@ Shutting down web server...
 
 ## 相关命令
 
-- [switch](./switch) - 命令行切换配置
 - [list](./list) - 命令行查看配置
+- [add](./add) - 命令行添加配置
+- [delete](./delete) - 命令行删除配置
+- [switch](./switch) - 命令行切换配置
 - [history](./history) - 命令行查看历史

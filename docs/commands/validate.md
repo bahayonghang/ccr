@@ -221,4 +221,6 @@ fi
 
 - [init](./init) - 重新初始化配置
 - [list](./list) - 查看所有配置状态
+- [add](./add) - 添加新配置
+- [delete](./delete) - 删除配置
 - [switch](./switch) - 切换到有效配置

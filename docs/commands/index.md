@@ -10,6 +10,8 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 | [list](./list) | `ls` | 列出所有可用配置 |
 | [current](./current) | `status`, `show` | 显示当前配置状态 |
 | [switch](./switch) | - | 切换到指定配置 |
+| [add](./add) | - | 交互式添加新配置 |
+| [delete](./delete) | - | 删除指定配置 |
 | [validate](./validate) | `check` | 验证配置完整性 |
 | [history](./history) | - | 显示操作历史 |
 | [web](./web) | - | 启动 Web 配置界面 |
@@ -27,6 +29,8 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 - **[list](./list)** - 查看所有可用配置
 - **[current](./current)** - 显示当前使用的配置
 - **[switch](./switch)** - 切换到不同的配置
+- **[add](./add)** - 交互式添加新配置
+- **[delete](./delete)** - 删除指定配置
 - **[validate](./validate)** - 验证配置完整性
 
 ### 数据管理
@@ -59,6 +63,12 @@ ccr list
 # 切换配置(两种方式)
 ccr switch anthropic
 ccr anthropic
+
+# 添加新配置
+ccr add
+
+# 删除配置
+ccr delete old_config
 ```
 
 ### 日常使用

@@ -376,5 +376,7 @@ cp ~/.ccs_config.toml.bak.20250110_120530 ~/.ccs_config.toml
 
 - [export](./export) - 导出配置
 - [init](./init) - 初始化配置
+- [add](./add) - 添加新配置
+- [delete](./delete) - 删除配置
 - [validate](./validate) - 验证配置
 - [list](./list) - 查看导入结果

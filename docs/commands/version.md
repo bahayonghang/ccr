@@ -334,3 +334,4 @@ check_version:
 - [update](./update) - 更新到最新版本
 - [init](./init) - 查看工具能力
 - [validate](./validate) - 验证功能正常
+- [list](./list) - 查看配置管理功能

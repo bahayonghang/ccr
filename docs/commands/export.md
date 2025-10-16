@@ -241,4 +241,6 @@ rclone copy ccr-backup.toml remote:backups/
 
 - [import](./import) - 导入配置
 - [init](./init) - 初始化配置
+- [add](./add) - 添加新配置
+- [delete](./delete) - 删除配置
 - [validate](./validate) - 验证导出的配置

@@ -476,10 +476,10 @@ echo "$(date): Now running $(ccr version)" >> ~/ccr-updates.log
 
 ## 相关命令
 
-- [version](./version.md) - 查看版本信息和功能特性
-- [validate](./validate.md) - 验证配置完整性
-- [export](./export.md) - 导出配置备份
-- [init](./init.md) - 初始化配置文件
+- [version](./version) - 查看版本信息和功能特性
+- [validate](./validate) - 验证配置完整性
+- [export](./export) - 导出配置备份
+- [init](./init) - 初始化配置文件
 
 ## 技术细节
 

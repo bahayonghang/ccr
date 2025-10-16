@@ -208,5 +208,7 @@ echo "[]" > ~/.claude/ccr_history.json
 ## 相关命令
 
 - [switch](./switch) - 切换配置(会记录历史)
+- [add](./add) - 添加配置(会记录历史)
+- [delete](./delete) - 删除配置(会记录历史)
 - [export](./export) - 导出配置(会记录历史)
 - [import](./import) - 导入配置(会记录历史)
