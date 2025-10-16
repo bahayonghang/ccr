@@ -412,6 +412,7 @@ fn test_concurrent_config_operations() {
     let mut config = CcsConfig {
         default_config: "config0".into(),
         current_config: "config0".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config

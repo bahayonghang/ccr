@@ -40,6 +40,7 @@ fn test_config_service_crud_workflow() {
     let mut config = CcsConfig {
         default_config: "initial".into(),
         current_config: "initial".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -105,6 +106,7 @@ fn test_config_service_validation() {
     let mut config = CcsConfig {
         default_config: "valid".into(),
         current_config: "valid".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -161,6 +163,7 @@ fn test_config_service_export_import() {
     let mut config = CcsConfig {
         default_config: "test".into(),
         current_config: "test".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -415,6 +418,7 @@ fn test_complete_config_switch_workflow() {
     let mut config = CcsConfig {
         default_config: "config1".into(),
         current_config: "config1".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -497,6 +501,7 @@ fn test_config_service_list_with_classification() {
     let mut config = CcsConfig {
         default_config: "anthropic".into(),
         current_config: "anthropic".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
 
@@ -636,6 +641,7 @@ fn test_config_service_error_handling() {
     let mut config = CcsConfig {
         default_config: "test".into(),
         current_config: "test".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config

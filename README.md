@@ -10,6 +10,7 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 |---------|-------------|
 | 🎯 **Direct Settings Control** | Directly writes to `~/.claude/settings.json` - changes take effect immediately |
 | 📊 **Beautiful Table UI** | Display config info with comfy-table, compare configs at a glance with color highlights and icons |
+| 🖥️ **Interactive TUI** | Full-featured terminal UI with 3 tabs (Configs/History/System) and keyboard navigation |
 | 🔒 **Concurrency Safe** | File locking + atomic operations prevent corruption across multiple processes |
 | 📝 **Complete Audit Trail** | Every operation logged with masked sensitive data (UUID, timestamp, actor) |
 | 💾 **Auto Backup** | Automatic backups before changes with timestamped `.bak` files |
@@ -122,6 +123,7 @@ ccr switch anthropic  # 🔄 Switch config (shows tables with changes, or just: 
 ccr current           # 🔍 Show current config and env status in tables
 ccr validate          # ✅ Validate all configs
 ccr history           # 📚 View operation history
+ccr tui               # 🖥️ Launch interactive TUI (recommended for visual management!)
 ccr web               # 🌐 Launch web UI (port 8080)
 ```
 
@@ -137,6 +139,7 @@ ccr web               # 🌐 Launch web UI (port 8080)
 | `ccr optimize` | - | 🔤 Sort config sections alphabetically |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 Show operation history (limit/filter by type) |
 | `ccr web [-p PORT]` | - | 🌐 Launch web UI (default port 8080) |
+| `ccr tui` | - | 🖥️ Launch interactive TUI for visual management |
 | `ccr export [-o FILE] [--no-secrets]` | - | 📤 Export configs (with/without API keys) |
 | `ccr import FILE [--merge]` | - | 📥 Import configs (merge or replace) |
 | `ccr clean [-d DAYS] [--dry-run]` | - | 🧹 Clean old backups (default 7 days) |
@@ -178,6 +181,50 @@ Every operation logged with:
 - Environment variable changes (masked)
 - From/to config + backup path
 - Result (success/failure/warning)
+
+### 🖥️ TUI - Terminal User Interface
+
+CCR provides an interactive terminal UI for visual configuration management. Launch with:
+
+```bash
+ccr tui [--yolo]  # --yolo: Enable YOLO mode (skip confirmations)
+```
+
+**Features:**
+- **🖥️ Three Tabs**:
+  - **Configs Tab** 📋: Browse and manage all configurations
+  - **History Tab** 📜: View operation history with timestamps
+  - **System Tab** ⚙️: Display system info and file paths
+
+- **⌨️ Keyboard Shortcuts**:
+  - `1-3` / `Tab` / `Shift+Tab`: Switch between tabs
+  - `↑↓` / `j`/`k`: Navigate lists
+  - `Enter`: Switch to selected configuration
+  - `d`: Delete selected configuration (requires YOLO mode)
+  - `y` / `Y`: Toggle YOLO mode
+  - `q` / `Ctrl+C`: Quit TUI
+
+- **🎨 Visual Features**:
+  - Color-coded config list (Current=Green, Default=Cyan)
+  - Real-time status messages (success/error)
+  - Operation history with result indicators (✅❌⚠️)
+  - System information display (hostname, OS, paths, version)
+
+- **⚡ YOLO Mode**:
+  - Skip all confirmation prompts
+  - Required for delete operations in TUI
+  - Toggle on/off with `Y` key or start with `--yolo` flag
+  - Status displayed in footer (🔴 YOLO / 🟢 SAFE)
+
+**Example workflow:**
+```bash
+ccr tui              # Launch TUI
+# Press '1' → navigate configs → Enter to switch
+# Press '2' → view history
+# Press '3' → check system info
+# Press 'Y' → enable YOLO mode → 'd' to delete config
+# Press 'q' → quit
+```
 
 ### 🌐 Web API
 

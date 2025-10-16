@@ -3,6 +3,7 @@
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
+use crate::managers::config::ConfigManager;
 use crate::services::BackupService;
 
 /// 🧹 清理旧备份文件
@@ -17,9 +18,19 @@ use crate::services::BackupService;
 /// 参数:
 /// - days: 保留天数(删除 N 天前的文件)
 /// - dry_run: 模拟运行(不实际删除)
-pub fn clean_command(days: u64, dry_run: bool) -> Result<()> {
+/// - force: 跳过确认提示（危险操作）
+pub fn clean_command(days: u64, dry_run: bool, force: bool) -> Result<()> {
     ColorOutput::title("清理备份文件");
     println!();
+
+    // ⚡ 检查 YOLO 模式：--force 参数 OR 配置文件中的 yolo_mode
+    let config_manager = ConfigManager::default()?;
+    let config = config_manager.load()?;
+    let skip_confirmation = force || config.settings.yolo_mode;
+
+    if config.settings.yolo_mode && !force {
+        ColorOutput::info("⚡ YOLO 模式已启用，将跳过确认");
+    }
 
     // 使用 BackupService
     let service = BackupService::default()?;
@@ -37,11 +48,39 @@ pub fn clean_command(days: u64, dry_run: bool) -> Result<()> {
         ColorOutput::warning("⚠ 模拟运行模式(不会实际删除文件)");
     }
 
+    // 🚨 非 dry-run 模式需要确认（除非 YOLO 模式）
+    if !dry_run && !skip_confirmation {
+        println!();
+        ColorOutput::warning("⚠️  警告: 即将删除旧备份文件！");
+        ColorOutput::info("提示: 使用 --dry-run 参数可以先预览将要删除的文件");
+        println!();
+
+        print!("确认执行清理操作? (y/N): ");
+        use std::io::{self, Write};
+        io::stdout().flush().unwrap();
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+
+        if !input.trim().eq_ignore_ascii_case("y") {
+            ColorOutput::info("已取消清理操作");
+            return Ok(());
+        }
+    }
+
     println!();
     ColorOutput::separator();
     println!();
 
     // 使用 BackupService 清理
+    let status_msg = if skip_confirmation && !dry_run {
+        "⚡ 执行清理 (YOLO 模式)"
+    } else {
+        "执行清理"
+    };
+    if !dry_run {
+        ColorOutput::step(status_msg);
+    }
     let result = service.clean_old_backups(days, dry_run)?;
 
     println!();

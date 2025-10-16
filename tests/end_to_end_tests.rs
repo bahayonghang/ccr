@@ -58,6 +58,7 @@ impl TestEnvironment {
         let mut config = CcsConfig {
             default_config: "anthropic".into(),
             current_config: "anthropic".into(),
+            settings: ccr::managers::config::GlobalSettings::default(),
             sections: IndexMap::new(),
         };
 
@@ -767,6 +768,7 @@ fn test_configuration_persistence() {
         let mut initial_config = CcsConfig {
             default_config: "test".into(),
             current_config: "test".into(),
+            settings: ccr::managers::config::GlobalSettings::default(),
             sections: IndexMap::new(),
         };
         initial_config.sections.insert(

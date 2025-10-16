@@ -28,6 +28,10 @@ features:
     title: 精美表格界面
     details: 使用 comfy-table 展示配置信息，一目了然对比不同配置，支持颜色高亮和图标标识
 
+  - icon: 🖥️
+    title: 交互式 TUI
+    details: 全功能终端界面，3 个标签页（配置/历史/系统），键盘导航，支持 Vim 快捷键
+
   - icon: 🔐
     title: 并发安全
     details: 文件锁定机制确保多进程安全，原子写入操作防止数据损坏
@@ -97,6 +101,9 @@ ccr current
 
 # 查看操作历史
 ccr history
+
+# 启动交互式 TUI
+ccr tui
 
 # 启动 Web 界面
 ccr web

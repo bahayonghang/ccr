@@ -14,6 +14,7 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 | [delete](./delete) | - | 删除指定配置 |
 | [validate](./validate) | `check` | 验证配置完整性 |
 | [history](./history) | - | 显示操作历史 |
+| [tui](./tui) | - | 启动交互式终端界面 |
 | [web](./web) | - | 启动 Web 配置界面 |
 | [export](./export) | - | 导出配置到文件 |
 | [import](./import) | - | 从文件导入配置 |
@@ -42,6 +43,7 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 ### 历史与监控
 
 - **[history](./history)** - 查看操作历史记录
+- **[tui](./tui)** - 启动交互式终端界面
 - **[web](./web)** - 启动 Web 管理界面
 
 ### 系统维护
@@ -100,6 +102,12 @@ ccr clean --days 30
 ### 高级功能
 
 ```bash
+# 启动交互式 TUI
+ccr tui
+
+# 启动 TUI（启用 YOLO 模式）
+ccr tui --yolo
+
 # 启动 Web 界面
 ccr web --port 8080
 

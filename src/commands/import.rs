@@ -29,9 +29,48 @@ pub enum ImportMode {
 /// - input: 输入文件路径
 /// - mode: 导入模式(Merge/Replace)
 /// - backup: 是否备份当前配置
-pub fn import_command(input: String, mode: ImportMode, backup: bool) -> Result<()> {
+/// - force: 跳过确认提示（危险操作）
+pub fn import_command(input: String, mode: ImportMode, backup: bool, force: bool) -> Result<()> {
     ColorOutput::title("导入配置");
     println!();
+
+    // ⚡ 检查 YOLO 模式：--force 参数 OR 配置文件中的 yolo_mode
+    let config_manager = ConfigManager::default()?;
+    let config = config_manager.load().unwrap_or_else(|_| {
+        // 如果配置文件不存在，使用默认配置（yolo_mode = false）
+        CcsConfig {
+            default_config: String::new(),
+            current_config: String::new(),
+            settings: crate::managers::config::GlobalSettings::default(),
+            sections: indexmap::IndexMap::new(),
+        }
+    });
+    let skip_confirmation = force || config.settings.yolo_mode;
+
+    if config.settings.yolo_mode && !force {
+        ColorOutput::info("⚡ YOLO 模式已启用，将跳过确认");
+    }
+
+    // 🚨 Replace 模式需要确认（除非 YOLO 模式）
+    if matches!(mode, ImportMode::Replace) && !skip_confirmation {
+        println!();
+        ColorOutput::warning("⚠️  警告: Replace 模式将完全覆盖现有配置！");
+        ColorOutput::info("建议: 使用 --merge 参数保留现有配置");
+        println!();
+
+        print!("确认执行 Replace 操作? (y/N): ");
+        use std::io::{self, Write};
+        io::stdout().flush().unwrap();
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+
+        if !input.trim().eq_ignore_ascii_case("y") {
+            ColorOutput::info("已取消导入操作");
+            return Ok(());
+        }
+        println!();
+    }
 
     // 验证输入文件
     ColorOutput::step("步骤 1/4: 验证输入文件");
@@ -64,11 +103,18 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool) -> Result<(
     }
 
     // 执行导入
-    ColorOutput::step(if backup {
-        "步骤 4/4: 执行导入"
+    let step_msg = if backup {
+        if skip_confirmation {
+            "步骤 4/4: 执行导入 (⚡ YOLO 模式)"
+        } else {
+            "步骤 4/4: 执行导入"
+        }
+    } else if skip_confirmation {
+        "步骤 3/3: 执行导入 (⚡ YOLO 模式)"
     } else {
         "步骤 3/3: 执行导入"
-    });
+    };
+    ColorOutput::step(step_msg);
     let result = import_config_with_mode(import_config, mode)?;
 
     println!();
@@ -197,6 +243,7 @@ mod tests {
         let mut current = CcsConfig {
             default_config: "old_default".to_string(),
             current_config: "test1".to_string(),
+            settings: crate::managers::config::GlobalSettings::default(),
             sections: indexmap::IndexMap::new(),
         };
 
@@ -218,6 +265,7 @@ mod tests {
         let mut import = CcsConfig {
             default_config: "new_default".to_string(),
             current_config: "test2".to_string(),
+            settings: crate::managers::config::GlobalSettings::default(),
             sections: indexmap::IndexMap::new(),
         };
 

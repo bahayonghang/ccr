@@ -1,0 +1,148 @@
+# CCR 配置文件示例 - YOLO 模式
+# ~/.ccs_config.toml
+
+# ⚙️ 全局设置
+[settings]
+# ⚡ YOLO 模式 - 跳过所有权限检查（危险模式）
+#
+# 🚨 这是一个危险的无权限检查模式！
+# 类似于 Claude Code 的 `--dangerously-skip-permissions`
+#
+# 启用后，以下操作将不再需要确认，直接执行：
+# - ccr delete <name>      → 直接删除配置，无确认
+# - ccr import --replace   → 直接替换所有配置，无确认
+# - ccr init --force       → 直接覆盖配置文件，无确认
+# - ccr clean              → 直接清理备份文件，无确认
+#
+# ⚠️ 警告: 这是一个危险模式！
+# - 可能导致意外的数据丢失或系统损坏
+# - 所有破坏性操作将立即执行，无法撤销
+# - 移除了所有安全防护机制
+#
+# ✅ 建议用法:
+# - CI/CD 管道中使用（自动化部署）
+# - Docker 容器中使用（隔离环境）
+# - 自动化脚本中使用（批量操作）
+#
+# ❌ 不建议用法:
+# - 生产环境的主机上使用
+# - 不熟悉命令时使用
+# - 进行重要数据操作时使用
+#
+yolo_mode = false  # 设置为 true 启用 YOLO 模式（谨慎！）
+
+# 🎨 TUI 主题 (预留字段)
+# tui_theme = "dark"
+
+# === 配置管理 ===
+
+# 🎯 默认配置名称
+default_config = "anthropic-official"
+
+# ▶️ 当前激活的配置名称
+current_config = "anthropic-official"
+
+# === 配置节 ===
+
+# 📦 Anthropic 官方 API
+[anthropic-official]
+description = "Anthropic Official API - 官方 Claude API"
+base_url = "https://api.anthropic.com"
+auth_token = "sk-ant-your-api-key-here"
+model = "claude-sonnet-4-5-20250929"
+small_fast_model = "claude-haiku-3-5-20241022"
+provider = "anthropic"
+provider_type = "official_relay"
+account = "official"
+tags = ["official", "stable", "primary"]
+
+# 🔄 OpenRouter API
+[openrouter-claude]
+description = "OpenRouter - 多模型支持"
+base_url = "https://openrouter.ai/api/v1"
+auth_token = "sk-or-your-api-key-here"
+model = "anthropic/claude-sonnet-4"
+small_fast_model = "anthropic/claude-haiku-3.5"
+provider = "openrouter"
+provider_type = "official_relay"
+account = "personal"
+tags = ["relay", "multi-model", "backup"]
+
+# 🤖 DeepSeek API
+[deepseek-v3]
+description = "DeepSeek V3 - 高性价比国产模型"
+base_url = "https://api.deepseek.com"
+auth_token = "sk-deepseek-your-key-here"
+model = "deepseek-chat"
+small_fast_model = "deepseek-chat"
+provider = "deepseek"
+provider_type = "third_party_model"
+account = "free"
+tags = ["domestic", "affordable", "experimental"]
+
+# === YOLO 模式使用指南 ===
+#
+# 📖 什么是 YOLO 模式？
+# YOLO = 跳过所有权限检查的危险模式
+# 类似于运行 Claude Code 时使用 `--dangerously-skip-permissions`
+# 所有破坏性操作将立即执行，无任何确认提示
+#
+# 🔧 如何启用？
+# 1. 编辑此文件，设置 yolo_mode = true
+# 2. 保存文件
+# 3. 所有 CCR 命令将自动跳过确认
+#
+# 💻 使用示例:
+#
+#    # 普通模式（需要确认）
+#    ccr delete old-config
+#    > 确认删除配置 'old-config'? (y/N)
+#
+#    # YOLO 模式（无需确认）
+#    ccr delete old-config
+#    > ⚡ YOLO 模式已启用，将跳过确认
+#    > 步骤 3/3: 执行删除 (⚡ YOLO 模式)
+#    > ✓ 配置 'old-config' 已删除
+#
+#    # 其他自动执行的命令
+#    ccr clean -d 30                    # ⚡ 直接清理，无需确认
+#    ccr import new.toml --replace      # ⚡ 直接替换，无需确认
+#
+# 🔀 与 --force 参数的关系:
+#    - YOLO 模式: 全局配置，持久生效
+#    - --force 参数: 单次命令，仅影响当前操作
+#    - 优先级: --force 参数 和 YOLO 模式 均可跳过确认
+#
+# 🛡️ 安全机制（即使在 YOLO 模式下）:
+#    ✅ 所有操作仍会自动备份
+#    ✅ 所有操作记录到历史文件 (~/.claude/ccr_history.json)
+#    ✅ 界面会显示 YOLO 模式提示
+#    ✅ 可以随时关闭 YOLO 模式
+#
+# 📋 最佳实践:
+#    ✅ DO: 在 Docker 容器中使用
+#    ✅ DO: 在 CI/CD 管道中使用
+#    ✅ DO: 在自动化脚本中使用
+#    ✅ DO: 备份重要数据后再启用
+#
+#    ❌ DON'T: 在生产主机上启用
+#    ❌ DON'T: 不熟悉命令时启用
+#    ❌ DON'T: 处理重要数据时启用
+#    ❌ DON'T: 长期保持启用状态
+#
+# ⚠️ 真实案例警告:
+# 在 YOLO 模式下，以下误操作将立即执行：
+# - ccr delete production-config      # 删除生产配置，无确认！
+# - ccr clean -d 0                    # 删除所有备份，无确认！
+# - ccr import test.toml --replace    # 替换所有配置，无确认！
+#
+# 🔒 如何安全使用 YOLO 模式？
+# 1. 仅在隔离环境（Docker/虚拟机）中使用
+# 2. 使用前备份重要配置
+# 3. 完成操作后立即关闭 YOLO 模式
+# 4. 考虑使用 --force 参数代替全局 YOLO 模式
+#
+# 💡 替代方案:
+# 如果只是偶尔需要跳过确认，建议使用 --force 参数：
+#    ccr delete test-config --force
+# 这样更安全，不会影响其他操作

@@ -432,6 +432,7 @@ mod tests {
         let mut config = CcsConfig {
             default_config: "test".into(),
             current_config: "test".into(),
+            settings: crate::managers::config::GlobalSettings::default(),
             sections: indexmap::IndexMap::new(),
         };
         config.set_section("test".into(), create_test_section());

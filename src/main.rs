@@ -11,6 +11,7 @@ mod commands;
 mod core;
 mod managers;
 mod services;
+mod tui;
 mod utils;
 mod web;
 
@@ -51,11 +52,19 @@ use core::{ColorOutput, init_logger};
 
 {all-args}{after-help}
 ",
-    override_usage = "ccr [配置名称] [命令]",
+    override_usage = "ccr [选项] [配置名称] [命令]",
     disable_help_flag = true,
     disable_version_flag = true
 )]
 struct Cli {
+    /// ⚡ 临时启用 YOLO 模式（跳过所有确认提示）
+    ///
+    /// 等同于配置文件中的 yolo_mode = true
+    /// 危险操作：将跳过所有权限检查和确认提示
+    /// 示例：ccr --yolo delete test
+    #[arg(long, global = true)]
+    yolo: bool,
+
     #[command(subcommand)]
     command: Option<Commands>,
 
@@ -206,6 +215,10 @@ enum Commands {
         /// 导入前自动备份当前配置文件(强烈建议保持开启)
         #[arg(short, long, default_value_t = true)]
         backup: bool,
+
+        /// 跳过确认提示，直接导入（危险操作，在 Replace 模式下会完全覆盖现有配置）
+        #[arg(short, long)]
+        force: bool,
     },
 
     /// 清理过期的备份文件
@@ -220,6 +233,10 @@ enum Commands {
         /// 模拟运行(dry-run)：仅显示将要删除的文件,不实际删除
         #[arg(long)]
         dry_run: bool,
+
+        /// 跳过确认提示，直接清理（危险操作）
+        #[arg(short, long)]
+        force: bool,
     },
 
     /// 优化配置文件结构
@@ -234,6 +251,16 @@ enum Commands {
     /// 别名: ver
     #[command(alias = "ver")]
     Version,
+
+    /// 启动 TUI (Terminal User Interface) 交互式界面
+    ///
+    /// 提供可视化的配置管理界面，支持实时操作和 YOLO 模式切换
+    /// 示例: ccr tui
+    Tui {
+        /// 启动时启用 YOLO 模式
+        #[arg(short, long)]
+        yolo: bool,
+    },
 }
 
 /// 🎯 主函数入口
@@ -257,7 +284,7 @@ fn main() {
         Some(Commands::Switch { config_name }) => commands::switch_command(&config_name),
         Some(Commands::Add) => commands::add_command(),
         Some(Commands::Delete { config_name, force }) => {
-            commands::delete_command(&config_name, force)
+            commands::delete_command(&config_name, cli.yolo || force)
         }
         Some(Commands::Validate) => commands::validate_command(),
         Some(Commands::History { limit, filter_type }) => {
@@ -265,7 +292,7 @@ fn main() {
         }
         Some(Commands::Web { port }) => web::web_command(Some(port)),
         Some(Commands::Update { check }) => commands::update_command(check),
-        Some(Commands::Init { force }) => commands::init_command(force),
+        Some(Commands::Init { force }) => commands::init_command(cli.yolo || force),
         Some(Commands::Export { output, no_secrets }) => {
             commands::export_command(output, !no_secrets)
         }
@@ -273,20 +300,26 @@ fn main() {
             input,
             merge,
             backup,
+            force,
         }) => {
             let mode = if merge {
                 commands::ImportMode::Merge
             } else {
                 commands::ImportMode::Replace
             };
-            commands::import_command(input, mode, backup)
+            commands::import_command(input, mode, backup, cli.yolo || force)
         }
-        Some(Commands::Clean { days, dry_run }) => commands::clean_command(days, dry_run),
+        Some(Commands::Clean {
+            days,
+            dry_run,
+            force,
+        }) => commands::clean_command(days, dry_run, cli.yolo || force),
         Some(Commands::Optimize) => commands::optimize_command(),
         Some(Commands::Version) => {
             show_version();
             Ok(())
         }
+        Some(Commands::Tui { yolo }) => tui::run_tui(cli.yolo || yolo),
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {

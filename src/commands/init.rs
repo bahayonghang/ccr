@@ -3,7 +3,7 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
-use crate::managers::ConfigManager;
+use crate::managers::config::ConfigManager;
 use std::fs;
 use std::path::PathBuf;
 
@@ -28,6 +28,23 @@ pub fn init_command(force: bool) -> Result<()> {
         dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
     let config_path = home.join(".ccs_config.toml");
 
+    // ⚡ 检查 YOLO 模式：--force 参数 OR 配置文件中的 yolo_mode
+    let yolo_mode = if config_path.exists() {
+        let config_manager = ConfigManager::new(&config_path);
+        config_manager
+            .load()
+            .ok()
+            .map(|c| c.settings.yolo_mode)
+            .unwrap_or(false)
+    } else {
+        false
+    };
+    let skip_confirmation = force || yolo_mode;
+
+    if yolo_mode && force {
+        ColorOutput::info("⚡ YOLO 模式已启用，将跳过确认");
+    }
+
     // 检查文件是否已存在
     if config_path.exists() {
         if !force {
@@ -42,8 +59,34 @@ pub fn init_command(force: bool) -> Result<()> {
             return Ok(());
         }
 
+        // 🚨 使用 --force 时需要确认（除非 YOLO 模式）
+        if !skip_confirmation {
+            println!();
+            ColorOutput::warning("⚠️  警告: 即将覆盖现有配置文件！");
+            ColorOutput::info("提示: 现有配置会自动备份");
+            println!();
+
+            print!("确认强制重新初始化? (y/N): ");
+            use std::io::{self, Write};
+            io::stdout().flush().unwrap();
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).unwrap();
+
+            if !input.trim().eq_ignore_ascii_case("y") {
+                ColorOutput::info("已取消初始化操作");
+                return Ok(());
+            }
+            println!();
+        }
+
         // 使用 --force 时,备份现有配置
-        ColorOutput::warning("使用 --force 模式,将覆盖现有配置");
+        let status_msg = if skip_confirmation {
+            "⚡ 使用 --force 模式,将覆盖现有配置 (YOLO 模式)"
+        } else {
+            "使用 --force 模式,将覆盖现有配置"
+        };
+        ColorOutput::warning(status_msg);
         println!();
         ColorOutput::step("备份现有配置");
         backup_existing_config(&config_path)?;

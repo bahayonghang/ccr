@@ -39,6 +39,7 @@ fn test_config_manager_lifecycle() {
     let mut config = CcsConfig {
         default_config: "anthropic".into(),
         current_config: "anthropic".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -70,6 +71,7 @@ fn test_config_manager_section_operations() {
     let mut config = CcsConfig {
         default_config: "test".into(),
         current_config: "test".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -141,6 +143,7 @@ fn test_config_sorting_and_filtering() {
     let mut config = CcsConfig {
         default_config: "c".into(),
         current_config: "c".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
 
@@ -565,6 +568,7 @@ fn test_config_and_settings_integration() {
     let mut config = CcsConfig {
         default_config: "test".into(),
         current_config: "test".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config

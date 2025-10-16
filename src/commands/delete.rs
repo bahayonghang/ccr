@@ -11,7 +11,7 @@ use colored::Colorize;
 /// 执行流程:
 /// 1. ✅ 检查配置是否存在
 /// 2. ⚠️ 检查是否为当前配置
-/// 3. 🤔 确认删除（除非 --force）
+/// 3. 🤔 确认删除（除非 --force 或 YOLO 模式）
 /// 4. 💾 执行删除
 /// 5. 📊 显示结果
 ///
@@ -25,6 +25,14 @@ pub fn delete_command(config_name: &str, force: bool) -> Result<()> {
     // 使用 ConfigService
     let service = ConfigService::default()?;
     let config = service.load_config()?;
+
+    // ⚡ 检查 YOLO 模式: --force 参数 或 配置文件中的 yolo_mode
+    let skip_confirmation = force || config.settings.yolo_mode;
+
+    if config.settings.yolo_mode && !force {
+        ColorOutput::info("⚡ YOLO 模式已启用，将跳过确认");
+        println!();
+    }
 
     // 1. 检查配置是否存在
     ColorOutput::step("步骤 1/3: 检查配置");
@@ -76,7 +84,7 @@ pub fn delete_command(config_name: &str, force: bool) -> Result<()> {
     }
 
     // 3. 确认删除
-    if !force {
+    if !skip_confirmation {
         ColorOutput::step("步骤 3/3: 确认删除");
         ColorOutput::warning("此操作不可恢复！");
         println!();
@@ -89,7 +97,12 @@ pub fn delete_command(config_name: &str, force: bool) -> Result<()> {
         }
         println!();
     } else {
-        ColorOutput::step("步骤 3/3: 执行删除 (--force 模式)");
+        let mode_text = if config.settings.yolo_mode {
+            "⚡ YOLO 模式"
+        } else {
+            "--force 模式"
+        };
+        ColorOutput::step(&format!("步骤 3/3: 执行删除 ({})", mode_text));
         ColorOutput::warning("跳过确认，直接删除");
         println!();
     }
@@ -147,6 +160,7 @@ mod tests {
         let config = CcsConfig {
             default_config: "test".into(),
             current_config: "test".into(),
+            settings: crate::managers::config::GlobalSettings::default(),
             sections: IndexMap::new(),
         };
 
@@ -168,6 +182,7 @@ mod tests {
         let mut config = CcsConfig {
             default_config: "default".into(),
             current_config: "default".into(),
+            settings: crate::managers::config::GlobalSettings::default(),
             sections: IndexMap::new(),
         };
 

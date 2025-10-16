@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "1.1.8"
+version = "1.2.0"
 edition = "2024"
 authors = [
     "Yonghang Li"
@@ -18,7 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 # CLI 参数解析
-clap = { version = "4.5.48", features = ["derive", "cargo"] }
+clap = { version = "4.5.49", features = ["derive", "cargo"] }
 
 # 序列化与配置解析
 serde = { version = "1.0.228", features = ["derive"] }
@@ -49,6 +49,10 @@ env_logger = "0.11.8"
 # 彩色终端输出
 colored = "3.0.0"
 
+# TUI 框架
+ratatui = "0.29"
+crossterm = "0.28"
+
 # 表格展示
 comfy-table = "7.1.3"
 
@@ -63,7 +67,7 @@ uuid = { version = "1.18.1", features = ["v4", "serde"] }
 
 # HTTP 服务器 (用于 web 界面)
 # 🎯 异步 Web 框架 - 高性能并发处理（优化features以加快编译）
-tokio = { version = "1.42", features = ["rt-multi-thread", "net", "io-util", "time", "macros", "signal", "sync"] }
+tokio = { version = "1.48", features = ["rt-multi-thread", "net", "io-util", "time", "macros", "signal", "sync"] }
 axum = { version = "0.8.6", default-features = false, features = ["json", "tokio", "http1"] }
 tower = { version = "0.5", default-features = false }
 tower-http = { version = "0.6", default-features = false, features = ["cors"] }

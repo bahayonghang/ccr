@@ -18,6 +18,7 @@ fn test_add_delete_config_flow() {
     let mut config = ccr::CcsConfig {
         default_config: "default".to_string(),
         current_config: "default".to_string(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: indexmap::IndexMap::new(),
     };
 
@@ -139,6 +140,7 @@ fn test_add_config_validation() {
     let mut config = ccr::CcsConfig {
         default_config: "default".to_string(),
         current_config: "default".to_string(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: indexmap::IndexMap::new(),
     };
 
@@ -195,6 +197,7 @@ fn test_delete_current_config_warning() {
     let mut config = ccr::CcsConfig {
         default_config: "config1".to_string(),
         current_config: "config1".to_string(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: indexmap::IndexMap::new(),
     };
 

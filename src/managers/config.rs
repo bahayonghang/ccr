@@ -210,6 +210,40 @@ impl ConfigSection {
     }
 }
 
+/// ⚙️ 全局设置结构
+///
+/// 用于存储 CCR 的全局配置选项
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GlobalSettings {
+    /// ⚡ YOLO 模式 - 跳过所有权限检查（危险模式）
+    ///
+    /// 类似于 Claude Code 的 `--dangerously-skip-permissions`
+    ///
+    /// **启用后的行为**：
+    /// - 删除配置：无需确认，直接删除
+    /// - 替换配置：无需确认，直接替换
+    /// - 覆盖文件：无需确认，直接覆盖
+    /// - 清理备份：无需确认，直接清理
+    ///
+    /// ⚠️ **警告**：这是一个危险模式！
+    /// - 可能导致意外的数据丢失
+    /// - 所有破坏性操作将立即执行
+    /// - 仅建议在自动化场景或 Docker 容器中使用
+    ///
+    /// **建议用法**：
+    /// - ✅ CI/CD 管道中使用
+    /// - ✅ Docker 容器中使用
+    /// - ✅ 自动化脚本中使用
+    /// - ❌ 生产环境慎用
+    /// - ❌ 不熟悉操作时禁用
+    #[serde(default)]
+    pub yolo_mode: bool,
+
+    /// 🎨 TUI 主题名称 (预留字段)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tui_theme: Option<String>,
+}
+
 /// 📦 CCS 配置文件总体结构
 ///
 /// 对应 ~/.ccs_config.toml 的完整结构
@@ -217,6 +251,7 @@ impl ConfigSection {
 /// 结构说明:
 /// - 🎯 default_config: 默认配置名
 /// - ▶️ current_config: 当前激活配置
+/// - ⚙️ settings: 全局设置
 /// - 📋 sections: 所有具体配置节的集合
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CcsConfig {
@@ -225,6 +260,10 @@ pub struct CcsConfig {
 
     /// ▶️ 当前活跃配置名称
     pub current_config: String,
+
+    /// ⚙️ 全局设置
+    #[serde(default)]
+    pub settings: GlobalSettings,
 
     /// 📋 所有配置节(使用 flatten 序列化)
     #[serde(flatten)]
@@ -612,6 +651,7 @@ mod tests {
         let mut config = CcsConfig {
             default_config: "default".into(),
             current_config: "default".into(),
+            settings: GlobalSettings::default(),
             sections: IndexMap::new(),
         };
         assert_eq!(config.default_config, "default");
@@ -637,6 +677,7 @@ mod tests {
         let mut config = CcsConfig {
             default_config: "test".into(),
             current_config: "test".into(),
+            settings: GlobalSettings::default(),
             sections: IndexMap::new(),
         };
         config.set_section("test".into(), create_test_section());
@@ -661,6 +702,7 @@ mod tests {
         let mut config = CcsConfig {
             default_config: "test".into(),
             current_config: "test".into(),
+            settings: GlobalSettings::default(),
             sections: IndexMap::new(),
         };
         config.set_section("test".into(), create_test_section());
@@ -687,6 +729,7 @@ mod tests {
         let mut config = CcsConfig {
             default_config: "test".into(),
             current_config: "test".into(),
+            settings: GlobalSettings::default(),
             sections: IndexMap::new(),
         };
         config.set_section("test".into(), create_test_section());
@@ -709,5 +752,21 @@ mod tests {
             "应该只保留10个配置备份,但实际有 {} 个",
             backups.len()
         );
+    }
+
+    #[test]
+    fn test_global_settings() {
+        // 测试默认设置
+        let settings = GlobalSettings::default();
+        assert!(!settings.yolo_mode);
+        assert_eq!(settings.tui_theme, None);
+
+        // 测试序列化
+        let toml_str = toml::to_string(&settings).unwrap();
+        assert!(toml_str.contains("yolo_mode = false"));
+
+        // 测试反序列化
+        let loaded: GlobalSettings = toml::from_str(&toml_str).unwrap();
+        assert_eq!(loaded.yolo_mode, settings.yolo_mode);
     }
 }

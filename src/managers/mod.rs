@@ -14,7 +14,7 @@ pub mod settings;
 // 重新导出常用类型（供外部使用）
 // 注意: 这些导出是为了库的公共 API，即使在模块内未使用也需要保留
 #[allow(unused_imports)]
-pub use config::{CcsConfig, ConfigManager, ConfigSection, ProviderType};
+pub use config::{CcsConfig, ConfigManager, ConfigSection, GlobalSettings, ProviderType};
 #[allow(unused_imports)]
 pub use history::{
     EnvChange, HistoryEntry, HistoryManager, HistoryStats, OperationDetails, OperationResult,

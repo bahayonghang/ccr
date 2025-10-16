@@ -31,6 +31,7 @@ fn test_config_service_workflow() {
     let mut config = CcsConfig {
         default_config: "test1".into(),
         current_config: "test1".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
