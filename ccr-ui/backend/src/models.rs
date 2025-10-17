@@ -365,3 +365,46 @@ pub struct PluginRequest {
     pub enabled: Option<bool>,
     pub config: Option<serde_json::Value>,
 }
+
+// ===== Sync Models =====
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncStatusResponse {
+    pub success: bool,
+    pub output: String,
+    pub configured: bool,
+    pub config: Option<SyncConfigDetails>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncConfigDetails {
+    pub enabled: bool,
+    pub webdav_url: String,
+    pub username: String,
+    pub remote_path: String,
+    pub auto_sync: bool,
+    pub remote_file_exists: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncOperationRequest {
+    #[serde(default)]
+    pub force: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncOperationResponse {
+    pub success: bool,
+    pub output: String,
+    pub error: String,
+    pub duration_ms: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncInfoResponse {
+    pub feature_name: String,
+    pub description: String,
+    pub supported_services: Vec<String>,
+    pub setup_steps: Vec<String>,
+    pub security_notes: Vec<String>,
+}

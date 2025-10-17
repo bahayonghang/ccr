@@ -19,6 +19,7 @@ just s    # 启动开发环境（就这么简单！）
 
 - **Config Management**: View, switch, and validate CCR configurations
 - **Command Executor**: Execute any CCR command with a visual interface
+- **WebDAV Sync**: Push/pull configs to cloud storage (Nutstore, Nextcloud, ownCloud)
 - **Real-time Output**: See command output in a terminal-style display
 - **Multi-page Navigation**: Easy switching between different functionalities
 
@@ -193,6 +194,13 @@ The built files will be in `frontend/dist/`.
 - `POST /api/command/execute` - Execute a CCR command
 - `GET /api/command/list` - List available commands
 - `GET /api/command/help/{command}` - Get help for a command
+
+### WebDAV Sync
+- `GET /api/sync/status` - Get sync configuration status
+- `POST /api/sync/push` - Upload config to cloud (body: `{force: boolean}`)
+- `POST /api/sync/pull` - Download config from cloud (body: `{force: boolean}`)
+- `GET /api/sync/info` - Get sync feature information
+- `POST /api/sync/config` - Configure WebDAV sync (not supported in web API)
 
 ## Usage
 

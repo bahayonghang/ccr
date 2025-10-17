@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AlertCircle, FileText, Building2, User } from 'lucide-react';
+import { AlertCircle, FileText, Building2, User, Cloud, ArrowRight, Sparkles } from 'lucide-react';
 import { listConfigs, switchConfig, validateConfigs, getHistory } from '@/lib/api/client';
 import type { ConfigItem, HistoryEntry } from '@/lib/types';
 import Navbar from '@/components/layout/Navbar';
@@ -9,6 +9,7 @@ import StatusHeader from '@/components/layout/StatusHeader';
 import RightSidebar from '@/components/sidebar/RightSidebar';
 import CollapsibleSidebar from '@/components/layout/CollapsibleSidebar';
 import HistoryList from '@/components/history/HistoryList';
+import Link from 'next/link';
 
 type FilterType = 'all' | 'official_relay' | 'third_party_model' | 'uncategorized';
 
@@ -139,6 +140,91 @@ export default function ConfigManagement() {
           totalConfigs={configs.length}
           historyCount={historyCount}
         />
+
+        {/* 🌟 WebDAV 云同步功能入口 - 重点突出 */}
+        <Link href="/sync" className="block mb-5">
+          <div 
+            className="relative overflow-hidden rounded-2xl p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] group"
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+              boxShadow: '0 10px 40px rgba(102, 126, 234, 0.4), 0 0 0 1px rgba(255,255,255,0.1)',
+            }}
+          >
+            {/* 背景动画效果 */}
+            <div 
+              className="absolute inset-0 opacity-30"
+              style={{
+                background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.3) 0%, transparent 70%)',
+                animation: 'pulse 3s ease-in-out infinite',
+              }}
+            />
+            
+            {/* 顶部闪光效果 */}
+            <div 
+              className="absolute top-0 left-0 w-full h-1 opacity-80"
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)',
+                animation: 'shimmer 3s linear infinite',
+              }}
+            />
+
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                {/* 图标区域 */}
+                <div className="relative">
+                  <div 
+                    className="absolute inset-0 blur-xl opacity-60"
+                    style={{ background: 'white' }}
+                  />
+                  <Cloud className="w-16 h-16 text-white relative z-10 group-hover:scale-110 transition-transform" />
+                  <Sparkles className="w-6 h-6 text-yellow-300 absolute -top-2 -right-2 animate-pulse" />
+                </div>
+
+                {/* 文字内容 */}
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-2xl font-bold text-white">WebDAV 云同步</h3>
+                    <span 
+                      className="px-3 py-1 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-sm border border-white/30"
+                    >
+                      NEW ✨
+                    </span>
+                  </div>
+                  <p className="text-white/90 text-sm font-medium">
+                    一键同步配置到云端 · 支持坚果云、Nextcloud、ownCloud 等 WebDAV 服务
+                  </p>
+                  <div className="flex items-center gap-4 mt-3">
+                    <div className="flex items-center gap-1.5 text-white/80 text-xs">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                      <span>多设备同步</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-white/80 text-xs">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                      <span>自动备份</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-white/80 text-xs">
+                      <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                      <span>安全加密</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 右侧按钮 */}
+              <div className="flex items-center gap-3">
+                <div className="text-right mr-4">
+                  <div className="text-white/90 text-sm font-medium">立即体验</div>
+                  <div className="text-white/70 text-xs">点击进入管理</div>
+                </div>
+                <div 
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-sm border-2 border-white/40 group-hover:bg-white/30 transition-all group-hover:scale-110"
+                >
+                  <ArrowRight className="w-6 h-6 text-white group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </Link>
 
         {/* 三列布局：导航 + 主内容 + 配置导航 */}
         <div className="grid grid-cols-[auto_1fr_280px] gap-4">

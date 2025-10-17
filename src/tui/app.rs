@@ -13,6 +13,8 @@ pub enum TabState {
     Configs,
     /// 历史记录
     History,
+    /// 云端同步
+    Sync,
     /// 系统信息
     System,
 }
@@ -22,7 +24,8 @@ impl TabState {
     pub fn next(&self) -> Self {
         match self {
             Self::Configs => Self::History,
-            Self::History => Self::System,
+            Self::History => Self::Sync,
+            Self::Sync => Self::System,
             Self::System => Self::Configs,
         }
     }
@@ -32,7 +35,8 @@ impl TabState {
         match self {
             Self::Configs => Self::System,
             Self::History => Self::Configs,
-            Self::System => Self::History,
+            Self::Sync => Self::History,
+            Self::System => Self::Sync,
         }
     }
 
@@ -41,6 +45,7 @@ impl TabState {
         match self {
             Self::Configs => "📋 Configs",
             Self::History => "📜 History",
+            Self::Sync => "☁️  Sync",
             Self::System => "⚙️  System",
         }
     }
@@ -66,6 +71,8 @@ pub struct App {
     pub should_quit: bool,
     /// 状态消息 (消息文本, 是否是错误)
     pub status_message: Option<(String, bool)>,
+    /// 消息显示帧计数器（确保消息至少显示N帧）
+    message_frame_count: u8,
 }
 
 impl App {
@@ -89,7 +96,30 @@ impl App {
             history_list_index: 0,
             should_quit: false,
             status_message: None,
+            message_frame_count: 0,
         })
+    }
+
+    /// 📝 设置状态消息（自动重置帧计数器）
+    fn set_status(&mut self, message: String, is_error: bool) {
+        self.status_message = Some((message, is_error));
+        self.message_frame_count = 3; // 至少显示3帧（约750ms）
+    }
+
+    /// 🧹 尝试清除状态消息（仅当帧计数器归零时）
+    fn try_clear_status(&mut self) {
+        if self.message_frame_count > 0 {
+            // 消息受保护，不清除
+            return;
+        }
+        self.status_message = None;
+    }
+
+    /// 📉 递减消息帧计数器（在每次渲染时调用）
+    pub fn tick_message(&mut self) {
+        if self.message_frame_count > 0 {
+            self.message_frame_count -= 1;
+        }
     }
 
     /// ⌨️ 处理键盘输入
@@ -110,15 +140,47 @@ impl App {
             // Tab / Shift+Tab: 切换 Tab
             KeyCode::Tab => {
                 self.current_tab = self.current_tab.next();
+                self.try_clear_status(); // 尝试清除旧状态消息
             }
             KeyCode::BackTab => {
                 self.current_tab = self.current_tab.previous();
+                self.try_clear_status(); // 尝试清除旧状态消息
             }
 
             // 数字键: 快速切换 Tab
-            KeyCode::Char('1') => self.current_tab = TabState::Configs,
-            KeyCode::Char('2') => self.current_tab = TabState::History,
-            KeyCode::Char('3') => self.current_tab = TabState::System,
+            KeyCode::Char('1') => {
+                self.current_tab = TabState::Configs;
+                self.try_clear_status(); // 尝试清除旧状态消息
+            }
+            KeyCode::Char('2') => {
+                self.current_tab = TabState::History;
+                self.try_clear_status(); // 尝试清除旧状态消息
+            }
+            KeyCode::Char('3') => {
+                self.current_tab = TabState::Sync;
+                self.try_clear_status(); // 尝试清除旧状态消息
+            }
+            KeyCode::Char('4') => {
+                self.current_tab = TabState::System;
+                self.try_clear_status(); // 尝试清除旧状态消息
+            }
+
+            // P/L/S: Sync 操作（在 Sync 标签页时）
+            KeyCode::Char('p') | KeyCode::Char('P') => {
+                if self.current_tab == TabState::Sync {
+                    self.set_status("💡 退出 TUI 后运行: ccr sync push".to_string(), false);
+                }
+            }
+            KeyCode::Char('l') | KeyCode::Char('L') => {
+                if self.current_tab == TabState::Sync {
+                    self.set_status("💡 退出 TUI 后运行: ccr sync pull".to_string(), false);
+                }
+            }
+            KeyCode::Char('s') | KeyCode::Char('S') => {
+                if self.current_tab == TabState::Sync {
+                    self.set_status("💡 退出 TUI 后运行: ccr sync status".to_string(), false);
+                }
+            }
 
             // Y: 切换自动确认模式（仅本次会话有效）
             KeyCode::Char('y') | KeyCode::Char('Y') => {
@@ -127,20 +189,24 @@ impl App {
             }
 
             // 上下键: 列表导航
-            KeyCode::Up | KeyCode::Char('k') => match self.current_tab {
-                TabState::Configs => {
-                    if self.config_list_index > 0 {
-                        self.config_list_index -= 1;
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.try_clear_status(); // 尝试清除旧状态消息
+                match self.current_tab {
+                    TabState::Configs => {
+                        if self.config_list_index > 0 {
+                            self.config_list_index -= 1;
+                        }
                     }
-                }
-                TabState::History => {
-                    if self.history_list_index > 0 {
-                        self.history_list_index -= 1;
+                    TabState::History => {
+                        if self.history_list_index > 0 {
+                            self.history_list_index -= 1;
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
-            },
+            }
             KeyCode::Down | KeyCode::Char('j') => {
+                self.try_clear_status(); // 尝试清除旧状态消息
                 match self.current_tab {
                     TabState::Configs => {
                         // 检查配置列表长度
@@ -200,14 +266,14 @@ impl App {
         let config_list = match self.config_service.list_configs() {
             Ok(list) => list,
             Err(e) => {
-                self.status_message = Some((format!("Failed to load configs: {}", e), true));
+                self.set_status(format!("Failed to load configs: {}", e), true);
                 return;
             }
         };
 
         // 检查索引有效性
         if self.config_list_index >= config_list.configs.len() {
-            self.status_message = Some(("Invalid config index".to_string(), true));
+            self.set_status("Invalid config index".to_string(), true);
             return;
         }
 
@@ -216,7 +282,7 @@ impl App {
 
         // 检查是否已经是当前配置
         if selected_config.is_current {
-            self.status_message = Some((format!("Already using config: {}", config_name), false));
+            self.set_status(format!("Already using config: {}", config_name), false);
             return;
         }
 
@@ -245,41 +311,38 @@ impl App {
                 }
             }
             Err(e) => {
-                self.status_message = Some((format!("Failed to get config: {}", e), true));
+                self.set_status(format!("Failed to get config: {}", e), true);
                 return;
             }
         };
 
         // 验证配置
         if let Err(e) = section.validate() {
-            self.status_message = Some((format!("Config validation failed: {}", e), true));
+            self.set_status(format!("Config validation failed: {}", e), true);
             return;
         }
 
         // 应用配置到 settings.json
         if let Err(e) = self.settings_service.apply_config(&section) {
-            self.status_message = Some((format!("Failed to apply config: {}", e), true));
+            self.set_status(format!("Failed to apply config: {}", e), true);
             return;
         }
 
         // 更新配置文件中的 current_config
         if let Err(e) = self.config_service.set_current(&config_name) {
-            self.status_message = Some((format!("Failed to update current config: {}", e), true));
+            self.set_status(format!("Failed to update current config: {}", e), true);
             return;
         }
 
         // 成功！
-        self.status_message = Some((format!("✅ Switched to config: {}", config_name), false));
+        self.set_status(format!("✅ Switched to config: {}", config_name), false);
     }
 
     /// 🗑️ 删除配置
     fn delete_config(&mut self) {
         // TUI 中删除配置需要启用自动确认模式（安全措施）
         if !self.auto_confirm_mode {
-            self.status_message = Some((
-                "⚠️ Press [Y] to enable Auto-Confirm mode before deleting".to_string(),
-                true,
-            ));
+            self.set_status("⚠️ Press [Y] to enable Auto-Confirm mode before deleting".to_string(), true);
             return;
         }
 
@@ -287,14 +350,14 @@ impl App {
         let config_list = match self.config_service.list_configs() {
             Ok(list) => list,
             Err(e) => {
-                self.status_message = Some((format!("Failed to load configs: {}", e), true));
+                self.set_status(format!("Failed to load configs: {}", e), true);
                 return;
             }
         };
 
         // 检查索引有效性
         if self.config_list_index >= config_list.configs.len() {
-            self.status_message = Some(("Invalid config index".to_string(), true));
+            self.set_status("Invalid config index".to_string(), true);
             return;
         }
 
@@ -303,25 +366,19 @@ impl App {
 
         // 不允许删除当前配置
         if selected_config.is_current {
-            self.status_message = Some((
-                format!("❌ Cannot delete current config: {}", config_name),
-                true,
-            ));
+            self.set_status(format!("❌ Cannot delete current config: {}", config_name), true);
             return;
         }
 
         // 不允许删除默认配置
         if selected_config.is_default {
-            self.status_message = Some((
-                format!("❌ Cannot delete default config: {}", config_name),
-                true,
-            ));
+            self.set_status(format!("❌ Cannot delete default config: {}", config_name), true);
             return;
         }
 
         // 执行删除
         if let Err(e) = self.config_service.delete_config(&config_name) {
-            self.status_message = Some((format!("Failed to delete config: {}", e), true));
+            self.set_status(format!("Failed to delete config: {}", e), true);
             return;
         }
 
@@ -331,6 +388,6 @@ impl App {
         }
 
         // 成功！
-        self.status_message = Some((format!("✅ Deleted config: {}", config_name), false));
+        self.set_status(format!("✅ Deleted config: {}", config_name), false);
     }
 }

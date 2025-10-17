@@ -57,6 +57,9 @@ fn run_app<B: ratatui::backend::Backend>(
     mut event_handler: EventHandler,
 ) -> Result<()> {
     loop {
+        // 📉 递减消息帧计数器
+        app.tick_message();
+
         // 🎨 渲染UI
         terminal.draw(|f| ui::draw(f, &mut app))?;
 

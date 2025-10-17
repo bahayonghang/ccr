@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Settings, Terminal, ChevronLeft, ChevronRight, Menu, ChevronDown, ChevronUp, Zap, Server, Command, Bot, Puzzle, Sparkles, Gem, Workflow } from 'lucide-react';
+import { Settings, Terminal, ChevronLeft, ChevronRight, Menu, ChevronDown, ChevronUp, Zap, Server, Command, Bot, Puzzle, Sparkles, Gem, Workflow, Cloud } from 'lucide-react';
 
 // 导航菜单结构 - 支持层级菜单
 const navigationGroups = [
@@ -28,6 +28,7 @@ const navigationGroups = [
     defaultExpanded: true, // 默认展开
     items: [
       { name: '配置管理', href: '/configs', icon: Settings },
+      { name: '☁️ 云同步', href: '/sync', icon: Cloud },
       { name: 'MCP 管理', href: '/mcp', icon: Server },
       { name: 'Slash Commands', href: '/slash-commands', icon: Command },
       { name: 'Agents 管理', href: '/agents', icon: Bot },

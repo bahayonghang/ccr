@@ -14,6 +14,7 @@ CCR 通过原子操作、文件锁、完整审计追踪和自动备份直接管�
 | 🔒 **并发安全** | 文件锁 + 原子操作防止多进程并发损坏 |
 | 📝 **完整审计追踪** | 每个操作都有日志记录（UUID、时间戳、操作者），敏感数据已掩码 |
 | 💾 **自动备份** | 更改前自动备份，生成带时间戳的 `.bak` 文件 |
+| ☁️ **云端同步** | 基于 WebDAV 的配置同步（支持坚果云、Nextcloud、ownCloud 等） |
 | ✅ **配置验证** | 全面验证（URL、必填字段、格式） |
 | 🔤 **配置优化** | 按字母顺序整理配置，保持顺序不被打乱 |
 | 🌐 **Web 服务器** | 内置 Axum Web 服务器，提供 14 个 RESTful API 端点（配置、历史、备份、系统信息等） |
@@ -123,6 +124,10 @@ ccr switch anthropic  # 🔄 切换配置（表格展示变化，或简写: ccr 
 ccr current           # 🔍 以表格显示当前配置和环境变量状态
 ccr validate          # ✅ 验证所有配置
 ccr history           # 📚 查看操作历史
+ccr sync config       # ☁️ 配置 WebDAV 同步（交互式设置）
+ccr sync status       # 📊 检查同步状态和远程文件
+ccr sync push         # 🔼 上传配置到云端
+ccr sync pull         # 🔽 从云端下载配置
 ccr tui               # 🖥️ 启动交互式 TUI（推荐用于可视化管理！）
 ccr web               # 🌐 启动 Web 界面 (端口 8080)
 ```
@@ -143,6 +148,10 @@ ccr web               # 🌐 启动 Web 界面 (端口 8080)
 | `ccr export [-o FILE] [--no-secrets]` | - | 📤 导出配置（包含/不含 API 密钥） |
 | `ccr import FILE [--merge]` | - | 📥 导入配置（合并或替换） |
 | `ccr clean [-d DAYS] [--dry-run]` | - | 🧹 清理旧备份（默认 7 天） |
+| `ccr sync config` | - | ☁️ 配置 WebDAV 同步（交互式） |
+| `ccr sync status` | - | 📊 检查同步状态和远程文件 |
+| `ccr sync push [--force]` | - | 🔼 上传配置到云端 |
+| `ccr sync pull [--force]` | - | 🔽 从云端下载配置 |
 | `ccr update [--check]` | - | ⚡ 从 GitHub 更新 CCR（实时进度显示） |
 | `ccr version` | `ver` | ℹ️ 显示版本和功能 |
 
@@ -191,13 +200,14 @@ ccr tui [--yolo]  # --yolo: 启用 YOLO 模式（跳过确认）
 ```
 
 **功能特性：**
-- **🖥️ 三个标签页**：
+- **🖥️ 四个标签页**：
   - **配置页** 📋：浏览和管理所有配置
   - **历史页** 📜：查看带时间戳的操作历史
+  - **同步页** ☁️：WebDAV 同步状态和远程文件检查
   - **系统页** ⚙️：显示系统信息和文件路径
 
 - **⌨️ 键盘快捷键**：
-  - `1-3` / `Tab` / `Shift+Tab`：切换标签页
+  - `1-4` / `Tab` / `Shift+Tab`：切换标签页
   - `↑↓` / `j`/`k`：导航列表（支持 Vim 风格）
   - `Enter`：切换到选中的配置
   - `d`：删除选中的配置（需要 YOLO 模式）
@@ -221,10 +231,81 @@ ccr tui [--yolo]  # --yolo: 启用 YOLO 模式（跳过确认）
 ccr tui              # 启动 TUI
 # 按 '1' → 浏览配置 → Enter 切换
 # 按 '2' → 查看历史
-# 按 '3' → 检查系统信息
+# 按 '3' → 检查同步状态（P/L/S 在 CLI 中执行 push/pull/status）
+# 按 '4' → 检查系统信息
 # 按 'Y' → 启用 YOLO 模式 → 'd' 删除配置
 # 按 'q' → 退出
 ```
+
+### ☁️ 云端同步（WebDAV）
+
+CCR 支持基于 WebDAV 的配置同步，方便多设备管理。
+
+**支持的服务：**
+- 🥜 **坚果云** - 国内用户推荐（免费套餐可用）
+- 📦 **Nextcloud / ownCloud** - 自建或托管
+- 🌐 **任何标准 WebDAV 服务器**
+
+**设置指南：**
+
+1. **配置 WebDAV 连接：**
+```bash
+ccr sync config
+# 交互式提示：
+# - WebDAV 服务器地址（默认: https://dav.jianguoyun.com/dav/）
+# - 用户名/邮箱
+# - 密码/应用密码（坚果云：账户信息 → 安全选项 → 添加应用 → 生成密码）
+# - 远程文件路径（默认: /ccr/.ccs_config.toml）
+# - 自动进行连接测试
+```
+
+2. **检查同步状态：**
+```bash
+ccr sync status
+# 显示：
+# - 同步配置（服务器、用户名、远程路径）
+# - 自动同步状态
+# - 远程文件存在检查
+```
+
+3. **上传配置到云端（首次）：**
+```bash
+ccr sync push
+# 如果远程文件存在会提示确认
+# 使用 --force 跳过确认
+```
+
+4. **从云端下载配置：**
+```bash
+ccr sync pull
+# 覆盖前会备份本地配置
+# 使用 --force 跳过确认
+```
+
+**配置方式：**
+
+同步设置存储在 `~/.ccs_config.toml` 中：
+```toml
+[settings.sync]
+enabled = true
+webdav_url = "https://dav.jianguoyun.com/dav/"
+username = "user@example.com"
+password = "your-app-password"
+remote_path = "/ccr/.ccs_config.toml"
+auto_sync = false  # 尚未实现
+```
+
+**使用场景：**
+- 📱 多台设备间同步配置
+- 💼 团队协作共享配置
+- 🔄 备份配置到云存储
+- 🚀 新设备快速设置
+
+**安全注意：**
+- ✅ 密码存储在本地配置文件中
+- ✅ 使用应用密码而非账户密码（坚果云）
+- ✅ 确保正确的文件权限：`chmod 600 ~/.ccs_config.toml`
+- ⚠️ 远程文件未由 CCR 加密（依赖 WebDAV 服务器安全性）
 
 ### 🌐 Web API
 

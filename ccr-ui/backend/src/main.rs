@@ -159,6 +159,12 @@ fn create_router() -> Router {
         .route("/api/plugins/:id", put(handlers::plugins::update_plugin))
         .route("/api/plugins/:id", delete(handlers::plugins::delete_plugin))
         .route("/api/plugins/:id/toggle", put(handlers::plugins::toggle_plugin))
+        // Sync (WebDAV) endpoints
+        .route("/api/sync/status", get(handlers::sync::get_sync_status))
+        .route("/api/sync/push", post(handlers::sync::push_config))
+        .route("/api/sync/pull", post(handlers::sync::pull_config))
+        .route("/api/sync/info", get(handlers::sync::get_sync_info))
+        .route("/api/sync/config", post(handlers::sync::configure_sync))
         // Apply middleware
         .layer(middleware)
 }

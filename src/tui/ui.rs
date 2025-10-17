@@ -17,7 +17,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         .constraints([
             Constraint::Length(3), // Header
             Constraint::Min(0),    // Content
-            Constraint::Length(3), // Footer
+            Constraint::Length(5), // Footer (状态消息1行 + 快捷键3行 + 安全边距1行)
         ])
         .split(f.area());
 
@@ -36,13 +36,15 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     let titles = vec![
         TabState::Configs.title(),
         TabState::History.title(),
+        TabState::Sync.title(),
         TabState::System.title(),
     ];
 
     let index = match app.current_tab {
         TabState::Configs => 0,
         TabState::History => 1,
-        TabState::System => 2,
+        TabState::Sync => 2,
+        TabState::System => 3,
     };
 
     let tabs = Tabs::new(titles)
@@ -68,6 +70,7 @@ fn render_content(f: &mut Frame, app: &mut App, area: Rect) {
     match app.current_tab {
         TabState::Configs => render_configs_tab(f, app, area),
         TabState::History => render_history_tab(f, app, area),
+        TabState::Sync => render_sync_tab(f, app, area),
         TabState::System => render_system_tab(f, app, area),
     }
 }
@@ -271,6 +274,130 @@ fn render_history_tab(f: &mut Frame, app: &App, area: Rect) {
     f.render_stateful_widget(list, area, &mut list_state);
 }
 
+/// 渲染云端同步 Tab
+fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(" ☁️  Cloud Sync ")
+        .title_alignment(Alignment::Left);
+
+    // 获取同步配置
+    let config = match app.config_service.load_config() {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            let error_text = vec![
+                Line::from(""),
+                Line::from(Span::styled(
+                    "❌ Failed to load configuration",
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                )),
+                Line::from(""),
+                Line::from(format!("Error: {}", e)),
+            ];
+            let paragraph = Paragraph::new(error_text)
+                .block(block)
+                .alignment(Alignment::Center);
+            f.render_widget(paragraph, area);
+            return;
+        }
+    };
+
+    let mut lines = vec![Line::from("")];
+
+    match &config.settings.sync {
+        Some(sync_config) if sync_config.enabled => {
+            // 同步已配置
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled("状态: ", Style::default().fg(Color::Cyan)),
+                Span::styled("✓ 已启用", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            ]));
+            lines.push(Line::from(""));
+            
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled("WebDAV 服务器: ", Style::default().fg(Color::Cyan)),
+                Span::raw(&sync_config.webdav_url),
+            ]));
+            
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled("用户名: ", Style::default().fg(Color::Cyan)),
+                Span::raw(&sync_config.username),
+            ]));
+            
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled("远程路径: ", Style::default().fg(Color::Cyan)),
+                Span::raw(&sync_config.remote_path),
+            ]));
+            
+            let auto_sync_status = if sync_config.auto_sync {
+                Span::styled("✓ 开启", Style::default().fg(Color::Green))
+            } else {
+                Span::styled("✗ 关闭", Style::default().fg(Color::DarkGray))
+            };
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled("自动同步: ", Style::default().fg(Color::Cyan)),
+                auto_sync_status,
+            ]));
+            
+            lines.push(Line::from(""));
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                "  📝 可用操作:",
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            )));
+            lines.push(Line::from(""));
+            lines.push(Line::from("     [P] Push   - 上传配置到云端"));
+            lines.push(Line::from("     [L] Pull   - 从云端下载配置"));
+            lines.push(Line::from("     [S] Status - 查看同步状态"));
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                "  💡 提示: 这些操作会在退出 TUI 后在命令行执行",
+                Style::default().fg(Color::DarkGray),
+            )));
+        }
+        _ => {
+            // 同步未配置
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled("状态: ", Style::default().fg(Color::Cyan)),
+                Span::styled("未配置", Style::default().fg(Color::Yellow)),
+            ]));
+            lines.push(Line::from(""));
+            lines.push(Line::from(""));
+            
+            lines.push(Line::from(Span::styled(
+                "  📝 配置 WebDAV 同步",
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            )));
+            lines.push(Line::from(""));
+            lines.push(Line::from("  1. 退出 TUI (按 Q)"));
+            lines.push(Line::from("  2. 运行命令: ccr sync config"));
+            lines.push(Line::from("  3. 输入 WebDAV 服务器信息"));
+            lines.push(Line::from("  4. 测试连接成功后即可使用"));
+            lines.push(Line::from(""));
+            lines.push(Line::from(""));
+            
+            lines.push(Line::from(Span::styled(
+                "  💡 支持的服务:",
+                Style::default().fg(Color::Cyan),
+            )));
+            lines.push(Line::from(""));
+            lines.push(Line::from("     • 坚果云 (推荐，免费)"));
+            lines.push(Line::from("     • Nextcloud / ownCloud"));
+            lines.push(Line::from("     • 其他标准 WebDAV 服务"));
+        }
+    }
+
+    let paragraph = Paragraph::new(lines)
+        .block(block)
+        .alignment(Alignment::Left);
+    f.render_widget(paragraph, area);
+}
+
 /// 渲染系统信息 Tab
 fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
@@ -379,17 +506,16 @@ fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(paragraph, area);
 }
 
-/// 渲染状态栏
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     // 渲染状态消息和快捷键帮助
     // 如果有状态消息,显示在顶部
     if let Some((message, is_error)) = &app.status_message {
-        // 分割为两行
+        // 分割为两行：状态消息1行 + 快捷键至少3行（包括边框）
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Length(1), // 状态消息
-                Constraint::Min(2),    // 快捷键
+                Constraint::Min(3),     // 快捷键（至少3行，包括边框）
             ])
             .split(area);
 
@@ -427,7 +553,7 @@ fn render_help_line(f: &mut Frame, app: &App, area: Rect) {
     };
 
     let help_text = vec![
-        Span::raw(" [1-3] Tab | [↑↓/jk] Nav | [Enter] Switch | [d] Delete | [Y] Auto | "),
+        Span::raw(" [1-4] Tab | [↑↓/jk] Nav | [Enter] Switch | [d] Delete | [P/L/S] Sync | [Y] Auto | "),
         confirm_status,
         Span::raw(" | [Q] Quit "),
     ];

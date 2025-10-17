@@ -261,6 +261,54 @@ enum Commands {
         #[arg(short = 'y', long = "yes")]
         auto_yes: bool,
     },
+
+    /// WebDAV 配置同步
+    ///
+    /// 支持将配置文件同步到 WebDAV 服务器（默认支持坚果云）
+    /// 示例: ccr sync config  # 配置同步
+    ///       ccr sync status  # 查看状态
+    ///       ccr sync push    # 上传配置
+    ///       ccr sync pull    # 下载配置
+    Sync {
+        #[command(subcommand)]
+        action: SyncAction,
+    },
+}
+
+/// ☁️ 同步操作子命令
+#[derive(Subcommand)]
+enum SyncAction {
+    /// 配置 WebDAV 同步
+    ///
+    /// 交互式配置 WebDAV 服务器连接信息
+    /// 示例: ccr sync config
+    Config,
+
+    /// 显示同步状态
+    ///
+    /// 查看当前同步配置和远程文件状态
+    /// 示例: ccr sync status
+    Status,
+
+    /// 上传配置到云端
+    ///
+    /// 将本地配置文件上传到 WebDAV 服务器
+    /// 示例: ccr sync push --force
+    Push {
+        /// 强制覆盖远程配置，不提示确认
+        #[arg(short, long)]
+        force: bool,
+    },
+
+    /// 从云端下载配置
+    ///
+    /// 从 WebDAV 服务器下载配置文件到本地
+    /// 示例: ccr sync pull --force
+    Pull {
+        /// 强制覆盖本地配置，不提示确认
+        #[arg(short, long)]
+        force: bool,
+    },
 }
 
 /// 🎯 主函数入口
@@ -320,6 +368,12 @@ fn main() {
             Ok(())
         }
         Some(Commands::Tui { auto_yes }) => tui::run_tui(cli.auto_yes || auto_yes),
+        Some(Commands::Sync { action }) => match action {
+            SyncAction::Config => commands::sync_config_command(),
+            SyncAction::Status => commands::sync_status_command(),
+            SyncAction::Push { force } => commands::sync_push_command(force),
+            SyncAction::Pull { force } => commands::sync_pull_command(force),
+        },
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {
@@ -370,6 +424,7 @@ fn show_version() {
     println!("  • 完整的操作历史和审计追踪");
     println!("  • 配置备份和恢复功能");
     println!("  • 自动配置验证");
+    println!("  • WebDAV 云端同步（支持坚果云）");
     println!("  • 与 CCS 完全兼容");
     println!();
 
@@ -386,6 +441,9 @@ fn show_version() {
     println!("  ccr export            导出配置");
     println!("  ccr import <file>     导入配置");
     println!("  ccr clean             清理旧备份");
+    println!("  ccr sync config       配置云端同步");
+    println!("  ccr sync push         上传配置到云端");
+    println!("  ccr sync pull         从云端下载配置");
     println!("  ccr update            更新到最新版本");
     println!();
 

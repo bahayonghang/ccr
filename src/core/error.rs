@@ -60,6 +60,9 @@ pub mod exit_codes {
 
     /// ✅ 验证错误
     pub const VALIDATION_ERROR: i32 = 90;
+
+    /// ☁️ 同步错误
+    pub const SYNC_ERROR: i32 = 70;
 }
 
 /// ❌ CCR 错误类型枚举
@@ -118,6 +121,10 @@ pub enum CcrError {
     /// ✅ 验证失败
     #[error("验证失败: {0}")]
     ValidationError(String),
+
+    /// ☁️ 同步错误
+    #[error("同步错误: {0}")]
+    SyncError(String),
 }
 
 impl CcrError {
@@ -141,6 +148,7 @@ impl CcrError {
             CcrError::IoError(_) => exit_codes::IO_ERROR,
             CcrError::HistoryError(_) => exit_codes::HISTORY_ERROR,
             CcrError::ValidationError(_) => exit_codes::VALIDATION_ERROR,
+            CcrError::SyncError(_) => exit_codes::SYNC_ERROR,
         }
     }
 

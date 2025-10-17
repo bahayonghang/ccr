@@ -14,6 +14,7 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | 🔒 **Concurrency Safe** | File locking + atomic operations prevent corruption across multiple processes |
 | 📝 **Complete Audit Trail** | Every operation logged with masked sensitive data (UUID, timestamp, actor) |
 | 💾 **Auto Backup** | Automatic backups before changes with timestamped `.bak` files |
+| ☁️ **Cloud Sync** | WebDAV-based config synchronization (Nutstore, Nextcloud, ownCloud, etc.) |
 | ✅ **Validation** | Comprehensive config validation (URLs, required fields, format) |
 | 🔤 **Config Optimization** | Sort configs alphabetically, maintain order after switching |
 | 🌐 **Web Server** | Built-in Axum web server exposing 14 RESTful API endpoints (config, history, backups, system info, etc.) |
@@ -123,6 +124,10 @@ ccr switch anthropic  # 🔄 Switch config (shows tables with changes, or just: 
 ccr current           # 🔍 Show current config and env status in tables
 ccr validate          # ✅ Validate all configs
 ccr history           # 📚 View operation history
+ccr sync config       # ☁️ Configure WebDAV sync (interactive setup)
+ccr sync status       # 📊 Check sync status and remote file
+ccr sync push         # 🔼 Upload config to cloud
+ccr sync pull         # 🔽 Download config from cloud
 ccr tui               # 🖥️ Launch interactive TUI (recommended for visual management!)
 ccr web               # 🌐 Launch web UI (port 8080)
 ```
@@ -143,6 +148,10 @@ ccr web               # 🌐 Launch web UI (port 8080)
 | `ccr export [-o FILE] [--no-secrets]` | - | 📤 Export configs (with/without API keys) |
 | `ccr import FILE [--merge]` | - | 📥 Import configs (merge or replace) |
 | `ccr clean [-d DAYS] [--dry-run]` | - | 🧹 Clean old backups (default 7 days) |
+| `ccr sync config` | - | ☁️ Configure WebDAV sync (interactive) |
+| `ccr sync status` | - | 📊 Check sync status and remote file |
+| `ccr sync push [--force]` | - | 🔼 Upload config to cloud |
+| `ccr sync pull [--force]` | - | 🔽 Download config from cloud |
 | `ccr update [--check]` | - | ⚡ Update CCR from GitHub (with real-time progress) |
 | `ccr version` | `ver` | ℹ️ Show version and features |
 
@@ -191,13 +200,14 @@ ccr tui [--yolo]  # --yolo: Enable YOLO mode (skip confirmations)
 ```
 
 **Features:**
-- **🖥️ Three Tabs**:
+- **🖥️ Four Tabs**:
   - **Configs Tab** 📋: Browse and manage all configurations
   - **History Tab** 📜: View operation history with timestamps
+  - **Sync Tab** ☁️: Check WebDAV sync status and remote file
   - **System Tab** ⚙️: Display system info and file paths
 
 - **⌨️ Keyboard Shortcuts**:
-  - `1-3` / `Tab` / `Shift+Tab`: Switch between tabs
+  - `1-4` / `Tab` / `Shift+Tab`: Switch between tabs
   - `↑↓` / `j`/`k`: Navigate lists
   - `Enter`: Switch to selected configuration
   - `d`: Delete selected configuration (requires YOLO mode)
@@ -221,10 +231,81 @@ ccr tui [--yolo]  # --yolo: Enable YOLO mode (skip confirmations)
 ccr tui              # Launch TUI
 # Press '1' → navigate configs → Enter to switch
 # Press '2' → view history
-# Press '3' → check system info
+# Press '3' → check sync status (P/L/S for push/pull/status in CLI)
+# Press '4' → check system info
 # Press 'Y' → enable YOLO mode → 'd' to delete config
 # Press 'q' → quit
 ```
+
+### ☁️ Cloud Sync (WebDAV)
+
+CCR supports WebDAV-based configuration synchronization for multi-device management.
+
+**Supported Services:**
+- 🥜 **Nutstore (坚果云)** - Recommended for China users (free tier available)
+- 📦 **Nextcloud / ownCloud** - Self-hosted or managed
+- 🌐 **Any standard WebDAV server**
+
+**Setup Guide:**
+
+1. **Configure WebDAV connection:**
+```bash
+ccr sync config
+# Interactive prompts:
+# - WebDAV server URL (default: https://dav.jianguoyun.com/dav/)
+# - Username/Email
+# - Password/App password (for Nutstore: Account Settings → Security → Add App)
+# - Remote file path (default: /ccr/.ccs_config.toml)
+# - Connection test will run automatically
+```
+
+2. **Check sync status:**
+```bash
+ccr sync status
+# Shows:
+# - Sync configuration (server, username, remote path)
+# - Auto-sync status
+# - Remote file existence check
+```
+
+3. **Upload config to cloud (first time):**
+```bash
+ccr sync push
+# Prompts for confirmation if remote file exists
+# Use --force to skip confirmation
+```
+
+4. **Download config from cloud:**
+```bash
+ccr sync pull
+# Backs up local config before overwriting
+# Use --force to skip confirmation
+```
+
+**Configuration:**
+
+Sync settings are stored in `~/.ccs_config.toml`:
+```toml
+[settings.sync]
+enabled = true
+webdav_url = "https://dav.jianguoyun.com/dav/"
+username = "user@example.com"
+password = "your-app-password"
+remote_path = "/ccr/.ccs_config.toml"
+auto_sync = false  # Not yet implemented
+```
+
+**Use Cases:**
+- 📱 Sync configs across multiple machines
+- 💼 Team collaboration with shared configs
+- 🔄 Backup configs to cloud storage
+- 🚀 Quick setup on new machines
+
+**Security Notes:**
+- ✅ Passwords are stored locally in config file
+- ✅ Use app passwords instead of account passwords (Nutstore)
+- ✅ Ensure proper file permissions: `chmod 600 ~/.ccs_config.toml`
+- ⚠️ Remote files are not encrypted by CCR (rely on WebDAV server security)
 
 ### 🌐 Web API
 

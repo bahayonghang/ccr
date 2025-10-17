@@ -11,6 +11,7 @@ pub mod backup_service;
 pub mod config_service;
 pub mod history_service;
 pub mod settings_service;
+pub mod sync_service;
 
 // Service 层为将来扩展准备,部分功能暂未在命令层使用
 #[allow(unused_imports)]
@@ -21,3 +22,5 @@ pub use config_service::ConfigService;
 pub use history_service::HistoryService;
 #[allow(unused_imports)]
 pub use settings_service::SettingsService;
+#[allow(unused_imports)]
+pub use sync_service::SyncService;

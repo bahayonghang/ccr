@@ -12,6 +12,7 @@ pub mod init;
 pub mod list;
 pub mod optimize;
 pub mod switch;
+pub mod sync_cmd;
 pub mod update;
 pub mod validate;
 
@@ -26,5 +27,6 @@ pub use init::init_command;
 pub use list::list_command;
 pub use optimize::optimize_command;
 pub use switch::switch_command;
+pub use sync_cmd::{sync_config_command, sync_pull_command, sync_push_command, sync_status_command};
 pub use update::update_command;
 pub use validate::validate_command;

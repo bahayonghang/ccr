@@ -499,3 +499,24 @@ body {
   border-width: 0;
 }
 
+/* ===================================
+   Sync 卡片动画
+   =================================== */
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}

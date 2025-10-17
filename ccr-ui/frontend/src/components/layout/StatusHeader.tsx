@@ -19,14 +19,8 @@ export default function StatusHeader({
 }: StatusHeaderProps) {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
 
-  // 从 localStorage 读取折叠状态，默认为 false（展开）
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ccr-status-header-collapsed');
-      return saved === 'true';
-    }
-    return false;
-  });
+  // 初始状态统一为 false，避免水合错误
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // 当折叠状态改变时，保存到 localStorage
   const toggleCollapsed = () => {
@@ -36,6 +30,16 @@ export default function StatusHeader({
       localStorage.setItem('ccr-status-header-collapsed', String(newState));
     }
   };
+
+  // 组件挂载后从 localStorage 读取折叠状态
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ccr-status-header-collapsed');
+      if (saved === 'true') {
+        setIsCollapsed(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const loadSystemInfo = async () => {
