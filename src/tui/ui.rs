@@ -303,14 +303,14 @@ fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
         .map(|c| c.name)
         .unwrap_or_else(|| "N/A".to_string());
 
-    // YOLO 模式状态
-    let yolo_status = if app.yolo_mode {
+    // 自动确认模式状态
+    let auto_confirm_status = if app.auto_confirm_mode {
         Span::styled(
-            "ENABLED",
-            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+            "ON (session-only)",
+            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
         )
     } else {
-        Span::styled("DISABLED", Style::default().fg(Color::Green))
+        Span::styled("OFF", Style::default().fg(Color::Green))
     };
 
     // 构建显示内容
@@ -351,7 +351,7 @@ fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
             Span::raw("  Current Config: "),
             Span::styled(current_config, Style::default().fg(Color::Green)),
         ]),
-        Line::from(vec![Span::raw("  YOLO Mode: "), yolo_status]),
+        Line::from(vec![Span::raw("  Auto-Confirm (Y): "), auto_confirm_status]),
         Line::from(""),
         Line::from(Span::styled(
             "File Paths",
@@ -417,18 +417,18 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
 
 /// 渲染快捷键帮助行
 fn render_help_line(f: &mut Frame, app: &App, area: Rect) {
-    let yolo_status = if app.yolo_mode {
+    let confirm_status = if app.auto_confirm_mode {
         Span::styled(
-            " [!] YOLO ",
-            Style::default().fg(Color::Red).bg(Color::Black),
+            " AUTO ",
+            Style::default().fg(Color::Yellow).bg(Color::Black).add_modifier(Modifier::BOLD),
         )
     } else {
         Span::styled(" SAFE ", Style::default().fg(Color::Green).bg(Color::Black))
     };
 
     let help_text = vec![
-        Span::raw(" [1-3] Tab | [↑↓/jk] Nav | [Enter] Switch | [d] Delete | [Y] YOLO | "),
-        yolo_status,
+        Span::raw(" [1-3] Tab | [↑↓/jk] Nav | [Enter] Switch | [d] Delete | [Y] Auto | "),
+        confirm_status,
         Span::raw(" | [Q] Quit "),
     ];
 

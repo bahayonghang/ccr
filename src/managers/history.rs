@@ -163,10 +163,20 @@ impl HistoryManager {
     }
 
     /// 使用默认路径创建管理器
+    /// 
+    /// ⚙️ **开发者注意**：
+    /// 可以通过环境变量 `CCR_HISTORY_PATH` 覆盖默认路径
     pub fn default() -> Result<Self> {
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::HistoryError("无法获取用户主目录".into()))?;
-        let history_path = home.join(".claude").join("ccr_history.json");
+        // 🔍 检查环境变量
+        let history_path = if let Ok(custom_path) = std::env::var("CCR_HISTORY_PATH") {
+            std::path::PathBuf::from(custom_path)
+        } else {
+            let home = dirs::home_dir()
+                .ok_or_else(|| CcrError::HistoryError("无法获取用户主目录".into()))?;
+            home.join(".claude").join("ccr_history.json")
+        };
+        
+        log::debug!("使用历史路径: {:?}", &history_path);
         let lock_manager = LockManager::default()?;
 
         Ok(Self::new(history_path, lock_manager))

@@ -17,7 +17,7 @@ CCR 通过原子操作、文件锁、完整审计追踪和自动备份直接管�
 | ✅ **配置验证** | 全面验证（URL、必填字段、格式） |
 | 🔤 **配置优化** | 按字母顺序整理配置，保持顺序不被打乱 |
 | 🌐 **Web 服务器** | 内置 Axum Web 服务器，提供 14 个 RESTful API 端点（配置、历史、备份、系统信息等） |
-| 🖥️ **全栈 Web UI** | 基于 Next.js 16（React 19）+ Actix Web 的可视化管理界面 |
+| 🖥️ **全栈 Web UI** | 基于 Next.js 16（React 19）+ Axum 的可视化管理界面 |
 | 🏗️ **现代架构** | Service 层模式，模块化设计，95%+ 测试覆盖率 |
 | ⚡ **智能更新** | 实时显示编译进度的自动更新功能 |
 | 🔄 **CCS 兼容** | 共享 `~/.ccs_config.toml` - 与 Shell 版本无缝共存 |
@@ -44,14 +44,14 @@ cargo install --path .
 
 ## 🌐 CCR UI - 全栈 Web 应用
 
-CCR UI 是一个现代化的 **Next.js + Actix Web** 全栈应用，用于 CCR 配置管理！
+CCR UI 是一个现代化的 **Next.js + Axum** 全栈应用，用于 CCR 配置管理！
 
 前端使用 App Router 架构与 React 19，结合 Tailwind 构建交互界面；后端基于 Actix 包装 CCR CLI，并额外提供 MCP 服务器、斜杠命令、智能体与插件的管理 API。
 
 ### 功能特性
 
 - ⚛️ **Next.js 前端**：Next.js 16（React 19）App Router，配合 TypeScript 与 Tailwind CSS
-- 🦀 **Actix Web 后端**：高性能 Rust 异步 Web 服务器
+- 🦀 **Axum 后端**：高性能 Rust 异步 Web 服务器
 - 🖥️ **配置管理**：可视化配置切换和验证
 - 💻 **命令执行器**：执行所有 13 个 CCR 命令，可视化输出
 - 📊 **语法高亮**：终端风格输出，带颜色编码
@@ -289,7 +289,7 @@ src/
 └── utils/            # 🛠️ 工具（掩码、验证）
 
 ccr-ui/               # 🌐 全栈 Web 应用
-├── backend/          # 🦀 Actix Web 服务器
+├── backend/          # 🦀 Axum 服务器
 │   ├── src/
 │   │   ├── main.rs               # 服务器入口
 │   │   ├── executor/             # CCR CLI 子进程执行器

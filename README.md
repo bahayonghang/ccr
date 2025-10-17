@@ -17,7 +17,7 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | ✅ **Validation** | Comprehensive config validation (URLs, required fields, format) |
 | 🔤 **Config Optimization** | Sort configs alphabetically, maintain order after switching |
 | 🌐 **Web Server** | Built-in Axum web server exposing 14 RESTful API endpoints (config, history, backups, system info, etc.) |
-| 🖥️ **Full-Stack Web UI** | Next.js 16 (React 19) + Actix Web application for visual management |
+| 🖥️ **Full-Stack Web UI** | Next.js 16 (React 19) + Axum application for visual management |
 | 🏗️ **Modern Architecture** | Service layer pattern, modular design, 95%+ test coverage |
 | ⚡ **Smart Update** | Real-time progress display during auto-update |
 | 🔄 **CCS Compatible** | Shares `~/.ccs_config.toml` - seamlessly coexist with shell version |
@@ -44,14 +44,14 @@ cargo install --path .
 
 ## 🌐 CCR UI - Full-Stack Web Application
 
-CCR UI is a modern **Next.js + Actix Web** full-stack application for CCR management!
+CCR UI is a modern **Next.js + Axum** full-stack application for CCR management!
 
 The App Router frontend delivers a React 19 experience with Tailwind-driven UI, while the Actix backend wraps the CCR CLI and exposes extended management APIs for MCP servers, slash commands, agents, and plugins.
 
 ### Features
 
 - ⚛️ **Next.js Frontend**: Next.js 16 (React 19) App Router with TypeScript and Tailwind CSS
-- 🦀 **Actix Web Backend**: High-performance Rust async web server
+- 🦀 **Axum Backend**: High-performance Rust async web server
 - 🖥️ **Config Management**: Visual config switching and validation
 - 💻 **Command Executor**: Execute all 13 CCR commands with visual output
 - 📊 **Syntax Highlighting**: Terminal-style output with color coding
@@ -289,7 +289,7 @@ src/
 └── utils/            # 🛠️ Utils (masking, validation)
 
 ccr-ui/               # 🌐 Full-Stack Web Application
-├── backend/          # 🦀 Actix Web server
+├── backend/          # 🦀 Axum server
 │   ├── src/
 │   │   ├── main.rs               # Server entry
 │   │   ├── executor/             # CCR CLI subprocess executor

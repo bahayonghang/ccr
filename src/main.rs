@@ -57,13 +57,13 @@ use core::{ColorOutput, init_logger};
     disable_version_flag = true
 )]
 struct Cli {
-    /// ⚡ 临时启用 YOLO 模式（跳过所有确认提示）
+    /// ⚡ 自动确认模式（跳过所有确认提示）
     ///
-    /// 等同于配置文件中的 yolo_mode = true
-    /// 危险操作：将跳过所有权限检查和确认提示
-    /// 示例：ccr --yolo delete test
-    #[arg(long, global = true)]
-    yolo: bool,
+    /// 等同于配置文件中的 skip_confirmation = true
+    /// 所有需要确认的操作将自动执行，无需手动输入 'y'
+    /// 示例：ccr --yes delete test  或  ccr -y delete test
+    #[arg(short = 'y', long = "yes", global = true)]
+    auto_yes: bool,
 
     #[command(subcommand)]
     command: Option<Commands>,
@@ -254,12 +254,12 @@ enum Commands {
 
     /// 启动 TUI (Terminal User Interface) 交互式界面
     ///
-    /// 提供可视化的配置管理界面，支持实时操作和 YOLO 模式切换
+    /// 提供可视化的配置管理界面，支持实时操作和自动确认模式切换
     /// 示例: ccr tui
     Tui {
-        /// 启动时启用 YOLO 模式
-        #[arg(short, long)]
-        yolo: bool,
+        /// 启动时启用自动确认模式
+        #[arg(short = 'y', long = "yes")]
+        auto_yes: bool,
     },
 }
 
@@ -284,7 +284,7 @@ fn main() {
         Some(Commands::Switch { config_name }) => commands::switch_command(&config_name),
         Some(Commands::Add) => commands::add_command(),
         Some(Commands::Delete { config_name, force }) => {
-            commands::delete_command(&config_name, cli.yolo || force)
+            commands::delete_command(&config_name, cli.auto_yes || force)
         }
         Some(Commands::Validate) => commands::validate_command(),
         Some(Commands::History { limit, filter_type }) => {
@@ -292,7 +292,7 @@ fn main() {
         }
         Some(Commands::Web { port }) => web::web_command(Some(port)),
         Some(Commands::Update { check }) => commands::update_command(check),
-        Some(Commands::Init { force }) => commands::init_command(cli.yolo || force),
+        Some(Commands::Init { force }) => commands::init_command(cli.auto_yes || force),
         Some(Commands::Export { output, no_secrets }) => {
             commands::export_command(output, !no_secrets)
         }
@@ -307,19 +307,19 @@ fn main() {
             } else {
                 commands::ImportMode::Replace
             };
-            commands::import_command(input, mode, backup, cli.yolo || force)
+            commands::import_command(input, mode, backup, cli.auto_yes || force)
         }
         Some(Commands::Clean {
             days,
             dry_run,
             force,
-        }) => commands::clean_command(days, dry_run, cli.yolo || force),
+        }) => commands::clean_command(days, dry_run, cli.auto_yes || force),
         Some(Commands::Optimize) => commands::optimize_command(),
         Some(Commands::Version) => {
             show_version();
             Ok(())
         }
-        Some(Commands::Tui { yolo }) => tui::run_tui(cli.yolo || yolo),
+        Some(Commands::Tui { auto_yes }) => tui::run_tui(cli.auto_yes || auto_yes),
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {

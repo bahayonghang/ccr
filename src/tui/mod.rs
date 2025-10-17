@@ -22,8 +22,8 @@ use std::io;
 /// 🚀 运行 TUI 应用
 ///
 /// 参数:
-/// - yolo: 是否启用 YOLO 模式
-pub fn run_tui(_yolo: bool) -> Result<()> {
+/// - auto_yes: 是否启动时启用自动确认模式（运行时可通过Y键切换）
+pub fn run_tui(_auto_yes: bool) -> Result<()> {
     // 🔧 设置终端
     enable_raw_mode()?;
     let mut stdout = io::stdout();

@@ -186,13 +186,40 @@ impl SettingsManager {
     /// 默认路径:
     /// - 设置文件: ~/.claude/settings.json
     /// - 备份目录: ~/.claude/backups
+    /// 
+    /// ⚙️ **开发者注意**：
+    /// 可以通过环境变量覆盖默认路径：
+    /// - `CCR_SETTINGS_PATH`: 设置文件路径
+    /// - `CCR_BACKUP_DIR`: 备份目录路径
+    /// 
+    /// 示例：
+    /// ```bash
+    /// export CCR_SETTINGS_PATH=/tmp/ccr_dev_settings.json
+    /// export CCR_BACKUP_DIR=/tmp/ccr_dev_backups
+    /// cargo run -- switch test
+    /// ```
     pub fn default() -> Result<Self> {
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
+        // 🔍 检查环境变量
+        let settings_path = if let Ok(custom_path) = std::env::var("CCR_SETTINGS_PATH") {
+            std::path::PathBuf::from(custom_path)
+        } else {
+            let home = dirs::home_dir()
+                .ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
+            home.join(".claude").join("settings.json")
+        };
 
-        let settings_path = home.join(".claude").join("settings.json");
-        let backup_dir = home.join(".claude").join("backups");
+        let backup_dir = if let Ok(custom_dir) = std::env::var("CCR_BACKUP_DIR") {
+            std::path::PathBuf::from(custom_dir)
+        } else {
+            let home = dirs::home_dir()
+                .ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
+            home.join(".claude").join("backups")
+        };
+
         let lock_manager = LockManager::default()?;
+        
+        log::debug!("使用设置路径: {:?}", settings_path);
+        log::debug!("使用备份目录: {:?}", backup_dir);
 
         Ok(Self::new(settings_path, backup_dir, lock_manager))
     }

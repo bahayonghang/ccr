@@ -50,8 +50,8 @@ impl TabState {
 pub struct App {
     /// 当前 Tab
     pub current_tab: TabState,
-    /// YOLO 模式状态
-    pub yolo_mode: bool,
+    /// 自动确认模式状态（运行时临时设置）
+    pub auto_confirm_mode: bool,
     /// 配置服务
     pub config_service: ConfigService,
     /// 历史服务
@@ -75,13 +75,13 @@ impl App {
         let history_service = HistoryService::default()?;
         let settings_service = SettingsService::default()?;
 
-        // 读取 YOLO 模式状态
+        // 读取自动确认模式状态
         let config = config_service.load_config()?;
-        let yolo_mode = config.settings.yolo_mode;
+        let auto_confirm_mode = config.settings.skip_confirmation;
 
         Ok(Self {
             current_tab: TabState::Configs,
-            yolo_mode,
+            auto_confirm_mode,
             config_service,
             history_service,
             settings_service,
@@ -120,10 +120,10 @@ impl App {
             KeyCode::Char('2') => self.current_tab = TabState::History,
             KeyCode::Char('3') => self.current_tab = TabState::System,
 
-            // Y: 切换 YOLO 模式
+            // Y: 切换自动确认模式（仅本次会话有效）
             KeyCode::Char('y') | KeyCode::Char('Y') => {
-                self.yolo_mode = !self.yolo_mode;
-                // TODO: 保存 YOLO 状态到配置文件
+                self.auto_confirm_mode = !self.auto_confirm_mode;
+                // 注意：此状态仅在当前TUI会话有效，不保存到配置文件
             }
 
             // 上下键: 列表导航
@@ -274,10 +274,10 @@ impl App {
 
     /// 🗑️ 删除配置
     fn delete_config(&mut self) {
-        // TUI 中删除配置需要 YOLO 模式
-        if !self.yolo_mode {
+        // TUI 中删除配置需要启用自动确认模式（安全措施）
+        if !self.auto_confirm_mode {
             self.status_message = Some((
-                "⚠️ YOLO mode required to delete configs in TUI (Press Y)".to_string(),
+                "⚠️ Press [Y] to enable Auto-Confirm mode before deleting".to_string(),
                 true,
             ));
             return;

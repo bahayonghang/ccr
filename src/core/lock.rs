@@ -127,10 +127,20 @@ impl LockManager {
     /// 🏠 获取默认锁管理器
     ///
     /// 使用 ~/.claude/.locks 作为锁文件目录
+    /// 
+    /// ⚙️ **开发者注意**：
+    /// 可以通过环境变量 `CCR_LOCK_DIR` 覆盖默认路径
     pub fn default() -> Result<Self> {
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::FileLockError("无法获取用户主目录".into()))?;
-        let lock_dir = home.join(".claude").join(".locks");
+        // 🔍 检查环境变量
+        let lock_dir = if let Ok(custom_dir) = std::env::var("CCR_LOCK_DIR") {
+            std::path::PathBuf::from(custom_dir)
+        } else {
+            let home = dirs::home_dir()
+                .ok_or_else(|| CcrError::FileLockError("无法获取用户主目录".into()))?;
+            home.join(".claude").join(".locks")
+        };
+        
+        log::debug!("使用锁目录: {:?}", &lock_dir);
         Ok(Self::new(lock_dir))
     }
 

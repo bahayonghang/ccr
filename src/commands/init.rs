@@ -28,21 +28,21 @@ pub fn init_command(force: bool) -> Result<()> {
         dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
     let config_path = home.join(".ccs_config.toml");
 
-    // ⚡ 检查 YOLO 模式：--force 参数 OR 配置文件中的 yolo_mode
-    let yolo_mode = if config_path.exists() {
+    // ⚡ 检查自动确认模式：--force 参数 OR 配置文件中的 skip_confirmation
+    let auto_confirm = if config_path.exists() {
         let config_manager = ConfigManager::new(&config_path);
         config_manager
             .load()
             .ok()
-            .map(|c| c.settings.yolo_mode)
+            .map(|c| c.settings.skip_confirmation)
             .unwrap_or(false)
     } else {
         false
     };
-    let skip_confirmation = force || yolo_mode;
+    let skip_confirmation = force || auto_confirm;
 
-    if yolo_mode && force {
-        ColorOutput::info("⚡ YOLO 模式已启用，将跳过确认");
+    if auto_confirm && force {
+        ColorOutput::info("⚡ 自动确认模式已启用，将跳过确认");
     }
 
     // 检查文件是否已存在
@@ -82,7 +82,7 @@ pub fn init_command(force: bool) -> Result<()> {
 
         // 使用 --force 时,备份现有配置
         let status_msg = if skip_confirmation {
-            "⚡ 使用 --force 模式,将覆盖现有配置 (YOLO 模式)"
+            "⚡ 使用 --force 模式,将覆盖现有配置 (自动确认模式)"
         } else {
             "使用 --force 模式,将覆盖现有配置"
         };

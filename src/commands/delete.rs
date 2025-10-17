@@ -11,7 +11,7 @@ use colored::Colorize;
 /// 执行流程:
 /// 1. ✅ 检查配置是否存在
 /// 2. ⚠️ 检查是否为当前配置
-/// 3. 🤔 确认删除（除非 --force 或 YOLO 模式）
+/// 3. 🤔 确认删除（除非 --force 或自动确认模式）
 /// 4. 💾 执行删除
 /// 5. 📊 显示结果
 ///
@@ -26,11 +26,11 @@ pub fn delete_command(config_name: &str, force: bool) -> Result<()> {
     let service = ConfigService::default()?;
     let config = service.load_config()?;
 
-    // ⚡ 检查 YOLO 模式: --force 参数 或 配置文件中的 yolo_mode
-    let skip_confirmation = force || config.settings.yolo_mode;
+    // ⚡ 检查自动确认模式: --force 参数 或 配置文件中的 skip_confirmation
+    let skip_confirmation = force || config.settings.skip_confirmation;
 
-    if config.settings.yolo_mode && !force {
-        ColorOutput::info("⚡ YOLO 模式已启用，将跳过确认");
+    if config.settings.skip_confirmation && !force {
+        ColorOutput::info("⚡ 自动确认模式已启用，将跳过确认");
         println!();
     }
 
@@ -97,8 +97,8 @@ pub fn delete_command(config_name: &str, force: bool) -> Result<()> {
         }
         println!();
     } else {
-        let mode_text = if config.settings.yolo_mode {
-            "⚡ YOLO 模式"
+        let mode_text = if config.settings.skip_confirmation {
+            "⚡ 自动确认模式"
         } else {
             "--force 模式"
         };

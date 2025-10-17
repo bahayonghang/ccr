@@ -34,10 +34,10 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool, force: bool
     ColorOutput::title("导入配置");
     println!();
 
-    // ⚡ 检查 YOLO 模式：--force 参数 OR 配置文件中的 yolo_mode
+    // ⚡ 检查自动确认模式：--force 参数 OR 配置文件中的 skip_confirmation
     let config_manager = ConfigManager::default()?;
     let config = config_manager.load().unwrap_or_else(|_| {
-        // 如果配置文件不存在，使用默认配置（yolo_mode = false）
+        // 如果配置文件不存在，使用默认配置（skip_confirmation = false）
         CcsConfig {
             default_config: String::new(),
             current_config: String::new(),
@@ -45,10 +45,10 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool, force: bool
             sections: indexmap::IndexMap::new(),
         }
     });
-    let skip_confirmation = force || config.settings.yolo_mode;
+    let skip_confirmation = force || config.settings.skip_confirmation;
 
-    if config.settings.yolo_mode && !force {
-        ColorOutput::info("⚡ YOLO 模式已启用，将跳过确认");
+    if config.settings.skip_confirmation && !force {
+        ColorOutput::info("⚡ 自动确认模式已启用，将跳过确认");
     }
 
     // 🚨 Replace 模式需要确认（除非 YOLO 模式）
@@ -105,12 +105,12 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool, force: bool
     // 执行导入
     let step_msg = if backup {
         if skip_confirmation {
-            "步骤 4/4: 执行导入 (⚡ YOLO 模式)"
+            "步骤 4/4: 执行导入 (⚡ 自动确认模式)"
         } else {
             "步骤 4/4: 执行导入"
         }
     } else if skip_confirmation {
-        "步骤 3/3: 执行导入 (⚡ YOLO 模式)"
+        "步骤 3/3: 执行导入 (⚡ 自动确认模式)"
     } else {
         "步骤 3/3: 执行导入"
     };

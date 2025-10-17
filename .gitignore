@@ -46,5 +46,6 @@ Thumbs.db
 cmake-build-*/
 
 .cursor/
+.windsurf/
 .claude/
 .spec-workflow/

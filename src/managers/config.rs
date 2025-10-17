@@ -215,29 +215,33 @@ impl ConfigSection {
 /// 用于存储 CCR 的全局配置选项
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GlobalSettings {
-    /// ⚡ YOLO 模式 - 跳过所有权限检查（危险模式）
+    /// ⚡ 自动确认模式 - 跳过所有确认提示（便利功能）
     ///
-    /// 类似于 Claude Code 的 `--dangerously-skip-permissions`
+    /// **功能说明**：
+    /// 启用后，所有需要人工确认的操作将自动执行，无需手动输入 'y' 确认
     ///
     /// **启用后的行为**：
-    /// - 删除配置：无需确认，直接删除
-    /// - 替换配置：无需确认，直接替换
-    /// - 覆盖文件：无需确认，直接覆盖
-    /// - 清理备份：无需确认，直接清理
+    /// - 删除配置：跳过 "确认删除?" 提示
+    /// - 替换配置：跳过 "确认替换?" 提示
+    /// - 覆盖文件：跳过 "确认覆盖?" 提示
+    /// - 清理备份：跳过 "确认清理?" 提示
     ///
-    /// ⚠️ **警告**：这是一个危险模式！
-    /// - 可能导致意外的数据丢失
-    /// - 所有破坏性操作将立即执行
-    /// - 仅建议在自动化场景或 Docker 容器中使用
+    /// ⚠️ **注意事项**：
+    /// - 这是用户便利性功能，不影响安全机制
+    /// - 所有操作仍会自动备份
+    /// - 所有操作仍会记录到历史
+    /// - 仍由人类手动执行命令
     ///
     /// **建议用法**：
-    /// - ✅ CI/CD 管道中使用
-    /// - ✅ Docker 容器中使用
+    /// - ✅ CI/CD 管道中使用（避免交互阻塞）
     /// - ✅ 自动化脚本中使用
-    /// - ❌ 生产环境慎用
-    /// - ❌ 不熟悉操作时禁用
-    #[serde(default)]
-    pub yolo_mode: bool,
+    /// - ✅ 批量操作时使用
+    /// - ⚠️ 谨慎在生产环境使用
+    ///
+    /// **等效于**：
+    /// 在每个命令后添加 `--yes` 或 `-y` 参数
+    #[serde(default, alias = "yolo_mode")]
+    pub skip_confirmation: bool,
 
     /// 🎨 TUI 主题名称 (预留字段)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -440,10 +444,27 @@ impl ConfigManager {
     /// 🏠 使用默认配置路径创建管理器
     ///
     /// 默认路径: ~/.ccs_config.toml
+    /// 
+    /// ⚙️ **开发者注意**：
+    /// 可以通过环境变量 `CCR_CONFIG_PATH` 覆盖默认路径
+    /// 这样在开发时不会影响本地真实配置
+    /// 
+    /// 示例：
+    /// ```bash
+    /// export CCR_CONFIG_PATH=/tmp/ccr_dev_config.toml
+    /// cargo run -- init
+    /// ```
     pub fn default() -> Result<Self> {
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
-        let config_path = home.join(".ccs_config.toml");
+        // 🔍 检查环境变量
+        let config_path = if let Ok(custom_path) = std::env::var("CCR_CONFIG_PATH") {
+            std::path::PathBuf::from(custom_path)
+        } else {
+            let home = dirs::home_dir()
+                .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+            home.join(".ccs_config.toml")
+        };
+        
+        log::debug!("使用配置路径: {:?}", config_path);
         Ok(Self::new(config_path))
     }
 
@@ -758,15 +779,20 @@ mod tests {
     fn test_global_settings() {
         // 测试默认设置
         let settings = GlobalSettings::default();
-        assert!(!settings.yolo_mode);
+        assert!(!settings.skip_confirmation);
         assert_eq!(settings.tui_theme, None);
 
         // 测试序列化
         let toml_str = toml::to_string(&settings).unwrap();
-        assert!(toml_str.contains("yolo_mode = false"));
+        assert!(toml_str.contains("skip_confirmation = false"));
 
         // 测试反序列化
         let loaded: GlobalSettings = toml::from_str(&toml_str).unwrap();
-        assert_eq!(loaded.yolo_mode, settings.yolo_mode);
+        assert_eq!(loaded.skip_confirmation, settings.skip_confirmation);
+
+        // 测试向后兼容（yolo_mode别名）
+        let old_format = "yolo_mode = true";
+        let loaded_old: GlobalSettings = toml::from_str(old_format).unwrap();
+        assert!(loaded_old.skip_confirmation);
     }
 }
