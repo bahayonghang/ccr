@@ -142,30 +142,94 @@ dev-parallel:
 _dev-parallel-linux:
     #!/usr/bin/env bash
     set -e
-    mkdir -p logs
+    JDIR="{{justfile_directory()}}"
+    mkdir -p "$JDIR/logs"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
-    cd backend && cargo run 2>&1 | tee -a ../logs/backend-console.log &
-    sleep 2
-    cd frontend && npm run dev 2>&1 | tee -a ../logs/frontend.log &
+    # 启动后端并记录日志
+    cd "$JDIR/backend" && cargo run 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    BACK_PID=$!
+    # 轮询后端健康检查，避免前端在后端未就绪时启动
+    echo "⏳ 等待后端就绪 (http://127.0.0.1:8081/health)..."
+    if command -v curl >/dev/null 2>&1; then
+      for i in $(seq 1 90); do
+        if curl -sf http://127.0.0.1:8081/health >/dev/null 2>&1; then
+          echo "✅ 后端就绪"
+          break
+        fi
+        # 后端进程异常退出则立即失败
+        if ! kill -0 $BACK_PID 2>/dev/null; then
+          echo "❌ 后端进程已退出，请查看 logs/backend-console.log"
+          exit 1
+        fi
+        sleep 1
+        if [ "$i" -eq 90 ]; then
+          echo "❌ 等待后端超时(90s)，请检查后端日志"
+          exit 1
+        fi
+      done
+    else
+      echo "⚠️ 未检测到 curl，固定等待 5 秒后启动前端"
+      for i in $(seq 1 5); do
+        if ! kill -0 $BACK_PID 2>/dev/null; then
+          echo "❌ 后端进程已退出，请查看 logs/backend-console.log"
+          exit 1
+        fi
+        sleep 1
+      done
+    fi
+    # 启动前端并记录日志
+    cd "$JDIR/frontend" && npm run dev 2>&1 | tee -a "$JDIR/logs/frontend.log" &
     wait
 
 _dev-parallel-macos:
     #!/usr/bin/env bash
     set -e
-    mkdir -p logs
+    JDIR="{{justfile_directory()}}"
+    mkdir -p "$JDIR/logs"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
-    cd backend && cargo run 2>&1 | tee -a ../logs/backend-console.log &
-    sleep 2
-    cd frontend && npm run dev 2>&1 | tee -a ../logs/frontend.log &
+    # 启动后端并记录日志
+    cd "$JDIR/backend" && cargo run 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    BACK_PID=$!
+    # 轮询后端健康检查，避免前端在后端未就绪时启动
+    echo "⏳ 等待后端就绪 (http://127.0.0.1:8081/health)..."
+    if command -v curl >/dev/null 2>&1; then
+      for i in $(seq 1 90); do
+        if curl -sf http://127.0.0.1:8081/health >/dev/null 2>&1; then
+          echo "✅ 后端就绪"
+          break
+        fi
+        # 后端进程异常退出则立即失败
+        if ! kill -0 $BACK_PID 2>/dev/null; then
+          echo "❌ 后端进程已退出，请查看 logs/backend-console.log"
+          exit 1
+        fi
+        sleep 1
+        if [ "$i" -eq 90 ]; then
+          echo "❌ 等待后端超时(90s)，请检查后端日志"
+          exit 1
+        fi
+      done
+    else
+      echo "⚠️ 未检测到 curl，固定等待 5 秒后启动前端"
+      for i in $(seq 1 5); do
+        if ! kill -0 $BACK_PID 2>/dev/null; then
+          echo "❌ 后端进程已退出，请查看 logs/backend-console.log"
+          exit 1
+        fi
+        sleep 1
+      done
+    fi
+    # 启动前端并记录日志
+    cd "$JDIR/frontend" && npm run dev 2>&1 | tee -a "$JDIR/logs/frontend.log" &
     wait
 
 # 并行启动 - Windows
 # ⚠️ Windows 使用 Start-Process 以保持子进程在后台运行
 _dev-parallel-windows:
     @powershell -Command "if (-not (Test-Path logs)) { New-Item -ItemType Directory -Path logs -Force | Out-Null }"
-    @powershell -Command "Write-Output '🦀 启动后端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd backend; cargo run 2>&1 | Tee-Object -FilePath ../logs/backend-console.log' -WindowStyle Normal"
-    @powershell -Command "Start-Sleep -Seconds 2"
-    @powershell -Command "Write-Output '⚛️ 启动前端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd frontend; npm run dev 2>&1 | Tee-Object -FilePath ../logs/frontend.log' -WindowStyle Normal"
+    @powershell -Command "Write-Output '🦀 启动后端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd backend; cargo run 2>&1 | Tee-Object -FilePath ../logs/backend-console.log -Append' -WindowStyle Normal"
+    @powershell -Command "$maxWait=90; Write-Output '⏳ 等待后端就绪 (http://127.0.0.1:8081/health)...'; for($i=0; $i -lt $maxWait; $i++){ try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri 'http://127.0.0.1:8081/health'; if($r.StatusCode -eq 200){ Write-Output '✅ 后端就绪'; break } } catch { } Start-Sleep -Seconds 1; if($i -eq ($maxWait-1)){ Write-Output '❌ 等待后端超时(90s)，请检查 logs/backend-console.log'; exit 1 } }"
+    @powershell -Command "Write-Output '⚛️ 启动前端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd frontend; npm run dev 2>&1 | Tee-Object -FilePath ../logs/frontend.log -Append' -WindowStyle Normal"
     @powershell -Command "Write-Output '📜 日志位于 logs/backend-console.log 与 logs/frontend.log'"
     @powershell -Command "Write-Output '💡 提示: 两个新窗口已打开，关闭窗口即可停止服务器'"
 

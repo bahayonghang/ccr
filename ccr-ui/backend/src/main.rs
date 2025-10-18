@@ -17,12 +17,20 @@ use tracing::{info, warn, Level};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 mod claude_config_manager;
+mod codex_config_manager;
+mod codex_models;
+mod config_converter;
 mod config_reader;
+mod converter_models;
 mod executor;
+mod gemini_config_manager;
+mod gemini_models;
 mod handlers;
 mod markdown_manager;
 mod models;
 mod plugins_manager;
+mod qwen_config_manager;
+mod qwen_models;
 mod settings_manager;
 
 #[derive(Parser, Debug)]
@@ -68,12 +76,9 @@ async fn main() -> std::io::Result<()> {
             warn!("CCR binary found but returned error: {}", output.stderr);
         }
         Err(e) => {
-            tracing::error!("CCR binary not found or not working: {}", e);
-            tracing::error!("Please ensure 'ccr' is installed and in your PATH");
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "CCR binary not found",
-            ));
+            warn!("CCR binary not found or not working: {}", e);
+            warn!("Continuing to start server without CCR; API calls that require CCR will return errors.");
+            // Do not abort server startup; proceed.
         }
     }
 
@@ -165,6 +170,37 @@ fn create_router() -> Router {
         .route("/api/sync/pull", post(handlers::sync::pull_config))
         .route("/api/sync/info", get(handlers::sync::get_sync_info))
         .route("/api/sync/config", post(handlers::sync::configure_sync))
+        // Codex MCP server management endpoints
+        .route("/api/codex/mcp", get(handlers::codex::list_codex_mcp_servers))
+        .route("/api/codex/mcp", post(handlers::codex::add_codex_mcp_server))
+        .route("/api/codex/mcp/:name", put(handlers::codex::update_codex_mcp_server))
+        .route("/api/codex/mcp/:name", delete(handlers::codex::delete_codex_mcp_server))
+        // Codex Profile management endpoints
+        .route("/api/codex/profiles", get(handlers::codex::list_codex_profiles))
+        .route("/api/codex/profiles", post(handlers::codex::add_codex_profile))
+        .route("/api/codex/profiles/:name", put(handlers::codex::update_codex_profile))
+        .route("/api/codex/profiles/:name", delete(handlers::codex::delete_codex_profile))
+        // Codex base config management endpoints
+        .route("/api/codex/config", get(handlers::codex::get_codex_config))
+        .route("/api/codex/config", put(handlers::codex::update_codex_base_config))
+        // Gemini MCP server management endpoints
+        .route("/api/gemini/mcp", get(handlers::gemini::list_gemini_mcp_servers))
+        .route("/api/gemini/mcp", post(handlers::gemini::add_gemini_mcp_server))
+        .route("/api/gemini/mcp/:name", put(handlers::gemini::update_gemini_mcp_server))
+        .route("/api/gemini/mcp/:name", delete(handlers::gemini::delete_gemini_mcp_server))
+        // Gemini base config management endpoints
+        .route("/api/gemini/config", get(handlers::gemini::get_gemini_config))
+        .route("/api/gemini/config", put(handlers::gemini::update_gemini_config))
+        // Qwen MCP server management endpoints
+        .route("/api/qwen/mcp", get(handlers::qwen::list_qwen_mcp_servers))
+        .route("/api/qwen/mcp", post(handlers::qwen::add_qwen_mcp_server))
+        .route("/api/qwen/mcp/:name", put(handlers::qwen::update_qwen_mcp_server))
+        .route("/api/qwen/mcp/:name", delete(handlers::qwen::delete_qwen_mcp_server))
+        // Qwen base config management endpoints
+        .route("/api/qwen/config", get(handlers::qwen::get_qwen_config))
+        .route("/api/qwen/config", put(handlers::qwen::update_qwen_config))
+        // Config Converter endpoints
+        .route("/api/converter/convert", post(handlers::converter::convert_config))
         // Apply middleware
         .layer(middleware)
 }

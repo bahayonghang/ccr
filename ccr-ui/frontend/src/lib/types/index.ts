@@ -251,3 +251,227 @@ export interface PluginsResponse {
   plugins: Plugin[];
 }
 
+// ============ Codex CLI Configuration Types ============
+
+// Codex MCP Server Types
+export interface CodexMcpServer {
+  name: string;
+  // STDIO server fields
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  cwd?: string;
+  startup_timeout_ms?: number;
+  // HTTP server fields
+  url?: string;
+  bearer_token?: string;
+}
+
+export interface CodexMcpServerRequest {
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  cwd?: string;
+  startup_timeout_ms?: number;
+  url?: string;
+  bearer_token?: string;
+}
+
+export interface CodexMcpServersResponse {
+  servers: CodexMcpServer[];
+}
+
+// Codex Profile Types
+export interface CodexProfile {
+  name: string;
+  model?: string;
+  approval_policy?: string;
+  sandbox_mode?: string;
+  model_reasoning_effort?: string;
+}
+
+export interface CodexProfileRequest {
+  model?: string;
+  approval_policy?: string;
+  sandbox_mode?: string;
+  model_reasoning_effort?: string;
+}
+
+export interface CodexProfilesResponse {
+  profiles: CodexProfile[];
+}
+
+// Codex Base Config Types
+export interface CodexConfig {
+  model?: string;
+  model_provider?: string;
+  model_reasoning_effort?: string;
+  approval_policy?: string;
+  sandbox_mode?: string;
+  shell_environment_policy?: {
+    include_only?: string[];
+  };
+  mcp_servers?: Record<string, Omit<CodexMcpServer, 'name'>>;
+  profiles?: Record<string, Omit<CodexProfile, 'name'>>;
+  experimental_use_rmcp_client?: boolean;
+}
+
+export interface CodexConfigResponse {
+  config: CodexConfig;
+}
+
+// ============ Config Converter Types ============
+
+export type CliType = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'iflow';
+
+export interface ConverterRequest {
+  source_format: CliType;
+  target_format: CliType;
+  config_data: string; // JSON or TOML string
+  convert_mcp?: boolean;
+  convert_commands?: boolean;
+  convert_agents?: boolean;
+}
+
+export interface ConverterResponse {
+  success: boolean;
+  converted_data: string; // JSON or TOML string
+  warnings?: string[];
+  format: 'json' | 'toml';
+  stats?: ConversionResult;
+}
+
+export interface ConversionResult {
+  mcp_servers?: number;
+  slash_commands?: number;
+  agents?: number;
+  profiles?: number;
+  base_config?: boolean;
+}
+
+// ============ Gemini CLI Configuration Types ============
+
+// Gemini MCP Server Types
+export interface GeminiMcpServer {
+  name: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  cwd?: string;
+  timeout?: number;
+  trust?: boolean;
+  includeTools?: string[];
+}
+
+export interface GeminiMcpServerRequest {
+  name: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  cwd?: string;
+  timeout?: number;
+  trust?: boolean;
+  includeTools?: string[];
+}
+
+export interface GeminiMcpServersResponse {
+  servers: GeminiMcpServer[];
+}
+
+// Gemini Config Types
+export interface GeminiConfig {
+  mcpServers?: Record<string, Omit<GeminiMcpServer, 'name'>>;
+  general?: Record<string, any>;
+  output?: Record<string, any>;
+  ui?: Record<string, any>;
+  model?: Record<string, any>;
+  context?: Record<string, any>;
+  tools?: Record<string, any>;
+  mcp?: Record<string, any>;
+  security?: Record<string, any>;
+  advanced?: Record<string, any>;
+  experimental?: Record<string, any>;
+}
+
+export interface GeminiConfigResponse {
+  config: GeminiConfig;
+}
+
+// ============ Qwen CLI Configuration Types ============
+
+// Qwen MCP Server Types
+export interface QwenMcpServer {
+  name: string;
+  // STDIO fields
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  // HTTP fields
+  url?: string;
+  httpUrl?: string;
+  headers?: Record<string, string>;
+  // Common fields
+  timeout?: number;
+  transportType?: 'stdio' | 'sse' | 'http';
+}
+
+export interface QwenMcpServerRequest {
+  name: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  url?: string;
+  httpUrl?: string;
+  headers?: Record<string, string>;
+  timeout?: number;
+}
+
+export interface QwenMcpServersResponse {
+  servers: QwenMcpServer[];
+}
+
+// Qwen Config Types
+export interface QwenConfig {
+  mcpServers?: Record<string, Omit<QwenMcpServer, 'name'>>;
+}
+
+export interface QwenConfigResponse {
+  config: QwenConfig;
+}
+
+// ============ Sync (WebDAV) Types ============
+export interface SyncConfigDetails {
+  enabled: boolean;
+  webdav_url: string;
+  username: string;
+  remote_path: string;
+  auto_sync: boolean;
+  remote_file_exists?: boolean | null;
+}
+
+export interface SyncStatusResponse {
+  success: boolean;
+  output: string;
+  configured: boolean;
+  config?: SyncConfigDetails | null;
+}
+
+export interface SyncOperationRequest {
+  force?: boolean;
+}
+
+export interface SyncOperationResponse {
+  success: boolean;
+  output: string;
+  error: string;
+  duration_ms: number;
+}
+
+export interface SyncInfoResponse {
+  feature_name: string;
+  description: string;
+  supported_services: string[];
+  setup_steps: string[];
+  security_notes: string[];
+}
+

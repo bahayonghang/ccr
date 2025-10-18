@@ -1,10 +1,14 @@
 // Handler modules
 
 pub mod agents;
+pub mod codex;
 pub mod command;
 pub mod config;
+pub mod converter;
+pub mod gemini;
 pub mod mcp;
 pub mod plugins;
+pub mod qwen;
 pub mod slash_commands;
 pub mod sync;
 pub mod system;

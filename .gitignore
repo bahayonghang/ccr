@@ -49,3 +49,5 @@ cmake-build-*/
 .windsurf/
 .claude/
 .spec-workflow/
+
+openspec/

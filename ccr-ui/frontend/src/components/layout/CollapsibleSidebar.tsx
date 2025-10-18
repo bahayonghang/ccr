@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Settings, Terminal, ChevronLeft, ChevronRight, Menu, ChevronDown, ChevronUp, Zap, Server, Command, Bot, Puzzle, Sparkles, Gem, Workflow, Cloud } from 'lucide-react';
+import { Settings, Terminal, ChevronLeft, ChevronRight, Menu, ChevronDown, ChevronUp, Zap, Server, Command, Bot, Puzzle, Sparkles, Gem, Workflow, Cloud, Code2, ArrowLeftRight } from 'lucide-react';
 
 // 导航菜单结构 - 支持层级菜单
 const navigationGroups = [
@@ -66,6 +66,24 @@ const navigationGroups = [
       { name: 'Slash Commands', href: '/iflow/slash-commands', icon: Command },
       { name: 'Agents 管理', href: '/iflow/agents', icon: Bot },
       { name: '插件管理', href: '/iflow/plugins', icon: Puzzle },
+    ],
+  },
+  {
+    title: 'Codex',
+    icon: Code2,
+    defaultExpanded: false,
+    items: [
+      { name: 'MCP 管理', href: '/codex/mcp', icon: Server },
+      { name: 'Profile 管理', href: '/codex/profiles', icon: Settings },
+    ],
+  },
+  // 配置转换器
+  {
+    title: '配置转换器',
+    icon: ArrowLeftRight,
+    defaultExpanded: false,
+    items: [
+      { name: 'CLI 配置转换', href: '/converter', icon: ArrowLeftRight },
     ],
   },
 ];
