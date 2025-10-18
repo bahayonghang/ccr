@@ -42,7 +42,7 @@ export default function GeminiMcpManagement() {
     try {
       setLoading(true);
       const data = await listGeminiMcpServers();
-      setServers(data);
+      setServers(data || []);
 
       // 加载系统配置信息
       try {
@@ -57,6 +57,7 @@ export default function GeminiMcpManagement() {
       }
     } catch (err) {
       console.error('Failed to load Gemini MCP servers:', err);
+      setServers([]);
       alert('加载 Gemini MCP 服务器失败');
     } finally {
       setLoading(false);
@@ -197,7 +198,7 @@ export default function GeminiMcpManagement() {
               </div>
             ) : (
               <div className="space-y-3">
-                {servers.length === 0 ? (
+                {!servers || servers.length === 0 ? (
                   <div className="text-center py-10" style={{ color: 'var(--text-muted)' }}>
                     暂无 Gemini MCP 服务器配置
                   </div>

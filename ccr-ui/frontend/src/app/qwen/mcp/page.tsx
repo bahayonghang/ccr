@@ -48,7 +48,7 @@ export default function QwenMcpManagement() {
     try {
       setLoading(true);
       const data = await listQwenMcpServers();
-      setServers(data);
+      setServers(data || []);
 
       // 加载系统配置信息
       try {
@@ -63,6 +63,7 @@ export default function QwenMcpManagement() {
       }
     } catch (err) {
       console.error('Failed to load Qwen MCP servers:', err);
+      setServers([]);
       alert('加载 Qwen MCP 服务器失败');
     } finally {
       setLoading(false);
@@ -251,7 +252,7 @@ export default function QwenMcpManagement() {
               </div>
             ) : (
               <div className="space-y-3">
-                {servers.length === 0 ? (
+                {!servers || servers.length === 0 ? (
                   <div className="text-center py-10" style={{ color: 'var(--text-muted)' }}>
                     暂无 Qwen MCP 服务器配置
                   </div>

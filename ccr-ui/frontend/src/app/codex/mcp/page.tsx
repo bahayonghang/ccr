@@ -41,7 +41,7 @@ export default function CodexMcpManagement() {
     try {
       setLoading(true);
       const data = await listCodexMcpServers();
-      setServers(data);
+      setServers(data || []);
 
       // 加载系统配置信息
       try {
@@ -56,6 +56,7 @@ export default function CodexMcpManagement() {
       }
     } catch (err) {
       console.error('Failed to load Codex MCP servers:', err);
+      setServers([]);
       alert('加载 Codex MCP 服务器失败');
     } finally {
       setLoading(false);
@@ -215,7 +216,7 @@ export default function CodexMcpManagement() {
               </div>
             ) : (
               <div className="space-y-3">
-                {servers.length === 0 ? (
+                {!servers || servers.length === 0 ? (
                   <div className="text-center py-10" style={{ color: 'var(--text-muted)' }}>
                     暂无 Codex MCP 服务器配置
                   </div>

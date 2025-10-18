@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "CCR UI"
-  text: "现代化配置管理平台"
-  tagline: "基于 React + Rust 构建的全栈 CCR 配置管理 Web 应用"
+  text: "现代化 AI 配置管理平台"
+  tagline: "基于 Next.js + Rust 构建的全栈多 CLI 工具配置管理 Web 应用"
   image:
     src: /logo.svg
     alt: CCR UI Logo
@@ -19,52 +19,84 @@ hero:
 features:
   - icon: ⚡
     title: 现代化技术栈
-    details: 前端采用 React 18 + TypeScript + Vite，后端使用 Rust + Actix Web，提供极致的开发体验和运行性能
+    details: 前端采用 Next.js 16 + React 19 + TypeScript + Tailwind CSS，后端使用 Rust + Axum，提供极致的开发体验和运行性能
   - icon: 🎯
     title: 直观的用户界面
-    details: 精心设计的 UI 界面，支持深色模式，提供配置管理、命令执行等核心功能的可视化操作
+    details: 科技风格的玻璃拟态设计，支持深色/浅色主题，Dashboard 首页展示所有功能模块，一目了然
   - icon: 🔧
     title: 强大的配置管理
-    details: 支持 CCR 配置的查看、切换、验证等操作，实时显示命令执行结果，提升配置管理效率
+    details: 支持 CCR 配置的查看、切换、验证、云同步等操作，实时显示命令执行结果，历史记录追踪
   - icon: 🚀
-    title: 高性能架构
-    details: 前后端分离架构，支持并发处理，内置缓存机制，确保应用的高性能和稳定性
+    title: 多 CLI 工具支持
+    details: 统一管理 Claude Code、Codex、Gemini CLI、Qwen、IFLOW 等多个 AI CLI 工具的配置和服务
   - icon: 📱
     title: 响应式设计
-    details: 完全响应式设计，支持桌面端和移动端访问，随时随地管理你的 CCR 配置
+    details: 完全响应式设计，支持桌面端和移动端访问，流畅的动画效果和悬停交互
   - icon: 🛠️
     title: 开发友好
-    details: 完整的开发工具链，支持热重载、TypeScript、ESLint 等，提供最佳的开发体验
+    details: 完整的开发工具链，支持 Turbopack 热重载、TypeScript 类型检查、ESLint + Prettier，提供最佳的开发体验
+  - icon: ☁️
+    title: 云端同步
+    details: 支持 WebDAV 云端配置同步和自动备份，配置文件安全无忧
+  - icon: 🔌
+    title: 插件生态
+    details: 支持 MCP 服务器、Agents、Plugins、Slash Commands 等丰富的扩展功能管理
 ---
 
 ## 项目特色
 
-CCR UI 是一个现代化的全栈 Web 应用程序，专为 CCR (Claude Code Configuration Switcher) 配置管理而设计。它结合了前端的用户友好界面和后端的高性能处理能力，为开发者提供了一个强大而直观的配置管理平台。
+CCR UI 是一个现代化的全栈 Web 应用程序，专为多个 AI CLI 工具配置管理而设计。它结合了前端的用户友好界面和后端的高性能处理能力，为开发者提供了一个强大而直观的配置管理平台。
 
 ### 🎨 前端技术栈
 
-- **React 18** - 现代化的用户界面框架
-- **TypeScript** - 类型安全的 JavaScript 超集
-- **Vite** - 极速的前端构建工具
-- **Tailwind CSS** - 实用优先的 CSS 框架
-- **React Router** - 声明式路由管理
+- **Next.js 16** - 最新的 React 全栈框架（支持 Turbopack）
+- **React 19** - 最新的用户界面框架
+- **TypeScript 5.6** - 类型安全的 JavaScript 超集
+- **Tailwind CSS 3.4** - 实用优先的 CSS 框架
+- **Lucide React** - 现代化图标库
 - **Axios** - 强大的 HTTP 客户端
 
 ### ⚙️ 后端技术栈
 
-- **Rust** - 系统级编程语言，安全且高性能
-- **Actix Web** - 高性能的异步 Web 框架
+- **Rust 2024 Edition** - 系统级编程语言，安全且高性能
+- **Axum 0.7** - 现代化的异步 Web 框架
 - **Tokio** - 异步运行时
 - **Serde** - 序列化和反序列化框架
-- **Clap** - 命令行参数解析
+- **Tower** - 中间件和服务抽象
 
 ### 📋 核心功能
 
+#### 🏠 Dashboard 首页
+- **功能模块导航** - 8 个主要功能模块卡片展示
+- **系统监控** - 实时显示 CPU、内存使用率
+- **快速访问** - 一键跳转到各个 CLI 工具配置页面
+
+#### 🔵 Claude Code 配置管理
 - **配置管理** - 查看、切换、验证 CCR 配置
-- **命令执行** - 可视化执行 CCR 命令并查看结果
+- **云同步** - WebDAV 云端配置同步
+- **MCP 服务器** - Model Context Protocol 服务器管理
+- **Slash Commands** - 自定义命令管理
+- **Agents** - AI Agent 配置和工具绑定
+- **插件管理** - 插件启用/禁用和配置
+
+#### 🎯 多 CLI 工具支持
+- **Codex** - MCP 服务器、Profiles、基础配置
+- **Gemini CLI** - Google Gemini AI 配置管理
+- **Qwen** - 阿里通义千问配置管理
+- **IFLOW** - 内部工作流配置
+
+#### 🛠️ 其他功能
+- **命令执行中心** - 统一的 CLI 命令执行界面
+- **配置转换器** - 跨 CLI 工具的配置格式转换
+- **历史记录** - 完整的操作审计日志
 - **实时输出** - 终端风格的命令输出显示
-- **多页面导航** - 不同功能模块间的便捷切换
-- **响应式设计** - 适配各种屏幕尺寸
+
+### 🎨 设计特点
+
+- **玻璃拟态风格** - 半透明背景 + 模糊效果
+- **渐变配色** - 每个 CLI 工具独特的渐变色系
+- **流畅动画** - 卡片浮起、箭头移动、渐变流动
+- **响应式布局** - 适配桌面、平板、手机等各种设备
 
 ## 快速开始
 
@@ -81,18 +113,49 @@ cd backend && cargo run &
 cd frontend && npm run dev
 ```
 
-访问 `http://localhost:5173` 开始使用 CCR UI。
+访问 `http://localhost:3000` 开始使用 CCR UI。
 
 ## 文档导航
 
 - [快速开始](/guide/getting-started) - 了解如何安装和运行项目
-- [前端文档](/frontend/overview) - React 前端开发指南
+- [项目结构](/guide/project-structure) - 详细的项目架构说明
+- [前端文档](/frontend/overview) - Next.js 前端开发指南
 - [后端文档](/backend/architecture) - Rust 后端架构说明
 - [贡献指南](/contributing) - 如何参与项目开发
+- [FAQ](/faq) - 常见问题解答
+
+## 功能预览
+
+### 📊 Dashboard 首页
+
+全新的 Dashboard 首页提供了：
+- 系统状态实时监控（CPU、内存、系统信息）
+- 8 个功能模块卡片，科技风格设计
+- 动态渐变背景效果
+- 一键快速访问各个功能
+
+### 🔵 CLI 工具主页
+
+每个 CLI 工具都有独立的主页：
+- 清晰的功能分类展示
+- 独特的配色方案
+- 子功能快速导航
+- 返回首页便捷按钮
+
+### 🎯 功能页面
+
+保留所有原有功能：
+- 配置管理（列表、切换、验证）
+- MCP 服务器管理
+- Agents 配置
+- 插件管理
+- Slash Commands 管理
+- 云同步功能
 
 ---
 
 <div style="text-align: center; margin-top: 2rem; padding: 1rem; background: var(--vp-c-bg-soft); border-radius: 8px;">
   <p>🚀 <strong>开始探索 CCR UI 的强大功能吧！</strong></p>
+  <p>现代化的配置管理平台，支持多个 AI CLI 工具，提供完整的配置管理和云端同步能力。</p>
   <p>如果你在使用过程中遇到任何问题，欢迎查看我们的 <a href="/faq">FAQ</a> 或提交 <a href="https://github.com/your-username/ccr/issues">Issue</a>。</p>
 </div>

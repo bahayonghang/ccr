@@ -43,6 +43,7 @@ export default withMermaid(defineConfig({
         text: '前端文档',
         items: [
           { text: '项目概述', link: '/frontend/overview' },
+          { text: '页面架构', link: '/frontend/page-architecture' },
           { text: '开发指南', link: '/frontend/development' },
           { text: '组件文档', link: '/frontend/components' },
           { text: 'API 接口', link: '/frontend/api' }
@@ -85,6 +86,7 @@ export default withMermaid(defineConfig({
           text: '前端文档',
           items: [
             { text: '项目概述', link: '/frontend/overview' },
+            { text: '页面架构', link: '/frontend/page-architecture' },
             { text: '技术栈', link: '/frontend/tech-stack' },
             { text: '开发指南', link: '/frontend/development' },
             { text: '组件文档', link: '/frontend/components' },
