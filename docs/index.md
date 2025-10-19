@@ -50,7 +50,11 @@ features:
 
   - icon: 🌐
     title: Web 界面
-    details: 11 个完整 RESTful API 端点，基于 Service 层架构，模块化清晰
+    details: 内置轻量级 Axum API 服务器（端口 8080），11 个完整 RESTful API 端点，基于 Service 层架构
+
+  - icon: 🎨
+    title: CCR UI 应用
+    details: 完整的 Next.js + Actix Web 应用（端口 3000/8081），提供可视化仪表板，支持多 CLI 工具管理
 
   - icon: 🔄
     title: CCS 完全兼容
@@ -98,6 +102,15 @@ ccr switch anthropic
 
 # 查看当前状态
 ccr current
+
+# 启动交互式 TUI
+ccr tui
+
+# 启动轻量级 Web API 服务器
+ccr web
+
+# 启动完整 CCR UI 应用
+ccr ui
 
 # 查看操作历史
 ccr history

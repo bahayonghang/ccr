@@ -83,10 +83,11 @@ just quick-start    # 检查前置条件 + 安装 + 启动
 
 **📖 完整文档**：查看 `ccr-ui/START_HERE.md` 获取超简单指南，或 `ccr-ui/README.md` 查看完整文档。
 
-**🎯 CLI vs Web 服务器 vs CCR UI**：
-- **CLI 工具**：适合脚本、自动化和快速操作
-- **Web 服务器** (`ccr web`)：内置轻量级 Axum 服务器，用于 API 访问
-- **CCR UI** (Actix + Next.js)：全功能 Web 应用，用于可视化管理
+**🎯 CLI vs TUI vs Web 服务器 vs CCR UI**：
+- **CLI 工具**：适合脚本、自动化和快速操作（`ccr switch`、`ccr list` 等）
+- **TUI** (`ccr tui`)：基于终端的交互式界面，支持键盘导航
+- **Web 服务器** (`ccr web`)：内置轻量级 Axum API 服务器（8080 端口），用于编程访问
+- **CCR UI** (`ccr ui`)：完整功能的 Next.js + Actix Web 应用，提供可视化仪表板（3000/8081 端口）
 
 ## 🚀 快速开始
 
@@ -129,7 +130,8 @@ ccr sync status       # 📊 检查同步状态和远程文件
 ccr sync push         # 🔼 上传配置到云端
 ccr sync pull         # 🔽 从云端下载配置
 ccr tui               # 🖥️ 启动交互式 TUI（推荐用于可视化管理！）
-ccr web               # 🌐 启动 Web 界面 (端口 8080)
+ccr web               # 🌐 启动轻量级 Web API 服务器（端口 8080）
+ccr ui                # 🎨 启动完整 CCR UI 应用（Next.js + Actix，端口 3000/8081）
 ```
 
 ## 📚 命令参考
@@ -143,7 +145,8 @@ ccr web               # 🌐 启动 Web 界面 (端口 8080)
 | `ccr validate` | `check` | ✅ 验证所有配置和设置 |
 | `ccr optimize` | - | 🔤 按字母顺序优化配置文件结构 |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 显示操作历史（限制数量/按类型筛选） |
-| `ccr web [-p PORT]` | - | 🌐 启动 Web 界面（默认 8080 端口） |
+| `ccr web [-p PORT]` | - | 🌐 启动轻量级 Web API 服务器（默认 8080 端口） |
+| `ccr ui [-p PORT] [--backend-port PORT]` | - | 🎨 启动完整 CCR UI 应用（Next.js + Actix，默认 3000/8081） |
 | `ccr tui [--yolo]` | - | 🖥️ 启动交互式终端界面（可视化管理） |
 | `ccr export [-o FILE] [--no-secrets]` | - | 📤 导出配置（包含/不含 API 密钥） |
 | `ccr import FILE [--merge]` | - | 📥 导入配置（合并或替换） |

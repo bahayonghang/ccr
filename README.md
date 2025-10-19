@@ -83,10 +83,11 @@ just quick-start    # Check prereqs + Install + Start
 
 **📖 Full Documentation**: See `ccr-ui/START_HERE.md` for ultra-simple guide or `ccr-ui/README.md` for complete docs.
 
-**🎯 CLI vs Web Server vs CCR UI**:
-- **CLI Tool**: Best for scripting, automation, and quick operations
-- **Web Server** (`ccr web`): Built-in lightweight Axum server for API access
-- **CCR UI** (Actix + Next.js): Full-featured web application for visual management
+**🎯 CLI vs TUI vs Web Server vs CCR UI**:
+- **CLI Tool**: Best for scripting, automation, and quick operations (`ccr switch`, `ccr list`, etc.)
+- **TUI** (`ccr tui`): Terminal-based interactive interface with keyboard navigation
+- **Web Server** (`ccr web`): Built-in lightweight Axum API server (port 8080) for programmatic access
+- **CCR UI** (`ccr ui`): Full-featured Next.js + Actix web application with visual dashboard (ports 3000/8081)
 
 ## 🚀 Quick Start
 
@@ -129,7 +130,8 @@ ccr sync status       # 📊 Check sync status and remote file
 ccr sync push         # 🔼 Upload config to cloud
 ccr sync pull         # 🔽 Download config from cloud
 ccr tui               # 🖥️ Launch interactive TUI (recommended for visual management!)
-ccr web               # 🌐 Launch web UI (port 8080)
+ccr web               # 🌐 Launch lightweight web API (port 8080)
+ccr ui                # 🎨 Launch full CCR UI application (Next.js + Actix, ports 3000/8081)
 ```
 
 ## 📚 Commands
@@ -143,7 +145,8 @@ ccr web               # 🌐 Launch web UI (port 8080)
 | `ccr validate` | `check` | ✅ Validate all configs and settings |
 | `ccr optimize` | - | 🔤 Sort config sections alphabetically |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 Show operation history (limit/filter by type) |
-| `ccr web [-p PORT]` | - | 🌐 Launch web UI (default port 8080) |
+| `ccr web [-p PORT]` | - | 🌐 Launch lightweight web API server (default port 8080) |
+| `ccr ui [-p PORT] [--backend-port PORT]` | - | 🎨 Launch full CCR UI app (Next.js + Actix, default 3000/8081) |
 | `ccr tui` | - | 🖥️ Launch interactive TUI for visual management |
 | `ccr export [-o FILE] [--no-secrets]` | - | 📤 Export configs (with/without API keys) |
 | `ccr import FILE [--merge]` | - | 📥 Import configs (merge or replace) |

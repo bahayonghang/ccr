@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "1.3.0"
+version = "1.4.0"
 edition = "2024"
 authors = [
     "Yonghang Li"
@@ -83,6 +83,11 @@ rayon = "1.10"
 
 # WebDAV 客户端 (用于配置同步)
 reqwest_dav = "0.2"
+
+# UI 启动相关依赖
+reqwest = { version = "0.12", features = ["blocking", "json"] }  # HTTP 客户端
+dialoguer = "0.11"                                                # 交互式提示
+flate2 = "1.0"                                                   # gzip 压缩/解压
 
 [features]
 default = []

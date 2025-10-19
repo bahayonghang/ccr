@@ -273,6 +273,22 @@ enum Commands {
         #[command(subcommand)]
         action: SyncAction,
     },
+
+    /// 启动 CCR UI (完整 Web 应用)
+    ///
+    /// 启动功能完整的 CCR UI 图形界面,支持多 CLI 工具管理
+    /// 开发环境：自动检测并启动源码版本
+    /// 生产环境：启动预构建版本(未来支持)
+    /// 示例: ccr ui -p 3000
+    Ui {
+        /// 指定前端端口(默认: 3000)
+        #[arg(short, long, default_value_t = 3000)]
+        port: u16,
+
+        /// 指定后端端口(默认: 8081)
+        #[arg(long, default_value_t = 8081)]
+        backend_port: u16,
+    },
 }
 
 /// ☁️ 同步操作子命令
@@ -374,6 +390,7 @@ fn main() {
             SyncAction::Push { force } => commands::sync_push_command(force),
             SyncAction::Pull { force } => commands::sync_pull_command(force),
         },
+        Some(Commands::Ui { port, backend_port }) => commands::ui_command(port, backend_port),
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {
