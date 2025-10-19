@@ -5,6 +5,11 @@ use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::fs;
+
+/// GitHub 仓库信息
+const GITHUB_REPO: &str = "bahayonghang/ccr";
+const GITHUB_BRANCH: &str = "main";
 
 /// 🎨 UI 服务
 ///
@@ -12,8 +17,7 @@ use std::process::{Command, Stdio};
 pub struct UiService {
     /// CCR-UI 项目路径 (开发模式使用)
     ccr_ui_path: Option<PathBuf>,
-    /// UI 资源目录 (~/.ccr/ui/) - 预留用于预构建版本
-    #[allow(dead_code)]
+    /// UI 资源目录 (~/.ccr/ccr-ui/) - 用于下载的版本
     ui_dir: PathBuf,
 }
 
@@ -24,8 +28,8 @@ impl UiService {
         let home = dirs::home_dir()
             .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".to_string()))?;
 
-        // UI 资源目录 (预留用于预构建版本)
-        let ui_dir = home.join(".ccr/ui");
+        // UI 资源目录 (~/.ccr/ccr-ui/)
+        let ui_dir = home.join(".ccr/ccr-ui");
 
         // 检查是否在开发环境中
         let ccr_ui_path = Self::detect_ccr_ui_path();
@@ -70,13 +74,14 @@ impl UiService {
     /// 🚀 启动 UI (智能选择模式)
     ///
     /// 根据环境自动选择最佳启动方式:
-    /// - 开发环境: 使用 `just dev` 启动源码
-    /// - 生产环境: 启动预构建版本 (未来实现)
+    /// 1. 开发环境: 使用当前目录的 ccr-ui/ 启动源码
+    /// 2. 用户目录: 使用 ~/.ccr/ccr-ui/ 启动下载版本
+    /// 3. 未找到: 提示从 GitHub 下载
     pub fn start(&self, port: u16, backend_port: u16) -> Result<()> {
         ColorOutput::title("🚀 CCR UI 启动中...");
         println!();
 
-        // 检查开发环境
+        // 优先级 1: 检查开发环境（当前目录的 ccr-ui/）
         if let Some(ref ccr_ui_path) = self.ccr_ui_path {
             ColorOutput::info(&format!(
                 "📁 检测到开发环境: {}",
@@ -85,19 +90,32 @@ impl UiService {
             return self.start_dev_mode(ccr_ui_path, port, backend_port);
         }
 
-        // 未来: 检查预构建版本
-        // if self.has_local_version()? {
-        //     return self.start_local(port, backend_port);
-        // }
+        // 优先级 2: 检查用户目录下载版本（~/.ccr/ccr-ui/）
+        if self.ui_dir.exists() && self.ui_dir.join("justfile").exists() {
+            ColorOutput::info(&format!(
+                "📁 检测到用户目录版本: {}",
+                self.ui_dir.display()
+            ));
+            return self.start_dev_mode(&self.ui_dir, port, backend_port);
+        }
 
-        // 未找到任何可用的 UI
+        // 优先级 3: 未找到，提示下载
+        ColorOutput::warning("⚠️  未找到 CCR UI");
+        println!();
+        ColorOutput::info("CCR UI 可以从以下位置获取：");
+        ColorOutput::info(&format!("  1. 开发环境: 项目根目录下的 ccr-ui/"));
+        ColorOutput::info(&format!("  2. 用户目录: {}", self.ui_dir.display()));
+        println!();
+
+        // 询问是否下载
+        if self.prompt_download()? {
+            self.download_from_github()?;
+            // 下载完成后启动
+            return self.start_dev_mode(&self.ui_dir, port, backend_port);
+        }
+
         Err(CcrError::ConfigError(
-            "未找到 CCR UI 资源\n\n\
-            请确保:\n\
-            1. 在 CCR 项目根目录下运行此命令\n\
-            2. ccr-ui/ 目录存在\n\n\
-            或等待未来版本支持自动下载 UI 资源"
-                .to_string(),
+            "用户取消下载，无法启动 CCR UI".to_string(),
         ))
     }
 
@@ -308,6 +326,151 @@ impl UiService {
         } else {
             Err(CcrError::ConfigError("未找到 ccr-ui 目录".to_string()))
         }
+    }
+
+    // === GitHub 下载功能 ===
+
+    /// ❓ 提示用户是否下载 CCR UI
+    fn prompt_download(&self) -> Result<bool> {
+        use dialoguer::Confirm;
+
+        ColorOutput::info("💡 提示: CCR UI 是一个完整的 Next.js + Actix Web 应用");
+        ColorOutput::info("   可以从 GitHub 下载到用户目录:");
+        ColorOutput::info(&format!("   {}", self.ui_dir.display()));
+        println!();
+
+        let confirmed = Confirm::new()
+            .with_prompt("是否立即从 GitHub 下载 CCR UI?")
+            .default(true)
+            .interact()
+            .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;
+
+        Ok(confirmed)
+    }
+
+    /// 📥 从 GitHub 下载 ccr-ui 源码
+    fn download_from_github(&self) -> Result<()> {
+        use std::fs::create_dir_all;
+        use tempfile::TempDir;
+
+        ColorOutput::step("从 GitHub 下载 CCR UI");
+        println!();
+
+        // 创建目标目录的父目录
+        let parent_dir = self
+            .ui_dir
+            .parent()
+            .ok_or_else(|| CcrError::ConfigError("无法获取父目录".to_string()))?;
+
+        if !parent_dir.exists() {
+            create_dir_all(parent_dir).map_err(|e| {
+                CcrError::ConfigError(format!("创建目录失败: {}", e))
+            })?;
+        }
+
+        // 创建临时目录用于克隆
+        let temp_dir = TempDir::new()
+            .map_err(|e| CcrError::ConfigError(format!("创建临时目录失败: {}", e)))?;
+
+        ColorOutput::info(&format!(
+            "📦 克隆仓库: https://github.com/{}.git",
+            GITHUB_REPO
+        ));
+        ColorOutput::info(&format!("📁 临时目录: {}", temp_dir.path().display()));
+        println!();
+
+        ColorOutput::warning("⏳ 下载中 (这可能需要几分钟)...");
+
+        // 克隆整个仓库到临时目录
+        let status = Command::new("git")
+            .arg("clone")
+            .arg("--depth")
+            .arg("1")
+            .arg("--branch")
+            .arg(GITHUB_BRANCH)
+            .arg(format!("https://github.com/{}.git", GITHUB_REPO))
+            .arg(temp_dir.path())
+            .status()
+            .map_err(|e| {
+                CcrError::ConfigError(format!(
+                    "执行 git clone 失败: {}\n\n💡 请确保已安装 git: sudo apt-get install git",
+                    e
+                ))
+            })?;
+
+        if !status.success() {
+            return Err(CcrError::ConfigError(
+                "下载失败，请检查网络连接和 git 安装".to_string(),
+            ));
+        }
+
+        // 检查 ccr-ui 子目录是否存在
+        let ccr_ui_src = temp_dir.path().join("ccr-ui");
+        if !ccr_ui_src.exists() {
+            return Err(CcrError::ConfigError(
+                "下载的仓库中未找到 ccr-ui 目录".to_string(),
+            ));
+        }
+
+        // 验证 ccr-ui 目录的完整性
+        if !ccr_ui_src.join("justfile").exists() {
+            return Err(CcrError::ConfigError(
+                "ccr-ui 目录不完整，缺少 justfile".to_string(),
+            ));
+        }
+
+        ColorOutput::info("📦 正在复制文件到目标目录...");
+
+        // 如果目标目录已存在，先删除
+        if self.ui_dir.exists() {
+            fs::remove_dir_all(&self.ui_dir).map_err(|e| {
+                CcrError::ConfigError(format!("删除旧目录失败: {}", e))
+            })?;
+        }
+
+        // 复制 ccr-ui 目录到目标位置
+        self.copy_dir_recursive(&ccr_ui_src, &self.ui_dir)?;
+
+        ColorOutput::success("✅ CCR UI 下载完成");
+        ColorOutput::info(&format!("📁 安装位置: {}", self.ui_dir.display()));
+        println!();
+
+        // 临时目录会在这里自动清理
+
+        Ok(())
+    }
+
+    /// 递归复制目录
+    fn copy_dir_recursive(&self, src: &Path, dst: &Path) -> Result<()> {
+        use std::fs;
+
+        if !dst.exists() {
+            fs::create_dir_all(dst)
+                .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+        }
+
+        for entry in fs::read_dir(src)
+            .map_err(|e| CcrError::ConfigError(format!("读取目录失败: {}", e)))?
+        {
+            let entry = entry
+                .map_err(|e| CcrError::ConfigError(format!("读取条目失败: {}", e)))?;
+            let path = entry.path();
+            let file_name = entry.file_name();
+            let dst_path = dst.join(&file_name);
+
+            if path.is_dir() {
+                // 跳过 .git 目录
+                if file_name == ".git" {
+                    continue;
+                }
+                self.copy_dir_recursive(&path, &dst_path)?;
+            } else {
+                fs::copy(&path, &dst_path)
+                    .map_err(|e| CcrError::ConfigError(format!("复制文件失败: {}", e)))?;
+            }
+        }
+
+        Ok(())
     }
 
     // === 预留接口: 预构建版本管理 ===
