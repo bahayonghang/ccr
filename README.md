@@ -58,8 +58,34 @@ The App Router frontend delivers a React 19 experience with Tailwind-driven UI, 
 - 📊 **Syntax Highlighting**: Terminal-style output with color coding
 - ⚡ **Real-time Execution**: Async command execution with progress display
 - 🧩 **Extensible Control**: Manage MCP servers, slash commands, agents, and plugins via dedicated APIs
+- 🔄 **GitHub Auto-Download**: Automatically downloads ccr-ui to user directory on first use
 
-### Super Quick Start
+### Quick Start
+
+**Method 1: Direct `ccr ui` Command (Recommended)**
+
+```bash
+# First time use - auto-download and start
+ccr ui
+
+# 💬 Prompt: CCR UI is a full Next.js + Actix Web application
+#    It will be downloaded to:
+#    /home/user/.ccr/ccr-ui/
+#
+# ❓ Download CCR UI from GitHub now? [Y/n]: y
+# 📦 Cloning repository: https://github.com/bahayonghang/ccr.git
+# ⏳ Downloading (this may take a few minutes)...
+# ✅ CCR UI download complete
+#
+# [Auto-checking dependencies and starting...]
+```
+
+**Three-tier Priority Detection System:**
+1. **Development Environment** - Detects `ccr-ui/` in current/parent directory (for developers)
+2. **User Directory** - Detects `~/.ccr/ccr-ui/` (for daily use)
+3. **GitHub Download** - Auto-prompts to download from GitHub (first time use)
+
+**Method 2: Manual ccr-ui Directory**
 
 ```bash
 cd ccr-ui

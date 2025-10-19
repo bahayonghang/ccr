@@ -345,17 +345,75 @@ ccr ui -p 8080 --backend-port 9000
 
 **🚀 启动流程：**
 
-CCR 会智能检测环境并选择最佳启动方式：
+CCR 使用**三级优先级检测系统**智能选择最佳启动方式：
 
-1. **开发环境**（推荐）：
-   - 自动检测 `ccr-ui/` 目录
-   - 使用 `just dev` 启动源码版本
-   - 支持热重载和实时开发
+**优先级 1：开发环境**
+- 检测当前目录或父目录的 `ccr-ui/` 目录
+- 使用 `just dev` 启动源码版本
+- 支持热重载和实时开发
+- 适合：CCR 项目开发者
 
-2. **预构建版本**（未来支持）：
-   - 从 `~/.ccr/ui/` 启动预构建包
-   - 零依赖，快速启动
-   - 自动更新检查
+**优先级 2：用户目录**
+- 检测 `~/.ccr/ccr-ui/` 目录
+- 使用已下载的源码版本
+- 与开发模式相同的启动方式
+- 适合：日常使用
+
+**优先级 3：GitHub 自动下载**
+- 未找到本地版本时，自动提示下载
+- 从 GitHub 克隆 CCR 仓库
+- 自动提取 `ccr-ui/` 子目录到 `~/.ccr/ccr-ui/`
+- 临时文件自动清理
+- 适合：首次使用
+
+**首次使用示例：**
+```bash
+ccr ui
+
+# 💬 提示: CCR UI 是一个完整的 Next.js + Actix Web 应用
+#    可以从 GitHub 下载到用户目录:
+#    /home/user/.ccr/ccr-ui/
+#
+# ❓ 是否立即从 GitHub 下载 CCR UI? [Y/n]: y
+# 📦 克隆仓库: https://github.com/bahayonghang/ccr.git
+# 📁 临时目录: /tmp/.tmpXXXXXX
+# ⏳ 下载中 (这可能需要几分钟)...
+# 📦 正在复制文件到目标目录...
+# ✅ CCR UI 下载完成
+# 📁 安装位置: /home/user/.ccr/ccr-ui/
+#
+# 🔍 检查 just 工具...
+# ✅ just 已安装: just 1.x.x
+# 🔍 检查项目依赖...
+# ✅ 依赖已就绪
+#
+# 🔧 使用开发模式启动 CCR UI
+# 📍 后端: http://localhost:8081
+# 📍 前端: http://localhost:3000 (Next.js)
+#
+# 💡 提示: 按 Ctrl+C 停止服务
+```
+
+**系统要求：**
+- ✅ **必需工具**：
+  - `git` - 用于从 GitHub 下载（首次使用）
+  - `just` - 用于启动开发环境
+  - `Node.js` / `npm` - 前端依赖（自动检测和安装）
+  - `Rust` / `cargo` - 后端依赖（自动检测和安装）
+
+- 📋 **工具安装**：
+  ```bash
+  # Git (通常已预装)
+  sudo apt-get install git  # Debian/Ubuntu
+  brew install git          # macOS
+
+  # Just
+  cargo install just
+
+  # Node.js (推荐使用 nvm)
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+  nvm install --lts
+  ```
 
 **📍 访问地址：**
 - 前端界面：http://localhost:3000

@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "1.4.1"
+version = "1.4.2"
 edition = "2024"
 authors = [
     "Yonghang Li"
@@ -22,12 +22,12 @@ clap = { version = "4.5.49", features = ["derive", "cargo"] }
 
 # 序列化与配置解析
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.143"
+serde_json = "1.0.145"
 toml = "0.9.8"
-indexmap = { version = "2.11.4", features = ["serde"] }
+indexmap = { version = "2.12", features = ["serde"] }
 
 # 错误处理
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 thiserror = "2.0.17"
 
 # 跨平台用户目录
@@ -37,7 +37,7 @@ dirs = "6.0.0"
 fs4 = "0.13.1"
 
 # 临时文件与原子写入
-tempfile = "3.20.0"
+tempfile = "3.23"
 
 # 文件时间操作
 filetime = "0.2"
@@ -51,16 +51,16 @@ colored = "3.0.0"
 
 # TUI 框架
 ratatui = "0.29"
-crossterm = "0.28"
+crossterm = "0.28.1"
 
 # 表格展示
-comfy-table = "7.1.3"
+comfy-table = "7.2"
 
 # 时间戳与格式化
 chrono = { version = "0.4.42", features = ["serde"] }
 
 # 当前操作者识别
-whoami = "1.5"
+whoami = "1.6"
 
 # UUID生成
 uuid = { version = "1.18.1", features = ["v4", "serde"] }
@@ -69,25 +69,25 @@ uuid = { version = "1.18.1", features = ["v4", "serde"] }
 # 🎯 异步 Web 框架 - 高性能并发处理（优化features以加快编译）
 tokio = { version = "1.48", features = ["rt-multi-thread", "net", "io-util", "time", "macros", "signal", "sync"] }
 axum = { version = "0.8.6", default-features = false, features = ["json", "tokio", "http1"] }
-tower = { version = "0.5", default-features = false }
-tower-http = { version = "0.6", default-features = false, features = ["cors"] }
+tower = { version = "0.5.2", default-features = false }
+tower-http = { version = "0.6.6", default-features = false, features = ["cors"] }
 
 # 自动打开浏览器
-open = "5.0"
+open = "5.3"
 
 # 系统信息获取
 sysinfo = "0.37.2"
 
 # 并行处理
-rayon = "1.10"
+rayon = "1.11"
 
 # WebDAV 客户端 (用于配置同步)
 reqwest_dav = "0.2"
 
 # UI 启动相关依赖
-reqwest = { version = "0.12", features = ["blocking", "json"] }  # HTTP 客户端
-dialoguer = "0.11"                                                # 交互式提示
-flate2 = "1.0"                                                   # gzip 压缩/解压
+reqwest = { version = "0.12.24", features = ["blocking", "json"] }  # HTTP 客户端
+dialoguer = "0.11"                                                  # 交互式提示
+flate2 = "1.1"                                                      # gzip 压缩/解压
 
 [features]
 default = []
