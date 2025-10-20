@@ -38,7 +38,7 @@ export default function RightSidebar({ configs, currentFilter, onConfigClick }: 
         配置目录
       </h2>
       <nav aria-label="配置导航">
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {filtered.length === 0 ? (
             <li className="text-xs text-center py-2" style={{ color: 'var(--text-muted)' }}>
               当前分类下暂无配置
@@ -48,9 +48,11 @@ export default function RightSidebar({ configs, currentFilter, onConfigClick }: 
               <li key={config.name}>
                 <button
                   onClick={() => onConfigClick(config.name)}
-                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all relative overflow-hidden group hover:scale-105"
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative overflow-hidden group hover:scale-105"
                   style={{
                     color: 'var(--text-secondary)',
+                    background: config.is_current ? 'rgba(139, 92, 246, 0.1)' : 'transparent',
+                    border: `1px solid ${config.is_current ? 'rgba(139, 92, 246, 0.3)' : 'transparent'}`,
                   }}
                   aria-label={`跳转到配置 ${config.name}`}
                 >

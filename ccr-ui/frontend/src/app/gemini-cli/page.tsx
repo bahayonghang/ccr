@@ -36,48 +36,108 @@ export default function GeminiCliPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-1/4 w-96 h-96 bg-orange-500/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 -right-1/4 w-96 h-96 bg-red-500/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+    <div className="min-h-screen relative" style={{ background: 'var(--bg-primary)' }}>
+      {/* 🎨 动态背景装饰 - 液态玻璃风格 */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div
+          className="absolute top-20 right-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
+          style={{ background: 'linear-gradient(135deg, #f97316 0%, #ef4444 100%)' }}
+        />
+        <div
+          className="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
+          style={{
+            background: 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)',
+            animationDelay: '1s'
+          }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
+          style={{
+            background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
+            animationDelay: '2s'
+          }}
+        />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-12">
-        <Link href="/" className="inline-flex items-center gap-2 mb-8 text-gray-400 hover:text-orange-400 transition-colors group">
+      <div className="relative z-10 container mx-auto px-6 py-12">
+        {/* 返回首页按钮 */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 mb-8 transition-colors group"
+          style={{ color: 'var(--text-secondary)' }}
+        >
           <Home className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span>返回首页</span>
+          <span className="group-hover:text-[var(--accent-primary)]">返回首页</span>
         </Link>
 
+        {/* 头部区域 */}
         <div className="mb-16">
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-4 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl">
+            <div
+              className="p-4 rounded-2xl"
+              style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}
+            >
               <Sparkles className="w-12 h-12 text-white" />
             </div>
             <div>
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-orange-400 bg-clip-text text-transparent">
+              <h1
+                className="text-5xl font-bold bg-gradient-to-r bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: 'linear-gradient(to right, #f97316, #ef4444, #f97316)'
+                }}
+              >
                 Gemini CLI
               </h1>
-              <p className="text-xl text-gray-300 mt-2">Google Gemini AI 配置中心</p>
+              <p
+                className="text-xl mt-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Google Gemini AI 配置中心
+              </p>
             </div>
           </div>
-          <p className="text-gray-400 max-w-2xl">
+          <p
+            className="max-w-2xl"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             管理 Gemini MCP 服务器、Agents、插件和自定义命令，享受 Google AI 的强大功能。
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {subModules.map((module, index) => (
-            <Link key={module.href} href={module.href} className="group relative" style={{ animationDelay: `${index * 100}ms` }}>
-              <div className="glass-card p-8 h-full border border-gray-700/50 hover:border-gray-500/50 transition-all duration-300 hover:scale-105 hover:-translate-y-2">
+            <Link
+              key={module.href}
+              href={module.href}
+              className="group relative"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div
+                className="glass-card p-8 h-full transition-all duration-300 hover:scale-105 hover:-translate-y-2"
+                style={{
+                  border: '1px solid var(--border-color)',
+                }}
+              >
                 <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-300`}></div>
                 <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${module.gradient} mb-4`}>
                   <div className="text-white">{module.icon}</div>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-orange-400 group-hover:to-red-400 transition-all">
+                <h3
+                  className="text-2xl font-bold mb-3 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-orange-400 group-hover:to-red-400 transition-all"
+                  style={{ color: 'var(--text-primary)' }}
+                >
                   {module.title}
                 </h3>
-                <p className="text-gray-400 text-sm mb-6 line-clamp-2">{module.description}</p>
-                <div className="flex items-center gap-2 text-gray-500 group-hover:text-orange-400 transition-colors">
+                <p
+                  className="text-sm mb-6 line-clamp-2"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {module.description}
+                </p>
+                <div
+                  className="flex items-center gap-2 group-hover:text-orange-400 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                >
                   <span className="text-sm font-medium">查看详情</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>

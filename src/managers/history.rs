@@ -218,6 +218,11 @@ impl HistoryManager {
     }
 
     /// 添加历史记录条目
+    ///
+    /// 🔄 **自动清理策略**：
+    /// - 保留最近 10 条记录
+    /// - 按时间倒序自动排序
+    /// - 清理在每次添加时自动触发
     pub fn add(&self, entry: HistoryEntry) -> Result<()> {
         log::debug!(
             "开始添加历史记录: operation={:?}, to_config={:?}",
@@ -236,6 +241,15 @@ impl HistoryManager {
 
         // 添加新记录
         entries.push(entry.clone());
+
+        // 🔄 自动清理：按时间倒序排序，只保留最近 10 条
+        entries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        const MAX_HISTORY_ENTRIES: usize = 10;
+        if entries.len() > MAX_HISTORY_ENTRIES {
+            let removed_count = entries.len() - MAX_HISTORY_ENTRIES;
+            entries.truncate(MAX_HISTORY_ENTRIES);
+            log::debug!("🗑️ 自动清理了 {} 条旧历史记录", removed_count);
+        }
 
         // 保存
         self.save(&entries)?;
@@ -465,5 +479,54 @@ mod tests {
         assert_eq!(stats.total_operations, 2);
         assert_eq!(stats.successful_operations, 1);
         assert_eq!(stats.failed_operations, 1);
+    }
+
+    #[test]
+    fn test_history_auto_cleanup() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let history_path = temp_dir.path().join("history.json");
+        let lock_dir = temp_dir.path().join("locks");
+
+        let lock_manager = LockManager::new(lock_dir);
+        let manager = HistoryManager::new(history_path, lock_manager);
+
+        // 添加 15 条记录（超过限制的 10 条）
+        for i in 0..15 {
+            manager
+                .add(HistoryEntry::new(
+                    OperationType::Switch,
+                    OperationDetails {
+                        from_config: None,
+                        to_config: Some(format!("config-{}", i)),
+                        backup_path: None,
+                        extra: None,
+                    },
+                    OperationResult::Success,
+                ))
+                .unwrap();
+        }
+
+        // 验证只保留了最近 10 条
+        let entries = manager.load().unwrap();
+        assert_eq!(entries.len(), 10, "历史记录应该自动清理为最近 10 条");
+
+        // 验证记录是按时间倒序排列的（最新的在前）
+        for i in 0..entries.len() - 1 {
+            assert!(
+                entries[i].timestamp >= entries[i + 1].timestamp,
+                "历史记录应按时间倒序排列"
+            );
+        }
+
+        // 验证保留的是最新的 10 条（config-5 到 config-14）
+        let config_names: Vec<_> = entries
+            .iter()
+            .filter_map(|e| e.details.to_config.as_ref())
+            .collect();
+
+        // 最新的配置应该是 config-14
+        assert_eq!(config_names[0], "config-14");
+        // 最旧的保留配置应该是 config-5
+        assert_eq!(config_names[9], "config-5");
     }
 }

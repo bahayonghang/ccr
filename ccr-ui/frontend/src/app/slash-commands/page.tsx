@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { Command, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home } from 'lucide-react';
 import { 
   listSlashCommands,
@@ -304,24 +305,38 @@ export default function SlashCommandsManagement() {
                   <Command className="inline-block w-7 h-7 mr-2" />
                   Slash Commands 管理
                 </h2>
-                <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ 
-                  background: 'var(--accent-primary)', 
-                  color: '#fff' 
+                <span className="px-3 py-1 rounded-full text-sm font-medium" style={{
+                  background: 'var(--accent-primary)',
+                  color: '#fff'
                 }}>
                   {filteredAndSortedCommands.length}/{stats.total}
                 </span>
               </div>
-              <button
-                onClick={handleAdd}
-                className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
-                style={{ 
-                  background: 'var(--accent-primary)', 
-                  color: '#fff' 
-                }}
-              >
-                <Plus className="inline-block w-5 h-5 mr-2" />
-                添加 Command
-              </button>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <Home className="w-4 h-4" />
+                  <span>返回首页</span>
+                </Link>
+                <button
+                  onClick={handleAdd}
+                  className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
+                  style={{
+                    background: 'var(--accent-primary)',
+                    color: '#fff'
+                  }}
+                >
+                  <Plus className="inline-block w-5 h-5 mr-2" />
+                  添加 Command
+                </button>
+              </div>
             </div>
 
             {/* 搜索框 */}
@@ -378,10 +393,24 @@ export default function SlashCommandsManagement() {
                 filteredAndSortedCommands.map((cmd) => (
                   <div
                     key={cmd.name}
-                    className="p-6 rounded-xl transition-all hover:scale-[1.01]"
-                    style={{ 
-                      background: 'var(--bg-secondary)', 
-                      border: '1px solid var(--border-color)' 
+                    className="group p-6 rounded-xl transition-all duration-300"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.9)',
+                      border: '1px solid rgba(99, 102, 241, 0.12)',
+                      outline: 'none',
+                      cursor: 'default'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.24)';
+                      e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.12)';
+                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
                     <div className="flex items-start justify-between">

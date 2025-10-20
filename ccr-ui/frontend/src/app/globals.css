@@ -6,51 +6,88 @@
    CSS 变量 - 主题系统
    =================================== */
 
-/* 暗色主题 - 紫色配色（默认） */
+/* 明色主题 - Material Design 液态玻璃风格（默认） */
+:root[data-theme="light"],
+:root {
+  /* 🎨 背景色 - 渐变基调 */
+  --bg-primary: linear-gradient(135deg, #f0f4f8 0%, #e8edf3 100%);
+  --bg-secondary: rgba(255, 255, 255, 0.9);
+  --bg-tertiary: rgba(255, 255, 255, 0.7);
+  --bg-card: rgba(255, 255, 255, 0.75);
+  --bg-hover: rgba(255, 255, 255, 0.85);
+
+  /* 🔶 边框色 */
+  --border-color: rgba(99, 102, 241, 0.12);
+  --border-hover: rgba(99, 102, 241, 0.24);
+
+  /* 📝 文字色 */
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  /* 🎯 主题色 - Material 蓝紫色 */
+  --accent-primary: #6366f1;
+  --accent-secondary: #8b5cf6;
+  --accent-tertiary: #ec4899;
+  --accent-success: #10b981;
+  --accent-warning: #f59e0b;
+  --accent-danger: #ef4444;
+  --accent-info: #3b82f6;
+
+  /* ✨ 发光效果 */
+  --glow-primary: rgba(99, 102, 241, 0.25);
+  --glow-secondary: rgba(139, 92, 246, 0.25);
+  --glow-success: rgba(16, 185, 129, 0.25);
+  --glow-danger: rgba(239, 68, 68, 0.25);
+
+  /* 🌊 阴影 - Material 层次感 */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+
+  /* 🎪 渐变色 */
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-warm: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+/* 暗色主题 - 保留原有的暗色配色 */
 :root[data-theme="dark"] {
   --bg-primary: #0a0e27;
   --bg-secondary: #141b3e;
   --bg-tertiary: #1e2749;
   --bg-card: rgba(30, 39, 73, 0.6);
+  --bg-hover: rgba(30, 39, 73, 0.8);
   --border-color: rgba(139, 92, 246, 0.3);
+  --border-hover: rgba(139, 92, 246, 0.5);
   --text-primary: #e5e7eb;
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
   --accent-primary: #8b5cf6;
   --accent-secondary: #a855f7;
+  --accent-tertiary: #ec4899;
   --accent-success: #10b981;
   --accent-warning: #f59e0b;
   --accent-danger: #ef4444;
+  --accent-info: #3b82f6;
   --glow-primary: rgba(139, 92, 246, 0.5);
+  --glow-secondary: rgba(168, 85, 247, 0.5);
   --glow-success: rgba(16, 185, 129, 0.5);
   --glow-danger: rgba(239, 68, 68, 0.5);
-  --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.3);
-  --shadow-large: 0 10px 40px rgba(0, 0, 0, 0.5);
-}
-
-/* 明色主题 - Apple 风格清爽配色 */
-:root[data-theme="light"],
-:root {
-  --bg-primary: #f5f7fa;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #fafbfc;
-  --bg-card: rgba(255, 255, 255, 0.85);
-  --border-color: rgba(0, 0, 0, 0.08);
-  --text-primary: #1d1d1f;
-  --text-secondary: #6e6e73;
-  --text-muted: #86868b;
-  --accent-primary: #007aff;
-  --accent-secondary: #5856d6;
-  --accent-success: #34c759;
-  --accent-warning: #ff9500;
-  --accent-danger: #ff3b30;
-  --glow-primary: rgba(0, 122, 255, 0.15);
-  --glow-success: rgba(52, 199, 89, 0.15);
-  --glow-danger: rgba(255, 59, 48, 0.15);
-  --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.08);
-  --shadow-large: 0 10px 40px rgba(0, 0, 0, 0.12);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.4);
+  --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.5);
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-warm: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
 }
 
 /* ===================================
@@ -80,11 +117,25 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
-  transition: background-color 0.3s ease, color 0.3s ease;
-  
-  /* 优化可读性 */
-  letter-spacing: -0.011em;
+  transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Material Design 优化 */
+  letter-spacing: 0.01em;
   font-feature-settings: 'liga' 1, 'calt' 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 明色主题的背景渐变 */
+[data-theme="light"] body {
+  background: linear-gradient(135deg, #f0f4f8 0%, #e8edf3 50%, #dce4ec 100%);
+  background-attachment: fixed;
+}
+
+/* 暗色主题的背景 */
+[data-theme="dark"] body {
+  background: #0a0e27;
 }
 
 #root {
@@ -297,34 +348,68 @@ body {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border-color);
 }
 
 .glass-effect:hover {
   backdrop-filter: blur(24px) saturate(200%);
   -webkit-backdrop-filter: blur(24px) saturate(200%);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-large);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-hover);
 }
 
-/* 玻璃卡片效果（增强版） */
+/* 🌊 液态玻璃卡片 - Material Design 风格 */
 .glass-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-radius: 16px;
-  box-shadow:
-    0 8px 32px 0 rgba(0, 0, 0, 0.37),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  background: var(--bg-card);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 玻璃卡片顶部高光效果 */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
 }
 
 .glass-card:hover {
+  background: var(--bg-hover);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  box-shadow: var(--shadow-xl),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+  transform: translateY(-4px) scale(1.01);
+  border-color: var(--border-hover);
+}
+
+/* 暗色主题的玻璃效果 */
+[data-theme="dark"] .glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .glass-card:hover {
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px) saturate(200%);
-  -webkit-backdrop-filter: blur(20px) saturate(200%);
-  box-shadow:
-    0 12px 48px 0 rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.45),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
 }
 
 /* 渐变文本 */

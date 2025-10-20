@@ -141,30 +141,21 @@ export default function ConfigManagement() {
           historyCount={historyCount}
         />
 
-        {/* 🌟 WebDAV 云同步功能入口 - 重点突出 */}
+        {/* 🌟 WebDAV 云同步功能入口 - Material Design 液态玻璃风格 */}
         <Link href="/sync" className="block mb-5">
-          <div 
-            className="relative overflow-hidden rounded-2xl p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] group"
+          <div
+            className="glass-card relative overflow-hidden p-6 cursor-pointer transition-all duration-300 hover:scale-[1.01] group"
             style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-              boxShadow: '0 10px 40px rgba(102, 126, 234, 0.4), 0 0 0 1px rgba(255,255,255,0.1)',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08))',
+              border: '1.5px solid rgba(99, 102, 241, 0.25)',
+              boxShadow: 'var(--shadow-lg), inset 0 1px 0 0 rgba(255, 255, 255, 0.4)',
             }}
           >
-            {/* 背景动画效果 */}
-            <div 
-              className="absolute inset-0 opacity-30"
+            {/* 背景装饰 */}
+            <div
+              className="absolute inset-0 opacity-20"
               style={{
-                background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.3) 0%, transparent 70%)',
-                animation: 'pulse 3s ease-in-out infinite',
-              }}
-            />
-            
-            {/* 顶部闪光效果 */}
-            <div 
-              className="absolute top-0 left-0 w-full h-1 opacity-80"
-              style={{
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)',
-                animation: 'shimmer 3s linear infinite',
+                background: 'radial-gradient(circle at 50% 50%, #6366f1 0%, transparent 70%)',
               }}
             />
 
@@ -172,38 +163,79 @@ export default function ConfigManagement() {
               <div className="flex items-center gap-6">
                 {/* 图标区域 */}
                 <div className="relative">
-                  <div 
-                    className="absolute inset-0 blur-xl opacity-60"
-                    style={{ background: 'white' }}
+                  <div
+                    className="absolute inset-0 blur-lg opacity-30"
+                    style={{ background: '#6366f1' }}
                   />
-                  <Cloud className="w-16 h-16 text-white relative z-10 group-hover:scale-110 transition-transform" />
-                  <Sparkles className="w-6 h-6 text-yellow-300 absolute -top-2 -right-2 animate-pulse" />
+                  <div
+                    className="relative z-10 p-4 rounded-2xl"
+                    style={{ background: 'rgba(99, 102, 241, 0.15)' }}
+                  >
+                    <Cloud
+                      className="w-10 h-10 group-hover:scale-110 transition-transform"
+                      style={{ color: '#6366f1' }}
+                    />
+                  </div>
+                  <Sparkles
+                    className="w-5 h-5 absolute -top-1 -right-1 animate-pulse"
+                    style={{ color: '#f59e0b' }}
+                  />
                 </div>
 
                 {/* 文字内容 */}
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-2xl font-bold text-white">WebDAV 云同步</h3>
-                    <span 
-                      className="px-3 py-1 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-sm border border-white/30"
+                    <h3
+                      className="text-2xl font-bold"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      WebDAV 云同步
+                    </h3>
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-bold"
+                      style={{
+                        background: 'var(--accent-warning)',
+                        color: 'white',
+                      }}
                     >
                       NEW ✨
                     </span>
                   </div>
-                  <p className="text-white/90 text-sm font-medium">
+                  <p
+                    className="text-sm font-medium mb-3"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
                     一键同步配置到云端 · 支持坚果云、Nextcloud、ownCloud 等 WebDAV 服务
                   </p>
-                  <div className="flex items-center gap-4 mt-3">
-                    <div className="flex items-center gap-1.5 text-white/80 text-xs">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="flex items-center gap-1.5 text-xs"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      <div
+                        className="w-1.5 h-1.5 rounded-full animate-pulse"
+                        style={{ background: 'var(--accent-success)' }}
+                      />
                       <span>多设备同步</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-white/80 text-xs">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                    <div
+                      className="flex items-center gap-1.5 text-xs"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      <div
+                        className="w-1.5 h-1.5 rounded-full animate-pulse"
+                        style={{ background: 'var(--accent-info)' }}
+                      />
                       <span>自动备份</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-white/80 text-xs">
-                      <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                    <div
+                      className="flex items-center gap-1.5 text-xs"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      <div
+                        className="w-1.5 h-1.5 rounded-full animate-pulse"
+                        style={{ background: 'var(--accent-secondary)' }}
+                      />
                       <span>安全加密</span>
                     </div>
                   </div>
@@ -213,13 +245,29 @@ export default function ConfigManagement() {
               {/* 右侧按钮 */}
               <div className="flex items-center gap-3">
                 <div className="text-right mr-4">
-                  <div className="text-white/90 text-sm font-medium">立即体验</div>
-                  <div className="text-white/70 text-xs">点击进入管理</div>
+                  <div
+                    className="text-sm font-medium"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    立即体验
+                  </div>
+                  <div
+                    className="text-xs"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    点击进入管理
+                  </div>
                 </div>
-                <div 
-                  className="w-12 h-12 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-sm border-2 border-white/40 group-hover:bg-white/30 transition-all group-hover:scale-110"
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center transition-all group-hover:scale-110"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+                    boxShadow: '0 0 20px var(--glow-primary)',
+                  }}
                 >
-                  <ArrowRight className="w-6 h-6 text-white group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight
+                    className="w-6 h-6 text-white group-hover:translate-x-1 transition-transform"
+                  />
                 </div>
               </div>
             </div>
@@ -350,7 +398,7 @@ export default function ConfigManagement() {
 
                 {/* 配置列表 */}
                 {!loading && !error && (
-                  <div className="space-y-3.5">
+                  <div className="space-y-6">
                     {filteredConfigs.length === 0 ? (
                       <div className="text-center py-10" style={{ color: 'var(--text-muted)' }}>
                         当前分类下暂无配置
@@ -423,15 +471,19 @@ function ConfigCard({ config, onSwitch }: { config: ConfigItem; onSwitch: (name:
   return (
     <article
       id={`config-${config.name}`}
-      className={`card-enhanced rounded-lg p-4 ${
+      className={`card-enhanced rounded-xl p-5 ${
         config.is_current ? 'ring-2' : ''
-      }`}
+      } glass-effect`}
       style={{
         background: config.is_current
-          ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(168, 85, 247, 0.1))'
-          : 'var(--bg-tertiary)',
-        border: `1px solid ${config.is_current ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-        boxShadow: config.is_current ? '0 0 20px var(--glow-primary)' : undefined,
+          ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(168, 85, 247, 0.15))'
+          : 'rgba(255, 255, 255, 0.03)',
+        border: `1.5px solid ${config.is_current ? 'var(--accent-primary)' : 'rgba(139, 92, 246, 0.2)'}`,
+        boxShadow: config.is_current
+          ? '0 0 30px var(--glow-primary), inset 0 1px 0 0 rgba(255, 255, 255, 0.1)'
+          : '0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
+        backdropFilter: 'blur(16px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(180%)',
       }}
     >
       {/* 头部 */}

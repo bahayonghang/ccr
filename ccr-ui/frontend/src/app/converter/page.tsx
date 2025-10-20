@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { convertConfig } from '@/lib/api/client';
 import type { ConverterRequest, ConverterResponse, CliType } from '@/lib/types';
-import { Loader2, ArrowRight, Download, Copy, Upload, FileJson, FileCode, Check, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowRight, Download, Copy, Upload, FileJson, FileCode, Check, AlertCircle, Home } from 'lucide-react';
+import Link from 'next/link';
 import Navbar from '@/components/layout/Navbar';
 import CollapsibleSidebar from '@/components/layout/CollapsibleSidebar';
 
@@ -144,7 +145,21 @@ export default function ConverterPage() {
           <main className="space-y-6">
             {/* Header */}
             <div className="rounded-xl p-6 glass-effect" style={{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }}>
-              <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>配置转换器</h1>
+              <div className="flex items-center justify-between mb-2">
+                <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>配置转换器</h1>
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <Home className="w-4 h-4" />
+                  <span>返回首页</span>
+                </Link>
+              </div>
               <p style={{ color: 'var(--text-muted)' }}>
                 支持多种 CLI 配置格式之间的互相转换，包括 Claude Code、Codex、Gemini、Qwen、iFlow 等
               </p>

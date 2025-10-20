@@ -84,7 +84,7 @@ export default function SyncManagement() {
               <Cloud className="w-8 h-8 text-blue-600" />
               <h1 className="text-3xl font-bold text-gray-900">WebDAV 云同步</h1>
             </div>
-            <Link href="/configs" className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-colors shadow-sm">
+            <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-colors shadow-sm">
               <Home className="w-4 h-4" />
               <span className="font-medium">返回首页</span>
             </Link>

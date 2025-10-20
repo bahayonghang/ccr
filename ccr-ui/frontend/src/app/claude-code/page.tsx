@@ -71,39 +71,70 @@ export default function ClaudeCodePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      {/* 动态背景效果 */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-1/4 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 -right-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+    <div className="min-h-screen relative" style={{ background: 'var(--bg-primary)' }}>
+      {/* 🎨 动态背景装饰 - 液态玻璃风格 */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div
+          className="absolute top-20 right-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
+          style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}
+        />
+        <div
+          className="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
+          style={{
+            background: 'linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)',
+            animationDelay: '1s'
+          }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
+          style={{
+            background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
+            animationDelay: '2s'
+          }}
+        />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-12">
+      <div className="relative z-10 container mx-auto px-6 py-12">
         {/* 返回首页按钮 */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 mb-8 text-gray-400 hover:text-blue-400 transition-colors group"
+          className="inline-flex items-center gap-2 mb-8 transition-colors group"
+          style={{ color: 'var(--text-secondary)' }}
         >
           <Home className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span>返回首页</span>
+          <span className="group-hover:text-[var(--accent-primary)]">返回首页</span>
         </Link>
 
         {/* 头部区域 */}
         <div className="mb-16">
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl">
+            <div
+              className="p-4 rounded-2xl"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+            >
               <Code2 className="w-12 h-12 text-white" />
             </div>
             <div>
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              <h1
+                className="text-5xl font-bold bg-gradient-to-r bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: 'linear-gradient(to right, #6366f1, #8b5cf6, #ec4899)'
+                }}
+              >
                 Claude Code
               </h1>
-              <p className="text-xl text-gray-300 mt-2">
+              <p
+                className="text-xl mt-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
                 Claude Code 配置管理中心
               </p>
             </div>
           </div>
-          <p className="text-gray-400 max-w-2xl">
+          <p
+            className="max-w-2xl"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             管理您的 Claude Code 配置、MCP 服务器、Agents、插件和自定义命令。支持云端同步和历史记录追踪。
           </p>
         </div>
@@ -114,38 +145,62 @@ export default function ClaudeCodePage() {
             <Link
               key={module.href}
               href={module.href}
-              className="group relative"
+              className="group relative block"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div className="glass-card p-8 h-full border border-gray-700/50 hover:border-gray-500/50 transition-all duration-300 hover:scale-105 hover:-translate-y-2">
-                {/* 渐变边框效果 */}
-                <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-300`}></div>
-
+              <div
+                className="glass-card p-6 h-full hover:scale-105 transition-all duration-300"
+                style={{
+                  border: '1px solid var(--border-color)',
+                  boxShadow: 'var(--shadow-md)',
+                }}
+              >
                 {/* 图标和徽章 */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${module.gradient}`}>
-                    <div className="text-white">
+                <div className="flex items-start justify-between mb-5">
+                  <div
+                    className="inline-flex p-4 rounded-2xl"
+                    style={{ background: `rgba(99, 102, 241, 0.15)` }}
+                  >
+                    <div style={{ color: '#6366f1' }}>
                       {module.icon}
                     </div>
                   </div>
                   {module.badge && (
-                    <span className="px-3 py-1 text-xs font-semibold bg-blue-500/20 text-blue-300 rounded-full border border-blue-500/30">
+                    <span
+                      className="px-3 py-1 text-xs font-semibold rounded-full"
+                      style={{
+                        background: 'var(--accent-warning)',
+                        color: 'white',
+                      }}
+                    >
                       {module.badge}
                     </span>
                   )}
                 </div>
 
                 {/* 标题和描述 */}
-                <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-blue-400 group-hover:to-cyan-400 transition-all">
+                <h3
+                  className="text-2xl font-bold mb-3 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text transition-all"
+                  style={{
+                    color: 'var(--text-primary)',
+                    backgroundImage: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+                  }}
+                >
                   {module.title}
                 </h3>
-                <p className="text-gray-400 text-sm mb-6 line-clamp-2">
+                <p
+                  className="text-sm mb-6 line-clamp-2 leading-relaxed"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   {module.description}
                 </p>
 
                 {/* 查看详情按钮 */}
-                <div className="flex items-center gap-2 text-gray-500 group-hover:text-blue-400 transition-colors">
-                  <span className="text-sm font-medium">查看详情</span>
+                <div
+                  className="flex items-center gap-2 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <span className="text-sm font-medium group-hover:text-[var(--accent-primary)]">查看详情</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -153,20 +208,56 @@ export default function ClaudeCodePage() {
           ))}
         </div>
 
-        {/* 底部统计信息（可选） */}
-        <div className="mt-16 glass-card p-8 border border-gray-700/50">
+        {/* 底部统计信息 */}
+        <div
+          className="mt-16 glass-card p-8"
+          style={{
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-md)',
+          }}
+        >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
-              <p className="text-3xl font-bold text-white mb-2">6</p>
-              <p className="text-gray-400 text-sm">功能模块</p>
+              <p
+                className="text-3xl font-bold mb-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                6
+              </p>
+              <p
+                className="text-sm"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                功能模块
+              </p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-white mb-2">云同步</p>
-              <p className="text-gray-400 text-sm">WebDAV 支持</p>
+              <p
+                className="text-3xl font-bold mb-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                云同步
+              </p>
+              <p
+                className="text-sm"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                WebDAV 支持
+              </p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-white mb-2">完整</p>
-              <p className="text-gray-400 text-sm">功能覆盖</p>
+              <p
+                className="text-3xl font-bold mb-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                完整
+              </p>
+              <p
+                className="text-sm"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                功能覆盖
+              </p>
             </div>
           </div>
         </div>

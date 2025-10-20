@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff } from 'lucide-react';
+import Link from 'next/link';
+import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home } from 'lucide-react';
 import { 
   listPlugins, 
   addPlugin, 
@@ -161,14 +162,28 @@ export default function PluginsManagement() {
                 <Puzzle className="w-6 h-6" style={{ color: 'var(--accent-primary)' }} />
                 <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>插件管理</h1>
               </div>
-              <button
-                onClick={handleAdd}
-                className="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
-                style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }}
-              >
-                <Plus className="w-4 h-4" />
-                添加插件
-              </button>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <Home className="w-4 h-4" />
+                  <span>返回首页</span>
+                </Link>
+                <button
+                  onClick={handleAdd}
+                  className="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
+                  style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }}
+                >
+                  <Plus className="w-4 h-4" />
+                  添加插件
+                </button>
+              </div>
             </div>
 
             {loading ? (
@@ -183,7 +198,28 @@ export default function PluginsManagement() {
                   </div>
                 ) : (
                   plugins.map((plugin) => (
-                    <div key={plugin.id} className="rounded-lg p-4" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                    <div
+                      key={plugin.id}
+                      className="group rounded-lg p-4 transition-all duration-300"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.7)',
+                        border: '1px solid rgba(99, 102, 241, 0.12)',
+                        outline: 'none',
+                        cursor: 'default'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.24)';
+                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.08)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.7)';
+                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.12)';
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Puzzle className="w-5 h-5" style={{ color: plugin.enabled ? 'var(--accent-success)' : 'var(--text-muted)' }} />

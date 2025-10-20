@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Server, Plus, Edit2, Trash2, Power, PowerOff } from 'lucide-react';
-import { 
-  listMcpServers, 
-  addMcpServer, 
-  updateMcpServer, 
-  deleteMcpServer, 
+import { Server, Plus, Edit2, Trash2, Power, PowerOff, Home } from 'lucide-react';
+import Link from 'next/link';
+import {
+  listMcpServers,
+  addMcpServer,
+  updateMcpServer,
+  deleteMcpServer,
   toggleMcpServer,
   listConfigs,
   getHistory
@@ -174,14 +175,28 @@ export default function McpManagement() {
                 <Server className="w-6 h-6" style={{ color: 'var(--accent-primary)' }} />
                 <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>MCP 服务器管理</h1>
               </div>
-              <button
-                onClick={handleAdd}
-                className="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
-                style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }}
-              >
-                <Plus className="w-4 h-4" />
-                添加 MCP 服务器
-              </button>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <Home className="w-4 h-4" />
+                  <span>返回首页</span>
+                </Link>
+                <button
+                  onClick={handleAdd}
+                  className="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
+                  style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }}
+                >
+                  <Plus className="w-4 h-4" />
+                  添加 MCP 服务器
+                </button>
+              </div>
             </div>
 
             {loading ? (
@@ -196,7 +211,28 @@ export default function McpManagement() {
                   </div>
                 ) : (
                   servers.map((server) => (
-                    <div key={server.name} className="rounded-lg p-4" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                    <div
+                      key={server.name}
+                      className="group rounded-lg p-4 transition-all duration-300"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.7)',
+                        border: '1px solid rgba(99, 102, 241, 0.12)',
+                        outline: 'none',
+                        cursor: 'default'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.24)';
+                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.08)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.7)';
+                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.12)';
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
