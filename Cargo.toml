@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "1.4.3"
+version = "1.4.4"
 edition = "2024"
 authors = [
     "Yonghang Li"
@@ -18,7 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 # CLI 参数解析
-clap = { version = "4.5.49", features = ["derive", "cargo"] }
+clap = { version = "4.5.50", features = ["derive", "cargo"] }
 
 # 序列化与配置解析
 serde = { version = "1.0.228", features = ["derive"] }
@@ -51,7 +51,7 @@ colored = "3.0.0"
 
 # TUI 框架
 ratatui = "0.29"
-crossterm = "0.28.1"
+crossterm = "0.29.0"
 
 # 表格展示
 comfy-table = "7.2"
@@ -86,7 +86,7 @@ reqwest_dav = "0.2"
 
 # UI 启动相关依赖
 reqwest = { version = "0.12.24", features = ["blocking", "json"] }  # HTTP 客户端
-dialoguer = "0.11"                                                  # 交互式提示
+dialoguer = "0.12.0"                                                  # 交互式提示
 flate2 = "1.1"                                                      # gzip 压缩/解压
 
 [features]

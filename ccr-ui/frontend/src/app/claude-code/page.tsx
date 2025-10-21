@@ -149,7 +149,7 @@ export default function ClaudeCodePage() {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div
-                className="glass-card p-6 h-full hover:scale-105 transition-all duration-300"
+                className="liquid-card p-6 h-full hover:scale-105 transition-all duration-300"
                 style={{
                   border: '1px solid var(--border-color)',
                   boxShadow: 'var(--shadow-md)',
@@ -167,8 +167,9 @@ export default function ClaudeCodePage() {
                   </div>
                   {module.badge && (
                     <span
-                      className="px-3 py-1 text-xs font-semibold rounded-full"
+                      className="px-3 py-1 text-xs font-semibold rounded-full badge-soft"
                       style={{
+                        // 兼容旧样式，主要使用 badge-soft 的渐变与阴影
                         background: 'var(--accent-warning)',
                         color: 'white',
                       }}
