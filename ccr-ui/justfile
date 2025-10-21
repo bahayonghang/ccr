@@ -23,15 +23,17 @@ help:
     @echo ""
     @echo "最常用命令:"
     @echo "  just quick-start    一键启动（检查 + 安装 + 开发）"
-    @echo "  just dev            启动开发环境（前端 + 后端）"
+    @echo "  just dev            启动开发环境（Vue 3 前端 + 后端）"
+    @echo "  just dev-react      启动 React 开发环境（Next.js 前端 + 后端）"
     @echo "  just install        安装所有依赖"
     @echo "  just build          构建生产版本"
     @echo "  just check          检查代码"
     @echo "  just test           运行测试"
     @echo ""
     @echo "单独操作:"
-    @echo "  just dev-backend    只启动后端"
-    @echo "  just dev-frontend   只启动前端"
+    @echo "  just dev-backend       只启动后端"
+    @echo "  just dev-frontend      只启动 Vue 前端"
+    @echo "  just dev-react-frontend  只启动 Next.js 前端"
     @echo ""
     @echo "其他:"
     @echo "  just info           显示项目信息"
@@ -109,26 +111,51 @@ alias f := fmt
 
 # ===== 开发 =====
 
-# 启动开发环境（前端 + 后端）
-dev: dev-clean
+# 启动开发环境（Vue 前端 + 后端）
+dev: dev-vue-clean
     @just _dev-start-{{os()}}
 
 _dev-start-linux:
     @echo "🚀 启动开发环境..."
     @echo "📍 后端: http://localhost:8081"
-    @echo "📍 前端: http://localhost:3000 (Next.js)"
+    @echo "📍 前端: http://localhost:5173 (Vue 3 + Vite)"
     @echo ""
-    @just dev-parallel
+    @just dev-vue-parallel
 
 _dev-start-macos:
     @echo "🚀 启动开发环境..."
+    @echo "📍 后端: http://localhost:8081"
+    @echo "📍 前端: http://localhost:5173 (Vue 3 + Vite)"
+    @echo ""
+    @just dev-vue-parallel
+
+_dev-start-windows:
+    @powershell -Command "Write-Output '🚀 启动开发环境...'"
+    @powershell -Command "Write-Output '📍 后端: http://localhost:8081'"
+    @powershell -Command "Write-Output '📍 前端: http://localhost:5173 (Vue 3 + Vite)'"
+    @powershell -Command "Write-Output ''"
+    @just dev-vue-parallel
+
+# 启动 React 开发环境（Next.js 前端 + 后端）
+dev-react: dev-clean
+    @just _dev-react-start-{{os()}}
+
+_dev-react-start-linux:
+    @echo "🚀 启动 React 开发环境..."
     @echo "📍 后端: http://localhost:8081"
     @echo "📍 前端: http://localhost:3000 (Next.js)"
     @echo ""
     @just dev-parallel
 
-_dev-start-windows:
-    @powershell -Command "Write-Output '🚀 启动开发环境...'"
+_dev-react-start-macos:
+    @echo "🚀 启动 React 开发环境..."
+    @echo "📍 后端: http://localhost:8081"
+    @echo "📍 前端: http://localhost:3000 (Next.js)"
+    @echo ""
+    @just dev-parallel
+
+_dev-react-start-windows:
+    @powershell -Command "Write-Output '🚀 启动 React 开发环境...'"
     @powershell -Command "Write-Output '📍 后端: http://localhost:8081'"
     @powershell -Command "Write-Output '📍 前端: http://localhost:3000 (Next.js)'"
     @powershell -Command "Write-Output ''"
@@ -137,6 +164,10 @@ _dev-start-windows:
 # 并行启动前后端开发服务器（跨平台）
 dev-parallel:
     @just _dev-parallel-{{os()}}
+
+# 并行启动 Vue 前后端开发服务器（跨平台）
+dev-vue-parallel:
+    @just _dev-vue-parallel-{{os()}}
 
 # 并行启动 - Unix/Linux/macOS
 _dev-parallel-linux:
@@ -233,6 +264,98 @@ _dev-parallel-windows:
     @powershell -Command "Write-Output '📜 日志位于 logs/backend-console.log 与 logs/frontend.log'"
     @powershell -Command "Write-Output '💡 提示: 两个新窗口已打开，关闭窗口即可停止服务器'"
 
+# 并行启动 Vue 版本 - Unix/Linux/macOS
+_dev-vue-parallel-linux:
+    #!/usr/bin/env bash
+    set -e
+    JDIR="{{justfile_directory()}}"
+    mkdir -p "$JDIR/logs"
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT
+    # 启动后端并记录日志
+    cd "$JDIR/backend" && cargo run 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    BACK_PID=$!
+    # 轮询后端健康检查
+    echo "⏳ 等待后端就绪 (http://127.0.0.1:8081/health)..."
+    if command -v curl >/dev/null 2>&1; then
+      for i in $(seq 1 90); do
+        if curl -sf http://127.0.0.1:8081/health >/dev/null 2>&1; then
+          echo "✅ 后端就绪"
+          break
+        fi
+        if ! kill -0 $BACK_PID 2>/dev/null; then
+          echo "❌ 后端进程已退出，请查看 logs/backend-console.log"
+          exit 1
+        fi
+        sleep 1
+        if [ "$i" -eq 90 ]; then
+          echo "❌ 等待后端超时(90s)，请检查后端日志"
+          exit 1
+        fi
+      done
+    else
+      echo "⚠️ 未检测到 curl，固定等待 5 秒后启动前端"
+      for i in $(seq 1 5); do
+        if ! kill -0 $BACK_PID 2>/dev/null; then
+          echo "❌ 后端进程已退出，请查看 logs/backend-console.log"
+          exit 1
+        fi
+        sleep 1
+      done
+    fi
+    # 启动 Vue 前端并记录日志
+    cd "$JDIR/frontend-vue" && npm run dev 2>&1 | tee -a "$JDIR/logs/frontend-vue.log" &
+    wait
+
+_dev-vue-parallel-macos:
+    #!/usr/bin/env bash
+    set -e
+    JDIR="{{justfile_directory()}}"
+    mkdir -p "$JDIR/logs"
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT
+    # 启动后端并记录日志
+    cd "$JDIR/backend" && cargo run 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    BACK_PID=$!
+    # 轮询后端健康检查
+    echo "⏳ 等待后端就绪 (http://127.0.0.1:8081/health)..."
+    if command -v curl >/dev/null 2>&1; then
+      for i in $(seq 1 90); do
+        if curl -sf http://127.0.0.1:8081/health >/dev/null 2>&1; then
+          echo "✅ 后端就绪"
+          break
+        fi
+        if ! kill -0 $BACK_PID 2>/dev/null; then
+          echo "❌ 后端进程已退出，请查看 logs/backend-console.log"
+          exit 1
+        fi
+        sleep 1
+        if [ "$i" -eq 90 ]; then
+          echo "❌ 等待后端超时(90s)，请检查后端日志"
+          exit 1
+        fi
+      done
+    else
+      echo "⚠️ 未检测到 curl，固定等待 5 秒后启动前端"
+      for i in $(seq 1 5); do
+        if ! kill -0 $BACK_PID 2>/dev/null; then
+          echo "❌ 后端进程已退出，请查看 logs/backend-console.log"
+          exit 1
+        fi
+        sleep 1
+      done
+    fi
+    # 启动 Vue 前端并记录日志
+    cd "$JDIR/frontend-vue" && npm run dev 2>&1 | tee -a "$JDIR/logs/frontend-vue.log" &
+    wait
+
+# 并行启动 Vue 版本 - Windows
+_dev-vue-parallel-windows:
+    @powershell -Command "if (-not (Test-Path logs)) { New-Item -ItemType Directory -Path logs -Force | Out-Null }"
+    @powershell -Command "Write-Output '🦀 启动后端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd backend; cargo run 2>&1 | Tee-Object -FilePath ../logs/backend-console.log -Append' -WindowStyle Normal"
+    @powershell -Command "$maxWait=90; Write-Output '⏳ 等待后端就绪 (http://127.0.0.1:8081/health)...'; for($i=0; $i -lt $maxWait; $i++){ try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri 'http://127.0.0.1:8081/health'; if($r.StatusCode -eq 200){ Write-Output '✅ 后端就绪'; break } } catch { } Start-Sleep -Seconds 1; if($i -eq ($maxWait-1)){ Write-Output '❌ 等待后端超时(90s)，请检查 logs/backend-console.log'; exit 1 } }"
+    @powershell -Command "Write-Output '⚛️ 启动 Vue 前端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd frontend-vue; npm run dev 2>&1 | Tee-Object -FilePath ../logs/frontend-vue.log -Append' -WindowStyle Normal"
+    @powershell -Command "Write-Output '📜 日志位于 logs/backend-console.log 与 logs/frontend-vue.log'"
+    @powershell -Command "Write-Output '💡 提示: 两个新窗口已打开，关闭窗口即可停止服务器'"
+
 # 启动前清理（端口 + 缓存 + 残留进程）
 dev-clean:
     @just _dev-clean-{{os()}}
@@ -271,6 +394,44 @@ _dev-clean-windows:
     @powershell -Command "if (Test-Path 'frontend/.next') { Remove-Item -Recurse -Force 'frontend/.next' }"
     @powershell -Command "Write-Output '✅ 清理完成'"
 
+# Vue 启动前清理（端口 + 缓存 + 残留进程）
+dev-vue-clean:
+    @just _dev-vue-clean-{{os()}}
+
+# 清理 Vue 开发环境 - Linux
+_dev-vue-clean-linux:
+    #!/usr/bin/env bash
+    set -e
+    echo "🧹 开始清理 Vue 开发环境..."
+    pkill -9 -f "ccr-ui-backend" 2>/dev/null || true
+    pkill -9 -f "vite" 2>/dev/null || true
+    pkill -9 -f "frontend-vue" 2>/dev/null || true
+    lsof -ti:8081 2>/dev/null | xargs -r kill -9 || true
+    lsof -ti:5173 2>/dev/null | xargs -r kill -9 || true
+    rm -rf frontend-vue/dist
+    echo "✅ 清理完成"
+
+# 清理 Vue 开发环境 - macOS
+_dev-vue-clean-macos:
+    #!/usr/bin/env bash
+    set -e
+    echo "🧹 开始清理 Vue 开发环境..."
+    pkill -9 -f "ccr-ui-backend" 2>/dev/null || true
+    pkill -9 -f "vite" 2>/dev/null || true
+    pkill -9 -f "frontend-vue" 2>/dev/null || true
+    lsof -ti:8081 2>/dev/null | xargs kill -9 || true
+    lsof -ti:5173 2>/dev/null | xargs kill -9 || true
+    rm -rf frontend-vue/dist
+    echo "✅ 清理完成"
+
+# 清理 Vue 开发环境 - Windows
+_dev-vue-clean-windows:
+    @powershell -Command "Write-Output '🧹 开始清理 Vue 开发环境...'"
+    @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1
+    @powershell -Command "Write-Output '... 清理前端构建目录...'"
+    @powershell -Command "if (Test-Path 'frontend-vue/dist') { Remove-Item -Recurse -Force 'frontend-vue/dist' }"
+    @powershell -Command "Write-Output '✅ 清理完成'"
+
 # 仅启动后端开发服务器
 dev-backend:
     @just _dev-backend-{{os()}}
@@ -287,20 +448,36 @@ _dev-backend-windows:
     @echo 🦀 启动后端开发服务器...
     @powershell -Command "Set-Location backend; cargo run"
 
-# 仅启动前端开发服务器
+# 仅启动前端开发服务器（Vue）
 dev-frontend:
     @just _dev-frontend-{{os()}}
 
 _dev-frontend-linux:
-    @echo "⚛️  启动前端开发服务器..."
-    cd frontend && npm run dev
+    @echo "⚛️  启动 Vue 前端开发服务器..."
+    cd frontend-vue && npm run dev
 
 _dev-frontend-macos:
-    @echo "⚛️  启动前端开发服务器..."
-    cd frontend && npm run dev
+    @echo "⚛️  启动 Vue 前端开发服务器..."
+    cd frontend-vue && npm run dev
 
 _dev-frontend-windows:
-    @echo ⚛️  启动前端开发服务器...
+    @echo ⚛️  启动 Vue 前端开发服务器...
+    @powershell -Command "Set-Location frontend-vue; npm run dev"
+
+# 仅启动 React 前端开发服务器（Next.js）
+dev-react-frontend:
+    @just _dev-react-frontend-{{os()}}
+
+_dev-react-frontend-linux:
+    @echo "⚛️  启动 React 前端开发服务器..."
+    cd frontend && npm run dev
+
+_dev-react-frontend-macos:
+    @echo "⚛️  启动 React 前端开发服务器..."
+    cd frontend && npm run dev
+
+_dev-react-frontend-windows:
+    @echo ⚛️  启动 React 前端开发服务器...
     @powershell -Command "Set-Location frontend; npm run dev"
 
 # ===== 构建 =====
@@ -746,7 +923,8 @@ _info-linux:
     @echo ""
     @echo "🌐 开发端口:"
     @echo "  - 后端: http://localhost:8081"
-    @echo "  - 前端: http://localhost:3000 (Next.js)"
+    @echo "  - 前端: http://localhost:5173 (Vue 3 + Vite)"
+    @echo "  - React 前端: http://localhost:3000 (Next.js, 使用 just dev-react)"
     @echo ""
     @echo "📝 日志文件:"
     @echo "  - logs/backend.log  : 后端日志（自动按日分割）"
@@ -776,7 +954,8 @@ _info-macos:
     @echo ""
     @echo "🌐 开发端口:"
     @echo "  - 后端: http://localhost:8081"
-    @echo "  - 前端: http://localhost:3000 (Next.js)"
+    @echo "  - 前端: http://localhost:5173 (Vue 3 + Vite)"
+    @echo "  - React 前端: http://localhost:3000 (Next.js, 使用 just dev-react)"
     @echo ""
     @echo "📝 日志文件:"
     @echo "  - logs/backend.log  : 后端日志（自动按日分割）"
@@ -807,7 +986,8 @@ _info-windows:
     @echo ""
     @echo 🌐 开发端口:
     @echo   - 后端: http://localhost:8081
-    @echo   - 前端: http://localhost:3000 (Next.js)
+    @echo   - 前端: http://localhost:5173 (Vue 3 + Vite)
+    @echo   - React 前端: http://localhost:3000 (Next.js, 使用 just dev-react)
     @echo ""
     @echo 📝 日志文件:
     @echo   - logs/backend.log  : 后端日志（自动按日分割）
