@@ -19,6 +19,60 @@
           <Home class="w-4 h-4 mr-2" />
           返回首页
         </RouterLink>
+
+      <RouterLink to="/codex/agents" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(16, 185, 129, 0.1)' }">
+              <Bot class="w-6 h-6" :style="{ color: '#10b981' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                Agents
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex Agent 智能体配置管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
+      <RouterLink to="/codex/slash-commands" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(245, 158, 11, 0.1)' }">
+              <Command class="w-6 h-6" :style="{ color: '#f59e0b' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                Slash Commands
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex 快捷命令管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
+      <RouterLink to="/codex/plugins" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(236, 72, 153, 0.1)' }">
+              <Puzzle class="w-6 h-6" :style="{ color: '#ec4899' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                插件管理
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex 插件配置管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
       </div>
     </div>
 
@@ -42,6 +96,60 @@
         </Card>
       </RouterLink>
 
+      <RouterLink to="/codex/agents" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(16, 185, 129, 0.1)' }">
+              <Bot class="w-6 h-6" :style="{ color: '#10b981' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                Agents
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex Agent 智能体配置管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
+      <RouterLink to="/codex/slash-commands" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(245, 158, 11, 0.1)' }">
+              <Command class="w-6 h-6" :style="{ color: '#f59e0b' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                Slash Commands
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex 快捷命令管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
+      <RouterLink to="/codex/plugins" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(236, 72, 153, 0.1)' }">
+              <Puzzle class="w-6 h-6" :style="{ color: '#ec4899' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                插件管理
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex 插件配置管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
       <RouterLink to="/codex/profiles" class="block group">
         <Card class="h-full hover:transform hover:scale-105 transition-all">
           <div class="flex items-start gap-4">
@@ -54,6 +162,60 @@
               </h3>
               <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
                 Codex Profile 配置和管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
+      <RouterLink to="/codex/agents" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(16, 185, 129, 0.1)' }">
+              <Bot class="w-6 h-6" :style="{ color: '#10b981' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                Agents
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex Agent 智能体配置管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
+      <RouterLink to="/codex/slash-commands" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(245, 158, 11, 0.1)' }">
+              <Command class="w-6 h-6" :style="{ color: '#f59e0b' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                Slash Commands
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex 快捷命令管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
+      <RouterLink to="/codex/plugins" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(236, 72, 153, 0.1)' }">
+              <Puzzle class="w-6 h-6" :style="{ color: '#ec4899' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                插件管理
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex 插件配置管理
               </p>
             </div>
           </div>
@@ -80,6 +242,60 @@
               }">
                 配置中心
               </span>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
+      <RouterLink to="/codex/agents" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(16, 185, 129, 0.1)' }">
+              <Bot class="w-6 h-6" :style="{ color: '#10b981' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                Agents
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex Agent 智能体配置管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
+      <RouterLink to="/codex/slash-commands" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(245, 158, 11, 0.1)' }">
+              <Command class="w-6 h-6" :style="{ color: '#f59e0b' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                Slash Commands
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex 快捷命令管理
+              </p>
+            </div>
+          </div>
+        </Card>
+      </RouterLink>
+
+      <RouterLink to="/codex/plugins" class="block group">
+        <Card class="h-full hover:transform hover:scale-105 transition-all">
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl" :style="{ background: 'rgba(236, 72, 153, 0.1)' }">
+              <Puzzle class="w-6 h-6" :style="{ color: '#ec4899' }" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 group-hover:text-accent-primary transition-colors" :style="{ color: 'var(--text-primary)' }">
+                插件管理
+              </h3>
+              <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                Codex 插件配置管理
+              </p>
             </div>
           </div>
         </Card>

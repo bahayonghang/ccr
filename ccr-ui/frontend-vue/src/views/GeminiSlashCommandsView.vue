@@ -1,3 +1,4 @@
+<!-- Gemini Slash Commands Management -->
 <template>
   <div :style="{ background: 'var(--bg-primary)', minHeight: '100vh', padding: '20px' }">
     <div class="mb-6">
@@ -22,12 +23,12 @@
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-4">
               <h2 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
-                <Command class="inline-block w-7 h-7 mr-2" />Slash Commands 管理
+                <Command class="inline-block w-7 h-7 mr-2" />Gemini Slash Commands 管理
               </h2>
               <span class="px-3 py-1 rounded-full text-sm font-medium" :style="{ background: 'var(--accent-primary)', color: '#fff' }">{{ filteredCommands.length }}/{{ stats.total }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <RouterLink to="/" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors" :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }">
+              <RouterLink to="/gemini-cli" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors" :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }">
                 <Home class="w-4 h-4" /><span>返回首页</span>
               </RouterLink>
               <button class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105" :style="{ background: 'var(--accent-primary)', color: '#fff' }" @click="handleAdd">
@@ -109,7 +110,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Command, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home } from 'lucide-vue-next'
-import { listSlashCommands, addSlashCommand, updateSlashCommand, deleteSlashCommand, toggleSlashCommand, listConfigs, getHistory } from '@/api/client'
+import { listGeminiSlashCommands, addGeminiSlashCommand, updateGeminiSlashCommand, deleteGeminiSlashCommand, toggleGeminiSlashCommand, listConfigs, getHistory } from '@/api/client'
 import type { SlashCommand, SlashCommandRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import StatusHeader from '@/components/StatusHeader.vue'
@@ -154,7 +155,7 @@ const filteredCommands = computed(() => {
 const loadCommands = async () => {
   try {
     loading.value = true
-    const data = await listSlashCommands()
+    const data = await listGeminiSlashCommands()
     commands.value = data.commands
     folders.value = data.folders || []
     try {
@@ -188,8 +189,8 @@ const handleSubmit = async () => {
   if (!formData.value.name || !formData.value.command) { alert('请填写必填字段'); return }
   const request: SlashCommandRequest = { ...formData.value, args: formData.value.args && formData.value.args.length > 0 ? formData.value.args : undefined }
   try {
-    if (editingCommand.value) await updateSlashCommand(editingCommand.value.name, request)
-    else await addSlashCommand(request)
+    if (editingCommand.value) await updateGeminiSlashCommand(editingCommand.value.name, request)
+    else await addGeminiSlashCommand(request)
     showAddForm.value = false
     editingCommand.value = null
     loadCommands()
@@ -198,11 +199,11 @@ const handleSubmit = async () => {
 
 const handleDelete = async (name: string) => {
   if (!confirm(`确定要删除命令 "${name}" 吗？`)) return
-  try { await deleteSlashCommand(name); loadCommands() } catch (err) { console.error('删除失败:', err); alert('删除失败') }
+  try { await deleteGeminiSlashCommand(name); loadCommands() } catch (err) { console.error('删除失败:', err); alert('删除失败') }
 }
 
 const handleToggle = async (name: string) => {
-  try { await toggleSlashCommand(name); loadCommands() } catch (err) { console.error('切换状态失败:', err); alert('切换状态失败') }
+  try { await toggleGeminiSlashCommand(name); loadCommands() } catch (err) { console.error('切换状态失败:', err); alert('切换状态失败') }
 }
 
 const onCardHover = (el: HTMLElement, hover: boolean) => {

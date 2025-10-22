@@ -22,12 +22,12 @@
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-4">
               <h2 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
-                <Bot class="inline-block w-7 h-7 mr-2" />Agents 管理
+                <Bot class="inline-block w-7 h-7 mr-2" />Qwen Agents 管理
               </h2>
               <span class="px-3 py-1 rounded-full text-sm font-medium" :style="{ background: 'var(--accent-primary)', color: '#fff' }">{{ filteredAgents.length }}/{{ stats.total }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <RouterLink to="/" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors" :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }">
+              <RouterLink to="/qwen" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors" :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }">
                 <Home class="w-4 h-4" /><span>返回首页</span>
               </RouterLink>
               <button class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105" :style="{ background: 'var(--accent-primary)', color: '#fff' }" @click="handleAdd">
@@ -126,7 +126,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Bot, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home } from 'lucide-vue-next'
-import { listAgents, addAgent, updateAgent, deleteAgent, toggleAgent, listConfigs, getHistory } from '@/api/client'
+import { listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent, listConfigs, getHistory } from '@/api/client'
 import type { Agent, AgentRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import StatusHeader from '@/components/StatusHeader.vue'
@@ -172,7 +172,7 @@ const filteredAgents = computed(() => {
 const loadAgents = async () => {
   try {
     loading.value = true
-    const data = await listAgents()
+    const data = await listQwenAgents()
     agents.value = data.agents
     folders.value = data.folders || []
     try {
@@ -219,8 +219,8 @@ const handleSubmit = async () => {
   if (!formData.value.name || !formData.value.model) { alert('请填写必填字段'); return }
   const request: AgentRequest = { ...formData.value, tools: formData.value.tools && formData.value.tools.length > 0 ? formData.value.tools : undefined, system_prompt: formData.value.system_prompt || undefined }
   try {
-    if (editingAgent.value) await updateAgent(editingAgent.value.name, request)
-    else await addAgent(request)
+    if (editingAgent.value) await updateQwenAgent(editingAgent.value.name, request)
+    else await addQwenAgent(request)
     showAddForm.value = false
     editingAgent.value = null
     loadAgents()
@@ -229,11 +229,11 @@ const handleSubmit = async () => {
 
 const handleDelete = async (name: string) => {
   if (!confirm(`确定要删除 agent "${name}" 吗？`)) return
-  try { await deleteAgent(name); loadAgents() } catch (err) { console.error('删除失败:', err); alert('删除失败') }
+  try { await deleteQwenAgent(name); loadAgents() } catch (err) { console.error('删除失败:', err); alert('删除失败') }
 }
 
 const handleToggle = async (name: string) => {
-  try { await toggleAgent(name); loadAgents() } catch (err) { console.error('切换状态失败:', err); alert('切换状态失败') }
+  try { await toggleQwenAgent(name); loadAgents() } catch (err) { console.error('切换状态失败:', err); alert('切换状态失败') }
 }
 
 const onCardHover = (el: HTMLElement, hover: boolean) => {

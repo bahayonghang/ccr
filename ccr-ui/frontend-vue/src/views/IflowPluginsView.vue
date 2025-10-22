@@ -11,11 +11,11 @@
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
               <Puzzle class="w-6 h-6" :style="{ color: 'var(--accent-primary)' }" />
-              <h1 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">插件管理</h1>
+              <h1 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">iFlow 插件管理</h1>
               <span class="px-3 py-1 rounded-full text-sm font-medium" :style="{ background: 'var(--accent-primary)', color: '#fff' }">{{ plugins.length }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <RouterLink to="/" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors" :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }">
+              <RouterLink to="/iflow" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors" :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }">
                 <Home class="w-4 h-4" /><span>返回首页</span>
               </RouterLink>
               <button class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2" :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }" @click="handleAdd">
@@ -108,7 +108,7 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home } from 'lucide-vue-next'
-import { listPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin, listConfigs, getHistory } from '@/api/client'
+import { listIflowPlugins, addIflowPlugin, updateIflowPlugin, deleteIflowPlugin, toggleIflowPlugin, listConfigs, getHistory } from '@/api/client'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import StatusHeader from '@/components/StatusHeader.vue'
@@ -127,7 +127,7 @@ const configJson = ref('')
 const loadPlugins = async () => {
   try {
     loading.value = true
-    const data = await listPlugins()
+    const data = await listIflowPlugins()
     plugins.value = data || []
 
     try {
@@ -187,10 +187,10 @@ const handleSubmit = async () => {
 
   try {
     if (editingPlugin.value) {
-      await updatePlugin(editingPlugin.value.id, request)
+      await updateIflowPlugin(editingPlugin.value.id, request)
       alert('✓ 插件更新成功')
     } else {
-      await addPlugin(request)
+      await addIflowPlugin(request)
       alert('✓ 插件添加成功')
     }
     showAddForm.value = false
@@ -204,7 +204,7 @@ const handleDelete = async (id: string) => {
   if (!confirm(`确定删除插件 "${id}" 吗？`)) return
 
   try {
-    await deletePlugin(id)
+    await deleteIflowPlugin(id)
     alert('✓ 插件删除成功')
     await loadPlugins()
   } catch (err) {
@@ -214,7 +214,7 @@ const handleDelete = async (id: string) => {
 
 const handleToggle = async (id: string) => {
   try {
-    await togglePlugin(id)
+    await toggleIflowPlugin(id)
     await loadPlugins()
   } catch (err) {
     alert(`切换失败: ${err instanceof Error ? err.message : 'Unknown error'}`)

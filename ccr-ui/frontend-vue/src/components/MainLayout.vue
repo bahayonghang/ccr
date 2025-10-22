@@ -21,10 +21,10 @@
         <div class="px-3 space-y-1">
           <RouterLink 
             to="/" 
-            class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-            active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm animate-nav-active"
+            class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
+            active-class="nav-item-active"
           >
-            <Home class="w-5 h-5 mr-3" />
+            <Home class="w-5 h-5 mr-3" style="color: #1890ff;" />
             <span class="font-medium">首页</span>
           </RouterLink>
         </div>
@@ -40,45 +40,45 @@
             <span class="flex-1">主要模块</span>
             <span class="w-2 h-2 rounded-full bg-accent-primary/30 animate-pulse"></span>
           </h2>
-          <div class="space-y-1">
+          <div class="space-y-1 nav-group">
             <RouterLink 
               to="/claude-code" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm animate-nav-active"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
             >
-              <Code2 class="w-5 h-5 mr-3 group-hover:animate-nav-hover" />
+              <Code2 class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #8b5cf6;" />
               <span class="font-medium">Claude Code</span>
             </RouterLink>
             <RouterLink 
               to="/codex" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm animate-nav-active"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
             >
-              <Settings class="w-5 h-5 mr-3 group-hover:animate-nav-hover" />
+              <Settings class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #10b981;" />
               <span class="font-medium">Codex</span>
             </RouterLink>
             <RouterLink 
               to="/gemini-cli" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm animate-nav-active"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
             >
-              <Sparkles class="w-5 h-5 mr-3 group-hover:animate-nav-hover" />
+              <Sparkles class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #1a73e8;" />
               <span class="font-medium">Gemini CLI</span>
             </RouterLink>
             <RouterLink 
               to="/qwen" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm animate-nav-active"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
             >
-              <Zap class="w-5 h-5 mr-3 group-hover:animate-nav-hover" />
+              <Zap class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #00b5e2;" />
               <span class="font-medium">Qwen</span>
             </RouterLink>
             <RouterLink 
               to="/iflow" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm animate-nav-active"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
             >
-              <Activity class="w-5 h-5 mr-3 group-hover:animate-nav-hover" />
+              <Activity class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #faad14;" />
               <span class="font-medium">IFLOW</span>
             </RouterLink>
           </div>
@@ -95,29 +95,29 @@
             <span class="flex-1">工具中心</span>
             <span class="w-2 h-2 rounded-full bg-accent-warning/30 animate-pulse"></span>
           </h2>
-          <div class="space-y-1">
+          <div class="space-y-1 nav-group">
             <RouterLink 
               to="/commands" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm animate-nav-active"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
             >
-              <Terminal class="w-5 h-5 mr-3 group-hover:animate-nav-hover" />
+              <Terminal class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #3b82f6;" />
               <span class="font-medium">命令执行</span>
             </RouterLink>
             <RouterLink 
               to="/converter" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm animate-nav-active"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
             >
-              <TrendingUp class="w-5 h-5 mr-3 group-hover:animate-nav-hover" />
+              <TrendingUp class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #13c2c2;" />
               <span class="font-medium">配置转换</span>
             </RouterLink>
             <RouterLink 
               to="/sync" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm animate-nav-active"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
             >
-              <Cloud class="w-5 h-5 mr-3 group-hover:animate-nav-hover" />
+              <Cloud class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #1890ff;" />
               <span class="font-medium">云同步</span>
             </RouterLink>
           </div>

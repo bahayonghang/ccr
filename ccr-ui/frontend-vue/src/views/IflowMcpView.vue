@@ -11,10 +11,10 @@
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
               <Server class="w-6 h-6" :style="{ color: 'var(--accent-primary)' }" />
-              <h1 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">Gemini MCP 服务器</h1>
+              <h1 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">iFlow MCP 服务器</h1>
             </div>
             <div class="flex items-center gap-3">
-              <RouterLink to="/gemini-cli" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors" :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }">
+              <RouterLink to="/iflow" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors" :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }">
                 <ArrowLeft class="w-4 h-4" /><span>返回</span>
               </RouterLink>
               <button class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2" :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }" @click="handleAdd">
@@ -28,7 +28,7 @@
           </div>
 
           <div v-else class="space-y-3">
-            <div v-if="!servers || servers.length === 0" class="text-center py-10" :style="{ color: 'var(--text-muted)' }">暂无 Gemini MCP 服务器配置</div>
+            <div v-if="!servers || servers.length === 0" class="text-center py-10" :style="{ color: 'var(--text-muted)' }">暂无 iFlow MCP 服务器配置</div>
 
             <div v-for="server in servers" :key="server.command || server.url" class="group rounded-lg p-4 transition-all duration-300" :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }" @mouseenter="(e) => onCardHover(e.currentTarget, true)" @mouseleave="(e) => onCardHover(e.currentTarget, false)">
               <div class="flex items-start justify-between">
@@ -133,21 +133,21 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Server, Plus, Edit2, Trash2, ArrowLeft } from 'lucide-vue-next'
-import { listGeminiMcpServers, addGeminiMcpServer, updateGeminiMcpServer, deleteGeminiMcpServer, listConfigs, getHistory } from '@/api/client'
-import type { GeminiMcpServer, GeminiMcpServerRequest } from '@/types'
+import { listIflowMcpServers, addIflowMcpServer, updateIflowMcpServer, deleteIflowMcpServer, listConfigs, getHistory } from '@/api/client'
+import type { IflowMcpServer, IflowMcpServerRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import StatusHeader from '@/components/StatusHeader.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 
-const servers = ref<GeminiMcpServer[]>([])
+const servers = ref<IflowMcpServer[]>([])
 const loading = ref(true)
 const currentConfig = ref<string>('')
 const totalConfigs = ref(0)
 const historyCount = ref(0)
 const showAddForm = ref(false)
-const editingServer = ref<GeminiMcpServer | null>(null)
+const editingServer = ref<IflowMcpServer | null>(null)
 const isHttpServer = ref(false)
-const formData = ref<GeminiMcpServerRequest>({ command: undefined, url: undefined, args: [], env: {} })
+const formData = ref<IflowMcpServerRequest>({ command: undefined, url: undefined, args: [], env: {} })
 const argInput = ref('')
 const envKey = ref('')
 const envValue = ref('')
@@ -155,7 +155,7 @@ const envValue = ref('')
 const loadServers = async () => {
   try {
     loading.value = true
-    const data = await listGeminiMcpServers()
+    const data = await listIflowMcpServers()
     servers.value = data || []
 
     try {
@@ -166,9 +166,9 @@ const loadServers = async () => {
       historyCount.value = historyData.total
     } catch (err) { console.error('Failed to load system info:', err) }
   } catch (err) {
-    console.error('Failed to load Gemini MCP servers:', err)
+    console.error('Failed to load iFlow MCP servers:', err)
     servers.value = []
-    alert('加载 Gemini MCP 服务器失败')
+    alert('加载 iFlow MCP 服务器失败')
   } finally { loading.value = false }
 }
 
@@ -182,7 +182,7 @@ const handleAdd = () => {
   argInput.value = ''
 }
 
-const handleEdit = (server: GeminiMcpServer) => {
+const handleEdit = (server: IflowMcpServer) => {
   editingServer.value = server
   showAddForm.value = true
   isHttpServer.value = !!server.url
@@ -195,17 +195,17 @@ const handleSubmit = async () => {
   if (isHttpServer.value && !formData.value.url) { alert('请填写 URL'); return }
 
   const args = argInput.value.split(' ').filter((a) => a.trim())
-  const request: GeminiMcpServerRequest = { ...formData.value, args }
+  const request: IflowMcpServerRequest = { ...formData.value, args }
   if (isHttpServer.value) request.command = undefined
   else request.url = undefined
 
   try {
     const name = (request.command || request.url)!
     if (editingServer.value) {
-      await updateGeminiMcpServer(editingServer.value.command || editingServer.value.url || '', request)
+      await updateIflowMcpServer(editingServer.value.command || editingServer.value.url || '', request)
       alert('✓ 服务器更新成功')
     } else {
-      await addGeminiMcpServer(request)
+      await addIflowMcpServer(request)
       alert('✓ 服务器添加成功')
     }
     showAddForm.value = false
@@ -216,7 +216,7 @@ const handleSubmit = async () => {
 const handleDelete = async (name: string) => {
   if (!confirm(`确定删除服务器 "${name}" 吗？`)) return
   try {
-    await deleteGeminiMcpServer(name)
+    await deleteIflowMcpServer(name)
     alert('✓ 服务器删除成功')
     await loadServers()
   } catch (err) { alert(`删除失败: ${err instanceof Error ? err.message : 'Unknown error'}`) }

@@ -516,3 +516,275 @@ export const pullSync = async (req: SyncOperationRequest): Promise<SyncOperation
   const response = await api.post<ApiResponse<SyncOperationResponse>>('/sync/pull', req)
   return response.data.data!
 }
+// ===================================
+// Gemini Agents/SlashCommands/Plugins APIs (stub implementations)
+// ===================================
+
+export const listGeminiAgents = async (): Promise<any> => {
+  // TODO: Backend implementation needed
+  return { agents: [], folders: [] }
+}
+
+export const addGeminiAgent = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateGeminiAgent = async (name: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteGeminiAgent = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleGeminiAgent = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const listGeminiSlashCommands = async (): Promise<any> => {
+  return { commands: [], folders: [] }
+}
+
+export const addGeminiSlashCommand = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateGeminiSlashCommand = async (name: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteGeminiSlashCommand = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleGeminiSlashCommand = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const listGeminiPlugins = async (): Promise<any[]> => {
+  return []
+}
+
+export const addGeminiPlugin = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateGeminiPlugin = async (id: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteGeminiPlugin = async (id: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleGeminiPlugin = async (id: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+// ===================================
+// Qwen Agents/SlashCommands/Plugins APIs (stub implementations)
+// ===================================
+
+export const listQwenAgents = async (): Promise<any> => {
+  return { agents: [], folders: [] }
+}
+
+export const addQwenAgent = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateQwenAgent = async (name: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteQwenAgent = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleQwenAgent = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const listQwenSlashCommands = async (): Promise<any> => {
+  return { commands: [], folders: [] }
+}
+
+export const addQwenSlashCommand = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateQwenSlashCommand = async (name: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteQwenSlashCommand = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleQwenSlashCommand = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const listQwenPlugins = async (): Promise<any[]> => {
+  return []
+}
+
+export const addQwenPlugin = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateQwenPlugin = async (id: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteQwenPlugin = async (id: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleQwenPlugin = async (id: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+// ===================================
+// iFlow Agents/SlashCommands/Plugins/MCP APIs (stub implementations)
+// ===================================
+
+export const listIflowMcpServers = async (): Promise<any[]> => {
+  return []
+}
+
+export const addIflowMcpServer = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateIflowMcpServer = async (name: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteIflowMcpServer = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const listIflowAgents = async (): Promise<any> => {
+  return { agents: [], folders: [] }
+}
+
+export const addIflowAgent = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateIflowAgent = async (name: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteIflowAgent = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleIflowAgent = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const listIflowSlashCommands = async (): Promise<any> => {
+  return { commands: [], folders: [] }
+}
+
+export const addIflowSlashCommand = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateIflowSlashCommand = async (name: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteIflowSlashCommand = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleIflowSlashCommand = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const listIflowPlugins = async (): Promise<any[]> => {
+  return []
+}
+
+export const addIflowPlugin = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateIflowPlugin = async (id: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteIflowPlugin = async (id: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleIflowPlugin = async (id: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+// ===================================
+// Codex Agents/SlashCommands/Plugins APIs (stub implementations)
+// ===================================
+
+export const listCodexAgents = async (): Promise<any> => {
+  return { agents: [], folders: [] }
+}
+
+export const addCodexAgent = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateCodexAgent = async (name: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteCodexAgent = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleCodexAgent = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const listCodexSlashCommands = async (): Promise<any> => {
+  return { commands: [], folders: [] }
+}
+
+export const addCodexSlashCommand = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateCodexSlashCommand = async (name: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteCodexSlashCommand = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleCodexSlashCommand = async (name: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const listCodexPlugins = async (): Promise<any[]> => {
+  return []
+}
+
+export const addCodexPlugin = async (request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const updateCodexPlugin = async (id: string, request: any): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const deleteCodexPlugin = async (id: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}
+
+export const toggleCodexPlugin = async (id: string): Promise<string> => {
+  throw new Error('Backend API not implemented yet')
+}

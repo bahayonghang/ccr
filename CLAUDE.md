@@ -1,376 +1,387 @@
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
+# CCR - Claude Code Configuration Switcher
 
-These instructions are for AI assistants working in this project.
+## Change Log (Changelog)
+- **2025-10-22 00:04:36 CST**: Initial AI context documentation created
 
-Always open `@/openspec/AGENTS.md` when the request:
-- Mentions planning or proposals (words like proposal, spec, change, plan)
-- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
-- Sounds ambiguous and you need the authoritative spec before coding
+## Project Vision
 
-Use `@/openspec/AGENTS.md` to learn:
-- How to create and apply change proposals
-- Spec format and conventions
-- Project structure and guidelines
+CCR (Claude Code Configuration Switcher) is a Rust-powered configuration management tool that provides direct, safe, and auditable control over Claude Code's settings. The project delivers a complete ecosystem including:
 
-Keep this managed block so 'openspec update' can refresh the instructions.
+- A robust CLI tool with 13+ commands for config management
+- A full-featured TUI (Terminal User Interface) for visual management
+- A lightweight web API server for programmatic access
+- A comprehensive full-stack web application (ccr-ui) with Vue.js frontend and Axum backend
+- Support for multiple AI platforms: Claude Code, Codex, Gemini, Qwen, and iFlow
 
-<!-- OPENSPEC:END -->
+The core philosophy emphasizes **reliability** (atomic operations, file locking), **auditability** (complete history tracking), and **safety** (automatic backups, validation).
 
-# CLAUDE.md
+## Architecture Overview
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+CCR follows a strict layered architecture pattern:
 
-## Project Overview
-
-CCR (Claude Code Configuration Switcher) is a Rust-powered configuration management tool for Claude Code with complete audit trails, atomic operations, and multi-interface support (CLI + Web UI + Desktop App).
-
-**Version**: 1.1.5
-**Rust Edition**: 2024 (requires Rust 1.85+)
-**License**: MIT
-
-## Common Development Commands
-
-### Core Development Workflow
-
-```bash
-# Quick development cycle
-just dev              # Check + test
-just watch            # Auto-rebuild on file changes (requires cargo-watch)
-just ci               # Full CI: format check + clippy + test + build
-
-# Building
-just build            # Debug build
-just release          # Release build (optimized with LTO)
-
-# Testing
-just test             # Run tests
-just test-all         # Include ignored tests
-
-# Code Quality
-just fmt              # Format code
-just fmt-check        # Check formatting (CI mode)
-just clippy           # Lint with Clippy (warnings as errors)
-just lint             # Format + Clippy
-
-# Installation
-just install          # Install to ~/.cargo/bin
-just reinstall        # Force reinstall
-
-# Documentation
-just doc              # Build docs
-just doc-open         # Build and open docs in browser
-
-# Cleanup
-just clean            # Remove build artifacts
+```
+CLI/Web Layer → Services → Managers → Core/Utils
 ```
 
-### Running CCR Commands
+### Key Architectural Principles
 
-```bash
-# Run with arguments
-just run -- <command> [args]
-just run -- --help
-just run -- list
-just run -- switch anthropic
+1. **Separation of Concerns**: Each layer has well-defined responsibilities
+2. **Atomic Operations**: All file modifications use temporary files + atomic rename
+3. **Concurrency Safety**: File locking prevents corruption across multiple processes
+4. **Complete Audit Trail**: Every operation logged with UUID, timestamp, and actor
+5. **Fail-Safe Design**: Automatic backups before destructive operations
 
-# Run release version
-just run-release -- <command> [args]
+### Technology Stack
+
+- **Core**: Rust (Edition 2024, v1.4.4)
+- **CLI Framework**: Clap 4.5
+- **Web Server**: Axum 0.8 + Tokio async runtime
+- **TUI**: Ratatui 0.29 + Crossterm
+- **Frontend**: Vue.js 3.5 + TypeScript + Tailwind CSS
+- **Serialization**: Serde + TOML + JSON
+- **Testing**: 95%+ coverage with integration tests
+
+## Module Structure Diagram
+
+```mermaid
+graph TD
+    A["(Root) CCR Project"] --> B["src/"];
+    A --> C["ccr-ui/"];
+    A --> D["tests/"];
+    A --> E["docs/"];
+
+    B --> B1["commands/"];
+    B --> B2["services/"];
+    B --> B3["managers/"];
+    B --> B4["core/"];
+    B --> B5["web/"];
+    B --> B6["tui/"];
+    B --> B7["utils/"];
+
+    C --> C1["backend/"];
+    C --> C2["frontend-vue/"];
+    C --> C3["docs/"];
+
+    C1 --> C1A["handlers/"];
+    C1 --> C1B["config/"];
+    C1 --> C1C["models/"];
+    C1 --> C1D["services/"];
+
+    C2 --> C2A["views/"];
+    C2 --> C2B["components/"];
+    C2 --> C2C["router/"];
+    C2 --> C2D["store/"];
+
+    click B "./src/CLAUDE.md" "View src module docs"
+    click C "./ccr-ui/CLAUDE.md" "View ccr-ui module docs"
+    click C1 "./ccr-ui/backend/CLAUDE.md" "View backend module docs"
+    click C2 "./ccr-ui/frontend-vue/CLAUDE.md" "View frontend module docs"
 ```
 
-### CCR UI (Full-Stack Web App)
+## Module Index
+
+| Module | Path | Responsibility | Language | Entry Point |
+|--------|------|----------------|----------|-------------|
+| **Core CLI** | `/src/` | Main CCR CLI tool with commands, services, managers | Rust | `src/main.rs` |
+| **UI Backend** | `/ccr-ui/backend/` | Axum server with 129 API endpoints for multi-platform config management | Rust | `ccr-ui/backend/src/main.rs` |
+| **UI Frontend** | `/ccr-ui/frontend-vue/` | Vue.js 3 frontend with liquid glass design | TypeScript/Vue | `ccr-ui/frontend-vue/src/main.ts` |
+| **Integration Tests** | `/tests/` | Comprehensive test suite with 95%+ coverage | Rust | Various test files |
+| **Documentation** | `/docs/` | VitePress documentation site | Markdown/TypeScript | VitePress config |
+
+## Running and Development
+
+### Prerequisites
+
+- Rust 1.85+ (for edition 2024 features)
+- Node.js 18+ (for ccr-ui frontend)
+- Cargo and npm/yarn/pnpm
+
+### Quick Start
 
 ```bash
+# Install from GitHub
+cargo install --git https://github.com/bahayonghang/ccr ccr
+
+# Or build from source
+git clone https://github.com/bahayonghang/ccr.git
+cd ccr
+cargo install --path .
+
+# Initialize configuration
+ccr init
+
+# Launch TUI
+ccr tui
+
+# Launch full web UI
+ccr ui
+```
+
+### Development Workflow
+
+```bash
+# Core CLI development
+cargo build                    # Build debug
+cargo test                     # Run all tests
+cargo clippy                   # Lint
+cargo fmt                      # Format
+cargo build --release          # Production build
+
+# CCR UI development
 cd ccr-ui
+just s                         # Start dev environment
+just i                         # Install dependencies
+just b                         # Build production
+just t                         # Run tests
 
-# Simplified commands (recommended)
-just s              # Start development (backend + frontend)
-just i              # Install dependencies
-just b              # Build production
-just c              # Check code
-just t              # Run tests
-just f              # Format code
-
-# Or full commands
-just dev            # Start development
-just build          # Build production
-just test           # Run tests
-
-# Manual control
-just dev-backend    # Start backend only (port 8081)
-just dev-frontend   # Start frontend only (port 5173)
+# Environment variables for debugging
+export CCR_LOG_LEVEL=debug     # Set log level (trace|debug|info|warn|error)
 ```
-
-## Architecture
-
-CCR follows a **strict layered architecture** with clear separation of concerns:
-
-```
-CLI Layer (main.rs + commands/)    → User Interface (13 commands)
-Web Layer (web/)                   → HTTP API (11 endpoints)
-Service Layer (services/)          → Business Logic (4 services, 26 methods)
-Manager Layer (managers/)          → Data Access (3 managers)
-Core Layer (core/)                 → Infrastructure (atomic writes, locks, logging)
-Utils Layer (utils/)               → Utilities (validation, masking)
-```
-
-### Layer Dependency Rules
-
-- **CLI/Web Layers** → call Service Layer only
-- **Service Layer** → calls Manager Layer + Core utilities
-- **Manager Layer** → uses Core infrastructure
-- **Core Layer** → provides primitives (no upward dependencies)
-- **Utils Layer** → standalone utilities
-
-**CRITICAL**: NEVER bypass layers (e.g., Commands directly accessing Managers).
 
 ### Project Structure
 
 ```
-src/
-├── main.rs              # CLI entry point
-├── lib.rs               # Library exports
-├── commands/            # CLI commands (13 files)
-│   ├── init.rs          # Initialize config
-│   ├── list.rs          # List configs
-│   ├── current.rs       # Show current config
-│   ├── switch.rs        # Switch config (5-step atomic operation)
-│   ├── validate.rs      # Validate configs
-│   ├── optimize.rs      # Sort configs alphabetically
-│   ├── history_cmd.rs   # Show operation history
-│   ├── clean.rs         # Clean old backups
-│   ├── export.rs        # Export configs
-│   ├── import.rs        # Import configs
-│   └── update.rs        # Self-update from GitHub
-├── services/            # Business logic (4 services)
-│   ├── config_service.rs     # Config CRUD, validation
-│   ├── settings_service.rs   # Settings file management
-│   ├── history_service.rs    # Operation history
-│   └── backup_service.rs     # Backup management
-├── managers/            # Data access (3 managers)
-│   ├── config.rs        # ~/.ccs_config.toml management
-│   ├── settings.rs      # ~/.claude/settings.json management
-│   └── history.rs       # ~/.claude/ccr_history.json management
-├── core/                # Infrastructure
-│   ├── error.rs         # Error types + exit codes
-│   ├── atomic_writer.rs # Atomic file writes (temp + rename)
-│   ├── lock.rs          # File locking for multi-process safety
-│   ├── logging.rs       # Colored console output
-│   └── file_manager.rs  # File manager trait
-├── utils/               # Utilities
-│   ├── validation.rs    # Validation trait + implementations
-│   └── mask.rs          # API token masking
-└── web/                 # Web server (embedded tiny_http)
-    ├── mod.rs           # Server entry
-    ├── routes.rs        # Route definitions
-    ├── handlers.rs      # API handlers (11 endpoints)
-    ├── models.rs        # Request/response models
-    └── system_info_cache.rs  # System info caching
-
-ccr-ui/                  # Full-stack web application
-├── backend/             # Actix Web server
-│   ├── src/
-│   │   ├── main.rs      # Server entry
-│   │   ├── executor/    # CCR CLI subprocess executor
-│   │   ├── handlers/    # API route handlers
-│   │   └── models/      # Request/response types
-│   └── Cargo.toml
-└── frontend/            # React + TypeScript
-    ├── src/
-    │   ├── App.tsx
-    │   ├── pages/       # Page components
-    │   ├── components/  # Reusable components
-    │   ├── api/         # API client
-    │   └── types/       # TypeScript definitions
-    └── package.json
-
-tests/                   # Integration tests
-docs/                    # VitePress documentation
-examples/                # Example configs
+ccr/
+├── Cargo.toml                 # Rust workspace config
+├── src/                       # Core CLI module
+│   ├── main.rs               # CLI entry point
+│   ├── lib.rs                # Library exports
+│   ├── commands/             # 13+ CLI commands
+│   ├── services/             # 6 business services
+│   ├── managers/             # 3 data managers
+│   ├── core/                 # Infrastructure (error, lock, logging)
+│   ├── web/                  # Axum web server (14 endpoints)
+│   ├── tui/                  # Terminal UI
+│   └── utils/                # Validation, masking
+├── ccr-ui/                   # Full-stack web application
+│   ├── backend/              # Axum backend (129 endpoints)
+│   └── frontend-vue/         # Vue.js frontend
+├── tests/                    # Integration tests
+└── docs/                     # VitePress documentation
 ```
 
-## Critical Files & Paths
+## Testing Strategy
 
-CCR manages these files in the user's home directory:
+### Test Coverage
 
-- `~/.ccs_config.toml` - Main configuration (shared with CCS shell version)
-- `~/.claude/settings.json` - Claude Code settings (CCR writes to this)
-- `~/.claude/backups/` - Automatic backups with timestamps
-- `~/.claude/ccr_history.json` - Operation audit trail
-- `~/.claude/.locks/` - File lock directory (auto-cleanup)
+- **Unit Tests**: Embedded in source modules
+- **Integration Tests**: `/tests/` directory with 6 comprehensive test files
+- **Coverage Target**: 95%+ overall coverage
+- **Test Categories**:
+  - Service workflow tests
+  - Manager tests
+  - Concurrent access tests
+  - End-to-end tests
+  - Add/delete operation tests
 
-## Key Design Patterns
-
-1. **Atomic Operations**: All file writes use `tempfile + rename` pattern via `AtomicFileWriter`
-2. **File Locking**: Multi-process safety via `LockManager` (prevents concurrent writes)
-3. **Audit Trail**: Every operation logged in `ccr_history.json` with UUID, timestamp, actor
-4. **Backup Strategy**: Automatic backup before destructive operations with smart cleanup
-   - **Auto-cleanup**: Keeps only the most recent 10 backups
-   - **Cleanup timing**: Triggered automatically on each backup creation
-   - **Error resilience**: Cleanup failures don't affect main operations
-5. **Desensitization**: API tokens masked in display/logs via `mask` utility
-
-## Development Guidelines
-
-### Code Quality Standards
-
-**Always follow these Rust patterns:**
-
-1. **Error Handling**: Use `?` operator, avoid explicit match for simple propagation
-2. **Option Handling**: Prefer combinator methods (`.map()`, `.unwrap_or_default()`)
-3. **String Parameters**: Use `&str` for function parameters, not `String`
-4. **Iterators**: Use iterator methods instead of manual loops
-5. **Paths**: Use `PathBuf` for owned paths, never string concatenation
-6. **Logging**: Use `ColorOutput::success/info/error/warning` for user messages
-7. **File Operations**: ALWAYS use `AtomicFileWriter::write_atomic`, never `std::fs::write`
-8. **Concurrency**: ALWAYS use `LockManager` for file access
-
-### Service Layer Pattern
-
-When adding new features:
-
-```rust
-use crate::managers::{ConfigManager, SettingsManager};
-use crate::core::error::{CcrError, Result};
-
-pub struct MyService {
-    config_manager: ConfigManager,
-    settings_manager: SettingsManager,
-}
-
-impl MyService {
-    pub fn default() -> Result<Self> {
-        Ok(Self {
-            config_manager: ConfigManager::default()?,
-            settings_manager: SettingsManager::default()?,
-        })
-    }
-
-    pub fn business_operation(&self, param: &str) -> Result<ReturnType> {
-        // 1. Validate input
-        // 2. Load data via managers
-        // 3. Apply business logic
-        // 4. Save via managers
-        // 5. Record history
-        Ok(result)
-    }
-}
-```
-
-### Testing Requirements
-
-**Always use isolated test environments:**
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::TempDir;
-
-    #[test]
-    fn test_operation_success() {
-        // Arrange: Use tempfile for isolation
-        let temp_dir = TempDir::new().unwrap();
-        let config_path = temp_dir.path().join(".ccs_config.toml");
-
-        // Act: Execute operation
-        let result = my_function(&config_path);
-
-        // Assert: Verify expectations
-        assert!(result.is_ok());
-    }
-}
-```
-
-**Rules:**
-- ALWAYS use `tempfile::TempDir` for file system tests
-- NEVER test with real user files (`~/.claude/`, `~/.ccs_config.toml`)
-- TEST both success and error paths
-- NAME tests: `test_<function>_<scenario>_<expected>`
-
-### Adding New Commands
-
-When adding a new CLI command:
-
-1. Create `src/commands/my_command.rs`
-2. Implement command logic using Service layer
-3. Add to `src/commands/mod.rs` exports
-4. Add command definition in `src/main.rs` CLI parser
-5. Add tests in the same file under `#[cfg(test)]`
-6. Update documentation
-
-### Adding Web API Endpoints
-
-When adding a new API endpoint:
-
-1. Add request/response models in `src/web/models.rs`
-2. Implement handler in `src/web/handlers.rs` using Service layer
-3. Add route in `src/web/routes.rs`
-4. Test with `ccr web` and manual HTTP requests
-
-## Troubleshooting
-
-### Common Issues
-
-**Build Failures:**
-- Ensure Rust 1.85+ is installed: `rustc --version`
-- Update toolchain: `rustup update stable`
-
-**Test Failures:**
-- Clean and rebuild: `just clean && just test`
-- Run single test: `cargo test test_name -- --nocapture`
-
-**Lock Timeout Errors:**
-- Check for zombie processes: `ps aux | grep ccr`
-- Clean locks manually: `rm -rf ~/.claude/.locks/*`
-
-**Permission Denied:**
-- Fix settings.json: `chmod 600 ~/.claude/settings.json`
-- Fix config: `chmod 644 ~/.ccs_config.toml`
-
-### Debug Logging
-
-Enable verbose logging:
+### Running Tests
 
 ```bash
-export CCR_LOG_LEVEL=debug  # trace|debug|info|warn|error
-ccr switch anthropic
+# Run all tests
+cargo test
+
+# Run specific test file
+cargo test --test integration_test
+
+# Run with output
+cargo test -- --nocapture
+
+# Run concurrent tests
+cargo test --test concurrent_tests
+
+# Check test coverage (requires tarpaulin)
+cargo tarpaulin --out Html
 ```
 
-## CI/CD
+## Coding Standards
 
-The project uses GitHub Actions. Before committing:
+### Rust Code Style
 
+1. **Edition**: 2024 (requires Rust 1.85+)
+2. **Formatting**: Use `cargo fmt` with default rustfmt settings
+3. **Linting**: Pass `cargo clippy` without warnings
+4. **Error Handling**: Use custom `CcrError` type with detailed error messages
+5. **Documentation**: Inline comments in Chinese for internal logic, English for public APIs
+6. **Naming**:
+   - Module names: `snake_case`
+   - Type names: `PascalCase`
+   - Function names: `snake_case`
+   - Constants: `SCREAMING_SNAKE_CASE`
+
+### Code Organization Principles
+
+1. **Layered Architecture**: Strict separation of CLI/Web → Services → Managers → Core
+2. **Service Layer**: Business logic, orchestration, transactions
+3. **Manager Layer**: Data access, file I/O, persistence
+4. **Core Layer**: Infrastructure, error handling, logging, locking
+5. **No Circular Dependencies**: Dependencies flow one direction only
+
+### TypeScript/Vue Standards
+
+1. **TypeScript**: Strict mode enabled
+2. **Vue**: Composition API with `<script setup>`
+3. **Styling**: Tailwind CSS utility classes
+4. **Components**: Functional, reusable components in `/components/`
+5. **State Management**: Pinia stores for global state
+
+## AI Usage Guidelines
+
+### When Using AI Assistance
+
+1. **Code Generation**: AI can generate boilerplate and standard patterns
+2. **Refactoring**: AI can help refactor while maintaining architecture
+3. **Testing**: AI can write test cases following existing patterns
+4. **Documentation**: AI can generate or improve documentation
+
+### What to Preserve
+
+1. **Architecture**: Don't violate the layered architecture
+2. **Error Handling**: Maintain consistent error handling with `CcrError`
+3. **Atomic Operations**: Never bypass atomic write patterns
+4. **File Locking**: Don't remove or weaken file locking mechanisms
+5. **Audit Trail**: Always log operations to history
+
+### Code Review Checklist
+
+- [ ] Follows layered architecture
+- [ ] Uses atomic file operations for writes
+- [ ] Proper error handling with context
+- [ ] Tests added/updated
+- [ ] Documentation updated
+- [ ] No security vulnerabilities (API keys masked)
+- [ ] Passes `cargo clippy` and `cargo fmt`
+
+## Key Files and Configuration
+
+### Configuration Files
+
+- `~/.ccs_config.toml` - Main configuration file (shared with CCS)
+- `~/.claude/settings.json` - Claude Code settings (managed by CCR)
+- `~/.claude/ccr_history.json` - Operation audit log
+
+### Important Paths
+
+- `~/.claude/backups/` - Automatic backups
+- `~/.claude/.locks/` - File locks (auto-cleanup)
+- `~/.ccr/ccr-ui/` - User directory installation of ccr-ui
+
+### Entry Points
+
+- **CLI**: `src/main.rs` - Main CLI entry with Clap parser
+- **Library**: `src/lib.rs` - Public API exports
+- **Web Server**: `src/web/server.rs` - Axum server (port 8080)
+- **TUI**: `src/tui/mod.rs` - Terminal UI entry
+- **UI Backend**: `ccr-ui/backend/src/main.rs` - Full backend (port 8081)
+- **UI Frontend**: `ccr-ui/frontend-vue/src/main.ts` - Vue app (port 3000)
+
+## External Interfaces
+
+### CLI Commands (13+)
+
+- `ccr init` - Initialize configuration
+- `ccr list` - List all configs
+- `ccr current` - Show current config
+- `ccr switch <name>` - Switch configuration
+- `ccr add` - Add new config
+- `ccr delete <name>` - Delete config
+- `ccr validate` - Validate configs
+- `ccr history` - View operation history
+- `ccr web` - Launch web server
+- `ccr ui` - Launch full UI
+- `ccr tui` - Launch TUI
+- `ccr sync [config|status|push|pull]` - WebDAV sync
+- `ccr update` - Update from GitHub
+
+### Web API Endpoints (14)
+
+See `src/web/routes.rs` for complete list:
+- Config management: GET/POST/PUT/DELETE `/api/configs`
+- History: GET `/api/history`
+- Settings: GET/POST `/api/settings`
+- System info: GET `/api/system`
+- Validation: POST `/api/validate`
+- Import/Export: POST `/api/import`, POST `/api/export`
+- Backup/Restore: GET/POST `/api/settings/backups`, POST `/api/settings/restore`
+- Clean: POST `/api/clean`
+
+### UI Backend API (129 endpoints)
+
+See `ccr-ui/backend/src/main.rs` for complete list. Supports:
+- **Claude Code**: MCP, agents, slash commands, plugins, config
+- **Codex**: MCP, profiles, agents, slash commands, plugins, config
+- **Gemini CLI**: MCP, agents, slash commands, plugins, config
+- **Qwen**: MCP, agents, slash commands, plugins, config
+- **iFlow**: Basic support (stub)
+- **Utilities**: Converter, sync, command execution, system info
+
+## Dependencies and Third-Party Services
+
+### Core Rust Dependencies
+
+- `clap` 4.5 - CLI argument parsing
+- `serde` 1.0 + `serde_json` + `toml` - Serialization
+- `anyhow` + `thiserror` - Error handling
+- `tokio` 1.48 - Async runtime
+- `axum` 0.8 - Web framework
+- `ratatui` 0.29 - TUI framework
+- `crossterm` 0.29 - Terminal handling
+
+### Frontend Dependencies
+
+- `vue` 3.5.22 - UI framework
+- `vue-router` 4.4 - Routing
+- `pinia` 2.2 - State management
+- `axios` 1.7 - HTTP client
+- `tailwindcss` 3.4 - Styling
+
+### External Services
+
+- **WebDAV**: Optional cloud sync (Nutstore, Nextcloud, ownCloud)
+- **GitHub**: Auto-update feature downloads from GitHub releases
+- **File System**: Direct access to `~/.claude/` and `~/.ccs_config.toml`
+
+## Common Issues and Solutions
+
+### Issue: Lock timeout
+
+**Symptoms**: "Lock acquisition timeout" error
+
+**Solution**:
 ```bash
-just ci  # Run full CI pipeline locally
+# Check for zombie processes
+ps aux | grep ccr
+
+# Clean stale locks
+rm -rf ~/.claude/.locks/*
 ```
 
-This runs:
-1. `cargo fmt --check` - Format validation
-2. `cargo clippy -- -D warnings` - Lint with warnings as errors
-3. `cargo test` - All tests
-4. `cargo build --release` - Release build
+### Issue: Permission denied on settings.json
 
-## Performance Notes
+**Symptoms**: Cannot read/write settings file
 
-- Release builds use `opt-level = 3`, `lto = true`, `strip = true`
-- Parallel processing with `rayon` for operations on multiple configs
-- Async web server with `axum` + `tokio` for CCR UI backend
-- System info caching for frequently accessed data
+**Solution**:
+```bash
+chmod 600 ~/.claude/settings.json
+chmod 644 ~/.ccs_config.toml
+```
 
-## Related Documentation
+### Issue: CCR UI download fails
 
-- Main README: `README.md` (English) / `README_CN.md` (Chinese)
-- CCR UI Guide: `ccr-ui/README.md`
-- Backup Management: `docs/backup-management.md` (auto-cleanup feature details)
-- VitePress Docs: `docs/` (run with `cd docs && npm run dev`)
+**Symptoms**: `ccr ui` fails to download ccr-ui
 
-## Important Reminders
+**Solution**:
+```bash
+# Manual clone
+mkdir -p ~/.ccr
+cd ~/.ccr
+git clone https://github.com/bahayonghang/ccr.git
+mv ccr/ccr-ui .
+```
 
-1. **Never bypass the layered architecture** - always use Services → Managers → Core
-2. **Always use atomic file operations** via `AtomicFileWriter`
-3. **Always use file locking** via `LockManager` for concurrent safety
-4. **Always mask sensitive data** (API tokens) in logs and display
-5. **Always write tests** for new features using `tempfile::TempDir`
-6. **Always run `just ci`** before committing
-7. **Read existing code** before modifying - use Read tool to understand context
+## Related Resources
+
+- **GitHub Repository**: https://github.com/bahayonghang/ccr
+- **Related Project**: CCS (Shell version) - https://github.com/bahayonghang/ccs
+- **License**: MIT
+- **Rust Edition**: 2024
+- **Minimum Rust Version**: 1.85

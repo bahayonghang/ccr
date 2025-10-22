@@ -250,6 +250,62 @@ body {
   }
 }
 
+/* ===================================
+   自定义导航模块与激活态样式（本次改动）
+   =================================== */
+
+/* 每个导航模块外框：1px #eaeaea 边框 + 4px 圆角。保持原有 padding 与布局不变 */
+.nav-group {
+  border: 1px solid #eaeaea;
+  border-radius: 4px;
+  padding: 6px; /* 轻微内边距，不影响原有网格与响应式 */
+  background: transparent;
+}
+
+/* 侧边栏导航：模块边框与激活态样式
+================================ */
+.nav-group {
+  border: 1px solid #eaeaea;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.nav-link {
+  border: 1px solid #eaeaea;
+  border-radius: 4px;
+  background: transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.nav-link:hover {
+  border-color: #dcdcdc;
+}
+
+/* 激活态：浅灰背景 + 左侧 3px 蓝色条 + 文本加深 */
+.nav-link.nav-item-active,
+.nav-item-active.nav-link {
+  background: #f5f5f5;
+  border-left: 3px solid #1890ff;
+  color: #333 !important;
+}
+
+/* 暗色主题兼容（尽量保持原有视觉习惯） */
+[data-theme="dark"] .nav-group {
+  border-color: rgba(234, 234, 234, 0.15);
+}
+
+[data-theme="dark"] .nav-link {
+  border-color: rgba(234, 234, 234, 0.15);
+  background: transparent;
+}
+
+[data-theme="dark"] .nav-link.nav-item-active,
+[data-theme="dark"] .nav-item-active.nav-link {
+  background: rgba(255, 255, 255, 0.06);
+  border-left: 3px solid #1890ff;
+  color: #e5e7eb !important;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
