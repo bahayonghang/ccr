@@ -1,6 +1,7 @@
 # CCR - Claude Code Configuration Switcher
 
 ## Change Log (Changelog)
+- **2025-10-22 10:39:28 CST**: Documentation refresh - corrected frontend path after Vue.js migration
 - **2025-10-22 00:04:36 CST**: Initial AI context documentation created
 
 ## Project Vision
@@ -10,7 +11,7 @@ CCR (Claude Code Configuration Switcher) is a Rust-powered configuration managem
 - A robust CLI tool with 13+ commands for config management
 - A full-featured TUI (Terminal User Interface) for visual management
 - A lightweight web API server for programmatic access
-- A comprehensive full-stack web application (ccr-ui) with Vue.js frontend and Axum backend
+- A comprehensive full-stack web application (ccr-ui) with Vue.js 3 frontend and Axum backend
 - Support for multiple AI platforms: Claude Code, Codex, Gemini, Qwen, and iFlow
 
 The core philosophy emphasizes **reliability** (atomic operations, file locking), **auditability** (complete history tracking), and **safety** (automatic backups, validation).
@@ -37,7 +38,7 @@ CLI/Web Layer → Services → Managers → Core/Utils
 - **CLI Framework**: Clap 4.5
 - **Web Server**: Axum 0.8 + Tokio async runtime
 - **TUI**: Ratatui 0.29 + Crossterm
-- **Frontend**: Vue.js 3.5 + TypeScript + Tailwind CSS
+- **Frontend**: Vue.js 3.5 + TypeScript + Tailwind CSS + Vite
 - **Serialization**: Serde + TOML + JSON
 - **Testing**: 95%+ coverage with integration tests
 
@@ -59,13 +60,13 @@ graph TD
     B --> B7["utils/"];
 
     C --> C1["backend/"];
-    C --> C2["frontend-vue/"];
+    C --> C2["frontend/"];
     C --> C3["docs/"];
 
     C1 --> C1A["handlers/"];
-    C1 --> C1B["config/"];
+    C1 --> C1B["config_managers/"];
     C1 --> C1C["models/"];
-    C1 --> C1D["services/"];
+    C1 --> C1D["executor/"];
 
     C2 --> C2A["views/"];
     C2 --> C2B["components/"];
@@ -75,7 +76,7 @@ graph TD
     click B "./src/CLAUDE.md" "View src module docs"
     click C "./ccr-ui/CLAUDE.md" "View ccr-ui module docs"
     click C1 "./ccr-ui/backend/CLAUDE.md" "View backend module docs"
-    click C2 "./ccr-ui/frontend-vue/CLAUDE.md" "View frontend module docs"
+    click C2 "./ccr-ui/frontend/CLAUDE.md" "View frontend module docs"
 ```
 
 ## Module Index
@@ -84,7 +85,7 @@ graph TD
 |--------|------|----------------|----------|-------------|
 | **Core CLI** | `/src/` | Main CCR CLI tool with commands, services, managers | Rust | `src/main.rs` |
 | **UI Backend** | `/ccr-ui/backend/` | Axum server with 129 API endpoints for multi-platform config management | Rust | `ccr-ui/backend/src/main.rs` |
-| **UI Frontend** | `/ccr-ui/frontend-vue/` | Vue.js 3 frontend with liquid glass design | TypeScript/Vue | `ccr-ui/frontend-vue/src/main.ts` |
+| **UI Frontend** | `/ccr-ui/frontend/` | Vue.js 3 frontend with liquid glass design (migrated from Next.js) | TypeScript/Vue | `ccr-ui/frontend/src/main.ts` |
 | **Integration Tests** | `/tests/` | Comprehensive test suite with 95%+ coverage | Rust | Various test files |
 | **Documentation** | `/docs/` | VitePress documentation site | Markdown/TypeScript | VitePress config |
 
@@ -134,6 +135,13 @@ just i                         # Install dependencies
 just b                         # Build production
 just t                         # Run tests
 
+# Using justfile shortcuts at project root
+just build                     # Build debug
+just release                   # Build release
+just test                      # Run tests
+just lint                      # Format + Clippy
+just ci                        # Full CI pipeline
+
 # Environment variables for debugging
 export CCR_LOG_LEVEL=debug     # Set log level (trace|debug|info|warn|error)
 ```
@@ -143,6 +151,7 @@ export CCR_LOG_LEVEL=debug     # Set log level (trace|debug|info|warn|error)
 ```
 ccr/
 ├── Cargo.toml                 # Rust workspace config
+├── justfile                   # Just command runner for build automation
 ├── src/                       # Core CLI module
 │   ├── main.rs               # CLI entry point
 │   ├── lib.rs                # Library exports
@@ -155,8 +164,9 @@ ccr/
 │   └── utils/                # Validation, masking
 ├── ccr-ui/                   # Full-stack web application
 │   ├── backend/              # Axum backend (129 endpoints)
-│   └── frontend-vue/         # Vue.js frontend
-├── tests/                    # Integration tests
+│   ├── frontend/             # Vue.js 3 frontend with Vite
+│   └── justfile              # CCR UI specific commands
+├── tests/                    # Integration tests (6 files)
 └── docs/                     # VitePress documentation
 ```
 
@@ -168,11 +178,12 @@ ccr/
 - **Integration Tests**: `/tests/` directory with 6 comprehensive test files
 - **Coverage Target**: 95%+ overall coverage
 - **Test Categories**:
-  - Service workflow tests
-  - Manager tests
-  - Concurrent access tests
-  - End-to-end tests
-  - Add/delete operation tests
+  - Service workflow tests (`service_workflow_tests.rs`)
+  - Manager tests (`manager_tests.rs`)
+  - Concurrent access tests (`concurrent_tests.rs`)
+  - End-to-end tests (`end_to_end_tests.rs`)
+  - Add/delete operation tests (`add_delete_test.rs`)
+  - Integration tests (`integration_test.rs`)
 
 ### Running Tests
 
@@ -272,7 +283,7 @@ cargo tarpaulin --out Html
 - **Web Server**: `src/web/server.rs` - Axum server (port 8080)
 - **TUI**: `src/tui/mod.rs` - Terminal UI entry
 - **UI Backend**: `ccr-ui/backend/src/main.rs` - Full backend (port 8081)
-- **UI Frontend**: `ccr-ui/frontend-vue/src/main.ts` - Vue app (port 3000)
+- **UI Frontend**: `ccr-ui/frontend/src/main.ts` - Vue app (dev port 5173)
 
 ## External Interfaces
 
@@ -332,6 +343,7 @@ See `ccr-ui/backend/src/main.rs` for complete list. Supports:
 - `vue-router` 4.4 - Routing
 - `pinia` 2.2 - State management
 - `axios` 1.7 - HTTP client
+- `vite` 7.1 - Build tool
 - `tailwindcss` 3.4 - Styling
 
 ### External Services

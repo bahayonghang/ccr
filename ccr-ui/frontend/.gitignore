@@ -1,46 +1,66 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Vue + Vite 项目 .gitignore（最佳实践）
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
+# 1) 构建产物（不要提交）
+dist/
 
-# testing
-/coverage
+# 2) 依赖目录（由包管理器安装）
+node_modules/
 
-# next.js
-/.next/
-/out/
+# 3) Vite 缓存
+.vite/
 
-# production
-/build
+# 4) 覆盖率报告
+coverage/
+*.lcov
 
-# misc
-.DS_Store
-*.pem
+# 5) TypeScript 构建信息
+*.tsbuildinfo
 
-# debug
+# 6) 环境变量（示例文件除外）
+# 保留 .env 和示例文件（如 .env.example）在版本库，以便说明配置；
+# 忽略本地私有环境文件。
+.env.local
+.env.*.local
+
+# 7) 日志文件
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# local env files
-.env*.local
-.env
+# 8) 运行时数据 / 临时文件
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# vercel
-.vercel
+# 9) 编辑器/IDE 配置（团队自定义可按需保留）
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw*
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# 10) 系统文件
+.DS_Store
+Thumbs.db
 
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-*~
+# 11) Lint/样式缓存
+.eslintcache
+.stylelintcache
 
-package-lock.json
+# 12) 包管理器缓存（可选）
+.npm/
+.yarn/
+.pnp/
+.pnp.js
+
+# 13) 测试报告（可选）
+playwright-report/
+test-results/
+cypress/videos/
+cypress/screenshots/
