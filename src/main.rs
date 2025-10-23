@@ -289,6 +289,53 @@ enum Commands {
         #[arg(long, default_value_t = 8081)]
         backend_port: u16,
     },
+
+    /// 临时Token管理
+    ///
+    /// 管理临时配置覆盖,不修改永久配置文件
+    /// 示例: ccr temp-token set sk-xxx
+    ///       ccr temp-token show
+    ///       ccr temp-token clear
+    #[command(name = "temp-token")]
+    TempToken {
+        #[command(subcommand)]
+        action: TempTokenAction,
+    },
+}
+
+/// 🎯 临时Token操作子命令
+#[derive(Subcommand)]
+enum TempTokenAction {
+    /// 设置临时Token
+    ///
+    /// 临时覆盖当前配置的token,不修改toml配置文件
+    /// 示例: ccr temp-token set sk-test-xxx
+    ///       ccr temp-token set sk-xxx --base-url https://api.test.com
+    ///       ccr temp-token set sk-xxx --model claude-opus-4
+    Set {
+        /// 临时使用的token
+        token: String,
+
+        /// 临时base_url(可选)
+        #[arg(long)]
+        base_url: Option<String>,
+
+        /// 临时model(可选)
+        #[arg(long)]
+        model: Option<String>,
+    },
+
+    /// 显示当前临时配置
+    ///
+    /// 查看当前设置的临时配置状态
+    /// 示例: ccr temp-token show
+    Show,
+
+    /// 清除临时配置
+    ///
+    /// 删除所有临时配置覆盖
+    /// 示例: ccr temp-token clear
+    Clear,
 }
 
 /// ☁️ 同步操作子命令
@@ -391,6 +438,15 @@ fn main() {
             SyncAction::Pull { force } => commands::sync_pull_command(force),
         },
         Some(Commands::Ui { port, backend_port }) => commands::ui_command(port, backend_port),
+        Some(Commands::TempToken { action }) => match action {
+            TempTokenAction::Set {
+                token,
+                base_url,
+                model,
+            } => commands::temp_token_set(&token, base_url, model),
+            TempTokenAction::Show => commands::temp_token_show(),
+            TempTokenAction::Clear => commands::temp_token_clear(),
+        },
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {

@@ -168,6 +168,9 @@ ccr ui                # 🎨 启动完整 CCR UI 应用（Next.js + Actix，端�
 | `ccr list` | `ls` | 📊 以表格形式列出所有配置（状态、提供商、URL、模型、验证） |
 | `ccr current` | `show`, `status` | 🔍 以双表格展示当前配置详情和环境变量状态 |
 | `ccr switch <name>` | `<name>` | 🔄 切换配置（表格展示新配置和环境变量变化对比） |
+| `ccr temp-token set <TOKEN> [选项]` | - | 🎯 设置临时Token覆盖（不修改toml文件） |
+| `ccr temp-token show` | - | 👁️ 显示当前临时配置状态 |
+| `ccr temp-token clear` | - | 🧹 清除临时配置覆盖 |
 | `ccr validate` | `check` | ✅ 验证所有配置和设置 |
 | `ccr optimize` | - | 🔤 按字母顺序优化配置文件结构 |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 显示操作历史（限制数量/按类型筛选） |
@@ -194,11 +197,12 @@ ccr ui                # 🎨 启动完整 CCR UI 应用（Next.js + Actix，端�
 ## 📁 文件与目录
 
 ```
-~/.ccs_config.toml          # 📝 配置文件(与 CCS 共享)
-~/.claude/settings.json     # 🎯 Claude Code 设置(CCR 管理)
-~/.claude/backups/          # 💾 自动备份(带时间戳的 .bak 文件)
-~/.claude/ccr_history.json  # 📚 操作审计日志
-~/.claude/.locks/           # 🔒 文件锁(自动清理)
+~/.ccs_config.toml           # 📝 配置文件(与 CCS 共享)
+~/.claude/settings.json      # 🎯 Claude Code 设置(CCR 管理)
+~/.claude/temp_override.json # 🎯 临时配置覆盖(temp-token命令)
+~/.claude/backups/           # 💾 自动备份(带时间戳的 .bak 文件)
+~/.claude/ccr_history.json   # 📚 操作审计日志
+~/.claude/.locks/            # 🔒 文件锁(自动清理)
 ```
 
 ## 🔧 核心功能
@@ -210,6 +214,37 @@ CCR 在 `settings.json` 中管理这些变量：
 - `ANTHROPIC_AUTH_TOKEN` - 认证令牌(显示/日志中自动掩码)
 - `ANTHROPIC_MODEL` - 默认模型
 - `ANTHROPIC_SMALL_FAST_MODEL` - 快速模型(可选)
+
+### 🎯 临时Token覆盖
+
+需要临时测试免费Token吗？CCR提供临时配置覆盖功能，无需修改永久的 `~/.ccs_config.toml` 文件：
+
+```bash
+# 设置临时token（一次性使用，switch后自动清除）
+ccr temp-token set sk-free-test-xxx
+
+# 可选：覆盖更多字段
+ccr temp-token set sk-xxx \
+  --base-url https://api.temp.com \
+  --model claude-opus-4
+
+# 查看当前临时配置
+ccr temp-token show
+
+# 应用临时配置（会自动应用并清除）
+ccr switch duck
+
+# 下次 switch 将使用永久配置
+ccr switch duck
+```
+
+**功能特性：**
+- 🔒 独立存储 (`~/.claude/temp_override.json`)
+- 🎯 一次性使用（应用后自动清除）
+- 🎯 部分字段覆盖（只覆盖token，或token+url等）
+- 🔄 优先级高于永久配置
+- 🧹 应用后自动清理
+- 👁️ 敏感信息自动脱敏显示
 
 ### 📚 历史与审计
 

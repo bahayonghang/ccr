@@ -168,6 +168,9 @@ ccr ui                # 🎨 Launch full CCR UI application (Next.js + Actix, po
 | `ccr list` | `ls` | 📊 List all configs in table format (status, provider, URL, models, validation) |
 | `ccr current` | `show`, `status` | 🔍 Show current config details and env variables in dual tables |
 | `ccr switch <name>` | `<name>` | 🔄 Switch config (shows new config table and env changes comparison) |
+| `ccr temp-token set <TOKEN> [OPTIONS]` | - | 🎯 Set temporary token override (no toml modification) |
+| `ccr temp-token show` | - | 👁️ Show current temporary config status |
+| `ccr temp-token clear` | - | 🧹 Clear temporary config override |
 | `ccr validate` | `check` | ✅ Validate all configs and settings |
 | `ccr optimize` | - | 🔤 Sort config sections alphabetically |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 Show operation history (limit/filter by type) |
@@ -194,11 +197,12 @@ ccr ui                # 🎨 Launch full CCR UI application (Next.js + Actix, po
 ## 📁 Files & Directories
 
 ```
-~/.ccs_config.toml          # 📝 Config file (shared with CCS)
-~/.claude/settings.json     # 🎯 Claude Code settings (CCR manages this)
-~/.claude/backups/          # 💾 Auto backups (timestamped .bak files)
-~/.claude/ccr_history.json  # 📚 Operation audit log
-~/.claude/.locks/           # 🔒 File locks (auto-cleanup)
+~/.ccs_config.toml           # 📝 Config file (shared with CCS)
+~/.claude/settings.json      # 🎯 Claude Code settings (CCR manages this)
+~/.claude/temp_override.json # 🎯 Temporary config override (temp-token command)
+~/.claude/backups/           # 💾 Auto backups (timestamped .bak files)
+~/.claude/ccr_history.json   # 📚 Operation audit log
+~/.claude/.locks/            # 🔒 File locks (auto-cleanup)
 ```
 
 ## 🔧 Key Features
@@ -210,6 +214,37 @@ CCR manages these variables in `settings.json`:
 - `ANTHROPIC_AUTH_TOKEN` - Auth token (auto-masked in display/logs)
 - `ANTHROPIC_MODEL` - Default model
 - `ANTHROPIC_SMALL_FAST_MODEL` - Fast model (optional)
+
+### 🎯 Temporary Token Override
+
+Need to test a free token temporarily? CCR provides temporary configuration override without modifying your permanent `~/.ccs_config.toml` file:
+
+```bash
+# Set temporary token (one-time use, auto-cleared after switch)
+ccr temp-token set sk-free-test-xxx
+
+# Optional: Override additional fields
+ccr temp-token set sk-xxx \
+  --base-url https://api.temp.com \
+  --model claude-opus-4
+
+# View current temporary config
+ccr temp-token show
+
+# Apply temporary config (will auto-apply and clear)
+ccr switch duck
+
+# Next switch will use permanent config
+ccr switch duck
+```
+
+**Features:**
+- 🔒 Isolated storage (`~/.claude/temp_override.json`)
+- 🎯 One-time use (auto-cleared after application)
+- 🎯 Partial field override (token only, or token + url, etc.)
+- 🔄 Higher priority than permanent config
+- 🧹 Auto-cleanup after application
+- 👁️ Masked display for security
 
 ### 📚 History & Audit
 

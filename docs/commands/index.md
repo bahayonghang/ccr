@@ -12,6 +12,7 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 | [switch](./switch) | - | 切换到指定配置 |
 | [add](./add) | - | 交互式添加新配置 |
 | [delete](./delete) | - | 删除指定配置 |
+| [temp-token](./temp-token) | - | 临时Token管理（不修改配置文件） |
 | [validate](./validate) | `check` | 验证配置完整性 |
 | [history](./history) | - | 显示操作历史 |
 | [tui](./tui) | - | 启动交互式终端界面 |
@@ -33,6 +34,10 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 - **[add](./add)** - 交互式添加新配置
 - **[delete](./delete)** - 删除指定配置
 - **[validate](./validate)** - 验证配置完整性
+
+### 临时配置管理
+
+- **[temp-token](./temp-token)** - 临时覆盖Token等配置，无需修改永久配置文件
 
 ### 数据管理
 
@@ -84,6 +89,15 @@ ccr validate
 
 # 查看历史
 ccr history --limit 10
+
+# 临时使用免费 token（不修改配置文件）
+ccr temp-token set sk-free-xxx --expires 24
+
+# 查看临时配置
+ccr temp-token show
+
+# 清除临时配置
+ccr temp-token clear
 ```
 
 ### 数据管理

@@ -347,6 +347,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
         config_name.bright_green().bold(),
         "✓".bright_green()
     ));
+
     ColorOutput::info("🔄 建议重启 Claude Code 以确保配置完全生效");
 
     Ok(())

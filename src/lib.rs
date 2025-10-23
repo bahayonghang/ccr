@@ -14,7 +14,7 @@ pub mod web;
 pub use core::{CcrError, ColorOutput, LockManager, Result, init_logger};
 pub use managers::{
     CcsConfig, ClaudeSettings, ConfigManager, ConfigSection, GlobalSettings, HistoryManager,
-    ProviderType, SettingsManager,
+    ProviderType, SettingsManager, TempOverride, TempOverrideManager,
 };
 pub use services::{BackupService, ConfigService, HistoryService, SettingsService};
 pub use utils::{Validatable, mask_if_sensitive, mask_sensitive};
