@@ -186,12 +186,12 @@ impl SettingsManager {
     /// 默认路径:
     /// - 设置文件: ~/.claude/settings.json
     /// - 备份目录: ~/.claude/backups
-    /// 
+    ///
     /// ⚙️ **开发者注意**：
     /// 可以通过环境变量覆盖默认路径：
     /// - `CCR_SETTINGS_PATH`: 设置文件路径
     /// - `CCR_BACKUP_DIR`: 备份目录路径
-    /// 
+    ///
     /// 示例：
     /// ```bash
     /// export CCR_SETTINGS_PATH=/tmp/ccr_dev_settings.json
@@ -217,7 +217,7 @@ impl SettingsManager {
         };
 
         let lock_manager = LockManager::default()?;
-        
+
         log::debug!("使用设置路径: {:?}", settings_path);
         log::debug!("使用备份目录: {:?}", backup_dir);
 
@@ -345,22 +345,22 @@ impl SettingsManager {
 
         // 🧹 自动清理旧备份(只保留最近10个)
         const MAX_BACKUPS: usize = 10;
-        if let Ok(backups) = self.list_backups() {
-            if backups.len() > MAX_BACKUPS {
-                let to_delete = &backups[MAX_BACKUPS..];
-                for old_backup in to_delete {
-                    if let Err(e) = fs::remove_file(old_backup) {
-                        log::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
-                    } else {
-                        log::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
-                    }
+        if let Ok(backups) = self.list_backups()
+            && backups.len() > MAX_BACKUPS
+        {
+            let to_delete = &backups[MAX_BACKUPS..];
+            for old_backup in to_delete {
+                if let Err(e) = fs::remove_file(old_backup) {
+                    log::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
+                } else {
+                    log::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
                 }
-                log::info!(
-                    "🧹 已自动清理 {} 个旧备份,保留最近 {} 个",
-                    to_delete.len(),
-                    MAX_BACKUPS
-                );
             }
+            log::info!(
+                "🧹 已自动清理 {} 个旧备份,保留最近 {} 个",
+                to_delete.len(),
+                MAX_BACKUPS
+            );
         }
 
         Ok(backup_path)
@@ -441,6 +441,117 @@ impl SettingsManager {
         });
 
         Ok(backups)
+    }
+
+    // === 🆕 多平台支持方法 ===
+
+    /// 🎯 为指定平台创建 SettingsManager
+    ///
+    /// 根据平台类型自动确定设置文件路径和备份目录
+    ///
+    /// 支持的平台:
+    /// - claude: ~/.claude/settings.json
+    /// - codex: ~/.ccr/platforms/codex/settings.json (unified mode)
+    /// - gemini: ~/.ccr/platforms/gemini/settings.json (unified mode)
+    ///
+    /// 参数:
+    /// - platform_name: 平台名称 ("claude", "codex", "gemini" 等)
+    ///
+    /// 注意: 此方法假设统一模式已启用。对于 Claude 平台，
+    /// 如果在 legacy 模式下，应使用 `SettingsManager::default()`
+    #[allow(dead_code)]
+    pub fn for_platform(platform_name: &str) -> Result<Self> {
+        let (settings_path, backup_dir) = Self::get_platform_paths(platform_name)?;
+        let lock_manager = LockManager::default()?;
+
+        log::debug!(
+            "为平台 '{}' 创建 SettingsManager: {:?}",
+            platform_name,
+            settings_path
+        );
+
+        Ok(Self::new(settings_path, backup_dir, lock_manager))
+    }
+
+    /// 📁 获取平台特定的路径
+    ///
+    /// 返回 (settings_path, backup_dir)
+    #[allow(dead_code)]
+    pub fn get_platform_paths(platform_name: &str) -> Result<(PathBuf, PathBuf)> {
+        // 特殊处理 Claude (支持 legacy 模式)
+        if platform_name == "claude" {
+            // 检查是否在统一模式下
+            let home = dirs::home_dir()
+                .ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
+
+            // 优先使用环境变量
+            if let Ok(custom_path) = std::env::var("CCR_SETTINGS_PATH") {
+                let settings_path = PathBuf::from(custom_path);
+                let backup_dir = if let Ok(custom_dir) = std::env::var("CCR_BACKUP_DIR") {
+                    PathBuf::from(custom_dir)
+                } else {
+                    home.join(".claude").join("backups")
+                };
+                return Ok((settings_path, backup_dir));
+            }
+
+            // 检查统一模式
+            let ccr_root = if let Ok(root) = std::env::var("CCR_ROOT") {
+                PathBuf::from(root)
+            } else {
+                home.join(".ccr")
+            };
+
+            if ccr_root.exists() {
+                // 统一模式
+                let platform_dir = ccr_root.join("platforms").join("claude");
+                return Ok((
+                    platform_dir.join("settings.json"),
+                    platform_dir.join("backups"),
+                ));
+            } else {
+                // Legacy 模式
+                return Ok((
+                    home.join(".claude").join("settings.json"),
+                    home.join(".claude").join("backups"),
+                ));
+            }
+        }
+
+        // 其他平台都使用统一模式路径
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
+
+        let ccr_root = if let Ok(root) = std::env::var("CCR_ROOT") {
+            PathBuf::from(root)
+        } else {
+            home.join(".ccr")
+        };
+
+        let platform_dir = ccr_root.join("platforms").join(platform_name);
+
+        Ok((
+            platform_dir.join("settings.json"),
+            platform_dir.join("backups"),
+        ))
+    }
+
+    /// 🔍 检测当前平台的配置模式
+    ///
+    /// 返回 "Legacy" 或 "Unified"
+    #[allow(dead_code)]
+    pub fn detect_mode(&self) -> &'static str {
+        // 如果设置路径包含 ".ccr/platforms"，则为统一模式
+        if self
+            .settings_path
+            .to_str()
+            .map(|s| s.contains(".ccr/platforms"))
+            .unwrap_or(false)
+        {
+            "Unified"
+        } else {
+            "Legacy"
+        }
     }
 }
 

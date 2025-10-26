@@ -1,0 +1,75 @@
+# 🎯 CCR 统一配置文件示例
+# 📍 位置: ~/.ccr/config.toml
+#
+# 此文件管理所有 AI 平台的配置和切换
+# 支持的平台: Claude, Codex, Gemini, Qwen, iFlow
+
+# ═══════════════════════════════════════════════════════════
+# 全局设置
+# ═══════════════════════════════════════════════════════════
+
+# 默认平台 - 首次运行或重置时使用
+# 可选值: "claude", "codex", "gemini", "qwen", "iflow"
+default_platform = "claude"
+
+# 当前激活的平台
+# 使用 `ccr platform switch <name>` 切换
+current_platform = "claude"
+
+# ═══════════════════════════════════════════════════════════
+# 平台注册表
+# ═══════════════════════════════════════════════════════════
+# 每个平台可以有以下字段:
+#   - enabled (bool): 是否启用该平台
+#   - current_profile (string, optional): 当前使用的 profile 名称
+#   - description (string, optional): 平台描述
+#   - last_used (datetime, optional): 最后使用时间（自动更新）
+
+[claude]
+enabled = true
+current_profile = "anthropic"
+description = "Claude Code AI Assistant"
+# last_used = "2025-01-15T10:30:00Z"  # 自动更新
+
+[codex]
+enabled = true
+current_profile = "github"
+description = "GitHub Copilot CLI (Codex)"
+
+[gemini]
+enabled = true
+current_profile = "google"
+description = "Google Gemini CLI"
+
+[qwen]
+enabled = false  # 未实现的平台默认禁用
+description = "阿里通义千问 CLI"
+
+[iflow]
+enabled = false
+description = "iFlow CLI"
+
+# ═══════════════════════════════════════════════════════════
+# 使用说明
+# ═══════════════════════════════════════════════════════════
+#
+# 1. 列出所有平台:
+#    ccr platform list
+#
+# 2. 切换平台:
+#    ccr platform switch codex
+#
+# 3. 查看当前平台:
+#    ccr platform current
+#
+# 4. 初始化新平台:
+#    ccr platform init gemini
+#
+# 5. 查看平台详情:
+#    ccr platform info claude
+#
+# 注意:
+#   - 每个平台的 profiles 存储在 ~/.ccr/platforms/<name>/profiles.toml
+#   - 平台特定的设置存储在各平台的原生位置 (如 ~/.claude/settings.json)
+#   - 历史记录存储在 ~/.ccr/history/<platform>.json
+#   - 备份存储在 ~/.ccr/backups/<platform>/

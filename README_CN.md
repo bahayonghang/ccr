@@ -45,13 +45,13 @@ cargo install --path .
 
 ## 🌐 CCR UI - 全栈 Web 应用
 
-CCR UI 是一个现代化的 **Next.js + Axum** 全栈应用，用于 CCR 配置管理！
+CCR UI 是一个现代化的 **Vue.js 3 + Axum** 全栈应用，用于 CCR 配置管理！
 
-前端使用 App Router 架构与 React 19，结合 Tailwind 构建交互界面；后端基于 Actix 包装 CCR CLI，并额外提供 MCP 服务器、斜杠命令、智能体与插件的管理 API。
+Vue.js 3 前端提供响应式的交互体验，结合 TypeScript 和 Tailwind 构建 UI；Axum 后端包装 CCR CLI，并额外提供 MCP 服务器、斜杠命令、智能体与插件的管理 API。
 
 ### 功能特性
 
-- ⚛️ **Next.js 前端**：Next.js 16（React 19）App Router，配合 TypeScript 与 Tailwind CSS
+- ⚛️ **Vue.js 3 前端**：Vue.js 3.5 配合 Composition API，使用 TypeScript 与 Tailwind CSS
 - 🦀 **Axum 后端**：高性能 Rust 异步 Web 服务器
 - 🖥️ **配置管理**：可视化配置切换和验证
 - 💻 **命令执行器**：执行所有 13 个 CCR 命令，可视化输出
@@ -68,7 +68,7 @@ CCR UI 是一个现代化的 **Next.js + Axum** 全栈应用，用于 CCR 配置
 # 首次使用 - 自动下载并启动
 ccr ui
 
-# 💬 提示: CCR UI 是一个完整的 Next.js + Actix Web 应用
+# 💬 提示: CCR UI 是一个完整的 Vue.js 3 + Axum Web 应用
 #    可以从 GitHub 下载到用户目录:
 #    /home/user/.ccr/ccr-ui/
 #
@@ -113,7 +113,7 @@ just quick-start    # 检查前置条件 + 安装 + 启动
 - **CLI 工具**：适合脚本、自动化和快速操作（`ccr switch`、`ccr list` 等）
 - **TUI** (`ccr tui`)：基于终端的交互式界面，支持键盘导航
 - **Web 服务器** (`ccr web`)：内置轻量级 Axum API 服务器（8080 端口），用于编程访问
-- **CCR UI** (`ccr ui`)：完整功能的 Next.js + Actix Web 应用，提供可视化仪表板（3000/8081 端口）
+- **CCR UI** (`ccr ui`)：完整功能的 Vue.js 3 + Axum Web 应用，提供可视化仪表板（3000/8081 端口）
 
 ## 🚀 快速开始
 
@@ -160,6 +160,30 @@ ccr web               # 🌐 启动轻量级 Web API 服务器（端口 8080）
 ccr ui                # 🎨 启动完整 CCR UI 应用（Next.js + Actix，端口 3000/8081）
 ```
 
+**4️⃣ 多平台使用:**
+
+```bash
+# 列出所有支持的平台
+ccr platform list
+
+# 切换到 Codex (GitHub Copilot)
+ccr platform switch codex
+
+# 初始化 Gemini 平台
+ccr platform init gemini
+
+# 向当前平台添加配置
+ccr add
+
+# 多平台工作流示例
+ccr platform switch claude    # 使用 Claude Code
+ccr switch my-claude-api      # 切换到特定的 Claude 配置
+ccr platform switch codex     # 切换到 Codex
+ccr switch my-github-token    # 切换到特定的 Codex 配置
+```
+
+**📖 详细的多平台设置和示例,请查看** [docs/examples/multi-platform-setup.md](docs/examples/multi-platform-setup.md)
+
 ## 📚 命令参考
 
 | 命令 | 别名 | 说明 |
@@ -187,6 +211,16 @@ ccr ui                # 🎨 启动完整 CCR UI 应用（Next.js + Actix，端�
 | `ccr update [--check]` | - | ⚡ 从 GitHub 更新 CCR（实时进度显示） |
 | `ccr version` | `ver` | ℹ️ 显示版本和功能 |
 
+**平台管理命令:**
+
+| 命令 | 说明 | 示例 |
+|------|------|------|
+| `ccr platform list` | 🌟 列出所有平台及状态和当前配置 | 显示已启用平台、当前平台标记(▶)、配置数量 |
+| `ccr platform current` | ▶️ 显示当前活动平台的详细信息 | 显示平台名称、当前配置、启用状态、最后使用时间 |
+| `ccr platform switch <name>` | 🔄 切换到不同平台(自动更新设置路径) | `ccr platform switch codex` → 从 Claude 切换到 Codex |
+| `ccr platform init <name>` | 🎬 初始化新平台及默认 profiles.toml | `ccr platform init gemini` → 创建 `~/.ccr/platforms/gemini/` |
+| `ccr platform info <name>` | ℹ️ 显示平台详细信息 | `ccr platform info claude` → 显示所有 Claude 配置和设置 |
+
 **切换操作流程：**
 1. 📖 读取并验证目标配置
 2. 💾 备份当前 settings.json
@@ -196,6 +230,7 @@ ccr ui                # 🎨 启动完整 CCR UI 应用（Next.js + Actix，端�
 
 ## 📁 文件与目录
 
+**Legacy 模式(单平台):**
 ```
 ~/.ccs_config.toml           # 📝 配置文件(与 CCS 共享)
 ~/.claude/settings.json      # 🎯 Claude Code 设置(CCR 管理)
@@ -203,6 +238,28 @@ ccr ui                # 🎨 启动完整 CCR UI 应用（Next.js + Actix，端�
 ~/.claude/backups/           # 💾 自动备份(带时间戳的 .bak 文件)
 ~/.claude/ccr_history.json   # 📚 操作审计日志
 ~/.claude/.locks/            # 🔒 文件锁(自动清理)
+```
+
+**Unified 模式(多平台):**
+```
+~/.ccr/                      # 🏠 CCR 根目录
+  ├── config.toml            # 📝 平台配置注册表
+  ├── backups/               # 💾 平台配置备份
+  ├── claude/                # 🤖 Claude Code 平台
+  │   ├── profiles.toml      # 📋 Claude 配置
+  │   ├── settings.json      # ⚙️ Claude 设置
+  │   ├── history.json       # 📚 Claude 操作历史
+  │   └── backups/           # 💾 Claude 备份
+  ├── codex/                 # 💻 Codex (GitHub Copilot) 平台
+  │   ├── profiles.toml      # 📋 Codex 配置
+  │   ├── settings.json      # ⚙️ Codex 设置
+  │   ├── history.json       # 📚 Codex 操作历史
+  │   └── backups/           # 💾 Codex 备份
+  └── gemini/                # ✨ Gemini CLI 平台
+      ├── profiles.toml      # 📋 Gemini 配置
+      ├── settings.json      # ⚙️ Gemini 设置
+      ├── history.json       # 📚 Gemini 操作历史
+      └── backups/           # 💾 Gemini 备份
 ```
 
 ## 🔧 核心功能
@@ -254,6 +311,92 @@ ccr switch duck
 - 环境变量变化(已掩码)
 - 源/目标配置 + 备份路径
 - 结果(成功/失败/警告)
+
+### 🌟 多平台配置
+
+CCR 支持从单一工具管理多个 AI CLI 平台的配置:
+
+**支持的平台:**
+
+| 平台 | 状态 | 说明 | 设置路径 |
+|------|------|------|----------|
+| **Claude Code** | ✅ 已完整实现 | Anthropic 官方 CLI | `~/.claude/settings.json` |
+| **Codex** | ✅ 已完整实现 | GitHub Copilot CLI | `~/.codex/settings.json` |
+| **Gemini CLI** | ✅ 已完整实现 | Google Gemini CLI | `~/.gemini/settings.json` |
+| **Qwen CLI** | 🚧 计划中 | 阿里巴巴通义千问 CLI | `~/.qwen/settings.json` |
+| **iFlow CLI** | 🚧 计划中 | iFlow AI CLI | `~/.iflow/settings.json` |
+
+**配置模式:**
+
+- **Legacy 模式**: 单平台(向后兼容 CCS)
+  - 使用 `~/.ccs_config.toml`
+  - 仅管理 Claude Code
+  - 与 Shell 版本的 CCS 兼容
+
+- **Unified 模式**: 多平台(v1.4+ 新功能)
+  - 使用 `~/.ccr/config.toml` 作为平台注册表
+  - 每个平台独立的 `~/.ccr/{platform}/` 目录
+  - 平台特定的配置、历史和备份
+  - 平台之间完全隔离
+
+**平台特性:**
+
+- ✅ **平台隔离**: 每个平台拥有独立的配置、历史和备份
+- ✅ **平台切换**: 使用 `ccr platform switch` 在平台间切换
+- ✅ **配置管理**: 独立管理平台特定的配置
+- ✅ **平台检测**: 根据目录结构自动检测 Unified/Legacy 模式
+- ✅ **统一历史**: 在集中式日志中跟踪所有平台的操作
+- ✅ **并发安全**: 文件锁防止多平台操作时的数据损坏
+- ✅ **自动迁移**: 轻松从 Legacy 迁移到 Unified 模式
+
+**平台检测逻辑:**
+
+CCR 自动检测使用哪种配置模式:
+
+1. **检查 `CCR_ROOT` 环境变量** → 如果已设置,使用 Unified 模式
+2. **检查 `~/.ccr/config.toml` 是否存在** → 如果存在,使用 Unified 模式
+3. **回退到 Legacy 模式** → 使用 `~/.ccs_config.toml`(向后兼容)
+
+**从 Legacy 迁移到 Unified:**
+
+```bash
+# 检查是否应该迁移
+ccr migrate --check
+
+# 迁移所有配置到 Unified 模式
+ccr migrate
+
+# 迁移特定平台
+ccr migrate --platform claude
+```
+
+**示例工作流:**
+
+```bash
+# 初始化多个平台
+ccr platform init claude
+ccr platform init codex
+ccr platform init gemini
+
+# 使用 Claude Code
+ccr platform switch claude
+ccr add                          # 添加 Claude 配置
+ccr switch my-anthropic-api      # 使用特定配置
+
+# 使用 GitHub Copilot
+ccr platform switch codex
+ccr add                          # 添加 Codex 配置
+ccr switch my-github-token       # 使用特定配置
+
+# 使用 Gemini CLI
+ccr platform switch gemini
+ccr add                          # 添加 Gemini 配置
+ccr switch my-google-api         # 使用特定配置
+
+# 查看所有平台
+ccr platform list
+```
+
 
 ### 🖥️ TUI - 终端用户界面
 
@@ -445,13 +588,14 @@ ccr-ui/               # 🌐 全栈 Web 应用
 │   │   ├── claude_config_manager.rs # 配置文件辅助工具
 │   │   └── markdown_manager.rs   # Markdown 知识库管理
 │   └── Cargo.toml
-└── frontend/         # ⚛️ Next.js 16 App Router
+└── frontend/         # ⚛️ Vue.js 3 配合 Vite
     ├── src/
-    │   ├── app/              # 路由分段（configs、commands、agents 等）
+    │   ├── views/            # 页面视图（Dashboard、Configs、Commands 等）
     │   ├── components/       # 可复用 UI 组件
-    │   └── lib/              # API 客户端与工具
+    │   ├── router/           # Vue Router 配置
+    │   └── store/            # Pinia 状态管理
     ├── package.json
-    └── next.config.mjs
+    └── vite.config.ts
 ```
 
 **命令：**

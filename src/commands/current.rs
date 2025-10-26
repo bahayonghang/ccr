@@ -1,28 +1,111 @@
 // 🔍 current 命令实现 - 显示当前配置状态
 // 📊 显示当前激活的配置详情和 Claude Code 环境变量状态
+// 🔄 支持平台感知: 显示平台信息和路径(unified 模式)
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
+use crate::managers::PlatformConfigManager;
+use crate::models::{Platform, PlatformPaths};
 use crate::services::{ConfigService, SettingsService};
 use crate::utils::Validatable;
 use colored::Colorize;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
+use std::str::FromStr;
 
 /// 🔍 显示当前配置状态
 ///
-/// 显示内容分为两部分:
-/// 1. 📝 配置文件信息
+/// 显示内容分为三部分:
+/// 1. 🔄 平台信息 (unified 模式)
+///    - 当前平台
+///    - 平台路径
+///
+/// 2. 📝 配置文件信息
 ///    - 当前配置名称
 ///    - 配置详情(描述、URL、Token、模型等)
 ///    - 配置验证状态
 ///
-/// 2. 🌍 Claude Code 环境变量状态
+/// 3. 🌍 Claude Code 环境变量状态
 ///    - ANTHROPIC_* 环境变量当前值
 ///    - 设置验证状态
 pub fn current_command() -> Result<()> {
     ColorOutput::title("当前配置状态");
+
+    // 🔍 检测配置模式
+    let unified_config = PlatformConfigManager::default()
+        .ok()
+        .and_then(|mgr| mgr.load().ok());
+    let is_unified_mode = unified_config.is_some();
+
+    println!();
+
+    // === 第零部分：平台信息 (Unified 模式) ===
+    if is_unified_mode {
+        if let Some(ref uc) = unified_config {
+            ColorOutput::step("🔄 平台信息");
+            println!();
+
+            let platform_name = &uc.current_platform;
+            let platform = Platform::from_str(platform_name)?;
+            let paths = PlatformPaths::new(platform)?;
+
+            let mut platform_table = Table::new();
+            platform_table
+                .load_preset(UTF8_FULL)
+                .set_content_arrangement(ContentArrangement::Dynamic)
+                .set_header(vec![
+                    Cell::new("属性")
+                        .add_attribute(Attribute::Bold)
+                        .fg(TableColor::Cyan),
+                    Cell::new("值")
+                        .add_attribute(Attribute::Bold)
+                        .fg(TableColor::Cyan),
+                ]);
+
+            platform_table.add_row(vec![
+                Cell::new("配置模式").fg(TableColor::Yellow),
+                Cell::new("Unified (多平台支持)")
+                    .fg(TableColor::Cyan)
+                    .add_attribute(Attribute::Bold),
+            ]);
+
+            platform_table.add_row(vec![
+                Cell::new("当前平台").fg(TableColor::Yellow),
+                Cell::new(platform_name)
+                    .fg(TableColor::Green)
+                    .add_attribute(Attribute::Bold),
+            ]);
+
+            platform_table.add_row(vec![
+                Cell::new("平台目录"),
+                Cell::new(paths.platform_dir.display().to_string()).fg(TableColor::Blue),
+            ]);
+
+            platform_table.add_row(vec![
+                Cell::new("配置文件"),
+                Cell::new(paths.profiles_file.display().to_string()).fg(TableColor::Blue),
+            ]);
+
+            platform_table.add_row(vec![
+                Cell::new("历史文件"),
+                Cell::new(paths.history_file.display().to_string()).fg(TableColor::Blue),
+            ]);
+
+            platform_table.add_row(vec![
+                Cell::new("备份目录"),
+                Cell::new(paths.backups_dir.display().to_string()).fg(TableColor::Blue),
+            ]);
+
+            println!("{}", platform_table);
+            println!();
+            ColorOutput::separator();
+            println!();
+        }
+    } else {
+        ColorOutput::info(&format!("配置模式: {} (传统模式)", "Legacy".bright_white()));
+        println!();
+    }
 
     // 使用 ConfigService
     let config_service = ConfigService::default()?;
@@ -137,13 +220,13 @@ pub fn current_command() -> Result<()> {
     }
 
     // 标签
-    if let Some(tags) = &current_info.tags {
-        if !tags.is_empty() {
-            config_table.add_row(vec![
-                Cell::new("标签"),
-                Cell::new(format!("🏷️  {}", tags.join(", "))).fg(TableColor::Magenta),
-            ]);
-        }
+    if let Some(tags) = &current_info.tags
+        && !tags.is_empty()
+    {
+        config_table.add_row(vec![
+            Cell::new("标签"),
+            Cell::new(format!("🏷️  {}", tags.join(", "))).fg(TableColor::Magenta),
+        ]);
     }
 
     // 验证状态
@@ -213,12 +296,10 @@ pub fn current_command() -> Result<()> {
                                     var_name.contains("TOKEN") || var_name.contains("KEY");
                                 let display_value = if is_sensitive {
                                     ColorOutput::mask_sensitive(v)
+                                } else if v.len() > 40 {
+                                    format!("{}...", &v[..37])
                                 } else {
-                                    if v.len() > 40 {
-                                        format!("{}...", &v[..37])
-                                    } else {
-                                        v.to_string()
-                                    }
+                                    v.to_string()
                                 };
                                 (
                                     Cell::new(display_value).fg(TableColor::Blue),

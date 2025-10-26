@@ -2,11 +2,116 @@
 
 CCR 提供了强大而灵活的配置管理功能。本页面详细介绍配置文件格式、环境变量管理、备份策略等高级功能。
 
+## 配置模式
+
+CCR 支持两种配置模式，可根据您的使用场景选择：
+
+### Legacy 模式 (单平台)
+
+传统的 CCR 配置模式，使用单一配置文件:
+
+```
+~/.ccs_config.toml        # 所有配置在一个文件中
+~/.claude/settings.json   # 仅管理 Claude Code 设置
+```
+
+**适用场景:**
+- 仅使用 Claude Code
+- 需要与 Shell 版本 CCS 共存
+- 简单快速的配置管理
+
+### Unified 模式 (多平台)
+
+现代化的多平台配置模式 (v1.4+):
+
+```
+~/.ccr/
+  ├── config.toml                      # 平台注册表
+  └── platforms/
+      ├── claude/
+      │   ├── profiles.toml            # Claude 配置
+      │   ├── history.json             # Claude 历史
+      │   └── backups/                 # Claude 备份
+      ├── codex/
+      │   ├── profiles.toml            # Codex 配置
+      │   ├── history.json             # Codex 历史
+      │   └── backups/                 # Codex 备份
+      └── gemini/
+          ├── profiles.toml            # Gemini 配置
+          ├── history.json             # Gemini 历史
+          └── backups/                 # Gemini 备份
+```
+
+**适用场景:**
+- 使用多个 AI CLI 平台 (Claude, Codex, Gemini)
+- 需要平台间完全隔离
+- 更好的组织和管理
+
+### 模式检测
+
+CCR 自动检测使用哪种模式:
+
+1. **检查 `CCR_ROOT` 环境变量** → 如果设置,使用 Unified 模式
+2. **检查 `~/.ccr/config.toml` 是否存在** → 如果存在,使用 Unified 模式
+3. **回退到 Legacy 模式** → 使用 `~/.ccs_config.toml` (向后兼容)
+
+### 模式迁移
+
+从 Legacy 迁移到 Unified 模式:
+
+```bash
+# 检查是否应该迁移
+ccr migrate --check
+
+# 迁移所有配置
+ccr migrate
+
+# 迁移特定平台
+ccr migrate --platform claude
+```
+
+## 多平台支持
+
+CCR 支持管理多个 AI CLI 平台的配置:
+
+| 平台 | 状态 | 说明 | 设置路径 |
+|------|------|------|----------|
+| **Claude Code** | ✅ 已完整实现 | Anthropic 官方 CLI | `~/.claude/settings.json` |
+| **Codex** | ✅ 已完整实现 | GitHub Copilot CLI | `~/.codex/settings.json` |
+| **Gemini CLI** | ✅ 已完整实现 | Google Gemini CLI | `~/.gemini/settings.json` |
+| **Qwen CLI** | 🚧 计划中 | 阿里通义千问 CLI | `~/.qwen/settings.json` |
+| **iFlow CLI** | 🚧 计划中 | iFlow AI CLI | `~/.iflow/settings.json` |
+
+### 平台管理命令
+
+```bash
+# 列出所有平台
+ccr platform list
+
+# 切换平台
+ccr platform switch codex
+
+# 查看当前平台
+ccr platform current
+
+# 初始化新平台
+ccr platform init gemini
+
+# 查看平台详情
+ccr platform info claude
+```
+
+详见 [平台指南](platforms/README.md) 了解各平台的详细配置。
+
 ## 配置文件格式
 
-CCR 使用 TOML 格式的配置文件 `~/.ccs_config.toml`,与 CCS 完全兼容。
+CCR 使用 TOML 格式的配置文件。
 
-### 基本结构
+### Legacy 模式: `~/.ccs_config.toml`
+
+与 CCS 完全兼容的单文件配置:
+
+#### 基本结构
 
 ```toml
 # 全局设置
@@ -27,6 +132,101 @@ description = "AnyRouter Proxy Service"
 base_url = "https://api.anyrouter.ai/v1"
 auth_token = "your-anyrouter-token"
 model = "claude-sonnet-4-5-20250929"
+```
+
+### Unified 模式配置文件
+
+Unified 模式使用多个配置文件，每个平台独立管理:
+
+#### 平台注册表: `~/.ccr/config.toml`
+
+```toml
+default_platform = "claude"
+current_platform = "claude"
+
+[claude]
+enabled = true
+current_profile = "husan"
+description = "Claude Code AI Assistant"
+last_used = "2025-10-26T02:55:43.041424381+00:00"
+
+[codex]
+enabled = true
+current_profile = "github"
+description = "GitHub Copilot CLI"
+last_used = "2025-10-26T02:55:51.284931252+00:00"
+
+[gemini]
+enabled = true
+current_profile = "google"
+description = "Google Gemini CLI"
+last_used = "2025-10-25T15:18:58.727924189+00:00"
+```
+
+#### 平台配置: `~/.ccr/platforms/{platform}/profiles.toml`
+
+每个平台都有自己的 profiles.toml 文件:
+
+**Claude 平台配置** (`~/.ccr/platforms/claude/profiles.toml`):
+
+```toml
+default_config = "anyrouter"
+current_config = "husan"
+
+[settings]
+skip_confirmation = false
+
+[anyrouter]
+description = "AnyRouter 主服务"
+base_url = "https://anyrouter.top"
+auth_token = "sk-xxx"
+provider = "anyrouter"
+provider_type = "official_relay"
+tags = ["free", "stable"]
+
+[husan]
+description = "虎三api"
+base_url = "https://husanai.com"
+auth_token = "sk-xxx"
+provider = "husan"
+provider_type = "official_relay"
+tags = ["paid", "high-speed"]
+```
+
+**Codex 平台配置** (`~/.ccr/platforms/codex/profiles.toml`):
+
+```toml
+default_config = "github"
+current_config = "github"
+
+[settings]
+skip_confirmation = false
+
+[github]
+description = "GitHub Copilot Official"
+base_url = "https://api.github.com/copilot"
+auth_token = "ghp_xxx"
+model = "gpt-4"
+small_fast_model = "gpt-3.5-turbo"
+provider = "GitHub"
+```
+
+**Gemini 平台配置** (`~/.ccr/platforms/gemini/profiles.toml`):
+
+```toml
+default_config = "google"
+current_config = "google"
+
+[settings]
+skip_confirmation = false
+
+[google]
+description = "Google Gemini Official"
+base_url = "https://generativelanguage.googleapis.com/v1"
+auth_token = "AIzaSy_xxx"
+model = "gemini-2.0-flash-exp"
+small_fast_model = "gemini-1.5-flash"
+provider = "Google"
 ```
 
 ### 字段说明

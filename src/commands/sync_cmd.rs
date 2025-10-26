@@ -19,10 +19,8 @@ pub fn sync_config_command() -> Result<()> {
     println!();
 
     // 1. WebDAV 服务器地址
-    let webdav_url = prompt_with_default(
-        "WebDAV 服务器地址",
-        Some("https://dav.jianguoyun.com/dav/"),
-    )?;
+    let webdav_url =
+        prompt_with_default("WebDAV 服务器地址", Some("https://dav.jianguoyun.com/dav/"))?;
 
     // 2. 用户名
     let username = prompt_required("用户名/邮箱", "例如: user@example.com")?;
@@ -91,8 +89,8 @@ pub fn sync_config_command() -> Result<()> {
 /// 📊 显示同步状态
 pub fn sync_status_command() -> Result<()> {
     use colored::*;
-    use comfy_table::{Table, Cell, Color as TableColor, Attribute};
-    
+    use comfy_table::{Attribute, Cell, Color as TableColor, Table};
+
     ColorOutput::title("☁️  WebDAV 同步状态");
     println!();
 
@@ -108,43 +106,39 @@ pub fn sync_status_command() -> Result<()> {
                 Cell::new("配置项").add_attribute(Attribute::Bold),
                 Cell::new("值").add_attribute(Attribute::Bold),
             ]);
-            
+
             // 状态行
             table.add_row(vec![
                 Cell::new("状态"),
-                Cell::new("✓ 已启用").fg(TableColor::Green).add_attribute(Attribute::Bold),
+                Cell::new("✓ 已启用")
+                    .fg(TableColor::Green)
+                    .add_attribute(Attribute::Bold),
             ]);
-            
+
             // WebDAV 服务器
             let url_display = if sync_config.webdav_url.len() > 50 {
                 format!("{}...", &sync_config.webdav_url[..47])
             } else {
                 sync_config.webdav_url.clone()
             };
-            table.add_row(vec![
-                Cell::new("WebDAV 服务器"),
-                Cell::new(url_display),
-            ]);
-            
+            table.add_row(vec![Cell::new("WebDAV 服务器"), Cell::new(url_display)]);
+
             // 用户名
-            table.add_row(vec![
-                Cell::new("用户名"),
-                Cell::new(&sync_config.username),
-            ]);
-            
+            table.add_row(vec![Cell::new("用户名"), Cell::new(&sync_config.username)]);
+
             // 密码（掩码）
             let masked_pwd = format!("{}...", &"*".repeat(8));
             table.add_row(vec![
                 Cell::new("密码"),
                 Cell::new(masked_pwd).fg(TableColor::DarkGrey),
             ]);
-            
+
             // 远程路径
             table.add_row(vec![
                 Cell::new("远程路径"),
                 Cell::new(&sync_config.remote_path),
             ]);
-            
+
             // 自动同步
             let auto_sync_text = if sync_config.auto_sync {
                 "✓ 开启"
@@ -160,14 +154,14 @@ pub fn sync_status_command() -> Result<()> {
                 Cell::new("自动同步"),
                 Cell::new(auto_sync_text).fg(auto_sync_color),
             ]);
-            
+
             println!("{}", table);
             println!();
 
             // 检查远程文件状态
             print!("🔍 正在检查远程文件...");
             std::io::Write::flush(&mut std::io::stdout()).unwrap();
-            
+
             let runtime = tokio::runtime::Runtime::new()
                 .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
 
@@ -202,18 +196,17 @@ pub fn sync_status_command() -> Result<()> {
 /// 🔼 上传配置到云端
 pub fn sync_push_command(force: bool) -> Result<()> {
     use colored::*;
-    
+
     ColorOutput::title("🔼  上传配置到云端");
     println!();
 
     let manager = ConfigManager::default()?;
     let config = manager.load()?;
 
-    let sync_config = config
-        .settings
-        .sync
-        .as_ref()
-        .ok_or_else(|| CcrError::SyncError("同步功能未配置，请先运行 'ccr sync config'".into()))?;
+    let sync_config =
+        config.settings.sync.as_ref().ok_or_else(|| {
+            CcrError::SyncError("同步功能未配置，请先运行 'ccr sync config'".into())
+        })?;
 
     if !sync_config.enabled {
         return Err(CcrError::SyncError("同步功能已禁用".into()));
@@ -226,7 +219,7 @@ pub fn sync_push_command(force: bool) -> Result<()> {
     if !force {
         print!("🔍 正在检查远程文件...");
         io::stdout().flush().unwrap();
-        
+
         let exists = runtime.block_on(async {
             let service = SyncService::new(sync_config).await?;
             service.remote_exists().await
@@ -249,7 +242,11 @@ pub fn sync_push_command(force: bool) -> Result<()> {
             }
             println!();
         } else {
-            println!("{}  {}", "ℹ".blue().bold(), "远程文件不存在，将创建新文件".blue());
+            println!(
+                "{}  {}",
+                "ℹ".blue().bold(),
+                "远程文件不存在，将创建新文件".blue()
+            );
             println!();
         }
     }
@@ -277,18 +274,17 @@ pub fn sync_push_command(force: bool) -> Result<()> {
 /// 🔽 从云端下载配置
 pub fn sync_pull_command(force: bool) -> Result<()> {
     use colored::*;
-    
+
     ColorOutput::title("🔽  从云端下载配置");
     println!();
 
     let manager = ConfigManager::default()?;
     let config = manager.load()?;
 
-    let sync_config = config
-        .settings
-        .sync
-        .as_ref()
-        .ok_or_else(|| CcrError::SyncError("同步功能未配置，请先运行 'ccr sync config'".into()))?;
+    let sync_config =
+        config.settings.sync.as_ref().ok_or_else(|| {
+            CcrError::SyncError("同步功能未配置，请先运行 'ccr sync config'".into())
+        })?;
 
     if !sync_config.enabled {
         return Err(CcrError::SyncError("同步功能已禁用".into()));
@@ -296,7 +292,11 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
 
     // 备份本地配置
     if !force {
-        println!("{}  {}", "⚠".yellow().bold(), "此操作将覆盖本地配置文件".yellow());
+        println!(
+            "{}  {}",
+            "⚠".yellow().bold(),
+            "此操作将覆盖本地配置文件".yellow()
+        );
         println!();
         print!("   是否继续？本地配置将被备份 {} ", "(y/N):".dimmed());
         io::stdout().flush().unwrap();
@@ -317,7 +317,10 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     let backup_path = manager.backup(Some("before_pull"))?;
     print!("\r");
     println!("{}  {}", "✓".green().bold(), "本地配置已备份".green());
-    println!("   📁 备份位置: {}", backup_path.display().to_string().dimmed());
+    println!(
+        "   📁 备份位置: {}",
+        backup_path.display().to_string().dimmed()
+    );
     println!();
 
     print!("⬇️  正在从云端下载配置...");
@@ -333,7 +336,11 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     })?;
 
     print!("\r");
-    println!("{}  {}", "✓".green().bold(), "配置已从云端下载并应用".green());
+    println!(
+        "{}  {}",
+        "✓".green().bold(),
+        "配置已从云端下载并应用".green()
+    );
     println!();
     println!("📊 同步信息:");
     println!("   • 远程路径: {}", sync_config.remote_path.cyan());
@@ -390,10 +397,10 @@ fn prompt_with_default(field_name: &str, default: Option<&str>) -> Result<String
     let trimmed = input.trim();
     println!();
 
-    if trimmed.is_empty() {
-        if let Some(def) = default {
-            return Ok(def.to_string());
-        }
+    if trimmed.is_empty()
+        && let Some(def) = default
+    {
+        return Ok(def.to_string());
     }
 
     Ok(trimmed.to_string())

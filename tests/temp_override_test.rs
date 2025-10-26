@@ -1,9 +1,7 @@
 // 🎯 临时Token功能集成测试
 // 测试临时配置覆盖功能的完整工作流程
 
-use ccr::{
-    ConfigManager, ConfigSection, SettingsManager, TempOverride, TempOverrideManager,
-};
+use ccr::{ConfigManager, ConfigSection, SettingsManager, TempOverride, TempOverrideManager};
 use tempfile::TempDir;
 
 /// 创建测试环境
@@ -152,9 +150,10 @@ fn test_temp_override_no_interference_with_other_vars() {
         "ANTHROPIC_AUTH_TOKEN".to_string(),
         "sk-original".to_string(),
     );
-    settings
-        .env
-        .insert("ANTHROPIC_BASE_URL".to_string(), "https://original.com".to_string());
+    settings.env.insert(
+        "ANTHROPIC_BASE_URL".to_string(),
+        "https://original.com".to_string(),
+    );
     settings
         .env
         .insert("OTHER_VAR".to_string(), "keep-this".to_string());

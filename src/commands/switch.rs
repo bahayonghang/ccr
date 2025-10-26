@@ -1,45 +1,114 @@
 // 🔄 switch 命令实现 - 切换配置
 // 💎 这是 CCR 最核心的命令,负责完整的配置切换流程
+// 🔄 支持平台感知: 在 unified 模式下从平台配置加载
 //
 // 执行流程(5 个步骤):
-// 1. 📖 读取并验证目标配置
+// 1. 📖 读取并验证目标配置 (Legacy 或 Unified 模式)
 // 2. 💾 备份当前 settings.json
 // 3. ✏️ 更新 Claude Code 设置
-// 4. 📝 更新 ccs_config 当前配置标记
+// 4. 📝 更新配置文件当前配置标记
 // 5. 📚 记录操作历史(带环境变量变化)
 
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
-use crate::managers::config::ConfigManager;
+use crate::managers::PlatformConfigManager;
+use crate::managers::config::{ConfigManager, ConfigSection};
 use crate::managers::history::{
     HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
 };
 use crate::managers::settings::SettingsManager;
+use crate::models::Platform;
+use crate::platforms::create_platform;
 use crate::utils::Validatable;
 use colored::Colorize;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
+use std::str::FromStr;
 
 /// 🔄 切换到指定配置
 ///
 /// 这是一个原子性操作,确保配置切换的完整性和可追溯性
+/// 支持 Legacy 和 Unified 两种模式
 pub fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::title(&format!("切换配置: {}", config_name));
     println!();
 
-    // 📖 步骤 1: 读取并校验目标配置
-    ColorOutput::step("步骤 1/5: 读取配置文件");
-    let config_manager = ConfigManager::default()?;
-    let mut config = config_manager.load()?;
+    // 🔍 检测配置模式
+    let unified_config = PlatformConfigManager::default()
+        .ok()
+        .and_then(|mgr| mgr.load().ok());
+    let is_unified_mode = unified_config.is_some();
 
-    let target_section = config
-        .get_section(config_name)
-        .map_err(|_| {
-            ColorOutput::error(&format!("配置 '{}' 不存在", config_name));
+    // 📖 步骤 1: 读取并校验目标配置 (根据模式选择来源)
+    ColorOutput::step("步骤 1/5: 读取配置文件");
+
+    let target_section: ConfigSection = if is_unified_mode {
+        // Unified 模式: 从平台配置加载
+        let uc = unified_config
+            .as_ref()
+            .ok_or_else(|| CcrError::ConfigError("Unified 配置未找到".to_string()))?;
+        let platform_name = &uc.current_platform;
+        let platform = Platform::from_str(platform_name)?;
+
+        ColorOutput::info(&format!(
+            "使用 {} 模式 (平台: {})",
+            "Unified".bright_cyan(),
+            platform_name.bright_yellow()
+        ));
+
+        // 从平台配置加载 profile
+        let platform_config = create_platform(platform).map_err(|e| {
+            CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e))
+        })?;
+
+        // 加载所有 profiles
+        let profiles = platform_config.load_profiles()?;
+
+        // 查找目标 profile
+        let profile = profiles.get(config_name).ok_or_else(|| {
+            ColorOutput::error(&format!(
+                "配置 '{}' 在平台 {} 中不存在",
+                config_name, platform_name
+            ));
             CcrError::ConfigSectionNotFound(config_name.to_string())
-        })?
-        .clone();
+        })?;
+
+        // 转换 ProfileConfig 为 ConfigSection
+        ConfigSection {
+            description: profile.description.clone(),
+            base_url: profile.base_url.clone(),
+            auth_token: profile.auth_token.clone(),
+            model: profile.model.clone(),
+            small_fast_model: profile.small_fast_model.clone(),
+            provider: profile.provider.clone(),
+            provider_type: profile.provider_type.as_ref().and_then(|pt| {
+                // 尝试从字符串转换回 ProviderType
+                use crate::managers::config::ProviderType;
+                match pt.as_str() {
+                    "official_relay" => Some(ProviderType::OfficialRelay),
+                    "third_party_model" => Some(ProviderType::ThirdPartyModel),
+                    _ => None,
+                }
+            }),
+            account: profile.account.clone(),
+            tags: profile.tags.clone(),
+        }
+    } else {
+        // Legacy 模式: 从 ccs_config 加载
+        ColorOutput::info(&format!("使用 {} 模式", "Legacy".bright_white()));
+
+        let config_manager = ConfigManager::default()?;
+        let config = config_manager.load()?;
+
+        config
+            .get_section(config_name)
+            .map_err(|_| {
+                ColorOutput::error(&format!("配置 '{}' 不存在", config_name));
+                CcrError::ConfigSectionNotFound(config_name.to_string())
+            })?
+            .clone()
+    };
 
     // 验证目标配置
     target_section.validate().map_err(|e| {
@@ -83,12 +152,44 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::success("✅ Claude Code 设置已更新");
     println!();
 
-    // 📝 步骤 4: 更新 ccs_config 的 current_config 标记
+    // 📝 步骤 4: 更新配置文件 (根据模式选择目标)
     ColorOutput::step("步骤 4/5: 更新配置文件");
-    let old_config = config.current_config.clone();
-    config.set_current(config_name)?;
-    config_manager.save(&config)?;
-    ColorOutput::success(&format!("✅ 当前配置已设置为: {}", config_name));
+
+    let old_config_name: String = if is_unified_mode {
+        // Unified 模式: 更新平台配置的 current_profile
+        let uc = unified_config.unwrap();
+        let platform_name = &uc.current_platform;
+        let platform = Platform::from_str(platform_name)?;
+
+        let platform_config = create_platform(platform).map_err(|e| {
+            CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e))
+        })?;
+
+        let old_current = platform_config.get_current_profile()?.unwrap_or_default();
+
+        // 应用 profile (这会设置当前profile并保存)
+        platform_config.apply_profile(config_name)?;
+
+        ColorOutput::success(&format!(
+            "✅ 平台 {} 的当前配置已设置为: {}",
+            platform_name, config_name
+        ));
+
+        old_current
+    } else {
+        // Legacy 模式: 更新 ccs_config 的 current_config
+        let config_manager = ConfigManager::default()?;
+        let mut config = config_manager.load()?;
+
+        let old_current = config.current_config.clone();
+        config.set_current(config_name)?;
+        config_manager.save(&config)?;
+
+        ColorOutput::success(&format!("✅ 当前配置已设置为: {}", config_name));
+
+        old_current
+    };
+
     println!();
 
     // 📚 步骤 5: 记录历史(包含环境变量变化的掩码记录)
@@ -98,10 +199,10 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     let mut history_entry = HistoryEntry::new(
         OperationType::Switch,
         OperationDetails {
-            from_config: if old_config.is_empty() {
+            from_config: if old_config_name.is_empty() {
                 None
             } else {
-                Some(old_config.clone())
+                Some(old_config_name.clone())
             },
             to_config: Some(config_name.to_string()),
             backup_path,
@@ -223,13 +324,13 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     }
 
     // 标签（如果有）
-    if let Some(tags) = &target_section.tags {
-        if !tags.is_empty() {
-            config_table.add_row(vec![
-                Cell::new("标签"),
-                Cell::new(format!("🏷️  {}", tags.join(", "))).fg(TableColor::Magenta),
-            ]);
-        }
+    if let Some(tags) = &target_section.tags
+        && !tags.is_empty()
+    {
+        config_table.add_row(vec![
+            Cell::new("标签"),
+            Cell::new(format!("🏷️  {}", tags.join(", "))).fg(TableColor::Magenta),
+        ]);
     }
 
     println!("{}", config_table);
@@ -342,7 +443,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     println!();
     ColorOutput::info(&format!(
         "💡 提示: 从 {} {} 切换到 {} {}",
-        old_config.dimmed(),
+        old_config_name.dimmed(),
         "→".dimmed(),
         config_name.bright_green().bold(),
         "✓".bright_green()

@@ -9,6 +9,7 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | Feature | Description |
 |---------|-------------|
 | 🎯 **Direct Settings Control** | Directly writes to `~/.claude/settings.json` - changes take effect immediately |
+| 🌟 **Multi-Platform Support** | Manage configs for Claude Code, Codex (GitHub Copilot), Gemini CLI, and more from one tool |
 | 📊 **Beautiful Table UI** | Display config info with comfy-table, compare configs at a glance with color highlights and icons |
 | 🖥️ **Interactive TUI** | Full-featured terminal UI with 3 tabs (Configs/History/System) and keyboard navigation |
 | 🔒 **Concurrency Safe** | File locking + atomic operations prevent corruption across multiple processes |
@@ -18,7 +19,7 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | ✅ **Validation** | Comprehensive config validation (URLs, required fields, format) |
 | 🔤 **Config Optimization** | Sort configs alphabetically, maintain order after switching |
 | 🌐 **Web Server** | Built-in Axum web server exposing 14 RESTful API endpoints (config, history, backups, system info, etc.) |
-| 🖥️ **Full-Stack Web UI** | Next.js 16 (React 19) + Axum application for visual management |
+| 🖥️ **Full-Stack Web UI** | Vue.js 3 + Axum application for visual management with support for multi-platform config |
 | 🏗️ **Modern Architecture** | Service layer pattern, modular design, 95%+ test coverage |
 | ⚡ **Smart Update** | Real-time progress display during auto-update |
 | 🔄 **CCS Compatible** | Shares `~/.ccs_config.toml` - seamlessly coexist with shell version |
@@ -45,13 +46,13 @@ cargo install --path .
 
 ## 🌐 CCR UI - Full-Stack Web Application
 
-CCR UI is a modern **Next.js + Axum** full-stack application for CCR management!
+CCR UI is a modern **Vue.js 3 + Axum** full-stack application for CCR management!
 
-The App Router frontend delivers a React 19 experience with Tailwind-driven UI, while the Actix backend wraps the CCR CLI and exposes extended management APIs for MCP servers, slash commands, agents, and plugins.
+The Vue.js 3 frontend delivers a reactive experience with TypeScript and Tailwind-driven UI, while the Axum backend wraps the CCR CLI and exposes extended management APIs for MCP servers, slash commands, agents, and plugins.
 
 ### Features
 
-- ⚛️ **Next.js Frontend**: Next.js 16 (React 19) App Router with TypeScript and Tailwind CSS
+- ⚛️ **Vue.js 3 Frontend**: Vue.js 3.5 with Composition API, TypeScript and Tailwind CSS
 - 🦀 **Axum Backend**: High-performance Rust async web server
 - 🖥️ **Config Management**: Visual config switching and validation
 - 💻 **Command Executor**: Execute all 13 CCR commands with visual output
@@ -68,7 +69,7 @@ The App Router frontend delivers a React 19 experience with Tailwind-driven UI, 
 # First time use - auto-download and start
 ccr ui
 
-# 💬 Prompt: CCR UI is a full Next.js + Actix Web application
+# 💬 Prompt: CCR UI is a full Vue.js 3 + Axum Web application
 #    It will be downloaded to:
 #    /home/user/.ccr/ccr-ui/
 #
@@ -113,7 +114,7 @@ just quick-start    # Check prereqs + Install + Start
 - **CLI Tool**: Best for scripting, automation, and quick operations (`ccr switch`, `ccr list`, etc.)
 - **TUI** (`ccr tui`): Terminal-based interactive interface with keyboard navigation
 - **Web Server** (`ccr web`): Built-in lightweight Axum API server (port 8080) for programmatic access
-- **CCR UI** (`ccr ui`): Full-featured Next.js + Actix web application with visual dashboard (ports 3000/8081)
+- **CCR UI** (`ccr ui`): Full-featured Vue.js 3 + Axum web application with visual dashboard (ports 3000/8081)
 
 ## 🚀 Quick Start
 
@@ -157,8 +158,32 @@ ccr sync push         # 🔼 Upload config to cloud
 ccr sync pull         # 🔽 Download config from cloud
 ccr tui               # 🖥️ Launch interactive TUI (recommended for visual management!)
 ccr web               # 🌐 Launch lightweight web API (port 8080)
-ccr ui                # 🎨 Launch full CCR UI application (Next.js + Actix, ports 3000/8081)
+ccr ui                # 🎨 Launch full CCR UI application (Vue.js 3 + Axum, ports 3000/8081)
 ```
+
+**4️⃣ Multi-Platform Usage:**
+
+```bash
+# List all supported platforms
+ccr platform list
+
+# Switch to Codex (GitHub Copilot)
+ccr platform switch codex
+
+# Initialize Gemini platform
+ccr platform init gemini
+
+# Add a profile to current platform
+ccr add
+
+# Multi-platform workflow example
+ccr platform switch claude    # Work with Claude Code
+ccr switch my-claude-api      # Switch to specific Claude profile
+ccr platform switch codex     # Switch to Codex
+ccr switch my-github-token    # Switch to specific Codex profile
+```
+
+**📖 For detailed multi-platform setup and examples, see** [docs/examples/multi-platform-setup.md](docs/examples/multi-platform-setup.md)
 
 ## 📚 Commands
 
@@ -187,6 +212,16 @@ ccr ui                # 🎨 Launch full CCR UI application (Next.js + Actix, po
 | `ccr update [--check]` | - | ⚡ Update CCR from GitHub (with real-time progress) |
 | `ccr version` | `ver` | ℹ️ Show version and features |
 
+**Platform Management Commands:**
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `ccr platform list` | 🌟 List all platforms with status and current profile | Shows enabled platforms, current platform marker (▶), profiles count |
+| `ccr platform current` | ▶️ Display detailed info about current active platform | Shows platform name, current profile, enabled status, last used time |
+| `ccr platform switch <name>` | 🔄 Switch to different platform (auto-updates settings path) | `ccr platform switch codex` → switches from Claude to Codex |
+| `ccr platform init <name>` | 🎬 Initialize new platform with default profiles.toml | `ccr platform init gemini` → creates `~/.ccr/platforms/gemini/` |
+| `ccr platform info <name>` | ℹ️ Show detailed platform information | `ccr platform info claude` → shows all Claude profiles and settings |
+
 **Switch operation flow:**
 1. 📖 Read and validate target config
 2. 💾 Backup current settings.json
@@ -196,6 +231,7 @@ ccr ui                # 🎨 Launch full CCR UI application (Next.js + Actix, po
 
 ## 📁 Files & Directories
 
+**Legacy Mode (Single Platform):**
 ```
 ~/.ccs_config.toml           # 📝 Config file (shared with CCS)
 ~/.claude/settings.json      # 🎯 Claude Code settings (CCR manages this)
@@ -203,6 +239,28 @@ ccr ui                # 🎨 Launch full CCR UI application (Next.js + Actix, po
 ~/.claude/backups/           # 💾 Auto backups (timestamped .bak files)
 ~/.claude/ccr_history.json   # 📚 Operation audit log
 ~/.claude/.locks/            # 🔒 File locks (auto-cleanup)
+```
+
+**Unified Mode (Multi-Platform):**
+```
+~/.ccr/                      # 🏠 CCR root directory
+  ├── config.toml            # 📝 Platform configuration registry
+  ├── backups/               # 💾 Platform config backups
+  ├── claude/                # 🤖 Claude Code platform
+  │   ├── profiles.toml      # 📋 Claude profiles
+  │   ├── settings.json      # ⚙️ Claude settings
+  │   ├── history.json       # 📚 Claude operation history
+  │   └── backups/           # 💾 Claude backups
+  ├── codex/                 # 💻 Codex (GitHub Copilot) platform
+  │   ├── profiles.toml      # 📋 Codex profiles
+  │   ├── settings.json      # ⚙️ Codex settings
+  │   ├── history.json       # 📚 Codex operation history
+  │   └── backups/           # 💾 Codex backups
+  └── gemini/                # ✨ Gemini CLI platform
+      ├── profiles.toml      # 📋 Gemini profiles
+      ├── settings.json      # ⚙️ Gemini settings
+      ├── history.json       # 📚 Gemini operation history
+      └── backups/           # 💾 Gemini backups
 ```
 
 ## 🔧 Key Features
@@ -214,6 +272,91 @@ CCR manages these variables in `settings.json`:
 - `ANTHROPIC_AUTH_TOKEN` - Auth token (auto-masked in display/logs)
 - `ANTHROPIC_MODEL` - Default model
 - `ANTHROPIC_SMALL_FAST_MODEL` - Fast model (optional)
+
+### 🌟 Multi-Platform Configuration
+
+CCR supports managing configurations for multiple AI CLI platforms from a single tool:
+
+**Supported Platforms:**
+
+| Platform | Status | Description | Settings Path |
+|----------|--------|-------------|---------------|
+| **Claude Code** | ✅ Fully Implemented | Anthropic's official CLI | `~/.claude/settings.json` |
+| **Codex** | ✅ Fully Implemented | GitHub Copilot CLI | `~/.codex/settings.json` |
+| **Gemini CLI** | ✅ Fully Implemented | Google Gemini CLI | `~/.gemini/settings.json` |
+| **Qwen CLI** | 🚧 Planned | Alibaba Qwen CLI | `~/.qwen/settings.json` |
+| **iFlow CLI** | 🚧 Planned | iFlow AI CLI | `~/.iflow/settings.json` |
+
+**Configuration Modes:**
+
+- **Legacy Mode**: Single platform (backward compatible with CCS)
+  - Uses `~/.ccs_config.toml`
+  - Only manages Claude Code
+  - Compatible with shell-based CCS
+
+- **Unified Mode**: Multi-platform (new in v1.4+)
+  - Uses `~/.ccr/config.toml` for platform registry
+  - Separate `~/.ccr/{platform}/` directories for each platform
+  - Platform-specific profiles, history, and backups
+  - Complete isolation between platforms
+
+**Platform Features:**
+
+- ✅ **Platform Isolation**: Each platform has separate profiles, history, and backups
+- ✅ **Platform Switching**: Switch between platforms with `ccr platform switch`
+- ✅ **Profile Management**: Manage platform-specific profiles independently
+- ✅ **Platform Detection**: Auto-detect Unified/Legacy mode based on directory structure
+- ✅ **Unified History**: Track operations across all platforms in centralized log
+- ✅ **Concurrent Safety**: File locks prevent corruption during multi-platform operations
+- ✅ **Automatic Migration**: Easy migration from Legacy to Unified mode
+
+**Platform Detection Logic:**
+
+CCR automatically detects which configuration mode to use:
+
+1. **Check `CCR_ROOT` environment variable** → If set, use Unified mode
+2. **Check `~/.ccr/config.toml` existence** → If exists, use Unified mode
+3. **Fallback to Legacy mode** → Use `~/.ccs_config.toml` (backward compatible)
+
+**Migration from Legacy to Unified:**
+
+```bash
+# Check if you should migrate
+ccr migrate --check
+
+# Migrate all profiles to Unified mode
+ccr migrate
+
+# Migrate specific platform
+ccr migrate --platform claude
+```
+
+**Example Workflow:**
+
+```bash
+# Initialize multiple platforms
+ccr platform init claude
+ccr platform init codex
+ccr platform init gemini
+
+# Work with Claude Code
+ccr platform switch claude
+ccr add                          # Add Claude profile
+ccr switch my-anthropic-api      # Use specific profile
+
+# Work with GitHub Copilot
+ccr platform switch codex
+ccr add                          # Add Codex profile
+ccr switch my-github-token       # Use specific profile
+
+# Work with Gemini CLI
+ccr platform switch gemini
+ccr add                          # Add Gemini profile
+ccr switch my-google-api         # Use specific profile
+
+# View all platforms
+ccr platform list
+```
 
 ### 🎯 Temporary Token Override
 
@@ -445,13 +588,14 @@ ccr-ui/               # 🌐 Full-Stack Web Application
 │   │   ├── claude_config_manager.rs # Config file helpers
 │   │   └── markdown_manager.rs   # Markdown knowledge base utilities
 │   └── Cargo.toml
-└── frontend/         # ⚛️ Next.js 16 App Router
+└── frontend/         # ⚛️ Vue.js 3 with Vite
     ├── src/
-    │   ├── app/              # Route segments (configs, commands, agents, ...)
+    │   ├── views/            # Page views (Dashboard, Configs, Commands, etc.)
     │   ├── components/       # Reusable UI components
-    │   └── lib/              # API clients & helpers
+    │   ├── router/           # Vue Router configuration
+    │   └── store/            # Pinia state management
     ├── package.json
-    └── next.config.mjs
+    └── vite.config.ts
 ```
 
 **Commands:**

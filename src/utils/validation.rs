@@ -11,8 +11,7 @@ use crate::core::error::Result;
 /// # Examples
 ///
 /// ```
-/// use ccr::utils::Validatable;
-/// use ccr::error::Result;
+/// use ccr::{Validatable, CcrError, Result};
 ///
 /// struct MyConfig {
 ///     name: String,

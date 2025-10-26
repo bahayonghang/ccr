@@ -3,9 +3,9 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::fs;
 
 /// GitHub 仓库信息
 const GITHUB_REPO: &str = "bahayonghang/ccr";
@@ -47,14 +47,12 @@ impl UiService {
     /// 2. CCR 项目根目录下的 ccr-ui/
     fn detect_ccr_ui_path() -> Option<PathBuf> {
         // 尝试当前目录
-        let current_dir_ui = std::env::current_dir()
-            .ok()
-            .map(|p| p.join("ccr-ui"));
+        let current_dir_ui = std::env::current_dir().ok().map(|p| p.join("ccr-ui"));
 
-        if let Some(ref path) = current_dir_ui {
-            if path.exists() && path.join("justfile").exists() {
-                return Some(path.clone());
-            }
+        if let Some(ref path) = current_dir_ui
+            && path.exists() && path.join("justfile").exists()
+        {
+            return Some(path.clone());
         }
 
         // 尝试父目录 (适用于在 ccr/src 等子目录运行的情况)
@@ -62,10 +60,10 @@ impl UiService {
             .ok()
             .and_then(|p| p.parent().map(|parent| parent.join("ccr-ui")));
 
-        if let Some(ref path) = parent_dir_ui {
-            if path.exists() && path.join("justfile").exists() {
-                return Some(path.clone());
-            }
+        if let Some(ref path) = parent_dir_ui
+            && path.exists() && path.join("justfile").exists()
+        {
+            return Some(path.clone());
         }
 
         None
@@ -83,19 +81,13 @@ impl UiService {
 
         // 优先级 1: 检查开发环境（当前目录的 ccr-ui/）
         if let Some(ref ccr_ui_path) = self.ccr_ui_path {
-            ColorOutput::info(&format!(
-                "📁 检测到开发环境: {}",
-                ccr_ui_path.display()
-            ));
+            ColorOutput::info(&format!("📁 检测到开发环境: {}", ccr_ui_path.display()));
             return self.start_dev_mode(ccr_ui_path, port, backend_port);
         }
 
         // 优先级 2: 检查用户目录下载版本（~/.ccr/ccr-ui/）
         if self.ui_dir.exists() && self.ui_dir.join("justfile").exists() {
-            ColorOutput::info(&format!(
-                "📁 检测到用户目录版本: {}",
-                self.ui_dir.display()
-            ));
+            ColorOutput::info(&format!("📁 检测到用户目录版本: {}", self.ui_dir.display()));
             return self.start_dev_mode(&self.ui_dir, port, backend_port);
         }
 
@@ -164,10 +156,7 @@ impl UiService {
             Ok(output) => {
                 if output.status.success() {
                     let version = String::from_utf8_lossy(&output.stdout);
-                    ColorOutput::success(&format!(
-                        "✅ just 已安装: {}",
-                        version.trim()
-                    ));
+                    ColorOutput::success(&format!("✅ just 已安装: {}", version.trim()));
                     Ok(())
                 } else {
                     self.prompt_install_just()
@@ -363,9 +352,8 @@ impl UiService {
             .ok_or_else(|| CcrError::ConfigError("无法获取父目录".to_string()))?;
 
         if !parent_dir.exists() {
-            create_dir_all(parent_dir).map_err(|e| {
-                CcrError::ConfigError(format!("创建目录失败: {}", e))
-            })?;
+            create_dir_all(parent_dir)
+                .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
         }
 
         // 创建临时目录用于克隆
@@ -423,9 +411,8 @@ impl UiService {
 
         // 如果目标目录已存在，先删除
         if self.ui_dir.exists() {
-            fs::remove_dir_all(&self.ui_dir).map_err(|e| {
-                CcrError::ConfigError(format!("删除旧目录失败: {}", e))
-            })?;
+            fs::remove_dir_all(&self.ui_dir)
+                .map_err(|e| CcrError::ConfigError(format!("删除旧目录失败: {}", e)))?;
         }
 
         // 复制 ccr-ui 目录到目标位置
@@ -449,11 +436,10 @@ impl UiService {
                 .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
         }
 
-        for entry in fs::read_dir(src)
-            .map_err(|e| CcrError::ConfigError(format!("读取目录失败: {}", e)))?
+        for entry in
+            fs::read_dir(src).map_err(|e| CcrError::ConfigError(format!("读取目录失败: {}", e)))?
         {
-            let entry = entry
-                .map_err(|e| CcrError::ConfigError(format!("读取条目失败: {}", e)))?;
+            let entry = entry.map_err(|e| CcrError::ConfigError(format!("读取条目失败: {}", e)))?;
             let path = entry.path();
             let file_name = entry.file_name();
             let dst_path = dst.join(&file_name);
@@ -485,18 +471,14 @@ impl UiService {
     #[allow(dead_code)]
     fn download_and_install(&self) -> Result<()> {
         ColorOutput::info("📥 预构建版本下载功能将在未来版本中实现");
-        Err(CcrError::ConfigError(
-            "预构建版本功能尚未实现".to_string(),
-        ))
+        Err(CcrError::ConfigError("预构建版本功能尚未实现".to_string()))
     }
 
     /// 🚀 启动本地预构建版本 (预留)
     #[allow(dead_code)]
     fn start_local(&self, _port: u16, _backend_port: u16) -> Result<()> {
         ColorOutput::info("🚀 预构建版本启动功能将在未来版本中实现");
-        Err(CcrError::ConfigError(
-            "预构建版本功能尚未实现".to_string(),
-        ))
+        Err(CcrError::ConfigError("预构建版本功能尚未实现".to_string()))
     }
 }
 

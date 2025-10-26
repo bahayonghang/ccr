@@ -144,10 +144,10 @@ impl Validatable for ConfigSection {
         }
 
         // 🤖 检查 model(可选,如果提供了则不能为空)
-        if let Some(model) = &self.model {
-            if model.trim().is_empty() {
-                return Err(CcrError::ValidationError("model 不能为空字符串".into()));
-            }
+        if let Some(model) = &self.model
+            && model.trim().is_empty()
+        {
+            return Err(CcrError::ValidationError("model 不能为空字符串".into()));
         }
 
         Ok(())
@@ -493,18 +493,42 @@ impl ConfigManager {
     /// 🏠 使用默认配置路径创建管理器
     ///
     /// 默认路径: ~/.ccs_config.toml
-    /// 
+    ///
     /// ⚙️ **开发者注意**：
     /// 可以通过环境变量 `CCR_CONFIG_PATH` 覆盖默认路径
     /// 这样在开发时不会影响本地真实配置
-    /// 
+    ///
     /// 示例：
     /// ```bash
     /// export CCR_CONFIG_PATH=/tmp/ccr_dev_config.toml
     /// cargo run -- init
     /// ```
     pub fn default() -> Result<Self> {
-        // 🔍 检查环境变量
+        // 🔍 首先检测是否为 Unified 模式
+        let (is_unified, unified_config_path) = Self::detect_unified_mode();
+
+        if is_unified {
+            // 📦 Unified 模式：读取平台配置，获取当前平台的 profiles 路径
+            if let Some(ref unified_path) = unified_config_path {
+                let unified_root = unified_path.parent()
+                    .ok_or_else(|| CcrError::ConfigError("无法获取 CCR 根目录".into()))?;
+
+                // 读取统一配置文件以获取当前平台
+                let platform_config_manager = crate::managers::PlatformConfigManager::new(unified_path.clone());
+                if let Ok(unified_config) = platform_config_manager.load() {
+                    let platform = &unified_config.current_platform;
+                    let platform_profiles_path = unified_root
+                        .join("platforms")
+                        .join(platform)
+                        .join("profiles.toml");
+
+                    log::debug!("🔄 Unified 模式: 使用平台 {} 的配置路径: {:?}", platform, platform_profiles_path);
+                    return Ok(Self::new(platform_profiles_path));
+                }
+            }
+        }
+
+        // 🔍 Legacy 模式或 Unified 配置加载失败：检查环境变量
         let config_path = if let Ok(custom_path) = std::env::var("CCR_CONFIG_PATH") {
             std::path::PathBuf::from(custom_path)
         } else {
@@ -512,8 +536,8 @@ impl ConfigManager {
                 .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
             home.join(".ccs_config.toml")
         };
-        
-        log::debug!("使用配置路径: {:?}", config_path);
+
+        log::debug!("📁 Legacy 模式: 使用配置路径: {:?}", config_path);
         Ok(Self::new(config_path))
     }
 
@@ -610,22 +634,22 @@ impl ConfigManager {
 
         // 🧹 自动清理旧备份(只保留最近10个)
         const MAX_BACKUPS: usize = 10;
-        if let Ok(backups) = self.list_backups() {
-            if backups.len() > MAX_BACKUPS {
-                let to_delete = &backups[MAX_BACKUPS..];
-                for old_backup in to_delete {
-                    if let Err(e) = fs::remove_file(old_backup) {
-                        log::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
-                    } else {
-                        log::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
-                    }
+        if let Ok(backups) = self.list_backups()
+            && backups.len() > MAX_BACKUPS
+        {
+            let to_delete = &backups[MAX_BACKUPS..];
+            for old_backup in to_delete {
+                if let Err(e) = fs::remove_file(old_backup) {
+                    log::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
+                } else {
+                    log::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
                 }
-                log::info!(
-                    "🧹 已自动清理 {} 个旧配置备份,保留最近 {} 个",
-                    to_delete.len(),
-                    MAX_BACKUPS
-                );
             }
+            log::info!(
+                "🧹 已自动清理 {} 个旧配置备份,保留最近 {} 个",
+                to_delete.len(),
+                MAX_BACKUPS
+            );
         }
 
         Ok(backup_path)
@@ -664,10 +688,10 @@ impl ConfigManager {
 
             // 🔍 只收集配置文件的 .bak 文件
             // 例如: .ccs_config.toml.20240101_120000.bak
-            if let Some(name) = filename {
-                if path.is_file() && name.starts_with(config_filename) && name.ends_with(".bak") {
-                    backups.push(path);
-                }
+            if let Some(name) = filename
+                && path.is_file() && name.starts_with(config_filename) && name.ends_with(".bak")
+            {
+                backups.push(path);
             }
         }
 
@@ -680,6 +704,117 @@ impl ConfigManager {
 
         Ok(backups)
     }
+
+    // === 🆕 多平台支持和迁移检测方法 ===
+
+    /// 🔍 检测是否启用了统一模式
+    ///
+    /// 统一模式特征:
+    /// 1. 环境变量 CCR_ROOT 已设置
+    /// 2. ~/.ccr/ 目录存在
+    /// 3. ~/.ccr/config.toml 文件存在
+    ///
+    /// 返回 (is_unified_mode, unified_config_path)
+    pub fn detect_unified_mode() -> (bool, Option<PathBuf>) {
+        // 1. 检查环境变量
+        if let Ok(ccr_root) = std::env::var("CCR_ROOT") {
+            let root_path = PathBuf::from(ccr_root);
+            let config_path = root_path.join("config.toml");
+            return (true, Some(config_path));
+        }
+
+        // 2. 检查默认统一配置路径
+        if let Some(home) = dirs::home_dir() {
+            let unified_root = home.join(".ccr");
+            let unified_config = unified_root.join("config.toml");
+
+            if unified_root.exists() && unified_config.exists() {
+                return (true, Some(unified_config));
+            }
+        }
+
+        (false, None)
+    }
+
+    /// 🔄 检测是否应该迁移到统一模式
+    ///
+    /// 迁移条件:
+    /// 1. Legacy 配置文件存在 (~/.ccs_config.toml)
+    /// 2. 统一模式配置不存在
+    /// 3. 配置中有多个配置节（值得迁移）
+    pub fn should_migrate(&self) -> Result<bool> {
+        // ✅ Legacy 配置必须存在
+        if !self.config_path.exists() {
+            return Ok(false);
+        }
+
+        // ✅ 如果统一模式已启用，不需要迁移
+        let (is_unified, _) = Self::detect_unified_mode();
+        if is_unified {
+            return Ok(false);
+        }
+
+        // ✅ 加载配置检查配置节数量
+        let config = self.load()?;
+
+        // 如果有 2 个或更多配置节，建议迁移
+        // (单个配置节迁移意义不大)
+        Ok(config.sections.len() >= 2)
+    }
+
+    /// 📊 获取迁移状态信息
+    ///
+    /// 返回迁移相关的详细信息
+    pub fn get_migration_status(&self) -> MigrationStatus {
+        let (is_unified, unified_path) = Self::detect_unified_mode();
+        let legacy_exists = self.config_path.exists();
+
+        let legacy_section_count = if legacy_exists {
+            self.load().ok().map(|c| c.sections.len()).unwrap_or(0)
+        } else {
+            0
+        };
+
+        MigrationStatus {
+            is_unified_mode: is_unified,
+            legacy_config_exists: legacy_exists,
+            legacy_config_path: self.config_path.clone(),
+            unified_config_path: unified_path,
+            legacy_section_count,
+            should_migrate: self.should_migrate().unwrap_or(false),
+        }
+    }
+
+    /// 🎯 获取当前配置模式
+    ///
+    /// 返回 "Legacy" 或 "Unified"
+    #[allow(dead_code)]
+    pub fn get_current_mode() -> &'static str {
+        let (is_unified, _) = Self::detect_unified_mode();
+        if is_unified { "Unified" } else { "Legacy" }
+    }
+}
+
+/// 📊 迁移状态信息
+#[derive(Debug, Clone)]
+pub struct MigrationStatus {
+    /// 是否已启用统一模式
+    pub is_unified_mode: bool,
+
+    /// Legacy 配置是否存在
+    pub legacy_config_exists: bool,
+
+    /// Legacy 配置路径
+    pub legacy_config_path: PathBuf,
+
+    /// 统一配置路径(如果存在)
+    pub unified_config_path: Option<PathBuf>,
+
+    /// Legacy 配置节数量
+    pub legacy_section_count: usize,
+
+    /// 是否应该迁移
+    pub should_migrate: bool,
 }
 
 #[cfg(test)]

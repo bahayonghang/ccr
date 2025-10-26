@@ -1,0 +1,132 @@
+# 🎯 Gemini CLI Profiles 配置示例
+# 📍 位置: ~/.ccr/platforms/gemini/profiles.toml
+#
+# 此文件管理 Gemini CLI 平台的多个配置 profiles
+# 每个 profile 代表一个独立的 API 配置
+
+# ═══════════════════════════════════════════════════════════
+# Google Official (默认)
+# ═══════════════════════════════════════════════════════════
+[google]
+description = "Google Gemini Official API"
+base_url = "https://generativelanguage.googleapis.com/v1"
+auth_token = "AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  # Google API Key
+model = "gemini-2.0-flash-exp"
+small_fast_model = "gemini-1.5-flash"
+
+# 可选字段
+provider = "Google"
+provider_type = "official"
+account = "your-google-account@gmail.com"
+tags = ["official", "production"]
+
+# ═══════================================================================
+# Google Vertex AI (企业版)
+# ═══================================================================
+[vertex-ai]
+description = "Google Vertex AI Gemini"
+base_url = "https://us-central1-aiplatform.googleapis.com/v1"
+auth_token = "ya29.xxxxxxxxxxxxxxxxxxxxxx"  # OAuth 2.0 Token
+model = "gemini-pro"
+small_fast_model = "gemini-pro-vision"
+
+provider = "Google Cloud"
+provider_type = "enterprise"
+account = "vertex-ai-project-id"
+tags = ["enterprise", "vertex-ai", "work"]
+
+# Vertex AI 特定配置
+project_id = "my-gcp-project"
+location = "us-central1"
+
+# ═══════════════════════════════════════════════════════════
+# Gemini Pro Experimental (实验性功能)
+# ═══════════════════════════════════════════════════════════
+[gemini-pro-exp]
+description = "Gemini Pro with Experimental Features"
+base_url = "https://generativelanguage.googleapis.com/v1beta"
+auth_token = "AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+model = "gemini-2.0-flash-thinking-exp"
+small_fast_model = "gemini-1.5-flash-8b"
+
+provider = "Google"
+provider_type = "experimental"
+tags = ["experimental", "beta", "testing"]
+
+# 实验性参数
+enable_code_execution = true
+enable_search = true
+
+# ═══════════════════════════════════════════════════════════
+# Development (开发环境)
+# ═══════════════════════════════════════════════════════════
+[dev]
+description = "Development Environment with Mock API"
+base_url = "http://localhost:3000/api/gemini"
+auth_token = "dev-api-key-1234567890"
+model = "gemini-mock"
+
+provider = "Local"
+provider_type = "development"
+tags = ["dev", "local", "testing"]
+
+# ═══════════════════════════════════════════════════════════
+# OpenRouter Proxy (第三方代理)
+# ═══════════════════════════════════════════════════════════
+[openrouter]
+description = "Gemini via OpenRouter Proxy"
+base_url = "https://openrouter.ai/api/v1"
+auth_token = "sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx"
+model = "google/gemini-pro-1.5"
+small_fast_model = "google/gemini-flash-1.5"
+
+provider = "OpenRouter"
+provider_type = "proxy"
+account = "openrouter-user"
+tags = ["proxy", "openrouter"]
+
+# OpenRouter 特定配置
+http_referer = "https://your-app.com"
+x_title = "My CCR App"
+
+# ═══════════════════════════════════════════════════════════
+# 使用说明
+# ═══════════════════════════════════════════════════════════
+#
+# 1. 切换到 Gemini 平台:
+#    ccr platform switch gemini
+#
+# 2. 应用 profile (需要实现 gemini 相关命令):
+#    ccr gemini switch vertex-ai
+#
+# 3. 查看所有 profiles:
+#    ccr gemini list
+#
+# 4. 添加新 profile:
+#    ccr gemini add my-profile
+#
+# 字段说明:
+#   - description: Profile 描述（可选）
+#   - base_url: API 基础 URL（必需）
+#   - auth_token: 认证令牌/API Key（必需）
+#   - model: 默认使用的模型（必需）
+#   - small_fast_model: 快速小模型（可选）
+#   - provider: 提供商名称（可选）
+#   - provider_type: 提供商类型 (official/enterprise/proxy/development)（可选）
+#   - account: 账号标识（可选）
+#   - tags: 标签列表（可选）
+#   - 其他字段: 平台特定的扩展字段（可选，存储在 platform_data）
+#
+# Gemini 特定字段:
+#   - project_id: GCP 项目 ID (Vertex AI)
+#   - location: GCP 区域 (Vertex AI)
+#   - enable_code_execution: 启用代码执行（实验性）
+#   - enable_search: 启用搜索功能（实验性）
+#   - http_referer: HTTP Referer (OpenRouter)
+#   - x_title: 应用标题 (OpenRouter)
+#
+# 注意:
+#   - auth_token/API Key 是敏感信息，请妥善保管
+#   - Vertex AI 需要配置 OAuth 2.0 认证
+#   - 实验性功能可能不稳定，仅用于测试
+#   - 日志和历史记录中的 token 会被自动掩码

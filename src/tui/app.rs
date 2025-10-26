@@ -210,22 +210,20 @@ impl App {
                 match self.current_tab {
                     TabState::Configs => {
                         // 检查配置列表长度
-                        if let Ok(config_list) = self.config_service.list_configs() {
-                            if !config_list.configs.is_empty()
-                                && self.config_list_index < config_list.configs.len() - 1
-                            {
-                                self.config_list_index += 1;
-                            }
+                        if let Ok(config_list) = self.config_service.list_configs()
+                            && !config_list.configs.is_empty()
+                            && self.config_list_index < config_list.configs.len() - 1
+                        {
+                            self.config_list_index += 1;
                         }
                     }
                     TabState::History => {
                         // 检查历史列表长度
-                        if let Ok(history_list) = self.history_service.get_recent(100) {
-                            if !history_list.is_empty()
-                                && self.history_list_index < history_list.len() - 1
-                            {
-                                self.history_list_index += 1;
-                            }
+                        if let Ok(history_list) = self.history_service.get_recent(100)
+                            && !history_list.is_empty()
+                            && self.history_list_index < history_list.len() - 1
+                        {
+                            self.history_list_index += 1;
                         }
                     }
                     _ => {}
@@ -342,7 +340,10 @@ impl App {
     fn delete_config(&mut self) {
         // TUI 中删除配置需要启用自动确认模式（安全措施）
         if !self.auto_confirm_mode {
-            self.set_status("⚠️ Press [Y] to enable Auto-Confirm mode before deleting".to_string(), true);
+            self.set_status(
+                "⚠️ Press [Y] to enable Auto-Confirm mode before deleting".to_string(),
+                true,
+            );
             return;
         }
 
@@ -366,13 +367,19 @@ impl App {
 
         // 不允许删除当前配置
         if selected_config.is_current {
-            self.set_status(format!("❌ Cannot delete current config: {}", config_name), true);
+            self.set_status(
+                format!("❌ Cannot delete current config: {}", config_name),
+                true,
+            );
             return;
         }
 
         // 不允许删除默认配置
         if selected_config.is_default {
-            self.set_status(format!("❌ Cannot delete default config: {}", config_name), true);
+            self.set_status(
+                format!("❌ Cannot delete default config: {}", config_name),
+                true,
+            );
             return;
         }
 

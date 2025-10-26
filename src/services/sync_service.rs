@@ -9,10 +9,10 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::managers::config::SyncConfig;
-use reqwest_dav::{Auth, Client, ClientBuilder, Depth, Error as DavError};
 use reqwest_dav::re_exports::reqwest::StatusCode;
-use std::path::Path;
+use reqwest_dav::{Auth, Client, ClientBuilder, Depth, Error as DavError};
 use std::fs;
+use std::path::Path;
 
 /// ☁️ WebDAV 同步服务
 ///
@@ -42,9 +42,7 @@ impl SyncService {
                 config.password.clone(),
             ))
             .build()
-            .map_err(|e| {
-                CcrError::SyncError(format!("创建 WebDAV 客户端失败: {}", e))
-            })?;
+            .map_err(|e| CcrError::SyncError(format!("创建 WebDAV 客户端失败: {}", e)))?;
 
         Ok(Self {
             client,
@@ -80,9 +78,8 @@ impl SyncService {
         log::info!("🔼 上传配置到 WebDAV: {}", self.remote_path);
 
         // 📄 读取本地文件
-        let content = fs::read(local_path).map_err(|e| {
-            CcrError::SyncError(format!("读取本地配置失败: {}", e))
-        })?;
+        let content = fs::read(local_path)
+            .map_err(|e| CcrError::SyncError(format!("读取本地配置失败: {}", e)))?;
 
         // 📁 确保远程目录存在
         self.ensure_remote_dir().await?;
@@ -122,9 +119,8 @@ impl SyncService {
             .map_err(|e| CcrError::SyncError(format!("读取响应内容失败: {}", e)))?;
 
         // 💾 保存到本地
-        fs::write(local_path, content).map_err(|e| {
-            CcrError::SyncError(format!("保存配置到本地失败: {}", e))
-        })?;
+        fs::write(local_path, content)
+            .map_err(|e| CcrError::SyncError(format!("保存配置到本地失败: {}", e)))?;
 
         log::info!("✅ 配置已从云端下载");
         Ok(())
@@ -137,9 +133,7 @@ impl SyncService {
         match self.client.get(&self.remote_path).await {
             Ok(_) => Ok(true),
             // 文件不存在（404）
-            Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::NOT_FOUND) => {
-                Ok(false)
-            }
+            Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::NOT_FOUND) => Ok(false),
             // 父目录不存在（409 - Conflict）或其他 Decode 错误
             // 坚果云在父目录不存在时返回 409 + AncestorsNotFound
             Err(DavError::Decode(_)) => {
@@ -173,9 +167,7 @@ impl SyncService {
                 log::debug!("✅ 远程目录已创建");
                 Ok(())
             }
-            Err(DavError::Reqwest(e))
-                if e.status() == Some(StatusCode::METHOD_NOT_ALLOWED) =>
-            {
+            Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::METHOD_NOT_ALLOWED) => {
                 // 目录已存在，这不是错误
                 log::debug!("ℹ️ 远程目录已存在");
                 Ok(())
@@ -190,15 +182,11 @@ impl SyncService {
             DavError::Reqwest(e) => {
                 if let Some(status) = e.status() {
                     match status {
-                        StatusCode::UNAUTHORIZED => {
-                            "认证失败：用户名或密码错误".to_string()
-                        }
+                        StatusCode::UNAUTHORIZED => "认证失败：用户名或密码错误".to_string(),
                         StatusCode::NOT_FOUND => {
                             format!("文件不存在: {}", self.remote_path)
                         }
-                        StatusCode::FORBIDDEN => {
-                            "权限不足：无法访问该资源".to_string()
-                        }
+                        StatusCode::FORBIDDEN => "权限不足：无法访问该资源".to_string(),
                         _ => format!("HTTP 错误 {}: {}", status, e),
                     }
                 } else {

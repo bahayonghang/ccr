@@ -1,6 +1,26 @@
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+These instructions are for AI assistants working in this project.
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
+
+Keep this managed block so 'openspec update' can refresh the instructions.
+
+<!-- OPENSPEC:END -->
+
 # CCR - Claude Code Configuration Switcher
 
 ## Change Log (Changelog)
+- **2025-10-25 [Current]**: Added comprehensive multi-platform configuration documentation
 - **2025-10-22 10:39:28 CST**: Documentation refresh - corrected frontend path after Vue.js migration
 - **2025-10-22 00:04:36 CST**: Initial AI context documentation created
 
@@ -41,6 +61,208 @@ CLI/Web Layer → Services → Managers → Core/Utils
 - **Frontend**: Vue.js 3.5 + TypeScript + Tailwind CSS + Vite
 - **Serialization**: Serde + TOML + JSON
 - **Testing**: 95%+ coverage with integration tests
+
+## Multi-Platform Configuration Support
+
+CCR supports managing configurations for multiple AI CLI platforms from a unified interface. This allows you to:
+
+- **Switch between platforms** seamlessly (Claude, Codex, Gemini)
+- **Manage multiple profiles** per platform
+- **Maintain separate settings** for each platform
+- **Track history** independently per platform
+- **Backup and restore** platform-specific configurations
+
+### Supported Platforms
+
+| Platform | Status | Description | Settings Path |
+|----------|--------|-------------|---------------|
+| **Claude Code** | ✅ Fully Implemented | Anthropic's official CLI | `~/.claude/settings.json` |
+| **Codex** | ✅ Fully Implemented | GitHub Copilot CLI | `~/.codex/settings.json` |
+| **Gemini** | ✅ Fully Implemented | Google Gemini CLI | `~/.gemini/settings.json` |
+| **Qwen** | 🚧 Planned | Alibaba Tongyi Qianwen CLI | TBD |
+| **iFlow** | 🚧 Planned | iFlow CLI | TBD |
+
+### Configuration Modes
+
+CCR supports two configuration modes:
+
+#### 1. Legacy Mode (Single Platform)
+
+Traditional CCR setup with a single configuration file:
+
+```
+~/.ccs_config.toml    # All configurations in one file
+~/.claude/            # Claude Code settings only
+```
+
+**Use when**: You only use Claude Code and want to keep it simple.
+
+#### 2. Unified Mode (Multi-Platform)
+
+Modern CCR setup with per-platform organization:
+
+```
+~/.ccr/
+├── config.toml                      # Platform registry
+├── platforms/
+│   ├── claude/
+│   │   ├── profiles.toml            # Claude profiles
+│   │   ├── history/                 # Claude operation history
+│   │   └── backups/                 # Claude backups
+│   ├── codex/
+│   │   ├── profiles.toml            # Codex profiles
+│   │   ├── history/
+│   │   └── backups/
+│   └── gemini/
+│       ├── profiles.toml            # Gemini profiles
+│       ├── history/
+│       └── backups/
+~/.claude/settings.json              # Claude actual settings
+~/.codex/settings.json               # Codex actual settings
+~/.gemini/settings.json              # Gemini actual settings
+```
+
+**Use when**: You use multiple AI CLI platforms or want better organization.
+
+### Platform Commands
+
+CCR provides dedicated commands for platform management:
+
+```bash
+# Platform initialization
+ccr platform init <platform>         # Initialize a platform
+ccr platform list                    # List all platforms
+ccr platform switch <platform>       # Switch to a platform
+ccr platform current                 # Show current platform
+ccr platform info <platform>         # Show platform info
+
+# Profile management (platform-aware)
+ccr list                             # List profiles for current platform
+ccr switch <profile>                 # Switch profile in current platform
+ccr add                              # Add profile to current platform
+ccr delete <profile>                 # Delete profile from current platform
+```
+
+### Migration from Legacy to Unified
+
+To migrate from Legacy mode to Unified mode:
+
+```bash
+# Check if migration is needed
+ccr migrate --check
+
+# Migrate all platforms
+ccr migrate
+
+# Migrate specific platform
+ccr migrate --platform claude
+```
+
+### Platform Detection Logic
+
+CCR automatically detects which mode to use based on:
+
+1. **Environment variable**: If `CCR_ROOT` is set → Unified mode
+2. **Config file exists**: If `~/.ccr/config.toml` exists → Unified mode
+3. **Otherwise**: Legacy mode (backward compatible)
+
+### Example: Multi-Platform Workflow
+
+```bash
+# 1. Initialize platforms
+ccr platform init claude
+ccr platform init codex
+ccr platform init gemini
+
+# 2. Add profiles for Claude
+ccr platform switch claude
+ccr add  # Interactive profile creation
+
+# 3. Add profiles for Codex
+ccr platform switch codex
+ccr add  # Interactive profile creation
+
+# 4. Switch between platforms
+ccr platform switch claude    # Work with Claude
+ccr platform switch codex     # Work with Codex
+ccr platform current          # Check current platform
+
+# 5. Each platform maintains independent:
+# - Profiles
+# - History
+# - Backups
+# - Settings
+```
+
+### Platform-Specific Configuration
+
+Each platform has its own profile structure optimized for its needs:
+
+**Claude Profiles** (`~/.ccr/platforms/claude/profiles.toml`):
+```toml
+[anthropic]
+description = "Anthropic Official API"
+base_url = "https://api.anthropic.com"
+auth_token = "sk-ant-api03-..."
+model = "claude-sonnet-4-5-20250929"
+small_fast_model = "claude-3-5-haiku-20241022"
+provider = "Anthropic"
+```
+
+**Codex Profiles** (`~/.ccr/platforms/codex/profiles.toml`):
+```toml
+[github]
+description = "GitHub Copilot Official"
+base_url = "https://api.github.com/copilot"
+auth_token = "ghp_..."
+model = "gpt-4"
+small_fast_model = "gpt-3.5-turbo"
+provider = "GitHub"
+```
+
+**Gemini Profiles** (`~/.ccr/platforms/gemini/profiles.toml`):
+```toml
+[google]
+description = "Google Gemini Official"
+base_url = "https://generativelanguage.googleapis.com/v1"
+auth_token = "AIzaSy..."
+model = "gemini-2.0-flash-exp"
+small_fast_model = "gemini-1.5-flash"
+provider = "Google"
+```
+
+### Platform Isolation
+
+Each platform operates in complete isolation:
+
+- ✅ **Separate profiles**: No naming conflicts between platforms
+- ✅ **Independent history**: Each platform tracks its own operations
+- ✅ **Isolated backups**: Platform backups don't interfere
+- ✅ **Dedicated settings**: Each platform has its own settings file
+- ✅ **Concurrent safety**: File locks prevent corruption
+
+### Testing Multi-Platform Features
+
+All platform tests are located in `/tests/`:
+
+```bash
+# Platform unit tests (22 tests) - must run serially
+cargo test --test platform_tests -- --test-threads=1
+
+# Integration tests (10 tests) - must run serially
+cargo test --test platform_integration_tests -- --test-threads=1
+
+# Regression tests (15 tests) - must run serially
+cargo test --test platform_regression_tests -- --test-threads=1
+
+# All library tests (93 tests) - can run in parallel
+cargo test --lib
+
+# Doc tests (13 tests) - can run in parallel
+cargo test --doc
+```
+
+⚠️ **Important**: Platform tests modify global environment variables and must run serially (`--test-threads=1`) to avoid conflicts.
 
 ## Module Structure Diagram
 

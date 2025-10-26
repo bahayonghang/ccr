@@ -99,19 +99,19 @@ impl SettingsService {
 
         let mut backups = Vec::new();
         for path in backup_paths {
-            if let Ok(metadata) = std::fs::metadata(&path) {
-                if let Ok(modified) = metadata.modified() {
-                    backups.push(BackupInfo {
-                        filename: path
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .to_string(),
-                        path: path.clone(),
-                        size_bytes: metadata.len(),
-                        created_at: modified,
-                    });
-                }
+            if let Ok(metadata) = std::fs::metadata(&path)
+                && let Ok(modified) = metadata.modified()
+            {
+                backups.push(BackupInfo {
+                    filename: path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string(),
+                    path: path.clone(),
+                    size_bytes: metadata.len(),
+                    created_at: modified,
+                });
             }
         }
 

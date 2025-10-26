@@ -121,10 +121,10 @@ pub fn add_command() -> Result<()> {
     if let Some(acc) = &section.account {
         println!("  账号: {}", acc);
     }
-    if let Some(t) = &section.tags {
-        if !t.is_empty() {
-            println!("  标签: {}", t.join(", "));
-        }
+    if let Some(t) = &section.tags
+        && !t.is_empty()
+    {
+        println!("  标签: {}", t.join(", "));
     }
     println!();
 
@@ -241,6 +241,5 @@ mod tests {
     fn test_add_command_structure() {
         // 测试命令结构是否正确
         // 实际的交互式测试需要手动进行
-        assert!(true);
     }
 }

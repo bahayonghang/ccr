@@ -10,6 +10,8 @@
 mod commands;
 mod core;
 mod managers;
+mod models;
+mod platforms;
 mod services;
 mod tui;
 mod utils;
@@ -301,6 +303,32 @@ enum Commands {
         #[command(subcommand)]
         action: TempTokenAction,
     },
+
+    /// 多平台管理
+    ///
+    /// 管理和切换不同的 AI CLI 平台 (Claude, Codex, Gemini 等)
+    /// 示例: ccr platform list
+    ///       ccr platform switch codex
+    ///       ccr platform current
+    Platform {
+        #[command(subcommand)]
+        action: PlatformAction,
+    },
+
+    /// 配置迁移
+    ///
+    /// 将 Legacy 模式配置迁移到 Unified 模式
+    /// 示例: ccr migrate --check      # 检查迁移状态
+    ///       ccr migrate              # 执行迁移
+    Migrate {
+        /// 仅检查迁移状态，不实际执行迁移 (dry-run 模式)
+        #[arg(short, long)]
+        check: bool,
+
+        /// 只迁移指定平台的配置
+        #[arg(short, long)]
+        platform: Option<String>,
+    },
 }
 
 /// 🎯 临时Token操作子命令
@@ -336,6 +364,64 @@ enum TempTokenAction {
     /// 删除所有临时配置覆盖
     /// 示例: ccr temp-token clear
     Clear,
+}
+
+/// 🎯 平台管理操作子命令
+#[derive(Subcommand)]
+enum PlatformAction {
+    /// 列出所有可用平台
+    ///
+    /// 显示所有支持的 AI CLI 平台及其状态
+    /// 示例: ccr platform list
+    /// 示例: ccr platform list --json
+    List {
+        /// 以 JSON 格式输出 (用于脚本和工具集成)
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// 切换到指定平台
+    ///
+    /// 切换当前激活的平台
+    /// 示例: ccr platform switch codex
+    Switch {
+        /// 平台名称 (claude, codex, gemini, qwen, iflow)
+        platform_name: String,
+    },
+
+    /// 显示当前平台信息
+    ///
+    /// 查看当前激活平台的详细信息
+    /// 示例: ccr platform current
+    /// 示例: ccr platform current --json
+    Current {
+        /// 以 JSON 格式输出 (用于脚本和工具集成)
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// 显示平台详细信息
+    ///
+    /// 查看指定平台的配置和状态
+    /// 示例: ccr platform info claude
+    /// 示例: ccr platform info claude --json
+    Info {
+        /// 平台名称
+        platform_name: String,
+
+        /// 以 JSON 格式输出 (用于脚本和工具集成)
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// 初始化平台配置
+    ///
+    /// 为指定平台创建配置目录结构
+    /// 示例: ccr platform init codex
+    Init {
+        /// 平台名称
+        platform_name: String,
+    },
 }
 
 /// ☁️ 同步操作子命令
@@ -447,6 +533,27 @@ fn main() {
             TempTokenAction::Show => commands::temp_token_show(),
             TempTokenAction::Clear => commands::temp_token_clear(),
         },
+        Some(Commands::Platform { action }) => match action {
+            PlatformAction::List { json } => commands::platform_list_command(json),
+            PlatformAction::Switch { platform_name } => {
+                commands::platform_switch_command(&platform_name)
+            }
+            PlatformAction::Current { json } => commands::platform_current_command(json),
+            PlatformAction::Info {
+                platform_name,
+                json,
+            } => commands::platform_info_command(&platform_name, json),
+            PlatformAction::Init { platform_name } => {
+                commands::platform_init_command(&platform_name)
+            }
+        },
+        Some(Commands::Migrate { check, platform }) => {
+            if check {
+                commands::migrate_check_command()
+            } else {
+                commands::migrate_command(false, platform.as_deref())
+            }
+        }
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {

@@ -8,10 +8,12 @@
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
-use crate::managers::temp_override::{TempOverride, TempOverrideManager};
 use crate::managers::SettingsManager;
+use crate::managers::temp_override::{TempOverride, TempOverrideManager};
 use crate::utils::mask_sensitive;
-use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL};
+use comfy_table::{
+    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
+};
 
 /// 🎯 设置临时token
 ///
@@ -25,11 +27,7 @@ use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement, Tabl
 /// 2. 应用临时覆盖
 /// 3. 保存 settings.json
 /// 4. 立即清除临时配置（不保存到文件）
-pub fn temp_token_set(
-    token: &str,
-    base_url: Option<String>,
-    model: Option<String>,
-) -> Result<()> {
+pub fn temp_token_set(token: &str, base_url: Option<String>, model: Option<String>) -> Result<()> {
     ColorOutput::title("设置临时 Token");
     println!();
 
@@ -48,19 +46,28 @@ pub fn temp_token_set(
 
     // 应用临时覆盖到当前设置
     if let Some(temp_token) = &temp_override.auth_token {
-        current_settings.env.insert("ANTHROPIC_AUTH_TOKEN".to_string(), temp_token.clone());
+        current_settings
+            .env
+            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), temp_token.clone());
     }
 
     if let Some(temp_base_url) = &temp_override.base_url {
-        current_settings.env.insert("ANTHROPIC_BASE_URL".to_string(), temp_base_url.clone());
+        current_settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".to_string(), temp_base_url.clone());
     }
 
     if let Some(temp_model) = &temp_override.model {
-        current_settings.env.insert("ANTHROPIC_MODEL".to_string(), temp_model.clone());
+        current_settings
+            .env
+            .insert("ANTHROPIC_MODEL".to_string(), temp_model.clone());
     }
 
     if let Some(temp_small_model) = &temp_override.small_fast_model {
-        current_settings.env.insert("ANTHROPIC_SMALL_FAST_MODEL".to_string(), temp_small_model.clone());
+        current_settings.env.insert(
+            "ANTHROPIC_SMALL_FAST_MODEL".to_string(),
+            temp_small_model.clone(),
+        );
     }
 
     // 保存更新后的设置

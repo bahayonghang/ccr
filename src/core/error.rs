@@ -63,6 +63,15 @@ pub mod exit_codes {
 
     /// ☁️ 同步错误
     pub const SYNC_ERROR: i32 = 70;
+
+    /// 🏷️ 平台未找到
+    pub const PLATFORM_NOT_FOUND: i32 = 60;
+
+    /// 🚧 平台未实现
+    pub const PLATFORM_NOT_SUPPORTED: i32 = 61;
+
+    /// 📝 Profile 未找到
+    pub const PROFILE_NOT_FOUND: i32 = 62;
 }
 
 /// ❌ CCR 错误类型枚举
@@ -125,6 +134,18 @@ pub enum CcrError {
     /// ☁️ 同步错误
     #[error("同步错误: {0}")]
     SyncError(String),
+
+    /// 🏷️ 平台未找到
+    #[error("平台 '{0}' 未找到")]
+    PlatformNotFound(String),
+
+    /// 🚧 平台未实现
+    #[error("平台 '{0}' 尚未实现")]
+    PlatformNotSupported(String),
+
+    /// 📝 Profile 未找到
+    #[error("配置 profile '{0}' 未找到")]
+    ProfileNotFound(String),
 }
 
 impl CcrError {
@@ -149,6 +170,9 @@ impl CcrError {
             CcrError::HistoryError(_) => exit_codes::HISTORY_ERROR,
             CcrError::ValidationError(_) => exit_codes::VALIDATION_ERROR,
             CcrError::SyncError(_) => exit_codes::SYNC_ERROR,
+            CcrError::PlatformNotFound(_) => exit_codes::PLATFORM_NOT_FOUND,
+            CcrError::PlatformNotSupported(_) => exit_codes::PLATFORM_NOT_SUPPORTED,
+            CcrError::ProfileNotFound(_) => exit_codes::PROFILE_NOT_FOUND,
         }
     }
 
@@ -200,6 +224,52 @@ impl CcrError {
                 format!(
                     "验证失败: {}\n建议: 运行 'ccr validate' 查看详细的验证报告",
                     msg
+                )
+            }
+            CcrError::PlatformNotFound(name) => {
+                format!(
+                    "平台 '{}' 未找到或未实现\n\n\
+                    可用平台:\n\
+                    • claude  - Claude Code (✅ 已实现)\n\
+                    • codex   - GitHub Copilot CLI (✅ 已实现)\n\
+                    • gemini  - Google Gemini CLI (✅ 已实现)\n\
+                    • qwen    - Alibaba Qwen CLI (🚧 计划中)\n\
+                    • iflow   - iFlow CLI (🚧 计划中)\n\n\
+                    建议:\n\
+                    • 运行 'ccr platform list' 查看所有平台\n\
+                    • 运行 'ccr platform init <平台名>' 初始化平台\n\
+                    • 查看文档: https://github.com/bahayonghang/ccr/blob/main/docs/platforms/",
+                    name
+                )
+            }
+            CcrError::PlatformNotSupported(name) => {
+                format!(
+                    "平台 '{}' 尚未实现\n\n\
+                    当前已实现的平台:\n\
+                    • claude  - Claude Code\n\
+                    • codex   - GitHub Copilot CLI\n\
+                    • gemini  - Google Gemini CLI\n\n\
+                    计划中的平台:\n\
+                    • qwen    - Alibaba Qwen CLI\n\
+                    • iflow   - iFlow CLI\n\n\
+                    建议:\n\
+                    • 使用已实现的平台: 'ccr platform switch claude'\n\
+                    • 查看平台列表: 'ccr platform list'\n\
+                    • 查看开发路线图: https://github.com/bahayonghang/ccr/issues",
+                    name
+                )
+            }
+            CcrError::ProfileNotFound(name) => {
+                format!(
+                    "配置 profile '{}' 未找到\n\n\
+                    建议:\n\
+                    • 查看当前平台的所有 profiles: 'ccr list'\n\
+                    • 查看所有平台: 'ccr platform list'\n\
+                    • 添加新 profile: 'ccr add'\n\
+                    • 切换到正确的平台: 'ccr platform switch <平台名>'\n\n\
+                    💡 提示: 不同平台有各自的 profiles，\n\
+                       请确保已切换到正确的平台",
+                    name
                 )
             }
             _ => self.to_string(),

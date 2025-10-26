@@ -310,28 +310,33 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             lines.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled("状态: ", Style::default().fg(Color::Cyan)),
-                Span::styled("✓ 已启用", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "✓ 已启用",
+                    Style::default()
+                        .fg(Color::Green)
+                        .add_modifier(Modifier::BOLD),
+                ),
             ]));
             lines.push(Line::from(""));
-            
+
             lines.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled("WebDAV 服务器: ", Style::default().fg(Color::Cyan)),
                 Span::raw(&sync_config.webdav_url),
             ]));
-            
+
             lines.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled("用户名: ", Style::default().fg(Color::Cyan)),
                 Span::raw(&sync_config.username),
             ]));
-            
+
             lines.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled("远程路径: ", Style::default().fg(Color::Cyan)),
                 Span::raw(&sync_config.remote_path),
             ]));
-            
+
             let auto_sync_status = if sync_config.auto_sync {
                 Span::styled("✓ 开启", Style::default().fg(Color::Green))
             } else {
@@ -342,12 +347,14 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled("自动同步: ", Style::default().fg(Color::Cyan)),
                 auto_sync_status,
             ]));
-            
+
             lines.push(Line::from(""));
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 "  📝 可用操作:",
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
             )));
             lines.push(Line::from(""));
             lines.push(Line::from("     [P] Push   - 上传配置到云端"));
@@ -368,10 +375,12 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             ]));
             lines.push(Line::from(""));
             lines.push(Line::from(""));
-            
+
             lines.push(Line::from(Span::styled(
                 "  📝 配置 WebDAV 同步",
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
             )));
             lines.push(Line::from(""));
             lines.push(Line::from("  1. 退出 TUI (按 Q)"));
@@ -380,7 +389,7 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             lines.push(Line::from("  4. 测试连接成功后即可使用"));
             lines.push(Line::from(""));
             lines.push(Line::from(""));
-            
+
             lines.push(Line::from(Span::styled(
                 "  💡 支持的服务:",
                 Style::default().fg(Color::Cyan),
@@ -434,7 +443,9 @@ fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
     let auto_confirm_status = if app.auto_confirm_mode {
         Span::styled(
             "ON (session-only)",
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
         )
     } else {
         Span::styled("OFF", Style::default().fg(Color::Green))
@@ -515,7 +526,7 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Length(1), // 状态消息
-                Constraint::Min(3),     // 快捷键（至少3行，包括边框）
+                Constraint::Min(3),    // 快捷键（至少3行，包括边框）
             ])
             .split(area);
 
@@ -546,14 +557,19 @@ fn render_help_line(f: &mut Frame, app: &App, area: Rect) {
     let confirm_status = if app.auto_confirm_mode {
         Span::styled(
             " AUTO ",
-            Style::default().fg(Color::Yellow).bg(Color::Black).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Yellow)
+                .bg(Color::Black)
+                .add_modifier(Modifier::BOLD),
         )
     } else {
         Span::styled(" SAFE ", Style::default().fg(Color::Green).bg(Color::Black))
     };
 
     let help_text = vec![
-        Span::raw(" [1-4] Tab | [↑↓/jk] Nav | [Enter] Switch | [d] Delete | [P/L/S] Sync | [Y] Auto | "),
+        Span::raw(
+            " [1-4] Tab | [↑↓/jk] Nav | [Enter] Switch | [d] Delete | [P/L/S] Sync | [Y] Auto | ",
+        ),
         confirm_status,
         Span::raw(" | [Q] Quit "),
     ];

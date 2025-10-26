@@ -169,7 +169,6 @@ mod tests {
 
         // 尝试删除不存在的配置应该失败
         // 由于需要 ConfigService::default()，这里只测试逻辑
-        assert!(true);
     }
 
     #[test]

@@ -353,11 +353,11 @@ fn test_history_manager_add_and_load() {
     );
     manager.add(entry2).unwrap();
 
-    // 加载并验证
+    // 加载并验证（历史记录按时间倒序排列，最新的在前）
     let entries = manager.load().unwrap();
     assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].operation, OperationType::Switch);
-    assert_eq!(entries[1].operation, OperationType::Backup);
+    assert_eq!(entries[0].operation, OperationType::Backup); // 第二个添加的，更新
+    assert_eq!(entries[1].operation, OperationType::Switch); // 第一个添加的，较早
 }
 
 #[test]

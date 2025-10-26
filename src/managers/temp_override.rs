@@ -146,14 +146,12 @@ impl TempOverrideManager {
         }
 
         // 读取文件内容
-        let content = fs::read_to_string(&self.override_path).map_err(|e| {
-            CcrError::ConfigError(format!("读取临时配置文件失败: {}", e))
-        })?;
+        let content = fs::read_to_string(&self.override_path)
+            .map_err(|e| CcrError::ConfigError(format!("读取临时配置文件失败: {}", e)))?;
 
         // 解析 JSON
-        let temp_override: TempOverride = serde_json::from_str(&content).map_err(|e| {
-            CcrError::ConfigError(format!("解析临时配置文件失败: {}", e))
-        })?;
+        let temp_override: TempOverride = serde_json::from_str(&content)
+            .map_err(|e| CcrError::ConfigError(format!("解析临时配置文件失败: {}", e)))?;
 
         log::debug!(
             "✅ 成功加载临时配置: {} 个字段覆盖",
@@ -167,20 +165,17 @@ impl TempOverrideManager {
     pub fn save(&self, temp_override: &TempOverride) -> Result<()> {
         // 📁 确保目录存在
         if let Some(parent) = self.override_path.parent() {
-            fs::create_dir_all(parent).map_err(|e| {
-                CcrError::ConfigError(format!("创建临时配置目录失败: {}", e))
-            })?;
+            fs::create_dir_all(parent)
+                .map_err(|e| CcrError::ConfigError(format!("创建临时配置目录失败: {}", e)))?;
         }
 
         // 📝 序列化为 JSON(美化格式)
-        let content = serde_json::to_string_pretty(temp_override).map_err(|e| {
-            CcrError::ConfigError(format!("序列化临时配置失败: {}", e))
-        })?;
+        let content = serde_json::to_string_pretty(temp_override)
+            .map_err(|e| CcrError::ConfigError(format!("序列化临时配置失败: {}", e)))?;
 
         // 💾 写入文件
-        fs::write(&self.override_path, content).map_err(|e| {
-            CcrError::ConfigError(format!("写入临时配置文件失败: {}", e))
-        })?;
+        fs::write(&self.override_path, content)
+            .map_err(|e| CcrError::ConfigError(format!("写入临时配置文件失败: {}", e)))?;
 
         log::info!("✅ 临时配置已保存: {:?}", self.override_path);
         Ok(())
@@ -189,9 +184,8 @@ impl TempOverrideManager {
     /// 🧹 清除临时配置
     pub fn clear(&self) -> Result<()> {
         if self.override_path.exists() {
-            fs::remove_file(&self.override_path).map_err(|e| {
-                CcrError::ConfigError(format!("删除临时配置文件失败: {}", e))
-            })?;
+            fs::remove_file(&self.override_path)
+                .map_err(|e| CcrError::ConfigError(format!("删除临时配置文件失败: {}", e)))?;
             log::info!("✅ 临时配置已清除");
         } else {
             log::debug!("临时配置文件不存在,无需清除");
