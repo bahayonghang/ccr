@@ -106,6 +106,9 @@ impl WebServer {
             .route("/api/export", post(handlers::handle_export))
             .route("/api/import", post(handlers::handle_import))
             .route("/api/system", get(handlers::handle_get_system_info))
+            // 🆕 API 路由 - 平台管理 (Unified Mode)
+            .route("/api/platforms", get(handlers::handle_get_platform_info))
+            .route("/api/platforms/switch", post(handlers::handle_switch_platform))
             // 🎯 添加 CORS 支持
             .layer(CorsLayer::permissive())
             // 🎯 注入共享状态

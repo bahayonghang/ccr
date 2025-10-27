@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCR - Claude Code Configuration Switcher</title>
+    <title>CCR - Multi-Platform AI Configuration Manager</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,15 +15,19 @@
             <div class="brand-section">
                 <div class="logo-container">
                     <div class="logo">⚡ CCR</div>
-                    <div class="logo-subtitle">Web Console</div>
+                    <div class="logo-subtitle">Multi-Platform Console</div>
                 </div>
                 <div class="divider"></div>
                 <div class="project-info">
-                    <div class="project-title">Claude Code Configuration Switcher</div>
+                    <div class="project-title">AI Configuration Manager</div>
                     <div class="project-meta">
                         <div class="meta-item">
                             <span class="meta-dot"></span>
-                            <span>MIT License</span>
+                            <span id="modeIndicator">检测中...</span>
+                        </div>
+                        <div class="meta-item" id="currentPlatformIndicator" style="display: none;">
+                            <span class="meta-dot" style="background: var(--accent-success);"></span>
+                            <span>当前平台: <strong id="activePlatformName">-</strong></span>
                         </div>
                     </div>
                 </div>
@@ -47,10 +51,47 @@
             </div>
         </nav>
 
+        <!-- 平台导航栏 (Unified 模式显示) -->
+        <div id="platformNavBar" class="platform-nav-bar" style="display: none;">
+            <div class="platform-tabs">
+                <button class="platform-tab active" data-platform="claude" onclick="switchPlatform('claude')">
+                    <span class="platform-icon">🤖</span>
+                    <span class="platform-name">Claude</span>
+                    <span class="platform-badge" id="badge-claude">0</span>
+                </button>
+                <button class="platform-tab" data-platform="codex" onclick="switchPlatform('codex')">
+                    <span class="platform-icon">💻</span>
+                    <span class="platform-name">Codex</span>
+                    <span class="platform-badge" id="badge-codex">0</span>
+                </button>
+                <button class="platform-tab" data-platform="gemini" onclick="switchPlatform('gemini')">
+                    <span class="platform-icon">✨</span>
+                    <span class="platform-name">Gemini</span>
+                    <span class="platform-badge" id="badge-gemini">0</span>
+                </button>
+                <button class="platform-tab" data-platform="qwen" onclick="switchPlatform('qwen')">
+                    <span class="platform-icon">🌟</span>
+                    <span class="platform-name">Qwen</span>
+                    <span class="platform-badge" id="badge-qwen">0</span>
+                </button>
+                <button class="platform-tab" data-platform="iflow" onclick="switchPlatform('iflow')">
+                    <span class="platform-icon">⚡</span>
+                    <span class="platform-name">iFlow</span>
+                    <span class="platform-badge" id="badge-iflow">0</span>
+                </button>
+            </div>
+            <div class="platform-actions">
+                <button class="btn btn-sm btn-success" onclick="activateCurrentPlatform()" id="activatePlatformBtn" style="display: none;">
+                    ✓ 激活此平台
+                </button>
+            </div>
+        </div>
+
         <!-- 主内容 -->
         <div class="main-content">
             <!-- 左侧边栏 -->
             <aside class="sidebar-left">
+                <!-- 当前配置 -->
                 <div class="sidebar-section">
                     <div class="sidebar-title">当前配置</div>
                     <div class="current-config-display">
@@ -62,6 +103,13 @@
                     </div>
                 </div>
 
+                <!-- 平台状态 (Unified 模式) -->
+                <div class="sidebar-section" id="platformStatusSection" style="display: none;">
+                    <div class="sidebar-title">平台状态</div>
+                    <div id="platformStatusList" class="platform-status-list"></div>
+                </div>
+
+                <!-- 系统信息 -->
                 <div class="sidebar-section">
                     <div class="sidebar-title">系统信息</div>
                     <div class="system-info-card">
@@ -116,6 +164,7 @@
                     </div>
                 </div>
 
+                <!-- 统计 -->
                 <div class="sidebar-section">
                     <div class="sidebar-title">统计</div>
                     <div class="stats-grid">
@@ -130,6 +179,7 @@
                     </div>
                 </div>
 
+                <!-- 操作按钮 -->
                 <div class="sidebar-section">
                     <button class="btn btn-secondary" style="width: 100%;" onclick="validateConfigs()">
                         ✓ 验证
@@ -220,7 +270,7 @@
                     <label class="form-label">Small Fast Model</label>
                     <input type="text" class="form-input" id="configSmallModel">
                 </div>
-                <!-- 🆕 分类字段 -->
+                <!-- 分类字段 -->
                 <div class="form-group">
                     <label class="form-label">提供商类型</label>
                     <select class="form-input" id="configProviderType">
@@ -247,7 +297,7 @@
                     <label class="form-label">标签</label>
                     <input type="text" class="form-input" id="configTags" placeholder="用逗号分隔，如: free, stable, backup">
                     <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                        用于灵活分类和筛选，多个标签用逗号分隔
+                        用于灵活分类和筛选，多个标签用逗号��隔
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">

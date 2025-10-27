@@ -9,6 +9,7 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::managers::config::SyncConfig;
+use reqwest_dav::list_cmd::ListEntity;
 use reqwest_dav::re_exports::reqwest::StatusCode;
 use reqwest_dav::{Auth, Client, ClientBuilder, Depth, Error as DavError};
 use std::fs;
@@ -66,35 +67,91 @@ impl SyncService {
         Ok(())
     }
 
-    /// 🔼 上传配置文件到 WebDAV
+    /// 🔼 上传配置文件或目录到 WebDAV
     ///
     /// # 参数
-    /// - local_path: 本地配置文件路径
+    /// - local_path: 本地配置文件或目录路径
     ///
     /// # 返回
     /// - Ok(()): 上传成功
     /// - Err: 上传失败
     pub async fn push(&self, local_path: &Path) -> Result<()> {
-        log::info!("🔼 上传配置到 WebDAV: {}", self.remote_path);
+        if local_path.is_dir() {
+            log::info!("🔼 上传目录到 WebDAV: {} -> {}", local_path.display(), self.remote_path);
+            self.push_directory(local_path, &self.remote_path).await
+        } else {
+            log::info!("🔼 上传文件到 WebDAV: {} -> {}", local_path.display(), self.remote_path);
+            self.push_file(local_path, &self.remote_path).await
+        }
+    }
 
+    /// 🔼 上传单个文件到 WebDAV
+    async fn push_file(&self, local_path: &Path, remote_path: &str) -> Result<()> {
         // 📄 读取本地文件
         let content = fs::read(local_path)
-            .map_err(|e| CcrError::SyncError(format!("读取本地配置失败: {}", e)))?;
+            .map_err(|e| CcrError::SyncError(format!("读取本地文件失败 {}: {}", local_path.display(), e)))?;
 
         // 📁 确保远程目录存在
-        self.ensure_remote_dir().await?;
+        self.ensure_remote_dir_for_file(remote_path).await?;
 
         // 🔼 上传文件
         self.client
-            .put(&self.remote_path, content)
+            .put(remote_path, content)
             .await
-            .map_err(|e| self.map_dav_error(e, "上传配置"))?;
+            .map_err(|e| self.map_dav_error(e, &format!("上传文件 {}", remote_path)))?;
 
-        log::info!("✅ 配置已上传到云端");
+        log::debug!("✅ 文件已上传: {}", remote_path);
         Ok(())
     }
 
-    /// 🔽 从 WebDAV 下载配置文件
+    /// 🔼 递归上传目录到 WebDAV
+    async fn push_directory(&self, local_dir: &Path, remote_dir: &str) -> Result<()> {
+        log::debug!("📁 处理目录: {} -> {}", local_dir.display(), remote_dir);
+
+        // 📁 确保远程目录存在
+        self.ensure_remote_directory(remote_dir).await?;
+
+        // 🔍 读取本地目录
+        let entries = fs::read_dir(local_dir)
+            .map_err(|e| CcrError::SyncError(format!("读取目录失败 {}: {}", local_dir.display(), e)))?;
+
+        let mut file_count = 0;
+        let mut dir_count = 0;
+
+        for entry in entries {
+            let entry = entry
+                .map_err(|e| CcrError::SyncError(format!("读取目录项失败: {}", e)))?;
+
+            let path = entry.path();
+            let file_name = entry.file_name();
+            let file_name_str = file_name.to_string_lossy();
+
+            // 🚫 跳过需要排除的文件和目录
+            if should_exclude_from_sync(&file_name_str) {
+                log::debug!("⏭️  跳过: {}", file_name_str);
+                continue;
+            }
+
+            // 构建远程路径
+            let remote_item_path = format!("{}/{}", remote_dir.trim_end_matches('/'), file_name_str);
+
+            if path.is_dir() {
+                // 📂 递归处理子目录
+                dir_count += 1;
+                // 🔧 使用 Box::pin 来处理递归 async 调用
+                Box::pin(self.push_directory(&path, &remote_item_path)).await?;
+            } else {
+                // 📄 上传文件
+                file_count += 1;
+                self.push_file(&path, &remote_item_path).await?;
+            }
+        }
+
+        log::info!("✅ 目录已上传: {} ({} 文件, {} 子目录)", remote_dir, file_count, dir_count);
+        Ok(())
+    }
+
+    /// 🔽 从 WebDAV 下载配置文件或目录
     ///
     /// # 参数
     /// - local_path: 本地保存路径
@@ -103,14 +160,27 @@ impl SyncService {
     /// - Ok(()): 下载成功
     /// - Err: 下载失败（如文件不存在）
     pub async fn pull(&self, local_path: &Path) -> Result<()> {
-        log::info!("🔽 从 WebDAV 下载配置: {}", self.remote_path);
+        // 🔍 检查远程是文件还是目录
+        // 通过尝试GET请求来判断
+        let is_dir = self.remote_path.ends_with('/');
 
+        if is_dir {
+            log::info!("🔽 从 WebDAV 下载目录: {} -> {}", self.remote_path, local_path.display());
+            self.pull_directory(&self.remote_path, local_path).await
+        } else {
+            log::info!("🔽 从 WebDAV 下载文件: {} -> {}", self.remote_path, local_path.display());
+            self.pull_file(&self.remote_path, local_path).await
+        }
+    }
+
+    /// 🔽 从 WebDAV 下载单个文件
+    async fn pull_file(&self, remote_path: &str, local_path: &Path) -> Result<()> {
         // 🔽 下载文件
         let response = self
             .client
-            .get(&self.remote_path)
+            .get(remote_path)
             .await
-            .map_err(|e| self.map_dav_error(e, "下载配置"))?;
+            .map_err(|e| self.map_dav_error(e, &format!("下载文件 {}", remote_path)))?;
 
         // 📄 读取响应内容
         let content = response
@@ -118,11 +188,81 @@ impl SyncService {
             .await
             .map_err(|e| CcrError::SyncError(format!("读取响应内容失败: {}", e)))?;
 
+        // 📁 确保本地目录存在
+        if let Some(parent) = local_path.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|e| CcrError::SyncError(format!("创建本地目录失败 {}: {}", parent.display(), e)))?;
+        }
+
         // 💾 保存到本地
         fs::write(local_path, content)
-            .map_err(|e| CcrError::SyncError(format!("保存配置到本地失败: {}", e)))?;
+            .map_err(|e| CcrError::SyncError(format!("保存文件到本地失败 {}: {}", local_path.display(), e)))?;
 
-        log::info!("✅ 配置已从云端下载");
+        log::debug!("✅ 文件已下载: {}", local_path.display());
+        Ok(())
+    }
+
+    /// 🔽 递归从 WebDAV 下载目录
+    async fn pull_directory(&self, remote_dir: &str, local_dir: &Path) -> Result<()> {
+        log::debug!("📁 处理目录: {} -> {}", remote_dir, local_dir.display());
+
+        // 📁 确保本地目录存在
+        fs::create_dir_all(local_dir)
+            .map_err(|e| CcrError::SyncError(format!("创建本地目录失败 {}: {}", local_dir.display(), e)))?;
+
+        // 🔍 列出远程目录内容
+        let entities = self.client
+            .list(remote_dir, Depth::Number(1))
+            .await
+            .map_err(|e| self.map_dav_error(e, &format!("列出远程目录 {}", remote_dir)))?;
+
+        let mut file_count = 0;
+        let mut dir_count = 0;
+
+        for entity in entities {
+            match entity {
+                ListEntity::File(file) => {
+                    // 📄 下载文件
+                    // 从 href 中提取文件名
+                    let file_name = extract_filename(&file.href);
+
+                    // 🚫 跳过需要排除的文件
+                    if should_exclude_from_sync(&file_name) {
+                        log::debug!("⏭️  跳过文件: {}", file_name);
+                        continue;
+                    }
+
+                    let local_file_path = local_dir.join(&file_name);
+
+                    file_count += 1;
+                    self.pull_file(&file.href, &local_file_path).await?;
+                }
+                ListEntity::Folder(folder) => {
+                    // 📂 递归处理子目录
+                    // 从 href 中提取目录名
+                    let folder_name = extract_filename(&folder.href);
+
+                    // 🚫 跳过需要排除的目录
+                    if should_exclude_from_sync(&folder_name) {
+                        log::debug!("⏭️  跳过目录: {}", folder_name);
+                        continue;
+                    }
+
+                    // 跳过当前目录自身（href 可能等于 remote_dir）
+                    if folder.href.trim_end_matches('/') == remote_dir.trim_end_matches('/') {
+                        continue;
+                    }
+
+                    let local_sub_dir = local_dir.join(&folder_name);
+
+                    dir_count += 1;
+                    // 🔧 使用 Box::pin 来处理递归 async 调用
+                    Box::pin(self.pull_directory(&folder.href, &local_sub_dir)).await?;
+                }
+            }
+        }
+
+        log::info!("✅ 目录已下载: {} ({} 文件, {} 子目录)", local_dir.display(), file_count, dir_count);
         Ok(())
     }
 
@@ -144,12 +284,12 @@ impl SyncService {
         }
     }
 
-    /// 📁 确保远程目录存在
+    /// 📁 确保远程目录存在（针对文件路径）
     ///
-    /// 自动创建远程文件路径中的目录
-    async fn ensure_remote_dir(&self) -> Result<()> {
+    /// 自动创建远程文件路径中的父目录
+    async fn ensure_remote_dir_for_file(&self, file_path: &str) -> Result<()> {
         // 🔍 提取目录路径
-        let dir_path = Path::new(&self.remote_path)
+        let dir_path = Path::new(file_path)
             .parent()
             .and_then(|p| p.to_str())
             .unwrap_or("/");
@@ -158,21 +298,47 @@ impl SyncService {
             return Ok(());
         }
 
+        self.ensure_remote_directory(dir_path).await
+    }
+
+    /// 📁 确保远程目录存在（递归创建）
+    ///
+    /// 自动创建远程目录路径中的所有父目录
+    async fn ensure_remote_directory(&self, dir_path: &str) -> Result<()> {
+        if dir_path == "/" || dir_path.is_empty() {
+            return Ok(());
+        }
+
         log::debug!("📁 确保远程目录存在: {}", dir_path);
 
-        // 📂 创建目录（如果不存在）
-        // WebDAV mkcol 命令会在目录已存在时返回错误，我们忽略这个错误
+        // 🔍 尝试创建目录
         match self.client.mkcol(dir_path).await {
             Ok(_) => {
-                log::debug!("✅ 远程目录已创建");
+                log::debug!("✅ 远程目录已创建: {}", dir_path);
                 Ok(())
             }
             Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::METHOD_NOT_ALLOWED) => {
                 // 目录已存在，这不是错误
-                log::debug!("ℹ️ 远程目录已存在");
+                log::debug!("ℹ️  远程目录已存在: {}", dir_path);
                 Ok(())
             }
-            Err(e) => Err(self.map_dav_error(e, "创建远程目录")),
+            Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::CONFLICT) => {
+                // 父目录不存在，递归创建
+                log::debug!("⚠️  父目录不存在，递归创建: {}", dir_path);
+
+                // 获取父目录路径
+                if let Some(parent) = Path::new(dir_path).parent().and_then(|p| p.to_str()) {
+                    if parent != "/" && !parent.is_empty() {
+                        // 🔧 使用 Box::pin 来处理递归 async 调用
+                        Box::pin(self.ensure_remote_directory(parent)).await?;
+                        // 再次尝试创建当前目录
+                        return Box::pin(self.ensure_remote_directory(dir_path)).await;
+                    }
+                }
+
+                Err(self.map_dav_error(DavError::Reqwest(e), &format!("创建远程目录 {}", dir_path)))
+            }
+            Err(e) => Err(self.map_dav_error(e, &format!("创建远程目录 {}", dir_path))),
         }
     }
 
@@ -200,6 +366,81 @@ impl SyncService {
     }
 }
 
+/// 📝 从 WebDAV href 中提取文件名或目录名
+///
+/// WebDAV 的 href 通常是完整的路径，如 "/ccr/config.toml" 或 "/ccr/platforms/"
+/// 这个函数提取最后一个路径段作为文件名或目录名
+fn extract_filename(href: &str) -> String {
+    // 移除末尾的 /
+    let trimmed = href.trim_end_matches('/');
+
+    // 分割路径并获取最后一段
+    trimmed
+        .rsplit('/')
+        .next()
+        .unwrap_or(trimmed)
+        .to_string()
+}
+
+/// 🚫 判断文件或目录是否应该从同步中排除
+///
+/// 排除规则:
+/// - 临时文件和备份文件 (.bak, .tmp, .lock)
+/// - 系统文件 (.DS_Store, Thumbs.db)
+/// - 版本控制目录 (.git)
+/// - CCR 内部目录 (.locks)
+/// - 备份目录 (backups, history 中的 .bak 文件)
+/// - 隐藏文件 (以 . 开头)
+fn should_exclude_from_sync(name: &str) -> bool {
+    // 📝 排除规则列表
+    let exclude_patterns = [
+        // 临时文件
+        ".tmp",
+        ".lock",
+        ".bak",
+        // 系统文件
+        ".DS_Store",
+        "Thumbs.db",
+        "desktop.ini",
+        // 版本控制
+        ".git",
+        ".gitignore",
+        // CCR 内部
+        ".locks",
+    ];
+
+    // 📝 排除目录列表
+    let exclude_dirs = [
+        ".locks",      // 锁文件目录
+        "backups",     // 备份目录（太多文件）
+    ];
+
+    // 检查文件扩展名或完整名称
+    for pattern in &exclude_patterns {
+        if name.ends_with(pattern) || name == *pattern {
+            return true;
+        }
+    }
+
+    // 检查目录名称
+    for dir in &exclude_dirs {
+        if name == *dir {
+            return true;
+        }
+    }
+
+    // 排除隐藏文件（以 . 开头但不是当前/父目录）
+    if name.starts_with('.') && name != "." && name != ".." {
+        // 但保留 .ccr 目录本身的配置文件
+        if name == ".ccs_config.toml" || name.ends_with(".toml") {
+            return false;
+        }
+        return true;
+    }
+
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -210,7 +451,7 @@ mod tests {
             webdav_url: "https://dav.jianguoyun.com/dav/".to_string(),
             username: "test@example.com".to_string(),
             password: "test_password".to_string(),
-            remote_path: "/ccr/.ccs_config.toml".to_string(),
+            remote_path: "/ccr/".to_string(),  // 🆕 改为目录路径
             auto_sync: false,
         }
     }
@@ -221,5 +462,36 @@ mod tests {
         let config = create_test_config();
         let service = SyncService::new(&config).await;
         assert!(service.is_ok());
+    }
+
+    #[test]
+    fn test_should_exclude() {
+        // 测试文件过滤规则
+        assert!(should_exclude_from_sync(".DS_Store"));
+        assert!(should_exclude_from_sync("test.tmp"));
+        assert!(should_exclude_from_sync("file.lock"));
+        assert!(should_exclude_from_sync("backup.bak"));
+        assert!(should_exclude_from_sync(".locks"));
+        assert!(should_exclude_from_sync("backups"));
+
+        // 不应该被排除的
+        assert!(!should_exclude_from_sync("config.toml"));
+        assert!(!should_exclude_from_sync(".ccs_config.toml"));
+        assert!(!should_exclude_from_sync("profiles.toml"));
+        assert!(!should_exclude_from_sync("history"));
+    }
+
+    #[test]
+    fn test_extract_filename() {
+        // 测试从 href 提取文件名
+        assert_eq!(extract_filename("/ccr/config.toml"), "config.toml");
+        assert_eq!(extract_filename("/ccr/platforms/claude/"), "claude");
+        assert_eq!(extract_filename("/ccr/platforms/"), "platforms");
+        assert_eq!(extract_filename("/test.txt"), "test.txt");
+        assert_eq!(extract_filename("config.toml"), "config.toml");
+
+        // 边界情况
+        assert_eq!(extract_filename("/"), "");
+        assert_eq!(extract_filename(""), "");
     }
 }

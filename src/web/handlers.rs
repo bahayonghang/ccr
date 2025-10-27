@@ -77,11 +77,16 @@ pub async fn serve_js() -> impl IntoResponse {
 
 /// 处理列出配置
 /// 🎯 异步处理，使用 spawn_blocking 避免阻塞运行时
-pub async fn handle_list_configs(AxumState(state): AxumState<AppState>) -> Response {
-    // 🚀 使用 spawn_blocking 执行同步操作
-    let result = tokio::task::spawn_blocking(move || state.config_service.list_configs())
-        .await
-        .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
+pub async fn handle_list_configs(AxumState(_state): AxumState<AppState>) -> Response {
+    // 🆕 每次请求都重新创建 ConfigService 以获取最新的平台配置
+    // 这样在 Unified 模式下切换平台后，能正确读取新平台的配置
+    let result = tokio::task::spawn_blocking(move || {
+        // 重新创建 ConfigService，它会自动检测当前平台
+        let config_service = crate::services::ConfigService::default()?;
+        config_service.list_configs()
+    })
+    .await
+    .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
 
     match result {
         Ok(list) => {
@@ -515,4 +520,144 @@ pub async fn handle_get_system_info(AxumState(state): AxumState<AppState>) -> Re
     };
 
     Json(ApiResponse::success(system_info)).into_response()
+}
+
+// ===== 🆕 平台管理处理器 (Unified Mode) =====
+
+/// 处理获取平台信息
+/// 🎯 返回当前模式（Legacy/Unified）和平台列表
+pub async fn handle_get_platform_info() -> Response {
+    use crate::managers::{ConfigManager, PlatformConfigManager};
+
+    // 🔍 检测配置模式
+    let (is_unified, unified_config_path) = ConfigManager::detect_unified_mode();
+
+    if !is_unified {
+        // Legacy 模式
+        let response = PlatformInfoResponse {
+            mode: "legacy".to_string(),
+            current_platform: None,
+            available_platforms: None,
+        };
+        return Json(ApiResponse::success(response)).into_response();
+    }
+
+    // Unified 模式
+    let unified_path = match unified_config_path {
+        Some(path) => path,
+        None => {
+            let error_response: ApiResponse<()> =
+                ApiResponse::error_without_data("无法获取统一配置路径".to_string());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let platform_manager = PlatformConfigManager::new(unified_path);
+
+    let result = tokio::task::spawn_blocking(move || {
+        // 读取统一配置
+        let unified_config = platform_manager.load()?;
+        let current_platform = unified_config.current_platform.clone();
+
+        // 构建平台列表
+        let mut platforms: Vec<PlatformItem> = unified_config
+            .platforms
+            .into_iter()
+            .map(|(name, entry)| PlatformItem {
+                name: name.clone(),
+                enabled: entry.enabled,
+                current_profile: entry.current_profile,
+                description: entry.description,
+                last_used: entry.last_used,
+                is_current: name == current_platform,
+            })
+            .collect();
+
+        // 按名称排序
+        platforms.sort_by(|a, b| a.name.cmp(&b.name));
+
+        Ok::<(String, Vec<PlatformItem>), crate::core::error::CcrError>((current_platform, platforms))
+    })
+    .await
+    .unwrap_or_else(|e| Err(crate::core::error::CcrError::ConfigError(format!("任务执行失败: {}", e))));
+
+    match result {
+        Ok((current_platform, platforms)) => {
+            let response = PlatformInfoResponse {
+                mode: "unified".to_string(),
+                current_platform: Some(current_platform),
+                available_platforms: Some(platforms),
+            };
+            Json(ApiResponse::success(response)).into_response()
+        }
+        Err(e) => {
+            let error_response: ApiResponse<()> = ApiResponse::error_without_data(e.user_message());
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
+        }
+    }
+}
+
+/// 处理切换平台
+/// 🎯 在 Unified 模式下切换当前激活的平台
+pub async fn handle_switch_platform(Json(req): Json<SwitchPlatformRequest>) -> Response {
+    use crate::managers::{ConfigManager, PlatformConfigManager};
+
+    // 🔍 检测配置模式
+    let (is_unified, unified_config_path) = ConfigManager::detect_unified_mode();
+
+    if !is_unified {
+        let error_response: ApiResponse<()> =
+            ApiResponse::error_without_data("平台切换仅在 Unified 模式下可用".to_string());
+        return (StatusCode::BAD_REQUEST, Json(error_response)).into_response();
+    }
+
+    let unified_path = match unified_config_path {
+        Some(path) => path,
+        None => {
+            let error_response: ApiResponse<()> =
+                ApiResponse::error_without_data("无法获取统一配置路径".to_string());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let platform_name = req.platform_name.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let platform_manager = PlatformConfigManager::new(unified_path);
+
+        // 读取配置
+        let mut unified_config = platform_manager.load()?;
+
+        // 检查平台是否存在
+        if !unified_config.platforms.contains_key(&platform_name) {
+            return Err(crate::core::error::CcrError::ConfigSectionNotFound(
+                format!("平台 '{}'", platform_name)
+            ));
+        }
+
+        // 切换平台
+        unified_config.current_platform = platform_name.clone();
+
+        // 更新 last_used
+        if let Some(entry) = unified_config.platforms.get_mut(&platform_name) {
+            entry.last_used = Some(chrono::Utc::now().to_rfc3339());
+        }
+
+        // 保存配置
+        platform_manager.save(&unified_config)?;
+
+        Ok::<String, crate::core::error::CcrError>(platform_name)
+    })
+    .await
+    .unwrap_or_else(|e| Err(crate::core::error::CcrError::ConfigError(format!("任务执行失败: {}", e))));
+
+    match result {
+        Ok(platform_name) => {
+            let message = format!("已切换到平台: {}", platform_name);
+            Json(ApiResponse::success(message)).into_response()
+        }
+        Err(e) => {
+            let error_response: ApiResponse<()> = ApiResponse::error_without_data(e.user_message());
+            (StatusCode::BAD_REQUEST, Json(error_response)).into_response()
+        }
+    }
 }

@@ -7,6 +7,7 @@ pub mod config;
 pub mod converter;
 pub mod gemini;
 pub mod mcp;
+pub mod platform;
 pub mod plugins;
 pub mod qwen;
 pub mod slash_commands;

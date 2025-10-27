@@ -2,15 +2,24 @@
 
 ## 📋 概述
 
-`sync` 命令提供基于 WebDAV 协议的配置文件云端同步功能，默认支持坚果云，也兼容其他 WebDAV 服务。
+`sync` 命令提供基于 WebDAV 协议的配置文件云端同步功能，支持两种同步模式：
+
+**同步模式：**
+- 📁 **目录同步（统一模式）** - 同步整个 `~/.ccr/` 目录及所有平台配置（推荐）
+- 📄 **文件同步（传统模式）** - 同步单个 `~/.ccs_config.toml` 文件（向后兼容）
+
+CCR 会根据您的配置结构自动检测使用哪种模式。默认支持坚果云，也兼容其他标准 WebDAV 服务。
 
 ## 🎯 功能特性
 
-- ☁️ **WebDAV 同步** - 支持将配置文件同步到 WebDAV 服务器
+- ☁️ **WebDAV 同步** - 支持将配置文件或目录同步到 WebDAV 服务器
+- 📁 **递归目录同步** - 自动上传/下载整个目录树及所有子目录
+- 🚫 **智能文件过滤** - 自动排除临时文件（.bak, .tmp, .lock）和系统文件（.DS_Store）
 - 🔒 **安全认证** - 支持基本认证（Basic Auth）
 - 🔄 **双向同步** - 支持上传（push）和下载（pull）
 - 🌰 **坚果云优化** - 默认配置适配坚果云，开箱即用
 - ✅ **状态检查** - 实时查看同步配置和远程文件状态
+- 🔄 **自动模式检测** - 根据配置结构自动选择目录或文件同步模式
 
 ## 📚 子命令列表
 
@@ -29,7 +38,7 @@ ccr sync config
 | WebDAV 服务器地址 | WebDAV 服务的 URL | `https://dav.jianguoyun.com/dav/` | - |
 | 用户名/邮箱 | 登录账号 | - | `user@example.com` |
 | 密码/应用密码 | 认证密码 | - | 坚果云应用密码 |
-| 远程文件路径 | 配置文件在服务器上的路径 | `/ccr/.ccs_config.toml` | `/backup/config.toml` |
+| 远程路径 | 配置目录或文件在服务器上的路径 | `/ccr/` | `/backup/ccr/` 或 `/backup/config.toml` |
 
 **坚果云应用密码获取方式：**
 
@@ -62,8 +71,8 @@ $ ccr sync config
   💡 坚果云: 账户信息 -> 安全选项 -> 添加应用 -> 生成密码
   请输入: ****************
 
-ℹ 远程文件路径
-  默认: /ccr/.ccs_config.toml
+ℹ 远程路径
+  默认: /ccr/
   请输入: [直接回车使用默认值]
 
 ─────────────────────────────────────────────────────────
@@ -98,20 +107,22 @@ ccr sync status
 ═══════════
 
   状态: 已启用
+  同步模式: 目录同步（统一模式）
   WebDAV 服务器: https://dav.jianguoyun.com/dav/
   用户名: user@example.com
-  远程路径: /ccr/.ccs_config.toml
+  远程路径: /ccr/
+  本地路径: ~/.ccr/
   自动同步: 关闭
 
-▶ 检查远程文件
-✓ 远程配置文件存在
+▶ 检查远程内容
+✓ 远程配置目录存在
 ```
 
 ---
 
 ### sync push - 上传配置到云端
 
-将本地配置文件上传到 WebDAV 服务器。
+将本地配置文件或目录上传到 WebDAV 服务器。
 
 ```bash
 ccr sync push [--force]
@@ -133,16 +144,30 @@ ccr sync push --force
 
 **执行流程：**
 
-1. 检查远程文件是否存在
-2. 如果存在且未使用 `--force`，询问是否覆盖
-3. 确保远程目录存在
-4. 上传本地配置文件
+1. **自动检测同步模式**：
+   - 如果是统一模式：递归上传 `~/.ccr/` 目录及所有子目录
+   - 如果是传统模式：上传单个 `~/.ccs_config.toml` 文件
+
+2. **智能文件过滤**：
+   - 自动排除临时文件（.bak, .tmp, .lock）
+   - 排除系统文件（.DS_Store, Thumbs.db, desktop.ini）
+   - 排除版本控制目录（.git, .gitignore）
+   - 排除锁文件目录（.locks）
+   - 排除备份目录（backups）
+
+3. **确保远程目录存在**：
+   - 自动创建远程父目录（如果不存在）
+   - 递归创建所有必需的子目录
+
+4. **上传内容**：
+   - 如果远程内容存在且未使用 `--force`，询问是否覆盖
+   - 递归上传所有文件和子目录
 
 ---
 
 ### sync pull - 从云端下载配置
 
-从 WebDAV 服务器下载配置文件到本地。
+从 WebDAV 服务器下载配置文件或目录到本地。
 
 ```bash
 ccr sync pull [--force]
@@ -164,10 +189,21 @@ ccr sync pull --force
 
 **执行流程：**
 
-1. 提示将覆盖本地配置（除非使用 `--force`）
-2. 自动备份当前本地配置
-3. 从云端下载配置文件
-4. 覆盖本地配置
+1. **自动检测同步模式**：
+   - 如果是统一模式：递归下载 `/ccr/` 目录及所有子目录到 `~/.ccr/`
+   - 如果是传统模式：下载单个 `~/.ccs_config.toml` 文件
+
+2. **智能文件过滤**：
+   - 应用与 push 相同的排除规则
+   - 自动跳过临时文件和系统文件
+
+3. **安全备份**：
+   - 提示将覆盖本地配置（除非使用 `--force`）
+   - 自动备份当前本地内容
+
+4. **递归下载**：
+   - 从云端下载所有文件和子目录
+   - 覆盖本地配置
 
 **⚠️ 安全提示：**
 
@@ -187,7 +223,7 @@ enabled = true
 webdav_url = "https://dav.jianguoyun.com/dav/"
 username = "user@example.com"
 password = "your_app_password"
-remote_path = "/ccr/.ccs_config.toml"
+remote_path = "/ccr/"  # 统一模式为目录路径，传统模式为文件路径
 auto_sync = false  # 预留字段，暂未实现
 ```
 
@@ -227,7 +263,36 @@ ccr add                  # 添加新配置
 ccr sync push            # 备份到云端
 ```
 
-### 场景 3: 恢复配置
+### 场景 3: 多平台配置同步
+
+**需求：**同步多个 AI CLI 平台的配置（Claude、Codex、Gemini 等）
+
+**步骤：**
+
+```bash
+# 设备 A（主设备）- 配置多平台
+ccr platform init claude
+ccr platform init codex
+ccr platform init gemini
+
+# 添加各平台的配置
+ccr platform switch claude
+ccr add                      # 添加 Claude 配置
+
+ccr platform switch codex
+ccr add                      # 添加 Codex 配置
+
+# 上传整个 ~/.ccr/ 目录（包含所有平台配置）
+ccr sync config              # 配置 WebDAV
+ccr sync push                # 递归上传所有平台配置
+
+# 设备 B - 同步所有平台配置
+ccr sync config              # 使用相同的 WebDAV 配置
+ccr sync pull                # 下载整个 ~/.ccr/ 目录
+ccr platform list            # 验证所有平台配置
+```
+
+### 场景 4: 恢复配置
 
 **需求：**从云端恢复丢失的配置
 

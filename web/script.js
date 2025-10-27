@@ -235,7 +235,25 @@
             lastOperation = { context: '加载配置', func: loadConfigs };
 
             try {
-                const response = await fetch('/api/configs');
+                // 🆕 根据平台模式和当前平台选择正确的 API 端点
+                let endpoint = '/api/configs';
+
+                if (platformInfo.mode === 'unified' && platformInfo.currentPlatform) {
+                    // Unified 模式下，根据当前平台调用不同的端点
+                    const platformEndpoints = {
+                        'claude': '/api/configs',           // Claude 使用默认端点
+                        'codex': '/api/codex/profiles',     // Codex 使用 profiles 端点
+                        'gemini': '/api/gemini/config',     // Gemini 使用 config 端点
+                        'qwen': '/api/qwen/config',         // Qwen 使用 config 端点
+                        'iflow': '/api/iflow/configs'       // iFlow 使用 configs 端点
+                    };
+
+                    endpoint = platformEndpoints[platformInfo.currentPlatform] || '/api/configs';
+
+                    console.log(`加载平台配置: ${platformInfo.currentPlatform} -> ${endpoint}`);
+                }
+
+                const response = await fetch(endpoint);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -244,8 +262,22 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    allConfigs = data.data.configs;
-                    document.getElementById('currentConfigName').textContent = data.data.current_config || '-';
+                    // 🆕 处理不同平台的响应格式
+                    if (platformInfo.mode === 'unified' && platformInfo.currentPlatform !== 'claude') {
+                        // 非 Claude 平台可能返回不同的数据结构
+                        // 需要统一转换为标准格式
+                        allConfigs = normalizeConfigData(data.data, platformInfo.currentPlatform);
+                    } else {
+                        // Legacy 模式或 Claude 平台，使用原有格式
+                        allConfigs = data.data.configs || data.data || [];
+                    }
+
+                    // 更新 UI 显示
+                    const currentConfig = data.data.current_config ||
+                                        data.data.current_profile ||
+                                        data.data.active_profile ||
+                                        '-';
+                    document.getElementById('currentConfigName').textContent = currentConfig;
                     document.getElementById('totalConfigs').textContent = allConfigs.length;
 
                     renderConfigs();
@@ -256,6 +288,53 @@
             } catch (error) {
                 handleApiError(error, '加载配置');
             }
+        }
+
+        // 🆕 标准化不同平台的配置数据格式
+        function normalizeConfigData(data, platform) {
+            // 如果已经是数组格式，直接返回
+            if (Array.isArray(data)) {
+                return data;
+            }
+
+            // 如果有 configs 字段，返回它
+            if (data.configs && Array.isArray(data.configs)) {
+                return data.configs;
+            }
+
+            // 如果有 profiles 字段（Codex），转换为标准格式
+            if (data.profiles && Array.isArray(data.profiles)) {
+                return data.profiles.map(profile => ({
+                    name: profile.name,
+                    description: profile.description,
+                    base_url: profile.base_url || profile.api_url,
+                    auth_token: profile.auth_token || profile.api_key,
+                    model: profile.model,
+                    small_fast_model: profile.small_fast_model,
+                    is_current: profile.is_active || profile.is_current,
+                    is_default: profile.is_default,
+                    provider: profile.provider,
+                    provider_type: profile.provider_type
+                }));
+            }
+
+            // 如果是单个配置对象（Gemini/Qwen），转换为数组
+            if (data.api_key || data.auth_token) {
+                return [{
+                    name: platform,
+                    description: `${platform} Configuration`,
+                    base_url: data.base_url || data.api_url,
+                    auth_token: data.auth_token || data.api_key,
+                    model: data.model,
+                    small_fast_model: data.small_fast_model,
+                    is_current: true,
+                    is_default: true
+                }];
+            }
+
+            // 默认返回空数组
+            console.warn('无法解析配置数据格式:', data);
+            return [];
         }
 
         // 🆕 过滤配置列表
@@ -299,7 +378,7 @@
                 return;
             }
 
-            container.innerHTML = filtered.map(config => {
+            container.innerHTML = filtered.map((config, index) => {
                 // 🆕 生成提供商类型徽章
                 let providerTypeBadge = '';
                 if (config.provider_type) {
@@ -326,7 +405,7 @@
                 }
 
                 return `
-                <div id="config-${config.name}" class="config-card ${config.is_current ? 'active' : ''}">
+                <div id="config-${config.name}" class="config-card ${config.is_current ? 'active' : ''} fade-in" style="animation-delay: ${index * 0.05}s">
                     <div class="config-header">
                         <div class="config-info">
                             <h3 class="config-title">
@@ -1077,12 +1156,380 @@
             }
         }
 
-        // ESC 关闭模态框
+        // ESC 关闭模态框 & 🆕 键盘快捷键支持
         document.addEventListener('keydown', (e) => {
+            // ESC 关闭所有模态框
             if (e.key === 'Escape') {
                 closeModal();
                 closeCleanModal();
                 closeExportModal();
                 closeImportModal();
+                return;
+            }
+
+            // 🆕 Ctrl+1-5: 快速切换平台 (仅在 Unified 模式下)
+            if (e.ctrlKey && platformInfo.mode === 'unified') {
+                const platformMap = {
+                    '1': 'claude',
+                    '2': 'codex',
+                    '3': 'gemini',
+                    '4': 'qwen',
+                    '5': 'iflow'
+                };
+
+                const platformName = platformMap[e.key];
+                if (platformName) {
+                    e.preventDefault(); // 防止浏览器默认行为
+
+                    // 检查平台是否存在
+                    const platform = platformInfo.availablePlatforms.find(p => p.name === platformName);
+                    if (platform) {
+                        switchPlatform(platformName);
+
+                        // 显示快捷键提示
+                        showNotification(
+                            `快捷键切换: Ctrl+${e.key} → ${platformName}`,
+                            'success',
+                            { icon: '⌨️', duration: 1500 }
+                        );
+                    }
+                }
+            }
+
+            // 🆕 Ctrl+Enter: 激活当前选中的平台
+            if (e.ctrlKey && e.key === 'Enter' && platformInfo.mode === 'unified') {
+                const activateBtn = document.getElementById('activatePlatformBtn');
+                if (activateBtn && activateBtn.style.display !== 'none') {
+                    e.preventDefault();
+                    activateCurrentPlatform();
+                }
+            }
+
+            // 🆕 Ctrl+R: 刷新数据
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                loadData();
+                showNotification('数据已刷新', 'success', { icon: '🔄', duration: 1500 });
             }
         });
+
+        // ===== 🆕 多平台支持 (Multi-Platform Support) =====
+
+        let platformInfo = {
+            mode: 'legacy', // 'legacy' or 'unified'
+            currentPlatform: null,
+            availablePlatforms: []
+        };
+
+        // 在 DOMContentLoaded 中添加平台信息加载
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPlatformInfo();
+        });
+
+        // 加载平台信息
+        async function loadPlatformInfo() {
+            try {
+                const response = await fetch('/api/platforms');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    platformInfo = {
+                        mode: data.data.mode,
+                        currentPlatform: data.data.current_platform,
+                        availablePlatforms: data.data.available_platforms || []
+                    };
+
+                    // 更新 UI
+                    updatePlatformUI();
+
+                    // 如果是 Unified 模式，渲染平台导航栏和状态
+                    if (platformInfo.mode === 'unified') {
+                        renderPlatformNavigation();
+                        renderPlatformStatus();
+                    }
+                }
+            } catch (error) {
+                console.error('加载平台信息失败:', error);
+                // 静默失败，使用默认的 Legacy 模式
+                platformInfo = { mode: 'legacy', currentPlatform: null, availablePlatforms: [] };
+                updatePlatformUI();
+            }
+        }
+
+        // 更新平台相关的 UI 显示
+        function updatePlatformUI() {
+            const modeIndicator = document.getElementById('modeIndicator');
+            const platformNavBar = document.getElementById('platformNavBar');
+            const platformStatusSection = document.getElementById('platformStatusSection');
+            const currentPlatformIndicator = document.getElementById('currentPlatformIndicator');
+
+            if (platformInfo.mode === 'unified') {
+                // Unified 模式
+                modeIndicator.textContent = 'Unified 模式';
+                modeIndicator.style.color = 'var(--accent-success)';
+
+                // 显示平台导航栏
+                if (platformNavBar) {
+                    platformNavBar.style.display = 'flex';
+                }
+
+                // 显示平台状态区域
+                if (platformStatusSection) {
+                    platformStatusSection.style.display = 'block';
+                }
+
+                // 显示当前平台指示器
+                if (currentPlatformIndicator && platformInfo.currentPlatform) {
+                    currentPlatformIndicator.style.display = 'flex';
+                    document.getElementById('activePlatformName').textContent = platformInfo.currentPlatform;
+                }
+            } else {
+                // Legacy 模式
+                modeIndicator.textContent = 'Legacy 模式';
+                modeIndicator.style.color = 'var(--text-secondary)';
+
+                // 隐藏平台导航栏
+                if (platformNavBar) {
+                    platformNavBar.style.display = 'none';
+                }
+
+                // 隐藏平台状态区域
+                if (platformStatusSection) {
+                    platformStatusSection.style.display = 'none';
+                }
+
+                // 隐藏当前平台指示器
+                if (currentPlatformIndicator) {
+                    currentPlatformIndicator.style.display = 'none';
+                }
+            }
+        }
+
+        // 渲染平台导航栏
+        function renderPlatformNavigation() {
+            if (platformInfo.mode !== 'unified') return;
+
+            const platforms = platformInfo.availablePlatforms;
+
+            // 更新每个平台标签的徽章数量
+            platforms.forEach(platform => {
+                const badge = document.getElementById(`badge-${platform.name}`);
+                if (badge) {
+                    // 🆕 显示平台的当前 profile（如果有的话）
+                    // 在 Unified 模式下，每个平台可能有多个 profile
+                    // 这里显示 profile 数量或配置数量
+                    const profileCount = platform.current_profile ? 1 : 0;
+                    badge.textContent = profileCount.toString();
+
+                    // 🆕 如果是当前平台，显示当前配置的数量
+                    if (platform.is_current && allConfigs.length > 0) {
+                        badge.textContent = allConfigs.length.toString();
+                    }
+                }
+
+                // 更新激活状态
+                const tab = document.querySelector(`.platform-tab[data-platform="${platform.name}"]`);
+                if (tab) {
+                    if (platform.is_current) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
+                    }
+                }
+            });
+
+            // 显示/隐藏激活按钮
+            const activateBtn = document.getElementById('activatePlatformBtn');
+            if (activateBtn) {
+                // 如果当前选中的标签不是激活的平台，显示激活按钮
+                const activeTab = document.querySelector('.platform-tab.active');
+                if (activeTab) {
+                    const selectedPlatform = activeTab.getAttribute('data-platform');
+                    const currentPlatform = platforms.find(p => p.is_current);
+
+                    if (currentPlatform && currentPlatform.name !== selectedPlatform) {
+                        activateBtn.style.display = 'inline-block';
+                    } else {
+                        activateBtn.style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        // 渲染平台状态列表
+        function renderPlatformStatus() {
+            if (platformInfo.mode !== 'unified') return;
+
+            const statusList = document.getElementById('platformStatusList');
+            if (!statusList) return;
+
+            const platforms = platformInfo.availablePlatforms;
+
+            if (platforms.length === 0) {
+                statusList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 12px;">暂无平台</div>';
+                return;
+            }
+
+            // 平台图标映射
+            const platformIcons = {
+                'claude': '🤖',
+                'codex': '💻',
+                'gemini': '✨',
+                'qwen': '🌟',
+                'iflow': '⚡'
+            };
+
+            statusList.innerHTML = platforms.map(platform => {
+                const icon = platformIcons[platform.name] || '📦';
+                const badgeClass = platform.enabled ? '' : 'inactive';
+                const badgeText = platform.enabled ? '已启用' : '已禁用';
+
+                return `
+                    <div class="platform-status-item ${platform.is_current ? 'active' : ''}"
+                         onclick="switchPlatform('${platform.name}')">
+                        <div class="platform-status-name">
+                            <span class="platform-status-icon">${icon}</span>
+                            <span>${platform.name}</span>
+                        </div>
+                        <span class="platform-status-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 切换平台 (在导航栏点击平台标签时调用)
+        async function switchPlatform(platformName) {
+            if (platformInfo.mode !== 'unified') {
+                showNotification('平台切换仅在 Unified 模式下可用', 'error');
+                return;
+            }
+
+            // 🆕 添加切换动画
+            const clickedTab = document.querySelector(`.platform-tab[data-platform="${platformName}"]`);
+            if (clickedTab) {
+                clickedTab.classList.add('switching');
+                setTimeout(() => clickedTab.classList.remove('switching'), 600);
+            }
+
+            // 更新 UI 选中状态
+            document.querySelectorAll('.platform-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.getAttribute('data-platform') === platformName) {
+                    tab.classList.add('active');
+                }
+            });
+
+            // 显示/隐藏激活按钮
+            const currentPlatform = platformInfo.availablePlatforms.find(p => p.is_current);
+            const activateBtn = document.getElementById('activatePlatformBtn');
+
+            if (activateBtn) {
+                if (currentPlatform && currentPlatform.name !== platformName) {
+                    activateBtn.style.display = 'inline-block';
+                    activateBtn.setAttribute('data-platform', platformName);
+                } else {
+                    activateBtn.style.display = 'none';
+                }
+            }
+
+            // 加载该平台的配置数据
+            // 在 Unified 模式下，切换平台标签时仅更新 UI
+            // 实际的配置加载在激活平台后进行
+            // 这里可以显示一个提示信息
+            const platform = platformInfo.availablePlatforms.find(p => p.name === platformName);
+            if (platform && !platform.is_current) {
+                showNotification(
+                    `已选择平台 "${platformName}"\n点击 "✓ 激活此平台" 按钮以切换到该平台`,
+                    'info',
+                    { icon: '💡', duration: 3000 }
+                );
+            }
+
+            // 更新平台状态列表的选中状态
+            renderPlatformStatus();
+        }
+
+        // 激活当前选中的平台
+        async function activateCurrentPlatform() {
+            const activeTab = document.querySelector('.platform-tab.active');
+            if (!activeTab) {
+                showNotification('请先选择要激活的平台', 'error');
+                return;
+            }
+
+            const platformName = activeTab.getAttribute('data-platform');
+
+            if (!confirm(`确定将 "${platformName}" 设置为激活平台吗？`)) {
+                return;
+            }
+
+            const btn = document.getElementById('activatePlatformBtn');
+            setButtonLoading(btn, true);
+
+            // 🆕 添加加载指示器到按钮
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '激活中... <span class="loading-indicator"></span>';
+
+            try {
+                const response = await fetch('/api/platforms/switch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platform_name: platformName })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 🆕 成功激活后的视觉反馈
+                    showNotification(`✓ 已激活平台: ${platformName}`, 'success');
+
+                    // 🆕 平台标签激活动画
+                    if (activeTab) {
+                        activeTab.classList.add('activated');
+                        activeTab.classList.add('success-pulse');
+                        setTimeout(() => {
+                            activeTab.classList.remove('activated');
+                            activeTab.classList.remove('success-pulse');
+                        }, 800);
+                    }
+
+                    // 🆕 平台状态项激活动画
+                    const statusItems = document.querySelectorAll('.platform-status-item');
+                    statusItems.forEach(item => {
+                        if (item.textContent.includes(platformName)) {
+                            item.classList.add('activating');
+                            setTimeout(() => item.classList.remove('activating'), 500);
+                        }
+                    });
+
+                    // 重新加载平台信息
+                    await loadPlatformInfo();
+
+                    // 重新加载配置数据
+                    await loadData();
+                } else {
+                    showNotification(data.message || '激活失败', 'error', {
+                        autoHide: false,
+                        actions: [{
+                            label: '关闭',
+                            type: 'secondary',
+                            onclick: 'closeNotification()'
+                        }]
+                    });
+                }
+            } catch (error) {
+                handleApiError(error, '激活平台');
+            } finally {
+                setButtonLoading(btn, false);
+                btn.innerHTML = originalText;
+            }
+        }

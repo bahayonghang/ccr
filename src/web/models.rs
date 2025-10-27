@@ -221,3 +221,30 @@ pub struct SystemInfoResponse {
     pub used_swap_gb: f64,
     pub uptime_seconds: u64,
 }
+
+// ===== 🆕 平台管理模型 (Unified Mode) =====
+
+/// 平台信息响应
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlatformInfoResponse {
+    pub mode: String, // "legacy" or "unified"
+    pub current_platform: Option<String>,
+    pub available_platforms: Option<Vec<PlatformItem>>,
+}
+
+/// 平台项
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlatformItem {
+    pub name: String,
+    pub enabled: bool,
+    pub current_profile: Option<String>,
+    pub description: Option<String>,
+    pub last_used: Option<String>,
+    pub is_current: bool,
+}
+
+/// 切换平台请求
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SwitchPlatformRequest {
+    pub platform_name: String,
+}

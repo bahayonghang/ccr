@@ -28,6 +28,7 @@ mod gemini_models;
 mod handlers;
 mod markdown_manager;
 mod models;
+mod platform_config_manager;
 mod plugins_manager;
 mod qwen_config_manager;
 mod qwen_models;
@@ -140,6 +141,16 @@ fn create_router() -> Router {
         .route("/api/version", get(handlers::version::get_version))
         .route("/api/version/check-update", get(handlers::version::check_update))
         .route("/api/version/update", post(handlers::version::update_ccr))
+        // Platform management endpoints (Unified mode)
+        .route("/api/platforms", get(handlers::platform::list_platforms))
+        .route("/api/platforms/current", get(handlers::platform::get_current_platform))
+        .route("/api/platforms/switch", post(handlers::platform::switch_platform))
+        .route("/api/platforms/:name", get(handlers::platform::get_platform))
+        .route("/api/platforms/:name", put(handlers::platform::update_platform))
+        .route("/api/platforms/:name/enable", post(handlers::platform::enable_platform))
+        .route("/api/platforms/:name/disable", post(handlers::platform::disable_platform))
+        .route("/api/platforms/:name/profile", get(handlers::platform::get_platform_profile))
+        .route("/api/platforms/:name/profile", post(handlers::platform::set_platform_profile))
         // MCP server management endpoints
         .route("/api/mcp", get(handlers::mcp::list_mcp_servers))
         .route("/api/mcp", post(handlers::mcp::add_mcp_server))

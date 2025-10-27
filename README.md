@@ -446,7 +446,13 @@ ccr tui              # Launch TUI
 
 ### ☁️ Cloud Sync (WebDAV)
 
-CCR supports WebDAV-based configuration synchronization for multi-device management.
+CCR supports WebDAV-based configuration synchronization for multi-device management with two sync modes:
+
+**Sync Modes:**
+- 📁 **Directory Sync (Unified Mode)** - Syncs entire `~/.ccr/` directory with all platform configurations (recommended)
+- 📄 **File Sync (Legacy Mode)** - Syncs single `~/.ccs_config.toml` file (backward compatible)
+
+CCR automatically detects which mode to use based on your configuration structure.
 
 **Supported Services:**
 - 🥜 **Nutstore (坚果云)** - Recommended for China users (free tier available)
@@ -462,7 +468,7 @@ ccr sync config
 # - WebDAV server URL (default: https://dav.jianguoyun.com/dav/)
 # - Username/Email
 # - Password/App password (for Nutstore: Account Settings → Security → Add App)
-# - Remote file path (default: /ccr/.ccs_config.toml)
+# - Remote directory path (default: /ccr/)
 # - Connection test will run automatically
 ```
 
@@ -471,22 +477,30 @@ ccr sync config
 ccr sync status
 # Shows:
 # - Sync configuration (server, username, remote path)
+# - Sync mode (Directory or File)
+# - Local path being synced
 # - Auto-sync status
-# - Remote file existence check
+# - Remote content existence check
 ```
 
 3. **Upload config to cloud (first time):**
 ```bash
 ccr sync push
-# Prompts for confirmation if remote file exists
-# Use --force to skip confirmation
+# - Automatically detects directory or file mode
+# - Recursively uploads all files and subdirectories
+# - Excludes temporary files (.bak, .tmp, .lock, .DS_Store, etc.)
+# - Prompts for confirmation if remote content exists
+# - Use --force to skip confirmation
 ```
 
 4. **Download config from cloud:**
 ```bash
 ccr sync pull
-# Backs up local config before overwriting
-# Use --force to skip confirmation
+# - Automatically detects directory or file mode
+# - Recursively downloads all files and subdirectories
+# - Applies same exclusion rules as push
+# - Backs up local content before overwriting
+# - Use --force to skip confirmation
 ```
 
 **Configuration:**
@@ -498,12 +512,20 @@ enabled = true
 webdav_url = "https://dav.jianguoyun.com/dav/"
 username = "user@example.com"
 password = "your-app-password"
-remote_path = "/ccr/.ccs_config.toml"
+remote_path = "/ccr/"  # Directory for Unified Mode or file path for Legacy Mode
 auto_sync = false  # Not yet implemented
 ```
 
+**Sync Features:**
+- 🔄 **Automatic Mode Detection** - Detects directory vs file sync automatically
+- 📁 **Recursive Directory Sync** - Uploads/downloads entire directory trees
+- 🚫 **Smart File Filtering** - Excludes temporary and system files automatically
+- 💾 **Safe Operations** - Creates backups before overwriting local content
+- 🔒 **Atomic Uploads** - Ensures remote directories exist before uploading files
+
 **Use Cases:**
 - 📱 Sync configs across multiple machines
+- 🎯 Sync multi-platform configurations (Claude, Codex, Gemini, etc.)
 - 💼 Team collaboration with shared configs
 - 🔄 Backup configs to cloud storage
 - 🚀 Quick setup on new machines

@@ -408,3 +408,77 @@ pub struct SyncInfoResponse {
     pub setup_steps: Vec<String>,
     pub security_notes: Vec<String>,
 }
+
+// ===== Platform Management Models (Unified Mode) =====
+
+/// Platform list item for GET /api/platforms
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlatformListItem {
+    pub name: String,
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_profile: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_used: Option<String>,
+    pub is_current: bool,
+}
+
+/// Current platform response for GET /api/platforms/current
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CurrentPlatformResponse {
+    pub name: String,
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_profile: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_used: Option<String>,
+}
+
+/// Switch platform request for POST /api/platforms/switch
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SwitchPlatformRequest {
+    pub platform_name: String,
+}
+
+/// Platform detail response for GET /api/platforms/:name
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlatformDetailResponse {
+    pub name: String,
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_profile: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_used: Option<String>,
+    pub is_current: bool,
+}
+
+/// Update platform request for PUT /api/platforms/:name
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdatePlatformRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_profile: Option<String>,
+}
+
+/// Platform profile response for GET /api/platforms/:name/profile
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlatformProfileResponse {
+    pub platform_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_profile: Option<String>,
+}
+
+/// Set platform profile request for POST /api/platforms/:name/profile
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SetPlatformProfileRequest {
+    pub profile_name: String,
+}

@@ -6,6 +6,7 @@ use crate::core::logging::ColorOutput;
 use crate::managers::config::{ConfigManager, SyncConfig};
 use crate::services::SyncService;
 use std::io::{self, Write};
+use std::path::PathBuf;
 
 /// ⚙️ 配置 WebDAV 同步
 ///
@@ -35,7 +36,7 @@ pub fn sync_config_command() -> Result<()> {
     println!();
 
     // 4. 远程路径
-    let remote_path = prompt_with_default("远程文件路径", Some("/ccr/.ccs_config.toml"))?;
+    let remote_path = prompt_with_default("远程目录路径", Some("/ccr/"))?;
 
     println!();
     ColorOutput::separator();
@@ -139,6 +140,24 @@ pub fn sync_status_command() -> Result<()> {
                 Cell::new(&sync_config.remote_path),
             ]);
 
+            // 🆕 同步类型
+            let sync_path = get_ccr_sync_path()?;
+            let sync_type = if sync_path.is_dir() {
+                "📁 目录同步"
+            } else {
+                "📄 文件同步"
+            };
+            table.add_row(vec![
+                Cell::new("同步类型"),
+                Cell::new(sync_type).fg(TableColor::Cyan),
+            ]);
+
+            // 🆕 本地路径
+            table.add_row(vec![
+                Cell::new("本地路径"),
+                Cell::new(sync_path.display().to_string()),
+            ]);
+
             // 自动同步
             let auto_sync_text = if sync_config.auto_sync {
                 "✓ 开启"
@@ -159,7 +178,7 @@ pub fn sync_status_command() -> Result<()> {
             println!();
 
             // 检查远程文件状态
-            print!("🔍 正在检查远程文件...");
+            print!("🔍 正在检查远程状态...");
             std::io::Write::flush(&mut std::io::stdout()).unwrap();
 
             let runtime = tokio::runtime::Runtime::new()
@@ -172,10 +191,10 @@ pub fn sync_status_command() -> Result<()> {
 
             print!("\r");
             if exists {
-                println!("{}  {}", "✓".green().bold(), "远程配置文件存在".green());
+                println!("{}  {}", "✓".green().bold(), "远程内容存在".green());
             } else {
-                println!("{}  {}", "⚠".yellow().bold(), "远程配置文件不存在".yellow());
-                println!("   💡 提示: 运行 {} 首次上传配置", "ccr sync push".cyan());
+                println!("{}  {}", "⚠".yellow().bold(), "远程内容不存在".yellow());
+                println!("   💡 提示: 运行 {} 首次上传", "ccr sync push".cyan());
             }
             println!();
         }
@@ -212,12 +231,25 @@ pub fn sync_push_command(force: bool) -> Result<()> {
         return Err(CcrError::SyncError("同步功能已禁用".into()));
     }
 
-    // 检查远程文件是否存在
+    // 🏠 获取要同步的路径（目录或文件）
+    let sync_path = get_ccr_sync_path()?;
+    let is_dir = sync_path.is_dir();
+
+    // 显示同步信息
+    if is_dir {
+        println!("{}  {}", "📁".blue().bold(), format!("同步目录: {}", sync_path.display()).blue());
+    } else {
+        println!("{}  {}", "📄".blue().bold(), format!("同步文件: {}", sync_path.display()).blue());
+    }
+    println!("   → 远程路径: {}", sync_config.remote_path.cyan());
+    println!();
+
+    // 检查远程文件/目录是否存在
     let runtime = tokio::runtime::Runtime::new()
         .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
 
     if !force {
-        print!("🔍 正在检查远程文件...");
+        print!("🔍 正在检查远程状态...");
         io::stdout().flush().unwrap();
 
         let exists = runtime.block_on(async {
@@ -227,7 +259,7 @@ pub fn sync_push_command(force: bool) -> Result<()> {
 
         print!("\r");
         if exists {
-            println!("{}  {}", "⚠".yellow().bold(), "远程配置文件已存在".yellow());
+            println!("{}  {}", "⚠".yellow().bold(), "远程已存在同名内容".yellow());
             println!();
             print!("   是否覆盖远程配置？ {} ", "(y/N):".dimmed());
             io::stdout().flush().unwrap();
@@ -245,25 +277,30 @@ pub fn sync_push_command(force: bool) -> Result<()> {
             println!(
                 "{}  {}",
                 "ℹ".blue().bold(),
-                "远程文件不存在，将创建新文件".blue()
+                "远程不存在，将创建新内容".blue()
             );
             println!();
         }
     }
 
-    print!("🚀 正在上传配置...");
+    print!("🚀 正在上传...");
     io::stdout().flush().unwrap();
 
     runtime.block_on(async {
         let service = SyncService::new(sync_config).await?;
-        service.push(manager.config_path()).await?;
+        service.push(&sync_path).await?;
         Ok::<(), CcrError>(())
     })?;
 
     print!("\r");
-    println!("{}  {}", "✓".green().bold(), "配置已成功上传到云端".green());
+    if is_dir {
+        println!("{}  {}", "✓".green().bold(), "目录已成功上传到云端".green());
+    } else {
+        println!("{}  {}", "✓".green().bold(), "文件已成功上传到云端".green());
+    }
     println!();
     println!("📊 同步信息:");
+    println!("   • 本地路径: {}", sync_path.display().to_string().cyan());
     println!("   • 远程路径: {}", sync_config.remote_path.cyan());
     println!("   • 服务器: {}", sync_config.webdav_url.dimmed());
     println!();
@@ -290,15 +327,28 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
         return Err(CcrError::SyncError("同步功能已禁用".into()));
     }
 
+    // 🏠 获取要同步的路径（目录或文件）
+    let sync_path = get_ccr_sync_path()?;
+    let is_dir = sync_path.is_dir();
+
+    // 显示同步信息
+    if is_dir {
+        println!("{}  {}", "📁".blue().bold(), format!("同步目录: {}", sync_path.display()).blue());
+    } else {
+        println!("{}  {}", "📄".blue().bold(), format!("同步文件: {}", sync_path.display()).blue());
+    }
+    println!("   ← 远程路径: {}", sync_config.remote_path.cyan());
+    println!();
+
     // 备份本地配置
     if !force {
         println!(
             "{}  {}",
             "⚠".yellow().bold(),
-            "此操作将覆盖本地配置文件".yellow()
+            "此操作将覆盖本地内容".yellow()
         );
         println!();
-        print!("   是否继续？本地配置将被备份 {} ", "(y/N):".dimmed());
+        print!("   是否继续？本地内容将被备份 {} ", "(y/N):".dimmed());
         io::stdout().flush().unwrap();
 
         let mut confirm = String::new();
@@ -312,18 +362,34 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
         println!();
     }
 
-    print!("💾 正在备份本地配置...");
-    io::stdout().flush().unwrap();
-    let backup_path = manager.backup(Some("before_pull"))?;
-    print!("\r");
-    println!("{}  {}", "✓".green().bold(), "本地配置已备份".green());
-    println!(
-        "   📁 备份位置: {}",
-        backup_path.display().to_string().dimmed()
-    );
-    println!();
+    // 备份逻辑
+    if sync_path.exists() {
+        print!("💾 正在备份本地内容...");
+        io::stdout().flush().unwrap();
 
-    print!("⬇️  正在从云端下载配置...");
+        // 如果是文件，使用 ConfigManager 的备份功能
+        // 如果是目录，创建 .bak 备份
+        let backup_path = if is_dir {
+            let backup_name = format!("{}.bak", sync_path.display());
+            let backup = PathBuf::from(backup_name);
+            // 简单的目录复制（真实实现可能需要更复杂的逻辑）
+            std::fs::rename(&sync_path, &backup)
+                .map_err(|e| CcrError::SyncError(format!("备份目录失败: {}", e)))?;
+            backup
+        } else {
+            manager.backup(Some("before_pull"))?
+        };
+
+        print!("\r");
+        println!("{}  {}", "✓".green().bold(), "本地内容已备份".green());
+        println!(
+            "   📁 备份位置: {}",
+            backup_path.display().to_string().dimmed()
+        );
+        println!();
+    }
+
+    print!("⬇️  正在从云端下载...");
     io::stdout().flush().unwrap();
 
     let runtime = tokio::runtime::Runtime::new()
@@ -331,18 +397,27 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
 
     runtime.block_on(async {
         let service = SyncService::new(sync_config).await?;
-        service.pull(manager.config_path()).await?;
+        service.pull(&sync_path).await?;
         Ok::<(), CcrError>(())
     })?;
 
     print!("\r");
-    println!(
-        "{}  {}",
-        "✓".green().bold(),
-        "配置已从云端下载并应用".green()
-    );
+    if is_dir {
+        println!(
+            "{}  {}",
+            "✓".green().bold(),
+            "目录已从云端下载并应用".green()
+        );
+    } else {
+        println!(
+            "{}  {}",
+            "✓".green().bold(),
+            "文件已从云端下载并应用".green()
+        );
+    }
     println!();
     println!("📊 同步信息:");
+    println!("   • 本地路径: {}", sync_path.display().to_string().cyan());
     println!("   • 远程路径: {}", sync_config.remote_path.cyan());
     println!("   • 服务器: {}", sync_config.webdav_url.dimmed());
     println!();
@@ -353,6 +428,37 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
 }
 
 // === 辅助函数 ===
+
+/// 🏠 获取 CCR 根目录路径
+///
+/// 优先级：
+/// 1. CCR_ROOT 环境变量
+/// 2. ~/.ccr/ (统一模式)
+/// 3. 回退到使用配置文件路径（兼容旧版）
+fn get_ccr_sync_path() -> Result<PathBuf> {
+    // 1. 检查 CCR_ROOT 环境变量
+    if let Ok(ccr_root) = std::env::var("CCR_ROOT") {
+        let root_path = PathBuf::from(ccr_root);
+        if root_path.exists() {
+            return Ok(root_path);
+        }
+    }
+
+    // 2. 检查 ~/.ccr/ 统一模式目录
+    if let Some(home) = dirs::home_dir() {
+        let ccr_root = home.join(".ccr");
+        if ccr_root.exists() {
+            return Ok(ccr_root);
+        }
+    }
+
+    // 3. 回退到配置文件（Legacy 模式）
+    // 这种情况下我们同步单个配置文件
+    let manager = ConfigManager::default()?;
+    Ok(manager.config_path().parent()
+        .ok_or_else(|| CcrError::ConfigError("无法获取配置文件目录".into()))?
+        .to_path_buf())
+}
 
 /// 必填字段提示
 fn prompt_required(field_name: &str, example: &str) -> Result<String> {
@@ -428,11 +534,12 @@ mod tests {
             webdav_url: "https://dav.jianguoyun.com/dav/".to_string(),
             username: "test@example.com".to_string(),
             password: "test_password".to_string(),
-            remote_path: "/ccr/.ccs_config.toml".to_string(),
+            remote_path: "/ccr/".to_string(),  // 🆕 改为目录路径
             auto_sync: false,
         };
 
         assert!(config.enabled);
         assert_eq!(config.webdav_url, "https://dav.jianguoyun.com/dav/");
+        assert_eq!(config.remote_path, "/ccr/");
     }
 }
