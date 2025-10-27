@@ -522,6 +522,46 @@ impl ConfigManager {
                         .join(platform)
                         .join("profiles.toml");
 
+                    // 如果 profiles.toml 不存在，则在首次使用时创建一个最小可用的文件
+                    if !platform_profiles_path.exists() {
+                        log::debug!(
+                            "⚙️  未找到平台 profiles 文件: {:?}，正在创建默认空配置",
+                            platform_profiles_path
+                        );
+
+                        // 确保父目录存在
+                        if let Some(parent_dir) = platform_profiles_path.parent() {
+                            std::fs::create_dir_all(parent_dir).map_err(|e| {
+                                CcrError::ConfigError(format!(
+                                    "创建平台目录失败: {}",
+                                    e
+                                ))
+                            })?;
+                        }
+
+                        // 构建一个空的 CcsConfig（默认/当前配置名为 "default"，sections 为空）
+                        let default_ccs = CcsConfig {
+                            default_config: "default".to_string(),
+                            current_config: "default".to_string(),
+                            settings: GlobalSettings::default(),
+                            sections: IndexMap::new(),
+                        };
+
+                        // 序列化并写入文件
+                        let content = toml::to_string_pretty(&default_ccs).map_err(|e| {
+                            CcrError::ConfigError(format!(
+                                "序列化默认配置失败: {}",
+                                e
+                            ))
+                        })?;
+                        std::fs::write(&platform_profiles_path, content).map_err(|e| {
+                            CcrError::ConfigError(format!(
+                                "写入默认 profiles.toml 失败: {}",
+                                e
+                            ))
+                        })?;
+                    }
+
                     log::debug!("🔄 Unified 模式: 使用平台 {} 的配置路径: {:?}", platform, platform_profiles_path);
                     return Ok(Self::new(platform_profiles_path));
                 }

@@ -50,6 +50,16 @@ pub enum Route {
     /// POST /api/import - 导入配置
     ImportConfig,
 
+    // ☁️ 同步相关
+    /// GET /api/sync/status - 获取同步状态
+    SyncStatus,
+    /// POST /api/sync/config - 设置/更新同步配置
+    SyncConfig,
+    /// POST /api/sync/push - 执行 push 到云端
+    SyncPush,
+    /// POST /api/sync/pull - 执行 pull 从云端
+    SyncPull,
+
     /// 404 - 未找到
     NotFound,
 }
@@ -78,6 +88,10 @@ impl Route {
             ("POST", "/api/settings/restore") => Route::RestoreSettings,
             ("POST", "/api/export") => Route::ExportConfig,
             ("POST", "/api/import") => Route::ImportConfig,
+            ("GET", "/api/sync/status") => Route::SyncStatus,
+            ("POST", "/api/sync/config") => Route::SyncConfig,
+            ("POST", "/api/sync/push") => Route::SyncPush,
+            ("POST", "/api/sync/pull") => Route::SyncPull,
             _ => Route::NotFound,
         }
     }

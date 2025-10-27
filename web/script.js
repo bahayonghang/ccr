@@ -1,4 +1,4 @@
-        let currentEditingConfig = null;
+let currentEditingConfig = null;
         let allConfigs = [];
         let notificationTimeout = null;
         let currentFilter = 'all'; // 当前过滤类型
@@ -170,6 +170,8 @@
         async function loadData() {
             await loadConfigs();
             await loadHistory();
+            // 初始化同步状态（不打断已有加载流程）
+            try { await loadSyncStatus(true); } catch (e) { /* 静默 */ }
         }
 
         // 加载系统信息
@@ -798,12 +800,37 @@
         }
 
         // 切换标签页
-        function switchTab(tab) {
+        function switchTab(tab, evt) {
+            // 兼容通过 onclick="switchTab('sync')" 直接调用的场景
+            // 移除所有激活状态
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-            event.target.classList.add('active');
-            document.getElementById(tab + '-tab').classList.add('active');
+            // 设置当前按钮激活（如果有事件传入则用事件目标，否则通过文案匹配）
+            if (evt && evt.target) {
+                evt.target.classList.add('active');
+            } else {
+                const btns = Array.from(document.querySelectorAll('.tab-btn'));
+                const match = btns.find(b => {
+                    const text = b.textContent.trim();
+                    if (tab === 'configs') return text.includes('配置') || text.includes('配置列表');
+                    if (tab === 'history') return text.includes('历史');
+                    if (tab === 'sync') return text.includes('同步') || text.includes('云同步');
+                    return false;
+                });
+                if (match) match.classList.add('active');
+            }
+
+            // 激活对应内容区域
+            const content = document.getElementById(tab + '-tab');
+            if (content) {
+                content.classList.add('active');
+            }
+
+            // 进入 sync 标签时刷新一次状态
+            if (tab === 'sync') {
+                loadSyncStatus();
+            }
         }
 
         // 关闭模态框
@@ -1531,5 +1558,190 @@
             } finally {
                 setButtonLoading(btn, false);
                 btn.innerHTML = originalText;
+            }
+        }
+        // ===== 云同步逻辑 =====
+
+        async function loadSyncStatus(silent = false) {
+            // 保存操作以供重试
+            lastOperation = { context: '加载同步状态', func: loadSyncStatus };
+
+            try {
+                const btn = document.getElementById('syncRefreshBtn');
+                if (btn) setButtonLoading(btn, true);
+
+                const resp = await fetch('/api/sync/status');
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const result = await resp.json();
+
+                if (!result.success) {
+                    throw new Error(result.message || '获取同步状态失败');
+                }
+
+                const data = result.data || {};
+
+                // 更新显示值
+                document.getElementById('syncConfiguredValue').textContent = data.configured ? '是' : '否';
+                document.getElementById('syncEnabledValue').textContent = data.enabled ? '是' : '否';
+                document.getElementById('syncWebdavUrlValue').textContent = data.webdav_url || '-';
+                document.getElementById('syncUsernameValue').textContent = data.username || '-';
+                document.getElementById('syncRemotePathValue').textContent = data.remote_path || '-';
+                document.getElementById('syncAutoSyncValue').textContent = data.auto_sync === true ? '是' : (data.auto_sync === false ? '否' : '-');
+                document.getElementById('syncLocalPathValue').textContent = data.local_path || '-';
+                document.getElementById('syncTypeValue').textContent = data.sync_type || '-';
+                document.getElementById('syncRemoteExistsValue').textContent = data.remote_exists === true ? '是' : (data.remote_exists === false ? '否' : '-');
+
+                // 如果已配置，填充表单字段（不覆盖用户手动输入）
+                const enabledEl = document.getElementById('syncEnabled');
+                const urlEl = document.getElementById('syncWebdavUrl');
+                const userEl = document.getElementById('syncUsername');
+                const remoteEl = document.getElementById('syncRemotePath');
+                const autoEl = document.getElementById('syncAutoSync');
+
+                if (enabledEl) enabledEl.checked = !!data.enabled;
+                if (urlEl && data.webdav_url && !urlEl.value) urlEl.value = data.webdav_url;
+                if (userEl && data.username && !userEl.value) userEl.value = data.username;
+                if (remoteEl && data.remote_path && !remoteEl.value) remoteEl.value = data.remote_path;
+                if (autoEl && typeof data.auto_sync === 'boolean') autoEl.checked = data.auto_sync;
+
+                // 更新同步操作按钮的可用性
+                updateSyncActions(data);
+
+                if (!silent) {
+                    showNotification('同步状态已更新', 'success', { icon: '🔄' });
+                }
+            } catch (error) {
+                if (!silent) handleApiError(error, '加载同步状态');
+            } finally {
+                const btn = document.getElementById('syncRefreshBtn');
+                if (btn) setButtonLoading(btn, false);
+            }
+        }
+
+        // 根据状态启用/禁用 Push/Pull 按钮与强制覆盖选项
+        function updateSyncActions(data) {
+            const pushBtn = document.getElementById('syncPushBtn');
+            const pullBtn = document.getElementById('syncPullBtn');
+            const forcePush = document.getElementById('syncForcePush');
+            const forcePull = document.getElementById('syncForcePull');
+
+            const configured = !!data.configured;
+            const enabled = !!data.enabled;
+            const disabled = !(configured && enabled);
+
+            if (pushBtn) {
+                pushBtn.disabled = disabled;
+                pushBtn.title = disabled ? '请先启用并保存同步配置' : '上传本地配置到云端';
+            }
+            if (pullBtn) {
+                pullBtn.disabled = disabled;
+                pullBtn.title = disabled ? '请先启用并保存同步配置' : '从云端下载配置到本地';
+            }
+            if (forcePush) {
+                forcePush.disabled = disabled;
+            }
+            if (forcePull) {
+                forcePull.disabled = disabled;
+            }
+        }
+
+        async function saveSyncConfig(event) {
+            event && event.preventDefault && event.preventDefault();
+
+            // 保存操作以供重试
+            lastOperation = { context: '保存同步配置', func: saveSyncConfig };
+
+            const btn = document.getElementById('syncSaveBtn');
+            setButtonLoading(btn, true);
+
+            try {
+                const payload = {
+                    webdav_url: document.getElementById('syncWebdavUrl').value.trim(),
+                    username: document.getElementById('syncUsername').value.trim(),
+                    password: document.getElementById('syncPassword').value, // 不做 trim
+                    remote_path: document.getElementById('syncRemotePath').value.trim() || undefined,
+                    enabled: document.getElementById('syncEnabled').checked,
+                    auto_sync: document.getElementById('syncAutoSync').checked,
+                };
+
+                // 基础校验
+                if (!payload.webdav_url || !payload.username || !payload.password) {
+                    throw new Error('请填写 WebDAV URL、用户名、密码');
+                }
+
+                const resp = await fetch('/api/sync/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const result = await resp.json();
+                if (!resp.ok || !result.success) {
+                    throw new Error(result.message || `HTTP ${resp.status}`);
+                }
+
+                const msg = (result.data && result.data.message) || '同步配置已保存，并通过连接测试';
+                showNotification(msg, 'success', { icon: '✅' });
+
+                // 保存成功后刷新状态
+                await loadSyncStatus(true);
+            } catch (error) {
+                handleApiError(error, '保存同步配置');
+            } finally {
+                setButtonLoading(btn, false);
+            }
+        }
+
+        async function executeSyncPush() {
+            // 保存操作以供重试
+            lastOperation = { context: '执行同步 Push', func: executeSyncPush };
+
+            const btn = document.getElementById('syncPushBtn');
+            setButtonLoading(btn, true);
+            try {
+                const force = document.getElementById('syncForcePush').checked;
+                const resp = await fetch('/api/sync/push', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ force }),
+                });
+                const result = await resp.json();
+                if (!resp.ok || !result.success) {
+                    throw new Error(result.message || `HTTP ${resp.status}`);
+                }
+                const msg = (result.data && result.data.message) || '已成功上传到云端';
+                showNotification(msg, 'success', { icon: '📤' });
+                await loadSyncStatus(true);
+            } catch (error) {
+                handleApiError(error, '执行同步 Push');
+            } finally {
+                setButtonLoading(btn, false);
+            }
+        }
+
+        async function executeSyncPull() {
+            // 保存操作以供重试
+            lastOperation = { context: '执行同步 Pull', func: executeSyncPull };
+
+            const btn = document.getElementById('syncPullBtn');
+            setButtonLoading(btn, true);
+            try {
+                const force = document.getElementById('syncForcePull').checked;
+                const resp = await fetch('/api/sync/pull', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ force }),
+                });
+                const result = await resp.json();
+                if (!resp.ok || !result.success) {
+                    throw new Error(result.message || `HTTP ${resp.status}`);
+                }
+                const msg = (result.data && result.data.message) || '已成功从云端下载';
+                showNotification(msg, 'success', { icon: '📥' });
+                await loadSyncStatus(true);
+            } catch (error) {
+                handleApiError(error, '执行同步 Pull');
+            } finally {
+                setButtonLoading(btn, false);
             }
         }

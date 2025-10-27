@@ -248,3 +248,50 @@ pub struct PlatformItem {
 pub struct SwitchPlatformRequest {
     pub platform_name: String,
 }
+
+// ===== ☁️ 同步相关模型 =====
+
+/// 同步状态响应
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncStatusResponse {
+    pub configured: bool,
+    pub enabled: bool,
+    pub webdav_url: Option<String>,
+    pub username: Option<String>,
+    pub remote_path: Option<String>,
+    pub auto_sync: Option<bool>,
+    pub sync_type: Option<String>, // "directory" or "file"
+    pub local_path: Option<String>,
+    pub remote_exists: Option<bool>,
+}
+
+/// 设置/更新同步配置请求
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncConfigRequest {
+    pub webdav_url: String,
+    pub username: String,
+    pub password: String,
+    #[serde(default = "default_remote_path")]
+    pub remote_path: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub auto_sync: bool,
+}
+
+fn default_remote_path() -> String {
+    "/ccr/".to_string()
+}
+
+/// 同步操作请求（push/pull）
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncOperationRequest {
+    #[serde(default)]
+    pub force: bool,
+}
+
+/// 同步操作响应
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncOperationResponse {
+    pub message: String,
+}

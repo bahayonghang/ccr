@@ -6,6 +6,7 @@ use crate::core::logging::ColorOutput;
 use crate::managers::config::ConfigManager;
 use crate::managers::PlatformConfigManager;
 use crate::models::{Platform, PlatformPaths};
+use indexmap::IndexMap;
 use std::fs;
 use std::path::PathBuf;
 
@@ -136,6 +137,31 @@ fn init_unified_mode(force: bool) -> Result<()> {
     ColorOutput::success(&format!("✓ Claude 平台目录: {}", claude_paths.platform_dir.display()));
     ColorOutput::success(&format!("✓ 历史目录: {}", claude_paths.history_file.parent().unwrap().display()));
     ColorOutput::success(&format!("✓ 备份目录: {}", claude_paths.backups_dir.display()));
+
+    // 在首次初始化时，创建一个最小可用的 profiles.toml，避免后续 ccr list 等命令因文件缺失报错
+    // 注意：不覆盖已有文件，仅在缺失时创建
+    if !claude_paths.profiles_file.exists() {
+        ColorOutput::step("创建默认 Claude profiles.toml");
+
+        // 构建一个空的 CcsConfig（默认/当前配置名为 "default"，sections 为空）
+        let default_ccs = crate::managers::config::CcsConfig {
+            default_config: "default".to_string(),
+            current_config: "default".to_string(),
+            settings: crate::managers::config::GlobalSettings::default(),
+            sections: IndexMap::new(),
+        };
+
+        // 序列化并写入文件
+        let content = toml::to_string_pretty(&default_ccs)
+            .map_err(|e| CcrError::ConfigError(format!("序列化默认配置失败: {}", e)))?;
+        fs::write(&claude_paths.profiles_file, content)
+            .map_err(|e| CcrError::ConfigError(format!("写入默认 profiles.toml 失败: {}", e)))?;
+
+        ColorOutput::success(&format!(
+            "✓ 已创建: {}",
+            claude_paths.profiles_file.display()
+        ));
+    }
 
     // 创建平台注册表配置
     println!();

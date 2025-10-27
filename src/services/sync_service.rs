@@ -13,7 +13,8 @@ use reqwest_dav::list_cmd::ListEntity;
 use reqwest_dav::re_exports::reqwest::StatusCode;
 use reqwest_dav::{Auth, Client, ClientBuilder, Depth, Error as DavError};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use crate::managers::config::ConfigManager;
 
 /// ☁️ WebDAV 同步服务
 ///
@@ -364,6 +365,35 @@ impl SyncService {
 
         CcrError::SyncError(format!("{} 失败: {}", operation, msg))
     }
+}
+
+/// 🏠 获取 CCR 同步根路径（供 CLI/Web 共用）
+///
+/// 优先级：
+/// 1. CCR_ROOT 环境变量
+/// 2. ~/.ccr/ (统一模式)
+/// 3. 回退到使用配置文件路径（兼容旧版）
+pub fn get_ccr_sync_path() -> Result<PathBuf> {
+    // 1. 检查 CCR_ROOT 环境变量
+    if let Ok(ccr_root) = std::env::var("CCR_ROOT") {
+        let root_path = PathBuf::from(ccr_root);
+        if root_path.exists() {
+            return Ok(root_path);
+        }
+    }
+
+    // 2. 检查 ~/.ccr/ 统一模式目录
+    if let Some(home) = dirs::home_dir() {
+        let ccr_root = home.join(".ccr");
+        if ccr_root.exists() {
+            return Ok(ccr_root);
+        }
+    }
+
+    // 3. 回退到配置文件（Legacy 模式）
+    // 这种情况下我们同步单个配置文件
+    let manager = ConfigManager::default()?;
+    Ok(manager.config_path().to_path_buf())
 }
 
 /// 📝 从 WebDAV href 中提取文件名或目录名

@@ -198,6 +198,7 @@
                 <div class="tab-nav">
                     <button class="tab-btn active" onclick="switchTab('configs')">配置列表</button>
                     <button class="tab-btn" onclick="switchTab('history')">历史记录</button>
+                    <button class="tab-btn" onclick="switchTab('sync')">云同步</button>
                 </div>
 
                 <!-- 配置列表 -->
@@ -223,6 +224,109 @@
                 <!-- 历史记录 -->
                 <div id="history-tab" class="tab-content">
                     <div id="historyList"></div>
+                </div>
+
+                <!-- 云同步 -->
+                <div id="sync-tab" class="tab-content">
+                    <!-- 设置卡片 -->
+                    <div class="config-card">
+                        <div class="config-header">
+                            <div class="config-info">
+                                <h3>云同步设置</h3>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-switch">
+                                <input type="checkbox" id="syncEnabled">
+                                <span>启用 WebDAV 同步</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">WebDAV URL *</label>
+                            <input type="url" class="form-input" id="syncWebdavUrl" placeholder="如: https://dav.jianguoyun.com/dav/">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">用户名 *</label>
+                            <input type="text" class="form-input" id="syncUsername" placeholder="请输入 WebDAV 用户名">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">密码 *</label>
+                            <input type="password" class="form-input" id="syncPassword" placeholder="请输入 WebDAV 密码">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">远程路径</label>
+                            <input type="text" class="form-input" id="syncRemotePath" placeholder="默认 /ccr/">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-switch">
+                                <input type="checkbox" id="syncAutoSync">
+                                <span>自动同步（未来版本）</span>
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-secondary" onclick="loadSyncStatus()" id="syncRefreshBtn">刷新状态</button>
+                            <button class="btn btn-primary" onclick="saveSyncConfig(event)" id="syncSaveBtn">保存并测试连接</button>
+                        </div>
+                    </div>
+
+                    <!-- 状态与操作卡片 -->
+                    <div class="config-card">
+                        <div class="config-header">
+                            <div class="config-info">
+                                <h3>同步状态</h3>
+                            </div>
+                        </div>
+                        <div class="config-details">
+                            <div class="config-field">
+                                <div class="field-label">已配置</div>
+                                <div class="field-value" id="syncConfiguredValue">-</div>
+                            </div>
+                            <div class="config-field">
+                                <div class="field-label">是否启用</div>
+                                <div class="field-value" id="syncEnabledValue">-</div>
+                            </div>
+                            <div class="config-field">
+                                <div class="field-label">WebDAV URL</div>
+                                <div class="field-value" id="syncWebdavUrlValue">-</div>
+                            </div>
+                            <div class="config-field">
+                                <div class="field-label">用户名</div>
+                                <div class="field-value" id="syncUsernameValue">-</div>
+                            </div>
+                            <div class="config-field">
+                                <div class="field-label">远程路径</div>
+                                <div class="field-value" id="syncRemotePathValue">-</div>
+                            </div>
+                            <div class="config-field">
+                                <div class="field-label">自动同步</div>
+                                <div class="field-value" id="syncAutoSyncValue">-</div>
+                            </div>
+                            <div class="config-field">
+                                <div class="field-label">本地路径</div>
+                                <div class="field-value" id="syncLocalPathValue">-</div>
+                            </div>
+                            <div class="config-field">
+                                <div class="field-label">同步类型</div>
+                                <div class="field-value" id="syncTypeValue">-</div>
+                            </div>
+                            <div class="config-field">
+                                <div class="field-label">远程是否存在</div>
+                                <div class="field-value" id="syncRemoteExistsValue">-</div>
+                            </div>
+                        </div>
+                        <div class="sync-actions">
+                            <label class="form-switch">
+                                <input type="checkbox" id="syncForcePush">
+                                <span>Push 强制覆盖</span>
+                            </label>
+                            <button class="btn btn-success" onclick="executeSyncPush()" id="syncPushBtn">📤 Push 上传</button>
+                            <label class="form-switch">
+                                <input type="checkbox" id="syncForcePull">
+                                <span>Pull 强制覆盖</span>
+                            </label>
+                            <button class="btn btn-success" onclick="executeSyncPull()" id="syncPullBtn">📥 Pull 下载</button>
+                        </div>
+                    </div>
                 </div>
             </main>
 

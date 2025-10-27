@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "2.0.3"
+version = "2.0.4"
 edition = "2024"
 authors = [
     "Yonghang Li"
@@ -87,7 +87,7 @@ reqwest_dav = "0.2"
 # UI 启动相关依赖
 reqwest = { version = "0.12.24", features = ["blocking", "json"] }  # HTTP 客户端
 dialoguer = "0.12.0"                                                  # 交互式提示
-flate2 = "1.1"                                                      # gzip 压缩/解压
+flate2 = "1.1.5"                                                      # gzip 压缩/解压
 
 [features]
 default = []

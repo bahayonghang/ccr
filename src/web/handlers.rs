@@ -5,7 +5,9 @@
 use crate::core::error::CcrError;
 use crate::core::logging::ColorOutput;
 use crate::managers::config::ConfigSection;
-use crate::services::{BackupService, ConfigService, HistoryService, SettingsService};
+use crate::services::{BackupService, ConfigService, HistoryService, SettingsService, SyncService};
+use crate::services::sync_service::get_ccr_sync_path;
+use crate::managers::config::{ConfigManager, SyncConfig};
 use crate::web::models::*;
 use crate::web::system_info_cache::SystemInfoCache;
 use axum::{
@@ -253,6 +255,278 @@ pub async fn handle_delete_config(
         Err(e) => {
             let error_response: ApiResponse<()> = ApiResponse::error_without_data(e.user_message());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
+        }
+    }
+}
+
+// ===== ☁️ 同步相关处理器 =====
+
+/// 获取同步状态
+pub async fn handle_sync_status() -> Response {
+    let manager = match ConfigManager::default() {
+        Ok(m) => m,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let config = match manager.load() {
+        Ok(c) => c,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let mut response = crate::web::models::SyncStatusResponse {
+        configured: false,
+        enabled: false,
+        webdav_url: None,
+        username: None,
+        remote_path: None,
+        auto_sync: None,
+        sync_type: None,
+        local_path: None,
+        remote_exists: None,
+    };
+
+    if let Some(sync) = &config.settings.sync {
+        response.configured = true;
+        response.enabled = sync.enabled;
+        response.webdav_url = Some(sync.webdav_url.clone());
+        response.username = Some(sync.username.clone());
+        response.remote_path = Some(sync.remote_path.clone());
+        response.auto_sync = Some(sync.auto_sync);
+
+        if let Ok(local_path) = get_ccr_sync_path() {
+            response.local_path = Some(local_path.display().to_string());
+            let sync_type = if local_path.is_dir() { "directory" } else { "file" };
+            response.sync_type = Some(sync_type.to_string());
+
+            // 检查远程是否存在（直接异步调用）
+            match SyncService::new(sync).await {
+                Ok(service) => match service.remote_exists().await {
+                    Ok(exists) => response.remote_exists = Some(exists),
+                    Err(_) => response.remote_exists = Some(false),
+                },
+                Err(_) => response.remote_exists = Some(false),
+            }
+        }
+    }
+
+    Json(crate::web::models::ApiResponse::success(response)).into_response()
+}
+
+/// 设置/更新同步配置
+pub async fn handle_sync_config(Json(req): Json<crate::web::models::SyncConfigRequest>) -> Response {
+    let manager = match ConfigManager::default() {
+        Ok(m) => m,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    // 构建并保存配置
+    let mut config = match manager.load() {
+        Ok(c) => c,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let sync_cfg = SyncConfig {
+        enabled: req.enabled,
+        webdav_url: req.webdav_url,
+        username: req.username,
+        password: req.password,
+        remote_path: req.remote_path,
+        auto_sync: req.auto_sync,
+    };
+
+    // 测试连接（直接异步调用）
+    let service = match SyncService::new(&sync_cfg).await {
+        Ok(s) => s,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::BAD_REQUEST, Json(error_response)).into_response();
+        }
+    };
+    if let Err(e) = service.test_connection().await {
+        let error_response: crate::web::models::ApiResponse<()> =
+            crate::web::models::ApiResponse::error_without_data(e.user_message());
+        return (StatusCode::BAD_REQUEST, Json(error_response)).into_response();
+    }
+
+    // 保存配置
+    config.settings.sync = Some(sync_cfg);
+    if let Err(e) = manager.save(&config) {
+        let error_response: crate::web::models::ApiResponse<()> =
+            crate::web::models::ApiResponse::error_without_data(e.user_message());
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+    }
+
+    Json(crate::web::models::ApiResponse::success(
+        crate::web::models::SyncOperationResponse {
+            message: "同步配置已保存，并通过连接测试".to_string(),
+        },
+    ))
+    .into_response()
+}
+
+/// 执行同步 push
+pub async fn handle_sync_push(Json(req): Json<crate::web::models::SyncOperationRequest>) -> Response {
+    let manager = match ConfigManager::default() {
+        Ok(m) => m,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let config = match manager.load() {
+        Ok(c) => c,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let sync_cfg = match &config.settings.sync {
+        Some(s) if s.enabled => s,
+        Some(_) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data("同步功能已禁用".into());
+            return (StatusCode::BAD_REQUEST, Json(error_response)).into_response();
+        }
+        None => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(
+                    "同步功能未配置，请先运行 'ccr sync config' 或在页面中配置".into(),
+                );
+            return (StatusCode::BAD_REQUEST, Json(error_response)).into_response();
+        }
+    };
+
+    let local_path = match get_ccr_sync_path() {
+        Ok(p) => p,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let push_result = {
+        match SyncService::new(sync_cfg).await {
+            Ok(service) => {
+                if !req.force {
+                    // 如果远程存在且未强制，提示错误（UI 上可做确认弹窗）
+                    match service.remote_exists().await {
+                        Ok(exists) => {
+                            if exists {
+                                Err(CcrError::SyncError("远程已存在同名内容，请使用 force 或先清理".into()))
+                            } else {
+                                service.push(&local_path).await
+                            }
+                        }
+                        Err(e) => Err(e),
+                    }
+                } else {
+                    service.push(&local_path).await
+                }
+            }
+            Err(e) => Err(e),
+        }
+    };
+
+    match push_result {
+        Ok(_) => Json(crate::web::models::ApiResponse::success(
+            crate::web::models::SyncOperationResponse {
+                message: "已成功上传到云端".to_string(),
+            },
+        ))
+        .into_response(),
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            (StatusCode::BAD_REQUEST, Json(error_response)).into_response()
+        }
+    }
+}
+
+/// 执行同步 pull
+pub async fn handle_sync_pull(Json(_req): Json<crate::web::models::SyncOperationRequest>) -> Response {
+    let manager = match ConfigManager::default() {
+        Ok(m) => m,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let config = match manager.load() {
+        Ok(c) => c,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let sync_cfg = match &config.settings.sync {
+        Some(s) if s.enabled => s,
+        Some(_) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data("同步功能已禁用".into());
+            return (StatusCode::BAD_REQUEST, Json(error_response)).into_response();
+        }
+        None => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(
+                    "同步功能未配置，请先运行 'ccr sync config' 或在页面中配置".into(),
+                );
+            return (StatusCode::BAD_REQUEST, Json(error_response)).into_response();
+        }
+    };
+
+    let local_path = match get_ccr_sync_path() {
+        Ok(p) => p,
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
+        }
+    };
+
+    let pull_result = {
+        match SyncService::new(sync_cfg).await {
+            Ok(service) => service.pull(&local_path).await,
+            Err(e) => Err(e),
+        }
+    };
+
+    match pull_result {
+        Ok(_) => Json(crate::web::models::ApiResponse::success(
+            crate::web::models::SyncOperationResponse {
+                message: "已成功从云端下载并应用".to_string(),
+            },
+        ))
+        .into_response(),
+        Err(e) => {
+            let error_response: crate::web::models::ApiResponse<()> =
+                crate::web::models::ApiResponse::error_without_data(e.user_message());
+            (StatusCode::BAD_REQUEST, Json(error_response)).into_response()
         }
     }
 }

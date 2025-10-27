@@ -109,6 +109,11 @@ impl WebServer {
             // 🆕 API 路由 - 平台管理 (Unified Mode)
             .route("/api/platforms", get(handlers::handle_get_platform_info))
             .route("/api/platforms/switch", post(handlers::handle_switch_platform))
+            // ☁️ API 路由 - 同步相关
+            .route("/api/sync/status", get(handlers::handle_sync_status))
+            .route("/api/sync/config", post(handlers::handle_sync_config))
+            .route("/api/sync/push", post(handlers::handle_sync_push))
+            .route("/api/sync/pull", post(handlers::handle_sync_pull))
             // 🎯 添加 CORS 支持
             .layer(CorsLayer::permissive())
             // 🎯 注入共享状态

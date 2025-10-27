@@ -362,17 +362,45 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
         println!();
     }
 
+    // 🔍 检查远程是否存在（在备份前检查，避免不必要的备份）
+    let runtime = tokio::runtime::Runtime::new()
+        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
+
+    let remote_exists = runtime.block_on(async {
+        let service = SyncService::new(&sync_config).await?;
+        service.remote_exists().await
+    })?;
+
+    if !remote_exists {
+        println!();
+        ColorOutput::error("远程目录不存在");
+        println!();
+        println!("   💡 提示: 首次使用需要先上传配置到云端");
+        println!("   运行命令: {}", "ccr sync push".cyan());
+        println!();
+        return Err(CcrError::SyncError("远程内容不存在".to_string()));
+    }
+
     // 备份逻辑
     if sync_path.exists() {
         print!("💾 正在备份本地内容...");
         io::stdout().flush().unwrap();
 
         // 如果是文件，使用 ConfigManager 的备份功能
-        // 如果是目录，创建 .bak 备份
+        // 如果是目录，创建带时间戳的 .bak 备份
         let backup_path = if is_dir {
-            let backup_name = format!("{}.bak", sync_path.display());
+            // 🏷️ 生成带时间戳的备份目录名，避免冲突
+            let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+            let backup_name = format!("{}.{}.bak", sync_path.display(), timestamp);
             let backup = PathBuf::from(backup_name);
-            // 简单的目录复制（真实实现可能需要更复杂的逻辑）
+            
+            // 🔄 如果目标备份路径已存在（极少见），先删除
+            if backup.exists() {
+                std::fs::remove_dir_all(&backup)
+                    .map_err(|e| CcrError::SyncError(format!("删除旧备份失败: {}", e)))?;
+            }
+            
+            // 📦 移动目录到备份位置（原子操作）
             std::fs::rename(&sync_path, &backup)
                 .map_err(|e| CcrError::SyncError(format!("备份目录失败: {}", e)))?;
             backup
@@ -391,9 +419,6 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
 
     print!("⬇️  正在从云端下载...");
     io::stdout().flush().unwrap();
-
-    let runtime = tokio::runtime::Runtime::new()
-        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
 
     runtime.block_on(async {
         let service = SyncService::new(sync_config).await?;
