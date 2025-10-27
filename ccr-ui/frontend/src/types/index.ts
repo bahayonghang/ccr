@@ -281,20 +281,25 @@ export interface CodexMcpServersResponse {
   servers: CodexMcpServer[];
 }
 
-// Codex Profile Types
+// Codex Profile Types (matching profiles.toml structure)
 export interface CodexProfile {
   name: string;
-  model?: string;
-  approval_policy?: string;
-  sandbox_mode?: string;
-  model_reasoning_effort?: string;
+  description?: string;
+  base_url: string;
+  auth_token: string;
+  model: string;
+  small_fast_model?: string;
+  provider?: string;
 }
 
 export interface CodexProfileRequest {
-  model?: string;
-  approval_policy?: string;
-  sandbox_mode?: string;
-  model_reasoning_effort?: string;
+  name: string;
+  description?: string;
+  base_url: string;
+  auth_token: string;
+  model: string;
+  small_fast_model?: string;
+  provider?: string;
 }
 
 export interface CodexProfilesResponse {

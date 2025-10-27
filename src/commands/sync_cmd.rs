@@ -455,9 +455,7 @@ fn get_ccr_sync_path() -> Result<PathBuf> {
     // 3. 回退到配置文件（Legacy 模式）
     // 这种情况下我们同步单个配置文件
     let manager = ConfigManager::default()?;
-    Ok(manager.config_path().parent()
-        .ok_or_else(|| CcrError::ConfigError("无法获取配置文件目录".into()))?
-        .to_path_buf())
+    Ok(manager.config_path().to_path_buf())
 }
 
 /// 必填字段提示

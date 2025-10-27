@@ -219,7 +219,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "anyhow",
  "axum",

@@ -4,6 +4,66 @@ CCR 的所有重要变更都会记录在本文件中。
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.0.3] - 2025-10-27
+
+### 🔧 修复
+
+- **同步功能优化** - 修复 `ccr sync` 同步不必要文件的问题
+  - **智能排除规则**：自动排除 `history/`、`backups/`、`ccr-ui/` 等目录
+  - **精准同步**：只同步配置文件（<10 KB），不再同步数 GB 的编译产物
+  - **体积减少**：同步体积从数 GB 减少到 <10 KB，减少 99.9%+
+  - **Legacy 模式修复**：修正传统模式下的路径获取逻辑
+  - **排除规则详情**：
+    - 目录：`backups/`、`history/`、`ccr-ui/`、`.locks/`、`.git/`
+    - 文件：`*.tmp`、`*.lock`、`*.bak`、`.DS_Store`、`Thumbs.db`
+  - **保留内容**：只同步 `config.toml`、`profiles.toml` 等配置文件
+
+### 📚 文档
+
+- **同步文档更新** (`docs/commands/sync.md`)
+  - 添加详细的排除规则说明
+  - 更新智能文件过滤章节
+  - 添加同步体积对比说明
+  - 新增"同步内容说明"章节
+  - 添加"同步体积异常大"故障排除指南
+  - 更新使用建议和注意事项
+
+### 🎨 改进
+
+- **UI 后端信息更新** (`ccr-ui/backend/src/handlers/sync.rs`)
+  - 完善 `get_sync_info()` 返回的功能说明
+  - 添加详细的排除规则和安全提示
+  - 强调应用密码的使用
+  - 说明强制模式的使用方法
+
+- **UI 前端界面优化** (`ccr-ui/frontend/src/views/SyncView.vue`)
+  - 优化页面描述文字
+  - 美化右侧信息卡片（添加图标、优化列表样式）
+  - 改进安全说明展示（使用 CheckCircle 图标）
+  - 优化配置步骤展示（编号圆圈）
+
+### ⚠️ 升级提示
+
+如果您之前已经使用过 `ccr sync` 功能：
+
+1. **升级到最新版本**
+   ```bash
+   cargo install --git https://github.com/bahayonghang/ccr --force
+   ```
+
+2. **清理云端旧数据**（推荐）
+   - 登录您的 WebDAV 服务器（如坚果云网页版）
+   - 删除以下目录：`/ccr/ccr-ui/`、`/ccr/backups/`、`/ccr/history/`
+
+3. **重新同步**
+   ```bash
+   ccr sync push --force
+   ```
+
+4. **验证同步体积**（应该显示 <10 KB，而不是数 GB）
+
+---
+
 ## [1.4.0] - 2025-01-19
 
 ### ✨ 新增

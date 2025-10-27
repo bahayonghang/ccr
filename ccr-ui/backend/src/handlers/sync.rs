@@ -156,7 +156,7 @@ pub async fn pull_config(Json(req): Json<SyncOperationRequest>) -> impl IntoResp
 pub async fn get_sync_info() -> impl IntoResponse {
     let info = SyncInfoResponse {
         feature_name: "WebDAV 云同步".to_string(),
-        description: "使用 WebDAV 协议在多台设备间同步 CCR 配置文件".to_string(),
+        description: "使用 WebDAV 协议在多台设备间同步 CCR 配置文件，支持目录同步，智能排除不必要的文件".to_string(),
         supported_services: vec![
             "坚果云 (Nutstore)".to_string(),
             "Nextcloud".to_string(),
@@ -165,15 +165,18 @@ pub async fn get_sync_info() -> impl IntoResponse {
         ],
         setup_steps: vec![
             "在 CLI 中运行 'ccr sync config' 配置 WebDAV 连接".to_string(),
-            "输入 WebDAV 服务器地址、用户名和密码".to_string(),
-            "连接测试将自动运行".to_string(),
+            "输入 WebDAV 服务器地址、用户名和密码（坚果云建议使用应用密码）".to_string(),
+            "系统会自动测试连接是否成功".to_string(),
             "使用 'ccr sync push' 上传或 'ccr sync pull' 下载配置".to_string(),
+            "支持强制模式：'ccr sync push --force' 或 'ccr sync pull --force'".to_string(),
         ],
         security_notes: vec![
-            "密码存储在本地 ~/.ccs_config.toml 文件中".to_string(),
-            "建议使用应用密码而非账户密码".to_string(),
-            "确保文件权限正确：chmod 600 ~/.ccs_config.toml".to_string(),
-            "远程文件未被 CCR 加密（依赖 WebDAV 服务器安全性）".to_string(),
+            "密码存储在本地 ~/.ccs_config.toml 文件中（推荐权限：chmod 600）".to_string(),
+            "强烈建议使用应用密码而非账户密码（坚果云：账户设置 → 安全选项 → 添加应用）".to_string(),
+            "同步内容：只同步配置文件（config.toml, profiles.toml 等）".to_string(),
+            "自动排除：backups/、history/、ccr-ui/、.locks/、.git/ 等目录".to_string(),
+            "自动排除：*.tmp、*.lock、*.bak 等临时文件".to_string(),
+            "远程文件未加密，依赖 WebDAV 服务器的安全性（建议使用 HTTPS）".to_string(),
         ],
     };
     

@@ -29,7 +29,7 @@
             <span class="font-medium">返回首页</span>
           </RouterLink>
         </div>
-        <p :style="{ color: '#4b5563' }">使用 WebDAV 协议同步配置文件到云端存储（坚果云、Nextcloud、ownCloud 等）</p>
+        <p :style="{ color: '#4b5563' }">使用 WebDAV 协议同步配置文件到云端存储，支持目录同步，智能排除备份和临时文件</p>
       </div>
 
       <!-- 加载状态 -->
@@ -302,6 +302,7 @@
 
         <!-- 右侧信息栏 -->
         <aside class="space-y-6">
+          <!-- 功能说明卡片 -->
           <div
             class="rounded-xl shadow-sm border overflow-hidden"
             :style="{
@@ -334,28 +335,43 @@
                 </div>
 
                 <div>
-                  <h4 class="text-sm font-semibold" :style="{ color: '#111827' }">支持的服务</h4>
-                  <ul class="mt-2 list-disc list-inside text-sm space-y-1" :style="{ color: '#374151' }">
-                    <li v-for="service in syncInfo.supported_services" :key="service">
+                  <h4 class="text-sm font-semibold flex items-center gap-1" :style="{ color: '#111827' }">
+                    <Server class="w-4 h-4" :style="{ color: '#2563eb' }" />
+                    支持的服务
+                  </h4>
+                  <ul class="mt-2 text-sm space-y-1" :style="{ color: '#374151' }">
+                    <li v-for="service in syncInfo.supported_services" :key="service" class="flex items-center gap-2">
+                      <span class="w-1.5 h-1.5 rounded-full" :style="{ background: '#2563eb' }"></span>
                       {{ service }}
                     </li>
                   </ul>
                 </div>
 
                 <div>
-                  <h4 class="text-sm font-semibold" :style="{ color: '#111827' }">配置步骤</h4>
-                  <ol class="mt-2 list-decimal list-inside text-sm space-y-1" :style="{ color: '#374151' }">
-                    <li v-for="step in syncInfo.setup_steps" :key="step">
-                      {{ step }}
+                  <h4 class="text-sm font-semibold flex items-center gap-1" :style="{ color: '#111827' }">
+                    <Settings class="w-4 h-4" :style="{ color: '#d97706' }" />
+                    配置步骤
+                  </h4>
+                  <ol class="mt-2 text-sm space-y-1.5" :style="{ color: '#374151' }">
+                    <li v-for="(step, index) in syncInfo.setup_steps" :key="step" class="flex gap-2">
+                      <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium"
+                        :style="{ background: '#fef3c7', color: '#92400e' }">
+                        {{ index + 1 }}
+                      </span>
+                      <span>{{ step }}</span>
                     </li>
                   </ol>
                 </div>
 
                 <div>
-                  <h4 class="text-sm font-semibold" :style="{ color: '#111827' }">安全说明</h4>
-                  <ul class="mt-2 list-disc list-inside text-sm space-y-1" :style="{ color: '#374151' }">
-                    <li v-for="note in syncInfo.security_notes" :key="note">
-                      {{ note }}
+                  <h4 class="text-sm font-semibold flex items-center gap-1" :style="{ color: '#111827' }">
+                    <AlertCircle class="w-4 h-4" :style="{ color: '#dc2626' }" />
+                    安全与同步说明
+                  </h4>
+                  <ul class="mt-2 text-sm space-y-1.5" :style="{ color: '#374151' }">
+                    <li v-for="note in syncInfo.security_notes" :key="note" class="flex items-start gap-2">
+                      <CheckCircle class="w-4 h-4 flex-shrink-0 mt-0.5" :style="{ color: '#16a34a' }" />
+                      <span>{{ note }}</span>
                     </li>
                   </ul>
                 </div>

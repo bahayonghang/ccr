@@ -413,6 +413,8 @@ fn should_exclude_from_sync(name: &str) -> bool {
     let exclude_dirs = [
         ".locks",      // 锁文件目录
         "backups",     // 备份目录（太多文件）
+        "history",     // 历史记录目录（不需要同步）
+        "ccr-ui",      // ccr-ui 应用目录（包含源码和编译产物，不需要同步）
     ];
 
     // 检查文件扩展名或完整名称
@@ -466,19 +468,21 @@ mod tests {
 
     #[test]
     fn test_should_exclude() {
-        // 测试文件过滤规则
+        // 测试文件过滤规则 - 应该被排除的
         assert!(should_exclude_from_sync(".DS_Store"));
         assert!(should_exclude_from_sync("test.tmp"));
         assert!(should_exclude_from_sync("file.lock"));
         assert!(should_exclude_from_sync("backup.bak"));
         assert!(should_exclude_from_sync(".locks"));
         assert!(should_exclude_from_sync("backups"));
+        assert!(should_exclude_from_sync("history"));   // 🆕 历史记录目录应该被排除
+        assert!(should_exclude_from_sync("ccr-ui"));    // 🆕 ccr-ui 应用目录应该被排除
 
-        // 不应该被排除的
+        // 不应该被排除的 - 配置文件
         assert!(!should_exclude_from_sync("config.toml"));
         assert!(!should_exclude_from_sync(".ccs_config.toml"));
         assert!(!should_exclude_from_sync("profiles.toml"));
-        assert!(!should_exclude_from_sync("history"));
+        assert!(!should_exclude_from_sync("platforms"));  // platforms 目录应该同步
     }
 
     #[test]
