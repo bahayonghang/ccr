@@ -118,37 +118,53 @@ just quick-start    # Check prereqs + Install + Start
 
 ## 🚀 Quick Start
 
-**1️⃣ Initialize config file:**
+**1️⃣ Initialize configuration structure:**
 
 ```bash
-ccr init  # Creates ~/.ccs_config.toml with examples
+ccr init  # Creates ~/.ccr/ directory structure with multi-platform support
 ```
 
-**2️⃣ Edit your configuration:**
+This creates the **Unified Mode** directory structure:
 
-```toml
-# ~/.ccs_config.toml
-default_config = "anthropic"
-current_config = "anthropic"
-
-[anthropic]
-description = "Anthropic Official API"
-base_url = "https://api.anthropic.com"
-auth_token = "sk-ant-your-api-key"
-model = "claude-sonnet-4-5-20250929"
-
-[anyrouter]
-description = "AnyRouter Proxy"
-base_url = "https://api.anyrouter.ai/v1"
-auth_token = "your-anyrouter-token"
-model = "claude-sonnet-4-5-20250929"
+```
+~/.ccr/
+├── config.toml              # Platform registry
+├── platforms/
+│   └── claude/              # Claude Code platform (default)
+│       ├── profiles.toml    # Will be created on first use
+│       ├── history/         # Operation history
+│       └── backups/         # Backups directory
+├── history/                 # Global history
+└── backups/                 # Global backups
 ```
 
-**3️⃣ Use CCR:**
+::: info Info
+CCR now defaults to Unified Mode, supporting multi-platform configuration management (Claude, Codex, Gemini, etc.)
+
+For traditional single-file configuration, set the environment variable:
+```bash
+export CCR_LEGACY_MODE=1
+ccr init
+```
+:::
+
+**2️⃣ View available platforms:**
 
 ```bash
-ccr list              # 📊 List all configs in table format (compare at a glance)
-ccr switch anthropic  # 🔄 Switch config (shows tables with changes, or just: ccr anthropic)
+ccr platform list   # List all supported platforms with status
+```
+
+**3️⃣ Add your first API configuration:**
+
+```bash
+ccr add             # Interactive wizard to add your API credentials
+```
+
+**4️⃣ List and use configurations:**
+
+```bash
+ccr list              # 📊 List all configs in table format
+ccr switch anthropic  # 🔄 Switch config (shows table with changes, or just: ccr anthropic)
 ccr current           # 🔍 Show current config and env status in tables
 ccr validate          # ✅ Validate all configs
 ccr history           # 📚 View operation history
@@ -161,26 +177,22 @@ ccr web               # 🌐 Launch lightweight web API (port 8080)
 ccr ui                # 🎨 Launch full CCR UI application (Vue.js 3 + Axum, ports 3000/8081)
 ```
 
-**4️⃣ Multi-Platform Usage:**
+**5️⃣ Multi-Platform Usage:**
 
 ```bash
 # List all supported platforms
 ccr platform list
 
-# Switch to Codex (GitHub Copilot)
-ccr platform switch codex
-
-# Initialize Gemini platform
+# Initialize other platforms (Codex, Gemini)
+ccr platform init codex
 ccr platform init gemini
 
-# Add a profile to current platform
-ccr add
+# Switch between platforms
+ccr platform switch codex      # Switch to Codex (GitHub Copilot)
+ccr add                        # Add Codex profile
+ccr platform switch claude     # Back to Claude
 
-# Multi-platform workflow example
-ccr platform switch claude    # Work with Claude Code
-ccr switch my-claude-api      # Switch to specific Claude profile
-ccr platform switch codex     # Switch to Codex
-ccr switch my-github-token    # Switch to specific Codex profile
+# Each platform maintains independent profiles and history
 ```
 
 **📖 For detailed multi-platform setup and examples, see** [docs/examples/multi-platform-setup.md](docs/examples/multi-platform-setup.md)

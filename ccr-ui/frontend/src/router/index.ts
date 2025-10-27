@@ -55,6 +55,11 @@ const router = createRouter({
       component: () => import('@/views/ConfigsView.vue')
     },
     {
+      path: '/stats',
+      name: 'stats',
+      component: () => import('@/views/StatsView.vue')
+    },
+    {
       path: '/mcp',
       name: 'mcp',
       component: () => import('@/views/McpView.vue')

@@ -329,6 +329,14 @@ enum Commands {
         #[arg(short, long)]
         platform: Option<String>,
     },
+
+    /// 统计与分析
+    ///
+    /// 查看使用统计、成本分析等信息
+    /// 示例: ccr stats cost --today
+    ///       ccr stats cost --by-model
+    ///       ccr stats cost --top 10
+    Stats(commands::StatsArgs),
 }
 
 /// 🎯 临时Token操作子命令
@@ -553,6 +561,14 @@ fn main() {
             } else {
                 commands::migrate_command(false, platform.as_deref())
             }
+        }
+        Some(Commands::Stats(args)) => {
+            tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(async {
+                    let mut color_output = ColorOutput;
+                    commands::stats_command(args, &mut color_output).await
+                })
         }
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态

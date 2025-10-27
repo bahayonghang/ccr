@@ -82,6 +82,7 @@ pub struct PlatformConfigManager {
 
 impl PlatformConfigManager {
     /// Create manager with custom path
+    #[allow(dead_code)]  // 预留用于自定义配置路径
     pub fn new<P: AsRef<Path>>(config_path: P) -> Self {
         Self {
             config_path: config_path.as_ref().to_path_buf(),
@@ -206,6 +207,7 @@ impl PlatformConfigManager {
     }
 
     /// Unregister a platform
+    #[allow(dead_code)]  // 预留用于取消注册平台
     pub fn unregister_platform(&self, name: &str) -> io::Result<()> {
         let mut config = self.read()?;
 
@@ -272,6 +274,7 @@ impl PlatformConfigManager {
     }
 
     /// List enabled platforms
+    #[allow(dead_code)]  // 预留用于列出启用的平台
     pub fn list_enabled_platforms(&self) -> io::Result<Vec<String>> {
         let config = self.read()?;
         let mut platforms: Vec<_> = config

@@ -6,6 +6,41 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+// Statistics types
+export interface TokenStats {
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cache_tokens: number;
+  cache_efficiency: number;
+}
+
+export interface DailyCost {
+  date: string;
+  cost: number;
+  count: number;
+}
+
+export interface CostStats {
+  total_cost: number;
+  record_count: number;
+  token_stats: TokenStats;
+  by_model: Record<string, number>;
+  by_project: Record<string, number>;
+  trend?: DailyCost[];
+}
+
+export interface TopSession {
+  session_id: string;
+  cost: number;
+}
+
+export interface StatsSummary {
+  today_cost: number;
+  week_cost: number;
+  month_cost: number;
+  total_sessions: number;
+}
+
 // Command execution types
 export interface CommandRequest {
   command: string;

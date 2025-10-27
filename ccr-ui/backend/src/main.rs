@@ -175,6 +175,16 @@ fn create_router() -> Router {
         .route("/api/plugins/:id", put(handlers::plugins::update_plugin))
         .route("/api/plugins/:id", delete(handlers::plugins::delete_plugin))
         .route("/api/plugins/:id/toggle", put(handlers::plugins::toggle_plugin))
+        // Statistics endpoints
+        .route("/api/stats/cost", get(handlers::stats::cost_overview))
+        .route("/api/stats/cost/today", get(handlers::stats::cost_today))
+        .route("/api/stats/cost/week", get(handlers::stats::cost_week))
+        .route("/api/stats/cost/month", get(handlers::stats::cost_month))
+        .route("/api/stats/cost/trend", get(handlers::stats::cost_trend))
+        .route("/api/stats/cost/by-model", get(handlers::stats::cost_by_model))
+        .route("/api/stats/cost/by-project", get(handlers::stats::cost_by_project))
+        .route("/api/stats/cost/top-sessions", get(handlers::stats::cost_top_sessions))
+        .route("/api/stats/summary", get(handlers::stats::stats_summary))
         // Sync (WebDAV) endpoints
         .route("/api/sync/status", get(handlers::sync::get_sync_status))
         .route("/api/sync/push", post(handlers::sync::push_config))

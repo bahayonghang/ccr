@@ -1,10 +1,35 @@
-# 更新日志
+# Changelog
 
-CCR 的所有重要变更都会记录在本文件中。
+All notable changes to this project will be documented in this file.
 
-格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.3] - 2025-10-27
+## [Unreleased]
+
+### 🎉 Added
+
+- **Unified Mode by Default**: `ccr init` now creates `~/.ccr/` directory structure with multi-platform support
+- **Platform Registry System**: New `config.toml` platform registry for managing multiple AI CLI tools
+- **Automatic Platform Initialization**: Default Claude platform auto-initialized on first run
+- **Legacy Mode Compatibility**: Old `~/.ccs_config.toml` still supported via `CCR_LEGACY_MODE=1` environment variable
+
+### 🔄 Changed
+
+- **Breaking**: `ccr init` now defaults to Unified Mode (multi-platform structure) instead of Legacy Mode
+  - Old behavior can be restored with `export CCR_LEGACY_MODE=1`
+- **Directory Structure**: Config moved from `~/.ccs_config.toml` to `~/.ccr/config.toml`
+- **Documentation**: Updated all init-related documentation to reflect Unified Mode
+- **UI Messages**: Init command now shows Unified Mode directory structure on first run
+
+### 📚 Documentation Updates
+
+- Updated `docs/commands/init.md` with new Unified Mode documentation
+- Updated `docs/quick-start.md` with new initialization flow
+- Updated `README.md` (English) with new quick start guide
+- Updated `README_CN.md` (Chinese) with new quick start guide
+
+## [2.0.3] - 2025-10-25
 
 ### 🔧 修复
 

@@ -8,6 +8,7 @@
 // - 📋 管理文件生命周期
 
 pub mod config;
+pub mod cost_tracker;
 pub mod history;
 pub mod platform_config;
 pub mod settings;
@@ -19,6 +20,8 @@ pub mod temp_override;
 pub use config::{
     CcsConfig, ConfigManager, ConfigSection, GlobalSettings, MigrationStatus, ProviderType,
 };
+#[allow(unused_imports)]
+pub use cost_tracker::CostTracker;
 #[allow(unused_imports)]
 pub use history::{
     EnvChange, HistoryEntry, HistoryManager, HistoryStats, OperationDetails, OperationResult,

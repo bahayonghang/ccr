@@ -117,38 +117,54 @@ just quick-start    # 检查前置条件 + 安装 + 启动
 
 ## 🚀 快速开始
 
-**1️⃣ 初始化配置文件：**
+**1️⃣ 初始化配置结构：**
 
 ```bash
-ccr init  # 创建 ~/.ccs_config.toml 并包含示例
+ccr init  # 创建 ~/.ccr/ 目录结构，支持多平台管理
 ```
 
-**2️⃣ 编辑配置：**
+这将创建 **Unified Mode** 目录结构：
 
-```toml
-# ~/.ccs_config.toml
-default_config = "anthropic"
-current_config = "anthropic"
-
-[anthropic]
-description = "Anthropic 官方 API"
-base_url = "https://api.anthropic.com"
-auth_token = "sk-ant-your-api-key"
-model = "claude-sonnet-4-5-20250929"
-
-[anyrouter]
-description = "AnyRouter 代理"
-base_url = "https://api.anyrouter.ai/v1"
-auth_token = "your-anyrouter-token"
-model = "claude-sonnet-4-5-20250929"
+```
+~/.ccr/
+├── config.toml              # 平台注册表
+├── platforms/
+│   └── claude/              # Claude Code 平台（默认）
+│       ├── profiles.toml    # 将在首次使用时创建
+│       ├── history/         # 操作历史
+│       └── backups/         # 备份目录
+├── history/                 # 全局历史
+└── backups/                 # 全局备份
 ```
 
-**3️⃣ 使用 CCR：**
+::: info 信息
+CCR 现在默认使用 Unified Mode，支持多平台配置管理（Claude、Codex、Gemini 等）。
+
+如需使用传统的单文件配置，设置环境变量：
+```bash
+export CCR_LEGACY_MODE=1
+ccr init
+```
+:::
+
+**2️⃣ 查看可用平台：**
 
 ```bash
-ccr list              # 📋 以表格形式列出所有配置（一目了然）
+ccr platform list   # 列出所有支持的平台及状态
+```
+
+**3️⃣ 添加你的第一个 API 配置：**
+
+```bash
+ccr add             # 交互式向导，添加你的 API 凭证
+```
+
+**4️⃣ 列出并使用配置：**
+
+```bash
+ccr list              # 📊 以表格形式列出所有配置
 ccr switch anthropic  # 🔄 切换配置（表格展示变化，或简写: ccr anthropic）
-ccr current           # 🔍 以表格显示当前配置和环境变量状态
+ccr current           # 🔍 查看当前配置和环境状态（表格展示）
 ccr validate          # ✅ 验证所有配置
 ccr history           # 📚 查看操作历史
 ccr sync config       # ☁️ 配置 WebDAV 同步（交互式设置）
@@ -156,30 +172,26 @@ ccr sync status       # 📊 检查同步状态和远程文件
 ccr sync push         # 🔼 上传配置到云端
 ccr sync pull         # 🔽 从云端下载配置
 ccr tui               # 🖥️ 启动交互式 TUI（推荐用于可视化管理！）
-ccr web               # 🌐 启动轻量级 Web API 服务器（端口 8080）
-ccr ui                # 🎨 启动完整 CCR UI 应用（Next.js + Actix，端口 3000/8081）
+ccr web               # 🌐 启动轻量级 Web API（8080 端口）
+ccr ui                # 🎨 启动完整 CCR UI 应用（Vue.js 3 + Axum，3000/8081 端口）
 ```
 
-**4️⃣ 多平台使用:**
+**5️⃣ 多平台使用：**
 
 ```bash
 # 列出所有支持的平台
 ccr platform list
 
-# 切换到 Codex (GitHub Copilot)
-ccr platform switch codex
-
-# 初始化 Gemini 平台
+# 初始化其他平台（Codex、Gemini）
+ccr platform init codex
 ccr platform init gemini
 
-# 向当前平台添加配置
-ccr add
+# 在平台之间切换
+ccr platform switch codex      # 切换到 Codex (GitHub Copilot)
+ccr add                        # 添加 Codex profile
+ccr platform switch claude     # 返回 Claude
 
-# 多平台工作流示例
-ccr platform switch claude    # 使用 Claude Code
-ccr switch my-claude-api      # 切换到特定的 Claude 配置
-ccr platform switch codex     # 切换到 Codex
-ccr switch my-github-token    # 切换到特定的 Codex 配置
+# 每个平台维护独立的 profiles 和历史记录
 ```
 
 **📖 详细的多平台设置和示例,请查看** [docs/examples/multi-platform-setup.md](docs/examples/multi-platform-setup.md)
@@ -414,265 +426,4 @@ ccr tui [--yolo]  # --yolo: 启用 YOLO 模式（跳过确认）
   - **系统页** ⚙️：显示系统信息和文件路径
 
 - **⌨️ 键盘快捷键**：
-  - `1-4` / `Tab` / `Shift+Tab`：切换标签页
-  - `↑↓` / `j`/`k`：导航列表（支持 Vim 风格）
-  - `Enter`：切换到选中的配置
-  - `d`：删除选中的配置（需要 YOLO 模式）
-  - `y` / `Y`：切换 YOLO 模式
-  - `q` / `Ctrl+C`：退出 TUI
-
-- **🎨 视觉特性**：
-  - 彩色编码配置列表（当前=绿色，默认=青色）
-  - 实时状态消息（成功/错误）
-  - 带结果指示器的操作历史（✅❌⚠️）
-  - 系统信息显示（主机名、操作系统、路径、版本）
-
-- **⚡ YOLO 模式**：
-  - 跳过所有确认提示
-  - TUI 中删除操作必需
-  - 可使用 `Y` 键切换或启动时使用 `--yolo` 标志
-  - 页脚显示状态（🔴 YOLO / 🟢 SAFE）
-
-**示例工作流：**
-```bash
-ccr tui              # 启动 TUI
-# 按 '1' → 浏览配置 → Enter 切换
-# 按 '2' → 查看历史
-# 按 '3' → 检查同步状态（P/L/S 在 CLI 中执行 push/pull/status）
-# 按 '4' → 检查系统信息
-# 按 'Y' → 启用 YOLO 模式 → 'd' 删除配置
-# 按 'q' → 退出
-```
-
-### ☁️ 云端同步（WebDAV）
-
-CCR 支持基于 WebDAV 的配置同步，提供两种同步模式用于多设备管理：
-
-**同步模式：**
-- 📁 **目录同步（统一模式）** - 同步整个 `~/.ccr/` 目录及所有平台配置（推荐）
-- 📄 **文件同步（传统模式）** - 同步单个 `~/.ccs_config.toml` 文件（向后兼容）
-
-CCR 会根据您的配置结构自动检测使用哪种模式。
-
-**支持的服务：**
-- 🥜 **坚果云** - 国内用户推荐（免费套餐可用）
-- 📦 **Nextcloud / ownCloud** - 自建或托管
-- 🌐 **任何标准 WebDAV 服务器**
-
-**设置指南：**
-
-1. **配置 WebDAV 连接：**
-```bash
-ccr sync config
-# 交互式提示：
-# - WebDAV 服务器地址（默认: https://dav.jianguoyun.com/dav/）
-# - 用户名/邮箱
-# - 密码/应用密码（坚果云：账户信息 → 安全选项 → 添加应用 → 生成密码）
-# - 远程目录路径（默认: /ccr/）
-# - 自动进行连接测试
-```
-
-2. **检查同步状态：**
-```bash
-ccr sync status
-# 显示：
-# - 同步配置（服务器、用户名、远程路径）
-# - 同步模式（目录或文件）
-# - 正在同步的本地路径
-# - 自动同步状态
-# - 远程内容存在检查
-```
-
-3. **上传配置到云端（首次）：**
-```bash
-ccr sync push
-# - 自动检测目录或文件模式
-# - 递归上传所有文件和子目录
-# - 排除临时文件（.bak, .tmp, .lock, .DS_Store 等）
-# - 如果远程内容存在会提示确认
-# - 使用 --force 跳过确认
-```
-
-4. **从云端下载配置：**
-```bash
-ccr sync pull
-# - 自动检测目录或文件模式
-# - 递归下载所有文件和子目录
-# - 应用与 push 相同的排除规则
-# - 覆盖前备份本地内容
-# - 使用 --force 跳过确认
-```
-
-**配置方式：**
-
-同步设置存储在 `~/.ccs_config.toml` 中：
-```toml
-[settings.sync]
-enabled = true
-webdav_url = "https://dav.jianguoyun.com/dav/"
-username = "user@example.com"
-password = "your-app-password"
-remote_path = "/ccr/"  # 统一模式为目录，传统模式为文件路径
-auto_sync = false  # 尚未实现
-```
-
-**同步功能：**
-- 🔄 **自动模式检测** - 自动检测目录与文件同步
-- 📁 **递归目录同步** - 上传/下载整个目录树
-- 🚫 **智能文件过滤** - 自动排除临时文件和系统文件
-- 💾 **安全操作** - 覆盖本地内容前创建备份
-- 🔒 **原子上传** - 上传文件前确保远程目录存在
-
-**使用场景：**
-- 📱 多台设备间同步配置
-- 🎯 同步多平台配置（Claude、Codex、Gemini 等）
-- 💼 团队协作共享配置
-- 🔄 备份配置到云存储
-- 🚀 新设备快速设置
-
-**安全注意：**
-- ✅ 密码存储在本地配置文件中
-- ✅ 使用应用密码而非账户密���（坚果云）
-- ✅ 确保正确的文件权限：`chmod 600 ~/.ccs_config.toml`
-- ⚠️ 远程文件未由 CCR 加密（依赖 WebDAV 服务器安全性）
-
-### 🌐 Web API
-
-RESTful 端点(运行 `ccr web`)：
-当前内置服务器提供 14 个端点，覆盖配置管理、备份生命周期与系统监控。
-- `GET /api/configs` - 列出所有配置
-- `POST /api/switch` - 切换指定配置
-- `POST /api/config` - 新增配置节
-- `POST /api/config/{name}` - 更新配置节
-- `DELETE /api/config/{name}` - 删除配置节
-- `GET /api/history` - 查看审计历史
-- `POST /api/validate` - 验证配置与设置文件
-- `POST /api/clean` - 清理备份
-- `GET /api/settings` - 获取 Claude Code 设置快照
-- `GET /api/settings/backups` - 列出设置备份
-- `POST /api/settings/restore` - 恢复设置备份
-- `POST /api/export` - 导出配置文件
-- `POST /api/import` - 导入配置文件
-- `GET /api/system` - 查看缓存的系统信息
-
-### 🐛 调试
-
-```bash
-export CCR_LOG_LEVEL=debug  # trace|debug|info|warn|error
-ccr switch anthropic        # 查看详细日志
-```
-
-## 🆚 CCR vs CCS
-
-| 特性 | CCS (Shell) | CCR (Rust) |
-|------|:-----------:|:----------:|
-| 配置切换 | ✅ | ✅ |
-| 直接写入 settings.json | ❌ | ✅ |
-| 文件锁 | ❌ | ✅ |
-| 审计历史 | ❌ | ✅ |
-| 自动备份 | ❌ | ✅ |
-| 配置验证 | 基础 | 完整 |
-| Web 界面 | ❌ | ✅ |
-| 性能 | 快 | 极快 |
-
-**💡 完全兼容** - 共享 `~/.ccs_config.toml`,可以无缝共存和切换。
-
-## 🛠️ 开发
-
-**项目结构：**
-```
-src/
-├── main.rs           # 🚀 CLI 入口
-├── lib.rs            # 📚 库入口
-├── commands/         # 🎯 CLI 层（13 个命令）
-├── web/              # 🌐 Web 层（Axum 服务器 + API）
-├── services/         # 🎯 Service 层（业务逻辑）
-├── managers/         # 📁 Manager 层（数据访问）
-│   ├── config.rs     # ⚙️ 配置管理
-│   ├── settings.rs   # ⭐ 设置管理
-│   └── history.rs    # 📚 审计追踪
-├── core/             # 🏗️ Core 层（基础设施）
-│   ├── error.rs      # ⚠️ 错误类型 + 退出码
-│   ├── lock.rs       # 🔒 文件锁
-│   ├── logging.rs    # 🎨 彩色输出
-│   └── ...           # 更多核心模块
-└── utils/            # 🛠️ 工具（掩码、验证）
-
-ccr-ui/               # 🌐 全栈 Web 应用
-├── backend/          # 🦀 Axum 服务器
-│   ├── src/
-│   │   ├── main.rs               # 服务器入口
-│   │   ├── executor/             # CCR CLI 子进程执行器
-│   │   ├── handlers/             # API 路由处理器（配置、命令、MCP 等）
-│   │   ├── models.rs             # 请求/响应类型
-│   │   ├── settings_manager.rs   # Claude 设置文件原子读写
-│   │   ├── plugins_manager.rs    # 插件仓库管理
-│   │   ├── claude_config_manager.rs # 配置文件辅助工具
-│   │   └── markdown_manager.rs   # Markdown 知识库管理
-│   └── Cargo.toml
-└── frontend/         # ⚛️ Vue.js 3 配合 Vite
-    ├── src/
-    │   ├── views/            # 页面视图（Dashboard、Configs、Commands 等）
-    │   ├── components/       # 可复用 UI 组件
-    │   ├── router/           # Vue Router 配置
-    │   └── store/            # Pinia 状态管理
-    ├── package.json
-    └── vite.config.ts
-```
-
-**命令：**
-```bash
-# 开发工作流（使用 justfile）
-just dev              # 快速检查 + 测试
-just watch            # 文件变化时自动重建
-just ci               # 完整 CI 流程
-
-# 或直接使用 cargo
-cargo test            # 🧪 运行测试
-cargo clippy          # 🔍 代码检查
-cargo fmt             # 💅 格式化
-cargo build --release # 🏗️ 生产构建
-```
-
-## 🏗️ 架构
-
-CCR v1.1.5 采用**严格的分层架构**，职责清晰分离：
-
-```
-CLI/Web 层 → Services 层 → Managers 层 → Core/Utils 层
-```
-
-**核心组件：**
-- **Service 层**: 4 个服务（Config、Settings、History、Backup）- 26 个方法
-- **Manager 层**: 3 个管理器（Config、Settings、History）- 数据访问与文件操作
-- **Web 模块**: 基于 Axum 的服务器，提供 14 个 RESTful API 端点
-- **Core 基础设施**: 原子写入器、文件锁、错误处理、日志记录
-- **测试覆盖**: 95%+ 全面测试套件
-
-**设计模式：**
-- 原子文件操作（临时文件 + 重命名）
-- 通过文件锁实现多进程安全
-- 完整的 UUID 追踪审计日志
-- 破坏性操作前自动备份
-
-详细架构文档见 [ARCHITECTURE.md](ARCHITECTURE.md)。
-
-## 🐛 故障排除
-
-| 问题 | 解决方法 |
-|------|----------|
-| 配置文件不存在 | 运行 `ccr init` 创建 `~/.ccs_config.toml` |
-| 锁超时 | 检查僵死进程: `ps aux \| grep ccr`<br>清理锁文件: `rm -rf ~/.claude/.locks/*` |
-| 权限被拒绝 | 修复权限:<br>`chmod 600 ~/.claude/settings.json`<br>`chmod 644 ~/.ccs_config.toml` |
-| 设置文件不存在 | 首次切换时自动创建: `ccr switch <config>` |
-
-## 📄 许可证与贡献
-
-- **许可证：** MIT
-- **Issues & PRs：** 欢迎！🤝
-- **GitHub：** https://github.com/bahayonghang/ccr
-- **状态：** 活跃开发中 - 生产环境使用前请充分测试
-
----
-
-用 💙 在 Rust 中构建 | [CCS 项目](https://github.com/bahayonghang/ccs)的一部分
+  - `

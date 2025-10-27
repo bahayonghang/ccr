@@ -2,6 +2,7 @@
 // 定义跨模块共享的数据类型
 
 pub mod platform;
+pub mod stats;
 
 // 重新导出常用类型
 pub use platform::{ConfigMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig};

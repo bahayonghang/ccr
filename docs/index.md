@@ -52,9 +52,13 @@ features:
     title: Web 界面
     details: 内置轻量级 Axum API 服务器（端口 8080），11 个完整 RESTful API 端点，基于 Service 层架构
 
+  - icon: 📊
+    title: 统计与成本分析
+    details: 完整的使用统计和成本追踪系统，支持按时间/模型/项目多维度分析，提供 CLI 命令、Web API 和可视化仪表板
+
   - icon: 🎨
     title: CCR UI 应用
-    details: 完整的 Next.js + Actix Web 应用（端口 3000/8081），提供可视化仪表板，支持多 CLI 工具管理，首次使用自动从 GitHub 下载
+    details: 完整的 Vue.js 3 + Axum 应用（端口 5173/8081），提供可视化仪表板和统计分析，支持多 CLI 工具管理，首次使用自动从 GitHub 下载
 
   - icon: 🔄
     title: CCS 完全兼容

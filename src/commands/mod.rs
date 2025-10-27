@@ -13,6 +13,7 @@ pub mod list;
 pub mod migrate;
 pub mod optimize;
 pub mod platform;
+pub mod stats;
 pub mod switch;
 pub mod sync_cmd;
 pub mod temp_token;
@@ -35,6 +36,7 @@ pub use platform::{
     platform_current_command, platform_info_command, platform_init_command, platform_list_command,
     platform_switch_command,
 };
+pub use stats::{stats_command, StatsArgs};
 pub use switch::switch_command;
 pub use sync_cmd::{
     sync_config_command, sync_pull_command, sync_push_command, sync_status_command,

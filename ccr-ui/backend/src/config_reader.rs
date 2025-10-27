@@ -37,6 +37,7 @@ pub struct PlatformEntry {
 
 /// 平台 profiles 配置结构（Unified 模式）
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]  // 预留用于多平台配置管理
 pub struct PlatformProfiles {
     pub default_config: String,
     pub current_config: String,
@@ -170,6 +171,7 @@ pub fn read_config() -> Result<CcsConfig, String> {
 }
 
 /// 读取指定平台的配置（仅 Unified 模式）
+#[allow(dead_code)]  // 预留用于平台特定配置读取
 pub fn read_platform_config(platform: &str) -> Result<PlatformProfiles, String> {
     let profiles_path = get_platform_profiles_path(platform)?;
 
@@ -191,6 +193,7 @@ pub fn read_platform_config(platform: &str) -> Result<PlatformProfiles, String> 
 }
 
 /// 读取平台注册表（仅 Unified 模式）
+#[allow(dead_code)]  // 预留用于统一配置读取
 pub fn read_unified_config() -> Result<UnifiedConfig, String> {
     let ccr_root = get_ccr_root()?;
     let config_path = ccr_root.join("config.toml");

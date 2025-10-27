@@ -920,9 +920,25 @@ export function ConfigList({ onSelect, loading }: ConfigListProps) {
 }
 ```
 
+### StatsView 组件（新增）
+
+统计分析视图组件，提供完整的 API 使用统计和成本追踪界面。
+
+**文件**: `src/views/StatsView.vue`
+
+**功能特性**:
+- ✅ 4 个概览卡片（总成本、API 调用、输入/输出 Token）
+- ✅ Token 详细统计、按模型/项目分组、成本趋势
+- ✅ 时间范围选择器、实时刷新、响应式设计 + 深色模式
+
+详细使用说明请参考 [统计功能指南](../guide/stats.md)。
+
+---
+
 ## 📚 相关文档
 
 - [技术栈详解](/frontend/tech-stack)
 - [开发指南](/frontend/development)
 - [API 接口](/frontend/api)
 - [样式指南](/frontend/styling)
+- [统计功能指南](../guide/stats.md)

@@ -11,6 +11,7 @@ pub mod platform;
 pub mod plugins;
 pub mod qwen;
 pub mod slash_commands;
+pub mod stats;
 pub mod sync;
 pub mod system;
 pub mod version;

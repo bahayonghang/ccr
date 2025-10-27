@@ -1,9 +1,11 @@
 // 🎬 init 命令实现 - 初始化配置文件
-// 📦 从嵌入的模板创建 ~/.ccs_config.toml 配置文件
+// 📦 初始化 CCR 多平台配置结构 (~/.ccr/) 或兼容旧版模式 (~/.ccs_config.toml)
 
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::config::ConfigManager;
+use crate::managers::PlatformConfigManager;
+use crate::models::{Platform, PlatformPaths};
 use std::fs;
 use std::path::PathBuf;
 
@@ -13,16 +15,170 @@ const EXAMPLE_CONFIG: &str = include_str!("../../.ccs_config.toml.example");
 
 /// 🎬 初始化配置文件
 ///
+/// **新的行为 (2025)**: 默认使用 Unified Mode (~/.ccr/ 目录结构)
+///
 /// 执行流程:
-/// 1. ✅ 检查文件是否已存在
-/// 2. 💾 备份现有配置(--force 模式)
-/// 3. 📝 创建新配置文件
-/// 4. 🔒 设置文件权限 (644)
-/// 5. 💡 显示后续步骤提示
+/// 1. ✅ 检测配置模式 (Unified vs Legacy)
+/// 2. 🆕 Unified Mode: 初始化 ~/.ccr/ 目录和平台结构
+/// 3. 🔙 Legacy Mode: 兼容旧的 ~/.ccs_config.toml（仅在环境变量强制时）
+/// 4. 💾 备份现有配置(--force 模式)
+/// 5. 📝 创建新配置文件和目录结构
+/// 6. 💡 显示后续步骤提示
+///
+/// # 参数
+///
+/// * `force` - 强制重新初始化（覆盖现有配置）
+///
+/// # 配置模式检测
+///
+/// - **Unified Mode** (默认): 创建 `~/.ccr/` 目录结构
+/// - **Legacy Mode**: 仅在设置 `CCR_LEGACY_MODE=1` 时使用 `~/.ccs_config.toml`
+///
 pub fn init_command(force: bool) -> Result<()> {
     ColorOutput::title("CCR 配置初始化");
     println!();
 
+    // 🔍 检测配置模式
+    let use_legacy = std::env::var("CCR_LEGACY_MODE").is_ok();
+
+    if use_legacy {
+        ColorOutput::warning("检测到 CCR_LEGACY_MODE 环境变量，使用 Legacy 模式");
+        println!();
+        return init_legacy_mode(force);
+    }
+
+    // 🆕 使用新的 Unified Mode
+    init_unified_mode(force)
+}
+
+/// 🆕 初始化 Unified Mode - 新的多平台配置结构
+///
+/// 创建目录结构:
+/// ```text
+/// ~/.ccr/
+/// ├── config.toml              # 平台注册表
+/// └── platforms/
+///     └── claude/              # Claude 平台目录（默认）
+///         ├── profiles.toml    # 将在首次使用时创建
+///         ├── history/         # 历史记录目录
+///         └── backups/         # 备份目录
+/// ```
+fn init_unified_mode(force: bool) -> Result<()> {
+    let manager = PlatformConfigManager::default()?;
+    let config_path = manager.config_path();
+
+    // 检查配置是否已存在
+    if config_path.exists() {
+        if !force {
+            ColorOutput::warning(&format!("配置已存在: {}", config_path.display()));
+            println!();
+            ColorOutput::info("配置已经初始化，无需重复执行");
+            ColorOutput::info("提示:");
+            println!("  • 查看平台列表: ccr platform list");
+            println!("  • 初始化特定平台: ccr platform init <平台名>");
+            println!("  • 强制重新初始化: ccr init --force");
+            println!();
+            return Ok(());
+        }
+
+        // 使用 --force 时需要确认
+        println!();
+        ColorOutput::warning("⚠️  警告: 即将覆盖现有配置！");
+        ColorOutput::info("提示: 现有配置会自动备份");
+        println!();
+
+        print!("确认强制重新初始化? (y/N): ");
+        use std::io::{self, Write};
+        io::stdout().flush().unwrap();
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+
+        if !input.trim().eq_ignore_ascii_case("y") {
+            ColorOutput::info("已取消初始化操作");
+            return Ok(());
+        }
+        println!();
+
+        // 备份现有配置
+        ColorOutput::step("备份现有配置");
+        if let Ok(content) = fs::read_to_string(&config_path) {
+            let backup_path = config_path.with_extension("toml.bak");
+            fs::write(&backup_path, content)?;
+            ColorOutput::success(&format!("已备份到: {}", backup_path.display()));
+        }
+        println!();
+    }
+
+    // 创建目录结构
+    ColorOutput::step("创建 CCR 目录结构");
+
+    // 获取 CCR 根目录
+    let home = dirs::home_dir()
+        .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+    let ccr_root = home.join(".ccr");
+    let platforms_dir = ccr_root.join("platforms");
+
+    // 创建根目录和平台目录
+    fs::create_dir_all(&platforms_dir)
+        .map_err(|e| CcrError::from(e))?;
+
+    ColorOutput::success(&format!("✓ CCR 根目录: {}", ccr_root.display()));
+    ColorOutput::success(&format!("✓ 平台目录: {}", platforms_dir.display()));
+
+    // 初始化默认平台（Claude）
+    println!();
+    ColorOutput::step("初始化默认平台: Claude");
+
+    let claude_paths = PlatformPaths::new(Platform::Claude)?;
+    claude_paths.ensure_directories()?;
+
+    ColorOutput::success(&format!("✓ Claude 平台目录: {}", claude_paths.platform_dir.display()));
+    ColorOutput::success(&format!("✓ 历史目录: {}", claude_paths.history_file.parent().unwrap().display()));
+    ColorOutput::success(&format!("✓ 备份目录: {}", claude_paths.backups_dir.display()));
+
+    // 创建平台注册表配置
+    println!();
+    ColorOutput::step("创建平台注册表");
+
+    let config = manager.load_or_create_default()?;
+    manager.save(&config)?;
+
+    ColorOutput::success(&format!("✓ 配置文件: {}", config_path.display()));
+
+    // 显示完成信息
+    println!();
+    ColorOutput::separator();
+    println!();
+    ColorOutput::success("✓ CCR 配置初始化成功 (Unified Mode)");
+    println!();
+
+    ColorOutput::info("已创建的目录结构:");
+    println!("  ~/.ccr/                    # CCR 根目录");
+    println!("  └── config.toml            # 平台注册表");
+    println!("  └── platforms/");
+    println!("      └── claude/            # Claude 平台（默认）");
+    println!();
+
+    ColorOutput::info("后续步骤:");
+    println!("  1. 使用 'ccr platform list' 查看所有平台");
+    println!("  2. 使用 'ccr platform init <平台>' 初始化其他平台");
+    println!("  3. 使用 'ccr add' 添加配置 profile");
+    println!("  4. 使用 'ccr list' 查看配置列表");
+    println!();
+
+    ColorOutput::info("💡 提示:");
+    println!("  • 如需迁移旧配置，运行: ccr migrate");
+    println!("  • 查看帮助: ccr --help");
+    println!();
+
+    Ok(())
+}
+
+/// 🔙 Legacy Mode - 兼容旧版 ~/.ccs_config.toml
+///
+/// 仅在设置 `CCR_LEGACY_MODE=1` 环境变量时使用
+fn init_legacy_mode(force: bool) -> Result<()> {
     // 获取配置文件路径
     let home =
         dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
@@ -100,7 +256,7 @@ pub fn init_command(force: bool) -> Result<()> {
     println!();
     ColorOutput::separator();
     println!();
-    ColorOutput::success("✓ 配置文件初始化成功");
+    ColorOutput::success("✓ 配置文件初始化成功 (Legacy Mode)");
     ColorOutput::info(&format!("配置文件位置: {}", config_path.display()));
     println!();
 
@@ -110,6 +266,10 @@ pub fn init_command(force: bool) -> Result<()> {
     println!("  2. 填写您的 API 密钥");
     println!("  3. 运行 'ccr list' 查看所有配置");
     println!("  4. 运行 'ccr switch <config>' 切换配置");
+    println!();
+
+    ColorOutput::warning("💡 建议: 迁移到新的 Unified Mode");
+    println!("  运行 'ccr migrate' 迁移到新的多平台配置结构");
     println!();
 
     Ok(())

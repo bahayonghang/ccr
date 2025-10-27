@@ -1,0 +1,418 @@
+<template>
+  <div class="stats-view p-6 space-y-6">
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">📊 统计分析</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          查看 AI API 使用成本和统计信息
+        </p>
+      </div>
+      <div class="flex items-center space-x-4">
+        <!-- 时间范围选择 -->
+        <select
+          v-model="selectedRange"
+          @change="loadData"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+        >
+          <option value="today">今日</option>
+          <option value="week">本周</option>
+          <option value="month">本月</option>
+        </select>
+        
+        <!-- 刷新按钮 -->
+        <button
+          @click="loadData"
+          :disabled="loading"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50"
+        >
+          <svg
+            class="w-5 h-5"
+            :class="{ 'animate-spin': loading }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          <span>刷新</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 加载状态 -->
+    <div v-if="loading" class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+
+    <!-- 错误提示 -->
+    <div
+      v-if="error"
+      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
+    >
+      <div class="flex">
+        <svg
+          class="h-5 w-5 text-red-400"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+            加载失败
+          </h3>
+          <p class="mt-2 text-sm text-red-700 dark:text-red-300">
+            {{ error }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 统计内容 -->
+    <div v-if="!loading && !error && stats" class="space-y-6">
+      <!-- 概览卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- 总成本 -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                总成本
+              </p>
+              <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                ${{ formatCost(stats.total_cost) }}
+              </p>
+            </div>
+            <div class="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
+              <svg
+                class="w-8 h-8 text-green-600 dark:text-green-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- 记录数 -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                API 调用次数
+              </p>
+              <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                {{ stats.record_count }}
+              </p>
+            </div>
+            <div class="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
+              <svg
+                class="w-8 h-8 text-blue-600 dark:text-blue-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- 输入 Token -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                输入 Token
+              </p>
+              <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                {{ formatNumber(stats.token_stats.total_input_tokens) }}
+              </p>
+            </div>
+            <div class="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
+              <svg
+                class="w-8 h-8 text-purple-600 dark:text-purple-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- 输出 Token -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                输出 Token
+              </p>
+              <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                {{ formatNumber(stats.token_stats.total_output_tokens) }}
+              </p>
+            </div>
+            <div class="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full">
+              <svg
+                class="w-8 h-8 text-orange-600 dark:text-orange-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token 详细统计 -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+          🎫 Token 使用详情
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Cache Token</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {{ formatNumber(stats.token_stats.total_cache_tokens) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Cache 效率</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {{ formatPercent(stats.token_stats.cache_efficiency) }}%
+            </p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600 dark:text-gray-400">总 Token</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {{ formatNumber(getTotalTokens()) }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 按模型分组 -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+          🤖 按模型分组
+        </h2>
+        <div class="space-y-3">
+          <div
+            v-for="[model, cost] in sortedModels"
+            :key="model"
+            class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded"
+          >
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {{ shortenModelName(model) }}
+            </span>
+            <span class="text-sm font-bold text-gray-900 dark:text-white">
+              ${{ formatCost(cost) }}
+            </span>
+          </div>
+          <div
+            v-if="Object.keys(stats.by_model).length === 0"
+            class="text-center text-gray-500 dark:text-gray-400 py-4"
+          >
+            暂无数据
+          </div>
+        </div>
+      </div>
+
+      <!-- 按项目分组 -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+          📁 按项目分组 (Top 10)
+        </h2>
+        <div class="space-y-3">
+          <div
+            v-for="[project, cost] in sortedProjects.slice(0, 10)"
+            :key="project"
+            class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded"
+          >
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate flex-1 mr-4">
+              {{ shortenPath(project) }}
+            </span>
+            <span class="text-sm font-bold text-gray-900 dark:text-white">
+              ${{ formatCost(cost) }}
+            </span>
+          </div>
+          <div
+            v-if="Object.keys(stats.by_project).length === 0"
+            class="text-center text-gray-500 dark:text-gray-400 py-4"
+          >
+            暂无数据
+          </div>
+        </div>
+      </div>
+
+      <!-- 趋势图表（简单版）-->
+      <div v-if="stats.trend && stats.trend.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+          📈 成本趋势
+        </h2>
+        <div class="space-y-2">
+          <div
+            v-for="daily in stats.trend.slice().reverse().slice(0, 7).reverse()"
+            :key="daily.date"
+            class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded"
+          >
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {{ daily.date }}
+            </span>
+            <div class="flex items-center space-x-4">
+              <span class="text-sm text-gray-600 dark:text-gray-400">
+                {{ daily.count }} 次
+              </span>
+              <span class="text-sm font-bold text-gray-900 dark:text-white">
+                ${{ formatCost(daily.cost) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 空状态 -->
+    <div
+      v-if="!loading && !error && stats && stats.record_count === 0"
+      class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center"
+    >
+      <svg
+        class="mx-auto h-12 w-12 text-gray-400"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+        暂无统计数据
+      </h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        开始使用 AI API 后，这里将显示统计信息
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { getCostOverview } from '@/api/client'
+import type { CostStats } from '@/types'
+
+const stats = ref<CostStats | null>(null)
+const loading = ref(false)
+const error = ref<string | null>(null)
+const selectedRange = ref('today')
+
+const loadData = async () => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    stats.value = await getCostOverview(selectedRange.value)
+  } catch (e: any) {
+    error.value = e.message || '加载统计数据失败'
+    console.error('Failed to load stats:', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadData()
+})
+
+// 计算属性
+const sortedModels = computed(() => {
+  if (!stats.value) return []
+  return Object.entries(stats.value.by_model).sort((a, b) => b[1] - a[1])
+})
+
+const sortedProjects = computed(() => {
+  if (!stats.value) return []
+  return Object.entries(stats.value.by_project).sort((a, b) => b[1] - a[1])
+})
+
+// 工具函数
+const formatCost = (cost: number): string => {
+  return cost.toFixed(4)
+}
+
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toString()
+}
+
+const formatPercent = (num: number): string => {
+  return num.toFixed(2)
+}
+
+const getTotalTokens = (): number => {
+  if (!stats.value) return 0
+  return (
+    stats.value.token_stats.total_input_tokens +
+    stats.value.token_stats.total_output_tokens +
+    stats.value.token_stats.total_cache_tokens
+  )
+}
+
+const shortenModelName = (model: string): string => {
+  return model.replace('claude-', '').replace('-20241022', '').replace('-20240229', '')
+}
+
+const shortenPath = (path: string): string => {
+  const parts = path.split('/')
+  return parts[parts.length - 1] || path
+}
+</script>
+
+<style scoped>
+.stats-view {
+  min-height: calc(100vh - 64px);
+}
+</style>
