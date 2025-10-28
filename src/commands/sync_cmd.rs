@@ -3,7 +3,7 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
-use crate::managers::config::{ConfigManager, SyncConfig};
+use crate::managers::sync_config::{SyncConfig, SyncConfigManager};
 use crate::services::SyncService;
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -68,12 +68,10 @@ pub fn sync_config_command() -> Result<()> {
     ColorOutput::success("✓ WebDAV 连接测试成功");
     println!();
 
-    // 保存配置
+    // 保存配置到独立的 sync.toml 文件
     ColorOutput::step("保存同步配置");
-    let manager = ConfigManager::default()?;
-    let mut config = manager.load()?;
-    config.settings.sync = Some(sync_config);
-    manager.save(&config)?;
+    let sync_manager = SyncConfigManager::default()?;
+    sync_manager.save(&sync_config)?;
 
     ColorOutput::success("✓ 同步配置已保存");
     println!();
@@ -95,11 +93,10 @@ pub fn sync_status_command() -> Result<()> {
     ColorOutput::title("☁️  WebDAV 同步状态");
     println!();
 
-    let manager = ConfigManager::default()?;
-    let config = manager.load()?;
+    let sync_manager = SyncConfigManager::default()?;
+    let sync_config = sync_manager.load()?;
 
-    match &config.settings.sync {
-        Some(sync_config) if sync_config.enabled => {
+    if sync_config.enabled {
             // 使用 comfy-table 创建表格
             let mut table = Table::new();
             table.load_preset(comfy_table::presets::UTF8_FULL);
@@ -185,7 +182,7 @@ pub fn sync_status_command() -> Result<()> {
                 .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
 
             let exists = runtime.block_on(async {
-                let service = SyncService::new(sync_config).await?;
+                let service = SyncService::new(&sync_config).await?;
                 service.remote_exists().await
             })?;
 
@@ -197,16 +194,14 @@ pub fn sync_status_command() -> Result<()> {
                 println!("   💡 提示: 运行 {} 首次上传", "ccr sync push".cyan());
             }
             println!();
-        }
-        _ => {
-            println!("{}  {}", "⚠".yellow().bold(), "同步功能未配置".yellow());
-            println!();
-            println!("📝 配置步骤:");
-            println!("   1. 运行 {} 开始配置", "ccr sync config".cyan());
-            println!("   2. 输入 WebDAV 服务器信息");
-            println!("   3. 测试连接成功后即可使用");
-            println!();
-        }
+    } else {
+        println!("{}  {}", "⚠".yellow().bold(), "同步功能未配置".yellow());
+        println!();
+        println!("📝 配置步骤:");
+        println!("   1. 运行 {} 开始配置", "ccr sync config".cyan());
+        println!("   2. 输入 WebDAV 服务器信息");
+        println!("   3. 测试连接成功后即可使用");
+        println!();
     }
 
     Ok(())
@@ -219,16 +214,11 @@ pub fn sync_push_command(force: bool) -> Result<()> {
     ColorOutput::title("🔼  上传配置到云端");
     println!();
 
-    let manager = ConfigManager::default()?;
-    let config = manager.load()?;
-
-    let sync_config =
-        config.settings.sync.as_ref().ok_or_else(|| {
-            CcrError::SyncError("同步功能未配置，请先运行 'ccr sync config'".into())
-        })?;
+    let sync_manager = SyncConfigManager::default()?;
+    let sync_config = sync_manager.load()?;
 
     if !sync_config.enabled {
-        return Err(CcrError::SyncError("同步功能已禁用".into()));
+        return Err(CcrError::SyncError("同步功能未配置，请先运行 'ccr sync config'".into()));
     }
 
     // 🏠 获取要同步的路径（目录或文件）
@@ -253,7 +243,7 @@ pub fn sync_push_command(force: bool) -> Result<()> {
         io::stdout().flush().unwrap();
 
         let exists = runtime.block_on(async {
-            let service = SyncService::new(sync_config).await?;
+            let service = SyncService::new(&sync_config).await?;
             service.remote_exists().await
         })?;
 
@@ -287,7 +277,7 @@ pub fn sync_push_command(force: bool) -> Result<()> {
     io::stdout().flush().unwrap();
 
     runtime.block_on(async {
-        let service = SyncService::new(sync_config).await?;
+        let service = SyncService::new(&sync_config).await?;
         service.push(&sync_path).await?;
         Ok::<(), CcrError>(())
     })?;
@@ -315,16 +305,11 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     ColorOutput::title("🔽  从云端下载配置");
     println!();
 
-    let manager = ConfigManager::default()?;
-    let config = manager.load()?;
-
-    let sync_config =
-        config.settings.sync.as_ref().ok_or_else(|| {
-            CcrError::SyncError("同步功能未配置，请先运行 'ccr sync config'".into())
-        })?;
+    let sync_manager = SyncConfigManager::default()?;
+    let sync_config = sync_manager.load()?;
 
     if !sync_config.enabled {
-        return Err(CcrError::SyncError("同步功能已禁用".into()));
+        return Err(CcrError::SyncError("同步功能未配置，请先运行 'ccr sync config'".into()));
     }
 
     // 🏠 获取要同步的路径（目录或文件）
@@ -405,7 +390,10 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
                 .map_err(|e| CcrError::SyncError(format!("备份目录失败: {}", e)))?;
             backup
         } else {
-            manager.backup(Some("before_pull"))?
+            // 对于单个配置文件，使用 ConfigManager 的备份功能
+            use crate::managers::config::ConfigManager;
+            let config_manager = ConfigManager::default()?;
+            config_manager.backup(Some("before_pull"))?
         };
 
         print!("\r");
@@ -421,7 +409,7 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     io::stdout().flush().unwrap();
 
     runtime.block_on(async {
-        let service = SyncService::new(sync_config).await?;
+        let service = SyncService::new(&sync_config).await?;
         service.pull(&sync_path).await?;
         Ok::<(), CcrError>(())
     })?;
@@ -479,8 +467,9 @@ fn get_ccr_sync_path() -> Result<PathBuf> {
 
     // 3. 回退到配置文件（Legacy 模式）
     // 这种情况下我们同步单个配置文件
-    let manager = ConfigManager::default()?;
-    Ok(manager.config_path().to_path_buf())
+    let home = dirs::home_dir()
+        .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+    Ok(home.join(".ccs_config.toml"))
 }
 
 /// 必填字段提示

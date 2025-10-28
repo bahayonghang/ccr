@@ -8,13 +8,12 @@
 // - ✅ 连接测试
 
 use crate::core::error::{CcrError, Result};
-use crate::managers::config::SyncConfig;
+use crate::managers::sync_config::SyncConfig;
 use reqwest_dav::list_cmd::ListEntity;
 use reqwest_dav::re_exports::reqwest::StatusCode;
 use reqwest_dav::{Auth, Client, ClientBuilder, Depth, Error as DavError};
 use std::fs;
 use std::path::{Path, PathBuf};
-use crate::managers::config::ConfigManager;
 
 /// ☁️ WebDAV 同步服务
 ///
@@ -392,8 +391,9 @@ pub fn get_ccr_sync_path() -> Result<PathBuf> {
 
     // 3. 回退到配置文件（Legacy 模式）
     // 这种情况下我们同步单个配置文件
-    let manager = ConfigManager::default()?;
-    Ok(manager.config_path().to_path_buf())
+    let home = dirs::home_dir()
+        .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+    Ok(home.join(".ccs_config.toml"))
 }
 
 /// 📝 从 WebDAV href 中提取文件名或目录名

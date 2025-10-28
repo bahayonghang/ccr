@@ -171,9 +171,10 @@ pub async fn get_sync_info() -> impl IntoResponse {
             "支持强制模式：'ccr sync push --force' 或 'ccr sync pull --force'".to_string(),
         ],
         security_notes: vec![
-            "密码存储在本地 ~/.ccs_config.toml 文件中（推荐权限：chmod 600）".to_string(),
+            "密码存储在本地独立配置文件中：~/.ccr/sync.toml（推荐权限：chmod 600）".to_string(),
             "强烈建议使用应用密码而非账户密码（坚果云：账户设置 → 安全选项 → 添加应用）".to_string(),
-            "同步内容：只同步配置文件（config.toml, profiles.toml 等）".to_string(),
+            "配置隔离：sync 配置独立保存，不与 CLI profiles 配置混在一起".to_string(),
+            "同步内容：~/.ccr/ 目录（包含 config.toml, profiles.toml 等）".to_string(),
             "自动排除：backups/、history/、ccr-ui/、.locks/、.git/ 等目录".to_string(),
             "自动排除：*.tmp、*.lock、*.bak 等临时文件".to_string(),
             "远程文件未加密，依赖 WebDAV 服务器的安全性（建议使用 HTTPS）".to_string(),

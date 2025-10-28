@@ -122,63 +122,160 @@
         </div>
       </div>
 
-      <!-- 🎯 功能模块卡片网格 - Material Design -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <RouterLink
-          v-for="(module, index) in modules"
-          :key="module.href"
-          :to="module.href"
-          class="group block"
-          :style="{ animationDelay: `${index * 0.05}s` }"
-        >
-          <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-            <!-- 图标区域 -->
-            <div class="mb-5">
-              <div
-                class="inline-flex p-4 rounded-2xl"
-                :style="{ background: `${module.color}15` }"
-              >
-                <div :style="{ color: module.color }">
-                  <component :is="module.icon" class="w-7 h-7" />
-                </div>
-              </div>
-            </div>
-
-            <!-- 标题和描述 -->
-            <h3
-              class="text-xl font-bold mb-3 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-[#6366f1] group-hover:to-[#8b5cf6] transition-all"
+      <!-- 🤖 AI CLI 工具 -->
+      <div class="mb-12">
+        <div class="flex items-center gap-3 mb-6">
+          <div
+            class="p-3 rounded-2xl glass-card"
+            :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
+          >
+            <Code2 class="w-6 h-6" :style="{ color: '#6366f1' }" />
+          </div>
+          <div>
+            <h2
+              class="text-3xl font-bold"
               :style="{ color: 'var(--text-primary)' }"
             >
-              {{ module.title }}
-            </h3>
-
-            <p
-              class="text-sm mb-4 leading-relaxed line-clamp-2"
-              :style="{ color: 'var(--text-secondary)' }"
-            >
-              {{ module.description }}
+              AI CLI 工具
+            </h2>
+            <p class="text-sm" :style="{ color: 'var(--text-muted)' }">
+              多种 AI 平台配置管理和工具集成
             </p>
+          </div>
+        </div>
 
-            <!-- 底部信息 -->
-            <div class="flex items-center justify-between mt-auto">
-              <span
-                v-if="module.stats"
-                class="text-xs font-semibold px-3 py-1.5 rounded-full"
-                :style="{
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-muted)',
-                  border: '1px solid var(--border-color)'
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+          <RouterLink
+            v-for="(tool, index) in cliTools"
+            :key="tool.href"
+            :to="tool.href"
+            class="group block"
+            :style="{ animationDelay: `${index * 0.05}s` }"
+          >
+            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+              <div class="mb-4">
+                <div
+                  class="inline-flex p-3 rounded-2xl"
+                  :style="{ background: `${tool.color}15` }"
+                >
+                  <component :is="tool.icon" class="w-6 h-6" :style="{ color: tool.color }" />
+                </div>
+              </div>
+
+              <h3
+                class="text-lg font-bold mb-2 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text transition-all"
+                :style="{ 
+                  color: 'var(--text-primary)',
+                  '--tw-gradient-from': tool.color,
+                  '--tw-gradient-to': tool.colorTo || tool.color
                 }"
               >
-                {{ module.stats }}
-              </span>
-              <ArrowRight
-                class="w-5 h-5 ml-auto group-hover:translate-x-1 transition-transform"
-                :style="{ color: module.color }"
-              />
+                {{ tool.title }}
+              </h3>
+
+              <p
+                class="text-xs mb-3 leading-relaxed line-clamp-2 min-h-[2.5rem]"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
+                {{ tool.description }}
+              </p>
+
+              <div class="flex items-center justify-between">
+                <span
+                  class="text-xs font-semibold px-2.5 py-1 rounded-full"
+                  :style="{
+                    background: `${tool.color}20`,
+                    color: tool.color
+                  }"
+                >
+                  {{ tool.stats }}
+                </span>
+                <ArrowRight
+                  class="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                  :style="{ color: tool.color }"
+                />
+              </div>
             </div>
+          </RouterLink>
+        </div>
+      </div>
+
+      <!-- ⚙️ 配置与工具 -->
+      <div>
+        <div class="flex items-center gap-3 mb-6">
+          <div
+            class="p-3 rounded-2xl glass-card"
+            :style="{ background: 'rgba(139, 92, 246, 0.15)' }"
+          >
+            <Settings class="w-6 h-6" :style="{ color: '#8b5cf6' }" />
           </div>
-        </RouterLink>
+          <div>
+            <h2
+              class="text-3xl font-bold"
+              :style="{ color: 'var(--text-primary)' }"
+            >
+              配置与工具
+            </h2>
+            <p class="text-sm" :style="{ color: 'var(--text-muted)' }">
+              配置转换、云同步和命令执行中心
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <RouterLink
+            v-for="(config, index) in configTools"
+            :key="config.href"
+            :to="config.href"
+            class="group block"
+            :style="{ animationDelay: `${(index + cliTools.length) * 0.05}s` }"
+          >
+            <div class="glass-card p-7 h-full hover:scale-105 transition-all duration-300">
+              <div class="mb-5">
+                <div
+                  class="inline-flex p-4 rounded-2xl"
+                  :style="{ background: `${config.color}15` }"
+                >
+                  <component :is="config.icon" class="w-7 h-7" :style="{ color: config.color }" />
+                </div>
+              </div>
+
+              <h3
+                class="text-xl font-bold mb-3 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text transition-all"
+                :style="{ 
+                  color: 'var(--text-primary)',
+                  '--tw-gradient-from': config.color,
+                  '--tw-gradient-to': config.colorTo || config.color
+                }"
+              >
+                {{ config.title }}
+              </h3>
+
+              <p
+                class="text-sm mb-4 leading-relaxed line-clamp-2"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
+                {{ config.description }}
+              </p>
+
+              <div class="flex items-center justify-between mt-auto">
+                <span
+                  class="text-xs font-semibold px-3 py-1.5 rounded-full"
+                  :style="{
+                    background: `${config.color}20`,
+                    color: config.color
+                  }"
+                >
+                  {{ config.stats }}
+                </span>
+                <ArrowRight
+                  class="w-5 h-5 group-hover:translate-x-1 transition-transform"
+                  :style="{ color: config.color }"
+                />
+              </div>
+            </div>
+          </RouterLink>
+        </div>
       </div>
 
       <!-- 🌈 底部信息 -->
@@ -218,6 +315,7 @@ interface ModuleCard {
   icon: any;
   href: string;
   color: string;
+  colorTo?: string;
   stats?: string;
 }
 
@@ -244,13 +342,15 @@ onMounted(async () => {
   }
 })
 
-const modules: ModuleCard[] = [
+// AI CLI 工具
+const cliTools: ModuleCard[] = [
   {
     title: 'Claude Code',
     description: '配置管理、云同步、MCP 服务器、Agents、插件',
     icon: Code2,
     href: '/claude-code',
     color: '#6366f1',
+    colorTo: '#8b5cf6',
     stats: '核心模块'
   },
   {
@@ -259,14 +359,16 @@ const modules: ModuleCard[] = [
     icon: Settings,
     href: '/codex',
     color: '#8b5cf6',
-    stats: 'AI 编程助手'
+    colorTo: '#a855f7',
+    stats: 'AI 编程'
   },
   {
-    title: 'Gemini CLI',
+    title: 'Gemini',
     description: 'Google Gemini 配置管理和工具集成',
     icon: Sparkles,
     href: '/gemini-cli',
     color: '#f59e0b',
+    colorTo: '#f97316',
     stats: 'Google AI'
   },
   {
@@ -275,6 +377,7 @@ const modules: ModuleCard[] = [
     icon: Zap,
     href: '/qwen',
     color: '#10b981',
+    colorTo: '#14b8a6',
     stats: '国产大模型'
   },
   {
@@ -283,30 +386,38 @@ const modules: ModuleCard[] = [
     icon: Activity,
     href: '/iflow',
     color: '#3b82f6',
-    stats: '工作流引擎'
+    colorTo: '#2563eb',
+    stats: '工作流'
   },
+]
+
+// 配置与工具
+const configTools: ModuleCard[] = [
   {
     title: '命令执行中心',
-    description: '统一的 CLI 命令执行和管理界面',
+    description: '统一的 CLI 命令执行和管理界面，支持多种 AI 平台',
     icon: Terminal,
     href: '/commands',
     color: '#64748b',
+    colorTo: '#475569',
     stats: '多 CLI 支持'
   },
   {
     title: '配置转换器',
-    description: '跨 CLI 工具的配置格式转换',
+    description: '跨 CLI 工具的配置格式转换，无缝迁移配置',
     icon: TrendingUp,
     href: '/converter',
     color: '#f97316',
+    colorTo: '#ea580c',
     stats: '格式互转'
   },
   {
     title: '云同步',
-    description: 'WebDAV 云端配置同步和备份',
+    description: 'WebDAV 云端配置同步和备份，保护你的配置安全',
     icon: Cloud,
     href: '/sync',
     color: '#06b6d4',
+    colorTo: '#0891b2',
     stats: '自动备份'
   },
 ]

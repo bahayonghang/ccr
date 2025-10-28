@@ -2,6 +2,7 @@
 // 负责渲染所有 UI 组件
 
 use super::app::{App, TabState};
+use crate::managers::sync_config::SyncConfigManager;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -9,6 +10,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Tabs},
 };
+use std::path::PathBuf;
 
 /// 渲染主 UI
 pub fn draw(f: &mut Frame, app: &mut App) {
@@ -51,8 +53,9 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title(" CCR TUI - Claude Code Configuration Manager ")
-                .title_alignment(Alignment::Center),
+                .title(" 🚀 CCR TUI - Claude Code Configuration Manager ")
+                .title_alignment(Alignment::Center)
+                .style(Style::default().fg(Color::White)),
         )
         .select(index)
         .style(Style::default().fg(Color::White))
@@ -79,7 +82,7 @@ fn render_content(f: &mut Frame, app: &mut App, area: Rect) {
 fn render_configs_tab(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .title(" Configuration List ")
+        .title(" ⚙️  Configuration List ")
         .title_alignment(Alignment::Left);
 
     // 获取配置列表
@@ -132,23 +135,25 @@ fn render_configs_tab(f: &mut Frame, app: &App, area: Rect) {
             // 构建显示文本
             let mut markers = Vec::new();
             if config.is_current {
-                markers.push("▶");
+                markers.push("▶️");
             }
             if config.is_default {
                 markers.push("⭐");
             }
 
             let marker_text = if !markers.is_empty() {
-                format!("[{}] ", markers.join(" "))
+                format!("{} ", markers.join(" "))
             } else {
-                "    ".to_string()
+                "   ".to_string()
             };
 
-            let display_text = format!("{}{} - {}", marker_text, config.name, config.description);
+            let display_text = format!("{} {} - {}", marker_text, config.name, config.description);
 
             // 根据是否是当前配置设置颜色
             let style = if config.is_current {
-                Style::default().fg(Color::Green)
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD)
             } else if config.is_default {
                 Style::default().fg(Color::Cyan)
             } else {
@@ -182,7 +187,7 @@ fn render_configs_tab(f: &mut Frame, app: &App, area: Rect) {
 fn render_history_tab(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .title(" Operation History ")
+        .title(" 📜 Operation History ")
         .title_alignment(Alignment::Left);
 
     // 获取历史记录
@@ -235,8 +240,8 @@ fn render_history_tab(f: &mut Frame, app: &App, area: Rect) {
             // 格式化时间戳
             let time = entry.timestamp.format("%m-%d %H:%M:%S").to_string();
 
-            // 操作类型
-            let op_type = entry.operation.as_str();
+            // 操作类型（格式化为固定宽度）
+            let op_type = format!("{:<8}", entry.operation.as_str());
 
             // 详情(目标配置)
             let target = entry.details.to_config.as_deref().unwrap_or("N/A");
@@ -245,11 +250,11 @@ fn render_history_tab(f: &mut Frame, app: &App, area: Rect) {
             let (result_icon, result_color) = match &entry.result {
                 OperationResult::Success => ("✅", Color::Green),
                 OperationResult::Failure(_) => ("❌", Color::Red),
-                OperationResult::Warning(_) => ("⚠️", Color::Yellow),
+                OperationResult::Warning(_) => ("⚠️ ", Color::Yellow),
             };
 
             // 构建显示文本
-            let display_text = format!("{} {} {} → {}", time, result_icon, op_type, target);
+            let display_text = format!("[{}] {} {} → {}", time, result_icon, op_type, target);
 
             ListItem::new(display_text).style(Style::default().fg(result_color))
         })
@@ -281,37 +286,43 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
         .title(" ☁️  Cloud Sync ")
         .title_alignment(Alignment::Left);
 
-    // 获取同步配置
-    let config = match app.config_service.load_config() {
-        Ok(cfg) => cfg,
-        Err(e) => {
-            let error_text = vec![
-                Line::from(""),
-                Line::from(Span::styled(
-                    "❌ Failed to load configuration",
-                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-                )),
-                Line::from(""),
-                Line::from(format!("Error: {}", e)),
-            ];
-            let paragraph = Paragraph::new(error_text)
-                .block(block)
-                .alignment(Alignment::Center);
-            f.render_widget(paragraph, area);
-            return;
-        }
-    };
+    // 检查配置加载（仅用于错误检查）
+    if let Err(e) = app.config_service.load_config() {
+        let error_text = vec![
+            Line::from(""),
+            Line::from(Span::styled(
+                "❌ Failed to load configuration",
+                Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+            )),
+            Line::from(""),
+            Line::from(format!("Error: {}", e)),
+        ];
+        let paragraph = Paragraph::new(error_text)
+            .block(block)
+            .alignment(Alignment::Center);
+        f.render_widget(paragraph, area);
+        return;
+    }
 
     let mut lines = vec![Line::from("")];
 
-    match &config.settings.sync {
-        Some(sync_config) if sync_config.enabled => {
+    // 从独立文件加载sync配置
+    let sync_config_result = SyncConfigManager::default().and_then(|m| m.load());
+    
+    match sync_config_result {
+        Ok(sync_config) if sync_config.enabled => {
+            // clone数据以解决生命周期问题
+            let webdav_url = sync_config.webdav_url.clone();
+            let username = sync_config.username.clone();
+            let remote_path = sync_config.remote_path.clone();
+            let auto_sync = sync_config.auto_sync;
+            
             // 同步已配置
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled("状态: ", Style::default().fg(Color::Cyan)),
+                Span::styled("状态         : ", Style::default().fg(Color::Cyan)),
                 Span::styled(
-                    "✓ 已启用",
+                    "✅ 已启用",
                     Style::default()
                         .fg(Color::Green)
                         .add_modifier(Modifier::BOLD),
@@ -322,44 +333,56 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             lines.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled("WebDAV 服务器: ", Style::default().fg(Color::Cyan)),
-                Span::raw(&sync_config.webdav_url),
+                Span::styled(webdav_url, Style::default().fg(Color::White)),
             ]));
 
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled("用户名: ", Style::default().fg(Color::Cyan)),
-                Span::raw(&sync_config.username),
+                Span::styled("用户名       : ", Style::default().fg(Color::Cyan)),
+                Span::styled(username, Style::default().fg(Color::White)),
             ]));
 
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled("远程路径: ", Style::default().fg(Color::Cyan)),
-                Span::raw(&sync_config.remote_path),
+                Span::styled("远程路径     : ", Style::default().fg(Color::Cyan)),
+                Span::styled(remote_path, Style::default().fg(Color::White)),
             ]));
 
-            let auto_sync_status = if sync_config.auto_sync {
-                Span::styled("✓ 开启", Style::default().fg(Color::Green))
+            let auto_sync_status = if auto_sync {
+                Span::styled("✅ 开启", Style::default().fg(Color::Green))
             } else {
-                Span::styled("✗ 关闭", Style::default().fg(Color::DarkGray))
+                Span::styled("⭕ 关闭", Style::default().fg(Color::DarkGray))
             };
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled("自动同步: ", Style::default().fg(Color::Cyan)),
+                Span::styled("自动同步     : ", Style::default().fg(Color::Cyan)),
                 auto_sync_status,
             ]));
 
             lines.push(Line::from(""));
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
-                "  📝 可用操作:",
+                "  ⚡ 可用操作:",
                 Style::default()
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
             )));
             lines.push(Line::from(""));
-            lines.push(Line::from("     [P] Push   - 上传配置到云端"));
-            lines.push(Line::from("     [L] Pull   - 从云端下载配置"));
-            lines.push(Line::from("     [S] Status - 查看同步状态"));
+            lines.push(Line::from(vec![
+                Span::raw("     "),
+                Span::styled("[P]", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::raw(" Push   - 上传配置到云端"),
+            ]));
+            lines.push(Line::from(vec![
+                Span::raw("     "),
+                Span::styled("[L]", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::raw(" Pull   - 从云端下载配置"),
+            ]));
+            lines.push(Line::from(vec![
+                Span::raw("     "),
+                Span::styled("[S]", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::raw(" Status - 查看同步状态"),
+            ]));
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 "  💡 提示: 这些操作会在退出 TUI 后在命令行执行",
@@ -371,7 +394,7 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             lines.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled("状态: ", Style::default().fg(Color::Cyan)),
-                Span::styled("未配置", Style::default().fg(Color::Yellow)),
+                Span::styled("⚠️  未配置", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
             ]));
             lines.push(Line::from(""));
             lines.push(Line::from(""));
@@ -383,21 +406,52 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
                     .add_modifier(Modifier::BOLD),
             )));
             lines.push(Line::from(""));
-            lines.push(Line::from("  1. 退出 TUI (按 Q)"));
-            lines.push(Line::from("  2. 运行命令: ccr sync config"));
-            lines.push(Line::from("  3. 输入 WebDAV 服务器信息"));
-            lines.push(Line::from("  4. 测试连接成功后即可使用"));
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled("1.", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::raw(" 退出 TUI (按 "),
+                Span::styled("Q", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::raw(")"),
+            ]));
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled("2.", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::raw(" 运行命令: "),
+                Span::styled("ccr sync config", Style::default().fg(Color::Green)),
+            ]));
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled("3.", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::raw(" 输入 WebDAV 服务器信息"),
+            ]));
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled("4.", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::raw(" 测试连接成功后即可使用"),
+            ]));
             lines.push(Line::from(""));
             lines.push(Line::from(""));
 
             lines.push(Line::from(Span::styled(
                 "  💡 支持的服务:",
-                Style::default().fg(Color::Cyan),
+                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
             )));
             lines.push(Line::from(""));
-            lines.push(Line::from("     • 坚果云 (推荐，免费)"));
-            lines.push(Line::from("     • Nextcloud / ownCloud"));
-            lines.push(Line::from("     • 其他标准 WebDAV 服务"));
+            lines.push(Line::from(vec![
+                Span::raw("     "),
+                Span::styled("•", Style::default().fg(Color::Green)),
+                Span::raw(" 坚果云 (推荐，免费)"),
+            ]));
+            lines.push(Line::from(vec![
+                Span::raw("     "),
+                Span::styled("•", Style::default().fg(Color::Green)),
+                Span::raw(" Nextcloud / ownCloud"),
+            ]));
+            lines.push(Line::from(vec![
+                Span::raw("     "),
+                Span::styled("•", Style::default().fg(Color::Green)),
+                Span::raw(" 其他标准 WebDAV 服务"),
+            ]));
         }
     }
 
@@ -407,11 +461,20 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(paragraph, area);
 }
 
+/// 获取真实的文件路径（考虑环境变量覆盖）
+fn get_real_path(env_var: &str, default_path: PathBuf) -> (String, bool) {
+    if let Ok(custom_path) = std::env::var(env_var) {
+        (custom_path, true)
+    } else {
+        (default_path.display().to_string(), false)
+    }
+}
+
 /// 渲染系统信息 Tab
 fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .title(" System Information ")
+        .title(" 💻 System Information ")
         .title_alignment(Alignment::Left);
 
     // 获取系统信息
@@ -422,14 +485,30 @@ fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
     // 获取 CCR 版本
     let ccr_version = env!("CARGO_PKG_VERSION");
 
-    // 获取配置路径
-    let home = dirs::home_dir()
-        .map(|p| p.display().to_string())
-        .unwrap_or_else(|| "Unknown".to_string());
+    // 获取主目录
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("~"));
 
-    let config_path = format!("{}/.ccs_config.toml", home);
-    let settings_path = format!("{}/.claude/settings.json", home);
-    let history_path = format!("{}/.claude/ccr_history.json", home);
+    // 获取真实路径（考虑环境变量）
+    let (config_path, config_is_custom) = get_real_path(
+        "CCR_CONFIG_PATH",
+        home.join(".ccs_config.toml"),
+    );
+    let (settings_path, settings_is_custom) = get_real_path(
+        "CCR_SETTINGS_PATH",
+        home.join(".claude").join("settings.json"),
+    );
+    let (backup_dir, backup_is_custom) = get_real_path(
+        "CCR_BACKUP_DIR",
+        home.join(".claude").join("backups"),
+    );
+    let (history_path, history_is_custom) = get_real_path(
+        "CCR_HISTORY_PATH",
+        home.join(".claude").join("ccr_history.json"),
+    );
+    let (lock_dir, lock_is_custom) = get_real_path(
+        "CCR_LOCK_DIR",
+        home.join(".claude").join(".locks"),
+    );
 
     // 获取当前配置名称
     let current_config = app
@@ -451,66 +530,96 @@ fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
         Span::styled("OFF", Style::default().fg(Color::Green))
     };
 
+    // 辅助函数：创建路径显示行
+    let make_path_line = |label: &str, path: String, is_custom: bool| {
+        let mut spans = vec![
+            Span::raw("  "),
+            Span::styled(format!("{:<12}", label), Style::default().fg(Color::Cyan)),
+        ];
+        
+        if is_custom {
+            spans.push(Span::styled("🔧 ", Style::default().fg(Color::Yellow)));
+        } else {
+            spans.push(Span::raw("   "));
+        }
+        
+        spans.push(Span::styled(path, Style::default().fg(Color::White)));
+        
+        Line::from(spans)
+    };
+
     // 构建显示内容
-    let text = vec![
+    let mut text = vec![
         Line::from(""),
         Line::from(Span::styled(
-            "System Information",
+            "📊 System Information",
             Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(vec![
-            Span::raw("  Hostname: "),
+            Span::raw("  Hostname    : "),
             Span::styled(hostname, Style::default().fg(Color::Yellow)),
         ]),
         Line::from(vec![
-            Span::raw("  User: "),
+            Span::raw("  User        : "),
             Span::styled(username, Style::default().fg(Color::Yellow)),
         ]),
         Line::from(vec![
-            Span::raw("  OS: "),
+            Span::raw("  OS          : "),
             Span::styled(os, Style::default().fg(Color::Yellow)),
         ]),
         Line::from(""),
         Line::from(Span::styled(
-            "CCR Information",
+            "⚙️  CCR Information",
             Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(vec![
-            Span::raw("  Version: "),
+            Span::raw("  Version     : "),
             Span::styled(ccr_version, Style::default().fg(Color::Yellow)),
         ]),
         Line::from(vec![
-            Span::raw("  Current Config: "),
+            Span::raw("  Config      : "),
             Span::styled(current_config, Style::default().fg(Color::Green)),
         ]),
-        Line::from(vec![Span::raw("  Auto-Confirm (Y): "), auto_confirm_status]),
+        Line::from(vec![
+            Span::raw("  Auto-Confirm: "),
+            auto_confirm_status,
+        ]),
         Line::from(""),
         Line::from(Span::styled(
-            "File Paths",
+            "📁 File Paths",
             Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
-        Line::from(vec![
-            Span::raw("  Config: "),
-            Span::styled(config_path, Style::default().fg(Color::Yellow)),
-        ]),
-        Line::from(vec![
-            Span::raw("  Settings: "),
-            Span::styled(settings_path, Style::default().fg(Color::Yellow)),
-        ]),
-        Line::from(vec![
-            Span::raw("  History: "),
-            Span::styled(history_path, Style::default().fg(Color::Yellow)),
-        ]),
     ];
+
+    // 添加路径信息
+    text.push(make_path_line("Config:", config_path, config_is_custom));
+    text.push(make_path_line("Settings:", settings_path, settings_is_custom));
+    text.push(make_path_line("Backup:", backup_dir, backup_is_custom));
+    text.push(make_path_line("History:", history_path, history_is_custom));
+    text.push(make_path_line("Lock:", lock_dir, lock_is_custom));
+
+    // 如果有自定义路径，添加说明
+    let has_custom = config_is_custom || settings_is_custom || backup_is_custom || history_is_custom || lock_is_custom;
+    if has_custom {
+        text.push(Line::from(""));
+        text.push(Line::from(vec![
+            Span::raw("  "),
+            Span::styled("🔧", Style::default().fg(Color::Yellow)),
+            Span::styled(
+                " = Using custom path from environment variable",
+                Style::default().fg(Color::DarkGray),
+            ),
+        ]));
+    }
 
     let paragraph = Paragraph::new(text).block(block).alignment(Alignment::Left);
 

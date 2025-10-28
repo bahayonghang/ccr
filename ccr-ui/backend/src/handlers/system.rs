@@ -10,8 +10,14 @@ pub async fn get_system_info() -> impl IntoResponse {
     // Create a System instance
     let mut sys = System::new_all();
     
-    // Refresh data
+    // First refresh to establish baseline
     sys.refresh_all();
+    
+    // Wait a bit to get accurate CPU measurements
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+    
+    // Second refresh to calculate CPU usage
+    sys.refresh_cpu_all();
     
     // Get OS information
     let os = System::name().unwrap_or_else(|| "Unknown".to_string());

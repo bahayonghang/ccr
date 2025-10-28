@@ -8,6 +8,7 @@
 // - 📋 管理多个配置节
 
 use crate::core::error::{CcrError, Result};
+use crate::managers::sync_config::SyncConfig;
 use crate::utils::Validatable;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -248,53 +249,12 @@ pub struct GlobalSettings {
     pub tui_theme: Option<String>,
 
     /// ☁️ WebDAV 同步配置（可选）
+    /// 
+    /// ⚠️ 已废弃：sync配置现在保存在独立文件 ~/.ccr/sync.toml 中
+    /// 保留此字段仅为向后兼容
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[deprecated(note = "Use SyncConfigManager to manage sync configuration")]
     pub sync: Option<SyncConfig>,
-}
-
-/// ☁️ WebDAV 同步配置结构
-///
-/// 用于配置文件的云端同步，默认支持坚果云
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SyncConfig {
-    /// 🔌 是否启用同步功能
-    #[serde(default)]
-    pub enabled: bool,
-
-    /// 🌐 WebDAV 服务器地址
-    ///
-    /// 坚果云默认地址: https://dav.jianguoyun.com/dav/
-    /// 其他WebDAV服务器也支持
-    pub webdav_url: String,
-
-    /// 👤 用户名
-    ///
-    /// 对于坚果云，这是您的邮箱地址
-    pub username: String,
-
-    /// 🔑 密码/应用密码
-    ///
-    /// ⚠️ 对于坚果云，请使用"应用密码"而非账户密码
-    /// 获取方式：账户信息 -> 安全选项 -> 添加应用 -> 生成密码
-    pub password: String,
-
-    /// 📁 远程文件路径
-    ///
-    /// 配置文件在WebDAV服务器上的路径
-    /// 默认: /ccr/.ccs_config.toml
-    #[serde(default = "default_remote_path")]
-    pub remote_path: String,
-
-    /// ⚡ 自动同步模式
-    ///
-    /// 启用后，每次配置操作后自动同步到云端
-    #[serde(default)]
-    pub auto_sync: bool,
-}
-
-/// 默认远程路径
-fn default_remote_path() -> String {
-    "/ccr/.ccs_config.toml".to_string()
 }
 
 /// 📦 CCS 配置文件总体结构

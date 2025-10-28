@@ -1,6 +1,15 @@
 <template>
-  <div class="min-h-screen" :style="{ background: 'linear-gradient(to bottom right, #f8fafc, #dbeafe, #e0e7ff)' }">
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-8">
+  <div class="min-h-screen relative overflow-hidden" :style="{ 
+    background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #4c1d95 50%, #5b21b6 75%, #6d28d9 100%)'
+  }">
+    <!-- 动态背景装饰 -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl"></div>
+      <div class="absolute top-1/2 -left-40 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-20 right-1/3 w-72 h-72 bg-violet-500/20 rounded-full blur-3xl"></div>
+    </div>
+    
+    <main class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-8">
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
@@ -12,44 +21,39 @@
       />
       <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-3">
-            <Cloud class="w-8 h-8" :style="{ color: '#2563eb' }" />
-            <h1 class="text-3xl font-bold" :style="{ color: '#111827' }">WebDAV 云同步</h1>
+          <div class="flex items-center gap-4">
+            <div class="p-3 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-xl">
+              <Cloud class="w-8 h-8 text-white drop-shadow-lg" />
+            </div>
+            <h1 class="text-4xl font-bold text-white drop-shadow-lg">WebDAV 云同步</h1>
           </div>
           <RouterLink
             to="/"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors shadow-sm"
-            :style="{
-              background: 'white',
-              color: '#374151',
-              borderColor: '#d1d5db'
-            }"
+            class="group flex items-center gap-2 px-5 py-2.5 rounded-xl backdrop-blur-md bg-white/20 border border-white/30 transition-all duration-300 hover:bg-white/30 hover:scale-105 shadow-lg"
           >
-            <Home class="w-4 h-4" />
-            <span class="font-medium">返回首页</span>
+            <Home class="w-4 h-4 text-white" />
+            <span class="font-medium text-white">返回首页</span>
           </RouterLink>
         </div>
-        <p :style="{ color: '#4b5563' }">使用 WebDAV 协议同步配置文件到云端存储，支持目录同步，智能排除备份和临时文件</p>
+        <p class="text-white/90 text-lg drop-shadow-md">使用 WebDAV 协议同步配置文件到云端存储，支持目录同步，智能排除备份和临时文件</p>
       </div>
 
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <RefreshCw class="w-8 h-8 animate-spin" :style="{ color: '#2563eb' }" />
+      <div v-if="loading" class="flex items-center justify-center py-16">
+        <div class="p-6 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl">
+          <RefreshCw class="w-10 h-10 animate-spin text-white drop-shadow-lg" />
+        </div>
       </div>
 
       <!-- 错误状态 -->
       <div
         v-else-if="error"
-        class="rounded-lg p-4 flex items-start gap-3"
-        :style="{
-          background: '#fef2f2',
-          border: '1px solid #fecaca'
-        }"
+        class="rounded-2xl backdrop-blur-xl bg-red-500/20 border border-red-400/30 p-6 flex items-start gap-4 shadow-xl"
       >
-        <XCircle class="w-5 h-5 flex-shrink-0 mt-0.5" :style="{ color: '#dc2626' }" />
+        <XCircle class="w-7 h-7 flex-shrink-0 mt-0.5 text-red-200 drop-shadow-md" />
         <div>
-          <h3 class="font-semibold mb-1" :style="{ color: '#7f1d1d' }">加载失败</h3>
-          <p class="text-sm" :style="{ color: '#b91c1c' }">{{ error }}</p>
+          <h3 class="font-bold text-xl mb-2 text-white drop-shadow-md">加载失败</h3>
+          <p class="text-base text-white/90 drop-shadow-md">{{ error }}</p>
         </div>
       </div>
 
@@ -58,21 +62,14 @@
         <!-- 左侧主内容区 -->
         <div class="lg:col-span-2 space-y-6">
           <div
-            class="rounded-xl shadow-sm border overflow-hidden"
-            :style="{
-              background: 'white',
-              borderColor: '#e5e7eb'
-            }"
+            class="rounded-2xl backdrop-blur-xl bg-white/15 border border-white/30 shadow-2xl overflow-hidden transition-all duration-300 hover:bg-white/20"
           >
             <!-- 头部 -->
-            <div
-              class="px-6 py-4"
-              :style="{
-                background: 'linear-gradient(to right, #2563eb, #4f46e5)'
-              }"
-            >
-              <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                <Cloud class="w-6 h-6" />
+            <div class="px-6 py-5 bg-gradient-to-r from-white/25 to-white/15 border-b border-white/30">
+              <h2 class="text-2xl font-bold text-white flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                <div class="p-2 rounded-xl bg-white/30">
+                  <Cloud class="w-6 h-6" />
+                </div>
                 同步状态
               </h2>
             </div>
@@ -80,35 +77,22 @@
             <div class="p-6">
               <!-- 已配置状态 -->
               <div v-if="syncStatus?.configured && syncStatus.config" class="space-y-4">
-                <div
-                  class="flex items-center gap-2 px-4 py-3 rounded-lg"
-                  :style="{
-                    color: '#15803d',
-                    background: '#f0fdf4',
-                    border: '1px solid #bbf7d0'
-                  }"
-                >
-                  <CheckCircle class="w-5 h-5" />
-                  <span class="font-medium">同步功能已配置</span>
+                <div class="flex items-center gap-3 px-5 py-3.5 rounded-xl backdrop-blur-md bg-emerald-400/20 border border-emerald-300/30 shadow-lg">
+                  <CheckCircle class="w-6 h-6 text-emerald-100 drop-shadow-md" />
+                  <span class="font-semibold text-emerald-50 text-lg drop-shadow-md">同步功能已配置</span>
                 </div>
 
                 <!-- 配置详情卡片 -->
-                <div class="grid grid-cols-1 gap-3">
+                <div class="grid grid-cols-1 gap-4">
                   <!-- WebDAV 服务器 -->
-                  <div
-                    class="border rounded-lg p-4"
-                    :style="{
-                      background: 'white',
-                      borderColor: '#e5e7eb'
-                    }"
-                  >
-                    <div class="flex items-start gap-3">
-                      <div class="p-2 rounded-lg" :style="{ background: '#eff6ff' }">
-                        <Server class="w-5 h-5" :style="{ color: '#2563eb' }" />
+                  <div class="rounded-xl backdrop-blur-md bg-white/15 border border-white/30 p-5 transition-all duration-300 hover:bg-white/20 hover:scale-[1.02]">
+                    <div class="flex items-start gap-4">
+                      <div class="p-3 rounded-xl bg-blue-500/40 backdrop-blur-sm">
+                        <Server class="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                       </div>
                       <div class="flex-1">
-                        <div class="text-xs mb-1" :style="{ color: '#6b7280' }">WebDAV 服务器</div>
-                        <div class="text-sm font-mono break-all" :style="{ color: '#111827' }">
+                        <div class="text-sm font-medium mb-2 text-white/90">WebDAV 服务器</div>
+                        <div class="text-base font-mono break-all text-white font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                           {{ syncStatus.config.webdav_url }}
                         </div>
                       </div>
@@ -116,20 +100,14 @@
                   </div>
 
                   <!-- 用户名 -->
-                  <div
-                    class="border rounded-lg p-4"
-                    :style="{
-                      background: 'white',
-                      borderColor: '#e5e7eb'
-                    }"
-                  >
-                    <div class="flex items-start gap-3">
-                      <div class="p-2 rounded-lg" :style="{ background: '#faf5ff' }">
-                        <User class="w-5 h-5" :style="{ color: '#9333ea' }" />
+                  <div class="rounded-xl backdrop-blur-md bg-white/15 border border-white/30 p-5 transition-all duration-300 hover:bg-white/20 hover:scale-[1.02]">
+                    <div class="flex items-start gap-4">
+                      <div class="p-3 rounded-xl bg-purple-500/40 backdrop-blur-sm">
+                        <User class="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                       </div>
                       <div class="flex-1">
-                        <div class="text-xs mb-1" :style="{ color: '#6b7280' }">用户名</div>
-                        <div class="text-sm font-mono" :style="{ color: '#111827' }">
+                        <div class="text-sm font-medium mb-2 text-white/90">用户名</div>
+                        <div class="text-base font-mono text-white font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                           {{ syncStatus.config.username }}
                         </div>
                       </div>
@@ -137,20 +115,14 @@
                   </div>
 
                   <!-- 远程路径 -->
-                  <div
-                    class="border rounded-lg p-4"
-                    :style="{
-                      background: 'white',
-                      borderColor: '#e5e7eb'
-                    }"
-                  >
-                    <div class="flex items-start gap-3">
-                      <div class="p-2 rounded-lg" :style="{ background: '#fdf2f8' }">
-                        <FolderOpen class="w-5 h-5" :style="{ color: '#db2777' }" />
+                  <div class="rounded-xl backdrop-blur-md bg-white/15 border border-white/30 p-5 transition-all duration-300 hover:bg-white/20 hover:scale-[1.02]">
+                    <div class="flex items-start gap-4">
+                      <div class="p-3 rounded-xl bg-pink-500/40 backdrop-blur-sm">
+                        <FolderOpen class="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                       </div>
                       <div class="flex-1">
-                        <div class="text-xs mb-1" :style="{ color: '#6b7280' }">远程路径</div>
-                        <div class="text-sm font-mono break-all" :style="{ color: '#111827' }">
+                        <div class="text-sm font-medium mb-2 text-white/90">远程路径</div>
+                        <div class="text-base font-mono break-all text-white font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                           {{ syncStatus.config.remote_path }}
                         </div>
                       </div>
@@ -158,20 +130,14 @@
                   </div>
 
                   <!-- 自动同步 -->
-                  <div
-                    class="border rounded-lg p-4"
-                    :style="{
-                      background: 'white',
-                      borderColor: '#e5e7eb'
-                    }"
-                  >
-                    <div class="flex items-start gap-3">
-                      <div class="p-2 rounded-lg" :style="{ background: '#fffbeb' }">
-                        <Settings class="w-5 h-5" :style="{ color: '#d97706' }" />
+                  <div class="rounded-xl backdrop-blur-md bg-white/15 border border-white/30 p-5 transition-all duration-300 hover:bg-white/20 hover:scale-[1.02]">
+                    <div class="flex items-start gap-4">
+                      <div class="p-3 rounded-xl bg-amber-500/40 backdrop-blur-sm">
+                        <Settings class="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                       </div>
                       <div class="flex-1">
-                        <div class="text-xs mb-1" :style="{ color: '#6b7280' }">自动同步</div>
-                        <div class="text-sm" :style="{ color: '#111827' }">
+                        <div class="text-sm font-medium mb-2 text-white/90">自动同步</div>
+                        <div class="text-base text-white font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                           {{ syncStatus.config.auto_sync ? '✓ 开启' : '✗ 关闭' }}
                         </div>
                       </div>
@@ -181,19 +147,15 @@
                   <!-- 远程文件存在 -->
                   <div
                     v-if="typeof syncStatus.config.remote_file_exists === 'boolean'"
-                    class="border rounded-lg p-4"
-                    :style="{
-                      background: 'white',
-                      borderColor: '#e5e7eb'
-                    }"
+                    class="rounded-xl backdrop-blur-md bg-white/15 border border-white/30 p-5 transition-all duration-300 hover:bg-white/20 hover:scale-[1.02]"
                   >
-                    <div class="flex items-start gap-3">
-                      <div class="p-2 rounded-lg" :style="{ background: '#f0fdf4' }">
-                        <Info class="w-5 h-5" :style="{ color: '#16a34a' }" />
+                    <div class="flex items-start gap-4">
+                      <div class="p-3 rounded-xl bg-emerald-500/40 backdrop-blur-sm">
+                        <Info class="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                       </div>
                       <div class="flex-1">
-                        <div class="text-xs mb-1" :style="{ color: '#6b7280' }">远程文件状态</div>
-                        <div class="text-sm" :style="{ color: '#111827' }">
+                        <div class="text-sm font-medium mb-2 text-white/90">远程文件状态</div>
+                        <div class="text-base text-white font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                           {{ syncStatus.config.remote_file_exists ? '✓ 存在' : '✗ 不存在' }}
                         </div>
                       </div>
@@ -204,38 +166,25 @@
                 <!-- 操作按钮 -->
                 <div class="flex flex-wrap gap-3">
                   <button
-                    class="flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm disabled:opacity-50 transition-all hover:scale-105"
-                    :style="{
-                      background: '#2563eb',
-                      color: 'white'
-                    }"
+                    class="group flex items-center gap-2 px-6 py-3 rounded-xl backdrop-blur-md bg-gradient-to-r from-blue-500/80 to-indigo-500/80 border border-white/30 shadow-xl disabled:opacity-50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:from-blue-600/90 hover:to-indigo-600/90"
                     :disabled="operating"
                     @click="handlePush(false)"
                   >
-                    <CloudUpload class="w-4 h-4" />
-                    <span>上传到云端</span>
+                    <CloudUpload class="w-5 h-5 text-white drop-shadow-md" />
+                    <span class="font-semibold text-white drop-shadow-md">上传到云端</span>
                   </button>
 
                   <button
-                    class="flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm disabled:opacity-50 transition-all hover:scale-105"
-                    :style="{
-                      background: '#4f46e5',
-                      color: 'white'
-                    }"
+                    class="group flex items-center gap-2 px-6 py-3 rounded-xl backdrop-blur-md bg-gradient-to-r from-purple-500/80 to-pink-500/80 border border-white/30 shadow-xl disabled:opacity-50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:from-purple-600/90 hover:to-pink-600/90"
                     :disabled="operating"
                     @click="handlePull(false)"
                   >
-                    <CloudDownload class="w-4 h-4" />
-                    <span>从云端下载</span>
+                    <CloudDownload class="w-5 h-5 text-white drop-shadow-md" />
+                    <span class="font-semibold text-white drop-shadow-md">从云端下载</span>
                   </button>
 
                   <button
-                    class="px-3 py-2 text-sm rounded-lg border transition-all hover:scale-105"
-                    :style="{
-                      borderColor: '#bfdbfe',
-                      color: '#1d4ed8',
-                      background: '#eff6ff'
-                    }"
+                    class="px-4 py-2.5 text-sm rounded-xl backdrop-blur-md bg-white/20 border border-white/30 text-white font-medium shadow-lg disabled:opacity-50 transition-all duration-300 hover:bg-white/30 hover:scale-105"
                     :disabled="operating"
                     @click="handlePush(true)"
                   >
@@ -243,12 +192,7 @@
                   </button>
 
                   <button
-                    class="px-3 py-2 text-sm rounded-lg border transition-all hover:scale-105"
-                    :style="{
-                      borderColor: '#c7d2fe',
-                      color: '#4338ca',
-                      background: '#eef2ff'
-                    }"
+                    class="px-4 py-2.5 text-sm rounded-xl backdrop-blur-md bg-white/20 border border-white/30 text-white font-medium shadow-lg disabled:opacity-50 transition-all duration-300 hover:bg-white/30 hover:scale-105"
                     :disabled="operating"
                     @click="handlePull(true)"
                   >
@@ -259,39 +203,31 @@
                 <!-- 操作结果 -->
                 <div
                   v-if="operationResult"
-                  class="mt-4 p-4 rounded-lg border"
-                  :style="{
-                    background: operationResult.success ? '#f0fdf4' : '#fef2f2',
-                    borderColor: operationResult.success ? '#bbf7d0' : '#fecaca',
-                    color: operationResult.success ? '#15803d' : '#b91c1c'
-                  }"
+                  class="mt-4 p-5 rounded-xl backdrop-blur-md border shadow-lg"
+                  :class="operationResult.success ? 'bg-emerald-400/20 border-emerald-300/30' : 'bg-red-400/20 border-red-300/30'"
                 >
-                  <div class="flex items-center gap-2">
-                    <CheckCircle v-if="operationResult.success" class="w-5 h-5" />
-                    <AlertCircle v-else class="w-5 h-5" />
-                    <span class="font-medium">
+                  <div class="flex items-center gap-3">
+                    <CheckCircle v-if="operationResult.success" class="w-6 h-6 text-emerald-100 drop-shadow-md" />
+                    <AlertCircle v-else class="w-6 h-6 text-red-100 drop-shadow-md" />
+                    <span class="font-bold text-lg text-white drop-shadow-md">
                       {{ operationResult.success ? '操作成功' : '操作失败' }}
                     </span>
                   </div>
-                  <pre class="mt-2 text-xs whitespace-pre-wrap">{{ operationResult.message }}</pre>
+                  <pre class="mt-3 text-sm whitespace-pre-wrap text-white/90 drop-shadow-md leading-relaxed">{{ operationResult.message }}</pre>
                 </div>
               </div>
 
               <!-- 未配置状态 -->
               <div
                 v-else
-                class="rounded-lg p-4 flex items-start gap-3"
-                :style="{
-                  background: '#fffbeb',
-                  border: '1px solid #fef3c7'
-                }"
+                class="rounded-xl backdrop-blur-md bg-amber-400/20 border border-amber-300/30 p-6 flex items-start gap-4 shadow-lg"
               >
-                <AlertCircle class="w-5 h-5 flex-shrink-0 mt-0.5" :style="{ color: '#a16207' }" />
+                <AlertCircle class="w-6 h-6 flex-shrink-0 mt-0.5 text-amber-100 drop-shadow-md" />
                 <div>
-                  <h3 class="font-semibold mb-1" :style="{ color: '#78350f' }">同步功能未配置</h3>
-                  <p class="text-sm" :style="{ color: '#92400e' }">
+                  <h3 class="font-bold text-lg mb-2 text-white drop-shadow-md">同步功能未配置</h3>
+                  <p class="text-base text-white/90 drop-shadow-md">
                     请在终端中运行
-                    <code class="font-mono">ccr sync config</code>
+                    <code class="font-mono bg-white/20 px-2 py-1 rounded-lg">ccr sync config</code>
                     设置 WebDAV 连接
                   </p>
                 </div>
@@ -303,81 +239,71 @@
         <!-- 右侧信息栏 -->
         <aside class="space-y-6">
           <!-- 功能说明卡片 -->
-          <div
-            class="rounded-xl shadow-sm border overflow-hidden"
-            :style="{
-              background: 'white',
-              borderColor: '#e5e7eb'
-            }"
-          >
+          <div class="rounded-2xl backdrop-blur-xl bg-white/15 border border-white/30 shadow-2xl overflow-hidden transition-all duration-300 hover:bg-white/20">
             <!-- 头部 -->
-            <div
-              class="px-6 py-4"
-              :style="{
-                background: 'linear-gradient(to right, #9333ea, #db2777)'
-              }"
-            >
-              <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                <Info class="w-6 h-6" />
+            <div class="px-6 py-5 bg-gradient-to-r from-white/25 to-white/15 border-b border-white/30">
+              <h2 class="text-2xl font-bold text-white flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                <div class="p-2 rounded-xl bg-white/30">
+                  <Info class="w-6 h-6" />
+                </div>
                 功能说明
               </h2>
             </div>
 
             <div class="p-6">
-              <div v-if="syncInfo" class="space-y-4">
+              <div v-if="syncInfo" class="space-y-5">
                 <div>
-                  <h3 class="text-base font-semibold" :style="{ color: '#111827' }">
+                  <h3 class="text-lg font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-2">
                     {{ syncInfo.feature_name }}
                   </h3>
-                  <p class="text-sm mt-1" :style="{ color: '#374151' }">
+                  <p class="text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] leading-relaxed">
                     {{ syncInfo.description }}
                   </p>
                 </div>
 
                 <div>
-                  <h4 class="text-sm font-semibold flex items-center gap-1" :style="{ color: '#111827' }">
-                    <Server class="w-4 h-4" :style="{ color: '#2563eb' }" />
+                  <h4 class="text-base font-semibold flex items-center gap-2 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-3">
+                    <Server class="w-5 h-5" />
                     支持的服务
                   </h4>
-                  <ul class="mt-2 text-sm space-y-1" :style="{ color: '#374151' }">
-                    <li v-for="service in syncInfo.supported_services" :key="service" class="flex items-center gap-2">
-                      <span class="w-1.5 h-1.5 rounded-full" :style="{ background: '#2563eb' }"></span>
-                      {{ service }}
+                  <ul class="space-y-2">
+                    <li v-for="service in syncInfo.supported_services" :key="service" class="flex items-center gap-2.5">
+                      <span class="w-2 h-2 rounded-full bg-white/80 drop-shadow-md"></span>
+                      <span class="text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">{{ service }}</span>
                     </li>
                   </ul>
                 </div>
 
                 <div>
-                  <h4 class="text-sm font-semibold flex items-center gap-1" :style="{ color: '#111827' }">
-                    <Settings class="w-4 h-4" :style="{ color: '#d97706' }" />
+                  <h4 class="text-base font-semibold flex items-center gap-2 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-3">
+                    <Settings class="w-5 h-5" />
                     配置步骤
                   </h4>
-                  <ol class="mt-2 text-sm space-y-1.5" :style="{ color: '#374151' }">
-                    <li v-for="(step, index) in syncInfo.setup_steps" :key="step" class="flex gap-2">
-                      <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium"
-                        :style="{ background: '#fef3c7', color: '#92400e' }">
+                  <ol class="space-y-2.5">
+                    <li v-for="(step, index) in syncInfo.setup_steps" :key="step" class="flex gap-3">
+                      <span class="flex-shrink-0 w-6 h-6 rounded-full backdrop-blur-md bg-amber-500/50 border border-amber-300/50 flex items-center justify-center text-xs font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                         {{ index + 1 }}
                       </span>
-                      <span>{{ step }}</span>
+                      <span class="text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] leading-relaxed">{{ step }}</span>
                     </li>
                   </ol>
                 </div>
 
                 <div>
-                  <h4 class="text-sm font-semibold flex items-center gap-1" :style="{ color: '#111827' }">
-                    <AlertCircle class="w-4 h-4" :style="{ color: '#dc2626' }" />
+                  <h4 class="text-base font-semibold flex items-center gap-2 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-3">
+                    <AlertCircle class="w-5 h-5" />
                     安全与同步说明
                   </h4>
-                  <ul class="mt-2 text-sm space-y-1.5" :style="{ color: '#374151' }">
-                    <li v-for="note in syncInfo.security_notes" :key="note" class="flex items-start gap-2">
-                      <CheckCircle class="w-4 h-4 flex-shrink-0 mt-0.5" :style="{ color: '#16a34a' }" />
-                      <span>{{ note }}</span>
+                  <ul class="space-y-2.5">
+                    <li v-for="note in syncInfo.security_notes" :key="note" class="flex items-start gap-2.5">
+                      <CheckCircle class="w-5 h-5 flex-shrink-0 mt-0.5 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                      <span class="text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] leading-relaxed">{{ note }}</span>
                     </li>
                   </ul>
                 </div>
               </div>
 
-              <div v-else class="text-sm" :style="{ color: '#6b7280' }">加载中...</div>
+              <div v-else class="text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">加载中...</div>
             </div>
           </div>
         </aside>

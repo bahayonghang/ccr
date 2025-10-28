@@ -12,6 +12,7 @@ pub mod cost_tracker;
 pub mod history;
 pub mod platform_config;
 pub mod settings;
+pub mod sync_config;
 pub mod temp_override;
 
 // 重新导出常用类型（供外部使用）
@@ -31,5 +32,7 @@ pub use history::{
 pub use platform_config::{PlatformConfigEntry, PlatformConfigManager, UnifiedConfig};
 #[allow(unused_imports)]
 pub use settings::{ClaudeSettings, SettingsManager};
+#[allow(unused_imports)]
+pub use sync_config::{SyncConfig, SyncConfigManager};
 #[allow(unused_imports)]
 pub use temp_override::{TempOverride, TempOverrideManager};
