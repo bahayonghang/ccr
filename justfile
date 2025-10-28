@@ -14,8 +14,11 @@
 # 二进制名称(与 Cargo.toml [[bin]] 保持一致)
 BIN := "ccr"
 
-# 使用 bash 作为执行入口以提升跨 shell 的可移植性 🧭
-set shell := ["bash", "-cu"]
+# 使用 bash 登录 shell 以确保加载完整环境变量（包括 cargo 路径）🧭
+# -l: 登录 shell (加载 ~/.profile)
+# -c: 执行命令
+# -u: 使用未定义变量时报错
+set shell := ["bash", "-lcu"]
 
 # ANSI 颜色代码
 BOLD := "\\033[1m"
