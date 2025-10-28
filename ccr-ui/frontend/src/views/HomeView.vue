@@ -23,100 +23,162 @@
     </div>
 
     <div class="relative z-10 container mx-auto px-6 py-16">
-      <!-- 🌟 头部区域 - Material Design -->
-      <div class="text-center mb-16 animate-fade-in">
-        <div class="inline-block mb-6">
-          <div class="flex items-center justify-center w-20 h-20 rounded-3xl glass-card mb-6 mx-auto">
-            <Code2 class="w-10 h-10" :style="{ color: '#6366f1' }" />
+      <!-- 🌟 头部区域 - 两列布局 -->
+      <div class="mb-16 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <!-- 左列：文字内容 -->
+        <div class="animate-fade-in">
+          <div class="mb-6">
+            <div class="flex items-center w-20 h-20 rounded-3xl glass-card mb-6">
+              <Code2 class="w-10 h-10 mx-auto" :style="{ color: '#6366f1' }" />
+            </div>
+          </div>
+
+          <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#ec4899] bg-clip-text text-transparent">
+            CCR UI
+          </h1>
+
+          <p class="text-2xl md:text-3xl font-medium mb-4 leading-tight" :style="{ color: 'var(--text-primary)' }">
+            AI CLI 配置管理中心
+          </p>
+
+          <p class="text-base md:text-lg mb-6 leading-relaxed max-w-xl" :style="{ color: 'var(--text-secondary)' }">
+            现代化的多 CLI 工具配置管理解决方案，支持 Claude、Codex、Gemini 等多种 AI 平台。集成配置转换、云同步、命令执行等强大功能，让 AI 工具配置管理更简单高效。
+          </p>
+
+          <div
+            v-if="version"
+            class="inline-flex items-center gap-2 px-5 py-2.5 glass-card text-sm font-semibold animate-slide-in-right"
+            :style="{ color: 'var(--accent-primary)' }"
+          >
+            <Sparkles class="w-4 h-4" />
+            <span>v{{ version }}</span>
           </div>
         </div>
 
-        <h1 class="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#ec4899] bg-clip-text text-transparent">
-          CCR UI
-        </h1>
-
-        <p class="text-2xl font-medium mb-3" :style="{ color: 'var(--text-primary)' }">
-          Claude Code 配置管理中心
-        </p>
-
-        <p class="text-base max-w-2xl mx-auto mb-8" :style="{ color: 'var(--text-secondary)' }">
-          现代化的多 CLI 工具配置管理解决方案，支持 Claude、Codex、Gemini 等多种 AI 平台
-        </p>
-
-        <div
-          v-if="version"
-          class="inline-flex items-center gap-2 px-5 py-2.5 glass-card text-sm font-semibold animate-slide-in-right"
-          :style="{ color: 'var(--accent-primary)' }"
-        >
-          <Sparkles class="w-4 h-4" />
-          <span>v{{ version }}</span>
-        </div>
-      </div>
-
-      <!-- 📊 系统状态卡片 - Material Design -->
-      <div v-if="systemInfo" class="mb-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div
-          class="glass-card p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
-          :style="{ animationDelay: '0.1s' }"
-        >
-          <div class="flex items-center gap-4">
-            <div
-              class="p-4 rounded-2xl"
-              :style="{ background: 'rgba(99, 102, 241, 0.1)' }"
-            >
-              <Cpu class="w-7 h-7" :style="{ color: '#6366f1' }" />
-            </div>
-            <div class="flex-1">
-              <p class="text-sm font-medium mb-1" :style="{ color: 'var(--text-muted)' }">
-                CPU 使用率
-              </p>
-              <p class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">
-                {{ systemInfo.cpu_usage?.toFixed(1) || '0.0' }}%
-              </p>
+        <!-- 右列：信息卡片区域 -->
+        <div class="grid grid-cols-1 gap-4 animate-fade-in">
+          <!-- 系统状态卡片 -->
+          <template v-if="systemInfo">
+          <div
+            class="glass-card p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
+            :style="{ animationDelay: '0.1s' }"
+          >
+            <div class="flex items-center gap-4">
+              <div
+                class="p-4 rounded-2xl"
+                :style="{ background: 'rgba(99, 102, 241, 0.1)' }"
+              >
+                <Cpu class="w-7 h-7" :style="{ color: '#6366f1' }" />
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-medium mb-1" :style="{ color: 'var(--text-muted)' }">
+                  CPU 使用率
+                </p>
+                <p class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                  {{ systemInfo.cpu_usage?.toFixed(1) || '0.0' }}%
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div
-          class="glass-card p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
-          :style="{ animationDelay: '0.2s' }"
-        >
-          <div class="flex items-center gap-4">
-            <div
-              class="p-4 rounded-2xl"
-              :style="{ background: 'rgba(139, 92, 246, 0.1)' }"
-            >
-              <HardDrive class="w-7 h-7" :style="{ color: '#8b5cf6' }" />
-            </div>
-            <div class="flex-1">
-              <p class="text-sm font-medium mb-1" :style="{ color: 'var(--text-muted)' }">
-                内存使用
-              </p>
-              <p class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">
-                {{ systemInfo.memory_usage_percent?.toFixed(1) || '0.0' }}%
-              </p>
+          <div
+            class="glass-card p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
+            :style="{ animationDelay: '0.2s' }"
+          >
+            <div class="flex items-center gap-4">
+              <div
+                class="p-4 rounded-2xl"
+                :style="{ background: 'rgba(139, 92, 246, 0.1)' }"
+              >
+                <HardDrive class="w-7 h-7" :style="{ color: '#8b5cf6' }" />
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-medium mb-1" :style="{ color: 'var(--text-muted)' }">
+                  内存使用
+                </p>
+                <p class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                  {{ systemInfo.memory_usage_percent?.toFixed(1) || '0.0' }}%
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div
-          class="glass-card p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
-          :style="{ animationDelay: '0.3s' }"
-        >
-          <div class="flex items-center gap-4">
-            <div
-              class="p-4 rounded-2xl"
-              :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
-            >
-              <Activity class="w-7 h-7" :style="{ color: '#10b981' }" />
+          <div
+            class="glass-card p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
+            :style="{ animationDelay: '0.3s' }"
+          >
+            <div class="flex items-center gap-4">
+              <div
+                class="p-4 rounded-2xl"
+                :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
+              >
+                <Activity class="w-7 h-7" :style="{ color: '#10b981' }" />
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-medium mb-1" :style="{ color: 'var(--text-muted)' }">
+                  系统平台
+                </p>
+                <p class="text-lg font-bold truncate" :style="{ color: 'var(--text-primary)' }">
+                  {{ systemInfo.os }} {{ systemInfo.os_version }}
+                </p>
+              </div>
             </div>
-            <div class="flex-1">
-              <p class="text-sm font-medium mb-1" :style="{ color: 'var(--text-muted)' }">
-                系统平台
-              </p>
-              <p class="text-lg font-bold truncate" :style="{ color: 'var(--text-primary)' }">
-                {{ systemInfo.os }} {{ systemInfo.os_version }}
-              </p>
+          </div>
+          </template>
+
+          <!-- 快速操作卡片 -->
+          <div
+            class="glass-card p-6 hover:scale-105 transition-all duration-300"
+            :style="{ animationDelay: '0.4s' }"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <div
+                class="p-3 rounded-2xl"
+                :style="{ background: 'rgba(245, 158, 11, 0.1)' }"
+              >
+                <Zap class="w-6 h-6" :style="{ color: '#f59e0b' }" />
+              </div>
+              <h3 class="text-lg font-bold" :style="{ color: 'var(--text-primary)' }">
+                快速操作
+              </h3>
+            </div>
+            <div class="space-y-2">
+              <RouterLink
+                to="/commands"
+                class="flex items-center justify-between p-3 rounded-xl hover:bg-gradient-to-r hover:from-accent-primary/10 hover:to-accent-secondary/10 transition-all group"
+              >
+                <div class="flex items-center gap-2">
+                  <Terminal class="w-4 h-4" :style="{ color: '#64748b' }" />
+                  <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">
+                    执行命令
+                  </span>
+                </div>
+                <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" :style="{ color: 'var(--text-muted)' }" />
+              </RouterLink>
+              <RouterLink
+                to="/converter"
+                class="flex items-center justify-between p-3 rounded-xl hover:bg-gradient-to-r hover:from-accent-primary/10 hover:to-accent-secondary/10 transition-all group"
+              >
+                <div class="flex items-center gap-2">
+                  <TrendingUp class="w-4 h-4" :style="{ color: '#f97316' }" />
+                  <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">
+                    配置转换
+                  </span>
+                </div>
+                <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" :style="{ color: 'var(--text-muted)' }" />
+              </RouterLink>
+              <RouterLink
+                to="/sync"
+                class="flex items-center justify-between p-3 rounded-xl hover:bg-gradient-to-r hover:from-accent-primary/10 hover:to-accent-secondary/10 transition-all group"
+              >
+                <div class="flex items-center gap-2">
+                  <Cloud class="w-4 h-4" :style="{ color: '#06b6d4' }" />
+                  <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">
+                    云端同步
+                  </span>
+                </div>
+                <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" :style="{ color: 'var(--text-muted)' }" />
+              </RouterLink>
             </div>
           </div>
         </div>

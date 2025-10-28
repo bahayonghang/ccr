@@ -1,8 +1,8 @@
 # CCR UI - Frontend (Vue.js 3)
 
-> Claude Code Configuration Switcher - Modern Web Console with Vue.js 3 and Liquid Glass Design
+> AI CLI Configuration Manager - Modern Web Console with Vue.js 3 and Liquid Glass Design
 
-基于 Vue.js 3 构建的现代化 Web 控制台，用于管理 Claude Code 配置。
+基于 Vue.js 3 构建的现代化 Web 控制台，用于管理多种 AI CLI 工具配置。
 
 ## ✨ 特性
 

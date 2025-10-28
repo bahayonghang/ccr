@@ -10,7 +10,7 @@
           </div>
           <div class="animate-sidebar-item-enter">
             <h1 class="text-xl font-bold text-text-primary">CCR UI</h1>
-            <p class="text-xs text-text-secondary">Claude Code 配置管理</p>
+            <p class="text-xs text-text-secondary">AI CLI 配置管理</p>
           </div>
         </div>
       </div>
