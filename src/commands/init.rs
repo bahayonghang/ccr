@@ -10,9 +10,73 @@ use indexmap::IndexMap;
 use std::fs;
 use std::path::PathBuf;
 
-/// 📋 示例配置文件内容(嵌入到二进制中)
-/// 编译时从 .ccs_config.toml.example 读取
-const EXAMPLE_CONFIG: &str = include_str!("../../.ccs_config.toml.example");
+/// 📋 生成示例配置文件内容
+///
+/// **设计理念**: 动态生成而非硬编码文件
+/// - ✅ 消除编译时文件依赖
+/// - ✅ 确保示例与数据结构同步
+/// - ✅ 易于维护和扩展
+///
+/// 生成的示例包含:
+/// - 默认配置节 "anyrouter_main"
+/// - 完整的全局设置示例
+/// - 带占位符的 API 配置
+fn generate_example_config() -> Result<String> {
+    use crate::managers::config::{ConfigSection, GlobalSettings, ProviderType};
+
+    // 构建示例配置节
+    let mut sections = IndexMap::new();
+    sections.insert(
+        "anyrouter_main".to_string(),
+        ConfigSection {
+            description: Some("AnyRouter 主节点 API".to_string()),
+            base_url: Some("https://api.example.com".to_string()),
+            auth_token: Some("sk-YOUR_API_TOKEN_HERE".to_string()),
+            model: Some("claude-sonnet-4-5-20250929".to_string()),
+            small_fast_model: Some("claude-3-5-haiku-20241022".to_string()),
+            provider: Some("AnyRouter".to_string()),
+            provider_type: Some(ProviderType::OfficialRelay),
+            account: Some("example_account".to_string()),
+            tags: Some(vec!["stable".to_string(), "high-speed".to_string()]),
+        },
+    );
+
+    // 添加另一个示例配置节（Anthropic 官方）
+    sections.insert(
+        "anthropic".to_string(),
+        ConfigSection {
+            description: Some("Anthropic 官方 API".to_string()),
+            base_url: Some("https://api.anthropic.com".to_string()),
+            auth_token: Some("sk-ant-api03-YOUR_TOKEN_HERE".to_string()),
+            model: Some("claude-sonnet-4-5-20250929".to_string()),
+            small_fast_model: Some("claude-3-5-haiku-20241022".to_string()),
+            provider: Some("Anthropic".to_string()),
+            provider_type: Some(ProviderType::OfficialRelay),
+            account: None,
+            tags: Some(vec!["official".to_string()]),
+        },
+    );
+
+    // 构建全局设置（简化版，只保留核心字段）
+    let settings = GlobalSettings {
+        skip_confirmation: false,
+        tui_theme: None,
+        #[allow(deprecated)]
+        sync: Default::default(), // 保留向后兼容字段，使用默认值
+    };
+
+    // 构建完整配置
+    let config = crate::managers::config::CcsConfig {
+        default_config: "anyrouter_main".to_string(),
+        current_config: "anyrouter_main".to_string(),
+        settings,
+        sections,
+    };
+
+    // 序列化为 TOML
+    toml::to_string_pretty(&config)
+        .map_err(|e| CcrError::ConfigError(format!("生成示例配置失败: {}", e)))
+}
 
 /// 🎬 初始化配置文件
 ///
@@ -303,8 +367,9 @@ fn init_legacy_mode(force: bool) -> Result<()> {
 
 /// 创建配置文件
 fn create_config_file(config_path: &PathBuf) -> Result<()> {
-    // 写入示例配置内容
-    fs::write(config_path, EXAMPLE_CONFIG)
+    // 生成并写入示例配置内容
+    let example_content = generate_example_config()?;
+    fs::write(config_path, example_content)
         .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
 
     // 设置文件权限为 644 (Unix)
@@ -334,9 +399,10 @@ mod tests {
 
     #[test]
     fn test_example_config_not_empty() {
-        assert!(!EXAMPLE_CONFIG.is_empty());
-        assert!(EXAMPLE_CONFIG.contains("default_config"));
-        assert!(EXAMPLE_CONFIG.contains("[anyrouter_main]"));
+        let example = generate_example_config().unwrap();
+        assert!(!example.is_empty());
+        assert!(example.contains("default_config"));
+        assert!(example.contains("[anyrouter_main]"));
     }
 
     #[test]

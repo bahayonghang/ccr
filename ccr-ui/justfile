@@ -254,11 +254,14 @@ _dev-clean-linux:
     set -e
     echo "🧹 开始清理开发环境..."
     pkill -9 -f "ccr-ui-backend" 2>/dev/null || true
+    pkill -9 -f "vite" 2>/dev/null || true
     pkill -9 -f "next-server" 2>/dev/null || true
     pkill -9 -f "next dev" 2>/dev/null || true
     lsof -ti:8081 2>/dev/null | xargs -r kill -9 || true
+    lsof -ti:5173 2>/dev/null | xargs -r kill -9 || true
+    lsof -ti:5174 2>/dev/null | xargs -r kill -9 || true
     lsof -ti:3000 2>/dev/null | xargs -r kill -9 || true
-    rm -rf frontend/.next
+    rm -rf frontend/.next 2>/dev/null || true
     echo "✅ 清理完成"
 
 # 清理开发环境 - macOS
@@ -267,11 +270,14 @@ _dev-clean-macos:
     set -e
     echo "🧹 开始清理开发环境..."
     pkill -9 -f "ccr-ui-backend" 2>/dev/null || true
+    pkill -9 -f "vite" 2>/dev/null || true
     pkill -9 -f "next-server" 2>/dev/null || true
     pkill -9 -f "next dev" 2>/dev/null || true
     lsof -ti:8081 2>/dev/null | xargs kill -9 || true
+    lsof -ti:5173 2>/dev/null | xargs kill -9 || true
+    lsof -ti:5174 2>/dev/null | xargs kill -9 || true
     lsof -ti:3000 2>/dev/null | xargs kill -9 || true
-    rm -rf frontend/.next
+    rm -rf frontend/.next 2>/dev/null || true
     echo "✅ 清理完成"
 
 # 清理开发环境 - Windows
