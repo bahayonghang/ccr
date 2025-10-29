@@ -8,6 +8,7 @@
 // - 💾 仅支持 Unified 模式
 
 use crate::core::error::{CcrError, Result};
+use crate::managers::PlatformConfigManager;
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::utils::Validatable;
 use indexmap::IndexMap;
@@ -249,6 +250,18 @@ impl PlatformConfig for GeminiPlatform {
         // 保存 settings
         self.save_settings(&settings)?;
 
+        // 在 Unified 模式下，同步更新注册表中的 current_profile
+        let platform_config_mgr = PlatformConfigManager::default()?;
+        let mut unified_config = platform_config_mgr.load()?;
+        
+        // 更新 Gemini 平台的 current_profile
+        unified_config.set_platform_profile("gemini", name)?;
+        
+        // 保存注册表
+        platform_config_mgr.save(&unified_config)?;
+        
+        log::debug!("✅ 已更新注册表 current_profile: {}", name);
+
         log::info!("✅ 已应用 Gemini profile: {}", name);
         Ok(())
     }
@@ -268,9 +281,13 @@ impl PlatformConfig for GeminiPlatform {
     }
 
     fn get_current_profile(&self) -> Result<Option<String>> {
-        // Gemini 在 Unified 模式下，当前 profile 由注册表管理
-        // 这里暂时返回 None，稍后在 PlatformConfigManager 中实现
-        Ok(None)
+        // Gemini 在 Unified 模式下，从注册表读取 current_profile
+        let platform_config_mgr = PlatformConfigManager::default()?;
+        let unified_config = platform_config_mgr.load()?;
+        
+        // 获取 Gemini 平台的注册信息
+        let gemini_entry = unified_config.get_platform("gemini")?;
+        Ok(gemini_entry.current_profile.clone())
     }
 }
 

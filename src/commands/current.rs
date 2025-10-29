@@ -6,6 +6,7 @@ use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
 use crate::models::{Platform, PlatformPaths};
+use crate::platforms::create_platform;
 use crate::services::{ConfigService, SettingsService};
 use crate::utils::Validatable;
 use colored::Colorize;
@@ -107,19 +108,68 @@ pub fn current_command() -> Result<()> {
         println!();
     }
 
-    // 使用 ConfigService
-    let config_service = ConfigService::default()?;
-    let current_info = config_service.get_current()?;
-    let config = config_service.load_config()?;
+    // 根据模式获取配置信息
+    let (current_name, current_section, config_file_path, default_name) = if is_unified_mode {
+        // Unified 模式：从平台配置读取
+        let uc = unified_config.as_ref().unwrap();
+        let platform_name = &uc.current_platform;
+        let platform = Platform::from_str(platform_name)?;
+        let platform_config = create_platform(platform)?;
+        
+        // 获取当前 profile
+        let current_profile = platform_config.get_current_profile()?
+            .ok_or_else(|| crate::core::error::CcrError::ConfigError(
+                "未设置当前 profile".to_string()
+            ))?;
+        
+        // 加载 profiles
+        let profiles = platform_config.load_profiles()?;
+        let profile = profiles.get(&current_profile)
+            .ok_or_else(|| crate::core::error::CcrError::ConfigSectionNotFound(
+                current_profile.clone()
+            ))?;
+        
+        // 转换为 ConfigSection
+        let section = crate::managers::config::ConfigSection {
+            description: profile.description.clone(),
+            base_url: profile.base_url.clone(),
+            auth_token: profile.auth_token.clone(),
+            model: profile.model.clone(),
+            small_fast_model: profile.small_fast_model.clone(),
+            provider: profile.provider.clone(),
+            provider_type: profile.provider_type.as_ref().and_then(|pt| {
+                use crate::managers::config::ProviderType;
+                match pt.as_str() {
+                    "official_relay" => Some(ProviderType::OfficialRelay),
+                    "third_party_model" => Some(ProviderType::ThirdPartyModel),
+                    _ => None,
+                }
+            }),
+            account: profile.account.clone(),
+            tags: profile.tags.clone(),
+        };
+        
+        let paths = PlatformPaths::new(platform)?;
+        (current_profile, section, paths.profiles_file, uc.default_platform.clone())
+    } else {
+        // Legacy 模式：从 ConfigService 读取
+        let config_service = ConfigService::default()?;
+        let config = config_service.load_config()?;
+        let section = config.get_current_section()?.clone();
+        let current = config.current_config.clone();
+        let default = config.default_config.clone();
+        let path = config_service.config_manager().config_path().to_path_buf();
+        (current, section, path, default)
+    };
 
     println!();
     ColorOutput::info(&format!(
         "配置文件: {}",
-        config_service.config_manager().config_path().display()
+        config_file_path.display()
     ));
     ColorOutput::info(&format!(
         "默认配置: {}",
-        config.default_config.bright_yellow()
+        default_name.bright_yellow()
     ));
     println!();
 
@@ -143,7 +193,7 @@ pub fn current_command() -> Result<()> {
     // 配置名称
     config_table.add_row(vec![
         Cell::new("配置名称").fg(TableColor::Yellow),
-        Cell::new(&current_info.name)
+        Cell::new(&current_name)
             .fg(TableColor::Green)
             .add_attribute(Attribute::Bold),
     ]);
@@ -151,15 +201,15 @@ pub fn current_command() -> Result<()> {
     // 描述
     config_table.add_row(vec![
         Cell::new("描述"),
-        Cell::new(&current_info.description),
+        Cell::new(current_section.display_description()),
     ]);
 
     // 提供商类型
-    if let Some(provider_type) = &current_info.provider_type {
-        let type_display = match provider_type.as_str() {
+    if let Some(provider_type) = &current_section.provider_type {
+        let type_display = match provider_type.to_string_value() {
             "official_relay" => "🔄 官方中转",
             "third_party_model" => "🤖 第三方模型",
-            _ => provider_type.as_str(),
+            _ => provider_type.to_string_value(),
         };
         config_table.add_row(vec![
             Cell::new("提供商类型").fg(TableColor::Yellow),
@@ -168,7 +218,7 @@ pub fn current_command() -> Result<()> {
     }
 
     // 提供商
-    if let Some(provider) = &current_info.provider {
+    if let Some(provider) = &current_section.provider {
         config_table.add_row(vec![
             Cell::new("提供商").fg(TableColor::Yellow),
             Cell::new(provider).fg(TableColor::Cyan),
@@ -176,7 +226,7 @@ pub fn current_command() -> Result<()> {
     }
 
     // Base URL
-    if let Some(base_url) = &current_info.base_url {
+    if let Some(base_url) = &current_section.base_url {
         config_table.add_row(vec![
             Cell::new("Base URL")
                 .fg(TableColor::Yellow)
@@ -186,7 +236,7 @@ pub fn current_command() -> Result<()> {
     }
 
     // Auth Token (脱敏)
-    if let Some(auth_token) = &current_info.auth_token {
+    if let Some(auth_token) = &current_section.auth_token {
         config_table.add_row(vec![
             Cell::new("Auth Token")
                 .fg(TableColor::Yellow)
@@ -196,7 +246,7 @@ pub fn current_command() -> Result<()> {
     }
 
     // Model
-    if let Some(model) = &current_info.model {
+    if let Some(model) = &current_section.model {
         config_table.add_row(vec![
             Cell::new("主模型"),
             Cell::new(model).fg(TableColor::Magenta),
@@ -204,7 +254,7 @@ pub fn current_command() -> Result<()> {
     }
 
     // Small Fast Model
-    if let Some(small_model) = &current_info.small_fast_model {
+    if let Some(small_model) = &current_section.small_fast_model {
         config_table.add_row(vec![
             Cell::new("快速小模型"),
             Cell::new(small_model).fg(TableColor::Magenta),
@@ -212,7 +262,7 @@ pub fn current_command() -> Result<()> {
     }
 
     // 账号
-    if let Some(account) = &current_info.account {
+    if let Some(account) = &current_section.account {
         config_table.add_row(vec![
             Cell::new("账号标识"),
             Cell::new(format!("👤 {}", account)).fg(TableColor::Yellow),
@@ -220,7 +270,7 @@ pub fn current_command() -> Result<()> {
     }
 
     // 标签
-    if let Some(tags) = &current_info.tags
+    if let Some(tags) = &current_section.tags
         && !tags.is_empty()
     {
         config_table.add_row(vec![
@@ -230,8 +280,7 @@ pub fn current_command() -> Result<()> {
     }
 
     // 验证状态
-    let section = config.get_current_section()?;
-    let validation_status = match section.validate() {
+    let validation_status = match current_section.validate() {
         Ok(_) => Cell::new("✓ 配置完整")
             .fg(TableColor::Green)
             .add_attribute(Attribute::Bold),
