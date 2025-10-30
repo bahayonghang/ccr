@@ -57,10 +57,10 @@ pub fn clean_command(days: u64, dry_run: bool, force: bool) -> Result<()> {
 
         print!("确认执行清理操作? (y/N): ");
         use std::io::{self, Write};
-        io::stdout().flush().unwrap();
+        io::stdout().flush()?;
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        io::stdin().read_line(&mut input)?;
 
         if !input.trim().eq_ignore_ascii_case("y") {
             ColorOutput::info("已取消清理操作");

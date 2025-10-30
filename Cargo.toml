@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "2.1.1"
+version = "2.2.1"
 edition = "2024"
 authors = [
     "Yonghang Li"
@@ -49,9 +49,9 @@ env_logger = "0.11.8"
 # 彩色终端输出
 colored = "3.0.0"
 
-# TUI 框架
-ratatui = "0.29"
-crossterm = "0.29.0"
+# TUI 框架 (可选功能)
+ratatui = { version = "0.29", optional = true }
+crossterm = { version = "0.29.0", optional = true }
 
 # 表格展示
 comfy-table = "7.2"
@@ -65,18 +65,18 @@ whoami = "1.6"
 # UUID生成
 uuid = { version = "1.18.1", features = ["v4", "serde"] }
 
-# HTTP 服务器 (用于 web 界面)
+# HTTP 服务器 (用于 web 界面 - 可选功能)
 # 🎯 异步 Web 框架 - 高性能并发处理（优化features以加快编译）
-tokio = { version = "1.48", features = ["rt-multi-thread", "net", "io-util", "time", "macros", "signal", "sync"] }
-axum = { version = "0.8.6", default-features = false, features = ["json", "tokio", "http1"] }
-tower = { version = "0.5.2", default-features = false }
-tower-http = { version = "0.6.6", default-features = false, features = ["cors"] }
+tokio = { version = "1.48", features = ["rt-multi-thread", "net", "io-util", "time", "macros", "signal", "sync"], optional = true }
+axum = { version = "0.8.6", default-features = false, features = ["json", "tokio", "http1"], optional = true }
+tower = { version = "0.5.2", default-features = false, optional = true }
+tower-http = { version = "0.6.6", default-features = false, features = ["cors"], optional = true }
 
-# 自动打开浏览器
-open = "5.3"
+# 自动打开浏览器 (web 功能)
+open = { version = "5.3", optional = true }
 
-# 系统信息获取
-sysinfo = "0.37.2"
+# 系统信息获取 (web 功能)
+sysinfo = { version = "0.37.2", optional = true }
 
 # 并行处理
 rayon = "1.11"
@@ -90,8 +90,39 @@ dialoguer = "0.12.0"                                                  # 交互�
 flate2 = "1.1.5"                                                      # gzip 压缩/解压
 
 [features]
-default = []
+# 默认启用 web 和 tui 功能，保持向后兼容
+default = ["web", "tui"]
 
+# Web API 服务器功能
+# 包含：Axum web 框架、Tokio 异步运行时、系统信息缓存
+web = ["dep:tokio", "dep:axum", "dep:tower", "dep:tower-http", "dep:open", "dep:sysinfo"]
+
+# 终端用户界面功能
+# 包含：Ratatui TUI 框架、Crossterm 终端控制
+tui = ["dep:ratatui", "dep:crossterm"]
+
+# 🚀 开发性能优化配置
+[profile.dev]
+# 基本优化级别，在编译速度和运行速度之间取得平衡
+opt-level = 1
+# 启用增量编译（默认已启用，显式声明以便文档化）
+incremental = true
+# 减少调试信息生成，加快编译速度
+debug = 1
+
+# 🎯 依赖包在开发模式下使用更高优化
+# 依赖包不会频繁修改，可以使用更高优化级别
+[profile.dev.package."*"]
+opt-level = 2
+
+# 🧪 测试性能优化配置
+[profile.test]
+# 测试时使用基本优化，加快测试执行速度
+opt-level = 1
+# 继承 dev 的增量编译设置
+inherits = "dev"
+
+# 🏆 生产发布配置（最大优化）
 [profile.release]
 opt-level = 3
 lto = true

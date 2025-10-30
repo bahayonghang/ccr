@@ -13,8 +13,10 @@ pub mod list;
 pub mod migrate;
 pub mod optimize;
 pub mod platform;
+#[cfg(feature = "web")]
 pub mod stats;
 pub mod switch;
+#[cfg(feature = "web")]
 pub mod sync_cmd;
 pub mod temp_token;
 pub mod ui;
@@ -36,8 +38,10 @@ pub use platform::{
     platform_current_command, platform_info_command, platform_init_command, platform_list_command,
     platform_switch_command,
 };
-pub use stats::{stats_command, StatsArgs};
+#[cfg(feature = "web")]
+pub use stats::{StatsArgs, stats_command};
 pub use switch::switch_command;
+#[cfg(feature = "web")]
 pub use sync_cmd::{
     sync_config_command, sync_pull_command, sync_push_command, sync_status_command,
 };

@@ -1,8 +1,8 @@
 // 📊 CCR 统计命令实现
 // 提供成本、使用情况等统计功能
 
-use crate::core::error::{CcrError, Result};
 use crate::core::ColorOutput;
+use crate::core::error::{CcrError, Result};
 use crate::managers::CostTracker;
 use chrono::{Datelike, Duration, Utc};
 use clap::{Args, Subcommand};
@@ -27,23 +27,23 @@ pub struct CostStatsArgs {
     /// 📅 时间范围: today, week, month
     #[arg(long, default_value = "today")]
     pub range: String,
-    
+
     /// 🤖 按模型分组
     #[arg(long)]
     pub by_model: bool,
-    
+
     /// 📁 按项目分组
     #[arg(long)]
     pub by_project: bool,
-    
+
     /// 🏆 显示 Top N 会话
     #[arg(long)]
     pub top: Option<usize>,
-    
+
     /// 📊 显示详细信息
     #[arg(long)]
     pub details: bool,
-    
+
     /// 📤 导出到文件
     #[arg(long)]
     pub export: Option<String>,
@@ -60,16 +60,12 @@ pub async fn stats_command(args: StatsArgs, _color_output: &mut ColorOutput) -> 
 async fn cost_stats_command(args: CostStatsArgs) -> Result<()> {
     let storage_dir = CostTracker::default_storage_dir()?;
     let tracker = CostTracker::new(storage_dir)?;
-    
+
     // 解析时间范围
     let (start, end) = match args.range.as_str() {
         "today" => {
             let now = Utc::now();
-            let start = now
-                .date_naive()
-                .and_hms_opt(0, 0, 0)
-                .unwrap()
-                .and_utc();
+            let start = now.date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
             (start, now)
         }
         "week" => {
@@ -94,18 +90,18 @@ async fn cost_stats_command(args: CostStatsArgs) -> Result<()> {
             ));
         }
     };
-    
+
     // 生成统计
     let stats = tracker.generate_stats(start, end)?;
-    
+
     // 显示基本统计
     ColorOutput::title(&format!("📊 成本统计 - {}", args.range));
     println!();
-    
+
     ColorOutput::info(&format!("💰 总成本: ${:.4}", stats.total_cost));
     ColorOutput::info(&format!("📊 记录数: {}", stats.record_count));
     println!();
-    
+
     // Token 统计
     ColorOutput::success("🎫 Token 使用:");
     println!(
@@ -125,65 +121,62 @@ async fn cost_stats_command(args: CostStatsArgs) -> Result<()> {
         stats.token_stats.cache_efficiency
     );
     println!();
-    
+
     // 按模型分组
     if args.by_model || args.details {
         ColorOutput::success("🤖 按模型分组:");
         let mut models: Vec<_> = stats.by_model.iter().collect();
         models.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
-        
+
         for (model, cost) in models {
             let short_model = shorten_model_name(model);
             println!("  • {}: ${:.4}", short_model, cost);
         }
         println!();
     }
-    
+
     // 按项目分组
     if args.by_project || args.details {
         ColorOutput::success("📁 按项目分组:");
         let mut projects: Vec<_> = stats.by_project.iter().collect();
         projects.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
-        
+
         for (project, cost) in projects.iter().take(10) {
             let short_project = shorten_path(project);
             println!("  • {}: ${:.4}", short_project, cost);
         }
         println!();
     }
-    
+
     // Top 会话
     if let Some(limit) = args.top {
         ColorOutput::success(&format!("🏆 成本最高的 {} 个会话:", limit));
         let top_sessions = tracker.get_top_sessions(limit)?;
-        
+
         for (i, (session_id, cost)) in top_sessions.iter().enumerate() {
             let short_id = shorten_id(session_id);
             println!("  {}. {}: ${:.4}", i + 1, short_id, cost);
         }
         println!();
     }
-    
+
     // 趋势数据
     if args.details {
         if let Some(trend) = &stats.trend {
             ColorOutput::success("📈 每日趋势:");
             for daily in trend.iter().rev().take(7).rev() {
-                println!(
-                    "  {} - ${:.4} ({} 次)",
-                    daily.date, daily.cost, daily.count
-                );
+                println!("  {} - ${:.4} ({} 次)", daily.date, daily.cost, daily.count);
             }
             println!();
         }
     }
-    
+
     // 导出
     if let Some(export_path) = args.export {
         export_stats(&stats, &export_path)?;
         ColorOutput::success(&format!("📤 已导出到: {}", export_path));
     }
-    
+
     Ok(())
 }
 
@@ -235,14 +228,14 @@ fn export_stats(stats: &crate::models::stats::CostStats, path: &str) -> Result<(
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_format_number() {
         assert_eq!(format_number(500), "500");
         assert_eq!(format_number(1500), "1.5K");
         assert_eq!(format_number(1_500_000), "1.5M");
     }
-    
+
     #[test]
     fn test_shorten_model_name() {
         assert_eq!(
@@ -250,13 +243,10 @@ mod tests {
             "3-5-sonnet-20241022"
         );
     }
-    
+
     #[test]
     fn test_shorten_id() {
         assert_eq!(shorten_id("abc"), "abc");
-        assert_eq!(
-            shorten_id("abcdefghijklmnop"),
-            "abcdef...klmnop"
-        );
+        assert_eq!(shorten_id("abcdefghijklmnop"), "abcdef...klmnop");
     }
 }

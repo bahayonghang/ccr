@@ -8,9 +8,9 @@
 // - 🔗 兼容现有 ConfigSection 结构
 
 use crate::core::error::{CcrError, Result};
+use crate::managers::PlatformConfigManager;
 use crate::managers::config::{ConfigManager, ConfigSection};
 use crate::managers::settings::{ClaudeSettings, SettingsManager};
-use crate::managers::PlatformConfigManager;
 use crate::models::{ConfigMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::utils::Validatable;
 use indexmap::IndexMap;
@@ -340,13 +340,13 @@ impl PlatformConfig for ClaudePlatform {
         if matches!(self.mode, crate::models::ConfigMode::Unified) {
             let platform_config_mgr = PlatformConfigManager::default()?;
             let mut unified_config = platform_config_mgr.load()?;
-            
+
             // 更新 Claude 平台的 current_profile
             unified_config.set_platform_profile("claude", name)?;
-            
+
             // 保存注册表
             platform_config_mgr.save(&unified_config)?;
-            
+
             log::debug!("✅ 已更新注册表 current_profile: {}", name);
         }
 
@@ -367,7 +367,7 @@ impl PlatformConfig for ClaudePlatform {
                 // 在 Unified 模式下，从注册表读取 current_profile
                 let platform_config_mgr = PlatformConfigManager::default()?;
                 let unified_config = platform_config_mgr.load()?;
-                
+
                 // 获取 Claude 平台的注册信息
                 let claude_entry = unified_config.get_platform("claude")?;
                 Ok(claude_entry.current_profile.clone())

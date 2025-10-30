@@ -7,6 +7,7 @@
 // - ✅ 验证同步配置完整性
 
 use crate::core::error::{CcrError, Result};
+use crate::core::fileio;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -101,8 +102,8 @@ impl SyncConfigManager {
             return Ok(Self::new(custom_path));
         }
 
-        let home = dirs::home_dir()
-            .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
 
         // 2. 检查 ~/.ccr/ 统一模式目录
         let unified_root = home.join(".ccr");
@@ -134,18 +135,17 @@ impl SyncConfigManager {
             return Ok(SyncConfig::default());
         }
 
-        // 读取文件内容
-        let content = fs::read_to_string(&self.config_path)
-            .map_err(|e| CcrError::ConfigError(format!("读取sync配置文件失败: {}", e)))?;
-
-        // 解析 TOML
-        let config: SyncConfig = toml::from_str(&content)
-            .map_err(|e| CcrError::ConfigFormatInvalid(format!("TOML 解析失败: {}", e)))?;
+        // 使用统一的 fileio 读取 TOML
+        let config: SyncConfig = fileio::read_toml(&self.config_path)?;
 
         log::debug!(
             "✅ 成功加载sync配置文件: {:?}, 状态: {}",
             self.config_path,
-            if config.enabled { "已启用" } else { "未启用" }
+            if config.enabled {
+                "已启用"
+            } else {
+                "未启用"
+            }
         );
 
         Ok(config)
@@ -155,21 +155,8 @@ impl SyncConfigManager {
     ///
     /// 自动创建父目录（如果不存在）
     pub fn save(&self, config: &SyncConfig) -> Result<()> {
-        // 确保父目录存在
-        if let Some(parent) = self.config_path.parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| CcrError::ConfigError(format!("创建配置目录失败: {}", e)))?;
-            }
-        }
-
-        // 序列化为 TOML(美化格式)
-        let content = toml::to_string_pretty(config)
-            .map_err(|e| CcrError::ConfigError(format!("配置序列化失败: {}", e)))?;
-
-        // 写入文件
-        fs::write(&self.config_path, content)
-            .map_err(|e| CcrError::ConfigError(format!("写入sync配置文件失败: {}", e)))?;
+        // 使用统一的 fileio 写入 TOML（会自动创建父目录）
+        fileio::write_toml(&self.config_path, config)?;
 
         log::debug!("✅ Sync配置文件已保存: {:?}", self.config_path);
         Ok(())
@@ -191,9 +178,7 @@ impl SyncConfigManager {
     /// 🔍 检查同步配置是否存在且已启用
     #[allow(dead_code)]
     pub fn is_enabled(&self) -> bool {
-        self.load()
-            .map(|config| config.enabled)
-            .unwrap_or(false)
+        self.load().map(|config| config.enabled).unwrap_or(false)
     }
 }
 
@@ -243,11 +228,11 @@ mod tests {
 
         let config = SyncConfig::default();
         let manager = SyncConfigManager::new(&config_path);
-        
+
         // 保存并删除
         manager.save(&config).unwrap();
         assert!(config_path.exists());
-        
+
         manager.delete().unwrap();
         assert!(!config_path.exists());
     }

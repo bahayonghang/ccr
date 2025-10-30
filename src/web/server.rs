@@ -70,6 +70,10 @@ impl WebServer {
             ColorOutput::info(&format!("💡 请手动访问 http://localhost:{}", self.port));
         }
 
+        // 🎯 加载初始配置到缓存
+        let config_manager = crate::managers::ConfigManager::default()?;
+        let initial_config = config_manager.load()?;
+
         // 创建共享状态
         let state = AppState::new(
             self.config_service.clone(),
@@ -77,6 +81,7 @@ impl WebServer {
             self.history_service.clone(),
             self.backup_service.clone(),
             self.system_info_cache.clone(),
+            initial_config,
         );
 
         // 🎯 构建路由
@@ -106,9 +111,13 @@ impl WebServer {
             .route("/api/export", post(handlers::handle_export))
             .route("/api/import", post(handlers::handle_import))
             .route("/api/system", get(handlers::handle_get_system_info))
+            .route("/api/reload", post(handlers::handle_reload_config))
             // 🆕 API 路由 - 平台管理 (Unified Mode)
             .route("/api/platforms", get(handlers::handle_get_platform_info))
-            .route("/api/platforms/switch", post(handlers::handle_switch_platform))
+            .route(
+                "/api/platforms/switch",
+                post(handlers::handle_switch_platform),
+            )
             // ☁️ API 路由 - 同步相关
             .route("/api/sync/status", get(handlers::handle_sync_status))
             .route("/api/sync/config", post(handlers::handle_sync_config))

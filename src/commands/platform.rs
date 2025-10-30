@@ -887,7 +887,11 @@ pub fn platform_init_command(platform_name: &str) -> Result<()> {
     ColorOutput::success(&format!("✓ 平台目录: {}", paths.platform_dir.display()));
     ColorOutput::success(&format!(
         "✓ 历史目录: {}",
-        paths.history_file.parent().unwrap().display()
+        paths
+            .history_file
+            .parent()
+            .ok_or_else(|| CcrError::ConfigError("历史文件路径没有父目录".into()))?
+            .display()
     ));
     ColorOutput::success(&format!("✓ 备份目录: {}", paths.backups_dir.display()));
 

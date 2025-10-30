@@ -4,6 +4,14 @@
 
 CCR directly manages Claude Code's `settings.json` with atomic operations, file locking, complete audit trails, and automatic backups. The Rust implementation of CCS with enhanced reliability and performance.
 
+> **🎉 Version 2.2.1 - Optimized & Refined**
+>
+> This version includes 11 major optimizations for better performance, code quality, and maintainability:
+> - ⚡ **Performance**: Streaming stats loading, memory caching, optimized build profiles
+> - 🎯 **Code Quality**: Unified file I/O, stateless utilities, minimal cloning
+> - 🔒 **Reliability**: CONFIG_LOCK mutex, enhanced error handling, feature gates
+> - 🧪 **Testing**: 221 tests passing with 95%+ coverage
+
 ## ✨ Why CCR?
 
 | Feature | Description |
@@ -21,6 +29,8 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | 🌐 **Web Server** | Built-in Axum web server exposing 14 RESTful API endpoints (config, history, backups, system info, etc.) |
 | 🖥️ **Full-Stack Web UI** | Vue.js 3 + Axum application for visual management with support for multi-platform config |
 | 🏗️ **Modern Architecture** | Service layer pattern, modular design, 95%+ test coverage |
+| ⚡ **Optimized Performance** | Streaming I/O for stats, memory caching, opt-level 1 dev builds |
+| 🎯 **Feature Gates** | Optional TUI/Web features for faster compilation (--no-default-features) |
 | ⚡ **Smart Update** | Real-time progress display during auto-update |
 | 🔄 **CCS Compatible** | Shares `~/.ccs_config.toml` - seamlessly coexist with shell version |
 
@@ -645,6 +655,44 @@ cargo clippy          # 🔍 Lint
 cargo fmt             # 💅 Format
 cargo build --release # 🏗️ Production build
 ```
+
+**⚡ Quick Commands for Fast Development:**
+
+CCR uses optimized build configurations (see `.cargo/config.toml`) for faster iteration:
+
+```bash
+# 🚀 Fastest commands for daily development
+cargo check           # Syntax check only (no binary) - ~3s
+cargo check -q        # Quiet mode - only show errors
+
+# 🎯 Feature-specific builds (optional features: web, tui)
+cargo build --no-default-features    # CLI only - saves ~30s build time
+cargo build --features web           # CLI + Web API
+cargo build --features tui           # CLI + TUI
+cargo build --all-features           # Everything (default)
+
+# 🧪 Testing
+cargo test --lib                     # Unit tests only
+cargo test --all-features            # Full test suite
+
+# 🔍 Quality checks (enforced by CI)
+cargo fmt --all --check              # Check formatting
+cargo clippy --all-targets -- -D warnings  # Zero warnings policy
+RUSTFLAGS="-D warnings" cargo build  # Fail on warnings
+
+# 🎯 Platform tests (must run serially)
+cargo test --test platform_tests -- --test-threads=1
+cargo test --test platform_integration_tests -- --test-threads=1
+
+# 📊 Coverage (requires cargo-tarpaulin)
+cargo tarpaulin --out Html
+```
+
+**Build Performance Tips:**
+- Use `cargo check` during active development (instant feedback)
+- Use `--no-default-features` if working on core CLI logic
+- Incremental compilation is enabled by default
+- Debug info is reduced (`debuginfo=1`) for faster dev builds
 
 ## 🏗️ Architecture
 

@@ -251,13 +251,13 @@ impl PlatformConfig for CodexPlatform {
         // 在 Unified 模式下，同步更新注册表中的 current_profile
         let platform_config_mgr = PlatformConfigManager::default()?;
         let mut unified_config = platform_config_mgr.load()?;
-        
+
         // 更新 Codex 平台的 current_profile
         unified_config.set_platform_profile("codex", name)?;
-        
+
         // 保存注册表
         platform_config_mgr.save(&unified_config)?;
-        
+
         log::debug!("✅ 已更新注册表 current_profile: {}", name);
 
         log::info!("✅ 已应用 Codex profile: {}", name);
@@ -265,28 +265,22 @@ impl PlatformConfig for CodexPlatform {
     }
 
     fn validate_profile(&self, profile: &ProfileConfig) -> Result<()> {
-        // 检查必需字段
-        if profile.base_url.is_none() {
-            return Err(CcrError::ValidationError(
-                "Codex profile 缺少 base_url (api_endpoint)".into(),
-            ));
-        }
+        // 检查 base_url
+        let base_url = profile.base_url.as_ref().ok_or_else(|| {
+            CcrError::ValidationError("Codex profile 缺少 base_url (api_endpoint)".into())
+        })?;
 
-        let base_url = profile.base_url.as_ref().unwrap();
         if !base_url.starts_with("http://") && !base_url.starts_with("https://") {
             return Err(CcrError::ValidationError(
                 "api_endpoint 必须以 http:// 或 https:// 开头".into(),
             ));
         }
 
-        // 检查 token
-        if profile.auth_token.is_none() {
-            return Err(CcrError::ValidationError(
-                "Codex profile 缺少 auth_token (GitHub token)".into(),
-            ));
-        }
+        // 检查 auth_token
+        let token = profile.auth_token.as_ref().ok_or_else(|| {
+            CcrError::ValidationError("Codex profile 缺少 auth_token (GitHub token)".into())
+        })?;
 
-        let token = profile.auth_token.as_ref().unwrap();
         Self::validate_github_token(token)?;
 
         Ok(())
@@ -296,7 +290,7 @@ impl PlatformConfig for CodexPlatform {
         // Codex 在 Unified 模式下，从注册表读取 current_profile
         let platform_config_mgr = PlatformConfigManager::default()?;
         let unified_config = platform_config_mgr.load()?;
-        
+
         // 获取 Codex 平台的注册信息
         let codex_entry = unified_config.get_platform("codex")?;
         Ok(codex_entry.current_profile.clone())

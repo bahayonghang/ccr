@@ -50,7 +50,8 @@ impl UiService {
         let current_dir_ui = std::env::current_dir().ok().map(|p| p.join("ccr-ui"));
 
         if let Some(ref path) = current_dir_ui
-            && path.exists() && path.join("justfile").exists()
+            && path.exists()
+            && path.join("justfile").exists()
         {
             return Some(path.clone());
         }
@@ -61,7 +62,8 @@ impl UiService {
             .and_then(|p| p.parent().map(|parent| parent.join("ccr-ui")));
 
         if let Some(ref path) = parent_dir_ui
-            && path.exists() && path.join("justfile").exists()
+            && path.exists()
+            && path.join("justfile").exists()
         {
             return Some(path.clone());
         }

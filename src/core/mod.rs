@@ -7,10 +7,12 @@
 // - 🎨 日志和彩色输出
 // - 📝 原子文件写入
 // - 📁 文件管理抽象
+// - 💾 统一文件 I/O
 
 pub mod atomic_writer;
 pub mod error;
 pub mod file_manager;
+pub mod fileio;
 pub mod lock;
 pub mod logging;
 
@@ -23,5 +25,7 @@ pub use error::{CcrError, Result};
 #[allow(unused_imports)]
 pub use file_manager::FileManager;
 #[allow(unused_imports)]
-pub use lock::{FileLock, LockManager};
+pub use fileio::{read_toml, write_toml};
+#[allow(unused_imports)]
+pub use lock::{CONFIG_LOCK, FileLock, LockManager};
 pub use logging::{ColorOutput, init_logger};

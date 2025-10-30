@@ -115,20 +115,18 @@ pub fn current_command() -> Result<()> {
         let platform_name = &uc.current_platform;
         let platform = Platform::from_str(platform_name)?;
         let platform_config = create_platform(platform)?;
-        
+
         // 获取当前 profile
-        let current_profile = platform_config.get_current_profile()?
-            .ok_or_else(|| crate::core::error::CcrError::ConfigError(
-                "未设置当前 profile".to_string()
-            ))?;
-        
+        let current_profile = platform_config.get_current_profile()?.ok_or_else(|| {
+            crate::core::error::CcrError::ConfigError("未设置当前 profile".to_string())
+        })?;
+
         // 加载 profiles
         let profiles = platform_config.load_profiles()?;
-        let profile = profiles.get(&current_profile)
-            .ok_or_else(|| crate::core::error::CcrError::ConfigSectionNotFound(
-                current_profile.clone()
-            ))?;
-        
+        let profile = profiles.get(&current_profile).ok_or_else(|| {
+            crate::core::error::CcrError::ConfigSectionNotFound(current_profile.clone())
+        })?;
+
         // 转换为 ConfigSection
         let section = crate::managers::config::ConfigSection {
             description: profile.description.clone(),
@@ -148,9 +146,14 @@ pub fn current_command() -> Result<()> {
             account: profile.account.clone(),
             tags: profile.tags.clone(),
         };
-        
+
         let paths = PlatformPaths::new(platform)?;
-        (current_profile, section, paths.profiles_file, uc.default_platform.clone())
+        (
+            current_profile,
+            section,
+            paths.profiles_file,
+            uc.default_platform.clone(),
+        )
     } else {
         // Legacy 模式：从 ConfigService 读取
         let config_service = ConfigService::default()?;
@@ -163,14 +166,8 @@ pub fn current_command() -> Result<()> {
     };
 
     println!();
-    ColorOutput::info(&format!(
-        "配置文件: {}",
-        config_file_path.display()
-    ));
-    ColorOutput::info(&format!(
-        "默认配置: {}",
-        default_name.bright_yellow()
-    ));
+    ColorOutput::info(&format!("配置文件: {}", config_file_path.display()));
+    ColorOutput::info(&format!("默认配置: {}", default_name.bright_yellow()));
     println!();
 
     // === 第一部分：配置详情表格 ===

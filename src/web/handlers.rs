@@ -4,10 +4,10 @@
 
 use crate::core::error::CcrError;
 use crate::core::logging::ColorOutput;
-use crate::managers::config::ConfigSection;
+use crate::managers::config::{CcsConfig, ConfigSection};
 use crate::managers::sync_config::{SyncConfig, SyncConfigManager};
-use crate::services::{BackupService, ConfigService, HistoryService, SettingsService, SyncService};
 use crate::services::sync_service::get_ccr_sync_path;
+use crate::services::{BackupService, ConfigService, HistoryService, SettingsService, SyncService};
 use crate::web::models::*;
 use crate::web::system_info_cache::SystemInfoCache;
 use axum::{
@@ -16,28 +16,57 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse, Response},
 };
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 /// 🔌 共享状态
 ///
-/// 持有所有 Service 的引用，在所有请求处理器间共享
+/// 持有所有 Service 的引用和配置缓存，在所有请求处理器间共享
+///
+/// ## 性能优化 - 配置缓存
+///
+/// 使用 `Arc<RwLock<CcsConfig>>` 缓存配置到内存，避免每次请求都读取文件。
+///
+/// ### 缓存策略
+/// - **读取操作**: 直接从缓存读取（高性能）
+/// - **写入操作**: 同时更新缓存和磁盘（保持一致性）
+/// - **重新加载**: 使用 `/api/reload` 端点手动刷新缓存
+///
+/// ### 并发安全
+/// - `RwLock` 允许多个并发读取，单个写入
+/// - 写入操作获取写锁，确保原子性更新
 #[derive(Clone)]
 pub struct AppState {
+    /// 配置服务（用于复杂操作）
     pub config_service: Arc<ConfigService>,
+    /// 设置服务
     pub settings_service: Arc<SettingsService>,
+    /// 历史服务
     pub history_service: Arc<HistoryService>,
+    /// 备份服务
     pub backup_service: Arc<BackupService>,
+    /// 系统信息缓存
     pub system_info_cache: Arc<SystemInfoCache>,
+    /// 🚀 配置缓存（性能优化）
+    pub config_cache: Arc<RwLock<CcsConfig>>,
 }
 
 impl AppState {
     /// 🏗️ 创建新的应用状态
+    ///
+    /// # 参数
+    /// - `config_service`: 配置服务
+    /// - `settings_service`: 设置服务
+    /// - `history_service`: 历史服务
+    /// - `backup_service`: 备份服务
+    /// - `system_info_cache`: 系统信息缓存
+    /// - `initial_config`: 初始配置（用于缓存）
     pub fn new(
         config_service: Arc<ConfigService>,
         settings_service: Arc<SettingsService>,
         history_service: Arc<HistoryService>,
         backup_service: Arc<BackupService>,
         system_info_cache: Arc<SystemInfoCache>,
+        initial_config: CcsConfig,
     ) -> Self {
         Self {
             config_service,
@@ -45,7 +74,26 @@ impl AppState {
             history_service,
             backup_service,
             system_info_cache,
+            config_cache: Arc::new(RwLock::new(initial_config)),
         }
+    }
+
+    /// 🔄 重新加载配置缓存
+    ///
+    /// 从磁盘重新读取配置并更新缓存。用于：
+    /// - 外部修改了配置文件
+    /// - 平台切换后刷新配置
+    pub fn reload_config_cache(&self) -> Result<(), CcrError> {
+        let config_manager = crate::managers::ConfigManager::default()?;
+        let new_config = config_manager.load()?;
+
+        let mut cache = self
+            .config_cache
+            .write()
+            .map_err(|e| CcrError::ConfigError(format!("获取配置缓存写锁失败: {}", e)))?;
+        *cache = new_config;
+
+        Ok(())
     }
 }
 
@@ -272,7 +320,7 @@ pub async fn handle_sync_status() -> Response {
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response();
         }
     };
-    
+
     let sync = match sync_manager.load() {
         Ok(s) => s,
         Err(e) => {
@@ -297,7 +345,11 @@ pub async fn handle_sync_status() -> Response {
     if sync.enabled {
         if let Ok(local_path) = get_ccr_sync_path() {
             response.local_path = Some(local_path.display().to_string());
-            let sync_type = if local_path.is_dir() { "directory" } else { "file" };
+            let sync_type = if local_path.is_dir() {
+                "directory"
+            } else {
+                "file"
+            };
             response.sync_type = Some(sync_type.to_string());
 
             // 检查远程是否存在（直接异步调用）
@@ -315,7 +367,9 @@ pub async fn handle_sync_status() -> Response {
 }
 
 /// 设置/更新同步配置
-pub async fn handle_sync_config(Json(req): Json<crate::web::models::SyncConfigRequest>) -> Response {
+pub async fn handle_sync_config(
+    Json(req): Json<crate::web::models::SyncConfigRequest>,
+) -> Response {
     let sync_manager = match SyncConfigManager::default() {
         Ok(m) => m,
         Err(e) => {
@@ -365,7 +419,9 @@ pub async fn handle_sync_config(Json(req): Json<crate::web::models::SyncConfigRe
 }
 
 /// 执行同步 push
-pub async fn handle_sync_push(Json(req): Json<crate::web::models::SyncOperationRequest>) -> Response {
+pub async fn handle_sync_push(
+    Json(req): Json<crate::web::models::SyncOperationRequest>,
+) -> Response {
     let sync_manager = match SyncConfigManager::default() {
         Ok(m) => m,
         Err(e) => {
@@ -407,7 +463,9 @@ pub async fn handle_sync_push(Json(req): Json<crate::web::models::SyncOperationR
                     match service.remote_exists().await {
                         Ok(exists) => {
                             if exists {
-                                Err(CcrError::SyncError("远程已存在同名内容，请使用 force 或先清理".into()))
+                                Err(CcrError::SyncError(
+                                    "远程已存在同名内容，请使用 force 或先清理".into(),
+                                ))
                             } else {
                                 service.push(&local_path).await
                             }
@@ -438,7 +496,9 @@ pub async fn handle_sync_push(Json(req): Json<crate::web::models::SyncOperationR
 }
 
 /// 执行同步 pull
-pub async fn handle_sync_pull(Json(_req): Json<crate::web::models::SyncOperationRequest>) -> Response {
+pub async fn handle_sync_pull(
+    Json(_req): Json<crate::web::models::SyncOperationRequest>,
+) -> Response {
     let sync_manager = match SyncConfigManager::default() {
         Ok(m) => m,
         Err(e) => {
@@ -813,10 +873,18 @@ pub async fn handle_get_platform_info() -> Response {
         // 按名称排序
         platforms.sort_by(|a, b| a.name.cmp(&b.name));
 
-        Ok::<(String, Vec<PlatformItem>), crate::core::error::CcrError>((current_platform, platforms))
+        Ok::<(String, Vec<PlatformItem>), crate::core::error::CcrError>((
+            current_platform,
+            platforms,
+        ))
     })
     .await
-    .unwrap_or_else(|e| Err(crate::core::error::CcrError::ConfigError(format!("任务执行失败: {}", e))));
+    .unwrap_or_else(|e| {
+        Err(crate::core::error::CcrError::ConfigError(format!(
+            "任务执行失败: {}",
+            e
+        )))
+    });
 
     match result {
         Ok((current_platform, platforms)) => {
@@ -867,7 +935,7 @@ pub async fn handle_switch_platform(Json(req): Json<SwitchPlatformRequest>) -> R
         // 检查平台是否存在
         if !unified_config.platforms.contains_key(&platform_name) {
             return Err(crate::core::error::CcrError::ConfigSectionNotFound(
-                format!("平台 '{}'", platform_name)
+                format!("平台 '{}'", platform_name),
             ));
         }
 
@@ -885,7 +953,12 @@ pub async fn handle_switch_platform(Json(req): Json<SwitchPlatformRequest>) -> R
         Ok::<String, crate::core::error::CcrError>(platform_name)
     })
     .await
-    .unwrap_or_else(|e| Err(crate::core::error::CcrError::ConfigError(format!("任务执行失败: {}", e))));
+    .unwrap_or_else(|e| {
+        Err(crate::core::error::CcrError::ConfigError(format!(
+            "任务执行失败: {}",
+            e
+        )))
+    });
 
     match result {
         Ok(platform_name) => {
@@ -895,6 +968,33 @@ pub async fn handle_switch_platform(Json(req): Json<SwitchPlatformRequest>) -> R
         Err(e) => {
             let error_response: ApiResponse<()> = ApiResponse::error_without_data(e.user_message());
             (StatusCode::BAD_REQUEST, Json(error_response)).into_response()
+        }
+    }
+}
+
+/// 🔄 处理重新加载配置缓存
+///
+/// **用途**:
+/// - 外部工具（如 CLI）修改了配置文件后，通知 web 服务器刷新缓存
+/// - 平台切换后重新加载配置
+/// - 手动刷新配置
+///
+/// **响应**:
+/// - 成功: `{ "success": true, "data": "配置缓存已重新加载" }`
+/// - 失败: `{ "success": false, "message": "错误信息" }`
+pub async fn handle_reload_config(AxumState(state): AxumState<AppState>) -> Response {
+    let result = tokio::task::spawn_blocking(move || state.reload_config_cache())
+        .await
+        .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
+
+    match result {
+        Ok(()) => {
+            let message = "配置缓存已重新加载".to_string();
+            Json(ApiResponse::success(message)).into_response()
+        }
+        Err(e) => {
+            let error_response: ApiResponse<()> = ApiResponse::error_without_data(e.user_message());
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
         }
     }
 }

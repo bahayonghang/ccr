@@ -1,0 +1,40 @@
+# Cargo 配置文件 - 优化开发体验
+
+[build]
+# 减少调试信息以加快构建速度
+# debuginfo=1 提供基本的行号信息，适合日常开发
+# 完整调试信息 (debuginfo=2) 会显著增加构建时间和二进制大小
+rustflags = ["-C", "debuginfo=1"]
+
+# 增量编译（默认已启用，这里显式声明）
+incremental = true
+
+# 提示：快速开发命令
+# - cargo check          # 快速语法检查（不生成二进制）
+# - cargo check -q       # 安静模式，只显示错误
+# - cargo build          # 开发构建（带优化配置）
+# - cargo build --release # 发布构建（完全优化）
+# - cargo build --no-default-features # 仅 CLI（最快）
+# - cargo clippy         # 代码质量检查
+# - cargo fmt            # 代码格式化
+
+[profile.dev]
+# 开发配置：快速编译
+opt-level = 0        # 不优化，编译最快
+debug = true         # 启用调试符号
+incremental = true   # 启用增量编译
+codegen-units = 16   # 并行代码生成单元数（更多 = 更快编译）
+
+[profile.release]
+# 发布配置：性能优先
+opt-level = 3        # 最高优化级别
+debug = false        # 不包含调试符号
+lto = "thin"         # 链接时优化（thin = 平衡速度和大小）
+codegen-units = 1    # 单个代码生成单元（更好的优化）
+strip = true         # 去除符号表，减小二进制大小
+panic = "abort"      # panic 时直接终止（减小二进制）
+
+# 注意：
+# - dev 配置用于 `cargo build` 和 `cargo test`
+# - release 配置用于 `cargo build --release`
+# - 修改此文件后，建议运行 `cargo clean` 清理缓存

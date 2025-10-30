@@ -308,7 +308,7 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
 
     // 从独立文件加载sync配置
     let sync_config_result = SyncConfigManager::default().and_then(|m| m.load());
-    
+
     match sync_config_result {
         Ok(sync_config) if sync_config.enabled => {
             // clone数据以解决生命周期问题
@@ -316,7 +316,7 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             let username = sync_config.username.clone();
             let remote_path = sync_config.remote_path.clone();
             let auto_sync = sync_config.auto_sync;
-            
+
             // 同步已配置
             lines.push(Line::from(vec![
                 Span::raw("  "),
@@ -370,17 +370,32 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             lines.push(Line::from(""));
             lines.push(Line::from(vec![
                 Span::raw("     "),
-                Span::styled("[P]", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "[P]",
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(" Push   - 上传配置到云端"),
             ]));
             lines.push(Line::from(vec![
                 Span::raw("     "),
-                Span::styled("[L]", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "[L]",
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(" Pull   - 从云端下载配置"),
             ]));
             lines.push(Line::from(vec![
                 Span::raw("     "),
-                Span::styled("[S]", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "[S]",
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(" Status - 查看同步状态"),
             ]));
             lines.push(Line::from(""));
@@ -394,7 +409,12 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             lines.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled("状态: ", Style::default().fg(Color::Cyan)),
-                Span::styled("⚠️  未配置", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "⚠️  未配置",
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
             ]));
             lines.push(Line::from(""));
             lines.push(Line::from(""));
@@ -408,25 +428,50 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             lines.push(Line::from(""));
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled("1.", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "1.",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(" 退出 TUI (按 "),
-                Span::styled("Q", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "Q",
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(")"),
             ]));
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled("2.", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "2.",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(" 运行命令: "),
                 Span::styled("ccr sync config", Style::default().fg(Color::Green)),
             ]));
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled("3.", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "3.",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(" 输入 WebDAV 服务器信息"),
             ]));
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled("4.", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "4.",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(" 测试连接成功后即可使用"),
             ]));
             lines.push(Line::from(""));
@@ -434,7 +479,9 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
 
             lines.push(Line::from(Span::styled(
                 "  💡 支持的服务:",
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
             )));
             lines.push(Line::from(""));
             lines.push(Line::from(vec![
@@ -489,26 +536,20 @@ fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
     let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("~"));
 
     // 获取真实路径（考虑环境变量）
-    let (config_path, config_is_custom) = get_real_path(
-        "CCR_CONFIG_PATH",
-        home.join(".ccs_config.toml"),
-    );
+    let (config_path, config_is_custom) =
+        get_real_path("CCR_CONFIG_PATH", home.join(".ccs_config.toml"));
     let (settings_path, settings_is_custom) = get_real_path(
         "CCR_SETTINGS_PATH",
         home.join(".claude").join("settings.json"),
     );
-    let (backup_dir, backup_is_custom) = get_real_path(
-        "CCR_BACKUP_DIR",
-        home.join(".claude").join("backups"),
-    );
+    let (backup_dir, backup_is_custom) =
+        get_real_path("CCR_BACKUP_DIR", home.join(".claude").join("backups"));
     let (history_path, history_is_custom) = get_real_path(
         "CCR_HISTORY_PATH",
         home.join(".claude").join("ccr_history.json"),
     );
-    let (lock_dir, lock_is_custom) = get_real_path(
-        "CCR_LOCK_DIR",
-        home.join(".claude").join(".locks"),
-    );
+    let (lock_dir, lock_is_custom) =
+        get_real_path("CCR_LOCK_DIR", home.join(".claude").join(".locks"));
 
     // 获取当前配置名称
     let current_config = app
@@ -536,15 +577,15 @@ fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
             Span::raw("  "),
             Span::styled(format!("{:<12}", label), Style::default().fg(Color::Cyan)),
         ];
-        
+
         if is_custom {
             spans.push(Span::styled("🔧 ", Style::default().fg(Color::Yellow)));
         } else {
             spans.push(Span::raw("   "));
         }
-        
+
         spans.push(Span::styled(path, Style::default().fg(Color::White)));
-        
+
         Line::from(spans)
     };
 
@@ -586,10 +627,7 @@ fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
             Span::raw("  Config      : "),
             Span::styled(current_config, Style::default().fg(Color::Green)),
         ]),
-        Line::from(vec![
-            Span::raw("  Auto-Confirm: "),
-            auto_confirm_status,
-        ]),
+        Line::from(vec![Span::raw("  Auto-Confirm: "), auto_confirm_status]),
         Line::from(""),
         Line::from(Span::styled(
             "📁 File Paths",
@@ -602,13 +640,21 @@ fn render_system_tab(f: &mut Frame, app: &App, area: Rect) {
 
     // 添加路径信息
     text.push(make_path_line("Config:", config_path, config_is_custom));
-    text.push(make_path_line("Settings:", settings_path, settings_is_custom));
+    text.push(make_path_line(
+        "Settings:",
+        settings_path,
+        settings_is_custom,
+    ));
     text.push(make_path_line("Backup:", backup_dir, backup_is_custom));
     text.push(make_path_line("History:", history_path, history_is_custom));
     text.push(make_path_line("Lock:", lock_dir, lock_is_custom));
 
     // 如果有自定义路径，添加说明
-    let has_custom = config_is_custom || settings_is_custom || backup_is_custom || history_is_custom || lock_is_custom;
+    let has_custom = config_is_custom
+        || settings_is_custom
+        || backup_is_custom
+        || history_is_custom
+        || lock_is_custom;
     if has_custom {
         text.push(Line::from(""));
         text.push(Line::from(vec![

@@ -8,6 +8,7 @@
 // - 📋 管理多个配置节
 
 use crate::core::error::{CcrError, Result};
+use crate::core::fileio;
 use crate::managers::sync_config::SyncConfig;
 use crate::utils::Validatable;
 use indexmap::IndexMap;
@@ -249,7 +250,7 @@ pub struct GlobalSettings {
     pub tui_theme: Option<String>,
 
     /// ☁️ WebDAV 同步配置（可选）
-    /// 
+    ///
     /// ⚠️ 已废弃：sync配置现在保存在独立文件 ~/.ccr/sync.toml 中
     /// 保留此字段仅为向后兼容
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -470,11 +471,13 @@ impl ConfigManager {
         if is_unified {
             // 📦 Unified 模式：读取平台配置，获取当前平台的 profiles 路径
             if let Some(ref unified_path) = unified_config_path {
-                let unified_root = unified_path.parent()
+                let unified_root = unified_path
+                    .parent()
                     .ok_or_else(|| CcrError::ConfigError("无法获取 CCR 根目录".into()))?;
 
                 // 读取统一配置文件以获取当前平台
-                let platform_config_manager = crate::managers::PlatformConfigManager::new(unified_path.clone());
+                let platform_config_manager =
+                    crate::managers::PlatformConfigManager::new(unified_path.clone());
                 if let Ok(unified_config) = platform_config_manager.load() {
                     let platform = &unified_config.current_platform;
                     let platform_profiles_path = unified_root
@@ -492,10 +495,7 @@ impl ConfigManager {
                         // 确保父目录存在
                         if let Some(parent_dir) = platform_profiles_path.parent() {
                             std::fs::create_dir_all(parent_dir).map_err(|e| {
-                                CcrError::ConfigError(format!(
-                                    "创建平台目录失败: {}",
-                                    e
-                                ))
+                                CcrError::ConfigError(format!("创建平台目录失败: {}", e))
                             })?;
                         }
 
@@ -507,22 +507,15 @@ impl ConfigManager {
                             sections: IndexMap::new(),
                         };
 
-                        // 序列化并写入文件
-                        let content = toml::to_string_pretty(&default_ccs).map_err(|e| {
-                            CcrError::ConfigError(format!(
-                                "序列化默认配置失败: {}",
-                                e
-                            ))
-                        })?;
-                        std::fs::write(&platform_profiles_path, content).map_err(|e| {
-                            CcrError::ConfigError(format!(
-                                "写入默认 profiles.toml 失败: {}",
-                                e
-                            ))
-                        })?;
+                        // 使用统一的 fileio 写入 TOML
+                        fileio::write_toml(&platform_profiles_path, &default_ccs)?;
                     }
 
-                    log::debug!("🔄 Unified 模式: 使用平台 {} 的配置路径: {:?}", platform, platform_profiles_path);
+                    log::debug!(
+                        "🔄 Unified 模式: 使用平台 {} 的配置路径: {:?}",
+                        platform,
+                        platform_profiles_path
+                    );
                     return Ok(Self::new(platform_profiles_path));
                 }
             }
@@ -552,6 +545,8 @@ impl ConfigManager {
     /// 1. ✅ 检查文件是否存在
     /// 2. 📄 读取文件内容
     /// 3. 🔍 解析 TOML 格式
+    ///
+    /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
     pub fn load(&self) -> Result<CcsConfig> {
         // ✅ 检查文件是否存在
         if !self.config_path.exists() {
@@ -560,13 +555,8 @@ impl ConfigManager {
             ));
         }
 
-        // 📄 读取文件内容
-        let content = fs::read_to_string(&self.config_path)
-            .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
-
-        // 🔍 解析 TOML
-        let config: CcsConfig = toml::from_str(&content)
-            .map_err(|e| CcrError::ConfigFormatInvalid(format!("TOML 解析失败: {}", e)))?;
+        // 使用统一的 fileio 读取 TOML
+        let config: CcsConfig = fileio::read_toml(&self.config_path)?;
 
         log::debug!(
             "✅ 成功加载配置文件: {:?}, 配置节数量: {}",
@@ -582,14 +572,11 @@ impl ConfigManager {
     /// 执行步骤:
     /// 1. 📝 序列化为 TOML 格式
     /// 2. 💾 写入磁盘
+    ///
+    /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
     pub fn save(&self, config: &CcsConfig) -> Result<()> {
-        // 📝 序列化为 TOML(美化格式)
-        let content = toml::to_string_pretty(config)
-            .map_err(|e| CcrError::ConfigError(format!("配置序列化失败: {}", e)))?;
-
-        // 💾 写入文件
-        fs::write(&self.config_path, content)
-            .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
+        // 使用统一的 fileio 写入 TOML
+        fileio::write_toml(&self.config_path, config)?;
 
         log::debug!("✅ 配置文件已保存: {:?}", self.config_path);
         Ok(())
@@ -689,7 +676,9 @@ impl ConfigManager {
             // 🔍 只收集配置文件的 .bak 文件
             // 例如: .ccs_config.toml.20240101_120000.bak
             if let Some(name) = filename
-                && path.is_file() && name.starts_with(config_filename) && name.ends_with(".bak")
+                && path.is_file()
+                && name.starts_with(config_filename)
+                && name.ends_with(".bak")
             {
                 backups.push(path);
             }

@@ -276,16 +276,15 @@ impl App {
         }
 
         let selected_config = &config_list.configs[self.config_list_index];
-        let config_name = selected_config.name.clone();
 
         // 检查是否已经是当前配置
         if selected_config.is_current {
-            self.set_status(format!("Already using config: {}", config_name), false);
+            self.set_status(format!("Already using config: {}", selected_config.name), false);
             return;
         }
 
         // 获取完整配置节
-        let section = match self.config_service.get_config(&config_name) {
+        let section = match self.config_service.get_config(&selected_config.name) {
             Ok(info) => {
                 // 从 ConfigInfo 构建 ConfigSection
                 crate::managers::config::ConfigSection {
@@ -327,13 +326,13 @@ impl App {
         }
 
         // 更新配置文件中的 current_config
-        if let Err(e) = self.config_service.set_current(&config_name) {
+        if let Err(e) = self.config_service.set_current(&selected_config.name) {
             self.set_status(format!("Failed to update current config: {}", e), true);
             return;
         }
 
         // 成功！
-        self.set_status(format!("✅ Switched to config: {}", config_name), false);
+        self.set_status(format!("✅ Switched to config: {}", selected_config.name), false);
     }
 
     /// 🗑️ 删除配置
@@ -363,12 +362,11 @@ impl App {
         }
 
         let selected_config = &config_list.configs[self.config_list_index];
-        let config_name = selected_config.name.clone();
 
         // 不允许删除当前配置
         if selected_config.is_current {
             self.set_status(
-                format!("❌ Cannot delete current config: {}", config_name),
+                format!("❌ Cannot delete current config: {}", selected_config.name),
                 true,
             );
             return;
@@ -377,14 +375,14 @@ impl App {
         // 不允许删除默认配置
         if selected_config.is_default {
             self.set_status(
-                format!("❌ Cannot delete default config: {}", config_name),
+                format!("❌ Cannot delete default config: {}", selected_config.name),
                 true,
             );
             return;
         }
 
         // 执行删除
-        if let Err(e) = self.config_service.delete_config(&config_name) {
+        if let Err(e) = self.config_service.delete_config(&selected_config.name) {
             self.set_status(format!("Failed to delete config: {}", e), true);
             return;
         }
@@ -395,6 +393,6 @@ impl App {
         }
 
         // 成功！
-        self.set_status(format!("✅ Deleted config: {}", config_name), false);
+        self.set_status(format!("✅ Deleted config: {}", selected_config.name), false);
     }
 }

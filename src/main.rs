@@ -13,8 +13,12 @@ mod managers;
 mod models;
 mod platforms;
 mod services;
-mod tui;
 mod utils;
+
+#[cfg(feature = "tui")]
+mod tui;
+
+#[cfg(feature = "web")]
 mod web;
 
 use clap::{Parser, Subcommand};
@@ -158,6 +162,7 @@ enum Commands {
     ///
     /// 在浏览器中打开可视化的配置管理界面,支持所有配置操作
     /// 示例: ccr web -p 3000
+    #[cfg(feature = "web")]
     Web {
         /// 指定 Web 服务器监听端口(默认: 8080)
         #[arg(short, long, default_value_t = 8080)]
@@ -258,6 +263,7 @@ enum Commands {
     ///
     /// 提供可视化的配置管理界面，支持实时操作和自动确认模式切换
     /// 示例: ccr tui
+    #[cfg(feature = "tui")]
     Tui {
         /// 启动时启用自动确认模式
         #[arg(short = 'y', long = "yes")]
@@ -271,6 +277,7 @@ enum Commands {
     ///       ccr sync status  # 查看状态
     ///       ccr sync push    # 上传配置
     ///       ccr sync pull    # 下载配置
+    #[cfg(feature = "web")]
     Sync {
         #[command(subcommand)]
         action: SyncAction,
@@ -336,6 +343,7 @@ enum Commands {
     /// 示例: ccr stats cost --today
     ///       ccr stats cost --by-model
     ///       ccr stats cost --top 10
+    #[cfg(feature = "web")]
     Stats(commands::StatsArgs),
 }
 
@@ -495,6 +503,7 @@ fn main() {
         Some(Commands::History { limit, filter_type }) => {
             commands::history_command(Some(limit), filter_type)
         }
+        #[cfg(feature = "web")]
         Some(Commands::Web { port }) => web::web_command(Some(port)),
         Some(Commands::Update { check }) => commands::update_command(check),
         Some(Commands::Init { force }) => commands::init_command(cli.auto_yes || force),
@@ -524,7 +533,9 @@ fn main() {
             show_version();
             Ok(())
         }
+        #[cfg(feature = "tui")]
         Some(Commands::Tui { auto_yes }) => tui::run_tui(cli.auto_yes || auto_yes),
+        #[cfg(feature = "web")]
         Some(Commands::Sync { action }) => match action {
             SyncAction::Config => commands::sync_config_command(),
             SyncAction::Status => commands::sync_status_command(),
@@ -562,14 +573,17 @@ fn main() {
                 commands::migrate_command(false, platform.as_deref())
             }
         }
-        Some(Commands::Stats(args)) => {
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    let mut color_output = ColorOutput;
-                    commands::stats_command(args, &mut color_output).await
-                })
-        }
+        #[cfg(feature = "web")]
+        Some(Commands::Stats(args)) => match tokio::runtime::Runtime::new() {
+            Ok(runtime) => runtime.block_on(async {
+                let mut color_output = ColorOutput;
+                commands::stats_command(args, &mut color_output).await
+            }),
+            Err(e) => {
+                eprintln!("❌ 创建异步运行时失败: {}", e);
+                std::process::exit(1);
+            }
+        },
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {

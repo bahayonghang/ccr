@@ -8,6 +8,7 @@
 // - 📋 跨平台配置协调
 
 use crate::core::error::{CcrError, Result};
+use crate::core::fileio;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -297,8 +298,10 @@ impl PlatformConfigManager {
 
     /// 📁 获取 CCR 根目录
     #[allow(dead_code)]
-    pub fn root_dir(&self) -> &Path {
-        self.config_path.parent().expect("配置文件路径应有父目录")
+    pub fn root_dir(&self) -> Result<&Path> {
+        self.config_path
+            .parent()
+            .ok_or_else(|| CcrError::ConfigError("配置文件路径没有父目录".into()))
     }
 
     /// 📖 加载配置文件
@@ -309,6 +312,8 @@ impl PlatformConfigManager {
     /// 3. 🔍 解析 TOML 格式
     ///
     /// 如果文件不存在，返回默认配置(不自动创建文件)
+    ///
+    /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
     pub fn load(&self) -> Result<UnifiedConfig> {
         // ✅ 检查文件是否存在
         if !self.config_path.exists() {
@@ -316,13 +321,8 @@ impl PlatformConfigManager {
             return Ok(UnifiedConfig::default());
         }
 
-        // 📄 读取文件内容
-        let content = fs::read_to_string(&self.config_path)
-            .map_err(|e| CcrError::ConfigError(format!("读取平台配置文件失败: {}", e)))?;
-
-        // 🔍 解析 TOML
-        let config: UnifiedConfig = toml::from_str(&content)
-            .map_err(|e| CcrError::ConfigFormatInvalid(format!("平台配置 TOML 解析失败: {}", e)))?;
+        // 使用统一的 fileio 读取 TOML
+        let config: UnifiedConfig = fileio::read_toml(&self.config_path)?;
 
         log::debug!(
             "✅ 成功加载平台配置文件: {:?}, 平台数量: {}",
@@ -339,20 +339,11 @@ impl PlatformConfigManager {
     /// 1. 🗂️ 确保父目录存在
     /// 2. 📝 序列化为 TOML 格式
     /// 3. 💾 写入磁盘
+    ///
+    /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
     pub fn save(&self, config: &UnifiedConfig) -> Result<()> {
-        // 🗂️ 确保父目录存在
-        if let Some(parent) = self.config_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| CcrError::ConfigError(format!("创建配置目录失败: {}", e)))?;
-        }
-
-        // 📝 序列化为 TOML(美化格式)
-        let content = toml::to_string_pretty(config)
-            .map_err(|e| CcrError::ConfigError(format!("平台配置序列化失败: {}", e)))?;
-
-        // 💾 写入文件
-        fs::write(&self.config_path, content)
-            .map_err(|e| CcrError::ConfigError(format!("写入平台配置文件失败: {}", e)))?;
+        // 使用统一的 fileio 写入 TOML（会自动创建父目录）
+        fileio::write_toml(&self.config_path, config)?;
 
         log::debug!("✅ 平台配置文件已保存: {:?}", self.config_path);
         Ok(())
@@ -391,7 +382,7 @@ impl PlatformConfigManager {
         }
 
         // 🗂️ 确保备份目录存在
-        let backup_dir = self.root_dir().join("backups");
+        let backup_dir = self.root_dir()?.join("backups");
         fs::create_dir_all(&backup_dir)
             .map_err(|e| CcrError::ConfigError(format!("创建备份目录失败: {}", e)))?;
 
@@ -431,7 +422,7 @@ impl PlatformConfigManager {
     /// 📜 列出所有备份文件
     #[allow(dead_code)]
     pub fn list_backups(&self) -> Result<Vec<PathBuf>> {
-        let backup_dir = self.root_dir().join("backups");
+        let backup_dir = self.root_dir()?.join("backups");
 
         if !backup_dir.exists() {
             return Ok(Vec::new());

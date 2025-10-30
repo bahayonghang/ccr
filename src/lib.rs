@@ -136,8 +136,13 @@ pub mod managers;
 pub mod models;
 pub mod platforms;
 pub mod services;
-pub mod tui;
 pub mod utils;
+
+// 可选功能模块
+#[cfg(feature = "tui")]
+pub mod tui;
+
+#[cfg(feature = "web")]
 pub mod web;
 
 // ═══════════════════════════════════════════════════════════

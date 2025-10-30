@@ -253,13 +253,13 @@ impl PlatformConfig for GeminiPlatform {
         // 在 Unified 模式下，同步更新注册表中的 current_profile
         let platform_config_mgr = PlatformConfigManager::default()?;
         let mut unified_config = platform_config_mgr.load()?;
-        
+
         // 更新 Gemini 平台的 current_profile
         unified_config.set_platform_profile("gemini", name)?;
-        
+
         // 保存注册表
         platform_config_mgr.save(&unified_config)?;
-        
+
         log::debug!("✅ 已更新注册表 current_profile: {}", name);
 
         log::info!("✅ 已应用 Gemini profile: {}", name);
@@ -284,7 +284,7 @@ impl PlatformConfig for GeminiPlatform {
         // Gemini 在 Unified 模式下，从注册表读取 current_profile
         let platform_config_mgr = PlatformConfigManager::default()?;
         let unified_config = platform_config_mgr.load()?;
-        
+
         // 获取 Gemini 平台的注册信息
         let gemini_entry = unified_config.get_platform("gemini")?;
         Ok(gemini_entry.current_profile.clone())

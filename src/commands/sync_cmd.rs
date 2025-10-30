@@ -97,103 +97,103 @@ pub fn sync_status_command() -> Result<()> {
     let sync_config = sync_manager.load()?;
 
     if sync_config.enabled {
-            // 使用 comfy-table 创建表格
-            let mut table = Table::new();
-            table.load_preset(comfy_table::presets::UTF8_FULL);
-            table.set_header(vec![
-                Cell::new("配置项").add_attribute(Attribute::Bold),
-                Cell::new("值").add_attribute(Attribute::Bold),
-            ]);
+        // 使用 comfy-table 创建表格
+        let mut table = Table::new();
+        table.load_preset(comfy_table::presets::UTF8_FULL);
+        table.set_header(vec![
+            Cell::new("配置项").add_attribute(Attribute::Bold),
+            Cell::new("值").add_attribute(Attribute::Bold),
+        ]);
 
-            // 状态行
-            table.add_row(vec![
-                Cell::new("状态"),
-                Cell::new("✓ 已启用")
-                    .fg(TableColor::Green)
-                    .add_attribute(Attribute::Bold),
-            ]);
+        // 状态行
+        table.add_row(vec![
+            Cell::new("状态"),
+            Cell::new("✓ 已启用")
+                .fg(TableColor::Green)
+                .add_attribute(Attribute::Bold),
+        ]);
 
-            // WebDAV 服务器
-            let url_display = if sync_config.webdav_url.len() > 50 {
-                format!("{}...", &sync_config.webdav_url[..47])
-            } else {
-                sync_config.webdav_url.clone()
-            };
-            table.add_row(vec![Cell::new("WebDAV 服务器"), Cell::new(url_display)]);
+        // WebDAV 服务器
+        let url_display = if sync_config.webdav_url.len() > 50 {
+            format!("{}...", &sync_config.webdav_url[..47])
+        } else {
+            sync_config.webdav_url.clone()
+        };
+        table.add_row(vec![Cell::new("WebDAV 服务器"), Cell::new(url_display)]);
 
-            // 用户名
-            table.add_row(vec![Cell::new("用户名"), Cell::new(&sync_config.username)]);
+        // 用户名
+        table.add_row(vec![Cell::new("用户名"), Cell::new(&sync_config.username)]);
 
-            // 密码（掩码）
-            let masked_pwd = format!("{}...", &"*".repeat(8));
-            table.add_row(vec![
-                Cell::new("密码"),
-                Cell::new(masked_pwd).fg(TableColor::DarkGrey),
-            ]);
+        // 密码（掩码）
+        let masked_pwd = format!("{}...", &"*".repeat(8));
+        table.add_row(vec![
+            Cell::new("密码"),
+            Cell::new(masked_pwd).fg(TableColor::DarkGrey),
+        ]);
 
-            // 远程路径
-            table.add_row(vec![
-                Cell::new("远程路径"),
-                Cell::new(&sync_config.remote_path),
-            ]);
+        // 远程路径
+        table.add_row(vec![
+            Cell::new("远程路径"),
+            Cell::new(&sync_config.remote_path),
+        ]);
 
-            // 🆕 同步类型
-            let sync_path = get_ccr_sync_path()?;
-            let sync_type = if sync_path.is_dir() {
-                "📁 目录同步"
-            } else {
-                "📄 文件同步"
-            };
-            table.add_row(vec![
-                Cell::new("同步类型"),
-                Cell::new(sync_type).fg(TableColor::Cyan),
-            ]);
+        // 🆕 同步类型
+        let sync_path = get_ccr_sync_path()?;
+        let sync_type = if sync_path.is_dir() {
+            "📁 目录同步"
+        } else {
+            "📄 文件同步"
+        };
+        table.add_row(vec![
+            Cell::new("同步类型"),
+            Cell::new(sync_type).fg(TableColor::Cyan),
+        ]);
 
-            // 🆕 本地路径
-            table.add_row(vec![
-                Cell::new("本地路径"),
-                Cell::new(sync_path.display().to_string()),
-            ]);
+        // 🆕 本地路径
+        table.add_row(vec![
+            Cell::new("本地路径"),
+            Cell::new(sync_path.display().to_string()),
+        ]);
 
-            // 自动同步
-            let auto_sync_text = if sync_config.auto_sync {
-                "✓ 开启"
-            } else {
-                "✗ 关闭"
-            };
-            let auto_sync_color = if sync_config.auto_sync {
-                TableColor::Green
-            } else {
-                TableColor::DarkGrey
-            };
-            table.add_row(vec![
-                Cell::new("自动同步"),
-                Cell::new(auto_sync_text).fg(auto_sync_color),
-            ]);
+        // 自动同步
+        let auto_sync_text = if sync_config.auto_sync {
+            "✓ 开启"
+        } else {
+            "✗ 关闭"
+        };
+        let auto_sync_color = if sync_config.auto_sync {
+            TableColor::Green
+        } else {
+            TableColor::DarkGrey
+        };
+        table.add_row(vec![
+            Cell::new("自动同步"),
+            Cell::new(auto_sync_text).fg(auto_sync_color),
+        ]);
 
-            println!("{}", table);
-            println!();
+        println!("{}", table);
+        println!();
 
-            // 检查远程文件状态
-            print!("🔍 正在检查远程状态...");
-            std::io::Write::flush(&mut std::io::stdout()).unwrap();
+        // 检查远程文件状态
+        print!("🔍 正在检查远程状态...");
+        std::io::Write::flush(&mut std::io::stdout()).unwrap();
 
-            let runtime = tokio::runtime::Runtime::new()
-                .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
+        let runtime = tokio::runtime::Runtime::new()
+            .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
 
-            let exists = runtime.block_on(async {
-                let service = SyncService::new(&sync_config).await?;
-                service.remote_exists().await
-            })?;
+        let exists = runtime.block_on(async {
+            let service = SyncService::new(&sync_config).await?;
+            service.remote_exists().await
+        })?;
 
-            print!("\r");
-            if exists {
-                println!("{}  {}", "✓".green().bold(), "远程内容存在".green());
-            } else {
-                println!("{}  {}", "⚠".yellow().bold(), "远程内容不存在".yellow());
-                println!("   💡 提示: 运行 {} 首次上传", "ccr sync push".cyan());
-            }
-            println!();
+        print!("\r");
+        if exists {
+            println!("{}  {}", "✓".green().bold(), "远程内容存在".green());
+        } else {
+            println!("{}  {}", "⚠".yellow().bold(), "远程内容不存在".yellow());
+            println!("   💡 提示: 运行 {} 首次上传", "ccr sync push".cyan());
+        }
+        println!();
     } else {
         println!("{}  {}", "⚠".yellow().bold(), "同步功能未配置".yellow());
         println!();
@@ -218,7 +218,9 @@ pub fn sync_push_command(force: bool) -> Result<()> {
     let sync_config = sync_manager.load()?;
 
     if !sync_config.enabled {
-        return Err(CcrError::SyncError("同步功能未配置，请先运行 'ccr sync config'".into()));
+        return Err(CcrError::SyncError(
+            "同步功能未配置，请先运行 'ccr sync config'".into(),
+        ));
     }
 
     // 🏠 获取要同步的路径（目录或文件）
@@ -227,9 +229,17 @@ pub fn sync_push_command(force: bool) -> Result<()> {
 
     // 显示同步信息
     if is_dir {
-        println!("{}  {}", "📁".blue().bold(), format!("同步目录: {}", sync_path.display()).blue());
+        println!(
+            "{}  {}",
+            "📁".blue().bold(),
+            format!("同步目录: {}", sync_path.display()).blue()
+        );
     } else {
-        println!("{}  {}", "📄".blue().bold(), format!("同步文件: {}", sync_path.display()).blue());
+        println!(
+            "{}  {}",
+            "📄".blue().bold(),
+            format!("同步文件: {}", sync_path.display()).blue()
+        );
     }
     println!("   → 远程路径: {}", sync_config.remote_path.cyan());
     println!();
@@ -309,7 +319,9 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     let sync_config = sync_manager.load()?;
 
     if !sync_config.enabled {
-        return Err(CcrError::SyncError("同步功能未配置，请先运行 'ccr sync config'".into()));
+        return Err(CcrError::SyncError(
+            "同步功能未配置，请先运行 'ccr sync config'".into(),
+        ));
     }
 
     // 🏠 获取要同步的路径（目录或文件）
@@ -318,9 +330,17 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
 
     // 显示同步信息
     if is_dir {
-        println!("{}  {}", "📁".blue().bold(), format!("同步目录: {}", sync_path.display()).blue());
+        println!(
+            "{}  {}",
+            "📁".blue().bold(),
+            format!("同步目录: {}", sync_path.display()).blue()
+        );
     } else {
-        println!("{}  {}", "📄".blue().bold(), format!("同步文件: {}", sync_path.display()).blue());
+        println!(
+            "{}  {}",
+            "📄".blue().bold(),
+            format!("同步文件: {}", sync_path.display()).blue()
+        );
     }
     println!("   ← 远程路径: {}", sync_config.remote_path.cyan());
     println!();
@@ -378,13 +398,13 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
             let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
             let backup_name = format!("{}.{}.bak", sync_path.display(), timestamp);
             let backup = PathBuf::from(backup_name);
-            
+
             // 🔄 如果目标备份路径已存在（极少见），先删除
             if backup.exists() {
                 std::fs::remove_dir_all(&backup)
                     .map_err(|e| CcrError::SyncError(format!("删除旧备份失败: {}", e)))?;
             }
-            
+
             // 📦 移动目录到备份位置（原子操作）
             std::fs::rename(&sync_path, &backup)
                 .map_err(|e| CcrError::SyncError(format!("备份目录失败: {}", e)))?;
@@ -467,8 +487,8 @@ fn get_ccr_sync_path() -> Result<PathBuf> {
 
     // 3. 回退到配置文件（Legacy 模式）
     // 这种情况下我们同步单个配置文件
-    let home = dirs::home_dir()
-        .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+    let home =
+        dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
     Ok(home.join(".ccs_config.toml"))
 }
 
@@ -546,7 +566,7 @@ mod tests {
             webdav_url: "https://dav.jianguoyun.com/dav/".to_string(),
             username: "test@example.com".to_string(),
             password: "test_password".to_string(),
-            remote_path: "/ccr/".to_string(),  // 🆕 改为目录路径
+            remote_path: "/ccr/".to_string(), // 🆕 改为目录路径
             auto_sync: false,
         };
 

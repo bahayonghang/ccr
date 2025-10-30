@@ -157,7 +157,9 @@ pub fn switch_command(config_name: &str) -> Result<()> {
 
     let old_config_name: String = if is_unified_mode {
         // Unified 模式: 更新平台配置的 current_profile
-        let uc = unified_config.unwrap();
+        let uc = unified_config
+            .as_ref()
+            .ok_or_else(|| CcrError::ConfigError("Unified 配置未找到".to_string()))?;
         let platform_name = &uc.current_platform;
         let platform = Platform::from_str(platform_name)?;
 

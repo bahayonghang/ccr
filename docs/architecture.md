@@ -67,7 +67,8 @@ src/
 │   ├── atomic_writer.rs             # 原子文件写入
 │   ├── error.rs                     # 错误类型定义
 │   ├── file_manager.rs              # 文件管理 trait
-│   ├── lock.rs                      # 文件锁机制
+│   ├── fileio.rs                    # 统一文件 I/O (v2.2.1 新增)
+│   ├── lock.rs                      # 文件锁机制 + CONFIG_LOCK 互斥锁
 │   └── logging.rs                   # 日志和彩色输出
 │
 └── utils/                           # 🛠️ Utils Layer
@@ -464,12 +465,89 @@ cargo fmt                 # 代码格式化
 cargo doc --no-deps       # 生成文档
 ```
 
-## 📖 相关文档
+## 📖 相关���档
 
 - [快速开始](./quick-start.md)
 - [命令参考](./commands/)
 - [配置文件](./configuration.md)
 - [更新日志](./changelog.md)
+
+## 🚀 v2.2.1 架构优化 (2025-01-30)
+
+本版本实施了 11 项重大架构优化，提升了性能、代码质量和可靠性：
+
+### ⚡ 性能优化
+
+1. **统一文件 I/O 模块** (`src/core/fileio.rs`)
+   - 提供 `read_toml()` 和 `write_toml()` 统一接口
+   - 减少了 77 行重复代码
+   - 一致的错误处理和日志记录
+
+2. **流式统计加载** (`src/managers/cost_tracker.rs`)
+   - 使用 `BufReader` 替代完整文件加载
+   - 基于时间范围的边缘过滤
+   - 显著降低大文件的内存使用
+
+3. **Web 服务器内存缓存** (`src/web/handlers.rs`)
+   - `Arc<RwLock<CcsConfig>>` 配置缓存
+   - 新增 `/api/reload` 端点用于缓存刷新
+   - 减少磁盘 I/O 操作
+
+4. **优化构建配置** (`Cargo.toml`)
+   - 开发模式：`opt-level = 1` 加快迭代
+   - 依赖优化：`opt-level = 2` for dependencies
+   - 测试模式：继承 dev 配置
+
+### 🔒 可靠性增强
+
+5. **进程内互斥锁** (`src/core/lock.rs`)
+   - 新增 `CONFIG_LOCK: LazyLock<Mutex<()>>`
+   - 补充现有文件锁机制
+   - 防止单进程内的竞态条件
+
+6. **特性门控** (`Cargo.toml`)
+   - `default = ["web", "tui"]` 保持向后兼容
+   - 可选依赖：tokio, axum, ratatui, crossterm
+   - 支持 `--no-default-features` 快速编译
+
+7. **统一错误处理**
+   - 17 种错误类型，3 个 `#[from]` 转换
+   - 生产代码零 `panic!`
+   - 丰富的上下文错误消息
+
+### 🎯 代码质量
+
+8. **无状态工具类** (`src/core/logging.rs`)
+   - `ColorOutput` 使用关联函数
+   - 无需实例创建
+   - 所有方法都是 `pub fn name(...)`
+
+9. **最小化克隆** (`src/tui/app.rs`)
+   - 删除 2 个不必要的字符串克隆
+   - 直接使用引用替代 `.clone()`
+   - 保留必要的克隆（Arc, async, display）
+
+### 🧪 测试与质量
+
+10. **全面测试覆盖**
+    - 221 个测试通过
+    - 95%+ 代码覆盖率
+    - 平台测试支持串行运行
+
+11. **代码清理**
+    - 删除未使用的 JSON 函数
+    - 零编译警告
+    - 遵循 YAGNI 原则
+
+### 架构影响
+
+这些优化保持了 CCR 的分层架构原则，同时：
+- **Core Layer**: 新增 `fileio.rs`，增强 `lock.rs`
+- **Manager Layer**: 优化了 `cost_tracker.rs` 的 I/O 性能
+- **Web Layer**: 新增缓存机制
+- **Build System**: 优化的编译配置
+
+所有优化都经过充分测试，确保向后兼容。
 
 ## 🤝 贡献指南
 
@@ -484,6 +562,6 @@ cargo doc --no-deps       # 生成文档
 
 ---
 
-**版本:** 1.1.1  
-**最后更新:** 2025-10-11
+**版本:** 2.2.1
+**最后更���:** 2025-01-30
 

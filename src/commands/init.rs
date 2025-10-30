@@ -3,8 +3,8 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
-use crate::managers::config::ConfigManager;
 use crate::managers::PlatformConfigManager;
+use crate::managers::config::ConfigManager;
 use crate::models::{Platform, PlatformPaths};
 use indexmap::IndexMap;
 use std::fs;
@@ -179,14 +179,13 @@ fn init_unified_mode(force: bool) -> Result<()> {
     ColorOutput::step("创建 CCR 目录结构");
 
     // 获取 CCR 根目录
-    let home = dirs::home_dir()
-        .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+    let home =
+        dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
     let ccr_root = home.join(".ccr");
     let platforms_dir = ccr_root.join("platforms");
 
     // 创建根目录和平台目录
-    fs::create_dir_all(&platforms_dir)
-        .map_err(|e| CcrError::from(e))?;
+    fs::create_dir_all(&platforms_dir).map_err(|e| CcrError::from(e))?;
 
     ColorOutput::success(&format!("✓ CCR 根目录: {}", ccr_root.display()));
     ColorOutput::success(&format!("✓ 平台目录: {}", platforms_dir.display()));
@@ -198,9 +197,18 @@ fn init_unified_mode(force: bool) -> Result<()> {
     let claude_paths = PlatformPaths::new(Platform::Claude)?;
     claude_paths.ensure_directories()?;
 
-    ColorOutput::success(&format!("✓ Claude 平台目录: {}", claude_paths.platform_dir.display()));
-    ColorOutput::success(&format!("✓ 历史目录: {}", claude_paths.history_file.parent().unwrap().display()));
-    ColorOutput::success(&format!("✓ 备份目录: {}", claude_paths.backups_dir.display()));
+    ColorOutput::success(&format!(
+        "✓ Claude 平台目录: {}",
+        claude_paths.platform_dir.display()
+    ));
+    ColorOutput::success(&format!(
+        "✓ 历史目录: {}",
+        claude_paths.history_file.parent().unwrap().display()
+    ));
+    ColorOutput::success(&format!(
+        "✓ 备份目录: {}",
+        claude_paths.backups_dir.display()
+    ));
 
     // 在首次初始化时，创建一个最小可用的 profiles.toml，避免后续 ccr list 等命令因文件缺失报错
     // 注意：不覆盖已有文件，仅在缺失时创建

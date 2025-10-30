@@ -101,10 +101,13 @@ pub fn add_command() -> Result<()> {
     if let Some(desc) = &section.description {
         println!("  描述: {}", desc);
     }
-    println!("  Base URL: {}", section.base_url.as_ref().unwrap());
+    println!(
+        "  Base URL: {}",
+        section.base_url.as_deref().unwrap_or("未设置")
+    );
     println!(
         "  Auth Token: {}",
-        ColorOutput::mask_sensitive(section.auth_token.as_ref().unwrap())
+        ColorOutput::mask_sensitive(section.auth_token.as_deref().unwrap_or("未设置"))
     );
     if let Some(m) = &section.model {
         println!("  主模型: {}", m);
@@ -157,10 +160,10 @@ pub fn add_command() -> Result<()> {
 fn prompt_required(field_name: &str, hint: &str) -> Result<String> {
     loop {
         print!("* {}: ", field_name);
-        io::stdout().flush().unwrap();
+        io::stdout().flush()?;
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        io::stdin().read_line(&mut input)?;
         let input = input.trim().to_string();
 
         if input.is_empty() {
@@ -175,10 +178,12 @@ fn prompt_required(field_name: &str, hint: &str) -> Result<String> {
 /// 提示用户输入可选项
 fn prompt_optional(field_name: &str, hint: &str) -> Option<String> {
     print!("  {}: ", field_name);
-    io::stdout().flush().unwrap();
+    // 对于可选输入，如果 flush 失败，返回 None 而不是 panic
+    io::stdout().flush().ok()?;
 
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
+    // 对于可选输入，如果读取失败，返回 None
+    io::stdin().read_line(&mut input).ok()?;
     let input = input.trim().to_string();
 
     if input.is_empty() {

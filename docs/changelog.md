@@ -29,6 +29,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `README.md` (English) with new quick start guide
 - Updated `README_CN.md` (Chinese) with new quick start guide
 
+## [2.2.1] - 2025-01-30
+
+### ⚡ Performance Improvements
+
+- **Streaming Stats Loading**: Implemented on-demand time-range based stats loading with edge-filtering
+  - Replaced full file load with `BufReader` streaming
+  - Reduced memory usage for large stats files
+  - Optimized month-based file sharding (YYYYMM format)
+- **Web Server Memory Caching**: Added `Arc<RwLock<CcsConfig>>` cache to reduce disk I/O
+  - New `/api/reload` endpoint for cache refresh
+  - Preserved dynamic platform detection for Unified mode
+- **Build Performance**: Added optimized build profiles
+  - Development mode: `opt-level = 1` for faster iteration
+  - Test mode: Inherits dev settings with basic optimization
+  - Dependency optimization: `opt-level = 2` for dependencies in dev mode
+
+### 🎯 Code Quality
+
+- **Unified File I/O**: Created `src/core/fileio.rs` module
+  - Consolidated TOML read/write operations
+  - Reduced 77 lines of duplicated code
+  - Consistent error handling across file operations
+- **Stateless Utilities**: Verified `ColorOutput` uses only associated functions
+  - No instance creation required
+  - All methods are `pub fn name(...)` not `pub fn name(&self, ...)`
+- **Minimal Cloning**: Removed 2 unnecessary string clones in TUI
+  - Direct reference usage in `app.rs` instead of `.clone()`
+  - Preserved necessary clones (Arc::clone, async tasks, display strings)
+
+### 🔒 Reliability
+
+- **CONFIG_LOCK Mutex**: Added in-process synchronization with `LazyLock<Mutex<()>>`
+  - Complements existing file-level locking
+  - Prevents race conditions within single process
+  - Zero-cost abstraction with `std::sync::LazyLock`
+- **Feature Gates**: Implemented Cargo feature flags
+  - `default = ["web", "tui"]` for backward compatibility
+  - Optional dependencies: tokio, axum, ratatui, crossterm
+  - Faster compilation with `--no-default-features`
+- **Enhanced Error Handling**: Maintained 17 error types with 3 `#[from]` conversions
+  - Zero `panic!` in production code
+  - Test code properly uses `assert!`
+  - Rich context messages with `.map_err()`
+
+### 🧪 Testing
+
+- **221 Tests Passing**: Comprehensive test suite
+  - Library tests: 107 passed
+  - Platform tests: 32 passed (must run serially with `--test-threads=1`)
+  - Integration tests: 58 passed
+  - Documentation tests: 23 passed
+- **95%+ Coverage**: Maintained high test coverage across all modules
+
+### 🧹 Cleanup
+
+- **Dead Code Removal**: Removed unused JSON functions
+  - Deleted `read_json()` and `write_json()` from `fileio.rs`
+  - Each manager has specific error messages for their JSON operations
+  - Follows YAGNI principle (You Aren't Gonna Need It)
+- **Warning-Free Build**: Zero compiler warnings in release builds
+
+### 📚 Documentation
+
+- Updated README.md with version 2.2.1 highlights
+- Updated README_CN.md with optimization summaries
+- Added performance improvement notes to changelog
+
 ## [2.0.3] - 2025-10-25
 
 ### 🔧 修复

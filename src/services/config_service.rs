@@ -150,9 +150,14 @@ impl ConfigService {
     }
 
     /// ➕ 添加新配置
+    ///
+    /// 🔐 **并发安全**: 使用 CONFIG_LOCK 保护整个 RMW 序列
     pub fn add_config(&self, name: String, section: ConfigSection) -> Result<()> {
         // 验证配置
         section.validate()?;
+
+        // 🔒 获取进程内配置锁，保护整个 read-modify-write 序列
+        let _guard = crate::core::lock::CONFIG_LOCK.lock().expect("配置锁已中毒");
 
         let mut config = self.config_manager.load()?;
 
@@ -168,6 +173,8 @@ impl ConfigService {
     }
 
     /// ✏️ 更新现有配置
+    ///
+    /// 🔐 **并发安全**: 使用 CONFIG_LOCK 保护整个 RMW 序列
     pub fn update_config(
         &self,
         old_name: &str,
@@ -176,6 +183,9 @@ impl ConfigService {
     ) -> Result<()> {
         // 验证配置
         section.validate()?;
+
+        // 🔒 获取进程内配置锁，保护整个 read-modify-write 序列
+        let _guard = crate::core::lock::CONFIG_LOCK.lock().expect("配置锁已中毒");
 
         let mut config = self.config_manager.load()?;
 
@@ -199,7 +209,12 @@ impl ConfigService {
     }
 
     /// ➖ 删除配置
+    ///
+    /// 🔐 **并发安全**: 使用 CONFIG_LOCK 保护整个 RMW 序列
     pub fn delete_config(&self, name: &str) -> Result<()> {
+        // 🔒 获取进程内配置锁，保护整个 read-modify-write 序列
+        let _guard = crate::core::lock::CONFIG_LOCK.lock().expect("配置锁已中毒");
+
         let mut config = self.config_manager.load()?;
 
         // 不允许删除当前或默认配置
@@ -220,7 +235,12 @@ impl ConfigService {
     ///
     /// 注意：这只更新配置文件中的 current_config 标记,
     /// 不会修改 settings.json。要完整切换配置,应使用 switch_config。
+    ///
+    /// 🔐 **并发安全**: 使用 CONFIG_LOCK 保护整个 RMW 序列
     pub fn set_current(&self, name: &str) -> Result<()> {
+        // 🔒 获取进程内配置锁，保护整个 read-modify-write 序列
+        let _guard = crate::core::lock::CONFIG_LOCK.lock().expect("配置锁已中毒");
+
         let mut config = self.config_manager.load()?;
         config.set_current(name)?;
         self.config_manager.save(&config)?;
