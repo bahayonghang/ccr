@@ -22,6 +22,7 @@ pub struct CostTracker {
     pricing: HashMap<String, ModelPricing>,
 }
 
+#[allow(dead_code)]
 impl CostTracker {
     /// 创建新的成本追踪器
     pub fn new(storage_dir: PathBuf) -> Result<Self> {

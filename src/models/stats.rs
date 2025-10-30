@@ -113,6 +113,7 @@ pub struct ModelPricing {
     pub cache_write_price: Option<f64>,
 }
 
+#[allow(dead_code)]
 impl ModelPricing {
     /// 获取默认的模型定价表
     pub fn default_pricing() -> HashMap<String, ModelPricing> {
@@ -214,7 +215,8 @@ impl ModelPricing {
 // 统计汇总模型
 // ============================================================
 
-/// 📊 成本统计
+/// 📊 成本统计汇总
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CostStats {
     /// 💰 总成本
@@ -237,7 +239,8 @@ pub struct CostStats {
     pub trend: Option<Vec<DailyCost>>,
 }
 
-/// 📊 Token 统计
+/// 🔢 Token 使用统计
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenStats {
     /// 📥 总输入 Token
@@ -254,6 +257,7 @@ pub struct TokenStats {
 }
 
 /// 📅 每日成本
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DailyCost {
     /// 📅 日期

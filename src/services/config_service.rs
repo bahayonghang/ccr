@@ -11,8 +11,10 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct ConfigInfo {
     pub name: String,
+    #[allow(dead_code)]
     pub description: String,
     pub base_url: Option<String>,
+    #[allow(dead_code)]
     pub auth_token: Option<String>,
     pub model: Option<String>,
     pub small_fast_model: Option<String>,
@@ -379,11 +381,13 @@ impl ConfigService {
 pub struct ImportResult {
     pub added: usize,
     pub updated: usize,
+    #[allow(dead_code)]
     pub skipped: usize,
 }
 
 /// 📋 导入模式
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub enum ImportMode {
     /// 🔗 合并模式：保留现有配置，只添加新的
     Merge,

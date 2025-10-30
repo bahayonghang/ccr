@@ -81,6 +81,7 @@ pub struct SyncConfigManager {
     config_path: PathBuf,
 }
 
+#[allow(dead_code)]
 impl SyncConfigManager {
     /// 🏗️ 创建新的同步配置管理器
     pub fn new<P: AsRef<Path>>(config_path: P) -> Self {
