@@ -1,90 +1,108 @@
 # 前端技术栈详解
 
-CCR UI 前端采用现代化的技术栈，基于 Next.js 16 Beta 构建，提供高性能、类型安全的用户界面。
+CCR UI 前端采用现代化的技术栈，基于 Vue 3.5 + Vite 7.1 构建，提供高性能、类型安全的用户界面。
 
 ## 🎯 核心框架
 
-### Next.js 16 Beta
+### Vue 3.5
 
-**版本**: 16.0.0-canary.3
+**版本**: 3.5.22
 
 **选择理由**:
-- **Turbopack**: 默认打包器，提供 2-5x 构建速度提升
-- **App Router**: 基于文件系统的现代路由
-- **Server Components**: 默认服务端组件，减少客户端 JavaScript
-- **React 19 支持**: 支持最新 React 特性
+- **Composition API**: 更灵活的逻辑组织和代码复用
+- **性能优化**: 虚拟 DOM 优化，更小的打包体积
+- **TypeScript 支持**: 原生 TypeScript 支持
+- **响应式系统**: Proxy-based 响应式系统
 
 **核心特性**:
-```typescript
-// app/layout.tsx - App Router 布局
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="zh-CN">
-      <body className={inter.className}>
-        <Providers>
-          {children}
-        </Providers>
-      </body>
-    </html>
-  )
-}
+```vue
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+
+// 响应式状态
+const count = ref(0)
+
+// 计算属性
+const doubled = computed(() => count.value * 2)
+
+// 侦听器
+watch(count, (newVal) => {
+  console.log(`Count changed to: ${newVal}`)
+})
+</script>
+
+<template>
+  <div>
+    <p>Count: {{ count }}</p>
+    <p>Doubled: {{ doubled }}</p>
+    <button @click="count++">Increment</button>
+  </div>
+</template>
 ```
 
-### React 19
+### Vite 7.1
 
-**版本**: 19.0.0
+**版本**: 7.1.11
 
-**新特性**:
-- **Actions**: 简化表单处理
-- **use() Hook**: 异步数据获取
-- **Optimistic Updates**: 乐观更新
-- **Server Components**: 服务端渲染组件
+**选择理由**:
+- **极速冷启动**: 原生 ESM 开发服务器
+- **即时 HMR**: 毫秒级热模块替换
+- **优化构建**: 基于 Rollup 的生产优化
+- **插件生态**: 丰富的插件系统
 
-**使用示例**:
+**性能对比**:
+```
+传统打包工具:    ~3-5s 启动时间
+Vite:            ~200-500ms 启动时间
+提升:            6-15x 更快
+```
+
+**核心配置**:
 ```typescript
-// 使用 React 19 Actions
-function ConfigForm() {
-  async function updateConfig(formData: FormData) {
-    'use server'
-    
-    const config = {
-      name: formData.get('name'),
-      value: formData.get('value'),
-    }
-    
-    await saveConfig(config)
-  }
+// vite.config.ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
 
-  return (
-    <form action={updateConfig}>
-      <input name="name" />
-      <input name="value" />
-      <button type="submit">保存</button>
-    </form>
-  )
-}
+export default defineConfig({
+  plugins: [vue()],
+  server: {
+    port: 5173,
+    hmr: { overlay: true },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8081',
+        changeOrigin: true
+      }
+    }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'ui-vendor': ['lucide-vue-next'],
+          'http-vendor': ['axios']
+        }
+      }
+    }
+  }
+})
 ```
 
 ## 🎨 样式和 UI
 
 ### Tailwind CSS
 
-**版本**: 3.4.14
+**版本**: 3.4.17
 
 **配置**:
-```typescript
-// tailwind.config.ts
-import type { Config } from 'tailwindcss'
-
-const config: Config = {
+```javascript
+// tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+export default {
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    "./index.html",
+    "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -104,69 +122,79 @@ const config: Config = {
 **优势**:
 - **原子化 CSS**: 快速构建界面
 - **响应式设计**: 内置断点系统
-- **暗色模式**: 原生支持
+- **暗色模式**: 原生支持 `dark:` 前缀
 - **自定义主题**: 灵活的设计系统
 
-### Lucide React
+**使用示例**:
+```vue
+<template>
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+      标题
+    </h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-300">
+      描述文本
+    </p>
+  </div>
+</template>
+```
 
-**版本**: 0.454.0
+### Lucide Vue Next
+
+**版本**: 0.468.0
 
 **图标系统**:
-```typescript
-import { Settings, User, Database } from 'lucide-react'
+```vue
+<script setup lang="ts">
+import { Settings, User, Database } from 'lucide-vue-next'
+</script>
 
-function Navigation() {
-  return (
-    <nav className="flex space-x-4">
-      <button className="flex items-center space-x-2">
-        <Settings className="w-4 h-4" />
-        <span>设置</span>
-      </button>
-      <button className="flex items-center space-x-2">
-        <User className="w-4 h-4" />
-        <span>用户</span>
-      </button>
-    </nav>
-  )
-}
+<template>
+  <nav class="flex space-x-4">
+    <button class="flex items-center space-x-2">
+      <Settings :size="16" />
+      <span>设置</span>
+    </button>
+    <button class="flex items-center space-x-2">
+      <User :size="16" />
+      <span>用户</span>
+    </button>
+  </nav>
+</template>
 ```
 
 ## 🔧 开发工具
 
 ### TypeScript
 
-**版本**: 5.6.3
+**版本**: 5.7.3
 
 **配置**:
 ```json
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "es6"],
-    "allowJs": true,
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "esModuleInterop": true,
+    "noEmit": true,
     "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "exclude": ["node_modules"]
 }
 ```
 
-**类型定义**:
+**类型定义示例**:
 ```typescript
 // types/api.ts
 export interface ApiResponse<T = any> {
@@ -187,101 +215,256 @@ export interface ConfigItem {
   is_current: boolean
   is_default: boolean
 }
+
+export interface McpServer {
+  name: string
+  command: string
+  args: string[]
+  env: Record<string, string>
+  disabled: boolean
+}
 ```
 
 ### ESLint
 
-**版本**: 内置 Next.js 配置
+**版本**: 9.19.0
 
 **配置**:
-```json
-{
-  "extends": ["next/core-web-vitals"],
-  "rules": {
-    "@typescript-eslint/no-unused-vars": "error",
-    "@typescript-eslint/no-explicit-any": "warn",
-    "react-hooks/exhaustive-deps": "warn"
+```javascript
+// eslint.config.js
+import js from '@eslint/js'
+import vue from 'eslint-plugin-vue'
+import typescript from '@typescript-eslint/eslint-plugin'
+
+export default [
+  js.configs.recommended,
+  ...vue.configs['flat/recommended'],
+  {
+    rules: {
+      'vue/multi-word-component-names': 'off',
+      '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/no-explicit-any': 'warn'
+    }
   }
+]
+```
+
+### Vue TSC
+
+**Vue 模板类型检查**:
+```bash
+# 运行类型检查
+npm run type-check
+
+# vite-plugin-checker 在开发时实时检查
+```
+
+## 🌐 路由管理
+
+### Vue Router
+
+**版本**: 4.4.5
+
+**核心特性**:
+- **嵌套路由**: 支持复杂的路由嵌套
+- **路由守卫**: 导航守卫控制访问
+- **懒加载**: 路由级别的代码分割
+- **History 模式**: HTML5 History API
+
+**配置示例**:
+```typescript
+import { createRouter, createWebHistory } from 'vue-router'
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/',
+      component: () => import('@/components/MainLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'home',
+          component: () => import('@/views/HomeView.vue'),
+          meta: { 
+            title: 'Dashboard',
+            cache: true 
+          }
+        },
+        {
+          path: 'configs',
+          name: 'configs',
+          component: () => import('@/views/ConfigsView.vue'),
+          meta: { 
+            title: '配置管理',
+            requiresAuth: false 
+          }
+        }
+      ]
+    }
+  ],
+  scrollBehavior() {
+    return { top: 0 }
+  }
+})
+
+// 全局前置守卫
+router.beforeEach((to, from, next) => {
+  // 更新页面标题
+  document.title = `${to.meta.title || 'CCR UI'} - CCR UI`
+  next()
+})
+
+export default router
+```
+
+## 📦 状态管理
+
+### Pinia
+
+**版本**: 2.2.6
+
+**核心特性**:
+- **类型安全**: 完整的 TypeScript 支持
+- **模块化**: 独立的 Store 模块
+- **DevTools**: Vue DevTools 集成
+- **简洁 API**: 类似 Composition API
+
+**Store 定义**:
+```typescript
+// stores/config.ts
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import type { ConfigItem } from '@/types'
+
+export const useConfigStore = defineStore('config', () => {
+  // State
+  const configs = ref<ConfigItem[]>([])
+  const currentConfig = ref<ConfigItem | null>(null)
+  const loading = ref(false)
+
+  // Getters
+  const configCount = computed(() => configs.value.length)
+  const activeConfig = computed(() => 
+    configs.value.find(c => c.is_current)
+  )
+
+  // Actions
+  async function fetchConfigs() {
+    loading.value = true
+    try {
+      const response = await listConfigs()
+      configs.value = response.configs
+      currentConfig.value = response.configs.find(c => c.is_current) || null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function switchConfig(name: string) {
+    await switchConfigAPI(name)
+    await fetchConfigs()
+  }
+
+  return {
+    configs,
+    currentConfig,
+    loading,
+    configCount,
+    activeConfig,
+    fetchConfigs,
+    switchConfig
+  }
+})
+```
+
+**在组件中使用**:
+```vue
+<script setup lang="ts">
+import { useConfigStore } from '@/stores/config'
+import { onMounted } from 'vue'
+
+const configStore = useConfigStore()
+
+onMounted(() => {
+  configStore.fetchConfigs()
+})
+
+function handleSwitch(name: string) {
+  configStore.switchConfig(name)
 }
-```
+</script>
 
-### Turbopack
-
-**特性**:
-- **增量编译**: 只重新编译变更的文件
-- **并行处理**: 多核 CPU 优化
-- **内存缓存**: 智能缓存策略
-- **热更新**: 毫秒级更新
-
-**性能对比**:
-```
-Webpack 5:     ~3-5s 启动时间
-Turbopack:     ~500ms 启动时间
-提升:          6-10x 更快
+<template>
+  <div>
+    <div v-if="configStore.loading">加载中...</div>
+    <div v-else>
+      <p>配置数量: {{ configStore.configCount }}</p>
+      <div v-for="config in configStore.configs" :key="config.name">
+        <button @click="handleSwitch(config.name)">
+          {{ config.name }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
 ```
 
 ## 🌐 HTTP 客户端
 
 ### Axios
 
-**版本**: 1.7.7
+**版本**: 1.7.9
 
 **配置**:
 ```typescript
-// lib/client.ts
-import axios from 'axios'
+// api/client.ts
+import axios, { type AxiosInstance } from 'axios'
 
-const client = axios.create({
-  baseURL: '/api',
-  timeout: 600000, // 10 分钟
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+const createApiClient = (): AxiosInstance => {
+  const api = axios.create({
+    baseURL: '/api',
+    timeout: 600000, // 10分钟
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
 
-// 请求拦截器
-client.interceptors.request.use(
-  (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`)
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
-// 响应拦截器
-client.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error.response?.data || error.message)
-    return Promise.reject(error)
-  }
-)
-```
-
-## 🎭 代码高亮
-
-### React Syntax Highlighter
-
-**版本**: 15.5.0
-
-**使用**:
-```typescript
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
-
-function CodeBlock({ code, language }: { code: string; language: string }) {
-  return (
-    <SyntaxHighlighter
-      language={language}
-      style={tomorrow}
-      customStyle={{
-        margin: 0,
-        borderRadius: '0.5rem',
-      }}
-    >
-      {code}
-    </SyntaxHighlighter>
+  // 请求拦截器
+  api.interceptors.request.use(
+    (config) => {
+      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`)
+      return config
+    },
+    (error) => {
+      console.error('[API] Request error:', error)
+      return Promise.reject(error)
+    }
   )
+
+  // 响应拦截器
+  api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      console.error('[API] Response error:', error.response?.data || error.message)
+      return Promise.reject(error)
+    }
+  )
+
+  return api
+}
+
+export const api = createApiClient()
+
+// API 函数示例
+export const listConfigs = async () => {
+  const response = await api.get<ConfigListResponse>('/configs')
+  return response.data
+}
+
+export const switchConfig = async (configName: string) => {
+  const response = await api.post<string>('/switch', { config_name: configName })
+  return response.data
 }
 ```
 
@@ -289,115 +472,122 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 
 ### PostCSS
 
-**版本**: 8.4.31
+**版本**: 8.5.1
 
 **配置**:
 ```javascript
-// postcss.config.mjs
-const config = {
+// postcss.config.js
+export default {
   plugins: {
     tailwindcss: {},
     autoprefixer: {},
   },
 }
-
-export default config
 ```
 
 ### 构建优化
 
 **代码分割**:
 ```typescript
-// 动态导入
-const ConfigEditor = dynamic(() => import('@/components/ConfigEditor'), {
-  loading: () => <div>加载中...</div>,
-  ssr: false,
-})
-```
-
-**图像优化**:
-```typescript
-import Image from 'next/image'
-
-function Logo() {
-  return (
-    <Image
-      src="/logo.svg"
-      alt="CCR UI"
-      width={120}
-      height={40}
-      priority
-    />
-  )
+// 路由懒加载
+{
+  path: '/configs',
+  component: () => import('@/views/ConfigsView.vue')
 }
+
+// 组件懒加载
+import { defineAsyncComponent } from 'vue'
+const HeavyComponent = defineAsyncComponent(() =>
+  import('@/components/HeavyComponent.vue')
+)
 ```
+
+**Tree-shaking**:
+- Vite 自动进行 Tree-shaking
+- 只打包实际使用的代码
+- 减小最终包体积
 
 ## 📊 性能监控
 
-### Web Vitals
+### Vue DevTools
 
-```typescript
-// app/layout.tsx
-import { Analytics } from '@vercel/analytics/react'
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="zh-CN">
-      <body>
-        {children}
-        <Analytics />
-      </body>
-    </html>
-  )
-}
-```
+- 组件树查看
+- 状态管理调试 (Pinia)
+- 路由导航追踪
+- 性能分析
 
 ### 性能指标
 
-- **FCP**: < 1.8s
-- **LCP**: < 2.5s
-- **FID**: < 100ms
-- **CLS**: < 0.1
+- **FCP (首次内容绘制)**: < 1.8s
+- **LCP (最大内容绘制)**: < 2.5s
+- **FID (首次输入延迟)**: < 100ms
+- **CLS (累积布局偏移)**: < 0.1
 
-## 🔄 状态管理
+## 🔄 组件开发
 
-### React Context
+### Composition API
 
-```typescript
-// contexts/ConfigContext.tsx
-interface ConfigContextType {
-  configs: ConfigItem[]
-  currentConfig: ConfigItem | null
-  loading: boolean
-  switchConfig: (name: string) => Promise<void>
+```vue
+<script setup lang="ts">
+import { ref, reactive, computed, watch, onMounted } from 'vue'
+
+// Props
+const props = defineProps<{
+  title: string
+  count?: number
+}>()
+
+// Emits
+const emit = defineEmits<{
+  (e: 'update', value: number): void
+  (e: 'delete'): void
+}>()
+
+// 响应式数据
+const localCount = ref(props.count || 0)
+const state = reactive({
+  loading: false,
+  error: null as string | null
+})
+
+// 计算属性
+const doubleCount = computed(() => localCount.value * 2)
+
+// 方法
+function increment() {
+  localCount.value++
+  emit('update', localCount.value)
 }
 
-const ConfigContext = createContext<ConfigContextType | undefined>(undefined)
+// 生命周期
+onMounted(() => {
+  console.log('Component mounted')
+})
 
-export function ConfigProvider({ children }: { children: React.ReactNode }) {
-  const [configs, setConfigs] = useState<ConfigItem[]>([])
-  const [loading, setLoading] = useState(false)
-
-  const switchConfig = async (name: string) => {
-    setLoading(true)
-    try {
-      await client.post('/switch', { config_name: name })
-      // 更新状态
-    } finally {
-      setLoading(false)
-    }
+// 侦听器
+watch(() => props.count, (newVal) => {
+  if (newVal !== undefined) {
+    localCount.value = newVal
   }
+})
+</script>
 
-  return (
-    <ConfigContext.Provider value={{ configs, loading, switchConfig }}>
-      {children}
-    </ConfigContext.Provider>
-  )
+<template>
+  <div class="component">
+    <h2>{{ title }}</h2>
+    <p>Count: {{ localCount }}</p>
+    <p>Double: {{ doubleCount }}</p>
+    <button @click="increment">Increment</button>
+  </div>
+</template>
+
+<style scoped>
+.component {
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
 }
+</style>
 ```
 
 ## 📱 响应式设计
@@ -417,50 +607,61 @@ const breakpoints = {
 
 ### 自适应组件
 
-```typescript
-function ResponsiveGrid({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {children}
-    </div>
-  )
-}
+```vue
+<template>
+  <!-- 响应式网格 -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <slot />
+  </div>
+  
+  <!-- 响应式显示/隐藏 -->
+  <div class="hidden md:block">
+    <!-- 只在中等及以上屏幕显示 -->
+  </div>
+  
+  <!-- 响应式字体大小 -->
+  <h1 class="text-2xl md:text-3xl lg:text-4xl">
+    响应式标题
+  </h1>
+</template>
 ```
 
 ## 🔒 安全性
 
-### CSP 配置
+### XSS 防护
 
-```typescript
-// next.config.mjs
-const nextConfig = {
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval';"
-          }
-        ]
-      }
-    ]
-  }
-}
+Vue 3 默认对插值进行 HTML 转义：
+
+```vue
+<template>
+  <!-- 安全：自动转义 -->
+  <div>{{ userInput }}</div>
+  
+  <!-- 危险：绕过转义 -->
+  <div v-html="rawHtml"></div>
+</template>
 ```
 
-### 环境变量
+### CSRF 防护
 
-```bash
-# .env.local
-NEXT_PUBLIC_API_URL=http://localhost:8081
-NEXT_PUBLIC_APP_ENV=development
+```typescript
+// 为所有请求添加 CSRF Token
+api.interceptors.request.use((config) => {
+  const token = getCsrfToken()
+  if (token) {
+    config.headers['X-CSRF-Token'] = token
+  }
+  return config
+})
 ```
 
 ## 📚 相关文档
 
+- [Vue 3 官方文档](https://vuejs.org/)
+- [Vite 官方文档](https://vitejs.dev/)
+- [Vue Router 文档](https://router.vuejs.org/)
+- [Pinia 文档](https://pinia.vuejs.org/)
+- [Tailwind CSS 文档](https://tailwindcss.com/)
 - [开发指南](/frontend/development)
 - [组件文档](/frontend/components)
 - [API 接口](/frontend/api)
-- [样式指南](/frontend/styling)

@@ -1,6 +1,6 @@
 # 前端项目概述
 
-CCR UI 的前端是一个基于 **Next.js 16 Beta** 构建的现代化 Web 应用，采用 App Router 架构，为用户提供直观、响应式的 CCR 配置管理界面。
+CCR UI 的前端是一个基于 **Vue 3.5 + Vite 7.1** 构建的现代化 Web 应用，采用 Vue Router 和 Pinia 状态管理，为用户提供直观、响应式的 CCR 配置管理界面。
 
 ## 🎯 项目目标
 
@@ -9,9 +9,9 @@ CCR UI 的前端是一个基于 **Next.js 16 Beta** 构建的现代化 Web 应�
 - **用户友好**：提供直观、易用的配置管理界面
 - **实时交互**：支持实时命令执行和结果展示
 - **响应式设计**：适配桌面端和移动端设备
-- **极致性能**：利用 Next.js 16 和 Turbopack 实现 2-5x 构建速度提升
-- **类型安全**：使用 TypeScript 确保代码质量
-- **SEO 友好**：支持服务端渲染（SSR）和静态生成（SSG）
+- **极致性能**：利用 Vite 7.1 实现极速的开发服务器和构建性能
+- **类型安全**：使用 TypeScript 5.7 确保代码质量
+- **组件化开发**：Vue 3 Composition API 提供灵活的组件开发方式
 
 ## 🏗️ 技术架构
 
@@ -19,27 +19,28 @@ CCR UI 的前端是一个基于 **Next.js 16 Beta** 构建的现代化 Web 应�
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| Next.js | 16.0.0-canary.3 | React 全栈框架 |
-| React | 19.0.0 | 用户界面库 |
-| TypeScript | 5.6.3 | 类型安全的 JavaScript |
-| Turbopack | 内置 | 下一代打包工具（默认） |
-| Axios | 1.7.7 | HTTP 客户端 |
-| Tailwind CSS | 3.4.14 | CSS 框架 |
-| Lucide React | 0.454.0 | 图标库 |
+| Vue | 3.5.22 | 渐进式 JavaScript 框架 |
+| Vite | 7.1.11 | 下一代前端构建工具 |
+| Vue Router | 4.4.5 | Vue 官方路由管理器 |
+| Pinia | 2.2.6 | Vue 状态管理库 |
+| TypeScript | 5.7.3 | 类型安全的 JavaScript 超集 |
+| Axios | 1.7.9 | HTTP 客户端 |
+| Tailwind CSS | 3.4.17 | 实用优先的 CSS 框架 |
+| Lucide Vue Next | 0.468.0 | 现代化图标库 |
 
-### Next.js 16 新特性
+### Vite 7.1 核心特性
 
-- **Turbopack** - 默认打包器，2-5x 构建速度提升
-- **文件系统缓存** - 开发模式缓存优化
-- **React 19** - 支持最新 React 特性
-- **App Router** - 基于文件系统的路由
-- **Server Components** - 默认服务端组件
-- **图像优化** - 自动 AVIF/WebP 格式转换
+- **极速冷启动** - 原生 ESM 按需编译
+- **HMR（热模块替换）** - 毫秒级的模块热更新
+- **优化的构建** - 基于 Rollup 的生产优化
+- **TypeScript 支持** - 开箱即用的 TS 支持
+- **CSS 预处理** - 内置 PostCSS、Sass 等支持
+- **资源优化** - 智能代码分割和懒加载
 
 ### 开发工具
 
-- **ESLint** - 代码质量检查（Next.js 配置）
-- **TypeScript** - 静态类型检查
+- **ESLint** - 代码质量检查（Vue 配置）
+- **Vue TSC** - Vue 模板类型检查
 - **PostCSS** - CSS 后处理器
 - **Autoprefixer** - CSS 自动前缀
 
@@ -50,71 +51,73 @@ frontend/
 ├── public/                     # 静态资源
 │   └── vite.svg               # 应用图标
 ├── src/                       # 源代码
-│   ├── app/                   # Next.js App Router
-│   │   ├── layout.tsx        # 根布局
-│   │   ├── page.tsx          # 首页 Dashboard
-│   │   ├── globals.css       # 全局样式
+│   ├── main.ts                # 应用入口
+│   ├── App.vue                # 根组件
+│   │
+│   ├── views/                 # 页面组件
+│   │   ├── HomeView.vue       # Dashboard 首页
 │   │   │
-│   │   ├── claude-code/      # Claude Code 主页
-│   │   │   └── page.tsx
-│   │   ├── codex/            # Codex 主页
-│   │   │   └── page.tsx
-│   │   ├── gemini-cli/       # Gemini CLI 主页
-│   │   │   └── page.tsx
-│   │   ├── qwen/             # Qwen 主页
-│   │   │   └── page.tsx
-│   │   ├── iflow/            # IFLOW 主页
-│   │   │   └── page.tsx
+│   │   ├── ClaudeCodeView.vue # Claude Code 主页
+│   │   ├── CodexView.vue      # Codex 主页
+│   │   ├── GeminiCliView.vue  # Gemini CLI 主页
+│   │   ├── QwenView.vue       # Qwen 主页
+│   │   ├── IflowView.vue      # IFLOW 主页
 │   │   │
-│   │   ├── configs/          # 配置管理页面
-│   │   │   └── page.tsx
-│   │   ├── sync/             # 云同步页面
-│   │   │   └── page.tsx
-│   │   ├── mcp/              # MCP 服务器管理
-│   │   │   └── page.tsx
-│   │   ├── slash-commands/   # Slash Commands 管理
-│   │   │   └── page.tsx
-│   │   ├── agents/           # Agents 管理
-│   │   │   └── page.tsx
-│   │   ├── plugins/          # 插件管理
-│   │   │   └── page.tsx
-│   │   ├── commands/         # 命令执行中心
-│   │   │   ├── page.tsx
-│   │   │   ├── ccr/page.tsx
-│   │   │   ├── claude-code/page.tsx
-│   │   │   ├── claude/page.tsx
-│   │   │   ├── qwen/page.tsx
-│   │   │   ├── gemini/page.tsx
-│   │   │   └── iflow/page.tsx
-│   │   └── converter/        # 配置转换器
-│   │       └── page.tsx
+│   │   ├── ConfigsView.vue    # 配置管理
+│   │   ├── SyncView.vue       # 云同步
+│   │   ├── McpView.vue        # MCP 服务器管理
+│   │   ├── SlashCommandsView.vue # Slash Commands
+│   │   ├── AgentsView.vue     # Agents 管理
+│   │   ├── PluginsView.vue    # 插件管理
+│   │   ├── CommandsView.vue   # 命令执行中心
+│   │   ├── ConverterView.vue  # 配置转换器
+│   │   ├── StatsView.vue      # 统计分析
+│   │   │
+│   │   ├── CodexMcpView.vue   # Codex MCP 子页面
+│   │   ├── CodexProfilesView.vue # Codex Profiles
+│   │   ├── GeminiMcpView.vue  # Gemini MCP 子页面
+│   │   ├── QwenMcpView.vue    # Qwen MCP 子页面
+│   │   └── IflowMcpView.vue   # IFLOW MCP 子页面
 │   │
 │   ├── components/            # 可复用组件
-│   │   ├── providers/        # Context Providers
-│   │   │   └── ThemeProvider.tsx
-│   │   ├── layout/           # 布局组件
-│   │   │   ├── Navbar.tsx
-│   │   │   ├── StatusHeader.tsx
-│   │   │   ├── CollapsibleSidebar.tsx
-│   │   │   └── VersionManager.tsx
-│   │   ├── sidebar/          # 侧边栏组件
-│   │   │   ├── LeftSidebar.tsx
-│   │   │   └── RightSidebar.tsx
-│   │   ├── history/          # 历史记录组件
-│   │   │   └── HistoryList.tsx
-│   │   └── ui/               # 基础 UI 组件
-│   │       ├── ThemeToggle.tsx
-│   │       └── UpdateModal.tsx
+│   │   ├── MainLayout.vue     # 主布局
+│   │   ├── Navbar.vue         # 顶部导航栏
+│   │   ├── CollapsibleSidebar.vue # 侧边栏
+│   │   ├── RightSidebar.vue   # 右侧边栏
+│   │   ├── StatusHeader.vue   # 状态头部
+│   │   ├── HistoryList.vue    # 历史记录列表
+│   │   ├── VersionManager.vue # 版本管理器
+│   │   ├── ThemeToggle.vue    # 主题切换
+│   │   ├── UpdateModal.vue    # 更新对话框
+│   │   ├── ConfigCard.vue     # 配置卡片
+│   │   ├── Button.vue         # 按钮组件
+│   │   ├── Card.vue           # 卡片组件
+│   │   ├── Input.vue          # 输入框组件
+│   │   └── Table.vue          # 表格组件
 │   │
-│   └── lib/                   # 工具库
-│       ├── api/              # API 客户端
-│       │   └── client.ts     # HTTP 客户端配置
-│       └── types/            # TypeScript 类型定义
-│           └── index.ts      # 通用类型
+│   ├── router/                # 路由配置
+│   │   └── index.ts           # Vue Router 配置
+│   │
+│   ├── stores/                # Pinia 状态管理
+│   │   ├── config.ts          # 配置状态
+│   │   ├── system.ts          # 系统状态
+│   │   └── theme.ts           # 主题状态
+│   │
+│   ├── api/                   # API 客户端
+│   │   └── client.ts          # HTTP 客户端和 API 调用
+│   │
+│   ├── types/                 # TypeScript 类型定义
+│   │   └── index.ts           # 通用类型
+│   │
+│   ├── styles/                # 全局样式
+│   │   └── main.css           # 主样式文件
+│   │
+│   └── utils/                 # 工具函数
+│       └── helpers.ts         # 辅助函数
 │
 ├── package.json              # 项目配置
-├── next.config.mjs           # Next.js 配置
-├── tailwind.config.ts        # Tailwind 配置
+├── vite.config.ts            # Vite 配置
+├── tailwind.config.js        # Tailwind 配置
 └── tsconfig.json             # TypeScript 配置
 ```
 
@@ -158,69 +161,94 @@ frontend/
 
 ### 本地状态
 
-使用 React 内置的 `useState` 和 `useEffect` 钩子管理组件本地状态：
+使用 Vue 3 的 Composition API 管理组件本地状态：
 
-```typescript
-'use client' // Client Component
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
 
-const [configs, setConfigs] = useState<Config[]>([]);
-const [loading, setLoading] = useState(false);
-const [error, setError] = useState<string | null>(null);
+const configs = ref<Config[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+</script>
 ```
 
-### 全局状态
+### 全局状态（Pinia）
 
-使用 Context API 和自定义 Provider 管理主题等全局状态：
+使用 Pinia 管理主题等全局状态：
 
 ```typescript
-// src/components/providers/ThemeProvider.tsx
-'use client'
+// src/stores/theme.ts
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+export const useThemeStore = defineStore('theme', () => {
+  const theme = ref<'light' | 'dark'>('light')
   
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light')
+    theme.value = theme.value === 'light' ? 'dark' : 'light'
   }
 
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  )
-}
+  return { theme, toggleTheme }
+})
+```
+
+使用示例：
+
+```vue
+<script setup lang="ts">
+import { useThemeStore } from '@/stores/theme'
+
+const themeStore = useThemeStore()
+</script>
+
+<template>
+  <button @click="themeStore.toggleTheme()">
+    切换主题
+  </button>
+</template>
 ```
 
 ## 🌐 路由配置
 
-使用 Next.js App Router 基于文件系统的路由：
+使用 Vue Router 4 进行路由管理：
 
-```
-app/
-├── layout.tsx              # 根布局（应用于所有页面）
-├── page.tsx                # 首页 Dashboard (/)
-│
-├── claude-code/page.tsx    # Claude Code 主页
-├── codex/page.tsx          # Codex 主页
-├── gemini-cli/page.tsx     # Gemini CLI 主页
-├── qwen/page.tsx           # Qwen 主页
-├── iflow/page.tsx          # IFLOW 主页
-│
-├── configs/page.tsx        # 配置管理页面
-├── sync/page.tsx           # 云同步页面
-├── mcp/page.tsx            # MCP 服务器管理
-├── slash-commands/page.tsx # Slash Commands 管理
-├── agents/page.tsx         # Agents 管理
-├── plugins/page.tsx        # 插件管理
-├── commands/               # 命令执行中心
-│   ├── page.tsx
-│   ├── ccr/page.tsx
-│   ├── claude-code/page.tsx
-│   ├── claude/page.tsx
-│   ├── qwen/page.tsx
-│   ├── gemini/page.tsx
-│   └── iflow/page.tsx
-└── converter/page.tsx      # 配置转换器
+```typescript
+// src/router/index.ts
+import { createRouter, createWebHistory } from 'vue-router'
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/',
+      component: () => import('@/components/MainLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'home',
+          component: () => import('@/views/HomeView.vue'),
+          meta: { cache: true }
+        },
+        // CLI 工具主页
+        {
+          path: 'claude-code',
+          name: 'claude-code',
+          component: () => import('@/views/ClaudeCodeView.vue')
+        },
+        {
+          path: 'codex',
+          name: 'codex',
+          component: () => import('@/views/CodexView.vue')
+        },
+        // ... 其他路由
+      ]
+    }
+  ],
+  scrollBehavior() {
+    return { top: 0 }
+  }
+})
 ```
 
 ### 路由结构（三级导航）
@@ -242,25 +270,29 @@ app/
 - `/slash-commands` - Slash Commands 管理
 - `/agents` - Agents 管理
 - `/plugins` - 插件管理
-- `/commands/*` - 命令执行中心（6 个 CLI 工具）
+- `/commands` - 命令执行中心
 - `/converter` - 配置转换器
+- `/stats` - 统计分析
 
-### 布局嵌套
+**子路由示例**
+- `/codex/mcp` - Codex MCP 配置
+- `/codex/profiles` - Codex Profiles
+- `/gemini-cli/mcp` - Gemini MCP 配置
+- `/qwen/mcp` - Qwen MCP 配置
+
+### 路由守卫
 
 ```typescript
-// app/layout.tsx - 根布局
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="zh-CN">
-      <body>
-        <ThemeProvider>
-          <Navbar />
-          {children}
-        </ThemeProvider>
-      </body>
-    </html>
-  )
-}
+// 全局前置守卫
+router.beforeEach((to, from, next) => {
+  // 路由切换逻辑
+  next()
+})
+
+// 全局后置钩子
+router.afterEach((to, from) => {
+  // 页面标题更新等
+})
 ```
 
 ## 📡 API 集成
@@ -482,86 +514,117 @@ export default nextConfig;
 
 ### 自动代码分割
 
-Next.js 自动为每个路由进行代码分割：
+Vue Router 支持路由级别的代码分割：
 
 ```typescript
-// app/configs/page.tsx
-// 自动代码分割，只在访问时加载
-export default function ConfigsPage() {
-  return <ConfigManagement />
-}
-
-// app/commands/page.tsx  
-// 独立的代码块
-export default function CommandsPage() {
-  return <CommandExecutor />
-}
+// 路由懒加载
+const routes = [
+  {
+    path: '/configs',
+    // 只在访问时加载，自动代码分割
+    component: () => import('@/views/ConfigsView.vue')
+  },
+  {
+    path: '/commands',
+    // 独立的代码块
+    component: () => import('@/views/CommandsView.vue')
+  }
+]
 ```
 
-### Server Components
+### 组件懒加载
 
-默认使用 Server Components 减少客户端 JavaScript：
+使用 `defineAsyncComponent` 进行组件级别的懒加载：
 
 ```typescript
-// 服务端组件（默认）
-export default function ServerComponent() {
-  const data = await fetchData() // 在服务器上执行
-  return <div>{data}</div>
-}
+import { defineAsyncComponent } from 'vue'
 
-// 客户端组件（需要声明）
-'use client'
-export default function ClientComponent() {
-  const [state, setState] = useState()
-  return <div>{state}</div>
-}
+// 异步组件
+const AsyncComp = defineAsyncComponent(() =>
+  import('./components/HeavyComponent.vue')
+)
 ```
 
-### Turbopack 性能
+### Vite 构建优化
 
-- **2-5x 更快的构建**：使用 Turbopack 替代 Webpack
-- **增量编译**：只重新编译修改的文件
-- **文件系统缓存**：开发模式下缓存编译结果
-- **热更新优化**：更快的 HMR（热模块替换）
+- **极速冷启动**：原生 ESM，无需打包即可启动
+- **按需编译**：只编译当前访问的代码
+- **智能依赖预构建**：使用 esbuild 预构建依赖
+- **增量更新**：HMR 只更新变更的模块
+- **代码分割**：自动分割 vendor 和业务代码
 
-### 图像优化
+### 资源优化
 
-- 自动 AVIF/WebP 格式转换
-- 响应式图片生成
-- 延迟加载
-- 模糊占位符
+```typescript
+// vite.config.ts
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'ui-vendor': ['lucide-vue-next'],
+          'http-vendor': ['axios']
+        }
+      }
+    }
+  }
+})
+```
 
 ## 🧪 测试策略
 
 ### 单元测试
 
-使用 Vitest 进行单元测试：
+使用 Vitest + @vue/test-utils 进行单元测试：
 
 ```typescript
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
-import App from './App';
+import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+import App from './App.vue'
 
 describe('App', () => {
   it('renders without crashing', () => {
-    render(<App />);
-    expect(screen.getByText('CCR UI')).toBeInTheDocument();
-  });
-});
+    const wrapper = mount(App)
+    expect(wrapper.text()).toContain('CCR UI')
+  })
+})
 ```
 
-### 集成测试
-
-使用 Cypress 进行端到端测试：
+### 组件测试
 
 ```typescript
-describe('Config Management', () => {
-  it('should load and display configs', () => {
-    cy.visit('/configs');
-    cy.get('[data-testid="config-list"]').should('be.visible');
-    cy.get('[data-testid="config-item"]').should('have.length.greaterThan', 0);
-  });
-});
+import { mount } from '@vue/test-utils'
+import ConfigCard from '@/components/ConfigCard.vue'
+
+describe('ConfigCard', () => {
+  it('displays config information', () => {
+    const wrapper = mount(ConfigCard, {
+      props: {
+        config: {
+          name: 'default',
+          model: 'claude-3-5-sonnet-20241022'
+        }
+      }
+    })
+    expect(wrapper.text()).toContain('default')
+  })
+})
+```
+
+### 端到端测试
+
+使用 Playwright 或 Cypress 进行 E2E 测试：
+
+```typescript
+import { test, expect } from '@playwright/test'
+
+test('should load and display configs', async ({ page }) => {
+  await page.goto('/configs')
+  await expect(page.locator('[data-testid="config-list"]')).toBeVisible()
+  const items = await page.locator('[data-testid="config-item"]').count()
+  expect(items).toBeGreaterThan(0)
+})
 ```
 
 ## 🚀 构建和部署
@@ -569,10 +632,11 @@ describe('Config Management', () => {
 ### 开发环境
 
 ```bash
-# 启动开发服务器（使用 Turbopack）
+# 启动开发服务器（使用 Vite）
 npm run dev
 
-# 开发服务器运行在 http://localhost:3000
+# 开发服务器运行在 http://localhost:5173
+# 支持热模块替换（HMR），极速冷启动
 ```
 
 ### 生产构建
@@ -581,26 +645,44 @@ npm run dev
 # 构建生产版本
 npm run build
 
-# 启动生产服务器
-npm run start
+# 预览生产构建
+npm run preview
 ```
 
 ### 构建产物
 
 ```
-.next/
-├── cache/              # 构建缓存
-├── server/             # 服务端代码
-├── static/             # 静态资源
-└── standalone/         # 独立部署包（可选）
+dist/
+├── assets/             # 静态资源（JS、CSS、图片等）
+│   ├── index-[hash].js
+│   ├── index-[hash].css
+│   └── *.svg
+└── index.html          # 入口 HTML 文件
 ```
+
+### 构建优化特性
+
+- **Tree-shaking**：自动移除未使用的代码
+- **代码分割**：按需加载，减小初始加载体积
+- **资源压缩**：自动压缩 JS、CSS 和图片
+- **哈希命名**：文件名包含内容哈希，便于缓存
+- **Legacy 支持**：可选的传统浏览器支持
 
 ### 部署选项
 
-1. **Vercel**（推荐）- Next.js 官方平台
+1. **静态托管**（推荐）- Vercel、Netlify、Cloudflare Pages
 2. **Docker** - 容器化部署
-3. **Node.js** - 传统服务器部署
-4. **静态导出** - `next export`（受限功能）
+3. **Nginx** - 传统 Web 服务器
+4. **Node.js** - 使用 Express 等框架提供静态文件服务
+
+### Docker 部署示例
+
+```dockerfile
+FROM nginx:alpine
+COPY dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
 
 ## 📚 相关文档
 

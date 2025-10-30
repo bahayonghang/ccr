@@ -32,53 +32,54 @@ ccr-ui/
 │   ├── examples/             # 示例配置文件
 │   │   └── settings.example.json
 │   └── README.md             # 后端说明文档
-├── frontend/                  # Next.js 16 Beta 前端应用
+├── frontend/                  # Vue 3 + Vite 前端应用
 │   ├── public/               # 静态资源
 │   │   └── vite.svg         # 应用图标
 │   ├── src/                 # 源代码
-│   │   ├── app/             # Next.js App Router
-│   │   │   ├── layout.tsx  # 根布局
-│   │   │   ├── page.tsx    # 首页
-│   │   │   ├── globals.css # 全局样式
-│   │   │   ├── configs/    # 配置管理页面
-│   │   │   │   └── page.tsx
-│   │   │   ├── commands/   # 命令执行页面
-│   │   │   │   └── page.tsx
-│   │   │   ├── mcp/        # MCP 服务器管理页面
-│   │   │   │   └── page.tsx
-│   │   │   ├── agents/     # Agent 管理页面
-│   │   │   │   └── page.tsx
-│   │   │   ├── plugins/    # 插件管理页面
-│   │   │   │   └── page.tsx
-│   │   │   └── slash-commands/ # 斜杠命令管理页面
-│   │   │       └── page.tsx
+│   │   ├── main.ts          # 应用入口
+│   │   ├── App.vue          # 根组件
+│   │   ├── views/           # 页面组件
+│   │   │   ├── HomeView.vue        # Dashboard 首页
+│   │   │   ├── ConfigsView.vue     # 配置管理
+│   │   │   ├── CommandsView.vue    # 命令执行
+│   │   │   ├── McpView.vue         # MCP 服务器管理
+│   │   │   ├── AgentsView.vue      # Agent 管理
+│   │   │   ├── PluginsView.vue     # 插件管理
+│   │   │   ├── SlashCommandsView.vue # 斜杠命令管理
+│   │   │   ├── SyncView.vue        # 云同步
+│   │   │   ├── StatsView.vue       # 统计分析
+│   │   │   └── ConverterView.vue   # 配置转换器
 │   │   ├── components/      # 可复用组件
-│   │   │   ├── providers/  # Context Providers
-│   │   │   │   └── ThemeProvider.tsx
-│   │   │   ├── layout/     # 布局组件
-│   │   │   │   ├── CollapsibleSidebar.tsx
-│   │   │   │   ├── Navbar.tsx
-│   │   │   │   ├── StatusHeader.tsx
-│   │   │   │   └── VersionManager.tsx
-│   │   │   ├── sidebar/    # 侧边栏组件
-│   │   │   │   ├── LeftSidebar.tsx
-│   │   │   │   └── RightSidebar.tsx
-│   │   │   ├── history/    # 历史记录组件
-│   │   │   │   └── HistoryList.tsx
-│   │   │   └── ui/         # 基础 UI 组件
-│   │   │       ├── ThemeToggle.tsx
-│   │   │       └── UpdateModal.tsx
-│   │   └── lib/            # 工具库
-│   │       ├── api/        # API 客户端
-│   │       │   └── client.ts
-│   │       └── types/      # TypeScript 类型定义
-│   │           └── index.ts
+│   │   │   ├── MainLayout.vue      # 主布局
+│   │   │   ├── Navbar.vue          # 导航栏
+│   │   │   ├── CollapsibleSidebar.vue # 侧边栏
+│   │   │   ├── RightSidebar.vue    # 右侧栏
+│   │   │   ├── StatusHeader.vue    # 状态头部
+│   │   │   ├── HistoryList.vue     # 历史记录
+│   │   │   ├── VersionManager.vue  # 版本管理器
+│   │   │   ├── ThemeToggle.vue     # 主题切换
+│   │   │   ├── UpdateModal.vue     # 更新对话框
+│   │   │   └── ConfigCard.vue      # 配置卡片
+│   │   ├── router/          # Vue Router 配置
+│   │   │   └── index.ts
+│   │   ├── stores/          # Pinia 状态管理
+│   │   │   ├── config.ts
+│   │   │   ├── theme.ts
+│   │   │   └── system.ts
+│   │   ├── api/             # API 客户端
+│   │   │   └── client.ts
+│   │   ├── types/           # TypeScript 类型定义
+│   │   │   └── index.ts
+│   │   ├── styles/          # 全局样式
+│   │   │   └── main.css
+│   │   └── utils/           # 工具函数
+│   │       └── helpers.ts
 │   ├── package.json        # Node.js 项目配置
-│   ├── next.config.mjs     # Next.js 配置
-│   ├── tailwind.config.ts  # Tailwind CSS 配置
-│   ├── postcss.config.mjs  # PostCSS 配置
+│   ├── vite.config.ts      # Vite 配置
+│   ├── tailwind.config.js  # Tailwind CSS 配置
+│   ├── postcss.config.js   # PostCSS 配置
 │   ├── tsconfig.json       # TypeScript 配置
-│   ├── .eslintrc.json      # ESLint 配置
+│   ├── .eslintrc.cjs       # ESLint 配置
 │   └── README.md           # 前端说明文档
 ├── docs/                   # 项目文档
 │   ├── .vitepress/         # VitePress 配置
@@ -155,15 +156,15 @@ executor/
     └── 超时处理、错误处理等功能
 ```
 
-## ⚛️ 前端结构详解 (Next.js 16 Beta)
+## ⚛️ 前端结构详解 (Vue 3 + Vite)
 
-### App Router 结构
+### Vue 应用结构
 
 ```
-src/app/                    # Next.js App Router
-├── layout.tsx             # 根布局（所有页面共享）
-├── page.tsx               # 首页 (/)
-├── globals.css            # 全局样式
+src/
+├── main.ts                # 应用入口
+├── App.vue                # 根组件
+├── views/                 # 页面组件
 ├── configs/               # 配置管理路由
 │   └── page.tsx          # 配置页面 (/configs)
 └── commands/              # 命令执行路由
@@ -204,14 +205,18 @@ src/lib/
 
 ### 路由与页面
 
-Next.js 16 使用文件系统路由：
+Vue Router 配置路由：
 
-| 文件路径 | URL 路由 | 描述 |
+| 路由路径 | 组件 | 描述 |
 |---------|---------|------|
-| `app/page.tsx` | `/` | 首页 |
-| `app/configs/page.tsx` | `/configs` | 配置管理页面 |
-| `app/commands/page.tsx` | `/commands` | 命令执行页面 |
-| `app/layout.tsx` | 所有页面 | 根布局（共享） |
+| `/` | `HomeView.vue` | Dashboard 首页 |
+| `/configs` | `ConfigsView.vue` | 配置管理页面 |
+| `/commands` | `CommandsView.vue` | 命令执行页面 |
+| `/mcp` | `McpView.vue` | MCP 服务器管理 |
+| `/agents` | `AgentsView.vue` | Agents 管理 |
+| `/plugins` | `PluginsView.vue` | 插件管理 |
+| `/sync` | `SyncView.vue` | 云同步 |
+| `/stats` | `StatsView.vue` | 统计分析 |
 
 ## 📚 文档结构
 
@@ -365,11 +370,11 @@ export default config
 ### 前端构建
 
 ```
-frontend/.next/
-├── cache/            # Turbopack 缓存
-├── server/           # 服务端渲染代码
-│   ├── app/         # App Router 页面
-│   └── chunks/      # 代码分块
+frontend/dist/
+├── assets/          # 构建后的资源
+│   ├── *.js        # JavaScript 文件
+│   ├── *.css       # CSS 文件
+│   └── *.svg       # SVG 图标
 ├── static/           # 静态资源
 │   ├── chunks/      # 客户端 JS 分块
 │   ├── css/         # 样式文件
@@ -390,8 +395,8 @@ backend/target/release/
 
 ```
 开发环境:
-├── 前端开发服务器 (localhost:3000) - Next.js + Turbopack
-├── 后端开发服务器 (localhost:8081) - Actix Web (Rust)
+├── 前端开发服务器 (localhost:5173) - Vite + Vue 3
+├── 后端开发服务器 (localhost:8081) - Axum (Rust)
 └── 文档开发服务器 (localhost:5174) - VitePress
 ```
 
@@ -399,7 +404,7 @@ backend/target/release/
 
 ```
 生产环境:
-├── Next.js 服务器 (Node.js) - SSR/SSG
+├── 静态文件服务器 (Nginx/Caddy) - 前端 SPA
 ├── 后端 API 服务器 (Rust 二进制)
 └── 文档站点 (静态部署)
 ```

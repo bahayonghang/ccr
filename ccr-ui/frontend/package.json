@@ -1,6 +1,6 @@
 {
   "name": "ccr-ui-frontend-vue",
-  "version": "2.3.0",
+  "version": "2.3.3",
   "private": true,
   "type": "module",
   "scripts": {

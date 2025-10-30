@@ -5,19 +5,28 @@
 default:
     @just --list
 
+# 检查依赖是否已安装
+_check-deps:
+    #!/usr/bin/env bash
+    if [ ! -d "node_modules" ]; then
+        echo "❌ 依赖未安装，正在自动安装..."
+        npm install
+        echo "✅ 依赖安装完成！"
+    fi
+
 # 安装依赖
 install:
     @echo "📦 安装 CCR UI 文档依赖..."
     npm install
 
 # 启动开发服务器
-dev:
+dev: _check-deps
     @echo "🚀 启动 CCR UI 文档开发服务器..."
     @echo "📝 访问 http://localhost:5173"
     npm run dev
 
 # 构建生产版本
-build:
+build: _check-deps
     @echo "🏗️  构建 CCR UI 文档生产版本..."
     npm run build
     @echo "✅ 构建完成！输出目录: .vitepress/dist"
@@ -109,8 +118,8 @@ fmt:
     @echo "✨ 格式化 CCR UI 文档 justfile..."
     just --fmt --unstable
 
-# 快速开发 - 安装依赖并启动开发服务器
-quick-dev: install dev
+# 快速开发 - 检查依赖并启动开发服务器
+quick-dev: dev
 
 # 快速部署 - 完整的部署流程
 quick-deploy: clean install build verify
@@ -118,35 +127,73 @@ quick-deploy: clean install build verify
 
 # 健康检查 - 检查项目状态
 health:
-    @echo "🏥 CCR UI 文档项目健康检查..."
-    @echo ""
-    @echo "📦 Node.js 版本:"
-    @node --version
-    @echo ""
-    @echo "📦 npm 版本:"
-    @npm --version
-    @echo ""
-    @echo "📁 项目目录:"
-    @pwd
-    @echo ""
-    @echo "📊 依赖状态:"
-    @if [ -d "node_modules" ]; then echo "✅ 依赖已安装"; else echo "❌ 依赖未安装 - 运行 'just install'"; fi
-    @echo ""
-    @echo "🏗️  构建状态:"
-    @if [ -d ".vitepress/dist" ]; then echo "✅ 已构建"; else echo "❌ 未构建 - 运行 'just build'"; fi
+    #!/usr/bin/env bash
+    echo "🏥 CCR UI 文档项目健康检查..."
+    echo ""
+    echo "📦 Node.js 版本:"
+    if command -v node &> /dev/null; then
+        node --version
+    else
+        echo "❌ Node.js 未安装"
+    fi
+    echo ""
+    echo "📦 npm 版本:"
+    if command -v npm &> /dev/null; then
+        npm --version
+    else
+        echo "❌ npm 未安装"
+    fi
+    echo ""
+    echo "📁 项目目录:"
+    pwd
+    echo ""
+    echo "📊 依赖状态:"
+    if [ -d "node_modules" ]; then
+        echo "✅ 依赖已安装"
+        if [ -f "node_modules/.bin/vitepress" ]; then
+            echo "✅ VitePress 已安装"
+        else
+            echo "⚠️  VitePress 未找到，尝试重新安装"
+        fi
+    else
+        echo "❌ 依赖未安装 - 运行 'just install' 或 'just dev'"
+    fi
+    echo ""
+    echo "🏗️  构建状态:"
+    if [ -d ".vitepress/dist" ]; then
+        echo "✅ 已构建"
+        echo "   文件数: $(find .vitepress/dist -type f | wc -l)"
+    else
+        echo "❌ 未构建 - 运行 'just build'"
+    fi
 
 # 显示项目信息
 info:
-    @echo "📋 CCR UI 文档项目信息"
-    @echo "========================"
-    @echo "项目名称: CCR UI Documentation"
-    @echo "文档引擎: VitePress"
-    @echo "开发端口: 5173"
-    @echo "预览端口: 4173"
-    @echo "构建目录: .vitepress/dist"
-    @echo ""
-    @echo "📚 文档结构:"
-    @echo "  - backend/     后端文档"
-    @echo "  - frontend/    前端文档"
-    @echo "  - guide/       用户指南"
-    @echo ""
+    #!/usr/bin/env bash
+    echo "📋 CCR UI 文档项目信息"
+    echo "========================"
+    echo "项目名称: CCR UI Documentation"
+    echo "文档引擎: VitePress"
+    echo "开发端口: 5173"
+    echo "预览端口: 4173"
+    echo "构建目录: .vitepress/dist"
+    echo ""
+    echo "📚 文档结构:"
+    echo "  - backend/     后端文档"
+    echo "  - frontend/    前端文档"
+    echo "  - guide/       用户指南"
+    echo ""
+    if [ -f "package.json" ]; then
+        echo "📦 主要依赖版本:"
+        if [ -d "node_modules" ]; then
+            if command -v jq &> /dev/null; then
+                jq -r '.dependencies | to_entries | .[] | "  - \(.key): \(.value)"' package.json 2>/dev/null || \
+                echo "  运行 'npm list --depth=0' 查看详细信息"
+            else
+                echo "  运行 'npm list --depth=0' 查看详细信息"
+            fi
+        else
+            echo "  ⚠️  依赖未安装"
+        fi
+        echo ""
+    fi

@@ -17,7 +17,7 @@ export default withMermaid(defineConfig({
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }],
     ['meta', { name: 'viewport', content: 'width=device-width, initial-scale=1.0' }],
-    ['meta', { name: 'keywords', content: 'CCR, Claude Code, 配置管理, React, Rust, 全栈应用' }]
+    ['meta', { name: 'keywords', content: 'CCR, Claude Code, 配置管理, Vue, Rust, 全栈应用' }]
   ],
   
   // Markdown 配置
@@ -62,7 +62,6 @@ export default withMermaid(defineConfig({
         text: '更多',
         items: [
           { text: '贡献指南', link: '/contributing' },
-          { text: '更新日志', link: '/changelog' },
           { text: 'FAQ', link: '/faq' }
         ]
       }
@@ -76,8 +75,7 @@ export default withMermaid(defineConfig({
           items: [
             { text: '快速开始', link: '/guide/getting-started' },
             { text: '项目结构', link: '/guide/project-structure' },
-            { text: '开发环境', link: '/guide/development-setup' },
-            { text: '构建部署', link: '/guide/build-deploy' }
+            { text: '统计功能', link: '/guide/stats' }
           ]
         }
       ],
@@ -104,7 +102,6 @@ export default withMermaid(defineConfig({
             { text: '技术栈', link: '/backend/tech-stack' },
             { text: '开发指南', link: '/backend/development' },
             { text: 'API 文档', link: '/backend/api' },
-            { text: '数据模型', link: '/backend/models' },
             { text: '错误处理', link: '/backend/error-handling' },
             { text: '部署指南', link: '/backend/deployment' }
           ]
@@ -184,8 +181,10 @@ export default withMermaid(defineConfig({
     darkModeSwitchTitle: '切换到深色模式'
   },
   
-  // 构建配置
-  build: {
-    outDir: '../dist/docs'
+  // Vite 配置
+  vite: {
+    build: {
+      outDir: '../dist/docs'
+    }
   }
 }))  // withMermaid 闭合括号

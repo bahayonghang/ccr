@@ -52,14 +52,14 @@ CCR UI 是一个现代化的全栈 Web 应用程序，专为多个 AI CLI 工具
 
 ### 🎨 前端技术栈
 
-- **Vue 3.5** - 渐进式 JavaScript 框架，提供响应式数据绑定和组件化开发
-- **Vite 7.1** - 下一代前端构建工具，极速的开发服务器和构建性能
-- **Vue Router 4.4** - Vue.js 官方路由管理器，支持嵌套路由和导航守卫
-- **Pinia 2.2** - Vue 的状态管理库，类型安全且开发友好
-- **TypeScript 5.7** - 类型安全的 JavaScript 超集
-- **Tailwind CSS 3.4** - 实用优先的 CSS 框架
-- **Lucide Vue Next** - 现代化图标库（Vue 版本）
-- **Axios 1.7** - 强大的 HTTP 客户端
+- **Vue 3.5.22** - 渐进式 JavaScript 框架，Composition API，响应式数据绑定
+- **Vite 7.1.11** - 下一代前端构建工具，极速冷启动和 HMR
+- **Vue Router 4.4.5** - Vue.js 官方路由管理器，支持嵌套路由和懒加载
+- **Pinia 2.2.6** - Vue 状态管理库，类型安全且 DevTools 友好
+- **TypeScript 5.7.3** - 类型安全的 JavaScript 超集
+- **Tailwind CSS 3.4.17** - 实用优先的 CSS 框架
+- **Lucide Vue Next 0.468.0** - 现代化图标库
+- **Axios 1.7.9** - 强大的 HTTP 客户端
 
 ### ⚙️ 后端技术栈
 

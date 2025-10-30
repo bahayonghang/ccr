@@ -19,7 +19,7 @@ CCR UI 的后端是一个基于 Rust 和 Axum 构建的高性能 Web 服务，�
 ```mermaid
 graph TB
     subgraph "前端层"
-        Frontend["React + TypeScript<br/>📱 http://localhost:5173"]
+        Frontend["Vue 3 + TypeScript<br/>📱 http://localhost:5173"]
     end
     
     subgraph "后端层 - Axum Server :8081"
@@ -121,7 +121,7 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    participant F as 前端 (React)
+    participant F as 前端 (Vue 3)
     participant S as Axum Server
     participant M as Middleware
     participant R as Router
