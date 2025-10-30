@@ -351,6 +351,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useConfigsStore, useUIStore } from '@/store'
 import {
   Cloud,
   Sparkles,

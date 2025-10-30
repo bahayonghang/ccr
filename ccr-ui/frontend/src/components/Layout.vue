@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Zap, Moon, Sun } from 'lucide-vue-next'
-import { useThemeStore } from '@/store/theme'
+import { useThemeStore } from '@/store'
 
 const themeStore = useThemeStore()
 

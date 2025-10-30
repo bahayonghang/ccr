@@ -1,8 +1,13 @@
 // Command Execution Handlers
-// Execute CCR CLI commands as subprocesses
+// Executes CCR CLI commands with various parameters
 
-use axum::{extract::Path, response::IntoResponse, Json};
+use axum::{
+    extract::Path,
+    response::IntoResponse,
+    Json,
+};
 
+use crate::errors::{ApiError, ApiResult};
 use crate::executor;
 use crate::models::*;
 
@@ -131,19 +136,37 @@ pub async fn list_commands() -> impl IntoResponse {
     ApiResponse::success(response)
 }
 
-/// GET /api/command/:command/help - Get help for a specific command
+/// GET /api/command/help/:command - Get help for a specific command
 pub async fn get_command_help(Path(command): Path<String>) -> impl IntoResponse {
-    // Execute "ccr <command> --help"
-    let args = vec![command.clone(), "--help".to_string()];
+    let result = executor::execute_command(vec![command.clone(), "--help".to_string()]).await;
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            if output.success {
-                ApiResponse::success(output.stdout)
-            } else {
-                ApiResponse::<String>::error(output.stderr)
-            }
-        }
+    match result {
+        Ok(output) if output.success => ApiResponse::success(output.stdout),
+        Ok(output) => ApiResponse::<String>::error(output.stderr),
         Err(e) => ApiResponse::<String>::error(e.to_string()),
     }
+}
+
+/// POST /api/command/execute/stream - Execute a command with streaming output (SSE)
+/// Note: Currently simplified - real implementation would use CommandService
+pub async fn execute_command_stream(
+    Json(req): Json<CommandRequest>,
+) -> ApiResult<Json<&'static str>> {
+    // Validate command
+    let allowed_commands = vec![
+        "list", "current", "switch", "validate", "optimize", "history", "clean", "export",
+        "import", "init", "version", "update", "build", "test",
+    ];
+
+    if !allowed_commands.contains(&req.command.as_str()) {
+        return Err(ApiError::bad_request(format!(
+            "Command '{}' is not allowed",
+            req.command
+        )));
+    }
+
+    // TODO: Implement actual streaming using CommandService
+    // Current limitation: lifecycle issues with SSE streams need resolution
+    // For now, return success message
+    Ok(Json("Streaming endpoint - implementation pending"))
 }

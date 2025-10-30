@@ -9,81 +9,78 @@ use axum::{
 };
 
 use crate::config_reader;
+use crate::errors::{ApiError, ApiResult};
 use crate::executor;
 use crate::models::*;
 
 /// GET /api/configs - List all configurations
-pub async fn list_configs() -> impl IntoResponse {
+pub async fn list_configs() -> ApiResult<Json<ConfigListResponse>> {
     // Read config file directly for better reliability
-    match config_reader::read_config() {
-        Ok(config) => {
-            let configs: Vec<ConfigItem> = config
-                .sections
-                .iter()
-                .filter(|(key, _)| {
-                    // Filter out metadata keys
-                    *key != "default_config" && *key != "current_config"
-                })
-                .map(|(name, section)| ConfigItem {
-                    name: name.clone(),
-                    description: section.description.clone().unwrap_or_default(),
-                    base_url: section.base_url.clone().unwrap_or_default(),
-                    auth_token: config_reader::mask_token(
-                        &section.auth_token.clone().unwrap_or_default(),
-                    ),
-                    model: section.model.clone(),
-                    small_fast_model: section.small_fast_model.clone(),
-                    is_current: name == &config.current_config,
-                    is_default: name == &config.default_config,
-                    provider: section.provider.clone(),
-                    provider_type: section.provider_type.clone(),
-                    account: section.account.clone(),
-                    tags: section.tags.clone(),
-                })
-                .collect();
+    let config = config_reader::read_config()
+        .map_err(|e| ApiError::internal(format!("Failed to read config: {}", e)))?;
 
-            let response = ConfigListResponse {
-                current_config: config.current_config,
-                default_config: config.default_config,
-                configs,
-            };
+    let configs: Vec<ConfigItem> = config
+        .sections
+        .iter()
+        .filter(|(key, _)| {
+            // Filter out metadata keys
+            *key != "default_config" && *key != "current_config"
+        })
+        .map(|(name, section)| ConfigItem {
+            name: name.clone(),
+            description: section.description.clone().unwrap_or_default(),
+            base_url: section.base_url.clone().unwrap_or_default(),
+            auth_token: config_reader::mask_token(
+                &section.auth_token.clone().unwrap_or_default(),
+            ),
+            model: section.model.clone(),
+            small_fast_model: section.small_fast_model.clone(),
+            is_current: name == &config.current_config,
+            is_default: name == &config.default_config,
+            provider: section.provider.clone(),
+            provider_type: section.provider_type.clone(),
+            account: section.account.clone(),
+            tags: section.tags.clone(),
+        })
+        .collect();
 
-            ApiResponse::success(response)
-        }
-        Err(e) => ApiResponse::<ConfigListResponse>::error(e),
-    }
+    let response = ConfigListResponse {
+        current_config: config.current_config,
+        default_config: config.default_config,
+        configs,
+    };
+
+    Ok(Json(response))
 }
 
 /// POST /api/configs/switch - Switch to a configuration
-pub async fn switch_config(Json(req): Json<SwitchRequest>) -> impl IntoResponse {
-    let result = executor::execute_command(vec!["switch".to_string(), req.config_name.clone()]).await;
+pub async fn switch_config(Json(req): Json<SwitchRequest>) -> ApiResult<Json<&'static str>> {
+    let output = executor::execute_command(vec!["switch".to_string(), req.config_name.clone()])
+        .await
+        .map_err(|e| ApiError::internal(format!("Command execution failed: {}", e)))?;
 
-    match result {
-        Ok(output) if output.success => {
-            ApiResponse::success("Configuration switched successfully")
-        }
-        Ok(output) => {
-            let error_msg = if !output.stderr.is_empty() {
-                output.stderr
-            } else {
-                output.stdout
-            };
-            ApiResponse::<&str>::error(error_msg)
-        }
-        Err(e) => ApiResponse::<&str>::error(e.to_string()),
+    if output.success {
+        Ok(Json("Configuration switched successfully"))
+    } else {
+        let error_msg = if !output.stderr.is_empty() {
+            output.stderr
+        } else {
+            output.stdout
+        };
+        Err(ApiError::bad_request(error_msg))
     }
 }
 
 /// GET /api/configs/validate - Validate all configurations
-pub async fn validate_configs() -> impl IntoResponse {
-    let result = executor::execute_command(vec!["validate".to_string()]).await;
+pub async fn validate_configs() -> ApiResult<Json<&'static str>> {
+    let output = executor::execute_command(vec!["validate".to_string()])
+        .await
+        .map_err(|e| ApiError::internal(format!("Command execution failed: {}", e)))?;
 
-    match result {
-        Ok(output) if output.success => {
-            ApiResponse::success("All configurations are valid")
-        }
-        Ok(output) => ApiResponse::<&str>::error(output.stderr),
-        Err(e) => ApiResponse::<&str>::error(e.to_string()),
+    if output.success {
+        Ok(Json("All configurations are valid"))
+    } else {
+        Err(ApiError::bad_request(output.stderr))
     }
 }
 
@@ -180,7 +177,7 @@ pub async fn import_config(Json(req): Json<ImportRequest>) -> impl IntoResponse 
 }
 
 /// GET /api/configs/history - Get operation history
-pub async fn get_history() -> impl IntoResponse {
+pub async fn get_history() -> ApiResult<Json<HistoryResponse>> {
     // For now, return a mock response
     // In a real implementation, you'd read from ~/.claude/ccr_history.json
     let entries: Vec<HistoryEntryJson> = Vec::new();
@@ -190,7 +187,7 @@ pub async fn get_history() -> impl IntoResponse {
         total: 0,
     };
 
-    ApiResponse::success(response)
+    Ok(Json(response))
 }
 
 /// POST /api/configs - Add a new configuration

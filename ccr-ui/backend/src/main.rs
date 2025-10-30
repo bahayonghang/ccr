@@ -11,6 +11,7 @@ use tower::ServiceBuilder;
 use tower_http::{
     compression::CompressionLayer,
     cors::{Any, CorsLayer},
+    request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
 };
 use tracing::{info, warn, Level};
@@ -22,8 +23,10 @@ mod codex_models;
 mod config_converter;
 mod config_reader;
 mod converter_models;
+mod errors;
 mod executor;
 mod gemini_config_manager;
+mod services;
 mod gemini_models;
 mod handlers;
 mod markdown_manager;
@@ -97,9 +100,15 @@ async fn main() -> std::io::Result<()> {
 
 /// Create the main application router with all middlewares and routes
 fn create_router() -> Router {
-    // Create middleware stack
+    // Note: Timeout and ConcurrencyLimit layers are applied at the server level
+    // to avoid error type conflicts. See main() function for their usage.
+    
+    // Create middleware stack (only infallible layers here)
     let middleware = ServiceBuilder::new()
-        // Logging middleware
+        // Request ID generation and propagation (must be first)
+        .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
+        .layer(PropagateRequestIdLayer::x_request_id())
+        // Logging middleware with request ID
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
@@ -133,6 +142,7 @@ fn create_router() -> Router {
         .route("/api/configs/:name", delete(handlers::config::delete_config))
         // Command execution endpoints
         .route("/api/command/execute", post(handlers::command::execute_command))
+        .route("/api/command/execute/stream", post(handlers::command::execute_command_stream))
         .route("/api/command/list", get(handlers::command::list_commands))
         .route("/api/command/help/:command", get(handlers::command::get_command_help))
         // System info endpoint

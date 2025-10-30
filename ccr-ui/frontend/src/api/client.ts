@@ -182,19 +182,19 @@ export const getCommandHelp = async (command: string): Promise<string> => {
 // ===================================
 
 export const listConfigs = async (): Promise<ConfigListResponse> => {
-  const response = await api.get<ApiResponse<ConfigListResponse>>('/configs')
-  return response.data.data!
+  const response = await api.get<ConfigListResponse>('/configs')
+  return response.data
 }
 
 export const switchConfig = async (configName: string): Promise<string> => {
   const request: SwitchRequest = { config_name: configName }
-  const response = await api.post<ApiResponse<string>>('/switch', request)
-  return response.data.data!
+  const response = await api.post<string>('/switch', request)
+  return response.data
 }
 
 export const validateConfigs = async (): Promise<string> => {
-  const response = await api.get<ApiResponse<string>>('/validate')
-  return response.data.data!
+  const response = await api.get<string>('/validate')
+  return response.data
 }
 
 export const cleanBackups = async (
@@ -223,8 +223,8 @@ export const importConfig = async (
 // ===================================
 
 export const getHistory = async (): Promise<HistoryResponse> => {
-  const response = await api.get<ApiResponse<HistoryResponse>>('/history')
-  return response.data.data!
+  const response = await api.get<HistoryResponse>('/history')
+  return response.data
 }
 
 export const getSystemInfo = async (): Promise<SystemInfo> => {

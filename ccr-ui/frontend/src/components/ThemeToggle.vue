@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useThemeStore } from '@/store/theme'
+import { useThemeStore } from '@/store'
 import { Moon, Sun } from 'lucide-vue-next'
 
 const themeStore = useThemeStore()
