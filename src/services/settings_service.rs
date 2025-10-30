@@ -32,8 +32,8 @@ impl SettingsService {
     }
 
     /// 🏠 使用默认设置管理器创建服务
-    pub fn default() -> Result<Self> {
-        let settings_manager = Arc::new(SettingsManager::default()?);
+    pub fn with_default() -> Result<Self> {
+        let settings_manager = Arc::new(SettingsManager::with_default()?);
         Ok(Self::new(settings_manager))
     }
 

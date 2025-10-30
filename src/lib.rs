@@ -54,7 +54,7 @@
 //! claude.apply_profile("my-profile")?;
 //!
 //! // 使用统一配置管理器
-//! let manager = PlatformConfigManager::default()?;
+//! let manager = PlatformConfigManager::with_default()?;
 //! let config = manager.load_or_create_default()?;
 //! println!("当前平台: {}", config.current_platform);
 //! # Ok::<(), ccr::CcrError>(())
@@ -110,7 +110,7 @@
 //! ```rust,no_run
 //! use ccr::LockManager;
 //!
-//! let lock_manager = LockManager::default()?;
+//! let lock_manager = LockManager::with_default_path()?;
 //! let _lock = lock_manager.lock_settings(std::time::Duration::from_secs(10))?;
 //! // 执行操作...
 //! // 锁在离开作用域时自动释放

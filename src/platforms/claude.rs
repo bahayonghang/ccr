@@ -51,10 +51,10 @@ impl ClaudePlatform {
     pub fn new() -> Result<Self> {
         let mode = Self::detect_mode()?;
         let paths = PlatformPaths::new(Platform::Claude)?;
-        let settings_manager = SettingsManager::default()?;
+        let settings_manager = SettingsManager::with_default()?;
 
         let config_manager = if matches!(mode, ConfigMode::Legacy) {
-            Some(ConfigManager::default()?)
+            Some(ConfigManager::with_default()?)
         } else {
             None
         };
@@ -338,7 +338,7 @@ impl PlatformConfig for ClaudePlatform {
 
         // 在 Unified 模式下，同步更新注册表中的 current_profile
         if matches!(self.mode, crate::models::ConfigMode::Unified) {
-            let platform_config_mgr = PlatformConfigManager::default()?;
+            let platform_config_mgr = PlatformConfigManager::with_default()?;
             let mut unified_config = platform_config_mgr.load()?;
 
             // 更新 Claude 平台的 current_profile
@@ -365,7 +365,7 @@ impl PlatformConfig for ClaudePlatform {
             ConfigMode::Legacy => self.get_current_profile_legacy(),
             ConfigMode::Unified => {
                 // 在 Unified 模式下，从注册表读取 current_profile
-                let platform_config_mgr = PlatformConfigManager::default()?;
+                let platform_config_mgr = PlatformConfigManager::with_default()?;
                 let unified_config = platform_config_mgr.load()?;
 
                 // 获取 Claude 平台的注册信息

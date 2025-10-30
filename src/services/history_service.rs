@@ -20,8 +20,8 @@ impl HistoryService {
     }
 
     /// 🏠 使用默认历史记录管理器创建服务
-    pub fn default() -> Result<Self> {
-        let history_manager = Arc::new(HistoryManager::default()?);
+    pub fn with_default() -> Result<Self> {
+        let history_manager = Arc::new(HistoryManager::with_default()?);
         Ok(Self::new(history_manager))
     }
 

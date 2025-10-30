@@ -249,7 +249,7 @@ impl PlatformConfig for CodexPlatform {
         self.save_settings(&settings)?;
 
         // 在 Unified 模式下，同步更新注册表中的 current_profile
-        let platform_config_mgr = PlatformConfigManager::default()?;
+        let platform_config_mgr = PlatformConfigManager::with_default()?;
         let mut unified_config = platform_config_mgr.load()?;
 
         // 更新 Codex 平台的 current_profile
@@ -288,7 +288,7 @@ impl PlatformConfig for CodexPlatform {
 
     fn get_current_profile(&self) -> Result<Option<String>> {
         // Codex 在 Unified 模式下，从注册表读取 current_profile
-        let platform_config_mgr = PlatformConfigManager::default()?;
+        let platform_config_mgr = PlatformConfigManager::with_default()?;
         let unified_config = platform_config_mgr.load()?;
 
         // 获取 Codex 平台的注册信息

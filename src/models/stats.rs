@@ -188,15 +188,15 @@ impl ModelPricing {
         let output_cost = (usage.output_tokens as f64) * self.output_price / 1_000_000.0;
 
         let mut cache_cost = 0.0;
-        if let Some(cache_write_tokens) = usage.cache_creation_tokens {
-            if let Some(cache_write_price) = self.cache_write_price {
-                cache_cost += (cache_write_tokens as f64) * cache_write_price / 1_000_000.0;
-            }
+        if let Some(cache_write_tokens) = usage.cache_creation_tokens
+            && let Some(cache_write_price) = self.cache_write_price
+        {
+            cache_cost += (cache_write_tokens as f64) * cache_write_price / 1_000_000.0;
         }
-        if let Some(cache_read_tokens) = usage.cache_read_tokens {
-            if let Some(cache_read_price) = self.cache_read_price {
-                cache_cost += (cache_read_tokens as f64) * cache_read_price / 1_000_000.0;
-            }
+        if let Some(cache_read_tokens) = usage.cache_read_tokens
+            && let Some(cache_read_price) = self.cache_read_price
+        {
+            cache_cost += (cache_read_tokens as f64) * cache_read_price / 1_000_000.0;
         }
 
         let total_cost = input_cost + output_cost + cache_cost;

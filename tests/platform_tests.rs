@@ -166,7 +166,7 @@ fn test_platform_paths_ensure_directories() {
 fn test_platform_config_manager_default() {
     let _temp_dir = setup_test_env();
 
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     assert!(
         manager
             .config_path()
@@ -182,7 +182,7 @@ fn test_platform_config_manager_default() {
 fn test_platform_config_manager_create_default() {
     let _temp_dir = setup_test_env();
 
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     let config = manager.load_or_create_default().unwrap();
 
     // 验证默认配置
@@ -198,12 +198,14 @@ fn test_platform_config_manager_create_default() {
 fn test_platform_config_manager_register_platform() {
     let _temp_dir = setup_test_env();
 
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     let mut config = manager.load_or_create_default().unwrap();
 
     // 注册新平台
-    let mut entry = ccr::PlatformConfigEntry::default();
-    entry.description = Some("Test Platform".to_string());
+    let entry = ccr::PlatformConfigEntry {
+        description: Some("Test Platform".to_string()),
+        ..Default::default()
+    };
     config.register_platform("test".to_string(), entry).unwrap();
 
     // 保存并重新加载
@@ -223,12 +225,14 @@ fn test_platform_config_manager_register_platform() {
 fn test_platform_config_manager_switch_platform() {
     let _temp_dir = setup_test_env();
 
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     let mut config = manager.load_or_create_default().unwrap();
 
     // 注册 Codex 平台
-    let mut entry = ccr::PlatformConfigEntry::default();
-    entry.description = Some("Codex Platform".to_string());
+    let entry = ccr::PlatformConfigEntry {
+        description: Some("Codex Platform".to_string()),
+        ..Default::default()
+    };
     config
         .register_platform("codex".to_string(), entry)
         .unwrap();
@@ -448,7 +452,7 @@ fn test_config_mode_detection() {
     let _temp_dir = setup_test_env();
 
     // 在 Unified 模式下，config.toml 存在
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     manager.load_or_create_default().unwrap();
 
     // 验证 config 文件存在
@@ -461,12 +465,14 @@ fn test_config_mode_detection() {
 fn test_unified_config_persistence() {
     let _temp_dir = setup_test_env();
 
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     let mut config = manager.load_or_create_default().unwrap();
 
     // 先注册 codex 平台
-    let mut entry = ccr::PlatformConfigEntry::default();
-    entry.description = Some("Codex Platform".to_string());
+    let entry = ccr::PlatformConfigEntry {
+        description: Some("Codex Platform".to_string()),
+        ..Default::default()
+    };
     config
         .register_platform("codex".to_string(), entry)
         .unwrap();

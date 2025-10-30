@@ -166,7 +166,7 @@ impl HistoryManager {
     ///
     /// ⚙️ **开发者注意**：
     /// 可以通过环境变量 `CCR_HISTORY_PATH` 覆盖默认路径
-    pub fn default() -> Result<Self> {
+    pub fn with_default() -> Result<Self> {
         // 🔍 检查环境变量
         let history_path = if let Ok(custom_path) = std::env::var("CCR_HISTORY_PATH") {
             std::path::PathBuf::from(custom_path)
@@ -177,7 +177,7 @@ impl HistoryManager {
         };
 
         log::debug!("使用历史路径: {:?}", &history_path);
-        let lock_manager = LockManager::default()?;
+        let lock_manager = LockManager::with_default_path()?;
 
         Ok(Self::new(history_path, lock_manager))
     }

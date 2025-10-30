@@ -95,7 +95,7 @@ impl SyncConfigManager {
     /// 1. CCR_SYNC_CONFIG_PATH 环境变量
     /// 2. ~/.ccr/sync.toml (Unified 模式)
     /// 3. ~/.ccs_sync.toml (Legacy 模式)
-    pub fn default() -> Result<Self> {
+    pub fn with_default() -> Result<Self> {
         // 1. 检查环境变量
         if let Ok(custom_path) = std::env::var("CCR_SYNC_CONFIG_PATH") {
             log::debug!("📁 使用环境变量指定的sync配置路径: {}", custom_path);
@@ -216,7 +216,7 @@ mod tests {
 
         // 加载
         let loaded = manager.load().unwrap();
-        assert_eq!(loaded.enabled, true);
+        assert!(loaded.enabled);
         assert_eq!(loaded.username, "test@example.com");
         assert_eq!(loaded.remote_path, "/ccr/");
     }

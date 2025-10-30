@@ -27,7 +27,7 @@ pub fn add_command() -> Result<()> {
     let name = prompt_required("配置名称", "例如: my_provider")?;
 
     // 检查配置是否已存在
-    let service = ConfigService::default()?;
+    let service = ConfigService::with_default()?;
     if service.load_config()?.sections.contains_key(&name) {
         ColorOutput::error(&format!("配置 '{}' 已存在", name));
         ColorOutput::info("提示: 使用 'ccr list' 查看已有配置");

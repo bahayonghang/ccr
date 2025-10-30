@@ -24,7 +24,7 @@ pub fn export_command(output: Option<String>, include_secrets: bool) -> Result<(
 
     // 加载当前配置
     ColorOutput::step("步骤 1/3: 读取配置");
-    let config_manager = ConfigManager::default()?;
+    let config_manager = ConfigManager::with_default()?;
     let config = config_manager.load()?;
     ColorOutput::success(&format!("已加载配置,共 {} 个配置节", config.sections.len()));
     println!();

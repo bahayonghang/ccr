@@ -129,7 +129,7 @@ pub fn init_command(force: bool) -> Result<()> {
 ///         └── backups/         # 备份目录
 /// ```
 fn init_unified_mode(force: bool) -> Result<()> {
-    let manager = PlatformConfigManager::default()?;
+    let manager = PlatformConfigManager::with_default()?;
     let config_path = manager.config_path();
 
     // 检查配置是否已存在
@@ -167,7 +167,7 @@ fn init_unified_mode(force: bool) -> Result<()> {
 
         // 备份现有配置
         ColorOutput::step("备份现有配置");
-        if let Ok(content) = fs::read_to_string(&config_path) {
+        if let Ok(content) = fs::read_to_string(config_path) {
             let backup_path = config_path.with_extension("toml.bak");
             fs::write(&backup_path, content)?;
             ColorOutput::success(&format!("已备份到: {}", backup_path.display()));
@@ -185,7 +185,7 @@ fn init_unified_mode(force: bool) -> Result<()> {
     let platforms_dir = ccr_root.join("platforms");
 
     // 创建根目录和平台目录
-    fs::create_dir_all(&platforms_dir).map_err(|e| CcrError::from(e))?;
+    fs::create_dir_all(&platforms_dir).map_err(CcrError::from)?;
 
     ColorOutput::success(&format!("✓ CCR 根目录: {}", ccr_root.display()));
     ColorOutput::success(&format!("✓ 平台目录: {}", platforms_dir.display()));

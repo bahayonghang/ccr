@@ -45,7 +45,7 @@ impl BackupService {
     /// 🏠 使用默认备份目录创建服务
     ///
     /// 默认目录: ~/.claude/backups
-    pub fn default() -> Result<Self> {
+    pub fn with_default() -> Result<Self> {
         let home =
             dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
         let backup_dir = home.join(".claude").join("backups");

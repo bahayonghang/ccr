@@ -31,10 +31,10 @@ impl EventHandler {
         }
     }
 
-    /// ⏭️ 获取下一个事件
+    /// 获取下一个事件
     ///
     /// 阻塞直到有事件发生或超时
-    pub fn next(&mut self) -> Result<Event> {
+    pub fn poll_event(&mut self) -> Result<Event> {
         if event::poll(self.tick_rate)? {
             match event::read()? {
                 CrosstermEvent::Key(key) => Ok(Event::Key(key)),

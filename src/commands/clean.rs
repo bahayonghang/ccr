@@ -24,7 +24,7 @@ pub fn clean_command(days: u64, dry_run: bool, force: bool) -> Result<()> {
     println!();
 
     // ⚡ 检查自动确认模式：--force 参数 OR 配置文件中的 skip_confirmation
-    let config_manager = ConfigManager::default()?;
+    let config_manager = ConfigManager::with_default()?;
     let config = config_manager.load()?;
     let skip_confirmation = force || config.settings.skip_confirmation;
 
@@ -33,7 +33,7 @@ pub fn clean_command(days: u64, dry_run: bool, force: bool) -> Result<()> {
     }
 
     // 使用 BackupService
-    let service = BackupService::default()?;
+    let service = BackupService::with_default()?;
     let backup_dir = service.backup_dir();
 
     if !backup_dir.exists() {

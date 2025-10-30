@@ -198,7 +198,7 @@ impl SettingsManager {
     /// export CCR_BACKUP_DIR=/tmp/ccr_dev_backups
     /// cargo run -- switch test
     /// ```
-    pub fn default() -> Result<Self> {
+    pub fn with_default() -> Result<Self> {
         // 🔍 检查环境变量
         let settings_path = if let Ok(custom_path) = std::env::var("CCR_SETTINGS_PATH") {
             std::path::PathBuf::from(custom_path)
@@ -216,7 +216,7 @@ impl SettingsManager {
             home.join(".claude").join("backups")
         };
 
-        let lock_manager = LockManager::default()?;
+        let lock_manager = LockManager::with_default_path()?;
 
         log::debug!("使用设置路径: {:?}", settings_path);
         log::debug!("使用备份目录: {:?}", backup_dir);
@@ -458,11 +458,11 @@ impl SettingsManager {
     /// - platform_name: 平台名称 ("claude", "codex", "gemini" 等)
     ///
     /// 注意: 此方法假设统一模式已启用。对于 Claude 平台，
-    /// 如果在 legacy 模式下，应使用 `SettingsManager::default()`
+    /// 如果在 legacy 模式下，应使用 `SettingsManager::with_default()`
     #[allow(dead_code)]
     pub fn for_platform(platform_name: &str) -> Result<Self> {
         let (settings_path, backup_dir) = Self::get_platform_paths(platform_name)?;
-        let lock_manager = LockManager::default()?;
+        let lock_manager = LockManager::with_default_path()?;
 
         log::debug!(
             "为平台 '{}' 创建 SettingsManager: {:?}",

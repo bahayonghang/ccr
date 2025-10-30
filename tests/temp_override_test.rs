@@ -66,12 +66,12 @@ fn test_temp_override_basic_workflow() {
     assert!(loaded_temp.is_some());
 
     let mut new_settings = settings_manager.load().unwrap();
-    if let Some(temp) = loaded_temp {
-        if let Some(temp_token) = &temp.auth_token {
-            new_settings
-                .env
-                .insert("ANTHROPIC_AUTH_TOKEN".to_string(), temp_token.clone());
-        }
+    if let Some(temp) = loaded_temp
+        && let Some(temp_token) = &temp.auth_token
+    {
+        new_settings
+            .env
+            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), temp_token.clone());
     }
     settings_manager.save_atomic(&new_settings).unwrap();
 
@@ -165,12 +165,12 @@ fn test_temp_override_no_interference_with_other_vars() {
 
     // 应用覆盖
     let mut new_settings = settings_manager.load().unwrap();
-    if let Some(temp) = temp_manager.load().unwrap() {
-        if let Some(token) = &temp.auth_token {
-            new_settings
-                .env
-                .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.clone());
-        }
+    if let Some(temp) = temp_manager.load().unwrap()
+        && let Some(token) = &temp.auth_token
+    {
+        new_settings
+            .env
+            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.clone());
     }
     settings_manager.save_atomic(&new_settings).unwrap();
 

@@ -64,11 +64,11 @@ fn run_app<B: ratatui::backend::Backend>(
         terminal.draw(|f| ui::draw(f, &mut app))?;
 
         // ⌨️ 处理事件
-        if let Event::Key(key) = event_handler.next()? {
-            if app.handle_key(key)? {
-                // 用户请求退出
-                return Ok(());
-            }
+        if let Event::Key(key) = event_handler.poll_event()?
+            && app.handle_key(key)?
+        {
+            // 用户请求退出
+            return Ok(());
         }
     }
 }

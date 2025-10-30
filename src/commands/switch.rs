@@ -35,7 +35,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     println!();
 
     // 🔍 检测配置模式
-    let unified_config = PlatformConfigManager::default()
+    let unified_config = PlatformConfigManager::with_default()
         .ok()
         .and_then(|mgr| mgr.load().ok());
     let is_unified_mode = unified_config.is_some();
@@ -98,7 +98,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
         // Legacy 模式: 从 ccs_config 加载
         ColorOutput::info(&format!("使用 {} 模式", "Legacy".bright_white()));
 
-        let config_manager = ConfigManager::default()?;
+        let config_manager = ConfigManager::with_default()?;
         let config = config_manager.load()?;
 
         config
@@ -121,7 +121,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
 
     // 💾 步骤 2: 备份当前设置
     ColorOutput::step("步骤 2/5: 备份当前设置");
-    let settings_manager = SettingsManager::default()?;
+    let settings_manager = SettingsManager::with_default()?;
 
     let backup_path = if settings_manager.settings_path().exists() {
         let path = settings_manager.backup(Some(config_name))?;
@@ -180,7 +180,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
         old_current
     } else {
         // Legacy 模式: 更新 ccs_config 的 current_config
-        let config_manager = ConfigManager::default()?;
+        let config_manager = ConfigManager::with_default()?;
         let mut config = config_manager.load()?;
 
         let old_current = config.current_config.clone();
@@ -196,7 +196,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
 
     // 📚 步骤 5: 记录历史(包含环境变量变化的掩码记录)
     ColorOutput::step("步骤 5/5: 记录操作历史");
-    let history_manager = HistoryManager::default()?;
+    let history_manager = HistoryManager::with_default()?;
 
     let mut history_entry = HistoryEntry::new(
         OperationType::Switch,

@@ -16,6 +16,9 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+/// Gemini字段提取结果: (api_key, region, language, context_length)
+type GeminiFields = (String, Option<String>, Option<String>, Option<String>);
+
 /// ✨ Gemini Platform 实现
 ///
 /// ## 配置文件
@@ -152,9 +155,7 @@ impl GeminiPlatform {
     }
 
     /// 📋 从 ProfileConfig 提取 Gemini 特定字段
-    fn extract_gemini_fields(
-        profile: &ProfileConfig,
-    ) -> Result<(String, Option<String>, Option<String>, Option<String>)> {
+    fn extract_gemini_fields(profile: &ProfileConfig) -> Result<GeminiFields> {
         let api_key = profile
             .auth_token
             .as_ref()
@@ -251,7 +252,7 @@ impl PlatformConfig for GeminiPlatform {
         self.save_settings(&settings)?;
 
         // 在 Unified 模式下，同步更新注册表中的 current_profile
-        let platform_config_mgr = PlatformConfigManager::default()?;
+        let platform_config_mgr = PlatformConfigManager::with_default()?;
         let mut unified_config = platform_config_mgr.load()?;
 
         // 更新 Gemini 平台的 current_profile
@@ -282,7 +283,7 @@ impl PlatformConfig for GeminiPlatform {
 
     fn get_current_profile(&self) -> Result<Option<String>> {
         // Gemini 在 Unified 模式下，从注册表读取 current_profile
-        let platform_config_mgr = PlatformConfigManager::default()?;
+        let platform_config_mgr = PlatformConfigManager::with_default()?;
         let unified_config = platform_config_mgr.load()?;
 
         // 获取 Gemini 平台的注册信息

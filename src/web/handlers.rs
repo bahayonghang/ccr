@@ -84,7 +84,7 @@ impl AppState {
     /// - 外部修改了配置文件
     /// - 平台切换后刷新配置
     pub fn reload_config_cache(&self) -> Result<(), CcrError> {
-        let config_manager = crate::managers::ConfigManager::default()?;
+        let config_manager = crate::managers::ConfigManager::with_default()?;
         let new_config = config_manager.load()?;
 
         let mut cache = self
@@ -132,7 +132,7 @@ pub async fn handle_list_configs(AxumState(_state): AxumState<AppState>) -> Resp
     // 这样在 Unified 模式下切换平台后，能正确读取新平台的配置
     let result = tokio::task::spawn_blocking(move || {
         // 重新创建 ConfigService，它会自动检测当前平台
-        let config_service = crate::services::ConfigService::default()?;
+        let config_service = crate::services::ConfigService::with_default()?;
         config_service.list_configs()
     })
     .await
@@ -312,7 +312,7 @@ pub async fn handle_delete_config(
 /// 获取同步状态
 pub async fn handle_sync_status() -> Response {
     // 从独立的sync配置文件加载
-    let sync_manager = match SyncConfigManager::default() {
+    let sync_manager = match SyncConfigManager::with_default() {
         Ok(m) => m,
         Err(e) => {
             let error_response: crate::web::models::ApiResponse<()> =
@@ -342,24 +342,24 @@ pub async fn handle_sync_status() -> Response {
         remote_exists: None,
     };
 
-    if sync.enabled {
-        if let Ok(local_path) = get_ccr_sync_path() {
-            response.local_path = Some(local_path.display().to_string());
-            let sync_type = if local_path.is_dir() {
-                "directory"
-            } else {
-                "file"
-            };
-            response.sync_type = Some(sync_type.to_string());
+    if sync.enabled
+        && let Ok(local_path) = get_ccr_sync_path()
+    {
+        response.local_path = Some(local_path.display().to_string());
+        let sync_type = if local_path.is_dir() {
+            "directory"
+        } else {
+            "file"
+        };
+        response.sync_type = Some(sync_type.to_string());
 
-            // 检查远程是否存在（直接异步调用）
-            match SyncService::new(&sync).await {
-                Ok(service) => match service.remote_exists().await {
-                    Ok(exists) => response.remote_exists = Some(exists),
-                    Err(_) => response.remote_exists = Some(false),
-                },
+        // 检查远程是否存在（直接异步调用）
+        match SyncService::new(&sync).await {
+            Ok(service) => match service.remote_exists().await {
+                Ok(exists) => response.remote_exists = Some(exists),
                 Err(_) => response.remote_exists = Some(false),
-            }
+            },
+            Err(_) => response.remote_exists = Some(false),
         }
     }
 
@@ -370,7 +370,7 @@ pub async fn handle_sync_status() -> Response {
 pub async fn handle_sync_config(
     Json(req): Json<crate::web::models::SyncConfigRequest>,
 ) -> Response {
-    let sync_manager = match SyncConfigManager::default() {
+    let sync_manager = match SyncConfigManager::with_default() {
         Ok(m) => m,
         Err(e) => {
             let error_response: crate::web::models::ApiResponse<()> =
@@ -422,7 +422,7 @@ pub async fn handle_sync_config(
 pub async fn handle_sync_push(
     Json(req): Json<crate::web::models::SyncOperationRequest>,
 ) -> Response {
-    let sync_manager = match SyncConfigManager::default() {
+    let sync_manager = match SyncConfigManager::with_default() {
         Ok(m) => m,
         Err(e) => {
             let error_response: crate::web::models::ApiResponse<()> =
@@ -499,7 +499,7 @@ pub async fn handle_sync_push(
 pub async fn handle_sync_pull(
     Json(_req): Json<crate::web::models::SyncOperationRequest>,
 ) -> Response {
-    let sync_manager = match SyncConfigManager::default() {
+    let sync_manager = match SyncConfigManager::with_default() {
         Ok(m) => m,
         Err(e) => {
             let error_response: crate::web::models::ApiResponse<()> =
@@ -609,7 +609,7 @@ pub async fn handle_get_history(AxumState(state): AxumState<AppState>) -> Respon
 
 /// 处理验证配置
 pub async fn handle_validate() -> Response {
-    let result = tokio::task::spawn_blocking(|| crate::commands::validate_command())
+    let result = tokio::task::spawn_blocking(crate::commands::validate_command)
         .await
         .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
 

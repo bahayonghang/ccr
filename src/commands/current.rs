@@ -34,7 +34,7 @@ pub fn current_command() -> Result<()> {
     ColorOutput::title("当前配置状态");
 
     // 🔍 检测配置模式
-    let unified_config = PlatformConfigManager::default()
+    let unified_config = PlatformConfigManager::with_default()
         .ok()
         .and_then(|mgr| mgr.load().ok());
     let is_unified_mode = unified_config.is_some();
@@ -156,7 +156,7 @@ pub fn current_command() -> Result<()> {
         )
     } else {
         // Legacy 模式：从 ConfigService 读取
-        let config_service = ConfigService::default()?;
+        let config_service = ConfigService::with_default()?;
         let config = config_service.load_config()?;
         let section = config.get_current_section()?.clone();
         let current = config.current_config.clone();
@@ -299,7 +299,7 @@ pub fn current_command() -> Result<()> {
     ColorOutput::step("🌍 Claude Code 环境变量状态");
     println!();
 
-    match SettingsService::default() {
+    match SettingsService::with_default() {
         Ok(settings_service) => {
             match settings_service.get_current_settings() {
                 Ok(settings) => {

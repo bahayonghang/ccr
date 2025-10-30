@@ -23,7 +23,7 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
     println!();
 
     // 使用 HistoryService
-    let service = HistoryService::default()?;
+    let service = HistoryService::with_default()?;
 
     // 获取历史记录
     let entries = if let Some(type_str) = filter_type {

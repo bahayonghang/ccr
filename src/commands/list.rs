@@ -25,7 +25,7 @@ pub fn list_command() -> Result<()> {
     ColorOutput::title("可用配置列表");
 
     // 🔍 检测配置模式
-    let unified_config = PlatformConfigManager::default()
+    let unified_config = PlatformConfigManager::with_default()
         .ok()
         .and_then(|mgr| mgr.load().ok());
     let is_unified_mode = unified_config.is_some();
@@ -49,7 +49,7 @@ pub fn list_command() -> Result<()> {
     }
 
     // 使用 ConfigService
-    let service = ConfigService::default()?;
+    let service = ConfigService::with_default()?;
     let list = service.list_configs()?;
     let config = service.load_config()?;
 

@@ -307,7 +307,7 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
     let mut lines = vec![Line::from("")];
 
     // 从独立文件加载sync配置
-    let sync_config_result = SyncConfigManager::default().and_then(|m| m.load());
+    let sync_config_result = SyncConfigManager::with_default().and_then(|m| m.load());
 
     match sync_config_result {
         Ok(sync_config) if sync_config.enabled => {

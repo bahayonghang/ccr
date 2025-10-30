@@ -23,7 +23,7 @@ pub fn delete_command(config_name: &str, force: bool) -> Result<()> {
     println!();
 
     // 使用 ConfigService
-    let service = ConfigService::default()?;
+    let service = ConfigService::with_default()?;
     let config = service.load_config()?;
 
     // ⚡ 检查自动确认模式: --force 参数 或 配置文件中的 skip_confirmation
@@ -168,7 +168,7 @@ mod tests {
         manager.save(&config).unwrap();
 
         // 尝试删除不存在的配置应该失败
-        // 由于需要 ConfigService::default()，这里只测试逻辑
+        // 由于需要 ConfigService::with_default()，这里只测试逻辑
     }
 
     #[test]

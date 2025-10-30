@@ -32,7 +32,7 @@ pub fn temp_token_set(token: &str, base_url: Option<String>, model: Option<Strin
     println!();
 
     // 创建设置管理器
-    let settings_manager = SettingsManager::default()?;
+    let settings_manager = SettingsManager::with_default()?;
 
     // 读取当前设置
     let mut current_settings = settings_manager.load()?;
@@ -94,7 +94,7 @@ pub fn temp_token_show() -> Result<()> {
     ColorOutput::title("临时配置状态");
     println!();
 
-    let manager = TempOverrideManager::default()?;
+    let manager = TempOverrideManager::with_default()?;
 
     match manager.load()? {
         Some(temp_override) => {
@@ -120,7 +120,7 @@ pub fn temp_token_clear() -> Result<()> {
     ColorOutput::title("清除临时配置");
     println!();
 
-    let manager = TempOverrideManager::default()?;
+    let manager = TempOverrideManager::with_default()?;
 
     if !manager.override_path().exists() {
         ColorOutput::info("📝 当前没有临时配置需要清除");

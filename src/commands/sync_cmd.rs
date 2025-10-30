@@ -70,7 +70,7 @@ pub fn sync_config_command() -> Result<()> {
 
     // 保存配置到独立的 sync.toml 文件
     ColorOutput::step("保存同步配置");
-    let sync_manager = SyncConfigManager::default()?;
+    let sync_manager = SyncConfigManager::with_default()?;
     sync_manager.save(&sync_config)?;
 
     ColorOutput::success("✓ 同步配置已保存");
@@ -93,7 +93,7 @@ pub fn sync_status_command() -> Result<()> {
     ColorOutput::title("☁️  WebDAV 同步状态");
     println!();
 
-    let sync_manager = SyncConfigManager::default()?;
+    let sync_manager = SyncConfigManager::with_default()?;
     let sync_config = sync_manager.load()?;
 
     if sync_config.enabled {
@@ -214,7 +214,7 @@ pub fn sync_push_command(force: bool) -> Result<()> {
     ColorOutput::title("🔼  上传配置到云端");
     println!();
 
-    let sync_manager = SyncConfigManager::default()?;
+    let sync_manager = SyncConfigManager::with_default()?;
     let sync_config = sync_manager.load()?;
 
     if !sync_config.enabled {
@@ -269,7 +269,7 @@ pub fn sync_push_command(force: bool) -> Result<()> {
 
             if !confirm.trim().eq_ignore_ascii_case("y") {
                 println!();
-                println!("{}  {}", "ℹ".blue().bold(), "已取消上传");
+                println!("{}  已取消上传", "ℹ".blue().bold());
                 return Ok(());
             }
             println!();
@@ -315,7 +315,7 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     ColorOutput::title("🔽  从云端下载配置");
     println!();
 
-    let sync_manager = SyncConfigManager::default()?;
+    let sync_manager = SyncConfigManager::with_default()?;
     let sync_config = sync_manager.load()?;
 
     if !sync_config.enabled {
@@ -361,7 +361,7 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
 
         if !confirm.trim().eq_ignore_ascii_case("y") {
             println!();
-            println!("{}  {}", "ℹ".blue().bold(), "已取消下载");
+            println!("{}  已取消下载", "ℹ".blue().bold());
             return Ok(());
         }
         println!();
@@ -412,7 +412,7 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
         } else {
             // 对于单个配置文件，使用 ConfigManager 的备份功能
             use crate::managers::config::ConfigManager;
-            let config_manager = ConfigManager::default()?;
+            let config_manager = ConfigManager::with_default()?;
             config_manager.backup(Some("before_pull"))?
         };
 

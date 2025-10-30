@@ -464,7 +464,7 @@ impl ConfigManager {
     /// export CCR_CONFIG_PATH=/tmp/ccr_dev_config.toml
     /// cargo run -- init
     /// ```
-    pub fn default() -> Result<Self> {
+    pub fn with_default() -> Result<Self> {
         // 🔍 首先检测是否为 Unified 模式
         let (is_unified, unified_config_path) = Self::detect_unified_mode();
 

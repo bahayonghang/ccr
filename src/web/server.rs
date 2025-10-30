@@ -30,10 +30,10 @@ pub struct WebServer {
 impl WebServer {
     /// 🏗️ 创建新的 Web 服务器
     pub fn new(port: u16) -> Result<Self> {
-        let config_service = Arc::new(ConfigService::default()?);
-        let settings_service = Arc::new(SettingsService::default()?);
-        let history_service = Arc::new(HistoryService::default()?);
-        let backup_service = Arc::new(BackupService::default()?);
+        let config_service = Arc::new(ConfigService::with_default()?);
+        let settings_service = Arc::new(SettingsService::with_default()?);
+        let history_service = Arc::new(HistoryService::with_default()?);
+        let backup_service = Arc::new(BackupService::with_default()?);
 
         // 🎯 创建系统信息缓存，每 2 秒更新一次
         let system_info_cache = Arc::new(SystemInfoCache::new(Duration::from_secs(2)));
@@ -71,7 +71,7 @@ impl WebServer {
         }
 
         // 🎯 加载初始配置到缓存
-        let config_manager = crate::managers::ConfigManager::default()?;
+        let config_manager = crate::managers::ConfigManager::with_default()?;
         let initial_config = config_manager.load()?;
 
         // 创建共享状态

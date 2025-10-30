@@ -103,7 +103,7 @@ fn test_legacy_mode_detection() {
     create_legacy_config(&temp_dir);
 
     // 检测应该识别为 Legacy 模式
-    let manager = ConfigManager::default().unwrap();
+    let manager = ConfigManager::with_default().unwrap();
     let config = manager.load().unwrap();
 
     // Legacy 模式下应该能正常读取配置
@@ -124,7 +124,7 @@ fn test_legacy_config_reading_compatibility() {
 
     create_legacy_config(&temp_dir);
 
-    let manager = ConfigManager::default().unwrap();
+    let manager = ConfigManager::with_default().unwrap();
     let config = manager.load().unwrap();
 
     // 验证 Legacy 配置字段正确读取
@@ -159,7 +159,7 @@ fn test_legacy_config_modification_compatibility() {
 
     create_legacy_config(&temp_dir);
 
-    let manager = ConfigManager::default().unwrap();
+    let manager = ConfigManager::with_default().unwrap();
     let mut config = manager.load().unwrap();
 
     // 修改 Legacy 配置
@@ -187,13 +187,13 @@ fn test_unified_mode_fresh_install() {
     let temp_dir = setup_test_env();
 
     // 不创建任何 Legacy 配置，直接使用 Unified 模式
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     let config = manager.load_or_create_default().unwrap();
 
     // 应该默认创建 Claude 平台配置
     assert_eq!(config.current_platform, "claude");
     assert!(config.platforms.contains_key("claude"));
-    assert_eq!(config.platforms.get("claude").unwrap().enabled, true);
+    assert!(config.platforms.get("claude").unwrap().enabled);
 
     cleanup_test_env(temp_dir);
 }
@@ -223,7 +223,7 @@ fn test_platform_paths_backward_compatibility() {
     fs::write(&settings_path, old_settings).unwrap();
 
     // SettingsManager 应该能读取旧配置
-    let manager = SettingsManager::default().unwrap();
+    let manager = SettingsManager::with_default().unwrap();
     let settings = manager.load().unwrap();
 
     // 验证 settings 可以正常加载（检查 env 或 other 字段）
@@ -240,7 +240,7 @@ fn test_platform_paths_backward_compatibility() {
 fn test_empty_config_file_handling() {
     let temp_dir = setup_test_env();
 
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
 
     // 不创建任何文件，直接使用 load_or_create_default
     // 这应该创建默认配置
@@ -274,7 +274,7 @@ fn test_corrupted_config_recovery() {
     let config_path = ccr_dir.join("config.toml");
     fs::write(&config_path, "invalid toml content {{{").unwrap();
 
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
 
     // 加载损坏的文件应该失败
     let result = manager.load();
@@ -303,14 +303,14 @@ fn test_multi_platform_does_not_break_single_platform() {
     create_legacy_config(&temp_dir);
 
     // 使用 Legacy ConfigManager
-    let legacy_manager = ConfigManager::default().unwrap();
+    let legacy_manager = ConfigManager::with_default().unwrap();
     let legacy_config = legacy_manager.load().unwrap();
 
     // 验证 Legacy 配置正常
     assert_eq!(legacy_config.default_config, "anthropic");
 
     // 现在创建 Unified 配置
-    let unified_manager = PlatformConfigManager::default().unwrap();
+    let unified_manager = PlatformConfigManager::with_default().unwrap();
     let unified_config = unified_manager.load_or_create_default().unwrap();
 
     // Unified 配置也应该正常工作
@@ -415,7 +415,7 @@ fn test_large_number_of_profiles_performance() {
 fn test_platform_switch_preserves_configs() {
     let temp_dir = setup_test_env();
 
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     let mut config = manager.load_or_create_default().unwrap();
 
     // 为 Claude 设置配置
@@ -425,9 +425,11 @@ fn test_platform_switch_preserves_configs() {
     }
 
     // 注册 Codex
-    let mut codex_entry = ccr::PlatformConfigEntry::default();
-    codex_entry.enabled = true;
-    codex_entry.description = Some("My Codex Config".to_string());
+    let codex_entry = ccr::PlatformConfigEntry {
+        enabled: true,
+        description: Some("My Codex Config".to_string()),
+        ..Default::default()
+    };
     config
         .register_platform("codex".to_string(), codex_entry)
         .unwrap();

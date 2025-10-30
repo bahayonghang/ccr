@@ -35,7 +35,7 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool, force: bool
     println!();
 
     // ⚡ 检查自动确认模式：--force 参数 OR 配置文件中的 skip_confirmation
-    let config_manager = ConfigManager::default()?;
+    let config_manager = ConfigManager::with_default()?;
     let config = config_manager.load().unwrap_or_else(|_| {
         // 如果配置文件不存在，使用默认配置（skip_confirmation = false）
         CcsConfig {
@@ -93,7 +93,7 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool, force: bool
     // 备份现有配置(如果需要)
     if backup {
         ColorOutput::step("步骤 3/4: 备份当前配置");
-        let config_manager = ConfigManager::default()?;
+        let config_manager = ConfigManager::with_default()?;
         if config_manager.config_path().exists() {
             backup_current_config(&config_manager)?;
         } else {
@@ -146,7 +146,7 @@ fn backup_current_config(config_manager: &ConfigManager) -> Result<()> {
 
 /// 根据模式导入配置
 fn import_config_with_mode(import_config: CcsConfig, mode: ImportMode) -> Result<ImportResult> {
-    let config_manager = ConfigManager::default()?;
+    let config_manager = ConfigManager::with_default()?;
 
     let result = match mode {
         ImportMode::Merge => {
@@ -203,7 +203,7 @@ fn merge_configs(current: &mut CcsConfig, import: CcsConfig) -> Result<ImportRes
     // 但保持 current_config 不变
     current.default_config = import.default_config;
 
-    let config_manager = ConfigManager::default()?;
+    let config_manager = ConfigManager::with_default()?;
     config_manager.save(current)?;
 
     Ok(result)

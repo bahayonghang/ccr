@@ -117,6 +117,7 @@ impl FileLock {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(true)
             .open(&lock_path)
             .map_err(|e| CcrError::FileLockError(format!("无法打开锁文件: {}", e)))?;
 
@@ -188,7 +189,7 @@ impl LockManager {
     ///
     /// ⚙️ **开发者注意**：
     /// 可以通过环境变量 `CCR_LOCK_DIR` 覆盖默认路径
-    pub fn default() -> Result<Self> {
+    pub fn with_default_path() -> Result<Self> {
         // 🔍 检查环境变量
         let lock_dir = if let Ok(custom_dir) = std::env::var("CCR_LOCK_DIR") {
             std::path::PathBuf::from(custom_dir)
@@ -224,7 +225,7 @@ impl LockManager {
     /// ```rust,ignore
     /// use std::time::Duration;
     ///
-    /// let lock_manager = LockManager::default()?;
+    /// let lock_manager = LockManager::with_default_path()?;
     /// let _lock = lock_manager.lock_resource("my_data", Duration::from_secs(5))?;
     /// // 持有锁期间执行操作
     /// // 锁在离开作用域时自动释放

@@ -67,10 +67,7 @@ impl AtomicWriter {
         // 📁 确保目标目录存在
         if let Some(parent) = self.target_path.parent() {
             fs::create_dir_all(parent).map_err(|e| {
-                CcrError::IoError(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("创建目录失败: {}", e),
-                ))
+                CcrError::IoError(std::io::Error::other(format!("创建目录失败: {}", e)))
             })?;
         }
 
@@ -81,26 +78,17 @@ impl AtomicWriter {
             NamedTempFile::new()
         }
         .map_err(|e| {
-            CcrError::IoError(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("创建临时文件失败: {}", e),
-            ))
+            CcrError::IoError(std::io::Error::other(format!("创建临时文件失败: {}", e)))
         })?;
 
         // ✍️ 写入内容
         fs::write(temp_file.path(), content).map_err(|e| {
-            CcrError::IoError(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("写入临时文件失败: {}", e),
-            ))
+            CcrError::IoError(std::io::Error::other(format!("写入临时文件失败: {}", e)))
         })?;
 
         // 🔄 原子替换(这是关键操作)
         temp_file.persist(&self.target_path).map_err(|e| {
-            CcrError::IoError(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("原子替换文件失败: {}", e),
-            ))
+            CcrError::IoError(std::io::Error::other(format!("原子替换文件失败: {}", e)))
         })?;
 
         log::debug!("✅ 文件已原子写入: {:?}", self.target_path);

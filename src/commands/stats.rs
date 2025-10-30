@@ -161,14 +161,14 @@ async fn cost_stats_command(args: CostStatsArgs) -> Result<()> {
     }
 
     // 趋势数据
-    if args.details {
-        if let Some(trend) = &stats.trend {
-            ColorOutput::success("📈 每日趋势:");
-            for daily in trend.iter().rev().take(7).rev() {
-                println!("  {} - ${:.4} ({} 次)", daily.date, daily.cost, daily.count);
-            }
-            println!();
+    if args.details
+        && let Some(trend) = &stats.trend
+    {
+        ColorOutput::success("📈 每日趋势:");
+        for daily in trend.iter().rev().take(7).rev() {
+            println!("  {} - ${:.4} ({} 次)", daily.date, daily.cost, daily.count);
         }
+        println!();
     }
 
     // 导出

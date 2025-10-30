@@ -97,7 +97,7 @@ impl UiService {
         ColorOutput::warning("⚠️  未找到 CCR UI");
         println!();
         ColorOutput::info("CCR UI 可以从以下位置获取：");
-        ColorOutput::info(&format!("  1. 开发环境: 项目根目录下的 ccr-ui/"));
+        ColorOutput::info("  1. 开发环境: 项目根目录下的 ccr-ui/");
         ColorOutput::info(&format!("  2. 用户目录: {}", self.ui_dir.display()));
         println!();
 
@@ -431,6 +431,11 @@ impl UiService {
 
     /// 递归复制目录
     fn copy_dir_recursive(&self, src: &Path, dst: &Path) -> Result<()> {
+        Self::copy_dir_recursive_impl(src, dst)
+    }
+
+    /// 递归复制目录的内部实现
+    fn copy_dir_recursive_impl(src: &Path, dst: &Path) -> Result<()> {
         use std::fs;
 
         if !dst.exists() {
@@ -451,7 +456,7 @@ impl UiService {
                 if file_name == ".git" {
                     continue;
                 }
-                self.copy_dir_recursive(&path, &dst_path)?;
+                Self::copy_dir_recursive_impl(&path, &dst_path)?;
             } else {
                 fs::copy(&path, &dst_path)
                     .map_err(|e| CcrError::ConfigError(format!("复制文件失败: {}", e)))?;

@@ -63,7 +63,7 @@ pub fn update_command(check_only: bool) -> Result<()> {
 
     // 执行 cargo install,实时显示输出
     let mut child = Command::new("cargo")
-        .args(&[
+        .args([
             "install",
             "--git",
             "https://github.com/bahayonghang/ccr",

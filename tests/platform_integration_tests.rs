@@ -90,7 +90,7 @@ fn test_platform_switching_workflow() {
     let _temp_dir = setup_test_env();
 
     // 1. 初始化配置管理器
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     let mut config = manager.load_or_create_default().unwrap();
 
     // 验证初始状态
@@ -98,9 +98,11 @@ fn test_platform_switching_workflow() {
     assert!(config.platforms.contains_key("claude"));
 
     // 2. 注册 Codex 平台
-    let mut codex_entry = ccr::PlatformConfigEntry::default();
-    codex_entry.description = Some("Codex Platform".to_string());
-    codex_entry.enabled = true;
+    let codex_entry = ccr::PlatformConfigEntry {
+        description: Some("Codex Platform".to_string()),
+        enabled: true,
+        ..Default::default()
+    };
     config
         .register_platform("codex".to_string(), codex_entry)
         .unwrap();
@@ -290,7 +292,7 @@ fn test_platform_path_isolation() {
 fn test_platform_config_persistence_and_reload() {
     let _temp_dir = setup_test_env();
 
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     let mut config = manager.load_or_create_default().unwrap();
 
     // 更新 Claude 平台配置（默认已存在）
@@ -301,10 +303,12 @@ fn test_platform_config_persistence_and_reload() {
 
     // 注册 Codex 和 Gemini
     for platform_name in &["codex", "gemini"] {
-        let mut entry = ccr::PlatformConfigEntry::default();
-        entry.description = Some(format!("{} Platform", platform_name));
-        entry.enabled = true;
-        entry.current_profile = Some(format!("{}-official", platform_name));
+        let entry = ccr::PlatformConfigEntry {
+            description: Some(format!("{} Platform", platform_name)),
+            enabled: true,
+            current_profile: Some(format!("{}-official", platform_name)),
+            ..Default::default()
+        };
         config
             .register_platform(platform_name.to_string(), entry)
             .unwrap();
@@ -453,14 +457,16 @@ fn test_platform_isolation_under_operations() {
 fn test_multiple_platform_switches() {
     let _temp_dir = setup_test_env();
 
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     let mut config = manager.load_or_create_default().unwrap();
 
     // 注册三个平台
     for platform_name in &["claude", "codex", "gemini"] {
         if !config.platforms.contains_key(*platform_name) {
-            let mut entry = ccr::PlatformConfigEntry::default();
-            entry.enabled = true;
+            let entry = ccr::PlatformConfigEntry {
+                enabled: true,
+                ..Default::default()
+            };
             config
                 .register_platform(platform_name.to_string(), entry)
                 .unwrap();
@@ -594,7 +600,7 @@ fn test_end_to_end_complete_workflow() {
     let _temp_dir = setup_test_env();
 
     // 1. 初始化配置系统
-    let manager = PlatformConfigManager::default().unwrap();
+    let manager = PlatformConfigManager::with_default().unwrap();
     let mut config = manager.load_or_create_default().unwrap();
     assert_eq!(config.current_platform, "claude");
 
@@ -608,9 +614,11 @@ fn test_end_to_end_complete_workflow() {
     claude.save_profile("custom", &claude_custom).unwrap();
 
     // 3. 注册并切换到 Codex
-    let mut codex_entry = ccr::PlatformConfigEntry::default();
-    codex_entry.enabled = true;
-    codex_entry.description = Some("GitHub Copilot CLI".to_string());
+    let codex_entry = ccr::PlatformConfigEntry {
+        enabled: true,
+        description: Some("GitHub Copilot CLI".to_string()),
+        ..Default::default()
+    };
     config
         .register_platform("codex".to_string(), codex_entry)
         .unwrap();

@@ -45,6 +45,7 @@ impl CostTracker {
 
     /// 记录成本
     #[allow(dead_code)] // 预留用于实际 API 调用时记录成本
+    #[allow(clippy::too_many_arguments)]
     pub fn record(
         &self,
         session_id: Option<String>,
@@ -207,12 +208,11 @@ impl CostTracker {
             let entry = entry?;
             let path = entry.path();
 
-            if let Some(filename) = path.file_name() {
-                if filename.to_string_lossy().starts_with("costs_")
-                    && filename.to_string_lossy().ends_with(".csv")
-                {
-                    records.extend(self.read_csv_file(&path)?);
-                }
+            if let Some(filename) = path.file_name()
+                && filename.to_string_lossy().starts_with("costs_")
+                && filename.to_string_lossy().ends_with(".csv")
+            {
+                records.extend(self.read_csv_file(&path)?);
             }
         }
 

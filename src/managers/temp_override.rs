@@ -116,7 +116,7 @@ impl TempOverrideManager {
     ///
     /// ⚙️ **开发者注意**:
     /// 可以通过环境变量 `CCR_TEMP_OVERRIDE_PATH` 覆盖默认路径
-    pub fn default() -> Result<Self> {
+    pub fn with_default() -> Result<Self> {
         let override_path = if let Ok(custom_path) = std::env::var("CCR_TEMP_OVERRIDE_PATH") {
             PathBuf::from(custom_path)
         } else {

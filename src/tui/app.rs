@@ -78,9 +78,9 @@ pub struct App {
 impl App {
     /// 🏗️ 创建新的应用实例
     pub fn new() -> Result<Self> {
-        let config_service = ConfigService::default()?;
-        let history_service = HistoryService::default()?;
-        let settings_service = SettingsService::default()?;
+        let config_service = ConfigService::with_default()?;
+        let history_service = HistoryService::with_default()?;
+        let settings_service = SettingsService::with_default()?;
 
         // 读取自动确认模式状态
         let config = config_service.load_config()?;
@@ -232,23 +232,17 @@ impl App {
 
             // Enter: 执行操作
             KeyCode::Enter => {
-                match self.current_tab {
-                    TabState::Configs => {
-                        // 切换到选中的配置
-                        self.switch_config();
-                    }
-                    _ => {}
+                if self.current_tab == TabState::Configs {
+                    // 切换到选中的配置
+                    self.switch_config();
                 }
             }
 
             // d: 删除配置
             KeyCode::Char('d') | KeyCode::Char('D') => {
-                match self.current_tab {
-                    TabState::Configs => {
-                        // 删除选中的配置
-                        self.delete_config();
-                    }
-                    _ => {}
+                if self.current_tab == TabState::Configs {
+                    // 删除选中的配置
+                    self.delete_config();
                 }
             }
 
@@ -279,7 +273,10 @@ impl App {
 
         // 检查是否已经是当前配置
         if selected_config.is_current {
-            self.set_status(format!("Already using config: {}", selected_config.name), false);
+            self.set_status(
+                format!("Already using config: {}", selected_config.name),
+                false,
+            );
             return;
         }
 
@@ -332,7 +329,10 @@ impl App {
         }
 
         // 成功！
-        self.set_status(format!("✅ Switched to config: {}", selected_config.name), false);
+        self.set_status(
+            format!("✅ Switched to config: {}", selected_config.name),
+            false,
+        );
     }
 
     /// 🗑️ 删除配置
@@ -393,6 +393,9 @@ impl App {
         }
 
         // 成功！
-        self.set_status(format!("✅ Deleted config: {}", selected_config.name), false);
+        self.set_status(
+            format!("✅ Deleted config: {}", selected_config.name),
+            false,
+        );
     }
 }

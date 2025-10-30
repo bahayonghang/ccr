@@ -276,7 +276,7 @@ impl PlatformConfigManager {
     /// export CCR_ROOT=/tmp/ccr_dev
     /// cargo run -- platform list
     /// ```
-    pub fn default() -> Result<Self> {
+    pub fn with_default() -> Result<Self> {
         // 🔍 检查环境变量
         let ccr_root = if let Ok(custom_root) = std::env::var("CCR_ROOT") {
             PathBuf::from(custom_root)

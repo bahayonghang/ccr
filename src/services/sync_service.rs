@@ -363,13 +363,14 @@ impl SyncService {
                 log::debug!("⚠️  父目录不存在，递归创建: {}", dir_path);
 
                 // 获取父目录路径
-                if let Some(parent) = Path::new(dir_path).parent().and_then(|p| p.to_str()) {
-                    if parent != "/" && !parent.is_empty() {
-                        // 🔧 使用 Box::pin 来处理递归 async 调用
-                        Box::pin(self.ensure_remote_directory(parent)).await?;
-                        // 再次尝试创建当前目录
-                        return Box::pin(self.ensure_remote_directory(dir_path)).await;
-                    }
+                if let Some(parent) = Path::new(dir_path).parent().and_then(|p| p.to_str())
+                    && parent != "/"
+                    && !parent.is_empty()
+                {
+                    // 🔧 使用 Box::pin 来处理递归 async 调用
+                    Box::pin(self.ensure_remote_directory(parent)).await?;
+                    // 再次尝试创建当前目录
+                    return Box::pin(self.ensure_remote_directory(dir_path)).await;
                 }
 
                 Err(self.map_dav_error(DavError::Reqwest(e), &format!("创建远程目录 {}", dir_path)))

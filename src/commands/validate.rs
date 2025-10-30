@@ -33,7 +33,7 @@ pub fn validate_command() -> Result<()> {
 
     // 使用 ConfigService 验证配置文件
     ColorOutput::step("验证配置文件 (~/.ccs_config.toml)");
-    let config_service = ConfigService::default()?;
+    let config_service = ConfigService::with_default()?;
 
     match config_service.validate_all() {
         Ok(report) => {
@@ -90,7 +90,7 @@ pub fn validate_command() -> Result<()> {
 
     // 使用 SettingsService 验证 Claude Code 设置
     ColorOutput::step("验证 Claude Code 设置 (~/.claude/settings.json)");
-    let settings_service = match SettingsService::default() {
+    let settings_service = match SettingsService::with_default() {
         Ok(s) => s,
         Err(e) => {
             ColorOutput::error(&format!("无法访问设置服务: {}", e));
@@ -125,15 +125,15 @@ pub fn validate_command() -> Result<()> {
                         );
                     }
                     Some(_) => {
-                        println!("  {} {}: {}", "⚠".yellow(), var_name, "值为空");
+                        println!("  {} {}: 值为空", "⚠".yellow(), var_name);
                         has_warnings = true;
                     }
                     None => {
                         // ANTHROPIC_SMALL_FAST_MODEL 是可选的
                         if var_name.contains("SMALL_FAST_MODEL") {
-                            println!("  {} {}: {}", "○".dimmed(), var_name, "未设置(可选)");
+                            println!("  {} {}: 未设置(可选)", "○".dimmed(), var_name);
                         } else {
-                            println!("  {} {}: {}", "✗".red(), var_name, "未设置");
+                            println!("  {} {}: 未设置", "✗".red(), var_name);
                             has_errors = true;
                         }
                     }

@@ -130,7 +130,7 @@ struct PlatformPathsOutput {
 /// }
 /// ```
 pub fn platform_list_command(json: bool) -> Result<()> {
-    let manager = PlatformConfigManager::default()?;
+    let manager = PlatformConfigManager::with_default()?;
     let config = manager.load_or_create_default()?;
 
     // 获取所有支持的平台
@@ -332,7 +332,7 @@ pub fn platform_list_command(json: bool) -> Result<()> {
 pub fn platform_switch_command(platform_name: &str) -> Result<()> {
     ColorOutput::title(&format!("切换到平台: {}", platform_name));
 
-    let manager = PlatformConfigManager::default()?;
+    let manager = PlatformConfigManager::with_default()?;
     let mut config = manager.load_or_create_default()?;
 
     // 验证平台是否存在
@@ -344,8 +344,10 @@ pub fn platform_switch_command(platform_name: &str) -> Result<()> {
         ColorOutput::info(&format!("平台 '{}' 未注册，正在自动注册...", platform_name));
 
         let platform_impl = create_platform(platform)?;
-        let mut registry = crate::managers::PlatformConfigEntry::default();
-        registry.description = Some(platform_impl.platform_name().to_string());
+        let registry = crate::managers::PlatformConfigEntry {
+            description: Some(platform_impl.platform_name().to_string()),
+            ..Default::default()
+        };
         config.register_platform(platform_name.to_string(), registry)?;
     }
 
@@ -450,7 +452,7 @@ pub fn platform_switch_command(platform_name: &str) -> Result<()> {
 /// ```
 ///
 pub fn platform_current_command(json: bool) -> Result<()> {
-    let manager = PlatformConfigManager::default()?;
+    let manager = PlatformConfigManager::with_default()?;
     let config = manager.load_or_create_default()?;
 
     let current_platform = &config.current_platform;
@@ -670,7 +672,7 @@ pub fn platform_info_command(platform_name: &str, json: bool) -> Result<()> {
     let paths = PlatformPaths::new(platform)?;
 
     // 检查是否为当前平台
-    let manager = PlatformConfigManager::default()?;
+    let manager = PlatformConfigManager::with_default()?;
     let config = manager.load_or_create_default()?;
     let is_current = platform_name == config.current_platform;
 
@@ -896,12 +898,14 @@ pub fn platform_init_command(platform_name: &str) -> Result<()> {
     ColorOutput::success(&format!("✓ 备份目录: {}", paths.backups_dir.display()));
 
     // 注册平台到统一配置
-    let manager = PlatformConfigManager::default()?;
+    let manager = PlatformConfigManager::with_default()?;
     let mut config = manager.load_or_create_default()?;
 
     if !config.platforms.contains_key(platform_name) {
-        let mut registry = crate::managers::PlatformConfigEntry::default();
-        registry.description = Some(platform_impl.platform_name().to_string());
+        let registry = crate::managers::PlatformConfigEntry {
+            description: Some(platform_impl.platform_name().to_string()),
+            ..Default::default()
+        };
         config.register_platform(platform_name.to_string(), registry)?;
         manager.save(&config)?;
 

@@ -58,8 +58,8 @@ impl ConfigService {
     }
 
     /// 🏠 使用默认配置管理器创建服务
-    pub fn default() -> Result<Self> {
-        let config_manager = Arc::new(ConfigManager::default()?);
+    pub fn with_default() -> Result<Self> {
+        let config_manager = Arc::new(ConfigManager::with_default()?);
         Ok(Self::new(config_manager))
     }
 

@@ -23,7 +23,7 @@ pub fn optimize_command() -> Result<()> {
 
     // 加载配置文件
     ColorOutput::step("加载配置文件");
-    let config_manager = ConfigManager::default()?;
+    let config_manager = ConfigManager::with_default()?;
     let config_path = config_manager.config_path().display().to_string();
 
     let mut config = config_manager.load()?;

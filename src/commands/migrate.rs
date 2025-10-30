@@ -179,7 +179,7 @@ pub fn migrate_command(dry_run: bool, platform_filter: Option<&str>) -> Result<(
     }
 
     // 1. 检查迁移状态
-    let config_manager = ConfigManager::default()?;
+    let config_manager = ConfigManager::with_default()?;
     let migration_status = config_manager.get_migration_status();
 
     display_migration_status(&migration_status)?;
@@ -283,7 +283,7 @@ fn display_migration_plan(status: &MigrationStatus, platform_filter: Option<&str
     ColorOutput::info("迁移计划:");
 
     // 加载 Legacy 配置
-    let config_manager = ConfigManager::default()?;
+    let config_manager = ConfigManager::with_default()?;
     let legacy_config = config_manager.load()?;
 
     println!();
@@ -362,15 +362,15 @@ fn execute_migration(config_manager: &ConfigManager, platform_filter: Option<&st
     // 3. 创建统一配置结构
     ColorOutput::info("3/5 创建统一配置结构...");
 
-    let platform_manager = PlatformConfigManager::default()?;
+    let platform_manager = PlatformConfigManager::with_default()?;
     let mut unified_config = UnifiedConfig::default();
 
     // 注册 Claude 平台
-    let mut claude_registry = PlatformConfigEntry::default();
-    claude_registry.description = Some("Claude Code AI Assistant".to_string());
-
-    // 设置当前 profile 为 Legacy 的当前配置
-    claude_registry.current_profile = Some(legacy_config.current_config.clone());
+    let claude_registry = PlatformConfigEntry {
+        description: Some("Claude Code AI Assistant".to_string()),
+        current_profile: Some(legacy_config.current_config.clone()),
+        ..Default::default()
+    };
 
     unified_config.register_platform("claude".to_string(), claude_registry)?;
     unified_config.current_platform = "claude".to_string();
@@ -490,7 +490,7 @@ fn display_post_migration_instructions() {
 pub fn migrate_check_command() -> Result<()> {
     ColorOutput::title("迁移状态检查");
 
-    let config_manager = ConfigManager::default()?;
+    let config_manager = ConfigManager::with_default()?;
     let migration_status = config_manager.get_migration_status();
 
     display_migration_status(&migration_status)?;
