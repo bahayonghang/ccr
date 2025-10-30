@@ -1,6 +1,6 @@
 # CCR UI - Full-Stack Web Application
 
-A modern full-stack web application for managing CCR (Claude Code Configuration Switcher) with a React frontend and Actix Web backend.
+A modern full-stack web application for managing CCR (Claude Code Configuration Switcher) with a Vue 3 frontend and Rust Axum backend.
 
 ## ⚡ 超快速开始
 
@@ -27,20 +27,24 @@ just s    # 启动开发环境（就这么简单！）
 
 ```
 ccr-ui/
-├── backend/           # Actix Web server (Rust)
+├── backend/           # Rust Axum server
 │   ├── src/
 │   │   ├── main.rs    # Server entry point
 │   │   ├── executor/  # CLI subprocess executor
 │   │   ├── handlers/  # API route handlers
 │   │   └── models/    # Request/response models
 │   └── Cargo.toml
-├── frontend/          # Next.js application (TypeScript)
+├── frontend/          # Vue 3 + Vite application (TypeScript)
 │   ├── src/
-│   │   ├── app/       # Next.js App Router pages
-│   │   ├── components/# Reusable components
-│   │   └── lib/       # API client & utilities
+│   │   ├── App.vue    # Root Vue component
+│   │   ├── main.ts    # Application entry point
+│   │   ├── components/# Reusable Vue components
+│   │   ├── views/     # Page components
+│   │   ├── router/    # Vue Router configuration
+│   │   ├── store/     # Pinia state management
+│   │   └── api/       # API client & utilities
 │   ├── package.json
-│   └── next.config.mjs
+│   └── vite.config.ts
 └── README.md
 ```
 
@@ -139,7 +143,7 @@ npm run dev
 just dev-frontend
 ```
 
-The frontend will start on `http://localhost:5173` with auto-reload.
+The frontend will start on `http://localhost:5173` with Vite's fast hot module replacement.
 
 ## Production Build
 
@@ -237,18 +241,20 @@ The built files will be in `frontend/dist/`.
 ## Technologies
 
 ### Backend
-- **Actix Web 4.9** - Fast async web framework
+- **Axum 0.7** - Fast async web framework for Rust
 - **Tokio 1.42** - Async runtime
 - **Serde** - Serialization
 - **Chrono** - Date/time handling
 
 ### Frontend
-- **Next.js 16 (canary)** - React framework with App Router
-- **React 19** - UI library
-- **TypeScript 5.6** - Type safety
+- **Vue 3.5** - Progressive JavaScript framework
+- **Vite 7.1** - Next generation frontend tooling
+- **Vue Router 4.4** - Official router for Vue.js
+- **Pinia 2.2** - Vue state management
+- **TypeScript 5.7** - Type safety
 - **Tailwind CSS 3.4** - Styling
-- **Axios** - HTTP client
-- **Lucide React** - Icons
+- **Axios 1.7** - HTTP client
+- **Lucide Vue Next** - Icons
 - **ANSI to HTML** - Terminal output rendering
 
 ## Configuration
