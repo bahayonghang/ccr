@@ -56,18 +56,23 @@ impl WebServer {
     /// - ⚡ 并发处理多个请求
     /// - 🎯 充分利用多核 CPU
     /// - 🔄 长时间操作不阻塞其他请求
-    pub async fn start(&self) -> Result<()> {
-        let addr = format!("0.0.0.0:{}", self.port);
+    pub async fn start(&self, no_browser: bool) -> Result<()> {
+        // 🎯 尝试绑定端口，如果失败则尝试其他端口
+        let (listener, actual_port) = Self::bind_available_port(self.port).await?;
 
         ColorOutput::success("🌐 CCR Web 服务器已启动（异步模式）");
-        ColorOutput::info(&format!("📍 地址: http://localhost:{}", self.port));
+        ColorOutput::info(&format!("📍 地址: http://localhost:{}", actual_port));
         ColorOutput::info("⏹️ 按 Ctrl+C 停止服务器");
         println!();
 
-        // 🌐 尝试自动打开浏览器
-        if let Err(e) = open::that(format!("http://localhost:{}", self.port)) {
-            ColorOutput::warning(&format!("⚠️ 无法自动打开浏览器: {}", e));
-            ColorOutput::info(&format!("💡 请手动访问 http://localhost:{}", self.port));
+        // 🌐 根据参数决定是否打开浏览器
+        if !no_browser {
+            if let Err(e) = open::that(format!("http://localhost:{}", actual_port)) {
+                ColorOutput::warning(&format!("⚠️ 无法自动打开浏览器: {}", e));
+                ColorOutput::info(&format!("💡 请手动访问 http://localhost:{}", actual_port));
+            }
+        } else {
+            ColorOutput::info(&format!("💡 请手动访问 http://localhost:{}", actual_port));
         }
 
         // 🎯 加载初始配置到缓存
@@ -129,20 +134,51 @@ impl WebServer {
             .with_state(state);
 
         // 🚀 启动服务器
-        let listener = tokio::net::TcpListener::bind(&addr)
-            .await
-            .map_err(|e| CcrError::ConfigError(format!("无法绑定端口 {}: {}", self.port, e)))?;
-
         axum::serve(listener, app)
             .await
             .map_err(|e| CcrError::ConfigError(format!("服务器运行错误: {}", e)))?;
 
         Ok(())
     }
+
+    /// 🎯 尝试绑定可用端口
+    ///
+    /// 从指定端口开始，如果被占用则尝试后续 10 个端口
+    async fn bind_available_port(start_port: u16) -> Result<(tokio::net::TcpListener, u16)> {
+        let max_attempts = 10;
+        
+        for offset in 0..max_attempts {
+            let port = start_port + offset;
+            let addr = format!("0.0.0.0:{}", port);
+            
+            match tokio::net::TcpListener::bind(&addr).await {
+                Ok(listener) => {
+                    if offset > 0 {
+                        ColorOutput::warning(&format!(
+                            "⚠️ 端口 {} 被占用，已切换到端口 {}",
+                            start_port, port
+                        ));
+                    }
+                    return Ok((listener, port));
+                }
+                Err(_) if offset < max_attempts - 1 => continue,
+                Err(e) => {
+                    return Err(CcrError::ConfigError(format!(
+                        "无法绑定端口 {}-{}: {}",
+                        start_port,
+                        start_port + max_attempts - 1,
+                        e
+                    )))
+                }
+            }
+        }
+        
+        unreachable!()
+    }
 }
 
 /// Web 命令入口
-pub fn web_command(port: Option<u16>) -> Result<()> {
+pub fn web_command(port: Option<u16>, no_browser: bool) -> Result<()> {
     let port = port.unwrap_or(8080);
     let server = WebServer::new(port)?;
 
@@ -150,5 +186,5 @@ pub fn web_command(port: Option<u16>) -> Result<()> {
     let runtime = tokio::runtime::Runtime::new()
         .map_err(|e| CcrError::ConfigError(format!("创建 Tokio 运行时失败: {}", e)))?;
 
-    runtime.block_on(server.start())
+    runtime.block_on(server.start(no_browser))
 }

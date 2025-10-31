@@ -499,9 +499,15 @@ CCR 的 Web 界面提供完整的 RESTful API,基于全新的 Service 层架构�
 
 ```bash
 ccr web --port 8080
+# 或使用 --no-browser 选项不自动打开浏览器
+ccr web --port 8080 --no-browser
 ```
 
-浏览器将自动打开 `http://localhost:8080`。
+浏览器将自动打开 `http://localhost:8080`（除非使用 `--no-browser` 选项）。
+
+::: tip 智能端口绑定
+如果指定的端口已被占用，CCR 会自动尝试其他可用端口。
+:::
 
 ### 架构说明
 
@@ -1002,10 +1008,14 @@ ccr history --limit 1
 
 ### 5. 使用 Web 界面
 
-对于频繁的配置管理,使用 Web 界面更方便：
+对于频繁的配置管理，使用 Web 界面更方便：
 
 ```bash
-ccr web --port 8080
+# 默认端口 8080，自动打开浏览器
+ccr web
+
+# 指定端口且不打开浏览器（适合远程服务器）
+ccr web --port 8080 --no-browser
 ```
 
 ### 6. 保护敏感信息

@@ -122,7 +122,7 @@ just quick-start    # 检查前置条件 + 安装 + 启动
 **🎯 CLI vs TUI vs Web 服务器 vs CCR UI**：
 - **CLI 工具**：适合脚本、自动化和快速操作（`ccr switch`、`ccr list` 等）
 - **TUI** (`ccr tui`)：基于终端的交互式界面，支持键盘导航
-- **Web 服务器** (`ccr web`)：内置轻量级 Axum API 服务器（8080 端口），用于编程访问
+- **Web 服务器** (`ccr web`)：内置轻量级 Axum API 服务器（默认 8080 端口，被占用时自动切换），用于编程访问
 - **CCR UI** (`ccr ui`)：完整功能的 Vue.js 3 + Axum Web 应用，提供可视化仪表板（3000/8081 端口）
 
 ## 🚀 快速开始
@@ -220,7 +220,7 @@ ccr platform switch claude     # 返回 Claude
 | `ccr validate` | `check` | ✅ 验证所有配置和设置 |
 | `ccr optimize` | - | 🔤 按字母顺序优化配置文件结构 |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 显示操作历史（限制数量/按类型筛选） |
-| `ccr web [-p PORT]` | - | 🌐 启动轻量级 Web API 服务器（默认 8080 端口） |
+| `ccr web [-p PORT] [--no-browser]` | - | 🌐 启动轻量级 Web API 服务器（默认 8080 端口，自动切换） |
 | `ccr ui [-p PORT] [--backend-port PORT]` | - | 🎨 启动完整 CCR UI 应用（Next.js + Actix，默认 3000/8081） |
 | `ccr tui [--yolo]` | - | 🖥️ 启动交互式终端界面（可视化管理） |
 | `ccr export [-o FILE] [--no-secrets]` | - | 📤 导出配置（包含/不含 API 密钥） |

@@ -162,11 +162,16 @@ enum Commands {
     ///
     /// 在浏览器中打开可视化的配置管理界面,支持所有配置操作
     /// 示例: ccr web -p 3000
+    ///       ccr web --no-browser
     #[cfg(feature = "web")]
     Web {
         /// 指定 Web 服务器监听端口(默认: 8080)
         #[arg(short, long, default_value_t = 8080)]
         port: u16,
+        
+        /// 不自动打开浏览器
+        #[arg(long)]
+        no_browser: bool,
     },
 
     /// 从 GitHub 更新到最新版本
@@ -504,7 +509,7 @@ fn main() {
             commands::history_command(Some(limit), filter_type)
         }
         #[cfg(feature = "web")]
-        Some(Commands::Web { port }) => web::web_command(Some(port)),
+        Some(Commands::Web { port, no_browser }) => web::web_command(Some(port), no_browser),
         Some(Commands::Update { check }) => commands::update_command(check),
         Some(Commands::Init { force }) => commands::init_command(cli.auto_yes || force),
         Some(Commands::Export { output, no_secrets }) => {

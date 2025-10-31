@@ -123,7 +123,7 @@ just quick-start    # Check prereqs + Install + Start
 **🎯 CLI vs TUI vs Web Server vs CCR UI**:
 - **CLI Tool**: Best for scripting, automation, and quick operations (`ccr switch`, `ccr list`, etc.)
 - **TUI** (`ccr tui`): Terminal-based interactive interface with keyboard navigation
-- **Web Server** (`ccr web`): Built-in lightweight Axum API server (port 8080) for programmatic access
+- **Web Server** (`ccr web`): Built-in lightweight Axum API server (default port 8080, auto-fallback if occupied) for programmatic access
 - **CCR UI** (`ccr ui`): Full-featured Vue.js 3 + Axum web application with visual dashboard (ports 3000/8081)
 
 ## 🚀 Quick Start
@@ -221,7 +221,7 @@ ccr platform switch claude     # Back to Claude
 | `ccr validate` | `check` | ✅ Validate all configs and settings |
 | `ccr optimize` | - | 🔤 Sort config sections alphabetically |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 Show operation history (limit/filter by type) |
-| `ccr web [-p PORT]` | - | 🌐 Launch lightweight web API server (default port 8080) |
+| `ccr web [-p PORT] [--no-browser]` | - | 🌐 Launch lightweight web API server (default port 8080, auto-fallback) |
 | `ccr ui [-p PORT] [--backend-port PORT]` | - | 🎨 Launch full CCR UI app (Next.js + Actix, default 3000/8081) |
 | `ccr tui` | - | 🖥️ Launch interactive TUI for visual management |
 | `ccr export [-o FILE] [--no-secrets]` | - | 📤 Export configs (with/without API keys) |

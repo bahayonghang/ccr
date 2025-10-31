@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Platform Registry System**: New `config.toml` platform registry for managing multiple AI CLI tools
 - **Automatic Platform Initialization**: Default Claude platform auto-initialized on first run
 - **Legacy Mode Compatibility**: Old `~/.ccs_config.toml` still supported via `CCR_LEGACY_MODE=1` environment variable
+- **Web Server `--no-browser` Option**: Added `--no-browser` flag to prevent automatic browser opening (useful for remote servers)
+- **Dynamic Port Allocation**: Web server automatically tries alternative ports (8081, 8082, etc.) if the specified port is occupied
 
 ### 🔄 Changed
 
@@ -26,8 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated `docs/commands/init.md` with new Unified Mode documentation
 - Updated `docs/quick-start.md` with new initialization flow
-- Updated `README.md` (English) with new quick start guide
-- Updated `README_CN.md` (Chinese) with new quick start guide
+- Updated `README.md` (English) with new quick start guide and web command options
+- Updated `README_CN.md` (Chinese) with new quick start guide and web command options
+- Updated `docs/web-guide.md` with `--no-browser` option and dynamic port allocation details
+- Updated `docs/commands/web.md` with comprehensive usage examples for remote server scenarios
+- Updated `docs/configuration.md` with web server options and smart port binding tips
+- Updated `docs/index.md` with web command usage examples
 
 ## [2.2.1] - 2025-01-30
 

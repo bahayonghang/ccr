@@ -14,6 +14,7 @@ export default defineConfig({
       { text: '首页', link: '/' },
       { text: '快速开始', link: '/quick-start' },
       { text: '核心命令', link: '/commands/' },
+      { text: 'Web 指南', link: '/web-guide' },
       { text: '更新日志', link: '/changelog' }
     ],
 
@@ -23,6 +24,7 @@ export default defineConfig({
         items: [
           { text: '简介', link: '/' },
           { text: '快速开始', link: '/quick-start' },
+          { text: 'Web 界面使用指南', link: '/web-guide' },
           { text: '配置管理', link: '/configuration' }
         ]
       },
