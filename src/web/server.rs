@@ -146,11 +146,11 @@ impl WebServer {
     /// 从指定端口开始，如果被占用则尝试后续 10 个端口
     async fn bind_available_port(start_port: u16) -> Result<(tokio::net::TcpListener, u16)> {
         let max_attempts = 10;
-        
+
         for offset in 0..max_attempts {
             let port = start_port + offset;
             let addr = format!("0.0.0.0:{}", port);
-            
+
             match tokio::net::TcpListener::bind(&addr).await {
                 Ok(listener) => {
                     if offset > 0 {
@@ -168,11 +168,11 @@ impl WebServer {
                         start_port,
                         start_port + max_attempts - 1,
                         e
-                    )))
+                    )));
                 }
             }
         }
-        
+
         unreachable!()
     }
 }

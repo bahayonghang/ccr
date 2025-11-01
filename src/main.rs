@@ -168,7 +168,7 @@ enum Commands {
         /// 指定 Web 服务器监听端口(默认: 8080)
         #[arg(short, long, default_value_t = 8080)]
         port: u16,
-        
+
         /// 不自动打开浏览器
         #[arg(long)]
         no_browser: bool,
