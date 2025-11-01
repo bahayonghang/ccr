@@ -2,6 +2,15 @@
 
 This directory contains the documentation for CCR (Claude Code Configuration Switcher), built with VitePress.
 
+## 🌍 Multi-Language Support
+
+The documentation is available in multiple languages:
+
+- **🇨🇳 简体中文** - Complete Chinese documentation in `/zh` directory
+- **🇺🇸 English** - Complete English documentation in `/en` directory
+
+Browse the documentation at: [https://your-docs-site.com](https://github.com/bahayonghang/ccr)
+
 ## Quick Start
 
 ### Using Just (Recommended)
@@ -66,28 +75,32 @@ npm run preview
 ```
 docs/
 ├── .vitepress/
-│   └── config.mjs          # VitePress configuration
-├── commands/               # Command documentation
-│   ├── index.md            # Commands overview
-│   ├── init.md             # init command
-│   ├── list.md             # list command
-│   ├── current.md          # current command
-│   ├── switch.md           # switch command
-│   ├── validate.md         # validate command
-│   ├── history.md          # history command
-│   ├── web.md              # web command
-│   ├── export.md           # export command
-│   ├── import.md           # import command
-│   ├── clean.md            # clean command
-│   ├── update.md           # update command
-│   └── version.md          # version command
+│   └── config.mjs          # VitePress i18n configuration
+├── zh/                     # 简体中文文档
+│   ├── index.md            # 中文首页
+│   ├── quick-start.md      # 快速开始
+│   ├── configuration.md    # 配置管理
+│   ├── web-guide.md        # Web 指南
+│   ├── architecture.md     # 架构设计
+│   ├── changelog.md        # 更新日志
+│   ├── migration.md        # 迁移指南
+│   ├── commands/           # 命令文档
+│   ├── platforms/          # 平台支持
+│   └── examples/           # 示例
+├── en/                     # English Documentation
+│   ├── index.md            # English homepage
+│   ├── quick-start.md      # Quick start guide
+│   ├── configuration.md    # Configuration guide
+│   ├── web-guide.md        # Web interface guide
+│   ├── architecture.md     # Architecture overview
+│   ├── changelog.md        # Change log
+│   ├── migration.md        # Migration guide
+│   ├── commands/           # Command reference
+│   ├── platforms/          # Platform support
+│   └── examples/           # Examples
 ├── public/
 │   └── logo.svg            # Project logo
-├── index.md                # Home page
-├── quick-start.md          # Quick start guide
-├── configuration.md        # Configuration management
-├── changelog.md            # Change log
-├── migration.md            # Migration guide
+├── index.md                # Language selection page
 ├── package.json            # Node.js dependencies
 └── justfile                # Build automation
 ```
