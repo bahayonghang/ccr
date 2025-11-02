@@ -295,9 +295,7 @@ rm -rf ~/.claude/stats/
 
 ## 相关资源
 
-- [CLI stats 命令文档](../../docs/commands/stats.md)
 - [API 文档](../backend/api.md#statistics-endpoints)
-- [技术实现文档](../../docs/TODO_ANALYTICS.md)
 - [Anthropic 定价页面](https://www.anthropic.com/pricing)
 
 ## 未来规划
