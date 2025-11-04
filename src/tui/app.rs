@@ -5,6 +5,7 @@ use crate::core::error::Result;
 use crate::services::{ConfigService, HistoryService, SettingsService};
 use crate::utils::Validatable;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use std::time::{Duration, Instant};
 
 /// 📑 Tab 状态
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -73,6 +74,16 @@ pub struct App {
     pub status_message: Option<(String, bool)>,
     /// 消息显示帧计数器（确保消息至少显示N帧）
     message_frame_count: u8,
+    /// 周期性刷新标记（用于 tick 控制）
+    needs_redraw_on_tick: bool,
+    /// 上次 tick 时间（用于节流）
+    last_tick: Instant,
+    /// tick 间隔（毫秒级）
+    tick_interval: Duration,
+    /// 缓存：配置列表（减少渲染阶段的 I/O）
+    cached_config_list: Option<crate::services::config_service::ConfigList>,
+    /// 缓存：最近历史记录（减少渲染阶段的 I/O）
+    cached_history_list: Option<Vec<crate::managers::history::HistoryEntry>>,
 }
 
 impl App {
@@ -97,13 +108,19 @@ impl App {
             should_quit: false,
             status_message: None,
             message_frame_count: 0,
+            needs_redraw_on_tick: false,
+            last_tick: Instant::now(),
+            tick_interval: Duration::from_millis(250),
+            cached_config_list: None,
+            cached_history_list: None,
         })
     }
 
     /// 📝 设置状态消息（自动重置帧计数器）
-    fn set_status(&mut self, message: String, is_error: bool) {
+    pub fn set_status(&mut self, message: String, is_error: bool) {
         self.status_message = Some((message, is_error));
         self.message_frame_count = 3; // 至少显示3帧（约750ms）
+        self.needs_redraw_on_tick = true;
     }
 
     /// 🧹 尝试清除状态消息（仅当帧计数器归零时）
@@ -119,7 +136,41 @@ impl App {
     pub fn tick_message(&mut self) {
         if self.message_frame_count > 0 {
             self.message_frame_count -= 1;
+            self.needs_redraw_on_tick = true;
+        } else {
+            self.needs_redraw_on_tick = false;
         }
+    }
+
+    /// ⏱️ 通用 tick 入口（包含节流与消息处理）
+    pub fn tick(&mut self) {
+        let now = Instant::now();
+        if now.duration_since(self.last_tick) >= self.tick_interval {
+            self.last_tick = now;
+            self.tick_message();
+        }
+    }
+
+    /// 是否需要在 Tick 上重绘
+    pub fn should_redraw_on_tick(&self) -> bool {
+        self.needs_redraw_on_tick
+    }
+
+    /// 🔁 刷新缓存（减少渲染阶段的 I/O）
+    pub fn refresh_caches(&mut self) -> Result<()> {
+        self.cached_config_list = Some(self.config_service.list_configs()?);
+        self.cached_history_list = Some(self.history_service.get_recent(100)?);
+        Ok(())
+    }
+
+    /// 读取缓存：配置列表
+    pub fn get_cached_config_list(&self) -> Option<&crate::services::config_service::ConfigList> {
+        self.cached_config_list.as_ref()
+    }
+
+    /// 读取缓存：最近历史
+    pub fn get_cached_history(&self) -> Option<&Vec<crate::managers::history::HistoryEntry>> {
+        self.cached_history_list.as_ref()
     }
 
     /// ⌨️ 处理键盘输入
@@ -141,28 +192,34 @@ impl App {
             KeyCode::Tab => {
                 self.current_tab = self.current_tab.next();
                 self.try_clear_status(); // 尝试清除旧状态消息
+                let _ = self.refresh_caches();
             }
             KeyCode::BackTab => {
                 self.current_tab = self.current_tab.previous();
                 self.try_clear_status(); // 尝试清除旧状态消息
+                let _ = self.refresh_caches();
             }
 
             // 数字键: 快速切换 Tab
             KeyCode::Char('1') => {
                 self.current_tab = TabState::Configs;
                 self.try_clear_status(); // 尝试清除旧状态消息
+                let _ = self.refresh_caches();
             }
             KeyCode::Char('2') => {
                 self.current_tab = TabState::History;
                 self.try_clear_status(); // 尝试清除旧状态消息
+                let _ = self.refresh_caches();
             }
             KeyCode::Char('3') => {
                 self.current_tab = TabState::Sync;
                 self.try_clear_status(); // 尝试清除旧状态消息
+                let _ = self.refresh_caches();
             }
             KeyCode::Char('4') => {
                 self.current_tab = TabState::System;
                 self.try_clear_status(); // 尝试清除旧状态消息
+                let _ = self.refresh_caches();
             }
 
             // P/L/S: Sync 操作（在 Sync 标签页时）
@@ -186,6 +243,7 @@ impl App {
             KeyCode::Char('y') | KeyCode::Char('Y') => {
                 self.auto_confirm_mode = !self.auto_confirm_mode;
                 // 注意：此状态仅在当前TUI会话有效，不保存到配置文件
+                self.needs_redraw_on_tick = true;
             }
 
             // 上下键: 列表导航
@@ -210,7 +268,7 @@ impl App {
                 match self.current_tab {
                     TabState::Configs => {
                         // 检查配置列表长度
-                        if let Ok(config_list) = self.config_service.list_configs()
+                        if let Some(config_list) = self.get_cached_config_list()
                             && !config_list.configs.is_empty()
                             && self.config_list_index < config_list.configs.len() - 1
                         {
@@ -219,7 +277,7 @@ impl App {
                     }
                     TabState::History => {
                         // 检查历史列表长度
-                        if let Ok(history_list) = self.history_service.get_recent(100)
+                        if let Some(history_list) = self.get_cached_history()
                             && !history_list.is_empty()
                             && self.history_list_index < history_list.len() - 1
                         {
@@ -333,6 +391,8 @@ impl App {
             format!("✅ Switched to config: {}", selected_config.name),
             false,
         );
+        // 刷新缓存，确保 UI 与新状态一致
+        let _ = self.refresh_caches();
     }
 
     /// 🗑️ 删除配置
@@ -397,5 +457,7 @@ impl App {
             format!("✅ Deleted config: {}", selected_config.name),
             false,
         );
+        // 刷新缓存，更新列表与历史
+        let _ = self.refresh_caches();
     }
 }

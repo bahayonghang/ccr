@@ -9,6 +9,7 @@
 
 mod commands;
 mod core;
+mod help;
 mod managers;
 mod models;
 mod platforms;
@@ -60,7 +61,8 @@ use core::{ColorOutput, init_logger};
 ",
     override_usage = "ccr [选项] [配置名称] [命令]",
     disable_help_flag = true,
-    disable_version_flag = true
+    disable_version_flag = true,
+    disable_help_subcommand = true
 )]
 struct Cli {
     /// ⚡ 自动确认模式（跳过所有确认提示）
@@ -79,8 +81,8 @@ struct Cli {
     /// 示例：ccr anthropic  等同于  ccr switch anthropic
     config_name: Option<String>,
 
-    /// 显示帮助信息（使用 '-h' 查看简短摘要）
-    #[arg(short = 'h', long = "help", action = clap::ArgAction::Help)]
+    /// 显示帮助信息（支持顶层与子命令）
+    #[arg(short = 'h', long = "help", action = clap::ArgAction::SetTrue)]
     help: Option<bool>,
 
     /// 显示版本信息
@@ -91,6 +93,15 @@ struct Cli {
 /// 📋 命令枚举 - 定义所有可用的 CLI 子命令
 #[derive(Subcommand)]
 enum Commands {
+    /// 帮助子命令（美化版）
+    ///
+    /// 示例: ccr help            # 顶层帮助
+    ///       ccr help switch     # 指定子命令帮助
+    #[command(name = "help")]
+    Help {
+        /// 可选：指定要查看帮助的子命令名称
+        subcmd: Option<String>,
+    },
     /// 列出所有可用的配置方案
     ///
     /// 显示配置文件中定义的所有配置方案,包括配置名称、环境变量设置等信息
@@ -495,8 +506,27 @@ fn main() {
     // 📝 解析命令行参数
     let cli = Cli::parse();
 
+    // 🎨 优先处理自定义帮助输出
+    if cli.help.unwrap_or(false) {
+        match &cli.command {
+            Some(cmd) => {
+                let name = command_name(cmd);
+                help::print_subcommand_help(name);
+            }
+            None => help::print_top_help(),
+        }
+        return;
+    }
+
     // 🚀 执行命令并处理错误
     let result = match cli.command {
+        Some(Commands::Help { subcmd }) => {
+            match subcmd.as_deref() {
+                Some(name) => help::print_subcommand_help(name),
+                None => help::print_top_help(),
+            }
+            Ok(())
+        }
         Some(Commands::List) => commands::list_command(),
         Some(Commands::Current) => commands::current_command(),
         Some(Commands::Switch { config_name }) => commands::switch_command(&config_name),
@@ -663,6 +693,39 @@ fn show_version() {
     println!();
 
     ColorOutput::info("更多帮助: ccr --help");
+}
+
+/// 返回子命令名称（用于帮助渲染）
+fn command_name(cmd: &Commands) -> &'static str {
+    match cmd {
+        Commands::Help { .. } => "help",
+        Commands::List => "list",
+        Commands::Current => "current",
+        Commands::Switch { .. } => "switch",
+        Commands::Add => "add",
+        Commands::Delete { .. } => "delete",
+        Commands::Validate => "validate",
+        Commands::History { .. } => "history",
+        #[cfg(feature = "web")]
+        Commands::Web { .. } => "web",
+        Commands::Update { .. } => "update",
+        Commands::Init { .. } => "init",
+        Commands::Export { .. } => "export",
+        Commands::Import { .. } => "import",
+        Commands::Clean { .. } => "clean",
+        Commands::Optimize => "optimize",
+        Commands::Version => "version",
+        #[cfg(feature = "tui")]
+        Commands::Tui { .. } => "tui",
+        #[cfg(feature = "web")]
+        Commands::Sync { .. } => "sync",
+        Commands::Ui { .. } => "ui",
+        Commands::TempToken { .. } => "temp-token",
+        Commands::Platform { .. } => "platform",
+        Commands::Migrate { .. } => "migrate",
+        #[cfg(feature = "web")]
+        Commands::Stats(_) => "stats",
+    }
 }
 
 #[cfg(test)]

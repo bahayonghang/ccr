@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "2.4.0"
+version = "2.4.1"
 edition = "2024"
 authors = [
     "Yonghang Li"
@@ -18,7 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 # CLI 参数解析
-clap = { version = "4.5.50", features = ["derive", "cargo"] }
+clap = { version = "4.5.51", features = ["derive", "cargo"] }
 
 # 序列化与配置解析
 serde = { version = "1.0.228", features = ["derive"] }

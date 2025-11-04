@@ -3,6 +3,7 @@
 
 use super::app::{App, TabState};
 use crate::managers::sync_config::SyncConfigManager;
+use crate::tui::theme;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -55,15 +56,11 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
                 .borders(Borders::ALL)
                 .title(" 🚀 CCR TUI - Claude Code Configuration Manager ")
                 .title_alignment(Alignment::Center)
-                .style(Style::default().fg(Color::White)),
+                .style(theme::title_style()),
         )
         .select(index)
-        .style(Style::default().fg(Color::White))
-        .highlight_style(
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        );
+        .style(Style::default().fg(theme::FG_PRIMARY))
+        .highlight_style(theme::highlight_style());
 
     f.render_widget(tabs, area);
 }
@@ -85,26 +82,22 @@ fn render_configs_tab(f: &mut Frame, app: &App, area: Rect) {
         .title(" ⚙️  Configuration List ")
         .title_alignment(Alignment::Left);
 
-    // 获取配置列表
-    let config_list = match app.config_service.list_configs() {
-        Ok(list) => list,
-        Err(e) => {
-            // 出错时显示错误信息
-            let error_text = vec![
-                Line::from(""),
-                Line::from(Span::styled(
-                    "❌ Failed to load configurations",
-                    Style::default().fg(Color::Red),
-                )),
-                Line::from(""),
-                Line::from(format!("Error: {}", e)),
-            ];
-            let paragraph = Paragraph::new(error_text)
-                .block(block)
-                .alignment(Alignment::Left);
-            f.render_widget(paragraph, area);
-            return;
-        }
+    // 使用缓存的配置列表，避免渲染期间的磁盘 I/O
+    let Some(config_list) = app.get_cached_config_list() else {
+        let error_text = vec![
+            Line::from(""),
+            Line::from(Span::styled(
+                "❌ Configuration list not loaded",
+                Style::default().fg(Color::Red),
+            )),
+            Line::from(""),
+            Line::from("Press any key to refresh caches."),
+        ];
+        let paragraph = Paragraph::new(error_text)
+            .block(block)
+            .alignment(Alignment::Left);
+        f.render_widget(paragraph, area);
+        return;
     };
 
     if config_list.configs.is_empty() {
@@ -152,12 +145,12 @@ fn render_configs_tab(f: &mut Frame, app: &App, area: Rect) {
             // 根据是否是当前配置设置颜色
             let style = if config.is_current {
                 Style::default()
-                    .fg(Color::Green)
+                    .fg(theme::FG_SUCCESS)
                     .add_modifier(Modifier::BOLD)
             } else if config.is_default {
-                Style::default().fg(Color::Cyan)
+                Style::default().fg(theme::FG_ACCENT)
             } else {
-                Style::default().fg(Color::White)
+                Style::default().fg(theme::FG_PRIMARY)
             };
 
             ListItem::new(display_text).style(style)
@@ -167,11 +160,7 @@ fn render_configs_tab(f: &mut Frame, app: &App, area: Rect) {
     // 创建列表组件
     let list = List::new(items)
         .block(block)
-        .highlight_style(
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD | Modifier::REVERSED),
-        )
+        .highlight_style(theme::highlight_style())
         .highlight_symbol(">> ");
 
     // 创建列表状态
@@ -190,26 +179,22 @@ fn render_history_tab(f: &mut Frame, app: &App, area: Rect) {
         .title(" 📜 Operation History ")
         .title_alignment(Alignment::Left);
 
-    // 获取历史记录
-    let history_list = match app.history_service.get_recent(50) {
-        Ok(list) => list,
-        Err(e) => {
-            // 出错时显示错误信息
-            let error_text = vec![
-                Line::from(""),
-                Line::from(Span::styled(
-                    "❌ Failed to load history",
-                    Style::default().fg(Color::Red),
-                )),
-                Line::from(""),
-                Line::from(format!("Error: {}", e)),
-            ];
-            let paragraph = Paragraph::new(error_text)
-                .block(block)
-                .alignment(Alignment::Left);
-            f.render_widget(paragraph, area);
-            return;
-        }
+    // 使用缓存的历史列表
+    let Some(history_list) = app.get_cached_history() else {
+        let error_text = vec![
+            Line::from(""),
+            Line::from(Span::styled(
+                "❌ History not loaded",
+                Style::default().fg(Color::Red),
+            )),
+            Line::from(""),
+            Line::from("Press any key to refresh caches."),
+        ];
+        let paragraph = Paragraph::new(error_text)
+            .block(block)
+            .alignment(Alignment::Left);
+        f.render_widget(paragraph, area);
+        return;
     };
 
     if history_list.is_empty() {
@@ -363,67 +348,43 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 "  ⚡ 可用操作:",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
+                theme::highlight_style(),
             )));
             lines.push(Line::from(""));
             lines.push(Line::from(vec![
                 Span::raw("     "),
-                Span::styled(
-                    "[P]",
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
+                Span::styled("[P]", theme::highlight_style()),
                 Span::raw(" Push   - 上传配置到云端"),
             ]));
             lines.push(Line::from(vec![
                 Span::raw("     "),
-                Span::styled(
-                    "[L]",
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
+                Span::styled("[L]", theme::highlight_style()),
                 Span::raw(" Pull   - 从云端下载配置"),
             ]));
             lines.push(Line::from(vec![
                 Span::raw("     "),
-                Span::styled(
-                    "[S]",
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
+                Span::styled("[S]", theme::highlight_style()),
                 Span::raw(" Status - 查看同步状态"),
             ]));
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 "  💡 提示: 这些操作会在退出 TUI 后在命令行执行",
-                Style::default().fg(Color::DarkGray),
+                theme::secondary_text(),
             )));
         }
         _ => {
             // 同步未配置
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled("状态: ", Style::default().fg(Color::Cyan)),
-                Span::styled(
-                    "⚠️  未配置",
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
+                Span::styled("状态: ", Style::default().fg(theme::FG_ACCENT)),
+                Span::styled("⚠️  未配置", theme::highlight_style()),
             ]));
             lines.push(Line::from(""));
             lines.push(Line::from(""));
 
             lines.push(Line::from(Span::styled(
                 "  📝 配置 WebDAV 同步",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
+                theme::highlight_style(),
             )));
             lines.push(Line::from(""));
             lines.push(Line::from(vec![
@@ -431,16 +392,11 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled(
                     "1.",
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(theme::FG_ACCENT)
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(" 退出 TUI (按 "),
-                Span::styled(
-                    "Q",
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
+                Span::styled("Q", theme::highlight_style()),
                 Span::raw(")"),
             ]));
             lines.push(Line::from(vec![
@@ -448,7 +404,7 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled(
                     "2.",
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(theme::FG_ACCENT)
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(" 运行命令: "),
@@ -459,7 +415,7 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled(
                     "3.",
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(theme::FG_ACCENT)
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(" 输入 WebDAV 服务器信息"),
@@ -469,7 +425,7 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled(
                     "4.",
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(theme::FG_ACCENT)
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(" 测试连接成功后即可使用"),
@@ -480,7 +436,7 @@ fn render_sync_tab(f: &mut Frame, app: &App, area: Rect) {
             lines.push(Line::from(Span::styled(
                 "  💡 支持的服务:",
                 Style::default()
-                    .fg(Color::Cyan)
+                    .fg(theme::FG_ACCENT)
                     .add_modifier(Modifier::BOLD),
             )));
             lines.push(Line::from(""));
@@ -687,11 +643,9 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
 
         // 渲染状态消息
         let style = if *is_error {
-            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)
+            theme::status_error()
         } else {
-            Style::default()
-                .fg(Color::Green)
-                .add_modifier(Modifier::BOLD)
+            theme::status_success()
         };
 
         let status = Paragraph::new(Line::from(Span::styled(format!(" {} ", message), style)))
@@ -710,15 +664,14 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
 /// 渲染快捷键帮助行
 fn render_help_line(f: &mut Frame, app: &App, area: Rect) {
     let confirm_status = if app.auto_confirm_mode {
-        Span::styled(
-            " AUTO ",
-            Style::default()
-                .fg(Color::Yellow)
-                .bg(Color::Black)
-                .add_modifier(Modifier::BOLD),
-        )
+        let mut style = theme::highlight_style();
+        style.bg = Some(Color::Black);
+        Span::styled(" AUTO ", style)
     } else {
-        Span::styled(" SAFE ", Style::default().fg(Color::Green).bg(Color::Black))
+        Span::styled(
+            " SAFE ",
+            Style::default().fg(theme::FG_SUCCESS).bg(Color::Black),
+        )
     };
 
     let help_text = vec![

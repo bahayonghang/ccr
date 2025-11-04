@@ -50,6 +50,7 @@ cmake-build-*/
 .claude/
 .spec-workflow/
 .factory/
+.trae/
 
 openspec/
 .serena/
