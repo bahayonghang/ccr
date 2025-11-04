@@ -6,14 +6,31 @@ use comfy_table::{
     Attribute, Cell, Color as TableColor, ColumnConstraint, ContentArrangement, Table, Width,
     presets::UTF8_FULL,
 };
+// 仅在启用 tui 特性时引入 crossterm，避免 --no-default-features 构建失败
+#[cfg(feature = "tui")]
+use crossterm::terminal;
 use std::cmp::min;
 
-/// 获取终端宽度，默认 80 列
+/// 获取终端宽度
+/// - 当启用 `tui` 特性时，使用 crossterm 检测终端宽度
+/// - 当未启用 `tui` 特性时，回退到环境变量 `COLUMNS` 或默认 80 列
+#[cfg(feature = "tui")]
 fn term_width() -> usize {
-    match crossterm::terminal::size() {
+    match terminal::size() {
         Ok((w, _)) => w as usize,
-        Err(_) => 80,
+        Err(_) => std::env::var("COLUMNS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(80),
     }
+}
+
+#[cfg(not(feature = "tui"))]
+fn term_width() -> usize {
+    std::env::var("COLUMNS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(80)
 }
 
 /// 统一创建表格，响应式宽度与美观样式
