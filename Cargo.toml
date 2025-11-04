@@ -1,6 +1,6 @@
 [package]
 name = "ccr"
-version = "2.4.2"
+version = "2.5.0"
 edition = "2024"
 authors = [
     "Yonghang Li"
@@ -88,6 +88,7 @@ reqwest_dav = "0.2"
 reqwest = { version = "0.12.24", features = ["blocking", "json"] }  # HTTP 客户端
 dialoguer = "0.12.0"                                                  # 交互式提示
 flate2 = "1.1.5"                                                      # gzip 压缩/解压
+blake3 = "1.5.4"                                                     # 内容摘要用于增量备份
 
 [features]
 # 默认启用 web 和 tui 功能，保持向后兼容

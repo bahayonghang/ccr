@@ -73,24 +73,38 @@ impl SyncService {
     ///
     /// # 参数
     /// - local_path: 本地配置文件或目录路径
+    /// - allowed_paths: 允许上传的路径列表（可选），如果提供则只上传这些路径
     ///
     /// # 返回
     /// - Ok(()): 上传成功
     /// - Err: 上传失败
-    pub async fn push(&self, local_path: &Path) -> Result<()> {
+    pub async fn push(&self, local_path: &Path, allowed_paths: Option<&[String]>) -> Result<()> {
         if local_path.is_dir() {
             log::info!(
                 "🔼 上传目录到 WebDAV: {} -> {}",
                 local_path.display(),
                 self.remote_path
             );
-            self.push_directory(local_path, &self.remote_path).await
+            self.push_directory_filtered(local_path, &self.remote_path, allowed_paths)
+                .await
         } else {
             log::info!(
                 "🔼 上传文件到 WebDAV: {} -> {}",
                 local_path.display(),
                 self.remote_path
             );
+            // 对于单个文件，检查是否在允许的路径中
+            if let Some(allowed) = allowed_paths {
+                let file_name = local_path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .ok_or_else(|| CcrError::SyncError("无效的文件名".into()))?;
+
+                if !allowed.iter().any(|path| path == file_name) {
+                    log::info!("文件 {} 不在允许的路径列表中，跳过上传", file_name);
+                    return Ok(());
+                }
+            }
             self.push_file(local_path, &self.remote_path).await
         }
     }
@@ -115,8 +129,13 @@ impl SyncService {
         Ok(())
     }
 
-    /// 🔼 递归上传目录到 WebDAV
-    async fn push_directory(&self, local_dir: &Path, remote_dir: &str) -> Result<()> {
+    /// 🔼 递归上传目录到 WebDAV（带过滤）
+    async fn push_directory_filtered(
+        &self,
+        local_dir: &Path,
+        remote_dir: &str,
+        allowed_paths: Option<&[String]>,
+    ) -> Result<()> {
         log::debug!("📁 处理目录: {} -> {}", local_dir.display(), remote_dir);
 
         // 📁 确保远程目录存在
@@ -143,6 +162,26 @@ impl SyncService {
                 continue;
             }
 
+            // 🎯 如果指定了允许的路径，检查是否在列表中
+            if let Some(allowed) = allowed_paths {
+                let relative_path = path
+                    .strip_prefix(local_dir)
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|_| file_name_str.to_string());
+
+                // 检查是否在允许的路径中
+                let is_allowed = allowed.iter().any(|allowed_path| {
+                    // 支持精确匹配和前缀匹配
+                    relative_path == *allowed_path
+                        || relative_path.starts_with(&format!("{}/", allowed_path))
+                });
+
+                if !is_allowed {
+                    log::debug!("⏭️  路径 {} 不在允许列表中，跳过", relative_path);
+                    continue;
+                }
+            }
+
             // 构建远程路径
             let remote_item_path =
                 format!("{}/{}", remote_dir.trim_end_matches('/'), file_name_str);
@@ -151,7 +190,8 @@ impl SyncService {
                 // 📂 递归处理子目录
                 dir_count += 1;
                 // 🔧 使用 Box::pin 来处理递归 async 调用
-                Box::pin(self.push_directory(&path, &remote_item_path)).await?;
+                Box::pin(self.push_directory_filtered(&path, &remote_item_path, allowed_paths))
+                    .await?;
             } else {
                 // 📄 上传文件
                 file_count += 1;

@@ -475,10 +475,15 @@ enum SyncAction {
     ///
     /// 将本地配置文件上传到 WebDAV 服务器
     /// 示例: ccr sync push --force
+    /// 示例: ccr sync push --interactive  # 交互式选择内容
     Push {
         /// 强制覆盖远程配置，不提示确认
         #[arg(short, long)]
         force: bool,
+
+        /// 交互式选择要同步的内容类型
+        #[arg(short = 'i', long)]
+        interactive: bool,
     },
 
     /// 从云端下载配置
@@ -574,7 +579,21 @@ fn main() {
         Some(Commands::Sync { action }) => match action {
             SyncAction::Config => commands::sync_config_command(),
             SyncAction::Status => commands::sync_status_command(),
-            SyncAction::Push { force } => commands::sync_push_command(force),
+            SyncAction::Push { force, interactive } => {
+                if interactive {
+                    // 交互式模式：显示内容选择面板
+                    let mut selector = commands::SyncContentSelector::new();
+                    match selector.select_content() {
+                        Ok(selection) => {
+                            commands::sync_push_command_with_selection(force, Some(selection))
+                        }
+                        Err(e) => Err(e),
+                    }
+                } else {
+                    // 默认模式：仅同步config
+                    commands::sync_push_command(force)
+                }
+            }
             SyncAction::Pull { force } => commands::sync_pull_command(force),
         },
         Some(Commands::Ui { port, backend_port }) => commands::ui_command(port, backend_port),
@@ -688,6 +707,7 @@ fn show_version() {
     println!("  ccr clean             清理旧备份");
     println!("  ccr sync config       配置云端同步");
     println!("  ccr sync push         上传配置到云端");
+    println!("  ccr sync push -i      交互式选择上传内容");
     println!("  ccr sync pull         从云端下载配置");
     println!("  ccr update            更新到最新版本");
     println!();

@@ -1,12 +1,13 @@
 // ☁️ sync 命令实现 - WebDAV 配置同步
 // 📁 支持配置文件的云端同步功能
 
+use crate::commands::sync_content_selector::{SyncContentSelection, SyncContentSelector};
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::sync_config::{SyncConfig, SyncConfigManager};
-use crate::services::SyncService;
+use crate::services::{MultiBackupService, SyncService};
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// ⚙️ 配置 WebDAV 同步
 ///
@@ -208,11 +209,36 @@ pub fn sync_status_command() -> Result<()> {
 }
 
 /// 🔼 上传配置到云端
-pub fn sync_push_command(force: bool) -> Result<()> {
+///
+/// # 参数
+/// - force: 是否强制上传，跳过确认
+/// - content_selection: 内容选择（可选），如果为None则显示选择面板
+pub fn sync_push_command_with_selection(
+    force: bool,
+    content_selection: Option<SyncContentSelection>,
+) -> Result<()> {
     use colored::*;
 
     ColorOutput::title("🔼  上传配置到云端");
     println!();
+
+    // 🎯 获取内容选择
+    let content_selection = if let Some(selection) = content_selection {
+        selection
+    } else {
+        // 显示选择面板
+        let mut selector = SyncContentSelector::new();
+        selector.select_content()?
+    };
+
+    // 显示选择的内容
+    if content_selection.count() > 0 {
+        println!("{}  选择同步内容:", "📋".blue());
+        for content_type in &content_selection.selected_types {
+            println!("   • {}", content_type.display_name().cyan());
+        }
+        println!();
+    }
 
     let sync_manager = SyncConfigManager::with_default()?;
     let sync_config = sync_manager.load()?;
@@ -283,14 +309,73 @@ pub fn sync_push_command(force: bool) -> Result<()> {
         }
     }
 
+    // 🧩 在上传前执行多类型增量备份（统一目录结构）
+    {
+        print!("💾 正在执行增量备份...");
+        io::stdout().flush().unwrap();
+        let svc = MultiBackupService::with_default()?;
+        let summary = svc.backup_all()?;
+        print!("\r");
+        use colored::*;
+        println!("{}  {}", "✓".green().bold(), "增量备份完成".green());
+        let changed_count = summary.items.iter().filter(|i| i.changed).count();
+        let skipped_count = summary.items.iter().filter(|i| !i.changed).count();
+        println!("   • 变化项: {}", changed_count.to_string().cyan());
+        println!("   • 跳过项: {}", skipped_count.to_string().cyan());
+        if changed_count > 0 {
+            println!(
+                "   • 备份位置示例: {}",
+                summary
+                    .items
+                    .iter()
+                    .find(|i| i.changed)
+                    .map(|i| i.target_path.display().to_string())
+                    .unwrap_or_else(|| "~/.ccr/backups".to_string())
+                    .dimmed()
+            );
+        }
+        println!();
+    }
+
+    // 🎯 根据选择的内容类型过滤上传路径
+    let filtered_paths = content_selection.to_paths();
+    if filtered_paths.is_empty() {
+        ColorOutput::warning("未选择任何同步内容，操作取消");
+        return Ok(());
+    }
+
+    println!("{}  将同步以下内容:", "🎯".blue());
+    for path in &filtered_paths {
+        println!("   • {}", path.cyan());
+    }
+    println!();
+
+    print!("🚀 正在上传...");
+    io::stdout().flush().unwrap();
+
+    // 🎯 根据内容选择创建临时过滤目录进行同步
+    let temp_sync_path =
+        if filtered_paths.len() == 1 && filtered_paths[0] == "config.toml" && !is_dir {
+            // 如果是单个config文件且当前是文件模式，直接同步原文件
+            sync_path.clone()
+        } else {
+            // 需要创建临时目录包含选中的内容
+            create_temp_sync_directory(&sync_path, &filtered_paths, is_dir)?
+        };
+
     print!("🚀 正在上传...");
     io::stdout().flush().unwrap();
 
     runtime.block_on(async {
         let service = SyncService::new(&sync_config).await?;
-        service.push(&sync_path).await?;
+        service.push(&temp_sync_path, None).await?;
         Ok::<(), CcrError>(())
     })?;
+
+    // 清理临时目录（如果需要）
+    if temp_sync_path != sync_path {
+        std::fs::remove_dir_all(&temp_sync_path).ok();
+    }
 
     print!("\r");
     if is_dir {
@@ -425,6 +510,22 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
         println!();
     }
 
+    // 🧩 在拉取前执行多类型增量备份（统一目录结构）
+    {
+        print!("💾 正在执行增量备份...");
+        io::stdout().flush().unwrap();
+        let svc = MultiBackupService::with_default()?;
+        let summary = svc.backup_all()?;
+        print!("\r");
+        use colored::*;
+        println!("{}  {}", "✓".green().bold(), "增量备份完成".green());
+        let changed_count = summary.items.iter().filter(|i| i.changed).count();
+        let skipped_count = summary.items.iter().filter(|i| !i.changed).count();
+        println!("   • 变化项: {}", changed_count.to_string().cyan());
+        println!("   • 跳过项: {}", skipped_count.to_string().cyan());
+        println!();
+    }
+
     print!("⬇️  正在从云端下载...");
     io::stdout().flush().unwrap();
 
@@ -456,6 +557,104 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     println!();
     println!("💡 下一步: 运行 {} 查看配置", "ccr list".cyan());
     println!();
+
+    Ok(())
+}
+
+/// 🔼 上传配置到云端（向后兼容接口）
+///
+/// 默认只同步config内容，保持与现有行为一致
+pub fn sync_push_command(force: bool) -> Result<()> {
+    // 使用默认选择（仅config）
+    let default_selection = SyncContentSelection::default();
+    sync_push_command_with_selection(force, Some(default_selection))
+}
+
+/// 🎯 创建临时同步目录（包含选中的内容）
+fn create_temp_sync_directory(
+    original_path: &Path,
+    filtered_paths: &[String],
+    is_dir: bool,
+) -> Result<PathBuf> {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().map_err(|e| {
+        CcrError::IoError(std::io::Error::other(format!("创建临时目录失败: {}", e)))
+    })?;
+
+    let temp_path = temp_dir.path().to_path_buf();
+
+    // 保留临时目录的所有权，防止被自动删除
+    let temp_path_clone = temp_path.clone();
+    std::mem::forget(temp_dir);
+
+    if is_dir {
+        // 如果是目录模式，复制选中的内容到临时目录
+        let base_path = original_path;
+
+        for filtered_path in filtered_paths {
+            let source_path = base_path.join(filtered_path);
+            if source_path.exists() {
+                let target_path = temp_path.join(filtered_path);
+
+                if source_path.is_dir() {
+                    copy_directory_recursive(&source_path, &target_path)?;
+                } else {
+                    if let Some(parent) = target_path.parent() {
+                        std::fs::create_dir_all(parent)?;
+                    }
+                    std::fs::copy(&source_path, &target_path)?;
+                }
+            }
+        }
+    } else {
+        // 如果是文件模式，创建目录结构并复制选中的文件
+        let base_path = original_path
+            .parent()
+            .ok_or_else(|| CcrError::SyncError("无法获取配置文件父目录".into()))?;
+
+        for filtered_path in filtered_paths {
+            let source_path = if filtered_path == "config.toml" {
+                original_path.to_path_buf()
+            } else {
+                base_path.join(filtered_path)
+            };
+
+            if source_path.exists() {
+                let target_path = temp_path.join(filtered_path);
+
+                if let Some(parent) = target_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+
+                if source_path.is_dir() {
+                    copy_directory_recursive(&source_path, &target_path)?;
+                } else {
+                    std::fs::copy(&source_path, &target_path)?;
+                }
+            }
+        }
+    }
+
+    Ok(temp_path_clone)
+}
+
+/// 📁 递归复制目录
+fn copy_directory_recursive(src: &Path, dst: &Path) -> Result<()> {
+    std::fs::create_dir_all(dst)?;
+
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_name = entry.file_name();
+        let target_path = dst.join(&file_name);
+
+        if path.is_dir() {
+            copy_directory_recursive(&path, &target_path)?;
+        } else {
+            std::fs::copy(&path, &target_path)?;
+        }
+    }
 
     Ok(())
 }

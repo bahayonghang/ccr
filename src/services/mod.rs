@@ -10,6 +10,7 @@
 pub mod backup_service;
 pub mod config_service;
 pub mod history_service;
+pub mod multi_backup_service;
 pub mod settings_service;
 pub mod sync_service;
 pub mod ui_service;
@@ -21,6 +22,8 @@ pub use backup_service::BackupService;
 pub use config_service::ConfigService;
 #[allow(unused_imports)]
 pub use history_service::HistoryService;
+#[allow(unused_imports)]
+pub use multi_backup_service::MultiBackupService;
 #[allow(unused_imports)]
 pub use settings_service::SettingsService;
 #[allow(unused_imports)]

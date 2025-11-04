@@ -18,6 +18,8 @@ pub mod stats;
 pub mod switch;
 #[cfg(feature = "web")]
 pub mod sync_cmd;
+#[cfg(feature = "web")]
+pub mod sync_content_selector;
 pub mod temp_token;
 pub mod ui;
 pub mod update;
@@ -43,8 +45,11 @@ pub use stats::{StatsArgs, stats_command};
 pub use switch::switch_command;
 #[cfg(feature = "web")]
 pub use sync_cmd::{
-    sync_config_command, sync_pull_command, sync_push_command, sync_status_command,
+    sync_config_command, sync_pull_command, sync_push_command, sync_push_command_with_selection,
+    sync_status_command,
 };
+#[cfg(feature = "web")]
+pub use sync_content_selector::SyncContentSelector;
 pub use temp_token::{temp_token_clear, temp_token_set, temp_token_show};
 pub use ui::ui_command;
 pub use update::update_command;

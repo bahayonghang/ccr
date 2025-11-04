@@ -467,13 +467,13 @@ pub async fn handle_sync_push(
                                     "远程已存在同名内容，请使用 force 或先清理".into(),
                                 ))
                             } else {
-                                service.push(&local_path).await
+                                service.push(&local_path, None).await
                             }
                         }
                         Err(e) => Err(e),
                     }
                 } else {
-                    service.push(&local_path).await
+                    service.push(&local_path, None).await
                 }
             }
             Err(e) => Err(e),
