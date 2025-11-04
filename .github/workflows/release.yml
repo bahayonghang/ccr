@@ -1,0 +1,187 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 触发条件：推送 v 开头的 tag (如 v2.4.1)
+
+env:
+  CARGO_TERM_COLOR: always
+  PROJECT_NAME: ccr
+
+jobs:
+  # 📦 创建 GitHub Release
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+          body: |
+            ## CCR ${{ steps.get_version.outputs.version }}
+            
+            ### 📥 下载链接
+            
+            选择适合你系统的版本：
+            
+            - **Linux x86_64 (GNU)**：适用于大多数 Linux 发行版（Ubuntu/Debian/Fedora/Arch 等）
+            - **Windows x86_64**：适用于 Windows 10/11 64位系统
+            - **macOS Apple Silicon (ARM64)**：适用于 M1/M2/M3/M4 芯片的 Mac
+            
+            ### 📋 更新日志
+            
+            请查看 [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+            
+            ### 🚀 快速安装
+            
+            ```bash
+            # Linux/macOS (使用 curl)
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/ccr-${{ steps.get_version.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz | tar xz
+            sudo mv ccr /usr/local/bin/
+            
+            # 或使用 cargo 安装
+            cargo install --git https://github.com/${{ github.repository }} --tag ${{ github.ref_name }}
+            ```
+
+  # 🏗️ 多平台构建
+  build-release:
+    name: Build ${{ matrix.target }}
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux GNU (主流发行版)
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            use-cross: false
+            archive: tar.gz
+            
+          # Windows (主流桌面系统)
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            use-cross: false
+            archive: zip
+            
+          # macOS Apple Silicon (M系列芯片)
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            use-cross: false
+            archive: tar.gz
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ matrix.target }}-release-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }} --all-features
+        shell: bash
+
+      - name: Prepare release assets (Unix)
+        if: matrix.archive == 'tar.gz'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf ${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz ${{ env.PROJECT_NAME }}
+          mv ${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz ../../../
+        shell: bash
+
+      - name: Prepare release assets (Windows)
+        if: matrix.archive == 'zip'
+        run: |
+          cd target/${{ matrix.target }}/release
+          7z a ${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip ${{ env.PROJECT_NAME }}.exe
+          mv ${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip ../../../
+        shell: bash
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}
+          asset_name: ${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}
+          asset_content_type: application/${{ matrix.archive == 'tar.gz' && 'gzip' || 'zip' }}
+
+      - name: Generate SHA256 checksum (Unix)
+        if: matrix.archive == 'tar.gz'
+        run: |
+          shasum -a 256 ${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz > ${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.sha256
+        shell: bash
+
+      - name: Generate SHA256 checksum (Windows)
+        if: matrix.archive == 'zip'
+        run: |
+          sha256sum ${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip > ${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sha256
+        shell: bash
+
+      - name: Upload checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}.sha256
+          asset_name: ${{ env.PROJECT_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}.sha256
+          asset_content_type: text/plain
+
+  # 📢 发布后通知
+  post-release:
+    name: Post Release Tasks
+    needs: [create-release, build-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Summary
+        run: |
+          echo "✅ Release ${{ needs.create-release.outputs.version }} 构建完成！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 发布产物（3个主流平台）" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 🐧 **Linux**: ccr-${{ needs.create-release.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz" >> $GITHUB_STEP_SUMMARY
+          echo "- 🪟 **Windows**: ccr-${{ needs.create-release.outputs.version }}-x86_64-pc-windows-msvc.zip" >> $GITHUB_STEP_SUMMARY
+          echo "- 🍎 **macOS ARM**: ccr-${{ needs.create-release.outputs.version }}-aarch64-apple-darwin.tar.gz" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [查看 Release](https://github.com/${{ github.repository }}/releases/tag/v${{ needs.create-release.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+
