@@ -5,9 +5,173 @@ use crate::commands::sync_content_selector::{SyncContentSelection, SyncContentSe
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::sync_config::{SyncConfig, SyncConfigManager};
+use crate::managers::sync_folder_manager::SyncFolderManager;
+use crate::models::sync_folder::SyncFolder;
 use crate::services::{MultiBackupService, SyncService};
+use colored::Colorize;
+use comfy_table::{Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+
+/// 📖 显示 sync 命令的详细帮助信息
+fn show_sync_help() {
+    use colored::*;
+
+    println!();
+    println!("{}", "☁️  CCR Sync 命令帮助".cyan().bold());
+    println!();
+    println!("{}", "━".repeat(70).dimmed());
+    println!();
+
+    println!("{}", "概述:".green().bold());
+    println!("  WebDAV 多文件夹同步管理 - 支持独立管理和同步多个目录");
+    println!();
+
+    println!("{}", "基本命令:".green().bold());
+    println!("  {}  配置 WebDAV 连接信息", "ccr sync config".cyan());
+    println!(
+        "  {}  显示当前同步状态和所有文件夹",
+        "ccr sync status".cyan()
+    );
+    println!(
+        "  {}  上传配置文件到云端 (兼容旧版)",
+        "ccr sync push".cyan()
+    );
+    println!(
+        "  {}  从云端下载配置文件 (兼容旧版)",
+        "ccr sync pull".cyan()
+    );
+    println!("  {}  显示此帮助信息", "ccr sync help".cyan());
+    println!();
+
+    println!("{}", "文件夹管理命令:".green().bold());
+    println!(
+        "  {}      列出所有注册的同步文件夹",
+        "ccr sync folder list".cyan()
+    );
+    println!(
+        "  {}  添加新的同步文件夹",
+        "ccr sync folder add <name> <path>".cyan()
+    );
+    println!(
+        "  {}    删除文件夹注册 (不删除本地文件)",
+        "ccr sync folder remove <name>".cyan()
+    );
+    println!(
+        "  {}      显示文件夹详细信息",
+        "ccr sync folder info <name>".cyan()
+    );
+    println!(
+        "  {}    启用文件夹同步",
+        "ccr sync folder enable <name>".cyan()
+    );
+    println!(
+        "  {}   禁用文件夹同步 (保留配置)",
+        "ccr sync folder disable <name>".cyan()
+    );
+    println!();
+
+    println!("{}", "文件夹同步命令:".green().bold());
+    println!(
+        "  {}      上传指定文件夹到云端",
+        "ccr sync <folder> push".cyan()
+    );
+    println!(
+        "  {}      从云端下载指定文件夹",
+        "ccr sync <folder> pull".cyan()
+    );
+    println!(
+        "  {}    显示文件夹同步状态",
+        "ccr sync <folder> status".cyan()
+    );
+    println!();
+
+    println!("{}", "批量操作命令:".green().bold());
+    println!("  {}     上传所有启用的文件夹", "ccr sync all push".cyan());
+    println!("  {}     下载所有启用的文件夹", "ccr sync all pull".cyan());
+    println!("  {}   显示所有文件夹的状态", "ccr sync all status".cyan());
+    println!();
+
+    println!("{}", "使用示例:".green().bold());
+    println!();
+    println!("  {}  配置 WebDAV", "1.".yellow());
+    println!("     {}", "ccr sync config".dimmed());
+    println!();
+    println!("  {}  添加要同步的文件夹", "2.".yellow());
+    println!("     {}", "ccr sync folder add claude ~/.claude".dimmed());
+    println!("     {}", "ccr sync folder add gemini ~/.gemini".dimmed());
+    println!(
+        "     {}",
+        "ccr sync folder add conf ~/.ccs_config.toml -d \"主配置文件\"".dimmed()
+    );
+    println!();
+    println!("  {}  上传文件夹到云端", "3.".yellow());
+    println!(
+        "     {}",
+        "ccr sync claude push              # 上传单个文件夹".dimmed()
+    );
+    println!(
+        "     {}",
+        "ccr sync all push                 # 上传所有启用的文件夹".dimmed()
+    );
+    println!();
+    println!("  {}  从云端下载文件夹", "4.".yellow());
+    println!(
+        "     {}",
+        "ccr sync gemini pull              # 下载单个文件夹".dimmed()
+    );
+    println!(
+        "     {}",
+        "ccr sync all pull                 # 下载所有启用的文件夹".dimmed()
+    );
+    println!();
+    println!("  {}  查看状态", "5.".yellow());
+    println!(
+        "     {}",
+        "ccr sync status                   # 查看所有文件夹状态".dimmed()
+    );
+    println!(
+        "     {}",
+        "ccr sync claude status            # 查看单个文件夹状态".dimmed()
+    );
+    println!();
+
+    println!("{}", "选项:".green().bold());
+    println!("  {}       强制覆盖，不提示确认", "--force".cyan());
+    println!(
+        "  {}  交互式选择要同步的内容 (仅 sync push)",
+        "--interactive".cyan()
+    );
+    println!(
+        "  {}   指定远程路径 (folder add 命令)",
+        "-r, --remote-path".cyan()
+    );
+    println!(
+        "  {}  指定文件夹描述 (folder add 命令)",
+        "-d, --description".cyan()
+    );
+    println!();
+
+    println!("{}", "特性:".green().bold());
+    println!("  📁 独立文件夹管理 - 每个文件夹独立注册和同步");
+    println!("  🔄 细粒度控制     - 可以单独启用/禁用文件夹");
+    println!("  💾 自动备份       - 下载前自动备份本地内容");
+    println!("  🔒 安全操作       - 支持 WebDAV 认证和 HTTPS");
+    println!("  ⚡ 向后兼容       - 旧版 'ccr sync push/pull' 命令仍可用");
+    println!();
+
+    println!("{}", "支持的 WebDAV 服务:".green().bold());
+    println!("  • 坚果云 (https://dav.jianguoyun.com/dav/)");
+    println!("  • Nextcloud");
+    println!("  • ownCloud");
+    println!("  • 任何标准 WebDAV 服务器");
+    println!();
+
+    println!("{}", "━".repeat(70).dimmed());
+    println!();
+    println!("💡 提示: 运行 {} 查看更多命令", "ccr --help".cyan());
+    println!();
+}
 
 /// ⚙️ 配置 WebDAV 同步
 ///
@@ -752,6 +916,961 @@ fn read_password() -> Result<String> {
         .map_err(|e| CcrError::ConfigError(format!("读取密码失败: {}", e)))?;
 
     Ok(password.trim().to_string())
+}
+
+// ============================================================================
+// 🗂️ 文件夹管理命令
+// ============================================================================
+
+/// 📋 列出所有同步文件夹
+pub fn sync_folder_list_command() -> Result<()> {
+    ColorOutput::title("同步文件夹列表");
+    println!();
+
+    let manager = SyncFolderManager::with_default()?;
+    let folders = manager.list_folders()?;
+
+    if folders.is_empty() {
+        ColorOutput::warning("暂无注册的同步文件夹");
+        ColorOutput::info("使用 'ccr sync folder add' 添加文件夹");
+        return Ok(());
+    }
+
+    // 创建表格
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .set_content_arrangement(ContentArrangement::Dynamic);
+
+    // 表头
+    table.set_header(vec![
+        Cell::new("名称").fg(Color::Cyan),
+        Cell::new("状态").fg(Color::Cyan),
+        Cell::new("本地路径").fg(Color::Cyan),
+        Cell::new("远程路径").fg(Color::Cyan),
+        Cell::new("描述").fg(Color::Cyan),
+    ]);
+
+    // 数据行
+    for folder in &folders {
+        let status = if folder.enabled {
+            Cell::new("✓").fg(Color::Green)
+        } else {
+            Cell::new("✗").fg(Color::Red)
+        };
+
+        table.add_row(vec![
+            Cell::new(&folder.name),
+            status,
+            Cell::new(&folder.local_path),
+            Cell::new(&folder.remote_path),
+            Cell::new(&folder.description),
+        ]);
+    }
+
+    println!("{table}");
+    println!();
+
+    // 统计信息
+    let stats = manager.stats()?;
+    ColorOutput::info(&format!(
+        "总计: {} 个文件夹 (启用: {}, 禁用: {})",
+        stats.total, stats.enabled, stats.disabled
+    ));
+
+    Ok(())
+}
+
+/// ➕ 添加同步文件夹
+pub fn sync_folder_add_command(
+    name: &str,
+    local_path: &str,
+    remote_path: Option<&String>,
+    description: Option<&String>,
+) -> Result<()> {
+    ColorOutput::title(&format!("添加同步文件夹: {}", name));
+    println!();
+
+    let mut manager = SyncFolderManager::with_default()?;
+
+    // 检查是否已存在
+    if manager.has_folder(name) {
+        return Err(CcrError::ConfigError(format!(
+            "文件夹 '{}' 已存在，请使用不同的名称",
+            name
+        )));
+    }
+
+    // 获取 WebDAV 配置以生成默认远程路径
+    let webdav_config = manager.get_webdav_config()?;
+    let default_remote_path = format!("{}/{}", webdav_config.base_remote_path, name);
+
+    let final_remote_path = remote_path
+        .map(|s| s.to_string())
+        .unwrap_or(default_remote_path);
+
+    let final_description = description
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| format!("{} 文件夹", name));
+
+    // 构建文件夹
+    let folder = SyncFolder::builder()
+        .name(name)
+        .description(final_description)
+        .local_path(local_path)
+        .remote_path(&final_remote_path)
+        .enabled(true)
+        .build()?;
+
+    // 显示配置信息
+    ColorOutput::info("文件夹配置:");
+    println!("  名称:     {}", folder.name);
+    println!("  描述:     {}", folder.description);
+    println!("  本地路径: {}", folder.local_path);
+    println!("  远程路径: {}", folder.remote_path);
+    println!("  状态:     启用");
+    println!();
+
+    // 添加文件夹
+    manager.add_folder(folder)?;
+
+    ColorOutput::success(&format!("✓ 已添加同步文件夹 '{}'", name));
+    ColorOutput::info("提示: 使用 'ccr sync <folder> push' 开始同步");
+
+    Ok(())
+}
+
+/// ❌ 删除同步文件夹
+pub fn sync_folder_remove_command(name: &str) -> Result<()> {
+    ColorOutput::title(&format!("删除同步文件夹: {}", name));
+    println!();
+
+    let mut manager = SyncFolderManager::with_default()?;
+
+    // 检查是否存在
+    let folder = manager.get_folder(name)?;
+
+    ColorOutput::warning(&format!("即将删除文件夹 '{}' 的同步配置", folder.name));
+    println!("  本地路径: {}", folder.local_path);
+    println!("  远程路径: {}", folder.remote_path);
+    println!();
+    ColorOutput::info("注意: 不会删除本地文件，仅移除同步配置");
+    println!();
+
+    // 确认
+    print!("确认删除? (y/N): ");
+    io::stdout().flush().unwrap();
+    let mut confirm = String::new();
+    io::stdin().read_line(&mut confirm).unwrap();
+
+    if !confirm.trim().eq_ignore_ascii_case("y") {
+        ColorOutput::info("已取消删除");
+        return Ok(());
+    }
+
+    manager.remove_folder(name)?;
+
+    ColorOutput::success(&format!("✓ 已删除同步文件夹 '{}'", name));
+
+    Ok(())
+}
+
+/// ℹ️ 显示文件夹详细信息
+pub fn sync_folder_info_command(name: &str) -> Result<()> {
+    ColorOutput::title(&format!("同步文件夹信息: {}", name));
+    println!();
+
+    let manager = SyncFolderManager::with_default()?;
+    let folder = manager.get_folder(name)?;
+
+    // 基本信息
+    println!("{}", "基本信息".bold());
+    println!("  名称:     {}", folder.name);
+    println!("  描述:     {}", folder.description);
+    println!(
+        "  状态:     {}",
+        if folder.enabled {
+            "✓ 启用"
+        } else {
+            "✗ 禁用"
+        }
+    );
+    println!();
+
+    // 路径信息
+    println!("{}", "路径配置".bold());
+    println!("  本地路径: {}", folder.local_path);
+    println!("  远程路径: {}", folder.remote_path);
+
+    // 检查本地路径是否存在
+    if let Ok(expanded) = folder.expand_local_path() {
+        if expanded.exists() {
+            if expanded.is_dir() {
+                ColorOutput::success("  本地路径: ✓ 存在 (目录)");
+            } else {
+                ColorOutput::success("  本地路径: ✓ 存在 (文件)");
+            }
+        } else {
+            ColorOutput::warning("  本地路径: ✗ 不存在");
+        }
+    }
+    println!();
+
+    // 排除规则
+    if !folder.exclude_patterns.is_empty() {
+        println!("{}", "排除模式".bold());
+        for pattern in &folder.exclude_patterns {
+            println!("  - {}", pattern);
+        }
+        println!();
+    }
+
+    // 自动同步
+    println!("{}", "其他设置".bold());
+    println!(
+        "  自动同步: {}",
+        if folder.auto_sync { "启用" } else { "禁用" }
+    );
+
+    Ok(())
+}
+
+/// ✅ 启用文件夹同步
+pub fn sync_folder_enable_command(name: &str) -> Result<()> {
+    let mut manager = SyncFolderManager::with_default()?;
+
+    // 检查是否存在
+    let folder = manager.get_folder(name)?;
+
+    if folder.enabled {
+        ColorOutput::warning(&format!("文件夹 '{}' 已经是启用状态", name));
+        return Ok(());
+    }
+
+    manager.enable_folder(name)?;
+
+    ColorOutput::success(&format!("✓ 已启用文件夹 '{}'", name));
+    ColorOutput::info("该文件夹将参与批量同步操作");
+
+    Ok(())
+}
+
+/// ❌ 禁用文件夹同步
+pub fn sync_folder_disable_command(name: &str) -> Result<()> {
+    let mut manager = SyncFolderManager::with_default()?;
+
+    // 检查是否存在
+    let folder = manager.get_folder(name)?;
+
+    if !folder.enabled {
+        ColorOutput::warning(&format!("文件夹 '{}' 已经是禁用状态", name));
+        return Ok(());
+    }
+
+    manager.disable_folder(name)?;
+
+    ColorOutput::success(&format!("✓ 已禁用文件夹 '{}'", name));
+    ColorOutput::info("该文件夹不会参与批量同步操作");
+
+    Ok(())
+}
+
+// ============================================================================
+// 🔄 批量同步命令
+// ============================================================================
+
+/// 📤 批量上传所有启用的文件夹
+pub fn sync_all_push_command(force: bool) -> Result<()> {
+    use colored::*;
+
+    ColorOutput::title("批量上传同步文件夹");
+    println!();
+
+    let manager = SyncFolderManager::with_default()?;
+    let config = manager.load_config()?;
+
+    let enabled_folders = config.enabled_folders();
+
+    if enabled_folders.is_empty() {
+        ColorOutput::warning("没有启用的同步文件夹");
+        ColorOutput::info("使用 'ccr sync folder list' 查看所有文件夹");
+        return Ok(());
+    }
+
+    ColorOutput::info(&format!("准备上传 {} 个文件夹...", enabled_folders.len()));
+    println!();
+
+    let mut success_count = 0;
+    let mut failed_count = 0;
+    let mut failed_folders = Vec::new();
+
+    for (index, folder) in enabled_folders.iter().enumerate() {
+        println!(
+            "{}  [{}/{}] {}",
+            "▶".cyan(),
+            index + 1,
+            enabled_folders.len(),
+            folder.name.bold()
+        );
+
+        match sync_folder_push_internal(folder, &manager, force) {
+            Ok(_) => {
+                println!("   {}", "✓ 上传成功".green());
+                success_count += 1;
+            }
+            Err(e) => {
+                println!("   {} {}", "✗ 上传失败:".red(), e);
+                failed_count += 1;
+                failed_folders.push(folder.name.clone());
+            }
+        }
+        println!();
+    }
+
+    // 📊 显示汇总
+    ColorOutput::separator();
+    println!();
+    ColorOutput::title("批量上传汇总");
+    println!("  总计: {}", enabled_folders.len());
+    println!("  成功: {}", success_count.to_string().green());
+    if failed_count > 0 {
+        println!("  失败: {}", failed_count.to_string().red());
+        println!();
+        println!("失败的文件夹:");
+        for name in &failed_folders {
+            println!("  • {}", name.red());
+        }
+    }
+    println!();
+
+    if failed_count > 0 {
+        Err(CcrError::SyncError(format!(
+            "{} 个文件夹上传失败",
+            failed_count
+        )))
+    } else {
+        Ok(())
+    }
+}
+
+/// 📥 批量下载所有启用的文件夹
+pub fn sync_all_pull_command(force: bool) -> Result<()> {
+    use colored::*;
+
+    ColorOutput::title("批量下载同步文件夹");
+    println!();
+
+    let manager = SyncFolderManager::with_default()?;
+    let config = manager.load_config()?;
+
+    let enabled_folders = config.enabled_folders();
+
+    if enabled_folders.is_empty() {
+        ColorOutput::warning("没有启用的同步文件夹");
+        ColorOutput::info("使用 'ccr sync folder list' 查看所有文件夹");
+        return Ok(());
+    }
+
+    ColorOutput::info(&format!("准备下载 {} 个文件夹...", enabled_folders.len()));
+    println!();
+
+    let mut success_count = 0;
+    let mut failed_count = 0;
+    let mut failed_folders = Vec::new();
+
+    for (index, folder) in enabled_folders.iter().enumerate() {
+        println!(
+            "{}  [{}/{}] {}",
+            "▶".cyan(),
+            index + 1,
+            enabled_folders.len(),
+            folder.name.bold()
+        );
+
+        match sync_folder_pull_internal(folder, &manager, force) {
+            Ok(_) => {
+                println!("   {}", "✓ 下载成功".green());
+                success_count += 1;
+            }
+            Err(e) => {
+                println!("   {} {}", "✗ 下载失败:".red(), e);
+                failed_count += 1;
+                failed_folders.push(folder.name.clone());
+            }
+        }
+        println!();
+    }
+
+    // 📊 显示汇总
+    ColorOutput::separator();
+    println!();
+    ColorOutput::title("批量下载汇总");
+    println!("  总计: {}", enabled_folders.len());
+    println!("  成功: {}", success_count.to_string().green());
+    if failed_count > 0 {
+        println!("  失败: {}", failed_count.to_string().red());
+        println!();
+        println!("失败的文件夹:");
+        for name in &failed_folders {
+            println!("  • {}", name.red());
+        }
+    }
+    println!();
+
+    if failed_count > 0 {
+        Err(CcrError::SyncError(format!(
+            "{} 个文件夹下载失败",
+            failed_count
+        )))
+    } else {
+        Ok(())
+    }
+}
+
+/// 📊 显示所有文件夹的同步状态
+pub fn sync_all_status_command() -> Result<()> {
+    ColorOutput::title("同步文件夹状态");
+    println!();
+
+    let manager = SyncFolderManager::with_default()?;
+    let folders = manager.list_folders()?;
+
+    if folders.is_empty() {
+        ColorOutput::warning("暂无注册的同步文件夹");
+        ColorOutput::info("使用 'ccr sync folder add' 添加文件夹");
+        return Ok(());
+    }
+
+    // 创建表格
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .set_content_arrangement(ContentArrangement::Dynamic);
+
+    // 表头
+    table.set_header(vec![
+        Cell::new("名称").fg(Color::Cyan),
+        Cell::new("启用").fg(Color::Cyan),
+        Cell::new("本地存在").fg(Color::Cyan),
+        Cell::new("同步状态").fg(Color::Cyan),
+    ]);
+
+    // 数据行
+    for folder in &folders {
+        let enabled = if folder.enabled {
+            Cell::new("✓").fg(Color::Green)
+        } else {
+            Cell::new("✗").fg(Color::Red)
+        };
+
+        let exists = if folder.local_path_exists() {
+            Cell::new("✓").fg(Color::Green)
+        } else {
+            Cell::new("✗").fg(Color::Yellow)
+        };
+
+        // TODO: 实际检查同步状态
+        let sync_status = Cell::new("未知").fg(Color::Yellow);
+
+        table.add_row(vec![Cell::new(&folder.name), enabled, exists, sync_status]);
+    }
+
+    println!("{table}");
+    println!();
+
+    // 统计信息
+    let stats = manager.stats()?;
+    ColorOutput::info(&format!(
+        "总计: {} 个文件夹 (启用: {}, 禁用: {})",
+        stats.total, stats.enabled, stats.disabled
+    ));
+
+    Ok(())
+}
+
+// ============================================================================
+// 📁 文件夹特定同步命令
+// ============================================================================
+
+/// 🎯 处理文件夹特定的同步命令
+///
+/// 动态分发到具体操作: push, pull, status
+pub fn sync_folder_specific_command(args: &[String]) -> Result<()> {
+    // 🆘 特殊处理 help 命令
+    if args.len() == 1 && args[0].eq_ignore_ascii_case("help") {
+        show_sync_help();
+        return Ok(());
+    }
+
+    if args.len() < 2 {
+        return Err(CcrError::ConfigError(
+            "用法: ccr sync <folder> <action>\n  action: push | pull | status".into(),
+        ));
+    }
+
+    let folder_name = &args[0];
+    let action = &args[1];
+
+    // 检查文件夹是否存在
+    let manager = SyncFolderManager::with_default()?;
+    let _folder = manager.get_folder(folder_name)?;
+
+    match action.as_str() {
+        "push" => sync_folder_push_command(folder_name),
+        "pull" => sync_folder_pull_command(folder_name),
+        "status" => sync_folder_status_command(folder_name),
+        _ => Err(CcrError::ConfigError(format!(
+            "未知操作: '{}'。支持的操作: push, pull, status",
+            action
+        ))),
+    }
+}
+
+/// 📤 上传指定文件夹
+fn sync_folder_push_command(folder_name: &str) -> Result<()> {
+    use colored::*;
+
+    ColorOutput::title(&format!("上传文件夹: {}", folder_name));
+    println!();
+
+    let manager = SyncFolderManager::with_default()?;
+    let folder = manager.get_folder(folder_name)?;
+
+    if !folder.enabled {
+        ColorOutput::warning(&format!("文件夹 '{}' 已禁用", folder_name));
+        ColorOutput::info("使用 'ccr sync folder enable <name>' 启用该文件夹");
+        return Ok(());
+    }
+
+    // 🏠 展开本地路径
+    let local_path = folder.expand_local_path()?;
+
+    // ✅ 检查本地路径是否存在
+    if !local_path.exists() {
+        return Err(CcrError::SyncError(format!(
+            "本地路径不存在: {}",
+            local_path.display()
+        )));
+    }
+
+    ColorOutput::info(&format!("本地路径: {}", local_path.display()));
+    ColorOutput::info(&format!("远程路径: {}", folder.remote_path));
+    println!();
+
+    // 🔧 获取 WebDAV 配置
+    let webdav_config = manager.get_webdav_config()?;
+
+    // 📝 构建 SyncConfig
+    let sync_config = SyncConfig {
+        enabled: true,
+        webdav_url: webdav_config.url.clone(),
+        username: webdav_config.username.clone(),
+        password: webdav_config.password.clone(),
+        remote_path: folder.remote_path.clone(),
+        auto_sync: false,
+    };
+
+    // 🔍 检查远程是否已存在
+    print!("🔍 正在检查远程状态...");
+    io::stdout().flush().unwrap();
+
+    let runtime = tokio::runtime::Runtime::new()
+        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
+
+    let exists = runtime.block_on(async {
+        let service = SyncService::new(&sync_config).await?;
+        service.remote_exists().await
+    })?;
+
+    print!("\r");
+    if exists {
+        println!("{}  {}", "⚠".yellow().bold(), "远程已存在同名内容".yellow());
+        println!();
+        print!("   是否覆盖远程配置？ {} ", "(y/N):".dimmed());
+        io::stdout().flush().unwrap();
+
+        let mut confirm = String::new();
+        io::stdin().read_line(&mut confirm).unwrap();
+
+        if !confirm.trim().eq_ignore_ascii_case("y") {
+            println!();
+            println!("{}  已取消上传", "ℹ".blue().bold());
+            return Ok(());
+        }
+        println!();
+    } else {
+        println!(
+            "{}  {}",
+            "ℹ".blue().bold(),
+            "远程不存在，将创建新内容".blue()
+        );
+        println!();
+    }
+
+    // 🚀 上传到云端
+    print!("🚀 正在上传...");
+    io::stdout().flush().unwrap();
+
+    runtime.block_on(async {
+        let service = SyncService::new(&sync_config).await?;
+        // 🎯 不传递 allowed_paths，让 SyncService 使用内部的排除逻辑
+        service.push(&local_path, None).await?;
+        Ok::<(), CcrError>(())
+    })?;
+
+    print!("\r");
+    println!(
+        "{}  {}",
+        "✓".green().bold(),
+        "文件夹已成功上传到云端".green()
+    );
+    println!();
+    println!("📊 同步信息:");
+    println!("   • 本地路径: {}", local_path.display().to_string().cyan());
+    println!("   • 远程路径: {}", folder.remote_path.cyan());
+    println!("   • 服务器: {}", webdav_config.url.dimmed());
+    println!();
+
+    Ok(())
+}
+
+/// 📥 下载指定文件夹
+fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
+    use colored::*;
+
+    ColorOutput::title(&format!("下载文件夹: {}", folder_name));
+    println!();
+
+    let manager = SyncFolderManager::with_default()?;
+    let folder = manager.get_folder(folder_name)?;
+
+    // 🏠 展开本地路径
+    let local_path = folder.expand_local_path()?;
+
+    ColorOutput::info(&format!("远程路径: {}", folder.remote_path));
+    ColorOutput::info(&format!("本地路径: {}", local_path.display()));
+    println!();
+
+    // 🔧 获取 WebDAV 配置
+    let webdav_config = manager.get_webdav_config()?;
+
+    // 📝 构建 SyncConfig
+    let sync_config = SyncConfig {
+        enabled: true,
+        webdav_url: webdav_config.url.clone(),
+        username: webdav_config.username.clone(),
+        password: webdav_config.password.clone(),
+        remote_path: folder.remote_path.clone(),
+        auto_sync: false,
+    };
+
+    // 🔍 检查远程是否存在
+    let runtime = tokio::runtime::Runtime::new()
+        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
+
+    let remote_exists = runtime.block_on(async {
+        let service = SyncService::new(&sync_config).await?;
+        service.remote_exists().await
+    })?;
+
+    if !remote_exists {
+        println!();
+        ColorOutput::error("远程目录不存在");
+        println!();
+        println!("   💡 提示: 首次使用需要先上传配置到云端");
+        println!(
+            "   运行命令: {}",
+            format!("ccr sync {} push", folder_name).cyan()
+        );
+        println!();
+        return Err(CcrError::SyncError("远程内容不存在".to_string()));
+    }
+
+    // ⚠️ 本地路径存在时的警告
+    if local_path.exists() {
+        println!(
+            "{}  {}",
+            "⚠".yellow().bold(),
+            "此操作将覆盖本地内容".yellow()
+        );
+        println!();
+        print!("   是否继续？本地内容将被备份 {} ", "(y/N):".dimmed());
+        io::stdout().flush().unwrap();
+
+        let mut confirm = String::new();
+        io::stdin().read_line(&mut confirm).unwrap();
+
+        if !confirm.trim().eq_ignore_ascii_case("y") {
+            println!();
+            println!("{}  已取消下载", "ℹ".blue().bold());
+            return Ok(());
+        }
+        println!();
+
+        // 💾 备份本地文件夹
+        print!("💾 正在备份本地内容...");
+        io::stdout().flush().unwrap();
+
+        let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+        let backup_name = format!("{}.{}.bak", local_path.display(), timestamp);
+        let backup_path = PathBuf::from(backup_name);
+
+        if backup_path.exists() {
+            std::fs::remove_dir_all(&backup_path)
+                .map_err(|e| CcrError::SyncError(format!("删除旧备份失败: {}", e)))?;
+        }
+
+        std::fs::rename(&local_path, &backup_path)
+            .map_err(|e| CcrError::SyncError(format!("备份失败: {}", e)))?;
+
+        print!("\r");
+        println!("{}  {}", "✓".green().bold(), "本地内容已备份".green());
+        println!(
+            "   📁 备份位置: {}",
+            backup_path.display().to_string().dimmed()
+        );
+        println!();
+    }
+
+    // ⬇️ 从云端下载
+    print!("⬇️  正在从云端下载...");
+    io::stdout().flush().unwrap();
+
+    runtime.block_on(async {
+        let service = SyncService::new(&sync_config).await?;
+        service.pull(&local_path).await?;
+        Ok::<(), CcrError>(())
+    })?;
+
+    print!("\r");
+    println!(
+        "{}  {}",
+        "✓".green().bold(),
+        "文件夹已从云端下载并应用".green()
+    );
+    println!();
+    println!("📊 同步信息:");
+    println!("   • 本地路径: {}", local_path.display().to_string().cyan());
+    println!("   • 远程路径: {}", folder.remote_path.cyan());
+    println!("   • 服务器: {}", webdav_config.url.dimmed());
+    println!();
+
+    Ok(())
+}
+
+/// 📊 显示指定文件夹的同步状态
+fn sync_folder_status_command(folder_name: &str) -> Result<()> {
+    use colored::*;
+
+    ColorOutput::title(&format!("文件夹状态: {}", folder_name));
+    println!();
+
+    let manager = SyncFolderManager::with_default()?;
+    let folder = manager.get_folder(folder_name)?;
+
+    println!("{}", "基本信息".bold());
+    println!("  名称:     {}", folder.name);
+    println!(
+        "  状态:     {}",
+        if folder.enabled {
+            "✓ 启用".green()
+        } else {
+            "✗ 禁用".red()
+        }
+    );
+    println!("  本地路径: {}", folder.local_path);
+    println!("  远程路径: {}", folder.remote_path);
+    println!();
+
+    // 🔧 获取 WebDAV 配置
+    let webdav_config = manager.get_webdav_config()?;
+
+    // 📝 构建 SyncConfig
+    let sync_config = SyncConfig {
+        enabled: true,
+        webdav_url: webdav_config.url.clone(),
+        username: webdav_config.username.clone(),
+        password: webdav_config.password.clone(),
+        remote_path: folder.remote_path.clone(),
+        auto_sync: false,
+    };
+
+    println!("{}", "同步状态".bold());
+
+    // ✅ 检查本地路径是否存在
+    let local_path = folder.expand_local_path()?;
+    if local_path.exists() {
+        if local_path.is_dir() {
+            println!("  本地路径: {} (目录)", "✓ 存在".green());
+        } else {
+            println!("  本地路径: {} (文件)", "✓ 存在".green());
+        }
+    } else {
+        println!("  本地路径: {}", "✗ 不存在".yellow());
+    }
+
+    // 🔍 检查远程状态
+    print!("  远程状态: 正在检查...");
+    io::stdout().flush().unwrap();
+
+    let runtime = tokio::runtime::Runtime::new()
+        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
+
+    let remote_exists = runtime.block_on(async {
+        let service = SyncService::new(&sync_config).await?;
+        service.remote_exists().await
+    })?;
+
+    print!("\r");
+    if remote_exists {
+        println!("  远程状态: {}", "✓ 存在".green());
+    } else {
+        println!("  远程状态: {}", "✗ 不存在".yellow());
+        println!();
+        println!(
+            "  💡 提示: 运行 {} 首次上传",
+            format!("ccr sync {} push", folder_name).cyan()
+        );
+    }
+    println!();
+
+    Ok(())
+}
+
+// ============================================================================
+// 🔧 内部辅助函数
+// ============================================================================
+
+/// 🔧 内部上传函数 - 用于批量上传和单独上传
+///
+/// # 参数
+/// - folder: 要上传的文件夹配置
+/// - manager: SyncFolderManager 实例
+/// - force: 是否强制上传（跳过确认）
+fn sync_folder_push_internal(
+    folder: &SyncFolder,
+    manager: &SyncFolderManager,
+    force: bool,
+) -> Result<()> {
+    // 🏠 展开本地路径
+    let local_path = folder.expand_local_path()?;
+
+    // ✅ 检查本地路径是否存在
+    if !local_path.exists() {
+        return Err(CcrError::SyncError(format!(
+            "本地路径不存在: {}",
+            local_path.display()
+        )));
+    }
+
+    // 🔧 获取 WebDAV 配置
+    let webdav_config = manager.get_webdav_config()?;
+
+    // 📝 构建 SyncConfig
+    let sync_config = SyncConfig {
+        enabled: true,
+        webdav_url: webdav_config.url.clone(),
+        username: webdav_config.username.clone(),
+        password: webdav_config.password.clone(),
+        remote_path: folder.remote_path.clone(),
+        auto_sync: false,
+    };
+
+    let runtime = tokio::runtime::Runtime::new()
+        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
+
+    // 🔍 检查远程是否已存在（仅在非强制模式下）
+    if !force {
+        let exists = runtime.block_on(async {
+            let service = SyncService::new(&sync_config).await?;
+            service.remote_exists().await
+        })?;
+
+        if exists {
+            // 在批量模式下跳过已存在的文件夹
+            return Err(CcrError::SyncError("远程已存在，使用 --force 覆盖".into()));
+        }
+    }
+
+    // 🚀 上传到云端
+    runtime.block_on(async {
+        let service = SyncService::new(&sync_config).await?;
+        service.push(&local_path, None).await?;
+        Ok::<(), CcrError>(())
+    })?;
+
+    Ok(())
+}
+
+/// 🔧 内部下载函数 - 用于批量下载和单独下载
+///
+/// # 参数
+/// - folder: 要下载的文件夹配置
+/// - manager: SyncFolderManager 实例
+/// - force: 是否强制下载（跳过确认）
+fn sync_folder_pull_internal(
+    folder: &SyncFolder,
+    manager: &SyncFolderManager,
+    force: bool,
+) -> Result<()> {
+    // 🏠 展开本地路径
+    let local_path = folder.expand_local_path()?;
+
+    // 🔧 获取 WebDAV 配置
+    let webdav_config = manager.get_webdav_config()?;
+
+    // 📝 构建 SyncConfig
+    let sync_config = SyncConfig {
+        enabled: true,
+        webdav_url: webdav_config.url.clone(),
+        username: webdav_config.username.clone(),
+        password: webdav_config.password.clone(),
+        remote_path: folder.remote_path.clone(),
+        auto_sync: false,
+    };
+
+    let runtime = tokio::runtime::Runtime::new()
+        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
+
+    // 🔍 检查远程是否存在
+    let remote_exists = runtime.block_on(async {
+        let service = SyncService::new(&sync_config).await?;
+        service.remote_exists().await
+    })?;
+
+    if !remote_exists {
+        return Err(CcrError::SyncError("远程内容不存在".to_string()));
+    }
+
+    // ⚠️ 本地路径存在时的警告（仅在非强制模式下）
+    if local_path.exists() && !force {
+        // 在批量模式下直接跳过已存在的
+        return Err(CcrError::SyncError("本地已存在，使用 --force 覆盖".into()));
+    }
+
+    // 💾 备份本地文件夹（如果存在）
+    if local_path.exists() {
+        let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+        let backup_name = format!("{}.{}.bak", local_path.display(), timestamp);
+        let backup_path = PathBuf::from(backup_name);
+
+        if backup_path.exists() {
+            std::fs::remove_dir_all(&backup_path)
+                .map_err(|e| CcrError::SyncError(format!("删除旧备份失败: {}", e)))?;
+        }
+
+        std::fs::rename(&local_path, &backup_path)
+            .map_err(|e| CcrError::SyncError(format!("备份失败: {}", e)))?;
+    }
+
+    // ⬇️ 从云端下载
+    runtime.block_on(async {
+        let service = SyncService::new(&sync_config).await?;
+        service.pull(&local_path).await?;
+        Ok::<(), CcrError>(())
+    })?;
+
+    Ok(())
 }
 
 #[cfg(test)]

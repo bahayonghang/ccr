@@ -192,7 +192,7 @@ impl ColorOutput {
 /// - 样式: auto(自动检测终端支持)
 ///
 /// 日志格式:
-/// - 时间戳 [级别] 消息内容
+/// - 时间戳 \[级别\] 消息内容
 /// - 级别带彩色标识
 pub fn init_logger() {
     let env = env_logger::Env::default()

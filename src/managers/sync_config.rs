@@ -23,7 +23,7 @@ pub struct SyncConfig {
 
     /// 🌐 WebDAV 服务器地址
     ///
-    /// 坚果云默认地址: https://dav.jianguoyun.com/dav/
+    /// 坚果云默认地址: <https://dav.jianguoyun.com/dav/>
     /// 其他WebDAV服务器也支持
     pub webdav_url: String,
 

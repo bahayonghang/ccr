@@ -13,6 +13,7 @@ pub mod history;
 pub mod platform_config;
 pub mod settings;
 pub mod sync_config;
+pub mod sync_folder_manager;
 pub mod temp_override;
 
 // 重新导出常用类型（供外部使用）
@@ -34,5 +35,7 @@ pub use platform_config::{PlatformConfigEntry, PlatformConfigManager, UnifiedCon
 pub use settings::{ClaudeSettings, SettingsManager};
 #[allow(unused_imports)]
 pub use sync_config::{SyncConfig, SyncConfigManager};
+#[allow(unused_imports)]
+pub use sync_folder_manager::SyncFolderManager;
 #[allow(unused_imports)]
 pub use temp_override::{TempOverride, TempOverrideManager};

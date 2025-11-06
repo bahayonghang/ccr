@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 /// 4. 💾 保存到文件
 ///
 /// 参数:
-/// - output: 输出文件路径(默认: ccs_config_export_<timestamp>.toml)
+/// - output: 输出文件路径(默认: `ccs_config_export_<timestamp>.toml`)
 /// - include_secrets: 是否包含 API 密钥等敏感信息
 pub fn export_command(output: Option<String>, include_secrets: bool) -> Result<()> {
     ColorOutput::title("导出配置");

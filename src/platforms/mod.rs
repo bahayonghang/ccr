@@ -33,7 +33,7 @@ pub use qwen::QwenPlatform;
 /// - `platform`: 平台类型
 ///
 /// # 返回
-/// - Ok(Arc<dyn PlatformConfig>): 平台实例（线程安全）
+/// - `Ok(Arc<dyn PlatformConfig>)`: 平台实例（线程安全）
 /// - Err: 平台未实现或创建失败
 ///
 /// # 示例

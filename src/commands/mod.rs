@@ -44,11 +44,6 @@ pub use platform::{
 pub use stats::{StatsArgs, stats_command};
 pub use switch::switch_command;
 #[cfg(feature = "web")]
-pub use sync_cmd::{
-    sync_config_command, sync_pull_command, sync_push_command, sync_push_command_with_selection,
-    sync_status_command,
-};
-#[cfg(feature = "web")]
 pub use sync_content_selector::SyncContentSelector;
 pub use temp_token::{temp_token_clear, temp_token_set, temp_token_show};
 pub use ui::ui_command;

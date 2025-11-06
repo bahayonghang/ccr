@@ -3,6 +3,7 @@
 
 pub mod platform;
 pub mod stats;
+pub mod sync_folder;
 
 // 重新导出常用类型
 pub use platform::{ConfigMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
