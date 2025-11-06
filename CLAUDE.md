@@ -20,7 +20,8 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 # CCR - Claude Code Configuration Switcher
 
 ## Change Log (Changelog)
-- **2025-10-25 [Current]**: Added comprehensive multi-platform configuration documentation
+- **2025-11-06 [Current]**: Added multi-folder sync management feature (v2.5+) with comprehensive documentation
+- **2025-10-25**: Added comprehensive multi-platform configuration documentation
 - **2025-10-22 10:39:28 CST**: Documentation refresh - corrected frontend path after Vue.js migration
 - **2025-10-22 00:04:36 CST**: Initial AI context documentation created
 
@@ -263,6 +264,278 @@ cargo test --doc
 ```
 
 ⚠️ **Important**: Platform tests modify global environment variables and must run serially (`--test-threads=1`) to avoid conflicts.
+
+## Multi-Folder Sync Management
+
+CCR v2.5+ introduces comprehensive multi-folder sync management, allowing you to independently manage and sync multiple directories (config, .claude/, .gemini/, etc.) to WebDAV cloud storage.
+
+### Core Capabilities
+
+- ✅ **Multiple Sync Folders**: Register and manage multiple folders independently
+- ✅ **Granular Control**: Push/pull individual folders or batch operations
+- ✅ **Flexible Configuration**: Each folder has its own remote path and exclusion rules
+- ✅ **Backward Compatible**: Legacy `ccr sync push/pull` commands continue working
+- ✅ **Automatic Migration**: Seamlessly upgrades from v2.4 config format
+
+### Configuration Structure
+
+#### sync_folders.toml Format
+
+Unified configuration file at `~/.ccr/sync_folders.toml` (or Legacy mode `~/.ccr/sync_folders.toml`):
+
+```toml
+version = "1.0"
+
+[webdav]
+url = "https://dav.jianguoyun.com/dav/"
+username = "user@example.com"
+password = "app-password"
+base_remote_path = "/ccr"
+
+[[folders]]
+name = "claude"
+description = "Claude Code 配置"
+local_path = "~/.claude"
+remote_path = "/ccr/claude"
+enabled = true
+auto_sync = false
+exclude_patterns = []
+
+[[folders]]
+name = "gemini"
+description = "Gemini CLI 配置"
+local_path = "~/.gemini"
+remote_path = "/ccr/gemini"
+enabled = true
+auto_sync = false
+exclude_patterns = ["*.log", "cache/"]
+
+[[folders]]
+name = "conf"
+description = "CCR 主配置文件"
+local_path = "~/.ccs_config.toml"
+remote_path = "/ccr/config.toml"
+enabled = true
+auto_sync = false
+exclude_patterns = []
+```
+
+### CLI Commands
+
+#### Folder Management
+
+```bash
+# List all registered folders
+ccr sync folder list
+
+# Add new sync folder
+ccr sync folder add <name> <local_path> [options]
+ccr sync folder add claude ~/.claude -d "Claude Config"
+ccr sync folder add gemini ~/.gemini -r /custom/remote/path
+
+# Remove folder registration
+ccr sync folder remove <name>
+
+# Show folder details
+ccr sync folder info <name>
+
+# Enable/disable folder
+ccr sync folder enable <name>
+ccr sync folder disable <name>
+```
+
+#### Folder-Specific Sync
+
+```bash
+# Sync individual folders
+ccr sync <folder> push    # Upload folder to cloud
+ccr sync <folder> pull    # Download folder from cloud
+ccr sync <folder> status  # Check folder sync status
+
+# Examples
+ccr sync claude push      # Upload Claude config
+ccr sync gemini pull      # Download Gemini config
+ccr sync conf status      # Check config file status
+```
+
+#### Batch Operations
+
+```bash
+# Sync all enabled folders
+ccr sync all push [--force]    # Upload all folders
+ccr sync all pull [--force]    # Download all folders
+ccr sync all status            # Show status for all folders
+```
+
+#### Legacy Commands (Backward Compatible)
+
+```bash
+# These still work and map to batch operations
+ccr sync push      # Equivalent to: ccr sync all push
+ccr sync pull      # Equivalent to: ccr sync all pull
+ccr sync status    # Shows all folder statuses
+```
+
+### Workflow Examples
+
+#### 1. Initial Setup
+
+```bash
+# Configure WebDAV connection
+ccr sync config
+
+# System automatically migrates and creates default folders:
+# - conf: ~/.ccs_config.toml → /ccr/config.toml
+# - claude: ~/.claude/ → /ccr/claude
+# - gemini: ~/.gemini/ → /ccr/gemini (if exists)
+
+# View registered folders
+ccr sync folder list
+```
+
+#### 2. Adding Custom Folders
+
+```bash
+# Add a custom scripts folder
+ccr sync folder add scripts ~/my-scripts \
+  --remote-path /ccr/scripts \
+  --description "My custom scripts"
+
+# Add with exclusion patterns
+ccr sync folder add logs ~/app-logs \
+  --remote-path /ccr/logs
+# Then edit sync_folders.toml to add:
+# exclude_patterns = ["*.log", "temp/"]
+```
+
+#### 3. Daily Workflow
+
+```bash
+# Sync specific folders
+ccr sync claude push      # Upload Claude changes
+ccr sync gemini pull      # Download latest Gemini config
+
+# Or sync everything at once
+ccr sync all push --force # Backup all configs to cloud
+```
+
+#### 4. Multi-Machine Setup
+
+```bash
+# On Machine A:
+ccr sync claude push      # Upload Claude config
+
+# On Machine B:
+ccr sync claude pull      # Download and apply Claude config
+```
+
+### Implementation Details
+
+#### Data Models
+
+**File**: `src/models/sync_folder.rs`
+
+```rust
+pub struct SyncFolder {
+    pub name: String,
+    pub description: String,
+    pub local_path: String,
+    pub remote_path: String,
+    pub enabled: bool,
+    pub auto_sync: bool,
+    pub exclude_patterns: Vec<String>,
+}
+
+pub struct SyncFoldersConfig {
+    pub version: String,
+    pub webdav: WebDavConfig,
+    pub folders: Vec<SyncFolder>,
+}
+```
+
+#### Manager
+
+**File**: `src/managers/sync_folder_manager.rs`
+
+```rust
+impl SyncFolderManager {
+    pub fn add_folder(&mut self, folder: SyncFolder) -> Result<()>
+    pub fn remove_folder(&mut self, name: &str) -> Result<()>
+    pub fn get_folder(&self, name: &str) -> Result<SyncFolder>
+    pub fn list_folders(&self) -> Result<Vec<SyncFolder>>
+    pub fn enable_folder(&mut self, name: &str) -> Result<()>
+    pub fn disable_folder(&mut self, name: &str) -> Result<()>
+    pub fn migrate_from_legacy(&mut self) -> Result<bool>
+}
+```
+
+#### Command Handlers
+
+**File**: `src/commands/sync_cmd.rs`
+
+Implements 15+ new command functions:
+- Folder management: list, add, remove, info, enable, disable
+- Folder-specific sync: push, pull, status
+- Batch operations: all push/pull/status
+
+### Migration from v2.4 to v2.5
+
+#### Automatic Migration
+
+When you first run any `ccr sync folder` command, CCR automatically:
+
+1. Detects absence of `sync_folders.toml`
+2. Reads existing WebDAV config from legacy location
+3. Creates default folder entries:
+   - `conf` for `~/.ccs_config.toml`
+   - `claude` for `~/.claude/` (if exists)
+   - `gemini` for `~/.gemini/` (if exists)
+   - `codex` for `~/.codex/` (if exists)
+4. Saves new `sync_folders.toml`
+5. Displays migration success message
+
+#### Manual Migration Check
+
+```bash
+# Trigger migration (happens automatically)
+ccr sync folder list
+
+# Output shows auto-created folders:
+# ╔═══════╦════════╦═══════════════╦══════════════════╗
+# ║ 名称  ║ 状态   ║ 本地路径      ║ 远程路径         ║
+# ╠═══════╬════════╬═══════════════╬══════════════════╣
+# ║ claude║ ✓      ║ ~/.claude     ║ /ccr/claude      ║
+# ║ gemini║ ✓      ║ ~/.gemini     ║ /ccr/gemini      ║
+# ║ conf  ║ ✓      ║ ~/.ccs_config ║ /ccr/config.toml ║
+# ╚═══════╩════════╩═══════════════╩══════════════════╝
+```
+
+### Testing
+
+All sync folder tests located in `src/models/sync_folder.rs` and `src/managers/sync_folder_manager.rs`:
+
+```bash
+# Run sync folder tests
+cargo test sync_folder
+cargo test sync_folder_manager
+
+# Expected: 17 tests passing
+# - 10 model tests (validation, builder, path expansion)
+# - 7 manager tests (CRUD operations, migration)
+```
+
+### Documentation
+
+For comprehensive usage guide, see: [`docs/sync-multi-folder-guide.md`](docs/sync-multi-folder-guide.md)
+
+Covers:
+- Quick start guide
+- Detailed command reference
+- Configuration file format
+- Migration instructions
+- FAQ (10+ questions)
+- Advanced usage (scripting, cron)
+- Troubleshooting
 
 ## Module Structure Diagram
 
@@ -522,7 +795,12 @@ cargo tarpaulin --out Html
 - `ccr web` - Launch web server
 - `ccr ui` - Launch full UI
 - `ccr tui` - Launch TUI
-- `ccr sync [config|status|push|pull]` - WebDAV sync
+- `ccr sync config` - Configure WebDAV sync
+- `ccr sync status` - Show sync status
+- `ccr sync push/pull` - Upload/download (all folders)
+- `ccr sync folder [list|add|remove|info|enable|disable]` - Manage folders
+- `ccr sync <folder> [push|pull|status]` - Sync specific folder
+- `ccr sync all [push|pull|status]` - Batch operations
 - `ccr update` - Update from GitHub
 
 ### Web API Endpoints (14)

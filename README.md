@@ -4,13 +4,14 @@
 
 CCR directly manages Claude Code's `settings.json` with atomic operations, file locking, complete audit trails, and automatic backups. The Rust implementation of CCS with enhanced reliability and performance.
 
-> **🎉 Version 2.2.1 - Optimized & Refined**
+> **🎉 Version 2.5.0 - Multi-Folder Sync Management**
 >
-> This version includes 11 major optimizations for better performance, code quality, and maintainability:
-> - ⚡ **Performance**: Streaming stats loading, memory caching, optimized build profiles
-> - 🎯 **Code Quality**: Unified file I/O, stateless utilities, minimal cloning
-> - 🔒 **Reliability**: CONFIG_LOCK mutex, enhanced error handling, feature gates
-> - 🧪 **Testing**: 221 tests passing with 95%+ coverage
+> This version introduces comprehensive multi-folder sync management:
+> - 📁 **Independent Folder Management**: Register and sync multiple directories independently (.claude/, .gemini/, config files)
+> - 🔄 **Granular Control**: Push/pull individual folders or batch operations
+> - ⚡ **Backward Compatible**: Legacy `ccr sync push/pull` commands continue working
+> - 🚀 **Auto Migration**: Seamlessly upgrades from v2.4 sync configuration
+> - 🌐 **Web UI Support**: 12 new API endpoints for folder management
 
 ## ✨ Why CCR?
 
@@ -23,7 +24,7 @@ CCR directly manages Claude Code's `settings.json` with atomic operations, file 
 | 🔒 **Concurrency Safe** | File locking + atomic operations prevent corruption across multiple processes |
 | 📝 **Complete Audit Trail** | Every operation logged with masked sensitive data (UUID, timestamp, actor) |
 | 💾 **Auto Backup** | Automatic backups before changes with timestamped `.bak` files |
-| ☁️ **Cloud Sync** | WebDAV-based config synchronization (Nutstore, Nextcloud, ownCloud, etc.) |
+| ☁️ **Cloud Sync** | WebDAV-based multi-folder synchronization - independently sync config, .claude/, .gemini/ and more (Nutstore, Nextcloud, ownCloud supported) |
 | ✅ **Validation** | Comprehensive config validation (URLs, required fields, format) |
 | 🔤 **Config Optimization** | Sort configs alphabetically, maintain order after switching |
 | 🌐 **Web Server** | Built-in Axum web server exposing 14 RESTful API endpoints (config, history, backups, system info, etc.) |

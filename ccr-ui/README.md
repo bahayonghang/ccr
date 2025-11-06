@@ -19,7 +19,12 @@ just s    # 启动开发环境（就这么简单！）
 
 - **Config Management**: View, switch, and validate CCR configurations
 - **Command Executor**: Execute any CCR command with a visual interface
-- **WebDAV Sync**: Push/pull configs to cloud storage (Nutstore, Nextcloud, ownCloud)
+- **Multi-Folder WebDAV Sync**:
+  - Independent folder management (add/remove/enable/disable)
+  - Individual folder operations (push/pull/status)
+  - Batch operations for all enabled folders
+  - Support for multiple sync destinations (Nutstore, Nextcloud, ownCloud)
+  - Smart filtering (excludes backups, locks, temp files)
 - **Real-time Output**: See command output in a terminal-style display
 - **Multi-page Navigation**: Easy switching between different functionalities
 
@@ -200,11 +205,31 @@ The built files will be in `frontend/dist/`.
 - `GET /api/command/help/{command}` - Get help for a command
 
 ### WebDAV Sync
+
+#### Basic Sync Operations
 - `GET /api/sync/status` - Get sync configuration status
 - `POST /api/sync/push` - Upload config to cloud (body: `{force: boolean}`)
 - `POST /api/sync/pull` - Download config from cloud (body: `{force: boolean}`)
 - `GET /api/sync/info` - Get sync feature information
 - `POST /api/sync/config` - Configure WebDAV sync (not supported in web API)
+
+#### Multi-Folder Management
+- `GET /api/sync/folders` - List all registered sync folders
+- `POST /api/sync/folders` - Add new sync folder (body: `{name, local_path, remote_path?, description?}`)
+- `DELETE /api/sync/folders/:name` - Remove folder registration (keeps local files)
+- `GET /api/sync/folders/:name` - Get folder details
+- `PUT /api/sync/folders/:name/enable` - Enable folder for sync
+- `PUT /api/sync/folders/:name/disable` - Disable folder (keeps config)
+
+#### Folder-Specific Operations
+- `POST /api/sync/folders/:name/push` - Push specific folder (body: `{force: boolean}`)
+- `POST /api/sync/folders/:name/pull` - Pull specific folder (body: `{force: boolean}`)
+- `GET /api/sync/folders/:name/status` - Get folder sync status
+
+#### Batch Operations
+- `POST /api/sync/all/push` - Push all enabled folders (body: `{force: boolean}`)
+- `POST /api/sync/all/pull` - Pull all enabled folders (body: `{force: boolean}`)
+- `GET /api/sync/all/status` - Get status of all folders
 
 ## Usage
 
@@ -222,6 +247,55 @@ The built files will be in `frontend/dist/`.
 3. Execute the command
 4. View output in real-time with syntax highlighting
 5. Copy output or clear it
+
+### Multi-Folder Sync Page
+
+The sync page provides comprehensive WebDAV synchronization with multi-folder management:
+
+#### WebDAV Configuration
+- View current WebDAV configuration status
+- Server URL, username, and remote path
+- Connection test status
+
+#### Folder Management
+**Add New Folder**:
+1. Enter folder name (e.g., `claude`, `gemini`)
+2. Specify local path (e.g., `~/.claude`, `~/.gemini`)
+3. Optional: Set custom remote path
+4. Optional: Add description
+5. Click "Add Folder" to register
+
+**Manage Folders**:
+- **Enable/Disable**: Toggle folder participation in batch operations
+- **Push**: Upload individual folder to cloud
+- **Pull**: Download individual folder from cloud
+- **Status**: Check folder sync status
+- **Remove**: Delete folder registration (keeps local files)
+
+#### Batch Operations
+- **Push All**: Upload all enabled folders in one operation
+- **Pull All**: Download all enabled folders in one operation
+- **Status All**: View status of all registered folders
+
+#### Smart Filtering
+Automatic exclusion of:
+- Backup directories (`backups/`)
+- Lock files (`.locks/`)
+- Temporary files (`*.tmp`, `*.bak`)
+- System files (`.DS_Store`, `Thumbs.db`)
+
+#### Supported Services
+- ✅ Nutstore (坚果云)
+- ✅ Nextcloud
+- ✅ ownCloud
+- ✅ Any standard WebDAV server
+
+#### Example Workflow
+1. Configure WebDAV connection (use CLI: `ccr sync config`)
+2. Add folders: claude, gemini, custom configs
+3. Enable folders you want to sync
+4. Use batch operations for quick sync across all folders
+5. Or use individual operations for selective sync
 
 ## Available Commands
 

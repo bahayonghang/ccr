@@ -14,9 +14,10 @@ The CCR UI backend is an Axum-based REST API server that provides comprehensive 
 3. **Agent Management** - Manage AI agents for each platform
 4. **Slash Command Management** - Custom slash commands configuration
 5. **Plugin Management** - Plugin installation and configuration
-6. **Config Conversion** - Convert configs between different platforms
-7. **Command Execution** - Execute CCR CLI commands via API
-8. **System Information** - Provide system metrics and status
+6. **Multi-Folder WebDAV Sync** - Independent folder management with batch operations
+7. **Config Conversion** - Convert configs between different platforms
+8. **Command Execution** - Execute CCR CLI commands via API
+9. **System Information** - Provide system metrics and status
 
 The backend runs as a standalone Axum server on port 8081 and communicates with the frontend via RESTful JSON APIs.
 
@@ -114,7 +115,7 @@ backend/
 
 ## External Interfaces
 
-### API Endpoints (129 Total)
+### API Endpoints (141 Total)
 
 #### Health Check
 ```
@@ -188,13 +189,32 @@ DELETE /api/plugins/:id           - Delete plugin
 PUT    /api/plugins/:id/toggle    - Toggle plugin
 ```
 
-**Sync (5)**:
+**Sync (17)**:
 ```
+# Basic Sync Operations (5)
 GET  /api/sync/status             - Get sync status
 POST /api/sync/push               - Push config to cloud
 POST /api/sync/pull               - Pull config from cloud
 GET  /api/sync/info               - Get sync configuration
 POST /api/sync/config             - Configure sync
+
+# Multi-Folder Management (6)
+GET    /api/sync/folders          - List all sync folders
+POST   /api/sync/folders          - Add new sync folder
+DELETE /api/sync/folders/:name    - Remove folder registration
+GET    /api/sync/folders/:name    - Get folder details
+PUT    /api/sync/folders/:name/enable  - Enable folder
+PUT    /api/sync/folders/:name/disable - Disable folder
+
+# Folder-Specific Operations (3)
+POST /api/sync/folders/:name/push   - Push specific folder
+POST /api/sync/folders/:name/pull   - Pull specific folder
+GET  /api/sync/folders/:name/status - Get folder status
+
+# Batch Operations (3)
+POST /api/sync/all/push            - Push all enabled folders
+POST /api/sync/all/pull            - Pull all enabled folders
+GET  /api/sync/all/status          - Get all folders status
 ```
 
 #### Codex Management (33 endpoints)
