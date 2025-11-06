@@ -1,14 +1,12 @@
 <template>
-  <div class="min-h-screen relative overflow-hidden" :style="{ 
-    background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #4c1d95 50%, #5b21b6 75%, #6d28d9 100%)'
-  }">
+  <div class="min-h-screen relative overflow-y-auto bg-gray-50 dark:bg-gray-900">
     <!-- 动态背景装饰 -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl"></div>
-      <div class="absolute top-1/2 -left-40 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl"></div>
-      <div class="absolute bottom-20 right-1/3 w-72 h-72 bg-violet-500/20 rounded-full blur-3xl"></div>
+    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+      <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 dark:bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+      <div class="absolute top-1/2 -left-40 w-96 h-96 bg-indigo-500/20 dark:bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+      <div class="absolute bottom-20 right-1/3 w-72 h-72 bg-violet-500/20 dark:bg-violet-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
     </div>
-    
+
     <main class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-8">
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
@@ -19,13 +17,17 @@
         ]"
         moduleColor="#6366f1"
       />
+
       <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-4">
             <div class="p-3 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-xl">
               <Cloud class="w-8 h-8 text-white drop-shadow-lg" />
             </div>
-            <h1 class="text-4xl font-bold text-white drop-shadow-lg">WebDAV 云同步</h1>
+            <div>
+              <h1 class="text-4xl font-bold text-white drop-shadow-lg">WebDAV 云同步</h1>
+              <p class="text-white/80 mt-1 drop-shadow-md">预设平台选择 · 一键同步 · 智能管理</p>
+            </div>
           </div>
           <RouterLink
             to="/"
@@ -35,7 +37,6 @@
             <span class="font-medium text-white">返回首页</span>
           </RouterLink>
         </div>
-        <p class="text-white/90 text-lg drop-shadow-md">使用 WebDAV 协议同步配置文件到云端存储，支持目录同步，智能排除备份和临时文件</p>
       </div>
 
       <!-- 加载状态 -->
@@ -59,352 +60,832 @@
 
       <!-- 主要内容 -->
       <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- 左侧主内容区 -->
+        <!-- 左侧主内容区 (2 columns) -->
         <div class="lg:col-span-2 space-y-6">
+          <!-- 预设同步项目选择 -->
           <div
             class="rounded-2xl backdrop-blur-xl bg-white/15 border border-white/30 shadow-2xl overflow-hidden transition-all duration-300 hover:bg-white/20"
           >
             <!-- 头部 -->
+            <div class="px-6 py-5 bg-gradient-to-r from-white/25 to-white/15 border-b border-white/30 flex items-center justify-between">
+              <h2 class="text-2xl font-bold text-white flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                <div class="p-2 rounded-xl bg-white/30">
+                  <CheckSquare class="w-6 h-6" />
+                </div>
+                选择同步平台
+              </h2>
+              <button
+                @click="applySelection"
+                :disabled="applying || !hasChanges"
+                class="flex items-center gap-2 px-4 py-2 rounded-xl backdrop-blur-md bg-emerald-500/40 border border-emerald-400/30 text-white font-medium transition-all duration-300 hover:bg-emerald-500/50 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save class="w-4 h-4" />
+                <span>{{ applying ? '应用中...' : '应用选择' }}</span>
+              </button>
+            </div>
+
+            <div class="p-6">
+              <!-- Config (必选项) -->
+              <div class="mb-6 p-5 rounded-xl bg-amber-500/20 border-2 border-amber-400/50">
+                <div class="flex items-center gap-4">
+                  <CheckCircle class="w-6 h-6 text-amber-300 flex-shrink-0" />
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <h3 class="text-lg font-bold text-white">Platforms 平台配置</h3>
+                      <span class="px-2 py-1 rounded-lg text-xs font-bold bg-amber-500/40 border border-amber-400/30 text-amber-100">
+                        必选
+                      </span>
+                    </div>
+                    <p class="text-white/70 text-sm mb-3">CCR 供应商配置（API地址、密钥等），强制同步保证配置一致性</p>
+                    <div class="flex items-center gap-2">
+                      <Folder class="w-4 h-4 text-white/60" />
+                      <input
+                        v-model="presetItems.config.localPath"
+                        type="text"
+                        class="flex-1 px-3 py-2 rounded-lg backdrop-blur-md bg-white/20 border border-white/30 text-white text-sm placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                        placeholder="本地路径"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 可选平台列表 -->
+              <div class="space-y-4">
+                <div
+                  v-for="item in optionalItems"
+                  :key="item.key"
+                  class="p-5 rounded-xl backdrop-blur-md transition-all duration-300"
+                  :class="item.selected ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-white/10 border border-white/20'"
+                >
+                  <div class="flex items-start gap-4">
+                    <button
+                      @click="toggleItem(item.key)"
+                      class="mt-1 flex-shrink-0"
+                    >
+                      <div
+                        class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300"
+                        :class="item.selected
+                          ? 'bg-blue-500/40 border-blue-400/50'
+                          : 'bg-white/10 border-white/30 hover:border-white/50'"
+                      >
+                        <Check v-if="item.selected" class="w-4 h-4 text-white" />
+                      </div>
+                    </button>
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <component :is="item.icon" class="w-5 h-5 text-white/80" />
+                        <h3 class="text-lg font-bold text-white">{{ item.name }}</h3>
+                      </div>
+                      <p class="text-white/70 text-sm mb-3">{{ item.description }}</p>
+                      <div v-if="item.selected" class="space-y-2">
+                        <div class="flex items-center gap-2">
+                          <Folder class="w-4 h-4 text-white/60" />
+                          <input
+                            v-model="item.localPath"
+                            type="text"
+                            class="flex-1 px-3 py-2 rounded-lg backdrop-blur-md bg-white/20 border border-white/30 text-white text-sm placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+                            placeholder="本地路径"
+                          />
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <Cloud class="w-4 h-4 text-white/60" />
+                          <input
+                            v-model="item.remotePath"
+                            type="text"
+                            class="flex-1 px-3 py-2 rounded-lg backdrop-blur-md bg-white/20 border border-white/30 text-white text-sm placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+                            placeholder="远程路径 (可选)"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 自定义文件夹 -->
+              <div class="mt-6 p-5 rounded-xl backdrop-blur-md bg-purple-500/20 border border-purple-400/30">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Plus class="w-5 h-5" />
+                  自定义文件夹
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <input
+                    v-model="customFolder.name"
+                    type="text"
+                    placeholder="文件夹名称"
+                    class="px-4 py-2 rounded-lg backdrop-blur-md bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                  />
+                  <input
+                    v-model="customFolder.localPath"
+                    type="text"
+                    placeholder="本地路径"
+                    class="px-4 py-2 rounded-lg backdrop-blur-md bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                  />
+                  <input
+                    v-model="customFolder.remotePath"
+                    type="text"
+                    placeholder="远程路径 (可选)"
+                    class="px-4 py-2 rounded-lg backdrop-blur-md bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                  />
+                  <input
+                    v-model="customFolder.description"
+                    type="text"
+                    placeholder="描述 (可选)"
+                    class="px-4 py-2 rounded-lg backdrop-blur-md bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                  />
+                </div>
+                <button
+                  @click="addCustomFolder"
+                  :disabled="!customFolder.name || !customFolder.localPath || addingCustom"
+                  class="w-full px-4 py-2 rounded-lg backdrop-blur-md bg-purple-500/40 border border-purple-400/30 text-white font-medium transition-all duration-300 hover:bg-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Plus class="w-5 h-5" />
+                  {{ addingCustom ? '添加中...' : '添加自定义文件夹' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 已启用的文件夹列表 -->
+          <div
+            class="rounded-2xl backdrop-blur-xl bg-white/15 border border-white/30 shadow-2xl overflow-hidden transition-all duration-300 hover:bg-white/20"
+          >
+            <div class="px-6 py-5 bg-gradient-to-r from-white/25 to-white/15 border-b border-white/30 flex items-center justify-between">
+              <h2 class="text-2xl font-bold text-white flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                <div class="p-2 rounded-xl bg-white/30">
+                  <Folders class="w-6 h-6" />
+                </div>
+                已启用的文件夹
+              </h2>
+              <button
+                @click="refreshFolders"
+                class="flex items-center gap-2 px-4 py-2 rounded-xl backdrop-blur-md bg-white/20 border border-white/30 transition-all duration-300 hover:bg-white/30 hover:scale-105"
+              >
+                <RefreshCw class="w-4 h-4 text-white" :class="{ 'animate-spin': refreshingFolders }" />
+                <span class="text-white font-medium">刷新</span>
+              </button>
+            </div>
+
+            <div class="p-6">
+              <div v-if="enabledFolders.length === 0" class="text-center py-12">
+                <FolderOpen class="w-16 h-16 text-white/40 mx-auto mb-4" />
+                <p class="text-white/60 text-lg">暂无启用的同步文件夹</p>
+                <p class="text-white/40 text-sm mt-2">请在上方选择要同步的平台</p>
+              </div>
+
+              <div v-else class="space-y-4">
+                <div
+                  v-for="folder in enabledFolders"
+                  :key="folder.name"
+                  class="p-5 rounded-xl backdrop-blur-md bg-white/15 border border-white/30 transition-all duration-300 hover:bg-white/20"
+                >
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <h4 class="text-xl font-bold text-white">{{ folder.name }}</h4>
+                        <span
+                          :class="[
+                            'px-3 py-1 rounded-lg text-sm font-medium',
+                            folder.enabled
+                              ? 'bg-emerald-500/40 border border-emerald-400/30 text-emerald-100'
+                              : 'bg-gray-500/40 border border-gray-400/30 text-gray-200'
+                          ]"
+                        >
+                          {{ folder.enabled ? '✓ 已启用' : '✗ 已禁用' }}
+                        </span>
+                      </div>
+                      <p v-if="folder.description" class="text-white/70 text-sm mb-2">{{ folder.description }}</p>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <div class="flex items-center gap-2 text-white/80">
+                          <Folder class="w-4 h-4" />
+                          <span class="font-mono">{{ folder.localPath }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-white/80">
+                          <Cloud class="w-4 h-4" />
+                          <span class="font-mono">{{ folder.remotePath }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 操作按钮 -->
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      @click="toggleFolder(folder.name, folder.enabled)"
+                      class="px-4 py-2 rounded-lg backdrop-blur-md bg-blue-500/40 border border-blue-400/30 text-white font-medium transition-all duration-300 hover:bg-blue-500/50 flex items-center gap-2"
+                    >
+                      <ToggleLeft class="w-4 h-4" />
+                      {{ folder.enabled ? '禁用' : '启用' }}
+                    </button>
+                    <button
+                      @click="pushFolder(folder.name)"
+                      :disabled="!folder.enabled"
+                      class="px-4 py-2 rounded-lg backdrop-blur-md bg-emerald-500/40 border border-emerald-400/30 text-white font-medium transition-all duration-300 hover:bg-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <Upload class="w-4 h-4" />
+                      上传
+                    </button>
+                    <button
+                      @click="pullFolder(folder.name)"
+                      :disabled="!folder.enabled"
+                      class="px-4 py-2 rounded-lg backdrop-blur-md bg-purple-500/40 border border-purple-400/30 text-white font-medium transition-all duration-300 hover:bg-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <Download class="w-4 h-4" />
+                      下载
+                    </button>
+                    <button
+                      @click="getFolderStatus(folder.name)"
+                      class="px-4 py-2 rounded-lg backdrop-blur-md bg-amber-500/40 border border-amber-400/30 text-white font-medium transition-all duration-300 hover:bg-amber-500/50 flex items-center gap-2"
+                    >
+                      <Info class="w-4 h-4" />
+                      状态
+                    </button>
+                    <button
+                      @click="removeFolder(folder.name)"
+                      class="px-4 py-2 rounded-lg backdrop-blur-md bg-red-500/40 border border-red-400/30 text-white font-medium transition-all duration-300 hover:bg-red-500/50 flex items-center gap-2"
+                    >
+                      <Trash2 class="w-4 h-4" />
+                      删除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 批量操作卡片 -->
+          <div
+            class="rounded-2xl backdrop-blur-xl bg-white/15 border border-white/30 shadow-2xl overflow-hidden transition-all duration-300 hover:bg-white/20"
+          >
             <div class="px-6 py-5 bg-gradient-to-r from-white/25 to-white/15 border-b border-white/30">
               <h2 class="text-2xl font-bold text-white flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                 <div class="p-2 rounded-xl bg-white/30">
-                  <Cloud class="w-6 h-6" />
+                  <Layers class="w-6 h-6" />
                 </div>
-                同步状态
+                批量操作
               </h2>
             </div>
 
             <div class="p-6">
-              <!-- 已配置状态 -->
-              <div v-if="syncStatus?.configured && syncStatus.config" class="space-y-4">
-                <div class="flex items-center gap-3 px-5 py-3.5 rounded-xl backdrop-blur-md bg-emerald-400/20 border border-emerald-300/30 shadow-lg">
-                  <CheckCircle class="w-6 h-6 text-emerald-100 drop-shadow-md" />
-                  <span class="font-semibold text-emerald-50 text-lg drop-shadow-md">同步功能已配置</span>
-                </div>
-
-                <!-- 配置详情卡片 -->
-                <div class="grid grid-cols-1 gap-4">
-                  <!-- WebDAV 服务器 -->
-                  <div class="rounded-xl backdrop-blur-md bg-white/15 border border-white/30 p-5 transition-all duration-300 hover:bg-white/20 hover:scale-[1.02]">
-                    <div class="flex items-start gap-4">
-                      <div class="p-3 rounded-xl bg-blue-500/40 backdrop-blur-sm">
-                        <Server class="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                      </div>
-                      <div class="flex-1">
-                        <div class="text-sm font-medium mb-2 text-white/90">WebDAV 服务器</div>
-                        <div class="text-base font-mono break-all text-white font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                          {{ syncStatus.config.webdav_url }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 用户名 -->
-                  <div class="rounded-xl backdrop-blur-md bg-white/15 border border-white/30 p-5 transition-all duration-300 hover:bg-white/20 hover:scale-[1.02]">
-                    <div class="flex items-start gap-4">
-                      <div class="p-3 rounded-xl bg-purple-500/40 backdrop-blur-sm">
-                        <User class="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                      </div>
-                      <div class="flex-1">
-                        <div class="text-sm font-medium mb-2 text-white/90">用户名</div>
-                        <div class="text-base font-mono text-white font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                          {{ syncStatus.config.username }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 远程路径 -->
-                  <div class="rounded-xl backdrop-blur-md bg-white/15 border border-white/30 p-5 transition-all duration-300 hover:bg-white/20 hover:scale-[1.02]">
-                    <div class="flex items-start gap-4">
-                      <div class="p-3 rounded-xl bg-pink-500/40 backdrop-blur-sm">
-                        <FolderOpen class="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                      </div>
-                      <div class="flex-1">
-                        <div class="text-sm font-medium mb-2 text-white/90">远程路径</div>
-                        <div class="text-base font-mono break-all text-white font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                          {{ syncStatus.config.remote_path }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 自动同步 -->
-                  <div class="rounded-xl backdrop-blur-md bg-white/15 border border-white/30 p-5 transition-all duration-300 hover:bg-white/20 hover:scale-[1.02]">
-                    <div class="flex items-start gap-4">
-                      <div class="p-3 rounded-xl bg-amber-500/40 backdrop-blur-sm">
-                        <Settings class="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                      </div>
-                      <div class="flex-1">
-                        <div class="text-sm font-medium mb-2 text-white/90">自动同步</div>
-                        <div class="text-base text-white font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                          {{ syncStatus.config.auto_sync ? '✓ 开启' : '✗ 关闭' }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 远程文件存在 -->
-                  <div
-                    v-if="typeof syncStatus.config.remote_file_exists === 'boolean'"
-                    class="rounded-xl backdrop-blur-md bg-white/15 border border-white/30 p-5 transition-all duration-300 hover:bg-white/20 hover:scale-[1.02]"
-                  >
-                    <div class="flex items-start gap-4">
-                      <div class="p-3 rounded-xl bg-emerald-500/40 backdrop-blur-sm">
-                        <Info class="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                      </div>
-                      <div class="flex-1">
-                        <div class="text-sm font-medium mb-2 text-white/90">远程文件状态</div>
-                        <div class="text-base text-white font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                          {{ syncStatus.config.remote_file_exists ? '✓ 存在' : '✗ 不存在' }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 操作按钮 -->
-                <div class="flex flex-wrap gap-3">
-                  <button
-                    class="group flex items-center gap-2 px-6 py-3 rounded-xl backdrop-blur-md bg-gradient-to-r from-blue-500/80 to-indigo-500/80 border border-white/30 shadow-xl disabled:opacity-50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:from-blue-600/90 hover:to-indigo-600/90"
-                    :disabled="operating"
-                    @click="handlePush(false)"
-                  >
-                    <CloudUpload class="w-5 h-5 text-white drop-shadow-md" />
-                    <span class="font-semibold text-white drop-shadow-md">上传到云端</span>
-                  </button>
-
-                  <button
-                    class="group flex items-center gap-2 px-6 py-3 rounded-xl backdrop-blur-md bg-gradient-to-r from-purple-500/80 to-pink-500/80 border border-white/30 shadow-xl disabled:opacity-50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:from-purple-600/90 hover:to-pink-600/90"
-                    :disabled="operating"
-                    @click="handlePull(false)"
-                  >
-                    <CloudDownload class="w-5 h-5 text-white drop-shadow-md" />
-                    <span class="font-semibold text-white drop-shadow-md">从云端下载</span>
-                  </button>
-
-                  <button
-                    class="px-4 py-2.5 text-sm rounded-xl backdrop-blur-md bg-white/20 border border-white/30 text-white font-medium shadow-lg disabled:opacity-50 transition-all duration-300 hover:bg-white/30 hover:scale-105"
-                    :disabled="operating"
-                    @click="handlePush(true)"
-                  >
-                    强制上传
-                  </button>
-
-                  <button
-                    class="px-4 py-2.5 text-sm rounded-xl backdrop-blur-md bg-white/20 border border-white/30 text-white font-medium shadow-lg disabled:opacity-50 transition-all duration-300 hover:bg-white/30 hover:scale-105"
-                    :disabled="operating"
-                    @click="handlePull(true)"
-                  >
-                    强制下载
-                  </button>
-                </div>
-
-                <!-- 操作结果 -->
-                <div
-                  v-if="operationResult"
-                  class="mt-4 p-5 rounded-xl backdrop-blur-md border shadow-lg"
-                  :class="operationResult.success ? 'bg-emerald-400/20 border-emerald-300/30' : 'bg-red-400/20 border-red-300/30'"
+              <p class="text-white/80 mb-4">对所有启用的文件夹执行批量同步操作</p>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button
+                  @click="pushAllFolders"
+                  :disabled="batchOperating || enabledFolders.length === 0"
+                  class="px-6 py-4 rounded-xl backdrop-blur-md bg-emerald-500/40 border border-emerald-400/30 text-white font-bold transition-all duration-300 hover:bg-emerald-500/50 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
-                  <div class="flex items-center gap-3">
-                    <CheckCircle v-if="operationResult.success" class="w-6 h-6 text-emerald-100 drop-shadow-md" />
-                    <AlertCircle v-else class="w-6 h-6 text-red-100 drop-shadow-md" />
-                    <span class="font-bold text-lg text-white drop-shadow-md">
-                      {{ operationResult.success ? '操作成功' : '操作失败' }}
-                    </span>
-                  </div>
-                  <pre class="mt-3 text-sm whitespace-pre-wrap text-white/90 drop-shadow-md leading-relaxed">{{ operationResult.message }}</pre>
-                </div>
+                  <Upload class="w-5 h-5" />
+                  全部上传
+                </button>
+                <button
+                  @click="pullAllFolders"
+                  :disabled="batchOperating || enabledFolders.length === 0"
+                  class="px-6 py-4 rounded-xl backdrop-blur-md bg-purple-500/40 border border-purple-400/30 text-white font-bold transition-all duration-300 hover:bg-purple-500/50 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                >
+                  <Download class="w-5 h-5" />
+                  全部下载
+                </button>
+                <button
+                  @click="getAllFoldersStatus"
+                  :disabled="batchOperating || enabledFolders.length === 0"
+                  class="px-6 py-4 rounded-xl backdrop-blur-md bg-amber-500/40 border border-amber-400/30 text-white font-bold transition-all duration-300 hover:bg-amber-500/50 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                >
+                  <Info class="w-5 h-5" />
+                  查看状态
+                </button>
               </div>
+            </div>
+          </div>
 
-              <!-- 未配置状态 -->
-              <div
-                v-else
-                class="rounded-xl backdrop-blur-md bg-amber-400/20 border border-amber-300/30 p-6 flex items-start gap-4 shadow-lg"
+          <!-- 操作输出卡片 -->
+          <div
+            v-if="operationOutput"
+            class="rounded-2xl backdrop-blur-xl bg-white/15 border border-white/30 shadow-2xl overflow-hidden"
+          >
+            <div class="px-6 py-5 bg-gradient-to-r from-white/25 to-white/15 border-b border-white/30 flex items-center justify-between">
+              <h2 class="text-xl font-bold text-white flex items-center gap-3">
+                <Terminal class="w-5 h-5" />
+                操作输出
+              </h2>
+              <button
+                @click="operationOutput = ''"
+                class="p-2 rounded-lg backdrop-blur-md bg-white/20 border border-white/30 transition-all duration-300 hover:bg-white/30"
               >
-                <AlertCircle class="w-6 h-6 flex-shrink-0 mt-0.5 text-amber-100 drop-shadow-md" />
-                <div>
-                  <h3 class="font-bold text-lg mb-2 text-white drop-shadow-md">同步功能未配置</h3>
-                  <p class="text-base text-white/90 drop-shadow-md">
-                    请在终端中运行
-                    <code class="font-mono bg-white/20 px-2 py-1 rounded-lg">ccr sync config</code>
-                    设置 WebDAV 连接
-                  </p>
-                </div>
-              </div>
+                <XCircle class="w-4 h-4 text-white" />
+              </button>
+            </div>
+            <div class="p-6">
+              <pre class="text-sm text-white/90 font-mono whitespace-pre-wrap overflow-x-auto bg-black/30 p-4 rounded-lg">{{ operationOutput }}</pre>
             </div>
           </div>
         </div>
 
-        <!-- 右侧信息栏 -->
-        <aside class="space-y-6">
-          <!-- 功能说明卡片 -->
-          <div class="rounded-2xl backdrop-blur-xl bg-white/15 border border-white/30 shadow-2xl overflow-hidden transition-all duration-300 hover:bg-white/20">
-            <!-- 头部 -->
+        <!-- 右侧信息区 (1 column) -->
+        <div class="space-y-6">
+          <!-- WebDAV 配置状态 -->
+          <div
+            class="rounded-2xl backdrop-blur-xl bg-white/15 border border-white/30 shadow-2xl overflow-hidden"
+          >
             <div class="px-6 py-5 bg-gradient-to-r from-white/25 to-white/15 border-b border-white/30">
-              <h2 class="text-2xl font-bold text-white flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-                <div class="p-2 rounded-xl bg-white/30">
-                  <Info class="w-6 h-6" />
-                </div>
-                功能说明
+              <h2 class="text-xl font-bold text-white flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                <Settings class="w-5 h-5" />
+                WebDAV 配置
               </h2>
             </div>
 
             <div class="p-6">
-              <div v-if="syncInfo" class="space-y-5">
-                <div>
-                  <h3 class="text-lg font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-2">
-                    {{ syncInfo.feature_name }}
-                  </h3>
-                  <p class="text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] leading-relaxed">
-                    {{ syncInfo.description }}
-                  </p>
+              <div v-if="syncStatus?.configured && syncStatus.config" class="space-y-4">
+                <div class="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-500/30 border border-emerald-400/30">
+                  <CheckCircle class="w-5 h-5 text-emerald-100" />
+                  <span class="text-emerald-50 font-medium">已配置</span>
                 </div>
 
-                <div>
-                  <h4 class="text-base font-semibold flex items-center gap-2 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-3">
-                    <Server class="w-5 h-5" />
-                    支持的服务
-                  </h4>
-                  <ul class="space-y-2">
-                    <li v-for="service in syncInfo.supported_services" :key="service" class="flex items-center gap-2.5">
-                      <span class="w-2 h-2 rounded-full bg-white/80 drop-shadow-md"></span>
-                      <span class="text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">{{ service }}</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 class="text-base font-semibold flex items-center gap-2 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-3">
-                    <Settings class="w-5 h-5" />
-                    配置步骤
-                  </h4>
-                  <ol class="space-y-2.5">
-                    <li v-for="(step, index) in syncInfo.setup_steps" :key="step" class="flex gap-3">
-                      <span class="flex-shrink-0 w-6 h-6 rounded-full backdrop-blur-md bg-amber-500/50 border border-amber-300/50 flex items-center justify-center text-xs font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                        {{ index + 1 }}
-                      </span>
-                      <span class="text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] leading-relaxed">{{ step }}</span>
-                    </li>
-                  </ol>
-                </div>
-
-                <div>
-                  <h4 class="text-base font-semibold flex items-center gap-2 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-3">
-                    <AlertCircle class="w-5 h-5" />
-                    安全与同步说明
-                  </h4>
-                  <ul class="space-y-2.5">
-                    <li v-for="note in syncInfo.security_notes" :key="note" class="flex items-start gap-2.5">
-                      <CheckCircle class="w-5 h-5 flex-shrink-0 mt-0.5 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                      <span class="text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] leading-relaxed">{{ note }}</span>
-                    </li>
-                  </ul>
+                <div class="space-y-3">
+                  <div>
+                    <div class="text-xs text-white/60 mb-1">服务器</div>
+                    <div class="text-sm text-white/90 font-mono break-all">{{ syncStatus.config.webdav_url }}</div>
+                  </div>
+                  <div>
+                    <div class="text-xs text-white/60 mb-1">用户</div>
+                    <div class="text-sm text-white/90 font-mono">{{ syncStatus.config.username }}</div>
+                  </div>
+                  <div>
+                    <div class="text-xs text-white/60 mb-1">远程路径</div>
+                    <div class="text-sm text-white/90 font-mono break-all">{{ syncStatus.config.remote_path }}</div>
+                  </div>
                 </div>
               </div>
 
-              <div v-else class="text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">加载中...</div>
+              <div v-else class="space-y-4">
+                <div class="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-500/30 border border-amber-400/30">
+                  <AlertCircle class="w-5 h-5 text-amber-100" />
+                  <span class="text-amber-50 font-medium">未配置</span>
+                </div>
+                <p class="text-sm text-white/70">请使用 CLI 配置 WebDAV:</p>
+                <code class="block text-sm text-white/90 font-mono bg-black/30 p-3 rounded-lg">ccr sync config</code>
+              </div>
             </div>
           </div>
-        </aside>
+
+          <!-- 功能说明 -->
+          <div
+            class="rounded-2xl backdrop-blur-xl bg-white/15 border border-white/30 shadow-2xl overflow-hidden"
+          >
+            <div class="px-6 py-5 bg-gradient-to-r from-white/25 to-white/15 border-b border-white/30">
+              <h2 class="text-xl font-bold text-white flex items-center gap-3">
+                <BookOpen class="w-5 h-5" />
+                功能说明
+              </h2>
+            </div>
+
+            <div class="p-6 space-y-4 text-sm text-white/80">
+              <div>
+                <h4 class="font-bold text-white mb-2">✅ 预设平台选择</h4>
+                <p>Config 必选，Claude/Gemini/Qwen 可选，一键配置常用平台</p>
+              </div>
+              <div>
+                <h4 class="font-bold text-white mb-2">🔄 独立文件夹管理</h4>
+                <p>每个文件夹独立同步，可单独启用/禁用和操作</p>
+              </div>
+              <div>
+                <h4 class="font-bold text-white mb-2">💾 智能过滤</h4>
+                <p>自动排除 backups/、.locks/、*.tmp、*.bak 等文件</p>
+              </div>
+              <div>
+                <h4 class="font-bold text-white mb-2">⚡ 批量操作</h4>
+                <p>一键上传/下载所有启用的文件夹，提高效率</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 支持的服务 -->
+          <div
+            class="rounded-2xl backdrop-blur-xl bg-white/15 border border-white/30 shadow-2xl overflow-hidden"
+          >
+            <div class="px-6 py-5 bg-gradient-to-r from-white/25 to-white/15 border-b border-white/30">
+              <h2 class="text-xl font-bold text-white flex items-center gap-3">
+                <Server class="w-5 h-5" />
+                支持的服务
+              </h2>
+            </div>
+
+            <div class="p-6 space-y-3 text-sm text-white/80">
+              <div class="flex items-center gap-2">
+                <CheckCircle class="w-4 h-4 text-emerald-300" />
+                <span>坚果云 (Nutstore)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <CheckCircle class="w-4 h-4 text-emerald-300" />
+                <span>Nextcloud</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <CheckCircle class="w-4 h-4 text-emerald-300" />
+                <span>ownCloud</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <CheckCircle class="w-4 h-4 text-emerald-300" />
+                <span>任何标准 WebDAV 服务器</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import axios from 'axios'
 import {
   Cloud,
-  CloudUpload,
-  CloudDownload,
-  Info,
-  CheckCircle,
-  XCircle,
-  RefreshCw,
-  AlertCircle,
   Home,
-  Server,
-  User,
-  FolderOpen,
+  RefreshCw,
+  XCircle,
+  CheckCircle,
+  AlertCircle,
   Settings,
-  ArrowLeft,
+  Server,
+  FolderOpen,
+  Folder,
   Code2,
+  BookOpen,
+  Upload,
+  Download,
+  Info,
+  Plus,
+  Trash2,
+  ToggleLeft,
+  Folders,
+  Layers,
+  Terminal,
+  CheckSquare,
+  Check,
+  Save
 } from 'lucide-vue-next'
-import { getSyncStatus, getSyncInfo, pushSync, pullSync } from '@/api/client'
-import type { SyncStatusResponse, SyncInfoResponse } from '@/types'
+import Breadcrumb from '@/components/Breadcrumb.vue'
 
-const syncStatus = ref<SyncStatusResponse | null>(null)
-const syncInfo = ref<SyncInfoResponse | null>(null)
+// API 基础 URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
+
+// 状态
 const loading = ref(true)
-const operating = ref(false)
-const error = ref<string | null>(null)
-const operationResult = ref<{ success: boolean; message: string } | null>(null)
+const error = ref('')
+const syncStatus = ref<any>(null)
+const enabledFolders = ref<any[]>([])
+const operationOutput = ref('')
 
-const loadSyncStatus = async () => {
+// 操作状态
+const refreshingFolders = ref(false)
+const applying = ref(false)
+const addingCustom = ref(false)
+const batchOperating = ref(false)
+
+// 预设项目配置
+const presetItems = ref({
+  config: {
+    key: 'config',
+    name: 'Platforms 平台配置',
+    description: 'CCR 供应商配置（API地址、密钥等）',
+    localPath: '~/.ccr/platforms/',
+    remotePath: '',
+    selected: true, // 必选
+    required: true
+  }
+})
+
+// 可选平台列表
+const optionalItems = ref([
+  {
+    key: 'claude',
+    name: 'Claude Code',
+    description: 'Anthropic Claude Code CLI 配置和数据',
+    icon: Code2,
+    localPath: '~/.claude/',
+    remotePath: '',
+    selected: false
+  },
+  {
+    key: 'gemini',
+    name: 'Gemini CLI',
+    description: 'Google Gemini CLI 配置和数据',
+    icon: Cloud,
+    localPath: '~/.gemini/',
+    remotePath: '',
+    selected: false
+  },
+  {
+    key: 'qwen',
+    name: 'Qwen',
+    description: '通义千问 CLI 配置和数据',
+    icon: Cloud,
+    localPath: '~/.qwen/',
+    remotePath: '',
+    selected: false
+  },
+  {
+    key: 'iflow',
+    name: 'iFlow',
+    description: 'iFlow CLI 配置和数据',
+    icon: Cloud,
+    localPath: '~/.iflow/',
+    remotePath: '',
+    selected: false
+  }
+])
+
+// 自定义文件夹表单
+const customFolder = ref({
+  name: '',
+  localPath: '',
+  remotePath: '',
+  description: ''
+})
+
+// 计算是否有变更
+const hasChanges = computed(() => {
+  // 检查预设项目是否有选择
+  if (optionalItems.value.some(item => item.selected)) {
+    return true
+  }
+  return false
+})
+
+// 切换选项
+const toggleItem = (key: string) => {
+  const item = optionalItems.value.find(i => i.key === key)
+  if (item) {
+    item.selected = !item.selected
+  }
+}
+
+// 应用选择 - 将选中的项目注册为同步文件夹
+const applySelection = async () => {
+  applying.value = true
   try {
-    loading.value = true
-    error.value = null
-    const statusData = await getSyncStatus()
-    syncStatus.value = statusData
+    const selectedItems = [
+      presetItems.value.config,
+      ...optionalItems.value.filter(item => item.selected)
+    ]
 
-    const infoData = await getSyncInfo()
-    syncInfo.value = infoData
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load sync status'
-    console.error('Error loading sync status:', err)
+    for (const item of selectedItems) {
+      // 检查文件夹是否已存在
+      const existingFolder = enabledFolders.value.find(f => f.name === item.key)
+      if (existingFolder) {
+        continue // 跳过已存在的文件夹
+      }
+
+      // 添加文件夹
+      const payload: any = {
+        name: item.key,
+        local_path: item.localPath
+      }
+      if (item.remotePath) {
+        payload.remote_path = item.remotePath
+      }
+      if (item.description) {
+        payload.description = item.description
+      } else {
+        payload.description = item.name
+      }
+
+      try {
+        await axios.post(`${API_BASE_URL}/api/sync/folders`, payload)
+      } catch (err: any) {
+        console.error(`添加文件夹 ${item.name} 失败:`, err)
+        // 继续添加其他文件夹
+      }
+    }
+
+    operationOutput.value = '✓ 同步配置已应用'
+    await refreshFolders()
+  } catch (err: any) {
+    operationOutput.value = `✗ 应用失败: ${err.response?.data?.message || err.message}`
+  } finally {
+    applying.value = false
+  }
+}
+
+// 添加自定义文件夹
+const addCustomFolder = async () => {
+  if (!customFolder.value.name || !customFolder.value.localPath) return
+
+  addingCustom.value = true
+  try {
+    const payload: any = {
+      name: customFolder.value.name,
+      local_path: customFolder.value.localPath
+    }
+    if (customFolder.value.remotePath) {
+      payload.remote_path = customFolder.value.remotePath
+    }
+    if (customFolder.value.description) {
+      payload.description = customFolder.value.description
+    }
+
+    const response = await axios.post(`${API_BASE_URL}/api/sync/folders`, payload)
+    if (response.data.success) {
+      operationOutput.value = `✓ 成功添加自定义文件夹: ${customFolder.value.name}`
+      customFolder.value = { name: '', localPath: '', remotePath: '', description: '' }
+      await refreshFolders()
+    } else {
+      operationOutput.value = `✗ 添加失败: ${response.data.message}`
+    }
+  } catch (err: any) {
+    operationOutput.value = `✗ 添加失败: ${err.response?.data?.message || err.message}`
+  } finally {
+    addingCustom.value = false
+  }
+}
+
+// 获取同步状态
+const fetchSyncStatus = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/sync/status`)
+    if (response.data.success) {
+      syncStatus.value = response.data.data
+    }
+  } catch (err: any) {
+    console.error('Failed to fetch sync status:', err)
+  }
+}
+
+// 获取文件夹列表
+const fetchFolders = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/sync/folders`)
+    if (response.data.success) {
+      // 解析 CLI 输出获取文件夹列表
+      parseFoldersList(response.data.data.output)
+    }
+  } catch (err: any) {
+    console.error('Failed to fetch folders:', err)
+  }
+}
+
+// 解析文件夹列表输出
+const parseFoldersList = (output: string) => {
+  // TODO: 实现解析逻辑
+  // 暂时设置为空数组
+  enabledFolders.value = []
+}
+
+// 刷新文件夹列表
+const refreshFolders = async () => {
+  refreshingFolders.value = true
+  try {
+    await fetchFolders()
+  } finally {
+    refreshingFolders.value = false
+  }
+}
+
+// 删除文件夹
+const removeFolder = async (name: string) => {
+  if (!confirm(`确定要删除文件夹 "${name}" 吗？\n\n注意：这只会移除同步配置，不会删除本地文件。`)) {
+    return
+  }
+
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/api/sync/folders/${name}`)
+    if (response.data.success) {
+      operationOutput.value = `✓ 成功删除文件夹: ${name}`
+      await refreshFolders()
+    } else {
+      operationOutput.value = `✗ 删除失败: ${response.data.message}`
+    }
+  } catch (err: any) {
+    operationOutput.value = `✗ 删除失败: ${err.response?.data?.message || err.message}`
+  }
+}
+
+// 切换文件夹状态
+const toggleFolder = async (name: string, currentEnabled: boolean) => {
+  const action = currentEnabled ? 'disable' : 'enable'
+  try {
+    const response = await axios.put(`${API_BASE_URL}/api/sync/folders/${name}/${action}`)
+    if (response.data.success) {
+      operationOutput.value = `✓ 成功${currentEnabled ? '禁用' : '启用'}文件夹: ${name}`
+      await refreshFolders()
+    } else {
+      operationOutput.value = `✗ 操作失败: ${response.data.message}`
+    }
+  } catch (err: any) {
+    operationOutput.value = `✗ 操作失败: ${err.response?.data?.message || err.message}`
+  }
+}
+
+// 上传文件夹
+const pushFolder = async (name: string) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/sync/folders/${name}/push`, { force: false })
+    if (response.data.success) {
+      operationOutput.value = response.data.data.output
+    } else {
+      operationOutput.value = `✗ 上传失败: ${response.data.data.error}`
+    }
+  } catch (err: any) {
+    operationOutput.value = `✗ 上传失败: ${err.response?.data?.message || err.message}`
+  }
+}
+
+// 下载文件夹
+const pullFolder = async (name: string) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/sync/folders/${name}/pull`, { force: false })
+    if (response.data.success) {
+      operationOutput.value = response.data.data.output
+    } else {
+      operationOutput.value = `✗ 下载失败: ${response.data.data.error}`
+    }
+  } catch (err: any) {
+    operationOutput.value = `✗ 下载失败: ${err.response?.data?.message || err.message}`
+  }
+}
+
+// 获取文件夹状态
+const getFolderStatus = async (name: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/sync/folders/${name}/status`)
+    if (response.data.success) {
+      operationOutput.value = response.data.data.output
+    } else {
+      operationOutput.value = `✗ 获取状态失败: ${response.data.message}`
+    }
+  } catch (err: any) {
+    operationOutput.value = `✗ 获取状态失败: ${err.response?.data?.message || err.message}`
+  }
+}
+
+// 批量上传
+const pushAllFolders = async () => {
+  batchOperating.value = true
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/sync/all/push`, { force: false })
+    if (response.data.success) {
+      operationOutput.value = response.data.data.output
+    } else {
+      operationOutput.value = `✗ 批量上传失败: ${response.data.data.error}`
+    }
+  } catch (err: any) {
+    operationOutput.value = `✗ 批量上传失败: ${err.response?.data?.message || err.message}`
+  } finally {
+    batchOperating.value = false
+  }
+}
+
+// 批量下载
+const pullAllFolders = async () => {
+  batchOperating.value = true
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/sync/all/pull`, { force: false })
+    if (response.data.success) {
+      operationOutput.value = response.data.data.output
+    } else {
+      operationOutput.value = `✗ 批量下载失败: ${response.data.data.error}`
+    }
+  } catch (err: any) {
+    operationOutput.value = `✗ 批量下载失败: ${err.response?.data?.message || err.message}`
+  } finally {
+    batchOperating.value = false
+  }
+}
+
+// 批量查看状态
+const getAllFoldersStatus = async () => {
+  batchOperating.value = true
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/sync/all/status`)
+    if (response.data.success) {
+      operationOutput.value = response.data.data.output
+    } else {
+      operationOutput.value = `✗ 获取状态失败: ${response.data.message}`
+    }
+  } catch (err: any) {
+    operationOutput.value = `✗ 获取状态失败: ${err.response?.data?.message || err.message}`
+  } finally {
+    batchOperating.value = false
+  }
+}
+
+// 初始化
+onMounted(async () => {
+  loading.value = true
+  try {
+    await Promise.all([
+      fetchSyncStatus(),
+      fetchFolders()
+    ])
+  } catch (err: any) {
+    error.value = err.response?.data?.message || err.message || '加载失败'
   } finally {
     loading.value = false
   }
-}
-
-onMounted(() => {
-  loadSyncStatus()
 })
-
-const handlePush = async (force: boolean = false) => {
-  if (!force && !confirm('确定要上传配置到云端吗？\n如果远程文件已存在将会被覆盖。')) {
-    return
-  }
-  try {
-    operating.value = true
-    operationResult.value = null
-    const data = await pushSync({ force })
-    operationResult.value = { success: data.success, message: data.output || data.error }
-    if (data.success) {
-      await loadSyncStatus()
-    }
-  } catch (err) {
-    operationResult.value = {
-      success: false,
-      message: err instanceof Error ? err.message : 'Failed to push config'
-    }
-  } finally {
-    operating.value = false
-  }
-}
-
-const handlePull = async (force: boolean = false) => {
-  if (!force && !confirm('确定要从云端下载配置吗？\n本地配置将被覆盖（会先备份）。')) {
-    return
-  }
-  try {
-    operating.value = true
-    operationResult.value = null
-    const data = await pullSync({ force })
-    operationResult.value = { success: data.success, message: data.output || data.error }
-    if (data.success) {
-      await loadSyncStatus()
-    }
-  } catch (err) {
-    operationResult.value = {
-      success: false,
-      message: err instanceof Error ? err.message : 'Failed to pull config'
-    }
-  } finally {
-    operating.value = false
-  }
-}
 </script>
+
+<style scoped>
+/* 自定义样式 */
+</style>
