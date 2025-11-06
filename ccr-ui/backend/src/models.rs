@@ -409,6 +409,93 @@ pub struct SyncInfoResponse {
     pub security_notes: Vec<String>,
 }
 
+// ===== Sync Folder Management Models (Multi-folder sync v2.5+) =====
+// These structured models are reserved for future CLI output parsing
+// Current implementation returns raw CLI output (see handlers/sync.rs:200)
+
+/// Sync folder configuration
+#[allow(dead_code)] // Reserved for structured CLI output parsing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncFolder {
+    pub name: String,
+    pub description: String,
+    pub local_path: String,
+    pub remote_path: String,
+    pub enabled: bool,
+    #[serde(default)]
+    pub auto_sync: bool,
+    #[serde(default)]
+    pub exclude_patterns: Vec<String>,
+}
+
+/// Request to add a new sync folder
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AddSyncFolderRequest {
+    pub name: String,
+    pub local_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remote_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+/// Response for folder list GET /api/sync/folders
+#[allow(dead_code)] // Reserved for structured CLI output parsing
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncFolderListResponse {
+    pub success: bool,
+    pub folders: Vec<SyncFolder>,
+    pub total: usize,
+    pub enabled_count: usize,
+    pub disabled_count: usize,
+}
+
+/// Response for single folder GET /api/sync/folders/:name
+#[allow(dead_code)] // Reserved for structured CLI output parsing
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncFolderInfoResponse {
+    pub success: bool,
+    pub folder: SyncFolder,
+    pub local_exists: bool,
+    pub remote_exists: Option<bool>,
+}
+
+/// Response for folder operation (add/remove/enable/disable)
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncFolderOperationResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+/// Response for folder sync operation (push/pull)
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncFolderSyncResponse {
+    pub success: bool,
+    pub output: String,
+    pub error: String,
+    pub duration_ms: u64,
+}
+
+/// Response for batch operations (all push/pull/status)
+#[allow(dead_code)] // Reserved for structured CLI output parsing
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncBatchOperationResponse {
+    pub success: bool,
+    pub total: usize,
+    pub succeeded: usize,
+    pub failed: usize,
+    pub results: Vec<SyncFolderResult>,
+}
+
+/// Individual folder result in batch operation
+#[allow(dead_code)] // Reserved for structured CLI output parsing
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SyncFolderResult {
+    pub folder_name: String,
+    pub success: bool,
+    pub message: String,
+}
+
 // ===== Platform Management Models (Unified Mode) =====
 
 /// Platform list item for GET /api/platforms

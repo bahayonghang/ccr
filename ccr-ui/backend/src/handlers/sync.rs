@@ -180,6 +180,328 @@ pub async fn get_sync_info() -> impl IntoResponse {
             "远程文件未加密，依赖 WebDAV 服务器的安全性（建议使用 HTTPS）".to_string(),
         ],
     };
-    
+
     ApiResponse::success(info)
 }
+
+// ============================================================================
+// 📁 Sync Folder Management API Handlers (Multi-folder sync v2.5+)
+// ============================================================================
+
+/// GET /api/sync/folders - List all sync folders
+pub async fn list_sync_folders() -> impl IntoResponse {
+    let args = vec!["sync".to_string(), "folder".to_string(), "list".to_string()];
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            if output.success {
+                // Parse the folder list from CLI output
+                // For now, we'll execute the command and let the CLI format the output
+                // TODO: Parse structured output when available
+                ApiResponse::success(SyncOperationResponse {
+                    success: true,
+                    output: output.stdout,
+                    error: String::new(),
+                    duration_ms: output.duration_ms,
+                })
+            } else {
+                ApiResponse::<SyncOperationResponse>::error(output.stderr)
+            }
+        }
+        Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    }
+}
+
+/// POST /api/sync/folders - Add a new sync folder
+pub async fn add_sync_folder(Json(req): Json<AddSyncFolderRequest>) -> impl IntoResponse {
+    let mut args = vec![
+        "sync".to_string(),
+        "folder".to_string(),
+        "add".to_string(),
+        req.name.clone(),
+        req.local_path.clone(),
+    ];
+
+    if let Some(remote_path) = &req.remote_path {
+        args.push("-r".to_string());
+        args.push(remote_path.clone());
+    }
+
+    if let Some(description) = &req.description {
+        args.push("-d".to_string());
+        args.push(description.clone());
+    }
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            if output.success {
+                ApiResponse::success(SyncFolderOperationResponse {
+                    success: true,
+                    message: format!("Successfully added sync folder: {}", req.name),
+                })
+            } else {
+                ApiResponse::<SyncFolderOperationResponse>::error(output.stderr)
+            }
+        }
+        Err(e) => ApiResponse::<SyncFolderOperationResponse>::error(e.to_string()),
+    }
+}
+
+/// DELETE /api/sync/folders/:name - Remove a sync folder
+pub async fn remove_sync_folder(axum::extract::Path(name): axum::extract::Path<String>) -> impl IntoResponse {
+    let args = vec![
+        "sync".to_string(),
+        "folder".to_string(),
+        "remove".to_string(),
+        name.clone(),
+    ];
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            if output.success {
+                ApiResponse::success(SyncFolderOperationResponse {
+                    success: true,
+                    message: format!("Successfully removed sync folder: {}", name),
+                })
+            } else {
+                ApiResponse::<SyncFolderOperationResponse>::error(output.stderr)
+            }
+        }
+        Err(e) => ApiResponse::<SyncFolderOperationResponse>::error(e.to_string()),
+    }
+}
+
+/// GET /api/sync/folders/:name - Get folder information
+pub async fn get_sync_folder_info(axum::extract::Path(name): axum::extract::Path<String>) -> impl IntoResponse {
+    let args = vec![
+        "sync".to_string(),
+        "folder".to_string(),
+        "info".to_string(),
+        name.clone(),
+    ];
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            if output.success {
+                ApiResponse::success(SyncOperationResponse {
+                    success: true,
+                    output: output.stdout,
+                    error: String::new(),
+                    duration_ms: output.duration_ms,
+                })
+            } else {
+                ApiResponse::<SyncOperationResponse>::error(output.stderr)
+            }
+        }
+        Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    }
+}
+
+/// PUT /api/sync/folders/:name/enable - Enable a sync folder
+pub async fn enable_sync_folder(axum::extract::Path(name): axum::extract::Path<String>) -> impl IntoResponse {
+    let args = vec![
+        "sync".to_string(),
+        "folder".to_string(),
+        "enable".to_string(),
+        name.clone(),
+    ];
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            if output.success {
+                ApiResponse::success(SyncFolderOperationResponse {
+                    success: true,
+                    message: format!("Successfully enabled sync folder: {}", name),
+                })
+            } else {
+                ApiResponse::<SyncFolderOperationResponse>::error(output.stderr)
+            }
+        }
+        Err(e) => ApiResponse::<SyncFolderOperationResponse>::error(e.to_string()),
+    }
+}
+
+/// PUT /api/sync/folders/:name/disable - Disable a sync folder
+pub async fn disable_sync_folder(axum::extract::Path(name): axum::extract::Path<String>) -> impl IntoResponse {
+    let args = vec![
+        "sync".to_string(),
+        "folder".to_string(),
+        "disable".to_string(),
+        name.clone(),
+    ];
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            if output.success {
+                ApiResponse::success(SyncFolderOperationResponse {
+                    success: true,
+                    message: format!("Successfully disabled sync folder: {}", name),
+                })
+            } else {
+                ApiResponse::<SyncFolderOperationResponse>::error(output.stderr)
+            }
+        }
+        Err(e) => ApiResponse::<SyncFolderOperationResponse>::error(e.to_string()),
+    }
+}
+
+/// POST /api/sync/folders/:name/push - Push a specific folder to cloud
+pub async fn push_sync_folder(
+    axum::extract::Path(name): axum::extract::Path<String>,
+    Json(req): Json<SyncOperationRequest>,
+) -> impl IntoResponse {
+    let mut args = vec![
+        "sync".to_string(),
+        name.clone(),
+        "push".to_string(),
+    ];
+
+    if req.force {
+        args.push("--force".to_string());
+    }
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            ApiResponse::success(SyncFolderSyncResponse {
+                success: output.success,
+                output: output.stdout,
+                error: output.stderr,
+                duration_ms: output.duration_ms,
+            })
+        }
+        Err(e) => ApiResponse::<SyncFolderSyncResponse>::error(e.to_string()),
+    }
+}
+
+/// POST /api/sync/folders/:name/pull - Pull a specific folder from cloud
+pub async fn pull_sync_folder(
+    axum::extract::Path(name): axum::extract::Path<String>,
+    Json(req): Json<SyncOperationRequest>,
+) -> impl IntoResponse {
+    let mut args = vec![
+        "sync".to_string(),
+        name.clone(),
+        "pull".to_string(),
+    ];
+
+    if req.force {
+        args.push("--force".to_string());
+    }
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            ApiResponse::success(SyncFolderSyncResponse {
+                success: output.success,
+                output: output.stdout,
+                error: output.stderr,
+                duration_ms: output.duration_ms,
+            })
+        }
+        Err(e) => ApiResponse::<SyncFolderSyncResponse>::error(e.to_string()),
+    }
+}
+
+/// GET /api/sync/folders/:name/status - Get status of a specific folder
+pub async fn get_sync_folder_status(axum::extract::Path(name): axum::extract::Path<String>) -> impl IntoResponse {
+    let args = vec![
+        "sync".to_string(),
+        name.clone(),
+        "status".to_string(),
+    ];
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            if output.success {
+                ApiResponse::success(SyncOperationResponse {
+                    success: true,
+                    output: output.stdout,
+                    error: String::new(),
+                    duration_ms: output.duration_ms,
+                })
+            } else {
+                ApiResponse::<SyncOperationResponse>::error(output.stderr)
+            }
+        }
+        Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    }
+}
+
+// ============================================================================
+// 🔄 Batch Operations API Handlers
+// ============================================================================
+
+/// POST /api/sync/all/push - Push all enabled folders to cloud
+pub async fn push_all_folders(Json(req): Json<SyncOperationRequest>) -> impl IntoResponse {
+    let mut args = vec![
+        "sync".to_string(),
+        "all".to_string(),
+        "push".to_string(),
+    ];
+
+    if req.force {
+        args.push("--force".to_string());
+    }
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            ApiResponse::success(SyncOperationResponse {
+                success: output.success,
+                output: output.stdout,
+                error: output.stderr,
+                duration_ms: output.duration_ms,
+            })
+        }
+        Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    }
+}
+
+/// POST /api/sync/all/pull - Pull all enabled folders from cloud
+pub async fn pull_all_folders(Json(req): Json<SyncOperationRequest>) -> impl IntoResponse {
+    let mut args = vec![
+        "sync".to_string(),
+        "all".to_string(),
+        "pull".to_string(),
+    ];
+
+    if req.force {
+        args.push("--force".to_string());
+    }
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            ApiResponse::success(SyncOperationResponse {
+                success: output.success,
+                output: output.stdout,
+                error: output.stderr,
+                duration_ms: output.duration_ms,
+            })
+        }
+        Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    }
+}
+
+/// GET /api/sync/all/status - Get status of all folders
+pub async fn get_all_folders_status() -> impl IntoResponse {
+    let args = vec![
+        "sync".to_string(),
+        "all".to_string(),
+        "status".to_string(),
+    ];
+
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            if output.success {
+                ApiResponse::success(SyncOperationResponse {
+                    success: true,
+                    output: output.stdout,
+                    error: String::new(),
+                    duration_ms: output.duration_ms,
+                })
+            } else {
+                ApiResponse::<SyncOperationResponse>::error(output.stderr)
+            }
+        }
+        Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    }
+}
+
