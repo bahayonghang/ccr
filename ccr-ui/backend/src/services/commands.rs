@@ -1,4 +1,7 @@
 // 命令执行服务 - 支持并发控制和流式输出
+// Reserved for future streaming command execution (see handlers/command.rs:168)
+// Currently blocked by SSE stream lifecycle issues - implementation pending
+
 use crate::errors::{ApiError, ApiResult};
 use futures::Stream;
 use std::sync::Arc;
@@ -10,6 +13,7 @@ use tokio::{
 use tracing::{debug, error, info, instrument};
 
 /// 命令执行服务
+#[allow(dead_code)] // Reserved for streaming implementation
 #[derive(Clone)]
 pub struct CommandService {
     /// 并发信号量，限制同时执行的命令数
@@ -18,9 +22,10 @@ pub struct CommandService {
     max_concurrent: usize,
 }
 
+#[allow(dead_code)] // Reserved for streaming implementation
 impl CommandService {
     /// 创建新的命令服务
-    /// 
+    ///
     /// # Arguments
     /// * `max_concurrent` - 最大并发执行命令数，默认推荐 4
     pub fn new(max_concurrent: usize) -> Self {
@@ -150,6 +155,7 @@ impl CommandService {
 }
 
 /// 命令执行输出
+#[allow(dead_code)] // Reserved for streaming implementation
 #[derive(Debug, Clone)]
 pub struct CommandOutput {
     pub stdout: String,
@@ -159,6 +165,7 @@ pub struct CommandOutput {
 }
 
 /// 并发信息
+#[allow(dead_code)] // Reserved for streaming implementation
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ConcurrencyInfo {
     pub max_concurrent: usize,

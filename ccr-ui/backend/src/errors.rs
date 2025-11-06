@@ -22,12 +22,15 @@ pub enum ApiError {
     /// 400 Bad Request - 客户端请求错误
     BadRequest(String),
     /// 404 Not Found - 资源不存在
+    #[allow(dead_code)] // Reserved for future resource lookup endpoints
     NotFound(String),
     /// 500 Internal Server Error - 服务器内部错误
     Internal(String),
     /// 503 Service Unavailable - 服务不可用
+    #[allow(dead_code)] // Reserved for CommandService streaming implementation
     ServiceUnavailable(String),
     /// 自定义状态码错误
+    #[allow(dead_code)] // Reserved for custom status code needs
     Custom(StatusCode, String),
 }
 
@@ -38,6 +41,7 @@ impl ApiError {
     }
 
     /// 创建 NotFound 错误
+    #[allow(dead_code)] // Reserved for future resource lookup endpoints
     pub fn not_found(msg: impl Into<String>) -> Self {
         ApiError::NotFound(msg.into())
     }
@@ -48,6 +52,7 @@ impl ApiError {
     }
 
     /// 创建 ServiceUnavailable 错误
+    #[allow(dead_code)] // Reserved for CommandService streaming implementation
     pub fn service_unavailable(msg: impl Into<String>) -> Self {
         ApiError::ServiceUnavailable(msg.into())
     }
