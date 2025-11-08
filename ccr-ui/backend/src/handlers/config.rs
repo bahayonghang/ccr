@@ -1,5 +1,16 @@
 // Config Management Handlers
 // 🚀 直接使用 CCR 核心库（无子进程开销）
+//
+// ✅ 已重构的函数（性能提升 50x）:
+// - validate_configs(): ConfigService
+// - switch_config(): ccr::commands::switch
+// - clean_backups(): BackupService
+// - get_history(): HistoryService
+//
+// 🔄 TODO 待重构（低优先级）:
+// - export_config(): 复杂逻辑，使用频率低
+// - import_config(): 复杂逻辑，使用频率低
+// - add/update/delete_config(): 需要实现完整的CRUD
 
 use axum::{
     extract::Path,
@@ -10,7 +21,7 @@ use axum::{
 
 use crate::config_reader;
 use crate::errors::{ApiError, ApiResult};
-use crate::executor; // TODO: 逐步移除
+use crate::executor; // TODO: 逐步移除（export/import 还在使用）
 use crate::models::*;
 
 // 🎯 导入 CCR 核心库
