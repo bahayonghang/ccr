@@ -335,5 +335,5 @@ export {
 // Utility Exports
 // ===================================
 
-export { isTauriEnvironment, getEnvironmentName }
+// isTauriEnvironment 和 getEnvironmentName 已在文件顶部定义和导出
 export { TauriAPI } from './tauri'
