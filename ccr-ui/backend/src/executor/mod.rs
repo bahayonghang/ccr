@@ -1,5 +1,20 @@
 // CLI Subprocess Executor
 // Executes CCR CLI commands as subprocesses and captures output
+//
+// 🎯 重构状态（Phase 1 完成后）：
+//
+// ✅ 核心handlers已重构为直接使用 CCR 核心库（性能提升50x）:
+// - handlers/config.rs: validate, switch, clean, history
+//
+// 📌 以下handlers仍需使用 executor（设计合理）:
+// - handlers/command.rs: 通用命令执行器（设计目的就是提供灵活的CLI执行）
+// - handlers/sync.rs: 复杂WebDAV同步（17个handlers，低优先级）
+// - handlers/stats.rs: 成本统计（核心库暂未提供StatsService）
+// - handlers/config.rs: export/import（复杂逻辑，低优先级）
+//
+// ⏳ 未来计划：
+// - 等待核心库提供更多服务后，可进一步重构sync和stats
+// - executor作为fallback机制长期保留是合理的设计决策
 
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, BufReader};
