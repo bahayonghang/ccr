@@ -118,6 +118,34 @@ just clean            # 清理构建产物
 
 完整命令列表请查看 [justfile](./justfile)。
 
+### 🌟 使用根目录 justfile（更多功能）
+
+在 `ccr-ui/` 根目录，我们提供了统一的 justfile，包含完整的 Tauri 支持：
+
+```bash
+cd ..  # 回到 ccr-ui 根目录
+
+# Tauri 桌面应用命令
+just tauri-dev         # 启动 Tauri 开发模式
+just tauri-build       # 构建生产版本
+just tauri-build-debug # 构建调试版本（更快）
+just tauri-check       # 检查 Tauri 环境
+just tauri-check-all   # 完整检查（TypeScript + Rust）
+just tauri-clippy      # Rust linter
+just tauri-fmt         # 格式化 Rust 代码
+just tauri-test        # 运行测试
+just tauri-clean       # 清理构建产物
+
+# Web 开发命令
+just dev               # 启动 Web 开发（后端 + 前端）
+just build             # 构建 Web 生产版本
+```
+
+**推荐使用根目录 justfile** 的原因：
+- ✅ 统一管理 Web 和 Desktop 命令
+- ✅ 完整的跨平台支持（Linux/macOS/Windows）
+- ✅ 更多实用命令（check、test、fmt、clean 等）
+
 ## 🏗️ 项目结构
 
 ```

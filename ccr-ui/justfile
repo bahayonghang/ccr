@@ -37,6 +37,11 @@ help:
     @echo "  just check          检查代码"
     @echo "  just test           运行测试"
     @echo ""
+    @echo "🖥️  Tauri 桌面应用:"
+    @echo "  just tauri-dev      启动 Tauri 开发模式（桌面应用）"
+    @echo "  just tauri-build    构建 Tauri 生产版本"
+    @echo "  just tauri-check    检查 Tauri 环境和配置"
+    @echo ""
     @echo "单独操作:"
     @echo "  just dev-backend       只启动后端"
     @echo "  just dev-frontend      只启动 Vue 前端"
@@ -926,3 +931,207 @@ prepare-release: clean build
     @echo "📦 发布文件:"
     @echo "  - backend/target/release/ccr-ui-backend"
     @echo "  - frontend/dist/"
+
+# ===== Tauri 桌面应用 =====
+
+# 启动 Tauri 开发模式（桌面应用）
+tauri-dev:
+    @just _tauri-dev-{{os()}}
+
+_tauri-dev-linux:
+    @echo "🖥️  启动 Tauri 桌面应用开发模式..."
+    @echo "📍 Frontend: http://localhost:5173 (自动加载)"
+    @echo "📍 Desktop: Tauri 窗口将自动打开"
+    @echo ""
+    cd frontend && npm run tauri:dev
+
+_tauri-dev-macos:
+    @echo "🖥️  启动 Tauri 桌面应用开发模式..."
+    @echo "📍 Frontend: http://localhost:5173 (自动加载)"
+    @echo "📍 Desktop: Tauri 窗口将自动打开"
+    @echo ""
+    cd frontend && npm run tauri:dev
+
+_tauri-dev-windows:
+    @Write-Output '🖥️  启动 Tauri 桌面应用开发模式...'
+    @Write-Output '📍 Frontend: http://localhost:5173 (自动加载)'
+    @Write-Output '📍 Desktop: Tauri 窗口将自动打开'
+    @Write-Output ''
+    @Set-Location frontend; npm run tauri:dev
+
+# 构建 Tauri 生产版本（桌面应用）
+tauri-build:
+    @just _tauri-build-{{os()}}
+
+_tauri-build-linux:
+    @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
+    cd frontend && npm run build:desktop
+    @echo ""
+    @echo "✅ Tauri 构建完成"
+    @echo "📦 产物位置: frontend/src-tauri/target/release/bundle/"
+    @echo "   - .deb (Debian/Ubuntu)"
+    @echo "   - .AppImage (通用 Linux)"
+
+_tauri-build-macos:
+    @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
+    cd frontend && npm run build:desktop
+    @echo ""
+    @echo "✅ Tauri 构建完成"
+    @echo "📦 产物位置: frontend/src-tauri/target/release/bundle/"
+    @echo "   - .dmg (安装镜像)"
+    @echo "   - .app (应用程序包)"
+
+_tauri-build-windows:
+    @Write-Output '🏗️  构建 Tauri 桌面应用（生产版本）...'
+    @Set-Location frontend; npm run build:desktop
+    @Write-Output ''
+    @Write-Output '✅ Tauri 构建完成'
+    @Write-Output '📦 产物位置: frontend/src-tauri/target/release/bundle/'
+    @Write-Output '   - .msi (安装程序)'
+    @Write-Output '   - .exe (可执行文件)'
+
+# 构建 Tauri 调试版本（更快���带调试符号）
+tauri-build-debug:
+    @just _tauri-build-debug-{{os()}}
+
+_tauri-build-debug-linux:
+    @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
+    cd frontend && npm run tauri:build:debug
+    @echo ""
+    @echo "✅ Tauri 调试版本构建完成"
+    @echo "📦 产物位置: frontend/src-tauri/target/debug/bundle/"
+
+_tauri-build-debug-macos:
+    @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
+    cd frontend && npm run tauri:build:debug
+    @echo ""
+    @echo "✅ Tauri 调试版本构建完成"
+    @echo "📦 产物位置: frontend/src-tauri/target/debug/bundle/"
+
+_tauri-build-debug-windows:
+    @Write-Output '🏗️  构建 Tauri 桌面应用（调试版本）...'
+    @Set-Location frontend; npm run tauri:build:debug
+    @Write-Output ''
+    @Write-Output '✅ Tauri 调试版本构建完成'
+    @Write-Output '📦 产物位置: frontend/src-tauri/target/debug/bundle/'
+
+# 检查 Tauri 环境和配置
+tauri-check:
+    @just _tauri-check-{{os()}}
+
+_tauri-check-linux:
+    @echo "🔍 检查 Tauri 环境和配置..."
+    @echo ""
+    cd frontend && npx tauri info
+
+_tauri-check-macos:
+    @echo "🔍 检查 Tauri 环境和配置..."
+    @echo ""
+    cd frontend && npx tauri info
+
+_tauri-check-windows:
+    @Write-Output '🔍 检查 Tauri 环境和配置...'
+    @Write-Output ''
+    @Set-Location frontend; npx tauri info
+
+# 检查 Tauri Rust 代码
+tauri-check-rust:
+    @just _tauri-check-rust-{{os()}}
+
+_tauri-check-rust-linux:
+    @echo "🔍 检查 Tauri Rust 代码..."
+    cd frontend && npm run tauri:check
+
+_tauri-check-rust-macos:
+    @echo "🔍 检查 Tauri Rust 代码..."
+    cd frontend && npm run tauri:check
+
+_tauri-check-rust-windows:
+    @Write-Output '🔍 检查 Tauri Rust 代码...'
+    @Set-Location frontend; npm run tauri:check
+
+# 运行 Tauri Clippy（Rust linter）
+tauri-clippy:
+    @just _tauri-clippy-{{os()}}
+
+_tauri-clippy-linux:
+    @echo "📎 运行 Tauri Clippy..."
+    cd frontend && npm run tauri:clippy
+
+_tauri-clippy-macos:
+    @echo "📎 运行 Tauri Clippy..."
+    cd frontend && npm run tauri:clippy
+
+_tauri-clippy-windows:
+    @Write-Output '📎 运行 Tauri Clippy...'
+    @Set-Location frontend; npm run tauri:clippy
+
+# 格式化 Tauri Rust 代码
+tauri-fmt:
+    @just _tauri-fmt-{{os()}}
+
+_tauri-fmt-linux:
+    @echo "💅 格式化 Tauri Rust 代码..."
+    cd frontend && npm run tauri:fmt
+
+_tauri-fmt-macos:
+    @echo "💅 格式化 Tauri Rust 代码..."
+    cd frontend && npm run tauri:fmt
+
+_tauri-fmt-windows:
+    @Write-Output '💅 格式化 Tauri Rust 代码...'
+    @Set-Location frontend; npm run tauri:fmt
+
+# 运行 Tauri 测试
+tauri-test:
+    @just _tauri-test-{{os()}}
+
+_tauri-test-linux:
+    @echo "🧪 运行 Tauri 测试..."
+    cd frontend && npm run tauri:test
+
+_tauri-test-macos:
+    @echo "🧪 运行 Tauri 测试..."
+    cd frontend && npm run tauri:test
+
+_tauri-test-windows:
+    @Write-Output '🧪 运行 Tauri 测试...'
+    @Set-Location frontend; npm run tauri:test
+
+# 清理 Tauri 构建产物
+tauri-clean:
+    @just _tauri-clean-{{os()}}
+
+_tauri-clean-linux:
+    @echo "🧹 清理 Tauri 构建产物..."
+    cd frontend/src-tauri && cargo clean
+    @echo "✅ Tauri 清理完成"
+
+_tauri-clean-macos:
+    @echo "🧹 清理 Tauri 构建产物..."
+    cd frontend/src-tauri && cargo clean
+    @echo "✅ Tauri 清理完成"
+
+_tauri-clean-windows:
+    @Write-Output '🧹 清理 Tauri 构建产物...'
+    @Set-Location frontend/src-tauri; cargo clean
+    @Write-Output '✅ Tauri 清理完成'
+
+# Tauri 完整检查（TypeScript + Rust）
+tauri-check-all:
+    @just _tauri-check-all-{{os()}}
+
+_tauri-check-all-linux:
+    @echo "🔍 运行 Tauri 完整检查..."
+    cd frontend && npm run check:all
+    @echo "✅ 所有检查通过"
+
+_tauri-check-all-macos:
+    @echo "🔍 运行 Tauri 完整检查..."
+    cd frontend && npm run check:all
+    @echo "✅ 所有检查通过"
+
+_tauri-check-all-windows:
+    @Write-Output '🔍 运行 Tauri 完整检查...'
+    @Set-Location frontend; npm run check:all
+    @Write-Output '✅ 所有检查通过'

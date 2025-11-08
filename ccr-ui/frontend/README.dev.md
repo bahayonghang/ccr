@@ -105,6 +105,37 @@ just ci               # 检查 + 构建
 just proto            # 格式化 + 检查 + 开发
 ```
 
+### 🖥️ Tauri 专用命令（推荐使用 ccr-ui 根目录的 justfile）
+
+在 `ccr-ui/` 根目录下，我们添加了完整的 Tauri 命令支持：
+
+```bash
+# 开发
+cd ../  # 回到 ccr-ui 根目录
+just tauri-dev        # 启动 Tauri 开发模式
+just tauri-check      # 检查 Tauri 环境
+
+# 构建
+just tauri-build      # 构建生产版本
+just tauri-build-debug # 构建调试版本（更快）
+
+# 代码质量
+just tauri-check-all  # 完整检查（TS + Rust）
+just tauri-check-rust # 只检查 Rust 代码
+just tauri-clippy     # Rust Clippy linter
+just tauri-fmt        # 格式化 Rust 代码
+just tauri-test       # 运行 Tauri 测试
+
+# 清理
+just tauri-clean      # 清理 Tauri 构建产物
+```
+
+**为什么推荐使用根目录的 justfile？**
+- ✅ 统一的命令入口（Web + Desktop）
+- ✅ 跨平台支持（Linux/macOS/Windows）
+- ✅ 更简洁的命令名称
+- ✅ 与 backend 命令一致
+
 ## 📦 构建与打包
 
 ### 开发构建（快速）
