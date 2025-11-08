@@ -9,9 +9,20 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix",
     "type-check": "vue-tsc --noEmit",
+    "clean": "rm -rf dist src-tauri/target node_modules/.vite",
+    "clean:all": "rm -rf dist src-tauri/target node_modules",
+    "dev:web": "vite --port 5173",
+    "build:web": "vite build",
+    "build:desktop": "npm run build && tauri build",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "tauri:build:debug": "tauri build --debug",
+    "tauri:check": "cd src-tauri && cargo check",
+    "tauri:clippy": "cd src-tauri && cargo clippy",
+    "tauri:fmt": "cd src-tauri && cargo fmt",
+    "tauri:test": "cd src-tauri && cargo test",
+    "check:all": "npm run type-check && npm run lint && npm run tauri:check"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.0",

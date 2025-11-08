@@ -12,10 +12,37 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.png",
+      "icons/icon@2x.png"
+    ],
+    "publisher": "CCR Team",
+    "copyright": "Copyright © 2025 CCR Team",
+    "category": "DeveloperTool",
+    "shortDescription": "Claude Code Configuration Manager - Desktop Application",
+    "longDescription": "CCR Desktop is a powerful configuration management tool for Claude Code, Codex, Gemini, and other AI CLI platforms. Features include profile switching, history tracking, WebDAV sync, and multi-platform support.",
     "linux": {
       "deb": {
         "depends": []
+      },
+      "appimage": {
+        "bundleMediaFramework": false
       }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.13",
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
     }
   },
   "app": {
@@ -29,11 +56,16 @@
         "resizable": true,
         "fullscreen": false,
         "decorations": true,
-        "center": true
+        "center": true,
+        "transparent": false,
+        "alwaysOnTop": false,
+        "skipTaskbar": false
       }
     ],
     "security": {
-      "csp": null
-    }
+      "csp": null,
+      "dangerousDisableAssetCspModification": false
+    },
+    "withGlobalTauri": false
   }
 }

@@ -1,0 +1,150 @@
+# CCR Desktop (Tauri) Justfile
+# 快捷命令集合
+
+# 默认命令：显示帮助
+default:
+    @just --list
+
+# ====================
+# 开发命令
+# ====================
+
+# 启动 Tauri 开发模式（前端 + Rust backend）
+dev:
+    npm run tauri:dev
+
+# 启动纯 Web 开发模式（仅前端）
+dev-web:
+    npm run dev:web
+
+# 启动前端开发服务器
+dev-frontend:
+    npm run dev
+
+# ====================
+# 构建命令
+# ====================
+
+# 构建桌面应用（完整发布版本）
+build:
+    npm run build:desktop
+
+# 构建 Web 版本
+build-web:
+    npm run build:web
+
+# 构建调试版本（更快，包含调试符号）
+build-debug:
+    npm run tauri:build:debug
+
+# ====================
+# 检查和测试
+# ====================
+
+# 快速检查 Tauri Rust 代码
+check:
+    npm run tauri:check
+
+# 运行 Clippy 检查 Rust 代码质量
+clippy:
+    npm run tauri:clippy
+
+# 格式化 Rust 代码
+fmt:
+    npm run tauri:fmt
+
+# 运行 Rust 测试
+test:
+    npm run tauri:test
+
+# TypeScript 类型检查
+type-check:
+    npm run type-check
+
+# ESLint 检查和修复
+lint:
+    npm run lint
+
+# 全面检查（类型 + Lint + Cargo）
+check-all:
+    npm run check:all
+
+# ====================
+# 清理命令
+# ====================
+
+# 清理构建产物
+clean:
+    npm run clean
+
+# 清理所有（包括 node_modules）
+clean-all:
+    npm run clean:all
+
+# 深度清理并重新安装依赖
+reset:
+    just clean-all
+    npm install
+
+# ====================
+# 安装命令
+# ====================
+
+# 安装依赖
+install:
+    npm install
+
+# 安装并构建
+install-build:
+    npm install
+    npm run build
+
+# ====================
+# Tauri 特定命令
+# ====================
+
+# 生成 Tauri 图标（需要提供源图标）
+icon SOURCE:
+    cd src-tauri && tauri icon {{SOURCE}}
+
+# Tauri 信息
+info:
+    cd src-tauri && tauri info
+
+# ====================
+# Git 相关命令
+# ====================
+
+# Git 状态
+status:
+    git status
+
+# 提交所有更改
+commit MESSAGE:
+    git add -A
+    git commit -m "{{MESSAGE}}"
+
+# 推送到远程
+push:
+    git push
+
+# ====================
+# 组合命令
+# ====================
+
+# 完整开发流程：清理 + 安装 + 开发
+fresh:
+    just clean
+    just install
+    just dev
+
+# 完整构建流程：检查 + 构建
+ci:
+    just check-all
+    just build
+
+# 快速原型：格式化 + 检查 + 开发
+proto:
+    just fmt
+    just check
+    just dev
