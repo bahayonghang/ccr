@@ -1,5 +1,25 @@
 <template>
-  <div :style="{ background: 'var(--bg-primary)', minHeight: '100vh', padding: '20px' }">
+  <div class="min-h-screen relative">
+    <!-- 🎨 液态玻璃背景 -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+      <div
+        class="absolute top-10 right-10 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl animate-pulse"
+        :style="{ 
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
+          animation: 'pulse 8s ease-in-out infinite'
+        }"
+      />
+      <div
+        class="absolute bottom-10 left-10 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
+        :style="{
+          background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%)',
+          animation: 'pulse 10s ease-in-out infinite',
+          animationDelay: '2s'
+        }"
+      />
+    </div>
+
+    <div class="relative z-10 p-6">
     <div class="max-w-[1800px] mx-auto">
       <Navbar />
       <StatusHeader
@@ -18,77 +38,59 @@
         moduleColor="#6366f1"
       />
 
-      <div class="grid grid-cols-[auto_1fr] gap-4">
+      <div class="grid grid-cols-[auto_1fr] gap-6">
         <CollapsibleSidebar module="claude-code" />
 
         <main
-          class="rounded-xl p-6 glass-effect"
-          :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
+          class="p-8 transition-all duration-300"
+          :style="{
+            background: 'rgba(255, 255, 255, 0.6)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '24px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
+          }"
         >
-          <div class="flex items-center justify-between mb-6">
-            <div class="flex items-center gap-3">
+          <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
               <div
-                class="p-2.5 rounded-xl"
-                :style="{ background: 'rgba(99, 102, 241, 0.1)' }"
+                class="p-4 rounded-2xl"
+                :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
               >
-                <Server class="w-6 h-6" :style="{ color: '#6366f1' }" />
+                <Server class="w-8 h-8" :style="{ color: '#6366f1' }" />
               </div>
               <div>
-                <div class="flex items-center gap-2">
-                  <h1 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                <div class="flex items-center gap-3">
+                  <h1 class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">
                     MCP 服务器管理
                   </h1>
                   <span
-                    class="px-2 py-0.5 rounded text-xs font-semibold"
+                    class="px-3 py-1 rounded-full text-xs font-bold"
                     :style="{
-                      background: 'rgba(99, 102, 241, 0.1)',
-                      color: '#6366f1',
-                      border: '1px solid rgba(99, 102, 241, 0.2)'
+                      background: 'rgba(99, 102, 241, 0.15)',
+                      color: '#6366f1'
                     }"
                   >
-                    Claude Code
+                    🔌 MCP
                   </span>
                 </div>
-                <p class="text-sm mt-1" :style="{ color: 'var(--text-muted)' }">
+                <p class="text-sm mt-2" :style="{ color: 'var(--text-secondary)' }">
                   Model Context Protocol 服务器配置和管理
                 </p>
               </div>
             </div>
             <div class="flex items-center gap-3">
-              <RouterLink
-                to="/claude-code"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105"
-                :style="{
-                  background: 'rgba(99, 102, 241, 0.1)',
-                  color: '#6366f1',
-                  border: '1px solid rgba(99, 102, 241, 0.2)'
-                }"
-              >
-                <ArrowLeft class="w-4 h-4" />
-                <span>Claude Code</span>
-              </RouterLink>
-              <RouterLink
-                to="/"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
-                :style="{
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--border-color)'
-                }"
-              >
-                <Home class="w-4 h-4" />
-                <span>返回首页</span>
-              </RouterLink>
               <button
-                class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2 transition-all hover:scale-105"
+                class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all duration-300 hover:scale-105"
                 :style="{
                   background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                  boxShadow: '0 0 20px rgba(99, 102, 241, 0.3)'
+                  boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
                 }"
                 @click="handleAdd"
               >
-                <Plus class="w-4 h-4" />
-                添加 MCP 服务器
+                <Plus class="w-5 h-5" />
+                添加服务器
               </button>
             </div>
           </div>

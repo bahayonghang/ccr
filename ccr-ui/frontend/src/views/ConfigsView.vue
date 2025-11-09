@@ -1,24 +1,38 @@
 <template>
-  <div
-    class="min-h-screen relative"
-    :style="{ background: 'var(--bg-primary)', padding: '20px' }"
-  >
-    <!-- 🎨 动态背景装饰 - 液态玻璃风格 -->
+  <div class="min-h-screen relative">
+    <!-- 🎨 增强的液态玻璃背景 -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+      <!-- 主渐变球 1 -->
       <div
-        class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
-        :style="{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }"
+        class="absolute top-10 right-10 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl animate-pulse"
+        :style="{ 
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
+          animation: 'pulse 8s ease-in-out infinite'
+        }"
       />
+      <!-- 主渐变球 2 -->
       <div
-        class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
+        class="absolute bottom-10 left-10 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
-          background: 'linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)',
-          animationDelay: '1s'
+          background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%)',
+          animation: 'pulse 10s ease-in-out infinite',
+          animationDelay: '2s'
+        }"
+      />
+      <!-- 辅助渐变球 -->
+      <div
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full opacity-10 blur-3xl animate-pulse"
+        :style="{
+          background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
+          animation: 'pulse 12s ease-in-out infinite',
+          animationDelay: '4s'
         }"
       />
     </div>
 
-    <div class="max-w-[1800px] mx-auto relative z-10">
+    <div class="relative z-10 p-6">
+
+    <div class="max-w-[1800px] mx-auto">
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
@@ -100,194 +114,94 @@
         </button>
       </div>
 
-      <!-- 🌟 WebDAV 云同步功能入口 -->
-      <RouterLink to="/sync" class="block mb-5">
-        <div
-          class="glass-card relative overflow-hidden p-6 cursor-pointer transition-all duration-300 hover:scale-[1.01] group"
-          :style="{
-            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08))',
-            border: '1.5px solid rgba(99, 102, 241, 0.25)',
-            boxShadow: 'var(--shadow-lg), inset 0 1px 0 0 rgba(255, 255, 255, 0.4)'
-          }"
-        >
-          <div class="relative flex items-center justify-between">
-            <div class="flex items-center gap-6">
-              <!-- 图标区域 -->
-              <div class="relative">
-                <div
-                  class="absolute inset-0 blur-lg opacity-30"
-                  :style="{ background: '#6366f1' }"
-                />
-                <div
-                  class="relative z-10 p-4 rounded-2xl"
-                  :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
-                >
-                  <Cloud
-                    class="w-10 h-10 group-hover:scale-110 transition-transform"
-                    :style="{ color: '#6366f1' }"
-                  />
-                </div>
-                <Sparkles
-                  class="w-5 h-5 absolute -top-1 -right-1 animate-pulse"
-                  :style="{ color: '#f59e0b' }"
-                />
-              </div>
-
-              <!-- 文字内容 -->
-              <div>
-                <div class="flex items-center gap-3 mb-2">
-                  <h3
-                    class="text-2xl font-bold"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    WebDAV 云同步
-                  </h3>
-                  <span
-                    class="px-3 py-1 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'var(--accent-warning)',
-                      color: 'white'
-                    }"
-                  >
-                    NEW ✨
-                  </span>
-                </div>
-                <p
-                  class="text-sm font-medium mb-3"
-                  :style="{ color: 'var(--text-secondary)' }"
-                >
-                  一键同步配置到云端 · 支持坚果云、Nextcloud、ownCloud 等 WebDAV 服务
-                </p>
-                <div class="flex items-center gap-4">
-                  <div
-                    class="flex items-center gap-1.5 text-xs"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    <div
-                      class="w-1.5 h-1.5 rounded-full animate-pulse"
-                      :style="{ background: 'var(--accent-success)' }"
-                    />
-                    <span>多设备同步</span>
-                  </div>
-                  <div
-                    class="flex items-center gap-1.5 text-xs"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    <div
-                      class="w-1.5 h-1.5 rounded-full animate-pulse"
-                      :style="{ background: 'var(--accent-info)' }"
-                    />
-                    <span>自动备份</span>
-                  </div>
-                  <div
-                    class="flex items-center gap-1.5 text-xs"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    <div
-                      class="w-1.5 h-1.5 rounded-full animate-pulse"
-                      :style="{ background: 'var(--accent-secondary)' }"
-                    />
-                    <span>安全加密</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 右侧按钮 -->
-            <div class="flex items-center gap-3">
-              <div class="text-right mr-4">
-                <div
-                  class="text-sm font-medium"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
-                  立即体验
-                </div>
-                <div
-                  class="text-xs"
-                  :style="{ color: 'var(--text-muted)' }"
-                >
-                  点击进入管理
-                </div>
-              </div>
-              <div
-                class="w-12 h-12 rounded-full flex items-center justify-center transition-all group-hover:scale-110"
-                :style="{
-                  background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-                  boxShadow: '0 0 20px var(--glow-primary)'
-                }"
-              >
-                <ArrowRight
-                  class="w-6 h-6 text-white group-hover:translate-x-1 transition-transform"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </RouterLink>
-
-      <!-- 三列布局：侧边栏 + 主内容 + 右侧边栏 -->
-      <div class="grid grid-cols-[auto_1fr_280px] gap-4">
+      <!-- 三列布局 -->
+      <div class="grid grid-cols-[auto_1fr_320px] gap-6">
         <!-- 可折叠侧边栏 -->
         <CollapsibleSidebar module="claude-code" />
 
-        <!-- 主内容区 -->
+        <!-- 主内容区 - 液态玻璃效果 -->
         <main
-          class="rounded-xl p-6 glass-effect"
+          class="p-8 transition-all duration-300"
           :style="{
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--shadow-small)'
+            background: 'rgba(255, 255, 255, 0.6)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '24px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
           }"
         >
-          <!-- Tab 导航 -->
+          <!-- Tab 导航 - 增强版 -->
           <div
-            class="flex gap-1.5 mb-5 p-1 rounded-lg"
-            :style="{ background: 'var(--bg-tertiary)' }"
+            class="flex gap-2 mb-6 p-1.5 rounded-2xl"
+            :style="{ 
+              background: 'rgba(99, 102, 241, 0.08)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(99, 102, 241, 0.15)'
+            }"
           >
             <button
-              class="flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all"
+              class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300"
               :style="{
-                background: activeTab === 'configs' ? 'var(--accent-primary)' : 'transparent',
-                color: activeTab === 'configs' ? 'white' : 'var(--text-secondary)'
+                background: activeTab === 'configs' 
+                  ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
+                  : 'transparent',
+                color: activeTab === 'configs' ? 'white' : 'var(--text-secondary)',
+                boxShadow: activeTab === 'configs' 
+                  ? '0 4px 12px rgba(99, 102, 241, 0.3)' 
+                  : 'none',
+                transform: activeTab === 'configs' ? 'scale(1.02)' : 'scale(1)'
               }"
               @click="activeTab = 'configs'"
             >
-              配置列表
+              📋 配置列表
             </button>
             <button
-              class="flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all"
+              class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300"
               :style="{
-                background: activeTab === 'history' ? 'var(--accent-primary)' : 'transparent',
-                color: activeTab === 'history' ? 'white' : 'var(--text-secondary)'
+                background: activeTab === 'history' 
+                  ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
+                  : 'transparent',
+                color: activeTab === 'history' ? 'white' : 'var(--text-secondary)',
+                boxShadow: activeTab === 'history' 
+                  ? '0 4px 12px rgba(99, 102, 241, 0.3)' 
+                  : 'none',
+                transform: activeTab === 'history' ? 'scale(1.02)' : 'scale(1)'
               }"
               @click="activeTab = 'history'"
             >
-              历史记录
+              🕐 历史记录
             </button>
           </div>
 
           <!-- 配置列表 Tab -->
           <div v-if="activeTab === 'configs'">
-            <!-- 筛选按钮 -->
+            <!-- 筛选按钮 - 液态玻璃风格 -->
             <div
-              class="flex gap-2 mb-5 p-2 rounded-lg"
+              class="flex gap-3 mb-6 p-2 rounded-2xl"
               :style="{
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-color)'
+                background: 'rgba(255, 255, 255, 0.4)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)'
               }"
             >
               <button
                 v-for="filter in filters"
                 :key="filter.type"
-                class="flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+                class="flex-1 py-3 px-5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105"
                 :style="{
                   background: currentFilter === filter.type
-                    ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))'
-                    : 'transparent',
-                  border: `1px solid ${
-                    currentFilter === filter.type ? 'var(--accent-primary)' : 'var(--border-color)'
-                  }`,
+                    ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                    : 'rgba(255, 255, 255, 0.3)',
+                  backdropFilter: currentFilter === filter.type ? 'blur(10px)' : 'none',
+                  border: currentFilter === filter.type 
+                    ? '1px solid rgba(99, 102, 241, 0.3)' 
+                    : '1px solid rgba(255, 255, 255, 0.2)',
                   color: currentFilter === filter.type ? 'white' : 'var(--text-secondary)',
-                  boxShadow: currentFilter === filter.type ? '0 0 15px var(--glow-primary)' : 'none'
+                  boxShadow: currentFilter === filter.type 
+                    ? '0 4px 16px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3)' 
+                    : '0 2px 8px rgba(0, 0, 0, 0.05)'
                 }"
                 @click="currentFilter = filter.type"
               >
@@ -350,6 +264,15 @@
         />
       </div>
     </div>
+    </div>
+
+    <!-- 编辑配置模态框 -->
+    <EditConfigModal
+      :is-open="isEditModalOpen"
+      :config-name="editingConfigName"
+      @close="handleEditModalClose"
+      @saved="handleEditSaved"
+    />
   </div>
 </template>
 
@@ -372,6 +295,7 @@ import {
   switchConfig,
   validateConfigs as apiValidateConfigs,
   getHistory,
+  deleteConfig,
   isTauriEnvironment
 } from '@/api'
 import ConfigCard from '@/components/ConfigCard.vue'
@@ -382,6 +306,7 @@ import StatusHeader from '@/components/StatusHeader.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import EnvironmentBadge from '@/components/EnvironmentBadge.vue'
+import EditConfigModal from '@/components/EditConfigModal.vue'
 
 type FilterType = 'all' | 'official_relay' | 'third_party_model' | 'uncategorized'
 
@@ -393,6 +318,8 @@ const historyLoading = ref(false)
 const error = ref<string | null>(null)
 const currentFilter = ref<FilterType>('all')
 const activeTab = ref<'configs' | 'history'>('configs')
+const isEditModalOpen = ref(false)
+const editingConfigName = ref('')
 
 const filters = [
   { type: 'all' as FilterType, label: '📋 全部配置' },
@@ -480,13 +407,31 @@ const handleValidate = async () => {
 
 // 编辑配置
 const handleEdit = (configName: string) => {
-  alert(`编辑功能开发中: ${configName}`)
+  editingConfigName.value = configName
+  isEditModalOpen.value = true
+}
+
+// 关闭编辑模态框
+const handleEditModalClose = () => {
+  isEditModalOpen.value = false
+  editingConfigName.value = ''
+}
+
+// 编辑保存后
+const handleEditSaved = async () => {
+  await loadConfigs()
 }
 
 // 删除配置
-const handleDelete = (configName: string) => {
-  if (confirm(`确定删除配置 "${configName}" 吗？此操作不可恢复！`)) {
-    alert(`删除功能开发中: ${configName}`)
+const handleDelete = async (configName: string) => {
+  if (!confirm(`确定删除配置 "${configName}" 吗？此操作不可恢复！`)) return
+
+  try {
+    await deleteConfig(configName)
+    alert(`✓ 成功删除配置 "${configName}"`)
+    await loadConfigs()
+  } catch (err) {
+    alert(`删除失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
   }
 }
 

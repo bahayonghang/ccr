@@ -56,70 +56,118 @@
         </div>
 
         <!-- 右列：信息卡片区域 -->
-        <div class="grid grid-cols-1 gap-4 animate-fade-in">
-          <!-- 系统状态卡片 -->
+        <div class="space-y-4 animate-fade-in">
+          <!-- 系统状态卡片 - 横向排列 -->
           <template v-if="systemInfo">
-          <div
-            class="glass-card p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
-            :style="{ animationDelay: '0.1s' }"
-          >
-            <div class="flex items-center gap-4">
-              <div
-                class="p-4 rounded-2xl"
-                :style="{ background: 'rgba(99, 102, 241, 0.1)' }"
+          <div class="glass-card p-6">
+            <div class="grid grid-cols-3 gap-4 md:gap-6">
+              <!-- CPU 使用率 -->
+              <div 
+                class="text-center group cursor-pointer hover:scale-110 transition-all duration-300"
+                :style="{ animationDelay: '0.1s' }"
               >
-                <Cpu class="w-7 h-7" :style="{ color: '#6366f1' }" />
-              </div>
-              <div class="flex-1">
-                <p class="text-sm font-medium mb-1" :style="{ color: 'var(--text-muted)' }">
-                  CPU 使用率
-                </p>
-                <p class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                <div class="relative inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 mb-2 md:mb-3">
+                  <!-- 背景圆环 -->
+                  <svg class="absolute w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <defs>
+                      <linearGradient id="cpuGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#6366f1" />
+                        <stop offset="100%" style="stop-color:#8b5cf6" />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="rgba(99, 102, 241, 0.1)"
+                      stroke-width="8"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="url(#cpuGradient)"
+                      stroke-width="8"
+                      stroke-linecap="round"
+                      :stroke-dasharray="`${(systemInfo.cpu_usage || 0) * 2.51} 251`"
+                      class="transition-all duration-500"
+                    />
+                  </svg>
+                  <!-- 图标 -->
+                  <div class="relative">
+                    <Cpu class="w-8 h-8" :style="{ color: '#6366f1' }" />
+                  </div>
+                </div>
+                <p class="text-xl md:text-2xl font-bold mb-0.5 md:mb-1" :style="{ color: 'var(--text-primary)' }">
                   {{ systemInfo.cpu_usage?.toFixed(1) || '0.0' }}%
                 </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="glass-card p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
-            :style="{ animationDelay: '0.2s' }"
-          >
-            <div class="flex items-center gap-4">
-              <div
-                class="p-4 rounded-2xl"
-                :style="{ background: 'rgba(139, 92, 246, 0.1)' }"
-              >
-                <HardDrive class="w-7 h-7" :style="{ color: '#8b5cf6' }" />
-              </div>
-              <div class="flex-1">
-                <p class="text-sm font-medium mb-1" :style="{ color: 'var(--text-muted)' }">
-                  内存使用
+                <p class="text-xs font-medium" :style="{ color: 'var(--text-muted)' }">
+                  CPU 使用率
                 </p>
-                <p class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">
+              </div>
+
+              <!-- 内存使用 -->
+              <div 
+                class="text-center group cursor-pointer hover:scale-110 transition-all duration-300"
+                :style="{ animationDelay: '0.2s' }"
+              >
+                <div class="relative inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 mb-2 md:mb-3">
+                  <!-- 背景圆环 -->
+                  <svg class="absolute w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <defs>
+                      <linearGradient id="memGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#8b5cf6" />
+                        <stop offset="100%" style="stop-color:#ec4899" />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="rgba(139, 92, 246, 0.1)"
+                      stroke-width="8"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="url(#memGradient)"
+                      stroke-width="8"
+                      stroke-linecap="round"
+                      :stroke-dasharray="`${(systemInfo.memory_usage_percent || 0) * 2.51} 251`"
+                      class="transition-all duration-500"
+                    />
+                  </svg>
+                  <!-- 图标 -->
+                  <div class="relative">
+                    <HardDrive class="w-8 h-8" :style="{ color: '#8b5cf6' }" />
+                  </div>
+                </div>
+                <p class="text-xl md:text-2xl font-bold mb-0.5 md:mb-1" :style="{ color: 'var(--text-primary)' }">
                   {{ systemInfo.memory_usage_percent?.toFixed(1) || '0.0' }}%
                 </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="glass-card p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
-            :style="{ animationDelay: '0.3s' }"
-          >
-            <div class="flex items-center gap-4">
-              <div
-                class="p-4 rounded-2xl"
-                :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
-              >
-                <Activity class="w-7 h-7" :style="{ color: '#10b981' }" />
-              </div>
-              <div class="flex-1">
-                <p class="text-sm font-medium mb-1" :style="{ color: 'var(--text-muted)' }">
-                  系统平台
+                <p class="text-xs font-medium" :style="{ color: 'var(--text-muted)' }">
+                  内存使用
                 </p>
-                <p class="text-lg font-bold truncate" :style="{ color: 'var(--text-primary)' }">
-                  {{ systemInfo.os }} {{ systemInfo.os_version }}
+              </div>
+
+              <!-- 系统平台 -->
+              <div 
+                class="text-center group cursor-pointer hover:scale-110 transition-all duration-300"
+                :style="{ animationDelay: '0.3s' }"
+              >
+                <div class="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 mb-2 md:mb-3 rounded-full" :style="{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15))' }">
+                  <Activity class="w-7 h-7 md:w-8 md:h-8" :style="{ color: '#10b981' }" />
+                </div>
+                <p class="text-base md:text-lg font-bold mb-0.5 md:mb-1 truncate px-2" :style="{ color: 'var(--text-primary)' }">
+                  {{ systemInfo.os }}
+                </p>
+                <p class="text-xs font-medium" :style="{ color: 'var(--text-muted)' }">
+                  {{ systemInfo.os_version }}
                 </p>
               </div>
             </div>
