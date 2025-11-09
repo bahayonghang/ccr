@@ -1,35 +1,45 @@
 [package]
 name = "ccr-ui-backend"
-version = "2.5.0"
+version = "3.0.0"
 edition = "2024"
 
 [dependencies]
 # 🎯 CCR 核心库 - 直接使用服务层（无子进程开销）
 ccr = { path = "../../", default-features = false }
 
+# ═══════════════════════════════════════════════════════════
+# 📦 Workspace 依赖（统一版本管理）
+# ═══════════════════════════════════════════════════════════
+
 # Web framework (Axum + Tower ecosystem)
-axum = { version = "0.7", features = ["macros"] }
-tower = { version = "0.5", features = ["timeout", "limit"] }
-tower-http = { version = "0.6", features = ["fs", "trace", "cors", "compression-full", "request-id", "util"] }
+axum = { workspace = true, features = ["macros"] }
+tower = { workspace = true, features = ["timeout", "limit"] }
+tower-http = { workspace = true, features = ["fs", "trace", "cors", "compression-full", "request-id", "util"] }
 
 # Async runtime
-tokio = { version = "1.48.0", features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
+
+# Serialization (从 workspace 继承)
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Time (从 workspace 继承)
+chrono = { workspace = true }
+
+# Error handling (从 workspace 继承)
+thiserror = { workspace = true }
+
+# Config file parsing (从 workspace 继承)
+toml = { workspace = true }
+dirs = { workspace = true }
+
+# ═══════════════════════════════════════════════════════════
+# 📦 Backend 专有依赖
+# ═══════════════════════════════════════════════════════════
+
+# Async helpers
 futures = "0.3"
 async-stream = "0.3"
-
-# Serialization (ccr 已提供 serde, serde_json, 保留以确保兼容性)
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
-# Time (ccr 已提供 chrono)
-chrono = { version = "0.4", features = ["serde"] }
-
-# Error handling (暂时保留，重构后可移除)
-thiserror = "2.0"
-
-# Config file parsing (暂时保留，重构后可移除)
-toml = "0.9"
-dirs = "6.0"
 
 # Logging
 tracing = "0.1"
@@ -41,22 +51,21 @@ clap = { version = "4.5", features = ["derive"] }
 
 # System information
 whoami = "1.5"
-num_cpus = "1.16"
-sysinfo = "0.32"
+num_cpus = "1.17.0"
+sysinfo = "0.37.2"  # 统一使用与 ccr 相同的版本
 
 # HTTP client for checking updates
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { workspace = true }
 
 # YAML support (for special cases)
 serde_yaml = "0.9"
 
-# Atomic file operations (暂时保留，重构后可移除)
-tempfile = "3.10"
+# Atomic file operations (从 workspace 继承)
+tempfile = { workspace = true }
 
-# 🗑️ 将在重构后移除的依赖（ccr 已提供）:
-# - toml = "0.9"        ✓ ccr 已提供，但旧代码仍在使用
-# - dirs = "6.0"        ✓ ccr 已提供，但旧代码仍在使用
-# - tempfile = "3.10"   ✓ ccr 已提供，但旧代码仍在使用
-# - thiserror = "2.0"   ✓ ccr 已提供，但旧代码仍在使用
-# - anyhow = "1.0"      ✓ ccr 已提供（这个已经成功移除）
+# ✅ 依赖优化完成说明：
+# - toml, dirs, tempfile, thiserror 已改用 workspace 依赖
+# - serde, serde_json, chrono, reqwest 已改用 workspace 依赖
+# - 版本统一由根 Cargo.toml 的 workspace.dependencies 管理
+# - 减少了版本冲突风险，加快编译速度
 
