@@ -8,7 +8,7 @@
           background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
           animation: 'pulse 8s ease-in-out infinite'
         }"
-      />
+      ></div>
       <div
         class="absolute bottom-10 left-10 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
@@ -16,84 +16,83 @@
           animation: 'pulse 10s ease-in-out infinite',
           animationDelay: '2s'
         }"
-      />
+      ></div>
     </div>
-
     <div class="relative z-10 p-6">
-    <div class="max-w-[1800px] mx-auto">
-      <Navbar />
-      <StatusHeader
-        :currentConfig="currentConfig"
-        :totalConfigs="totalConfigs"
-        :historyCount="historyCount"
-      />
+      <div class="max-w-[1800px] mx-auto">
+        <Navbar />
+        <StatusHeader
+          :currentConfig="currentConfig"
+          :totalConfigs="totalConfigs"
+          :historyCount="historyCount"
+        />
 
-      <!-- Breadcrumb Navigation -->
-      <Breadcrumb
-        :items="[
-          { label: '首页', path: '/', icon: Home },
-          { label: 'Claude Code', path: '/claude-code', icon: Code2 },
-          { label: 'MCP 服务器', path: '/mcp', icon: Server }
-        ]"
-        moduleColor="#6366f1"
-      />
+        <!-- Breadcrumb Navigation -->
+        <Breadcrumb
+          :items="[
+            { label: '首页', path: '/', icon: Home },
+            { label: 'Claude Code', path: '/claude-code', icon: Code2 },
+            { label: 'MCP 服务器', path: '/mcp', icon: Server }
+          ]"
+          moduleColor="#6366f1"
+        />
 
-      <div class="grid grid-cols-[auto_1fr] gap-6">
-        <CollapsibleSidebar module="claude-code" />
+        <div class="grid grid-cols-[auto_1fr] gap-6">
+          <CollapsibleSidebar module="claude-code" />
 
-        <main
-          class="p-8 transition-all duration-300"
-          :style="{
-            background: 'rgba(255, 255, 255, 0.6)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '24px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
-          }"
-        >
-          <div class="flex items-center justify-between mb-8">
-            <div class="flex items-center gap-4">
-              <div
-                class="p-4 rounded-2xl"
-                :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
-              >
-                <Server class="w-8 h-8" :style="{ color: '#6366f1' }" />
-              </div>
-              <div>
-                <div class="flex items-center gap-3">
-                  <h1 class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">
-                    MCP 服务器管理
-                  </h1>
-                  <span
-                    class="px-3 py-1 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(99, 102, 241, 0.15)',
-                      color: '#6366f1'
-                    }"
-                  >
-                    🔌 MCP
-                  </span>
+          <main
+            class="p-8 transition-all duration-300"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.6)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '24px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
+            }"
+          >
+            <div class="flex items-center justify-between mb-8">
+              <div class="flex items-center gap-4">
+                <div
+                  class="p-4 rounded-2xl"
+                  :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
+                >
+                  <Server class="w-8 h-8" :style="{ color: '#6366f1' }" />
                 </div>
-                <p class="text-sm mt-2" :style="{ color: 'var(--text-secondary)' }">
-                  Model Context Protocol 服务器配置和管理
-                </p>
+                <div>
+                  <div class="flex items-center gap-3">
+                    <h1 class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                      MCP 服务器管理
+                    </h1>
+                    <span
+                      class="px-3 py-1 rounded-full text-xs font-bold"
+                      :style="{
+                        background: 'rgba(99, 102, 241, 0.15)',
+                        color: '#6366f1'
+                      }"
+                    >
+                      🔌 MCP
+                    </span>
+                  </div>
+                  <p class="text-sm mt-2" :style="{ color: 'var(--text-secondary)' }">
+                    Model Context Protocol 服务器配置和管理
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <button
+                  class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                  :style="{
+                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
+                  }"
+                  @click="handleAdd"
+                >
+                  <Plus class="w-5 h-5" />
+                  添加服务器
+                </button>
               </div>
             </div>
-            <div class="flex items-center gap-3">
-              <button
-                class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all duration-300 hover:scale-105"
-                :style="{
-                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                  boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
-                }"
-                @click="handleAdd"
-              >
-                <Plus class="w-5 h-5" />
-                添加服务器
-              </button>
-            </div>
-          </div>
 
           <div v-if="loading" class="flex justify-center py-20">
             <div
@@ -378,6 +377,7 @@
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup lang="ts">
