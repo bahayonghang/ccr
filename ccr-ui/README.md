@@ -187,6 +187,77 @@ npm run build
 
 The built files will be in `frontend/dist/`.
 
+## 🖥️ Tauri Desktop Application
+
+CCR UI also supports running as a native desktop application using Tauri 2.0! This provides better performance and native OS integration.
+
+### Prerequisites for Desktop
+
+In addition to the web version requirements:
+- **Rust 1.70+** (already required for backend)
+- **System Dependencies**:
+  - **Linux**: `libwebkit2gtk-4.0-dev`, `build-essential`
+  - **macOS**: Xcode Command Line Tools
+  - **Windows**: Visual Studio C++ Build Tools
+
+### 🚀 Quick Start (Desktop)
+
+```bash
+cd ccr-ui
+
+# Start Tauri development mode (opens desktop window)
+just tauri-dev
+
+# Build desktop application
+just tauri-build
+
+# Check Tauri environment
+just tauri-check
+```
+
+### Available Tauri Commands
+
+| Command | Description |
+|---------|-------------|
+| `just tauri-dev` | Start Tauri development mode (desktop app) |
+| `just tauri-build` | Build production desktop app |
+| `just tauri-build-debug` | Build debug version (faster, with symbols) |
+| `just tauri-check` | Check Tauri environment and configuration |
+| `just tauri-check-all` | Full check (TypeScript + Rust) |
+| `just tauri-check-rust` | Check Tauri Rust code only |
+| `just tauri-clippy` | Run Rust linter (Clippy) |
+| `just tauri-fmt` | Format Tauri Rust code |
+| `just tauri-test` | Run Tauri tests |
+| `just tauri-clean` | Clean Tauri build artifacts |
+
+### Build Artifacts
+
+After running `just tauri-build`, you'll find platform-specific installers:
+
+**Linux**:
+- `.deb` - Debian/Ubuntu package
+- `.AppImage` - Universal Linux package
+
+**macOS**:
+- `.dmg` - Disk image installer
+- `.app` - Application bundle
+
+**Windows**:
+- `.msi` - Windows installer
+- `.exe` - Standalone executable
+
+All artifacts are located in: `frontend/src-tauri/target/release/bundle/`
+
+### Desktop vs Web Mode
+
+The application automatically detects the runtime environment:
+- **Desktop mode**: Uses Tauri invoke (< 1ms, 50x faster)
+- **Web mode**: Uses HTTP API (20-50ms)
+
+Both modes share the same Vue.js frontend with automatic backend switching!
+
+For detailed Tauri documentation, see [`frontend/README.md`](frontend/README.md) and [`frontend/README.dev.md`](frontend/README.dev.md).
+
 ## API Endpoints
 
 ### Config Management

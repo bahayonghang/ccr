@@ -29,6 +29,11 @@
         moduleColor="#6366f1"
       />
 
+      <!-- Environment Badge -->
+      <div class="mb-4">
+        <EnvironmentBadge />
+      </div>
+
       <!-- 操作按钮栏（已移到 Navbar，保留此处作为备用） -->
       <div v-if="false" class="flex flex-wrap gap-3 mb-5">
         <button
@@ -366,8 +371,9 @@ import {
   listConfigs,
   switchConfig,
   validateConfigs as apiValidateConfigs,
-  getHistory
-} from '@/api/client'
+  getHistory,
+  isTauriEnvironment
+} from '@/api'
 import ConfigCard from '@/components/ConfigCard.vue'
 import HistoryList from '@/components/HistoryList.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
@@ -375,6 +381,7 @@ import Navbar from '@/components/Navbar.vue'
 import StatusHeader from '@/components/StatusHeader.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+import EnvironmentBadge from '@/components/EnvironmentBadge.vue'
 
 type FilterType = 'all' | 'official_relay' | 'third_party_model' | 'uncategorized'
 

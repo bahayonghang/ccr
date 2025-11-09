@@ -54,3 +54,6 @@ cmake-build-*/
 
 openspec/
 .serena/
+
+
+ccr-ui/frontend/src-tauri/gen/schemas/macOS-schema.json
