@@ -56,6 +56,7 @@ impl SyncContentType {
     pub fn exists(&self) -> bool {
         use std::path::PathBuf;
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        let use_ccr_root = std::env::var("CCR_ROOT").is_ok();
         let ccr_root = if let Ok(root) = std::env::var("CCR_ROOT") {
             PathBuf::from(root)
         } else {
@@ -65,16 +66,36 @@ impl SyncContentType {
         match self {
             SyncContentType::Config => ccr_root.join("config.toml").exists(),
             SyncContentType::Claude => {
-                home.join(".claude").exists() || ccr_root.join("platforms").join("claude").exists()
+                // 如果设置了 CCR_ROOT，仅检查 CCR_ROOT（用于测试隔离）
+                if use_ccr_root {
+                    ccr_root.join("platforms").join("claude").exists()
+                } else {
+                    home.join(".claude").exists()
+                        || ccr_root.join("platforms").join("claude").exists()
+                }
             }
             SyncContentType::Gemini => {
-                home.join(".gemini").exists() || ccr_root.join("platforms").join("gemini").exists()
+                if use_ccr_root {
+                    ccr_root.join("platforms").join("gemini").exists()
+                } else {
+                    home.join(".gemini").exists()
+                        || ccr_root.join("platforms").join("gemini").exists()
+                }
             }
             SyncContentType::Qwen => {
-                home.join(".qwen").exists() || ccr_root.join("platforms").join("qwen").exists()
+                if use_ccr_root {
+                    ccr_root.join("platforms").join("qwen").exists()
+                } else {
+                    home.join(".qwen").exists() || ccr_root.join("platforms").join("qwen").exists()
+                }
             }
             SyncContentType::IFlow => {
-                home.join(".iflow").exists() || ccr_root.join("platforms").join("iflow").exists()
+                if use_ccr_root {
+                    ccr_root.join("platforms").join("iflow").exists()
+                } else {
+                    home.join(".iflow").exists()
+                        || ccr_root.join("platforms").join("iflow").exists()
+                }
             }
         }
     }
@@ -120,6 +141,7 @@ impl SyncContentSelection {
     /// 转换为路径列表（用于同步过滤）
     pub fn to_paths(&self) -> Vec<String> {
         let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+        let use_ccr_root = std::env::var("CCR_ROOT").is_ok();
         let ccr_root = if let Ok(root) = std::env::var("CCR_ROOT") {
             std::path::PathBuf::from(root)
         } else {
@@ -134,28 +156,45 @@ impl SyncContentSelection {
                     paths.push("config.toml".to_string());
                 }
                 SyncContentType::Claude => {
-                    if home.join(".claude").exists() {
+                    // 如果设置了 CCR_ROOT，优先使用 CCR_ROOT（用于测试隔离）
+                    if use_ccr_root {
+                        if ccr_root.join("platforms").join("claude").exists() {
+                            paths.push("platforms/claude".to_string());
+                        }
+                    } else if home.join(".claude").exists() {
                         paths.push(".claude".to_string());
                     } else if ccr_root.join("platforms").join("claude").exists() {
                         paths.push("platforms/claude".to_string());
                     }
                 }
                 SyncContentType::Gemini => {
-                    if home.join(".gemini").exists() {
+                    if use_ccr_root {
+                        if ccr_root.join("platforms").join("gemini").exists() {
+                            paths.push("platforms/gemini".to_string());
+                        }
+                    } else if home.join(".gemini").exists() {
                         paths.push(".gemini".to_string());
                     } else if ccr_root.join("platforms").join("gemini").exists() {
                         paths.push("platforms/gemini".to_string());
                     }
                 }
                 SyncContentType::Qwen => {
-                    if home.join(".qwen").exists() {
+                    if use_ccr_root {
+                        if ccr_root.join("platforms").join("qwen").exists() {
+                            paths.push("platforms/qwen".to_string());
+                        }
+                    } else if home.join(".qwen").exists() {
                         paths.push(".qwen".to_string());
                     } else if ccr_root.join("platforms").join("qwen").exists() {
                         paths.push("platforms/qwen".to_string());
                     }
                 }
                 SyncContentType::IFlow => {
-                    if home.join(".iflow").exists() {
+                    if use_ccr_root {
+                        if ccr_root.join("platforms").join("iflow").exists() {
+                            paths.push("platforms/iflow".to_string());
+                        }
+                    } else if home.join(".iflow").exists() {
                         paths.push(".iflow".to_string());
                     } else if ccr_root.join("platforms").join("iflow").exists() {
                         paths.push("platforms/iflow".to_string());
