@@ -1,16 +1,40 @@
 # 后端架构设计
 
-CCR UI 的后端是一个基于 Rust 和 Axum 构建的高性能 Web 服务，负责处理前端请求、执行 CCR 命令并返回结果。v1.2.0 版本已从 Actix Web 迁移到 Axum，提供更好的性能和类型安全。
+CCR UI 的后端是一个基于 Rust 和 Axum 构建的高性能 Web 服务。作为 **CCR Cargo Workspace** 的成员，backend 直接使用 CCR 主 crate 的服务层，实现零开销的库调用。
+
+## 🏗️ Workspace 集成
+
+### 架构定位
+
+```
+ccr/ (Workspace Root)
+├── src/                                 # CCR 主 crate
+│   ├── lib.rs                          # 导出 Services, Managers, Core
+│   └── services/                       # 业务逻辑层（被 backend 复用）
+└── ccr-ui/backend/                     # Backend (Workspace Member)
+    ├── Cargo.toml                      # dependencies.ccr = { path = "../.." }
+    └── src/
+        ├── main.rs                     # Axum server
+        └── handlers/                   # 调用 CCR services
+```
+
+### 关键改进（v3.0.0）
+
+✅ **直接库调用**: 使用 `ccr::services::*` 替代子进程执行  
+✅ **共享依赖**: 15 个核心依赖统一版本管理  
+✅ **零序列化开销**: 直接调用服务层，无需 JSON 序列化/反序列化  
+✅ **统一构建**: 单个 `cargo build --workspace` 构建所有组件
 
 ## 🎯 设计目标
 
 后端架构的主要设计目标：
 
-- **高性能**：利用 Rust 的零成本抽象和 Actix Web 的异步特性
+- **高性能**：利用 Rust 的零成本抽象和 Axum 的异步特性
 - **安全性**：内存安全、类型安全，防止常见的安全漏洞
 - **可靠性**：错误处理完善，系统稳定性高
 - **可扩展性**：模块化设计，易于添加新功能
 - **易维护性**：清晰的代码结构和完善的文档
+- **零开销集成**：直接使用 CCR 库，避免子进程和序列化开销
 
 ## 🏗️ 整体架构
 
@@ -22,16 +46,16 @@ graph TB
         Frontend["Vue 3 + TypeScript<br/>📱 http://localhost:5173"]
     end
     
-    subgraph "后端层 - Axum Server :8081"
+    subgraph "后端层 - Axum Server :8081 (Workspace Member)"
         subgraph "入口 & 中间件"
             Server["🚀 Axum HTTP Server"]
             Middleware["🔧 Middleware Stack<br/>├─ CORS<br/>├─ Compression (gzip/br/zstd)<br/>├─ Tracing<br/>└─ Error Handling"]
-            Router["🛣️ Router<br/>11 Routes / 4 Methods"]
+            Router["🛣️ Router<br/>14 API Routes"]
         end
         
         subgraph "Handlers (API 层)"
             HConfig["📋 Config Handler<br/>list/switch/validate/<br/>history/export/import"]
-            HCommand["⚡ Command Handler<br/>execute/list/help"]
+            HCommand["⚡ Command Handler<br/>execute (legacy)"]
             HMCP["🔌 MCP Handler<br/>CRUD + toggle"]
             HAgent["🤖 Agent Handler<br/>CRUD + toggle"]
             HSlash["💬 Slash Cmd Handler<br/>CRUD + toggle"]
@@ -40,16 +64,15 @@ graph TB
             HVersion["🏷️ Version Handler<br/>check/update"]
         end
         
-        subgraph "Manager 层 (数据访问)"
-            MClaudeConfig["📄 ClaudeConfigManager<br/>~/.claude.json"]
-            MSettings["⚙️ SettingsManager<br/>~/.claude/settings.json"]
-            MMarkdown["📝 MarkdownManager<br/>Frontmatter + Content"]
-            MPlugins["🔌 PluginsManager<br/>~/.claude/plugins/"]
-            MConfigReader["📖 ConfigReader<br/>~/.ccs_config.toml"]
+        subgraph "CCR 库集成 (v3.0.0)"
+            CCRLib["📦 CCR Library<br/>use ccr::services::*<br/>├─ ConfigService<br/>├─ SettingsService<br/>├─ HistoryService<br/>└─ BackupService"]
         end
         
-        subgraph "Executor 层"
-            Executor["🚀 CLI Executor<br/>Tokio Process<br/>├─ Spawn 'ccr' subprocess<br/>├─ Timeout: 600s<br/>├─ Capture stdout/stderr<br/>└─ Return CommandOutput"]
+        subgraph "Backend 专有 Managers"
+            MClaudeConfig["📄 ClaudeConfigManager<br/>~/.claude.json"]
+            MMarkdown["📝 MarkdownManager<br/>Frontmatter + Content"]
+            MPlugins["🔌 PluginsManager<br/>~/.claude/plugins/"]
+            MConfigReader["📖 ConfigReader (Legacy)<br/>~/.ccs_config.toml"]
         end
     end
     
@@ -79,39 +102,35 @@ graph TB
     Router -.->|route| HSystem
     Router -.->|route| HVersion
     
-    HConfig -->|use| MClaudeConfig
+    HConfig -->|"直接调用"| CCRLib
     HConfig -->|use| MConfigReader
-    HCommand -->|use| Executor
     HMCP -->|use| MClaudeConfig
     HAgent -->|use| MMarkdown
-    HAgent -->|use| MSettings
     HSlash -->|use| MMarkdown
-    HSlash -->|use| MSettings
     HPlugin -->|use| MPlugins
-    HPlugin -->|use| MSettings
+    HSystem -->|"查询"| CCRLib
+    HVersion -->|"更新检查"| CCRLib
     
+    CCRLib -->|"ConfigService"| FSCcsConfig
+    CCRLib -->|"SettingsService"| FSSettings
     MClaudeConfig -->|read/write| FSClaudeJSON
-    MSettings -->|read/write| FSSettings
     MMarkdown -->|read/write| FSAgents
     MMarkdown -->|read/write| FSCommands
     MPlugins -->|read/write| FSPlugins
     MConfigReader -->|read| FSCcsConfig
     
-    Executor -->|spawn| CLI
-    
     style Frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     style Server fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     style Middleware fill:#fce4ec,stroke:#c2185b,stroke-width:1px
     style Router fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
-    style Executor fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style CLI fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+    style CCRLib fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     
     classDef handlerStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:1px
     classDef managerStyle fill:#fff9c4,stroke:#f9a825,stroke-width:1px
     classDef fileStyle fill:#efebe9,stroke:#5d4037,stroke-width:1px
     
     class HConfig,HCommand,HMCP,HAgent,HSlash,HPlugin,HSystem,HVersion handlerStyle
-    class MClaudeConfig,MSettings,MMarkdown,MPlugins,MConfigReader managerStyle
+    class MClaudeConfig,MMarkdown,MPlugins,MConfigReader managerStyle
     class FSClaudeJSON,FSSettings,FSAgents,FSCommands,FSPlugins,FSCcsConfig fileStyle
 ```
 
@@ -168,18 +187,23 @@ sequenceDiagram
     Note over F: 前端渲染 Agents 列表<br/>支持文件夹分组
 ```
 
-### 技术栈
+### 技术栈（v3.0.0 - Workspace 架构）
 
-| 组件 | 技术 | 版本 | 用途 |
-|------|------|------|------|
-| Web 框架 | Axum | 0.7 | HTTP 服务器和路由 |
-| 中间件 | Tower + Tower-HTTP | 0.5/0.6 | CORS、压缩、日志 |
-| 异步运行时 | Tokio | 1.42 | 异步任务执行 |
-| 序列化 | Serde | 1.0 | JSON 序列化/反序列化 |
-| 错误处理 | Anyhow/Thiserror | 1.0/2.0 | 错误处理和传播 |
-| 日志 | Tracing | 0.1 | 结构化日志记录 |
-| CLI 解析 | Clap | 4.5 | 命令行参数解析 |
-| 系统信息 | Sysinfo | 0.32 | 系统信息获取 |
+| 组件 | 技术 | 版本 | 来源 | 用途 |
+|------|------|------|------|------|
+| **核心库** | CCR | 3.0.0 | Workspace | 配置管理服务层 |
+| Web 框架 | Axum | 0.8.6 | Workspace | HTTP 服务器和路由 |
+| 中间件 | Tower + Tower-HTTP | 0.5/0.6 | Workspace | CORS、压缩、日志 |
+| 异步运行时 | Tokio | 1.48.0 | Workspace | 异步任务执行 |
+| 序列化 | Serde + Serde JSON | 1.0 | Workspace | JSON/TOML 序列化 |
+| 配置解析 | TOML | 0.8 | Workspace | 配置文件解析 |
+| 错误处理 | Anyhow/Thiserror | 1.0 | Workspace | 错误处理和传播 |
+| 日志 | Tracing | 0.1 | Backend | 结构化日志记录 |
+| CLI 解析 | Clap | 4.5 | Workspace | 命令行参数解析 |
+| 系统信息 | Sysinfo | 0.37.2 | Backend | 系统信息获取 |
+| HTTP 客户端 | Reqwest | 0.12.24 | Workspace | 更新检查 |
+
+**依赖管理**：15 个核心依赖由 workspace 根 `Cargo.toml` 统一管理，确保版本一致性。
 
 ## 📁 项目结构
 
@@ -215,6 +239,41 @@ graph TD
 ```
 
 ## 🔧 核心模块设计
+
+### 0. CCR 库集成 (v3.0.0 新增)
+
+Backend 现在直接使用 CCR 主 crate 的服务层，无需子进程调用：
+
+```rust
+// Cargo.toml
+[dependencies]
+ccr = { path = "../..", default-features = false }  // 从 workspace
+serde = { workspace = true }
+axum = { workspace = true }
+
+// Handler 示例
+use ccr::services::config_service::ConfigService;
+use ccr::services::settings_service::SettingsService;
+
+pub async fn switch_config(
+    Json(payload): Json<SwitchRequest>
+) -> Result<Json<ApiResponse>, StatusCode> {
+    // 直接调用 CCR 服务层，零开销
+    let service = ConfigService::default()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    service.switch_config(&payload.config_name)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    
+    Ok(Json(ApiResponse::success("切换成功")))
+}
+```
+
+**优势**：
+- ✅ **零序列化开销**：直接函数调用，无需 JSON 序列化
+- ✅ **类型安全**：编译时类型检查，避免运行时错误
+- ✅ **性能提升**：避免子进程创建和进程间通信
+- ✅ **简化调试**：单进程调试，无需跨进程追踪
 
 ### 1. 主应用模块 (main.rs)
 

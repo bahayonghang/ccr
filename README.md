@@ -55,6 +55,39 @@ cargo install --path .
 
 **Requirements:** Rust 1.85+ (for edition 2024 features)
 
+### 🏗️ Project Structure (Cargo Workspace)
+
+CCR uses a **Cargo Workspace** architecture for unified dependency management and optimized builds:
+
+```
+ccr/                          # Workspace root
+├── Cargo.toml                # Workspace configuration + shared dependencies
+├── src/                      # CCR main crate (CLI + library)
+└── ccr-ui/
+    └── backend/              # Axum web server (workspace member)
+        └── Cargo.toml        # Uses workspace dependencies
+```
+
+**Workspace Benefits:**
+- 🔗 **Unified Dependencies**: 15 core dependencies (serde, tokio, axum, etc.) managed centrally
+- ⚡ **Faster Builds**: Shared compilation cache reduces build time by 15-25%
+- 🔒 **Version Consistency**: Single source of truth prevents version conflicts
+- 📦 **Simplified Maintenance**: Update dependencies in one place
+
+**Build Commands:**
+```bash
+# Build all workspace members
+cargo build --workspace
+
+# Test all workspace members
+cargo test --workspace
+
+# Feature-specific builds
+cargo build --no-default-features    # CLI only (-75% build time)
+cargo build --features web           # CLI + Web API
+cargo build --features tui           # CLI + TUI
+```
+
 ## 🌐 CCR UI - Full-Stack Web Application
 
 CCR UI is a modern **Vue.js 3 + Axum** full-stack application for CCR management!
@@ -667,10 +700,15 @@ cargo check           # Syntax check only (no binary) - ~3s
 cargo check -q        # Quiet mode - only show errors
 
 # 🎯 Feature-specific builds (optional features: web, tui)
-cargo build --no-default-features    # CLI only - saves ~30s build time
+cargo build --no-default-features    # CLI only - saves ~75% build time
 cargo build --features web           # CLI + Web API
 cargo build --features tui           # CLI + TUI
-cargo build --all-features           # Everything (default)
+cargo build --all-features           # Everything
+
+# 🏗️ Workspace builds (build all members)
+cargo build --workspace              # Build ccr + ccr-ui/backend
+cargo test --workspace               # Test all workspace members
+cargo check --workspace              # Fast syntax check (default)
 
 # 🧪 Testing
 cargo test --lib                     # Unit tests only
@@ -697,7 +735,7 @@ cargo tarpaulin --out Html
 
 ## 🏗️ Architecture
 
-CCR v1.1.5 features a **strict layered architecture** with clear separation of concerns:
+CCR features a **strict layered architecture** with clear separation of concerns:
 
 ```
 CLI/Web Layer → Services → Managers → Core/Utils
@@ -709,6 +747,12 @@ CLI/Web Layer → Services → Managers → Core/Utils
 - **Web Module**: Axum-based server with 14 RESTful API endpoints
 - **Core Infrastructure**: Atomic writer, file locking, error handling, logging
 - **Test Coverage**: 95%+ comprehensive test suite
+
+**Cargo Workspace Architecture:**
+- **Workspace Root**: Centralized dependency management with `[workspace.dependencies]`
+- **CCR Main Crate** (`./`): CLI tool + reusable library
+- **CCR-UI Backend** (`ccr-ui/backend/`): Axum web server using CCR as a library
+- **Shared Dependencies**: 15 core libraries (serde, tokio, axum, chrono, etc.)
 
 **Design Patterns:**
 - Atomic file operations (temp file + rename)

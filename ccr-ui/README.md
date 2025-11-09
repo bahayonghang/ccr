@@ -30,27 +30,45 @@ just s    # 启动开发环境（就这么简单！）
 
 ## Architecture
 
+### Cargo Workspace Integration
+
+The CCR-UI backend is part of the **CCR Cargo Workspace**, sharing dependencies with the main CCR crate:
+
 ```
-ccr-ui/
-├── backend/           # Rust Axum server
-│   ├── src/
-│   │   ├── main.rs    # Server entry point
-│   │   ├── executor/  # CLI subprocess executor
-│   │   ├── handlers/  # API route handlers
-│   │   └── models/    # Request/response models
-│   └── Cargo.toml
-├── frontend/          # Vue 3 + Vite application (TypeScript)
-│   ├── src/
-│   │   ├── App.vue    # Root Vue component
-│   │   ├── main.ts    # Application entry point
-│   │   ├── components/# Reusable Vue components
-│   │   ├── views/     # Page components
-│   │   ├── router/    # Vue Router configuration
-│   │   ├── store/     # Pinia state management
-│   │   └── api/       # API client & utilities
-│   ├── package.json
-│   └── vite.config.ts
-└── README.md
+ccr/ (Workspace Root)
+├── Cargo.toml                    # Workspace config + shared dependencies
+├── src/                          # CCR main crate (CLI + library)
+└── ccr-ui/
+    ├── backend/                  # 🦀 Workspace member
+    │   ├── Cargo.toml            # Uses workspace dependencies
+    │   └── src/
+    │       ├── main.rs           # Axum server entry point
+    │       ├── handlers/         # API route handlers
+    │       └── models/           # Request/response models
+    └── frontend/                 # ⚛️ Vue.js 3 app (independent)
+        ├── package.json
+        └── src/
+            ├── main.ts
+            ├── components/
+            └── views/
+```
+
+**Workspace Benefits for Backend:**
+- ✅ **Shared Dependencies**: Uses the same versions of serde, tokio, axum as CCR main crate
+- ✅ **Faster Builds**: Shared compilation cache with CCR
+- ✅ **Version Consistency**: No dependency conflicts
+- ✅ **Unified Updates**: Upgrade dependencies in one place (root Cargo.toml)
+
+**Build Commands:**
+```bash
+# Build backend only
+cd backend && cargo build
+
+# Build with workspace
+cd ../.. && cargo build --workspace  # Builds both ccr and backend
+
+# Test with workspace
+cargo test --workspace
 ```
 
 ## Prerequisites
@@ -83,10 +101,19 @@ just install
 
 #### 1. Install Backend Dependencies
 
+The backend is part of the CCR Cargo Workspace:
+
 ```bash
+# Option 1: Build from backend directory
 cd backend
 cargo build --release
+
+# Option 2: Build from workspace root (recommended)
+cd ../../  # Go to ccr root
+cargo build --workspace --release
 ```
+
+**Note**: Dependencies are managed by the workspace root `Cargo.toml`.
 
 #### 2. Install Frontend Dependencies
 
