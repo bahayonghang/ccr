@@ -179,6 +179,9 @@ export {
   cleanBackups,
   exportConfig,
   importConfig,
+  deleteConfig,
+  getConfig,
+  updateConfig,
 
   // System info (web-only)
   getSystemInfo,

@@ -20,7 +20,7 @@ use crate::executor; // TODO: 逐步移除（export/import 还在使用）
 use crate::models::*;
 
 // 🎯 导入 CCR 核心库
-use ccr::{BackupService, ConfigService, HistoryService};
+use ccr::{BackupService, ConfigService, HistoryService, ConfigSection, ProviderType};
 
 /// 屏蔽敏感 token（显示前4位和后4位）
 fn mask_token(token: &str) -> String {
@@ -285,38 +285,246 @@ pub async fn get_history() -> ApiResult<Json<HistoryResponse>> {
     }
 }
 
-/// POST /api/configs - Add a new configuration
-pub async fn add_config(Json(_req): Json<UpdateConfigRequest>) -> impl IntoResponse {
-    // This operation is not supported via CLI, need to implement in manager
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(ApiResponse::<()>::error(
-            "Direct config addition not yet implemented".to_string(),
-        )),
-    )
+/// GET /api/configs/:name - Get a specific configuration
+pub async fn get_config(Path(name): Path<String>) -> ApiResult<Json<ConfigItem>> {
+    let result = tokio::task::spawn_blocking(move || {
+        // 使用 CCR 核心库的 ConfigManager
+        let manager = ccr::ConfigManager::with_default()
+            .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
+
+        let config = manager
+            .load()
+            .map_err(|e| format!("Failed to load config: {}", e))?;
+
+        // 查找指定的配置节
+        let section = config
+            .get_section(&name)
+            .map_err(|e| format!("Config '{}' not found: {}", name, e))?;
+
+        // 构建ConfigItem（包含完整token，供编辑使用）
+        let config_item = ConfigItem {
+            name: name.clone(),
+            description: section.description.clone().unwrap_or_default(),
+            base_url: section.base_url.clone().unwrap_or_default(),
+            auth_token: section.auth_token.clone().unwrap_or_default(), // 完整token
+            model: section.model.clone(),
+            small_fast_model: section.small_fast_model.clone(),
+            is_current: &name == &config.current_config,
+            is_default: &name == &config.default_config,
+            provider: section.provider.clone(),
+            provider_type: section
+                .provider_type
+                .as_ref()
+                .map(|pt| pt.to_string_value().to_string()),
+            account: section.account.clone(),
+            tags: section.tags.clone(),
+        };
+
+        Ok::<_, String>(config_item)
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?;
+
+    match result {
+        Ok(config_item) => Ok(Json(config_item)),
+        Err(e) => Err(ApiError::not_found(e)),
+    }
 }
 
-/// PATCH /api/configs/:name - Update a configuration
+/// POST /api/configs - Add a new configuration
+pub async fn add_config(Json(req): Json<UpdateConfigRequest>) -> impl IntoResponse {
+    let result = tokio::task::spawn_blocking(move || {
+        // 使用锁管理器确保并发安全
+        let lock_manager = ccr::LockManager::with_default_path()
+            .map_err(|e| format!("Failed to create LockManager: {}", e))?;
+        
+        let _lock = lock_manager
+            .lock_resource("config", std::time::Duration::from_secs(5))
+            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+
+        // 加载配置
+        let manager = ccr::ConfigManager::with_default()
+            .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
+
+        let mut config = manager
+            .load()
+            .map_err(|e| format!("Failed to load config: {}", e))?;
+
+        // 检查配置是否已存在
+        if config.sections.contains_key(&req.name) {
+            return Err(format!("Config '{}' already exists", req.name));
+        }
+
+        // 创建新的配置节
+        let section = ConfigSection {
+            description: req.description,
+            base_url: Some(req.base_url),
+            auth_token: Some(req.auth_token),
+            model: req.model,
+            small_fast_model: None,
+            provider: None,
+            provider_type: req.provider_type.as_ref().and_then(|s| {
+                match s.as_str() {
+                    "official_relay" => Some(ProviderType::OfficialRelay),
+                    "third_party_model" => Some(ProviderType::ThirdPartyModel),
+                    _ => None,
+                }
+            }),
+            account: None,
+            tags: None,
+        };
+
+        // 添加配置节
+        config.set_section(req.name.clone(), section);
+
+        // 保存配置
+        manager
+            .save(&config)
+            .map_err(|e| format!("Failed to save config: {}", e))?;
+
+        Ok::<_, String>(())
+    })
+    .await;
+
+    match result {
+        Ok(Ok(())) => (
+            StatusCode::CREATED,
+            Json(ApiResponse::success("Configuration added successfully")),
+        ),
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<&str>::error(e)),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::<&str>::error(e.to_string())),
+        ),
+    }
+}
+
+/// PUT /api/configs/:name - Update a configuration
 pub async fn update_config(
-    Path(_name): Path<String>,
-    Json(_req): Json<UpdateConfigRequest>,
+    Path(name): Path<String>,
+    Json(req): Json<UpdateConfigRequest>,
 ) -> impl IntoResponse {
-    // This operation is not supported via CLI, need to implement in manager
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(ApiResponse::<()>::error(
-            "Direct config update not yet implemented".to_string(),
-        )),
-    )
+    let result = tokio::task::spawn_blocking(move || {
+        // 使用锁管理器确保并发安全
+        let lock_manager = ccr::LockManager::with_default_path()
+            .map_err(|e| format!("Failed to create LockManager: {}", e))?;
+        
+        let _lock = lock_manager
+            .lock_resource("config", std::time::Duration::from_secs(5))
+            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+
+        // 加载配置
+        let manager = ccr::ConfigManager::with_default()
+            .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
+
+        let mut config = manager
+            .load()
+            .map_err(|e| format!("Failed to load config: {}", e))?;
+
+        // 检查配置是否存在
+        if !config.sections.contains_key(&name) {
+            return Err(format!("Config '{}' not found", name));
+        }
+
+        // 更新配置节
+        let section = ConfigSection {
+            description: req.description,
+            base_url: Some(req.base_url),
+            auth_token: Some(req.auth_token),
+            model: req.model,
+            small_fast_model: None,
+            provider: None,
+            provider_type: req.provider_type.as_ref().and_then(|s| {
+                match s.as_str() {
+                    "official_relay" => Some(ProviderType::OfficialRelay),
+                    "third_party_model" => Some(ProviderType::ThirdPartyModel),
+                    _ => None,
+                }
+            }),
+            account: None,
+            tags: None,
+        };
+
+        config.set_section(name.clone(), section);
+
+        // 保存配置
+        manager
+            .save(&config)
+            .map_err(|e| format!("Failed to save config: {}", e))?;
+
+        Ok::<_, String>(())
+    })
+    .await;
+
+    match result {
+        Ok(Ok(())) => (
+            StatusCode::OK,
+            Json(ApiResponse::success("Configuration updated successfully")),
+        ),
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<&str>::error(e)),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::<&str>::error(e.to_string())),
+        ),
+    }
 }
 
 /// DELETE /api/configs/:name - Delete a configuration
-pub async fn delete_config(Path(_name): Path<String>) -> impl IntoResponse {
-    // This operation is not supported via CLI, need to implement in manager
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(ApiResponse::<()>::error(
-            "Direct config deletion not yet implemented".to_string(),
-        )),
-    )
+pub async fn delete_config(Path(name): Path<String>) -> impl IntoResponse {
+    let result = tokio::task::spawn_blocking(move || {
+        // 使用锁管理器确保并发安全
+        let lock_manager = ccr::LockManager::with_default_path()
+            .map_err(|e| format!("Failed to create LockManager: {}", e))?;
+        
+        let _lock = lock_manager
+            .lock_resource("config", std::time::Duration::from_secs(5))
+            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+
+        // 加载配置
+        let manager = ccr::ConfigManager::with_default()
+            .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
+
+        let mut config = manager
+            .load()
+            .map_err(|e| format!("Failed to load config: {}", e))?;
+
+        // 检查是否为当前配置
+        if config.current_config == name {
+            return Err(format!("Cannot delete current config '{}'", name));
+        }
+
+        // 删除配置节
+        config
+            .remove_section(&name)
+            .map_err(|e| format!("Failed to remove config: {}", e))?;
+
+        // 保存配置
+        manager
+            .save(&config)
+            .map_err(|e| format!("Failed to save config: {}", e))?;
+
+        Ok::<_, String>(())
+    })
+    .await;
+
+    match result {
+        Ok(Ok(())) => (
+            StatusCode::OK,
+            Json(ApiResponse::success("Configuration deleted successfully")),
+        ),
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<&str>::error(e)),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::<&str>::error(e.to_string())),
+        ),
+    }
 }

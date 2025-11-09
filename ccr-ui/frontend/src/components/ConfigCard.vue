@@ -1,17 +1,20 @@
 <template>
   <article
     :id="`config-${config.name}`"
-    class="glass-card rounded-xl p-5 transition-all duration-300 hover:scale-[1.01]"
+    class="relative p-6 transition-all duration-500 hover:scale-[1.02] group"
     :style="{
       background: config.is_current
-        ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(168, 85, 247, 0.15))'
-        : 'rgba(255, 255, 255, 0.03)',
-      border: `1.5px solid ${config.is_current ? 'var(--accent-primary)' : 'rgba(139, 92, 246, 0.2)'}`,
+        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08), rgba(168, 85, 247, 0.06))'
+        : 'rgba(255, 255, 255, 0.5)',
+      border: config.is_current 
+        ? '2px solid rgba(99, 102, 241, 0.4)' 
+        : '1px solid rgba(255, 255, 255, 0.3)',
+      borderRadius: '20px',
       boxShadow: config.is_current
-        ? '0 0 30px var(--glow-primary), inset 0 1px 0 0 rgba(255, 255, 255, 0.1)'
-        : '0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
-      backdropFilter: 'blur(16px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(16px) saturate(180%)'
+        ? '0 8px 32px rgba(99, 102, 241, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.6), 0 0 40px rgba(99, 102, 241, 0.1)'
+        : '0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)',
+      backdropFilter: 'blur(20px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(180%)'
     }"
   >
     <!-- 头部 -->

@@ -143,9 +143,10 @@ fn create_router() -> Router {
         .route("/api/import", post(handlers::config::import_config))
         .route("/api/history", get(handlers::config::get_history))
         .route("/api/configs", post(handlers::config::add_config))
-        .route("/api/configs/:name", put(handlers::config::update_config))
+        .route("/api/configs/{name}", get(handlers::config::get_config))
+        .route("/api/configs/{name}", put(handlers::config::update_config))
         .route(
-            "/api/configs/:name",
+            "/api/configs/{name}",
             delete(handlers::config::delete_config),
         )
         // Command execution endpoints
@@ -159,7 +160,7 @@ fn create_router() -> Router {
         )
         .route("/api/command/list", get(handlers::command::list_commands))
         .route(
-            "/api/command/help/:command",
+            "/api/command/help/{command}",
             get(handlers::command::get_command_help),
         )
         // System info endpoint
@@ -182,36 +183,36 @@ fn create_router() -> Router {
             post(handlers::platform::switch_platform),
         )
         .route(
-            "/api/platforms/:name",
+            "/api/platforms/{name}",
             get(handlers::platform::get_platform),
         )
         .route(
-            "/api/platforms/:name",
+            "/api/platforms/{name}",
             put(handlers::platform::update_platform),
         )
         .route(
-            "/api/platforms/:name/enable",
+            "/api/platforms/{name}/enable",
             post(handlers::platform::enable_platform),
         )
         .route(
-            "/api/platforms/:name/disable",
+            "/api/platforms/{name}/disable",
             post(handlers::platform::disable_platform),
         )
         .route(
-            "/api/platforms/:name/profile",
+            "/api/platforms/{name}/profile",
             get(handlers::platform::get_platform_profile),
         )
         .route(
-            "/api/platforms/:name/profile",
+            "/api/platforms/{name}/profile",
             post(handlers::platform::set_platform_profile),
         )
         // MCP server management endpoints
         .route("/api/mcp", get(handlers::mcp::list_mcp_servers))
         .route("/api/mcp", post(handlers::mcp::add_mcp_server))
-        .route("/api/mcp/:name", put(handlers::mcp::update_mcp_server))
-        .route("/api/mcp/:name", delete(handlers::mcp::delete_mcp_server))
+        .route("/api/mcp/{name}", put(handlers::mcp::update_mcp_server))
+        .route("/api/mcp/{name}", delete(handlers::mcp::delete_mcp_server))
         .route(
-            "/api/mcp/:name/toggle",
+            "/api/mcp/{name}/toggle",
             put(handlers::mcp::toggle_mcp_server),
         )
         // Slash command management endpoints
@@ -224,33 +225,33 @@ fn create_router() -> Router {
             post(handlers::slash_commands::add_slash_command),
         )
         .route(
-            "/api/slash-commands/:name",
+            "/api/slash-commands/{name}",
             put(handlers::slash_commands::update_slash_command),
         )
         .route(
-            "/api/slash-commands/:name",
+            "/api/slash-commands/{name}",
             delete(handlers::slash_commands::delete_slash_command),
         )
         .route(
-            "/api/slash-commands/:name/toggle",
+            "/api/slash-commands/{name}/toggle",
             put(handlers::slash_commands::toggle_slash_command),
         )
         // Agent management endpoints
         .route("/api/agents", get(handlers::agents::list_agents))
         .route("/api/agents", post(handlers::agents::add_agent))
-        .route("/api/agents/:name", put(handlers::agents::update_agent))
-        .route("/api/agents/:name", delete(handlers::agents::delete_agent))
+        .route("/api/agents/{name}", put(handlers::agents::update_agent))
+        .route("/api/agents/{name}", delete(handlers::agents::delete_agent))
         .route(
-            "/api/agents/:name/toggle",
+            "/api/agents/{name}/toggle",
             put(handlers::agents::toggle_agent),
         )
         // Plugin management endpoints
         .route("/api/plugins", get(handlers::plugins::list_plugins))
         .route("/api/plugins", post(handlers::plugins::add_plugin))
-        .route("/api/plugins/:id", put(handlers::plugins::update_plugin))
-        .route("/api/plugins/:id", delete(handlers::plugins::delete_plugin))
+        .route("/api/plugins/{id}", put(handlers::plugins::update_plugin))
+        .route("/api/plugins/{id}", delete(handlers::plugins::delete_plugin))
         .route(
-            "/api/plugins/:id/toggle",
+            "/api/plugins/{id}/toggle",
             put(handlers::plugins::toggle_plugin),
         )
         // Statistics endpoints
@@ -282,31 +283,31 @@ fn create_router() -> Router {
         .route("/api/sync/folders", get(handlers::sync::list_sync_folders))
         .route("/api/sync/folders", post(handlers::sync::add_sync_folder))
         .route(
-            "/api/sync/folders/:name",
+            "/api/sync/folders/{name}",
             delete(handlers::sync::remove_sync_folder),
         )
         .route(
-            "/api/sync/folders/:name",
+            "/api/sync/folders/{name}",
             get(handlers::sync::get_sync_folder_info),
         )
         .route(
-            "/api/sync/folders/:name/enable",
+            "/api/sync/folders/{name}/enable",
             put(handlers::sync::enable_sync_folder),
         )
         .route(
-            "/api/sync/folders/:name/disable",
+            "/api/sync/folders/{name}/disable",
             put(handlers::sync::disable_sync_folder),
         )
         .route(
-            "/api/sync/folders/:name/push",
+            "/api/sync/folders/{name}/push",
             post(handlers::sync::push_sync_folder),
         )
         .route(
-            "/api/sync/folders/:name/pull",
+            "/api/sync/folders/{name}/pull",
             post(handlers::sync::pull_sync_folder),
         )
         .route(
-            "/api/sync/folders/:name/status",
+            "/api/sync/folders/{name}/status",
             get(handlers::sync::get_sync_folder_status),
         )
         // Sync Batch Operations endpoints
@@ -326,11 +327,11 @@ fn create_router() -> Router {
             post(handlers::codex::add_codex_mcp_server),
         )
         .route(
-            "/api/codex/mcp/:name",
+            "/api/codex/mcp/{name}",
             put(handlers::codex::update_codex_mcp_server),
         )
         .route(
-            "/api/codex/mcp/:name",
+            "/api/codex/mcp/{name}",
             delete(handlers::codex::delete_codex_mcp_server),
         )
         // Codex Profile management endpoints
@@ -343,11 +344,11 @@ fn create_router() -> Router {
             post(handlers::codex::add_codex_profile),
         )
         .route(
-            "/api/codex/profiles/:name",
+            "/api/codex/profiles/{name}",
             put(handlers::codex::update_codex_profile),
         )
         .route(
-            "/api/codex/profiles/:name",
+            "/api/codex/profiles/{name}",
             delete(handlers::codex::delete_codex_profile),
         )
         // Codex base config management endpoints
@@ -366,11 +367,11 @@ fn create_router() -> Router {
             post(handlers::gemini::add_gemini_mcp_server),
         )
         .route(
-            "/api/gemini/mcp/:name",
+            "/api/gemini/mcp/{name}",
             put(handlers::gemini::update_gemini_mcp_server),
         )
         .route(
-            "/api/gemini/mcp/:name",
+            "/api/gemini/mcp/{name}",
             delete(handlers::gemini::delete_gemini_mcp_server),
         )
         // Gemini base config management endpoints
@@ -386,11 +387,11 @@ fn create_router() -> Router {
         .route("/api/qwen/mcp", get(handlers::qwen::list_qwen_mcp_servers))
         .route("/api/qwen/mcp", post(handlers::qwen::add_qwen_mcp_server))
         .route(
-            "/api/qwen/mcp/:name",
+            "/api/qwen/mcp/{name}",
             put(handlers::qwen::update_qwen_mcp_server),
         )
         .route(
-            "/api/qwen/mcp/:name",
+            "/api/qwen/mcp/{name}",
             delete(handlers::qwen::delete_qwen_mcp_server),
         )
         // Qwen base config management endpoints

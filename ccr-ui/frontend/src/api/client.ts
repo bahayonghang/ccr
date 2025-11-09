@@ -197,6 +197,21 @@ export const validateConfigs = async (): Promise<string> => {
   return response.data
 }
 
+export const deleteConfig = async (configName: string): Promise<string> => {
+  const response = await api.delete<string>(`/configs/${configName}`)
+  return response.data
+}
+
+export const getConfig = async (configName: string): Promise<any> => {
+  const response = await api.get<any>(`/configs/${configName}`)
+  return response.data
+}
+
+export const updateConfig = async (configName: string, configData: any): Promise<string> => {
+  const response = await api.put<string>(`/configs/${configName}`, configData)
+  return response.data
+}
+
 export const cleanBackups = async (
   request: CleanRequest
 ): Promise<CleanResponse> => {
