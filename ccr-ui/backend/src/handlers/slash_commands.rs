@@ -1,4 +1,4 @@
-use axum::{extract::Path, http::StatusCode, response::IntoResponse, Json};
+use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
 use crate::markdown_manager::{CommandFrontmatter, MarkdownManager};
@@ -37,25 +37,18 @@ pub async fn list_slash_commands() -> impl IntoResponse {
 
                 // Try to read with frontmatter first
                 let description = match manager.read_file::<CommandFrontmatter>(&full_name) {
-                    Ok(file) => {
-                        file.frontmatter
-                            .description
-                            .clone()
-                            .unwrap_or_else(|| {
-                                extract_description_from_content(&file.content, &file_name)
-                            })
-                    }
+                    Ok(file) => file.frontmatter.description.clone().unwrap_or_else(|| {
+                        extract_description_from_content(&file.content, &file_name)
+                    }),
                     Err(_) => {
                         // If frontmatter parsing fails, try to read as plain markdown
-                        let path = std::env::var("HOME")
-                            .ok()
-                            .map(|home| {
-                                std::path::Path::new(&home)
-                                    .join(".claude")
-                                    .join("commands")
-                                    .join(format!("{}.md", full_name))
-                            });
-                        
+                        let path = std::env::var("HOME").ok().map(|home| {
+                            std::path::Path::new(&home)
+                                .join(".claude")
+                                .join("commands")
+                                .join(format!("{}.md", full_name))
+                        });
+
                         if let Some(path) = path {
                             if let Ok(content) = std::fs::read_to_string(&path) {
                                 extract_description_from_content(&content, &file_name)
@@ -94,12 +87,12 @@ pub async fn list_slash_commands() -> impl IntoResponse {
                     .collect::<std::collections::HashSet<_>>()
                     .into_iter()
                     .collect();
-                
+
                 return (
                     StatusCode::OK,
                     Json(json!({
                         "success": true,
-                        "data": { 
+                        "data": {
                             "commands": commands,
                             "folders": folders
                         },
@@ -132,7 +125,7 @@ pub async fn list_slash_commands() -> impl IntoResponse {
             StatusCode::OK,
             Json(json!({
                 "success": true,
-                "data": { 
+                "data": {
                     "commands": commands,
                     "folders": Vec::<String>::new()
                 },

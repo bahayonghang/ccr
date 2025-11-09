@@ -1,6 +1,6 @@
 // Codex CLI 配置管理 API 处理器
 
-use axum::{extract::Path, http::StatusCode, response::IntoResponse, Json};
+use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
 use crate::codex_config_manager::CodexConfigManager;
@@ -21,7 +21,7 @@ pub async fn list_codex_mcp_servers() -> impl IntoResponse {
                     "message": format!("初始化 Codex 配置管理器失败: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -73,12 +73,14 @@ pub async fn add_codex_mcp_server(Json(req): Json<CodexMcpServerRequest>) -> imp
                     "message": format!("初始化 Codex 配置管理器失败: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
     // 从 JSON 中提取服务器名称
-    let name = req.command.clone()
+    let name = req
+        .command
+        .clone()
         .or(req.url.clone())
         .unwrap_or_else(|| "unknown".to_string());
 
@@ -122,7 +124,7 @@ pub async fn update_codex_mcp_server(
                     "message": format!("初始化 Codex 配置管理器失败: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -163,7 +165,7 @@ pub async fn delete_codex_mcp_server(Path(name): Path<String>) -> impl IntoRespo
                     "message": format!("初始化 Codex 配置管理器失败: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -204,7 +206,7 @@ pub async fn list_codex_profiles() -> impl IntoResponse {
                     "message": format!("初始化 Codex 配置管理器失败: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -243,7 +245,7 @@ pub async fn add_codex_profile(Json(req): Json<CodexProfileRequest>) -> impl Int
                     "message": format!("初始化 Codex 配置管理器失败: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -290,7 +292,7 @@ pub async fn update_codex_profile(
                     "message": format!("初始化 Codex 配置管理器失败: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -331,7 +333,7 @@ pub async fn delete_codex_profile(Path(name): Path<String>) -> impl IntoResponse
                     "message": format!("初始化 Codex 配置管理器失败: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -372,7 +374,7 @@ pub async fn get_codex_config() -> impl IntoResponse {
                     "message": format!("初始化 Codex 配置管理器失败: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -411,7 +413,7 @@ pub async fn update_codex_base_config(Json(config): Json<CodexConfig>) -> impl I
                     "message": format!("初始化 Codex 配置管理器失败: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 

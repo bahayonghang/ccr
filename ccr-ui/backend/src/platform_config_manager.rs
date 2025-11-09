@@ -82,7 +82,7 @@ pub struct PlatformConfigManager {
 
 impl PlatformConfigManager {
     /// Create manager with custom path
-    #[allow(dead_code)]  // 预留用于自定义配置路径
+    #[allow(dead_code)] // 预留用于自定义配置路径
     pub fn new<P: AsRef<Path>>(config_path: P) -> Self {
         Self {
             config_path: config_path.as_ref().to_path_buf(),
@@ -131,9 +131,8 @@ impl PlatformConfigManager {
         }
 
         // Write to temp file first (atomic operation)
-        let temp_file = NamedTempFile::new_in(
-            self.config_path.parent().unwrap_or_else(|| Path::new("/")),
-        )?;
+        let temp_file =
+            NamedTempFile::new_in(self.config_path.parent().unwrap_or_else(|| Path::new("/")))?;
 
         let content = toml::to_string_pretty(config).map_err(|e| {
             io::Error::new(
@@ -187,16 +186,12 @@ impl PlatformConfigManager {
     /// Get platform entry
     pub fn get_platform(&self, name: &str) -> io::Result<PlatformRegistryEntry> {
         let config = self.read()?;
-        config
-            .platforms
-            .get(name)
-            .cloned()
-            .ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::NotFound,
-                    format!("Platform '{}' not found", name),
-                )
-            })
+        config.platforms.get(name).cloned().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("Platform '{}' not found", name),
+            )
+        })
     }
 
     /// Register or update a platform
@@ -207,7 +202,7 @@ impl PlatformConfigManager {
     }
 
     /// Unregister a platform
-    #[allow(dead_code)]  // 预留用于取消注册平台
+    #[allow(dead_code)] // 预留用于取消注册平台
     pub fn unregister_platform(&self, name: &str) -> io::Result<()> {
         let mut config = self.read()?;
 
@@ -274,7 +269,7 @@ impl PlatformConfigManager {
     }
 
     /// List enabled platforms
-    #[allow(dead_code)]  // 预留用于列出启用的平台
+    #[allow(dead_code)] // 预留用于列出启用的平台
     pub fn list_enabled_platforms(&self) -> io::Result<Vec<String>> {
         let config = self.read()?;
         let mut platforms: Vec<_> = config

@@ -103,7 +103,10 @@ mod tests {
                         "--rm".to_string(),
                         "ghcr.io/github/github-mcp-server".to_string(),
                     ]),
-                    env: Some(HashMap::from([("GITHUB_TOKEN".to_string(), "token".to_string())])),
+                    env: Some(HashMap::from([(
+                        "GITHUB_TOKEN".to_string(),
+                        "token".to_string(),
+                    )])),
                     url: None,
                     http_url: None,
                     headers: None,

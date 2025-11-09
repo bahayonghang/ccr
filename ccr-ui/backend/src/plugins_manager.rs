@@ -52,11 +52,8 @@ impl PluginsManager {
         }
 
         // Write to temp file first (atomic operation)
-        let temp_file = NamedTempFile::new_in(
-            self.config_path
-                .parent()
-                .unwrap_or_else(|| Path::new("/")),
-        )?;
+        let temp_file =
+            NamedTempFile::new_in(self.config_path.parent().unwrap_or_else(|| Path::new("/")))?;
 
         let content = serde_json::to_string_pretty(config).map_err(|e| {
             io::Error::new(
@@ -116,4 +113,3 @@ impl PluginsManager {
         Ok(config.repositories)
     }
 }
-

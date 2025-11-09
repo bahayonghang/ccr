@@ -104,7 +104,7 @@ pub async fn execute_command_with_timeout(
             return Err(ExecutorError::ExecutionFailed(format!(
                 "Failed to wait for process: {}",
                 e
-            )))
+            )));
         }
         Err(_) => {
             // Kill the process on timeout
@@ -152,4 +152,3 @@ mod tests {
         assert!(output.stdout.contains("CCR"));
     }
 }
-

@@ -1,4 +1,4 @@
-use axum::{extract::Path, http::StatusCode, response::IntoResponse, Json};
+use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
 use crate::markdown_manager::{AgentFrontmatter, MarkdownManager};
@@ -57,12 +57,12 @@ pub async fn list_agents() -> impl IntoResponse {
                     .collect::<std::collections::HashSet<_>>()
                     .into_iter()
                     .collect();
-                
+
                 return (
                     StatusCode::OK,
                     Json(json!({
                         "success": true,
-                        "data": { 
+                        "data": {
                             "agents": agents,
                             "folders": folders
                         },
@@ -95,9 +95,9 @@ pub async fn list_agents() -> impl IntoResponse {
             StatusCode::OK,
             Json(json!({
                 "success": true,
-                "data": { 
+                "data": {
                     "agents": agents,
-                    "folders": Vec::<String>::new() 
+                    "folders": Vec::<String>::new()
                 },
                 "message": null
             })),
@@ -265,7 +265,11 @@ pub async fn toggle_agent(Path(name): Path<String>) -> impl IntoResponse {
         if let Ok(mut settings) = settings_manager.load() {
             if let Some(agent) = settings.agents.iter_mut().find(|a| a.name == name) {
                 agent.disabled = !agent.disabled;
-                let new_state = if agent.disabled { "disabled" } else { "enabled" };
+                let new_state = if agent.disabled {
+                    "disabled"
+                } else {
+                    "enabled"
+                };
 
                 if settings_manager.save(&settings).is_ok() {
                     return (

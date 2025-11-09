@@ -1,8 +1,8 @@
-use axum::{extract::Path, http::StatusCode, response::IntoResponse, Json};
+use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
 use crate::claude_config_manager::{ClaudeConfigManager, McpServerConfig};
-use crate::models::{McpServerRequest, McpServersResponse, McpServerWithName};
+use crate::models::{McpServerRequest, McpServerWithName, McpServersResponse};
 
 /// GET /api/mcp/servers - List all MCP servers
 pub async fn list_mcp_servers() -> impl IntoResponse {
@@ -17,7 +17,7 @@ pub async fn list_mcp_servers() -> impl IntoResponse {
                     "message": format!("Failed to initialize config manager: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -71,7 +71,7 @@ pub async fn add_mcp_server(Json(req): Json<McpServerRequest>) -> impl IntoRespo
                     "message": format!("Failed to initialize config manager: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -121,7 +121,7 @@ pub async fn update_mcp_server(
                     "message": format!("Failed to initialize config manager: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -168,7 +168,7 @@ pub async fn delete_mcp_server(Path(name): Path<String>) -> impl IntoResponse {
                     "message": format!("Failed to initialize config manager: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 

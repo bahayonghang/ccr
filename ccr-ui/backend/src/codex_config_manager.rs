@@ -40,8 +40,7 @@ impl CodexConfigManager {
         let content = fs::read_to_string(&self.config_path)
             .map_err(|e| format!("读取配置文件失败: {}", e))?;
 
-        toml::from_str(&content)
-            .map_err(|e| format!("解析 TOML 配置失败: {}", e))
+        toml::from_str(&content).map_err(|e| format!("解析 TOML 配置失败: {}", e))
     }
 
     /// 写入 Codex 配置文件（原子操作）
@@ -50,13 +49,12 @@ impl CodexConfigManager {
 
         // 确保目录存在
         if let Some(parent) = self.config_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| format!("创建配置目录失败: {}", e))?;
+            fs::create_dir_all(parent).map_err(|e| format!("创建配置目录失败: {}", e))?;
         }
 
         // 序列化为 TOML
-        let toml_str = toml::to_string_pretty(config)
-            .map_err(|e| format!("序列化配置失败: {}", e))?;
+        let toml_str =
+            toml::to_string_pretty(config).map_err(|e| format!("序列化配置失败: {}", e))?;
 
         // 原子写入（临时文件 + 重命名）
         self.atomic_write(&self.config_path, &toml_str)?;
@@ -69,17 +67,20 @@ impl CodexConfigManager {
     fn atomic_write(&self, path: &Path, content: &str) -> Result<(), String> {
         let parent = path.parent().ok_or("无效的文件路径")?;
 
-        let mut temp_file = NamedTempFile::new_in(parent)
-            .map_err(|e| format!("创建临时文件失败: {}", e))?;
+        let mut temp_file =
+            NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {}", e))?;
 
         use std::io::Write;
-        temp_file.write_all(content.as_bytes())
+        temp_file
+            .write_all(content.as_bytes())
             .map_err(|e| format!("写入临时文件失败: {}", e))?;
 
-        temp_file.flush()
+        temp_file
+            .flush()
             .map_err(|e| format!("刷新临时文件失败: {}", e))?;
 
-        temp_file.persist(path)
+        temp_file
+            .persist(path)
             .map_err(|e| format!("持久化临时文件失败: {}", e))?;
 
         Ok(())
@@ -113,7 +114,8 @@ impl CodexConfigManager {
         }
 
         // 添加服务器
-        config.mcp_servers
+        config
+            .mcp_servers
             .get_or_insert_with(HashMap::new)
             .insert(name.clone(), server);
 
@@ -126,7 +128,8 @@ impl CodexConfigManager {
     pub fn update_mcp_server(&self, name: &str, server: CodexMcpServer) -> Result<(), String> {
         let mut config = self.read_config()?;
 
-        let servers = config.mcp_servers
+        let servers = config
+            .mcp_servers
             .as_mut()
             .ok_or("没有配置任何 MCP 服务器")?;
 
@@ -145,7 +148,8 @@ impl CodexConfigManager {
     pub fn delete_mcp_server(&self, name: &str) -> Result<(), String> {
         let mut config = self.read_config()?;
 
-        let servers = config.mcp_servers
+        let servers = config
+            .mcp_servers
             .as_mut()
             .ok_or("没有配置任何 MCP 服务器")?;
 
@@ -186,7 +190,8 @@ impl CodexConfigManager {
         }
 
         // 添加 Profile
-        config.profiles
+        config
+            .profiles
             .get_or_insert_with(HashMap::new)
             .insert(name.clone(), profile);
 
@@ -199,9 +204,7 @@ impl CodexConfigManager {
     pub fn update_profile(&self, name: &str, profile: CodexProfile) -> Result<(), String> {
         let mut config = self.read_config()?;
 
-        let profiles = config.profiles
-            .as_mut()
-            .ok_or("没有配置任何 Profile")?;
+        let profiles = config.profiles.as_mut().ok_or("没有配置任何 Profile")?;
 
         if !profiles.contains_key(name) {
             return Err(format!("Profile '{}' 不存在", name));
@@ -218,9 +221,7 @@ impl CodexConfigManager {
     pub fn delete_profile(&self, name: &str) -> Result<(), String> {
         let mut config = self.read_config()?;
 
-        let profiles = config.profiles
-            .as_mut()
-            .ok_or("没有配置任何 Profile")?;
+        let profiles = config.profiles.as_mut().ok_or("没有配置任何 Profile")?;
 
         if profiles.remove(name).is_none() {
             return Err(format!("Profile '{}' 不存在", name));
@@ -319,7 +320,9 @@ mod tests {
             other: HashMap::new(),
         };
 
-        manager.add_mcp_server("context7".to_string(), server).unwrap();
+        manager
+            .add_mcp_server("context7".to_string(), server)
+            .unwrap();
 
         let servers = manager.list_mcp_servers().unwrap();
         assert_eq!(servers.len(), 1);

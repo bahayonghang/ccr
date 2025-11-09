@@ -15,15 +15,14 @@ pub struct QwenConfigManager {
 impl QwenConfigManager {
     /// 创建默认实例，使用项目根目录的 .qwen/settings.json
     pub fn default() -> Result<Self, String> {
-        let current_dir = std::env::current_dir()
-            .map_err(|e| format!("无法获取当前目录: {}", e))?;
+        let current_dir =
+            std::env::current_dir().map_err(|e| format!("无法获取当前目录: {}", e))?;
         let qwen_dir = current_dir.join(".qwen");
         let config_path = qwen_dir.join("settings.json");
 
         // 确保目录存在
         if !qwen_dir.exists() {
-            fs::create_dir_all(&qwen_dir)
-                .map_err(|e| format!("创建 .qwen 目录失败: {}", e))?;
+            fs::create_dir_all(&qwen_dir).map_err(|e| format!("创建 .qwen 目录失败: {}", e))?;
         }
 
         Ok(Self { config_path })
@@ -45,8 +44,7 @@ impl QwenConfigManager {
         let content = fs::read_to_string(&self.config_path)
             .map_err(|e| format!("读取 Qwen 配置文件失败: {}", e))?;
 
-        serde_json::from_str(&content)
-            .map_err(|e| format!("解析 Qwen JSON 失败: {}", e))
+        serde_json::from_str(&content).map_err(|e| format!("解析 Qwen JSON 失败: {}", e))
     }
 
     /// 写入配置文件
@@ -61,12 +59,10 @@ impl QwenConfigManager {
 
     /// 原子写入文件（tempfile + rename）
     fn atomic_write(&self, path: &PathBuf, content: &str) -> Result<(), String> {
-        let parent = path
-            .parent()
-            .ok_or_else(|| "无法获取父目录".to_string())?;
+        let parent = path.parent().ok_or_else(|| "无法获取父目录".to_string())?;
 
-        let mut temp_file = NamedTempFile::new_in(parent)
-            .map_err(|e| format!("创建临时文件失败: {}", e))?;
+        let mut temp_file =
+            NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {}", e))?;
 
         use std::io::Write;
         temp_file
@@ -203,7 +199,9 @@ mod tests {
             timeout: Some(30000),
             other: HashMap::new(),
         };
-        manager.add_mcp_server("test".to_string(), server.clone()).unwrap();
+        manager
+            .add_mcp_server("test".to_string(), server.clone())
+            .unwrap();
 
         // 列表
         let servers = manager.list_mcp_servers().unwrap();

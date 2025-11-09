@@ -1,9 +1,9 @@
 // API Models - Request and Response structures
 
 use axum::{
+    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use serde::{Deserialize, Serialize};
 

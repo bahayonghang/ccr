@@ -37,7 +37,7 @@ pub struct PlatformEntry {
 
 /// 平台 profiles 配置结构（Unified 模式）
 #[derive(Debug, Serialize, Deserialize)]
-#[allow(dead_code)]  // 预留用于多平台配置管理
+#[allow(dead_code)] // 预留用于多平台配置管理
 pub struct PlatformProfiles {
     pub default_config: String,
     pub current_config: String,
@@ -46,7 +46,10 @@ pub struct PlatformProfiles {
 }
 
 /// Legacy 配置文件结构
+/// 
+/// 注意：当前 backend 使用 CCR 库的服务层，此结构保留作为参考
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CcsConfig {
     pub default_config: String,
     pub current_config: String,
@@ -112,6 +115,9 @@ pub fn get_ccr_root() -> Result<PathBuf, String> {
 }
 
 /// 读取当前平台（Unified 模式）
+/// 
+/// 注意：当前 backend 使用 CCR 库的服务层，此函数保留作为参考
+#[allow(dead_code)]
 pub fn get_current_platform() -> Result<String, String> {
     let ccr_root = get_ccr_root()?;
     let config_path = ccr_root.join("config.toml");
@@ -120,11 +126,11 @@ pub fn get_current_platform() -> Result<String, String> {
         return Ok("claude".to_string()); // 默认平台
     }
 
-    let content = std::fs::read_to_string(&config_path)
-        .map_err(|e| format!("读取平台配置失败: {}", e))?;
+    let content =
+        std::fs::read_to_string(&config_path).map_err(|e| format!("读取平台配置失败: {}", e))?;
 
-    let config: UnifiedConfig = toml::from_str(&content)
-        .map_err(|e| format!("解析平台配置失败: {}", e))?;
+    let config: UnifiedConfig =
+        toml::from_str(&content).map_err(|e| format!("解析平台配置失败: {}", e))?;
 
     Ok(config.current_platform)
 }
@@ -132,10 +138,16 @@ pub fn get_current_platform() -> Result<String, String> {
 /// 获取平台的 profiles 文件路径（Unified 模式）
 pub fn get_platform_profiles_path(platform: &str) -> Result<PathBuf, String> {
     let ccr_root = get_ccr_root()?;
-    Ok(ccr_root.join("platforms").join(platform).join("profiles.toml"))
+    Ok(ccr_root
+        .join("platforms")
+        .join(platform)
+        .join("profiles.toml"))
 }
 
 /// 获取配置文件路径（兼容两种模式）
+/// 
+/// 注意：当前 backend 使用 CCR 库的服务层，此函数保留作为参考
+#[allow(dead_code)]
 pub fn get_config_path() -> Result<PathBuf, String> {
     match detect_config_mode() {
         ConfigMode::Legacy => {
@@ -151,6 +163,9 @@ pub fn get_config_path() -> Result<PathBuf, String> {
 }
 
 /// 读取配置文件（兼容两种模式）
+/// 
+/// 注意：当前 backend 使用 CCR 库的服务层，此函数保留作为参考
+#[allow(dead_code)]
 pub fn read_config() -> Result<CcsConfig, String> {
     let config_path = get_config_path()?;
 
@@ -161,17 +176,17 @@ pub fn read_config() -> Result<CcsConfig, String> {
         ));
     }
 
-    let content = std::fs::read_to_string(&config_path)
-        .map_err(|e| format!("读取配置文件失败: {}", e))?;
+    let content =
+        std::fs::read_to_string(&config_path).map_err(|e| format!("读取配置文件失败: {}", e))?;
 
-    let config: CcsConfig = toml::from_str(&content)
-        .map_err(|e| format!("解析配置文件失败: {}", e))?;
+    let config: CcsConfig =
+        toml::from_str(&content).map_err(|e| format!("解析配置文件失败: {}", e))?;
 
     Ok(config)
 }
 
 /// 读取指定平台的配置（仅 Unified 模式）
-#[allow(dead_code)]  // 预留用于平台特定配置读取
+#[allow(dead_code)] // 预留用于平台特定配置读取
 pub fn read_platform_config(platform: &str) -> Result<PlatformProfiles, String> {
     let profiles_path = get_platform_profiles_path(platform)?;
 
@@ -183,38 +198,38 @@ pub fn read_platform_config(platform: &str) -> Result<PlatformProfiles, String> 
         ));
     }
 
-    let content = std::fs::read_to_string(&profiles_path)
-        .map_err(|e| format!("读取平台配置失败: {}", e))?;
+    let content =
+        std::fs::read_to_string(&profiles_path).map_err(|e| format!("读取平台配置失败: {}", e))?;
 
-    let config: PlatformProfiles = toml::from_str(&content)
-        .map_err(|e| format!("解析平台配置失败: {}", e))?;
+    let config: PlatformProfiles =
+        toml::from_str(&content).map_err(|e| format!("解析平台配置失败: {}", e))?;
 
     Ok(config)
 }
 
 /// 读取平台注册表（仅 Unified 模式）
-#[allow(dead_code)]  // 预留用于统一配置读取
+#[allow(dead_code)] // 预留用于统一配置读取
 pub fn read_unified_config() -> Result<UnifiedConfig, String> {
     let ccr_root = get_ccr_root()?;
     let config_path = ccr_root.join("config.toml");
 
     if !config_path.exists() {
-        return Err(format!(
-            "平台注册表不存在: {}",
-            config_path.display()
-        ));
+        return Err(format!("平台注册表不存在: {}", config_path.display()));
     }
 
-    let content = std::fs::read_to_string(&config_path)
-        .map_err(|e| format!("读取平台注册表失败: {}", e))?;
+    let content =
+        std::fs::read_to_string(&config_path).map_err(|e| format!("读取平台注册表失败: {}", e))?;
 
-    let config: UnifiedConfig = toml::from_str(&content)
-        .map_err(|e| format!("解析平台注册表失败: {}", e))?;
+    let config: UnifiedConfig =
+        toml::from_str(&content).map_err(|e| format!("解析平台注册表失败: {}", e))?;
 
     Ok(config)
 }
 
 /// 脱敏 token 用于显示
+/// 
+/// 注意：当前 backend 使用 CCR 库的工具函数，此函数保留作为参考
+#[allow(dead_code)]
 pub fn mask_token(token: &str) -> String {
     if token.len() <= 10 {
         "*".repeat(token.len())

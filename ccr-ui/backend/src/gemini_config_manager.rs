@@ -21,8 +21,7 @@ impl GeminiConfigManager {
 
         // 确保目录存在
         if !gemini_dir.exists() {
-            fs::create_dir_all(&gemini_dir)
-                .map_err(|e| format!("创建 .gemini 目录失败: {}", e))?;
+            fs::create_dir_all(&gemini_dir).map_err(|e| format!("创建 .gemini 目录失败: {}", e))?;
         }
 
         Ok(Self { config_path })
@@ -44,8 +43,7 @@ impl GeminiConfigManager {
         let content = fs::read_to_string(&self.config_path)
             .map_err(|e| format!("读取 Gemini 配置文件失败: {}", e))?;
 
-        serde_json::from_str(&content)
-            .map_err(|e| format!("解析 Gemini JSON 失败: {}", e))
+        serde_json::from_str(&content).map_err(|e| format!("解析 Gemini JSON 失败: {}", e))
     }
 
     /// 写入配置文件
@@ -60,12 +58,10 @@ impl GeminiConfigManager {
 
     /// 原子写入文件（tempfile + rename）
     fn atomic_write(&self, path: &PathBuf, content: &str) -> Result<(), String> {
-        let parent = path
-            .parent()
-            .ok_or_else(|| "无法获取父目录".to_string())?;
+        let parent = path.parent().ok_or_else(|| "无法获取父目录".to_string())?;
 
-        let mut temp_file = NamedTempFile::new_in(parent)
-            .map_err(|e| format!("创建临时文件失败: {}", e))?;
+        let mut temp_file =
+            NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {}", e))?;
 
         use std::io::Write;
         temp_file
@@ -202,7 +198,9 @@ mod tests {
             include_tools: None,
             other: HashMap::new(),
         };
-        manager.add_mcp_server("test".to_string(), server.clone()).unwrap();
+        manager
+            .add_mcp_server("test".to_string(), server.clone())
+            .unwrap();
 
         // 列表
         let servers = manager.list_mcp_servers().unwrap();

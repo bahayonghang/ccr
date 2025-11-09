@@ -1,11 +1,7 @@
 // Command Execution Handlers
 // Executes CCR CLI commands with various parameters
 
-use axum::{
-    extract::Path,
-    response::IntoResponse,
-    Json,
-};
+use axum::{Json, extract::Path, response::IntoResponse};
 
 use crate::errors::{ApiError, ApiResult};
 use crate::executor;
@@ -86,7 +82,10 @@ pub async fn list_commands() -> impl IntoResponse {
             name: "history".to_string(),
             description: "Show operation history".to_string(),
             usage: "ccr history [--limit <n>]".to_string(),
-            examples: vec!["ccr history".to_string(), "ccr history --limit 10".to_string()],
+            examples: vec![
+                "ccr history".to_string(),
+                "ccr history --limit 10".to_string(),
+            ],
         },
         CommandInfo {
             name: "clean".to_string(),
@@ -101,7 +100,10 @@ pub async fn list_commands() -> impl IntoResponse {
             name: "export".to_string(),
             description: "Export configurations".to_string(),
             usage: "ccr export [--no-secrets]".to_string(),
-            examples: vec!["ccr export".to_string(), "ccr export --no-secrets".to_string()],
+            examples: vec![
+                "ccr export".to_string(),
+                "ccr export --no-secrets".to_string(),
+            ],
         },
         CommandInfo {
             name: "import".to_string(),

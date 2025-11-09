@@ -1,8 +1,8 @@
 // 统一错误处理模块
 use axum::{
+    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use serde::Serialize;
 use std::fmt;
@@ -82,7 +82,7 @@ impl std::error::Error for ApiError {}
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, message) = self.status_and_message();
-        
+
         let body = ApiErrorBody {
             code: status.as_u16(),
             message: message.clone(),

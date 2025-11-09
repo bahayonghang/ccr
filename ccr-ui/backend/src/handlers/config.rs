@@ -13,19 +13,14 @@
 // - import_config(): 复杂逻辑，使用频率低
 // - add/update/delete_config(): 需要实现完整的CRUD
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 
 use crate::errors::{ApiError, ApiResult};
 use crate::executor; // TODO: 逐步移除（export/import 还在使用）
 use crate::models::*;
 
 // 🎯 导入 CCR 核心库
-use ccr::{ConfigService, BackupService, HistoryService};
+use ccr::{BackupService, ConfigService, HistoryService};
 
 /// 屏蔽敏感 token（显示前4位和后4位）
 fn mask_token(token: &str) -> String {
@@ -47,7 +42,8 @@ pub async fn list_configs() -> ApiResult<Json<ConfigListResponse>> {
         let manager = ccr::ConfigManager::with_default()
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
-        let config = manager.load()
+        let config = manager
+            .load()
             .map_err(|e| format!("Failed to load config: {}", e))?;
 
         Ok::<_, String>(config)
@@ -71,7 +67,10 @@ pub async fn list_configs() -> ApiResult<Json<ConfigListResponse>> {
                     is_current: name == &config.current_config,
                     is_default: name == &config.default_config,
                     provider: section.provider.clone(),
-                    provider_type: section.provider_type.as_ref().map(|pt| pt.to_string_value().to_string()),
+                    provider_type: section
+                        .provider_type
+                        .as_ref()
+                        .map(|pt| pt.to_string_value().to_string()),
                     account: section.account.clone(),
                     tags: section.tags.clone(),
                 })
@@ -97,8 +96,7 @@ pub async fn switch_config(Json(req): Json<SwitchRequest>) -> ApiResult<Json<&'s
     // 在 spawn_blocking 中运行同步代码（避免阻塞异步执行器）
     let result = tokio::task::spawn_blocking(move || {
         // 直接调用 ccr 的 switch_command
-        ccr::commands::switch::switch_command(&config_name)
-            .map_err(|e| e.to_string())
+        ccr::commands::switch::switch_command(&config_name).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?;
@@ -119,7 +117,8 @@ pub async fn validate_configs() -> ApiResult<Json<&'static str>> {
             .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
         // 调用验证方法
-        service.validate_all()
+        service
+            .validate_all()
             .map_err(|e| format!("Validation failed: {}", e))?;
 
         Ok::<(), String>(())
@@ -146,7 +145,8 @@ pub async fn clean_backups(Json(req): Json<CleanRequest>) -> impl IntoResponse {
             .map_err(|e| format!("Failed to create BackupService: {}", e))?;
 
         // 调用清理方法
-        let clean_result = service.clean_old_backups(days, dry_run)
+        let clean_result = service
+            .clean_old_backups(days, dry_run)
             .map_err(|e| format!("Clean failed: {}", e))?;
 
         Ok::<_, String>(clean_result)
@@ -199,7 +199,12 @@ pub async fn import_config(Json(req): Json<ImportRequest>) -> impl IntoResponse 
     // Write the content to a temporary file
     let temp_file = match tempfile::NamedTempFile::new() {
         Ok(f) => f,
-        Err(e) => return ApiResponse::<ImportResponse>::error(format!("Failed to create temp file: {}", e)),
+        Err(e) => {
+            return ApiResponse::<ImportResponse>::error(format!(
+                "Failed to create temp file: {}",
+                e
+            ));
+        }
     };
 
     if let Err(e) = std::fs::write(temp_file.path(), &req.content) {
@@ -244,7 +249,8 @@ pub async fn get_history() -> ApiResult<Json<HistoryResponse>> {
             .map_err(|e| format!("Failed to create HistoryService: {}", e))?;
 
         // 获取最近 100 条记录
-        let entries = service.get_recent(100)
+        let entries = service
+            .get_recent(100)
             .map_err(|e| format!("Failed to get history: {}", e))?;
 
         Ok::<_, String>(entries)

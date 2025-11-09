@@ -210,15 +210,9 @@ struct CommandOutput {
 /// Compare version strings and return true if latest > current
 /// Simple comparison: split by '.' and compare each part numerically
 fn compare_versions(current: &str, latest: &str) -> bool {
-    let current_parts: Vec<u32> = current
-        .split('.')
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let current_parts: Vec<u32> = current.split('.').filter_map(|s| s.parse().ok()).collect();
 
-    let latest_parts: Vec<u32> = latest
-        .split('.')
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let latest_parts: Vec<u32> = latest.split('.').filter_map(|s| s.parse().ok()).collect();
 
     // Compare each part
     for i in 0..std::cmp::max(current_parts.len(), latest_parts.len()) {

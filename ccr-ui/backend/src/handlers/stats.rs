@@ -2,12 +2,7 @@
 // 提供成本和使用统计的 Web API
 
 use crate::executor;
-use axum::{
-    extract::Query,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{Json, extract::Query, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -105,8 +100,8 @@ pub async fn cost_overview(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let stats: serde_json::Value = serde_json::from_str(&stats_json)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let stats: serde_json::Value =
+        serde_json::from_str(&stats_json).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // 转换为响应格式
     let response = CostStatsResponse {

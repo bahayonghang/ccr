@@ -1,7 +1,7 @@
 // 配置转换器核心逻辑
 
-use crate::converter_models::*;
 use crate::codex_models::{CodexConfig, CodexMcpServer};
+use crate::converter_models::*;
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use tracing::info;
@@ -21,7 +21,8 @@ impl ConfigConverter {
         let intermediate = Self::parse_source(&request)?;
 
         // Step 2: 从中间格式生成目标配置
-        let (converted_data, format) = Self::generate_target(&request.target_format, &intermediate)?;
+        let (converted_data, format) =
+            Self::generate_target(&request.target_format, &intermediate)?;
 
         // Step 3: 统计转换结果
         let stats = ConversionStats {
@@ -82,22 +83,34 @@ impl ConfigConverter {
                 if let Some(server_obj) = server_value.as_object() {
                     let server = GenericMcpServer {
                         name: name.clone(),
-                        command: server_obj.get("command").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                        command: server_obj
+                            .get("command")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string()),
                         args: server_obj
                             .get("args")
                             .and_then(|v| v.as_array())
-                            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                            .map(|arr| {
+                                arr.iter()
+                                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
                             .unwrap_or_default(),
                         env: server_obj
                             .get("env")
                             .and_then(|v| v.as_object())
                             .map(|obj| {
                                 obj.iter()
-                                    .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
+                                    .filter_map(|(k, v)| {
+                                        v.as_str().map(|s| (k.clone(), s.to_string()))
+                                    })
                                     .collect()
                             })
                             .unwrap_or_default(),
-                        url: server_obj.get("url").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                        url: server_obj
+                            .get("url")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string()),
                         bearer_token: None,
                         startup_timeout_ms: None,
                         cwd: None,
@@ -107,15 +120,18 @@ impl ConfigConverter {
             }
         }
 
-        info!("从 Claude Code 解析了 {} 个 MCP 服务器", config.mcp_servers.len());
+        info!(
+            "从 Claude Code 解析了 {} 个 MCP 服务器",
+            config.mcp_servers.len()
+        );
         Ok(config)
     }
 
     // ============ Codex 解析 ============
 
     fn parse_codex(toml_str: &str) -> Result<IntermediateConfig, String> {
-        let codex_config: CodexConfig = toml::from_str(toml_str)
-            .map_err(|e| format!("解析 Codex TOML 失败: {}", e))?;
+        let codex_config: CodexConfig =
+            toml::from_str(toml_str).map_err(|e| format!("解析 Codex TOML 失败: {}", e))?;
 
         let mut config = IntermediateConfig::default();
 
@@ -149,8 +165,11 @@ impl ConfigConverter {
             }
         }
 
-        info!("从 Codex 解析了 {} 个 MCP 服务器和 {} 个 Profiles",
-              config.mcp_servers.len(), config.profiles.len());
+        info!(
+            "从 Codex 解析了 {} 个 MCP 服务器和 {} 个 Profiles",
+            config.mcp_servers.len(),
+            config.profiles.len()
+        );
         Ok(config)
     }
 
@@ -166,9 +185,16 @@ impl ConfigConverter {
 
             if let Some(ref command) = server.command {
                 server_obj.insert("command".to_string(), JsonValue::String(command.clone()));
-                server_obj.insert("args".to_string(), JsonValue::Array(
-                    server.args.iter().map(|s| JsonValue::String(s.clone())).collect()
-                ));
+                server_obj.insert(
+                    "args".to_string(),
+                    JsonValue::Array(
+                        server
+                            .args
+                            .iter()
+                            .map(|s| JsonValue::String(s.clone()))
+                            .collect(),
+                    ),
+                );
             }
 
             if let Some(ref url) = server.url {
@@ -176,7 +202,8 @@ impl ConfigConverter {
             }
 
             if !server.env.is_empty() {
-                let env_obj: serde_json::Map<String, JsonValue> = server.env
+                let env_obj: serde_json::Map<String, JsonValue> = server
+                    .env
                     .iter()
                     .map(|(k, v)| (k.clone(), JsonValue::String(v.clone())))
                     .collect();
@@ -202,8 +229,16 @@ impl ConfigConverter {
         for server in &intermediate.mcp_servers {
             let codex_server = CodexMcpServer {
                 command: server.command.clone(),
-                args: if server.args.is_empty() { None } else { Some(server.args.clone()) },
-                env: if server.env.is_empty() { None } else { Some(server.env.clone()) },
+                args: if server.args.is_empty() {
+                    None
+                } else {
+                    Some(server.args.clone())
+                },
+                env: if server.env.is_empty() {
+                    None
+                } else {
+                    Some(server.env.clone())
+                },
                 cwd: server.cwd.clone(),
                 startup_timeout_ms: server.startup_timeout_ms.or(Some(20000)),
                 url: server.url.clone(),
@@ -214,8 +249,7 @@ impl ConfigConverter {
         }
         codex_config.mcp_servers = Some(mcp_servers);
 
-        toml::to_string_pretty(&codex_config)
-            .map_err(|e| format!("生成 Codex TOML 失败: {}", e))
+        toml::to_string_pretty(&codex_config).map_err(|e| format!("生成 Codex TOML 失败: {}", e))
     }
 }
 

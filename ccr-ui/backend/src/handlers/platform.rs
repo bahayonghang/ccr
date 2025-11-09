@@ -1,12 +1,7 @@
 // Platform Management Handlers
 // Manages multi-platform configuration registry (Unified mode)
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 
 use crate::config_reader;
 use crate::models::*;
@@ -18,15 +13,18 @@ pub async fn list_platforms() -> impl IntoResponse {
     let mode = config_reader::detect_config_mode();
     if mode != config_reader::ConfigMode::Unified {
         return ApiResponse::<Vec<PlatformListItem>>::error(
-            "Platform management requires Unified mode. Current mode: Legacy".to_string()
+            "Platform management requires Unified mode. Current mode: Legacy".to_string(),
         );
     }
 
     let manager = match PlatformConfigManager::default() {
         Ok(m) => m,
-        Err(e) => return ApiResponse::<Vec<PlatformListItem>>::error(
-            format!("Failed to initialize platform manager: {}", e)
-        ),
+        Err(e) => {
+            return ApiResponse::<Vec<PlatformListItem>>::error(format!(
+                "Failed to initialize platform manager: {}",
+                e
+            ));
+        }
     };
 
     match manager.list_platforms() {
@@ -41,15 +39,18 @@ pub async fn list_platforms() -> impl IntoResponse {
                     current_profile: entry.current_profile,
                     description: entry.description,
                     last_used: entry.last_used,
-                    is_current: current_platform.as_ref().map(|cp| cp == &name).unwrap_or(false),
+                    is_current: current_platform
+                        .as_ref()
+                        .map(|cp| cp == &name)
+                        .unwrap_or(false),
                 })
                 .collect();
 
             ApiResponse::success(items)
         }
-        Err(e) => ApiResponse::<Vec<PlatformListItem>>::error(
-            format!("Failed to list platforms: {}", e)
-        ),
+        Err(e) => {
+            ApiResponse::<Vec<PlatformListItem>>::error(format!("Failed to list platforms: {}", e))
+        }
     }
 }
 
@@ -59,15 +60,18 @@ pub async fn get_current_platform() -> impl IntoResponse {
     let mode = config_reader::detect_config_mode();
     if mode != config_reader::ConfigMode::Unified {
         return ApiResponse::<CurrentPlatformResponse>::error(
-            "Platform management requires Unified mode. Current mode: Legacy".to_string()
+            "Platform management requires Unified mode. Current mode: Legacy".to_string(),
         );
     }
 
     let manager = match PlatformConfigManager::default() {
         Ok(m) => m,
-        Err(e) => return ApiResponse::<CurrentPlatformResponse>::error(
-            format!("Failed to initialize platform manager: {}", e)
-        ),
+        Err(e) => {
+            return ApiResponse::<CurrentPlatformResponse>::error(format!(
+                "Failed to initialize platform manager: {}",
+                e
+            ));
+        }
     };
 
     match manager.get_current_platform() {
@@ -84,14 +88,16 @@ pub async fn get_current_platform() -> impl IntoResponse {
                     };
                     ApiResponse::success(response)
                 }
-                Err(e) => ApiResponse::<CurrentPlatformResponse>::error(
-                    format!("Failed to get platform details: {}", e)
-                ),
+                Err(e) => ApiResponse::<CurrentPlatformResponse>::error(format!(
+                    "Failed to get platform details: {}",
+                    e
+                )),
             }
         }
-        Err(e) => ApiResponse::<CurrentPlatformResponse>::error(
-            format!("Failed to get current platform: {}", e)
-        ),
+        Err(e) => ApiResponse::<CurrentPlatformResponse>::error(format!(
+            "Failed to get current platform: {}",
+            e
+        )),
     }
 }
 
@@ -103,39 +109,39 @@ pub async fn switch_platform(Json(req): Json<SwitchPlatformRequest>) -> impl Int
         return (
             StatusCode::BAD_REQUEST,
             Json(ApiResponse::<String>::error(
-                "Platform switching requires Unified mode. Current mode: Legacy".to_string()
+                "Platform switching requires Unified mode. Current mode: Legacy".to_string(),
             )),
         );
     }
 
     let manager = match PlatformConfigManager::default() {
         Ok(m) => m,
-        Err(e) => return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<String>::error(
-                format!("Failed to initialize platform manager: {}", e)
-            )),
-        ),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::<String>::error(format!(
+                    "Failed to initialize platform manager: {}",
+                    e
+                ))),
+            );
+        }
     };
 
     match manager.set_current_platform(&req.platform_name) {
-        Ok(()) => {
-            (
-                StatusCode::OK,
-                Json(ApiResponse::<String>::success(format!(
-                    "Successfully switched to platform '{}'",
-                    req.platform_name
-                ))),
-            )
-        }
-        Err(e) => {
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ApiResponse::<String>::error(
-                    format!("Failed to switch platform: {}", e)
-                )),
-            )
-        }
+        Ok(()) => (
+            StatusCode::OK,
+            Json(ApiResponse::<String>::success(format!(
+                "Successfully switched to platform '{}'",
+                req.platform_name
+            ))),
+        ),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<String>::error(format!(
+                "Failed to switch platform: {}",
+                e
+            ))),
+        ),
     }
 }
 
@@ -145,21 +151,27 @@ pub async fn get_platform(Path(name): Path<String>) -> impl IntoResponse {
     let mode = config_reader::detect_config_mode();
     if mode != config_reader::ConfigMode::Unified {
         return ApiResponse::<PlatformDetailResponse>::error(
-            "Platform management requires Unified mode. Current mode: Legacy".to_string()
+            "Platform management requires Unified mode. Current mode: Legacy".to_string(),
         );
     }
 
     let manager = match PlatformConfigManager::default() {
         Ok(m) => m,
-        Err(e) => return ApiResponse::<PlatformDetailResponse>::error(
-            format!("Failed to initialize platform manager: {}", e)
-        ),
+        Err(e) => {
+            return ApiResponse::<PlatformDetailResponse>::error(format!(
+                "Failed to initialize platform manager: {}",
+                e
+            ));
+        }
     };
 
     match manager.get_platform(&name) {
         Ok(entry) => {
             let current_platform = manager.get_current_platform().ok();
-            let is_current = current_platform.as_ref().map(|cp| cp == &name).unwrap_or(false);
+            let is_current = current_platform
+                .as_ref()
+                .map(|cp| cp == &name)
+                .unwrap_or(false);
 
             let response = PlatformDetailResponse {
                 name: name.clone(),
@@ -171,9 +183,10 @@ pub async fn get_platform(Path(name): Path<String>) -> impl IntoResponse {
             };
             ApiResponse::success(response)
         }
-        Err(e) => ApiResponse::<PlatformDetailResponse>::error(
-            format!("Failed to get platform '{}': {}", name, e)
-        ),
+        Err(e) => ApiResponse::<PlatformDetailResponse>::error(format!(
+            "Failed to get platform '{}': {}",
+            name, e
+        )),
     }
 }
 
@@ -188,30 +201,36 @@ pub async fn update_platform(
         return (
             StatusCode::BAD_REQUEST,
             Json(ApiResponse::<String>::error(
-                "Platform management requires Unified mode. Current mode: Legacy".to_string()
+                "Platform management requires Unified mode. Current mode: Legacy".to_string(),
             )),
         );
     }
 
     let manager = match PlatformConfigManager::default() {
         Ok(m) => m,
-        Err(e) => return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<String>::error(
-                format!("Failed to initialize platform manager: {}", e)
-            )),
-        ),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::<String>::error(format!(
+                    "Failed to initialize platform manager: {}",
+                    e
+                ))),
+            );
+        }
     };
 
     // Get existing entry first
     let mut entry = match manager.get_platform(&name) {
         Ok(e) => e,
-        Err(e) => return (
-            StatusCode::NOT_FOUND,
-            Json(ApiResponse::<String>::error(
-                format!("Platform '{}' not found: {}", name, e)
-            )),
-        ),
+        Err(e) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(ApiResponse::<String>::error(format!(
+                    "Platform '{}' not found: {}",
+                    name, e
+                ))),
+            );
+        }
     };
 
     // Update fields if provided
@@ -226,23 +245,20 @@ pub async fn update_platform(
     }
 
     match manager.register_platform(name.clone(), entry) {
-        Ok(()) => {
-            (
-                StatusCode::OK,
-                Json(ApiResponse::<String>::success(format!(
-                    "Successfully updated platform '{}'",
-                    name
-                ))),
-            )
-        }
-        Err(e) => {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse::<String>::error(
-                    format!("Failed to update platform '{}': {}", name, e)
-                )),
-            )
-        }
+        Ok(()) => (
+            StatusCode::OK,
+            Json(ApiResponse::<String>::success(format!(
+                "Successfully updated platform '{}'",
+                name
+            ))),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::<String>::error(format!(
+                "Failed to update platform '{}': {}",
+                name, e
+            ))),
+        ),
     }
 }
 
@@ -254,39 +270,39 @@ pub async fn enable_platform(Path(name): Path<String>) -> impl IntoResponse {
         return (
             StatusCode::BAD_REQUEST,
             Json(ApiResponse::<String>::error(
-                "Platform management requires Unified mode. Current mode: Legacy".to_string()
+                "Platform management requires Unified mode. Current mode: Legacy".to_string(),
             )),
         );
     }
 
     let manager = match PlatformConfigManager::default() {
         Ok(m) => m,
-        Err(e) => return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<String>::error(
-                format!("Failed to initialize platform manager: {}", e)
-            )),
-        ),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::<String>::error(format!(
+                    "Failed to initialize platform manager: {}",
+                    e
+                ))),
+            );
+        }
     };
 
     match manager.enable_platform(&name) {
-        Ok(()) => {
-            (
-                StatusCode::OK,
-                Json(ApiResponse::<String>::success(format!(
-                    "Successfully enabled platform '{}'",
-                    name
-                ))),
-            )
-        }
-        Err(e) => {
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ApiResponse::<String>::error(
-                    format!("Failed to enable platform '{}': {}", name, e)
-                )),
-            )
-        }
+        Ok(()) => (
+            StatusCode::OK,
+            Json(ApiResponse::<String>::success(format!(
+                "Successfully enabled platform '{}'",
+                name
+            ))),
+        ),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<String>::error(format!(
+                "Failed to enable platform '{}': {}",
+                name, e
+            ))),
+        ),
     }
 }
 
@@ -298,39 +314,39 @@ pub async fn disable_platform(Path(name): Path<String>) -> impl IntoResponse {
         return (
             StatusCode::BAD_REQUEST,
             Json(ApiResponse::<String>::error(
-                "Platform management requires Unified mode. Current mode: Legacy".to_string()
+                "Platform management requires Unified mode. Current mode: Legacy".to_string(),
             )),
         );
     }
 
     let manager = match PlatformConfigManager::default() {
         Ok(m) => m,
-        Err(e) => return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<String>::error(
-                format!("Failed to initialize platform manager: {}", e)
-            )),
-        ),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::<String>::error(format!(
+                    "Failed to initialize platform manager: {}",
+                    e
+                ))),
+            );
+        }
     };
 
     match manager.disable_platform(&name) {
-        Ok(()) => {
-            (
-                StatusCode::OK,
-                Json(ApiResponse::<String>::success(format!(
-                    "Successfully disabled platform '{}'",
-                    name
-                ))),
-            )
-        }
-        Err(e) => {
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ApiResponse::<String>::error(
-                    format!("Failed to disable platform '{}': {}", name, e)
-                )),
-            )
-        }
+        Ok(()) => (
+            StatusCode::OK,
+            Json(ApiResponse::<String>::success(format!(
+                "Successfully disabled platform '{}'",
+                name
+            ))),
+        ),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<String>::error(format!(
+                "Failed to disable platform '{}': {}",
+                name, e
+            ))),
+        ),
     }
 }
 
@@ -340,15 +356,18 @@ pub async fn get_platform_profile(Path(name): Path<String>) -> impl IntoResponse
     let mode = config_reader::detect_config_mode();
     if mode != config_reader::ConfigMode::Unified {
         return ApiResponse::<PlatformProfileResponse>::error(
-            "Platform management requires Unified mode. Current mode: Legacy".to_string()
+            "Platform management requires Unified mode. Current mode: Legacy".to_string(),
         );
     }
 
     let manager = match PlatformConfigManager::default() {
         Ok(m) => m,
-        Err(e) => return ApiResponse::<PlatformProfileResponse>::error(
-            format!("Failed to initialize platform manager: {}", e)
-        ),
+        Err(e) => {
+            return ApiResponse::<PlatformProfileResponse>::error(format!(
+                "Failed to initialize platform manager: {}",
+                e
+            ));
+        }
     };
 
     match manager.get_platform_profile(&name) {
@@ -359,9 +378,10 @@ pub async fn get_platform_profile(Path(name): Path<String>) -> impl IntoResponse
             };
             ApiResponse::success(response)
         }
-        Err(e) => ApiResponse::<PlatformProfileResponse>::error(
-            format!("Failed to get platform profile: {}", e)
-        ),
+        Err(e) => ApiResponse::<PlatformProfileResponse>::error(format!(
+            "Failed to get platform profile: {}",
+            e
+        )),
     }
 }
 
@@ -376,38 +396,38 @@ pub async fn set_platform_profile(
         return (
             StatusCode::BAD_REQUEST,
             Json(ApiResponse::<String>::error(
-                "Platform management requires Unified mode. Current mode: Legacy".to_string()
+                "Platform management requires Unified mode. Current mode: Legacy".to_string(),
             )),
         );
     }
 
     let manager = match PlatformConfigManager::default() {
         Ok(m) => m,
-        Err(e) => return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<String>::error(
-                format!("Failed to initialize platform manager: {}", e)
-            )),
-        ),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::<String>::error(format!(
+                    "Failed to initialize platform manager: {}",
+                    e
+                ))),
+            );
+        }
     };
 
     match manager.set_platform_profile(&name, &req.profile_name) {
-        Ok(()) => {
-            (
-                StatusCode::OK,
-                Json(ApiResponse::<String>::success(format!(
-                    "Successfully set platform '{}' profile to '{}'",
-                    name, req.profile_name
-                ))),
-            )
-        }
-        Err(e) => {
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ApiResponse::<String>::error(
-                    format!("Failed to set platform profile: {}", e)
-                )),
-            )
-        }
+        Ok(()) => (
+            StatusCode::OK,
+            Json(ApiResponse::<String>::success(format!(
+                "Successfully set platform '{}' profile to '{}'",
+                name, req.profile_name
+            ))),
+        ),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<String>::error(format!(
+                "Failed to set platform profile: {}",
+                e
+            ))),
+        ),
     }
 }

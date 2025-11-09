@@ -29,7 +29,10 @@ impl CommandService {
     /// # Arguments
     /// * `max_concurrent` - 最大并发执行命令数，默认推荐 4
     pub fn new(max_concurrent: usize) -> Self {
-        info!("Initializing CommandService with max_concurrent: {}", max_concurrent);
+        info!(
+            "Initializing CommandService with max_concurrent: {}",
+            max_concurrent
+        );
         Self {
             semaphore: Arc::new(Semaphore::new(max_concurrent)),
             max_concurrent,
@@ -37,7 +40,7 @@ impl CommandService {
     }
 
     /// 执行命令（阻塞式，等待完成）
-    /// 
+    ///
     /// # Arguments
     /// * `program` - 程序名称（如 "ccr"）
     /// * `args` - 参数列表
@@ -79,11 +82,11 @@ impl CommandService {
     }
 
     /// 执行命令并返回流式输出
-    /// 
+    ///
     /// # Arguments
     /// * `program` - 程序名称
     /// * `args` - 参数列表
-    /// 
+    ///
     /// # Returns
     /// 返回一个异步流，每次 yield 一行输出
     #[instrument(skip(self), fields(program = %program, args = ?args))]

@@ -199,8 +199,14 @@ mod tests {
                 "github".to_string(),
                 GeminiMcpServer {
                     command: Some("npx".to_string()),
-                    args: Some(vec!["-y".to_string(), "@modelcontextprotocol/server-github".to_string()]),
-                    env: Some(HashMap::from([("GITHUB_TOKEN".to_string(), "token".to_string())])),
+                    args: Some(vec![
+                        "-y".to_string(),
+                        "@modelcontextprotocol/server-github".to_string(),
+                    ]),
+                    env: Some(HashMap::from([(
+                        "GITHUB_TOKEN".to_string(),
+                        "token".to_string(),
+                    )])),
                     cwd: None,
                     timeout: Some(30000),
                     trust: Some(false),

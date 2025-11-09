@@ -1,11 +1,6 @@
 // Qwen CLI API 处理器
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
 use crate::qwen_config_manager::QwenConfigManager;
@@ -66,9 +61,7 @@ pub async fn list_qwen_mcp_servers() -> impl IntoResponse {
 }
 
 /// POST /api/qwen/mcp - 添加 MCP 服务器
-pub async fn add_qwen_mcp_server(
-    Json(request): Json<QwenMcpServerRequest>,
-) -> impl IntoResponse {
+pub async fn add_qwen_mcp_server(Json(request): Json<QwenMcpServerRequest>) -> impl IntoResponse {
     match QwenConfigManager::default() {
         Ok(manager) => {
             let server = QwenMcpServer {

@@ -1,11 +1,6 @@
 // Gemini CLI API 处理器
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
 use crate::gemini_config_manager::GeminiConfigManager;

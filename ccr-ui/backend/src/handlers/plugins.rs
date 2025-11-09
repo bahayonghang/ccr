@@ -1,4 +1,4 @@
-use axum::{extract::Path, http::StatusCode, response::IntoResponse, Json};
+use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
 use crate::models::{Plugin, PluginRequest};
@@ -46,7 +46,7 @@ pub async fn list_plugins() -> impl IntoResponse {
                     "message": format!("Failed to initialize plugins manager: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -143,7 +143,7 @@ pub async fn add_plugin(Json(req): Json<PluginRequest>) -> impl IntoResponse {
                     "message": format!("Failed to initialize plugins manager: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -236,7 +236,7 @@ pub async fn update_plugin(
                     "message": format!("Failed to initialize plugins manager: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -321,7 +321,7 @@ pub async fn delete_plugin(Path(id): Path<String>) -> impl IntoResponse {
                     "message": format!("Failed to initialize plugins manager: {}", e)
                 })),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -354,7 +354,11 @@ pub async fn toggle_plugin(Path(id): Path<String>) -> impl IntoResponse {
         if let Ok(mut settings) = settings_manager.load() {
             if let Some(plugin) = settings.plugins.iter_mut().find(|p| p.id == id) {
                 plugin.enabled = !plugin.enabled;
-                let new_state = if plugin.enabled { "enabled" } else { "disabled" };
+                let new_state = if plugin.enabled {
+                    "enabled"
+                } else {
+                    "disabled"
+                };
 
                 if settings_manager.save(&settings).is_ok() {
                     return (
