@@ -976,6 +976,9 @@ _tauri-build-macos:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
     cd frontend && npm run build:desktop
     @echo ""
+    @echo "🧹 清理自动挂载的 DMG..."
+    @hdiutil detach "/Volumes/CCR Desktop" 2>/dev/null || true
+    @echo ""
     @echo "✅ Tauri 构建完成"
     @echo "📦 产物位置: frontend/src-tauri/target/release/bundle/"
     @echo "   - .dmg (安装镜像)"

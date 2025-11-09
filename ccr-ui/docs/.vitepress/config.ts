@@ -4,12 +4,13 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 // 共享的导航和侧边栏配置
 const zhNav = [
   { text: '首页', link: '/' },
-  { 
+  {
     text: '指南',
     items: [
       { text: '快速开始', link: '/guide/getting-started' },
       { text: '项目结构', link: '/guide/project-structure' },
-      { text: '统计功能', link: '/guide/stats' }
+      { text: '统计功能', link: '/guide/stats' },
+      { text: 'Tauri 桌面应用', link: '/guide/tauri' }
     ]
   },
   {
@@ -41,12 +42,13 @@ const zhNav = [
 
 const enNav = [
   { text: 'Home', link: '/en/' },
-  { 
+  {
     text: 'Guide',
     items: [
       { text: 'Getting Started', link: '/en/guide/getting-started' },
       { text: 'Project Structure', link: '/en/guide/project-structure' },
-      { text: 'Statistics', link: '/en/guide/stats' }
+      { text: 'Statistics', link: '/en/guide/stats' },
+      { text: 'Tauri Desktop App', link: '/en/guide/tauri' }
     ]
   },
   {
@@ -145,7 +147,8 @@ export default withMermaid(defineConfig({
           items: [
             { text: '快速开始', link: '/guide/getting-started' },
             { text: '项目结构', link: '/guide/project-structure' },
-            { text: '统计功能', link: '/guide/stats' }
+            { text: '统计功能', link: '/guide/stats' },
+            { text: '🖥️ Tauri 桌面应用', link: '/guide/tauri' }
           ]
         }
       ],
@@ -262,7 +265,8 @@ export default withMermaid(defineConfig({
               items: [
                 { text: 'Getting Started', link: '/en/guide/getting-started' },
                 { text: 'Project Structure', link: '/en/guide/project-structure' },
-                { text: 'Statistics', link: '/en/guide/stats' }
+                { text: 'Statistics', link: '/en/guide/stats' },
+                { text: '🖥️ Tauri Desktop App', link: '/en/guide/tauri' }
               ]
             }
           ],
