@@ -45,10 +45,10 @@ export default defineConfig({
         
         nav: [
           { text: '首页', link: '/' },
-          { text: '快速开始', link: '/quick-start' },
-          { text: '核心命令', link: '/commands/' },
-          { text: 'Web 指南', link: '/web-guide' },
-          { text: '更新日志', link: '/changelog' }
+          { text: '快速开始', link: '/guide/quick-start' },
+          { text: '核心命令', link: '/reference/commands/' },
+          { text: 'Web 指南', link: '/guide/web-guide' },
+          { text: '更新日志', link: '/reference/changelog' }
         ],
 
         sidebar: {
@@ -57,46 +57,53 @@ export default defineConfig({
               text: '指南',
               items: [
                 { text: '简介', link: '/' },
-                { text: '快速开始', link: '/quick-start' },
-                { text: 'Web 界面使用指南', link: '/web-guide' },
-                { text: '配置管理', link: '/configuration' },
-                { text: '架构设计', link: '/architecture' }
+                { text: '快速开始', link: '/guide/quick-start' },
+                { text: 'Web 界面使用指南', link: '/guide/web-guide' },
+                { text: '配置管理', link: '/guide/configuration' }
+              ]
+            },
+            {
+              text: '技术参考',
+              collapsed: false,
+              items: [
+                { text: '架构设计', link: '/reference/architecture' },
+                { text: '更新日志', link: '/reference/changelog' }
               ]
             },
             {
               text: '核心命令',
               collapsed: false,
               items: [
-                { text: '命令概览', link: '/commands/' },
-                { text: 'init - 初始化配置', link: '/commands/init' },
-                { text: 'add - 添加配置', link: '/commands/add' },
-                { text: 'delete - 删除配置', link: '/commands/delete' },
-                { text: 'list - 列出配置', link: '/commands/list' },
-                { text: 'current - 当前配置', link: '/commands/current' },
-                { text: 'switch - 切换配置', link: '/commands/switch' },
-                { text: 'validate - 验证配置', link: '/commands/validate' },
-                { text: 'history - 操作历史', link: '/commands/history' },
-                { text: 'tui - 终端界面', link: '/commands/tui' },
-                { text: 'web - Web 界面', link: '/commands/web' },
-                { text: 'stats - 统计分析', link: '/commands/stats' },
-                { text: 'sync - 云同步', link: '/commands/sync' },
-                { text: 'temp-token - 临时令牌', link: '/commands/temp-token' },
-                { text: 'export - 导出配置', link: '/commands/export' },
-                { text: 'import - 导入配置', link: '/commands/import' },
-                { text: 'clean - 清理备份', link: '/commands/clean' },
-                { text: 'update - 更新 CCR', link: '/commands/update' },
-                { text: 'version - 版本信息', link: '/commands/version' }
+                { text: '命令概览', link: '/reference/commands/' },
+                { text: 'init - 初始化配置', link: '/reference/commands/init' },
+                { text: 'add - 添加配置', link: '/reference/commands/add' },
+                { text: 'delete - 删除配置', link: '/reference/commands/delete' },
+                { text: 'list - 列出配置', link: '/reference/commands/list' },
+                { text: 'current - 当前配置', link: '/reference/commands/current' },
+                { text: 'switch - 切换配置', link: '/reference/commands/switch' },
+                { text: 'validate - 验证配置', link: '/reference/commands/validate' },
+                { text: 'history - 操作历史', link: '/reference/commands/history' },
+                { text: 'tui - 终端界面', link: '/reference/commands/tui' },
+                { text: 'web - Web 界面', link: '/reference/commands/web' },
+                { text: 'stats - 统计分析', link: '/reference/commands/stats' },
+                { text: 'sync - 云同步', link: '/reference/commands/sync' },
+                { text: 'temp-token - 临时令牌', link: '/reference/commands/temp-token' },
+                { text: 'export - 导出配置', link: '/reference/commands/export' },
+                { text: 'import - 导入配置', link: '/reference/commands/import' },
+                { text: 'clean - 清理备份', link: '/reference/commands/clean' },
+                { text: 'update - 更新 CCR', link: '/reference/commands/update' },
+                { text: 'version - 版本信息', link: '/reference/commands/version' }
               ]
             },
             {
               text: '平台支持',
               collapsed: false,
               items: [
-                { text: '平台概览', link: '/platforms/' },
-                { text: 'Claude Code', link: '/platforms/claude' },
-                { text: 'Codex (GitHub Copilot)', link: '/platforms/codex' },
-                { text: 'Gemini CLI', link: '/platforms/gemini' },
-                { text: '平台迁移', link: '/platforms/migration' }
+                { text: '平台概览', link: '/reference/platforms/' },
+                { text: 'Claude Code', link: '/reference/platforms/claude' },
+                { text: 'Codex (GitHub Copilot)', link: '/reference/platforms/codex' },
+                { text: 'Gemini CLI', link: '/reference/platforms/gemini' },
+                { text: '平台迁移', link: '/reference/platforms/migration' }
               ]
             },
             {
@@ -106,13 +113,6 @@ export default defineConfig({
                 { text: '示例概览', link: '/examples/' },
                 { text: '多平台设置', link: '/examples/multi-platform-setup' },
                 { text: '故障排除', link: '/examples/troubleshooting' }
-              ]
-            },
-            {
-              text: '其他',
-              items: [
-                { text: '更新日志', link: '/changelog' },
-                { text: '迁移指南', link: '/migration' }
               ]
             }
           ]
@@ -202,10 +202,10 @@ export default defineConfig({
         
         nav: [
           { text: 'Home', link: '/en/' },
-          { text: 'Quick Start', link: '/en/quick-start' },
-          { text: 'Commands', link: '/en/commands/' },
-          { text: 'Web Guide', link: '/en/web-guide' },
-          { text: 'Changelog', link: '/en/changelog' }
+          { text: 'Quick Start', link: '/en/guide/quick-start' },
+          { text: 'Commands', link: '/en/reference/commands/' },
+          { text: 'Web Guide', link: '/en/guide/web-guide' },
+          { text: 'Changelog', link: '/en/reference/changelog' }
         ],
 
         sidebar: {
@@ -214,46 +214,54 @@ export default defineConfig({
               text: 'Guide',
               items: [
                 { text: 'Introduction', link: '/en/' },
-                { text: 'Quick Start', link: '/en/quick-start' },
-                { text: 'Web Guide', link: '/en/web-guide' },
-                { text: 'Configuration', link: '/en/configuration' },
-                { text: 'Architecture', link: '/en/architecture' }
+                { text: 'Quick Start', link: '/en/guide/quick-start' },
+                { text: 'Web Guide', link: '/en/guide/web-guide' },
+                { text: 'Configuration', link: '/en/guide/configuration' }
+              ]
+            },
+            {
+              text: 'Reference',
+              collapsed: false,
+              items: [
+                { text: 'Architecture', link: '/en/reference/architecture' },
+                { text: 'Changelog', link: '/en/reference/changelog' },
+                { text: 'Migration Guide', link: '/en/reference/migration' }
               ]
             },
             {
               text: 'Commands',
               collapsed: false,
               items: [
-                { text: 'Overview', link: '/en/commands/' },
-                { text: 'init - Initialize', link: '/en/commands/init' },
-                { text: 'add - Add Profile', link: '/en/commands/add' },
-                { text: 'delete - Delete Profile', link: '/en/commands/delete' },
-                { text: 'list - List Profiles', link: '/en/commands/list' },
-                { text: 'current - Current Profile', link: '/en/commands/current' },
-                { text: 'switch - Switch Profile', link: '/en/commands/switch' },
-                { text: 'validate - Validate', link: '/en/commands/validate' },
-                { text: 'history - History', link: '/en/commands/history' },
-                { text: 'tui - Terminal UI', link: '/en/commands/tui' },
-                { text: 'web - Web Interface', link: '/en/commands/web' },
-                { text: 'stats - Statistics', link: '/en/commands/stats' },
-                { text: 'sync - Cloud Sync', link: '/en/commands/sync' },
-                { text: 'temp-token - Temp Token', link: '/en/commands/temp-token' },
-                { text: 'export - Export', link: '/en/commands/export' },
-                { text: 'import - Import', link: '/en/commands/import' },
-                { text: 'clean - Clean Backups', link: '/en/commands/clean' },
-                { text: 'update - Update CCR', link: '/en/commands/update' },
-                { text: 'version - Version Info', link: '/en/commands/version' }
+                { text: 'Overview', link: '/en/reference/commands/' },
+                { text: 'init - Initialize', link: '/en/reference/commands/init' },
+                { text: 'add - Add Profile', link: '/en/reference/commands/add' },
+                { text: 'delete - Delete Profile', link: '/en/reference/commands/delete' },
+                { text: 'list - List Profiles', link: '/en/reference/commands/list' },
+                { text: 'current - Current Profile', link: '/en/reference/commands/current' },
+                { text: 'switch - Switch Profile', link: '/en/reference/commands/switch' },
+                { text: 'validate - Validate', link: '/en/reference/commands/validate' },
+                { text: 'history - History', link: '/en/reference/commands/history' },
+                { text: 'tui - Terminal UI', link: '/en/reference/commands/tui' },
+                { text: 'web - Web Interface', link: '/en/reference/commands/web' },
+                { text: 'stats - Statistics', link: '/en/reference/commands/stats' },
+                { text: 'sync - Cloud Sync', link: '/en/reference/commands/sync' },
+                { text: 'temp-token - Temp Token', link: '/en/reference/commands/temp-token' },
+                { text: 'export - Export', link: '/en/reference/commands/export' },
+                { text: 'import - Import', link: '/en/reference/commands/import' },
+                { text: 'clean - Clean Backups', link: '/en/reference/commands/clean' },
+                { text: 'update - Update CCR', link: '/en/reference/commands/update' },
+                { text: 'version - Version Info', link: '/en/reference/commands/version' }
               ]
             },
             {
               text: 'Platforms',
               collapsed: false,
               items: [
-                { text: 'Overview', link: '/en/platforms/' },
-                { text: 'Claude Code', link: '/en/platforms/claude' },
-                { text: 'Codex (GitHub Copilot)', link: '/en/platforms/codex' },
-                { text: 'Gemini CLI', link: '/en/platforms/gemini' },
-                { text: 'Migration', link: '/en/platforms/migration' }
+                { text: 'Overview', link: '/en/reference/platforms/' },
+                { text: 'Claude Code', link: '/en/reference/platforms/claude' },
+                { text: 'Codex (GitHub Copilot)', link: '/en/reference/platforms/codex' },
+                { text: 'Gemini CLI', link: '/en/reference/platforms/gemini' },
+                { text: 'Platform Migration', link: '/en/reference/platforms/migration' }
               ]
             },
             {
@@ -263,13 +271,6 @@ export default defineConfig({
                 { text: 'Overview', link: '/en/examples/' },
                 { text: 'Multi-Platform Setup', link: '/en/examples/multi-platform-setup' },
                 { text: 'Troubleshooting', link: '/en/examples/troubleshooting' }
-              ]
-            },
-            {
-              text: 'More',
-              items: [
-                { text: 'Changelog', link: '/en/changelog' },
-                { text: 'Migration Guide', link: '/en/migration' }
               ]
             }
           ]

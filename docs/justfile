@@ -5,25 +5,33 @@
 default:
     @just --list
 
+# 检查依赖是否已安装
+_check-deps:
+    #!/usr/bin/env bash
+    if [ ! -d "node_modules" ]; then
+        echo "⚠️  依赖未安装，正在自动安装..."
+        npm install
+    fi
+
 # 安装依赖
 install:
     @echo "📦 安装文档依赖..."
     npm install
 
 # 启动开发服务器
-dev:
+dev: _check-deps
     @echo "🚀 启动开发服务器..."
     @echo "📝 访问 http://localhost:5173"
     npm run dev
 
 # 构建生产版本
-build:
+build: _check-deps
     @echo "🏗️  构建生产版本..."
     npm run build
     @echo "✅ 构建完成！输出目录: .vitepress/dist"
 
 # 预览生产构建
-preview: build
+preview: _check-deps build
     @echo "👀 预览生产版本..."
     @echo "📝 访问 http://localhost:4173"
     npm run preview

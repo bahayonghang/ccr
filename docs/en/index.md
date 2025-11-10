@@ -11,13 +11,13 @@ hero:
   actions:
     - theme: brand
       text: Quick Start
-      link: /en/quick-start
+      link: /en/guide/quick-start
     - theme: alt
       text: Commands
-      link: /en/commands/
+      link: /en/reference/commands/
     - theme: alt
-      text: GitHub
-      link: https://github.com/bahayonghang/ccr
+      text: 中文
+      link: /
 
 features:
   - icon: 🚀

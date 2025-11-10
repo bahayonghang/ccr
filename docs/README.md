@@ -1,15 +1,15 @@
 # CCR Documentation
 
-This directory contains the documentation for CCR (Claude Code Configuration Switcher), built with VitePress.
+本目录包含 CCR (Claude Code Configuration Switcher) 的完整文档，使用 VitePress 构建。
 
-## 🌍 Multi-Language Support
+## 🌍 多语言支持
 
-The documentation is available in multiple languages:
+文档提供多语言版本：
 
-- **🇨🇳 简体中文** - Complete Chinese documentation in `/zh` directory
-- **🇺🇸 English** - Complete English documentation in `/en` directory
+- **🇨🇳 简体中文（默认）** - 根目录下的完整中文文档
+- **🇺🇸 English** - `/en` 目录下的完整英文文档
 
-Browse the documentation at: [https://your-docs-site.com](https://github.com/bahayonghang/ccr)
+在线浏览文档：[GitHub Repository](https://github.com/bahayonghang/ccr)
 
 ## Quick Start
 
@@ -70,39 +70,43 @@ npm run preview
 | `just setup` | 开发环境完整设置 |
 | `just deploy` | 生产部署准备 |
 
-## Documentation Structure
+## 📁 文档结构
 
 ```
 docs/
 ├── .vitepress/
-│   └── config.mjs          # VitePress i18n configuration
-├── zh/                     # 简体中文文档
-│   ├── index.md            # 中文首页
-│   ├── quick-start.md      # 快速开始
-│   ├── configuration.md    # 配置管理
-│   ├── web-guide.md        # Web 指南
-│   ├── architecture.md     # 架构设计
-│   ├── changelog.md        # 更新日志
-│   ├── migration.md        # 迁移指南
-│   ├── commands/           # 命令文档
-│   ├── platforms/          # 平台支持
-│   └── examples/           # 示例
-├── en/                     # English Documentation
-│   ├── index.md            # English homepage
-│   ├── quick-start.md      # Quick start guide
-│   ├── configuration.md    # Configuration guide
-│   ├── web-guide.md        # Web interface guide
-│   ├── architecture.md     # Architecture overview
-│   ├── changelog.md        # Change log
-│   ├── migration.md        # Migration guide
-│   ├── commands/           # Command reference
-│   ├── platforms/          # Platform support
-│   └── examples/           # Examples
+│   └── config.mjs          # VitePress 国际化配置
+├── guide/                  # 📖 用户指南（中文，默认）
+│   ├── quick-start.md          # 快速开始
+│   ├── configuration.md        # 配置管理
+│   └── web-guide.md            # Web 指南
+├── reference/              # 📚 技术参考（中文）
+│   ├── architecture.md         # 架构设计
+│   ├── changelog.md            # 更新日志
+│   ├── commands/               # 命令参考
+│   └── platforms/              # 平台支持
+├── examples/               # 💡 示例（中文）
+│   ├── index.md
+│   ├── multi-platform-setup.md
+│   └── troubleshooting.md
+├── en/                     # 🇺🇸 English Documentation
+│   ├── index.md                # English homepage
+│   ├── guide/                  # 📖 User Guide
+│   │   ├── quick-start.md
+│   │   ├── configuration.md
+│   │   └── web-guide.md
+│   ├── reference/              # 📚 Reference
+│   │   ├── architecture.md
+│   │   ├── changelog.md
+│   │   ├── migration.md
+│   │   ├── commands/
+│   │   └── platforms/
+│   └── examples/               # 💡 Examples
+├── index.md                # 中文首页
 ├── public/
-│   └── logo.svg            # Project logo
-├── index.md                # Language selection page
-├── package.json            # Node.js dependencies
-└── justfile                # Build automation
+│   └── logo.svg            # 项目 Logo
+├── package.json            # Node.js 依赖
+└── justfile                # 构建自动化脚本（带依赖自检）
 ```
 
 ## Contributing
