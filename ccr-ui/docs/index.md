@@ -134,8 +134,8 @@ cd frontend && npm run dev
 - [快速开始](/guide/getting-started) - 了解如何安装和运行项目
 - [项目结构](/guide/project-structure) - 详细的项目架构说明
 - [🖥️ Tauri 桌面应用](/guide/tauri) - 桌面应用开发和构建指南
-- [前端文档](/frontend/overview) - Vue 3 前端开发指南
-- [后端文档](/backend/architecture) - Rust 后端架构说明
+- [前端文档](/reference/frontend/overview) - Vue 3 前端开发指南
+- [后端文档](/reference/backend/architecture) - Rust 后端架构说明
 - [贡献指南](/contributing) - 如何参与项目开发
 - [FAQ](/faq) - 常见问题解答
 

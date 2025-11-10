@@ -8,24 +8,43 @@ This directory contains the multi-language documentation for CCR UI, built with 
 docs/
 ├── .vitepress/          # VitePress configuration
 │   └── config.ts        # Multi-language config
-├── zh/                  # Chinese documentation
-│   ├── index.md         # Chinese homepage
-│   ├── guide/           # User guides
-│   ├── frontend/        # Frontend docs
-│   ├── backend/         # Backend docs
-│   ├── contributing.md  # Contributing guide
-│   └── faq.md          # FAQ
-├── en/                  # English documentation
-│   ├── index.md         # English homepage
-│   ├── guide/           # User guides
-│   ├── frontend/        # Frontend docs
-│   ├── backend/         # Backend docs
-│   ├── contributing.md  # Contributing guide
-│   └── faq.md          # FAQ
+├── guide/               # 📖 User guides (Chinese, default)
+│   ├── getting-started.md   # Quick start
+│   ├── project-structure.md # Project structure
+│   ├── stats.md             # Statistics feature
+│   └── tauri.md             # Tauri desktop app
+├── reference/           # 📚 Technical reference (Chinese)
+│   ├── frontend/            # Frontend docs
+│   │   ├── overview.md
+│   │   ├── tech-stack.md
+│   │   ├── development.md
+│   │   ├── components.md
+│   │   ├── api.md
+│   │   ├── styling.md
+│   │   └── testing.md
+│   └── backend/             # Backend docs
+│       ├── architecture.md
+│       ├── tech-stack.md
+│       ├── development.md
+│       ├── api.md
+│       ├── error-handling.md
+│       └── deployment.md
+├── contributing.md      # Contributing guide
+├── faq.md              # FAQ
+├── en/                  # 🇺🇸 English documentation
+│   ├── index.md             # English homepage
+│   ├── guide/               # User guides
+│   ├── reference/           # Technical reference
+│   │   ├── frontend/
+│   │   └── backend/
+│   ├── contributing.md
+│   └── faq.md
 ├── public/              # Static assets
 │   ├── logo.svg
 │   └── favicon.ico
-└── index.md            # Root redirect page
+├── index.md            # Chinese homepage (default)
+├── package.json         # Dependencies
+└── justfile            # Build automation (with auto deps check)
 ```
 
 ## 🌐 Supported Languages
