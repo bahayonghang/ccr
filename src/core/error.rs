@@ -205,7 +205,12 @@ impl CcrError {
             }
             CcrError::ConfigSectionNotFound(name) => {
                 format!(
-                    "配置节 '{}' 不存在\n建议: 运行 'ccr list' 查看可用配置,或编辑 ~/.ccs_config.toml 添加新配置",
+                    "配置节 '{}' 不存在\n\
+                    建议:\n\
+                    • 运行 'ccr list' 查看可用配置\n\
+                    • 运行 'ccr add <配置名>' 添加新配置\n\
+                    • Unified模式: 编辑 ~/.ccr/platforms/<platform>/profiles.toml\n\
+                    • Legacy模式: 编辑 ~/.ccs_config.toml",
                     name
                 )
             }
