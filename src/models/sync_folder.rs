@@ -151,6 +151,7 @@ impl SyncFolder {
     /// # Returns
     ///
     /// 路径存在返回 true，否则返回 false
+    #[allow(dead_code)]
     pub fn local_path_exists(&self) -> bool {
         self.expand_local_path()
             .map(|p| p.exists())
@@ -435,6 +436,7 @@ impl SyncFoldersConfig {
     }
 
     /// 📋 列出所有启用的文件夹
+    #[allow(dead_code)]
     pub fn enabled_folders(&self) -> Vec<&SyncFolder> {
         self.folders.iter().filter(|f| f.enabled).collect()
     }
@@ -455,6 +457,7 @@ impl SyncFoldersConfig {
 
 /// 📊 文件夹统计信息
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct FolderStats {
     pub total: usize,
     pub enabled: usize,

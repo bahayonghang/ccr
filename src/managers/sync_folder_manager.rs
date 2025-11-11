@@ -9,6 +9,8 @@
 // - 🔒 文件锁确保并发安全
 // - ⚛️ 原子写入防止配置损坏
 
+#![allow(dead_code)]
+
 use crate::core::error::{CcrError, Result};
 use crate::core::fileio;
 use crate::core::lock::LockManager;
