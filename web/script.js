@@ -275,11 +275,16 @@ let currentEditingConfig = null;
                     }
 
                     // 更新 UI 显示
-                    const currentConfig = data.data.current_config ||
-                                        data.data.current_profile ||
-                                        data.data.active_profile ||
-                                        '-';
-                    document.getElementById('currentConfigName').textContent = currentConfig;
+                    // 🆕 优先使用 API 返回的 current_config 字段
+                    const currentConfigName = data.data.current_config || 
+                                            data.data.current_profile ||
+                                            data.data.active_profile ||
+                                            '-';
+                    
+                    console.log('当前配置名称:', currentConfigName);
+                    console.log('API 返回数据:', data.data);
+                    
+                    document.getElementById('currentConfigName').textContent = currentConfigName;
                     document.getElementById('totalConfigs').textContent = allConfigs.length;
 
                     renderConfigs();
@@ -438,6 +443,24 @@ let currentEditingConfig = null;
                             ` : ''}
                             ${tagsHtml}
                         </div>
+                        <div class="config-actions-top">
+                            ${!config.is_current ? `
+                            <button class="btn btn-primary btn-action-top" onclick="switchConfig('${config.name}')" title="切换到此配置">
+                                <span class="btn-icon">⚡</span>
+                                <span class="btn-text">切换</span>
+                            </button>
+                            ` : ''}
+                            <button class="btn btn-secondary btn-action-top" onclick="editConfig('${config.name}')" title="编辑配置">
+                                <span class="btn-icon">✏️</span>
+                                <span class="btn-text">编辑</span>
+                            </button>
+                            ${!config.is_current && !config.is_default ? `
+                            <button class="btn btn-danger btn-action-top" onclick="deleteConfig('${config.name}')" title="删除配置">
+                                <span class="btn-icon">🗑️</span>
+                                <span class="btn-text">删除</span>
+                            </button>
+                            ` : ''}
+                        </div>
                     </div>
                     <div class="config-details">
                         <div class="config-field">
@@ -459,21 +482,6 @@ let currentEditingConfig = null;
                             <div class="field-label">Small Fast Model</div>
                             <div class="field-value">${config.small_fast_model}</div>
                         </div>
-                        ` : ''}
-                    </div>
-                    <div class="config-actions">
-                        ${!config.is_current ? `
-                        <button class="btn btn-primary btn-small" onclick="switchConfig('${config.name}')">
-                            切换
-                        </button>
-                        ` : ''}
-                        <button class="btn btn-secondary btn-small" onclick="editConfig('${config.name}')">
-                            编辑
-                        </button>
-                        ${!config.is_current && !config.is_default ? `
-                        <button class="btn btn-danger btn-small" onclick="deleteConfig('${config.name}')">
-                            删除
-                        </button>
                         ` : ''}
                     </div>
                 </div>

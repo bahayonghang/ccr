@@ -128,20 +128,95 @@ pub async fn serve_js() -> impl IntoResponse {
 /// 处理列出配置
 /// 🎯 异步处理，使用 spawn_blocking 避免阻塞运行时
 pub async fn handle_list_configs(AxumState(_state): AxumState<AppState>) -> Response {
-    // 🆕 每次请求都重新创建 ConfigService 以获取最新的平台配置
-    // 这样在 Unified 模式下切换平台后，能正确读取新平台的配置
-    let result = tokio::task::spawn_blocking(move || {
-        // 重新创建 ConfigService，它会自动检测当前平台
-        let config_service = crate::services::ConfigService::with_default()?;
-        config_service.list_configs()
-    })
-    .await
-    .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
+    let result =
+        tokio::task::spawn_blocking(move || {
+            // 🆕 检测配置模式，在 Unified 模式下从平台配置获取当前配置
+            use crate::managers::{ConfigManager, PlatformConfigManager};
+            let (is_unified, unified_config_path) = ConfigManager::detect_unified_mode();
+
+            // 在 Unified 模式下，从平台配置获取当前配置
+            let (current_config_name, configs_list) = if is_unified {
+                if let Some(unified_path) = unified_config_path {
+                    // 加载平台配置以获取当前配置名称
+                    let platform_manager = PlatformConfigManager::new(unified_path);
+                    if let Ok(unified_config) = platform_manager.load() {
+                        let current_platform = unified_config.current_platform;
+
+                        // 获取当前平台的配置
+                        use crate::models::Platform;
+                        use crate::platforms::create_platform;
+                        use std::str::FromStr;
+
+                        if let Ok(platform) = Platform::from_str(&current_platform) {
+                            if let Ok(platform_config) = create_platform(platform) {
+                                if let Ok(profiles) = platform_config.load_profiles() {
+                                    // 获取当前 profile 名称
+                                    let current_profile = unified_config
+                                        .platforms
+                                        .get(&current_platform)
+                                        .and_then(|p| p.current_profile.clone())
+                                        .unwrap_or_else(|| "-".to_string());
+
+                                    // 转换为标准 ConfigInfo 格式
+                                    let configs: Vec<crate::services::config_service::ConfigInfo> =
+                                        profiles
+                                            .into_iter()
+                                            .map(|(name, profile)| {
+                                                crate::services::config_service::ConfigInfo {
+                                                    name: name.clone(),
+                                                    description: profile
+                                                        .description
+                                                        .unwrap_or_default(),
+                                                    base_url: profile.base_url.clone(),
+                                                    auth_token: profile.auth_token.clone(),
+                                                    model: profile.model.clone(),
+                                                    small_fast_model: profile
+                                                        .small_fast_model
+                                                        .clone(),
+                                                    is_current: name == current_profile,
+                                                    is_default: false, // 平台模式下不使用默认配置
+                                                    provider: profile.provider.clone(),
+                                                    provider_type: profile.provider_type.clone(),
+                                                    account: profile.account.clone(),
+                                                    tags: profile.tags.clone(),
+                                                }
+                                            })
+                                            .collect();
+
+                                    (current_profile, configs)
+                                } else {
+                                    ("-".to_string(), Vec::new())
+                                }
+                            } else {
+                                ("-".to_string(), Vec::new())
+                            }
+                        } else {
+                            ("-".to_string(), Vec::new())
+                        }
+                    } else {
+                        ("-".to_string(), Vec::new())
+                    }
+                } else {
+                    ("-".to_string(), Vec::new())
+                }
+            } else {
+                // Legacy 模式：使用原来的逻辑
+                let config_service = crate::services::ConfigService::with_default()?;
+                let list = config_service.list_configs()?;
+                (list.current_config, list.configs)
+            };
+
+            Ok::<
+                (String, Vec<crate::services::config_service::ConfigInfo>),
+                crate::core::error::CcrError,
+            >((current_config_name, configs_list))
+        })
+        .await
+        .unwrap_or_else(|e| Err(CcrError::ConfigError(format!("任务执行失败: {}", e))));
 
     match result {
-        Ok(list) => {
-            let configs: Vec<ConfigItem> = list
-                .configs
+        Ok((current_config_name, configs_list)) => {
+            let configs: Vec<ConfigItem> = configs_list
                 .into_iter()
                 .map(|info| ConfigItem {
                     name: info.name.clone(),
@@ -162,8 +237,8 @@ pub async fn handle_list_configs(AxumState(_state): AxumState<AppState>) -> Resp
                 .collect();
 
             let response_data = ConfigListResponse {
-                current_config: list.current_config,
-                default_config: list.default_config,
+                current_config: current_config_name,
+                default_config: "-".to_string(), // 平台模式下不使用默认配置
                 configs,
             };
 
