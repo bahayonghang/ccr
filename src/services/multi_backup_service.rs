@@ -524,9 +524,18 @@ mod tests {
             assert!(cfg_item.target_path.exists());
             // 跨平台路径检查：检查路径组件而非字符串
             let path_str = cfg_item.target_path.display().to_string();
-            let has_backups = cfg_item.target_path.components().any(|c| c.as_os_str() == "backups");
-            let has_ccr = cfg_item.target_path.components().any(|c| c.as_os_str() == "ccr");
-            let has_config = cfg_item.target_path.components().any(|c| c.as_os_str() == "config");
+            let has_backups = cfg_item
+                .target_path
+                .components()
+                .any(|c| c.as_os_str() == "backups");
+            let has_ccr = cfg_item
+                .target_path
+                .components()
+                .any(|c| c.as_os_str() == "ccr");
+            let has_config = cfg_item
+                .target_path
+                .components()
+                .any(|c| c.as_os_str() == "config");
             assert!(
                 has_backups && has_ccr && has_config,
                 "ccr_config 备份路径不正确: {}",
@@ -541,9 +550,18 @@ mod tests {
             assert!(claude_item.target_path.exists());
             // 跨平台路径检查：检查路径组件而非字符串
             let path_str = claude_item.target_path.display().to_string();
-            let has_backups = claude_item.target_path.components().any(|c| c.as_os_str() == "backups");
-            let has_ccr = claude_item.target_path.components().any(|c| c.as_os_str() == "ccr");
-            let has_claude = claude_item.target_path.components().any(|c| c.as_os_str() == ".claude");
+            let has_backups = claude_item
+                .target_path
+                .components()
+                .any(|c| c.as_os_str() == "backups");
+            let has_ccr = claude_item
+                .target_path
+                .components()
+                .any(|c| c.as_os_str() == "ccr");
+            let has_claude = claude_item
+                .target_path
+                .components()
+                .any(|c| c.as_os_str() == ".claude");
             assert!(
                 has_backups && has_ccr && has_claude,
                 "claude 备份路径不正确: {}",
