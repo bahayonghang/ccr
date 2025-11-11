@@ -46,7 +46,7 @@ pub struct PlatformProfiles {
 }
 
 /// Legacy 配置文件结构
-/// 
+///
 /// 注意：当前 backend 使用 CCR 库的服务层，此结构保留作为参考
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(dead_code)]
@@ -115,7 +115,7 @@ pub fn get_ccr_root() -> Result<PathBuf, String> {
 }
 
 /// 读取当前平台（Unified 模式）
-/// 
+///
 /// 注意：当前 backend 使用 CCR 库的服务层，此函数保留作为参考
 #[allow(dead_code)]
 pub fn get_current_platform() -> Result<String, String> {
@@ -145,7 +145,7 @@ pub fn get_platform_profiles_path(platform: &str) -> Result<PathBuf, String> {
 }
 
 /// 获取配置文件路径（兼容两种模式）
-/// 
+///
 /// 注意：当前 backend 使用 CCR 库的服务层，此函数保留作为参考
 #[allow(dead_code)]
 pub fn get_config_path() -> Result<PathBuf, String> {
@@ -163,7 +163,7 @@ pub fn get_config_path() -> Result<PathBuf, String> {
 }
 
 /// 读取配置文件（兼容两种模式）
-/// 
+///
 /// 注意：当前 backend 使用 CCR 库的服务层，此函数保留作为参考
 #[allow(dead_code)]
 pub fn read_config() -> Result<CcsConfig, String> {
@@ -227,7 +227,7 @@ pub fn read_unified_config() -> Result<UnifiedConfig, String> {
 }
 
 /// 脱敏 token 用于显示
-/// 
+///
 /// 注意：当前 backend 使用 CCR 库的工具函数，此函数保留作为参考
 #[allow(dead_code)]
 pub fn mask_token(token: &str) -> String {

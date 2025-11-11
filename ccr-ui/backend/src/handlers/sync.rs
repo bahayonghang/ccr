@@ -44,9 +44,7 @@ fn parse_sync_status(output: &str) -> Option<SyncConfigDetails> {
         }
 
         // 自动同步：✓ 开启 / ✗ 关闭
-        if line.contains("自动同步")
-            && (line.contains("开启") || line.contains("✓"))
-        {
+        if line.contains("自动同步") && (line.contains("开启") || line.contains("✓")) {
             auto_sync = true;
         }
 

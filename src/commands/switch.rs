@@ -75,7 +75,10 @@ pub fn switch_command(config_name: &str) -> Result<()> {
             ColorOutput::info("💡 提示:");
             println!("  • 运行 'ccr list' 查看可用配置");
             println!("  • 运行 'ccr add <配置名>' 添加新配置");
-            println!("  • 或编辑配置文件: ~/.ccr/platforms/{}/profiles.toml", platform_name);
+            println!(
+                "  • 或编辑配置文件: ~/.ccr/platforms/{}/profiles.toml",
+                platform_name
+            );
             CcrError::ConfigSectionNotFound(config_name.to_string())
         })?;
 

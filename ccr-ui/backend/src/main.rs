@@ -249,7 +249,10 @@ fn create_router() -> Router {
         .route("/api/plugins", get(handlers::plugins::list_plugins))
         .route("/api/plugins", post(handlers::plugins::add_plugin))
         .route("/api/plugins/{id}", put(handlers::plugins::update_plugin))
-        .route("/api/plugins/{id}", delete(handlers::plugins::delete_plugin))
+        .route(
+            "/api/plugins/{id}",
+            delete(handlers::plugins::delete_plugin),
+        )
         .route(
             "/api/plugins/{id}/toggle",
             put(handlers::plugins::toggle_plugin),

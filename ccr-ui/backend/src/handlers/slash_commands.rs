@@ -37,32 +37,33 @@ pub async fn list_slash_commands() -> impl IntoResponse {
             };
 
             // Try to read with frontmatter first
-            let description = match manager.read_file::<CommandFrontmatter>(&full_name) {
-                Ok(file) => file.frontmatter.description.clone().unwrap_or_else(|| {
-                    extract_description_from_content(&file.content, &file_name)
-                }),
-                Err(_) => {
-                    // If frontmatter parsing fails, try to read as plain markdown
-                    let path = std::env::var("HOME").ok().map(|home| {
-                        std::path::Path::new(&home)
-                            .join(".claude")
-                            .join("commands")
-                            .join(format!("{}.md", full_name))
-                    });
+            let description =
+                match manager.read_file::<CommandFrontmatter>(&full_name) {
+                    Ok(file) => file.frontmatter.description.clone().unwrap_or_else(|| {
+                        extract_description_from_content(&file.content, &file_name)
+                    }),
+                    Err(_) => {
+                        // If frontmatter parsing fails, try to read as plain markdown
+                        let path = std::env::var("HOME").ok().map(|home| {
+                            std::path::Path::new(&home)
+                                .join(".claude")
+                                .join("commands")
+                                .join(format!("{}.md", full_name))
+                        });
 
-                    if let Some(path) = path {
-                        if let Ok(content) = std::fs::read_to_string(&path) {
-                            extract_description_from_content(&content, &file_name)
+                        if let Some(path) = path {
+                            if let Ok(content) = std::fs::read_to_string(&path) {
+                                extract_description_from_content(&content, &file_name)
+                            } else {
+                                tracing::warn!("Failed to read slash command file: {}", full_name);
+                                continue;
+                            }
                         } else {
-                            tracing::warn!("Failed to read slash command file: {}", full_name);
+                            tracing::warn!("Failed to get HOME directory");
                             continue;
                         }
-                    } else {
-                        tracing::warn!("Failed to get HOME directory");
-                        continue;
                     }
-                }
-            };
+                };
 
             commands.push(SlashCommand {
                 name: file_name.clone(),

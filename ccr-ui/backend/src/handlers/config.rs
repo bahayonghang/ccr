@@ -20,7 +20,7 @@ use crate::executor; // TODO: 逐步移除（export/import 还在使用）
 use crate::models::*;
 
 // 🎯 导入 CCR 核心库
-use ccr::{BackupService, ConfigService, HistoryService, ConfigSection, ProviderType};
+use ccr::{BackupService, ConfigSection, ConfigService, HistoryService, ProviderType};
 
 /// 屏蔽敏感 token（显示前4位和后4位）
 fn mask_token(token: &str) -> String {
@@ -337,7 +337,7 @@ pub async fn add_config(Json(req): Json<UpdateConfigRequest>) -> impl IntoRespon
         // 使用锁管理器确保并发安全
         let lock_manager = ccr::LockManager::with_default_path()
             .map_err(|e| format!("Failed to create LockManager: {}", e))?;
-        
+
         let _lock = lock_manager
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
@@ -363,12 +363,10 @@ pub async fn add_config(Json(req): Json<UpdateConfigRequest>) -> impl IntoRespon
             model: req.model,
             small_fast_model: None,
             provider: None,
-            provider_type: req.provider_type.as_ref().and_then(|s| {
-                match s.as_str() {
-                    "official_relay" => Some(ProviderType::OfficialRelay),
-                    "third_party_model" => Some(ProviderType::ThirdPartyModel),
-                    _ => None,
-                }
+            provider_type: req.provider_type.as_ref().and_then(|s| match s.as_str() {
+                "official_relay" => Some(ProviderType::OfficialRelay),
+                "third_party_model" => Some(ProviderType::ThirdPartyModel),
+                _ => None,
             }),
             account: None,
             tags: None,
@@ -391,10 +389,7 @@ pub async fn add_config(Json(req): Json<UpdateConfigRequest>) -> impl IntoRespon
             StatusCode::CREATED,
             Json(ApiResponse::success("Configuration added successfully")),
         ),
-        Ok(Err(e)) => (
-            StatusCode::BAD_REQUEST,
-            Json(ApiResponse::<&str>::error(e)),
-        ),
+        Ok(Err(e)) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<&str>::error(e))),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse::<&str>::error(e.to_string())),
@@ -411,7 +406,7 @@ pub async fn update_config(
         // 使用锁管理器确保并发安全
         let lock_manager = ccr::LockManager::with_default_path()
             .map_err(|e| format!("Failed to create LockManager: {}", e))?;
-        
+
         let _lock = lock_manager
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
@@ -437,12 +432,10 @@ pub async fn update_config(
             model: req.model,
             small_fast_model: None,
             provider: None,
-            provider_type: req.provider_type.as_ref().and_then(|s| {
-                match s.as_str() {
-                    "official_relay" => Some(ProviderType::OfficialRelay),
-                    "third_party_model" => Some(ProviderType::ThirdPartyModel),
-                    _ => None,
-                }
+            provider_type: req.provider_type.as_ref().and_then(|s| match s.as_str() {
+                "official_relay" => Some(ProviderType::OfficialRelay),
+                "third_party_model" => Some(ProviderType::ThirdPartyModel),
+                _ => None,
             }),
             account: None,
             tags: None,
@@ -464,10 +457,7 @@ pub async fn update_config(
             StatusCode::OK,
             Json(ApiResponse::success("Configuration updated successfully")),
         ),
-        Ok(Err(e)) => (
-            StatusCode::BAD_REQUEST,
-            Json(ApiResponse::<&str>::error(e)),
-        ),
+        Ok(Err(e)) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<&str>::error(e))),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse::<&str>::error(e.to_string())),
@@ -481,7 +471,7 @@ pub async fn delete_config(Path(name): Path<String>) -> impl IntoResponse {
         // 使用锁管理器确保并发安全
         let lock_manager = ccr::LockManager::with_default_path()
             .map_err(|e| format!("Failed to create LockManager: {}", e))?;
-        
+
         let _lock = lock_manager
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
@@ -518,10 +508,7 @@ pub async fn delete_config(Path(name): Path<String>) -> impl IntoResponse {
             StatusCode::OK,
             Json(ApiResponse::success("Configuration deleted successfully")),
         ),
-        Ok(Err(e)) => (
-            StatusCode::BAD_REQUEST,
-            Json(ApiResponse::<&str>::error(e)),
-        ),
+        Ok(Err(e)) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<&str>::error(e))),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse::<&str>::error(e.to_string())),

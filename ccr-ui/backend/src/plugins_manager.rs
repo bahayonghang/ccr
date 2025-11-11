@@ -65,9 +65,9 @@ impl PluginsManager {
         fs::write(temp_file.path(), content)?;
 
         // Atomic rename
-        temp_file.persist(&self.config_path).map_err(|e| {
-            io::Error::other(format!("Failed to persist plugins config: {}", e))
-        })?;
+        temp_file
+            .persist(&self.config_path)
+            .map_err(|e| io::Error::other(format!("Failed to persist plugins config: {}", e)))?;
 
         Ok(())
     }
