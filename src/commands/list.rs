@@ -9,7 +9,8 @@ use crate::services::ConfigService;
 use crate::utils::Validatable;
 use colored::Colorize;
 use comfy_table::{
-    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
+    Attribute, Cell, CellAlignment, Color as TableColor, ColumnConstraint, ContentArrangement,
+    Table, Width, presets::UTF8_FULL,
 };
 
 /// 📜 列出所有可用配置
@@ -78,7 +79,7 @@ pub fn list_command() -> Result<()> {
     let mut table = Table::new();
     table
         .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("状态")
                 .add_attribute(Attribute::Bold)
@@ -106,11 +107,11 @@ pub fn list_command() -> Result<()> {
     for config_info in &list.configs {
         // 状态列
         let status = if config_info.is_current {
-            Cell::new("▶ 当前")
+            Cell::new(">> 当前")
                 .fg(TableColor::Green)
                 .add_attribute(Attribute::Bold)
         } else if config_info.is_default {
-            Cell::new("⭐ 默认").fg(TableColor::Yellow)
+            Cell::new("* 默认").fg(TableColor::Yellow)
         } else {
             Cell::new("")
         };
@@ -126,12 +127,12 @@ pub fn list_command() -> Result<()> {
 
         // 提供商信息
         let provider_info = if let Some(provider) = &config_info.provider {
-            let type_icon = match config_info.provider_type.as_deref() {
-                Some("official_relay") => "🔄",
-                Some("third_party_model") => "🤖",
-                _ => "❓",
+            let type_tag = match config_info.provider_type.as_deref() {
+                Some("official_relay") => "[relay]",
+                Some("third_party_model") => "[3rd]",
+                _ => "[?]",
             };
-            format!("{} {}", type_icon, provider)
+            format!("{} {}", type_tag, provider)
         } else {
             "未分类".to_string()
         };
@@ -165,12 +166,12 @@ pub fn list_command() -> Result<()> {
         // 账号/标签
         let mut extra_info = Vec::new();
         if let Some(account) = &config_info.account {
-            extra_info.push(format!("👤 {}", account));
+            extra_info.push(format!("acc: {}", account));
         }
         if let Some(tags) = &config_info.tags
             && !tags.is_empty()
         {
-            extra_info.push(format!("🏷️  {}", tags.join(", ")));
+            extra_info.push(format!("tags: {}", tags.join(", ")));
         }
         let extra_info_str = if extra_info.is_empty() {
             "-".to_string()
@@ -181,10 +182,10 @@ pub fn list_command() -> Result<()> {
         // 验证状态
         let section = config.get_section(&config_info.name)?;
         let validation_cell = match section.validate() {
-            Ok(_) => Cell::new("✓")
+            Ok(_) => Cell::new("OK")
                 .fg(TableColor::Green)
                 .add_attribute(Attribute::Bold),
-            Err(_) => Cell::new("✗")
+            Err(_) => Cell::new("X")
                 .fg(TableColor::Red)
                 .add_attribute(Attribute::Bold),
         };
@@ -198,6 +199,12 @@ pub fn list_command() -> Result<()> {
             Cell::new(extra_info_str).fg(TableColor::Yellow),
             validation_cell,
         ]);
+    }
+
+    // 为最右侧"验证"列设置固定宽度并居中，避免宽字符导致的边界错位
+    if let Some(column) = table.column_mut(6) {
+        column.set_constraint(ColumnConstraint::Absolute(Width::Fixed(5)));
+        column.set_cell_alignment(CellAlignment::Center);
     }
 
     println!("{}", table);

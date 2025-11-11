@@ -140,7 +140,7 @@ fn display_temp_override(temp_override: &TempOverride) {
     let mut table = Table::new();
     table
         .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("字段")
                 .add_attribute(Attribute::Bold)

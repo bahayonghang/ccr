@@ -8,7 +8,8 @@ use crate::models::{Platform, PlatformPaths};
 use crate::platforms::{PlatformRegistry, create_platform};
 use colored::Colorize;
 use comfy_table::{
-    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
+    Attribute, Cell, CellAlignment, Color as TableColor, ColumnConstraint, ContentArrangement,
+    Table, presets::UTF8_FULL,
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -197,7 +198,7 @@ pub fn platform_list_command(json: bool) -> Result<()> {
     let mut table = Table::new();
     table
         .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("状态")
                 .add_attribute(Attribute::Bold)
@@ -220,11 +221,11 @@ pub fn platform_list_command(json: bool) -> Result<()> {
     for platform in &platforms_data {
         // 状态列
         let status = if platform.is_current {
-            Cell::new("▶ 当前")
+            Cell::new(">> 当前")
                 .fg(TableColor::Green)
                 .add_attribute(Attribute::Bold)
         } else if platform.is_default {
-            Cell::new("⭐ 默认").fg(TableColor::Yellow)
+            Cell::new("* 默认").fg(TableColor::Yellow)
         } else {
             Cell::new("")
         };
@@ -240,11 +241,11 @@ pub fn platform_list_command(json: bool) -> Result<()> {
 
         // 启用状态
         let enabled_cell = if platform.enabled {
-            Cell::new("✓")
+            Cell::new("OK")
                 .fg(TableColor::Green)
                 .add_attribute(Attribute::Bold)
         } else {
-            Cell::new("✗").fg(TableColor::Red)
+            Cell::new("X").fg(TableColor::Red)
         };
 
         // 当前 profile
@@ -257,6 +258,12 @@ pub fn platform_list_command(json: bool) -> Result<()> {
             Cell::new(current_profile),
             Cell::new(&platform.description).fg(TableColor::Blue),
         ]);
+    }
+
+    // 为"启用"列设置固定宽度和居中对齐
+    if let Some(column) = table.column_mut(2) {
+        column.set_constraint(ColumnConstraint::ContentWidth);
+        column.set_cell_alignment(CellAlignment::Center);
     }
 
     println!("{}", table);

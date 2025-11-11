@@ -38,7 +38,7 @@ fn make_table(width: usize, headers: &[&str]) -> Table {
     let mut table = Table::new();
     table
         .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_width(min((width.saturating_sub(4)) as u16, 120));
 
     let header_cells: Vec<Cell> = headers

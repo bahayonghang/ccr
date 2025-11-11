@@ -9,7 +9,9 @@ use crate::managers::sync_folder_manager::SyncFolderManager;
 use crate::models::sync_folder::SyncFolder;
 use crate::services::{MultiBackupService, SyncService};
 use colored::Colorize;
-use comfy_table::{Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
+use comfy_table::{
+    Cell, CellAlignment, Color, ColumnConstraint, ContentArrangement, Table, presets::UTF8_FULL,
+};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
@@ -940,7 +942,7 @@ pub fn sync_folder_list_command() -> Result<()> {
     let mut table = Table::new();
     table
         .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::Dynamic);
+        .set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
     // 表头
     table.set_header(vec![
@@ -966,6 +968,12 @@ pub fn sync_folder_list_command() -> Result<()> {
             Cell::new(&folder.remote_path),
             Cell::new(&folder.description),
         ]);
+    }
+
+    // 为"状态"列设置固定宽度和居中对齐
+    if let Some(column) = table.column_mut(1) {
+        column.set_constraint(ColumnConstraint::ContentWidth);
+        column.set_cell_alignment(CellAlignment::Center);
     }
 
     println!("{table}");
@@ -1345,7 +1353,7 @@ pub fn sync_all_status_command() -> Result<()> {
     let mut table = Table::new();
     table
         .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::Dynamic);
+        .set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
     // 表头
     table.set_header(vec![
@@ -1373,6 +1381,16 @@ pub fn sync_all_status_command() -> Result<()> {
         let sync_status = Cell::new("未知").fg(Color::Yellow);
 
         table.add_row(vec![Cell::new(&folder.name), enabled, exists, sync_status]);
+    }
+
+    // 为"启用"和"本地存在"列设置固定宽度和居中对齐
+    if let Some(column) = table.column_mut(1) {
+        column.set_constraint(ColumnConstraint::ContentWidth);
+        column.set_cell_alignment(CellAlignment::Center);
+    }
+    if let Some(column) = table.column_mut(2) {
+        column.set_constraint(ColumnConstraint::ContentWidth);
+        column.set_cell_alignment(CellAlignment::Center);
     }
 
     println!("{table}");

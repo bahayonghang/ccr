@@ -54,7 +54,7 @@ pub fn current_command() -> Result<()> {
             let mut platform_table = Table::new();
             platform_table
                 .load_preset(UTF8_FULL)
-                .set_content_arrangement(ContentArrangement::Dynamic)
+                .set_content_arrangement(ContentArrangement::DynamicFullWidth)
                 .set_header(vec![
                     Cell::new("属性")
                         .add_attribute(Attribute::Bold)
@@ -177,7 +177,7 @@ pub fn current_command() -> Result<()> {
     let mut config_table = Table::new();
     config_table
         .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("属性")
                 .add_attribute(Attribute::Bold)
@@ -306,7 +306,7 @@ pub fn current_command() -> Result<()> {
                     let mut env_table = Table::new();
                     env_table
                         .load_preset(UTF8_FULL)
-                        .set_content_arrangement(ContentArrangement::Dynamic)
+                        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
                         .set_header(vec![
                             Cell::new("环境变量")
                                 .add_attribute(Attribute::Bold)
