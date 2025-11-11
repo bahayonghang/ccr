@@ -109,8 +109,14 @@ test:
   @echo "✅ 运行测试套件"
   @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   @echo "📊 模式: 标准测试"
+  @echo "⚠️  注意: platform_integration_tests 使用串行模式 (--test-threads=1)"
   @echo ""
-  cargo test
+  # 首先运行需要串行执行的 platform_integration_tests (修改全局环境变量)
+  cargo test --test platform_integration_tests -- --test-threads=1
+  # 然后运行其他测试 (可以并行)
+  cargo test --lib
+  cargo test --test integration_test
+  cargo test --test manager_tests
   @echo ""
   @echo "✅ 所有测试通过"
 
@@ -118,8 +124,14 @@ test:
 test-all:
   @echo "🧪 运行完整测试套件"
   @echo "📊 模式: 包含被忽略的测试"
+  @echo "⚠️  注意: platform_integration_tests 使用串行模式 (--test-threads=1)"
   @echo ""
-  cargo test -- --include-ignored
+  # 首先运行需要串行执行的 platform_integration_tests
+  cargo test --test platform_integration_tests -- --test-threads=1 --include-ignored
+  # 然后运行其他测试
+  cargo test --lib -- --include-ignored
+  cargo test --test integration_test -- --include-ignored
+  cargo test --test manager_tests -- --include-ignored
   @echo ""
   @echo "✅ 完整测试通过"
 

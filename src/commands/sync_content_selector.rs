@@ -433,6 +433,12 @@ mod tests {
     fn test_sync_content_selector_new() {
         let temp_dir = tempdir().unwrap();
         let ccr_root = temp_dir.path().join(".ccr");
+
+        // 确保清理任何现有的CCR_ROOT
+        unsafe {
+            std::env::remove_var("CCR_ROOT");
+        }
+
         unsafe {
             std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
         }
@@ -440,8 +446,28 @@ mod tests {
         fs::create_dir_all(&ccr_root).unwrap();
         fs::write(ccr_root.join("config.toml"), "test").unwrap();
 
+        // 验证文件确实被创建
+        assert!(
+            ccr_root.join("config.toml").exists(),
+            "config.toml should exist"
+        );
+
         let selector = SyncContentSelector::new();
-        assert!(!selector.available_types.is_empty());
+
+        // 调试信息
+        if selector.available_types.is_empty() {
+            eprintln!("CCR_ROOT: {:?}", std::env::var("CCR_ROOT"));
+            eprintln!("ccr_root path: {:?}", ccr_root);
+            eprintln!(
+                "config.toml exists: {}",
+                ccr_root.join("config.toml").exists()
+            );
+        }
+
+        assert!(
+            !selector.available_types.is_empty(),
+            "available_types should not be empty"
+        );
         assert!(selector.selected.contains_key(&SyncContentType::Config));
 
         // 清理环境变量
