@@ -23,31 +23,31 @@ fn parse_sync_status(output: &str) -> Option<SyncConfigDetails> {
         }
 
         // WebDAV 服务器：https://...
-        if line.contains("WebDAV 服务器") || line.contains("服务器") {
-            if let Some(url) = line.split('│').nth(1) {
-                webdav_url = url.trim().to_string();
-            }
+        if (line.contains("WebDAV 服务器") || line.contains("服务器"))
+            && let Some(url) = line.split('│').nth(1)
+        {
+            webdav_url = url.trim().to_string();
         }
 
         // 用户名：xxx
-        if line.contains("用户名") {
-            if let Some(user) = line.split('│').nth(1) {
-                username = user.trim().to_string();
-            }
+        if line.contains("用户名")
+            && let Some(user) = line.split('│').nth(1)
+        {
+            username = user.trim().to_string();
         }
 
         // 远程路径：/ccr/.ccs_config.toml
-        if line.contains("远程路径") || line.contains("远程文件路径") {
-            if let Some(path) = line.split('│').nth(1) {
-                remote_path = path.trim().to_string();
-            }
+        if (line.contains("远程路径") || line.contains("远程文件路径"))
+            && let Some(path) = line.split('│').nth(1)
+        {
+            remote_path = path.trim().to_string();
         }
 
         // 自动同步：✓ 开启 / ✗ 关闭
-        if line.contains("自动同步") {
-            if line.contains("开启") || line.contains("✓") {
-                auto_sync = true;
-            }
+        if line.contains("自动同步")
+            && (line.contains("开启") || line.contains("✓"))
+        {
+            auto_sync = true;
         }
 
         // 远程配置文件存在

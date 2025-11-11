@@ -100,7 +100,7 @@ async fn main() -> std::io::Result<()> {
 
     axum::serve(listener, app)
         .await
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+        .map_err(std::io::Error::other)
 }
 
 /// Create the main application router with all middlewares and routes

@@ -131,8 +131,7 @@ impl CommandService {
             if let Ok(status) = child.wait().await {
                 debug!("Stream command finished with status: {:?}", status);
                 if !status.success() {
-                    yield Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
+                    yield Err(std::io::Error::other(
                         format!("Command failed with exit code: {:?}", status.code())
                     ));
                 }

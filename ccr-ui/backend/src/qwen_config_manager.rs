@@ -160,20 +160,22 @@ mod tests {
         let config_path = temp_dir.path().join("settings.json");
         let manager = QwenConfigManager::with_path(config_path.clone());
 
-        let mut config = QwenConfig::default();
-        config.mcp_servers = Some(HashMap::from([(
-            "test".to_string(),
-            QwenMcpServer {
-                command: Some("test-command".to_string()),
-                args: Some(vec!["arg1".to_string()]),
-                env: None,
-                url: None,
-                http_url: None,
-                headers: None,
-                timeout: Some(10000),
-                other: HashMap::new(),
-            },
-        )]));
+        let config = QwenConfig {
+            mcp_servers: Some(HashMap::from([(
+                "test".to_string(),
+                QwenMcpServer {
+                    command: Some("test-command".to_string()),
+                    args: Some(vec!["arg1".to_string()]),
+                    env: None,
+                    url: None,
+                    http_url: None,
+                    headers: None,
+                    timeout: Some(10000),
+                    other: HashMap::new(),
+                },
+            )])),
+            ..Default::default()
+        };
 
         manager.write_config(&config).unwrap();
         let read_config = manager.read_config().unwrap();

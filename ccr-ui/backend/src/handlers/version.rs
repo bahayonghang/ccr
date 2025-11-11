@@ -113,16 +113,16 @@ async fn fetch_latest_version_from_github() -> Result<String, Box<dyn std::error
     // Parse version from Cargo.toml
     for line in cargo_toml_content.lines() {
         let line = line.trim();
-        if line.starts_with("version") {
+        if line.starts_with("version")
+            && let Some(version) = line.split('=').nth(1)
+        {
             // Parse: version = "1.2.3"
-            if let Some(version) = line.split('=').nth(1) {
-                let version = version
-                    .trim()
-                    .trim_matches('"')
-                    .trim_matches('\'')
-                    .to_string();
-                return Ok(version);
-            }
+            let version = version
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_string();
+            return Ok(version);
         }
     }
 
@@ -176,20 +176,16 @@ fn execute_ccr_update() -> Result<CommandOutput, Box<dyn std::error::Error>> {
 
     // Read stdout
     let stdout_reader = BufReader::new(stdout);
-    for line in stdout_reader.lines() {
-        if let Ok(line) = line {
-            tracing::debug!("CCR update stdout: {}", line);
-            stdout_lines.push(line);
-        }
+    for line in stdout_reader.lines().map_while(Result::ok) {
+        tracing::debug!("CCR update stdout: {}", line);
+        stdout_lines.push(line);
     }
 
     // Read stderr
     let stderr_reader = BufReader::new(stderr);
-    for line in stderr_reader.lines() {
-        if let Ok(line) = line {
-            tracing::debug!("CCR update stderr: {}", line);
-            stderr_lines.push(line);
-        }
+    for line in stderr_reader.lines().map_while(Result::ok) {
+        tracing::debug!("CCR update stderr: {}", line);
+        stderr_lines.push(line);
     }
 
     let status = child.wait()?;

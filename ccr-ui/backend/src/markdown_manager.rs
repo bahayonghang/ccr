@@ -54,13 +54,12 @@ impl MarkdownManager {
         }
 
         let mut files = Vec::new();
-        self.list_files_recursive(&self.directory, "", &mut files)?;
+        Self::list_files_recursive(&self.directory, "", &mut files)?;
         files.sort_by(|a, b| a.0.cmp(&b.0));
         Ok(files)
     }
 
     fn list_files_recursive(
-        &self,
         dir: &Path,
         folder_path: &str,
         files: &mut Vec<(String, String)>,
@@ -75,15 +74,15 @@ impl MarkdownManager {
                 if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
                     files.push((name.to_string(), folder_path.to_string()));
                 }
-            } else if path.is_dir() {
-                if let Some(dir_name) = path.file_name().and_then(|s| s.to_str()) {
-                    let new_folder_path = if folder_path.is_empty() {
-                        dir_name.to_string()
-                    } else {
-                        format!("{}/{}", folder_path, dir_name)
-                    };
-                    self.list_files_recursive(&path, &new_folder_path, files)?;
-                }
+            } else if path.is_dir()
+                && let Some(dir_name) = path.file_name().and_then(|s| s.to_str())
+            {
+                let new_folder_path = if folder_path.is_empty() {
+                    dir_name.to_string()
+                } else {
+                    format!("{}/{}", folder_path, dir_name)
+                };
+                Self::list_files_recursive(&path, &new_folder_path, files)?;
             }
         }
 
@@ -103,10 +102,10 @@ impl MarkdownManager {
         for entry in entries {
             let entry = entry?;
             let path = entry.path();
-            if path.is_dir() {
-                if let Some(name) = path.file_name().and_then(|s| s.to_str()) {
-                    dirs.push(name.to_string());
-                }
+            if path.is_dir()
+                && let Some(name) = path.file_name().and_then(|s| s.to_str())
+            {
+                dirs.push(name.to_string());
             }
         }
 

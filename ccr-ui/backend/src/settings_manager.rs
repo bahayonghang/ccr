@@ -24,7 +24,7 @@ pub enum SettingsError {
 pub type Result<T> = std::result::Result<T, SettingsError>;
 
 /// Claude Code settings structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ClaudeSettings {
     /// Environment variables
     #[serde(default)]
@@ -117,21 +117,6 @@ fn is_false(b: &bool) -> bool {
 
 fn default_true() -> bool {
     true
-}
-
-impl Default for ClaudeSettings {
-    fn default() -> Self {
-        Self {
-            env: HashMap::new(),
-            output_style: None,
-            permissions: None,
-            mcp_servers: HashMap::new(),
-            slash_commands: Vec::new(),
-            agents: Vec::new(),
-            plugins: Vec::new(),
-            other: HashMap::new(),
-        }
-    }
 }
 
 pub struct SettingsManager {

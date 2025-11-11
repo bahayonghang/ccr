@@ -309,8 +309,8 @@ pub async fn get_config(Path(name): Path<String>) -> ApiResult<Json<ConfigItem>>
             auth_token: section.auth_token.clone().unwrap_or_default(), // 完整token
             model: section.model.clone(),
             small_fast_model: section.small_fast_model.clone(),
-            is_current: &name == &config.current_config,
-            is_default: &name == &config.default_config,
+            is_current: name == config.current_config,
+            is_default: name == config.default_config,
             provider: section.provider.clone(),
             provider_type: section
                 .provider_type

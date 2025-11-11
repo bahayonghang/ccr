@@ -159,20 +159,22 @@ mod tests {
         let config_path = temp_dir.path().join("settings.json");
         let manager = GeminiConfigManager::with_path(config_path.clone());
 
-        let mut config = GeminiConfig::default();
-        config.mcp_servers = Some(HashMap::from([(
-            "test".to_string(),
-            GeminiMcpServer {
-                command: Some("test-command".to_string()),
-                args: Some(vec!["arg1".to_string()]),
-                env: None,
-                cwd: None,
-                timeout: Some(10000),
-                trust: Some(false),
-                include_tools: None,
-                other: HashMap::new(),
-            },
-        )]));
+        let config = GeminiConfig {
+            mcp_servers: Some(HashMap::from([(
+                "test".to_string(),
+                GeminiMcpServer {
+                    command: Some("test-command".to_string()),
+                    args: Some(vec!["arg1".to_string()]),
+                    env: None,
+                    cwd: None,
+                    timeout: Some(10000),
+                    trust: Some(false),
+                    include_tools: None,
+                    other: HashMap::new(),
+                },
+            )])),
+            ..Default::default()
+        };
 
         manager.write_config(&config).unwrap();
         let read_config = manager.read_config().unwrap();

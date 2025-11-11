@@ -54,7 +54,7 @@ pub async fn list_plugins() -> impl IntoResponse {
         Ok(plugins_map) => {
             let plugins: Vec<Plugin> = plugins_map
                 .into_iter()
-                .filter_map(|(id, value)| {
+                .map(|(id, value)| {
                     let name = value
                         .get("name")
                         .and_then(|v| v.as_str())
@@ -70,13 +70,13 @@ pub async fn list_plugins() -> impl IntoResponse {
                         .and_then(|v| v.as_bool())
                         .unwrap_or(true);
 
-                    Some(Plugin {
+                    Plugin {
                         id,
                         name,
                         version,
                         enabled,
                         config: Some(value),
-                    })
+                    }
                 })
                 .collect();
 
@@ -105,29 +105,29 @@ pub async fn list_plugins() -> impl IntoResponse {
 /// POST /api/plugins - Add a new plugin
 pub async fn add_plugin(Json(req): Json<PluginRequest>) -> impl IntoResponse {
     // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default() {
-        if let Ok(mut settings) = settings_manager.load() {
-            let new_plugin = crate::settings_manager::Plugin {
-                id: req.id.clone(),
-                name: req.name.clone(),
-                version: req.version.clone(),
-                enabled: req.enabled.unwrap_or(true),
-                config: req.config.clone(),
-            };
+    if let Ok(settings_manager) = SettingsManager::default()
+        && let Ok(mut settings) = settings_manager.load()
+    {
+        let new_plugin = crate::settings_manager::Plugin {
+            id: req.id.clone(),
+            name: req.name.clone(),
+            version: req.version.clone(),
+            enabled: req.enabled.unwrap_or(true),
+            config: req.config.clone(),
+        };
 
-            settings.plugins.push(new_plugin);
+        settings.plugins.push(new_plugin);
 
-            if settings_manager.save(&settings).is_ok() {
-                return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "success": true,
-                        "data": "Plugin added successfully",
-                        "message": null
-                    })),
-                )
-                    .into_response();
-            }
+        if settings_manager.save(&settings).is_ok() {
+            return (
+                StatusCode::OK,
+                Json(json!({
+                    "success": true,
+                    "data": "Plugin added successfully",
+                    "message": null
+                })),
+            )
+                .into_response();
         }
     }
 
@@ -188,39 +188,39 @@ pub async fn update_plugin(
     Json(req): Json<PluginRequest>,
 ) -> impl IntoResponse {
     // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default() {
-        if let Ok(mut settings) = settings_manager.load() {
-            if let Some(plugin) = settings.plugins.iter_mut().find(|p| p.id == id) {
-                plugin.id = req.id.clone();
-                plugin.name = req.name.clone();
-                plugin.version = req.version.clone();
-                if let Some(enabled) = req.enabled {
-                    plugin.enabled = enabled;
-                }
-                plugin.config = req.config.clone();
+    if let Ok(settings_manager) = SettingsManager::default()
+        && let Ok(mut settings) = settings_manager.load()
+    {
+        if let Some(plugin) = settings.plugins.iter_mut().find(|p| p.id == id) {
+            plugin.id = req.id.clone();
+            plugin.name = req.name.clone();
+            plugin.version = req.version.clone();
+            if let Some(enabled) = req.enabled {
+                plugin.enabled = enabled;
+            }
+            plugin.config = req.config.clone();
 
-                if settings_manager.save(&settings).is_ok() {
-                    return (
-                        StatusCode::OK,
-                        Json(json!({
-                            "success": true,
-                            "data": "Plugin updated successfully",
-                            "message": null
-                        })),
-                    )
-                        .into_response();
-                }
-            } else {
+            if settings_manager.save(&settings).is_ok() {
                 return (
-                    StatusCode::NOT_FOUND,
+                    StatusCode::OK,
                     Json(json!({
-                        "success": false,
-                        "data": null,
-                        "message": "Plugin not found"
+                        "success": true,
+                        "data": "Plugin updated successfully",
+                        "message": null
                     })),
                 )
                     .into_response();
             }
+        } else {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "success": false,
+                    "data": null,
+                    "message": "Plugin not found"
+                })),
+            )
+                .into_response();
         }
     }
 
@@ -278,34 +278,34 @@ pub async fn update_plugin(
 /// DELETE /api/plugins/:id - Delete a plugin
 pub async fn delete_plugin(Path(id): Path<String>) -> impl IntoResponse {
     // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default() {
-        if let Ok(mut settings) = settings_manager.load() {
-            let original_len = settings.plugins.len();
-            settings.plugins.retain(|p| p.id != id);
+    if let Ok(settings_manager) = SettingsManager::default()
+        && let Ok(mut settings) = settings_manager.load()
+    {
+        let original_len = settings.plugins.len();
+        settings.plugins.retain(|p| p.id != id);
 
-            if settings.plugins.len() < original_len {
-                if settings_manager.save(&settings).is_ok() {
-                    return (
-                        StatusCode::OK,
-                        Json(json!({
-                            "success": true,
-                            "data": "Plugin deleted successfully",
-                            "message": null
-                        })),
-                    )
-                        .into_response();
-                }
-            } else {
+        if settings.plugins.len() < original_len {
+            if settings_manager.save(&settings).is_ok() {
                 return (
-                    StatusCode::NOT_FOUND,
+                    StatusCode::OK,
                     Json(json!({
-                        "success": false,
-                        "data": null,
-                        "message": "Plugin not found"
+                        "success": true,
+                        "data": "Plugin deleted successfully",
+                        "message": null
                     })),
                 )
                     .into_response();
             }
+        } else {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "success": false,
+                    "data": null,
+                    "message": "Plugin not found"
+                })),
+            )
+                .into_response();
         }
     }
 
@@ -350,38 +350,38 @@ pub async fn delete_plugin(Path(id): Path<String>) -> impl IntoResponse {
 /// PATCH /api/plugins/:id/toggle - Toggle plugin enabled/disabled state
 pub async fn toggle_plugin(Path(id): Path<String>) -> impl IntoResponse {
     // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default() {
-        if let Ok(mut settings) = settings_manager.load() {
-            if let Some(plugin) = settings.plugins.iter_mut().find(|p| p.id == id) {
-                plugin.enabled = !plugin.enabled;
-                let new_state = if plugin.enabled {
-                    "enabled"
-                } else {
-                    "disabled"
-                };
-
-                if settings_manager.save(&settings).is_ok() {
-                    return (
-                        StatusCode::OK,
-                        Json(json!({
-                            "success": true,
-                            "data": format!("Plugin toggled to {}", new_state),
-                            "message": null
-                        })),
-                    )
-                        .into_response();
-                }
+    if let Ok(settings_manager) = SettingsManager::default()
+        && let Ok(mut settings) = settings_manager.load()
+    {
+        if let Some(plugin) = settings.plugins.iter_mut().find(|p| p.id == id) {
+            plugin.enabled = !plugin.enabled;
+            let new_state = if plugin.enabled {
+                "enabled"
             } else {
+                "disabled"
+            };
+
+            if settings_manager.save(&settings).is_ok() {
                 return (
-                    StatusCode::NOT_FOUND,
+                    StatusCode::OK,
                     Json(json!({
-                        "success": false,
-                        "data": null,
-                        "message": "Plugin not found"
+                        "success": true,
+                        "data": format!("Plugin toggled to {}", new_state),
+                        "message": null
                     })),
                 )
                     .into_response();
             }
+        } else {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "success": false,
+                    "data": null,
+                    "message": "Plugin not found"
+                })),
+            )
+                .into_response();
         }
     }
 

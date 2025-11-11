@@ -145,10 +145,7 @@ impl PlatformConfigManager {
 
         // Atomic rename
         temp_file.persist(&self.config_path).map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to persist platform config: {}", e),
-            )
+            io::Error::other(format!("Failed to persist platform config: {}", e))
         })?;
 
         Ok(())

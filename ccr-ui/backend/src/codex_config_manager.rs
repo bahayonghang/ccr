@@ -107,10 +107,10 @@ impl CodexConfigManager {
         let mut config = self.read_config()?;
 
         // 检查是否已存在
-        if let Some(ref servers) = config.mcp_servers {
-            if servers.contains_key(&name) {
-                return Err(format!("MCP 服务器 '{}' 已存在", name));
-            }
+        if let Some(ref servers) = config.mcp_servers
+            && servers.contains_key(&name)
+        {
+            return Err(format!("MCP 服务器 '{}' 已存在", name));
         }
 
         // 添加服务器
@@ -183,10 +183,10 @@ impl CodexConfigManager {
         let mut config = self.read_config()?;
 
         // 检查是否已存在
-        if let Some(ref profiles) = config.profiles {
-            if profiles.contains_key(&name) {
-                return Err(format!("Profile '{}' 已存在", name));
-            }
+        if let Some(ref profiles) = config.profiles
+            && profiles.contains_key(&name)
+        {
+            return Err(format!("Profile '{}' 已存在", name));
         }
 
         // 添加 Profile
@@ -279,21 +279,23 @@ mod tests {
         let manager = CodexConfigManager::with_path(config_path.clone());
 
         // 写入配置
-        let mut config = CodexConfig::default();
-        config.model = Some("gpt-5".to_string());
-        config.mcp_servers = Some(HashMap::from([(
-            "context7".to_string(),
-            CodexMcpServer {
-                command: Some("npx".to_string()),
-                args: Some(vec!["-y".to_string(), "@upstash/context7-mcp".to_string()]),
-                env: None,
-                cwd: None,
-                startup_timeout_ms: Some(20000),
-                url: None,
-                bearer_token: None,
-                other: HashMap::new(),
-            },
-        )]));
+        let config = CodexConfig {
+            model: Some("gpt-5".to_string()),
+            mcp_servers: Some(HashMap::from([(
+                "context7".to_string(),
+                CodexMcpServer {
+                    command: Some("npx".to_string()),
+                    args: Some(vec!["-y".to_string(), "@upstash/context7-mcp".to_string()]),
+                    env: None,
+                    cwd: None,
+                    startup_timeout_ms: Some(20000),
+                    url: None,
+                    bearer_token: None,
+                    other: HashMap::new(),
+                },
+            )])),
+            ..Default::default()
+        };
 
         manager.write_config(&config).unwrap();
 
