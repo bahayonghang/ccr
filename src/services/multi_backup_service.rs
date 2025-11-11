@@ -1,6 +1,8 @@
 // 📦 多类型增量备份服务
 // 负责将 CCR 配置和各平台 CLI 配置按统一结构进行备份，并支持增量与并发安全
 
+#![allow(dead_code)]
+
 use crate::core::error::{CcrError, Result};
 use crate::core::lock::LockManager;
 use rayon::prelude::*;
