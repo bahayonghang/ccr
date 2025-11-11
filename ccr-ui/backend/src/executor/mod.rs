@@ -160,7 +160,7 @@ mod tests {
 
         let result = execute_command(vec!["version".to_string()]).await;
         assert!(result.is_ok(), "Command execution should succeed");
-        
+
         let output = result.unwrap();
         assert_eq!(output.exit_code, 0, "Exit code should be 0");
         assert!(output.stdout.contains("CCR"), "Output should contain 'CCR'");
@@ -169,11 +169,9 @@ mod tests {
     /// 测试BinaryNotFound错误
     #[tokio::test]
     async fn test_binary_not_found() {
-        let result = execute_command_with_timeout(
-            vec!["--version".to_string()],
-            Duration::from_secs(5),
-        )
-        .await;
+        let result =
+            execute_command_with_timeout(vec!["--version".to_string()], Duration::from_secs(5))
+                .await;
 
         // 如果ccr在PATH中，跳过此测试
         if result.is_ok() {

@@ -522,11 +522,15 @@ mod tests {
             .find(|i| i.name == "ccr_config" && i.changed)
         {
             assert!(cfg_item.target_path.exists());
-            let target_str = cfg_item.target_path.display().to_string();
+            // 跨平台路径检查：检查路径组件而非字符串
+            let path_str = cfg_item.target_path.display().to_string();
+            let has_backups = cfg_item.target_path.components().any(|c| c.as_os_str() == "backups");
+            let has_ccr = cfg_item.target_path.components().any(|c| c.as_os_str() == "ccr");
+            let has_config = cfg_item.target_path.components().any(|c| c.as_os_str() == "config");
             assert!(
-                target_str.contains("/backups/ccr/config"),
+                has_backups && has_ccr && has_config,
                 "ccr_config 备份路径不正确: {}",
-                target_str
+                path_str
             );
         }
         if let Some(claude_item) = summary1
@@ -535,11 +539,15 @@ mod tests {
             .find(|i| i.name == "claude" && i.changed)
         {
             assert!(claude_item.target_path.exists());
-            let target_str = claude_item.target_path.display().to_string();
+            // 跨平台路径检查：检查路径组件而非字符串
+            let path_str = claude_item.target_path.display().to_string();
+            let has_backups = claude_item.target_path.components().any(|c| c.as_os_str() == "backups");
+            let has_ccr = claude_item.target_path.components().any(|c| c.as_os_str() == "ccr");
+            let has_claude = claude_item.target_path.components().any(|c| c.as_os_str() == ".claude");
             assert!(
-                target_str.contains("/backups/ccr/.claude"),
+                has_backups && has_ccr && has_claude,
                 "claude 备份路径不正确: {}",
-                target_str
+                path_str
             );
         }
 
