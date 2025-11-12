@@ -1,6 +1,7 @@
 // 🌐 CCR Web 服务器模块
 // 🖥️ 提供配置管理的 Web 界面和 RESTful API
 
+pub mod error_utils;
 pub mod handlers;
 pub mod models;
 pub mod routes;

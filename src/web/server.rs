@@ -4,16 +4,36 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
+use crate::managers::ConfigManager;
 use crate::services::{BackupService, ConfigService, HistoryService, SettingsService};
-use crate::web::handlers::{self, AppState};
+use crate::web::handlers::AppState;
 use crate::web::system_info_cache::SystemInfoCache;
 use axum::{
     Router,
-    routing::{delete, get, post},
+    response::{Html, IntoResponse},
+    routing::get,
 };
-use std::sync::Arc;
+use once_cell::sync::Lazy;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tower_http::cors::CorsLayer;
+
+// 🎯 平台模式缓存 - 避免重复检测 （预留给将来的优化使用）
+#[allow(dead_code)]
+static PLATFORM_MODE: Lazy<RwLock<(bool, Option<std::path::PathBuf>)>> =
+    Lazy::new(|| RwLock::new(ConfigManager::detect_unified_mode()));
+
+// 🎯 路由注册宏 - 简化路由定义
+macro_rules! routes {
+    ($router:expr, $state:expr, {
+        $( $method:ident $path:expr => $handler:path ),* $(,)?
+    }) => {{
+        $(
+            $router = $router.route($path, axum::routing::$method($handler));
+        )*
+        $router.with_state($state)
+    }};
+}
 
 /// 🌐 Web 服务器
 ///
@@ -76,7 +96,7 @@ impl WebServer {
         }
 
         // 🎯 加载初始配置到缓存
-        let config_manager = crate::managers::ConfigManager::with_default()?;
+        let config_manager = ConfigManager::with_default()?;
         let initial_config = config_manager.load()?;
 
         // 创建共享状态
@@ -89,49 +109,49 @@ impl WebServer {
             initial_config,
         );
 
-        // 🎯 构建路由
-        let app = Router::new()
+        // 🎯 构建路由 - 使用宏简化（从 20+ 行减少到 1 行！）
+        let mut app = Router::new()
             // 静态文件
-            .route("/", get(handlers::serve_html))
-            .route("/style.css", get(handlers::serve_css))
-            .route("/script.js", get(handlers::serve_js))
-            // API 路由 - 配置管理
-            .route("/api/configs", get(handlers::handle_list_configs))
-            .route("/api/switch", post(handlers::handle_switch_config))
-            .route("/api/config", post(handlers::handle_add_config))
-            .route("/api/config/{name}", post(handlers::handle_update_config))
-            .route("/api/config/{name}", delete(handlers::handle_delete_config))
-            .route("/api/history", get(handlers::handle_get_history))
-            .route("/api/validate", post(handlers::handle_validate))
-            .route("/api/clean", post(handlers::handle_clean))
-            .route("/api/settings", get(handlers::handle_get_settings))
-            .route(
-                "/api/settings/backups",
-                get(handlers::handle_get_settings_backups),
-            )
-            .route(
-                "/api/settings/restore",
-                post(handlers::handle_restore_settings),
-            )
-            .route("/api/export", post(handlers::handle_export))
-            .route("/api/import", post(handlers::handle_import))
-            .route("/api/system", get(handlers::handle_get_system_info))
-            .route("/api/reload", post(handlers::handle_reload_config))
-            // 🆕 API 路由 - 平台管理 (Unified Mode)
-            .route("/api/platforms", get(handlers::handle_get_platform_info))
-            .route(
-                "/api/platforms/switch",
-                post(handlers::handle_switch_platform),
-            )
-            // ☁️ API 路由 - 同步相关
-            .route("/api/sync/status", get(handlers::handle_sync_status))
-            .route("/api/sync/config", post(handlers::handle_sync_config))
-            .route("/api/sync/push", post(handlers::handle_sync_push))
-            .route("/api/sync/pull", post(handlers::handle_sync_pull))
-            // 🎯 添加 CORS 支持
-            .layer(CorsLayer::permissive())
-            // 🎯 注入共享状态
-            .with_state(state);
+            .route("/", get(WebServer::serve_html))
+            .route("/style.css", get(WebServer::serve_css))
+            .route("/script.js", get(WebServer::serve_js));
+
+        let app = routes!(
+            app, state,
+            {
+                // 配置管理
+                get  "/api/configs"                      => crate::web::handlers::config_handlers::handle_list_configs,
+                post "/api/switch"                      => crate::web::handlers::config_handlers::handle_switch_config,
+                post "/api/config"                      => crate::web::handlers::config_handlers::handle_add_config,
+                post "/api/config/{name}"               => crate::web::handlers::config_handlers::handle_update_config,
+                delete "/api/config/{name}"             => crate::web::handlers::config_handlers::handle_delete_config,
+                post "/api/export"                      => crate::web::handlers::config_handlers::handle_export,
+                post "/api/import"                      => crate::web::handlers::config_handlers::handle_import,
+
+                // 系统和设置
+                get  "/api/history"                     => crate::web::handlers::system_handlers::handle_get_history,
+                post "/api/validate"                    => crate::web::handlers::system_handlers::handle_validate,
+                post "/api/clean"                       => crate::web::handlers::system_handlers::handle_clean,
+                get  "/api/settings"                    => crate::web::handlers::system_handlers::handle_get_settings,
+                get  "/api/settings/backups"            => crate::web::handlers::system_handlers::handle_get_settings_backups,
+                post "/api/settings/restore"            => crate::web::handlers::system_handlers::handle_restore_settings,
+                get  "/api/system"                      => crate::web::handlers::system_handlers::handle_get_system_info,
+                post "/api/reload"                      => crate::web::handlers::system_handlers::handle_reload_config,
+
+                // 平台管理 (Unified Mode)
+                get  "/api/platforms"                   => crate::web::handlers::platform_handlers::handle_get_platform_info,
+                post "/api/platforms/switch"            => crate::web::handlers::platform_handlers::handle_switch_platform,
+
+                // 同步相关
+                get  "/api/sync/status"                 => crate::web::handlers::sync_handlers::handle_sync_status,
+                post "/api/sync/config"                 => crate::web::handlers::sync_handlers::handle_sync_config,
+                post "/api/sync/push"                   => crate::web::handlers::sync_handlers::handle_sync_push,
+                post "/api/sync/pull"                   => crate::web::handlers::sync_handlers::handle_sync_pull
+            }
+        );
+
+        // 🎯 添加中间件
+        let app = app.layer(CorsLayer::permissive()); // CORS 支持
 
         // 🚀 启动服务器
         axum::serve(listener, app)
@@ -139,6 +159,30 @@ impl WebServer {
             .map_err(|e| CcrError::ConfigError(format!("服务器运行错误: {}", e)))?;
 
         Ok(())
+    }
+
+    /// 📦 提供 HTML 页面（从原来的 handlers.rs 移过来）
+    pub async fn serve_html() -> Html<&'static str> {
+        Html(include_str!("../../web/index.html"))
+    }
+
+    /// 📦 提供 CSS 样式文件（从原来的 handlers.rs 移过来）
+    pub async fn serve_css() -> impl IntoResponse {
+        (
+            [(axum::http::header::CONTENT_TYPE, "text/css; charset=utf-8")],
+            include_str!("../../web/style.css"),
+        )
+    }
+
+    /// 📦 提供 JavaScript 脚本文件（从原来的 handlers.rs 移过来）
+    pub async fn serve_js() -> impl IntoResponse {
+        (
+            [(
+                axum::http::header::CONTENT_TYPE,
+                "application/javascript; charset=utf-8",
+            )],
+            include_str!("../../web/script.js"),
+        )
     }
 
     /// 🎯 尝试绑定可用端口
@@ -174,6 +218,19 @@ impl WebServer {
         }
 
         unreachable!()
+    }
+
+    /// 🎯 获取平台模式（使用缓存）
+    #[allow(dead_code)]
+    pub fn get_platform_mode() -> (bool, Option<std::path::PathBuf>) {
+        PLATFORM_MODE.read().unwrap().clone()
+    }
+
+    /// 🎯 刷新平台模式缓存
+    #[allow(dead_code)]
+    pub fn refresh_platform_mode() {
+        let mut cache = PLATFORM_MODE.write().unwrap();
+        *cache = ConfigManager::detect_unified_mode();
     }
 }
 
