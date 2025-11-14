@@ -313,14 +313,36 @@ let currentEditingConfig = null;
 
                     // 更新 UI 显示
                     // 🆕 优先使用 API 返回的 current_config 字段
-                    const currentConfigName = data.data.current_config || 
+                    const currentConfigName = data.data.current_config ||
                                             data.data.current_profile ||
                                             data.data.active_profile ||
                                             '-';
-                    
+
+                    // 🆕 检查是否是未实现平台或加载失败（返回空配置）
+                    if (platformInfo.mode === 'unified' &&
+                        platformInfo.currentPlatform &&
+                        allConfigs.length === 0) {
+                        // 检查是否是未实现平台
+                        const notImplementedPlatforms = ['qwen', 'iflow'];
+                        if (notImplementedPlatforms.includes(platformInfo.currentPlatform)) {
+                            showNotification(
+                                `平台 "${platformInfo.currentPlatform}" 尚未实现\n请切换到已实现的平台 (Claude, Codex, Gemini)`,
+                                'warning',
+                                { icon: '🚧', duration: 5000 }
+                            );
+                        } else if (currentConfigName === '-') {
+                            // 已实现平台但返回空配置
+                            showNotification(
+                                `平台 "${platformInfo.currentPlatform}" 暂无配置\n请先添加配置文件到 ~/.ccr/platforms/${platformInfo.currentPlatform}/profiles.toml`,
+                                'info',
+                                { icon: 'ℹ️', duration: 6000 }
+                            );
+                        }
+                    }
+
                     console.log('当前配置名称:', currentConfigName);
                     console.log('API 返回数据:', data.data);
-                    
+
                     document.getElementById('currentConfigName').textContent = currentConfigName;
                     document.getElementById('totalConfigs').textContent = allConfigs.length;
 
@@ -1500,7 +1522,10 @@ let currentEditingConfig = null;
         function renderPlatformNavigation() {
             if (platformInfo.mode !== 'unified') return;
 
-            const platforms = platformInfo.availablePlatforms;
+            // 🎯 过滤掉未实现的平台 (qwen, iflow)
+            const platforms = platformInfo.availablePlatforms.filter(p =>
+                !['qwen', 'iflow'].includes(p.name)
+            );
 
             // 更新每个平台标签的徽章数量
             platforms.forEach(platform => {
@@ -1554,20 +1579,21 @@ let currentEditingConfig = null;
             const statusList = document.getElementById('platformStatusList');
             if (!statusList) return;
 
-            const platforms = platformInfo.availablePlatforms;
+            // 🎯 过滤掉未实现的平台 (qwen, iflow)
+            const platforms = platformInfo.availablePlatforms.filter(p =>
+                !['qwen', 'iflow'].includes(p.name)
+            );
 
             if (platforms.length === 0) {
                 statusList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 12px;">暂无平台</div>';
                 return;
             }
 
-            // 平台图标映射
+            // 平台图标映射 (移除 qwen 和 iflow)
             const platformIcons = {
                 'claude': '🤖',
                 'codex': '💻',
-                'gemini': '✨',
-                'qwen': '🌟',
-                'iflow': '⚡'
+                'gemini': '✨'
             };
 
             statusList.innerHTML = platforms.map(platform => {
