@@ -306,9 +306,32 @@ impl CodexPlatform {
         let content = fs::read_to_string(&self.paths.profiles_file)
             .map_err(|e| CcrError::ConfigError(format!("读取 Codex 配置失败: {}", e)))?;
 
-        // 解析 TOML
-        let profiles: IndexMap<String, ProfileConfig> = toml::from_str(&content)
+        // 🎯 在 Unified 模式下，profiles.toml 实际上是 Legacy 格式（包含 default_config 等字段）
+        // 我们需要先解析为 CcsConfig，然后提取 sections
+        use crate::managers::config::CcsConfig;
+        let ccs_config: CcsConfig = toml::from_str(&content)
             .map_err(|e| CcrError::ConfigFormatInvalid(format!("Codex 配置格式错误: {}", e)))?;
+
+        // 将 ConfigSection 转换为 ProfileConfig
+        let profiles: IndexMap<String, ProfileConfig> = ccs_config
+            .sections
+            .into_iter()
+            .map(|(name, section)| {
+                let profile = ProfileConfig {
+                    description: section.description,
+                    base_url: section.base_url,
+                    auth_token: section.auth_token,
+                    model: section.model,
+                    small_fast_model: section.small_fast_model,
+                    provider: section.provider,
+                    provider_type: section.provider_type.map(|t| format!("{:?}", t).to_lowercase()),
+                    account: section.account,
+                    tags: section.tags,
+                    platform_data: IndexMap::new(),
+                };
+                (name, profile)
+            })
+            .collect();
 
         Ok(profiles)
     }
