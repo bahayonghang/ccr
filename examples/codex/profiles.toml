@@ -1,0 +1,38 @@
+default_config = "packycode"
+current_config = "packycode"
+
+[settings]
+skip_confirmation = false
+
+# 自定义 Codex API：PackyCode 中转
+[packycode]
+description = "PackyCode Relay"
+provider = "packycode"
+base_url = "https://www.packyapi.com/v1"
+auth_token = "sk-packy-***"
+model = "gpt-4.1-mini"
+# Codex 专属字段
+wire_api = "responses"
+env_key = "PACKYCODE_API_KEY"
+requires_openai_auth = true
+approval_policy = "read-only"
+sandbox_mode = "workspace-write"
+
+# 自定义 Codex API：GLM Coding
+[glm_coding]
+description = "GLM Coding API"
+provider = "glm"
+base_url = "https://open.bigmodel.cn/api/coding/paas/v4"
+auth_token = "glm-***"
+model = "GLM-4.6"
+wire_api = "chat"
+requires_openai_auth = false
+model_reasoning_effort = "medium"
+
+# GitHub Copilot CLI 兼容配置（仍然受支持）
+[github]
+description = "GitHub Copilot Official"
+provider = "github"
+base_url = "https://api.github.com/copilot"
+auth_token = "ghp_***"
+model = "gpt-4.1"
