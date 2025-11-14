@@ -206,7 +206,25 @@ fn get_unified_mode_configs(
     };
 
     let platform_config = crate::platforms::create_platform(platform)?;
-    let profiles = platform_config.load_profiles()?;
+
+    // 🎯 处理平台加载错误 - 返回空配置而不是错误
+    let profiles = match platform_config.load_profiles() {
+        Ok(p) => p,
+        Err(CcrError::PlatformNotSupported(msg)) => {
+            log::warn!("平台 {} 尚未实现: {}", current_platform, msg);
+            // 返回空配置,避免前端 500 错误
+            return Ok(("-".to_string(), Vec::new()));
+        }
+        Err(e) => {
+            // 其他错误（如文件读取失败、格式错误等）也返回空配置
+            log::warn!(
+                "加载平台 {} 配置失败: {}, 返回空配置",
+                current_platform,
+                e
+            );
+            return Ok(("-".to_string(), Vec::new()));
+        }
+    };
 
     let current_profile = unified_config
         .platforms
