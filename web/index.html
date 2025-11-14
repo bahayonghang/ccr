@@ -404,6 +404,54 @@
                         用于灵活分类和筛选，多个标签用逗号��隔
                     </div>
                 </div>
+                <!-- Codex 专属配置 -->
+                <div id="codexFieldsSection" class="codex-section" style="display: none;">
+                    <div class="codex-section-header">
+                        <h3>Codex 自定义 API 配置</h3>
+                        <p>这些字段仅在切换到 Codex 平台时生效，用于配置自定义 API 或官方 GitHub 模式。</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">API 模式</label>
+                        <select class="form-input" id="codexApiMode">
+                            <option value="custom">自定义 API</option>
+                            <option value="github">GitHub Copilot</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Wire API 协议</label>
+                        <select class="form-input" id="codexWireApi">
+                            <option value="responses">Responses（推荐）</option>
+                            <option value="chat">Chat Completions</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">环境变量 KEY</label>
+                        <input type="text" class="form-input" id="codexEnvKey" placeholder="默认为 PROVIDER_API_KEY，可自定义">
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="form-label">OpenAI 认证</label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="codexRequiresAuth" checked>
+                            <span>需要 OpenAI 登录授权</span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">组织信息</label>
+                        <input type="text" class="form-input" id="codexOrganization" placeholder="GitHub 组织或工作区">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">审批策略</label>
+                        <input type="text" class="form-input" id="codexApprovalPolicy" placeholder="如: auto, on-request">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">沙盒模式</label>
+                        <input type="text" class="form-input" id="codexSandboxMode" placeholder="如: workspace-write">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">推理强度</label>
+                        <input type="text" class="form-input" id="codexModelReasoning" placeholder="如: low, medium, high">
+                    </div>
+                </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
                     <button type="submit" class="btn btn-primary">保存</button>

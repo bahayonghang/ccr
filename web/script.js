@@ -7,17 +7,17 @@ let currentEditingConfig = null;
 
         // 按钮状态管理
         function setButtonLoading(button, loading = true) {
-            if (loading) {
-                button.disabled = true;
-                button.classList.add('loading');
-                button.dataset.originalText = button.innerHTML;
-            } else {
-                button.disabled = false;
-                button.classList.remove('loading');
-                if (button.dataset.originalText) {
-                    button.innerHTML = button.dataset.originalText;
-                }
+        if (loading) {
+            button.disabled = true;
+            button.classList.add('loading');
+            button.dataset.originalText = button.innerHTML;
+        } else {
+            button.disabled = false;
+            button.classList.remove('loading');
+            if (button.dataset.originalText) {
+                button.innerHTML = button.dataset.originalText;
             }
+        }
         }
 
         // 通过选择器批量禁用/启用按钮
@@ -158,9 +158,10 @@ let currentEditingConfig = null;
         }
 
         // 页面加载时初始化
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             initTheme();
-            loadData();
+            await loadPlatformInfo(true);
+            await loadData();
             loadSystemInfo();
             // 每 5 秒更新一次系统信息
             setInterval(loadSystemInfo, 5000);
@@ -231,6 +232,41 @@ let currentEditingConfig = null;
             }
         }
 
+        function isCodexPlatformActive() {
+            return platformInfo.mode === 'unified' && platformInfo.currentPlatform === 'codex';
+        }
+
+        function toggleCodexFieldsSection(show) {
+            const section = document.getElementById('codexFieldsSection');
+            if (!section) return;
+            section.style.display = show ? 'block' : 'none';
+        }
+
+        function resetCodexFields() {
+            const apiMode = document.getElementById('codexApiMode');
+            if (!apiMode) return;
+            apiMode.value = 'custom';
+            document.getElementById('codexWireApi').value = 'responses';
+            document.getElementById('codexEnvKey').value = '';
+            document.getElementById('codexRequiresAuth').checked = true;
+            document.getElementById('codexOrganization').value = '';
+            document.getElementById('codexApprovalPolicy').value = '';
+            document.getElementById('codexSandboxMode').value = '';
+            document.getElementById('codexModelReasoning').value = '';
+        }
+
+        function populateCodexFields(config) {
+            toggleCodexFieldsSection(true);
+            document.getElementById('codexApiMode').value = config.api_mode || 'custom';
+            document.getElementById('codexWireApi').value = config.wire_api || 'responses';
+            document.getElementById('codexEnvKey').value = config.env_key || '';
+            document.getElementById('codexRequiresAuth').checked = config.requires_openai_auth !== false;
+            document.getElementById('codexOrganization').value = config.organization || '';
+            document.getElementById('codexApprovalPolicy').value = config.approval_policy || '';
+            document.getElementById('codexSandboxMode').value = config.sandbox_mode || '';
+            document.getElementById('codexModelReasoning').value = config.model_reasoning_effort || '';
+        }
+
         // 加载配置列表
         async function loadConfigs() {
             // 保存操作以供重试
@@ -243,11 +279,7 @@ let currentEditingConfig = null;
                 if (platformInfo.mode === 'unified' && platformInfo.currentPlatform) {
                     // Unified 模式下，根据当前平台调用不同的端点
                     const platformEndpoints = {
-                        'claude': '/api/configs',           // Claude 使用默认端点
-                        'codex': '/api/codex/profiles',     // Codex 使用 profiles 端点
-                        'gemini': '/api/gemini/config',     // Gemini 使用 config 端点
-                        'qwen': '/api/qwen/config',         // Qwen 使用 config 端点
-                        'iflow': '/api/iflow/configs'       // iFlow 使用 configs 端点
+                        'codex': '/api/codex/profiles'
                     };
 
                     endpoint = platformEndpoints[platformInfo.currentPlatform] || '/api/configs';
@@ -255,7 +287,12 @@ let currentEditingConfig = null;
                     console.log(`加载平台配置: ${platformInfo.currentPlatform} -> ${endpoint}`);
                 }
 
-                const response = await fetch(endpoint);
+                let response = await fetch(endpoint);
+
+                if (!response.ok && endpoint !== '/api/configs') {
+                    console.warn(`平台端点 ${endpoint} 返回 ${response.status}，回退到 /api/configs`);
+                    response = await fetch('/api/configs');
+                }
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -318,10 +355,19 @@ let currentEditingConfig = null;
                     auth_token: profile.auth_token || profile.api_key,
                     model: profile.model,
                     small_fast_model: profile.small_fast_model,
-                    is_current: profile.is_active || profile.is_current,
-                    is_default: profile.is_default,
+                    is_current: profile.is_active || profile.is_current || false,
+                    is_default: profile.is_default || false,
                     provider: profile.provider,
-                    provider_type: profile.provider_type
+                    provider_type: profile.provider_type,
+                    tags: profile.tags,
+                    api_mode: profile.api_mode,
+                    wire_api: profile.wire_api,
+                    env_key: profile.env_key,
+                    requires_openai_auth: profile.requires_openai_auth,
+                    approval_policy: profile.approval_policy,
+                    sandbox_mode: profile.sandbox_mode,
+                    model_reasoning_effort: profile.model_reasoning_effort,
+                    organization: profile.organization
                 }));
             }
 
@@ -465,11 +511,11 @@ let currentEditingConfig = null;
                     <div class="config-details">
                         <div class="config-field">
                             <div class="field-label">Base URL</div>
-                            <div class="field-value">${config.base_url}</div>
+                            <div class="field-value">${config.base_url || '-'}</div>
                         </div>
                         <div class="config-field">
                             <div class="field-label">Auth Token</div>
-                            <div class="field-value">${config.auth_token}</div>
+                            <div class="field-value">${config.auth_token || '-'}</div>
                         </div>
                         ${config.model ? `
                         <div class="config-field">
@@ -483,10 +529,54 @@ let currentEditingConfig = null;
                             <div class="field-value">${config.small_fast_model}</div>
                         </div>
                         ` : ''}
+                        ${isCodexPlatformActive() ? renderCodexMeta(config) : ''}
                     </div>
                 </div>
             `;
             }).join('');
+        }
+
+        function renderCodexMeta(config) {
+            const metaEntries = [];
+            if (config.api_mode) {
+                metaEntries.push({ label: 'API 模式', value: config.api_mode === 'github' ? 'GitHub 官方' : '自定义 API' });
+            }
+            if (config.wire_api) {
+                metaEntries.push({ label: 'Wire API', value: config.wire_api });
+            }
+            if (config.env_key) {
+                metaEntries.push({ label: 'Env Key', value: config.env_key });
+            }
+            if (typeof config.requires_openai_auth === 'boolean') {
+                metaEntries.push({ label: '需要登录', value: config.requires_openai_auth ? '是' : '否' });
+            }
+            if (config.organization) {
+                metaEntries.push({ label: '组织', value: config.organization });
+            }
+            if (config.approval_policy) {
+                metaEntries.push({ label: '审批策略', value: config.approval_policy });
+            }
+            if (config.sandbox_mode) {
+                metaEntries.push({ label: '沙盒模式', value: config.sandbox_mode });
+            }
+            if (config.model_reasoning_effort) {
+                metaEntries.push({ label: '推理强度', value: config.model_reasoning_effort });
+            }
+
+            if (metaEntries.length === 0) {
+                return '';
+            }
+
+            return `
+                <div class="codex-meta-grid">
+                    ${metaEntries.map(item => `
+                        <div class="codex-meta-item">
+                            <div class="field-label">${item.label}</div>
+                            <div class="field-value">${item.value}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
         }
 
         // 渲染配置目录导航
@@ -593,6 +683,12 @@ let currentEditingConfig = null;
             currentEditingConfig = null;
             document.getElementById('modalTitle').textContent = '添加配置';
             document.getElementById('configForm').reset();
+            if (isCodexPlatformActive()) {
+                toggleCodexFieldsSection(true);
+                resetCodexFields();
+            } else {
+                toggleCodexFieldsSection(false);
+            }
             document.getElementById('configModal').classList.add('show');
         }
 
@@ -605,8 +701,8 @@ let currentEditingConfig = null;
             document.getElementById('modalTitle').textContent = '编辑配置';
             document.getElementById('configName').value = config.name;
             document.getElementById('configDesc').value = config.description || '';
-            document.getElementById('configBaseUrl').value = config.base_url;
-            document.getElementById('configAuthToken').value = config.auth_token;
+            document.getElementById('configBaseUrl').value = config.base_url || '';
+            document.getElementById('configAuthToken').value = config.auth_token || '';
             document.getElementById('configModel').value = config.model || '';
             document.getElementById('configSmallModel').value = config.small_fast_model || '';
 
@@ -616,7 +712,48 @@ let currentEditingConfig = null;
             document.getElementById('configAccount').value = config.account || '';
             document.getElementById('configTags').value = config.tags ? config.tags.join(', ') : '';
 
+            if (isCodexPlatformActive()) {
+                populateCodexFields(config);
+            } else {
+                toggleCodexFieldsSection(false);
+            }
+
             document.getElementById('configModal').classList.add('show');
+        }
+
+        function resolveConfigEndpoint(name = null) {
+            if (isCodexPlatformActive()) {
+                if (name) {
+                    return `/api/codex/profiles/${encodeURIComponent(name)}`;
+                }
+                return '/api/codex/profiles';
+            }
+
+            if (name) {
+                return `/api/config/${encodeURIComponent(name)}`;
+            }
+            return '/api/config';
+        }
+
+        function attachCodexFields(payload) {
+            const apiMode = document.getElementById('codexApiMode').value || 'custom';
+            const wireApi = document.getElementById('codexWireApi').value || null;
+            const envKey = document.getElementById('codexEnvKey').value.trim();
+            const approvalPolicy = document.getElementById('codexApprovalPolicy').value.trim();
+            const sandboxMode = document.getElementById('codexSandboxMode').value.trim();
+            const reasoning = document.getElementById('codexModelReasoning').value.trim();
+            const organization = document.getElementById('codexOrganization').value.trim();
+
+            payload.api_mode = apiMode;
+            payload.wire_api = wireApi;
+            payload.env_key = envKey || null;
+            payload.requires_openai_auth = document.getElementById('codexRequiresAuth').checked;
+            payload.approval_policy = approvalPolicy || null;
+            payload.sandbox_mode = sandboxMode || null;
+            payload.model_reasoning_effort = reasoning || null;
+            payload.organization = organization || null;
+
+            return payload;
         }
 
         // 保存配置
@@ -638,7 +775,7 @@ let currentEditingConfig = null;
                 tagsArray = tagsValue.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
             }
 
-            const configData = {
+            let configData = {
                 name: document.getElementById('configName').value,
                 description: document.getElementById('configDesc').value || null,
                 base_url: document.getElementById('configBaseUrl').value,
@@ -652,11 +789,15 @@ let currentEditingConfig = null;
                 tags: tagsArray
             };
 
+            if (isCodexPlatformActive()) {
+                configData = attachCodexFields(configData);
+            }
+
             // 保存操作以供重试
             lastOperation = { context: '保存配置', func: () => saveConfig(event) };
 
             try {
-                const url = currentEditingConfig ? `/api/config/${currentEditingConfig}` : '/api/config';
+                const url = currentEditingConfig ? resolveConfigEndpoint(currentEditingConfig) : resolveConfigEndpoint();
                 const method = currentEditingConfig ? 'PUT' : 'POST';
 
                 const response = await fetch(url, {
@@ -703,7 +844,7 @@ let currentEditingConfig = null;
             lastOperation = { context: '删除配置', func: () => deleteConfig(name) };
 
             try {
-                const response = await fetch(`/api/config/${name}`, {
+                const response = await fetch(resolveConfigEndpoint(name), {
                     method: 'DELETE'
                 });
 
@@ -1256,13 +1397,8 @@ let currentEditingConfig = null;
             availablePlatforms: []
         };
 
-        // 在 DOMContentLoaded 中添加平台信息加载
-        document.addEventListener('DOMContentLoaded', () => {
-            loadPlatformInfo();
-        });
-
         // 加载平台信息
-        async function loadPlatformInfo() {
+        async function loadPlatformInfo(initial = false) {
             try {
                 const response = await fetch('/api/platforms');
 
@@ -1273,10 +1409,18 @@ let currentEditingConfig = null;
                 const data = await response.json();
 
                 if (data.success && data.data) {
+                    const platforms = data.data.available_platforms || [];
+
+                    let current = data.data.current_platform;
+                    if (!current && platforms.length > 0) {
+                        const active = platforms.find(p => p.is_current);
+                        if (active) current = active.name;
+                    }
+
                     platformInfo = {
-                        mode: data.data.mode,
-                        currentPlatform: data.data.current_platform,
-                        availablePlatforms: data.data.available_platforms || []
+                        mode: data.data.mode || 'legacy',
+                        currentPlatform: current || null,
+                        availablePlatforms: platforms,
                     };
 
                     // 更新 UI
@@ -1288,11 +1432,15 @@ let currentEditingConfig = null;
                         renderPlatformStatus();
                     }
                 }
+
+                return true;
             } catch (error) {
                 console.error('加载平台信息失败:', error);
-                // 静默失败，使用默认的 Legacy 模式
-                platformInfo = { mode: 'legacy', currentPlatform: null, availablePlatforms: [] };
-                updatePlatformUI();
+                if (initial) {
+                    platformInfo = { mode: 'legacy', currentPlatform: null, availablePlatforms: [] };
+                    updatePlatformUI();
+                }
+                return false;
             }
         }
 
@@ -1343,6 +1491,9 @@ let currentEditingConfig = null;
                     currentPlatformIndicator.style.display = 'none';
                 }
             }
+
+            // 根据平台类型动态显示 Codex 专属字段
+            toggleCodexFieldsSection(isCodexPlatformActive());
         }
 
         // 渲染平台导航栏

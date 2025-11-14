@@ -1104,6 +1104,68 @@ body {
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
+.codex-section {
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-tertiary);
+}
+
+[data-theme="light"] .codex-section {
+    background: var(--bg-secondary);
+}
+
+.codex-section-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.codex-section-header p {
+    margin: 4px 0 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.checkbox-group .form-label {
+    margin-bottom: 4px;
+}
+
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-primary);
+}
+
+.codex-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.codex-meta-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+[data-theme="light"] .codex-meta-item {
+    background: var(--bg-secondary);
+}
+
 /* ===== 🆕 Sync 表单与操作区域微调 ===== */
 .form-actions {
     display: flex;
