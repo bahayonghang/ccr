@@ -1,6 +1,7 @@
 // 🔌 Web 请求处理器模块
 // 按功能拆分的处理器集合
 
+pub mod codex_handlers;
 pub mod config_handlers;
 pub mod platform_handlers;
 pub mod sync_handlers;

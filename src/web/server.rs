@@ -123,10 +123,16 @@ impl WebServer {
                 get  "/api/configs"                      => crate::web::handlers::config_handlers::handle_list_configs,
                 post "/api/switch"                      => crate::web::handlers::config_handlers::handle_switch_config,
                 post "/api/config"                      => crate::web::handlers::config_handlers::handle_add_config,
-                post "/api/config/{name}"               => crate::web::handlers::config_handlers::handle_update_config,
+                put  "/api/config/{name}"               => crate::web::handlers::config_handlers::handle_update_config,
                 delete "/api/config/{name}"             => crate::web::handlers::config_handlers::handle_delete_config,
                 post "/api/export"                      => crate::web::handlers::config_handlers::handle_export,
                 post "/api/import"                      => crate::web::handlers::config_handlers::handle_import,
+
+                // Codex profiles
+                get  "/api/codex/profiles"              => crate::web::handlers::codex_handlers::handle_list_codex_profiles,
+                post "/api/codex/profiles"              => crate::web::handlers::codex_handlers::handle_add_codex_profile,
+                put  "/api/codex/profiles/{name}"       => crate::web::handlers::codex_handlers::handle_update_codex_profile,
+                delete "/api/codex/profiles/{name}"     => crate::web::handlers::codex_handlers::handle_delete_codex_profile,
 
                 // 系统和设置
                 get  "/api/history"                     => crate::web::handlers::system_handlers::handle_get_history,

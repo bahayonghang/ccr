@@ -106,6 +106,60 @@ pub struct UpdateConfigRequest {
     pub tags: Option<Vec<String>>,
 }
 
+/// Codex profiles 列表响应
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CodexProfilesResponse {
+    pub current_profile: Option<String>,
+    pub profiles: Vec<CodexProfileItem>,
+}
+
+/// Codex profile 项
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CodexProfileItem {
+    pub name: String,
+    pub description: Option<String>,
+    pub base_url: Option<String>,
+    pub auth_token: Option<String>,
+    pub model: Option<String>,
+    pub small_fast_model: Option<String>,
+    pub provider: Option<String>,
+    pub provider_type: Option<String>,
+    pub account: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub api_mode: Option<String>,
+    pub wire_api: Option<String>,
+    pub env_key: Option<String>,
+    pub requires_openai_auth: Option<bool>,
+    pub approval_policy: Option<String>,
+    pub sandbox_mode: Option<String>,
+    pub model_reasoning_effort: Option<String>,
+    pub organization: Option<String>,
+    pub is_current: bool,
+}
+
+/// Codex profile 创建/更新请求
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CodexProfileRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub base_url: String,
+    pub auth_token: String,
+    pub model: Option<String>,
+    pub small_fast_model: Option<String>,
+    pub provider: Option<String>,
+    pub provider_type: Option<String>,
+    pub account: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub api_mode: Option<String>,
+    pub wire_api: Option<String>,
+    pub env_key: Option<String>,
+    pub requires_openai_auth: Option<bool>,
+    pub approval_policy: Option<String>,
+    pub sandbox_mode: Option<String>,
+    pub model_reasoning_effort: Option<String>,
+    pub organization: Option<String>,
+}
+
 /// 历史记录响应
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HistoryResponse {
