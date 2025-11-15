@@ -3,6 +3,7 @@
 [Root Directory](../../CLAUDE.md) > [ccr-ui](../CLAUDE.md) > **backend**
 
 ## Change Log (Changelog)
+- **2025-11-14**: Refactored to layered architecture (API → Services → Managers → Models → Core → Utils)
 - **2025-10-22 10:39:28 CST**: Initial backend module documentation created
 
 ## Module Responsibilities
@@ -67,51 +68,92 @@ ccr-ui-backend --host 0.0.0.0 --port 8081
 
 ### Module Structure
 
+**New Layered Architecture** (as of 2025-11-14):
+
 ```
 backend/
 ├── src/
-│   ├── main.rs                     - Entry point and router setup
-│   ├── handlers/                   - API endpoint handlers
-│   │   ├── mod.rs                  - Handler module exports
-│   │   ├── config.rs               - CCR config management
-│   │   ├── command.rs              - Command execution
-│   │   ├── system.rs               - System information
-│   │   ├── version.rs              - Version and updates
-│   │   ├── sync.rs                 - WebDAV sync
-│   │   ├── mcp.rs                  - Claude MCP servers
-│   │   ├── agents.rs               - Claude agents
-│   │   ├── slash_commands.rs       - Claude slash commands
-│   │   ├── plugins.rs              - Claude plugins
-│   │   ├── codex.rs                - Codex management
-│   │   ├── gemini.rs               - Gemini CLI management
-│   │   ├── qwen.rs                 - Qwen management
-│   │   ├── iflow.rs                - iFlow management (stub)
-│   │   ├── converter.rs            - Config conversion
-│   │   └── claude/                 - Claude-specific handlers
+│   ├── main.rs                              - Entry point and router setup
+│   │
+│   ├── api/                                 - API Layer (HTTP handlers)
+│   │   ├── mod.rs
+│   │   └── handlers/
+│   │       ├── mod.rs                       - Handler exports
+│   │       ├── config.rs                    - CCR config endpoints
+│   │       ├── command.rs                   - Command execution endpoints
+│   │       ├── system.rs                    - System info endpoints
+│   │       ├── version.rs                   - Version endpoints
+│   │       ├── sync.rs                      - WebDAV sync endpoints
+│   │       ├── mcp.rs                       - Claude MCP endpoints
+│   │       ├── agents.rs                    - Claude agents endpoints
+│   │       ├── slash_commands.rs            - Claude slash commands
+│   │       ├── plugins.rs                   - Claude plugins endpoints
+│   │       ├── converter.rs                 - Config conversion endpoints
+│   │       ├── platform.rs                  - Platform management endpoints
+│   │       ├── stats.rs                     - Statistics endpoints
+│   │       └── platforms/                   - Platform-specific handlers
+│   │           ├── mod.rs
+│   │           ├── codex.rs                 - Codex endpoints
+│   │           ├── gemini.rs                - Gemini CLI endpoints
+│   │           ├── qwen.rs                  - Qwen endpoints
+│   │           └── iflow.rs                 - iFlow endpoints (stub)
+│   │
+│   ├── services/                            - Service Layer (business logic)
+│   │   ├── mod.rs
+│   │   ├── commands.rs                      - Command service
+│   │   └── converter_service.rs             - Conversion service
+│   │
+│   ├── managers/                            - Manager Layer (data access)
+│   │   ├── mod.rs
+│   │   ├── settings_manager.rs              - Settings persistence
+│   │   ├── markdown_manager.rs              - Markdown file handling
+│   │   ├── plugins_manager.rs               - Plugin management
+│   │   └── config/                          - Config file managers
 │   │       ├── mod.rs
-│   │       ├── mcp.rs
-│   │       ├── agents.rs
-│   │       ├── slash_commands.rs
-│   │       └── plugins.rs
-│   ├── claude_config_manager.rs    - Claude config reader/writer
-│   ├── codex_config_manager.rs     - Codex config reader/writer
-│   ├── gemini_config_manager.rs    - Gemini config reader/writer
-│   ├── qwen_config_manager.rs      - Qwen config reader/writer
-│   ├── config_reader.rs            - Generic config reader
-│   ├── config_converter.rs         - Config format converter
-│   ├── models.rs                   - Data models
-│   ├── codex_models.rs             - Codex-specific models
-│   ├── gemini_models.rs            - Gemini-specific models
-│   ├── qwen_models.rs              - Qwen-specific models
-│   ├── converter_models.rs         - Conversion models
-│   ├── plugins_manager.rs          - Plugin management
-│   ├── markdown_manager.rs         - Markdown file handling
-│   ├── settings_manager.rs         - Settings management
-│   └── executor/                   - Command execution
-│       └── mod.rs                  - CCR command executor
-├── Cargo.toml                      - Dependencies
-└── logs/                           - Log files (auto-created)
+│   │       ├── claude_manager.rs            - Claude config reader/writer
+│   │       ├── codex_manager.rs             - Codex config reader/writer
+│   │       ├── gemini_manager.rs            - Gemini config reader/writer
+│   │       ├── qwen_manager.rs              - Qwen config reader/writer
+│   │       └── platform_manager.rs          - Platform config manager
+│   │
+│   ├── models/                              - Model Layer (data structures)
+│   │   ├── mod.rs
+│   │   ├── api.rs                           - API models (MCP, Agent, etc.)
+│   │   ├── converter.rs                     - Conversion models
+│   │   └── platforms/                       - Platform-specific models
+│   │       ├── mod.rs
+│   │       ├── codex.rs                     - Codex data models
+│   │       ├── gemini.rs                    - Gemini data models
+│   │       └── qwen.rs                      - Qwen data models
+│   │
+│   ├── core/                                - Core Layer (infrastructure)
+│   │   ├── mod.rs
+│   │   ├── error.rs                         - Error types and handling
+│   │   └── executor.rs                      - CCR command executor
+│   │
+│   └── utils/                               - Utility Layer
+│       ├── mod.rs
+│       └── config_reader.rs                 - Generic config utilities
+│
+├── Cargo.toml                               - Dependencies
+└── logs/                                    - Log files (auto-created)
 ```
+
+**Architecture Layers**:
+
+1. **API Layer** (`src/api/`): HTTP request handlers, route definitions, JSON parsing
+2. **Services Layer** (`src/services/`): Business logic, orchestration, transaction management
+3. **Managers Layer** (`src/managers/`): Data access, file I/O, persistence operations
+4. **Models Layer** (`src/models/`): Data structures, serialization, validation
+5. **Core Layer** (`src/core/`): Infrastructure (errors, command execution)
+6. **Utils Layer** (`src/utils/`): Common utilities and helpers
+
+**Key Principles**:
+- Strict one-way dependencies: API → Services → Managers → Models/Core/Utils
+- No circular dependencies
+- Clear separation of concerns
+- Atomic file operations in managers
+- Platform-specific code isolated in submodules
 
 ## External Interfaces
 
@@ -565,13 +607,12 @@ A:
 
 ### Source Code
 - `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/main.rs` - Entry point and router
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/handlers/` - API handlers (30+ files)
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/claude_config_manager.rs` - Claude config
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/codex_config_manager.rs` - Codex config
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/gemini_config_manager.rs` - Gemini config
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/qwen_config_manager.rs` - Qwen config
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/models.rs` - Core data models
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/executor/mod.rs` - Command executor
+- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/api/` - API layer (16+ handler files)
+- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/services/` - Service layer (2 files)
+- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/managers/` - Manager layer (8+ files)
+- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/models/` - Model layer (6 files)
+- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/core/` - Core infrastructure (error, executor)
+- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/utils/` - Utilities (config_reader)
 
 ### Configuration
 - `/home/lyh/Documents/Github/ccr/ccr-ui/backend/Cargo.toml` - Dependencies

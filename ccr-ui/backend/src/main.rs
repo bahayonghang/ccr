@@ -17,25 +17,13 @@ use tower_http::{
 use tracing::{Level, info, warn};
 use tracing_subscriber::{EnvFilter, Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
-mod claude_config_manager;
-mod codex_config_manager;
-mod codex_models;
-mod config_converter;
-mod config_reader;
-mod converter_models;
-mod errors;
-mod executor;
-mod gemini_config_manager;
-mod gemini_models;
-mod handlers;
-mod markdown_manager;
+// New layered architecture modules
+mod api;
+mod core;
+mod managers;
 mod models;
-mod platform_config_manager;
-mod plugins_manager;
-mod qwen_config_manager;
-mod qwen_models;
 mod services;
-mod settings_manager;
+mod utils;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -74,7 +62,7 @@ async fn main() -> std::io::Result<()> {
     info!("  - Version Info: http://{}/api/version", bind_addr);
 
     // Verify CCR is available
-    match executor::execute_command(vec!["version".to_string()]).await {
+    match core::executor::execute_command(vec!["version".to_string()]).await {
         Ok(output) if output.success => {
             info!("CCR binary found and working");
             info!("CCR Version: {}", output.stdout.trim());
@@ -135,275 +123,353 @@ fn create_router() -> Router {
         // Health check
         .route("/health", get(health_check))
         // Config management endpoints
-        .route("/api/configs", get(handlers::config::list_configs))
-        .route("/api/switch", post(handlers::config::switch_config))
-        .route("/api/validate", get(handlers::config::validate_configs))
-        .route("/api/clean", post(handlers::config::clean_backups))
-        .route("/api/export", post(handlers::config::export_config))
-        .route("/api/import", post(handlers::config::import_config))
-        .route("/api/history", get(handlers::config::get_history))
-        .route("/api/configs", post(handlers::config::add_config))
-        .route("/api/configs/{name}", get(handlers::config::get_config))
-        .route("/api/configs/{name}", put(handlers::config::update_config))
+        .route("/api/configs", get(api::handlers::config::list_configs))
+        .route("/api/switch", post(api::handlers::config::switch_config))
+        .route(
+            "/api/validate",
+            get(api::handlers::config::validate_configs),
+        )
+        .route("/api/clean", post(api::handlers::config::clean_backups))
+        .route("/api/export", post(api::handlers::config::export_config))
+        .route("/api/import", post(api::handlers::config::import_config))
+        .route("/api/history", get(api::handlers::config::get_history))
+        .route("/api/configs", post(api::handlers::config::add_config))
         .route(
             "/api/configs/{name}",
-            delete(handlers::config::delete_config),
+            get(api::handlers::config::get_config),
+        )
+        .route(
+            "/api/configs/{name}",
+            put(api::handlers::config::update_config),
+        )
+        .route(
+            "/api/configs/{name}",
+            delete(api::handlers::config::delete_config),
         )
         // Command execution endpoints
         .route(
             "/api/command/execute",
-            post(handlers::command::execute_command),
+            post(api::handlers::command::execute_command),
         )
         .route(
             "/api/command/execute/stream",
-            post(handlers::command::execute_command_stream),
+            post(api::handlers::command::execute_command_stream),
         )
-        .route("/api/command/list", get(handlers::command::list_commands))
+        .route(
+            "/api/command/list",
+            get(api::handlers::command::list_commands),
+        )
         .route(
             "/api/command/help/{command}",
-            get(handlers::command::get_command_help),
+            get(api::handlers::command::get_command_help),
         )
         // System info endpoint
-        .route("/api/system", get(handlers::system::get_system_info))
+        .route("/api/system", get(api::handlers::system::get_system_info))
         // Version management endpoints
-        .route("/api/version", get(handlers::version::get_version))
+        .route("/api/version", get(api::handlers::version::get_version))
         .route(
             "/api/version/check-update",
-            get(handlers::version::check_update),
+            get(api::handlers::version::check_update),
         )
-        .route("/api/version/update", post(handlers::version::update_ccr))
+        .route(
+            "/api/version/update",
+            post(api::handlers::version::update_ccr),
+        )
         // Platform management endpoints (Unified mode)
-        .route("/api/platforms", get(handlers::platform::list_platforms))
+        .route(
+            "/api/platforms",
+            get(api::handlers::platform::list_platforms),
+        )
         .route(
             "/api/platforms/current",
-            get(handlers::platform::get_current_platform),
+            get(api::handlers::platform::get_current_platform),
         )
         .route(
             "/api/platforms/switch",
-            post(handlers::platform::switch_platform),
+            post(api::handlers::platform::switch_platform),
         )
         .route(
             "/api/platforms/{name}",
-            get(handlers::platform::get_platform),
+            get(api::handlers::platform::get_platform),
         )
         .route(
             "/api/platforms/{name}",
-            put(handlers::platform::update_platform),
+            put(api::handlers::platform::update_platform),
         )
         .route(
             "/api/platforms/{name}/enable",
-            post(handlers::platform::enable_platform),
+            post(api::handlers::platform::enable_platform),
         )
         .route(
             "/api/platforms/{name}/disable",
-            post(handlers::platform::disable_platform),
+            post(api::handlers::platform::disable_platform),
         )
         .route(
             "/api/platforms/{name}/profile",
-            get(handlers::platform::get_platform_profile),
+            get(api::handlers::platform::get_platform_profile),
         )
         .route(
             "/api/platforms/{name}/profile",
-            post(handlers::platform::set_platform_profile),
+            post(api::handlers::platform::set_platform_profile),
         )
         // MCP server management endpoints
-        .route("/api/mcp", get(handlers::mcp::list_mcp_servers))
-        .route("/api/mcp", post(handlers::mcp::add_mcp_server))
-        .route("/api/mcp/{name}", put(handlers::mcp::update_mcp_server))
-        .route("/api/mcp/{name}", delete(handlers::mcp::delete_mcp_server))
+        .route("/api/mcp", get(api::handlers::mcp::list_mcp_servers))
+        .route("/api/mcp", post(api::handlers::mcp::add_mcp_server))
+        .route(
+            "/api/mcp/{name}",
+            put(api::handlers::mcp::update_mcp_server),
+        )
+        .route(
+            "/api/mcp/{name}",
+            delete(api::handlers::mcp::delete_mcp_server),
+        )
         .route(
             "/api/mcp/{name}/toggle",
-            put(handlers::mcp::toggle_mcp_server),
+            put(api::handlers::mcp::toggle_mcp_server),
         )
         // Slash command management endpoints
         .route(
             "/api/slash-commands",
-            get(handlers::slash_commands::list_slash_commands),
+            get(api::handlers::slash_commands::list_slash_commands),
         )
         .route(
             "/api/slash-commands",
-            post(handlers::slash_commands::add_slash_command),
+            post(api::handlers::slash_commands::add_slash_command),
         )
         .route(
             "/api/slash-commands/{name}",
-            put(handlers::slash_commands::update_slash_command),
+            put(api::handlers::slash_commands::update_slash_command),
         )
         .route(
             "/api/slash-commands/{name}",
-            delete(handlers::slash_commands::delete_slash_command),
+            delete(api::handlers::slash_commands::delete_slash_command),
         )
         .route(
             "/api/slash-commands/{name}/toggle",
-            put(handlers::slash_commands::toggle_slash_command),
+            put(api::handlers::slash_commands::toggle_slash_command),
         )
         // Agent management endpoints
-        .route("/api/agents", get(handlers::agents::list_agents))
-        .route("/api/agents", post(handlers::agents::add_agent))
-        .route("/api/agents/{name}", put(handlers::agents::update_agent))
-        .route("/api/agents/{name}", delete(handlers::agents::delete_agent))
+        .route("/api/agents", get(api::handlers::agents::list_agents))
+        .route("/api/agents", post(api::handlers::agents::add_agent))
+        .route(
+            "/api/agents/{name}",
+            put(api::handlers::agents::update_agent),
+        )
+        .route(
+            "/api/agents/{name}",
+            delete(api::handlers::agents::delete_agent),
+        )
         .route(
             "/api/agents/{name}/toggle",
-            put(handlers::agents::toggle_agent),
+            put(api::handlers::agents::toggle_agent),
         )
         // Plugin management endpoints
-        .route("/api/plugins", get(handlers::plugins::list_plugins))
-        .route("/api/plugins", post(handlers::plugins::add_plugin))
-        .route("/api/plugins/{id}", put(handlers::plugins::update_plugin))
+        .route("/api/plugins", get(api::handlers::plugins::list_plugins))
+        .route("/api/plugins", post(api::handlers::plugins::add_plugin))
         .route(
             "/api/plugins/{id}",
-            delete(handlers::plugins::delete_plugin),
+            put(api::handlers::plugins::update_plugin),
+        )
+        .route(
+            "/api/plugins/{id}",
+            delete(api::handlers::plugins::delete_plugin),
         )
         .route(
             "/api/plugins/{id}/toggle",
-            put(handlers::plugins::toggle_plugin),
+            put(api::handlers::plugins::toggle_plugin),
         )
         // Statistics endpoints
-        .route("/api/stats/cost", get(handlers::stats::cost_overview))
-        .route("/api/stats/cost/today", get(handlers::stats::cost_today))
-        .route("/api/stats/cost/week", get(handlers::stats::cost_week))
-        .route("/api/stats/cost/month", get(handlers::stats::cost_month))
-        .route("/api/stats/cost/trend", get(handlers::stats::cost_trend))
+        .route("/api/stats/cost", get(api::handlers::stats::cost_overview))
+        .route(
+            "/api/stats/cost/today",
+            get(api::handlers::stats::cost_today),
+        )
+        .route("/api/stats/cost/week", get(api::handlers::stats::cost_week))
+        .route(
+            "/api/stats/cost/month",
+            get(api::handlers::stats::cost_month),
+        )
+        .route(
+            "/api/stats/cost/trend",
+            get(api::handlers::stats::cost_trend),
+        )
         .route(
             "/api/stats/cost/by-model",
-            get(handlers::stats::cost_by_model),
+            get(api::handlers::stats::cost_by_model),
         )
         .route(
             "/api/stats/cost/by-project",
-            get(handlers::stats::cost_by_project),
+            get(api::handlers::stats::cost_by_project),
         )
         .route(
             "/api/stats/cost/top-sessions",
-            get(handlers::stats::cost_top_sessions),
+            get(api::handlers::stats::cost_top_sessions),
         )
-        .route("/api/stats/summary", get(handlers::stats::stats_summary))
+        .route(
+            "/api/stats/summary",
+            get(api::handlers::stats::stats_summary),
+        )
         // Sync (WebDAV) endpoints
-        .route("/api/sync/status", get(handlers::sync::get_sync_status))
-        .route("/api/sync/push", post(handlers::sync::push_config))
-        .route("/api/sync/pull", post(handlers::sync::pull_config))
-        .route("/api/sync/info", get(handlers::sync::get_sync_info))
-        .route("/api/sync/config", post(handlers::sync::configure_sync))
-        // Sync Folder Management endpoints (Multi-folder sync v2.5+)
-        .route("/api/sync/folders", get(handlers::sync::list_sync_folders))
-        .route("/api/sync/folders", post(handlers::sync::add_sync_folder))
         .route(
-            "/api/sync/folders/{name}",
-            delete(handlers::sync::remove_sync_folder),
+            "/api/sync/status",
+            get(api::handlers::sync::get_sync_status),
+        )
+        .route("/api/sync/push", post(api::handlers::sync::push_config))
+        .route("/api/sync/pull", post(api::handlers::sync::pull_config))
+        .route("/api/sync/info", get(api::handlers::sync::get_sync_info))
+        .route(
+            "/api/sync/config",
+            post(api::handlers::sync::configure_sync),
+        )
+        // Sync Folder Management endpoints (Multi-folder sync v2.5+)
+        .route(
+            "/api/sync/folders",
+            get(api::handlers::sync::list_sync_folders),
+        )
+        .route(
+            "/api/sync/folders",
+            post(api::handlers::sync::add_sync_folder),
         )
         .route(
             "/api/sync/folders/{name}",
-            get(handlers::sync::get_sync_folder_info),
+            delete(api::handlers::sync::remove_sync_folder),
+        )
+        .route(
+            "/api/sync/folders/{name}",
+            get(api::handlers::sync::get_sync_folder_info),
         )
         .route(
             "/api/sync/folders/{name}/enable",
-            put(handlers::sync::enable_sync_folder),
+            put(api::handlers::sync::enable_sync_folder),
         )
         .route(
             "/api/sync/folders/{name}/disable",
-            put(handlers::sync::disable_sync_folder),
+            put(api::handlers::sync::disable_sync_folder),
         )
         .route(
             "/api/sync/folders/{name}/push",
-            post(handlers::sync::push_sync_folder),
+            post(api::handlers::sync::push_sync_folder),
         )
         .route(
             "/api/sync/folders/{name}/pull",
-            post(handlers::sync::pull_sync_folder),
+            post(api::handlers::sync::pull_sync_folder),
         )
         .route(
             "/api/sync/folders/{name}/status",
-            get(handlers::sync::get_sync_folder_status),
+            get(api::handlers::sync::get_sync_folder_status),
         )
         // Sync Batch Operations endpoints
-        .route("/api/sync/all/push", post(handlers::sync::push_all_folders))
-        .route("/api/sync/all/pull", post(handlers::sync::pull_all_folders))
+        .route(
+            "/api/sync/all/push",
+            post(api::handlers::sync::push_all_folders),
+        )
+        .route(
+            "/api/sync/all/pull",
+            post(api::handlers::sync::pull_all_folders),
+        )
         .route(
             "/api/sync/all/status",
-            get(handlers::sync::get_all_folders_status),
+            get(api::handlers::sync::get_all_folders_status),
         )
         // Codex MCP server management endpoints
         .route(
             "/api/codex/mcp",
-            get(handlers::codex::list_codex_mcp_servers),
+            get(api::handlers::platforms::codex::list_codex_mcp_servers),
         )
         .route(
             "/api/codex/mcp",
-            post(handlers::codex::add_codex_mcp_server),
+            post(api::handlers::platforms::codex::add_codex_mcp_server),
         )
         .route(
             "/api/codex/mcp/{name}",
-            put(handlers::codex::update_codex_mcp_server),
+            put(api::handlers::platforms::codex::update_codex_mcp_server),
         )
         .route(
             "/api/codex/mcp/{name}",
-            delete(handlers::codex::delete_codex_mcp_server),
+            delete(api::handlers::platforms::codex::delete_codex_mcp_server),
         )
         // Codex Profile management endpoints
         .route(
             "/api/codex/profiles",
-            get(handlers::codex::list_codex_profiles),
+            get(api::handlers::platforms::codex::list_codex_profiles),
         )
         .route(
             "/api/codex/profiles",
-            post(handlers::codex::add_codex_profile),
+            post(api::handlers::platforms::codex::add_codex_profile),
         )
         .route(
             "/api/codex/profiles/{name}",
-            put(handlers::codex::update_codex_profile),
+            put(api::handlers::platforms::codex::update_codex_profile),
         )
         .route(
             "/api/codex/profiles/{name}",
-            delete(handlers::codex::delete_codex_profile),
+            delete(api::handlers::platforms::codex::delete_codex_profile),
         )
         // Codex base config management endpoints
-        .route("/api/codex/config", get(handlers::codex::get_codex_config))
         .route(
             "/api/codex/config",
-            put(handlers::codex::update_codex_base_config),
+            get(api::handlers::platforms::codex::get_codex_config),
+        )
+        .route(
+            "/api/codex/config",
+            put(api::handlers::platforms::codex::update_codex_base_config),
         )
         // Gemini MCP server management endpoints
         .route(
             "/api/gemini/mcp",
-            get(handlers::gemini::list_gemini_mcp_servers),
+            get(api::handlers::platforms::gemini::list_gemini_mcp_servers),
         )
         .route(
             "/api/gemini/mcp",
-            post(handlers::gemini::add_gemini_mcp_server),
+            post(api::handlers::platforms::gemini::add_gemini_mcp_server),
         )
         .route(
             "/api/gemini/mcp/{name}",
-            put(handlers::gemini::update_gemini_mcp_server),
+            put(api::handlers::platforms::gemini::update_gemini_mcp_server),
         )
         .route(
             "/api/gemini/mcp/{name}",
-            delete(handlers::gemini::delete_gemini_mcp_server),
+            delete(api::handlers::platforms::gemini::delete_gemini_mcp_server),
         )
         // Gemini base config management endpoints
         .route(
             "/api/gemini/config",
-            get(handlers::gemini::get_gemini_config),
+            get(api::handlers::platforms::gemini::get_gemini_config),
         )
         .route(
             "/api/gemini/config",
-            put(handlers::gemini::update_gemini_config),
+            put(api::handlers::platforms::gemini::update_gemini_config),
         )
         // Qwen MCP server management endpoints
-        .route("/api/qwen/mcp", get(handlers::qwen::list_qwen_mcp_servers))
-        .route("/api/qwen/mcp", post(handlers::qwen::add_qwen_mcp_server))
         .route(
-            "/api/qwen/mcp/{name}",
-            put(handlers::qwen::update_qwen_mcp_server),
+            "/api/qwen/mcp",
+            get(api::handlers::platforms::qwen::list_qwen_mcp_servers),
+        )
+        .route(
+            "/api/qwen/mcp",
+            post(api::handlers::platforms::qwen::add_qwen_mcp_server),
         )
         .route(
             "/api/qwen/mcp/{name}",
-            delete(handlers::qwen::delete_qwen_mcp_server),
+            put(api::handlers::platforms::qwen::update_qwen_mcp_server),
+        )
+        .route(
+            "/api/qwen/mcp/{name}",
+            delete(api::handlers::platforms::qwen::delete_qwen_mcp_server),
         )
         // Qwen base config management endpoints
-        .route("/api/qwen/config", get(handlers::qwen::get_qwen_config))
-        .route("/api/qwen/config", put(handlers::qwen::update_qwen_config))
+        .route(
+            "/api/qwen/config",
+            get(api::handlers::platforms::qwen::get_qwen_config),
+        )
+        .route(
+            "/api/qwen/config",
+            put(api::handlers::platforms::qwen::update_qwen_config),
+        )
         // Config Converter endpoints
         .route(
             "/api/converter/convert",
-            post(handlers::converter::convert_config),
+            post(api::handlers::converter::convert_config),
         )
         // Apply middleware
         .layer(middleware)
