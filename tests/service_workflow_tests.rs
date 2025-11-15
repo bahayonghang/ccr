@@ -729,14 +729,14 @@ fn test_enable_disable_config() {
 
     // 验证配置已被禁用
     let config_info = service.get_config("test").unwrap();
-    assert_eq!(config_info.enabled, false);
+    assert!(!config_info.enabled);
 
     // 测试启用配置
     service.enable_config("test").unwrap();
 
     // 验证配置已被启用
     let config_info = service.get_config("test").unwrap();
-    assert_eq!(config_info.enabled, true);
+    assert!(config_info.enabled);
 }
 
 #[test]
