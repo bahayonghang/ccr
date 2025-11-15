@@ -2,7 +2,7 @@
 // Reserved for future streaming command execution (see handlers/command.rs:168)
 // Currently blocked by SSE stream lifecycle issues - implementation pending
 
-use crate::errors::{ApiError, ApiResult};
+use crate::core::error::{ApiError, ApiResult};
 use futures::Stream;
 use std::sync::Arc;
 use tokio::{
