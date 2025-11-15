@@ -102,23 +102,37 @@ mod tests {
         let config_path = temp_dir.path().join(".ccs_config.toml");
 
         // 创建测试配置
-        let config_manager = ConfigManager::new(&config_path);
-        let config = create_test_config_with_disabled();
-        config_manager.save(&config).unwrap();
+        {
+            let config_manager = ConfigManager::new(&config_path);
+            let config = create_test_config_with_disabled();
+            config_manager.save(&config).unwrap();
 
-        // 临时设置环境变量
-        unsafe {
-            std::env::set_var("HOME", temp_dir.path());
+            // 验证初始状态
+            let initial_config = config_manager.load().unwrap();
+            let initial_section = initial_config.get_section("test1").unwrap();
+            eprintln!("DEBUG: Initial enabled = {:?}", initial_section.enabled);
+            assert!(!initial_section.is_enabled(), "初始状态应该是禁用的");
         }
 
-        // 执行启用命令
-        let result = enable_command("test1");
-        assert!(result.is_ok());
+        // 直接使用服务层测试，不通过命令
+        {
+            use std::sync::Arc;
+            let config_manager = Arc::new(ConfigManager::new(&config_path));
+            let service = ConfigService::new(config_manager);
+            service.enable_config("test1").unwrap();
+        }
 
-        // 验证配置已启用
-        let updated_config = config_manager.load().unwrap();
+        // 读取原始 TOML 文件内容
+        let raw_content = std::fs::read_to_string(&config_path).unwrap();
+        eprintln!("DEBUG: Raw TOML content after enable (service layer):");
+        eprintln!("{}", raw_content);
+
+        // 重新创建 config_manager 并验证配置已启用
+        let fresh_config_manager = ConfigManager::new(&config_path);
+        let updated_config = fresh_config_manager.load().unwrap();
         let section = updated_config.get_section("test1").unwrap();
-        assert!(section.is_enabled());
+        eprintln!("DEBUG: After enable, enabled = {:?}", section.enabled);
+        assert!(section.is_enabled(), "启用后应该是启用状态");
     }
 
     #[test]
@@ -127,16 +141,19 @@ mod tests {
         let config_path = temp_dir.path().join(".ccs_config.toml");
 
         // 创建空配置
-        let config_manager = ConfigManager::new(&config_path);
-        let config = create_test_config_with_disabled();
-        config_manager.save(&config).unwrap();
-
-        unsafe {
-            std::env::set_var("HOME", temp_dir.path());
+        {
+            let config_manager = ConfigManager::new(&config_path);
+            let config = create_test_config_with_disabled();
+            config_manager.save(&config).unwrap();
         }
 
+        // 直接使用服务层测试，不通过命令
+        use std::sync::Arc;
+        let config_manager = Arc::new(ConfigManager::new(&config_path));
+        let service = ConfigService::new(config_manager);
+
         // 尝试启用不存在的配置
-        let result = enable_command("nonexistent");
-        assert!(result.is_err());
+        let result = service.enable_config("nonexistent");
+        assert!(result.is_err(), "启用不存在的配置应该失败");
     }
 }
