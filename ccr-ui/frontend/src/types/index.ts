@@ -76,6 +76,9 @@ export interface ConfigItem {
   provider_type?: string;
   account?: string;
   tags?: string[];
+  // 📊 使用统计和状态字段
+  usage_count?: number;
+  enabled?: boolean;
 }
 
 export interface ConfigListResponse {

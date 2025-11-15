@@ -73,6 +73,9 @@ pub async fn list_configs() -> ApiResult<Json<ConfigListResponse>> {
                         .map(|pt| pt.to_string_value().to_string()),
                     account: section.account.clone(),
                     tags: section.tags.clone(),
+                    // 📊 使用统计和状态字段
+                    usage_count: section.usage_count.unwrap_or(0),
+                    enabled: section.enabled.unwrap_or(true),
                 })
                 .collect();
 
@@ -318,6 +321,9 @@ pub async fn get_config(Path(name): Path<String>) -> ApiResult<Json<ConfigItem>>
                 .map(|pt| pt.to_string_value().to_string()),
             account: section.account.clone(),
             tags: section.tags.clone(),
+            // 📊 使用统计和状态字段
+            usage_count: section.usage_count.unwrap_or(0),
+            enabled: section.enabled.unwrap_or(true),
         };
 
         Ok::<_, String>(config_item)
@@ -524,3 +530,64 @@ pub async fn delete_config(Path(name): Path<String>) -> impl IntoResponse {
         ),
     }
 }
+
+/// PATCH /api/configs/:name/enable - Enable a configuration
+/// ✅ 启用配置
+pub async fn enable_config(Path(name): Path<String>) -> impl IntoResponse {
+    let name_clone = name.clone(); // Clone for use in response message
+    let result = tokio::task::spawn_blocking(move || {
+        // 使用 ConfigService 启用配置
+        let service = ConfigService::with_default()
+            .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
+
+        service
+            .enable_config(&name)
+            .map_err(|e| format!("Failed to enable config: {}", e))?;
+
+        Ok::<_, String>(())
+    })
+    .await;
+
+    match result {
+        Ok(Ok(())) => (
+            StatusCode::OK,
+            Json(ApiResponse::success(format!("Configuration '{}' enabled", name_clone))),
+        ),
+        Ok(Err(e)) => (StatusCode::BAD_REQUEST, Json(ApiResponse::error(e))),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::error(e.to_string())),
+        ),
+    }
+}
+
+/// PATCH /api/configs/:name/disable - Disable a configuration
+/// ❌ 禁用配置
+pub async fn disable_config(Path(name): Path<String>) -> impl IntoResponse {
+    let name_clone = name.clone(); // Clone for use in response message
+    let result = tokio::task::spawn_blocking(move || {
+        // 使用 ConfigService 禁用配置
+        let service = ConfigService::with_default()
+            .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
+
+        service
+            .disable_config(&name)
+            .map_err(|e| format!("Failed to disable config: {}", e))?;
+
+        Ok::<_, String>(())
+    })
+    .await;
+
+    match result {
+        Ok(Ok(())) => (
+            StatusCode::OK,
+            Json(ApiResponse::success(format!("Configuration '{}' disabled", name_clone))),
+        ),
+        Ok(Err(e)) => (StatusCode::BAD_REQUEST, Json(ApiResponse::error(e))),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::error(e.to_string())),
+        ),
+    }
+}
+

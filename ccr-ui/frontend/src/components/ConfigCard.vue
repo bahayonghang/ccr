@@ -136,6 +136,38 @@
           {{ tag }}
         </span>
       </div>
+
+      <!-- 📊 使用次数显示 -->
+      <div v-if="config.usage_count !== undefined" class="flex items-center gap-2 mt-3">
+        <div
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all"
+          :style="{
+            background: 'rgba(99, 102, 241, 0.08)',
+            border: '1px solid rgba(99, 102, 241, 0.2)'
+          }"
+        >
+          <span :style="{ color: 'var(--text-muted)' }">使用次数:</span>
+          <span
+            class="font-bold font-mono"
+            :style="{ color: 'var(--accent-primary)' }"
+          >
+            {{ config.usage_count }}
+          </span>
+        </div>
+
+        <!-- 禁用状态徽章 -->
+        <div
+          v-if="config.enabled === false"
+          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold"
+          :style="{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#ef4444'
+          }"
+        >
+          ❌ 已禁用
+        </div>
+      </div>
     </header>
 
     <!-- 详细信息 -->
@@ -176,6 +208,32 @@
         编辑
       </button>
 
+      <!-- 📊 启用/禁用按钮 -->
+      <button
+        v-if="config.enabled !== false"
+        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+        :style="{
+          background: 'var(--accent-warning)',
+          color: 'white',
+          boxShadow: '0 0 15px rgba(245, 158, 11, 0.3)'
+        }"
+        @click="$emit('disable', config.name)"
+      >
+        禁用
+      </button>
+
+      <button
+        v-else
+        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:scale-105"
+        :style="{
+          background: 'var(--accent-success)',
+          boxShadow: '0 0 15px rgba(16, 185, 129, 0.3)'
+        }"
+        @click="$emit('enable', config.name)"
+      >
+        启用
+      </button>
+
       <button
         v-if="!config.is_current && !config.is_default"
         class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:scale-105"
@@ -207,6 +265,8 @@ defineEmits<{
   switch: [configName: string]
   edit: [configName: string]
   delete: [configName: string]
+  enable: [configName: string]
+  disable: [configName: string]
 }>()
 
 // Provider Type 徽章

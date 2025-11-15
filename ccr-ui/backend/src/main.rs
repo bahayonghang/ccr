@@ -3,7 +3,7 @@
 
 use axum::{
     Router,
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
 };
 use clap::Parser;
 use std::{fs, net::SocketAddr, path::PathBuf};
@@ -145,6 +145,15 @@ fn create_router() -> Router {
         .route(
             "/api/configs/{name}",
             delete(api::handlers::config::delete_config),
+        )
+        // 启用/禁用配置
+        .route(
+            "/api/configs/{name}/enable",
+            patch(api::handlers::config::enable_config),
+        )
+        .route(
+            "/api/configs/{name}/disable",
+            patch(api::handlers::config::disable_config),
         )
         // Command execution endpoints
         .route(

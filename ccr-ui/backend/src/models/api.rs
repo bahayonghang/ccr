@@ -92,6 +92,11 @@ pub struct ConfigItem {
     pub provider_type: Option<String>,
     pub account: Option<String>,
     pub tags: Option<Vec<String>>,
+    // 📊 使用统计和状态字段
+    #[serde(default)]
+    pub usage_count: u32,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -182,6 +182,8 @@ export {
   deleteConfig,
   getConfig,
   updateConfig,
+  enableConfig,
+  disableConfig,
 
   // System info (web-only)
   getSystemInfo,

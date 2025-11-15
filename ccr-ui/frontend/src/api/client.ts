@@ -202,6 +202,17 @@ export const deleteConfig = async (configName: string): Promise<string> => {
   return response.data
 }
 
+// 📊 启用/禁用配置
+export const enableConfig = async (configName: string): Promise<string> => {
+  const response = await api.patch<ApiResponse<string>>(`/configs/${configName}/enable`)
+  return response.data.data || 'Configuration enabled successfully'
+}
+
+export const disableConfig = async (configName: string): Promise<string> => {
+  const response = await api.patch<ApiResponse<string>>(`/configs/${configName}/disable`)
+  return response.data.data || 'Configuration disabled successfully'
+}
+
 export const getConfig = async (configName: string): Promise<any> => {
   const response = await api.get<any>(`/configs/${configName}`)
   return response.data

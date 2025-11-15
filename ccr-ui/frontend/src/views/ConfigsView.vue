@@ -176,37 +176,62 @@
 
           <!-- 配置列表 Tab -->
           <div v-if="activeTab === 'configs'">
-            <!-- 筛选按钮 - 液态玻璃风格 -->
-            <div
-              class="flex gap-3 mb-6 p-2 rounded-2xl"
-              :style="{
-                background: 'rgba(255, 255, 255, 0.4)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)'
-              }"
-            >
-              <button
-                v-for="filter in filters"
-                :key="filter.type"
-                class="flex-1 py-3 px-5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105"
+            <!-- 筛选和排序控制栏 -->
+            <div class="flex gap-4 mb-6 items-center">
+              <!-- 筛选按钮 - 液态玻璃风格 -->
+              <div
+                class="flex gap-3 flex-1 p-2 rounded-2xl"
                 :style="{
-                  background: currentFilter === filter.type
-                    ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
-                    : 'rgba(255, 255, 255, 0.3)',
-                  backdropFilter: currentFilter === filter.type ? 'blur(10px)' : 'none',
-                  border: currentFilter === filter.type 
-                    ? '1px solid rgba(99, 102, 241, 0.3)' 
-                    : '1px solid rgba(255, 255, 255, 0.2)',
-                  color: currentFilter === filter.type ? 'white' : 'var(--text-secondary)',
-                  boxShadow: currentFilter === filter.type 
-                    ? '0 4px 16px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3)' 
-                    : '0 2px 8px rgba(0, 0, 0, 0.05)'
+                  background: 'rgba(255, 255, 255, 0.4)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)'
                 }"
-                @click="currentFilter = filter.type"
               >
-                {{ filter.label }}
-              </button>
+                <button
+                  v-for="filter in filters"
+                  :key="filter.type"
+                  class="flex-1 py-3 px-5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105"
+                  :style="{
+                    background: currentFilter === filter.type
+                      ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                      : 'rgba(255, 255, 255, 0.3)',
+                    backdropFilter: currentFilter === filter.type ? 'blur(10px)' : 'none',
+                    border: currentFilter === filter.type
+                      ? '1px solid rgba(99, 102, 241, 0.3)'
+                      : '1px solid rgba(255, 255, 255, 0.2)',
+                    color: currentFilter === filter.type ? 'white' : 'var(--text-secondary)',
+                    boxShadow: currentFilter === filter.type
+                      ? '0 4px 16px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+                      : '0 2px 8px rgba(0, 0, 0, 0.05)'
+                  }"
+                  @click="currentFilter = filter.type"
+                >
+                  {{ filter.label }}
+                </button>
+              </div>
+
+              <!-- 📊 排序下拉菜单 -->
+              <div class="flex items-center gap-2">
+                <label class="text-sm font-medium whitespace-nowrap" :style="{ color: 'var(--text-secondary)' }">
+                  排序:
+                </label>
+                <select
+                  v-model="currentSort"
+                  class="px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer outline-none"
+                  :style="{
+                    background: 'rgba(255, 255, 255, 0.6)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(99, 102, 241, 0.3)',
+                    color: 'var(--text-primary)',
+                    boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)'
+                  }"
+                >
+                  <option value="name">📝 名称</option>
+                  <option value="usage_count">📊 使用次数</option>
+                  <option value="recent">🕒 最近使用</option>
+                </select>
+              </div>
             </div>
 
             <!-- 加载状态 -->
@@ -246,6 +271,8 @@
                 @switch="handleSwitch"
                 @edit="handleEdit"
                 @delete="handleDelete"
+                @enable="handleEnable"
+                @disable="handleDisable"
               />
             </div>
           </div>
@@ -296,6 +323,8 @@ import {
   validateConfigs as apiValidateConfigs,
   getHistory,
   deleteConfig,
+  enableConfig,
+  disableConfig,
   isTauriEnvironment
 } from '@/api'
 import ConfigCard from '@/components/ConfigCard.vue'
@@ -309,6 +338,7 @@ import EnvironmentBadge from '@/components/EnvironmentBadge.vue'
 import EditConfigModal from '@/components/EditConfigModal.vue'
 
 type FilterType = 'all' | 'official_relay' | 'third_party_model' | 'uncategorized'
+type SortType = 'name' | 'usage_count' | 'recent'
 
 const configs = ref<ConfigItem[]>([])
 const currentConfig = ref<string>('')
@@ -317,6 +347,7 @@ const loading = ref(true)
 const historyLoading = ref(false)
 const error = ref<string | null>(null)
 const currentFilter = ref<FilterType>('all')
+const currentSort = ref<SortType>('name') // 📊 排序方式
 const activeTab = ref<'configs' | 'history'>('configs')
 const isEditModalOpen = ref(false)
 const editingConfigName = ref('')
@@ -328,22 +359,51 @@ const filters = [
   { type: 'uncategorized' as FilterType, label: '❓ 未分类' }
 ]
 
-// 根据当前筛选器过滤配置
+// 根据当前筛选器过滤和排序配置
 const filteredConfigs = computed(() => {
+  // 📌 第一步：筛选
+  let filtered: ConfigItem[]
   if (currentFilter.value === 'all') {
-    return configs.value
+    filtered = configs.value
   } else if (currentFilter.value === 'official_relay') {
-    return configs.value.filter(
+    filtered = configs.value.filter(
       c => c.provider_type === 'OfficialRelay' || c.provider_type === 'official_relay'
     )
   } else if (currentFilter.value === 'third_party_model') {
-    return configs.value.filter(
+    filtered = configs.value.filter(
       c => c.provider_type === 'ThirdPartyModel' || c.provider_type === 'third_party_model'
     )
   } else if (currentFilter.value === 'uncategorized') {
-    return configs.value.filter(c => !c.provider_type)
+    filtered = configs.value.filter(c => !c.provider_type)
+  } else {
+    filtered = configs.value
   }
-  return configs.value
+
+  // 📊 第二步：排序
+  const sorted = [...filtered] // 创建副本以避免修改原数组
+
+  if (currentSort.value === 'usage_count') {
+    // 按使用次数降序排序（使用多的在前）
+    sorted.sort((a, b) => {
+      const countA = a.usage_count || 0
+      const countB = b.usage_count || 0
+      return countB - countA
+    })
+  } else if (currentSort.value === 'recent') {
+    // 按最近使用排序（当前配置在前，然后按使用次数）
+    sorted.sort((a, b) => {
+      if (a.is_current) return -1
+      if (b.is_current) return 1
+      const countA = a.usage_count || 0
+      const countB = b.usage_count || 0
+      return countB - countA
+    })
+  } else {
+    // 按名称排序（默认）
+    sorted.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  return sorted
 })
 
 // 加载配置列表
@@ -432,6 +492,32 @@ const handleDelete = async (configName: string) => {
     await loadConfigs()
   } catch (err) {
     alert(`删除失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
+  }
+}
+
+// 📊 启用配置
+const handleEnable = async (configName: string) => {
+  if (!confirm(`确定启用配置 "${configName}" 吗？`)) return
+
+  try {
+    await enableConfig(configName)
+    alert(`✓ 成功启用配置 "${configName}"`)
+    await loadConfigs()
+  } catch (err) {
+    alert(`启用失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
+  }
+}
+
+// 📊 禁用配置
+const handleDisable = async (configName: string) => {
+  if (!confirm(`确定禁用配置 "${configName}" 吗？禁用后该配置将无法使用。`)) return
+
+  try {
+    await disableConfig(configName)
+    alert(`✓ 成功禁用配置 "${configName}"`)
+    await loadConfigs()
+  } catch (err) {
+    alert(`禁用失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
   }
 }
 
