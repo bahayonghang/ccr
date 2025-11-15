@@ -166,7 +166,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::step("步骤 4/5: 更新配置文件");
 
     let old_config_name: String = if is_unified_mode {
-        // Unified 模式: 更新平台配置的 current_profile
+        // Unified 模式: 更新平台配置的 current_profile 并递增使用次数
         let uc = unified_config
             .as_ref()
             .ok_or_else(|| CcrError::ConfigError("Unified 配置未找到".to_string()))?;
@@ -179,7 +179,22 @@ pub fn switch_command(config_name: &str) -> Result<()> {
 
         let old_current = platform_config.get_current_profile()?.unwrap_or_default();
 
-        // 应用 profile (这会设置当前profile并保存)
+        // 📊 递增目标 profile 的使用次数
+        {
+            let mut profiles = platform_config.load_profiles()?;
+            if let Some(profile) = profiles.get_mut(config_name) {
+                profile.usage_count = Some(profile.usage_count.unwrap_or(0) + 1);
+                log::debug!(
+                    "📊 递增 profile '{}' 的使用次数: {}",
+                    config_name,
+                    profile.usage_count.unwrap_or(0)
+                );
+            }
+            // 保存更新后的 profiles（包含递增的 usage_count）
+            platform_config.save_profile(config_name, profiles.get(config_name).unwrap())?;
+        }
+
+        // 应用 profile (这会设置当前profile并保存settings)
         platform_config.apply_profile(config_name)?;
 
         ColorOutput::success(&format!(
@@ -189,13 +204,20 @@ pub fn switch_command(config_name: &str) -> Result<()> {
 
         old_current
     } else {
-        // Legacy 模式: 更新 ccs_config 的 current_config
-        let config_manager = ConfigManager::with_default()?;
-        let mut config = config_manager.load()?;
+        // Legacy 模式: 使用 ConfigService 更新 current_config (会自动递增使用次数)
+        use crate::services::ConfigService;
+        use std::sync::Arc;
 
-        let old_current = config.current_config.clone();
-        config.set_current(config_name)?;
-        config_manager.save(&config)?;
+        let config_manager = Arc::new(ConfigManager::with_default()?);
+        let config_service = ConfigService::new(config_manager.clone());
+
+        let old_current = {
+            let config = config_manager.load()?;
+            config.current_config.clone()
+        };
+
+        // 使用 service 层的 set_current 方法（包含使用次数递增逻辑）
+        config_service.set_current(config_name)?;
 
         ColorOutput::success(&format!("✅ 当前配置已设置为: {}", config_name));
 
