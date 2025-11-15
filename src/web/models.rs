@@ -60,6 +60,9 @@ pub struct ConfigItem {
     pub provider_type: Option<String>,
     pub account: Option<String>,
     pub tags: Option<Vec<String>>,
+    // === 📊 使用统计和状态字段 ===
+    pub usage_count: u32,
+    pub enabled: bool,
 }
 
 /// 切换配置请求

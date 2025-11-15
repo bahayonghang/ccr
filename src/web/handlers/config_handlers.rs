@@ -304,6 +304,8 @@ impl From<crate::services::config_service::ConfigInfo> for ConfigItem {
             provider_type: info.provider_type,
             account: info.account,
             tags: info.tags,
+            usage_count: info.usage_count,
+            enabled: info.enabled,
         }
     }
 }

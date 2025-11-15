@@ -2,6 +2,7 @@ let currentEditingConfig = null;
         let allConfigs = [];
         let notificationTimeout = null;
         let currentFilter = 'all'; // 当前过滤类型
+        let currentSort = 'name'; // 当前排序方式：name, usage_count, recent
 
         // ===== 工具函数 =====
 
@@ -429,6 +430,12 @@ let currentEditingConfig = null;
             renderConfigNav();
         }
 
+        // 排序配置列表
+        function sortConfigs(sortBy) {
+            currentSort = sortBy;
+            renderConfigs();
+        }
+
         // 渲染配置列表
         function renderConfigs() {
             const container = document.getElementById('configsList');
@@ -451,6 +458,28 @@ let currentEditingConfig = null;
             if (filtered.length === 0) {
                 container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px;">当前分类下暂无配置</div>`;
                 return;
+            }
+
+            // 📊 根据 currentSort 排序配置
+            if (currentSort === 'usage_count') {
+                // 按使用次数降序排序（使用多的在前）
+                filtered = filtered.slice().sort((a, b) => {
+                    const countA = a.usage_count || 0;
+                    const countB = b.usage_count || 0;
+                    return countB - countA;
+                });
+            } else if (currentSort === 'recent') {
+                // 按最近使用排序（当前配置在前，然后按使用次数）
+                filtered = filtered.slice().sort((a, b) => {
+                    if (a.is_current) return -1;
+                    if (b.is_current) return 1;
+                    const countA = a.usage_count || 0;
+                    const countB = b.usage_count || 0;
+                    return countB - countA;
+                });
+            } else {
+                // 按名称排序（默认）
+                filtered = filtered.slice().sort((a, b) => a.name.localeCompare(b.name));
             }
 
             container.innerHTML = filtered.map((config, index) => {
@@ -513,8 +542,21 @@ let currentEditingConfig = null;
                                     <span class="meta-value account-name">${config.account}</span>
                                 </div>
                                 ` : ''}
+                                <div class="meta-item">
+                                    <span class="meta-icon">📊</span>
+                                    <span class="meta-label">使用次数:</span>
+                                    <span class="meta-value usage-count" style="font-weight: 500; color: var(--accent-primary);">${config.usage_count || 0}</span>
+                                </div>
                             </div>
-                            ` : ''}
+                            ` : `
+                            <div class="config-meta">
+                                <div class="meta-item">
+                                    <span class="meta-icon">📊</span>
+                                    <span class="meta-label">使用次数:</span>
+                                    <span class="meta-value usage-count" style="font-weight: 500; color: var(--accent-primary);">${config.usage_count || 0}</span>
+                                </div>
+                            </div>
+                            `}
                             ${tagsHtml}
                         </div>
                         <div class="config-actions-top">

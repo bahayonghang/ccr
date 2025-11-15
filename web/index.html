@@ -193,20 +193,31 @@
 
                 <!-- 配置列表 -->
                 <div id="configs-tab" class="tab-content active">
-                    <!-- 配置类型过滤 -->
-                    <div class="config-type-filter">
-                        <button class="type-filter-btn active" data-type="all" onclick="filterConfigsByType('all')">
-                            📋 全部配置
-                        </button>
-                        <button class="type-filter-btn" data-type="official_relay" onclick="filterConfigsByType('official_relay')">
-                            🔄 官方中转
-                        </button>
-                        <button class="type-filter-btn" data-type="third_party_model" onclick="filterConfigsByType('third_party_model')">
-                            🤖 第三方模型
-                        </button>
-                        <button class="type-filter-btn" data-type="uncategorized" onclick="filterConfigsByType('uncategorized')">
-                            ❓ 未分类
-                        </button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <!-- 配置类型过滤 -->
+                        <div class="config-type-filter">
+                            <button class="type-filter-btn active" data-type="all" onclick="filterConfigsByType('all')">
+                                📋 全部配置
+                            </button>
+                            <button class="type-filter-btn" data-type="official_relay" onclick="filterConfigsByType('official_relay')">
+                                🔄 官方中转
+                            </button>
+                            <button class="type-filter-btn" data-type="third_party_model" onclick="filterConfigsByType('third_party_model')">
+                                🤖 第三方模型
+                            </button>
+                            <button class="type-filter-btn" data-type="uncategorized" onclick="filterConfigsByType('uncategorized')">
+                                ❓ 未分类
+                            </button>
+                        </div>
+                        <!-- 排序下拉菜单 -->
+                        <div class="sort-controls">
+                            <label for="sortBy" style="margin-right: 8px; font-size: 14px; color: var(--text-secondary);">排序:</label>
+                            <select id="sortBy" class="sort-select" onchange="sortConfigs(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-primary); cursor: pointer; font-size: 14px;">
+                                <option value="name">📝 名称</option>
+                                <option value="usage_count">📊 使用次数</option>
+                                <option value="recent">🕒 最近使用</option>
+                            </select>
+                        </div>
                     </div>
                     <div id="configsList"></div>
                 </div>
