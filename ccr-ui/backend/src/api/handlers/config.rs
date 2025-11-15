@@ -370,6 +370,8 @@ pub async fn add_config(Json(req): Json<UpdateConfigRequest>) -> impl IntoRespon
             }),
             account: None,
             tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
         };
 
         // 添加配置节
@@ -424,6 +426,11 @@ pub async fn update_config(
             return Err(format!("Config '{}' not found", name));
         }
 
+        // 获取旧配置以保留 usage_count 和 enabled 字段
+        let old_section = config.sections.get(&name).unwrap();
+        let old_usage_count = old_section.usage_count;
+        let old_enabled = old_section.enabled;
+
         // 更新配置节
         let section = ConfigSection {
             description: req.description,
@@ -439,6 +446,8 @@ pub async fn update_config(
             }),
             account: None,
             tags: None,
+            usage_count: old_usage_count,
+            enabled: old_enabled,
         };
 
         config.set_section(name.clone(), section);

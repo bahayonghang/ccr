@@ -40,7 +40,7 @@ reqwest = { version = "0.12.24", features = ["blocking", "json"] }
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.1.1"
+version = "3.2.0"
 edition = "2024"
 authors = [
     "Yonghang Li"

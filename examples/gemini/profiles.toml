@@ -1,0 +1,62 @@
+# Gemini CLI 配置示例
+# 适用于 Unified 模式下的平台配置
+# 路径: ~/.ccr/platforms/gemini/profiles.toml
+
+# ═══════════════════════════════════════════════════════════════
+# Google Gemini 官方 API
+# ═══════════════════════════════════════════════════════════════
+[google]
+description = "Google Gemini Official API"
+base_url = "https://generativelanguage.googleapis.com/v1"
+auth_token = "AIzaSy...your-api-key-here"
+model = "gemini-2.0-flash-exp"
+small_fast_model = "gemini-1.5-flash"
+provider = "Google"
+provider_type = "official_relay"
+usage_count = 0
+enabled = true
+
+# ═══════════════════════════════════════════════════════════════
+# Gemini Pro 配置
+# ═══════════════════════════════════════════════════════════════
+[gemini_pro]
+description = "Gemini Pro for Production"
+base_url = "https://generativelanguage.googleapis.com/v1"
+auth_token = "AIzaSy...your-pro-api-key"
+model = "gemini-1.5-pro-latest"
+small_fast_model = "gemini-1.5-flash"
+provider = "Google Gemini Pro"
+provider_type = "official_relay"
+account = "production@example.com"
+tags = ["production", "premium"]
+usage_count = 0
+enabled = true
+
+# ═══════════════════════════════════════════════════════════════
+# 开发/测试环境
+# ═══════════════════════════════════════════════════════════════
+[gemini_dev]
+description = "Gemini Development Environment"
+base_url = "https://generativelanguage.googleapis.com/v1"
+auth_token = "AIzaSy...your-dev-key"
+model = "gemini-1.5-flash"
+small_fast_model = "gemini-1.5-flash"
+provider = "Google Dev"
+provider_type = "official_relay"
+account = "dev@example.com"
+tags = ["development", "testing"]
+usage_count = 0
+enabled = true
+
+# ═══════════════════════════════════════════════════════════════
+# 已禁用的配置示例
+# ═══════════════════════════════════════════════════════════════
+[gemini_old]
+description = "旧版 Gemini 配置（已禁用）"
+base_url = "https://generativelanguage.googleapis.com/v1beta"
+auth_token = "old-api-key"
+model = "gemini-pro"
+provider = "Google (Old)"
+tags = ["deprecated"]
+usage_count = 15
+enabled = false

@@ -101,6 +101,8 @@ pub fn switch_command(config_name: &str) -> Result<()> {
             }),
             account: profile.account.clone(),
             tags: profile.tags.clone(),
+            usage_count: profile.usage_count,
+            enabled: profile.enabled,
         }
     } else {
         // Legacy 模式: 从 ccs_config 加载

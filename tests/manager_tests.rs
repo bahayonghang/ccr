@@ -23,6 +23,8 @@ fn create_test_config_section(name: &str) -> ConfigSection {
         provider_type: None,
         account: None,
         tags: Some(vec!["test".into(), "integration".into()]),
+        usage_count: Some(0),
+        enabled: Some(true),
     }
 }
 
@@ -118,6 +120,8 @@ fn test_config_section_validation() {
         provider_type: None,
         account: None,
         tags: None,
+        usage_count: Some(0),
+        enabled: Some(true),
     };
     assert!(invalid.validate().is_err());
 

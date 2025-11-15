@@ -26,6 +26,12 @@ pub enum Route {
     /// DELETE /api/config/:name - 删除配置
     DeleteConfig(String),
 
+    /// PATCH /api/config/:name/enable - 启用配置
+    EnableConfig(String),
+
+    /// PATCH /api/config/:name/disable - 禁用配置
+    DisableConfig(String),
+
     /// GET /api/history - 获取历史记录
     GetHistory,
 
@@ -79,6 +85,18 @@ impl Route {
             ("DELETE", path) if path.starts_with("/api/config/") => {
                 let name = path.trim_start_matches("/api/config/");
                 Route::DeleteConfig(name.to_string())
+            }
+            ("PATCH", path) if path.starts_with("/api/config/") && path.ends_with("/enable") => {
+                let name = path
+                    .trim_start_matches("/api/config/")
+                    .trim_end_matches("/enable");
+                Route::EnableConfig(name.to_string())
+            }
+            ("PATCH", path) if path.starts_with("/api/config/") && path.ends_with("/disable") => {
+                let name = path
+                    .trim_start_matches("/api/config/")
+                    .trim_end_matches("/disable");
+                Route::DisableConfig(name.to_string())
             }
             ("GET", "/api/history") => Route::GetHistory,
             ("POST", "/api/validate") => Route::Validate,

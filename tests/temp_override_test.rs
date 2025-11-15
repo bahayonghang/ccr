@@ -38,6 +38,8 @@ fn create_test_config() -> ConfigSection {
         provider_type: None,
         account: None,
         tags: None,
+        usage_count: Some(0),
+        enabled: Some(true),
     }
 }
 

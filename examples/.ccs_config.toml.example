@@ -17,6 +17,11 @@
 # - model: 默认模型名称
 # - small_fast_model: 快速小模型名称
 #
+# 🆕 统计和控制字段（可选）：
+# - usage_count: 使用次数（自动追踪，可选，默认 0）
+# - enabled: 是否启用（可选，默认 true）
+#   禁用的配置不会显示在切换列表中
+#
 # 🆕 分类字段（可选但推荐）：
 # - provider: 提供商名称（如 "anyrouter", "glm", "moonshot"）
 #   用于标识同一提供商的不同配置，便于分组管理
@@ -65,6 +70,8 @@ provider = "anyrouter"
 provider_type = "official_relay"
 account = "github_5953"
 tags = ["free", "stable", "primary"]
+usage_count = 0
+enabled = true
 
 [anyrouter_backup1]
 description = "AnyRouter 备用服务1 (github_5962)"
@@ -74,6 +81,8 @@ provider = "anyrouter"
 provider_type = "official_relay"
 account = "github_5962"
 tags = ["free", "backup"]
+usage_count = 0
+enabled = true
 
 [anyrouter_backup2]
 description = "AnyRouter 备用服务2 (linuxdo_79797)"
@@ -83,6 +92,8 @@ provider = "anyrouter"
 provider_type = "official_relay"
 account = "linuxdo_79797"
 tags = ["free", "backup"]
+usage_count = 0
+enabled = true
 
 [anyrouter_student]
 description = "AnyRouter 学生账号 (Geekyhang_stumail)"
@@ -92,6 +103,8 @@ provider = "anyrouter"
 provider_type = "official_relay"
 account = "Geekyhang_stumail"
 tags = ["free", "student"]
+usage_count = 0
+enabled = true
 
 [husan]
 description = "虎三api"
@@ -100,6 +113,8 @@ auth_token = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 provider = "husan"
 provider_type = "official_relay"
 tags = ["paid", "stable", "high-speed"]
+usage_count = 0
+enabled = true
 
 [duck]
 description = "duck api"
@@ -108,6 +123,8 @@ auth_token = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 provider = "duck"
 provider_type = "official_relay"
 tags = ["free"]
+usage_count = 0
+enabled = true
 
 [ikun]
 description = "ikun api"
@@ -116,6 +133,8 @@ auth_token = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 provider = "ikun"
 provider_type = "official_relay"
 tags = ["free"]
+usage_count = 0
+enabled = true
 
 [lycheeshare]
 description = "lycheeshare api"
@@ -124,6 +143,8 @@ auth_token = "sk-lycheeshare-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 provider = "lycheeshare"
 provider_type = "official_relay"
 tags = ["free"]
+usage_count = 0
+enabled = true
 
 [share]
 description = "ShareYourCC api"
@@ -132,6 +153,8 @@ auth_token = "sk-user-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 provider = "share"
 provider_type = "official_relay"
 tags = ["free", "us-server"]
+usage_count = 0
+enabled = true
 
 [88code]
 description = "88code api"
@@ -140,6 +163,8 @@ auth_token = "88_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 provider = "88code"
 provider_type = "official_relay"
 tags = ["free"]
+usage_count = 0
+enabled = true
 
 [aicodemirror]
 description = "AICodeMirror API服务"
@@ -148,6 +173,8 @@ auth_token = "sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 provider = "aicodemirror"
 provider_type = "official_relay"
 tags = ["free"]
+usage_count = 0
+enabled = true
 
 [wenwen]
 description = "文文AI API服务"
@@ -156,6 +183,8 @@ auth_token = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 provider = "wenwen"
 provider_type = "official_relay"
 tags = ["free"]
+usage_count = 0
+enabled = true
 
 # ========================================
 # 🤖 第三方模型服务配置
@@ -171,6 +200,8 @@ provider = "glm"
 provider_type = "third_party_model"
 account = "personal"
 tags = ["chinese", "official", "primary"]
+usage_count = 0
+enabled = true
 
 [glm_work]
 description = "智谱GLM 工作账号"
@@ -181,6 +212,8 @@ provider = "glm"
 provider_type = "third_party_model"
 account = "work"
 tags = ["chinese", "official", "work"]
+usage_count = 0
+enabled = true
 
 # 月之暗面Kimi - 多个模型和账号
 [moonshot_personal]
@@ -193,6 +226,8 @@ provider = "moonshot"
 provider_type = "third_party_model"
 account = "personal"
 tags = ["chinese", "kimi", "fast", "primary"]
+usage_count = 0
+enabled = true
 
 [moonshot_work]
 description = "月之暗面 工作账号 - Kimi K1"
@@ -204,6 +239,8 @@ provider = "moonshot"
 provider_type = "third_party_model"
 account = "work"
 tags = ["chinese", "kimi", "work"]
+usage_count = 0
+enabled = true
 
 # SiliconFlow - 多个模型配置
 [siliconflow_kimi]
@@ -215,6 +252,8 @@ provider = "siliconflow"
 provider_type = "third_party_model"
 account = "main"
 tags = ["chinese", "multi-model", "kimi"]
+usage_count = 0
+enabled = true
 
 [siliconflow_qwen]
 description = "SiliconFlow - Qwen模型"
@@ -225,6 +264,8 @@ provider = "siliconflow"
 provider_type = "third_party_model"
 account = "main"
 tags = ["chinese", "multi-model", "qwen", "coding"]
+usage_count = 0
+enabled = true
 
 [modelscope]
 description = "魔搭社区"
@@ -233,3 +274,19 @@ model = "Qwen/Qwen3-Coder-480B-A35B-Instruct"
 provider = "modelscope"
 provider_type = "third_party_model"
 tags = ["chinese", "qwen", "coding"]
+usage_count = 0
+enabled = true
+
+# ========================================
+# 🔧 禁用配置示例
+# ========================================
+# 演示如何禁用不再使用的配置
+
+[old_service]
+description = "旧服务（已禁用）"
+base_url = "https://api.old-service.com"
+auth_token = "old-token-xxxxxxxx"
+provider = "old_provider"
+tags = ["deprecated"]
+usage_count = 50
+enabled = false  # 禁用后不会在切换列表中显示

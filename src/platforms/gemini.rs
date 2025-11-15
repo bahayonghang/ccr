@@ -94,9 +94,13 @@ impl GeminiPlatform {
                     model: section.model,
                     small_fast_model: section.small_fast_model,
                     provider: section.provider,
-                    provider_type: section.provider_type.map(|t| format!("{:?}", t).to_lowercase()),
+                    provider_type: section
+                        .provider_type
+                        .map(|t| format!("{:?}", t).to_lowercase()),
                     account: section.account,
                     tags: section.tags,
+                    usage_count: section.usage_count,
+                    enabled: section.enabled,
                     platform_data: IndexMap::new(),
                 };
                 (name, profile)
@@ -111,8 +115,57 @@ impl GeminiPlatform {
         // 确保目录存在
         self.paths.ensure_directories()?;
 
+        // 🎯 将 ProfileConfig 转换为 ConfigSection 并包装为 CcsConfig
+        use crate::managers::config::{CcsConfig, ConfigSection, GlobalSettings, ProviderType};
+
+        let mut sections = IndexMap::new();
+        for (name, profile) in profiles {
+            let section = ConfigSection {
+                description: profile.description.clone(),
+                base_url: profile.base_url.clone(),
+                auth_token: profile.auth_token.clone(),
+                model: profile.model.clone(),
+                small_fast_model: profile.small_fast_model.clone(),
+                provider: profile.provider.clone(),
+                provider_type: profile
+                    .provider_type
+                    .as_ref()
+                    .and_then(|s| match s.as_str() {
+                        "official_relay" => Some(ProviderType::OfficialRelay),
+                        "third_party_model" => Some(ProviderType::ThirdPartyModel),
+                        _ => None,
+                    }),
+                account: profile.account.clone(),
+                tags: profile.tags.clone(),
+                usage_count: profile.usage_count,
+                enabled: profile.enabled,
+            };
+            sections.insert(name.clone(), section);
+        }
+
+        // 从注册表读取 current_profile 作为 default_config
+        let platform_config_mgr = PlatformConfigManager::with_default()?;
+        let default_config = if let Ok(unified_config) = platform_config_mgr.load() {
+            if let Ok(entry) = unified_config.get_platform("gemini") {
+                entry.current_profile.clone()
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+        .or_else(|| sections.keys().next().cloned())
+        .unwrap_or_else(|| "default".to_string());
+
+        let ccs_config = CcsConfig {
+            default_config: default_config.clone(),
+            current_config: default_config,
+            settings: GlobalSettings::default(),
+            sections,
+        };
+
         // 序列化为 TOML
-        let content = toml::to_string_pretty(profiles)
+        let content = toml::to_string_pretty(&ccs_config)
             .map_err(|e| CcrError::ConfigError(format!("序列化 Gemini 配置失败: {}", e)))?;
 
         // 写入文件
@@ -383,6 +436,8 @@ mod tests {
             provider_type: None,
             account: None,
             tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
             platform_data: IndexMap::new(),
         };
 

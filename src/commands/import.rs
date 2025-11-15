@@ -259,6 +259,8 @@ mod tests {
                 provider_type: None,
                 account: None,
                 tags: None,
+                usage_count: Some(5), // 测试用例中已有使用次数
+                enabled: Some(true),
             },
         );
 
@@ -281,6 +283,8 @@ mod tests {
                 provider_type: None,
                 account: None,
                 tags: None,
+                usage_count: Some(0),
+                enabled: Some(true),
             },
         );
 
@@ -296,6 +300,8 @@ mod tests {
                 provider_type: None,
                 account: None,
                 tags: None,
+                usage_count: Some(0),
+                enabled: Some(true),
             },
         );
 

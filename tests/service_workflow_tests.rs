@@ -24,6 +24,8 @@ fn create_test_section(name: &str) -> ConfigSection {
         provider_type: None,
         account: None,
         tags: Some(vec!["test".into()]),
+        usage_count: Some(0),
+        enabled: Some(true),
     }
 }
 
@@ -124,6 +126,8 @@ fn test_config_service_validation() {
         provider_type: None,
         account: None,
         tags: None,
+        usage_count: Some(0),
+        enabled: Some(true),
     };
     config.sections.insert("invalid".into(), invalid_section);
 
@@ -691,5 +695,182 @@ fn test_settings_service_error_handling() {
 
     // 测试恢复不存在的备份
     let result = service.restore_settings(temp_dir.path().join("nonexistent.bak").as_path());
+    assert!(result.is_err());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Enable/Disable 功能测试
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_enable_disable_config() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+
+    // 创建初始配置
+    let mut config = CcsConfig {
+        default_config: "test".into(),
+        current_config: "test".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
+        sections: IndexMap::new(),
+    };
+
+    let mut section = create_test_section("test");
+    section.enabled = Some(true); // 初始状态为启用
+    config.sections.insert("test".into(), section);
+
+    let manager = Arc::new(ConfigManager::new(&config_path));
+    manager.save(&config).unwrap();
+
+    let service = ConfigService::new(manager);
+
+    // 测试禁用配置
+    service.disable_config("test").unwrap();
+
+    // 验证配置已被禁用
+    let config_info = service.get_config("test").unwrap();
+    assert_eq!(config_info.enabled, false);
+
+    // 测试启用配置
+    service.enable_config("test").unwrap();
+
+    // 验证配置已被启用
+    let config_info = service.get_config("test").unwrap();
+    assert_eq!(config_info.enabled, true);
+}
+
+#[test]
+fn test_usage_count_increment() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+
+    // 创建初始配置
+    let mut config = CcsConfig {
+        default_config: "config1".into(),
+        current_config: "config1".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
+        sections: IndexMap::new(),
+    };
+
+    let mut section1 = create_test_section("config1");
+    section1.usage_count = Some(0);
+    config.sections.insert("config1".into(), section1);
+
+    let mut section2 = create_test_section("config2");
+    section2.usage_count = Some(0);
+    config.sections.insert("config2".into(), section2);
+
+    let manager = Arc::new(ConfigManager::new(&config_path));
+    manager.save(&config).unwrap();
+
+    let service = ConfigService::new(manager);
+
+    // 切换到 config2，应该自动递增 usage_count
+    service.set_current("config2").unwrap();
+
+    let config_info = service.get_config("config2").unwrap();
+    assert_eq!(config_info.usage_count, 1);
+
+    // 再次切换到 config2
+    service.set_current("config1").unwrap();
+    service.set_current("config2").unwrap();
+
+    let config_info = service.get_config("config2").unwrap();
+    assert_eq!(config_info.usage_count, 2);
+}
+
+#[test]
+fn test_auto_complete_missing_fields() {
+    use ccr::utils::AutoCompletable;
+
+    // 创建一个缺少新字段的配置节
+    let mut section = ConfigSection {
+        description: Some("Test".into()),
+        base_url: Some("https://api.test.com".into()),
+        auth_token: Some("sk-test".into()),
+        model: Some("model".into()),
+        small_fast_model: None,
+        provider: None,
+        provider_type: None,
+        account: None,
+        tags: None,
+        usage_count: None, // 缺失字段
+        enabled: None,     // 缺失字段
+    };
+
+    // 调用自动补全
+    let modified = section.auto_complete();
+
+    // 验证字段已被自动补全
+    assert!(modified); // 应该返回 true 表示有字段被修改
+    assert_eq!(section.usage_count, Some(0)); // 默认值
+    assert_eq!(section.enabled, Some(true)); // 默认值
+
+    // 再次调用不应修改
+    let modified_again = section.auto_complete();
+    assert!(!modified_again); // 应该返回 false，因为已经完整
+}
+
+#[test]
+fn test_disable_prevents_switch() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+
+    // 创建初始配置
+    let mut config = CcsConfig {
+        default_config: "config1".into(),
+        current_config: "config1".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
+        sections: IndexMap::new(),
+    };
+
+    config
+        .sections
+        .insert("config1".into(), create_test_section("config1"));
+
+    let mut section2 = create_test_section("config2");
+    section2.enabled = Some(false); // 禁用状态
+    config.sections.insert("config2".into(), section2);
+
+    let manager = Arc::new(ConfigManager::new(&config_path));
+    manager.save(&config).unwrap();
+
+    let service = ConfigService::new(manager);
+
+    // 尝试切换到被禁用的配置，应该失败
+    let result = service.set_current("config2");
+    assert!(result.is_err());
+
+    // 验证当前配置没有改变
+    let current = service.get_current().unwrap();
+    assert_eq!(current.name, "config1");
+}
+
+#[test]
+fn test_enable_disable_nonexistent_config() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+
+    let mut config = CcsConfig {
+        default_config: "test".into(),
+        current_config: "test".into(),
+        settings: ccr::managers::config::GlobalSettings::default(),
+        sections: IndexMap::new(),
+    };
+    config
+        .sections
+        .insert("test".into(), create_test_section("test"));
+
+    let manager = Arc::new(ConfigManager::new(&config_path));
+    manager.save(&config).unwrap();
+
+    let service = ConfigService::new(manager);
+
+    // 测试启用不存在的配置
+    let result = service.enable_config("nonexistent");
+    assert!(result.is_err());
+
+    // 测试禁用不存在的配置
+    let result = service.disable_config("nonexistent");
     assert!(result.is_err());
 }

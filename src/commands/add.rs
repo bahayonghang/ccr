@@ -86,6 +86,8 @@ pub fn add_command() -> Result<()> {
         provider_type,
         account,
         tags,
+        usage_count: Some(0), // 初始使用次数为 0
+        enabled: Some(true),  // 默认启用
     };
 
     // 验证配置

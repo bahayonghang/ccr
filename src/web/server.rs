@@ -125,6 +125,8 @@ impl WebServer {
                 post "/api/config"                      => crate::web::handlers::config_handlers::handle_add_config,
                 put  "/api/config/{name}"               => crate::web::handlers::config_handlers::handle_update_config,
                 delete "/api/config/{name}"             => crate::web::handlers::config_handlers::handle_delete_config,
+                patch "/api/config/{name}/enable"       => crate::web::handlers::config_handlers::enable_config,
+                patch "/api/config/{name}/disable"      => crate::web::handlers::config_handlers::disable_config,
                 post "/api/export"                      => crate::web::handlers::config_handlers::handle_export,
                 post "/api/import"                      => crate::web::handlers::config_handlers::handle_import,
 

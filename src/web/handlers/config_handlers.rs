@@ -12,8 +12,10 @@ use crate::web::{
 use axum::{
     Json,
     extract::{Path, State},
-    response::Response,
+    http::StatusCode,
+    response::{IntoResponse, Response},
 };
+use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -217,11 +219,7 @@ fn get_unified_mode_configs(
         }
         Err(e) => {
             // 其他错误（如文件读取失败、格式错误等）也返回空配置
-            log::warn!(
-                "加载平台 {} 配置失败: {}, 返回空配置",
-                current_platform,
-                e
-            );
+            log::warn!("加载平台 {} 配置失败: {}, 返回空配置", current_platform, e);
             return Ok(("-".to_string(), Vec::new()));
         }
     };
@@ -248,6 +246,8 @@ fn get_unified_mode_configs(
                 provider_type: profile.provider_type.clone(),
                 account: profile.account.clone(),
                 tags: profile.tags.clone(),
+                usage_count: profile.usage_count.unwrap_or(0),
+                enabled: profile.enabled.unwrap_or(true),
             },
         )
         .collect();
@@ -280,6 +280,8 @@ impl UpdateConfigRequest {
             }),
             account: self.account.clone(),
             tags: self.tags.clone(),
+            usage_count: Some(0),
+            enabled: Some(true),
         }
     }
 }
@@ -303,5 +305,45 @@ impl From<crate::services::config_service::ConfigInfo> for ConfigItem {
             account: info.account,
             tags: info.tags,
         }
+    }
+}
+
+/// ✅ 启用配置
+pub async fn enable_config(Path(name): Path<String>) -> impl IntoResponse {
+    match ConfigService::with_default() {
+        Ok(service) => match service.enable_config(&name) {
+            Ok(_) => (
+                StatusCode::OK,
+                Json(json!({ "message": format!("配置 '{}' 已启用", name) })),
+            ),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            ),
+        },
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        ),
+    }
+}
+
+/// ❌ 禁用配置
+pub async fn disable_config(Path(name): Path<String>) -> impl IntoResponse {
+    match ConfigService::with_default() {
+        Ok(service) => match service.disable_config(&name) {
+            Ok(_) => (
+                StatusCode::OK,
+                Json(json!({ "message": format!("配置 '{}' 已禁用", name) })),
+            ),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            ),
+        },
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        ),
     }
 }

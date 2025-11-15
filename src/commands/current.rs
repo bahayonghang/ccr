@@ -145,6 +145,8 @@ pub fn current_command() -> Result<()> {
             }),
             account: profile.account.clone(),
             tags: profile.tags.clone(),
+            usage_count: profile.usage_count,
+            enabled: profile.enabled,
         };
 
         let paths = PlatformPaths::new(platform)?;

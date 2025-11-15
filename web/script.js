@@ -479,8 +479,13 @@ let currentEditingConfig = null;
                     `;
                 }
 
+                // 🆕 生成启用状态徽章
+                const enabledBadge = (config.enabled === false)
+                    ? '<span class="badge badge-disabled" style="background: var(--accent-danger); color: white;">已禁用</span>'
+                    : '';
+
                 return `
-                <div id="config-${config.name}" class="config-card ${config.is_current ? 'active' : ''} fade-in" style="animation-delay: ${index * 0.05}s">
+                <div id="config-${config.name}" class="config-card ${config.is_current ? 'active' : ''} ${config.enabled === false ? 'disabled-config' : ''} fade-in" style="animation-delay: ${index * 0.05}s; ${config.enabled === false ? 'opacity: 0.6;' : ''}">
                     <div class="config-header">
                         <div class="config-info">
                             <h3 class="config-title">
@@ -488,6 +493,7 @@ let currentEditingConfig = null;
                                 <span class="config-name">${config.name}</span>
                                 ${config.is_current ? '<span class="badge badge-active">当前</span>' : ''}
                                 ${config.is_default ? '<span class="badge badge-default">默认</span>' : ''}
+                                ${enabledBadge}
                             </h3>
                             <div class="config-description">
                                 <span class="desc-icon">📝</span>
@@ -513,7 +519,7 @@ let currentEditingConfig = null;
                         </div>
                         <div class="config-actions-top">
                             ${!config.is_current ? `
-                            <button class="btn btn-primary btn-action-top" onclick="switchConfig('${config.name}')" title="切换到此配置">
+                            <button class="btn btn-primary btn-action-top" onclick="switchConfig('${config.name}')" title="切换到此配置" ${config.enabled === false ? 'disabled' : ''}>
                                 <span class="btn-icon">⚡</span>
                                 <span class="btn-text">切换</span>
                             </button>
@@ -522,6 +528,17 @@ let currentEditingConfig = null;
                                 <span class="btn-icon">✏️</span>
                                 <span class="btn-text">编辑</span>
                             </button>
+                            ${config.enabled === false ? `
+                            <button class="btn btn-success btn-action-top" onclick="enableConfig('${config.name}')" title="启用配置" style="background: var(--accent-success);">
+                                <span class="btn-icon">✓</span>
+                                <span class="btn-text">启用</span>
+                            </button>
+                            ` : `
+                            <button class="btn btn-warning btn-action-top" onclick="disableConfig('${config.name}')" title="禁用配置" style="background: var(--accent-warning);">
+                                <span class="btn-icon">◯</span>
+                                <span class="btn-text">禁用</span>
+                            </button>
+                            `}
                             ${!config.is_current && !config.is_default ? `
                             <button class="btn btn-danger btn-action-top" onclick="deleteConfig('${config.name}')" title="删除配置">
                                 <span class="btn-icon">🗑️</span>
@@ -894,6 +911,74 @@ let currentEditingConfig = null;
             } finally {
                 // 恢复按钮状态
                 setButtonsDisabled('.btn-danger', false);
+            }
+        }
+
+        // 启用配置
+        async function enableConfig(name) {
+            // 保存操作以供重试
+            lastOperation = { context: '启用配置', func: () => enableConfig(name) };
+
+            try {
+                const response = await fetch(`/api/config/${encodeURIComponent(name)}/enable`, {
+                    method: 'PATCH'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success || data.message) {
+                    showNotification(data.message || `✓ 配置 "${name}" 已启用`, 'success');
+                    await loadData();
+                } else {
+                    showNotification('启用失败', 'error', {
+                        autoHide: false,
+                        actions: [{
+                            label: '关闭',
+                            type: 'secondary',
+                            onclick: 'closeNotification()'
+                        }]
+                    });
+                }
+            } catch (error) {
+                handleApiError(error, '启用配置');
+            }
+        }
+
+        // 禁用配置
+        async function disableConfig(name) {
+            // 保存操作以供重试
+            lastOperation = { context: '禁用配置', func: () => disableConfig(name) };
+
+            try {
+                const response = await fetch(`/api/config/${encodeURIComponent(name)}/disable`, {
+                    method: 'PATCH'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success || data.message) {
+                    showNotification(data.message || `✓ 配置 "${name}" 已禁用`, 'success');
+                    await loadData();
+                } else {
+                    showNotification('禁用失败', 'error', {
+                        autoHide: false,
+                        actions: [{
+                            label: '关闭',
+                            type: 'secondary',
+                            onclick: 'closeNotification()'
+                        }]
+                    });
+                }
+            } catch (error) {
+                handleApiError(error, '禁用配置');
             }
         }
 

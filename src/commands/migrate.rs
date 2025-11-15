@@ -421,6 +421,8 @@ fn migrate_claude_profiles(legacy_config: &crate::managers::CcsConfig) -> Result
                 .map(|t| t.to_string_value().to_string()),
             account: section.account.clone(),
             tags: section.tags.clone(),
+            usage_count: section.usage_count,
+            enabled: section.enabled,
             platform_data: indexmap::IndexMap::new(),
         };
 

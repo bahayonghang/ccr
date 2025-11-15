@@ -109,6 +109,8 @@ impl ClaudePlatform {
                 .map(|t| t.to_string_value().to_string()),
             account: section.account.clone(),
             tags: section.tags.clone(),
+            usage_count: section.usage_count,
+            enabled: section.enabled,
             platform_data: IndexMap::new(),
         }
     }
@@ -136,6 +138,8 @@ impl ClaudePlatform {
             provider_type,
             account: profile.account.clone(),
             tags: profile.tags.clone(),
+            usage_count: profile.usage_count,
+            enabled: profile.enabled,
         })
     }
 
@@ -401,6 +405,8 @@ mod tests {
             provider_type: None,
             account: None,
             tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
         };
 
         let profile = ClaudePlatform::section_to_profile(&section);

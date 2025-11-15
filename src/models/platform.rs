@@ -9,6 +9,7 @@
 // - 🔄 ConfigMode - 配置模式（Legacy/Unified）
 
 use crate::core::error::Result;
+use crate::utils::AutoCompletable;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -192,6 +193,15 @@ pub struct ProfileConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
 
+    // === 🆕 使用统计和状态字段 ===
+    /// 📊 使用次数统计
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub usage_count: Option<u32>,
+
+    /// 🔘 启用/禁用状态
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+
     /// 📦 平台特定数据（扁平化存储）
     #[serde(flatten)]
     pub platform_data: IndexMap<String, serde_json::Value>,
@@ -210,6 +220,8 @@ impl ProfileConfig {
             provider_type: None,
             account: None,
             tags: None,
+            usage_count: None,
+            enabled: None,
             platform_data: IndexMap::new(),
         }
     }
@@ -240,6 +252,60 @@ impl ProfileConfig {
     pub fn with_model(mut self, model: String) -> Self {
         self.model = Some(model);
         self
+    }
+
+    // === 🆕 使用统计和状态方法 ===
+
+    /// 📊 获取使用次数
+    #[allow(dead_code)]
+    pub fn usage_count(&self) -> u32 {
+        self.usage_count.unwrap_or(0)
+    }
+
+    /// 🔘 检查是否启用
+    #[allow(dead_code)]
+    pub fn is_enabled(&self) -> bool {
+        self.enabled.unwrap_or(true)
+    }
+
+    /// 📈 递增使用次数
+    #[allow(dead_code)]
+    pub fn increment_usage(&mut self) {
+        let count = self.usage_count.unwrap_or(0);
+        self.usage_count = Some(count + 1);
+    }
+
+    /// ✅ 启用配置
+    #[allow(dead_code)]
+    pub fn enable(&mut self) {
+        self.enabled = Some(true);
+    }
+
+    /// ❌ 禁用配置
+    #[allow(dead_code)]
+    pub fn disable(&mut self) {
+        self.enabled = Some(false);
+    }
+}
+
+/// 🤖 为 ProfileConfig 实现自动补全功能
+impl AutoCompletable for ProfileConfig {
+    fn auto_complete(&mut self) -> bool {
+        let mut modified = false;
+
+        if self.usage_count.is_none() {
+            self.usage_count = Some(0);
+            modified = true;
+            log::debug!("Auto-completed usage_count field for profile");
+        }
+
+        if self.enabled.is_none() {
+            self.enabled = Some(true);
+            modified = true;
+            log::debug!("Auto-completed enabled field for profile");
+        }
+
+        modified
     }
 }
 

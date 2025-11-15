@@ -10,7 +10,7 @@
 use crate::core::error::{CcrError, Result};
 use crate::core::fileio;
 use crate::managers::sync_config::SyncConfig;
-use crate::utils::Validatable;
+use crate::utils::{AutoCompletable, Validatable};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -108,6 +108,17 @@ pub struct ConfigSection {
     /// 如 ["free", "stable", "high-speed"]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
+
+    // === 🆕 使用统计和状态字段 ===
+    /// 📊 使用次数统计
+    /// 记录该配置被切换使用的总次数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub usage_count: Option<u32>,
+
+    /// 🔘 启用/禁用状态
+    /// true: 启用（默认）, false: 禁用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
 }
 
 impl Validatable for ConfigSection {
@@ -210,6 +221,60 @@ impl ConfigSection {
             .map(|tags| tags.join(", "))
             .unwrap_or_default()
     }
+
+    // === 🆕 使用统计和状态方法 ===
+
+    /// 📊 获取使用次数
+    /// 返回配置被切换使用的次数，默认为 0
+    pub fn usage_count(&self) -> u32 {
+        self.usage_count.unwrap_or(0)
+    }
+
+    /// 🔘 检查是否启用
+    /// 返回配置的启用状态，默认为 true（启用）
+    pub fn is_enabled(&self) -> bool {
+        self.enabled.unwrap_or(true)
+    }
+
+    /// 📈 递增使用次数
+    /// 将使用次数加 1
+    pub fn increment_usage(&mut self) {
+        let count = self.usage_count.unwrap_or(0);
+        self.usage_count = Some(count + 1);
+    }
+
+    /// ✅ 启用配置
+    pub fn enable(&mut self) {
+        self.enabled = Some(true);
+    }
+
+    /// ❌ 禁用配置
+    pub fn disable(&mut self) {
+        self.enabled = Some(false);
+    }
+}
+
+/// 🤖 为 ConfigSection 实现自动补全功能
+impl AutoCompletable for ConfigSection {
+    fn auto_complete(&mut self) -> bool {
+        let mut modified = false;
+
+        // 补全 usage_count
+        if self.usage_count.is_none() {
+            self.usage_count = Some(0);
+            modified = true;
+            log::debug!("Auto-completed usage_count field for config");
+        }
+
+        // 补全 enabled
+        if self.enabled.is_none() {
+            self.enabled = Some(true);
+            modified = true;
+            log::debug!("Auto-completed enabled field for config");
+        }
+
+        modified
+    }
 }
 
 /// ⚙️ 全局设置结构
@@ -289,6 +354,15 @@ impl CcsConfig {
     pub fn get_section(&self, name: &str) -> Result<&ConfigSection> {
         self.sections
             .get(name)
+            .ok_or_else(|| CcrError::ConfigSectionNotFound(name.to_string()))
+    }
+
+    /// 🔧 获取指定配置节的可变引用
+    ///
+    /// 用于需要修改配置节内容的场景（如递增使用次数、启用/禁用等）
+    pub fn get_section_mut(&mut self, name: &str) -> Result<&mut ConfigSection> {
+        self.sections
+            .get_mut(name)
             .ok_or_else(|| CcrError::ConfigSectionNotFound(name.to_string()))
     }
 
@@ -556,13 +630,29 @@ impl ConfigManager {
         }
 
         // 使用统一的 fileio 读取 TOML
-        let config: CcsConfig = fileio::read_toml(&self.config_path)?;
+        let mut config: CcsConfig = fileio::read_toml(&self.config_path)?;
 
         log::debug!(
             "✅ 成功加载配置文件: {:?}, 配置节数量: {}",
             self.config_path,
             config.sections.len()
         );
+
+        // 🔄 自动补全缺失字段
+        use crate::utils::AutoCompletable;
+        let mut modified = false;
+        for (name, section) in &mut config.sections {
+            if section.auto_complete() {
+                log::debug!("🔄 自动补全配置节 '{}' 的缺失字段", name);
+                modified = true;
+            }
+        }
+
+        // 💾 如果有字段被自动补全，保存配置
+        if modified {
+            log::info!("💾 检测到缺失字段已自动补全，保存配置文件");
+            self.save(&config)?;
+        }
 
         Ok(config)
     }
@@ -821,6 +911,8 @@ mod tests {
             provider_type: None,
             account: None,
             tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
         }
     }
 

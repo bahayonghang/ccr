@@ -25,6 +25,9 @@ pub struct ConfigInfo {
     pub provider_type: Option<String>,
     pub account: Option<String>,
     pub tags: Option<Vec<String>>,
+    // === 🆕 使用统计和状态字段 ===
+    pub usage_count: u32,
+    pub enabled: bool,
 }
 
 /// 📋 配置列表(用于展示)
@@ -92,6 +95,8 @@ impl ConfigService {
                             .map(|t| t.to_string_value().to_string()),
                         account: section.account.clone(),
                         tags: section.tags.clone(),
+                        usage_count: section.usage_count(),
+                        enabled: section.is_enabled(),
                     })
             })
             .collect();
@@ -124,6 +129,8 @@ impl ConfigService {
                 .map(|t| t.to_string_value().to_string()),
             account: section.account.clone(),
             tags: section.tags.clone(),
+            usage_count: section.usage_count(),
+            enabled: section.is_enabled(),
         })
     }
 
@@ -148,6 +155,8 @@ impl ConfigService {
                 .map(|t| t.to_string_value().to_string()),
             account: section.account.clone(),
             tags: section.tags.clone(),
+            usage_count: section.usage_count(),
+            enabled: section.is_enabled(),
         })
     }
 
@@ -239,11 +248,34 @@ impl ConfigService {
     /// 不会修改 settings.json。要完整切换配置,应使用 switch_config。
     ///
     /// 🔐 **并发安全**: 使用 CONFIG_LOCK 保护整个 RMW 序列
+    ///
+    /// 💡 **新增功能**: 自动递增目标配置的使用次数
     pub fn set_current(&self, name: &str) -> Result<()> {
         // 🔒 获取进程内配置锁，保护整个 read-modify-write 序列
         let _guard = crate::core::lock::CONFIG_LOCK.lock().expect("配置锁已中毒");
 
         let mut config = self.config_manager.load()?;
+
+        // ✅ 检查目标配置是否启用
+        if let Ok(section) = config.get_section(name)
+            && !section.is_enabled()
+        {
+            return Err(CcrError::ConfigError(format!(
+                "配置 '{}' 已被禁用，无法切换到此配置",
+                name
+            )));
+        }
+
+        // 📊 递增目标配置的使用次数
+        if let Ok(section) = config.get_section_mut(name) {
+            section.increment_usage();
+            log::debug!(
+                "📊 递增配置 '{}' 的使用次数: {}",
+                name,
+                section.usage_count()
+            );
+        }
+
         config.set_current(name)?;
         self.config_manager.save(&config)?;
         Ok(())
@@ -374,6 +406,55 @@ impl ConfigService {
 
         Ok(result)
     }
+
+    /// ✅ 启用指定配置
+    ///
+    /// 将配置的 `enabled` 字段设置为 `true`，使其可以被正常使用。
+    ///
+    /// # 参数
+    /// - `name`: 配置名称
+    ///
+    /// # 并发安全
+    /// 使用 CONFIG_LOCK 保护整个 read-modify-write 序列
+    pub fn enable_config(&self, name: &str) -> Result<()> {
+        // 🔒 获取进程内配置锁
+        let _guard = crate::core::lock::CONFIG_LOCK.lock().expect("配置锁已中毒");
+
+        let mut config = self.config_manager.load()?;
+        let section = config.get_section_mut(name)?;
+        section.enable();
+
+        log::info!("✅ 配置 '{}' 已启用", name);
+        self.config_manager.save(&config)?;
+        Ok(())
+    }
+
+    /// ❌ 禁用指定配置
+    ///
+    /// 将配置的 `enabled` 字段设置为 `false`，使其不能被使用。
+    /// 禁用的配置在列表中会显示为灰色/禁用状态。
+    ///
+    /// # 参数
+    /// - `name`: 配置名称
+    ///
+    /// # 注意
+    /// 禁用当前正在使用的配置不会自动切换到其他配置，
+    /// 但会在下次切换时发出警告。
+    ///
+    /// # 并发安全
+    /// 使用 CONFIG_LOCK 保护整个 read-modify-write 序列
+    pub fn disable_config(&self, name: &str) -> Result<()> {
+        // 🔒 获取进程内配置锁
+        let _guard = crate::core::lock::CONFIG_LOCK.lock().expect("配置锁已中毒");
+
+        let mut config = self.config_manager.load()?;
+        let section = config.get_section_mut(name)?;
+        section.disable();
+
+        log::info!("❌ 配置 '{}' 已禁用", name);
+        self.config_manager.save(&config)?;
+        Ok(())
+    }
 }
 
 /// 📊 导入结果
@@ -444,6 +525,8 @@ mod tests {
             provider_type: None,
             account: None,
             tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
         }
     }
 

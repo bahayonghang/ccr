@@ -145,6 +145,28 @@ enum Commands {
         force: bool,
     },
 
+    /// 启用指定的配置方案
+    ///
+    /// 将配置标记为启用状态，使其可以正常使用
+    /// 示例: ccr enable my_config
+    Enable {
+        /// 要启用的配置方案名称
+        config_name: String,
+    },
+
+    /// 禁用指定的配置方案
+    ///
+    /// 将配置标记为禁用状态，暂时不可使用（不会删除）
+    /// 示例: ccr disable old_config
+    Disable {
+        /// 要禁用的配置方案名称
+        config_name: String,
+
+        /// 强制禁用（即使是当前正在使用的配置）
+        #[arg(short, long)]
+        force: bool,
+    },
+
     /// 验证配置文件和设置的完整性
     ///
     /// 检查配置文件格式是否正确,以及 Claude Code 设置文件是否有效
@@ -662,6 +684,10 @@ fn main() {
         Some(Commands::Delete { config_name, force }) => {
             commands::delete_command(&config_name, cli.auto_yes || force)
         }
+        Some(Commands::Enable { config_name }) => commands::enable_command(&config_name),
+        Some(Commands::Disable { config_name, force }) => {
+            commands::disable_command(&config_name, cli.auto_yes || force)
+        }
         Some(Commands::Validate) => commands::validate_command(),
         Some(Commands::History { limit, filter_type }) => {
             commands::history_command(Some(limit), filter_type)
@@ -882,6 +908,8 @@ fn command_name(cmd: &Commands) -> &'static str {
         Commands::Switch { .. } => "switch",
         Commands::Add => "add",
         Commands::Delete { .. } => "delete",
+        Commands::Enable { .. } => "enable",
+        Commands::Disable { .. } => "disable",
         Commands::Validate => "validate",
         Commands::History { .. } => "history",
         #[cfg(feature = "web")]

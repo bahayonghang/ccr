@@ -360,6 +360,8 @@ impl App {
                     }),
                     account: info.account,
                     tags: info.tags,
+                    usage_count: Some(0), // TODO: 从 ConfigInfo 获取
+                    enabled: Some(true),  // TODO: 从 ConfigInfo 获取
                 }
             }
             Err(e) => {

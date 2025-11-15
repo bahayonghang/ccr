@@ -99,6 +99,12 @@ pub fn list_command() -> Result<()> {
             Cell::new("账号/标签")
                 .add_attribute(Attribute::Bold)
                 .fg(TableColor::Cyan),
+            Cell::new("使用")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("启用")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
             Cell::new("验证")
                 .add_attribute(Attribute::Bold)
                 .fg(TableColor::Cyan),
@@ -190,6 +196,28 @@ pub fn list_command() -> Result<()> {
                 .add_attribute(Attribute::Bold),
         };
 
+        // 📊 使用次数列
+        let usage_cell = Cell::new(format!("{}", config_info.usage_count))
+            .fg(if config_info.usage_count > 10 {
+                TableColor::Green
+            } else if config_info.usage_count > 0 {
+                TableColor::Yellow
+            } else {
+                TableColor::White
+            })
+            .set_alignment(CellAlignment::Right);
+
+        // 🔘 启用状态列
+        let enabled_cell = if config_info.enabled {
+            Cell::new("✓")
+                .fg(TableColor::Green)
+                .add_attribute(Attribute::Bold)
+        } else {
+            Cell::new("✗")
+                .fg(TableColor::Red)
+                .add_attribute(Attribute::Bold)
+        };
+
         table.add_row(vec![
             status,
             name_cell,
@@ -197,12 +225,27 @@ pub fn list_command() -> Result<()> {
             base_url_cell,
             Cell::new(model_info),
             Cell::new(extra_info_str).fg(TableColor::Yellow),
+            usage_cell,
+            enabled_cell,
             validation_cell,
         ]);
     }
 
-    // 为最右侧"验证"列设置固定宽度并居中，避免宽字符导致的边界错位
+    // 为特定列设置固定宽度并居中，避免宽字符导致的边界错位
+    // "使用" 列 (索引 6)
     if let Some(column) = table.column_mut(6) {
+        column.set_constraint(ColumnConstraint::Absolute(Width::Fixed(6)));
+        column.set_cell_alignment(CellAlignment::Right);
+    }
+
+    // "启用" 列 (索引 7)
+    if let Some(column) = table.column_mut(7) {
+        column.set_constraint(ColumnConstraint::Absolute(Width::Fixed(6)));
+        column.set_cell_alignment(CellAlignment::Center);
+    }
+
+    // "验证" 列 (索引 8)
+    if let Some(column) = table.column_mut(8) {
         column.set_constraint(ColumnConstraint::Absolute(Width::Fixed(5)));
         column.set_cell_alignment(CellAlignment::Center);
     }

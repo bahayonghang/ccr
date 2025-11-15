@@ -19,6 +19,8 @@ fn create_test_section(name: &str) -> ConfigSection {
         provider_type: None,
         account: None,
         tags: None,
+        usage_count: Some(0),
+        enabled: Some(true),
     }
 }
 
@@ -128,6 +130,8 @@ fn test_validation_trait() {
         provider_type: None,
         account: None,
         tags: None,
+        usage_count: Some(0),
+        enabled: Some(true),
     };
     assert!(invalid_section.validate().is_err());
 
@@ -142,6 +146,8 @@ fn test_validation_trait() {
         provider_type: None,
         account: None,
         tags: None,
+        usage_count: Some(0),
+        enabled: Some(true),
     };
     assert!(invalid_section.validate().is_err());
 }

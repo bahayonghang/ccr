@@ -142,6 +142,8 @@ fn build_profile_config(req: &CodexProfileRequest) -> crate::models::ProfileConf
         provider_type: req.provider_type.clone(),
         account: req.account.clone(),
         tags: req.tags.clone(),
+        usage_count: Some(0),
+        enabled: Some(true),
         platform_data,
     }
 }
@@ -179,10 +181,10 @@ fn build_profile_item(
 }
 
 fn insert_string(map: &mut IndexMap<String, JsonValue>, key: &str, value: Option<&String>) {
-    if let Some(text) = value {
-        if !text.trim().is_empty() {
-            map.insert(key.to_string(), JsonValue::String(text.trim().to_string()));
-        }
+    if let Some(text) = value
+        && !text.trim().is_empty()
+    {
+        map.insert(key.to_string(), JsonValue::String(text.trim().to_string()));
     }
 }
 

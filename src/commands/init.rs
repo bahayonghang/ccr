@@ -38,6 +38,8 @@ fn generate_example_config() -> Result<String> {
             provider_type: Some(ProviderType::OfficialRelay),
             account: Some("example_account".to_string()),
             tags: Some(vec!["stable".to_string(), "high-speed".to_string()]),
+            usage_count: Some(0),
+            enabled: Some(true),
         },
     );
 
@@ -54,6 +56,8 @@ fn generate_example_config() -> Result<String> {
             provider_type: Some(ProviderType::OfficialRelay),
             account: None,
             tags: Some(vec!["official".to_string()]),
+            usage_count: Some(0),
+            enabled: Some(true),
         },
     );
 
