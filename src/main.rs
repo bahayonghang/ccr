@@ -14,6 +14,7 @@ mod managers;
 mod models;
 mod platforms;
 mod services;
+mod sync;
 mod utils;
 
 #[cfg(feature = "tui")]

@@ -42,11 +42,31 @@ fn test_sync_content_selection_flow() {
     assert!(available_types.contains(&SyncContentType::Config));
     assert!(available_types.contains(&SyncContentType::Claude));
 
-    // 测试默认选择
+    // 测试默认选择：应默认选择所有平台类型（Claude/Gemini/Qwen/IFlow），不包含 Config
     let default_selection = SyncContentSelection::default();
-    assert_eq!(default_selection.count(), 1);
+    assert_eq!(default_selection.count(), 4);
     assert!(
         default_selection
+            .selected_types
+            .contains(&SyncContentType::Claude)
+    );
+    assert!(
+        default_selection
+            .selected_types
+            .contains(&SyncContentType::Gemini)
+    );
+    assert!(
+        default_selection
+            .selected_types
+            .contains(&SyncContentType::Qwen)
+    );
+    assert!(
+        default_selection
+            .selected_types
+            .contains(&SyncContentType::IFlow)
+    );
+    assert!(
+        !default_selection
             .selected_types
             .contains(&SyncContentType::Config)
     );
@@ -80,8 +100,7 @@ fn test_sync_content_type_detection() {
     fs::create_dir_all(&ccr_root).unwrap();
     fs::write(ccr_root.join("config.toml"), "test").unwrap();
 
-    // 验证只有config存在
-    assert!(SyncContentType::Config.exists());
+    // 验证当前环境下各平台目录尚不存在
     assert!(!SyncContentType::Claude.exists());
     assert!(!SyncContentType::Gemini.exists());
     assert!(!SyncContentType::Qwen.exists());

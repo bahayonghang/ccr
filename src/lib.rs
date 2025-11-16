@@ -136,6 +136,7 @@ pub mod managers;
 pub mod models;
 pub mod platforms;
 pub mod services;
+pub mod sync;
 pub mod utils;
 
 // 可选功能模块
