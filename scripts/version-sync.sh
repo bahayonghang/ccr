@@ -35,10 +35,10 @@ extract_root_version() {
   pkg_block="$(awk 'BEGIN{p=0} /^\[package\]/{p=1;print;next} /^\[/{if(p){exit};} p{print}' "$ROOT_CARGO")"
   [[ -n "$pkg_block" ]] || die "根 Cargo.toml 中缺少 [package] 区块"
   local ver
-  ver="$(printf "%s" "$pkg_block" | sed -n 's/^\s*version\s*=\s*"\([^"]\+\)".*/\1/p' | head -n1)"
+  ver="$(printf "%s" "$pkg_block" | sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' | head -n1)"
   [[ -n "$ver" ]] || die "根 Cargo.toml 的 [package] 区块中没有 version 字段"
   # 去除可能的 CR/LF 和首尾空白
-  ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+  ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
   printf "%s" "$ver"
 }
 
@@ -65,9 +65,9 @@ extract_backend_version() {
   pkg_block="$(awk 'BEGIN{p=0} /^\[package\]/{p=1;print;next} /^\[/{if(p){exit};} p{print}' "$BACKEND_CARGO")"
   [[ -n "$pkg_block" ]] || die "后端 Cargo.toml 中缺少 [package] 区块"
   local ver
-  ver="$(printf "%s" "$pkg_block" | sed -n 's/^\s*version\s*=\s*"\([^"]\+\)".*/\1/p' | head -n1)"
+  ver="$(printf "%s" "$pkg_block" | sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' | head -n1)"
   [[ -n "$ver" ]] || die "后端 Cargo.toml 的 [package] 区块中没有 version 字段"
-  ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+  ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
   printf "%s" "$ver"
 }
 
@@ -80,7 +80,7 @@ extract_frontend_version() {
   ver="$(jq -r '.version // empty' "$FRONTEND_PKG" 2>/dev/null || true)"
   if [[ -z "$ver" || "$ver" == "null" ]]; then
     # 兼容没有 jq 的环境：用 sed 粗略解析
-    ver="$(sed -n 's/"version"\s*:\s*"\([^"]\+\)".*/\1/p' "$FRONTEND_PKG" | head -n1)"
+    ver="$(sed -nE 's/"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$FRONTEND_PKG" | head -n1)"
   fi
   [[ -n "$ver" ]] || die "前端 package.json 缺少 version 字段或解析失败"
   ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^\s\+//' -e 's/\s\+$//')"
@@ -120,7 +120,7 @@ update_backend_version() {
     /^\[package\]/{p=1;print;next}
     /^\[/{if(p){p=0};}
     {
-      if(p && !done && $0 ~ /^\s*version\s*=\s*"[^"]*"/) {
+      if(p && !done && $0 ~ /^[[:space:]]*version[[:space:]]*=[[:space:]]*"[^"]*"/) {
         sub(/"[^"]*"/, "\"" NEWVER "\"");
         done=1;
       }
@@ -138,7 +138,7 @@ update_frontend_version() {
     mv "$tmp" "$FRONTEND_PKG"
   else
     # 无 jq 时用 sed 简单替换
-    sed -i.bak -E "s/(\"version\"\s*:\s*)\"[^\"]*\"/\1\"$ROOT_VER\"/" "$FRONTEND_PKG" || die "更新前端版本失败(sed)"
+    sed -i.bak -E "s/(\"version\"[[:space:]]*:[[:space:]]*)\"[^\"]*\"/\1\"$ROOT_VER\"/" "$FRONTEND_PKG" || die "更新前端版本失败(sed)"
     rm -f "$FRONTEND_PKG.bak"
   fi
 }

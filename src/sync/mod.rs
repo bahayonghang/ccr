@@ -8,6 +8,7 @@ pub mod folder;
 pub mod folder_manager;
 pub mod service;
 
+#[cfg(feature = "web")]
 #[allow(unused_imports)]
 pub use commands::*;
 

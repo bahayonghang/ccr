@@ -551,7 +551,10 @@ pub async fn enable_config(Path(name): Path<String>) -> impl IntoResponse {
     match result {
         Ok(Ok(())) => (
             StatusCode::OK,
-            Json(ApiResponse::success(format!("Configuration '{}' enabled", name_clone))),
+            Json(ApiResponse::success(format!(
+                "Configuration '{}' enabled",
+                name_clone
+            ))),
         ),
         Ok(Err(e)) => (StatusCode::BAD_REQUEST, Json(ApiResponse::error(e))),
         Err(e) => (
@@ -581,7 +584,10 @@ pub async fn disable_config(Path(name): Path<String>) -> impl IntoResponse {
     match result {
         Ok(Ok(())) => (
             StatusCode::OK,
-            Json(ApiResponse::success(format!("Configuration '{}' disabled", name_clone))),
+            Json(ApiResponse::success(format!(
+                "Configuration '{}' disabled",
+                name_clone
+            ))),
         ),
         Ok(Err(e)) => (StatusCode::BAD_REQUEST, Json(ApiResponse::error(e))),
         Err(e) => (
@@ -590,4 +596,3 @@ pub async fn disable_config(Path(name): Path<String>) -> impl IntoResponse {
         ),
     }
 }
-
