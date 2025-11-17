@@ -672,12 +672,14 @@ mod tests {
         if let Ok(platform) = CodexPlatform::new() {
             assert_eq!(platform.platform_name(), "codex");
             assert_eq!(platform.platform_type(), Platform::Codex);
+            let settings_path = platform.get_settings_path();
             assert!(
-                platform
-                    .get_settings_path()
-                    .to_str()
-                    .unwrap()
-                    .contains("codex")
+                settings_path
+                    .file_name()
+                    .map(|n| n.to_string_lossy() == "config.toml")
+                    .unwrap_or(false),
+                "settings path should point to config.toml, got {:?}",
+                settings_path
             );
         }
     }

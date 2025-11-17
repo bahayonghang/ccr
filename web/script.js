@@ -3,6 +3,7 @@ let currentEditingConfig = null;
         let notificationTimeout = null;
         let currentFilter = 'all'; // 当前过滤类型
         let currentSort = 'name'; // 当前排序方式：name, usage_count, recent
+        let providerRange = 'month'; // 提供商统计查询范围
 
         // ===== 工具函数 =====
 
@@ -1059,6 +1060,116 @@ let currentEditingConfig = null;
                     </div>
                 </div>
             `).join('');
+        }
+
+        // 打开/关闭提供商统计 (优化版)
+        function openProviderStatsModal() {
+            const modal = document.getElementById('providerModal');
+            if (modal) {
+                modal.classList.add('show');
+                modal.style.animation = 'fadeIn 0.3s ease';
+                const defaultRange = document.getElementById('providerRange')?.value || 'month';
+                loadProviderStats(defaultRange);
+            }
+        }
+
+        function closeProviderModal() {
+            const modal = document.getElementById('providerModal');
+            if (modal) {
+                modal.style.animation = 'fadeOut 0.2s ease';
+                setTimeout(() => {
+                    modal.classList.remove('show');
+                }, 200);
+            }
+        }
+
+        // 加载提供商使用次数聚类（从 profiles.toml）- 优化版
+        async function loadProviderStats(range = 'month') {
+            providerRange = range;
+            const body = document.getElementById('providerStatsBody');
+            if (!body) return;
+
+            // 显示加载状态
+            body.innerHTML = `
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <div class="loading-text">正在加载提供商统计...</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/api/stats/provider-usage`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+
+                // 添加延迟以显示过渡动画
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                renderProviderStats(data || {});
+            } catch (error) {
+                console.error('加载提供商统计失败:', error);
+                body.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 32px; margin-bottom: 12px;">❌</div>
+                        <div>加载失败: ${error.message || '未知错误'}</div>
+                        <div style="margin-top: 12px;">
+                            <button class="btn btn-primary" onclick="loadProviderStats('${range}')" style="padding: 6px 16px;">
+                                🔄 重试
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染提供商统计 - 优化版
+        function renderProviderStats(providerMap) {
+            const body = document.getElementById('providerStatsBody');
+            if (!body) return;
+
+            // HTML 转义函数
+            const escapeHtml = (text) => {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+
+            const entries = Object.entries(providerMap).sort((a, b) => b[1] - a[1]);
+            if (entries.length === 0) {
+                body.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 32px; margin-bottom: 12px;">📊</div>
+                        <div>暂无提供商使用数据</div>
+                        <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                            开始使用 AI API 后，这里将显示提供商统计
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const maxCount = Math.max(...entries.map(([, count]) => count));
+
+            // 渲染柱状图 (添加淡入动画)
+            body.innerHTML = entries.map(([provider, count], index) => {
+                const width = maxCount > 0 ? Math.min(100, (count / maxCount) * 100) : 0;
+                const displayName = provider || 'unknown';
+                const percentage = maxCount > 0 ? ((count / maxCount) * 100).toFixed(1) : 0;
+
+                return `
+                    <div class="provider-row" style="animation: configFadeIn 0.4s ease ${index * 0.05}s backwards;">
+                        <div class="provider-row-header">
+                            <span class="provider-name">${escapeHtml(displayName)}</span>
+                            <span class="provider-cost">${count} 次</span>
+                        </div>
+                        <div class="provider-bar-bg">
+                            <div class="provider-bar-fill" style="width:${width}%;" title="${percentage}% of max"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         // 验证配置

@@ -54,7 +54,7 @@ features:
 
   - icon: 📊
     title: 统计与成本分析
-    details: 完整的使用统计和成本追踪系统，支持按时间/模型/项目多维度分析，提供 CLI 命令、Web API 和可视化仪表板
+    details: 完整的使用统计和成本追踪系统，支持按时间/模型/项目/提供商多维度分析，提供 CLI 命令、Web API 和可视化仪表板
 
   - icon: 🎨
     title: CCR UI 应用

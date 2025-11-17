@@ -3,8 +3,11 @@
 
 use crate::core::executor;
 use axum::{Json, extract::Query, http::StatusCode, response::IntoResponse};
+use ccr::managers::CcsConfig;
+use dirs;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 // ============================================================
 // 请求/响应类型
@@ -28,6 +31,7 @@ pub struct CostStatsResponse {
     pub total_cost: f64,
     pub record_count: usize,
     pub token_stats: TokenStatsResponse,
+    pub by_provider: HashMap<String, u64>,
     pub by_model: HashMap<String, f64>,
     pub by_project: HashMap<String, f64>,
     pub trend: Option<Vec<DailyCostResponse>>,
@@ -121,8 +125,9 @@ pub async fn cost_overview(
                 .as_f64()
                 .unwrap_or(0.0),
         },
-        by_model: parse_hashmap(&stats["by_model"]),
-        by_project: parse_hashmap(&stats["by_project"]),
+        by_provider: parse_hashmap_u64(&stats["by_provider"]),
+        by_model: parse_hashmap_f64(&stats["by_model"]),
+        by_project: parse_hashmap_f64(&stats["by_project"]),
         trend: parse_trend(&stats["trend"]),
     };
 
@@ -178,6 +183,15 @@ pub async fn cost_by_project(
 ) -> Result<Json<HashMap<String, f64>>, StatusCode> {
     let result = cost_overview(Query(params)).await?;
     Ok(Json(result.0.by_project))
+}
+
+/// GET /api/stats/provider-usage - 按提供商分组的使用次数（从 profiles.toml 读取）
+pub async fn provider_usage() -> Result<Json<HashMap<String, u64>>, StatusCode> {
+    let path = provider_profiles_path("claude");
+    let usage = read_provider_usage(&path)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(usage))
 }
 
 /// GET /api/stats/cost/top-sessions - 成本最高的会话
@@ -243,13 +257,27 @@ pub async fn stats_summary() -> impl IntoResponse {
 // 辅助函数
 // ============================================================
 
-/// 解析 HashMap 从 JSON
-fn parse_hashmap(value: &serde_json::Value) -> HashMap<String, f64> {
+/// 解析 HashMap<u64> 从 JSON
+fn parse_hashmap_u64(value: &serde_json::Value) -> HashMap<String, u64> {
     if let Some(obj) = value.as_object() {
         obj.iter()
             .filter_map(|(k, v)| {
-                let cost = v.as_f64()?;
-                Some((k.clone(), cost))
+                let count = v.as_u64()?;
+                Some((k.clone(), count))
+            })
+            .collect()
+    } else {
+        HashMap::new()
+    }
+}
+
+/// 解析 HashMap<f64> 从 JSON
+fn parse_hashmap_f64(value: &serde_json::Value) -> HashMap<String, f64> {
+    if let Some(obj) = value.as_object() {
+        obj.iter()
+            .filter_map(|(k, v)| {
+                let val = v.as_f64()?;
+                Some((k.clone(), val))
             })
             .collect()
     } else {
@@ -276,17 +304,61 @@ fn parse_trend(value: &serde_json::Value) -> Option<Vec<DailyCostResponse>> {
     }
 }
 
+/// 计算 profiles.toml 的路径
+fn provider_profiles_path(platform: &str) -> PathBuf {
+    let home = dirs::home_dir().unwrap_or_default();
+    home.join(".ccr")
+        .join("platforms")
+        .join(platform)
+        .join("profiles.toml")
+}
+
+/// 从 profiles.toml 读取 provider 使用次数（usage_count 聚合）
+async fn read_provider_usage(path: &PathBuf) -> Result<HashMap<String, u64>, std::io::Error> {
+    if !path.exists() {
+        return Ok(HashMap::new());
+    }
+
+    let content = tokio::fs::read_to_string(path).await?;
+    let config: CcsConfig = toml::from_str(&content)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+
+    let mut map: HashMap<String, u64> = HashMap::new();
+    for (_name, section) in config.sections {
+        let provider = section.provider.unwrap_or_else(|| "unknown".to_string());
+        let count = section.usage_count.unwrap_or(0) as u64;
+        map.entry(provider)
+            .and_modify(|c| *c += count)
+            .or_insert(count);
+    }
+
+    Ok(map)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempdir::TempDir;
+    use tokio::fs;
 
     #[test]
     fn test_parse_hashmap() {
         let json: serde_json::Value = serde_json::json!({
+            "model1": 10,
+            "model2": 20
+        });
+        let map = parse_hashmap_u64(&json);
+        assert_eq!(map.len(), 2);
+        assert_eq!(map.get("model1"), Some(&10));
+    }
+
+    #[test]
+    fn test_parse_hashmap_f64() {
+        let json: serde_json::Value = serde_json::json!({
             "model1": 10.5,
             "model2": 20.3
         });
-        let map = parse_hashmap(&json);
+        let map = parse_hashmap_f64(&json);
         assert_eq!(map.len(), 2);
         assert_eq!(map.get("model1"), Some(&10.5));
     }
@@ -302,5 +374,31 @@ mod tests {
         let trend = trend.unwrap();
         assert_eq!(trend.len(), 2);
         assert_eq!(trend[0].date, "2025-10-27");
+    }
+
+    #[tokio::test]
+    async fn test_read_provider_usage() {
+        let tmp = TempDir::new("provider_usage").unwrap();
+        let profiles_path = tmp.path().join("profiles.toml");
+
+        let toml = r#"
+default_config = "a"
+current_config = "a"
+[settings]
+
+[sections.a]
+provider = "claude"
+usage_count = 3
+
+[sections.b]
+provider = "codex"
+usage_count = 2
+"#;
+
+        fs::write(&profiles_path, toml).await.unwrap();
+
+        let usage = read_provider_usage(&profiles_path).await.unwrap();
+        assert_eq!(usage.get("claude"), Some(&3));
+        assert_eq!(usage.get("codex"), Some(&2));
     }
 }

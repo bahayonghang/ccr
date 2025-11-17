@@ -190,6 +190,11 @@ JSON 格式示例：
     "total_cache_tokens": 3100000,
     "cache_efficiency": 72.45
   },
+  "by_provider": {
+    "claude": 120,
+    "codex": 34,
+    "unknown": 5
+  },
   "by_model": {
     "claude-3-5-sonnet-20241022": 85.20,
     "claude-3-5-haiku-20241022": 32.10,
@@ -262,6 +267,7 @@ CCR 支持以下 Claude 模型的准确定价（截至 2025-10-27）：
 
 - **API 调用次数**: 总的 API 请求数
 - **平均单次成本**: 总成本 / 调用次数
+- **按提供商分布**: `by_provider` 按 provider/platform 统计调用次数（无标记记为 `"unknown"`）
 - **每日趋势**: 每天的成本和调用次数
 
 ## Web UI

@@ -311,6 +311,10 @@ fn create_router() -> Router {
             get(api::handlers::stats::cost_by_project),
         )
         .route(
+            "/api/stats/provider-usage",
+            get(api::handlers::stats::provider_usage),
+        )
+        .route(
             "/api/stats/cost/top-sessions",
             get(api::handlers::stats::cost_top_sessions),
         )

@@ -439,6 +439,7 @@ impl CostTracker {
                     total_cache_tokens: 0,
                     cache_efficiency: 0.0,
                 },
+                by_provider: HashMap::new(),
                 by_model: HashMap::new(),
                 by_project: HashMap::new(),
                 trend: None,
@@ -474,6 +475,17 @@ impl CostTracker {
             0.0
         };
 
+        // 按提供商/平台分组（无值时归为 unknown）
+        let mut by_provider: HashMap<String, u64> = HashMap::new();
+        for record in &filtered {
+            let provider = record
+                .platform
+                .clone()
+                .filter(|p| !p.is_empty())
+                .unwrap_or_else(|| "unknown".to_string());
+            *by_provider.entry(provider).or_insert(0) += 1;
+        }
+
         // 按模型分组
         let mut by_model: HashMap<String, f64> = HashMap::new();
         for record in &filtered {
@@ -498,6 +510,7 @@ impl CostTracker {
                 total_cache_tokens,
                 cache_efficiency,
             },
+            by_provider,
             by_model,
             by_project,
             trend: Some(trend),
@@ -601,5 +614,63 @@ mod tests {
         let records = tracker.read_all().unwrap();
         assert_eq!(records.len(), 1);
         assert_eq!(records[0].session_id, Some("sess_123".to_string()));
+    }
+
+    #[test]
+    fn test_generate_stats_by_provider() {
+        let temp_dir = TempDir::new().unwrap();
+        let tracker = CostTracker::new(temp_dir.path().to_path_buf()).unwrap();
+
+        let usage = TokenUsage {
+            input_tokens: 1000,
+            output_tokens: 500,
+            cache_read_tokens: None,
+            cache_creation_tokens: None,
+        };
+
+        // Two providers and one unknown
+        tracker
+            .record(
+                Some("sess_1".to_string()),
+                "/path/a".to_string(),
+                "claude-3-5-sonnet-20241022".to_string(),
+                usage.clone(),
+                1000,
+                Some("claude".to_string()),
+                None,
+            )
+            .unwrap();
+        tracker
+            .record(
+                Some("sess_2".to_string()),
+                "/path/b".to_string(),
+                "claude-3-5-sonnet-20241022".to_string(),
+                usage.clone(),
+                1000,
+                Some("codex".to_string()),
+                None,
+            )
+            .unwrap();
+        tracker
+            .record(
+                Some("sess_3".to_string()),
+                "/path/c".to_string(),
+                "claude-3-5-sonnet-20241022".to_string(),
+                usage,
+                1000,
+                None,
+                None,
+            )
+            .unwrap();
+
+        let now = Utc::now();
+        let start = now - Duration::days(1);
+        let stats = tracker.generate_stats(start, now).unwrap();
+
+        assert_eq!(stats.by_provider.len(), 3);
+        assert!(stats.by_provider.contains_key("claude"));
+        assert!(stats.by_provider.contains_key("codex"));
+        assert!(stats.by_provider.contains_key("unknown"));
+        assert_eq!(*stats.by_provider.get("claude").unwrap(), 1);
     }
 }

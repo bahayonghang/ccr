@@ -1,49 +1,60 @@
 <template>
   <div class="stats-view p-6 space-y-6">
     <!-- 页面标题 -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">📊 统计分析</h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          查看 AI API 使用成本和统计信息
-        </p>
-      </div>
-      <div class="flex items-center space-x-4">
-        <!-- 时间范围选择 -->
-        <select
-          v-model="selectedRange"
-          @change="loadData"
-          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-        >
-          <option value="today">今日</option>
-          <option value="week">本周</option>
-          <option value="month">本月</option>
-        </select>
-        
-        <!-- 刷新按钮 -->
-        <button
-          @click="loadData"
-          :disabled="loading"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50"
-        >
-          <svg
-            class="w-5 h-5"
-            :class="{ 'animate-spin': loading }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">📊 统计分析</h1>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            查看 AI API 使用和统计信息
+          </p>
+        </div>
+        <div class="flex items-center space-x-4">
+          <!-- 时间范围选择 -->
+          <select
+            v-model="selectedRange"
+            @change="loadData"
+            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          <span>刷新</span>
-        </button>
+            <option value="today">今日</option>
+            <option value="week">本周</option>
+            <option value="month">本月</option>
+          </select>
+          
+          <!-- 提供商统计弹窗按钮 -->
+          <button
+            @click="showProvidersModal = true"
+            class="px-4 py-2 border border-blue-200 dark:border-blue-500 text-blue-700 dark:text-blue-200 rounded-lg flex items-center space-x-2 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18M3 9h18M3 15h18M3 21h18" />
+            </svg>
+            <span>提供商统计</span>
+          </button>
+
+          <!-- 刷新按钮 -->
+          <button
+            @click="loadData"
+            :disabled="loading"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50"
+          >
+            <svg
+              class="w-5 h-5"
+              :class="{ 'animate-spin': loading }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span>刷新</span>
+          </button>
+        </div>
       </div>
-    </div>
 
     <!-- 加载状态 -->
     <div v-if="loading" class="flex items-center justify-center py-12">
@@ -333,17 +344,61 @@
       </p>
     </div>
   </div>
+
+  <!-- 提供商统计弹窗 -->
+  <div v-if="showProvidersModal" class="providers-modal" @click.self="showProvidersModal = false">
+    <div class="providers-modal-card dark:bg-gray-800 dark:text-white">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-xl font-bold">🏢 提供商使用次数</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">按提供商聚类的调用次数</p>
+        </div>
+        <button
+          class="text-gray-500 hover:text-gray-800 dark:hover:text-white"
+          @click="showProvidersModal = false"
+        >
+          ✕
+        </button>
+      </div>
+      <div class="space-y-3 max-h-[60vh] overflow-y-auto">
+        <div
+          v-for="[provider, count] in sortedProviders"
+          :key="provider"
+          class="space-y-2"
+        >
+          <div class="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+            <span class="font-medium truncate">{{ provider || 'unknown' }}</span>
+            <span class="font-bold text-gray-900 dark:text-white">{{ count }} 次</span>
+          </div>
+          <div class="w-full bg-gray-100 dark:bg-gray-700/70 rounded-full h-3">
+            <div
+              class="h-3 rounded-full bg-blue-500 dark:bg-blue-400 transition-all"
+              :style="{ width: `${getProviderBarWidth(count)}%` }"
+            ></div>
+          </div>
+        </div>
+        <div
+          v-if="sortedProviders.length === 0"
+          class="text-center text-gray-500 dark:text-gray-400 py-4"
+        >
+          暂无数据
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getCostOverview } from '@/api/client'
+import { getCostOverview, getProviderUsage } from '@/api/client'
 import type { CostStats } from '@/types'
 
 const stats = ref<CostStats | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const selectedRange = ref('today')
+const showProvidersModal = ref(false)
+const providerUsage = ref<Record<string, number>>({})
 
 const loadData = async () => {
   loading.value = true
@@ -351,6 +406,7 @@ const loadData = async () => {
   
   try {
     stats.value = await getCostOverview(selectedRange.value)
+    providerUsage.value = await getProviderUsage()
   } catch (e: any) {
     error.value = e.message || '加载统计数据失败'
     console.error('Failed to load stats:', e)
@@ -367,6 +423,15 @@ onMounted(() => {
 const sortedModels = computed(() => {
   if (!stats.value) return []
   return Object.entries(stats.value.by_model).sort((a, b) => b[1] - a[1])
+})
+
+const sortedProviders = computed(() => {
+  return Object.entries(providerUsage.value || {}).sort((a, b) => b[1] - a[1])
+})
+
+const maxProviderCount = computed(() => {
+  const values = Object.values(providerUsage.value || {})
+  return values.length ? Math.max(...values) : 0
 })
 
 const sortedProjects = computed(() => {
@@ -409,10 +474,35 @@ const shortenPath = (path: string): string => {
   const parts = path.split('/')
   return parts[parts.length - 1] || path
 }
+
+const getProviderBarWidth = (count: number): number => {
+  const max = maxProviderCount.value || 1
+  return Math.min(100, (count / max) * 100)
+}
 </script>
 
 <style scoped>
 .stats-view {
   min-height: calc(100vh - 64px);
+}
+
+.providers-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.providers-modal-card {
+  width: 100%;
+  max-width: 640px;
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #111827);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
 }
 </style>

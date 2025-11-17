@@ -24,6 +24,7 @@ export interface CostStats {
   total_cost: number;
   record_count: number;
   token_stats: TokenStats;
+  by_provider: Record<string, number>; // provider -> count
   by_model: Record<string, number>;
   by_project: Record<string, number>;
   trend?: DailyCost[];

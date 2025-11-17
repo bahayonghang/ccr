@@ -228,6 +228,10 @@ pub struct CostStats {
     /// 📊 Token 统计
     pub token_stats: TokenStats,
 
+    /// 🏢 按提供商/平台分组（使用次数）
+    #[serde(default)]
+    pub by_provider: HashMap<String, u64>,
+
     /// 🤖 按模型分组
     pub by_model: HashMap<String, f64>,
 

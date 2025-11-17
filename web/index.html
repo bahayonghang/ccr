@@ -217,6 +217,7 @@
                                 <option value="usage_count">📊 使用次数</option>
                                 <option value="recent">🕒 最近使用</option>
                             </select>
+                            <button class="btn btn-secondary" style="margin-left: 8px;" onclick="openProviderStatsModal()">🏢 提供商统计</button>
                         </div>
                     </div>
                     <div id="configsList"></div>
@@ -556,6 +557,26 @@
                     <button type="button" class="btn btn-primary" onclick="previewClean()">预览</button>
                     <button type="button" class="btn btn-warning" onclick="executeClean()" id="cleanExecuteBtn">执行清理</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提供商统计模态框 -->
+    <div id="providerModal" class="modal">
+        <div class="modal-content" style="max-width: 640px;">
+            <div class="modal-header">
+                <h2 class="modal-title">🏢 提供商使用次数</h2>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <select id="providerRange" class="sort-select" onchange="loadProviderStats(this.value)">
+                        <option value="today">今日</option>
+                        <option value="week">本周</option>
+                        <option value="month" selected>本月</option>
+                    </select>
+                    <button class="close-btn" onclick="closeProviderModal()">&times;</button>
+                </div>
+            </div>
+            <div id="providerStatsBody" class="provider-stats-body" style="max-height: 60vh; overflow-y: auto;">
+                <div class="empty-state">加载中...</div>
             </div>
         </div>
     </div>

@@ -141,6 +141,11 @@ export const getCostByProject = async (range: string = 'month'): Promise<Record<
   return response.data
 }
 
+export const getProviderUsage = async (): Promise<Record<string, number>> => {
+  const response = await api.get<Record<string, number>>('/stats/provider-usage')
+  return response.data
+}
+
 export const getTopSessions = async (limit: number = 10): Promise<TopSession[]> => {
   const response = await api.get<TopSession[]>(`/stats/cost/top-sessions?limit=${limit}`)
   return response.data
