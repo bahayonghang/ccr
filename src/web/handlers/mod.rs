@@ -4,6 +4,7 @@
 pub mod codex_handlers;
 pub mod config_handlers;
 pub mod platform_handlers;
+pub mod stats_handlers;
 pub mod sync_handlers;
 pub mod system_handlers;
 

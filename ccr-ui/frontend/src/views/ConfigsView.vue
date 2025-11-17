@@ -233,7 +233,6 @@
                 </select>
               </div>
             </div>
-
             <!-- 加载状态 -->
             <div v-if="loading" class="flex items-center justify-center py-20">
               <div
@@ -258,22 +257,149 @@
               <span :style="{ color: 'var(--accent-danger)' }">Error: {{ error }}</span>
             </div>
 
-            <!-- 配置卡片列表 -->
-            <div v-else class="space-y-6">
-              <div v-if="filteredConfigs.length === 0" class="text-center py-10" :style="{ color: 'var(--text-muted)' }">
-                当前分类下暂无配置
+            <!-- 提供商统计 + 配置卡片列表 -->
+            <div v-else class="space-y-8">
+              <!-- 提供商使用统计 - 液态玻璃柱状图 -->
+              <section
+                class="rounded-3xl p-6"
+                :style="{
+                  background: 'rgba(255, 255, 255, 0.6)',
+                  backdropFilter: 'blur(18px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(18px) saturate(180%)',
+                  border: '1px solid rgba(148, 163, 184, 0.5)',
+                  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.7)'
+                }"
+              >
+                <div class="flex items-center justify-between gap-4 mb-4">
+                  <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                      <span>🏢 提供商使用统计</span>
+                    </h2>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      共 {{ providerEntries.length }} 个提供商 · 总调用 {{ totalProviderUsage }} 次
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <span>排序:</span>
+                      <select
+                        v-model="providerSortMode"
+                        class="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/70 dark:border-slate-600/70 bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                      >
+                        <option value="count_desc">使用次数 ↓</option>
+                        <option value="count_asc">使用次数 ↑</option>
+                        <option value="name_asc">供应商 A-Z</option>
+                      </select>
+                    </div>
+                    <button
+                      class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-500/80 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800/80 transition"
+                      @click="loadProviderUsage"
+                      :disabled="providerLoading"
+                    >
+                      <svg
+                        class="w-3.5 h-3.5"
+                        :class="{ 'animate-spin': providerLoading }"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      <span>刷新统计</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="providerLoading" class="flex items-center justify-center py-10">
+                  <div class="w-10 h-10 rounded-full border-4 border-transparent border-t-indigo-500 border-r-fuchsia-500 animate-spin" />
+                </div>
+                <div
+                  v-else-if="providerError"
+                  class="text-xs rounded-lg px-3 py-2 border border-red-300/70 bg-red-50/80 text-red-700 dark:border-red-700/70 dark:bg-red-900/30 dark:text-red-100"
+                >
+                  加载提供商统计失败: {{ providerError }}
+                </div>
+                <div
+                  v-else-if="sortedProviderEntries.length === 0"
+                  class="text-center text-xs text-slate-500 dark:text-slate-400 py-8"
+                >
+                  暂无提供商使用数据，开始使用 AI API 后，这里会显示各提供商的调用次数
+                </div>
+                <div v-else class="provider-chart-container">
+                  <div class="provider-chart-summary">
+                    共 {{ providerEntries.length }} 个提供商 · 总调用 {{ totalProviderUsage }} 次
+                    <div class="provider-chart-desc">
+                      Y 轴：使用次数（单位：次） · X 轴：提供商 · 当前排序：{{ providerSortLabel }}
+                    </div>
+                  </div>
+                  <div class="provider-chart">
+                    <div class="provider-chart-y-grid">
+                      <div
+                        v-for="tick in providerYTicks"
+                        :key="tick.percent"
+                        class="y-grid-line"
+                        :style="{ bottom: tick.percent + '%' }"
+                      >
+                        <span class="y-grid-label">{{ tick.value }}</span>
+                      </div>
+                    </div>
+                    <div class="provider-chart-y-axis-line"></div>
+                    <div class="provider-chart-x-axis-line"></div>
+                    <div class="provider-chart-bars">
+                      <div
+                        v-for="([provider, count], index) in sortedProviderEntries"
+                        :key="provider || index"
+                        class="provider-bar-column"
+                        :style="{ animation: 'configFadeIn 0.4s ease ' + index * 0.05 + 's backwards' }"
+                      >
+                        <div class="provider-bar-vertical-bg">
+                          <div
+                            class="provider-bar-vertical-fill"
+                            :class="'bar-color-' + (index % 5)"
+                            :style="{ height: Math.max((count / (maxProviderCount || 1)) * 100, 8) + '%' }"
+                            :title="(provider || 'unknown') + ': ' + count + ' 次，占最高值的 ' + (maxProviderCount ? ((count / maxProviderCount) * 100).toFixed(1) : 0) + '%'"
+                          ></div>
+                        </div>
+                        <div class="provider-bar-value">{{ count }} 次</div>
+                        <div
+                          class="provider-bar-label"
+                          :title="provider || 'unknown'"
+                        >
+                          {{ provider || 'unknown' }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="provider-chart-x-axis-label">X 轴：提供商</div>
+                </div>
+              </section>
+
+              <!-- 配置卡片列表 -->
+              <div class="space-y-6">
+                <div
+                  v-if="filteredConfigs.length === 0"
+                  class="text-center py-10"
+                  :style="{ color: 'var(--text-muted)' }"
+                >
+                  当前分类下暂无配置
+                </div>
+                <ConfigCard
+                  v-else
+                  v-for="config in filteredConfigs"
+                  :key="config.name"
+                  :config="config"
+                  @switch="handleSwitch"
+                  @edit="handleEdit"
+                  @delete="handleDelete"
+                  @enable="handleEnable"
+                  @disable="handleDisable"
+                />
               </div>
-              <ConfigCard
-                v-else
-                v-for="config in filteredConfigs"
-                :key="config.name"
-                :config="config"
-                @switch="handleSwitch"
-                @edit="handleEdit"
-                @delete="handleDelete"
-                @enable="handleEnable"
-                @disable="handleDisable"
-              />
             </div>
           </div>
 
@@ -327,6 +453,7 @@ import {
   disableConfig,
   isTauriEnvironment
 } from '@/api'
+import { getProviderUsage } from '@/api/client'
 import ConfigCard from '@/components/ConfigCard.vue'
 import HistoryList from '@/components/HistoryList.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
@@ -352,12 +479,64 @@ const activeTab = ref<'configs' | 'history'>('configs')
 const isEditModalOpen = ref(false)
 const editingConfigName = ref('')
 
+const providerUsage = ref<Record<string, number>>({})
+const providerLoading = ref(false)
+const providerError = ref<string | null>(null)
+const providerSortMode = ref<'count_desc' | 'count_asc' | 'name_asc'>('count_desc')
+
 const filters = [
   { type: 'all' as FilterType, label: '📋 全部配置' },
   { type: 'official_relay' as FilterType, label: '🔄 官方中转' },
   { type: 'third_party_model' as FilterType, label: '🤖 第三方模型' },
   { type: 'uncategorized' as FilterType, label: '❓ 未分类' }
 ]
+
+const providerEntries = computed(() => {
+  return Object.entries(providerUsage.value || {})
+})
+
+const sortedProviderEntries = computed(() => {
+  const entries = [...providerEntries.value]
+  if (providerSortMode.value === 'count_asc') {
+    entries.sort((a, b) => a[1] - b[1])
+  } else if (providerSortMode.value === 'name_asc') {
+    entries.sort((a, b) => a[0].localeCompare(b[0]))
+  } else {
+    entries.sort((a, b) => b[1] - a[1])
+  }
+  return entries
+})
+
+const providerSortLabel = computed(() => {
+  if (providerSortMode.value === 'count_asc') {
+    return '使用次数（从低到高）'
+  }
+  if (providerSortMode.value === 'name_asc') {
+    return '供应商名称（A → Z）'
+  }
+  return '使用次数（从高到低）'
+})
+
+const maxProviderCount = computed(() => {
+  const values = providerEntries.value.map(([, count]) => count)
+  return values.length ? Math.max(...values) : 0
+})
+
+const totalProviderUsage = computed(() => {
+  return providerEntries.value.reduce((sum, [, count]) => sum + count, 0)
+})
+
+const providerYTicks = computed(() => {
+  const max = maxProviderCount.value || 0
+  const percents = [0, 25, 50, 75, 100]
+  if (max === 0) {
+    return percents.map(percent => ({ percent, value: 0 }))
+  }
+  return percents.map(percent => ({
+    percent,
+    value: Math.round((max * percent) / 100),
+  }))
+})
 
 // 根据当前筛选器过滤和排序配置
 const filteredConfigs = computed(() => {
@@ -436,6 +615,20 @@ const loadHistory = async () => {
     console.error('Failed to load history:', err)
   } finally {
     historyLoading.value = false
+  }
+}
+
+const loadProviderUsage = async () => {
+  try {
+    providerLoading.value = true
+    providerError.value = null
+    const data = await getProviderUsage()
+    providerUsage.value = data || {}
+  } catch (err) {
+    providerError.value = err instanceof Error ? err.message : 'Failed to load provider usage'
+    console.error('Error loading provider usage:', err)
+  } finally {
+    providerLoading.value = false
   }
 }
 
@@ -539,6 +732,7 @@ const handleExport = () => {
 // 刷新数据
 const refreshData = async () => {
   await loadConfigs()
+  await loadProviderUsage()
   if (activeTab.value === 'history') {
     await loadHistory()
   }
@@ -566,5 +760,6 @@ watch(activeTab, (newTab) => {
 
 onMounted(async () => {
   await loadConfigs()
+  await loadProviderUsage()
 })
 </script>

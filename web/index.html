@@ -563,11 +563,16 @@
 
     <!-- 提供商统计模态框 -->
     <div id="providerModal" class="modal">
-        <div class="modal-content" style="max-width: 640px;">
+        <div class="modal-content" style="max-width: 960px;">
             <div class="modal-header">
                 <h2 class="modal-title">🏢 提供商使用次数</h2>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <select id="providerRange" class="sort-select" onchange="loadProviderStats(this.value)">
+                    <select id="providerSort" class="sort-select" onchange="setProviderSort(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; font-size: 14px;">
+                        <option value="count_desc">使用次数 ↓</option>
+                        <option value="count_asc">使用次数 ↑</option>
+                        <option value="name_asc">供应商 A-Z</option>
+                    </select>
+                    <select id="providerRange" class="sort-select" onchange="loadProviderStats(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; font-size: 14px;">
                         <option value="today">今日</option>
                         <option value="week">本周</option>
                         <option value="month" selected>本月</option>

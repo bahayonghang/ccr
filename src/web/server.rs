@@ -146,6 +146,9 @@ impl WebServer {
                 get  "/api/system"                      => crate::web::handlers::system_handlers::handle_get_system_info,
                 post "/api/reload"                      => crate::web::handlers::system_handlers::handle_reload_config,
 
+                // 统计
+                get  "/api/stats/provider-usage"        => crate::web::handlers::stats_handlers::handle_provider_usage,
+
                 // 平台管理 (Unified Mode)
                 get  "/api/platforms"                   => crate::web::handlers::platform_handlers::handle_get_platform_info,
                 post "/api/platforms/switch"            => crate::web::handlers::platform_handlers::handle_switch_platform,

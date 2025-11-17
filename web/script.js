@@ -4,6 +4,8 @@ let currentEditingConfig = null;
         let currentFilter = 'all'; // 当前过滤类型
         let currentSort = 'name'; // 当前排序方式：name, usage_count, recent
         let providerRange = 'month'; // 提供商统计查询范围
+        let providerSortMode = 'count_desc';
+        let providerStatsCache = null;
 
         // ===== 工具函数 =====
 
@@ -1069,6 +1071,10 @@ let currentEditingConfig = null;
                 modal.classList.add('show');
                 modal.style.animation = 'fadeIn 0.3s ease';
                 const defaultRange = document.getElementById('providerRange')?.value || 'month';
+                const sortSelect = document.getElementById('providerSort');
+                if (sortSelect) {
+                    sortSelect.value = providerSortMode;
+                }
                 loadProviderStats(defaultRange);
             }
         }
@@ -1104,10 +1110,12 @@ let currentEditingConfig = null;
                 }
                 const data = await response.json();
 
+                providerStatsCache = data || {};
+
                 // 添加延迟以显示过渡动画
                 await new Promise(resolve => setTimeout(resolve, 300));
 
-                renderProviderStats(data || {});
+                renderProviderStats(providerStatsCache || {});
             } catch (error) {
                 console.error('加载提供商统计失败:', error);
                 body.innerHTML = `
@@ -1124,7 +1132,14 @@ let currentEditingConfig = null;
             }
         }
 
-        // 渲染提供商统计 - 优化版
+        function setProviderSort(mode) {
+            providerSortMode = mode;
+            if (providerStatsCache) {
+                renderProviderStats(providerStatsCache);
+            }
+        }
+
+        // 渲染提供商统计 - 纵向柱状图
         function renderProviderStats(providerMap) {
             const body = document.getElementById('providerStatsBody');
             if (!body) return;
@@ -1136,7 +1151,15 @@ let currentEditingConfig = null;
                 return div.innerHTML;
             };
 
-            const entries = Object.entries(providerMap).sort((a, b) => b[1] - a[1]);
+            let entries = Object.entries(providerMap);
+            if (providerSortMode === 'count_asc') {
+                entries.sort((a, b) => a[1] - b[1]);
+            } else if (providerSortMode === 'name_asc') {
+                entries.sort((a, b) => a[0].localeCompare(b[0]));
+            } else {
+                entries.sort((a, b) => b[1] - a[1]);
+            }
+
             if (entries.length === 0) {
                 body.innerHTML = `
                     <div class="empty-state">
@@ -1151,25 +1174,60 @@ let currentEditingConfig = null;
             }
 
             const maxCount = Math.max(...entries.map(([, count]) => count));
+            const totalCount = entries.reduce((sum, [, count]) => sum + count, 0);
+            const yTickPercents = [0, 25, 50, 75, 100];
+            const yTickValues = yTickPercents.map(p => Math.round((maxCount * p) / 100));
 
-            // 渲染柱状图 (添加淡入动画)
-            body.innerHTML = entries.map(([provider, count], index) => {
-                const width = maxCount > 0 ? Math.min(100, (count / maxCount) * 100) : 0;
-                const displayName = provider || 'unknown';
-                const percentage = maxCount > 0 ? ((count / maxCount) * 100).toFixed(1) : 0;
+            let sortLabel = '使用次数（从高到低）';
+            if (providerSortMode === 'count_asc') {
+                sortLabel = '使用次数（从低到高）';
+            } else if (providerSortMode === 'name_asc') {
+                sortLabel = '供应商名称（A → Z）';
+            }
 
-                return `
-                    <div class="provider-row" style="animation: configFadeIn 0.4s ease ${index * 0.05}s backwards;">
-                        <div class="provider-row-header">
-                            <span class="provider-name">${escapeHtml(displayName)}</span>
-                            <span class="provider-cost">${count} 次</span>
-                        </div>
-                        <div class="provider-bar-bg">
-                            <div class="provider-bar-fill" style="width:${width}%;" title="${percentage}% of max"></div>
+            // 标准矩形柱状图：X 轴为提供商，Y 轴为使用次数
+            body.innerHTML = `
+                <div class="provider-chart-container">
+                    <div class="provider-chart-summary">
+                        共 ${entries.length} 个提供商 · 总调用 ${totalCount} 次
+                        <div class="provider-chart-desc">
+                            Y 轴：使用次数（单位：次） · X 轴：提供商 · 当前排序：${sortLabel}
                         </div>
                     </div>
-                `;
-            }).join('');
+                    <div class="provider-chart">
+                        <div class="provider-chart-y-grid">
+                            ${yTickPercents.map((percent, idx) => `
+                                <div class="y-grid-line" style="bottom:${percent}%;">
+                                    <span class="y-grid-label">${yTickValues[idx]}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="provider-chart-y-axis-line"></div>
+                        <div class="provider-chart-x-axis-line"></div>
+                        <div class="provider-chart-bars">
+                            ${entries.map(([provider, count], index) => {
+                                const ratio = maxCount > 0 ? count / maxCount : 0;
+                                const barHeight = ratio > 0 ? Math.max(ratio * 100, 8) : 0;
+                                const displayName = provider || 'unknown';
+                                const safeName = escapeHtml(displayName);
+                                const percentage = maxCount > 0 ? (ratio * 100).toFixed(1) : 0;
+                                const colorClass = `bar-color-${index % 5}`;
+
+                                return `
+                                    <div class="provider-bar-column" style="animation: configFadeIn 0.4s ease ${index * 0.05}s backwards;">
+                                        <div class="provider-bar-vertical-bg">
+                                            <div class="provider-bar-vertical-fill ${colorClass}" style="height:${barHeight}%;" title="${safeName}: ${count} 次，占最高值的 ${percentage}%"></div>
+                                        </div>
+                                        <div class="provider-bar-value">${count} 次</div>
+                                        <div class="provider-bar-label" title="${safeName}">${safeName}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                    <div class="provider-chart-x-axis-label">X 轴：提供商</div>
+                </div>
+            `;
         }
 
         // 验证配置
