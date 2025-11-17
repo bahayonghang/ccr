@@ -36,14 +36,8 @@ fn show_sync_help() {
         "  {}  显示当前同步状态和所有文件夹",
         "ccr sync status".cyan()
     );
-    println!(
-        "  {}  上传配置文件到云端 (兼容旧版)",
-        "ccr sync push".cyan()
-    );
-    println!(
-        "  {}  从云端下载配置文件 (兼容旧版)",
-        "ccr sync pull".cyan()
-    );
+    println!("  {}  上传配置文件到云端", "ccr sync push".cyan());
+    println!("  {}  从云端下载配置文件", "ccr sync pull".cyan());
     println!("  {}  显示此帮助信息", "ccr sync help".cyan());
     println!();
 
@@ -160,7 +154,6 @@ fn show_sync_help() {
     println!("  🔄 细粒度控制     - 可以单独启用/禁用文件夹");
     println!("  💾 自动备份       - 下载前自动备份本地内容");
     println!("  🔒 安全操作       - 支持 WebDAV 认证和 HTTPS");
-    println!("  ⚡ 向后兼容       - 旧版 'ccr sync push/pull' 命令仍可用");
     println!();
 
     println!("{}", "支持的 WebDAV 服务:".green().bold());

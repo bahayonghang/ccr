@@ -344,21 +344,50 @@ impl SyncService {
         Ok(())
     }
 
-    /// 🔍 检查远程文件是否存在
+    /// 🔍 检查远程内容是否存在
+    ///
+    /// - 对于目录路径（以 `/` 结尾），使用 WebDAV `LIST/PROPFIND` 检查目录是否存在
+    /// - 对于文件路径，仍然使用 `GET` 检查文件是否存在
     pub async fn remote_exists(&self) -> Result<bool> {
-        log::debug!("🔍 检查远程文件: {}", self.remote_path);
+        let remote_path = self.remote_path.as_str();
 
-        match self.client.get(&self.remote_path).await {
-            Ok(_) => Ok(true),
-            // 文件不存在（404）
-            Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::NOT_FOUND) => Ok(false),
-            // 父目录不存在（409 - Conflict）或其他 Decode 错误
-            // 坚果云在父目录不存在时返回 409 + AncestorsNotFound
-            Err(DavError::Decode(_)) => {
-                log::debug!("远程目录或文件不存在（409）");
-                Ok(false)
+        if remote_path.ends_with('/') {
+            log::debug!("🔍 检查远程目录: {}", remote_path);
+
+            // 使用 PROPFIND/LIST 检查目录是否存在
+            match self.client.list(remote_path, Depth::Number(0)).await {
+                // 只要能成功列出(即使为空)，就认为目录存在
+                Ok(_) => Ok(true),
+                // 目录不存在（404）
+                Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::NOT_FOUND) => {
+                    log::debug!("远程目录不存在 (404): {}", remote_path);
+                    Ok(false)
+                }
+                // 父目录不存在或服务器返回 409/解析错误
+                Err(DavError::Decode(_)) => {
+                    log::debug!("远程目录不存在或不可达（Decode/409）: {}", remote_path);
+                    Ok(false)
+                }
+                Err(e) => Err(self.map_dav_error(e, "检查远程目录")),
             }
-            Err(e) => Err(self.map_dav_error(e, "检查远程文件")),
+        } else {
+            log::debug!("🔍 检查远程文件: {}", remote_path);
+
+            match self.client.get(remote_path).await {
+                Ok(_) => Ok(true),
+                // 文件不存在（404）
+                Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::NOT_FOUND) => {
+                    log::debug!("远程文件不存在 (404): {}", remote_path);
+                    Ok(false)
+                }
+                // 父目录不存在（409 - Conflict）或其他 Decode 错误
+                // 坚果云在父目录不存在时返回 409 + AncestorsNotFound
+                Err(DavError::Decode(_)) => {
+                    log::debug!("远程目录或文件不存在（Decode/409）: {}", remote_path);
+                    Ok(false)
+                }
+                Err(e) => Err(self.map_dav_error(e, "检查远程文件")),
+            }
         }
     }
 

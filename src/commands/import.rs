@@ -237,9 +237,25 @@ fn print_import_summary(result: &ImportResult) {
 mod tests {
     use super::*;
     use crate::managers::config::ConfigSection;
+    use std::env;
+    use tempfile::tempdir;
 
     #[test]
     fn test_merge_configs() {
+        // 🚧 使用临时 CCR_ROOT 隔离测试产生的配置文件，避免污染真实用户目录
+        let temp_dir = tempdir().unwrap();
+        let temp_root = temp_dir.path().to_path_buf();
+
+        // 备份并替换相关环境变量
+        let prev_root = env::var("CCR_ROOT").ok();
+        let prev_config_path = env::var("CCR_CONFIG_PATH").ok();
+
+        // SAFETY: 仅在本测试进程内修改环境变量，将在末尾恢复
+        unsafe {
+            env::set_var("CCR_ROOT", &temp_root);
+            env::remove_var("CCR_CONFIG_PATH"); // 避免其他覆盖路径干扰
+        }
+
         let mut current = CcsConfig {
             default_config: "old_default".to_string(),
             current_config: "test1".to_string(),
@@ -310,5 +326,18 @@ mod tests {
         assert_eq!(result.added, 1); // test2 是新增的
         assert_eq!(result.updated, 1); // test1 被更新了
         assert_eq!(current.default_config, "new_default");
+
+        // 清理环境变量，防止影响其他测试
+        // SAFETY: 恢复之前的环境变量状态
+        unsafe {
+            match prev_root {
+                Some(val) => env::set_var("CCR_ROOT", val),
+                None => env::remove_var("CCR_ROOT"),
+            }
+            match prev_config_path {
+                Some(val) => env::set_var("CCR_CONFIG_PATH", val),
+                None => env::remove_var("CCR_CONFIG_PATH"),
+            }
+        }
     }
 }
