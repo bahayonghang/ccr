@@ -125,8 +125,8 @@ ccr clean --days 30
 # 启动交互式 TUI
 ccr tui
 
-# 启动 TUI（启用 YOLO 模式）
-ccr tui --yolo
+# 启动 TUI（启用自动确认模式）
+ccr tui --yes      # 或 ccr tui -y
 
 # 启动 Web 界面
 ccr web --port 8080
