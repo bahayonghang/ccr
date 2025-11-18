@@ -54,13 +54,13 @@
 
     <!-- Chart Container -->
     <div
-      class="relative w-full bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-900/30 dark:to-gray-800/30 rounded-xl p-4"
-      style="height: 400px;"
+      class="relative w-full bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-900/30 dark:to-gray-800/30 rounded-xl p-6"
+      style="height: 500px;"
     >
       <svg
         ref="chartSvg"
         class="w-full h-full"
-        viewBox="0 0 800 400"
+        viewBox="0 0 1000 500"
         preserveAspectRatio="xMidYMid meet"
       >
         <!-- Gradients -->
@@ -118,18 +118,19 @@
         <!-- Grid lines -->
         <g
           class="grid"
-          opacity="0.15"
+          opacity="0.2"
         >
           <line
-            v-for="i in 6"
+            v-for="i in yAxisSteps"
             :key="`h-${i}`"
-            :x1="60"
-            :y1="370 - (i * 60)"
-            :x2="750"
-            :y2="370 - (i * 60)"
+            :x1="80"
+            :y1="460 - (i * yStepSize)"
+            :x2="940"
+            :y2="460 - (i * yStepSize)"
             stroke="currentColor"
             class="text-gray-400 dark:text-gray-500"
-            stroke-dasharray="4,4"
+            stroke-dasharray="5,5"
+            stroke-width="1.5"
           />
         </g>
 
@@ -169,15 +170,15 @@
         <!-- X-axis labels -->
         <g
           class="x-axis text-gray-700 dark:text-gray-300"
-          font-size="11"
+          font-size="13"
           fill="currentColor"
-          font-weight="500"
+          font-weight="600"
         >
           <text
             v-for="(label, i) in xLabels"
             :key="`x-${i}`"
-            :x="60 + (i * (690 / Math.max(1, xLabels.length - 1)))"
-            y="388"
+            :x="80 + (i * (860 / Math.max(1, xLabels.length - 1)))"
+            y="485"
             text-anchor="middle"
           >
             {{ label }}
@@ -187,15 +188,15 @@
         <!-- Y-axis labels -->
         <g
           class="y-axis text-gray-700 dark:text-gray-300"
-          font-size="11"
+          font-size="13"
           fill="currentColor"
-          font-weight="500"
+          font-weight="600"
         >
           <text
             v-for="(label, i) in yLabels"
             :key="`y-${i}`"
-            x="50"
-            :y="374 - (i * 60)"
+            x="70"
+            :y="465 - (i * yStepSize)"
             text-anchor="end"
           >
             {{ label }}
@@ -207,11 +208,11 @@
     <!-- Empty state -->
     <div
       v-if="chartData.length === 0"
-      class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-900/30 dark:to-gray-800/30 rounded-xl"
+      class="absolute inset-6 flex items-center justify-center bg-gradient-to-br from-gray-50/80 to-gray-100/80 dark:from-gray-900/50 dark:to-gray-800/50 rounded-xl backdrop-blur-sm"
     >
       <div class="text-center">
         <svg
-          class="w-16 h-16 mx-auto mb-3 text-gray-400 dark:text-gray-500"
+          class="w-20 h-20 mx-auto mb-4 text-gray-400 dark:text-gray-500"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -223,7 +224,7 @@
             d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
           />
         </svg>
-        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+        <p class="text-base font-semibold text-gray-600 dark:text-gray-400">
           所选筛选条件下无可用数据
         </p>
       </div>
@@ -332,7 +333,28 @@ const chartData = computed(() => {
   return Object.values(intervals).slice(0, 50) // Limit to 50 points for performance
 })
 
-// Calculate max value for Y-axis scaling
+// Calculate nice number for axis scaling
+const getNiceNumber = (value: number, round: boolean = false): number => {
+  const exponent = Math.floor(Math.log10(value))
+  const fraction = value / Math.pow(10, exponent)
+  let niceFraction: number
+
+  if (round) {
+    if (fraction < 1.5) niceFraction = 1
+    else if (fraction < 3) niceFraction = 2
+    else if (fraction < 7) niceFraction = 5
+    else niceFraction = 10
+  } else {
+    if (fraction <= 1) niceFraction = 1
+    else if (fraction <= 2) niceFraction = 2
+    else if (fraction <= 5) niceFraction = 5
+    else niceFraction = 10
+  }
+
+  return niceFraction * Math.pow(10, exponent)
+}
+
+// Calculate max value for Y-axis scaling with smart adaptation
 const maxValue = computed(() => {
   if (chartData.value.length === 0) return 1000
 
@@ -340,26 +362,43 @@ const maxValue = computed(() => {
     ...chartData.value.map(d => Math.max(d.input, d.output, d.cache))
   )
 
-  // Add 10% padding to prevent data touching the top
-  const maxWithPadding = max * 1.1
+  // If max is 0, return a reasonable default
+  if (max === 0) return 100
+
+  // Add 15% padding to prevent data touching the top
+  const maxWithPadding = max * 1.15
 
   // Round up to nice number
-  const magnitude = Math.pow(10, Math.floor(Math.log10(maxWithPadding)))
-  return Math.ceil(maxWithPadding / magnitude) * magnitude
+  return getNiceNumber(maxWithPadding, false)
 })
 
-// Generate path data for SVG
+// Calculate optimal number of Y-axis steps
+const yAxisSteps = computed(() => {
+  const max = maxValue.value
+  if (max <= 100) return 5
+  if (max <= 1000) return 5
+  if (max <= 10000) return 5
+  return 6
+})
+
+// Calculate step size for Y-axis
+const yStepSize = computed(() => {
+  const chartHeight = 440 // 460 - 20 (top margin)
+  return chartHeight / yAxisSteps.value
+})
+
+// Generate path data for SVG with smooth curves
 const generatePath = (getValue: (d: any) => number): string => {
   if (chartData.value.length === 0) return ''
 
-  // Chart area coordinates
-  const chartLeft = 60
-  const chartRight = 750
-  const chartTop = 10
-  const chartBottom = 370
+  // Chart area coordinates (updated for new viewBox)
+  const chartLeft = 80
+  const chartRight = 940
+  const chartTop = 20
+  const chartBottom = 460
 
-  const width = chartRight - chartLeft  // 690px
-  const height = chartBottom - chartTop  // 360px
+  const width = chartRight - chartLeft  // 860px
+  const height = chartBottom - chartTop  // 440px
 
   const xScale = width / Math.max(1, chartData.value.length - 1)
   const yScale = height / maxValue.value
@@ -399,15 +438,22 @@ const xLabels = computed(() => {
     .map(d => d.time)
 })
 
-// Y-axis labels (token counts)
+// Y-axis labels (token counts) with smart formatting
 const yLabels = computed(() => {
   const max = maxValue.value
-  const step = max / 5
+  const steps = yAxisSteps.value
+  const step = max / steps
 
-  return [0, 1, 2, 3, 4, 5].map(i => {
+  return Array.from({ length: steps + 1 }, (_, i) => {
     const value = i * step
-    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
-    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
+
+    // Format large numbers nicely
+    if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(value % 1000000 === 0 ? 0 : 1)}M`
+    }
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}K`
+    }
     return value.toFixed(0)
   })
 })
@@ -430,9 +476,29 @@ button:hover {
 
 path {
   transition: opacity 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+path:hover {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
 }
 
 .glass-card {
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+/* Chart container enhancements */
+.token-usage-chart > div:last-of-type {
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Axis labels animation */
+.x-axis text, .y-axis text {
+  transition: all 0.2s ease;
+}
+
+svg:hover .x-axis text,
+svg:hover .y-axis text {
+  opacity: 1;
 }
 </style>
