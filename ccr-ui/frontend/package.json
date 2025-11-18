@@ -1,6 +1,6 @@
 {
   "name": "ccr-ui-frontend-vue",
-  "version": "3.3.2",
+  "version": "3.4.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint . --fix",
     "type-check": "vue-tsc --noEmit",
+    "test": "node tests/i18n.test.cjs",
+    "test:i18n": "node tests/i18n.test.cjs",
     "clean": "rm -rf dist src-tauri/target node_modules/.vite",
     "clean:all": "rm -rf dist src-tauri/target node_modules",
     "dev:web": "vite --port 5173",
@@ -31,6 +33,7 @@
     "pinia": "^2.2.6",
     "tailwindcss": "^3.4.17",
     "vue": "^3.5.22",
+    "vue-i18n": "^9.9.0",
     "vue-router": "^4.4.5"
   },
   "devDependencies": {
