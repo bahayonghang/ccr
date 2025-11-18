@@ -384,13 +384,12 @@ mod tests {
         let toml = r#"
 default_config = "a"
 current_config = "a"
-[settings]
 
-[sections.a]
+[a]
 provider = "claude"
 usage_count = 3
 
-[sections.b]
+[b]
 provider = "codex"
 usage_count = 2
 "#;
