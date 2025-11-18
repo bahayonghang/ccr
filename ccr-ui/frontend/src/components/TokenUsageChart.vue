@@ -300,7 +300,7 @@ const formatDate = (date: Date, format: string): string => {
 
 // Aggregate data by time intervals
 const chartData = computed(() => {
-  const intervals: Record<string, { input: number; output: number; cache: number; time: string }> = {}
+  const intervals: Record<string, { input: number; output: number; cache: number; time: string; timestamp: number }> = {}
 
   // Determine interval format based on time range
   let format: string
@@ -313,13 +313,25 @@ const chartData = computed(() => {
     format = 'hour' // Hourly intervals
   }
 
-  // Aggregate records
+  // Aggregate records with timestamp tracking
   props.records.forEach(record => {
     const time = new Date(record.timestamp)
     const key = formatDate(time, format)
 
     if (!intervals[key]) {
-      intervals[key] = { input: 0, output: 0, cache: 0, time: key }
+      intervals[key] = {
+        input: 0,
+        output: 0,
+        cache: 0,
+        time: key,
+        timestamp: time.getTime() // Add timestamp for sorting
+      }
+    } else {
+      // Update timestamp to the latest record in this interval
+      const currentTime = time.getTime()
+      if (currentTime > intervals[key].timestamp) {
+        intervals[key].timestamp = currentTime
+      }
     }
 
     if (record.usage) {
@@ -329,59 +341,78 @@ const chartData = computed(() => {
     }
   })
 
-  // Convert to array and sort by time
-  return Object.values(intervals).slice(0, 50) // Limit to 50 points for performance
+  // Convert to array, sort by timestamp (ascending), and limit
+  return Object.values(intervals)
+    .sort((a, b) => a.timestamp - b.timestamp) // Sort from old to new
+    .slice(0, 50) // Limit to 50 points for performance
 })
 
-// Calculate nice number for axis scaling
-const getNiceNumber = (value: number, round: boolean = false): number => {
-  const exponent = Math.floor(Math.log10(value))
-  const fraction = value / Math.pow(10, exponent)
-  let niceFraction: number
+// Calculate nice step size for the given range
+const calculateNiceStep = (rawStep: number): number => {
+  const exponent = Math.floor(Math.log10(rawStep))
+  const fraction = rawStep / Math.pow(10, exponent)
 
-  if (round) {
-    if (fraction < 1.5) niceFraction = 1
-    else if (fraction < 3) niceFraction = 2
-    else if (fraction < 7) niceFraction = 5
-    else niceFraction = 10
-  } else {
-    if (fraction <= 1) niceFraction = 1
-    else if (fraction <= 2) niceFraction = 2
-    else if (fraction <= 5) niceFraction = 5
-    else niceFraction = 10
-  }
+  let niceFraction: number
+  if (fraction <= 1) niceFraction = 1
+  else if (fraction <= 2) niceFraction = 2
+  else if (fraction <= 5) niceFraction = 5
+  else niceFraction = 10
 
   return niceFraction * Math.pow(10, exponent)
 }
 
-// Calculate max value for Y-axis scaling with smart adaptation
+// Calculate max value for Y-axis with proper adaptation
 const maxValue = computed(() => {
-  if (chartData.value.length === 0) return 1000
+  if (chartData.value.length === 0) return 100
 
-  const max = Math.max(
-    ...chartData.value.map(d => Math.max(d.input, d.output, d.cache))
+  // Find actual maximum value across all data series
+  const actualMax = Math.max(
+    ...chartData.value.map(d => Math.max(d.input, d.output, d.cache)),
+    0 // Ensure at least 0
   )
 
-  // If max is 0, return a reasonable default
-  if (max === 0) return 100
+  // If all data is 0, return a small default
+  if (actualMax === 0) return 100
 
-  // Add 15% padding to prevent data touching the top
-  const maxWithPadding = max * 1.15
+  // Target number of steps (we want 5-6 steps)
+  const targetSteps = 5
 
-  // Round up to nice number
-  return getNiceNumber(maxWithPadding, false)
+  // Calculate raw step size
+  const rawStep = actualMax / targetSteps
+
+  // Get nice step size
+  const niceStep = calculateNiceStep(rawStep)
+
+  // Calculate max value by rounding up to nearest step
+  // Add some padding to ensure data doesn't touch the top
+  const stepsNeeded = Math.ceil(actualMax / niceStep) + 1
+
+  return niceStep * stepsNeeded
 })
 
-// Calculate optimal number of Y-axis steps
+// Calculate actual step value for Y-axis
+const yStepValue = computed(() => {
+  if (chartData.value.length === 0) return 20
+
+  const actualMax = Math.max(
+    ...chartData.value.map(d => Math.max(d.input, d.output, d.cache)),
+    0
+  )
+
+  if (actualMax === 0) return 20
+
+  const targetSteps = 5
+  const rawStep = actualMax / targetSteps
+  return calculateNiceStep(rawStep)
+})
+
+// Calculate optimal number of Y-axis steps based on actual max and step value
 const yAxisSteps = computed(() => {
-  const max = maxValue.value
-  if (max <= 100) return 5
-  if (max <= 1000) return 5
-  if (max <= 10000) return 5
-  return 6
+  const steps = Math.ceil(maxValue.value / yStepValue.value)
+  return Math.max(4, Math.min(6, steps)) // Keep between 4-6 steps
 })
 
-// Calculate step size for Y-axis
+// Calculate pixel height for each step
 const yStepSize = computed(() => {
   const chartHeight = 440 // 460 - 20 (top margin)
   return chartHeight / yAxisSteps.value
@@ -440,19 +471,20 @@ const xLabels = computed(() => {
 
 // Y-axis labels (token counts) with smart formatting
 const yLabels = computed(() => {
-  const max = maxValue.value
+  const stepValue = yStepValue.value
   const steps = yAxisSteps.value
-  const step = max / steps
 
   return Array.from({ length: steps + 1 }, (_, i) => {
-    const value = i * step
+    const value = i * stepValue
 
     // Format large numbers nicely
     if (value >= 1000000) {
-      return `${(value / 1000000).toFixed(value % 1000000 === 0 ? 0 : 1)}M`
+      const millions = value / 1000000
+      return millions % 1 === 0 ? `${millions.toFixed(0)}M` : `${millions.toFixed(1)}M`
     }
     if (value >= 1000) {
-      return `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}K`
+      const thousands = value / 1000
+      return thousands % 1 === 0 ? `${thousands.toFixed(0)}K` : `${thousands.toFixed(1)}K`
     }
     return value.toFixed(0)
   })
