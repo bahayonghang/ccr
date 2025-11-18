@@ -236,12 +236,14 @@ fn print_import_summary(result: &ImportResult) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::lock::CONFIG_LOCK;
     use crate::managers::config::ConfigSection;
     use std::env;
     use tempfile::tempdir;
 
     #[test]
     fn test_merge_configs() {
+        let _guard = CONFIG_LOCK.lock().expect("配置锁已中毒");
         // 🚧 使用临时 CCR_ROOT 隔离测试产生的配置文件，避免污染真实用户目录
         let temp_dir = tempdir().unwrap();
         let temp_root = temp_dir.path().to_path_buf();

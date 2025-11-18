@@ -4,11 +4,13 @@
 
 use ccr::commands::SyncContentSelector;
 use ccr::commands::sync_content_selector::{SyncContentSelection, SyncContentType};
+use ccr::core::CONFIG_LOCK;
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_sync_content_selection_flow() {
+    let _guard = CONFIG_LOCK.lock().expect("配置锁已中毒");
     // 创建临时测试环境
     let temp_dir = tempdir().unwrap();
     let ccr_root = temp_dir.path().join(".ccr");
@@ -89,6 +91,7 @@ fn test_sync_content_selection_flow() {
 
 #[test]
 fn test_sync_content_type_detection() {
+    let _guard = CONFIG_LOCK.lock().expect("配置锁已中毒");
     let temp_dir = tempdir().unwrap();
     let ccr_root = temp_dir.path().join(".ccr");
 

@@ -353,6 +353,7 @@ impl SyncContentSelector {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::lock::CONFIG_LOCK;
     use std::fs;
     use tempfile::tempdir;
 
@@ -388,6 +389,7 @@ mod tests {
 
     #[test]
     fn test_sync_content_selection_to_paths() {
+        let _guard = CONFIG_LOCK.lock().expect("配置锁已中毒");
         let temp_dir = tempdir().unwrap();
         let ccr_root = temp_dir.path().join(".ccr");
         unsafe {
@@ -416,6 +418,7 @@ mod tests {
 
     #[test]
     fn test_sync_content_type_exists() {
+        let _guard = CONFIG_LOCK.lock().expect("配置锁已中毒");
         let temp_dir = tempdir().unwrap();
         let ccr_root = temp_dir.path().join(".ccr");
         unsafe {
@@ -436,6 +439,7 @@ mod tests {
 
     #[test]
     fn test_sync_content_selector_new() {
+        let _guard = CONFIG_LOCK.lock().expect("配置锁已中毒");
         let temp_dir = tempdir().unwrap();
         let ccr_root = temp_dir.path().join(".ccr");
 

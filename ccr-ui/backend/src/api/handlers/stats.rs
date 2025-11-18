@@ -338,7 +338,7 @@ async fn read_provider_usage(path: &PathBuf) -> Result<HashMap<String, u64>, std
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempdir::TempDir;
+    use tempfile::tempdir;
     use tokio::fs;
 
     #[test]
@@ -378,7 +378,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_provider_usage() {
-        let tmp = TempDir::new("provider_usage").unwrap();
+        let tmp = tempdir().unwrap();
         let profiles_path = tmp.path().join("profiles.toml");
 
         let toml = r#"
