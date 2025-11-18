@@ -211,26 +211,42 @@
                 </button>
               </div>
 
-              <!-- 📊 排序下拉菜单 -->
-              <div class="flex items-center gap-2">
-                <label class="text-sm font-medium whitespace-nowrap" :style="{ color: 'var(--text-secondary)' }">
-                  排序:
-                </label>
-                <select
-                  v-model="currentSort"
-                  class="px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer outline-none"
-                  :style="{
-                    background: 'rgba(255, 255, 255, 0.6)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(99, 102, 241, 0.3)',
-                    color: 'var(--text-primary)',
-                    boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)'
-                  }"
+              <!-- 📊 排序下拉菜单 + 提供商统计按钮 -->
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                  <label class="text-sm font-medium whitespace-nowrap" :style="{ color: 'var(--text-secondary)' }">
+                    排序:
+                  </label>
+                  <select
+                    v-model="currentSort"
+                    class="px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer outline-none"
+                    :style="{
+                      background: 'rgba(255, 255, 255, 0.6)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      color: 'var(--text-primary)',
+                      boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)'
+                    }"
+                  >
+                    <option value="name">📝 名称</option>
+                    <option value="usage_count">📊 使用次数</option>
+                    <option value="recent">🕒 最近使用</option>
+                  </select>
+                </div>
+                <button
+                  class="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 border border-indigo-200/80 dark:border-indigo-500/70 text-indigo-700 dark:text-indigo-200 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800/80 transition shadow-sm"
+                  @click="showProviderModal = true"
                 >
-                  <option value="name">📝 名称</option>
-                  <option value="usage_count">📊 使用次数</option>
-                  <option value="recent">🕒 最近使用</option>
-                </select>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 6h16M4 12h10M4 18h6"
+                    />
+                  </svg>
+                  <span>提供商统计</span>
+                </button>
               </div>
             </div>
             <!-- 加载状态 -->
@@ -259,126 +275,6 @@
 
             <!-- 提供商统计 + 配置卡片列表 -->
             <div v-else class="space-y-8">
-              <!-- 提供商使用统计 - 液态玻璃柱状图 -->
-              <section
-                class="rounded-3xl p-6"
-                :style="{
-                  background: 'rgba(255, 255, 255, 0.6)',
-                  backdropFilter: 'blur(18px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-                  border: '1px solid rgba(148, 163, 184, 0.5)',
-                  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.7)'
-                }"
-              >
-                <div class="flex items-center justify-between gap-4 mb-4">
-                  <div>
-                    <h2 class="text-lg font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                      <span>🏢 提供商使用统计</span>
-                    </h2>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      共 {{ providerEntries.length }} 个提供商 · 总调用 {{ totalProviderUsage }} 次
-                    </p>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                      <span>排序:</span>
-                      <select
-                        v-model="providerSortMode"
-                        class="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/70 dark:border-slate-600/70 bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-                      >
-                        <option value="count_desc">使用次数 ↓</option>
-                        <option value="count_asc">使用次数 ↑</option>
-                        <option value="name_asc">供应商 A-Z</option>
-                      </select>
-                    </div>
-                    <button
-                      class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-500/80 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800/80 transition"
-                      @click="loadProviderUsage"
-                      :disabled="providerLoading"
-                    >
-                      <svg
-                        class="w-3.5 h-3.5"
-                        :class="{ 'animate-spin': providerLoading }"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      <span>刷新统计</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div v-if="providerLoading" class="flex items-center justify-center py-10">
-                  <div class="w-10 h-10 rounded-full border-4 border-transparent border-t-indigo-500 border-r-fuchsia-500 animate-spin" />
-                </div>
-                <div
-                  v-else-if="providerError"
-                  class="text-xs rounded-lg px-3 py-2 border border-red-300/70 bg-red-50/80 text-red-700 dark:border-red-700/70 dark:bg-red-900/30 dark:text-red-100"
-                >
-                  加载提供商统计失败: {{ providerError }}
-                </div>
-                <div
-                  v-else-if="sortedProviderEntries.length === 0"
-                  class="text-center text-xs text-slate-500 dark:text-slate-400 py-8"
-                >
-                  暂无提供商使用数据，开始使用 AI API 后，这里会显示各提供商的调用次数
-                </div>
-                <div v-else class="provider-chart-container">
-                  <div class="provider-chart-summary">
-                    共 {{ providerEntries.length }} 个提供商 · 总调用 {{ totalProviderUsage }} 次
-                    <div class="provider-chart-desc">
-                      Y 轴：使用次数（单位：次） · X 轴：提供商 · 当前排序：{{ providerSortLabel }}
-                    </div>
-                  </div>
-                  <div class="provider-chart">
-                    <div class="provider-chart-y-grid">
-                      <div
-                        v-for="tick in providerYTicks"
-                        :key="tick.percent"
-                        class="y-grid-line"
-                        :style="{ bottom: tick.percent + '%' }"
-                      >
-                        <span class="y-grid-label">{{ tick.value }}</span>
-                      </div>
-                    </div>
-                    <div class="provider-chart-y-axis-line"></div>
-                    <div class="provider-chart-x-axis-line"></div>
-                    <div class="provider-chart-bars">
-                      <div
-                        v-for="([provider, count], index) in sortedProviderEntries"
-                        :key="provider || index"
-                        class="provider-bar-column"
-                        :style="{ animation: 'configFadeIn 0.4s ease ' + index * 0.05 + 's backwards' }"
-                      >
-                        <div class="provider-bar-vertical-bg">
-                          <div
-                            class="provider-bar-vertical-fill"
-                            :class="'bar-color-' + (index % 5)"
-                            :style="{ height: Math.max((count / (maxProviderCount || 1)) * 100, 8) + '%' }"
-                            :title="(provider || 'unknown') + ': ' + count + ' 次，占最高值的 ' + (maxProviderCount ? ((count / maxProviderCount) * 100).toFixed(1) : 0) + '%'"
-                          ></div>
-                        </div>
-                        <div class="provider-bar-value">{{ count }} 次</div>
-                        <div
-                          class="provider-bar-label"
-                          :title="provider || 'unknown'"
-                        >
-                          {{ provider || 'unknown' }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="provider-chart-x-axis-label">X 轴：提供商</div>
-                </div>
-              </section>
-
               <!-- 配置卡片列表 -->
               <div class="space-y-6">
                 <div
@@ -426,6 +322,138 @@
       @close="handleEditModalClose"
       @saved="handleEditSaved"
     />
+
+    <!-- 提供商统计模态框 -->
+    <div
+      v-if="showProviderModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      @click.self="showProviderModal = false"
+    >
+      <div
+        class="w-full max-w-5xl mx-4 rounded-3xl p-6"
+        :style="{
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          border: '1px solid rgba(148, 163, 184, 0.6)',
+          boxShadow: '0 20px 60px rgba(15, 23, 42, 0.4)'
+        }"
+      >
+        <div class="flex items-center justify-between mb-4 gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
+              <span>🏢 提供商使用统计</span>
+            </h2>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              共 {{ providerEntries.length }} 个提供商 · 总调用 {{ totalProviderUsage }} 次
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+              <span>排序:</span>
+              <select
+                v-model="providerSortMode"
+                class="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/70 dark:border-slate-600/70 bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+              >
+                <option value="count_desc">使用次数 ↓</option>
+                <option value="count_asc">使用次数 ↑</option>
+                <option value="name_asc">供应商 A-Z</option>
+              </select>
+            </div>
+            <button
+              class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-500/80 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800/80 transition"
+              @click="loadProviderUsage"
+              :disabled="providerLoading"
+            >
+              <svg
+                class="w-3.5 h-3.5"
+                :class="{ 'animate-spin': providerLoading }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              <span>刷新统计</span>
+            </button>
+            <button
+              class="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 transition"
+              @click="showProviderModal = false"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div v-if="providerLoading" class="flex items-center justify-center py-10">
+          <div class="w-10 h-10 rounded-full border-4 border-transparent border-t-indigo-500 border-r-fuchsia-500 animate-spin" />
+        </div>
+        <div
+          v-else-if="providerError"
+          class="text-xs rounded-lg px-3 py-2 border border-red-300/70 bg-red-50/80 text-red-700 dark:border-red-700/70 dark:bg-red-900/30 dark:text-red-100"
+        >
+          加载提供商统计失败: {{ providerError }}
+        </div>
+        <div
+          v-else-if="sortedProviderEntries.length === 0"
+          class="text-center text-xs text-slate-500 dark:text-slate-400 py-8"
+        >
+          暂无提供商使用数据，开始使用 AI API 后，这里会显示各提供商的调用次数
+        </div>
+        <div v-else class="provider-chart-container">
+          <div class="provider-chart-summary">
+            共 {{ providerEntries.length }} 个提供商 · 总调用 {{ totalProviderUsage }} 次
+            <div class="provider-chart-desc">
+              Y 轴：使用次数（单位：次） · X 轴：提供商 · 当前排序：{{ providerSortLabel }}
+            </div>
+          </div>
+          <div class="provider-chart">
+            <div class="provider-chart-y-grid">
+              <div
+                v-for="tick in providerYTicks"
+                :key="tick.percent"
+                class="y-grid-line"
+                :style="{ bottom: tick.percent + '%' }"
+              >
+                <span class="y-grid-label">{{ tick.value }}</span>
+              </div>
+            </div>
+            <div class="provider-chart-y-axis-line"></div>
+            <div class="provider-chart-x-axis-line"></div>
+            <div class="provider-chart-bars">
+              <div
+                v-for="([provider, count], index) in sortedProviderEntries"
+                :key="provider || index"
+                class="provider-bar-column"
+                :style="{ animation: 'configFadeIn 0.4s ease ' + index * 0.05 + 's backwards' }"
+              >
+                <div class="provider-bar-vertical-bg">
+                  <div
+                    class="provider-bar-vertical-fill"
+                    :class="'bar-color-' + (index % 5)"
+                    :style="{ height: Math.max((count / (maxProviderCount || 1)) * 100, 8) + '%' }"
+                    :title="(provider || 'unknown') + ': ' + count + ' 次，占最高值的 ' + (maxProviderCount ? ((count / maxProviderCount) * 100).toFixed(1) : 0) + '%'"
+                  ></div>
+                </div>
+                <div class="provider-bar-value">{{ count }} 次</div>
+                <div
+                  class="provider-bar-label"
+                  :title="provider || 'unknown'"
+                >
+                  {{ provider || 'unknown' }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="provider-chart-x-axis-label">X 轴：提供商</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -483,6 +511,7 @@ const providerUsage = ref<Record<string, number>>({})
 const providerLoading = ref(false)
 const providerError = ref<string | null>(null)
 const providerSortMode = ref<'count_desc' | 'count_asc' | 'name_asc'>('count_desc')
+const showProviderModal = ref(false)
 
 const filters = [
   { type: 'all' as FilterType, label: '📋 全部配置' },
