@@ -68,6 +68,12 @@ const router = createRouter({
           component: () => import('@/views/StatsView.vue')
         },
         {
+          path: 'usage',
+          name: 'usage',
+          component: () => import('@/views/UsageView.vue'),
+          meta: { cache: true }
+        },
+        {
           path: 'mcp',
           name: 'mcp',
           component: () => import('@/views/McpView.vue')

@@ -57,6 +57,7 @@ import type {
   DailyCost,
   TopSession,
   StatsSummary,
+  UsageRecordsResponse,
 } from '@/types'
 
 // 创建 axios 实例
@@ -153,6 +154,21 @@ export const getTopSessions = async (limit: number = 10): Promise<TopSession[]> 
 
 export const getStatsSummary = async (): Promise<StatsSummary> => {
   const response = await api.get<StatsSummary>('/stats/summary')
+  return response.data
+}
+
+// ===================================
+// Usage Analytics APIs
+// ===================================
+
+export const getUsageRecords = async (
+  platform: string = 'claude',
+  limit: number = 10000
+): Promise<UsageRecordsResponse> => {
+  const params = new URLSearchParams()
+  params.set('platform', platform)
+  params.set('limit', limit.toString())
+  const response = await api.get<UsageRecordsResponse>(`/usage/records?${params}`)
   return response.data
 }
 

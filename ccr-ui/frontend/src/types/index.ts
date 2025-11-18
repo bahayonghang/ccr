@@ -42,6 +42,28 @@ export interface StatsSummary {
   total_sessions: number;
 }
 
+// Usage Analytics types
+export interface UsageData {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_read_input_tokens?: number;
+}
+
+export interface UsageRecord {
+  uuid: string;
+  timestamp: string;
+  model?: string;
+  usage?: UsageData;
+}
+
+export interface UsageRecordsResponse {
+  records: UsageRecord[];
+  total_records: number;
+  truncated: boolean;
+}
+
+export type TimeRange = '5h' | 'today' | '7d' | 'week' | 'month' | 'all';
+
 // Command execution types
 export interface CommandRequest {
   command: string;

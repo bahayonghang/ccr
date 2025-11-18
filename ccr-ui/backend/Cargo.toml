@@ -41,6 +41,10 @@ dirs = { workspace = true }
 futures = "0.3"
 async-stream = "0.3"
 
+# Parallel processing
+rayon = "1.10"
+lazy_static = "1.5"
+
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt", "ansi"] }
@@ -62,6 +66,9 @@ serde_yaml = "0.9"
 
 # Atomic file operations (从 workspace 继承)
 tempfile = { workspace = true }
+
+# File system utilities
+walkdir = "2.5"
 
 # ✅ 依赖优化完成说明：
 # - toml, dirs, tempfile, thiserror 已改用 workspace 依赖

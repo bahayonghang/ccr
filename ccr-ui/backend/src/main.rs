@@ -322,6 +322,11 @@ fn create_router() -> Router {
             "/api/stats/summary",
             get(api::handlers::stats::stats_summary),
         )
+        // Usage Analytics endpoints
+        .route(
+            "/api/usage/records",
+            get(api::handlers::usage::get_usage_records),
+        )
         // Sync (WebDAV) endpoints
         .route(
             "/api/sync/status",
