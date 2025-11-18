@@ -60,7 +60,7 @@ pub async fn get_usage_records(
     );
 
     // 验证 platform 参数
-    let valid_platforms = vec!["claude", "codex", "gemini"];
+    let valid_platforms = ["claude", "codex", "gemini"];
     if !valid_platforms.contains(&params.platform.as_str()) {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -83,16 +83,16 @@ pub async fn get_usage_records(
     // 尝试从缓存获取
     {
         let cache = USAGE_CACHE.lock().unwrap();
-        if let Some(cached) = cache.get(&params.platform) {
-            if cached.timestamp.elapsed() < CACHE_TTL {
-                debug!("Using cached data for platform: {}", params.platform);
-                let response = UsageRecordsResponse::new(
-                    cached.records.iter().take(limit).cloned().collect(),
-                    cached.total_records,
-                    limit,
-                );
-                return Ok(Json(response));
-            }
+        if let Some(cached) = cache.get(&params.platform)
+            && cached.timestamp.elapsed() < CACHE_TTL
+        {
+            debug!("Using cached data for platform: {}", params.platform);
+            let response = UsageRecordsResponse::new(
+                cached.records.iter().take(limit).cloned().collect(),
+                cached.total_records,
+                limit,
+            );
+            return Ok(Json(response));
         }
     }
 
@@ -169,7 +169,7 @@ async fn read_usage_files(
     let jsonl_files: Vec<_> = WalkDir::new(&projects_dir)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "jsonl"))
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "jsonl"))
         .map(|e| e.path().to_path_buf())
         .collect();
 
@@ -200,10 +200,10 @@ async fn read_usage_files(
                         // 解析 JSON
                         if let Ok(json) = serde_json::from_str::<Value>(line) {
                             // 尝试解析为 UsageRecord
-                            if let Some(record) = parse_usage_record(&json) {
-                                if record.is_valid() {
-                                    file_records.push(record);
-                                }
+                            if let Some(record) = parse_usage_record(&json)
+                                && record.is_valid()
+                            {
+                                file_records.push(record);
                             }
                         } else {
                             warn!("Failed to parse JSON at {:?}:{}", path, line_num + 1);
@@ -229,12 +229,11 @@ async fn read_usage_files(
                         continue;
                     }
 
-                    if let Ok(json) = serde_json::from_str::<Value>(line) {
-                        if let Some(record) = parse_usage_record(&json) {
-                            if record.is_valid() {
-                                file_records.push(record);
-                            }
-                        }
+                    if let Ok(json) = serde_json::from_str::<Value>(line)
+                        && let Some(record) = parse_usage_record(&json)
+                        && record.is_valid()
+                    {
+                        file_records.push(record);
                     }
                 }
             }
@@ -290,7 +289,7 @@ fn parse_usage_record(json: &Value) -> Option<UsageRecord> {
         .get("usage")
         .or_else(|| json.get("message").and_then(|m| m.get("usage")));
 
-    let usage = usage_obj.and_then(|u| parse_usage_data(u));
+    let usage = usage_obj.and_then(parse_usage_data);
 
     Some(UsageRecord {
         uuid,

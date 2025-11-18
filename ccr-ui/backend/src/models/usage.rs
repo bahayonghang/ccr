@@ -57,7 +57,7 @@ impl UsageRecord {
     pub fn is_valid(&self) -> bool {
         !self.uuid.is_empty()
             && !self.timestamp.is_empty()
-            && self.usage.as_ref().map_or(false, |u| u.is_valid())
+            && self.usage.as_ref().is_some_and(|u| u.is_valid())
     }
 }
 
