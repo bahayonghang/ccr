@@ -380,7 +380,7 @@ const handleSubmit = async () => {
   else request.url = undefined
 
   try {
-    const name = (request.command || request.url)!
+    const _name = (request.command || request.url)!
     if (editingServer.value) {
       await updateIflowMcpServer(editingServer.value.command || editingServer.value.url || '', request)
       alert('✓ 服务器更新成功')

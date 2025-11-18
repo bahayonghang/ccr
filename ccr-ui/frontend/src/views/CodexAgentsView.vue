@@ -325,13 +325,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Bot, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, ArrowLeft,
-  Boxes,
+import { Bot, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home
 } from 'lucide-vue-next'
 import { listCodexAgents, addCodexAgent, updateCodexAgent, deleteCodexAgent, toggleCodexAgent, listConfigs, getHistory } from '@/api/client'
 import type { Agent, AgentRequest } from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
 
 const agents = ref<Agent[]>([])
 const folders = ref<string[]>([])

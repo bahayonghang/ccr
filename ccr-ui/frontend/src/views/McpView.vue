@@ -436,7 +436,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
 import { Server, Plus, Edit2, Trash2, Power, PowerOff, Home } from 'lucide-vue-next'
 import {
   listMcpServers,

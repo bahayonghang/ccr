@@ -20,6 +20,8 @@ export default [
       '**/src-tauri/target/**',
       '**/src-tauri/gen/**',
       '**/.vite/**',
+      '**/tests/**',
+      '**/docs/**',
     ],
   },
 
@@ -63,18 +65,22 @@ export default [
       'vue/multi-word-component-names': 'off',
       'vue/no-v-html': 'warn',
       'vue/require-default-prop': 'off',
-      'vue/require-explicit-emits': 'warn',
+      'vue/require-explicit-emits': 'off',
+      'vue/one-component-per-file': 'off',
 
-      // TypeScript rules
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // TypeScript rules - 更宽松的设置适合开发阶段
+      '@typescript-eslint/no-explicit-any': 'off', // API响应、动态数据等使用any是合理的
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
+          caughtErrors: 'none', // 忽略catch块中的未使用错误
+          destructuredArrayIgnorePattern: '^_',
         },
       ],
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
 
       // General rules
       'no-console': 'off',

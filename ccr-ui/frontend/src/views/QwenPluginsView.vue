@@ -276,13 +276,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home, ArrowLeft,
-  Zap,
+import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home
 } from 'lucide-vue-next'
 import { listQwenPlugins, addQwenPlugin, updateQwenPlugin, deleteQwenPlugin, toggleQwenPlugin, listConfigs, getHistory } from '@/api/client'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
 
 const plugins = ref<PluginType[]>([])
 const loading = ref(true)

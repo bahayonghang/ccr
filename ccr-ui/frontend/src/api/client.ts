@@ -633,11 +633,11 @@ export const updateGeminiAgent = async (_name: string, _request: any): Promise<s
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteGeminiAgent = async (name: string): Promise<string> => {
+export const deleteGeminiAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleGeminiAgent = async (name: string): Promise<string> => {
+export const toggleGeminiAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -653,11 +653,11 @@ export const updateGeminiSlashCommand = async (_name: string, _request: any): Pr
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteGeminiSlashCommand = async (name: string): Promise<string> => {
+export const deleteGeminiSlashCommand = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleGeminiSlashCommand = async (name: string): Promise<string> => {
+export const toggleGeminiSlashCommand = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -673,11 +673,11 @@ export const updateGeminiPlugin = async (_id: string, _request: any): Promise<st
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteGeminiPlugin = async (id: string): Promise<string> => {
+export const deleteGeminiPlugin = async (_id: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleGeminiPlugin = async (id: string): Promise<string> => {
+export const toggleGeminiPlugin = async (_id: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -693,15 +693,15 @@ export const addQwenAgent = async (_request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateQwenAgent = async (name: string, _request: any): Promise<string> => {
+export const updateQwenAgent = async (_name: string, _request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteQwenAgent = async (name: string): Promise<string> => {
+export const deleteQwenAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleQwenAgent = async (name: string): Promise<string> => {
+export const toggleQwenAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -713,15 +713,15 @@ export const addQwenSlashCommand = async (_request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateQwenSlashCommand = async (name: string, _request: any): Promise<string> => {
+export const updateQwenSlashCommand = async (_name: string, _request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteQwenSlashCommand = async (name: string): Promise<string> => {
+export const deleteQwenSlashCommand = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleQwenSlashCommand = async (name: string): Promise<string> => {
+export const toggleQwenSlashCommand = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -733,15 +733,15 @@ export const addQwenPlugin = async (_request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateQwenPlugin = async (id: string, _request: any): Promise<string> => {
+export const updateQwenPlugin = async (_id: string, _request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteQwenPlugin = async (id: string): Promise<string> => {
+export const deleteQwenPlugin = async (_id: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleQwenPlugin = async (id: string): Promise<string> => {
+export const toggleQwenPlugin = async (_id: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -757,11 +757,11 @@ export const addIflowMcpServer = async (_request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateIflowMcpServer = async (name: string, _request: any): Promise<string> => {
+export const updateIflowMcpServer = async (_name: string, _request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteIflowMcpServer = async (name: string): Promise<string> => {
+export const deleteIflowMcpServer = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -773,15 +773,15 @@ export const addIflowAgent = async (_request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateIflowAgent = async (name: string, _request: any): Promise<string> => {
+export const updateIflowAgent = async (_name: string, _request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteIflowAgent = async (name: string): Promise<string> => {
+export const deleteIflowAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleIflowAgent = async (name: string): Promise<string> => {
+export const toggleIflowAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -793,15 +793,15 @@ export const addIflowSlashCommand = async (_request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateIflowSlashCommand = async (name: string, _request: any): Promise<string> => {
+export const updateIflowSlashCommand = async (_name: string, _request: any): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteIflowSlashCommand = async (name: string): Promise<string> => {
+export const deleteIflowSlashCommand = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleIflowSlashCommand = async (name: string): Promise<string> => {
+export const toggleIflowSlashCommand = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -817,11 +817,11 @@ export const updateIflowPlugin = async (_id: string, _request: any): Promise<str
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteIflowPlugin = async (id: string): Promise<string> => {
+export const deleteIflowPlugin = async (_id: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleIflowPlugin = async (id: string): Promise<string> => {
+export const toggleIflowPlugin = async (_id: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -841,11 +841,11 @@ export const updateCodexAgent = async (_name: string, _request: any): Promise<st
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteCodexAgent = async (name: string): Promise<string> => {
+export const deleteCodexAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleCodexAgent = async (name: string): Promise<string> => {
+export const toggleCodexAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -861,11 +861,11 @@ export const updateCodexSlashCommand = async (_name: string, _request: any): Pro
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteCodexSlashCommand = async (name: string): Promise<string> => {
+export const deleteCodexSlashCommand = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleCodexSlashCommand = async (name: string): Promise<string> => {
+export const toggleCodexSlashCommand = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -881,10 +881,10 @@ export const updateCodexPlugin = async (_id: string, _request: any): Promise<str
   throw new Error('Backend API not implemented yet')
 }
 
-export const deleteCodexPlugin = async (id: string): Promise<string> => {
+export const deleteCodexPlugin = async (_id: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const toggleCodexPlugin = async (id: string): Promise<string> => {
+export const toggleCodexPlugin = async (_id: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }

@@ -1093,7 +1093,7 @@ const fetchFolders = async () => {
 }
 
 // 解析文件夹列表输出
-const parseFoldersList = (output: string) => {
+const parseFoldersList = (_output: string) => {
   // TODO: 实现解析逻辑
   // 暂时设置为空数组
   enabledFolders.value = []

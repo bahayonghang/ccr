@@ -183,16 +183,15 @@
 </template>
 
 <script setup lang="ts">
-import { 
-  Home, 
-  Code2, 
-  Settings, 
-  Sparkles, 
-  Zap, 
-  Activity, 
-  Terminal, 
-  TrendingUp, 
-  Cloud,
-  Zap as ZapIcon
+import {
+  Home,
+  Code2,
+  Settings,
+  Sparkles,
+  Zap,
+  Activity,
+  Terminal,
+  TrendingUp,
+  Cloud
 } from 'lucide-vue-next'
 </script>

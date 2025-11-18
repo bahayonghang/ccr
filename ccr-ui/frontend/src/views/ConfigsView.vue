@@ -500,14 +500,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { RouterLink } from 'vue-router'
-import { useConfigsStore, useUIStore } from '@/store'
 import {
-  Cloud,
-  Sparkles,
-  ArrowRight,
   AlertCircle,
-  ArrowLeft,
   Code2,
   Settings,
 } from 'lucide-vue-next'
@@ -520,14 +514,11 @@ import {
   deleteConfig,
   enableConfig,
   disableConfig,
-  isTauriEnvironment
 } from '@/api'
 import { getProviderUsage } from '@/api/client'
 import ConfigCard from '@/components/ConfigCard.vue'
 import HistoryList from '@/components/HistoryList.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
-import Navbar from '@/components/Navbar.vue'
-import StatusHeader from '@/components/StatusHeader.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import EnvironmentBadge from '@/components/EnvironmentBadge.vue'

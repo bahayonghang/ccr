@@ -275,13 +275,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Command, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, ArrowLeft,
-  Sparkles,
+import { Command, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home
 } from 'lucide-vue-next'
 import { listGeminiSlashCommands, addGeminiSlashCommand, updateGeminiSlashCommand, deleteGeminiSlashCommand, toggleGeminiSlashCommand, listConfigs, getHistory } from '@/api/client'
 import type { SlashCommand, SlashCommandRequest } from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
 
 const commands = ref<SlashCommand[]>([])
 const folders = ref<string[]>([])

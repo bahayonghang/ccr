@@ -374,7 +374,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, computed } from 'vue'
+import { onMounted, onBeforeUnmount } from 'vue'
 import {
   X,
   AlertTriangle,
