@@ -270,14 +270,14 @@ pub fn print_top_help() {
     add_row(
         &mut ui_table,
         "web",
-        "启动 Web 管理界面",
-        Some("ccr web -p 3000"),
+        "启动轻量级 Legacy Web 界面 / Web API（兼容与编程访问，新的浏览器端推荐使用 ccr ui）",
+        Some("ccr web --port 8080 --no-browser"),
     );
     add_row(&mut ui_table, "tui", "启动 TUI 交互式界面", Some("ccr tui"));
     add_row(
         &mut ui_table,
         "ui",
-        "启动 CCR UI (完整 Web 应用)",
+        "启动 CCR UI (推荐 Web 界面，完整 Web 应用)",
         Some("ccr ui -p 3000"),
     );
     println!("{}", ui_table);

@@ -2,12 +2,18 @@
 
 CCR provides two web interfaces for visual configuration management:
 
-1. **Lightweight Web API** (`ccr web`) - RESTful API server
-2. **CCR UI Application** (`ccr ui`) - Full-featured Vue.js 3 + Axum application
+1. **CCR UI Application** (`ccr ui`, recommended) - Full-featured Vue.js 3 + Axum application for browser-based usage
+2. **Lightweight Web API** (`ccr web`, legacy) - RESTful API server kept for programmatic access and backward compatibility
 
-## Web API Server
+::: warning Deprecation Notice
+`ccr ui` is the recommended way to use CCR in a web browser.
+The `ccr web` command is a **legacy** lightweight API server that will be gradually deprecated.
+Use `ccr web` only when you specifically need the HTTP API or the old built-in web interface; for all new web usage, prefer `ccr ui`.
+:::
 
-Built-in lightweight Axum API server for programmatic access.
+## Web API Server (Legacy)
+
+Built-in lightweight Axum API server for programmatic access and legacy web interface usage.
 
 ### Quick Start
 
@@ -247,9 +253,9 @@ just quick-start    # Full setup
 
 ## CLI vs TUI vs Web vs CCR UI
 
-| Feature | CLI | TUI | Web API | CCR UI |
-|---------|-----|-----|---------|--------|
-| **Best For** | Scripting, automation | Quick visual mgmt | Programmatic access | Full visual experience |
+| Feature | CLI | TUI | Web API (`ccr web`, legacy) | CCR UI (`ccr ui`, recommended) |
+|---------|-----|-----|-----------------------------|---------------------------------|
+| **Best For** | Scripting, automation | Quick visual mgmt | Programmatic access, legacy flows | Full visual experience, daily management |
 | **Interface** | Command line | Terminal UI | REST API | Web browser |
 | **Ports** | N/A | N/A | 8080 (default) | 3000 + 8081 (default) |
 | **Dependencies** | None | None | None | Node.js (auto-checked) |
@@ -273,13 +279,13 @@ just quick-start    # Full setup
 - No browser needed
 - Terminal-only environment
 
-**Web API** (`ccr web`):
+**Web API** (`ccr web`, legacy):
 - Programmatic integration
 - Custom frontends
 - Microservices architecture
 - Headless automation
 
-**CCR UI** (`ccr ui`):
+**CCR UI** (`ccr ui`, recommended):
 - Visual management
 - Learning CCR features
 - Team demonstrations

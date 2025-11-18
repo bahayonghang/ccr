@@ -17,7 +17,7 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 | [history](./history) | - | 显示操作历史 |
 | [stats](./stats) | - | 查看使用统计和成本分析 |
 | [tui](./tui) | - | 启动交互式终端界面 |
-| [web](./web) | - | 启动 Web 配置界面 |
+| [web](./web) | - | 启动轻量级 Legacy Web 界面/HTTP API（兼容与编程访问，新的浏览器端推荐使用 `ccr ui`） |
 | [export](./export) | - | 导出配置到文件 |
 | [import](./import) | - | 从文件导入配置 |
 | [clean](./clean) | - | 清理旧备份文件 |
@@ -128,7 +128,10 @@ ccr tui
 # 启动 TUI（启用自动确认模式）
 ccr tui --yes      # 或 ccr tui -y
 
-# 启动 Web 界面
+# 启动 CCR UI（推荐 Web 界面）
+ccr ui
+
+# 启动 Legacy Web 界面 / Web API（适合脚本/CI 等场景）
 ccr web --port 8080
 
 # 更新 CCR

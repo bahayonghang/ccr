@@ -348,6 +348,8 @@ done
 
 Use CCR's web API for programmatic access:
 
+> Note: `ccr web` starts the **legacy** lightweight web API server, kept for compatibility and headless/programmatic use. For any new browser-based UI usage, prefer the `ccr ui` command (CCR UI application).
+
 ```bash
 # Start API server
 ccr web --port 8080 --no-browser

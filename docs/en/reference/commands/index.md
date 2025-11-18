@@ -21,7 +21,7 @@ CCR provides a comprehensive set of commands for configuration management. All c
 | Command | Description |
 |---------|-------------|
 | [`tui`](./tui) | Launch terminal user interface |
-| [`web`](./web) | Launch lightweight web API server |
+| [`web`](./web) | Launch lightweight **legacy** web API server (for programmatic access; prefer `ccr ui` for browser UI) |
 
 ### Data Management
 
@@ -129,11 +129,11 @@ ccr tui
 ### Web Interface
 
 ```bash
-# Launch web API server
-ccr web
-
-# Launch full CCR UI application
+# Launch full CCR UI application (recommended web interface)
 ccr ui
+
+# Launch lightweight legacy web API server (for compatibility / programmatic access)
+ccr web
 ```
 
 ### Multi-Platform Management

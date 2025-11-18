@@ -1,4 +1,4 @@
-# CCR Web Interface
+# CCR Web Interface[Legacy,Deprecated, 请使用ccr ui]
 
 CCR (Claude Code Configuration Switcher) 的 Web 界面提供了一个现代化的、用户友好的配置管理界面。
 

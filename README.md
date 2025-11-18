@@ -157,8 +157,8 @@ just quick-start    # Check prereqs + Install + Start
 **🎯 CLI vs TUI vs Web Server vs CCR UI**:
 - **CLI Tool**: Best for scripting, automation, and quick operations (`ccr switch`, `ccr list`, etc.)
 - **TUI** (`ccr tui`): Terminal-based interactive interface with keyboard navigation
-- **Web Server** (`ccr web`): Built-in lightweight Axum API server (default port 8080, auto-fallback if occupied) for programmatic access
-- **CCR UI** (`ccr ui`): Full-featured Vue.js 3 + Axum web application with visual dashboard (ports 3000/8081)
+- **Web Server** (`ccr web`, legacy): Built-in lightweight Axum API server (default port 8080, auto-fallback if occupied) for programmatic access and compatibility. For web UI, prefer `ccr ui`.
+- **CCR UI** (`ccr ui`, recommended): Full-featured Vue.js 3 + Axum web application with visual dashboard (ports 3000/8081)
 
 ## 🚀 Quick Start
 
@@ -212,13 +212,13 @@ ccr switch anthropic  # 🔄 Switch config (shows table with changes, or just: c
 ccr current           # 🔍 Show current config and env status in tables
 ccr validate          # ✅ Validate all configs
 ccr history           # 📚 View operation history
-ccr sync config       # ☁️ Configure WebDAV sync (interactive setup)
+ccr sync config       # ☁️ Configure WebDAV sync (interactive)
 ccr sync status       # 📊 Check sync status and remote file
 ccr sync push         # 🔼 Upload config to cloud
 ccr sync pull         # 🔽 Download config from cloud
 ccr tui               # 🖥️ Launch interactive TUI (recommended for visual management!)
-ccr web               # 🌐 Launch lightweight web API (port 8080)
-ccr ui                # 🎨 Launch full CCR UI application (Vue.js 3 + Axum, ports 3000/8081)
+ccr ui                # 🎨 Launch full CCR UI application (recommended web interface, Vue.js 3 + Axum, ports 3000/8081)
+ccr web               # 🌐 Launch lightweight legacy web API (port 8080, kept for programmatic access; will be deprecated gradually)
 ```
 
 **5️⃣ Multi-Platform Usage:**
@@ -255,8 +255,8 @@ ccr platform switch claude     # Back to Claude
 | `ccr validate` | `check` | ✅ Validate all configs and settings |
 | `ccr optimize` | - | 🔤 Sort config sections alphabetically |
 | `ccr history [-l N] [-t TYPE]` | - | 📚 Show operation history (limit/filter by type) |
-| `ccr web [-p PORT] [--no-browser]` | - | 🌐 Launch lightweight web API server (default port 8080, auto-fallback) |
-| `ccr ui [-p PORT] [--backend-port PORT]` | - | 🎨 Launch full CCR UI app (Next.js + Actix, default 3000/8081) |
+| `ccr web [-p PORT] [--no-browser]` | - | 🌐 Launch lightweight legacy web API server (default port 8080, auto-fallback). Recommended only for programmatic access; for web UI, use `ccr ui`. |
+| `ccr ui [-p PORT] [--backend-port PORT]` | - | 🎨 Launch full CCR UI app (recommended web interface, default 3000/8081) |
 | `ccr tui` | - | 🖥️ Launch interactive TUI for visual management |
 | `ccr export [-o FILE] [--no-secrets]` | - | 📤 Export configs (with/without API keys) |
 | `ccr import FILE [--merge]` | - | 📥 Import configs (merge or replace) |
@@ -595,6 +595,7 @@ auto_sync = false  # Not yet implemented
 ### 🌐 Web API
 
 RESTful endpoints (run `ccr web`):
+**Note:** The `ccr web` command is kept for lightweight API and legacy web interface compatibility. For all new browser-based usage, prefer `ccr ui`. The `ccr web` command will be gradually deprecated.
 The built-in server currently exposes 14 endpoints covering configuration management, backups, and system telemetry.
 - `GET /api/configs` – List configurations
 - `POST /api/switch` – Switch configuration

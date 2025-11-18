@@ -1006,15 +1006,22 @@ ccr switch production
 ccr history --limit 1
 ```
 
-### 5. 使用 Web 界面
+### 5. 使用 Web 界面（推荐使用 CCR UI）
 
 对于频繁的配置管理，使用 Web 界面更方便：
 
+> ✅ 日常在浏览器中管理配置时，**推荐使用 `ccr ui` 启动新的 CCR UI 全栈应用** 作为主要 Web 界面。
+> 
+> ⚠️ `ccr web` 启动的是轻量级旧版 Web 界面和 HTTP API，主要用于兼容旧流程以及脚本/CI 等编程访问场景，将在未来逐步弃用。
+
 ```bash
-# 默认端口 8080，自动打开浏览器
+# 启动完整 CCR UI 应用（推荐 Web 界面）
+ccr ui
+
+# 默认端口 8080，自动打开 Legacy Web 界面 / Web API
 ccr web
 
-# 指定端口且不打开浏览器（适合远程服务器）
+# 指定端口且不打开浏览器（适合远程服务器/CI）
 ccr web --port 8080 --no-browser
 ```
 

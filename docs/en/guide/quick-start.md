@@ -169,8 +169,8 @@ ccr delete <name>     # ❌ Delete profile
 ccr tui               # 🖥️ Launch interactive TUI
 
 # Web Interface
-ccr web               # 🌐 Launch lightweight web API server
-ccr ui                # 🎨 Launch full CCR UI application
+ccr ui                # 🎨 Launch full CCR UI application (recommended web interface)
+ccr web               # 🌐 Launch lightweight legacy web API server (for programmatic access / compatibility)
 
 # History and Audit
 ccr history           # 📚 View operation history

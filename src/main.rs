@@ -192,11 +192,12 @@ enum Commands {
         filter_type: Option<String>,
     },
 
-    /// 启动 Web 管理界面
+    /// 启动轻量级 Legacy Web 界面 / Web API
     ///
-    /// 在浏览器中打开可视化的配置管理界面,支持所有配置操作
+    /// 主要用于兼容旧版 Web 界面和脚本/CI 等编程访问场景
     /// 示例: ccr web -p 3000
     ///       ccr web --no-browser
+    /// 提示：如需在浏览器中使用完整图形界面，推荐改用 `ccr ui` 启动 CCR UI 应用
     #[cfg(feature = "web")]
     Web {
         /// 指定 Web 服务器监听端口(默认: 8080)
@@ -324,7 +325,7 @@ enum Commands {
 
     /// 启动 CCR UI (完整 Web 应用)
     ///
-    /// 启动功能完整的 CCR UI 图形界面,支持多 CLI 工具管理
+    /// 推荐作为主要 Web 界面使用，提供功能完整的 CCR UI 图形界面并支持多 CLI 工具管理
     /// 开发环境：自动检测并启动源码版本
     /// 生产环境：启动预构建版本(未来支持)
     /// 示例: ccr ui -p 3000

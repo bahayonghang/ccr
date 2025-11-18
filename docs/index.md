@@ -50,7 +50,7 @@ features:
 
   - icon: 🌐
     title: Web 界面
-    details: 内置轻量级 Axum API 服务器，14 个完整 RESTful API 端点，智能端口绑定，支持 --no-browser 选项，现代化玻璃拟态设计
+    details: 内置轻量级 Axum API 服务器（Legacy），提供 14 个 RESTful API 端点，智能端口绑定，支持 --no-browser 选项，适合编程访问；**新的 Web 界面推荐使用下方的 CCR UI 应用（`ccr ui`）**
 
   - icon: 📊
     title: 统计与成本分析
@@ -110,23 +110,20 @@ ccr current
 # 启动交互式 TUI
 ccr tui
 
-# 启动轻量级 Web API 服务器
+# 启动完整 CCR UI 应用（推荐 Web 界面）
+ccr ui
+
+# 启动轻量级 Legacy Web API 服务器（仅用于兼容性和编程访问）
 ccr web
 
-# 启动完整 CCR UI 应用
-ccr ui
+# Web API 不自动打开浏览器、并使用指定端口（适合远程/CI 场景）
+ccr web --port 8080 --no-browser
 
 # 查看操作历史
 ccr history
 
 # 启动交互式 TUI
 ccr tui
-
-# 启动 Web 界面（自动打开浏览器）
-ccr web
-
-# 启动 Web 界面（不打开浏览器，智能端口绑定）
-ccr web --port 8080 --no-browser
 ```
 
 ## 文件结构

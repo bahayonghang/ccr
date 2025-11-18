@@ -50,7 +50,7 @@ features:
 
   - icon: 🌐
     title: Web Interface
-    details: Built-in lightweight Axum API server, 14 complete RESTful API endpoints, smart port binding, support --no-browser option, modern glassmorphism design
+    details: Built-in lightweight Axum API server (legacy) with 14 RESTful API endpoints, smart port binding and --no-browser support, ideal for programmatic access; **for browser usage, prefer the CCR UI application (`ccr ui`) below**
 
   - icon: 📊
     title: Statistics & Cost Analysis
@@ -110,19 +110,13 @@ ccr current
 # Launch interactive TUI
 ccr tui
 
-# Launch lightweight Web API server
-ccr web
-
-# Launch complete CCR UI application
+# Launch complete CCR UI application (recommended web interface)
 ccr ui
 
-# View operation history
-ccr history
-
-# Launch Web interface (auto-open browser)
+# Launch lightweight legacy Web API server (for compatibility / programmatic access)
 ccr web
 
-# Launch Web interface (no browser, smart port binding)
+# Web API with no browser and explicit port (good for remote / CI)
 ccr web --port 8080 --no-browser
 ```
 

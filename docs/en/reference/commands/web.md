@@ -6,6 +6,8 @@
 
 Command: `ccr web`
 
+This command starts the **legacy** lightweight web API server. It is kept for compatibility and programmatic access. For normal browser-based management, prefer the `ccr ui` command (CCR UI application).
+
 ## Usage
 
 ```bash
