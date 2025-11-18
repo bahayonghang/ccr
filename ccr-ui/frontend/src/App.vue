@@ -13,8 +13,6 @@ import { useThemeStore } from '@/store'
 const themeStore = useThemeStore()
 
 onMounted(() => {
-  // Initialize theme from localStorage or default to light
-  const savedTheme = localStorage.getItem('ccr-theme') || 'light'
-  themeStore.setTheme(savedTheme)
+  themeStore.initializeTheme()
 })
 </script>

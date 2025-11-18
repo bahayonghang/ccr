@@ -28,8 +28,8 @@
               background: stage === 'error'
                 ? 'var(--accent-danger)'
                 : stage === 'success'
-                ? 'var(--accent-success)'
-                : 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))'
+                  ? 'var(--accent-success)'
+                  : 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))'
             }"
           />
 
@@ -60,7 +60,10 @@
                 :style="{ color: 'var(--accent-danger)' }"
               />
 
-              <h2 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">
+              <h2
+                class="text-xl font-bold"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 {{ getTitle() }}
               </h2>
             </div>
@@ -82,8 +85,14 @@
           <!-- 内容区域 -->
           <div class="px-6 py-5 overflow-y-auto max-h-[60vh]">
             <!-- 确认阶段 -->
-            <div v-if="stage === 'confirm'" class="space-y-4">
-              <p class="text-base leading-relaxed" :style="{ color: 'var(--text-primary)' }">
+            <div
+              v-if="stage === 'confirm'"
+              class="space-y-4"
+            >
+              <p
+                class="text-base leading-relaxed"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 确定要立即更新 CCR 吗？
               </p>
               <div
@@ -93,7 +102,10 @@
                   border: '1px solid var(--border-color)'
                 }"
               >
-                <p class="text-sm font-semibold" :style="{ color: 'var(--text-secondary)' }">
+                <p
+                  class="text-sm font-semibold"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
                   ⚠️ 注意事项：
                 </p>
                 <ul
@@ -109,13 +121,19 @@
             </div>
 
             <!-- 更新中 -->
-            <div v-if="stage === 'updating'" class="space-y-4">
+            <div
+              v-if="stage === 'updating'"
+              class="space-y-4"
+            >
               <div class="flex items-center space-x-3">
                 <Loader2
                   class="w-5 h-5 animate-spin"
                   :style="{ color: 'var(--accent-primary)' }"
                 />
-                <p class="text-base font-medium" :style="{ color: 'var(--text-primary)' }">
+                <p
+                  class="text-base font-medium"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
                   正在执行更新，请稍候...
                 </p>
               </div>
@@ -150,7 +168,10 @@
             </div>
 
             <!-- 成功 -->
-            <div v-if="stage === 'success'" class="space-y-4">
+            <div
+              v-if="stage === 'success'"
+              class="space-y-4"
+            >
               <div
                 class="rounded-lg p-4 flex items-start space-x-3"
                 :style="{
@@ -163,18 +184,30 @@
                   :style="{ color: 'var(--accent-success)' }"
                 />
                 <div class="space-y-2 flex-1">
-                  <p class="text-base font-semibold" :style="{ color: 'var(--accent-success)' }">
+                  <p
+                    class="text-base font-semibold"
+                    :style="{ color: 'var(--accent-success)' }"
+                  >
                     CCR 已成功更新！
                   </p>
-                  <p class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+                  <p
+                    class="text-sm"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
                     更新已完成，建议刷新页面以使用最新版本。
                   </p>
                 </div>
               </div>
 
               <!-- 输出日志 -->
-              <details v-if="output" class="cursor-pointer">
-                <summary class="text-sm font-medium mb-2" :style="{ color: 'var(--text-secondary)' }">
+              <details
+                v-if="output"
+                class="cursor-pointer"
+              >
+                <summary
+                  class="text-sm font-medium mb-2"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
                   查看更新日志
                 </summary>
                 <div
@@ -193,7 +226,10 @@
             </div>
 
             <!-- 错误 -->
-            <div v-if="stage === 'error'" class="space-y-4">
+            <div
+              v-if="stage === 'error'"
+              class="space-y-4"
+            >
               <div
                 class="rounded-lg p-4 flex items-start space-x-3"
                 :style="{
@@ -206,10 +242,16 @@
                   :style="{ color: 'var(--accent-danger)' }"
                 />
                 <div class="space-y-2 flex-1">
-                  <p class="text-base font-semibold" :style="{ color: 'var(--accent-danger)' }">
+                  <p
+                    class="text-base font-semibold"
+                    :style="{ color: 'var(--accent-danger)' }"
+                  >
                     更新失败
                   </p>
-                  <p class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+                  <p
+                    class="text-sm"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
                     更新过程中出现错误，请查看错误信息并重试。
                   </p>
                 </div>
@@ -231,8 +273,14 @@
               </div>
 
               <!-- 输出日志 -->
-              <details v-if="output" class="cursor-pointer">
-                <summary class="text-sm font-medium mb-2" :style="{ color: 'var(--text-secondary)' }">
+              <details
+                v-if="output"
+                class="cursor-pointer"
+              >
+                <summary
+                  class="text-sm font-medium mb-2"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
                   查看详细日志
                 </summary>
                 <div

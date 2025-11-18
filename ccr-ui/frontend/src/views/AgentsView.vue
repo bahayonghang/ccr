@@ -8,7 +8,7 @@
           background: 'linear-gradient(135deg, #10b981 0%, #14b8a6 50%, #06b6d4 100%)',
           animation: 'pulse 8s ease-in-out infinite'
         }"
-      ></div>
+      />
       <div
         class="absolute bottom-10 left-10 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
@@ -16,20 +16,24 @@
           animation: 'pulse 10s ease-in-out infinite',
           animationDelay: '2s'
         }"
-      ></div>
+      />
     </div>
 
     <div class="relative z-10 p-6">
       <div class="mb-6">
         <Navbar />
-        <StatusHeader :currentConfig="currentConfig" :totalConfigs="totalConfigs" :historyCount="historyCount" />
+        <StatusHeader
+          :current-config="currentConfig"
+          :total-configs="totalConfigs"
+          :history-count="historyCount"
+        />
         <Breadcrumb
           :items="[
             { label: '首页', path: '/', icon: Home },
             { label: 'Claude Code', path: '/claude-code', icon: Code2 },
             { label: 'Agents', path: '/agents', icon: Bot }
           ]"
-          moduleColor="#10b981"
+          module-color="#10b981"
         />
       </div>
 
@@ -80,7 +84,10 @@
             @mouseenter="(e) => folder.value !== selectedFolder && (e.currentTarget.style.background = 'var(--bg-tertiary)')"
             @mouseleave="(e) => folder.value !== selectedFolder && (e.currentTarget.style.background = 'transparent')"
           >
-            <component :is="folder.icon" class="w-3.5 h-3.5" />
+            <component
+              :is="folder.icon"
+              class="w-3.5 h-3.5"
+            />
             <span class="flex-1">{{ folder.label }}</span>
             <span :style="{ fontSize: '11px', opacity: 0.7 }">{{ folder.count }}</span>
           </div>
@@ -100,20 +107,42 @@
           >
             <div class="flex items-center justify-between mb-8">
               <div class="flex items-center gap-4">
-                <div class="p-4 rounded-2xl" :style="{ background: 'rgba(16, 185, 129, 0.15)' }">
-                  <Bot class="w-8 h-8" :style="{ color: '#10b981' }" />
+                <div
+                  class="p-4 rounded-2xl"
+                  :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
+                >
+                  <Bot
+                    class="w-8 h-8"
+                    :style="{ color: '#10b981' }"
+                  />
                 </div>
                 <div>
                   <div class="flex items-center gap-3">
-                    <h2 class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">Agents 管理</h2>
-                    <span class="px-3 py-1 rounded-full text-xs font-bold" :style="{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }">
+                    <h2
+                      class="text-3xl font-bold"
+                      :style="{ color: 'var(--text-primary)' }"
+                    >
+                      Agents 管理
+                    </h2>
+                    <span
+                      class="px-3 py-1 rounded-full text-xs font-bold"
+                      :style="{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }"
+                    >
                       🤖 AI
                     </span>
-                    <span class="px-3 py-1 rounded-full text-xs font-bold" :style="{ background: '#10b981', color: '#fff' }">
+                    <span
+                      class="px-3 py-1 rounded-full text-xs font-bold"
+                      :style="{ background: '#10b981', color: '#fff' }"
+                    >
                       {{ filteredAgents.length }}/{{ stats.total }}
                     </span>
                   </div>
-                  <p class="text-sm mt-2" :style="{ color: 'var(--text-secondary)' }">AI Agent 配置、工具绑定和模型管理</p>
+                  <p
+                    class="text-sm mt-2"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
+                    AI Agent 配置、工具绑定和模型管理
+                  </p>
                 </div>
               </div>
               <div class="flex items-center gap-3">
@@ -145,14 +174,17 @@
             <div class="bg-white/70 backdrop-blur-xl rounded-2xl p-6 mb-8 border border-white/40">
               <div class="flex flex-col md:flex-row md:items-center gap-4">
                 <div class="relative flex-1">
-                  <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" :style="{ color: 'var(--text-muted)' }" />
+                  <Search
+                    class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
+                    :style="{ color: 'var(--text-muted)' }"
+                  />
                   <input
                     v-model="searchQuery"
                     type="text"
                     placeholder="搜索 agent 名称、系统提示或工具..."
                     class="w-full pl-11 pr-10 py-3 rounded-lg transition-all focus:outline-none focus:ring-2"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                  />
+                  >
                   <button
                     v-if="searchQuery"
                     class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
@@ -162,29 +194,57 @@
                     <X class="w-4 h-4" />
                   </button>
                 </div>
-                <div class="flex items-center gap-2 text-sm" :style="{ color: 'var(--text-muted)' }">
+                <div
+                  class="flex items-center gap-2 text-sm"
+                  :style="{ color: 'var(--text-muted)' }"
+                >
                   <span>已配置 Agents：</span>
-                  <span class="px-3 py-1 rounded-full font-semibold" :style="{ background: 'rgba(16, 185, 129, 0.12)', color: '#047857' }">
+                  <span
+                    class="px-3 py-1 rounded-full font-semibold"
+                    :style="{ background: 'rgba(16, 185, 129, 0.12)', color: '#047857' }"
+                  >
                     {{ stats.total }}
                   </span>
                 </div>
               </div>
-              <p v-if="searchQuery" class="mt-2 text-sm" :style="{ color: 'var(--text-muted)' }">
+              <p
+                v-if="searchQuery"
+                class="mt-2 text-sm"
+                :style="{ color: 'var(--text-muted)' }"
+              >
                 找到 <span :style="{ color: 'var(--accent-primary)', fontWeight: 'bold' }">{{ filteredAgents.length }}</span> 个匹配的 agents
               </p>
             </div>
 
             <div class="space-y-4">
-              <div v-if="loading" class="text-center py-10" :style="{ color: 'var(--text-muted)' }">加载中...</div>
-              <div v-else-if="agents.length === 0" class="text-center py-10" :style="{ color: 'var(--text-muted)' }">暂无 Agents 配置</div>
-              <div v-else-if="filteredAgents.length === 0" class="text-center py-10" :style="{ color: 'var(--text-muted)' }">
-                <Search class="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>未找到匹配的 agents</p>
-                <p class="text-sm mt-2">尝试使用其他关键词搜索或切换文件夹</p>
+              <div
+                v-if="loading"
+                class="text-center py-10"
+                :style="{ color: 'var(--text-muted)' }"
+              >
+                加载中...
               </div>
               <div
-                v-else
+                v-else-if="agents.length === 0"
+                class="text-center py-10"
+                :style="{ color: 'var(--text-muted)' }"
+              >
+                暂无 Agents 配置
+              </div>
+              <div
+                v-else-if="filteredAgents.length === 0"
+                class="text-center py-10"
+                :style="{ color: 'var(--text-muted)' }"
+              >
+                <Search class="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>未找到匹配的 agents</p>
+                <p class="text-sm mt-2">
+                  尝试使用其他关键词搜索或切换文件夹
+                </p>
+              </div>
+              <div
                 v-for="agent in filteredAgents"
+                v-else
                 :key="agent.name"
                 class="group p-6 rounded-xl transition-all duration-300"
                 :style="{ background: 'rgba(255, 255, 255, 0.9)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }"
@@ -194,28 +254,77 @@
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
                     <div class="flex items-center gap-3 mb-2">
-                      <h3 class="text-xl font-semibold" :style="{ color: 'var(--text-primary)' }">{{ agent.name }}</h3>
-                      <span v-if="agent.folder" class="px-2 py-1 rounded text-xs font-medium" :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }">
+                      <h3
+                        class="text-xl font-semibold"
+                        :style="{ color: 'var(--text-primary)' }"
+                      >
+                        {{ agent.name }}
+                      </h3>
+                      <span
+                        v-if="agent.folder"
+                        class="px-2 py-1 rounded text-xs font-medium"
+                        :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }"
+                      >
                         📁 {{ agent.folder }}
                       </span>
-                      <span v-if="agent.disabled" class="px-2 py-1 rounded text-xs font-medium" :style="{ background: '#fef3c7', color: '#92400e' }">
+                      <span
+                        v-if="agent.disabled"
+                        class="px-2 py-1 rounded text-xs font-medium"
+                        :style="{ background: '#fef3c7', color: '#92400e' }"
+                      >
                         已禁用
                       </span>
                     </div>
-                    <p class="mb-2" :style="{ color: 'var(--text-secondary)', fontSize: '14px' }"><strong>Model:</strong> {{ agent.model }}</p>
-                    <p v-if="agent.tools && agent.tools.length > 0" class="mb-2 text-sm" :style="{ color: 'var(--text-muted)' }">
+                    <p
+                      class="mb-2"
+                      :style="{ color: 'var(--text-secondary)', fontSize: '14px' }"
+                    >
+                      <strong>Model:</strong> {{ agent.model }}
+                    </p>
+                    <p
+                      v-if="agent.tools && agent.tools.length > 0"
+                      class="mb-2 text-sm"
+                      :style="{ color: 'var(--text-muted)' }"
+                    >
                       <strong>Tools:</strong> {{ agent.tools.join(', ') }}
                     </p>
-                    <p v-if="agent.system_prompt" class="text-sm italic" :style="{ color: 'var(--text-muted)' }">{{ agent.system_prompt }}</p>
+                    <p
+                      v-if="agent.system_prompt"
+                      class="text-sm italic"
+                      :style="{ color: 'var(--text-muted)' }"
+                    >
+                      {{ agent.system_prompt }}
+                    </p>
                   </div>
                   <div class="flex gap-2 ml-4">
-                    <button class="p-2 rounded-lg transition-all hover:scale-110" :style="{ background: agent.disabled ? '#fef3c7' : '#d1fae5', color: agent.disabled ? '#92400e' : '#065f46' }" :title="agent.disabled ? '启用' : '禁用'" @click="handleToggle(agent.name)">
-                      <PowerOff v-if="agent.disabled" class="w-5 h-5" /><Power v-else class="w-5 h-5" />
+                    <button
+                      class="p-2 rounded-lg transition-all hover:scale-110"
+                      :style="{ background: agent.disabled ? '#fef3c7' : '#d1fae5', color: agent.disabled ? '#92400e' : '#065f46' }"
+                      :title="agent.disabled ? '启用' : '禁用'"
+                      @click="handleToggle(agent.name)"
+                    >
+                      <PowerOff
+                        v-if="agent.disabled"
+                        class="w-5 h-5"
+                      /><Power
+                        v-else
+                        class="w-5 h-5"
+                      />
                     </button>
-                    <button class="p-2 rounded-lg transition-all hover:scale-110" :style="{ background: 'var(--bg-tertiary)', color: 'var(--accent-primary)' }" title="编辑" @click="handleEdit(agent)">
+                    <button
+                      class="p-2 rounded-lg transition-all hover:scale-110"
+                      :style="{ background: 'var(--bg-tertiary)', color: 'var(--accent-primary)' }"
+                      title="编辑"
+                      @click="handleEdit(agent)"
+                    >
                       <Edit2 class="w-5 h-5" />
                     </button>
-                    <button class="p-2 rounded-lg transition-all hover:scale-110" :style="{ background: '#fee2e2', color: '#991b1b' }" title="删除" @click="handleDelete(agent.name)">
+                    <button
+                      class="p-2 rounded-lg transition-all hover:scale-110"
+                      :style="{ background: '#fee2e2', color: '#991b1b' }"
+                      title="删除"
+                      @click="handleDelete(agent.name)"
+                    >
                       <Trash2 class="w-5 h-5" />
                     </button>
                   </div>
@@ -232,32 +341,56 @@
         :style="{ background: 'rgba(0, 0, 0, 0.5)' }"
         @click="showAddForm = false"
       >
-        <div class="p-8 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto" :style="{ background: 'var(--bg-secondary)' }" @click.stop>
-          <h3 class="text-2xl font-bold mb-6" :style="{ color: 'var(--text-primary)' }">{{ editingAgent ? '编辑 Agent' : '添加 Agent' }}</h3>
+        <div
+          class="p-8 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+          :style="{ background: 'var(--bg-secondary)' }"
+          @click.stop
+        >
+          <h3
+            class="text-2xl font-bold mb-6"
+            :style="{ color: 'var(--text-primary)' }"
+          >
+            {{ editingAgent ? '编辑 Agent' : '添加 Agent' }}
+          </h3>
           <div class="space-y-4">
             <div>
-              <label class="block mb-2 font-medium" :style="{ color: 'var(--text-secondary)' }">名称 *</label>
+              <label
+                class="block mb-2 font-medium"
+                :style="{ color: 'var(--text-secondary)' }"
+              >名称 *</label>
               <input
                 v-model="formData.name"
                 type="text"
                 class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
                 :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-              />
+              >
             </div>
             <div>
-              <label class="block mb-2 font-medium" :style="{ color: 'var(--text-secondary)' }">Model *</label>
+              <label
+                class="block mb-2 font-medium"
+                :style="{ color: 'var(--text-secondary)' }"
+              >Model *</label>
               <select
                 v-model="formData.model"
                 class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
                 :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
               >
-                <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
-                <option value="claude-opus-4-20250514">Claude Opus 4</option>
-                <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                <option value="claude-sonnet-4-5-20250929">
+                  Claude Sonnet 4.5
+                </option>
+                <option value="claude-opus-4-20250514">
+                  Claude Opus 4
+                </option>
+                <option value="claude-3-5-sonnet-20241022">
+                  Claude 3.5 Sonnet
+                </option>
               </select>
             </div>
             <div>
-              <label class="block mb-2 font-medium" :style="{ color: 'var(--text-secondary)' }">Tools</label>
+              <label
+                class="block mb-2 font-medium"
+                :style="{ color: 'var(--text-secondary)' }"
+              >Tools</label>
               <div class="flex gap-2 mb-2">
                 <input
                   v-model="toolInput"
@@ -266,8 +399,14 @@
                   class="flex-1 px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
                   :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
                   @keyup.enter="addTool"
-                />
-                <button class="px-4 py-2 rounded-lg font-medium text-white" :style="{ background: 'var(--accent-primary)' }" @click="addTool">添加</button>
+                >
+                <button
+                  class="px-4 py-2 rounded-lg font-medium text-white"
+                  :style="{ background: 'var(--accent-primary)' }"
+                  @click="addTool"
+                >
+                  添加
+                </button>
               </div>
               <div class="flex flex-wrap gap-2">
                 <span
@@ -282,7 +421,10 @@
               </div>
             </div>
             <div>
-              <label class="block mb-2 font-medium" :style="{ color: 'var(--text-secondary)' }">System Prompt</label>
+              <label
+                class="block mb-2 font-medium"
+                :style="{ color: 'var(--text-secondary)' }"
+              >System Prompt</label>
               <textarea
                 v-model="formData.system_prompt"
                 rows="6"
@@ -292,10 +434,18 @@
             </div>
           </div>
           <div class="flex gap-3 mt-6">
-            <button class="flex-1 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105" :style="{ background: 'var(--accent-primary)', color: '#fff' }" @click="handleSubmit">
+            <button
+              class="flex-1 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105"
+              :style="{ background: 'var(--accent-primary)', color: '#fff' }"
+              @click="handleSubmit"
+            >
               {{ editingAgent ? '保存' : '添加' }}
             </button>
-            <button class="flex-1 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105" :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }" @click="showAddForm = false">
+            <button
+              class="flex-1 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105"
+              :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }"
+              @click="showAddForm = false"
+            >
               取消
             </button>
           </div>

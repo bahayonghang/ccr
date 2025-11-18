@@ -6,9 +6,9 @@
 
       <!-- 状态信息头部 -->
       <StatusHeader
-        :currentConfig="currentConfig"
-        :totalConfigs="totalConfigs"
-        :historyCount="historyCount"
+        :current-config="currentConfig"
+        :total-configs="totalConfigs"
+        :history-count="historyCount"
       />
 
       <!-- 布局：可折叠侧边栏 + 主命令区域 -->
@@ -49,7 +49,10 @@
                 @click="setSelectedClient(client.id)"
               >
                 <div class="flex flex-col items-center gap-2">
-                  <component :is="client.icon" class="w-6 h-6" />
+                  <component
+                    :is="client.icon"
+                    class="w-6 h-6"
+                  />
                   <span class="text-sm font-semibold">{{ client.name }}</span>
                 </div>
               </button>
@@ -72,7 +75,10 @@
               >
                 可用命令
               </h2>
-              <nav class="space-y-2" aria-label="命令列表">
+              <nav
+                class="space-y-2"
+                aria-label="命令列表"
+              >
                 <button
                   v-for="cmd in commands"
                   :key="cmd.name"
@@ -88,7 +94,9 @@
                   :aria-pressed="selectedCommand === cmd.name"
                   @click="setSelectedCommand(cmd.name)"
                 >
-                  <div class="font-mono font-bold text-sm">{{ cmd.name }}</div>
+                  <div class="font-mono font-bold text-sm">
+                    {{ cmd.name }}
+                  </div>
                   <div
                     class="text-xs mt-1 leading-relaxed"
                     :style="{
@@ -113,8 +121,15 @@
                 }"
               >
                 <div class="flex items-center gap-2 mb-2">
-                  <component v-if="currentClientInfo" :is="currentClientInfo.icon" class="w-5 h-5" />
-                  <h1 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                  <component
+                    :is="currentClientInfo.icon"
+                    v-if="currentClientInfo"
+                    class="w-5 h-5"
+                  />
+                  <h1
+                    class="text-xl font-bold"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
                     {{ selectedCommandInfo.name }}
                   </h1>
                   <span
@@ -127,12 +142,18 @@
                     {{ currentClientInfo?.name }}
                   </span>
                 </div>
-                <p class="mb-4" :style="{ color: 'var(--text-secondary)' }">
+                <p
+                  class="mb-4"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
                   {{ selectedCommandInfo.description }}
                 </p>
                 <div class="space-y-3">
                   <div>
-                    <span class="text-sm font-semibold" :style="{ color: 'var(--text-primary)' }">
+                    <span
+                      class="text-sm font-semibold"
+                      :style="{ color: 'var(--text-primary)' }"
+                    >
                       Usage:
                     </span>
                     <code
@@ -143,11 +164,17 @@
                     </code>
                   </div>
                   <div>
-                    <span class="text-sm font-semibold" :style="{ color: 'var(--text-primary)' }">
+                    <span
+                      class="text-sm font-semibold"
+                      :style="{ color: 'var(--text-primary)' }"
+                    >
                       Examples:
                     </span>
                     <ul class="mt-2 space-y-2">
-                      <li v-for="(example, idx) in selectedCommandInfo.examples" :key="idx">
+                      <li
+                        v-for="(example, idx) in selectedCommandInfo.examples"
+                        :key="idx"
+                      >
                         <code
                           class="text-sm px-3 py-2 rounded font-mono block"
                           :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }"
@@ -174,7 +201,10 @@
                 >
                   参数 (可选)
                 </h3>
-                <label for="command-args" class="sr-only">命令参数</label>
+                <label
+                  for="command-args"
+                  class="sr-only"
+                >命令参数</label>
                 <input
                   id="command-args"
                   v-model="args"
@@ -187,7 +217,7 @@
                     color: 'var(--text-primary)'
                   }"
                   @keydown.enter="!loading && handleExecute()"
-                />
+                >
                 <button
                   class="mt-3 w-full px-6 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 font-semibold text-sm text-white hover:scale-[1.02]"
                   :style="{
@@ -205,7 +235,11 @@
                     class="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"
                     aria-hidden="true"
                   />
-                  <Play v-else class="w-4 h-4" aria-hidden="true" />
+                  <Play
+                    v-else
+                    class="w-4 h-4"
+                    aria-hidden="true"
+                  />
                   <span>{{ loading ? '执行中...' : '执行命令' }}</span>
                 </button>
               </section>
@@ -246,8 +280,16 @@
                             : 'rgba(239, 68, 68, 0.15)'
                         }"
                       >
-                        <Check v-if="output.success" class="w-4 h-4" :style="{ color: '#22c55e' }" />
-                        <X v-else class="w-4 h-4" :style="{ color: '#ef4444' }" />
+                        <Check
+                          v-if="output.success"
+                          class="w-4 h-4"
+                          :style="{ color: '#22c55e' }"
+                        />
+                        <X
+                          v-else
+                          class="w-4 h-4"
+                          :style="{ color: '#ef4444' }"
+                        />
                         <span
                           class="text-sm font-bold"
                           :style="{ color: output.success ? '#22c55e' : '#ef4444' }"
@@ -258,7 +300,10 @@
 
                       <!-- 退出码 -->
                       <div class="flex items-center gap-2">
-                        <span class="text-xs font-semibold" :style="{ color: 'var(--text-muted)' }">
+                        <span
+                          class="text-xs font-semibold"
+                          :style="{ color: 'var(--text-muted)' }"
+                        >
                           Exit Code:
                         </span>
                         <span
@@ -274,7 +319,10 @@
 
                       <!-- 执行时间 -->
                       <div class="flex items-center gap-2">
-                        <span class="text-xs font-semibold" :style="{ color: 'var(--text-muted)' }">
+                        <span
+                          class="text-xs font-semibold"
+                          :style="{ color: 'var(--text-muted)' }"
+                        >
                           Duration:
                         </span>
                         <span
@@ -332,7 +380,10 @@
                     overflowY: 'auto'
                   }"
                 >
-                  <div v-if="output.output" class="space-y-1 whitespace-pre-wrap">
+                  <div
+                    v-if="output.output"
+                    class="space-y-1 whitespace-pre-wrap"
+                  >
                     {{ output.output }}
                   </div>
 
@@ -346,12 +397,21 @@
                     role="alert"
                   >
                     <div class="flex items-start gap-3">
-                      <X class="w-5 h-5 flex-shrink-0 mt-0.5" :style="{ color: '#ef4444' }" />
+                      <X
+                        class="w-5 h-5 flex-shrink-0 mt-0.5"
+                        :style="{ color: '#ef4444' }"
+                      />
                       <div class="flex-1">
-                        <p class="text-sm font-bold mb-1" :style="{ color: '#ef4444' }">
+                        <p
+                          class="text-sm font-bold mb-1"
+                          :style="{ color: '#ef4444' }"
+                        >
                           Error
                         </p>
-                        <pre class="text-sm whitespace-pre-wrap break-words" :style="{ color: '#fca5a5' }">{{ output.error }}</pre>
+                        <pre
+                          class="text-sm whitespace-pre-wrap break-words"
+                          :style="{ color: '#fca5a5' }"
+                        >{{ output.error }}</pre>
                       </div>
                     </div>
                   </div>
@@ -361,7 +421,9 @@
                     class="flex items-center justify-center h-32"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    <p class="text-sm">无输出内容</p>
+                    <p class="text-sm">
+                      无输出内容
+                    </p>
                   </div>
                 </div>
 

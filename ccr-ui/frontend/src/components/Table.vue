@@ -11,7 +11,11 @@
           >
             {{ column.title }}
           </th>
-          <th v-if="hasActions" class="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider" :style="{ color: 'var(--text-secondary)' }">
+          <th
+            v-if="hasActions"
+            class="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
             操作
           </th>
         </tr>
@@ -36,8 +40,14 @@
               {{ item[column.key] }}
             </slot>
           </td>
-          <td v-if="hasActions" class="px-6 py-4 whitespace-nowrap text-right text-sm">
-            <slot name="actions" :item="item" />
+          <td
+            v-if="hasActions"
+            class="px-6 py-4 whitespace-nowrap text-right text-sm"
+          >
+            <slot
+              name="actions"
+              :item="item"
+            />
           </td>
         </tr>
       </tbody>

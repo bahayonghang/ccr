@@ -30,20 +30,29 @@
           { label: 'Claude Code', path: '/claude-code', icon: Code2 },
           { label: '云同步', path: '/sync', icon: Cloud }
         ]"
-        moduleColor="#6366f1"
+        module-color="#6366f1"
       />
 
       <div class="mb-12">
         <div class="flex items-center justify-between mb-6 animate-fade-in">
           <div class="flex items-center gap-4">
-            <div class="p-4 rounded-3xl glass-card" :style="{ background: 'rgba(6, 182, 212, 0.1)' }">
-              <Cloud class="w-10 h-10" :style="{ color: '#06b6d4' }" />
+            <div
+              class="p-4 rounded-3xl glass-card"
+              :style="{ background: 'rgba(6, 182, 212, 0.1)' }"
+            >
+              <Cloud
+                class="w-10 h-10"
+                :style="{ color: '#06b6d4' }"
+              />
             </div>
             <div>
               <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[#06b6d4] via-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent">
                 WebDAV 云同步
               </h1>
-              <p class="text-lg" :style="{ color: 'var(--text-secondary)' }">
+              <p
+                class="text-lg"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 预设平台选择 · 一键同步 · 智能管理
               </p>
             </div>
@@ -52,16 +61,28 @@
             to="/"
             class="group glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300"
           >
-            <Home class="w-5 h-5" :style="{ color: '#64748b' }" />
-            <span class="font-medium" :style="{ color: 'var(--text-secondary)' }">返回首页</span>
+            <Home
+              class="w-5 h-5"
+              :style="{ color: '#64748b' }"
+            />
+            <span
+              class="font-medium"
+              :style="{ color: 'var(--text-secondary)' }"
+            >返回首页</span>
           </RouterLink>
         </div>
       </div>
 
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex items-center justify-center py-16">
+      <div
+        v-if="loading"
+        class="flex items-center justify-center py-16"
+      >
         <div class="p-8 glass-card">
-          <RefreshCw class="w-12 h-12 animate-spin" :style="{ color: '#06b6d4' }" />
+          <RefreshCw
+            class="w-12 h-12 animate-spin"
+            :style="{ color: '#06b6d4' }"
+          />
         </div>
       </div>
 
@@ -70,17 +91,36 @@
         v-else-if="error"
         class="glass-card p-6 flex items-start gap-4"
       >
-        <div class="p-3 rounded-2xl" :style="{ background: 'rgba(239, 68, 68, 0.1)' }">
-          <XCircle class="w-7 h-7" :style="{ color: '#ef4444' }" />
+        <div
+          class="p-3 rounded-2xl"
+          :style="{ background: 'rgba(239, 68, 68, 0.1)' }"
+        >
+          <XCircle
+            class="w-7 h-7"
+            :style="{ color: '#ef4444' }"
+          />
         </div>
         <div class="flex-1">
-          <h3 class="font-bold text-xl mb-2" :style="{ color: 'var(--text-primary)' }">加载失败</h3>
-          <p class="text-base" :style="{ color: 'var(--text-secondary)' }">{{ error }}</p>
+          <h3
+            class="font-bold text-xl mb-2"
+            :style="{ color: 'var(--text-primary)' }"
+          >
+            加载失败
+          </h3>
+          <p
+            class="text-base"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            {{ error }}
+          </p>
         </div>
       </div>
 
       <!-- 主要内容 -->
-      <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div
+        v-else
+        class="grid grid-cols-1 lg:grid-cols-3 gap-6"
+      >
         <!-- 左侧主内容区 (2 columns) -->
         <div class="lg:col-span-2 space-y-6">
           <!-- 预设同步项目选择 -->
@@ -88,18 +128,27 @@
             <!-- 头部 -->
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
-                <div class="p-3 rounded-2xl" :style="{ background: 'rgba(16, 185, 129, 0.1)' }">
-                  <CheckSquare class="w-6 h-6" :style="{ color: '#10b981' }" />
+                <div
+                  class="p-3 rounded-2xl"
+                  :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
+                >
+                  <CheckSquare
+                    class="w-6 h-6"
+                    :style="{ color: '#10b981' }"
+                  />
                 </div>
-                <h2 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                <h2
+                  class="text-2xl font-bold"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
                   选择同步平台
                 </h2>
               </div>
               <button
-                @click="applySelection"
                 :disabled="applying || !hasChanges"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                 :style="{ background: applying || !hasChanges ? 'rgba(156, 163, 175, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: applying || !hasChanges ? '#9ca3af' : '#10b981' }"
+                @click="applySelection"
               >
                 <Save class="w-4 h-4" />
                 <span>{{ applying ? '应用中...' : '应用选择' }}</span>
@@ -107,30 +156,53 @@
             </div>
 
             <!-- Config (必选项) -->
-            <div class="mb-6 p-5 rounded-xl glass-card" :style="{ background: 'rgba(245, 158, 11, 0.05)' }">
+            <div
+              class="mb-6 p-5 rounded-xl glass-card"
+              :style="{ background: 'rgba(245, 158, 11, 0.05)' }"
+            >
               <div class="flex items-center gap-4">
-                <div class="p-2 rounded-xl" :style="{ background: 'rgba(245, 158, 11, 0.15)' }">
-                  <CheckCircle class="w-6 h-6" :style="{ color: '#f59e0b' }" />
+                <div
+                  class="p-2 rounded-xl"
+                  :style="{ background: 'rgba(245, 158, 11, 0.15)' }"
+                >
+                  <CheckCircle
+                    class="w-6 h-6"
+                    :style="{ color: '#f59e0b' }"
+                  />
                 </div>
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
-                    <h3 class="text-lg font-bold" :style="{ color: 'var(--text-primary)' }">Platforms 平台配置</h3>
-                    <span class="px-2.5 py-1 rounded-full text-xs font-bold" :style="{ background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' }">
+                    <h3
+                      class="text-lg font-bold"
+                      :style="{ color: 'var(--text-primary)' }"
+                    >
+                      Platforms 平台配置
+                    </h3>
+                    <span
+                      class="px-2.5 py-1 rounded-full text-xs font-bold"
+                      :style="{ background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' }"
+                    >
                       必选
                     </span>
                   </div>
-                  <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">
+                  <p
+                    class="text-sm mb-3"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
                     CCR 供应商配置（API地址、密钥等），强制同步保证配置一致性
                   </p>
                   <div class="flex items-center gap-2">
-                    <Folder class="w-4 h-4" :style="{ color: '#94a3b8' }" />
+                    <Folder
+                      class="w-4 h-4"
+                      :style="{ color: '#94a3b8' }"
+                    />
                     <input
                       v-model="presetItems.config.localPath"
                       type="text"
                       class="flex-1 px-3 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                       :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
                       placeholder="本地路径"
-                    />
+                    >
                   </div>
                 </div>
               </div>
@@ -157,37 +229,68 @@
                         border: item.selected ? '2px solid #6366f1' : '2px solid #e5e7eb'
                       }"
                     >
-                      <Check v-if="item.selected" class="w-4 h-4" :style="{ color: '#6366f1' }" />
+                      <Check
+                        v-if="item.selected"
+                        class="w-4 h-4"
+                        :style="{ color: '#6366f1' }"
+                      />
                     </div>
                   </div>
                   <div class="flex-1">
                     <div class="flex items-center gap-3 mb-2">
-                      <div class="p-2 rounded-lg" :style="{ background: 'rgba(99, 102, 241, 0.1)' }">
-                        <component :is="item.icon" class="w-5 h-5" :style="{ color: '#6366f1' }" />
+                      <div
+                        class="p-2 rounded-lg"
+                        :style="{ background: 'rgba(99, 102, 241, 0.1)' }"
+                      >
+                        <component
+                          :is="item.icon"
+                          class="w-5 h-5"
+                          :style="{ color: '#6366f1' }"
+                        />
                       </div>
-                      <h3 class="text-lg font-bold" :style="{ color: 'var(--text-primary)' }">{{ item.name }}</h3>
+                      <h3
+                        class="text-lg font-bold"
+                        :style="{ color: 'var(--text-primary)' }"
+                      >
+                        {{ item.name }}
+                      </h3>
                     </div>
-                    <p class="text-sm mb-3" :style="{ color: 'var(--text-secondary)' }">{{ item.description }}</p>
-                    <div v-if="item.selected" class="space-y-2" @click.stop>
+                    <p
+                      class="text-sm mb-3"
+                      :style="{ color: 'var(--text-secondary)' }"
+                    >
+                      {{ item.description }}
+                    </p>
+                    <div
+                      v-if="item.selected"
+                      class="space-y-2"
+                      @click.stop
+                    >
                       <div class="flex items-center gap-2">
-                        <Folder class="w-4 h-4" :style="{ color: '#94a3b8' }" />
+                        <Folder
+                          class="w-4 h-4"
+                          :style="{ color: '#94a3b8' }"
+                        />
                         <input
                           v-model="item.localPath"
                           type="text"
                           class="flex-1 px-3 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                           :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
                           placeholder="本地路径"
-                        />
+                        >
                       </div>
                       <div class="flex items-center gap-2">
-                        <Cloud class="w-4 h-4" :style="{ color: '#94a3b8' }" />
+                        <Cloud
+                          class="w-4 h-4"
+                          :style="{ color: '#94a3b8' }"
+                        />
                         <input
                           v-model="item.remotePath"
                           type="text"
                           class="flex-1 px-3 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                           :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
                           placeholder="远程路径 (可选)"
-                        />
+                        >
                       </div>
                     </div>
                   </div>
@@ -196,12 +299,24 @@
             </div>
 
             <!-- 自定义文件夹 -->
-            <div class="mt-6 p-5 rounded-xl glass-card" :style="{ background: 'rgba(139, 92, 246, 0.05)' }">
+            <div
+              class="mt-6 p-5 rounded-xl glass-card"
+              :style="{ background: 'rgba(139, 92, 246, 0.05)' }"
+            >
               <div class="flex items-center gap-3 mb-4">
-                <div class="p-2 rounded-xl" :style="{ background: 'rgba(139, 92, 246, 0.15)' }">
-                  <Plus class="w-5 h-5" :style="{ color: '#8b5cf6' }" />
+                <div
+                  class="p-2 rounded-xl"
+                  :style="{ background: 'rgba(139, 92, 246, 0.15)' }"
+                >
+                  <Plus
+                    class="w-5 h-5"
+                    :style="{ color: '#8b5cf6' }"
+                  />
                 </div>
-                <h3 class="text-lg font-bold" :style="{ color: 'var(--text-primary)' }">
+                <h3
+                  class="text-lg font-bold"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
                   自定义文件夹
                 </h3>
               </div>
@@ -212,34 +327,34 @@
                   placeholder="文件夹名称"
                   class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                   :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                />
+                >
                 <input
                   v-model="customFolder.localPath"
                   type="text"
                   placeholder="本地路径"
                   class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                   :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                />
+                >
                 <input
                   v-model="customFolder.remotePath"
                   type="text"
                   placeholder="远程路径 (可选)"
                   class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                   :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                />
+                >
                 <input
                   v-model="customFolder.description"
                   type="text"
                   placeholder="描述 (可选)"
                   class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                   :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                />
+                >
               </div>
               <button
-                @click="addCustomFolder"
                 :disabled="!customFolder.name || !customFolder.localPath || addingCustom"
                 class="w-full px-4 py-2.5 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+                @click="addCustomFolder"
               >
                 <Plus class="w-5 h-5" />
                 {{ addingCustom ? '添加中...' : '添加自定义文件夹' }}
@@ -251,31 +366,65 @@
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
-                <div class="p-3 rounded-2xl" :style="{ background: 'rgba(59, 130, 246, 0.1)' }">
-                  <Folders class="w-6 h-6" :style="{ color: '#3b82f6' }" />
+                <div
+                  class="p-3 rounded-2xl"
+                  :style="{ background: 'rgba(59, 130, 246, 0.1)' }"
+                >
+                  <Folders
+                    class="w-6 h-6"
+                    :style="{ color: '#3b82f6' }"
+                  />
                 </div>
-                <h2 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                <h2
+                  class="text-2xl font-bold"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
                   已启用的文件夹
                 </h2>
               </div>
               <button
-                @click="refreshFolders"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card transition-all duration-300 hover:scale-105"
                 :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
+                @click="refreshFolders"
               >
-                <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': refreshingFolders }" />
+                <RefreshCw
+                  class="w-4 h-4"
+                  :class="{ 'animate-spin': refreshingFolders }"
+                />
                 <span class="font-medium">刷新</span>
               </button>
             </div>
-            <div v-if="enabledFolders.length === 0" class="text-center py-12">
-              <div class="p-4 rounded-2xl inline-block" :style="{ background: 'rgba(156, 163, 175, 0.1)' }">
-                <FolderOpen class="w-16 h-16" :style="{ color: '#9ca3af' }" />
+            <div
+              v-if="enabledFolders.length === 0"
+              class="text-center py-12"
+            >
+              <div
+                class="p-4 rounded-2xl inline-block"
+                :style="{ background: 'rgba(156, 163, 175, 0.1)' }"
+              >
+                <FolderOpen
+                  class="w-16 h-16"
+                  :style="{ color: '#9ca3af' }"
+                />
               </div>
-              <p class="text-lg mt-4" :style="{ color: 'var(--text-secondary)' }">暂无启用的同步文件夹</p>
-              <p class="text-sm mt-2" :style="{ color: 'var(--text-muted)' }">请在上方选择要同步的平台</p>
-              </div>
+              <p
+                class="text-lg mt-4"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
+                暂无启用的同步文件夹
+              </p>
+              <p
+                class="text-sm mt-2"
+                :style="{ color: 'var(--text-muted)' }"
+              >
+                请在上方选择要同步的平台
+              </p>
+            </div>
 
-            <div v-else class="space-y-4">
+            <div
+              v-else
+              class="space-y-4"
+            >
               <div
                 v-for="(folder, index) in enabledFolders"
                 :key="folder.name"
@@ -285,7 +434,12 @@
                 <div class="flex items-start justify-between mb-4">
                   <div class="flex-1">
                     <div class="flex items-center gap-3 mb-2">
-                      <h4 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">{{ folder.name }}</h4>
+                      <h4
+                        class="text-xl font-bold"
+                        :style="{ color: 'var(--text-primary)' }"
+                      >
+                        {{ folder.name }}
+                      </h4>
                       <span
                         class="px-3 py-1 rounded-full text-sm font-medium"
                         :style="{ 
@@ -296,13 +450,25 @@
                         {{ folder.enabled ? '✓ 已启用' : '✗ 已禁用' }}
                       </span>
                     </div>
-                    <p v-if="folder.description" class="text-sm mb-2" :style="{ color: 'var(--text-secondary)' }">{{ folder.description }}</p>
+                    <p
+                      v-if="folder.description"
+                      class="text-sm mb-2"
+                      :style="{ color: 'var(--text-secondary)' }"
+                    >
+                      {{ folder.description }}
+                    </p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div class="flex items-center gap-2" :style="{ color: 'var(--text-secondary)' }">
+                      <div
+                        class="flex items-center gap-2"
+                        :style="{ color: 'var(--text-secondary)' }"
+                      >
                         <Folder class="w-4 h-4" />
                         <span class="font-mono">{{ folder.localPath }}</span>
                       </div>
-                      <div class="flex items-center gap-2" :style="{ color: 'var(--text-secondary)' }">
+                      <div
+                        class="flex items-center gap-2"
+                        :style="{ color: 'var(--text-secondary)' }"
+                      >
                         <Cloud class="w-4 h-4" />
                         <span class="font-mono">{{ folder.remotePath }}</span>
                       </div>
@@ -313,43 +479,43 @@
                 <!-- 操作按钮 -->
                 <div class="flex flex-wrap gap-2">
                   <button
-                    @click="toggleFolder(folder.name, folder.enabled)"
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
                     :style="{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }"
+                    @click="toggleFolder(folder.name, folder.enabled)"
                   >
                     <ToggleLeft class="w-4 h-4" />
                     {{ folder.enabled ? '禁用' : '启用' }}
                   </button>
                   <button
-                    @click="pushFolder(folder.name)"
                     :disabled="!folder.enabled"
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
+                    @click="pushFolder(folder.name)"
                   >
                     <Upload class="w-4 h-4" />
                     上传
                   </button>
                   <button
-                    @click="pullFolder(folder.name)"
                     :disabled="!folder.enabled"
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+                    @click="pullFolder(folder.name)"
                   >
                     <Download class="w-4 h-4" />
                     下载
                   </button>
                   <button
-                    @click="getFolderStatus(folder.name)"
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
                     :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
+                    @click="getFolderStatus(folder.name)"
                   >
                     <Info class="w-4 h-4" />
                     状态
                   </button>
                   <button
-                    @click="removeFolder(folder.name)"
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
                     :style="{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }"
+                    @click="removeFolder(folder.name)"
                   >
                     <Trash2 class="w-4 h-4" />
                     删除
@@ -362,39 +528,53 @@
           <!-- 批量操作卡片 -->
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
             <div class="flex items-center gap-3 mb-4">
-              <div class="p-3 rounded-2xl" :style="{ background: 'rgba(245, 158, 11, 0.1)' }">
-                <Layers class="w-6 h-6" :style="{ color: '#f59e0b' }" />
+              <div
+                class="p-3 rounded-2xl"
+                :style="{ background: 'rgba(245, 158, 11, 0.1)' }"
+              >
+                <Layers
+                  class="w-6 h-6"
+                  :style="{ color: '#f59e0b' }"
+                />
               </div>
-              <h2 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
+              <h2
+                class="text-2xl font-bold"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 批量操作
               </h2>
             </div>
 
-            <p class="text-sm mb-4" :style="{ color: 'var(--text-secondary)' }">对所有启用的文件夹执行批量同步操作</p>
+            <p
+              class="text-sm mb-4"
+              :style="{ color: 'var(--text-secondary)' }"
+            >
+              对所有启用的文件夹执行批量同步操作
+            </p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button
-                @click="pushAllFolders"
                 :disabled="batchOperating || enabledFolders.length === 0"
                 class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
+                @click="pushAllFolders"
               >
                 <Upload class="w-5 h-5" />
                 全部上传
               </button>
               <button
-                @click="pullAllFolders"
                 :disabled="batchOperating || enabledFolders.length === 0"
                 class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+                @click="pullAllFolders"
               >
                 <Download class="w-5 h-5" />
                 全部下载
               </button>
               <button
-                @click="getAllFoldersStatus"
                 :disabled="batchOperating || enabledFolders.length === 0"
                 class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
+                @click="getAllFoldersStatus"
               >
                 <Info class="w-5 h-5" />
                 查看状态
@@ -403,25 +583,43 @@
           </div>
 
           <!-- 操作输出卡片 -->
-          <div v-if="operationOutput" class="glass-card p-6">
+          <div
+            v-if="operationOutput"
+            class="glass-card p-6"
+          >
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
-                <div class="p-2 rounded-xl" :style="{ background: 'rgba(99, 102, 241, 0.1)' }">
-                  <Terminal class="w-5 h-5" :style="{ color: '#6366f1' }" />
+                <div
+                  class="p-2 rounded-xl"
+                  :style="{ background: 'rgba(99, 102, 241, 0.1)' }"
+                >
+                  <Terminal
+                    class="w-5 h-5"
+                    :style="{ color: '#6366f1' }"
+                  />
                 </div>
-                <h2 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                <h2
+                  class="text-xl font-bold"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
                   操作输出
                 </h2>
               </div>
               <button
-                @click="operationOutput = ''"
                 class="p-2 rounded-lg glass-card transition-all duration-300 hover:scale-110"
                 :style="{ background: 'rgba(156, 163, 175, 0.1)' }"
+                @click="operationOutput = ''"
               >
-                <XCircle class="w-4 h-4" :style="{ color: '#9ca3af' }" />
+                <XCircle
+                  class="w-4 h-4"
+                  :style="{ color: '#9ca3af' }"
+                />
               </button>
             </div>
-            <pre class="text-sm font-mono whitespace-pre-wrap overflow-x-auto glass-card p-4 rounded-lg" :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }">{{ operationOutput }}</pre>
+            <pre
+              class="text-sm font-mono whitespace-pre-wrap overflow-x-auto glass-card p-4 rounded-lg"
+              :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+            >{{ operationOutput }}</pre>
           </div>
         </div>
 
@@ -430,72 +628,175 @@
           <!-- WebDAV 配置状态 -->
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
             <div class="flex items-center gap-3 mb-6">
-              <div class="p-3 rounded-2xl" :style="{ background: 'rgba(99, 102, 241, 0.1)' }">
-                <Settings class="w-6 h-6" :style="{ color: '#6366f1' }" />
+              <div
+                class="p-3 rounded-2xl"
+                :style="{ background: 'rgba(99, 102, 241, 0.1)' }"
+              >
+                <Settings
+                  class="w-6 h-6"
+                  :style="{ color: '#6366f1' }"
+                />
               </div>
-              <h2 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">
+              <h2
+                class="text-xl font-bold"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 WebDAV 配置
               </h2>
             </div>
 
-            <div v-if="syncStatus?.configured && syncStatus.config" class="space-y-4">
-              <div class="flex items-center gap-3 px-4 py-3 rounded-xl" :style="{ background: 'rgba(16, 185, 129, 0.1)' }">
-                <CheckCircle class="w-5 h-5" :style="{ color: '#10b981' }" />
-                <span class="font-medium" :style="{ color: 'var(--text-primary)' }">已配置</span>
-                </div>
+            <div
+              v-if="syncStatus?.configured && syncStatus.config"
+              class="space-y-4"
+            >
+              <div
+                class="flex items-center gap-3 px-4 py-3 rounded-xl"
+                :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
+              >
+                <CheckCircle
+                  class="w-5 h-5"
+                  :style="{ color: '#10b981' }"
+                />
+                <span
+                  class="font-medium"
+                  :style="{ color: 'var(--text-primary)' }"
+                >已配置</span>
+              </div>
 
               <div class="space-y-3">
                 <div>
-                  <div class="text-xs mb-1" :style="{ color: 'var(--text-muted)' }">服务器</div>
-                  <div class="text-sm font-mono break-all" :style="{ color: 'var(--text-primary)' }">{{ syncStatus.config.webdav_url }}</div>
-                </div>
-                <div>
-                  <div class="text-xs mb-1" :style="{ color: 'var(--text-muted)' }">用户</div>
-                  <div class="text-sm font-mono" :style="{ color: 'var(--text-primary)' }">{{ syncStatus.config.username }}</div>
-                </div>
-                <div>
-                  <div class="text-xs mb-1" :style="{ color: 'var(--text-muted)' }">远程路径</div>
-                  <div class="text-sm font-mono break-all" :style="{ color: 'var(--text-primary)' }">{{ syncStatus.config.remote_path }}</div>
+                  <div
+                    class="text-xs mb-1"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    服务器
                   </div>
+                  <div
+                    class="text-sm font-mono break-all"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    {{ syncStatus.config.webdav_url }}
+                  </div>
+                </div>
+                <div>
+                  <div
+                    class="text-xs mb-1"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    用户
+                  </div>
+                  <div
+                    class="text-sm font-mono"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    {{ syncStatus.config.username }}
+                  </div>
+                </div>
+                <div>
+                  <div
+                    class="text-xs mb-1"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    远程路径
+                  </div>
+                  <div
+                    class="text-sm font-mono break-all"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    {{ syncStatus.config.remote_path }}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div v-else class="space-y-4">
-              <div class="flex items-center gap-3 px-4 py-3 rounded-xl" :style="{ background: 'rgba(245, 158, 11, 0.1)' }">
-                <AlertCircle class="w-5 h-5" :style="{ color: '#f59e0b' }" />
-                <span class="font-medium" :style="{ color: 'var(--text-primary)' }">未配置</span>
+            <div
+              v-else
+              class="space-y-4"
+            >
+              <div
+                class="flex items-center gap-3 px-4 py-3 rounded-xl"
+                :style="{ background: 'rgba(245, 158, 11, 0.1)' }"
+              >
+                <AlertCircle
+                  class="w-5 h-5"
+                  :style="{ color: '#f59e0b' }"
+                />
+                <span
+                  class="font-medium"
+                  :style="{ color: 'var(--text-primary)' }"
+                >未配置</span>
               </div>
-              <p class="text-sm" :style="{ color: 'var(--text-secondary)' }">请使用 CLI 配置 WebDAV:</p>
-              <code class="block text-sm font-mono glass-card p-3 rounded-lg" :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }">ccr sync config</code>
+              <p
+                class="text-sm"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
+                请使用 CLI 配置 WebDAV:
+              </p>
+              <code
+                class="block text-sm font-mono glass-card p-3 rounded-lg"
+                :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+              >ccr sync config</code>
             </div>
           </div>
 
           <!-- 功能说明 -->
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
             <div class="flex items-center gap-3 mb-6">
-              <div class="p-3 rounded-2xl" :style="{ background: 'rgba(236, 72, 153, 0.1)' }">
-                <BookOpen class="w-6 h-6" :style="{ color: '#ec4899' }" />
+              <div
+                class="p-3 rounded-2xl"
+                :style="{ background: 'rgba(236, 72, 153, 0.1)' }"
+              >
+                <BookOpen
+                  class="w-6 h-6"
+                  :style="{ color: '#ec4899' }"
+                />
               </div>
-              <h2 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">
+              <h2
+                class="text-xl font-bold"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 功能说明
               </h2>
             </div>
 
-            <div class="space-y-4 text-sm" :style="{ color: 'var(--text-secondary)' }">
+            <div
+              class="space-y-4 text-sm"
+              :style="{ color: 'var(--text-secondary)' }"
+            >
               <div>
-                <h4 class="font-bold mb-2" :style="{ color: 'var(--text-primary)' }">✅ 预设平台选择</h4>
+                <h4
+                  class="font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  ✅ 预设平台选择
+                </h4>
                 <p>Config 必选，Claude/Gemini/Qwen 可选，一键配置常用平台</p>
               </div>
               <div>
-                <h4 class="font-bold mb-2" :style="{ color: 'var(--text-primary)' }">🔄 独立文件夹管理</h4>
+                <h4
+                  class="font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  🔄 独立文件夹管理
+                </h4>
                 <p>每个文件夹独立同步，可单独启用/禁用和操作</p>
               </div>
               <div>
-                <h4 class="font-bold mb-2" :style="{ color: 'var(--text-primary)' }">💾 智能过滤</h4>
+                <h4
+                  class="font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  💾 智能过滤
+                </h4>
                 <p>自动排除 backups/、.locks/、*.tmp、*.bak 等文件</p>
               </div>
               <div>
-                <h4 class="font-bold mb-2" :style="{ color: 'var(--text-primary)' }">⚡ 批量操作</h4>
+                <h4
+                  class="font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  ⚡ 批量操作
+                </h4>
                 <p>一键上传/下载所有启用的文件夹，提高效率</p>
               </div>
             </div>
@@ -504,29 +805,53 @@
           <!-- 支持的服务 -->
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
             <div class="flex items-center gap-3 mb-6">
-              <div class="p-3 rounded-2xl" :style="{ background: 'rgba(16, 185, 129, 0.1)' }">
-                <Server class="w-6 h-6" :style="{ color: '#10b981' }" />
+              <div
+                class="p-3 rounded-2xl"
+                :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
+              >
+                <Server
+                  class="w-6 h-6"
+                  :style="{ color: '#10b981' }"
+                />
               </div>
-              <h2 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">
+              <h2
+                class="text-xl font-bold"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 支持的服务
               </h2>
             </div>
 
-            <div class="space-y-3 text-sm" :style="{ color: 'var(--text-secondary)' }">
+            <div
+              class="space-y-3 text-sm"
+              :style="{ color: 'var(--text-secondary)' }"
+            >
               <div class="flex items-center gap-2">
-                <CheckCircle class="w-4 h-4" :style="{ color: '#10b981' }" />
+                <CheckCircle
+                  class="w-4 h-4"
+                  :style="{ color: '#10b981' }"
+                />
                 <span>坚果云 (Nutstore)</span>
               </div>
               <div class="flex items-center gap-2">
-                <CheckCircle class="w-4 h-4" :style="{ color: '#10b981' }" />
+                <CheckCircle
+                  class="w-4 h-4"
+                  :style="{ color: '#10b981' }"
+                />
                 <span>Nextcloud</span>
               </div>
               <div class="flex items-center gap-2">
-                <CheckCircle class="w-4 h-4" :style="{ color: '#10b981' }" />
+                <CheckCircle
+                  class="w-4 h-4"
+                  :style="{ color: '#10b981' }"
+                />
                 <span>ownCloud</span>
               </div>
               <div class="flex items-center gap-2">
-                <CheckCircle class="w-4 h-4" :style="{ color: '#10b981' }" />
+                <CheckCircle
+                  class="w-4 h-4"
+                  :style="{ color: '#10b981' }"
+                />
                 <span>任何标准 WebDAV 服务器</span>
               </div>
             </div>

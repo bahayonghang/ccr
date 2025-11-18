@@ -8,6 +8,7 @@ export const useThemeStore = defineStore('theme', {
   actions: {
     setTheme(theme: 'light' | 'dark') {
       this.currentTheme = theme
+      document.documentElement.classList.toggle('dark', theme === 'dark')
       document.documentElement.setAttribute('data-theme', theme)
       localStorage.setItem('ccr-theme', theme)
     },

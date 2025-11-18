@@ -74,7 +74,10 @@
           borderLeft: '3px solid var(--accent-primary)'
         }"
       >
-        <FileText class="w-3.5 h-3.5 flex-shrink-0" :style="{ opacity: 0.8 }" />
+        <FileText
+          class="w-3.5 h-3.5 flex-shrink-0"
+          :style="{ opacity: 0.8 }"
+        />
         <span
           class="text-xs font-medium leading-relaxed"
           :style="{ color: 'var(--text-secondary)' }"
@@ -84,7 +87,10 @@
       </div>
 
       <!-- Provider 信息 -->
-      <div v-if="config.provider" class="flex flex-wrap gap-3 py-2">
+      <div
+        v-if="config.provider"
+        class="flex flex-wrap gap-3 py-2"
+      >
         <div
           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-all"
           :style="{
@@ -122,7 +128,10 @@
       </div>
 
       <!-- 标签 -->
-      <div v-if="config.tags && config.tags.length > 0" class="flex flex-wrap gap-1 mt-2">
+      <div
+        v-if="config.tags && config.tags.length > 0"
+        class="flex flex-wrap gap-1 mt-2"
+      >
         <span
           v-for="tag in config.tags"
           :key="tag"
@@ -138,7 +147,10 @@
       </div>
 
       <!-- 📊 使用次数显示 -->
-      <div v-if="config.usage_count !== undefined" class="flex items-center gap-2 mt-3">
+      <div
+        v-if="config.usage_count !== undefined"
+        class="flex items-center gap-2 mt-3"
+      >
         <div
           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all"
           :style="{
@@ -172,9 +184,19 @@
 
     <!-- 详细信息 -->
     <div class="grid grid-cols-2 gap-2.5 mb-3">
-      <DetailField label="Base URL" :value="config.base_url" />
-      <DetailField label="Auth Token" :value="maskToken(config.auth_token)" />
-      <DetailField v-if="config.model" label="Model" :value="config.model" />
+      <DetailField
+        label="Base URL"
+        :value="config.base_url"
+      />
+      <DetailField
+        label="Auth Token"
+        :value="maskToken(config.auth_token)"
+      />
+      <DetailField
+        v-if="config.model"
+        label="Model"
+        :value="config.model"
+      />
       <DetailField
         v-if="config.small_fast_model"
         label="Small Fast Model"

@@ -1,14 +1,26 @@
 <template>
   <div :style="{ background: 'var(--bg-primary)', minHeight: '100vh', padding: '20px' }">
-    <div class="mb-6">    </div>
+    <div class="mb-6" />
 
     <div style="display: flex; gap: 0">
       <CollapsibleSidebar module="iflow" />
 
       <div :style="{ width: '180px', background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-color)', padding: '12px 8px', overflowY: 'auto', height: 'calc(100vh - 40px)', flexShrink: 0 }">
-        <h4 :style="{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '600', marginBottom: '8px', marginLeft: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }">文件夹</h4>
-        <div v-for="folder in folderOptions" :key="folder.value" :style="{ padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', marginBottom: '4px', background: selectedFolder === folder.value ? 'var(--accent-primary)' : 'transparent', color: selectedFolder === folder.value ? '#fff' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', fontSize: '13px' }" @click="selectedFolder = folder.value" @mouseenter="(e) => folder.value !== selectedFolder && (e.currentTarget.style.background = 'var(--bg-tertiary)')" @mouseleave="(e) => folder.value !== selectedFolder && (e.currentTarget.style.background = 'transparent')">
-          <component :is="folder.icon" class="w-3.5 h-3.5" />
+        <h4 :style="{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '600', marginBottom: '8px', marginLeft: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }">
+          文件夹
+        </h4>
+        <div
+          v-for="folder in folderOptions"
+          :key="folder.value"
+          :style="{ padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', marginBottom: '4px', background: selectedFolder === folder.value ? 'var(--accent-primary)' : 'transparent', color: selectedFolder === folder.value ? '#fff' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', fontSize: '13px' }"
+          @click="selectedFolder = folder.value"
+          @mouseenter="(e) => folder.value !== selectedFolder && (e.currentTarget.style.background = 'var(--bg-tertiary)')"
+          @mouseleave="(e) => folder.value !== selectedFolder && (e.currentTarget.style.background = 'transparent')"
+        >
+          <component
+            :is="folder.icon"
+            class="w-3.5 h-3.5"
+          />
           <span class="flex-1">{{ folder.label }}</span>
           <span :style="{ fontSize: '11px', opacity: 0.7 }">{{ folder.count }}</span>
         </div>
@@ -18,16 +30,30 @@
         <div class="max-w-[1600px] mx-auto">
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-4">
-              <h2 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
+              <h2
+                class="text-2xl font-bold"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 <Command class="inline-block w-7 h-7 mr-2" />iFlow Slash Commands 管理
               </h2>
-              <span class="px-3 py-1 rounded-full text-sm font-medium" :style="{ background: 'var(--accent-primary)', color: '#fff' }">{{ filteredCommands.length }}/{{ stats.total }}</span>
+              <span
+                class="px-3 py-1 rounded-full text-sm font-medium"
+                :style="{ background: 'var(--accent-primary)', color: '#fff' }"
+              >{{ filteredCommands.length }}/{{ stats.total }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <RouterLink to="/iflow" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors" :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }">
+              <RouterLink
+                to="/iflow"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
+              >
                 <Home class="w-4 h-4" /><span>返回首页</span>
               </RouterLink>
-              <button class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105" :style="{ background: 'var(--accent-primary)', color: '#fff' }" @click="handleAdd">
+              <button
+                class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
+                :style="{ background: 'var(--accent-primary)', color: '#fff' }"
+                @click="handleAdd"
+              >
                 <Plus class="inline-block w-5 h-5 mr-2" />添加 Command
               </button>
             </div>
@@ -35,40 +61,130 @@
 
           <div class="mb-4">
             <div class="relative">
-              <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" :style="{ color: 'var(--text-muted)' }" />
-              <input v-model="searchQuery" type="text" placeholder="搜索命令名称、描述或命令..." class="w-full pl-11 pr-10 py-3 rounded-lg transition-all focus:outline-none focus:ring-2" :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }" />
-              <button v-if="searchQuery" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-lg hover:bg-opacity-20 transition-all" :style="{ color: 'var(--text-muted)' }" @click="searchQuery = ''">
+              <Search
+                class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
+                :style="{ color: 'var(--text-muted)' }"
+              />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索命令名称、描述或命令..."
+                class="w-full pl-11 pr-10 py-3 rounded-lg transition-all focus:outline-none focus:ring-2"
+                :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+              >
+              <button
+                v-if="searchQuery"
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-lg hover:bg-opacity-20 transition-all"
+                :style="{ color: 'var(--text-muted)' }"
+                @click="searchQuery = ''"
+              >
                 <X class="w-4 h-4" />
               </button>
             </div>
-            <p v-if="searchQuery" class="mt-2 text-sm" :style="{ color: 'var(--text-muted)' }">找到 <span :style="{ color: 'var(--accent-primary)', fontWeight: 'bold' }">{{ filteredCommands.length }}</span> 个匹配的命令</p>
+            <p
+              v-if="searchQuery"
+              class="mt-2 text-sm"
+              :style="{ color: 'var(--text-muted)' }"
+            >
+              找到 <span :style="{ color: 'var(--accent-primary)', fontWeight: 'bold' }">{{ filteredCommands.length }}</span> 个匹配的命令
+            </p>
           </div>
 
           <div class="space-y-4">
-            <div v-if="loading" class="text-center py-10" :style="{ color: 'var(--text-muted)' }">加载中...</div>
-            <div v-else-if="commands.length === 0" class="text-center py-10" :style="{ color: 'var(--text-muted)' }">暂无 Slash Commands 配置</div>
-            <div v-else-if="filteredCommands.length === 0" class="text-center py-10" :style="{ color: 'var(--text-muted)' }">
-              <Search class="w-12 h-12 mx-auto mb-3 opacity-50" /><p>未找到匹配的命令</p><p class="text-sm mt-2">尝试使用其他关键词搜索或切换文件夹</p>
+            <div
+              v-if="loading"
+              class="text-center py-10"
+              :style="{ color: 'var(--text-muted)' }"
+            >
+              加载中...
             </div>
-            <div v-else v-for="cmd in filteredCommands" :key="cmd.name" class="group p-6 rounded-xl transition-all duration-300" :style="{ background: 'rgba(255, 255, 255, 0.9)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }" @mouseenter="(e) => onCardHover(e.currentTarget, true)" @mouseleave="(e) => onCardHover(e.currentTarget, false)">
+            <div
+              v-else-if="commands.length === 0"
+              class="text-center py-10"
+              :style="{ color: 'var(--text-muted)' }"
+            >
+              暂无 Slash Commands 配置
+            </div>
+            <div
+              v-else-if="filteredCommands.length === 0"
+              class="text-center py-10"
+              :style="{ color: 'var(--text-muted)' }"
+            >
+              <Search class="w-12 h-12 mx-auto mb-3 opacity-50" /><p>未找到匹配的命令</p><p class="text-sm mt-2">
+                尝试使用其他关键词搜索或切换文件夹
+              </p>
+            </div>
+            <div
+              v-for="cmd in filteredCommands"
+              v-else
+              :key="cmd.name"
+              class="group p-6 rounded-xl transition-all duration-300"
+              :style="{ background: 'rgba(255, 255, 255, 0.9)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }"
+              @mouseenter="(e) => onCardHover(e.currentTarget, true)"
+              @mouseleave="(e) => onCardHover(e.currentTarget, false)"
+            >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
-                    <h3 class="text-xl font-semibold" :style="{ color: 'var(--text-primary)' }">{{ cmd.name }}</h3>
-                    <span v-if="cmd.folder" class="px-2 py-1 rounded text-xs font-medium" :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }">📁 {{ cmd.folder }}</span>
-                    <span v-if="cmd.disabled" class="px-2 py-1 rounded text-xs font-medium" :style="{ background: '#fef3c7', color: '#92400e' }">已禁用</span>
+                    <h3
+                      class="text-xl font-semibold"
+                      :style="{ color: 'var(--text-primary)' }"
+                    >
+                      {{ cmd.name }}
+                    </h3>
+                    <span
+                      v-if="cmd.folder"
+                      class="px-2 py-1 rounded text-xs font-medium"
+                      :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }"
+                    >📁 {{ cmd.folder }}</span>
+                    <span
+                      v-if="cmd.disabled"
+                      class="px-2 py-1 rounded text-xs font-medium"
+                      :style="{ background: '#fef3c7', color: '#92400e' }"
+                    >已禁用</span>
                   </div>
-                  <p class="mb-2" :style="{ color: 'var(--text-secondary)', fontSize: '14px' }"><strong>Command:</strong> {{ cmd.command }}</p>
-                  <p class="text-sm" :style="{ color: 'var(--text-muted)' }">{{ cmd.description }}</p>
+                  <p
+                    class="mb-2"
+                    :style="{ color: 'var(--text-secondary)', fontSize: '14px' }"
+                  >
+                    <strong>Command:</strong> {{ cmd.command }}
+                  </p>
+                  <p
+                    class="text-sm"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    {{ cmd.description }}
+                  </p>
                 </div>
                 <div class="flex gap-2 ml-4">
-                  <button class="p-2 rounded-lg transition-all hover:scale-110" :style="{ background: cmd.disabled ? '#fef3c7' : '#d1fae5', color: cmd.disabled ? '#92400e' : '#065f46' }" :title="cmd.disabled ? '启用' : '禁用'" @click="handleToggle(cmd.name)">
-                    <PowerOff v-if="cmd.disabled" class="w-5 h-5" /><Power v-else class="w-5 h-5" />
+                  <button
+                    class="p-2 rounded-lg transition-all hover:scale-110"
+                    :style="{ background: cmd.disabled ? '#fef3c7' : '#d1fae5', color: cmd.disabled ? '#92400e' : '#065f46' }"
+                    :title="cmd.disabled ? '启用' : '禁用'"
+                    @click="handleToggle(cmd.name)"
+                  >
+                    <PowerOff
+                      v-if="cmd.disabled"
+                      class="w-5 h-5"
+                    /><Power
+                      v-else
+                      class="w-5 h-5"
+                    />
                   </button>
-                  <button class="p-2 rounded-lg transition-all hover:scale-110" :style="{ background: 'var(--bg-tertiary)', color: 'var(--accent-primary)' }" title="编辑" @click="handleEdit(cmd)">
+                  <button
+                    class="p-2 rounded-lg transition-all hover:scale-110"
+                    :style="{ background: 'var(--bg-tertiary)', color: 'var(--accent-primary)' }"
+                    title="编辑"
+                    @click="handleEdit(cmd)"
+                  >
                     <Edit2 class="w-5 h-5" />
                   </button>
-                  <button class="p-2 rounded-lg transition-all hover:scale-110" :style="{ background: '#fee2e2', color: '#991b1b' }" title="删除" @click="handleDelete(cmd.name)">
+                  <button
+                    class="p-2 rounded-lg transition-all hover:scale-110"
+                    :style="{ background: '#fee2e2', color: '#991b1b' }"
+                    title="删除"
+                    @click="handleDelete(cmd.name)"
+                  >
                     <Trash2 class="w-5 h-5" />
                   </button>
                 </div>
@@ -79,23 +195,76 @@
       </div>
     </div>
 
-    <div v-if="showAddForm" class="fixed inset-0 flex items-center justify-center z-50" :style="{ background: 'rgba(0, 0, 0, 0.5)' }" @click="showAddForm = false">
-      <div class="p-8 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto" :style="{ background: 'var(--bg-secondary)' }" @click.stop>
-        <h3 class="text-2xl font-bold mb-6" :style="{ color: 'var(--text-primary)' }">{{ editingCommand ? '编辑 Command' : '添加 Command' }}</h3>
+    <div
+      v-if="showAddForm"
+      class="fixed inset-0 flex items-center justify-center z-50"
+      :style="{ background: 'rgba(0, 0, 0, 0.5)' }"
+      @click="showAddForm = false"
+    >
+      <div
+        class="p-8 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+        :style="{ background: 'var(--bg-secondary)' }"
+        @click.stop
+      >
+        <h3
+          class="text-2xl font-bold mb-6"
+          :style="{ color: 'var(--text-primary)' }"
+        >
+          {{ editingCommand ? '编辑 Command' : '添加 Command' }}
+        </h3>
         <div class="space-y-4">
-          <div><label class="block mb-2 font-medium" :style="{ color: 'var(--text-secondary)' }">名称 *</label>
-            <input v-model="formData.name" type="text" class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2" :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }" />
+          <div>
+            <label
+              class="block mb-2 font-medium"
+              :style="{ color: 'var(--text-secondary)' }"
+            >名称 *</label>
+            <input
+              v-model="formData.name"
+              type="text"
+              class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+              :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+            >
           </div>
-          <div><label class="block mb-2 font-medium" :style="{ color: 'var(--text-secondary)' }">Command *</label>
-            <input v-model="formData.command" type="text" class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2" :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }" />
+          <div>
+            <label
+              class="block mb-2 font-medium"
+              :style="{ color: 'var(--text-secondary)' }"
+            >Command *</label>
+            <input
+              v-model="formData.command"
+              type="text"
+              class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+              :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+            >
           </div>
-          <div><label class="block mb-2 font-medium" :style="{ color: 'var(--text-secondary)' }">描述</label>
-            <textarea v-model="formData.description" rows="4" class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2" :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }" />
+          <div>
+            <label
+              class="block mb-2 font-medium"
+              :style="{ color: 'var(--text-secondary)' }"
+            >描述</label>
+            <textarea
+              v-model="formData.description"
+              rows="4"
+              class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+              :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+            />
           </div>
         </div>
         <div class="flex gap-3 mt-6">
-          <button class="flex-1 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105" :style="{ background: 'var(--accent-primary)', color: '#fff' }" @click="handleSubmit">{{ editingCommand ? '保存' : '添加' }}</button>
-          <button class="flex-1 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105" :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }" @click="showAddForm = false">取消</button>
+          <button
+            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105"
+            :style="{ background: 'var(--accent-primary)', color: '#fff' }"
+            @click="handleSubmit"
+          >
+            {{ editingCommand ? '保存' : '添加' }}
+          </button>
+          <button
+            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105"
+            :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }"
+            @click="showAddForm = false"
+          >
+            取消
+          </button>
         </div>
       </div>
     </div>

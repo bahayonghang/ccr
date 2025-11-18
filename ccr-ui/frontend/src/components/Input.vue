@@ -1,8 +1,16 @@
 <template>
   <div class="w-full">
-    <label v-if="label" :for="id" class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-secondary)' }">
+    <label
+      v-if="label"
+      :for="id"
+      class="block text-sm font-medium mb-2"
+      :style="{ color: 'var(--text-secondary)' }"
+    >
       {{ label }}
-      <span v-if="required" class="text-accent-danger">*</span>
+      <span
+        v-if="required"
+        class="text-accent-danger"
+      >*</span>
     </label>
     <input
       :id="id"
@@ -13,9 +21,20 @@
       :class="inputClasses"
       :style="inputStyle"
       @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-    />
-    <p v-if="help" class="mt-1 text-xs" :style="{ color: 'var(--text-muted)' }">{{ help }}</p>
-    <p v-if="error" class="mt-1 text-xs text-accent-danger">{{ error }}</p>
+    >
+    <p
+      v-if="help"
+      class="mt-1 text-xs"
+      :style="{ color: 'var(--text-muted)' }"
+    >
+      {{ help }}
+    </p>
+    <p
+      v-if="error"
+      class="mt-1 text-xs text-accent-danger"
+    >
+      {{ error }}
+    </p>
   </div>
 </template>
 

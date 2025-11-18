@@ -1,64 +1,85 @@
 <template>
   <div class="stats-view p-6 space-y-6">
     <!-- 页面标题 -->
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">📊 统计分析</h1>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            查看 AI API 使用和统计信息
-          </p>
-        </div>
-        <div class="flex items-center space-x-4">
-          <!-- 时间范围选择 -->
-          <select
-            v-model="selectedRange"
-            @change="loadData"
-            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-          >
-            <option value="today">今日</option>
-            <option value="week">本周</option>
-            <option value="month">本月</option>
-          </select>
-          
-          <!-- 提供商统计弹窗按钮 -->
-          <button
-            @click="showProvidersModal = true"
-            class="px-4 py-2 border border-blue-200 dark:border-blue-500 text-blue-700 dark:text-blue-200 rounded-lg flex items-center space-x-2 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18M3 9h18M3 15h18M3 21h18" />
-            </svg>
-            <span>提供商统计</span>
-          </button>
-
-          <!-- 刷新按钮 -->
-          <button
-            @click="loadData"
-            :disabled="loading"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50"
-          >
-            <svg
-              class="w-5 h-5"
-              :class="{ 'animate-spin': loading }"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            <span>刷新</span>
-          </button>
-        </div>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+          📊 统计分析
+        </h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          查看 AI API 使用和统计信息
+        </p>
       </div>
+      <div class="flex items-center space-x-4">
+        <!-- 时间范围选择 -->
+        <select
+          v-model="selectedRange"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          @change="loadData"
+        >
+          <option value="today">
+            今日
+          </option>
+          <option value="week">
+            本周
+          </option>
+          <option value="month">
+            本月
+          </option>
+        </select>
+          
+        <!-- 提供商统计弹窗按钮 -->
+        <button
+          class="px-4 py-2 border border-blue-200 dark:border-blue-500 text-blue-700 dark:text-blue-200 rounded-lg flex items-center space-x-2 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+          @click="showProvidersModal = true"
+        >
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 3h18M3 9h18M3 15h18M3 21h18"
+            />
+          </svg>
+          <span>提供商统计</span>
+        </button>
+
+        <!-- 刷新按钮 -->
+        <button
+          :disabled="loading"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50"
+          @click="loadData"
+        >
+          <svg
+            class="w-5 h-5"
+            :class="{ 'animate-spin': loading }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          <span>刷新</span>
+        </button>
+      </div>
+    </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <div
+      v-if="loading"
+      class="flex items-center justify-center py-12"
+    >
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
     </div>
 
     <!-- 错误提示 -->
@@ -90,7 +111,10 @@
     </div>
 
     <!-- 统计内容 -->
-    <div v-if="!loading && !error && stats" class="space-y-6">
+    <div
+      v-if="!loading && !error && stats"
+      class="space-y-6"
+    >
       <!-- 概览卡片 -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- 总成本 -->
@@ -217,19 +241,25 @@
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Cache Token</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Cache Token
+            </p>
             <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
               {{ formatNumber(stats.token_stats.total_cache_tokens) }}
             </p>
           </div>
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Cache 效率</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Cache 效率
+            </p>
             <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
               {{ formatPercent(stats.token_stats.cache_efficiency) }}%
             </p>
           </div>
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">总 Token</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              总 Token
+            </p>
             <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
               {{ formatNumber(getTotalTokens()) }}
             </p>
@@ -292,7 +322,10 @@
       </div>
 
       <!-- 趋势图表（简单版）-->
-      <div v-if="stats.trend && stats.trend.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div
+        v-if="stats.trend && stats.trend.length > 0"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
+      >
         <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
           📈 成本趋势
         </h2>
@@ -346,12 +379,20 @@
   </div>
 
   <!-- 提供商统计弹窗 -->
-  <div v-if="showProvidersModal" class="providers-modal" @click.self="showProvidersModal = false">
+  <div
+    v-if="showProvidersModal"
+    class="providers-modal"
+    @click.self="showProvidersModal = false"
+  >
     <div class="providers-modal-card dark:bg-gray-800 dark:text-white">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <h3 class="text-xl font-bold">🏢 提供商使用次数</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400">按提供商聚类的调用次数</p>
+          <h3 class="text-xl font-bold">
+            🏢 提供商使用次数
+          </h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            按提供商聚类的调用次数
+          </p>
         </div>
         <button
           class="text-gray-500 hover:text-gray-800 dark:hover:text-white"
@@ -374,7 +415,7 @@
             <div
               class="h-3 rounded-full bg-blue-500 dark:bg-blue-400 transition-all"
               :style="{ width: `${getProviderBarWidth(count)}%` }"
-            ></div>
+            />
           </div>
         </div>
         <div

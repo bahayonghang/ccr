@@ -10,11 +10,20 @@
     }"
   >
     <!-- 标题 -->
-    <div class="mb-5 pb-4" :style="{ borderBottom: '1px solid var(--border-color)' }">
-      <h2 class="text-lg font-bold mb-1" :style="{ color: 'var(--text-primary)' }">
+    <div
+      class="mb-5 pb-4"
+      :style="{ borderBottom: '1px solid var(--border-color)' }"
+    >
+      <h2
+        class="text-lg font-bold mb-1"
+        :style="{ color: 'var(--text-primary)' }"
+      >
         快速导航
       </h2>
-      <p class="text-xs" :style="{ color: 'var(--text-muted)' }">
+      <p
+        class="text-xs"
+        :style="{ color: 'var(--text-muted)' }"
+      >
         点击跳转到配置
       </p>
     </div>
@@ -28,10 +37,16 @@
           border: '1px solid rgba(99, 102, 241, 0.3)'
         }"
       >
-        <div class="text-2xl font-bold mb-1" :style="{ color: '#6366f1' }">
+        <div
+          class="text-2xl font-bold mb-1"
+          :style="{ color: '#6366f1' }"
+        >
           {{ filteredConfigs.length }}
         </div>
-        <div class="text-[10px] font-medium" :style="{ color: 'var(--text-muted)' }">
+        <div
+          class="text-[10px] font-medium"
+          :style="{ color: 'var(--text-muted)' }"
+        >
           当前筛选
         </div>
       </div>
@@ -42,10 +57,16 @@
           border: '1px solid rgba(16, 185, 129, 0.3)'
         }"
       >
-        <div class="text-2xl font-bold mb-1" :style="{ color: '#10b981' }">
+        <div
+          class="text-2xl font-bold mb-1"
+          :style="{ color: '#10b981' }"
+        >
           {{ configs.length }}
         </div>
-        <div class="text-[10px] font-medium" :style="{ color: 'var(--text-muted)' }">
+        <div
+          class="text-[10px] font-medium"
+          :style="{ color: 'var(--text-muted)' }"
+        >
           总配置数
         </div>
       </div>
@@ -114,7 +135,10 @@
         </div>
 
         <!-- Provider Type -->
-        <div v-if="config.provider_type" class="mb-2">
+        <div
+          v-if="config.provider_type"
+          class="mb-2"
+        >
           <span
             class="inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide"
             :style="{
@@ -166,12 +190,21 @@
         class="inline-flex p-4 rounded-full mb-3"
         :style="{ background: 'var(--bg-tertiary)' }"
       >
-        <Search class="w-6 h-6" :style="{ color: 'var(--text-muted)' }" />
+        <Search
+          class="w-6 h-6"
+          :style="{ color: 'var(--text-muted)' }"
+        />
       </div>
-      <p class="text-sm font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">
+      <p
+        class="text-sm font-medium mb-1"
+        :style="{ color: 'var(--text-secondary)' }"
+      >
         未找到配置
       </p>
-      <p class="text-xs" :style="{ color: 'var(--text-muted)' }">
+      <p
+        class="text-xs"
+        :style="{ color: 'var(--text-muted)' }"
+      >
         当前筛选条件下无配置
       </p>
     </div>
@@ -190,7 +223,10 @@
         }"
       >
         <div class="flex items-center justify-center gap-2 text-xs font-medium mb-1">
-          <Filter class="w-3.5 h-3.5" :style="{ color: 'var(--accent-primary)' }" />
+          <Filter
+            class="w-3.5 h-3.5"
+            :style="{ color: 'var(--accent-primary)' }"
+          />
           <span :style="{ color: 'var(--text-secondary)' }">
             当前筛选
           </span>

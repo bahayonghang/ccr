@@ -1,39 +1,51 @@
 <template>
-  <div class="terminal-output" :class="{ streaming: isStreaming }">
+  <div
+    class="terminal-output"
+    :class="{ streaming: isStreaming }"
+  >
     <!-- 工具栏 -->
     <div class="terminal-toolbar">
       <div class="terminal-status">
-        <span v-if="isStreaming" class="status-indicator streaming">
-          <span class="pulse"></span>
+        <span
+          v-if="isStreaming"
+          class="status-indicator streaming"
+        >
+          <span class="pulse" />
           流式输出中...
         </span>
-        <span v-else-if="isComplete" class="status-indicator complete">
+        <span
+          v-else-if="isComplete"
+          class="status-indicator complete"
+        >
           ✓ 完成
         </span>
-        <span v-else class="status-indicator">准备就绪</span>
+        <span
+          v-else
+          class="status-indicator"
+        >准备就绪</span>
       </div>
       <div class="terminal-actions">
         <button 
           v-if="isStreaming" 
-          @click="handleStop" 
-          class="btn-action btn-stop"
+          class="btn-action btn-stop" 
           title="停止"
+          @click="handleStop"
         >
           停止
         </button>
         <button 
-          @click="handleClear" 
-          class="btn-action"
+          class="btn-action" 
           :disabled="lines.length === 0"
           title="清空"
+          @click="handleClear"
         >
           清空
         </button>
         <button 
-          @click="handleCopy" 
-          class="btn-action"
+          class="btn-action" 
           :disabled="lines.length === 0"
           title="复制"
+          @click="handleCopy"
         >
           复制
         </button>
@@ -46,16 +58,29 @@
       class="terminal-content"
       :class="{ 'auto-scroll': autoScroll }"
     >
-      <div v-if="error" class="terminal-error">
+      <div
+        v-if="error"
+        class="terminal-error"
+      >
         ❌ {{ error }}
       </div>
       
-      <div v-else-if="lines.length === 0" class="terminal-empty">
-        <div class="empty-icon">📟</div>
-        <div class="empty-text">{{ emptyText }}</div>
+      <div
+        v-else-if="lines.length === 0"
+        class="terminal-empty"
+      >
+        <div class="empty-icon">
+          📟
+        </div>
+        <div class="empty-text">
+          {{ emptyText }}
+        </div>
       </div>
 
-      <div v-else class="terminal-lines">
+      <div
+        v-else
+        class="terminal-lines"
+      >
         <div 
           v-for="(line, index) in lines" 
           :key="index" 
@@ -68,9 +93,15 @@
     </div>
 
     <!-- 行数提示 -->
-    <div v-if="lines.length > 0" class="terminal-footer">
+    <div
+      v-if="lines.length > 0"
+      class="terminal-footer"
+    >
       <span class="line-count">共 {{ lines.length }} 行</span>
-      <span v-if="lines.length >= maxLines" class="line-limit-warning">
+      <span
+        v-if="lines.length >= maxLines"
+        class="line-limit-warning"
+      >
         (已达上限 {{ maxLines }} 行，最旧的行将被自动移除)
       </span>
     </div>

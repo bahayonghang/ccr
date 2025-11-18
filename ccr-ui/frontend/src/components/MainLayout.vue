@@ -9,8 +9,12 @@
             <Zap class="w-6 h-6 text-accent-primary animate-sidebar-item-enter" />
           </div>
           <div class="animate-sidebar-item-enter">
-            <h1 class="text-xl font-bold text-text-primary">CCR UI</h1>
-            <p class="text-xs text-text-secondary">AI CLI 配置管理</p>
+            <h1 class="text-xl font-bold text-text-primary">
+              CCR UI
+            </h1>
+            <p class="text-xs text-text-secondary">
+              AI CLI 配置管理
+            </p>
           </div>
         </div>
       </div>
@@ -24,21 +28,24 @@
             class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
             active-class="nav-item-active"
           >
-            <Home class="w-5 h-5 mr-3" style="color: #1890ff;" />
+            <Home
+              class="w-5 h-5 mr-3"
+              style="color: #1890ff;"
+            />
             <span class="font-medium">首页</span>
           </RouterLink>
         </div>
 
         <!-- 分隔线 -->
         <div class="px-3 mt-4">
-          <div class="border-t border-border-color/30"></div>
+          <div class="border-t border-border-color/30" />
         </div>
 
         <!-- 主要模块 -->
         <div class="px-3 mt-4">
           <h2 class="px-3 text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center">
             <span class="flex-1">主要模块</span>
-            <span class="w-2 h-2 rounded-full bg-accent-primary/30 animate-pulse"></span>
+            <span class="w-2 h-2 rounded-full bg-accent-primary/30 animate-pulse" />
           </h2>
           <div class="space-y-1 nav-group">
             <RouterLink 
@@ -46,7 +53,10 @@
               class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
               active-class="nav-item-active"
             >
-              <Code2 class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #8b5cf6;" />
+              <Code2
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #8b5cf6;"
+              />
               <span class="font-medium">Claude Code</span>
             </RouterLink>
             <RouterLink 
@@ -54,7 +64,10 @@
               class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
               active-class="nav-item-active"
             >
-              <Settings class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #10b981;" />
+              <Settings
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #10b981;"
+              />
               <span class="font-medium">Codex</span>
             </RouterLink>
             <RouterLink 
@@ -62,7 +75,10 @@
               class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
               active-class="nav-item-active"
             >
-              <Sparkles class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #1a73e8;" />
+              <Sparkles
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #1a73e8;"
+              />
               <span class="font-medium">Gemini CLI</span>
             </RouterLink>
             <RouterLink 
@@ -70,7 +86,10 @@
               class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
               active-class="nav-item-active"
             >
-              <Zap class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #00b5e2;" />
+              <Zap
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #00b5e2;"
+              />
               <span class="font-medium">Qwen</span>
             </RouterLink>
             <RouterLink 
@@ -78,7 +97,10 @@
               class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
               active-class="nav-item-active"
             >
-              <Activity class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #faad14;" />
+              <Activity
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #faad14;"
+              />
               <span class="font-medium">IFLOW</span>
             </RouterLink>
           </div>
@@ -86,14 +108,14 @@
 
         <!-- 分隔线 -->
         <div class="px-3 mt-4">
-          <div class="border-t border-border-color/30"></div>
+          <div class="border-t border-border-color/30" />
         </div>
 
         <!-- 工具中心 -->
         <div class="px-3 mt-4">
           <h2 class="px-3 text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center">
             <span class="flex-1">工具中心</span>
-            <span class="w-2 h-2 rounded-full bg-accent-warning/30 animate-pulse"></span>
+            <span class="w-2 h-2 rounded-full bg-accent-warning/30 animate-pulse" />
           </h2>
           <div class="space-y-1 nav-group">
             <RouterLink 
@@ -101,7 +123,10 @@
               class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
               active-class="nav-item-active"
             >
-              <Terminal class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #3b82f6;" />
+              <Terminal
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #3b82f6;"
+              />
               <span class="font-medium">命令执行</span>
             </RouterLink>
             <RouterLink 
@@ -109,16 +134,33 @@
               class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
               active-class="nav-item-active"
             >
-              <TrendingUp class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #13c2c2;" />
+              <TrendingUp
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #13c2c2;"
+              />
               <span class="font-medium">配置转换</span>
             </RouterLink>
-            <RouterLink 
-              to="/sync" 
+            <RouterLink
+              to="/sync"
               class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
               active-class="nav-item-active"
             >
-              <Cloud class="w-5 h-5 mr-3 group-hover:animate-nav-hover" style="color: #1890ff;" />
+              <Cloud
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #1890ff;"
+              />
               <span class="font-medium">云同步</span>
+            </RouterLink>
+            <RouterLink
+              to="/usage"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
+            >
+              <Activity
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #10b981;"
+              />
+              <span class="font-medium">使用统计</span>
             </RouterLink>
           </div>
         </div>
@@ -127,8 +169,8 @@
       <!-- Version Info -->
       <div class="p-4 border-t border-border-color">
         <div class="text-xs text-text-muted flex items-center justify-between animate-sidebar-item-enter">
-          <span>CCR UI v0.3.0</span>
-          <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse"></span>
+          <span>CCR UI v3.3.2</span>
+          <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse" />
         </div>
       </div>
     </div>

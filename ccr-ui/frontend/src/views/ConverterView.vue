@@ -13,7 +13,12 @@
             :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
           >
             <div class="flex items-center justify-between mb-2">
-              <h1 class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">配置转换器</h1>
+              <h1
+                class="text-3xl font-bold"
+                :style="{ color: 'var(--text-primary)' }"
+              >
+                配置转换器
+              </h1>
               <RouterLink
                 to="/"
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
@@ -38,8 +43,13 @@
             class="rounded-lg p-4 flex items-start gap-3"
             :style="{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)' }"
           >
-            <AlertCircle class="w-5 h-5 flex-shrink-0 mt-0.5" :style="{ color: 'rgb(239, 68, 68)' }" />
-            <div :style="{ color: 'rgb(239, 68, 68)' }">{{ error }}</div>
+            <AlertCircle
+              class="w-5 h-5 flex-shrink-0 mt-0.5"
+              :style="{ color: 'rgb(239, 68, 68)' }"
+            />
+            <div :style="{ color: 'rgb(239, 68, 68)' }">
+              {{ error }}
+            </div>
           </div>
 
           <div
@@ -47,8 +57,13 @@
             class="rounded-lg p-4 flex items-start gap-3"
             :style="{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgb(34, 197, 94)' }"
           >
-            <Check class="w-5 h-5 flex-shrink-0 mt-0.5" :style="{ color: 'rgb(34, 197, 94)' }" />
-            <div :style="{ color: 'rgb(34, 197, 94)' }">{{ successMessage }}</div>
+            <Check
+              class="w-5 h-5 flex-shrink-0 mt-0.5"
+              :style="{ color: 'rgb(34, 197, 94)' }"
+            />
+            <div :style="{ color: 'rgb(34, 197, 94)' }">
+              {{ successMessage }}
+            </div>
           </div>
 
           <!-- Format Selection -->
@@ -59,10 +74,21 @@
               :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
             >
               <div class="flex items-center gap-2 mb-2">
-                <FileJson class="w-5 h-5" :style="{ color: 'var(--accent-primary)' }" />
-                <h2 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">源格式</h2>
+                <FileJson
+                  class="w-5 h-5"
+                  :style="{ color: 'var(--accent-primary)' }"
+                />
+                <h2
+                  class="text-xl font-bold"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  源格式
+                </h2>
               </div>
-              <p class="mb-4" :style="{ color: 'var(--text-muted)', fontSize: '14px' }">
+              <p
+                class="mb-4"
+                :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
+              >
                 选择要转换的配置格式
               </p>
 
@@ -84,7 +110,10 @@
                   @click="sourceFormat = type.value"
                 >
                   <div class="flex items-center justify-between mb-1">
-                    <span class="font-medium" :style="{ color: 'var(--text-primary)' }">{{
+                    <span
+                      class="font-medium"
+                      :style="{ color: 'var(--text-primary)' }"
+                    >{{
                       type.label
                     }}</span>
                     <span
@@ -95,7 +124,12 @@
                       已选择
                     </span>
                   </div>
-                  <p class="text-sm" :style="{ color: 'var(--text-muted)' }">{{ type.description }}</p>
+                  <p
+                    class="text-sm"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    {{ type.description }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -106,10 +140,21 @@
               :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
             >
               <div class="flex items-center gap-2 mb-2">
-                <FileCode class="w-5 h-5" :style="{ color: 'var(--accent-secondary)' }" />
-                <h2 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">目标格式</h2>
+                <FileCode
+                  class="w-5 h-5"
+                  :style="{ color: 'var(--accent-secondary)' }"
+                />
+                <h2
+                  class="text-xl font-bold"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  目标格式
+                </h2>
               </div>
-              <p class="mb-4" :style="{ color: 'var(--text-muted)', fontSize: '14px' }">
+              <p
+                class="mb-4"
+                :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
+              >
                 选择转换后的配置格式
               </p>
 
@@ -139,7 +184,10 @@
                   "
                 >
                   <div class="flex items-center justify-between mb-1">
-                    <span class="font-medium" :style="{ color: 'var(--text-primary)' }">{{
+                    <span
+                      class="font-medium"
+                      :style="{ color: 'var(--text-primary)' }"
+                    >{{
                       type.label
                     }}</span>
                     <span
@@ -150,7 +198,12 @@
                       已选择
                     </span>
                   </div>
-                  <p class="text-sm" :style="{ color: 'var(--text-muted)' }">{{ type.description }}</p>
+                  <p
+                    class="text-sm"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    {{ type.description }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -161,20 +214,42 @@
             class="rounded-xl p-6 glass-effect"
             :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
           >
-            <h2 class="text-xl font-bold mb-2" :style="{ color: 'var(--text-primary)' }">转换选项</h2>
-            <p class="mb-4" :style="{ color: 'var(--text-muted)', fontSize: '14px' }">选择要转换的配置项</p>
+            <h2
+              class="text-xl font-bold mb-2"
+              :style="{ color: 'var(--text-primary)' }"
+            >
+              转换选项
+            </h2>
+            <p
+              class="mb-4"
+              :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
+            >
+              选择要转换的配置项
+            </p>
 
             <div class="flex flex-wrap gap-6">
               <label class="flex items-center gap-2 cursor-pointer">
-                <input v-model="convertMcp" type="checkbox" class="w-4 h-4 cursor-pointer" />
+                <input
+                  v-model="convertMcp"
+                  type="checkbox"
+                  class="w-4 h-4 cursor-pointer"
+                >
                 <span :style="{ color: 'var(--text-secondary)' }">MCP 服务器配置</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
-                <input v-model="convertCommands" type="checkbox" class="w-4 h-4 cursor-pointer" />
+                <input
+                  v-model="convertCommands"
+                  type="checkbox"
+                  class="w-4 h-4 cursor-pointer"
+                >
                 <span :style="{ color: 'var(--text-secondary)' }">Slash 命令配置</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
-                <input v-model="convertAgents" type="checkbox" class="w-4 h-4 cursor-pointer" />
+                <input
+                  v-model="convertAgents"
+                  type="checkbox"
+                  class="w-4 h-4 cursor-pointer"
+                >
                 <span :style="{ color: 'var(--text-secondary)' }">Agents 配置</span>
               </label>
             </div>
@@ -187,7 +262,12 @@
           >
             <div class="flex items-center justify-between mb-4">
               <div>
-                <h2 class="text-xl font-bold mb-1" :style="{ color: 'var(--text-primary)' }">配置输入</h2>
+                <h2
+                  class="text-xl font-bold mb-1"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  配置输入
+                </h2>
                 <p :style="{ color: 'var(--text-muted)', fontSize: '14px' }">
                   粘贴配置内容或上传配置文件
                 </p>
@@ -221,7 +301,7 @@
                     accept=".json,.toml,.yaml,.yml,.txt"
                     class="hidden"
                     @change="handleFileUpload"
-                  />
+                  >
                 </label>
               </div>
             </div>
@@ -237,7 +317,10 @@
                 minHeight: '300px'
               }"
             />
-            <div class="mt-2 text-sm" :style="{ color: 'var(--text-muted)' }">
+            <div
+              class="mt-2 text-sm"
+              :style="{ color: 'var(--text-muted)' }"
+            >
               支持的文件格式: JSON, TOML, YAML, TXT
             </div>
           </div>
@@ -264,51 +347,105 @@
               :disabled="isConverting || !configData.trim() || sourceFormat === targetFormat"
               @click="handleConvert"
             >
-              <Loader2 v-if="isConverting" class="w-5 h-5 animate-spin" />
-              <ArrowRight v-else class="w-5 h-5" />
+              <Loader2
+                v-if="isConverting"
+                class="w-5 h-5 animate-spin"
+              />
+              <ArrowRight
+                v-else
+                class="w-5 h-5"
+              />
               {{ isConverting ? '转换中...' : '开始转换' }}
             </button>
           </div>
 
           <!-- Conversion Result -->
-          <div v-if="result" class="space-y-6">
+          <div
+            v-if="result"
+            class="space-y-6"
+          >
             <!-- Statistics -->
             <div
               class="rounded-xl p-6 glass-effect"
               :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
             >
-              <h2 class="text-xl font-bold mb-4" :style="{ color: 'var(--text-primary)' }">转换统计</h2>
+              <h2
+                class="text-xl font-bold mb-4"
+                :style="{ color: 'var(--text-primary)' }"
+              >
+                转换统计
+              </h2>
 
               <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div class="text-center">
-                  <div class="text-3xl font-bold" :style="{ color: 'var(--accent-primary)' }">
+                  <div
+                    class="text-3xl font-bold"
+                    :style="{ color: 'var(--accent-primary)' }"
+                  >
                     {{ result.stats?.mcp_servers || 0 }}
                   </div>
-                  <div class="text-sm mt-1" :style="{ color: 'var(--text-muted)' }">MCP 服务器</div>
+                  <div
+                    class="text-sm mt-1"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    MCP 服务器
+                  </div>
                 </div>
                 <div class="text-center">
-                  <div class="text-3xl font-bold" :style="{ color: 'var(--accent-primary)' }">
+                  <div
+                    class="text-3xl font-bold"
+                    :style="{ color: 'var(--accent-primary)' }"
+                  >
                     {{ result.stats?.slash_commands || 0 }}
                   </div>
-                  <div class="text-sm mt-1" :style="{ color: 'var(--text-muted)' }">Slash 命令</div>
+                  <div
+                    class="text-sm mt-1"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    Slash 命令
+                  </div>
                 </div>
                 <div class="text-center">
-                  <div class="text-3xl font-bold" :style="{ color: 'var(--accent-primary)' }">
+                  <div
+                    class="text-3xl font-bold"
+                    :style="{ color: 'var(--accent-primary)' }"
+                  >
                     {{ result.stats?.agents || 0 }}
                   </div>
-                  <div class="text-sm mt-1" :style="{ color: 'var(--text-muted)' }">Agents</div>
+                  <div
+                    class="text-sm mt-1"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    Agents
+                  </div>
                 </div>
                 <div class="text-center">
-                  <div class="text-3xl font-bold" :style="{ color: 'var(--accent-primary)' }">
+                  <div
+                    class="text-3xl font-bold"
+                    :style="{ color: 'var(--accent-primary)' }"
+                  >
                     {{ result.stats?.profiles || 0 }}
                   </div>
-                  <div class="text-sm mt-1" :style="{ color: 'var(--text-muted)' }">Profiles</div>
+                  <div
+                    class="text-sm mt-1"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    Profiles
+                  </div>
                 </div>
                 <div class="text-center">
-                  <div class="text-3xl font-bold" :style="{ color: 'var(--accent-primary)' }">
+                  <div
+                    class="text-3xl font-bold"
+                    :style="{ color: 'var(--accent-primary)' }"
+                  >
                     {{ result.stats?.base_config ? '✓' : '✗' }}
                   </div>
-                  <div class="text-sm mt-1" :style="{ color: 'var(--text-muted)' }">基础配置</div>
+                  <div
+                    class="text-sm mt-1"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    基础配置
+                  </div>
                 </div>
               </div>
 
@@ -317,7 +454,12 @@
                 class="rounded-lg p-4"
                 :style="{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgb(234, 179, 8)' }"
               >
-                <div class="font-medium mb-2" :style="{ color: 'rgb(234, 179, 8)' }">转换警告:</div>
+                <div
+                  class="font-medium mb-2"
+                  :style="{ color: 'rgb(234, 179, 8)' }"
+                >
+                  转换警告:
+                </div>
                 <ul class="list-disc list-inside space-y-1">
                   <li
                     v-for="(warning, index) in result.warnings"
@@ -338,7 +480,12 @@
             >
               <div class="flex items-center justify-between mb-4">
                 <div>
-                  <h2 class="text-xl font-bold mb-1" :style="{ color: 'var(--text-primary)' }">转换结果</h2>
+                  <h2
+                    class="text-xl font-bold mb-1"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    转换结果
+                  </h2>
                   <p :style="{ color: 'var(--text-muted)', fontSize: '14px' }">
                     格式: {{ result.format?.toUpperCase() }}
                   </p>
@@ -390,19 +537,40 @@
             class="rounded-xl p-6 glass-effect"
             :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
           >
-            <h2 class="text-xl font-bold mb-4" :style="{ color: 'var(--text-primary)' }">使用说明</h2>
+            <h2
+              class="text-xl font-bold mb-4"
+              :style="{ color: 'var(--text-primary)' }"
+            >
+              使用说明
+            </h2>
 
             <div class="space-y-4">
               <div>
-                <h4 class="font-medium mb-2" :style="{ color: 'var(--text-secondary)' }">支持的转换路径</h4>
-                <ul class="list-disc list-inside space-y-1 text-sm" :style="{ color: 'var(--text-muted)' }">
+                <h4
+                  class="font-medium mb-2"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
+                  支持的转换路径
+                </h4>
+                <ul
+                  class="list-disc list-inside space-y-1 text-sm"
+                  :style="{ color: 'var(--text-muted)' }"
+                >
                   <li>Claude Code ↔ Codex (完全支持)</li>
                   <li>其他格式转换功能正在开发中...</li>
                 </ul>
               </div>
               <div>
-                <h4 class="font-medium mb-2" :style="{ color: 'var(--text-secondary)' }">转换说明</h4>
-                <ul class="list-disc list-inside space-y-1 text-sm" :style="{ color: 'var(--text-muted)' }">
+                <h4
+                  class="font-medium mb-2"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
+                  转换说明
+                </h4>
+                <ul
+                  class="list-disc list-inside space-y-1 text-sm"
+                  :style="{ color: 'var(--text-muted)' }"
+                >
                   <li>Claude Code 使用 JSON 格式 (settings.json)</li>
                   <li>Codex 使用 TOML 格式 (config.toml)</li>
                   <li>转换过程会保留所有支持的配置项</li>
@@ -410,8 +578,16 @@
                 </ul>
               </div>
               <div>
-                <h4 class="font-medium mb-2" :style="{ color: 'var(--text-secondary)' }">注意事项</h4>
-                <ul class="list-disc list-inside space-y-1 text-sm" :style="{ color: 'var(--text-muted)' }">
+                <h4
+                  class="font-medium mb-2"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
+                  注意事项
+                </h4>
+                <ul
+                  class="list-disc list-inside space-y-1 text-sm"
+                  :style="{ color: 'var(--text-muted)' }"
+                >
                   <li>转换前请备份原始配置文件</li>
                   <li>API 密钥等敏感信息需要手动填写</li>
                   <li>建议转换后进行验证测试</li>

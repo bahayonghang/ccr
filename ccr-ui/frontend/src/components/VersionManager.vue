@@ -14,12 +14,23 @@
       >
         版本管理
       </span>
-      <Zap class="w-4 h-4" :style="{ color: 'var(--accent-primary)' }" />
+      <Zap
+        class="w-4 h-4"
+        :style="{ color: 'var(--accent-primary)' }"
+      />
     </div>
 
     <!-- 当前版本 -->
-    <div v-if="versionInfo" class="mb-3">
-      <div class="text-xs mb-1" :style="{ color: 'var(--text-muted)' }">当前版本</div>
+    <div
+      v-if="versionInfo"
+      class="mb-3"
+    >
+      <div
+        class="text-xs mb-1"
+        :style="{ color: 'var(--text-muted)' }"
+      >
+        当前版本
+      </div>
       <div
         class="text-2xl font-bold font-mono tracking-wide"
         :style="{ color: 'var(--accent-primary)' }"

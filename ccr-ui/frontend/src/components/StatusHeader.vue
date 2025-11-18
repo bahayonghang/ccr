@@ -59,8 +59,14 @@
         :aria-label="isCollapsed ? '展开' : '收起'"
         @click.stop="toggleCollapsed"
       >
-        <ChevronDown v-if="isCollapsed" class="w-5 h-5" />
-        <ChevronUp v-else class="w-5 h-5" />
+        <ChevronDown
+          v-if="isCollapsed"
+          class="w-5 h-5"
+        />
+        <ChevronUp
+          v-else
+          class="w-5 h-5"
+        />
       </button>
     </div>
 
@@ -132,8 +138,16 @@
               统计信息
             </div>
             <div class="space-y-3">
-              <StatItem :icon="Server" label="总配置" :value="totalConfigs" />
-              <StatItem :icon="Activity" label="历史记录" :value="historyCount" />
+              <StatItem
+                :icon="Server"
+                label="总配置"
+                :value="totalConfigs"
+              />
+              <StatItem
+                :icon="Activity"
+                label="历史记录"
+                :value="historyCount"
+              />
             </div>
           </div>
 
@@ -158,7 +172,10 @@
             >
               系统信息
             </div>
-            <div class="text-xs" :style="{ color: 'var(--text-muted)' }">
+            <div
+              class="text-xs"
+              :style="{ color: 'var(--text-muted)' }"
+            >
               每5秒自动刷新
             </div>
           </div>

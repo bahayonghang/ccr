@@ -3,17 +3,26 @@
     <!-- 历史记录标题 -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h2 class="text-2xl font-bold mb-2" :style="{ color: 'var(--text-primary)' }">
+        <h2
+          class="text-2xl font-bold mb-2"
+          :style="{ color: 'var(--text-primary)' }"
+        >
           操作历史记录
         </h2>
-        <p class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+        <p
+          class="text-sm"
+          :style="{ color: 'var(--text-secondary)' }"
+        >
           共 {{ entries.length }} 条记录
         </p>
       </div>
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex items-center justify-center py-20">
+    <div
+      v-if="loading"
+      class="flex items-center justify-center py-20"
+    >
       <div
         class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
         :style="{
@@ -25,20 +34,38 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="entries.length === 0" class="text-center py-20">
-      <div class="inline-flex p-6 rounded-full mb-4" :style="{ background: 'var(--bg-tertiary)' }">
-        <History class="w-12 h-12" :style="{ color: 'var(--text-muted)' }" />
+    <div
+      v-else-if="entries.length === 0"
+      class="text-center py-20"
+    >
+      <div
+        class="inline-flex p-6 rounded-full mb-4"
+        :style="{ background: 'var(--bg-tertiary)' }"
+      >
+        <History
+          class="w-12 h-12"
+          :style="{ color: 'var(--text-muted)' }"
+        />
       </div>
-      <p class="text-lg font-medium mb-2" :style="{ color: 'var(--text-secondary)' }">
+      <p
+        class="text-lg font-medium mb-2"
+        :style="{ color: 'var(--text-secondary)' }"
+      >
         暂无历史记录
       </p>
-      <p class="text-sm" :style="{ color: 'var(--text-muted)' }">
+      <p
+        class="text-sm"
+        :style="{ color: 'var(--text-muted)' }"
+      >
         配置切换和管理操作将在此处显示
       </p>
     </div>
 
     <!-- 历史记录时间线 -->
-    <div v-else class="space-y-4">
+    <div
+      v-else
+      class="space-y-4"
+    >
       <div
         v-for="(entry, index) in entries"
         :key="entry.id"
@@ -80,7 +107,10 @@
             <!-- 操作标题和时间 -->
             <div class="flex items-start justify-between mb-3">
               <div>
-                <h3 class="text-lg font-bold mb-1" :style="{ color: 'var(--text-primary)' }">
+                <h3
+                  class="text-lg font-bold mb-1"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
                   {{ getOperationLabel(entry.operation) }}
                 </h3>
                 <div class="flex items-center gap-3 text-sm">
@@ -132,7 +162,10 @@
               >
                 {{ entry.from_config }}
               </div>
-              <ArrowRight class="w-5 h-5" :style="{ color: 'var(--text-muted)' }" />
+              <ArrowRight
+                class="w-5 h-5"
+                :style="{ color: 'var(--text-muted)' }"
+              />
               <div
                 class="px-3 py-1.5 rounded-md text-sm font-mono font-semibold"
                 :style="{
@@ -145,7 +178,10 @@
             </div>
 
             <!-- 环境变量变化 -->
-            <div v-if="entry.changes && entry.changes.length > 0" class="space-y-2">
+            <div
+              v-if="entry.changes && entry.changes.length > 0"
+              class="space-y-2"
+            >
               <h4
                 class="text-xs font-semibold uppercase tracking-wide mb-2"
                 :style="{ color: 'var(--text-muted)' }"
@@ -179,7 +215,10 @@
                       {{ change.old_value || '(空)' }}
                     </span>
                   </div>
-                  <ArrowRight class="w-3 h-3 mt-0.5 flex-shrink-0" :style="{ color: 'var(--text-muted)' }" />
+                  <ArrowRight
+                    class="w-3 h-3 mt-0.5 flex-shrink-0"
+                    :style="{ color: 'var(--text-muted)' }"
+                  />
                   <div class="flex-1">
                     <span :style="{ color: 'var(--text-muted)' }">新值:</span>
                     <span
@@ -205,9 +244,15 @@
             </div>
 
             <!-- 操作 ID -->
-            <div class="mt-3 pt-3" :style="{ borderTop: '1px solid var(--border-color)' }">
+            <div
+              class="mt-3 pt-3"
+              :style="{ borderTop: '1px solid var(--border-color)' }"
+            >
               <div class="flex items-center justify-between">
-                <span class="text-xs" :style="{ color: 'var(--text-muted)' }">
+                <span
+                  class="text-xs"
+                  :style="{ color: 'var(--text-muted)' }"
+                >
                   ID: <code class="font-mono">{{ entry.id }}</code>
                 </span>
               </div>

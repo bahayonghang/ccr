@@ -1,6 +1,5 @@
 <template>
   <button
-    @click="toggleTheme"
     class="w-10 h-10 rounded-full transition-all hover:rotate-180 hover:scale-110 flex items-center justify-center"
     :style="{
       background: 'var(--bg-tertiary)',
@@ -9,9 +8,16 @@
     }"
     :title="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
     :aria-label="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
+    @click="toggleTheme"
   >
-    <Moon v-if="currentTheme === 'dark'" class="w-5 h-5" />
-    <Sun v-else class="w-5 h-5" />
+    <Moon
+      v-if="currentTheme === 'dark'"
+      class="w-5 h-5"
+    />
+    <Sun
+      v-else
+      class="w-5 h-5"
+    />
   </button>
 </template>
 

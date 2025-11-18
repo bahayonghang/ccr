@@ -31,288 +31,313 @@
     </div>
 
     <div class="relative z-10 p-6">
+      <div class="max-w-[1800px] mx-auto">
+        <!-- Breadcrumb Navigation -->
+        <Breadcrumb
+          :items="[
+            { label: '首页', path: '/', icon: Home },
+            { label: 'Claude Code', path: '/claude-code', icon: Code2 },
+            { label: '配置管理', path: '/configs', icon: Settings }
+          ]"
+          module-color="#6366f1"
+        />
 
-    <div class="max-w-[1800px] mx-auto">
-      <!-- Breadcrumb Navigation -->
-      <Breadcrumb
-        :items="[
-          { label: '首页', path: '/', icon: Home },
-          { label: 'Claude Code', path: '/claude-code', icon: Code2 },
-          { label: '配置管理', path: '/configs', icon: Settings }
-        ]"
-        moduleColor="#6366f1"
-      />
+        <!-- Environment Badge -->
+        <div class="mb-4">
+          <EnvironmentBadge />
+        </div>
 
-      <!-- Environment Badge -->
-      <div class="mb-4">
-        <EnvironmentBadge />
-      </div>
-
-      <!-- 操作按钮栏（已移到 Navbar，保留此处作为备用） -->
-      <div v-if="false" class="flex flex-wrap gap-3 mb-5">
-        <button
-          class="flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
-          :style="{
-            background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-            color: 'white',
-            boxShadow: '0 0 20px var(--glow-primary)'
-          }"
-          @click="refreshData"
+        <!-- 操作按钮栏（已移到 Navbar，保留此处作为备用） -->
+        <div
+          v-if="false"
+          class="flex flex-wrap gap-3 mb-5"
         >
-          <RefreshCw class="w-4 h-4 mr-2" />
-          刷新
-        </button>
+          <button
+            class="flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+            :style="{
+              background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+              color: 'white',
+              boxShadow: '0 0 20px var(--glow-primary)'
+            }"
+            @click="refreshData"
+          >
+            <RefreshCw class="w-4 h-4 mr-2" />
+            刷新
+          </button>
         
-        <button
-          class="flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
-          :style="{
-            background: 'var(--accent-success)',
-            color: 'white'
-          }"
-          @click="handleValidate"
-        >
-          <CheckCircle class="w-4 h-4 mr-2" />
-          验证配置
-        </button>
+          <button
+            class="flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+            :style="{
+              background: 'var(--accent-success)',
+              color: 'white'
+            }"
+            @click="handleValidate"
+          >
+            <CheckCircle class="w-4 h-4 mr-2" />
+            验证配置
+          </button>
 
-        <button
-          class="flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
-          :style="{
-            background: 'var(--accent-warning)',
-            color: 'white'
-          }"
-          @click="handleClean"
-        >
-          <Trash2 class="w-4 h-4 mr-2" />
-          清理备份
-        </button>
+          <button
+            class="flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+            :style="{
+              background: 'var(--accent-warning)',
+              color: 'white'
+            }"
+            @click="handleClean"
+          >
+            <Trash2 class="w-4 h-4 mr-2" />
+            清理备份
+          </button>
 
-        <button
-          class="flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
-          :style="{
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)'
-          }"
-          @click="handleImport"
-        >
-          <Upload class="w-4 h-4 mr-2" />
-          导入
-        </button>
+          <button
+            class="flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+            :style="{
+              background: 'var(--bg-tertiary)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)'
+            }"
+            @click="handleImport"
+          >
+            <Upload class="w-4 h-4 mr-2" />
+            导入
+          </button>
 
-        <button
-          class="flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
-          :style="{
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)'
-          }"
-          @click="handleExport"
-        >
-          <Download class="w-4 h-4 mr-2" />
-          导出
-        </button>
-      </div>
+          <button
+            class="flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+            :style="{
+              background: 'var(--bg-tertiary)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)'
+            }"
+            @click="handleExport"
+          >
+            <Download class="w-4 h-4 mr-2" />
+            导出
+          </button>
+        </div>
 
-      <!-- 三列布局 -->
-      <div class="grid grid-cols-[auto_1fr_320px] gap-6">
-        <!-- 可折叠侧边栏 -->
-        <CollapsibleSidebar module="claude-code" />
+        <!-- 三列布局 -->
+        <div class="grid grid-cols-[auto_1fr_320px] gap-6">
+          <!-- 可折叠侧边栏 -->
+          <CollapsibleSidebar module="claude-code" />
 
-        <!-- 主内容区 - 液态玻璃效果 -->
-        <main
-          class="p-8 transition-all duration-300"
-          :style="{
-            background: 'rgba(255, 255, 255, 0.6)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '24px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
-          }"
-        >
-          <!-- Tab 导航 - 增强版 -->
-          <div
-            class="flex gap-2 mb-6 p-1.5 rounded-2xl"
-            :style="{ 
-              background: 'rgba(99, 102, 241, 0.08)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(99, 102, 241, 0.15)'
+          <!-- 主内容区 - 液态玻璃效果 -->
+          <main
+            class="p-8 transition-all duration-300"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.6)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '24px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
             }"
           >
-            <button
-              class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300"
-              :style="{
-                background: activeTab === 'configs' 
-                  ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
-                  : 'transparent',
-                color: activeTab === 'configs' ? 'white' : 'var(--text-secondary)',
-                boxShadow: activeTab === 'configs' 
-                  ? '0 4px 12px rgba(99, 102, 241, 0.3)' 
-                  : 'none',
-                transform: activeTab === 'configs' ? 'scale(1.02)' : 'scale(1)'
-              }"
-              @click="activeTab = 'configs'"
-            >
-              📋 配置列表
-            </button>
-            <button
-              class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300"
-              :style="{
-                background: activeTab === 'history' 
-                  ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
-                  : 'transparent',
-                color: activeTab === 'history' ? 'white' : 'var(--text-secondary)',
-                boxShadow: activeTab === 'history' 
-                  ? '0 4px 12px rgba(99, 102, 241, 0.3)' 
-                  : 'none',
-                transform: activeTab === 'history' ? 'scale(1.02)' : 'scale(1)'
-              }"
-              @click="activeTab = 'history'"
-            >
-              🕐 历史记录
-            </button>
-          </div>
-
-          <!-- 配置列表 Tab -->
-          <div v-if="activeTab === 'configs'">
-            <!-- 筛选和排序控制栏 -->
-            <div class="flex gap-4 mb-6 items-center">
-              <!-- 筛选按钮 - 液态玻璃风格 -->
-              <div
-                class="flex gap-3 flex-1 p-2 rounded-2xl"
-                :style="{
-                  background: 'rgba(255, 255, 255, 0.4)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)'
-                }"
-              >
-                <button
-                  v-for="filter in filters"
-                  :key="filter.type"
-                  class="flex-1 py-3 px-5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105"
-                  :style="{
-                    background: currentFilter === filter.type
-                      ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
-                      : 'rgba(255, 255, 255, 0.3)',
-                    backdropFilter: currentFilter === filter.type ? 'blur(10px)' : 'none',
-                    border: currentFilter === filter.type
-                      ? '1px solid rgba(99, 102, 241, 0.3)'
-                      : '1px solid rgba(255, 255, 255, 0.2)',
-                    color: currentFilter === filter.type ? 'white' : 'var(--text-secondary)',
-                    boxShadow: currentFilter === filter.type
-                      ? '0 4px 16px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
-                      : '0 2px 8px rgba(0, 0, 0, 0.05)'
-                  }"
-                  @click="currentFilter = filter.type"
-                >
-                  {{ filter.label }}
-                </button>
-              </div>
-
-              <!-- 📊 排序下拉菜单 + 提供商统计按钮 -->
-              <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2">
-                  <label class="text-sm font-medium whitespace-nowrap" :style="{ color: 'var(--text-secondary)' }">
-                    排序:
-                  </label>
-                  <select
-                    v-model="currentSort"
-                    class="px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer outline-none"
-                    :style="{
-                      background: 'rgba(255, 255, 255, 0.6)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(99, 102, 241, 0.3)',
-                      color: 'var(--text-primary)',
-                      boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)'
-                    }"
-                  >
-                    <option value="name">📝 名称</option>
-                    <option value="usage_count">📊 使用次数</option>
-                    <option value="recent">🕒 最近使用</option>
-                  </select>
-                </div>
-                <button
-                  class="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 border border-indigo-200/80 dark:border-indigo-500/70 text-indigo-700 dark:text-indigo-200 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800/80 transition shadow-sm"
-                  @click="showProviderModal = true"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M4 6h16M4 12h10M4 18h6"
-                    />
-                  </svg>
-                  <span>提供商统计</span>
-                </button>
-              </div>
-            </div>
-            <!-- 加载状态 -->
-            <div v-if="loading" class="flex items-center justify-center py-20">
-              <div
-                class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
-                :style="{
-                  borderTopColor: 'var(--accent-primary)',
-                  borderRightColor: 'var(--accent-secondary)'
-                }"
-              />
-            </div>
-
-            <!-- 错误状态 -->
+            <!-- Tab 导航 - 增强版 -->
             <div
-              v-else-if="error"
-              class="rounded-lg p-4 flex items-center space-x-2"
-              :style="{
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid var(--accent-danger)'
+              class="flex gap-2 mb-6 p-1.5 rounded-2xl"
+              :style="{ 
+                background: 'rgba(99, 102, 241, 0.08)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(99, 102, 241, 0.15)'
               }"
             >
-              <AlertCircle :style="{ color: 'var(--accent-danger)' }" />
-              <span :style="{ color: 'var(--accent-danger)' }">Error: {{ error }}</span>
+              <button
+                class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300"
+                :style="{
+                  background: activeTab === 'configs' 
+                    ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
+                    : 'transparent',
+                  color: activeTab === 'configs' ? 'white' : 'var(--text-secondary)',
+                  boxShadow: activeTab === 'configs' 
+                    ? '0 4px 12px rgba(99, 102, 241, 0.3)' 
+                    : 'none',
+                  transform: activeTab === 'configs' ? 'scale(1.02)' : 'scale(1)'
+                }"
+                @click="activeTab = 'configs'"
+              >
+                📋 配置列表
+              </button>
+              <button
+                class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300"
+                :style="{
+                  background: activeTab === 'history' 
+                    ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
+                    : 'transparent',
+                  color: activeTab === 'history' ? 'white' : 'var(--text-secondary)',
+                  boxShadow: activeTab === 'history' 
+                    ? '0 4px 12px rgba(99, 102, 241, 0.3)' 
+                    : 'none',
+                  transform: activeTab === 'history' ? 'scale(1.02)' : 'scale(1)'
+                }"
+                @click="activeTab = 'history'"
+              >
+                🕐 历史记录
+              </button>
             </div>
 
-            <!-- 提供商统计 + 配置卡片列表 -->
-            <div v-else class="space-y-8">
-              <!-- 配置卡片列表 -->
-              <div class="space-y-6">
+            <!-- 配置列表 Tab -->
+            <div v-if="activeTab === 'configs'">
+              <!-- 筛选和排序控制栏 -->
+              <div class="flex gap-4 mb-6 items-center">
+                <!-- 筛选按钮 - 液态玻璃风格 -->
                 <div
-                  v-if="filteredConfigs.length === 0"
-                  class="text-center py-10"
-                  :style="{ color: 'var(--text-muted)' }"
+                  class="flex gap-3 flex-1 p-2 rounded-2xl"
+                  :style="{
+                    background: 'rgba(255, 255, 255, 0.4)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)'
+                  }"
                 >
-                  当前分类下暂无配置
+                  <button
+                    v-for="filter in filters"
+                    :key="filter.type"
+                    class="flex-1 py-3 px-5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105"
+                    :style="{
+                      background: currentFilter === filter.type
+                        ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                        : 'rgba(255, 255, 255, 0.3)',
+                      backdropFilter: currentFilter === filter.type ? 'blur(10px)' : 'none',
+                      border: currentFilter === filter.type
+                        ? '1px solid rgba(99, 102, 241, 0.3)'
+                        : '1px solid rgba(255, 255, 255, 0.2)',
+                      color: currentFilter === filter.type ? 'white' : 'var(--text-secondary)',
+                      boxShadow: currentFilter === filter.type
+                        ? '0 4px 16px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+                        : '0 2px 8px rgba(0, 0, 0, 0.05)'
+                    }"
+                    @click="currentFilter = filter.type"
+                  >
+                    {{ filter.label }}
+                  </button>
                 </div>
-                <ConfigCard
-                  v-else
-                  v-for="config in filteredConfigs"
-                  :key="config.name"
-                  :config="config"
-                  @switch="handleSwitch"
-                  @edit="handleEdit"
-                  @delete="handleDelete"
-                  @enable="handleEnable"
-                  @disable="handleDisable"
+
+                <!-- 📊 排序下拉菜单 + 提供商统计按钮 -->
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-2">
+                    <label
+                      class="text-sm font-medium whitespace-nowrap"
+                      :style="{ color: 'var(--text-secondary)' }"
+                    >
+                      排序:
+                    </label>
+                    <select
+                      v-model="currentSort"
+                      class="px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer outline-none"
+                      :style="{
+                        background: 'rgba(255, 255, 255, 0.6)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                        color: 'var(--text-primary)',
+                        boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)'
+                      }"
+                    >
+                      <option value="name">
+                        📝 名称
+                      </option>
+                      <option value="usage_count">
+                        📊 使用次数
+                      </option>
+                      <option value="recent">
+                        🕒 最近使用
+                      </option>
+                    </select>
+                  </div>
+                  <button
+                    class="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 border border-indigo-200/80 dark:border-indigo-500/70 text-indigo-700 dark:text-indigo-200 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800/80 transition shadow-sm"
+                    @click="showProviderModal = true"
+                  >
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 6h16M4 12h10M4 18h6"
+                      />
+                    </svg>
+                    <span>提供商统计</span>
+                  </button>
+                </div>
+              </div>
+              <!-- 加载状态 -->
+              <div
+                v-if="loading"
+                class="flex items-center justify-center py-20"
+              >
+                <div
+                  class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
+                  :style="{
+                    borderTopColor: 'var(--accent-primary)',
+                    borderRightColor: 'var(--accent-secondary)'
+                  }"
                 />
               </div>
+
+              <!-- 错误状态 -->
+              <div
+                v-else-if="error"
+                class="rounded-lg p-4 flex items-center space-x-2"
+                :style="{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid var(--accent-danger)'
+                }"
+              >
+                <AlertCircle :style="{ color: 'var(--accent-danger)' }" />
+                <span :style="{ color: 'var(--accent-danger)' }">Error: {{ error }}</span>
+              </div>
+
+              <!-- 提供商统计 + 配置卡片列表 -->
+              <div
+                v-else
+                class="space-y-8"
+              >
+                <!-- 配置卡片列表 -->
+                <div class="space-y-6">
+                  <div
+                    v-if="filteredConfigs.length === 0"
+                    class="text-center py-10"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    当前分类下暂无配置
+                  </div>
+                  <ConfigCard
+                    v-for="config in filteredConfigs"
+                    v-else
+                    :key="config.name"
+                    :config="config"
+                    @switch="handleSwitch"
+                    @edit="handleEdit"
+                    @delete="handleDelete"
+                    @enable="handleEnable"
+                    @disable="handleDisable"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
 
-          <!-- 历史记录 Tab -->
-          <div v-if="activeTab === 'history'">
-            <HistoryList :entries="historyEntries" :loading="historyLoading" />
-          </div>
-        </main>
+            <!-- 历史记录 Tab -->
+            <div v-if="activeTab === 'history'">
+              <HistoryList
+                :entries="historyEntries"
+                :loading="historyLoading"
+              />
+            </div>
+          </main>
 
-        <!-- 右侧边栏：配置导航 -->
-        <RightSidebar
-          :configs="configs"
-          :current-filter="currentFilter"
-          @config-click="handleConfigClick"
-        />
+          <!-- 右侧边栏：配置导航 -->
+          <RightSidebar
+            :configs="configs"
+            :current-filter="currentFilter"
+            @config-click="handleConfigClick"
+          />
+        </div>
       </div>
-    </div>
     </div>
 
     <!-- 编辑配置模态框 -->
@@ -355,15 +380,21 @@
                 v-model="providerSortMode"
                 class="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/70 dark:border-slate-600/70 bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
               >
-                <option value="count_desc">使用次数 ↓</option>
-                <option value="count_asc">使用次数 ↑</option>
-                <option value="name_asc">供应商 A-Z</option>
+                <option value="count_desc">
+                  使用次数 ↓
+                </option>
+                <option value="count_asc">
+                  使用次数 ↑
+                </option>
+                <option value="name_asc">
+                  供应商 A-Z
+                </option>
               </select>
             </div>
             <button
               class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-500/80 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800/80 transition"
-              @click="loadProviderUsage"
               :disabled="providerLoading"
+              @click="loadProviderUsage"
             >
               <svg
                 class="w-3.5 h-3.5"
@@ -390,7 +421,10 @@
           </div>
         </div>
 
-        <div v-if="providerLoading" class="flex items-center justify-center py-10">
+        <div
+          v-if="providerLoading"
+          class="flex items-center justify-center py-10"
+        >
           <div class="w-10 h-10 rounded-full border-4 border-transparent border-t-indigo-500 border-r-fuchsia-500 animate-spin" />
         </div>
         <div
@@ -405,7 +439,10 @@
         >
           暂无提供商使用数据，开始使用 AI API 后，这里会显示各提供商的调用次数
         </div>
-        <div v-else class="provider-chart-container">
+        <div
+          v-else
+          class="provider-chart-container"
+        >
           <div class="provider-chart-summary">
             共 {{ providerEntries.length }} 个提供商 · 总调用 {{ totalProviderUsage }} 次
             <div class="provider-chart-desc">
@@ -423,8 +460,8 @@
                 <span class="y-grid-label">{{ tick.value }}</span>
               </div>
             </div>
-            <div class="provider-chart-y-axis-line"></div>
-            <div class="provider-chart-x-axis-line"></div>
+            <div class="provider-chart-y-axis-line" />
+            <div class="provider-chart-x-axis-line" />
             <div class="provider-chart-bars">
               <div
                 v-for="([provider, count], index) in sortedProviderEntries"
@@ -438,9 +475,11 @@
                     :class="'bar-color-' + (index % 5)"
                     :style="{ height: Math.max((count / (maxProviderCount || 1)) * 100, 8) + '%' }"
                     :title="(provider || 'unknown') + ': ' + count + ' 次，占最高值的 ' + (maxProviderCount ? ((count / maxProviderCount) * 100).toFixed(1) : 0) + '%'"
-                  ></div>
+                  />
                 </div>
-                <div class="provider-bar-value">{{ count }} 次</div>
+                <div class="provider-bar-value">
+                  {{ count }} 次
+                </div>
                 <div
                   class="provider-bar-label"
                   :title="provider || 'unknown'"
@@ -450,7 +489,9 @@
               </div>
             </div>
           </div>
-          <div class="provider-chart-x-axis-label">X 轴：提供商</div>
+          <div class="provider-chart-x-axis-label">
+            X 轴：提供商
+          </div>
         </div>
       </div>
     </div>

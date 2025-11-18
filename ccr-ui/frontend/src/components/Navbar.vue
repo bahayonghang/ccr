@@ -20,7 +20,10 @@
       <div class="flex items-center space-x-5">
         <div class="flex flex-col">
           <div class="flex items-center space-x-2">
-            <Zap class="w-7 h-7" :style="{ color: 'var(--accent-primary)' }" />
+            <Zap
+              class="w-7 h-7"
+              :style="{ color: 'var(--accent-primary)' }"
+            />
             <h1
               class="text-3xl font-bold tracking-tight gradient-text"
               :style="{
@@ -50,7 +53,10 @@
         />
 
         <div class="hidden md:block">
-          <div class="text-sm font-semibold" :style="{ color: 'var(--text-primary)' }">
+          <div
+            class="text-sm font-semibold"
+            :style="{ color: 'var(--text-primary)' }"
+          >
             Claude Code Configuration Switcher
           </div>
           <div class="flex items-center space-x-3 mt-1">

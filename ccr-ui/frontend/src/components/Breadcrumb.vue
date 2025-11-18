@@ -1,6 +1,12 @@
 <template>
-  <nav class="flex items-center gap-2 mb-6" aria-label="Breadcrumb">
-    <template v-for="(item, index) in items" :key="index">
+  <nav
+    class="flex items-center gap-2 mb-6"
+    aria-label="Breadcrumb"
+  >
+    <template
+      v-for="(item, index) in items"
+      :key="index"
+    >
       <!-- 非最后一项：可点击链接 -->
       <template v-if="index < items.length - 1">
         <RouterLink
@@ -16,8 +22,8 @@
           @mouseleave="(e) => onHover(e.currentTarget, false)"
         >
           <component
-            v-if="item.icon"
             :is="item.icon"
+            v-if="item.icon"
             class="w-4 h-4"
           />
           <span>{{ item.label }}</span>
@@ -43,8 +49,8 @@
           }"
         >
           <component
-            v-if="item.icon"
             :is="item.icon"
+            v-if="item.icon"
             class="w-4 h-4"
             :style="{ color: moduleColor || 'var(--accent-primary)' }"
           />

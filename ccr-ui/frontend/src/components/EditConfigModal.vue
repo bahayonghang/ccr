@@ -8,7 +8,7 @@
     <div
       class="absolute inset-0 bg-black/50 backdrop-blur-sm"
       @click="handleClose"
-    ></div>
+    />
 
     <!-- 弹窗内容 -->
     <div
@@ -28,13 +28,22 @@
             class="p-3 rounded-xl"
             :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
           >
-            <Settings class="w-6 h-6" :style="{ color: '#6366f1' }" />
+            <Settings
+              class="w-6 h-6"
+              :style="{ color: '#6366f1' }"
+            />
           </div>
           <div>
-            <h2 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
+            <h2
+              class="text-2xl font-bold"
+              :style="{ color: 'var(--text-primary)' }"
+            >
               编辑配置
             </h2>
-            <p class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+            <p
+              class="text-sm"
+              :style="{ color: 'var(--text-secondary)' }"
+            >
               {{ configName }}
             </p>
           </div>
@@ -52,7 +61,10 @@
       </div>
 
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex justify-center py-20">
+      <div
+        v-if="loading"
+        class="flex justify-center py-20"
+      >
         <div
           class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
           :style="{
@@ -63,10 +75,17 @@
       </div>
 
       <!-- 表单内容 -->
-      <form v-else @submit.prevent="handleSave" class="space-y-4">
+      <form
+        v-else
+        class="space-y-4"
+        @submit.prevent="handleSave"
+      >
         <!-- 描述 -->
         <div>
-          <label class="block text-sm font-semibold mb-2" :style="{ color: 'var(--text-primary)' }">
+          <label
+            class="block text-sm font-semibold mb-2"
+            :style="{ color: 'var(--text-primary)' }"
+          >
             描述
           </label>
           <input
@@ -79,12 +98,15 @@
               color: 'var(--text-primary)'
             }"
             placeholder="配置描述"
-          />
+          >
         </div>
 
         <!-- Base URL -->
         <div>
-          <label class="block text-sm font-semibold mb-2" :style="{ color: 'var(--text-primary)' }">
+          <label
+            class="block text-sm font-semibold mb-2"
+            :style="{ color: 'var(--text-primary)' }"
+          >
             Base URL
           </label>
           <input
@@ -98,12 +120,15 @@
               color: 'var(--text-primary)'
             }"
             placeholder="https://api.claude.ai"
-          />
+          >
         </div>
 
         <!-- Auth Token -->
         <div>
-          <label class="block text-sm font-semibold mb-2" :style="{ color: 'var(--text-primary)' }">
+          <label
+            class="block text-sm font-semibold mb-2"
+            :style="{ color: 'var(--text-primary)' }"
+          >
             Auth Token
           </label>
           <input
@@ -117,12 +142,15 @@
               color: 'var(--text-primary)'
             }"
             placeholder="sk-ant-..."
-          />
+          >
         </div>
 
         <!-- Model -->
         <div>
-          <label class="block text-sm font-semibold mb-2" :style="{ color: 'var(--text-primary)' }">
+          <label
+            class="block text-sm font-semibold mb-2"
+            :style="{ color: 'var(--text-primary)' }"
+          >
             Model
           </label>
           <input
@@ -135,12 +163,15 @@
               color: 'var(--text-primary)'
             }"
             placeholder="claude-3-5-sonnet-20241022"
-          />
+          >
         </div>
 
         <!-- Provider Type -->
         <div>
-          <label class="block text-sm font-semibold mb-2" :style="{ color: 'var(--text-primary)' }">
+          <label
+            class="block text-sm font-semibold mb-2"
+            :style="{ color: 'var(--text-primary)' }"
+          >
             Provider Type
           </label>
           <select
@@ -152,9 +183,15 @@
               color: 'var(--text-primary)'
             }"
           >
-            <option value="">未分类</option>
-            <option value="official_relay">官方中转</option>
-            <option value="third_party_model">第三方模型</option>
+            <option value="">
+              未分类
+            </option>
+            <option value="official_relay">
+              官方中转
+            </option>
+            <option value="third_party_model">
+              第三方模型
+            </option>
           </select>
         </div>
 

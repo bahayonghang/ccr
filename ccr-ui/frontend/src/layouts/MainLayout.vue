@@ -9,8 +9,12 @@
             <Zap class="w-6 h-6 text-accent-primary" />
           </div>
           <div>
-            <h1 class="text-xl font-bold text-text-primary">CCR UI</h1>
-            <p class="text-xs text-text-secondary">AI CLI 配置管理</p>
+            <h1 class="text-xl font-bold text-text-primary">
+              CCR UI
+            </h1>
+            <p class="text-xs text-text-secondary">
+              AI CLI 配置管理
+            </p>
           </div>
         </div>
       </div>
@@ -31,14 +35,14 @@
 
         <!-- 分隔线 -->
         <div class="px-3 mt-4">
-          <div class="border-t border-border-color/50"></div>
+          <div class="border-t border-border-color/50" />
         </div>
 
         <!-- 主要模块 -->
         <div class="px-3 mt-4">
           <h2 class="px-3 text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center">
             <span class="flex-1">主要模块</span>
-            <span class="w-2 h-2 rounded-full bg-accent-primary/30 animate-pulse"></span>
+            <span class="w-2 h-2 rounded-full bg-accent-primary/30 animate-pulse" />
           </h2>
           <div class="space-y-1">
             <RouterLink 
@@ -86,14 +90,14 @@
 
         <!-- 分隔线 -->
         <div class="px-3 mt-4">
-          <div class="border-t border-border-color/50"></div>
+          <div class="border-t border-border-color/50" />
         </div>
 
         <!-- 工具中心 -->
         <div class="px-3 mt-4">
           <h2 class="px-3 text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center">
             <span class="flex-1">工具中心</span>
-            <span class="w-2 h-2 rounded-full bg-accent-warning/30 animate-pulse"></span>
+            <span class="w-2 h-2 rounded-full bg-accent-warning/30 animate-pulse" />
           </h2>
           <div class="space-y-1">
             <RouterLink 

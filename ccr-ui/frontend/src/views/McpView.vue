@@ -8,7 +8,7 @@
           background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
           animation: 'pulse 8s ease-in-out infinite'
         }"
-      ></div>
+      />
       <div
         class="absolute bottom-10 left-10 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
@@ -16,15 +16,15 @@
           animation: 'pulse 10s ease-in-out infinite',
           animationDelay: '2s'
         }"
-      ></div>
+      />
     </div>
     <div class="relative z-10 p-6">
       <div class="max-w-[1800px] mx-auto">
         <Navbar />
         <StatusHeader
-          :currentConfig="currentConfig"
-          :totalConfigs="totalConfigs"
-          :historyCount="historyCount"
+          :current-config="currentConfig"
+          :total-configs="totalConfigs"
+          :history-count="historyCount"
         />
 
         <!-- Breadcrumb Navigation -->
@@ -34,7 +34,7 @@
             { label: 'Claude Code', path: '/claude-code', icon: Code2 },
             { label: 'MCP 服务器', path: '/mcp', icon: Server }
           ]"
-          moduleColor="#6366f1"
+          module-color="#6366f1"
         />
 
         <div class="grid grid-cols-[auto_1fr] gap-6">
@@ -57,11 +57,17 @@
                   class="p-4 rounded-2xl"
                   :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
                 >
-                  <Server class="w-8 h-8" :style="{ color: '#6366f1' }" />
+                  <Server
+                    class="w-8 h-8"
+                    :style="{ color: '#6366f1' }"
+                  />
                 </div>
                 <div>
                   <div class="flex items-center gap-3">
-                    <h1 class="text-3xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                    <h1
+                      class="text-3xl font-bold"
+                      :style="{ color: 'var(--text-primary)' }"
+                    >
                       MCP 服务器管理
                     </h1>
                     <span
@@ -74,7 +80,10 @@
                       🔌 MCP
                     </span>
                   </div>
-                  <p class="text-sm mt-2" :style="{ color: 'var(--text-secondary)' }">
+                  <p
+                    class="text-sm mt-2"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
                     Model Context Protocol 服务器配置和管理
                   </p>
                 </div>
@@ -94,290 +103,335 @@
               </div>
             </div>
 
-          <div v-if="loading" class="flex justify-center py-20">
             <div
-              class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
-              :style="{
-                borderTopColor: 'var(--accent-primary)',
-                borderRightColor: 'var(--accent-secondary)'
-              }"
-            />
-          </div>
-
-          <div v-else class="space-y-3">
-            <div
-              v-if="!servers || servers.length === 0"
-              class="text-center py-10"
-              :style="{ color: 'var(--text-muted)' }"
+              v-if="loading"
+              class="flex justify-center py-20"
             >
-              暂无 MCP 服务器配置
+              <div
+                class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
+                :style="{
+                  borderTopColor: 'var(--accent-primary)',
+                  borderRightColor: 'var(--accent-secondary)'
+                }"
+              />
             </div>
 
             <div
-              v-for="server in servers"
-              :key="server.name"
-              class="group rounded-lg p-4 transition-all duration-300"
-              :style="{
-                background: 'rgba(255, 255, 255, 0.7)',
-                border: '1px solid rgba(99, 102, 241, 0.12)',
-                outline: 'none',
-                cursor: 'default'
-              }"
-              @mouseenter="(e) => onCardHover(e.currentTarget, true)"
-              @mouseleave="(e) => onCardHover(e.currentTarget, false)"
+              v-else
+              class="space-y-3"
             >
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 mb-2">
-                    <h3 class="text-lg font-bold font-mono" :style="{ color: 'var(--text-primary)' }">
-                      {{ server.name }}
-                    </h3>
-                    <span
-                      v-if="server.disabled"
-                      class="px-2 py-0.5 rounded text-xs font-semibold uppercase"
-                      :style="{ background: 'var(--accent-danger)', color: 'white' }"
-                    >
-                      已禁用
-                    </span>
-                  </div>
-                  <div class="space-y-2 text-sm">
-                    <div>
-                      <span :style="{ color: 'var(--text-muted)' }">命令:</span>
-                      <code
-                        class="ml-2 px-2 py-1 rounded font-mono"
-                        :style="{ background: 'var(--bg-secondary)', color: 'var(--accent-primary)' }"
+              <div
+                v-if="!servers || servers.length === 0"
+                class="text-center py-10"
+                :style="{ color: 'var(--text-muted)' }"
+              >
+                暂无 MCP 服务器配置
+              </div>
+
+              <div
+                v-for="server in servers"
+                :key="server.name"
+                class="group rounded-lg p-4 transition-all duration-300"
+                :style="{
+                  background: 'rgba(255, 255, 255, 0.7)',
+                  border: '1px solid rgba(99, 102, 241, 0.12)',
+                  outline: 'none',
+                  cursor: 'default'
+                }"
+                @mouseenter="(e) => onCardHover(e.currentTarget, true)"
+                @mouseleave="(e) => onCardHover(e.currentTarget, false)"
+              >
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                      <h3
+                        class="text-lg font-bold font-mono"
+                        :style="{ color: 'var(--text-primary)' }"
                       >
-                        {{ server.command }}
-                      </code>
-                    </div>
-                    <div>
-                      <span :style="{ color: 'var(--text-muted)' }">参数:</span>
-                      <code
-                        class="ml-2 px-2 py-1 rounded font-mono"
-                        :style="{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }"
+                        {{ server.name }}
+                      </h3>
+                      <span
+                        v-if="server.disabled"
+                        class="px-2 py-0.5 rounded text-xs font-semibold uppercase"
+                        :style="{ background: 'var(--accent-danger)', color: 'white' }"
                       >
-                        {{ server.args.join(' ') }}
-                      </code>
+                        已禁用
+                      </span>
                     </div>
-                    <div v-if="server.env && Object.keys(server.env).length > 0">
-                      <span :style="{ color: 'var(--text-muted)' }">环境变量:</span>
-                      <div class="ml-2 mt-1 space-y-1">
-                        <div
-                          v-for="[key, value] in Object.entries(server.env)"
-                          :key="key"
-                          class="text-xs font-mono px-2 py-1 rounded"
-                          :style="{ background: 'var(--bg-secondary)' }"
+                    <div class="space-y-2 text-sm">
+                      <div>
+                        <span :style="{ color: 'var(--text-muted)' }">命令:</span>
+                        <code
+                          class="ml-2 px-2 py-1 rounded font-mono"
+                          :style="{ background: 'var(--bg-secondary)', color: 'var(--accent-primary)' }"
                         >
-                          <span :style="{ color: 'var(--accent-secondary)' }">{{ key }}</span>=<span
-                            :style="{ color: 'var(--text-primary)' }"
-                            >{{ value }}</span
+                          {{ server.command }}
+                        </code>
+                      </div>
+                      <div>
+                        <span :style="{ color: 'var(--text-muted)' }">参数:</span>
+                        <code
+                          class="ml-2 px-2 py-1 rounded font-mono"
+                          :style="{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }"
+                        >
+                          {{ server.args.join(' ') }}
+                        </code>
+                      </div>
+                      <div v-if="server.env && Object.keys(server.env).length > 0">
+                        <span :style="{ color: 'var(--text-muted)' }">环境变量:</span>
+                        <div class="ml-2 mt-1 space-y-1">
+                          <div
+                            v-for="[key, value] in Object.entries(server.env)"
+                            :key="key"
+                            class="text-xs font-mono px-2 py-1 rounded"
+                            :style="{ background: 'var(--bg-secondary)' }"
                           >
+                            <span :style="{ color: 'var(--accent-secondary)' }">{{ key }}</span>=<span
+                              :style="{ color: 'var(--text-primary)' }"
+                            >{{ value }}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="flex gap-2">
-                  <button
-                    class="p-2 rounded-lg transition-all hover:scale-110"
-                    :style="{
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)',
-                      color: server.disabled ? 'var(--accent-success)' : 'var(--accent-warning)'
-                    }"
-                    :title="server.disabled ? '启用' : '禁用'"
-                    @click="handleToggle(server.name)"
-                  >
-                    <Power v-if="server.disabled" class="w-4 h-4" />
-                    <PowerOff v-else class="w-4 h-4" />
-                  </button>
-                  <button
-                    class="p-2 rounded-lg transition-all hover:scale-110"
-                    :style="{
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--accent-primary)'
-                    }"
-                    title="编辑"
-                    @click="handleEdit(server)"
-                  >
-                    <Edit2 class="w-4 h-4" />
-                  </button>
-                  <button
-                    class="p-2 rounded-lg transition-all hover:scale-110"
-                    :style="{
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--accent-danger)'
-                    }"
-                    title="删除"
-                    @click="handleDelete(server.name)"
-                  >
-                    <Trash2 class="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Add/Edit Form Modal -->
-          <div
-            v-if="showAddForm"
-            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          >
-            <div
-              class="rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }"
-            >
-              <h2 class="text-xl font-bold mb-4" :style="{ color: 'var(--text-primary)' }">
-                {{ editingServer ? '编辑 MCP 服务器' : '添加 MCP 服务器' }}
-              </h2>
-
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-semibold mb-1" :style="{ color: 'var(--text-secondary)' }">
-                    服务器名称 *
-                  </label>
-                  <input
-                    v-model="formData.name"
-                    type="text"
-                    class="w-full px-3 py-2 rounded-lg"
-                    :style="{
-                      background: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)'
-                    }"
-                    placeholder="例如: filesystem-server"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-semibold mb-1" :style="{ color: 'var(--text-secondary)' }">
-                    命令 *
-                  </label>
-                  <input
-                    v-model="formData.command"
-                    type="text"
-                    class="w-full px-3 py-2 rounded-lg font-mono"
-                    :style="{
-                      background: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)'
-                    }"
-                    placeholder="例如: npx 或 node"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-semibold mb-1" :style="{ color: 'var(--text-secondary)' }">
-                    参数 *
-                  </label>
-                  <input
-                    v-model="argInput"
-                    type="text"
-                    class="w-full px-3 py-2 rounded-lg font-mono"
-                    :style="{
-                      background: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)'
-                    }"
-                    placeholder="例如: -y @modelcontextprotocol/server-filesystem /path"
-                  />
-                  <div class="text-xs mt-1" :style="{ color: 'var(--text-muted)' }">用空格分隔多个参数</div>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-semibold mb-1" :style="{ color: 'var(--text-secondary)' }">
-                    环境变量
-                  </label>
-                  <div class="flex gap-2 mb-2">
-                    <input
-                      v-model="envKey"
-                      type="text"
-                      class="flex-1 px-3 py-2 rounded-lg font-mono"
-                      :style="{
-                        background: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)'
-                      }"
-                      placeholder="KEY"
-                    />
-                    <input
-                      v-model="envValue"
-                      type="text"
-                      class="flex-1 px-3 py-2 rounded-lg font-mono"
-                      :style="{
-                        background: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)'
-                      }"
-                      placeholder="VALUE"
-                    />
+                  <div class="flex gap-2">
                     <button
-                      class="px-4 py-2 rounded-lg font-semibold text-sm text-white"
-                      :style="{ background: 'var(--accent-primary)' }"
-                      @click="addEnvVar"
+                      class="p-2 rounded-lg transition-all hover:scale-110"
+                      :style="{
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        color: server.disabled ? 'var(--accent-success)' : 'var(--accent-warning)'
+                      }"
+                      :title="server.disabled ? '启用' : '禁用'"
+                      @click="handleToggle(server.name)"
                     >
-                      添加
+                      <Power
+                        v-if="server.disabled"
+                        class="w-4 h-4"
+                      />
+                      <PowerOff
+                        v-else
+                        class="w-4 h-4"
+                      />
+                    </button>
+                    <button
+                      class="p-2 rounded-lg transition-all hover:scale-110"
+                      :style="{
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--accent-primary)'
+                      }"
+                      title="编辑"
+                      @click="handleEdit(server)"
+                    >
+                      <Edit2 class="w-4 h-4" />
+                    </button>
+                    <button
+                      class="p-2 rounded-lg transition-all hover:scale-110"
+                      :style="{
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--accent-danger)'
+                      }"
+                      title="删除"
+                      @click="handleDelete(server.name)"
+                    >
+                      <Trash2 class="w-4 h-4" />
                     </button>
                   </div>
-                  <div class="space-y-1">
-                    <div
-                      v-for="[key, value] in Object.entries(formData.env || {})"
-                      :key="key"
-                      class="flex items-center justify-between px-3 py-2 rounded"
-                      :style="{ background: 'var(--bg-secondary)' }"
+                </div>
+              </div>
+            </div>
+
+            <!-- Add/Edit Form Modal -->
+            <div
+              v-if="showAddForm"
+              class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            >
+              <div
+                class="rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }"
+              >
+                <h2
+                  class="text-xl font-bold mb-4"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  {{ editingServer ? '编辑 MCP 服务器' : '添加 MCP 服务器' }}
+                </h2>
+
+                <div class="space-y-4">
+                  <div>
+                    <label
+                      class="block text-sm font-semibold mb-1"
+                      :style="{ color: 'var(--text-secondary)' }"
                     >
-                      <code class="text-sm font-mono" :style="{ color: 'var(--text-primary)' }">
-                        {{ key }}={{ value }}
-                      </code>
-                      <button class="text-xs" :style="{ color: 'var(--accent-danger)' }" @click="removeEnvVar(key)">
-                        删除
+                      服务器名称 *
+                    </label>
+                    <input
+                      v-model="formData.name"
+                      type="text"
+                      class="w-full px-3 py-2 rounded-lg"
+                      :style="{
+                        background: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)'
+                      }"
+                      placeholder="例如: filesystem-server"
+                    >
+                  </div>
+
+                  <div>
+                    <label
+                      class="block text-sm font-semibold mb-1"
+                      :style="{ color: 'var(--text-secondary)' }"
+                    >
+                      命令 *
+                    </label>
+                    <input
+                      v-model="formData.command"
+                      type="text"
+                      class="w-full px-3 py-2 rounded-lg font-mono"
+                      :style="{
+                        background: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)'
+                      }"
+                      placeholder="例如: npx 或 node"
+                    >
+                  </div>
+
+                  <div>
+                    <label
+                      class="block text-sm font-semibold mb-1"
+                      :style="{ color: 'var(--text-secondary)' }"
+                    >
+                      参数 *
+                    </label>
+                    <input
+                      v-model="argInput"
+                      type="text"
+                      class="w-full px-3 py-2 rounded-lg font-mono"
+                      :style="{
+                        background: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)'
+                      }"
+                      placeholder="例如: -y @modelcontextprotocol/server-filesystem /path"
+                    >
+                    <div
+                      class="text-xs mt-1"
+                      :style="{ color: 'var(--text-muted)' }"
+                    >
+                      用空格分隔多个参数
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      class="block text-sm font-semibold mb-1"
+                      :style="{ color: 'var(--text-secondary)' }"
+                    >
+                      环境变量
+                    </label>
+                    <div class="flex gap-2 mb-2">
+                      <input
+                        v-model="envKey"
+                        type="text"
+                        class="flex-1 px-3 py-2 rounded-lg font-mono"
+                        :style="{
+                          background: 'var(--bg-tertiary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)'
+                        }"
+                        placeholder="KEY"
+                      >
+                      <input
+                        v-model="envValue"
+                        type="text"
+                        class="flex-1 px-3 py-2 rounded-lg font-mono"
+                        :style="{
+                          background: 'var(--bg-tertiary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)'
+                        }"
+                        placeholder="VALUE"
+                      >
+                      <button
+                        class="px-4 py-2 rounded-lg font-semibold text-sm text-white"
+                        :style="{ background: 'var(--accent-primary)' }"
+                        @click="addEnvVar"
+                      >
+                        添加
                       </button>
                     </div>
+                    <div class="space-y-1">
+                      <div
+                        v-for="[key, value] in Object.entries(formData.env || {})"
+                        :key="key"
+                        class="flex items-center justify-between px-3 py-2 rounded"
+                        :style="{ background: 'var(--bg-secondary)' }"
+                      >
+                        <code
+                          class="text-sm font-mono"
+                          :style="{ color: 'var(--text-primary)' }"
+                        >
+                          {{ key }}={{ value }}
+                        </code>
+                        <button
+                          class="text-xs"
+                          :style="{ color: 'var(--accent-danger)' }"
+                          @click="removeEnvVar(key)"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <input
+                      id="disabled"
+                      v-model="formData.disabled"
+                      type="checkbox"
+                      class="w-4 h-4"
+                    >
+                    <label
+                      for="disabled"
+                      class="text-sm"
+                      :style="{ color: 'var(--text-secondary)' }"
+                    >
+                      禁用此服务器
+                    </label>
                   </div>
                 </div>
 
-                <div class="flex items-center gap-2">
-                  <input
-                    id="disabled"
-                    v-model="formData.disabled"
-                    type="checkbox"
-                    class="w-4 h-4"
-                  />
-                  <label for="disabled" class="text-sm" :style="{ color: 'var(--text-secondary)' }">
-                    禁用此服务器
-                  </label>
+                <div class="flex gap-3 mt-6">
+                  <button
+                    class="flex-1 px-4 py-2 rounded-lg font-semibold text-white"
+                    :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
+                    @click="handleSubmit"
+                  >
+                    {{ editingServer ? '更新' : '添加' }}
+                  </button>
+                  <button
+                    class="flex-1 px-4 py-2 rounded-lg font-semibold"
+                    :style="{
+                      background: 'var(--bg-tertiary)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border-color)'
+                    }"
+                    @click="showAddForm = false"
+                  >
+                    取消
+                  </button>
                 </div>
               </div>
-
-              <div class="flex gap-3 mt-6">
-                <button
-                  class="flex-1 px-4 py-2 rounded-lg font-semibold text-white"
-                  :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
-                  @click="handleSubmit"
-                >
-                  {{ editingServer ? '更新' : '添加' }}
-                </button>
-                <button
-                  class="flex-1 px-4 py-2 rounded-lg font-semibold"
-                  :style="{
-                    background: 'var(--bg-tertiary)',
-                    color: 'var(--text-primary)',
-                    border: '1px solid var(--border-color)'
-                  }"
-                  @click="showAddForm = false"
-                >
-                  取消
-                </button>
-              </div>
             </div>
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
     </div>
   </div>
-</div>
 </template>
 
 <script setup lang="ts">

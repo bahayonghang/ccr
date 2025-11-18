@@ -27,13 +27,22 @@
         :aria-label="collapsed ? '展开菜单' : '收起菜单'"
         @click="toggleCollapsed"
       >
-        <ChevronRight v-if="collapsed" class="w-4 h-4" />
-        <ChevronLeft v-else class="w-4 h-4" />
+        <ChevronRight
+          v-if="collapsed"
+          class="w-4 h-4"
+        />
+        <ChevronLeft
+          v-else
+          class="w-4 h-4"
+        />
       </button>
     </div>
 
     <!-- 导航链接 - 层级菜单 -->
-    <nav class="space-y-2" aria-label="主导航">
+    <nav
+      class="space-y-2"
+      aria-label="主导航"
+    >
       <div
         v-for="(group, groupIndex) in navigationGroups"
         :key="group.title"
@@ -64,9 +73,18 @@
           :aria-label="`${group.title} 菜单组`"
           @click="!collapsed && toggleGroup(group.title)"
         >
-          <div class="flex items-center" :class="collapsed ? '' : 'space-x-3'">
-            <component :is="group.icon" class="w-5 h-5 flex-shrink-0" />
-            <span v-if="!collapsed" class="font-semibold text-sm">{{ group.title }}</span>
+          <div
+            class="flex items-center"
+            :class="collapsed ? '' : 'space-x-3'"
+          >
+            <component
+              :is="group.icon"
+              class="w-5 h-5 flex-shrink-0"
+            />
+            <span
+              v-if="!collapsed"
+              class="font-semibold text-sm"
+            >{{ group.title }}</span>
           </div>
           <ChevronUp
             v-if="!collapsed && expandedGroups[group.title]"
@@ -165,7 +183,10 @@
         </div>
 
         <!-- 折叠状态下，显示子菜单作为独立项 -->
-        <div v-if="collapsed" class="space-y-1">
+        <div
+          v-if="collapsed"
+          class="space-y-1"
+        >
           <RouterLink
             v-for="(item, itemIndex) in group.items"
             :key="item.href"
@@ -228,7 +249,10 @@
     </nav>
 
     <!-- 收起状态提示 -->
-    <div v-if="collapsed" class="mt-4 text-center">
+    <div
+      v-if="collapsed"
+      class="mt-4 text-center"
+    >
       <button
         class="p-2 rounded-lg transition-all hover:scale-110"
         :style="{

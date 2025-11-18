@@ -2,24 +2,24 @@
   <div class="min-h-screen relative">
     <!-- 🎨 动态背景装饰 - 液态玻璃风格 -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-        <div
-          class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
-          :style="{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }"
-        />
-        <div
-          class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
-          :style="{
-            background: 'linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)',
-            animationDelay: '1s'
-          }"
-        />
-        <div
-          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
-          :style="{
-            background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
-            animationDelay: '2s'
-          }"
-        />
+      <div
+        class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
+        :style="{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }"
+      />
+      <div
+        class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
+        :style="{
+          background: 'linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)',
+          animationDelay: '1s'
+        }"
+      />
+      <div
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
+        :style="{
+          background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
+          animationDelay: '2s'
+        }"
+      />
     </div>
 
     <div class="relative z-10 container mx-auto px-6 py-16">
@@ -29,7 +29,10 @@
         <div class="animate-fade-in">
           <div class="mb-6">
             <div class="flex items-center w-20 h-20 rounded-3xl glass-card mb-6">
-              <Code2 class="w-10 h-10 mx-auto" :style="{ color: '#6366f1' }" />
+              <Code2
+                class="w-10 h-10 mx-auto"
+                :style="{ color: '#6366f1' }"
+              />
             </div>
           </div>
 
@@ -37,11 +40,17 @@
             CCR UI
           </h1>
 
-          <p class="text-2xl md:text-3xl font-medium mb-4 leading-tight" :style="{ color: 'var(--text-primary)' }">
+          <p
+            class="text-2xl md:text-3xl font-medium mb-4 leading-tight"
+            :style="{ color: 'var(--text-primary)' }"
+          >
             AI CLI 配置管理中心
           </p>
 
-          <p class="text-base md:text-lg mb-6 leading-relaxed max-w-xl" :style="{ color: 'var(--text-secondary)' }">
+          <p
+            class="text-base md:text-lg mb-6 leading-relaxed max-w-xl"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
             现代化的多 CLI 工具配置管理解决方案，支持 Claude、Codex、Gemini 等多种 AI 平台。集成配置转换、云同步、命令执行等强大功能，让 AI 工具配置管理更简单高效。
           </p>
 
@@ -59,119 +68,179 @@
         <div class="space-y-4 animate-fade-in">
           <!-- 系统状态卡片 - 横向排列 -->
           <template v-if="systemInfo">
-          <div class="glass-card p-6">
-            <div class="grid grid-cols-3 gap-4 md:gap-6">
-              <!-- CPU 使用率 -->
-              <div 
-                class="text-center group cursor-pointer hover:scale-110 transition-all duration-300"
-                :style="{ animationDelay: '0.1s' }"
-              >
-                <div class="relative inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 mb-2 md:mb-3">
-                  <!-- 背景圆环 -->
-                  <svg class="absolute w-full h-full -rotate-90" viewBox="0 0 100 100">
-                    <defs>
-                      <linearGradient id="cpuGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:#6366f1" />
-                        <stop offset="100%" style="stop-color:#8b5cf6" />
-                      </linearGradient>
-                    </defs>
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="rgba(99, 102, 241, 0.1)"
-                      stroke-width="8"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="url(#cpuGradient)"
-                      stroke-width="8"
-                      stroke-linecap="round"
-                      :stroke-dasharray="`${(systemInfo.cpu_usage || 0) * 2.51} 251`"
-                      class="transition-all duration-500"
-                    />
-                  </svg>
-                  <!-- 图标 -->
-                  <div class="relative">
-                    <Cpu class="w-8 h-8" :style="{ color: '#6366f1' }" />
+            <div class="glass-card p-6">
+              <div class="grid grid-cols-3 gap-4 md:gap-6">
+                <!-- CPU 使用率 -->
+                <div 
+                  class="text-center group cursor-pointer hover:scale-110 transition-all duration-300"
+                  :style="{ animationDelay: '0.1s' }"
+                >
+                  <div class="relative inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 mb-2 md:mb-3">
+                    <!-- 背景圆环 -->
+                    <svg
+                      class="absolute w-full h-full -rotate-90"
+                      viewBox="0 0 100 100"
+                    >
+                      <defs>
+                        <linearGradient
+                          id="cpuGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop
+                            offset="0%"
+                            style="stop-color:#6366f1"
+                          />
+                          <stop
+                            offset="100%"
+                            style="stop-color:#8b5cf6"
+                          />
+                        </linearGradient>
+                      </defs>
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="rgba(99, 102, 241, 0.1)"
+                        stroke-width="8"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="url(#cpuGradient)"
+                        stroke-width="8"
+                        stroke-linecap="round"
+                        :stroke-dasharray="`${(systemInfo.cpu_usage || 0) * 2.51} 251`"
+                        class="transition-all duration-500"
+                      />
+                    </svg>
+                    <!-- 图标 -->
+                    <div class="relative">
+                      <Cpu
+                        class="w-8 h-8"
+                        :style="{ color: '#6366f1' }"
+                      />
+                    </div>
                   </div>
+                  <p
+                    class="text-xl md:text-2xl font-bold mb-0.5 md:mb-1"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    {{ systemInfo.cpu_usage?.toFixed(1) || '0.0' }}%
+                  </p>
+                  <p
+                    class="text-xs font-medium"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    CPU 使用率
+                  </p>
                 </div>
-                <p class="text-xl md:text-2xl font-bold mb-0.5 md:mb-1" :style="{ color: 'var(--text-primary)' }">
-                  {{ systemInfo.cpu_usage?.toFixed(1) || '0.0' }}%
-                </p>
-                <p class="text-xs font-medium" :style="{ color: 'var(--text-muted)' }">
-                  CPU 使用率
-                </p>
-              </div>
 
-              <!-- 内存使用 -->
-              <div 
-                class="text-center group cursor-pointer hover:scale-110 transition-all duration-300"
-                :style="{ animationDelay: '0.2s' }"
-              >
-                <div class="relative inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 mb-2 md:mb-3">
-                  <!-- 背景圆环 -->
-                  <svg class="absolute w-full h-full -rotate-90" viewBox="0 0 100 100">
-                    <defs>
-                      <linearGradient id="memGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:#8b5cf6" />
-                        <stop offset="100%" style="stop-color:#ec4899" />
-                      </linearGradient>
-                    </defs>
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="rgba(139, 92, 246, 0.1)"
-                      stroke-width="8"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="url(#memGradient)"
-                      stroke-width="8"
-                      stroke-linecap="round"
-                      :stroke-dasharray="`${(systemInfo.memory_usage_percent || 0) * 2.51} 251`"
-                      class="transition-all duration-500"
-                    />
-                  </svg>
-                  <!-- 图标 -->
-                  <div class="relative">
-                    <HardDrive class="w-8 h-8" :style="{ color: '#8b5cf6' }" />
+                <!-- 内存使用 -->
+                <div 
+                  class="text-center group cursor-pointer hover:scale-110 transition-all duration-300"
+                  :style="{ animationDelay: '0.2s' }"
+                >
+                  <div class="relative inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 mb-2 md:mb-3">
+                    <!-- 背景圆环 -->
+                    <svg
+                      class="absolute w-full h-full -rotate-90"
+                      viewBox="0 0 100 100"
+                    >
+                      <defs>
+                        <linearGradient
+                          id="memGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop
+                            offset="0%"
+                            style="stop-color:#8b5cf6"
+                          />
+                          <stop
+                            offset="100%"
+                            style="stop-color:#ec4899"
+                          />
+                        </linearGradient>
+                      </defs>
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="rgba(139, 92, 246, 0.1)"
+                        stroke-width="8"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="url(#memGradient)"
+                        stroke-width="8"
+                        stroke-linecap="round"
+                        :stroke-dasharray="`${(systemInfo.memory_usage_percent || 0) * 2.51} 251`"
+                        class="transition-all duration-500"
+                      />
+                    </svg>
+                    <!-- 图标 -->
+                    <div class="relative">
+                      <HardDrive
+                        class="w-8 h-8"
+                        :style="{ color: '#8b5cf6' }"
+                      />
+                    </div>
                   </div>
+                  <p
+                    class="text-xl md:text-2xl font-bold mb-0.5 md:mb-1"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    {{ systemInfo.memory_usage_percent?.toFixed(1) || '0.0' }}%
+                  </p>
+                  <p
+                    class="text-xs font-medium"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    内存使用
+                  </p>
                 </div>
-                <p class="text-xl md:text-2xl font-bold mb-0.5 md:mb-1" :style="{ color: 'var(--text-primary)' }">
-                  {{ systemInfo.memory_usage_percent?.toFixed(1) || '0.0' }}%
-                </p>
-                <p class="text-xs font-medium" :style="{ color: 'var(--text-muted)' }">
-                  内存使用
-                </p>
-              </div>
 
-              <!-- 系统平台 -->
-              <div 
-                class="text-center group cursor-pointer hover:scale-110 transition-all duration-300"
-                :style="{ animationDelay: '0.3s' }"
-              >
-                <div class="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 mb-2 md:mb-3 rounded-full" :style="{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15))' }">
-                  <Activity class="w-7 h-7 md:w-8 md:h-8" :style="{ color: '#10b981' }" />
+                <!-- 系统平台 -->
+                <div 
+                  class="text-center group cursor-pointer hover:scale-110 transition-all duration-300"
+                  :style="{ animationDelay: '0.3s' }"
+                >
+                  <div
+                    class="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 mb-2 md:mb-3 rounded-full"
+                    :style="{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15))' }"
+                  >
+                    <Activity
+                      class="w-7 h-7 md:w-8 md:h-8"
+                      :style="{ color: '#10b981' }"
+                    />
+                  </div>
+                  <p
+                    class="text-base md:text-lg font-bold mb-0.5 md:mb-1 truncate px-2"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    {{ systemInfo.os }}
+                  </p>
+                  <p
+                    class="text-xs font-medium"
+                    :style="{ color: 'var(--text-muted)' }"
+                  >
+                    {{ systemInfo.os_version }}
+                  </p>
                 </div>
-                <p class="text-base md:text-lg font-bold mb-0.5 md:mb-1 truncate px-2" :style="{ color: 'var(--text-primary)' }">
-                  {{ systemInfo.os }}
-                </p>
-                <p class="text-xs font-medium" :style="{ color: 'var(--text-muted)' }">
-                  {{ systemInfo.os_version }}
-                </p>
               </div>
             </div>
-          </div>
           </template>
 
           <!-- 快速操作卡片 -->
@@ -184,9 +253,15 @@
                 class="p-3 rounded-2xl"
                 :style="{ background: 'rgba(245, 158, 11, 0.1)' }"
               >
-                <Zap class="w-6 h-6" :style="{ color: '#f59e0b' }" />
+                <Zap
+                  class="w-6 h-6"
+                  :style="{ color: '#f59e0b' }"
+                />
               </div>
-              <h3 class="text-lg font-bold" :style="{ color: 'var(--text-primary)' }">
+              <h3
+                class="text-lg font-bold"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 快速操作
               </h3>
             </div>
@@ -196,36 +271,63 @@
                 class="flex items-center justify-between p-3 rounded-xl hover:bg-gradient-to-r hover:from-accent-primary/10 hover:to-accent-secondary/10 transition-all group"
               >
                 <div class="flex items-center gap-2">
-                  <Terminal class="w-4 h-4" :style="{ color: '#64748b' }" />
-                  <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">
+                  <Terminal
+                    class="w-4 h-4"
+                    :style="{ color: '#64748b' }"
+                  />
+                  <span
+                    class="text-sm font-medium"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
                     执行命令
                   </span>
                 </div>
-                <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" :style="{ color: 'var(--text-muted)' }" />
+                <ArrowRight
+                  class="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                  :style="{ color: 'var(--text-muted)' }"
+                />
               </RouterLink>
               <RouterLink
                 to="/converter"
                 class="flex items-center justify-between p-3 rounded-xl hover:bg-gradient-to-r hover:from-accent-primary/10 hover:to-accent-secondary/10 transition-all group"
               >
                 <div class="flex items-center gap-2">
-                  <TrendingUp class="w-4 h-4" :style="{ color: '#f97316' }" />
-                  <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">
+                  <TrendingUp
+                    class="w-4 h-4"
+                    :style="{ color: '#f97316' }"
+                  />
+                  <span
+                    class="text-sm font-medium"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
                     配置转换
                   </span>
                 </div>
-                <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" :style="{ color: 'var(--text-muted)' }" />
+                <ArrowRight
+                  class="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                  :style="{ color: 'var(--text-muted)' }"
+                />
               </RouterLink>
               <RouterLink
                 to="/sync"
                 class="flex items-center justify-between p-3 rounded-xl hover:bg-gradient-to-r hover:from-accent-primary/10 hover:to-accent-secondary/10 transition-all group"
               >
                 <div class="flex items-center gap-2">
-                  <Cloud class="w-4 h-4" :style="{ color: '#06b6d4' }" />
-                  <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">
+                  <Cloud
+                    class="w-4 h-4"
+                    :style="{ color: '#06b6d4' }"
+                  />
+                  <span
+                    class="text-sm font-medium"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
                     云端同步
                   </span>
                 </div>
-                <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" :style="{ color: 'var(--text-muted)' }" />
+                <ArrowRight
+                  class="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                  :style="{ color: 'var(--text-muted)' }"
+                />
               </RouterLink>
             </div>
           </div>
@@ -239,7 +341,10 @@
             class="p-3 rounded-2xl glass-card"
             :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
           >
-            <Code2 class="w-6 h-6" :style="{ color: '#6366f1' }" />
+            <Code2
+              class="w-6 h-6"
+              :style="{ color: '#6366f1' }"
+            />
           </div>
           <div>
             <h2
@@ -248,7 +353,10 @@
             >
               AI CLI 工具
             </h2>
-            <p class="text-sm" :style="{ color: 'var(--text-muted)' }">
+            <p
+              class="text-sm"
+              :style="{ color: 'var(--text-muted)' }"
+            >
               多种 AI 平台配置管理和工具集成
             </p>
           </div>
@@ -268,7 +376,11 @@
                   class="inline-flex p-3 rounded-2xl"
                   :style="{ background: `${tool.color}15` }"
                 >
-                  <component :is="tool.icon" class="w-6 h-6" :style="{ color: tool.color }" />
+                  <component
+                    :is="tool.icon"
+                    class="w-6 h-6"
+                    :style="{ color: tool.color }"
+                  />
                 </div>
               </div>
 
@@ -317,7 +429,10 @@
             class="p-3 rounded-2xl glass-card"
             :style="{ background: 'rgba(139, 92, 246, 0.15)' }"
           >
-            <Settings class="w-6 h-6" :style="{ color: '#8b5cf6' }" />
+            <Settings
+              class="w-6 h-6"
+              :style="{ color: '#8b5cf6' }"
+            />
           </div>
           <div>
             <h2
@@ -326,7 +441,10 @@
             >
               配置与工具
             </h2>
-            <p class="text-sm" :style="{ color: 'var(--text-muted)' }">
+            <p
+              class="text-sm"
+              :style="{ color: 'var(--text-muted)' }"
+            >
               配置转换、云同步和命令执行中心
             </p>
           </div>
@@ -346,7 +464,11 @@
                   class="inline-flex p-4 rounded-2xl"
                   :style="{ background: `${config.color}15` }"
                 >
-                  <component :is="config.icon" class="w-7 h-7" :style="{ color: config.color }" />
+                  <component
+                    :is="config.icon"
+                    class="w-7 h-7"
+                    :style="{ color: config.color }"
+                  />
                 </div>
               </div>
 
@@ -390,10 +512,16 @@
 
       <!-- 🌈 底部信息 -->
       <div class="mt-20 text-center">
-        <p class="text-sm mb-2" :style="{ color: 'var(--text-muted)' }">
+        <p
+          class="text-sm mb-2"
+          :style="{ color: 'var(--text-muted)' }"
+        >
           现代化的配置管理解决方案 · 支持多种 AI CLI 工具
         </p>
-        <p class="text-xs" :style="{ color: 'var(--text-muted)' }">
+        <p
+          class="text-xs"
+          :style="{ color: 'var(--text-muted)' }"
+        >
           Claude Code • Codex • Gemini • Qwen • IFLOW
         </p>
       </div>
@@ -529,6 +657,15 @@ const configTools: ModuleCard[] = [
     color: '#06b6d4',
     colorTo: '#0891b2',
     stats: '自动备份'
+  },
+  {
+    title: 'Token 使用统计',
+    description: 'Token 使用量可视化分析，活动热力图和使用趋势',
+    icon: Activity,
+    href: '/usage',
+    color: '#10b981',
+    colorTo: '#059669',
+    stats: '实时监控'
   },
 ]
 </script>

@@ -28,8 +28,16 @@ onMounted(async () => {
         : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
     ]"
   >
-    <Monitor v-if="isTauri" :size="16" class="opacity-70" />
-    <Globe v-else :size="16" class="opacity-70" />
+    <Monitor
+      v-if="isTauri"
+      :size="16"
+      class="opacity-70"
+    />
+    <Globe
+      v-else
+      :size="16"
+      class="opacity-70"
+    />
 
     <span>
       {{ isTauri ? '桌面应用' : 'Web版本' }}
