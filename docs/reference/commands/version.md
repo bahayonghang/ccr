@@ -17,12 +17,12 @@ ccr -V
 
 ```bash
 $ ccr version
-CCR (Claude Code Configuration Router) v0.3.1
+CCR (Claude Code Configuration Router) v3.3.2
 
 Build Information:
   Commit: a1b2c3d
-  Build Date: 2025-01-10
-  Rust Version: 1.75.0
+  Build Date: 2025-01-18
+  Rust Version: 1.85.0
 
 Repository: https://github.com/bahayonghang/ccr
 License: MIT
@@ -63,7 +63,7 @@ CCR v0.3.1
 ```bash
 # 安装后
 cargo install --git https://github.com/bahayonghang/ccr ccr
-ccr version
+ccr version  # 应显示 v3.3.2
 
 # 更新后
 ccr update
@@ -78,7 +78,7 @@ VERSION=$(ccr version | head -n1 | awk '{print $NF}')
 echo "Current CCR version: $VERSION"
 
 # 版本比较
-if [[ "$VERSION" < "v0.4.0" ]]; then
+if [[ "$VERSION" < "v3.4.0" ]]; then
   echo "Please update CCR"
   ccr update
 fi
@@ -107,10 +107,10 @@ CCR 使用语义化版本号：
 v<major>.<minor>.<patch>
 ```
 
-示例：`v0.3.1`
-- `0`: 主版本号(不兼容的 API 变化)
+示例：`v3.3.2`
+- `3`: 主版本号(不兼容的 API 变化)
 - `3`: 次版本号(向后兼容的新功能)
-- `1`: 修订号(向后兼容的问题修复)
+- `2`: 修订号(向后兼容的问题修复)
 
 ## 版本历史
 
@@ -202,7 +202,7 @@ if match:
 ```bash
 #!/bin/bash
 
-REQUIRED="0.3.0"
+REQUIRED="3.3.0"
 CURRENT=$(ccr version | head -n1 | awk '{print $NF}' | tr -d 'v')
 
 if [ "$(printf '%s\n' "$REQUIRED" "$CURRENT" | sort -V | head -n1)" = "$REQUIRED" ]; then
@@ -218,8 +218,8 @@ fi
 ```bash
 #!/bin/bash
 
-MIN_VERSION="0.3.0"
-MAX_VERSION="0.5.0"
+MIN_VERSION="3.3.0"
+MAX_VERSION="4.0.0"
 CURRENT=$(ccr version | head -n1 | awk '{print $NF}' | tr -d 'v')
 
 if [[ "$CURRENT" > "$MIN_VERSION" && "$CURRENT" < "$MAX_VERSION" ]]; then
@@ -236,12 +236,12 @@ fi
 1. **Cargo.toml**: 版本号定义
    ```toml
    [package]
-   version = "0.3.1"
+   version = "3.3.2"
    ```
 
 2. **Git Tags**: 发布标签
    ```bash
-   git tag -a v0.3.1 -m "Release v0.3.1"
+   git tag -a v3.3.2 -m "Release v3.3.2"
    ```
 
 3. **Build Script**: 构建时嵌入信息

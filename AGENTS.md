@@ -1,3 +1,7 @@
+# AGENTS.md
+
+This file provides guidance to neovate when working with code in this repository.
+
 <!-- OPENSPEC:START -->
 # OpenSpec Instructions
 
@@ -17,26 +21,145 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
 
-# Repository Guidelines
+## Repository Guidelines
 
 ## Project Structure & Module Organization
 CCR is a Cargo workspace: CLI and shared library code live in `src/`, integration suites in `tests/`, and shared manifests in the root `Cargo.toml`. Reference docs stay in `docs/`, runnable walkthroughs in `examples/`, and protocol specs under `openspec/`. `ccr-ui/backend/` hosts the Axum API server, `ccr-ui/frontend/` contains the Vue 3 + TypeScript client, and automation scripts sit in `scripts/`.
 
-## Build, Test, and Development Commands
-- `cargo build --workspace` or `just build` compiles every crate in debug mode.
-- `just release` performs the optimized `cargo build --release` path for distribution.
-- `just dev` chains `cargo check` with the default test suite.
-- `just run -- <args>` executes the CLI locally; append `--help` for UX copy reviews.
-- Inside `ccr-ui/`, run `just quick-start` once to install dependencies and `just s` to serve the Vue dev client plus Axum backend.
+## Development Commands
 
-## Coding Style & Naming Conventions
-Use Rust 2024 defaults: four-space indentation, snake_case functions, PascalCase types, and SCREAMING_SNAKE_CASE constants. Run `cargo fmt` and `cargo clippy -- -D warnings` (or `just lint`) before submitting, and keep modules single-responsibility to preserve SOLID boundaries. The frontend follows Vue Composition API practices with ESLint + Prettier triggered by `just c`/`just f`, PascalCase component exports, and kebab-case filenames.
+### Core Build/Compilation Commands
+- `cargo build --workspace` or `just build` - Compiles workspace crates in debug mode
+- `just release` - Performs optimized release build
+- `cargo build --no-default-features` - CLI only build (saves ~75% build time)
+- `cargo build --features web` - CLI + Web API build
+- `cargo build --features tui` - CLI + TUI build
+- `cargo build --all-features` - Complete build with all features
 
-## Testing Guidelines
-`just test` enforces the expected order: it runs `cargo test --test platform_integration_tests -- --test-threads=1` first because it mutates global config paths, then executes library tests plus `integration_test` and `manager_tests`. Keep fast unit tests beside their modules in `src/`, and place scenario or CLI workflows inside `tests/` with descriptive names such as `sync_workflow.rs`. Maintain the ~95% coverage level in the README and pair each feature with success and failure assertions.
+### Testing Commands
+- `just test` - Runs test suite in proper order (serial platform tests first)
+- `cargo test --test platform_integration_tests -- --test-threads=1` - Platform integration tests (must run serially)
+- `cargo test --lib` - Unit tests only
+- `cargo test --workspace` - Test all workspace members
+- `cargo test --all-features` - Full test suite
+- `just test-all` - Complete test suite including ignored tests
 
-## Commit & Pull Request Guidelines
-Follow the Conventional Commit style already used (`feat(web): …`, `refactor(tests): …`) with summaries under 72 characters and meaningful scopes. Each commit must pass `just lint` and `just test` and include any doc or schema updates touched by the change. Pull requests should describe motivation, link related issues, note reproduction steps for fixes, and attach CLI output or UI captures when behavior changes; surface migrations touching `~/.ccr/` so reviewers can back up configs.
+### Linting/Formatting Commands
+- `just lint` - Run format and clippy checks
+- `cargo fmt` - Format code
+- `cargo fmt --all --check` - Check formatting without modifying
+- `cargo clippy --all-targets -- -D warnings` - Lint with warnings as errors
+- `just clippy` - Run clippy in CCR UI backend
+- `just ci` - Complete CI pipeline (format + clippy + test + build)
 
-## Security & Configuration Tips
-Never commit contents from `~/.claude/` or `~/.ccr/`; rely on `ccr temp-token` for throwaway credentials during testing. Use disposable WebDAV endpoints and scrub hostnames or secrets before sharing sync logs.
+### Development Server Commands
+- `just dev` - Development check and test cycle
+- `just watch` - Monitor file changes and auto-rebuild
+- `just run -- <args>` - Run debug version with arguments
+- `just run-release -- <args>` - Run release version with arguments
+- `cd ccr-ui && just s` - Start CCR UI dev environment (Vue frontend + Rust backend)
+- `just quick-start` - One command setup (check prereqs + install + start)
+
+### Package Management Commands
+- `just install` - Install to local (~/.cargo/bin)
+- `just reinstall` - Force reinstall
+- `just uninstall` - Remove installed binary
+- `just update-deps` - Check dependency updates
+- `just clean` - Clean build artifacts
+- `cd ccr-ui && just install` - Install all UI dependencies
+
+### Database/Migration Commands
+- `ccr migrate` - Migrate from legacy to unified mode
+- `ccr migrate --check` - Check if migration needed
+- `ccr migrate --platform <name>` - Migrate specific platform
+
+### Deployment/Release Commands
+- `just release` - Build optimized release binary
+- `just ci` - Complete CI build pipeline
+- `just prepare-release` - Prepare for release (clean + build)
+- `cargo install --git https://github.com/bahayonghang/ccr ccr` - Install from GitHub
+
+## Code Architecture & Patterns
+
+### Architecture Overview
+CCR follows a strict **layered architecture**:
+```
+CLI/Web Layer → Services → Managers → Core/Utils
+```
+
+**Cargo Workspace Architecture**:
+- Workspace Root: Centralized dependency management with `[workspace.dependencies]`
+- CCR Main Crate: CLI tool + reusable library
+- CCR-UI Backend: Axum web server using CCR as a library
+- Shared Dependencies: 15+ core libraries (serde, tokio, axum, chrono, etc.)
+
+### Key Components
+- **Service Layer**: 4 services (Config, Settings, History, Backup) with 26+ methods
+- **Manager Layer**: 3 managers (Config, Settings, History) for data access & file operations
+- **Web Module**: Axum-based server with 14+ RESTful API endpoints
+- **Core Infrastructure**: Atomic writer, file locking, error handling, logging
+
+### Configuration Modes
+CCR supports two configuration modes:
+- **Legacy Mode**: Single platform using `~/.ccs_config.toml` (backward compatible with CCS)
+- **Unified Mode**: Multi-platform using `~/.ccr/` directory structure (default)
+
+### Platform Abstraction
+- **Platform Trait**: Defines platform interface for Claude, Codex, Gemini, etc.
+- **Factory Pattern**: `create_platform()` function creates platform instances
+- **Platform Registry**: Manages all available platforms with detection logic
+
+### Data Flow Patterns
+- **Atomic Operations**: Temp file + rename pattern for safe file writes
+- **File Locking**: Prevents corruption during concurrent operations
+- **Audit Trail**: Every operation logged with UUID, timestamp, masked data
+- **Auto Backup**: Automatic backups before destructive operations
+
+### Build Performance Optimizations
+- **Development Profile**: `opt-level = 1` with `debug = 1` for faster builds
+- **Dependency Optimization**: `[profile.dev.package."*"] opt-level = 2` for dependencies
+- **Incremental Compilation**: Enabled by default
+
+## Technology Stack & Dependencies
+
+### Core Dependencies
+- **Rust Edition 2024**: Modern Rust features and syntax
+- **Tokio**: Async runtime with multi-threaded features
+- **Axum**: Web framework for API endpoints
+- **Serde**: Serialization with derive features
+- **Clap**: CLI argument parsing with derive
+- **Comfy-table**: Beautiful terminal table UI
+
+### Web/Backend Stack
+- **Axum**: High-performance async web framework
+- **Tower**: HTTP service framework with middleware
+- **Tokio**: Async runtime for concurrent operations
+- **Tracing**: Structured logging and diagnostics
+
+### Frontend Stack (CCR UI)
+- **Vue.js 3.5**: Modern JavaScript framework with Composition API
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first styling framework
+- **Vite**: Fast development build tool
+- **Pinia**: State management
+- **Axios**: HTTP client
+
+### Testing & Quality
+- **Cargo Test**: Built-in test framework
+- **Clippy**: Rust linter with strict warning policies
+- **Cargo Fmt**: Code formatting with rustfmt
+- **Tarpaulin**: Test coverage (target: 95%+)
+
+### Platform Support
+- **Multi-Platform**: Claude Code, Codex (GitHub Copilot), Gemini CLI, Qwen, iFlow
+- **Cross-OS**: Linux, macOS, Windows support via conditional builds
+- **WebDAV Sync**: Cloud sync with Nutstore, Nextcloud, ownCloud support
+
+### Key Design Patterns
+- **Service Layer Pattern**: Business logic encapsulation
+- **Manager Pattern**: Data access abstraction
+- **Factory Pattern**: Platform instance creation
+- **Builder Pattern**: Configuration construction
+- **Singleton Pattern**: Global managers and state
+- **Async/Await**: Non-blocking I/O operations
+- **Option/Result**: Error handling and nullable values
