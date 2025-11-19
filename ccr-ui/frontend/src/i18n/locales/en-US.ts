@@ -895,6 +895,147 @@ export default {
     providerUsageDesc: 'Call count clustered by provider',
     times: 'times',
   },
+  sync: {
+    // Page header
+    title: 'WebDAV Cloud Sync',
+    subtitle: 'Preset Platform Selection · One-Click Sync · Smart Management',
+    description: 'WebDAV cloud backup with multi-platform configuration sync',
+    breadcrumb: {
+      home: 'Home',
+      claudeCode: 'Claude Code',
+      sync: 'Cloud Sync',
+    },
+    backHome: 'Back to Home',
+
+    // Loading and error states
+    loading: 'Loading...',
+    loadFailed: 'Load Failed',
+    error: 'Error',
+
+    // Platform selection section
+    platformSelection: {
+      title: 'Select Sync Platforms',
+      applyButton: 'Apply Selection',
+      applying: 'Applying...',
+      configRequired: 'Platforms Configuration',
+      configRequiredBadge: 'Required',
+      configDescription: 'CCR provider configuration (API URLs, keys, etc.), mandatory sync for consistency',
+      claudeCode: 'Claude Code',
+      claudeDescription: 'Anthropic Claude Code CLI configuration and data',
+      gemini: 'Gemini CLI',
+      geminiDescription: 'Google Gemini CLI configuration and data',
+      qwen: 'Qwen',
+      qwenDescription: 'Tongyi Qianwen CLI configuration and data',
+      iflow: 'iFlow',
+      iflowDescription: 'iFlow CLI configuration and data',
+    },
+
+    // Custom folder section
+    customFolder: {
+      title: 'Custom Folder',
+      namePlaceholder: 'Folder name',
+      localPathPlaceholder: 'Local path',
+      remotePathPlaceholder: 'Remote path (optional)',
+      descriptionPlaceholder: 'Description (optional)',
+      addButton: 'Add Custom Folder',
+      adding: 'Adding...',
+    },
+
+    // Enabled folders section
+    enabledFolders: {
+      title: 'Enabled Folders',
+      refresh: 'Refresh',
+      refreshing: 'Refreshing...',
+      noFolders: 'No enabled sync folders',
+      noFoldersHint: 'Please select platforms above to sync',
+      enabled: '✓ Enabled',
+      disabled: '✗ Disabled',
+      localPath: 'Local Path',
+      remotePath: 'Remote Path',
+    },
+
+    // Folder operations
+    operations: {
+      enable: 'Enable',
+      disable: 'Disable',
+      upload: 'Upload',
+      download: 'Download',
+      status: 'Status',
+      delete: 'Delete',
+      toggle: 'Toggle Status',
+    },
+
+    // Batch operations
+    batchOperations: {
+      title: 'Batch Operations',
+      description: 'Perform batch sync operations on all enabled folders',
+      uploadAll: 'Upload All',
+      downloadAll: 'Download All',
+      viewStatus: 'View Status',
+    },
+
+    // Operation output
+    output: {
+      title: 'Operation Output',
+      close: 'Close',
+    },
+
+    // WebDAV configuration
+    webdav: {
+      title: 'WebDAV Configuration',
+      configured: 'Configured',
+      notConfigured: 'Not Configured',
+      server: 'Server',
+      username: 'Username',
+      remotePath: 'Remote Path',
+      configureHint: 'Please configure WebDAV using CLI:',
+      configureCommand: 'ccr sync config',
+    },
+
+    // Features section
+    features: {
+      title: 'Features',
+      presetPlatform: '✅ Preset Platform Selection',
+      presetPlatformDesc: 'Config required, Claude/Gemini/Qwen optional, one-click setup for common platforms',
+      independentManagement: '🔄 Independent Folder Management',
+      independentManagementDesc: 'Each folder syncs independently, can be enabled/disabled and operated individually',
+      smartFiltering: '💾 Smart Filtering',
+      smartFilteringDesc: 'Automatically excludes backups/, .locks/, *.tmp, *.bak files',
+      batchOperations: '⚡ Batch Operations',
+      batchOperationsDesc: 'One-click upload/download for all enabled folders, improve efficiency',
+    },
+
+    // Supported services
+    supportedServices: {
+      title: 'Supported Services',
+      nutstore: 'Nutstore',
+      nextcloud: 'Nextcloud',
+      owncloud: 'ownCloud',
+      any: 'Any standard WebDAV server',
+    },
+
+    // Messages
+    messages: {
+      applySuccess: '✓ Sync configuration applied',
+      applyFailed: '✗ Application failed',
+      addSuccess: '✓ Custom folder added successfully',
+      addFailed: '✗ Addition failed',
+      deleteConfirm: 'Are you sure you want to delete folder "{name}"?\n\nNote: This will only remove the sync configuration, not delete local files.',
+      deleteSuccess: '✓ Folder deleted successfully',
+      deleteFailed: '✗ Deletion failed',
+      toggleSuccess: '✓ Successfully {action} folder',
+      toggleFailed: '✗ Operation failed',
+      uploadSuccess: '✓ Upload successful',
+      uploadFailed: '✗ Upload failed',
+      downloadSuccess: '✓ Download successful',
+      downloadFailed: '✗ Download failed',
+      statusFailed: '✗ Failed to get status',
+      batchUploadFailed: '✗ Batch upload failed',
+      batchDownloadFailed: '✗ Batch download failed',
+      enabled: 'enabled',
+      disabled: 'disabled',
+    },
+  },
   theme: {
     light: 'Light Mode',
     dark: 'Dark Mode',
@@ -919,5 +1060,109 @@ export default {
     savedSuccessfully: 'Saved successfully',
     deletedSuccessfully: 'Deleted successfully',
     copiedToClipboard: 'Copied to clipboard',
+  },
+
+  // Usage Statistics Module
+  usage: {
+    title: 'Usage Statistics',
+    subtitle: 'Real-time tracking of Token consumption across AI platforms',
+
+    platforms: {
+      claude: '🤖 Claude',
+      codex: '💻 Codex',
+      gemini: '✨ Gemini'
+    },
+
+    actions: {
+      loading: 'Loading...',
+      refresh: 'Refresh Data',
+      retry: 'Retry'
+    },
+
+    filters: {
+      timeRange: {
+        last5h: 'Last 5 hours',
+        today: 'Today',
+        last7d: 'Last 7 days',
+        thisWeek: 'This week',
+        thisMonth: 'This month',
+        allTime: 'All time'
+      },
+      model: {
+        all: 'All models'
+      },
+      autoRefresh: 'Auto refresh'
+    },
+
+    summaryCards: {
+      inputTokens: 'Input Tokens',
+      outputTokens: 'Output Tokens',
+      cacheRead: 'Cache Read',
+      cacheEfficiency: 'Cache Efficiency'
+    },
+
+    states: {
+      loading: 'Loading usage data...',
+      loadFailed: 'Failed to load usage data',
+      noData: 'No usage data available',
+      noDataHint: 'Start using {platform} to see usage statistics here',
+      truncatedWarning: 'Showing first 10,000 records. Total {total} records found.'
+    },
+
+    emptyState: {
+      title: 'No Usage Data Available',
+      subtitle: 'Start using {platform} to see usage statistics here'
+    }
+  },
+
+  // Statistics Module
+  stats: {
+    title: '📊 Statistics',
+    subtitle: 'View AI API usage and statistics',
+
+    timeRange: {
+      today: 'Today',
+      thisWeek: 'This week',
+      thisMonth: 'This month'
+    },
+
+    actions: {
+      providersStats: 'Provider Statistics',
+      refresh: 'Refresh'
+    },
+
+    summaryCards: {
+      totalCost: 'Total Cost',
+      apiCalls: 'API Calls',
+      inputToken: 'Input Token',
+      outputToken: 'Output Token'
+    },
+
+    tokenDetails: {
+      title: '🎫 Token Usage Details',
+      cacheToken: 'Cache Token',
+      cacheEfficiency: 'Cache Efficiency',
+      totalToken: 'Total Token'
+    },
+
+    sections: {
+      byModel: '🤖 Group by Model',
+      byProject: '📁 Group by Project (Top 10)',
+      costTrend: '📈 Cost Trend',
+      providerUsage: '🏢 Provider Usage Count',
+      providerUsageSubtitle: 'Calls grouped by provider'
+    },
+
+    units: {
+      times: 'times'
+    },
+
+    states: {
+      loadFailed: 'Load failed',
+      loadFailedMessage: 'Failed to load statistics data',
+      noData: 'No data',
+      noStatsData: 'No statistics data',
+      noStatsHint: 'Statistics will appear here after you start using AI API'
+    }
   },
 }

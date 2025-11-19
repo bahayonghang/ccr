@@ -4,10 +4,10 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-          📊 统计分析
+          {{ $t('stats.title') }}
         </h1>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          查看 AI API 使用和统计信息
+          {{ $t('stats.subtitle') }}
         </p>
       </div>
       <div class="flex items-center space-x-4">
@@ -18,16 +18,16 @@
           @change="loadData"
         >
           <option value="today">
-            今日
+            {{ $t('stats.timeRange.today') }}
           </option>
           <option value="week">
-            本周
+            {{ $t('stats.timeRange.thisWeek') }}
           </option>
           <option value="month">
-            本月
+            {{ $t('stats.timeRange.thisMonth') }}
           </option>
         </select>
-          
+
         <!-- 提供商统计弹窗按钮 -->
         <button
           class="px-4 py-2 border border-blue-200 dark:border-blue-500 text-blue-700 dark:text-blue-200 rounded-lg flex items-center space-x-2 hover:bg-blue-50 dark:hover:bg-blue-900/30"
@@ -46,7 +46,7 @@
               d="M3 3h18M3 9h18M3 15h18M3 21h18"
             />
           </svg>
-          <span>提供商统计</span>
+          <span>{{ $t('stats.actions.providersStats') }}</span>
         </button>
 
         <!-- 刷新按钮 -->
@@ -69,7 +69,7 @@
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
             />
           </svg>
-          <span>刷新</span>
+          <span>{{ $t('stats.actions.refresh') }}</span>
         </button>
       </div>
     </div>
@@ -101,7 +101,7 @@
         </svg>
         <div class="ml-3">
           <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
-            加载失败
+            {{ $t('stats.states.loadFailed') }}
           </h3>
           <p class="mt-2 text-sm text-red-700 dark:text-red-300">
             {{ error }}
@@ -122,7 +122,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                总成本
+                {{ $t('stats.summaryCards.totalCost') }}
               </p>
               <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
                 ${{ formatCost(stats.total_cost) }}
@@ -151,7 +151,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                API 调用次数
+                {{ $t('stats.summaryCards.apiCalls') }}
               </p>
               <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
                 {{ stats.record_count }}
@@ -180,7 +180,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                输入 Token
+                {{ $t('stats.summaryCards.inputToken') }}
               </p>
               <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
                 {{ formatNumber(stats.token_stats.total_input_tokens) }}
@@ -209,7 +209,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                输出 Token
+                {{ $t('stats.summaryCards.outputToken') }}
               </p>
               <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
                 {{ formatNumber(stats.token_stats.total_output_tokens) }}
@@ -237,12 +237,12 @@
       <!-- Token 详细统计 -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          🎫 Token 使用详情
+          {{ $t('stats.tokenDetails.title') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <p class="text-sm text-gray-600 dark:text-gray-400">
-              Cache Token
+              {{ $t('stats.tokenDetails.cacheToken') }}
             </p>
             <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
               {{ formatNumber(stats.token_stats.total_cache_tokens) }}
@@ -250,7 +250,7 @@
           </div>
           <div>
             <p class="text-sm text-gray-600 dark:text-gray-400">
-              Cache 效率
+              {{ $t('stats.tokenDetails.cacheEfficiency') }}
             </p>
             <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
               {{ formatPercent(stats.token_stats.cache_efficiency) }}%
@@ -258,7 +258,7 @@
           </div>
           <div>
             <p class="text-sm text-gray-600 dark:text-gray-400">
-              总 Token
+              {{ $t('stats.tokenDetails.totalToken') }}
             </p>
             <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
               {{ formatNumber(getTotalTokens()) }}
@@ -270,7 +270,7 @@
       <!-- 按模型分组 -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          🤖 按模型分组
+          {{ $t('stats.sections.byModel') }}
         </h2>
         <div class="space-y-3">
           <div
@@ -289,7 +289,7 @@
             v-if="Object.keys(stats.by_model).length === 0"
             class="text-center text-gray-500 dark:text-gray-400 py-4"
           >
-            暂无数据
+            {{ $t('stats.states.noData') }}
           </div>
         </div>
       </div>
@@ -297,7 +297,7 @@
       <!-- 按项目分组 -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          📁 按项目分组 (Top 10)
+          {{ $t('stats.sections.byProject') }}
         </h2>
         <div class="space-y-3">
           <div
@@ -316,7 +316,7 @@
             v-if="Object.keys(stats.by_project).length === 0"
             class="text-center text-gray-500 dark:text-gray-400 py-4"
           >
-            暂无数据
+            {{ $t('stats.states.noData') }}
           </div>
         </div>
       </div>
@@ -327,7 +327,7 @@
         class="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
       >
         <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          📈 成本趋势
+          {{ $t('stats.sections.costTrend') }}
         </h2>
         <div class="space-y-2">
           <div
@@ -340,7 +340,7 @@
             </span>
             <div class="flex items-center space-x-4">
               <span class="text-sm text-gray-600 dark:text-gray-400">
-                {{ daily.count }} 次
+                {{ daily.count }} {{ $t('stats.units.times') }}
               </span>
               <span class="text-sm font-bold text-gray-900 dark:text-white">
                 ${{ formatCost(daily.cost) }}
@@ -370,10 +370,10 @@
         />
       </svg>
       <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-        暂无统计数据
+        {{ $t('stats.states.noStatsData') }}
       </h3>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        开始使用 AI API 后，这里将显示统计信息
+        {{ $t('stats.states.noStatsHint') }}
       </p>
     </div>
   </div>
@@ -388,10 +388,10 @@
       <div class="flex items-center justify-between mb-4">
         <div>
           <h3 class="text-xl font-bold">
-            🏢 提供商使用次数
+            {{ $t('stats.sections.providerUsage') }}
           </h3>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            按提供商聚类的调用次数
+            {{ $t('stats.sections.providerUsageSubtitle') }}
           </p>
         </div>
         <button
@@ -409,7 +409,7 @@
         >
           <div class="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
             <span class="font-medium truncate">{{ provider || 'unknown' }}</span>
-            <span class="font-bold text-gray-900 dark:text-white">{{ count }} 次</span>
+            <span class="font-bold text-gray-900 dark:text-white">{{ count }} {{ $t('stats.units.times') }}</span>
           </div>
           <div class="w-full bg-gray-100 dark:bg-gray-700/70 rounded-full h-3">
             <div
@@ -422,7 +422,7 @@
           v-if="sortedProviders.length === 0"
           class="text-center text-gray-500 dark:text-gray-400 py-4"
         >
-          暂无数据
+          {{ $t('stats.states.noData') }}
         </div>
       </div>
     </div>
@@ -431,8 +431,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getCostOverview, getProviderUsage } from '@/api/client'
 import type { CostStats } from '@/types'
+
+const { t } = useI18n()
 
 const stats = ref<CostStats | null>(null)
 const loading = ref(false)
@@ -449,7 +452,7 @@ const loadData = async () => {
     stats.value = await getCostOverview(selectedRange.value)
     providerUsage.value = await getProviderUsage()
   } catch (e: any) {
-    error.value = e.message || '加载统计数据失败'
+    error.value = e.message || t('stats.states.loadFailedMessage')
     console.error('Failed to load stats:', e)
   } finally {
     loading.value = false

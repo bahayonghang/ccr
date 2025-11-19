@@ -887,6 +887,147 @@ export default {
     providerUsageDesc: '按提供商聚类的调用次数',
     times: '次',
   },
+  sync: {
+    // Page header
+    title: 'WebDAV 云同步',
+    subtitle: '预设平台选择 · 一键同步 · 智能管理',
+    description: 'WebDAV 云端备份，支持多平台配置同步',
+    breadcrumb: {
+      home: '首页',
+      claudeCode: 'Claude Code',
+      sync: '云同步',
+    },
+    backHome: '返回首页',
+
+    // Loading and error states
+    loading: '加载中...',
+    loadFailed: '加载失败',
+    error: '错误',
+
+    // Platform selection section
+    platformSelection: {
+      title: '选择同步平台',
+      applyButton: '应用选择',
+      applying: '应用中...',
+      configRequired: 'Platforms 平台配置',
+      configRequiredBadge: '必选',
+      configDescription: 'CCR 供应商配置（API地址、密钥等），强制同步保证配置一致性',
+      claudeCode: 'Claude Code',
+      claudeDescription: 'Anthropic Claude Code CLI 配置和数据',
+      gemini: 'Gemini CLI',
+      geminiDescription: 'Google Gemini CLI 配置和数据',
+      qwen: 'Qwen',
+      qwenDescription: '通义千问 CLI 配置和数据',
+      iflow: 'iFlow',
+      iflowDescription: 'iFlow CLI 配置和数据',
+    },
+
+    // Custom folder section
+    customFolder: {
+      title: '自定义文件夹',
+      namePlaceholder: '文件夹名称',
+      localPathPlaceholder: '本地路径',
+      remotePathPlaceholder: '远程路径 (可选)',
+      descriptionPlaceholder: '描述 (可选)',
+      addButton: '添加自定义文件夹',
+      adding: '添加中...',
+    },
+
+    // Enabled folders section
+    enabledFolders: {
+      title: '已启用的文件夹',
+      refresh: '刷新',
+      refreshing: '刷新中...',
+      noFolders: '暂无启用的同步文件夹',
+      noFoldersHint: '请在上方选择要同步的平台',
+      enabled: '✓ 已启用',
+      disabled: '✗ 已禁用',
+      localPath: '本地路径',
+      remotePath: '远程路径',
+    },
+
+    // Folder operations
+    operations: {
+      enable: '启用',
+      disable: '禁用',
+      upload: '上传',
+      download: '下载',
+      status: '状态',
+      delete: '删除',
+      toggle: '切换状态',
+    },
+
+    // Batch operations
+    batchOperations: {
+      title: '批量操作',
+      description: '对所有启用的文件夹执行批量同步操作',
+      uploadAll: '全部上传',
+      downloadAll: '全部下载',
+      viewStatus: '查看状态',
+    },
+
+    // Operation output
+    output: {
+      title: '操作输出',
+      close: '关闭',
+    },
+
+    // WebDAV configuration
+    webdav: {
+      title: 'WebDAV 配置',
+      configured: '已配置',
+      notConfigured: '未配置',
+      server: '服务器',
+      username: '用户',
+      remotePath: '远程路径',
+      configureHint: '请使用 CLI 配置 WebDAV:',
+      configureCommand: 'ccr sync config',
+    },
+
+    // Features section
+    features: {
+      title: '功能说明',
+      presetPlatform: '✅ 预设平台选择',
+      presetPlatformDesc: 'Config 必选，Claude/Gemini/Qwen 可选，一键配置常用平台',
+      independentManagement: '🔄 独立文件夹管理',
+      independentManagementDesc: '每个文件夹独立同步，可单独启用/禁用和操作',
+      smartFiltering: '💾 智能过滤',
+      smartFilteringDesc: '自动排除 backups/、.locks/、*.tmp、*.bak 等文件',
+      batchOperations: '⚡ 批量操作',
+      batchOperationsDesc: '一键上传/下载所有启用的文件夹，提高效率',
+    },
+
+    // Supported services
+    supportedServices: {
+      title: '支持的服务',
+      nutstore: '坚果云 (Nutstore)',
+      nextcloud: 'Nextcloud',
+      owncloud: 'ownCloud',
+      any: '任何标准 WebDAV 服务器',
+    },
+
+    // Messages
+    messages: {
+      applySuccess: '✓ 同步配置已应用',
+      applyFailed: '✗ 应用失败',
+      addSuccess: '✓ 成功添加自定义文件夹',
+      addFailed: '✗ 添加失败',
+      deleteConfirm: '确定要删除文件夹 "{name}" 吗？\n\n注意：这只会移除同步配置，不会删除本地文件。',
+      deleteSuccess: '✓ 成功删除文件夹',
+      deleteFailed: '✗ 删除失败',
+      toggleSuccess: '✓ 成功{action}文件夹',
+      toggleFailed: '✗ 操作失败',
+      uploadSuccess: '✓ 上传成功',
+      uploadFailed: '✗ 上传失败',
+      downloadSuccess: '✓ 下载成功',
+      downloadFailed: '✗ 下载失败',
+      statusFailed: '✗ 获取状态失败',
+      batchUploadFailed: '✗ 批量上传失败',
+      batchDownloadFailed: '✗ 批量下载失败',
+      enabled: '启用',
+      disabled: '禁用',
+    },
+  },
   theme: {
     light: '浅色模式',
     dark: '深色模式',
@@ -911,5 +1052,109 @@ export default {
     savedSuccessfully: '保存成功',
     deletedSuccessfully: '删除成功',
     copiedToClipboard: '已复制到剪贴板',
+  },
+
+  // Usage Statistics Module
+  usage: {
+    title: '使用统计分析',
+    subtitle: '实时追踪跨 AI 平台的 Token 消耗情况',
+
+    platforms: {
+      claude: '🤖 Claude',
+      codex: '💻 Codex',
+      gemini: '✨ Gemini'
+    },
+
+    actions: {
+      loading: '加载中...',
+      refresh: '刷新数据',
+      retry: '重试'
+    },
+
+    filters: {
+      timeRange: {
+        last5h: '最近 5 小时',
+        today: '今天',
+        last7d: '最近 7 天',
+        thisWeek: '本周',
+        thisMonth: '本月',
+        allTime: '全部时间'
+      },
+      model: {
+        all: '全部模型'
+      },
+      autoRefresh: '自动刷新'
+    },
+
+    summaryCards: {
+      inputTokens: '输入 Tokens',
+      outputTokens: '输出 Tokens',
+      cacheRead: '缓存读取',
+      cacheEfficiency: '缓存效率'
+    },
+
+    states: {
+      loading: '正在加载使用数据...',
+      loadFailed: '加载使用数据失败',
+      noData: '暂无使用数据',
+      noDataHint: '开始使用 {platform} 后，此处将显示使用统计信息',
+      truncatedWarning: '显示前 10,000 条记录。共找到 {total} 条记录。'
+    },
+
+    emptyState: {
+      title: '暂无使用数据',
+      subtitle: '开始使用 {platform} 后，此处将显示使用统计信息'
+    }
+  },
+
+  // Statistics Module
+  stats: {
+    title: '📊 统计分析',
+    subtitle: '查看 AI API 使用和统计信息',
+
+    timeRange: {
+      today: '今日',
+      thisWeek: '本周',
+      thisMonth: '本月'
+    },
+
+    actions: {
+      providersStats: '提供商统计',
+      refresh: '刷新'
+    },
+
+    summaryCards: {
+      totalCost: '总成本',
+      apiCalls: 'API 调用次数',
+      inputToken: '输入 Token',
+      outputToken: '输出 Token'
+    },
+
+    tokenDetails: {
+      title: '🎫 Token 使用详情',
+      cacheToken: 'Cache Token',
+      cacheEfficiency: 'Cache 效率',
+      totalToken: '总 Token'
+    },
+
+    sections: {
+      byModel: '🤖 按模型分组',
+      byProject: '📁 按项目分组 (Top 10)',
+      costTrend: '📈 成本趋势',
+      providerUsage: '🏢 提供商使用次数',
+      providerUsageSubtitle: '按提供商聚类的调用次数'
+    },
+
+    units: {
+      times: '次'
+    },
+
+    states: {
+      loadFailed: '加载失败',
+      loadFailedMessage: '加载统计数据失败',
+      noData: '暂无数据',
+      noStatsData: '暂无统计数据',
+      noStatsHint: '开始使用 AI API 后，这里将显示统计信息'
+    }
   },
 }
