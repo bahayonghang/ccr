@@ -79,7 +79,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Languages, ChevronDown, Check } from 'lucide-vue-next'
 
-const { locale, t: _t } = useI18n()
+const { locale, t: _t } = useI18n({ useScope: 'global' })
 
 const showDropdown = ref(false)
 const hoveredLang = ref<string | null>(null)

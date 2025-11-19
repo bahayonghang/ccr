@@ -17,7 +17,7 @@
                 class="text-3xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                配置转换器
+                {{ $t('converter.title') }}
               </h1>
               <RouterLink
                 to="/"
@@ -29,11 +29,11 @@
                 }"
               >
                 <Home class="w-4 h-4" />
-                <span>返回首页</span>
+                <span>{{ $t('converter.backToHome') }}</span>
               </RouterLink>
             </div>
             <p :style="{ color: 'var(--text-muted)' }">
-              支持多种 CLI 配置格式之间的互相转换，包括 Claude Code、Codex、Gemini、Qwen、iFlow 等
+              {{ $t('converter.description') }}
             </p>
           </div>
 
@@ -82,19 +82,19 @@
                   class="text-xl font-bold"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  源格式
+                  {{ $t('converter.sourceFormat') }}
                 </h2>
               </div>
               <p
                 class="mb-4"
                 :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
               >
-                选择要转换的配置格式
+                {{ $t('converter.selectSource') }}
               </p>
 
               <div class="space-y-2">
                 <div
-                  v-for="type in CLI_TYPES"
+                  v-for="type in cliTypes"
                   :key="type.value"
                   class="p-4 rounded-lg cursor-pointer transition-all"
                   :style="{
@@ -121,7 +121,7 @@
                       class="px-2 py-0.5 rounded text-xs font-semibold"
                       :style="{ background: 'var(--accent-primary)', color: 'white' }"
                     >
-                      已选择
+                      {{ $t('converter.selected') }}
                     </span>
                   </div>
                   <p
@@ -148,19 +148,19 @@
                   class="text-xl font-bold"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  目标格式
+                  {{ $t('converter.targetFormat') }}
                 </h2>
               </div>
               <p
                 class="mb-4"
                 :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
               >
-                选择转换后的配置格式
+                {{ $t('converter.selectTarget') }}
               </p>
 
               <div class="space-y-2">
                 <div
-                  v-for="type in CLI_TYPES"
+                  v-for="type in cliTypes"
                   :key="type.value"
                   class="p-4 rounded-lg cursor-pointer transition-all"
                   :style="{
@@ -195,7 +195,7 @@
                       class="px-2 py-0.5 rounded text-xs font-semibold"
                       :style="{ background: 'var(--accent-secondary)', color: 'white' }"
                     >
-                      已选择
+                      {{ $t('converter.selected') }}
                     </span>
                   </div>
                   <p
@@ -218,13 +218,13 @@
               class="text-xl font-bold mb-2"
               :style="{ color: 'var(--text-primary)' }"
             >
-              转换选项
+              {{ $t('converter.convertOptions') }}
             </h2>
             <p
               class="mb-4"
               :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
             >
-              选择要转换的配置项
+              {{ $t('converter.convertOptionsDesc') }}
             </p>
 
             <div class="flex flex-wrap gap-6">
@@ -234,7 +234,7 @@
                   type="checkbox"
                   class="w-4 h-4 cursor-pointer"
                 >
-                <span :style="{ color: 'var(--text-secondary)' }">MCP 服务器配置</span>
+                <span :style="{ color: 'var(--text-secondary)' }">{{ $t('converter.mcpServers') }}</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
@@ -242,7 +242,7 @@
                   type="checkbox"
                   class="w-4 h-4 cursor-pointer"
                 >
-                <span :style="{ color: 'var(--text-secondary)' }">Slash 命令配置</span>
+                <span :style="{ color: 'var(--text-secondary)' }">{{ $t('converter.slashCommands') }}</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
@@ -250,7 +250,7 @@
                   type="checkbox"
                   class="w-4 h-4 cursor-pointer"
                 >
-                <span :style="{ color: 'var(--text-secondary)' }">Agents 配置</span>
+                <span :style="{ color: 'var(--text-secondary)' }">{{ $t('converter.agentsConfig') }}</span>
               </label>
             </div>
           </div>
@@ -266,10 +266,10 @@
                   class="text-xl font-bold mb-1"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  配置输入
+                  {{ $t('converter.configInput') }}
                 </h2>
                 <p :style="{ color: 'var(--text-muted)', fontSize: '14px' }">
-                  粘贴配置内容或上传配置文件
+                  {{ $t('converter.configInputDesc') }}
                 </p>
               </div>
               <div class="flex gap-2">
@@ -282,7 +282,7 @@
                   }"
                   @click="handleLoadExample"
                 >
-                  加载示例
+                  {{ $t('converter.loadExample') }}
                 </button>
                 <label>
                   <span
@@ -294,7 +294,7 @@
                     }"
                   >
                     <Upload class="w-4 h-4" />
-                    上传文件
+                    {{ $t('converter.uploadFile') }}
                   </span>
                   <input
                     type="file"
@@ -308,7 +308,7 @@
 
             <textarea
               v-model="configData"
-              placeholder="在此粘贴配置内容，或点击上传文件按钮..."
+              :placeholder="$t('converter.inputPlaceholder')"
               class="w-full px-3 py-2 rounded-lg font-mono text-sm resize-none"
               :style="{
                 background: 'var(--bg-tertiary)',
@@ -321,7 +321,7 @@
               class="mt-2 text-sm"
               :style="{ color: 'var(--text-muted)' }"
             >
-              支持的文件格式: JSON, TOML, YAML, TXT
+              {{ $t('converter.supportedFormats') }}
             </div>
           </div>
 
@@ -355,7 +355,7 @@
                 v-else
                 class="w-5 h-5"
               />
-              {{ isConverting ? '转换中...' : '开始转换' }}
+              {{ isConverting ? $t('converter.converting') : $t('converter.startConvert') }}
             </button>
           </div>
 
@@ -373,7 +373,7 @@
                 class="text-xl font-bold mb-4"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                转换统计
+                {{ $t('converter.conversionStats') }}
               </h2>
 
               <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
@@ -388,7 +388,7 @@
                     class="text-sm mt-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    MCP 服务器
+                    {{ $t('converter.mcpServersCount') }}
                   </div>
                 </div>
                 <div class="text-center">
@@ -402,7 +402,7 @@
                     class="text-sm mt-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    Slash 命令
+                    {{ $t('converter.slashCommandsCount') }}
                   </div>
                 </div>
                 <div class="text-center">
@@ -416,7 +416,7 @@
                     class="text-sm mt-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    Agents
+                    {{ $t('converter.agentsCount') }}
                   </div>
                 </div>
                 <div class="text-center">
@@ -430,7 +430,7 @@
                     class="text-sm mt-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    Profiles
+                    {{ $t('converter.profilesCount') }}
                   </div>
                 </div>
                 <div class="text-center">
@@ -444,7 +444,7 @@
                     class="text-sm mt-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    基础配置
+                    {{ $t('converter.baseConfig') }}
                   </div>
                 </div>
               </div>
@@ -458,7 +458,7 @@
                   class="font-medium mb-2"
                   :style="{ color: 'rgb(234, 179, 8)' }"
                 >
-                  转换警告:
+                  {{ $t('converter.warnings') }}
                 </div>
                 <ul class="list-disc list-inside space-y-1">
                   <li
@@ -484,10 +484,10 @@
                     class="text-xl font-bold mb-1"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    转换结果
+                    {{ $t('converter.conversionResult') }}
                   </h2>
                   <p :style="{ color: 'var(--text-muted)', fontSize: '14px' }">
-                    格式: {{ result.format?.toUpperCase() }}
+                    {{ $t('converter.resultFormat', { format: result.format?.toUpperCase() || '' }) }}
                   </p>
                 </div>
                 <div class="flex gap-2">
@@ -501,7 +501,7 @@
                     @click="handleCopyResult"
                   >
                     <Copy class="w-4 h-4" />
-                    复制
+                    {{ $t('converter.copy') }}
                   </button>
                   <button
                     class="px-3 py-1.5 rounded-lg font-medium text-sm flex items-center gap-2"
@@ -513,7 +513,7 @@
                     @click="handleDownloadResult"
                   >
                     <Download class="w-4 h-4" />
-                    下载
+                    {{ $t('converter.download') }}
                   </button>
                 </div>
               </div>
@@ -541,7 +541,7 @@
               class="text-xl font-bold mb-4"
               :style="{ color: 'var(--text-primary)' }"
             >
-              使用说明
+              {{ $t('converter.usageGuide') }}
             </h2>
 
             <div class="space-y-4">
@@ -550,14 +550,14 @@
                   class="font-medium mb-2"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
-                  支持的转换路径
+                  {{ $t('converter.usageNotes.supportedPathsTitle') }}
                 </h4>
                 <ul
                   class="list-disc list-inside space-y-1 text-sm"
                   :style="{ color: 'var(--text-muted)' }"
                 >
-                  <li>Claude Code ↔ Codex (完全支持)</li>
-                  <li>其他格式转换功能正在开发中...</li>
+                  <li>{{ $t('converter.usageNotes.claudeCodex') }}</li>
+                  <li>{{ $t('converter.usageNotes.otherFormats') }}</li>
                 </ul>
               </div>
               <div>
@@ -565,16 +565,16 @@
                   class="font-medium mb-2"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
-                  转换说明
+                  {{ $t('converter.usageNotes.conversionNotesTitle') }}
                 </h4>
                 <ul
                   class="list-disc list-inside space-y-1 text-sm"
                   :style="{ color: 'var(--text-muted)' }"
                 >
-                  <li>Claude Code 使用 JSON 格式 (settings.json)</li>
-                  <li>Codex 使用 TOML 格式 (config.toml)</li>
-                  <li>转换过程会保留所有支持的配置项</li>
-                  <li>不支持的配置项会在警告中显示</li>
+                  <li>{{ $t('converter.usageNotes.note1') }}</li>
+                  <li>{{ $t('converter.usageNotes.note2') }}</li>
+                  <li>{{ $t('converter.usageNotes.note3') }}</li>
+                  <li>{{ $t('converter.usageNotes.note4') }}</li>
                 </ul>
               </div>
               <div>
@@ -582,15 +582,15 @@
                   class="font-medium mb-2"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
-                  注意事项
+                  {{ $t('converter.usageNotes.importantNotesTitle') }}
                 </h4>
                 <ul
                   class="list-disc list-inside space-y-1 text-sm"
                   :style="{ color: 'var(--text-muted)' }"
                 >
-                  <li>转换前请备份原始配置文件</li>
-                  <li>API 密钥等敏感信息需要手动填写</li>
-                  <li>建议转换后进行验证测试</li>
+                  <li>{{ $t('converter.usageNotes.caution1') }}</li>
+                  <li>{{ $t('converter.usageNotes.caution2') }}</li>
+                  <li>{{ $t('converter.usageNotes.caution3') }}</li>
                 </ul>
               </div>
             </div>
@@ -602,7 +602,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import {
   Home,
@@ -621,13 +622,22 @@ import type { ConverterRequest, ConverterResponse, CliType } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 
-const CLI_TYPES: { value: CliType; label: string; description: string }[] = [
-  { value: 'claude-code', label: 'Claude Code', description: 'Claude Code CLI configuration (JSON)' },
-  { value: 'codex', label: 'Codex', description: 'OpenAI Codex CLI configuration (TOML)' },
-  { value: 'gemini', label: 'Gemini', description: 'Google Gemini CLI configuration' },
-  { value: 'qwen', label: 'Qwen', description: 'Alibaba Qwen CLI configuration' },
-  { value: 'iflow', label: 'iFlow', description: 'iFlow CLI configuration' }
+const { t } = useI18n({ useScope: 'global' })
+
+const CLI_DEFINITIONS: { value: CliType; label: string; descriptionKey: string }[] = [
+  { value: 'claude-code', label: 'Claude Code', descriptionKey: 'converter.formatDescriptions.claudeCode' },
+  { value: 'codex', label: 'Codex', descriptionKey: 'converter.formatDescriptions.codex' },
+  { value: 'gemini', label: 'Gemini', descriptionKey: 'converter.formatDescriptions.gemini' },
+  { value: 'qwen', label: 'Qwen', descriptionKey: 'converter.formatDescriptions.qwen' },
+  { value: 'iflow', label: 'iFlow', descriptionKey: 'converter.formatDescriptions.iflow' }
 ]
+
+const cliTypes = computed(() =>
+  CLI_DEFINITIONS.map(type => ({
+    ...type,
+    description: t(type.descriptionKey),
+  }))
+)
 
 const sourceFormat = ref<CliType>('claude-code')
 const targetFormat = ref<CliType>('codex')
@@ -648,11 +658,11 @@ const handleFileUpload = (event: Event) => {
     reader.onload = (e) => {
       const content = e.target?.result as string
       configData.value = content
-      successMessage.value = `已加载文件: ${file.name}`
+      successMessage.value = t('converter.fileLoaded', { name: file.name })
       setTimeout(() => (successMessage.value = null), 3000)
     }
     reader.onerror = () => {
-      error.value = '读取文件失败'
+      error.value = t('converter.fileLoadFailed')
     }
     reader.readAsText(file)
   }
@@ -664,12 +674,12 @@ const handleConvert = async () => {
   result.value = null
 
   if (!configData.value.trim()) {
-    error.value = '请输入或上传配置内容'
+    error.value = t('converter.inputRequired')
     return
   }
 
   if (sourceFormat.value === targetFormat.value) {
-    error.value = '源格式和目标格式不能相同'
+    error.value = t('converter.sameFormatError')
     return
   }
 
@@ -687,9 +697,9 @@ const handleConvert = async () => {
 
     const response = await convertConfig(request)
     result.value = response
-    successMessage.value = '配置转换成功！'
+    successMessage.value = t('converter.convertSuccess')
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '转换失败'
+    error.value = err instanceof Error ? err.message : t('converter.convertError')
   } finally {
     isConverting.value = false
   }
@@ -698,7 +708,7 @@ const handleConvert = async () => {
 const handleCopyResult = () => {
   if (result.value?.converted_data) {
     navigator.clipboard.writeText(result.value.converted_data)
-    successMessage.value = '已复制到剪贴板'
+    successMessage.value = t('converter.copied')
     setTimeout(() => (successMessage.value = null), 2000)
   }
 }
@@ -712,10 +722,10 @@ const handleDownloadResult = () => {
 
     const extension =
       result.value.format === 'json' ? 'json' : result.value.format === 'toml' ? 'toml' : 'txt'
-    const sourceLabel =
-      CLI_TYPES.find((t) => t.value === sourceFormat.value)?.label || sourceFormat.value
-    const targetLabel =
-      CLI_TYPES.find((t) => t.value === targetFormat.value)?.label || targetFormat.value
+    const getCliLabel = (value: CliType) =>
+      CLI_DEFINITIONS.find((type) => type.value === value)?.label || value
+    const sourceLabel = getCliLabel(sourceFormat.value)
+    const targetLabel = getCliLabel(targetFormat.value)
     a.download = `${sourceLabel}-to-${targetLabel}.${extension}`
 
     document.body.appendChild(a)
@@ -723,7 +733,7 @@ const handleDownloadResult = () => {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
 
-    successMessage.value = '文件已下载'
+    successMessage.value = t('converter.fileDownloaded')
     setTimeout(() => (successMessage.value = null), 2000)
   }
 }
@@ -746,7 +756,7 @@ const handleLoadExample = () => {
 }`
   configData.value = exampleJson
   sourceFormat.value = 'claude-code'
-  successMessage.value = '已加载示例配置'
+  successMessage.value = t('converter.exampleLoaded')
   setTimeout(() => (successMessage.value = null), 3000)
 }
 </script>

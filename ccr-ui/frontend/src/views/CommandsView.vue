@@ -30,7 +30,7 @@
               class="text-xs font-semibold uppercase tracking-wider mb-3"
               :style="{ color: 'var(--text-secondary)' }"
             >
-              选择Cli命令行工具
+              {{ $t('commands.selectClient') }}
             </h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
               <button
@@ -73,11 +73,11 @@
                 class="text-xs font-semibold uppercase tracking-wider mb-4"
                 :style="{ color: 'var(--text-secondary)' }"
               >
-                可用命令
+                {{ $t('commands.availableCommands') }}
               </h2>
               <nav
                 class="space-y-2"
-                aria-label="命令列表"
+                :aria-label="$t('commands.availableCommands')"
               >
                 <button
                   v-for="cmd in commands"
@@ -154,7 +154,7 @@
                       class="text-sm font-semibold"
                       :style="{ color: 'var(--text-primary)' }"
                     >
-                      Usage:
+                      {{ $t('commands.usage') }}:
                     </span>
                     <code
                       class="ml-2 text-sm px-3 py-1 rounded font-mono"
@@ -168,7 +168,7 @@
                       class="text-sm font-semibold"
                       :style="{ color: 'var(--text-primary)' }"
                     >
-                      Examples:
+                      {{ $t('commands.examples') }}:
                     </span>
                     <ul class="mt-2 space-y-2">
                       <li
@@ -199,17 +199,17 @@
                   class="text-xs font-semibold uppercase tracking-wider mb-3"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
-                  参数 (可选)
+                  {{ $t('commands.args') }}
                 </h3>
                 <label
                   for="command-args"
                   class="sr-only"
-                >命令参数</label>
+                >{{ $t('commands.args') }}</label>
                 <input
                   id="command-args"
                   v-model="args"
                   type="text"
-                  placeholder="例如: --help 或 anthropic"
+                  :placeholder="$t('commands.argsPlaceholder')"
                   class="w-full px-4 py-2.5 rounded-lg font-mono text-sm focus:outline-none transition-all"
                   :style="{
                     background: 'var(--bg-tertiary)',
@@ -227,7 +227,7 @@
                     boxShadow: loading ? 'none' : '0 0 20px var(--glow-primary)'
                   }"
                   :disabled="loading"
-                  :aria-label="loading ? '执行中...' : '执行命令'"
+                  :aria-label="loading ? $t('commands.executing') : $t('commands.executeCommand')"
                   @click="handleExecute"
                 >
                   <div
@@ -240,7 +240,7 @@
                     class="w-4 h-4"
                     aria-hidden="true"
                   />
-                  <span>{{ loading ? '执行中...' : '执行命令' }}</span>
+                  <span>{{ loading ? $t('commands.executing') : $t('commands.executeCommand') }}</span>
                 </button>
               </section>
 
@@ -283,18 +283,18 @@
                         <Check
                           v-if="output.success"
                           class="w-4 h-4"
-                          :style="{ color: '#22c55e' }"
+                          :style="{ color: 'var(--accent-success)' }"
                         />
                         <X
                           v-else
                           class="w-4 h-4"
-                          :style="{ color: '#ef4444' }"
+                          :style="{ color: 'var(--accent-danger)' }"
                         />
                         <span
                           class="text-sm font-bold"
-                          :style="{ color: output.success ? '#22c55e' : '#ef4444' }"
+                          :style="{ color: output.success ? 'var(--accent-success)' : 'var(--accent-danger)' }"
                         >
-                          {{ output.success ? '执行成功' : '执行失败' }}
+                          {{ output.success ? $t('commands.executeSuccess') : $t('commands.executeError') }}
                         </span>
                       </div>
 
@@ -304,13 +304,13 @@
                           class="text-xs font-semibold"
                           :style="{ color: 'var(--text-muted)' }"
                         >
-                          Exit Code:
+                          {{ $t('commands.exitCode') }}
                         </span>
                         <span
                           class="px-2 py-0.5 rounded font-mono text-xs font-bold"
                           :style="{
                             background: output.exit_code === 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                            color: output.exit_code === 0 ? '#22c55e' : '#ef4444'
+                            color: output.exit_code === 0 ? 'var(--accent-success)' : 'var(--accent-danger)'
                           }"
                         >
                           {{ output.exit_code }}
@@ -323,7 +323,7 @@
                           class="text-xs font-semibold"
                           :style="{ color: 'var(--text-muted)' }"
                         >
-                          Duration:
+                          {{ $t('commands.duration') }}
                         </span>
                         <span
                           class="px-2 py-0.5 rounded font-mono text-xs font-bold"
@@ -346,8 +346,8 @@
                           border: '1px solid var(--border-color)',
                           color: 'var(--accent-primary)'
                         }"
-                        title="复制输出"
-                        aria-label="复制输出"
+                        :title="$t('commands.copyOutput')"
+                        :aria-label="$t('commands.copyOutput')"
                         @click="handleCopyOutput"
                       >
                         <Copy class="w-4 h-4" />
@@ -359,8 +359,8 @@
                           border: '1px solid var(--border-color)',
                           color: 'var(--accent-danger)'
                         }"
-                        title="清除输出"
-                        aria-label="清除输出"
+                        :title="$t('commands.clearOutputButton')"
+                        :aria-label="$t('commands.clearOutputButton')"
                         @click="handleClearOutput"
                       >
                         <Trash2 class="w-4 h-4" />
@@ -392,21 +392,21 @@
                     class="mt-4 p-4 rounded-lg border-l-4"
                     :style="{
                       background: 'rgba(239, 68, 68, 0.1)',
-                      borderColor: '#ef4444'
+                      borderColor: 'var(--accent-danger)'
                     }"
                     role="alert"
                   >
                     <div class="flex items-start gap-3">
                       <X
                         class="w-5 h-5 flex-shrink-0 mt-0.5"
-                        :style="{ color: '#ef4444' }"
+                        :style="{ color: 'var(--accent-danger)' }"
                       />
                       <div class="flex-1">
                         <p
                           class="text-sm font-bold mb-1"
-                          :style="{ color: '#ef4444' }"
+                          :style="{ color: 'var(--accent-danger)' }"
                         >
-                          Error
+                          {{ $t('commands.error') }}
                         </p>
                         <pre
                           class="text-sm whitespace-pre-wrap break-words"
@@ -422,7 +422,7 @@
                     :style="{ color: 'var(--text-muted)' }"
                   >
                     <p class="text-sm">
-                      无输出内容
+                      {{ $t('commands.noOutput') }}
                     </p>
                   </div>
                 </div>
@@ -435,9 +435,9 @@
                     borderTop: '1px solid var(--border-color)'
                   }"
                 >
-                  <span :style="{ color: 'var(--text-muted)' }">Terminal Output</span>
+                  <span :style="{ color: 'var(--text-muted)' }">{{ $t('commands.terminalOutput') }}</span>
                   <span :style="{ color: 'var(--text-muted)' }">
-                    {{ output.output?.split('\n').length || 0 }} lines
+                    {{ $t('commands.linesCount', { count: output.output?.split('\n').length || 0 }) }}
                   </span>
                 </div>
               </section>
@@ -451,6 +451,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Zap, Sparkles, Gem, Workflow, Play, Copy, Trash2, Check, X } from 'lucide-vue-next'
 import { listCommands, executeCommand, listConfigs, getHistory } from '@/api/client'
 import type { CommandInfo, CommandResponse } from '@/types'
@@ -459,6 +460,8 @@ import StatusHeader from '@/components/StatusHeader.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 
 type CliClient = 'ccr' | 'qwen' | 'gemini-cli' | 'iflow'
+
+const { t } = useI18n({ useScope: 'global' })
 
 const CLI_CLIENTS = [
   { id: 'ccr' as CliClient, name: 'CCR', icon: Zap, color: 'rgba(139, 92, 246, 0.2)' },
@@ -493,16 +496,17 @@ const loadCommands = async () => {
         selectedCommand.value = data[0].name
       }
     } else {
+      const clientName = CLI_CLIENTS.find((c) => c.id === selectedClient.value)?.name || selectedClient.value
       commands.value = [
         {
           name: 'help',
-          description: `${CLI_CLIENTS.find((c) => c.id === selectedClient.value)?.name} 帮助命令 (功能开发中)`,
+          description: t('commands.helpDescription', { client: clientName }),
           usage: `${selectedClient.value} help`,
           examples: [`${selectedClient.value} help`]
         },
         {
           name: 'version',
-          description: `显示 ${CLI_CLIENTS.find((c) => c.id === selectedClient.value)?.name} 版本`,
+          description: t('commands.versionDescription', { client: clientName }),
           usage: `${selectedClient.value} --version`,
           examples: [`${selectedClient.value} --version`]
         }
@@ -563,9 +567,10 @@ const handleExecute = async () => {
 
       output.value = result
     } else {
+      const clientName = CLI_CLIENTS.find((c) => c.id === selectedClient.value)?.name || selectedClient.value
       output.value = {
         success: true,
-        output: `${CLI_CLIENTS.find((c) => c.id === selectedClient.value)?.name} 命令执行功能正在开发中...\n\n该功能将支持执行 ${selectedClient.value} 相关命令。`,
+        output: `${t('commands.developingFeature', { client: clientName })}\n\n${t('commands.developingMessage', { client: selectedClient.value })}`,
         error: '',
         exit_code: 0,
         duration_ms: 100
@@ -575,7 +580,7 @@ const handleExecute = async () => {
     output.value = {
       success: false,
       output: '',
-      error: err instanceof Error ? err.message : 'Unknown error',
+      error: err instanceof Error ? err.message : t('commands.unknownError'),
       exit_code: -1,
       duration_ms: 0
     }
@@ -589,7 +594,7 @@ const handleCopyOutput = async () => {
   const text = output.value.output + (output.value.error ? '\n' + output.value.error : '')
   try {
     await navigator.clipboard.writeText(text)
-    alert('输出已复制到剪贴板！')
+    alert(t('commands.outputCopied'))
   } catch (err) {
     console.error('Failed to copy:', err)
   }

@@ -4,12 +4,12 @@
     <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
       <div
         class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
-        :style="{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }"
+        :style="{ background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)' }"
       />
       <div
         class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
-          background: 'linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)',
+          background: 'linear-gradient(135deg, var(--accent-tertiary) 0%, var(--accent-warning) 100%)',
           animationDelay: '1s'
         }"
       />
@@ -26,18 +26,18 @@
             >
               <Code2
                 class="w-10 h-10"
-                :style="{ color: '#6366f1' }"
+                :style="{ color: 'var(--accent-primary)' }"
               />
             </div>
             <div>
-              <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#ec4899] bg-clip-text text-transparent">
+              <h1 class="text-4xl md:text-5xl font-bold mb-2 brand-gradient-text animate-fade-in">
                 Claude Code
               </h1>
               <p
                 class="text-lg"
                 :style="{ color: 'var(--text-secondary)' }"
               >
-                Anthropic 官方 AI 编码助手配置中心
+                {{ $t('claudeCode.subtitle') }}
               </p>
             </div>
           </div>
@@ -47,12 +47,12 @@
           >
             <Home
               class="w-5 h-5"
-              :style="{ color: '#64748b' }"
+              :style="{ color: 'var(--text-secondary)' }"
             />
             <span
               class="font-medium"
               :style="{ color: 'var(--text-secondary)' }"
-            >返回首页</span>
+            >{{ $t('claudeCode.backToHome') }}</span>
           </RouterLink>
         </div>
 
@@ -60,27 +60,27 @@
         <div class="flex flex-wrap gap-3 mb-6">
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }"
+            :style="{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)' }"
           >
-            ⚡ MCP 协议支持
+            ⚡ {{ $t('claudeCode.features.mcpSupport') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+            :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--accent-secondary)' }"
           >
-            🤖 AI Agents
+            🤖 {{ $t('claudeCode.features.aiAgents') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }"
+            :style="{ background: 'rgba(236, 72, 153, 0.1)', color: 'var(--accent-tertiary)' }"
           >
-            ☁️ 云同步
+            ☁️ {{ $t('claudeCode.features.cloudSync') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
+            :style="{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-success)' }"
           >
-            🔧 配置管理
+            🔧 {{ $t('claudeCode.features.configManagement') }}
           </span>
         </div>
       </div>
@@ -93,9 +93,9 @@
         >
           <Boxes
             class="w-7 h-7"
-            :style="{ color: '#6366f1' }"
+            :style="{ color: 'var(--accent-primary)' }"
           />
-          功能模块
+          {{ $t('claudeCode.modules.title') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <RouterLink
@@ -110,7 +110,7 @@
                 >
                   <Settings
                     class="w-7 h-7"
-                    :style="{ color: '#6366f1' }"
+                    :style="{ color: 'var(--accent-primary)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -118,22 +118,22 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    配置管理
+                    {{ $t('claudeCode.modules.configManagement.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Claude Code 配置切换、验证、历史记录管理
+                    {{ $t('claudeCode.modules.configManagement.desc') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(99, 102, 241, 0.15)',
-                      color: '#6366f1'
+                      color: 'var(--accent-primary)'
                     }"
                   >
-                    🔥 核心功能
+                    🔥 {{ $t('claudeCode.modules.configManagement.badge') }}
                   </span>
                 </div>
               </div>
@@ -152,7 +152,7 @@
                 >
                   <Cloud
                     class="w-7 h-7"
-                    :style="{ color: '#8b5cf6' }"
+                    :style="{ color: 'var(--accent-secondary)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -160,22 +160,22 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    云同步
+                    {{ $t('claudeCode.modules.cloudSync.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    WebDAV 云端配置同步和自动备份
+                    {{ $t('claudeCode.modules.cloudSync.desc') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(139, 92, 246, 0.15)',
-                      color: '#8b5cf6'
+                      color: 'var(--accent-secondary)'
                     }"
                   >
-                    ✨ 新功能
+                    ✨ {{ $t('claudeCode.modules.cloudSync.badge') }}
                   </span>
                 </div>
               </div>
@@ -194,7 +194,7 @@
                 >
                   <Server
                     class="w-7 h-7"
-                    :style="{ color: '#ec4899' }"
+                    :style="{ color: 'var(--accent-tertiary)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -202,22 +202,22 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    MCP 服务器
+                    {{ $t('claudeCode.modules.mcpServers.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Model Context Protocol 服务器配置和管理
+                    {{ $t('claudeCode.modules.mcpServers.desc') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(236, 72, 153, 0.15)',
-                      color: '#ec4899'
+                      color: 'var(--accent-tertiary)'
                     }"
                   >
-                    🔌 MCP
+                    🔌 {{ $t('claudeCode.modules.mcpServers.badge') }}
                   </span>
                 </div>
               </div>
@@ -236,7 +236,7 @@
                 >
                   <Terminal
                     class="w-7 h-7"
-                    :style="{ color: '#f59e0b' }"
+                    :style="{ color: 'var(--accent-warning)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -244,22 +244,22 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Slash Commands
+                    {{ $t('claudeCode.modules.slashCommands.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    自定义命令管理和文件夹组织
+                    {{ $t('claudeCode.modules.slashCommands.desc') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(245, 158, 11, 0.15)',
-                      color: '#f59e0b'
+                      color: 'var(--accent-warning)'
                     }"
                   >
-                    ⌨️ 命令
+                    ⌨️ {{ $t('claudeCode.modules.slashCommands.badge') }}
                   </span>
                 </div>
               </div>
@@ -278,7 +278,7 @@
                 >
                   <Users
                     class="w-7 h-7"
-                    :style="{ color: '#10b981' }"
+                    :style="{ color: 'var(--accent-success)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -286,22 +286,22 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Agents
+                    {{ $t('claudeCode.modules.agents.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    AI Agent 配置、工具绑定和模型管理
+                    {{ $t('claudeCode.modules.agents.desc') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(16, 185, 129, 0.15)',
-                      color: '#10b981'
+                      color: 'var(--accent-success)'
                     }"
                   >
-                    🤖 AI
+                    🤖 {{ $t('claudeCode.modules.agents.badge') }}
                   </span>
                 </div>
               </div>
@@ -320,7 +320,7 @@
                 >
                   <Puzzle
                     class="w-7 h-7"
-                    :style="{ color: '#3b82f6' }"
+                    :style="{ color: 'var(--accent-info)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -328,22 +328,22 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    插件管理
+                    {{ $t('claudeCode.modules.plugins.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    插件启用/禁用和配置管理
+                    {{ $t('claudeCode.modules.plugins.desc') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(59, 130, 246, 0.15)',
-                      color: '#3b82f6'
+                      color: 'var(--accent-info)'
                     }"
                   >
-                    🧩 插件
+                    🧩 {{ $t('claudeCode.modules.plugins.badge') }}
                   </span>
                 </div>
               </div>
@@ -360,9 +360,9 @@
         >
           <Zap
             class="w-7 h-7"
-            :style="{ color: '#f59e0b' }"
+            :style="{ color: 'var(--accent-warning)' }"
           />
-          快速操作
+          {{ $t('claudeCode.quickActions.title') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="glass-card p-6">
@@ -372,9 +372,9 @@
             >
               <Terminal
                 class="w-5 h-5"
-                :style="{ color: '#6366f1' }"
+                :style="{ color: 'var(--accent-primary)' }"
               />
-              常用命令
+              {{ $t('claudeCode.quickActions.commonCommands') }}
             </h3>
             <div class="space-y-3">
               <div
@@ -384,10 +384,10 @@
                 <span
                   class="text-sm font-medium"
                   :style="{ color: 'var(--text-secondary)' }"
-                >查看当前配置</span>
+                >{{ $t('claudeCode.quickActions.viewCurrentConfig') }}</span>
                 <code
                   class="text-xs font-mono px-2 py-1 rounded"
-                  :style="{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }"
+                  :style="{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)' }"
                 >ccr current</code>
               </div>
               <div
@@ -397,10 +397,10 @@
                 <span
                   class="text-sm font-medium"
                   :style="{ color: 'var(--text-secondary)' }"
-                >切换配置</span>
+                >{{ $t('claudeCode.quickActions.switchConfig') }}</span>
                 <code
                   class="text-xs font-mono px-2 py-1 rounded"
-                  :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+                  :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--accent-secondary)' }"
                 >ccr switch</code>
               </div>
               <div
@@ -410,10 +410,10 @@
                 <span
                   class="text-sm font-medium"
                   :style="{ color: 'var(--text-secondary)' }"
-                >列出所有配置</span>
+                >{{ $t('claudeCode.quickActions.listAllConfigs') }}</span>
                 <code
                   class="text-xs font-mono px-2 py-1 rounded"
-                  :style="{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }"
+                  :style="{ background: 'rgba(236, 72, 153, 0.1)', color: 'var(--accent-tertiary)' }"
                 >ccr list</code>
               </div>
             </div>
@@ -426,9 +426,9 @@
             >
               <BookOpen
                 class="w-5 h-5"
-                :style="{ color: '#10b981' }"
+                :style="{ color: 'var(--accent-success)' }"
               />
-              文档资源
+              {{ $t('claudeCode.quickActions.resources') }}
             </h3>
             <div class="space-y-3">
               <a
@@ -440,10 +440,10 @@
                 <span
                   class="text-sm font-medium"
                   :style="{ color: 'var(--text-secondary)' }"
-                >官方文档</span>
+                >{{ $t('claudeCode.quickActions.officialDocs') }}</span>
                 <ExternalLink
                   class="w-4 h-4"
-                  :style="{ color: '#10b981' }"
+                  :style="{ color: 'var(--accent-success)' }"
                 />
               </a>
               <a
@@ -455,10 +455,10 @@
                 <span
                   class="text-sm font-medium"
                   :style="{ color: 'var(--text-secondary)' }"
-                >MCP 协议</span>
+                >{{ $t('claudeCode.quickActions.mcpProtocol') }}</span>
                 <ExternalLink
                   class="w-4 h-4"
-                  :style="{ color: '#3b82f6' }"
+                  :style="{ color: 'var(--accent-info)' }"
                 />
               </a>
               <a
@@ -470,10 +470,10 @@
                 <span
                   class="text-sm font-medium"
                   :style="{ color: 'var(--text-secondary)' }"
-                >SDK 仓库</span>
+                >{{ $t('claudeCode.quickActions.sdkRepo') }}</span>
                 <ExternalLink
                   class="w-4 h-4"
-                  :style="{ color: '#f59e0b' }"
+                  :style="{ color: 'var(--accent-warning)' }"
                 />
               </a>
             </div>
@@ -490,7 +490,7 @@
           >
             <Info
               class="w-6 h-6"
-              :style="{ color: '#3b82f6' }"
+              :style="{ color: 'var(--accent-info)' }"
             />
           </div>
           <div class="flex-1">
@@ -498,7 +498,7 @@
               class="text-lg font-bold mb-2"
               :style="{ color: 'var(--text-primary)' }"
             >
-              💡 使用提示
+              💡 {{ $t('claudeCode.tips.title') }}
             </h3>
             <ul
               class="space-y-2 text-sm"
@@ -506,19 +506,19 @@
             >
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>Claude Code 支持多配置管理，可以为不同项目创建专属配置</span>
+                <span>{{ $t('claudeCode.tips.tip1') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>MCP 服务器可以扩展 Claude 的能力，连接外部工具和数据源</span>
+                <span>{{ $t('claudeCode.tips.tip2') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>使用云同步功能可以在多台设备间同步配置，保持工作环境一致</span>
+                <span>{{ $t('claudeCode.tips.tip3') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>Agents 功能允许你创建专门的 AI 助手，绑定特定工具和上下文</span>
+                <span>{{ $t('claudeCode.tips.tip4') }}</span>
               </li>
             </ul>
           </div>

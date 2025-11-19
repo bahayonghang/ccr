@@ -3,17 +3,17 @@
     <!-- Sidebar -->
     <div class="w-64 bg-bg-secondary border-r border-border-color flex flex-col">
       <!-- Logo and Title -->
-      <div class="p-4 border-b border-border-color">
+      <div class="p-4 border-b border-border-color/50">
         <div class="flex items-center space-x-3">
-          <div class="p-2 rounded-lg bg-bg-tertiary animate-pulse-subtle">
+          <div class="p-2 rounded-xl bg-gradient-to-br from-accent-primary/10 to-accent-secondary/10 animate-pulse-subtle shadow-sm">
             <Zap class="w-6 h-6 text-accent-primary animate-sidebar-item-enter" />
           </div>
           <div class="animate-sidebar-item-enter">
-            <h1 class="text-xl font-bold text-text-primary">
+            <h1 class="text-xl font-bold brand-gradient-text tracking-tight">
               CCR UI
             </h1>
-            <p class="text-xs text-text-secondary">
-              AI CLI 配置管理
+            <p class="text-xs text-text-secondary font-medium">
+              {{ $t('home.subtitle') }}
             </p>
           </div>
         </div>
@@ -32,7 +32,7 @@
               class="w-5 h-5 mr-3"
               style="color: #1890ff;"
             />
-            <span class="font-medium">首页</span>
+            <span class="font-medium">{{ $t('nav.home') }}</span>
           </RouterLink>
         </div>
 
@@ -44,7 +44,7 @@
         <!-- 主要模块 -->
         <div class="px-3 mt-4">
           <h2 class="px-3 text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center">
-            <span class="flex-1">主要模块</span>
+            <span class="flex-1">{{ $t('nav.mainModules') }}</span>
             <span class="w-2 h-2 rounded-full bg-accent-primary/30 animate-pulse" />
           </h2>
           <div class="space-y-1 nav-group">
@@ -57,7 +57,7 @@
                 class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
                 style="color: #8b5cf6;"
               />
-              <span class="font-medium">Claude Code</span>
+              <span class="font-medium">{{ $t('nav.claudeCode') }}</span>
             </RouterLink>
             <RouterLink 
               to="/codex" 
@@ -68,7 +68,7 @@
                 class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
                 style="color: #10b981;"
               />
-              <span class="font-medium">Codex</span>
+              <span class="font-medium">{{ $t('nav.codex') }}</span>
             </RouterLink>
             <RouterLink 
               to="/gemini-cli" 
@@ -79,7 +79,7 @@
                 class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
                 style="color: #1a73e8;"
               />
-              <span class="font-medium">Gemini CLI</span>
+              <span class="font-medium">{{ $t('nav.gemini') }}</span>
             </RouterLink>
             <RouterLink 
               to="/qwen" 
@@ -90,7 +90,7 @@
                 class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
                 style="color: #00b5e2;"
               />
-              <span class="font-medium">Qwen</span>
+              <span class="font-medium">{{ $t('nav.qwen') }}</span>
             </RouterLink>
             <RouterLink 
               to="/iflow" 
@@ -101,7 +101,7 @@
                 class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
                 style="color: #faad14;"
               />
-              <span class="font-medium">IFLOW</span>
+              <span class="font-medium">{{ $t('nav.iflow') }}</span>
             </RouterLink>
           </div>
         </div>
@@ -114,7 +114,7 @@
         <!-- 工具中心 -->
         <div class="px-3 mt-4">
           <h2 class="px-3 text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center">
-            <span class="flex-1">工具中心</span>
+            <span class="flex-1">{{ $t('nav.toolsCenter') }}</span>
             <span class="w-2 h-2 rounded-full bg-accent-warning/30 animate-pulse" />
           </h2>
           <div class="space-y-1 nav-group">
@@ -127,7 +127,7 @@
                 class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
                 style="color: #3b82f6;"
               />
-              <span class="font-medium">命令执行</span>
+              <span class="font-medium">{{ $t('nav.commands') }}</span>
             </RouterLink>
             <RouterLink 
               to="/converter" 
@@ -138,7 +138,7 @@
                 class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
                 style="color: #13c2c2;"
               />
-              <span class="font-medium">配置转换</span>
+              <span class="font-medium">{{ $t('nav.converter') }}</span>
             </RouterLink>
             <RouterLink
               to="/sync"
@@ -149,7 +149,7 @@
                 class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
                 style="color: #1890ff;"
               />
-              <span class="font-medium">云同步</span>
+              <span class="font-medium">{{ $t('nav.sync') }}</span>
             </RouterLink>
             <RouterLink
               to="/usage"
@@ -160,17 +160,20 @@
                 class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
                 style="color: #10b981;"
               />
-              <span class="font-medium">使用统计</span>
+              <span class="font-medium">{{ $t('nav.usage') }}</span>
             </RouterLink>
           </div>
         </div>
       </nav>
 
-      <!-- Version Info -->
-      <div class="p-4 border-t border-border-color">
-        <div class="text-xs text-text-muted flex items-center justify-between animate-sidebar-item-enter">
-          <span>CCR UI v3.3.2</span>
-          <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse" />
+      <!-- Version Info & Language Switcher -->
+      <div class="p-4 border-t border-border-color/50 bg-bg-secondary/50 backdrop-blur-sm">
+        <div class="flex items-center justify-between gap-3 animate-sidebar-item-enter">
+          <LanguageSwitcher />
+          <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
+            <span>CCR UI v3.4.0</span>
+            <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+          </div>
         </div>
       </div>
     </div>
@@ -194,4 +197,5 @@ import {
   TrendingUp,
   Cloud
 } from 'lucide-vue-next'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 </script>

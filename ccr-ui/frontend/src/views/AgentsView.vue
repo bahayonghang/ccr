@@ -5,14 +5,14 @@
       <div
         class="absolute top-10 right-10 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl animate-pulse"
         :style="{
-          background: 'linear-gradient(135deg, #10b981 0%, #14b8a6 50%, #06b6d4 100%)',
+          background: 'linear-gradient(135deg, var(--accent-success) 0%, var(--accent-info) 50%, var(--accent-info) 100%)',
           animation: 'pulse 8s ease-in-out infinite'
         }"
       />
       <div
         class="absolute bottom-10 left-10 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
-          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+          background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 50%, var(--accent-secondary) 100%)',
           animation: 'pulse 10s ease-in-out infinite',
           animationDelay: '2s'
         }"
@@ -29,9 +29,9 @@
         />
         <Breadcrumb
           :items="[
-            { label: '首页', path: '/', icon: Home },
-            { label: 'Claude Code', path: '/claude-code', icon: Code2 },
-            { label: 'Agents', path: '/agents', icon: Bot }
+            { label: $t('agents.breadcrumb.home'), path: '/', icon: Home },
+            { label: $t('agents.breadcrumb.claudeCode'), path: '/claude-code', icon: Code2 },
+            { label: $t('agents.breadcrumb.agents'), path: '/agents', icon: Bot }
           ]"
           module-color="#10b981"
         />
@@ -62,7 +62,7 @@
               letterSpacing: '0.5px'
             }"
           >
-            文件夹
+            {{ $t('agents.folders.title') }}
           </h4>
           <div
             v-for="folder in folderOptions"
@@ -113,7 +113,7 @@
                 >
                   <Bot
                     class="w-8 h-8"
-                    :style="{ color: '#10b981' }"
+                    :style="{ color: 'var(--accent-success)' }"
                   />
                 </div>
                 <div>
@@ -122,17 +122,17 @@
                       class="text-3xl font-bold"
                       :style="{ color: 'var(--text-primary)' }"
                     >
-                      Agents 管理
+                      {{ $t('agents.title') }}
                     </h2>
                     <span
                       class="px-3 py-1 rounded-full text-xs font-bold"
-                      :style="{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }"
+                      :style="{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-success)' }"
                     >
-                      🤖 AI
+                      🤖 {{ $t('agents.badge') }}
                     </span>
                     <span
                       class="px-3 py-1 rounded-full text-xs font-bold"
-                      :style="{ background: '#10b981', color: '#fff' }"
+                      :style="{ background: 'var(--accent-success)', color: '#fff' }"
                     >
                       {{ filteredAgents.length }}/{{ stats.total }}
                     </span>
@@ -141,7 +141,7 @@
                     class="text-sm mt-2"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    AI Agent 配置、工具绑定和模型管理
+                    {{ $t('agents.subtitle') }}
                   </p>
                 </div>
               </div>
@@ -149,24 +149,24 @@
                 <RouterLink
                   to="/claude-code"
                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105"
-                  :style="{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }"
+                  :style="{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--accent-success)', border: '1px solid rgba(16, 185, 129, 0.3)' }"
                 >
                   <ArrowLeft class="w-4 h-4" />
-                  返回模块
+                  {{ $t('agents.backToModule') }}
                 </RouterLink>
                 <RouterLink
                   to="/"
                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105"
                   :style="{ background: 'rgba(15, 23, 42, 0.05)', color: 'var(--text-primary)', border: '1px solid rgba(15, 23, 42, 0.08)' }"
                 >
-                  <Home class="w-4 h-4" /><span>返回首页</span>
+                  <Home class="w-4 h-4" /><span>{{ $t('agents.backToHome') }}</span>
                 </RouterLink>
                 <button
                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-white text-sm transition-all hover:scale-105"
                   :style="{ background: 'linear-gradient(135deg, #10b981, #06b6d4)', boxShadow: '0 8px 20px rgba(16, 185, 129, 0.35)' }"
                   @click="handleAdd"
                 >
-                  <Plus class="inline-block w-5 h-5 mr-2" />添加 Agent
+                  <Plus class="inline-block w-5 h-5 mr-2" />{{ $t('agents.addAgent') }}
                 </button>
               </div>
             </div>
@@ -181,7 +181,7 @@
                   <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="搜索 agent 名称、系统提示或工具..."
+                    :placeholder="$t('agents.search.placeholder')"
                     class="w-full pl-11 pr-10 py-3 rounded-lg transition-all focus:outline-none focus:ring-2"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
                   >
@@ -198,7 +198,7 @@
                   class="flex items-center gap-2 text-sm"
                   :style="{ color: 'var(--text-muted)' }"
                 >
-                  <span>已配置 Agents：</span>
+                  <span>{{ $t('agents.search.configured') }}</span>
                   <span
                     class="px-3 py-1 rounded-full font-semibold"
                     :style="{ background: 'rgba(16, 185, 129, 0.12)', color: '#047857' }"
@@ -212,7 +212,7 @@
                 class="mt-2 text-sm"
                 :style="{ color: 'var(--text-muted)' }"
               >
-                找到 <span :style="{ color: 'var(--accent-primary)', fontWeight: 'bold' }">{{ filteredAgents.length }}</span> 个匹配的 agents
+                {{ $t('agents.search.found') }} <span :style="{ color: 'var(--accent-primary)', fontWeight: 'bold' }">{{ filteredAgents.length }}</span> {{ $t('agents.search.matches') }}
               </p>
             </div>
 
@@ -222,14 +222,14 @@
                 class="text-center py-10"
                 :style="{ color: 'var(--text-muted)' }"
               >
-                加载中...
+                {{ $t('agents.loading') }}
               </div>
               <div
                 v-else-if="agents.length === 0"
                 class="text-center py-10"
                 :style="{ color: 'var(--text-muted)' }"
               >
-                暂无 Agents 配置
+                {{ $t('agents.noAgents') }}
               </div>
               <div
                 v-else-if="filteredAgents.length === 0"
@@ -237,9 +237,9 @@
                 :style="{ color: 'var(--text-muted)' }"
               >
                 <Search class="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>未找到匹配的 agents</p>
+                <p>{{ $t('agents.noMatches') }}</p>
                 <p class="text-sm mt-2">
-                  尝试使用其他关键词搜索或切换文件夹
+                  {{ $t('agents.tryOtherKeywords') }}
                 </p>
               </div>
               <div
@@ -272,21 +272,21 @@
                         class="px-2 py-1 rounded text-xs font-medium"
                         :style="{ background: '#fef3c7', color: '#92400e' }"
                       >
-                        已禁用
+                        {{ $t('agents.disabled') }}
                       </span>
                     </div>
                     <p
                       class="mb-2"
                       :style="{ color: 'var(--text-secondary)', fontSize: '14px' }"
                     >
-                      <strong>Model:</strong> {{ agent.model }}
+                      <strong>{{ $t('agents.model') }}</strong> {{ agent.model }}
                     </p>
                     <p
                       v-if="agent.tools && agent.tools.length > 0"
                       class="mb-2 text-sm"
                       :style="{ color: 'var(--text-muted)' }"
                     >
-                      <strong>Tools:</strong> {{ agent.tools.join(', ') }}
+                      <strong>{{ $t('agents.tools') }}</strong> {{ agent.tools.join(', ') }}
                     </p>
                     <p
                       v-if="agent.system_prompt"
@@ -300,7 +300,7 @@
                     <button
                       class="p-2 rounded-lg transition-all hover:scale-110"
                       :style="{ background: agent.disabled ? '#fef3c7' : '#d1fae5', color: agent.disabled ? '#92400e' : '#065f46' }"
-                      :title="agent.disabled ? '启用' : '禁用'"
+                      :title="agent.disabled ? $t('agents.enable') : $t('agents.disable')"
                       @click="handleToggle(agent.name)"
                     >
                       <PowerOff
@@ -314,7 +314,7 @@
                     <button
                       class="p-2 rounded-lg transition-all hover:scale-110"
                       :style="{ background: 'var(--bg-tertiary)', color: 'var(--accent-primary)' }"
-                      title="编辑"
+                      :title="$t('agents.edit')"
                       @click="handleEdit(agent)"
                     >
                       <Edit2 class="w-5 h-5" />
@@ -322,7 +322,7 @@
                     <button
                       class="p-2 rounded-lg transition-all hover:scale-110"
                       :style="{ background: '#fee2e2', color: '#991b1b' }"
-                      title="删除"
+                      :title="$t('agents.delete')"
                       @click="handleDelete(agent.name)"
                     >
                       <Trash2 class="w-5 h-5" />
@@ -350,14 +350,14 @@
             class="text-2xl font-bold mb-6"
             :style="{ color: 'var(--text-primary)' }"
           >
-            {{ editingAgent ? '编辑 Agent' : '添加 Agent' }}
+            {{ editingAgent ? $t('agents.editAgent') : $t('agents.addAgent') }}
           </h3>
           <div class="space-y-4">
             <div>
               <label
                 class="block mb-2 font-medium"
                 :style="{ color: 'var(--text-secondary)' }"
-              >名称 *</label>
+              >{{ $t('agents.form.name') }} {{ $t('agents.form.required') }}</label>
               <input
                 v-model="formData.name"
                 type="text"
@@ -369,7 +369,7 @@
               <label
                 class="block mb-2 font-medium"
                 :style="{ color: 'var(--text-secondary)' }"
-              >Model *</label>
+              >{{ $t('agents.form.model') }} {{ $t('agents.form.required') }}</label>
               <select
                 v-model="formData.model"
                 class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
@@ -390,12 +390,12 @@
               <label
                 class="block mb-2 font-medium"
                 :style="{ color: 'var(--text-secondary)' }"
-              >Tools</label>
+              >{{ $t('agents.form.tools') }}</label>
               <div class="flex gap-2 mb-2">
                 <input
                   v-model="toolInput"
                   type="text"
-                  placeholder="输入工具名称"
+                  :placeholder="$t('agents.form.toolPlaceholder')"
                   class="flex-1 px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
                   :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
                   @keyup.enter="addTool"
@@ -405,7 +405,7 @@
                   :style="{ background: 'var(--accent-primary)' }"
                   @click="addTool"
                 >
-                  添加
+                  {{ $t('agents.form.addTool') }}
                 </button>
               </div>
               <div class="flex flex-wrap gap-2">
@@ -424,7 +424,7 @@
               <label
                 class="block mb-2 font-medium"
                 :style="{ color: 'var(--text-secondary)' }"
-              >System Prompt</label>
+              >{{ $t('agents.form.systemPrompt') }}</label>
               <textarea
                 v-model="formData.system_prompt"
                 rows="6"
@@ -439,14 +439,14 @@
               :style="{ background: 'var(--accent-primary)', color: '#fff' }"
               @click="handleSubmit"
             >
-              {{ editingAgent ? '保存' : '添加' }}
+              {{ editingAgent ? $t('agents.form.save') : $t('agents.form.add') }}
             </button>
             <button
               class="flex-1 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105"
               :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }"
               @click="showAddForm = false"
             >
-              取消
+              {{ $t('agents.form.cancel') }}
             </button>
           </div>
         </div>
@@ -457,13 +457,17 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import { Bot, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home } from 'lucide-vue-next'
+import { Bot, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, Code2, ArrowLeft } from 'lucide-vue-next'
 import { listAgents, addAgent, updateAgent, deleteAgent, toggleAgent, listConfigs, getHistory } from '@/api/client'
 import type { Agent, AgentRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import StatusHeader from '@/components/StatusHeader.vue'
+import Breadcrumb from '@/components/Breadcrumb.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
+
+const { t } = useI18n({ useScope: 'global' })
 
 const agents = ref<Agent[]>([])
 const folders = ref<string[]>([])
@@ -488,8 +492,8 @@ const stats = computed(() => {
 })
 
 const folderOptions = computed(() => [
-  { value: '', label: '全部', icon: Folder, count: stats.value.total },
-  { value: '__root__', label: '根目录', icon: Home, count: stats.value.rootCount },
+  { value: '', label: t('agents.folders.all'), icon: Folder, count: stats.value.total },
+  { value: '__root__', label: t('agents.folders.root'), icon: Home, count: stats.value.rootCount },
   ...folders.value.map((f) => ({ value: f, label: f, icon: Folder, count: stats.value.folderCounts[f] || 0 }))
 ])
 
@@ -526,7 +530,7 @@ const loadAgents = async () => {
     }
   } catch (err) {
     console.error('Failed to load agents:', err)
-    alert('加载 Agents 失败')
+    alert(t('agents.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -563,7 +567,7 @@ const removeTool = (tool: string) => {
 
 const handleSubmit = async () => {
   if (!formData.value.name || !formData.value.model) {
-    alert('请填写必填字段')
+    alert(t('agents.fillRequired'))
     return
   }
   const request: AgentRequest = {
@@ -579,18 +583,18 @@ const handleSubmit = async () => {
     loadAgents()
   } catch (err) {
     console.error('操作失败:', err)
-    alert('操作失败')
+    alert(t('agents.operationFailed'))
   }
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(`确定要删除 agent "${name}" 吗？`)) return
+  if (!confirm(t('agents.deleteConfirm', { name }))) return
   try {
     await deleteAgent(name)
     loadAgents()
   } catch (err) {
     console.error('删除失败:', err)
-    alert('删除失败')
+    alert(t('agents.deleteFailed'))
   }
 }
 
@@ -600,7 +604,7 @@ const handleToggle = async (name: string) => {
     loadAgents()
   } catch (err) {
     console.error('切换状态失败:', err)
-    alert('切换状态失败')
+    alert(t('agents.toggleFailed'))
   }
 }
 

@@ -5,14 +5,14 @@
       <div
         class="absolute top-10 right-10 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl animate-pulse"
         :style="{ 
-          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
+          background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 50%, var(--accent-tertiary) 100%)',
           animation: 'pulse 8s ease-in-out infinite'
         }"
       />
       <div
         class="absolute bottom-10 left-10 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
-          background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%)',
+          background: 'linear-gradient(135deg, var(--accent-success) 0%, var(--accent-info) 50%, var(--accent-primary) 100%)',
           animation: 'pulse 10s ease-in-out infinite',
           animationDelay: '2s'
         }"
@@ -30,9 +30,9 @@
         <!-- Breadcrumb Navigation -->
         <Breadcrumb
           :items="[
-            { label: '首页', path: '/', icon: Home },
-            { label: 'Claude Code', path: '/claude-code', icon: Code2 },
-            { label: 'MCP 服务器', path: '/mcp', icon: Server }
+            { label: $t('mcp.breadcrumb.home'), path: '/', icon: Home },
+            { label: $t('mcp.breadcrumb.claudeCode'), path: '/claude-code', icon: Code2 },
+            { label: $t('mcp.breadcrumb.mcp'), path: '/mcp', icon: Server }
           ]"
           module-color="#6366f1"
         />
@@ -59,7 +59,7 @@
                 >
                   <Server
                     class="w-8 h-8"
-                    :style="{ color: '#6366f1' }"
+                    :style="{ color: 'var(--accent-primary)' }"
                   />
                 </div>
                 <div>
@@ -68,23 +68,23 @@
                       class="text-3xl font-bold"
                       :style="{ color: 'var(--text-primary)' }"
                     >
-                      MCP 服务器管理
+                      {{ $t('mcp.title') }}
                     </h1>
                     <span
                       class="px-3 py-1 rounded-full text-xs font-bold"
                       :style="{
                         background: 'rgba(99, 102, 241, 0.15)',
-                        color: '#6366f1'
+                        color: 'var(--accent-primary)'
                       }"
                     >
-                      🔌 MCP
+                      🔌 {{ $t('mcp.badge') }}
                     </span>
                   </div>
                   <p
                     class="text-sm mt-2"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Model Context Protocol 服务器配置和管理
+                    {{ $t('mcp.subtitle') }}
                   </p>
                 </div>
               </div>
@@ -98,7 +98,7 @@
                   @click="handleAdd"
                 >
                   <Plus class="w-5 h-5" />
-                  添加服务器
+                  {{ $t('mcp.addServer') }}
                 </button>
               </div>
             </div>
@@ -125,7 +125,7 @@
                 class="text-center py-10"
                 :style="{ color: 'var(--text-muted)' }"
               >
-                暂无 MCP 服务器配置
+                {{ $t('mcp.noServers') }}
               </div>
 
               <div
@@ -155,12 +155,12 @@
                         class="px-2 py-0.5 rounded text-xs font-semibold uppercase"
                         :style="{ background: 'var(--accent-danger)', color: 'white' }"
                       >
-                        已禁用
+                        {{ $t('mcp.disabled') }}
                       </span>
                     </div>
                     <div class="space-y-2 text-sm">
                       <div>
-                        <span :style="{ color: 'var(--text-muted)' }">命令:</span>
+                        <span :style="{ color: 'var(--text-muted)' }">{{ $t('mcp.command') }}:</span>
                         <code
                           class="ml-2 px-2 py-1 rounded font-mono"
                           :style="{ background: 'var(--bg-secondary)', color: 'var(--accent-primary)' }"
@@ -169,7 +169,7 @@
                         </code>
                       </div>
                       <div>
-                        <span :style="{ color: 'var(--text-muted)' }">参数:</span>
+                        <span :style="{ color: 'var(--text-muted)' }">{{ $t('mcp.args') }}:</span>
                         <code
                           class="ml-2 px-2 py-1 rounded font-mono"
                           :style="{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }"
@@ -178,7 +178,7 @@
                         </code>
                       </div>
                       <div v-if="server.env && Object.keys(server.env).length > 0">
-                        <span :style="{ color: 'var(--text-muted)' }">环境变量:</span>
+                        <span :style="{ color: 'var(--text-muted)' }">{{ $t('mcp.envVars') }}:</span>
                         <div class="ml-2 mt-1 space-y-1">
                           <div
                             v-for="[key, value] in Object.entries(server.env)"
@@ -202,7 +202,7 @@
                         border: '1px solid var(--border-color)',
                         color: server.disabled ? 'var(--accent-success)' : 'var(--accent-warning)'
                       }"
-                      :title="server.disabled ? '启用' : '禁用'"
+                      :title="server.disabled ? $t('mcp.enable') : $t('mcp.disable')"
                       @click="handleToggle(server.name)"
                     >
                       <Power
@@ -221,7 +221,7 @@
                         border: '1px solid var(--border-color)',
                         color: 'var(--accent-primary)'
                       }"
-                      title="编辑"
+                      :title="$t('mcp.edit')"
                       @click="handleEdit(server)"
                     >
                       <Edit2 class="w-4 h-4" />
@@ -233,7 +233,7 @@
                         border: '1px solid var(--border-color)',
                         color: 'var(--accent-danger)'
                       }"
-                      title="删除"
+                      :title="$t('mcp.delete')"
                       @click="handleDelete(server.name)"
                     >
                       <Trash2 class="w-4 h-4" />
@@ -256,7 +256,7 @@
                   class="text-xl font-bold mb-4"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  {{ editingServer ? '编辑 MCP 服务器' : '添加 MCP 服务器' }}
+                  {{ editingServer ? $t('mcp.editServer') : $t('mcp.addServer') }}
                 </h2>
 
                 <div class="space-y-4">
@@ -265,7 +265,7 @@
                       class="block text-sm font-semibold mb-1"
                       :style="{ color: 'var(--text-secondary)' }"
                     >
-                      服务器名称 *
+                      {{ $t('mcp.serverName') }} {{ $t('mcp.required') }}
                     </label>
                     <input
                       v-model="formData.name"
@@ -276,7 +276,7 @@
                         border: '1px solid var(--border-color)',
                         color: 'var(--text-primary)'
                       }"
-                      placeholder="例如: filesystem-server"
+                      :placeholder="$t('mcp.namePlaceholder')"
                     >
                   </div>
 
@@ -285,7 +285,7 @@
                       class="block text-sm font-semibold mb-1"
                       :style="{ color: 'var(--text-secondary)' }"
                     >
-                      命令 *
+                      {{ $t('mcp.command') }} {{ $t('mcp.required') }}
                     </label>
                     <input
                       v-model="formData.command"
@@ -296,7 +296,7 @@
                         border: '1px solid var(--border-color)',
                         color: 'var(--text-primary)'
                       }"
-                      placeholder="例如: npx 或 node"
+                      :placeholder="$t('mcp.commandPlaceholder')"
                     >
                   </div>
 
@@ -305,7 +305,7 @@
                       class="block text-sm font-semibold mb-1"
                       :style="{ color: 'var(--text-secondary)' }"
                     >
-                      参数 *
+                      {{ $t('mcp.args') }} {{ $t('mcp.required') }}
                     </label>
                     <input
                       v-model="argInput"
@@ -316,13 +316,13 @@
                         border: '1px solid var(--border-color)',
                         color: 'var(--text-primary)'
                       }"
-                      placeholder="例如: -y @modelcontextprotocol/server-filesystem /path"
+                      :placeholder="$t('mcp.argsPlaceholder')"
                     >
                     <div
                       class="text-xs mt-1"
                       :style="{ color: 'var(--text-muted)' }"
                     >
-                      用空格分隔多个参数
+                      {{ $t('mcp.argsHint') }}
                     </div>
                   </div>
 
@@ -331,7 +331,7 @@
                       class="block text-sm font-semibold mb-1"
                       :style="{ color: 'var(--text-secondary)' }"
                     >
-                      环境变量
+                      {{ $t('mcp.envVars') }}
                     </label>
                     <div class="flex gap-2 mb-2">
                       <input
@@ -343,7 +343,7 @@
                           border: '1px solid var(--border-color)',
                           color: 'var(--text-primary)'
                         }"
-                        placeholder="KEY"
+                        :placeholder="$t('mcp.envKey')"
                       >
                       <input
                         v-model="envValue"
@@ -354,14 +354,14 @@
                           border: '1px solid var(--border-color)',
                           color: 'var(--text-primary)'
                         }"
-                        placeholder="VALUE"
+                        :placeholder="$t('mcp.envValue')"
                       >
                       <button
                         class="px-4 py-2 rounded-lg font-semibold text-sm text-white"
                         :style="{ background: 'var(--accent-primary)' }"
                         @click="addEnvVar"
                       >
-                        添加
+                        {{ $t('mcp.addEnv') }}
                       </button>
                     </div>
                     <div class="space-y-1">
@@ -382,7 +382,7 @@
                           :style="{ color: 'var(--accent-danger)' }"
                           @click="removeEnvVar(key)"
                         >
-                          删除
+                          {{ $t('mcp.removeEnv') }}
                         </button>
                       </div>
                     </div>
@@ -400,7 +400,7 @@
                       class="text-sm"
                       :style="{ color: 'var(--text-secondary)' }"
                     >
-                      禁用此服务器
+                      {{ $t('mcp.disableServer') }}
                     </label>
                   </div>
                 </div>
@@ -411,7 +411,7 @@
                     :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
                     @click="handleSubmit"
                   >
-                    {{ editingServer ? '更新' : '添加' }}
+                    {{ editingServer ? $t('mcp.update') : $t('mcp.add') }}
                   </button>
                   <button
                     class="flex-1 px-4 py-2 rounded-lg font-semibold"
@@ -422,7 +422,7 @@
                     }"
                     @click="showAddForm = false"
                   >
-                    取消
+                    {{ $t('mcp.cancel') }}
                   </button>
                 </div>
               </div>
@@ -436,7 +436,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Server, Plus, Edit2, Trash2, Power, PowerOff, Home } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+import { Server, Plus, Edit2, Trash2, Power, PowerOff, Home, Code2 } from 'lucide-vue-next'
 import {
   listMcpServers,
   addMcpServer,
@@ -449,7 +450,10 @@ import {
 import type { McpServer, McpServerRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import StatusHeader from '@/components/StatusHeader.vue'
+import Breadcrumb from '@/components/Breadcrumb.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
+
+const { t } = useI18n({ useScope: 'global' })
 
 const servers = ref<McpServer[]>([])
 const loading = ref(true)
@@ -488,7 +492,7 @@ const loadServers = async () => {
   } catch (err) {
     console.error('Failed to load MCP servers:', err)
     servers.value = []
-    alert('加载 MCP 服务器失败')
+    alert(t('mcp.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -526,7 +530,7 @@ const handleEdit = (server: McpServer) => {
 
 const handleSubmit = async () => {
   if (!formData.value.name || !formData.value.command) {
-    alert('请填写必填字段')
+    alert(t('mcp.fillRequired'))
     return
   }
 
@@ -541,27 +545,27 @@ const handleSubmit = async () => {
   try {
     if (editingServer.value) {
       await updateMcpServer(editingServer.value.name, request)
-      alert('✓ MCP 服务器更新成功')
+      alert(t('mcp.updateSuccess'))
     } else {
       await addMcpServer(request)
-      alert('✓ MCP 服务器添加成功')
+      alert(t('mcp.addSuccess'))
     }
     showAddForm.value = false
     await loadServers()
   } catch (err) {
-    alert(`操作失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    alert(`${t('mcp.operationFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
   }
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(`确定删除 MCP 服务器 "${name}" 吗？`)) return
+  if (!confirm(t('mcp.deleteConfirm', { name }))) return
 
   try {
     await deleteMcpServer(name)
-    alert('✓ MCP 服务器删除成功')
+    alert(t('mcp.deleteSuccess'))
     await loadServers()
   } catch (err) {
-    alert(`删除失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    alert(`${t('mcp.deleteFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
   }
 }
 
@@ -570,7 +574,7 @@ const handleToggle = async (name: string) => {
     await toggleMcpServer(name)
     await loadServers()
   } catch (err) {
-    alert(`切换失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    alert(`${t('mcp.toggleFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
   }
 }
 
