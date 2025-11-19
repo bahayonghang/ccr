@@ -960,8 +960,35 @@ _tauri-dev-windows:
     @Set-Location frontend; npm run tauri:dev
 
 # 构建 Tauri 生产版本（桌面应用）
-tauri-build:
+tauri-build: _ensure-frontend-deps
     @just _tauri-build-{{os()}}
+
+# 确保前端依赖已安装（内部命令）
+_ensure-frontend-deps:
+    @just _ensure-frontend-deps-{{os()}}
+
+_ensure-frontend-deps-linux:
+    #!/usr/bin/env bash
+    if [ ! -d "frontend/node_modules" ] || [ ! -d "frontend/node_modules/vue-i18n" ]; then
+        echo "📦 检测到依赖缺失，正在安装前端依赖..."
+        cd frontend && npm install
+        echo "✅ 前端依赖安装完成"
+    else
+        echo "✅ 前端依赖已就绪"
+    fi
+
+_ensure-frontend-deps-macos:
+    #!/usr/bin/env bash
+    if [ ! -d "frontend/node_modules" ] || [ ! -d "frontend/node_modules/vue-i18n" ]; then
+        echo "📦 检测到依赖缺失，正在安装前端依赖..."
+        cd frontend && npm install
+        echo "✅ 前端依赖安装完成"
+    else
+        echo "✅ 前端依赖已就绪"
+    fi
+
+_ensure-frontend-deps-windows:
+    @if (-not (Test-Path 'frontend/node_modules') -or -not (Test-Path 'frontend/node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; Set-Location frontend; npm install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
 
 _tauri-build-linux:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."

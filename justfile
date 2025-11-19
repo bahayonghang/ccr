@@ -31,10 +31,13 @@ help:
   @echo "╠════════════════════════════════════════════════════════════════╣"
   @echo "║   💡 提示: just <命令> 执行，just --list 查看完整列表           ║"
   @echo "║                                                                ║"
-  @echo "║   🔧 版本相关命令：                                            ║"
+  @echo "║   🔧 版本相关命令（跨平台）：                                  ║"
   @echo "║     • just version-sync   同步版本号（以根 Cargo.toml 为主）    ║"
   @echo "║                            → 更新 ccr-ui/backend/Cargo.toml    ║"
   @echo "║                              和 ccr-ui/frontend/package.json    ║"
+  @echo "║                              和 ccr-ui/frontend/src-tauri/*     ║"
+  @echo "║                            → Windows: 使用 version-sync.ps1    ║"
+  @echo "║                            → Linux/macOS: 使用 version-sync.sh ║"
   @echo "║     • just version-check  仅检查版本一致性（不修改文件）        ║"
   @echo "╚════════════════════════════════════════════════════════════════╝"
   @echo ""
@@ -296,11 +299,41 @@ deep-clean: clean
 
 # 同步版本号到 UI 后端与前端（以根 Cargo.toml 为主）
 version-sync:
+  @just _version-sync-{{os()}}
+
+# 仅检查版本一致性
+version-check:
+  @just _version-check-{{os()}}
+
+# 同步版本 - Windows
+_version-sync-windows:
+  @Write-Output '🔧 同步版本号（以根 Cargo.toml 为主）'
+  @.\scripts\version-sync.ps1 -Verbose
+  @Write-Output '✅ 版本同步完成'
+
+# 同步版本 - Linux
+_version-sync-linux:
   @echo "🔧 同步版本号（以根 Cargo.toml 为主）"
   bash scripts/version-sync.sh
   @echo "✅ 版本同步完成"
 
-# 仅检查版本一致性
-version-check:
+# 同步版本 - macOS
+_version-sync-macos:
+  @echo "🔧 同步版本号（以根 Cargo.toml 为主）"
+  bash scripts/version-sync.sh
+  @echo "✅ 版本同步完成"
+
+# 检查版本 - Windows
+_version-check-windows:
+  @Write-Output '🔍 检查版本号一致性'
+  @.\scripts\version-sync.ps1 -Check -Verbose
+
+# 检查版本 - Linux
+_version-check-linux:
   @echo "🔍 检查版本号一致性"
-  bash scripts/version-sync.sh --check
+  bash scripts/version-sync.sh --check --verbose
+
+# 检查版本 - macOS
+_version-check-macos:
+  @echo "🔍 检查版本号一致性"
+  bash scripts/version-sync.sh --check --verbose
