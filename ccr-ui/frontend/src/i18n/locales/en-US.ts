@@ -1523,4 +1523,224 @@ export default {
       operationFailed: 'Operation failed: {error}'
     }
   },
+
+  // ===================================
+  // Gemini CLI Platform
+  // ===================================
+  gemini: {
+    // Overview module
+    overview: {
+      title: 'Gemini CLI Management',
+      subtitle: 'Manage Google Gemini CLI configuration',
+      breadcrumb: 'Gemini CLI',
+      pageTitle: 'Gemini CLI Management Center',
+      description: 'Google Frontier AI · Multimodal Support · Smart Assistant',
+      welcome: 'Gemini Features',
+      quickActions: 'Quick Actions',
+      viewConfig: 'View Config',
+      viewMcp: 'Manage MCP',
+      viewAgents: 'Manage Agents',
+      viewCommands: 'Manage Commands',
+      viewPlugins: 'Manage Plugins',
+      feature1: 'Google\'s latest multimodal AI model supporting text, images, audio and video',
+      feature2: 'Powerful context understanding with long text processing and analysis',
+      feature3: 'Deep integration with Google ecosystem accessing vast data and services',
+      feature4: 'Extend capabilities via MCP protocol connecting external tools and data sources',
+      stats: {
+        mcpServers: 'MCP Servers',
+        agents: 'Agents',
+        commands: 'Commands',
+        plugins: 'Plugins'
+      }
+    },
+
+    // MCP module
+    mcp: {
+      title: 'MCP Servers',
+      subtitle: 'Manage Gemini MCP server configuration',
+      breadcrumb: 'MCP Management',
+      pageTitle: 'Gemini MCP Server Management',
+      backToHome: 'Back to Home',
+      addServer: 'Add Server',
+      editServer: 'Edit Server',
+      serverName: 'Server Name',
+      nameLabel: 'Name *',
+      commandLabel: 'Command *',
+      commandPlaceholder: 'e.g., npx',
+      urlLabel: 'Server URL *',
+      urlPlaceholder: 'e.g., http://localhost:3000',
+      httpServerHint: 'HTTP Server (check for HTTP, otherwise STDIO)',
+      argsLabel: 'Arguments',
+      argPlaceholder: 'Enter argument',
+      argsHint: 'Separate multiple arguments with spaces',
+      addArg: 'Add',
+      envLabel: 'Environment Variables',
+      envKey: 'Key',
+      envValue: 'Value',
+      addEnv: 'Add Variable',
+      searchPlaceholder: 'Search server name, command or arguments...',
+      searchResults: 'Found <strong>{count}</strong> matching servers',
+      loading: 'Loading...',
+      emptyState: 'No MCP servers configured',
+      noResults: 'No matching servers found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete server "{name}"?',
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load MCP servers',
+        updateSuccess: '✓ Server updated successfully',
+        addSuccess: '✓ Server added successfully',
+        deleteSuccess: '✓ Server deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+
+    // Agents module
+    agents: {
+      title: 'Agents Management',
+      subtitle: 'Manage Gemini AI Agent configuration',
+      breadcrumb: 'Agents Management',
+      pageTitle: 'Gemini Agents Management',
+      backToHome: 'Back to Home',
+      addAgent: 'Add Agent',
+      editAgent: 'Edit Agent',
+      nameLabel: 'Name *',
+      modelLabel: 'Model *',
+      toolsLabel: 'Tools',
+      toolPlaceholder: 'Enter tool name',
+      addTool: 'Add',
+      systemPromptLabel: 'System Prompt',
+      searchPlaceholder: 'Search agent name, system prompt or tools...',
+      searchResults: 'Found <strong>{count}</strong> matching agents',
+      loading: 'Loading...',
+      emptyState: 'No agents configured',
+      noResults: 'No matching agents found',
+      noResultsHint: 'Try using other keywords or switching folders',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete agent "{name}"?',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Agents',
+        updateSuccess: '✓ Agent updated successfully',
+        addSuccess: '✓ Agent added successfully',
+        deleteSuccess: '✓ Agent deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+
+    // Slash Commands module
+    slashCommands: {
+      title: 'Slash Commands',
+      subtitle: 'Manage Gemini slash commands',
+      breadcrumb: 'Slash Commands',
+      pageTitle: 'Gemini Slash Commands Management',
+      backToHome: 'Back to Home',
+      addCommandShort: 'Add Command',
+      editCommandShort: 'Edit Command',
+      nameLabel: 'Name *',
+      commandLabel: 'Command *',
+      descriptionLabel: 'Description',
+      searchPlaceholder: 'Search command name, description or command...',
+      searchResults: 'Found <strong>{count}</strong> matching commands',
+      loading: 'Loading...',
+      emptyState: 'No slash commands configured',
+      noResults: 'No matching commands found',
+      noResultsHint: 'Try using other keywords or switching folders',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete command "{name}"?',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Slash Commands',
+        updateSuccess: '✓ Command updated successfully',
+        addSuccess: '✓ Command added successfully',
+        deleteSuccess: '✓ Command deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+
+    // Plugins module
+    plugins: {
+      title: 'Plugins Management',
+      subtitle: 'Manage Gemini plugin ecosystem',
+      breadcrumb: 'Plugins Management',
+      pageTitle: 'Gemini Plugins Management',
+      backToHome: 'Back to Home',
+      addPlugin: 'Add Plugin',
+      editPlugin: 'Edit Plugin',
+      nameLabel: 'Name *',
+      namePlaceholder: 'e.g., My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: 'e.g., my-plugin',
+      versionLabel: 'Version *',
+      versionPlaceholder: 'e.g., 1.0.0',
+      configLabel: 'Config JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: 'Optional, enter valid JSON format configuration',
+      enabledLabel: 'Enable this plugin',
+      searchPlaceholder: 'Search plugin name, ID or description...',
+      searchResults: 'Found <strong>{count}</strong> matching plugins',
+      loading: 'Loading...',
+      emptyState: 'No plugins configured',
+      noResults: 'No matching plugins found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete plugin "{name}"?',
+      validation: {
+        required: 'Please fill in required fields',
+        invalidJson: 'Invalid JSON format for configuration'
+      },
+      messages: {
+        loadFailed: 'Failed to load Plugins',
+        updateSuccess: '✓ Plugin updated successfully',
+        addSuccess: '✓ Plugin added successfully',
+        deleteSuccess: '✓ Plugin deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    }
+  },
 }

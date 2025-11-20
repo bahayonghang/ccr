@@ -1515,4 +1515,224 @@ export default {
       operationFailed: '操作失败：{error}'
     }
   },
+
+  // ===================================
+  // Gemini CLI Platform
+  // ===================================
+  gemini: {
+    // Overview module
+    overview: {
+      title: 'Gemini CLI 管理',
+      subtitle: '管理 Google Gemini CLI 配置',
+      breadcrumb: 'Gemini CLI',
+      pageTitle: 'Gemini CLI 管理中心',
+      description: 'Google 前沿 AI · 多模态支持 · 智能助手',
+      welcome: 'Gemini 特性',
+      quickActions: '快速操作',
+      viewConfig: '查看配置',
+      viewMcp: '管理 MCP',
+      viewAgents: '管理 Agents',
+      viewCommands: '管理命令',
+      viewPlugins: '管理插件',
+      feature1: 'Google 最新一代多模态 AI 模型，支持文本、图像、音频和视频',
+      feature2: '强大的上下文理解能力，支持长文本处理和分析',
+      feature3: '与 Google 生态系统深度集成，访问海量数据和服务',
+      feature4: '通过 MCP 协议扩展能力，连接外部工具和数据源',
+      stats: {
+        mcpServers: 'MCP 服务器',
+        agents: 'Agents',
+        commands: '命令',
+        plugins: '插件'
+      }
+    },
+
+    // MCP module
+    mcp: {
+      title: 'MCP 服务器',
+      subtitle: '管理 Gemini MCP 服务器配置',
+      breadcrumb: 'MCP 管理',
+      pageTitle: 'Gemini MCP 服务器管理',
+      backToHome: '返回首页',
+      addServer: '添加服务器',
+      editServer: '编辑服务器',
+      serverName: '服务器名称',
+      nameLabel: '名称 *',
+      commandLabel: 'Command *',
+      commandPlaceholder: '例如: npx',
+      urlLabel: '服务器 URL *',
+      urlPlaceholder: '例如: http://localhost:3000',
+      httpServerHint: 'HTTP 服务器（勾选则为 HTTP，否则为 STDIO）',
+      argsLabel: 'Arguments',
+      argPlaceholder: '输入参数',
+      argsHint: '用空格分隔多个参数',
+      addArg: '添加',
+      envLabel: 'Environment Variables',
+      envKey: 'Key',
+      envValue: 'Value',
+      addEnv: '添加变量',
+      searchPlaceholder: '搜索服务器名称、命令或参数...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的服务器',
+      loading: '加载中...',
+      emptyState: '暂无 MCP 服务器配置',
+      noResults: '未找到匹配的服务器',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除服务器 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 MCP 服务器失败',
+        updateSuccess: '✓ 服务器更新成功',
+        addSuccess: '✓ 服务器添加成功',
+        deleteSuccess: '✓ 服务器删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+
+    // Agents module
+    agents: {
+      title: 'Agents 管理',
+      subtitle: '管理 Gemini AI Agent 配置',
+      breadcrumb: 'Agents 管理',
+      pageTitle: 'Gemini Agents 管理',
+      backToHome: '返回首页',
+      addAgent: '添加 Agent',
+      editAgent: '编辑 Agent',
+      nameLabel: '名称 *',
+      modelLabel: 'Model *',
+      toolsLabel: 'Tools',
+      toolPlaceholder: '输入工具名称',
+      addTool: '添加',
+      systemPromptLabel: 'System Prompt',
+      searchPlaceholder: '搜索 agent 名称、系统提示或工具...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的 agents',
+      loading: '加载中...',
+      emptyState: '暂无 Agents 配置',
+      noResults: '未找到匹配的 agents',
+      noResultsHint: '尝试使用其他关键词搜索或切换文件夹',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除 agent "{name}" 吗？',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Agents 失败',
+        updateSuccess: '✓ Agent 更新成功',
+        addSuccess: '✓ Agent 添加成功',
+        deleteSuccess: '✓ Agent 删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+
+    // Slash Commands module
+    slashCommands: {
+      title: 'Slash Commands',
+      subtitle: '管理 Gemini 斜杠命令',
+      breadcrumb: 'Slash Commands',
+      pageTitle: 'Gemini Slash Commands 管理',
+      backToHome: '返回首页',
+      addCommandShort: '添加 Command',
+      editCommandShort: '编辑 Command',
+      nameLabel: '名称 *',
+      commandLabel: 'Command *',
+      descriptionLabel: '描述',
+      searchPlaceholder: '搜索命令名称、描述或命令...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的命令',
+      loading: '加载中...',
+      emptyState: '暂无 Slash Commands 配置',
+      noResults: '未找到匹配的命令',
+      noResultsHint: '尝试使用其他关键词搜索或切换文件夹',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除命令 "{name}" 吗？',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Slash Commands 失败',
+        updateSuccess: '✓ 命令更新成功',
+        addSuccess: '✓ 命令添加成功',
+        deleteSuccess: '✓ 命令删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+
+    // Plugins module
+    plugins: {
+      title: 'Plugins 管理',
+      subtitle: '管理 Gemini 插件生态',
+      breadcrumb: 'Plugins 管理',
+      pageTitle: 'Gemini Plugins 管理',
+      backToHome: '返回首页',
+      addPlugin: '添加插件',
+      editPlugin: '编辑插件',
+      nameLabel: '名称 *',
+      namePlaceholder: '例如: My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: '例如: my-plugin',
+      versionLabel: '版本 *',
+      versionPlaceholder: '例如: 1.0.0',
+      configLabel: '配置 JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: '可选，输入合法的 JSON 格式配置',
+      enabledLabel: '启用此插件',
+      searchPlaceholder: '搜索插件名称、ID 或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的插件',
+      loading: '加载中...',
+      emptyState: '暂无插件配置',
+      noResults: '未找到匹配的插件',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除插件 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段',
+        invalidJson: '配置 JSON 格式错误'
+      },
+      messages: {
+        loadFailed: '加载 Plugins 失败',
+        updateSuccess: '✓ 插件更新成功',
+        addSuccess: '✓ 插件添加成功',
+        deleteSuccess: '✓ 插件删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    }
+  },
 }

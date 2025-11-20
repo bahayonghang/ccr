@@ -37,7 +37,7 @@
                 class="text-lg"
                 :style="{ color: 'var(--text-secondary)' }"
               >
-                Google 前沿 AI · 多模态支持 · 智能助手
+                {{ $t('gemini.overview.description') }}
               </p>
             </div>
           </div>
@@ -52,7 +52,7 @@
             <span
               class="font-medium"
               :style="{ color: 'var(--text-secondary)' }"
-            >返回首页</span>
+            >{{ $t('common.backToHome') }}</span>
           </RouterLink>
         </div>
 
@@ -95,7 +95,7 @@
             class="w-7 h-7"
             :style="{ color: '#3b82f6' }"
           />
-          功能模块
+          {{ $t('common.modules') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <RouterLink
@@ -118,13 +118,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    MCP 服务器
+                    {{ $t('gemini.mcp.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Gemini MCP 服务器配置管理
+                    {{ $t('gemini.mcp.subtitle') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -160,13 +160,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Agents
+                    {{ $t('gemini.agents.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Gemini Agent 配置和管理
+                    {{ $t('gemini.agents.subtitle') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -202,13 +202,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    插件管理
+                    {{ $t('gemini.plugins.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Gemini 插件配置和管理
+                    {{ $t('gemini.plugins.subtitle') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -244,13 +244,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Slash Commands
+                    {{ $t('gemini.slashCommands.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Gemini 自定义命令管理
+                    {{ $t('gemini.slashCommands.subtitle') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -285,7 +285,7 @@
               class="text-lg font-bold mb-2"
               :style="{ color: 'var(--text-primary)' }"
             >
-              💡 Gemini 特性
+              💡 {{ $t('gemini.overview.welcome') }}
             </h3>
             <ul
               class="space-y-2 text-sm"
@@ -293,19 +293,19 @@
             >
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>Google 最新一代多模态 AI 模型，支持文本、图像、音频和视频</span>
+                <span>{{ $t('gemini.overview.feature1') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>强大的上下文理解能力，支持长文本处理和分析</span>
+                <span>{{ $t('gemini.overview.feature2') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>与 Google 生态系统深度集成，访问海量数据和服务</span>
+                <span>{{ $t('gemini.overview.feature3') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>通过 MCP 协议扩展能力，连接外部工具和数据源</span>
+                <span>{{ $t('gemini.overview.feature4') }}</span>
               </li>
             </ul>
           </div>
@@ -317,5 +317,8 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Server, Bot, Puzzle, Command, Home, Sparkles, Boxes, Info } from 'lucide-vue-next'
+
+const { t } = useI18n()
 </script>
