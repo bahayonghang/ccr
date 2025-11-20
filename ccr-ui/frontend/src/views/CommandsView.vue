@@ -12,13 +12,22 @@
               class="p-2 rounded-lg"
               :style="{ background: 'var(--bg-tertiary)' }"
             >
-              <Terminal class="w-6 h-6" :style="{ color: 'var(--accent-primary)' }" />
+              <Terminal
+                class="w-6 h-6"
+                :style="{ color: 'var(--accent-primary)' }"
+              />
             </div>
             <div>
-              <h1 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
+              <h1
+                class="text-2xl font-bold"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 {{ $t('commands.title') }}
               </h1>
-              <p class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+              <p
+                class="text-sm"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 {{ $t('commands.description') }}
               </p>
             </div>
@@ -36,7 +45,10 @@
                 boxShadow: 'var(--shadow-small)'
               }"
             >
-              <div class="p-4 border-b" :style="{ borderColor: 'var(--border-color)' }">
+              <div
+                class="p-4 border-b"
+                :style="{ borderColor: 'var(--border-color)' }"
+              >
                 <h2
                   class="text-xs font-bold uppercase tracking-wider"
                   :style="{ color: 'var(--text-secondary)' }"
@@ -61,7 +73,7 @@
                       background: selectedClient === client.id ? client.color.replace('0.2', '1') : 'transparent',
                       opacity: selectedClient === client.id ? 1 : 0
                     }"
-                  ></div>
+                  />
                   
                   <div 
                     class="p-1.5 rounded-md transition-colors"
@@ -100,7 +112,10 @@
                 boxShadow: 'var(--shadow-small)'
               }"
             >
-              <div class="p-4 border-b" :style="{ borderColor: 'var(--border-color)' }">
+              <div
+                class="p-4 border-b"
+                :style="{ borderColor: 'var(--border-color)' }"
+              >
                 <h2
                   class="text-xs font-bold uppercase tracking-wider"
                   :style="{ color: 'var(--text-secondary)' }"
@@ -125,7 +140,7 @@
                       background: selectedCommand === cmd.name ? 'var(--accent-primary)' : 'transparent',
                       opacity: selectedCommand === cmd.name ? 1 : 0
                     }"
-                  ></div>
+                  />
                   <div class="flex items-center justify-between">
                     <span 
                       class="font-mono text-sm font-semibold"
@@ -174,10 +189,16 @@
                     />
                   </div>
                   <div>
-                    <h1 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
+                    <h1
+                      class="text-2xl font-bold"
+                      :style="{ color: 'var(--text-primary)' }"
+                    >
                       {{ selectedCommandInfo?.name || 'Select a command' }}
                     </h1>
-                    <p class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+                    <p
+                      class="text-sm"
+                      :style="{ color: 'var(--text-secondary)' }"
+                    >
                       {{ selectedCommandInfo?.description }}
                     </p>
                   </div>
@@ -198,10 +219,22 @@
                   <span>COMMAND INPUT</span>
                 </div>
                 <div class="flex items-center gap-3">
-                  <span class="font-bold select-none" :style="{ color: 'var(--accent-success)' }">➜</span>
-                  <span class="font-bold select-none" :style="{ color: 'var(--accent-info)' }">~</span>
-                  <span class="font-bold select-none" :style="{ color: 'var(--text-primary)' }">{{ selectedClient }}</span>
-                  <span class="font-bold select-none" :style="{ color: 'var(--accent-warning)' }">{{ selectedCommand }}</span>
+                  <span
+                    class="font-bold select-none"
+                    :style="{ color: 'var(--accent-success)' }"
+                  >➜</span>
+                  <span
+                    class="font-bold select-none"
+                    :style="{ color: 'var(--accent-info)' }"
+                  >~</span>
+                  <span
+                    class="font-bold select-none"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >{{ selectedClient }}</span>
+                  <span
+                    class="font-bold select-none"
+                    :style="{ color: 'var(--accent-warning)' }"
+                  >{{ selectedCommand }}</span>
                   
                   <input
                     v-model="args"
@@ -229,8 +262,14 @@
                   :disabled="loading"
                   @click="handleExecute"
                 >
-                  <Loader2 v-if="loading" class="w-4 h-4 animate-spin" />
-                  <Play v-else class="w-4 h-4" />
+                  <Loader2
+                    v-if="loading"
+                    class="w-4 h-4 animate-spin"
+                  />
+                  <Play
+                    v-else
+                    class="w-4 h-4"
+                  />
                   {{ loading ? $t('commands.executing') : $t('commands.executeCommand') }}
                 </button>
               </div>
@@ -253,14 +292,17 @@
               >
                 <div class="flex items-center gap-2">
                   <div class="flex gap-1.5">
-                    <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
-                    <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
-                    <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f56]" />
+                    <div class="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+                    <div class="w-3 h-3 rounded-full bg-[#27c93f]" />
                   </div>
                   <span class="ml-3 text-xs text-gray-400 font-mono">bash — 80x24</span>
                 </div>
                 
-                <div class="flex items-center gap-2" v-if="output">
+                <div
+                  v-if="output"
+                  class="flex items-center gap-2"
+                >
                   <button
                     class="p-1.5 rounded hover:bg-[#3e3e3e] transition-colors text-gray-400 hover:text-white"
                     :title="$t('commands.copyOutput')"
@@ -280,7 +322,10 @@
 
               <!-- 终端内容 -->
               <div class="flex-1 p-4 font-mono text-sm overflow-y-auto custom-scrollbar relative">
-                <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                <div
+                  v-if="loading"
+                  class="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm"
+                >
                   <div class="flex flex-col items-center gap-3">
                     <Loader2 class="w-8 h-8 text-[var(--accent-primary)] animate-spin" />
                     <span class="text-gray-400 text-xs animate-pulse">Processing command...</span>
@@ -322,9 +367,14 @@
                   </div>
                 </template>
                 
-                <div v-else-if="!loading" class="h-full flex flex-col items-center justify-center text-gray-600 gap-2">
+                <div
+                  v-else-if="!loading"
+                  class="h-full flex flex-col items-center justify-center text-gray-600 gap-2"
+                >
                   <Terminal class="w-12 h-12 opacity-20" />
-                  <p class="text-sm">Ready to execute commands</p>
+                  <p class="text-sm">
+                    Ready to execute commands
+                  </p>
                 </div>
               </div>
             </section>
