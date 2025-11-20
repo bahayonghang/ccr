@@ -16,6 +16,7 @@ export default {
     info: 'Info',
     yes: 'Yes',
     no: 'No',
+    home: 'Home',
     back: 'Back',
     next: 'Next',
     previous: 'Previous',
@@ -1163,6 +1164,363 @@ export default {
       noData: 'No data',
       noStatsData: 'No statistics data',
       noStatsHint: 'Statistics will appear here after you start using AI API'
+    }
+  },
+
+  // Codex Module
+  codex: {
+    // Overview page
+    overview: {
+      title: 'Codex',
+      subtitle: 'AI Coding Assistant · MCP · Profiles · Smart Configuration',
+      backHome: 'Back to Home',
+      features: {
+        mcpProtocol: '🔌 MCP Protocol',
+        agents: '🤖 Agents',
+        profiles: '👤 Profiles',
+        configManagement: '⚙️ Config Management'
+      },
+      modulesTitle: 'Feature Modules',
+      modules: {
+        mcp: {
+          title: 'MCP Servers',
+          description: 'Codex MCP server configuration management (STDIO + HTTP)',
+          badge: '🔌 MCP'
+        },
+        agents: {
+          title: 'Agents',
+          description: 'Codex Agent intelligent configuration management',
+          badge: '🤖 AI'
+        },
+        profiles: {
+          title: 'Profiles',
+          description: 'Codex Profile configuration and management',
+          badge: '👤 Profile'
+        },
+        slashCommands: {
+          title: 'Slash Commands',
+          description: 'Codex shortcut command management',
+          badge: '⌨️ Command'
+        },
+        plugins: {
+          title: 'Plugin Management',
+          description: 'Codex plugin configuration management',
+          badge: '🧩 Plugin'
+        },
+        config: {
+          title: 'Basic Configuration',
+          description: 'Model, Approval Policy, Sandbox and other basic settings',
+          badge: '🔧 Config'
+        }
+      },
+      tipsTitle: '💡 Codex Features',
+      tips: {
+        mcpConnection: 'Supports both STDIO and HTTP MCP connection methods',
+        profileManagement: 'Manage different work environment configurations through Profiles',
+        agentsFeature: 'Agents feature allows creating AI assistants for specific tasks',
+        pluginEcosystem: 'Rich plugin ecosystem extends Codex capabilities'
+      }
+    },
+
+    // Common actions
+    actions: {
+      add: 'Add',
+      edit: 'Edit',
+      delete: 'Delete',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      cancel: 'Cancel',
+      refresh: 'Refresh',
+      import: 'Import',
+      export: 'Export',
+      search: 'Search',
+      filter: 'Filter',
+      viewDetails: 'View Details',
+      backToList: 'Back to List'
+    },
+
+    // Common states
+    states: {
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+      active: 'Active',
+      inactive: 'Inactive',
+      loading: 'Loading...',
+      saving: 'Saving...',
+      deleting: 'Deleting...',
+      noData: 'No data',
+      loadFailed: 'Load failed',
+      saveFailed: 'Save failed',
+      deleteFailed: 'Delete failed'
+    },
+
+    // MCP module
+    mcp: {
+      title: 'Codex MCP Servers',
+      breadcrumb: 'MCP Servers',
+      subtitle: 'Manage Codex MCP server configurations (STDIO + HTTP)',
+      backToCodex: 'Back',
+      addServer: 'Add Server',
+      editServer: 'Edit Server',
+      updateServer: 'Update',
+      serverName: 'Server Name',
+      serverType: 'Server Type',
+      command: 'Command',
+      commandLabel: 'Command:',
+      commandField: 'Command *',
+      args: 'Arguments',
+      argsLabel: 'Arguments:',
+      env: 'Environment Variables',
+      envLabel: 'Environment Variables:',
+      url: 'URL',
+      urlLabel: 'URL:',
+      serverUrl: 'Server URL *',
+      emptyState: 'No Codex MCP server configurations',
+      emptyHint: 'Click "Add Server" button to create your first MCP server',
+      deleteConfirm: 'Delete server "{name}"?',
+      httpServerLabel: 'HTTP Server (check for HTTP, otherwise STDIO)',
+      argsSeparatorHint: 'Separate multiple arguments with spaces',
+      types: {
+        stdio: 'STDIO',
+        http: 'HTTP'
+      },
+      placeholders: {
+        url: 'e.g: http://localhost:3000',
+        command: 'e.g: npx',
+        args: 'e.g: -y @modelcontextprotocol/server-filesystem',
+        envKey: 'KEY',
+        envValue: 'VALUE'
+      },
+      validation: {
+        commandRequired: 'Please fill in the command',
+        urlRequired: 'Please fill in the URL'
+      },
+      messages: {
+        loadFailed: 'Failed to load Codex MCP servers',
+        addSuccess: '✓ Server added successfully',
+        updateSuccess: '✓ Server updated successfully',
+        deleteSuccess: '✓ Server deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}'
+      }
+    },
+
+    // Agents module
+    agents: {
+      title: 'Agents Management',
+      subtitle: 'Manage Codex AI Agent configurations',
+      breadcrumb: 'Agents Management',
+      pageTitle: 'Codex Agents Management',
+      backToHome: 'Back to Home',
+      addAgent: 'Add Agent',
+      editAgent: 'Edit Agent',
+      agentName: 'Agent Name',
+      description: 'Description',
+      instructions: 'Instructions',
+      searchPlaceholder: 'Search agent name, system prompt or tools...',
+      searchResults: 'Found <strong>{count}</strong> matching agents',
+      loading: 'Loading...',
+      emptyState: 'No Agents configured',
+      noResults: 'No matching agents found',
+      noResultsHint: 'Try using other keywords or switch folders',
+      emptyHint: 'Click "Add Agent" button to create your first AI Agent',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      nameLabel: 'Name *',
+      modelLabel: 'Model *',
+      toolsLabel: 'Tools',
+      toolPlaceholder: 'Enter tool name',
+      addTool: 'Add',
+      systemPromptLabel: 'System Prompt',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete agent "{name}"?',
+      stats: {
+        total: 'Total',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Agents',
+        operationFailed: 'Operation failed',
+        deleteFailed: 'Delete failed',
+        toggleFailed: 'Toggle failed'
+      }
+    },
+
+    // Profiles module
+    profiles: {
+      title: 'Profiles Management',
+      subtitle: 'Manage GitHub Copilot CLI configuration files',
+      breadcrumb: 'Profiles Config',
+      addProfile: 'Add Profile',
+      editProfile: 'Edit Profile',
+      updateProfile: 'Update Profile',
+      backToCodex: 'Back',
+      profileName: 'Profile Name',
+      description: 'Description',
+      authToken: 'Auth Token',
+      baseUrl: 'Base URL',
+      model: 'Model',
+      fastModel: 'Fast Model',
+      provider: 'Provider',
+      emptyState: 'No Codex Profile configurations',
+      emptyHint: 'Click "Add Profile" to create the first configuration',
+      deleteConfirm: 'Delete Profile "{name}"? This action cannot be undone.',
+      deleteConfirmShort: 'Are you sure to delete Profile "{name}"?',
+      setActive: 'Set Active',
+      currentActive: 'Current Active',
+      placeholders: {
+        name: 'e.g: github-production',
+        description: 'e.g: GitHub Copilot production environment configuration',
+        authToken: 'ghp_...',
+        baseUrl: 'https://api.github.com/copilot',
+        selectFastModel: '-- Select Fast Model --',
+        selectProvider: '-- Select Provider --'
+      },
+      providers: {
+        github: 'GitHub',
+        azure: 'Azure',
+        openai: 'OpenAI',
+        custom: 'Custom'
+      },
+      validation: {
+        required: 'Please fill in all required fields (Profile Name, Base URL, Auth Token, Model)'
+      },
+      messages: {
+        loadFailed: 'Failed to load Codex Profiles',
+        addSuccess: '✓ Profile added successfully',
+        updateSuccess: '✓ Profile updated successfully',
+        deleteSuccess: '✓ Profile deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}'
+      }
+    },
+
+    // Slash Commands module
+    slashCommands: {
+      title: 'Slash Commands',
+      subtitle: 'Manage Codex shortcut commands',
+      breadcrumb: 'Slash Commands Management',
+      pageTitle: 'Codex Slash Commands Management',
+      backToHome: 'Back to Home',
+      addCommand: 'Add Command',
+      editCommand: 'Edit Command',
+      addCommandShort: 'Add Command',
+      editCommandShort: 'Edit Command',
+      commandName: 'Command Name',
+      nameLabel: 'Name *',
+      commandLabel: 'Command *',
+      descriptionLabel: 'Description',
+      description: 'Description',
+      command: 'Command Content',
+      searchPlaceholder: 'Search command name, description or command...',
+      searchResults: 'Found <strong>{count}</strong> matching commands',
+      loading: 'Loading...',
+      emptyState: 'No Slash Commands configured',
+      noResults: 'No matching commands found',
+      noResultsHint: 'Try using other keywords or switch folders',
+      emptyHint: 'Click "Add Command" button to create your first shortcut command',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete command "{name}"?',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root'
+      },
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Slash Commands',
+        operationFailed: 'Operation failed',
+        deleteFailed: 'Delete failed',
+        toggleFailed: 'Toggle failed'
+      }
+    },
+
+    // Plugins module
+    plugins: {
+      title: 'Plugins Management',
+      subtitle: 'Manage Codex plugin ecosystem',
+      breadcrumb: 'Plugins Management',
+      pageTitle: 'Codex Plugins Management',
+      backToHome: 'Back to Home',
+      addPlugin: 'Add Plugin',
+      editPlugin: 'Edit Plugin',
+      pluginName: 'Plugin Name',
+      nameLabel: 'Name *',
+      namePlaceholder: 'e.g., My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: 'e.g., my-plugin',
+      versionLabel: 'Version *',
+      versionPlaceholder: 'e.g., 1.0.0',
+      configLabel: 'Config JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: 'Optional, enter valid JSON format configuration',
+      enabledLabel: 'Enable this plugin',
+      descriptionLabel: 'Description',
+      description: 'Description',
+      version: 'Version',
+      author: 'Author',
+      searchPlaceholder: 'Search plugin name, ID or description...',
+      searchResults: 'Found <strong>{count}</strong> matching plugins',
+      loading: 'Loading...',
+      emptyState: 'No plugins configured',
+      noResults: 'No matching plugins found',
+      noResultsHint: 'Try using other keywords or switch folders',
+      emptyHint: 'Click "Add Plugin" button to install your first plugin',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete plugin "{name}"?',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root'
+      },
+      validation: {
+        required: 'Please fill in required fields',
+        invalidJson: 'Invalid JSON format for configuration'
+      },
+      messages: {
+        loadFailed: 'Failed to load Plugins',
+        updateSuccess: '✓ Plugin updated successfully',
+        addSuccess: '✓ Plugin added successfully',
+        deleteSuccess: '✓ Plugin deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+
+    // Messages
+    messages: {
+      addSuccess: 'Added successfully',
+      editSuccess: 'Edited successfully',
+      deleteSuccess: 'Deleted successfully',
+      enableSuccess: 'Enabled successfully',
+      disableSuccess: 'Disabled successfully',
+      operationSuccess: 'Operation successful',
+      operationFailed: 'Operation failed: {error}'
     }
   },
 }

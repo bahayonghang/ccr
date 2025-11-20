@@ -16,6 +16,7 @@ export default {
     info: '信息',
     yes: '是',
     no: '否',
+    home: '首页',
     back: '返回',
     next: '下一步',
     previous: '上一步',
@@ -1155,6 +1156,363 @@ export default {
       noData: '暂无数据',
       noStatsData: '暂无统计数据',
       noStatsHint: '开始使用 AI API 后，这里将显示统计信息'
+    }
+  },
+
+  // Codex Module
+  codex: {
+    // Overview page
+    overview: {
+      title: 'Codex',
+      subtitle: 'AI 编码助手 · MCP · Profiles · 智能配置',
+      backHome: '返回首页',
+      features: {
+        mcpProtocol: '🔌 MCP 协议',
+        agents: '🤖 Agents',
+        profiles: '👤 Profiles',
+        configManagement: '⚙️ 配置管理'
+      },
+      modulesTitle: '功能模块',
+      modules: {
+        mcp: {
+          title: 'MCP 服务器',
+          description: 'Codex MCP 服务器配置管理（STDIO + HTTP）',
+          badge: '🔌 MCP'
+        },
+        agents: {
+          title: 'Agents',
+          description: 'Codex Agent 智能体配置管理',
+          badge: '🤖 AI'
+        },
+        profiles: {
+          title: 'Profiles',
+          description: 'Codex Profile 配置和管理',
+          badge: '👤 Profile'
+        },
+        slashCommands: {
+          title: 'Slash Commands',
+          description: 'Codex 快捷命令管理',
+          badge: '⌨️ 命令'
+        },
+        plugins: {
+          title: '插件管理',
+          description: 'Codex 插件配置管理',
+          badge: '🧩 插件'
+        },
+        config: {
+          title: '基础配置',
+          description: 'Model、Approval Policy、Sandbox 等基础设置',
+          badge: '🔧 配置'
+        }
+      },
+      tipsTitle: '💡 Codex 特性',
+      tips: {
+        mcpConnection: '支持 STDIO 和 HTTP 两种 MCP 连接方式',
+        profileManagement: '通过 Profiles 管理不同工作环境的配置',
+        agentsFeature: 'Agents 功能允许创建特定任务的 AI 助手',
+        pluginEcosystem: '丰富的插件生态系统扩展 Codex 能力'
+      }
+    },
+
+    // Common actions
+    actions: {
+      add: '添加',
+      edit: '编辑',
+      delete: '删除',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      cancel: '取消',
+      refresh: '刷新',
+      import: '导入',
+      export: '导出',
+      search: '搜索',
+      filter: '筛选',
+      viewDetails: '查看详情',
+      backToList: '返回列表'
+    },
+
+    // Common states
+    states: {
+      enabled: '已启用',
+      disabled: '已禁用',
+      active: '活跃',
+      inactive: '未激活',
+      loading: '加载中...',
+      saving: '保存中...',
+      deleting: '删除中...',
+      noData: '暂无数据',
+      loadFailed: '加载失败',
+      saveFailed: '保存失败',
+      deleteFailed: '删除失败'
+    },
+
+    // MCP module
+    mcp: {
+      title: 'Codex MCP 服务器',
+      breadcrumb: 'MCP 服务器',
+      subtitle: '管理 Codex MCP 服务器配置（STDIO + HTTP）',
+      backToCodex: '返回',
+      addServer: '添加服务器',
+      editServer: '编辑服务器',
+      updateServer: '更新',
+      serverName: '服务器名称',
+      serverType: '服务器类型',
+      command: '命令',
+      commandLabel: '命令:',
+      commandField: '命令 *',
+      args: '参数',
+      argsLabel: '参数:',
+      env: '环境变量',
+      envLabel: '环境变量:',
+      url: 'URL',
+      urlLabel: 'URL:',
+      serverUrl: '服务器 URL *',
+      emptyState: '暂无 Codex MCP 服务器配置',
+      emptyHint: '点击"添加服务器"按钮创建第一个 MCP 服务器',
+      deleteConfirm: '确定删除服务器 "{name}" 吗？',
+      httpServerLabel: 'HTTP 服务器（勾选则为 HTTP，否则为 STDIO）',
+      argsSeparatorHint: '用空格分隔多个参数',
+      types: {
+        stdio: 'STDIO',
+        http: 'HTTP'
+      },
+      placeholders: {
+        url: '例如: http://localhost:3000',
+        command: '例如: npx',
+        args: '例如: -y @modelcontextprotocol/server-filesystem',
+        envKey: 'KEY',
+        envValue: 'VALUE'
+      },
+      validation: {
+        commandRequired: '请填写命令',
+        urlRequired: '请填写 URL'
+      },
+      messages: {
+        loadFailed: '加载 Codex MCP 服务器失败',
+        addSuccess: '✓ 服务器添加成功',
+        updateSuccess: '✓ 服务器更新成功',
+        deleteSuccess: '✓ 服务器删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}'
+      }
+    },
+
+    // Agents module
+    agents: {
+      title: 'Agents 管理',
+      subtitle: '管理 Codex AI Agent 配置',
+      breadcrumb: 'Agents 管理',
+      pageTitle: 'Codex Agents 管理',
+      backToHome: '返回首页',
+      addAgent: '添加 Agent',
+      editAgent: '编辑 Agent',
+      agentName: 'Agent 名称',
+      description: '描述',
+      instructions: '指令',
+      searchPlaceholder: '搜索 agent 名称、系统提示或工具...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的 agents',
+      loading: '加载中...',
+      emptyState: '暂无 Agents 配置',
+      noResults: '未找到匹配的 agents',
+      noResultsHint: '尝试使用其他关键词搜索或切换文件夹',
+      emptyHint: '点击"添加 Agent"按钮创建第一个 AI Agent',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      nameLabel: '名称 *',
+      modelLabel: 'Model *',
+      toolsLabel: 'Tools',
+      toolPlaceholder: '输入工具名称',
+      addTool: '添加',
+      systemPromptLabel: 'System Prompt',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除 agent "{name}" 吗？',
+      stats: {
+        total: '总数',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Agents 失败',
+        operationFailed: '操作失败',
+        deleteFailed: '删除失败',
+        toggleFailed: '切换状态失败'
+      }
+    },
+
+    // Profiles module
+    profiles: {
+      title: 'Profiles 管理',
+      subtitle: '管理 GitHub Copilot CLI 配置文件',
+      breadcrumb: 'Profiles 配置',
+      addProfile: '添加 Profile',
+      editProfile: '编辑 Profile',
+      updateProfile: '更新 Profile',
+      backToCodex: '返回',
+      profileName: 'Profile 名称',
+      description: '描述',
+      authToken: 'Auth Token',
+      baseUrl: 'Base URL',
+      model: 'Model',
+      fastModel: 'Fast Model',
+      provider: 'Provider',
+      emptyState: '暂无 Codex Profile 配置',
+      emptyHint: '点击"添加 Profile"创建第一个配置',
+      deleteConfirm: '确定删除 Profile "{name}" 吗？此操作不可撤销。',
+      deleteConfirmShort: '确定要删除 Profile "{name}" 吗？',
+      setActive: '设为活跃',
+      currentActive: '当前活跃',
+      placeholders: {
+        name: '例如: github-production',
+        description: '例如: GitHub Copilot 生产环境配置',
+        authToken: 'ghp_...',
+        baseUrl: 'https://api.github.com/copilot',
+        selectFastModel: '-- 选择快速模型 --',
+        selectProvider: '-- 选择提供商 --'
+      },
+      providers: {
+        github: 'GitHub',
+        azure: 'Azure',
+        openai: 'OpenAI',
+        custom: 'Custom'
+      },
+      validation: {
+        required: '请填写所有必填字段（Profile 名称、Base URL、Auth Token、Model）'
+      },
+      messages: {
+        loadFailed: '加载 Codex Profiles 失败',
+        addSuccess: '✓ Profile 添加成功',
+        updateSuccess: '✓ Profile 更新成功',
+        deleteSuccess: '✓ Profile 删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}'
+      }
+    },
+
+    // Slash Commands module
+    slashCommands: {
+      title: 'Slash Commands',
+      subtitle: '管理 Codex 快捷命令',
+      breadcrumb: 'Slash Commands 管理',
+      pageTitle: 'Codex Slash Commands 管理',
+      backToHome: '返回首页',
+      addCommand: '添加命令',
+      editCommand: '编辑命令',
+      addCommandShort: '添加 Command',
+      editCommandShort: '编辑 Command',
+      commandName: '命令名称',
+      nameLabel: '名称 *',
+      commandLabel: 'Command *',
+      descriptionLabel: '描述',
+      description: '描述',
+      command: '命令内容',
+      searchPlaceholder: '搜索命令名称、描述或命令...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的命令',
+      loading: '加载中...',
+      emptyState: '暂无 Slash Commands 配置',
+      noResults: '未找到匹配的命令',
+      noResultsHint: '尝试使用其他关键词搜索或切换文件夹',
+      emptyHint: '点击"添加命令"按钮创建第一个快捷命令',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除命令 "{name}" 吗？',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录'
+      },
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Slash Commands 失败',
+        operationFailed: '操作失败',
+        deleteFailed: '删除失败',
+        toggleFailed: '切换状态失败'
+      }
+    },
+
+    // Plugins module
+    plugins: {
+      title: 'Plugins 管理',
+      subtitle: '管理 Codex 插件生态',
+      breadcrumb: 'Plugins 管理',
+      pageTitle: 'Codex Plugins 管理',
+      backToHome: '返回首页',
+      addPlugin: '添加插件',
+      editPlugin: '编辑插件',
+      pluginName: '插件名称',
+      nameLabel: '名称 *',
+      namePlaceholder: '例如: My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: '例如: my-plugin',
+      versionLabel: '版本 *',
+      versionPlaceholder: '例如: 1.0.0',
+      configLabel: '配置 JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: '可选，输入合法的 JSON 格式配置',
+      enabledLabel: '启用此插件',
+      descriptionLabel: '描述',
+      description: '描述',
+      version: '版本',
+      author: '作者',
+      searchPlaceholder: '搜索插件名称、ID 或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的插件',
+      loading: '加载中...',
+      emptyState: '暂无插件配置',
+      noResults: '未找到匹配的插件',
+      noResultsHint: '尝试使用其他关键词搜索或切换文件夹',
+      emptyHint: '点击"添加插件"按钮安装第一个插件',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除插件 "{name}" 吗？',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录'
+      },
+      validation: {
+        required: '请填写必填字段',
+        invalidJson: '配置 JSON 格式错误'
+      },
+      messages: {
+        loadFailed: '加载 Plugins 失败',
+        updateSuccess: '✓ 插件更新成功',
+        addSuccess: '✓ 插件添加成功',
+        deleteSuccess: '✓ 插件删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+
+    // Messages
+    messages: {
+      addSuccess: '添加成功',
+      editSuccess: '编辑成功',
+      deleteSuccess: '删除成功',
+      enableSuccess: '启用成功',
+      disableSuccess: '禁用成功',
+      operationSuccess: '操作成功',
+      operationFailed: '操作失败：{error}'
     }
   },
 }

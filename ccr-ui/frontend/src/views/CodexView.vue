@@ -37,7 +37,7 @@
                 class="text-lg"
                 :style="{ color: 'var(--text-secondary)' }"
               >
-                AI 编码助手 · MCP · Profiles · 智能配置
+                {{ $t('codex.overview.subtitle') }}
               </p>
             </div>
           </div>
@@ -52,7 +52,7 @@
             <span
               class="font-medium"
               :style="{ color: 'var(--text-secondary)' }"
-            >返回首页</span>
+            >{{ $t('codex.overview.backHome') }}</span>
           </RouterLink>
         </div>
 
@@ -62,25 +62,25 @@
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
           >
-            🔌 MCP 协议
+            {{ $t('codex.overview.features.mcpProtocol') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
           >
-            🤖 Agents
+            {{ $t('codex.overview.features.agents') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }"
           >
-            👤 Profiles
+            {{ $t('codex.overview.features.profiles') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }"
           >
-            ⚙️ 配置管理
+            {{ $t('codex.overview.features.configManagement') }}
           </span>
         </div>
       </div>
@@ -95,7 +95,7 @@
             class="w-7 h-7"
             :style="{ color: '#f59e0b' }"
           />
-          功能模块
+          {{ $t('codex.overview.modulesTitle') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <RouterLink
@@ -118,13 +118,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    MCP 服务器
+                    {{ $t('codex.overview.modules.mcp.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Codex MCP 服务器配置管理（STDIO + HTTP）
+                    {{ $t('codex.overview.modules.mcp.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -133,7 +133,7 @@
                       color: '#8b5cf6'
                     }"
                   >
-                    🔌 MCP
+                    {{ $t('codex.overview.modules.mcp.badge') }}
                   </span>
                 </div>
               </div>
@@ -160,13 +160,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Agents
+                    {{ $t('codex.overview.modules.agents.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Codex Agent 智能体配置管理
+                    {{ $t('codex.overview.modules.agents.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -175,7 +175,7 @@
                       color: '#10b981'
                     }"
                   >
-                    🤖 AI
+                    {{ $t('codex.overview.modules.agents.badge') }}
                   </span>
                 </div>
               </div>
@@ -202,13 +202,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Slash Commands
+                    {{ $t('codex.overview.modules.slashCommands.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Codex 快捷命令管理
+                    {{ $t('codex.overview.modules.slashCommands.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -217,7 +217,7 @@
                       color: '#f59e0b'
                     }"
                   >
-                    ⌨️ 命令
+                    {{ $t('codex.overview.modules.slashCommands.badge') }}
                   </span>
                 </div>
               </div>
@@ -244,13 +244,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    插件管理
+                    {{ $t('codex.overview.modules.plugins.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Codex 插件配置管理
+                    {{ $t('codex.overview.modules.plugins.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -259,7 +259,7 @@
                       color: '#ec4899'
                     }"
                   >
-                    🧩 插件
+                    {{ $t('codex.overview.modules.plugins.badge') }}
                   </span>
                 </div>
               </div>
@@ -286,13 +286,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Profiles
+                    {{ $t('codex.overview.modules.profiles.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Codex Profile 配置和管理
+                    {{ $t('codex.overview.modules.profiles.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -301,7 +301,7 @@
                       color: '#6366f1'
                     }"
                   >
-                    👤 Profile
+                    {{ $t('codex.overview.modules.profiles.badge') }}
                   </span>
                 </div>
               </div>
@@ -328,13 +328,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    基础配置
+                    {{ $t('codex.overview.modules.config.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Model、Approval Policy、Sandbox 等基础设置
+                    {{ $t('codex.overview.modules.config.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -343,7 +343,7 @@
                       color: '#3b82f6'
                     }"
                   >
-                    🔧 配置
+                    {{ $t('codex.overview.modules.config.badge') }}
                   </span>
                 </div>
               </div>
@@ -369,7 +369,7 @@
               class="text-lg font-bold mb-2"
               :style="{ color: 'var(--text-primary)' }"
             >
-              💡 Codex 特性
+              {{ $t('codex.overview.tipsTitle') }}
             </h3>
             <ul
               class="space-y-2 text-sm"
@@ -377,19 +377,19 @@
             >
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>支持 STDIO 和 HTTP 两种 MCP 连接方式</span>
+                <span>{{ $t('codex.overview.tips.mcpConnection') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>通过 Profiles 管理不同工作环境的配置</span>
+                <span>{{ $t('codex.overview.tips.profileManagement') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>Agents 功能允许创建特定任务的 AI 助手</span>
+                <span>{{ $t('codex.overview.tips.agentsFeature') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>丰富的插件生态系统扩展 Codex 能力</span>
+                <span>{{ $t('codex.overview.tips.pluginEcosystem') }}</span>
               </li>
             </ul>
           </div>
@@ -402,4 +402,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { Settings, Server, Users, Home, Bot, Command, Puzzle, Code2, Boxes, Info } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>
