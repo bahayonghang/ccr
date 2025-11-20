@@ -1957,4 +1957,218 @@ export default {
       }
     }
   },
+
+  // iFlow Platform
+  iflow: {
+    overview: {
+      title: 'iFlow',
+      subtitle: 'Intelligent Workflow',
+      description: 'Intelligent Workflow · Automation Engine · Process Orchestration',
+      backToHome: 'Back to Home',
+      features: 'Features',
+      feature1: 'Visual workflow orchestration with drag-and-drop design for complex automation processes',
+      feature2: 'Supports flow control including conditional branching, loops, and parallel execution',
+      feature3: 'Deep integration with AI Agents for intelligent decision-making and automated processing',
+      feature4: 'Connect various external services through MCP to build end-to-end automation solutions',
+      featureTitle: '💡 iFlow Features',
+      tags: {
+        workflow: '🔄 Automation Workflow',
+        orchestration: '⚡ Process Orchestration',
+        mcp: '🔌 MCP Integration',
+        agent: '🤖 Intelligent Agents'
+      }
+    },
+    mcp: {
+      title: 'MCP Servers',
+      description: 'iFlow MCP server configuration management',
+      badge: '🔌 MCP',
+      addServer: 'Add MCP Server',
+      editServer: 'Edit MCP Server',
+      nameLabel: 'Server Name *',
+      namePlaceholder: 'e.g., My MCP Server',
+      commandLabel: 'Command *',
+      commandPlaceholder: 'e.g., npx',
+      urlLabel: 'Server URL *',
+      urlPlaceholder: 'e.g., http://localhost:3000',
+      httpServerHint: 'HTTP Server (check for HTTP, otherwise STDIO)',
+      argsLabel: 'Arguments',
+      argsPlaceholder: 'arg1 arg2 arg3',
+      argsHint: 'Separate multiple arguments with spaces',
+      envLabel: 'Environment Variables',
+      envKeyPlaceholder: 'Variable Name',
+      envValuePlaceholder: 'Variable Value',
+      enabledLabel: 'Enable this server',
+      searchPlaceholder: 'Search MCP servers...',
+      searchResults: 'Found <strong>{count}</strong> matching servers',
+      loading: 'Loading...',
+      emptyState: 'No MCP servers configured',
+      noResults: 'No matching servers found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete MCP server "{name}"?',
+      validation: {
+        required: 'Please fill in required fields',
+        invalidUrl: 'Invalid URL format'
+      },
+      messages: {
+        loadFailed: 'Failed to load MCP servers',
+        updateSuccess: '✓ MCP server updated successfully',
+        addSuccess: '✓ MCP server added successfully',
+        deleteSuccess: '✓ MCP server deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+    agents: {
+      title: 'Agents',
+      description: 'iFlow Agent configuration and management',
+      badge: '🤖 AI',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      stats: {
+        total: 'Total',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      addAgent: 'Add Agent',
+      editAgent: 'Edit Agent',
+      nameLabel: 'Name *',
+      namePlaceholder: 'e.g., My Agent',
+      folderLabel: 'Folder',
+      folderPlaceholder: 'Leave empty for root directory',
+      descriptionLabel: 'Description',
+      descriptionPlaceholder: 'Brief description of this agent',
+      instructionsLabel: 'Instructions *',
+      instructionsPlaceholder: 'Enter detailed instructions for the agent...',
+      enabledLabel: 'Enable this agent',
+      searchPlaceholder: 'Search agent name or description...',
+      searchResults: 'Found <strong>{count}</strong> matching agents',
+      loading: 'Loading...',
+      emptyState: 'No agents configured',
+      noResults: 'No matching agents found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete agent "{name}"?',
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Agents',
+        updateSuccess: '✓ Agent updated successfully',
+        addSuccess: '✓ Agent added successfully',
+        deleteSuccess: '✓ Agent deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+    plugins: {
+      title: 'Plugins Management',
+      description: 'iFlow plugin configuration and management',
+      badge: '🧩 Plugins',
+      addPlugin: 'Add Plugin',
+      editPlugin: 'Edit Plugin',
+      nameLabel: 'Name *',
+      namePlaceholder: 'e.g., My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: 'e.g., my-plugin',
+      versionLabel: 'Version *',
+      versionPlaceholder: 'e.g., 1.0.0',
+      configLabel: 'Config JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: 'Optional, enter valid JSON format configuration',
+      enabledLabel: 'Enable this plugin',
+      searchPlaceholder: 'Search plugin name, ID or description...',
+      searchResults: 'Found <strong>{count}</strong> matching plugins',
+      loading: 'Loading...',
+      emptyState: 'No plugins configured',
+      noResults: 'No matching plugins found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete plugin "{name}"?',
+      validation: {
+        required: 'Please fill in required fields',
+        invalidJson: 'Invalid JSON format for configuration'
+      },
+      messages: {
+        loadFailed: 'Failed to load plugins',
+        updateSuccess: '✓ Plugin updated successfully',
+        addSuccess: '✓ Plugin added successfully',
+        deleteSuccess: '✓ Plugin deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+    slashCommands: {
+      title: 'Slash Commands',
+      description: 'iFlow custom command management',
+      badge: '⌨️ Commands',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      stats: {
+        total: 'Total',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      addCommand: 'Add Command',
+      editCommand: 'Edit Command',
+      nameLabel: 'Command Name *',
+      namePlaceholder: 'e.g., /mycommand',
+      folderLabel: 'Folder',
+      folderPlaceholder: 'Leave empty for root directory',
+      descriptionLabel: 'Description',
+      descriptionPlaceholder: 'Brief description of this command',
+      commandLabel: 'Command Content *',
+      commandPlaceholder: 'Enter detailed command content...',
+      enabledLabel: 'Enable this command',
+      searchPlaceholder: 'Search command name or description...',
+      searchResults: 'Found <strong>{count}</strong> matching commands',
+      loading: 'Loading...',
+      emptyState: 'No commands configured',
+      noResults: 'No matching commands found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete command "{name}"?',
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load commands',
+        updateSuccess: '✓ Command updated successfully',
+        addSuccess: '✓ Command added successfully',
+        deleteSuccess: '✓ Command deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    }
+  },
 }
