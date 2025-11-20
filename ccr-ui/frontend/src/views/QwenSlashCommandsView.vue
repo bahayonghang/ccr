@@ -7,7 +7,7 @@
 
       <div :style="{ width: '180px', background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-color)', padding: '12px 8px', overflowY: 'auto', height: 'calc(100vh - 40px)', flexShrink: 0 }">
         <h4 :style="{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '600', marginBottom: '8px', marginLeft: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }">
-          文件夹
+          {{ $t('qwen.slashCommands.folders.label') }}
         </h4>
         <div
           v-for="folder in folderOptions"
@@ -34,7 +34,7 @@
                 class="text-2xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                <Command class="inline-block w-7 h-7 mr-2" />Qwen Slash Commands 管理
+                <Command class="inline-block w-7 h-7 mr-2" />{{ $t('qwen.slashCommands.title') }}
               </h2>
               <span
                 class="px-3 py-1 rounded-full text-sm font-medium"
@@ -47,14 +47,14 @@
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                 :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
               >
-                <Home class="w-4 h-4" /><span>返回首页</span>
+                <Home class="w-4 h-4" /><span>{{ $t('common.backToHome') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
                 :style="{ background: 'var(--accent-primary)', color: '#fff' }"
                 @click="handleAdd"
               >
-                <Plus class="inline-block w-5 h-5 mr-2" />添加 Command
+                <Plus class="inline-block w-5 h-5 mr-2" />{{ $t('qwen.slashCommands.addCommand') }}
               </button>
             </div>
           </div>
@@ -68,7 +68,7 @@
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="搜索命令名称、描述或命令..."
+                :placeholder="$t('qwen.slashCommands.searchPlaceholder')"
                 class="w-full pl-11 pr-10 py-3 rounded-lg transition-all focus:outline-none focus:ring-2"
                 :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
               >
@@ -85,9 +85,8 @@
               v-if="searchQuery"
               class="mt-2 text-sm"
               :style="{ color: 'var(--text-muted)' }"
-            >
-              找到 <span :style="{ color: 'var(--accent-primary)', fontWeight: 'bold' }">{{ filteredCommands.length }}</span> 个匹配的命令
-            </p>
+              v-html="$t('qwen.slashCommands.searchResults', { count: filteredCommands.length })"
+            />
           </div>
 
           <div class="space-y-4">
@@ -96,22 +95,22 @@
               class="text-center py-10"
               :style="{ color: 'var(--text-muted)' }"
             >
-              加载中...
+              {{ $t('common.loading') }}
             </div>
             <div
               v-else-if="commands.length === 0"
               class="text-center py-10"
               :style="{ color: 'var(--text-muted)' }"
             >
-              暂无 Slash Commands 配置
+              {{ $t('qwen.slashCommands.emptyState') }}
             </div>
             <div
               v-else-if="filteredCommands.length === 0"
               class="text-center py-10"
               :style="{ color: 'var(--text-muted)' }"
             >
-              <Search class="w-12 h-12 mx-auto mb-3 opacity-50" /><p>未找到匹配的命令</p><p class="text-sm mt-2">
-                尝试使用其他关键词搜索或切换文件夹
+              <Search class="w-12 h-12 mx-auto mb-3 opacity-50" /><p>{{ $t('qwen.slashCommands.noResults') }}</p><p class="text-sm mt-2">
+                {{ $t('qwen.slashCommands.noResultsHint') }}
               </p>
             </div>
             <div
@@ -141,7 +140,7 @@
                       v-if="cmd.disabled"
                       class="px-2 py-1 rounded text-xs font-medium"
                       :style="{ background: '#fef3c7', color: '#92400e' }"
-                    >已禁用</span>
+                    >{{ $t('qwen.slashCommands.disabled') }}</span>
                   </div>
                   <p
                     class="mb-2"
@@ -160,7 +159,7 @@
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110"
                     :style="{ background: cmd.disabled ? '#fef3c7' : '#d1fae5', color: cmd.disabled ? '#92400e' : '#065f46' }"
-                    :title="cmd.disabled ? '启用' : '禁用'"
+                    :title="cmd.disabled ? $t('common.enable') : $t('common.disable')"
                     @click="handleToggle(cmd.name)"
                   >
                     <PowerOff
@@ -174,7 +173,7 @@
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110"
                     :style="{ background: 'var(--bg-tertiary)', color: 'var(--accent-primary)' }"
-                    title="编辑"
+                    :title="$t('common.edit')"
                     @click="handleEdit(cmd)"
                   >
                     <Edit2 class="w-5 h-5" />
@@ -182,7 +181,7 @@
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110"
                     :style="{ background: '#fee2e2', color: '#991b1b' }"
-                    title="删除"
+                    :title="$t('common.delete')"
                     @click="handleDelete(cmd.name)"
                   >
                     <Trash2 class="w-5 h-5" />
@@ -210,14 +209,14 @@
           class="text-2xl font-bold mb-6"
           :style="{ color: 'var(--text-primary)' }"
         >
-          {{ editingCommand ? '编辑 Command' : '添加 Command' }}
+          {{ editingCommand ? $t('qwen.slashCommands.editCommand') : $t('qwen.slashCommands.addCommand') }}
         </h3>
         <div class="space-y-4">
           <div>
             <label
               class="block mb-2 font-medium"
               :style="{ color: 'var(--text-secondary)' }"
-            >名称 *</label>
+            >{{ $t('qwen.slashCommands.name') }} *</label>
             <input
               v-model="formData.name"
               type="text"
@@ -229,7 +228,7 @@
             <label
               class="block mb-2 font-medium"
               :style="{ color: 'var(--text-secondary)' }"
-            >Command *</label>
+            >{{ $t('qwen.slashCommands.command') }} *</label>
             <input
               v-model="formData.command"
               type="text"
@@ -241,7 +240,7 @@
             <label
               class="block mb-2 font-medium"
               :style="{ color: 'var(--text-secondary)' }"
-            >描述</label>
+            >{{ $t('qwen.slashCommands.description') }}</label>
             <textarea
               v-model="formData.description"
               rows="4"
@@ -256,14 +255,14 @@
             :style="{ background: 'var(--accent-primary)', color: '#fff' }"
             @click="handleSubmit"
           >
-            {{ editingCommand ? '保存' : '添加' }}
+            {{ editingCommand ? $t('common.save') : $t('common.add') }}
           </button>
           <button
             class="flex-1 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105"
             :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }"
             @click="showAddForm = false"
           >
-            取消
+            {{ $t('common.cancel') }}
           </button>
         </div>
       </div>
@@ -279,6 +278,9 @@ import { Command, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home
 import { listQwenSlashCommands, addQwenSlashCommand, updateQwenSlashCommand, deleteQwenSlashCommand, toggleQwenSlashCommand, listConfigs, getHistory } from '@/api/client'
 import type { SlashCommand, SlashCommandRequest } from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const commands = ref<SlashCommand[]>([])
 const folders = ref<string[]>([])
@@ -300,8 +302,8 @@ const stats = computed(() => {
 })
 
 const folderOptions = computed(() => [
-  { value: '', label: '全部', icon: Folder, count: stats.value.total },
-  { value: '__root__', label: '根目录', icon: Home, count: stats.value.rootCount },
+  { value: '', label: t('qwen.slashCommands.folders.all'), icon: Folder, count: stats.value.total },
+  { value: '__root__', label: t('qwen.slashCommands.folders.root'), icon: Home, count: stats.value.rootCount },
   ...folders.value.map((f) => ({ value: f, label: f, icon: Folder, count: stats.value.folderCounts[f] || 0 }))
 ])
 
@@ -331,7 +333,7 @@ const loadCommands = async () => {
     } catch (err) { console.error('Failed to load system info:', err) }
   } catch (err) {
     console.error('Failed to load slash commands:', err)
-    alert('加载 Slash Commands 失败')
+    alert(t('qwen.slashCommands.loadFailed'))
   } finally { loading.value = false }
 }
 
@@ -350,7 +352,7 @@ const handleEdit = (cmd: SlashCommand) => {
 }
 
 const handleSubmit = async () => {
-  if (!formData.value.name || !formData.value.command) { alert('请填写必填字段'); return }
+  if (!formData.value.name || !formData.value.command) { alert(t('qwen.slashCommands.validation.required')); return }
   const request: SlashCommandRequest = { ...formData.value, args: formData.value.args && formData.value.args.length > 0 ? formData.value.args : undefined }
   try {
     if (editingCommand.value) await updateQwenSlashCommand(editingCommand.value.name, request)
@@ -358,16 +360,16 @@ const handleSubmit = async () => {
     showAddForm.value = false
     editingCommand.value = null
     loadCommands()
-  } catch (err) { console.error('操作失败:', err); alert('操作失败') }
+  } catch (err) { console.error('操作失败:', err); alert(t('qwen.slashCommands.operationFailed')) }
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(`确定要删除命令 "${name}" 吗？`)) return
-  try { await deleteQwenSlashCommand(name); loadCommands() } catch (err) { console.error('删除失败:', err); alert('删除失败') }
+  if (!confirm(t('qwen.slashCommands.deleteConfirm', { name }))) return
+  try { await deleteQwenSlashCommand(name); loadCommands() } catch (err) { console.error('删除失败:', err); alert(t('qwen.slashCommands.deleteFailed')) }
 }
 
 const handleToggle = async (name: string) => {
-  try { await toggleQwenSlashCommand(name); loadCommands() } catch (err) { console.error('切换状态失败:', err); alert('切换状态失败') }
+  try { await toggleQwenSlashCommand(name); loadCommands() } catch (err) { console.error('切换状态失败:', err); alert(t('qwen.slashCommands.toggleFailed')) }
 }
 
 const onCardHover = (el: HTMLElement, hover: boolean) => {

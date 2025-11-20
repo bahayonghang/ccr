@@ -1735,4 +1735,218 @@ export default {
       }
     }
   },
+
+  // Qwen Platform
+  qwen: {
+    overview: {
+      title: 'Qwen',
+      subtitle: '阿里通义千问',
+      description: '阿里通义千问 · 大语言模型 · 智能对话',
+      backToHome: '返回首页',
+      features: '功能模块',
+      feature1: '阿里巴巴达摩院开发的大语言模型，中文理解能力出色',
+      feature2: '支持长文本处理和多轮对话,上下文理解能力强',
+      feature3: '与阿里云生态深度整合,提供企业级服务保障',
+      feature4: '通过插件和 MCP 扩展功能,连接更多工具和服务',
+      featureTitle: '💡 Qwen 特性',
+      tags: {
+        model: '🧠 大模型',
+        dialog: '💬 对话系统',
+        mcp: '🔌 MCP 支持',
+        chinese: '🇨🇳 中文优化'
+      }
+    },
+    mcp: {
+      title: 'MCP 服务器',
+      description: 'Qwen MCP 服务器配置管理',
+      badge: '🔌 MCP',
+      addServer: '添加 MCP 服务器',
+      editServer: '编辑 MCP 服务器',
+      nameLabel: '服务器名称 *',
+      namePlaceholder: '例如: My MCP Server',
+      commandLabel: '命令 *',
+      commandPlaceholder: '例如: npx',
+      urlLabel: '服务器 URL *',
+      urlPlaceholder: '例如: http://localhost:3000',
+      httpServerHint: 'HTTP 服务器（勾选则为 HTTP，否则为 STDIO）',
+      argsLabel: '参数',
+      argsPlaceholder: '参数1 参数2 参数3',
+      argsHint: '用空格分隔多个参数',
+      envLabel: '环境变量',
+      envKeyPlaceholder: '变量名',
+      envValuePlaceholder: '变量值',
+      enabledLabel: '启用此服务器',
+      searchPlaceholder: '搜索 MCP 服务器...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的服务器',
+      loading: '加载中...',
+      emptyState: '暂无 MCP 服务器配置',
+      noResults: '未找到匹配的服务器',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除 MCP 服务器 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段',
+        invalidUrl: 'URL 格式不正确'
+      },
+      messages: {
+        loadFailed: '加载 MCP 服务器失败',
+        updateSuccess: '✓ MCP 服务器更新成功',
+        addSuccess: '✓ MCP 服务器添加成功',
+        deleteSuccess: '✓ MCP 服务器删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+    agents: {
+      title: 'Agents',
+      description: 'Qwen Agent 配置和管理',
+      badge: '🤖 AI',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      stats: {
+        total: '总计',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      addAgent: '添加 Agent',
+      editAgent: '编辑 Agent',
+      nameLabel: '名称 *',
+      namePlaceholder: '例如: My Agent',
+      folderLabel: '文件夹',
+      folderPlaceholder: '留空则为根目录',
+      descriptionLabel: '描述',
+      descriptionPlaceholder: '简短描述此 Agent 的功能',
+      instructionsLabel: '指令 *',
+      instructionsPlaceholder: '输入 Agent 的详细指令...',
+      enabledLabel: '启用此 Agent',
+      searchPlaceholder: '搜索 Agent 名称或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的 Agent',
+      loading: '加载中...',
+      emptyState: '暂无 Agent 配置',
+      noResults: '未找到匹配的 Agent',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除 Agent "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Agents 失败',
+        updateSuccess: '✓ Agent 更新成功',
+        addSuccess: '✓ Agent 添加成功',
+        deleteSuccess: '✓ Agent 删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+    plugins: {
+      title: '插件管理',
+      description: 'Qwen 插件配置和管理',
+      badge: '🧩 插件',
+      addPlugin: '添加插件',
+      editPlugin: '编辑插件',
+      nameLabel: '名称 *',
+      namePlaceholder: '例如: My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: '例如: my-plugin',
+      versionLabel: '版本 *',
+      versionPlaceholder: '例如: 1.0.0',
+      configLabel: '配置 JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: '可选，输入合法的 JSON 格式配置',
+      enabledLabel: '启用此插件',
+      searchPlaceholder: '搜索插件名称、ID 或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的插件',
+      loading: '加载中...',
+      emptyState: '暂无插件配置',
+      noResults: '未找到匹配的插件',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除插件 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段',
+        invalidJson: '配置 JSON 格式错误'
+      },
+      messages: {
+        loadFailed: '加载插件失败',
+        updateSuccess: '✓ 插件更新成功',
+        addSuccess: '✓ 插件添加成功',
+        deleteSuccess: '✓ 插件删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+    slashCommands: {
+      title: 'Slash Commands',
+      description: 'Qwen 自定义命令管理',
+      badge: '⌨️ 命令',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      stats: {
+        total: '总计',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      addCommand: '添加命令',
+      editCommand: '编辑命令',
+      nameLabel: '命令名称 *',
+      namePlaceholder: '例如: /mycommand',
+      folderLabel: '文件夹',
+      folderPlaceholder: '留空则为根目录',
+      descriptionLabel: '描述',
+      descriptionPlaceholder: '简短描述此命令的功能',
+      commandLabel: '命令内容 *',
+      commandPlaceholder: '输入命令的详细内容...',
+      enabledLabel: '启用此命令',
+      searchPlaceholder: '搜索命令名称或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的命令',
+      loading: '加载中...',
+      emptyState: '暂无命令配置',
+      noResults: '未找到匹配的命令',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除命令 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载命令失败',
+        updateSuccess: '✓ 命令更新成功',
+        addSuccess: '✓ 命令添加成功',
+        deleteSuccess: '✓ 命令删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    }
+  },
 }
