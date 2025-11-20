@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "CCR UI"
-  text: "现代化 AI 配置管理平台"
-  tagline: "基于 Vue 3 + Rust 构建的全栈多 CLI 工具配置管理 Web 应用"
+  text: "全栈配置控制台"
+  tagline: "Vue 3 + Axum + Tauri · 为 CCR 提供可视化与桌面体验"
   image:
     src: /logo.svg
     alt: CCR UI Logo
@@ -14,164 +14,69 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: 查看源码
-      link: https://github.com/your-username/ccr
+      link: https://github.com/bahayonghang/ccr
 
 features:
-  - icon: ⚡
-    title: 现代化技术栈
-    details: 前端采用 Vue 3.5 + Vite 7.1 + TypeScript + Tailwind CSS，后端使用 Rust + Axum，提供极致的开发体验和运行性能
-  - icon: 🎯
-    title: 直观的用户界面
-    details: 科技风格的玻璃拟态设计，支持深色/浅色主题，Dashboard 首页展示所有功能模块，一目了然
-  - icon: 🔧
-    title: 强大的配置管理
-    details: 支持 CCR 配置的查看、切换、验证、云同步等操作，实时显示命令执行结果，历史记录追踪
   - icon: 🚀
-    title: 多 CLI 工具支持
-    details: 统一管理 Claude Code、Codex、Gemini CLI、Qwen、IFLOW 等多个 AI CLI 工具的配置和服务
-  - icon: 📱
-    title: 响应式设计
-    details: 完全响应式设计，支持桌面端和移动端访问，流畅的动画效果和悬停交互
-  - icon: 🛠️
-    title: 开发友好
-    details: 完整的开发工具链，支持 Vite 热重载、TypeScript 类型检查、ESLint + Prettier，提供最佳的开发体验
+    title: 现代全栈
+    details: 前端 Vue 3.5 + Vite + TypeScript + Tailwind，后端 Rust 2024 + Axum（workspace 成员），一致依赖。
+  - icon: 🖥️
+    title: 多种界面
+    details: Web 模式与 Tauri 桌面模式自动切换，同一前端体验。
+  - icon: ⚙️
+    title: 全量配置能力
+    details: 可视化查看/切换/验证/历史/备份，覆盖全部 CCR CLI 命令。
   - icon: ☁️
-    title: 云端同步
-    details: 支持 WebDAV 云端配置同步和自动备份，配置文件安全无忧
+    title: 多目录同步
+    details: WebDAV 目录注册、启用/禁用、单目录/批量 push·pull·status，自动过滤备份与锁。
   - icon: 🔌
-    title: 插件生态
-    details: 支持 MCP 服务器、Agents、Plugins、Slash Commands 等丰富的扩展功能管理
-  - icon: 📊
-    title: 统计与成本分析
-    details: 完整的 API 使用统计和成本追踪系统，实时监控成本、Token 使用、支持按时间/模型/项目多维度分析
+    title: 平台与系统
+    details: 支持 Claude、Codex、Gemini CLI、Qwen、IFLOW 等平台概览，系统健康检查与日志辅助。
+  - icon: 🧰
+    title: 开发者友好
+    details: 内置 just 任务、组件与 API 客户端、VitePress 文档，便于二开和集成。
 ---
 
-## 项目特色
+## 项目简介
+CCR UI 为 CCR 提供图形化与桌面化控制台：配置管理、命令执行、多目录同步、平台信息与系统监控一站式收拢。默认工作在 `~/.ccr/ccr-ui/` 或源码路径，Tauri 桌面模式自动切换调用方式（invoke/HTTP）。
 
-CCR UI 是一个现代化的全栈 Web 应用程序，专为多个 AI CLI 工具配置管理而设计。它结合了前端的用户友好界面和后端的高性能处理能力，为开发者提供了一个强大而直观的配置管理平台。
+### 前端技术栈（v3.4.1）
+- Vue 3.5 + Vite 7 + TypeScript 5.7
+- Vue Router 4.4，Pinia 2.2
+- Tailwind CSS 3.4，Lucide 图标，Axios
 
-### 🎨 前端技术栈
+### 后端技术栈（v3.4.1）
+- Rust 2024 Edition，Axum 0.8（workspace 成员）
+- Tokio / Serde / Tower，统一依赖版本
+- 通过子进程调用 CCR，可选托管前端静态文件
 
-- **Vue 3.5.22** - 渐进式 JavaScript 框架，Composition API，响应式数据绑定
-- **Vite 7.1.11** - 下一代前端构建工具，极速冷启动和 HMR
-- **Vue Router 4.4.5** - Vue.js 官方路由管理器，支持嵌套路由和懒加载
-- **Pinia 2.2.6** - Vue 状态管理库，类型安全且 DevTools 友好
-- **TypeScript 5.7.3** - 类型安全的 JavaScript 超集
-- **Tailwind CSS 3.4.17** - 实用优先的 CSS 框架
-- **Lucide Vue Next 0.468.0** - 现代化图标库
-- **Axios 1.7.9** - 强大的 HTTP 客户端
-
-### ⚙️ 后端技术栈
-
-- **Rust 2024 Edition** - 系统级编程语言，安全且高性能
-- **Axum 0.7** - 现代化的异步 Web 框架
-- **Tokio** - 异步运行时
-- **Serde** - 序列化和反序列化框架
-- **Tower** - 中间件和服务抽象
-
-### 📋 核心功能
-
-#### 🏠 Dashboard 首页
-- **功能模块导航** - 8 个主要功能模块卡片展示
-- **系统监控** - 实时显示 CPU、内存使用率
-- **快速访问** - 一键跳转到各个 CLI 工具配置页面
-
-#### 🔵 Claude Code 配置管理
-- **配置管理** - 查看、切换、验证 CCR 配置
-- **云同步** - WebDAV 云端配置同步
-- **MCP 服务器** - Model Context Protocol 服务器管理
-- **Slash Commands** - 自定义命令管理
-- **Agents** - AI Agent 配置和工具绑定
-- **插件管理** - 插件启用/禁用和配置
-
-#### 🎯 多 CLI 工具支持
-- **Codex** - MCP 服务器、Profiles、基础配置
-- **Gemini CLI** - Google Gemini AI 配置管理
-- **Qwen** - 阿里通义千问配置管理
-- **IFLOW** - 内部工作流配置
-
-#### 🛠️ 其他功能
-- **命令执行中心** - 统一的 CLI 命令执行界面
-- **配置转换器** - 跨 CLI 工具的配置格式转换
-- **历史记录** - 完整的操作审计日志
-- **实时输出** - 终端风格的命令输出显示
-
-#### 📊 统计与成本分析
-- **成本追踪** - 精确记录每次 API 调用的成本和 Token 使用
-- **多维度统计** - 按时间范围（今日/本周/本月）、模型、项目分组统计
-- **可视化仪表板** - 4 个概览卡片（总成本、API 调用、输入/输出 Token）
-- **趋势分析** - 成本趋势图表和 Top 会话查询
-- **数据导出** - 支持 JSON/CSV 格式导出统计报告
-- **实时刷新** - 一键刷新最新数据
-- **响应式设计** - 支持深色模式和移动端
-
-### 🎨 设计特点
-
-- **玻璃拟态风格** - 半透明背景 + 模糊效果
-- **渐变配色** - 每个 CLI 工具独特的渐变色系
-- **流畅动画** - 卡片浮起、箭头移动、渐变流动
-- **响应式布局** - 适配桌面、平板、手机等各种设备
+### 主要能力
+- Dashboard：状态卡片、快捷入口、系统信息
+- 配置/历史/验证/备份：与 CLI 对齐的全量操作
+- 命令执行：可视化运行全部 CCR 命令并流式显示输出
+- 同步：WebDAV 多目录注册、启用/禁用、单目录或全量 push/pull/status
+- 平台与系统：平台列表/当前/切换、健康检查、日志级别辅助
+- 主题与响应式：深浅色切换，桌面与移动端适配
 
 ## 快速开始
 
 ```bash
-# 克隆项目
-git clone https://github.com/your-username/ccr.git
+# 推荐：直接用 CLI 自动拉起或下载 UI
+ccr ui
+
+# 仓库开发
+git clone https://github.com/bahayonghang/ccr.git
 cd ccr/ccr-ui
-
-# 使用 Just 快速启动（推荐）
-just s
-
-# 或者手动启动
-cd backend && cargo run &
-cd frontend && npm run dev
+just s                 # 前后端一键开发
+# 或手动：cargo run --manifest-path backend/Cargo.toml -- --port 8081
+#        (另一个终端) cd frontend && npm install && npm run dev
 ```
 
-访问 `http://localhost:5173` 开始使用 CCR UI。
-
 ## 文档导航
-
-- [快速开始](/guide/getting-started) - 了解如何安装和运行项目
-- [项目结构](/guide/project-structure) - 详细的项目架构说明
-- [🖥️ Tauri 桌面应用](/guide/tauri) - 桌面应用开发和构建指南
-- [前端文档](/reference/frontend/overview) - Vue 3 前端开发指南
-- [后端文档](/reference/backend/architecture) - Rust 后端架构说明
-- [贡献指南](/contributing) - 如何参与项目开发
-- [FAQ](/faq) - 常见问题解答
-
-## 功能预览
-
-### 📊 Dashboard 首页
-
-全新的 Dashboard 首页提供了：
-- 系统状态实时监控（CPU、内存、系统信息）
-- 9 个功能模块卡片，科技风格设计（新增统计分析）
-- 动态渐变背景效果
-- 一键快速访问各个功能
-
-### 🔵 CLI 工具主页
-
-每个 CLI 工具都有独立的主页：
-- 清晰的功能分类展示
-- 独特的配色方案
-- 子功能快速导航
-- 返回首页便捷按钮
-
-### 🎯 功能页面
-
-保留所有原有功能：
-- 配置管理（列表、切换、验证）
-- MCP 服务器管理
-- Agents 配置
-- 插件管理
-- Slash Commands 管理
-- 云同步功能
-- **📊 统计分析**（新增）- 完整的成本追踪和使用统计仪表板
-
----
-
-<div style="text-align: center; margin-top: 2rem; padding: 1rem; background: var(--vp-c-bg-soft); border-radius: 8px;">
-  <p>🚀 <strong>开始探索 CCR UI 的强大功能吧！</strong></p>
-  <p>现代化的配置管理平台，支持多个 AI CLI 工具，提供完整的配置管理和云端同步能力。</p>
-  <p>如果你在使用过程中遇到任何问题，欢迎查看我们的 <a href="/faq">FAQ</a> 或提交 <a href="https://github.com/your-username/ccr/issues">Issue</a>。</p>
-</div>
+- [快速开始](/guide/getting-started)
+- [项目结构](/guide/project-structure)
+- [Tauri 桌面](/guide/tauri)
+- [前端参考](/reference/frontend/overview)
+- [后端参考](/reference/backend/architecture)
+- [贡献指南](/contributing)
+- [FAQ](/faq)

@@ -160,7 +160,7 @@ pub async fn execute_command_stream(
     let allowed_commands: Vec<&str> = commands.iter().map(|c| c.name.as_str()).collect();
 
     // Additional commands allowed for streaming/dev
-    let extra_allowed = vec!["build", "test"];
+    let extra_allowed = ["build", "test"];
 
     if !allowed_commands.contains(&req.command.as_str())
         && !extra_allowed.contains(&req.command.as_str())

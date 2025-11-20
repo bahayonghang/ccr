@@ -1,253 +1,92 @@
-# CCR UI Documentation
+# CCR UI Docs
 
-This directory contains the multi-language documentation for CCR UI, built with VitePress.
+CCR UI 的多语言文档（默认中文，含英文），基于 VitePress。
 
-## 📚 Documentation Structure
-
+## 目录结构
 ```
 docs/
-├── .vitepress/          # VitePress configuration
-│   └── config.ts        # Multi-language config
-├── guide/               # 📖 User guides (Chinese, default)
-│   ├── getting-started.md   # Quick start
-│   ├── project-structure.md # Project structure
-│   ├── stats.md             # Statistics feature
-│   └── tauri.md             # Tauri desktop app
-├── reference/           # 📚 Technical reference (Chinese)
-│   ├── frontend/            # Frontend docs
-│   │   ├── overview.md
-│   │   ├── tech-stack.md
-│   │   ├── development.md
-│   │   ├── components.md
-│   │   ├── api.md
-│   │   ├── styling.md
-│   │   └── testing.md
-│   └── backend/             # Backend docs
-│       ├── architecture.md
-│       ├── tech-stack.md
-│       ├── development.md
-│       ├── api.md
-│       ├── error-handling.md
-│       └── deployment.md
-├── contributing.md      # Contributing guide
-├── faq.md              # FAQ
-├── en/                  # 🇺🇸 English documentation
-│   ├── index.md             # English homepage
-│   ├── guide/               # User guides
-│   ├── reference/           # Technical reference
-│   │   ├── frontend/
-│   │   └── backend/
-│   ├── contributing.md
-│   └── faq.md
-├── public/              # Static assets
-│   ├── logo.svg
-│   └── favicon.ico
-├── index.md            # Chinese homepage (default)
-├── package.json         # Dependencies
-└── justfile            # Build automation (with auto deps check)
+|-- .vitepress/          # VitePress 配置
+|   `-- config.ts        # 多语言导航/侧边栏
+|-- guide/               # 中文用户指南
+|   |-- getting-started.md
+|   |-- project-structure.md
+|   |-- stats.md
+|   `-- tauri.md
+|-- reference/           # 中文技术参考
+|   |-- frontend/
+|   |   |-- overview.md
+|   |   |-- tech-stack.md
+|   |   |-- development.md
+|   |   |-- components.md
+|   |   |-- api.md
+|   |   |-- styling.md
+|   |   `-- testing.md
+|   `-- backend/
+|       |-- architecture.md
+|       |-- tech-stack.md
+|       |-- development.md
+|       |-- api.md
+|       |-- error-handling.md
+|       `-- deployment.md
+|-- contributing.md      # 贡献指南
+|-- faq.md               # 常见问题
+|-- en/                  # 英文文档
+|   |-- index.md
+|   |-- guide/
+|   |-- reference/
+|   |   |-- frontend/
+|   |   `-- backend/
+|   |-- contributing.md
+|   `-- faq.md
+|-- public/              # 静态资源
+|   |-- logo.svg
+|   `-- favicon.ico
+|-- index.md             # 中文首页
+|-- package.json         # 文档依赖
+`-- justfile             # 文档站任务
 ```
 
-## 🌐 Supported Languages
-
-- **简体中文 (zh)** - Chinese (Simplified) - Primary language
-- **English (en)** - English - Secondary language
-
-## 🚀 Development
-
-### Install Dependencies
-
+## 开发
 ```bash
-npm install
+npm install             # 安装依赖
+npm run docs:dev        # 本地预览 http://localhost:5174
+npm run docs:build      # 生成 .vitepress/dist/
+npm run docs:preview    # 预览构建产物
 ```
 
-### Start Development Server
+## 新增/修改页面
+- 中文页：放在根级 `guide/` 或 `reference/`，在 `.vitepress/config.ts` 的 zh 导航/侧栏注册。
+- 英文页：放在 `en/` 下，对应更新 en 导航/侧栏。
+- 内链用绝对路径，如 `[快速开始](/guide/getting-started)`、`[Getting Started](/en/guide/getting-started)`。
+- 外链示例：`[GitHub](https://github.com/bahayonghang/ccr)`.
 
-```bash
-npm run docs:dev
-```
-
-Visit `http://localhost:5174`
-
-### Build Documentation
-
-```bash
-npm run docs:build
-```
-
-Output in `.vitepress/dist/`
-
-### Preview Built Documentation
-
-```bash
-npm run docs:preview
-```
-
-## 📝 Adding New Documentation
-
-### Add Chinese Documentation
-
-1. Create file in `zh/` directory:
-   ```bash
-   touch zh/new-doc.md
-   ```
-
-2. Add to `.vitepress/config.ts`:
-   ```typescript
-   // Add to zhNav or zh sidebar
-   { text: '新文档', link: '/zh/new-doc' }
-   ```
-
-### Add English Documentation
-
-1. Create file in `en/` directory:
-   ```bash
-   touch en/new-doc.md
-   ```
-
-2. Add to `.vitepress/config.ts`:
-   ```typescript
-   // Add to enNav or en sidebar
-   { text: 'New Doc', link: '/en/new-doc' }
-   ```
-
-## 🔗 Link Format
-
-### Internal Links
-
-Always use absolute paths from root:
-
-```markdown
-<!-- Chinese -->
-[快速开始](/guide/getting-started)
-[项目结构](/guide/project-structure)
-
-<!-- English -->
-[Getting Started](/en/guide/getting-started)
-[Project Structure](/en/guide/project-structure)
-```
-
-### External Links
-
-```markdown
-[GitHub](https://github.com/your-username/ccr)
-```
-
-## 🎨 VitePress Features
-
-### Frontmatter
-
+## VitePress 片段示例
+Frontmatter:
 ```yaml
 ---
-layout: doc
 title: Page Title
 description: Page description
 ---
 ```
-
-### Alerts
-
+提示/警告：
 ```markdown
 ::: tip
-This is a tip
+提示
 :::
 
 ::: warning
-This is a warning
-:::
-
-::: danger
-This is a danger alert
+注意
 :::
 ```
-
-### Code Blocks
-
+代码块：
 ````markdown
-```typescript
-const greeting = 'Hello World'
+```rust
+fn main() {}
 ```
 ````
 
-### Tables
-
-```markdown
-| Header 1 | Header 2 |
-|----------|----------|
-| Cell 1   | Cell 2   |
-```
-
-## 📋 Contributing to Documentation
-
-1. **Edit existing docs**: Directly edit files in `zh/` or `en/` directories
-2. **Add new docs**: Follow the structure above
-3. **Update config**: Add new pages to navigation and sidebar in `config.ts`
-4. **Test locally**: Run `npm run docs:dev` to preview changes
-5. **Submit PR**: Create a pull request with your changes
-
-## 🔍 Search
-
-VitePress includes built-in search functionality. It will automatically index all pages in both languages.
-
-## 🌍 Language Detection
-
-The root `index.md` includes a script that automatically redirects users to:
-- `/zh/` for Chinese speakers (based on browser language)
-- `/en/` for English speakers
-
-Users can manually switch languages using the language selector in the navigation bar.
-
-## 📖 Documentation Guidelines
-
-### Writing Style
-
-- **Chinese**: Use formal written Chinese (书面语)
-- **English**: Use clear, concise American English
-
-### Code Examples
-
-- Include practical, working examples
-- Add comments to explain complex code
-- Use TypeScript for frontend examples
-- Use Rust for backend examples
-
-### Images
-
-- Place images in `public/` directory
-- Use descriptive file names
-- Optimize images for web
-- Reference with absolute paths: `/image.png`
-
-## 🛠️ Maintenance
-
-### Update Dependencies
-
-```bash
-npm update
-```
-
-### Check for Broken Links
-
-```bash
-npm run docs:build
-# Check build output for warnings
-```
-
-### Regenerate Documentation
-
-If you make significant changes to the structure:
-
-1. Clear cache: `rm -rf .vitepress/cache`
-2. Rebuild: `npm run docs:build`
-3. Test: `npm run docs:preview`
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/your-username/ccr/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/ccr/discussions)
-
----
-
-**Last Updated**: November 2, 2025
-**VitePress Version**: Latest
-**License**: MIT
-
+## 贡献流程
+1. 编辑或新增页面，语言与现有文档保持一致。
+2. 更新 `.vitepress/config.ts` 导航/侧栏。
+3. 本地预览：`npm run docs:dev`。
+4. 提交 PR 到 https://github.com/bahayonghang/ccr。
