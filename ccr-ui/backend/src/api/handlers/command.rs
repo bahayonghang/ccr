@@ -1,50 +1,14 @@
 // Command Execution Handlers
 // Executes CCR CLI commands with various parameters
 
-use axum::{Json, extract::Path, response::IntoResponse};
-
 use crate::core::error::{ApiError, ApiResult};
 use crate::core::executor;
 use crate::models::api::*;
+use axum::{Json, extract::Path, response::IntoResponse};
 
-/// POST /api/command/execute - Execute a CCR command
-pub async fn execute_command(Json(req): Json<CommandRequest>) -> impl IntoResponse {
-    // Validate command to prevent arbitrary command execution
-    let allowed_commands = vec![
-        "list", "current", "switch", "validate", "optimize", "history", "clean", "export",
-        "import", "init", "version", "update",
-    ];
-
-    if !allowed_commands.contains(&req.command.as_str()) {
-        return ApiResponse::<CommandResponse>::error(format!(
-            "Command '{}' is not allowed",
-            req.command
-        ));
-    }
-
-    // Build command arguments
-    let mut args = vec![req.command.clone()];
-    args.extend(req.args.clone());
-
-    // Execute command
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            let response = CommandResponse {
-                success: output.success,
-                output: output.stdout,
-                error: output.stderr,
-                exit_code: output.exit_code,
-                duration_ms: output.duration_ms,
-            };
-            ApiResponse::success(response)
-        }
-        Err(e) => ApiResponse::<CommandResponse>::error(e.to_string()),
-    }
-}
-
-/// GET /api/command/list - List all available commands
-pub async fn list_commands() -> impl IntoResponse {
-    let commands = vec![
+/// Helper function to get all available commands
+fn get_available_commands() -> Vec<CommandInfo> {
+    vec![
         CommandInfo {
             name: "list".to_string(),
             description: "List all available configurations".to_string(),
@@ -132,8 +96,45 @@ pub async fn list_commands() -> impl IntoResponse {
             usage: "ccr update".to_string(),
             examples: vec!["ccr update".to_string()],
         },
-    ];
+    ]
+}
 
+/// POST /api/command/execute - Execute a CCR command
+pub async fn execute_command(Json(req): Json<CommandRequest>) -> impl IntoResponse {
+    // Validate command to prevent arbitrary command execution
+    let commands = get_available_commands();
+    let allowed_commands: Vec<&str> = commands.iter().map(|c| c.name.as_str()).collect();
+
+    if !allowed_commands.contains(&req.command.as_str()) {
+        return ApiResponse::<CommandResponse>::error(format!(
+            "Command '{}' is not allowed",
+            req.command
+        ));
+    }
+
+    // Build command arguments
+    let mut args = vec![req.command.clone()];
+    args.extend(req.args.clone());
+
+    // Execute command
+    match executor::execute_command(args).await {
+        Ok(output) => {
+            let response = CommandResponse {
+                success: output.success,
+                output: output.stdout,
+                error: output.stderr,
+                exit_code: output.exit_code,
+                duration_ms: output.duration_ms,
+            };
+            ApiResponse::success(response)
+        }
+        Err(e) => ApiResponse::<CommandResponse>::error(e.to_string()),
+    }
+}
+
+/// GET /api/command/list - List all available commands
+pub async fn list_commands() -> impl IntoResponse {
+    let commands = get_available_commands();
     let response = CommandListResponse { commands };
     ApiResponse::success(response)
 }
@@ -155,12 +156,15 @@ pub async fn execute_command_stream(
     Json(req): Json<CommandRequest>,
 ) -> ApiResult<Json<&'static str>> {
     // Validate command
-    let allowed_commands = vec![
-        "list", "current", "switch", "validate", "optimize", "history", "clean", "export",
-        "import", "init", "version", "update", "build", "test",
-    ];
+    let commands = get_available_commands();
+    let allowed_commands: Vec<&str> = commands.iter().map(|c| c.name.as_str()).collect();
 
-    if !allowed_commands.contains(&req.command.as_str()) {
+    // Additional commands allowed for streaming/dev
+    let extra_allowed = vec!["build", "test"];
+
+    if !allowed_commands.contains(&req.command.as_str())
+        && !extra_allowed.contains(&req.command.as_str())
+    {
         return Err(ApiError::bad_request(format!(
             "Command '{}' is not allowed",
             req.command
