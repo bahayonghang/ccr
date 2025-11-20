@@ -16,6 +16,7 @@ export default {
     info: '信息',
     yes: '是',
     no: '否',
+    home: '首页',
     back: '返回',
     next: '下一步',
     previous: '上一步',
@@ -376,110 +377,6 @@ export default {
       plugins: '插件管理',
     },
   },
-  qwen: {
-    title: 'Qwen',
-    subtitle: '阿里巴巴通义千问 CLI 管理',
-    description: '管理 Qwen CLI 配置、MCP、代理和插件',
-    backHome: '返回首页',
-    modules: '主要模块',
-    mcp: 'MCP 服务器',
-    mcpDesc: '管理 Model Context Protocol 服务器',
-    agents: '代理管理',
-    agentsDesc: '配置和管理 Qwen 代理',
-    slashCommands: '斜杠命令',
-    slashCommandsDesc: '自定义快捷命令',
-    slashCommandsBadge: '命令',
-    plugins: '插件管理',
-    pluginsDesc: '扩展 Qwen 功能',
-    pluginsBadge: '插件',
-    features: {
-      title: '核心特性',
-      aiPlatform: 'AI 平台',
-      conversational: '对话式 AI',
-      extensible: '可扩展',
-      multimodal: '多模态能力',
-      reliable: '可靠稳定',
-      feature1: '强大的自然语言理解能力',
-      feature2: '支持多种编程语言和框架',
-      feature3: '可定制的代理和命令系统',
-      feature4: '丰富的插件生态',
-    },
-    modulesList: {
-      configManagement: {
-        title: '配置管理',
-        desc: '管理 Qwen 配置文件',
-      },
-      mcpServers: {
-        title: 'MCP 服务器',
-        desc: '管理 Model Context Protocol 服务器',
-      },
-      agents: {
-        title: '代理管理',
-        desc: '配置和管理 Qwen 代理',
-      },
-      slashCommands: {
-        title: '斜杠命令',
-        desc: '自定义快捷命令',
-      },
-      plugins: {
-        title: '插件管理',
-        desc: '扩展 Qwen 功能',
-      },
-    },
-    quickActions: {
-      title: '快速操作',
-      viewMcp: '查看 MCP 服务器',
-      manageAgents: '管理代理',
-      customizeCommands: '自定义命令',
-      installPlugins: '安装插件',
-    },
-    tips: {
-      config: '配置文件位于 ~/.qwen/config.toml',
-      mcp: '支持标准 MCP 协议服务器',
-      agents: '代理可以扩展 Qwen 的能力',
-      commands: '斜杠命令提供快速访问',
-    },
-  },
-  iflow: {
-    title: 'iFlow',
-    subtitle: 'iFlow CLI 工作流管理',
-    description: '管理 iFlow CLI 配置、MCP、代理和插件',
-    backHome: '返回首页',
-    modulesTitle: '核心模块',
-    features: {
-      workflow: '工作流自动化',
-      orchestration: '智能编排',
-      mcpIntegration: 'MCP 集成',
-      aiAgents: 'AI 代理',
-    },
-    modules: {
-      mcp: {
-        title: 'MCP 服务器',
-        description: '管理 Model Context Protocol 服务器连接',
-      },
-      agents: {
-        title: '代理管理',
-        description: '配置和管理 AI 代理',
-      },
-      slashCommands: {
-        title: '斜杠命令',
-        description: '快速命令执行',
-        badge: '命令',
-      },
-      plugins: {
-        title: '插件管理',
-        description: '扩展 iFlow 功能',
-        badge: '插件',
-      },
-    },
-    tips: {
-      title: '使用提示',
-      item1: 'iFlow 支持复杂的工作流编排',
-      item2: '通过 MCP 连接多种 AI 服务',
-      item3: '代理系统可以自动化重复任务',
-      item4: '插件生态提供丰富的扩展能力',
-    },
-  },
   configs: {
     title: '配置管理',
     description: '管理 Claude Code 配置文件',
@@ -620,33 +517,38 @@ export default {
   commands: {
     title: '命令执行中心',
     description: '执行 CCR CLI 命令',
-    selectClient: '选择Cli命令行工具',
+    selectClient: '选择 CLI 命令',
     availableCommands: '可用命令',
     selectCommand: '选择命令',
-    executeCommand: '执行命令',
+    executeCommand: '运行命令',
     commandOutput: '命令输出',
-    clearOutput: '清空输出',
-    executing: '执行中...',
+    clearOutput: '清空',
+    executing: '运行中...',
     executeSuccess: '执行成功',
     executeError: '执行失败',
-    args: '参数 (可选)',
-    argsPlaceholder: '例如: --help 或 anthropic',
-    usage: 'Usage:',
-    examples: 'Examples:',
-    exitCode: 'Exit Code:',
-    duration: 'Duration:',
-    copyOutput: '复制输出',
-    clearOutputButton: '清除输出',
-    noOutput: '无输出内容',
-    terminalOutput: 'Terminal Output',
-    linesCount: '{count} lines',
-    outputCopied: '输出已复制到剪贴板！',
+    args: '参数',
+    argsPlaceholder: '例如: --help',
+    usage: '用法',
+    examples: '示例',
+    exitCode: '退出码',
+    duration: '耗时',
+    copyOutput: '复制',
+    clearOutputButton: '清空',
+    noOutput: '暂无输出',
+    terminalOutput: '终端输出',
+    linesCount: '{count} 行',
+    outputCopied: '已复制！',
     developingFeature: '{client} 命令执行功能正在开发中...',
     developingMessage: '该功能将支持 {client} 相关命令。',
     helpDescription: '{client} 帮助命令 (功能开发中)',
     versionDescription: '显示 {client} 版本',
     error: '错误',
     unknownError: '未知错误',
+    quickSelect: '快速选择',
+    history: '历史记录',
+    noHistory: '暂无命令历史',
+    run: '运行',
+    client: '客户端',
   },
   converter: {
     title: '配置转换器',
@@ -721,171 +623,145 @@ export default {
     },
   },
   sync: {
+    // Page header
     title: 'WebDAV 云同步',
     subtitle: '预设平台选择 · 一键同步 · 智能管理',
-    description: 'WebDAV 云端配置同步',
-    backToHome: '返回首页',
-    webdavUrl: 'WebDAV 地址',
-    username: '用户名',
-    password: '密码',
-    remoteFolder: '远程文件夹',
-    testConnection: '测试连接',
-    saveConfig: '保存配置',
-    pushToCloud: '上传到云端',
-    pullFromCloud: '从云端下载',
-    syncStatus: '同步状态',
-    lastSync: '上次同步',
-    never: '从未同步',
-    syncing: '同步中...',
-    syncSuccess: '同步成功',
-    syncError: '同步失败',
-    connectionSuccess: '连接成功',
-    connectionError: '连接失败',
+    description: 'WebDAV 云端备份，支持多平台配置同步',
+    breadcrumb: {
+      home: '首页',
+      claudeCode: 'Claude Code',
+      sync: '云同步',
+    },
+    backHome: '返回首页',
+
+    // Loading and error states
+    loading: '加载中...',
     loadFailed: '加载失败',
+    error: '错误',
 
-    // Platform selection
-    selectPlatforms: '选择同步平台',
-    applySelection: '应用选择',
-    applying: '应用中...',
-    required: '必选',
-    platformsConfig: 'Platforms 平台配置',
-    platformsDesc: 'CCR 供应商配置（API地址、密钥等），强制同步保证配置一致性',
-    claudeCode: 'Claude Code',
-    claudeCodeDesc: 'Anthropic Claude Code CLI 配置和数据',
-    geminiCli: 'Gemini CLI',
-    geminiCliDesc: 'Google Gemini CLI 配置和数据',
-    qwen: 'Qwen',
-    qwenDesc: '通义千问 CLI 配置和数据',
-    iflow: 'iFlow',
-    iflowDesc: 'iFlow CLI 配置和数据',
+    // Platform selection section
+    platformSelection: {
+      title: '选择同步平台',
+      applyButton: '应用选择',
+      applying: '应用中...',
+      configRequired: 'Platforms 平台配置',
+      configRequiredBadge: '必选',
+      configDescription: 'CCR 供应商配置（API地址、密钥等），强制同步保证配置一致性',
+      claudeCode: 'Claude Code',
+      claudeDescription: 'Anthropic Claude Code CLI 配置和数据',
+      gemini: 'Gemini CLI',
+      geminiDescription: 'Google Gemini CLI 配置和数据',
+      qwen: 'Qwen',
+      qwenDescription: '通义千问 CLI 配置和数据',
+      iflow: 'iFlow',
+      iflowDescription: 'iFlow CLI 配置和数据',
+    },
 
-    // Custom folder
-    customFolder: '自定义文件夹',
-    folderName: '文件夹名称',
-    localPath: '本地路径',
-    remotePath: '远程路径 (可选)',
-    folderDescription: '描述 (可选)',
-    addCustomFolder: '添加自定义文件夹',
-    adding: '添加中...',
+    // Custom folder section
+    customFolder: {
+      title: '自定义文件夹',
+      namePlaceholder: '文件夹名称',
+      localPathPlaceholder: '本地路径',
+      remotePathPlaceholder: '远程路径 (可选)',
+      descriptionPlaceholder: '描述 (可选)',
+      addButton: '添加自定义文件夹',
+      adding: '添加中...',
+    },
 
-    // Enabled folders
-    enabledFolders: '已启用的文件夹',
-    noEnabledFolders: '暂无启用的同步文件夹',
-    pleaseSelect: '请在上方选择要同步的平台',
-    enabled: '已启用',
-    refresh: '刷新',
-    enable: '启用',
-    disable: '禁用',
-    upload: '上传',
-    download: '下载',
-    status: '状态',
-    remove: '删除',
+    // Enabled folders section
+    enabledFolders: {
+      title: '已启用的文件夹',
+      refresh: '刷新',
+      refreshing: '刷新中...',
+      noFolders: '暂无启用的同步文件夹',
+      noFoldersHint: '请在上方选择要同步的平台',
+      enabled: '✓ 已启用',
+      disabled: '✗ 已禁用',
+      localPath: '本地路径',
+      remotePath: '远程路径',
+    },
+
+    // Folder operations
+    operations: {
+      enable: '启用',
+      disable: '禁用',
+      upload: '上传',
+      download: '下载',
+      status: '状态',
+      delete: '删除',
+      toggle: '切换状态',
+    },
 
     // Batch operations
-    batchOperations: '批量操作',
-    batchOperationsDesc: '对所有启用的文件夹执行批量同步操作',
-    uploadAll: '全部上传',
-    downloadAll: '全部下载',
-    checkStatus: '查看状态',
+    batchOperations: {
+      title: '批量操作',
+      description: '对所有启用的文件夹执行批量同步操作',
+      uploadAll: '全部上传',
+      downloadAll: '全部下载',
+      viewStatus: '查看状态',
+    },
 
     // Operation output
-    operationOutput: '操作输出',
+    output: {
+      title: '操作输出',
+      close: '关闭',
+    },
 
-    // WebDAV config
-    webdavConfig: 'WebDAV 配置',
-    configured: '已配置',
-    notConfigured: '未配置',
-    serverUrl: '服务器',
-    user: '用户',
-    configureWebdav: '请使用 CLI 配置 WebDAV:',
-    cliCommand: 'ccr sync config',
+    // WebDAV configuration
+    webdav: {
+      title: 'WebDAV 配置',
+      configured: '已配置',
+      notConfigured: '未配置',
+      server: '服务器',
+      username: '用户',
+      remotePath: '远程路径',
+      configureHint: '请使用 CLI 配置 WebDAV:',
+      configureCommand: 'ccr sync config',
+    },
 
-    // Features
-    features: '功能说明',
-    featurePreset: '预设平台选择',
-    featurePresetDesc: 'Config 必选，Claude/Gemini/Qwen 可选，一键配置常用平台',
-    featureIndependent: '独立文件夹管理',
-    featureIndependentDesc: '每个文件夹独立同步，可单独启用/禁用和操作',
-    featureSmartFilter: '智能过滤',
-    featureSmartFilterDesc: '自动排除 backups/、.locks/、*.tmp、*.bak 等文件',
-    featureBatch: '批量操作',
-    featureBatchDesc: '一键上传/下载所有启用的文件夹，提高效率',
+    // Features section
+    features: {
+      title: '功能说明',
+      presetPlatform: '✅ 预设平台选择',
+      presetPlatformDesc: 'Config 必选，Claude/Gemini/Qwen 可选，一键配置常用平台',
+      independentManagement: '🔄 独立文件夹管理',
+      independentManagementDesc: '每个文件夹独立同步，可单独启用/禁用和操作',
+      smartFiltering: '💾 智能过滤',
+      smartFilteringDesc: '自动排除 backups/、.locks/、*.tmp、*.bak 等文件',
+      batchOperations: '⚡ 批量操作',
+      batchOperationsDesc: '一键上传/下载所有启用的文件夹，提高效率',
+    },
 
     // Supported services
-    supportedServices: '支持的服务',
-    nutstore: '坚果云 (Nutstore)',
-    nextcloud: 'Nextcloud',
-    owncloud: 'ownCloud',
-    anyWebdav: '任何标准 WebDAV 服务器',
-
-    // Confirmations
-    confirmRemove: '确定要删除文件夹 "{name}" 吗？\n\n注意：这只会移除同步配置，不会删除本地文件。',
-    removeSuccess: '✓ 成功删除文件夹: {name}',
-    removeFailed: '✗ 删除失败: {error}',
-    toggleSuccess: '✓ 成功{action}文件夹: {name}',
-    toggleFailed: '✗ 操作失败: {error}',
-    uploadSuccess: '✓ 上传成功',
-    uploadFailed: '✗ 上传失败: {error}',
-    downloadSuccess: '✓ 下载成功',
-    downloadFailed: '✗ 下载失败: {error}',
-    addSuccess: '✓ 成功添加自定义文件夹: {name}',
-    addFailed: '✗ 添加失败: {error}',
-    applySuccess: '✓ 同步配置已应用',
-    applyFailed: '✗ 应用失败: {error}',
-  },
-  usage: {
-    title: '使用统计分析',
-    subtitle: '实时追踪跨 AI 平台的 Token 消耗情况',
-    description: 'Claude Code Token 使用量分析',
-    timeRange: '时间范围',
-    modelFilter: '模型筛选',
-    allModels: '所有模型',
-    selectPlatform: '选择平台',
-    last5Hours: '最近 5 小时',
-    today: '今天',
-    last7Days: '最近 7 天',
-    thisWeek: '本周',
-    thisMonth: '本月',
-    allTime: '全部',
-    inputTokens: '输入 Tokens',
-    outputTokens: '输出 Tokens',
-    cacheReadTokens: '缓存读取',
-    cacheRead: '缓存读取',
-    totalTokens: '总计 Token',
-    cacheEfficiency: '缓存效率',
-    tokenUsageChart: 'Token 使用趋势',
-    loading: '加载中...',
-    loadingData: '正在加载使用数据...',
-    noData: '暂无数据',
-    noDataAvailable: 'No Usage Data Available',
-    startUsing: 'Start using {platform} to see usage statistics here',
-    refreshData: '刷新数据',
-    refreshing: '加载中...',
-    autoRefresh: '自动刷新',
-    loadFailed: '加载使用数据失败',
-    retry: '重试',
-    truncatedWarning: 'Showing first 10,000 records. Total {total} records found.',
-    emptyState: {
-      title: 'No Usage Data Available',
-      description: 'Start using {platform} to see usage statistics here',
+    supportedServices: {
+      title: '支持的服务',
+      nutstore: '坚果云 (Nutstore)',
+      nextcloud: 'Nextcloud',
+      owncloud: 'ownCloud',
+      any: '任何标准 WebDAV 服务器',
     },
-  },
-  stats: {
-    title: '📊 统计分析',
-    description: '查看 AI API 使用和统计信息',
-    providerStats: '提供商统计',
-    totalCost: '总成本',
-    apiCallCount: 'API 调用次数',
-    tokenDetails: '🎫 Token 使用详情',
-    cacheToken: 'Cache Token',
-    byModel: '🤖 按模型分组',
-    byProject: '📁 按项目分组 (Top 10)',
-    costTrend: '📈 成本趋势',
-    noStats: '暂无统计数据',
-    startUsingMessage: '开始使用 AI API 后，这里将显示统计信息',
-    providerUsageTitle: '🏢 提供商使用次数',
-    providerUsageDesc: '按提供商聚类的调用次数',
-    times: '次',
+
+    // Messages
+    messages: {
+      applySuccess: '✓ 同步配置已应用',
+      applyFailed: '✗ 应用失败',
+      addSuccess: '✓ 成功添加自定义文件夹',
+      addFailed: '✗ 添加失败',
+      deleteConfirm: '确定要删除文件夹 "{name}" 吗？\n\n注意：这只会移除同步配置，不会删除本地文件。',
+      deleteSuccess: '✓ 成功删除文件夹',
+      deleteFailed: '✗ 删除失败',
+      toggleSuccess: '✓ 成功{action}文件夹',
+      toggleFailed: '✗ 操作失败',
+      uploadSuccess: '✓ 上传成功',
+      uploadFailed: '✗ 上传失败',
+      downloadSuccess: '✓ 下载成功',
+      downloadFailed: '✗ 下载失败',
+      statusFailed: '✗ 获取状态失败',
+      batchUploadFailed: '✗ 批量上传失败',
+      batchDownloadFailed: '✗ 批量下载失败',
+      enabled: '启用',
+      disabled: '禁用',
+    },
   },
   theme: {
     light: '浅色模式',
@@ -911,5 +787,1114 @@ export default {
     savedSuccessfully: '保存成功',
     deletedSuccessfully: '删除成功',
     copiedToClipboard: '已复制到剪贴板',
+  },
+
+  // Usage Statistics Module
+  usage: {
+    title: '使用统计分析',
+    subtitle: '实时追踪跨 AI 平台的 Token 消耗情况',
+
+    platforms: {
+      claude: '🤖 Claude',
+      codex: '💻 Codex',
+      gemini: '✨ Gemini'
+    },
+
+    actions: {
+      loading: '加载中...',
+      refresh: '刷新数据',
+      retry: '重试'
+    },
+
+    filters: {
+      timeRange: {
+        last5h: '最近 5 小时',
+        today: '今天',
+        last7d: '最近 7 天',
+        thisWeek: '本周',
+        thisMonth: '本月',
+        allTime: '全部时间'
+      },
+      model: {
+        all: '全部模型'
+      },
+      autoRefresh: '自动刷新'
+    },
+
+    summaryCards: {
+      inputTokens: '输入 Tokens',
+      outputTokens: '输出 Tokens',
+      cacheRead: '缓存读取',
+      cacheEfficiency: '缓存效率'
+    },
+
+    states: {
+      loading: '正在加载使用数据...',
+      loadFailed: '加载使用数据失败',
+      noData: '暂无使用数据',
+      noDataHint: '开始使用 {platform} 后，此处将显示使用统计信息',
+      truncatedWarning: '显示前 10,000 条记录。共找到 {total} 条记录。'
+    },
+
+    emptyState: {
+      title: '暂无使用数据',
+      subtitle: '开始使用 {platform} 后，此处将显示使用统计信息'
+    }
+  },
+
+  // Statistics Module
+  stats: {
+    title: '📊 统计分析',
+    subtitle: '查看 AI API 使用和统计信息',
+
+    timeRange: {
+      today: '今日',
+      thisWeek: '本周',
+      thisMonth: '本月'
+    },
+
+    actions: {
+      providersStats: '提供商统计',
+      refresh: '刷新'
+    },
+
+    summaryCards: {
+      totalCost: '总成本',
+      apiCalls: 'API 调用次数',
+      inputToken: '输入 Token',
+      outputToken: '输出 Token'
+    },
+
+    tokenDetails: {
+      title: '🎫 Token 使用详情',
+      cacheToken: 'Cache Token',
+      cacheEfficiency: 'Cache 效率',
+      totalToken: '总 Token'
+    },
+
+    sections: {
+      byModel: '🤖 按模型分组',
+      byProject: '📁 按项目分组 (Top 10)',
+      costTrend: '📈 成本趋势',
+      providerUsage: '🏢 提供商使用次数',
+      providerUsageSubtitle: '按提供商聚类的调用次数'
+    },
+
+    units: {
+      times: '次'
+    },
+
+    states: {
+      loadFailed: '加载失败',
+      loadFailedMessage: '加载统计数据失败',
+      noData: '暂无数据',
+      noStatsData: '暂无统计数据',
+      noStatsHint: '开始使用 AI API 后，这里将显示统计信息'
+    }
+  },
+
+  // Codex Module
+  codex: {
+    // Overview page
+    overview: {
+      title: 'Codex',
+      subtitle: 'AI 编码助手 · MCP · Profiles · 智能配置',
+      backHome: '返回首页',
+      features: {
+        mcpProtocol: '🔌 MCP 协议',
+        agents: '🤖 Agents',
+        profiles: '👤 Profiles',
+        configManagement: '⚙️ 配置管理'
+      },
+      modulesTitle: '功能模块',
+      modules: {
+        mcp: {
+          title: 'MCP 服务器',
+          description: 'Codex MCP 服务器配置管理（STDIO + HTTP）',
+          badge: '🔌 MCP'
+        },
+        agents: {
+          title: 'Agents',
+          description: 'Codex Agent 智能体配置管理',
+          badge: '🤖 AI'
+        },
+        profiles: {
+          title: 'Profiles',
+          description: 'Codex Profile 配置和管理',
+          badge: '👤 Profile'
+        },
+        slashCommands: {
+          title: 'Slash Commands',
+          description: 'Codex 快捷命令管理',
+          badge: '⌨️ 命令'
+        },
+        plugins: {
+          title: '插件管理',
+          description: 'Codex 插件配置管理',
+          badge: '🧩 插件'
+        },
+        config: {
+          title: '基础配置',
+          description: 'Model、Approval Policy、Sandbox 等基础设置',
+          badge: '🔧 配置'
+        }
+      },
+      tipsTitle: '💡 Codex 特性',
+      tips: {
+        mcpConnection: '支持 STDIO 和 HTTP 两种 MCP 连接方式',
+        profileManagement: '通过 Profiles 管理不同工作环境的配置',
+        agentsFeature: 'Agents 功能允许创建特定任务的 AI 助手',
+        pluginEcosystem: '丰富的插件生态系统扩展 Codex 能力'
+      }
+    },
+
+    // Common actions
+    actions: {
+      add: '添加',
+      edit: '编辑',
+      delete: '删除',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      cancel: '取消',
+      refresh: '刷新',
+      import: '导入',
+      export: '导出',
+      search: '搜索',
+      filter: '筛选',
+      viewDetails: '查看详情',
+      backToList: '返回列表'
+    },
+
+    // Common states
+    states: {
+      enabled: '已启用',
+      disabled: '已禁用',
+      active: '活跃',
+      inactive: '未激活',
+      loading: '加载中...',
+      saving: '保存中...',
+      deleting: '删除中...',
+      noData: '暂无数据',
+      loadFailed: '加载失败',
+      saveFailed: '保存失败',
+      deleteFailed: '删除失败'
+    },
+
+    // MCP module
+    mcp: {
+      title: 'Codex MCP 服务器',
+      breadcrumb: 'MCP 服务器',
+      subtitle: '管理 Codex MCP 服务器配置（STDIO + HTTP）',
+      backToCodex: '返回',
+      addServer: '添加服务器',
+      editServer: '编辑服务器',
+      updateServer: '更新',
+      serverName: '服务器名称',
+      serverType: '服务器类型',
+      command: '命令',
+      commandLabel: '命令:',
+      commandField: '命令 *',
+      args: '参数',
+      argsLabel: '参数:',
+      env: '环境变量',
+      envLabel: '环境变量:',
+      url: 'URL',
+      urlLabel: 'URL:',
+      serverUrl: '服务器 URL *',
+      emptyState: '暂无 Codex MCP 服务器配置',
+      emptyHint: '点击"添加服务器"按钮创建第一个 MCP 服务器',
+      deleteConfirm: '确定删除服务器 "{name}" 吗？',
+      httpServerLabel: 'HTTP 服务器（勾选则为 HTTP，否则为 STDIO）',
+      argsSeparatorHint: '用空格分隔多个参数',
+      types: {
+        stdio: 'STDIO',
+        http: 'HTTP'
+      },
+      placeholders: {
+        url: '例如: http://localhost:3000',
+        command: '例如: npx',
+        args: '例如: -y @modelcontextprotocol/server-filesystem',
+        envKey: 'KEY',
+        envValue: 'VALUE'
+      },
+      validation: {
+        commandRequired: '请填写命令',
+        urlRequired: '请填写 URL'
+      },
+      messages: {
+        loadFailed: '加载 Codex MCP 服务器失败',
+        addSuccess: '✓ 服务器添加成功',
+        updateSuccess: '✓ 服务器更新成功',
+        deleteSuccess: '✓ 服务器删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}'
+      }
+    },
+
+    // Agents module
+    agents: {
+      title: 'Agents 管理',
+      subtitle: '管理 Codex AI Agent 配置',
+      breadcrumb: 'Agents 管理',
+      pageTitle: 'Codex Agents 管理',
+      backToHome: '返回首页',
+      addAgent: '添加 Agent',
+      editAgent: '编辑 Agent',
+      agentName: 'Agent 名称',
+      description: '描述',
+      instructions: '指令',
+      searchPlaceholder: '搜索 agent 名称、系统提示或工具...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的 agents',
+      loading: '加载中...',
+      emptyState: '暂无 Agents 配置',
+      noResults: '未找到匹配的 agents',
+      noResultsHint: '尝试使用其他关键词搜索或切换文件夹',
+      emptyHint: '点击"添加 Agent"按钮创建第一个 AI Agent',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      nameLabel: '名称 *',
+      modelLabel: 'Model *',
+      toolsLabel: 'Tools',
+      toolPlaceholder: '输入工具名称',
+      addTool: '添加',
+      systemPromptLabel: 'System Prompt',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除 agent "{name}" 吗？',
+      stats: {
+        total: '总数',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Agents 失败',
+        operationFailed: '操作失败',
+        deleteFailed: '删除失败',
+        toggleFailed: '切换状态失败'
+      }
+    },
+
+    // Profiles module
+    profiles: {
+      title: 'Profiles 管理',
+      subtitle: '管理 GitHub Copilot CLI 配置文件',
+      breadcrumb: 'Profiles 配置',
+      addProfile: '添加 Profile',
+      editProfile: '编辑 Profile',
+      updateProfile: '更新 Profile',
+      backToCodex: '返回',
+      profileName: 'Profile 名称',
+      description: '描述',
+      authToken: 'Auth Token',
+      baseUrl: 'Base URL',
+      model: 'Model',
+      fastModel: 'Fast Model',
+      provider: 'Provider',
+      emptyState: '暂无 Codex Profile 配置',
+      emptyHint: '点击"添加 Profile"创建第一个配置',
+      deleteConfirm: '确定删除 Profile "{name}" 吗？此操作不可撤销。',
+      deleteConfirmShort: '确定要删除 Profile "{name}" 吗？',
+      setActive: '设为活跃',
+      currentActive: '当前活跃',
+      placeholders: {
+        name: '例如: github-production',
+        description: '例如: GitHub Copilot 生产环境配置',
+        authToken: 'ghp_...',
+        baseUrl: 'https://api.github.com/copilot',
+        selectFastModel: '-- 选择快速模型 --',
+        selectProvider: '-- 选择提供商 --'
+      },
+      providers: {
+        github: 'GitHub',
+        azure: 'Azure',
+        openai: 'OpenAI',
+        custom: 'Custom'
+      },
+      validation: {
+        required: '请填写所有必填字段（Profile 名称、Base URL、Auth Token、Model）'
+      },
+      messages: {
+        loadFailed: '加载 Codex Profiles 失败',
+        addSuccess: '✓ Profile 添加成功',
+        updateSuccess: '✓ Profile 更新成功',
+        deleteSuccess: '✓ Profile 删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}'
+      }
+    },
+
+    // Slash Commands module
+    slashCommands: {
+      title: 'Slash Commands',
+      subtitle: '管理 Codex 快捷命令',
+      breadcrumb: 'Slash Commands 管理',
+      pageTitle: 'Codex Slash Commands 管理',
+      backToHome: '返回首页',
+      addCommand: '添加命令',
+      editCommand: '编辑命令',
+      addCommandShort: '添加 Command',
+      editCommandShort: '编辑 Command',
+      commandName: '命令名称',
+      nameLabel: '名称 *',
+      commandLabel: 'Command *',
+      descriptionLabel: '描述',
+      description: '描述',
+      command: '命令内容',
+      searchPlaceholder: '搜索命令名称、描述或命令...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的命令',
+      loading: '加载中...',
+      emptyState: '暂无 Slash Commands 配置',
+      noResults: '未找到匹配的命令',
+      noResultsHint: '尝试使用其他关键词搜索或切换文件夹',
+      emptyHint: '点击"添加命令"按钮创建第一个快捷命令',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除命令 "{name}" 吗？',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录'
+      },
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Slash Commands 失败',
+        operationFailed: '操作失败',
+        deleteFailed: '删除失败',
+        toggleFailed: '切换状态失败'
+      }
+    },
+
+    // Plugins module
+    plugins: {
+      title: 'Plugins 管理',
+      subtitle: '管理 Codex 插件生态',
+      breadcrumb: 'Plugins 管理',
+      pageTitle: 'Codex Plugins 管理',
+      backToHome: '返回首页',
+      addPlugin: '添加插件',
+      editPlugin: '编辑插件',
+      pluginName: '插件名称',
+      nameLabel: '名称 *',
+      namePlaceholder: '例如: My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: '例如: my-plugin',
+      versionLabel: '版本 *',
+      versionPlaceholder: '例如: 1.0.0',
+      configLabel: '配置 JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: '可选，输入合法的 JSON 格式配置',
+      enabledLabel: '启用此插件',
+      descriptionLabel: '描述',
+      description: '描述',
+      version: '版本',
+      author: '作者',
+      searchPlaceholder: '搜索插件名称、ID 或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的插件',
+      loading: '加载中...',
+      emptyState: '暂无插件配置',
+      noResults: '未找到匹配的插件',
+      noResultsHint: '尝试使用其他关键词搜索或切换文件夹',
+      emptyHint: '点击"添加插件"按钮安装第一个插件',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除插件 "{name}" 吗？',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录'
+      },
+      validation: {
+        required: '请填写必填字段',
+        invalidJson: '配置 JSON 格式错误'
+      },
+      messages: {
+        loadFailed: '加载 Plugins 失败',
+        updateSuccess: '✓ 插件更新成功',
+        addSuccess: '✓ 插件添加成功',
+        deleteSuccess: '✓ 插件删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+
+    // Messages
+    messages: {
+      addSuccess: '添加成功',
+      editSuccess: '编辑成功',
+      deleteSuccess: '删除成功',
+      enableSuccess: '启用成功',
+      disableSuccess: '禁用成功',
+      operationSuccess: '操作成功',
+      operationFailed: '操作失败：{error}'
+    }
+  },
+
+  // ===================================
+  // Gemini CLI Platform
+  // ===================================
+  gemini: {
+    // Overview module
+    overview: {
+      title: 'Gemini CLI 管理',
+      subtitle: '管理 Google Gemini CLI 配置',
+      breadcrumb: 'Gemini CLI',
+      pageTitle: 'Gemini CLI 管理中心',
+      description: 'Google 前沿 AI · 多模态支持 · 智能助手',
+      welcome: 'Gemini 特性',
+      quickActions: '快速操作',
+      viewConfig: '查看配置',
+      viewMcp: '管理 MCP',
+      viewAgents: '管理 Agents',
+      viewCommands: '管理命令',
+      viewPlugins: '管理插件',
+      feature1: 'Google 最新一代多模态 AI 模型，支持文本、图像、音频和视频',
+      feature2: '强大的上下文理解能力，支持长文本处理和分析',
+      feature3: '与 Google 生态系统深度集成，访问海量数据和服务',
+      feature4: '通过 MCP 协议扩展能力，连接外部工具和数据源',
+      stats: {
+        mcpServers: 'MCP 服务器',
+        agents: 'Agents',
+        commands: '命令',
+        plugins: '插件'
+      }
+    },
+
+    // MCP module
+    mcp: {
+      title: 'MCP 服务器',
+      subtitle: '管理 Gemini MCP 服务器配置',
+      breadcrumb: 'MCP 管理',
+      pageTitle: 'Gemini MCP 服务器管理',
+      backToHome: '返回首页',
+      addServer: '添加服务器',
+      editServer: '编辑服务器',
+      serverName: '服务器名称',
+      nameLabel: '名称 *',
+      commandLabel: 'Command *',
+      commandPlaceholder: '例如: npx',
+      urlLabel: '服务器 URL *',
+      urlPlaceholder: '例如: http://localhost:3000',
+      httpServerHint: 'HTTP 服务器（勾选则为 HTTP，否则为 STDIO）',
+      argsLabel: 'Arguments',
+      argPlaceholder: '输入参数',
+      argsHint: '用空格分隔多个参数',
+      addArg: '添加',
+      envLabel: 'Environment Variables',
+      envKey: 'Key',
+      envValue: 'Value',
+      addEnv: '添加变量',
+      searchPlaceholder: '搜索服务器名称、命令或参数...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的服务器',
+      loading: '加载中...',
+      emptyState: '暂无 MCP 服务器配置',
+      noResults: '未找到匹配的服务器',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除服务器 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 MCP 服务器失败',
+        updateSuccess: '✓ 服务器更新成功',
+        addSuccess: '✓ 服务器添加成功',
+        deleteSuccess: '✓ 服务器删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+
+    // Agents module
+    agents: {
+      title: 'Agents 管理',
+      subtitle: '管理 Gemini AI Agent 配置',
+      breadcrumb: 'Agents 管理',
+      pageTitle: 'Gemini Agents 管理',
+      backToHome: '返回首页',
+      addAgent: '添加 Agent',
+      editAgent: '编辑 Agent',
+      nameLabel: '名称 *',
+      modelLabel: 'Model *',
+      toolsLabel: 'Tools',
+      toolPlaceholder: '输入工具名称',
+      addTool: '添加',
+      systemPromptLabel: 'System Prompt',
+      searchPlaceholder: '搜索 agent 名称、系统提示或工具...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的 agents',
+      loading: '加载中...',
+      emptyState: '暂无 Agents 配置',
+      noResults: '未找到匹配的 agents',
+      noResultsHint: '尝试使用其他关键词搜索或切换文件夹',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除 agent "{name}" 吗？',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Agents 失败',
+        updateSuccess: '✓ Agent 更新成功',
+        addSuccess: '✓ Agent 添加成功',
+        deleteSuccess: '✓ Agent 删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+
+    // Slash Commands module
+    slashCommands: {
+      title: 'Slash Commands',
+      subtitle: '管理 Gemini 斜杠命令',
+      breadcrumb: 'Slash Commands',
+      pageTitle: 'Gemini Slash Commands 管理',
+      backToHome: '返回首页',
+      addCommandShort: '添加 Command',
+      editCommandShort: '编辑 Command',
+      nameLabel: '名称 *',
+      commandLabel: 'Command *',
+      descriptionLabel: '描述',
+      searchPlaceholder: '搜索命令名称、描述或命令...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的命令',
+      loading: '加载中...',
+      emptyState: '暂无 Slash Commands 配置',
+      noResults: '未找到匹配的命令',
+      noResultsHint: '尝试使用其他关键词搜索或切换文件夹',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除命令 "{name}" 吗？',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Slash Commands 失败',
+        updateSuccess: '✓ 命令更新成功',
+        addSuccess: '✓ 命令添加成功',
+        deleteSuccess: '✓ 命令删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+
+    // Plugins module
+    plugins: {
+      title: 'Plugins 管理',
+      subtitle: '管理 Gemini 插件生态',
+      breadcrumb: 'Plugins 管理',
+      pageTitle: 'Gemini Plugins 管理',
+      backToHome: '返回首页',
+      addPlugin: '添加插件',
+      editPlugin: '编辑插件',
+      nameLabel: '名称 *',
+      namePlaceholder: '例如: My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: '例如: my-plugin',
+      versionLabel: '版本 *',
+      versionPlaceholder: '例如: 1.0.0',
+      configLabel: '配置 JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: '可选，输入合法的 JSON 格式配置',
+      enabledLabel: '启用此插件',
+      searchPlaceholder: '搜索插件名称、ID 或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的插件',
+      loading: '加载中...',
+      emptyState: '暂无插件配置',
+      noResults: '未找到匹配的插件',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除插件 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段',
+        invalidJson: '配置 JSON 格式错误'
+      },
+      messages: {
+        loadFailed: '加载 Plugins 失败',
+        updateSuccess: '✓ 插件更新成功',
+        addSuccess: '✓ 插件添加成功',
+        deleteSuccess: '✓ 插件删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    }
+  },
+
+  // Qwen Platform
+  qwen: {
+    overview: {
+      title: 'Qwen',
+      subtitle: '阿里通义千问',
+      description: '阿里通义千问 · 大语言模型 · 智能对话',
+      backToHome: '返回首页',
+      features: '功能模块',
+      feature1: '阿里巴巴达摩院开发的大语言模型，中文理解能力出色',
+      feature2: '支持长文本处理和多轮对话,上下文理解能力强',
+      feature3: '与阿里云生态深度整合,提供企业级服务保障',
+      feature4: '通过插件和 MCP 扩展功能,连接更多工具和服务',
+      featureTitle: '💡 Qwen 特性',
+      tags: {
+        model: '🧠 大模型',
+        dialog: '💬 对话系统',
+        mcp: '🔌 MCP 支持',
+        chinese: '🇨🇳 中文优化'
+      }
+    },
+    mcp: {
+      title: 'MCP 服务器',
+      description: 'Qwen MCP 服务器配置管理',
+      badge: '🔌 MCP',
+      addServer: '添加 MCP 服务器',
+      editServer: '编辑 MCP 服务器',
+      nameLabel: '服务器名称 *',
+      namePlaceholder: '例如: My MCP Server',
+      commandLabel: '命令 *',
+      commandPlaceholder: '例如: npx',
+      urlLabel: '服务器 URL *',
+      urlPlaceholder: '例如: http://localhost:3000',
+      httpServerHint: 'HTTP 服务器（勾选则为 HTTP，否则为 STDIO）',
+      argsLabel: '参数',
+      argsPlaceholder: '参数1 参数2 参数3',
+      argsHint: '用空格分隔多个参数',
+      envLabel: '环境变量',
+      envKeyPlaceholder: '变量名',
+      envValuePlaceholder: '变量值',
+      enabledLabel: '启用此服务器',
+      searchPlaceholder: '搜索 MCP 服务器...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的服务器',
+      loading: '加载中...',
+      emptyState: '暂无 MCP 服务器配置',
+      noResults: '未找到匹配的服务器',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除 MCP 服务器 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段',
+        invalidUrl: 'URL 格式不正确'
+      },
+      messages: {
+        loadFailed: '加载 MCP 服务器失败',
+        updateSuccess: '✓ MCP 服务器更新成功',
+        addSuccess: '✓ MCP 服务器添加成功',
+        deleteSuccess: '✓ MCP 服务器删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+    agents: {
+      title: 'Agents',
+      description: 'Qwen Agent 配置和管理',
+      badge: '🤖 AI',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      stats: {
+        total: '总计',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      addAgent: '添加 Agent',
+      editAgent: '编辑 Agent',
+      nameLabel: '名称 *',
+      namePlaceholder: '例如: My Agent',
+      folderLabel: '文件夹',
+      folderPlaceholder: '留空则为根目录',
+      descriptionLabel: '描述',
+      descriptionPlaceholder: '简短描述此 Agent 的功能',
+      instructionsLabel: '指令 *',
+      instructionsPlaceholder: '输入 Agent 的详细指令...',
+      enabledLabel: '启用此 Agent',
+      searchPlaceholder: '搜索 Agent 名称或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的 Agent',
+      loading: '加载中...',
+      emptyState: '暂无 Agent 配置',
+      noResults: '未找到匹配的 Agent',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除 Agent "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Agents 失败',
+        updateSuccess: '✓ Agent 更新成功',
+        addSuccess: '✓ Agent 添加成功',
+        deleteSuccess: '✓ Agent 删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+    plugins: {
+      title: '插件管理',
+      description: 'Qwen 插件配置和管理',
+      badge: '🧩 插件',
+      addPlugin: '添加插件',
+      editPlugin: '编辑插件',
+      nameLabel: '名称 *',
+      namePlaceholder: '例如: My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: '例如: my-plugin',
+      versionLabel: '版本 *',
+      versionPlaceholder: '例如: 1.0.0',
+      configLabel: '配置 JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: '可选，输入合法的 JSON 格式配置',
+      enabledLabel: '启用此插件',
+      searchPlaceholder: '搜索插件名称、ID 或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的插件',
+      loading: '加载中...',
+      emptyState: '暂无插件配置',
+      noResults: '未找到匹配的插件',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除插件 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段',
+        invalidJson: '配置 JSON 格式错误'
+      },
+      messages: {
+        loadFailed: '加载插件失败',
+        updateSuccess: '✓ 插件更新成功',
+        addSuccess: '✓ 插件添加成功',
+        deleteSuccess: '✓ 插件删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+    slashCommands: {
+      title: 'Slash Commands',
+      description: 'Qwen 自定义命令管理',
+      badge: '⌨️ 命令',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      stats: {
+        total: '总计',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      addCommand: '添加命令',
+      editCommand: '编辑命令',
+      nameLabel: '命令名称 *',
+      namePlaceholder: '例如: /mycommand',
+      folderLabel: '文件夹',
+      folderPlaceholder: '留空则为根目录',
+      descriptionLabel: '描述',
+      descriptionPlaceholder: '简短描述此命令的功能',
+      commandLabel: '命令内容 *',
+      commandPlaceholder: '输入命令的详细内容...',
+      enabledLabel: '启用此命令',
+      searchPlaceholder: '搜索命令名称或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的命令',
+      loading: '加载中...',
+      emptyState: '暂无命令配置',
+      noResults: '未找到匹配的命令',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除命令 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载命令失败',
+        updateSuccess: '✓ 命令更新成功',
+        addSuccess: '✓ 命令添加成功',
+        deleteSuccess: '✓ 命令删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    }
+  },
+
+  // iFlow Platform
+  iflow: {
+    overview: {
+      title: 'iFlow',
+      subtitle: '智能工作流',
+      description: '智能工作流 · 自动化引擎 · 流程编排',
+      backToHome: '返回首页',
+      features: '功能模块',
+      feature1: '可视化工作流编排，拖拽式设计复杂的自动化流程',
+      feature2: '支持条件分支、循环、并行执行等流程控制',
+      feature3: '与 AI Agents 深度集成，实现智能决策和自动处理',
+      feature4: '通过 MCP 连接各种外部服务，打造端到端的自动化方案',
+      featureTitle: '💡 iFlow 特性',
+      tags: {
+        workflow: '🔄 自动化工作流',
+        orchestration: '⚡ 流程编排',
+        mcp: '🔌 MCP 集成',
+        agent: '🤖 智能代理'
+      }
+    },
+    mcp: {
+      title: 'MCP 服务器',
+      description: 'iFlow MCP 服务器配置管理',
+      badge: '🔌 MCP',
+      addServer: '添加 MCP 服务器',
+      editServer: '编辑 MCP 服务器',
+      nameLabel: '服务器名称 *',
+      namePlaceholder: '例如: My MCP Server',
+      commandLabel: '命令 *',
+      commandPlaceholder: '例如: npx',
+      urlLabel: '服务器 URL *',
+      urlPlaceholder: '例如: http://localhost:3000',
+      httpServerHint: 'HTTP 服务器（勾选则为 HTTP，否则为 STDIO）',
+      argsLabel: '参数',
+      argsPlaceholder: '参数1 参数2 参数3',
+      argsHint: '用空格分隔多个参数',
+      envLabel: '环境变量',
+      envKeyPlaceholder: '变量名',
+      envValuePlaceholder: '变量值',
+      enabledLabel: '启用此服务器',
+      searchPlaceholder: '搜索 MCP 服务器...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的服务器',
+      loading: '加载中...',
+      emptyState: '暂无 MCP 服务器配置',
+      noResults: '未找到匹配的服务器',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除 MCP 服务器 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段',
+        invalidUrl: 'URL 格式不正确'
+      },
+      messages: {
+        loadFailed: '加载 MCP 服务器失败',
+        updateSuccess: '✓ MCP 服务器更新成功',
+        addSuccess: '✓ MCP 服务器添加成功',
+        deleteSuccess: '✓ MCP 服务器删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+    agents: {
+      title: 'Agents',
+      description: 'iFlow Agent 配置和管理',
+      badge: '🤖 AI',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      stats: {
+        total: '总计',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      addAgent: '添加 Agent',
+      editAgent: '编辑 Agent',
+      nameLabel: '名称 *',
+      namePlaceholder: '例如: My Agent',
+      folderLabel: '文件夹',
+      folderPlaceholder: '留空则为根目录',
+      descriptionLabel: '描述',
+      descriptionPlaceholder: '简短描述此 Agent 的功能',
+      instructionsLabel: '指令 *',
+      instructionsPlaceholder: '输入 Agent 的详细指令...',
+      enabledLabel: '启用此 Agent',
+      searchPlaceholder: '搜索 Agent 名称或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的 Agent',
+      loading: '加载中...',
+      emptyState: '暂无 Agent 配置',
+      noResults: '未找到匹配的 Agent',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除 Agent "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载 Agents 失败',
+        updateSuccess: '✓ Agent 更新成功',
+        addSuccess: '✓ Agent 添加成功',
+        deleteSuccess: '✓ Agent 删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+    plugins: {
+      title: '插件管理',
+      description: 'iFlow 插件配置和管理',
+      badge: '🧩 插件',
+      addPlugin: '添加插件',
+      editPlugin: '编辑插件',
+      nameLabel: '名称 *',
+      namePlaceholder: '例如: My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: '例如: my-plugin',
+      versionLabel: '版本 *',
+      versionPlaceholder: '例如: 1.0.0',
+      configLabel: '配置 JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: '可选，输入合法的 JSON 格式配置',
+      enabledLabel: '启用此插件',
+      searchPlaceholder: '搜索插件名称、ID 或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的插件',
+      loading: '加载中...',
+      emptyState: '暂无插件配置',
+      noResults: '未找到匹配的插件',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除插件 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段',
+        invalidJson: '配置 JSON 格式错误'
+      },
+      messages: {
+        loadFailed: '加载插件失败',
+        updateSuccess: '✓ 插件更新成功',
+        addSuccess: '✓ 插件添加成功',
+        deleteSuccess: '✓ 插件删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    },
+    slashCommands: {
+      title: 'Slash Commands',
+      description: 'iFlow 自定义命令管理',
+      badge: '⌨️ 命令',
+      folders: {
+        label: '文件夹',
+        all: '全部',
+        root: '根目录',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      stats: {
+        total: '总计',
+        enabled: '已启用',
+        disabled: '已禁用'
+      },
+      addCommand: '添加命令',
+      editCommand: '编辑命令',
+      nameLabel: '命令名称 *',
+      namePlaceholder: '例如: /mycommand',
+      folderLabel: '文件夹',
+      folderPlaceholder: '留空则为根目录',
+      descriptionLabel: '描述',
+      descriptionPlaceholder: '简短描述此命令的功能',
+      commandLabel: '命令内容 *',
+      commandPlaceholder: '输入命令的详细内容...',
+      enabledLabel: '启用此命令',
+      searchPlaceholder: '搜索命令名称或描述...',
+      searchResults: '找到 <strong>{count}</strong> 个匹配的命令',
+      loading: '加载中...',
+      emptyState: '暂无命令配置',
+      noResults: '未找到匹配的命令',
+      noResultsHint: '尝试使用其他关键词搜索',
+      disabledBadge: '已禁用',
+      enable: '启用',
+      disable: '禁用',
+      save: '保存',
+      add: '添加',
+      deleteConfirm: '确定要删除命令 "{name}" 吗？',
+      validation: {
+        required: '请填写必填字段'
+      },
+      messages: {
+        loadFailed: '加载命令失败',
+        updateSuccess: '✓ 命令更新成功',
+        addSuccess: '✓ 命令添加成功',
+        deleteSuccess: '✓ 命令删除成功',
+        operationFailed: '操作失败: {error}',
+        deleteFailed: '删除失败: {error}',
+        toggleFailed: '切换状态失败: {error}'
+      }
+    }
   },
 }

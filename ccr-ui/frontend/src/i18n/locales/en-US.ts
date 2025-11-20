@@ -16,6 +16,7 @@ export default {
     info: 'Info',
     yes: 'Yes',
     no: 'No',
+    home: 'Home',
     back: 'Back',
     next: 'Next',
     previous: 'Previous',
@@ -376,110 +377,6 @@ export default {
       plugins: 'Plugin Management',
     },
   },
-  qwen: {
-    title: 'Qwen',
-    subtitle: 'Alibaba Tongyi Qianwen CLI Management',
-    description: 'Manage Qwen CLI configuration, MCP, agents, and plugins',
-    backHome: 'Back to Home',
-    modules: 'Main Modules',
-    mcp: 'MCP Servers',
-    mcpDesc: 'Manage Model Context Protocol servers',
-    agents: 'Agent Management',
-    agentsDesc: 'Configure and manage Qwen agents',
-    slashCommands: 'Slash Commands',
-    slashCommandsDesc: 'Custom quick commands',
-    slashCommandsBadge: 'Commands',
-    plugins: 'Plugin Management',
-    pluginsDesc: 'Extend Qwen functionality',
-    pluginsBadge: 'Plugins',
-    features: {
-      title: 'Core Features',
-      aiPlatform: 'AI Platform',
-      conversational: 'Conversational AI',
-      extensible: 'Extensible',
-      multimodal: 'Multimodal Capabilities',
-      reliable: 'Reliable & Stable',
-      feature1: 'Powerful natural language understanding',
-      feature2: 'Support for multiple programming languages and frameworks',
-      feature3: 'Customizable agent and command system',
-      feature4: 'Rich plugin ecosystem',
-    },
-    modulesList: {
-      configManagement: {
-        title: 'Configuration Management',
-        desc: 'Manage Qwen configuration files',
-      },
-      mcpServers: {
-        title: 'MCP Servers',
-        desc: 'Manage Model Context Protocol servers',
-      },
-      agents: {
-        title: 'Agent Management',
-        desc: 'Configure and manage Qwen agents',
-      },
-      slashCommands: {
-        title: 'Slash Commands',
-        desc: 'Custom quick commands',
-      },
-      plugins: {
-        title: 'Plugin Management',
-        desc: 'Extend Qwen functionality',
-      },
-    },
-    quickActions: {
-      title: 'Quick Actions',
-      viewMcp: 'View MCP Servers',
-      manageAgents: 'Manage Agents',
-      customizeCommands: 'Customize Commands',
-      installPlugins: 'Install Plugins',
-    },
-    tips: {
-      config: 'Configuration file located at ~/.qwen/config.toml',
-      mcp: 'Supports standard MCP protocol servers',
-      agents: 'Agents can extend Qwen capabilities',
-      commands: 'Slash commands provide quick access',
-    },
-  },
-  iflow: {
-    title: 'iFlow',
-    subtitle: 'iFlow CLI Workflow Management',
-    description: 'Manage iFlow CLI configuration, MCP, agents, and plugins',
-    backHome: 'Back to Home',
-    modulesTitle: 'Core Modules',
-    features: {
-      workflow: 'Workflow Automation',
-      orchestration: 'Smart Orchestration',
-      mcpIntegration: 'MCP Integration',
-      aiAgents: 'AI Agents',
-    },
-    modules: {
-      mcp: {
-        title: 'MCP Servers',
-        description: 'Manage Model Context Protocol server connections',
-      },
-      agents: {
-        title: 'Agent Management',
-        description: 'Configure and manage AI agents',
-      },
-      slashCommands: {
-        title: 'Slash Commands',
-        description: 'Quick command execution',
-        badge: 'Commands',
-      },
-      plugins: {
-        title: 'Plugin Management',
-        description: 'Extend iFlow functionality',
-        badge: 'Plugins',
-      },
-    },
-    tips: {
-      title: 'Usage Tips',
-      item1: 'iFlow supports complex workflow orchestration',
-      item2: 'Connect multiple AI services through MCP',
-      item3: 'Agent system can automate repetitive tasks',
-      item4: 'Plugin ecosystem provides rich extensibility',
-    },
-  },
   configs: {
     title: 'Configuration Management',
     description: 'Manage Claude Code configuration files',
@@ -620,33 +517,38 @@ export default {
   commands: {
     title: 'Command Center',
     description: 'Execute CCR CLI commands',
-    selectClient: 'Select CLI tool',
+    selectClient: 'Select CLI Command',
     availableCommands: 'Available Commands',
     selectCommand: 'Select Command',
-    executeCommand: 'Execute Command',
+    executeCommand: 'Run Command',
     commandOutput: 'Command Output',
-    clearOutput: 'Clear Output',
-    args: 'Arguments (optional)',
-    argsPlaceholder: 'e.g. --help or anthropic',
-    usage: 'Usage:',
-    examples: 'Examples:',
-    exitCode: 'Exit Code:',
-    duration: 'Duration:',
-    copyOutput: 'Copy Output',
-    clearOutputButton: 'Clear Output',
-    noOutput: 'No output',
+    clearOutput: 'Clear',
+    args: 'Arguments',
+    argsPlaceholder: 'e.g. --help',
+    usage: 'Usage',
+    examples: 'Examples',
+    exitCode: 'Exit Code',
+    duration: 'Time',
+    copyOutput: 'Copy',
+    clearOutputButton: 'Clear',
+    noOutput: 'No output generated',
     terminalOutput: 'Terminal Output',
     linesCount: '{count} lines',
-    executing: 'Executing...',
-    executeSuccess: 'Executed successfully',
-    executeError: 'Execution failed',
-    outputCopied: 'Output copied to clipboard!',
+    executing: 'Running...',
+    executeSuccess: 'Success',
+    executeError: 'Failed',
+    outputCopied: 'Copied!',
     developingFeature: '{client} command execution is under development...',
     developingMessage: 'This feature will support executing {client} related commands.',
     helpDescription: '{client} help command (under development)',
     versionDescription: 'Show {client} version',
     error: 'Error',
     unknownError: 'Unknown error',
+    quickSelect: 'Quick Select',
+    history: 'History',
+    noHistory: 'No command history',
+    run: 'Run',
+    client: 'Client',
   },
   converter: {
     title: 'Configuration Converter',
@@ -721,179 +623,145 @@ export default {
     },
   },
   sync: {
+    // Page header
     title: 'WebDAV Cloud Sync',
-    subtitle: 'Preset Platform Selection · One-Click Sync · Intelligent Management',
-    description: 'WebDAV cloud configuration sync',
-    backToHome: 'Back to Home',
-    webdavUrl: 'WebDAV URL',
-    username: 'Username',
-    password: 'Password',
-    remoteFolder: 'Remote Folder',
-    testConnection: 'Test Connection',
-    saveConfig: 'Save Config',
-    pushToCloud: 'Push to Cloud',
-    pullFromCloud: 'Pull from Cloud',
-    syncStatus: 'Sync Status',
-    lastSync: 'Last Sync',
-    never: 'Never synced',
-    syncing: 'Syncing...',
-    syncSuccess: 'Synced successfully',
-    syncError: 'Sync failed',
-    connectionSuccess: 'Connected successfully',
-    connectionError: 'Connection failed',
-    loadFailed: 'Failed to load',
+    subtitle: 'Preset Platform Selection · One-Click Sync · Smart Management',
+    description: 'WebDAV cloud backup with multi-platform configuration sync',
+    breadcrumb: {
+      home: 'Home',
+      claudeCode: 'Claude Code',
+      sync: 'Cloud Sync',
+    },
+    backHome: 'Back to Home',
 
-    // Platform selection
-    selectPlatforms: 'Select Sync Platforms',
-    applySelection: 'Apply Selection',
-    applying: 'Applying...',
-    required: 'Required',
-    platformsConfig: 'Platforms Configuration',
-    platformsDesc: 'CCR provider configuration (API URLs, keys, etc.), forced sync to ensure consistency',
-    claudeCode: 'Claude Code',
-    claudeCodeDesc: 'Anthropic Claude Code CLI configuration and data',
-    geminiCli: 'Gemini CLI',
-    geminiCliDesc: 'Google Gemini CLI configuration and data',
-    qwen: 'Qwen',
-    qwenDesc: 'Tongyi Qianwen CLI configuration and data',
-    iflow: 'iFlow',
-    iflowDesc: 'iFlow CLI configuration and data',
+    // Loading and error states
+    loading: 'Loading...',
+    loadFailed: 'Load Failed',
+    error: 'Error',
 
-    // Custom folder
-    customFolder: 'Custom Folder',
-    folderName: 'Folder Name',
-    localPath: 'Local Path',
-    remotePath: 'Remote Path (Optional)',
-    folderDescription: 'Description (Optional)',
-    addCustomFolder: 'Add Custom Folder',
-    adding: 'Adding...',
+    // Platform selection section
+    platformSelection: {
+      title: 'Select Sync Platforms',
+      applyButton: 'Apply Selection',
+      applying: 'Applying...',
+      configRequired: 'Platforms Configuration',
+      configRequiredBadge: 'Required',
+      configDescription: 'CCR provider configuration (API URLs, keys, etc.), mandatory sync for consistency',
+      claudeCode: 'Claude Code',
+      claudeDescription: 'Anthropic Claude Code CLI configuration and data',
+      gemini: 'Gemini CLI',
+      geminiDescription: 'Google Gemini CLI configuration and data',
+      qwen: 'Qwen',
+      qwenDescription: 'Tongyi Qianwen CLI configuration and data',
+      iflow: 'iFlow',
+      iflowDescription: 'iFlow CLI configuration and data',
+    },
 
-    // Enabled folders
-    enabledFolders: 'Enabled Folders',
-    noEnabledFolders: 'No enabled sync folders yet',
-    pleaseSelect: 'Please select platforms to sync above',
-    enabled: 'Enabled',
-    refresh: 'Refresh',
-    enable: 'Enable',
-    disable: 'Disable',
-    upload: 'Upload',
-    download: 'Download',
-    status: 'Status',
-    remove: 'Remove',
+    // Custom folder section
+    customFolder: {
+      title: 'Custom Folder',
+      namePlaceholder: 'Folder name',
+      localPathPlaceholder: 'Local path',
+      remotePathPlaceholder: 'Remote path (optional)',
+      descriptionPlaceholder: 'Description (optional)',
+      addButton: 'Add Custom Folder',
+      adding: 'Adding...',
+    },
+
+    // Enabled folders section
+    enabledFolders: {
+      title: 'Enabled Folders',
+      refresh: 'Refresh',
+      refreshing: 'Refreshing...',
+      noFolders: 'No enabled sync folders',
+      noFoldersHint: 'Please select platforms above to sync',
+      enabled: '✓ Enabled',
+      disabled: '✗ Disabled',
+      localPath: 'Local Path',
+      remotePath: 'Remote Path',
+    },
+
+    // Folder operations
+    operations: {
+      enable: 'Enable',
+      disable: 'Disable',
+      upload: 'Upload',
+      download: 'Download',
+      status: 'Status',
+      delete: 'Delete',
+      toggle: 'Toggle Status',
+    },
 
     // Batch operations
-    batchOperations: 'Batch Operations',
-    batchOperationsDesc: 'Perform batch sync operations on all enabled folders',
-    uploadAll: 'Upload All',
-    downloadAll: 'Download All',
-    checkStatus: 'Check Status',
+    batchOperations: {
+      title: 'Batch Operations',
+      description: 'Perform batch sync operations on all enabled folders',
+      uploadAll: 'Upload All',
+      downloadAll: 'Download All',
+      viewStatus: 'View Status',
+    },
 
     // Operation output
-    operationOutput: 'Operation Output',
+    output: {
+      title: 'Operation Output',
+      close: 'Close',
+    },
 
-    // WebDAV config
-    webdavConfig: 'WebDAV Configuration',
-    configured: 'Configured',
-    notConfigured: 'Not Configured',
-    serverUrl: 'Server',
-    user: 'User',
-    configureWebdav: 'Please configure WebDAV using CLI:',
-    cliCommand: 'ccr sync config',
+    // WebDAV configuration
+    webdav: {
+      title: 'WebDAV Configuration',
+      configured: 'Configured',
+      notConfigured: 'Not Configured',
+      server: 'Server',
+      username: 'Username',
+      remotePath: 'Remote Path',
+      configureHint: 'Please configure WebDAV using CLI:',
+      configureCommand: 'ccr sync config',
+    },
 
-    // Features
-    features: 'Features',
-    featurePreset: 'Preset Platform Selection',
-    featurePresetDesc: 'Config required, Claude/Gemini/Qwen optional, one-click configuration for common platforms',
-    featureIndependent: 'Independent Folder Management',
-    featureIndependentDesc: 'Each folder syncs independently, can be enabled/disabled and operated separately',
-    featureSmartFilter: 'Smart Filtering',
-    featureSmartFilterDesc: 'Automatically excludes backups/, .locks/, *.tmp, *.bak and other files',
-    featureBatch: 'Batch Operations',
-    featureBatchDesc: 'One-click upload/download all enabled folders for improved efficiency',
+    // Features section
+    features: {
+      title: 'Features',
+      presetPlatform: '✅ Preset Platform Selection',
+      presetPlatformDesc: 'Config required, Claude/Gemini/Qwen optional, one-click setup for common platforms',
+      independentManagement: '🔄 Independent Folder Management',
+      independentManagementDesc: 'Each folder syncs independently, can be enabled/disabled and operated individually',
+      smartFiltering: '💾 Smart Filtering',
+      smartFilteringDesc: 'Automatically excludes backups/, .locks/, *.tmp, *.bak files',
+      batchOperations: '⚡ Batch Operations',
+      batchOperationsDesc: 'One-click upload/download for all enabled folders, improve efficiency',
+    },
 
     // Supported services
-    supportedServices: 'Supported Services',
-    nutstore: 'Nutstore',
-    nextcloud: 'Nextcloud',
-    owncloud: 'ownCloud',
-    anyWebdav: 'Any Standard WebDAV Server',
-
-    // Confirmations
-    confirmRemove: 'Are you sure you want to remove folder "{name}"?\n\nNote: This will only remove the sync configuration, local files will not be deleted.',
-
-    // Success messages
-    applySuccess: 'Selection applied successfully',
-    addSuccess: 'Folder added successfully',
-    removeSuccess: 'Folder removed successfully',
-    toggleSuccess: 'Folder status toggled successfully',
-    uploadSuccess: 'Upload successful',
-    downloadSuccess: 'Download successful',
-    statusSuccess: 'Status check successful',
-
-    // Error messages
-    applyFailed: 'Failed to apply selection',
-    addFailed: 'Failed to add folder',
-    removeFailed: 'Failed to remove folder',
-    toggleFailed: 'Failed to toggle folder status',
-    uploadFailed: 'Upload failed',
-    downloadFailed: 'Download failed',
-    statusFailed: 'Status check failed',
-    webdavNotConfigured: 'WebDAV not configured',
-    loadConfigFailed: 'Failed to load sync configuration',
-  },
-  usage: {
-    title: 'Usage Statistics',
-    subtitle: 'Real-time tracking of Token consumption across AI platforms',
-    description: 'Claude Code token usage analysis',
-    timeRange: 'Time Range',
-    modelFilter: 'Model Filter',
-    allModels: 'All Models',
-    selectPlatform: 'Select Platform',
-    last5Hours: 'Last 5 Hours',
-    today: 'Today',
-    last7Days: 'Last 7 Days',
-    thisWeek: 'This Week',
-    thisMonth: 'This Month',
-    allTime: 'All Time',
-    inputTokens: 'Input Tokens',
-    outputTokens: 'Output Tokens',
-    cacheReadTokens: 'Cache Read Tokens',
-    cacheRead: 'Cache Read',
-    totalTokens: 'Total Tokens',
-    cacheEfficiency: 'Cache Efficiency',
-    tokenUsageChart: 'Token Usage Trend',
-    loading: 'Loading...',
-    loadingData: 'Loading usage data...',
-    noData: 'No data available',
-    noDataAvailable: 'No Usage Data Available',
-    startUsing: 'Start using {platform} to see usage statistics here',
-    refreshData: 'Refresh Data',
-    refreshing: 'Loading...',
-    autoRefresh: 'Auto Refresh',
-    loadFailed: 'Failed to load usage data',
-    retry: 'Retry',
-    truncatedWarning: 'Showing first 10,000 records. Total {total} records found.',
-    emptyState: {
-      title: 'No Usage Data Available',
-      description: 'Start using {platform} to see usage statistics here',
+    supportedServices: {
+      title: 'Supported Services',
+      nutstore: 'Nutstore',
+      nextcloud: 'Nextcloud',
+      owncloud: 'ownCloud',
+      any: 'Any standard WebDAV server',
     },
-  },
-  stats: {
-    title: '📊 Statistics',
-    description: 'View AI API usage and statistics',
-    providerStats: 'Provider Statistics',
-    totalCost: 'Total Cost',
-    apiCallCount: 'API Call Count',
-    tokenDetails: '🎫 Token Usage Details',
-    cacheToken: 'Cache Token',
-    byModel: '🤖 Grouped by Model',
-    byProject: '📁 Grouped by Project (Top 10)',
-    costTrend: '📈 Cost Trend',
-    noStats: 'No statistics data',
-    startUsingMessage: 'Statistics will be displayed here after you start using AI API',
-    providerUsageTitle: '🏢 Provider Usage Count',
-    providerUsageDesc: 'Call count clustered by provider',
-    times: 'times',
+
+    // Messages
+    messages: {
+      applySuccess: '✓ Sync configuration applied',
+      applyFailed: '✗ Application failed',
+      addSuccess: '✓ Custom folder added successfully',
+      addFailed: '✗ Addition failed',
+      deleteConfirm: 'Are you sure you want to delete folder "{name}"?\n\nNote: This will only remove the sync configuration, not delete local files.',
+      deleteSuccess: '✓ Folder deleted successfully',
+      deleteFailed: '✗ Deletion failed',
+      toggleSuccess: '✓ Successfully {action} folder',
+      toggleFailed: '✗ Operation failed',
+      uploadSuccess: '✓ Upload successful',
+      uploadFailed: '✗ Upload failed',
+      downloadSuccess: '✓ Download successful',
+      downloadFailed: '✗ Download failed',
+      statusFailed: '✗ Failed to get status',
+      batchUploadFailed: '✗ Batch upload failed',
+      batchDownloadFailed: '✗ Batch download failed',
+      enabled: 'enabled',
+      disabled: 'disabled',
+    },
   },
   theme: {
     light: 'Light Mode',
@@ -919,5 +787,1114 @@ export default {
     savedSuccessfully: 'Saved successfully',
     deletedSuccessfully: 'Deleted successfully',
     copiedToClipboard: 'Copied to clipboard',
+  },
+
+  // Usage Statistics Module
+  usage: {
+    title: 'Usage Statistics',
+    subtitle: 'Real-time tracking of Token consumption across AI platforms',
+
+    platforms: {
+      claude: '🤖 Claude',
+      codex: '💻 Codex',
+      gemini: '✨ Gemini'
+    },
+
+    actions: {
+      loading: 'Loading...',
+      refresh: 'Refresh Data',
+      retry: 'Retry'
+    },
+
+    filters: {
+      timeRange: {
+        last5h: 'Last 5 hours',
+        today: 'Today',
+        last7d: 'Last 7 days',
+        thisWeek: 'This week',
+        thisMonth: 'This month',
+        allTime: 'All time'
+      },
+      model: {
+        all: 'All models'
+      },
+      autoRefresh: 'Auto refresh'
+    },
+
+    summaryCards: {
+      inputTokens: 'Input Tokens',
+      outputTokens: 'Output Tokens',
+      cacheRead: 'Cache Read',
+      cacheEfficiency: 'Cache Efficiency'
+    },
+
+    states: {
+      loading: 'Loading usage data...',
+      loadFailed: 'Failed to load usage data',
+      noData: 'No usage data available',
+      noDataHint: 'Start using {platform} to see usage statistics here',
+      truncatedWarning: 'Showing first 10,000 records. Total {total} records found.'
+    },
+
+    emptyState: {
+      title: 'No Usage Data Available',
+      subtitle: 'Start using {platform} to see usage statistics here'
+    }
+  },
+
+  // Statistics Module
+  stats: {
+    title: '📊 Statistics',
+    subtitle: 'View AI API usage and statistics',
+
+    timeRange: {
+      today: 'Today',
+      thisWeek: 'This week',
+      thisMonth: 'This month'
+    },
+
+    actions: {
+      providersStats: 'Provider Statistics',
+      refresh: 'Refresh'
+    },
+
+    summaryCards: {
+      totalCost: 'Total Cost',
+      apiCalls: 'API Calls',
+      inputToken: 'Input Token',
+      outputToken: 'Output Token'
+    },
+
+    tokenDetails: {
+      title: '🎫 Token Usage Details',
+      cacheToken: 'Cache Token',
+      cacheEfficiency: 'Cache Efficiency',
+      totalToken: 'Total Token'
+    },
+
+    sections: {
+      byModel: '🤖 Group by Model',
+      byProject: '📁 Group by Project (Top 10)',
+      costTrend: '📈 Cost Trend',
+      providerUsage: '🏢 Provider Usage Count',
+      providerUsageSubtitle: 'Calls grouped by provider'
+    },
+
+    units: {
+      times: 'times'
+    },
+
+    states: {
+      loadFailed: 'Load failed',
+      loadFailedMessage: 'Failed to load statistics data',
+      noData: 'No data',
+      noStatsData: 'No statistics data',
+      noStatsHint: 'Statistics will appear here after you start using AI API'
+    }
+  },
+
+  // Codex Module
+  codex: {
+    // Overview page
+    overview: {
+      title: 'Codex',
+      subtitle: 'AI Coding Assistant · MCP · Profiles · Smart Configuration',
+      backHome: 'Back to Home',
+      features: {
+        mcpProtocol: '🔌 MCP Protocol',
+        agents: '🤖 Agents',
+        profiles: '👤 Profiles',
+        configManagement: '⚙️ Config Management'
+      },
+      modulesTitle: 'Feature Modules',
+      modules: {
+        mcp: {
+          title: 'MCP Servers',
+          description: 'Codex MCP server configuration management (STDIO + HTTP)',
+          badge: '🔌 MCP'
+        },
+        agents: {
+          title: 'Agents',
+          description: 'Codex Agent intelligent configuration management',
+          badge: '🤖 AI'
+        },
+        profiles: {
+          title: 'Profiles',
+          description: 'Codex Profile configuration and management',
+          badge: '👤 Profile'
+        },
+        slashCommands: {
+          title: 'Slash Commands',
+          description: 'Codex shortcut command management',
+          badge: '⌨️ Command'
+        },
+        plugins: {
+          title: 'Plugin Management',
+          description: 'Codex plugin configuration management',
+          badge: '🧩 Plugin'
+        },
+        config: {
+          title: 'Basic Configuration',
+          description: 'Model, Approval Policy, Sandbox and other basic settings',
+          badge: '🔧 Config'
+        }
+      },
+      tipsTitle: '💡 Codex Features',
+      tips: {
+        mcpConnection: 'Supports both STDIO and HTTP MCP connection methods',
+        profileManagement: 'Manage different work environment configurations through Profiles',
+        agentsFeature: 'Agents feature allows creating AI assistants for specific tasks',
+        pluginEcosystem: 'Rich plugin ecosystem extends Codex capabilities'
+      }
+    },
+
+    // Common actions
+    actions: {
+      add: 'Add',
+      edit: 'Edit',
+      delete: 'Delete',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      cancel: 'Cancel',
+      refresh: 'Refresh',
+      import: 'Import',
+      export: 'Export',
+      search: 'Search',
+      filter: 'Filter',
+      viewDetails: 'View Details',
+      backToList: 'Back to List'
+    },
+
+    // Common states
+    states: {
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+      active: 'Active',
+      inactive: 'Inactive',
+      loading: 'Loading...',
+      saving: 'Saving...',
+      deleting: 'Deleting...',
+      noData: 'No data',
+      loadFailed: 'Load failed',
+      saveFailed: 'Save failed',
+      deleteFailed: 'Delete failed'
+    },
+
+    // MCP module
+    mcp: {
+      title: 'Codex MCP Servers',
+      breadcrumb: 'MCP Servers',
+      subtitle: 'Manage Codex MCP server configurations (STDIO + HTTP)',
+      backToCodex: 'Back',
+      addServer: 'Add Server',
+      editServer: 'Edit Server',
+      updateServer: 'Update',
+      serverName: 'Server Name',
+      serverType: 'Server Type',
+      command: 'Command',
+      commandLabel: 'Command:',
+      commandField: 'Command *',
+      args: 'Arguments',
+      argsLabel: 'Arguments:',
+      env: 'Environment Variables',
+      envLabel: 'Environment Variables:',
+      url: 'URL',
+      urlLabel: 'URL:',
+      serverUrl: 'Server URL *',
+      emptyState: 'No Codex MCP server configurations',
+      emptyHint: 'Click "Add Server" button to create your first MCP server',
+      deleteConfirm: 'Delete server "{name}"?',
+      httpServerLabel: 'HTTP Server (check for HTTP, otherwise STDIO)',
+      argsSeparatorHint: 'Separate multiple arguments with spaces',
+      types: {
+        stdio: 'STDIO',
+        http: 'HTTP'
+      },
+      placeholders: {
+        url: 'e.g: http://localhost:3000',
+        command: 'e.g: npx',
+        args: 'e.g: -y @modelcontextprotocol/server-filesystem',
+        envKey: 'KEY',
+        envValue: 'VALUE'
+      },
+      validation: {
+        commandRequired: 'Please fill in the command',
+        urlRequired: 'Please fill in the URL'
+      },
+      messages: {
+        loadFailed: 'Failed to load Codex MCP servers',
+        addSuccess: '✓ Server added successfully',
+        updateSuccess: '✓ Server updated successfully',
+        deleteSuccess: '✓ Server deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}'
+      }
+    },
+
+    // Agents module
+    agents: {
+      title: 'Agents Management',
+      subtitle: 'Manage Codex AI Agent configurations',
+      breadcrumb: 'Agents Management',
+      pageTitle: 'Codex Agents Management',
+      backToHome: 'Back to Home',
+      addAgent: 'Add Agent',
+      editAgent: 'Edit Agent',
+      agentName: 'Agent Name',
+      description: 'Description',
+      instructions: 'Instructions',
+      searchPlaceholder: 'Search agent name, system prompt or tools...',
+      searchResults: 'Found <strong>{count}</strong> matching agents',
+      loading: 'Loading...',
+      emptyState: 'No Agents configured',
+      noResults: 'No matching agents found',
+      noResultsHint: 'Try using other keywords or switch folders',
+      emptyHint: 'Click "Add Agent" button to create your first AI Agent',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      nameLabel: 'Name *',
+      modelLabel: 'Model *',
+      toolsLabel: 'Tools',
+      toolPlaceholder: 'Enter tool name',
+      addTool: 'Add',
+      systemPromptLabel: 'System Prompt',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete agent "{name}"?',
+      stats: {
+        total: 'Total',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Agents',
+        operationFailed: 'Operation failed',
+        deleteFailed: 'Delete failed',
+        toggleFailed: 'Toggle failed'
+      }
+    },
+
+    // Profiles module
+    profiles: {
+      title: 'Profiles Management',
+      subtitle: 'Manage GitHub Copilot CLI configuration files',
+      breadcrumb: 'Profiles Config',
+      addProfile: 'Add Profile',
+      editProfile: 'Edit Profile',
+      updateProfile: 'Update Profile',
+      backToCodex: 'Back',
+      profileName: 'Profile Name',
+      description: 'Description',
+      authToken: 'Auth Token',
+      baseUrl: 'Base URL',
+      model: 'Model',
+      fastModel: 'Fast Model',
+      provider: 'Provider',
+      emptyState: 'No Codex Profile configurations',
+      emptyHint: 'Click "Add Profile" to create the first configuration',
+      deleteConfirm: 'Delete Profile "{name}"? This action cannot be undone.',
+      deleteConfirmShort: 'Are you sure to delete Profile "{name}"?',
+      setActive: 'Set Active',
+      currentActive: 'Current Active',
+      placeholders: {
+        name: 'e.g: github-production',
+        description: 'e.g: GitHub Copilot production environment configuration',
+        authToken: 'ghp_...',
+        baseUrl: 'https://api.github.com/copilot',
+        selectFastModel: '-- Select Fast Model --',
+        selectProvider: '-- Select Provider --'
+      },
+      providers: {
+        github: 'GitHub',
+        azure: 'Azure',
+        openai: 'OpenAI',
+        custom: 'Custom'
+      },
+      validation: {
+        required: 'Please fill in all required fields (Profile Name, Base URL, Auth Token, Model)'
+      },
+      messages: {
+        loadFailed: 'Failed to load Codex Profiles',
+        addSuccess: '✓ Profile added successfully',
+        updateSuccess: '✓ Profile updated successfully',
+        deleteSuccess: '✓ Profile deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}'
+      }
+    },
+
+    // Slash Commands module
+    slashCommands: {
+      title: 'Slash Commands',
+      subtitle: 'Manage Codex shortcut commands',
+      breadcrumb: 'Slash Commands Management',
+      pageTitle: 'Codex Slash Commands Management',
+      backToHome: 'Back to Home',
+      addCommand: 'Add Command',
+      editCommand: 'Edit Command',
+      addCommandShort: 'Add Command',
+      editCommandShort: 'Edit Command',
+      commandName: 'Command Name',
+      nameLabel: 'Name *',
+      commandLabel: 'Command *',
+      descriptionLabel: 'Description',
+      description: 'Description',
+      command: 'Command Content',
+      searchPlaceholder: 'Search command name, description or command...',
+      searchResults: 'Found <strong>{count}</strong> matching commands',
+      loading: 'Loading...',
+      emptyState: 'No Slash Commands configured',
+      noResults: 'No matching commands found',
+      noResultsHint: 'Try using other keywords or switch folders',
+      emptyHint: 'Click "Add Command" button to create your first shortcut command',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete command "{name}"?',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root'
+      },
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Slash Commands',
+        operationFailed: 'Operation failed',
+        deleteFailed: 'Delete failed',
+        toggleFailed: 'Toggle failed'
+      }
+    },
+
+    // Plugins module
+    plugins: {
+      title: 'Plugins Management',
+      subtitle: 'Manage Codex plugin ecosystem',
+      breadcrumb: 'Plugins Management',
+      pageTitle: 'Codex Plugins Management',
+      backToHome: 'Back to Home',
+      addPlugin: 'Add Plugin',
+      editPlugin: 'Edit Plugin',
+      pluginName: 'Plugin Name',
+      nameLabel: 'Name *',
+      namePlaceholder: 'e.g., My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: 'e.g., my-plugin',
+      versionLabel: 'Version *',
+      versionPlaceholder: 'e.g., 1.0.0',
+      configLabel: 'Config JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: 'Optional, enter valid JSON format configuration',
+      enabledLabel: 'Enable this plugin',
+      descriptionLabel: 'Description',
+      description: 'Description',
+      version: 'Version',
+      author: 'Author',
+      searchPlaceholder: 'Search plugin name, ID or description...',
+      searchResults: 'Found <strong>{count}</strong> matching plugins',
+      loading: 'Loading...',
+      emptyState: 'No plugins configured',
+      noResults: 'No matching plugins found',
+      noResultsHint: 'Try using other keywords or switch folders',
+      emptyHint: 'Click "Add Plugin" button to install your first plugin',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete plugin "{name}"?',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root'
+      },
+      validation: {
+        required: 'Please fill in required fields',
+        invalidJson: 'Invalid JSON format for configuration'
+      },
+      messages: {
+        loadFailed: 'Failed to load Plugins',
+        updateSuccess: '✓ Plugin updated successfully',
+        addSuccess: '✓ Plugin added successfully',
+        deleteSuccess: '✓ Plugin deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+
+    // Messages
+    messages: {
+      addSuccess: 'Added successfully',
+      editSuccess: 'Edited successfully',
+      deleteSuccess: 'Deleted successfully',
+      enableSuccess: 'Enabled successfully',
+      disableSuccess: 'Disabled successfully',
+      operationSuccess: 'Operation successful',
+      operationFailed: 'Operation failed: {error}'
+    }
+  },
+
+  // ===================================
+  // Gemini CLI Platform
+  // ===================================
+  gemini: {
+    // Overview module
+    overview: {
+      title: 'Gemini CLI Management',
+      subtitle: 'Manage Google Gemini CLI configuration',
+      breadcrumb: 'Gemini CLI',
+      pageTitle: 'Gemini CLI Management Center',
+      description: 'Google Frontier AI · Multimodal Support · Smart Assistant',
+      welcome: 'Gemini Features',
+      quickActions: 'Quick Actions',
+      viewConfig: 'View Config',
+      viewMcp: 'Manage MCP',
+      viewAgents: 'Manage Agents',
+      viewCommands: 'Manage Commands',
+      viewPlugins: 'Manage Plugins',
+      feature1: 'Google\'s latest multimodal AI model supporting text, images, audio and video',
+      feature2: 'Powerful context understanding with long text processing and analysis',
+      feature3: 'Deep integration with Google ecosystem accessing vast data and services',
+      feature4: 'Extend capabilities via MCP protocol connecting external tools and data sources',
+      stats: {
+        mcpServers: 'MCP Servers',
+        agents: 'Agents',
+        commands: 'Commands',
+        plugins: 'Plugins'
+      }
+    },
+
+    // MCP module
+    mcp: {
+      title: 'MCP Servers',
+      subtitle: 'Manage Gemini MCP server configuration',
+      breadcrumb: 'MCP Management',
+      pageTitle: 'Gemini MCP Server Management',
+      backToHome: 'Back to Home',
+      addServer: 'Add Server',
+      editServer: 'Edit Server',
+      serverName: 'Server Name',
+      nameLabel: 'Name *',
+      commandLabel: 'Command *',
+      commandPlaceholder: 'e.g., npx',
+      urlLabel: 'Server URL *',
+      urlPlaceholder: 'e.g., http://localhost:3000',
+      httpServerHint: 'HTTP Server (check for HTTP, otherwise STDIO)',
+      argsLabel: 'Arguments',
+      argPlaceholder: 'Enter argument',
+      argsHint: 'Separate multiple arguments with spaces',
+      addArg: 'Add',
+      envLabel: 'Environment Variables',
+      envKey: 'Key',
+      envValue: 'Value',
+      addEnv: 'Add Variable',
+      searchPlaceholder: 'Search server name, command or arguments...',
+      searchResults: 'Found <strong>{count}</strong> matching servers',
+      loading: 'Loading...',
+      emptyState: 'No MCP servers configured',
+      noResults: 'No matching servers found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete server "{name}"?',
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load MCP servers',
+        updateSuccess: '✓ Server updated successfully',
+        addSuccess: '✓ Server added successfully',
+        deleteSuccess: '✓ Server deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+
+    // Agents module
+    agents: {
+      title: 'Agents Management',
+      subtitle: 'Manage Gemini AI Agent configuration',
+      breadcrumb: 'Agents Management',
+      pageTitle: 'Gemini Agents Management',
+      backToHome: 'Back to Home',
+      addAgent: 'Add Agent',
+      editAgent: 'Edit Agent',
+      nameLabel: 'Name *',
+      modelLabel: 'Model *',
+      toolsLabel: 'Tools',
+      toolPlaceholder: 'Enter tool name',
+      addTool: 'Add',
+      systemPromptLabel: 'System Prompt',
+      searchPlaceholder: 'Search agent name, system prompt or tools...',
+      searchResults: 'Found <strong>{count}</strong> matching agents',
+      loading: 'Loading...',
+      emptyState: 'No agents configured',
+      noResults: 'No matching agents found',
+      noResultsHint: 'Try using other keywords or switching folders',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete agent "{name}"?',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Agents',
+        updateSuccess: '✓ Agent updated successfully',
+        addSuccess: '✓ Agent added successfully',
+        deleteSuccess: '✓ Agent deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+
+    // Slash Commands module
+    slashCommands: {
+      title: 'Slash Commands',
+      subtitle: 'Manage Gemini slash commands',
+      breadcrumb: 'Slash Commands',
+      pageTitle: 'Gemini Slash Commands Management',
+      backToHome: 'Back to Home',
+      addCommandShort: 'Add Command',
+      editCommandShort: 'Edit Command',
+      nameLabel: 'Name *',
+      commandLabel: 'Command *',
+      descriptionLabel: 'Description',
+      searchPlaceholder: 'Search command name, description or command...',
+      searchResults: 'Found <strong>{count}</strong> matching commands',
+      loading: 'Loading...',
+      emptyState: 'No slash commands configured',
+      noResults: 'No matching commands found',
+      noResultsHint: 'Try using other keywords or switching folders',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete command "{name}"?',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Slash Commands',
+        updateSuccess: '✓ Command updated successfully',
+        addSuccess: '✓ Command added successfully',
+        deleteSuccess: '✓ Command deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+
+    // Plugins module
+    plugins: {
+      title: 'Plugins Management',
+      subtitle: 'Manage Gemini plugin ecosystem',
+      breadcrumb: 'Plugins Management',
+      pageTitle: 'Gemini Plugins Management',
+      backToHome: 'Back to Home',
+      addPlugin: 'Add Plugin',
+      editPlugin: 'Edit Plugin',
+      nameLabel: 'Name *',
+      namePlaceholder: 'e.g., My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: 'e.g., my-plugin',
+      versionLabel: 'Version *',
+      versionPlaceholder: 'e.g., 1.0.0',
+      configLabel: 'Config JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: 'Optional, enter valid JSON format configuration',
+      enabledLabel: 'Enable this plugin',
+      searchPlaceholder: 'Search plugin name, ID or description...',
+      searchResults: 'Found <strong>{count}</strong> matching plugins',
+      loading: 'Loading...',
+      emptyState: 'No plugins configured',
+      noResults: 'No matching plugins found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete plugin "{name}"?',
+      validation: {
+        required: 'Please fill in required fields',
+        invalidJson: 'Invalid JSON format for configuration'
+      },
+      messages: {
+        loadFailed: 'Failed to load Plugins',
+        updateSuccess: '✓ Plugin updated successfully',
+        addSuccess: '✓ Plugin added successfully',
+        deleteSuccess: '✓ Plugin deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    }
+  },
+
+  // Qwen Platform
+  qwen: {
+    overview: {
+      title: 'Qwen',
+      subtitle: 'Alibaba Tongyi Qianwen',
+      description: 'Alibaba Tongyi Qianwen · Large Language Model · Intelligent Dialogue',
+      backToHome: 'Back to Home',
+      features: 'Features',
+      feature1: 'Large language model developed by Alibaba DAMO Academy with excellent Chinese understanding',
+      feature2: 'Supports long text processing and multi-turn dialogue with strong contextual understanding',
+      feature3: 'Deep integration with Alibaba Cloud ecosystem, providing enterprise-level service guarantees',
+      feature4: 'Extend functionality through plugins and MCP, connecting more tools and services',
+      featureTitle: '💡 Qwen Features',
+      tags: {
+        model: '🧠 Large Model',
+        dialog: '💬 Dialogue System',
+        mcp: '🔌 MCP Support',
+        chinese: '🇨🇳 Chinese Optimized'
+      }
+    },
+    mcp: {
+      title: 'MCP Servers',
+      description: 'Qwen MCP server configuration management',
+      badge: '🔌 MCP',
+      addServer: 'Add MCP Server',
+      editServer: 'Edit MCP Server',
+      nameLabel: 'Server Name *',
+      namePlaceholder: 'e.g., My MCP Server',
+      commandLabel: 'Command *',
+      commandPlaceholder: 'e.g., npx',
+      urlLabel: 'Server URL *',
+      urlPlaceholder: 'e.g., http://localhost:3000',
+      httpServerHint: 'HTTP Server (check for HTTP, otherwise STDIO)',
+      argsLabel: 'Arguments',
+      argsPlaceholder: 'arg1 arg2 arg3',
+      argsHint: 'Separate multiple arguments with spaces',
+      envLabel: 'Environment Variables',
+      envKeyPlaceholder: 'Variable Name',
+      envValuePlaceholder: 'Variable Value',
+      enabledLabel: 'Enable this server',
+      searchPlaceholder: 'Search MCP servers...',
+      searchResults: 'Found <strong>{count}</strong> matching servers',
+      loading: 'Loading...',
+      emptyState: 'No MCP servers configured',
+      noResults: 'No matching servers found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete MCP server "{name}"?',
+      validation: {
+        required: 'Please fill in required fields',
+        invalidUrl: 'Invalid URL format'
+      },
+      messages: {
+        loadFailed: 'Failed to load MCP servers',
+        updateSuccess: '✓ MCP server updated successfully',
+        addSuccess: '✓ MCP server added successfully',
+        deleteSuccess: '✓ MCP server deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+    agents: {
+      title: 'Agents',
+      description: 'Qwen Agent configuration and management',
+      badge: '🤖 AI',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      stats: {
+        total: 'Total',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      addAgent: 'Add Agent',
+      editAgent: 'Edit Agent',
+      nameLabel: 'Name *',
+      namePlaceholder: 'e.g., My Agent',
+      folderLabel: 'Folder',
+      folderPlaceholder: 'Leave empty for root directory',
+      descriptionLabel: 'Description',
+      descriptionPlaceholder: 'Brief description of this agent',
+      instructionsLabel: 'Instructions *',
+      instructionsPlaceholder: 'Enter detailed instructions for the agent...',
+      enabledLabel: 'Enable this agent',
+      searchPlaceholder: 'Search agent name or description...',
+      searchResults: 'Found <strong>{count}</strong> matching agents',
+      loading: 'Loading...',
+      emptyState: 'No agents configured',
+      noResults: 'No matching agents found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete agent "{name}"?',
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Agents',
+        updateSuccess: '✓ Agent updated successfully',
+        addSuccess: '✓ Agent added successfully',
+        deleteSuccess: '✓ Agent deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+    plugins: {
+      title: 'Plugins Management',
+      description: 'Qwen plugin configuration and management',
+      badge: '🧩 Plugins',
+      addPlugin: 'Add Plugin',
+      editPlugin: 'Edit Plugin',
+      nameLabel: 'Name *',
+      namePlaceholder: 'e.g., My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: 'e.g., my-plugin',
+      versionLabel: 'Version *',
+      versionPlaceholder: 'e.g., 1.0.0',
+      configLabel: 'Config JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: 'Optional, enter valid JSON format configuration',
+      enabledLabel: 'Enable this plugin',
+      searchPlaceholder: 'Search plugin name, ID or description...',
+      searchResults: 'Found <strong>{count}</strong> matching plugins',
+      loading: 'Loading...',
+      emptyState: 'No plugins configured',
+      noResults: 'No matching plugins found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete plugin "{name}"?',
+      validation: {
+        required: 'Please fill in required fields',
+        invalidJson: 'Invalid JSON format for configuration'
+      },
+      messages: {
+        loadFailed: 'Failed to load plugins',
+        updateSuccess: '✓ Plugin updated successfully',
+        addSuccess: '✓ Plugin added successfully',
+        deleteSuccess: '✓ Plugin deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+    slashCommands: {
+      title: 'Slash Commands',
+      description: 'Qwen custom command management',
+      badge: '⌨️ Commands',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      stats: {
+        total: 'Total',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      addCommand: 'Add Command',
+      editCommand: 'Edit Command',
+      nameLabel: 'Command Name *',
+      namePlaceholder: 'e.g., /mycommand',
+      folderLabel: 'Folder',
+      folderPlaceholder: 'Leave empty for root directory',
+      descriptionLabel: 'Description',
+      descriptionPlaceholder: 'Brief description of this command',
+      commandLabel: 'Command Content *',
+      commandPlaceholder: 'Enter detailed command content...',
+      enabledLabel: 'Enable this command',
+      searchPlaceholder: 'Search command name or description...',
+      searchResults: 'Found <strong>{count}</strong> matching commands',
+      loading: 'Loading...',
+      emptyState: 'No commands configured',
+      noResults: 'No matching commands found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete command "{name}"?',
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load commands',
+        updateSuccess: '✓ Command updated successfully',
+        addSuccess: '✓ Command added successfully',
+        deleteSuccess: '✓ Command deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    }
+  },
+
+  // iFlow Platform
+  iflow: {
+    overview: {
+      title: 'iFlow',
+      subtitle: 'Intelligent Workflow',
+      description: 'Intelligent Workflow · Automation Engine · Process Orchestration',
+      backToHome: 'Back to Home',
+      features: 'Features',
+      feature1: 'Visual workflow orchestration with drag-and-drop design for complex automation processes',
+      feature2: 'Supports flow control including conditional branching, loops, and parallel execution',
+      feature3: 'Deep integration with AI Agents for intelligent decision-making and automated processing',
+      feature4: 'Connect various external services through MCP to build end-to-end automation solutions',
+      featureTitle: '💡 iFlow Features',
+      tags: {
+        workflow: '🔄 Automation Workflow',
+        orchestration: '⚡ Process Orchestration',
+        mcp: '🔌 MCP Integration',
+        agent: '🤖 Intelligent Agents'
+      }
+    },
+    mcp: {
+      title: 'MCP Servers',
+      description: 'iFlow MCP server configuration management',
+      badge: '🔌 MCP',
+      addServer: 'Add MCP Server',
+      editServer: 'Edit MCP Server',
+      nameLabel: 'Server Name *',
+      namePlaceholder: 'e.g., My MCP Server',
+      commandLabel: 'Command *',
+      commandPlaceholder: 'e.g., npx',
+      urlLabel: 'Server URL *',
+      urlPlaceholder: 'e.g., http://localhost:3000',
+      httpServerHint: 'HTTP Server (check for HTTP, otherwise STDIO)',
+      argsLabel: 'Arguments',
+      argsPlaceholder: 'arg1 arg2 arg3',
+      argsHint: 'Separate multiple arguments with spaces',
+      envLabel: 'Environment Variables',
+      envKeyPlaceholder: 'Variable Name',
+      envValuePlaceholder: 'Variable Value',
+      enabledLabel: 'Enable this server',
+      searchPlaceholder: 'Search MCP servers...',
+      searchResults: 'Found <strong>{count}</strong> matching servers',
+      loading: 'Loading...',
+      emptyState: 'No MCP servers configured',
+      noResults: 'No matching servers found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete MCP server "{name}"?',
+      validation: {
+        required: 'Please fill in required fields',
+        invalidUrl: 'Invalid URL format'
+      },
+      messages: {
+        loadFailed: 'Failed to load MCP servers',
+        updateSuccess: '✓ MCP server updated successfully',
+        addSuccess: '✓ MCP server added successfully',
+        deleteSuccess: '✓ MCP server deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+    agents: {
+      title: 'Agents',
+      description: 'iFlow Agent configuration and management',
+      badge: '🤖 AI',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      stats: {
+        total: 'Total',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      addAgent: 'Add Agent',
+      editAgent: 'Edit Agent',
+      nameLabel: 'Name *',
+      namePlaceholder: 'e.g., My Agent',
+      folderLabel: 'Folder',
+      folderPlaceholder: 'Leave empty for root directory',
+      descriptionLabel: 'Description',
+      descriptionPlaceholder: 'Brief description of this agent',
+      instructionsLabel: 'Instructions *',
+      instructionsPlaceholder: 'Enter detailed instructions for the agent...',
+      enabledLabel: 'Enable this agent',
+      searchPlaceholder: 'Search agent name or description...',
+      searchResults: 'Found <strong>{count}</strong> matching agents',
+      loading: 'Loading...',
+      emptyState: 'No agents configured',
+      noResults: 'No matching agents found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete agent "{name}"?',
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load Agents',
+        updateSuccess: '✓ Agent updated successfully',
+        addSuccess: '✓ Agent added successfully',
+        deleteSuccess: '✓ Agent deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+    plugins: {
+      title: 'Plugins Management',
+      description: 'iFlow plugin configuration and management',
+      badge: '🧩 Plugins',
+      addPlugin: 'Add Plugin',
+      editPlugin: 'Edit Plugin',
+      nameLabel: 'Name *',
+      namePlaceholder: 'e.g., My Plugin',
+      idLabel: 'ID *',
+      idPlaceholder: 'e.g., my-plugin',
+      versionLabel: 'Version *',
+      versionPlaceholder: 'e.g., 1.0.0',
+      configLabel: 'Config JSON',
+      configPlaceholder: '{"key": "value"}',
+      configHint: 'Optional, enter valid JSON format configuration',
+      enabledLabel: 'Enable this plugin',
+      searchPlaceholder: 'Search plugin name, ID or description...',
+      searchResults: 'Found <strong>{count}</strong> matching plugins',
+      loading: 'Loading...',
+      emptyState: 'No plugins configured',
+      noResults: 'No matching plugins found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete plugin "{name}"?',
+      validation: {
+        required: 'Please fill in required fields',
+        invalidJson: 'Invalid JSON format for configuration'
+      },
+      messages: {
+        loadFailed: 'Failed to load plugins',
+        updateSuccess: '✓ Plugin updated successfully',
+        addSuccess: '✓ Plugin added successfully',
+        deleteSuccess: '✓ Plugin deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+    slashCommands: {
+      title: 'Slash Commands',
+      description: 'iFlow custom command management',
+      badge: '⌨️ Commands',
+      folders: {
+        label: 'Folders',
+        all: 'All',
+        root: 'Root',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      stats: {
+        total: 'Total',
+        enabled: 'Enabled',
+        disabled: 'Disabled'
+      },
+      addCommand: 'Add Command',
+      editCommand: 'Edit Command',
+      nameLabel: 'Command Name *',
+      namePlaceholder: 'e.g., /mycommand',
+      folderLabel: 'Folder',
+      folderPlaceholder: 'Leave empty for root directory',
+      descriptionLabel: 'Description',
+      descriptionPlaceholder: 'Brief description of this command',
+      commandLabel: 'Command Content *',
+      commandPlaceholder: 'Enter detailed command content...',
+      enabledLabel: 'Enable this command',
+      searchPlaceholder: 'Search command name or description...',
+      searchResults: 'Found <strong>{count}</strong> matching commands',
+      loading: 'Loading...',
+      emptyState: 'No commands configured',
+      noResults: 'No matching commands found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete command "{name}"?',
+      validation: {
+        required: 'Please fill in required fields'
+      },
+      messages: {
+        loadFailed: 'Failed to load commands',
+        updateSuccess: '✓ Command updated successfully',
+        addSuccess: '✓ Command added successfully',
+        deleteSuccess: '✓ Command deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    }
   },
 }

@@ -39,10 +39,10 @@
             </div>
             <div class="flex-1">
               <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                使用统计分析
+                {{ $t('usage.title') }}
               </h1>
               <p class="text-sm text-gray-600 dark:text-gray-400">
-                实时追踪跨 AI 平台的 Token 消耗情况
+                {{ $t('usage.subtitle') }}
               </p>
             </div>
           </div>
@@ -55,13 +55,13 @@
             class="group px-5 py-3.5 border-2 border-indigo-300 dark:border-indigo-600 rounded-xl bg-gradient-to-br from-white to-indigo-50/50 dark:from-gray-800 dark:to-indigo-900/20 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300 font-bold shadow-lg hover:shadow-xl hover:shadow-indigo-500/30 dark:hover:shadow-indigo-400/20 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 hover:scale-105 text-base"
           >
             <option value="claude">
-              🤖 Claude
+              {{ $t('usage.platforms.claude') }}
             </option>
             <option value="codex">
-              💻 Codex
+              {{ $t('usage.platforms.codex') }}
             </option>
             <option value="gemini">
-              ✨ Gemini
+              {{ $t('usage.platforms.gemini') }}
             </option>
           </select>
 
@@ -88,7 +88,7 @@
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
-            <span class="hidden sm:inline relative z-10 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] text-base">{{ loading ? '加载中...' : '刷新数据' }}</span>
+            <span class="hidden sm:inline relative z-10 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] text-base">{{ loading ? $t('usage.actions.loading') : $t('usage.actions.refresh') }}</span>
           </button>
         </div>
       </div>
@@ -117,22 +117,22 @@
               class="flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50 text-sm font-semibold shadow-md hover:shadow-lg cursor-pointer hover:border-blue-400 dark:hover:border-blue-500"
             >
               <option value="5h">
-                最近 5 小时
+                {{ $t('usage.filters.timeRange.last5h') }}
               </option>
               <option value="today">
-                今天
+                {{ $t('usage.filters.timeRange.today') }}
               </option>
               <option value="7d">
-                最近 7 天
+                {{ $t('usage.filters.timeRange.last7d') }}
               </option>
               <option value="week">
-                本周
+                {{ $t('usage.filters.timeRange.thisWeek') }}
               </option>
               <option value="month">
-                本月
+                {{ $t('usage.filters.timeRange.thisMonth') }}
               </option>
               <option value="all">
-                全部时间
+                {{ $t('usage.filters.timeRange.allTime') }}
               </option>
             </select>
           </div>
@@ -160,7 +160,7 @@
               class="flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 transition-all text-sm font-semibold shadow-md hover:shadow-lg cursor-pointer hover:border-purple-400 dark:hover:border-purple-500"
             >
               <option value="all">
-                全部模型
+                {{ $t('usage.filters.model.all') }}
               </option>
               <option
                 v-for="model in availableModels"
@@ -184,7 +184,7 @@
               for="auto-refresh"
               class="text-sm font-bold text-gray-800 dark:text-gray-200 cursor-pointer whitespace-nowrap"
             >
-              自动刷新
+              {{ $t('usage.filters.autoRefresh') }}
             </label>
             <select
               v-if="autoRefreshEnabled"
@@ -219,7 +219,7 @@
         <div class="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
       </div>
       <p class="text-gray-700 dark:text-gray-300 text-lg font-medium">
-        正在加载使用数据...
+        {{ $t('usage.states.loading') }}
       </p>
     </div>
 
@@ -242,7 +242,7 @@
         </svg>
         <div class="flex-1">
           <h3 class="text-xl font-bold text-red-800 dark:text-red-200 mb-2">
-            加载使用数据失败
+            {{ $t('usage.states.loadFailed') }}
           </h3>
           <p class="text-red-700 dark:text-red-300 mb-4">
             {{ error }}
@@ -251,7 +251,7 @@
             class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all shadow-lg hover:shadow-xl font-medium"
             @click="loadData"
           >
-            重试
+            {{ $t('usage.actions.retry') }}
           </button>
         </div>
       </div>
@@ -269,7 +269,7 @@
           <div class="flex items-center justify-between">
             <div class="flex-1">
               <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
-                输入 Tokens
+                {{ $t('usage.summaryCards.inputTokens') }}
               </p>
               <p class="text-3xl font-black text-gray-900 dark:text-white">
                 {{ formatNumber(totalInputTokens) }}
@@ -298,7 +298,7 @@
           <div class="flex items-center justify-between">
             <div class="flex-1">
               <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
-                输出 Tokens
+                {{ $t('usage.summaryCards.outputTokens') }}
               </p>
               <p class="text-3xl font-black text-gray-900 dark:text-white">
                 {{ formatNumber(totalOutputTokens) }}
@@ -327,7 +327,7 @@
           <div class="flex items-center justify-between">
             <div class="flex-1">
               <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
-                缓存读取
+                {{ $t('usage.summaryCards.cacheRead') }}
               </p>
               <p class="text-3xl font-black text-gray-900 dark:text-white">
                 {{ formatNumber(totalCacheTokens) }}
@@ -356,7 +356,7 @@
           <div class="flex items-center justify-between">
             <div class="flex-1">
               <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
-                缓存效率
+                {{ $t('usage.summaryCards.cacheEfficiency') }}
               </p>
               <p class="text-3xl font-black text-gray-900 dark:text-white">
                 {{ cacheEfficiency.toFixed(1) }}%
@@ -412,7 +412,7 @@
             />
           </svg>
           <p class="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-            Showing first 10,000 records. Total {{ totalRecords.toLocaleString() }} records found.
+            {{ $t('usage.states.truncatedWarning', { total: totalRecords.toLocaleString() }) }}
           </p>
         </div>
       </div>
@@ -437,10 +437,10 @@
         />
       </svg>
       <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-        No Usage Data Available
+        {{ $t('usage.emptyState.title') }}
       </h3>
       <p class="text-gray-600 dark:text-gray-400 text-lg">
-        Start using {{ selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1) }} to see usage statistics here
+        {{ $t('usage.emptyState.subtitle', { platform: selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1) }) }}
       </p>
     </div>
   </div>
@@ -448,11 +448,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getUsageRecords } from '@/api/client'
 import type { UsageRecord, TimeRange } from '@/types'
 import TokenUsageChart from '@/components/TokenUsageChart.vue'
 import ActivityHeatmap from '@/components/ActivityHeatmap.vue'
 import DateRangePicker from '@/components/DateRangePicker.vue'
+
+const { t } = useI18n()
 
 const records = ref<UsageRecord[]>([])
 const loading = ref(false)
@@ -481,7 +484,7 @@ const loadData = async () => {
     truncated.value = response.truncated
     totalRecords.value = response.total_records
   } catch (e: any) {
-    error.value = e.message || 'Failed to load usage data'
+    error.value = e.message || t('usage.states.loadFailed')
     console.error('Failed to load usage data:', e)
   } finally {
     loading.value = false

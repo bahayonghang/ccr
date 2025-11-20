@@ -31,18 +31,18 @@
             </div>
             <div>
               <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[#10b981] via-[#06b6d4] to-[#3b82f6] bg-clip-text text-transparent">
-                iFlow
+                {{ $t('iflow.overview.title') }}
               </h1>
               <p
                 class="text-lg"
                 :style="{ color: 'var(--text-secondary)' }"
               >
-                智能工作流 · 自动化引擎 · 流程编排
+                {{ $t('iflow.overview.description') }}
               </p>
             </div>
           </div>
-          <RouterLink 
-            to="/" 
+          <RouterLink
+            to="/"
             class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300"
           >
             <Home
@@ -52,7 +52,7 @@
             <span
               class="font-medium"
               :style="{ color: 'var(--text-secondary)' }"
-            >返回首页</span>
+            >{{ $t('iflow.overview.backToHome') }}</span>
           </RouterLink>
         </div>
 
@@ -62,25 +62,25 @@
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
           >
-            🔄 自动化工作流
+            {{ $t('iflow.overview.tags.workflow') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(6, 182, 212, 0.1)', color: '#06b6d4' }"
           >
-            ⚡ 流程编排
+            {{ $t('iflow.overview.tags.orchestration') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
           >
-            🔌 MCP 集成
+            {{ $t('iflow.overview.tags.mcp') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
           >
-            🤖 智能代理
+            {{ $t('iflow.overview.tags.agent') }}
           </span>
         </div>
       </div>
@@ -95,7 +95,7 @@
             class="w-7 h-7"
             :style="{ color: '#10b981' }"
           />
-          功能模块
+          {{ $t('iflow.overview.features') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <RouterLink
@@ -118,13 +118,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    MCP 服务器
+                    {{ $t('iflow.mcp.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    iFlow MCP 服务器配置管理
+                    {{ $t('iflow.mcp.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -133,7 +133,7 @@
                       color: '#10b981'
                     }"
                   >
-                    🔌 MCP
+                    {{ $t('iflow.mcp.badge') }}
                   </span>
                 </div>
               </div>
@@ -160,13 +160,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Agents
+                    {{ $t('iflow.agents.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    iFlow Agent 配置和管理
+                    {{ $t('iflow.agents.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -175,7 +175,7 @@
                       color: '#06b6d4'
                     }"
                   >
-                    🤖 AI
+                    {{ $t('iflow.agents.badge') }}
                   </span>
                 </div>
               </div>
@@ -202,13 +202,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    插件管理
+                    {{ $t('iflow.plugins.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    iFlow 插件配置和管理
+                    {{ $t('iflow.plugins.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -217,7 +217,7 @@
                       color: '#3b82f6'
                     }"
                   >
-                    🧩 插件
+                    {{ $t('iflow.plugins.badge') }}
                   </span>
                 </div>
               </div>
@@ -244,13 +244,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Slash Commands
+                    {{ $t('iflow.slashCommands.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    iFlow 自定义命令管理
+                    {{ $t('iflow.slashCommands.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -259,7 +259,7 @@
                       color: '#8b5cf6'
                     }"
                   >
-                    ⌨️ 命令
+                    {{ $t('iflow.slashCommands.badge') }}
                   </span>
                 </div>
               </div>
@@ -285,7 +285,7 @@
               class="text-lg font-bold mb-2"
               :style="{ color: 'var(--text-primary)' }"
             >
-              💡 iFlow 特性
+              {{ $t('iflow.overview.featureTitle') }}
             </h3>
             <ul
               class="space-y-2 text-sm"
@@ -293,19 +293,19 @@
             >
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>可视化工作流编排，拖拽式设计复杂的自动化流程</span>
+                <span>{{ $t('iflow.overview.feature1') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>支持条件分支、循环、并行执行等流程控制</span>
+                <span>{{ $t('iflow.overview.feature2') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>与 AI Agents 深度集成，实现智能决策和自动处理</span>
+                <span>{{ $t('iflow.overview.feature3') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>通过 MCP 连接各种外部服务，打造端到端的自动化方案</span>
+                <span>{{ $t('iflow.overview.feature4') }}</span>
               </li>
             </ul>
           </div>
@@ -318,4 +318,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { Server, Bot, Puzzle, Command, Home, Workflow, Boxes, Info } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>

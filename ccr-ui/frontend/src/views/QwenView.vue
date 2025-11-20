@@ -31,18 +31,18 @@
             </div>
             <div>
               <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[#8b5cf6] via-[#ec4899] to-[#f59e0b] bg-clip-text text-transparent">
-                Qwen
+                {{ $t('qwen.overview.title') }}
               </h1>
               <p
                 class="text-lg"
                 :style="{ color: 'var(--text-secondary)' }"
               >
-                阿里通义千问 · 大语言模型 · 智能对话
+                {{ $t('qwen.overview.description') }}
               </p>
             </div>
           </div>
-          <RouterLink 
-            to="/" 
+          <RouterLink
+            to="/"
             class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300"
           >
             <Home
@@ -52,7 +52,7 @@
             <span
               class="font-medium"
               :style="{ color: 'var(--text-secondary)' }"
-            >返回首页</span>
+            >{{ $t('qwen.overview.backToHome') }}</span>
           </RouterLink>
         </div>
 
@@ -62,25 +62,25 @@
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
           >
-            🧠 大模型
+            {{ $t('qwen.overview.tags.model') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }"
           >
-            💬 对话系统
+            {{ $t('qwen.overview.tags.dialog') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }"
           >
-            🔌 MCP 支持
+            {{ $t('qwen.overview.tags.mcp') }}
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
             :style="{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }"
           >
-            🇨🇳 中文优化
+            {{ $t('qwen.overview.tags.chinese') }}
           </span>
         </div>
       </div>
@@ -95,7 +95,7 @@
             class="w-7 h-7"
             :style="{ color: '#8b5cf6' }"
           />
-          功能模块
+          {{ $t('qwen.overview.features') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <RouterLink
@@ -118,13 +118,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    MCP 服务器
+                    {{ $t('qwen.mcp.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Qwen MCP 服务器配置管理
+                    {{ $t('qwen.mcp.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -133,7 +133,7 @@
                       color: '#8b5cf6'
                     }"
                   >
-                    🔌 MCP
+                    {{ $t('qwen.mcp.badge') }}
                   </span>
                 </div>
               </div>
@@ -160,13 +160,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Agents
+                    {{ $t('qwen.agents.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Qwen Agent 配置和管理
+                    {{ $t('qwen.agents.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -175,7 +175,7 @@
                       color: '#ec4899'
                     }"
                   >
-                    🤖 AI
+                    {{ $t('qwen.agents.badge') }}
                   </span>
                 </div>
               </div>
@@ -202,13 +202,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    插件管理
+                    {{ $t('qwen.plugins.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Qwen 插件配置和管理
+                    {{ $t('qwen.plugins.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -217,7 +217,7 @@
                       color: '#f59e0b'
                     }"
                   >
-                    🧩 插件
+                    {{ $t('qwen.plugins.badge') }}
                   </span>
                 </div>
               </div>
@@ -244,13 +244,13 @@
                     class="text-xl font-bold mb-2"
                     :style="{ color: 'var(--text-primary)' }"
                   >
-                    Slash Commands
+                    {{ $t('qwen.slashCommands.title') }}
                   </h3>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Qwen 自定义命令管理
+                    {{ $t('qwen.slashCommands.description') }}
                   </p>
                   <span
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
@@ -259,7 +259,7 @@
                       color: '#ef4444'
                     }"
                   >
-                    ⌨️ 命令
+                    {{ $t('qwen.slashCommands.badge') }}
                   </span>
                 </div>
               </div>
@@ -285,7 +285,7 @@
               class="text-lg font-bold mb-2"
               :style="{ color: 'var(--text-primary)' }"
             >
-              💡 Qwen 特性
+              {{ $t('qwen.overview.featureTitle') }}
             </h3>
             <ul
               class="space-y-2 text-sm"
@@ -293,19 +293,19 @@
             >
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>阿里巴巴达摩院开发的大语言模型，中文理解能力出色</span>
+                <span>{{ $t('qwen.overview.feature1') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>支持长文本处理和多轮对话，上下文理解能力强</span>
+                <span>{{ $t('qwen.overview.feature2') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>与阿里云生态深度整合，提供企业级服务保障</span>
+                <span>{{ $t('qwen.overview.feature3') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>通过插件和 MCP 扩展功能，连接更多工具和服务</span>
+                <span>{{ $t('qwen.overview.feature4') }}</span>
               </li>
             </ul>
           </div>
@@ -318,4 +318,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { Server, Bot, Puzzle, Command, Home, Zap, Boxes, Info } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>

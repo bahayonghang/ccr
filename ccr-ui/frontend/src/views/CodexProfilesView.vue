@@ -4,9 +4,9 @@
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
-          { label: '首页', path: '/', icon: Home },
+          { label: $t('common.home'), path: '/', icon: Home },
           { label: 'Codex', path: '/codex', icon: Boxes },
-          { label: 'Profiles 配置', path: '/codex/profiles', icon: Users }
+          { label: $t('codex.profiles.breadcrumb'), path: '/codex/profiles', icon: Users }
         ]"
         module-color="#ec4899"
       />
@@ -41,7 +41,7 @@
                   class="text-sm"
                   :style="{ color: 'var(--text-muted)' }"
                 >
-                  管理 GitHub Copilot CLI 配置文件
+                  {{ $t('codex.profiles.subtitle') }}
                 </p>
               </div>
               <span
@@ -56,7 +56,7 @@
                 :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
               >
                 <ArrowLeft class="w-4 h-4" />
-                <span>返回</span>
+                <span>{{ $t('codex.profiles.backToCodex') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2 transition-all hover:scale-105"
@@ -64,7 +64,7 @@
                 @click="handleAdd"
               >
                 <Plus class="w-4 h-4" />
-                添加 Profile
+                {{ $t('codex.profiles.addProfile') }}
               </button>
             </div>
           </div>
@@ -94,13 +94,13 @@
                 class="text-lg font-medium"
                 :style="{ color: 'var(--text-muted)' }"
               >
-                暂无 Codex Profile 配置
+                {{ $t('codex.profiles.emptyState') }}
               </p>
               <p
                 class="text-sm mt-2"
                 :style="{ color: 'var(--text-muted)' }"
               >
-                点击"添加 Profile"创建第一个配置
+                {{ $t('codex.profiles.emptyHint') }}
               </p>
             </div>
 
@@ -206,20 +206,20 @@
                 <button
                   class="flex-1 p-2 rounded-lg transition-all hover:scale-105 flex items-center justify-center gap-1"
                   :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-primary)' }"
-                  title="编辑"
+                  :title="$t('codex.actions.edit')"
                   @click="handleEdit(profile)"
                 >
                   <Edit2 class="w-4 h-4" />
-                  <span class="text-xs font-medium">编辑</span>
+                  <span class="text-xs font-medium">{{ $t('codex.actions.edit') }}</span>
                 </button>
                 <button
                   class="flex-1 p-2 rounded-lg transition-all hover:scale-105 flex items-center justify-center gap-1"
                   :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
-                  title="删除"
+                  :title="$t('codex.actions.delete')"
                   @click="handleDelete(profile.name)"
                 >
                   <Trash2 class="w-4 h-4" />
-                  <span class="text-xs font-medium">删除</span>
+                  <span class="text-xs font-medium">{{ $t('codex.actions.delete') }}</span>
                 </button>
               </div>
             </div>
@@ -240,7 +240,7 @@
                 class="text-2xl font-bold mb-6"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                {{ editingProfile ? '编辑 Profile' : '添加 Profile' }}
+                {{ editingProfile ? $t('codex.profiles.editProfile') : $t('codex.profiles.addProfile') }}
               </h2>
 
               <div class="space-y-4">
@@ -250,14 +250,14 @@
                     class="block text-sm font-semibold mb-2"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Profile 名称 *
+                    {{ $t('codex.profiles.profileName') }} *
                   </label>
                   <input
                     v-model="formData.name"
                     type="text"
                     class="w-full px-4 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: github-production"
+                    :placeholder="$t('codex.profiles.placeholders.name')"
                     :disabled="!!editingProfile"
                   >
                 </div>
@@ -268,14 +268,14 @@
                     class="block text-sm font-semibold mb-2"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    描述
+                    {{ $t('codex.profiles.description') }}
                   </label>
                   <input
                     v-model="formData.description"
                     type="text"
                     class="w-full px-4 py-2 rounded-lg"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: GitHub Copilot 生产环境配置"
+                    :placeholder="$t('codex.profiles.placeholders.description')"
                   >
                 </div>
 
@@ -285,14 +285,14 @@
                     class="block text-sm font-semibold mb-2"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Base URL *
+                    {{ $t('codex.profiles.baseUrl') }} *
                   </label>
                   <input
                     v-model="formData.base_url"
                     type="text"
                     class="w-full px-4 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="https://api.github.com/copilot"
+                    :placeholder="$t('codex.profiles.placeholders.baseUrl')"
                   >
                 </div>
 
@@ -302,14 +302,14 @@
                     class="block text-sm font-semibold mb-2"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Auth Token *
+                    {{ $t('codex.profiles.authToken') }} *
                   </label>
                   <input
                     v-model="formData.auth_token"
                     type="password"
                     class="w-full px-4 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="ghp_..."
+                    :placeholder="$t('codex.profiles.placeholders.authToken')"
                   >
                 </div>
 
@@ -320,7 +320,7 @@
                       class="block text-sm font-semibold mb-2"
                       :style="{ color: 'var(--text-secondary)' }"
                     >
-                      Model *
+                      {{ $t('codex.profiles.model') }} *
                     </label>
                     <select
                       v-model="formData.model"
@@ -347,7 +347,7 @@
                       class="block text-sm font-semibold mb-2"
                       :style="{ color: 'var(--text-secondary)' }"
                     >
-                      Fast Model
+                      {{ $t('codex.profiles.fastModel') }}
                     </label>
                     <select
                       v-model="formData.small_fast_model"
@@ -355,7 +355,7 @@
                       :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
                     >
                       <option value="">
-                        -- 选择快速模型 --
+                        {{ $t('codex.profiles.placeholders.selectFastModel') }}
                       </option>
                       <option value="gpt-3.5-turbo">
                         GPT-3.5 Turbo
@@ -373,7 +373,7 @@
                     class="block text-sm font-semibold mb-2"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    Provider
+                    {{ $t('codex.profiles.provider') }}
                   </label>
                   <select
                     v-model="formData.provider"
@@ -381,19 +381,19 @@
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
                   >
                     <option value="">
-                      -- 选择提供商 --
+                      {{ $t('codex.profiles.placeholders.selectProvider') }}
                     </option>
                     <option value="GitHub">
-                      GitHub
+                      {{ $t('codex.profiles.providers.github') }}
                     </option>
                     <option value="Azure">
-                      Azure
+                      {{ $t('codex.profiles.providers.azure') }}
                     </option>
                     <option value="OpenAI">
-                      OpenAI
+                      {{ $t('codex.profiles.providers.openai') }}
                     </option>
                     <option value="Custom">
-                      Custom
+                      {{ $t('codex.profiles.providers.custom') }}
                     </option>
                   </select>
                 </div>
@@ -406,14 +406,14 @@
                   :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
                   @click="handleSubmit"
                 >
-                  {{ editingProfile ? '更新 Profile' : '添加 Profile' }}
+                  {{ editingProfile ? $t('codex.profiles.updateProfile') : $t('codex.profiles.addProfile') }}
                 </button>
                 <button
                   class="flex-1 px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105"
                   :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }"
                   @click="showAddForm = false"
                 >
-                  取消
+                  {{ $t('codex.actions.cancel') }}
                 </button>
               </div>
             </div>
@@ -432,6 +432,9 @@ import { listCodexProfiles, addCodexProfile, updateCodexProfile, deleteCodexProf
 import type { CodexProfile, CodexProfileRequest } from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const profiles = ref<CodexProfile[]>([])
 const loading = ref(true)
@@ -455,7 +458,7 @@ const loadProfiles = async () => {
   } catch (err) {
     console.error('Failed to load Codex profiles:', err)
     profiles.value = []
-    alert('加载 Codex Profiles 失败')
+    alert(t('codex.profiles.messages.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -495,34 +498,34 @@ const handleEdit = (profile: CodexProfile) => {
 
 const handleSubmit = async () => {
   if (!formData.value.name || !formData.value.base_url || !formData.value.auth_token || !formData.value.model) {
-    alert('请填写所有必填字段（Profile 名称、Base URL、Auth Token、Model）')
+    alert(t('codex.profiles.validation.required'))
     return
   }
 
   try {
     if (editingProfile.value) {
       await updateCodexProfile(editingProfile.value.name, formData.value)
-      alert('✓ Profile 更新成功')
+      alert(t('codex.profiles.messages.updateSuccess'))
     } else {
       await addCodexProfile(formData.value)
-      alert('✓ Profile 添加成功')
+      alert(t('codex.profiles.messages.addSuccess'))
     }
     showAddForm.value = false
     await loadProfiles()
   } catch (err) {
-    alert(`操作失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    alert(t('codex.profiles.messages.operationFailed', { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(`确定删除 Profile "${name}" 吗？此操作不可撤销。`)) return
+  if (!confirm(t('codex.profiles.deleteConfirm', { name }))) return
 
   try {
     await deleteCodexProfile(name)
-    alert('✓ Profile 删除成功')
+    alert(t('codex.profiles.messages.deleteSuccess'))
     await loadProfiles()
   } catch (err) {
-    alert(`删除失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    alert(t('codex.profiles.messages.deleteFailed', { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 

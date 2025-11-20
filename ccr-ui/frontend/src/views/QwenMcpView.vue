@@ -4,9 +4,9 @@
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
-          { label: '首页', path: '/', icon: Home },
+          { label: $t('common.home'), path: '/', icon: Home },
           { label: 'Qwen', path: '/qwen', icon: Zap },
-          { label: 'MCP 服务器', path: '/qwen/mcp', icon: Server }
+          { label: $t('qwen.mcp.title'), path: '/qwen/mcp', icon: Server }
         ]"
         module-color="#14b8a6"
       />
@@ -27,7 +27,7 @@
                 class="text-2xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                Qwen MCP 服务器
+                {{ $t('qwen.mcp.title') }}
               </h1>
             </div>
             <div class="flex items-center gap-3">
@@ -36,14 +36,14 @@
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                 :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
               >
-                <ArrowLeft class="w-4 h-4" /><span>返回</span>
+                <ArrowLeft class="w-4 h-4" /><span>{{ $t('common.back') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="handleAdd"
               >
-                <Plus class="w-4 h-4" />添加服务器
+                <Plus class="w-4 h-4" />{{ $t('qwen.mcp.addServer') }}
               </button>
             </div>
           </div>
@@ -67,7 +67,7 @@
               class="text-center py-10"
               :style="{ color: 'var(--text-muted)' }"
             >
-              暂无 Qwen MCP 服务器配置
+              {{ $t('qwen.mcp.emptyState') }}
             </div>
 
             <div
@@ -100,28 +100,28 @@
                   </div>
                   <div class="space-y-2 text-sm">
                     <div v-if="server.command">
-                      <span :style="{ color: 'var(--text-muted)' }">命令:</span>
+                      <span :style="{ color: 'var(--text-muted)' }">{{ $t('qwen.mcp.command') }}:</span>
                       <code
                         class="ml-2 px-2 py-1 rounded font-mono"
                         :style="{ background: 'var(--bg-secondary)', color: 'var(--accent-primary)' }"
                       >{{ server.command }}</code>
                     </div>
                     <div v-if="server.url">
-                      <span :style="{ color: 'var(--text-muted)' }">URL:</span>
+                      <span :style="{ color: 'var(--text-muted)' }">{{ $t('qwen.mcp.url') }}:</span>
                       <code
                         class="ml-2 px-2 py-1 rounded font-mono"
                         :style="{ background: 'var(--bg-secondary)', color: 'var(--accent-primary)' }"
                       >{{ server.url }}</code>
                     </div>
                     <div v-if="server.args && server.args.length > 0">
-                      <span :style="{ color: 'var(--text-muted)' }">参数:</span>
+                      <span :style="{ color: 'var(--text-muted)' }">{{ $t('qwen.mcp.args') }}:</span>
                       <code
                         class="ml-2 px-2 py-1 rounded font-mono"
                         :style="{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }"
                       >{{ server.args.join(' ') }}</code>
                     </div>
                     <div v-if="server.env && Object.keys(server.env).length > 0">
-                      <span :style="{ color: 'var(--text-muted)' }">环境变量:</span>
+                      <span :style="{ color: 'var(--text-muted)' }">{{ $t('qwen.mcp.env') }}:</span>
                       <div class="ml-2 mt-1 space-y-1">
                         <div
                           v-for="[key, value] in Object.entries(server.env)"
@@ -139,7 +139,7 @@
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110"
                     :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-primary)' }"
-                    title="编辑"
+                    :title="$t('common.edit')"
                     @click="handleEdit(server)"
                   >
                     <Edit2 class="w-4 h-4" />
@@ -147,7 +147,7 @@
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110"
                     :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
-                    title="删除"
+                    :title="$t('common.delete')"
                     @click="handleDelete(server.command || server.url || '')"
                   >
                     <Trash2 class="w-4 h-4" />
@@ -169,7 +169,7 @@
                 class="text-xl font-bold mb-4"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                {{ editingServer ? '编辑服务器' : '添加服务器' }}
+                {{ editingServer ? $t('qwen.mcp.editServer') : $t('qwen.mcp.addServer') }}
               </h2>
 
               <div class="mb-4">
@@ -182,7 +182,7 @@
                   <span
                     class="text-sm font-semibold"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >HTTP 服务器（勾选则为 HTTP，否则为 STDIO）</span>
+                  >{{ $t('qwen.mcp.httpServerHint') }}</span>
                 </label>
               </div>
 
@@ -191,13 +191,13 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >服务器 URL *</label>
+                  >{{ $t('qwen.mcp.serverUrl') }} *</label>
                   <input
                     v-model="formData.url"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: http://localhost:3000"
+                    :placeholder="$t('qwen.mcp.urlPlaceholder')"
                   >
                 </div>
 
@@ -205,13 +205,13 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >命令 *</label>
+                  >{{ $t('qwen.mcp.command') }} *</label>
                   <input
                     v-model="formData.command"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: npx"
+                    :placeholder="$t('qwen.mcp.commandPlaceholder')"
                   >
                 </div>
 
@@ -219,19 +219,19 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >参数</label>
+                  >{{ $t('qwen.mcp.args') }}</label>
                   <input
                     v-model="argInput"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: -y @modelcontextprotocol/server-filesystem"
+                    :placeholder="$t('qwen.mcp.argsPlaceholder')"
                   >
                   <div
                     class="text-xs mt-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    用空格分隔多个参数
+                    {{ $t('qwen.mcp.argsHint') }}
                   </div>
                 </div>
 
@@ -239,7 +239,7 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >环境变量</label>
+                  >{{ $t('qwen.mcp.env') }}</label>
                   <div class="flex gap-2 mb-2">
                     <input
                       v-model="envKey"
@@ -260,7 +260,7 @@
                       :style="{ background: 'var(--accent-primary)' }"
                       @click="addEnvVar"
                     >
-                      添加
+                      {{ $t('common.add') }}
                     </button>
                   </div>
                   <div class="space-y-1">
@@ -279,7 +279,7 @@
                         :style="{ color: 'var(--accent-danger)' }"
                         @click="removeEnvVar(key)"
                       >
-                        删除
+                        {{ $t('common.delete') }}
                       </button>
                     </div>
                   </div>
@@ -292,14 +292,14 @@
                   :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
                   @click="handleSubmit"
                 >
-                  {{ editingServer ? '更新' : '添加' }}
+                  {{ editingServer ? $t('common.update') : $t('common.add') }}
                 </button>
                 <button
                   class="flex-1 px-4 py-2 rounded-lg font-semibold"
                   :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }"
                   @click="showAddForm = false"
                 >
-                  取消
+                  {{ $t('common.cancel') }}
                 </button>
               </div>
             </div>
@@ -313,11 +313,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Server, Plus, Edit2, Trash2, ArrowLeft } from 'lucide-vue-next'
+import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Zap } from 'lucide-vue-next'
 import { listQwenMcpServers, addQwenMcpServer, updateQwenMcpServer, deleteQwenMcpServer, listConfigs, getHistory } from '@/api/client'
 import type { QwenMcpServer, QwenMcpServerRequest } from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const servers = ref<QwenMcpServer[]>([])
 const loading = ref(true)
@@ -348,7 +351,7 @@ const loadServers = async () => {
   } catch (err) {
     console.error('Failed to load Qwen MCP servers:', err)
     servers.value = []
-    alert('加载 Qwen MCP 服务器失败')
+    alert(t('qwen.mcp.loadFailed'))
   } finally { loading.value = false }
 }
 
@@ -371,8 +374,8 @@ const handleEdit = (server: QwenMcpServer) => {
 }
 
 const handleSubmit = async () => {
-  if (!isHttpServer.value && !formData.value.command) { alert('请填写命令'); return }
-  if (isHttpServer.value && !formData.value.url) { alert('请填写 URL'); return }
+  if (!isHttpServer.value && !formData.value.command) { alert(t('qwen.mcp.validation.commandRequired')); return }
+  if (isHttpServer.value && !formData.value.url) { alert(t('qwen.mcp.validation.urlRequired')); return }
 
   const args = argInput.value.split(' ').filter((a) => a.trim())
   const request: QwenMcpServerRequest = { ...formData.value, args }
@@ -383,23 +386,23 @@ const handleSubmit = async () => {
     const _name = (request.command || request.url)!
     if (editingServer.value) {
       await updateQwenMcpServer(editingServer.value.command || editingServer.value.url || '', request)
-      alert('✓ 服务器更新成功')
+      alert(t('qwen.mcp.updateSuccess'))
     } else {
       await addQwenMcpServer(request)
-      alert('✓ 服务器添加成功')
+      alert(t('qwen.mcp.addSuccess'))
     }
     showAddForm.value = false
     await loadServers()
-  } catch (err) { alert(`操作失败: ${err instanceof Error ? err.message : 'Unknown error'}`) }
+  } catch (err) { alert(t('qwen.mcp.operationFailed', { error: err instanceof Error ? err.message : 'Unknown error' })) }
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(`确定删除服务器 "${name}" 吗？`)) return
+  if (!confirm(t('qwen.mcp.deleteConfirm', { name }))) return
   try {
     await deleteQwenMcpServer(name)
-    alert('✓ 服务器删除成功')
+    alert(t('qwen.mcp.deleteSuccess'))
     await loadServers()
-  } catch (err) { alert(`删除失败: ${err instanceof Error ? err.message : 'Unknown error'}`) }
+  } catch (err) { alert(t('qwen.mcp.deleteFailed', { error: err instanceof Error ? err.message : 'Unknown error' })) }
 }
 
 const addEnvVar = () => {

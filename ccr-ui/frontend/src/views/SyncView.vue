@@ -26,9 +26,9 @@
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
-          { label: '首页', path: '/', icon: Home },
-          { label: 'Claude Code', path: '/claude-code', icon: Code2 },
-          { label: '云同步', path: '/sync', icon: Cloud }
+          { label: $t('sync.breadcrumb.home'), path: '/', icon: Home },
+          { label: $t('sync.breadcrumb.claudeCode'), path: '/claude-code', icon: Code2 },
+          { label: $t('sync.breadcrumb.sync'), path: '/sync', icon: Cloud }
         ]"
         module-color="#6366f1"
       />
@@ -47,13 +47,13 @@
             </div>
             <div>
               <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[#06b6d4] via-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent">
-                WebDAV 云同步
+                {{ $t('sync.title') }}
               </h1>
               <p
                 class="text-lg"
                 :style="{ color: 'var(--text-secondary)' }"
               >
-                预设平台选择 · 一键同步 · 智能管理
+                {{ $t('sync.subtitle') }}
               </p>
             </div>
           </div>
@@ -68,12 +68,12 @@
             <span
               class="font-medium"
               :style="{ color: 'var(--text-secondary)' }"
-            >返回首页</span>
+            >{{ $t('sync.backHome') }}</span>
           </RouterLink>
         </div>
       </div>
 
-      <!-- 加载状态 -->
+      <!-- Loading state -->
       <div
         v-if="loading"
         class="flex items-center justify-center py-16"
@@ -81,12 +81,12 @@
         <div class="p-8 glass-card">
           <RefreshCw
             class="w-12 h-12 animate-spin"
-            :style="{ color: '#06b6d4' }"
+            :style="{ color: 'var(--accent-info)' }"
           />
         </div>
       </div>
 
-      <!-- 错误状态 -->
+      <!-- Error state -->
       <div
         v-else-if="error"
         class="glass-card p-6 flex items-start gap-4"
@@ -97,7 +97,7 @@
         >
           <XCircle
             class="w-7 h-7"
-            :style="{ color: '#ef4444' }"
+            :style="{ color: 'var(--accent-danger)' }"
           />
         </div>
         <div class="flex-1">
@@ -105,7 +105,7 @@
             class="font-bold text-xl mb-2"
             :style="{ color: 'var(--text-primary)' }"
           >
-            加载失败
+            {{ $t('sync.loadFailed') }}
           </h3>
           <p
             class="text-base"
@@ -123,9 +123,9 @@
       >
         <!-- 左侧主内容区 (2 columns) -->
         <div class="lg:col-span-2 space-y-6">
-          <!-- 预设同步项目选择 -->
+          <!-- Platform selection -->
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
-            <!-- 头部 -->
+            <!-- Header -->
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
                 <div
@@ -134,28 +134,28 @@
                 >
                   <CheckSquare
                     class="w-6 h-6"
-                    :style="{ color: '#10b981' }"
+                    :style="{ color: 'var(--accent-success)' }"
                   />
                 </div>
                 <h2
                   class="text-2xl font-bold"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  选择同步平台
+                  {{ $t('sync.platformSelection.title') }}
                 </h2>
               </div>
               <button
                 :disabled="applying || !hasChanges"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                :style="{ background: applying || !hasChanges ? 'rgba(156, 163, 175, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: applying || !hasChanges ? '#9ca3af' : '#10b981' }"
+                :style="{ background: applying || !hasChanges ? 'rgba(156, 163, 175, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: applying || !hasChanges ? '#9ca3af' : 'var(--accent-success)' }"
                 @click="applySelection"
               >
                 <Save class="w-4 h-4" />
-                <span>{{ applying ? '应用中...' : '应用选择' }}</span>
+                <span>{{ applying ? $t('sync.platformSelection.applying') : $t('sync.platformSelection.applyButton') }}</span>
               </button>
             </div>
 
-            <!-- Config (必选项) -->
+            <!-- Config (required) -->
             <div
               class="mb-6 p-5 rounded-xl glass-card"
               :style="{ background: 'rgba(245, 158, 11, 0.05)' }"
@@ -167,7 +167,7 @@
                 >
                   <CheckCircle
                     class="w-6 h-6"
-                    :style="{ color: '#f59e0b' }"
+                    :style="{ color: 'var(--accent-warning)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -176,20 +176,20 @@
                       class="text-lg font-bold"
                       :style="{ color: 'var(--text-primary)' }"
                     >
-                      Platforms 平台配置
+                      {{ $t('sync.platformSelection.configRequired') }}
                     </h3>
                     <span
                       class="px-2.5 py-1 rounded-full text-xs font-bold"
-                      :style="{ background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' }"
+                      :style="{ background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-warning)' }"
                     >
-                      必选
+                      {{ $t('sync.platformSelection.configRequiredBadge') }}
                     </span>
                   </div>
                   <p
                     class="text-sm mb-3"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    CCR 供应商配置（API地址、密钥等），强制同步保证配置一致性
+                    {{ $t('sync.platformSelection.configDescription') }}
                   </p>
                   <div class="flex items-center gap-2">
                     <Folder
@@ -201,7 +201,7 @@
                       type="text"
                       class="flex-1 px-3 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                       :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                      placeholder="本地路径"
+                      :placeholder="$t('sync.customFolder.localPathPlaceholder')"
                     >
                   </div>
                 </div>
@@ -276,7 +276,7 @@
                           type="text"
                           class="flex-1 px-3 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                           :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                          placeholder="本地路径"
+                          :placeholder="$t('sync.customFolder.localPathPlaceholder')"
                         >
                       </div>
                       <div class="flex items-center gap-2">
@@ -289,7 +289,7 @@
                           type="text"
                           class="flex-1 px-3 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                           :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                          placeholder="远程路径 (可选)"
+                          :placeholder="$t('sync.customFolder.remotePathPlaceholder')"
                         >
                       </div>
                     </div>
@@ -298,7 +298,7 @@
               </div>
             </div>
 
-            <!-- 自定义文件夹 -->
+            <!-- Custom folder -->
             <div
               class="mt-6 p-5 rounded-xl glass-card"
               :style="{ background: 'rgba(139, 92, 246, 0.05)' }"
@@ -310,42 +310,42 @@
                 >
                   <Plus
                     class="w-5 h-5"
-                    :style="{ color: '#8b5cf6' }"
+                    :style="{ color: 'var(--accent-secondary)' }"
                   />
                 </div>
                 <h3
                   class="text-lg font-bold"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  自定义文件夹
+                  {{ $t('sync.customFolder.title') }}
                 </h3>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <input
                   v-model="customFolder.name"
                   type="text"
-                  placeholder="文件夹名称"
+                  :placeholder="$t('sync.customFolder.namePlaceholder')"
                   class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                   :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
                 >
                 <input
                   v-model="customFolder.localPath"
                   type="text"
-                  placeholder="本地路径"
+                  :placeholder="$t('sync.customFolder.localPathPlaceholder')"
                   class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                   :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
                 >
                 <input
                   v-model="customFolder.remotePath"
                   type="text"
-                  placeholder="远程路径 (可选)"
+                  :placeholder="$t('sync.customFolder.remotePathPlaceholder')"
                   class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                   :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
                 >
                 <input
                   v-model="customFolder.description"
                   type="text"
-                  placeholder="描述 (可选)"
+                  :placeholder="$t('sync.customFolder.descriptionPlaceholder')"
                   class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
                   :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
                 >
@@ -353,16 +353,16 @@
               <button
                 :disabled="!customFolder.name || !customFolder.localPath || addingCustom"
                 class="w-full px-4 py-2.5 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+                :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--accent-secondary)' }"
                 @click="addCustomFolder"
               >
                 <Plus class="w-5 h-5" />
-                {{ addingCustom ? '添加中...' : '添加自定义文件夹' }}
+                {{ addingCustom ? $t('sync.customFolder.adding') : $t('sync.customFolder.addButton') }}
               </button>
             </div>
           </div>
 
-          <!-- 已启用的文件夹列表 -->
+          <!-- Enabled folders list -->
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
@@ -372,26 +372,26 @@
                 >
                   <Folders
                     class="w-6 h-6"
-                    :style="{ color: '#3b82f6' }"
+                    :style="{ color: 'var(--accent-info)' }"
                   />
                 </div>
                 <h2
                   class="text-2xl font-bold"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  已启用的文件夹
+                  {{ $t('sync.enabledFolders.title') }}
                 </h2>
               </div>
               <button
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card transition-all duration-300 hover:scale-105"
-                :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
+                :style="{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-info)' }"
                 @click="refreshFolders"
               >
                 <RefreshCw
                   class="w-4 h-4"
                   :class="{ 'animate-spin': refreshingFolders }"
                 />
-                <span class="font-medium">刷新</span>
+                <span class="font-medium">{{ $t('sync.enabledFolders.refresh') }}</span>
               </button>
             </div>
             <div
@@ -411,13 +411,13 @@
                 class="text-lg mt-4"
                 :style="{ color: 'var(--text-secondary)' }"
               >
-                暂无启用的同步文件夹
+                {{ $t('sync.enabledFolders.noFolders') }}
               </p>
               <p
                 class="text-sm mt-2"
                 :style="{ color: 'var(--text-muted)' }"
               >
-                请在上方选择要同步的平台
+                {{ $t('sync.enabledFolders.noFoldersHint') }}
               </p>
             </div>
 
@@ -442,12 +442,12 @@
                       </h4>
                       <span
                         class="px-3 py-1 rounded-full text-sm font-medium"
-                        :style="{ 
+                        :style="{
                           background: folder.enabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(156, 163, 175, 0.15)',
-                          color: folder.enabled ? '#10b981' : '#9ca3af'
+                          color: folder.enabled ? 'var(--accent-success)' : '#9ca3af'
                         }"
                       >
-                        {{ folder.enabled ? '✓ 已启用' : '✗ 已禁用' }}
+                        {{ folder.enabled ? $t('sync.enabledFolders.enabled') : $t('sync.enabledFolders.disabled') }}
                       </span>
                     </div>
                     <p
@@ -476,56 +476,56 @@
                   </div>
                 </div>
 
-                <!-- 操作按钮 -->
+                <!-- Action buttons -->
                 <div class="flex flex-wrap gap-2">
                   <button
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
-                    :style="{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }"
+                    :style="{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)' }"
                     @click="toggleFolder(folder.name, folder.enabled)"
                   >
                     <ToggleLeft class="w-4 h-4" />
-                    {{ folder.enabled ? '禁用' : '启用' }}
+                    {{ folder.enabled ? $t('sync.operations.disable') : $t('sync.operations.enable') }}
                   </button>
                   <button
                     :disabled="!folder.enabled"
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
+                    :style="{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-success)' }"
                     @click="pushFolder(folder.name)"
                   >
                     <Upload class="w-4 h-4" />
-                    上传
+                    {{ $t('sync.operations.upload') }}
                   </button>
                   <button
                     :disabled="!folder.enabled"
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+                    :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--accent-secondary)' }"
                     @click="pullFolder(folder.name)"
                   >
                     <Download class="w-4 h-4" />
-                    下载
+                    {{ $t('sync.operations.download') }}
                   </button>
                   <button
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
-                    :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
+                    :style="{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-info)' }"
                     @click="getFolderStatus(folder.name)"
                   >
                     <Info class="w-4 h-4" />
-                    状态
+                    {{ $t('sync.operations.status') }}
                   </button>
                   <button
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
-                    :style="{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }"
+                    :style="{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)' }"
                     @click="removeFolder(folder.name)"
                   >
                     <Trash2 class="w-4 h-4" />
-                    删除
+                    {{ $t('sync.operations.delete') }}
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 批量操作卡片 -->
+          <!-- Batch operations card -->
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
             <div class="flex items-center gap-3 mb-4">
               <div
@@ -534,14 +534,14 @@
               >
                 <Layers
                   class="w-6 h-6"
-                  :style="{ color: '#f59e0b' }"
+                  :style="{ color: 'var(--accent-warning)' }"
                 />
               </div>
               <h2
                 class="text-2xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                批量操作
+                {{ $t('sync.batchOperations.title') }}
               </h2>
             </div>
 
@@ -549,40 +549,40 @@
               class="text-sm mb-4"
               :style="{ color: 'var(--text-secondary)' }"
             >
-              对所有启用的文件夹执行批量同步操作
+              {{ $t('sync.batchOperations.description') }}
             </p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button
                 :disabled="batchOperating || enabledFolders.length === 0"
                 class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
+                :style="{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-success)' }"
                 @click="pushAllFolders"
               >
                 <Upload class="w-5 h-5" />
-                全部上传
+                {{ $t('sync.batchOperations.uploadAll') }}
               </button>
               <button
                 :disabled="batchOperating || enabledFolders.length === 0"
                 class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+                :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--accent-secondary)' }"
                 @click="pullAllFolders"
               >
                 <Download class="w-5 h-5" />
-                全部下载
+                {{ $t('sync.batchOperations.downloadAll') }}
               </button>
               <button
                 :disabled="batchOperating || enabledFolders.length === 0"
                 class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
+                :style="{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-info)' }"
                 @click="getAllFoldersStatus"
               >
                 <Info class="w-5 h-5" />
-                查看状态
+                {{ $t('sync.batchOperations.viewStatus') }}
               </button>
             </div>
           </div>
 
-          <!-- 操作输出卡片 -->
+          <!-- Operation output card -->
           <div
             v-if="operationOutput"
             class="glass-card p-6"
@@ -595,14 +595,14 @@
                 >
                   <Terminal
                     class="w-5 h-5"
-                    :style="{ color: '#6366f1' }"
+                    :style="{ color: 'var(--accent-primary)' }"
                   />
                 </div>
                 <h2
                   class="text-xl font-bold"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  操作输出
+                  {{ $t('sync.output.title') }}
                 </h2>
               </div>
               <button
@@ -625,7 +625,7 @@
 
         <!-- 右侧信息区 (1 column) -->
         <div class="space-y-6">
-          <!-- WebDAV 配置状态 -->
+          <!-- WebDAV configuration status -->
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
             <div class="flex items-center gap-3 mb-6">
               <div
@@ -634,14 +634,14 @@
               >
                 <Settings
                   class="w-6 h-6"
-                  :style="{ color: '#6366f1' }"
+                  :style="{ color: 'var(--accent-primary)' }"
                 />
               </div>
               <h2
                 class="text-xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                WebDAV 配置
+                {{ $t('sync.webdav.title') }}
               </h2>
             </div>
 
@@ -655,12 +655,12 @@
               >
                 <CheckCircle
                   class="w-5 h-5"
-                  :style="{ color: '#10b981' }"
+                  :style="{ color: 'var(--accent-success)' }"
                 />
                 <span
                   class="font-medium"
                   :style="{ color: 'var(--text-primary)' }"
-                >已配置</span>
+                >{{ $t('sync.webdav.configured') }}</span>
               </div>
 
               <div class="space-y-3">
@@ -669,7 +669,7 @@
                     class="text-xs mb-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    服务器
+                    {{ $t('sync.webdav.server') }}
                   </div>
                   <div
                     class="text-sm font-mono break-all"
@@ -683,7 +683,7 @@
                     class="text-xs mb-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    用户
+                    {{ $t('sync.webdav.username') }}
                   </div>
                   <div
                     class="text-sm font-mono"
@@ -697,7 +697,7 @@
                     class="text-xs mb-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    远程路径
+                    {{ $t('sync.webdav.remotePath') }}
                   </div>
                   <div
                     class="text-sm font-mono break-all"
@@ -719,27 +719,27 @@
               >
                 <AlertCircle
                   class="w-5 h-5"
-                  :style="{ color: '#f59e0b' }"
+                  :style="{ color: 'var(--accent-warning)' }"
                 />
                 <span
                   class="font-medium"
                   :style="{ color: 'var(--text-primary)' }"
-                >未配置</span>
+                >{{ $t('sync.webdav.notConfigured') }}</span>
               </div>
               <p
                 class="text-sm"
                 :style="{ color: 'var(--text-secondary)' }"
               >
-                请使用 CLI 配置 WebDAV:
+                {{ $t('sync.webdav.configureHint') }}
               </p>
               <code
                 class="block text-sm font-mono glass-card p-3 rounded-lg"
                 :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-              >ccr sync config</code>
+              >{{ $t('sync.webdav.configureCommand') }}</code>
             </div>
           </div>
 
-          <!-- 功能说明 -->
+          <!-- Features description -->
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
             <div class="flex items-center gap-3 mb-6">
               <div
@@ -748,14 +748,14 @@
               >
                 <BookOpen
                   class="w-6 h-6"
-                  :style="{ color: '#ec4899' }"
+                  :style="{ color: 'var(--accent-tertiary)' }"
                 />
               </div>
               <h2
                 class="text-xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                功能说明
+                {{ $t('sync.features.title') }}
               </h2>
             </div>
 
@@ -768,41 +768,41 @@
                   class="font-bold mb-2"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  ✅ 预设平台选择
+                  {{ $t('sync.features.presetPlatform') }}
                 </h4>
-                <p>Config 必选，Claude/Gemini/Qwen 可选，一键配置常用平台</p>
+                <p>{{ $t('sync.features.presetPlatformDesc') }}</p>
               </div>
               <div>
                 <h4
                   class="font-bold mb-2"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  🔄 独立文件夹管理
+                  {{ $t('sync.features.independentManagement') }}
                 </h4>
-                <p>每个文件夹独立同步，可单独启用/禁用和操作</p>
+                <p>{{ $t('sync.features.independentManagementDesc') }}</p>
               </div>
               <div>
                 <h4
                   class="font-bold mb-2"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  💾 智能过滤
+                  {{ $t('sync.features.smartFiltering') }}
                 </h4>
-                <p>自动排除 backups/、.locks/、*.tmp、*.bak 等文件</p>
+                <p>{{ $t('sync.features.smartFilteringDesc') }}</p>
               </div>
               <div>
                 <h4
                   class="font-bold mb-2"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  ⚡ 批量操作
+                  {{ $t('sync.features.batchOperations') }}
                 </h4>
-                <p>一键上传/下载所有启用的文件夹，提高效率</p>
+                <p>{{ $t('sync.features.batchOperationsDesc') }}</p>
               </div>
             </div>
           </div>
 
-          <!-- 支持的服务 -->
+          <!-- Supported services -->
           <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
             <div class="flex items-center gap-3 mb-6">
               <div
@@ -811,14 +811,14 @@
               >
                 <Server
                   class="w-6 h-6"
-                  :style="{ color: '#10b981' }"
+                  :style="{ color: 'var(--accent-success)' }"
                 />
               </div>
               <h2
                 class="text-xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                支持的服务
+                {{ $t('sync.supportedServices.title') }}
               </h2>
             </div>
 
@@ -829,30 +829,30 @@
               <div class="flex items-center gap-2">
                 <CheckCircle
                   class="w-4 h-4"
-                  :style="{ color: '#10b981' }"
+                  :style="{ color: 'var(--accent-success)' }"
                 />
-                <span>坚果云 (Nutstore)</span>
+                <span>{{ $t('sync.supportedServices.nutstore') }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <CheckCircle
                   class="w-4 h-4"
-                  :style="{ color: '#10b981' }"
+                  :style="{ color: 'var(--accent-success)' }"
                 />
-                <span>Nextcloud</span>
+                <span>{{ $t('sync.supportedServices.nextcloud') }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <CheckCircle
                   class="w-4 h-4"
-                  :style="{ color: '#10b981' }"
+                  :style="{ color: 'var(--accent-success)' }"
                 />
-                <span>ownCloud</span>
+                <span>{{ $t('sync.supportedServices.owncloud') }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <CheckCircle
                   class="w-4 h-4"
-                  :style="{ color: '#10b981' }"
+                  :style="{ color: 'var(--accent-success)' }"
                 />
-                <span>任何标准 WebDAV 服务器</span>
+                <span>{{ $t('sync.supportedServices.any') }}</span>
               </div>
             </div>
           </div>
@@ -865,7 +865,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
+
+const { t } = useI18n()
 import {
   Cloud,
   Home,
@@ -1054,14 +1057,14 @@ const addCustomFolder = async () => {
 
     const response = await axios.post(`${API_BASE_URL}/api/sync/folders`, payload)
     if (response.data.success) {
-      operationOutput.value = `✓ 成功添加自定义文件夹: ${customFolder.value.name}`
+      operationOutput.value = `${t('sync.messages.addSuccess')}: ${customFolder.value.name}`
       customFolder.value = { name: '', localPath: '', remotePath: '', description: '' }
       await refreshFolders()
     } else {
-      operationOutput.value = `✗ 添加失败: ${response.data.message}`
+      operationOutput.value = `${t('sync.messages.addFailed')}: ${response.data.message}`
     }
   } catch (err: any) {
-    operationOutput.value = `✗ 添加失败: ${err.response?.data?.message || err.message}`
+    operationOutput.value = `${t('sync.messages.addFailed')}: ${err.response?.data?.message || err.message}`
   } finally {
     addingCustom.value = false
   }
@@ -1109,84 +1112,85 @@ const refreshFolders = async () => {
   }
 }
 
-// 删除文件夹
+// Delete folder
 const removeFolder = async (name: string) => {
-  if (!confirm(`确定要删除文件夹 "${name}" 吗？\n\n注意：这只会移除同步配置，不会删除本地文件。`)) {
+  if (!confirm(t('sync.messages.deleteConfirm', { name }))) {
     return
   }
 
   try {
     const response = await axios.delete(`${API_BASE_URL}/api/sync/folders/${name}`)
     if (response.data.success) {
-      operationOutput.value = `✓ 成功删除文件夹: ${name}`
+      operationOutput.value = `${t('sync.messages.deleteSuccess')}: ${name}`
       await refreshFolders()
     } else {
-      operationOutput.value = `✗ 删除失败: ${response.data.message}`
+      operationOutput.value = `${t('sync.messages.deleteFailed')}: ${response.data.message}`
     }
   } catch (err: any) {
-    operationOutput.value = `✗ 删除失败: ${err.response?.data?.message || err.message}`
+    operationOutput.value = `${t('sync.messages.deleteFailed')}: ${err.response?.data?.message || err.message}`
   }
 }
 
-// 切换文件夹状态
+// Toggle folder status
 const toggleFolder = async (name: string, currentEnabled: boolean) => {
   const action = currentEnabled ? 'disable' : 'enable'
+  const actionText = currentEnabled ? t('sync.messages.disabled') : t('sync.messages.enabled')
   try {
     const response = await axios.put(`${API_BASE_URL}/api/sync/folders/${name}/${action}`)
     if (response.data.success) {
-      operationOutput.value = `✓ 成功${currentEnabled ? '禁用' : '启用'}文件夹: ${name}`
+      operationOutput.value = t('sync.messages.toggleSuccess', { action: actionText }) + `: ${name}`
       await refreshFolders()
     } else {
-      operationOutput.value = `✗ 操作失败: ${response.data.message}`
+      operationOutput.value = `${t('sync.messages.toggleFailed')}: ${response.data.message}`
     }
   } catch (err: any) {
-    operationOutput.value = `✗ 操作失败: ${err.response?.data?.message || err.message}`
+    operationOutput.value = `${t('sync.messages.toggleFailed')}: ${err.response?.data?.message || err.message}`
   }
 }
 
-// 上传文件夹
+// Upload folder
 const pushFolder = async (name: string) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/api/sync/folders/${name}/push`, { force: false })
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
-      operationOutput.value = `✗ 上传失败: ${response.data.data.error}`
+      operationOutput.value = `${t('sync.messages.uploadFailed')}: ${response.data.data.error}`
     }
   } catch (err: any) {
-    operationOutput.value = `✗ 上传失败: ${err.response?.data?.message || err.message}`
+    operationOutput.value = `${t('sync.messages.uploadFailed')}: ${err.response?.data?.message || err.message}`
   }
 }
 
-// 下载文件夹
+// Download folder
 const pullFolder = async (name: string) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/api/sync/folders/${name}/pull`, { force: false })
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
-      operationOutput.value = `✗ 下载失败: ${response.data.data.error}`
+      operationOutput.value = `${t('sync.messages.downloadFailed')}: ${response.data.data.error}`
     }
   } catch (err: any) {
-    operationOutput.value = `✗ 下载失败: ${err.response?.data?.message || err.message}`
+    operationOutput.value = `${t('sync.messages.downloadFailed')}: ${err.response?.data?.message || err.message}`
   }
 }
 
-// 获取文件夹状态
+// Get folder status
 const getFolderStatus = async (name: string) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/api/sync/folders/${name}/status`)
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
-      operationOutput.value = `✗ 获取状态失败: ${response.data.message}`
+      operationOutput.value = `${t('sync.messages.statusFailed')}: ${response.data.message}`
     }
   } catch (err: any) {
-    operationOutput.value = `✗ 获取状态失败: ${err.response?.data?.message || err.message}`
+    operationOutput.value = `${t('sync.messages.statusFailed')}: ${err.response?.data?.message || err.message}`
   }
 }
 
-// 批量上传
+// Batch upload
 const pushAllFolders = async () => {
   batchOperating.value = true
   try {
@@ -1194,16 +1198,16 @@ const pushAllFolders = async () => {
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
-      operationOutput.value = `✗ 批量上传失败: ${response.data.data.error}`
+      operationOutput.value = `${t('sync.messages.batchUploadFailed')}: ${response.data.data.error}`
     }
   } catch (err: any) {
-    operationOutput.value = `✗ 批量上传失败: ${err.response?.data?.message || err.message}`
+    operationOutput.value = `${t('sync.messages.batchUploadFailed')}: ${err.response?.data?.message || err.message}`
   } finally {
     batchOperating.value = false
   }
 }
 
-// 批量下载
+// Batch download
 const pullAllFolders = async () => {
   batchOperating.value = true
   try {
@@ -1211,16 +1215,16 @@ const pullAllFolders = async () => {
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
-      operationOutput.value = `✗ 批量下载失败: ${response.data.data.error}`
+      operationOutput.value = `${t('sync.messages.batchDownloadFailed')}: ${response.data.data.error}`
     }
   } catch (err: any) {
-    operationOutput.value = `✗ 批量下载失败: ${err.response?.data?.message || err.message}`
+    operationOutput.value = `${t('sync.messages.batchDownloadFailed')}: ${err.response?.data?.message || err.message}`
   } finally {
     batchOperating.value = false
   }
 }
 
-// 批量查看状态
+// Batch view status
 const getAllFoldersStatus = async () => {
   batchOperating.value = true
   try {
@@ -1228,10 +1232,10 @@ const getAllFoldersStatus = async () => {
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
-      operationOutput.value = `✗ 获取状态失败: ${response.data.message}`
+      operationOutput.value = `${t('sync.messages.statusFailed')}: ${response.data.message}`
     }
   } catch (err: any) {
-    operationOutput.value = `✗ 获取状态失败: ${err.response?.data?.message || err.message}`
+    operationOutput.value = `${t('sync.messages.statusFailed')}: ${err.response?.data?.message || err.message}`
   } finally {
     batchOperating.value = false
   }
@@ -1246,7 +1250,7 @@ onMounted(async () => {
       fetchFolders()
     ])
   } catch (err: any) {
-    error.value = err.response?.data?.message || err.message || '加载失败'
+    error.value = err.response?.data?.message || err.message || t('sync.loadFailed')
   } finally {
     loading.value = false
   }

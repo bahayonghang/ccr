@@ -4,9 +4,9 @@
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
-          { label: '首页', path: '/', icon: Home },
+          { label: $t('common.home'), path: '/', icon: Home },
           { label: 'iFlow', path: '/iflow', icon: Flame },
-          { label: '插件管理', path: '/iflow/plugins', icon: Puzzle }
+          { label: $t('iflow.plugins.title'), path: '/iflow/plugins', icon: Puzzle }
         ]"
         module-color="#f97316"
       />
@@ -27,7 +27,7 @@
                 class="text-2xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                iFlow 插件管理
+                {{ $t('iflow.plugins.title') }}
               </h1>
               <span
                 class="px-3 py-1 rounded-full text-sm font-medium"
@@ -40,14 +40,14 @@
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                 :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
               >
-                <Home class="w-4 h-4" /><span>返回首页</span>
+                <Home class="w-4 h-4" /><span>{{ $t('common.backHome') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="handleAdd"
               >
-                <Plus class="w-4 h-4" />添加插件
+                <Plus class="w-4 h-4" />{{ $t('iflow.plugins.addPlugin') }}
               </button>
             </div>
           </div>
@@ -67,7 +67,7 @@
             class="text-center py-10"
             :style="{ color: 'var(--text-muted)' }"
           >
-            暂无插件配置
+            {{ $t('iflow.plugins.emptyState') }}
           </div>
 
           <div
@@ -101,7 +101,7 @@
                   v-if="!plugin.enabled"
                   class="px-2 py-0.5 rounded text-xs font-semibold uppercase"
                   :style="{ background: 'var(--accent-danger)', color: 'white' }"
-                >已禁用</span>
+                >{{ $t('common.disabled') }}</span>
               </div>
 
               <div class="mb-4">
@@ -124,7 +124,7 @@
                 <button
                   class="flex-1 p-2 rounded-lg transition-all hover:scale-105 flex items-center justify-center gap-1 text-sm font-medium"
                   :style="{ background: plugin.enabled ? '#fef3c7' : '#d1fae5', color: plugin.enabled ? '#92400e' : '#065f46' }"
-                  :title="plugin.enabled ? '禁用' : '启用'"
+                  :title="plugin.enabled ? $t('common.disable') : $t('common.enable')"
                   @click="handleToggle(plugin.id)"
                 >
                   <PowerOff
@@ -134,12 +134,12 @@
                     v-else
                     class="w-4 h-4"
                   />
-                  <span>{{ plugin.enabled ? '禁用' : '启用' }}</span>
+                  <span>{{ plugin.enabled ? $t('common.disable') : $t('common.enable') }}</span>
                 </button>
                 <button
                   class="p-2 rounded-lg transition-all hover:scale-110"
                   :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-primary)' }"
-                  title="编辑"
+                  :title="$t('common.edit')"
                   @click="handleEdit(plugin)"
                 >
                   <Edit2 class="w-4 h-4" />
@@ -147,7 +147,7 @@
                 <button
                   class="p-2 rounded-lg transition-all hover:scale-110"
                   :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
-                  title="删除"
+                  :title="$t('common.delete')"
                   @click="handleDelete(plugin.id)"
                 >
                   <Trash2 class="w-4 h-4" />
@@ -168,7 +168,7 @@
                 class="text-xl font-bold mb-4"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                {{ editingPlugin ? '编辑插件' : '添加插件' }}
+                {{ editingPlugin ? $t('iflow.plugins.editPlugin') : $t('iflow.plugins.addPlugin') }}
               </h2>
 
               <div class="space-y-4">
@@ -176,13 +176,13 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >插件 ID *</label>
+                  >{{ $t('iflow.plugins.id') }} *</label>
                   <input
                     v-model="formData.id"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: my-plugin"
+                    :placeholder="$t('iflow.plugins.idPlaceholder')"
                   >
                 </div>
 
@@ -190,13 +190,13 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >插件名称 *</label>
+                  >{{ $t('iflow.plugins.name') }} *</label>
                   <input
                     v-model="formData.name"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: My Plugin"
+                    :placeholder="$t('iflow.plugins.namePlaceholder')"
                   >
                 </div>
 
@@ -204,13 +204,13 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >版本 *</label>
+                  >{{ $t('iflow.plugins.version') }} *</label>
                   <input
                     v-model="formData.version"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: 1.0.0"
+                    :placeholder="$t('iflow.plugins.versionPlaceholder')"
                   >
                 </div>
 
@@ -218,19 +218,19 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >配置 JSON</label>
+                  >{{ $t('iflow.plugins.config') }}</label>
                   <textarea
                     v-model="configJson"
                     rows="10"
                     class="w-full px-3 py-2 rounded-lg font-mono text-sm"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="{&quot;key&quot;: &quot;value&quot;}"
+                    :placeholder="$t('iflow.plugins.configPlaceholder')"
                   />
                   <div
                     class="text-xs mt-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    可选，输入合法的 JSON 格式配置
+                    {{ $t('iflow.plugins.configHint') }}
                   </div>
                 </div>
 
@@ -245,7 +245,7 @@
                     for="enabled"
                     class="text-sm"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >启用此插件</label>
+                  >{{ $t('iflow.plugins.enablePlugin') }}</label>
                 </div>
               </div>
 
@@ -255,14 +255,14 @@
                   :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
                   @click="handleSubmit"
                 >
-                  {{ editingPlugin ? '更新' : '添加' }}
+                  {{ editingPlugin ? $t('common.update') : $t('common.add') }}
                 </button>
                 <button
                   class="flex-1 px-4 py-2 rounded-lg font-semibold"
                   :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }"
                   @click="showAddForm = false"
                 >
-                  取消
+                  {{ $t('common.cancel') }}
                 </button>
               </div>
             </div>
@@ -276,11 +276,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home
+import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home, Flame
 } from 'lucide-vue-next'
 import { listIflowPlugins, addIflowPlugin, updateIflowPlugin, deleteIflowPlugin, toggleIflowPlugin, listConfigs, getHistory } from '@/api/client'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
+import Breadcrumb from '@/components/Breadcrumb.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const plugins = ref<PluginType[]>([])
 const loading = ref(true)
@@ -311,7 +315,7 @@ const loadPlugins = async () => {
   } catch (err) {
     console.error('Failed to load plugins:', err)
     plugins.value = []
-    alert('加载插件失败')
+    alert(t('iflow.plugins.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -337,7 +341,7 @@ const handleEdit = (plugin: PluginType) => {
 
 const handleSubmit = async () => {
   if (!formData.value.id || !formData.value.name || !formData.value.version) {
-    alert('请填写必填字段')
+    alert(t('iflow.plugins.validation.requiredFields'))
     return
   }
 
@@ -346,7 +350,7 @@ const handleSubmit = async () => {
     try {
       config = JSON.parse(configJson.value)
     } catch (err) {
-      alert('配置 JSON 格式错误')
+      alert(t('iflow.plugins.validation.invalidJson'))
       return
     }
   }
@@ -356,27 +360,27 @@ const handleSubmit = async () => {
   try {
     if (editingPlugin.value) {
       await updateIflowPlugin(editingPlugin.value.id, request)
-      alert('✓ 插件更新成功')
+      alert(t('iflow.plugins.updateSuccess'))
     } else {
       await addIflowPlugin(request)
-      alert('✓ 插件添加成功')
+      alert(t('iflow.plugins.addSuccess'))
     }
     showAddForm.value = false
     await loadPlugins()
   } catch (err) {
-    alert(`操作失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    alert(t('iflow.plugins.operationFailed', { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 
 const handleDelete = async (id: string) => {
-  if (!confirm(`确定删除插件 "${id}" 吗？`)) return
+  if (!confirm(t('iflow.plugins.confirmDelete', { id }))) return
 
   try {
     await deleteIflowPlugin(id)
-    alert('✓ 插件删除成功')
+    alert(t('iflow.plugins.deleteSuccess'))
     await loadPlugins()
   } catch (err) {
-    alert(`删除失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    alert(t('iflow.plugins.deleteFailed', { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 
@@ -385,7 +389,7 @@ const handleToggle = async (id: string) => {
     await toggleIflowPlugin(id)
     await loadPlugins()
   } catch (err) {
-    alert(`切换失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    alert(t('iflow.plugins.toggleFailed', { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 

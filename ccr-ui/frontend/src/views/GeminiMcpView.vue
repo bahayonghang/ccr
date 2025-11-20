@@ -4,9 +4,9 @@
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
-          { label: '首页', path: '/', icon: Home },
+          { label: $t('common.home'), path: '/', icon: Home },
           { label: 'Gemini CLI', path: '/gemini-cli', icon: Sparkles },
-          { label: 'MCP 服务器', path: '/gemini-cli/mcp', icon: Server }
+          { label: $t('gemini.mcp.title'), path: '/gemini-cli/mcp', icon: Server }
         ]"
         module-color="#8b5cf6"
       />
@@ -27,7 +27,7 @@
                 class="text-2xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                Gemini MCP 服务器
+                {{ $t('gemini.mcp.pageTitle') }}
               </h1>
             </div>
             <div class="flex items-center gap-3">
@@ -36,14 +36,14 @@
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                 :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
               >
-                <ArrowLeft class="w-4 h-4" /><span>返回</span>
+                <ArrowLeft class="w-4 h-4" /><span>{{ $t('common.back') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="handleAdd"
               >
-                <Plus class="w-4 h-4" />添加服务器
+                <Plus class="w-4 h-4" />{{ $t('gemini.mcp.addServer') }}
               </button>
             </div>
           </div>
@@ -67,7 +67,7 @@
               class="text-center py-10"
               :style="{ color: 'var(--text-muted)' }"
             >
-              暂无 Gemini MCP 服务器配置
+              {{ $t('gemini.mcp.emptyState') }}
             </div>
 
             <div
@@ -169,7 +169,7 @@
                 class="text-xl font-bold mb-4"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                {{ editingServer ? '编辑服务器' : '添加服务器' }}
+                {{ editingServer ? $t('gemini.mcp.editServer') : $t('gemini.mcp.addServer') }}
               </h2>
 
               <div class="mb-4">
@@ -182,7 +182,7 @@
                   <span
                     class="text-sm font-semibold"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >HTTP 服务器（勾选则为 HTTP，否则为 STDIO）</span>
+                  >{{ $t('gemini.mcp.httpServerHint') }}</span>
                 </label>
               </div>
 
@@ -191,13 +191,13 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >服务器 URL *</label>
+                  >{{ $t('gemini.mcp.urlLabel') }}</label>
                   <input
                     v-model="formData.url"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: http://localhost:3000"
+                    :placeholder="$t('gemini.mcp.urlPlaceholder')"
                   >
                 </div>
 
@@ -205,13 +205,13 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >命令 *</label>
+                  >{{ $t('gemini.mcp.commandLabel') }}</label>
                   <input
                     v-model="formData.command"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: npx"
+                    :placeholder="$t('gemini.mcp.commandPlaceholder')"
                   >
                 </div>
 
@@ -219,19 +219,19 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >参数</label>
+                  >{{ $t('gemini.mcp.argsLabel') }}</label>
                   <input
                     v-model="argInput"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    placeholder="例如: -y @modelcontextprotocol/server-filesystem"
+                    :placeholder="$t('gemini.mcp.argPlaceholder')"
                   >
                   <div
                     class="text-xs mt-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    用空格分隔多个参数
+                    {{ $t('gemini.mcp.argsHint') }}
                   </div>
                 </div>
 
@@ -239,28 +239,28 @@
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >环境变量</label>
+                  >{{ $t('gemini.mcp.envLabel') }}</label>
                   <div class="flex gap-2 mb-2">
                     <input
                       v-model="envKey"
                       type="text"
                       class="flex-1 px-3 py-2 rounded-lg font-mono"
                       :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                      placeholder="KEY"
+                      :placeholder="$t('gemini.mcp.envKey')"
                     >
                     <input
                       v-model="envValue"
                       type="text"
                       class="flex-1 px-3 py-2 rounded-lg font-mono"
                       :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                      placeholder="VALUE"
+                      :placeholder="$t('gemini.mcp.envValue')"
                     >
                     <button
                       class="px-4 py-2 rounded-lg font-semibold text-sm text-white"
                       :style="{ background: 'var(--accent-primary)' }"
                       @click="addEnvVar"
                     >
-                      添加
+                      {{ $t('gemini.mcp.addEnv') }}
                     </button>
                   </div>
                   <div class="space-y-1">
@@ -279,7 +279,7 @@
                         :style="{ color: 'var(--accent-danger)' }"
                         @click="removeEnvVar(key)"
                       >
-                        删除
+                        {{ $t('common.delete') }}
                       </button>
                     </div>
                   </div>
@@ -292,14 +292,14 @@
                   :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
                   @click="handleSubmit"
                 >
-                  {{ editingServer ? '更新' : '添加' }}
+                  {{ editingServer ? $t('gemini.mcp.save') : $t('gemini.mcp.add') }}
                 </button>
                 <button
                   class="flex-1 px-4 py-2 rounded-lg font-semibold"
                   :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }"
                   @click="showAddForm = false"
                 >
-                  取消
+                  {{ $t('common.cancel') }}
                 </button>
               </div>
             </div>
@@ -313,11 +313,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Server, Plus, Edit2, Trash2, ArrowLeft } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Sparkles } from 'lucide-vue-next'
 import { listGeminiMcpServers, addGeminiMcpServer, updateGeminiMcpServer, deleteGeminiMcpServer, listConfigs, getHistory } from '@/api/client'
 import type { GeminiMcpServer, GeminiMcpServerRequest } from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+
+const { t } = useI18n()
 
 const servers = ref<GeminiMcpServer[]>([])
 const loading = ref(true)
@@ -348,7 +351,7 @@ const loadServers = async () => {
   } catch (err) {
     console.error('Failed to load Gemini MCP servers:', err)
     servers.value = []
-    alert('加载 Gemini MCP 服务器失败')
+    alert(t('gemini.mcp.messages.loadFailed'))
   } finally { loading.value = false }
 }
 
@@ -371,8 +374,8 @@ const handleEdit = (server: GeminiMcpServer) => {
 }
 
 const handleSubmit = async () => {
-  if (!isHttpServer.value && !formData.value.command) { alert('请填写命令'); return }
-  if (isHttpServer.value && !formData.value.url) { alert('请填写 URL'); return }
+  if (!isHttpServer.value && !formData.value.command) { alert(t('gemini.mcp.validation.required')); return }
+  if (isHttpServer.value && !formData.value.url) { alert(t('gemini.mcp.validation.required')); return }
 
   const args = argInput.value.split(' ').filter((a) => a.trim())
   const request: GeminiMcpServerRequest = { ...formData.value, args }
@@ -383,23 +386,23 @@ const handleSubmit = async () => {
     const _name = (request.command || request.url)!
     if (editingServer.value) {
       await updateGeminiMcpServer(editingServer.value.command || editingServer.value.url || '', request)
-      alert('✓ 服务器更新成功')
+      alert(t('gemini.mcp.messages.updateSuccess'))
     } else {
       await addGeminiMcpServer(request)
-      alert('✓ 服务器添加成功')
+      alert(t('gemini.mcp.messages.addSuccess'))
     }
     showAddForm.value = false
     await loadServers()
-  } catch (err) { alert(`操作失败: ${err instanceof Error ? err.message : 'Unknown error'}`) }
+  } catch (err) { alert(t('gemini.mcp.messages.operationFailed', { error: err instanceof Error ? err.message : 'Unknown error' })) }
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(`确定删除服务器 "${name}" 吗？`)) return
+  if (!confirm(t('gemini.mcp.deleteConfirm', { name }))) return
   try {
     await deleteGeminiMcpServer(name)
-    alert('✓ 服务器删除成功')
+    alert(t('gemini.mcp.messages.deleteSuccess'))
     await loadServers()
-  } catch (err) { alert(`删除失败: ${err instanceof Error ? err.message : 'Unknown error'}`) }
+  } catch (err) { alert(t('gemini.mcp.messages.deleteFailed', { error: err instanceof Error ? err.message : 'Unknown error' })) }
 }
 
 const addEnvVar = () => {
