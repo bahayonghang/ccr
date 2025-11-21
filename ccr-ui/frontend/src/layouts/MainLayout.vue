@@ -25,8 +25,8 @@
         <div class="px-3 space-y-1">
           <RouterLink 
             to="/" 
-            class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-            active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm"
+            class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:translate-x-1"
+            active-class="bg-gradient-to-r from-accent-primary/10 to-transparent text-accent-primary border-l-4 border-accent-primary font-bold shadow-sm"
           >
             <Home class="w-5 h-5 mr-3" />
             <span class="font-medium">首页</span>
@@ -47,40 +47,40 @@
           <div class="space-y-1">
             <RouterLink 
               to="/claude-code" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm"
+              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:translate-x-1"
+              active-class="bg-gradient-to-r from-accent-primary/10 to-transparent text-accent-primary border-l-4 border-accent-primary font-bold shadow-sm"
             >
               <Code2 class="w-5 h-5 mr-3" />
               <span class="font-medium">Claude Code</span>
             </RouterLink>
             <RouterLink 
               to="/codex" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm"
+              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:translate-x-1"
+              active-class="bg-gradient-to-r from-accent-primary/10 to-transparent text-accent-primary border-l-4 border-accent-primary font-bold shadow-sm"
             >
               <Settings class="w-5 h-5 mr-3" />
               <span class="font-medium">Codex</span>
             </RouterLink>
             <RouterLink 
               to="/gemini-cli" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm"
+              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:translate-x-1"
+              active-class="bg-gradient-to-r from-accent-primary/10 to-transparent text-accent-primary border-l-4 border-accent-primary font-bold shadow-sm"
             >
               <Sparkles class="w-5 h-5 mr-3" />
               <span class="font-medium">Gemini CLI</span>
             </RouterLink>
             <RouterLink 
               to="/qwen" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm"
+              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:translate-x-1"
+              active-class="bg-gradient-to-r from-accent-primary/10 to-transparent text-accent-primary border-l-4 border-accent-primary font-bold shadow-sm"
             >
               <Zap class="w-5 h-5 mr-3" />
               <span class="font-medium">Qwen</span>
             </RouterLink>
             <RouterLink 
               to="/iflow" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm"
+              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:translate-x-1"
+              active-class="bg-gradient-to-r from-accent-primary/10 to-transparent text-accent-primary border-l-4 border-accent-primary font-bold shadow-sm"
             >
               <Activity class="w-5 h-5 mr-3" />
               <span class="font-medium">IFLOW</span>
@@ -102,24 +102,24 @@
           <div class="space-y-1">
             <RouterLink 
               to="/commands" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm"
+              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:translate-x-1"
+              active-class="bg-gradient-to-r from-accent-primary/10 to-transparent text-accent-primary border-l-4 border-accent-primary font-bold shadow-sm"
             >
               <Terminal class="w-5 h-5 mr-3" />
               <span class="font-medium">命令执行</span>
             </RouterLink>
             <RouterLink 
               to="/converter" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm"
+              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:translate-x-1"
+              active-class="bg-gradient-to-r from-accent-primary/10 to-transparent text-accent-primary border-l-4 border-accent-primary font-bold shadow-sm"
             >
               <TrendingUp class="w-5 h-5 mr-3" />
               <span class="font-medium">配置转换</span>
             </RouterLink>
             <RouterLink 
               to="/sync" 
-              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-              active-class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-accent-primary border-l-4 border-accent-primary shadow-sm"
+              class="flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:translate-x-1"
+              active-class="bg-gradient-to-r from-accent-primary/10 to-transparent text-accent-primary border-l-4 border-accent-primary font-bold shadow-sm"
             >
               <Cloud class="w-5 h-5 mr-3" />
               <span class="font-medium">云同步</span>

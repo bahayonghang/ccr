@@ -54,6 +54,7 @@
 
     <!-- Chart Container -->
     <div
+      ref="chartContainer"
       class="relative w-full bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-900/30 dark:to-gray-800/30 rounded-xl p-6"
       style="height: 500px;"
     >
@@ -62,6 +63,8 @@
         class="w-full h-full"
         viewBox="0 0 1000 500"
         preserveAspectRatio="xMidYMid meet"
+        @mousemove="handleMouseMove"
+        @mouseleave="handleMouseLeave"
       >
         <!-- Gradients -->
         <defs>
@@ -74,11 +77,11 @@
           >
             <stop
               offset="0%"
-              style="stop-color:#3b82f6;stop-opacity:0.8"
+              style="stop-color:#3b82f6;stop-opacity:0.6"
             />
             <stop
               offset="100%"
-              style="stop-color:#3b82f6;stop-opacity:0.1"
+              style="stop-color:#3b82f6;stop-opacity:0.05"
             />
           </linearGradient>
           <linearGradient
@@ -90,11 +93,11 @@
           >
             <stop
               offset="0%"
-              style="stop-color:#10b981;stop-opacity:0.8"
+              style="stop-color:#10b981;stop-opacity:0.6"
             />
             <stop
               offset="100%"
-              style="stop-color:#10b981;stop-opacity:0.1"
+              style="stop-color:#10b981;stop-opacity:0.05"
             />
           </linearGradient>
           <linearGradient
@@ -106,11 +109,11 @@
           >
             <stop
               offset="0%"
-              style="stop-color:#f59e0b;stop-opacity:0.8"
+              style="stop-color:#f59e0b;stop-opacity:0.6"
             />
             <stop
               offset="100%"
-              style="stop-color:#f59e0b;stop-opacity:0.1"
+              style="stop-color:#f59e0b;stop-opacity:0.05"
             />
           </linearGradient>
         </defs>
@@ -121,15 +124,25 @@
           opacity="0.2"
         >
           <line
-            v-for="i in yAxisSteps"
+            v-for="i in axisConfig.steps"
             :key="`h-${i}`"
             :x1="80"
-            :y1="460 - (i * yStepSize)"
+            :y1="chartBottom - (i * yStepSize)"
             :x2="940"
-            :y2="460 - (i * yStepSize)"
+            :y2="chartBottom - (i * yStepSize)"
             stroke="currentColor"
             class="text-gray-400 dark:text-gray-500"
             stroke-dasharray="5,5"
+            stroke-width="1.5"
+          />
+          <!-- Zero line -->
+          <line
+            :x1="80"
+            :y1="chartBottom"
+            :x2="940"
+            :y2="chartBottom"
+            stroke="currentColor"
+            class="text-gray-400 dark:text-gray-500"
             stroke-width="1.5"
           />
         </g>
@@ -143,7 +156,7 @@
             fill="url(#cacheGradient)"
             stroke="#f59e0b"
             stroke-width="2"
-            class="transition-all duration-300"
+            class="transition-all duration-300 ease-out"
           />
 
           <!-- Output Area (middle layer) -->
@@ -153,7 +166,7 @@
             fill="url(#outputGradient)"
             stroke="#10b981"
             stroke-width="2"
-            class="transition-all duration-300"
+            class="transition-all duration-300 ease-out"
           />
 
           <!-- Input Area (top layer) -->
@@ -163,46 +176,142 @@
             fill="url(#inputGradient)"
             stroke="#3b82f6"
             stroke-width="2"
-            class="transition-all duration-300"
+            class="transition-all duration-300 ease-out"
           />
         </g>
 
         <!-- X-axis labels -->
         <g
-          class="x-axis text-gray-700 dark:text-gray-300"
-          font-size="13"
+          class="x-axis text-gray-600 dark:text-gray-400"
+          font-size="12"
           fill="currentColor"
-          font-weight="600"
+          font-weight="500"
         >
           <text
             v-for="(label, i) in xLabels"
             :key="`x-${i}`"
-            :x="80 + (i * (860 / Math.max(1, xLabels.length - 1)))"
+            :x="getXPos(label.index)"
             y="485"
             text-anchor="middle"
           >
-            {{ label }}
+            {{ label.text }}
           </text>
         </g>
 
         <!-- Y-axis labels -->
         <g
-          class="y-axis text-gray-700 dark:text-gray-300"
-          font-size="13"
+          class="y-axis text-gray-600 dark:text-gray-400"
+          font-size="12"
           fill="currentColor"
-          font-weight="600"
+          font-weight="500"
         >
           <text
-            v-for="(label, i) in yLabels"
-            :key="`y-${i}`"
+            v-for="i in axisConfig.steps + 1"
+            :key="`y-${i-1}`"
             x="70"
-            :y="465 - (i * yStepSize)"
+            :y="chartBottom - ((i - 1) * yStepSize) + 4"
             text-anchor="end"
           >
-            {{ label }}
+            {{ formatValue((i - 1) * axisConfig.step) }}
           </text>
         </g>
+        
+        <!-- Hover Interaction Layer -->
+        <g v-if="hoveredIndex !== -1 && chartData.length > 0">
+          <!-- Vertical Line -->
+          <line
+            :x1="getXPos(hoveredIndex)"
+            :y1="chartTop"
+            :x2="getXPos(hoveredIndex)"
+            :y2="chartBottom"
+            stroke="currentColor"
+            class="text-gray-400 dark:text-gray-500"
+            stroke-width="1"
+            stroke-dasharray="4,4"
+            opacity="0.5"
+          />
+            
+          <!-- Hover Points -->
+          <circle
+            v-if="activeSeriesSet.has('input')"
+            :cx="getXPos(hoveredIndex)"
+            :cy="getYPos(hoveredData.input)"
+            r="4"
+            fill="#3b82f6"
+            stroke="white"
+            stroke-width="2"
+            class="dark:stroke-gray-800"
+          />
+          <circle
+            v-if="activeSeriesSet.has('output')"
+            :cx="getXPos(hoveredIndex)"
+            :cy="getYPos(hoveredData.output)"
+            r="4"
+            fill="#10b981"
+            stroke="white"
+            stroke-width="2"
+            class="dark:stroke-gray-800"
+          />
+          <circle
+            v-if="activeSeriesSet.has('cache')"
+            :cx="getXPos(hoveredIndex)"
+            :cy="getYPos(hoveredData.cache)"
+            r="4"
+            fill="#f59e0b"
+            stroke="white"
+            stroke-width="2"
+            class="dark:stroke-gray-800"
+          />
+        </g>
+        
+        <!-- Invisible overlay for mouse events -->
+        <rect
+          x="80"
+          y="20"
+          width="860"
+          height="440"
+          fill="transparent"
+          class="cursor-crosshair"
+        />
       </svg>
+      
+      <!-- Tooltip HTML Overlay -->
+      <div
+        v-if="hoveredIndex !== -1 && hoveredData"
+        class="absolute pointer-events-none z-10 p-3 rounded-xl backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 shadow-xl text-sm transition-all duration-100"
+        :style="{
+          left: `${tooltipPos.x}px`,
+          top: `${tooltipPos.y}px`,
+          transform: 'translate(-50%, -110%)'
+        }"
+      >
+        <p class="font-bold text-gray-900 dark:text-white mb-2">
+          {{ hoveredData.time }}
+        </p>
+        <div class="space-y-1">
+          <div
+            v-if="activeSeriesSet.has('input')"
+            class="flex items-center gap-2 text-gray-600 dark:text-gray-300"
+          >
+            <div class="w-2 h-2 rounded-full bg-blue-500" />
+            <span>输入: <span class="font-mono font-bold text-gray-900 dark:text-white">{{ formatNumber(hoveredData.input) }}</span></span>
+          </div>
+          <div
+            v-if="activeSeriesSet.has('output')"
+            class="flex items-center gap-2 text-gray-600 dark:text-gray-300"
+          >
+            <div class="w-2 h-2 rounded-full bg-green-500" />
+            <span>输出: <span class="font-mono font-bold text-gray-900 dark:text-white">{{ formatNumber(hoveredData.output) }}</span></span>
+          </div>
+          <div
+            v-if="activeSeriesSet.has('cache')"
+            class="flex items-center gap-2 text-gray-600 dark:text-gray-300"
+          >
+            <div class="w-2 h-2 rounded-full bg-amber-500" />
+            <span>缓存: <span class="font-mono font-bold text-gray-900 dark:text-white">{{ formatNumber(hoveredData.cache) }}</span></span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Empty state -->
@@ -246,6 +355,19 @@ const props = defineProps<Props>()
 
 const activeSeries = ref<Set<string>>(new Set(['input', 'output']))
 const activeSeriesSet = computed(() => activeSeries.value)
+const chartContainer = ref<HTMLElement | null>(null)
+
+// Chart layout constants
+const chartLeft = 80
+const chartRight = 940
+const chartTop = 20
+const chartBottom = 460
+const chartWidth = chartRight - chartLeft
+const chartHeight = chartBottom - chartTop
+
+// Interaction state
+const hoveredIndex = ref(-1)
+const tooltipPos = ref({ x: 0, y: 0 })
 
 const toggleSeries = (series: string) => {
   const newSet = new Set(activeSeries.value)
@@ -273,16 +395,14 @@ const getTimeRangeLabel = (range: TimeRange): string => {
 // Shorten model name for display
 const shortenModelName = (model: string): string => {
   if (model === 'all') return '全部模型'
-  // Extract key parts of model name
   const parts = model.split('-')
   if (parts.length > 3) {
-    // For names like "claude-sonnet-4-5-20250929"
     return parts.slice(0, 3).join('-')
   }
   return model
 }
 
-// Helper to format date based on time range
+// Helper to format date
 const formatDate = (date: Date, format: string): string => {
   const month = date.toLocaleDateString('en-US', { month: 'short' })
   const day = date.getDate().toString().padStart(2, '0')
@@ -298,22 +418,36 @@ const formatDate = (date: Date, format: string): string => {
   }
 }
 
-// Aggregate data by time intervals
+// Format values for axis and tooltip
+const formatValue = (val: number): string => {
+  if (val >= 1000000) {
+    const millions = val / 1000000
+    return millions % 1 === 0 ? `${millions.toFixed(0)}M` : `${millions.toFixed(1)}M`
+  }
+  if (val >= 1000) {
+    const thousands = val / 1000
+    return thousands % 1 === 0 ? `${thousands.toFixed(0)}K` : `${thousands.toFixed(1)}K`
+  }
+  return val.toFixed(0)
+}
+
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('en-US').format(num)
+}
+
+// Aggregate data
 const chartData = computed(() => {
   const intervals: Record<string, { input: number; output: number; cache: number; time: string; timestamp: number }> = {}
-
-  // Determine interval format based on time range
   let format: string
 
   if (props.timeRange === 'all' || props.timeRange === 'month') {
-    format = 'week' // Weekly or daily intervals
+    format = 'week'
   } else if (props.timeRange === '7d' || props.timeRange === 'week') {
-    format = 'day' // Daily intervals
+    format = 'day'
   } else {
-    format = 'hour' // Hourly intervals
+    format = 'hour'
   }
 
-  // Aggregate records with timestamp tracking
   props.records.forEach(record => {
     const time = new Date(record.timestamp)
     const key = formatDate(time, format)
@@ -324,10 +458,9 @@ const chartData = computed(() => {
         output: 0,
         cache: 0,
         time: key,
-        timestamp: time.getTime() // Add timestamp for sorting
+        timestamp: time.getTime()
       }
     } else {
-      // Update timestamp to the latest record in this interval
       const currentTime = time.getTime()
       if (currentTime > intervals[key].timestamp) {
         intervals[key].timestamp = currentTime
@@ -341,154 +474,181 @@ const chartData = computed(() => {
     }
   })
 
-  // Convert to array, sort by timestamp (ascending), and limit
   return Object.values(intervals)
-    .sort((a, b) => a.timestamp - b.timestamp) // Sort from old to new
-    .slice(0, 50) // Limit to 50 points for performance
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .slice(0, 50)
 })
 
-// Calculate nice step size for the given range
-const calculateNiceStep = (rawStep: number): number => {
+const hoveredData = computed(() => {
+    if (hoveredIndex.value === -1) return null
+    return chartData.value[hoveredIndex.value]
+})
+
+// Adaptive Axis Calculation
+const axisConfig = computed(() => {
+  const data = chartData.value
+  if (data.length === 0) return { max: 100, step: 20, steps: 5 }
+
+  // Calculate max value in data
+  const maxVal = Math.max(...data.map(d => {
+    let m = 0
+    if (activeSeriesSet.value.has('input')) m = Math.max(m, d.input)
+    if (activeSeriesSet.value.has('output')) m = Math.max(m, d.output)
+    if (activeSeriesSet.value.has('cache')) m = Math.max(m, d.cache)
+    return m
+  }), 0)
+
+  if (maxVal === 0) return { max: 20, step: 4, steps: 5 }
+
+  // Adaptive stepping logic
+  const targetSteps = 5
+  const rawStep = maxVal / targetSteps
+  
+  // Calculate nice step
   const exponent = Math.floor(Math.log10(rawStep))
   const fraction = rawStep / Math.pow(10, exponent)
-
-  let niceFraction: number
+  
+  let niceFraction
   if (fraction <= 1) niceFraction = 1
   else if (fraction <= 2) niceFraction = 2
   else if (fraction <= 5) niceFraction = 5
   else niceFraction = 10
+  
+  const step = niceFraction * Math.pow(10, exponent)
+  
+  // Calculate steps needed to cover maxVal
+  let steps = Math.ceil(maxVal / step)
+  
+  // Adjust if too few steps (prevent flat look)
+  if (steps < 4) steps = 4
+  
+  return {
+    max: steps * step,
+    step: step,
+    steps: steps
+  }
+})
 
-  return niceFraction * Math.pow(10, exponent)
+// Scaling Helpers
+const getXPos = (index: number) => {
+    const count = Math.max(1, chartData.value.length - 1)
+    const xScale = chartWidth / count
+    return chartLeft + (index * xScale)
 }
 
-// Calculate max value for Y-axis with proper adaptation
-const maxValue = computed(() => {
-  if (chartData.value.length === 0) return 100
+const getYPos = (value: number) => {
+    if (axisConfig.value.max === 0) return chartBottom
+    const yScale = chartHeight / axisConfig.value.max
+    return chartBottom - (value * yScale)
+}
 
-  // Find actual maximum value across all data series
-  const actualMax = Math.max(
-    ...chartData.value.map(d => Math.max(d.input, d.output, d.cache)),
-    0 // Ensure at least 0
-  )
-
-  // If all data is 0, return a small default
-  if (actualMax === 0) return 100
-
-  // Target number of steps (we want 5-6 steps)
-  const targetSteps = 5
-
-  // Calculate raw step size
-  const rawStep = actualMax / targetSteps
-
-  // Get nice step size
-  const niceStep = calculateNiceStep(rawStep)
-
-  // Calculate max value by rounding up to nearest step
-  // Add some padding to ensure data doesn't touch the top
-  const stepsNeeded = Math.ceil(actualMax / niceStep) + 1
-
-  return niceStep * stepsNeeded
-})
-
-// Calculate actual step value for Y-axis
-const yStepValue = computed(() => {
-  if (chartData.value.length === 0) return 20
-
-  const actualMax = Math.max(
-    ...chartData.value.map(d => Math.max(d.input, d.output, d.cache)),
-    0
-  )
-
-  if (actualMax === 0) return 20
-
-  const targetSteps = 5
-  const rawStep = actualMax / targetSteps
-  return calculateNiceStep(rawStep)
-})
-
-// Calculate optimal number of Y-axis steps based on actual max and step value
-const yAxisSteps = computed(() => {
-  const steps = Math.ceil(maxValue.value / yStepValue.value)
-  return Math.max(4, Math.min(6, steps)) // Keep between 4-6 steps
-})
-
-// Calculate pixel height for each step
 const yStepSize = computed(() => {
-  const chartHeight = 440 // 460 - 20 (top margin)
-  return chartHeight / yAxisSteps.value
+  return chartHeight / axisConfig.value.steps
 })
 
-// Generate path data for SVG with smooth curves
+// Smooth Path Generator (Catmull-Rom spline or Bezier)
 const generatePath = (getValue: (d: any) => number): string => {
-  if (chartData.value.length === 0) return ''
+  const data = chartData.value
+  if (data.length === 0) return ''
 
-  // Chart area coordinates (updated for new viewBox)
-  const chartLeft = 80
-  const chartRight = 940
-  const chartTop = 20
-  const chartBottom = 460
-
-  const width = chartRight - chartLeft  // 860px
-  const height = chartBottom - chartTop  // 440px
-
-  const xScale = width / Math.max(1, chartData.value.length - 1)
-  const yScale = height / maxValue.value
-
-  let path = `M ${chartLeft} ${chartBottom}`
-
-  chartData.value.forEach((d, i) => {
-    const x = chartLeft + (i * xScale)
-    const y = chartBottom - (getValue(d) * yScale)
-
-    if (i === 0) {
-      path += ` L ${x} ${y}`
-    } else {
-      path += ` L ${x} ${y}`
-    }
-  })
-
-  // Close the path to create area
-  const lastX = chartLeft + ((chartData.value.length - 1) * xScale)
-  path += ` L ${lastX} ${chartBottom} Z`
-
-  return path
+  let d = `M ${getXPos(0)} ${chartBottom}`
+  
+  // First point
+  d += ` L ${getXPos(0)} ${getYPos(getValue(data[0]))}`
+  
+  // Curve points
+  for (let i = 0; i < data.length - 1; i++) {
+    const x0 = getXPos(i)
+    const y0 = getYPos(getValue(data[i]))
+    const x1 = getXPos(i + 1)
+    const y1 = getYPos(getValue(data[i + 1]))
+    
+    // Simple mid-point smoothing
+    const midX = (x0 + x1) / 2
+    
+    // Using Cubic Bezier: C cp1x cp1y, cp2x cp2y, x y
+    // Control points at x-midpoint, preserving y level (monotonic-ish)
+    d += ` C ${midX} ${y0}, ${midX} ${y1}, ${x1} ${y1}`
+  }
+  
+  // Close path
+  d += ` L ${getXPos(data.length - 1)} ${chartBottom} Z`
+  return d
 }
 
 const inputPath = computed(() => generatePath(d => d.input))
 const outputPath = computed(() => generatePath(d => d.output))
 const cachePath = computed(() => generatePath(d => d.cache))
 
-// X-axis labels (time labels)
+// X-axis labels
 const xLabels = computed(() => {
   if (chartData.value.length === 0) return []
-
-  // Show max 10 labels
-  const step = Math.ceil(chartData.value.length / 10)
+  const count = chartData.value.length
+  const maxLabels = 8 // Prevent overcrowding
+  const step = Math.ceil(count / maxLabels)
+  
   return chartData.value
+    .map((d, i) => ({ text: d.time, index: i }))
     .filter((_, i) => i % step === 0)
-    .map(d => d.time)
 })
 
-// Y-axis labels (token counts) with smart formatting
-const yLabels = computed(() => {
-  const stepValue = yStepValue.value
-  const steps = yAxisSteps.value
-
-  return Array.from({ length: steps + 1 }, (_, i) => {
-    const value = i * stepValue
-
-    // Format large numbers nicely
-    if (value >= 1000000) {
-      const millions = value / 1000000
-      return millions % 1 === 0 ? `${millions.toFixed(0)}M` : `${millions.toFixed(1)}M`
+// Interaction Handlers
+const handleMouseMove = (e: MouseEvent) => {
+    if (chartData.value.length === 0) return
+    
+    // Calculate relative X in SVG coordinate system
+    // We need to get the bounding rect of the SVG
+    const svgRect = (e.target as Element).closest('svg')?.getBoundingClientRect()
+    if (!svgRect) return
+    
+    // Map mouseX to SVG 0-1000 coordinate
+    const relativeX = (e.clientX - svgRect.left) / svgRect.width * 1000
+    
+    if (relativeX < chartLeft || relativeX > chartRight) {
+        hoveredIndex.value = -1
+        return
     }
-    if (value >= 1000) {
-      const thousands = value / 1000
-      return thousands % 1 === 0 ? `${thousands.toFixed(0)}K` : `${thousands.toFixed(1)}K`
+    
+    const count = Math.max(1, chartData.value.length - 1)
+    const xScale = chartWidth / count
+    
+    let index = Math.round((relativeX - chartLeft) / xScale)
+    index = Math.max(0, Math.min(index, chartData.value.length - 1))
+    
+    hoveredIndex.value = index
+    
+    // Update tooltip position relative to chart container
+    if (chartContainer.value) {
+        const containerRect = chartContainer.value.getBoundingClientRect()
+        const xOffset = svgRect.left - containerRect.left
+        const yOffset = svgRect.top - containerRect.top
+
+        // Get X pos in SVG coords
+        const svgX = getXPos(index)
+        // Convert back to container coords
+        const scaleX = svgRect.width / 1000
+        const scaleY = svgRect.height / 500
+        
+        // Position tooltip near the top of the highest data point at this index
+        let maxY = 0
+        if (hoveredData.value) {
+            let maxVal = 0
+            if (activeSeriesSet.value.has('input')) maxVal = Math.max(maxVal, hoveredData.value.input)
+            if (activeSeriesSet.value.has('output')) maxVal = Math.max(maxVal, hoveredData.value.output)
+            if (activeSeriesSet.value.has('cache')) maxVal = Math.max(maxVal, hoveredData.value.cache)
+            maxY = getYPos(maxVal)
+        }
+        
+        tooltipPos.value = {
+            x: xOffset + (svgX * scaleX),
+            y: yOffset + (maxY * scaleY)
+        }
     }
-    return value.toFixed(0)
-  })
-})
+}
+
+const handleMouseLeave = () => {
+    hoveredIndex.value = -1
+}
 </script>
 
 <style scoped>
@@ -507,7 +667,7 @@ button:hover {
 }
 
 path {
-  transition: opacity 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+  transition: d 0.3s ease, opacity 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
@@ -519,18 +679,13 @@ path:hover {
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
 }
 
-/* Chart container enhancements */
-.token-usage-chart > div:last-of-type {
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
 /* Axis labels animation */
 .x-axis text, .y-axis text {
   transition: all 0.2s ease;
 }
 
-svg:hover .x-axis text,
-svg:hover .y-axis text {
-  opacity: 1;
+/* Custom scrollbar for chart container if needed */
+.chart-container {
+    scrollbar-width: thin;
 }
 </style>
