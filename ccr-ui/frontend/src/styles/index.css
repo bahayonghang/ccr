@@ -6,33 +6,33 @@
    CSS 变量 - 主题系统
    =================================== */
 
-/* 明色主题 - 彩色国风液态玻璃风格 */
+/* 明色主题 - 新国风 (New Guofeng) */
 :root[data-theme="light"],
 :root {
   /* 🎨 背景色 - 宣纸/云纹基调 */
-  --bg-primary: #fdfbf7;
-  --bg-secondary: rgba(255, 255, 255, 0.85);
-  --bg-tertiary: rgba(248, 250, 252, 0.8);
-  --bg-card: rgba(255, 255, 255, 0.65);
-  --bg-hover: rgba(255, 255, 255, 0.9);
+  --bg-primary: #fdfbf7; /* Rice Paper */
+  --bg-secondary: #f5f2e9; /* Aged Paper */
+  --bg-tertiary: #e8e4d9; /* Silk */
+  --bg-card: #ffffff; /* White Jade */
+  --bg-hover: #fcfaf5;
 
-  /* 🔶 边框色 - 淡墨/青花 */
-  --border-color: rgba(29, 78, 216, 0.08);
-  --border-hover: rgba(255, 77, 79, 0.2);
+  /* 🔶 边框色 */
+  --border-color: #e2e8f0;
+  --border-hover: #cbd5e1;
 
   /* 📝 文字色 - 墨色 */
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-primary: #1e293b; /* Mo Hei */
+  --text-secondary: #475569; /* Light Ink */
+  --text-muted: #94a3b8; /* Watery Ink */
 
-  /* 🎯 主题色 - 国风五色 (RGB值用于透明度计算) */
-  --accent-primary-rgb: 255 77 79;     /* 朱红 */
-  --accent-secondary-rgb: 22 119 179;  /* 靛蓝 */
-  --accent-tertiary-rgb: 124 58 237;   /* 紫 */
-  --accent-success-rgb: 16 185 129;    /* 翡翠 */
-  --accent-warning-rgb: 245 158 11;    /* 藤黄 */
-  --accent-danger-rgb: 239 68 68;      /* 银红 */
-  --accent-info-rgb: 8 145 178;        /* 石青 */
+  /* 🎯 主题色 - 国风五色 */
+  --accent-primary-rgb: 255 77 79;     /* Zhu Hong (Vermilion) */
+  --accent-secondary-rgb: 22 119 179;  /* Dian Lan (Indigo) */
+  --accent-tertiary-rgb: 124 58 237;   /* Zi (Purple) */
+  --accent-success-rgb: 16 185 129;    /* Fei Cui (Jade) */
+  --accent-warning-rgb: 245 158 11;    /* Teng Huang (Rattan) */
+  --accent-danger-rgb: 239 68 68;      /* Yin Hong */
+  --accent-info-rgb: 8 145 178;        /* Shi Qing */
 
   --accent-primary: rgb(var(--accent-primary-rgb));
   --accent-secondary: rgb(var(--accent-secondary-rgb));
@@ -42,28 +42,32 @@
   --accent-danger: rgb(var(--accent-danger-rgb));
   --accent-info: rgb(var(--accent-info-rgb));
 
+  /* Guofeng Specific Variables for Tailwind integration */
+  --guofeng-bg: var(--bg-primary);
+  --guofeng-bg-secondary: var(--bg-secondary);
+  --guofeng-bg-tertiary: var(--bg-tertiary);
+  --guofeng-ink: var(--text-primary);
+  --guofeng-red: var(--accent-primary);
+  --guofeng-blue: var(--accent-secondary);
+  --guofeng-jade: var(--accent-success);
+  --guofeng-gold: var(--accent-warning);
+
   /* ✨ 发光效果 */
-  --glow-primary: rgba(255, 77, 79, 0.2);
-  --glow-secondary: rgba(22, 119, 179, 0.2);
-  --glow-success: rgba(16, 185, 129, 0.2);
-  --glow-danger: rgba(239, 68, 68, 0.2);
+  --glow-primary: rgba(255, 77, 79, 0.15);
+  --glow-secondary: rgba(22, 119, 179, 0.15);
 
   /* 🌊 阴影 */
-  --shadow-xs: 0 1px 2px 0 rgba(22, 119, 179, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(22, 119, 179, 0.08), 0 1px 2px -1px rgba(22, 119, 179, 0.08);
-  --shadow-md: 0 4px 6px -1px rgba(22, 119, 179, 0.06), 0 2px 4px -2px rgba(22, 119, 179, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(22, 119, 179, 0.08), 0 4px 6px -4px rgba(22, 119, 179, 0.08);
-  --shadow-xl: 0 20px 25px -5px rgba(22, 119, 179, 0.08), 0 8px 10px -6px rgba(22, 119, 179, 0.08);
-  --shadow-2xl: 0 25px 50px -12px rgba(22, 119, 179, 0.15);
+  --shadow-sm: 0 1px 2px 0 rgba(30, 41, 59, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(30, 41, 59, 0.05), 0 2px 4px -1px rgba(30, 41, 59, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(30, 41, 59, 0.05), 0 4px 6px -2px rgba(30, 41, 59, 0.02);
+  --shadow-xl: 0 20px 25px -5px rgba(30, 41, 59, 0.05), 0 10px 10px -5px rgba(30, 41, 59, 0.02);
 
   /* 🎪 渐变色 */
   --gradient-primary: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
   --gradient-secondary: linear-gradient(135deg, #1677b3 0%, #40a9ff 100%);
-  --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-  --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
 }
 
-/* 暗色主题 - 保留原有的暗色配色 */
+/* 暗色主题 - 保持原有的暗色配色，但适配 Guofeng 变量 */
 :root[data-theme="dark"] {
   --bg-primary: #0a0e27;
   --bg-secondary: #141b3e;
@@ -82,20 +86,16 @@
   --accent-warning: #f59e0b;
   --accent-danger: #ef4444;
   --accent-info: #3b82f6;
-  --glow-primary: rgba(139, 92, 246, 0.5);
-  --glow-secondary: rgba(168, 85, 247, 0.5);
-  --glow-success: rgba(16, 185, 129, 0.5);
-  --glow-danger: rgba(239, 68, 68, 0.5);
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.4);
-  --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.5);
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  --gradient-warm: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+
+  /* Guofeng Dark Mode Mapping */
+  --guofeng-bg: var(--bg-primary);
+  --guofeng-bg-secondary: var(--bg-secondary);
+  --guofeng-bg-tertiary: var(--bg-tertiary);
+  --guofeng-ink: var(--text-primary);
+  --guofeng-red: var(--accent-primary); /* Map Red to Purple in Dark Mode for consistency with existing dark theme */
+  --guofeng-blue: var(--accent-secondary);
+  --guofeng-jade: var(--accent-success);
+  --guofeng-gold: var(--accent-warning);
 }
 
 /* ===================================
