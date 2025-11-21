@@ -12,7 +12,7 @@ resolver = "2"
 # 成员 crate 可以通过 { workspace = true } 引用
 [workspace.dependencies]
 # 核心依赖
-clap = { version = "4.5.51", features = ["derive", "cargo"] }
+clap = { version = "4.5.53", features = ["derive", "cargo"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 toml = "0.9.8"
@@ -56,7 +56,7 @@ reqwest = { version = "0.12.24", features = ["blocking", "json"] }
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.4.1"
+version = "3.4.2"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher(Rust implementation)"
@@ -78,7 +78,7 @@ clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
-indexmap = { version = "2.12", features = ["serde"] }
+indexmap = { version = "2.12.1", features = ["serde"] }
 
 # 错误处理
 anyhow = { workspace = true }
@@ -127,7 +127,7 @@ tower = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 
 # 自动打开浏览器 (web 功能)
-open = { version = "5.3", optional = true }
+open = { version = "5.3.3", optional = true }
 
 # 系统信息获取 (web 功能)
 sysinfo = { version = "0.37.2", optional = true }
