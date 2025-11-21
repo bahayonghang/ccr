@@ -75,8 +75,8 @@
               :key="server.command || server.url"
               class="group rounded-lg p-4 transition-all duration-300"
               :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }"
-              @mouseenter="(e) => onCardHover(e.currentTarget, true)"
-              @mouseleave="(e) => onCardHover(e.currentTarget, false)"
+              @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
+              @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -330,7 +330,7 @@ const historyCount = ref(0)
 const showAddForm = ref(false)
 const editingServer = ref<QwenMcpServer | null>(null)
 const isHttpServer = ref(false)
-const formData = ref<QwenMcpServerRequest>({ command: undefined, url: undefined, args: [], env: {} })
+const formData = ref<QwenMcpServerRequest>({ name: '', command: undefined, url: undefined, args: [], env: {} })
 const argInput = ref('')
 const envKey = ref('')
 const envValue = ref('')
@@ -361,7 +361,7 @@ const handleAdd = () => {
   showAddForm.value = true
   editingServer.value = null
   isHttpServer.value = false
-  formData.value = { command: '', url: undefined, args: [], env: {} }
+  formData.value = { name: '', command: '', url: undefined, args: [], env: {} }
   argInput.value = ''
 }
 
@@ -369,7 +369,7 @@ const handleEdit = (server: QwenMcpServer) => {
   editingServer.value = server
   showAddForm.value = true
   isHttpServer.value = !!server.url
-  formData.value = { command: server.command, url: server.url, args: server.args || [], env: server.env || {} }
+  formData.value = { name: server.name || '', command: server.command, url: server.url, args: server.args || [], env: server.env || {} }
   argInput.value = server.args?.join(' ') || ''
 }
 
