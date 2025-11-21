@@ -8,7 +8,7 @@
       <!-- Sidebar: Folders -->
       <div class="w-[180px] bg-guofeng-bg-secondary border-r border-guofeng-border p-3 overflow-y-auto h-[calc(100vh-40px)] flex-shrink-0">
         <h4 class="text-guofeng-text-muted text-[11px] font-semibold mb-2 ml-2 uppercase tracking-wider">
-          {{ $t(`${module}.agents.folders.label`) }}
+          {{ $t(`${tPrefix}.folders.label`) }}
         </h4>
         <div
           v-for="folder in folderOptions"
@@ -35,7 +35,7 @@
             <div class="flex items-center gap-4">
               <h2 class="text-2xl font-bold text-guofeng-text-primary flex items-center">
                 <Bot class="w-7 h-7 mr-2 text-guofeng-red" />
-                {{ $t(`${module}.agents.pageTitle`) }}
+                {{ $t(`${tPrefix}.pageTitle`) }}
               </h2>
               <span class="px-3 py-1 rounded-full text-sm font-medium bg-guofeng-red/10 text-guofeng-red border border-guofeng-red/20">
                 {{ filteredAgents.length }}/{{ stats.total }}
@@ -46,13 +46,13 @@
                 :to="`/${module}`"
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-guofeng-bg-secondary text-guofeng-text-secondary border border-guofeng-border hover:bg-guofeng-bg-tertiary"
               >
-                <Home class="w-4 h-4" /><span>{{ $t(`${module}.agents.backToHome`) }}</span>
+                <Home class="w-4 h-4" /><span>{{ $t(`${tPrefix}.backToHome`) }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-guofeng-red text-white shadow-md hover:shadow-lg flex items-center"
                 @click="handleAdd"
               >
-                <Plus class="w-5 h-5 mr-2" />{{ $t(`${module}.agents.addAgent`) }}
+                <Plus class="w-5 h-5 mr-2" />{{ $t(`${tPrefix}.addAgent`) }}
               </button>
             </div>
           </div>
@@ -63,7 +63,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              :placeholder="$t(`${module}.agents.searchPlaceholder`)"
+              :placeholder="$t(`${tPrefix}.searchPlaceholder`)"
               class="w-full pl-11 pr-10 py-3 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-guofeng-red/20 bg-guofeng-bg-tertiary border border-guofeng-border text-guofeng-text-primary placeholder-guofeng-text-muted"
             >
             <button
@@ -78,15 +78,15 @@
           <!-- Agent Grid -->
           <div v-if="loading" class="text-center py-20 text-guofeng-text-muted">
             <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-guofeng-red/30 border-t-guofeng-red"></div>
-            {{ $t(`${module}.agents.loading`) }}
+            {{ $t(`${tPrefix}.loading`) }}
           </div>
           
           <div v-else-if="filteredAgents.length === 0" class="text-center py-20 text-guofeng-text-muted">
             <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search class="w-10 h-10 opacity-50" />
             </div>
-            <p class="text-lg font-medium">{{ $t(`${module}.agents.noResults`) }}</p>
-            <p class="text-sm mt-2 opacity-70">{{ $t(`${module}.agents.noResultsHint`) }}</p>
+            <p class="text-lg font-medium">{{ $t(`${tPrefix}.noResults`) }}</p>
+            <p class="text-sm mt-2 opacity-70">{{ $t(`${tPrefix}.noResultsHint`) }}</p>
           </div>
 
           <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -111,7 +111,7 @@
                      <button
                       class="p-1.5 rounded-md transition-colors hover:bg-guofeng-bg-tertiary"
                       :class="agent.disabled ? 'text-guofeng-gold' : 'text-guofeng-jade'"
-                      :title="agent.disabled ? $t(`${module}.agents.enable`) : $t(`${module}.agents.disable`)"
+                      :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
                       @click.stop="handleToggle(agent.name)"
                     >
                       <PowerOff v-if="agent.disabled" class="w-4 h-4" />
@@ -163,7 +163,7 @@
               <!-- Disabled Overlay -->
               <div v-if="agent.disabled" class="absolute inset-0 bg-guofeng-bg/60 backdrop-blur-[1px] flex items-center justify-center z-20 rounded-xl border-2 border-dashed border-guofeng-gold/30">
                 <span class="px-3 py-1 bg-guofeng-gold text-white text-xs font-bold rounded-full shadow-sm uppercase tracking-wider">
-                  {{ $t(`${module}.agents.disabledBadge`) }}
+                  {{ $t(`${tPrefix}.disabledBadge`) }}
                 </span>
               </div>
             </GuofengCard>
@@ -191,22 +191,22 @@
 
         <h3 class="text-2xl font-bold mb-6 text-guofeng-text-primary flex items-center">
           <component :is="editingAgent ? Edit2 : Plus" class="w-6 h-6 mr-2 text-guofeng-red" />
-          {{ editingAgent ? $t(`${module}.agents.editAgent`) : $t(`${module}.agents.addAgent`) }}
+          {{ editingAgent ? $t(`${tPrefix}.editAgent`) : $t(`${tPrefix}.addAgent`) }}
         </h3>
 
         <div class="space-y-5">
           <div>
-            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t(`${module}.agents.nameLabel`) }}</label>
+            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t(`${tPrefix}.nameLabel`) }}</label>
             <input
               v-model="formData.name"
               type="text"
               class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all"
-              :placeholder="$t(`${module}.agents.namePlaceholder` || 'Agent Name')"
+              :placeholder="$t(`${tPrefix}.namePlaceholder` || 'Agent Name')"
             >
           </div>
 
           <div>
-            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t(`${module}.agents.modelLabel`) }}</label>
+            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t(`${tPrefix}.modelLabel`) }}</label>
             <select
               v-model="formData.model"
               class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all appearance-none"
@@ -219,12 +219,12 @@
           </div>
 
           <div>
-            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t(`${module}.agents.toolsLabel`) }}</label>
+            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t(`${tPrefix}.toolsLabel`) }}</label>
             <div class="flex gap-2 mb-3">
               <input
                 v-model="toolInput"
                 type="text"
-                :placeholder="$t(`${module}.agents.toolPlaceholder`)"
+                :placeholder="$t(`${tPrefix}.toolPlaceholder`)"
                 class="flex-1 px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all"
                 @keyup.enter="addTool"
               >
@@ -232,7 +232,7 @@
                 class="px-4 py-2 rounded-lg font-medium text-white bg-guofeng-blue hover:bg-guofeng-blue/90 transition-colors"
                 @click="addTool"
               >
-                {{ $t(`${module}.agents.addTool`) }}
+                {{ $t(`${tPrefix}.addTool`) }}
               </button>
             </div>
             <div class="flex flex-wrap gap-2 min-h-[40px] p-3 rounded-lg bg-guofeng-bg-secondary border border-guofeng-border border-dashed">
@@ -249,12 +249,12 @@
           </div>
 
           <div>
-            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t(`${module}.agents.systemPromptLabel`) }}</label>
+            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t(`${tPrefix}.systemPromptLabel`) }}</label>
             <textarea
               v-model="formData.system_prompt"
               rows="6"
               class="w-full px-4 py-3 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all resize-y font-mono text-sm"
-              :placeholder="$t(`${module}.agents.systemPromptPlaceholder` || 'Enter system prompt...')"
+              :placeholder="$t(`${tPrefix}.systemPromptPlaceholder` || 'Enter system prompt...')"
             />
           </div>
         </div>
@@ -270,7 +270,7 @@
             class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-guofeng-red text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
             @click="handleSubmit"
           >
-            {{ editingAgent ? $t(`${module}.agents.save`) : $t(`${module}.agents.add`) }}
+            {{ editingAgent ? $t(`${tPrefix}.save`) : $t(`${tPrefix}.add`) }}
           </button>
         </div>
       </div>
@@ -289,10 +289,11 @@ import { useAgents } from '@/composables/useAgents'
 import type { Agent, AgentRequest } from '@/types'
 
 const props = defineProps<{
-  module: 'codex' | 'gemini' | 'qwen' | 'iflow'
+  module: 'codex' | 'gemini' | 'qwen' | 'iflow' | 'agents'
 }>()
 
 const { t } = useI18n()
+const tPrefix = computed(() => props.module === 'agents' ? 'agents' : `${props.module}.agents`)
 const {
   agents,
   folders,
@@ -330,8 +331,8 @@ const stats = computed(() => {
 })
 
 const folderOptions = computed(() => [
-  { value: '', label: t(`${props.module}.agents.folders.all`), icon: Folder, count: stats.value.total },
-  { value: '__root__', label: t(`${props.module}.agents.folders.root`), icon: Home, count: stats.value.rootCount },
+  { value: '', label: t(`${tPrefix.value}.folders.all`), icon: Folder, count: stats.value.total },
+  { value: '__root__', label: t(`${tPrefix.value}.folders.root`), icon: Home, count: stats.value.rootCount },
   ...folders.value.map((f) => ({ value: f, label: f, icon: Folder, count: stats.value.folderCounts[f] || 0 }))
 ])
 
@@ -384,7 +385,7 @@ const removeTool = (tool: string) => {
 
 const handleSubmit = async () => {
   if (!formData.value.name || !formData.value.model) { 
-    alert(t(`${props.module}.agents.validation.required`))
+    alert(t(`${tPrefix.value}.validation.required`))
     return 
   }
   
@@ -404,17 +405,17 @@ const handleSubmit = async () => {
     editingAgent.value = null
   } catch (err) {
     console.error('Operation failed:', err)
-    alert(t(`${props.module}.agents.messages.operationFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
+    alert(t(`${tPrefix.value}.messages.operationFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(t(`${props.module}.agents.deleteConfirm`, { name }))) return
+  if (!confirm(t(`${tPrefix.value}.deleteConfirm`, { name }))) return
   try {
     await deleteAgent(name)
   } catch (err) {
     console.error('Delete failed:', err)
-    alert(t(`${props.module}.agents.messages.deleteFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
+    alert(t(`${tPrefix.value}.messages.deleteFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 
@@ -423,7 +424,7 @@ const handleToggle = async (name: string) => {
     await toggleAgent(name)
   } catch (err) {
     console.error('Toggle failed:', err)
-    alert(t(`${props.module}.agents.messages.toggleFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
+    alert(t(`${tPrefix.value}.messages.toggleFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 </script>

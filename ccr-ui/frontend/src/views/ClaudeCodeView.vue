@@ -85,267 +85,338 @@
         </div>
       </div>
 
-      <!-- 功能模块网格 -->
+      <!-- 核心功能 (Config & Sync) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <RouterLink
+          to="/configs"
+          class="block group"
+        >
+          <div class="glass-card p-8 h-full hover:scale-[1.02] transition-all duration-300 border-l-4 border-l-indigo-500">
+            <div class="flex items-start gap-5">
+              <div
+                class="p-4 rounded-2xl"
+                :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
+              >
+                <Settings
+                  class="w-8 h-8"
+                  :style="{ color: 'var(--accent-primary)' }"
+                />
+              </div>
+              <div class="flex-1">
+                <h3
+                  class="text-2xl font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  {{ $t('claudeCode.modules.configManagement.title') }}
+                </h3>
+                <p
+                  class="text-base mb-4"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
+                  {{ $t('claudeCode.modules.configManagement.desc') }}
+                </p>
+                <span
+                  class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
+                  :style="{
+                    background: 'rgba(99, 102, 241, 0.15)',
+                    color: 'var(--accent-primary)'
+                  }"
+                >
+                  🔥 {{ $t('claudeCode.modules.configManagement.badge') }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </RouterLink>
+
+        <RouterLink
+          to="/sync"
+          class="block group"
+        >
+          <div class="glass-card p-8 h-full hover:scale-[1.02] transition-all duration-300 border-l-4 border-l-purple-500">
+            <div class="flex items-start gap-5">
+              <div
+                class="p-4 rounded-2xl"
+                :style="{ background: 'rgba(139, 92, 246, 0.15)' }"
+              >
+                <Cloud
+                  class="w-8 h-8"
+                  :style="{ color: 'var(--accent-secondary)' }"
+                />
+              </div>
+              <div class="flex-1">
+                <h3
+                  class="text-2xl font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  {{ $t('claudeCode.modules.cloudSync.title') }}
+                </h3>
+                <p
+                  class="text-base mb-4"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
+                  {{ $t('claudeCode.modules.cloudSync.desc') }}
+                </p>
+                <span
+                  class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
+                  :style="{
+                    background: 'rgba(139, 92, 246, 0.15)',
+                    color: 'var(--accent-secondary)'
+                  }"
+                >
+                  ✨ {{ $t('claudeCode.modules.cloudSync.badge') }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </RouterLink>
+      </div>
+
+      <!-- Market Banner -->
+      <div class="mb-8">
+        <RouterLink to="/market" class="block group">
+          <div class="glass-card p-8 relative overflow-hidden hover:scale-[1.01] transition-all duration-300">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+            
+            <div class="relative z-10 flex items-center justify-between">
+              <div class="flex items-center gap-6">
+                <div class="p-4 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl shadow-lg text-white">
+                  <ShoppingBag class="w-8 h-8" />
+                </div>
+                <div>
+                  <h2 class="text-2xl font-bold text-guofeng-text-primary mb-2 flex items-center gap-3">
+                    {{ $t('market.title') }}
+                    <span class="px-2 py-0.5 text-xs bg-red-100 text-red-600 rounded-full border border-red-200">Beta</span>
+                  </h2>
+                  <p class="text-guofeng-text-secondary text-lg">
+                    {{ $t('market.description') }}
+                  </p>
+                </div>
+              </div>
+              <div class="hidden md:flex items-center gap-2 text-guofeng-text-muted font-medium">
+                <span>{{ $t('market.explore') }}</span>
+                <ExternalLink class="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </div>
+        </RouterLink>
+      </div>
+
+      <!-- 扩展模块网格 (Extensions) -->
       <div class="mb-8">
         <h2
-          class="text-2xl font-bold mb-6 flex items-center gap-3"
+          class="text-xl font-bold mb-6 flex items-center gap-3"
           :style="{ color: 'var(--text-primary)' }"
         >
           <Boxes
-            class="w-7 h-7"
+            class="w-6 h-6"
             :style="{ color: 'var(--accent-primary)' }"
           />
-          {{ $t('claudeCode.modules.title') }}
+          {{ $t('claudeCode.modules.extensionsTitle') }}
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <RouterLink
-            to="/configs"
-            class="block group"
-          >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
-                >
-                  <Settings
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--accent-primary)' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('claudeCode.modules.configManagement.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('claudeCode.modules.configManagement.desc') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(99, 102, 241, 0.15)',
-                      color: 'var(--accent-primary)'
-                    }"
-                  >
-                    🔥 {{ $t('claudeCode.modules.configManagement.badge') }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </RouterLink>
-
-          <RouterLink
-            to="/sync"
-            class="block group"
-          >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(139, 92, 246, 0.15)' }"
-                >
-                  <Cloud
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--accent-secondary)' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('claudeCode.modules.cloudSync.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('claudeCode.modules.cloudSync.desc') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(139, 92, 246, 0.15)',
-                      color: 'var(--accent-secondary)'
-                    }"
-                  >
-                    ✨ {{ $t('claudeCode.modules.cloudSync.badge') }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </RouterLink>
-
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <!-- MCP Servers -->
           <RouterLink
             to="/mcp"
             class="block group"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(236, 72, 153, 0.15)' }"
-                >
-                  <Server
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--accent-tertiary)' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
+            <div class="glass-card p-5 h-full hover:scale-105 transition-all duration-300">
+              <div class="flex flex-col h-full">
+                <div class="flex items-center justify-between mb-4">
+                  <div
+                    class="p-2.5 rounded-xl"
+                    :style="{ background: 'rgba(236, 72, 153, 0.15)' }"
                   >
-                    {{ $t('claudeCode.modules.mcpServers.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('claudeCode.modules.mcpServers.desc') }}
-                  </p>
+                    <Server
+                      class="w-6 h-6"
+                      :style="{ color: 'var(--accent-tertiary)' }"
+                    />
+                  </div>
                   <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
+                    class="px-2 py-1 rounded-md text-xs font-bold"
                     :style="{
-                      background: 'rgba(236, 72, 153, 0.15)',
+                      background: 'rgba(236, 72, 153, 0.1)',
                       color: 'var(--accent-tertiary)'
                     }"
-                  >
-                    🔌 {{ $t('claudeCode.modules.mcpServers.badge') }}
-                  </span>
+                  >MCP</span>
                 </div>
-              </div>
-            </div>
-          </RouterLink>
-
-          <RouterLink
-            to="/slash-commands"
-            class="block group"
-          >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(245, 158, 11, 0.15)' }"
+                <h3
+                  class="text-lg font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
                 >
-                  <Terminal
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--accent-warning)' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('claudeCode.modules.slashCommands.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('claudeCode.modules.slashCommands.desc') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(245, 158, 11, 0.15)',
-                      color: 'var(--accent-warning)'
-                    }"
-                  >
-                    ⌨️ {{ $t('claudeCode.modules.slashCommands.badge') }}
-                  </span>
-                </div>
+                  {{ $t('claudeCode.modules.mcpServers.title') }}
+                </h3>
+                <p
+                  class="text-sm line-clamp-2"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
+                  {{ $t('claudeCode.modules.mcpServers.desc') }}
+                </p>
               </div>
             </div>
           </RouterLink>
 
+          <!-- Agents -->
           <RouterLink
             to="/agents"
             class="block group"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
-                >
-                  <Users
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--accent-success)' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
+            <div class="glass-card p-5 h-full hover:scale-105 transition-all duration-300">
+              <div class="flex flex-col h-full">
+                <div class="flex items-center justify-between mb-4">
+                  <div
+                    class="p-2.5 rounded-xl"
+                    :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
                   >
-                    {{ $t('claudeCode.modules.agents.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('claudeCode.modules.agents.desc') }}
-                  </p>
+                    <Users
+                      class="w-6 h-6"
+                      :style="{ color: 'var(--accent-success)' }"
+                    />
+                  </div>
                   <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
+                    class="px-2 py-1 rounded-md text-xs font-bold"
                     :style="{
-                      background: 'rgba(16, 185, 129, 0.15)',
+                      background: 'rgba(16, 185, 129, 0.1)',
                       color: 'var(--accent-success)'
                     }"
-                  >
-                    🤖 {{ $t('claudeCode.modules.agents.badge') }}
-                  </span>
+                  >AI</span>
                 </div>
+                <h3
+                  class="text-lg font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  {{ $t('claudeCode.modules.agents.title') }}
+                </h3>
+                <p
+                  class="text-sm line-clamp-2"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
+                  {{ $t('claudeCode.modules.agents.desc') }}
+                </p>
               </div>
             </div>
           </RouterLink>
 
+          <!-- Skills -->
+          <RouterLink
+            to="/skills"
+            class="block group"
+          >
+            <div class="glass-card p-5 h-full hover:scale-105 transition-all duration-300">
+              <div class="flex flex-col h-full">
+                <div class="flex items-center justify-between mb-4">
+                  <div
+                    class="p-2.5 rounded-xl"
+                    :style="{ background: 'rgba(239, 68, 68, 0.15)' }"
+                  >
+                    <Book
+                      class="w-6 h-6"
+                      :style="{ color: 'var(--accent-error)' }"
+                    />
+                  </div>
+                  <span
+                    class="px-2 py-1 rounded-md text-xs font-bold"
+                    :style="{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      color: 'var(--accent-error)'
+                    }"
+                  >Skill</span>
+                </div>
+                <h3
+                  class="text-lg font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  {{ $t('claudeCode.modules.skills.title') }}
+                </h3>
+                <p
+                  class="text-sm line-clamp-2"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
+                  {{ $t('claudeCode.modules.skills.desc') }}
+                </p>
+              </div>
+            </div>
+          </RouterLink>
+
+          <!-- Plugins -->
           <RouterLink
             to="/plugins"
             class="block group"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(59, 130, 246, 0.15)' }"
-                >
-                  <Puzzle
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--accent-info)' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
+            <div class="glass-card p-5 h-full hover:scale-105 transition-all duration-300">
+              <div class="flex flex-col h-full">
+                <div class="flex items-center justify-between mb-4">
+                  <div
+                    class="p-2.5 rounded-xl"
+                    :style="{ background: 'rgba(59, 130, 246, 0.15)' }"
                   >
-                    {{ $t('claudeCode.modules.plugins.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('claudeCode.modules.plugins.desc') }}
-                  </p>
+                    <Puzzle
+                      class="w-6 h-6"
+                      :style="{ color: 'var(--accent-info)' }"
+                    />
+                  </div>
                   <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
+                    class="px-2 py-1 rounded-md text-xs font-bold"
                     :style="{
-                      background: 'rgba(59, 130, 246, 0.15)',
+                      background: 'rgba(59, 130, 246, 0.1)',
                       color: 'var(--accent-info)'
                     }"
-                  >
-                    🧩 {{ $t('claudeCode.modules.plugins.badge') }}
-                  </span>
+                  >Plugin</span>
                 </div>
+                <h3
+                  class="text-lg font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  {{ $t('claudeCode.modules.plugins.title') }}
+                </h3>
+                <p
+                  class="text-sm line-clamp-2"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
+                  {{ $t('claudeCode.modules.plugins.desc') }}
+                </p>
+              </div>
+            </div>
+          </RouterLink>
+
+          <!-- Slash Commands -->
+          <RouterLink
+            to="/slash-commands"
+            class="block group"
+          >
+            <div class="glass-card p-5 h-full hover:scale-105 transition-all duration-300">
+              <div class="flex flex-col h-full">
+                <div class="flex items-center justify-between mb-4">
+                  <div
+                    class="p-2.5 rounded-xl"
+                    :style="{ background: 'rgba(245, 158, 11, 0.15)' }"
+                  >
+                    <Terminal
+                      class="w-6 h-6"
+                      :style="{ color: 'var(--accent-warning)' }"
+                    />
+                  </div>
+                  <span
+                    class="px-2 py-1 rounded-md text-xs font-bold"
+                    :style="{
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      color: 'var(--accent-warning)'
+                    }"
+                  >CMD</span>
+                </div>
+                <h3
+                  class="text-lg font-bold mb-2"
+                  :style="{ color: 'var(--text-primary)' }"
+                >
+                  {{ $t('claudeCode.modules.slashCommands.title') }}
+                </h3>
+                <p
+                  class="text-sm line-clamp-2"
+                  :style="{ color: 'var(--text-secondary)' }"
+                >
+                  {{ $t('claudeCode.modules.slashCommands.desc') }}
+                </p>
               </div>
             </div>
           </RouterLink>
@@ -355,11 +426,11 @@
       <!-- 快速操作区 -->
       <div class="mb-8">
         <h2
-          class="text-2xl font-bold mb-6 flex items-center gap-3"
+          class="text-xl font-bold mb-6 flex items-center gap-3"
           :style="{ color: 'var(--text-primary)' }"
         >
           <Zap
-            class="w-7 h-7"
+            class="w-6 h-6"
             :style="{ color: 'var(--accent-warning)' }"
           />
           {{ $t('claudeCode.quickActions.title') }}
@@ -543,6 +614,8 @@ import {
   Zap,
   BookOpen,
   ExternalLink,
-  Info
+  Info,
+  Book,
+  ShoppingBag
 } from 'lucide-vue-next'
 </script>

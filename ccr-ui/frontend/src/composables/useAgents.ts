@@ -5,14 +5,15 @@ import {
     listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent,
     listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent,
     listIflowAgents, addIflowAgent, updateIflowAgent, deleteIflowAgent, toggleIflowAgent,
-    listConfigs, getHistory
+    listConfigs, getHistory,
+    listAgents, addAgent, updateAgent, deleteAgent, toggleAgent
 } from '@/api/client'
 import type { Agent, AgentRequest } from '@/types'
 
-type ModuleType = 'codex' | 'gemini' | 'qwen' | 'iflow'
+type ModuleType = 'codex' | 'gemini' | 'qwen' | 'iflow' | 'agents'
 
 interface AgentApi {
-    list: () => Promise<{ agents: Agent[], folders: string[] }>
+    list: () => Promise<{ agents: Agent[], folders?: string[] }>
     add: (req: AgentRequest) => Promise<string>
     update: (name: string, req: AgentRequest) => Promise<string>
     delete: (name: string) => Promise<string>
@@ -47,6 +48,13 @@ const apiMap: Record<ModuleType, AgentApi> = {
         update: updateIflowAgent,
         delete: deleteIflowAgent,
         toggle: toggleIflowAgent
+    },
+    agents: {
+        list: listAgents,
+        add: addAgent,
+        update: updateAgent,
+        delete: deleteAgent,
+        toggle: toggleAgent
     }
 }
 

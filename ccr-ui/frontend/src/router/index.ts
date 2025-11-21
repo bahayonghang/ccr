@@ -86,7 +86,18 @@ const router = createRouter({
         {
           path: 'agents',
           name: 'agents',
-          component: () => import('@/views/AgentsView.vue')
+          component: () => import('@/views/generic/AgentsView.vue'),
+          props: { module: 'agents' }
+        },
+        {
+          path: 'skills',
+          name: 'skills',
+          component: () => import('@/views/generic/SkillsView.vue')
+        },
+        {
+          path: 'market',
+          name: 'market',
+          component: () => import('@/views/generic/MarketView.vue')
         },
         {
           path: 'plugins',

@@ -289,6 +289,17 @@ fn create_router() -> Router {
         )
         // Statistics endpoints
         .route("/api/stats/cost", get(api::handlers::stats::cost_overview))
+        // Skills management endpoints
+        .route("/api/skills", get(api::handlers::skills::list_skills))
+        .route("/api/skills", post(api::handlers::skills::add_skill))
+        .route(
+            "/api/skills/{name}",
+            put(api::handlers::skills::update_skill),
+        )
+        .route(
+            "/api/skills/{name}",
+            delete(api::handlers::skills::delete_skill),
+        )
         .route(
             "/api/stats/cost/today",
             get(api::handlers::stats::cost_today),

@@ -8,6 +8,7 @@ pub mod mcp;
 pub mod platform;
 pub mod platforms;
 pub mod plugins;
+pub mod skills;
 pub mod slash_commands;
 pub mod stats;
 pub mod sync;
