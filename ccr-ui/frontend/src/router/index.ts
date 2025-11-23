@@ -86,7 +86,18 @@ const router = createRouter({
         {
           path: 'agents',
           name: 'agents',
-          component: () => import('@/views/AgentsView.vue')
+          component: () => import('@/views/generic/AgentsView.vue'),
+          props: { module: 'agents' }
+        },
+        {
+          path: 'skills',
+          name: 'skills',
+          component: () => import('@/views/generic/SkillsView.vue')
+        },
+        {
+          path: 'market',
+          name: 'market',
+          component: () => import('@/views/generic/MarketView.vue')
         },
         {
           path: 'plugins',
@@ -107,7 +118,8 @@ const router = createRouter({
         {
           path: 'codex/agents',
           name: 'codex-agents',
-          component: () => import('@/views/CodexAgentsView.vue')
+          component: () => import('@/views/generic/AgentsView.vue'),
+          props: { module: 'codex' }
         },
         {
           path: 'codex/slash-commands',
@@ -128,7 +140,8 @@ const router = createRouter({
         {
           path: 'gemini-cli/agents',
           name: 'gemini-agents',
-          component: () => import('@/views/GeminiAgentsView.vue')
+          component: () => import('@/views/generic/AgentsView.vue'),
+          props: { module: 'gemini' }
         },
         {
           path: 'gemini-cli/slash-commands',
@@ -149,7 +162,8 @@ const router = createRouter({
         {
           path: 'qwen/agents',
           name: 'qwen-agents',
-          component: () => import('@/views/QwenAgentsView.vue')
+          component: () => import('@/views/generic/AgentsView.vue'),
+          props: { module: 'qwen' }
         },
         {
           path: 'qwen/slash-commands',
@@ -170,7 +184,8 @@ const router = createRouter({
         {
           path: 'iflow/agents',
           name: 'iflow-agents',
-          component: () => import('@/views/IflowAgentsView.vue')
+          component: () => import('@/views/generic/AgentsView.vue'),
+          props: { module: 'iflow' }
         },
         {
           path: 'iflow/slash-commands',

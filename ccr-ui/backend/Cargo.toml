@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.4.1"
+version = "3.5.1"
 edition = "2024"
 
 [dependencies]
@@ -51,7 +51,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt",
 tracing-appender = "0.2"
 
 # CLI arguments
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.5.53", features = ["derive"] }
 
 # System information
 whoami = "1.5"
@@ -62,7 +62,7 @@ sysinfo = "0.37.2"  # 统一使用与 ccr 相同的版本
 reqwest = { workspace = true }
 
 # YAML support (for special cases)
-serde_yaml = "0.9"
+serde_yaml = "0.9.33"
 
 # Atomic file operations (从 workspace 继承)
 tempfile = { workspace = true }

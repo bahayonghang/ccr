@@ -72,11 +72,11 @@
 
             <div
               v-for="server in servers"
-              :key="server.command || server.url"
+              :key="server.name"
               class="group rounded-lg p-4 transition-all duration-300"
               :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }"
-              @mouseenter="(e) => onCardHover(e.currentTarget, true)"
-              @mouseleave="(e) => onCardHover(e.currentTarget, false)"
+              @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
+              @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -85,7 +85,7 @@
                       class="text-lg font-bold font-mono"
                       :style="{ color: 'var(--text-primary)' }"
                     >
-                      {{ server.command || server.url }}
+                      {{ server.name }}
                     </h3>
                     <span
                       v-if="server.url"
@@ -148,7 +148,7 @@
                     class="p-2 rounded-lg transition-all hover:scale-110"
                     :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
                     :title="$t('codex.actions.delete')"
-                    @click="handleDelete(server.command || server.url || '')"
+                    @click="handleDelete(server.name)"
                   >
                     <Trash2 class="w-4 h-4" />
                   </button>
@@ -187,6 +187,20 @@
               </div>
 
               <div class="space-y-4">
+                <div>
+                  <label
+                    class="block text-sm font-semibold mb-1"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >Name</label>
+                  <input
+                    v-model="formData.name"
+                    type="text"
+                    class="w-full px-3 py-2 rounded-lg"
+                    :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+                    placeholder="Server Name (e.g. context-mcp)"
+                  >
+                </div>
+
                 <div v-if="isHttpServer">
                   <label
                     class="block text-sm font-semibold mb-1"
@@ -330,7 +344,7 @@ const historyCount = ref(0)
 const showAddForm = ref(false)
 const editingServer = ref<CodexMcpServer | null>(null)
 const isHttpServer = ref(false)
-const formData = ref<CodexMcpServerRequest>({ command: undefined, url: undefined, args: [], env: {} })
+const formData = ref<CodexMcpServerRequest>({ name: '', command: undefined, url: undefined, args: [], env: {} })
 const argInput = ref('')
 const envKey = ref('')
 const envValue = ref('')
@@ -361,7 +375,7 @@ const handleAdd = () => {
   showAddForm.value = true
   editingServer.value = null
   isHttpServer.value = false
-  formData.value = { command: '', url: undefined, args: [], env: {} }
+  formData.value = { name: '', command: '', url: undefined, args: [], env: {} }
   argInput.value = ''
 }
 
@@ -369,7 +383,7 @@ const handleEdit = (server: CodexMcpServer) => {
   editingServer.value = server
   showAddForm.value = true
   isHttpServer.value = !!server.url
-  formData.value = { command: server.command, url: server.url, args: server.args || [], env: server.env || {} }
+  formData.value = { name: server.name, command: server.command, url: server.url, args: server.args || [], env: server.env || {} }
   argInput.value = server.args?.join(' ') || ''
 }
 
@@ -379,13 +393,13 @@ const handleSubmit = async () => {
 
   const args = argInput.value.split(' ').filter((a) => a.trim())
   const request: CodexMcpServerRequest = { ...formData.value, args }
+  if (!request.name) request.name = undefined
   if (isHttpServer.value) request.command = undefined
   else request.url = undefined
 
   try {
-    const _name = (request.command || request.url)!
     if (editingServer.value) {
-      await updateCodexMcpServer(editingServer.value.command || editingServer.value.url || '', request)
+      await updateCodexMcpServer(editingServer.value.name, request)
       alert(t('codex.mcp.messages.updateSuccess'))
     } else {
       await addCodexMcpServer(request)

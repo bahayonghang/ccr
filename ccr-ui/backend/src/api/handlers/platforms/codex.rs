@@ -79,8 +79,9 @@ pub async fn add_codex_mcp_server(Json(req): Json<CodexMcpServerRequest>) -> imp
 
     // 从 JSON 中提取服务器名称
     let name = req
-        .command
+        .name
         .clone()
+        .or(req.command.clone())
         .or(req.url.clone())
         .unwrap_or_else(|| "unknown".to_string());
 

@@ -158,6 +158,7 @@ pub struct CodexMcpServerWithName {
 /// 添加/更新 Codex MCP 服务器的请求
 #[derive(Debug, Deserialize)]
 pub struct CodexMcpServerRequest {
+    pub name: Option<String>,
     // STDIO 字段
     pub command: Option<String>,
     pub args: Option<Vec<String>>,

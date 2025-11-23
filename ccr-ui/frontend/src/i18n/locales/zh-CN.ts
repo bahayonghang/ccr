@@ -140,7 +140,8 @@ export default {
       configManagement: '配置管理',
     },
     modules: {
-      title: '功能模块',
+      title: '核心模块',
+      extensionsTitle: '扩展能力',
       configManagement: {
         title: '配置管理',
         desc: 'Claude Code 配置切换、验证、历史记录管理',
@@ -170,6 +171,11 @@ export default {
         title: '插件管理',
         desc: '插件启用/禁用和配置管理',
         badge: '插件',
+      },
+      skills: {
+        title: '技能 (Skills)',
+        desc: 'Claude Code 技能管理',
+        badge: 'Skill',
       },
     },
     quickActions: {
@@ -787,6 +793,62 @@ export default {
     savedSuccessfully: '保存成功',
     deletedSuccessfully: '删除成功',
     copiedToClipboard: '已复制到剪贴板',
+  },
+
+  // Skills module
+  skills: {
+    title: 'Claude Code 技能管理',
+    subtitle: '管理 Claude Code Skills (SKILL.md)',
+    breadcrumb: '技能管理',
+    pageTitle: 'Claude Code 技能管理',
+    backToHome: '返回首页',
+    addSkill: '添加技能',
+    editSkill: '编辑技能',
+    nameLabel: '技能名称 *',
+    namePlaceholder: '例如: format-json',
+    instructionLabel: '技能指令 (Instruction) *',
+    instructionPlaceholder: '输入技能指令 (支持 Markdown)...',
+    noSkills: '暂无技能配置',
+    noSkillsHint: '点击"添加技能"按钮创建您的第一个技能',
+    deleteConfirm: '确定要删除技能 "{name}" 吗？',
+    validation: {
+      required: '请填写必填项'
+    },
+    messages: {
+      loadFailed: '加载技能失败',
+      operationFailed: '操作失败',
+      deleteFailed: '删除失败'
+    },
+    help: {
+      title: '什么是 Claude Code Skills?',
+      description: 'Skills 是 Claude Code 的模块化能力。每个 Skill 是一个包含 SKILL.md 文件的文件夹，定义了 Claude 可以执行的可重用任务。',
+      structure: '结构: ~/.claude/skills/<skill-name>/SKILL.md',
+      learnMore: '了解更多'
+    }
+  },
+
+  // Market module
+  market: {
+    title: '市场 (Market)',
+    description: '发现并安装来自社区的技能、插件和 MCP 服务器。',
+    explore: '探索市场',
+    searchPlaceholder: '搜索技能、插件、MCP...',
+    tabs: {
+      featured: '精选',
+      skills: '技能',
+      plugins: '插件',
+      mcp: 'MCP 服务器'
+    },
+    install: '安装',
+    installed: '已安装',
+    noResults: '未找到匹配的项目。',
+    backToClaude: '返回 Claude Code',
+    backToHome: '返回首页',
+    breadcrumb: {
+      home: '首页',
+      claude: 'Claude Code',
+      market: '市场'
+    }
   },
 
   // Usage Statistics Module

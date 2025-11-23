@@ -140,7 +140,8 @@ export default {
       configManagement: 'Config Management',
     },
     modules: {
-      title: 'Functional Modules',
+      title: 'Core Modules',
+      extensionsTitle: 'Extensions',
       configManagement: {
         title: 'Config Management',
         desc: 'Claude Code configuration switching, validation, and history management',
@@ -838,7 +839,33 @@ export default {
 
     emptyState: {
       title: 'No Usage Data Available',
-      subtitle: 'Start using {platform} to see usage statistics here'
+      subtitle: 'Start using {platform} to see usage statistics here',
+      structure: 'Structure: ~/.claude/skills/<skill-name>/SKILL.md',
+      learnMore: 'Learn More'
+    }
+  },
+
+  // Market module
+  market: {
+    title: 'Market',
+    description: 'Discover and install Skills, Plugins, and MCP Servers from the community.',
+    explore: 'Explore Market',
+    searchPlaceholder: 'Search for skills, plugins, mcp...',
+    tabs: {
+      featured: 'Featured',
+      skills: 'Skills',
+      plugins: 'Plugins',
+      mcp: 'MCP Servers'
+    },
+    install: 'Install',
+    installed: 'Installed',
+    noResults: 'No items found matching your search.',
+    backToClaude: 'Back to Claude Code',
+    backToHome: 'Back to Home',
+    breadcrumb: {
+      home: 'Home',
+      claude: 'Claude Code',
+      market: 'Market'
     }
   },
 
@@ -937,6 +964,11 @@ export default {
           title: 'Basic Configuration',
           description: 'Model, Approval Policy, Sandbox and other basic settings',
           badge: '🔧 Config'
+        },
+        skills: {
+          title: 'Skills',
+          description: 'Claude Code Skills management',
+          badge: 'Skill'
         }
       },
       tipsTitle: '💡 Codex Features',

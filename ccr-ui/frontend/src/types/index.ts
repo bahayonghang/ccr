@@ -329,6 +329,7 @@ export interface CodexMcpServer {
 }
 
 export interface CodexMcpServerRequest {
+  name?: string;
   command?: string;
   args?: string[];
   env?: Record<string, string>;

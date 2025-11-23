@@ -35,13 +35,34 @@ export default {
           info: 'rgb(var(--accent-info-rgb) / <alpha-value>)',
         },
         guofeng: {
-          bg: '#fdfbf7', // Rice paper
-          red: '#ff4d4f', // Zhu Hong
-          jade: '#10b981', // Fei Cui
-          blue: '#1677b3', // Dian Lan
-          gold: '#f59e0b', // Teng Huang
-          ink: '#1e293b', // Mo Hei
-          purple: '#7c3aed', // Zi
+          bg: {
+            DEFAULT: '#fdfbf7', // Rice Paper (Xuan Zhi)
+            secondary: '#f5f2e9', // Aged Paper
+            tertiary: '#e8e4d9', // Silk
+            card: '#ffffff', // White Jade
+          },
+          ink: {
+            DEFAULT: '#1e293b', // Mo Hei (Ink Black)
+            light: '#475569', // Light Ink
+            lighter: '#94a3b8', // Watery Ink
+          },
+          red: {
+            DEFAULT: '#ff4d4f', // Zhu Hong (Vermilion)
+            dim: '#d63031',
+          },
+          jade: {
+            DEFAULT: '#10b981', // Fei Cui (Jade Green)
+            dim: '#059669',
+          },
+          blue: {
+            DEFAULT: '#1677b3', // Dian Lan (Indigo)
+            dim: '#0e5a8a',
+          },
+          gold: {
+            DEFAULT: '#f59e0b', // Teng Huang (Rattan Yellow)
+            dim: '#d97706',
+          },
+          border: '#e2e8f0',
         }
       }
     },
