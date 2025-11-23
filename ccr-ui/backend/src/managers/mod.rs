@@ -4,4 +4,3 @@ pub mod config;
 pub mod markdown_manager;
 pub mod plugins_manager;
 pub mod settings_manager;
-pub mod skills_manager;

@@ -385,6 +385,38 @@ enum Commands {
     ///       ccr stats cost --top 10
     #[cfg(feature = "web")]
     Stats(commands::StatsArgs),
+
+    /// 🛠️ 技能管理
+    ///
+    /// 管理 AI 助手的技能 (Skills)
+    /// 示例: ccr skills list
+    ///       ccr skills scan official
+    ///       ccr skills install computer-use
+    Skills(commands::skills_cmd::SkillsArgs),
+
+    /// 📝 提示词预设管理
+    ///
+    /// 管理系统提示词预设 (Prompts)
+    /// 示例: ccr prompts list
+    ///       ccr prompts add my-preset --target claude --content @prompt.md
+    ///       ccr prompts apply my-preset
+    Prompts(commands::prompts_cmd::PromptsArgs),
+
+    /// 🔍 检测配置冲突
+    ///
+    /// 检测不同 AI CLI 平台之间的环境变量冲突
+    /// 示例: ccr check conflicts
+    Check {
+        #[command(subcommand)]
+        action: CheckAction,
+    },
+}
+
+/// 🔍 检查操作子命令
+#[derive(Subcommand)]
+enum CheckAction {
+    /// 检测环境变量冲突
+    Conflicts,
 }
 
 /// 🎯 临时Token操作子命令
@@ -824,6 +856,11 @@ fn main() {
                 std::process::exit(1);
             }
         },
+        Some(Commands::Skills(args)) => commands::skills_cmd::skills_command(args),
+        Some(Commands::Prompts(args)) => commands::prompts_cmd::prompts_command(args),
+        Some(Commands::Check { action }) => match action {
+            CheckAction::Conflicts => commands::check_conflicts_command(),
+        },
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {
@@ -933,6 +970,9 @@ fn command_name(cmd: &Commands) -> &'static str {
         Commands::Migrate { .. } => "migrate",
         #[cfg(feature = "web")]
         Commands::Stats(_) => "stats",
+        Commands::Skills(_) => "skills",
+        Commands::Prompts(_) => "prompts",
+        Commands::Check { .. } => "check",
     }
 }
 

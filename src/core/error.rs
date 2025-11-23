@@ -72,6 +72,15 @@ pub mod exit_codes {
 
     /// 📝 Profile 未找到
     pub const PROFILE_NOT_FOUND: i32 = 62;
+
+    /// 🌐 网络错误
+    pub const NETWORK_ERROR: i32 = 71;
+
+    /// 📦 资源未找到
+    pub const RESOURCE_NOT_FOUND: i32 = 63;
+
+    /// 📦 资源已存在
+    pub const RESOURCE_ALREADY_EXISTS: i32 = 64;
 }
 
 /// ❌ CCR 错误类型枚举
@@ -147,6 +156,18 @@ pub enum CcrError {
     /// 📝 Profile 未找到
     #[error("配置 profile '{0}' 未找到")]
     ProfileNotFound(String),
+
+    /// 🌐 网络错误
+    #[error("网络错误: {0}")]
+    NetworkError(String),
+
+    /// 📦 资源未找到
+    #[error("资源未找到: {0}")]
+    ResourceNotFound(String),
+
+    /// 📦 资源已存在
+    #[error("资源已存在: {0}")]
+    ResourceAlreadyExists(String),
 }
 
 impl CcrError {
@@ -174,6 +195,9 @@ impl CcrError {
             CcrError::PlatformNotFound(_) => exit_codes::PLATFORM_NOT_FOUND,
             CcrError::PlatformNotSupported(_) => exit_codes::PLATFORM_NOT_SUPPORTED,
             CcrError::ProfileNotFound(_) => exit_codes::PROFILE_NOT_FOUND,
+            CcrError::NetworkError(_) => exit_codes::NETWORK_ERROR,
+            CcrError::ResourceNotFound(_) => exit_codes::RESOURCE_NOT_FOUND,
+            CcrError::ResourceAlreadyExists(_) => exit_codes::RESOURCE_ALREADY_EXISTS,
         }
     }
 

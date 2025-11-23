@@ -300,6 +300,42 @@ fn create_router() -> Router {
             "/api/skills/{name}",
             delete(api::handlers::skills::delete_skill),
         )
+        // Skills repository management
+        .route(
+            "/api/skills/repositories",
+            get(api::handlers::skills::list_repositories),
+        )
+        .route(
+            "/api/skills/repositories",
+            post(api::handlers::skills::add_repository),
+        )
+        .route(
+            "/api/skills/repositories/{name}",
+            delete(api::handlers::skills::remove_repository),
+        )
+        .route(
+            "/api/skills/repositories/{name}/scan",
+            get(api::handlers::skills::scan_repository),
+        )
+        // Prompts management endpoints
+        .route("/api/prompts", get(api::handlers::prompts::list_prompts))
+        .route("/api/prompts", post(api::handlers::prompts::add_prompt))
+        .route(
+            "/api/prompts/{name}",
+            get(api::handlers::prompts::get_prompt),
+        )
+        .route(
+            "/api/prompts/{name}",
+            delete(api::handlers::prompts::delete_prompt),
+        )
+        .route(
+            "/api/prompts/{name}/apply",
+            post(api::handlers::prompts::apply_prompt),
+        )
+        .route(
+            "/api/prompts/current/{target}",
+            get(api::handlers::prompts::get_current_prompt),
+        )
         .route(
             "/api/stats/cost/today",
             get(api::handlers::stats::cost_today),
