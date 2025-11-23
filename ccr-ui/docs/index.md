@@ -15,6 +15,9 @@ hero:
     - theme: alt
       text: 查看源码
       link: https://github.com/bahayonghang/ccr
+  image:
+    src: /screenshots/home.png
+    alt: CCR UI Dashboard
 
 features:
   - icon: 🚀
