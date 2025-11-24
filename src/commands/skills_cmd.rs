@@ -90,7 +90,7 @@ pub fn skills_command(args: SkillsArgs) -> Result<()> {
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|e| crate::core::error::CcrError::IoError(e))?;
+        .map_err(crate::core::error::CcrError::IoError)?;
 
     rt.block_on(async {
         match args.action {
@@ -208,12 +208,12 @@ pub fn skills_command(args: SkillsArgs) -> Result<()> {
                 let mut source_repo = None;
 
                 for repo in &repos {
-                    if let Ok(skills) = manager.fetch_remote_skills(&repo.name).await {
-                        if let Some(skill) = skills.into_iter().find(|s| s.name == name) {
-                            found_skill = Some(skill);
-                            source_repo = Some(repo);
-                            break;
-                        }
+                    if let Ok(skills) = manager.fetch_remote_skills(&repo.name).await
+                        && let Some(skill) = skills.into_iter().find(|s| s.name == name)
+                    {
+                        found_skill = Some(skill);
+                        source_repo = Some(repo);
+                        break;
                     }
                 }
 

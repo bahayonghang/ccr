@@ -327,7 +327,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Bot, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { Bot, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, ChevronDown, ChevronRight, Code2, Sparkles, Terminal, Workflow } from 'lucide-vue-next'
 import Breadcrumb from '@/components/common/Breadcrumb.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import { useAgents } from '@/composables/useAgents'
@@ -358,10 +358,26 @@ const formData = ref<AgentRequest>({ name: '', model: 'claude-sonnet-4-5-2025092
 const toolInput = ref('')
 
 // Breadcrumbs
-const breadcrumbs = computed(() => [
-  { label: t('common.home'), to: '/', icon: Home },
-  { label: t(`${tPrefix.value}.pageTitle`) }
-])
+const breadcrumbs = computed(() => {
+  const items: { label: string; to?: string; icon?: any }[] = [
+    { label: t('common.home'), to: '/', icon: Home }
+  ]
+
+  if (props.module === 'agents') {
+    items.push({ label: t('claudeCode.title'), to: '/claude-code', icon: Code2 })
+  } else if (props.module === 'codex') {
+    items.push({ label: t('nav.codex'), to: '/codex', icon: Code2 })
+  } else if (props.module === 'gemini') {
+    items.push({ label: t('nav.gemini'), to: '/gemini-cli', icon: Sparkles })
+  } else if (props.module === 'qwen') {
+    items.push({ label: t('nav.qwen'), to: '/qwen', icon: Sparkles })
+  } else if (props.module === 'iflow') {
+    items.push({ label: t('nav.iflow'), to: '/iflow', icon: Workflow })
+  }
+
+  items.push({ label: t(`${tPrefix.value}.pageTitle`) })
+  return items
+})
 
 // Reload agents when module changes
 watch(() => props.module, () => {

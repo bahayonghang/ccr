@@ -64,24 +64,6 @@
           >
             {{ $t('codex.overview.features.mcpProtocol') }}
           </span>
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
-          >
-            {{ $t('codex.overview.features.agents') }}
-          </span>
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }"
-          >
-            {{ $t('codex.overview.features.profiles') }}
-          </span>
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }"
-          >
-            {{ $t('codex.overview.features.configManagement') }}
-          </span>
         </div>
       </div>
 
@@ -141,48 +123,6 @@
           </RouterLink>
 
           <RouterLink
-            to="/codex/agents"
-            class="block group"
-          >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
-                >
-                  <Bot
-                    class="w-7 h-7"
-                    :style="{ color: '#10b981' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('codex.overview.modules.agents.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('codex.overview.modules.agents.description') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      color: '#10b981'
-                    }"
-                  >
-                    {{ $t('codex.overview.modules.agents.badge') }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </RouterLink>
-
-          <RouterLink
             to="/codex/slash-commands"
             class="block group"
           >
@@ -223,132 +163,6 @@
               </div>
             </div>
           </RouterLink>
-
-          <RouterLink
-            to="/codex/plugins"
-            class="block group"
-          >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(236, 72, 153, 0.15)' }"
-                >
-                  <Puzzle
-                    class="w-7 h-7"
-                    :style="{ color: '#ec4899' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('codex.overview.modules.plugins.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('codex.overview.modules.plugins.description') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(236, 72, 153, 0.15)',
-                      color: '#ec4899'
-                    }"
-                  >
-                    {{ $t('codex.overview.modules.plugins.badge') }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </RouterLink>
-
-          <RouterLink
-            to="/codex/profiles"
-            class="block group"
-          >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
-                >
-                  <Users
-                    class="w-7 h-7"
-                    :style="{ color: '#6366f1' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('codex.overview.modules.profiles.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('codex.overview.modules.profiles.description') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(99, 102, 241, 0.15)',
-                      color: '#6366f1'
-                    }"
-                  >
-                    {{ $t('codex.overview.modules.profiles.badge') }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </RouterLink>
-
-          <RouterLink
-            to="/codex/config"
-            class="block group"
-          >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(59, 130, 246, 0.15)' }"
-                >
-                  <Settings
-                    class="w-7 h-7"
-                    :style="{ color: '#3b82f6' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('codex.overview.modules.config.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('codex.overview.modules.config.description') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(59, 130, 246, 0.15)',
-                      color: '#3b82f6'
-                    }"
-                  >
-                    {{ $t('codex.overview.modules.config.badge') }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </RouterLink>
         </div>
       </div>
 
@@ -378,18 +192,6 @@
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
                 <span>{{ $t('codex.overview.tips.mcpConnection') }}</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
-                <span>{{ $t('codex.overview.tips.profileManagement') }}</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
-                <span>{{ $t('codex.overview.tips.agentsFeature') }}</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
-                <span>{{ $t('codex.overview.tips.pluginEcosystem') }}</span>
               </li>
             </ul>
           </div>

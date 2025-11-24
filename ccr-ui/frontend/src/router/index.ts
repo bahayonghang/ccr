@@ -111,25 +111,9 @@ const router = createRouter({
           component: () => import('@/views/CodexMcpView.vue')
         },
         {
-          path: 'codex/profiles',
-          name: 'codex-profiles',
-          component: () => import('@/views/CodexProfilesView.vue')
-        },
-        {
-          path: 'codex/agents',
-          name: 'codex-agents',
-          component: () => import('@/views/generic/AgentsView.vue'),
-          props: { module: 'codex' }
-        },
-        {
           path: 'codex/slash-commands',
           name: 'codex-slash-commands',
           component: () => import('@/views/CodexSlashCommandsView.vue')
-        },
-        {
-          path: 'codex/plugins',
-          name: 'codex-plugins',
-          component: () => import('@/views/CodexPluginsView.vue')
         },
         // Gemini CLI 子页面
         {
