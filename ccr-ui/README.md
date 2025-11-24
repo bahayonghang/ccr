@@ -1,6 +1,6 @@
 # CCR UI - Vue 3 + Axum + Tauri 全栈应用
 
-面向 CCR（Claude Code Configuration Switcher）的图形化/桌面化体验。前端 Vue 3 + Vite + Pinia，后端 Axum，支持 Web 模式与 Tauri 桌面模式。版本 3.4.1。
+面向 CCR（Claude Code Configuration Switcher）的图形化/桌面化体验。前端 Vue 3 + Vite + Pinia，后端 Axum，支持 Web 模式与 Tauri 桌面模式。版本 3.6.2。
 
 ## 功能速览
 - 配置管理：查看/切换/验证/历史/备份，覆盖全部 CLI 能力
@@ -90,10 +90,10 @@ just tauri-build       # 打包桌面安装包
 ## 故障排查
 - 后端端口占用：改用 `--port`，或关闭占用进程
 - 前端连不上后端：确认 8081 运行，检查浏览器控制台与网络面板
-- CLI 调用异常：确认 `ccr` 在 PATH，版本为 3.4.1，必要时加 `CCR_LOG_LEVEL=debug`
+- CLI 调用异常：确认 `ccr` 在 PATH，版本为 3.6.2，必要时加 `CCR_LOG_LEVEL=debug`
 
 ## 许可证
 MIT（与主项目一致）
 
 ---
-Last Updated: 2025-01-13 / Version: 3.4.1
+Last Updated: 2025-01-24 / Version: 3.6.2
