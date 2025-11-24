@@ -4,25 +4,27 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 
 ## 命令概览
 
-| 命令 | 别名 | 说明 |
-|------|------|------|
-| [init](./init) | - | 初始化配置文件 |
-| [list](./list) | `ls` | 列出所有可用配置 |
-| [current](./current) | `status`, `show` | 显示当前配置状态 |
-| [switch](./switch) | - | 切换到指定配置 |
-| [add](./add) | - | 交互式添加新配置 |
-| [delete](./delete) | - | 删除指定配置 |
-| [temp-token](./temp-token) | - | 临时Token管理（不修改配置文件） |
-| [validate](./validate) | `check` | 验证配置完整性 |
-| [history](./history) | - | 显示操作历史 |
-| [stats](./stats) | - | 查看使用统计和成本分析 |
-| [tui](./tui) | - | 启动交互式终端界面 |
-| [web](./web) | - | 启动轻量级 Legacy Web 界面/HTTP API（兼容与编程访问，新的浏览器端推荐使用 `ccr ui`） |
-| [export](./export) | - | 导出配置到文件 |
-| [import](./import) | - | 从文件导入配置 |
-| [clean](./clean) | - | 清理旧备份文件 |
-| [update](./update) | - | 更新到最新版本 |
-| [version](./version) | `ver` | 显示版本信息 |
+| 命令 | 别名 | 说明 | 版本 |
+|------|------|------|------|
+| [init](./init) | - | 初始化配置文件 | v1.0+ |
+| [list](./list) | `ls` | 列出所有可用配置 | v1.0+ |
+| [current](./current) | `status`, `show` | 显示当前配置状态 | v1.0+ |
+| [switch](./switch) | - | 切换到指定配置 | v1.0+ |
+| [add](./add) | - | 交互式添加新配置 | v1.0+ |
+| [delete](./delete) | - | 删除指定配置 | v1.0+ |
+| [temp-token](./temp-token) | - | 临时Token管理（不修改配置文件） | v2.0+ |
+| [validate](./validate) | `check` | 验证配置完整性 | v1.0+ |
+| [history](./history) | - | 显示操作历史 | v1.0+ |
+| [stats](./stats) | - | 查看使用统计和成本分析 | v2.0+ |
+| [tui](./tui) | - | 启动交互式终端界面 | v2.0+ |
+| [web](./web) | - | 启动轻量级 Legacy Web 界面/HTTP API（兼容与编程访问，新的浏览器端推荐使用 `ccr ui`） | v2.0+ |
+| [export](./export) | - | 导出配置到文件 | v1.0+ |
+| [import](./import) | - | 从文件导入配置 | v1.0+ |
+| [clean](./clean) | - | 清理旧备份文件 | v2.0+ |
+| [update](./update) | - | 更新到最新版本 | v1.0+ |
+| [version](./version) | `ver` | 显示版本信息 | v1.0+ |
+| [skills](./skills) | - | 技能管理 | **v3.5+** |
+| [prompts](./prompts) | - | 提示词模板管理 | **v3.5+** |
 
 ## 命令分类
 
@@ -45,6 +47,11 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 - **[export](./export)** - 导出配置用于备份或迁移
 - **[import](./import)** - 从文件导入配置
 - **[clean](./clean)** - 清理旧备份文件
+
+### 高级功能 (v3.5+)
+
+- **[skills](./skills)** - 技能管理：安装、卸载、管理技能仓库
+- **[prompts](./prompts)** - 提示词模板管理：创建、应用、管理提示词预设
 
 ### 历史与监控
 
