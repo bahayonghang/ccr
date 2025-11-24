@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen p-6 bg-guofeng-bg text-guofeng-ink transition-colors duration-300">
+  <div class="min-h-screen p-6 transition-colors duration-300">
     <div class="max-w-7xl mx-auto">
       <!-- Breadcrumbs & Navigation -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-fade-in">
@@ -37,7 +37,7 @@
       </div>
 
       <!-- Hero Header -->
-      <div class="relative mb-10 p-8 rounded-3xl overflow-hidden glass-card border-0 shadow-lg bg-gradient-to-br from-guofeng-bg-secondary to-white">
+      <div class="relative mb-10 p-8 rounded-3xl overflow-hidden glass-effect border-0 shadow-lg">
         <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-red-500/5 to-orange-500/5 rounded-full blur-3xl -mr-12 -mt-12 pointer-events-none"></div>
         
         <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -90,6 +90,7 @@
         <GuofengCard
           v-for="item in filteredItems"
           :key="item.id"
+          variant="glass"
           interactive
           class="h-full flex flex-col group hover:-translate-y-1 transition-transform duration-300"
         >

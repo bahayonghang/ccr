@@ -171,8 +171,6 @@ enum Commands {
     /// 验证配置文件和设置的完整性
     ///
     /// 检查配置文件格式是否正确,以及 Claude Code 设置文件是否有效
-    /// 别名: check
-    #[command(alias = "check")]
     Validate,
 
     /// 查看配置操作的历史记录

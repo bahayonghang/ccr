@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen p-5 bg-guofeng-bg text-guofeng-ink transition-colors duration-300">
+  <div class="min-h-screen p-5 transition-colors duration-300">
     <div class="mb-6" />
 
     <div class="max-w-[1600px] mx-auto">
@@ -31,7 +31,7 @@
       </div>
 
       <!-- Help Box -->
-      <div class="mb-8 bg-guofeng-bg-secondary border border-guofeng-border rounded-xl p-5 flex items-start gap-4 shadow-sm">
+      <div class="mb-8 glass-effect border border-white/20 rounded-xl p-5 flex items-start gap-4 shadow-sm">
         <div class="p-2 bg-guofeng-blue/10 rounded-lg text-guofeng-blue">
           <Info class="w-6 h-6" />
         </div>
@@ -64,6 +64,7 @@
         <GuofengCard
           v-for="skill in skills"
           :key="skill.name"
+          variant="glass"
           interactive
           pattern
           @click="handleEdit(skill)"

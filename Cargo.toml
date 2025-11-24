@@ -56,7 +56,7 @@ reqwest = { version = "0.12.24", features = ["blocking", "json"] }
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.6.0"
+version = "3.6.1"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher(Rust implementation)"
@@ -121,7 +121,7 @@ uuid = { version = "1.18.1", features = ["v4", "serde"] }
 
 # HTTP 服务器 (用于 web 界面 - 可选功能)
 # 🎯 异步 Web 框架 - 高性能并发处理（优化features以加快编译）
-tokio = { workspace = true, optional = true }
+tokio = { workspace = true }
 axum = { workspace = true, optional = true }
 tower = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
@@ -154,14 +154,7 @@ default = ["web", "tui"]
 
 # Web API 服务器功能
 # 包含：Axum web 框架、Tokio 异步运行时、系统信息缓存
-web = [
-    "dep:tokio",
-    "dep:axum",
-    "dep:tower",
-    "dep:tower-http",
-    "dep:open",
-    "dep:sysinfo",
-]
+web = ["dep:axum", "dep:tower", "dep:tower-http", "dep:open", "dep:sysinfo"]
 
 # 终端用户界面功能
 # 包含：Ratatui TUI 框架、Crossterm 终端控制
