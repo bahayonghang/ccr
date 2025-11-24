@@ -431,6 +431,29 @@
         </div>
       </div>
     </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <ConfirmModal
+      v-model:isOpen="showDeleteModal"
+      type="danger"
+      :title="$t('mcp.deleteConfirmTitle')"
+      :message="$t('mcp.deleteConfirmMessage', { name: serverToDelete })"
+      :confirm-text="$t('common.delete')"
+      :cancel-text="$t('common.cancel')"
+      @confirm="confirmDelete"
+    />
+    
+    <!-- Toggle (Enable/Disable) Confirmation Modal -->
+    <ConfirmModal
+      v-if="serverToToggle"
+      v-model:isOpen="showToggleModal"
+      type="warning"
+      :title="serverToToggle.currentlyDisabled ? $t('mcp.enableConfirmTitle') : $t('mcp.disableConfirmTitle')"
+      :message="serverToToggle.currentlyDisabled ? $t('mcp.enableConfirmMessage', { name: serverToToggle.name }) : $t('mcp.disableConfirmMessage', { name: serverToToggle.name })"
+      :confirm-text="serverToToggle.currentlyDisabled ? $t('mcp.enable') : $t('mcp.disable')"
+      :cancel-text="$t('common.cancel')"
+      @confirm="confirmToggle"
+    />
   </div>
 </template>
 
@@ -452,6 +475,7 @@ import Navbar from '@/components/Navbar.vue'
 import StatusHeader from '@/components/StatusHeader.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -472,6 +496,10 @@ const formData = ref<McpServerRequest>({
 const argInput = ref('')
 const envKey = ref('')
 const envValue = ref('')
+const showDeleteModal = ref(false)
+const serverToDelete = ref('')
+const showToggleModal = ref(false)
+const serverToToggle = ref<{ name: string; currentlyDisabled: boolean } | null>(null)
 
 const loadServers = async () => {
   try {
@@ -557,24 +585,45 @@ const handleSubmit = async () => {
   }
 }
 
-const handleDelete = async (name: string) => {
-  if (!confirm(t('mcp.deleteConfirm', { name }))) return
+const handleDelete = (name: string) => {
+  serverToDelete.value = name
+  showDeleteModal.value = true
+}
 
+const confirmDelete = async () => {
+  if (!serverToDelete.value) return
+  
   try {
-    await deleteMcpServer(name)
+    await deleteMcpServer(serverToDelete.value)
     alert(t('mcp.deleteSuccess'))
     await loadServers()
   } catch (err) {
     alert(`${t('mcp.deleteFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
+  } finally {
+    showDeleteModal.value = false
+    serverToDelete.value = ''
   }
 }
 
-const handleToggle = async (name: string) => {
+const handleToggle = (name: string) => {
+  const server = servers.value.find(s => s.name === name)
+  if (!server) return
+  
+  serverToToggle.value = { name, currentlyDisabled: server.disabled }
+  showToggleModal.value = true
+}
+
+const confirmToggle = async () => {
+  if (!serverToToggle.value) return
+  
   try {
-    await toggleMcpServer(name)
+    await toggleMcpServer(serverToToggle.value.name)
     await loadServers()
   } catch (err) {
     alert(`${t('mcp.toggleFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
+  } finally {
+    showToggleModal.value = false
+    serverToToggle.value = null
   }
 }
 
@@ -592,7 +641,10 @@ const removeEnvVar = (key: string) => {
   formData.value.env = newEnv
 }
 
-const onCardHover = (el: HTMLElement, hover: boolean) => {
+const onCardHover = (target: EventTarget | null, hover: boolean) => {
+  const el = target as HTMLElement
+  if (!el) return
+
   if (hover) {
     el.style.background = 'rgba(255, 255, 255, 0.9)'
     el.style.borderColor = 'rgba(99, 102, 241, 0.24)'
