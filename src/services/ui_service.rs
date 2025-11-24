@@ -28,8 +28,8 @@ impl UiService {
         let home = dirs::home_dir()
             .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".to_string()))?;
 
-        // UI 资源目录 (~/.ccr/ccr-ui/)
-        let ui_dir = home.join(".ccr/ccr-ui");
+        // UI 资源目录 (~/.ccr/repo/ccr-ui/) - 指向完整仓库下的 ccr-ui
+        let ui_dir = home.join(".ccr/repo/ccr-ui");
 
         // 检查是否在开发环境中
         let ccr_ui_path = Self::detect_ccr_ui_path();
@@ -409,18 +409,28 @@ impl UiService {
             ));
         }
 
-        ColorOutput::info("📦 正在复制文件到目标目录...");
+        ColorOutput::info("📦 正在复制仓库文件...");
 
-        // 如果目标目录已存在，先删除
-        if self.ui_dir.exists() {
-            fs::remove_dir_all(&self.ui_dir)
+        // 目标是 repo 根目录 (~/.ccr/repo)
+        // self.ui_dir 是 ~/.ccr/repo/ccr-ui
+        // 所以我们要复制到 self.ui_dir.parent()
+        let repo_dir = self
+            .ui_dir
+            .parent()
+            .ok_or_else(|| CcrError::ConfigError("无法获取仓库根目录".to_string()))?;
+
+        // 如果 repo 目录已存在，先删除
+        if repo_dir.exists() {
+            fs::remove_dir_all(repo_dir)
                 .map_err(|e| CcrError::ConfigError(format!("删除旧目录失败: {}", e)))?;
         }
 
-        // 复制 ccr-ui 目录到目标位置
-        self.copy_dir_recursive(&ccr_ui_src, &self.ui_dir)?;
+        // 复制整个仓库到目标位置
+        // temp_dir.path() 是仓库根目录
+        // repo_dir 是目标仓库根目录
+        self.copy_dir_recursive(temp_dir.path(), repo_dir)?;
 
-        ColorOutput::success("✅ CCR UI 下载完成");
+        ColorOutput::success("✅ CCR 仓库下载完成");
         ColorOutput::info(&format!("📁 安装位置: {}", self.ui_dir.display()));
         println!();
 
