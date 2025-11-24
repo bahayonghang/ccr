@@ -2,20 +2,20 @@
 
 [package]
 name = "ccr-desktop"
-version = "3.5.1"
+version = "3.6.0"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2021"
 
 [build-dependencies]
-tauri-build = { version = "2.0", features = [] }
+tauri-build = { version = "2.5.2", features = [] }
 
 [dependencies]
 # 🎯 CCR 核心库 - 直接使用服务层
 ccr = { path = "../../../", default-features = false }
 
 # Tauri framework
-tauri = { version = "2.0", features = [] }
+tauri = { version = "2.9.3", features = [] }
 tauri-plugin-shell = "2.0"
 
 # Serialization

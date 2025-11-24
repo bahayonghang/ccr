@@ -15,10 +15,28 @@ BACKEND_CARGO="$ROOT_DIR/ccr-ui/backend/Cargo.toml"
 FRONTEND_PKG="$ROOT_DIR/ccr-ui/frontend/package.json"
 TAURI_CARGO="$ROOT_DIR/ccr-ui/frontend/src-tauri/Cargo.toml"
 TAURI_CONF="$ROOT_DIR/ccr-ui/frontend/src-tauri/tauri.conf.json"
+COMPONENT_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/frontend/src/components/MainLayout.vue"
+LEGACY_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/frontend/src/layouts/MainLayout.vue"
 
 die() {
   echo "❌ $1" >&2
   exit 1
+}
+
+# 更新 CCR UI 侧边栏版本标识
+update_ui_footer_version() {
+  local file="$1"
+  local tmp
+  tmp="$(mktemp)"
+  if ! grep -q "CCR UI v" "$file"; then
+    rm -f "$tmp"
+    die "在 $file 中找不到 CCR UI 版本标记"
+  fi
+  sed -E "s/(CCR UI v)[0-9A-Za-z._-]+/\1$ROOT_VER/g" "$file" > "$tmp" || {
+    rm -f "$tmp"
+    die "更新 $file 中的 CCR UI 版本失败"
+  }
+  mv "$tmp" "$file"
 }
 
 require_file() {
@@ -31,6 +49,8 @@ require_file "$BACKEND_CARGO"
 require_file "$FRONTEND_PKG"
 require_file "$TAURI_CARGO"
 require_file "$TAURI_CONF"
+require_file "$COMPONENT_MAIN_LAYOUT"
+require_file "$LEGACY_MAIN_LAYOUT"
 
 # 提取根 Cargo.toml 的 [package] 版本号
 extract_root_version() {
@@ -127,8 +147,24 @@ extract_tauri_conf_version() {
 TAURI_CONF_VER="$(extract_tauri_conf_version)"
 [[ "$VERBOSE" == true ]] && echo "🖥️  Tauri Conf 版本: $TAURI_CONF_VER"
 
+# 获取 CCR UI 侧边栏（组件版）版本
+extract_ui_footer_version() {
+  local target="$1"
+  local ver
+  ver="$(sed -nE 's/.*CCR UI v([0-9A-Za-z._-]+).*/\1/p' "$target" | head -n1)"
+  [[ -n "$ver" ]] || die "无法在 $target 中解析 CCR UI 版本号"
+  ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  printf "%s" "$ver"
+}
+
+UI_COMPONENT_VER="$(extract_ui_footer_version "$COMPONENT_MAIN_LAYOUT")"
+[[ "$VERBOSE" == true ]] && echo "🖼️  MainLayout.vue (components) 版本: $UI_COMPONENT_VER"
+
+UI_LEGACY_LAYOUT_VER="$(extract_ui_footer_version "$LEGACY_MAIN_LAYOUT")"
+[[ "$VERBOSE" == true ]] && echo "📐 MainLayout.vue (layouts) 版本: $UI_LEGACY_LAYOUT_VER"
+
 if [[ "$CHECK_ONLY" == true ]]; then
-  if [[ "$ROOT_VER" == "$BACKEND_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" ]]; then
+  if [[ "$ROOT_VER" == "$BACKEND_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_LEGACY_LAYOUT_VER" ]]; then
     echo "✅ 版本一致性检查通过"
     exit 0
   else
@@ -138,11 +174,13 @@ if [[ "$CHECK_ONLY" == true ]]; then
     echo "  ccr-ui/frontend/package.json:           $FRONTEND_VER"
     echo "  ccr-ui/frontend/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
     echo "  ccr-ui/frontend/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
+    echo "  ccr-ui/frontend/src/components/MainLayout.vue: $UI_COMPONENT_VER"
+    echo "  ccr-ui/frontend/src/layouts/MainLayout.vue:   $UI_LEGACY_LAYOUT_VER"
     exit 1
   fi
 fi
 
-if [[ "$ROOT_VER" == "$BACKEND_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" ]]; then
+if [[ "$ROOT_VER" == "$BACKEND_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_LEGACY_LAYOUT_VER" ]]; then
   echo "✅ 版本一致，无需同步"
   exit 0
 fi
@@ -233,6 +271,16 @@ fi
 if [[ "$TAURI_CONF_VER" != "$ROOT_VER" ]]; then
   echo "  - Tauri tauri.conf.json: $TAURI_CONF_VER -> $ROOT_VER"
   update_tauri_conf_version
+fi
+
+if [[ "$UI_COMPONENT_VER" != "$ROOT_VER" ]]; then
+  echo "  - 前端 MainLayout (components): $UI_COMPONENT_VER -> $ROOT_VER"
+  update_ui_footer_version "$COMPONENT_MAIN_LAYOUT"
+fi
+
+if [[ "$UI_LEGACY_LAYOUT_VER" != "$ROOT_VER" ]]; then
+  echo "  - 前端 MainLayout (layouts): $UI_LEGACY_LAYOUT_VER -> $ROOT_VER"
+  update_ui_footer_version "$LEGACY_MAIN_LAYOUT"
 fi
 
 echo "✅ 同步完成"

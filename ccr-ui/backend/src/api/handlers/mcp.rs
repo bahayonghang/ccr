@@ -32,7 +32,7 @@ pub async fn list_mcp_servers() -> impl IntoResponse {
                     env: config.env.unwrap_or_default(),
                     server_type: config.server_type,
                     url: config.url,
-                    disabled: false, // .claude.json doesn't store disabled field
+                    disabled: config.disabled.unwrap_or(false),
                 })
                 .collect();
 
@@ -81,6 +81,7 @@ pub async fn add_mcp_server(Json(req): Json<McpServerRequest>) -> impl IntoRespo
         env: req.env.clone(),
         server_type: None,
         url: None,
+        disabled: req.disabled,
     };
 
     match manager.add_mcp_server(req.name.clone(), server_config) {
@@ -131,6 +132,7 @@ pub async fn update_mcp_server(
         env: req.env.clone(),
         server_type: None,
         url: None,
+        disabled: req.disabled,
     };
 
     match manager.update_mcp_server(&name, server_config) {
@@ -195,15 +197,73 @@ pub async fn delete_mcp_server(Path(name): Path<String>) -> impl IntoResponse {
 }
 
 /// PATCH /api/mcp/servers/:name/toggle - Toggle MCP server enabled/disabled state
-pub async fn toggle_mcp_server(Path(_name): Path<String>) -> impl IntoResponse {
-    // Note: .claude.json doesn't support a "disabled" field for MCP servers
-    // This endpoint exists for API compatibility but doesn't actually modify anything
-    (
-        StatusCode::OK,
-        Json(json!({
-            "success": true,
-            "data": "Toggle not supported for MCP servers in .claude.json",
-            "message": "MCP servers in .claude.json don't have a disabled field"
-        })),
-    )
+pub async fn toggle_mcp_server(Path(name): Path<String>) -> impl IntoResponse {
+    let manager = match ClaudeConfigManager::default() {
+        Ok(m) => m,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "success": false,
+                    "data": null,
+                    "message": format!("Failed to initialize config manager: {}", e)
+                })),
+            )
+                .into_response();
+        }
+    };
+
+    // Get current config to find the server
+    let mut servers = match manager.get_mcp_servers() {
+        Ok(s) => s,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "success": false,
+                    "data": null,
+                    "message": format!("Failed to get MCP servers: {}", e)
+                })),
+            )
+                .into_response();
+        }
+    };
+
+    if let Some(server) = servers.get_mut(&name) {
+        // Toggle disabled state
+        let new_state = !server.disabled.unwrap_or(false);
+        server.disabled = Some(new_state);
+
+        // Update server
+        match manager.update_mcp_server(&name, server.clone()) {
+            Ok(_) => (
+                StatusCode::OK,
+                Json(json!({
+                    "success": true,
+                    "data": format!("MCP server {} {}", if new_state { "disabled" } else { "enabled" }, name),
+                    "message": null
+                })),
+            )
+                .into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "success": false,
+                    "data": null,
+                    "message": format!("Failed to update MCP server: {}", e)
+                })),
+            )
+                .into_response(),
+        }
+    } else {
+        (
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "success": false,
+                "data": null,
+                "message": format!("MCP server '{}' not found", name)
+            })),
+        )
+            .into_response()
+    }
 }

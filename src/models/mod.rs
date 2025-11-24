@@ -2,6 +2,8 @@
 // 定义跨模块共享的数据类型
 
 pub mod platform;
+pub mod prompt;
+pub mod skill;
 pub mod stats;
 pub mod sync_folder;
 

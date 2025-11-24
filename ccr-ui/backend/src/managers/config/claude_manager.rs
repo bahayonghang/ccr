@@ -19,6 +19,8 @@ pub struct McpServerConfig {
     pub server_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disabled: Option<bool>,
 }
 
 /// Root structure of ~/.claude.json

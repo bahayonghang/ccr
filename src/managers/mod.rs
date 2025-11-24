@@ -8,10 +8,13 @@
 // - 📋 管理文件生命周期
 
 pub mod config;
+pub mod conflict_checker;
 pub mod cost_tracker;
 pub mod history;
 pub mod platform_config;
+pub mod prompts_manager;
 pub mod settings;
+pub mod skills_manager;
 pub mod sync_config;
 pub mod sync_folder_manager;
 pub mod temp_override;

@@ -21,6 +21,8 @@ $BACKEND_CARGO = Join-Path $ROOT_DIR "ccr-ui\backend\Cargo.toml"
 $FRONTEND_PKG = Join-Path $ROOT_DIR "ccr-ui\frontend\package.json"
 $TAURI_CARGO = Join-Path $ROOT_DIR "ccr-ui\frontend\src-tauri\Cargo.toml"
 $TAURI_CONF = Join-Path $ROOT_DIR "ccr-ui\frontend\src-tauri\tauri.conf.json"
+$COMPONENT_MAIN_LAYOUT = Join-Path $ROOT_DIR "ccr-ui\frontend\src\components\MainLayout.vue"
+$LEGACY_MAIN_LAYOUT = Join-Path $ROOT_DIR "ccr-ui\frontend\src\layouts\MainLayout.vue"
 
 # 检查文件是否存在
 function Test-RequiredFile {
@@ -36,6 +38,8 @@ Test-RequiredFile $BACKEND_CARGO
 Test-RequiredFile $FRONTEND_PKG
 Test-RequiredFile $TAURI_CARGO
 Test-RequiredFile $TAURI_CONF
+Test-RequiredFile $COMPONENT_MAIN_LAYOUT
+Test-RequiredFile $LEGACY_MAIN_LAYOUT
 
 # 从 Cargo.toml 提取 [package] 区块中的 version
 function Get-CargoVersion {
@@ -89,12 +93,42 @@ function Set-JsonVersion {
     $json | ConvertTo-Json -Depth 100 | Set-Content -Path $Path -Encoding UTF8
 }
 
+# 从 UI 布局文件中提取 CCR UI 版本
+function Get-UiVersion {
+    param([string]$Path)
+
+    $content = Get-Content $Path -Raw
+    if ($content -match 'CCR UI v([0-9A-Za-z._-]+)') {
+        return $matches[1].Trim()
+    }
+    Write-Error "❌ 无法从 $Path 提取 CCR UI 版本号"
+    exit 1
+}
+
+# 更新 UI 布局文件中的 CCR UI 版本
+function Set-UiVersion {
+    param(
+        [string]$Path,
+        [string]$NewVersion
+    )
+
+    $content = Get-Content $Path -Raw
+    if ($content -notmatch 'CCR UI v[0-9A-Za-z._-]+') {
+        Write-Error "❌ 在 $Path 中找不到 CCR UI 版本标记"
+        exit 1
+    }
+    $updated = $content -replace '(CCR UI v)[0-9A-Za-z._-]+', "$1$NewVersion"
+    Set-Content -Path $Path -Value $updated -NoNewline
+}
+
 # 提取版本号
 $ROOT_VER = Get-CargoVersion $ROOT_CARGO
 $BACKEND_VER = Get-CargoVersion $BACKEND_CARGO
 $FRONTEND_VER = Get-JsonVersion $FRONTEND_PKG
 $TAURI_CARGO_VER = Get-CargoVersion $TAURI_CARGO
 $TAURI_CONF_VER = Get-JsonVersion $TAURI_CONF
+$UI_COMPONENT_VER = Get-UiVersion $COMPONENT_MAIN_LAYOUT
+$UI_LEGACY_VER = Get-UiVersion $LEGACY_MAIN_LAYOUT
 
 if ($Verbose) {
     Write-Host "🔧 根版本: $ROOT_VER"
@@ -102,6 +136,8 @@ if ($Verbose) {
     Write-Host "⚛️  前端版本: $FRONTEND_VER"
     Write-Host "🖥️  Tauri Cargo 版本: $TAURI_CARGO_VER"
     Write-Host "🖥️  Tauri Conf 版本: $TAURI_CONF_VER"
+    Write-Host "🖼️  MainLayout.vue (components) 版本: $UI_COMPONENT_VER"
+    Write-Host "📐 MainLayout.vue (layouts) 版本: $UI_LEGACY_VER"
 }
 
 # 检查模式
@@ -109,7 +145,9 @@ if ($Check) {
     if ($ROOT_VER -eq $BACKEND_VER -and 
         $ROOT_VER -eq $FRONTEND_VER -and 
         $ROOT_VER -eq $TAURI_CARGO_VER -and 
-        $ROOT_VER -eq $TAURI_CONF_VER) {
+        $ROOT_VER -eq $TAURI_CONF_VER -and 
+        $ROOT_VER -eq $UI_COMPONENT_VER -and 
+        $ROOT_VER -eq $UI_LEGACY_VER) {
         Write-Host "✅ 版本一致性检查通过"
         exit 0
     } else {
@@ -119,15 +157,22 @@ if ($Check) {
         Write-Host "  ccr-ui/frontend/package.json:           $FRONTEND_VER"
         Write-Host "  ccr-ui/frontend/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
         Write-Host "  ccr-ui/frontend/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
+        Write-Host "  ccr-ui/frontend/src/components/MainLayout.vue: $UI_COMPONENT_VER"
+        Write-Host "  ccr-ui/frontend/src/layouts/MainLayout.vue:   $UI_LEGACY_VER"
+        Write-Host "  ccr-ui/frontend/src/components/Footer.vue: $UI_COMPONENT_FOOTER_VER"
+        Write-Host "  ccr-ui/frontend/src/layouts/Footer.vue:   $UI_LEGACY_FOOTER_VER"
         exit 1
     }
 }
 
-# 检查是否需要同步
 if ($ROOT_VER -eq $BACKEND_VER -and 
     $ROOT_VER -eq $FRONTEND_VER -and 
     $ROOT_VER -eq $TAURI_CARGO_VER -and 
-    $ROOT_VER -eq $TAURI_CONF_VER) {
+    $ROOT_VER -eq $TAURI_CONF_VER -and 
+    $ROOT_VER -eq $UI_COMPONENT_VER -and 
+    $ROOT_VER -eq $UI_LEGACY_VER -and 
+    $ROOT_VER -eq $UI_COMPONENT_FOOTER_VER -and 
+    $ROOT_VER -eq $UI_LEGACY_FOOTER_VER) {
     Write-Host "✅ 版本一致，无需同步"
     exit 0
 }
@@ -156,6 +201,16 @@ if ($TAURI_CARGO_VER -ne $ROOT_VER) {
 if ($TAURI_CONF_VER -ne $ROOT_VER) {
     Write-Host "  - Tauri tauri.conf.json: $TAURI_CONF_VER -> $ROOT_VER"
     Set-JsonVersion $TAURI_CONF $ROOT_VER
+}
+
+if ($UI_COMPONENT_VER -ne $ROOT_VER) {
+    Write-Host "  - MainLayout (components): $UI_COMPONENT_VER -> $ROOT_VER"
+    Set-UiVersion $COMPONENT_MAIN_LAYOUT $ROOT_VER
+}
+
+if ($UI_LEGACY_VER -ne $ROOT_VER) {
+    Write-Host "  - MainLayout (layouts): $UI_LEGACY_VER -> $ROOT_VER"
+    Set-UiVersion $LEGACY_MAIN_LAYOUT $ROOT_VER
 }
 
 Write-Host "✅ 同步完成"
