@@ -18,6 +18,7 @@ export default {
     no: '否',
     home: '首页',
     back: '返回',
+    backToHome: '返回首页',
     next: '下一步',
     previous: '上一步',
     submit: '提交',
@@ -37,6 +38,7 @@ export default {
     importConfig: '导入配置',
     exportConfig: '导出配置',
     addConfig: '添加新配置',
+    modules: '核心模块',
   },
   nav: {
     home: '首页',

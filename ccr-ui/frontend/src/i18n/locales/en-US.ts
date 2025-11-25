@@ -18,6 +18,7 @@ export default {
     no: 'No',
     home: 'Home',
     back: 'Back',
+    backToHome: 'Back to Home',
     next: 'Next',
     previous: 'Previous',
     submit: 'Submit',
@@ -37,6 +38,7 @@ export default {
     importConfig: 'Import Configuration',
     exportConfig: 'Export Configuration',
     addConfig: 'Add Configuration',
+    modules: 'Core Modules',
   },
   nav: {
     home: 'Home',
