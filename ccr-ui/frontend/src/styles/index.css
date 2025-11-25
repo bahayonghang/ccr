@@ -1,7 +1,7 @@
+@import './chart-colors.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import './chart-colors.css';
 
 /* ===================================
    CSS 变量 - 主题系统

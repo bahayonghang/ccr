@@ -39,6 +39,9 @@ export default {
     exportConfig: '导出配置',
     addConfig: '添加新配置',
     modules: '核心模块',
+    viewDetails: '查看详情',
+    ready: '准备就绪',
+    open: '打开',
   },
   nav: {
     home: '首页',
@@ -79,8 +82,11 @@ export default {
     feature4Desc: '现代化界面设计，MCP 服务器、Agents、插件一目了然',
     quickActions: '快速操作',
     executeCommands: '执行命令',
+    executeCommandsDesc: '直接运行 CLI 命令',
     configConverter: '配置转换',
+    configConverterDesc: '跨平台格式转换',
     cloudSync: '云端同步',
+    cloudSyncDesc: '多设备配置同步',
     systemStatus: '系统状态',
     cpuUsage: 'CPU 使用率',
     memoryUsage: '内存使用',
@@ -91,6 +97,25 @@ export default {
     configAndToolsDesc: '配置转换、云同步和命令执行中心',
     footer1: '现代化的配置管理解决方案 · 支持多种 AI CLI 工具',
     footer2: 'Claude Code • Codex • Gemini • Qwen • IFLOW',
+
+    // Stats Cards
+    configsCount: '配置数量',
+    totalConfigurations: '全部配置',
+    mcpServers: 'MCP 服务器',
+    mcpServersDesc: '已配置服务器',
+    backupStatus: '备份状态',
+    lastBackup: '最近备份时间',
+
+    // Quick Tips
+    quickTipsTitle: '快速提示',
+    tip1Title: '多配置管理',
+    tip1Desc: '为不同项目创建专属配置，轻松切换工作环境',
+    tip2Title: 'MCP 服务器',
+    tip2Desc: '扩展 AI 能力，连接外部工具和数据源',
+    tip3Title: '云端同步',
+    tip3Desc: '通过 WebDAV 在多设备间同步配置，保持一致',
+    tip4Title: 'CLI 命令',
+    tip4Desc: '使用命令行工具执行高级操作和批量管理',
 
     // AI CLI Tools
     claudeCodeTitle: 'Claude Code',
