@@ -438,58 +438,82 @@
         >
           {{ $t('configs.provider.noData') }}
         </div>
+
         <div
           v-else
-          class="provider-chart-container"
+          class="flex flex-col h-[500px]"
         >
-          <div class="provider-chart-summary">
-            {{ $t('configs.provider.totalProviders', { count: providerEntries.length }) }} · {{ $t('configs.provider.totalCalls', { count: totalProviderUsage }) }}
-            <div class="provider-chart-desc">
-              {{ $t('configs.provider.yAxis') }} · {{ $t('configs.provider.xAxis') }} · {{ $t('configs.provider.currentSort', { label: providerSortLabel }) }}
+          <!-- 统计摘要 -->
+          <div class="flex items-center gap-4 mb-6 p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
+            <div class="p-3 rounded-xl bg-indigo-100/50 dark:bg-indigo-800/50 text-indigo-600 dark:text-indigo-300">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
             </div>
-          </div>
-          <div class="provider-chart">
-            <div class="provider-chart-y-grid">
-              <div
-                v-for="tick in providerYTicks"
-                :key="tick.percent"
-                class="y-grid-line"
-                :style="{ bottom: tick.percent + '%' }"
-              >
-                <span class="y-grid-label">{{ tick.value }}</span>
+            <div>
+              <div class="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                {{ $t('configs.provider.totalProviders', { count: providerEntries.length }) }}
+              </div>
+              <div class="text-2xl font-bold text-slate-900 dark:text-slate-50">
+                {{ $t('configs.provider.totalCalls', { count: totalProviderUsage }) }}
               </div>
             </div>
-            <div class="provider-chart-y-axis-line" />
-            <div class="provider-chart-x-axis-line" />
-            <div class="provider-chart-bars">
-              <div
-                v-for="([provider, count], index) in sortedProviderEntries"
-                :key="provider || index"
-                class="provider-bar-column"
-                :style="{ animation: 'configFadeIn 0.4s ease ' + index * 0.05 + 's backwards' }"
-              >
-                <div class="provider-bar-vertical-bg">
-                  <div
-                    class="provider-bar-vertical-fill"
-                    :class="'bar-color-' + (index % 5)"
-                    :style="{ height: Math.max((count / (maxProviderCount || 1)) * 100, 8) + '%' }"
-                    :title="(provider || $t('configs.provider.unknown')) + ': ' + $t('configs.provider.usageTimes', { count }) + '，' + $t('configs.provider.usagePercent', { percent: maxProviderCount ? ((count / maxProviderCount) * 100).toFixed(1) : 0 })"
-                  />
-                </div>
-                <div class="provider-bar-value">
-                  {{ $t('configs.provider.usageTimes', { count }) }}
-                </div>
+            <div class="ml-auto text-right text-xs text-slate-400 dark:text-slate-500">
+              <div>{{ $t('configs.provider.currentSort', { label: providerSortLabel }) }}</div>
+            </div>
+          </div>
+
+          <!-- 📊 垂直柱状图容器 -->
+          <div class="flex-1 relative min-h-0 flex flex-col">
+            <!-- Y轴网格线 -->
+            <div class="absolute inset-0 flex flex-col justify-between pointer-events-none z-0 pb-8 pl-8">
+              <div v-for="tick in providerYTicks.slice().reverse()" :key="tick.percent" class="relative w-full h-px bg-slate-200/50 dark:bg-slate-700/30">
+                <span class="absolute -left-8 -top-2 text-[10px] text-slate-400 w-6 text-right">{{ tick.value }}</span>
+              </div>
+            </div>
+
+            <!-- 柱状图滚动区域 -->
+            <div class="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar z-10 pl-8 pb-2">
+              <div class="h-full flex items-end gap-4 min-w-max px-4 pt-4">
                 <div
-                  class="provider-bar-label"
-                  :title="provider || $t('configs.provider.unknown')"
+                  v-for="([provider, count], index) in sortedProviderEntries"
+                  :key="provider || index"
+                  class="group flex flex-col items-center gap-2 w-16"
+                  :style="{ animation: 'slideUp 0.4s ease ' + index * 0.05 + 's backwards' }"
                 >
-                  {{ provider || $t('configs.provider.unknown') }}
+                  <!-- 数值提示 (Hover显示) -->
+                  <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg pointer-events-none whitespace-nowrap z-20">
+                    {{ count }}次 ({{ maxProviderCount ? ((count / totalProviderUsage) * 100).toFixed(1) : 0 }}%)
+                  </div>
+
+                  <!-- 柱子 -->
+                  <div class="relative w-full flex items-end justify-center h-[300px]">
+                    <div
+                      class="w-full rounded-t-lg transition-all duration-300 group-hover:brightness-110 relative overflow-hidden"
+                      :style="{ 
+                        height: Math.max((count / (maxProviderCount || 1)) * 100, 4) + '%',
+                        background: chartColors[index % 5],
+                        boxShadow: `0 4px 12px ${chartColors[index % 5]}40`
+                      }"
+                    >
+                      <!-- 玻璃光泽效果 -->
+                      <div class="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent opacity-50"></div>
+                    </div>
+                  </div>
+
+                  <!-- 标签 -->
+                  <div class="text-center w-full">
+                    <div 
+                      class="text-xs font-medium text-slate-600 dark:text-slate-300 truncate w-full cursor-help transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                      :title="provider || $t('configs.provider.unknown')"
+                    >
+                      {{ provider || $t('configs.provider.unknown') }}
+                    </div>
+                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                      {{ count }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="provider-chart-x-axis-label">
-            {{ $t('configs.provider.xAxis') }}
           </div>
         </div>
       </div>
@@ -547,6 +571,15 @@ const providerLoading = ref(false)
 const providerError = ref<string | null>(null)
 const providerSortMode = ref<'count_desc' | 'count_asc' | 'name_asc'>('count_desc')
 const showProviderModal = ref(false)
+
+// 图表颜色配置 (赛博玉/水墨风格)
+const chartColors = [
+  '#10b981', // 翡翠 (Jade)
+  '#6366f1', // 靛青 (Indigo)
+  '#f59e0b', // 琥珀 (Amber)
+  '#0ea5e9', // 天青 (Sky Blue)
+  '#ef4444'  // 丹砂 (Cinnabar)
+]
 
 const filters = [
   { type: 'all' as FilterType, label: `📋 ${t('configs.filters.all')}` },
