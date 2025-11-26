@@ -866,7 +866,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import axios from 'axios'
+import { api } from '@/api/client'
 
 const { t } = useI18n()
 import {
@@ -897,8 +897,7 @@ import {
 } from 'lucide-vue-next'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 
-// API 基础 URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
+// 使用 api/client.ts 中配置的 axios 实例，支持 Vite 代理
 
 // 状态
 const loading = ref(true)
@@ -1022,7 +1021,7 @@ const applySelection = async () => {
       }
 
       try {
-        await axios.post(`${API_BASE_URL}/api/sync/folders`, payload)
+        await api.post('/sync/folders', payload)
       } catch (err: any) {
         console.error(`添加文件夹 ${item.name} 失败:`, err)
         // 继续添加其他文件夹
@@ -1055,7 +1054,7 @@ const addCustomFolder = async () => {
       payload.description = customFolder.value.description
     }
 
-    const response = await axios.post(`${API_BASE_URL}/api/sync/folders`, payload)
+    const response = await api.post('/sync/folders', payload)
     if (response.data.success) {
       operationOutput.value = `${t('sync.messages.addSuccess')}: ${customFolder.value.name}`
       customFolder.value = { name: '', localPath: '', remotePath: '', description: '' }
@@ -1073,33 +1072,54 @@ const addCustomFolder = async () => {
 // 获取同步状态
 const fetchSyncStatus = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/sync/status`)
+    const response = await api.get('/sync/status')
     if (response.data.success) {
       syncStatus.value = response.data.data
+    } else {
+      console.warn('Sync status returned unsuccessful:', response.data)
     }
   } catch (err: any) {
     console.error('Failed to fetch sync status:', err)
+    // Don't throw error, just log it - let the page continue loading
   }
 }
 
 // 获取文件夹列表
 const fetchFolders = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/sync/folders`)
+    const response = await api.get('/sync/folders')
     if (response.data.success) {
       // 解析 CLI 输出获取文件夹列表
       parseFoldersList(response.data.data.output)
+    } else {
+      console.warn('Fetch folders returned unsuccessful:', response.data)
+      // Set to empty array if no folders registered
+      enabledFolders.value = []
     }
   } catch (err: any) {
     console.error('Failed to fetch folders:', err)
+    // Set to empty array on error
+    enabledFolders.value = []
   }
 }
 
 // 解析文件夹列表输出
-const parseFoldersList = (_output: string) => {
-  // TODO: 实现解析逻辑
-  // 暂时设置为空数组
-  enabledFolders.value = []
+const parseFoldersList = (output: string) => {
+  try {
+    // TODO: 实现完整解析逻辑
+    // 目前：检查是否有文件夹输出，如果没有则设置为空数组
+    if (output.includes('暂无注册的同步文件夹') || output.includes('No registered sync folders')) {
+      enabledFolders.value = []
+      return
+    }
+    
+    // 如果有文件夹，这里应该解析它们（后续实现）
+    // 暂时设置为空数组
+    enabledFolders.value = []
+  } catch (err) {
+    console.error('Failed to parse folders list:', err)
+    enabledFolders.value = []
+  }
 }
 
 // 刷新文件夹列表
@@ -1119,7 +1139,7 @@ const removeFolder = async (name: string) => {
   }
 
   try {
-    const response = await axios.delete(`${API_BASE_URL}/api/sync/folders/${name}`)
+    const response = await api.delete(`/sync/folders/${name}`)
     if (response.data.success) {
       operationOutput.value = `${t('sync.messages.deleteSuccess')}: ${name}`
       await refreshFolders()
@@ -1136,7 +1156,7 @@ const toggleFolder = async (name: string, currentEnabled: boolean) => {
   const action = currentEnabled ? 'disable' : 'enable'
   const actionText = currentEnabled ? t('sync.messages.disabled') : t('sync.messages.enabled')
   try {
-    const response = await axios.put(`${API_BASE_URL}/api/sync/folders/${name}/${action}`)
+    const response = await api.put(`/sync/folders/${name}/${action}`)
     if (response.data.success) {
       operationOutput.value = t('sync.messages.toggleSuccess', { action: actionText }) + `: ${name}`
       await refreshFolders()
@@ -1151,7 +1171,7 @@ const toggleFolder = async (name: string, currentEnabled: boolean) => {
 // Upload folder
 const pushFolder = async (name: string) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/sync/folders/${name}/push`, { force: false })
+    const response = await api.post(`/sync/folders/${name}/push`, { force: false })
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
@@ -1165,7 +1185,7 @@ const pushFolder = async (name: string) => {
 // Download folder
 const pullFolder = async (name: string) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/sync/folders/${name}/pull`, { force: false })
+    const response = await api.post(`/sync/folders/${name}/pull`, { force: false })
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
@@ -1179,7 +1199,7 @@ const pullFolder = async (name: string) => {
 // Get folder status
 const getFolderStatus = async (name: string) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/sync/folders/${name}/status`)
+    const response = await api.get(`/sync/folders/${name}/status`)
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
@@ -1194,7 +1214,7 @@ const getFolderStatus = async (name: string) => {
 const pushAllFolders = async () => {
   batchOperating.value = true
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/sync/all/push`, { force: false })
+    const response = await api.post('/sync/all/push', { force: false })
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
@@ -1211,7 +1231,7 @@ const pushAllFolders = async () => {
 const pullAllFolders = async () => {
   batchOperating.value = true
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/sync/all/pull`, { force: false })
+    const response = await api.post('/sync/all/pull', { force: false })
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {
@@ -1228,7 +1248,7 @@ const pullAllFolders = async () => {
 const getAllFoldersStatus = async () => {
   batchOperating.value = true
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/sync/all/status`)
+    const response = await api.get('/sync/all/status')
     if (response.data.success) {
       operationOutput.value = response.data.data.output
     } else {

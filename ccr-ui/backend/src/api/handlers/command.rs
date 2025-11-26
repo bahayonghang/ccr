@@ -1,14 +1,23 @@
 // Command Execution Handlers
 // Executes CCR CLI commands with various parameters
 
-use crate::core::error::{ApiError, ApiResult};
 use crate::core::executor;
 use crate::models::api::*;
-use axum::{Json, extract::Path, response::IntoResponse};
+use axum::{
+    Json,
+    extract::Path,
+    response::{
+        IntoResponse,
+        sse::{Event, Sse},
+    },
+};
+use futures::{Stream, stream::StreamExt};
+use std::convert::Infallible;
 
 /// Helper function to get all available commands
 fn get_available_commands() -> Vec<CommandInfo> {
     vec![
+        // CCR Commands
         CommandInfo {
             name: "list".to_string(),
             description: "List all available configurations".to_string(),
@@ -96,6 +105,34 @@ fn get_available_commands() -> Vec<CommandInfo> {
             usage: "ccr update".to_string(),
             examples: vec!["ccr update".to_string()],
         },
+        // Claude Commands
+        CommandInfo {
+            name: "claude".to_string(),
+            description: "Execute Claude Code CLI commands".to_string(),
+            usage: "claude <args>".to_string(),
+            examples: vec!["claude --version".to_string()],
+        },
+        // Qwen Commands
+        CommandInfo {
+            name: "qwen".to_string(),
+            description: "Execute Qwen CLI commands".to_string(),
+            usage: "qwen <args>".to_string(),
+            examples: vec!["qwen --help".to_string()],
+        },
+        // Gemini Commands
+        CommandInfo {
+            name: "gemini".to_string(),
+            description: "Execute Gemini CLI commands".to_string(),
+            usage: "gemini <args>".to_string(),
+            examples: vec!["gemini --version".to_string()],
+        },
+        // iFlow Commands
+        CommandInfo {
+            name: "iflow".to_string(),
+            description: "Execute iFlow CLI commands".to_string(),
+            usage: "iflow <args>".to_string(),
+            examples: vec!["iflow --help".to_string()],
+        },
     ]
 }
 
@@ -112,12 +149,19 @@ pub async fn execute_command(Json(req): Json<CommandRequest>) -> impl IntoRespon
         ));
     }
 
-    // Build command arguments
-    let mut args = vec![req.command.clone()];
-    args.extend(req.args.clone());
+    // Determine binary and args based on command type
+    let (binary, args) = match req.command.as_str() {
+        "claude" | "qwen" | "gemini" | "iflow" => (req.command.clone(), req.args.clone()),
+        _ => {
+            // Default to CCR for other commands
+            let mut args = vec![req.command.clone()];
+            args.extend(req.args.clone());
+            ("ccr".to_string(), args)
+        }
+    };
 
     // Execute command
-    match executor::execute_command(args).await {
+    match executor::execute_binary(&binary, args).await {
         Ok(output) => {
             let response = CommandResponse {
                 success: output.success,
@@ -150,29 +194,47 @@ pub async fn get_command_help(Path(command): Path<String>) -> impl IntoResponse 
     }
 }
 
-/// POST /api/command/execute/stream - Execute a command with streaming output (SSE)
-/// Note: Currently simplified - real implementation would use CommandService
+/// POST /api/command/execute-stream - Execute a command with streaming output (SSE)
 pub async fn execute_command_stream(
     Json(req): Json<CommandRequest>,
-) -> ApiResult<Json<&'static str>> {
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     // Validate command
     let commands = get_available_commands();
     let allowed_commands: Vec<&str> = commands.iter().map(|c| c.name.as_str()).collect();
 
-    // Additional commands allowed for streaming/dev
-    let extra_allowed = ["build", "test"];
+    // Determine binary and args based on command type
+    let (binary, args) = if !allowed_commands.contains(&req.command.as_str()) {
+        // Invalid command - will return error in stream
+        (String::new(), vec![])
+    } else {
+        match req.command.as_str() {
+            "claude" | "qwen" | "gemini" | "iflow" => (req.command.clone(), req.args.clone()),
+            _ => {
+                // Default to CCR for other commands
+                let mut args = vec![req.command.clone()];
+                args.extend(req.args.clone());
+                ("ccr".to_string(), args)
+            }
+        }
+    };
 
-    if !allowed_commands.contains(&req.command.as_str())
-        && !extra_allowed.contains(&req.command.as_str())
-    {
-        return Err(ApiError::bad_request(format!(
-            "Command '{}' is not allowed",
-            req.command
-        )));
-    }
+    // Create stream
+    let stream = if binary.is_empty() {
+        // Return error stream
+        let error_msg = format!("Command '{}' is not allowed", req.command);
+        futures::stream::once(async move { executor::StreamChunk::Error { message: error_msg } })
+            .boxed()
+    } else {
+        // Execute command and stream output
+        executor::execute_binary_stream(binary, args).boxed()
+    };
 
-    // TODO: Implement actual streaming using CommandService
-    // Current limitation: lifecycle issues with SSE streams need resolution
-    // For now, return success message
-    Ok(Json("Streaming endpoint - implementation pending"))
+    // Convert StreamChunk to SSE Event
+    let sse_stream = stream.map(|chunk| {
+        Ok(Event::default()
+            .json_data(chunk)
+            .unwrap_or_else(|_| Event::default().data("error serializing chunk")))
+    });
+
+    Sse::new(sse_stream)
 }

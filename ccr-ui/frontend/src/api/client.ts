@@ -101,7 +101,8 @@ const createApiClient = (): AxiosInstance => {
   return api
 }
 
-const api = createApiClient()
+// 导出 axios 实例供其他组件直接使用
+export const api = createApiClient()
 
 // ===================================
 // Statistics APIs
