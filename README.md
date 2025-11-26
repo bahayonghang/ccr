@@ -294,9 +294,14 @@ ccr web -p 8080
 # Check for conflicts
 ccr check conflicts
 
-# Auto update
-ccr update --check     # Check updates
-ccr update             # Update to latest version
+# Check for updates
+ccr update --check
+
+# Update to latest version (from main branch)
+ccr update
+
+# Update from dev branch (latest development features)
+ccr update --branch dev
 
 # Show version info
 ccr version
