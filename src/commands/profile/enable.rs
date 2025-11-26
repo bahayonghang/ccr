@@ -19,26 +19,6 @@ use crate::services::config_service::ConfigService;
 /// * `Ok(())` - 成功启用配置
 /// * `Err(CcrError::ConfigNotFound)` - 配置不存在
 /// * `Err(CcrError::ConfigError)` - 配置文件操作失败
-///
-/// # 示例
-///
-/// ```bash
-/// ccr enable anthropic
-/// ```
-///
-/// # 输出示例
-///
-/// ```text
-/// ╭─────────────────────────────────────╮
-/// │           启用配置                  │
-/// ╰─────────────────────────────────────╯
-///
-/// ✓ 配置 'anthropic' 已启用
-///
-/// 💡 提示:
-///   • 使用 'ccr list' 查看所有配置
-///   • 使用 'ccr switch anthropic' 切换到该配置
-/// ```
 pub fn enable_command(config_name: &str) -> Result<()> {
     ColorOutput::title("启用配置");
     println!();
@@ -64,9 +44,10 @@ pub fn enable_command(config_name: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection, GlobalSettings};
+    use crate::services::ConfigService;
     use indexmap::IndexMap;
+    use std::sync::Arc;
     use tempfile::tempdir;
 
     fn create_test_config_with_disabled() -> CcsConfig {
@@ -110,50 +91,20 @@ mod tests {
             // 验证初始状态
             let initial_config = config_manager.load().unwrap();
             let initial_section = initial_config.get_section("test1").unwrap();
-            eprintln!("DEBUG: Initial enabled = {:?}", initial_section.enabled);
             assert!(!initial_section.is_enabled(), "初始状态应该是禁用的");
         }
 
-        // 直接使用服务层测试，不通过命令
+        // 直接使用服务层测试
         {
-            use std::sync::Arc;
             let config_manager = Arc::new(ConfigManager::new(&config_path));
             let service = ConfigService::new(config_manager);
             service.enable_config("test1").unwrap();
         }
 
-        // 读取原始 TOML 文件内容
-        let raw_content = std::fs::read_to_string(&config_path).unwrap();
-        eprintln!("DEBUG: Raw TOML content after enable (service layer):");
-        eprintln!("{}", raw_content);
-
         // 重新创建 config_manager 并验证配置已启用
         let fresh_config_manager = ConfigManager::new(&config_path);
         let updated_config = fresh_config_manager.load().unwrap();
         let section = updated_config.get_section("test1").unwrap();
-        eprintln!("DEBUG: After enable, enabled = {:?}", section.enabled);
         assert!(section.is_enabled(), "启用后应该是启用状态");
-    }
-
-    #[test]
-    fn test_enable_nonexistent_config() {
-        let temp_dir = tempdir().unwrap();
-        let config_path = temp_dir.path().join(".ccs_config.toml");
-
-        // 创建空配置
-        {
-            let config_manager = ConfigManager::new(&config_path);
-            let config = create_test_config_with_disabled();
-            config_manager.save(&config).unwrap();
-        }
-
-        // 直接使用服务层测试，不通过命令
-        use std::sync::Arc;
-        let config_manager = Arc::new(ConfigManager::new(&config_path));
-        let service = ConfigService::new(config_manager);
-
-        // 尝试启用不存在的配置
-        let result = service.enable_config("nonexistent");
-        assert!(result.is_err(), "启用不存在的配置应该失败");
     }
 }

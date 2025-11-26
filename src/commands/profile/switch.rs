@@ -91,7 +91,6 @@ pub fn switch_command(config_name: &str) -> Result<()> {
             small_fast_model: profile.small_fast_model.clone(),
             provider: profile.provider.clone(),
             provider_type: profile.provider_type.as_ref().and_then(|pt| {
-                // 尝试从字符串转换回 ProviderType
                 use crate::managers::config::ProviderType;
                 match pt.as_str() {
                     "official_relay" => Some(ProviderType::OfficialRelay),
@@ -247,7 +246,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
 
     // 记录环境变量变化
     let new_env = new_settings.anthropic_env_status();
-    let new_env_display = new_env.clone(); // 克隆一份用于后续展示
+    let new_env_display = new_env.clone();
 
     for (var_name, new_value) in new_env {
         let old_value = old_env.get(&var_name).and_then(|v| v.clone());

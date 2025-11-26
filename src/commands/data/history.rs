@@ -42,10 +42,8 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
         };
         service.filter_by_type(op_type)?
     } else if let Some(n) = limit {
-        // 获取最近的 N 条
         service.get_recent(n)?
     } else {
-        // 获取所有记录,默认限制100条
         service.get_recent(100)?
     };
 
@@ -71,7 +69,6 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
         let time_str = entry.timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
         let op_str = entry.operation.as_str();
 
-        // 根据结果选择颜色
         let result_str = match &entry.result {
             crate::managers::history::OperationResult::Success => "成功".green(),
             crate::managers::history::OperationResult::Failure(msg) => {
@@ -96,7 +93,7 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
             println!("   备份: {}", backup);
         }
 
-        // 显示环境变量变化(仅非空)
+        // 显示环境变量变化
         if !entry.env_changes.is_empty() {
             println!("   环境变量变化:");
             for change in &entry.env_changes {

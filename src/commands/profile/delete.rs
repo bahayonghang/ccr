@@ -154,29 +154,7 @@ mod tests {
     }
 
     #[test]
-    fn test_delete_nonexistent_config() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let config_path = temp_dir.path().join(".ccs_config.toml");
-
-        // 创建测试配置
-        let config = CcsConfig {
-            default_config: "test".into(),
-            current_config: "test".into(),
-            settings: crate::managers::config::GlobalSettings::default(),
-            sections: IndexMap::new(),
-        };
-
-        let manager = ConfigManager::new(&config_path);
-        manager.save(&config).unwrap();
-
-        // 尝试删除不存在的配置应该失败
-        // 由于需要 ConfigService::with_default()，这里只测试逻辑
-    }
-
-    #[test]
     fn test_delete_command_logic() {
-        // 测试删除命令的逻辑结构
-        // 实际测试需要使用 tempdir 和完整的环境
         let temp_dir = tempfile::tempdir().unwrap();
         let config_path = temp_dir.path().join(".ccs_config.toml");
 

@@ -1,26 +1,26 @@
 // CCR 命令模块
 // 各个 CLI 子命令的实现
+//
+// 📁 模块结构 (2025 重构版):
+// ├── common/     - 公共工具（模式检测、表格构建、交互提示）
+// ├── platform/   - 平台管理命令
+// ├── profile/    - 配置管理命令
+// ├── lifecycle/  - 生命周期命令（初始化、迁移、清理等）
+// └── data/       - 数据操作命令（导入、导出、历史等）
 
-pub mod add;
-pub mod check_cmd;
-pub mod clean;
-pub mod current;
-pub mod delete;
-pub mod disable;
-pub mod enable;
-pub mod export;
-pub mod history_cmd;
-pub mod import;
-pub mod init;
-pub mod list;
-pub mod migrate;
-pub mod optimize;
+// 🔧 公共基础设施
+pub mod common;
+
+// 📦 子模块
+pub mod data;
+pub mod lifecycle;
 pub mod platform;
+pub mod profile;
+
+// 🔄 保留的独立命令（暂未迁移到子模块）
+pub mod check_cmd;
 pub mod prompts_cmd;
 pub mod skills_cmd;
-#[cfg(feature = "web")]
-pub mod stats;
-pub mod switch;
 #[cfg(feature = "web")]
 pub mod sync_cmd;
 #[cfg(feature = "web")]
@@ -28,32 +28,44 @@ pub mod sync_content_selector;
 pub mod temp_token;
 pub mod ui;
 pub mod update;
-pub mod validate;
 
-pub use add::add_command;
-pub use check_cmd::check_conflicts_command;
-pub use clean::clean_command;
-pub use current::current_command;
-pub use delete::delete_command;
-pub use disable::disable_command;
-pub use enable::enable_command;
-pub use export::export_command;
-pub use history_cmd::history_command;
-pub use import::{ImportMode, import_command};
-pub use init::init_command;
-pub use list::list_command;
-pub use migrate::{migrate_check_command, migrate_command};
-pub use optimize::optimize_command;
+// =============================================
+// 📤 公共 API 导出（保持向后兼容）
+// =============================================
+
+// 🎯 Platform 命令
 pub use platform::{
     platform_current_command, platform_info_command, platform_init_command, platform_list_command,
     platform_switch_command,
 };
+
+// 📋 Profile 命令
+pub use profile::add_command;
+pub use profile::current_command;
+pub use profile::delete_command;
+pub use profile::disable_command;
+pub use profile::enable_command;
+pub use profile::list_command;
+pub use profile::switch_command;
+
+// 🔄 Lifecycle 命令
+pub use lifecycle::clean_command;
+pub use lifecycle::init_command;
+pub use lifecycle::optimize_command;
+pub use lifecycle::validate_command;
+pub use lifecycle::{migrate_check_command, migrate_command};
+
+// 📦 Data 命令
+pub use data::export_command;
+pub use data::history_command;
+pub use data::{ImportMode, import_command};
 #[cfg(feature = "web")]
-pub use stats::{StatsArgs, stats_command};
-pub use switch::switch_command;
+pub use data::{StatsArgs, stats_command};
+
+// 🔧 其他命令
+pub use check_cmd::check_conflicts_command;
 #[cfg(feature = "web")]
 pub use sync_content_selector::SyncContentSelector;
 pub use temp_token::{temp_token_clear, temp_token_set, temp_token_show};
 pub use ui::ui_command;
 pub use update::update_command;
-pub use validate::validate_command;

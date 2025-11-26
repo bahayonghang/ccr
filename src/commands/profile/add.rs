@@ -1,6 +1,7 @@
 // ➕ add 命令实现 - 交互式添加配置
 // 📝 通过终端交互提示用户输入配置信息
 
+use crate::commands::common::{prompt_optional, prompt_required, prompt_tags};
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::config::{ConfigSection, ProviderType};
@@ -158,44 +159,6 @@ pub fn add_command() -> Result<()> {
     Ok(())
 }
 
-/// 提示用户输入必填项
-fn prompt_required(field_name: &str, hint: &str) -> Result<String> {
-    loop {
-        print!("* {}: ", field_name);
-        io::stdout().flush()?;
-
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        let input = input.trim().to_string();
-
-        if input.is_empty() {
-            println!("  提示: {} ({})", hint, "必填".red());
-            continue;
-        }
-
-        return Ok(input);
-    }
-}
-
-/// 提示用户输入可选项
-fn prompt_optional(field_name: &str, hint: &str) -> Option<String> {
-    print!("  {}: ", field_name);
-    // 对于可选输入，如果 flush 失败，返回 None 而不是 panic
-    io::stdout().flush().ok()?;
-
-    let mut input = String::new();
-    // 对于可选输入，如果读取失败，返回 None
-    io::stdin().read_line(&mut input).ok()?;
-    let input = input.trim().to_string();
-
-    if input.is_empty() {
-        println!("  提示: {} (按 Enter 跳过)", hint);
-        None
-    } else {
-        Some(input)
-    }
-}
-
 /// 提示用户选择提供商类型
 fn prompt_provider_type() -> Option<ProviderType> {
     println!("  提供商类型:");
@@ -215,32 +178,6 @@ fn prompt_provider_type() -> Option<ProviderType> {
         _ => None,
     }
 }
-
-/// 提示用户输入标签（逗号分隔）
-fn prompt_tags() -> Option<Vec<String>> {
-    print!("  标签 (逗号分隔): ");
-    io::stdout().flush().unwrap();
-
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let input = input.trim();
-
-    if input.is_empty() {
-        println!("  提示: 例如 'free,stable,high-speed' (按 Enter 跳过)");
-        None
-    } else {
-        let tags: Vec<String> = input
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
-
-        if tags.is_empty() { None } else { Some(tags) }
-    }
-}
-
-// 需要导入 colored 用于彩色输出
-use colored::Colorize;
 
 #[cfg(test)]
 mod tests {
