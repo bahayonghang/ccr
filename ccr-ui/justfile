@@ -193,7 +193,7 @@ _dev-parallel-linux:
       done
     fi
     # 启动前端并记录日志
-    cd "$JDIR/frontend" && npm run dev 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    cd "$JDIR/frontend" && npm run dev -- --host 0.0.0.0 2>&1 | tee -a "$JDIR/logs/frontend.log" &
     wait
 
 _dev-parallel-macos:
@@ -235,7 +235,7 @@ _dev-parallel-macos:
       done
     fi
     # 启动前端并记录日志
-    cd "$JDIR/frontend" && npm run dev 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    cd "$JDIR/frontend" && npm run dev -- --host 0.0.0.0 2>&1 | tee -a "$JDIR/logs/frontend.log" &
     wait
 
 # 并行启动 - Windows

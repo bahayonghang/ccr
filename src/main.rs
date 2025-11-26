@@ -171,8 +171,6 @@ enum Commands {
     /// 验证配置文件和设置的完整性
     ///
     /// 检查配置文件格式是否正确,以及 Claude Code 设置文件是否有效
-    /// 别名: check
-    #[command(alias = "check")]
     Validate,
 
     /// 查看配置操作的历史记录
@@ -213,10 +211,15 @@ enum Commands {
     ///
     /// 检查并安装 CCR 的最新版本
     /// 示例: ccr update --check  # 仅检查不安装
+    ///       ccr update --branch dev  # 从 dev 分支更新
     Update {
         /// 仅检查是否有新版本,不执行安装
         #[arg(short, long)]
         check: bool,
+
+        /// 指定更新的分支(默认: main)
+        #[arg(long, default_value = "main")]
+        branch: String,
     },
 
     /// 初始化配置文件
@@ -728,7 +731,7 @@ fn main() {
         }
         #[cfg(feature = "web")]
         Some(Commands::Web { port, no_browser }) => web::web_command(Some(port), no_browser),
-        Some(Commands::Update { check }) => commands::update_command(check),
+        Some(Commands::Update { check, branch }) => commands::update_command(check, &branch),
         Some(Commands::Init { force }) => commands::init_command(cli.auto_yes || force),
         Some(Commands::Export { output, no_secrets }) => {
             commands::export_command(output, !no_secrets)

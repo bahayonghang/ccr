@@ -64,7 +64,6 @@ fn determine_output_path(output: Option<String>) -> Result<PathBuf> {
     if let Some(path) = output {
         Ok(PathBuf::from(path))
     } else {
-        // 默认导出到当前目录
         let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
         let filename = format!("ccs_config_export_{}.toml", timestamp);
         Ok(PathBuf::from(filename))
@@ -79,21 +78,17 @@ fn export_to_file(
 ) -> Result<()> {
     let mut config = config_manager.load()?;
 
-    // 如果不包含密钥,则移除敏感信息
     if !include_secrets {
         for section in config.sections.values_mut() {
             if let Some(ref token) = section.auth_token {
-                // 只保留前4位和后4位,中间用星号替换
                 section.auth_token = Some(mask_token(token));
             }
         }
     }
 
-    // 序列化配置
     let content = toml::to_string_pretty(&config)
         .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
 
-    // 写入文件
     fs::write(output_path, content)
         .map_err(|e| CcrError::ConfigError(format!("写入文件失败: {}", e)))?;
 
@@ -127,11 +122,9 @@ mod tests {
 
     #[test]
     fn test_determine_output_path() {
-        // 指定路径
         let path = determine_output_path(Some("test.toml".to_string())).unwrap();
         assert_eq!(path, PathBuf::from("test.toml"));
 
-        // 默认路径
         let path = determine_output_path(None).unwrap();
         assert!(path.to_string_lossy().starts_with("ccs_config_export_"));
         assert!(path.to_string_lossy().ends_with(".toml"));

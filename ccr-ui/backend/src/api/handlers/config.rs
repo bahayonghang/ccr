@@ -99,7 +99,7 @@ pub async fn switch_config(Json(req): Json<SwitchRequest>) -> ApiResult<Json<&'s
     // 在 spawn_blocking 中运行同步代码（避免阻塞异步执行器）
     let result = tokio::task::spawn_blocking(move || {
         // 直接调用 ccr 的 switch_command
-        ccr::commands::switch::switch_command(&config_name).map_err(|e| e.to_string())
+        ccr::commands::switch_command(&config_name).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?;

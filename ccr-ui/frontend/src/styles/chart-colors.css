@@ -1,0 +1,22 @@
+/* ===================================
+   图表配色 - 赛博玉/水墨风格
+   =================================== */
+:root {
+  /* 0: 翡翠 (Jade) */
+  --chart-color-0: var(--accent-primary);
+  /* 1: 靛青 (Indigo) */
+  --chart-color-1: var(--accent-secondary);
+  /* 2: 琥珀 (Amber) */
+  --chart-color-2: var(--accent-warning);
+  /* 3: 天青 (Sky Blue) */
+  --chart-color-3: var(--accent-tertiary);
+  /* 4: 丹砂 (Cinnabar/Red) */
+  --chart-color-4: var(--accent-danger);
+}
+
+/* 柱状图颜色类 */
+.bar-color-0 { background-color: var(--chart-color-0); }
+.bar-color-1 { background-color: var(--chart-color-1); }
+.bar-color-2 { background-color: var(--chart-color-2); }
+.bar-color-3 { background-color: var(--chart-color-3); }
+.bar-color-4 { background-color: var(--chart-color-4); }

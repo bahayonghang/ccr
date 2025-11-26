@@ -43,12 +43,12 @@ features:
 ## 项目简介
 CCR UI 为 CCR 提供图形化与桌面化控制台：配置管理、命令执行、多目录同步、平台信息与系统监控一站式收拢。默认工作在 `~/.ccr/ccr-ui/` 或源码路径，Tauri 桌面模式自动切换调用方式（invoke/HTTP）。
 
-### 前端技术栈（v3.4.1）
+### 前端技术栈（v3.6.2）
 - Vue 3.5 + Vite 7 + TypeScript 5.7
 - Vue Router 4.4，Pinia 2.2
 - Tailwind CSS 3.4，Lucide 图标，Axios
 
-### 后端技术栈（v3.4.1）
+### 后端技术栈（v3.6.2）
 - Rust 2024 Edition，Axum 0.8（workspace 成员）
 - Tokio / Serde / Tower，统一依赖版本
 - 通过子进程调用 CCR，可选托管前端静态文件

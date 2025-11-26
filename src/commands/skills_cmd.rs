@@ -87,39 +87,17 @@ pub fn skills_command(args: SkillsArgs) -> Result<()> {
 
     let manager = SkillsManager::new(platform)?;
 
-    match args.action {
-        SkillsAction::List => {
-            let skills = manager.list_skills()?;
-            if skills.is_empty() {
-                println!("No skills installed for {}.", platform);
-                return Ok(());
-            }
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(crate::core::error::CcrError::IoError)?;
 
-            let mut table = Table::new();
-            table
-                .load_preset(UTF8_FULL)
-                .set_content_arrangement(ContentArrangement::Dynamic)
-                .set_header(vec![
-                    Cell::new("Name").add_attribute(Attribute::Bold),
-                    Cell::new("Description").add_attribute(Attribute::Bold),
-                    Cell::new("Path").add_attribute(Attribute::Bold),
-                ]);
-
-            for skill in skills {
-                table.add_row(vec![
-                    Cell::new(skill.name).fg(Color::Green),
-                    Cell::new(skill.description.unwrap_or_default()),
-                    Cell::new(skill.path),
-                ]);
-            }
-
-            println!("{}", table);
-        }
-        SkillsAction::Repo { action } => match action {
-            RepoAction::List => {
-                let repos = manager.list_repositories()?;
-                if repos.is_empty() {
-                    println!("No repositories configured.");
+    rt.block_on(async {
+        match args.action {
+            SkillsAction::List => {
+                let skills = manager.list_skills()?;
+                if skills.is_empty() {
+                    println!("No skills installed for {}.", platform);
                     return Ok(());
                 }
 
@@ -129,134 +107,147 @@ pub fn skills_command(args: SkillsArgs) -> Result<()> {
                     .set_content_arrangement(ContentArrangement::Dynamic)
                     .set_header(vec![
                         Cell::new("Name").add_attribute(Attribute::Bold),
-                        Cell::new("URL").add_attribute(Attribute::Bold),
-                        Cell::new("Branch").add_attribute(Attribute::Bold),
                         Cell::new("Description").add_attribute(Attribute::Bold),
+                        Cell::new("Path").add_attribute(Attribute::Bold),
                     ]);
 
-                for repo in repos {
+                for skill in skills {
                     table.add_row(vec![
-                        Cell::new(repo.name).fg(Color::Cyan),
-                        Cell::new(repo.url),
-                        Cell::new(repo.branch),
-                        Cell::new(repo.description.unwrap_or_default()),
+                        Cell::new(skill.name).fg(Color::Green),
+                        Cell::new(skill.description.unwrap_or_default()),
+                        Cell::new(skill.path),
+                    ]);
+                }
+
+                println!("{}", table);
+            }
+            SkillsAction::Repo { action } => match action {
+                RepoAction::List => {
+                    let repos = manager.list_repositories()?;
+                    if repos.is_empty() {
+                        println!("No repositories configured.");
+                        return Ok(());
+                    }
+
+                    let mut table = Table::new();
+                    table
+                        .load_preset(UTF8_FULL)
+                        .set_content_arrangement(ContentArrangement::Dynamic)
+                        .set_header(vec![
+                            Cell::new("Name").add_attribute(Attribute::Bold),
+                            Cell::new("URL").add_attribute(Attribute::Bold),
+                            Cell::new("Branch").add_attribute(Attribute::Bold),
+                            Cell::new("Description").add_attribute(Attribute::Bold),
+                        ]);
+
+                    for repo in repos {
+                        table.add_row(vec![
+                            Cell::new(repo.name).fg(Color::Cyan),
+                            Cell::new(repo.url),
+                            Cell::new(repo.branch),
+                            Cell::new(repo.description.unwrap_or_default()),
+                        ]);
+                    }
+                    println!("{}", table);
+                }
+                RepoAction::Add {
+                    name,
+                    url,
+                    branch,
+                    description,
+                } => {
+                    let repo = SkillRepository {
+                        name: name.clone(),
+                        url,
+                        branch: branch.unwrap_or_else(|| "main".to_string()),
+                        description,
+                    };
+                    manager.add_repository(repo)?;
+                    println!("Repository '{}' added successfully.", name);
+                }
+                RepoAction::Remove { name } => {
+                    manager.remove_repository(&name)?;
+                    println!("Repository '{}' removed successfully.", name);
+                }
+            },
+            SkillsAction::Scan { repo_name } => {
+                println!("Scanning repository '{}'...", repo_name);
+                let skills = manager.fetch_remote_skills(&repo_name).await?;
+
+                if skills.is_empty() {
+                    println!("No skills found in repository '{}'.", repo_name);
+                    return Ok(());
+                }
+
+                let mut table = Table::new();
+                table
+                    .load_preset(UTF8_FULL)
+                    .set_content_arrangement(ContentArrangement::Dynamic)
+                    .set_header(vec![
+                        Cell::new("Name").add_attribute(Attribute::Bold),
+                        Cell::new("Description").add_attribute(Attribute::Bold),
+                        Cell::new("Action").add_attribute(Attribute::Bold),
+                    ]);
+
+                for skill in skills {
+                    table.add_row(vec![
+                        Cell::new(skill.name).fg(Color::Yellow),
+                        Cell::new(skill.description.unwrap_or_default()),
+                        Cell::new("Use 'install <name>' to install"),
                     ]);
                 }
                 println!("{}", table);
             }
-            RepoAction::Add {
-                name,
-                url,
-                branch,
-                description,
-            } => {
-                let repo = SkillRepository {
-                    name: name.clone(),
-                    url,
-                    branch: branch.unwrap_or_else(|| "main".to_string()),
-                    description,
-                };
-                manager.add_repository(repo)?;
-                println!("Repository '{}' added successfully.", name);
-            }
-            RepoAction::Remove { name } => {
-                manager.remove_repository(&name)?;
-                println!("Repository '{}' removed successfully.", name);
-            }
-        },
-        SkillsAction::Scan { repo_name } => {
-            println!("Scanning repository '{}'...", repo_name);
-            let skills = manager.fetch_remote_skills(&repo_name)?;
+            SkillsAction::Install { name } => {
+                println!(
+                    "Searching for skill '{}' in configured repositories...",
+                    name
+                );
+                let repos = manager.list_repositories()?;
+                let mut found_skill = None;
+                let mut source_repo = None;
 
-            if skills.is_empty() {
-                println!("No skills found in repository '{}'.", repo_name);
-                return Ok(());
-            }
+                for repo in &repos {
+                    if let Ok(skills) = manager.fetch_remote_skills(&repo.name).await
+                        && let Some(skill) = skills.into_iter().find(|s| s.name == name)
+                    {
+                        found_skill = Some(skill);
+                        source_repo = Some(repo);
+                        break;
+                    }
+                }
 
-            let mut table = Table::new();
-            table
-                .load_preset(UTF8_FULL)
-                .set_content_arrangement(ContentArrangement::Dynamic)
-                .set_header(vec![
-                    Cell::new("Name").add_attribute(Attribute::Bold),
-                    Cell::new("Description").add_attribute(Attribute::Bold),
-                    Cell::new("Action").add_attribute(Attribute::Bold),
-                ]);
+                if let (Some(skill), Some(repo)) = (found_skill, source_repo) {
+                    println!(
+                        "Found skill '{}' in repository '{}'. Installing...",
+                        name, repo.name
+                    );
 
-            for skill in skills {
-                table.add_row(vec![
-                    Cell::new(skill.name).fg(Color::Yellow),
-                    Cell::new(skill.description.unwrap_or_default()),
-                    Cell::new("Use 'install <name>' to install"),
-                ]);
-            }
-            println!("{}", table);
-        }
-        SkillsAction::Install { name } => {
-            // This is tricky because we need to know WHICH repo the skill comes from to fetch it.
-            // Or we need to scan all repos to find it?
-            // Or we assume the user just scanned it and we have a cache?
-            // For now, let's assume we scan all repos to find the skill.
-            // Or we require the user to specify repo?
-            // Let's try to find it in all repos.
+                    let content_url = skill.path.clone();
+                    let content = match manager.fetch_skill_content(&content_url).await {
+                        Ok(c) => c,
+                        Err(e) => {
+                            if e.to_string().contains("404") && content_url.ends_with("SKILL.md") {
+                                let readme_url = content_url.replace("SKILL.md", "README.md");
+                                println!("SKILL.md not found, trying README.md...");
+                                manager.fetch_skill_content(&readme_url).await?
+                            } else {
+                                return Err(e);
+                            }
+                        }
+                    };
 
-            println!(
-                "Searching for skill '{}' in configured repositories...",
-                name
-            );
-            let repos = manager.list_repositories()?;
-            let mut found_skill = None;
-            let mut source_repo = None;
-
-            for repo in &repos {
-                // We assume fetch_remote_skills is cheap enough (it lists dirs)
-                // But it does network requests.
-                // Ideally we should cache scan results.
-                // For MVP, we scan.
-                if let Ok(skills) = manager.fetch_remote_skills(&repo.name)
-                    && let Some(skill) = skills.into_iter().find(|s| s.name == name)
-                {
-                    found_skill = Some(skill);
-                    source_repo = Some(repo);
-                    break;
+                    manager.install_skill(&name, &content)?;
+                    println!("Skill '{}' installed successfully!", name);
+                } else {
+                    println!("Skill '{}' not found in any configured repository.", name);
                 }
             }
-
-            if let (Some(skill), Some(repo)) = (found_skill, source_repo) {
-                println!(
-                    "Found skill '{}' in repository '{}'. Installing...",
-                    name, repo.name
-                );
-
-                // Now we need to fetch the actual content.
-                // In fetch_remote_skills, we constructed a raw URL in the 'path' field.
-                // Let's use that.
-                let content_url = skill.path.clone(); // This is the raw URL we hacked in
-                let content = match manager.fetch_skill_content(&content_url) {
-                    Ok(c) => c,
-                    Err(e) => {
-                        // If 404, try README.md
-                        if e.to_string().contains("404") && content_url.ends_with("SKILL.md") {
-                            let readme_url = content_url.replace("SKILL.md", "README.md");
-                            println!("SKILL.md not found, trying README.md...");
-                            manager.fetch_skill_content(&readme_url)?
-                        } else {
-                            return Err(e);
-                        }
-                    }
-                };
-
-                manager.install_skill(&name, &content)?;
-                println!("Skill '{}' installed successfully!", name);
-            } else {
-                println!("Skill '{}' not found in any configured repository.", name);
+            SkillsAction::Uninstall { name } => {
+                manager.uninstall_skill(&name)?;
+                println!("Skill '{}' uninstalled successfully.", name);
             }
         }
-        SkillsAction::Uninstall { name } => {
-            manager.uninstall_skill(&name)?;
-            println!("Skill '{}' uninstalled successfully.", name);
-        }
-    }
-
-    Ok(())
+        Ok(())
+    })
 }

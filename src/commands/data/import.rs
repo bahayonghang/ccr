@@ -34,16 +34,13 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool, force: bool
     ColorOutput::title("导入配置");
     println!();
 
-    // ⚡ 检查自动确认模式：--force 参数 OR 配置文件中的 skip_confirmation
+    // ⚡ 检查自动确认模式
     let config_manager = ConfigManager::with_default()?;
-    let config = config_manager.load().unwrap_or_else(|_| {
-        // 如果配置文件不存在，使用默认配置（skip_confirmation = false）
-        CcsConfig {
-            default_config: String::new(),
-            current_config: String::new(),
-            settings: crate::managers::config::GlobalSettings::default(),
-            sections: indexmap::IndexMap::new(),
-        }
+    let config = config_manager.load().unwrap_or_else(|_| CcsConfig {
+        default_config: String::new(),
+        current_config: String::new(),
+        settings: crate::managers::config::GlobalSettings::default(),
+        sections: indexmap::IndexMap::new(),
     });
     let skip_confirmation = force || config.settings.skip_confirmation;
 
@@ -51,7 +48,7 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool, force: bool
         ColorOutput::info("⚡ 自动确认模式已启用，将跳过确认");
     }
 
-    // 🚨 Replace 模式需要确认（除非 YOLO 模式）
+    // 🚨 Replace 模式需要确认
     if matches!(mode, ImportMode::Replace) && !skip_confirmation {
         println!();
         ColorOutput::warning("⚠️  警告: Replace 模式将完全覆盖现有配置！");
@@ -150,12 +147,10 @@ fn import_config_with_mode(import_config: CcsConfig, mode: ImportMode) -> Result
 
     let result = match mode {
         ImportMode::Merge => {
-            // 合并模式
             if config_manager.config_path().exists() {
                 let mut current_config = config_manager.load()?;
                 merge_configs(&mut current_config, import_config)?
             } else {
-                // 没有现有配置,直接使用导入的
                 config_manager.save(&import_config)?;
                 ImportResult {
                     added: import_config.sections.len(),
@@ -165,7 +160,6 @@ fn import_config_with_mode(import_config: CcsConfig, mode: ImportMode) -> Result
             }
         }
         ImportMode::Replace => {
-            // 替换模式
             let count = import_config.sections.len();
             config_manager.save(&import_config)?;
             ImportResult {
@@ -189,18 +183,14 @@ fn merge_configs(current: &mut CcsConfig, import: CcsConfig) -> Result<ImportRes
 
     for (name, section) in import.sections {
         if current.sections.contains_key(&name) {
-            // 已存在,更新
             current.sections.insert(name, section);
             result.updated += 1;
         } else {
-            // 不存在,添加
             current.sections.insert(name, section);
             result.added += 1;
         }
     }
 
-    // 如果导入配置中有 default_config,也更新它
-    // 但保持 current_config 不变
     current.default_config = import.default_config;
 
     let config_manager = ConfigManager::with_default()?;
@@ -244,18 +234,15 @@ mod tests {
     #[test]
     fn test_merge_configs() {
         let _guard = CONFIG_LOCK.lock().expect("配置锁已中毒");
-        // 🚧 使用临时 CCR_ROOT 隔离测试产生的配置文件，避免污染真实用户目录
         let temp_dir = tempdir().unwrap();
         let temp_root = temp_dir.path().to_path_buf();
 
-        // 备份并替换相关环境变量
         let prev_root = env::var("CCR_ROOT").ok();
         let prev_config_path = env::var("CCR_CONFIG_PATH").ok();
 
-        // SAFETY: 仅在本测试进程内修改环境变量，将在末尾恢复
         unsafe {
             env::set_var("CCR_ROOT", &temp_root);
-            env::remove_var("CCR_CONFIG_PATH"); // 避免其他覆盖路径干扰
+            env::remove_var("CCR_CONFIG_PATH");
         }
 
         let mut current = CcsConfig {
@@ -277,7 +264,7 @@ mod tests {
                 provider_type: None,
                 account: None,
                 tags: None,
-                usage_count: Some(5), // 测试用例中已有使用次数
+                usage_count: Some(5),
                 enabled: Some(true),
             },
         );
@@ -325,12 +312,10 @@ mod tests {
 
         let result = merge_configs(&mut current, import).unwrap();
 
-        assert_eq!(result.added, 1); // test2 是新增的
-        assert_eq!(result.updated, 1); // test1 被更新了
+        assert_eq!(result.added, 1);
+        assert_eq!(result.updated, 1);
         assert_eq!(current.default_config, "new_default");
 
-        // 清理环境变量，防止影响其他测试
-        // SAFETY: 恢复之前的环境变量状态
         unsafe {
             match prev_root {
                 Some(val) => env::set_var("CCR_ROOT", val),

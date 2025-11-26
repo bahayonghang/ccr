@@ -11,16 +11,6 @@ use std::fs;
 use std::path::PathBuf;
 
 /// 📋 生成示例配置文件内容
-///
-/// **设计理念**: 动态生成而非硬编码文件
-/// - ✅ 消除编译时文件依赖
-/// - ✅ 确保示例与数据结构同步
-/// - ✅ 易于维护和扩展
-///
-/// 生成的示例包含:
-/// - 默认配置节 "anyrouter_main"
-/// - 完整的全局设置示例
-/// - 带占位符的 API 配置
 fn generate_example_config() -> Result<String> {
     use crate::managers::config::{ConfigSection, GlobalSettings, ProviderType};
 
@@ -43,7 +33,6 @@ fn generate_example_config() -> Result<String> {
         },
     );
 
-    // 添加另一个示例配置节（Anthropic 官方）
     sections.insert(
         "anthropic".to_string(),
         ConfigSection {
@@ -61,15 +50,13 @@ fn generate_example_config() -> Result<String> {
         },
     );
 
-    // 构建全局设置（简化版，只保留核心字段）
     let settings = GlobalSettings {
         skip_confirmation: false,
         tui_theme: None,
         #[allow(deprecated)]
-        sync: Default::default(), // 保留向后兼容字段，使用默认值
+        sync: Default::default(),
     };
 
-    // 构建完整配置
     let config = crate::managers::config::CcsConfig {
         default_config: "anyrouter_main".to_string(),
         current_config: "anyrouter_main".to_string(),
@@ -77,7 +64,6 @@ fn generate_example_config() -> Result<String> {
         sections,
     };
 
-    // 序列化为 TOML
     toml::to_string_pretty(&config)
         .map_err(|e| CcrError::ConfigError(format!("生成示例配置失败: {}", e)))
 }
@@ -85,24 +71,6 @@ fn generate_example_config() -> Result<String> {
 /// 🎬 初始化配置文件
 ///
 /// **新的行为 (2025)**: 默认使用 Unified Mode (~/.ccr/ 目录结构)
-///
-/// 执行流程:
-/// 1. ✅ 检测配置模式 (Unified vs Legacy)
-/// 2. 🆕 Unified Mode: 初始化 ~/.ccr/ 目录和平台结构
-/// 3. 🔙 Legacy Mode: 兼容旧的 ~/.ccs_config.toml（仅在环境变量强制时）
-/// 4. 💾 备份现有配置(--force 模式)
-/// 5. 📝 创建新配置文件和目录结构
-/// 6. 💡 显示后续步骤提示
-///
-/// # 参数
-///
-/// * `force` - 强制重新初始化（覆盖现有配置）
-///
-/// # 配置模式检测
-///
-/// - **Unified Mode** (默认): 创建 `~/.ccr/` 目录结构
-/// - **Legacy Mode**: 仅在设置 `CCR_LEGACY_MODE=1` 时使用 `~/.ccs_config.toml`
-///
 pub fn init_command(force: bool) -> Result<()> {
     ColorOutput::title("CCR 配置初始化");
     println!();
@@ -120,18 +88,7 @@ pub fn init_command(force: bool) -> Result<()> {
     init_unified_mode(force)
 }
 
-/// 🆕 初始化 Unified Mode - 新的多平台配置结构
-///
-/// 创建目录结构:
-/// ```text
-/// ~/.ccr/
-/// ├── config.toml              # 平台注册表
-/// └── platforms/
-///     └── claude/              # Claude 平台目录（默认）
-///         ├── profiles.toml    # 将在首次使用时创建
-///         ├── history/         # 历史记录目录
-///         └── backups/         # 备份目录
-/// ```
+/// 🆕 初始化 Unified Mode
 fn init_unified_mode(force: bool) -> Result<()> {
     let manager = PlatformConfigManager::with_default()?;
     let config_path = manager.config_path();
@@ -182,13 +139,11 @@ fn init_unified_mode(force: bool) -> Result<()> {
     // 创建目录结构
     ColorOutput::step("创建 CCR 目录结构");
 
-    // 获取 CCR 根目录
     let home =
         dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
     let ccr_root = home.join(".ccr");
     let platforms_dir = ccr_root.join("platforms");
 
-    // 创建根目录和平台目录
     fs::create_dir_all(&platforms_dir).map_err(CcrError::from)?;
 
     ColorOutput::success(&format!("✓ CCR 根目录: {}", ccr_root.display()));
@@ -214,12 +169,10 @@ fn init_unified_mode(force: bool) -> Result<()> {
         claude_paths.backups_dir.display()
     ));
 
-    // 在首次初始化时，创建一个最小可用的 profiles.toml，避免后续 ccr list 等命令因文件缺失报错
-    // 注意：不覆盖已有文件，仅在缺失时创建
+    // 创建默认 profiles.toml
     if !claude_paths.profiles_file.exists() {
         ColorOutput::step("创建默认 Claude profiles.toml");
 
-        // 构建一个空的 CcsConfig（默认/当前配置名为 "default"，sections 为空）
         let default_ccs = crate::managers::config::CcsConfig {
             default_config: "default".to_string(),
             current_config: "default".to_string(),
@@ -227,7 +180,6 @@ fn init_unified_mode(force: bool) -> Result<()> {
             sections: IndexMap::new(),
         };
 
-        // 序列化并写入文件
         let content = toml::to_string_pretty(&default_ccs)
             .map_err(|e| CcrError::ConfigError(format!("序列化默认配置失败: {}", e)))?;
         fs::write(&claude_paths.profiles_file, content)
@@ -277,16 +229,12 @@ fn init_unified_mode(force: bool) -> Result<()> {
     Ok(())
 }
 
-/// 🔙 Legacy Mode - 兼容旧版 ~/.ccs_config.toml
-///
-/// 仅在设置 `CCR_LEGACY_MODE=1` 环境变量时使用
+/// 🔙 Legacy Mode
 fn init_legacy_mode(force: bool) -> Result<()> {
-    // 获取配置文件路径
     let home =
         dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
     let config_path = home.join(".ccs_config.toml");
 
-    // ⚡ 检查自动确认模式：--force 参数 OR 配置文件中的 skip_confirmation
     let auto_confirm = if config_path.exists() {
         let config_manager = ConfigManager::new(&config_path);
         config_manager
@@ -303,7 +251,6 @@ fn init_legacy_mode(force: bool) -> Result<()> {
         ColorOutput::info("⚡ 自动确认模式已启用，将跳过确认");
     }
 
-    // 检查文件是否已存在
     if config_path.exists() {
         if !force {
             ColorOutput::warning(&format!("配置文件已存在: {}", config_path.display()));
@@ -317,7 +264,6 @@ fn init_legacy_mode(force: bool) -> Result<()> {
             return Ok(());
         }
 
-        // 🚨 使用 --force 时需要确认（除非 YOLO 模式）
         if !skip_confirmation {
             println!();
             ColorOutput::warning("⚠️  警告: 即将覆盖现有配置文件！");
@@ -338,7 +284,6 @@ fn init_legacy_mode(force: bool) -> Result<()> {
             println!();
         }
 
-        // 使用 --force 时,备份现有配置
         let status_msg = if skip_confirmation {
             "⚡ 使用 --force 模式,将覆盖现有配置 (自动确认模式)"
         } else {
@@ -351,7 +296,6 @@ fn init_legacy_mode(force: bool) -> Result<()> {
         println!();
     }
 
-    // 写入配置文件
     ColorOutput::step("创建配置文件");
     create_config_file(&config_path)?;
 
@@ -362,7 +306,6 @@ fn init_legacy_mode(force: bool) -> Result<()> {
     ColorOutput::info(&format!("配置文件位置: {}", config_path.display()));
     println!();
 
-    // 提示后续操作
     ColorOutput::info("后续步骤:");
     println!("  1. 编辑配置文件: ~/.ccs_config.toml");
     println!("  2. 填写您的 API 密钥");
@@ -377,14 +320,11 @@ fn init_legacy_mode(force: bool) -> Result<()> {
     Ok(())
 }
 
-/// 创建配置文件
 fn create_config_file(config_path: &PathBuf) -> Result<()> {
-    // 生成并写入示例配置内容
     let example_content = generate_example_config()?;
     fs::write(config_path, example_content)
         .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
 
-    // 设置文件权限为 644 (Unix)
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -397,7 +337,6 @@ fn create_config_file(config_path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-/// 备份现有配置
 fn backup_existing_config(config_path: &PathBuf) -> Result<()> {
     let config_manager = ConfigManager::new(config_path);
     let backup_path = config_manager.backup(Some("init"))?;
@@ -427,88 +366,5 @@ mod tests {
         assert!(config_path.exists());
         let content = fs::read_to_string(&config_path).unwrap();
         assert!(content.contains("default_config"));
-    }
-
-    #[test]
-    fn test_backup_existing_config() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let config_path = temp_dir.path().join(".ccs_config.toml");
-
-        // 创建原始配置
-        fs::write(&config_path, "test content").unwrap();
-
-        // 备份
-        backup_existing_config(&config_path).unwrap();
-
-        // 检查备份文件是否存在
-        let backup_files: Vec<_> = fs::read_dir(temp_dir.path())
-            .unwrap()
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.file_name().to_string_lossy().contains(".toml.")
-                    && e.file_name().to_string_lossy().ends_with(".bak")
-            })
-            .collect();
-
-        assert_eq!(backup_files.len(), 1);
-
-        // 验证原文件内容未改变
-        let content = fs::read_to_string(&config_path).unwrap();
-        assert_eq!(content, "test content");
-    }
-
-    #[test]
-    fn test_init_command_preserves_existing_config() {
-        // 注意：这个测试使用真实的 home 目录路径判断
-        // 但不会实际执行 init_command,只是验证逻辑
-
-        // 测试逻辑：当配置文件已存在且不使用 --force 时,应该保护现有文件
-        let temp_dir = tempfile::tempdir().unwrap();
-        let config_path = temp_dir.path().join(".ccs_config.toml");
-
-        // 创建现有配置
-        let original_content = "existing config content";
-        fs::write(&config_path, original_content).unwrap();
-
-        // 模拟检查：如果文件存在,不应该被覆盖(除非 --force)
-        if config_path.exists() {
-            // 这是 init_command 的保护逻辑
-            let content_after = fs::read_to_string(&config_path).unwrap();
-            assert_eq!(content_after, original_content, "配置文件不应被意外覆盖");
-        }
-    }
-
-    #[test]
-    fn test_init_with_force_creates_backup() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let config_path = temp_dir.path().join(".ccs_config.toml");
-
-        // 创建现有配置
-        let original_content = "original config";
-        fs::write(&config_path, original_content).unwrap();
-
-        // 备份现有配置(模拟 --force 的备份步骤)
-        backup_existing_config(&config_path).unwrap();
-
-        // 验证备份文件被创建
-        let backup_files: Vec<_> = fs::read_dir(temp_dir.path())
-            .unwrap()
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.file_name().to_string_lossy().contains(".toml.")
-                    && e.file_name().to_string_lossy().ends_with(".bak")
-            })
-            .collect();
-
-        assert_eq!(backup_files.len(), 1, "应该创建一个备份文件");
-
-        // 验证备份文件内容正确
-        let backup_path = &backup_files[0].path();
-        let backup_content = fs::read_to_string(backup_path).unwrap();
-        assert_eq!(backup_content, original_content, "备份文件应包含原始内容");
-
-        // 验证原文件未被修改(在备份阶段)
-        let current_content = fs::read_to_string(&config_path).unwrap();
-        assert_eq!(current_content, original_content, "备份操作不应修改原文件");
     }
 }

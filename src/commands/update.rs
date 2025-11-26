@@ -19,13 +19,14 @@ use std::process::{Command, Stdio};
 /// 依赖:
 /// - 需要本地安装 Rust 和 cargo
 /// - 需要能访问 GitHub
-pub fn update_command(check_only: bool) -> Result<()> {
+pub fn update_command(check_only: bool, branch: &str) -> Result<()> {
     ColorOutput::title("CCR 自动更新");
     println!();
 
     let current_version = env!("CARGO_PKG_VERSION");
     ColorOutput::key_value("当前版本", current_version, 2);
     ColorOutput::key_value("仓库地址", "https://github.com/bahayonghang/ccr", 2);
+    ColorOutput::key_value("更新分支", branch, 2);
     println!();
 
     if check_only {
@@ -34,7 +35,10 @@ pub fn update_command(check_only: bool) -> Result<()> {
         ColorOutput::info("检查模式 - 不会执行实际更新");
         println!();
         ColorOutput::step("更新命令预览");
-        println!("  cargo install --git https://github.com/bahayonghang/ccr ccr --force");
+        println!(
+            "  cargo install --git https://github.com/bahayonghang/ccr ccr --branch {} --force",
+            branch
+        );
         println!();
         ColorOutput::info("💡 提示: 运行 'ccr update' 执行更新(去掉 --check 参数)");
         println!();
@@ -56,7 +60,10 @@ pub fn update_command(check_only: bool) -> Result<()> {
     ColorOutput::step("开始更新 CCR");
     println!();
     ColorOutput::info("执行命令:");
-    println!("  cargo install --git https://github.com/bahayonghang/ccr ccr --force");
+    println!(
+        "  cargo install --git https://github.com/bahayonghang/ccr ccr --branch {} --force",
+        branch
+    );
     println!();
     ColorOutput::separator();
     println!();
@@ -68,6 +75,8 @@ pub fn update_command(check_only: bool) -> Result<()> {
             "--git",
             "https://github.com/bahayonghang/ccr",
             "ccr", // 指定包名
+            "--branch",
+            branch,
             "--force",
         ])
         .stdout(Stdio::inherit()) // 实时显示标准输出
@@ -110,7 +119,8 @@ pub fn update_command(check_only: bool) -> Result<()> {
         println!("  2. 更新 Rust 工具链: rustup update");
         println!("  3. 检查 cargo 版本: cargo --version");
         println!(
-            "  4. 手动安装: cargo install --git https://github.com/bahayonghang/ccr ccr --force"
+            "  4. 手动安装: cargo install --git https://github.com/bahayonghang/ccr ccr --branch {} --force",
+            branch
         );
         println!();
 
@@ -131,7 +141,7 @@ mod tests {
     fn test_update_command_check_only() {
         // 测试 --check 模式不会实际执行更新
         // 这个测试只验证函数能正常返回
-        let result = update_command(true);
+        let result = update_command(true, "main");
         // check_only 模式应该总是成功返回
         assert!(result.is_ok());
     }

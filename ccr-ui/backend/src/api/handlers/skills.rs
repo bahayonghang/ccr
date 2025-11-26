@@ -149,7 +149,7 @@ pub async fn scan_repository(Path(repo_name): Path<String>) -> impl IntoResponse
         Err(e) => return Json(ApiResponse::error(e.to_string())),
     };
 
-    match manager.fetch_remote_skills(&repo_name) {
+    match manager.fetch_remote_skills(&repo_name).await {
         Ok(skills) => Json(ApiResponse::success(skills)),
         Err(e) => Json(ApiResponse::error(e.to_string())),
     }

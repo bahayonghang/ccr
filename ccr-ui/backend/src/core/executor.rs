@@ -16,6 +16,8 @@
 // - 等待核心库提供更多服务后，可进一步重构sync和stats
 // - executor作为fallback机制长期保留是合理的设计决策
 
+use async_stream::stream;
+use futures::stream::Stream;
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
@@ -28,6 +30,15 @@ pub struct CommandOutput {
     pub stderr: String,
     pub exit_code: i32,
     pub duration_ms: u64,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum StreamChunk {
+    Stdout { data: String },
+    Stderr { data: String },
+    Completion { exit_code: i32, duration_ms: u64 },
+    Error { message: String },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -44,20 +55,26 @@ pub type Result<T> = std::result::Result<T, ExecutorError>;
 
 /// Execute a CCR command with the given arguments
 pub async fn execute_command(args: Vec<String>) -> Result<CommandOutput> {
-    execute_command_with_timeout(args, Duration::from_secs(30)).await
+    execute_binary("ccr", args).await
 }
 
-/// Execute a CCR command with custom timeout
-pub async fn execute_command_with_timeout(
+/// Execute a binary with the given arguments
+pub async fn execute_binary(binary: &str, args: Vec<String>) -> Result<CommandOutput> {
+    execute_binary_with_timeout(binary, args, Duration::from_secs(30)).await
+}
+
+/// Execute a binary with custom timeout
+pub async fn execute_binary_with_timeout(
+    binary: &str,
     args: Vec<String>,
     timeout_duration: Duration,
 ) -> Result<CommandOutput> {
     let start = Instant::now();
 
-    tracing::info!("Executing command: ccr {}", args.join(" "));
+    tracing::info!("Executing command: {} {}", binary, args.join(" "));
 
-    // Spawn the CCR process
-    let mut child = Command::new("ccr")
+    // Spawn the process
+    let mut child = Command::new(binary)
         .args(&args)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -131,12 +148,118 @@ pub async fn execute_command_with_timeout(
     );
 
     Ok(CommandOutput {
-        success: status.success(),
+        success: exit_code == 0,
         stdout,
         stderr,
         exit_code,
         duration_ms,
     })
+}
+
+/// Execute a binary and stream output in real-time
+pub fn execute_binary_stream(binary: String, args: Vec<String>) -> impl Stream<Item = StreamChunk> {
+    stream! {
+        let start = Instant::now();
+
+        tracing::info!("Executing command (streaming): {} {}", binary, args.join(" "));
+
+        // Spawn the process
+        let mut child = match Command::new(&binary)
+            .args(&args)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+        {
+            Ok(c) => c,
+            Err(e) => {
+                let message = if e.kind() == std::io::ErrorKind::NotFound {
+                    format!("Binary '{}' not found in PATH", binary)
+                } else {
+                    format!("Failed to spawn process: {}", e)
+                };
+                yield StreamChunk::Error { message };
+                return;
+            }
+        };
+
+        // Get stdout and stderr handles
+        let stdout = child.stdout.take().expect("Failed to capture stdout");
+        let stderr = child.stderr.take().expect("Failed to capture stderr");
+
+        // Create async readers
+        let mut stdout_lines = BufReader::new(stdout).lines();
+        let mut stderr_lines = BufReader::new(stderr).lines();
+
+        // Track whether each stream is still open
+        let mut stdout_open = true;
+        let mut stderr_open = true;
+
+        // Read and yield output line by line
+        while stdout_open || stderr_open {
+            tokio::select! {
+                // Read from stdout (only if still open)
+                result = stdout_lines.next_line(), if stdout_open => {
+                    match result {
+                        Ok(Some(line)) => {
+                            yield StreamChunk::Stdout { data: line };
+                        }
+                        Ok(None) => {
+                            // stdout closed, mark as closed but continue reading stderr
+                            stdout_open = false;
+                        }
+                        Err(e) => {
+                            yield StreamChunk::Error {
+                                message: format!("Failed to read stdout: {}", e)
+                            };
+                            stdout_open = false;
+                        }
+                    }
+                }
+                // Read from stderr (only if still open)
+                result = stderr_lines.next_line(), if stderr_open => {
+                    match result {
+                        Ok(Some(line)) => {
+                            yield StreamChunk::Stderr { data: line };
+                        }
+                        Ok(None) => {
+                            // stderr closed, mark as closed but continue reading stdout
+                            stderr_open = false;
+                        }
+                        Err(e) => {
+                            yield StreamChunk::Error {
+                                message: format!("Failed to read stderr: {}", e)
+                            };
+                            stderr_open = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Wait for process to complete
+        match child.wait().await {
+            Ok(status) => {
+                let duration_ms = start.elapsed().as_millis() as u64;
+                let exit_code = status.code().unwrap_or(-1);
+
+                tracing::info!(
+                    "Command completed (streaming): exit_code={}, duration={}ms",
+                    exit_code,
+                    duration_ms
+                );
+
+                yield StreamChunk::Completion {
+                    exit_code,
+                    duration_ms,
+                };
+            }
+            Err(e) => {
+                yield StreamChunk::Error {
+                    message: format!("Failed to wait for process: {}", e)
+                };
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -169,9 +292,12 @@ mod tests {
     /// 测试BinaryNotFound错误
     #[tokio::test]
     async fn test_binary_not_found() {
-        let result =
-            execute_command_with_timeout(vec!["--version".to_string()], Duration::from_secs(5))
-                .await;
+        let result = execute_binary_with_timeout(
+            "ccr",
+            vec!["--version".to_string()],
+            Duration::from_secs(5),
+        )
+        .await;
 
         // 如果ccr在PATH中，跳过此测试
         if result.is_ok() {

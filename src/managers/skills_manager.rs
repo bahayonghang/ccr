@@ -14,7 +14,7 @@ struct SkillsConfig {
 pub struct SkillsManager {
     base_path: PathBuf,
     config_path: PathBuf,
-    client: reqwest::blocking::Client,
+    client: reqwest::Client,
 }
 
 impl SkillsManager {
@@ -41,7 +41,7 @@ impl SkillsManager {
 
         let config_path = config_dir.join("skills.toml");
 
-        let client = reqwest::blocking::Client::builder()
+        let client = reqwest::Client::builder()
             .user_agent("ccr/3.5.2")
             .build()
             .map_err(|e| CcrError::NetworkError(format!("Failed to create HTTP client: {}", e)))?;
@@ -220,7 +220,7 @@ impl SkillsManager {
 
     // === Remote Skills Discovery ===
 
-    pub fn fetch_remote_skills(&self, repo_name: &str) -> Result<Vec<Skill>> {
+    pub async fn fetch_remote_skills(&self, repo_name: &str) -> Result<Vec<Skill>> {
         let repos = self.list_repositories()?;
         let repo = repos.iter().find(|r| r.name == repo_name).ok_or_else(|| {
             CcrError::ResourceNotFound(format!("Repository '{}' not found", repo_name))
@@ -251,7 +251,7 @@ impl SkillsManager {
         );
 
         let resp =
-            self.client.get(&api_url).send().map_err(|e| {
+            self.client.get(&api_url).send().await.map_err(|e| {
                 CcrError::NetworkError(format!("Failed to fetch repository: {}", e))
             })?;
 
@@ -264,6 +264,7 @@ impl SkillsManager {
 
         let contents: serde_json::Value = resp
             .json()
+            .await
             .map_err(|e| CcrError::NetworkError(format!("Failed to parse JSON: {}", e)))?;
 
         let mut skills = Vec::new();
@@ -306,9 +307,9 @@ impl SkillsManager {
         Ok(skills)
     }
 
-    pub fn fetch_skill_content(&self, url: &str) -> Result<String> {
+    pub async fn fetch_skill_content(&self, url: &str) -> Result<String> {
         let resp =
-            self.client.get(url).send().map_err(|e| {
+            self.client.get(url).send().await.map_err(|e| {
                 CcrError::NetworkError(format!("Failed to fetch skill content: {}", e))
             })?;
 
@@ -320,6 +321,7 @@ impl SkillsManager {
         }
 
         resp.text()
+            .await
             .map_err(|e| CcrError::NetworkError(format!("Failed to read content: {}", e)))
     }
 }
