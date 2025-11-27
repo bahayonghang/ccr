@@ -1,53 +1,57 @@
 <template>
   <div
-    class="terminal-output"
+    class="terminal-output glass-effect"
     :class="{ streaming: isStreaming }"
   >
     <!-- 工具栏 -->
-    <div class="terminal-toolbar">
+    <div class="terminal-toolbar border-b border-white/5 bg-white/5 backdrop-blur-sm">
       <div class="terminal-status">
         <span
           v-if="isStreaming"
-          class="status-indicator streaming"
+          class="status-indicator streaming text-guofeng-jade"
         >
-          <span class="pulse" />
-          流式输出中...
+          <span class="pulse bg-guofeng-jade" />
+          {{ $t('common.processing') || 'Processing...' }}
         </span>
         <span
           v-else-if="isComplete"
-          class="status-indicator complete"
+          class="status-indicator complete text-guofeng-jade"
         >
-          ✓ 完成
+          <CheckCircle class="w-3.5 h-3.5" />
+          {{ $t('common.completed') || 'Completed' }}
         </span>
         <span
           v-else
-          class="status-indicator"
-        >准备就绪</span>
+          class="status-indicator text-guofeng-text-muted"
+        >
+          <Terminal class="w-3.5 h-3.5" />
+          {{ $t('common.ready') || 'Ready' }}
+        </span>
       </div>
       <div class="terminal-actions">
         <button 
           v-if="isStreaming" 
-          class="btn-action btn-stop" 
-          title="停止"
+          class="btn-action btn-stop hover:bg-red-500/20 hover:text-red-400" 
+          :title="$t('common.stop')"
           @click="handleStop"
         >
-          停止
+          <Square class="w-3 h-3 fill-current" />
         </button>
         <button 
-          class="btn-action" 
+          class="btn-action hover:bg-white/10 hover:text-white" 
           :disabled="lines.length === 0"
-          title="清空"
+          :title="$t('common.clear')"
           @click="handleClear"
         >
-          清空
+          <Trash2 class="w-3.5 h-3.5" />
         </button>
         <button 
-          class="btn-action" 
+          class="btn-action hover:bg-white/10 hover:text-white" 
           :disabled="lines.length === 0"
-          title="复制"
+          :title="$t('common.copy')"
           @click="handleCopy"
         >
-          复制
+          <Copy class="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
@@ -55,39 +59,40 @@
     <!-- 终端内容 -->
     <div 
       ref="terminalRef" 
-      class="terminal-content"
+      class="terminal-content custom-scrollbar"
       :class="{ 'auto-scroll': autoScroll }"
     >
       <div
         v-if="error"
-        class="terminal-error"
+        class="terminal-error bg-red-500/10 text-red-400 border border-red-500/20"
       >
-        ❌ {{ error }}
+        <AlertTriangle class="w-4 h-4 shrink-0" />
+        <span>{{ error }}</span>
       </div>
       
       <div
         v-else-if="lines.length === 0"
-        class="terminal-empty"
+        class="terminal-empty text-guofeng-text-muted/30"
       >
-        <div class="empty-icon">
-          📟
+        <div class="empty-icon mb-3">
+          <Terminal class="w-12 h-12 opacity-20" />
         </div>
-        <div class="empty-text">
+        <div class="empty-text text-sm">
           {{ emptyText }}
         </div>
       </div>
 
       <div
         v-else
-        class="terminal-lines"
+        class="terminal-lines font-mono text-sm"
       >
         <div 
           v-for="(line, index) in lines" 
           :key="index" 
-          class="terminal-line"
+          class="terminal-line hover:bg-white/5 transition-colors"
         >
-          <span class="line-number">{{ index + 1 }}</span>
-          <span class="line-content">{{ line }}</span>
+          <span class="line-number text-guofeng-text-muted/30 select-none w-8 text-right mr-3 text-xs">{{ index + 1 }}</span>
+          <span class="line-content" v-html="renderAnsi(line)"></span>
         </div>
       </div>
     </div>
@@ -95,14 +100,15 @@
     <!-- 行数提示 -->
     <div
       v-if="lines.length > 0"
-      class="terminal-footer"
+      class="terminal-footer border-t border-white/5 bg-white/5 backdrop-blur-sm text-xs text-guofeng-text-muted"
     >
-      <span class="line-count">共 {{ lines.length }} 行</span>
+      <span class="line-count">{{ lines.length }} lines</span>
       <span
         v-if="lines.length >= maxLines"
-        class="line-limit-warning"
+        class="line-limit-warning text-amber-500 flex items-center gap-1"
       >
-        (已达上限 {{ maxLines }} 行，最旧的行将被自动移除)
+        <AlertTriangle class="w-3 h-3" />
+        Max lines reached
       </span>
     </div>
   </div>
@@ -112,6 +118,15 @@
 import { ref, watch, nextTick, onMounted } from 'vue'
 import { useStream } from '@/composables/useStream'
 import { useUIStore } from '@/store'
+import { AnsiUp } from 'ansi_up'
+import { 
+  Terminal, 
+  CheckCircle, 
+  Square, 
+  Trash2, 
+  Copy, 
+  AlertTriangle 
+} from 'lucide-vue-next'
 
 interface Props {
   streamUrl?: string
@@ -124,7 +139,7 @@ const props = withDefaults(defineProps<Props>(), {
   streamUrl: '',
   maxLines: 2000,
   autoScroll: true,
-  emptyText: '等待命令输出...'
+  emptyText: 'Waiting for output...'
 })
 
 const emit = defineEmits<{
@@ -140,6 +155,14 @@ const { lines, isStreaming, isComplete, error, start, stop, clear } = useStream(
   props.streamUrl,
   props.maxLines
 )
+
+// Render ANSI to HTML
+// Create a new instance for each line to prevent state leakage between renders
+const renderAnsi = (text: string) => {
+  const ansiUp = new AnsiUp()
+  ansiUp.use_classes = true
+  return ansiUp.ansi_to_html(text)
+}
 
 // 自动启动流式读取
 onMounted(() => {
@@ -176,23 +199,24 @@ watch(
 // 停止流式输出
 const handleStop = () => {
   stop()
-  uiStore.showInfo('已停止输出')
+  uiStore.showInfo('Output stopped')
 }
 
 // 清空输出
 const handleClear = () => {
   clear()
-  uiStore.showInfo('已清空输出')
+  uiStore.showInfo('Output cleared')
 }
 
 // 复制输出
 const handleCopy = async () => {
   try {
-    const text = lines.value.join('\n')
+    // Copy raw text without HTML tags
+    const text = lines.value.map(line => line.replace(/\x1b\[[0-9;]*m/g, '')).join('\n')
     await navigator.clipboard.writeText(text)
-    uiStore.showSuccess('已复制到剪贴板')
+    uiStore.showSuccess('Copied to clipboard')
   } catch (err) {
-    uiStore.showError('复制失败')
+    uiStore.showError('Failed to copy')
   }
 }
 
@@ -210,10 +234,9 @@ defineExpose({
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #1e1e1e;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 }
 
 .terminal-toolbar {
@@ -221,8 +244,6 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: #2d2d2d;
-  border-bottom: 1px solid #404040;
 }
 
 .terminal-status {
@@ -236,73 +257,45 @@ defineExpose({
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #888;
-}
-
-.status-indicator.streaming {
-  color: #4caf50;
-}
-
-.status-indicator.complete {
-  color: #2196f3;
+  font-weight: 500;
 }
 
 .pulse {
-  width: 8px;
-  height: 8px;
-  background: #4caf50;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.3;
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
 }
 
 .terminal-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 
 .btn-action {
-  padding: 4px 12px;
-  font-size: 12px;
-  background: #404040;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-action:hover:not(:disabled) {
-  background: #505050;
+  padding: 6px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  transition: all 0.2s;
 }
 
 .btn-action:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
-}
-
-.btn-stop {
-  background: #f44336;
-}
-
-.btn-stop:hover {
-  background: #d32f2f;
 }
 
 .terminal-content {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
-  background: #1e1e1e;
-  color: #d4d4d4;
+  padding: 16px;
+  /* Use a very dark transparent background for better contrast of colored text */
+  background: rgba(10, 14, 39, 0.6); 
+  color: #e5e7eb;
   font-size: 13px;
   line-height: 1.6;
 }
@@ -312,10 +305,13 @@ defineExpose({
 }
 
 .terminal-error {
-  color: #f44336;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 12px;
-  background: rgba(244, 67, 54, 0.1);
-  border-radius: 4px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
 }
 
 .terminal-empty {
@@ -324,38 +320,12 @@ defineExpose({
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #666;
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-}
-
-.empty-text {
-  font-size: 14px;
-}
-
-.terminal-lines {
-  font-size: 13px;
 }
 
 .terminal-line {
   display: flex;
-  padding: 2px 0;
-}
-
-.terminal-line:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.line-number {
-  flex-shrink: 0;
-  width: 50px;
-  color: #858585;
-  text-align: right;
-  padding-right: 12px;
-  user-select: none;
+  padding: 1px 0;
+  border-radius: 2px;
 }
 
 .line-content {
@@ -366,34 +336,45 @@ defineExpose({
 
 .terminal-footer {
   padding: 6px 12px;
-  background: #2d2d2d;
-  border-top: 1px solid #404040;
-  font-size: 11px;
-  color: #888;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.line-limit-warning {
-  color: #ff9800;
+/* ANSI Colors - matching standard terminal colors but tweaked for the theme */
+:deep(.ansi-black-fg) { color: #3e4451; }
+:deep(.ansi-red-fg) { color: #e06c75; }
+:deep(.ansi-green-fg) { color: #98c379; }
+:deep(.ansi-yellow-fg) { color: #e5c07b; }
+:deep(.ansi-blue-fg) { color: #61afef; }
+:deep(.ansi-magenta-fg) { color: #c678dd; }
+:deep(.ansi-cyan-fg) { color: #56b6c2; }
+:deep(.ansi-white-fg) { color: #abb2bf; }
+
+:deep(.ansi-bright-black-fg) { color: #5c6370; }
+:deep(.ansi-bright-red-fg) { color: #e06c75; }
+:deep(.ansi-bright-green-fg) { color: #98c379; }
+:deep(.ansi-bright-yellow-fg) { color: #e5c07b; }
+:deep(.ansi-bright-blue-fg) { color: #61afef; }
+:deep(.ansi-bright-magenta-fg) { color: #c678dd; }
+:deep(.ansi-bright-cyan-fg) { color: #56b6c2; }
+:deep(.ansi-bright-white-fg) { color: #ffffff; }
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
 
-/* 自定义滚动条 */
-.terminal-content::-webkit-scrollbar {
-  width: 8px;
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.terminal-content::-webkit-scrollbar-track {
-  background: #1e1e1e;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
 }
 
-.terminal-content::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 4px;
-}
-
-.terminal-content::-webkit-scrollbar-thumb:hover {
-  background: #666;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 </style>
