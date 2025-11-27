@@ -14,5 +14,6 @@ pub mod slash_commands;
 pub mod stats;
 pub mod sync;
 pub mod system;
+pub mod ui_state;
 pub mod usage;
 pub mod version;

@@ -331,7 +331,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.7.0"
+version = "3.7.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -371,7 +371,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-ui-backend"
-version = "3.7.0"
+version = "3.7.1"
 dependencies = [
  "async-stream",
  "axum",
@@ -382,6 +382,7 @@ dependencies = [
  "futures",
  "lazy_static",
  "num_cpus",
+ "once_cell",
  "rayon",
  "reqwest",
  "serde",
@@ -397,6 +398,7 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "uuid",
  "walkdir",
  "whoami",
 ]

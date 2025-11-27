@@ -67,7 +67,7 @@ async fn list_profiles() -> Result<Vec<ProfileInfo>, String> {
 async fn switch_profile(name: String) -> Result<String, String> {
     let profile_name = name.clone();
     tokio::task::spawn_blocking(move || {
-        ccr::commands::switch::switch_command(&profile_name).map_err(|e| e.to_string())
+        ccr::commands::switch_command(&profile_name).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))??;

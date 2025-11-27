@@ -17,7 +17,19 @@ use std::convert::Infallible;
 /// Helper function to get all available commands
 fn get_available_commands() -> Vec<CommandInfo> {
     vec![
-        // CCR Commands
+        // ===== 配置管理命令 =====
+        CommandInfo {
+            name: "init".to_string(),
+            description: "Initialize CCR configuration".to_string(),
+            usage: "ccr init".to_string(),
+            examples: vec!["ccr init".to_string()],
+        },
+        CommandInfo {
+            name: "add".to_string(),
+            description: "Add a new configuration".to_string(),
+            usage: "ccr add".to_string(),
+            examples: vec!["ccr add".to_string()],
+        },
         CommandInfo {
             name: "list".to_string(),
             description: "List all available configurations".to_string(),
@@ -34,10 +46,19 @@ fn get_available_commands() -> Vec<CommandInfo> {
             name: "switch".to_string(),
             description: "Switch to a different configuration".to_string(),
             usage: "ccr switch <config-name>".to_string(),
-            examples: vec![
-                "ccr switch anthropic".to_string(),
-                "ccr switch openai".to_string(),
-            ],
+            examples: vec!["ccr switch anthropic".to_string()],
+        },
+        CommandInfo {
+            name: "enable".to_string(),
+            description: "Enable a configuration".to_string(),
+            usage: "ccr enable <config-name>".to_string(),
+            examples: vec!["ccr enable my-config".to_string()],
+        },
+        CommandInfo {
+            name: "disable".to_string(),
+            description: "Disable a configuration".to_string(),
+            usage: "ccr disable <config-name>".to_string(),
+            examples: vec!["ccr disable my-config".to_string()],
         },
         CommandInfo {
             name: "validate".to_string(),
@@ -46,53 +67,104 @@ fn get_available_commands() -> Vec<CommandInfo> {
             examples: vec!["ccr validate".to_string()],
         },
         CommandInfo {
+            name: "history".to_string(),
+            description: "Show operation history".to_string(),
+            usage: "ccr history [--limit <n>]".to_string(),
+            examples: vec!["ccr history -l 50".to_string()],
+        },
+        CommandInfo {
             name: "optimize".to_string(),
             description: "Optimize and sort configurations".to_string(),
             usage: "ccr optimize".to_string(),
             examples: vec!["ccr optimize".to_string()],
         },
+        // ===== 平台管理命令 =====
         CommandInfo {
-            name: "history".to_string(),
-            description: "Show operation history".to_string(),
-            usage: "ccr history [--limit <n>]".to_string(),
+            name: "platform".to_string(),
+            description: "Platform management commands".to_string(),
+            usage: "ccr platform <subcommand>".to_string(),
             examples: vec![
-                "ccr history".to_string(),
-                "ccr history --limit 10".to_string(),
+                "ccr platform list".to_string(),
+                "ccr platform switch claude".to_string(),
+                "ccr platform current".to_string(),
+                "ccr platform info claude".to_string(),
+                "ccr platform init codex".to_string(),
             ],
+        },
+        // ===== 导入导出命令 =====
+        CommandInfo {
+            name: "export".to_string(),
+            description: "Export configurations".to_string(),
+            usage: "ccr export [--no-secrets]".to_string(),
+            examples: vec!["ccr export --no-secrets".to_string()],
+        },
+        CommandInfo {
+            name: "import".to_string(),
+            description: "Import configurations".to_string(),
+            usage: "ccr import <file> [--merge]".to_string(),
+            examples: vec!["ccr import config.toml --merge".to_string()],
         },
         CommandInfo {
             name: "clean".to_string(),
             description: "Clean old backup files".to_string(),
             usage: "ccr clean [--days <n>] [--dry-run]".to_string(),
+            examples: vec!["ccr clean --days 30 --dry-run".to_string()],
+        },
+        // ===== 迁移命令 =====
+        CommandInfo {
+            name: "migrate".to_string(),
+            description: "Migrate configuration from Legacy to Unified mode".to_string(),
+            usage: "ccr migrate [--check] [--platform <name>]".to_string(),
             examples: vec![
-                "ccr clean --days 7".to_string(),
-                "ccr clean --dry-run".to_string(),
+                "ccr migrate --check".to_string(),
+                "ccr migrate".to_string(),
+                "ccr migrate --platform claude".to_string(),
             ],
         },
+        // ===== 临时凭证命令 =====
         CommandInfo {
-            name: "export".to_string(),
-            description: "Export configurations".to_string(),
-            usage: "ccr export [--no-secrets]".to_string(),
+            name: "temp-token".to_string(),
+            description: "Temporary credential management".to_string(),
+            usage: "ccr temp-token <subcommand>".to_string(),
             examples: vec![
-                "ccr export".to_string(),
-                "ccr export --no-secrets".to_string(),
+                "ccr temp-token set sk-xxx".to_string(),
+                "ccr temp-token show".to_string(),
+                "ccr temp-token clear".to_string(),
             ],
         },
+        // ===== 技能管理命令 =====
         CommandInfo {
-            name: "import".to_string(),
-            description: "Import configurations".to_string(),
-            usage: "ccr import <file> [--mode <mode>]".to_string(),
+            name: "skills".to_string(),
+            description: "Skills management".to_string(),
+            usage: "ccr skills <subcommand>".to_string(),
             examples: vec![
-                "ccr import config.toml".to_string(),
-                "ccr import config.toml --mode merge".to_string(),
+                "ccr skills list".to_string(),
+                "ccr skills scan ~/skills".to_string(),
+                "ccr skills install ~/skills/my-skill".to_string(),
             ],
         },
+        // ===== 提示词管理命令 =====
         CommandInfo {
-            name: "init".to_string(),
-            description: "Initialize CCR configuration".to_string(),
-            usage: "ccr init".to_string(),
-            examples: vec!["ccr init".to_string()],
+            name: "prompts".to_string(),
+            description: "Prompts management".to_string(),
+            usage: "ccr prompts <subcommand>".to_string(),
+            examples: vec![
+                "ccr prompts list".to_string(),
+                "ccr prompts add".to_string(),
+                "ccr prompts apply my-preset".to_string(),
+            ],
         },
+        // ===== 统计命令 =====
+        CommandInfo {
+            name: "stats".to_string(),
+            description: "Usage statistics".to_string(),
+            usage: "ccr stats cost [--today|--by-model|--this-month]".to_string(),
+            examples: vec![
+                "ccr stats cost --today".to_string(),
+                "ccr stats cost --by-model".to_string(),
+            ],
+        },
+        // ===== 系统命令 =====
         CommandInfo {
             name: "version".to_string(),
             description: "Show CCR version".to_string(),
@@ -102,31 +174,34 @@ fn get_available_commands() -> Vec<CommandInfo> {
         CommandInfo {
             name: "update".to_string(),
             description: "Update CCR to the latest version".to_string(),
-            usage: "ccr update".to_string(),
-            examples: vec!["ccr update".to_string()],
+            usage: "ccr update [--check] [--branch <name>]".to_string(),
+            examples: vec!["ccr update --check".to_string(), "ccr update".to_string()],
         },
-        // Claude Commands
+        CommandInfo {
+            name: "check".to_string(),
+            description: "Check for conflicts between platforms".to_string(),
+            usage: "ccr check conflicts".to_string(),
+            examples: vec!["ccr check conflicts".to_string()],
+        },
+        // ===== 外部 CLI 命令 =====
         CommandInfo {
             name: "claude".to_string(),
             description: "Execute Claude Code CLI commands".to_string(),
             usage: "claude <args>".to_string(),
             examples: vec!["claude --version".to_string()],
         },
-        // Qwen Commands
         CommandInfo {
             name: "qwen".to_string(),
             description: "Execute Qwen CLI commands".to_string(),
             usage: "qwen <args>".to_string(),
             examples: vec!["qwen --help".to_string()],
         },
-        // Gemini Commands
         CommandInfo {
             name: "gemini".to_string(),
             description: "Execute Gemini CLI commands".to_string(),
             usage: "gemini <args>".to_string(),
             examples: vec!["gemini --version".to_string()],
         },
-        // iFlow Commands
         CommandInfo {
             name: "iflow".to_string(),
             description: "Execute iFlow CLI commands".to_string(),

@@ -536,6 +536,31 @@ fn create_router() -> Router {
             "/api/converter/convert",
             post(api::handlers::converter::convert_config),
         )
+        // UI State endpoints (收藏命令和命令历史)
+        .route(
+            "/api/ui-state/favorites",
+            get(api::handlers::ui_state::get_favorites),
+        )
+        .route(
+            "/api/ui-state/favorites",
+            post(api::handlers::ui_state::add_favorite),
+        )
+        .route(
+            "/api/ui-state/favorites/{id}",
+            delete(api::handlers::ui_state::remove_favorite),
+        )
+        .route(
+            "/api/ui-state/history",
+            get(api::handlers::ui_state::get_history),
+        )
+        .route(
+            "/api/ui-state/history",
+            post(api::handlers::ui_state::add_history),
+        )
+        .route(
+            "/api/ui-state/history",
+            delete(api::handlers::ui_state::clear_history),
+        )
         // Apply middleware
         .layer(middleware)
 }

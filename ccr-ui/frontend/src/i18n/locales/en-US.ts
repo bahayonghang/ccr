@@ -40,8 +40,35 @@ export default {
     addConfig: 'Add Configuration',
     modules: 'Core Modules',
   },
+  ccrControl: {
+    title: 'CCR Control Center',
+    description: 'Graphically manage CCR CLI features',
+    version: 'Version',
+    checkUpdate: 'Check Update',
+    updateNow: 'Update Now',
+    modules: 'Modules',
+    commands: 'Commands',
+    commandParams: 'Command Params',
+    requiredArgs: 'Required Arguments',
+    selectOption: 'Select option',
+    optionalFlags: 'Optional Flags',
+    dangerousCommand: 'Dangerous Command',
+    executing: 'Executing...',
+    execute: 'Execute',
+    output: 'Output',
+    clearOutput: 'Clear Output',
+    noOutput: 'Command output will appear here',
+    favorites: 'Favorites',
+    noFavorites: 'No favorite commands',
+    history: 'History',
+    clearHistory: 'Clear History',
+    noHistory: 'No history',
+    selectCommandFirst: 'Select a Command',
+    selectCommandHint: 'Select a command from the left list to configure and execute',
+  },
   nav: {
     home: 'Home',
+    ccrControl: 'CCR Control',
     configs: 'Configurations',
     commands: 'Commands',
     converter: 'Converter',
@@ -1961,4 +1988,5 @@ export default {
       }
     }
   },
+
 }
