@@ -295,11 +295,12 @@ cr web -p 8080
 cr check conflicts
 
 # 自动更新
-cr update --check     # 检查更新
-cr update             # 更新到最新版本
+ccr update --check     # 检查更新
+ccr update             # 更新到最新版本
+ccr update dev         # 从 dev 分支更新
 
 # 显示版本信息
-cr version
+ccr version
 ```
 
 ## TUI 终端界面使用指南

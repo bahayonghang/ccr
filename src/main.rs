@@ -211,14 +211,14 @@ enum Commands {
     ///
     /// 检查并安装 CCR 的最新版本
     /// 示例: ccr update --check  # 仅检查不安装
-    ///       ccr update --branch dev  # 从 dev 分支更新
+    ///       ccr update dev  # 从 dev 分支更新
     Update {
         /// 仅检查是否有新版本,不执行安装
         #[arg(short, long)]
         check: bool,
 
         /// 指定更新的分支(默认: main)
-        #[arg(long, default_value = "main")]
+        #[arg(default_value = "main")]
         branch: String,
     },
 

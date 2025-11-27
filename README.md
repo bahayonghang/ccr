@@ -301,7 +301,7 @@ ccr update --check
 ccr update
 
 # Update from dev branch (latest development features)
-ccr update --branch dev
+ccr update dev
 
 # Show version info
 ccr version
