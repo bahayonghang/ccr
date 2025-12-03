@@ -108,3 +108,4 @@ coverage/
 .cache/
 
 node_modules/
+dist/
