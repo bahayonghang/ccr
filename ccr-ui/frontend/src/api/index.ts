@@ -42,17 +42,16 @@ export const listConfigs = async (): Promise<ConfigListResponse> => {
 
     // 转换为 ConfigListResponse 格式
     const current = await TauriAPI.getCurrentProfile()
-    const configs: ConfigListResponse['configs'] = {}
-
-    profiles.forEach(profile => {
-      configs[profile.name] = {
-        description: profile.description,
-        base_url: profile.base_url,
-        auth_token: '', // Token 在列表中不显示
-        model: profile.model,
-        provider_type: profile.provider,
-      }
-    })
+    const configs: ConfigListResponse['configs'] = profiles.map(profile => ({
+      name: profile.name,
+      description: profile.description || '',
+      base_url: profile.base_url,
+      auth_token: '', // Token 在列表中不显示
+      model: profile.model,
+      provider_type: profile.provider,
+      is_current: profile.name === current,
+      is_default: profile.is_default || false,
+    }))
 
     return {
       configs,
@@ -113,7 +112,9 @@ export const getHistory = async (): Promise<HistoryResponse> => {
         from_config: '',
         to_config: '',
         actor: entry.actor,
-      }))
+        changes: [],
+      })),
+      total: entries.length,
     }
   } else {
     return HttpAPI.getHistory()

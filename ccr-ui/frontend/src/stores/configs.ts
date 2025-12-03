@@ -26,7 +26,7 @@ export const useConfigsStore = defineStore('configs', {
     /**
      * 获取当前配置
      */
-    currentConfig: (state) => state.items?.current || null,
+    currentConfig: (state) => state.items?.current_config || null,
     
     /**
      * 是否有配置数据

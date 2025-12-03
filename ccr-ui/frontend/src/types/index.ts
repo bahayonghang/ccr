@@ -83,6 +83,7 @@ export interface CommandInfo {
   description: string;
   usage: string;
   examples: string[];
+  category?: string;
 }
 
 // Config management types
@@ -428,6 +429,7 @@ export interface GeminiMcpServer {
   timeout?: number;
   trust?: boolean;
   includeTools?: string[];
+  url?: string;  // HTTP server URL
 }
 
 export interface GeminiMcpServerRequest {
@@ -439,6 +441,7 @@ export interface GeminiMcpServerRequest {
   timeout?: number;
   trust?: boolean;
   includeTools?: string[];
+  url?: string;  // HTTP server URL
 }
 
 export interface GeminiMcpServersResponse {
@@ -504,6 +507,27 @@ export interface QwenConfig {
 
 export interface QwenConfigResponse {
   config: QwenConfig;
+}
+
+// ============ iFlow CLI Configuration Types ============
+
+// iFlow MCP Server Types (no name field, uses command/url as identifier)
+export interface IflowMcpServer {
+  command?: string;
+  url?: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+export interface IflowMcpServerRequest {
+  command?: string;
+  url?: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+export interface IflowMcpServersResponse {
+  servers: IflowMcpServer[];
 }
 
 // ============ Sync (WebDAV) Types ============

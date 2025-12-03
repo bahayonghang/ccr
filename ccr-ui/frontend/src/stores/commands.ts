@@ -59,7 +59,7 @@ export const useCommandsStore = defineStore('commands', {
      */
     async run(payload: CommandRequest): Promise<CommandResponse> {
       this.running = true
-      this.currentCommand = payload.name
+      this.currentCommand = payload.command
       this.error = null
 
       try {
