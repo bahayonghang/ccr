@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.7.0"
+version = "3.8.0"
 edition = "2024"
 
 [dependencies]
@@ -49,6 +49,7 @@ lazy_static = "1.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt", "ansi"] }
 tracing-appender = "0.2"
+tracing-log = "0.2"  # Bridge log facade to tracing
 
 # CLI arguments
 clap = { version = "4.5.53", features = ["derive"] }
@@ -69,6 +70,12 @@ tempfile = { workspace = true }
 
 # File system utilities
 walkdir = "2.5"
+
+# UUID generation
+uuid = { version = "1.18", features = ["v4", "serde"] }
+
+# Lazy static initialization
+once_cell = "1.21"
 
 # ✅ 依赖优化完成说明：
 # - toml, dirs, tempfile, thiserror 已改用 workspace 依赖

@@ -5,13 +5,16 @@
 ## 用法
 
 ```bash
-ccr update [OPTIONS]
+ccr update [OPTIONS] [BRANCH]
 ```
+
+## 参数
+
+- `[BRANCH]`: 指定更新的分支（默认: main，可选: dev）
 
 ## 选项
 
 - `--check, -c`: 仅检查更新模式,预览更新命令但不执行实际更新
-- `--branch <BRANCH>`: 指定更新的分支（默认: main，可选: dev）
 
 ## 功能特性
 
@@ -57,10 +60,10 @@ ccr update
 
 ```bash
 # 从 dev 分支更新（获取最新开发功能）
-ccr update --branch dev
+ccr update dev
 
 # 先检查 dev 分支更新
-ccr update --check --branch dev
+ccr update --check dev
 ```
 
 > [!WARNING]

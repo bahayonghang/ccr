@@ -28,7 +28,8 @@ Multi-platform configuration management supporting Claude, Codex, Gemini, and fu
 │       ├── history.json
 │       └── backups/
 ├── history/                 # Global history
-└── backups/                 # Global backups
+├── backups/                 # Global backups
+└── logs/                    # Log files (daily rotation, 14-day retention)
 ```
 
 **Enable Unified Mode:**
@@ -237,6 +238,9 @@ export CCR_LOCK_DIR="/custom/path/locks"
 # Behavior
 export CCR_LOG_LEVEL="debug"          # trace|debug|info|warn|error
 export CCR_LEGACY_MODE="1"            # Enable legacy mode
+
+# Log files are stored at ~/.ccr/logs/ccr.YYYY-MM-DD.log
+# Daily rotation with 14-day retention
 ```
 
 ## Validation Rules

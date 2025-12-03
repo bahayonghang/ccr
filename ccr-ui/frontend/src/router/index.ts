@@ -41,6 +41,12 @@ const router = createRouter({
         },
         // 工具中心
         {
+          path: 'ccr-control',
+          name: 'ccr-control',
+          component: () => import('@/views/CcrControlView.vue'),
+          meta: { cache: true }
+        },
+        {
           path: 'commands',
           name: 'commands',
           component: () => import('@/views/CommandsView.vue'),

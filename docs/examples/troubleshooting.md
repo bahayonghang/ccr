@@ -354,6 +354,12 @@ ccr platform switch codex
 
 # 或一次性运行
 CCR_LOG_LEVEL=debug ccr platform list
+
+# 查看日志文件（按天轮转，保留14天）
+tail -f ~/.ccr/logs/ccr.$(date +%Y-%m-%d).log
+
+# 查看所有日志文件
+ls -lh ~/.ccr/logs/
 ```
 
 ### 检查配置文件

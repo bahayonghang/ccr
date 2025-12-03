@@ -58,7 +58,7 @@ just s                  # Start frontend + backend development mode (most common
 ## Prerequisites
 
 - **Rust 1.85+** (workspace shares dependencies)
-- **Node.js 18+** (npm package manager)
+- **Node.js 18+** + **Bun 1.0+** (package manager)
 - **CCR CLI** (installed and visible in PATH)
 - **just** (optional but recommended: `cargo install just`)
 - **Tauri Dependencies** (optional, for desktop mode):
@@ -251,11 +251,11 @@ RUST_LOG=debug cargo run              # Enable debug logging
 ### Frontend Development
 ```bash
 cd ccr-ui/frontend
-npm install                           # Install dependencies
-npm run dev                           # Start dev server (http://localhost:5173)
-npm run build                         # Build production version
-npm run type-check                    # TypeScript type checking
-npm run lint                          # ESLint checking
+bun install                           # Install dependencies
+bun run dev                           # Start dev server (http://localhost:5173)
+bun run build                         # Build production version
+bun run type-check                    # TypeScript type checking
+bun run lint                          # ESLint checking
 ```
 
 Frontend accesses backend API at `http://localhost:8081` (configurable via environment variables).
@@ -293,7 +293,7 @@ cp target/release/ccr-ui-backend ../dist/
 
 # Build frontend
 cd ../frontend
-npm install && npm run build
+bun install && bun run build
 cp -r dist/* ../dist/static/
 
 # Run
@@ -314,7 +314,7 @@ RUN cargo build --release
 FROM node:18 as frontend-builder
 WORKDIR /app/ccr-ui/frontend
 COPY frontend .
-RUN npm install && npm run build
+RUN bun install && bun run build
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
@@ -429,15 +429,15 @@ cargo test -- --nocapture  # Show test output
 ### Frontend Tests
 ```bash
 cd ccr-ui/frontend
-npm run type-check     # TypeScript type checking
-npm run lint           # ESLint checking
-npm test              # Run tests (if test framework is configured)
+bun run type-check     # TypeScript type checking
+bun run lint           # ESLint checking
+bun test              # Run tests (if test framework is configured)
 ```
 
 ### End-to-End Tests (Optional)
 Use Playwright or Cypress for E2E testing:
 ```bash
-npm install -D playwright
+bun add -d playwright
 npx playwright test    # Run E2E tests
 ```
 
@@ -469,8 +469,8 @@ kill -9 <PID>
 
 **4. Node.js or npm Errors**
 - Confirm Node.js version: `node --version` (must be ≥ 18)
-- Clean npm cache: `npm cache clean --force`
-- Delete node_modules and reinstall: `rm -rf node_modules && npm install`
+- Confirm Bun version: `bun --version` (must be ≥ 1.0)
+- Delete node_modules and reinstall: `rm -rf node_modules && bun install`
 
 **5. Tauri Build Failure**
 - Linux: Confirm `libwebkit2gtk-4.0-dev` is installed
@@ -582,7 +582,7 @@ A: Currently ccr-ui is single-user. Each user uses their own config directory (`
 - Properly configure tokio thread pool size
 
 ### Frontend Optimization
-- Build production with `npm run build` (enables Tree Shaking)
+- Build production with `bun run build` (enables Tree Shaking)
 - Configure CDN for static assets
 - Enable Gzip/Brotli compression
 - Use HTTP/2 or HTTP/3
@@ -596,7 +596,7 @@ A: Currently ccr-ui is single-user. Each user uses their own config directory (`
 - Regularly update dependencies:
   ```bash
   cd backend && cargo update
-  cd frontend && npm update
+  cd frontend && bun update
   ```
 
 ### Frontend Security

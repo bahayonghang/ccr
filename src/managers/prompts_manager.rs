@@ -115,12 +115,12 @@ impl PromptsManager {
         if target_file.exists() {
             let backup_path = target_file.with_extension("md.backup");
             fs::copy(&target_file, &backup_path).map_err(CcrError::IoError)?;
-            log::info!("Backed up existing file to {:?}", backup_path);
+            tracing::info!("Backed up existing file to {:?}", backup_path);
         }
 
         // Write preset content
         fs::write(&target_file, &preset.content).map_err(CcrError::IoError)?;
-        log::info!("Applied preset '{}' to {:?}", name, target_file);
+        tracing::info!("Applied preset '{}' to {:?}", name, target_file);
 
         Ok(())
     }

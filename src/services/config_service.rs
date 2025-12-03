@@ -269,7 +269,7 @@ impl ConfigService {
         // 📊 递增目标配置的使用次数
         if let Ok(section) = config.get_section_mut(name) {
             section.increment_usage();
-            log::debug!(
+            tracing::debug!(
                 "📊 递增配置 '{}' 的使用次数: {}",
                 name,
                 section.usage_count()
@@ -424,7 +424,7 @@ impl ConfigService {
         let section = config.get_section_mut(name)?;
         section.enable();
 
-        log::info!("✅ 配置 '{}' 已启用", name);
+        tracing::info!("✅ 配置 '{}' 已启用", name);
         self.config_manager.save(&config)?;
         Ok(())
     }
@@ -451,7 +451,7 @@ impl ConfigService {
         let section = config.get_section_mut(name)?;
         section.disable();
 
-        log::info!("❌ 配置 '{}' 已禁用", name);
+        tracing::info!("❌ 配置 '{}' 已禁用", name);
         self.config_manager.save(&config)?;
         Ok(())
     }

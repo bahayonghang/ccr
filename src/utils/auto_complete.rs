@@ -33,7 +33,7 @@
 ///         if self.optional_field.is_none() {
 ///             self.optional_field = Some(default_value);
 ///             modified = true;
-///             log::debug!("Auto-completed optional_field");
+///             tracing::debug!("Auto-completed optional_field");
 ///         }
 ///
 ///         modified

@@ -183,7 +183,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
             let mut profiles = platform_config.load_profiles()?;
             if let Some(profile) = profiles.get_mut(config_name) {
                 profile.usage_count = Some(profile.usage_count.unwrap_or(0) + 1);
-                log::debug!(
+                tracing::debug!(
                     "📊 递增 profile '{}' 的使用次数: {}",
                     config_name,
                     profile.usage_count.unwrap_or(0)

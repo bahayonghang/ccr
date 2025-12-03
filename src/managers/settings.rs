@@ -59,7 +59,7 @@ impl ClaudeSettings {
     /// 保留其他环境变量,只删除 ANTHROPIC_* 相关的
     pub fn clear_anthropic_vars(&mut self) {
         self.env.retain(|key, _| !key.starts_with("ANTHROPIC_"));
-        log::debug!("🧹 清空所有 ANTHROPIC_* 环境变量");
+        tracing::debug!("🧹 清空所有 ANTHROPIC_* 环境变量");
     }
 
     /// 🔄 从配置节更新环境变量
@@ -100,7 +100,7 @@ impl ClaudeSettings {
                 .insert(ANTHROPIC_SMALL_FAST_MODEL.to_string(), small_model.clone());
         }
 
-        log::info!("✅ 环境变量已从配置更新");
+        tracing::info!("✅ 环境变量已从配置更新");
     }
 
     /// 📊 获取 ANTHROPIC_* 环境变量状态(用于展示)
@@ -218,8 +218,8 @@ impl SettingsManager {
 
         let lock_manager = LockManager::with_default_path()?;
 
-        log::debug!("使用设置路径: {:?}", settings_path);
-        log::debug!("使用备份目录: {:?}", backup_dir);
+        tracing::debug!("使用设置路径: {:?}", settings_path);
+        tracing::debug!("使用备份目录: {:?}", backup_dir);
 
         Ok(Self::new(settings_path, backup_dir, lock_manager))
     }
@@ -251,7 +251,7 @@ impl SettingsManager {
         let settings: ClaudeSettings = serde_json::from_str(&content)
             .map_err(|e| CcrError::SettingsError(format!("解析设置文件失败: {}", e)))?;
 
-        log::debug!("✅ 成功加载设置文件: {:?}", self.settings_path);
+        tracing::debug!("✅ 成功加载设置文件: {:?}", self.settings_path);
         Ok(settings)
     }
 
@@ -299,7 +299,7 @@ impl SettingsManager {
             .persist(&self.settings_path)
             .map_err(|e| CcrError::SettingsError(format!("原子替换文件失败: {}", e)))?;
 
-        log::info!("✅ 设置文件已原子保存: {:?}", self.settings_path);
+        tracing::info!("✅ 设置文件已原子保存: {:?}", self.settings_path);
         Ok(())
     }
 
@@ -341,7 +341,7 @@ impl SettingsManager {
         fs::copy(&self.settings_path, &backup_path)
             .map_err(|e| CcrError::SettingsError(format!("备份设置文件失败: {}", e)))?;
 
-        log::info!("💾 设置文件已备份: {:?}", backup_path);
+        tracing::info!("💾 设置文件已备份: {:?}", backup_path);
 
         // 🧹 自动清理旧备份(只保留最近10个)
         const MAX_BACKUPS: usize = 10;
@@ -351,12 +351,12 @@ impl SettingsManager {
             let to_delete = &backups[MAX_BACKUPS..];
             for old_backup in to_delete {
                 if let Err(e) = fs::remove_file(old_backup) {
-                    log::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
+                    tracing::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
                 } else {
-                    log::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
+                    tracing::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
                 }
             }
-            log::info!(
+            tracing::info!(
                 "🧹 已自动清理 {} 个旧备份,保留最近 {} 个",
                 to_delete.len(),
                 MAX_BACKUPS
@@ -404,7 +404,7 @@ impl SettingsManager {
         fs::copy(backup_path, &self.settings_path)
             .map_err(|e| CcrError::SettingsError(format!("恢复设置文件失败: {}", e)))?;
 
-        log::info!("✅ 设置文件已从备份恢复: {:?}", backup_path);
+        tracing::info!("✅ 设置文件已从备份恢复: {:?}", backup_path);
         Ok(())
     }
 
@@ -464,7 +464,7 @@ impl SettingsManager {
         let (settings_path, backup_dir) = Self::get_platform_paths(platform_name)?;
         let lock_manager = LockManager::with_default_path()?;
 
-        log::debug!(
+        tracing::debug!(
             "为平台 '{}' 创建 SettingsManager: {:?}",
             platform_name,
             settings_path

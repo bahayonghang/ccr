@@ -176,7 +176,7 @@ impl HistoryManager {
             home.join(".claude").join("ccr_history.json")
         };
 
-        log::debug!("使用历史路径: {:?}", &history_path);
+        tracing::debug!("使用历史路径: {:?}", &history_path);
         let lock_manager = LockManager::with_default_path()?;
 
         Ok(Self::new(history_path, lock_manager))
@@ -224,7 +224,7 @@ impl HistoryManager {
     /// - 按时间倒序自动排序
     /// - 清理在每次添加时自动触发
     pub fn add(&self, entry: HistoryEntry) -> Result<()> {
-        log::debug!(
+        tracing::debug!(
             "开始添加历史记录: operation={:?}, to_config={:?}",
             entry.operation,
             entry.details.to_config
@@ -232,12 +232,12 @@ impl HistoryManager {
 
         // 获取文件锁
         let _lock = self.lock_manager.lock_history(Duration::from_secs(10))?;
-        log::debug!("已获取历史记录文件锁");
+        tracing::debug!("已获取历史记录文件锁");
 
         // 加载现有记录
         let mut entries = self.load()?;
         let old_count = entries.len();
-        log::debug!("已加载 {} 条现有历史记录", old_count);
+        tracing::debug!("已加载 {} 条现有历史记录", old_count);
 
         // 添加新记录
         entries.push(entry.clone());
@@ -248,18 +248,18 @@ impl HistoryManager {
         if entries.len() > MAX_HISTORY_ENTRIES {
             let removed_count = entries.len() - MAX_HISTORY_ENTRIES;
             entries.truncate(MAX_HISTORY_ENTRIES);
-            log::debug!("🗑️ 自动清理了 {} 条旧历史记录", removed_count);
+            tracing::debug!("🗑️ 自动清理了 {} 条旧历史记录", removed_count);
         }
 
         // 保存
         self.save(&entries)?;
-        log::info!(
+        tracing::info!(
             "✅ 历史记录已添加 (ID: {}, 总数: {} -> {})",
             entry.id,
             old_count,
             entries.len()
         );
-        log::debug!("历史记录文件路径: {:?}", self.history_path);
+        tracing::debug!("历史记录文件路径: {:?}", self.history_path);
 
         Ok(())
     }

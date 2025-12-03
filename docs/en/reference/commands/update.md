@@ -5,13 +5,16 @@ Update CCR from GitHub with support for different branches.
 ## Usage
 
 ```bash
-ccr update [OPTIONS]
+ccr update [OPTIONS] [BRANCH]
 ```
+
+## Arguments
+
+- `[BRANCH]`: Branch to update from (default: main, options: dev)
 
 ## Options
 
 - `--check, -c`: Check mode - preview update without executing
-- `--branch <BRANCH>`: Specify the branch to update from (default: main)
 
 ## Examples
 
@@ -25,17 +28,17 @@ ccr update
 
 ```bash
 # Update from dev branch (latest development features)
-ccr update --branch dev
+ccr update dev
 
 # Check dev branch updates first
-ccr update --check --branch dev
+ccr update --check dev
 ```
 
 ### Check updates only
 
 ```bash
 ccr update --check
-ccr update --check --branch dev
+ccr update --check dev
 ```
 
 ## Branch Options

@@ -33,10 +33,11 @@
 
 #### Web 开发
 - Node.js >= 18.0.0
-- npm / yarn / pnpm
+- Bun >= 1.0.0
 
 #### Desktop 开发
 - Node.js >= 18.0.0
+- Bun >= 1.0.0
 - Rust >= 1.70
 - 系统依赖（根据平台）
   - Linux: `libwebkit2gtk-4.0-dev`, `build-essential`
@@ -51,7 +52,7 @@ git clone https://github.com/bahayonghang/ccr.git
 cd ccr/ccr-ui/frontend
 
 # 安装依赖
-npm install
+bun install
 ```
 
 ### 运行模式
@@ -60,9 +61,9 @@ npm install
 
 ```bash
 # 开发服务器
-npm run dev
+bun run dev
 # 或
-npm run dev:web
+bun run dev:web
 
 # 访问 http://localhost:5173
 ```
@@ -71,7 +72,7 @@ npm run dev:web
 
 ```bash
 # Tauri 开发模式（首次启动需编译 Rust，约 5-10 分钟）
-npm run tauri:dev
+bun run tauri:dev
 
 # 或使用 justfile（推荐）
 just dev
@@ -82,14 +83,14 @@ just dev
 #### Web 构建
 
 ```bash
-npm run build:web
+bun run build:web
 # 产物在 dist/ 目录
 ```
 
 #### Desktop 构建
 
 ```bash
-npm run build:desktop
+bun run build:desktop
 # 或
 just build
 
@@ -288,28 +289,28 @@ const configs = await listConfigs()
 
 ## 📝 脚本命令
 
-### NPM Scripts
+### Bun Scripts
 
 ```bash
 # 开发
-npm run dev              # Vite 开发服务器
-npm run dev:web          # Web 模式
-npm run tauri:dev        # Tauri 开发模式
+bun run dev              # Vite 开发服务器
+bun run dev:web          # Web 模式
+bun run tauri:dev        # Tauri 开发模式
 
 # 构建
-npm run build            # Vite 构建
-npm run build:web        # Web 构建
-npm run build:desktop    # Desktop 完整构建
+bun run build            # Vite 构建
+bun run build:web        # Web 构建
+bun run build:desktop    # Desktop 完整构建
 
 # 检查
-npm run lint             # ESLint
-npm run type-check       # TypeScript
-npm run tauri:check      # Cargo check
-npm run check:all        # 全面检查
+bun run lint             # ESLint
+bun run type-check       # TypeScript
+bun run tauri:check      # Cargo check
+bun run check:all        # 全面检查
 
 # 工具
-npm run clean            # 清理构建
-npm run clean:all        # 深度清理
+bun run clean            # 清理构建
+bun run clean:all        # 深度清理
 ```
 
 ### Just Commands
@@ -344,14 +345,14 @@ just ci                  # 检查 + 构建
 ### Web 部署
 
 ```bash
-npm run build:web
+bun run build:web
 # 将 dist/ 目录部署到静态服务器
 ```
 
 ### Desktop 分发
 
 ```bash
-npm run build:desktop
+bun run build:desktop
 # 在 src-tauri/target/release/bundle/ 中找到安装包
 ```
 

@@ -35,7 +35,7 @@ impl SyncService {
     /// - Ok(SyncService): 成功创建的服务实例
     /// - Err: 创建失败（如网络配置错误）
     pub async fn new(config: &SyncConfig) -> Result<Self> {
-        log::debug!("🔌 创建 WebDAV 客户端: {}", config.webdav_url);
+        tracing::debug!("🔌 创建 WebDAV 客户端: {}", config.webdav_url);
 
         // 🔧 构建 WebDAV 客户端
         let client = ClientBuilder::new()
@@ -57,7 +57,7 @@ impl SyncService {
     ///
     /// 尝试列出远程目录以验证连接配置是否正确
     pub async fn test_connection(&self) -> Result<()> {
-        log::debug!("🧪 测试 WebDAV 连接");
+        tracing::debug!("🧪 测试 WebDAV 连接");
 
         // 🔍 尝试列出根目录
         self.client
@@ -65,7 +65,7 @@ impl SyncService {
             .await
             .map_err(|e| self.map_dav_error(e, "测试连接"))?;
 
-        log::info!("✅ WebDAV 连接成功");
+        tracing::info!("✅ WebDAV 连接成功");
         Ok(())
     }
 
@@ -80,7 +80,7 @@ impl SyncService {
     /// - Err: 上传失败
     pub async fn push(&self, local_path: &Path, allowed_paths: Option<&[String]>) -> Result<()> {
         if local_path.is_dir() {
-            log::info!(
+            tracing::info!(
                 "🔼 上传目录到 WebDAV: {} -> {}",
                 local_path.display(),
                 self.remote_path
@@ -88,7 +88,7 @@ impl SyncService {
             self.push_directory_filtered(local_path, &self.remote_path, allowed_paths)
                 .await
         } else {
-            log::info!(
+            tracing::info!(
                 "🔼 上传文件到 WebDAV: {} -> {}",
                 local_path.display(),
                 self.remote_path
@@ -101,7 +101,7 @@ impl SyncService {
                     .ok_or_else(|| CcrError::SyncError("无效的文件名".into()))?;
 
                 if !allowed.iter().any(|path| path == file_name) {
-                    log::info!("文件 {} 不在允许的路径列表中，跳过上传", file_name);
+                    tracing::info!("文件 {} 不在允许的路径列表中，跳过上传", file_name);
                     return Ok(());
                 }
             }
@@ -125,7 +125,7 @@ impl SyncService {
             .await
             .map_err(|e| self.map_dav_error(e, &format!("上传文件 {}", remote_path)))?;
 
-        log::debug!("✅ 文件已上传: {}", remote_path);
+        tracing::debug!("✅ 文件已上传: {}", remote_path);
         Ok(())
     }
 
@@ -136,7 +136,7 @@ impl SyncService {
         remote_dir: &str,
         allowed_paths: Option<&[String]>,
     ) -> Result<()> {
-        log::debug!("📁 处理目录: {} -> {}", local_dir.display(), remote_dir);
+        tracing::debug!("📁 处理目录: {} -> {}", local_dir.display(), remote_dir);
 
         // 📁 确保远程目录存在
         self.ensure_remote_directory(remote_dir).await?;
@@ -158,7 +158,7 @@ impl SyncService {
 
             // 🚫 跳过需要排除的文件和目录
             if should_exclude_from_sync(&file_name_str) {
-                log::debug!("⏭️  跳过: {}", file_name_str);
+                tracing::debug!("⏭️  跳过: {}", file_name_str);
                 continue;
             }
 
@@ -177,7 +177,7 @@ impl SyncService {
                 });
 
                 if !is_allowed {
-                    log::debug!("⏭️  路径 {} 不在允许列表中，跳过", relative_path);
+                    tracing::debug!("⏭️  路径 {} 不在允许列表中，跳过", relative_path);
                     continue;
                 }
             }
@@ -199,7 +199,7 @@ impl SyncService {
             }
         }
 
-        log::info!(
+        tracing::info!(
             "✅ 目录已上传: {} ({} 文件, {} 子目录)",
             remote_dir,
             file_count,
@@ -222,14 +222,14 @@ impl SyncService {
         let is_dir = self.remote_path.ends_with('/');
 
         if is_dir {
-            log::info!(
+            tracing::info!(
                 "🔽 从 WebDAV 下载目录: {} -> {}",
                 self.remote_path,
                 local_path.display()
             );
             self.pull_directory(&self.remote_path, local_path).await
         } else {
-            log::info!(
+            tracing::info!(
                 "🔽 从 WebDAV 下载文件: {} -> {}",
                 self.remote_path,
                 local_path.display()
@@ -269,13 +269,13 @@ impl SyncService {
             ))
         })?;
 
-        log::debug!("✅ 文件已下载: {}", local_path.display());
+        tracing::debug!("✅ 文件已下载: {}", local_path.display());
         Ok(())
     }
 
     /// 🔽 递归从 WebDAV 下载目录
     async fn pull_directory(&self, remote_dir: &str, local_dir: &Path) -> Result<()> {
-        log::debug!("📁 处理目录: {} -> {}", remote_dir, local_dir.display());
+        tracing::debug!("📁 处理目录: {} -> {}", remote_dir, local_dir.display());
 
         // 📁 确保本地目录存在
         fs::create_dir_all(local_dir).map_err(|e| {
@@ -301,7 +301,7 @@ impl SyncService {
 
                     // 🚫 跳过需要排除的文件
                     if should_exclude_from_sync(&file_name) {
-                        log::debug!("⏭️  跳过文件: {}", file_name);
+                        tracing::debug!("⏭️  跳过文件: {}", file_name);
                         continue;
                     }
 
@@ -317,7 +317,7 @@ impl SyncService {
 
                     // 🚫 跳过需要排除的目录
                     if should_exclude_from_sync(&folder_name) {
-                        log::debug!("⏭️  跳过目录: {}", folder_name);
+                        tracing::debug!("⏭️  跳过目录: {}", folder_name);
                         continue;
                     }
 
@@ -335,7 +335,7 @@ impl SyncService {
             }
         }
 
-        log::info!(
+        tracing::info!(
             "✅ 目录已下载: {} ({} 文件, {} 子目录)",
             local_dir.display(),
             file_count,
@@ -352,7 +352,7 @@ impl SyncService {
         let remote_path = self.remote_path.as_str();
 
         if remote_path.ends_with('/') {
-            log::debug!("🔍 检查远程目录: {}", remote_path);
+            tracing::debug!("🔍 检查远程目录: {}", remote_path);
 
             // 使用 PROPFIND/LIST 检查目录是否存在
             match self.client.list(remote_path, Depth::Number(0)).await {
@@ -360,30 +360,30 @@ impl SyncService {
                 Ok(_) => Ok(true),
                 // 目录不存在（404）
                 Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::NOT_FOUND) => {
-                    log::debug!("远程目录不存在 (404): {}", remote_path);
+                    tracing::debug!("远程目录不存在 (404): {}", remote_path);
                     Ok(false)
                 }
                 // 父目录不存在或服务器返回 409/解析错误
                 Err(DavError::Decode(_)) => {
-                    log::debug!("远程目录不存在或不可达（Decode/409）: {}", remote_path);
+                    tracing::debug!("远程目录不存在或不可达（Decode/409）: {}", remote_path);
                     Ok(false)
                 }
                 Err(e) => Err(self.map_dav_error(e, "检查远程目录")),
             }
         } else {
-            log::debug!("🔍 检查远程文件: {}", remote_path);
+            tracing::debug!("🔍 检查远程文件: {}", remote_path);
 
             match self.client.get(remote_path).await {
                 Ok(_) => Ok(true),
                 // 文件不存在（404）
                 Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::NOT_FOUND) => {
-                    log::debug!("远程文件不存在 (404): {}", remote_path);
+                    tracing::debug!("远程文件不存在 (404): {}", remote_path);
                     Ok(false)
                 }
                 // 父目录不存在（409 - Conflict）或其他 Decode 错误
                 // 坚果云在父目录不存在时返回 409 + AncestorsNotFound
                 Err(DavError::Decode(_)) => {
-                    log::debug!("远程目录或文件不存在（Decode/409）: {}", remote_path);
+                    tracing::debug!("远程目录或文件不存在（Decode/409）: {}", remote_path);
                     Ok(false)
                 }
                 Err(e) => Err(self.map_dav_error(e, "检查远程文件")),
@@ -416,22 +416,22 @@ impl SyncService {
             return Ok(());
         }
 
-        log::debug!("📁 确保远程目录存在: {}", dir_path);
+        tracing::debug!("📁 确保远程目录存在: {}", dir_path);
 
         // 🔍 尝试创建目录
         match self.client.mkcol(dir_path).await {
             Ok(_) => {
-                log::debug!("✅ 远程目录已创建: {}", dir_path);
+                tracing::debug!("✅ 远程目录已创建: {}", dir_path);
                 Ok(())
             }
             Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::METHOD_NOT_ALLOWED) => {
                 // 目录已存在，这不是错误
-                log::debug!("ℹ️  远程目录已存在: {}", dir_path);
+                tracing::debug!("ℹ️  远程目录已存在: {}", dir_path);
                 Ok(())
             }
             Err(DavError::Reqwest(e)) if e.status() == Some(StatusCode::CONFLICT) => {
                 // 父目录不存在，递归创建
-                log::debug!("⚠️  父目录不存在，递归创建: {}", dir_path);
+                tracing::debug!("⚠️  父目录不存在，递归创建: {}", dir_path);
 
                 // 获取父目录路径
                 if let Some(parent) = Path::new(dir_path).parent().and_then(|p| p.to_str())

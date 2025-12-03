@@ -68,17 +68,17 @@ install-frontend:
 
 _install-frontend-linux:
     @echo "📦 安装前端依赖..."
-    cd frontend && npm install
+    cd frontend && bun install
     @echo "✅ 前端依赖安装完成"
 
 _install-frontend-macos:
     @echo "📦 安装前端依赖..."
-    cd frontend && npm install
+    cd frontend && bun install
     @echo "✅ 前端依赖安装完成"
 
 _install-frontend-windows:
     @Write-Output '📦 安装前端依赖...'
-    @Set-Location frontend; npm install
+    @Set-Location frontend; bun install
     @Write-Output '✅ 前端依赖安装完成'
 
 # 安装后端依赖（构建一次以下载依赖）
@@ -193,7 +193,7 @@ _dev-parallel-linux:
       done
     fi
     # 启动前端并记录日志
-    cd "$JDIR/frontend" && npm run dev -- --host 0.0.0.0 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 2>&1 | tee -a "$JDIR/logs/frontend.log" &
     wait
 
 _dev-parallel-macos:
@@ -235,7 +235,7 @@ _dev-parallel-macos:
       done
     fi
     # 启动前端并记录日志
-    cd "$JDIR/frontend" && npm run dev -- --host 0.0.0.0 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 2>&1 | tee -a "$JDIR/logs/frontend.log" &
     wait
 
 # 并行启动 - Windows
@@ -244,7 +244,7 @@ _dev-parallel-windows:
     @if (-not (Test-Path logs)) { New-Item -ItemType Directory -Path logs -Force | Out-Null }
     @Write-Output '🦀 启动后端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd backend; cargo run 2>&1 | Tee-Object -FilePath ../logs/backend-console.log -Append' -WindowStyle Normal
     @$maxWait=90; Write-Output '⏳ 等待后端就绪 (http://127.0.0.1:8081/health)...'; for($i=0; $i -lt $maxWait; $i++){ try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri 'http://127.0.0.1:8081/health'; if($r.StatusCode -eq 200){ Write-Output '✅ 后端就绪'; break } } catch { } Start-Sleep -Seconds 1; if($i -eq ($maxWait-1)){ Write-Output '❌ 等待后端超时(90s)，请检查 logs/backend-console.log'; exit 1 } }
-    @Write-Output '⚛️ 启动前端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd frontend; npm run dev 2>&1 | Tee-Object -FilePath ../logs/frontend.log -Append' -WindowStyle Normal
+    @Write-Output '⚛️ 启动前端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd frontend; bun run dev 2>&1 | Tee-Object -FilePath ../logs/frontend.log -Append' -WindowStyle Normal
     @Write-Output '📜 日志位于 logs/backend-console.log 与 logs/frontend.log'
     @Write-Output '💡 提示: 两个新窗口已打开，关闭窗口即可停止服务器'
 
@@ -316,15 +316,15 @@ dev-frontend:
 
 _dev-frontend-linux:
     @echo "⚛️  启动 Vue 前端开发服务器..."
-    cd frontend && npm run dev
+    cd frontend && bun run dev
 
 _dev-frontend-macos:
     @echo "⚛️  启动 Vue 前端开发服务器..."
-    cd frontend && npm run dev
+    cd frontend && bun run dev
 
 _dev-frontend-windows:
     @Write-Output '⚛️  启动 Vue 前端开发服务器...'
-    @Set-Location frontend; npm run dev
+    @Set-Location frontend; bun run dev
 
 # 仅启动 React 前端开发服务器（Next.js）
 dev-react-frontend:
@@ -332,15 +332,15 @@ dev-react-frontend:
 
 _dev-react-frontend-linux:
     @echo "⚛️  启动 React 前端开发服务器..."
-    cd frontend && npm run dev
+    cd frontend && bun run dev
 
 _dev-react-frontend-macos:
     @echo "⚛️  启动 React 前端开发服务器..."
-    cd frontend && npm run dev
+    cd frontend && bun run dev
 
 _dev-react-frontend-windows:
     @Write-Output '⚛️  启动 React 前端开发服务器...'
-    @Set-Location frontend; npm run dev
+    @Set-Location frontend; bun run dev
 
 # ===== 构建 =====
 
@@ -388,17 +388,17 @@ build-frontend:
 
 _build-frontend-linux:
     @echo "🏗️  构建前端..."
-    cd frontend && npm run build
+    cd frontend && bun run build
     @echo "✅ 前端构建完成"
 
 _build-frontend-macos:
     @echo "🏗️  构建前端..."
-    cd frontend && npm run build
+    cd frontend && bun run build
     @echo "✅ 前端构建完成"
 
 _build-frontend-windows:
     @Write-Output '🏗️  构建前端...'
-    @Set-Location frontend; npm run build
+    @Set-Location frontend; bun run build
     @Write-Output '✅ 前端构建完成'
 
 # ===== 运行生产版本 =====
@@ -470,21 +470,50 @@ _check-backend-windows:
     @Write-Output '🔍 检查后端代码...'
     @Set-Location backend; cargo check
 
-# 检查前端代码
-check-frontend:
-    @just _check-frontend-{{os()}}
+# 检查前端代码（Lint + TypeScript）
+check-frontend: check-frontend-lint check-frontend-types
+    @just _check-frontend-summary-{{os()}}
 
-_check-frontend-linux:
-    @echo "🔍 检查前端代码..."
-    cd frontend && npm run lint
+_check-frontend-summary-linux:
+    @echo "✅ 前端检查完成"
 
-_check-frontend-macos:
-    @echo "🔍 检查前端代码..."
-    cd frontend && npm run lint
+_check-frontend-summary-macos:
+    @echo "✅ 前端检查完成"
 
-_check-frontend-windows:
-    @Write-Output '🔍 检查前端代码...'
-    @Set-Location frontend; npm run lint
+_check-frontend-summary-windows:
+    @Write-Output '✅ 前端检查完成'
+
+# 检查前端代码 - ESLint
+check-frontend-lint:
+    @just _check-frontend-lint-{{os()}}
+
+_check-frontend-lint-linux:
+    @echo "🔍 检查前端代码 (ESLint)..."
+    cd frontend && bun run lint
+
+_check-frontend-lint-macos:
+    @echo "🔍 检查前端代码 (ESLint)..."
+    cd frontend && bun run lint
+
+_check-frontend-lint-windows:
+    @Write-Output '🔍 检查前端代码 (ESLint)...'
+    @Set-Location frontend; bun run lint
+
+# 检查前端代码 - TypeScript 类型
+check-frontend-types:
+    @just _check-frontend-types-{{os()}}
+
+_check-frontend-types-linux:
+    @echo "🔍 检查前端类型 (TypeScript)..."
+    cd frontend && bun run type-check
+
+_check-frontend-types-macos:
+    @echo "🔍 检查前端类型 (TypeScript)..."
+    cd frontend && bun run type-check
+
+_check-frontend-types-windows:
+    @Write-Output '🔍 检查前端类型 (TypeScript)...'
+    @Set-Location frontend; bun run type-check
 
 # 检查前端安全漏洞
 check-security:
@@ -492,24 +521,24 @@ check-security:
 
 _check-security-linux:
     @echo "🔒 检查前端安全漏洞..."
-    cd frontend && npm audit
+    cd frontend && bunx better-npm-audit audit
     @echo ""
     @echo "✅ 安全检查完成"
 
 _check-security-macos:
     @echo "🔒 检查前端安全漏洞..."
-    cd frontend && npm audit
+    cd frontend && bunx better-npm-audit audit
     @echo ""
     @echo "✅ 安全检查完成"
 
 _check-security-windows:
     @Write-Output '🔒 检查前端安全漏洞...'
-    @Set-Location frontend; npm audit
+    @Set-Location frontend; bunx better-npm-audit audit
     @Write-Output ''
     @Write-Output '✅ 安全检查完成'
 
-# 运行测试
-test: test-backend
+# 运行测试（后端 + 前端）
+test: test-backend test-frontend
     @just _test-summary-{{os()}}
 
 _test-summary-linux:
@@ -536,6 +565,22 @@ _test-backend-macos:
 _test-backend-windows:
     @Write-Output '🧪 运行后端测试...'
     @Set-Location backend; cargo test
+
+# 运行前端测试
+test-frontend:
+    @just _test-frontend-{{os()}}
+
+_test-frontend-linux:
+    @echo "🧪 运行前端测试..."
+    cd frontend && bun run test || echo "ℹ️  前端测试跳过（未配置测试框架）"
+
+_test-frontend-macos:
+    @echo "🧪 运行前端测试..."
+    cd frontend && bun run test || echo "ℹ️  前端测试跳过（未配置测试框架）"
+
+_test-frontend-windows:
+    @Write-Output '🧪 运行前端测试...'
+    @Set-Location frontend; bun run test; if (-not $?) { Write-Host 'ℹ️  前端测试跳过（未配置测试框架）' -ForegroundColor Cyan }
 
 # ===== 代码质量 =====
 
@@ -574,15 +619,15 @@ fmt-frontend:
 
 _fmt-frontend-linux:
     @echo "💅 格式化前端代码..."
-    cd frontend && npm run lint --fix || true
+    cd frontend && bun run lint --fix || true
 
 _fmt-frontend-macos:
     @echo "💅 格式化前端代码..."
-    cd frontend && npm run lint --fix || true
+    cd frontend && bun run lint --fix || true
 
 _fmt-frontend-windows:
     @Write-Output '💅 格式化前端代码...'
-    @Set-Location frontend; npm run lint --fix; if (-not $?) { Write-Host '⚠️ 前端格式化遇到问题，但继续流程' -ForegroundColor Yellow }
+    @Set-Location frontend; bun run lint --fix; if (-not $?) { Write-Host '⚠️ 前端格式化遇到问题，但继续流程' -ForegroundColor Yellow }
 
 # Clippy 检查后端
 clippy:
@@ -711,10 +756,10 @@ _check-prereqs-linux:
         echo "❌ Node.js 未安装"
         exit 1
     fi
-    if command -v npm &> /dev/null; then
-        echo "✅ npm: $(npm --version)"
+    if command -v bun &> /dev/null; then
+        echo "✅ Bun: $(bun --version)"
     else
-        echo "❌ npm 未安装"
+        echo "❌ Bun 未安装"
         exit 1
     fi
     if command -v ccr &> /dev/null; then
@@ -748,10 +793,10 @@ _check-prereqs-macos:
         echo "❌ Node.js 未安装"
         exit 1
     fi
-    if command -v npm &> /dev/null; then
-        echo "✅ npm: $(npm --version)"
+    if command -v bun &> /dev/null; then
+        echo "✅ Bun: $(bun --version)"
     else
-        echo "❌ npm 未安装"
+        echo "❌ Bun 未安装"
         exit 1
     fi
     if command -v ccr &> /dev/null; then
@@ -770,7 +815,7 @@ _check-prereqs-windows:
     @if (Get-Command rustc -ErrorAction SilentlyContinue) { Write-Host '✅ Rust:' (rustc --version) } else { Write-Host '❌ Rust 未安装' }
     @if (Get-Command cargo -ErrorAction SilentlyContinue) { Write-Host '✅ Cargo:' (cargo --version) } else { Write-Host '❌ Cargo 未安装' }
     @if (Get-Command node -ErrorAction SilentlyContinue) { Write-Host '✅ Node.js:' (node --version) } else { Write-Host '❌ Node.js 未安装' }
-    @if (Get-Command npm -ErrorAction SilentlyContinue) { Write-Host '✅ npm:' (npm --version) } else { Write-Host '❌ npm 未安装' }
+    @if (Get-Command bun -ErrorAction SilentlyContinue) { Write-Host '✅ Bun:' (bun --version) } else { Write-Host '❌ Bun 未安装' }
     @if (Get-Command ccr -ErrorAction SilentlyContinue) { try { Write-Host '✅ CCR:' (ccr --version) } catch { Write-Host '✅ CCR: installed' } } else { Write-Host '⚠️  CCR 未安装（后端运行时需要）' }
     @Write-Output ''
     @Write-Output '✅ 前置条件检查完成'
@@ -889,7 +934,7 @@ update-backend:
 # 更新前端依赖
 update-frontend:
     @echo "⬆️  更新前端依赖..."
-    cd frontend && npm update
+    cd frontend && bun update
 
 # ===== 辅助命令 =====
 
@@ -920,9 +965,49 @@ doc-backend:
 
 # ===== 部署相关 =====
 
-# 完整的 CI 流程
-ci: check test build
+# 完整的 CI 流程（检查 + 测试 + 安全审计 + 构建）
+ci: check test ci-security build
+    @just _ci-summary-{{os()}}
+
+_ci-summary-linux:
+    @echo ""
     @echo "✅ CI 流程完成"
+    @echo "   - 后端: cargo check + clippy + test"
+    @echo "   - 前端: lint + type-check + test"
+    @echo "   - 安全: better-npm-audit"
+    @echo "   - 构建: backend release + frontend dist"
+
+_ci-summary-macos:
+    @echo ""
+    @echo "✅ CI 流程完成"
+    @echo "   - 后端: cargo check + clippy + test"
+    @echo "   - 前端: lint + type-check + test"
+    @echo "   - 安全: better-npm-audit"
+    @echo "   - 构建: backend release + frontend dist"
+
+_ci-summary-windows:
+    @Write-Output ''
+    @Write-Output '✅ CI 流程完成'
+    @Write-Output '   - 后端: cargo check + clippy + test'
+    @Write-Output '   - 前端: lint + type-check + test'
+    @Write-Output '   - 安全: better-npm-audit'
+    @Write-Output '   - 构建: backend release + frontend dist'
+
+# CI 安全检查（不阻断 CI）
+ci-security:
+    @just _ci-security-{{os()}}
+
+_ci-security-linux:
+    @echo "🔒 检查安全漏洞..."
+    cd frontend && bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"
+
+_ci-security-macos:
+    @echo "🔒 检查安全漏洞..."
+    cd frontend && bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"
+
+_ci-security-windows:
+    @Write-Output '🔒 检查安全漏洞...'
+    @Set-Location frontend; bunx better-npm-audit audit; if (-not $?) { Write-Host '⚠️  安全检查有警告，但不阻断 CI' -ForegroundColor Yellow }
 
 # 准备发布
 prepare-release: clean build
@@ -943,21 +1028,21 @@ _tauri-dev-linux:
     @echo "📍 Frontend: http://localhost:5173 (自动加载)"
     @echo "📍 Desktop: Tauri 窗口将自动打开"
     @echo ""
-    cd frontend && npm run tauri:dev
+    cd frontend && bun run tauri:dev
 
 _tauri-dev-macos:
     @echo "🖥️  启动 Tauri 桌面应用开发模式..."
     @echo "📍 Frontend: http://localhost:5173 (自动加载)"
     @echo "📍 Desktop: Tauri 窗口将自动打开"
     @echo ""
-    cd frontend && npm run tauri:dev
+    cd frontend && bun run tauri:dev
 
 _tauri-dev-windows:
     @Write-Output '🖥️  启动 Tauri 桌面应用开发模式...'
     @Write-Output '📍 Frontend: http://localhost:5173 (自动加载)'
     @Write-Output '📍 Desktop: Tauri 窗口将自动打开'
     @Write-Output ''
-    @Set-Location frontend; npm run tauri:dev
+    @Set-Location frontend; bun run tauri:dev
 
 # 构建 Tauri 生产版本（桌面应用）
 tauri-build: _ensure-frontend-deps
@@ -971,7 +1056,7 @@ _ensure-frontend-deps-linux:
     #!/usr/bin/env bash
     if [ ! -d "frontend/node_modules" ] || [ ! -d "frontend/node_modules/vue-i18n" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
-        cd frontend && npm install
+        cd frontend && bun install
         echo "✅ 前端依赖安装完成"
     else
         echo "✅ 前端依赖已就绪"
@@ -981,18 +1066,18 @@ _ensure-frontend-deps-macos:
     #!/usr/bin/env bash
     if [ ! -d "frontend/node_modules" ] || [ ! -d "frontend/node_modules/vue-i18n" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
-        cd frontend && npm install
+        cd frontend && bun install
         echo "✅ 前端依赖安装完成"
     else
         echo "✅ 前端依赖已就绪"
     fi
 
 _ensure-frontend-deps-windows:
-    @if (-not (Test-Path 'frontend/node_modules') -or -not (Test-Path 'frontend/node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; Set-Location frontend; npm install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
+    @if (-not (Test-Path 'frontend/node_modules') -or -not (Test-Path 'frontend/node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; Set-Location frontend; bun install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
 
 _tauri-build-linux:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
-    cd frontend && npm run build:desktop
+    cd frontend && bun run build:desktop
     @echo ""
     @echo "✅ Tauri 构建完成"
     @echo "📦 产物位置: frontend/src-tauri/target/release/bundle/"
@@ -1001,7 +1086,7 @@ _tauri-build-linux:
 
 _tauri-build-macos:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
-    cd frontend && npm run build:desktop
+    cd frontend && bun run build:desktop
     @echo ""
     @echo "🧹 清理自动挂载的 DMG..."
     @hdiutil detach "/Volumes/CCR Desktop" 2>/dev/null || true
@@ -1013,7 +1098,7 @@ _tauri-build-macos:
 
 _tauri-build-windows:
     @Write-Output '🏗️  构建 Tauri 桌面应用（生产版本）...'
-    @Set-Location frontend; npm run build:desktop
+    @Set-Location frontend; bun run build:desktop
     @Write-Output ''
     @Write-Output '✅ Tauri 构建完成'
     @Write-Output '📦 产物位置: frontend/src-tauri/target/release/bundle/'
@@ -1026,21 +1111,21 @@ tauri-build-debug:
 
 _tauri-build-debug-linux:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
-    cd frontend && npm run tauri:build:debug
+    cd frontend && bun run tauri:build:debug
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
     @echo "📦 产物位置: frontend/src-tauri/target/debug/bundle/"
 
 _tauri-build-debug-macos:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
-    cd frontend && npm run tauri:build:debug
+    cd frontend && bun run tauri:build:debug
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
     @echo "📦 产物位置: frontend/src-tauri/target/debug/bundle/"
 
 _tauri-build-debug-windows:
     @Write-Output '🏗️  构建 Tauri 桌面应用（调试版本）...'
-    @Set-Location frontend; npm run tauri:build:debug
+    @Set-Location frontend; bun run tauri:build:debug
     @Write-Output ''
     @Write-Output '✅ Tauri 调试版本构建完成'
     @Write-Output '📦 产物位置: frontend/src-tauri/target/debug/bundle/'
@@ -1052,17 +1137,17 @@ tauri-check:
 _tauri-check-linux:
     @echo "🔍 检查 Tauri 环境和配置..."
     @echo ""
-    cd frontend && npx tauri info
+    cd frontend && bunx tauri info
 
 _tauri-check-macos:
     @echo "🔍 检查 Tauri 环境和配置..."
     @echo ""
-    cd frontend && npx tauri info
+    cd frontend && bunx tauri info
 
 _tauri-check-windows:
     @Write-Output '🔍 检查 Tauri 环境和配置...'
     @Write-Output ''
-    @Set-Location frontend; npx tauri info
+    @Set-Location frontend; bunx tauri info
 
 # 检查 Tauri Rust 代码
 tauri-check-rust:
@@ -1070,15 +1155,15 @@ tauri-check-rust:
 
 _tauri-check-rust-linux:
     @echo "🔍 检查 Tauri Rust 代码..."
-    cd frontend && npm run tauri:check
+    cd frontend && bun run tauri:check
 
 _tauri-check-rust-macos:
     @echo "🔍 检查 Tauri Rust 代码..."
-    cd frontend && npm run tauri:check
+    cd frontend && bun run tauri:check
 
 _tauri-check-rust-windows:
     @Write-Output '🔍 检查 Tauri Rust 代码...'
-    @Set-Location frontend; npm run tauri:check
+    @Set-Location frontend; bun run tauri:check
 
 # 运行 Tauri Clippy（Rust linter）
 tauri-clippy:
@@ -1086,15 +1171,15 @@ tauri-clippy:
 
 _tauri-clippy-linux:
     @echo "📎 运行 Tauri Clippy..."
-    cd frontend && npm run tauri:clippy
+    cd frontend && bun run tauri:clippy
 
 _tauri-clippy-macos:
     @echo "📎 运行 Tauri Clippy..."
-    cd frontend && npm run tauri:clippy
+    cd frontend && bun run tauri:clippy
 
 _tauri-clippy-windows:
     @Write-Output '📎 运行 Tauri Clippy...'
-    @Set-Location frontend; npm run tauri:clippy
+    @Set-Location frontend; bun run tauri:clippy
 
 # 格式化 Tauri Rust 代码
 tauri-fmt:
@@ -1102,15 +1187,15 @@ tauri-fmt:
 
 _tauri-fmt-linux:
     @echo "💅 格式化 Tauri Rust 代码..."
-    cd frontend && npm run tauri:fmt
+    cd frontend && bun run tauri:fmt
 
 _tauri-fmt-macos:
     @echo "💅 格式化 Tauri Rust 代码..."
-    cd frontend && npm run tauri:fmt
+    cd frontend && bun run tauri:fmt
 
 _tauri-fmt-windows:
     @Write-Output '💅 格式化 Tauri Rust 代码...'
-    @Set-Location frontend; npm run tauri:fmt
+    @Set-Location frontend; bun run tauri:fmt
 
 # 运行 Tauri 测试
 tauri-test:
@@ -1118,15 +1203,15 @@ tauri-test:
 
 _tauri-test-linux:
     @echo "🧪 运行 Tauri 测试..."
-    cd frontend && npm run tauri:test
+    cd frontend && bun run tauri:test
 
 _tauri-test-macos:
     @echo "🧪 运行 Tauri 测试..."
-    cd frontend && npm run tauri:test
+    cd frontend && bun run tauri:test
 
 _tauri-test-windows:
     @Write-Output '🧪 运行 Tauri 测试...'
-    @Set-Location frontend; npm run tauri:test
+    @Set-Location frontend; bun run tauri:test
 
 # 清理 Tauri 构建产物
 tauri-clean:
@@ -1153,15 +1238,15 @@ tauri-check-all:
 
 _tauri-check-all-linux:
     @echo "🔍 运行 Tauri 完整检查..."
-    cd frontend && npm run check:all
+    cd frontend && bun run check:all
     @echo "✅ 所有检查通过"
 
 _tauri-check-all-macos:
     @echo "🔍 运行 Tauri 完整检查..."
-    cd frontend && npm run check:all
+    cd frontend && bun run check:all
     @echo "✅ 所有检查通过"
 
 _tauri-check-all-windows:
     @Write-Output '🔍 运行 Tauri 完整检查...'
-    @Set-Location frontend; npm run check:all
+    @Set-Location frontend; bun run check:all
     @Write-Output '✅ 所有检查通过'

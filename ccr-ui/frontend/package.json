@@ -1,6 +1,6 @@
 {
   "name": "ccr-ui-frontend-vue",
-  "version": "3.7.0",
+  "version": "3.8.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.0",
+    "ansi_up": "^6.0.6",
     "axios": "^1.7.9",
     "highlight.js": "^11.11.1",
     "lucide-vue-next": "^0.468.0",

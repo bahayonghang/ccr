@@ -11,15 +11,15 @@ default:
 
 # 启动 Tauri 开发模式（前端 + Rust backend）
 dev:
-    npm run tauri:dev
+    bun run tauri:dev
 
 # 启动纯 Web 开发模式（仅前端）
 dev-web:
-    npm run dev:web
+    bun run dev:web
 
 # 启动前端开发服务器
 dev-frontend:
-    npm run dev
+    bun run dev
 
 # ====================
 # 构建命令
@@ -27,15 +27,15 @@ dev-frontend:
 
 # 构建桌面应用（完整发布版本）
 build:
-    npm run build:desktop
+    bun run build:desktop
 
 # 构建 Web 版本
 build-web:
-    npm run build:web
+    bun run build:web
 
 # 构建调试版本（更快，包含调试符号）
 build-debug:
-    npm run tauri:build:debug
+    bun run tauri:build:debug
 
 # ====================
 # 检查和测试
@@ -43,31 +43,31 @@ build-debug:
 
 # 快速检查 Tauri Rust 代码
 check:
-    npm run tauri:check
+    bun run tauri:check
 
 # 运行 Clippy 检查 Rust 代码质量
 clippy:
-    npm run tauri:clippy
+    bun run tauri:clippy
 
 # 格式化 Rust 代码
 fmt:
-    npm run tauri:fmt
+    bun run tauri:fmt
 
 # 运行 Rust 测试
 test:
-    npm run tauri:test
+    bun run tauri:test
 
 # TypeScript 类型检查
 type-check:
-    npm run type-check
+    bun run type-check
 
 # ESLint 检查和修复
 lint:
-    npm run lint
+    bun run lint
 
 # 全面检查（类型 + Lint + Cargo）
 check-all:
-    npm run check:all
+    bun run check:all
 
 # ====================
 # 清理命令
@@ -75,16 +75,16 @@ check-all:
 
 # 清理构建产物
 clean:
-    npm run clean
+    bun run clean
 
 # 清理所有（包括 node_modules）
 clean-all:
-    npm run clean:all
+    bun run clean:all
 
 # 深度清理并重新安装依赖
 reset:
     just clean-all
-    npm install
+    bun install
 
 # ====================
 # 安装命令
@@ -92,12 +92,12 @@ reset:
 
 # 安装依赖
 install:
-    npm install
+    bun install
 
 # 安装并构建
 install-build:
-    npm install
-    npm run build
+    bun install
+    bun run build
 
 # ====================
 # Tauri 特定命令

@@ -145,7 +145,7 @@ impl UnifiedConfig {
         }
 
         self.current_platform = name.to_string();
-        log::debug!("✅ 切换到平台: {}", name);
+        tracing::debug!("✅ 切换到平台: {}", name);
         Ok(())
     }
 
@@ -154,9 +154,9 @@ impl UnifiedConfig {
     /// 如果平台已存在，则更新其信息
     pub fn register_platform(&mut self, name: String, registry: PlatformConfigEntry) -> Result<()> {
         if self.platforms.contains_key(&name) {
-            log::debug!("🔄 更新平台注册信息: {}", name);
+            tracing::debug!("🔄 更新平台注册信息: {}", name);
         } else {
-            log::debug!("➕ 注册新平台: {}", name);
+            tracing::debug!("➕ 注册新平台: {}", name);
         }
 
         self.platforms.insert(name, registry);
@@ -176,7 +176,7 @@ impl UnifiedConfig {
         // 如果注销的是当前平台，切换到默认平台
         if name == self.current_platform {
             self.current_platform = self.default_platform.clone();
-            log::debug!("⚠️ 注销当前平台，自动切换到: {}", self.default_platform);
+            tracing::debug!("⚠️ 注销当前平台，自动切换到: {}", self.default_platform);
         }
 
         self.platforms
@@ -189,7 +189,7 @@ impl UnifiedConfig {
     pub fn enable_platform(&mut self, name: &str) -> Result<()> {
         let registry = self.get_platform_mut(name)?;
         registry.enabled = true;
-        log::debug!("✅ 启用平台: {}", name);
+        tracing::debug!("✅ 启用平台: {}", name);
         Ok(())
     }
 
@@ -205,7 +205,7 @@ impl UnifiedConfig {
 
         let registry = self.get_platform_mut(name)?;
         registry.enabled = false;
-        log::debug!("🔌 禁用平台: {}", name);
+        tracing::debug!("🔌 禁用平台: {}", name);
         Ok(())
     }
 
@@ -231,7 +231,7 @@ impl UnifiedConfig {
         let registry = self.get_platform_mut(platform_name)?;
         registry.current_profile = Some(profile_name.to_string());
         registry.last_used = Some(chrono::Utc::now().to_rfc3339());
-        log::debug!("✅ 设置平台 {} 的 profile: {}", platform_name, profile_name);
+        tracing::debug!("✅ 设置平台 {} 的 profile: {}", platform_name, profile_name);
         Ok(())
     }
 
@@ -287,7 +287,7 @@ impl PlatformConfigManager {
         };
 
         let config_path = ccr_root.join("config.toml");
-        log::debug!("使用平台配置路径: {:?}", config_path);
+        tracing::debug!("使用平台配置路径: {:?}", config_path);
         Ok(Self::new(config_path))
     }
 
@@ -317,14 +317,14 @@ impl PlatformConfigManager {
     pub fn load(&self) -> Result<UnifiedConfig> {
         // ✅ 检查文件是否存在
         if !self.config_path.exists() {
-            log::debug!("⚠️ 配置文件不存在，使用默认配置: {:?}", self.config_path);
+            tracing::debug!("⚠️ 配置文件不存在，使用默认配置: {:?}", self.config_path);
             return Ok(UnifiedConfig::default());
         }
 
         // 使用统一的 fileio 读取 TOML
         let config: UnifiedConfig = fileio::read_toml(&self.config_path)?;
 
-        log::debug!(
+        tracing::debug!(
             "✅ 成功加载平台配置文件: {:?}, 平台数量: {}",
             self.config_path,
             config.platforms.len()
@@ -345,7 +345,7 @@ impl PlatformConfigManager {
         // 使用统一的 fileio 写入 TOML（会自动创建父目录）
         fileio::write_toml(&self.config_path, config)?;
 
-        log::debug!("✅ 平台配置文件已保存: {:?}", self.config_path);
+        tracing::debug!("✅ 平台配置文件已保存: {:?}", self.config_path);
         Ok(())
     }
 
@@ -358,7 +358,7 @@ impl PlatformConfigManager {
         } else {
             let default_config = UnifiedConfig::default();
             self.save(&default_config)?;
-            log::debug!("✅ 创建默认平台配置文件: {:?}", self.config_path);
+            tracing::debug!("✅ 创建默认平台配置文件: {:?}", self.config_path);
             Ok(default_config)
         }
     }
@@ -400,7 +400,7 @@ impl PlatformConfigManager {
         fs::copy(&self.config_path, &backup_path)
             .map_err(|e| CcrError::ConfigError(format!("备份配置文件失败: {}", e)))?;
 
-        log::debug!("✅ 平台配置已备份到: {:?}", backup_path);
+        tracing::debug!("✅ 平台配置已备份到: {:?}", backup_path);
         Ok(backup_path)
     }
 
@@ -415,7 +415,7 @@ impl PlatformConfigManager {
         fs::copy(backup_path, &self.config_path)
             .map_err(|e| CcrError::ConfigError(format!("恢复配置文件失败: {}", e)))?;
 
-        log::debug!("✅ 已从备份恢复配置: {:?}", backup_path);
+        tracing::debug!("✅ 已从备份恢复配置: {:?}", backup_path);
         Ok(())
     }
 
@@ -468,14 +468,14 @@ impl PlatformConfigManager {
 
         for backup_path in to_delete {
             if let Err(e) = fs::remove_file(backup_path) {
-                log::warn!("删除备份文件失败: {:?}, 错误: {}", backup_path, e);
+                tracing::warn!("删除备份文件失败: {:?}, 错误: {}", backup_path, e);
             } else {
                 deleted_count += 1;
-                log::debug!("🧹 删除旧备份: {:?}", backup_path);
+                tracing::debug!("🧹 删除旧备份: {:?}", backup_path);
             }
         }
 
-        log::debug!("✅ 清理完成，删除了 {} 个旧备份", deleted_count);
+        tracing::debug!("✅ 清理完成，删除了 {} 个旧备份", deleted_count);
         Ok(deleted_count)
     }
 }

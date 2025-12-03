@@ -19,7 +19,7 @@ High-performance multi-platform configuration management tool written in Rust, v
 
 ## Installation
 
-Requirements: Rust 1.85+ (Edition 2024), Cargo. For CCR UI development: Node.js 18+ (npm) and optionally `just`.
+Requirements: Rust 1.85+ (Edition 2024), Cargo. For CCR UI development: Node.js 18+ and [Bun](https://bun.sh/) 1.0+ (package manager), optionally `just`.
 
 ### One-Line Install
 ```bash
@@ -301,7 +301,7 @@ ccr update --check
 ccr update
 
 # Update from dev branch (latest development features)
-ccr update --branch dev
+ccr update dev
 
 # Show version info
 ccr version
@@ -495,8 +495,8 @@ cargo run -- --port 8081
 
 # Frontend (new terminal)
 cd ../frontend
-npm install
-npm run dev                # http://localhost:5173
+bun install
+bun run dev                # http://localhost:5173
 ```
 
 ### Production Build
@@ -691,6 +691,13 @@ ccr switch anthropic          # Run command with detailed logs
 # - info: Basic info (default)
 # - warn: Warning messages
 # - error: Error messages only
+
+# Log output:
+# - Terminal: ANSI colored output
+# - File: ~/.ccr/logs/ccr.YYYY-MM-DD.log (daily rotation, 14-day retention)
+
+# View log file
+tail -f ~/.ccr/logs/ccr.$(date +%Y-%m-%d).log
 ```
 
 ### Common Issues

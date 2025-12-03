@@ -43,8 +43,35 @@ export default {
     ready: '准备就绪',
     open: '打开',
   },
+  ccrControl: {
+    title: 'CCR 控制中心',
+    description: '图形化管理 CCR CLI 功能',
+    version: '版本',
+    checkUpdate: '检查更新',
+    updateNow: '立即更新',
+    modules: '功能模块',
+    commands: '命令',
+    commandParams: '命令参数',
+    requiredArgs: '必填参数',
+    selectOption: '请选择',
+    optionalFlags: '可选参数',
+    dangerousCommand: '危险操作',
+    executing: '执行中...',
+    execute: '执行',
+    output: '执行输出',
+    clearOutput: '清空输出',
+    noOutput: '执行命令后输出将在此显示',
+    favorites: '收藏命令',
+    noFavorites: '暂无收藏命令',
+    history: '命令历史',
+    clearHistory: '清空历史',
+    noHistory: '暂无历史记录',
+    selectCommandFirst: '请选择命令',
+    selectCommandHint: '请从左侧列表选择一个命令以配置参数并执行',
+  },
   nav: {
     home: '首页',
+    ccrControl: 'CCR 控制中心',
     configs: '配置管理',
     commands: '命令执行',
     converter: '配置转换',
@@ -2016,4 +2043,5 @@ export default {
       }
     }
   },
+
 }

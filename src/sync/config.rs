@@ -99,7 +99,7 @@ impl SyncConfigManager {
     pub fn with_default() -> Result<Self> {
         // 1. 检查环境变量
         if let Ok(custom_path) = std::env::var("CCR_SYNC_CONFIG_PATH") {
-            log::debug!("📁 使用环境变量指定的sync配置路径: {}", custom_path);
+            tracing::debug!("📁 使用环境变量指定的sync配置路径: {}", custom_path);
             return Ok(Self::new(custom_path));
         }
 
@@ -110,13 +110,13 @@ impl SyncConfigManager {
         let unified_root = home.join(".ccr");
         if unified_root.exists() {
             let sync_config_path = unified_root.join("sync.toml");
-            log::debug!("📁 Unified 模式: 使用sync配置路径: {:?}", sync_config_path);
+            tracing::debug!("📁 Unified 模式: 使用sync配置路径: {:?}", sync_config_path);
             return Ok(Self::new(sync_config_path));
         }
 
         // 3. Legacy 模式
         let legacy_sync_path = home.join(".ccs_sync.toml");
-        log::debug!("📁 Legacy 模式: 使用sync配置路径: {:?}", legacy_sync_path);
+        tracing::debug!("📁 Legacy 模式: 使用sync配置路径: {:?}", legacy_sync_path);
         Ok(Self::new(legacy_sync_path))
     }
 
@@ -132,14 +132,14 @@ impl SyncConfigManager {
     pub fn load(&self) -> Result<SyncConfig> {
         // 如果文件不存在，返回默认配置
         if !self.config_path.exists() {
-            log::debug!("⚙️ sync配置文件不存在，返回默认配置");
+            tracing::debug!("⚙️ sync配置文件不存在，返回默认配置");
             return Ok(SyncConfig::default());
         }
 
         // 使用统一的 fileio 读取 TOML
         let config: SyncConfig = fileio::read_toml(&self.config_path)?;
 
-        log::debug!(
+        tracing::debug!(
             "✅ 成功加载sync配置文件: {:?}, 状态: {}",
             self.config_path,
             if config.enabled {
@@ -159,7 +159,7 @@ impl SyncConfigManager {
         // 使用统一的 fileio 写入 TOML（会自动创建父目录）
         fileio::write_toml(&self.config_path, config)?;
 
-        log::debug!("✅ Sync配置文件已保存: {:?}", self.config_path);
+        tracing::debug!("✅ Sync配置文件已保存: {:?}", self.config_path);
         Ok(())
     }
 
@@ -171,7 +171,7 @@ impl SyncConfigManager {
         if self.config_path.exists() {
             fs::remove_file(&self.config_path)
                 .map_err(|e| CcrError::ConfigError(format!("删除sync配置文件失败: {}", e)))?;
-            log::info!("🗑️ Sync配置文件已删除: {:?}", self.config_path);
+            tracing::info!("🗑️ Sync配置文件已删除: {:?}", self.config_path);
         }
         Ok(())
     }

@@ -263,14 +263,14 @@ impl AutoCompletable for ConfigSection {
         if self.usage_count.is_none() {
             self.usage_count = Some(0);
             modified = true;
-            log::debug!("Auto-completed usage_count field for config");
+            tracing::debug!("Auto-completed usage_count field for config");
         }
 
         // 补全 enabled
         if self.enabled.is_none() {
             self.enabled = Some(true);
             modified = true;
-            log::debug!("Auto-completed enabled field for config");
+            tracing::debug!("Auto-completed enabled field for config");
         }
 
         modified
@@ -561,7 +561,7 @@ impl ConfigManager {
 
                     // 如果 profiles.toml 不存在，则在首次使用时创建一个最小可用的文件
                     if !platform_profiles_path.exists() {
-                        log::debug!(
+                        tracing::debug!(
                             "⚙️  未找到平台 profiles 文件: {:?}，正在创建默认空配置",
                             platform_profiles_path
                         );
@@ -585,7 +585,7 @@ impl ConfigManager {
                         fileio::write_toml(&platform_profiles_path, &default_ccs)?;
                     }
 
-                    log::debug!(
+                    tracing::debug!(
                         "🔄 Unified 模式: 使用平台 {} 的配置路径: {:?}",
                         platform,
                         platform_profiles_path
@@ -604,7 +604,7 @@ impl ConfigManager {
             home.join(".ccs_config.toml")
         };
 
-        log::debug!("📁 Legacy 模式: 使用配置路径: {:?}", config_path);
+        tracing::debug!("📁 Legacy 模式: 使用配置路径: {:?}", config_path);
         Ok(Self::new(config_path))
     }
 
@@ -632,7 +632,7 @@ impl ConfigManager {
         // 使用统一的 fileio 读取 TOML
         let mut config: CcsConfig = fileio::read_toml(&self.config_path)?;
 
-        log::debug!(
+        tracing::debug!(
             "✅ 成功加载配置文件: {:?}, 配置节数量: {}",
             self.config_path,
             config.sections.len()
@@ -643,14 +643,14 @@ impl ConfigManager {
         let mut modified = false;
         for (name, section) in &mut config.sections {
             if section.auto_complete() {
-                log::debug!("🔄 自动补全配置节 '{}' 的缺失字段", name);
+                tracing::debug!("🔄 自动补全配置节 '{}' 的缺失字段", name);
                 modified = true;
             }
         }
 
         // 💾 如果有字段被自动补全，保存配置
         if modified {
-            log::info!("💾 检测到缺失字段已自动补全，保存配置文件");
+            tracing::info!("💾 检测到缺失字段已自动补全，保存配置文件");
             self.save(&config)?;
         }
 
@@ -668,7 +668,7 @@ impl ConfigManager {
         // 使用统一的 fileio 写入 TOML
         fileio::write_toml(&self.config_path, config)?;
 
-        log::debug!("✅ 配置文件已保存: {:?}", self.config_path);
+        tracing::debug!("✅ 配置文件已保存: {:?}", self.config_path);
         Ok(())
     }
 
@@ -707,7 +707,7 @@ impl ConfigManager {
         fs::copy(&self.config_path, &backup_path)
             .map_err(|e| CcrError::ConfigError(format!("备份配置文件失败: {}", e)))?;
 
-        log::info!("💾 配置文件已备份: {:?}", backup_path);
+        tracing::info!("💾 配置文件已备份: {:?}", backup_path);
 
         // 🧹 自动清理旧备份(只保留最近10个)
         const MAX_BACKUPS: usize = 10;
@@ -717,12 +717,12 @@ impl ConfigManager {
             let to_delete = &backups[MAX_BACKUPS..];
             for old_backup in to_delete {
                 if let Err(e) = fs::remove_file(old_backup) {
-                    log::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
+                    tracing::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
                 } else {
-                    log::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
+                    tracing::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
                 }
             }
-            log::info!(
+            tracing::info!(
                 "🧹 已自动清理 {} 个旧配置备份,保留最近 {} 个",
                 to_delete.len(),
                 MAX_BACKUPS

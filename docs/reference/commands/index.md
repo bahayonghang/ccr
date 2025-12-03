@@ -163,11 +163,18 @@ CCR 支持以下环境变量：
 - `warn` - 警告信息
 - `error` - 仅错误信息
 
+**日志输出：**
+- **终端**：带 ANSI 彩色
+- **文件**：`~/.ccr/logs/ccr.YYYY-MM-DD.log`（按天轮转，自动清理超过14天的旧日志）
+
 **示例：**
 
 ```bash
 export CCR_LOG_LEVEL=debug
 ccr switch anthropic
+
+# 查看日志文件
+tail -f ~/.ccr/logs/ccr.$(date +%Y-%m-%d).log
 ```
 
 ## 使用技巧
