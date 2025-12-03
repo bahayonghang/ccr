@@ -19,7 +19,7 @@ High-performance multi-platform configuration management tool written in Rust, v
 
 ## Installation
 
-Requirements: Rust 1.85+ (Edition 2024), Cargo. For CCR UI development: Node.js 18+ (npm) and optionally `just`.
+Requirements: Rust 1.85+ (Edition 2024), Cargo. For CCR UI development: Node.js 18+ and [Bun](https://bun.sh/) 1.0+ (package manager), optionally `just`.
 
 ### One-Line Install
 ```bash
@@ -495,8 +495,8 @@ cargo run -- --port 8081
 
 # Frontend (new terminal)
 cd ../frontend
-npm install
-npm run dev                # http://localhost:5173
+bun install
+bun run dev                # http://localhost:5173
 ```
 
 ### Production Build

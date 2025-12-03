@@ -19,7 +19,7 @@ Rust 编写的高性能多平台配置管理工具，版本 3.6.2。支持 Claud
 
 ## 安装
 
-依赖：Rust 1.85+ (Edition 2024)、Cargo。开发 CCR UI 需要 Node.js 18+（npm），建议安装 `just` 以使用快捷命令。
+依赖：Rust 1.85+ (Edition 2024)、Cargo。开发 CCR UI 需要 Node.js 18+ 和 [Bun](https://bun.sh/) 1.0+（包管理器），建议安装 `just` 以使用快捷命令。
 
 ### 一行安装
 ```bash
@@ -491,8 +491,8 @@ cargo run -- --port 8081
 
 # 前端（新开终端）
 cd ccr-ui/frontend
-npm install
-npm run dev                # http://localhost:5173
+bun install
+bun run dev                # http://localhost:5173
 ```
 
 ### 生产构建

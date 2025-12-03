@@ -58,7 +58,7 @@ just s                  # 启动前后端开发模式（最常用）
 ## 先决条件
 
 - **Rust 1.85+**（工作区共享依赖）
-- **Node.js 18+**（npm 包管理）
+- **Node.js 18+** + **Bun 1.0+**（包管理器）
 - **CCR CLI**（已安装，PATH 可见）
 - **just**（可选但推荐：`cargo install just`）
 - **Tauri 依赖**（可选，桌面模式）：
@@ -251,11 +251,11 @@ RUST_LOG=debug cargo run              # 开启 debug 日志
 ### 前端开发
 ```bash
 cd ccr-ui/frontend
-npm install                           # 安装依赖
-npm run dev                           # 启动开发服务器（http://localhost:5173）
-npm run build                         # 构建生产版本
-npm run type-check                    # TypeScript 类型检查
-npm run lint                          # ESLint 检查
+bun install                           # 安装依赖
+bun run dev                           # 启动开发服务器（http://localhost:5173）
+bun run build                         # 构建生产版本
+bun run type-check                    # TypeScript 类型检查
+bun run lint                          # ESLint 检查
 ```
 
 前端通过 API 访问 `http://localhost:8081`（可通过环境变量配置）。
@@ -293,7 +293,7 @@ cp target/release/ccr-ui-backend ../dist/
 
 # 构建前端
 cd ../frontend
-npm install && npm run build
+bun install && bun run build
 cp -r dist/* ../dist/static/
 
 # 运行
@@ -314,7 +314,7 @@ RUN cargo build --release
 FROM node:18 as frontend-builder
 WORKDIR /app/ccr-ui/frontend
 COPY frontend .
-RUN npm install && npm run build
+RUN bun install && bun run build
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
@@ -429,15 +429,15 @@ cargo test -- --nocapture  # 显示测试输出
 ### 前端测试
 ```bash
 cd ccr-ui/frontend
-npm run type-check     # TypeScript 类型检查
-npm run lint           # ESLint 检查
-npm test              # 运行测试（如果配置了测试框架）
+bun run type-check     # TypeScript 类型检查
+bun run lint           # ESLint 检查
+bun test              # 运行测试（如果配置了测试框架）
 ```
 
 ### 端到端测试（可选）
 可以使用 Playwright 或 Cypress 进行端到端测试：
 ```bash
-npm install -D playwright
+bun add -d playwright
 npx playwright test    # 运行 E2E 测试
 ```
 
@@ -469,8 +469,8 @@ kill -9 <PID>
 
 **4. Node.js 或 npm 相关错误**
 - 确认 Node.js 版本：`node --version`（需 ≥ 18）
-- 清理 npm 缓存：`npm cache clean --force`
-- 删除 node_modules 重新安装：`rm -rf node_modules && npm install`
+- 确认 Bun 版本：`bun --version`（需 ≥ 1.0）
+- 删除 node_modules 重新安装：`rm -rf node_modules && bun install`
 
 **5. Tauri 构建失败**
 - Linux：确认已安装 `libwebkit2gtk-4.0-dev`
@@ -582,7 +582,7 @@ A: 目前 ccr-ui 是单用户应用，每个用户使用自己的配置目录（
 - 合理配置 tokio 线程池大小
 
 ### 前端优化
-- 使用 `npm run build` 构建生产版本（自动启用 Tree Shaking）
+- 使用 `bun run build` 构建生产版本（自动启用 Tree Shaking）
 - 配置 CDN 加速静态资源
 - 启用 Gzip/Brotli 压缩
 - 使用 HTTP/2 或 HTTP/3
@@ -596,7 +596,7 @@ A: 目前 ccr-ui 是单用户应用，每个用户使用自己的配置目录（
 - 定期更新依赖包：
   ```bash
   cd backend && cargo update
-  cd frontend && npm update
+  cd frontend && bun update
   ```
 
 ### 前端安全

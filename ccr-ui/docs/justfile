@@ -10,38 +10,38 @@ _check-deps:
     #!/usr/bin/env bash
     if [ ! -d "node_modules" ]; then
         echo "❌ 依赖未安装，正在自动安装..."
-        npm install
+        bun install
         echo "✅ 依赖安装完成！"
     fi
 
 # 安装依赖
 install:
     @echo "📦 安装 CCR UI 文档依赖..."
-    npm install
+    bun install
 
 # 启动开发服务器
 dev: _check-deps
     @echo "🚀 启动 CCR UI 文档开发服务器..."
     @echo "📝 访问 http://localhost:5173"
-    npm run dev
+    bun run dev
 
 # 构建生产版本
 build: _check-deps
     @echo "🏗️  构建 CCR UI 文档生产版本..."
-    npm run build
+    bun run build
     @echo "✅ 构建完成！输出目录: .vitepress/dist"
 
 # 预览生产构建
 preview: build
     @echo "👀 预览 CCR UI 文档生产版本..."
     @echo "📝 访问 http://localhost:4173"
-    npm run preview
+    bun run preview
 
 # 服务生产构建
 serve: build
     @echo "🌐 服务 CCR UI 文档生产版本..."
     @echo "📝 访问 http://localhost:4173"
-    npm run serve
+    bun run serve
 
 # 清理构建文件和缓存
 clean:
@@ -64,23 +64,23 @@ reinstall: clean-all install
 # 检查安全漏洞
 audit:
     @echo "🔍 检查 CCR UI 文档安全漏洞..."
-    npm audit
+    bunx better-npm-audit audit
 
 # 修复安全漏洞(非破坏性)
 audit-fix:
     @echo "🔧 修复 CCR UI 文档安全漏洞..."
-    npm audit fix
+    bunx better-npm-audit audit
 
 # 更新依赖到最新版本
 update:
     @echo "⬆️  更新 CCR UI 文档依赖..."
-    npm update
+    bun update
     @echo "✅ 更新完成！"
 
 # 检查过期的依赖
 outdated:
     @echo "📊 检查 CCR UI 文档过期依赖..."
-    npm outdated
+    bun outdated
 
 # 快速重建(清理后重新构建)
 rebuild: clean build
