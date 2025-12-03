@@ -15,6 +15,7 @@ use tower_http::{
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
 };
 use tracing::{Level, info, warn};
+use tracing_log::LogTracer;
 use tracing_subscriber::{EnvFilter, Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 // New layered architecture modules
@@ -572,6 +573,9 @@ async fn health_check() -> &'static str {
 
 /// Setup logging with daily rotation and 14-day retention
 fn setup_logging() -> std::io::Result<()> {
+    // Bridge log facade to tracing (for dependencies like reqwest)
+    let _ = LogTracer::init();
+
     // Create logs directory
     let log_dir = PathBuf::from("logs");
     fs::create_dir_all(&log_dir)?;
@@ -594,13 +598,13 @@ fn setup_logging() -> std::io::Result<()> {
         .with_ansi(false)
         .with_filter(file_filter);
 
-    // Combine layers
-    tracing_subscriber::registry()
+    // Combine layers（使用 try_init 避免重复初始化时 panic）
+    let _ = tracing_subscriber::registry()
         .with(stdout_layer)
         .with(file_layer)
-        .init();
+        .try_init();
 
-    // Log initialization
+    // Log initialization (may not be visible if already initialized elsewhere)
     info!("Logging initialized - logs directory: {:?}", log_dir);
 
     Ok(())

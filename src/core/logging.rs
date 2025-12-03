@@ -307,12 +307,12 @@ pub fn init_logger() {
         )
     });
 
-    // 组合层并初始化
-    tracing_subscriber::registry()
+    // 组合层并初始化（使用 try_init 避免重复初始化时 panic）
+    let _ = tracing_subscriber::registry()
         .with(env_filter)
         .with(stdout_layer)
         .with(file_layer)
-        .init();
+        .try_init();
 }
 
 #[cfg(test)]
