@@ -76,7 +76,7 @@ impl ClaudePlatform {
     fn detect_mode() -> Result<ConfigMode> {
         // 检查环境变量
         if std::env::var("CCR_ROOT").is_ok() {
-            log::debug!("检测到 CCR_ROOT 环境变量，使用 Unified 模式");
+            tracing::debug!("检测到 CCR_ROOT 环境变量，使用 Unified 模式");
             return Ok(ConfigMode::Unified);
         }
 
@@ -86,10 +86,10 @@ impl ClaudePlatform {
         let unified_config = home.join(".ccr").join("config.toml");
 
         if unified_config.exists() {
-            log::debug!("检测到 ~/.ccr/config.toml，使用 Unified 模式");
+            tracing::debug!("检测到 ~/.ccr/config.toml，使用 Unified 模式");
             Ok(ConfigMode::Unified)
         } else {
-            log::debug!("使用 Legacy 模式（默认）");
+            tracing::debug!("使用 Legacy 模式（默认）");
             Ok(ConfigMode::Legacy)
         }
     }
@@ -179,7 +179,7 @@ impl ClaudePlatform {
         fs::write(&self.paths.profiles_file, content)
             .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
 
-        log::info!("✅ 已保存 Claude profiles: {:?}", self.paths.profiles_file);
+        tracing::info!("✅ 已保存 Claude profiles: {:?}", self.paths.profiles_file);
         Ok(())
     }
 
@@ -351,10 +351,10 @@ impl PlatformConfig for ClaudePlatform {
             // 保存注册表
             platform_config_mgr.save(&unified_config)?;
 
-            log::debug!("✅ 已更新注册表 current_profile: {}", name);
+            tracing::debug!("✅ 已更新注册表 current_profile: {}", name);
         }
 
-        log::info!("✅ 已应用 Claude profile: {}", name);
+        tracing::info!("✅ 已应用 Claude profile: {}", name);
         Ok(())
     }
 

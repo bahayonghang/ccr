@@ -8,9 +8,19 @@
 // - 📊 键值对格式化输出
 // - 🎯 交互式确认提示
 // - 📚 日志级别控制(通过环境变量)
+// - 📁 日志文件持久化(按天轮转，保留 14 天)
 
 use colored::*;
 use std::io::{self, Write};
+use std::path::PathBuf;
+use tracing_appender::rolling::{RollingFileAppender, Rotation};
+use tracing_log::LogTracer;
+use tracing_subscriber::{
+    EnvFilter,
+    fmt::{self, format::FmtSpan},
+    layer::SubscriberExt,
+    util::SubscriberInitExt,
+};
 
 /// 🎨 彩色输出工具
 ///
@@ -179,44 +189,129 @@ impl ColorOutput {
     }
 }
 
+/// 📁 获取日志目录路径
+///
+/// 返回 `~/.ccr/logs/` 目录路径
+fn get_log_dir() -> Option<PathBuf> {
+    dirs::home_dir().map(|home| home.join(".ccr").join("logs"))
+}
+
+/// 🧹 清理过期日志文件
+///
+/// 删除修改时间超过 14 天的日志文件
+///
+/// # 参数
+/// - `log_dir`: 日志目录路径
+fn cleanup_old_logs(log_dir: &std::path::Path) {
+    const MAX_AGE_DAYS: u64 = 14;
+    let max_age = std::time::Duration::from_secs(MAX_AGE_DAYS * 24 * 60 * 60);
+
+    let entries = match std::fs::read_dir(log_dir) {
+        Ok(entries) => entries,
+        Err(_) => return, // 无法读取目录，静默返回
+    };
+
+    let now = std::time::SystemTime::now();
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+
+        // 只处理 .log 文件
+        if path.extension().and_then(|s| s.to_str()) != Some("log") {
+            continue;
+        }
+
+        // 获取文件修改时间
+        let metadata = match entry.metadata() {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+
+        let modified = match metadata.modified() {
+            Ok(t) => t,
+            Err(_) => continue,
+        };
+
+        // 检查是否超过保留期限
+        if let Ok(age) = now.duration_since(modified)
+            && age > max_age
+        {
+            // 尝试删除，失败时静默忽略
+            let _ = std::fs::remove_file(&path);
+        }
+    }
+}
+
 /// 🔧 初始化日志系统
 ///
 /// 使用环境变量控制日志行为
 ///
 /// 环境变量:
 /// - CCR_LOG_LEVEL: 日志级别 (trace, debug, info, warn, error)
-/// - CCR_LOG_STYLE: 输出样式 (auto, always, never)
 ///
 /// 默认配置:
 /// - 级别: info
-/// - 样式: auto(自动检测终端支持)
+/// - 终端: 彩色输出
+/// - 文件: ~/.ccr/logs/ccr.YYYY-MM-DD.log
+///
+/// 日志输出:
+/// - 终端: 带 ANSI 彩色
+/// - 文件: 纯文本，按天轮转，保留 14 天
 ///
 /// 日志格式:
-/// - 时间戳 \[级别\] 消息内容
-/// - 级别带彩色标识
+/// - 时间戳 [ccr] 级别 消息内容
 pub fn init_logger() {
-    let env = env_logger::Env::default()
-        .filter_or("CCR_LOG_LEVEL", "info")
-        .write_style_or("CCR_LOG_STYLE", "auto");
+    // 初始化 log -> tracing 桥接，让依赖库的 log 日志也能被捕获
+    // 忽略错误（可能已初始化）
+    let _ = LogTracer::init();
 
-    env_logger::Builder::from_env(env)
-        .format(|buf, record| {
-            let level_style = match record.level() {
-                log::Level::Error => "ERROR".red().bold(),
-                log::Level::Warn => "WARN".yellow().bold(),
-                log::Level::Info => "INFO".blue().bold(),
-                log::Level::Debug => "DEBUG".green().bold(),
-                log::Level::Trace => "TRACE".purple().bold(),
-            };
+    // 从环境变量获取日志级别，默认 info
+    let log_level = std::env::var("CCR_LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
+    // 应用到所有 crate，不仅限于 ccr
+    let env_filter = EnvFilter::new(log_level);
 
-            writeln!(
-                buf,
-                "{} [{}] {}",
-                chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
-                level_style,
-                record.args()
-            )
-        })
+    // 终端输出层（带彩色）
+    let stdout_layer = fmt::layer()
+        .with_target(false)
+        .with_thread_ids(false)
+        .with_thread_names(false)
+        .with_file(false)
+        .with_line_number(false)
+        .with_span_events(FmtSpan::NONE)
+        .with_ansi(true);
+
+    // 尝试创建文件日志层
+    let file_layer = get_log_dir().and_then(|log_dir| {
+        // 确保日志目录存在
+        if std::fs::create_dir_all(&log_dir).is_err() {
+            return None;
+        }
+
+        // 清理过期日志
+        cleanup_old_logs(&log_dir);
+
+        // 创建按天轮转的文件 appender
+        let file_appender = RollingFileAppender::new(Rotation::DAILY, &log_dir, "ccr.log");
+
+        // 文件输出层（无色彩）
+        Some(
+            fmt::layer()
+                .with_target(false)
+                .with_thread_ids(false)
+                .with_thread_names(false)
+                .with_file(false)
+                .with_line_number(false)
+                .with_span_events(FmtSpan::NONE)
+                .with_ansi(false)
+                .with_writer(file_appender),
+        )
+    });
+
+    // 组合层并初始化
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(stdout_layer)
+        .with(file_layer)
         .init();
 }
 

@@ -51,7 +51,7 @@ impl SystemInfoCache {
         // 🔄 启动后台更新线程
         let cache_clone = Arc::clone(&cache);
         thread::spawn(move || {
-            log::info!(
+            tracing::info!(
                 "🔄 系统信息缓存后台线程已启动，更新间隔: {:?}",
                 update_interval
             );
@@ -61,9 +61,9 @@ impl SystemInfoCache {
 
                 if let Ok(mut cached) = cache_clone.write() {
                     *cached = new_info;
-                    log::trace!("✅ 系统信息已更新");
+                    tracing::trace!("✅ 系统信息已更新");
                 } else {
-                    log::warn!("⚠️ 无法获取写锁更新系统信息");
+                    tracing::warn!("⚠️ 无法获取写锁更新系统信息");
                 }
             }
         });
@@ -81,7 +81,7 @@ impl SystemInfoCache {
         self.cache
             .read()
             .unwrap_or_else(|poisoned| {
-                log::warn!("⚠️ 系统信息缓存锁已中毒，使用恢复的数据");
+                tracing::warn!("⚠️ 系统信息缓存锁已中毒，使用恢复的数据");
                 poisoned.into_inner()
             })
             .clone()

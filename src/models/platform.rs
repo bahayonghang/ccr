@@ -296,13 +296,13 @@ impl AutoCompletable for ProfileConfig {
         if self.usage_count.is_none() {
             self.usage_count = Some(0);
             modified = true;
-            log::debug!("Auto-completed usage_count field for profile");
+            tracing::debug!("Auto-completed usage_count field for profile");
         }
 
         if self.enabled.is_none() {
             self.enabled = Some(true);
             modified = true;
-            log::debug!("Auto-completed enabled field for profile");
+            tracing::debug!("Auto-completed enabled field for profile");
         }
 
         modified

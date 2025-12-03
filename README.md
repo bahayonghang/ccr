@@ -691,6 +691,13 @@ ccr switch anthropic          # Run command with detailed logs
 # - info: Basic info (default)
 # - warn: Warning messages
 # - error: Error messages only
+
+# Log output:
+# - Terminal: ANSI colored output
+# - File: ~/.ccr/logs/ccr.YYYY-MM-DD.log (daily rotation, 14-day retention)
+
+# View log file
+tail -f ~/.ccr/logs/ccr.$(date +%Y-%m-%d).log
 ```
 
 ### Common Issues

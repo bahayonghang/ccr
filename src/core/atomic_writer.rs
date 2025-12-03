@@ -91,7 +91,7 @@ impl AtomicWriter {
             CcrError::IoError(std::io::Error::other(format!("原子替换文件失败: {}", e)))
         })?;
 
-        log::debug!("✅ 文件已原子写入: {:?}", self.target_path);
+        tracing::debug!("✅ 文件已原子写入: {:?}", self.target_path);
         Ok(())
     }
 

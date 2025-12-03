@@ -125,7 +125,7 @@ impl TempOverrideManager {
             home.join(".claude").join("temp_override.json")
         };
 
-        log::debug!("使用临时配置路径: {:?}", override_path);
+        tracing::debug!("使用临时配置路径: {:?}", override_path);
         Ok(Self::new(override_path))
     }
 
@@ -153,7 +153,7 @@ impl TempOverrideManager {
         let temp_override: TempOverride = serde_json::from_str(&content)
             .map_err(|e| CcrError::ConfigError(format!("解析临时配置文件失败: {}", e)))?;
 
-        log::debug!(
+        tracing::debug!(
             "✅ 成功加载临时配置: {} 个字段覆盖",
             temp_override.override_count()
         );
@@ -177,7 +177,7 @@ impl TempOverrideManager {
         fs::write(&self.override_path, content)
             .map_err(|e| CcrError::ConfigError(format!("写入临时配置文件失败: {}", e)))?;
 
-        log::info!("✅ 临时配置已保存: {:?}", self.override_path);
+        tracing::info!("✅ 临时配置已保存: {:?}", self.override_path);
         Ok(())
     }
 
@@ -186,9 +186,9 @@ impl TempOverrideManager {
         if self.override_path.exists() {
             fs::remove_file(&self.override_path)
                 .map_err(|e| CcrError::ConfigError(format!("删除临时配置文件失败: {}", e)))?;
-            log::info!("✅ 临时配置已清除");
+            tracing::info!("✅ 临时配置已清除");
         } else {
-            log::debug!("临时配置文件不存在,无需清除");
+            tracing::debug!("临时配置文件不存在,无需清除");
         }
         Ok(())
     }

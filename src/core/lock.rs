@@ -127,7 +127,7 @@ impl FileLock {
         loop {
             match file.try_lock_exclusive() {
                 Ok(_) => {
-                    log::debug!("成功获取文件锁: {:?}", lock_path);
+                    tracing::debug!("成功获取文件锁: {:?}", lock_path);
                     return Ok(FileLock { file, lock_path });
                 }
                 Err(_) if start.elapsed() < timeout => {
@@ -158,7 +158,7 @@ impl Drop for FileLock {
     fn drop(&mut self) {
         // ✅ 确保锁总是被释放
         let _ = self.file.unlock();
-        log::debug!("🔓 文件锁已自动释放: {:?}", self.lock_path);
+        tracing::debug!("🔓 文件锁已自动释放: {:?}", self.lock_path);
     }
 }
 
@@ -199,7 +199,7 @@ impl LockManager {
             home.join(".claude").join(".locks")
         };
 
-        log::debug!("使用锁目录: {:?}", &lock_dir);
+        tracing::debug!("使用锁目录: {:?}", &lock_dir);
         Ok(Self::new(lock_dir))
     }
 

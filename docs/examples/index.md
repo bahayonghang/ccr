@@ -233,9 +233,12 @@ key = "value"
 export CCR_ROOT=/custom/path/.ccr
 ccr platform list
 
-# 设置日志级别
+# 设置日志级别（日志同时输出到终端和文件）
 export CCR_LOG_LEVEL=debug
 ccr platform switch claude
+
+# 日志文件位置：~/.ccr/logs/ccr.YYYY-MM-DD.log
+# 按天轮转，自动清理超过14天的旧日志
 ```
 
 ## 📖 相关文档

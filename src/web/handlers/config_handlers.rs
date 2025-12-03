@@ -60,7 +60,7 @@ pub async fn handle_switch_config(
             match state.history_service.get_recent(1) {
                 Ok(_) => success_response("配置切换成功"),
                 Err(e) => {
-                    log::warn!("历史记录可能未正确保存: {}", e);
+                    tracing::warn!("历史记录可能未正确保存: {}", e);
                     success_response("配置切换成功（历史记录可能延迟）")
                 }
             }
@@ -213,13 +213,13 @@ fn get_unified_mode_configs(
     let profiles = match platform_config.load_profiles() {
         Ok(p) => p,
         Err(CcrError::PlatformNotSupported(msg)) => {
-            log::warn!("平台 {} 尚未实现: {}", current_platform, msg);
+            tracing::warn!("平台 {} 尚未实现: {}", current_platform, msg);
             // 返回空配置,避免前端 500 错误
             return Ok(("-".to_string(), Vec::new()));
         }
         Err(e) => {
             // 其他错误（如文件读取失败、格式错误等）也返回空配置
-            log::warn!("加载平台 {} 配置失败: {}, 返回空配置", current_platform, e);
+            tracing::warn!("加载平台 {} 配置失败: {}, 返回空配置", current_platform, e);
             return Ok(("-".to_string(), Vec::new()));
         }
     };

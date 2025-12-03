@@ -243,13 +243,20 @@ CCR respects these environment variables for development and testing:
 | `CCR_BACKUP_DIR` | Custom backup directory | `~/.claude/backups/` |
 | `CCR_HISTORY_PATH` | Custom history file path | `~/.claude/ccr_history.json` |
 | `CCR_LOCK_DIR` | Custom lock directory | `~/.claude/.locks/` |
-| `CCR_LOG_LEVEL` | Logging level | `info` |
+| `CCR_LOG_LEVEL` | Logging level (trace/debug/info/warn/error) | `info` |
 | `CCR_LEGACY_MODE` | Enable legacy mode | `0` (disabled) |
+
+**Log Output:**
+- **Terminal**: ANSI colored output
+- **File**: `~/.ccr/logs/ccr.YYYY-MM-DD.log` (daily rotation, 14-day retention)
 
 **Example:**
 ```bash
 export CCR_LOG_LEVEL=debug
 ccr switch anthropic
+
+# View log file
+tail -f ~/.ccr/logs/ccr.$(date +%Y-%m-%d).log
 ```
 
 ## Getting Help

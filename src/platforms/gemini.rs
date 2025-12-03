@@ -172,7 +172,7 @@ impl GeminiPlatform {
         fs::write(&self.paths.profiles_file, content)
             .map_err(|e| CcrError::ConfigError(format!("写入 Gemini 配置失败: {}", e)))?;
 
-        log::info!("✅ 已保存 Gemini profiles: {:?}", self.paths.profiles_file);
+        tracing::info!("✅ 已保存 Gemini profiles: {:?}", self.paths.profiles_file);
         Ok(())
     }
 
@@ -207,7 +207,7 @@ impl GeminiPlatform {
         fs::write(&self.paths.settings_file, content)
             .map_err(|e| CcrError::SettingsError(format!("写入 Gemini 设置失败: {}", e)))?;
 
-        log::info!("✅ 已保存 Gemini settings: {:?}", self.paths.settings_file);
+        tracing::info!("✅ 已保存 Gemini settings: {:?}", self.paths.settings_file);
         Ok(())
     }
 
@@ -337,9 +337,9 @@ impl PlatformConfig for GeminiPlatform {
         // 保存注册表
         platform_config_mgr.save(&unified_config)?;
 
-        log::debug!("✅ 已更新注册表 current_profile: {}", name);
+        tracing::debug!("✅ 已更新注册表 current_profile: {}", name);
 
-        log::info!("✅ 已应用 Gemini profile: {}", name);
+        tracing::info!("✅ 已应用 Gemini profile: {}", name);
         Ok(())
     }
 

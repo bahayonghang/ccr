@@ -37,12 +37,12 @@ pub async fn handle_get_system_info(State(state): State<AppState>) -> Response {
 
 /// 处理获取历史记录请求
 pub async fn handle_get_history(State(state): State<AppState>) -> Response {
-    log::debug!("开始获取历史记录");
+    tracing::debug!("开始获取历史记录");
 
     let history_service = Arc::clone(&state.history_service);
     let entries = match spawn_blocking_string(move || {
         let entries = history_service.get_recent(50)?;
-        log::info!("成功加载 {} 条历史记录", entries.len());
+        tracing::info!("成功加载 {} 条历史记录", entries.len());
         Ok::<_, crate::core::error::CcrError>(entries)
     })
     .await
@@ -51,7 +51,7 @@ pub async fn handle_get_history(State(state): State<AppState>) -> Response {
         Err(e) => return internal_server_error(e),
     };
 
-    log::debug!("准备序列化 {} 条历史记录为 JSON", entries.len());
+    tracing::debug!("准备序列化 {} 条历史记录为 JSON", entries.len());
 
     let json_entries: Vec<HistoryEntryJson> = entries
         .iter()
@@ -79,7 +79,7 @@ pub async fn handle_get_history(State(state): State<AppState>) -> Response {
         total: json_entries.len(),
     };
 
-    log::debug!("返回 {} 条历史记录给前端", json_entries.len());
+    tracing::debug!("返回 {} 条历史记录给前端", json_entries.len());
     success_response(response_data)
 }
 

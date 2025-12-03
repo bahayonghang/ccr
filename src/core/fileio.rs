@@ -50,7 +50,7 @@ where
         CcrError::ConfigError(format!("解析 TOML 文件 {} 失败: {}", path.display(), e))
     })?;
 
-    log::trace!("✅ 成功读取 TOML 文件: {}", path.display());
+    tracing::trace!("✅ 成功读取 TOML 文件: {}", path.display());
     Ok(data)
 }
 
@@ -109,7 +109,7 @@ where
         CcrError::ConfigError(format!("写入配置文件 {} 失败: {}", path.display(), e))
     })?;
 
-    log::trace!("✅ 成功写入 TOML 文件: {}", path.display());
+    tracing::trace!("✅ 成功写入 TOML 文件: {}", path.display());
     Ok(())
 }
 

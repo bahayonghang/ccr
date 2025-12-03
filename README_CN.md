@@ -155,7 +155,7 @@ ccr import configs.toml --merge --backup
 ccr clean --days 30 --dry-run
 
 # 正式清理
-cr clean --days 30
+ccr clean --days 30
 ```
 
 ### 5. WebDAV 多目录同步（需要 `web` 特性）
@@ -163,7 +163,7 @@ cr clean --days 30
 #### 配置 WebDAV
 ```bash
 # 配置 WebDAV 连接信息
-cr sync config
+ccr sync config
 
 # 系统会自动创建默认文件夹：
 # - claude: ~/.claude/ → /ccr/claude
@@ -174,37 +174,37 @@ cr sync config
 #### 文件夹管理
 ```bash
 # 列出所有同步文件夹
-cr sync folder list
+ccr sync folder list
 
 # 添加自定义同步文件夹
-cr sync folder add scripts ~/my-scripts \
+ccr sync folder add scripts ~/my-scripts \
   -r /ccr/scripts \
   -d "My custom scripts"
 
 # 查看文件夹详情
-cr sync folder info claude
+ccr sync folder info claude
 
 # 启用/禁用同步
-cr sync folder enable claude
-cr sync folder disable gemini
+ccr sync folder enable claude
+ccr sync folder disable gemini
 ```
 
 #### 同步操作
 ```bash
 # 同步指定文件夹
-cr sync claude push      # 上传 Claude 配置
-cr sync gemini pull      # 下载 Gemini 配置
-cr sync conf status      # 查看配置状态
+ccr sync claude push      # 上传 Claude 配置
+ccr sync gemini pull      # 下载 Gemini 配置
+ccr sync conf status      # 查看配置状态
 
 # 批量同步所有启用文件夹
-cr sync all push --force    # 上传所有配置
-cr sync all pull --force    # 下载所有配置
-cr sync all status          # 查看所有状态
+ccr sync all push --force    # 上传所有配置
+ccr sync all pull --force    # 下载所有配置
+ccr sync all status          # 查看所有状态
 
 # 兼容旧版命令
-cr sync push        # 等同于：cr sync all push
-cr sync pull        # 等同于：cr sync all pull
-cr sync status      # 显示所有状态
+ccr sync push        # 等同于：ccr sync all push
+ccr sync pull        # 等同于：ccr sync all pull
+ccr sync status      # 显示所有状态
 ```
 
 ### 6. 平台管理
@@ -212,66 +212,66 @@ cr sync status      # 显示所有状态
 ```bash
 # 初始化指定平台（如果不存在）
 ccr platform init claude
-cr platform init codex
-cr platform init gemini
+ccr platform init codex
+ccr platform init gemini
 
 # 平台切换工作流程
 ccr platform switch claude    # 切换到 Claude 平台
-cr list                       # 显示 Claude 平台的配置
-cr add                        # 为 Claude 添加配置
-cr platform switch codex      # 切换到 Codex 平台
-cr list                       # 显示 Codex 平台的配置
+ccr list                       # 显示 Claude 平台的配置
+ccr add                        # 为 Claude 添加配置
+ccr platform switch codex      # 切换到 Codex 平台
+ccr list                       # 显示 Codex 平台的配置
 ```
 
 ### 7. 迁移模式
 
 ```bash
 # 检查是否需要从 Legacy 迁移到 Unified
-cr migrate --check
+ccr migrate --check
 
 # 迁移所有平台
-cr migrate
+ccr migrate
 
 # 迁移指定平台
-cr migrate --platform claude
+ccr migrate --platform claude
 ```
 
 ### 8. 临时凭据管理
 
 ```bash
 # 设置临时覆盖凭据（不修改配置文件）
-cr temp-token set sk-ant-api03-xxxx \
+ccr temp-token set sk-ant-api03-xxxx \
   --base-url https://api.anthropic.com \
   --model claude-sonnet-4-5-20250929
 
 # 查看当前临时凭据
-cr temp-token show
+ccr temp-token show
 
 # 清除临时凭据
-cr temp-token clear
+ccr temp-token clear
 ```
 
 ### 9. 技能与提示词管理
 
 ```bash
 # 技能管理
-cr skills list                  # 列出技能
-cr skills scan ~/skills         # 扫描技能目录
-cr skills install ~/skills/<skill>  # 安装技能
+ccr skills list                  # 列出技能
+ccr skills scan ~/skills         # 扫描技能目录
+ccr skills install ~/skills/<skill>  # 安装技能
 
 # 提示词管理
-cr prompts list                 # 列出提示词
-cr prompts add                  # 添加提示词
-cr prompts apply <name>         # 应用提示词
+ccr prompts list                 # 列出提示词
+ccr prompts add                  # 添加提示词
+ccr prompts apply <name>         # 应用提示词
 ```
 
 ### 10. 统计分析（需要 `web` 特性）
 
 ```bash
 # 成本统计
-cr stats cost --today           # 今日成本
-cr stats cost --by-model        # 按模型统计
-cr stats cost --this-month      # 本月成本
+ccr stats cost --today           # 今日成本
+ccr stats cost --by-model        # 按模型统计
+ccr stats cost --this-month      # 本月成本
 ```
 
 ### 11. 界面与服务
@@ -279,20 +279,20 @@ cr stats cost --this-month      # 本月成本
 ```bash
 # 启动完整 UI（Vue 3 + Axum）
 # 自动检测：workspace → ~/.ccr/ccr-ui → GitHub 下载
-cr ui -p 3000 --backend-port 8081
+ccr ui -p 3000 --backend-port 8081
 
 # 启动 TUI（需要 `tui` 特性）
-cr tui
+ccr tui
 
 # 启动轻量 Web API Server（兼容模式）
-cr web -p 8080
+ccr web -p 8080
 ```
 
 ### 12. 系统命令
 
 ```bash
 # 检查冲突
-cr check conflicts
+ccr check conflicts
 
 # 自动更新
 ccr update --check     # 检查更新
@@ -307,8 +307,8 @@ ccr version
 
 ### 启动 TUI
 ```bash
-cr tui          # 基础模式
-cr tui --yes    # YOLO 模式（自动确认）
+ccr tui          # 基础模式
+ccr tui --yes    # YOLO 模式（自动确认）
 ```
 
 ### 快捷键
@@ -350,8 +350,8 @@ cr tui --yes    # YOLO 模式（自动确认）
 
 ### 启动 Web 服务
 ```bash
-cr web                # 默认端口 8080
-cr web -p 8080        # 指定端口
+ccr web                # 默认端口 8080
+ccr web -p 8080        # 指定端口
 ```
 
 ### API 端点
@@ -462,7 +462,7 @@ ccr ui                          # 自动检测：
                                 # 3. GitHub 自动下载
 
 # 自定义端口
-cr ui -p 3000 --backend-port 8081
+ccr ui -p 3000 --backend-port 8081
 ```
 
 **默认端口**：
@@ -679,7 +679,7 @@ cargo tarpaulin --out Html
 
 ```bash
 export CCR_LOG_LEVEL=debug    # 设置调试级别
-cr switch anthropic           # 执行命令查看详细日志
+ccr switch anthropic          # 执行命令查看详细日志
 
 # 日志级别选项：
 # - trace: 最详细，包括每个函数调用
@@ -687,6 +687,13 @@ cr switch anthropic           # 执行命令查看详细日志
 # - info: 基本信息（默认）
 # - warn: 警告信息
 # - error: 仅错误信息
+
+# 日志输出：
+# - 终端：ANSI 彩色输出
+# - 文件：~/.ccr/logs/ccr.YYYY-MM-DD.log（按天轮转，保留14天）
+
+# 查看日志文件
+tail -f ~/.ccr/logs/ccr.$(date +%Y-%m-%d).log
 ```
 
 ### 常见问题
@@ -731,8 +738,8 @@ ls -lt ~/.claude/backups/*.bak | head -5
 cp ~/.claude/backups/config_20250101_120000.toml.bak ~/.ccs_config.toml
 
 # 或使用 CCR 恢复
-cr history -t backup  # 查看备份历史
-cr import ~/.claude/backups/xxx.toml --merge
+ccr history -t backup  # 查看备份历史
+ccr import ~/.claude/backups/xxx.toml --merge
 ```
 
 #### 4. CCR UI 下载失败
@@ -760,13 +767,13 @@ cd /path/to/ccr/ccr-uiccr ui
 **解决**：
 ```bash
 # 强制推送（覆盖远程）
-cr sync claude push --force
+ccr sync claude push --force
 
 # 强制拉取（覆盖本地）
-cr sync claude pull --force
+ccr sync claude pull --force
 
 # 交互式选择
-cr sync claude push --interactive
+ccr sync claude push --interactive
 ```
 
 #### 6. 传统配置迁移
@@ -775,19 +782,19 @@ cr sync claude push --interactive
 **解决**：
 ```bash
 # 检查可迁移内容
-cr migrate --check
+ccr migrate --check
 
 # 自动迁移所有平台
-cr migrate
+ccr migrate
 
 # 指定平台迁移
-cr migrate --platform claude
-cr migrate --platform codex
+ccr migrate --platform claude
+ccr migrate --platform codex
 
 # 验证迁移结果
-cr platform list
-cr platform switch claude
-cr list
+ccr platform list
+ccr platform switch claude
+ccr list
 ```
 
 ### WebDAV 同步配置示例
@@ -880,8 +887,8 @@ codegen-units = 1      # 单个代码生成单元
 
 3. **定期更换 Token**：
    ```bash
-   cr temp-token set sk-ant-api03-new-token
-cr export -o backup.toml --no-secrets
+   ccr temp-token set sk-ant-api03-new-token
+ccr export -o backup.toml --no-secrets
    ```
 
 4. **限制 Token 权限**：
@@ -935,7 +942,7 @@ just ci
 
 1. **环境信息**：
    ```bash
-   cr version
+   ccr version
    rustc --version
    uname -a
    ```
@@ -943,12 +950,13 @@ just ci
 2. **日志信息**：
    ```bash
    export CCR_LOG_LEVEL=debug
-   cr <command> 2>&1 | tee debug.log
+   ccr <command> 2>&1 | tee debug.log
+   # 或查看日志文件：~/.ccr/logs/ccr.$(date +%Y-%m-%d).log
    ```
 
 3. **配置文件示例**（去除敏感信息）：
    ```bash
-   cr export --no-secrets
+   ccr export --no-secrets
    ```
 
 4. **复现步骤**：详细操作步骤

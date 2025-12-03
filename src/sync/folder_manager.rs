@@ -85,7 +85,7 @@ impl SyncFolderManager {
     pub fn with_default() -> Result<Self> {
         // 1. 检查环境变量
         if let Ok(custom_path) = std::env::var("CCR_SYNC_FOLDERS_CONFIG") {
-            log::debug!("📁 使用环境变量指定的sync_folders配置路径: {}", custom_path);
+            tracing::debug!("📁 使用环境变量指定的sync_folders配置路径: {}", custom_path);
             return Ok(Self::new(custom_path));
         }
 
@@ -96,7 +96,7 @@ impl SyncFolderManager {
         let unified_root = home.join(".ccr");
         if unified_root.exists() {
             let sync_folders_path = unified_root.join("sync_folders.toml");
-            log::debug!(
+            tracing::debug!(
                 "📁 Unified 模式: 使用sync_folders配置路径: {:?}",
                 sync_folders_path
             );
@@ -105,7 +105,7 @@ impl SyncFolderManager {
 
         // 3. Legacy 模式
         let legacy_sync_folders_path = home.join(".ccs_sync_folders.toml");
-        log::debug!(
+        tracing::debug!(
             "📁 Legacy 模式: 使用sync_folders配置路径: {:?}",
             legacy_sync_folders_path
         );
@@ -128,14 +128,14 @@ impl SyncFolderManager {
     pub fn load_config(&self) -> Result<SyncFoldersConfig> {
         // 如果文件不存在，返回默认配置
         if !self.config_path.exists() {
-            log::debug!("⚙️ sync_folders配置文件不存在，返回默认配置");
+            tracing::debug!("⚙️ sync_folders配置文件不存在，返回默认配置");
             return Ok(SyncFoldersConfig::default());
         }
 
         // 使用统一的 fileio 读取 TOML
         let config: SyncFoldersConfig = fileio::read_toml(&self.config_path)?;
 
-        log::debug!(
+        tracing::debug!(
             "✅ 成功加载sync_folders配置文件: {:?}, 文件夹数: {}",
             self.config_path,
             config.folders.len()
@@ -165,7 +165,7 @@ impl SyncFolderManager {
         // 使用统一的 fileio 写入 TOML（会自动创建父目录和原子写入）
         fileio::write_toml(&self.config_path, config)?;
 
-        log::info!(
+        tracing::info!(
             "✅ Sync文件夹配置文件已保存: {:?}, 文件夹数: {}",
             self.config_path,
             config.folders.len()
@@ -205,7 +205,7 @@ impl SyncFolderManager {
         config.folders.push(folder.clone());
         self.save_config(&config)?;
 
-        log::info!("➕ 已添加同步文件夹: '{}'", folder.name);
+        tracing::info!("➕ 已添加同步文件夹: '{}'", folder.name);
         Ok(())
     }
 
@@ -232,7 +232,7 @@ impl SyncFolderManager {
         config.folders.remove(index);
         self.save_config(&config)?;
 
-        log::info!("❌ 已删除同步文件夹: '{}'", name);
+        tracing::info!("❌ 已删除同步文件夹: '{}'", name);
         Ok(())
     }
 
@@ -300,7 +300,7 @@ impl SyncFolderManager {
 
         self.save_config(&config)?;
 
-        log::info!("✏️ 已更新同步文件夹: '{}'", name);
+        tracing::info!("✏️ 已更新同步文件夹: '{}'", name);
         Ok(())
     }
 
@@ -324,7 +324,7 @@ impl SyncFolderManager {
         folder.enabled = true;
         self.save_config(&config)?;
 
-        log::info!("✅ 已启用同步文件夹: '{}'", name);
+        tracing::info!("✅ 已启用同步文件夹: '{}'", name);
         Ok(())
     }
 
@@ -348,7 +348,7 @@ impl SyncFolderManager {
         folder.enabled = false;
         self.save_config(&config)?;
 
-        log::info!("❌ 已禁用同步文件夹: '{}'", name);
+        tracing::info!("❌ 已禁用同步文件夹: '{}'", name);
         Ok(())
     }
 
@@ -394,7 +394,7 @@ impl SyncFolderManager {
         config.webdav = webdav_config;
         self.save_config(&config)?;
 
-        log::info!("☁️ 已更新 WebDAV 配置");
+        tracing::info!("☁️ 已更新 WebDAV 配置");
         Ok(())
     }
 
@@ -441,11 +441,11 @@ impl SyncFolderManager {
     pub fn migrate_from_legacy(&mut self) -> Result<bool> {
         // 1. 检查是否已存在 sync_folders.toml
         if self.config_path.exists() {
-            log::debug!("✅ sync_folders.toml 已存在，无需迁移");
+            tracing::debug!("✅ sync_folders.toml 已存在，无需迁移");
             return Ok(false);
         }
 
-        log::info!("🔄 开始迁移同步配置到多文件夹格式...");
+        tracing::info!("🔄 开始迁移同步配置到多文件夹格式...");
 
         // 2. 尝试加载旧版 SyncConfig
         let sync_config_manager = SyncConfigManager::with_default()?;
@@ -488,7 +488,7 @@ impl SyncFolderManager {
 
         new_config.folders.push(conf_folder);
         folder_count += 1;
-        log::info!("  ✓ 已添加 'conf' 文件夹");
+        tracing::info!("  ✓ 已添加 'conf' 文件夹");
 
         // 4.2 检测并添加平台目录
         let platforms = vec![
@@ -513,14 +513,14 @@ impl SyncFolderManager {
 
                 new_config.folders.push(folder);
                 folder_count += 1;
-                log::info!("  ✓ 已添加 '{}' 文件夹", name);
+                tracing::info!("  ✓ 已添加 '{}' 文件夹", name);
             }
         }
 
         // 5. 保存迁移后的配置
         self.save_config(&new_config)?;
 
-        log::info!("✅ 配置迁移完成! 已创建 {} 个同步文件夹", folder_count);
+        tracing::info!("✅ 配置迁移完成! 已创建 {} 个同步文件夹", folder_count);
 
         Ok(true)
     }

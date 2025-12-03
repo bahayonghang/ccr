@@ -77,7 +77,8 @@ ccr web -p 8080 --no-browser         # 轻量 API/兼容场景
 ```
 
 ## 日常调试
-- 日志：`export CCR_LOG_LEVEL=debug`（trace/debug/info/warn/error）
+- 日志级别：`export CCR_LOG_LEVEL=debug`（trace/debug/info/warn/error）
+- 日志文件：`~/.ccr/logs/ccr.YYYY-MM-DD.log`（按天轮转，保留14天）
 - 检查：`cargo fmt --all --check`，`cargo clippy --workspace --all-targets --all-features -- -D warnings`
 - 测试：`cargo test --workspace`
 

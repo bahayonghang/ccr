@@ -56,7 +56,7 @@ reqwest = { version = "0.12.24", features = ["blocking", "json"] }
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.7.3"
+version = "3.7.4"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher(Rust implementation)"
@@ -96,9 +96,11 @@ tempfile = { workspace = true }
 # 文件时间操作
 filetime = "0.2"
 
-# 日志记录
-log = "0.4.28"
-env_logger = "0.11.8"
+# 日志记录 (tracing 生态)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+tracing-appender = "0.2"
+tracing-log = "0.2"  # 桥接 log facade 到 tracing
 
 # 彩色终端输出
 colored = "3.0.0"
