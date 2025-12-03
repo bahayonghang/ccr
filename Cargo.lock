@@ -331,7 +331,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.7.4"
+version = "3.8.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -373,7 +373,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-ui-backend"
-version = "3.7.4"
+version = "3.8.0"
 dependencies = [
  "async-stream",
  "axum",
@@ -399,6 +399,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-appender",
+ "tracing-log",
  "tracing-subscriber",
  "uuid",
  "walkdir",

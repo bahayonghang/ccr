@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.7.4"
+version = "3.8.0"
 edition = "2024"
 
 [dependencies]
@@ -49,6 +49,7 @@ lazy_static = "1.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt", "ansi"] }
 tracing-appender = "0.2"
+tracing-log = "0.2"  # Bridge log facade to tracing
 
 # CLI arguments
 clap = { version = "4.5.53", features = ["derive"] }
