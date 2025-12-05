@@ -17,8 +17,10 @@ const GITHUB_BRANCH: &str = "main";
 pub struct UiService {
     /// CCR-UI 项目路径 (开发模式使用)
     ccr_ui_path: Option<PathBuf>,
-    /// UI 资源目录 (~/.ccr/ccr-ui/) - 用于下载的版本
+    /// UI 资源目录 (~/.ccr/repo/ccr-ui/) - 用于下载的版本
     ui_dir: PathBuf,
+    /// 旧版 UI 目录 (~/.ccr/ccr-ui/) - 用于迁移检测
+    legacy_ui_dir: PathBuf,
 }
 
 impl UiService {
@@ -30,6 +32,8 @@ impl UiService {
 
         // UI 资源目录 (~/.ccr/repo/ccr-ui/) - 指向完整仓库下的 ccr-ui
         let ui_dir = home.join(".ccr/repo/ccr-ui");
+        // 旧版 UI 目录 (~/.ccr/ccr-ui/) - 用于迁移检测
+        let legacy_ui_dir = home.join(".ccr/ccr-ui");
 
         // 检查是否在开发环境中
         let ccr_ui_path = Self::detect_ccr_ui_path();
@@ -37,6 +41,7 @@ impl UiService {
         Ok(Self {
             ccr_ui_path,
             ui_dir,
+            legacy_ui_dir,
         })
     }
 
@@ -87,13 +92,35 @@ impl UiService {
             return self.start_dev_mode(ccr_ui_path, port, backend_port);
         }
 
-        // 优先级 2: 检查用户目录下载版本（~/.ccr/ccr-ui/）
+        // 优先级 2: 检查用户目录下载版本（~/.ccr/repo/ccr-ui/）
         if self.ui_dir.exists() && self.ui_dir.join("justfile").exists() {
             ColorOutput::info(&format!("📁 检测到用户目录版本: {}", self.ui_dir.display()));
             return self.start_dev_mode(&self.ui_dir, port, backend_port);
         }
 
-        // 优先级 3: 未找到，提示下载
+        // 优先级 3: 检查旧版目录并提示迁移
+        if self.legacy_ui_dir.exists() && self.legacy_ui_dir.join("justfile").exists() {
+            ColorOutput::warning(&format!(
+                "⚠️  检测到旧版 CCR UI 目录: {}",
+                self.legacy_ui_dir.display()
+            ));
+            ColorOutput::info("旧版本使用 npm，建议迁移到新版本以使用 bun");
+            println!();
+
+            if self.prompt_migrate_legacy()? {
+                // 删除旧目录
+                fs::remove_dir_all(&self.legacy_ui_dir)
+                    .map_err(|e| CcrError::ConfigError(format!("删除旧目录失败: {}", e)))?;
+                ColorOutput::success("✅ 已删除旧版本");
+                // 继续下载新版本
+            } else {
+                // 用户选择继续使用旧版本
+                ColorOutput::warning("⚠️  继续使用旧版本（使用 npm）");
+                return self.start_dev_mode(&self.legacy_ui_dir, port, backend_port);
+            }
+        }
+
+        // 优先级 4: 未找到，提示下载
         ColorOutput::warning("⚠️  未找到 CCR UI");
         println!();
         ColorOutput::info("CCR UI 可以从以下位置获取：");
@@ -234,6 +261,26 @@ impl UiService {
 
         let confirmed = Confirm::new()
             .with_prompt("是否立即安装 CCR UI 依赖?")
+            .default(true)
+            .interact()
+            .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;
+
+        Ok(confirmed)
+    }
+
+    /// ❓ 提示是否迁移旧版本
+    fn prompt_migrate_legacy(&self) -> Result<bool> {
+        use dialoguer::Confirm;
+
+        ColorOutput::info("新版本使用 bun 作为包管理器，性能更好");
+        ColorOutput::info(&format!(
+            "迁移将删除旧目录 {} 并下载新版本",
+            self.legacy_ui_dir.display()
+        ));
+        println!();
+
+        let confirmed = Confirm::new()
+            .with_prompt("是否迁移到新版本?")
             .default(true)
             .interact()
             .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;

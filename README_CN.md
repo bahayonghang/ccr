@@ -156,6 +156,10 @@ ccr clean --days 30 --dry-run
 
 # 正式清理
 ccr clean --days 30
+
+# 清理 CCR 写入的配置（恢复 settings.json 默认状态）
+ccr clear                  # 交互式确认
+ccr clear --force          # 跳过确认
 ```
 
 ### 5. WebDAV 多目录同步（需要 `web` 特性）

@@ -37,6 +37,7 @@ CCR UI 为 CCR 提供完整的图形化管理能力，覆盖 CLI 全部功能并
 - `ccr validate` - 验证配置
 - `ccr history` - 查看历史
 - `ccr config` - 查看原始配置
+- `ccr clear` - 清理 CCR 写入的配置
 
 ## 🔌 MCP 服务器管理 (v3.5+)
 管理 Claude Code 的 Model Context Protocol (MCP) 服务器。

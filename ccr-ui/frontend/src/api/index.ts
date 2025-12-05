@@ -183,6 +183,7 @@ export {
   deleteConfig,
   getConfig,
   updateConfig,
+  addConfig,
   enableConfig,
   disableConfig,
 

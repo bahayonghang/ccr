@@ -289,6 +289,18 @@ enum Commands {
         force: bool,
     },
 
+    /// 清理 CCR 写入的配置
+    ///
+    /// 清空 settings.json 中的 ANTHROPIC_* 环境变量,使其恢复默认状态
+    /// 执行后 Claude Code 将无法正常工作,直到重新执行 switch 切换配置
+    /// 示例: ccr clear
+    ///       ccr clear --force  # 跳过确认
+    Clear {
+        /// 跳过确认提示，直接清理（危险操作）
+        #[arg(short, long)]
+        force: bool,
+    },
+
     /// 优化配置文件结构
     ///
     /// 按照配置节名称的字母顺序重新排列配置文件,提升可读性
@@ -754,6 +766,7 @@ fn main() {
             dry_run,
             force,
         }) => commands::clean_command(days, dry_run, cli.auto_yes || force),
+        Some(Commands::Clear { force }) => commands::clear_command(cli.auto_yes || force),
         Some(Commands::Optimize) => commands::optimize_command(),
         Some(Commands::Version) => {
             show_version();
@@ -961,6 +974,7 @@ fn command_name(cmd: &Commands) -> &'static str {
         Commands::Export { .. } => "export",
         Commands::Import { .. } => "import",
         Commands::Clean { .. } => "clean",
+        Commands::Clear { .. } => "clear",
         Commands::Optimize => "optimize",
         Commands::Version => "version",
         #[cfg(feature = "tui")]

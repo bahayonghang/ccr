@@ -58,6 +58,7 @@ import type {
   TopSession,
   StatsSummary,
   UsageRecordsResponse,
+  UpdateConfigRequest,
 } from '@/types'
 
 // 创建 axios 实例
@@ -243,6 +244,12 @@ export const getConfig = async (configName: string): Promise<any> => {
 export const updateConfig = async (configName: string, configData: any): Promise<string> => {
   const response = await api.put<string>(`/configs/${configName}`, configData)
   return response.data
+}
+
+// 📝 添加新配置
+export const addConfig = async (configData: UpdateConfigRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/configs', configData)
+  return response.data.data || 'Configuration added successfully'
 }
 
 export const cleanBackups = async (

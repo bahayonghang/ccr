@@ -156,6 +156,10 @@ ccr clean --days 30 --dry-run
 
 # Actually clean
 ccr clean --days 30
+
+# Clear CCR config from settings.json (restore to default)
+ccr clear                  # Interactive confirmation
+ccr clear --force          # Skip confirmation
 ```
 
 ### 5. WebDAV Multi-Folder Sync (requires `web` feature)
