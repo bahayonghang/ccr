@@ -154,7 +154,7 @@ impl UiService {
         self.check_and_install_deps(ccr_ui_path)?;
 
         ColorOutput::info("🔧 使用开发模式启动 CCR UI");
-        ColorOutput::info("📍 后端: http://localhost:8081");
+        ColorOutput::info("📍 后端: http://localhost:38081");
         ColorOutput::info("📍 前端: http://localhost:3000 (Next.js)");
         println!();
 

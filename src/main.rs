@@ -349,8 +349,8 @@ enum Commands {
         #[arg(short, long, default_value_t = 3000)]
         port: u16,
 
-        /// 指定后端端口(默认: 8081)
-        #[arg(long, default_value_t = 8081)]
+        /// 指定后端端口(默认: 38081)
+        #[arg(long, default_value_t = 38081)]
         backend_port: u16,
     },
 

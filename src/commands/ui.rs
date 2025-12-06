@@ -12,7 +12,7 @@ use crate::services::ui_service::UiService;
 ///
 /// # 参数
 /// - `port`: 前端端口 (默认 3000)
-/// - `backend_port`: 后端端口 (默认 8081)
+/// - `backend_port`: 后端端口 (默认 38081)
 pub fn ui_command(port: u16, backend_port: u16) -> Result<()> {
     // 创建 UI 服务
     let ui_service = UiService::new()?;

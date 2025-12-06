@@ -30,7 +30,7 @@ mod utils;
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Port to bind the server to
-    #[arg(short, long, default_value = "8081")]
+    #[arg(short, long, default_value = "38081")]
     port: u16,
 
     /// Host to bind the server to
