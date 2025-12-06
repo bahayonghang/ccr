@@ -283,7 +283,7 @@ ccr stats cost --this-month      # 本月成本
 ```bash
 # 启动完整 UI（Vue 3 + Axum）
 # 自动检测：workspace → ~/.ccr/ccr-ui → GitHub 下载
-ccr ui -p 3000 --backend-port 8081
+ccr ui -p 3000 --backend-port 38081
 
 # 启动 TUI（需要 `tui` 特性）
 ccr tui
@@ -466,12 +466,12 @@ ccr ui                          # 自动检测：
                                 # 3. GitHub 自动下载
 
 # 自定义端口
-ccr ui -p 3000 --backend-port 8081
+ccr ui -p 3000 --backend-port 38081
 ```
 
 **默认端口**：
 - 前端：3000
-- 后端 API：8081
+- 后端 API：38081
 
 ### 从仓库开发
 
@@ -489,9 +489,9 @@ just s                     # 一键启动前后端开发模式
 
 手动启动（显式命令）：
 ```bash
-# 后端（workspace 成员，端口 8081）
+# 后端（workspace 成员，端口 38081）
 cd ccr-ui/backend
-cargo run -- --port 8081
+cargo run -- --port 38081
 
 # 前端（新开终端）
 cd ccr-ui/frontend

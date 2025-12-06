@@ -27,8 +27,8 @@
 ```bash
 ccr ui                  # 自动检测本地源码、用户目录或从 GitHub 下载
 ccr ui -p 3000          # 自定义前端端口
-ccr ui --backend-port 8081  # 自定义后端端口
-# 默认端口：前端 3000，后端 8081
+ccr ui --backend-port 38081  # 自定义后端端口
+# 默认端口：前端 3000，后端 38081
 ```
 
 CCR CLI 会按以下优先级查找 ccr-ui：
@@ -49,7 +49,7 @@ just s                  # 启动前后端开发模式（最常用）
 - `just c` - 代码检查（clippy + 格式检查 + TypeScript 检查）
 - `just t` - 运行测试
 - `just f` - 格式化代码
-- `just s` - 启动开发环境（前端 5173 + 后端 8081）
+- `just s` - 启动开发环境（前端 5173 + 后端 38081）
 - `just run-prod` - 运行生产环境
 - `just tauri-dev` - Tauri 桌面开发
 - `just tauri-build` - 构建桌面安装包
@@ -84,7 +84,7 @@ ccr/ (workspace root)
 - **前端 → 后端**：Axios HTTP 请求（REST API）
 - **后端 → CLI**：直接调用 CCR 命令 + 文件系统操作
 - **状态管理**：Pinia stores（客户端状态）
-- **API 地址**：默认 `http://localhost:8081`
+- **API 地址**：默认 `http://localhost:38081`
 
 ### 技术栈
 
@@ -243,7 +243,7 @@ ccr/ (workspace root)
 ### 后端开发
 ```bash
 cd ccr-ui/backend
-cargo run -- --port 8081              # 启动开发服务器（默认 8081）
+cargo run -- --port 38081              # 启动开发服务器（默认 38081）
 cargo watch -x run                    # 监听文件变更自动重启
 RUST_LOG=debug cargo run              # 开启 debug 日志
 ```
@@ -258,7 +258,7 @@ bun run type-check                    # TypeScript 类型检查
 bun run lint                          # ESLint 检查
 ```
 
-前端通过 API 访问 `http://localhost:8081`（可通过环境变量配置）。
+前端通过 API 访问 `http://localhost:38081`（可通过环境变量配置）。
 
 ### 环境变量配置
 
@@ -266,12 +266,12 @@ bun run lint                          # ESLint 检查
 ```bash
 RUST_LOG=info              # 日志级别：trace, debug, info, warn, error
 RUST_BACKTRACE=1          # 启用错误回溯
-PORT=8081                 # 服务端口号
+PORT=38081                 # 服务端口号
 ```
 
 **前端环境变量**（`.env` 或 `.env.local`）
 ```bash
-VITE_API_BASE_URL=http://localhost:8081    # 后端 API 地址
+VITE_API_BASE_URL=http://localhost:38081    # 后端 API 地址
 VITE_LOG_LEVEL=debug                        # 前端日志级别
 ```
 
@@ -297,7 +297,7 @@ bun install && bun run build
 cp -r dist/* ../dist/static/
 
 # 运行
-./dist/ccr-ui-backend --port 8081 --static-dir ./dist/static
+./dist/ccr-ui-backend --port 38081 --static-dir ./dist/static
 ```
 
 **构建产物**：
@@ -323,8 +323,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=backend-builder /app/ccr-ui/backend/target/release/ccr-ui-backend /usr/local/bin/
 COPY --from=frontend-builder /app/ccr-ui/frontend/dist /usr/local/share/ccr-ui/static
-EXPOSE 8081
-CMD ["ccr-ui-backend", "--port", "8081", "--static-dir", "/usr/local/share/ccr-ui/static"]
+EXPOSE 38081
+CMD ["ccr-ui-backend", "--port", "38081", "--static-dir", "/usr/local/share/ccr-ui/static"]
 ```
 
 ## Tauri 桌面模式
@@ -451,12 +451,12 @@ npx playwright test    # 运行 E2E 测试
 cargo run -- --port 9090
 
 # 解决方法 2：查找并终止占用进程
-sudo lsof -i :8081
+sudo lsof -i :38081
 kill -9 <PID>
 ```
 
 **2. 前端无法连接后端**
-- 确认后端运行在 `http://localhost:8081`
+- 确认后端运行在 `http://localhost:38081`
 - 检查浏览器控制台网络（Network）面板
 - 确认 CORS 配置已启用
 - 检查防火墙设置
@@ -504,12 +504,12 @@ kill -9 <PID>
 ## FAQ
 
 ### Q: ccr-ui 如何与后端通信？
-A: Vue 前端使用 Axios 发送 REST API 请求到 Axum 后端（端口 8081）。所有状态通过 Pinia stores 在客户端管理。
+A: Vue 前端使用 Axios 发送 REST API 请求到 Axum 后端（端口 38081）。所有状态通过 Pinia stores 在客户端管理。
 
 ### Q: 可以自定义前后端端口吗？
 A: 可以！
 ```bash
-ccr ui -p 3000 --backend-port 8081    # 前端 3000，后端 8081
+ccr ui -p 3000 --backend-port 38081    # 前端 3000，后端 38081
 ```
 
 ### Q: 配置文件存放在哪里？
@@ -566,8 +566,8 @@ A:
 
 ### Q: 如何调试后端 API？
 A:
-- 使用 `cargo run -- --port 8081` 启动后端
-- 访问 `http://localhost:8081/api/version` 验证
+- 使用 `cargo run -- --port 38081` 启动后端
+- 访问 `http://localhost:38081/api/version` 验证
 - 使用 Postman 或 curl 测试 API
 - 查看日志：`tail -f ~/.ccr/logs/ccr-ui-backend.log`
 

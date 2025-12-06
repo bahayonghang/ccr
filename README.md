@@ -283,7 +283,7 @@ ccr stats cost --this-month      # This month cost
 ```bash
 # Launch full UI (Vue 3 + Axum)
 # Auto-detects: workspace → ~/.ccr/ccr-ui → GitHub download
-ccr ui -p 3000 --backend-port 8081
+ccr ui -p 3000 --backend-port 38081
 
 # Launch TUI (requires `tui` feature)
 ccr tui
@@ -470,12 +470,12 @@ ccr ui                          # Auto-detects:
                                 # 3. GitHub auto-download
 
 # Custom ports
-ccr ui -p 3000 --backend-port 8081
+ccr ui -p 3000 --backend-port 38081
 ```
 
 **Default Ports**:
 - Frontend: 3000
-- Backend API: 8081
+- Backend API: 38081
 
 ### Develop from Repository
 
@@ -493,9 +493,9 @@ just s                     # Start frontend + backend in dev mode
 
 Manual (explicit commands):
 ```bash
-# Backend (workspace member, port 8081)
+# Backend (workspace member, port 38081)
 cd ccr-ui/backend
-cargo run -- --port 8081
+cargo run -- --port 38081
 
 # Frontend (new terminal)
 cd ../frontend
