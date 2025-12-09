@@ -21,27 +21,28 @@ hero:
 
 features:
   - icon: ⚡
-    title: 直接写入 settings.json
-    details: 原子写入 + 文件锁，修改立刻生效且避免并发损坏。
+    title: 多接口一体
+    details: CLI 为主，内置 TUI、轻量 Web API（兼容/编程访问），推荐完整 CCR UI（Vue3 + Axum + Tauri）。
   - icon: 🛡️
-    title: 审计与备份
-    details: 全量操作日志、自动备份，Merge/Replace 导入均可回滚。
+    title: 并发安全
+    details: 文件锁 + 进程内互斥 + 原子写入，保护 settings.json 与配置文件。
   - icon: 🔀
-    title: 多平台统一
-    details: Unified Mode 下管理 Claude、Codex、Gemini、Qwen、iFlow 等，兼容 Legacy `~/.ccs_config.toml`。
+    title: 多平台注册表
+    details: Unified 模式默认启用，`config.toml` 记录 current_platform 与平台目录；兼容 Legacy `~/.ccs_config.toml`。
   - icon: 🧭
-    title: 丰富界面
-    details: CLI 为主，可选 TUI、轻量 Web API (`ccr web`)、完整 CCR UI (`ccr ui`，Vue 3 + Axum + Tauri)。
+    title: 配置直写 Claude
+    details: 直接写入 `~/.claude/settings.json`，自动备份/审计，支持临时覆盖 token/base_url/model。
   - icon: ☁️
-    title: WebDAV 同步
-    details: 目录注册、启用/禁用、单目录与全量 push/pull/status，智能过滤备份与锁。
+    title: WebDAV 多目录同步
+    details: 目录注册/启用、批量/单目录 push/pull/status、交互式内容选择，智能过滤备份/历史/锁/ccr-ui。
   - icon: 📊
     title: 成本与统计
-    details: ccr stats 提供成本/调用统计（web 特性），可输出 JSON。
+    details: "`ccr stats`（web 特性）提供成本/调用统计，可 JSON 输出；`history` 记录掩码后的环境变量差异。"
 ---
 
 ## 版本与安装
-- 当前版本：3.4.1（Rust 2024）。需求：Rust 1.85+，可选 Node 18+ 用于 CCR UI 开发。
+- 当前版本：3.9.0（Rust 2024）
+- 需求：Rust 1.85+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
 
 ```bash
 # 推荐：直接安装
@@ -64,6 +65,7 @@ ccr history -l 50               # 查看历史
 ccr export --no-secrets         # 导出配置（可选去除敏感信息）
 ccr import configs.toml --merge # 合并导入，自动备份
 ccr clean --days 30             # 清理旧备份
+ccr temp-token set sk-xxx       # 临时覆盖 token，不改 TOML
 ```
 
 ### 同步与多目录
@@ -77,11 +79,13 @@ ccr sync folder enable claude
 ccr sync claude push
 ccr sync all status
 ccr sync all pull --force
+# 交互式选择同步内容
+ccr sync push -i
 ```
 
 ### 界面与服务
 ```bash
-ccr ui -p 3000 --backend-port 8081   # 完整 CCR UI（自动检测或下载）
+ccr ui -p 3000 --backend-port 38081  # 完整 CCR UI（自动检测或下载）
 ccr tui                              # 需启用 tui 特性
 ccr web -p 8080 --no-browser         # 轻量 API/兼容用途
 ```

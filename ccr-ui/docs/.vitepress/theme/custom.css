@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=Chivo:wght@400;500;600&family=Fira+Code:wght@400;600&display=swap');
+
+:root {
+  --vp-font-family-base: "Chivo", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --vp-font-family-heading: "Syne", "Chivo", "Segoe UI", sans-serif;
+  --vp-font-family-mono: "Fira Code", "SFMono-Regular", Menlo, Consolas, monospace;
+  --vp-c-brand-1: #ff7a1a;
+  --vp-c-brand-2: #f5c300;
+  --vp-c-brand-3: #ff9e2c;
+  --vp-c-bg: #0b0f16;
+  --vp-c-bg-alt: #0f1420;
+  --vp-c-surface: rgba(255, 255, 255, 0.04);
+  --vp-c-border: rgba(255, 255, 255, 0.12);
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 140, 26, 0.18), transparent 32%),
+    radial-gradient(circle at 80% 10%, rgba(245, 195, 0, 0.18), transparent 28%),
+    radial-gradient(circle at 65% 75%, rgba(255, 122, 26, 0.12), transparent 32%),
+    #090d14;
+  color: #e8ecf2;
+  letter-spacing: 0.01em;
+}
+
+.VPNav {
+  backdrop-filter: blur(16px);
+  background: linear-gradient(120deg, rgba(12, 16, 24, 0.92), rgba(255, 122, 26, 0.08));
+  border-bottom: 1px solid var(--vp-c-border);
+}
+
+.VPButton {
+  letter-spacing: 0.02em;
+  border-radius: 14px;
+  box-shadow: 0 14px 38px rgba(255, 122, 26, 0.22);
+}
+
+.VPButton.brand {
+  background: linear-gradient(135deg, #ff7a1a, #f5c300);
+  color: #0b0f16;
+}
+
+.VPButton.alt {
+  border: 1px solid var(--vp-c-border);
+}
+
+.VPHomeHero {
+  position: relative;
+  overflow: hidden;
+}
+
+.VPHomeHero::before,
+.VPHomeHero::after {
+  content: '';
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  filter: blur(120px);
+  opacity: 0.4;
+  z-index: 0;
+}
+
+.VPHomeHero::before {
+  background: radial-gradient(circle, rgba(255, 122, 26, 0.6), transparent 60%);
+  top: -40px;
+  left: -90px;
+}
+
+.VPHomeHero::after {
+  background: radial-gradient(circle, rgba(245, 195, 0, 0.6), transparent 60%);
+  bottom: -60px;
+  right: -60px;
+}
+
+.VPHomeHero .name {
+  font-family: var(--vp-font-family-heading);
+  letter-spacing: 0.05em;
+}
+
+.VPHomeHero .tagline {
+  color: #d7deeb;
+}
+
+.VPHomeHero .image {
+  filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.4));
+}
+
+.VPFeatures {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 45%);
+  border: 1px solid var(--vp-c-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+}
+
+.VPFeature {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--vp-c-border);
+  border-radius: 16px;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.VPFeature:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 122, 26, 0.5);
+  box-shadow: 0 16px 48px rgba(255, 122, 26, 0.24);
+}
+
+.VPDoc {
+  background: rgba(13, 18, 26, 0.94);
+  border-radius: 18px;
+  border: 1px solid var(--vp-c-border);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+}
+
+.vp-doc .header-anchor {
+  color: #ffb347;
+}
+
+.vp-doc blockquote {
+  border-left: 3px solid #ff7a1a;
+  background: rgba(255, 122, 26, 0.06);
+  color: #f1e9df;
+}
+
+.vp-code {
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(17, 23, 31, 0.96), rgba(10, 14, 20, 0.95));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.vp-doc table {
+  border: 1px solid var(--vp-c-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.vp-doc table th {
+  background: rgba(255, 122, 26, 0.08);
+  color: #ffe7c7;
+}
+
+.vp-doc table td,
+.vp-doc table th {
+  border-color: var(--vp-c-border);
+}

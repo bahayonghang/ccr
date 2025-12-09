@@ -8,7 +8,9 @@ const zhNav = [
     text: '指南',
     items: [
       { text: '快速开始', link: '/guide/getting-started' },
+      { text: '功能概览', link: '/guide/features' },
       { text: '项目结构', link: '/guide/project-structure' },
+      { text: '使用统计', link: '/guide/usage-analytics' },
       { text: '统计功能', link: '/guide/stats' },
       { text: 'Tauri 桌面应用', link: '/guide/tauri' }
     ]
@@ -94,7 +96,7 @@ export default withMermaid(defineConfig({
         
         // 社交链接
         socialLinks: [
-          { icon: 'github', link: 'https://github.com/your-username/ccr' }
+          { icon: 'github', link: 'https://github.com/bahayonghang/ccr' }
         ],
         
         // 中文导航栏
@@ -107,7 +109,9 @@ export default withMermaid(defineConfig({
               text: '指南',
               items: [
                 { text: '快速开始', link: '/guide/getting-started' },
+                { text: '功能概览', link: '/guide/features' },
                 { text: '项目结构', link: '/guide/project-structure' },
+                { text: '使用统计', link: '/guide/usage-analytics' },
                 { text: '统计功能', link: '/guide/stats' },
                 { text: '🖥️ Tauri 桌面应用', link: '/guide/tauri' }
               ]
@@ -171,7 +175,7 @@ export default withMermaid(defineConfig({
         
         // 编辑链接
         editLink: {
-          pattern: 'https://github.com/your-username/ccr/edit/main/ccr-ui/docs/:path',
+          pattern: 'https://github.com/bahayonghang/ccr/edit/main/ccr-ui/docs/:path',
           text: '在 GitHub 上编辑此页面'
         },
         
@@ -221,7 +225,7 @@ export default withMermaid(defineConfig({
         
         // 社交链接
         socialLinks: [
-          { icon: 'github', link: 'https://github.com/your-username/ccr' }
+          { icon: 'github', link: 'https://github.com/bahayonghang/ccr' }
         ],
         
         // 英文导航栏
@@ -281,7 +285,7 @@ export default withMermaid(defineConfig({
         
         // 编辑链接
         editLink: {
-          pattern: 'https://github.com/your-username/ccr/edit/main/ccr-ui/docs/:path',
+          pattern: 'https://github.com/bahayonghang/ccr/edit/main/ccr-ui/docs/:path',
           text: 'Edit this page on GitHub'
         },
         
