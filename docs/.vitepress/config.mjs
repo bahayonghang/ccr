@@ -4,9 +4,14 @@ import { defineConfig } from 'vitepress'
 const sharedConfig = {
   // Markdown 配置
   markdown: {
-    theme: 'github-dark',
+    theme: {
+      light: 'github-light',
+      dark: 'github-dark'
+    },
     lineNumbers: true
-  }
+  },
+  // 外观配置 - 支持深浅主题切换
+  appearance: true
 }
 
 // https://vitepress.dev/reference/site-config
@@ -54,16 +59,17 @@ export default defineConfig({
         sidebar: {
           '/': [
             {
-              text: '指南',
+              text: '📚 入门指南',
+              collapsed: false,
               items: [
                 { text: '简介', link: '/' },
                 { text: '快速开始', link: '/guide/quick-start' },
-                { text: 'Web 界面使用指南', link: '/guide/web-guide' },
+                { text: 'Web 界面指南', link: '/guide/web-guide' },
                 { text: '配置管理', link: '/guide/configuration' }
               ]
             },
             {
-              text: '技术参考',
+              text: '🏗️ 技术参考',
               collapsed: false,
               items: [
                 { text: '架构设计', link: '/reference/architecture' },
@@ -71,49 +77,79 @@ export default defineConfig({
               ]
             },
             {
-              text: '核心命令',
+              text: '⌨️ 核心命令',
               collapsed: false,
               items: [
                 { text: '命令概览', link: '/reference/commands/' },
-                { text: 'platform - 平台管理', link: '/reference/commands/platform' },
-                { text: 'migrate - 配置迁移', link: '/reference/commands/migrate' },
-                { text: 'init - 初始化配置', link: '/reference/commands/init' },
-                { text: 'add - 添加配置', link: '/reference/commands/add' },
-                { text: 'delete - 删除配置', link: '/reference/commands/delete' },
-                { text: 'list - 列出配置', link: '/reference/commands/list' },
-                { text: 'current - 当前配置', link: '/reference/commands/current' },
-                { text: 'switch - 切换配置', link: '/reference/commands/switch' },
-                { text: 'validate - 验证配置', link: '/reference/commands/validate' },
-                { text: 'history - 操作历史', link: '/reference/commands/history' },
-                { text: 'check - 配置冲突检测', link: '/reference/commands/check' },
-                { text: 'tui - 终端界面', link: '/reference/commands/tui' },
-                { text: 'web - Web 界面', link: '/reference/commands/web' },
-                { text: 'ui - 启动 CCR UI', link: '/reference/commands/ui' },
-                { text: 'stats - 统计分析', link: '/reference/commands/stats' },
-                { text: 'sync - 云同步', link: '/reference/commands/sync' },
-                { text: 'skills - 技能管理', link: '/reference/commands/skills' },
-                { text: 'prompts - 提示词管理', link: '/reference/commands/prompts' },
-                { text: 'temp-token - 临时令牌', link: '/reference/commands/temp-token' },
-                { text: 'export - 导出配置', link: '/reference/commands/export' },
-                { text: 'import - 导入配置', link: '/reference/commands/import' },
-                { text: 'clean - 清理备份', link: '/reference/commands/clean' },
-                { text: 'update - 更新 CCR', link: '/reference/commands/update' },
-                { text: 'version - 版本信息', link: '/reference/commands/version' }
+                {
+                  text: '平台与初始化',
+                  collapsed: true,
+                  items: [
+                    { text: 'platform - 平台管理', link: '/reference/commands/platform' },
+                    { text: 'migrate - 配置迁移', link: '/reference/commands/migrate' },
+                    { text: 'init - 初始化', link: '/reference/commands/init' }
+                  ]
+                },
+                {
+                  text: '配置操作',
+                  collapsed: true,
+                  items: [
+                    { text: 'add - 添加配置', link: '/reference/commands/add' },
+                    { text: 'delete - 删除配置', link: '/reference/commands/delete' },
+                    { text: 'list - 列出配置', link: '/reference/commands/list' },
+                    { text: 'current - 当前配置', link: '/reference/commands/current' },
+                    { text: 'switch - 切换配置', link: '/reference/commands/switch' },
+                    { text: 'validate - 验证配置', link: '/reference/commands/validate' }
+                  ]
+                },
+                {
+                  text: '数据管理',
+                  collapsed: true,
+                  items: [
+                    { text: 'history - 操作历史', link: '/reference/commands/history' },
+                    { text: 'export - 导出配置', link: '/reference/commands/export' },
+                    { text: 'import - 导入配置', link: '/reference/commands/import' },
+                    { text: 'clean - 清理备份', link: '/reference/commands/clean' }
+                  ]
+                },
+                {
+                  text: '界面与服务',
+                  collapsed: true,
+                  items: [
+                    { text: 'tui - 终端界面', link: '/reference/commands/tui' },
+                    { text: 'web - Web 界面', link: '/reference/commands/web' },
+                    { text: 'ui - CCR UI', link: '/reference/commands/ui' }
+                  ]
+                },
+                {
+                  text: '高级功能',
+                  collapsed: true,
+                  items: [
+                    { text: 'check - 冲突检测', link: '/reference/commands/check' },
+                    { text: 'stats - 统计分析', link: '/reference/commands/stats' },
+                    { text: 'sync - 云同步', link: '/reference/commands/sync' },
+                    { text: 'skills - 技能管理', link: '/reference/commands/skills' },
+                    { text: 'prompts - 提示词', link: '/reference/commands/prompts' },
+                    { text: 'temp-token - 临时令牌', link: '/reference/commands/temp-token' },
+                    { text: 'update - 更新', link: '/reference/commands/update' },
+                    { text: 'version - 版本', link: '/reference/commands/version' }
+                  ]
+                }
               ]
             },
             {
-              text: '平台支持',
+              text: '🔌 平台支持',
               collapsed: false,
               items: [
                 { text: '平台概览', link: '/reference/platforms/' },
                 { text: 'Claude Code', link: '/reference/platforms/claude' },
-                { text: 'Codex (GitHub Copilot)', link: '/reference/platforms/codex' },
+                { text: 'Codex (Copilot)', link: '/reference/platforms/codex' },
                 { text: 'Gemini CLI', link: '/reference/platforms/gemini' },
                 { text: '平台迁移', link: '/reference/platforms/migration' }
               ]
             },
             {
-              text: '示例',
+              text: '📝 示例',
               collapsed: true,
               items: [
                 { text: '示例概览', link: '/examples/' },
@@ -179,8 +215,9 @@ export default defineConfig({
           next: '下一页'
         },
 
-        // 大纲标题
+        // 大纲标题 - 显示 h2 和 h3
         outline: {
+          level: [2, 3],
           label: '页面导航'
         },
 

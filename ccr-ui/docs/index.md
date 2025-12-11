@@ -15,27 +15,108 @@ hero:
     - theme: alt
       text: 查看源码
       link: https://github.com/bahayonghang/ccr
-
-features:
-  - icon: 🚀
-    title: 现代全栈
-    details: 前端 Vue 3.5 + Vite + TypeScript + Tailwind，后端 Rust 2024 + Axum（workspace 成员），一致依赖。
-  - icon: 🖥️
-    title: 多种界面
-    details: Web 模式与 Tauri 桌面模式自动切换，同一前端体验。
-  - icon: ⚙️
-    title: 全量配置能力
-    details: 可视化查看/切换/验证/历史/备份，覆盖全部 CCR CLI 命令。
-  - icon: ☁️
-    title: 多目录同步
-    details: WebDAV 目录注册、启用/禁用、单目录/批量 push·pull·status，自动过滤备份与锁。
-  - icon: 🔌
-    title: 平台与系统
-    details: 支持 Claude、Codex、Gemini CLI、Qwen、IFLOW 等平台概览，系统健康检查与日志辅助。
-  - icon: 🧰
-    title: 开发者友好
-    details: 内置 just 任务、组件与 API 客户端、VitePress 文档，便于二开和集成。
 ---
+
+<script setup>
+const coreFeatures = [
+  {
+    icon: '🚀',
+    title: '现代全栈',
+    details: 'Vue 3.5 + Vite + TypeScript，Rust 2024 + Axum 后端。',
+    link: '/guide/project-structure'
+  },
+  {
+    icon: '🖥️',
+    title: '多种界面',
+    details: 'Web 与 Tauri 桌面模式自动切换，统一体验。',
+    link: '/guide/tauri'
+  },
+  {
+    icon: '⚙️',
+    title: '全量配置',
+    details: '可视化查看/切换/验证/历史/备份操作。',
+    link: '/guide/features'
+  },
+  {
+    icon: '☁️',
+    title: '多目录同步',
+    details: 'WebDAV 目录注册、批量 push/pull/status。',
+    link: '/guide/features'
+  },
+  {
+    icon: '🔌',
+    title: '多平台支持',
+    details: 'Claude、Codex、Gemini、Qwen、IFLOW 等。',
+    link: '/guide/features'
+  },
+  {
+    icon: '🧰',
+    title: '开发者友好',
+    details: '内置 just 任务、组件文档、API 客户端。',
+    link: '/contributing'
+  }
+]
+
+const quickLinks = [
+  {
+    icon: '📖',
+    title: '快速开始',
+    details: '5 分钟启动 CCR UI 开发环境。',
+    link: '/guide/getting-started'
+  },
+  {
+    icon: '🎨',
+    title: '前端文档',
+    details: 'Vue 组件、API 客户端、样式指南。',
+    link: '/reference/frontend/overview'
+  },
+  {
+    icon: '⚡',
+    title: '后端文档',
+    details: 'Axum 架构、API 接口、错误处理。',
+    link: '/reference/backend/architecture'
+  },
+  {
+    icon: '🖥️',
+    title: 'Tauri 桌面',
+    details: '构建跨平台桌面应用。',
+    link: '/guide/tauri'
+  }
+]
+
+const techStack = [
+  {
+    icon: '💚',
+    title: 'Vue 3.5',
+    details: 'Composition API + TypeScript',
+    link: '/reference/frontend/tech-stack'
+  },
+  {
+    icon: '🦀',
+    title: 'Rust + Axum',
+    details: '高性能异步后端服务',
+    link: '/reference/backend/tech-stack'
+  },
+  {
+    icon: '🌊',
+    title: 'Tailwind CSS',
+    details: '原子化 CSS 框架',
+    link: '/reference/frontend/styling'
+  },
+  {
+    icon: '🖼️',
+    title: 'Tauri 2.0',
+    details: '轻量级跨平台桌面框架',
+    link: '/guide/tauri'
+  }
+]
+</script>
+
+<HomeFeatures badge="核心功能" title="为什么选择 CCR UI？" :features="coreFeatures" />
+
+<HomeFeatures badge="技术栈" badge-type="success" title="现代化技术选型" :features="techStack" />
+
+<HomeFeatures badge="快速导航" badge-type="info" title="开始使用" :features="quickLinks" />
 
 ## 项目简介
 CCR UI 为 CCR 提供图形化与桌面化控制台：配置管理、命令执行、多目录同步、平台信息与系统监控一站式收拢。默认工作在 `~/.ccr/ccr-ui/` 或源码路径，Tauri 桌面模式自动切换调用方式（invoke/HTTP）。

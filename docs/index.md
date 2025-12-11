@@ -18,27 +18,79 @@ hero:
     - theme: alt
       text: English
       link: /en/
-
-features:
-  - icon: ⚡
-    title: 多接口一体
-    details: CLI 为主，内置 TUI、轻量 Web API（兼容/编程访问），推荐完整 CCR UI（Vue3 + Axum + Tauri）。
-  - icon: 🛡️
-    title: 并发安全
-    details: 文件锁 + 进程内互斥 + 原子写入，保护 settings.json 与配置文件。
-  - icon: 🔀
-    title: 多平台注册表
-    details: Unified 模式默认启用，`config.toml` 记录 current_platform 与平台目录；兼容 Legacy `~/.ccs_config.toml`。
-  - icon: 🧭
-    title: 配置直写 Claude
-    details: 直接写入 `~/.claude/settings.json`，自动备份/审计，支持临时覆盖 token/base_url/model。
-  - icon: ☁️
-    title: WebDAV 多目录同步
-    details: 目录注册/启用、批量/单目录 push/pull/status、交互式内容选择，智能过滤备份/历史/锁/ccr-ui。
-  - icon: 📊
-    title: 成本与统计
-    details: "`ccr stats`（web 特性）提供成本/调用统计，可 JSON 输出；`history` 记录掩码后的环境变量差异。"
 ---
+
+<script setup>
+const coreFeatures = [
+  {
+    icon: '⚡',
+    title: '多接口一体',
+    details: 'CLI 为主，内置 TUI、轻量 Web API，推荐完整 CCR UI。',
+    link: '/guide/quick-start'
+  },
+  {
+    icon: '🛡️',
+    title: '并发安全',
+    details: '文件锁 + 进程内互斥 + 原子写入，保护配置文件。',
+    link: '/reference/architecture'
+  },
+  {
+    icon: '🔀',
+    title: '多平台注册表',
+    details: '支持 Claude、Codex、Gemini、Qwen、iFlow 等平台。',
+    link: '/reference/platforms/'
+  },
+  {
+    icon: '🧭',
+    title: '配置直写',
+    details: '直接写入 settings.json，自动备份与审计。',
+    link: '/reference/commands/switch'
+  },
+  {
+    icon: '☁️',
+    title: 'WebDAV 同步',
+    details: '多目录注册、批量 push/pull，智能过滤。',
+    link: '/reference/commands/sync'
+  },
+  {
+    icon: '📊',
+    title: '成本统计',
+    details: '提供调用统计与成本分析，支持 JSON 输出。',
+    link: '/reference/commands/stats'
+  }
+]
+
+const quickLinks = [
+  {
+    icon: '📖',
+    title: '快速开始',
+    details: '5 分钟上手 CCR 配置管理。',
+    link: '/guide/quick-start'
+  },
+  {
+    icon: '🖥️',
+    title: 'CCR UI',
+    details: 'Vue3 + Axum + Tauri 全栈界面。',
+    link: '/reference/commands/ui'
+  },
+  {
+    icon: '⌨️',
+    title: '命令参考',
+    details: '全部 CLI 命令详细文档。',
+    link: '/reference/commands/'
+  },
+  {
+    icon: '🏗️',
+    title: '架构设计',
+    details: '了解 CCR 的分层架构。',
+    link: '/reference/architecture'
+  }
+]
+</script>
+
+<HomeFeatures badge="核心功能" title="为什么选择 CCR？" :features="coreFeatures" />
+
+<HomeFeatures badge="快速导航" badge-type="info" title="开始使用" :features="quickLinks" />
 
 ## 版本与安装
 - 当前版本：3.9.0（Rust 2024）

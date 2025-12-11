@@ -10,29 +10,28 @@ const zhNav = [
       { text: '快速开始', link: '/guide/getting-started' },
       { text: '功能概览', link: '/guide/features' },
       { text: '项目结构', link: '/guide/project-structure' },
-      { text: '使用统计', link: '/guide/usage-analytics' },
-      { text: '统计功能', link: '/guide/stats' },
-      { text: 'Tauri 桌面应用', link: '/guide/tauri' }
+      { text: 'Tauri 桌面', link: '/guide/tauri' }
     ]
   },
   {
-    text: '技术参考',
+    text: '前端',
     items: [
-      { text: '前端概述', link: '/reference/frontend/overview' },
-      { text: '前端技术栈', link: '/reference/frontend/tech-stack' },
-      { text: '前端开发', link: '/reference/frontend/development' },
-      { text: '组件文档', link: '/reference/frontend/components' },
-      { text: '前端 API', link: '/reference/frontend/api' },
-      { text: '样式指南', link: '/reference/frontend/styling' },
-      { text: '后端架构', link: '/reference/backend/architecture' },
-      { text: '后端技术栈', link: '/reference/backend/tech-stack' },
-      { text: '后端开发', link: '/reference/backend/development' },
-      { text: '后端 API', link: '/reference/backend/api' },
-      { text: '错误处理', link: '/reference/backend/error-handling' },
+      { text: '项目概述', link: '/reference/frontend/overview' },
+      { text: '技术栈', link: '/reference/frontend/tech-stack' },
+      { text: '开发指南', link: '/reference/frontend/development' },
+      { text: '组件文档', link: '/reference/frontend/components' }
+    ]
+  },
+  {
+    text: '后端',
+    items: [
+      { text: '架构设计', link: '/reference/backend/architecture' },
+      { text: '技术栈', link: '/reference/backend/tech-stack' },
+      { text: 'API 文档', link: '/reference/backend/api' },
       { text: '部署指南', link: '/reference/backend/deployment' }
     ]
   },
-  { text: '贡献指南', link: '/contributing' },
+  { text: '贡献', link: '/contributing' },
   { text: 'FAQ', link: '/faq' }
 ]
 
@@ -104,22 +103,29 @@ export default withMermaid(defineConfig({
         
         // 中文侧边栏
         sidebar: {
-          '/guide/': [
+          '/': [
             {
-              text: '指南',
+              text: '📚 入门指南',
+              collapsed: false,
               items: [
+                { text: '简介', link: '/' },
                 { text: '快速开始', link: '/guide/getting-started' },
                 { text: '功能概览', link: '/guide/features' },
-                { text: '项目结构', link: '/guide/project-structure' },
-                { text: '使用统计', link: '/guide/usage-analytics' },
-                { text: '统计功能', link: '/guide/stats' },
-                { text: '🖥️ Tauri 桌面应用', link: '/guide/tauri' }
+                { text: '项目结构', link: '/guide/project-structure' }
               ]
-            }
-          ],
-          '/reference/': [
+            },
             {
-              text: '前端文档',
+              text: '🖥️ 桌面应用',
+              collapsed: false,
+              items: [
+                { text: 'Tauri 概述', link: '/guide/tauri' },
+                { text: '使用统计', link: '/guide/usage-analytics' },
+                { text: '统计功能', link: '/guide/stats' }
+              ]
+            },
+            {
+              text: '🎨 前端文档',
+              collapsed: false,
               items: [
                 { text: '项目概述', link: '/reference/frontend/overview' },
                 { text: '页面架构', link: '/reference/frontend/page-architecture' },
@@ -132,7 +138,8 @@ export default withMermaid(defineConfig({
               ]
             },
             {
-              text: '后端文档',
+              text: '⚡ 后端文档',
+              collapsed: false,
               items: [
                 { text: '架构设计', link: '/reference/backend/architecture' },
                 { text: '技术栈', link: '/reference/backend/tech-stack' },
@@ -140,6 +147,14 @@ export default withMermaid(defineConfig({
                 { text: 'API 文档', link: '/reference/backend/api' },
                 { text: '错误处理', link: '/reference/backend/error-handling' },
                 { text: '部署指南', link: '/reference/backend/deployment' }
+              ]
+            },
+            {
+              text: '🤝 贡献与帮助',
+              collapsed: true,
+              items: [
+                { text: '贡献指南', link: '/contributing' },
+                { text: '常见问题', link: '/faq' }
               ]
             }
           ]
