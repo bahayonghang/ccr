@@ -8,6 +8,59 @@ export default {
   ],
   theme: {
     extend: {
+      // 设计令牌 - 间距系统
+      spacing: {
+        'xs': 'var(--space-xs)',
+        'sm': 'var(--space-sm)',
+        'md': 'var(--space-md)',
+        'lg': 'var(--space-lg)',
+        'xl': 'var(--space-xl)',
+        '2xl': 'var(--space-2xl)',
+        '3xl': 'var(--space-3xl)',
+        '4xl': 'var(--space-4xl)',
+        '5xl': 'var(--space-5xl)',
+      },
+      // 字体系统
+      fontSize: {
+        'xs': 'var(--font-size-xs)',
+        'sm': 'var(--font-size-sm)',
+        'base': 'var(--font-size-base)',
+        'lg': 'var(--font-size-lg)',
+        'xl': 'var(--font-size-xl)',
+        '2xl': 'var(--font-size-2xl)',
+        '3xl': 'var(--font-size-3xl)',
+        '4xl': 'var(--font-size-4xl)',
+        '5xl': 'var(--font-size-5xl)',
+        '6xl': 'var(--font-size-6xl)',
+      },
+      fontFamily: {
+        'display': ['Inter', 'SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'body': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
+      fontWeight: {
+        'light': 'var(--font-weight-light)',
+        'normal': 'var(--font-weight-normal)',
+        'medium': 'var(--font-weight-medium)',
+        'semibold': 'var(--font-weight-semibold)',
+        'bold': 'var(--font-weight-bold)',
+        'extrabold': 'var(--font-weight-extrabold)',
+        'black': 'var(--font-weight-black)',
+      },
+      lineHeight: {
+        'tight': 'var(--line-height-tight)',
+        'normal': 'var(--line-height-normal)',
+        'relaxed': 'var(--line-height-relaxed)',
+        'loose': 'var(--line-height-loose)',
+      },
+      borderRadius: {
+        'xs': 'var(--radius-sm)',
+        'sm': 'var(--radius-md)',
+        'md': 'var(--radius-lg)',
+        'lg': 'var(--radius-xl)',
+        'xl': 'var(--radius-2xl)',
+        '2xl': 'var(--radius-3xl)',
+        'full': 'var(--radius-full)',
+      },
       colors: {
         bg: {
           primary: 'var(--bg-primary)',

@@ -1,9 +1,12 @@
 <template>
   <nav
-    class="rounded-xl mb-5 p-5 relative overflow-hidden glass-effect"
+    class="animate-gpu-accelerated relative overflow-hidden glass-effect"
     :style="{
+      borderRadius: 'var(--radius-xl)',
+      margin: '0 0 var(--space-xl) 0',
+      padding: 'var(--space-lg)',
       border: '1px solid var(--border-color)',
-      boxShadow: 'var(--shadow-medium)'
+      boxShadow: 'var(--shadow-lg)'
     }"
   >
     <!-- 底部渐变线 -->
@@ -17,28 +20,34 @@
 
     <div class="flex items-center justify-between">
       <!-- 品牌区域 -->
-      <div class="flex items-center space-x-5">
+      <div class="flex items-center" :style="{ gap: 'var(--space-lg)' }">
         <div class="flex flex-col">
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center" :style="{ gap: 'var(--space-sm)' }">
             <Zap
               class="w-7 h-7"
               :style="{ color: 'var(--accent-primary)' }"
             />
             <h1
-              class="text-3xl font-bold tracking-tight gradient-text"
+              class="text-display animate-gpu-accelerated"
               :style="{
                 background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
+                backgroundClip: 'text',
+                fontSize: 'var(--font-size-3xl)',
+                fontWeight: 'var(--font-weight-bold)',
+                letterSpacing: '-0.02em'
               }"
             >
               CCR
             </h1>
           </div>
           <div
-            class="text-xs font-medium tracking-widest uppercase mt-1"
-            :style="{ color: 'var(--text-muted)' }"
+            class="text-label animate-fade-in"
+            :style="{
+              color: 'var(--text-muted)',
+              marginTop: 'var(--space-xs)'
+            }"
           >
             Web Console
           </div>
@@ -75,28 +84,31 @@
       </div>
 
       <!-- 操作按钮 -->
-      <div class="flex items-center space-x-2">
+      <div class="flex items-center" :style="{ gap: 'var(--space-sm)' }">
         <ThemeToggle />
 
         <!-- 分隔线 -->
         <div
-          class="hidden sm:block w-px h-8 mx-1"
+          class="hidden sm:block w-px h-8"
           :style="{
-            background: 'linear-gradient(180deg, transparent, var(--border-color), transparent)'
+            background: 'linear-gradient(180deg, transparent, var(--border-color), transparent)',
+            margin: '0 var(--space-xs)'
           }"
           aria-hidden="true"
         />
 
         <button
           v-if="onRefresh"
-          class="px-3 py-2 rounded-lg font-semibold text-sm transition-all flex items-center space-x-1.5 hover:scale-105"
+          class="btn-enhanced touch-optimized animate-gpu-accelerated"
           :style="{
+            padding: 'var(--space-sm) var(--space-md)',
+            borderRadius: 'var(--radius-lg)',
             background: 'var(--bg-tertiary)',
             color: 'var(--text-primary)',
             border: '1px solid var(--border-color)'
           }"
-          aria-label="刷新数据"
-          title="刷新数据"
+          :aria-label="$t('nav.refresh')"
+          :title="$t('nav.refresh')"
           @click="onRefresh"
         >
           <RefreshCw class="w-4 h-4" />
