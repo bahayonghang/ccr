@@ -1,0 +1,41 @@
+# Codex Profiles 示例（Unified）
+# 复制到: ~/.ccr/platforms/codex/profiles.toml
+
+default_config = "duckcoding"
+current_config = "duckcoding"
+
+[settings]
+skip_confirmation = false
+
+# GitHub Copilot（兼容模式）
+[github]
+description = "GitHub Copilot (legacy)"
+base_url = "https://api.github.com/copilot"
+auth_token = "ghp_...your-github-token"
+model = "gpt-4"
+provider = "github"
+provider_type = "official_relay"
+api_mode = "github"
+usage_count = 0
+enabled = true
+
+# OpenAI 兼容 Provider（与你截图一致）
+[duckcoding]
+description = "DuckCoding (OpenAI 兼容) - gpt-5.1-codex"
+base_url = "https://jp.duckcoding.com/v1"
+auth_token = "sk-...your-duckcoding-codex-token"
+model = "gpt-5.1-codex"
+provider = "duckcoding"
+provider_type = "official_relay"
+api_mode = "custom"
+wire_api = "responses"
+env_key = "DUCKCODING_API_KEY"
+requires_openai_auth = true
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "high"
+network_access = "enabled"
+disable_response_storage = true
+usage_count = 0
+enabled = true
+

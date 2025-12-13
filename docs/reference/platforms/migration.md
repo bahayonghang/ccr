@@ -247,7 +247,7 @@ ccr platform migrate claude codex
 # - Codex-appropriate default models
 
 # Step 3: Replace tokens manually
-vim ~/.ccr/codex/profiles.toml
+vim ~/.ccr/platforms/codex/profiles.toml
 
 # Update auth_token for each profile:
 # Before: auth_token = "sk-ant-api03-..."
@@ -388,7 +388,7 @@ ccr platform init codex
 ccr platform migrate claude codex
 
 # Step 4: Update tokens
-vim ~/.ccr/codex/profiles.toml
+vim ~/.ccr/platforms/codex/profiles.toml
 # Replace all Anthropic keys with GitHub tokens
 
 # Step 5: Validate
@@ -540,7 +540,7 @@ cat ~/.claude/ccr_history.json
 
 # Unified history location (per-platform)
 cat ~/.ccr/claude/history.json
-cat ~/.ccr/codex/history.json
+cat ~/.ccr/history/codex.json
 
 # If history missing, manually copy
 cp ~/.claude/ccr_history.json ~/.ccr/claude/history.json

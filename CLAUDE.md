@@ -78,7 +78,7 @@ CCR supports managing configurations for multiple AI CLI platforms from a unifie
 | Platform | Status | Description | Settings Path |
 |----------|--------|-------------|---------------|
 | **Claude Code** | ✅ Fully Implemented | Anthropic's official CLI | `~/.claude/settings.json` |
-| **Codex** | ✅ Fully Implemented | GitHub Copilot CLI | `~/.codex/settings.json` |
+| **Codex** | ✅ Fully Implemented | Codex CLI (OpenAI-compatible providers + GitHub Copilot compatible mode) | `~/.codex/config.toml` |
 | **Gemini** | ✅ Fully Implemented | Google Gemini CLI | `~/.gemini/settings.json` |
 | **Qwen** | 🚧 Planned | Alibaba Tongyi Qianwen CLI | TBD |
 | **iFlow** | 🚧 Planned | iFlow CLI | TBD |
@@ -119,7 +119,8 @@ Modern CCR setup with per-platform organization:
 │       ├── history/
 │       └── backups/
 ~/.claude/settings.json              # Claude actual settings
-~/.codex/settings.json               # Codex actual settings
+~/.codex/config.toml                 # Codex CLI config
+~/.codex/auth.json                   # Codex CLI auth (API keys)
 ~/.gemini/settings.json              # Gemini actual settings
 ```
 

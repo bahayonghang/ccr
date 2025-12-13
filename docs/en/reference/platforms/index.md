@@ -7,7 +7,7 @@ CCR supports managing configurations for multiple AI CLI platforms from a single
 | Platform | Status | Description | Settings Path |
 |----------|--------|-------------|---------------|
 | [**Claude Code**](./claude) | ✅ Fully Implemented | Anthropic's official CLI | `~/.claude/settings.json` |
-| [**Codex**](./codex) | ✅ Fully Implemented | GitHub Copilot CLI | `~/.codex/settings.json` |
+| [**Codex**](./codex) | ✅ Fully Implemented | Codex CLI (OpenAI-compatible providers + GitHub Copilot compatible mode) | `~/.codex/config.toml` |
 | [**Gemini CLI**](./gemini) | ✅ Fully Implemented | Google Gemini CLI | `~/.gemini/settings.json` |
 | **Qwen CLI** | 🚧 Planned | Alibaba Qwen CLI | `~/.qwen/settings.json` |
 | **iFlow CLI** | 🚧 Planned | iFlow AI CLI | `~/.iflow/settings.json` |
@@ -117,15 +117,15 @@ current_profile = "anthropic-official"
 [platforms.codex]
 enabled = true
 name = "Codex"
-description = "GitHub Copilot CLI"
-settings_path = "~/.codex/settings.json"
-current_profile = "github-copilot"
+description = "Codex CLI"
+settings_path = "~/.codex/config.toml"
+current_profile = "duckcoding"
 ```
 
 ## Platform-Specific Guides
 
 - [**Claude Code**](./claude) - Anthropic's official CLI platform
-- [**Codex**](./codex) - GitHub Copilot CLI integration
+- [**Codex**](./codex) - Codex CLI integration
 - [**Gemini CLI**](./gemini) - Google Gemini CLI support
 - [**Migration**](./migration) - Migrating between platforms
 
