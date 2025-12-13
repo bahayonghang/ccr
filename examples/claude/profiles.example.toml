@@ -1,0 +1,33 @@
+# Claude Code Profiles 示例（Unified）
+# 复制到: ~/.ccr/platforms/claude/profiles.toml
+
+default_config = "anthropic"
+current_config = "anthropic"
+
+[settings]
+skip_confirmation = false
+
+[anthropic]
+description = "Anthropic Official API"
+base_url = "https://api.anthropic.com"
+auth_token = "sk-ant-api03-your-api-key-here"
+model = "claude-sonnet-4-5-20250929"
+small_fast_model = "claude-3-5-haiku-20241022"
+provider = "anthropic"
+provider_type = "official_relay"
+usage_count = 0
+enabled = true
+
+[relay_service]
+description = "Claude API Relay (OpenAI 兼容示例)"
+base_url = "https://your-relay-service.com/v1"
+auth_token = "sk-your-relay-token"
+model = "claude-sonnet-4-5-20250929"
+small_fast_model = "claude-3-5-haiku-20241022"
+provider = "relay"
+provider_type = "official_relay"
+account = "work"
+tags = ["production", "relay"]
+usage_count = 0
+enabled = true
+

@@ -25,6 +25,7 @@ fn create_test_config_section(name: &str) -> ConfigSection {
         tags: Some(vec!["test".into(), "integration".into()]),
         usage_count: Some(0),
         enabled: Some(true),
+        other: IndexMap::new(),
     }
 }
 
@@ -122,6 +123,7 @@ fn test_config_section_validation() {
         tags: None,
         usage_count: Some(0),
         enabled: Some(true),
+        other: IndexMap::new(),
     };
     assert!(invalid.validate().is_err());
 

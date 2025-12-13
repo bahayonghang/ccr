@@ -26,6 +26,7 @@ fn create_test_section(name: &str) -> ConfigSection {
         tags: Some(vec!["test".into()]),
         usage_count: Some(0),
         enabled: Some(true),
+        other: IndexMap::new(),
     }
 }
 
@@ -128,6 +129,7 @@ fn test_config_service_validation() {
         tags: None,
         usage_count: Some(0),
         enabled: Some(true),
+        other: IndexMap::new(),
     };
     config.sections.insert("invalid".into(), invalid_section);
 
@@ -796,6 +798,7 @@ fn test_auto_complete_missing_fields() {
         tags: None,
         usage_count: None, // 缺失字段
         enabled: None,     // 缺失字段
+        other: IndexMap::new(),
     };
 
     // 调用自动补全

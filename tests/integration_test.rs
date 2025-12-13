@@ -21,6 +21,7 @@ fn create_test_section(name: &str) -> ConfigSection {
         tags: None,
         usage_count: Some(0),
         enabled: Some(true),
+        other: IndexMap::new(),
     }
 }
 
@@ -132,6 +133,7 @@ fn test_validation_trait() {
         tags: None,
         usage_count: Some(0),
         enabled: Some(true),
+        other: IndexMap::new(),
     };
     assert!(invalid_section.validate().is_err());
 
@@ -148,6 +150,7 @@ fn test_validation_trait() {
         tags: None,
         usage_count: Some(0),
         enabled: Some(true),
+        other: IndexMap::new(),
     };
     assert!(invalid_section.validate().is_err());
 }

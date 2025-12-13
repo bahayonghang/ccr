@@ -2,6 +2,13 @@
 # 适用于 Unified 模式下的平台配置
 # 路径: ~/.ccr/platforms/gemini/profiles.toml
 
+# ⚠️ 注意：CCR 使用兼容 CCS 的 profiles.toml 格式（包含 default_config/current_config/settings）
+default_config = "google"
+current_config = "google"
+
+[settings]
+skip_confirmation = false
+
 # ═══════════════════════════════════════════════════════════════
 # Google Gemini 官方 API
 # ═══════════════════════════════════════════════════════════════

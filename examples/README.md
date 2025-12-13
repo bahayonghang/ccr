@@ -8,7 +8,8 @@
 examples/
 ├── README.md                     # 本文件
 ├── claude/
-│   └── profiles.toml             # Claude Code 平台示例
+│   ├── profiles.example.toml     # Claude Code 平台示例（推荐）
+│   └── profiles.toml             # 旧文件（历史遗留，可能包含非 UTF-8 内容）
 ├── codex/
 │   └── profiles.toml             # Codex (GitHub Copilot) 平台示例
 └── gemini/
@@ -22,7 +23,7 @@ examples/
 ```bash
 # Claude 平台
 ccr platform init claude
-cp examples/claude/profiles.toml ~/.ccr/platforms/claude/profiles.toml
+cp examples/claude/profiles.example.toml ~/.ccr/platforms/claude/profiles.toml
 vim ~/.ccr/platforms/claude/profiles.toml
 
 # Gemini 平台
@@ -43,6 +44,7 @@ ccr list
 - `claude/profiles.toml`：Anthropic 官方、转发服务、第三方兼容、开发/测试、禁用示例。
 - `codex/profiles.toml`：Copilot 官方、Copilot Enterprise、转发服务、开发/测试、禁用示例。
 - `gemini/profiles.toml`：Google Gemini 官方、Gemini Pro、开发/测试、禁用示例。
+- `codex/config.example.toml` / `codex/auth.example.json`：Codex CLI（`~/.codex/`）的示例配置（与 CCR profiles 独立）。
 
 ## 🔑 常用字段
 
@@ -148,4 +150,3 @@ ccr disable old_config
 ccr list          # 禁用项不显示
 ccr enable old_config
 ```
-

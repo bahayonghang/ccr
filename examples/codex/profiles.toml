@@ -2,6 +2,13 @@
 # 适用于 Unified 模式下的平台配置
 # 路径: ~/.ccr/platforms/codex/profiles.toml
 
+# ⚠️ 注意：CCR 使用兼容 CCS 的 profiles.toml 格式（包含 default_config/current_config/settings）
+default_config = "duckcoding"
+current_config = "duckcoding"
+
+[settings]
+skip_confirmation = false
+
 # ═══════════════════════════════════════════════════════════════
 # GitHub Copilot 官方
 # ═══════════════════════════════════════════════════════════════
@@ -13,6 +20,7 @@ model = "gpt-4"
 small_fast_model = "gpt-3.5-turbo"
 provider = "GitHub"
 provider_type = "official_relay"
+api_mode = "github"
 usage_count = 0
 enabled = true
 
@@ -27,6 +35,7 @@ model = "gpt-4-turbo"
 small_fast_model = "gpt-3.5-turbo"
 provider = "GitHub Enterprise"
 provider_type = "official_relay"
+api_mode = "github"
 account = "enterprise@company.com"
 tags = ["enterprise", "production"]
 usage_count = 0
@@ -36,15 +45,40 @@ enabled = true
 # Codex 转发服务示例
 # ═══════════════════════════════════════════════════════════════
 [codex_relay]
-description = "Codex API 转发服务"
-base_url = "https://your-codex-relay.com/v1"
-auth_token = "relay-token-here"
-model = "gpt-4"
-small_fast_model = "gpt-3.5-turbo"
-provider = "Codex Relay"
+description = "OpenAI 兼容转发服务（示例）"
+base_url = "https://your-openai-compatible.com/v1"
+auth_token = "sk-your-api-key"
+model = "gpt-5.1-codex"
+provider = "custom"
 provider_type = "official_relay"
-account = "relay-user"
-tags = ["relay", "backup"]
+api_mode = "custom"
+wire_api = "responses"
+env_key = "CUSTOM_API_KEY"
+requires_openai_auth = true
+network_access = "enabled"
+disable_response_storage = true
+usage_count = 0
+enabled = true
+
+# ═══════════════════════════════════════════════════════════════
+# DuckCoding 示例（与你截图一致）
+# ═══════════════════════════════════════════════════════════════
+[duckcoding]
+description = "DuckCoding (OpenAI 兼容) - gpt-5.1-codex"
+base_url = "https://jp.duckcoding.com/v1"
+auth_token = "sk-...your-duckcoding-codex-token"
+model = "gpt-5.1-codex"
+provider = "duckcoding"
+provider_type = "official_relay"
+api_mode = "custom"
+wire_api = "responses"
+env_key = "DUCKCODING_API_KEY"
+requires_openai_auth = true
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "high"
+network_access = "enabled"
+disable_response_storage = true
 usage_count = 0
 enabled = true
 
@@ -59,6 +93,7 @@ model = "gpt-3.5-turbo"
 small_fast_model = "gpt-3.5-turbo"
 provider = "GitHub Dev"
 provider_type = "official_relay"
+api_mode = "github"
 account = "dev@example.com"
 tags = ["development", "testing"]
 usage_count = 0
