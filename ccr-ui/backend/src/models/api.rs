@@ -117,12 +117,73 @@ pub struct UpdateConfigRequest {
     pub description: Option<String>,
     pub base_url: String,
     pub auth_token: String,
+    #[serde(default, deserialize_with = "deserialize_optional_trimmed_string")]
     pub model: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_trimmed_string")]
     pub small_fast_model: Option<String>,
     pub provider: Option<String>,
     pub provider_type: Option<String>,
     pub account: Option<String>,
     pub tags: Option<Vec<String>>,
+}
+
+fn deserialize_optional_trimmed_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+    Ok(value.and_then(|s| {
+        let trimmed = s.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UpdateConfigRequest;
+
+    #[test]
+    fn update_config_request_blank_model_deserializes_to_none() {
+        let input = serde_json::json!({
+            "name": "test",
+            "base_url": "https://api.example.com",
+            "auth_token": "sk-test",
+            "model": ""
+        });
+
+        let req: UpdateConfigRequest = serde_json::from_value(input).unwrap();
+        assert_eq!(req.model, None);
+    }
+
+    #[test]
+    fn update_config_request_whitespace_model_deserializes_to_none() {
+        let input = serde_json::json!({
+            "name": "test",
+            "base_url": "https://api.example.com",
+            "auth_token": "sk-test",
+            "model": "   "
+        });
+
+        let req: UpdateConfigRequest = serde_json::from_value(input).unwrap();
+        assert_eq!(req.model, None);
+    }
+
+    #[test]
+    fn update_config_request_model_is_trimmed() {
+        let input = serde_json::json!({
+            "name": "test",
+            "base_url": "https://api.example.com",
+            "auth_token": "sk-test",
+            "model": "  gpt-5  "
+        });
+
+        let req: UpdateConfigRequest = serde_json::from_value(input).unwrap();
+        assert_eq!(req.model.as_deref(), Some("gpt-5"));
+    }
 }
 
 // ===== History Models =====

@@ -394,7 +394,11 @@ const handleSave = async () => {
 
   try {
     saving.value = true
-    await addConfig(formData.value)
+    const payload: UpdateConfigRequest = {
+      ...formData.value,
+      model: (formData.value.model ?? '').trim() || undefined
+    }
+    await addConfig(payload)
     alert(t('configs.addConfig.success', { name: formData.value.name }))
     emit('saved')
     handleClose()
