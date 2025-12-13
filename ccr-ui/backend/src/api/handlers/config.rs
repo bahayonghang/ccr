@@ -378,6 +378,7 @@ pub async fn add_config(Json(req): Json<UpdateConfigRequest>) -> impl IntoRespon
             tags: None,
             usage_count: Some(0),
             enabled: Some(true),
+            other: Default::default(),
         };
 
         // 添加配置节
@@ -436,6 +437,7 @@ pub async fn update_config(
         let old_section = config.sections.get(&name).unwrap();
         let old_usage_count = old_section.usage_count;
         let old_enabled = old_section.enabled;
+        let old_other = old_section.other.clone();
 
         // 更新配置节
         let section = ConfigSection {
@@ -454,6 +456,7 @@ pub async fn update_config(
             tags: None,
             usage_count: old_usage_count,
             enabled: old_enabled,
+            other: old_other,
         };
 
         config.set_section(name.clone(), section);

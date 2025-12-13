@@ -465,11 +465,19 @@ fn create_router() -> Router {
         )
         .route(
             "/api/codex/profiles/{name}",
+            get(api::handlers::platforms::codex::get_codex_profile),
+        )
+        .route(
+            "/api/codex/profiles/{name}",
             put(api::handlers::platforms::codex::update_codex_profile),
         )
         .route(
             "/api/codex/profiles/{name}",
             delete(api::handlers::platforms::codex::delete_codex_profile),
+        )
+        .route(
+            "/api/codex/profiles/{name}/apply",
+            post(api::handlers::platforms::codex::apply_codex_profile),
         )
         // Codex base config management endpoints
         .route(

@@ -162,76 +162,6 @@ impl CodexConfigManager {
         Ok(())
     }
 
-    // ============ Profile 管理 ============
-
-    /// 列出所有 Profiles
-    pub fn list_profiles(&self) -> Result<Vec<CodexProfileWithName>, String> {
-        let config = self.read_config()?;
-
-        let profiles = config
-            .profiles
-            .unwrap_or_default()
-            .into_iter()
-            .map(|(name, profile)| CodexProfileWithName { name, profile })
-            .collect();
-
-        Ok(profiles)
-    }
-
-    /// 添加 Profile
-    pub fn add_profile(&self, name: String, profile: CodexProfile) -> Result<(), String> {
-        let mut config = self.read_config()?;
-
-        // 检查是否已存在
-        if let Some(ref profiles) = config.profiles
-            && profiles.contains_key(&name)
-        {
-            return Err(format!("Profile '{}' 已存在", name));
-        }
-
-        // 添加 Profile
-        config
-            .profiles
-            .get_or_insert_with(HashMap::new)
-            .insert(name.clone(), profile);
-
-        self.write_config(&config)?;
-        info!("已添加 Codex Profile: {}", name);
-        Ok(())
-    }
-
-    /// 更新 Profile
-    pub fn update_profile(&self, name: &str, profile: CodexProfile) -> Result<(), String> {
-        let mut config = self.read_config()?;
-
-        let profiles = config.profiles.as_mut().ok_or("没有配置任何 Profile")?;
-
-        if !profiles.contains_key(name) {
-            return Err(format!("Profile '{}' 不存在", name));
-        }
-
-        profiles.insert(name.to_string(), profile);
-
-        self.write_config(&config)?;
-        info!("已更新 Codex Profile: {}", name);
-        Ok(())
-    }
-
-    /// 删除 Profile
-    pub fn delete_profile(&self, name: &str) -> Result<(), String> {
-        let mut config = self.read_config()?;
-
-        let profiles = config.profiles.as_mut().ok_or("没有配置任何 Profile")?;
-
-        if profiles.remove(name).is_none() {
-            return Err(format!("Profile '{}' 不存在", name));
-        }
-
-        self.write_config(&config)?;
-        info!("已删除 Codex Profile: {}", name);
-        Ok(())
-    }
-
     // ============ 基础配置管理 ============
 
     /// 更新基础配置
@@ -329,26 +259,5 @@ mod tests {
         let servers = manager.list_mcp_servers().unwrap();
         assert_eq!(servers.len(), 1);
         assert_eq!(servers[0].name, "context7");
-    }
-
-    #[test]
-    fn test_add_profile() {
-        let temp_dir = TempDir::new().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-        let manager = CodexConfigManager::with_path(config_path);
-
-        let profile = CodexProfile {
-            model: Some("gpt-4".to_string()),
-            approval_policy: Some("read-only".to_string()),
-            sandbox_mode: None,
-            model_reasoning_effort: None,
-            other: HashMap::new(),
-        };
-
-        manager.add_profile("dev".to_string(), profile).unwrap();
-
-        let profiles = manager.list_profiles().unwrap();
-        assert_eq!(profiles.len(), 1);
-        assert_eq!(profiles[0].name, "dev");
     }
 }

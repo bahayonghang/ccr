@@ -344,7 +344,7 @@ export interface CodexMcpServersResponse {
   servers: CodexMcpServer[];
 }
 
-// Codex Profile Types (matching profiles.toml structure)
+// Codex Profile Types (CCR 平台：~/.ccr/platforms/codex/profiles.toml)
 export interface CodexProfile {
   name: string;
   description?: string;
@@ -353,6 +353,12 @@ export interface CodexProfile {
   model: string;
   small_fast_model?: string;
   provider?: string;
+  provider_type?: string;
+  account?: string;
+  tags?: string[];
+  usage_count?: number;
+  enabled?: boolean;
+  extra?: Record<string, any>;
 }
 
 export interface CodexProfileRequest {
@@ -363,13 +369,32 @@ export interface CodexProfileRequest {
   model: string;
   small_fast_model?: string;
   provider?: string;
+  provider_type?: string;
+  account?: string;
+  tags?: string[];
+  enabled?: boolean;
+  extra?: Record<string, any>;
 }
 
 export interface CodexProfilesResponse {
   profiles: CodexProfile[];
+  current_profile?: string | null;
+}
+
+export interface CodexProfileResponse {
+  profile: CodexProfile;
 }
 
 // Codex Base Config Types
+// 说明：这是 Codex CLI 的 ~/.codex/config.toml，不同于 CCR 的 profiles.toml
+export interface CodexCliProfile {
+  model?: string;
+  approval_policy?: string;
+  sandbox_mode?: string;
+  model_reasoning_effort?: string;
+  [key: string]: any;
+}
+
 export interface CodexConfig {
   model?: string;
   model_provider?: string;
@@ -380,7 +405,7 @@ export interface CodexConfig {
     include_only?: string[];
   };
   mcp_servers?: Record<string, Omit<CodexMcpServer, 'name'>>;
-  profiles?: Record<string, Omit<CodexProfile, 'name'>>;
+  profiles?: Record<string, CodexCliProfile>;
   experimental_use_rmcp_client?: boolean;
 }
 

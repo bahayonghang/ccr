@@ -232,6 +232,8 @@ export {
   addCodexProfile,
   updateCodexProfile,
   deleteCodexProfile,
+  getCodexProfile,
+  applyCodexProfile,
   getCodexConfig,
   updateCodexConfig,
   listCodexAgents,
