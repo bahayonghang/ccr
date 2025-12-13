@@ -10,7 +10,7 @@
 use crate::core::error::{CcrError, Result};
 use crate::managers::PlatformConfigManager;
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use crate::utils::Validatable;
+use crate::utils::{Validatable, toml_json};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -76,17 +76,25 @@ impl GeminiPlatform {
         let content = fs::read_to_string(&self.paths.profiles_file)
             .map_err(|e| CcrError::ConfigError(format!("读取 Gemini 配置失败: {}", e)))?;
 
-        // 🎯 在 Unified 模式下，profiles.toml 实际上是 Legacy 格式（包含 default_config 等字段）
-        // 我们需要先解析为 CcsConfig，然后提取 sections
-        use crate::managers::config::CcsConfig;
-        let ccs_config: CcsConfig = toml::from_str(&content)
-            .map_err(|e| CcrError::ConfigFormatInvalid(format!("Gemini 配置格式错误: {}", e)))?;
+        // 🎯 Unified 模式下推荐使用包含 default_config/current_config/settings 的 CCS 兼容格式；
+        // 但为兼容旧示例，允许仅包含 profile sections 的简化格式。
+        use crate::managers::config::{CcsConfig, ConfigSection};
 
-        // 将 ConfigSection 转换为 ProfileConfig
-        let profiles: IndexMap<String, ProfileConfig> = ccs_config
-            .sections
+        let sections = match toml::from_str::<CcsConfig>(&content) {
+            Ok(config) => config.sections,
+            Err(_) => toml::from_str::<IndexMap<String, ConfigSection>>(&content).map_err(|e| {
+                CcrError::ConfigFormatInvalid(format!("Gemini 配置格式错误: {}", e))
+            })?,
+        };
+
+        let profiles: IndexMap<String, ProfileConfig> = sections
             .into_iter()
             .map(|(name, section)| {
+                let provider_type = section
+                    .provider_type
+                    .as_ref()
+                    .map(|t| t.to_string_value().to_string());
+
                 let profile = ProfileConfig {
                     description: section.description,
                     base_url: section.base_url,
@@ -94,14 +102,12 @@ impl GeminiPlatform {
                     model: section.model,
                     small_fast_model: section.small_fast_model,
                     provider: section.provider,
-                    provider_type: section
-                        .provider_type
-                        .map(|t| format!("{:?}", t).to_lowercase()),
+                    provider_type,
                     account: section.account,
                     tags: section.tags,
                     usage_count: section.usage_count,
                     enabled: section.enabled,
-                    platform_data: IndexMap::new(),
+                    platform_data: toml_json::toml_map_to_json_map(&section.other),
                 };
                 (name, profile)
             })
@@ -139,6 +145,7 @@ impl GeminiPlatform {
                 tags: profile.tags.clone(),
                 usage_count: profile.usage_count,
                 enabled: profile.enabled,
+                other: toml_json::json_map_to_toml_map(&profile.platform_data),
             };
             sections.insert(name.clone(), section);
         }

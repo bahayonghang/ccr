@@ -30,6 +30,7 @@ fn generate_example_config() -> Result<String> {
             tags: Some(vec!["stable".to_string(), "high-speed".to_string()]),
             usage_count: Some(0),
             enabled: Some(true),
+            other: IndexMap::new(),
         },
     );
 
@@ -47,6 +48,7 @@ fn generate_example_config() -> Result<String> {
             tags: Some(vec!["official".to_string()]),
             usage_count: Some(0),
             enabled: Some(true),
+            other: IndexMap::new(),
         },
     );
 

@@ -136,6 +136,8 @@ pub struct CodexProfileItem {
     pub approval_policy: Option<String>,
     pub sandbox_mode: Option<String>,
     pub model_reasoning_effort: Option<String>,
+    pub network_access: Option<String>,
+    pub disable_response_storage: Option<bool>,
     pub organization: Option<String>,
     pub is_current: bool,
 }
@@ -160,6 +162,8 @@ pub struct CodexProfileRequest {
     pub approval_policy: Option<String>,
     pub sandbox_mode: Option<String>,
     pub model_reasoning_effort: Option<String>,
+    pub network_access: Option<String>,
+    pub disable_response_storage: Option<bool>,
     pub organization: Option<String>,
 }
 

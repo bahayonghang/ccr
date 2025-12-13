@@ -15,6 +15,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use indexmap::IndexMap;
 use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -282,6 +283,7 @@ impl UpdateConfigRequest {
             tags: self.tags.clone(),
             usage_count: Some(0),
             enabled: Some(true),
+            other: IndexMap::new(),
         }
     }
 }

@@ -7,6 +7,7 @@ use crate::core::logging::ColorOutput;
 use crate::managers::config::{ConfigSection, ProviderType};
 use crate::services::ConfigService;
 use crate::utils::Validatable;
+use indexmap::IndexMap;
 use std::io::{self, Write};
 
 /// ➕ 交互式添加配置
@@ -89,6 +90,7 @@ pub fn add_command() -> Result<()> {
         tags,
         usage_count: Some(0), // 初始使用次数为 0
         enabled: Some(true),  // 默认启用
+        other: IndexMap::new(),
     };
 
     // 验证配置

@@ -10,7 +10,7 @@
 use crate::core::error::{CcrError, Result};
 use crate::managers::PlatformConfigManager;
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use crate::utils::Validatable;
+use crate::utils::{Validatable, toml_json};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
@@ -200,6 +200,29 @@ impl CodexPlatform {
             + "_API_KEY"
     }
 
+    fn codex_settings_path() -> Result<PathBuf> {
+        Ok(Self::codex_dir()?.join("settings.json"))
+    }
+
+    fn read_codex_config(config_path: &PathBuf) -> Result<toml::Value> {
+        if !config_path.exists() {
+            return Ok(toml::Value::Table(toml::map::Map::new()));
+        }
+
+        let content = fs::read_to_string(config_path)
+            .map_err(|e| CcrError::SettingsError(format!("读取 Codex config.toml 失败: {}", e)))?;
+
+        toml::from_str(&content)
+            .map_err(|e| CcrError::SettingsError(format!("解析 Codex config.toml 失败: {}", e)))
+    }
+
+    fn ensure_toml_table(value: &mut toml::Value) -> &mut toml::map::Map<String, toml::Value> {
+        if !matches!(value, toml::Value::Table(_)) {
+            *value = toml::Value::Table(toml::map::Map::new());
+        }
+        value.as_table_mut().expect("table ensured")
+    }
+
     fn apply_custom_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
         let config_path = Self::codex_config_path()?;
         let auth_path = Self::codex_auth_path()?;
@@ -230,42 +253,74 @@ impl CodexPlatform {
             })?
             .clone();
 
-        let mut lines = Vec::new();
-        lines.push("# --- model provider managed by CCR ---".into());
+        let mut config = Self::read_codex_config(&config_path)?;
+        let root = Self::ensure_toml_table(&mut config);
 
         if let Some(model) = profile.model.as_ref() {
-            lines.push(format!("model = \"{}\"", model));
+            root.insert("model".into(), toml::Value::String(model.clone()));
         }
 
-        lines.push(format!("model_provider = \"{}\"", provider_id));
+        root.insert(
+            "model_provider".into(),
+            toml::Value::String(provider_id.clone()),
+        );
 
         if let Some(policy) = Self::platform_string(profile, "approval_policy") {
-            lines.push(format!("approval_policy = \"{}\"", policy));
+            root.insert("approval_policy".into(), toml::Value::String(policy));
         }
 
         if let Some(sandbox) = Self::platform_string(profile, "sandbox_mode") {
-            lines.push(format!("sandbox_mode = \"{}\"", sandbox));
+            root.insert("sandbox_mode".into(), toml::Value::String(sandbox));
         }
 
         if let Some(reasoning) = Self::platform_string(profile, "model_reasoning_effort") {
-            lines.push(format!("model_reasoning_effort = \"{}\"", reasoning));
+            root.insert(
+                "model_reasoning_effort".into(),
+                toml::Value::String(reasoning),
+            );
         }
 
-        lines.push(String::new());
-        lines.push(format!("[model_providers.{}]", provider_id));
-        lines.push(format!("name = \"{}\"", provider_name));
-        lines.push(format!("base_url = \"{}\"", base_url));
-        lines.push(format!("wire_api = \"{}\"", wire_api));
-        lines.push(format!("env_key = \"{}\"", env_key));
-        lines.push(format!("requires_openai_auth = {}", requires_auth));
+        if let Some(network_access) = Self::platform_string(profile, "network_access") {
+            root.insert("network_access".into(), toml::Value::String(network_access));
+        }
+
+        if let Some(disable_response_storage) =
+            Self::platform_bool(profile, "disable_response_storage")
+        {
+            root.insert(
+                "disable_response_storage".into(),
+                toml::Value::Boolean(disable_response_storage),
+            );
+        }
+
+        let providers_value = root
+            .entry("model_providers")
+            .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
+        let providers_table = Self::ensure_toml_table(providers_value);
+
+        let provider_value = providers_table
+            .entry(provider_id.clone())
+            .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
+        let provider_table = Self::ensure_toml_table(provider_value);
+
+        provider_table.insert("name".into(), toml::Value::String(provider_name));
+        provider_table.insert("base_url".into(), toml::Value::String(base_url));
+        provider_table.insert("wire_api".into(), toml::Value::String(wire_api));
+        provider_table.insert("env_key".into(), toml::Value::String(env_key.clone()));
+        provider_table.insert(
+            "requires_openai_auth".into(),
+            toml::Value::Boolean(requires_auth),
+        );
 
         if let Some(model) = provider_model {
-            lines.push(format!("model = \"{}\"", model));
+            provider_table.insert("model".into(), toml::Value::String(model));
         }
 
-        lines.push(String::new());
+        let config_content = toml::to_string_pretty(&config).map_err(|e| {
+            CcrError::SettingsError(format!("序列化 Codex config.toml 失败: {}", e))
+        })?;
 
-        fs::write(&config_path, lines.join("\n"))
+        fs::write(&config_path, config_content)
             .map_err(|e| CcrError::SettingsError(format!("写入 Codex config 失败: {}", e)))?;
 
         // 更新 auth.json
@@ -281,7 +336,9 @@ impl CodexPlatform {
 
         let mut merged = auth_entries;
         merged.insert(env_key.clone(), JsonValue::String(token.clone()));
-        merged.insert("OPENAI_API_KEY".into(), JsonValue::String(token));
+        if requires_auth {
+            merged.insert("OPENAI_API_KEY".into(), JsonValue::String(token));
+        }
 
         let auth_content = serde_json::to_string_pretty(&JsonValue::Object(merged))
             .map_err(|e| CcrError::SettingsError(format!("序列化 auth.json 失败: {}", e)))?;
@@ -306,17 +363,24 @@ impl CodexPlatform {
         let content = fs::read_to_string(&self.paths.profiles_file)
             .map_err(|e| CcrError::ConfigError(format!("读取 Codex 配置失败: {}", e)))?;
 
-        // 🎯 在 Unified 模式下，profiles.toml 实际上是 Legacy 格式（包含 default_config 等字段）
-        // 我们需要先解析为 CcsConfig，然后提取 sections
-        use crate::managers::config::CcsConfig;
-        let ccs_config: CcsConfig = toml::from_str(&content)
-            .map_err(|e| CcrError::ConfigFormatInvalid(format!("Codex 配置格式错误: {}", e)))?;
+        // 🎯 Unified 模式下推荐使用包含 default_config/current_config/settings 的 CCS 兼容格式；
+        // 但为兼容旧示例，允许仅包含 profile sections 的简化格式。
+        use crate::managers::config::{CcsConfig, ConfigSection};
 
-        // 将 ConfigSection 转换为 ProfileConfig
-        let profiles: IndexMap<String, ProfileConfig> = ccs_config
-            .sections
+        let sections = match toml::from_str::<CcsConfig>(&content) {
+            Ok(config) => config.sections,
+            Err(_) => toml::from_str::<IndexMap<String, ConfigSection>>(&content)
+                .map_err(|e| CcrError::ConfigFormatInvalid(format!("Codex 配置格式错误: {}", e)))?,
+        };
+
+        let profiles: IndexMap<String, ProfileConfig> = sections
             .into_iter()
             .map(|(name, section)| {
+                let provider_type = section
+                    .provider_type
+                    .as_ref()
+                    .map(|t| t.to_string_value().to_string());
+
                 let profile = ProfileConfig {
                     description: section.description,
                     base_url: section.base_url,
@@ -324,14 +388,12 @@ impl CodexPlatform {
                     model: section.model,
                     small_fast_model: section.small_fast_model,
                     provider: section.provider,
-                    provider_type: section
-                        .provider_type
-                        .map(|t| format!("{:?}", t).to_lowercase()),
+                    provider_type,
                     account: section.account,
                     tags: section.tags,
                     usage_count: section.usage_count,
                     enabled: section.enabled,
-                    platform_data: IndexMap::new(),
+                    platform_data: toml_json::toml_map_to_json_map(&section.other),
                 };
                 (name, profile)
             })
@@ -369,6 +431,7 @@ impl CodexPlatform {
                 tags: profile.tags.clone(),
                 usage_count: profile.usage_count,
                 enabled: profile.enabled,
+                other: toml_json::json_map_to_toml_map(&profile.platform_data),
             };
             sections.insert(name.clone(), section);
         }
@@ -409,13 +472,14 @@ impl CodexPlatform {
     /// 📖 加载 Codex settings
     #[allow(dead_code)]
     fn load_settings(&self) -> Result<CodexSettings> {
-        if !self.paths.settings_file.exists() {
+        let settings_path = Self::codex_settings_path()?;
+        if !settings_path.exists() {
             return Err(CcrError::SettingsMissing(
-                self.paths.settings_file.display().to_string(),
+                settings_path.display().to_string(),
             ));
         }
 
-        let content = fs::read_to_string(&self.paths.settings_file)
+        let content = fs::read_to_string(&settings_path)
             .map_err(|e| CcrError::SettingsError(format!("读取 Codex 设置失败: {}", e)))?;
 
         let settings: CodexSettings = serde_json::from_str(&content)
@@ -426,18 +490,21 @@ impl CodexPlatform {
 
     /// 💾 保存 Codex settings
     fn save_settings(&self, settings: &CodexSettings) -> Result<()> {
-        // 确保目录存在
-        self.paths.ensure_directories()?;
+        let settings_path = Self::codex_settings_path()?;
+        if let Some(parent) = settings_path.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|e| CcrError::SettingsError(format!("创建 Codex 目录失败: {}", e)))?;
+        }
 
         // 序列化为 JSON
         let content = serde_json::to_string_pretty(settings)
             .map_err(|e| CcrError::SettingsError(format!("序列化 Codex 设置失败: {}", e)))?;
 
         // 写入文件
-        fs::write(&self.paths.settings_file, content)
+        fs::write(&settings_path, content)
             .map_err(|e| CcrError::SettingsError(format!("写入 Codex 设置失败: {}", e)))?;
 
-        tracing::info!("✅ 已保存 Codex settings: {:?}", self.paths.settings_file);
+        tracing::info!("✅ 已保存 Codex settings: {:?}", settings_path);
         Ok(())
     }
 

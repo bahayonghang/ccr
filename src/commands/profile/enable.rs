@@ -66,6 +66,7 @@ mod tests {
                 tags: None,
                 usage_count: Some(0),
                 enabled: Some(false), // 初始为禁用状态
+                other: IndexMap::new(),
             },
         );
 

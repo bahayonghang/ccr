@@ -3,6 +3,7 @@
 
 pub mod auto_complete;
 pub mod mask;
+pub mod toml_json;
 pub mod validation;
 
 pub use auto_complete::AutoCompletable;

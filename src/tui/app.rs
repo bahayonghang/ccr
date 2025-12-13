@@ -362,6 +362,7 @@ impl App {
                     tags: info.tags,
                     usage_count: Some(0), // TODO: 从 ConfigInfo 获取
                     enabled: Some(true),  // TODO: 从 ConfigInfo 获取
+                    other: indexmap::IndexMap::new(),
                 }
             }
             Err(e) => {

@@ -12,7 +12,7 @@ use crate::managers::PlatformConfigManager;
 use crate::managers::config::{ConfigManager, ConfigSection};
 use crate::managers::settings::{ClaudeSettings, SettingsManager};
 use crate::models::{ConfigMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use crate::utils::Validatable;
+use crate::utils::{Validatable, toml_json};
 use indexmap::IndexMap;
 use std::fs;
 use std::path::PathBuf;
@@ -111,7 +111,7 @@ impl ClaudePlatform {
             tags: section.tags.clone(),
             usage_count: section.usage_count,
             enabled: section.enabled,
-            platform_data: IndexMap::new(),
+            platform_data: toml_json::toml_map_to_json_map(&section.other),
         }
     }
 
@@ -140,6 +140,7 @@ impl ClaudePlatform {
             tags: profile.tags.clone(),
             usage_count: profile.usage_count,
             enabled: profile.enabled,
+            other: toml_json::json_map_to_toml_map(&profile.platform_data),
         })
     }
 
@@ -194,13 +195,16 @@ impl ClaudePlatform {
             .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
 
         // 解析 TOML
-        use crate::managers::config::CcsConfig;
-        let config: CcsConfig = toml::from_str(&content)
-            .map_err(|e| CcrError::ConfigFormatInvalid(format!("TOML 解析失败: {}", e)))?;
+        use crate::managers::config::{CcsConfig, ConfigSection};
+        let sections = match toml::from_str::<CcsConfig>(&content) {
+            Ok(config) => config.sections,
+            Err(_) => toml::from_str::<IndexMap<String, ConfigSection>>(&content)
+                .map_err(|e| CcrError::ConfigFormatInvalid(format!("TOML 解析失败: {}", e)))?,
+        };
 
         // 转换为 ProfileConfig
         let mut profiles = IndexMap::new();
-        for (name, section) in config.sections {
+        for (name, section) in sections {
             profiles.insert(name, Self::section_to_profile(&section));
         }
 
@@ -407,6 +411,7 @@ mod tests {
             tags: None,
             usage_count: Some(0),
             enabled: Some(true),
+            other: indexmap::IndexMap::new(),
         };
 
         let profile = ClaudePlatform::section_to_profile(&section);
