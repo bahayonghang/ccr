@@ -1,6 +1,6 @@
 # CCR - Claude Code Configuration Switcher
 
-Rust 编写的高性能多平台配置管理工具，版本 3.6.2。支持 Claude Code、Codex、Gemini CLI、Qwen等主流 AI CLI 工具。提供 CLI、TUI、Web API 三种使用方式，以及基于 Vue 3 + Axum + Tauri 的全栈 CCR UI 应用。
+Rust 编写的高性能多平台配置管理工具，版本 3.9.4。支持 Claude Code、Codex、Gemini CLI、Qwen等主流 AI CLI 工具。提供 CLI、TUI、Web API 三种使用方式，以及基于 Vue 3 + Axum + Tauri 的全栈 CCR UI 应用。
 
 ## 功能亮点
 
@@ -758,7 +758,7 @@ mkdir -p ~/.ccr
 cd ~/.ccr
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
-git checkout v3.6.2
+git checkout v3.9.4
 mv ccr-ui ~/.ccr/
 
 # 从 workspace 启动

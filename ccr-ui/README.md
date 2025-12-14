@@ -1,6 +1,6 @@
 # CCR UI - Vue 3 + Axum + Tauri Full-Stack Application
 
-A graphical/desktop interface for CCR (Claude Code Configuration Switcher). Frontend: Vue 3 + Vite + Pinia, Backend: Axum. Supports both Web mode and Tauri desktop mode. Version 3.6.2.
+A graphical/desktop interface for CCR (Claude Code Configuration Switcher). Frontend: Vue 3 + Vite + Pinia, Backend: Axum. Supports both Web mode and Tauri desktop mode. Version 3.9.4.
 
 ## Features Overview
 
@@ -463,7 +463,7 @@ kill -9 <PID>
 
 **3. CLI Invocation Error**
 - Confirm `ccr` is in PATH
-- Check version: `ccr --version` (should be 3.6.2+)
+- Check version: `ccr --version` (should be 3.9.4+)
 - Enable debug logging: `CCR_LOG_LEVEL=debug ccr ui`
 - Check permissions: `chmod +x ~/.ccr/ccr-ui/backend/target/release/ccr-ui-backend`
 
@@ -627,7 +627,7 @@ MIT License (same as main project)
 ---
 
 **Last Updated**: 2025-01-24
-**Version**: 3.6.2
+**Version**: 3.9.4
 **Documentation Status**: ✅ Complete
 
 ## Related Links

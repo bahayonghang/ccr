@@ -1,6 +1,6 @@
 # CCR - Claude Code Configuration Switcher
 
-High-performance multi-platform configuration management tool written in Rust, version 3.6.2. Supports Claude Code, Codex, Gemini CLI, Qwen. Offers CLI, TUI, Web API interfaces, plus a full-stack CCR UI application built with Vue 3 + Axum + Tauri.
+High-performance multi-platform configuration management tool written in Rust, version 3.9.4. Supports Claude Code, Codex, Gemini CLI, Qwen. Offers CLI, TUI, Web API interfaces, plus a full-stack CCR UI application built with Vue 3 + Axum + Tauri.
 
 ## Highlights
 
@@ -762,7 +762,7 @@ mkdir -p ~/.ccr
 cd ~/.ccr
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
-git checkout v3.6.2
+git checkout v3.9.4
 mv ccr-ui ~/.ccr/
 
 # Launch from workspace
