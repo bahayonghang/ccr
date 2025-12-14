@@ -248,8 +248,8 @@ fn merge_profile(existing: Option<ProfileConfig>, req: CodexProfileUpsertRequest
 /// GET /api/codex/profiles - 列出所有 Codex Profiles（CCR 平台 profiles.toml）
 pub async fn list_codex_profiles() -> impl IntoResponse {
     let result = tokio::task::spawn_blocking(move || {
-        let platform = create_platform(Platform::Codex)
-            .map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
 
         let profiles = platform
             .load_profiles()
@@ -324,8 +324,8 @@ pub async fn list_codex_profiles() -> impl IntoResponse {
 /// GET /api/codex/profiles/:name - 获取单个 Codex Profile（完整 token）
 pub async fn get_codex_profile(Path(name): Path<String>) -> impl IntoResponse {
     let result = tokio::task::spawn_blocking(move || {
-        let platform = create_platform(Platform::Codex)
-            .map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
 
         let profiles = platform
             .load_profiles()
@@ -393,14 +393,14 @@ pub async fn add_codex_profile(Json(req): Json<CodexProfileUpsertRequest>) -> im
             .clone()
             .ok_or_else(|| "缺少 profile name".to_string())?;
 
-        let lock_manager = LockManager::with_default_path()
-            .map_err(|e| format!("初始化锁管理器失败: {}", e))?;
+        let lock_manager =
+            LockManager::with_default_path().map_err(|e| format!("初始化锁管理器失败: {}", e))?;
         let _lock = lock_manager
             .lock_resource("ccr_codex_profiles", std::time::Duration::from_secs(10))
             .map_err(|e| format!("获取锁失败: {}", e))?;
 
-        let platform = create_platform(Platform::Codex)
-            .map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
 
         let profile = merge_profile(None, req);
 
@@ -450,14 +450,14 @@ pub async fn update_codex_profile(
 ) -> impl IntoResponse {
     let name_for_response = name.clone();
     let result = tokio::task::spawn_blocking(move || {
-        let lock_manager = LockManager::with_default_path()
-            .map_err(|e| format!("初始化锁管理器失败: {}", e))?;
+        let lock_manager =
+            LockManager::with_default_path().map_err(|e| format!("初始化锁管理器失败: {}", e))?;
         let _lock = lock_manager
             .lock_resource("ccr_codex_profiles", std::time::Duration::from_secs(10))
             .map_err(|e| format!("获取锁失败: {}", e))?;
 
-        let platform = create_platform(Platform::Codex)
-            .map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
 
         let profiles = platform
             .load_profiles()
@@ -514,14 +514,14 @@ pub async fn update_codex_profile(
 pub async fn delete_codex_profile(Path(name): Path<String>) -> impl IntoResponse {
     let name_for_response = name.clone();
     let result = tokio::task::spawn_blocking(move || {
-        let lock_manager = LockManager::with_default_path()
-            .map_err(|e| format!("初始化锁管理器失败: {}", e))?;
+        let lock_manager =
+            LockManager::with_default_path().map_err(|e| format!("初始化锁管理器失败: {}", e))?;
         let _lock = lock_manager
             .lock_resource("ccr_codex_profiles", std::time::Duration::from_secs(10))
             .map_err(|e| format!("获取锁失败: {}", e))?;
 
-        let platform = create_platform(Platform::Codex)
-            .map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
 
         platform
             .delete_profile(&name)
@@ -566,14 +566,14 @@ pub async fn delete_codex_profile(Path(name): Path<String>) -> impl IntoResponse
 pub async fn apply_codex_profile(Path(name): Path<String>) -> impl IntoResponse {
     let name_for_response = name.clone();
     let result = tokio::task::spawn_blocking(move || {
-        let lock_manager = LockManager::with_default_path()
-            .map_err(|e| format!("初始化锁管理器失败: {}", e))?;
+        let lock_manager =
+            LockManager::with_default_path().map_err(|e| format!("初始化锁管理器失败: {}", e))?;
         let _lock = lock_manager
             .lock_resource("ccr_codex_apply", std::time::Duration::from_secs(20))
             .map_err(|e| format!("获取锁失败: {}", e))?;
 
-        let platform = create_platform(Platform::Codex)
-            .map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("创建 Codex 平台失败: {}", e))?;
 
         platform
             .apply_profile(&name)
