@@ -160,9 +160,20 @@ async fn get_history(limit: Option<usize>) -> Result<Vec<HistoryEntryJson>, Stri
 /// 清理历史记录
 #[tauri::command]
 async fn clear_history() -> Result<String, String> {
-    // TODO: HistoryService 没有 clear 方法
-    // 暂时返回未实现的消息
-    Ok("Clear history not yet implemented in Tauri".to_string())
+    let result = tokio::task::spawn_blocking(move || {
+        let service = HistoryService::with_default()
+            .map_err(|e| format!("Failed to create HistoryService: {}", e))?;
+
+        service
+            .clear()
+            .map_err(|e| format!("Failed to clear history: {}", e))?;
+
+        Ok::<(), String>(())
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))??;
+
+    Ok("History cleared successfully".to_string())
 }
 
 // ============================================================================
@@ -172,22 +183,67 @@ async fn clear_history() -> Result<String, String> {
 /// 推送配置到云端
 #[tauri::command]
 async fn sync_push(force: Option<bool>) -> Result<String, String> {
-    // TODO: 实现云同步推送
-    // 当前版本通过 executor 调用 CLI
-    Ok(format!(
-        "Sync push not yet implemented in Tauri (force: {})",
-        force.unwrap_or(false)
-    ))
+    let force_flag = force.unwrap_or(false);
+    let result = tokio::task::spawn_blocking(move || {
+        use std::process::Command;
+
+        let mut cmd = Command::new("ccr");
+        cmd.arg("sync");
+        cmd.arg("push");
+
+        if force_flag {
+            cmd.arg("--force");
+        }
+
+        let output = cmd
+            .output()
+            .map_err(|e| format!("Failed to execute ccr command: {}", e))?;
+
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            Ok::<String, String>(stdout.to_string())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("Sync push failed: {}", stderr))
+        }
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))??;
+
+    Ok(result)
 }
 
 /// 从云端拉取配置
 #[tauri::command]
 async fn sync_pull(force: Option<bool>) -> Result<String, String> {
-    // TODO: 实现云同步拉取
-    Ok(format!(
-        "Sync pull not yet implemented in Tauri (force: {})",
-        force.unwrap_or(false)
-    ))
+    let force_flag = force.unwrap_or(false);
+    let result = tokio::task::spawn_blocking(move || {
+        use std::process::Command;
+
+        let mut cmd = Command::new("ccr");
+        cmd.arg("sync");
+        cmd.arg("pull");
+
+        if force_flag {
+            cmd.arg("--force");
+        }
+
+        let output = cmd
+            .output()
+            .map_err(|e| format!("Failed to execute ccr command: {}", e))?;
+
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            Ok::<String, String>(stdout.to_string())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("Sync pull failed: {}", stderr))
+        }
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))??;
+
+    Ok(result)
 }
 
 /// 获取同步状态
