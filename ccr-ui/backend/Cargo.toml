@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.9.4"
+version = "3.9.5"
 edition = "2024"
 
 [dependencies]
@@ -8,30 +8,30 @@ edition = "2024"
 ccr = { path = "../../", default-features = false }
 
 # ═══════════════════════════════════════════════════════════
-# 📦 Workspace 依赖（统一版本管理）
+# 📦 核心依赖（显式版本，支持独立构建）
 # ═══════════════════════════════════════════════════════════
 
 # Web framework (Axum + Tower ecosystem)
-axum = { workspace = true, features = ["macros"] }
-tower = { workspace = true, features = ["timeout", "limit"] }
-tower-http = { workspace = true, features = ["fs", "trace", "cors", "compression-full", "request-id", "util"] }
+axum = { version = "0.8.6", features = ["json", "tokio", "http1", "query", "form", "macros"] }
+tower = { version = "0.5.2", features = ["timeout", "limit"] }
+tower-http = { version = "0.6.8", features = ["fs", "trace", "cors", "compression-full", "request-id", "util"] }
 
 # Async runtime
-tokio = { workspace = true, features = ["full"] }
+tokio = { version = "1.48.0", features = ["full"] }
 
-# Serialization (从 workspace 继承)
-serde = { workspace = true }
-serde_json = { workspace = true }
+# Serialization
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
 
-# Time (从 workspace 继承)
-chrono = { workspace = true }
+# Time
+chrono = { version = "0.4.42", features = ["serde"] }
 
-# Error handling (从 workspace 继承)
-thiserror = { workspace = true }
+# Error handling
+thiserror = "2.0.17"
 
-# Config file parsing (从 workspace 继承)
-toml = { workspace = true }
-dirs = { workspace = true }
+# Config file parsing
+toml = "0.9.8"
+dirs = "6.0.0"
 
 # ═══════════════════════════════════════════════════════════
 # 📦 Backend 专有依赖
@@ -60,13 +60,13 @@ num_cpus = "1.17.0"
 sysinfo = "0.37.2"  # 统一使用与 ccr 相同的版本
 
 # HTTP client for checking updates
-reqwest = { workspace = true }
+reqwest = { version = "0.12.25", features = ["blocking", "json"] }
 
 # YAML support (for special cases)
 serde_yaml = "0.9.33"
 
-# Atomic file operations (从 workspace 继承)
-tempfile = { workspace = true }
+# Atomic file operations
+tempfile = "3.23"
 
 # File system utilities
 walkdir = "2.5"
@@ -77,9 +77,8 @@ uuid = { version = "1.18", features = ["v4", "serde"] }
 # Lazy static initialization
 once_cell = "1.21"
 
-# ✅ 依赖优化完成说明：
-# - toml, dirs, tempfile, thiserror 已改用 workspace 依赖
-# - serde, serde_json, chrono, reqwest 已改用 workspace 依赖
-# - 版本统一由根 Cargo.toml 的 workspace.dependencies 管理
-# - 减少了版本冲突风险，加快编译速度
+# ✅ 独立构建支持说明：
+# - 所有依赖使用显式版本号，不依赖 workspace 继承
+# - 支持复制到 ~/.ccr/ccr-ui/ 后独立构建
+# - 版本号与主仓库 Cargo.toml 的 workspace.dependencies 保持同步
 
