@@ -17,9 +17,9 @@ const GITHUB_BRANCH: &str = "main";
 pub struct UiService {
     /// CCR-UI 项目路径 (开发模式使用)
     ccr_ui_path: Option<PathBuf>,
-    /// UI 资源目录 (~/.ccr/repo/ccr-ui/) - 用于下载的版本
+    /// UI 安装目录 (~/.ccr/ccr-ui/) - 用于下载/更新的版本
     ui_dir: PathBuf,
-    /// 旧版 UI 目录 (~/.ccr/ccr-ui/) - 用于迁移检测
+    /// 旧版 UI 目录 (~/.ccr/repo/ccr-ui/) - 兼容历史路径迁移
     legacy_ui_dir: PathBuf,
 }
 
@@ -30,10 +30,10 @@ impl UiService {
         let home = dirs::home_dir()
             .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".to_string()))?;
 
-        // UI 资源目录 (~/.ccr/repo/ccr-ui/) - 指向完整仓库下的 ccr-ui
-        let ui_dir = home.join(".ccr/repo/ccr-ui");
-        // 旧版 UI 目录 (~/.ccr/ccr-ui/) - 用于迁移检测
-        let legacy_ui_dir = home.join(".ccr/ccr-ui");
+        // UI 安装目录 (~/.ccr/ccr-ui/) - 用户侧固定目录
+        let ui_dir = home.join(".ccr/ccr-ui");
+        // 旧版 UI 目录 (~/.ccr/repo/ccr-ui/) - 兼容历史路径
+        let legacy_ui_dir = home.join(".ccr/repo/ccr-ui");
 
         // 检查是否在开发环境中
         let ccr_ui_path = Self::detect_ccr_ui_path();
@@ -82,42 +82,39 @@ impl UiService {
     /// 1. 开发环境: 使用当前目录的 ccr-ui/ 启动源码
     /// 2. 用户目录: 使用 ~/.ccr/ccr-ui/ 启动下载版本
     /// 3. 未找到: 提示从 GitHub 下载
-    pub fn start(&self, port: u16, backend_port: u16) -> Result<()> {
+    pub fn start(&self, port: u16, backend_port: u16, auto_yes: bool) -> Result<()> {
         ColorOutput::title("🚀 CCR UI 启动中...");
         println!();
 
         // 优先级 1: 检查开发环境（当前目录的 ccr-ui/）
         if let Some(ref ccr_ui_path) = self.ccr_ui_path {
             ColorOutput::info(&format!("📁 检测到开发环境: {}", ccr_ui_path.display()));
-            return self.start_dev_mode(ccr_ui_path, port, backend_port);
+            return self.start_dev_mode(ccr_ui_path, port, backend_port, auto_yes);
         }
 
-        // 优先级 2: 检查用户目录下载版本（~/.ccr/repo/ccr-ui/）
+        // 优先级 2: 检查用户目录下载版本（~/.ccr/ccr-ui/）
         if self.ui_dir.exists() && self.ui_dir.join("justfile").exists() {
             ColorOutput::info(&format!("📁 检测到用户目录版本: {}", self.ui_dir.display()));
-            return self.start_dev_mode(&self.ui_dir, port, backend_port);
+            return self.start_dev_mode(&self.ui_dir, port, backend_port, auto_yes);
         }
 
-        // 优先级 3: 检查旧版目录并提示迁移
+        // 优先级 3: 检查旧版目录并提示迁移（~/.ccr/repo/ccr-ui/ -> ~/.ccr/ccr-ui/）
         if self.legacy_ui_dir.exists() && self.legacy_ui_dir.join("justfile").exists() {
             ColorOutput::warning(&format!(
                 "⚠️  检测到旧版 CCR UI 目录: {}",
                 self.legacy_ui_dir.display()
             ));
-            ColorOutput::info("旧版本使用 npm，建议迁移到新版本以使用 bun");
+            ColorOutput::info(&format!("建议迁移到新目录: {}", self.ui_dir.display()));
             println!();
 
-            if self.prompt_migrate_legacy()? {
-                // 删除旧目录
-                fs::remove_dir_all(&self.legacy_ui_dir)
-                    .map_err(|e| CcrError::ConfigError(format!("删除旧目录失败: {}", e)))?;
-                ColorOutput::success("✅ 已删除旧版本");
-                // 继续下载新版本
-            } else {
-                // 用户选择继续使用旧版本
-                ColorOutput::warning("⚠️  继续使用旧版本（使用 npm）");
-                return self.start_dev_mode(&self.legacy_ui_dir, port, backend_port);
+            if self.prompt_migrate_legacy(auto_yes)? {
+                self.migrate_legacy_dir()?;
+                return self.start_dev_mode(&self.ui_dir, port, backend_port, auto_yes);
             }
+
+            // 用户拒绝迁移：仍允许使用旧路径启动（尽量不打断使用）
+            ColorOutput::warning("⚠️  已跳过迁移，将使用旧目录启动");
+            return self.start_dev_mode(&self.legacy_ui_dir, port, backend_port, auto_yes);
         }
 
         // 优先级 4: 未找到，提示下载
@@ -129,10 +126,10 @@ impl UiService {
         println!();
 
         // 询问是否下载
-        if self.prompt_download()? {
-            self.download_from_github()?;
+        if self.prompt_download(auto_yes)? {
+            self.sync_from_github(auto_yes)?;
             // 下载完成后启动
-            return self.start_dev_mode(&self.ui_dir, port, backend_port);
+            return self.start_dev_mode(&self.ui_dir, port, backend_port, auto_yes);
         }
 
         Err(CcrError::ConfigError(
@@ -140,10 +137,23 @@ impl UiService {
         ))
     }
 
+    /// 🔄 更新/安装用户目录下的 CCR UI 到最新版本
+    pub fn update(&self, auto_yes: bool) -> Result<()> {
+        ColorOutput::title("🔄 CCR UI 更新中...");
+        println!();
+        self.sync_from_github(auto_yes)
+    }
+
     /// 🔧 开发模式启动
     ///
     /// 使用 `just dev` 启动 ccr-ui 开发环境
-    fn start_dev_mode(&self, ccr_ui_path: &Path, _port: u16, _backend_port: u16) -> Result<()> {
+    fn start_dev_mode(
+        &self,
+        ccr_ui_path: &Path,
+        _port: u16,
+        _backend_port: u16,
+        auto_yes: bool,
+    ) -> Result<()> {
         ColorOutput::step("启动开发模式");
         println!();
 
@@ -151,7 +161,7 @@ impl UiService {
         self.check_just_installed()?;
 
         // 检查依赖是否已安装
-        self.check_and_install_deps(ccr_ui_path)?;
+        self.check_and_install_deps(ccr_ui_path, auto_yes)?;
 
         ColorOutput::info("🔧 使用开发模式启动 CCR UI");
         ColorOutput::info("📍 后端: http://localhost:38081");
@@ -212,7 +222,7 @@ impl UiService {
     }
 
     /// 📦 检查并安装依赖
-    fn check_and_install_deps(&self, ccr_ui_path: &Path) -> Result<()> {
+    fn check_and_install_deps(&self, ccr_ui_path: &Path, auto_yes: bool) -> Result<()> {
         ColorOutput::info("🔍 检查项目依赖...");
 
         // 检查前端依赖
@@ -225,10 +235,16 @@ impl UiService {
 
         if needs_frontend_install || needs_backend_build {
             ColorOutput::warning("⚠️  检测到未安装的依赖,开始安装...");
+            if needs_frontend_install {
+                ColorOutput::info("  - 缺少前端依赖: frontend/node_modules");
+            }
+            if needs_backend_build {
+                ColorOutput::info("  - 缺少后端构建产物: backend/target");
+            }
             println!();
 
             // 询问用户是否继续
-            if !self.confirm_installation()? {
+            if !self.confirm_installation(auto_yes)? {
                 return Err(CcrError::ConfigError("用户取消安装".to_string()));
             }
 
@@ -256,8 +272,12 @@ impl UiService {
     }
 
     /// ❓ 确认是否安装依赖
-    fn confirm_installation(&self) -> Result<bool> {
+    fn confirm_installation(&self, auto_yes: bool) -> Result<bool> {
         use dialoguer::Confirm;
+
+        if auto_yes {
+            return Ok(true);
+        }
 
         let confirmed = Confirm::new()
             .with_prompt("是否立即安装 CCR UI 依赖?")
@@ -269,23 +289,66 @@ impl UiService {
     }
 
     /// ❓ 提示是否迁移旧版本
-    fn prompt_migrate_legacy(&self) -> Result<bool> {
+    fn prompt_migrate_legacy(&self, auto_yes: bool) -> Result<bool> {
         use dialoguer::Confirm;
 
-        ColorOutput::info("新版本使用 bun 作为包管理器，性能更好");
+        if auto_yes {
+            return Ok(true);
+        }
+
+        ColorOutput::info("检测到旧版安装路径，建议迁移以统一目录结构");
         ColorOutput::info(&format!(
-            "迁移将删除旧目录 {} 并下载新版本",
-            self.legacy_ui_dir.display()
+            "迁移将把 {} 移动到 {}",
+            self.legacy_ui_dir.display(),
+            self.ui_dir.display()
         ));
         println!();
 
         let confirmed = Confirm::new()
-            .with_prompt("是否迁移到新版本?")
+            .with_prompt("是否迁移到新目录?")
             .default(true)
             .interact()
             .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;
 
         Ok(confirmed)
+    }
+
+    /// 🔁 迁移旧版目录到新目录
+    fn migrate_legacy_dir(&self) -> Result<()> {
+        if !self.legacy_ui_dir.exists() {
+            return Ok(());
+        }
+
+        if self.ui_dir.exists() {
+            return Err(CcrError::ConfigError(format!(
+                "无法迁移：目标目录已存在: {}",
+                self.ui_dir.display()
+            )));
+        }
+
+        let parent_dir = self
+            .ui_dir
+            .parent()
+            .ok_or_else(|| CcrError::ConfigError("无法获取 UI 目录父路径".to_string()))?;
+
+        if !parent_dir.exists() {
+            fs::create_dir_all(parent_dir)
+                .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+        }
+
+        // 优先尝试原地移动（同文件系统时为 O(1)）
+        match fs::rename(&self.legacy_ui_dir, &self.ui_dir) {
+            Ok(_) => {
+                ColorOutput::success(&format!("✅ 已迁移到新目录: {}", self.ui_dir.display()));
+                Ok(())
+            }
+            Err(e) => {
+                ColorOutput::warning(&format!("⚠️  目录移动失败，将改为复制: {}", e));
+                self.copy_dir_recursive(&self.legacy_ui_dir, &self.ui_dir)?;
+                ColorOutput::success(&format!("✅ 已复制到新目录: {}", self.ui_dir.display()));
+                Ok(())
+            }
+        }
     }
 
     /// 🌐 仅启动前端 (用于测试)
@@ -369,8 +432,12 @@ impl UiService {
     // === GitHub 下载功能 ===
 
     /// ❓ 提示用户是否下载 CCR UI
-    fn prompt_download(&self) -> Result<bool> {
+    fn prompt_download(&self, auto_yes: bool) -> Result<bool> {
         use dialoguer::Confirm;
+
+        if auto_yes {
+            return Ok(true);
+        }
 
         ColorOutput::info("💡 提示: CCR UI 是一个完整的 Next.js + Actix Web 应用");
         ColorOutput::info("   可以从 GitHub 下载到用户目录:");
@@ -386,26 +453,13 @@ impl UiService {
         Ok(confirmed)
     }
 
-    /// 📥 从 GitHub 下载 ccr-ui 源码
-    fn download_from_github(&self) -> Result<()> {
-        use std::fs::create_dir_all;
+    /// 🔄 从 GitHub 同步 CCR UI（安装/更新）
+    fn sync_from_github(&self, auto_yes: bool) -> Result<()> {
         use tempfile::TempDir;
 
-        ColorOutput::step("从 GitHub 下载 CCR UI");
+        ColorOutput::step("从 GitHub 同步 CCR UI");
         println!();
 
-        // 创建目标目录的父目录
-        let parent_dir = self
-            .ui_dir
-            .parent()
-            .ok_or_else(|| CcrError::ConfigError("无法获取父目录".to_string()))?;
-
-        if !parent_dir.exists() {
-            create_dir_all(parent_dir)
-                .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
-        }
-
-        // 创建临时目录用于克隆
         let temp_dir = TempDir::new()
             .map_err(|e| CcrError::ConfigError(format!("创建临时目录失败: {}", e)))?;
 
@@ -418,7 +472,6 @@ impl UiService {
 
         ColorOutput::warning("⏳ 下载中 (这可能需要几分钟)...");
 
-        // 克隆整个仓库到临时目录
         let status = Command::new("git")
             .arg("clone")
             .arg("--depth")
@@ -441,7 +494,6 @@ impl UiService {
             ));
         }
 
-        // 检查 ccr-ui 子目录是否存在
         let ccr_ui_src = temp_dir.path().join("ccr-ui");
         if !ccr_ui_src.exists() {
             return Err(CcrError::ConfigError(
@@ -449,39 +501,112 @@ impl UiService {
             ));
         }
 
-        // 验证 ccr-ui 目录的完整性
         if !ccr_ui_src.join("justfile").exists() {
             return Err(CcrError::ConfigError(
                 "ccr-ui 目录不完整，缺少 justfile".to_string(),
             ));
         }
 
-        ColorOutput::info("📦 正在复制仓库文件...");
+        self.install_or_update_ui_from_source(&ccr_ui_src, auto_yes)?;
 
-        // 目标是 repo 根目录 (~/.ccr/repo)
-        // self.ui_dir 是 ~/.ccr/repo/ccr-ui
-        // 所以我们要复制到 self.ui_dir.parent()
-        let repo_dir = self
+        Ok(())
+    }
+
+    /// 📥 基于源码目录安装/更新 UI 到用户目录（默认保留依赖缓存）
+    fn install_or_update_ui_from_source(&self, src_ui_dir: &Path, auto_yes: bool) -> Result<()> {
+        use dialoguer::Confirm;
+        use tempfile::TempDir;
+
+        let parent_dir = self
             .ui_dir
             .parent()
-            .ok_or_else(|| CcrError::ConfigError("无法获取仓库根目录".to_string()))?;
+            .ok_or_else(|| CcrError::ConfigError("无法获取 UI 目录父路径".to_string()))?;
 
-        // 如果 repo 目录已存在，先删除
-        if repo_dir.exists() {
-            fs::remove_dir_all(repo_dir)
+        if !parent_dir.exists() {
+            fs::create_dir_all(parent_dir)
+                .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+        }
+
+        // 兼容：如果旧路径存在且新路径不存在，优先引导迁移（保留缓存）
+        if !self.ui_dir.exists()
+            && self.legacy_ui_dir.exists()
+            && self.legacy_ui_dir.join("justfile").exists()
+            && self.prompt_migrate_legacy(auto_yes)?
+        {
+            self.migrate_legacy_dir()?;
+        }
+
+        let is_update = self.ui_dir.exists() && self.ui_dir.join("justfile").exists();
+        if is_update && !auto_yes {
+            println!();
+            ColorOutput::warning("⚠️  检测到已安装的 CCR UI，将执行更新并覆盖源码文件");
+            ColorOutput::info("默认会尽量保留以下缓存目录以避免重复安装：");
+            ColorOutput::info("  - frontend/node_modules");
+            ColorOutput::info("  - backend/target");
+            println!();
+
+            let confirmed = Confirm::new()
+                .with_prompt("是否继续更新?")
+                .default(true)
+                .interact()
+                .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;
+
+            if !confirmed {
+                return Err(CcrError::ConfigError("用户取消更新".to_string()));
+            }
+        }
+
+        // 先把新版本复制到同目录的 staging，避免复制失败导致现有安装损坏
+        let staging_dir = TempDir::new_in(parent_dir)
+            .map_err(|e| CcrError::ConfigError(format!("创建临时目录失败: {}", e)))?;
+        self.copy_dir_recursive(src_ui_dir, staging_dir.path())?;
+
+        // 需要保留的缓存目录（相对 ui_dir）
+        let preserve_rel_paths = ["frontend/node_modules", "backend/target"];
+        let preserve_dir = TempDir::new_in(parent_dir)
+            .map_err(|e| CcrError::ConfigError(format!("创建临时目录失败: {}", e)))?;
+
+        let mut preserved: Vec<(PathBuf, PathBuf)> = Vec::new();
+        if self.ui_dir.exists() {
+            for rel in preserve_rel_paths {
+                let from = self.ui_dir.join(rel);
+                if !from.exists() {
+                    continue;
+                }
+                let to = preserve_dir.path().join(rel);
+                if let Some(parent) = to.parent() {
+                    fs::create_dir_all(parent)
+                        .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+                }
+                fs::rename(&from, &to)
+                    .map_err(|e| CcrError::ConfigError(format!("移动缓存目录失败: {}", e)))?;
+                preserved.push((to, self.ui_dir.join(rel)));
+            }
+        }
+
+        // 清空旧安装目录（缓存已暂存）
+        if self.ui_dir.exists() {
+            fs::remove_dir_all(&self.ui_dir)
                 .map_err(|e| CcrError::ConfigError(format!("删除旧目录失败: {}", e)))?;
         }
 
-        // 复制整个仓库到目标位置
-        // temp_dir.path() 是仓库根目录
-        // repo_dir 是目标仓库根目录
-        self.copy_dir_recursive(temp_dir.path(), repo_dir)?;
+        // 将 staging 目录原子替换为目标目录
+        fs::rename(staging_dir.path(), &self.ui_dir)
+            .map_err(|e| CcrError::ConfigError(format!("写入新版本失败: {}", e)))?;
 
-        ColorOutput::success("✅ CCR 仓库下载完成");
+        // 恢复缓存目录
+        for (from, to) in preserved {
+            if let Some(parent) = to.parent() {
+                fs::create_dir_all(parent)
+                    .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+            }
+            fs::rename(from, to)
+                .map_err(|e| CcrError::ConfigError(format!("恢复缓存目录失败: {}", e)))?;
+        }
+
+        ColorOutput::success("✅ CCR UI 已同步到最新版本");
         ColorOutput::info(&format!("📁 安装位置: {}", self.ui_dir.display()));
         println!();
-
-        // 临时目录会在这里自动清理
 
         Ok(())
     }

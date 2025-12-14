@@ -13,13 +13,9 @@ use crate::services::ui_service::UiService;
 /// # 参数
 /// - `port`: 前端端口 (默认 3000)
 /// - `backend_port`: 后端端口 (默认 38081)
-pub fn ui_command(port: u16, backend_port: u16) -> Result<()> {
-    // 创建 UI 服务
+pub fn ui_command(port: u16, backend_port: u16, auto_yes: bool) -> Result<()> {
     let ui_service = UiService::new()?;
-
-    // 启动 UI
-    ui_service.start(port, backend_port)?;
-
+    ui_service.start(port, backend_port, auto_yes)?;
     Ok(())
 }
 

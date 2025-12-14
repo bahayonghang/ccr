@@ -153,7 +153,12 @@ impl SyncFolderManager {
     /// 如果序列化失败、无法获取锁或写入失败，返回错误
     pub fn save_config(&self, config: &SyncFoldersConfig) -> Result<()> {
         // 获取文件锁
-        let lock_manager = LockManager::with_default_path()?;
+        let lock_dir = self
+            .config_path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join(".locks");
+        let lock_manager = LockManager::new(lock_dir);
         let _lock = lock_manager.lock_resource("sync_folders", Duration::from_secs(5))?;
 
         // 验证配置

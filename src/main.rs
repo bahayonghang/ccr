@@ -345,6 +345,14 @@ enum Commands {
     /// 生产环境：启动预构建版本(未来支持)
     /// 示例: ccr ui -p 3000
     Ui {
+        /// UI 子命令
+        ///
+        /// - 不传子命令：启动 UI
+        /// - help：显示帮助
+        /// - update：更新/安装 UI 到最新
+        #[command(subcommand)]
+        action: Option<UiAction>,
+
         /// 指定前端端口(默认: 3000)
         #[arg(short, long, default_value_t = 3000)]
         port: u16,
@@ -432,6 +440,16 @@ enum Commands {
 enum CheckAction {
     /// 检测环境变量冲突
     Conflicts,
+}
+
+/// 🎨 UI 操作子命令
+#[derive(Subcommand)]
+enum UiAction {
+    /// 显示 `ccr ui` 帮助
+    Help,
+
+    /// 更新/安装用户目录下的 CCR UI 到最新版本（默认 main）
+    Update,
 }
 
 /// 🎯 临时Token操作子命令
@@ -830,7 +848,19 @@ fn main() {
             }
             SyncAction::Pull { force } => commands::sync_cmd::sync_pull_command(force),
         },
-        Some(Commands::Ui { port, backend_port }) => commands::ui_command(port, backend_port),
+        Some(Commands::Ui {
+            action,
+            port,
+            backend_port,
+        }) => match action {
+            Some(UiAction::Help) => {
+                help::print_subcommand_help("ui");
+                Ok(())
+            }
+            Some(UiAction::Update) => services::ui_service::UiService::new()
+                .and_then(|ui_service| ui_service.update(cli.auto_yes)),
+            None => commands::ui_command(port, backend_port, cli.auto_yes),
+        },
         Some(Commands::TempToken { action }) => match action {
             TempTokenAction::Set {
                 token,
