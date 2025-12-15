@@ -8,6 +8,8 @@
 // - 📋 管理文件生命周期
 
 pub mod config;
+pub mod config_file_handler;
+pub mod config_validator;
 pub mod conflict_checker;
 pub mod cost_tracker;
 pub mod history;
@@ -25,6 +27,10 @@ pub mod temp_override;
 pub use config::{
     CcsConfig, ConfigManager, ConfigSection, GlobalSettings, MigrationStatus, ProviderType,
 };
+#[allow(unused_imports)]
+pub use config_file_handler::ConfigFileHandler;
+#[allow(unused_imports)]
+pub use config_validator::{ConfigValidator, ValidationReport};
 #[allow(unused_imports)]
 pub use cost_tracker::CostTracker;
 #[allow(unused_imports)]

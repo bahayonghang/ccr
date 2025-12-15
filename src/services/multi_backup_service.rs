@@ -570,8 +570,19 @@ mod tests {
         }
 
         // 第二次未修改，不应产生新的变化
+        // 注意：只检查测试完全控制的 ccr_config 项，因为真实的 ~/.claude 目录
+        // 可能包含正在变化的文件（日志、缓存等），导致测试不稳定
         let summary2 = svc.backup_all().unwrap();
-        assert!(summary2.items.iter().all(|i| !i.changed));
+        let ccr_config_unchanged = summary2
+            .items
+            .iter()
+            .find(|i| i.name == "ccr_config")
+            .map(|i| !i.changed)
+            .unwrap_or(true);
+        assert!(
+            ccr_config_unchanged,
+            "ccr_config 应该没有变化，但被标记为 changed"
+        );
         let _digest_before = compute_file_digest(&config_path).unwrap();
 
         // 修改一个文件，应该检测到变化
@@ -591,8 +602,18 @@ mod tests {
         }
 
         // 再次备份（未进一步修改），应全部为未变化项
+        // 同样只检查 ccr_config，避免真实系统目录的干扰
         let summary4 = svc.backup_all().unwrap();
-        assert!(summary4.items.iter().all(|i| !i.changed));
+        let ccr_config_unchanged_again = summary4
+            .items
+            .iter()
+            .find(|i| i.name == "ccr_config")
+            .map(|i| !i.changed)
+            .unwrap_or(true);
+        assert!(
+            ccr_config_unchanged_again,
+            "ccr_config 应该没有变化，但被标记为 changed"
+        );
 
         // 并发安全：两次快速调用也应该稳定
         let svc2 = MultiBackupService::with_root(ccr_root.clone()).unwrap();

@@ -56,7 +56,7 @@ reqwest = { version = "0.12.25", features = ["blocking", "json"] }
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.10.1"
+version = "3.10.2"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher(Rust implementation)"
@@ -100,7 +100,7 @@ filetime = "0.2"
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.22", features = ["fmt", "env-filter"] }
 tracing-appender = "0.2.4"
-tracing-log = "0.2"  # 桥接 log facade 到 tracing
+tracing-log = "0.2"                                                           # 桥接 log facade 到 tracing
 
 # 彩色终端输出
 colored = "3.0.0"

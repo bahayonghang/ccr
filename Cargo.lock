@@ -333,7 +333,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.10.1"
+version = "3.10.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -375,7 +375,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-ui-backend"
-version = "3.10.1"
+version = "3.10.2"
 dependencies = [
  "async-stream",
  "axum",
