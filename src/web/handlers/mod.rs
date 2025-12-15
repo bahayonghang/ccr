@@ -14,7 +14,9 @@ pub mod system_handlers;
 use crate::managers::config::CcsConfig;
 /// 🔌 共享状态结构
 /// 持有所有 Service 的引用和配置缓存
-use crate::services::{BackupService, ConfigService, HistoryService, SettingsService};
+use crate::services::{
+    BackupService, ConfigService, HistoryService, SettingsService, ValidateService,
+};
 use crate::web::system_info_cache::SystemInfoCache;
 use std::sync::{Arc, RwLock};
 
@@ -24,6 +26,7 @@ pub struct AppState {
     pub settings_service: Arc<SettingsService>,
     pub history_service: Arc<HistoryService>,
     pub backup_service: Arc<BackupService>,
+    pub validate_service: Arc<ValidateService>,
     pub system_info_cache: Arc<SystemInfoCache>,
     pub config_cache: Arc<RwLock<CcsConfig>>,
 }
@@ -34,6 +37,7 @@ impl AppState {
         settings_service: Arc<SettingsService>,
         history_service: Arc<HistoryService>,
         backup_service: Arc<BackupService>,
+        validate_service: Arc<ValidateService>,
         system_info_cache: Arc<SystemInfoCache>,
         initial_config: CcsConfig,
     ) -> Self {
@@ -42,6 +46,7 @@ impl AppState {
             settings_service,
             history_service,
             backup_service,
+            validate_service,
             system_info_cache,
             config_cache: Arc::new(RwLock::new(initial_config)),
         }

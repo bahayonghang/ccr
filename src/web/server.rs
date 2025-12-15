@@ -5,7 +5,9 @@
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::ConfigManager;
-use crate::services::{BackupService, ConfigService, HistoryService, SettingsService};
+use crate::services::{
+    BackupService, ConfigService, HistoryService, SettingsService, ValidateService,
+};
 use crate::web::handlers::AppState;
 use crate::web::system_info_cache::SystemInfoCache;
 use axum::{
@@ -43,6 +45,7 @@ pub struct WebServer {
     settings_service: Arc<SettingsService>,
     history_service: Arc<HistoryService>,
     backup_service: Arc<BackupService>,
+    validate_service: Arc<ValidateService>,
     system_info_cache: Arc<SystemInfoCache>,
     port: u16,
 }
@@ -54,6 +57,7 @@ impl WebServer {
         let settings_service = Arc::new(SettingsService::with_default()?);
         let history_service = Arc::new(HistoryService::with_default()?);
         let backup_service = Arc::new(BackupService::with_default()?);
+        let validate_service = Arc::new(ValidateService::with_default()?);
 
         // 🎯 创建系统信息缓存，每 2 秒更新一次
         let system_info_cache = Arc::new(SystemInfoCache::new(Duration::from_secs(2)));
@@ -63,6 +67,7 @@ impl WebServer {
             settings_service,
             history_service,
             backup_service,
+            validate_service,
             system_info_cache,
             port,
         })
@@ -137,6 +142,7 @@ impl WebServer {
             self.settings_service.clone(),
             self.history_service.clone(),
             self.backup_service.clone(),
+            self.validate_service.clone(),
             self.system_info_cache.clone(),
             initial_config,
         );
@@ -266,13 +272,22 @@ impl WebServer {
     /// 🎯 获取平台模式（使用缓存）
     #[allow(dead_code)]
     pub fn get_platform_mode() -> (bool, Option<std::path::PathBuf>) {
-        PLATFORM_MODE.read().unwrap().clone()
+        PLATFORM_MODE
+            .read()
+            .unwrap_or_else(|poisoned| {
+                eprintln!("⚠️  PLATFORM_MODE RwLock 被毒化，尝试恢复");
+                poisoned.into_inner()
+            })
+            .clone()
     }
 
     /// 🎯 刷新平台模式缓存
     #[allow(dead_code)]
     pub fn refresh_platform_mode() {
-        let mut cache = PLATFORM_MODE.write().unwrap();
+        let mut cache = PLATFORM_MODE.write().unwrap_or_else(|poisoned| {
+            eprintln!("⚠️  PLATFORM_MODE RwLock 被毒化，尝试恢复");
+            poisoned.into_inner()
+        });
         *cache = ConfigManager::detect_unified_mode();
     }
 

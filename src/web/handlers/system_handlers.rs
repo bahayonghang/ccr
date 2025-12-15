@@ -1,7 +1,6 @@
 // 🎯 系统和设置处理器
 // 处理系统信息查询、历史记录、设置管理等请求
 
-use crate::commands;
 use crate::web::{
     error_utils::{spawn_blocking_string, *},
     handlers::AppState,
@@ -84,11 +83,36 @@ pub async fn handle_get_history(State(state): State<AppState>) -> Response {
 }
 
 /// 处理验证配置请求
-pub async fn handle_validate() -> Response {
-    let result = spawn_blocking_string(commands::validate_command).await;
+/// 🎯 通过 ValidateService 执行验证（修复层级违规）
+pub async fn handle_validate(State(state): State<AppState>) -> Response {
+    let validate_service = Arc::clone(&state.validate_service);
+    let result = spawn_blocking_string(move || validate_service.quick_validate()).await;
 
     match result {
-        Ok(_) => success_response("验证通过"),
+        Ok(report) => {
+            if report.invalid_count == 0 {
+                success_response(serde_json::json!({
+                    "status": "success",
+                    "message": "验证通过",
+                    "valid_count": report.valid_count,
+                    "invalid_count": report.invalid_count
+                }))
+            } else {
+                success_response(serde_json::json!({
+                    "status": "warning",
+                    "message": format!("{} 个配置节验证失败", report.invalid_count),
+                    "valid_count": report.valid_count,
+                    "invalid_count": report.invalid_count,
+                    "results": report.results.iter().map(|(name, valid, error)| {
+                        serde_json::json!({
+                            "name": name,
+                            "valid": valid,
+                            "error": error
+                        })
+                    }).collect::<Vec<_>>()
+                }))
+            }
+        }
         Err(e) => internal_server_error(e),
     }
 }

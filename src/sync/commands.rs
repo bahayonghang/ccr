@@ -192,7 +192,7 @@ pub fn sync_config_command() -> Result<()> {
     ColorOutput::info("密码/应用密码:");
     println!("  💡 坚果云: 账户信息 -> 安全选项 -> 添加应用 -> 生成密码");
     print!("  请输入: ");
-    io::stdout().flush().unwrap();
+    let _ = io::stdout().flush();
     let password = read_password()?;
     println!();
 
@@ -436,7 +436,7 @@ pub fn sync_push_command_with_selection(
 
     if !force {
         print!("🔍 正在检查远程状态...");
-        io::stdout().flush().unwrap();
+        let _ = io::stdout().flush();
 
         let exists = runtime.block_on(async {
             let service = SyncService::new(&sync_config).await?;
@@ -448,10 +448,10 @@ pub fn sync_push_command_with_selection(
             println!("{}  {}", "⚠".yellow().bold(), "远程已存在同名内容".yellow());
             println!();
             print!("   是否覆盖远程配置？ {} ", "(y/N):".dimmed());
-            io::stdout().flush().unwrap();
+            let _ = io::stdout().flush();
 
             let mut confirm = String::new();
-            io::stdin().read_line(&mut confirm).unwrap();
+            io::stdin().read_line(&mut confirm)?;
 
             if !confirm.trim().eq_ignore_ascii_case("y") {
                 println!();
@@ -472,7 +472,7 @@ pub fn sync_push_command_with_selection(
     // 🧩 在上传前执行多类型增量备份（统一目录结构）
     {
         print!("💾 正在执行增量备份...");
-        io::stdout().flush().unwrap();
+        let _ = io::stdout().flush();
         let svc = MultiBackupService::with_default()?;
         let summary = svc.backup_all()?;
         print!("\r");
@@ -511,7 +511,7 @@ pub fn sync_push_command_with_selection(
     println!();
 
     print!("🚀 正在上传...");
-    io::stdout().flush().unwrap();
+    let _ = io::stdout().flush();
 
     // 🎯 根据内容选择创建临时过滤目录进行同步
     let temp_sync_path =
@@ -524,7 +524,7 @@ pub fn sync_push_command_with_selection(
         };
 
     print!("🚀 正在上传...");
-    io::stdout().flush().unwrap();
+    let _ = io::stdout().flush();
 
     runtime.block_on(async {
         let service = SyncService::new(&sync_config).await?;
@@ -610,10 +610,10 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
         );
         println!();
         print!("   是否继续？本地内容将被备份 {} ", "(y/N):".dimmed());
-        io::stdout().flush().unwrap();
+        let _ = io::stdout().flush();
 
         let mut confirm = String::new();
-        io::stdin().read_line(&mut confirm).unwrap();
+        io::stdin().read_line(&mut confirm)?;
 
         if !confirm.trim().eq_ignore_ascii_case("y") {
             println!();
@@ -645,7 +645,7 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     // 备份逻辑
     if sync_path.exists() {
         print!("💾 正在备份本地内容...");
-        io::stdout().flush().unwrap();
+        let _ = io::stdout().flush();
 
         // 如果是文件，使用 ConfigManager 的备份功能
         // 如果是目录，创建带时间戳的 .bak 备份
@@ -684,7 +684,7 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     // 🧩 在拉取前执行多类型增量备份（统一目录结构）
     {
         print!("💾 正在执行增量备份...");
-        io::stdout().flush().unwrap();
+        let _ = io::stdout().flush();
         let svc = MultiBackupService::with_default()?;
         let summary = svc.backup_all()?;
         print!("\r");
@@ -698,7 +698,7 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     }
 
     print!("⬇️  正在从云端下载...");
-    io::stdout().flush().unwrap();
+    let _ = io::stdout().flush();
 
     runtime.block_on(async {
         let service = SyncService::new(&sync_config).await?;
@@ -857,7 +857,7 @@ fn prompt_required(field_name: &str, example: &str) -> Result<String> {
         ColorOutput::info(&format!("{} *", field_name));
         println!("  例如: {}", example);
         print!("  请输入: ");
-        io::stdout().flush().unwrap();
+        let _ = io::stdout().flush();
 
         let mut input = String::new();
         io::stdin()
@@ -883,7 +883,7 @@ fn prompt_with_default(field_name: &str, default: Option<&str>) -> Result<String
         println!("  默认: {}", def);
     }
     print!("  请输入: ");
-    io::stdout().flush().unwrap();
+    let _ = io::stdout().flush();
 
     let mut input = String::new();
     io::stdin()
@@ -1060,9 +1060,9 @@ pub fn sync_folder_remove_command(name: &str) -> Result<()> {
 
     // 确认
     print!("确认删除? (y/N): ");
-    io::stdout().flush().unwrap();
+    let _ = io::stdout().flush();
     let mut confirm = String::new();
-    io::stdin().read_line(&mut confirm).unwrap();
+    io::stdin().read_line(&mut confirm)?;
 
     if !confirm.trim().eq_ignore_ascii_case("y") {
         ColorOutput::info("已取消删除");
@@ -1483,7 +1483,7 @@ fn sync_folder_push_command(folder_name: &str) -> Result<()> {
 
     // 🔍 检查远程是否已存在
     print!("🔍 正在检查远程状态...");
-    io::stdout().flush().unwrap();
+    let _ = io::stdout().flush();
 
     let runtime = tokio::runtime::Runtime::new()
         .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
@@ -1498,10 +1498,10 @@ fn sync_folder_push_command(folder_name: &str) -> Result<()> {
         println!("{}  {}", "⚠".yellow().bold(), "远程已存在同名内容".yellow());
         println!();
         print!("   是否覆盖远程配置？ {} ", "(y/N):".dimmed());
-        io::stdout().flush().unwrap();
+        let _ = io::stdout().flush();
 
         let mut confirm = String::new();
-        io::stdin().read_line(&mut confirm).unwrap();
+        io::stdin().read_line(&mut confirm)?;
 
         if !confirm.trim().eq_ignore_ascii_case("y") {
             println!();
@@ -1520,7 +1520,7 @@ fn sync_folder_push_command(folder_name: &str) -> Result<()> {
 
     // 🚀 上传到云端
     print!("🚀 正在上传...");
-    io::stdout().flush().unwrap();
+    let _ = io::stdout().flush();
 
     runtime.block_on(async {
         let service = SyncService::new(&sync_config).await?;
@@ -1606,10 +1606,10 @@ fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
         );
         println!();
         print!("   是否继续？本地内容将被备份 {} ", "(y/N):".dimmed());
-        io::stdout().flush().unwrap();
+        let _ = io::stdout().flush();
 
         let mut confirm = String::new();
-        io::stdin().read_line(&mut confirm).unwrap();
+        io::stdin().read_line(&mut confirm)?;
 
         if !confirm.trim().eq_ignore_ascii_case("y") {
             println!();
@@ -1620,7 +1620,7 @@ fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
 
         // 💾 备份本地文件夹
         print!("💾 正在备份本地内容...");
-        io::stdout().flush().unwrap();
+        let _ = io::stdout().flush();
 
         let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
         let backup_name = format!("{}.{}.bak", local_path.display(), timestamp);
@@ -1645,7 +1645,7 @@ fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
 
     // ⬇️ 从云端下载
     print!("⬇️  正在从云端下载...");
-    io::stdout().flush().unwrap();
+    let _ = io::stdout().flush();
 
     runtime.block_on(async {
         let service = SyncService::new(&sync_config).await?;
@@ -1722,7 +1722,7 @@ fn sync_folder_status_command(folder_name: &str) -> Result<()> {
 
     // 🔍 检查远程状态
     print!("  远程状态: 正在检查...");
-    io::stdout().flush().unwrap();
+    let _ = io::stdout().flush();
 
     let runtime = tokio::runtime::Runtime::new()
         .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;

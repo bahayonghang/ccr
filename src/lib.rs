@@ -231,7 +231,10 @@ pub use platforms::{
 /// - [`SettingsService`] - 设置管理服务
 /// - [`HistoryService`] - 历史记录服务
 /// - [`BackupService`] - 备份和恢复服务
-pub use services::{BackupService, ConfigService, HistoryService, SettingsService};
+/// - [`ValidateService`] - 验证服务
+pub use services::{
+    BackupService, ConfigService, HistoryService, SettingsService, ValidateService,
+};
 
 /// 工具函数和辅助类型
 ///

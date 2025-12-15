@@ -352,13 +352,9 @@ impl PlatformConfig for GeminiPlatform {
 
     fn validate_profile(&self, profile: &ProfileConfig) -> Result<()> {
         // 检查必需字段：API key
-        if profile.auth_token.is_none() {
-            return Err(CcrError::ValidationError(
-                "Gemini profile 缺少 auth_token (API key)".into(),
-            ));
-        }
-
-        let api_key = profile.auth_token.as_ref().unwrap();
+        let api_key = profile.auth_token.as_ref().ok_or_else(|| {
+            CcrError::ValidationError("Gemini profile 缺少 auth_token (API key)".into())
+        })?;
         Self::validate_api_key(api_key)?;
 
         Ok(())

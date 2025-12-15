@@ -55,7 +55,7 @@ fn main() {
 **Public API Exports**:
 - Core types: `CcrError`, `Result`, `ColorOutput`, `LockManager`
 - Managers: `ConfigManager`, `SettingsManager`, `HistoryManager`
-- Services: `ConfigService`, `SettingsService`, `HistoryService`, `BackupService`
+- Services: `ConfigService`, `SettingsService`, `HistoryService`, `BackupService`, `ValidateService`
 - Models: `CcsConfig`, `ClaudeSettings`, `ConfigSection`, `HistoryEntry`
 
 ### Initialization Sequence
@@ -370,6 +370,7 @@ cargo tree
 - `src/services/settings_service.rs` - Settings management
 - `src/services/history_service.rs` - Audit logging
 - `src/services/backup_service.rs` - Backup operations
+- `src/services/validate_service.rs` - Validation operations (fixes layer violation)
 - `src/services/sync_service.rs` - WebDAV sync
 - `src/services/ui_service.rs` - UI launcher
 
