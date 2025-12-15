@@ -225,7 +225,7 @@ pub struct CodexProfileUpsertRequest {
 }
 
 fn merge_profile(existing: Option<ProfileConfig>, req: CodexProfileUpsertRequest) -> ProfileConfig {
-    let mut profile = existing.unwrap_or_else(ProfileConfig::new);
+    let mut profile = existing.unwrap_or_default();
 
     profile.description = req.description;
     profile.base_url = Some(req.base_url);

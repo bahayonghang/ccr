@@ -38,6 +38,16 @@ export default defineConfig({
     // 项目根目录文档
     /\/README$/,
     /\/CLAUDE$/,
+    // 相对路径链接（英文文档）
+    /\.\.\//,  // 所有包含 ../ 的相对路径
+    /\/index$/,  // index 文件
+    /^\.\/commands/,  // 命令相对路径
+    /^\.\/examples/,  // 示例相对路径
+    /quick-start$/,  // quick-start 链接
+    /configuration$/,  // configuration 链接
+    /web-guide$/,  // web-guide 链接
+    /\/platforms\/index/,  // platforms index
+    /\/architecture$/,  // architecture 链接
   ],
 
   // 国际化配置

@@ -17,7 +17,7 @@
       <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 animate-fade-in">
         <div class="flex items-center gap-5">
           <div class="relative group">
-            <div class="absolute inset-0 bg-guofeng-jade/20 blur-lg rounded-full group-hover:bg-guofeng-jade/30 transition-all duration-500"></div>
+            <div class="absolute inset-0 bg-guofeng-jade/20 blur-lg rounded-full group-hover:bg-guofeng-jade/30 transition-all duration-500" />
             <div class="relative w-16 h-16 rounded-2xl glass-effect flex items-center justify-center border border-white/20 shadow-lg group-hover:scale-105 transition-transform duration-300">
               <Code2 class="w-8 h-8 text-guofeng-jade" />
             </div>
@@ -28,7 +28,10 @@
             </h1>
             <div class="flex items-center gap-3 text-sm text-guofeng-text-secondary">
               <p>{{ $t('home.subtitle') }}</p>
-              <span v-if="version" class="px-2 py-0.5 rounded-md bg-guofeng-bg-tertiary border border-guofeng-border/50 text-xs font-mono text-guofeng-text-muted">
+              <span
+                v-if="version"
+                class="px-2 py-0.5 rounded-md bg-guofeng-bg-tertiary border border-guofeng-border/50 text-xs font-mono text-guofeng-text-muted"
+              >
                 v{{ version }}
               </span>
             </div>
@@ -36,7 +39,10 @@
         </div>
 
         <!-- 系统状态小组件 -->
-        <div v-if="systemInfo" class="flex items-center gap-3 bg-guofeng-bg-secondary/40 p-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-sm">
+        <div
+          v-if="systemInfo"
+          class="flex items-center gap-3 bg-guofeng-bg-secondary/40 p-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-sm"
+        >
           <div class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20">
             <Cpu class="w-4 h-4 text-guofeng-jade" />
             <div class="flex flex-col">
@@ -55,17 +61,25 @@
             <Activity class="w-4 h-4 text-guofeng-info" />
             <div class="flex flex-col">
               <span class="text-[10px] uppercase text-guofeng-text-muted font-bold">OS</span>
-              <span class="text-sm font-bold text-guofeng-text-primary max-w-[100px] truncate" :title="systemInfo.os">{{ systemInfo.os }}</span>
+              <span
+                class="text-sm font-bold text-guofeng-text-primary max-w-[100px] truncate"
+                :title="systemInfo.os"
+              >{{ systemInfo.os }}</span>
             </div>
           </div>
         </div>
       </header>
 
       <!-- ⚡ 快速操作 (Toolkit) -->
-      <section class="animate-fade-in" style="animation-delay: 0.1s">
+      <section
+        class="animate-fade-in"
+        style="animation-delay: 0.1s"
+      >
         <div class="flex items-center gap-2 mb-4 px-1">
           <Zap class="w-5 h-5 text-guofeng-gold" />
-          <h2 class="text-lg font-bold text-guofeng-text-primary">{{ $t('home.quickActions') }}</h2>
+          <h2 class="text-lg font-bold text-guofeng-text-primary">
+            {{ $t('home.quickActions') }}
+          </h2>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           <RouterLink
@@ -80,7 +94,11 @@
               class="h-full flex flex-col relative overflow-hidden group"
             >
               <div class="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                <component :is="tool.icon" class="w-20 h-20" :style="{ color: tool.color }" />
+                <component
+                  :is="tool.icon"
+                  class="w-20 h-20"
+                  :style="{ color: tool.color }"
+                />
               </div>
               
               <div class="relative z-10 flex items-start gap-4">
@@ -88,7 +106,11 @@
                   class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm"
                   :style="{ background: `${tool.color}15` }"
                 >
-                  <component :is="tool.icon" class="w-6 h-6" :style="{ color: tool.color }" />
+                  <component
+                    :is="tool.icon"
+                    class="w-6 h-6"
+                    :style="{ color: tool.color }"
+                  />
                 </div>
                 <div>
                   <h3 class="text-base font-bold text-guofeng-text-primary mb-1 group-hover:text-guofeng-jade transition-colors">
@@ -114,10 +136,15 @@
       </section>
 
       <!-- 🤖 AI 终端 (Core Modules) -->
-      <section class="animate-fade-in" style="animation-delay: 0.2s">
+      <section
+        class="animate-fade-in"
+        style="animation-delay: 0.2s"
+      >
         <div class="flex items-center gap-2 mb-4 px-1">
           <Code2 class="w-5 h-5 text-guofeng-jade" />
-          <h2 class="text-lg font-bold text-guofeng-text-primary">{{ $t('home.aiCliTools') }}</h2>
+          <h2 class="text-lg font-bold text-guofeng-text-primary">
+            {{ $t('home.aiCliTools') }}
+          </h2>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           <RouterLink
@@ -167,7 +194,10 @@
                 </p>
 
                 <div class="pt-3 border-t border-dashed border-guofeng-border/50 flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full animate-pulse" :style="{ background: tool.color }"></span>
+                  <span
+                    class="w-2 h-2 rounded-full animate-pulse"
+                    :style="{ background: tool.color }"
+                  />
                   <span class="text-xs font-medium text-guofeng-text-muted">
                     {{ $t(tool.statsKey || 'common.ready') }}
                   </span>
@@ -179,9 +209,15 @@
       </section>
 
       <!-- 📊 统计概览 -->
-      <section class="animate-fade-in grid grid-cols-1 md:grid-cols-3 gap-5" style="animation-delay: 0.3s">
-        <GuofengCard variant="glass" class="relative overflow-hidden group">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-guofeng-jade/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-guofeng-jade/20"></div>
+      <section
+        class="animate-fade-in grid grid-cols-1 md:grid-cols-3 gap-5"
+        style="animation-delay: 0.3s"
+      >
+        <GuofengCard
+          variant="glass"
+          class="relative overflow-hidden group"
+        >
+          <div class="absolute top-0 right-0 w-32 h-32 bg-guofeng-jade/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-guofeng-jade/20" />
           <div class="relative z-10">
             <div class="flex items-center justify-between mb-4">
               <div class="w-12 h-12 rounded-xl bg-guofeng-jade/10 flex items-center justify-center">
@@ -189,17 +225,27 @@
               </div>
               <TrendingUp class="w-5 h-5 text-guofeng-jade/50" />
             </div>
-            <h3 class="text-2xl font-bold text-guofeng-text-primary mb-1">{{ $t('home.configsCount') }}</h3>
-            <p class="text-sm text-guofeng-text-secondary">{{ $t('home.totalConfigurations') }}</p>
-            <RouterLink to="/configs" class="mt-4 inline-flex items-center text-sm font-medium text-guofeng-jade hover:underline">
+            <h3 class="text-2xl font-bold text-guofeng-text-primary mb-1">
+              {{ $t('home.configsCount') }}
+            </h3>
+            <p class="text-sm text-guofeng-text-secondary">
+              {{ $t('home.totalConfigurations') }}
+            </p>
+            <RouterLink
+              to="/configs"
+              class="mt-4 inline-flex items-center text-sm font-medium text-guofeng-jade hover:underline"
+            >
               {{ $t('common.viewDetails') }}
               <ChevronRight class="w-4 h-4 ml-1" />
             </RouterLink>
           </div>
         </GuofengCard>
 
-        <GuofengCard variant="glass" class="relative overflow-hidden group">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-guofeng-indigo/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-guofeng-indigo/20"></div>
+        <GuofengCard
+          variant="glass"
+          class="relative overflow-hidden group"
+        >
+          <div class="absolute top-0 right-0 w-32 h-32 bg-guofeng-indigo/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-guofeng-indigo/20" />
           <div class="relative z-10">
             <div class="flex items-center justify-between mb-4">
               <div class="w-12 h-12 rounded-xl bg-guofeng-indigo/10 flex items-center justify-center">
@@ -207,17 +253,27 @@
               </div>
               <TrendingUp class="w-5 h-5 text-guofeng-indigo/50" />
             </div>
-            <h3 class="text-2xl font-bold text-guofeng-text-primary mb-1">{{ $t('home.mcpServers') }}</h3>
-            <p class="text-sm text-guofeng-text-secondary">{{ $t('home.mcpServersDesc') }}</p>
-            <RouterLink to="/claude-code" class="mt-4 inline-flex items-center text-sm font-medium text-guofeng-indigo hover:underline">
+            <h3 class="text-2xl font-bold text-guofeng-text-primary mb-1">
+              {{ $t('home.mcpServers') }}
+            </h3>
+            <p class="text-sm text-guofeng-text-secondary">
+              {{ $t('home.mcpServersDesc') }}
+            </p>
+            <RouterLink
+              to="/claude-code"
+              class="mt-4 inline-flex items-center text-sm font-medium text-guofeng-indigo hover:underline"
+            >
               {{ $t('common.viewDetails') }}
               <ChevronRight class="w-4 h-4 ml-1" />
             </RouterLink>
           </div>
         </GuofengCard>
 
-        <GuofengCard variant="glass" class="relative overflow-hidden group">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-amber-500/20"></div>
+        <GuofengCard
+          variant="glass"
+          class="relative overflow-hidden group"
+        >
+          <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-amber-500/20" />
           <div class="relative z-10">
             <div class="flex items-center justify-between mb-4">
               <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
@@ -225,9 +281,16 @@
               </div>
               <TrendingUp class="w-5 h-5 text-amber-500/50" />
             </div>
-            <h3 class="text-2xl font-bold text-guofeng-text-primary mb-1">{{ $t('home.backupStatus') }}</h3>
-            <p class="text-sm text-guofeng-text-secondary">{{ $t('home.lastBackup') }}</p>
-            <RouterLink to="/sync" class="mt-4 inline-flex items-center text-sm font-medium text-amber-500 hover:underline">
+            <h3 class="text-2xl font-bold text-guofeng-text-primary mb-1">
+              {{ $t('home.backupStatus') }}
+            </h3>
+            <p class="text-sm text-guofeng-text-secondary">
+              {{ $t('home.lastBackup') }}
+            </p>
+            <RouterLink
+              to="/sync"
+              class="mt-4 inline-flex items-center text-sm font-medium text-amber-500 hover:underline"
+            >
               {{ $t('common.viewDetails') }}
               <ChevronRight class="w-4 h-4 ml-1" />
             </RouterLink>
@@ -236,24 +299,36 @@
       </section>
 
       <!-- 💡 快速提示 -->
-      <section class="animate-fade-in" style="animation-delay: 0.4s">
-        <GuofengCard variant="glass" class="relative overflow-hidden">
-          <div class="absolute top-0 right-0 w-64 h-64 bg-guofeng-jade/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+      <section
+        class="animate-fade-in"
+        style="animation-delay: 0.4s"
+      >
+        <GuofengCard
+          variant="glass"
+          class="relative overflow-hidden"
+        >
+          <div class="absolute top-0 right-0 w-64 h-64 bg-guofeng-jade/5 rounded-full blur-3xl -mr-16 -mt-16" />
           <div class="relative z-10">
             <div class="flex items-start gap-4">
               <div class="w-12 h-12 rounded-xl bg-guofeng-jade/10 flex items-center justify-center shrink-0">
                 <Lightbulb class="w-6 h-6 text-guofeng-jade" />
               </div>
               <div class="flex-1">
-                <h3 class="text-lg font-bold text-guofeng-text-primary mb-2">{{ $t('home.quickTipsTitle') }}</h3>
+                <h3 class="text-lg font-bold text-guofeng-text-primary mb-2">
+                  {{ $t('home.quickTipsTitle') }}
+                </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div class="flex items-start gap-3 p-3 rounded-lg bg-guofeng-bg-secondary/30 border border-guofeng-border/30">
                     <div class="w-6 h-6 rounded-md bg-guofeng-jade/10 flex items-center justify-center shrink-0 mt-0.5">
                       <span class="text-xs font-bold text-guofeng-jade">1</span>
                     </div>
                     <div>
-                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">{{ $t('home.tip1Title') }}</h4>
-                      <p class="text-xs text-guofeng-text-secondary">{{ $t('home.tip1Desc') }}</p>
+                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">
+                        {{ $t('home.tip1Title') }}
+                      </h4>
+                      <p class="text-xs text-guofeng-text-secondary">
+                        {{ $t('home.tip1Desc') }}
+                      </p>
                     </div>
                   </div>
                   <div class="flex items-start gap-3 p-3 rounded-lg bg-guofeng-bg-secondary/30 border border-guofeng-border/30">
@@ -261,8 +336,12 @@
                       <span class="text-xs font-bold text-guofeng-indigo">2</span>
                     </div>
                     <div>
-                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">{{ $t('home.tip2Title') }}</h4>
-                      <p class="text-xs text-guofeng-text-secondary">{{ $t('home.tip2Desc') }}</p>
+                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">
+                        {{ $t('home.tip2Title') }}
+                      </h4>
+                      <p class="text-xs text-guofeng-text-secondary">
+                        {{ $t('home.tip2Desc') }}
+                      </p>
                     </div>
                   </div>
                   <div class="flex items-start gap-3 p-3 rounded-lg bg-guofeng-bg-secondary/30 border border-guofeng-border/30">
@@ -270,8 +349,12 @@
                       <span class="text-xs font-bold text-amber-500">3</span>
                     </div>
                     <div>
-                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">{{ $t('home.tip3Title') }}</h4>
-                      <p class="text-xs text-guofeng-text-secondary">{{ $t('home.tip3Desc') }}</p>
+                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">
+                        {{ $t('home.tip3Title') }}
+                      </h4>
+                      <p class="text-xs text-guofeng-text-secondary">
+                        {{ $t('home.tip3Desc') }}
+                      </p>
                     </div>
                   </div>
                   <div class="flex items-start gap-3 p-3 rounded-lg bg-guofeng-bg-secondary/30 border border-guofeng-border/30">
@@ -279,8 +362,12 @@
                       <span class="text-xs font-bold text-cyan-500">4</span>
                     </div>
                     <div>
-                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">{{ $t('home.tip4Title') }}</h4>
-                      <p class="text-xs text-guofeng-text-secondary">{{ $t('home.tip4Desc') }}</p>
+                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">
+                        {{ $t('home.tip4Title') }}
+                      </h4>
+                      <p class="text-xs text-guofeng-text-secondary">
+                        {{ $t('home.tip4Desc') }}
+                      </p>
                     </div>
                   </div>
                 </div>

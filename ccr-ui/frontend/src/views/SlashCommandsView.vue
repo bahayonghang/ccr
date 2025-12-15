@@ -120,8 +120,12 @@
               <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search class="w-10 h-10 opacity-30 text-guofeng-text-muted" />
               </div>
-              <p class="text-lg font-bold text-guofeng-text-primary">{{ $t('slashCommands.noMatches') }}</p>
-              <p class="text-sm mt-2 text-guofeng-text-muted">{{ $t('slashCommands.tryOtherKeywords') }}</p>
+              <p class="text-lg font-bold text-guofeng-text-primary">
+                {{ $t('slashCommands.noMatches') }}
+              </p>
+              <p class="text-sm mt-2 text-guofeng-text-muted">
+                {{ $t('slashCommands.tryOtherKeywords') }}
+              </p>
               <button 
                 class="mt-6 px-4 py-2 text-sm text-guofeng-amber hover:bg-guofeng-amber/5 rounded-lg transition-colors"
                 @click="searchQuery = ''; selectedFolder = ''"
@@ -175,8 +179,14 @@
                       :title="cmd.disabled ? $t('slashCommands.enable') : $t('slashCommands.disable')"
                       @click="handleToggle(cmd.name)"
                     >
-                      <PowerOff v-if="cmd.disabled" class="w-5 h-5" />
-                      <Power v-else class="w-5 h-5" />
+                      <PowerOff
+                        v-if="cmd.disabled"
+                        class="w-5 h-5"
+                      />
+                      <Power
+                        v-else
+                        class="w-5 h-5"
+                      />
                     </button>
                     <button
                       class="p-2 rounded-lg transition-all hover:scale-110 text-guofeng-text-secondary hover:text-guofeng-amber hover:bg-guofeng-amber/10"
@@ -220,7 +230,10 @@
 
         <h3 class="text-2xl font-bold mb-6 text-guofeng-text-primary flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-guofeng-amber/10 flex items-center justify-center text-guofeng-amber">
-            <component :is="editingCommand ? Edit2 : Plus" class="w-5 h-5" />
+            <component
+              :is="editingCommand ? Edit2 : Plus"
+              class="w-5 h-5"
+            />
           </div>
           {{ editingCommand ? $t('slashCommands.editCommand') : $t('slashCommands.addCommand') }}
         </h3>
@@ -280,7 +293,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink } from 'vue-router'
 import { Command, Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, Code2 } from 'lucide-vue-next'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import { listSlashCommands, addSlashCommand, updateSlashCommand, deleteSlashCommand, toggleSlashCommand } from '@/api/client'

@@ -20,9 +20,15 @@
 
     <div class="flex items-center justify-between">
       <!-- 品牌区域 -->
-      <div class="flex items-center" :style="{ gap: 'var(--space-lg)' }">
+      <div
+        class="flex items-center"
+        :style="{ gap: 'var(--space-lg)' }"
+      >
         <div class="flex flex-col">
-          <div class="flex items-center" :style="{ gap: 'var(--space-sm)' }">
+          <div
+            class="flex items-center"
+            :style="{ gap: 'var(--space-sm)' }"
+          >
             <Zap
               class="w-7 h-7"
               :style="{ color: 'var(--accent-primary)' }"
@@ -84,7 +90,10 @@
       </div>
 
       <!-- 操作按钮 -->
-      <div class="flex items-center" :style="{ gap: 'var(--space-sm)' }">
+      <div
+        class="flex items-center"
+        :style="{ gap: 'var(--space-sm)' }"
+      >
         <ThemeToggle />
 
         <!-- 分隔线 -->

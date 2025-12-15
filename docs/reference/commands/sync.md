@@ -495,7 +495,7 @@ ccr sync all pull    # 下载启用的全部目录
 ccr sync all status  # 查看整体状态
 ```
 
-#### sync <folder> - 单目录快捷操作
+#### sync `<folder>` - 单目录快捷操作
 
 动态子命令，直接对注册目录执行 push/pull/status。
 

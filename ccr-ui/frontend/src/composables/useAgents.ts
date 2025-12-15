@@ -1,5 +1,4 @@
-import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref } from 'vue'
 import {
     listCodexAgents, addCodexAgent, updateCodexAgent, deleteCodexAgent, toggleCodexAgent,
     listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent,
@@ -59,7 +58,6 @@ const apiMap: Record<ModuleType, AgentApi> = {
 }
 
 export function useAgents(module: ModuleType) {
-    const { t } = useI18n()
     const api = apiMap[module]
 
     const agents = ref<Agent[]>([])

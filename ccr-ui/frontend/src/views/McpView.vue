@@ -67,7 +67,9 @@
               <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Server class="w-10 h-10 opacity-30 text-guofeng-text-muted" />
               </div>
-              <p class="text-lg font-bold text-guofeng-text-primary">{{ $t('mcp.noServers') }}</p>
+              <p class="text-lg font-bold text-guofeng-text-primary">
+                {{ $t('mcp.noServers') }}
+              </p>
             </div>
 
             <div
@@ -102,7 +104,10 @@
                         {{ server.args.join(' ') }}
                       </code>
                     </div>
-                    <div v-if="server.env && Object.keys(server.env).length > 0" class="flex items-start gap-2">
+                    <div
+                      v-if="server.env && Object.keys(server.env).length > 0"
+                      class="flex items-start gap-2"
+                    >
                       <span class="text-guofeng-text-muted w-20 mt-1">{{ $t('mcp.envVars') }}:</span>
                       <div class="space-y-1">
                         <div
@@ -124,8 +129,14 @@
                     :title="server.disabled ? $t('mcp.enable') : $t('mcp.disable')"
                     @click="handleToggle(server.name)"
                   >
-                    <Power v-if="!server.disabled" class="w-4 h-4" />
-                    <PowerOff v-else class="w-4 h-4" />
+                    <Power
+                      v-if="!server.disabled"
+                      class="w-4 h-4"
+                    />
+                    <PowerOff
+                      v-else
+                      class="w-4 h-4"
+                    />
                   </button>
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110 text-guofeng-text-secondary hover:text-guofeng-indigo hover:bg-guofeng-indigo/10"
@@ -165,7 +176,10 @@
 
               <h2 class="text-2xl font-bold mb-6 text-guofeng-text-primary flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-guofeng-indigo/10 flex items-center justify-center text-guofeng-indigo">
-                  <component :is="editingServer ? Edit2 : Plus" class="w-5 h-5" />
+                  <component
+                    :is="editingServer ? Edit2 : Plus"
+                    class="w-5 h-5"
+                  />
                 </div>
                 {{ editingServer ? $t('mcp.editServer') : $t('mcp.addServer') }}
               </h2>
@@ -291,7 +305,7 @@
     
     <!-- Delete Confirmation Modal -->
     <ConfirmModal
-      v-model:isOpen="showDeleteModal"
+      v-model:is-open="showDeleteModal"
       type="danger"
       :title="$t('mcp.deleteConfirmTitle')"
       :message="$t('mcp.deleteConfirmMessage', { name: serverToDelete })"
@@ -303,7 +317,7 @@
     <!-- Toggle (Enable/Disable) Confirmation Modal -->
     <ConfirmModal
       v-if="serverToToggle"
-      v-model:isOpen="showToggleModal"
+      v-model:is-open="showToggleModal"
       type="warning"
       :title="serverToToggle.currentlyDisabled ? $t('mcp.enableConfirmTitle') : $t('mcp.disableConfirmTitle')"
       :message="serverToToggle.currentlyDisabled ? $t('mcp.enableConfirmMessage', { name: serverToToggle.name }) : $t('mcp.disableConfirmMessage', { name: serverToToggle.name })"

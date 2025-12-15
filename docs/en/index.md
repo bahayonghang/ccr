@@ -22,22 +22,22 @@ hero:
 features:
   - icon: 🚀
     title: Multi-interface
-    details: CLI first; optional TUI, legacy Axum Web API (`ccr web`), and full CCR UI (`ccr ui`, Vue3 + Axum + Tauri).
+    details: "CLI first; optional TUI, legacy Axum Web API (`ccr web`), and full CCR UI (`ccr ui`, Vue3 + Axum + Tauri)."
   - icon: 🔐
     title: Safe writes
-    details: File locks + in-process mutex + atomic writes to `settings.json` and config files.
+    details: "File locks + in-process mutex + atomic writes to `settings.json` and config files."
   - icon: 🔀
     title: Unified registry
-    details: Default Unified mode with `config.toml` + per-platform profiles; Legacy `~/.ccs_config.toml` still works.
+    details: "Default Unified mode with `config.toml` + per-platform profiles; Legacy `~/.ccs_config.toml` still works."
   - icon: 🧭
     title: Direct Claude settings
-    details: Writes `~/.claude/settings.json`, auto-backup/audit; supports temporary token/base_url/model override.
+    details: "Writes `~/.claude/settings.json`, auto-backup/audit; supports temporary token/base_url/model override."
   - icon: ☁️
     title: WebDAV multi-folder sync
-    details: Folder registry/enablement, batch or single push/pull/status, interactive allow-list, smart filters for backups/history/locks/ccr-ui.
+    details: "Folder registry/enablement, batch or single push/pull/status, interactive allow-list, smart filters for backups/history/locks/ccr-ui."
   - icon: 📊
     title: Stats & history
-    details: `ccr stats` (web feature) for cost/usage with JSON output; full history with masked env diffs.
+    details: "`ccr stats` (web feature) for cost/usage with JSON output; full history with masked env diffs."
 ---
 
 ## Installation
