@@ -81,14 +81,46 @@ impl WebServer {
         let (listener, actual_port) = Self::bind_available_port(self.port).await?;
 
         ColorOutput::success("🌐 CCR Web 服务器已启动（异步模式）");
-        ColorOutput::info(&format!("📍 地址: http://localhost:{}", actual_port));
+
+        // 🔍 检测 WSL 环境并获取 IP 地址
+        let is_wsl = Self::detect_wsl_environment();
+        let local_ip = Self::get_local_ip();
+
+        // 📍 输出访问地址
+        if is_wsl {
+            ColorOutput::info(&format!("📍 本地访问: http://localhost:{}", actual_port));
+            if let Some(ip) = &local_ip {
+                ColorOutput::info(&format!(
+                    "📍 内网访问: http://{}:{} (推荐用于 Windows 主机)",
+                    ip, actual_port
+                ));
+            } else {
+                ColorOutput::warning("⚠️ 无法获取内网 IP 地址，请手动查看网络配置");
+            }
+        } else {
+            ColorOutput::info(&format!("📍 地址: http://localhost:{}", actual_port));
+            if let Some(ip) = &local_ip {
+                ColorOutput::info(&format!("💡 内网访问: http://{}:{}", ip, actual_port));
+            }
+        }
+
         ColorOutput::info("⏹️ 按 Ctrl+C 停止服务器");
         println!();
 
         // 🌐 根据参数决定是否打开浏览器
-        if !no_browser {
+        // WSL 环境中不自动打开浏览器（避免打开 WSL 内部浏览器）
+        if !no_browser && !is_wsl {
             if let Err(e) = open::that(format!("http://localhost:{}", actual_port)) {
                 ColorOutput::warning(&format!("⚠️ 无法自动打开浏览器: {}", e));
+                ColorOutput::info(&format!("💡 请手动访问 http://localhost:{}", actual_port));
+            }
+        } else if is_wsl {
+            if let Some(ip) = local_ip {
+                ColorOutput::info(&format!(
+                    "💡 建议在 Windows 浏览器中访问: http://{}:{}",
+                    ip, actual_port
+                ));
+            } else {
                 ColorOutput::info(&format!("💡 请手动访问 http://localhost:{}", actual_port));
             }
         } else {
@@ -242,6 +274,37 @@ impl WebServer {
     pub fn refresh_platform_mode() {
         let mut cache = PLATFORM_MODE.write().unwrap();
         *cache = ConfigManager::detect_unified_mode();
+    }
+
+    /// 🔍 检测是否在 WSL 环境中运行
+    ///
+    /// 通过读取 /proc/version 文件检测是否包含 "microsoft" 或 "wsl" 关键字
+    fn detect_wsl_environment() -> bool {
+        if let Ok(content) = std::fs::read_to_string("/proc/version") {
+            let content_lower = content.to_lowercase();
+            return content_lower.contains("microsoft") || content_lower.contains("wsl");
+        }
+        false
+    }
+
+    /// 🌐 获取本地网络 IP 地址
+    ///
+    /// 通过连接外部地址（不实际发送数据）获取本机的网络接口 IP
+    /// 这样可以让系统自动选择合适的网络接口
+    fn get_local_ip() -> Option<String> {
+        use std::net::UdpSocket;
+
+        // 尝试绑定并连接到外部地址（不会实际发送数据）
+        // 这样可以让系统选择合适的网络接口
+        if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
+            // 连接到 Google DNS (8.8.8.8) - 不会实际发送数据
+            if socket.connect("8.8.8.8:80").is_ok()
+                && let Ok(addr) = socket.local_addr()
+            {
+                return Some(addr.ip().to_string());
+            }
+        }
+        None
     }
 }
 
