@@ -12,6 +12,8 @@
 | [`claude-profiles.toml`](./claude-profiles.toml) | Claude Code Profiles 示例 | Claude 平台的多配置管理 |
 | [`codex-profiles.toml`](./codex-profiles.toml) | Codex (GitHub Copilot CLI) Profiles 示例 | Codex 平台的多配置管理 |
 | [`gemini-profiles.toml`](./gemini-profiles.toml) | Gemini CLI Profiles 示例 | Gemini 平台的多配置管理 |
+| [`codex-cli-config.toml`](./codex-cli-config.toml) | Codex CLI `~/.codex/config.toml` 示例 | 适用于 OpenAI 兼容 Provider |
+| [`codex-auth.example.json`](./codex-auth.example.json) | Codex CLI `~/.codex/auth.json` 示例 | API Key 存放示例 |
 
 ### 使用指南
 
@@ -54,6 +56,10 @@ cp docs/examples/config.toml ~/.ccr/config.toml
 cp docs/examples/claude-profiles.toml ~/.ccr/platforms/claude/profiles.toml
 cp docs/examples/codex-profiles.toml ~/.ccr/platforms/codex/profiles.toml
 cp docs/examples/gemini-profiles.toml ~/.ccr/platforms/gemini/profiles.toml
+
+# （可选）如果你要直接配置 Codex CLI
+cp docs/examples/codex-cli-config.toml ~/.codex/config.toml
+cp docs/examples/codex-auth.example.json ~/.codex/auth.json
 
 # 查看当前配置
 ccr platform current

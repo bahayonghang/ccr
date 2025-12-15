@@ -119,6 +119,13 @@ pub struct ConfigSection {
     /// true: 启用（默认）, false: 禁用
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
+
+    /// 📦 额外字段（平台特定/向前兼容）
+    ///
+    /// 用于在 `profiles.toml` 中保留非通用字段（例如 Codex 的 `wire_api`、`env_key` 等），
+    /// 避免因为未知字段导致解析失败或在保存时丢失数据。
+    #[serde(default, flatten)]
+    pub other: IndexMap<String, toml::Value>,
 }
 
 impl Validatable for ConfigSection {
@@ -913,6 +920,7 @@ mod tests {
             tags: None,
             usage_count: Some(0),
             enabled: Some(true),
+            other: IndexMap::new(),
         }
     }
 

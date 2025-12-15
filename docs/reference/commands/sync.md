@@ -471,6 +471,44 @@ ccr sync pull            # 从云端恢复
 
 4. 验证同步体积正常（应该显示 <10 KB）
 
+### 扩展子命令
+
+#### sync folder - 目录注册/管理
+
+注册、启用/禁用、查看同步目录，支持多个目录并行管理。
+
+```bash
+ccr sync folder list
+ccr sync folder add claude ~/.claude -r /ccr-sync/claude
+ccr sync folder enable claude
+ccr sync folder disable claude
+ccr sync folder info claude
+```
+
+#### sync all - 批量操作
+
+对所有启用的目录批量 push/pull/status。
+
+```bash
+ccr sync all push    # 上传启用的全部目录
+ccr sync all pull    # 下载启用的全部目录
+ccr sync all status  # 查看整体状态
+```
+
+#### sync <folder> - 单目录快捷操作
+
+动态子命令，直接对注册目录执行 push/pull/status。
+
+```bash
+ccr sync claude push
+ccr sync gemini pull
+ccr sync conf status
+```
+
+#### 交互式内容选择
+
+`ccr sync push -i` 启动交互式面板，可选择同步范围（如仅 `config.toml` 或特定平台目录）。
+
 ---
 
 ## 📖 相关命令

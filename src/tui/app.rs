@@ -360,8 +360,9 @@ impl App {
                     }),
                     account: info.account,
                     tags: info.tags,
-                    usage_count: Some(0), // TODO: 从 ConfigInfo 获取
-                    enabled: Some(true),  // TODO: 从 ConfigInfo 获取
+                    usage_count: Some(info.usage_count),
+                    enabled: Some(info.enabled),
+                    other: indexmap::IndexMap::new(),
                 }
             }
             Err(e) => {

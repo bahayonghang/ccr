@@ -281,7 +281,8 @@ const handleSave = async () => {
     // 构造符合后端 UpdateConfigRequest 结构的请求数据
     const payload = {
       name: props.configName,  // ✅ 添加必填的 name 字段
-      ...formData.value
+      ...formData.value,
+      model: (formData.value.model ?? '').trim() || undefined
     }
     await updateConfig(props.configName, payload)
     alert(`✓ 成功保存配置 "${props.configName}"`)

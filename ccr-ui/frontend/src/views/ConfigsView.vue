@@ -263,6 +263,18 @@
                     </svg>
                     <span>{{ $t('configs.provider.title') }}</span>
                   </button>
+                  <!-- ➕ 添加配置按钮 -->
+                  <button
+                    class="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 text-white transition-all hover:scale-105"
+                    :style="{
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                    }"
+                    @click="isAddModalOpen = true"
+                  >
+                    <PlusCircle class="w-4 h-4" />
+                    <span>{{ $t('configs.buttons.add') }}</span>
+                  </button>
                 </div>
               </div>
               <!-- 加载状态 -->
@@ -345,6 +357,13 @@
       :config-name="editingConfigName"
       @close="handleEditModalClose"
       @saved="handleEditSaved"
+    />
+
+    <!-- 添加配置模态框 -->
+    <AddConfigModal
+      :is-open="isAddModalOpen"
+      @close="handleAddModalClose"
+      @saved="handleAddSaved"
     />
 
     <!-- 提供商统计模态框 -->
@@ -529,6 +548,7 @@ import {
   Code2,
   Settings,
   Home,
+  PlusCircle,
 } from 'lucide-vue-next'
 import type { ConfigItem, HistoryEntry } from '@/types'
 import {
@@ -548,6 +568,7 @@ import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import EnvironmentBadge from '@/components/EnvironmentBadge.vue'
 import EditConfigModal from '@/components/EditConfigModal.vue'
+import AddConfigModal from '@/components/AddConfigModal.vue'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -565,6 +586,7 @@ const currentSort = ref<SortType>('name') // 📊 排序方式
 const activeTab = ref<'configs' | 'history'>('configs')
 const isEditModalOpen = ref(false)
 const editingConfigName = ref('')
+const isAddModalOpen = ref(false)
 
 const providerUsage = ref<Record<string, number>>({})
 const providerLoading = ref(false)
@@ -773,6 +795,16 @@ const handleEditModalClose = () => {
 
 // 编辑保存后
 const handleEditSaved = async () => {
+  await loadConfigs()
+}
+
+// 关闭添加模态框
+const handleAddModalClose = () => {
+  isAddModalOpen.value = false
+}
+
+// 添加保存后
+const handleAddSaved = async () => {
   await loadConfigs()
 }
 

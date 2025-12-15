@@ -1,6 +1,6 @@
 # CCR UI - Vue 3 + Axum + Tauri Full-Stack Application
 
-A graphical/desktop interface for CCR (Claude Code Configuration Switcher). Frontend: Vue 3 + Vite + Pinia, Backend: Axum. Supports both Web mode and Tauri desktop mode. Version 3.6.2.
+A graphical/desktop interface for CCR (Claude Code Configuration Switcher). Frontend: Vue 3 + Vite + Pinia, Backend: Axum. Supports both Web mode and Tauri desktop mode. Version 3.9.4.
 
 ## Features Overview
 
@@ -27,8 +27,8 @@ A graphical/desktop interface for CCR (Claude Code Configuration Switcher). Fron
 ```bash
 ccr ui                  # Auto-detect local source, user directory, or download from GitHub
 ccr ui -p 3000          # Custom frontend port
-ccr ui --backend-port 8081  # Custom backend port
-# Default ports: Frontend 3000, Backend 8081
+ccr ui --backend-port 38081  # Custom backend port
+# Default ports: Frontend 3000, Backend 38081
 ```
 
 CCR CLI searches for ccr-ui in the following priority order:
@@ -49,7 +49,7 @@ just s                  # Start frontend + backend development mode (most common
 - `just c` - Code check (clippy + format check + TypeScript check)
 - `just t` - Run tests
 - `just f` - Format code
-- `just s` - Start development environment (frontend 5173 + backend 8081)
+- `just s` - Start development environment (frontend 5173 + backend 38081)
 - `just run-prod` - Run production environment
 - `just tauri-dev` - Tauri desktop development
 - `just tauri-build` - Build desktop installer
@@ -84,7 +84,7 @@ ccr/ (workspace root)
 - **Frontend → Backend**: Axios HTTP requests (REST API)
 - **Backend → CLI**: Direct CCR command invocation + file system operations
 - **State Management**: Pinia stores (client-side state)
-- **API Endpoint**: Default `http://localhost:8081`
+- **API Endpoint**: Default `http://localhost:38081`
 
 ### Technology Stack
 
@@ -243,7 +243,7 @@ Supports MCP, Agents, Slash Commands, Plugins, Config management
 ### Backend Development
 ```bash
 cd ccr-ui/backend
-cargo run -- --port 8081              # Start development server (default 8081)
+cargo run -- --port 38081              # Start development server (default 38081)
 cargo watch -x run                    # Auto-reload on changes
 RUST_LOG=debug cargo run              # Enable debug logging
 ```
@@ -258,7 +258,7 @@ bun run type-check                    # TypeScript type checking
 bun run lint                          # ESLint checking
 ```
 
-Frontend accesses backend API at `http://localhost:8081` (configurable via environment variables).
+Frontend accesses backend API at `http://localhost:38081` (configurable via environment variables).
 
 ### Environment Variables
 
@@ -266,12 +266,12 @@ Frontend accesses backend API at `http://localhost:8081` (configurable via envir
 ```bash
 RUST_LOG=info              # Log level: trace, debug, info, warn, error
 RUST_BACKTRACE=1          # Enable error backtrace
-PORT=8081                 # Server port number
+PORT=38081                 # Server port number
 ```
 
 **Frontend Environment Variables** (`.env` or `.env.local`)
 ```bash
-VITE_API_BASE_URL=http://localhost:8081    # Backend API URL
+VITE_API_BASE_URL=http://localhost:38081    # Backend API URL
 VITE_LOG_LEVEL=debug                        # Frontend log level
 ```
 
@@ -297,7 +297,7 @@ bun install && bun run build
 cp -r dist/* ../dist/static/
 
 # Run
-./dist/ccr-ui-backend --port 8081 --static-dir ./dist/static
+./dist/ccr-ui-backend --port 38081 --static-dir ./dist/static
 ```
 
 **Build Artifacts**:
@@ -323,8 +323,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=backend-builder /app/ccr-ui/backend/target/release/ccr-ui-backend /usr/local/bin/
 COPY --from=frontend-builder /app/ccr-ui/frontend/dist /usr/local/share/ccr-ui/static
-EXPOSE 8081
-CMD ["ccr-ui-backend", "--port", "8081", "--static-dir", "/usr/local/share/ccr-ui/static"]
+EXPOSE 38081
+CMD ["ccr-ui-backend", "--port", "38081", "--static-dir", "/usr/local/share/ccr-ui/static"]
 ```
 
 ## Tauri Desktop Mode
@@ -451,19 +451,19 @@ npx playwright test    # Run E2E tests
 cargo run -- --port 9090
 
 # Solution 2: Find and kill the process
-sudo lsof -i :8081
+sudo lsof -i :38081
 kill -9 <PID>
 ```
 
 **2. Frontend Cannot Connect to Backend**
-- Confirm backend is running at `http://localhost:8081`
+- Confirm backend is running at `http://localhost:38081`
 - Check browser console Network panel
 - Confirm CORS configuration is enabled
 - Check firewall settings
 
 **3. CLI Invocation Error**
 - Confirm `ccr` is in PATH
-- Check version: `ccr --version` (should be 3.6.2+)
+- Check version: `ccr --version` (should be 3.9.4+)
 - Enable debug logging: `CCR_LOG_LEVEL=debug ccr ui`
 - Check permissions: `chmod +x ~/.ccr/ccr-ui/backend/target/release/ccr-ui-backend`
 
@@ -504,12 +504,12 @@ Backend allows all origins by default. To restrict:
 ## FAQ
 
 ### Q: How does ccr-ui communicate with the backend?
-A: The Vue frontend uses Axios to send REST API requests to the Axum backend (port 8081). All state is managed client-side with Pinia stores.
+A: The Vue frontend uses Axios to send REST API requests to the Axum backend (port 38081). All state is managed client-side with Pinia stores.
 
 ### Q: Can I customize frontend and backend ports?
 A: Yes!
 ```bash
-ccr ui -p 3000 --backend-port 8081    # Frontend 3000, backend 8081
+ccr ui -p 3000 --backend-port 38081    # Frontend 3000, backend 38081
 ```
 
 ### Q: Where are configuration files stored?
@@ -566,8 +566,8 @@ A:
 
 ### Q: How to debug backend API?
 A:
-- Start backend with `cargo run -- --port 8081`
-- Visit `http://localhost:8081/api/version` to verify
+- Start backend with `cargo run -- --port 38081`
+- Visit `http://localhost:38081/api/version` to verify
 - Test API with Postman or curl
 - View logs: `tail -f ~/.ccr/logs/ccr-ui-backend.log`
 
@@ -627,7 +627,7 @@ MIT License (same as main project)
 ---
 
 **Last Updated**: 2025-01-24
-**Version**: 3.6.2
+**Version**: 3.9.4
 **Documentation Status**: ✅ Complete
 
 ## Related Links

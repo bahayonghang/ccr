@@ -6,64 +6,68 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 
 | 命令 | 别名 | 说明 | 版本 |
 |------|------|------|------|
-| [init](./init) | - | 初始化配置文件 | v1.0+ |
-| [list](./list) | `ls` | 列出所有可用配置 | v1.0+ |
-| [current](./current) | `status`, `show` | 显示当前配置状态 | v1.0+ |
-| [switch](./switch) | - | 切换到指定配置 | v1.0+ |
+| [init](./init) | - | 初始化配置（默认 Unified，可兼容 Legacy） | v1.0+ |
+| [platform](./platform) | - | 平台注册表管理（list/switch/current/info/init） | v3.6+ |
+| [migrate](./migrate) | - | Legacy → Unified 迁移 | v3.6+ |
+| [list](./list) | `ls` | 列出当前平台的 profiles | v1.0+ |
+| [current](./current) | `status`, `show` | 当前 profile 状态 | v1.0+ |
+| [switch](./switch) | - | 切换 profile（支持快捷 `ccr <name>`） | v1.0+ |
 | [add](./add) | - | 交互式添加新配置 | v1.0+ |
 | [delete](./delete) | - | 删除指定配置 | v1.0+ |
-| [temp-token](./temp-token) | - | 临时Token管理（不修改配置文件） | v2.0+ |
-| [validate](./validate) | `check` | 验证配置完整性 | v1.0+ |
-| [history](./history) | - | 显示操作历史 | v1.0+ |
-| [stats](./stats) | - | 查看使用统计和成本分析 | v2.0+ |
-| [tui](./tui) | - | 启动交互式终端界面 | v2.0+ |
-| [web](./web) | - | 启动轻量级 Legacy Web 界面/HTTP API（兼容与编程访问，新的浏览器端推荐使用 `ccr ui`） | v2.0+ |
+| enable | - | 启用 profile（当前平台） | v1.0+ |
+| disable | - | 禁用 profile（支持 --force） | v1.0+ |
+| [validate](./validate) | `check` | 验证配置和 settings 文件 | v1.0+ |
+| optimize | - | 重新排序配置 | v1.0+ |
+| clear | - | 清除 settings.json 中 CCR 写入 | v2.0+ |
+| [temp-token](./temp-token) | - | 临时覆盖 token/base_url/model | v2.0+ |
+| [history](./history) | - | 操作历史 | v1.0+ |
+| [stats](./stats) | - | 成本/调用统计（web 特性） | v2.0+ |
 | [export](./export) | - | 导出配置到文件 | v1.0+ |
 | [import](./import) | - | 从文件导入配置 | v1.0+ |
 | [clean](./clean) | - | 清理旧备份文件 | v2.0+ |
+| [sync](./sync) | - | WebDAV 同步（目录注册/批量/交互式） | v2.0+ |
+| [ui](./ui) | - | 启动完整 CCR UI | v1.4+ |
+| [tui](./tui) | - | 终端界面 | v2.0+ |
+| [web](./web) | - | 轻量 Web API（兼容/脚本） | v2.0+ |
+| [skills](./skills) | - | 技能管理 | v3.5+ |
+| [prompts](./prompts) | - | 提示词模板管理 | v3.5+ |
+| [check](./check) | - | 配置冲突检测 | v3.6+ |
 | [update](./update) | - | 更新到最新版本 | v1.0+ |
 | [version](./version) | `ver` | 显示版本信息 | v1.0+ |
-| [skills](./skills) | - | 技能管理 | **v3.5+** |
-| [prompts](./prompts) | - | 提示词模板管理 | **v3.5+** |
 
 ## 命令分类
 
-### 配置管理
+### 初始化与平台
 
-- **[init](./init)** - 初始化配置文件,创建默认模板
-- **[list](./list)** - 查看所有可用配置
-- **[current](./current)** - 显示当前使用的配置
-- **[switch](./switch)** - 切换到不同的配置
-- **[add](./add)** - 交互式添加新配置
-- **[delete](./delete)** - 删除指定配置
-- **[validate](./validate)** - 验证配置完整性
+- **[init](./init)** - 初始化配置（默认 Unified）
+- **[platform](./platform)** - 平台注册表管理
+- **[migrate](./migrate)** - Legacy → Unified 迁移
 
-### 临时配置管理
+### Profile 管理
 
-- **[temp-token](./temp-token)** - 临时覆盖Token等配置，无需修改永久配置文件
+- **[list](./list)** / **[current](./current)** / **[switch](./switch)** - 查看与切换
+- **[add](./add)** / **[delete](./delete)** - 增删 profile
+- **enable/disable** - 启用/禁用 profile
+- **[validate](./validate)** / optimize / clear - 校验、排序、清除写入
+- **[temp-token](./temp-token)** - 临时覆盖 token/base_url/model
 
-### 数据管理
+### 数据与同步
 
-- **[export](./export)** - 导出配置用于备份或迁移
-- **[import](./import)** - 从文件导入配置
-- **[clean](./clean)** - 清理旧备份文件
+- **[export](./export)** / **[import](./import)** / **[clean](./clean)** - 导出、导入、清理备份
+- **[sync](./sync)** - WebDAV 同步（注册目录、批量/单目录、交互式过滤）
+- **[history](./history)** / **[stats](./stats)** - 审计历史与统计
 
-### 高级功能 (v3.5+)
+### 界面
 
-- **[skills](./skills)** - 技能管理：安装、卸载、管理技能仓库
-- **[prompts](./prompts)** - 提示词模板管理：创建、应用、管理提示词预设
+- **[ui](./ui)** - 启动完整 CCR UI
+- **[tui](./tui)** - 终端界面（tui 特性）
+- **[web](./web)** - 轻量 Web API（兼容/脚本）
 
-### 历史与监控
+### 扩展与维护
 
-- **[history](./history)** - 查看操作历史记录
-- **[stats](./stats)** - 查看使用统计和成本分析
-- **[tui](./tui)** - 启动交互式终端界面
-- **[web](./web)** - 启动 Web 管理界面
-
-### 系统维护
-
-- **[update](./update)** - 更新 CCR 到最新版本
-- **[version](./version)** - 显示版本信息
+- **[skills](./skills)** / **[prompts](./prompts)** - 扩展管理
+- **[check](./check)** - 配置冲突检测
+- **[update](./update)** / **[version](./version)** - 更新与版本信息
 
 ## 常用命令速查
 

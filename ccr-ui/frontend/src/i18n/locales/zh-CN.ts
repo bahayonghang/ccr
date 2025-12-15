@@ -603,6 +603,25 @@ export default {
       cancel: '取消',
       required: '必填项',
     },
+    addConfig: {
+      title: '添加新配置',
+      subtitle: '选择模板或手动填写配置信息',
+      selectTemplate: '快速选择配置模板',
+      name: '配置名称',
+      namePlaceholder: '例如: my-config',
+      description: '描述',
+      descriptionPlaceholder: '配置描述（可选）',
+      tokenPlaceholder: '输入 API Key 或 Token',
+      modelPlaceholder: '模型名称（可选）',
+      providerUncategorized: '未分类',
+      providerOfficialRelay: '官方中转',
+      providerThirdParty: '第三方模型',
+      cancel: '取消',
+      save: '添加配置',
+      saving: '添加中...',
+      success: '✓ 成功添加配置 "{name}"',
+      failed: '添加配置失败',
+    },
   },
   commands: {
     title: '命令执行中心',
@@ -1235,12 +1254,32 @@ export default {
     // Profiles module
     profiles: {
       title: 'Profiles 管理',
-      subtitle: '管理 GitHub Copilot CLI 配置文件',
+      subtitle: '管理 Codex 平台 profiles.toml（CCR Unified 模式）',
       breadcrumb: 'Profiles 配置',
       addProfile: '添加 Profile',
       editProfile: '编辑 Profile',
       updateProfile: '更新 Profile',
       backToCodex: '返回',
+      apply: '应用',
+      currentBadge: '当前',
+      confirmApply: '确定应用 Profile "{name}" 吗？这会更新 Codex 本地配置。',
+      confirmDelete: '确定删除 Profile "{name}" 吗？此操作不可撤销。',
+      extraHint: '示例：{"api_mode":"custom","wire_api":"responses","env_key":"DUCKCODING_API_KEY","requires_openai_auth":true}',
+      fields: {
+        name: 'Name',
+        description: '描述',
+        baseUrl: 'Base URL',
+        authToken: 'Auth Token',
+        model: 'Model',
+        smallFastModel: 'Small Fast Model',
+        provider: 'Provider',
+        providerType: 'Provider Type',
+        account: 'Account',
+        tags: 'Tags',
+        enabled: '启用',
+        extra: '高级字段',
+        extraJson: '高级字段（JSON）'
+      },
       profileName: 'Profile 名称',
       description: '描述',
       authToken: 'Auth Token',
@@ -1255,12 +1294,17 @@ export default {
       setActive: '设为活跃',
       currentActive: '当前活跃',
       placeholders: {
-        name: '例如: github-production',
-        description: '例如: GitHub Copilot 生产环境配置',
-        authToken: 'ghp_...',
-        baseUrl: 'https://api.github.com/copilot',
-        selectFastModel: '-- 选择快速模型 --',
-        selectProvider: '-- 选择提供商 --'
+        name: '例如: duckcoding',
+        description: '例如: OpenAI 兼容转发（gpt-5.1-codex）',
+        authToken: '例如: ghp_... 或 sk-...',
+        baseUrl: '例如: https://api.github.com/copilot 或 https://your-openai-compatible.com/v1',
+        model: '例如: gpt-5.1-codex',
+        smallFastModel: '例如: gpt-4o-mini',
+        provider: '例如: duckcoding',
+        providerType: '例如: official_relay',
+        account: '例如: dev@example.com',
+        tags: '例如: free, stable, high-speed',
+        extraJson: '{\n  "api_mode": "custom",\n  "wire_api": "responses",\n  "env_key": "DUCKCODING_API_KEY"\n}'
       },
       providers: {
         github: 'GitHub',
@@ -1269,7 +1313,12 @@ export default {
         custom: 'Custom'
       },
       validation: {
-        required: '请填写所有必填字段（Profile 名称、Base URL、Auth Token、Model）'
+        required: '请填写所有必填字段（Profile 名称、Base URL、Auth Token、Model）',
+        nameRequired: '请填写 Profile 名称',
+        baseUrlRequired: '请填写 Base URL',
+        authTokenRequired: '请填写 Auth Token',
+        modelRequired: '请填写 Model',
+        extraJsonInvalid: '高级字段必须是合法 JSON 对象'
       },
       messages: {
         loadFailed: '加载 Codex Profiles 失败',

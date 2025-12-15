@@ -150,6 +150,7 @@ mod tests {
             tags: None,
             usage_count: Some(0),
             enabled: Some(true),
+            other: IndexMap::new(),
         }
     }
 

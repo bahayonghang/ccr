@@ -1,0 +1,20 @@
+# Gemini Profiles 示例（Unified）
+# 复制到: ~/.ccr/platforms/gemini/profiles.toml
+
+default_config = "google"
+current_config = "google"
+
+[settings]
+skip_confirmation = false
+
+[google]
+description = "Google Gemini Official API"
+base_url = "https://generativelanguage.googleapis.com/v1"
+auth_token = "AIzaSy...your-api-key-here"
+model = "gemini-2.0-flash-exp"
+small_fast_model = "gemini-1.5-flash"
+provider = "google"
+provider_type = "official_relay"
+usage_count = 0
+enabled = true
+

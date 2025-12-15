@@ -24,6 +24,9 @@ benches/**
 *.tmp
 *.temp
 
+# Node.js lock files
+**/package-lock.json
+
 # Environment variables file
 .env
 

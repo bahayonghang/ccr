@@ -187,19 +187,6 @@ impl From<CodexMcpServerRequest> for CodexMcpServer {
 }
 
 /// 列出 Codex Profiles 的响应
-#[derive(Debug, Serialize)]
-pub struct CodexProfileListResponse {
-    pub profiles: Vec<CodexProfileWithName>,
-}
-
-/// 带名称的 Codex Profile
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CodexProfileWithName {
-    pub name: String,
-    #[serde(flatten)]
-    pub profile: CodexProfile,
-}
-
 /// 添加/更新 Codex Profile 的请求
 #[derive(Debug, Deserialize)]
 pub struct CodexProfileRequest {

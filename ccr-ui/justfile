@@ -129,21 +129,21 @@ dev: dev-clean
 
 _dev-start-linux:
     @echo "🚀 启动开发环境..."
-    @echo "📍 后端: http://localhost:8081"
+    @echo "📍 后端: http://localhost:38081"
     @echo "📍 前端: http://localhost:5173 (Vue 3 + Vite)"
     @echo ""
     @just dev-parallel
 
 _dev-start-macos:
     @echo "🚀 启动开发环境..."
-    @echo "📍 后端: http://localhost:8081"
+    @echo "📍 后端: http://localhost:38081"
     @echo "📍 前端: http://localhost:5173 (Vue 3 + Vite)"
     @echo ""
     @just dev-parallel
 
 _dev-start-windows:
     @Write-Output '🚀 启动开发环境...'
-    @Write-Output '📍 后端: http://localhost:8081'
+    @Write-Output '📍 后端: http://localhost:38081'
     @Write-Output '📍 前端: http://localhost:5173 (Vue 3 + Vite)'
     @Write-Output ''
     @just dev-parallel
@@ -164,10 +164,10 @@ _dev-parallel-linux:
     cd "$JDIR/backend" && cargo run 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
     BACK_PID=$!
     # 轮询后端健康检查，避免前端在后端未就绪时启动
-    echo "⏳ 等待后端就绪 (http://127.0.0.1:8081/health)..."
+    echo "⏳ 等待后端就绪 (http://127.0.0.1:38081/health)..."
     if command -v curl >/dev/null 2>&1; then
       for i in $(seq 1 90); do
-        if curl -sf http://127.0.0.1:8081/health >/dev/null 2>&1; then
+        if curl -sf http://127.0.0.1:38081/health >/dev/null 2>&1; then
           echo "✅ 后端就绪"
           break
         fi
@@ -206,10 +206,10 @@ _dev-parallel-macos:
     cd "$JDIR/backend" && cargo run 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
     BACK_PID=$!
     # 轮询后端健康检查，避免前端在后端未就绪时启动
-    echo "⏳ 等待后端就绪 (http://127.0.0.1:8081/health)..."
+    echo "⏳ 等待后端就绪 (http://127.0.0.1:38081/health)..."
     if command -v curl >/dev/null 2>&1; then
       for i in $(seq 1 90); do
-        if curl -sf http://127.0.0.1:8081/health >/dev/null 2>&1; then
+        if curl -sf http://127.0.0.1:38081/health >/dev/null 2>&1; then
           echo "✅ 后端就绪"
           break
         fi
@@ -243,7 +243,7 @@ _dev-parallel-macos:
 _dev-parallel-windows:
     @if (-not (Test-Path logs)) { New-Item -ItemType Directory -Path logs -Force | Out-Null }
     @Write-Output '🦀 启动后端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd backend; cargo run 2>&1 | Tee-Object -FilePath ../logs/backend-console.log -Append' -WindowStyle Normal
-    @$maxWait=90; Write-Output '⏳ 等待后端就绪 (http://127.0.0.1:8081/health)...'; for($i=0; $i -lt $maxWait; $i++){ try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri 'http://127.0.0.1:8081/health'; if($r.StatusCode -eq 200){ Write-Output '✅ 后端就绪'; break } } catch { } Start-Sleep -Seconds 1; if($i -eq ($maxWait-1)){ Write-Output '❌ 等待后端超时(90s)，请检查 logs/backend-console.log'; exit 1 } }
+    @$maxWait=90; Write-Output '⏳ 等待后端就绪 (http://127.0.0.1:38081/health)...'; for($i=0; $i -lt $maxWait; $i++){ try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri 'http://127.0.0.1:38081/health'; if($r.StatusCode -eq 200){ Write-Output '✅ 后端就绪'; break } } catch { } Start-Sleep -Seconds 1; if($i -eq ($maxWait-1)){ Write-Output '❌ 等待后端超时(90s)，请检查 logs/backend-console.log'; exit 1 } }
     @Write-Output '⚛️ 启动前端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd frontend; bun run dev 2>&1 | Tee-Object -FilePath ../logs/frontend.log -Append' -WindowStyle Normal
     @Write-Output '📜 日志位于 logs/backend-console.log 与 logs/frontend.log'
     @Write-Output '💡 提示: 两个新窗口已打开，关闭窗口即可停止服务器'
@@ -262,7 +262,7 @@ _dev-clean-linux:
     pkill -9 -f "vite" 2>/dev/null || true
     pkill -9 -f "next-server" 2>/dev/null || true
     pkill -9 -f "next dev" 2>/dev/null || true
-    lsof -ti:8081 2>/dev/null | xargs -r kill -9 || true
+    lsof -ti:38081 2>/dev/null | xargs -r kill -9 || true
     lsof -ti:5173 2>/dev/null | xargs -r kill -9 || true
     lsof -ti:5174 2>/dev/null | xargs -r kill -9 || true
     lsof -ti:3000 2>/dev/null | xargs -r kill -9 || true
@@ -278,7 +278,7 @@ _dev-clean-macos:
     pkill -9 -f "vite" 2>/dev/null || true
     pkill -9 -f "next-server" 2>/dev/null || true
     pkill -9 -f "next dev" 2>/dev/null || true
-    lsof -ti:8081 2>/dev/null | xargs kill -9 || true
+    lsof -ti:38081 2>/dev/null | xargs kill -9 || true
     lsof -ti:5173 2>/dev/null | xargs kill -9 || true
     lsof -ti:5174 2>/dev/null | xargs kill -9 || true
     lsof -ti:3000 2>/dev/null | xargs kill -9 || true
@@ -837,7 +837,7 @@ _info-linux:
     @echo "  - logs/     : 日志文件（按日分割，保留14天）"
     @echo ""
     @echo "🌐 开发端口:"
-    @echo "  - 后端: http://localhost:8081"
+    @echo "  - 后端: http://localhost:38081"
     @echo "  - 前端: http://localhost:5173 (Vue 3 + Vite)"
     @echo "  - React 前端: http://localhost:3000 (Next.js, 使用 just dev-react)"
     @echo ""
@@ -868,7 +868,7 @@ _info-macos:
     @echo "  - logs/     : 日志文件（按日分割，保留14天）"
     @echo ""
     @echo "🌐 开发端口:"
-    @echo "  - 后端: http://localhost:8081"
+    @echo "  - 后端: http://localhost:38081"
     @echo "  - 前端: http://localhost:5173 (Vue 3 + Vite)"
     @echo "  - React 前端: http://localhost:3000 (Next.js, 使用 just dev-react)"
     @echo ""
@@ -900,7 +900,7 @@ _info-windows:
     @Write-Output '  - logs/     : 日志文件（按日分割，保留14天）'
     @Write-Output ''
     @Write-Output '🌐 开发端口:'
-    @Write-Output '  - 后端: http://localhost:8081'
+    @Write-Output '  - 后端: http://localhost:38081'
     @Write-Output '  - 前端: http://localhost:5173 (Vue 3 + Vite)'
     @Write-Output '  - React 前端: http://localhost:3000 (Next.js, 使用 just dev-react)'
     @Write-Output ''

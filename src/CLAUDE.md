@@ -434,7 +434,7 @@ A: Set environment variable: `export CCR_LOG_LEVEL=debug` before running CCR.
 
 A:
 - `ccr web` - Lightweight API server (14 endpoints, port 8080) for programmatic access
-- `ccr ui` - Full-stack web app (129 endpoints backend + Vue frontend, ports 8081/3000) for visual management
+- `ccr ui` - Full-stack web app (129 endpoints backend + Vue frontend, ports 38081/3000) for visual management
 
 ## Related File List
 

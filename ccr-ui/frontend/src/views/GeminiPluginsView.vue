@@ -80,8 +80,8 @@
               :key="plugin.id"
               class="group rounded-lg p-5 transition-all duration-300"
               :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }"
-              @mouseenter="(e) => onCardHover(e.currentTarget, true)"
-              @mouseleave="(e) => onCardHover(e.currentTarget, false)"
+              @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
+              @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
             >
               <div class="flex items-start justify-between mb-3">
                 <div class="flex-1">

@@ -95,6 +95,7 @@ mod tests {
                 tags: None,
                 usage_count: Some(0),
                 enabled: Some(true), // 初始为启用状态
+                other: IndexMap::new(),
             },
         );
 

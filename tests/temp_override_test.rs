@@ -40,6 +40,7 @@ fn create_test_config() -> ConfigSection {
         tags: None,
         usage_count: Some(0),
         enabled: Some(true),
+        other: indexmap::IndexMap::new(),
     }
 }
 

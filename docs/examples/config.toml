@@ -1,0 +1,21 @@
+# CCR 统一平台注册表示例
+# 复制到: ~/.ccr/config.toml
+
+default_platform = "claude"
+current_platform = "claude"
+
+[claude]
+enabled = true
+current_profile = "anthropic"
+description = "Claude Code"
+
+[codex]
+enabled = true
+current_profile = "duckcoding"
+description = "Codex CLI"
+
+[gemini]
+enabled = true
+current_profile = "google"
+description = "Gemini CLI"
+

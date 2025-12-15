@@ -128,6 +128,16 @@ fn build_profile_config(req: &CodexProfileRequest) -> crate::models::ProfileConf
     );
     insert_string(
         &mut platform_data,
+        "network_access",
+        req.network_access.as_ref(),
+    );
+    insert_bool(
+        &mut platform_data,
+        "disable_response_storage",
+        req.disable_response_storage,
+    );
+    insert_string(
+        &mut platform_data,
         "organization",
         req.organization.as_ref(),
     );
@@ -173,6 +183,8 @@ fn build_profile_item(
         approval_policy: get_string(data, "approval_policy"),
         sandbox_mode: get_string(data, "sandbox_mode"),
         model_reasoning_effort: get_string(data, "model_reasoning_effort"),
+        network_access: get_string(data, "network_access"),
+        disable_response_storage: get_bool(data, "disable_response_storage"),
         organization: get_string(data, "organization"),
         is_current: false,
     };

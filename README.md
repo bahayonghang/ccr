@@ -1,6 +1,6 @@
 # CCR - Claude Code Configuration Switcher
 
-High-performance multi-platform configuration management tool written in Rust, version 3.6.2. Supports Claude Code, Codex, Gemini CLI, Qwen. Offers CLI, TUI, Web API interfaces, plus a full-stack CCR UI application built with Vue 3 + Axum + Tauri.
+High-performance multi-platform configuration management tool written in Rust, version 3.9.4. Supports Claude Code, Codex, Gemini CLI, Qwen. Offers CLI, TUI, Web API interfaces, plus a full-stack CCR UI application built with Vue 3 + Axum + Tauri.
 
 ## Highlights
 
@@ -156,6 +156,10 @@ ccr clean --days 30 --dry-run
 
 # Actually clean
 ccr clean --days 30
+
+# Clear CCR config from settings.json (restore to default)
+ccr clear                  # Interactive confirmation
+ccr clear --force          # Skip confirmation
 ```
 
 ### 5. WebDAV Multi-Folder Sync (requires `web` feature)
@@ -279,7 +283,7 @@ ccr stats cost --this-month      # This month cost
 ```bash
 # Launch full UI (Vue 3 + Axum)
 # Auto-detects: workspace → ~/.ccr/ccr-ui → GitHub download
-ccr ui -p 3000 --backend-port 8081
+ccr ui -p 3000 --backend-port 38081
 
 # Launch TUI (requires `tui` feature)
 ccr tui
@@ -466,12 +470,12 @@ ccr ui                          # Auto-detects:
                                 # 3. GitHub auto-download
 
 # Custom ports
-ccr ui -p 3000 --backend-port 8081
+ccr ui -p 3000 --backend-port 38081
 ```
 
 **Default Ports**:
 - Frontend: 3000
-- Backend API: 8081
+- Backend API: 38081
 
 ### Develop from Repository
 
@@ -489,9 +493,9 @@ just s                     # Start frontend + backend in dev mode
 
 Manual (explicit commands):
 ```bash
-# Backend (workspace member, port 8081)
+# Backend (workspace member, port 38081)
 cd ccr-ui/backend
-cargo run -- --port 8081
+cargo run -- --port 38081
 
 # Frontend (new terminal)
 cd ../frontend
@@ -758,7 +762,7 @@ mkdir -p ~/.ccr
 cd ~/.ccr
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
-git checkout v3.6.2
+git checkout v3.9.4
 mv ccr-ui ~/.ccr/
 
 # Launch from workspace

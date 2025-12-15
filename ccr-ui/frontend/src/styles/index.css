@@ -4,8 +4,58 @@
 @tailwind utilities;
 
 /* ===================================
-   CSS 变量 - 主题系统
+   CSS 变量 - 设计令牌系统
    =================================== */
+
+/* 设计令牌 - 间距系统 (8px 基础网格) */
+:root {
+  /* 间距系统 - 基于 8px 的数学化比例 */
+  --space-xs: 0.25rem;    /* 4px */
+  --space-sm: 0.5rem;     /* 8px */
+  --space-md: 1rem;       /* 16px */
+  --space-lg: 1.5rem;     /* 24px */
+  --space-xl: 2rem;       /* 32px */
+  --space-2xl: 3rem;      /* 48px */
+  --space-3xl: 4rem;      /* 64px */
+  --space-4xl: 6rem;      /* 96px */
+  --space-5xl: 8rem;      /* 128px */
+
+  /* 字体层次系统 - 基于 1.25 黄金比例 */
+  --font-size-xs: 0.75rem;     /* 12px */
+  --font-size-sm: 0.875rem;    /* 14px */
+  --font-size-base: 1rem;      /* 16px */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 1.875rem;   /* 30px */
+  --font-size-4xl: 2.25rem;    /* 36px */
+  --font-size-5xl: 3rem;       /* 48px */
+  --font-size-6xl: 3.75rem;    /* 60px */
+
+  /* 行高系统 */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+
+  /* 字重系统 */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  /* 圆角系统 */
+  --radius-sm: 0.25rem;   /* 4px */
+  --radius-md: 0.5rem;    /* 8px */
+  --radius-lg: 0.75rem;   /* 12px */
+  --radius-xl: 1rem;      /* 16px */
+  --radius-2xl: 1.25rem;  /* 20px */
+  --radius-3xl: 1.5rem;   /* 24px */
+  --radius-full: 9999px;
+}
 
 /* 明色主题 - 虚实水墨·赛博玉 (Ethereal Ink & Cyber Jade) */
 :root[data-theme="light"],
@@ -25,13 +75,15 @@
   --border-color: rgba(226, 232, 240, 0.8);
   --border-hover: rgba(148, 163, 184, 0.5);
 
-  /* 📝 文字色 - 浓墨/淡墨 */
+  /* 📝 文字色 - 优化对比度 (WCAG AA 标准) */
   --text-primary: #0f172a;
-  /* Deep Ink */
-  --text-secondary: #475569;
-  /* Medium Ink */
-  --text-muted: #94a3b8;
-  /* Washed Ink */
+  /* Deep Ink - 对比度 > 7:1 */
+  --text-secondary: #334155;
+  /* Medium Ink - 对比度 > 4.5:1 */
+  --text-muted: #64748b;
+  /* Washed Ink - 对比度 > 3:1 */
+  --text-inverse: #ffffff;
+  /* Pure white for dark backgrounds */
 
   /* 🎯 主题色 - 赛博玉/靛青 (Cyber Jade & Indigo) */
   --accent-primary-rgb: 16 185 129;
@@ -75,12 +127,30 @@
   --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.05), 0 4px 6px -2px rgba(15, 23, 42, 0.02);
   --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.05), 0 10px 10px -5px rgba(15, 23, 42, 0.02);
 
+  /* 🎭 缓动函数库 - 优化的动画曲线 */
+  --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-cubic: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-out-back: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* 🎯 动画持续时间 */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+
+  /* 🌟 性能优化变量 */
+  --hardware-acceleration: translateZ(0);
+  --will-change-auto: auto;
+  --will-change-transform: transform;
+
   /* 🎪 渐变色 */
   --gradient-primary: linear-gradient(135deg, #10b981 0%, #34d399 100%);
   --gradient-secondary: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
 }
 
-/* 暗色主题 - 保持原有的暗色配色，但适配 Guofeng 变量 */
+/* 暗色主题 - 优化对比度和视觉层次 */
 :root[data-theme="dark"] {
   --bg-primary: #0a0e27;
   --bg-secondary: #141b3e;
@@ -89,9 +159,16 @@
   --bg-hover: rgba(30, 39, 73, 0.8);
   --border-color: rgba(139, 92, 246, 0.3);
   --border-hover: rgba(139, 92, 246, 0.5);
-  --text-primary: #e5e7eb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+
+  /* 文字色 - 优化暗色模式对比度 */
+  --text-primary: #f8fafc;
+  /* Pure white - 对比度 > 7:1 */
+  --text-secondary: #cbd5e1;
+  /* Light gray - 对比度 > 4.5:1 */
+  --text-muted: #94a3b8;
+  /* Muted gray - 对比度 > 3:1 */
+  --text-inverse: #0f172a;
+  /* Dark text for light backgrounds */
   --accent-primary: #8b5cf6;
   --accent-secondary: #a855f7;
   --accent-tertiary: #ec4899;
@@ -110,6 +187,82 @@
   --guofeng-blue: var(--accent-secondary);
   --guofeng-jade: var(--accent-success);
   --guofeng-gold: var(--accent-warning);
+}
+
+/* ===================================
+   字体层次规范 - 基于设计令牌
+   =================================== */
+
+/* Display 级别 - 超大标题 */
+.text-display {
+  font-size: var(--font-size-6xl);
+  font-weight: var(--font-weight-black);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.02em;
+}
+
+/* Headline 级别 - 页面标题 */
+.text-headline {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.01em;
+}
+
+/* Title 级别 - 卡片标题 */
+.text-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
+  letter-spacing: 0;
+}
+
+/* Subtitle 级别 - 次要标题 */
+.text-subtitle {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  letter-spacing: 0.01em;
+}
+
+/* Body 级别 - 正文内容 */
+.text-body {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-relaxed);
+  letter-spacing: 0.01em;
+}
+
+/* Caption 级别 - 说明文字 */
+.text-caption {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  letter-spacing: 0.025em;
+}
+
+/* Label 级别 - 标签文字 */
+.text-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* 响应式字体大小调整 */
+@media (max-width: 640px) {
+  .text-display {
+    font-size: var(--font-size-4xl);
+  }
+
+  .text-headline {
+    font-size: var(--font-size-3xl);
+  }
+
+  .text-title {
+    font-size: var(--font-size-xl);
+  }
 }
 
 /* ===================================
@@ -206,9 +359,10 @@ body {
 }
 
 /* ===================================
-   滚动条美化
+   滚动条美化 - 增强主题适配
    =================================== */
 
+/* Webkit 浏览器滚动条 */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -216,23 +370,64 @@ body {
 
 ::-webkit-scrollbar-track {
   background: var(--bg-secondary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--accent-primary);
-  border-radius: 4px;
-  transition: background 0.2s ease;
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-out-cubic);
+
+  /* 悬停效果 */
+  &:hover {
+    background: var(--accent-secondary);
+  }
+
+  /* 激活效果 */
+  &:active {
+    background: var(--accent-tertiary);
+  }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-secondary);
+/* 明色主题特定样式 */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
-/* Firefox */
+/* 暗色主题特定样式 */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Firefox 滚动条 */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--accent-primary) var(--bg-secondary);
+}
+
+/* 性能优化 - 在滚动时禁用某些效果 */
+.scroll-container {
+  scroll-behavior: smooth;
+
+  /* 滚动时暂停动画 */
+  &.scrolling {
+    * {
+      animation-play-state: paused !important;
+      transition: none !important;
+    }
+  }
+}
+
+/* 触控设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    min-height: 44px;
+  }
 }
 
 /* ===================================
@@ -429,6 +624,80 @@ body {
   }
 }
 
+/* 🎭 增强动画关键帧 - 使用新的缓动函数 */
+
+/* 流畅的进入动画 */
+@keyframes slideInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 弹性进入动画 */
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+
+  70% {
+    transform: scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 涟漪扩散效果 */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* 闪烁渐变效果 */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* 呼吸灯效果 */
+@keyframes breathe {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
 /* 侧边栏项目进入动画 */
 @keyframes sidebarItemEnter {
   0% {
@@ -447,37 +716,106 @@ body {
    =================================== */
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn var(--duration-normal) var(--ease-out-cubic);
 }
 
 .animate-slide-in-right {
-  animation: slideInRight 0.3s ease-out;
+  animation: slideInRight var(--duration-normal) var(--ease-out-cubic);
+}
+
+.animate-slide-in-up {
+  animation: slideInUp var(--duration-normal) var(--ease-out-cubic);
+}
+
+.animate-bounce-in {
+  animation: bounceIn var(--duration-slow) var(--ease-out-back);
 }
 
 .animate-pulse-subtle {
-  animation: pulse-subtle 2s ease-in-out infinite;
+  animation: pulse-subtle 2s var(--ease-in-out-cubic) infinite;
 }
 
 .animate-gradient-shift {
   background-size: 200% 200%;
-  animation: gradientShift 3s ease infinite;
+  animation: gradientShift 3s var(--ease-in-out-cubic) infinite;
 }
 
 .animate-card-float:hover {
-  animation: cardFloat 2s ease-in-out infinite;
+  animation: cardFloat 2s var(--ease-in-out-cubic) infinite;
+  will-change: var(--will-change-transform);
+}
+
+/* 性能优化的动画类 */
+.animate-gpu-accelerated {
+  transform: var(--hardware-acceleration);
+  will-change: var(--will-change-transform);
+}
+
+.animate-reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* 导航项动画类 */
 .animate-nav-hover {
-  animation: navHover 0.6s ease-in-out;
+  animation: navHover var(--duration-slow) var(--ease-out-cubic);
 }
 
 .animate-nav-active {
-  animation: navActive 0.3s ease-out;
+  animation: navActive var(--duration-normal) var(--ease-out-back);
 }
 
 .animate-sidebar-item-enter {
-  animation: sidebarItemEnter 0.3s ease-out forwards;
+  animation: sidebarItemEnter var(--duration-normal) var(--ease-out-cubic) forwards;
+}
+
+/* 按钮增强类 */
+.btn-enhanced {
+  position: relative;
+  overflow: hidden;
+  transform: var(--hardware-acceleration);
+  transition: all var(--duration-normal) var(--ease-out-cubic);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-md);
+  }
+
+  &.loading {
+    color: transparent;
+    pointer-events: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      top: 50%;
+      left: 50%;
+      margin-left: -10px;
+      margin-top: -10px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+/* 触控优化类 */
+.touch-optimized {
+  @media (hover: none) and (pointer: coarse) {
+    min-height: 44px;
+    min-width: 44px;
+    padding: var(--space-sm) var(--space-md);
+  }
 }
 
 /* 文本截断 */
@@ -495,20 +833,30 @@ body {
   overflow: hidden;
 }
 
-/* 玻璃态效果 - 冰霜质感 */
+/* 玻璃态效果 - 优化性能的冰霜质感 */
 .glass-effect {
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.05),
     0 2px 4px -1px rgba(0, 0, 0, 0.03),
     inset 0 0 20px rgba(255, 255, 255, 0.5);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 性能优化 */
+  transform: var(--hardware-acceleration);
+  will-change: var(--will-change-auto);
+  transition: all var(--duration-normal) var(--ease-out-cubic);
   position: relative;
   overflow: hidden;
+
+  /* 性能受限时的回退 */
+  @media (prefers-reduced-motion: reduce) {
+    backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.9);
+  }
 }
 
 .glass-effect::before {
@@ -543,10 +891,10 @@ body {
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
-/* 🌊 液态玻璃卡片 - 赛博玉质感 */
+/* 🌊 液态玻璃卡片 - 优化性能的赛博玉质感 */
 .liquid-card {
   position: relative;
-  border-radius: 20px;
+  border-radius: var(--radius-2xl);
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(24px) saturate(180%);
@@ -555,7 +903,18 @@ body {
     0 10px 30px -10px rgba(16, 185, 129, 0.1),
     inset 0 0 20px rgba(255, 255, 255, 0.6);
   overflow: hidden;
-  transition: all 0.3s ease;
+
+  /* 性能优化 */
+  transform: var(--hardware-acceleration);
+  will-change: var(--will-change-auto);
+  transition: all var(--duration-normal) var(--ease-out-cubic);
+
+  /* 性能受限时的回退 */
+  @media (prefers-reduced-motion: reduce) {
+    backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: var(--shadow-lg);
+  }
 }
 
 /* 环境折射与柔光 - 翡翠光晕 */

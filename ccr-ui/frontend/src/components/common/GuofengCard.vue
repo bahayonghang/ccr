@@ -1,13 +1,15 @@
 <template>
   <div
-    class="guofeng-card group relative overflow-hidden rounded-xl transition-all duration-300"
+    class="guofeng-card group relative overflow-hidden transition-all"
     :class="[
-      interactive ? 'hover:-translate-y-1 hover:shadow-lg cursor-pointer' : '',
+      interactive ? 'hover:-translate-y-1 cursor-pointer animate-gpu-accelerated' : '',
       variant === 'glass' ? 'glass-effect' : 'bg-[var(--bg-secondary)]',
       className
     ]"
     :style="{
+      borderRadius: 'var(--radius-xl)',
       border: '1px solid var(--border-color)',
+      transition: `all var(--duration-normal) var(--ease-out-cubic)`,
       ...style
     }"
     @mouseenter="onMouseEnter"
@@ -23,17 +25,24 @@
     />
 
     <!-- Content -->
-    <div class="relative z-10 p-5">
+    <div class="relative z-10 p-5" :style="{ padding: 'var(--space-lg)' }">
       <slot />
     </div>
 
-    <!-- Hover glow effect -->
+    <!-- Enhanced hover glow effect -->
     <div
       v-if="interactive"
-      class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+      class="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
       :style="{
-        background: 'radial-gradient(circle at center, var(--glow-primary) 0%, transparent 70%)'
+        background: 'radial-gradient(circle at center, var(--glow-primary) 0%, transparent 70%)',
+        transition: `opacity var(--duration-normal) var(--ease-out-cubic)`
       }"
+    />
+
+    <!-- Interactive ripple effect -->
+    <div
+      v-if="interactive"
+      class="absolute inset-0 ripple-effect"
     />
   </div>
 </template>
@@ -77,6 +86,9 @@ const onMouseLeave = (e: MouseEvent) => {
 <style scoped>
 .guofeng-card {
   position: relative;
+  /* 性能优化 */
+  transform: var(--hardware-acceleration);
+  will-change: var(--will-change-auto);
 }
 
 .guofeng-card::before {
@@ -88,5 +100,33 @@ const onMouseLeave = (e: MouseEvent) => {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--border-color), transparent);
   opacity: 0.5;
+}
+
+/* 增强的悬停效果 */
+.guofeng-card:hover {
+  box-shadow: var(--shadow-xl);
+}
+
+/* 专注状态增强 */
+.guofeng-card:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xl);
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .guofeng-card {
+  border-color: var(--border-color);
+}
+
+/* 减少动画效果 */
+@media (prefers-reduced-motion: reduce) {
+  .guofeng-card {
+    transition: none;
+  }
+
+  .guofeng-card:hover {
+    transform: none;
+  }
 }
 </style>

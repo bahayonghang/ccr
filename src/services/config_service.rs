@@ -512,6 +512,7 @@ fn merge_configs(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use indexmap::IndexMap;
     use tempfile::tempdir;
 
     fn create_test_section() -> ConfigSection {
@@ -527,6 +528,7 @@ mod tests {
             tags: None,
             usage_count: Some(0),
             enabled: Some(true),
+            other: IndexMap::new(),
         }
     }
 

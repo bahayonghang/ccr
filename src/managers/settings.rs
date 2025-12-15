@@ -559,6 +559,7 @@ impl SettingsManager {
 mod tests {
     use super::*;
     use crate::managers::config::ConfigSection;
+    use indexmap::IndexMap;
 
     fn create_test_config_section() -> ConfigSection {
         ConfigSection {
@@ -573,6 +574,7 @@ mod tests {
             tags: None,
             usage_count: Some(0),
             enabled: Some(true),
+            other: IndexMap::new(),
         }
     }
 

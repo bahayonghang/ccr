@@ -9,7 +9,7 @@ CCR supports managing configurations for multiple AI CLI platforms. Each platfor
 | Platform | Icon | Description | Guide |
 |----------|------|-------------|-------|
 | **Claude Code** | 🤖 | Anthropic's official CLI with support for multiple relay services and third-party models | [Claude Guide](claude.md) |
-| **Codex** | 💻 | GitHub Copilot CLI for AI-powered code assistance | [Codex Guide](codex.md) |
+| **Codex** | 💻 | Codex CLI (OpenAI-compatible providers, GitHub Copilot compatible mode) | [Codex Guide](codex.md) |
 | **Gemini CLI** | ✨ | Google Gemini CLI for Google's AI models | [Gemini Guide](gemini.md) |
 
 ### 🚧 Planned Platforms
@@ -71,7 +71,7 @@ ccr platform init gemini
 
 | Feature | Claude Code | Codex | Gemini |
 |---------|-------------|-------|--------|
-| **Settings Path** | `~/.claude/settings.json` | `~/.codex/settings.json` | `~/.gemini/settings.json` |
+| **Settings Path** | `~/.claude/settings.json` | `~/.codex/config.toml` | `~/.gemini/settings.json` |
 | **Profile Count** | 16 (example) | 5 (example) | 6 (example) |
 | **Relay Services** | ✅ Multiple (AnyRouter, HuSan, etc.) | ✅ GitHub official | ✅ Google official |
 | **Third-Party Models** | ✅ GLM, Kimi, SiliconFlow | ❌ | ❌ |

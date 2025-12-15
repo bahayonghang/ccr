@@ -1,45 +1,40 @@
-# Codex (GitHub Copilot CLI) Platform Guide
+# Codex Platform Guide
 
 ## Overview
 
-Codex is the GitHub Copilot command-line interface platform. CCR provides full support for managing Codex configurations and profiles.
+CCR 支持管理 Codex CLI 配置与多 profile 切换，并同时兼容两种常见工作模式：
+
+1. **OpenAI 兼容 Provider（推荐）**：写入 `~/.codex/config.toml` 与 `~/.codex/auth.json`
+2. **GitHub Copilot 兼容模式（可选）**：写入 `~/.codex/settings.json`
 
 ## Platform Information
 
 - **Platform Name**: `codex`
-- **Display Name**: Codex (GitHub Copilot CLI)
+- **Display Name**: Codex CLI
 - **Icon**: 💻
 - **Status**: ✅ Fully Implemented
-- **Settings Path**: `~/.codex/settings.json`
-- **Profiles Path**: `~/.ccr/codex/profiles.toml`
+- **Codex CLI Config**: `~/.codex/config.toml`
+- **Codex CLI Auth**: `~/.codex/auth.json`
+- **Profiles Path**: `~/.ccr/platforms/codex/profiles.toml`
 
 ## Prerequisites
 
-- GitHub Copilot subscription
-- GitHub Personal Access Token with appropriate scopes
-- Codex CLI installed (if using settings synchronization)
+- Codex CLI 已安装（并使用 `~/.codex/` 配置目录）
+- 你所使用 Provider 的 API Token（如 OpenAI 兼容 key、GitHub Token 等）
 
 ## Token Format
 
-Codex requires GitHub Personal Access Tokens in the following format:
+### OpenAI 兼容 Provider（推荐）
 
-```
-ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
+通常使用 OpenAI 兼容的 API key（示例：`sk-...`），最终会被写入 `~/.codex/auth.json`。
 
-**Characteristics:**
-- Starts with `ghp_`
-- 40 characters total
-- Alphanumeric characters
+### GitHub Copilot 兼容模式（可选）
 
-**How to Generate:**
+CCR 会校验 GitHub Token 前缀：
 
-1. Go to GitHub Settings → Developer settings → Personal access tokens
-2. Click "Generate new token (classic)"
-3. Select scopes:
-   - `copilot` (required for Copilot access)
-   - `read:org` (optional, for organization access)
-4. Generate token and copy immediately (shown only once)
+- `ghp_`（PAT）
+- `gho_`（OAuth）
+- `github_pat_`（fine-grained PAT）
 
 ## Quick Start
 
@@ -61,32 +56,42 @@ ccr platform current
 ```bash
 # Interactive mode
 ccr add
-
-# Or use direct command (if implemented)
-ccr codex add-profile \
-  --name github-official \
-  --token ghp_YOUR_GITHUB_TOKEN \
-  --model gpt-4
 ```
 
 ### Configuration Example
 
-Create a profile in `~/.ccr/codex/profiles.toml`:
+Create a profile in `~/.ccr/platforms/codex/profiles.toml`:
 
 ```toml
-[github-official]
-description = "GitHub Official Copilot"
-base_url = "https://api.github.com/copilot"
-auth_token = "ghp_YOUR_GITHUB_TOKEN_HERE"
-model = "gpt-4"
-small_fast_model = "gpt-3.5-turbo"
+default_config = "duckcoding"
+current_config = "duckcoding"
 
-[github-enterprise]
-description = "GitHub Enterprise Copilot"
-base_url = "https://github.enterprise.com/api/copilot"
-auth_token = "ghp_YOUR_ENTERPRISE_TOKEN"
+[settings]
+skip_confirmation = false
+
+[duckcoding]
+description = "DuckCoding (OpenAI 兼容)"
+base_url = "https://jp.duckcoding.com/v1"
+auth_token = "sk-...your-token"
+model = "gpt-5.1-codex"
+provider = "duckcoding"
+api_mode = "custom"
+wire_api = "responses"
+env_key = "DUCKCODING_API_KEY"
+requires_openai_auth = true
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "high"
+network_access = "enabled"
+disable_response_storage = true
+
+[github]
+description = "GitHub Copilot (legacy)"
+base_url = "https://api.github.com/copilot"
+auth_token = "ghp_...your-github-token"
 model = "gpt-4"
-small_fast_model = "gpt-3.5-turbo"
+provider = "github"
+api_mode = "github"
 ```
 
 ## Profile Management
@@ -115,7 +120,7 @@ ccr github-official
 
 ```bash
 # Edit profiles.toml manually
-vim ~/.ccr/codex/profiles.toml
+vim ~/.ccr/platforms/codex/profiles.toml
 
 # Validate changes
 ccr validate
@@ -131,29 +136,40 @@ ccr delete github-enterprise
 ccr delete github-enterprise --force
 ```
 
-## Environment Variables
+## Codex CLI Config / Auth
 
-When a Codex profile is active, CCR manages these environment variables in `~/.codex/settings.json`:
+当激活 **OpenAI 兼容 Provider** profile 时，CCR 会写入：
+
+- `~/.codex/config.toml`（Provider 与运行参数）
+- `~/.codex/auth.json`（API key 存放）
+
+`~/.codex/config.toml` 示例：
+
+```toml
+model_provider = "duckcoding"
+model = "gpt-5.1-codex"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+network_access = "enabled"
+disable_response_storage = true
+
+[model_providers.duckcoding]
+name = "duckcoding"
+base_url = "https://jp.duckcoding.com/v1"
+wire_api = "responses"
+requires_openai_auth = true
+env_key = "DUCKCODING_API_KEY"
+```
+
+`~/.codex/auth.json` 示例：
 
 ```json
 {
-  "env": {
-    "GITHUB_COPILOT_BASE_URL": "https://api.github.com/copilot",
-    "GITHUB_COPILOT_TOKEN": "ghp_YOUR_TOKEN",
-    "GITHUB_COPILOT_MODEL": "gpt-4",
-    "GITHUB_COPILOT_SMALL_FAST_MODEL": "gpt-3.5-turbo"
-  }
+  "OPENAI_API_KEY": "paste-your-token-here",
+  "DUCKCODING_API_KEY": "paste-your-token-here"
 }
 ```
-
-**Variable Mapping:**
-
-| TOML Field | Environment Variable | Description |
-|------------|---------------------|-------------|
-| `base_url` | `GITHUB_COPILOT_BASE_URL` | API endpoint |
-| `auth_token` | `GITHUB_COPILOT_TOKEN` | GitHub token (masked in logs) |
-| `model` | `GITHUB_COPILOT_MODEL` | Default model |
-| `small_fast_model` | `GITHUB_COPILOT_SMALL_FAST_MODEL` | Fast model (optional) |
 
 ## Common Use Cases
 
@@ -231,7 +247,7 @@ ccr validate
 ```bash
 # Automatic backup before profile switch
 ccr switch new-profile
-# → Creates ~/.ccr/codex/backups/settings_20250125_120000.json.bak
+# → Creates ~/.ccr/backups/codex/settings_20250125_120000.json.bak
 
 # Manual backup
 ccr backup codex
@@ -240,7 +256,7 @@ ccr backup codex
 ccr backups list
 
 # Restore from backup
-ccr restore ~/.ccr/codex/backups/settings_20250125_120000.json.bak
+ccr restore ~/.ccr/backups/codex/settings_20250125_120000.json.bak
 ```
 
 ### History Tracking
@@ -319,21 +335,21 @@ CCR manages configuration files only. If you need the actual Codex CLI:
 ### Issue: Settings Not Updating
 
 **Symptoms:**
-Profile switch command succeeds but `~/.codex/settings.json` unchanged
+Profile switch command succeeds but `~/.codex/config.toml` unchanged
 
 **Solution:**
 ```bash
 # Check file permissions
-ls -la ~/.codex/settings.json
+ls -la ~/.codex/config.toml
 
 # Fix permissions if needed
-chmod 600 ~/.codex/settings.json
+chmod 600 ~/.codex/config.toml
 
 # Verify lock files
-ls -la ~/.ccr/codex/.locks/
+ls -la ~/.claude/.locks/
 
 # Clean stale locks if present
-rm -rf ~/.ccr/codex/.locks/*
+rm -rf ~/.claude/.locks/*
 ```
 
 ### Issue: Profile Conflicts
@@ -402,10 +418,10 @@ ccr sync pull
 
 ## Security Best Practices
 
-1. **Token Storage**: Tokens are stored in plaintext in `~/.ccr/codex/profiles.toml`
+1. **Token Storage**: Tokens are stored in plaintext in `~/.ccr/platforms/codex/profiles.toml`
    ```bash
    # Ensure proper file permissions
-   chmod 600 ~/.ccr/codex/profiles.toml
+   chmod 600 ~/.ccr/platforms/codex/profiles.toml
    ```
 
 2. **Token Masking**: CCR automatically masks tokens in:
@@ -416,7 +432,7 @@ ccr sync pull
 3. **Backup Security**: Backups also contain tokens
    ```bash
    # Secure backup directory
-   chmod 700 ~/.ccr/codex/backups
+   chmod 700 ~/.ccr/backups/codex
    ```
 
 4. **Export Without Secrets**:
@@ -428,7 +444,7 @@ ccr sync pull
 5. **Token Rotation**: Regularly rotate GitHub tokens
    ```bash
    # Update profile with new token
-   vim ~/.ccr/codex/profiles.toml
+   vim ~/.ccr/platforms/codex/profiles.toml
    ccr validate  # Verify format
    ```
 

@@ -1,6 +1,6 @@
 # CCR - Claude Code Configuration Switcher
 
-Rust 编写的高性能多平台配置管理工具，版本 3.6.2。支持 Claude Code、Codex、Gemini CLI、Qwen等主流 AI CLI 工具。提供 CLI、TUI、Web API 三种使用方式，以及基于 Vue 3 + Axum + Tauri 的全栈 CCR UI 应用。
+Rust 编写的高性能多平台配置管理工具，版本 3.9.4。支持 Claude Code、Codex、Gemini CLI、Qwen等主流 AI CLI 工具。提供 CLI、TUI、Web API 三种使用方式，以及基于 Vue 3 + Axum + Tauri 的全栈 CCR UI 应用。
 
 ## 功能亮点
 
@@ -156,6 +156,10 @@ ccr clean --days 30 --dry-run
 
 # 正式清理
 ccr clean --days 30
+
+# 清理 CCR 写入的配置（恢复 settings.json 默认状态）
+ccr clear                  # 交互式确认
+ccr clear --force          # 跳过确认
 ```
 
 ### 5. WebDAV 多目录同步（需要 `web` 特性）
@@ -279,7 +283,7 @@ ccr stats cost --this-month      # 本月成本
 ```bash
 # 启动完整 UI（Vue 3 + Axum）
 # 自动检测：workspace → ~/.ccr/ccr-ui → GitHub 下载
-ccr ui -p 3000 --backend-port 8081
+ccr ui -p 3000 --backend-port 38081
 
 # 启动 TUI（需要 `tui` 特性）
 ccr tui
@@ -462,12 +466,12 @@ ccr ui                          # 自动检测：
                                 # 3. GitHub 自动下载
 
 # 自定义端口
-ccr ui -p 3000 --backend-port 8081
+ccr ui -p 3000 --backend-port 38081
 ```
 
 **默认端口**：
 - 前端：3000
-- 后端 API：8081
+- 后端 API：38081
 
 ### 从仓库开发
 
@@ -485,9 +489,9 @@ just s                     # 一键启动前后端开发模式
 
 手动启动（显式命令）：
 ```bash
-# 后端（workspace 成员，端口 8081）
+# 后端（workspace 成员，端口 38081）
 cd ccr-ui/backend
-cargo run -- --port 8081
+cargo run -- --port 38081
 
 # 前端（新开终端）
 cd ccr-ui/frontend
@@ -754,7 +758,7 @@ mkdir -p ~/.ccr
 cd ~/.ccr
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
-git checkout v3.6.2
+git checkout v3.9.4
 mv ccr-ui ~/.ccr/
 
 # 从 workspace 启动

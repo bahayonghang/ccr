@@ -73,7 +73,7 @@ current_profile = "anthropic-official"
 enabled = true
 name = "Codex"
 description = "GitHub Copilot CLI"
-settings_path = "~/.codex/settings.json"
+settings_path = "~/.codex/config.toml"
 current_profile = "github-copilot"
 
 [platforms.gemini]

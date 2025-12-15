@@ -1,0 +1,17 @@
+# Codex CLI config.toml 示例（OpenAI 兼容 Provider）
+# 复制到: ~/.codex/config.toml
+
+model_provider = "duckcoding"
+model = "gpt-5.1-codex"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+network_access = "enabled"
+disable_response_storage = true
+
+[model_providers.duckcoding]
+name = "duckcoding"
+base_url = "https://jp.duckcoding.com/v1"
+wire_api = "responses"
+requires_openai_auth = true
+env_key = "DUCKCODING_API_KEY"

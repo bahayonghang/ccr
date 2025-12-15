@@ -250,6 +250,12 @@ pub fn print_top_help() {
         "清理过期的备份文件",
         Some("ccr clean -d 30 --dry-run"),
     );
+    add_row(
+        &mut conf_table,
+        "clear",
+        "清理 CCR 写入的配置",
+        Some("ccr clear --force"),
+    );
     println!("{}", conf_table);
 
     // 用户界面

@@ -78,6 +78,13 @@ impl HistoryService {
     pub fn history_manager(&self) -> &Arc<HistoryManager> {
         &self.history_manager
     }
+
+    /// 🗑️ 清空所有历史记录
+    ///
+    /// 删除所有历史记录条目
+    pub fn clear(&self) -> Result<()> {
+        self.history_manager.clear()
+    }
 }
 
 #[cfg(test)]

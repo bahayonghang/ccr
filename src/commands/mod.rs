@@ -50,6 +50,7 @@ pub use profile::switch_command;
 
 // 🔄 Lifecycle 命令
 pub use lifecycle::clean_command;
+pub use lifecycle::clear_command;
 pub use lifecycle::init_command;
 pub use lifecycle::optimize_command;
 pub use lifecycle::validate_command;

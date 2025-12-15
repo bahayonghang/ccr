@@ -14,36 +14,27 @@ hero:
       link: /en/guide/getting-started
     - theme: alt
       text: View Source
-      link: https://github.com/your-username/ccr
+      link: https://github.com/bahayonghang/ccr
 
 features:
   - icon: ⚡
-    title: Modern Tech Stack
-    details: Frontend built with Vue 3.5 + Vite 7.1 + TypeScript + Tailwind CSS, backend powered by Rust + Axum, delivering ultimate development experience and runtime performance
-  - icon: 🎯
-    title: Intuitive User Interface
-    details: Tech-inspired glassmorphism design with dark/light theme support, Dashboard homepage displays all feature modules at a glance
+    title: Multi-interface
+    details: CLI-first; full CCR UI for browser/desktop, legacy Axum API for scripts, Tauri desktop build ready.
   - icon: 🔧
-    title: Powerful Configuration Management
-    details: Support viewing, switching, validating, and cloud syncing CCR configurations, real-time command execution results, and history tracking
-  - icon: 🚀
-    title: Multi CLI Tool Support
-    details: Unified management of configurations and services for multiple AI CLI tools including Claude Code, Codex, Gemini CLI, Qwen, and IFLOW
-  - icon: 📱
-    title: Responsive Design
-    details: Fully responsive design supporting desktop and mobile access, with smooth animations and hover interactions
-  - icon: 🛠️
-    title: Developer Friendly
-    details: Complete development toolchain with Vite hot reload, TypeScript type checking, ESLint + Prettier for optimal development experience
+    title: Complete config control
+    details: Visual list/switch/validate/import-export/history/backup aligned with CCR CLI.
   - icon: ☁️
-    title: Cloud Synchronization
-    details: Support WebDAV cloud configuration sync and automatic backups, ensuring configuration files are safe and secure
-  - icon: 🔌
-    title: Plugin Ecosystem
-    details: Rich extension functionality management including MCP servers, Agents, Plugins, and Slash Commands
+    title: WebDAV multi-folder sync
+    details: Register/enable folders, batch or single push/pull/status, interactive allow-list, smart filters for backups/history/locks/ui.
+  - icon: 🎯
+    title: Multi-CLI coverage
+    details: Claude, Codex, Gemini, Qwen, iFlow (planned) dashboards plus command execution center and converter.
+  - icon: 🛠️
+    title: Dev-friendly
+    details: Just tasks, hot reload, TypeScript, ESLint/Prettier, VitePress docs; backend reuses CCR crate.
   - icon: 📊
-    title: Statistics & Cost Analysis
-    details: Complete API usage statistics and cost tracking system, real-time monitoring of costs, token usage, with multi-dimensional analysis by time/model/project
+    title: Stats & analytics
+    details: Cost/usage dashboards with time/model/project slices, JSON/CSV export, dark/light themes.
 ---
 
 ## Project Highlights
@@ -115,28 +106,28 @@ CCR UI is a modern full-stack web application specifically designed for managing
 ## Quick Start
 
 ```bash
-# Clone the project
-git clone https://github.com/your-username/ccr.git
+# Launch via CCR CLI (auto-detect or download UI)
+ccr ui -p 3000 --backend-port 38081
+
+# Source development
+git clone https://github.com/bahayonghang/ccr.git
 cd ccr/ccr-ui
-
-# Quick start with Just (recommended)
-just s
-
-# Or start manually
-cd backend && cargo run &
-cd frontend && npm run dev
+just s                    # start frontend (5173) + backend (38081)
+# manual:
+#   cargo run --manifest-path backend/Cargo.toml -- --port 38081
+#   (new shell) cd frontend && npm install && npm run dev
 ```
 
 Visit `http://localhost:5173` to start using CCR UI.
 
 ## Documentation Navigation
 
-- [Getting Started](/en/guide/getting-started) - Learn how to install and run the project
-- [Project Structure](/en/guide/project-structure) - Detailed project architecture documentation
-- [Frontend Documentation](/en/frontend/overview) - Vue 3 frontend development guide
-- [Backend Documentation](/en/backend/architecture) - Rust backend architecture documentation
-- [Contributing Guide](/en/contributing) - How to participate in project development
-- [FAQ](/en/faq) - Frequently Asked Questions
+- [Getting Started](/en/guide/getting-started)
+- [Project Structure](/en/guide/project-structure)
+- [Frontend Reference](/en/reference/frontend/overview)
+- [Backend Reference](/en/reference/backend/architecture)
+- [Contributing](/en/contributing)
+- [FAQ](/en/faq)
 
 ## Feature Preview
 
@@ -172,6 +163,5 @@ All original features are preserved:
 <div style="text-align: center; margin-top: 2rem; padding: 1rem; background: var(--vp-c-bg-soft); border-radius: 8px;">
   <p>🚀 <strong>Start exploring the powerful features of CCR UI!</strong></p>
   <p>A modern configuration management platform supporting multiple AI CLI tools, providing complete configuration management and cloud sync capabilities.</p>
-  <p>If you encounter any issues while using it, feel free to check our <a href="/en/faq">FAQ</a> or submit an <a href="https://github.com/your-username/ccr/issues">Issue</a>.</p>
+  <p>If you encounter any issues while using it, feel free to check our <a href="/en/faq">FAQ</a> or submit an <a href="https://github.com/bahayonghang/ccr/issues">Issue</a>.</p>
 </div>
-

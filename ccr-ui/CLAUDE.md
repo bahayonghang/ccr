@@ -28,7 +28,7 @@ The UI supports configuration management for:
 ```bash
 ccr ui                    # Auto-detects or downloads ccr-ui
 ccr ui -p 3000           # Custom frontend port
-ccr ui --backend-port 8081  # Custom backend port
+ccr ui --backend-port 38081  # Custom backend port
 ```
 
 **Method 2: Direct Development**
@@ -59,7 +59,7 @@ When running `ccr ui`, CCR searches in this order:
 
 ## External Interfaces
 
-### Backend API (129 Endpoints on Port 8081)
+### Backend API (129 Endpoints on Port 38081)
 
 #### Claude Code API (33 endpoints)
 ```
@@ -239,12 +239,12 @@ reqwest = { version = "0.12", features = ["json"] }
 
 ### Environment Configuration
 
-**Backend** (Port 8081):
+**Backend** (Port 38081):
 - `RUST_LOG` - Logging level (info, debug, trace)
-- Runs on `127.0.0.1:8081`
+- Runs on `127.0.0.1:38081`
 
 **Frontend** (Port 3000):
-- `VITE_API_BASE_URL` - Backend API URL (default: `http://localhost:8081`)
+- `VITE_API_BASE_URL` - Backend API URL (default: `http://localhost:38081`)
 - Development server on `localhost:3000`
 
 ## Data Models
@@ -355,13 +355,13 @@ just t                  # Run tests
 
 ### Q: How does ccr-ui communicate with the backend?
 
-A: The Vue frontend uses Axios to make REST API calls to the Axum backend on port 8081. All state is managed client-side with Pinia stores.
+A: The Vue frontend uses Axios to make REST API calls to the Axum backend on port 38081. All state is managed client-side with Pinia stores.
 
 ### Q: Can I run backend and frontend on different ports?
 
 A: Yes! Use:
 ```bash
-ccr ui -p 3000 --backend-port 8081  # Frontend 3000, backend 8081
+ccr ui -p 3000 --backend-port 38081  # Frontend 3000, backend 38081
 ```
 
 ### Q: Where are configuration files located?

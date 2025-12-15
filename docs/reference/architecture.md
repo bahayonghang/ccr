@@ -1,661 +1,126 @@
-# CCR 架构文档
+# CCR 架构设计（v3.9.0）
 
-## 🏗️ Cargo Workspace 架构
+> 面向 Rust 2024 版本的分层架构；默认开启 `web` + `tui` 特性。CCR 本身提供 CLI/TUI/轻量 Web API，同时作为 ccr-ui 后端的核心依赖。
 
-CCR 使用 **Cargo Workspace** 架构管理多个相关的 crate，实现统一的依赖管理和优化的构建流程。
+## 总览
 
-### Workspace 结构
+- **工作区 (Workspace)**：根 crate `ccr` + `ccr-ui/backend`（Axum 服务）+ `ccr-ui/frontend`（Vue3+Vite+Pinia+Tauri）+ `docs`（VitePress）。
+- **配置模式**：`Unified`（默认，`~/.ccr/config.toml` + `platforms/<name>/profiles.toml`）与 `Legacy`（兼容 `~/.ccs_config.toml`）并存。
+- **接口形态**：CLI（Clap 解析）、TUI（Ratatui）、轻量 Web API (`ccr web`，Axum) 与完整 CCR UI (`ccr ui`，自动检测本地/用户目录/远程下载)。
+- **核心能力**：多平台注册表与切换、配置 CRUD、审计与备份、临时覆盖、WebDAV 多目录同步、技能/提示词管理、成本统计。
 
-```
-ccr/ (Workspace Root)
-├── Cargo.toml                          # Workspace 配置 + 共享依赖
-│   ├── [workspace]
-│   │   ├── members = [".", "ccr-ui/backend"]
-│   │   └── resolver = "2"
-│   └── [workspace.dependencies]       # 15 个共享依赖
-├── src/                                # CCR 主 crate (CLI + Library)
-└── ccr-ui/backend/                     # CCR-UI Backend (Axum Server)
-    ├── Cargo.toml                      # 使用 workspace 依赖
-    └── src/                            # Backend 实现
-```
-
-### Workspace 成员
-
-1. **CCR 主 crate** (`./`)
-   - **类型**: 二进制 + 库
-   - **功能**: CLI 工具 + 可复用的服务层
-   - **导出**: Services, Managers, Core, Utils
-
-2. **CCR-UI Backend** (`ccr-ui/backend/`)
-   - **类型**: 二进制（Axum Web Server）
-   - **依赖**: 直接使用 CCR 主 crate 的服务层
-   - **功能**: Web API 服务器
-
-### 共享依赖
-
-15 个核心依赖在 workspace 根 `Cargo.toml` 中统一管理：
-
-```toml
-[workspace.dependencies]
-# 序列化
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-toml = "0.8"
-
-# 异步运行时
-tokio = { version = "1.48", features = ["rt-multi-thread", "net", ...] }
-
-# Web 框架
-axum = { version = "0.8", features = ["json", "tokio", "http1", ...] }
-tower = "0.5"
-tower-http = { version = "0.6", features = ["cors"] }
-
-# 错误处理
-anyhow = "1.0"
-thiserror = "1.0"
-
-# 工具库
-chrono = { version = "0.4", features = ["serde"] }
-dirs = "6.0"
-tempfile = "3.23"
-reqwest = { version = "0.12", features = ["blocking", "json"] }
-clap = { version = "4.5", features = ["derive"] }
-```
-
-### Workspace 优势
-
-✅ **版本一致性**: 所有 crate 使用相同版本的依赖  
-✅ **编译优化**: 共享编译缓存，减少 15-25% 构建时间  
-✅ **简化维护**: 单点依赖升级  
-✅ **减少冲突**: 避免依赖版本冲突
-
----
-
-## 📐 架构概览
-
-CCR 主 crate 采用严格的**分层架构**设计，确保代码职责清晰、易于维护和扩展。
+## 工作区结构
 
 ```
-┌─────────────────────────────────────┐
-│   CLI Layer (main.rs + commands/)   │  ← 命令行界面
-├─────────────────────────────────────┤
-│   Web Layer (web/)                  │  ← Web 界面  
-├─────────────────────────────────────┤
-│   Service Layer (services/)         │  ← 业务逻辑
-├─────────────────────────────────────┤
-│   Manager Layer (managers/)         │  ← 数据访问
-├─────────────────────────────────────┤
-│   Core Layer (core/)                │  ← 基础设施
-├─────────────────────────────────────┤
-│   Utils Layer (utils/)              │  ← 工具函数
-└─────────────────────────────────────┘
+ccr/                     # Workspace root
+├─ Cargo.toml            # workspace + shared deps (clap/serde/tokio/axum/...)
+├─ src/                  # 核心 CLI/库
+├─ ccr-ui/
+│  ├─ backend/           # Axum 后端，直接依赖 ccr crate（禁用默认特性）
+│  └─ frontend/          # Vue3 + Vite + Pinia + Tailwind + Tauri
+├─ docs/                 # VitePress 文档（中/英）
+├─ examples/             # 配置示例
+└─ tests/                # 集成测试
 ```
 
-## 🗂️ 项目结构
-
-### 完整项目结构（Workspace）
+### 配置与数据路径
 
 ```
-ccr/                                    # Workspace 根目录
-├── Cargo.toml                          # Workspace 配置
-├── Cargo.lock                          # 统一依赖锁定
-├── src/                                # CCR 主 crate
-├── ccr-ui/                             # CCR-UI 子项目
-│   ├── backend/                        # Workspace member
-│   │   ├── Cargo.toml                  # 使用 workspace 依赖
-│   │   └── src/
-│   │       ├── main.rs                 # Axum server 入口
-│   │       ├── handlers/               # API handlers
-│   │       └── ...
-│   ├── frontend/                       # Vue.js 3 前端（独立）
-│   └── docs/                           # UI 文档
-├── docs/                               # CCR 主文档
-├── tests/                              # 集成测试
-└── target/                             # 统一构建目录（所有成员共享）
+~/.ccr/                      # Unified 模式（默认）
+  ├─ config.toml             # 平台注册表（current_platform 等）
+  ├─ platforms/
+  │   ├─ claude/profiles.toml
+  │   ├─ codex/profiles.toml
+  │   └─ gemini/profiles.toml
+  ├─ backups/<platform>/     # 自动备份
+  ├─ history/<platform>.json # 审计历史
+  └─ ccr-ui/                 # UI 依赖/缓存
+
+~/.ccs_config.toml           # Legacy 模式（兼容 CCS）
+~/.claude/settings.json      # 直接写入 Claude Code 设置
 ```
 
-### CCR 主 Crate 结构
+## 分层架构
 
 ```
-src/
-├── main.rs                          # CLI 入口
-├── lib.rs                           # 库入口
-│
-├── commands/                        # 🎯 CLI Layer
-│   ├── mod.rs
-│   ├── clean.rs                     # 清理备份命令
-│   ├── current.rs                   # 显示当前状态
-│   ├── export.rs                    # 导出配置
-│   ├── history_cmd.rs               # 查看历史
-│   ├── import.rs                    # 导入配置
-│   ├── init.rs                      # 初始化配置
-│   ├── list.rs                      # 列出配置
-│   ├── optimize.rs                  # 优化配置文件
-│   ├── switch.rs                    # 切换配置(核心)
-│   ├── update.rs                    # 自更新
-│   └── validate.rs                  # 验证配置
-│
-├── web/                             # 🌐 Web Layer
-│   ├── mod.rs
-│   ├── handlers.rs                  # HTTP 请求处理器
-│   ├── models.rs                    # API 数据模型
-│   ├── routes.rs                    # 路由定义
-│   ├── server.rs                    # Web 服务器
-│   └── system_info_cache.rs         # 系统信息缓存
-│
-├── services/                        # 🎯 Service Layer
-│   ├── mod.rs
-│   ├── backup_service.rs            # 备份服务
-│   ├── config_service.rs            # 配置服务
-│   ├── history_service.rs           # 历史服务
-│   └── settings_service.rs          # 设置服务
-│
-├── managers/                        # 📁 Manager Layer
-│   ├── mod.rs
-│   ├── config.rs                    # ConfigManager - 管理 ~/.ccs_config.toml
-│   ├── history.rs                   # HistoryManager - 管理操作历史
-│   └── settings.rs                  # SettingsManager - 管理 ~/.claude/settings.json
-│
-├── core/                            # 🏗️ Core Layer
-│   ├── mod.rs
-│   ├── atomic_writer.rs             # 原子文件写入
-│   ├── error.rs                     # 错误类型定义
-│   ├── file_manager.rs              # 文件管理 trait
-│   ├── fileio.rs                    # 统一文件 I/O (v2.2.1 新增)
-│   ├── lock.rs                      # 文件锁机制 + CONFIG_LOCK 互斥锁
-│   └── logging.rs                   # 日志和彩色输出
-│
-└── utils/                           # 🛠️ Utils Layer
-    ├── mod.rs
-    ├── mask.rs                      # 敏感信息掩码
-    └── validation.rs                # 验证 trait
+CLI / Web API / TUI
+      │
+      ▼
+  Services（业务编排）
+      │
+      ▼
+ Managers（数据访问/持久化）
+      │
+      ▼
+ Core & Utils（基础设施）
 ```
 
-## 📦 各层职责
-
-### 🎯 CLI Layer (`commands/`)
-
-**职责：** 命令行界面实现
-
-- 解析命令行参数
-- 调用 Service 层执行业务逻辑
-- 格式化输出结果
-- 处理用户交互
-
-**关键原则：**
-- 每个命令一个文件
-- 只负责 UI 交互，不包含业务逻辑
-- 通过 Service 层访问数据
-
-**示例：**
-```rust
-pub fn switch_command(config_name: &str) -> Result<()> {
-    ColorOutput::title(&format!("切换配置: {}", config_name));
-    
-    // 调用 Service 层
-    let config_service = ConfigService::default()?;
-    let settings_service = SettingsService::default()?;
-    
-    // 业务逻辑...
-    
-    ColorOutput::success("配置切换成功");
-    Ok(())
-}
-```
-
-### 🌐 Web Layer (`web/`)
-
-**职责：** Web 界面和 RESTful API
-
-- HTTP 服务器管理
-- 路由分发
-- 请求/响应处理
-- API 数据模型定义
-
-**架构特点：**
-- 基于 `tiny_http` 的轻量级 HTTP 服务器
-- RESTful API 设计
-- 统一的响应格式 (`ApiResponse<T>`)
-- 系统信息缓存优化性能
-
-**API 端点：**
-```
-GET  /api/configs          # 列出所有配置
-POST /api/switch           # 切换配置
-POST /api/config           # 添加配置
-PUT  /api/config/:name     # 更新配置
-DELETE /api/config/:name   # 删除配置
-GET  /api/history          # 获取历史记录
-POST /api/validate         # 验证配置
-POST /api/clean            # 清理备份
-GET  /api/settings         # 获取设置
-POST /api/export           # 导出配置
-POST /api/import           # 导入配置
-```
-
-### 🎯 Service Layer (`services/`)
-
-**职责：** 业务逻辑封装
-
-- 协调多个 Manager 的操作
-- 实现事务性业务流程
-- 数据转换和验证
-- 提供统一的业务接口
-
-**服务列表：**
-
-#### ConfigService
-- 配置 CRUD 操作
-- 配置列表和查询
-- 配置验证
-- 导入/导出
-
-#### SettingsService
-- 应用配置到 settings.json
-- 备份和恢复设置
-- 列出备份文件
-
-#### HistoryService
-- 记录操作历史
-- 查询历史记录
-- 按类型筛选
-- 统计信息
-
-#### BackupService
-- 清理旧备份
-- 扫描备份目录
-- 计算备份大小
-
-**示例：**
-```rust
-pub struct ConfigService {
-    config_manager: Arc<ConfigManager>,
-}
-
-impl ConfigService {
-    pub fn list_configs(&self) -> Result<ConfigList> {
-        let config = self.config_manager.load()?;
-        
-        let configs: Vec<ConfigInfo> = config
-            .list_sections()
-            .map(|name| ConfigInfo { /* ... */ })
-            .collect();
-            
-        Ok(ConfigList { configs, /* ... */ })
-    }
-}
-```
-
-### 📁 Manager Layer (`managers/`)
-
-**职责：** 数据访问和持久化
-
-- 文件读写操作
-- 数据序列化/反序列化
-- 数据结构管理
-- 原子性保证
-
-**Manager 列表：**
-
-#### ConfigManager (`config.rs`)
-- 管理 `~/.ccs_config.toml`
-- 解析 TOML 配置
-- 配置节增删改查
-- 配置排序优化
-
-#### SettingsManager (`settings.rs`)
-- 管理 `~/.claude/settings.json`
-- 环境变量更新
-- 自动备份机制
-- 原子性写入
-
-#### HistoryManager (`history.rs`)
-- 管理 `~/.claude/ccr_history.json`
-- 历史记录持久化
-- 查询和筛选
-- 统计计算
-
-**关键原则：**
-- 使用文件锁保证并发安全
-- 原子写入防止数据损坏
-- 保留未知字段（向后兼容）
-
-### 🏗️ Core Layer (`core/`)
-
-**职责：** 基础设施和通用抽象
-
-- 错误类型定义
-- 文件锁机制
-- 日志系统
-- 原子文件操作
-- 通用 trait 定义
-
-**核心模块：**
-
-#### error.rs
-- `CcrError` 枚举定义
-- 13 种错误类型
-- 错误码映射
-- 用户友好的错误消息
-
-#### lock.rs
-- `LockManager` - 文件锁管理器
-- `FileLock` - RAII 风格锁
-- 超时保护
-- 跨平台支持
-
-#### logging.rs
-- `ColorOutput` - 彩色输出工具
-- 日志初始化
-- 统一的输出格式
-
-#### atomic_writer.rs
-- `AtomicWriter` - 原子文件写入
-- 临时文件 + 原子重命名
-- 防止数据损坏
-
-### 🛠️ Utils Layer (`utils/`)
-
-**职责：** 通用工具函数
-
-- 敏感信息掩码
-- 验证 trait
-- 辅助函数
-
-## 🔄 数据流示例
-
-### 配置切换流程
-
-```
-用户命令
-   ↓
-main.rs (解析参数)
-   ↓
-switch_command() [commands/switch.rs]
-   ↓
-ConfigService::get_current() [services/config_service.rs]
-   ↓
-ConfigManager::load() [managers/config.rs]
-   ↓
-读取 ~/.ccs_config.toml
-   ↓
-返回 CcsConfig
-   ↓
-SettingsService::apply_config()
-   ↓
-SettingsManager::save_atomic()
-   ↓
-1. 获取文件锁
-2. 备份当前设置
-3. 原子写入新设置
-4. 释放锁
-   ↓
-HistoryService::record_operation()
-   ↓
-HistoryManager::add()
-   ↓
-写入 ~/.claude/ccr_history.json
-   ↓
-返回成功
-```
-
-## 🔐 关键设计模式
-
-### 1. Repository 模式
-Manager 层实现了 Repository 模式，封装数据访问逻辑：
-```rust
-pub trait FileManager<T> {
-    fn load(&self) -> Result<T>;
-    fn save(&self, data: &T) -> Result<()>;
-    fn path(&self) -> &Path;
-}
-```
-
-### 2. Service 模式
-Service 层协调多个 Manager，实现业务流程：
-```rust
-pub struct ConfigService {
-    config_manager: Arc<ConfigManager>,
-}
-
-impl ConfigService {
-    pub fn switch_config(&self, name: &str) -> Result<()> {
-        // 协调多个操作
-        let config = self.config_manager.load()?;
-        let section = config.get_section(name)?;
-        // 验证、备份、切换、记录历史...
-        Ok(())
-    }
-}
-```
-
-### 3. RAII 模式
-使用 RAII 管理资源（文件锁）：
-```rust
-let _lock = lock_manager.lock_settings(Duration::from_secs(10))?;
-// 锁会在作用域结束时自动释放
-```
-
-### 4. Builder 模式
-配置构建使用 Builder 模式：
-```rust
-let config = CcsConfig {
-    default_config: "anthropic".into(),
-    current_config: "anthropic".into(),
-    sections: IndexMap::new(),
-};
-```
-
-## 📊 依赖关系
-
-```
-commands/  ──→  services/  ──→  managers/  ──→  core/
-   │                                              ↑
-   └──────────────────────────────────────────────┘
-   
-web/  ──→  services/  ──→  managers/  ──→  core/
-
-utils/  ←── (所有层都可以使用)
-```
-
-**依赖原则：**
-- 上层可以依赖下层
-- 下层不能依赖上层
-- 同层之间尽量避免相互依赖
-
-## 🚀 性能优化
-
-### 1. 缓存机制
-- Web 层系统信息缓存（2秒更新一次）
-- 减少系统调用开销
-
-### 2. 并行处理
-- 配置验证使用 `rayon` 并行处理
-- 提升大量配置验证速度
-
-### 3. 原子操作
-- 使用 `tempfile` + `persist()` 实现原子写入
-- 避免文件损坏风险
-
-### 4. 智能锁定
-- 短暂的锁持有时间
-- 超时保护避免死锁
-
-## 🧪 测试策略
-
-### 单元测试
-每个模块包含独立的单元测试：
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_config_manager_load_save() {
-        // 测试 ConfigManager 的加载和保存
-    }
-}
-```
-
-### 集成测试
-`tests/integration_test.rs` 测试端到端工作流：
-```rust
-#[test]
-fn test_config_service_workflow() {
-    // 测试完整的配置管理流程
-}
-```
-
-### 临时目录测试
-所有测试使用 `tempfile::tempdir()` 避免污染系统：
-```rust
-let temp_dir = tempdir().unwrap();
-let config_path = temp_dir.path().join("config.toml");
-```
-
-## 📚 扩展指南
-
-### 添加新命令
-
-1. 在 `src/commands/` 创建新文件
-2. 实现命令函数
-3. 在 `mod.rs` 导出
-4. 在 `main.rs` 添加 CLI 路由
-
-### 添加新 API 端点
-
-1. 在 `web/models.rs` 定义数据模型
-2. 在 `web/handlers.rs` 实现处理器
-3. 在 `web/routes.rs` 添加路由（可选）
-4. 在 `web/server.rs` 注册路由
-
-### 添加新 Service
-
-1. 在 `services/` 创建新文件
-2. 定义 Service 结构体
-3. 实现业务逻辑方法
-4. 在 `mod.rs` 导出
-
-## 🔧 开发工具
-
-### 构建
-```bash
-cargo build                # Debug 构建
-cargo build --release      # Release 构建
-cargo check               # 快速类型检查
-```
-
-### 测试
-```bash
-cargo test                # 运行所有测试
-cargo test --lib          # 只运行库测试
-cargo test integration    # 运行集成测试
-```
-
-### 代码质量
-```bash
-cargo clippy              # 代码检查
-cargo fmt                 # 代码格式化
-cargo doc --no-deps       # 生成文档
-```
-
-## 📖 相关���档
-
-- [快速开始](./quick-start.md)
-- [命令参考](./commands/)
-- [配置文件](./configuration.md)
-- [更新日志](./changelog.md)
-
-## 🚀 v2.2.1 架构优化 (2025-01-30)
-
-本版本实施了 11 项重大架构优化，提升了性能、代码质量和可靠性：
-
-### ⚡ 性能优化
-
-1. **统一文件 I/O 模块** (`src/core/fileio.rs`)
-   - 提供 `read_toml()` 和 `write_toml()` 统一接口
-   - 减少了 77 行重复代码
-   - 一致的错误处理和日志记录
-
-2. **流式统计加载** (`src/managers/cost_tracker.rs`)
-   - 使用 `BufReader` 替代完整文件加载
-   - 基于时间范围的边缘过滤
-   - 显著降低大文件的内存使用
-
-3. **Web 服务器内存缓存** (`src/web/handlers.rs`)
-   - `Arc<RwLock<CcsConfig>>` 配置缓存
-   - 新增 `/api/reload` 端点用于缓存刷新
-   - 减少磁盘 I/O 操作
-
-4. **优化构建配置** (`Cargo.toml`)
-   - 开发模式：`opt-level = 1` 加快迭代
-   - 依赖优化：`opt-level = 2` for dependencies
-   - 测试模式：继承 dev 配置
-
-### 🔒 可靠性增强
-
-5. **进程内互斥锁** (`src/core/lock.rs`)
-   - 新增 `CONFIG_LOCK: LazyLock<Mutex<()>>`
-   - 补充现有文件锁机制
-   - 防止单进程内的竞态条件
-
-6. **特性门控** (`Cargo.toml`)
-   - `default = ["web", "tui"]` 保持向后兼容
-   - 可选依赖：tokio, axum, ratatui, crossterm
-   - 支持 `--no-default-features` 快速编译
-
-7. **统一错误处理**
-   - 17 种错误类型，3 个 `#[from]` 转换
-   - 生产代码零 `panic!`
-   - 丰富的上下文错误消息
-
-### 🎯 代码质量
-
-8. **无状态工具类** (`src/core/logging.rs`)
-   - `ColorOutput` 使用关联函数
-   - 无需实例创建
-   - 所有方法都是 `pub fn name(...)`
-
-9. **最小化克隆** (`src/tui/app.rs`)
-   - 删除 2 个不必要的字符串克隆
-   - 直接使用引用替代 `.clone()`
-   - 保留必要的克隆（Arc, async, display）
-
-### 🧪 测试与质量
-
-10. **全面测试覆盖**
-    - 221 个测试通过
-    - 95%+ 代码覆盖率
-    - 平台测试支持串行运行
-
-11. **代码清理**
-    - 删除未使用的 JSON 函数
-    - 零编译警告
-    - 遵循 YAGNI 原则
-
-### 架构影响
-
-这些优化保持了 CCR 的分层架构原则，同时：
-- **Core Layer**: 新增 `fileio.rs`，增强 `lock.rs`
-- **Manager Layer**: 优化了 `cost_tracker.rs` 的 I/O 性能
-- **Web Layer**: 新增缓存机制
-- **Build System**: 优化的编译配置
-
-所有优化都经过充分测试，确保向后兼容。
-
-## 🤝 贡献指南
-
-在贡献代码时，请遵循以下原则：
-
-1. **分层原则** - 将代码放在正确的层次
-2. **单一职责** - 每个模块只做一件事
-3. **依赖注入** - 通过构造函数传递依赖
-4. **错误处理** - 使用 `Result<T>` 统一错误处理
-5. **测试覆盖** - 为新功能编写测试
-6. **文档注释** - 使用 `///` 编写公共 API 文档
-
----
-
-**版本:** 2.2.1
-**最后更���:** 2025-01-30
+### 模块职责
 
+- **CLI 层 (`src/commands/`)**
+  - 子模块化：`platform/`、`profile/`、`lifecycle/`、`data/`、`common/`，以及独立命令 `sync_cmd`、`ui`、`skills_cmd`、`prompts_cmd`、`check_cmd`、`update`。
+  - Clap 派生的顶层路由在 `main.rs`，支持快捷 `ccr <profile>` 直接切换。
+- **服务层 (`src/services/`)**
+  - `ConfigService`（配置切换/导入导出/验证）、`SettingsService`（settings.json）、`HistoryService`、`BackupService` & `MultiBackupService`、`SyncService`（WebDAV）、`UiService`（CCR UI 启动编排）。
+- **管理层 (`src/managers/`)**
+  - 配置：`ConfigManager`（Legacy）、`PlatformConfigManager`（Unified 注册表）、`SyncConfigManager`/`SyncFolderManager`、`TempOverrideManager`。
+  - 数据：`SettingsManager`、`HistoryManager`、`CostTracker`（统计）、`PromptsManager`、`SkillsManager`、`ConflictChecker`。
+- **核心层 (`src/core/`)**
+  - `error`（统一错误/退出码）、`lock`（文件锁 + 进程内互斥）、`atomic_writer`、`fileio`、`file_manager`、`logging`（tracing + 彩色输出）。
+- **模型与平台 (`src/models/`, `src/platforms/`)**
+  - `Platform`/`PlatformPaths`/`ProfileConfig`，具体实现：Claude/Codex/Gemini（Qwen/iFlow stub）。
+  - `PlatformRegistry`/`PlatformDetector` 提供平台枚举、检测、信息展示。
+- **同步 (`src/sync/`)**
+  - `SyncService` 基于 `reqwest_dav`，支持目录递归、智能过滤、允许列表、远程目录保障。
+  - `content_selector` 用于交互式选择同步内容；`commands` 覆盖 folder/all/dynamic 子命令。
+- **界面**
+  - `web/`：Axum 轻量 API（缓存系统信息、JSON 响应、错误包装）。
+  - `tui/`：Ratatui 视图与主题；可选 `tui` 特性编译。
+
+### 依赖方向
+
+- CLI/Web/TUI 仅调用 Service；Service 依赖 Managers；Managers 依赖 Core/Utils；Models/Platforms/Utils 可被上层共享。
+- `ccr-ui/backend` 直接复用 `ccr` crate（关闭默认特性），在自身层实现路由/节流/中间件。
+
+## 核心流程
+
+### Profile 切换（Unified 默认）
+
+1) CLI 解析（`commands::switch_command` 或快捷 `ccr <name>`）  
+2) `ConfigService`：读取 `config.toml` → 定位当前平台 → 加载目标 `profiles.toml`  
+3) `SettingsService`：获取文件锁 → 备份现有 `settings.json` → 原子写入新配置  
+4) `HistoryService`：记录操作、环境变量差异（自动掩码）  
+5) 可选：`TempOverrideManager` 注入临时 token/base_url/model  
+
+### 平台管理
+
+- `platform list/current/info/init/switch` 通过 `PlatformConfigManager` 维护 `config.toml` 中的注册表与当前平台指针。
+- 平台实现 `PlatformConfig` trait，暴露路径与 profile 读写；未实现的平台返回 `PlatformNotSupported`。
+
+### WebDAV 多目录同步
+
+1) `sync config` 写入 WebDAV 连接信息 (`SyncConfigManager`)  
+2) `sync folder ...` 注册/启用目录（默认挂载 `~/.ccr`、`platforms/*` 等）  
+3) `sync push/pull`：`SyncService` 递归遍历，过滤备份/历史/locks/UI，支持 `--force`、交互式内容选择、单目录或 `sync all`  
+
+### CCR UI 启动
+
+- `UiService` 依序检查 `./ccr-ui` → `~/.ccr/ccr-ui` → GitHub 下载（交互确认），然后启动前后端；端口可通过 `-p/--backend-port` 覆盖。
+
+## 可靠性与性能
+
+- **并发安全**：文件锁 + 进程内互斥，原子写入避免损坏。
+- **备份**：切换/导入前自动备份，`MultiBackupService` 支持多平台备份清理。
+- **日志**：`CCR_LOG_LEVEL` 控制等级；终端彩色 + `~/.ccr/logs/` 按日轮转。
+- **性能**：`rayon` 并行验证，`fileio` 统一 I/O，dev profile `opt-level=1` + 依赖 `opt-level=2`，Axum 层缓存系统信息。
+
+## 测试与质量
+
+- 单元测试覆盖平台/管理器/锁等核心模块；`tests/` 进行端到端集成（临时目录隔离）。
+- 默认零 `panic!`，错误类型集中在 `CcrError`；命令返回退出码。
+
+## 参考与扩展
+
+- 新命令：置于 `src/commands/<domain>/`，在 `mod.rs` 导出并在 `main.rs` 路由。
+- 新平台：实现 `PlatformConfig` + 在 `platforms::create_platform` 注册。
+- 新同步源：扩展 `SyncService` 或在 `sync::commands` 中增加内容选择器策略。

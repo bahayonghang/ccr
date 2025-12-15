@@ -129,6 +129,7 @@ mod tests {
     use super::*;
     use crate::core::lock::LockManager;
     use crate::managers::config::ConfigSection;
+    use indexmap::IndexMap;
     use tempfile::tempdir;
 
     fn create_test_section() -> ConfigSection {
@@ -144,6 +145,7 @@ mod tests {
             tags: None,
             usage_count: Some(0),
             enabled: Some(true),
+            other: IndexMap::new(),
         }
     }
 

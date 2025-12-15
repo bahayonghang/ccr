@@ -573,6 +573,25 @@ export default {
       cancel: 'Cancel',
       required: 'Required',
     },
+    addConfig: {
+      title: 'Add New Configuration',
+      subtitle: 'Select a template or fill in manually',
+      selectTemplate: 'Quick Template Selection',
+      name: 'Config Name',
+      namePlaceholder: 'e.g. my-config',
+      description: 'Description',
+      descriptionPlaceholder: 'Config description (optional)',
+      tokenPlaceholder: 'Enter API Key or Token',
+      modelPlaceholder: 'Model name (optional)',
+      providerUncategorized: 'Uncategorized',
+      providerOfficialRelay: 'Official Relay',
+      providerThirdParty: 'Third-party Model',
+      cancel: 'Cancel',
+      save: 'Add Config',
+      saving: 'Adding...',
+      success: '✓ Successfully added config "{name}"',
+      failed: 'Failed to add config',
+    },
   },
   commands: {
     title: 'Command Center',
@@ -1180,12 +1199,32 @@ export default {
     // Profiles module
     profiles: {
       title: 'Profiles Management',
-      subtitle: 'Manage GitHub Copilot CLI configuration files',
+      subtitle: 'Manage Codex platform profiles.toml (CCR Unified mode)',
       breadcrumb: 'Profiles Config',
       addProfile: 'Add Profile',
       editProfile: 'Edit Profile',
       updateProfile: 'Update Profile',
       backToCodex: 'Back',
+      apply: 'Apply',
+      currentBadge: 'Current',
+      confirmApply: 'Apply Profile "{name}"? This will update local Codex configuration.',
+      confirmDelete: 'Delete Profile "{name}"? This action cannot be undone.',
+      extraHint: 'Example: {"api_mode":"custom","wire_api":"responses","env_key":"DUCKCODING_API_KEY","requires_openai_auth":true}',
+      fields: {
+        name: 'Name',
+        description: 'Description',
+        baseUrl: 'Base URL',
+        authToken: 'Auth Token',
+        model: 'Model',
+        smallFastModel: 'Small Fast Model',
+        provider: 'Provider',
+        providerType: 'Provider Type',
+        account: 'Account',
+        tags: 'Tags',
+        enabled: 'Enabled',
+        extra: 'Advanced Fields',
+        extraJson: 'Advanced Fields (JSON)'
+      },
       profileName: 'Profile Name',
       description: 'Description',
       authToken: 'Auth Token',
@@ -1200,12 +1239,17 @@ export default {
       setActive: 'Set Active',
       currentActive: 'Current Active',
       placeholders: {
-        name: 'e.g: github-production',
-        description: 'e.g: GitHub Copilot production environment configuration',
-        authToken: 'ghp_...',
-        baseUrl: 'https://api.github.com/copilot',
-        selectFastModel: '-- Select Fast Model --',
-        selectProvider: '-- Select Provider --'
+        name: 'e.g: duckcoding',
+        description: 'e.g: OpenAI-compatible relay (gpt-5.1-codex)',
+        authToken: 'e.g: ghp_... or sk-...',
+        baseUrl: 'e.g: https://api.github.com/copilot or https://your-openai-compatible.com/v1',
+        model: 'e.g: gpt-5.1-codex',
+        smallFastModel: 'e.g: gpt-4o-mini',
+        provider: 'e.g: duckcoding',
+        providerType: 'e.g: official_relay',
+        account: 'e.g: dev@example.com',
+        tags: 'e.g: free, stable, high-speed',
+        extraJson: '{\n  "api_mode": "custom",\n  "wire_api": "responses",\n  "env_key": "DUCKCODING_API_KEY"\n}'
       },
       providers: {
         github: 'GitHub',
@@ -1214,7 +1258,12 @@ export default {
         custom: 'Custom'
       },
       validation: {
-        required: 'Please fill in all required fields (Profile Name, Base URL, Auth Token, Model)'
+        required: 'Please fill in all required fields (Profile Name, Base URL, Auth Token, Model)',
+        nameRequired: 'Profile name is required',
+        baseUrlRequired: 'Base URL is required',
+        authTokenRequired: 'Auth token is required',
+        modelRequired: 'Model is required',
+        extraJsonInvalid: 'Advanced fields must be a valid JSON object'
       },
       messages: {
         loadFailed: 'Failed to load Codex Profiles',

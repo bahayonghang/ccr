@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "CCR"
   text: "Claude Code Configuration Switcher"
-  tagline: Powerful configuration management tool for Claude Code
+  tagline: Multi-platform configuration switcher with CLI/TUI/Web/API/UI
   image:
     src: /logo.svg
     alt: CCR
@@ -21,59 +21,30 @@ hero:
 
 features:
   - icon: 🚀
-    title: Fast Configuration Switching
-    details: Directly manipulates settings.json for immediate effect, no restart or manual environment variable setup required
-
-  - icon: 📊
-    title: Beautiful Table UI
-    details: Display configuration info with comfy-table, compare configs at a glance with color highlights and icons
-
-  - icon: 🖥️
-    title: Interactive TUI
-    details: Full-featured terminal interface with 3 tabs (Configs/History/System), keyboard navigation, Vim shortcuts support
-
+    title: Multi-interface
+    details: CLI first; optional TUI, legacy Axum Web API (`ccr web`), and full CCR UI (`ccr ui`, Vue3 + Axum + Tauri).
   - icon: 🔐
-    title: Concurrency Safe
-    details: File locking ensures multi-process safety, atomic operations prevent data corruption
-
-  - icon: 📝
-    title: Complete Audit Trail
-    details: Record all operation history, track environment variable changes, auto-mask sensitive information
-
-  - icon: 💾
-    title: Smart Backup Management
-    details: Automatically keep the latest 10 backups, no manual cleanup needed, support restore from backups, timestamped backup files
-
-  - icon: ✅
-    title: Configuration Validation
-    details: Automatically validate configuration integrity, check required fields, verify URL formats
-
-  - icon: 🌐
-    title: Web Interface
-    details: Built-in lightweight Axum API server (legacy) with 14 RESTful API endpoints, smart port binding and --no-browser support, ideal for programmatic access; **for browser usage, prefer the CCR UI application (`ccr ui`) below**
-
+    title: Safe writes
+    details: File locks + in-process mutex + atomic writes to `settings.json` and config files.
+  - icon: 🔀
+    title: Unified registry
+    details: Default Unified mode with `config.toml` + per-platform profiles; Legacy `~/.ccs_config.toml` still works.
+  - icon: 🧭
+    title: Direct Claude settings
+    details: Writes `~/.claude/settings.json`, auto-backup/audit; supports temporary token/base_url/model override.
+  - icon: ☁️
+    title: WebDAV multi-folder sync
+    details: Folder registry/enablement, batch or single push/pull/status, interactive allow-list, smart filters for backups/history/locks/ccr-ui.
   - icon: 📊
-    title: Statistics & Cost Analysis
-    details: Complete usage statistics and cost tracking system, support multi-dimensional analysis by time/model/project, provide CLI commands, Web API and visual dashboard
-
-  - icon: 🎨
-    title: CCR UI Application
-    details: Complete Vue.js 3 + Axum application (ports 5173/8081), visual dashboard and statistical analysis, support multi-CLI tool management, auto-download from GitHub on first use
-
-  - icon: 🔄
-    title: CCS Fully Compatible
-    details: Share ~/.ccs_config.toml configuration file, consistent command-line interface, can coexist with CCS
-
-  - icon: ⚡
-    title: High Performance
-    details: Rust implementation, excellent performance, fast response, low resource usage
+    title: Stats & history
+    details: `ccr stats` (web feature) for cost/usage with JSON output; full history with masked env diffs.
 ---
 
 ## Installation
 
-### Quick Install (Recommended)
+Current version: **3.9.0** (Rust 2024). Requirements: Rust 1.85+; optional Node.js 18+ + Bun 1.0+ for CCR UI development, `just` for scripts.
 
-Install directly from GitHub using cargo:
+### Quick Install
 
 ```bash
 cargo install --git https://github.com/bahayonghang/ccr ccr
@@ -82,96 +53,73 @@ cargo install --git https://github.com/bahayonghang/ccr ccr
 ### Build from Source
 
 ```bash
-# Clone repository
-cd ccs/ccr
-
-# Build release version
+git clone https://github.com/bahayonghang/ccr.git
+cd ccr
 cargo build --release
-
-# Install to system path (optional)
 cargo install --path .
 ```
 
 ## Quick Usage
 
 ```bash
-# Initialize configuration file
+# Unified mode init & platforms
 ccr init
+ccr platform list
+ccr platform switch codex
 
-# View all configurations
-ccr list
+# Profile lifecycle
+ccr add && ccr list && ccr switch <name>
+ccr validate
+ccr export --no-secrets
+ccr import configs.toml --merge
+ccr clean --days 30
+ccr temp-token set sk-xxx
 
-# Switch configuration
-ccr switch anthropic
+# Sync
+ccr sync config
+ccr sync folder add claude ~/.claude -r /ccr-sync/claude
+ccr sync push -i
+ccr sync all status
 
-# View current status
-ccr current
-
-# Launch interactive TUI
+# Interfaces
+ccr ui -p 3000 --backend-port 38081
 ccr tui
-
-# Launch complete CCR UI application (recommended web interface)
-ccr ui
-
-# Launch lightweight legacy Web API server (for compatibility / programmatic access)
-ccr web
-
-# Web API with no browser and explicit port (good for remote / CI)
 ccr web --port 8080 --no-browser
 ```
 
 ## File Structure
 
 ```
-~/.ccs_config.toml          # Configuration file (shared with CCS)
-~/.claude/settings.json     # Claude Code settings file
-~/.claude/backups/          # Auto backup directory
-~/.claude/ccr_history.json  # Operation history log
-~/.claude/.locks/           # File lock directory
+~/.ccr/
+  config.toml               # Unified platform registry
+  platforms/<name>/profiles.toml
+  history/<name>.json
+  backups/<name>/
+  ccr-ui/                   # UI cache/downloads
+~/.ccs_config.toml          # Legacy mode (compatible)
+~/.claude/settings.json     # Claude settings (atomic write target)
 ```
 
-## Feature Highlights
+## Highlights
 
-### 🎯 Direct Claude Code Settings Control
-
-CCR directly modifies `~/.claude/settings.json` file, no manual environment variable configuration needed, configuration takes effect immediately.
-
-### 🔒 Multi-Process Safety Guarantee
-
-Ensure concurrent operation safety through file locking mechanism, support timeout protection to avoid deadlock, atomic write prevents data corruption.
-
-### 📊 Operation Audit Trail
-
-Record complete information for each operation:
-- Operation ID (UUID)
-- Timestamp
-- Operator (system username)
-- Operation type
-- Environment variable changes (masked)
-- Operation result and remarks
-
-### 💡 Smart Backup Management
-
-- Auto backup before switching configuration
-- **Automatically keep the latest 10 backups**, no manual cleanup needed
-- Backup files include timestamp and configuration name
-- Support cleaning older backups to free up space
-- Can restore configuration from backups
+- Direct Claude settings writes with backups and masked audit history.
+- Unified multi-platform registry (Claude, Codex, Gemini, Qwen, iFlow stubs) with `platform` commands.
+- WebDAV sync with folder registry, batch/all commands, allow-list and smart filters.
+- Full interfaces: CLI/TUI/legacy Web API + CCR UI (auto-detect local/user dir/download).
+- Stats & cost analysis (`ccr stats`, web feature), JSON-friendly outputs.
 
 ## Differences from CCS
 
 | Feature | CCS (Shell) | CCR (Rust) |
-|---------|-------------|-----------|
+|---------|-------------|------------|
 | Configuration switching | ✅ | ✅ |
-| Environment variable setup | ✅ | ✅ |
+| Unified multi-platform registry | ❌ | ✅ |
 | Direct write to settings.json | ❌ | ✅ |
-| File locking mechanism | ❌ | ✅ |
-| Operation history | ❌ | ✅ |
-| Auto backup | ❌ | ✅ |
-| Configuration validation | Basic | Complete |
-| Concurrency safe | ❌ | ✅ |
-| Web interface | ❌ | ✅ |
-| Performance | Fast | Extremely Fast |
+| File locking / atomic writes | ❌ | ✅ |
+| Operation history + masking | ❌ | ✅ |
+| Auto backup & cleanup | ❌ | ✅ |
+| Web/TUI/Full UI | ❌ | ✅ |
+| WebDAV multi-folder sync | ❌ | ✅ |
 
 ## License
 
@@ -180,9 +128,3 @@ MIT License
 ## Contributing
 
 Issues and Pull Requests are welcome!
-
-## Related Links
-
-- [GitHub Repository](https://github.com/bahayonghang/ccr)
-- [Issue Tracker](https://github.com/bahayonghang/ccr/issues)
-- [CCS Project](https://github.com/bahayonghang/ccs)

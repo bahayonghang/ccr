@@ -35,6 +35,7 @@ import type {
   CodexProfile,
   CodexProfileRequest,
   CodexProfilesResponse,
+  CodexProfileResponse,
   CodexConfig,
   CodexConfigResponse,
   GeminiMcpServer,
@@ -58,6 +59,7 @@ import type {
   TopSession,
   StatsSummary,
   UsageRecordsResponse,
+  UpdateConfigRequest,
 } from '@/types'
 
 // 创建 axios 实例
@@ -243,6 +245,12 @@ export const getConfig = async (configName: string): Promise<any> => {
 export const updateConfig = async (configName: string, configData: any): Promise<string> => {
   const response = await api.put<string>(`/configs/${configName}`, configData)
   return response.data
+}
+
+// 📝 添加新配置
+export const addConfig = async (configData: UpdateConfigRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/configs', configData)
+  return response.data.data || 'Configuration added successfully'
 }
 
 export const cleanBackups = async (
@@ -451,9 +459,9 @@ export const deleteCodexMcpServer = async (name: string): Promise<string> => {
 // Codex Profile Management APIs
 // ===================================
 
-export const listCodexProfiles = async (): Promise<CodexProfile[]> => {
+export const listCodexProfiles = async (): Promise<CodexProfilesResponse> => {
   const response = await api.get<ApiResponse<CodexProfilesResponse>>('/codex/profiles')
-  return response.data.data!.profiles
+  return response.data.data!
 }
 
 export const addCodexProfile = async (request: CodexProfileRequest): Promise<string> => {
@@ -475,6 +483,20 @@ export const updateCodexProfile = async (
 export const deleteCodexProfile = async (name: string): Promise<string> => {
   const response = await api.delete<ApiResponse<string>>(
     `/codex/profiles/${encodeURIComponent(name)}`
+  )
+  return response.data.data!
+}
+
+export const getCodexProfile = async (name: string): Promise<CodexProfile> => {
+  const response = await api.get<ApiResponse<CodexProfileResponse>>(
+    `/codex/profiles/${encodeURIComponent(name)}`
+  )
+  return response.data.data!.profile
+}
+
+export const applyCodexProfile = async (name: string): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>(
+    `/codex/profiles/${encodeURIComponent(name)}/apply`
   )
   return response.data.data!
 }

@@ -14,8 +14,8 @@
           :key="folder.value"
           :style="{ padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', marginBottom: '4px', background: selectedFolder === folder.value ? 'var(--accent-primary)' : 'transparent', color: selectedFolder === folder.value ? '#fff' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', fontSize: '13px' }"
           @click="selectedFolder = folder.value"
-          @mouseenter="(e) => folder.value !== selectedFolder && (e.currentTarget.style.background = 'var(--bg-tertiary)')"
-          @mouseleave="(e) => folder.value !== selectedFolder && (e.currentTarget.style.background = 'transparent')"
+          @mouseenter="(e) => folder.value !== selectedFolder && ((e.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)')"
+          @mouseleave="(e) => folder.value !== selectedFolder && ((e.currentTarget as HTMLElement).style.background = 'transparent')"
         >
           <component
             :is="folder.icon"
@@ -119,8 +119,8 @@
               :key="cmd.name"
               class="group p-6 rounded-xl transition-all duration-300"
               :style="{ background: 'rgba(255, 255, 255, 0.9)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }"
-              @mouseenter="(e) => onCardHover(e.currentTarget, true)"
-              @mouseleave="(e) => onCardHover(e.currentTarget, false)"
+              @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
+              @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">

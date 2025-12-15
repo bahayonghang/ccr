@@ -102,6 +102,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
             tags: profile.tags.clone(),
             usage_count: profile.usage_count,
             enabled: profile.enabled,
+            other: indexmap::IndexMap::new(),
         }
     } else {
         // Legacy 模式: 从 ccs_config 加载

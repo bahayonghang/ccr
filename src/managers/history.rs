@@ -308,6 +308,25 @@ impl HistoryManager {
 
         Ok(stats)
     }
+
+    /// 🗑️ 清空所有历史记录
+    ///
+    /// 删除历史文件，清空所有历史记录
+    pub fn clear(&self) -> Result<()> {
+        tracing::debug!("开始清空历史记录");
+
+        // 获取文件锁
+        let _lock = self.lock_manager.lock_history(Duration::from_secs(10))?;
+        tracing::debug!("已获取历史记录文件锁");
+
+        // 保存空数组来清空历史
+        self.save(&[])?;
+
+        tracing::info!("✅ 历史记录已清空");
+        tracing::debug!("历史记录文件路径: {:?}", self.history_path);
+
+        Ok(())
+    }
 }
 
 /// 历史统计信息

@@ -289,6 +289,18 @@ enum Commands {
         force: bool,
     },
 
+    /// 清理 CCR 写入的配置
+    ///
+    /// 清空 settings.json 中的 ANTHROPIC_* 环境变量,使其恢复默认状态
+    /// 执行后 Claude Code 将无法正常工作,直到重新执行 switch 切换配置
+    /// 示例: ccr clear
+    ///       ccr clear --force  # 跳过确认
+    Clear {
+        /// 跳过确认提示，直接清理（危险操作）
+        #[arg(short, long)]
+        force: bool,
+    },
+
     /// 优化配置文件结构
     ///
     /// 按照配置节名称的字母顺序重新排列配置文件,提升可读性
@@ -333,12 +345,20 @@ enum Commands {
     /// 生产环境：启动预构建版本(未来支持)
     /// 示例: ccr ui -p 3000
     Ui {
+        /// UI 子命令
+        ///
+        /// - 不传子命令：启动 UI
+        /// - help：显示帮助
+        /// - update：更新/安装 UI 到最新
+        #[command(subcommand)]
+        action: Option<UiAction>,
+
         /// 指定前端端口(默认: 3000)
         #[arg(short, long, default_value_t = 3000)]
         port: u16,
 
-        /// 指定后端端口(默认: 8081)
-        #[arg(long, default_value_t = 8081)]
+        /// 指定后端端口(默认: 38081)
+        #[arg(long, default_value_t = 38081)]
         backend_port: u16,
     },
 
@@ -420,6 +440,16 @@ enum Commands {
 enum CheckAction {
     /// 检测环境变量冲突
     Conflicts,
+}
+
+/// 🎨 UI 操作子命令
+#[derive(Subcommand)]
+enum UiAction {
+    /// 显示 `ccr ui` 帮助
+    Help,
+
+    /// 更新/安装用户目录下的 CCR UI 到最新版本（默认 main）
+    Update,
 }
 
 /// 🎯 临时Token操作子命令
@@ -754,6 +784,7 @@ fn main() {
             dry_run,
             force,
         }) => commands::clean_command(days, dry_run, cli.auto_yes || force),
+        Some(Commands::Clear { force }) => commands::clear_command(cli.auto_yes || force),
         Some(Commands::Optimize) => commands::optimize_command(),
         Some(Commands::Version) => {
             show_version();
@@ -817,7 +848,19 @@ fn main() {
             }
             SyncAction::Pull { force } => commands::sync_cmd::sync_pull_command(force),
         },
-        Some(Commands::Ui { port, backend_port }) => commands::ui_command(port, backend_port),
+        Some(Commands::Ui {
+            action,
+            port,
+            backend_port,
+        }) => match action {
+            Some(UiAction::Help) => {
+                help::print_subcommand_help("ui");
+                Ok(())
+            }
+            Some(UiAction::Update) => services::ui_service::UiService::new()
+                .and_then(|ui_service| ui_service.update(cli.auto_yes)),
+            None => commands::ui_command(port, backend_port, cli.auto_yes),
+        },
         Some(Commands::TempToken { action }) => match action {
             TempTokenAction::Set {
                 token,
@@ -961,6 +1004,7 @@ fn command_name(cmd: &Commands) -> &'static str {
         Commands::Export { .. } => "export",
         Commands::Import { .. } => "import",
         Commands::Clean { .. } => "clean",
+        Commands::Clear { .. } => "clear",
         Commands::Optimize => "optimize",
         Commands::Version => "version",
         #[cfg(feature = "tui")]

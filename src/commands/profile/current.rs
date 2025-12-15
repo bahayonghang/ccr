@@ -147,6 +147,7 @@ pub fn current_command() -> Result<()> {
             tags: profile.tags.clone(),
             usage_count: profile.usage_count,
             enabled: profile.enabled,
+            other: indexmap::IndexMap::new(),
         };
 
         let paths = PlatformPaths::new(platform)?;

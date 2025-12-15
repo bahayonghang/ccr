@@ -123,6 +123,48 @@
           </RouterLink>
 
           <RouterLink
+            to="/codex/profiles"
+            class="block group"
+          >
+            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+              <div class="flex items-start gap-4">
+                <div
+                  class="p-3 rounded-2xl"
+                  :style="{ background: 'rgba(236, 72, 153, 0.15)' }"
+                >
+                  <Settings
+                    class="w-7 h-7"
+                    :style="{ color: '#ec4899' }"
+                  />
+                </div>
+                <div class="flex-1">
+                  <h3
+                    class="text-xl font-bold mb-2"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    {{ $t('codex.overview.modules.profiles.title') }}
+                  </h3>
+                  <p
+                    class="text-sm mb-3"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
+                    {{ $t('codex.overview.modules.profiles.description') }}
+                  </p>
+                  <span
+                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
+                    :style="{
+                      background: 'rgba(236, 72, 153, 0.15)',
+                      color: '#ec4899'
+                    }"
+                  >
+                    {{ $t('codex.overview.modules.profiles.badge') }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </RouterLink>
+
+          <RouterLink
             to="/codex/slash-commands"
             class="block group"
           >

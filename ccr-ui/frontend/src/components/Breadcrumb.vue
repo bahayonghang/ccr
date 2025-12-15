@@ -18,8 +18,8 @@
             fontSize: '14px',
             fontWeight: '500'
           }"
-          @mouseenter="(e) => onHover(e.currentTarget, true)"
-          @mouseleave="(e) => onHover(e.currentTarget, false)"
+          @mouseenter="(e) => onHover(e.currentTarget as HTMLElement, true)"
+          @mouseleave="(e) => onHover(e.currentTarget as HTMLElement, false)"
         >
           <component
             :is="item.icon"

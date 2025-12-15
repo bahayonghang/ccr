@@ -266,6 +266,7 @@ mod tests {
                 tags: None,
                 usage_count: Some(5),
                 enabled: Some(true),
+                other: indexmap::IndexMap::new(),
             },
         );
 
@@ -290,6 +291,7 @@ mod tests {
                 tags: None,
                 usage_count: Some(0),
                 enabled: Some(true),
+                other: indexmap::IndexMap::new(),
             },
         );
 
@@ -307,6 +309,7 @@ mod tests {
                 tags: None,
                 usage_count: Some(0),
                 enabled: Some(true),
+                other: indexmap::IndexMap::new(),
             },
         );
 
