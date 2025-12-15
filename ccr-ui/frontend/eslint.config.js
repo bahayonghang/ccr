@@ -63,7 +63,7 @@ export default [
     rules: {
       // Vue rules
       'vue/multi-word-component-names': 'off',
-      'vue/no-v-html': 'warn',
+      'vue/no-v-html': 'off', // Disabled because v-html is legitimately used for rendering ANSI terminal output
       'vue/require-default-prop': 'off',
       'vue/require-explicit-emits': 'off',
       'vue/one-component-per-file': 'off',

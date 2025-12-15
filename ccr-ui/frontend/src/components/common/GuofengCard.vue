@@ -25,7 +25,10 @@
     />
 
     <!-- Content -->
-    <div class="relative z-10 p-5" :style="{ padding: 'var(--space-lg)' }">
+    <div
+      class="relative z-10 p-5"
+      :style="{ padding: 'var(--space-lg)' }"
+    >
       <slot />
     </div>
 
@@ -48,8 +51,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-
 interface Props {
   variant?: 'default' | 'glass'
   interactive?: boolean

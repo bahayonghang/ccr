@@ -86,13 +86,16 @@
         v-else
         class="terminal-lines font-mono text-sm"
       >
-        <div 
-          v-for="(line, index) in lines" 
-          :key="index" 
+        <div
+          v-for="(line, index) in lines"
+          :key="index"
           class="terminal-line hover:bg-white/5 transition-colors"
         >
           <span class="line-number text-guofeng-text-muted/30 select-none w-8 text-right mr-3 text-xs">{{ index + 1 }}</span>
-          <span class="line-content" v-html="renderAnsi(line)"></span>
+          <span
+            class="line-content"
+            v-html="renderAnsi(line)"
+          />
         </div>
       </div>
     </div>
@@ -211,8 +214,9 @@ const handleClear = () => {
 // 复制输出
 const handleCopy = async () => {
   try {
-    // Copy raw text without HTML tags
-    const text = lines.value.map(line => line.replace(/\x1b\[[0-9;]*m/g, '')).join('\n')
+    // Copy raw text without HTML tags (remove ANSI escape sequences)
+    // eslint-disable-next-line no-control-regex
+    const text = lines.value.map(line => line.replace(/\u001b\[[0-9;]*m/g, '')).join('\n')
     await navigator.clipboard.writeText(text)
     uiStore.showSuccess('Copied to clipboard')
   } catch (err) {

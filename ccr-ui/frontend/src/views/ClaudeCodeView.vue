@@ -17,7 +17,7 @@
       <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 animate-fade-in">
         <div class="flex items-center gap-5">
           <div class="relative group">
-            <div class="absolute inset-0 bg-guofeng-jade/20 blur-lg rounded-full group-hover:bg-guofeng-jade/30 transition-all duration-500"></div>
+            <div class="absolute inset-0 bg-guofeng-jade/20 blur-lg rounded-full group-hover:bg-guofeng-jade/30 transition-all duration-500" />
             <div class="relative w-16 h-16 rounded-2xl glass-effect flex items-center justify-center border border-white/20 shadow-lg group-hover:scale-105 transition-transform duration-300">
               <Code2 class="w-8 h-8 text-guofeng-jade" />
             </div>
@@ -42,7 +42,10 @@
       </header>
 
       <!-- 特性标签 -->
-      <div class="flex flex-wrap gap-3 animate-fade-in" style="animation-delay: 0.1s">
+      <div
+        class="flex flex-wrap gap-3 animate-fade-in"
+        style="animation-delay: 0.1s"
+      >
         <span class="px-4 py-2 rounded-full text-sm font-medium glass-effect bg-guofeng-jade/5 text-guofeng-jade border border-guofeng-jade/20">
           ⚡ {{ $t('claudeCode.features.mcpSupport') }}
         </span>
@@ -58,9 +61,19 @@
       </div>
 
       <!-- 核心功能 (Config & Sync) -->
-      <section class="grid grid-cols-1 md:grid-cols-2 gap-5 animate-fade-in" style="animation-delay: 0.2s">
-        <RouterLink to="/configs" class="block group">
-          <GuofengCard variant="glass" interactive class="h-full p-6 border-l-4 border-l-guofeng-jade">
+      <section
+        class="grid grid-cols-1 md:grid-cols-2 gap-5 animate-fade-in"
+        style="animation-delay: 0.2s"
+      >
+        <RouterLink
+          to="/configs"
+          class="block group"
+        >
+          <GuofengCard
+            variant="glass"
+            interactive
+            class="h-full p-6 border-l-4 border-l-guofeng-jade"
+          >
             <div class="flex items-start gap-4">
               <div class="w-14 h-14 rounded-2xl bg-guofeng-jade/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
                 <Settings class="w-7 h-7 text-guofeng-jade" />
@@ -80,8 +93,15 @@
           </GuofengCard>
         </RouterLink>
 
-        <RouterLink to="/sync" class="block group">
-          <GuofengCard variant="glass" interactive class="h-full p-6 border-l-4 border-l-guofeng-indigo">
+        <RouterLink
+          to="/sync"
+          class="block group"
+        >
+          <GuofengCard
+            variant="glass"
+            interactive
+            class="h-full p-6 border-l-4 border-l-guofeng-indigo"
+          >
             <div class="flex items-start gap-4">
               <div class="w-14 h-14 rounded-2xl bg-guofeng-indigo/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
                 <Cloud class="w-7 h-7 text-guofeng-indigo" />
@@ -103,10 +123,19 @@
       </section>
 
       <!-- Market Banner -->
-      <section class="animate-fade-in" style="animation-delay: 0.3s">
-        <RouterLink to="/market" class="block group">
-          <GuofengCard variant="glass" class="relative overflow-hidden p-6">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+      <section
+        class="animate-fade-in"
+        style="animation-delay: 0.3s"
+      >
+        <RouterLink
+          to="/market"
+          class="block group"
+        >
+          <GuofengCard
+            variant="glass"
+            class="relative overflow-hidden p-6"
+          >
+            <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
             
             <div class="relative z-10 flex items-center justify-between">
               <div class="flex items-center gap-5">
@@ -133,16 +162,29 @@
       </section>
 
       <!-- 扩展模块网格 (Extensions) -->
-      <section class="animate-fade-in" style="animation-delay: 0.4s">
+      <section
+        class="animate-fade-in"
+        style="animation-delay: 0.4s"
+      >
         <div class="flex items-center gap-2 mb-4 px-1">
           <Boxes class="w-5 h-5 text-guofeng-jade" />
-          <h2 class="text-lg font-bold text-guofeng-text-primary">{{ $t('claudeCode.modules.extensionsTitle') }}</h2>
+          <h2 class="text-lg font-bold text-guofeng-text-primary">
+            {{ $t('claudeCode.modules.extensionsTitle') }}
+          </h2>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           <!-- MCP Servers -->
-          <RouterLink to="/mcp" class="block group">
-            <GuofengCard variant="glass" interactive pattern class="h-full p-5">
+          <RouterLink
+            to="/mcp"
+            class="block group"
+          >
+            <GuofengCard
+              variant="glass"
+              interactive
+              pattern
+              class="h-full p-5"
+            >
               <div class="flex flex-col h-full">
                 <div class="flex items-center justify-between mb-4">
                   <div class="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -161,8 +203,16 @@
           </RouterLink>
 
           <!-- Agents -->
-          <RouterLink to="/agents" class="block group">
-            <GuofengCard variant="glass" interactive pattern class="h-full p-5">
+          <RouterLink
+            to="/agents"
+            class="block group"
+          >
+            <GuofengCard
+              variant="glass"
+              interactive
+              pattern
+              class="h-full p-5"
+            >
               <div class="flex flex-col h-full">
                 <div class="flex items-center justify-between mb-4">
                   <div class="w-12 h-12 rounded-xl bg-guofeng-jade/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -181,8 +231,16 @@
           </RouterLink>
 
           <!-- Skills -->
-          <RouterLink to="/skills" class="block group">
-            <GuofengCard variant="glass" interactive pattern class="h-full p-5">
+          <RouterLink
+            to="/skills"
+            class="block group"
+          >
+            <GuofengCard
+              variant="glass"
+              interactive
+              pattern
+              class="h-full p-5"
+            >
               <div class="flex flex-col h-full">
                 <div class="flex items-center justify-between mb-4">
                   <div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -201,8 +259,16 @@
           </RouterLink>
 
           <!-- Plugins -->
-          <RouterLink to="/plugins" class="block group">
-            <GuofengCard variant="glass" interactive pattern class="h-full p-5">
+          <RouterLink
+            to="/plugins"
+            class="block group"
+          >
+            <GuofengCard
+              variant="glass"
+              interactive
+              pattern
+              class="h-full p-5"
+            >
               <div class="flex flex-col h-full">
                 <div class="flex items-center justify-between mb-4">
                   <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -221,8 +287,16 @@
           </RouterLink>
 
           <!-- Slash Commands -->
-          <RouterLink to="/slash-commands" class="block group">
-            <GuofengCard variant="glass" interactive pattern class="h-full p-5">
+          <RouterLink
+            to="/slash-commands"
+            class="block group"
+          >
+            <GuofengCard
+              variant="glass"
+              interactive
+              pattern
+              class="h-full p-5"
+            >
               <div class="flex flex-col h-full">
                 <div class="flex items-center justify-between mb-4">
                   <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -243,9 +317,15 @@
       </section>
 
       <!-- 快速操作区 -->
-      <section class="grid grid-cols-1 md:grid-cols-2 gap-5 animate-fade-in" style="animation-delay: 0.5s">
+      <section
+        class="grid grid-cols-1 md:grid-cols-2 gap-5 animate-fade-in"
+        style="animation-delay: 0.5s"
+      >
         <!-- 常用命令 -->
-        <GuofengCard variant="glass" class="p-6">
+        <GuofengCard
+          variant="glass"
+          class="p-6"
+        >
           <h3 class="text-lg font-bold text-guofeng-text-primary mb-4 flex items-center gap-2">
             <Terminal class="w-5 h-5 text-guofeng-jade" />
             {{ $t('claudeCode.quickActions.commonCommands') }}
@@ -267,7 +347,10 @@
         </GuofengCard>
 
         <!-- 文档资源 -->
-        <GuofengCard variant="glass" class="p-6">
+        <GuofengCard
+          variant="glass"
+          class="p-6"
+        >
           <h3 class="text-lg font-bold text-guofeng-text-primary mb-4 flex items-center gap-2">
             <BookOpen class="w-5 h-5 text-guofeng-jade" />
             {{ $t('claudeCode.quickActions.resources') }}
@@ -302,8 +385,14 @@
       </section>
 
       <!-- 提示卡片 -->
-      <section class="animate-fade-in" style="animation-delay: 0.6s">
-        <GuofengCard variant="glass" class="p-6">
+      <section
+        class="animate-fade-in"
+        style="animation-delay: 0.6s"
+      >
+        <GuofengCard
+          variant="glass"
+          class="p-6"
+        >
           <div class="flex items-start gap-4">
             <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
               <Info class="w-6 h-6 text-blue-500" />

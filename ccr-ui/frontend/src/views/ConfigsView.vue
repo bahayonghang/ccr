@@ -465,7 +465,17 @@
           <!-- 统计摘要 -->
           <div class="flex items-center gap-4 mb-6 p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
             <div class="p-3 rounded-xl bg-indigo-100/50 dark:bg-indigo-800/50 text-indigo-600 dark:text-indigo-300">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              ><path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              /></svg>
             </div>
             <div>
               <div class="text-sm text-slate-500 dark:text-slate-400 font-medium">
@@ -484,7 +494,11 @@
           <div class="flex-1 relative min-h-0 flex flex-col">
             <!-- Y轴网格线 -->
             <div class="absolute inset-0 flex flex-col justify-between pointer-events-none z-0 pb-8 pl-8">
-              <div v-for="tick in providerYTicks.slice().reverse()" :key="tick.percent" class="relative w-full h-px bg-slate-200/50 dark:bg-slate-700/30">
+              <div
+                v-for="tick in providerYTicks.slice().reverse()"
+                :key="tick.percent"
+                class="relative w-full h-px bg-slate-200/50 dark:bg-slate-700/30"
+              >
                 <span class="absolute -left-8 -top-2 text-[10px] text-slate-400 w-6 text-right">{{ tick.value }}</span>
               </div>
             </div>
@@ -514,7 +528,7 @@
                       }"
                     >
                       <!-- 玻璃光泽效果 -->
-                      <div class="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent opacity-50"></div>
+                      <div class="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent opacity-50" />
                     </div>
                   </div>
 

@@ -37,7 +37,10 @@
         <!-- 左侧：工具与命令选择 -->
         <aside class="flex flex-col gap-6">
           <!-- 工具选择器 -->
-          <GuofengCard variant="glass" class="flex flex-col overflow-hidden">
+          <GuofengCard
+            variant="glass"
+            class="flex flex-col overflow-hidden"
+          >
             <div class="p-4 border-b border-guofeng-border/50">
               <h2 class="text-xs font-bold uppercase tracking-wider text-guofeng-text-secondary">
                 {{ $t('commands.selectClient') }}
@@ -89,7 +92,10 @@
           </GuofengCard>
 
           <!-- 命令列表 -->
-          <GuofengCard variant="glass" class="flex-1 flex flex-col overflow-hidden min-h-[400px]">
+          <GuofengCard
+            variant="glass"
+            class="flex-1 flex flex-col overflow-hidden min-h-[400px]"
+          >
             <div class="p-4 border-b border-guofeng-border/50">
               <h2 class="text-xs font-bold uppercase tracking-wider text-guofeng-text-secondary">
                 {{ $t('commands.availableCommands') }}
@@ -133,7 +139,10 @@
         <!-- 右侧：执行区域 -->
         <main class="flex flex-col gap-6 min-w-0">
           <!-- 命令详情与输入 -->
-          <GuofengCard variant="glass" class="p-6">
+          <GuofengCard
+            variant="glass"
+            class="p-6"
+          >
             <!-- 头部信息 -->
             <div class="mb-6">
               <div class="flex items-center gap-3 mb-2">
@@ -169,13 +178,22 @@
                 <span class="font-bold select-none text-yellow-500">{{ selectedCommand }}</span>
                 
                 <!-- Switch Command Dropdown -->
-                <div v-if="selectedCommand === 'switch'" class="flex-1 min-w-[200px]">
+                <div
+                  v-if="selectedCommand === 'switch'"
+                  class="flex-1 min-w-[200px]"
+                >
                   <select
                     v-model="args"
                     class="w-full bg-[#1e1e1e] border border-gray-700 rounded px-2 py-1 text-gray-200 focus:border-guofeng-jade focus:outline-none cursor-pointer hover:bg-[#2d2d2d] transition-colors"
                     @keydown.enter="!loading && handleExecute()"
                   >
-                    <option value="" disabled class="bg-[#1e1e1e] text-gray-500">Select a configuration</option>
+                    <option
+                      value=""
+                      disabled
+                      class="bg-[#1e1e1e] text-gray-500"
+                    >
+                      Select a configuration
+                    </option>
                     <option 
                       v-for="config in configs" 
                       :key="config.name" 
@@ -280,11 +298,11 @@
                 </div>
 
                 <!-- 实际输出 -->
-                <pre 
+                <pre
                   class="whitespace-pre-wrap break-words leading-relaxed hljs"
                   :class="output.success ? 'text-gray-200' : 'text-red-300'"
                   v-html="highlightedContent"
-                ></pre>
+                />
 
                 <!-- 状态行 -->
                 <div class="mt-6 pt-4 border-t border-gray-800 flex items-center gap-4 text-xs font-mono">
@@ -368,7 +386,6 @@ const selectedCommand = ref<string>('')
 const args = ref<string>('')
 const output = ref<CommandResponse | null>(null)
 const streamingOutput = ref<string>('')
-const currentEventSource = ref<EventSource | null>(null)
 const loading = ref(false)
 const configs = ref<ConfigItem[]>([])
 

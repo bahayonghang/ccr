@@ -4,12 +4,18 @@
       <!-- Breadcrumbs & Navigation -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-fade-in">
         <nav class="flex items-center text-sm text-guofeng-text-secondary">
-          <RouterLink to="/" class="hover:text-guofeng-red transition-colors flex items-center gap-1">
+          <RouterLink
+            to="/"
+            class="hover:text-guofeng-red transition-colors flex items-center gap-1"
+          >
             <Home class="w-3.5 h-3.5" />
             {{ $t('market.breadcrumb.home') }}
           </RouterLink>
           <ChevronRight class="w-4 h-4 mx-2 text-guofeng-text-muted" />
-          <RouterLink to="/claude-code" class="hover:text-guofeng-red transition-colors">
+          <RouterLink
+            to="/claude-code"
+            class="hover:text-guofeng-red transition-colors"
+          >
             {{ $t('market.breadcrumb.claude') }}
           </RouterLink>
           <ChevronRight class="w-4 h-4 mx-2 text-guofeng-text-muted" />
@@ -38,7 +44,7 @@
 
       <!-- Hero Header -->
       <div class="relative mb-10 p-8 rounded-3xl overflow-hidden glass-effect border-0 shadow-lg">
-        <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-red-500/5 to-orange-500/5 rounded-full blur-3xl -mr-12 -mt-12 pointer-events-none"></div>
+        <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-red-500/5 to-orange-500/5 rounded-full blur-3xl -mr-12 -mt-12 pointer-events-none" />
         
         <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div class="flex items-center gap-5">
@@ -103,7 +109,9 @@
                 {{ item.icon }}
               </div>
               <div>
-                <h3 class="font-bold text-lg text-guofeng-text-primary group-hover:text-guofeng-red transition-colors">{{ item.name }}</h3>
+                <h3 class="font-bold text-lg text-guofeng-text-primary group-hover:text-guofeng-red transition-colors">
+                  {{ item.name }}
+                </h3>
                 <div class="flex items-center gap-2 text-xs text-guofeng-text-muted mt-0.5">
                   <span class="px-1.5 py-0.5 rounded bg-guofeng-bg-tertiary border border-guofeng-border/50 font-medium">
                     {{ item.category }}
@@ -123,7 +131,12 @@
 
           <div class="mt-auto pt-4 border-t border-guofeng-border/50 flex items-center justify-between">
             <div class="flex gap-0.5">
-              <Star v-for="i in 5" :key="i" class="w-3.5 h-3.5" :class="i <= item.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'" />
+              <Star
+                v-for="i in 5"
+                :key="i"
+                class="w-3.5 h-3.5"
+                :class="i <= item.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'"
+              />
             </div>
             <button 
               class="px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
@@ -132,7 +145,10 @@
                 : 'bg-guofeng-red text-white shadow-md shadow-guofeng-red/20 hover:shadow-lg hover:shadow-guofeng-red/30 hover:-translate-y-0.5'"
               @click="!item.installed && handleInstall(item)"
             >
-              <component :is="item.installed ? Check : Download" class="w-3.5 h-3.5" />
+              <component
+                :is="item.installed ? Check : Download"
+                class="w-3.5 h-3.5"
+              />
               {{ item.installed ? $t('market.installed') : $t('market.install') }}
             </button>
           </div>
@@ -140,12 +156,19 @@
       </div>
       
       <!-- Empty State -->
-      <div v-if="filteredItems.length === 0" class="text-center py-24">
+      <div
+        v-if="filteredItems.length === 0"
+        class="text-center py-24"
+      >
         <div class="bg-guofeng-bg-secondary w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
           <Search class="w-10 h-10 opacity-30" />
         </div>
-        <h3 class="text-lg font-bold text-guofeng-text-primary mb-2">{{ $t('market.noResults') }}</h3>
-        <p class="text-guofeng-text-secondary">Try adjusting your search or filters</p>
+        <h3 class="text-lg font-bold text-guofeng-text-primary mb-2">
+          {{ $t('market.noResults') }}
+        </h3>
+        <p class="text-guofeng-text-secondary">
+          Try adjusting your search or filters
+        </p>
       </div>
     </div>
   </div>

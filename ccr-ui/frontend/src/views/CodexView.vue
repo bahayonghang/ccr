@@ -245,8 +245,5 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { Settings, Server, Users, Home, Bot, Command, Puzzle, Code2, Boxes, Info } from 'lucide-vue-next'
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
+import { Settings, Server, Home, Command, Code2, Boxes, Info } from 'lucide-vue-next'
 </script>

@@ -36,7 +36,9 @@
           <Info class="w-6 h-6" />
         </div>
         <div>
-          <h3 class="font-bold text-guofeng-text-primary mb-1">{{ $t('skills.help.title') }}</h3>
+          <h3 class="font-bold text-guofeng-text-primary mb-1">
+            {{ $t('skills.help.title') }}
+          </h3>
           <p class="text-sm text-guofeng-text-secondary mb-2 leading-relaxed">
             {{ $t('skills.help.description') }}
           </p>
@@ -47,20 +49,33 @@
       </div>
 
       <!-- Skills Grid -->
-      <div v-if="loading" class="text-center py-20 text-guofeng-text-muted">
-        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-guofeng-red/30 border-t-guofeng-red"></div>
+      <div
+        v-if="loading"
+        class="text-center py-20 text-guofeng-text-muted"
+      >
+        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-guofeng-red/30 border-t-guofeng-red" />
         {{ $t('common.loading') }}
       </div>
       
-      <div v-else-if="skills.length === 0" class="text-center py-20 text-guofeng-text-muted">
+      <div
+        v-else-if="skills.length === 0"
+        class="text-center py-20 text-guofeng-text-muted"
+      >
         <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
           <Book class="w-10 h-10 opacity-50" />
         </div>
-        <p class="text-lg font-medium">{{ $t('skills.noSkills') }}</p>
-        <p class="text-sm mt-2 opacity-70">{{ $t('skills.noSkillsHint') }}</p>
+        <p class="text-lg font-medium">
+          {{ $t('skills.noSkills') }}
+        </p>
+        <p class="text-sm mt-2 opacity-70">
+          {{ $t('skills.noSkillsHint') }}
+        </p>
       </div>
 
-      <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div
+        v-else
+        class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
+      >
         <GuofengCard
           v-for="skill in skills"
           :key="skill.name"
@@ -95,7 +110,10 @@
             </div>
 
             <div class="space-y-2 text-sm">
-              <div v-if="skill.description" class="text-guofeng-text-secondary line-clamp-2">
+              <div
+                v-if="skill.description"
+                class="text-guofeng-text-secondary line-clamp-2"
+              >
                 {{ skill.description }}
               </div>
               <div class="mt-3 pt-3 border-t border-guofeng-border/50">
@@ -127,7 +145,10 @@
         </button>
 
         <h3 class="text-2xl font-bold mb-6 text-guofeng-text-primary flex items-center">
-          <component :is="editingSkill ? Edit2 : Plus" class="w-6 h-6 mr-2 text-guofeng-red" />
+          <component
+            :is="editingSkill ? Edit2 : Plus"
+            class="w-6 h-6 mr-2 text-guofeng-red"
+          />
           {{ editingSkill ? $t('skills.editSkill') : $t('skills.addSkill') }}
         </h3>
 
@@ -155,7 +176,7 @@
         </div>
 
         <div class="flex gap-4 mt-8 pt-6 border-t border-guofeng-border">
-           <button
+          <button
             class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-guofeng-bg-tertiary text-guofeng-text-secondary hover:bg-guofeng-bg-secondary border border-guofeng-border"
             @click="showModal = false"
           >

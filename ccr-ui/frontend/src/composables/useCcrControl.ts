@@ -1,6 +1,6 @@
 // CCR Control Composable - 状态管理和命令执行
 
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   getFavorites,
   addFavorite,

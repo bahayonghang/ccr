@@ -68,7 +68,9 @@
             <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Puzzle class="w-10 h-10 opacity-30 text-guofeng-text-muted" />
             </div>
-            <p class="text-lg font-bold text-guofeng-text-primary">{{ $t('plugins.noPlugins') }}</p>
+            <p class="text-lg font-bold text-guofeng-text-primary">
+              {{ $t('plugins.noPlugins') }}
+            </p>
           </div>
 
           <div
@@ -116,8 +118,14 @@
                   :title="plugin.enabled ? $t('plugins.disable') : $t('plugins.enable')"
                   @click="handleToggle(plugin.id)"
                 >
-                  <PowerOff v-if="!plugin.enabled" class="w-4 h-4" />
-                  <Power v-else class="w-4 h-4" />
+                  <PowerOff
+                    v-if="!plugin.enabled"
+                    class="w-4 h-4"
+                  />
+                  <Power
+                    v-else
+                    class="w-4 h-4"
+                  />
                   <span>{{ plugin.enabled ? $t('plugins.disable') : $t('plugins.enable') }}</span>
                 </button>
                 <button
@@ -157,7 +165,10 @@
 
               <h2 class="text-2xl font-bold mb-6 text-guofeng-text-primary flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-guofeng-indigo/10 flex items-center justify-center text-guofeng-indigo">
-                  <component :is="editingPlugin ? Edit2 : Plus" class="w-5 h-5" />
+                  <component
+                    :is="editingPlugin ? Edit2 : Plus"
+                    class="w-5 h-5"
+                  />
                 </div>
                 {{ editingPlugin ? $t('plugins.editPlugin') : $t('plugins.addPlugin') }}
               </h2>
@@ -255,8 +266,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink } from 'vue-router'
-import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home, ArrowLeft, Code2, X } from 'lucide-vue-next'
+import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home, Code2, X } from 'lucide-vue-next'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import { listPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } from '@/api/client'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
