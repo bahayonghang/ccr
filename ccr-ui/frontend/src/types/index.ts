@@ -64,6 +64,59 @@ export interface UsageRecordsResponse {
 
 export type TimeRange = '5h' | 'today' | '7d' | 'week' | 'month' | 'all';
 
+// Budget Management types
+export interface BudgetStatus {
+  enabled: boolean;
+  daily_limit: number | null;
+  weekly_limit: number | null;
+  monthly_limit: number | null;
+  warn_threshold: number;
+  current_costs: {
+    today: number;
+    this_week: number;
+    this_month: number;
+  };
+  warnings: BudgetWarning[];
+  last_updated: string;
+}
+
+export interface BudgetWarning {
+  period: string;
+  current_cost: number;
+  limit: number;
+  usage_percent: number;
+}
+
+export interface SetBudgetRequest {
+  enabled?: boolean;
+  daily_limit?: number | null;
+  weekly_limit?: number | null;
+  monthly_limit?: number | null;
+  warn_threshold?: number;
+}
+
+// Pricing Management types
+export interface ModelPricing {
+  model: string;
+  input_price: number;
+  output_price: number;
+  cache_read_price?: number;
+  cache_write_price?: number;
+}
+
+export interface PricingListResponse {
+  pricings: ModelPricing[];
+  default_pricing: ModelPricing;
+}
+
+export interface SetPricingRequest {
+  model: string;
+  input_price: number;
+  output_price: number;
+  cache_read_price?: number;
+  cache_write_price?: number;
+}
+
 // Command execution types
 export interface CommandRequest {
   command: string;

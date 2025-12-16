@@ -139,11 +139,20 @@ impl Validatable for ClaudeSettings {
         let required_vars = [ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN];
 
         for var in required_vars {
-            if !self.env.contains_key(var) || self.env.get(var).unwrap().is_empty() {
-                return Err(CcrError::ValidationError(format!(
-                    "缺少必需的环境变量: {}",
-                    var
-                )));
+            match self.env.get(var) {
+                None => {
+                    return Err(CcrError::ValidationError(format!(
+                        "缺少必需的环境变量: {}",
+                        var
+                    )));
+                }
+                Some(value) if value.is_empty() => {
+                    return Err(CcrError::ValidationError(format!(
+                        "环境变量不能为空: {}",
+                        var
+                    )));
+                }
+                Some(_) => {} // OK
             }
         }
 

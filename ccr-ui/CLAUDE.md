@@ -1,427 +1,535 @@
-# CCR UI Module
+# CCR UI 模块指导文件
 
-[Root Directory](../CLAUDE.md) > **ccr-ui**
+[根目录](../CLAUDE.md) > **ccr-ui**
 
-## Change Log (Changelog)
-- **2025-10-22 00:04:36 CST**: Initial module documentation created
+## Change Log
+- **2025-12-16**: 按标准模板重新组织文档结构
+- **2025-10-22 00:04:36 CST**: 初始 CCR UI 模块文档创建
 
-## Module Responsibilities
+---
 
-The `ccr-ui/` module is a full-stack web application providing visual management interfaces for multiple AI CLI tools. It consists of:
+## 项目架构
 
-1. **Backend** (`ccr-ui/backend/`) - Axum-based REST API server with 129 endpoints
-2. **Frontend** (`ccr-ui/frontend-vue/`) - Vue.js 3 SPA with liquid glass design
-3. **Documentation** (`ccr-ui/docs/`) - VitePress documentation site
+### 模块职责
 
-The UI supports configuration management for:
-- **Claude Code** - MCP servers, agents, slash commands, plugins
-- **Codex** - Profiles, MCP servers, agents, slash commands, plugins
-- **Gemini CLI** - Configuration, MCP servers, agents, slash commands, plugins
-- **Qwen** - Configuration, MCP servers, agents, slash commands, plugins
-- **iFlow** - Basic support (stub implementation)
+CCR UI 是一个完整的全栈 Web 应用,为多个 AI CLI 工具提供可视化管理界面。包含两个主要子模块:
 
-## Entry and Startup
+**核心组成**:
+1. **Backend** (`backend/`) - Axum REST API 服务器 (129 端点,Rust)
+2. **Frontend** (`frontend/`) - Vue.js 3 单页应用 (Liquid Glass 设计)
 
-### Quick Start Methods
+**支持平台**:
+- **Claude Code** - MCP 服务器、Agents、斜杠命令、插件
+- **Codex** - 配置文件、MCP、Agents、斜杠命令、插件
+- **Gemini CLI** - 配置、MCP、Agents、斜杠命令、插件
+- **Qwen** - 配置、MCP、Agents、斜杠命令、插件
+- **iFlow** - 基础支持 (stub 实现)
 
-**Method 1: Via CCR CLI (Recommended)**
-```bash
-ccr ui                    # Auto-detects or downloads ccr-ui
-ccr ui -p 3000           # Custom frontend port
-ccr ui --backend-port 38081  # Custom backend port
-```
-
-**Method 2: Direct Development**
-```bash
-cd ccr-ui
-just s                   # Start development (backend + frontend)
-just quick-start         # First-time setup + start
-```
-
-### Three-Tier Detection Priority
-
-When running `ccr ui`, CCR searches in this order:
-
-1. **Development Environment** - `./ccr-ui/` or `../ccr-ui/` (for developers)
-2. **User Directory** - `~/.ccr/ccr-ui/` (for daily use)
-3. **GitHub Download** - Prompts to download from GitHub (first-time users)
-
-### Startup Flow
+### 架构总览
 
 ```
-1. Detect ccr-ui location (or download)
-2. Check Node.js/npm availability
-3. Install frontend dependencies (if needed)
-4. Build frontend (production) or start dev server
-5. Start backend server (Axum)
-6. Open browser to http://localhost:3000
+ccr-ui/
+├── backend/                    # Rust 后端 (Axum + Tokio)
+│   ├── API Layer               - 141 REST 端点
+│   ├── Services Layer          - 业务逻辑编排
+│   ├── Managers Layer          - 数据访问与文件 I/O
+│   ├── Models Layer            - 数据结构
+│   ├── Core Layer              - 错误处理、命令执行
+│   └── Utils Layer             - 工具函数
+│
+├── frontend/                   # Vue.js 3 前端 (SPA)
+│   ├── Views                   - 40+ 页面组件
+│   ├── Components              - 15+ 可复用组件
+│   ├── Router                  - Vue Router 路由
+│   ├── Store                   - Pinia 状态管理
+│   └── API Client              - Axios HTTP 客户端
+│
+├── docs/                       # VitePress 文档站点
+└── justfile                    # 开发任务自动化
 ```
 
-## External Interfaces
+**设计哲学**:
+- **前后端分离**: 完全解耦,独立部署
+- **RESTful API**: 标准 HTTP + JSON 通信
+- **原子操作**: 后端所有文件写入使用原子操作
+- **类型安全**: 后端 Rust + 前端 TypeScript
+- **现代化 UI**: Liquid Glass 设计风格
 
-### Backend API (129 Endpoints on Port 38081)
+---
 
-#### Claude Code API (33 endpoints)
-```
-# MCP Servers
-GET    /api/mcp                     - List MCP servers
-POST   /api/mcp                     - Add MCP server
-PUT    /api/mcp/:name               - Update MCP server
-DELETE /api/mcp/:name               - Delete MCP server
-PUT    /api/mcp/:name/toggle        - Toggle MCP server
+## 项目技术栈
 
-# Agents (5 endpoints)
-GET/POST/PUT/DELETE /api/agents
-PUT    /api/agents/:name/toggle
+### 后端技术栈 (Rust)
 
-# Slash Commands (5 endpoints)
-GET/POST/PUT/DELETE /api/slash-commands
-PUT    /api/slash-commands/:name/toggle
+| 类别 | 技术 | 版本 | 用途 |
+|------|------|------|------|
+| **框架** | Axum | 0.7+ | Web 框架 |
+| **运行时** | Tokio | 1.42+ | 异步运行时 |
+| **序列化** | Serde | 1.0+ | JSON/TOML/YAML |
+| **日志** | Tracing | 0.1+ | 结构化日志 |
+| **错误** | Anyhow + Thiserror | 1.0+ / 2.0+ | 错误处理 |
 
-# Plugins (5 endpoints)
-GET/POST/PUT/DELETE /api/plugins
-PUT    /api/plugins/:name/toggle
+### 前端技术栈 (TypeScript/Vue)
 
-# Configuration
-GET    /api/config                  - Get Claude config
-PUT    /api/config                  - Update Claude config
-```
+| 类别 | 技术 | 版本 | 用途 |
+|------|------|------|------|
+| **框架** | Vue.js | 3.5.22 | UI 框架 |
+| **构建** | Vite | 7.1.11 | 构建工具 |
+| **路由** | Vue Router | 4.4.5 | 路由管理 |
+| **状态** | Pinia | 2.2.6 | 状态管理 |
+| **样式** | Tailwind CSS | 3.4.17 | CSS 框架 |
+| **HTTP** | Axios | 1.7.9 | API 客户端 |
+| **类型** | TypeScript | 5.7.3 | 类型安全 |
 
-#### Codex API (33 endpoints)
-```
-# MCP, Profiles, Agents, Slash Commands, Plugins
-# Same pattern as Claude with /api/codex/ prefix
-GET    /api/codex/config
-PUT    /api/codex/config
-```
+---
 
-#### Gemini CLI API (28 endpoints)
-```
-# MCP, Agents, Slash Commands, Plugins, Config
-# Prefix: /api/gemini-cli/
-```
+## 项目模块划分
 
-#### Qwen API (28 endpoints)
-```
-# MCP, Agents, Slash Commands, Plugins, Config
-# Prefix: /api/qwen/
-```
-
-#### iFlow API (5 endpoints - stub)
-```
-GET    /api/iflow/mcp
-POST   /api/iflow/mcp
-GET    /api/iflow/agents
-GET    /api/iflow/slash-commands
-GET    /api/iflow/plugins
-```
-
-#### Utility APIs
-```
-POST   /api/converter/convert       - Convert config formats
-POST   /api/sync/claude-to-codex    - Sync Claude to Codex
-POST   /api/command/execute         - Execute CCR CLI command
-GET    /api/system/info             - Get system information
-GET    /api/version                 - Get backend version
-```
-
-### Frontend Routes (Vue Router)
+### 目录结构
 
 ```
-/                        - Home/Dashboard
-/configs                 - CCR configuration management
-/commands                - CCR command executor
-/converter               - Config format converter
-/sync                    - Sync management
-
-# Claude Code
-/claude                  - Claude overview
-/mcp                     - MCP servers
-/agents                  - Agents
-/slash-commands          - Slash commands
-/plugins                 - Plugins
-
-# Codex
-/codex                   - Codex overview
-/codex/profiles          - Profiles
-/codex/mcp               - MCP servers
-/codex/agents            - Agents
-/codex/slash-commands    - Slash commands
-/codex/plugins           - Plugins
-
-# Gemini CLI
-/gemini-cli              - Gemini overview
-/gemini-cli/mcp          - MCP servers
-/gemini-cli/agents       - Agents
-/gemini-cli/slash-commands
-/gemini-cli/plugins
-
-# Qwen
-/qwen                    - Qwen overview
-/qwen/mcp                - MCP servers
-/qwen/agents             - Agents
-/qwen/slash-commands
-/qwen/plugins
-
-# iFlow
-/iflow                   - iFlow overview
-/iflow/mcp               - MCP servers
-/iflow/agents            - Agents
-/iflow/slash-commands
-/iflow/plugins
+ccr-ui/
+├── backend/
+│   ├── src/
+│   │   ├── main.rs                      # 后端入口
+│   │   ├── api/handlers/                # API 处理器 (16+ 文件)
+│   │   ├── services/                    # 服务层
+│   │   ├── managers/                    # 管理层
+│   │   ├── models/                      # 数据模型
+│   │   ├── core/                        # 核心层
+│   │   └── utils/                       # 工具层
+│   ├── Cargo.toml                       # Rust 依赖
+│   └── logs/                            # 日志文件
+│
+├── frontend/
+│   ├── src/
+│   │   ├── main.ts                      # 前端入口
+│   │   ├── views/                       # 页面组件 (40+)
+│   │   ├── components/                  # 可复用组件 (15+)
+│   │   ├── router/                      # Vue Router
+│   │   ├── store/                       # Pinia Store
+│   │   ├── api/                         # API 客户端
+│   │   ├── types/                       # TypeScript 类型
+│   │   └── styles/                      # 全局样式
+│   ├── package.json                     # NPM 依赖
+│   ├── vite.config.ts                   # Vite 配置
+│   └── dist/                            # 构建输出
+│
+├── docs/                                # VitePress 文档
+│   ├── .vitepress/
+│   └── *.md
+│
+├── justfile                             # Just 任务定义
+├── README.md                            # 项目说明
+└── CLAUDE.md                            # 本文件
 ```
 
-## Key Dependencies and Configuration
+### 核心入口点
 
-### Backend Dependencies (Rust)
+| 模块 | 入口文件 | 默认端口 | 职责 |
+|------|----------|----------|------|
+| **后端** | `backend/src/main.rs` | 8081 | REST API 服务器 |
+| **前端** | `frontend/src/main.ts` | 3000 (dev) | Vue.js SPA |
 
-**Cargo.toml** (`ccr-ui/backend/Cargo.toml`):
-```toml
-[dependencies]
-# Web framework
-axum = "0.7"
-tower = "0.5"
-tower-http = "0.6"        # CORS, compression, trace
-tokio = { version = "1.42", features = ["full"] }
+---
 
-# Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-chrono = { version = "0.4", features = ["serde"] }
+## 项目业务模块
 
-# Error handling
-anyhow = "1.0"
-thiserror = "2.0"
+### 1. CCR 配置管理
 
-# Logging
-tracing = "0.1"
-tracing-subscriber = "0.3"
-tracing-appender = "0.2"
+**功能**:
+- 列出/切换/创建/更新/删除配置
+- 导入/导出配置
+- 验证配置
+- 查看操作历史
 
-# CLI & System
-clap = { version = "4.5", features = ["derive"] }
-whoami = "1.5"
-num_cpus = "1.16"
-sysinfo = "0.32"
+**涉及组件**:
+- 前端: `ConfigsView.vue`
+- 后端: `handlers/config.rs`
 
-# Config parsing
-toml = "0.9"
-dirs = "6.0"
-tempfile = "3.10"
-serde_yaml = "0.9"
+### 2. 平台管理
 
-# HTTP client
-reqwest = { version = "0.12", features = ["json"] }
-```
+#### Claude Code
+- **MCP 服务器**: 管理 MCP 服务器配置
+- **Agents**: AI Agent 配置
+- **斜杠命令**: 自定义命令
+- **插件**: 插件管理
 
-### Frontend Dependencies (Vue.js)
+#### Codex
+- **配置文件**: Profile 管理
+- **MCP/Agents/斜杠命令/插件**: 同 Claude
 
-**package.json** (`ccr-ui/frontend-vue/package.json`):
-```json
-{
-  "dependencies": {
-    "vue": "^3.5.22",
-    "vue-router": "^4.4.5",
-    "pinia": "^2.2.6",
-    "axios": "^1.7.9",
-    "lucide-vue-next": "^0.468.0",
-    "tailwindcss": "^3.4.17"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.1",
-    "vite": "^7.1.11",
-    "typescript": "^5.7.3",
-    "vue-tsc": "^2.2.0",
-    "eslint": "^9.19.0"
-  }
-}
-```
+#### Gemini CLI / Qwen / iFlow
+- 类似结构,平台特定功能
 
-### Environment Configuration
+### 3. WebDAV 同步
 
-**Backend** (Port 38081):
-- `RUST_LOG` - Logging level (info, debug, trace)
-- Runs on `127.0.0.1:38081`
+**功能**:
+- WebDAV 配置
+- 多文件夹管理
+- 推送/拉取操作
+- 同步状态显示
 
-**Frontend** (Port 3000):
-- `VITE_API_BASE_URL` - Backend API URL (default: `http://localhost:38081`)
-- Development server on `localhost:3000`
+**涉及组件**:
+- 前端: `SyncView.vue`
+- 后端: `handlers/sync.rs`
 
-## Data Models
+### 4. 配置转换
 
-### Backend Models
+**功能**:
+- Claude ↔ Codex 转换
+- Claude ↔ Gemini 转换
+- 格式验证
 
-Located in `ccr-ui/backend/src/models/`:
+**涉及组件**:
+- 前端: `ConverterView.vue`
+- 后端: `handlers/converter.rs`
 
-**Claude Models** (`models/claude.rs`):
-```rust
-pub struct McpServer {
-    pub command: String,
-    pub args: Vec<String>,
-    pub env: Option<HashMap<String, String>>,
-}
+### 5. 命令执行
 
-pub struct Agent {
-    pub name: String,
-    pub description: String,
-    pub instructions: String,
-}
+**功能**:
+- 执行 CCR CLI 命令
+- 显示命令输出
+- 命令历史
 
-pub struct SlashCommand {
-    pub name: String,
-    pub description: String,
-    pub command: String,
-}
+**涉及组件**:
+- 前端: `CommandsView.vue`
+- 后端: `handlers/command.rs`
 
-pub struct Plugin {
-    pub name: String,
-    pub enabled: bool,
-    pub config: serde_json::Value,
-}
-```
+### 6. 系统信息
 
-**Codex Models** (`models/codex.rs`):
-```rust
-pub struct CodexProfile {
-    pub name: String,
-    pub description: String,
-    pub settings: serde_json::Value,
-}
+**功能**:
+- 系统指标 (CPU, 内存, OS)
+- CCR 版本信息
+- 更新检查
 
-pub struct CodexPlugin {
-    pub id: String,
-    pub name: String,
-    pub enabled: bool,
-}
-```
+**涉及组件**:
+- 前端: `SystemInfo` 组件
+- 后端: `handlers/system.rs`, `handlers/version.rs`
 
-**Converter Models** (`models/converter.rs`):
-```rust
-pub enum ConversionFormat {
-    ClaudeToCodex,
-    CodexToClaude,
-    ClaudeToGemini,
-    // ... more formats
-}
+---
 
-pub struct ConversionRequest {
-    pub format: ConversionFormat,
-    pub source_config: serde_json::Value,
-}
-```
+## 项目代码风格与规范
 
-## Testing and Quality
+### 后端代码规范 (Rust)
 
-### Backend Tests
+- **命名**: `snake_case` 函数/变量, `PascalCase` 类型
+- **格式化**: 使用 `cargo fmt`
+- **检查**: 通过 `cargo clippy` 无警告
+- **错误处理**: 使用 `Result` 与自定义错误类型
+- **日志**: 使用 `tracing` 结构化日志
+- **文档**: `///` 注释公开 API
+
+详见: [backend/CLAUDE.md](backend/CLAUDE.md)
+
+### 前端代码规范 (TypeScript/Vue)
+
+- **命名**: `camelCase` 变量/函数, `PascalCase` 组件/类型
+- **格式化**: ESLint + Prettier
+- **组件**: `<script setup>` Composition API
+- **样式**: Tailwind CSS 优先,减少自定义 CSS
+- **类型**: TypeScript 严格模式
+- **状态**: Pinia Store 集中管理
+
+详见: [frontend/CLAUDE.md](frontend/CLAUDE.md)
+
+---
+
+## 测试与质量
+
+### 后端测试
 
 ```bash
-cd ccr-ui/backend
-cargo test               # Run all tests
-cargo clippy            # Lint
-cargo fmt               # Format
+cd backend
+cargo test              # 运行测试
+cargo clippy            # 代码检查
+cargo fmt --check       # 格式检查
 ```
 
-### Frontend Tests
+**质量目标**:
+- ✅ 零编译错误
+- ✅ 零 Clippy 警告
+- 🚧 单元测试覆盖率 80%+
+
+### 前端测试
 
 ```bash
-cd ccr-ui/frontend-vue
-npm run type-check      # TypeScript checking
-npm run lint            # ESLint
-npm test                # Run tests (if configured)
+cd frontend
+npm run type-check      # TypeScript 检查
+npm run lint            # ESLint 检查
+npm run build           # 构建验证
 ```
 
-### Development Workflow
+**质量目标**:
+- ✅ 零 TypeScript 错误
+- ✅ 零 ESLint 警告
+- ✅ 成功构建
+- 🚧 单元测试覆盖率 80%+
 
-```bash
-# Backend development
-cd ccr-ui/backend
-cargo run               # Start backend server
-cargo watch -x run      # Auto-reload on changes
+---
 
-# Frontend development
-cd ccr-ui/frontend-vue
-npm run dev             # Start dev server with hot reload
+## 项目构建、测试与运行
 
-# Full stack (using just)
-cd ccr-ui
-just s                  # Start both backend and frontend
-just i                  # Install dependencies
-just b                  # Build production
-just c                  # Check code quality
-just t                  # Run tests
-```
+### 环境要求
 
-## Frequently Asked Questions (FAQ)
+- **Rust**: 1.85+ (Edition 2024)
+- **Node.js**: 18.x+
+- **Cargo**: 最新稳定版
+- **npm/yarn/pnpm**: 9.x+
 
-### Q: How does ccr-ui communicate with the backend?
+### 快速启动
 
-A: The Vue frontend uses Axios to make REST API calls to the Axum backend on port 38081. All state is managed client-side with Pinia stores.
+#### 方式一: 使用 Just (推荐)
 
-### Q: Can I run backend and frontend on different ports?
-
-A: Yes! Use:
-```bash
-ccr ui -p 3000 --backend-port 38081  # Frontend 3000, backend 38081
-```
-
-### Q: Where are configuration files located?
-
-A:
-- Claude: `~/.claude/settings.json`
-- Codex: `~/.codex/config.json`
-- Gemini: `~/.gemini-cli/config.json`
-- Qwen: `~/.qwen/config.json`
-
-### Q: How do I add support for a new CLI tool?
-
-A:
-1. Add config reader in `backend/src/config/`
-2. Add models in `backend/src/models/`
-3. Add handlers in `backend/src/handlers/`
-4. Add routes in `backend/src/main.rs`
-5. Add frontend views in `frontend-vue/src/views/`
-6. Update router in `frontend-vue/src/router/`
-
-### Q: What's the liquid glass design?
-
-A: A modern glassmorphism design with:
-- Frosted glass effects (backdrop-filter: blur)
-- Subtle gradients and shadows
-- Smooth transitions
-- Light/dark theme support
-
-### Q: How do I deploy to production?
-
-A:
 ```bash
 cd ccr-ui
-just b                   # Build frontend
-cargo build --release    # Build backend
 
-# Copy artifacts:
-# - frontend: ccr-ui/frontend-vue/dist/
-# - backend: ccr-ui/backend/target/release/ccr-ui-backend
+# 安装依赖
+just i
+
+# 启动开发环境 (后端 + 前端)
+just s
+
+# 构建生产版本
+just b
+
+# 运行测试
+just t
+
+# 代码检查
+just c
 ```
 
-## Related File List
+#### 方式二: 手动启动
 
-### Backend Files
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/main.rs` - Backend entry point
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/handlers/` - API handlers (30+ files)
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/config/` - Config readers
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/models/` - Data models
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/src/services/` - Business logic
-- `/home/lyh/Documents/Github/ccr/ccr-ui/backend/Cargo.toml` - Rust dependencies
+**后端**:
+```bash
+cd backend
+cargo run                # 启动后端 (127.0.0.1:8081)
+```
 
-### Frontend Files
-- `/home/lyh/Documents/Github/ccr/ccr-ui/frontend-vue/src/main.ts` - Frontend entry
-- `/home/lyh/Documents/Github/ccr/ccr-ui/frontend-vue/src/App.vue` - Root component
-- `/home/lyh/Documents/Github/ccr/ccr-ui/frontend-vue/src/views/` - Page components (40+ files)
-- `/home/lyh/Documents/Github/ccr/ccr-ui/frontend-vue/src/components/` - Reusable components
-- `/home/lyh/Documents/Github/ccr/ccr-ui/frontend-vue/src/router/` - Vue Router config
-- `/home/lyh/Documents/Github/ccr/ccr-ui/frontend-vue/src/store/` - Pinia stores
-- `/home/lyh/Documents/Github/ccr/ccr-ui/frontend-vue/package.json` - NPM dependencies
+**前端**:
+```bash
+cd frontend
+npm install              # 安装依赖
+npm run dev              # 启动前端 (localhost:3000)
+```
 
-### Configuration
-- `/home/lyh/Documents/Github/ccr/ccr-ui/justfile` - Just commands for development
-- `/home/lyh/Documents/Github/ccr/ccr-ui/README.md` - CCR UI documentation
+### 开发工作流
+
+```bash
+# 1. 启动后端
+cd backend
+RUST_LOG=debug cargo run
+
+# 2. 启动前端 (新终端)
+cd frontend
+npm run dev
+
+# 3. 访问 http://localhost:3000
+```
+
+### 生产构建
+
+```bash
+# 后端构建
+cd backend
+cargo build --release
+# 输出: target/release/ccr-ui-backend
+
+# 前端构建
+cd frontend
+npm run build
+# 输出: dist/
+
+# 运行生产版本
+./backend/target/release/ccr-ui-backend --port 8081
+# 前端部署 dist/ 到静态服务器 (Nginx/Vercel/Netlify)
+```
+
+### Just 命令参考
+
+| 命令 | 说明 |
+|------|------|
+| `just i` | 安装所有依赖 (后端 + 前端) |
+| `just s` | 启动开发环境 (后端 + 前端并行) |
+| `just b` | 构建生产版本 |
+| `just c` | 代码检查 (clippy + lint) |
+| `just t` | 运行测试 |
+| `just clean` | 清理构建产物 |
+| `just quick-start` | 首次设置 + 启动 |
+
+---
+
+## Git 工作流程
+
+### 分支策略
+
+- **main**: 生产环境代码
+- **dev**: 开发环境代码
+- **feature/***: 功能开发
+- **bugfix/***: Bug 修复
+
+### 提交规范
+
+遵循 Conventional Commits:
+
+```bash
+# 功能开发
+git commit -m "feat(UI): 添加预算管理界面"
+git commit -m "feat(后端): 实现预算 API"
+git commit -m "feat(前端): 添加 Gemini 配置页面"
+
+# Bug 修复
+git commit -m "fix(UI): 修复暗黑模式样式问题"
+git commit -m "fix(后端): 修复配置解析错误"
+
+# 文档
+git commit -m "docs(UI): 更新部署指南"
+
+# 重构
+git commit -m "refactor(后端): 重构为分层架构"
+```
+
+---
+
+## 文档目录(重要)
+
+### 文档存储规范
+
+- **模块文档**: `/ccr-ui/CLAUDE.md` (本文件)
+- **后端文档**: `/ccr-ui/backend/CLAUDE.md`
+- **前端文档**: `/ccr-ui/frontend/CLAUDE.md`
+- **根文档**: `/CLAUDE.md` (项目总览)
+
+### 相关文件列表
+
+#### 后端文件
+- `/ccr-ui/backend/src/main.rs` - 后端入口
+- `/ccr-ui/backend/Cargo.toml` - Rust 依赖
+- `/ccr-ui/backend/CLAUDE.md` - 后端文档
+
+#### 前端文件
+- `/ccr-ui/frontend/src/main.ts` - 前端入口
+- `/ccr-ui/frontend/package.json` - NPM 依赖
+- `/ccr-ui/frontend/CLAUDE.md` - 前端文档
+
+#### 配置文件
+- `/ccr-ui/justfile` - Just 任务定义
+- `/ccr-ui/README.md` - 项目说明
+
+### 外部链接
+
+- **CCR 项目**: https://github.com/bahayonghang/ccr
+- **Axum 文档**: https://docs.rs/axum/
+- **Vue.js 文档**: https://vuejs.org/
+- **Vite 文档**: https://vitejs.dev/
+- **Tailwind CSS**: https://tailwindcss.com/
+
+---
+
+## 常见问题(FAQ)
+
+### Q: 如何启动完整的开发环境?
+
+A: 使用 Just 命令一键启动:
+```bash
+cd ccr-ui
+just s              # 自动启动后端 + 前端
+```
+
+或手动启动:
+```bash
+# 终端 1: 后端
+cd backend && cargo run
+
+# 终端 2: 前端
+cd frontend && npm run dev
+```
+
+### Q: 前后端如何通信?
+
+A: 前端使用 Axios 向后端发送 RESTful API 请求:
+- 开发环境: `http://localhost:8081/api/*`
+- 生产环境: `/api/*` (通过反向代理)
+
+### Q: 如何添加新的API端点?
+
+A:
+1. **后端**: 在 `backend/src/api/handlers/` 添加处理器
+2. **前端**: 在 `frontend/src/api/client.ts` 添加 API 函数
+3. **前端**: 在对应视图中调用 API 函数
+
+### Q: 如何修改端口?
+
+A:
+**后端**:
+```bash
+cargo run -- --port 8082
+```
+
+**前端** (修改 `vite.config.ts`):
+```typescript
+server: {
+  port: 3001
+}
+```
+
+### Q: 如何部署到生产环境?
+
+A:
+1. **构建后端**: `cd backend && cargo build --release`
+2. **构建前端**: `cd frontend && npm run build`
+3. **部署后端**: 将 `target/release/ccr-ui-backend` 部署到服务器
+4. **部署前端**: 将 `frontend/dist/` 部署到静态服务器
+5. **配置反向代理**: Nginx 将 `/api` 代理到后端
+
+示例 Nginx 配置:
+```nginx
+location /api {
+    proxy_pass http://127.0.0.1:8081;
+    proxy_set_header Host $host;
+}
+
+location / {
+    root /var/www/ccr-ui/dist;
+    try_files $uri $uri/ /index.html;
+}
+```
+
+### Q: 如何添加对新平台的支持?
+
+A:
+1. **后端**:
+   - 添加模型: `backend/src/models/platforms/<platform>.rs`
+   - 添加管理器: `backend/src/managers/config/<platform>_manager.rs`
+   - 添加处理器: `backend/src/api/handlers/platforms/<platform>.rs`
+   - 注册路由: `backend/src/main.rs`
+
+2. **前端**:
+   - 添加视图: `frontend/src/views/<Platform>*.vue`
+   - 添加路由: `frontend/src/router/index.ts`
+   - 添加 API: `frontend/src/api/client.ts`
+
+### Q: 日志在哪里查看?
+
+A:
+- **后端日志**: `backend/logs/` 目录 (每日轮换)
+- **前端日志**: 浏览器控制台
+
+### Q: 如何调试后端 API?
+
+A:
+启用调试日志:
+```bash
+RUST_LOG=debug cargo run
+```
+
+使用工具测试 API:
+- **cURL**: `curl http://localhost:8081/api/configs`
+- **Postman**: 导入 API 端点
+- **Browser DevTools**: 查看网络请求
+
+---
+
+**本小姐精心整理的 UI 总览文档完成！前后端架构一目了然,这才是专业的文档标准呢～(￣▽￣)／**

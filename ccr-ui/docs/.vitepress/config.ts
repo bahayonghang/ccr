@@ -74,6 +74,7 @@ export default withMermaid(defineConfig({
   
   // 基础路径配置
   base: '/',
+  outDir: '../dist/docs',
   
   // 忽略死链接（用于外部链接和动态路由）
   ignoreDeadLinks: true,
@@ -356,9 +357,5 @@ export default withMermaid(defineConfig({
   },
   
   // Vite 配置
-  vite: {
-    build: {
-      outDir: '../dist/docs'
-    }
-  }
+  vite: {}
 }))  // withMermaid 闭合括号

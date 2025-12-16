@@ -2,6 +2,7 @@
 // 负责记录和查询 API 使用成本
 
 use crate::core::error::{CcrError, Result};
+use crate::managers::PricingManager;
 use crate::models::stats::{
     Cost, CostRecord, CostStats, DailyCost, ModelPricing, TokenStats, TokenUsage,
 };
@@ -17,12 +18,13 @@ pub struct CostTracker {
     /// 📁 存储目录
     storage_dir: PathBuf,
 
-    /// 💲 模型定价表
-    #[allow(dead_code)] // 预留用于自定义定价，当前使用 ModelPricing::default_pricing
+    /// 💲 模型定价表（内置，用于向后兼容）
     pricing: HashMap<String, ModelPricing>,
+
+    /// 🎯 价格表管理器（可选，优先使用）
+    pricing_manager: Option<PricingManager>,
 }
 
-#[allow(dead_code)]
 impl CostTracker {
     /// 创建新的成本追踪器
     pub fn new(storage_dir: PathBuf) -> Result<Self> {
@@ -34,7 +36,38 @@ impl CostTracker {
         Ok(Self {
             storage_dir,
             pricing: ModelPricing::default_pricing(),
+            pricing_manager: None,
         })
+    }
+
+    /// 创建带价格表管理器的成本追踪器
+    #[allow(dead_code)]
+    pub fn with_pricing_manager(
+        storage_dir: PathBuf,
+        pricing_manager: PricingManager,
+    ) -> Result<Self> {
+        // 确保存储目录存在
+        if !storage_dir.exists() {
+            fs::create_dir_all(&storage_dir)?;
+        }
+
+        Ok(Self {
+            storage_dir,
+            pricing: ModelPricing::default_pricing(),
+            pricing_manager: Some(pricing_manager),
+        })
+    }
+
+    /// 设置价格表管理器
+    #[allow(dead_code)]
+    pub fn set_pricing_manager(&mut self, manager: PricingManager) {
+        self.pricing_manager = Some(manager);
+    }
+
+    /// 获取价格表管理器的引用
+    #[allow(dead_code)]
+    pub fn pricing_manager(&self) -> Option<&PricingManager> {
+        self.pricing_manager.as_ref()
     }
 
     /// 获取默认存储目录
@@ -45,7 +78,6 @@ impl CostTracker {
     }
 
     /// 记录成本
-    #[allow(dead_code)] // 预留用于实际 API 调用时记录成本
     #[allow(clippy::too_many_arguments)]
     pub fn record(
         &self,
@@ -81,13 +113,19 @@ impl CostTracker {
     }
 
     /// 计算成本
-    #[allow(dead_code)] // 在 record 方法中使用
     pub fn calculate_cost(&self, model: &str, usage: &TokenUsage) -> Result<Cost> {
-        // 查找模型定价
-        let pricing = self
-            .pricing
-            .get(model)
-            .ok_or_else(|| CcrError::ValidationError(format!("未知模型: {}", model)))?;
+        // 优先从 PricingManager 获取定价
+        let pricing = if let Some(manager) = &self.pricing_manager {
+            // 尝试获取模型定价或默认定价
+            manager.get_or_default_pricing(model).ok_or_else(|| {
+                CcrError::ValidationError(format!("未知模型且无默认定价: {}", model))
+            })?
+        } else {
+            // 回退到内置定价表
+            self.pricing
+                .get(model)
+                .ok_or_else(|| CcrError::ValidationError(format!("未知模型: {}", model)))?
+        };
 
         Ok(pricing.calculate_cost(usage))
     }
@@ -365,7 +403,7 @@ impl CostTracker {
     /// 按时间范围筛选
     ///
     /// 🔧 **辅助方法**: 现在主要使用 `read_by_time_range` 进行流式过滤
-    #[allow(dead_code)] // 保留用于其他场景
+    #[allow(dead_code)]
     pub fn filter_by_time_range(
         &self,
         records: &[CostRecord],
@@ -382,7 +420,6 @@ impl CostTracker {
     /// 获取今日成本
     ///
     /// 🚀 **性能优化**: 使用流式读取
-    #[allow(dead_code)] // 预留用于统计功能
     pub fn get_today_cost(&self) -> Result<f64> {
         let now = Utc::now();
         let start = now.date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
@@ -395,7 +432,6 @@ impl CostTracker {
     /// 获取本周成本
     ///
     /// 🚀 **性能优化**: 使用流式读取
-    #[allow(dead_code)] // 预留用于统计功能
     pub fn get_week_cost(&self) -> Result<f64> {
         let now = Utc::now();
         let start = now - Duration::days(7);
@@ -407,7 +443,6 @@ impl CostTracker {
     /// 获取本月成本
     ///
     /// 🚀 **性能优化**: 使用流式读取
-    #[allow(dead_code)] // 预留用于统计功能
     pub fn get_month_cost(&self) -> Result<f64> {
         let now = Utc::now();
         let start = now

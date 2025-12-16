@@ -406,10 +406,17 @@ impl PlatformPaths {
     pub fn ensure_directories(&self) -> Result<()> {
         use std::fs;
 
+        let history_parent = self.history_file.parent().ok_or_else(|| {
+            crate::core::error::CcrError::ConfigError(format!(
+                "无法获取 history 文件的父目录: {:?}",
+                self.history_file
+            ))
+        })?;
+
         let dirs = [
             &self.root,
             &self.platform_dir,
-            self.history_file.parent().unwrap(),
+            history_parent,
             &self.backups_dir,
         ];
 

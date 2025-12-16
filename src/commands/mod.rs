@@ -59,7 +59,11 @@ pub use lifecycle::{migrate_check_command, migrate_command};
 // 📦 Data 命令
 pub use data::export_command;
 pub use data::history_command;
+#[cfg(feature = "web")]
+pub use data::{BudgetArgs, budget_command};
 pub use data::{ImportMode, import_command};
+#[cfg(feature = "web")]
+pub use data::{PricingArgs, pricing_command};
 #[cfg(feature = "web")]
 pub use data::{StatsArgs, stats_command};
 

@@ -3,8 +3,8 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection};
+use crate::managers::config_validator::ConfigValidator;
 use crate::utils::Validatable;
-use rayon::prelude::*;
 use std::sync::Arc;
 
 /// 📋 配置信息(用于展示)
@@ -51,15 +51,24 @@ pub struct ValidationReport {
 /// ⚙️ 配置服务
 ///
 /// 封装所有配置相关的业务逻辑
+///
+/// **🎯 设计模式：组合模式**
+/// - 使用 ConfigValidator 处理验证逻辑
 pub struct ConfigService {
     config_manager: Arc<ConfigManager>,
+    validator: ConfigValidator,
 }
 
 #[allow(dead_code)]
 impl ConfigService {
     /// 🏗️ 创建新的配置服务
+    ///
+    /// 使用组合模式，内部初始化 ConfigValidator
     pub fn new(config_manager: Arc<ConfigManager>) -> Self {
-        Self { config_manager }
+        Self {
+            config_manager,
+            validator: ConfigValidator::new(),
+        }
     }
 
     /// 🏠 使用默认配置管理器创建服务
@@ -282,29 +291,31 @@ impl ConfigService {
     }
 
     /// ✅ 验证所有配置
-    /// 🎯 优化：使用 rayon 并行验证，提升性能
+    ///
+    /// 委托给 ConfigValidator 执行验证，返回统一的验证报告
     pub fn validate_all(&self) -> Result<ValidationReport> {
         let config = self.config_manager.load()?;
 
-        // 🚀 并行验证所有配置节
-        // 收集所有配置节的名称和引用，然后并行验证
-        let sections: Vec<(&String, &ConfigSection)> = config.sections.iter().collect();
+        // 🎯 使用 ConfigValidator 执行验证
+        let validator_report = self.validator.validate_all_sections(&config);
 
-        let results: Vec<(String, bool, Option<String>)> = sections
-            .par_iter()
-            .map(|(name, section)| match section.validate() {
-                Ok(_) => ((*name).clone(), true, None),
-                Err(e) => ((*name).clone(), false, Some(e.to_string())),
-            })
+        // 📊 转换为 ConfigService 的 ValidationReport 格式
+        let results: Vec<(String, bool, Option<String>)> = validator_report
+            .invalid_sections
+            .iter()
+            .map(|(name, error)| (name.clone(), false, Some(error.clone())))
+            .chain(
+                config
+                    .sections
+                    .keys()
+                    .filter(|name| !validator_report.invalid_sections.contains_key(*name))
+                    .map(|name| (name.clone(), true, None)),
+            )
             .collect();
 
-        // 统计验证结果
-        let valid_count = results.iter().filter(|(_, is_valid, _)| *is_valid).count();
-        let invalid_count = results.len() - valid_count;
-
         Ok(ValidationReport {
-            valid_count,
-            invalid_count,
+            valid_count: validator_report.valid_count,
+            invalid_count: validator_report.invalid_count,
             results,
         })
     }

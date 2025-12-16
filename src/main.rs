@@ -409,6 +409,24 @@ enum Commands {
     #[cfg(feature = "web")]
     Stats(commands::StatsArgs),
 
+    /// 💰 预算管理
+    ///
+    /// 管理和监控 API 使用成本预算
+    /// 示例: ccr budget status
+    ///       ccr budget set --daily 10.0 --monthly 200.0
+    ///       ccr budget reset
+    #[cfg(feature = "web")]
+    Budget(commands::BudgetArgs),
+
+    /// 💲 价格表管理
+    ///
+    /// 管理模型定价配置
+    /// 示例: ccr pricing list
+    ///       ccr pricing set my-model --input 3.0 --output 15.0
+    ///       ccr pricing remove my-model
+    #[cfg(feature = "web")]
+    Pricing(commands::PricingArgs),
+
     /// 🛠️ 技能管理
     ///
     /// 管理 AI 助手的技能 (Skills)
@@ -902,6 +920,22 @@ fn main() {
                 std::process::exit(1);
             }
         },
+        #[cfg(feature = "web")]
+        Some(Commands::Budget(args)) => match tokio::runtime::Runtime::new() {
+            Ok(runtime) => runtime.block_on(async { commands::budget_command(args).await }),
+            Err(e) => {
+                eprintln!("❌ 创建异步运行时失败: {}", e);
+                std::process::exit(1);
+            }
+        },
+        #[cfg(feature = "web")]
+        Some(Commands::Pricing(args)) => match tokio::runtime::Runtime::new() {
+            Ok(runtime) => runtime.block_on(async { commands::pricing_command(args).await }),
+            Err(e) => {
+                eprintln!("❌ 创建异步运行时失败: {}", e);
+                std::process::exit(1);
+            }
+        },
         Some(Commands::Skills(args)) => commands::skills_cmd::skills_command(args),
         Some(Commands::Prompts(args)) => commands::prompts_cmd::prompts_command(args),
         Some(Commands::Check { action }) => match action {
@@ -1020,6 +1054,8 @@ fn command_name(cmd: &Commands) -> &'static str {
         Commands::Skills(_) => "skills",
         Commands::Prompts(_) => "prompts",
         Commands::Check { .. } => "check",
+        Commands::Budget(_) => "budget",
+        Commands::Pricing(_) => "pricing",
     }
 }
 

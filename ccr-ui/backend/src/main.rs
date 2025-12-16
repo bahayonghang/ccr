@@ -370,6 +370,33 @@ fn create_router() -> Router {
             "/api/stats/summary",
             get(api::handlers::stats::stats_summary),
         )
+        // Budget Management endpoints
+        .route(
+            "/api/budget/status",
+            get(api::handlers::budget::get_budget_status),
+        )
+        .route("/api/budget/set", post(api::handlers::budget::set_budget))
+        .route(
+            "/api/budget/reset",
+            post(api::handlers::budget::reset_budget),
+        )
+        // Pricing Management endpoints
+        .route(
+            "/api/pricing/list",
+            get(api::handlers::pricing::get_pricing_list),
+        )
+        .route(
+            "/api/pricing/set",
+            post(api::handlers::pricing::set_pricing),
+        )
+        .route(
+            "/api/pricing/remove/{model}",
+            delete(api::handlers::pricing::remove_pricing),
+        )
+        .route(
+            "/api/pricing/reset",
+            post(api::handlers::pricing::reset_pricing),
+        )
         // Usage Analytics endpoints
         .route(
             "/api/usage/records",

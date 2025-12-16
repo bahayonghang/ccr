@@ -183,6 +183,16 @@ clippy:
   @echo ""
   @echo "✅ Clippy 检查通过"
 
+# 🔥 严格静态检查 (Clippy + 禁止 unwrap)
+lint-strict:
+  @echo "🔥 运行严格 Clippy 检查"
+  @echo "⚠️  模式: 所有警告视为错误 + 禁止 unwrap"
+  @echo "📌 注意: 测试代码中的 unwrap 会产生警告"
+  @echo ""
+  cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used
+  @echo ""
+  @echo "✅ 严格 Clippy 检查通过"
+
 # 🔧 完整代码检查 (格式化 + Clippy)
 lint: fmt clippy
   @echo ""
