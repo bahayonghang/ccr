@@ -160,7 +160,7 @@ async fn get_history(limit: Option<usize>) -> Result<Vec<HistoryEntryJson>, Stri
 /// 清理历史记录
 #[tauri::command]
 async fn clear_history() -> Result<String, String> {
-    let result = tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || {
         let service = HistoryService::with_default()
             .map_err(|e| format!("Failed to create HistoryService: {}", e))?;
 

@@ -60,6 +60,10 @@ import type {
   StatsSummary,
   UsageRecordsResponse,
   UpdateConfigRequest,
+  BudgetStatus,
+  SetBudgetRequest,
+  PricingListResponse,
+  SetPricingRequest,
 } from '@/types'
 
 // 创建 axios 实例
@@ -158,6 +162,44 @@ export const getTopSessions = async (limit: number = 10): Promise<TopSession[]> 
 export const getStatsSummary = async (): Promise<StatsSummary> => {
   const response = await api.get<StatsSummary>('/stats/summary')
   return response.data
+}
+
+// ===================================
+// Budget Management APIs
+// ===================================
+
+export const getBudgetStatus = async (): Promise<BudgetStatus> => {
+  const response = await api.get<BudgetStatus>('/budget/status')
+  return response.data
+}
+
+export const setBudget = async (request: SetBudgetRequest): Promise<void> => {
+  await api.post('/budget/set', request)
+}
+
+export const resetBudget = async (): Promise<void> => {
+  await api.post('/budget/reset')
+}
+
+// ===================================
+// Pricing Management APIs
+// ===================================
+
+export const getPricingList = async (): Promise<PricingListResponse> => {
+  const response = await api.get<PricingListResponse>('/pricing/list')
+  return response.data
+}
+
+export const setPricing = async (request: SetPricingRequest): Promise<void> => {
+  await api.post('/pricing/set', request)
+}
+
+export const removePricing = async (model: string): Promise<void> => {
+  await api.delete(`/pricing/remove/${encodeURIComponent(model)}`)
+}
+
+export const resetPricing = async (): Promise<void> => {
+  await api.post('/pricing/reset')
 }
 
 // ===================================
