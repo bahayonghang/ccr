@@ -265,7 +265,7 @@ impl SyncContentSelector {
             println!();
 
             print!("请选择操作: ");
-            io::stdout().flush().unwrap();
+            io::stdout().flush().expect("无法刷新标准输出");
 
             let mut input = String::new();
             io::stdin().read_line(&mut input)?;
@@ -351,6 +351,7 @@ impl SyncContentSelector {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::core::lock::CONFIG_LOCK;

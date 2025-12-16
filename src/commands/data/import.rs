@@ -57,10 +57,10 @@ pub fn import_command(input: String, mode: ImportMode, backup: bool, force: bool
 
         print!("确认执行 Replace 操作? (y/N): ");
         use std::io::{self, Write};
-        io::stdout().flush().unwrap();
+        io::stdout().flush().expect("无法刷新标准输出");
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        io::stdin().read_line(&mut input).expect("无法读取用户输入");
 
         if !input.trim().eq_ignore_ascii_case("y") {
             ColorOutput::info("已取消导入操作");
@@ -224,6 +224,7 @@ fn print_import_summary(result: &ImportResult) {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::core::lock::CONFIG_LOCK;

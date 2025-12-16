@@ -191,7 +191,10 @@ pub fn switch_command(config_name: &str) -> Result<()> {
                 );
             }
             // 保存更新后的 profiles（包含递增的 usage_count）
-            platform_config.save_profile(config_name, profiles.get(config_name).unwrap())?;
+            platform_config.save_profile(
+                config_name,
+                profiles.get(config_name).expect("配置名称应该存在"),
+            )?;
         }
 
         // 应用 profile (这会设置当前profile并保存settings)

@@ -336,6 +336,7 @@ async fn read_provider_usage(path: &PathBuf) -> Result<HashMap<String, u64>, std
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::tempdir;

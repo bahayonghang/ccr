@@ -263,6 +263,7 @@ pub fn execute_binary_stream(binary: String, args: Vec<String>) -> impl Stream<I
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

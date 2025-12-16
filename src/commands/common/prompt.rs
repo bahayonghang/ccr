@@ -137,6 +137,7 @@ pub fn confirm_overwrite(target: &str) -> bool {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     // 交互式函数难以自动测试，但确保编译通过
     #[test]

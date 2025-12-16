@@ -83,7 +83,7 @@ impl ConfigsTab {
 
     /// 📋 渲染配置列表
     fn render_list(&self, f: &mut Frame, app: &App, block: Block, area: Rect) {
-        let config_list = app.get_cached_config_list().unwrap();
+        let config_list = app.get_cached_config_list().expect("配置列表应该已缓存");
 
         // 使用 ConfigList Widget 渲染（简洁优雅！）
         let widget = ConfigList::new(&config_list.configs, app.config_list_index).block(block);

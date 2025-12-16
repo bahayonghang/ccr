@@ -134,6 +134,7 @@ pub fn update_command(check_only: bool, branch: &str) -> Result<()> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

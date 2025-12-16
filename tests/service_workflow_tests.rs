@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // 🧪 Service 层工作流集成测试
 // 测试 ConfigService, SettingsService, HistoryService, BackupService 的业务流程
 

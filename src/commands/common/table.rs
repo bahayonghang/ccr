@@ -281,6 +281,7 @@ pub fn create_platform_list_table() -> PlatformTableBuilder {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

@@ -92,7 +92,11 @@ impl SkillsManager {
             let entry = entry.map_err(CcrError::IoError)?;
             let path = entry.path();
             if path.is_dir() {
-                let name = path.file_name().unwrap().to_string_lossy().to_string();
+                let name = path
+                    .file_name()
+                    .expect("文件名应该存在")
+                    .to_string_lossy()
+                    .to_string();
                 let skill_file = path.join("SKILL.md");
 
                 if skill_file.exists() {

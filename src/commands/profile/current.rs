@@ -111,7 +111,7 @@ pub fn current_command() -> Result<()> {
     // 根据模式获取配置信息
     let (current_name, current_section, config_file_path, default_name) = if is_unified_mode {
         // Unified 模式：从平台配置读取
-        let uc = unified_config.as_ref().unwrap();
+        let uc = unified_config.as_ref().expect("Unified 配置应该已加载");
         let platform_name = &uc.current_platform;
         let platform = Platform::from_str(platform_name)?;
         let platform_config = create_platform(platform)?;

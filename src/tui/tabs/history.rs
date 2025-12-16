@@ -83,7 +83,7 @@ impl HistoryTab {
 
     /// 📋 渲染历史记录列表
     fn render_list(&self, f: &mut Frame, app: &App, block: Block, area: Rect) {
-        let history_list = app.get_cached_history().unwrap();
+        let history_list = app.get_cached_history().expect("历史记录应该已缓存");
 
         // 构建历史记录列表项
         let items: Vec<ListItem> = history_list

@@ -1054,12 +1054,15 @@ fn command_name(cmd: &Commands) -> &'static str {
         Commands::Skills(_) => "skills",
         Commands::Prompts(_) => "prompts",
         Commands::Check { .. } => "check",
+        #[cfg(feature = "web")]
         Commands::Budget(_) => "budget",
+        #[cfg(feature = "web")]
         Commands::Pricing(_) => "pricing",
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

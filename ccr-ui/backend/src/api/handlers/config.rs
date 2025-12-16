@@ -434,7 +434,7 @@ pub async fn update_config(
         }
 
         // 获取旧配置以保留 usage_count 和 enabled 字段
-        let old_section = config.sections.get(&name).unwrap();
+        let old_section = config.sections.get(&name).expect("配置段应该存在");
         let old_usage_count = old_section.usage_count;
         let old_enabled = old_section.enabled;
         let old_other = old_section.other.clone();

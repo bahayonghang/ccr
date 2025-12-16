@@ -502,6 +502,7 @@ pub fn expand_path(path: &str) -> Result<PathBuf> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

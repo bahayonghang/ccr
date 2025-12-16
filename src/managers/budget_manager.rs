@@ -195,7 +195,11 @@ impl BudgetManager {
         let now = Utc::now();
 
         // 今日成本
-        let today_start = now.date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
+        let today_start = now
+            .date_naive()
+            .and_hms_opt(0, 0, 0)
+            .expect("无效的日期时间")
+            .and_utc();
         let today_stats = tracker.generate_stats(today_start, now)?;
 
         // 本周成本
@@ -206,9 +210,9 @@ impl BudgetManager {
         let month_start = now
             .date_naive()
             .with_day(1)
-            .unwrap()
+            .expect("无法设置日期为每月第一天")
             .and_hms_opt(0, 0, 0)
-            .unwrap()
+            .expect("无效的日期时间")
             .and_utc();
         let month_stats = tracker.generate_stats(month_start, now)?;
 
@@ -306,6 +310,7 @@ impl BudgetManager {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::TempDir;

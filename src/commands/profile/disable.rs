@@ -72,6 +72,7 @@ pub fn disable_command(config_name: &str, force: bool) -> Result<()> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection, GlobalSettings};
     use crate::services::ConfigService;

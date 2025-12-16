@@ -133,6 +133,7 @@ pub fn delete_command(config_name: &str, force: bool) -> Result<()> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection};
     use indexmap::IndexMap;

@@ -385,6 +385,7 @@ impl PlatformConfig for ClaudePlatform {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

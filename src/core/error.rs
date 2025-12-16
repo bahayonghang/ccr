@@ -311,6 +311,7 @@ impl CcrError {
 pub type Result<T> = std::result::Result<T, CcrError>;
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

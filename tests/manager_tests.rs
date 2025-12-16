@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // 🧪 Manager 层集成测试
 // 测试 ConfigManager, SettingsManager, HistoryManager 的核心功能
 

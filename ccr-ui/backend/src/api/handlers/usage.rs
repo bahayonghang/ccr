@@ -82,7 +82,7 @@ pub async fn get_usage_records(
 
     // 尝试从缓存获取
     {
-        let cache = USAGE_CACHE.lock().unwrap();
+        let cache = USAGE_CACHE.lock().expect("无法获取缓存锁");
         if let Some(cached) = cache.get(&params.platform)
             && cached.timestamp.elapsed() < CACHE_TTL
         {
@@ -105,7 +105,7 @@ pub async fn get_usage_records(
         Ok((records, total)) => {
             // 更新缓存
             {
-                let mut cache = USAGE_CACHE.lock().unwrap();
+                let mut cache = USAGE_CACHE.lock().expect("无法获取缓存锁");
                 cache.insert(
                     params.platform.clone(),
                     CachedUsageData {
@@ -320,6 +320,7 @@ fn parse_usage_data(json: &Value) -> Option<UsageData> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use serde_json::json;
