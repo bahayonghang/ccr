@@ -187,6 +187,23 @@ impl WebServer {
                 // 统计
                 get  "/api/stats/provider-usage"        => crate::web::handlers::stats_handlers::handle_provider_usage,
 
+                // 成本追踪统计
+                get  "/api/stats/cost/summary"          => crate::web::handlers::cost_handlers::handle_get_cost_summary,
+                get  "/api/stats/cost/details"          => crate::web::handlers::cost_handlers::handle_get_cost_details,
+                get  "/api/stats/cost/export"           => crate::web::handlers::cost_handlers::handle_export_costs,
+                get  "/api/stats/cost/by-model"         => crate::web::handlers::cost_handlers::handle_get_model_usage,
+
+                // 预算管理
+                get  "/api/budget/status"               => crate::web::handlers::cost_handlers::handle_get_budget_status,
+                post "/api/budget/set"                  => crate::web::handlers::cost_handlers::handle_set_budget,
+                post "/api/budget/reset"                => crate::web::handlers::cost_handlers::handle_reset_budget,
+
+                // 价格管理
+                get  "/api/pricing/list"                => crate::web::handlers::cost_handlers::handle_list_pricing,
+                post "/api/pricing/set"                 => crate::web::handlers::cost_handlers::handle_set_pricing,
+                delete "/api/pricing/remove/{model}"    => crate::web::handlers::cost_handlers::handle_remove_pricing,
+                post "/api/pricing/reset"               => crate::web::handlers::cost_handlers::handle_reset_pricing,
+
                 // 平台管理 (Unified Mode)
                 get  "/api/platforms"                   => crate::web::handlers::platform_handlers::handle_get_platform_info,
                 post "/api/platforms/switch"            => crate::web::handlers::platform_handlers::handle_switch_platform,

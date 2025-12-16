@@ -166,6 +166,9 @@ pub use core::{CcrError, ColorOutput, LockManager, Result, init_logger};
 /// - [`PlatformConfigManager`] - Unified 模式统一配置管理器
 /// - [`SettingsManager`] - Claude Code settings.json 管理器
 /// - [`HistoryManager`] - 操作历史记录管理器
+/// - [`CostTracker`] - 成本追踪管理器
+/// - [`BudgetManager`] - 预算控制管理器
+/// - [`PricingManager`] - 价格表管理器
 ///
 /// **配置类型**:
 /// - [`CcsConfig`] - Legacy 配置结构
@@ -183,9 +186,10 @@ pub use core::{CcrError, ColorOutput, LockManager, Result, init_logger};
 /// - [`MigrationStatus`] - 迁移状态
 /// - [`ProviderType`] - 提供商类型枚举
 pub use managers::{
-    CcsConfig, ClaudeSettings, ConfigManager, ConfigSection, GlobalSettings, HistoryManager,
-    MigrationStatus, PlatformConfigEntry, PlatformConfigManager, ProviderType, SettingsManager,
-    TempOverride, TempOverrideManager, UnifiedConfig,
+    BudgetManager, CcsConfig, ClaudeSettings, ConfigManager, ConfigSection, CostTracker,
+    GlobalSettings, HistoryManager, MigrationStatus, PlatformConfigEntry, PlatformConfigManager,
+    PricingManager, ProviderType, SettingsManager, TempOverride, TempOverrideManager,
+    UnifiedConfig,
 };
 
 /// 数据模型和平台 trait
@@ -198,7 +202,42 @@ pub use managers::{
 ///
 /// **配置结构**:
 /// - [`ProfileConfig`] - 通用 profile 配置结构
+///
+/// **成本追踪相关**:
+/// - [`Cost`] - 成本信息结构
+/// - [`CostRecord`] - 成本记录结构
+/// - [`CostStats`] - 成本统计汇总
+/// - [`TokenUsage`] - Token 使用情况
+/// - [`TokenStats`] - Token 统计信息
+/// - [`DailyCost`] - 每日成本记录
+/// - [`TimeRange`] - 时间范围枚举
+/// - [`ModelPricing`] - 模型定价信息
+///
+/// **预算控制相关**:
+/// - [`BudgetConfig`] - 预算配置结构
+/// - [`BudgetStatus`] - 预算状态结构
+/// - [`BudgetLimits`] - 预算限制结构
+/// - [`BudgetWarning`] - 预算警告结构
+/// - [`BudgetPeriod`] - 预算周期枚举（Daily, Weekly, Monthly）
+/// - [`LimitAction`] - 超限动作枚举（Warn, Log, None）
+/// - [`PeriodCosts`] - 周期成本结构
+///
+/// **价格表相关**:
+/// - [`PricingConfig`] - 价格表配置结构
 pub use models::{ConfigMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+
+// 成本追踪相关类型 (从 stats 子模块导入)
+pub use models::stats::{
+    Cost, CostRecord, CostStats, DailyCost, ModelPricing, TimeRange, TokenStats, TokenUsage,
+};
+
+// 预算控制相关类型 (从 budget 子模块导入)
+pub use models::budget::{
+    BudgetConfig, BudgetLimits, BudgetPeriod, BudgetStatus, BudgetWarning, LimitAction, PeriodCosts,
+};
+
+// 价格表相关类型 (从 pricing 子模块导入)
+pub use models::pricing::PricingConfig;
 
 /// 平台实现和工厂
 ///

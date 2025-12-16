@@ -68,7 +68,7 @@ pub struct TokenUsage {
 
 impl TokenUsage {
     /// 计算总 Token 数
-    #[allow(dead_code)] // 预留用于未来的统计功能
+    #[allow(dead_code)]
     pub fn total(&self) -> u32 {
         self.input_tokens
             + self.output_tokens
@@ -94,8 +94,7 @@ pub struct Cost {
 }
 
 /// 💲 模型定价
-#[derive(Debug, Clone)]
-#[allow(dead_code)] // 结构体字段在内部使用，外部可能未直接读取
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelPricing {
     /// 🤖 模型名称
     pub model: String,
@@ -113,7 +112,6 @@ pub struct ModelPricing {
     pub cache_write_price: Option<f64>,
 }
 
-#[allow(dead_code)]
 impl ModelPricing {
     /// 获取默认的模型定价表
     pub fn default_pricing() -> HashMap<String, ModelPricing> {
@@ -183,7 +181,6 @@ impl ModelPricing {
     }
 
     /// 计算成本
-    #[allow(dead_code)] // 预留方法，当前使用 CostTracker::calculate_cost
     pub fn calculate_cost(&self, usage: &TokenUsage) -> Cost {
         let input_cost = (usage.input_tokens as f64) * self.input_price / 1_000_000.0;
         let output_cost = (usage.output_tokens as f64) * self.output_price / 1_000_000.0;
@@ -216,7 +213,6 @@ impl ModelPricing {
 // ============================================================
 
 /// 📊 成本统计汇总
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CostStats {
     /// 💰 总成本
@@ -244,7 +240,6 @@ pub struct CostStats {
 }
 
 /// 🔢 Token 使用统计
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenStats {
     /// 📥 总输入 Token
@@ -261,7 +256,6 @@ pub struct TokenStats {
 }
 
 /// 📅 每日成本
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DailyCost {
     /// 📅 日期
@@ -280,7 +274,7 @@ pub struct DailyCost {
 
 /// 📈 会话记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)] // 预留用于会话级别的统计分析
+#[allow(dead_code)]
 pub struct SessionRecord {
     /// 🆔 会话 ID
     pub session_id: String,
@@ -311,7 +305,7 @@ pub struct SessionRecord {
 
 /// 📊 使用统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)] // 预留用于综合统计报告
+#[allow(dead_code)]
 pub struct UsageStats {
     /// 📝 总会话数
     pub total_sessions: usize,
@@ -331,7 +325,7 @@ pub struct UsageStats {
 
 /// 📁 项目使用统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)] // 预留用于项目级别的统计
+#[allow(dead_code)]
 pub struct ProjectUsage {
     /// 📝 会话数
     pub sessions: usize,
@@ -345,7 +339,7 @@ pub struct ProjectUsage {
 
 /// 🤖 模型使用统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)] // 预留用于模型级别的统计
+#[allow(dead_code)]
 pub struct ModelUsage {
     /// 📊 请求次数
     pub requests: usize,
@@ -366,7 +360,7 @@ pub struct ModelUsage {
 
 /// 📝 代码变更记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)] // 预留用于代码变更分析功能
+#[allow(dead_code)]
 pub struct CodeChangeRecord {
     /// 🆔 记录 ID
     pub id: String,
@@ -390,7 +384,7 @@ pub struct CodeChangeRecord {
 
 /// 📊 文件统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)] // 预留用于文件级别的统计
+#[allow(dead_code)]
 pub struct FileStats {
     /// ✨ 创建文件数
     pub files_created: usize,
@@ -410,7 +404,7 @@ pub struct FileStats {
 
 /// 🔤 语言统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)] // 预留用于编程语言分析
+#[allow(dead_code)]
 pub struct LanguageStats {
     /// 📄 文件数
     pub files: usize,
@@ -429,6 +423,7 @@ pub struct LanguageStats {
 /// 📅 时间范围
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[allow(dead_code)]
 pub enum TimeRange {
     /// 今日
     Today,
@@ -445,7 +440,7 @@ pub enum TimeRange {
 
 impl TimeRange {
     /// 获取显示名称
-    #[allow(dead_code)] // 预留方法
+    #[allow(dead_code)]
     pub fn display_name(&self) -> &str {
         match self {
             TimeRange::Today => "今日",
