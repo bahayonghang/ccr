@@ -1,462 +1,531 @@
-# CCR Core Module (src/)
+# CCR Core CLI 模块指导文件
 
-[Root Directory](../CLAUDE.md) > **src**
+[根目录](../CLAUDE.md) > **src**
 
-## Change Log (Changelog)
-- **2025-10-22 00:04:36 CST**: Initial module documentation created
+## Change Log
+- **2025-12-16**: 按标准模板重新组织文档结构
+- **2025-10-22 00:04:36 CST**: 初始核心模块文档创建
 
-## Module Responsibilities
+---
 
-The `src/` module is the core CLI application of CCR, implementing the main configuration management logic. It provides:
+## 项目架构
 
-1. **CLI Interface**: Complete command-line interface with 13+ commands
-2. **Service Layer**: Business logic orchestration (6 services)
-3. **Manager Layer**: Data access and persistence (3 managers)
-4. **Web API**: Lightweight Axum-based REST API (14 endpoints)
-5. **TUI**: Interactive terminal user interface
-6. **Core Infrastructure**: Error handling, file locking, atomic writes, logging
+### 模块职责
 
-This module is designed as both a standalone binary (`ccr`) and a library that can be used programmatically.
+`src/` 模块是 CCR 的核心 CLI 应用,实现主要的配置管理逻辑。提供完整的命令行界面、服务层、管理层和基础设施。
 
-## Entry and Startup
+**核心功能**:
+1. **CLI 接口** - 13+ 命令的完整命令行接口
+2. **服务层** - 业务逻辑编排 (6 services)
+3. **管理层** - 数据访问与持久化 (3 managers)
+4. **Web API** - 轻量级 Axum REST API (14 endpoints)
+5. **TUI** - 交互式终端用户界面
+6. **核心基础设施** - 错误处理、文件锁定、原子写入、日志
 
-### Main Entry Point
+**设计特点**:
+- 既是独立二进制 (`ccr`),也是可复用库
+- 严格分层架构: CLI/Web → Services → Managers → Core/Utils
+- 所有文件操作使用原子写入(临时文件 + 原子重命名)
+- 文件锁定防止并发损坏
+- 完整审计跟踪(UUID, 时间戳, 操作者)
 
-**File**: `/home/lyh/Documents/Github/ccr/src/main.rs`
+### 架构层次
 
-**Startup Flow**:
+```
+src/
+├── CLI/Web Layer (命令层)
+│   ├── main.rs              - CLI 入口 (Clap 解析)
+│   ├── commands/            - 13+ CLI 命令实现
+│   ├── web/                 - Axum Web 服务器 (14 端点)
+│   └── tui/                 - 终端 UI (Ratatui)
+│
+├── Service Layer (服务层)
+│   ├── config_service.rs    - 配置操作编排
+│   ├── settings_service.rs  - 设置管理
+│   ├── history_service.rs   - 审计日志
+│   ├── backup_service.rs    - 备份操作
+│   ├── validate_service.rs  - 验证操作
+│   ├── sync_service.rs      - WebDAV 同步
+│   └── ui_service.rs        - UI 启动器
+│
+├── Manager Layer (管理层)
+│   ├── config.rs            - 配置文件管理
+│   ├── settings.rs          - Settings.json 管理
+│   └── history.rs           - 历史文件管理
+│
+└── Core/Utils Layer (核心层)
+    ├── error.rs             - 自定义错误类型
+    ├── lock.rs              - 文件锁定机制
+    ├── atomic_writer.rs     - 原子文件写入
+    ├── logging.rs           - 彩色输出
+    ├── utils/validation.rs  - 验证辅助函数
+    └── utils/mask.rs        - 敏感数据掩码
+```
+
+**关键原则**:
+- **关注点分离**: 每层职责明确
+- **原子操作**: 所有文件修改使用临时文件 + 原子重命名
+- **并发安全**: 文件锁定防止多进程损坏
+- **完整审计**: 每个操作都记录到历史文件
+- **失败安全**: 破坏性操作前自动备份
+
+---
+
+## 项目技术栈
+
+### 核心框架
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **Rust** | Edition 2024 | 编程语言 (需要 1.85+) |
+| **Clap** | 4.5+ | CLI 参数解析 (derive 宏) |
+| **Tokio** | 1.48+ | 异步运行时 |
+| **Axum** | 0.8+ | Web 框架 |
+
+### 序列化与文件 I/O
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **Serde** | 1.0+ | 序列化框架 |
+| **serde_json** | 1.0+ | JSON 支持 |
+| **toml** | 0.9+ | TOML 解析 |
+| **indexmap** | 2.12+ | 有序 Map (保持配置顺序) |
+| **dirs** | 6.0+ | 跨平台用户目录 |
+| **fs4** | 0.13+ | 文件锁定 |
+| **tempfile** | 3.23+ | 原子文件操作 |
+
+### 错误处理与日志
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **anyhow** | 1.0+ | 灵活错误处理 |
+| **thiserror** | 2.0+ | 自定义错误宏 |
+| **log** | 0.4+ | 日志 facade |
+| **env_logger** | 0.11+ | 环境变量日志 |
+| **colored** | 3.0+ | 彩色终端输出 |
+
+### TUI 与 Web
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **Ratatui** | 0.29+ | TUI 框架 |
+| **Crossterm** | 0.29+ | 终端控制 |
+| **comfy-table** | 7.2+ | 表格格式化 |
+| **Tower-HTTP** | 0.6+ | CORS 中间件 |
+
+### 工具库
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **chrono** | 0.4+ | 日期时间 |
+| **uuid** | 1.18+ | UUID 生成 |
+| **whoami** | 1.6+ | 用户识别 |
+| **sysinfo** | 0.37+ | 系统信息 |
+| **reqwest_dav** | 0.2+ | WebDAV 客户端 |
+
+---
+
+## 项目模块划分
+
+### 文件与文件夹布局
+
+```
+src/
+├── main.rs                    # CLI 入口点
+├── lib.rs                     # 库导出
+│
+├── commands/                  # CLI 命令 (13+ 文件)
+│   ├── mod.rs
+│   ├── init.rs                - 初始化配置
+│   ├── list.rs                - 列出配置
+│   ├── current.rs             - 显示当前配置
+│   ├── switch.rs              - 切换配置
+│   ├── add.rs                 - 添加配置
+│   ├── delete.rs              - 删除配置
+│   ├── validate.rs            - 验证配置
+│   ├── history_cmd.rs         - 历史记录
+│   ├── export_import.rs       - 导入/导出
+│   ├── clean.rs               - 清理备份
+│   ├── sync_cmd.rs            - WebDAV 同步
+│   ├── web_cmd.rs             - Web 服务器
+│   ├── ui_cmd.rs              - UI 启动
+│   └── tui_cmd.rs             - TUI 启动
+│
+├── services/                  # 服务层 (6 文件)
+│   ├── mod.rs
+│   ├── config_service.rs      - 配置操作
+│   ├── settings_service.rs    - 设置管理
+│   ├── history_service.rs     - 审计日志
+│   ├── backup_service.rs      - 备份操作
+│   ├── validate_service.rs    - 验证操作
+│   ├── sync_service.rs        - WebDAV 同步
+│   └── ui_service.rs          - UI 启动器
+│
+├── managers/                  # 管理层 (3 文件)
+│   ├── mod.rs
+│   ├── config.rs              - 配置文件管理
+│   ├── settings.rs            - Settings.json 管理
+│   └── history.rs             - 历史文件管理
+│
+├── core/                      # 核心基础设施 (5 文件)
+│   ├── mod.rs
+│   ├── error.rs               - 自定义错误类型
+│   ├── lock.rs                - 文件锁定机制
+│   ├── atomic_writer.rs       - 原子文件写入
+│   └── logging.rs             - 彩色输出
+│
+├── web/                       # Web 服务器 (4 文件)
+│   ├── mod.rs
+│   ├── server.rs              - Axum 服务器 (port 8080)
+│   ├── routes.rs              - 路由定义
+│   └── handlers.rs            - API 处理器
+│
+├── tui/                       # 终端 UI (5 文件)
+│   ├── mod.rs
+│   ├── app.rs                 - TUI 应用状态
+│   ├── ui.rs                  - UI 渲染
+│   ├── event.rs               - 事件处理
+│   └── tabs.rs                - 标签页
+│
+├── utils/                     # 工具函数 (3 文件)
+│   ├── mod.rs
+│   ├── validation.rs          - 验证辅助函数
+│   └── mask.rs                - 敏感数据掩码
+│
+└── models/                    # 数据模型
+    └── mod.rs
+```
+
+### 核心入口点
+
+| 入口文件 | 路径 | 职责 |
+|----------|------|------|
+| **CLI 入口** | `src/main.rs` | Clap 解析 + 命令路由 |
+| **库入口** | `src/lib.rs` | 公开 API 导出 |
+| **Web 入口** | `src/web/server.rs` | Axum 服务器 (port 8080) |
+| **TUI 入口** | `src/tui/mod.rs` | 终端 UI 入口 |
+
+---
+
+## 项目业务模块
+
+### 1. 配置管理命令
+
+**命令**: `ccr init`, `list`, `switch`, `add`, `delete`
+
+**功能**:
+- 初始化配置文件
+- 列出所有配置(表格格式)
+- 显示当前配置与环境
+- 切换到指定配置
+- 交互式添加新配置
+- 删除配置(带确认或强制)
+
+### 2. 操作与历史
+
+**命令**: `ccr validate`, `history`, `export`, `import`, `clean`
+
+**功能**:
+- 验证所有配置和设置
+- 查看操作历史(可过滤)
+- 导出配置(可隐藏敏感信息)
+- 导入配置(合并或强制覆盖)
+- 清理旧备份(按天数或 dry-run)
+
+### 3. 云端同步
+
+**命令**: `ccr sync config`, `sync status`, `sync push`, `sync pull`
+
+**功能**:
+- 配置 WebDAV 连接
+- 检查同步状态
+- 推送配置到云端
+- 从云端拉取配置
+
+### 4. 用户界面
+
+**命令**: `ccr tui`, `web`, `ui`
+
+**功能**:
+- **TUI**: 终端 UI (Ratatui + Crossterm)
+- **Web**: 轻量级 API 服务器 (port 8080)
+- **UI**: 完整 Web 应用 (port 3000 + 8081)
+
+### 5. 系统工具
+
+**命令**: `ccr update`, `version`
+
+**功能**:
+- 从 GitHub 更新 CCR
+- 显示版本和功能信息
+
+---
+
+## 项目代码风格与规范
+
+### Rust 代码规范
+
+#### 命名约定
+- **模块名**: `snake_case` (如 `config_service`, `history_cmd`)
+- **类型名**: `PascalCase` (如 `ConfigSection`, `CcrError`)
+- **函数名**: `snake_case` (如 `switch_config`, `list_configs`)
+- **常量**: `SCREAMING_SNAKE_CASE` (如 `DEFAULT_CONFIG`, `MAX_BACKUPS`)
+
+#### 代码风格
+- **Edition**: 2024 (需要 Rust 1.85+)
+- **格式化**: 使用 `cargo fmt` (默认 rustfmt 设置)
+- **检查**: 通过 `cargo clippy` 无警告
+- **错误处理**: 使用 `CcrError` 类型,详细错误消息
+- **文档**: 内部逻辑用中文注释,公开 API 用英文
+
+#### 错误处理示例
+
 ```rust
-fn main() {
-    // 1. Initialize logger
-    init_logger();
+use crate::core::error::CcrError;
 
-    // 2. Parse CLI arguments (Clap)
-    let cli = Cli::parse();
+pub fn read_config() -> Result<Config, CcrError> {
+    let content = std::fs::read_to_string("config.toml")
+        .map_err(|e| CcrError::FileReadError(e.to_string()))?;
 
-    // 3. Route to command handler
-    let result = match cli.command {
-        Commands::List => commands::list_command(),
-        Commands::Switch { config_name } => commands::switch_command(&config_name),
-        // ... other commands
-    };
+    let config: Config = toml::from_str(&content)
+        .map_err(|e| CcrError::ParseError(e.to_string()))?;
 
-    // 4. Handle errors and exit
-    if let Err(e) = result {
-        eprintln!("{}", e.user_message());
-        std::process::exit(e.exit_code());
-    }
+    Ok(config)
 }
 ```
 
-### Library Entry Point
+每个错误映射到特定退出码:
+- `ConfigNotFound` → 退出码 2
+- `ValidationError` → 退出码 3
+- `LockError` → 退出码 4
+- Fatal errors → 退出码 1
 
-**File**: `/home/lyh/Documents/Github/ccr/src/lib.rs`
+---
 
-**Public API Exports**:
-- Core types: `CcrError`, `Result`, `ColorOutput`, `LockManager`
-- Managers: `ConfigManager`, `SettingsManager`, `HistoryManager`
-- Services: `ConfigService`, `SettingsService`, `HistoryService`, `BackupService`, `ValidateService`
-- Models: `CcsConfig`, `ClaudeSettings`, `ConfigSection`, `HistoryEntry`
+## 测试与质量
 
-### Initialization Sequence
+### 测试覆盖
 
-1. **Logger**: Env-based logger (controlled by `CCR_LOG_LEVEL`)
-2. **Config Loading**: Read `~/.ccs_config.toml` on demand
-3. **Lock Acquisition**: Automatic file locking for concurrent operations
-4. **Settings Validation**: Check `~/.claude/settings.json` structure
+- **目标**: 95%+ 整体覆盖率
+- **单元测试**: 嵌入在模块中 (`#[cfg(test)]`)
+- **集成测试**: `/tests/` 目录 (6 综合测试文件)
+- **并发测试**: 多线程场景验证锁定
 
-## External Interfaces
+### 测试文件
 
-### CLI Commands
+位于 `/tests/`:
+1. **integration_test.rs** - 核心集成测试
+2. **manager_tests.rs** - 管理层测试
+3. **service_workflow_tests.rs** - 服务层测试
+4. **concurrent_tests.rs** - 并发与锁定测试
+5. **end_to_end_tests.rs** - 完整工作流测试
+6. **add_delete_test.rs** - 配置 CRUD 操作
 
-#### Configuration Management
-- `ccr init [--force]` - Initialize config file
-- `ccr list` - List all configurations (table format)
-- `ccr current` - Show current config and environment
-- `ccr switch <name>` - Switch to configuration
-- `ccr add` - Add new configuration (interactive)
-- `ccr delete <name> [--force]` - Delete configuration
-- `ccr optimize` - Sort configs alphabetically
-
-#### Operations and History
-- `ccr validate` - Validate all configs and settings
-- `ccr history [-l N] [-t TYPE]` - View operation history
-- `ccr export [-o FILE] [--no-secrets]` - Export configuration
-- `ccr import <FILE> [--merge] [--force]` - Import configuration
-- `ccr clean [-d DAYS] [--dry-run]` - Clean old backups
-
-#### Cloud Sync
-- `ccr sync config` - Configure WebDAV sync
-- `ccr sync status` - Check sync status
-- `ccr sync push [--force]` - Upload to cloud
-- `ccr sync pull [--force]` - Download from cloud
-
-#### User Interfaces
-- `ccr tui [--yes]` - Launch terminal UI
-- `ccr web [-p PORT]` - Launch web API server (default: 8080)
-- `ccr ui [-p PORT] [--backend-port PORT]` - Launch full UI app
-
-#### Utilities
-- `ccr update [--check]` - Update from GitHub
-- `ccr version` - Show version and features
-
-### Web API Endpoints (Port 8080)
-
-#### Configuration Management
-```
-GET    /api/configs           - List all configurations
-POST   /api/switch            - Switch configuration
-POST   /api/config            - Create new config section
-POST   /api/config/{name}     - Update config section
-DELETE /api/config/{name}     - Delete config section
-```
-
-#### Settings and History
-```
-GET    /api/settings          - Get current Claude settings
-GET    /api/settings/backups  - List backup files
-POST   /api/settings/restore  - Restore from backup
-GET    /api/history           - View operation history
-```
-
-#### Operations
-```
-POST   /api/validate          - Validate configs
-POST   /api/export            - Export configuration
-POST   /api/import            - Import configuration
-POST   /api/clean             - Clean old backups
-GET    /api/system            - Get system information
-```
-
-### TUI Keyboard Shortcuts
-
-- `1-4` / `Tab` / `Shift+Tab` - Switch tabs
-- `↑↓` / `j`/`k` - Navigate lists
-- `Enter` - Switch to selected config
-- `d` - Delete config (requires YOLO mode)
-- `Y` - Toggle YOLO mode (auto-confirm)
-- `q` / `Ctrl+C` - Quit
-
-## Key Dependencies and Configuration
-
-### Rust Dependencies (Cargo.toml)
-
-**CLI & Serialization**:
-- `clap` 4.5.50 - Command-line parsing with derive macros
-- `serde` 1.0.228 - Serialization framework
-- `serde_json` 1.0.145 - JSON support
-- `toml` 0.9.8 - TOML parsing
-- `indexmap` 2.12 - Ordered maps for config
-
-**Error Handling**:
-- `anyhow` 1.0.100 - Flexible error handling
-- `thiserror` 2.0.17 - Custom error derive macros
-
-**File System**:
-- `dirs` 6.0.0 - Cross-platform user directories
-- `fs4` 0.13.1 - File locking
-- `tempfile` 3.23 - Atomic file operations
-- `filetime` 0.2 - File timestamp manipulation
-
-**Async Web**:
-- `tokio` 1.48 - Async runtime
-- `axum` 0.8.6 - Web framework
-- `tower-http` 0.6.6 - CORS middleware
-
-**Terminal UI**:
-- `ratatui` 0.29 - TUI framework
-- `crossterm` 0.29 - Terminal control
-- `comfy-table` 7.2 - Table formatting
-
-**Logging & Output**:
-- `log` 0.4.28 - Logging facade
-- `env_logger` 0.11.8 - Environment-based logger
-- `colored` 3.0.0 - Colored terminal output
-
-**Utilities**:
-- `chrono` 0.4.42 - Date/time handling
-- `uuid` 1.18.1 - UUID generation
-- `whoami` 1.6 - Current user identification
-- `sysinfo` 0.37.2 - System information
-- `rayon` 1.11 - Parallel processing
-- `reqwest_dav` 0.2 - WebDAV client
-
-### Environment Variables
-
-**Logging**:
-- `CCR_LOG_LEVEL` - Log level (trace|debug|info|warn|error)
-- `RUST_LOG` - Alternative log control
-
-**Managed in settings.json**:
-- `ANTHROPIC_BASE_URL` - API endpoint
-- `ANTHROPIC_AUTH_TOKEN` - Auth token (masked in logs)
-- `ANTHROPIC_MODEL` - Default model
-- `ANTHROPIC_SMALL_FAST_MODEL` - Fast model (optional)
-
-### Configuration Files
-
-**Main Config**: `~/.ccs_config.toml`
-```toml
-default_config = "anthropic"
-current_config = "anthropic"
-
-[settings]
-skip_confirmation = false
-auto_backup = true
-backup_retention_days = 7
-
-[settings.sync]
-enabled = false
-webdav_url = ""
-username = ""
-password = ""
-remote_path = "/ccr/.ccs_config.toml"
-auto_sync = false
-
-[anthropic]
-description = "Anthropic Official API"
-base_url = "https://api.anthropic.com"
-auth_token = "sk-ant-xxx"
-model = "claude-sonnet-4-5-20250929"
-```
-
-**Settings Target**: `~/.claude/settings.json`
-```json
-{
-  "env": {
-    "ANTHROPIC_BASE_URL": "https://api.anthropic.com",
-    "ANTHROPIC_AUTH_TOKEN": "sk-ant-xxx",
-    "ANTHROPIC_MODEL": "claude-sonnet-4-5-20250929"
-  }
-}
-```
-
-## Data Models
-
-### Core Types
-
-**ConfigSection** (`src/managers/config.rs`):
-```rust
-pub struct ConfigSection {
-    pub description: Option<String>,
-    pub base_url: String,
-    pub auth_token: String,
-    pub model: String,
-    pub small_fast_model: Option<String>,
-}
-```
-
-**ClaudeSettings** (`src/managers/settings.rs`):
-```rust
-pub struct ClaudeSettings {
-    pub env: HashMap<String, String>,
-}
-```
-
-**HistoryEntry** (`src/managers/history.rs`):
-```rust
-pub struct HistoryEntry {
-    pub id: String,              // UUID
-    pub timestamp: DateTime<Utc>,
-    pub operation_type: OperationType,
-    pub actor: String,           // System username
-    pub details: OperationDetails,
-    pub result: OperationResult,
-}
-```
-
-### Error Types
-
-**CcrError** (`src/core/error.rs`):
-```rust
-pub enum CcrError {
-    ConfigNotFound(String),
-    ConfigFileError(String),
-    SettingsError(String),
-    ValidationError(Vec<String>),
-    LockError(String),
-    IoError(String),
-    // ... more variants
-}
-```
-
-Each error maps to a specific exit code:
-- `ConfigNotFound` → Exit code 2
-- `ValidationError` → Exit code 3
-- `LockError` → Exit code 4
-- Fatal errors → Exit code 1
-
-## Testing and Quality
-
-### Test Files
-
-Located in `/home/lyh/Documents/Github/ccr/tests/`:
-
-1. **integration_test.rs** - Core integration tests
-2. **manager_tests.rs** - Manager layer tests
-3. **service_workflow_tests.rs** - Service layer tests
-4. **concurrent_tests.rs** - Concurrency and locking tests
-5. **end_to_end_tests.rs** - Full workflow tests
-6. **add_delete_test.rs** - Config CRUD operations
-
-### Test Coverage
-
-- **Target**: 95%+ overall coverage
-- **Unit Tests**: Embedded in modules with `#[cfg(test)]`
-- **Integration Tests**: Separate test files simulating real usage
-- **Concurrent Tests**: Multi-threaded scenarios to verify locking
-
-### Running Tests
+### 运行测试
 
 ```bash
-# All tests
+# 所有测试
 cargo test
 
-# Specific category
+# 特定测试文件
 cargo test --test concurrent_tests
 
-# With output
+# 带输出
 cargo test -- --nocapture
 
-# Single test
+# 单个测试
 cargo test test_switch_config
 
-# Coverage report (requires cargo-tarpaulin)
+# 覆盖率报告 (需要 tarpaulin)
 cargo tarpaulin --out Html
 ```
 
-### Quality Checks
+### 质量检查
 
 ```bash
-# Linting
+# 代码检查
 cargo clippy --all-targets --all-features
 
-# Formatting
+# 格式化检查
 cargo fmt --check
 
-# Security audit
+# 安全审计
 cargo audit
 
-# Dependency tree
+# 依赖树
 cargo tree
 ```
 
-## Architecture Layers
+---
 
-### 1. CLI/Web Layer
+## 项目构建、测试与运行
 
-**Responsibilities**:
-- Parse command-line arguments (Clap)
-- Route to appropriate command handler
-- Handle user input/output
-- Launch web server or TUI
+### 环境要求
 
-**Key Files**:
-- `src/main.rs` - CLI entry point
-- `src/commands/*.rs` - 13+ command implementations
-- `src/web/*.rs` - Web server and API routes
-- `src/tui/*.rs` - Terminal UI
+- **Rust**: 1.85+ (Edition 2024)
+- **Cargo**: 最新稳定版
 
-### 2. Service Layer
+### 开发命令
 
-**Responsibilities**:
-- Orchestrate business logic
-- Coordinate multiple managers
-- Provide transaction-like operations
-- Ensure consistency
+```bash
+# 构建
+cargo build                    # Debug 构建
+cargo build --release          # Release 构建
 
-**Key Files**:
-- `src/services/config_service.rs` - Config operations
-- `src/services/settings_service.rs` - Settings management
-- `src/services/history_service.rs` - Audit logging
-- `src/services/backup_service.rs` - Backup operations
-- `src/services/validate_service.rs` - Validation operations (fixes layer violation)
-- `src/services/sync_service.rs` - WebDAV sync
-- `src/services/ui_service.rs` - UI launcher
+# 运行
+cargo run                      # 运行 Debug 版本
+cargo run --release            # 运行 Release 版本
 
-### 3. Manager Layer
+# 测试
+cargo test                     # 运行所有测试
+cargo clippy                   # Lint
+cargo fmt                      # 格式化
 
-**Responsibilities**:
-- Data access and persistence
-- File I/O operations
-- Data validation
-- Query and update operations
+# 环境变量调试
+export CCR_LOG_LEVEL=debug     # 设置日志级别
+                               # (trace|debug|info|warn|error)
+```
 
-**Key Files**:
-- `src/managers/config.rs` - Config file management
-- `src/managers/settings.rs` - Settings file management
-- `src/managers/history.rs` - History file management
+### 使用 Justfile
 
-### 4. Core/Utils Layer
+项目根目录的 `justfile` 提供快捷命令:
 
-**Responsibilities**:
-- Error types and handling
-- File locking mechanism
-- Atomic file writer
-- Logging and colored output
-- Validation utilities
-- Sensitive data masking
+```bash
+just build                     # Debug 构建
+just release                   # Release 构建
+just test                      # 运行测试
+just lint                      # Format + Clippy
+just ci                        # 完整 CI 流程
+```
 
-**Key Files**:
-- `src/core/error.rs` - Custom error types
-- `src/core/lock.rs` - File locking
-- `src/core/atomic_writer.rs` - Atomic file operations
-- `src/core/logging.rs` - Colored output
-- `src/utils/validation.rs` - Validation helpers
-- `src/utils/mask.rs` - Sensitive data masking
+### 安装
 
-## Frequently Asked Questions (FAQ)
+```bash
+# 从 GitHub 安装
+cargo install --git https://github.com/bahayonghang/ccr ccr
 
-### Q: How does CCR ensure concurrent safety?
+# 从源码构建
+git clone https://github.com/bahayonghang/ccr.git
+cd ccr
+cargo install --path .
 
-A: CCR uses file-based locking (`fs4` crate) with automatic lock acquisition and release. Each operation acquires a lock before modifying files, preventing corruption from simultaneous access.
+# 初始化配置
+ccr init
+```
 
-### Q: What happens if CCR crashes during a config switch?
+---
 
-A: All file writes use atomic operations (write to temp file → rename). If the process crashes, the original file remains intact. Plus, automatic backups are created before destructive operations.
+## Git 工作流程
 
-### Q: How are API keys protected?
+### 分支策略
 
-A: API keys are masked in all output (logs, history, display) using pattern matching. The masking logic is in `src/utils/mask.rs`.
+- **main**: 主分支,生产环境代码
+- **dev**: 开发分支,测试环境代码
+- **feature/***: 功能分支
+- **bugfix/***: Bug 修复分支
 
-### Q: Can I use CCR and CCS together?
+### 提交规范
 
-A: Yes! Both tools share the same `~/.ccs_config.toml` file and can coexist. They use different locking mechanisms so won't interfere.
+遵循 Conventional Commits:
 
-### Q: Where are backups stored?
+```bash
+# 功能开发
+git commit -m "feat(CLI): 添加 platform 命令"
+git commit -m "feat(服务): 实现 WebDAV 多文件夹同步"
 
-A: Automatic backups are in `~/.claude/backups/` with timestamped names like `settings_20250101_120000.json.bak`.
+# Bug 修复
+git commit -m "fix(CLI): 修复配置切换时的锁定问题"
+git commit -m "fix(管理器): 修复 TOML 解析错误"
 
-### Q: How do I enable debug logging?
+# 重构
+git commit -m "refactor(核心): 重构错误处理使用 thiserror"
 
-A: Set environment variable: `export CCR_LOG_LEVEL=debug` before running CCR.
+# 性能优化
+git commit -m "perf(文件): 优化文件读取性能"
 
-### Q: What's the difference between `ccr web` and `ccr ui`?
+# 文档
+git commit -m "docs(README): 更新安装说明"
+
+# 测试
+git commit -m "test(集成): 添加并发测试"
+```
+
+---
+
+## 文档目录(重要)
+
+### 文档存储规范
+
+- **模块文档**: `/src/CLAUDE.md` (本文件)
+- **根文档**: `/CLAUDE.md` (项目总览)
+- **UI 文档**: `/ccr-ui/CLAUDE.md` (CCR UI 总览)
+
+### 相关文件列表
+
+#### 源代码
+- `/src/main.rs` - CLI 入口
+- `/src/lib.rs` - 库导出
+- `/src/commands/*.rs` - CLI 命令 (13 文件)
+- `/src/services/*.rs` - 服务层 (6 文件)
+- `/src/managers/*.rs` - 管理层 (3 文件)
+- `/src/core/*.rs` - 核心层 (5 文件)
+- `/src/web/*.rs` - Web 服务器 (4 文件)
+- `/src/tui/*.rs` - Terminal UI (5 文件)
+- `/src/utils/*.rs` - 工具函数 (3 文件)
+
+#### 配置文件
+- `/Cargo.toml` - Rust 依赖
+- `/.gitignore` - Git 忽略规则
+
+#### 测试
+- `/tests/*.rs` - 集成测试 (6 文件)
+
+#### 文档
+- `/README.md` - 项目 README
+- `/README_CN.md` - 中文 README
+
+### 外部链接
+
+- **Rust Book**: https://doc.rust-lang.org/book/
+- **Clap 文档**: https://docs.rs/clap/
+- **Tokio 文档**: https://docs.rs/tokio/
+- **Axum 文档**: https://docs.rs/axum/
+- **Ratatui 文档**: https://docs.rs/ratatui/
+
+---
+
+## 常见问题(FAQ)
+
+### Q: CCR 如何确保并发安全?
+
+A: CCR 使用基于文件的锁定 (`fs4` crate),自动获取和释放锁。每个操作在修改文件前获取锁,防止多进程同时访问导致损坏。
+
+### Q: 如果 CCR 在配置切换时崩溃会怎样?
+
+A: 所有文件写入使用原子操作(写入临时文件 → 重命名)。如果进程崩溃,原始文件保持不变。另外,破坏性操作前自动创建备份。
+
+### Q: API 密钥如何保护?
+
+A: API 密钥在所有输出(日志、历史、显示)中使用模式匹配掩码。掩码逻辑在 `src/utils/mask.rs`。
+
+### Q: CCR 和 CCS 可以一起使用吗?
+
+A: 可以!两个工具共享同一个 `~/.ccs_config.toml` 文件,可以共存。它们使用不同的锁定机制,不会互相干扰。
+
+### Q: 备份存储在哪里?
+
+A: 自动备份在 `~/.claude/backups/`,带时间戳命名如 `settings_20250101_120000.json.bak`。
+
+### Q: 如何启用调试日志?
+
+A: 设置环境变量: `export CCR_LOG_LEVEL=debug` (或运行前 `CCR_LOG_LEVEL=debug ccr <command>`)。
+
+### Q: `ccr web` 和 `ccr ui` 的区别?
 
 A:
-- `ccr web` - Lightweight API server (14 endpoints, port 8080) for programmatic access
-- `ccr ui` - Full-stack web app (129 endpoints backend + Vue frontend, ports 38081/3000) for visual management
+- `ccr web` - 轻量级 API 服务器 (14 端点, port 8080) 用于编程访问
+- `ccr ui` - 完整 Web 应用 (129 端点后端 + Vue 前端, ports 8081/3000) 用于可视化管理
 
-## Related File List
+---
 
-### Source Code
-- `/home/lyh/Documents/Github/ccr/src/main.rs` - CLI entry point
-- `/home/lyh/Documents/Github/ccr/src/lib.rs` - Library exports
-- `/home/lyh/Documents/Github/ccr/src/commands/` - CLI commands (13 files)
-- `/home/lyh/Documents/Github/ccr/src/services/` - Service layer (6 files)
-- `/home/lyh/Documents/Github/ccr/src/managers/` - Manager layer (3 files)
-- `/home/lyh/Documents/Github/ccr/src/core/` - Core infrastructure (5 files)
-- `/home/lyh/Documents/Github/ccr/src/web/` - Web server (4 files)
-- `/home/lyh/Documents/Github/ccr/src/tui/` - Terminal UI (5 files)
-- `/home/lyh/Documents/Github/ccr/src/utils/` - Utilities (3 files)
-
-### Configuration
-- `/home/lyh/Documents/Github/ccr/Cargo.toml` - Rust dependencies
-- `/home/lyh/Documents/Github/ccr/.gitignore` - Git ignore rules
-
-### Tests
-- `/home/lyh/Documents/Github/ccr/tests/*.rs` - Integration tests (6 files)
-
-### Documentation
-- `/home/lyh/Documents/Github/ccr/README.md` - Project readme
-- `/home/lyh/Documents/Github/ccr/README_CN.md` - Chinese readme
+**本小姐精心整理的核心 CLI 模块文档完成！分层架构清晰,这才是 CCR 的灵魂所在呢～(￣▽￣)／**
