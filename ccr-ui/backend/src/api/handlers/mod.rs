@@ -1,6 +1,7 @@
 // API handlers
 
 pub mod agents;
+pub mod budget;
 pub mod command;
 pub mod config;
 pub mod converter;
@@ -8,6 +9,7 @@ pub mod mcp;
 pub mod platform;
 pub mod platforms;
 pub mod plugins;
+pub mod pricing;
 pub mod prompts;
 pub mod skills;
 pub mod slash_commands;

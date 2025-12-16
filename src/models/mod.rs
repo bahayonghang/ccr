@@ -1,7 +1,9 @@
 // 📦 CCR 数据模型模块
 // 定义跨模块共享的数据类型
 
+pub mod budget;
 pub mod platform;
+pub mod pricing;
 pub mod prompt;
 pub mod skill;
 pub mod stats;
