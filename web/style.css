@@ -1,26 +1,30 @@
 /* CCR Web Interface - Stylesheet */
 
-/* 暗色主题 - 当前紫色配色 */
+/* 暗色主题 - 赛博朋克·科技蓝配色 */
 :root[data-theme="dark"] {
-    --bg-primary: #0a0e27;
-    --bg-secondary: #141b3e;
-    --bg-tertiary: #1e2749;
-    --bg-card: rgba(30, 39, 73, 0.6);
-    --border-color: rgba(139, 92, 246, 0.3);
-    --text-primary: #e5e7eb;
-    --text-secondary: #9ca3af;
-    --text-muted: #6b7280;
-    --accent-primary: #8b5cf6;
-    --accent-secondary: #a855f7;
-    --accent-success: #10b981;
-    --accent-warning: #f59e0b;
-    --accent-danger: #ef4444;
-    --glow-primary: rgba(139, 92, 246, 0.5);
-    --glow-success: rgba(16, 185, 129, 0.5);
-    --glow-danger: rgba(239, 68, 68, 0.5);
-    --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.4);
-    --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.3);
-    --shadow-large: 0 10px 40px rgba(0, 0, 0, 0.5);
+    --bg-primary: #0a0d1a;
+    --bg-secondary: #12162b;
+    --bg-tertiary: #1a1f3a;
+    --bg-card: rgba(18, 22, 43, 0.75);
+    --border-color: rgba(0, 212, 255, 0.2);
+    --border-glow: rgba(0, 212, 255, 0.4);
+    --text-primary: #e8f4ff;
+    --text-secondary: #8fa5c7;
+    --text-muted: #5a6c88;
+    --accent-primary: #00d4ff;
+    --accent-secondary: #00ff88;
+    --accent-tertiary: #0088ff;
+    --accent-success: #00ff88;
+    --accent-warning: #ffaa00;
+    --accent-danger: #ff3366;
+    --accent-info: #00d4ff;
+    --glow-primary: rgba(0, 212, 255, 0.3);
+    --glow-secondary: rgba(0, 255, 136, 0.3);
+    --glow-danger: rgba(255, 51, 102, 0.3);
+    --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.5);
+    --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-large: 0 10px 40px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 20px var(--glow-primary), 0 0 40px var(--glow-primary);
 }
 
 .provider-chart-x-axis-label {
@@ -30,27 +34,30 @@
     text-align: center;
 }
 
-/* 明色主题 - 苹果风格清爽配色 */
+/* 明色主题 - 清爽科技蓝配色 */
 :root[data-theme="light"] {
-    --bg-primary: #f5f7fa;
+    --bg-primary: #f0f5ff;
     --bg-secondary: #ffffff;
-    --bg-tertiary: #fafbfc;
-    --bg-card: rgba(255, 255, 255, 0.85);
-    --border-color: rgba(0, 0, 0, 0.08);
-    --text-primary: #1d1d1f;
-    --text-secondary: #6e6e73;
-    --text-muted: #86868b;
-    --accent-primary: #007aff;
-    --accent-secondary: #5856d6;
-    --accent-success: #34c759;
-    --accent-warning: #ff9500;
-    --accent-danger: #ff3b30;
-    --glow-primary: rgba(0, 122, 255, 0.15);
-    --glow-success: rgba(52, 199, 89, 0.15);
-    --glow-danger: rgba(255, 59, 48, 0.15);
-    --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.04);
-    --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.08);
-    --shadow-large: 0 10px 40px rgba(0, 0, 0, 0.12);
+    --bg-tertiary: #e8f1ff;
+    --bg-card: rgba(255, 255, 255, 0.9);
+    --border-color: rgba(0, 136, 255, 0.15);
+    --border-glow: rgba(0, 136, 255, 0.3);
+    --text-primary: #0a1628;
+    --text-secondary: #4a5f7f;
+    --text-muted: #7a8ea8;
+    --accent-primary: #0088ff;
+    --accent-secondary: #00aa66;
+    --accent-tertiary: #0066cc;
+    --accent-success: #00cc66;
+    --accent-warning: #ff9900;
+    --accent-danger: #ff3366;
+    --accent-info: #0088ff;
+    --glow-primary: rgba(0, 136, 255, 0.15);
+    --glow-secondary: rgba(0, 170, 102, 0.15);
+    --glow-danger: rgba(255, 51, 102, 0.15);
+    --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.1);
+    --shadow-large: 0 10px 40px rgba(0, 0, 0, 0.15);
 }
 
 * {
@@ -69,7 +76,7 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* 动态背景 */
+/* 动态背景 - 电路纹理风格 */
 .bg-effect {
     position: fixed;
     top: 0;
@@ -79,11 +86,30 @@ body {
     z-index: -1;
     opacity: 0.3;
     background:
+        /* 扫描线 */
+        repeating-linear-gradient(
+            0deg,
+            rgba(0, 212, 255, 0.03) 0px,
+            transparent 1px,
+            transparent 2px,
+            rgba(0, 212, 255, 0.03) 3px
+        ),
+        /* 电路网格 */
+        repeating-linear-gradient(
+            90deg,
+            rgba(0, 255, 136, 0.02) 0px,
+            transparent 1px,
+            transparent 80px,
+            rgba(0, 255, 136, 0.02) 81px
+        ),
+        /* 辐射渐变 - 霓虹蓝 */
         radial-gradient(circle at 20% 50%, var(--accent-primary) 0%, transparent 50%),
+        /* 辐射渐变 - 电路绿 */
         radial-gradient(circle at 80% 80%, var(--accent-secondary) 0%, transparent 50%),
-        radial-gradient(circle at 40% 40%, var(--accent-success) 0%, transparent 50%);
+        /* 辐射渐变 - 深蓝 */
+        radial-gradient(circle at 40% 40%, var(--accent-tertiary) 0%, transparent 50%);
     filter: blur(80px);
-    animation: bgShift 15s ease-in-out infinite alternate;
+    animation: data-flow 20s ease-in-out infinite alternate;
     transition: opacity 0.3s ease;
 }
 
@@ -91,9 +117,46 @@ body {
     opacity: 0.15;
 }
 
-@keyframes bgShift {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(20px, -20px) scale(1.1); }
+/* 数据流动画 - 赛博朋克风格 */
+@keyframes data-flow {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+        filter: blur(80px) hue-rotate(0deg);
+    }
+    50% {
+        transform: translate(20px, -20px) scale(1.1);
+        filter: blur(80px) hue-rotate(10deg);
+    }
+}
+
+/* 电路脉冲动画 */
+@keyframes circuit-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 20px var(--glow-primary),
+            0 0 0 1px var(--border-glow);
+    }
+    50% {
+        box-shadow:
+            0 0 40px var(--glow-primary),
+            0 0 60px var(--glow-secondary),
+            0 0 0 2px var(--accent-primary);
+    }
+}
+
+/* 扫描线动画 */
+@keyframes scan-line {
+    0% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    50% {
+        opacity: 0.3;
+    }
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
 }
 
 /* 容器 */
@@ -109,18 +172,21 @@ body {
     }
 }
 
-/* 顶部导航 */
+/* 顶部导航 - 增强毛玻璃效果 */
 .navbar {
     background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border-color);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1.5px solid var(--border-color);
     border-radius: 12px;
     padding: 20px 28px;
     margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: var(--shadow-medium);
+    box-shadow:
+        var(--shadow-medium),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
     position: relative;
     overflow: hidden;
 }
@@ -218,7 +284,7 @@ body {
 
 .version-badge {
     padding: 2px 8px;
-    background: rgba(139, 92, 246, 0.15);
+    background: rgba(0, 212, 255, 0.15);
     border: 1px solid var(--accent-primary);
     border-radius: 6px;
     font-size: 10px;
@@ -247,14 +313,21 @@ body {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-tertiary));
     color: white;
-    box-shadow: 0 0 20px var(--glow-primary);
+    box-shadow: 0 4px 16px var(--glow-primary);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 25px var(--glow-primary);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+        0 8px 28px var(--glow-primary),
+        0 0 0 1px var(--accent-primary);
+}
+
+.btn-primary:active {
+    transform: translateY(0) scale(0.98);
 }
 
 .btn-secondary {
@@ -357,25 +430,29 @@ body {
     gap: 16px;
 }
 
-/* 左侧边栏 */
+/* 左侧边栏 - 增强毛玻璃效果 */
 .sidebar-left {
     background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border-color);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1.5px solid var(--border-color);
     border-radius: 12px;
     padding: 20px;
     height: fit-content;
     position: sticky;
     top: 16px;
-    box-shadow: var(--shadow-small);
+    box-shadow:
+        var(--shadow-small),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
 }
 
-/* 右侧目录 */
+/* 右侧目录 - 增强毛玻璃效果 */
 .sidebar-right {
     background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border-color);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1.5px solid var(--border-color);
     border-radius: 12px;
     padding: 20px;
     height: fit-content;
@@ -383,7 +460,9 @@ body {
     top: 16px;
     max-height: calc(100vh - 120px);
     overflow-y: auto;
-    box-shadow: var(--shadow-small);
+    box-shadow:
+        var(--shadow-small),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
 }
 
@@ -524,7 +603,7 @@ body {
 }
 
 .config-nav-link:hover {
-    background: rgba(139, 92, 246, 0.1);
+    background: rgba(0, 212, 255, 0.1);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     color: var(--accent-primary);
@@ -536,10 +615,10 @@ body {
 }
 
 .config-nav-link.active {
-    background: rgba(139, 92, 246, 0.15);
+    background: rgba(0, 212, 255, 0.15);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border-color: rgba(139, 92, 246, 0.3);
+    border-color: rgba(0, 212, 255, 0.3);
     color: var(--accent-primary);
     font-weight: 600;
 }
@@ -592,7 +671,7 @@ body {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(24px) saturate(200%);
     -webkit-backdrop-filter: blur(24px) saturate(200%);
-    border: 1.5px solid rgba(139, 92, 246, 0.25);
+    border: 1.5px solid rgba(0, 212, 255, 0.25);
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 20px;
@@ -601,7 +680,7 @@ body {
     box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
-        0 1px 2px rgba(139, 92, 246, 0.1);
+        0 1px 2px rgba(0, 212, 255, 0.1);
     position: relative;
     overflow: hidden;
 }
@@ -650,8 +729,8 @@ body {
     -webkit-backdrop-filter: blur(28px) saturate(220%);
     transform: translateY(-4px) scale(1.01);
     box-shadow:
-        0 12px 48px rgba(139, 92, 246, 0.25),
-        0 0 0 1px rgba(139, 92, 246, 0.3),
+        0 12px 48px var(--glow-primary),
+        0 0 0 1px var(--border-glow),
         inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
 }
 
@@ -667,24 +746,24 @@ body {
 
 .config-card.active {
     border-color: var(--accent-primary);
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.2));
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 255, 136, 0.1));
     backdrop-filter: blur(24px) saturate(220%);
     -webkit-backdrop-filter: blur(24px) saturate(220%);
     box-shadow:
-        0 0 40px var(--glow-primary),
-        0 8px 32px rgba(139, 92, 246, 0.3),
-        0 0 0 1px rgba(139, 92, 246, 0.4),
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+        0 0 30px var(--glow-primary),
+        0 8px 32px rgba(0, 212, 255, 0.3),
+        0 0 0 2px var(--border-glow);
+    animation: circuit-pulse 3s ease-in-out infinite;
 }
 
 [data-theme="light"] .config-card.active {
-    background: linear-gradient(135deg, rgba(0, 122, 255, 0.12), rgba(88, 86, 214, 0.12));
+    background: linear-gradient(135deg, rgba(0, 136, 255, 0.12), rgba(0, 170, 102, 0.12));
     backdrop-filter: blur(24px) saturate(200%);
     -webkit-backdrop-filter: blur(24px) saturate(200%);
     box-shadow:
         0 0 30px var(--glow-primary),
-        0 8px 32px rgba(0, 122, 255, 0.2),
-        0 0 0 1px rgba(0, 122, 255, 0.3),
+        0 8px 32px rgba(0, 136, 255, 0.2),
+        0 0 0 1px var(--border-glow),
         inset 0 1px 0 0 rgba(255, 255, 255, 1);
 }
 
@@ -725,7 +804,7 @@ body {
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
-    background: rgba(139, 92, 246, 0.08);
+    background: rgba(0, 212, 255, 0.08);
     border-left: 3px solid var(--accent-primary);
     border-radius: 6px;
     margin-bottom: 10px;
@@ -738,7 +817,7 @@ body {
 }
 
 .config-description:hover {
-    background: rgba(139, 92, 246, 0.12);
+    background: rgba(0, 212, 255, 0.12);
     transform: translateX(2px);
 }
 
@@ -952,9 +1031,9 @@ body {
 }
 
 .btn-action-top.btn-primary:hover {
-    box-shadow: 
+    box-shadow:
         0 8px 28px var(--glow-primary),
-        0 0 0 1px rgba(139, 92, 246, 0.5),
+        0 0 0 1px var(--border-glow),
         inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
@@ -969,9 +1048,9 @@ body {
 .btn-action-top.btn-secondary:hover {
     background: var(--bg-secondary);
     border-color: var(--accent-primary);
-    box-shadow: 
-        0 6px 20px rgba(139, 92, 246, 0.2),
-        0 0 0 1px rgba(139, 92, 246, 0.3),
+    box-shadow:
+        0 6px 20px var(--glow-primary),
+        0 0 0 1px var(--border-glow),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
@@ -1113,7 +1192,7 @@ body {
 .form-input:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
 }
 
 .codex-section {
@@ -1265,10 +1344,10 @@ body {
     flex-direction: column;
     gap: 8px;
     padding: 16px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 212, 255, 0.08);
     backdrop-filter: blur(24px) saturate(200%);
     -webkit-backdrop-filter: blur(24px) saturate(200%);
-    border: 1.5px solid rgba(139, 92, 246, 0.25);
+    border: 1.5px solid rgba(0, 212, 255, 0.25);
     border-radius: 14px;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow:
@@ -1299,8 +1378,8 @@ body {
     -webkit-backdrop-filter: blur(28px) saturate(220%);
     transform: translateY(-2px) scale(1.01);
     box-shadow:
-        0 8px 28px rgba(139, 92, 246, 0.2),
-        0 0 0 1px rgba(139, 92, 246, 0.3),
+        0 8px 28px var(--glow-primary),
+        0 0 0 1px var(--border-glow),
         inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
 }
 
@@ -1385,7 +1464,7 @@ body {
     background: linear-gradient(90deg,
         var(--accent-primary),
         var(--accent-secondary),
-        rgba(168, 85, 247, 0.8));
+        var(--accent-tertiary));
     border-radius: 999px;
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 0 12px var(--glow-primary);
@@ -1589,25 +1668,25 @@ body {
     box-shadow: 0 0 10px rgba(0, 122, 255, 0.25);
 }
 
-/* 多彩配色变体 */
+/* 多彩配色变体 - 赛博朋克色系 */
 .provider-bar-vertical-fill.bar-color-0 {
-    background: linear-gradient(180deg, #8b5cf6, #ec4899);
+    background: linear-gradient(180deg, #00d4ff, #00ff88);
 }
 
 .provider-bar-vertical-fill.bar-color-1 {
-    background: linear-gradient(180deg, #0ea5e9, #22c55e);
+    background: linear-gradient(180deg, #0088ff, #00d4ff);
 }
 
 .provider-bar-vertical-fill.bar-color-2 {
-    background: linear-gradient(180deg, #f97316, #facc15);
+    background: linear-gradient(180deg, #00ff88, #00aa66);
 }
 
 .provider-bar-vertical-fill.bar-color-3 {
-    background: linear-gradient(180deg, #6366f1, #a855f7);
+    background: linear-gradient(180deg, #00d4ff, #0088ff);
 }
 
 .provider-bar-vertical-fill.bar-color-4 {
-    background: linear-gradient(180deg, #14b8a6, #06b6d4);
+    background: linear-gradient(180deg, #00aa66, #00ff88);
 }
 
 .provider-bar-label {
@@ -2053,9 +2132,9 @@ body {
 }
 
 .config-type-badge.third-party-model {
-    background: rgba(168, 85, 247, 0.2);
-    color: #a855f7;
-    border: 1px solid rgba(168, 85, 247, 0.4);
+    background: rgba(0, 255, 136, 0.2);
+    color: var(--accent-secondary);
+    border: 1px solid rgba(0, 255, 136, 0.4);
 }
 
 .config-tags {
@@ -2311,7 +2390,7 @@ body {
 }
 
 .platform-status-item.active {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(168, 85, 247, 0.15));
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 255, 136, 0.15));
     border-color: var(--accent-primary);
     box-shadow: 0 0 15px var(--glow-primary);
 }
