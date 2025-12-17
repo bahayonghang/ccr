@@ -119,8 +119,14 @@ fn create_router() -> Router {
         // Compression middleware
         .layer(CompressionLayer::new());
 
+    // Create WebSocket state
+    let ws_state = std::sync::Arc::new(services::websocket::WsState::new());
+
     // Build the router with all routes
     Router::new()
+        // WebSocket endpoint
+        .route("/ws", get(services::websocket::ws_handler))
+        .with_state(ws_state)
         // Health check
         .route("/health", get(health_check))
         // Config management endpoints
@@ -236,6 +242,49 @@ fn create_router() -> Router {
         .route(
             "/api/mcp/{name}/toggle",
             put(api::handlers::mcp::toggle_mcp_server),
+        )
+        // MCP presets management endpoints
+        .route(
+            "/api/mcp/presets",
+            get(api::handlers::mcp_presets::list_presets),
+        )
+        .route(
+            "/api/mcp/presets/{id}",
+            get(api::handlers::mcp_presets::get_preset),
+        )
+        .route(
+            "/api/mcp/presets/{id}/install",
+            post(api::handlers::mcp_presets::install_preset),
+        )
+        .route(
+            "/api/mcp/presets/install",
+            post(api::handlers::mcp_presets::install_preset_single),
+        )
+        // MCP sync endpoints
+        .route(
+            "/api/mcp/sync/source",
+            get(api::handlers::mcp_presets::list_source_mcp_servers),
+        )
+        .route(
+            "/api/mcp/sync/all",
+            post(api::handlers::mcp_presets::sync_all_mcp_servers),
+        )
+        .route(
+            "/api/mcp/sync/{name}",
+            post(api::handlers::mcp_presets::sync_mcp_server),
+        )
+        // Builtin prompts endpoints
+        .route(
+            "/api/prompts/builtin",
+            get(api::handlers::builtin_prompts::list_builtin_prompts),
+        )
+        .route(
+            "/api/prompts/builtin/{id}",
+            get(api::handlers::builtin_prompts::get_builtin_prompt),
+        )
+        .route(
+            "/api/prompts/builtin/category/{category}",
+            get(api::handlers::builtin_prompts::get_builtin_prompts_by_category),
         )
         // Slash command management endpoints
         .route(
