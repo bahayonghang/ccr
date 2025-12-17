@@ -21,24 +21,24 @@ pub struct AddPromptRequest {
 pub async fn list_prompts() -> impl IntoResponse {
     let manager = match PromptsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.list_presets() {
-        Ok(presets) => Json(ApiResponse::success(presets)),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(presets) => ApiResponse::success(presets),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn add_prompt(Json(payload): Json<AddPromptRequest>) -> impl IntoResponse {
     let manager = match PromptsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     let target = match payload.target.parse::<PromptTarget>() {
         Ok(t) => t,
-        Err(e) => return Json(ApiResponse::error(e)),
+        Err(e) => return ApiResponse::error(e),
     };
 
     let preset = PromptPreset {
@@ -50,66 +50,60 @@ pub async fn add_prompt(Json(payload): Json<AddPromptRequest>) -> impl IntoRespo
     };
 
     match manager.add_preset(preset) {
-        Ok(_) => Json(ApiResponse::success(
-            "Prompt preset added successfully".to_string(),
-        )),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(_) => ApiResponse::success("Prompt preset added successfully".to_string()),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn get_prompt(Path(name): Path<String>) -> impl IntoResponse {
     let manager = match PromptsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.get_preset(&name) {
-        Ok(preset) => Json(ApiResponse::success(preset)),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(preset) => ApiResponse::success(preset),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn delete_prompt(Path(name): Path<String>) -> impl IntoResponse {
     let manager = match PromptsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.remove_preset(&name) {
-        Ok(_) => Json(ApiResponse::success(
-            "Prompt preset removed successfully".to_string(),
-        )),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(_) => ApiResponse::success("Prompt preset removed successfully".to_string()),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn apply_prompt(Path(name): Path<String>) -> impl IntoResponse {
     let manager = match PromptsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.apply_preset(&name) {
-        Ok(_) => Json(ApiResponse::success(
-            "Prompt preset applied successfully".to_string(),
-        )),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(_) => ApiResponse::success("Prompt preset applied successfully".to_string()),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn get_current_prompt(Path(target): Path<String>) -> impl IntoResponse {
     let manager = match PromptsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     let target_enum = match target.parse::<PromptTarget>() {
         Ok(t) => t,
-        Err(e) => return Json(ApiResponse::error(e)),
+        Err(e) => return ApiResponse::error(e),
     };
 
     match manager.get_current_content(target_enum) {
-        Ok(content) => Json(ApiResponse::success(content)),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(content) => ApiResponse::success(content),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }

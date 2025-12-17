@@ -35,7 +35,7 @@ pub async fn list_builtin_prompts() -> impl IntoResponse {
         })
         .collect();
 
-    Json(ApiResponse::success(responses))
+    ApiResponse::success(responses)
 }
 
 /// GET /api/prompts/builtin/:id - 获取单个模板详情
@@ -50,12 +50,9 @@ pub async fn get_builtin_prompt(Path(id): Path<String>) -> impl IntoResponse {
                 category: p.category.as_str().to_string(),
                 tags: p.tags,
             };
-            Json(ApiResponse::success(response))
+            ApiResponse::success(response)
         }
-        None => Json(ApiResponse::error(format!(
-            "Prompt template '{}' not found",
-            id
-        ))),
+        None => ApiResponse::error(format!("Prompt template '{}' not found", id)),
     }
 }
 

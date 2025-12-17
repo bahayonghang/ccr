@@ -61,7 +61,7 @@ pub async fn list_presets() -> impl IntoResponse {
         })
         .collect();
 
-    Json(ApiResponse::success(preset_responses))
+    ApiResponse::success(preset_responses)
 }
 
 /// GET /api/mcp/presets/:id - 获取单个预设详情
@@ -82,9 +82,9 @@ pub async fn get_preset(Path(id): Path<String>) -> impl IntoResponse {
                 requires_api_key: p.requires_api_key,
                 api_key_env: p.api_key_env,
             };
-            Json(ApiResponse::success(response))
+            ApiResponse::success(response)
         }
-        None => Json(ApiResponse::error(format!("Preset '{}' not found", id))),
+        None => ApiResponse::error(format!("Preset '{}' not found", id)),
     }
 }
 
@@ -252,12 +252,9 @@ pub async fn list_source_mcp_servers() -> impl IntoResponse {
                 })
                 .collect();
 
-            Json(ApiResponse::success(server_list))
+            ApiResponse::success(server_list)
         }
-        Err(e) => Json(ApiResponse::error(format!(
-            "Failed to list source MCP servers: {}",
-            e
-        ))),
+        Err(e) => ApiResponse::error(format!("Failed to list source MCP servers: {}", e)),
     }
 }
 

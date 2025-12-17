@@ -61,7 +61,7 @@ pub async fn list_logs(
 /// GET /api/logs/stats - 获取日志统计
 pub async fn get_log_stats(State(service): State<Arc<LogPersistenceService>>) -> impl IntoResponse {
     let stats = service.get_stats().await;
-    Json(ApiResponse::success(stats))
+    ApiResponse::success(stats)
 }
 
 /// GET /api/logs/dates - 获取可用的日志日期列表
@@ -89,13 +89,13 @@ pub async fn list_log_dates(
     }
 
     dates.sort_by(|a, b| b.cmp(a)); // 最新日期在前
-    Json(ApiResponse::success(dates))
+    ApiResponse::success(dates)
 }
 
 /// POST /api/logs/flush - 强制刷新缓冲区
 pub async fn flush_logs(State(service): State<Arc<LogPersistenceService>>) -> impl IntoResponse {
     service.force_flush().await;
-    Json(ApiResponse::success("Logs flushed successfully"))
+    ApiResponse::success("Logs flushed successfully")
 }
 
 /// POST /api/logs/cleanup - 清理过期日志
@@ -103,7 +103,7 @@ pub async fn cleanup_old_logs(
     State(service): State<Arc<LogPersistenceService>>,
 ) -> impl IntoResponse {
     service.cleanup_old_logs().await;
-    Json(ApiResponse::success("Old logs cleaned up"))
+    ApiResponse::success("Old logs cleaned up")
 }
 
 /// DELETE /api/logs/:date - 删除指定日期的日志
@@ -119,10 +119,10 @@ pub async fn delete_logs_by_date(
 
     if file_path.exists() {
         match fs::remove_file(&file_path) {
-            Ok(_) => Json(ApiResponse::success(format!("Deleted logs for {}", date))),
-            Err(e) => Json(ApiResponse::error(format!("Failed to delete: {}", e))),
+            Ok(_) => ApiResponse::success(format!("Deleted logs for {}", date)),
+            Err(e) => ApiResponse::error(format!("Failed to delete: {}", e)),
         }
     } else {
-        Json(ApiResponse::error(format!("No logs found for {}", date)))
+        ApiResponse::error(format!("No logs found for {}", date))
     }
 }
