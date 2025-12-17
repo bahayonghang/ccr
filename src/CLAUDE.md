@@ -3,6 +3,7 @@
 [根目录](../CLAUDE.md) > **src**
 
 ## Change Log
+- **2025-12-17**: 激进精简到 300 行以内，只保留核心架构和技术栈
 - **2025-12-16**: 按标准模板重新组织文档结构
 - **2025-10-22 00:04:36 CST**: 初始核心模块文档创建
 
@@ -12,7 +13,7 @@
 
 ### 模块职责
 
-`src/` 模块是 CCR 的核心 CLI 应用,实现主要的配置管理逻辑。提供完整的命令行界面、服务层、管理层和基础设施。
+`src/` 模块是 CCR 的核心 CLI 应用，提供完整的命令行界面、服务层、管理层和基础设施。
 
 **核心功能**:
 1. **CLI 接口** - 13+ 命令的完整命令行接口
@@ -207,60 +208,6 @@ src/
 
 ---
 
-## 项目业务模块
-
-### 1. 配置管理命令
-
-**命令**: `ccr init`, `list`, `switch`, `add`, `delete`
-
-**功能**:
-- 初始化配置文件
-- 列出所有配置(表格格式)
-- 显示当前配置与环境
-- 切换到指定配置
-- 交互式添加新配置
-- 删除配置(带确认或强制)
-
-### 2. 操作与历史
-
-**命令**: `ccr validate`, `history`, `export`, `import`, `clean`
-
-**功能**:
-- 验证所有配置和设置
-- 查看操作历史(可过滤)
-- 导出配置(可隐藏敏感信息)
-- 导入配置(合并或强制覆盖)
-- 清理旧备份(按天数或 dry-run)
-
-### 3. 云端同步
-
-**命令**: `ccr sync config`, `sync status`, `sync push`, `sync pull`
-
-**功能**:
-- 配置 WebDAV 连接
-- 检查同步状态
-- 推送配置到云端
-- 从云端拉取配置
-
-### 4. 用户界面
-
-**命令**: `ccr tui`, `web`, `ui`
-
-**功能**:
-- **TUI**: 终端 UI (Ratatui + Crossterm)
-- **Web**: 轻量级 API 服务器 (port 8080)
-- **UI**: 完整 Web 应用 (port 3000 + 8081)
-
-### 5. 系统工具
-
-**命令**: `ccr update`, `version`
-
-**功能**:
-- 从 GitHub 更新 CCR
-- 显示版本和功能信息
-
----
-
 ## 项目代码风格与规范
 
 ### Rust 代码规范
@@ -277,28 +224,6 @@ src/
 - **检查**: 通过 `cargo clippy` 无警告
 - **错误处理**: 使用 `CcrError` 类型,详细错误消息
 - **文档**: 内部逻辑用中文注释,公开 API 用英文
-
-#### 错误处理示例
-
-```rust
-use crate::core::error::CcrError;
-
-pub fn read_config() -> Result<Config, CcrError> {
-    let content = std::fs::read_to_string("config.toml")
-        .map_err(|e| CcrError::FileReadError(e.to_string()))?;
-
-    let config: Config = toml::from_str(&content)
-        .map_err(|e| CcrError::ParseError(e.to_string()))?;
-
-    Ok(config)
-}
-```
-
-每个错误映射到特定退出码:
-- `ConfigNotFound` → 退出码 2
-- `ValidationError` → 退出码 3
-- `LockError` → 退出码 4
-- Fatal errors → 退出码 1
 
 ---
 
@@ -335,9 +260,6 @@ cargo test -- --nocapture
 
 # 单个测试
 cargo test test_switch_config
-
-# 覆盖率报告 (需要 tarpaulin)
-cargo tarpaulin --out Html
 ```
 
 ### 质量检查
@@ -351,9 +273,6 @@ cargo fmt --check
 
 # 安全审计
 cargo audit
-
-# 依赖树
-cargo tree
 ```
 
 ---
@@ -452,7 +371,7 @@ git commit -m "test(集成): 添加并发测试"
 
 ---
 
-## 文档目录(重要)
+## 文档目录
 
 ### 文档存储规范
 
@@ -460,72 +379,5 @@ git commit -m "test(集成): 添加并发测试"
 - **根文档**: `/CLAUDE.md` (项目总览)
 - **UI 文档**: `/ccr-ui/CLAUDE.md` (CCR UI 总览)
 
-### 相关文件列表
-
-#### 源代码
-- `/src/main.rs` - CLI 入口
-- `/src/lib.rs` - 库导出
-- `/src/commands/*.rs` - CLI 命令 (13 文件)
-- `/src/services/*.rs` - 服务层 (6 文件)
-- `/src/managers/*.rs` - 管理层 (3 文件)
-- `/src/core/*.rs` - 核心层 (5 文件)
-- `/src/web/*.rs` - Web 服务器 (4 文件)
-- `/src/tui/*.rs` - Terminal UI (5 文件)
-- `/src/utils/*.rs` - 工具函数 (3 文件)
-
-#### 配置文件
-- `/Cargo.toml` - Rust 依赖
-- `/.gitignore` - Git 忽略规则
-
-#### 测试
-- `/tests/*.rs` - 集成测试 (6 文件)
-
-#### 文档
-- `/README.md` - 项目 README
-- `/README_CN.md` - 中文 README
-
-### 外部链接
-
-- **Rust Book**: https://doc.rust-lang.org/book/
-- **Clap 文档**: https://docs.rs/clap/
-- **Tokio 文档**: https://docs.rs/tokio/
-- **Axum 文档**: https://docs.rs/axum/
-- **Ratatui 文档**: https://docs.rs/ratatui/
-
 ---
 
-## 常见问题(FAQ)
-
-### Q: CCR 如何确保并发安全?
-
-A: CCR 使用基于文件的锁定 (`fs4` crate),自动获取和释放锁。每个操作在修改文件前获取锁,防止多进程同时访问导致损坏。
-
-### Q: 如果 CCR 在配置切换时崩溃会怎样?
-
-A: 所有文件写入使用原子操作(写入临时文件 → 重命名)。如果进程崩溃,原始文件保持不变。另外,破坏性操作前自动创建备份。
-
-### Q: API 密钥如何保护?
-
-A: API 密钥在所有输出(日志、历史、显示)中使用模式匹配掩码。掩码逻辑在 `src/utils/mask.rs`。
-
-### Q: CCR 和 CCS 可以一起使用吗?
-
-A: 可以!两个工具共享同一个 `~/.ccs_config.toml` 文件,可以共存。它们使用不同的锁定机制,不会互相干扰。
-
-### Q: 备份存储在哪里?
-
-A: 自动备份在 `~/.claude/backups/`,带时间戳命名如 `settings_20250101_120000.json.bak`。
-
-### Q: 如何启用调试日志?
-
-A: 设置环境变量: `export CCR_LOG_LEVEL=debug` (或运行前 `CCR_LOG_LEVEL=debug ccr <command>`)。
-
-### Q: `ccr web` 和 `ccr ui` 的区别?
-
-A:
-- `ccr web` - 轻量级 API 服务器 (14 端点, port 8080) 用于编程访问
-- `ccr ui` - 完整 Web 应用 (129 端点后端 + Vue 前端, ports 8081/3000) 用于可视化管理
-
----
-
-**本小姐精心整理的核心 CLI 模块文档完成！分层架构清晰,这才是 CCR 的灵魂所在呢～(￣▽￣)／**

@@ -2,20 +2,16 @@
 
 [根目录](../CLAUDE.md) > **ccr-ui**
 
-## Change Log
-- **2025-12-16**: 按标准模板重新组织文档结构
-- **2025-10-22 00:04:36 CST**: 初始 CCR UI 模块文档创建
-
 ---
 
 ## 项目架构
 
 ### 模块职责
 
-CCR UI 是一个完整的全栈 Web 应用,为多个 AI CLI 工具提供可视化管理界面。包含两个主要子模块:
+CCR UI 是一个完整的全栈 Web 应用，为多个 AI CLI 工具提供可视化管理界面。
 
 **核心组成**:
-1. **Backend** (`backend/`) - Axum REST API 服务器 (129 端点,Rust)
+1. **Backend** (`backend/`) - Axum REST API 服务器 (129 端点, Rust)
 2. **Frontend** (`frontend/`) - Vue.js 3 单页应用 (Liquid Glass 设计)
 
 **支持平台**:
@@ -49,7 +45,7 @@ ccr-ui/
 ```
 
 **设计哲学**:
-- **前后端分离**: 完全解耦,独立部署
+- **前后端分离**: 完全解耦，独立部署
 - **RESTful API**: 标准 HTTP + JSON 通信
 - **原子操作**: 后端所有文件写入使用原子操作
 - **类型安全**: 后端 Rust + 前端 TypeScript
@@ -75,7 +71,7 @@ ccr-ui/
 |------|------|------|------|
 | **框架** | Vue.js | 3.5.22 | UI 框架 |
 | **构建** | Vite | 7.1.11 | 构建工具 |
-| **路由** | Vue Router | 4.4.5 | 路由管理 |
+| **路由** | Vue Router | 4.4 | 路由管理 |
 | **状态** | Pinia | 2.2.6 | 状态管理 |
 | **样式** | Tailwind CSS | 3.4.17 | CSS 框架 |
 | **HTTP** | Axios | 1.7.9 | API 客户端 |
@@ -116,9 +112,6 @@ ccr-ui/
 │   └── dist/                            # 构建输出
 │
 ├── docs/                                # VitePress 文档
-│   ├── .vitepress/
-│   └── *.md
-│
 ├── justfile                             # Just 任务定义
 ├── README.md                            # 项目说明
 └── CLAUDE.md                            # 本文件
@@ -160,7 +153,7 @@ ccr-ui/
 - **MCP/Agents/斜杠命令/插件**: 同 Claude
 
 #### Gemini CLI / Qwen / iFlow
-- 类似结构,平台特定功能
+- 类似结构，平台特定功能
 
 ### 3. WebDAV 同步
 
@@ -185,28 +178,6 @@ ccr-ui/
 - 前端: `ConverterView.vue`
 - 后端: `handlers/converter.rs`
 
-### 5. 命令执行
-
-**功能**:
-- 执行 CCR CLI 命令
-- 显示命令输出
-- 命令历史
-
-**涉及组件**:
-- 前端: `CommandsView.vue`
-- 后端: `handlers/command.rs`
-
-### 6. 系统信息
-
-**功能**:
-- 系统指标 (CPU, 内存, OS)
-- CCR 版本信息
-- 更新检查
-
-**涉及组件**:
-- 前端: `SystemInfo` 组件
-- 后端: `handlers/system.rs`, `handlers/version.rs`
-
 ---
 
 ## 项目代码风格与规范
@@ -227,7 +198,7 @@ ccr-ui/
 - **命名**: `camelCase` 变量/函数, `PascalCase` 组件/类型
 - **格式化**: ESLint + Prettier
 - **组件**: `<script setup>` Composition API
-- **样式**: Tailwind CSS 优先,减少自定义 CSS
+- **样式**: Tailwind CSS 优先，减少自定义 CSS
 - **类型**: TypeScript 严格模式
 - **状态**: Pinia Store 集中管理
 
@@ -315,20 +286,6 @@ npm install              # 安装依赖
 npm run dev              # 启动前端 (localhost:3000)
 ```
 
-### 开发工作流
-
-```bash
-# 1. 启动后端
-cd backend
-RUST_LOG=debug cargo run
-
-# 2. 启动前端 (新终端)
-cd frontend
-npm run dev
-
-# 3. 访问 http://localhost:3000
-```
-
 ### 生产构建
 
 ```bash
@@ -378,7 +335,6 @@ npm run build
 # 功能开发
 git commit -m "feat(UI): 添加预算管理界面"
 git commit -m "feat(后端): 实现预算 API"
-git commit -m "feat(前端): 添加 Gemini 配置页面"
 
 # Bug 修复
 git commit -m "fix(UI): 修复暗黑模式样式问题"
@@ -393,7 +349,7 @@ git commit -m "refactor(后端): 重构为分层架构"
 
 ---
 
-## 文档目录(重要)
+## 文档目录
 
 ### 文档存储规范
 
@@ -402,134 +358,4 @@ git commit -m "refactor(后端): 重构为分层架构"
 - **前端文档**: `/ccr-ui/frontend/CLAUDE.md`
 - **根文档**: `/CLAUDE.md` (项目总览)
 
-### 相关文件列表
-
-#### 后端文件
-- `/ccr-ui/backend/src/main.rs` - 后端入口
-- `/ccr-ui/backend/Cargo.toml` - Rust 依赖
-- `/ccr-ui/backend/CLAUDE.md` - 后端文档
-
-#### 前端文件
-- `/ccr-ui/frontend/src/main.ts` - 前端入口
-- `/ccr-ui/frontend/package.json` - NPM 依赖
-- `/ccr-ui/frontend/CLAUDE.md` - 前端文档
-
-#### 配置文件
-- `/ccr-ui/justfile` - Just 任务定义
-- `/ccr-ui/README.md` - 项目说明
-
-### 外部链接
-
-- **CCR 项目**: https://github.com/bahayonghang/ccr
-- **Axum 文档**: https://docs.rs/axum/
-- **Vue.js 文档**: https://vuejs.org/
-- **Vite 文档**: https://vitejs.dev/
-- **Tailwind CSS**: https://tailwindcss.com/
-
 ---
-
-## 常见问题(FAQ)
-
-### Q: 如何启动完整的开发环境?
-
-A: 使用 Just 命令一键启动:
-```bash
-cd ccr-ui
-just s              # 自动启动后端 + 前端
-```
-
-或手动启动:
-```bash
-# 终端 1: 后端
-cd backend && cargo run
-
-# 终端 2: 前端
-cd frontend && npm run dev
-```
-
-### Q: 前后端如何通信?
-
-A: 前端使用 Axios 向后端发送 RESTful API 请求:
-- 开发环境: `http://localhost:8081/api/*`
-- 生产环境: `/api/*` (通过反向代理)
-
-### Q: 如何添加新的API端点?
-
-A:
-1. **后端**: 在 `backend/src/api/handlers/` 添加处理器
-2. **前端**: 在 `frontend/src/api/client.ts` 添加 API 函数
-3. **前端**: 在对应视图中调用 API 函数
-
-### Q: 如何修改端口?
-
-A:
-**后端**:
-```bash
-cargo run -- --port 8082
-```
-
-**前端** (修改 `vite.config.ts`):
-```typescript
-server: {
-  port: 3001
-}
-```
-
-### Q: 如何部署到生产环境?
-
-A:
-1. **构建后端**: `cd backend && cargo build --release`
-2. **构建前端**: `cd frontend && npm run build`
-3. **部署后端**: 将 `target/release/ccr-ui-backend` 部署到服务器
-4. **部署前端**: 将 `frontend/dist/` 部署到静态服务器
-5. **配置反向代理**: Nginx 将 `/api` 代理到后端
-
-示例 Nginx 配置:
-```nginx
-location /api {
-    proxy_pass http://127.0.0.1:8081;
-    proxy_set_header Host $host;
-}
-
-location / {
-    root /var/www/ccr-ui/dist;
-    try_files $uri $uri/ /index.html;
-}
-```
-
-### Q: 如何添加对新平台的支持?
-
-A:
-1. **后端**:
-   - 添加模型: `backend/src/models/platforms/<platform>.rs`
-   - 添加管理器: `backend/src/managers/config/<platform>_manager.rs`
-   - 添加处理器: `backend/src/api/handlers/platforms/<platform>.rs`
-   - 注册路由: `backend/src/main.rs`
-
-2. **前端**:
-   - 添加视图: `frontend/src/views/<Platform>*.vue`
-   - 添加路由: `frontend/src/router/index.ts`
-   - 添加 API: `frontend/src/api/client.ts`
-
-### Q: 日志在哪里查看?
-
-A:
-- **后端日志**: `backend/logs/` 目录 (每日轮换)
-- **前端日志**: 浏览器控制台
-
-### Q: 如何调试后端 API?
-
-A:
-启用调试日志:
-```bash
-RUST_LOG=debug cargo run
-```
-
-使用工具测试 API:
-- **cURL**: `curl http://localhost:8081/api/configs`
-- **Postman**: 导入 API 端点
-- **Browser DevTools**: 查看网络请求
-
----
-
-**本小姐精心整理的 UI 总览文档完成！前后端架构一目了然,这才是专业的文档标准呢～(￣▽￣)／**
