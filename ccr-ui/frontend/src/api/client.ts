@@ -379,6 +379,165 @@ export const toggleMcpServer = async (name: string): Promise<string> => {
 }
 
 // ===================================
+// MCP Preset Management APIs
+// ===================================
+
+export interface McpPreset {
+  id: string
+  name: string
+  description: string
+  command: string | null
+  args: string[]
+  tags: string[]
+  homepage: string | null
+  docs: string | null
+  requires_api_key: boolean
+  api_key_env: string | null
+}
+
+export interface InstallPresetRequest {
+  preset_id: string
+  platforms: string[]
+  env?: Record<string, string>
+}
+
+export interface InstallPresetResult {
+  platform: string
+  success: boolean
+  message: string | null
+}
+
+export interface InstallPresetResponse {
+  message: string
+  results: InstallPresetResult[]
+}
+
+export const listMcpPresets = async (): Promise<McpPreset[]> => {
+  const response = await api.get<ApiResponse<McpPreset[]>>('/mcp/presets')
+  return response.data.data!
+}
+
+export const getMcpPreset = async (id: string): Promise<McpPreset> => {
+  const response = await api.get<ApiResponse<McpPreset>>(`/mcp/presets/${encodeURIComponent(id)}`)
+  return response.data.data!
+}
+
+export const installMcpPreset = async (
+  presetId: string,
+  platforms: string[],
+  env?: Record<string, string>
+): Promise<InstallPresetResponse> => {
+  const request: InstallPresetRequest = {
+    preset_id: presetId,
+    platforms,
+    env: env || {}
+  }
+  const response = await api.post<ApiResponse<InstallPresetResponse>>(
+    `/mcp/presets/${encodeURIComponent(presetId)}/install`,
+    request
+  )
+  return response.data.data!
+}
+
+export const installMcpPresetSingle = async (
+  presetId: string,
+  platform: string,
+  env?: Record<string, string>
+): Promise<{ message: string; platform: string }> => {
+  const request: InstallPresetRequest = {
+    preset_id: presetId,
+    platforms: [platform],
+    env: env || {}
+  }
+  const response = await api.post<ApiResponse<{ message: string; platform: string }>>(
+    '/mcp/presets/install',
+    request
+  )
+  return response.data.data!
+}
+
+// ===================================
+// MCP Sync APIs
+// ===================================
+
+export interface McpServerInfo {
+  name: string
+  command: string | null
+  args: string[]
+  env: Record<string, string>
+}
+
+export interface SyncResult {
+  platform: string
+  success: boolean
+  message: string | null
+}
+
+export interface SyncResponse {
+  message: string
+  results: SyncResult[]
+}
+
+export interface SyncAllResponse {
+  message: string
+  servers: Record<string, SyncResult[]>
+}
+
+export const listSourceMcpServers = async (): Promise<McpServerInfo[]> => {
+  const response = await api.get<ApiResponse<McpServerInfo[]>>('/mcp/sync/source')
+  return response.data.data!
+}
+
+export const syncMcpServer = async (
+  serverName: string,
+  targetPlatforms: string[]
+): Promise<SyncResponse> => {
+  const response = await api.post<ApiResponse<SyncResponse>>(
+    `/mcp/sync/${encodeURIComponent(serverName)}`,
+    { platforms: targetPlatforms }
+  )
+  return response.data.data!
+}
+
+export const syncAllMcpServers = async (
+  targetPlatforms: string[]
+): Promise<SyncAllResponse> => {
+  const response = await api.post<ApiResponse<SyncAllResponse>>(
+    '/mcp/sync/all',
+    { platforms: targetPlatforms }
+  )
+  return response.data.data!
+}
+
+// ===================================
+// Builtin Prompts Management APIs
+// ===================================
+
+export interface BuiltinPrompt {
+  id: string
+  name: string
+  description: string
+  content: string
+  category: string
+  tags: string[]
+}
+
+export const listBuiltinPrompts = async (): Promise<BuiltinPrompt[]> => {
+  const response = await api.get<ApiResponse<BuiltinPrompt[]>>('/prompts/builtin')
+  return response.data.data!
+}
+
+export const getBuiltinPrompt = async (id: string): Promise<BuiltinPrompt> => {
+  const response = await api.get<ApiResponse<BuiltinPrompt>>(`/prompts/builtin/${id}`)
+  return response.data.data!
+}
+
+export const getBuiltinPromptsByCategory = async (category: string): Promise<BuiltinPrompt[]> => {
+  const response = await api.get<ApiResponse<BuiltinPrompt[]>>(`/prompts/builtin/category/${category}`)
+  return response.data.data!
+}
+
+// ===================================
 // Slash Command Management APIs
 // ===================================
 
@@ -952,4 +1111,76 @@ export const deleteCodexPlugin = async (_id: string): Promise<string> => {
 
 export const toggleCodexPlugin = async (_id: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
+}
+
+// ===================================
+// Skills Management APIs
+// ===================================
+
+export interface Skill {
+  name: string
+  description?: string
+  path: string
+  instruction: string
+  metadata?: {
+    author?: string
+    version?: string
+    license?: string
+    tags?: string[]
+    updated_at?: string
+  }
+  is_remote?: boolean
+  repository?: string
+}
+
+export interface SkillRepository {
+  name: string
+  url: string
+  branch: string
+  description?: string
+  skill_count?: number
+  last_synced?: string
+  is_official?: boolean
+}
+
+export interface AddRepositoryRequest {
+  name: string
+  url: string
+  branch?: string
+  description?: string
+}
+
+export const listSkills = async (): Promise<Skill[]> => {
+  const response = await api.get<ApiResponse<Skill[]>>('/skills')
+  return response.data.data!
+}
+
+export const addSkill = async (name: string, instruction: string): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/skills', { name, instruction })
+  return response.data.data!
+}
+
+export const deleteSkill = async (name: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(`/skills/${encodeURIComponent(name)}`)
+  return response.data.data!
+}
+
+export const listSkillRepositories = async (): Promise<SkillRepository[]> => {
+  const response = await api.get<ApiResponse<SkillRepository[]>>('/skills/repositories')
+  return response.data.data!
+}
+
+export const addSkillRepository = async (request: AddRepositoryRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/skills/repositories', request)
+  return response.data.data!
+}
+
+export const removeSkillRepository = async (name: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(`/skills/repositories/${encodeURIComponent(name)}`)
+  return response.data.data!
+}
+
+export const scanSkillRepository = async (name: string): Promise<Skill[]> => {
+  const response = await api.get<ApiResponse<Skill[]>>(`/skills/repositories/${encodeURIComponent(name)}/scan`)
+  return response.data.data!
 }

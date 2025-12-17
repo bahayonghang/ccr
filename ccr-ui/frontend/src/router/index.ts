@@ -90,6 +90,11 @@ const router = createRouter({
           meta: { cache: true }
         },
         {
+          path: 'monitoring',
+          name: 'monitoring',
+          component: () => import('@/views/MonitoringView.vue')
+        },
+        {
           path: 'mcp',
           name: 'mcp',
           component: () => import('@/views/McpView.vue')
