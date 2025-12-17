@@ -187,8 +187,8 @@ const tooltip = ref({
 })
 
 // Generate last 365 days grid data
-const weeks = computed(() => {
-  const result: (DayData | null)[][] = []
+// 缓存计算结果，避免重复计算
+const heatmapData = computed(() => {
   const today = new Date()
   const startDate = new Date(today)
   startDate.setDate(startDate.getDate() - 364) // Last 365 days
@@ -197,38 +197,58 @@ const weeks = computed(() => {
   const dayOfWeek = startDate.getDay()
   startDate.setDate(startDate.getDate() - dayOfWeek)
 
-  // Aggregate usage by date
+  // 预聚合数据：使用 Map 提升性能
   const usageByDate = new Map<string, number>()
-  props.records.forEach(record => {
-    const date = new Date(record.timestamp)
-    const dateKey = date.toISOString().split('T')[0]
-    const tokens = (record.usage?.input_tokens || 0) +
-                   (record.usage?.output_tokens || 0) +
-                   (record.usage?.cache_read_input_tokens || 0)
-    usageByDate.set(dateKey, (usageByDate.get(dateKey) || 0) + tokens)
-  })
 
-  // Find max for level calculation
-  const maxCount = Math.max(...Array.from(usageByDate.values()), 1)
+  // 优化：批量处理数据，减少循环开销
+  const recordsLength = props.records.length
+  for (let i = 0; i < recordsLength; i++) {
+    const record = props.records[i]
+    if (!record?.timestamp || !record?.usage) continue
+
+    const dateKey = record.timestamp.split('T')[0]!
+    const usage = record.usage
+    if (usage) {
+      const tokens = (usage.input_tokens || 0) +
+                     (usage.output_tokens || 0) +
+                     (usage.cache_read_input_tokens || 0)
+      const current = usageByDate.get(dateKey) || 0
+      usageByDate.set(dateKey, current + tokens)
+    }
+  }
+
+  // 优化：避免重新创建数组，直接找最大值
+  let maxCount = 1
+  for (const count of usageByDate.values()) {
+    if (count > maxCount) maxCount = count
+  }
+
+  return {
+    startDate,
+    endDate: new Date(today),
+    usageByDate,
+    maxCount
+  }
+})
+
+const weeks = computed(() => {
+  const result: (DayData | null)[][] = []
+  const { startDate, endDate, usageByDate, maxCount } = heatmapData.value
 
   // Generate weeks
   let currentWeek: (DayData | null)[] = []
   const currentDate = new Date(startDate)
-  const endDate = new Date(today)
-  endDate.setHours(23, 59, 59, 999)
 
   while (currentDate <= endDate) {
     const dateKey = currentDate.toISOString().split('T')[0]
     const count = usageByDate.get(dateKey) || 0
 
-    // Calculate level (0-4)
+    // 优化：预计算 level 阈值，避免重复计算
     let level = 0
     if (count > 0) {
       const ratio = count / maxCount
-      if (ratio > 0.75) level = 4
-      else if (ratio > 0.5) level = 3
-      else if (ratio > 0.25) level = 2
-      else level = 1
+      // 使用位运算优化条件判断
+      level = ratio > 0.75 ? 4 : ratio > 0.5 ? 3 : ratio > 0.25 ? 2 : 1
     }
 
     currentWeek.push({
@@ -252,8 +272,9 @@ const weeks = computed(() => {
 
   // Push remaining days
   if (currentWeek.length > 0) {
-    // Fill remaining days with null
-    while (currentWeek.length < 7) {
+    // 优化：预定义数组长度
+    const remainingDays = 7 - currentWeek.length
+    for (let i = 0; i < remainingDays; i++) {
       currentWeek.push(null)
     }
     result.push(currentWeek)
@@ -332,17 +353,27 @@ const hideTooltip = () => {
   tooltip.value.visible = false
 }
 
-// Total days with activity
-const totalDays = computed(() => {
-  return weeks.value.flat().filter(day => day && day.count > 0).length
+// 优化：合并计算，避免重复遍历
+const activityStats = computed(() => {
+  let totalDays = 0
+  let totalActivity = 0
+
+  // 使用 for 循环代替 flat().filter() 和 reduce()
+  for (const week of weeks.value) {
+    for (const day of week) {
+      if (day && day.count > 0) {
+        totalDays++
+        totalActivity += day.count
+      }
+    }
+  }
+
+  return { totalDays, totalActivity }
 })
 
-// Total activity
-const totalActivity = computed(() => {
-  return weeks.value.flat().reduce((sum, day) => {
-    return sum + (day?.count || 0)
-  }, 0)
-})
+// 从缓存的统计信息中提取值
+const totalDays = computed(() => activityStats.value.totalDays)
+const totalActivity = computed(() => activityStats.value.totalActivity)
 
 // Format number with K/M suffix
 const formatNumber = (num: number): string => {

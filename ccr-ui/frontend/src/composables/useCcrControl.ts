@@ -41,7 +41,8 @@ export function useCcrControl() {
   const isExecuting = ref(false)
   const outputLines = ref<string[]>([])
   const lastExitCode = ref<number | null>(null)
-  
+  const abortController = ref<AbortController | null>(null)
+
   // 命令参数
   const commandArgs = ref<Record<string, string>>({})
   const commandFlags = ref<Record<string, unknown>>({})
@@ -185,59 +186,63 @@ export function useCcrControl() {
   
   const executeCommand = async (command: CcrCommand) => {
     if (isExecuting.value) return
-    
+
     isExecuting.value = true
     outputLines.value = []
     lastExitCode.value = null
-    
+
+    // 创建新的 AbortController
+    abortController.value = new AbortController()
+
     const startTime = Date.now()
-    
+
     try {
       // 构建命令参数
       const args = buildCommandArgs(command)
-      
+
       // 构建完整命令
       const fullCommand = command.command
-      const fullArgs = fullCommand.includes(' ') 
+      const fullArgs = fullCommand.includes(' ')
         ? [...fullCommand.split(' ').slice(1), ...args]
         : args
       const mainCommand = fullCommand.split(' ')[0]
-      
+
       outputLines.value.push(`$ ccr ${fullCommand}${args.length ? ' ' + args.join(' ') : ''}`)
       outputLines.value.push('')
-      
-      // 使用流式 API 执行
+
+      // 使用流式 API 执行（支持取消）
       const response = await fetch('/api/command/execute/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           command: mainCommand,
           args: fullArgs
-        })
+        }),
+        signal: abortController.value.signal
       })
-      
+
       if (!response.ok) {
         throw new Error(`请求失败: ${response.status}`)
       }
-      
+
       if (!response.body) {
         throw new Error('响应体为空')
       }
-      
+
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-      
+
       while (true) {
         const { value, done } = await reader.read()
         if (done) break
-        
+
         buffer += decoder.decode(value, { stream: true })
-        
+
         // 处理 SSE 格式数据
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
-        
+
         for (const line of lines) {
           if (line.startsWith('data:')) {
             try {
@@ -259,15 +264,15 @@ export function useCcrControl() {
           }
         }
       }
-      
+
       const duration = Date.now() - startTime
       const success = lastExitCode.value === 0
-      
+
       outputLines.value.push('')
-      outputLines.value.push(success 
-        ? `✅ 命令执行成功 (${duration}ms)` 
+      outputLines.value.push(success
+        ? `✅ 命令执行成功 (${duration}ms)`
         : `❌ 命令执行失败，退出码: ${lastExitCode.value}`)
-      
+
       // 记录历史
       await addHistory({
         command: fullCommand,
@@ -275,27 +280,43 @@ export function useCcrControl() {
         success,
         duration_ms: duration
       })
-      
+
       // 刷新历史列表
       await loadHistory()
-      
+
     } catch (err: unknown) {
       const duration = Date.now() - startTime
-      const errorMessage = err instanceof Error ? err.message : '未知错误'
-      outputLines.value.push(`❌ 执行错误: ${errorMessage}`)
-      lastExitCode.value = 1
-      
-      // 记录失败历史
-      await addHistory({
-        command: command.command,
-        args: [],
-        success: false,
-        duration_ms: duration
-      })
-      
-      await loadHistory()
+
+      // 检查是否是用户取消
+      if (err instanceof Error && err.name === 'AbortError') {
+        outputLines.value.push('')
+        outputLines.value.push('⏹️ 命令已取消')
+        lastExitCode.value = 1
+      } else {
+        const errorMessage = err instanceof Error ? err.message : '未知错误'
+        outputLines.value.push(`❌ 执行错误: ${errorMessage}`)
+        lastExitCode.value = 1
+
+        // 记录失败历史
+        await addHistory({
+          command: command.command,
+          args: [],
+          success: false,
+          duration_ms: duration
+        })
+
+        await loadHistory()
+      }
     } finally {
       isExecuting.value = false
+      abortController.value = null
+    }
+  }
+
+  const cancelCommand = () => {
+    if (abortController.value) {
+      abortController.value.abort()
+      outputLines.value.push('⏹️ 正在取消命令...')
     }
   }
   
@@ -384,7 +405,7 @@ export function useCcrControl() {
     loadingVersion,
     loadVersionInfo,
     checkForUpdate,
-    
+
     // 模块和命令
     modules,
     selectedModuleId,
@@ -393,7 +414,7 @@ export function useCcrControl() {
     selectedCommand,
     selectModule,
     selectCommand,
-    
+
     // 收藏
     favorites,
     loadingFavorites,
@@ -401,13 +422,13 @@ export function useCcrControl() {
     addToFavorites,
     removeFromFavorites,
     isFavorite,
-    
+
     // 历史
     history,
     loadingHistory,
     loadHistory,
     clearHistory,
-    
+
     // 命令执行
     isExecuting,
     outputLines,
@@ -416,6 +437,7 @@ export function useCcrControl() {
     commandFlags,
     buildCommandArgs,
     executeCommand,
+    cancelCommand,
     executeFromFavorite,
     executeFromHistory,
     clearOutput

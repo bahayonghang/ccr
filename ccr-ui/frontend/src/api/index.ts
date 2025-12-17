@@ -48,7 +48,7 @@ export const listConfigs = async (): Promise<ConfigListResponse> => {
       base_url: profile.base_url,
       auth_token: '', // Token 在列表中不显示
       model: profile.model,
-      provider_type: profile.provider,
+      provider_type: profile.provider || undefined,
       is_current: profile.name === current,
       is_default: profile.is_default || false,
     }))

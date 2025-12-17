@@ -383,7 +383,6 @@ const handleSubmit = async () => {
   else request.url = undefined
 
   try {
-    const _name = (request.command || request.url)!
     if (editingServer.value) {
       await updateGeminiMcpServer(editingServer.value.command || editingServer.value.url || '', request)
       alert(t('gemini.mcp.messages.updateSuccess'))

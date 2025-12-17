@@ -133,7 +133,7 @@
                 {{ period }}
               </span>
               <span class="text-sm text-gray-900 dark:text-white font-semibold">
-                {{ limit !== null ? `$${limit.toFixed(2)}` : '无限制' }}
+                {{ (limit !== null && limit !== undefined) ? `$${limit.toFixed(2)}` : '无限制' }}
               </span>
             </div>
           </div>

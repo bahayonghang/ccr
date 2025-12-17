@@ -1,17 +1,6 @@
 import { ref } from 'vue'
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError } from 'axios'
-import { useUIStore } from '@/store'
-
-/**
- * 创建统一的 API 客户端实例
- */
-export const api: AxiosInstance = axios.create({
-  baseURL: '/api',
-  timeout: 30_000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-})
+import { api } from '@/api/client'
+import type { AxiosRequestConfig } from 'axios'
 
 /**
  * API 错误接口
@@ -21,50 +10,6 @@ export interface ApiError {
   message: string
   details?: any
 }
-
-/**
- * 请求拦截器
- */
-api.interceptors.request.use(
-  (config) => {
-    if (import.meta.env.DEV) {
-      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`)
-    }
-    return config
-  },
-  (error) => {
-    console.error('[API] Request error:', error)
-    return Promise.reject(error)
-  }
-)
-
-/**
- * 响应拦截器 - 统一错误处理
- */
-api.interceptors.response.use(
-  (response) => {
-    if (import.meta.env.DEV) {
-      console.log(`[API] Response:`, response.data)
-    }
-    // 直接返回 data，简化调用
-    return response
-  },
-  (error: AxiosError<any>) => {
-    const apiError: ApiError = {
-      code: error.response?.status || 500,
-      message: error.response?.data?.message || error.message || '请求失败',
-      details: error.response?.data
-    }
-
-    console.error('[API] Response error:', apiError)
-
-    // 自动显示错误提示（可选）
-    const uiStore = useUIStore()
-    uiStore.showError(apiError.message)
-
-    return Promise.reject(apiError)
-  }
-)
 
 /**
  * 通用 GET 请求

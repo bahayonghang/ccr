@@ -49,12 +49,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     const logs: Ref<LogMessage[]> = ref([])
     const tokenStats: Ref<TokenStats | null> = ref(null)
     const reconnectAttempts = ref(0)
+    const isVisible = ref(!document.hidden)
 
     let ws: WebSocket | null = null
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
     const connect = () => {
         if (ws?.readyState === WebSocket.OPEN) return
+        if (document.hidden) {
+            console.log('[WebSocket] Page hidden, skipping connect')
+            return
+        }
 
         try {
             ws = new WebSocket(url)
@@ -63,6 +69,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
                 isConnected.value = true
                 reconnectAttempts.value = 0
                 console.log('[WebSocket] Connected')
+                startHeartbeat()
             }
 
             ws.onmessage = (event) => {
@@ -76,6 +83,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
             ws.onclose = () => {
                 isConnected.value = false
+                stopHeartbeat()
                 console.log('[WebSocket] Disconnected')
                 scheduleReconnect()
             }
@@ -87,6 +95,33 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         } catch (e) {
             console.error('[WebSocket] Failed to connect:', e)
             scheduleReconnect()
+        }
+    }
+
+    const startHeartbeat = () => {
+        stopHeartbeat()
+        heartbeatInterval = setInterval(() => {
+            send({ type: 'Ping' })
+        }, 30000) // 30秒心跳
+    }
+
+    const stopHeartbeat = () => {
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval)
+            heartbeatInterval = null
+        }
+    }
+
+    const handleVisibilityChange = () => {
+        isVisible.value = !document.hidden
+
+        if (document.hidden) {
+            console.log('[WebSocket] Page hidden, pausing connection')
+            disconnect()
+        } else {
+            console.log('[WebSocket] Page visible, resuming connection')
+            reconnectAttempts.value = 0 // 重置重连计数
+            connect()
         }
     }
 
@@ -136,6 +171,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             return
         }
 
+        if (document.hidden) {
+            console.log('[WebSocket] Page hidden, skipping reconnect')
+            return
+        }
+
         if (reconnectTimer) {
             clearTimeout(reconnectTimer)
         }
@@ -154,14 +194,21 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
 
     const disconnect = () => {
+        // 清理重连定时器
         if (reconnectTimer) {
             clearTimeout(reconnectTimer)
             reconnectTimer = null
         }
+
+        // 清理心跳定时器
+        stopHeartbeat()
+
+        // 关闭 WebSocket
         if (ws) {
             ws.close()
             ws = null
         }
+
         isConnected.value = false
     }
 
@@ -170,10 +217,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
 
     onMounted(() => {
+        // 监听页面可见性变化
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+
+        // 初始连接
         connect()
     })
 
     onUnmounted(() => {
+        // 移除事件监听器
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+
+        // 完全断开连接
         disconnect()
     })
 
@@ -182,6 +237,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         logs,
         tokenStats,
         reconnectAttempts,
+        isVisible,
         connect,
         disconnect,
         send,

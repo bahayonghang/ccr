@@ -592,33 +592,53 @@ const filteredRecords = computed(() => {
   return filtered
 })
 
-// Available models for filter
+// Available models for filter (优化：使用 memoization 避免重复计算)
 const availableModels = computed(() => {
   const models = new Set<string>()
-  records.value.forEach(r => {
-    if (r.model) models.add(r.model)
-  })
+  const modelMap = new Map<string, boolean>()
+
+  // 使用 Map 提升查找性能，避免重复遍历
+  for (const record of records.value) {
+    if (record.model && !modelMap.has(record.model)) {
+      models.add(record.model)
+      modelMap.set(record.model, true)
+    }
+  }
+
   return Array.from(models).sort()
 })
 
-// Total tokens calculations
-const totalInputTokens = computed(() => {
-  return filteredRecords.value.reduce((sum, r) => {
-    return sum + (r.usage?.input_tokens || 0)
-  }, 0)
+// 缓存计算结果，避免重复 reduce
+const tokenStats = computed(() => {
+  const stats = {
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalCacheTokens: 0,
+    estimatedCost: 0,
+    requestCount: filteredRecords.value.length
+  }
+
+  // 单次遍历计算所有统计信息
+  for (const record of filteredRecords.value) {
+    if (record.usage) {
+      stats.totalInputTokens += record.usage.input_tokens || 0
+      stats.totalOutputTokens += record.usage.output_tokens || 0
+      stats.totalCacheTokens += record.usage.cache_read_input_tokens || 0
+
+      // 简单成本估算（可扩展为配置化）
+      const inputCost = (record.usage.input_tokens || 0) * 0.003 / 1000
+      const outputCost = (record.usage.output_tokens || 0) * 0.015 / 1000
+      stats.estimatedCost += inputCost + outputCost
+    }
+  }
+
+  return stats
 })
 
-const totalOutputTokens = computed(() => {
-  return filteredRecords.value.reduce((sum, r) => {
-    return sum + (r.usage?.output_tokens || 0)
-  }, 0)
-})
-
-const totalCacheTokens = computed(() => {
-  return filteredRecords.value.reduce((sum, r) => {
-    return sum + (r.usage?.cache_read_input_tokens || 0)
-  }, 0)
-})
+// 从缓存的统计信息中提取值
+const totalInputTokens = computed(() => tokenStats.value.totalInputTokens)
+const totalOutputTokens = computed(() => tokenStats.value.totalOutputTokens)
+const totalCacheTokens = computed(() => tokenStats.value.totalCacheTokens)
 
 const cacheEfficiency = computed(() => {
   if (totalInputTokens.value === 0) return 0

@@ -84,7 +84,7 @@ export const useConfigsStore = defineStore('configs', {
      */
     updateCurrent(configName: string) {
       if (this.items) {
-        this.items.current = configName
+        this.items.current_config = configName
       }
     }
   }

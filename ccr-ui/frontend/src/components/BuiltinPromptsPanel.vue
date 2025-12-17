@@ -181,6 +181,7 @@ import {
   Shield
 } from 'lucide-vue-next'
 import { listBuiltinPrompts, type BuiltinPrompt } from '@/api/client'
+import { copyToClipboard } from '@/utils/codexHelpers'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -231,13 +232,6 @@ const selectPrompt = (prompt: BuiltinPrompt) => {
   selectedPrompt.value = prompt
 }
 
-const copyToClipboard = async (text: string) => {
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch (error) {
-    console.error('Failed to copy:', error)
-  }
-}
 
 const applyPrompt = (prompt: BuiltinPrompt) => {
   emit('apply', prompt)

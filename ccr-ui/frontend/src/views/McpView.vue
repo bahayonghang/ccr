@@ -470,8 +470,8 @@ const confirmDelete = async () => {
 const handleToggle = (name: string) => {
   const server = servers.value.find(s => s.name === name)
   if (!server) return
-  
-  serverToToggle.value = { name, currentlyDisabled: server.disabled }
+
+  serverToToggle.value = { name, currentlyDisabled: server.disabled || false }
   showToggleModal.value = true
 }
 

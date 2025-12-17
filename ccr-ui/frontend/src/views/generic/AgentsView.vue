@@ -341,11 +341,11 @@
             </div>
             <div class="flex flex-wrap gap-2 min-h-[50px] p-4 rounded-xl bg-guofeng-bg-secondary/50 border border-guofeng-border/50 border-dashed">
               <span
-                v-if="formData.tools.length === 0"
+                v-if="!formData.tools || formData.tools.length === 0"
                 class="text-sm text-guofeng-text-muted italic w-full text-center py-2"
               >No tools added</span>
               <span
-                v-for="tool in formData.tools"
+                v-for="tool in (formData.tools || [])"
                 :key="tool"
                 class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-white border border-guofeng-border shadow-sm text-guofeng-text-primary group"
               >
@@ -508,6 +508,9 @@ const handleEdit = (agent: Agent) => {
 }
 
 const addTool = () => {
+  if (!formData.value.tools) {
+    formData.value.tools = []
+  }
   if (toolInput.value.trim() && !formData.value.tools.includes(toolInput.value.trim())) {
     formData.value.tools.push(toolInput.value.trim())
     toolInput.value = ''
@@ -515,19 +518,21 @@ const addTool = () => {
 }
 
 const removeTool = (tool: string) => {
-  formData.value.tools = formData.value.tools.filter(t => t !== tool)
+  if (formData.value.tools) {
+    formData.value.tools = formData.value.tools.filter(t => t !== tool)
+  }
 }
 
 const handleSubmit = async () => {
-  if (!formData.value.name || !formData.value.model) { 
+  if (!formData.value.name || !formData.value.model) {
     alert(t(`${tPrefix.value}.validation.required`))
-    return 
+    return
   }
-  
-  const request: AgentRequest = { 
-    ...formData.value, 
-    tools: formData.value.tools.length > 0 ? formData.value.tools : undefined, 
-    system_prompt: formData.value.system_prompt || undefined 
+
+  const request: AgentRequest = {
+    ...formData.value,
+    tools: (formData.value.tools && formData.value.tools.length > 0) ? formData.value.tools : undefined,
+    system_prompt: formData.value.system_prompt || undefined
   }
   
   try {
