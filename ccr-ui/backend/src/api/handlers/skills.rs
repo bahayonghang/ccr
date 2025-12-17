@@ -119,6 +119,9 @@ pub async fn add_repository(Json(payload): Json<AddRepositoryRequest>) -> impl I
         url: payload.url,
         branch: payload.branch.unwrap_or_else(|| "main".to_string()),
         description: payload.description,
+        skill_count: 0,
+        last_synced: None,
+        is_official: false,
     };
 
     match manager.add_repository(repo) {

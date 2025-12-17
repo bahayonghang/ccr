@@ -2,6 +2,7 @@
 // 定义跨模块共享的数据类型
 
 pub mod budget;
+pub mod mcp_preset;
 pub mod platform;
 pub mod pricing;
 pub mod prompt;

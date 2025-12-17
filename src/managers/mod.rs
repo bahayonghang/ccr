@@ -8,12 +8,14 @@
 // - 📋 管理文件生命周期
 
 pub mod budget_manager;
+pub mod builtin_prompts;
 pub mod config;
 pub mod config_file_handler;
 pub mod config_validator;
 pub mod conflict_checker;
 pub mod cost_tracker;
 pub mod history;
+pub mod mcp_preset_manager;
 pub mod platform_config;
 pub mod pricing_manager;
 pub mod prompts_manager;
@@ -42,6 +44,8 @@ pub use history::{
     EnvChange, HistoryEntry, HistoryManager, HistoryStats, OperationDetails, OperationResult,
     OperationType,
 };
+#[allow(unused_imports)]
+pub use mcp_preset_manager::{McpPresetManager, McpSyncManager, get_builtin_presets};
 #[allow(unused_imports)]
 pub use platform_config::{PlatformConfigEntry, PlatformConfigManager, UnifiedConfig};
 #[allow(unused_imports)]
