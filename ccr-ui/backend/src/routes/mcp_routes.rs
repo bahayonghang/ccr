@@ -9,15 +9,15 @@ pub fn routes() -> Router {
         .route("/mcp", get(crate::api::handlers::mcp::list_mcp_servers))
         .route("/mcp", post(crate::api::handlers::mcp::add_mcp_server))
         .route(
-            "/mcp/:name",
+            "/mcp/{name}",
             put(crate::api::handlers::mcp::update_mcp_server),
         )
         .route(
-            "/mcp/:name",
+            "/mcp/{name}",
             delete(crate::api::handlers::mcp::delete_mcp_server),
         )
         .route(
-            "/mcp/:name/toggle",
+            "/mcp/{name}/toggle",
             put(crate::api::handlers::mcp::toggle_mcp_server),
         )
 }
@@ -29,11 +29,11 @@ pub fn presets_routes() -> Router {
             get(crate::api::handlers::mcp_presets::list_presets),
         )
         .route(
-            "/mcp/presets/:id",
+            "/mcp/presets/{id}",
             get(crate::api::handlers::mcp_presets::get_preset),
         )
         .route(
-            "/mcp/presets/:id/install",
+            "/mcp/presets/{id}/install",
             post(crate::api::handlers::mcp_presets::install_preset),
         )
         .route(
@@ -53,7 +53,7 @@ pub fn sync_routes() -> Router {
             post(crate::api::handlers::mcp_presets::sync_all_mcp_servers),
         )
         .route(
-            "/mcp/sync/:name",
+            "/mcp/sync/{name}",
             post(crate::api::handlers::mcp_presets::sync_mcp_server),
         )
 }

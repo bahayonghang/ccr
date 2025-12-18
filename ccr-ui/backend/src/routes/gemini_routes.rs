@@ -16,11 +16,11 @@ pub fn routes() -> Router {
             post(crate::api::handlers::platforms::gemini::add_gemini_mcp_server),
         )
         .route(
-            "/gemini/mcp/:name",
+            "/gemini/mcp/{name}",
             put(crate::api::handlers::platforms::gemini::update_gemini_mcp_server),
         )
         .route(
-            "/gemini/mcp/:name",
+            "/gemini/mcp/{name}",
             delete(crate::api::handlers::platforms::gemini::delete_gemini_mcp_server),
         )
         // Config routes

@@ -9,15 +9,15 @@ pub fn routes() -> Router {
         .route("/agents", get(crate::api::handlers::agents::list_agents))
         .route("/agents", post(crate::api::handlers::agents::add_agent))
         .route(
-            "/agents/:name",
+            "/agents/{name}",
             put(crate::api::handlers::agents::update_agent),
         )
         .route(
-            "/agents/:name",
+            "/agents/{name}",
             delete(crate::api::handlers::agents::delete_agent),
         )
         .route(
-            "/agents/:name/toggle",
+            "/agents/{name}/toggle",
             put(crate::api::handlers::agents::toggle_agent),
         )
 }

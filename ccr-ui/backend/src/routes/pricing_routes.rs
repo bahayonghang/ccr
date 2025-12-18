@@ -15,7 +15,7 @@ pub fn routes() -> Router {
             post(crate::api::handlers::pricing::set_pricing),
         )
         .route(
-            "/pricing/remove/:model",
+            "/pricing/remove/{model}",
             delete(crate::api::handlers::pricing::remove_pricing),
         )
         .route(

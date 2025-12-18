@@ -210,6 +210,8 @@ export function useCcrControl() {
       outputLines.value.push(`$ ccr ${fullCommand}${args.length ? ' ' + args.join(' ') : ''}`)
       outputLines.value.push('')
 
+      console.log('[CCR] Executing command:', mainCommand, fullArgs)
+
       // 使用流式 API 执行（支持取消）
       const response = await fetch('/api/command/execute/stream', {
         method: 'POST',
@@ -220,6 +222,8 @@ export function useCcrControl() {
         }),
         signal: abortController.value.signal
       })
+
+      console.log('[CCR] Response status:', response.status, response.headers.get('content-type'))
 
       if (!response.ok) {
         throw new Error(`请求失败: ${response.status}`)
@@ -233,35 +237,56 @@ export function useCcrControl() {
       const decoder = new TextDecoder()
       let buffer = ''
 
+      const processSseLine = (line: string) => {
+        if (line.startsWith('data:')) {
+          try {
+            const data = JSON.parse(line.slice(5).trim())
+            console.log('[CCR] Parsed SSE data:', data)
+            // 处理 StreamChunk 格式
+            if (data.type === 'stdout' && data.data != null) {
+              outputLines.value.push(data.data)
+              console.log('[CCR] Added stdout line, total lines:', outputLines.value.length)
+            } else if (data.type === 'stderr' && data.data != null) {
+              outputLines.value.push(`[stderr] ${data.data}`)
+            } else if (data.type === 'completion') {
+              lastExitCode.value = data.exit_code ?? 0
+              console.log('[CCR] Command completed with exit code:', data.exit_code)
+            } else if (data.type === 'error' && data.message) {
+              outputLines.value.push(`[error] ${data.message}`)
+              lastExitCode.value = 1
+            }
+          } catch (e) {
+            console.error('[CCR] Failed to parse SSE line:', line, e)
+          }
+        }
+      }
+
       while (true) {
         const { value, done } = await reader.read()
-        if (done) break
+        
+        if (done) {
+           console.log('[CCR] Stream ended, processing remaining buffer')
+           // 处理剩余 buffer
+           buffer += decoder.decode()
+           if (buffer) {
+             const lines = buffer.split('\n')
+             for (const line of lines) {
+               processSseLine(line)
+             }
+           }
+           break
+        }
 
-        buffer += decoder.decode(value, { stream: true })
+        const chunk = decoder.decode(value, { stream: true })
+        console.log('[CCR] Received chunk:', chunk.substring(0, 100))
+        buffer += chunk
 
         // 处理 SSE 格式数据
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
 
         for (const line of lines) {
-          if (line.startsWith('data:')) {
-            try {
-              const data = JSON.parse(line.slice(5).trim())
-              // 处理 StreamChunk 格式
-              if (data.type === 'stdout' && data.data) {
-                outputLines.value.push(data.data)
-              } else if (data.type === 'stderr' && data.data) {
-                outputLines.value.push(`[stderr] ${data.data}`)
-              } else if (data.type === 'completion') {
-                lastExitCode.value = data.exit_code ?? 0
-              } else if (data.type === 'error' && data.message) {
-                outputLines.value.push(`[error] ${data.message}`)
-                lastExitCode.value = 1
-              }
-            } catch {
-              // 忽略解析错误
-            }
-          }
+          processSseLine(line)
         }
       }
 

@@ -9,19 +9,19 @@ pub fn routes() -> Router {
         .route("/prompts", get(crate::api::handlers::prompts::list_prompts))
         .route("/prompts", post(crate::api::handlers::prompts::add_prompt))
         .route(
-            "/prompts/:name",
+            "/prompts/{name}",
             get(crate::api::handlers::prompts::get_prompt),
         )
         .route(
-            "/prompts/:name",
+            "/prompts/{name}",
             delete(crate::api::handlers::prompts::delete_prompt),
         )
         .route(
-            "/prompts/:name/apply",
+            "/prompts/{name}/apply",
             post(crate::api::handlers::prompts::apply_prompt),
         )
         .route(
-            "/prompts/current/:target",
+            "/prompts/current/{target}",
             get(crate::api::handlers::prompts::get_current_prompt),
         )
 }

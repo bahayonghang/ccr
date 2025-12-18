@@ -15,7 +15,7 @@ pub fn routes() -> Router {
             post(crate::api::handlers::ui_state::add_favorite),
         )
         .route(
-            "/ui-state/favorites/:id",
+            "/ui-state/favorites/{id}",
             delete(crate::api::handlers::ui_state::remove_favorite),
         )
         .route(

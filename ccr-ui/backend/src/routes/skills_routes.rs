@@ -9,11 +9,11 @@ pub fn routes() -> Router {
         .route("/skills", get(crate::api::handlers::skills::list_skills))
         .route("/skills", post(crate::api::handlers::skills::add_skill))
         .route(
-            "/skills/:name",
+            "/skills/{name}",
             put(crate::api::handlers::skills::update_skill),
         )
         .route(
-            "/skills/:name",
+            "/skills/{name}",
             delete(crate::api::handlers::skills::delete_skill),
         )
         .route(
@@ -25,11 +25,11 @@ pub fn routes() -> Router {
             post(crate::api::handlers::skills::add_repository),
         )
         .route(
-            "/skills/repositories/:name",
+            "/skills/repositories/{name}",
             delete(crate::api::handlers::skills::remove_repository),
         )
         .route(
-            "/skills/repositories/:name/scan",
+            "/skills/repositories/{name}/scan",
             get(crate::api::handlers::skills::scan_repository),
         )
 }

@@ -16,11 +16,11 @@ pub fn routes() -> Router {
             post(crate::api::handlers::platforms::qwen::add_qwen_mcp_server),
         )
         .route(
-            "/qwen/mcp/:name",
+            "/qwen/mcp/{name}",
             put(crate::api::handlers::platforms::qwen::update_qwen_mcp_server),
         )
         .route(
-            "/qwen/mcp/:name",
+            "/qwen/mcp/{name}",
             delete(crate::api::handlers::platforms::qwen::delete_qwen_mcp_server),
         )
         // Config routes

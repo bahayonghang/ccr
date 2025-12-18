@@ -169,13 +169,23 @@
   /* Muted gray - 对比度 > 3:1 */
   --text-inverse: #0f172a;
   /* Dark text for light backgrounds */
-  --accent-primary: #8b5cf6;
-  --accent-secondary: #a855f7;
-  --accent-tertiary: #ec4899;
-  --accent-success: #10b981;
-  --accent-warning: #f59e0b;
-  --accent-danger: #ef4444;
-  --accent-info: #3b82f6;
+
+  /* 定义 RGB 变量以支持 Tailwind 不透明度修改 */
+  --accent-primary-rgb: 139 92 246;
+  --accent-secondary-rgb: 168 85 247;
+  --accent-tertiary-rgb: 236 72 153;
+  --accent-success-rgb: 16 185 129;
+  --accent-warning-rgb: 245 158 11;
+  --accent-danger-rgb: 239 68 68;
+  --accent-info-rgb: 59 130 246;
+
+  --accent-primary: rgb(var(--accent-primary-rgb));
+  --accent-secondary: rgb(var(--accent-secondary-rgb));
+  --accent-tertiary: rgb(var(--accent-tertiary-rgb));
+  --accent-success: rgb(var(--accent-success-rgb));
+  --accent-warning: rgb(var(--accent-warning-rgb));
+  --accent-danger: rgb(var(--accent-danger-rgb));
+  --accent-info: rgb(var(--accent-info-rgb));
 
   /* Guofeng Dark Mode Mapping */
   --guofeng-bg: var(--bg-primary);

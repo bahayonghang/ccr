@@ -28,31 +28,31 @@ pub fn routes() -> Router {
             post(crate::api::handlers::sync::add_sync_folder),
         )
         .route(
-            "/sync/folders/:name",
+            "/sync/folders/{name}",
             delete(crate::api::handlers::sync::remove_sync_folder),
         )
         .route(
-            "/sync/folders/:name",
+            "/sync/folders/{name}",
             get(crate::api::handlers::sync::get_sync_folder_info),
         )
         .route(
-            "/sync/folders/:name/enable",
+            "/sync/folders/{name}/enable",
             put(crate::api::handlers::sync::enable_sync_folder),
         )
         .route(
-            "/sync/folders/:name/disable",
+            "/sync/folders/{name}/disable",
             put(crate::api::handlers::sync::disable_sync_folder),
         )
         .route(
-            "/sync/folders/:name/push",
+            "/sync/folders/{name}/push",
             post(crate::api::handlers::sync::push_sync_folder),
         )
         .route(
-            "/sync/folders/:name/pull",
+            "/sync/folders/{name}/pull",
             post(crate::api::handlers::sync::pull_sync_folder),
         )
         .route(
-            "/sync/folders/:name/status",
+            "/sync/folders/{name}/status",
             get(crate::api::handlers::sync::get_sync_folder_status),
         )
         // Batch sync operations

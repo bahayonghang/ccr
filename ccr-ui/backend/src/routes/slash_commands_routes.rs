@@ -15,15 +15,15 @@ pub fn routes() -> Router {
             post(crate::api::handlers::slash_commands::add_slash_command),
         )
         .route(
-            "/slash-commands/:name",
+            "/slash-commands/{name}",
             put(crate::api::handlers::slash_commands::update_slash_command),
         )
         .route(
-            "/slash-commands/:name",
+            "/slash-commands/{name}",
             delete(crate::api::handlers::slash_commands::delete_slash_command),
         )
         .route(
-            "/slash-commands/:name/toggle",
+            "/slash-commands/{name}/toggle",
             put(crate::api::handlers::slash_commands::toggle_slash_command),
         )
 }

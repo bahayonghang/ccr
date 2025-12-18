@@ -8,11 +8,11 @@ pub fn routes() -> Router {
             get(crate::api::handlers::builtin_prompts::list_builtin_prompts),
         )
         .route(
-            "/prompts/builtin/:id",
+            "/prompts/builtin/{id}",
             get(crate::api::handlers::builtin_prompts::get_builtin_prompt),
         )
         .route(
-            "/prompts/builtin/category/:category",
+            "/prompts/builtin/category/{category}",
             get(crate::api::handlers::builtin_prompts::get_builtin_prompts_by_category),
         )
 }

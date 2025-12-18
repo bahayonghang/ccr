@@ -16,11 +16,11 @@ pub fn routes() -> Router {
             post(crate::api::handlers::platforms::codex::add_codex_mcp_server),
         )
         .route(
-            "/codex/mcp/:name",
+            "/codex/mcp/{name}",
             put(crate::api::handlers::platforms::codex::update_codex_mcp_server),
         )
         .route(
-            "/codex/mcp/:name",
+            "/codex/mcp/{name}",
             delete(crate::api::handlers::platforms::codex::delete_codex_mcp_server),
         )
         // Profiles routes
@@ -33,19 +33,19 @@ pub fn routes() -> Router {
             post(crate::api::handlers::platforms::codex::add_codex_profile),
         )
         .route(
-            "/codex/profiles/:name",
+            "/codex/profiles/{name}",
             get(crate::api::handlers::platforms::codex::get_codex_profile),
         )
         .route(
-            "/codex/profiles/:name",
+            "/codex/profiles/{name}",
             put(crate::api::handlers::platforms::codex::update_codex_profile),
         )
         .route(
-            "/codex/profiles/:name",
+            "/codex/profiles/{name}",
             delete(crate::api::handlers::platforms::codex::delete_codex_profile),
         )
         .route(
-            "/codex/profiles/:name/apply",
+            "/codex/profiles/{name}/apply",
             post(crate::api::handlers::platforms::codex::apply_codex_profile),
         )
         // Config routes

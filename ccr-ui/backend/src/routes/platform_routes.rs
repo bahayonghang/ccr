@@ -19,27 +19,27 @@ pub fn routes() -> Router {
             post(crate::api::handlers::platform::switch_platform),
         )
         .route(
-            "/platforms/:name",
+            "/platforms/{name}",
             get(crate::api::handlers::platform::get_platform),
         )
         .route(
-            "/platforms/:name",
+            "/platforms/{name}",
             put(crate::api::handlers::platform::update_platform),
         )
         .route(
-            "/platforms/:name/enable",
+            "/platforms/{name}/enable",
             post(crate::api::handlers::platform::enable_platform),
         )
         .route(
-            "/platforms/:name/disable",
+            "/platforms/{name}/disable",
             post(crate::api::handlers::platform::disable_platform),
         )
         .route(
-            "/platforms/:name/profile",
+            "/platforms/{name}/profile",
             get(crate::api::handlers::platform::get_platform_profile),
         )
         .route(
-            "/platforms/:name/profile",
+            "/platforms/{name}/profile",
             post(crate::api::handlers::platform::set_platform_profile),
         )
 }
