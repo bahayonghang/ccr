@@ -117,7 +117,7 @@ function Set-UiVersion {
         Write-Error "❌ 在 $Path 中找不到 CCR UI 版本标记"
         exit 1
     }
-    $updated = $content -replace '(CCR UI v)[0-9A-Za-z._-]+', "$1$NewVersion"
+    $updated = $content -replace '(CCR UI v)[0-9A-Za-z._-]+', "`$1$NewVersion"
     Set-Content -Path $Path -Value $updated -NoNewline
 }
 
@@ -159,8 +159,6 @@ if ($Check) {
         Write-Host "  ccr-ui/frontend/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
         Write-Host "  ccr-ui/frontend/src/components/MainLayout.vue: $UI_COMPONENT_VER"
         Write-Host "  ccr-ui/frontend/src/layouts/MainLayout.vue:   $UI_LEGACY_VER"
-        Write-Host "  ccr-ui/frontend/src/components/Footer.vue: $UI_COMPONENT_FOOTER_VER"
-        Write-Host "  ccr-ui/frontend/src/layouts/Footer.vue:   $UI_LEGACY_FOOTER_VER"
         exit 1
     }
 }
@@ -170,9 +168,7 @@ if ($ROOT_VER -eq $BACKEND_VER -and
     $ROOT_VER -eq $TAURI_CARGO_VER -and 
     $ROOT_VER -eq $TAURI_CONF_VER -and 
     $ROOT_VER -eq $UI_COMPONENT_VER -and 
-    $ROOT_VER -eq $UI_LEGACY_VER -and 
-    $ROOT_VER -eq $UI_COMPONENT_FOOTER_VER -and 
-    $ROOT_VER -eq $UI_LEGACY_FOOTER_VER) {
+    $ROOT_VER -eq $UI_LEGACY_VER) {
     Write-Host "✅ 版本一致，无需同步"
     exit 0
 }

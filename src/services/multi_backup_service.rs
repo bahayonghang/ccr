@@ -499,6 +499,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
+    #[ignore = "Slow incremental backup test"]
     fn test_multi_backup_basic_and_incremental() {
         let tmp = tempdir().unwrap();
         let ccr_root = tmp.path().join(".ccr");

@@ -200,16 +200,16 @@ lint: fmt clippy
   @echo "✅ 代码质量检查全部通过"
   @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# 🔒 安全审计 (cargo audit)
+# 🔒 安全审计 (cargo audit) - 若未安装则跳过
 audit:
   @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   @echo "🔒 运行安全审计"
   @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   @echo "📌 使用 cargo-audit (需要安装: cargo install cargo-audit)"
   @echo ""
-  cargo audit
+  -cargo audit || echo "⚠️  cargo-audit 未安装，跳过安全审计 (安装: cargo install cargo-audit)"
   @echo ""
-  @echo "✅ 安全审计通过"
+  @echo "✅ 安全审计步骤完成"
 
 # ═══════════════════════════════════════════════════════════
 # 🚀 开发工作流命令

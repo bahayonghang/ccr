@@ -239,14 +239,9 @@ _dev-parallel-macos:
     wait
 
 # 并行启动 - Windows
-# ⚠️ Windows 使用 Start-Process 以保持子进程在后台运行
+# ✨ 使用后台作业在当前窗口内并行运行，避免弹出新窗口
 _dev-parallel-windows:
-    @if (-not (Test-Path logs)) { New-Item -ItemType Directory -Path logs -Force | Out-Null }
-    @Write-Output '🦀 启动后端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd backend; cargo run 2>&1 | Tee-Object -FilePath ../logs/backend-console.log -Append' -WindowStyle Normal
-    @$maxWait=90; Write-Output '⏳ 等待后端就绪 (http://127.0.0.1:38081/health)...'; for($i=0; $i -lt $maxWait; $i++){ try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri 'http://127.0.0.1:38081/health'; if($r.StatusCode -eq 200){ Write-Output '✅ 后端就绪'; break } } catch { } Start-Sleep -Seconds 1; if($i -eq ($maxWait-1)){ Write-Output '❌ 等待后端超时(90s)，请检查 logs/backend-console.log'; exit 1 } }
-    @Write-Output '⚛️ 启动前端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd frontend; bun run dev 2>&1 | Tee-Object -FilePath ../logs/frontend.log -Append' -WindowStyle Normal
-    @Write-Output '📜 日志位于 logs/backend-console.log 与 logs/frontend.log'
-    @Write-Output '💡 提示: 两个新窗口已打开，关闭窗口即可停止服务器'
+    @powershell -ExecutionPolicy Bypass -File "{{justfile_directory()}}/scripts/dev-parallel-windows.ps1" -RootDir "{{justfile_directory()}}"
 
 # 并行启动 - Unix/Linux/macOS
 # 启动前清理（端口 + 缓存 + 残留进程）
