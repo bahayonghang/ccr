@@ -52,26 +52,27 @@ async fn main() -> std::io::Result<()> {
     info!("  - System Info: http://{}/api/system", bind_addr);
     info!("  - Version Info: http://{}/api/version", bind_addr);
 
-    // Verify CCR is available
-    match core::executor::execute_command(vec!["version".to_string()]).await {
-        Ok(output) if output.success => {
-            info!("CCR binary found and working");
-            info!("CCR Version: {}", output.stdout.trim());
-        }
-        Ok(output) => {
-            warn!("CCR binary found but returned error: {}", output.stderr);
-        }
-        Err(e) => {
-            warn!("CCR binary not found or not working: {}", e);
-            warn!(
-                "Continuing to start server without CCR; API calls that require CCR will return errors."
-            );
-            // Do not abort server startup; proceed.
-        }
-    }
-
-    // Build the router with modular routes
+    // Build the router with modular routes (先启动服务器，不阻塞)
     let app = routes::create_app();
+
+    // 异步验证 CCR 是否可用（不阻塞服务器启动）
+    tokio::spawn(async {
+        match core::executor::execute_command(vec!["version".to_string()]).await {
+            Ok(output) if output.success => {
+                info!("CCR binary found and working");
+                info!("CCR Version: {}", output.stdout.trim());
+            }
+            Ok(output) => {
+                warn!("CCR binary found but returned error: {}", output.stderr);
+            }
+            Err(e) => {
+                warn!("CCR binary not found or not working: {}", e);
+                warn!(
+                    "Server running without CCR; API calls that require CCR will return errors."
+                );
+            }
+        }
+    });
 
     // Start the server
     let listener = tokio::net::TcpListener::bind(bind_addr).await?;
@@ -87,8 +88,11 @@ fn setup_logging() -> std::io::Result<()> {
     // Bridge log facade to tracing (for dependencies like reqwest)
     let _ = LogTracer::init();
 
-    // Create logs directory
-    let log_dir = PathBuf::from("logs");
+    // 使用可执行文件所在目录的 logs 子目录，避免依赖工作目录
+    let log_dir = std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|p| p.join("logs")))
+        .unwrap_or_else(|| PathBuf::from("logs"));
     fs::create_dir_all(&log_dir)?;
 
     // Create file appender with daily rotation

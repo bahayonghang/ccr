@@ -1,6 +1,5 @@
-# CCR UI - Windows Development Server Parallel Launcher
-# Uses PowerShell background jobs to run backend/frontend in current window
-# Avoids opening new popup windows
+# CCR UI - Windows Fast Development Server (Release Mode)
+# Uses pre-compiled Release binary for faster startup
 
 param(
     [string]$RootDir = $PSScriptRoot,
@@ -25,32 +24,42 @@ if (-not (Test-Path logs)) {
     New-Item -ItemType Directory -Path logs -Force | Out-Null
 }
 
-Write-Host "[CCR] Starting development environment (parallel mode)..." -ForegroundColor Cyan
+Write-Host "[CCR] Fast development mode (Release build)..." -ForegroundColor Cyan
 Write-Host ""
 
+# ========== Check/Build Release Binary ==========
+$backendBinary = "$RootDir/backend/target/release/ccr-ui-backend.exe"
+if (-not (Test-Path $backendBinary)) {
+    Write-Host "[Backend] Release binary not found, building..." -ForegroundColor Yellow
+    Set-Location "$RootDir/backend"
+    cargo build --release
+    if (-not $?) {
+        Write-Host "[ERROR] Failed to build Release binary" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "[Backend] Release build completed" -ForegroundColor Green
+    Set-Location $RootDir
+}
+
 # ========== Start Backend (Background Job) ==========
-Write-Host "[Backend] Starting server (background job)..." -ForegroundColor Yellow
+Write-Host "[Backend] Starting server (Release mode, background job)..." -ForegroundColor Yellow
 
 $backendJob = Start-Job -ScriptBlock {
-    param($workDir, $port)
-    Set-Location "$workDir/backend"
+    param($workDir, $binary, $port)
+    Set-Location $workDir
 
-    # Run cargo and log output (传递端口参数)
+    # Run pre-compiled binary directly (传递端口参数)
     $logPath = "$workDir/logs/backend-console.log"
-    cargo run -- --port $port 2>&1 | Tee-Object -FilePath $logPath -Append
-} -ArgumentList $RootDir, $BackendPort
+    & $binary --port $port 2>&1 | Tee-Object -FilePath $logPath -Append
+} -ArgumentList $RootDir, $backendBinary, $BackendPort
 
 Write-Host "[Backend] Started in background (Job ID: $($backendJob.Id))" -ForegroundColor Green
 Write-Host "          Log file: logs/backend-console.log" -ForegroundColor Gray
 Write-Host ""
 
 # ========== Wait for Backend Ready ==========
-# 动态超时：已编译则 30 秒，未编译则 120 秒
-if (Test-Path "$RootDir/backend/target/debug") {
-    $maxWait = 30
-} else {
-    $maxWait = 120
-}
+# Release 模式启动很快，只需 15 秒超时
+$maxWait = 15
 Write-Host "[Backend] Waiting for health check (http://127.0.0.1:$BackendPort/health)..." -ForegroundColor Cyan
 
 $backendReady = $false
@@ -106,12 +115,10 @@ Write-Host ""
 try {
     Set-Location "$RootDir/frontend"
 
-    # Suppress PowerShell treating stderr as error (bun/vite outputs to stderr)
+    # Suppress PowerShell treating stderr as error
     $ErrorActionPreference = "Continue"
 
-    # Frontend runs in foreground with live output, also writes to log (传递端口参数)
-    # Use cmd /c to prevent PowerShell from treating stderr as terminating error
-    # The '|| exit 0' ensures that if the process is killed (e.g. Ctrl+C), it doesn't return failure to Just
+    # Frontend runs in foreground with live output (传递端口参数)
     cmd /c "bun run dev -- --port $VitePort 2>&1 || exit 0" | Tee-Object -FilePath "$RootDir/logs/frontend.log" -Append
 } finally {
     # Cleanup: Stop backend job
@@ -127,5 +134,4 @@ try {
     Write-Host "[CCR] Development environment closed" -ForegroundColor Cyan
 }
 
-# Explicitly exit 0 to ensure Just doesn't report a failure when the user stops the dev server
 exit 0

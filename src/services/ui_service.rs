@@ -49,31 +49,24 @@ impl UiService {
     ///
     /// 优先级:
     /// 1. 当前目录下的 ccr-ui/
-    /// 2. CCR 项目根目录下的 ccr-ui/
+    /// 2. CCR 项目根目录下的 ccr-ui/（父目录）
     fn detect_ccr_ui_path() -> Option<PathBuf> {
-        // 尝试当前目录
-        let current_dir_ui = std::env::current_dir().ok().map(|p| p.join("ccr-ui"));
+        // 只调用一次 current_dir()，避免重复系统调用
+        let current_dir = std::env::current_dir().ok()?;
 
-        if let Some(ref path) = current_dir_ui
-            && path.exists()
-            && path.join("justfile").exists()
-        {
-            return Some(path.clone());
-        }
+        // 候选路径列表
+        let candidates = [
+            current_dir.join("ccr-ui"),
+            current_dir
+                .parent()
+                .map(|p| p.join("ccr-ui"))
+                .unwrap_or_default(),
+        ];
 
-        // 尝试父目录 (适用于在 ccr/src 等子目录运行的情况)
-        let parent_dir_ui = std::env::current_dir()
-            .ok()
-            .and_then(|p| p.parent().map(|parent| parent.join("ccr-ui")));
-
-        if let Some(ref path) = parent_dir_ui
-            && path.exists()
-            && path.join("justfile").exists()
-        {
-            return Some(path.clone());
-        }
-
-        None
+        // 查找第一个有效的 ccr-ui 目录
+        candidates
+            .into_iter()
+            .find(|path| !path.as_os_str().is_empty() && path.join("justfile").exists())
     }
 
     /// 🚀 启动 UI (智能选择模式)
@@ -150,8 +143,8 @@ impl UiService {
     fn start_dev_mode(
         &self,
         ccr_ui_path: &Path,
-        _port: u16,
-        _backend_port: u16,
+        port: u16,
+        backend_port: u16,
         auto_yes: bool,
     ) -> Result<()> {
         ColorOutput::step("启动开发模式");
@@ -164,16 +157,18 @@ impl UiService {
         self.check_and_install_deps(ccr_ui_path, auto_yes)?;
 
         ColorOutput::info("🔧 使用开发模式启动 CCR UI");
-        ColorOutput::info("📍 后端: http://localhost:38081");
-        ColorOutput::info("📍 前端: http://localhost:3000 (Next.js)");
+        ColorOutput::info(&format!("📍 后端: http://localhost:{}", backend_port));
+        ColorOutput::info(&format!("📍 前端: http://localhost:{} (Vue 3 + Vite)", port));
         println!();
 
         ColorOutput::warning("💡 提示: 按 Ctrl+C 停止服务");
         println!();
 
-        // 启动开发服务器
+        // 启动开发服务器，通过环境变量传递端口配置
         let status = Command::new("just")
             .arg("dev")
+            .env("VITE_PORT", port.to_string())
+            .env("BACKEND_PORT", backend_port.to_string())
             .current_dir(ccr_ui_path)
             .status()
             .map_err(|e| CcrError::ConfigError(format!("启动失败: {}", e)))?;
