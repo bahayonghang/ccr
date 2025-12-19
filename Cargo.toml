@@ -56,7 +56,7 @@ reqwest = { version = "0.12.25", features = ["blocking", "json"] }
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.12.4"
+version = "3.12.5"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher(Rust implementation)"
