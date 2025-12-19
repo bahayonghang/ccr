@@ -6,7 +6,7 @@
 // - 🔌 PlatformConfig trait - 平台实现接口
 // - 📋 ProfileConfig - 通用配置结构
 // - 📁 PlatformPaths - 平台路径管理
-// - 🔄 ConfigMode - 配置模式（Legacy/Unified）
+// - 📁 PlatformPaths - 平台路径管理
 
 use crate::core::error::Result;
 use crate::utils::AutoCompletable;
@@ -120,30 +120,6 @@ impl FromStr for Platform {
             _ => Err(crate::core::error::CcrError::PlatformNotFound(
                 s.to_string(),
             )),
-        }
-    }
-}
-
-/// 🔄 配置模式枚举
-///
-/// 表示 CCR 的运行模式
-///
-/// ## 模式说明
-/// - **Legacy**: 传统单平台模式，使用 `~/.ccs_config.toml`
-/// - **Unified**: 统一多平台模式，使用 `~/.ccr/` 目录结构
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConfigMode {
-    /// 传统模式 - 仅支持 Claude，使用 ~/.ccs_config.toml
-    Legacy,
-    /// 统一模式 - 支持所有平台，使用 ~/.ccr/ 目录
-    Unified,
-}
-
-impl fmt::Display for ConfigMode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ConfigMode::Legacy => write!(f, "Legacy"),
-            ConfigMode::Unified => write!(f, "Unified"),
         }
     }
 }
@@ -554,12 +530,6 @@ mod tests {
         assert_eq!(implemented.len(), 3);
         assert!(implemented.contains(&Platform::Claude));
         assert!(!implemented.contains(&Platform::Qwen));
-    }
-
-    #[test]
-    fn test_config_mode_display() {
-        assert_eq!(ConfigMode::Legacy.to_string(), "Legacy");
-        assert_eq!(ConfigMode::Unified.to_string(), "Unified");
     }
 
     #[test]

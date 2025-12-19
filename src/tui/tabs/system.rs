@@ -46,7 +46,7 @@ impl SystemTab {
 
         // 获取真实路径（考虑环境变量）
         let (config_path, config_is_custom) =
-            Self::get_real_path("CCR_CONFIG_PATH", home.join(".ccs_config.toml"));
+            Self::get_real_path("CCR_CONFIG_PATH", home.join(".ccr").join("config.toml"));
         let (settings_path, settings_is_custom) = Self::get_real_path(
             "CCR_SETTINGS_PATH",
             home.join(".claude").join("settings.json"),

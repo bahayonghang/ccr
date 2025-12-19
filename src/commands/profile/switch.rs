@@ -1,9 +1,8 @@
 // 🔄 switch 命令实现 - 切换配置
 // 💎 这是 CCR 最核心的命令,负责完整的配置切换流程
-// 🔄 支持平台感知: 在 unified 模式下从平台配置加载
 //
 // 执行流程(5 个步骤):
-// 1. 📖 读取并验证目标配置 (Legacy 或 Unified 模式)
+// 1. 📖 读取并验证目标配置 (从平台配置加载)
 // 2. 💾 备份当前 settings.json
 // 3. ✏️ 更新 Claude Code 设置
 // 4. 📝 更新配置文件当前配置标记
@@ -12,7 +11,7 @@
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
-use crate::managers::config::{ConfigManager, ConfigSection};
+use crate::managers::config::ConfigSection;
 use crate::managers::history::{
     HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
 };
@@ -29,95 +28,66 @@ use std::str::FromStr;
 /// 🔄 切换到指定配置
 ///
 /// 这是一个原子性操作,确保配置切换的完整性和可追溯性
-/// 支持 Legacy 和 Unified 两种模式
 pub fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::title(&format!("切换配置: {}", config_name));
     println!();
 
-    // 🔍 检测配置模式
-    let unified_config = PlatformConfigManager::with_default()
-        .ok()
-        .and_then(|mgr| mgr.load().ok());
-    let is_unified_mode = unified_config.is_some();
+    // 🔍 加载平台配置
+    let platform_config_mgr = PlatformConfigManager::with_default()?;
+    let unified_config = platform_config_mgr.load()?;
+    let platform_name = &unified_config.current_platform;
+    let platform = Platform::from_str(platform_name)?;
 
-    // 📖 步骤 1: 读取并校验目标配置 (根据模式选择来源)
+    // 📖 步骤 1: 读取并校验目标配置
     ColorOutput::step("步骤 1/5: 读取配置文件");
 
-    let target_section: ConfigSection = if is_unified_mode {
-        // Unified 模式: 从平台配置加载
-        let uc = unified_config
-            .as_ref()
-            .ok_or_else(|| CcrError::ConfigError("Unified 配置未找到".to_string()))?;
-        let platform_name = &uc.current_platform;
-        let platform = Platform::from_str(platform_name)?;
+    ColorOutput::info(&format!("使用平台: {}", platform_name.bright_yellow()));
 
-        ColorOutput::info(&format!(
-            "使用 {} 模式 (平台: {})",
-            "Unified".bright_cyan(),
-            platform_name.bright_yellow()
+    // 从平台配置加载 profile
+    let platform_config = create_platform(platform)
+        .map_err(|e| CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e)))?;
+
+    // 加载所有 profiles
+    let profiles = platform_config.load_profiles()?;
+
+    // 查找目标 profile
+    let profile = profiles.get(config_name).ok_or_else(|| {
+        ColorOutput::error(&format!(
+            "配置 '{}' 在平台 {} 中不存在",
+            config_name, platform_name
         ));
+        println!();
+        ColorOutput::info("💡 提示:");
+        println!("  • 运行 'ccr list' 查看可用配置");
+        println!("  • 运行 'ccr add <配置名>' 添加新配置");
+        println!(
+            "  • 或编辑配置文件: ~/.ccr/platforms/{}/profiles.toml",
+            platform_name
+        );
+        CcrError::ConfigSectionNotFound(config_name.to_string())
+    })?;
 
-        // 从平台配置加载 profile
-        let platform_config = create_platform(platform).map_err(|e| {
-            CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e))
-        })?;
-
-        // 加载所有 profiles
-        let profiles = platform_config.load_profiles()?;
-
-        // 查找目标 profile
-        let profile = profiles.get(config_name).ok_or_else(|| {
-            ColorOutput::error(&format!(
-                "配置 '{}' 在平台 {} 中不存在",
-                config_name, platform_name
-            ));
-            println!();
-            ColorOutput::info("💡 提示:");
-            println!("  • 运行 'ccr list' 查看可用配置");
-            println!("  • 运行 'ccr add <配置名>' 添加新配置");
-            println!(
-                "  • 或编辑配置文件: ~/.ccr/platforms/{}/profiles.toml",
-                platform_name
-            );
-            CcrError::ConfigSectionNotFound(config_name.to_string())
-        })?;
-
-        // 转换 ProfileConfig 为 ConfigSection
-        ConfigSection {
-            description: profile.description.clone(),
-            base_url: profile.base_url.clone(),
-            auth_token: profile.auth_token.clone(),
-            model: profile.model.clone(),
-            small_fast_model: profile.small_fast_model.clone(),
-            provider: profile.provider.clone(),
-            provider_type: profile.provider_type.as_ref().and_then(|pt| {
-                use crate::managers::config::ProviderType;
-                match pt.as_str() {
-                    "official_relay" => Some(ProviderType::OfficialRelay),
-                    "third_party_model" => Some(ProviderType::ThirdPartyModel),
-                    _ => None,
-                }
-            }),
-            account: profile.account.clone(),
-            tags: profile.tags.clone(),
-            usage_count: profile.usage_count,
-            enabled: profile.enabled,
-            other: indexmap::IndexMap::new(),
-        }
-    } else {
-        // Legacy 模式: 从 ccs_config 加载
-        ColorOutput::info(&format!("使用 {} 模式", "Legacy".bright_white()));
-
-        let config_manager = ConfigManager::with_default()?;
-        let config = config_manager.load()?;
-
-        config
-            .get_section(config_name)
-            .map_err(|_| {
-                ColorOutput::error(&format!("配置 '{}' 不存在", config_name));
-                CcrError::ConfigSectionNotFound(config_name.to_string())
-            })?
-            .clone()
+    // 转换 ProfileConfig 为 ConfigSection
+    let target_section = ConfigSection {
+        description: profile.description.clone(),
+        base_url: profile.base_url.clone(),
+        auth_token: profile.auth_token.clone(),
+        model: profile.model.clone(),
+        small_fast_model: profile.small_fast_model.clone(),
+        provider: profile.provider.clone(),
+        provider_type: profile.provider_type.as_ref().and_then(|pt| {
+            use crate::managers::config::ProviderType;
+            match pt.as_str() {
+                "official_relay" => Some(ProviderType::OfficialRelay),
+                "third_party_model" => Some(ProviderType::ThirdPartyModel),
+                _ => None,
+            }
+        }),
+        account: profile.account.clone(),
+        tags: profile.tags.clone(),
+        usage_count: profile.usage_count,
+        enabled: profile.enabled,
+        other: indexmap::IndexMap::new(),
     };
 
     // 验证目标配置
@@ -162,70 +132,36 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::success("✅ Claude Code 设置已更新");
     println!();
 
-    // 📝 步骤 4: 更新配置文件 (根据模式选择目标)
+    // 📝 步骤 4: 更新配置文件
     ColorOutput::step("步骤 4/5: 更新配置文件");
 
-    let old_config_name: String = if is_unified_mode {
-        // Unified 模式: 更新平台配置的 current_profile 并递增使用次数
-        let uc = unified_config
-            .as_ref()
-            .ok_or_else(|| CcrError::ConfigError("Unified 配置未找到".to_string()))?;
-        let platform_name = &uc.current_platform;
-        let platform = Platform::from_str(platform_name)?;
+    let old_current = platform_config.get_current_profile()?.unwrap_or_default();
 
-        let platform_config = create_platform(platform).map_err(|e| {
-            CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e))
-        })?;
-
-        let old_current = platform_config.get_current_profile()?.unwrap_or_default();
-
-        // 📊 递增目标 profile 的使用次数
-        {
-            let mut profiles = platform_config.load_profiles()?;
-            if let Some(profile) = profiles.get_mut(config_name) {
-                profile.usage_count = Some(profile.usage_count.unwrap_or(0) + 1);
-                tracing::debug!(
-                    "📊 递增 profile '{}' 的使用次数: {}",
-                    config_name,
-                    profile.usage_count.unwrap_or(0)
-                );
-            }
-            // 保存更新后的 profiles（包含递增的 usage_count）
-            platform_config.save_profile(
+    // 📊 递增目标 profile 的使用次数
+    {
+        let mut profiles = platform_config.load_profiles()?;
+        if let Some(profile) = profiles.get_mut(config_name) {
+            profile.usage_count = Some(profile.usage_count.unwrap_or(0) + 1);
+            tracing::debug!(
+                "📊 递增 profile '{}' 的使用次数: {}",
                 config_name,
-                profiles.get(config_name).expect("配置名称应该存在"),
-            )?;
+                profile.usage_count.unwrap_or(0)
+            );
         }
+        // 保存更新后的 profiles（包含递增的 usage_count）
+        platform_config.save_profile(
+            config_name,
+            profiles.get(config_name).expect("配置名称应该存在"),
+        )?;
+    }
 
-        // 应用 profile (这会设置当前profile并保存settings)
-        platform_config.apply_profile(config_name)?;
+    // 应用 profile (这会设置当前profile并保存settings)
+    platform_config.apply_profile(config_name)?;
 
-        ColorOutput::success(&format!(
-            "✅ 平台 {} 的当前配置已设置为: {}",
-            platform_name, config_name
-        ));
-
-        old_current
-    } else {
-        // Legacy 模式: 使用 ConfigService 更新 current_config (会自动递增使用次数)
-        use crate::services::ConfigService;
-        use std::sync::Arc;
-
-        let config_manager = Arc::new(ConfigManager::with_default()?);
-        let config_service = ConfigService::new(config_manager.clone());
-
-        let old_current = {
-            let config = config_manager.load()?;
-            config.current_config.clone()
-        };
-
-        // 使用 service 层的 set_current 方法（包含使用次数递增逻辑）
-        config_service.set_current(config_name)?;
-
-        ColorOutput::success(&format!("✅ 当前配置已设置为: {}", config_name));
-
-        old_current
-    };
+    ColorOutput::success(&format!(
+        "✅ 平台 {} 的当前配置已设置为: {}",
+        platform_name, config_name
+    ));
 
     println!();
 
@@ -236,10 +172,10 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     let mut history_entry = HistoryEntry::new(
         OperationType::Switch,
         OperationDetails {
-            from_config: if old_config_name.is_empty() {
+            from_config: if old_current.is_empty() {
                 None
             } else {
-                Some(old_config_name.clone())
+                Some(old_current.clone())
             },
             to_config: Some(config_name.to_string()),
             backup_path,
@@ -480,7 +416,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     println!();
     ColorOutput::info(&format!(
         "💡 提示: 从 {} {} 切换到 {} {}",
-        old_config_name.dimmed(),
+        old_current.dimmed(),
         "→".dimmed(),
         config_name.bright_green().bold(),
         "✓".bright_green()

@@ -1,13 +1,13 @@
 // 🔍 current 命令实现 - 显示当前配置状态
 // 📊 显示当前激活的配置详情和 Claude Code 环境变量状态
-// 🔄 支持平台感知: 显示平台信息和路径(unified 模式)
+// 🔄 显示平台信息和路径
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
 use crate::models::{Platform, PlatformPaths};
 use crate::platforms::create_platform;
-use crate::services::{ConfigService, SettingsService};
+use crate::services::SettingsService;
 use crate::utils::Validatable;
 use colored::Colorize;
 use comfy_table::{
@@ -18,7 +18,7 @@ use std::str::FromStr;
 /// 🔍 显示当前配置状态
 ///
 /// 显示内容分为三部分:
-/// 1. 🔄 平台信息 (unified 模式)
+/// 1. 🔄 平台信息
 ///    - 当前平台
 ///    - 平台路径
 ///
@@ -33,140 +33,105 @@ use std::str::FromStr;
 pub fn current_command() -> Result<()> {
     ColorOutput::title("当前配置状态");
 
-    // 🔍 检测配置模式
-    let unified_config = PlatformConfigManager::with_default()
-        .ok()
-        .and_then(|mgr| mgr.load().ok());
-    let is_unified_mode = unified_config.is_some();
+    // 🔍 加载平台配置
+    let platform_config_mgr = PlatformConfigManager::with_default()?;
+    let unified_config = platform_config_mgr.load()?;
 
     println!();
 
-    // === 第零部分：平台信息 (Unified 模式) ===
-    if is_unified_mode {
-        if let Some(ref uc) = unified_config {
-            ColorOutput::step("🔄 平台信息");
-            println!();
+    // === 第零部分：平台信息 ===
+    ColorOutput::step("🔄 平台信息");
+    println!();
 
-            let platform_name = &uc.current_platform;
-            let platform = Platform::from_str(platform_name)?;
-            let paths = PlatformPaths::new(platform)?;
+    let platform_name = &unified_config.current_platform;
+    let platform = Platform::from_str(platform_name)?;
+    let paths = PlatformPaths::new(platform)?;
 
-            let mut platform_table = Table::new();
-            platform_table
-                .load_preset(UTF8_FULL)
-                .set_content_arrangement(ContentArrangement::DynamicFullWidth)
-                .set_header(vec![
-                    Cell::new("属性")
-                        .add_attribute(Attribute::Bold)
-                        .fg(TableColor::Cyan),
-                    Cell::new("值")
-                        .add_attribute(Attribute::Bold)
-                        .fg(TableColor::Cyan),
-                ]);
+    let mut platform_table = Table::new();
+    platform_table
+        .load_preset(UTF8_FULL)
+        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
+        .set_header(vec![
+            Cell::new("属性")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+            Cell::new("值")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
+        ]);
 
-            platform_table.add_row(vec![
-                Cell::new("配置模式").fg(TableColor::Yellow),
-                Cell::new("Unified (多平台支持)")
-                    .fg(TableColor::Cyan)
-                    .add_attribute(Attribute::Bold),
-            ]);
+    platform_table.add_row(vec![
+        Cell::new("当前平台").fg(TableColor::Yellow),
+        Cell::new(platform_name)
+            .fg(TableColor::Green)
+            .add_attribute(Attribute::Bold),
+    ]);
 
-            platform_table.add_row(vec![
-                Cell::new("当前平台").fg(TableColor::Yellow),
-                Cell::new(platform_name)
-                    .fg(TableColor::Green)
-                    .add_attribute(Attribute::Bold),
-            ]);
+    platform_table.add_row(vec![
+        Cell::new("平台目录"),
+        Cell::new(paths.platform_dir.display().to_string()).fg(TableColor::Blue),
+    ]);
 
-            platform_table.add_row(vec![
-                Cell::new("平台目录"),
-                Cell::new(paths.platform_dir.display().to_string()).fg(TableColor::Blue),
-            ]);
+    platform_table.add_row(vec![
+        Cell::new("配置文件"),
+        Cell::new(paths.profiles_file.display().to_string()).fg(TableColor::Blue),
+    ]);
 
-            platform_table.add_row(vec![
-                Cell::new("配置文件"),
-                Cell::new(paths.profiles_file.display().to_string()).fg(TableColor::Blue),
-            ]);
+    platform_table.add_row(vec![
+        Cell::new("历史文件"),
+        Cell::new(paths.history_file.display().to_string()).fg(TableColor::Blue),
+    ]);
 
-            platform_table.add_row(vec![
-                Cell::new("历史文件"),
-                Cell::new(paths.history_file.display().to_string()).fg(TableColor::Blue),
-            ]);
+    platform_table.add_row(vec![
+        Cell::new("备份目录"),
+        Cell::new(paths.backups_dir.display().to_string()).fg(TableColor::Blue),
+    ]);
 
-            platform_table.add_row(vec![
-                Cell::new("备份目录"),
-                Cell::new(paths.backups_dir.display().to_string()).fg(TableColor::Blue),
-            ]);
+    println!("{}", platform_table);
+    println!();
+    ColorOutput::separator();
+    println!();
 
-            println!("{}", platform_table);
-            println!();
-            ColorOutput::separator();
-            println!();
-        }
-    } else {
-        ColorOutput::info(&format!("配置模式: {} (传统模式)", "Legacy".bright_white()));
-        println!();
-    }
+    // 从平台配置读取
+    let platform_config = create_platform(platform)?;
 
-    // 根据模式获取配置信息
-    let (current_name, current_section, config_file_path, default_name) = if is_unified_mode {
-        // Unified 模式：从平台配置读取
-        let uc = unified_config.as_ref().expect("Unified 配置应该已加载");
-        let platform_name = &uc.current_platform;
-        let platform = Platform::from_str(platform_name)?;
-        let platform_config = create_platform(platform)?;
+    // 获取当前 profile
+    let current_profile = platform_config.get_current_profile()?.ok_or_else(|| {
+        crate::core::error::CcrError::ConfigError("未设置当前 profile".to_string())
+    })?;
 
-        // 获取当前 profile
-        let current_profile = platform_config.get_current_profile()?.ok_or_else(|| {
-            crate::core::error::CcrError::ConfigError("未设置当前 profile".to_string())
-        })?;
+    // 加载 profiles
+    let profiles = platform_config.load_profiles()?;
+    let profile = profiles.get(&current_profile).ok_or_else(|| {
+        crate::core::error::CcrError::ConfigSectionNotFound(current_profile.clone())
+    })?;
 
-        // 加载 profiles
-        let profiles = platform_config.load_profiles()?;
-        let profile = profiles.get(&current_profile).ok_or_else(|| {
-            crate::core::error::CcrError::ConfigSectionNotFound(current_profile.clone())
-        })?;
-
-        // 转换为 ConfigSection
-        let section = crate::managers::config::ConfigSection {
-            description: profile.description.clone(),
-            base_url: profile.base_url.clone(),
-            auth_token: profile.auth_token.clone(),
-            model: profile.model.clone(),
-            small_fast_model: profile.small_fast_model.clone(),
-            provider: profile.provider.clone(),
-            provider_type: profile.provider_type.as_ref().and_then(|pt| {
-                use crate::managers::config::ProviderType;
-                match pt.as_str() {
-                    "official_relay" => Some(ProviderType::OfficialRelay),
-                    "third_party_model" => Some(ProviderType::ThirdPartyModel),
-                    _ => None,
-                }
-            }),
-            account: profile.account.clone(),
-            tags: profile.tags.clone(),
-            usage_count: profile.usage_count,
-            enabled: profile.enabled,
-            other: indexmap::IndexMap::new(),
-        };
-
-        let paths = PlatformPaths::new(platform)?;
-        (
-            current_profile,
-            section,
-            paths.profiles_file,
-            uc.default_platform.clone(),
-        )
-    } else {
-        // Legacy 模式：从 ConfigService 读取
-        let config_service = ConfigService::with_default()?;
-        let config = config_service.load_config()?;
-        let section = config.get_current_section()?.clone();
-        let current = config.current_config.clone();
-        let default = config.default_config.clone();
-        let path = config_service.config_manager().config_path().to_path_buf();
-        (current, section, path, default)
+    // 转换为 ConfigSection
+    let current_section = crate::managers::config::ConfigSection {
+        description: profile.description.clone(),
+        base_url: profile.base_url.clone(),
+        auth_token: profile.auth_token.clone(),
+        model: profile.model.clone(),
+        small_fast_model: profile.small_fast_model.clone(),
+        provider: profile.provider.clone(),
+        provider_type: profile.provider_type.as_ref().and_then(|pt| {
+            use crate::managers::config::ProviderType;
+            match pt.as_str() {
+                "official_relay" => Some(ProviderType::OfficialRelay),
+                "third_party_model" => Some(ProviderType::ThirdPartyModel),
+                _ => None,
+            }
+        }),
+        account: profile.account.clone(),
+        tags: profile.tags.clone(),
+        usage_count: profile.usage_count,
+        enabled: profile.enabled,
+        other: indexmap::IndexMap::new(),
     };
+
+    let current_name = current_profile;
+    let config_file_path = paths.profiles_file.clone();
+    let default_name = unified_config.default_platform.clone();
 
     println!();
     ColorOutput::info(&format!("配置文件: {}", config_file_path.display()));

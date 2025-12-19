@@ -62,10 +62,7 @@
 //!
 //! ### 配置模式
 //!
-//! CCR 支持两种配置模式：
-//!
-//! - **Legacy 模式**: 单平台模式，使用 `~/.ccs_config.toml`（兼容 CCS 工具）
-//! - **Unified 模式**: 多平台模式，使用 `~/.ccr/` 目录结构
+//! CCR 使用 Unified 模式，配置存储在 `~/.ccr/` 目录结构中。
 //!
 //! ### 平台路径结构
 //!
@@ -198,7 +195,6 @@ pub use managers::{
 /// - [`Platform`] - 平台类型枚举（Claude, Codex, Gemini, Qwen, iFlow）
 /// - [`PlatformConfig`] - 平台配置接口 trait
 /// - [`PlatformPaths`] - 平台路径管理结构
-/// - [`ConfigMode`] - 配置模式枚举（Legacy, Unified）
 ///
 /// **配置结构**:
 /// - [`ProfileConfig`] - 通用 profile 配置结构
@@ -224,7 +220,7 @@ pub use managers::{
 ///
 /// **价格表相关**:
 /// - [`PricingConfig`] - 价格表配置结构
-pub use models::{ConfigMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+pub use models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 
 // 成本追踪相关类型 (从 stats 子模块导入)
 pub use models::stats::{
