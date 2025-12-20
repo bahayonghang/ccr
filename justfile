@@ -16,7 +16,7 @@ BIN := "ccr"
 
 # 🧭 跨平台 Shell 配置
 # Windows 使用 PowerShell with UTF-8 encoding
-set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command", "$OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8;"]
+set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command", "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::InputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001 | Out-Null;"]
 
 # Unix-like 系统使用 bash
 set shell := ["bash", "-cu"]

@@ -10,6 +10,12 @@ param(
     [switch]$Verbose
 )
 
+# 设置 UTF-8 编码以正确显示中文
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 | Out-Null
+
 $ErrorActionPreference = "Stop"
 
 # 获取脚本根目录

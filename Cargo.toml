@@ -1,67 +1,21 @@
 # ═══════════════════════════════════════════════════════════
-# 🏗️ Cargo Workspace Configuration
-# ═══════════════════════════════════════════════════════════
-[workspace]
-members = [
-    ".",              # ccr 主 crate (CLI + lib)
-    "ccr-ui/backend", # ccr-ui backend server
-]
-resolver = "3"
-
-# 📦 统一依赖版本管理 (workspace.dependencies)
-# 成员 crate 可以通过 { workspace = true } 引用
-[workspace.dependencies]
-# 核心依赖
-clap = { version = "4.5.53", features = ["derive", "cargo"] }
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
-toml = "0.9.8"
-anyhow = "1.0.100"
-thiserror = "2.0.17"
-
-# 异步运行时
-tokio = { version = "1.48.0", features = [
-    "rt-multi-thread",
-    "net",
-    "io-util",
-    "time",
-    "macros",
-    "signal",
-    "sync",
-] }
-
-# Web 框架
-axum = { version = "0.8.6", default-features = false, features = [
-    "json",
-    "tokio",
-    "http1",
-    "query",
-    "form",
-] }
-tower = { version = "0.5.2", default-features = false }
-tower-http = { version = "0.6.8", default-features = false, features = [
-    "cors",
-] }
-
-# 时间处理
-chrono = { version = "0.4.42", features = ["serde"] }
-
-# 工具库
-dirs = "6.0.0"
-tempfile = "3.23"
-reqwest = { version = "0.12.25", features = ["blocking", "json"] }
-
-# ═══════════════════════════════════════════════════════════
-# 📦 Package Configuration
+# 📦 Package Metadata
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
 version = "3.12.5"
 edition = "2024"
 authors = ["Yonghang Li"]
-description = "Claude Code Configuration Switcher(Rust implementation)"
+description = "Claude Code Configuration Switcher (Rust implementation)"
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/bahayonghang/ccr"
+keywords = ["cli", "config", "claude"]
+categories = ["command-line-utilities", "config"]
 
+# ═══════════════════════════════════════════════════════════
+# 🎯 Targets
+# ═══════════════════════════════════════════════════════════
 [lib]
 name = "ccr"
 path = "src/lib.rs"
@@ -70,128 +24,145 @@ path = "src/lib.rs"
 name = "ccr"
 path = "src/main.rs"
 
-[dependencies]
-# CLI 参数解析
-clap = { workspace = true }
+# ═══════════════════════════════════════════════════════════
+# ⚙️ Features
+# ═══════════════════════════════════════════════════════════
+[features]
+default = ["web", "tui"]
 
-# 序列化与配置解析
+# TUI: Ratatui + Crossterm
+tui = ["dep:crossterm", "dep:ratatui"]
+
+# Web API: Axum + Tower + 系统信息
+web = ["dep:axum", "dep:open", "dep:sysinfo", "dep:tower", "dep:tower-http"]
+
+# ═══════════════════════════════════════════════════════════
+# 📚 Dependencies (按字母顺序)
+# ═══════════════════════════════════════════════════════════
+[dependencies]
+# --- Workspace 依赖 ---
+anyhow = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+dirs = { workspace = true }
+reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-toml = { workspace = true }
-indexmap = { version = "2.12.1", features = ["serde"] }
-
-# 错误处理
-anyhow = { workspace = true }
-thiserror = { workspace = true }
-
-# 跨平台用户目录
-dirs = { workspace = true }
-
-# 文件锁
-fs4 = "0.13.1"
-
-# 临时文件与原子写入
 tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
 
-# 文件时间操作
-filetime = "0.2"
-
-# 日志记录 (tracing 生态)
-tracing = "0.1.43"
-tracing-subscriber = { version = "0.3.22", features = ["fmt", "env-filter"] }
-tracing-appender = "0.2.4"
-tracing-log = "0.2"                                                           # 桥接 log facade 到 tracing
-
-# 彩色终端输出
+# --- 本地依赖 (字母顺序) ---
+blake3 = "1.5.4"
 colored = "3.0.0"
-
-# TUI 框架 (可选功能)
-ratatui = { version = "0.29", optional = true }
-crossterm = { version = "0.29.0", optional = true }
-
-# 表格展示
 comfy-table = "7.2"
-
-# 时间戳与格式化
-chrono = { workspace = true }
-
-# 当前操作者识别
+dialoguer = "0.12.0"
+filetime = "0.2"
+flate2 = "1.1.5"
+fs4 = "0.13.1"
+indexmap = { version = "2.12.1", features = ["serde"] }
+once_cell = "1.21"
+r2d2 = "0.8"
+r2d2_sqlite = "0.24"
+rayon = "1.11"
+reqwest_dav = "0.2"
+rusqlite = { version = "0.31", features = ["bundled"] }
+smallvec = "1.11"
+toml_edit = "0.22"
+tracing = "0.1.43"
+tracing-appender = "0.2.4"
+tracing-log = "0.2"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
+uuid = { version = "1.19.0", features = ["serde", "v4"] }
 whoami = "1.6"
 
-# UUID生成
-uuid = { version = "1.19.0", features = ["v4", "serde"] }
-
-# HTTP 服务器 (用于 web 界面 - 可选功能)
-# 🎯 异步 Web 框架 - 高性能并发处理（优化features以加快编译）
-tokio = { workspace = true }
+# --- 可选依赖 (字母顺序) ---
 axum = { workspace = true, optional = true }
+crossterm = { version = "0.29.0", optional = true }
+open = { version = "5.3.3", optional = true }
+ratatui = { version = "0.29", optional = true }
+sysinfo = { version = "0.37.2", optional = true }
 tower = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 
-# 自动打开浏览器 (web 功能)
-open = { version = "5.3.3", optional = true }
+# ═══════════════════════════════════════════════════════════
+# 🏗️ Workspace
+# ═══════════════════════════════════════════════════════════
+[workspace]
+members = [".", "ccr-ui/backend"]
+resolver = "3"
 
-# 系统信息获取 (web 功能)
-sysinfo = { version = "0.37.2", optional = true }
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.48.0", features = [
+    "io-util",
+    "macros",
+    "net",
+    "rt-multi-thread",
+    "signal",
+    "sync",
+    "time",
+] }
 
-# 并行处理
-rayon = "1.11"
+# CLI
+clap = { version = "4.5.53", features = ["cargo", "derive"] }
 
-# WebDAV 客户端 (用于配置同步)
-reqwest_dav = "0.2"
+# Error handling
+anyhow = "1.0.100"
+thiserror = "2.0.17"
 
-# UI 启动相关依赖
-reqwest = { workspace = true } # HTTP 客户端
-dialoguer = "0.12.0"           # 交互式提示
-flate2 = "1.1.5"               # gzip 压缩/解压
-blake3 = "1.5.4"               # 内容摘要用于增量备份
+# HTTP client
+reqwest = { version = "0.12.25", features = ["blocking", "json"] }
 
-# 🎯 性能优化依赖
-once_cell = "1.21" # 惰性静态变量
-smallvec = "1.11"  # 小向量优化（减少堆分配）
+# Serialization
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+toml = "0.9.8"
 
-[features]
-# 默认启用 web 和 tui 功能，保持向后兼容
-default = ["web", "tui"]
+# Time
+chrono = { version = "0.4.42", features = ["serde"] }
 
-# Web API 服务器功能
-# 包含：Axum web 框架、Tokio 异步运行时、系统信息缓存
-web = ["dep:axum", "dep:tower", "dep:tower-http", "dep:open", "dep:sysinfo"]
+# Utilities
+dirs = "6.0.0"
+tempfile = "3.23"
 
-# 终端用户界面功能
-# 包含：Ratatui TUI 框架、Crossterm 终端控制
-tui = ["dep:ratatui", "dep:crossterm"]
+# Web framework
+axum = { version = "0.8.6", default-features = false, features = [
+    "form",
+    "http1",
+    "json",
+    "query",
+    "tokio",
+] }
+tower = { version = "0.5.2", default-features = false }
+tower-http = { version = "0.6.8", default-features = false, features = [
+    "cors",
+] }
 
-# 🚀 开发性能优化配置
+# ═══════════════════════════════════════════════════════════
+# 🔧 Profiles
+# ═══════════════════════════════════════════════════════════
 [profile.dev]
-# 基本优化级别，在编译速度和运行速度之间取得平衡
-opt-level = 1
-# 启用增量编译（默认已启用，显式声明以便文档化）
-incremental = true
-# 减少调试信息生成，加快编译速度
 debug = 1
+incremental = true
+opt-level = 1
 
-# 🎯 依赖包在开发模式下使用更高优化
-# 依赖包不会频繁修改，可以使用更高优化级别
 [profile.dev.package."*"]
 opt-level = 2
 
-# 🧪 测试性能优化配置
 [profile.test]
-# 测试时使用基本优化，加快测试执行速度
-opt-level = 1
-# 继承 dev 的增量编译设置
 inherits = "dev"
+opt-level = 1
 
-# 🏆 生产发布配置（最大优化）
 [profile.release]
-opt-level = 3
-lto = true
 codegen-units = 1
-strip = false     # Tauri 需要保留符号（__TAURI_BUNDLE_TYPE）
+lto = true
+opt-level = 3
+strip = false     # Tauri 需要保留符号
 
-# 🔧 Patch 配置：开发时使用本地 ccr crate
-# ccr-ui/backend 使用 git 依赖以支持独立构建
-# 在 workspace 中开发时，通过 patch 覆盖为本地路径
+# ═══════════════════════════════════════════════════════════
+# 🩹 Patch
+# ═══════════════════════════════════════════════════════════
 [patch."https://github.com/bahayonghang/ccr"]
 ccr = { path = "." }
