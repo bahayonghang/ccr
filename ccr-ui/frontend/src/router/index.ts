@@ -125,6 +125,16 @@ const router = createRouter({
           name: 'plugins',
           component: () => import('@/views/PluginsView.vue')
         },
+        {
+          path: 'sessions',
+          name: 'sessions',
+          component: () => import('@/views/SessionsView.vue')
+        },
+        {
+          path: 'provider-health',
+          name: 'provider-health',
+          component: () => import('@/views/ProviderHealthView.vue')
+        },
         // Codex 子页面
         {
           path: 'codex/mcp',

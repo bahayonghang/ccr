@@ -14,7 +14,9 @@ pub mod platform_routes;
 pub mod plugins_routes;
 pub mod pricing_routes;
 pub mod prompts_routes;
+pub mod provider_health_routes;
 pub mod qwen_routes;
+pub mod sessions_routes;
 pub mod skills_routes;
 pub mod slash_commands_routes;
 pub mod stats_routes;
@@ -131,7 +133,11 @@ fn create_api_routes() -> Router {
         // 配置转换
         .merge(converter_routes::routes())
         // UI 状态
-        .merge(ui_state_routes::routes());
+        .merge(ui_state_routes::routes())
+        // Sessions 管理
+        .merge(sessions_routes::routes())
+        // Provider 健康检查
+        .merge(provider_health_routes::routes());
 
     apply_middleware(app)
 }

@@ -67,9 +67,7 @@ async fn main() -> std::io::Result<()> {
             }
             Err(e) => {
                 warn!("CCR binary not found or not working: {}", e);
-                warn!(
-                    "Server running without CCR; API calls that require CCR will return errors."
-                );
+                warn!("Server running without CCR; API calls that require CCR will return errors.");
             }
         }
     });
