@@ -20,6 +20,8 @@ pub mod profile;
 // 🔄 保留的独立命令（暂未迁移到子模块）
 pub mod check_cmd;
 pub mod prompts_cmd;
+pub mod provider_cmd;
+pub mod sessions_cmd;
 pub mod skills_cmd;
 #[cfg(feature = "web")]
 pub mod sync_cmd;

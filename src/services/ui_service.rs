@@ -158,7 +158,10 @@ impl UiService {
 
         ColorOutput::info("🔧 使用开发模式启动 CCR UI");
         ColorOutput::info(&format!("📍 后端: http://localhost:{}", backend_port));
-        ColorOutput::info(&format!("📍 前端: http://localhost:{} (Vue 3 + Vite)", port));
+        ColorOutput::info(&format!(
+            "📍 前端: http://localhost:{} (Vue 3 + Vite)",
+            port
+        ));
         println!();
 
         ColorOutput::warning("💡 提示: 按 Ctrl+C 停止服务");

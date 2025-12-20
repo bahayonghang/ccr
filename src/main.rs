@@ -14,6 +14,8 @@ mod managers;
 mod models;
 mod platforms;
 mod services;
+mod sessions;
+mod storage;
 mod sync;
 mod utils;
 
@@ -451,6 +453,22 @@ enum Commands {
         #[command(subcommand)]
         action: CheckAction,
     },
+
+    /// 📚 Session 管理
+    ///
+    /// 管理 AI CLI 的会话记录
+    /// 示例: ccr sessions list
+    ///       ccr sessions search "refactoring"
+    ///       ccr sessions reindex
+    Sessions(commands::sessions_cmd::SessionsArgs),
+
+    /// 🏥 Provider 健康检查
+    ///
+    /// 测试 Provider 端点连通性和 API Key 有效性
+    /// 示例: ccr provider test --all
+    ///       ccr provider test my-config --verbose
+    ///       ccr provider verify my-config
+    Provider(commands::provider_cmd::ProviderArgs),
 }
 
 /// 🔍 检查操作子命令
@@ -941,6 +959,8 @@ fn main() {
         Some(Commands::Check { action }) => match action {
             CheckAction::Conflicts => commands::check_conflicts_command(),
         },
+        Some(Commands::Sessions(args)) => commands::sessions_cmd::execute(args),
+        Some(Commands::Provider(args)) => commands::provider_cmd::execute(args),
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {
@@ -1058,6 +1078,8 @@ fn command_name(cmd: &Commands) -> &'static str {
         Commands::Budget(_) => "budget",
         #[cfg(feature = "web")]
         Commands::Pricing(_) => "pricing",
+        Commands::Sessions(_) => "sessions",
+        Commands::Provider(_) => "provider",
     }
 }
 

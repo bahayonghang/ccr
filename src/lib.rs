@@ -133,6 +133,8 @@ pub mod managers;
 pub mod models;
 pub mod platforms;
 pub mod services;
+pub mod sessions;
+pub mod storage;
 pub mod sync;
 pub mod utils;
 

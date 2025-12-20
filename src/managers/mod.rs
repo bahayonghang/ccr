@@ -10,6 +10,7 @@
 pub mod budget_manager;
 pub mod builtin_prompts;
 pub mod config;
+pub mod config_editor;
 pub mod config_file_handler;
 pub mod config_validator;
 pub mod conflict_checker;

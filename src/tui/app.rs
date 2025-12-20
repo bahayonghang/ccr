@@ -14,6 +14,8 @@ pub enum TabState {
     Configs,
     /// 历史记录
     History,
+    /// Sessions
+    Sessions,
     /// 云端同步
     Sync,
     /// 系统信息
@@ -25,7 +27,8 @@ impl TabState {
     pub fn next(&self) -> Self {
         match self {
             Self::Configs => Self::History,
-            Self::History => Self::Sync,
+            Self::History => Self::Sessions,
+            Self::Sessions => Self::Sync,
             Self::Sync => Self::System,
             Self::System => Self::Configs,
         }
@@ -36,7 +39,8 @@ impl TabState {
         match self {
             Self::Configs => Self::System,
             Self::History => Self::Configs,
-            Self::Sync => Self::History,
+            Self::Sessions => Self::History,
+            Self::Sync => Self::Sessions,
             Self::System => Self::Sync,
         }
     }
@@ -46,6 +50,7 @@ impl TabState {
         match self {
             Self::Configs => "📋 Configs",
             Self::History => "📜 History",
+            Self::Sessions => "📚 Sessions",
             Self::Sync => "☁️  Sync",
             Self::System => "⚙️  System",
         }
@@ -212,11 +217,16 @@ impl App {
                 let _ = self.refresh_caches();
             }
             KeyCode::Char('3') => {
-                self.current_tab = TabState::Sync;
+                self.current_tab = TabState::Sessions;
                 self.try_clear_status(); // 尝试清除旧状态消息
                 let _ = self.refresh_caches();
             }
             KeyCode::Char('4') => {
+                self.current_tab = TabState::Sync;
+                self.try_clear_status(); // 尝试清除旧状态消息
+                let _ = self.refresh_caches();
+            }
+            KeyCode::Char('5') => {
                 self.current_tab = TabState::System;
                 self.try_clear_status(); // 尝试清除旧状态消息
                 let _ = self.refresh_caches();
