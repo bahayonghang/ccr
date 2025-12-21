@@ -28,12 +28,6 @@
             </h1>
             <div class="flex items-center gap-3 text-sm text-guofeng-text-secondary">
               <p>{{ $t('home.subtitle') }}</p>
-              <span
-                v-if="version"
-                class="px-2 py-0.5 rounded-md bg-guofeng-bg-tertiary border border-guofeng-border/50 text-xs font-mono text-guofeng-text-muted"
-              >
-                v{{ version }}
-              </span>
             </div>
           </div>
         </div>
@@ -206,6 +200,14 @@
             </GuofengCard>
           </RouterLink>
         </div>
+      </section>
+
+      <!-- 📊 使用统计仪表板 -->
+      <section
+        class="animate-fade-in"
+        style="animation-delay: 0.25s"
+      >
+        <UsageStatsDashboard />
       </section>
 
       <!-- 📊 统计概览 -->
@@ -403,6 +405,7 @@ import {
   ChevronRight
 } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'
+import UsageStatsDashboard from '@/components/UsageStatsDashboard.vue'
 import { getSystemInfo, getVersion } from '@/api/client'
 
 interface ModuleCard {

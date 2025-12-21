@@ -177,13 +177,30 @@
         </div>
       </nav>
 
-      <!-- Version Info & Language Switcher -->
+      <!-- Version Info, Theme Toggle & Language Switcher -->
       <div class="p-4 border-t border-border-color/50 bg-bg-secondary/50 backdrop-blur-sm">
         <div class="flex items-center justify-between gap-3 animate-sidebar-item-enter">
           <LanguageSwitcher />
-          <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
-            <span>CCR UI v3.12.6</span>
-            <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+          <div class="flex items-center gap-2">
+            <!-- Theme Toggle Button -->
+            <button
+              class="p-2 rounded-lg transition-all duration-300 hover:bg-bg-tertiary hover:scale-110"
+              :title="currentTheme === 'dark' ? '切换到明亮模式' : '切换到深色模式'"
+              @click="toggleTheme"
+            >
+              <Moon
+                v-if="currentTheme === 'dark'"
+                class="w-4 h-4 text-text-secondary"
+              />
+              <Sun
+                v-else
+                class="w-4 h-4 text-text-secondary"
+              />
+            </button>
+            <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
+              <span>CCR UI v3.12.6</span>
+              <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+            </div>
           </div>
         </div>
       </div>
@@ -197,6 +214,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import {
   Home,
   Code2,
@@ -206,7 +224,17 @@ import {
   Activity,
   Terminal,
   TrendingUp,
-  Cloud
+  Cloud,
+  Moon,
+  Sun
 } from 'lucide-vue-next'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import { useThemeStore } from '@/store'
+
+const themeStore = useThemeStore()
+const currentTheme = computed(() => themeStore.currentTheme)
+
+const toggleTheme = () => {
+  themeStore.toggleTheme()
+}
 </script>

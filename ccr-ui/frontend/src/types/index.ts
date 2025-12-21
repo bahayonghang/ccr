@@ -64,6 +64,43 @@ export interface UsageRecordsResponse {
 
 export type TimeRange = '5h' | 'today' | '7d' | 'week' | 'month' | 'all';
 
+// ============ Usage Stats Dashboard Types ============
+
+/** 使用统计视图模式 */
+export type StatsViewMode = 'sessions' | 'duration' | 'tokens';
+
+/** 平台每日统计 */
+export interface PlatformDailyStats {
+  sessions: number;
+  messages: number;
+  tokens: number;
+  duration_seconds: number;
+}
+
+/** 每日统计项 */
+export interface DailyStatsItem {
+  date: string;
+  claude: PlatformDailyStats;
+  codex: PlatformDailyStats;
+  gemini: PlatformDailyStats;
+}
+
+/** 使用统计汇总 */
+export interface UsageStatsSummary {
+  total_sessions: number;
+  total_messages: number;
+  total_duration_seconds: number;
+  by_platform: Record<string, PlatformDailyStats>;
+}
+
+/** 每日统计 API 响应 */
+export interface DailyStatsResponse {
+  daily_stats: DailyStatsItem[];
+  summary: UsageStatsSummary;
+  last_updated: string;
+}
+
+
 // Budget Management types
 export interface BudgetStatus {
   enabled: boolean;

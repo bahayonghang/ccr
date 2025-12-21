@@ -230,12 +230,14 @@ impl SessionParser {
         events
             .iter()
             .find(|e| e.is_user_message())
-            .and_then(|e| e.message.clone())
+            .and_then(|e| e.message_text())
             .map(|msg| {
                 // 截取前 50 个字符作为标题
                 let title = msg.trim();
-                if title.len() > 50 {
-                    format!("{}...", &title[..47])
+                let chars: Vec<char> = title.chars().collect();
+                if chars.len() > 50 {
+                    let s: String = chars.into_iter().take(47).collect();
+                    format!("{}...", s)
                 } else {
                     title.to_string()
                 }

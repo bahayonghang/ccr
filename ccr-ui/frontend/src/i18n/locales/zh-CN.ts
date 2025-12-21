@@ -2197,4 +2197,25 @@ export default {
     }
   },
 
+  // Usage Stats Dashboard
+  usageStats: {
+    title: '工作区概览',
+    updated: '更新于',
+    cacheEntries: '缓存: {count} 个会话',
+    noData: '暂无统计数据',
+    viewModes: {
+      sessions: 'Sessions',
+      duration: 'Duration',
+      tokens: 'Tokens',
+    },
+    sessions: 'Sessions',
+    inSelectedRange: '选定范围内',
+    messages: 'Messages',
+    userAssistant: '用户 · 助手',
+    activeTime: 'Active Time',
+    totalTime: '总时间',
+    platforms: 'Platforms',
+    trackedPlatforms: '已追踪平台',
+  },
+
 }
