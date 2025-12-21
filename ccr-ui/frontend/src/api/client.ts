@@ -64,6 +64,7 @@ import type {
   SetBudgetRequest,
   PricingListResponse,
   SetPricingRequest,
+  DailyStatsResponse,
 } from '@/types'
 
 // 创建 axios 实例
@@ -248,6 +249,15 @@ export const getUsageRecords = async (
   params.set('platform', platform)
   params.set('limit', limit.toString())
   const response = await api.get<UsageRecordsResponse>(`/usage/records?${params}`)
+  return response.data
+}
+
+/**
+ * 获取每日使用统计 - 支持 CodMate 风格的三视图切换
+ * @param days 查询天数，默认 30
+ */
+export const getDailyStats = async (days: number = 30): Promise<DailyStatsResponse> => {
+  const response = await api.get<DailyStatsResponse>(`/sessions/stats/daily?days=${days}`)
   return response.data
 }
 

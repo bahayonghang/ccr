@@ -124,6 +124,8 @@ impl Session {
     }
 }
 
+use serde_json::Value;
+
 /// 📝 Session 事件（JSONL 行）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionEvent {
@@ -135,9 +137,9 @@ pub struct SessionEvent {
     #[serde(default)]
     pub role: Option<String>,
 
-    /// 消息内容
+    /// 消息内容（可能是字符串或对象）
     #[serde(default)]
-    pub message: Option<String>,
+    pub message: Option<Value>,
 
     /// 时间戳
     #[serde(default)]
@@ -162,18 +164,65 @@ pub struct SessionEvent {
 
 #[allow(dead_code)]
 impl SessionEvent {
+    /// 获取消息文本内容
+    pub fn message_text(&self) -> Option<String> {
+        match &self.message {
+            Some(Value::String(s)) => Some(s.clone()),
+            Some(Value::Object(map)) => {
+                // 尝试从 content 字段获取
+                if let Some(content) = map.get("content").and_then(|v| v.as_str()) {
+                    return Some(content.to_string());
+                }
+                // 某些格式可能在 text 字段
+                if let Some(text) = map.get("text").and_then(|v| v.as_str()) {
+                    return Some(text.to_string());
+                }
+                None
+            }
+            _ => None,
+        }
+    }
+
     /// 是否是用户消息
     pub fn is_user_message(&self) -> bool {
-        self.role.as_deref() == Some("user")
-            || self.event_type == "user"
-            || self.event_type == "human"
+        // 检查顶层 role
+        if self.role.as_deref() == Some("user") {
+            return true;
+        }
+
+        // 检查 event type
+        if self.event_type == "user" || self.event_type == "human" {
+            return true;
+        }
+
+        // 检查 message 对象里的 role
+        if let Some(Value::Object(map)) = &self.message
+            && let Some(role) = map.get("role").and_then(|v| v.as_str())
+        {
+            return role == "user";
+        }
+
+        false
     }
 
     /// 是否是助手消息
     pub fn is_assistant_message(&self) -> bool {
-        self.role.as_deref() == Some("assistant")
-            || self.event_type == "assistant"
-            || self.event_type == "text"
+        if self.role.as_deref() == Some("assistant") {
+            return true;
+        }
+
+        if self.event_type == "assistant" || self.event_type == "text" {
+            return true;
+        }
+
+        // 检查 message 对象里的 role
+        if let Some(Value::Object(map)) = &self.message
+            && let Some(role) = map.get("role").and_then(|v| v.as_str())
+        {
+            return role == "assistant";
+        }
+
+        false
     }
 
     /// 是否是工具调用

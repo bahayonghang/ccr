@@ -2148,4 +2148,25 @@ export default {
     }
   },
 
+  // Usage Stats Dashboard
+  usageStats: {
+    title: 'Workspace Overview',
+    updated: 'Updated',
+    cacheEntries: 'Cache: {count} entries',
+    noData: 'No statistics available',
+    viewModes: {
+      sessions: 'Sessions',
+      duration: 'Duration',
+      tokens: 'Tokens',
+    },
+    sessions: 'Sessions',
+    inSelectedRange: 'In selected range',
+    messages: 'Messages',
+    userAssistant: 'user · assistant',
+    activeTime: 'Active Time',
+    totalTime: 'Total time',
+    platforms: 'Platforms',
+    trackedPlatforms: 'Tracked platforms',
+  },
+
 }
