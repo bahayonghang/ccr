@@ -83,7 +83,9 @@ function Set-CargoVersion {
     )
     
     $content = Get-Content $Path -Raw
-    $updated = $content -replace '(\[package\](?:(?!\[).)*?version\s*=\s*)"[^"]+"', "`$1`"$NewVersion`""
+    # 使用回调方式替换，避免 $1 变量解释问题
+    $pattern = '(\[package\](?:(?!\[).)*?version\s*=\s*)"[^"]+"'
+    $updated = [regex]::Replace($content, $pattern, { param($m) $m.Groups[1].Value + '"' + $NewVersion + '"' }, [System.Text.RegularExpressions.RegexOptions]::Singleline)
     Set-Content -Path $Path -Value $updated -NoNewline
 }
 
@@ -123,7 +125,7 @@ function Set-UiVersion {
         Write-Error "❌ 在 $Path 中找不到 CCR UI 版本标记"
         exit 1
     }
-    $updated = $content -replace '(CCR UI v)[0-9A-Za-z._-]+', "`$1$NewVersion"
+    $updated = $content -replace 'CCR UI v[0-9A-Za-z._-]+', "CCR UI v$NewVersion"
     Set-Content -Path $Path -Value $updated -NoNewline
 }
 
