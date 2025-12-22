@@ -9,6 +9,13 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command", "$OutputE
 # Unix-like 系统使用 bash
 set shell := ["bash", "-cu"]
 
+# 📝 跨平台消息打印函数（使用 printf 比 echo -e 更可移植，减少子进程调用）
+# 定义跨平台的消息级别函数
+[private]
+[no-cd]
+msg level message:
+    @printf '%b\n' "{{level}}{{message}}"
+
 # 🌍 操作系统检测（供条件判断使用）
 is_windows := if os() == "windows" { "true" } else { "false" }
 is_macos := if os() == "macos" { "true" } else { "false" }
