@@ -168,7 +168,7 @@ const iconClass = (folderValue: string) => {
   return 'w-3.5 h-3.5'
 }
 
-const iconStyle = (folderValue: string) => {
+const iconStyle = (_folderValue: string) => {
   if (props.theme === 'claude-code') {
     return {}
   } else {
