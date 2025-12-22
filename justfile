@@ -350,8 +350,8 @@ watch:
     @just info "📌 使用 cargo-watch (需要安装: cargo install cargo-watch)"
     cargo watch -x check -x test
 
-# 🎯 完整 CI 流程 (版本同步 + 格式检查 + Clippy + 测试 + 构建 + 安全审计 + 前端完整检查)
-ci: version-sync fmt-check clippy test release audit frontend-check
+# 🎯 完整 CI 流程 (版本同步 + 自动格式化 + 格式检查 + Clippy + 测试 + 构建 + 安全审计 + 前端完整检查)
+ci: version-sync fmt fmt-check clippy test release audit frontend-check
     @just _ci-done-{{os()}}
 
 [private]
