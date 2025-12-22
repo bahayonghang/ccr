@@ -1,6 +1,6 @@
 <template>
   <aside
-    class="sticky top-6 h-fit rounded-xl p-5"
+    class="sticky top-6 h-fit rounded-xl p-4"
     :style="{
       background: 'var(--bg-secondary)',
       border: '1px solid var(--border-color)',
@@ -9,173 +9,163 @@
       overflowY: 'auto'
     }"
   >
-    <!-- 标题 -->
-    <div
-      class="mb-5 pb-4"
-      :style="{ borderBottom: '1px solid var(--border-color)' }"
-    >
+    <!-- 标题和统计 -->
+    <div class="flex items-center justify-between mb-3">
       <h2
-        class="text-lg font-bold mb-1"
+        class="text-sm font-bold"
         :style="{ color: 'var(--text-primary)' }"
       >
         快速导航
       </h2>
-      <p
-        class="text-xs"
-        :style="{ color: 'var(--text-muted)' }"
-      >
-        点击跳转到配置
-      </p>
-    </div>
-
-    <!-- 统计信息 -->
-    <div class="grid grid-cols-2 gap-3 mb-5">
-      <div
-        class="p-3 rounded-lg text-center"
-        :style="{
-          background: 'rgba(99, 102, 241, 0.1)',
-          border: '1px solid rgba(99, 102, 241, 0.3)'
-        }"
-      >
-        <div
-          class="text-2xl font-bold mb-1"
-          :style="{ color: '#6366f1' }"
+      <div class="flex items-center gap-2 text-xs">
+        <span
+          class="px-1.5 py-0.5 rounded font-medium"
+          :style="{
+            background: 'rgba(99, 102, 241, 0.1)',
+            color: '#6366f1'
+          }"
         >
           {{ filteredConfigs.length }}
-        </div>
-        <div
-          class="text-[10px] font-medium"
-          :style="{ color: 'var(--text-muted)' }"
-        >
-          当前筛选
-        </div>
-      </div>
-      <div
-        class="p-3 rounded-lg text-center"
-        :style="{
-          background: 'rgba(16, 185, 129, 0.1)',
-          border: '1px solid rgba(16, 185, 129, 0.3)'
-        }"
-      >
-        <div
-          class="text-2xl font-bold mb-1"
-          :style="{ color: '#10b981' }"
+        </span>
+        <span :style="{ color: 'var(--text-muted)' }">/</span>
+        <span
+          class="px-1.5 py-0.5 rounded font-medium"
+          :style="{
+            background: 'rgba(16, 185, 129, 0.1)',
+            color: '#10b981'
+          }"
         >
           {{ configs.length }}
-        </div>
-        <div
-          class="text-[10px] font-medium"
-          :style="{ color: 'var(--text-muted)' }"
-        >
-          总配置数
-        </div>
+        </span>
       </div>
     </div>
 
-    <!-- 配置列表 -->
-    <div class="space-y-2">
-      <div
-        v-for="config in filteredConfigs"
-        :key="config.name"
-        class="group cursor-pointer p-3 rounded-lg transition-all duration-200 hover:scale-[1.02]"
+    <!-- 分类标签快速跳转 -->
+    <div
+      class="flex flex-wrap gap-1.5 mb-3 pb-3"
+      :style="{ borderBottom: '1px solid var(--border-color)' }"
+    >
+      <button
+        v-for="category in categories"
+        :key="category.key"
+        class="px-2 py-1 rounded text-[10px] font-medium transition-all duration-150 hover:scale-105"
         :style="{
-          background: config.is_current 
-            ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15))'
+          background: expandedCategory === category.key 
+            ? category.activeBackground 
             : 'var(--bg-tertiary)',
-          border: config.is_current 
-            ? '1.5px solid var(--accent-primary)'
-            : '1px solid var(--border-color)',
-          boxShadow: config.is_current 
-            ? '0 0 20px var(--glow-primary)'
-            : 'none'
+          color: expandedCategory === category.key 
+            ? category.activeColor 
+            : 'var(--text-muted)',
+          border: expandedCategory === category.key 
+            ? `1px solid ${category.activeBorder}` 
+            : '1px solid var(--border-color)'
         }"
-        @click="$emit('configClick', config.name)"
+        @click="toggleCategory(category.key)"
       >
-        <!-- 配置名称和徽章 -->
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2 min-w-0 flex-1">
-            <!-- 当前指示器 -->
-            <div
-              v-if="config.is_current"
-              class="w-2 h-2 rounded-full flex-shrink-0 animate-pulse"
-              :style="{ background: 'var(--accent-success)' }"
-            />
-            
-            <span
-              class="text-sm font-bold font-mono truncate"
-              :style="{ color: config.is_current ? 'var(--accent-primary)' : 'var(--text-primary)' }"
-            >
-              {{ config.name }}
-            </span>
-          </div>
-          
-          <!-- 徽章 -->
-          <div class="flex gap-1 flex-shrink-0">
-            <span
-              v-if="config.is_current"
-              class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase"
-              :style="{
-                background: 'var(--accent-success)',
-                color: 'white'
-              }"
-            >
-              当前
-            </span>
-            <span
-              v-if="config.is_default"
-              class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase"
-              :style="{
-                background: 'var(--accent-warning)',
-                color: 'white'
-              }"
-            >
-              默认
-            </span>
-          </div>
-        </div>
+        {{ category.label }} ({{ category.count }})
+      </button>
+    </div>
 
-        <!-- Provider Type -->
+    <!-- 配置列表 - 按分类分组 -->
+    <div class="space-y-2">
+      <!-- 官方中转分类 -->
+      <div v-if="officialRelayConfigs.length > 0 && (expandedCategory === 'all' || expandedCategory === 'official_relay')">
         <div
-          v-if="config.provider_type"
-          class="mb-2"
+          class="flex items-center gap-1.5 mb-1.5 cursor-pointer select-none"
+          @click="toggleCategory('official_relay')"
         >
+          <ChevronDown
+            class="w-3 h-3 transition-transform"
+            :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'official_relay' }"
+            :style="{ color: '#3b82f6' }"
+          />
           <span
-            class="inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide"
-            :style="{
-              background: getProviderTypeBadgeStyle(config.provider_type).background,
-              color: getProviderTypeBadgeStyle(config.provider_type).color,
-              border: `1px solid ${getProviderTypeBadgeStyle(config.provider_type).border}`
-            }"
+            class="text-[10px] font-bold uppercase tracking-wide"
+            :style="{ color: '#3b82f6' }"
           >
-            {{ getProviderTypeText(config.provider_type) }}
+            官方中转
+          </span>
+          <span
+            class="text-[9px]"
+            :style="{ color: 'var(--text-muted)' }"
+          >
+            ({{ officialRelayConfigs.length }})
           </span>
         </div>
-
-        <!-- Provider 和 Account -->
-        <div class="space-y-1">
-          <div
-            v-if="config.provider"
-            class="flex items-center gap-1.5 text-[10px]"
-            :style="{ color: 'var(--text-muted)' }"
-          >
-            <Building2 class="w-3 h-3 flex-shrink-0" />
-            <span class="truncate">{{ config.provider }}</span>
-          </div>
-          <div
-            v-if="config.account"
-            class="flex items-center gap-1.5 text-[10px]"
-            :style="{ color: 'var(--text-muted)' }"
-          >
-            <User class="w-3 h-3 flex-shrink-0" />
-            <span class="truncate">{{ config.account }}</span>
-          </div>
+        <div class="space-y-1 ml-1">
+          <ConfigItem
+            v-for="config in officialRelayConfigs"
+            :key="config.name"
+            :config="config"
+            @click="$emit('configClick', config.name)"
+          />
         </div>
+      </div>
 
-        <!-- 悬停效果箭头 -->
-        <div class="mt-2 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-          <ChevronRight
-            class="w-4 h-4 transform group-hover:translate-x-1 transition-transform"
-            :style="{ color: 'var(--accent-primary)' }"
+      <!-- 第三方模型分类 -->
+      <div v-if="thirdPartyConfigs.length > 0 && (expandedCategory === 'all' || expandedCategory === 'third_party_model')">
+        <div
+          class="flex items-center gap-1.5 mb-1.5 cursor-pointer select-none"
+          @click="toggleCategory('third_party_model')"
+        >
+          <ChevronDown
+            class="w-3 h-3 transition-transform"
+            :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'third_party_model' }"
+            :style="{ color: '#a855f7' }"
+          />
+          <span
+            class="text-[10px] font-bold uppercase tracking-wide"
+            :style="{ color: '#a855f7' }"
+          >
+            第三方模型
+          </span>
+          <span
+            class="text-[9px]"
+            :style="{ color: 'var(--text-muted)' }"
+          >
+            ({{ thirdPartyConfigs.length }})
+          </span>
+        </div>
+        <div class="space-y-1 ml-1">
+          <ConfigItem
+            v-for="config in thirdPartyConfigs"
+            :key="config.name"
+            :config="config"
+            @click="$emit('configClick', config.name)"
+          />
+        </div>
+      </div>
+
+      <!-- 未分类 -->
+      <div v-if="uncategorizedConfigs.length > 0 && (expandedCategory === 'all' || expandedCategory === 'uncategorized')">
+        <div
+          class="flex items-center gap-1.5 mb-1.5 cursor-pointer select-none"
+          @click="toggleCategory('uncategorized')"
+        >
+          <ChevronDown
+            class="w-3 h-3 transition-transform"
+            :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'uncategorized' }"
+            :style="{ color: 'var(--text-muted)' }"
+          />
+          <span
+            class="text-[10px] font-bold uppercase tracking-wide"
+            :style="{ color: 'var(--text-muted)' }"
+          >
+            未分类
+          </span>
+          <span
+            class="text-[9px]"
+            :style="{ color: 'var(--text-muted)' }"
+          >
+            ({{ uncategorizedConfigs.length }})
+          </span>
+        </div>
+        <div class="space-y-1 ml-1">
+          <ConfigItem
+            v-for="config in uncategorizedConfigs"
+            :key="config.name"
+            :config="config"
+            @click="$emit('configClick', config.name)"
           />
         </div>
       </div>
@@ -184,73 +174,32 @@
     <!-- 空状态 -->
     <div
       v-if="filteredConfigs.length === 0"
-      class="text-center py-8"
+      class="text-center py-6"
     >
-      <div
-        class="inline-flex p-4 rounded-full mb-3"
-        :style="{ background: 'var(--bg-tertiary)' }"
-      >
-        <Search
-          class="w-6 h-6"
-          :style="{ color: 'var(--text-muted)' }"
-        />
-      </div>
-      <p
-        class="text-sm font-medium mb-1"
-        :style="{ color: 'var(--text-secondary)' }"
-      >
-        未找到配置
-      </p>
+      <Search
+        class="w-5 h-5 mx-auto mb-2"
+        :style="{ color: 'var(--text-muted)' }"
+      />
       <p
         class="text-xs"
         :style="{ color: 'var(--text-muted)' }"
       >
-        当前筛选条件下无配置
+        未找到配置
       </p>
-    </div>
-
-    <!-- 筛选器提示 -->
-    <div
-      v-if="currentFilter !== 'all'"
-      class="mt-5 pt-4"
-      :style="{ borderTop: '1px solid var(--border-color)' }"
-    >
-      <div
-        class="p-3 rounded-lg text-center"
-        :style="{
-          background: 'rgba(99, 102, 241, 0.08)',
-          border: '1px solid rgba(99, 102, 241, 0.2)'
-        }"
-      >
-        <div class="flex items-center justify-center gap-2 text-xs font-medium mb-1">
-          <Filter
-            class="w-3.5 h-3.5"
-            :style="{ color: 'var(--accent-primary)' }"
-          />
-          <span :style="{ color: 'var(--text-secondary)' }">
-            当前筛选
-          </span>
-        </div>
-        <div
-          class="text-xs font-bold uppercase tracking-wide"
-          :style="{ color: 'var(--accent-primary)' }"
-        >
-          {{ getFilterLabel(currentFilter) }}
-        </div>
-      </div>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Building2, User, ChevronRight, Search, Filter } from 'lucide-vue-next'
-import type { ConfigItem } from '@/types'
+import { computed, ref, watch } from 'vue'
+import { ChevronDown, Search } from 'lucide-vue-next'
+import type { ConfigItem as ConfigItemType } from '@/types'
+import ConfigItem from './ConfigItem.vue'
 
 type FilterType = 'all' | 'official_relay' | 'third_party_model' | 'uncategorized'
 
 interface Props {
-  configs: ConfigItem[]
+  configs: ConfigItemType[]
   currentFilter: FilterType
 }
 
@@ -259,6 +208,23 @@ const props = defineProps<Props>()
 defineEmits<{
   configClick: [configName: string]
 }>()
+
+// 当前展开的分类
+const expandedCategory = ref<FilterType>('all')
+
+// 监听外部筛选器变化
+watch(() => props.currentFilter, (newFilter) => {
+  expandedCategory.value = newFilter
+})
+
+// 切换分类展开状态
+const toggleCategory = (category: FilterType) => {
+  if (expandedCategory.value === category) {
+    expandedCategory.value = 'all'
+  } else {
+    expandedCategory.value = category
+  }
+}
 
 // 根据当前筛选器过滤配置
 const filteredConfigs = computed(() => {
@@ -278,64 +244,74 @@ const filteredConfigs = computed(() => {
   return props.configs
 })
 
-// Provider Type 徽章样式
-const getProviderTypeBadgeStyle = (providerType: string) => {
-  if (providerType === 'OfficialRelay' || providerType === 'official_relay') {
-    return {
-      background: 'rgba(59, 130, 246, 0.15)',
-      color: '#3b82f6',
-      border: 'rgba(59, 130, 246, 0.3)'
-    }
-  } else if (providerType === 'ThirdPartyModel' || providerType === 'third_party_model') {
-    return {
-      background: 'rgba(168, 85, 247, 0.15)',
-      color: '#a855f7',
-      border: 'rgba(168, 85, 247, 0.3)'
-    }
-  }
-  return {
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-muted)',
-    border: 'var(--border-color)'
-  }
-}
+// 按分类分组的配置
+const officialRelayConfigs = computed(() => 
+  filteredConfigs.value.filter(
+    c => c.provider_type === 'OfficialRelay' || c.provider_type === 'official_relay'
+  )
+)
 
-// Provider Type 文本
-const getProviderTypeText = (providerType: string): string => {
-  if (providerType === 'OfficialRelay' || providerType === 'official_relay') {
-    return '官方中转'
-  } else if (providerType === 'ThirdPartyModel' || providerType === 'third_party_model') {
-    return '第三方模型'
-  }
-  return providerType
-}
+const thirdPartyConfigs = computed(() => 
+  filteredConfigs.value.filter(
+    c => c.provider_type === 'ThirdPartyModel' || c.provider_type === 'third_party_model'
+  )
+)
 
-// 筛选器标签
-const getFilterLabel = (filter: FilterType): string => {
-  const labels: Record<FilterType, string> = {
-    'all': '全部配置',
-    'official_relay': '官方中转',
-    'third_party_model': '第三方模型',
-    'uncategorized': '未分类'
+const uncategorizedConfigs = computed(() => 
+  filteredConfigs.value.filter(c => !c.provider_type)
+)
+
+// 分类信息
+const categories = computed(() => [
+  {
+    key: 'all' as FilterType,
+    label: '全部',
+    count: props.configs.length,
+    activeBackground: 'rgba(99, 102, 241, 0.15)',
+    activeColor: '#6366f1',
+    activeBorder: 'rgba(99, 102, 241, 0.3)'
+  },
+  {
+    key: 'official_relay' as FilterType,
+    label: '官方中转',
+    count: props.configs.filter(c => c.provider_type === 'OfficialRelay' || c.provider_type === 'official_relay').length,
+    activeBackground: 'rgba(59, 130, 246, 0.15)',
+    activeColor: '#3b82f6',
+    activeBorder: 'rgba(59, 130, 246, 0.3)'
+  },
+  {
+    key: 'third_party_model' as FilterType,
+    label: '第三方',
+    count: props.configs.filter(c => c.provider_type === 'ThirdPartyModel' || c.provider_type === 'third_party_model').length,
+    activeBackground: 'rgba(168, 85, 247, 0.15)',
+    activeColor: '#a855f7',
+    activeBorder: 'rgba(168, 85, 247, 0.3)'
+  },
+  {
+    key: 'uncategorized' as FilterType,
+    label: '未分类',
+    count: props.configs.filter(c => !c.provider_type).length,
+    activeBackground: 'rgba(107, 114, 128, 0.15)',
+    activeColor: '#6b7280',
+    activeBorder: 'rgba(107, 114, 128, 0.3)'
   }
-  return labels[filter]
-}
+])
 </script>
 
 <style scoped>
 /* 自定义滚动条 */
 aside::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 aside::-webkit-scrollbar-track {
   background: var(--bg-tertiary);
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 aside::-webkit-scrollbar-thumb {
   background: var(--border-color);
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 aside::-webkit-scrollbar-thumb:hover {

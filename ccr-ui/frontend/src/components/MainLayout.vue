@@ -9,7 +9,7 @@
             <Zap class="w-6 h-6 text-accent-primary animate-sidebar-item-enter" />
           </div>
           <div class="animate-sidebar-item-enter">
-            <h1 class="text-xl font-bold brand-gradient-text tracking-tight">
+            <h1 class="text-xl font-black brand-gradient-text brand-gradient-text-hover tracking-tight">
               CCR UI
             </h1>
             <p class="text-xs text-text-secondary font-medium">
@@ -198,7 +198,7 @@
               />
             </button>
             <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
-              <span>CCR UI v3.13.2</span>
+              <span>CCR UI v3.13.3</span>
               <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
             </div>
           </div>

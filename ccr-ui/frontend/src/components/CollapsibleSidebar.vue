@@ -112,12 +112,12 @@
               marginTop: itemIndex > 0 ? '4px' : '0',
               marginBottom: '4px',
               background: isActive(item.href)
-                ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(168, 85, 247, 0.95))'
+                ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.95), rgba(139, 92, 246, 0.95))'
                 : 'rgba(255, 255, 255, 0.05)',
               backdropFilter: 'blur(10px)',
               border: isActive(item.href)
-                ? '2px solid rgba(139, 92, 246, 0.8)'
-                : '1px solid rgba(139, 92, 246, 0.2)',
+                ? '2px solid rgba(34, 211, 238, 0.8)'
+                : '1px solid rgba(34, 211, 238, 0.2)',
               boxShadow: isActive(item.href)
                 ? '0 4px 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(168, 85, 247, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
                 : '0 2px 8px rgba(0, 0, 0, 0.1)',
@@ -195,12 +195,12 @@
             :class="isActive(item.href) ? 'scale-110' : 'hover:scale-105'"
             :style="{
               background: isActive(item.href)
-                ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(168, 85, 247, 0.95))'
+                ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.95), rgba(139, 92, 246, 0.95))'
                 : 'rgba(255, 255, 255, 0.05)',
               backdropFilter: 'blur(10px)',
               border: isActive(item.href)
-                ? '2px solid rgba(139, 92, 246, 0.8)'
-                : '1px solid rgba(139, 92, 246, 0.2)',
+                ? '2px solid rgba(34, 211, 238, 0.8)'
+                : '1px solid rgba(34, 211, 238, 0.2)',
               boxShadow: isActive(item.href)
                 ? '0 4px 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(168, 85, 247, 0.3)'
                 : undefined,
