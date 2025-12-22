@@ -777,32 +777,67 @@ let currentEditingConfig = null;
         }
 
         // 编辑配置
-        function editConfig(name) {
-            const config = allConfigs.find(c => c.name === name);
-            if (!config) return;
+        async function editConfig(name) {
+            const cachedConfig = allConfigs.find(c => c.name === name);
+            if (!cachedConfig) return;
 
             currentEditingConfig = name;
             document.getElementById('modalTitle').textContent = '编辑配置';
-            document.getElementById('configName').value = config.name;
-            document.getElementById('configDesc').value = config.description || '';
-            document.getElementById('configBaseUrl').value = config.base_url || '';
-            document.getElementById('configAuthToken').value = config.auth_token || '';
-            document.getElementById('configModel').value = config.model || '';
-            document.getElementById('configSmallModel').value = config.small_fast_model || '';
-
-            // 🆕 填充分类字段
-            document.getElementById('configProviderType').value = config.provider_type || '';
-            document.getElementById('configProvider').value = config.provider || '';
-            document.getElementById('configAccount').value = config.account || '';
-            document.getElementById('configTags').value = config.tags ? config.tags.join(', ') : '';
+            
+            // 先用缓存数据填充表单（快速响应）
+            document.getElementById('configName').value = cachedConfig.name;
+            document.getElementById('configDesc').value = cachedConfig.description || '';
+            document.getElementById('configBaseUrl').value = cachedConfig.base_url || '';
+            document.getElementById('configAuthToken').value = cachedConfig.auth_token || '';
+            document.getElementById('configModel').value = cachedConfig.model || '';
+            document.getElementById('configSmallModel').value = cachedConfig.small_fast_model || '';
+            document.getElementById('configProviderType').value = cachedConfig.provider_type || '';
+            document.getElementById('configProvider').value = cachedConfig.provider || '';
+            document.getElementById('configAccount').value = cachedConfig.account || '';
+            document.getElementById('configTags').value = cachedConfig.tags ? cachedConfig.tags.join(', ') : '';
 
             if (isCodexPlatformActive()) {
-                populateCodexFields(config);
+                populateCodexFields(cachedConfig);
             } else {
                 toggleCodexFieldsSection(false);
             }
 
             document.getElementById('configModal').classList.add('show');
+
+            // 异步获取完整配置（包含完整 token）
+            try {
+                const endpoint = isCodexPlatformActive() 
+                    ? `/api/codex/profiles/${encodeURIComponent(name)}`
+                    : `/api/configs/${encodeURIComponent(name)}`;
+                
+                const response = await fetch(endpoint);
+                if (response.ok) {
+                    const result = await response.json();
+                    const config = result.data || result;
+                    
+                    // 更新表单中的完整 token
+                    if (config.auth_token) {
+                        document.getElementById('configAuthToken').value = config.auth_token;
+                    }
+                    
+                    // 同时更新其他可能变化的字段
+                    if (config.description !== undefined) {
+                        document.getElementById('configDesc').value = config.description || '';
+                    }
+                    if (config.base_url !== undefined) {
+                        document.getElementById('configBaseUrl').value = config.base_url || '';
+                    }
+                    if (config.model !== undefined) {
+                        document.getElementById('configModel').value = config.model || '';
+                    }
+                    if (config.small_fast_model !== undefined) {
+                        document.getElementById('configSmallModel').value = config.small_fast_model || '';
+                    }
+                }
+            } catch (error) {
+                console.warn('获取完整配置失败，使用缓存数据:', error);
+                // 静默失败，继续使用缓存的遮蔽 token
+            }
         }
 
         function resolveConfigEndpoint(name = null) {
