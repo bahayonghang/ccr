@@ -209,12 +209,13 @@ ccr-ui/backend/
 ### 代码风格
 
 - **格式化**: 使用 `cargo fmt`
-- **检查**: 通过 `cargo clippy` 无警告
+- **检查**: 通过 `cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used`
 - **错误处理**: 使用 `Result` 与自定义错误类型
 - **日志**: 使用 `tracing` 结构化日志
 - **文档**: `///` 注释公开 API
 - **原子操作**: 文件写入使用临时文件 + 原子重命名
 - **并发安全**: 使用 Tokio 的异步 I/O
+- **测试代码规范**: 测试模块使用 `#[allow(clippy::unwrap_used)]` 属性允许 `unwrap()`（标准做法）
 
 ---
 
@@ -226,8 +227,11 @@ ccr-ui/backend/
 # 编译检查
 cargo check
 
-# Clippy 检查
-cargo clippy --all-targets --all-features
+# Clippy 检查 (标准)
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+# Clippy 检查 (严格，对齐 CI)
+cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used
 
 # 格式化检查
 cargo fmt --check
@@ -242,8 +246,9 @@ cargo build --release
 ### 质量目标
 
 - ✅ **零编译错误**: 所有代码通过 `cargo check`
-- ✅ **零 Clippy 警告**: 代码符合 Clippy 规则
+- ✅ **零 Clippy 警告**: 代码符合 Clippy 规则（使用 `-D warnings -W clippy::unwrap_used`）
 - ✅ **代码格式化**: 使用 `cargo fmt`
+- ✅ **测试代码规范**: 测试模块允许 `unwrap()` 使用 `#[allow(clippy::unwrap_used)]`
 - 🚧 **单元测试覆盖率**: (待配置) 目标 80%+
 
 ---

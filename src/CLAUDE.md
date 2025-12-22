@@ -221,9 +221,10 @@ src/
 #### 代码风格
 - **Edition**: 2024 (需要 Rust 1.85+)
 - **格式化**: 使用 `cargo fmt` (默认 rustfmt 设置)
-- **检查**: 通过 `cargo clippy` 无警告
+- **检查**: 通过 `cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used`
 - **错误处理**: 使用 `CcrError` 类型,详细错误消息
 - **文档**: 内部逻辑用中文注释,公开 API 用英文
+- **测试代码规范**: 测试模块使用 `#[allow(clippy::unwrap_used)]` 属性允许 `unwrap()`（标准做法）
 
 ---
 
@@ -265,8 +266,11 @@ cargo test test_switch_config
 ### 质量检查
 
 ```bash
-# 代码检查
-cargo clippy --all-targets --all-features
+# 代码检查 (标准)
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+# 代码检查 (严格，对齐 CI)
+cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used
 
 # 格式化检查
 cargo fmt --check
@@ -313,8 +317,9 @@ export CCR_LOG_LEVEL=debug     # 设置日志级别
 just build                     # Debug 构建
 just release                   # Release 构建
 just test                      # 运行测试
-just lint                      # Format + Clippy
-just ci                        # 完整 CI 流程
+just lint                      # Format + Clippy (标准)
+just lint-strict               # Format + Clippy (严格：禁止 unwrap)
+just ci                        # 完整 CI 流程 (使用严格 Clippy)
 ```
 
 ### 安装

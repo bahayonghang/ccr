@@ -149,7 +149,8 @@ ccr/
 - 使用 `Result` 类型与 `?` 操作符
 - 自定义错误类型 `CcrError`/`AppError`
 - 内部注释用中文，公开 API 用英文
-- 格式化：`cargo fmt`，检查：`cargo clippy`
+- 格式化：`cargo fmt`，检查：`cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used`
+- **测试代码规范**：测试模块使用 `#[allow(clippy::unwrap_used)]` 属性允许 `unwrap()`（标准做法）
 
 **TypeScript/Vue**：
 - 使用 `<script setup>` Composition API
@@ -184,8 +185,9 @@ ccr/
 just build          # 构建 Debug
 just release        # 构建 Release
 just test           # 运行测试
-just lint           # Format + Clippy
-just ci             # 完整 CI 流程
+just lint           # Format + Clippy (标准)
+just lint-strict    # Format + Clippy (严格：禁止 unwrap)
+just ci             # 完整 CI 流程 (使用严格 Clippy)
 
 # ccr-ui/ 目录
 cd ccr-ui
@@ -266,8 +268,9 @@ npm run lint                   # 代码检查
 ### 质量目标
 
 - ✅ 零编译/类型错误
-- ✅ 零 Clippy/ESLint 警告
-- ✅ 代码格式化
+- ✅ 零 Clippy/ESLint 警告（使用 `-D warnings -W clippy::unwrap_used`）
+- ✅ 代码格式化（cargo fmt / npm run format）
+- ✅ 测试代码规范：测试模块允许 `unwrap()` 使用 `#[allow(clippy::unwrap_used)]`
 - 🎯 测试覆盖率 95%+ (核心 CLI 已达成)
 
 ---
