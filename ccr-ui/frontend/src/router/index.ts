@@ -135,6 +135,11 @@ const router = createRouter({
           name: 'provider-health',
           component: () => import('@/views/ProviderHealthView.vue')
         },
+        {
+          path: 'checkin',
+          name: 'checkin',
+          component: () => import('@/views/CheckinView.vue')
+        },
         // Codex 子页面
         {
           path: 'codex/mcp',

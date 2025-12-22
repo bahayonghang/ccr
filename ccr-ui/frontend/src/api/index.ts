@@ -338,6 +338,29 @@ export {
   getCostByProject,
   getTopSessions,
   getStatsSummary,
+
+  // Checkin (web-only)
+  listCheckinProviders,
+  getCheckinProvider,
+  createCheckinProvider,
+  updateCheckinProvider,
+  deleteCheckinProvider,
+  listCheckinAccounts,
+  getCheckinAccount,
+  createCheckinAccount,
+  updateCheckinAccount,
+  deleteCheckinAccount,
+  executeCheckin,
+  checkinAccount,
+  queryCheckinBalance,
+  getCheckinBalanceHistory,
+  listCheckinRecords,
+  getAccountCheckinRecords,
+  getTodayCheckinStats,
+  exportCheckinConfig,
+  previewCheckinImport,
+  importCheckinConfig,
+  testCheckinConnection,
 } from './client'
 
 // ===================================

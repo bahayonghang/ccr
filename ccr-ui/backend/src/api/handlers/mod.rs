@@ -3,6 +3,7 @@
 pub mod agents;
 pub mod budget;
 pub mod builtin_prompts;
+pub mod checkin;
 pub mod command;
 pub mod config;
 pub mod converter;

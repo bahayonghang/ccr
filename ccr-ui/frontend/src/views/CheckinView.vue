@@ -1,0 +1,1166 @@
+<template>
+  <div class="checkin-view p-6 space-y-6">
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+          📋 签到管理
+        </h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          管理中转站签到账号，执行一键签到并追踪余额
+        </p>
+      </div>
+      <div class="flex items-center space-x-3">
+        <button
+          :disabled="loading || checkinLoading"
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50 transition-colors"
+          @click="executeCheckinAll"
+        >
+          <svg
+            class="w-5 h-5"
+            :class="{ 'animate-spin': checkinLoading }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <span>{{ checkinLoading ? '签到中...' : '一键签到' }}</span>
+        </button>
+        <button
+          :disabled="loading"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50 transition-colors"
+          @click="loadAllData"
+        >
+          <svg
+            class="w-5 h-5"
+            :class="{ 'animate-spin': loading }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          <span>刷新</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 加载状态 -->
+    <div
+      v-if="loading"
+      class="flex items-center justify-center py-12"
+    >
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+    </div>
+
+    <!-- 错误提示 -->
+    <div
+      v-if="error"
+      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
+    >
+      <div class="flex">
+        <svg
+          class="h-5 w-5 text-red-400"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+            加载失败
+          </h3>
+          <p class="mt-2 text-sm text-red-700 dark:text-red-300">
+            {{ error }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 签到结果弹窗 -->
+    <div
+      v-if="checkinResult"
+      class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4"
+    >
+      <div class="flex items-start justify-between">
+        <div class="flex">
+          <svg
+            class="h-5 w-5 text-green-400"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-green-800 dark:text-green-200">
+              签到完成
+            </h3>
+            <div class="mt-2 text-sm text-green-700 dark:text-green-300">
+              <p>
+                成功: {{ checkinResult.summary.success }} /
+                已签到: {{ checkinResult.summary.already_checked_in }} /
+                失败: {{ checkinResult.summary.failed }} /
+                总计: {{ checkinResult.summary.total }}
+              </p>
+            </div>
+          </div>
+        </div>
+        <button
+          class="text-green-400 hover:text-green-500"
+          @click="checkinResult = null"
+        >
+          <svg
+            class="w-5 h-5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div
+      v-if="!loading && !error"
+      class="space-y-6"
+    >
+      <!-- 今日统计卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            总账号数
+          </p>
+          <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            {{ todayStats?.total_accounts ?? 0 }}
+          </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            今日已签到
+          </p>
+          <p class="mt-2 text-2xl font-bold text-green-600 dark:text-green-400">
+            {{ todayStats?.checked_in ?? 0 }}
+          </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            未签到
+          </p>
+          <p class="mt-2 text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+            {{ todayStats?.not_checked_in ?? 0 }}
+          </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            签到失败
+          </p>
+          <p class="mt-2 text-2xl font-bold text-red-600 dark:text-red-400">
+            {{ todayStats?.failed ?? 0 }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Tab 切换 -->
+      <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="-mb-px flex space-x-8">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+            :class="activeTab === tab.id
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
+            @click="activeTab = tab.id"
+          >
+            {{ tab.icon }} {{ tab.name }}
+          </button>
+        </nav>
+      </div>
+
+      <!-- 提供商管理 Tab -->
+      <div
+        v-if="activeTab === 'providers'"
+        class="space-y-4"
+      >
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            中转站提供商
+          </h2>
+          <button
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+            @click="openProviderModal()"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span>添加提供商</span>
+          </button>
+        </div>
+
+        <!-- 提供商列表 -->
+        <div
+          v-if="providers.length === 0"
+          class="text-center py-12 text-gray-500 dark:text-gray-400"
+        >
+          暂无提供商配置，点击上方按钮添加
+        </div>
+        <div
+          v-else
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
+          <div
+            v-for="provider in providers"
+            :key="provider.id"
+            class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border-l-4"
+            :class="provider.enabled ? 'border-l-green-500' : 'border-l-gray-400'"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="font-semibold text-gray-900 dark:text-white">
+                  {{ provider.name }}
+                </h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
+                  {{ provider.base_url }}
+                </p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button
+                  class="text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  title="编辑"
+                  @click="openProviderModal(provider)"
+                >
+                  <svg
+                    class="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  class="text-red-600 hover:text-red-700 dark:text-red-400"
+                  title="删除"
+                  @click="deleteProvider(provider.id)"
+                >
+                  <svg
+                    class="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mt-3 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+              <span>签到路径: {{ provider.checkin_path }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 账号管理 Tab -->
+      <div
+        v-if="activeTab === 'accounts'"
+        class="space-y-4"
+      >
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            签到账号
+          </h2>
+          <button
+            :disabled="providers.length === 0"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="openAccountModal()"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span>添加账号</span>
+          </button>
+        </div>
+
+        <!-- 账号列表 -->
+        <div
+          v-if="accounts.length === 0"
+          class="text-center py-12 text-gray-500 dark:text-gray-400"
+        >
+          {{ providers.length === 0 ? '请先添加提供商' : '暂无账号，点击上方按钮添加' }}
+        </div>
+        <div
+          v-else
+          class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+        >
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  账号名称
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  提供商
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  API Key
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  余额
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  最后签到
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  操作
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+              <tr
+                v-for="account in accounts"
+                :key="account.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              >
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div
+                      class="w-2 h-2 rounded-full mr-3"
+                      :class="account.enabled ? 'bg-green-400' : 'bg-gray-400'"
+                    />
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">
+                      {{ account.name }}
+                    </span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  {{ account.provider_name || getProviderName(account.provider_id) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-mono">
+                  {{ account.api_key_masked }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  <span
+                    v-if="account.latest_balance !== undefined && account.latest_balance !== null"
+                    class="text-green-600 dark:text-green-400 font-semibold"
+                  >
+                    {{ account.balance_currency || '$' }}{{ account.latest_balance.toFixed(2) }}
+                  </span>
+                  <span
+                    v-else
+                    class="text-gray-400"
+                  >-</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  {{ account.last_checkin_at ? formatDate(account.last_checkin_at) : '-' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                  <button
+                    class="text-green-600 hover:text-green-700 dark:text-green-400"
+                    title="签到"
+                    @click="checkinSingle(account.id)"
+                  >
+                    签到
+                  </button>
+                  <button
+                    class="text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                    title="查余额"
+                    @click="queryBalance(account.id)"
+                  >
+                    余额
+                  </button>
+                  <button
+                    class="text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
+                    title="编辑"
+                    @click="openAccountModal(account)"
+                  >
+                    编辑
+                  </button>
+                  <button
+                    class="text-red-600 hover:text-red-700 dark:text-red-400"
+                    title="删除"
+                    @click="deleteAccount(account.id)"
+                  >
+                    删除
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 签到记录 Tab -->
+      <div
+        v-if="activeTab === 'records'"
+        class="space-y-4"
+      >
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+          签到记录
+        </h2>
+        <div
+          v-if="records.length === 0"
+          class="text-center py-12 text-gray-500 dark:text-gray-400"
+        >
+          暂无签到记录
+        </div>
+        <div
+          v-else
+          class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+        >
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  时间
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  账号
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  状态
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  奖励
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  余额
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  消息
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+              <tr
+                v-for="record in records"
+                :key="record.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              >
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  {{ formatDate(record.checked_in_at) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  {{ getAccountName(record.account_id) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span
+                    class="px-2 py-1 text-xs font-medium rounded-full"
+                    :class="getStatusClass(record.status)"
+                  >
+                    {{ getStatusText(record.status) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
+                  {{ record.reward || '-' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                  {{ record.message || '-' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 导入导出 Tab -->
+      <div
+        v-if="activeTab === 'import-export'"
+        class="space-y-6"
+      >
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+          导入 / 导出
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 导出 -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              导出配置
+            </h3>
+            <div class="space-y-4">
+              <label class="flex items-center">
+                <input
+                  v-model="exportOptions.include_plaintext_keys"
+                  type="checkbox"
+                  class="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                >
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  包含明文 API Key (危险)
+                </span>
+              </label>
+              <label class="flex items-center">
+                <input
+                  v-model="exportOptions.providers_only"
+                  type="checkbox"
+                  class="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                >
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  仅导出提供商
+                </span>
+              </label>
+              <button
+                class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                @click="handleExport"
+              >
+                导出 JSON
+              </button>
+            </div>
+          </div>
+
+          <!-- 导入 -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              导入配置
+            </h3>
+            <div class="space-y-4">
+              <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                <input
+                  ref="importFileInput"
+                  type="file"
+                  accept=".json"
+                  class="hidden"
+                  @change="handleFileSelect"
+                >
+                <button
+                  class="w-full text-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  @click="($refs.importFileInput as HTMLInputElement).click()"
+                >
+                  点击选择 JSON 文件
+                </button>
+              </div>
+              <div
+                v-if="importPreview"
+                class="text-sm text-gray-600 dark:text-gray-400"
+              >
+                <p>新提供商: {{ importPreview.new_providers }}</p>
+                <p>新账号: {{ importPreview.new_accounts }}</p>
+                <p>冲突项: {{ importPreview.conflicting_providers + importPreview.conflicting_accounts }}</p>
+              </div>
+              <select
+                v-model="importConflictStrategy"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="skip">
+                  跳过冲突项
+                </option>
+                <option value="overwrite">
+                  覆盖冲突项
+                </option>
+              </select>
+              <button
+                :disabled="!importData"
+                class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                @click="handleImport"
+              >
+                执行导入
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 提供商编辑弹窗 -->
+    <div
+      v-if="showProviderModal"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      @click.self="showProviderModal = false"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          {{ editingProvider ? '编辑提供商' : '添加提供商' }}
+        </h3>
+        <form
+          class="space-y-4"
+          @submit.prevent="saveProvider"
+        >
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              名称 *
+            </label>
+            <input
+              v-model="providerForm.name"
+              type="text"
+              required
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="例如: OpenRouter"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Base URL *
+            </label>
+            <input
+              v-model="providerForm.base_url"
+              type="url"
+              required
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="https://api.example.com"
+            >
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                签到路径
+              </label>
+              <input
+                v-model="providerForm.checkin_path"
+                type="text"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="/api/user/checkin"
+              >
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                余额路径
+              </label>
+              <input
+                v-model="providerForm.balance_path"
+                type="text"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="/api/user/dashboard"
+              >
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                认证 Header
+              </label>
+              <input
+                v-model="providerForm.auth_header"
+                type="text"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Authorization"
+              >
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                认证前缀
+              </label>
+              <input
+                v-model="providerForm.auth_prefix"
+                type="text"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Bearer "
+              >
+            </div>
+          </div>
+          <div class="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              @click="showProviderModal = false"
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+            >
+              保存
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 账号编辑弹窗 -->
+    <div
+      v-if="showAccountModal"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      @click.self="showAccountModal = false"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          {{ editingAccount ? '编辑账号' : '添加账号' }}
+        </h3>
+        <form
+          class="space-y-4"
+          @submit.prevent="saveAccount"
+        >
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              提供商 *
+            </label>
+            <select
+              v-model="accountForm.provider_id"
+              required
+              :disabled="!!editingAccount"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+            >
+              <option value="">
+                选择提供商
+              </option>
+              <option
+                v-for="p in providers"
+                :key="p.id"
+                :value="p.id"
+              >
+                {{ p.name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              账号名称 *
+            </label>
+            <input
+              v-model="accountForm.name"
+              type="text"
+              required
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="例如: 主账号"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              API Key {{ editingAccount ? '(留空不修改)' : '*' }}
+            </label>
+            <input
+              v-model="accountForm.api_key"
+              type="password"
+              :required="!editingAccount"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono"
+              placeholder="sk-xxx..."
+            >
+          </div>
+          <div class="flex items-center">
+            <input
+              id="account-enabled"
+              v-model="accountForm.enabled"
+              type="checkbox"
+              class="w-4 h-4 text-blue-600 border-gray-300 rounded"
+            >
+            <label
+              for="account-enabled"
+              class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+            >
+              启用此账号
+            </label>
+          </div>
+          <div class="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              @click="showAccountModal = false"
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+            >
+              保存
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import {
+  listCheckinProviders,
+  createCheckinProvider,
+  updateCheckinProvider,
+  deleteCheckinProvider as apiDeleteProvider,
+  listCheckinAccounts,
+  createCheckinAccount,
+  updateCheckinAccount,
+  deleteCheckinAccount as apiDeleteAccount,
+  executeCheckin,
+  checkinAccount,
+  queryCheckinBalance,
+  listCheckinRecords,
+  getTodayCheckinStats,
+  exportCheckinConfig,
+  previewCheckinImport,
+  importCheckinConfig,
+} from '@/api/client'
+import type {
+  CheckinProvider,
+  AccountInfo,
+  CheckinRecordInfo,
+  TodayCheckinStats,
+  CheckinResponse,
+  ExportData,
+  ImportPreviewResponse,
+} from '@/types/checkin'
+
+// 状态
+const loading = ref(false)
+const checkinLoading = ref(false)
+const error = ref<string | null>(null)
+const activeTab = ref<'providers' | 'accounts' | 'records' | 'import-export'>('accounts')
+
+// 数据
+const providers = ref<CheckinProvider[]>([])
+const accounts = ref<AccountInfo[]>([])
+const records = ref<CheckinRecordInfo[]>([])
+const todayStats = ref<TodayCheckinStats | null>(null)
+const checkinResult = ref<CheckinResponse | null>(null)
+
+// Tab 配置
+const tabs = [
+  { id: 'accounts' as const, name: '账号管理', icon: '👤' },
+  { id: 'providers' as const, name: '提供商', icon: '🏢' },
+  { id: 'records' as const, name: '签到记录', icon: '📜' },
+  { id: 'import-export' as const, name: '导入导出', icon: '📦' },
+]
+
+// 弹窗状态
+const showProviderModal = ref(false)
+const showAccountModal = ref(false)
+const editingProvider = ref<CheckinProvider | null>(null)
+const editingAccount = ref<AccountInfo | null>(null)
+
+// 表单
+const providerForm = ref({
+  name: '',
+  base_url: '',
+  checkin_path: '/api/user/checkin',
+  balance_path: '/api/user/dashboard',
+  user_info_path: '/api/user/self',
+  auth_header: 'Authorization',
+  auth_prefix: 'Bearer ',
+})
+
+const accountForm = ref({
+  provider_id: '',
+  name: '',
+  api_key: '',
+  enabled: true,
+})
+
+// 导入导出
+const exportOptions = ref({
+  include_plaintext_keys: false,
+  providers_only: false,
+})
+const importData = ref<ExportData | null>(null)
+const importPreview = ref<ImportPreviewResponse | null>(null)
+const importConflictStrategy = ref<'skip' | 'overwrite'>('skip')
+
+// 加载所有数据
+const loadAllData = async () => {
+  loading.value = true
+  error.value = null
+
+  try {
+    const [providersRes, accountsRes, recordsRes, statsRes] = await Promise.all([
+      listCheckinProviders(),
+      listCheckinAccounts(),
+      listCheckinRecords(100),
+      getTodayCheckinStats(),
+    ])
+
+    providers.value = providersRes.providers
+    accounts.value = accountsRes.accounts
+    records.value = recordsRes.records
+    todayStats.value = statsRes
+  } catch (e: any) {
+    error.value = e.message || '加载失败'
+    console.error('Failed to load checkin data:', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 执行全部签到
+const executeCheckinAll = async () => {
+  checkinLoading.value = true
+  checkinResult.value = null
+
+  try {
+    const result = await executeCheckin()
+    checkinResult.value = result
+    await loadAllData()
+  } catch (e: any) {
+    alert('签到失败: ' + (e.message || '未知错误'))
+    console.error('Checkin failed:', e)
+  } finally {
+    checkinLoading.value = false
+  }
+}
+
+// 单个账号签到
+const checkinSingle = async (accountId: string) => {
+  try {
+    const result = await checkinAccount(accountId)
+    alert(`签到${result.status === 'Success' ? '成功' : result.status === 'AlreadyCheckedIn' ? '：今日已签到' : '失败'}: ${result.message || ''}`)
+    await loadAllData()
+  } catch (e: any) {
+    alert('签到失败: ' + (e.message || '未知错误'))
+  }
+}
+
+// 查询余额
+const queryBalance = async (accountId: string) => {
+  try {
+    const result = await queryCheckinBalance(accountId)
+    alert(`余额: ${result.currency}${result.remaining_quota.toFixed(2)} (已用: ${result.usage_percentage.toFixed(1)}%)`)
+    await loadAllData()
+  } catch (e: any) {
+    alert('查询余额失败: ' + (e.message || '未知错误'))
+  }
+}
+
+// 提供商操作
+const openProviderModal = (provider?: CheckinProvider) => {
+  editingProvider.value = provider || null
+  if (provider) {
+    providerForm.value = {
+      name: provider.name,
+      base_url: provider.base_url,
+      checkin_path: provider.checkin_path,
+      balance_path: provider.balance_path,
+      user_info_path: provider.user_info_path,
+      auth_header: provider.auth_header,
+      auth_prefix: provider.auth_prefix,
+    }
+  } else {
+    providerForm.value = {
+      name: '',
+      base_url: '',
+      checkin_path: '/api/user/checkin',
+      balance_path: '/api/user/dashboard',
+      user_info_path: '/api/user/self',
+      auth_header: 'Authorization',
+      auth_prefix: 'Bearer ',
+    }
+  }
+  showProviderModal.value = true
+}
+
+const saveProvider = async () => {
+  try {
+    if (editingProvider.value) {
+      await updateCheckinProvider(editingProvider.value.id, providerForm.value)
+    } else {
+      await createCheckinProvider(providerForm.value)
+    }
+    showProviderModal.value = false
+    await loadAllData()
+  } catch (e: any) {
+    alert('保存失败: ' + (e.message || '未知错误'))
+  }
+}
+
+const deleteProvider = async (id: string) => {
+  if (!confirm('确定要删除此提供商吗？相关账号也会被删除。')) return
+  try {
+    await apiDeleteProvider(id)
+    await loadAllData()
+  } catch (e: any) {
+    alert('删除失败: ' + (e.message || '未知错误'))
+  }
+}
+
+// 账号操作
+const openAccountModal = (account?: AccountInfo) => {
+  editingAccount.value = account || null
+  if (account) {
+    accountForm.value = {
+      provider_id: account.provider_id,
+      name: account.name,
+      api_key: '',
+      enabled: account.enabled,
+    }
+  } else {
+    accountForm.value = {
+      provider_id: providers.value[0]?.id || '',
+      name: '',
+      api_key: '',
+      enabled: true,
+    }
+  }
+  showAccountModal.value = true
+}
+
+const saveAccount = async () => {
+  try {
+    if (editingAccount.value) {
+      const updateData: { name?: string; api_key?: string; enabled?: boolean } = {
+        name: accountForm.value.name,
+        enabled: accountForm.value.enabled,
+      }
+      if (accountForm.value.api_key) {
+        updateData.api_key = accountForm.value.api_key
+      }
+      await updateCheckinAccount(editingAccount.value.id, updateData)
+    } else {
+      await createCheckinAccount({
+        provider_id: accountForm.value.provider_id,
+        name: accountForm.value.name,
+        api_key: accountForm.value.api_key,
+      })
+    }
+    showAccountModal.value = false
+    await loadAllData()
+  } catch (e: any) {
+    alert('保存失败: ' + (e.message || '未知错误'))
+  }
+}
+
+const deleteAccount = async (id: string) => {
+  if (!confirm('确定要删除此账号吗？')) return
+  try {
+    await apiDeleteAccount(id)
+    await loadAllData()
+  } catch (e: any) {
+    alert('删除失败: ' + (e.message || '未知错误'))
+  }
+}
+
+// 导入导出
+const handleExport = async () => {
+  try {
+    const data = await exportCheckinConfig(exportOptions.value)
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `checkin-config-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e: any) {
+    alert('导出失败: ' + (e.message || '未知错误'))
+  }
+}
+
+const handleFileSelect = async (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+
+  try {
+    const text = await file.text()
+    const data = JSON.parse(text) as ExportData
+    importData.value = data
+    importPreview.value = await previewCheckinImport(data)
+  } catch (e: any) {
+    alert('解析文件失败: ' + (e.message || '未知错误'))
+    importData.value = null
+    importPreview.value = null
+  }
+}
+
+const handleImport = async () => {
+  if (!importData.value) return
+
+  try {
+    const result = await importCheckinConfig({
+      data: importData.value,
+      options: { conflict_strategy: importConflictStrategy.value },
+    })
+    alert(`导入完成: 提供商 ${result.providers_imported} 个, 账号 ${result.accounts_imported} 个`)
+    importData.value = null
+    importPreview.value = null
+    await loadAllData()
+  } catch (e: any) {
+    alert('导入失败: ' + (e.message || '未知错误'))
+  }
+}
+
+// 辅助函数
+const getProviderName = (providerId: string) => {
+  return providers.value.find(p => p.id === providerId)?.name || providerId
+}
+
+const getAccountName = (accountId: string) => {
+  return accounts.value.find(a => a.id === accountId)?.name || accountId
+}
+
+const formatDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleString('zh-CN')
+}
+
+const getStatusClass = (status: string) => {
+  switch (status) {
+    case 'Success':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+    case 'AlreadyCheckedIn':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+    case 'Failed':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+  }
+}
+
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'Success':
+      return '成功'
+    case 'AlreadyCheckedIn':
+      return '已签到'
+    case 'Failed':
+      return '失败'
+    default:
+      return status
+  }
+}
+
+onMounted(() => {
+  loadAllData()
+})
+</script>

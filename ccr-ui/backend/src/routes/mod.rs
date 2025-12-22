@@ -4,6 +4,7 @@
 pub mod agents_routes;
 pub mod budget_routes;
 pub mod builtin_prompts_routes;
+pub mod checkin_routes;
 pub mod codex_routes;
 pub mod command_routes;
 pub mod config_routes;
@@ -137,7 +138,9 @@ fn create_api_routes() -> Router {
         // Sessions 管理
         .merge(sessions_routes::routes())
         // Provider 健康检查
-        .merge(provider_health_routes::routes());
+        .merge(provider_health_routes::routes())
+        // 签到管理
+        .merge(checkin_routes::routes());
 
     apply_middleware(app)
 }
