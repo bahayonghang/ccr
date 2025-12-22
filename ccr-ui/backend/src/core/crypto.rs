@@ -233,8 +233,12 @@ mod tests {
             .expect("Failed to create CryptoManager for test");
 
         let original = "sk-1234567890abcdef";
-        let encrypted = crypto.encrypt(original).expect("Failed to encrypt test data");
-        let decrypted = crypto.decrypt(&encrypted).expect("Failed to decrypt test data");
+        let encrypted = crypto
+            .encrypt(original)
+            .expect("Failed to encrypt test data");
+        let decrypted = crypto
+            .decrypt(&encrypted)
+            .expect("Failed to decrypt test data");
 
         assert_eq!(original, decrypted);
         assert_ne!(original, encrypted); // 确保已加密
@@ -283,14 +287,18 @@ mod tests {
         let encrypted = {
             let crypto =
                 CryptoManager::new(&path).expect("Failed to create CryptoManager for test 1");
-            crypto.encrypt(original).expect("Failed to encrypt test data")
+            crypto
+                .encrypt(original)
+                .expect("Failed to encrypt test data")
         };
 
         // 重新加载并解密
         let decrypted = {
             let crypto =
                 CryptoManager::new(&path).expect("Failed to create CryptoManager for test 2");
-            crypto.decrypt(&encrypted).expect("Failed to decrypt test data")
+            crypto
+                .decrypt(&encrypted)
+                .expect("Failed to decrypt test data")
         };
 
         assert_eq!(original, decrypted);

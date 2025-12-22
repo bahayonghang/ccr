@@ -281,8 +281,8 @@ description = "Test Config"
 base_url = "https://example.com"
 "#;
 
-        let mut editor = ConfigEditor::from_str(content)
-            .expect("Failed to parse test TOML content");
+        let mut editor =
+            ConfigEditor::from_str(content).expect("Failed to parse test TOML content");
         editor
             .set_value("test", "model", "gpt-4")
             .expect("Failed to set test value");

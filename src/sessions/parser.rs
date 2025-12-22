@@ -478,8 +478,7 @@ mod tests {
 "#;
 
         let path = create_test_jsonl(content);
-        let session = SessionParser::parse_claude(&path)
-            .expect("Failed to parse test session");
+        let session = SessionParser::parse_claude(&path).expect("Failed to parse test session");
 
         assert_eq!(session.id, "test-123");
         assert_eq!(session.platform, Platform::Claude);
