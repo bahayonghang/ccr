@@ -131,7 +131,7 @@
       <!-- Version Info -->
       <div class="p-4 border-t border-border-color">
         <div class="text-xs text-text-muted flex items-center justify-between">
-          <span>CCR UI v3.13.1</span>
+          <span>CCR UI v3.13.2</span>
           <span class="animate-pulse-subtle">●</span>
         </div>
       </div>
