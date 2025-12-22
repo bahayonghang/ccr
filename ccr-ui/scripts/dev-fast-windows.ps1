@@ -119,7 +119,8 @@ try {
     $ErrorActionPreference = "Continue"
 
     # Frontend runs in foreground with live output (传递端口参数)
-    cmd /c "bun run dev -- --port $VitePort 2>&1 || exit 0" | Tee-Object -FilePath "$RootDir/logs/frontend.log" -Append
+    # --host 0.0.0.0 allows access from LAN IP addresses
+    cmd /c "bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 || exit 0" | Tee-Object -FilePath "$RootDir/logs/frontend.log" -Append
 } finally {
     # Cleanup: Stop backend job
     Write-Host ""

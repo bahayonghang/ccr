@@ -112,7 +112,8 @@ try {
     # Frontend runs in foreground with live output, also writes to log (传递端口参数)
     # Use cmd /c to prevent PowerShell from treating stderr as terminating error
     # The '|| exit 0' ensures that if the process is killed (e.g. Ctrl+C), it doesn't return failure to Just
-    cmd /c "bun run dev -- --port $VitePort 2>&1 || exit 0" | Tee-Object -FilePath "$RootDir/logs/frontend.log" -Append
+    # --host 0.0.0.0 allows access from LAN IP addresses
+    cmd /c "bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 || exit 0" | Tee-Object -FilePath "$RootDir/logs/frontend.log" -Append
 } finally {
     # Cleanup: Stop backend job
     Write-Host ""

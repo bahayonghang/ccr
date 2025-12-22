@@ -22,8 +22,9 @@ is_macos := if os() == "macos" { "true" } else { "false" }
 is_linux := if os() == "linux" { "true" } else { "false" }
 
 # 🔧 端口配置（支持环境变量覆盖）
-vite_port := env("VITE_PORT", "5173")
-backend_port := env("BACKEND_PORT", "38081")
+# 使用高位端口避免与 VS Code Server 等服务冲突
+vite_port := env("VITE_PORT", "15173")
+backend_port := env("BACKEND_PORT", "48081")
 
 # 默认命令：显示帮助信息
 default:
