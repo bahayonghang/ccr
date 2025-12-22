@@ -422,7 +422,10 @@ pub struct McpSyncManager {
 impl McpSyncManager {
     /// 创建同步管理器
     pub fn new() -> Self {
-        let home = dirs::home_dir().unwrap_or_default();
+        let home = dirs::home_dir().unwrap_or_else(|| {
+            tracing::warn!("无法获取用户主目录，使用空路径");
+            PathBuf::new()
+        });
         Self {
             source: Platform::Claude,
             source_dir: home.join(".claude"),

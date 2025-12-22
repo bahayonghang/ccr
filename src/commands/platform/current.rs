@@ -39,7 +39,10 @@ pub fn platform_current_command(json: bool) -> Result<()> {
     // 获取 profile 列表
     let profiles = if let Ok(platform) = Platform::from_str(current_platform) {
         if let Ok(platform_impl) = create_platform(platform) {
-            platform_impl.list_profile_names().unwrap_or_default()
+            platform_impl.list_profile_names().unwrap_or_else(|e| {
+                tracing::debug!("获取 profile 列表失败: {}", e);
+                Vec::new()
+            })
         } else {
             Vec::new()
         }

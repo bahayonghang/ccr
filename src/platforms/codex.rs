@@ -17,6 +17,7 @@ use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use tracing::debug;
 
 /// 💻 Codex Platform 实现
 ///
@@ -239,7 +240,10 @@ impl CodexPlatform {
             .clone()
             .or_else(|| profile.provider.clone())
             .unwrap_or_else(|| provider_id.clone());
-        let base_url = profile.base_url.clone().unwrap_or_default();
+        let base_url = profile.base_url.clone().unwrap_or_else(|| {
+            debug!("Codex profile {} 未配置 base_url，使用空字符串", name);
+            String::new()
+        });
         let wire_api = Self::resolve_wire_api(profile)?;
         let env_key = Self::resolve_env_key(profile, &provider_id);
         let requires_auth = Self::platform_bool(profile, "requires_openai_auth").unwrap_or(true);

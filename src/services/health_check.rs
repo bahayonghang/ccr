@@ -104,7 +104,10 @@ impl HealthCheckService {
             .clone()
             .unwrap_or_else(|| "https://api.anthropic.com".to_string());
 
-        let api_key = config.auth_token.clone().unwrap_or_default();
+        let api_key = config.auth_token.clone().unwrap_or_else(|| {
+            debug!("Provider {} 未配置 API Key", name);
+            String::new()
+        });
 
         info!("检查 Provider: {} ({})", name, base_url);
 
