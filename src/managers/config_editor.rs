@@ -220,6 +220,7 @@ impl ConfigEditor {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -280,8 +281,11 @@ description = "Test Config"
 base_url = "https://example.com"
 "#;
 
-        let mut editor = ConfigEditor::from_str(content).unwrap();
-        editor.set_value("test", "model", "gpt-4").unwrap();
+        let mut editor = ConfigEditor::from_str(content)
+            .expect("Failed to parse test TOML content");
+        editor
+            .set_value("test", "model", "gpt-4")
+            .expect("Failed to set test value");
 
         let output = editor.as_str();
         // 验证注释被保留

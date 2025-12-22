@@ -221,18 +221,20 @@ pub fn mask_api_key(api_key: &str) -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::TempDir;
 
     #[test]
     fn test_encrypt_decrypt() {
-        let temp_dir = TempDir::new().unwrap();
-        let crypto = CryptoManager::new(&temp_dir.path().to_path_buf()).unwrap();
+        let temp_dir = TempDir::new().expect("Failed to create temp dir for test");
+        let crypto = CryptoManager::new(&temp_dir.path().to_path_buf())
+            .expect("Failed to create CryptoManager for test");
 
         let original = "sk-1234567890abcdef";
-        let encrypted = crypto.encrypt(original).unwrap();
-        let decrypted = crypto.decrypt(&encrypted).unwrap();
+        let encrypted = crypto.encrypt(original).expect("Failed to encrypt test data");
+        let decrypted = crypto.decrypt(&encrypted).expect("Failed to decrypt test data");
 
         assert_eq!(original, decrypted);
         assert_ne!(original, encrypted); // 确保已加密
@@ -240,38 +242,55 @@ mod tests {
 
     #[test]
     fn test_different_nonces() {
-        let temp_dir = TempDir::new().unwrap();
-        let crypto = CryptoManager::new(&temp_dir.path().to_path_buf()).unwrap();
+        let temp_dir = TempDir::new().expect("Failed to create temp dir for test");
+        let crypto = CryptoManager::new(&temp_dir.path().to_path_buf())
+            .expect("Failed to create CryptoManager for test");
 
         let original = "sk-1234567890abcdef";
-        let encrypted1 = crypto.encrypt(original).unwrap();
-        let encrypted2 = crypto.encrypt(original).unwrap();
+        let encrypted1 = crypto
+            .encrypt(original)
+            .expect("Failed to encrypt test data 1");
+        let encrypted2 = crypto
+            .encrypt(original)
+            .expect("Failed to encrypt test data 2");
 
         // 每次加密应该产生不同的密文（因为 nonce 不同）
         assert_ne!(encrypted1, encrypted2);
 
         // 但都能正确解密
-        assert_eq!(original, crypto.decrypt(&encrypted1).unwrap());
-        assert_eq!(original, crypto.decrypt(&encrypted2).unwrap());
+        assert_eq!(
+            original,
+            crypto
+                .decrypt(&encrypted1)
+                .expect("Failed to decrypt test data 1")
+        );
+        assert_eq!(
+            original,
+            crypto
+                .decrypt(&encrypted2)
+                .expect("Failed to decrypt test data 2")
+        );
     }
 
     #[test]
     fn test_key_persistence() {
-        let temp_dir = TempDir::new().unwrap();
+        let temp_dir = TempDir::new().expect("Failed to create temp dir for test");
         let path = temp_dir.path().to_path_buf();
 
         let original = "sk-test-api-key";
 
         // 第一次创建并加密
         let encrypted = {
-            let crypto = CryptoManager::new(&path).unwrap();
-            crypto.encrypt(original).unwrap()
+            let crypto =
+                CryptoManager::new(&path).expect("Failed to create CryptoManager for test 1");
+            crypto.encrypt(original).expect("Failed to encrypt test data")
         };
 
         // 重新加载并解密
         let decrypted = {
-            let crypto = CryptoManager::new(&path).unwrap();
-            crypto.decrypt(&encrypted).unwrap()
+            let crypto =
+                CryptoManager::new(&path).expect("Failed to create CryptoManager for test 2");
+            crypto.decrypt(&encrypted).expect("Failed to decrypt test data")
         };
 
         assert_eq!(original, decrypted);

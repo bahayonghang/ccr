@@ -448,7 +448,7 @@ mod tests {
             failed: 1,
         };
 
-        let json = serde_json::to_string(&summary).unwrap();
+        let json = serde_json::to_string(&summary).expect("Failed to serialize test summary");
         assert!(json.contains("\"total\":10"));
         assert!(json.contains("\"success\":7"));
     }
@@ -456,18 +456,26 @@ mod tests {
     #[test]
     fn test_accounts_query_deserialization() {
         let json = r#"{"provider_id": "test-provider"}"#;
-        let query: AccountsQuery = serde_json::from_str(json).unwrap();
+        let query: AccountsQuery =
+            serde_json::from_str(json).expect("Failed to deserialize test AccountsQuery");
         assert_eq!(query.provider_id, Some("test-provider".to_string()));
     }
 
     #[test]
     fn test_checkin_request_deserialization() {
         let json = r#"{"account_ids": ["acc-1", "acc-2"]}"#;
-        let req: CheckinRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(req.account_ids.unwrap().len(), 2);
+        let req: CheckinRequest =
+            serde_json::from_str(json).expect("Failed to deserialize test CheckinRequest");
+        assert_eq!(
+            req.account_ids
+                .expect("account_ids should exist in test")
+                .len(),
+            2
+        );
 
         let json_empty = r#"{}"#;
-        let req_empty: CheckinRequest = serde_json::from_str(json_empty).unwrap();
+        let req_empty: CheckinRequest = serde_json::from_str(json_empty)
+            .expect("Failed to deserialize empty test CheckinRequest");
         assert!(req_empty.account_ids.is_none());
     }
 }

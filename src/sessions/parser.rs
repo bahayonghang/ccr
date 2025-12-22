@@ -462,10 +462,10 @@ mod tests {
     use tempfile::tempdir;
 
     fn create_test_jsonl(content: &str) -> PathBuf {
-        let dir = tempdir().unwrap();
+        let dir = tempdir().expect("Failed to create temp directory for test");
         let file_path = dir.path().join("test.jsonl");
-        let mut file = File::create(&file_path).unwrap();
-        write!(file, "{}", content).unwrap();
+        let mut file = File::create(&file_path).expect("Failed to create test JSONL file");
+        write!(file, "{}", content).expect("Failed to write test JSONL content");
         std::mem::forget(dir); // 保持目录存活
         file_path
     }
@@ -478,7 +478,8 @@ mod tests {
 "#;
 
         let path = create_test_jsonl(content);
-        let session = SessionParser::parse_claude(&path).unwrap();
+        let session = SessionParser::parse_claude(&path)
+            .expect("Failed to parse test session");
 
         assert_eq!(session.id, "test-123");
         assert_eq!(session.platform, Platform::Claude);

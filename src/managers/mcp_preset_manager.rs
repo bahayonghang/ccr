@@ -602,11 +602,15 @@ mod tests {
 
     #[test]
     fn test_get_preset() {
-        let manager = McpPresetManager::new(Platform::Claude).unwrap();
+        let manager = McpPresetManager::new(Platform::Claude)
+            .expect("Failed to create McpPresetManager for test");
 
         let fetch = manager.get_preset("fetch");
         assert!(fetch.is_some());
-        assert_eq!(fetch.unwrap().name, "mcp-server-fetch");
+        assert_eq!(
+            fetch.expect("fetch preset should exist").name,
+            "mcp-server-fetch"
+        );
 
         let nonexistent = manager.get_preset("nonexistent");
         assert!(nonexistent.is_none());
