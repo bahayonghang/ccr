@@ -173,6 +173,17 @@
               />
               <span class="font-medium">{{ $t('nav.usage') }}</span>
             </RouterLink>
+            <RouterLink
+              to="/checkin"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
+            >
+              <ClipboardCheck
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #f59e0b;"
+              />
+              <span class="font-medium">{{ $t('nav.checkin') }}</span>
+            </RouterLink>
           </div>
         </div>
       </nav>
@@ -198,7 +209,7 @@
               />
             </button>
             <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
-              <span>CCR UI v3.13.3</span>
+              <span>CCR UI v3.14.0</span>
               <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
             </div>
           </div>
@@ -226,7 +237,8 @@ import {
   TrendingUp,
   Cloud,
   Moon,
-  Sun
+  Sun,
+  ClipboardCheck
 } from 'lucide-vue-next'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { useThemeStore } from '@/store'

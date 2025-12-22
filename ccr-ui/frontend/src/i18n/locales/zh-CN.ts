@@ -107,6 +107,7 @@ export default {
     license: 'MIT License',
     mainModules: '主要模块',
     toolsCenter: '工具中心',
+    checkin: '签到管理',
   },
   home: {
     title: 'CCR UI',
