@@ -82,14 +82,32 @@ pub struct CheckinService {
     client: Client,
 }
 
+/// 默认 User-Agent
+const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
 impl CheckinService {
-    /// 创建新的签到服务
+    /// 创建新的签到服务（默认使用系统代理）
     pub fn new(checkin_dir: PathBuf) -> Self {
+        // 尝试从环境变量获取代理
+        // reqwest 默认会读取 HTTP_PROXY, HTTPS_PROXY, ALL_PROXY 等环境变量
         let client = Client::builder()
             .timeout(Duration::from_secs(30))
             .cookie_store(true)
+            .user_agent(DEFAULT_USER_AGENT)
+            // 注意：不调用 .no_proxy()，让 reqwest 自动使用系统代理
+            // 系统代理通过环境变量配置：HTTP_PROXY, HTTPS_PROXY, ALL_PROXY
             .build()
             .expect("Failed to create HTTP client");
+
+        // 记录代理状态
+        if let Ok(proxy) = std::env::var("HTTPS_PROXY")
+            .or_else(|_| std::env::var("HTTP_PROXY"))
+            .or_else(|_| std::env::var("ALL_PROXY"))
+        {
+            tracing::info!("📡 签到服务使用系统代理: {}", proxy);
+        } else {
+            tracing::debug!("📡 签到服务未检测到系统代理，直连模式");
+        }
 
         Self {
             checkin_dir,

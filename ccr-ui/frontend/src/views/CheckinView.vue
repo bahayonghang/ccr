@@ -204,102 +204,201 @@
       <!-- 提供商管理 Tab -->
       <div
         v-if="activeTab === 'providers'"
-        class="space-y-4"
+        class="space-y-6"
       >
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-            中转站提供商
-          </h2>
-          <button
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
-            @click="openProviderModal()"
-          >
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <!-- 内置中转站区域 -->
+        <div v-if="availableBuiltinProviders.length > 0">
+          <div class="flex items-center space-x-2 mb-4">
+            <span class="text-lg">🏪</span>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              内置中转站
+            </h2>
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+              ({{ availableBuiltinProviders.length }})
+            </span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div
+              v-for="bp in availableBuiltinProviders"
+              :key="bp.id"
+              class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-sm p-4 border border-blue-100 dark:border-gray-600 hover:shadow-md transition-all"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            <span>添加提供商</span>
-          </button>
-        </div>
-
-        <!-- 提供商列表 -->
-        <div
-          v-if="providers.length === 0"
-          class="text-center py-12 text-gray-500 dark:text-gray-400"
-        >
-          暂无提供商配置，点击上方按钮添加
-        </div>
-        <div
-          v-else
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-        >
-          <div
-            v-for="provider in providers"
-            :key="provider.id"
-            class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border-l-4"
-            :class="provider.enabled ? 'border-l-green-500' : 'border-l-gray-400'"
-          >
-            <div class="flex items-start justify-between">
-              <div>
-                <h3 class="font-semibold text-gray-900 dark:text-white">
-                  {{ provider.name }}
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
-                  {{ provider.base_url }}
-                </p>
+              <div class="flex items-start justify-between">
+                <div class="flex items-center space-x-3">
+                  <span class="text-2xl">{{ bp.icon }}</span>
+                  <div>
+                    <div class="flex items-center space-x-2">
+                      <h3 class="font-semibold text-gray-900 dark:text-white">
+                        {{ bp.name }}
+                      </h3>
+                      <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded">
+                        内置
+                      </span>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                      {{ bp.domain }}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1"
+                  @click="addBuiltinProvider(bp.id)"
+                >
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  <span>添加</span>
+                </button>
               </div>
-              <div class="flex items-center space-x-2">
-                <button
-                  class="text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                  title="编辑"
-                  @click="openProviderModal(provider)"
+              <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                {{ bp.description }}
+              </p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <span
+                  v-if="bp.supports_checkin"
+                  class="px-2 py-0.5 text-xs rounded-full"
+                  :class="bp.checkin_bugged 
+                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' 
+                    : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'"
                 >
-                  <svg
-                    class="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  class="text-red-600 hover:text-red-700 dark:text-red-400"
-                  title="删除"
-                  @click="deleteProvider(provider.id)"
+                  {{ bp.checkin_bugged ? '⚠️ 自动签到' : '✅ 支持签到' }}
+                </span>
+                <span
+                  v-else
+                  class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded-full"
                 >
-                  <svg
-                    class="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
+                  ❌ 无签到
+                </span>
+                <span
+                  v-if="bp.requires_waf_bypass"
+                  class="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 rounded-full"
+                >
+                  🛡️ 需要 WAF 绕过
+                </span>
               </div>
             </div>
-            <div class="mt-3 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-              <span>签到路径: {{ provider.checkin_path }}</span>
+          </div>
+        </div>
+
+        <!-- 已添加的提供商 -->
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <span class="text-lg">🏢</span>
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                已添加的提供商
+              </h2>
+              <span class="text-sm text-gray-500 dark:text-gray-400">
+                ({{ providers.length }})
+              </span>
+            </div>
+            <button
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+              @click="openProviderModal()"
+            >
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>自定义添加</span>
+            </button>
+          </div>
+
+          <!-- 提供商列表 -->
+          <div
+            v-if="providers.length === 0"
+            class="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+          >
+            <p class="text-4xl mb-3">
+              📦
+            </p>
+            <p>暂无提供商配置</p>
+            <p class="text-sm mt-1">
+              点击上方内置中转站快速添加，或自定义添加
+            </p>
+          </div>
+          <div
+            v-else
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
+            <div
+              v-for="provider in providers"
+              :key="provider.id"
+              class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border-l-4"
+              :class="provider.enabled ? 'border-l-green-500' : 'border-l-gray-400'"
+            >
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-semibold text-gray-900 dark:text-white">
+                    {{ provider.name }}
+                  </h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
+                    {{ provider.base_url }}
+                  </p>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button
+                    class="text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                    title="编辑"
+                    @click="openProviderModal(provider)"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    class="text-red-600 hover:text-red-700 dark:text-red-400"
+                    title="删除"
+                    @click="deleteProvider(provider.id)"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="mt-3 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                <span>签到路径: {{ provider.checkin_path }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -818,7 +917,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import {
   listCheckinProviders,
   createCheckinProvider,
@@ -836,6 +935,8 @@ import {
   exportCheckinConfig,
   previewCheckinImport,
   importCheckinConfig,
+  listBuiltinProviders,
+  addBuiltinProvider as apiAddBuiltinProvider,
 } from '@/api/client'
 import type {
   CheckinProvider,
@@ -845,6 +946,7 @@ import type {
   CheckinResponse,
   ExportData,
   ImportPreviewResponse,
+  BuiltinProvider,
 } from '@/types/checkin'
 
 // 状态
@@ -859,6 +961,13 @@ const accounts = ref<AccountInfo[]>([])
 const records = ref<CheckinRecordInfo[]>([])
 const todayStats = ref<TodayCheckinStats | null>(null)
 const checkinResult = ref<CheckinResponse | null>(null)
+const builtinProviders = ref<BuiltinProvider[]>([])
+
+// 计算属性：过滤出尚未添加的内置提供商
+const availableBuiltinProviders = computed(() => {
+  const addedNames = new Set(providers.value.map(p => p.name))
+  return builtinProviders.value.filter(bp => !addedNames.has(bp.name))
+})
 
 // Tab 配置
 const tabs = [
@@ -907,22 +1016,35 @@ const loadAllData = async () => {
   error.value = null
 
   try {
-    const [providersRes, accountsRes, recordsRes, statsRes] = await Promise.all([
+    const [providersRes, accountsRes, recordsRes, statsRes, builtinRes] = await Promise.all([
       listCheckinProviders(),
       listCheckinAccounts(),
       listCheckinRecords(100),
       getTodayCheckinStats(),
+      listBuiltinProviders(),
     ])
 
     providers.value = providersRes.providers
     accounts.value = accountsRes.accounts
     records.value = recordsRes.records
     todayStats.value = statsRes
+    builtinProviders.value = builtinRes.providers
   } catch (e: any) {
     error.value = e.message || '加载失败'
     console.error('Failed to load checkin data:', e)
   } finally {
     loading.value = false
+  }
+}
+
+// 添加内置提供商
+const addBuiltinProvider = async (builtinId: string) => {
+  try {
+    await apiAddBuiltinProvider(builtinId)
+    await loadAllData()
+  } catch (e: any) {
+    alert('添加失败: ' + (e.message || '未知错误'))
+    console.error('Failed to add builtin provider:', e)
   }
 }
 

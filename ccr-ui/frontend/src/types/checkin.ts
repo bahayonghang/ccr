@@ -19,6 +19,35 @@ export interface CheckinProvider {
   updated_at?: string
 }
 
+/** 内置提供商定义 */
+export interface BuiltinProvider {
+  id: string
+  name: string
+  description: string
+  domain: string
+  base_url: string
+  checkin_path?: string
+  balance_path: string
+  user_info_path: string
+  auth_header: string
+  auth_prefix: string
+  supports_checkin: boolean
+  requires_waf_bypass: boolean
+  checkin_bugged: boolean
+  icon: string
+}
+
+/** 内置提供商列表响应 */
+export interface BuiltinProvidersResponse {
+  providers: BuiltinProvider[]
+  total: number
+}
+
+/** 添加内置提供商请求 */
+export interface AddBuiltinProviderRequest {
+  builtin_id: string
+}
+
 /** 创建提供商请求 */
 export interface CreateProviderRequest {
   name: string
@@ -47,6 +76,7 @@ export interface ProvidersResponse {
   providers: CheckinProvider[]
   total: number
 }
+
 
 // ═══════════════════════════════════════════════════════════
 // 账号类型

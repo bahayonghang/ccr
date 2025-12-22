@@ -2,6 +2,7 @@
 
 pub mod account_manager;
 pub mod balance_manager;
+pub mod builtin_providers;
 pub mod export_manager;
 pub mod provider_manager;
 pub mod record_manager;

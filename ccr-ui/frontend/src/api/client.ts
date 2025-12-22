@@ -1288,6 +1288,26 @@ export const deleteCheckinProvider = async (id: string): Promise<void> => {
   await api.delete(`/checkin/providers/${id}`)
 }
 
+// --- 内置提供商 ---
+
+import type {
+  BuiltinProvidersResponse,
+  AddBuiltinProviderRequest,
+} from '@/types/checkin'
+
+/** 获取所有内置提供商 */
+export const listBuiltinProviders = async (): Promise<BuiltinProvidersResponse> => {
+  const response = await api.get<BuiltinProvidersResponse>('/checkin/providers/builtin')
+  return response.data
+}
+
+/** 添加内置提供商到用户配置 */
+export const addBuiltinProvider = async (builtinId: string): Promise<CheckinProvider> => {
+  const request: AddBuiltinProviderRequest = { builtin_id: builtinId }
+  const response = await api.post<CheckinProvider>('/checkin/providers/builtin/add', request)
+  return response.data
+}
+
 // --- 账号管理 ---
 
 /** 获取所有签到账号 */

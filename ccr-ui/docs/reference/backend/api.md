@@ -819,3 +819,268 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
   "backup": true
 }
 ```
+
+## 📅 签到管理接口 (v3.7+)
+
+管理 AI 中转站的签到功能，支持多提供商、多账号管理。
+
+### 获取提供商列表
+
+获取所有已配置的签到提供商。
+
+**接口信息**
+- **URL**: `/checkin/providers`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "providers": [
+    {
+      "id": "provider_abc123",
+      "name": "AnyRouter",
+      "base_url": "https://anyrouter.top",
+      "checkin_path": "/api/user/sign_in",
+      "balance_path": "/api/user/self",
+      "user_info_path": "/api/user/self",
+      "auth_header": "Authorization",
+      "auth_prefix": "Bearer ",
+      "enabled": true,
+      "created_at": "2024-12-22T10:00:00Z"
+    }
+  ]
+}
+```
+
+### 获取内置提供商列表
+
+获取系统预置的中转站配置。
+
+**接口信息**
+- **URL**: `/checkin/providers/builtin`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "providers": [
+    {
+      "id": "anyrouter",
+      "name": "AnyRouter",
+      "domain": "https://anyrouter.top",
+      "base_url": "https://anyrouter.top",
+      "checkin_path": "/api/user/sign_in",
+      "balance_path": "/api/user/self",
+      "user_info_path": "/api/user/self",
+      "auth_header": "Authorization",
+      "auth_prefix": "Bearer ",
+      "icon": "🌐",
+      "description": "AnyRouter 中转站，支持多种模型",
+      "supports_checkin": true,
+      "requires_waf_bypass": true,
+      "checkin_bugged": false
+    }
+  ]
+}
+```
+
+### 添加内置提供商
+
+将内置提供商添加到用户配置中。
+
+**接口信息**
+- **URL**: `/checkin/providers/builtin/add`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "builtin_id": "anyrouter"
+}
+```
+
+**响应示例**
+```json
+{
+  "id": "provider_abc123",
+  "name": "AnyRouter",
+  "base_url": "https://anyrouter.top",
+  "enabled": true,
+  "created_at": "2024-12-22T10:00:00Z"
+}
+```
+
+### 创建自定义提供商
+
+添加自定义中转站配置。
+
+**接口信息**
+- **URL**: `/checkin/providers`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "name": "My Provider",
+  "base_url": "https://example.com",
+  "checkin_path": "/api/user/checkin",
+  "balance_path": "/api/user/dashboard",
+  "user_info_path": "/api/user/self",
+  "auth_header": "Authorization",
+  "auth_prefix": "Bearer "
+}
+```
+
+### 获取账号列表
+
+获取所有签到账号。
+
+**接口信息**
+- **URL**: `/checkin/accounts`
+- **方法**: `GET`
+
+**查询参数**
+- `provider_id` (可选): 按提供商筛选
+
+### 创建签到账号
+
+为指定提供商添加账号。
+
+**接口信息**
+- **URL**: `/checkin/accounts`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "provider_id": "provider_abc123",
+  "name": "主账号",
+  "api_key": "sk-xxx...",
+  "enabled": true
+}
+```
+
+### 执行签到
+
+执行批量签到或单个账号签到。
+
+**接口信息**
+- **URL**: `/checkin/execute`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**（可选）
+```json
+{
+  "account_ids": ["acc_123", "acc_456"]
+}
+```
+
+**响应示例**
+```json
+{
+  "total": 3,
+  "successful": 2,
+  "failed": 1,
+  "results": [
+    {
+      "account_id": "acc_123",
+      "account_name": "主账号",
+      "provider_name": "AnyRouter",
+      "status": "Success",
+      "message": "签到成功，获得 1000 积分"
+    }
+  ]
+}
+```
+
+### 查询余额
+
+查询指定账号的余额。
+
+**接口信息**
+- **URL**: `/checkin/accounts/{id}/balance`
+- **方法**: `POST`
+
+**响应示例**
+```json
+{
+  "remaining_quota": 10000.50,
+  "used_quota": 5000.25,
+  "total_quota": 15000.75,
+  "currency": "$",
+  "usage_percentage": 33.33,
+  "query_time": "2024-12-22T10:00:00Z"
+}
+```
+
+### 获取签到记录
+
+获取历史签到记录。
+
+**接口信息**
+- **URL**: `/checkin/records`
+- **方法**: `GET`
+
+**查询参数**
+- `limit` (可选): 返回记录数量，默认 100
+
+### 获取今日统计
+
+获取今日签到统计数据。
+
+**接口信息**
+- **URL**: `/checkin/stats/today`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "total_accounts": 5,
+  "checked_in_count": 3,
+  "pending_count": 2,
+  "failed_count": 0,
+  "last_checkin_at": "2024-12-22T08:00:00Z"
+}
+```
+
+### 导出签到配置
+
+导出提供商和账号配置。
+
+**接口信息**
+- **URL**: `/checkin/export`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "include_plaintext_keys": false,
+  "providers_only": false
+}
+```
+
+### 导入签到配置
+
+导入提供商和账号配置。
+
+**接口信息**
+- **URL**: `/checkin/import`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "data": { ... },
+  "conflict_strategy": "skip"
+}
+```
+
+**conflict_strategy 选项**
+- `skip`: 跳过冲突项
+- `overwrite`: 覆盖冲突项

@@ -13,6 +13,14 @@ pub fn routes() -> Router {
         // ═══════════════════════════════════════════════════════════
         .route("/checkin/providers", get(checkin::list_providers))
         .route("/checkin/providers", post(checkin::create_provider))
+        .route(
+            "/checkin/providers/builtin",
+            get(checkin::list_builtin_providers),
+        )
+        .route(
+            "/checkin/providers/builtin/add",
+            post(checkin::add_builtin_provider),
+        )
         .route("/checkin/providers/{id}", get(checkin::get_provider))
         .route("/checkin/providers/{id}", put(checkin::update_provider))
         .route("/checkin/providers/{id}", delete(checkin::delete_provider))

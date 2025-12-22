@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::managers::checkin::{
     AccountManager, BalanceManager, ExportManager, ProviderManager, RecordManager,
+    builtin_providers::{BuiltinProvider, get_builtin_providers},
 };
 use crate::models::checkin::{
     AccountInfo, AccountsResponse, BalanceHistoryResponse, CheckinProvider, CheckinRecordsResponse,
@@ -109,6 +110,64 @@ pub async fn delete_provider(Path(id): Path<String>) -> Result<StatusCode, Respo
         .map_err(bad_request_error)?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+// ============================================================
+// 内置提供商 API
+// ============================================================
+
+/// 内置提供商列表响应
+#[derive(Debug, Serialize)]
+pub struct BuiltinProvidersResponse {
+    pub providers: Vec<BuiltinProvider>,
+    pub total: usize,
+}
+
+/// GET /api/checkin/providers/builtin - 获取所有内置提供商
+pub async fn list_builtin_providers() -> Json<BuiltinProvidersResponse> {
+    let providers = get_builtin_providers();
+    let total = providers.len();
+    Json(BuiltinProvidersResponse { providers, total })
+}
+
+/// 添加内置提供商请求
+#[derive(Debug, Deserialize)]
+pub struct AddBuiltinProviderRequest {
+    pub builtin_id: String,
+}
+
+/// POST /api/checkin/providers/builtin/add - 添加内置提供商到用户配置
+pub async fn add_builtin_provider(
+    Json(req): Json<AddBuiltinProviderRequest>,
+) -> Result<Json<CheckinProvider>, Response> {
+    use crate::managers::checkin::builtin_providers::get_builtin_provider_by_id;
+
+    let checkin_dir = get_checkin_dir()?;
+    let manager = ProviderManager::new(&checkin_dir);
+
+    // 获取内置提供商配置
+    let builtin = get_builtin_provider_by_id(&req.builtin_id)
+        .ok_or_else(|| bad_request_error(format!("内置提供商不存在: {}", req.builtin_id)))?;
+
+    // 检查是否已存在同名提供商
+    let existing = manager.list().map_err(internal_error)?;
+    if existing.providers.iter().any(|p| p.name == builtin.name) {
+        return Err(bad_request_error(format!("提供商 {} 已存在", builtin.name)));
+    }
+
+    // 创建提供商 (使用内置配置转换)
+    let create_req = CreateProviderRequest {
+        name: builtin.name.clone(),
+        base_url: builtin.base_url.clone(),
+        checkin_path: builtin.checkin_path.clone(),
+        balance_path: Some(builtin.balance_path.clone()),
+        user_info_path: Some(builtin.user_info_path.clone()),
+        auth_header: Some(builtin.auth_header.clone()),
+        auth_prefix: Some(builtin.auth_prefix.clone()),
+    };
+
+    let provider = manager.create(create_req).map_err(bad_request_error)?;
+    Ok(Json(provider))
 }
 
 // ============================================================

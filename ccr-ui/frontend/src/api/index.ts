@@ -345,6 +345,8 @@ export {
   createCheckinProvider,
   updateCheckinProvider,
   deleteCheckinProvider,
+  listBuiltinProviders,
+  addBuiltinProvider,
   listCheckinAccounts,
   getCheckinAccount,
   createCheckinAccount,
