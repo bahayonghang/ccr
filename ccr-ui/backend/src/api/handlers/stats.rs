@@ -80,6 +80,15 @@ fn default_limit() -> usize {
 pub async fn cost_overview(
     Query(params): Query<TimeRangeQuery>,
 ) -> Result<Json<CostStatsResponse>, StatusCode> {
+    // 创建唯一的临时文件（避免并发冲突）
+    let temp_file =
+        tempfile::NamedTempFile::new().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let temp_path = temp_file
+        .path()
+        .to_str()
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?
+        .to_string();
+
     // 执行 CCR CLI 命令获取统计
     let args = vec![
         "stats".to_string(),
@@ -88,7 +97,7 @@ pub async fn cost_overview(
         params.range,
         "--details".to_string(),
         "--export".to_string(),
-        "/tmp/ccr_stats.json".to_string(),
+        temp_path.clone(),
     ];
 
     let output = executor::execute_command(args)
@@ -100,7 +109,7 @@ pub async fn cost_overview(
     }
 
     // 读取导出的 JSON 文件
-    let stats_json = tokio::fs::read_to_string("/tmp/ccr_stats.json")
+    let stats_json = tokio::fs::read_to_string(&temp_path)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -131,8 +140,7 @@ pub async fn cost_overview(
         trend: parse_trend(&stats["trend"]),
     };
 
-    // 清理临时文件
-    let _ = tokio::fs::remove_file("/tmp/ccr_stats.json").await;
+    // 临时文件会在 temp_file drop 时自动删除
 
     Ok(Json(response))
 }
@@ -198,13 +206,22 @@ pub async fn provider_usage() -> Result<Json<HashMap<String, u64>>, StatusCode> 
 pub async fn cost_top_sessions(
     Query(params): Query<TopNQuery>,
 ) -> Result<Json<Vec<TopSessionResponse>>, StatusCode> {
+    // 创建唯一的临时文件（避免并发冲突）
+    let temp_file =
+        tempfile::NamedTempFile::new().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let temp_path = temp_file
+        .path()
+        .to_str()
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?
+        .to_string();
+
     let args = vec![
         "stats".to_string(),
         "cost".to_string(),
         "--top".to_string(),
         params.limit.to_string(),
         "--export".to_string(),
-        "/tmp/ccr_stats_top.json".to_string(),
+        temp_path,
     ];
 
     let output = executor::execute_command(args)
@@ -218,6 +235,7 @@ pub async fn cost_top_sessions(
     // 从输出解析 top sessions
     // 临时实现：返回空列表
     // TODO: 改进 CLI 输出格式以便解析
+    // 临时文件会在 temp_file drop 时自动删除
     Ok(Json(vec![]))
 }
 
@@ -231,10 +249,8 @@ pub async fn stats_summary() -> impl IntoResponse {
         total_sessions: usize,
     }
 
-    // 并行获取今日、本周、本月成本
-    let today = cost_today().await;
-    let week = cost_week().await;
-    let month = cost_month().await;
+    // 并行获取今日、本周、本月成本（使用 tokio::join! 明确并行）
+    let (today, week, month) = tokio::join!(cost_today(), cost_week(), cost_month());
 
     if let (Ok(today), Ok(week), Ok(month)) = (today, week, month) {
         let summary = Summary {
@@ -336,6 +352,7 @@ async fn read_provider_usage(path: &PathBuf) -> Result<HashMap<String, u64>, std
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::tempdir;

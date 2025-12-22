@@ -141,10 +141,10 @@ impl ColorOutput {
     pub fn ask_confirmation(question: &str, default: bool) -> bool {
         let default_str = if default { "Y/n" } else { "y/N" };
         print!("{} {} [{}]: ", "?".yellow().bold(), question, default_str);
-        io::stdout().flush().unwrap();
+        io::stdout().flush().expect("无法刷新标准输出");
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        io::stdin().read_line(&mut input).expect("无法读取用户输入");
         let input = input.trim().to_lowercase();
 
         if input.is_empty() {
@@ -316,6 +316,7 @@ pub fn init_logger() {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

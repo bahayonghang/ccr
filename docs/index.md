@@ -53,6 +53,18 @@ const coreFeatures = [
     link: '/reference/commands/sync'
   },
   {
+    icon: '📚',
+    title: 'Session 管理',
+    details: '解析索引 Claude/Codex/Gemini 会话历史，支持搜索恢复。',
+    link: '/reference/commands/sessions'
+  },
+  {
+    icon: '💚',
+    title: 'Provider 健康检查',
+    details: '检测 API 端点连通性、验证 Key、测量延迟。',
+    link: '/reference/commands/provider'
+  },
+  {
     icon: '📊',
     title: '成本统计',
     details: '提供调用统计与成本分析，支持 JSON 输出。',
@@ -93,7 +105,7 @@ const quickLinks = [
 <HomeFeatures badge="快速导航" badge-type="info" title="开始使用" :features="quickLinks" />
 
 ## 版本与安装
-- 当前版本：3.9.0（Rust 2024）
+- 当前版本：3.12.5（Rust 2024）
 - 需求：Rust 1.85+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
 
 ```bash
@@ -140,6 +152,15 @@ ccr sync push -i
 ccr ui -p 3000 --backend-port 38081  # 完整 CCR UI（自动检测或下载）
 ccr tui                              # 需启用 tui 特性
 ccr web -p 8080 --no-browser         # 轻量 API/兼容用途
+```
+
+### Sessions 与 Provider
+```bash
+ccr sessions list                    # 列出会话历史
+ccr sessions search "keyword"        # 搜索会话
+ccr sessions resume <id>             # 恢复会话
+ccr provider test --all              # 测试所有 Provider 连通性
+ccr provider verify <name>           # 验证 API Key
 ```
 
 ## 目录结构（工作区）

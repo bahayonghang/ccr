@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.11.0"
+version = "3.13.0"
 edition = "2024"
 
 [dependencies]
@@ -14,9 +14,25 @@ ccr = { git = "https://github.com/bahayonghang/ccr", branch = "dev", default-fea
 # ═══════════════════════════════════════════════════════════
 
 # Web framework (Axum + Tower ecosystem)
-axum = { version = "0.8.6", features = ["json", "tokio", "http1", "query", "form", "macros"] }
+axum = { version = "0.8.6", features = [
+    "json",
+    "tokio",
+    "http1",
+    "query",
+    "form",
+    "macros",
+    "ws",
+] }
 tower = { version = "0.5.2", features = ["timeout", "limit"] }
-tower-http = { version = "0.6.8", features = ["fs", "trace", "cors", "compression-full", "request-id", "util"] }
+tower-http = { version = "0.6.8", features = [
+    "fs",
+    "trace",
+    "cors",
+    "compression-full",
+    "request-id",
+    "util",
+] }
+futures-util = "0.3"
 
 # Async runtime
 tokio = { version = "1.48.0", features = ["full"] }
@@ -49,9 +65,14 @@ lazy_static = "1.5"
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt", "ansi"] }
+tracing-subscriber = { version = "0.3", features = [
+    "env-filter",
+    "json",
+    "fmt",
+    "ansi",
+] }
 tracing-appender = "0.2"
-tracing-log = "0.2"  # Bridge log facade to tracing
+tracing-log = "0.2" # Bridge log facade to tracing
 
 # CLI arguments
 clap = { version = "4.5.53", features = ["derive"] }
@@ -83,4 +104,3 @@ once_cell = "1.21"
 # - 所有依赖使用显式版本号，不依赖 workspace 继承
 # - 支持复制到 ~/.ccr/ccr-ui/ 后独立构建
 # - 版本号与主仓库 Cargo.toml 的 workspace.dependencies 保持同步
-

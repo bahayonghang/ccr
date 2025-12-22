@@ -1,339 +1,291 @@
 <template>
-  <div class="min-h-screen p-6 transition-colors duration-300">
-    <!-- 🎨 动态背景装饰 (Dynamic Background) -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+  <div class="h-screen w-full bg-bg-primary text-text-primary overflow-hidden flex flex-col relative transition-colors duration-300">
+    <!-- 🎨 赛博朋克动态背景装饰 -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+      <!-- 径向渐变光晕 -->
       <div
-        class="absolute top-0 right-0 w-[600px] h-[600px] rounded-full opacity-10 blur-3xl"
+        class="absolute top-0 right-0 w-[600px] h-[600px] rounded-full opacity-10 blur-3xl animate-pulse-slow"
         :style="{ background: 'radial-gradient(circle, var(--accent-primary) 0%, transparent 70%)' }"
       />
       <div
-        class="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full opacity-10 blur-3xl"
-        :style="{ background: 'radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%)' }"
+        class="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full opacity-10 blur-3xl animate-pulse-slow"
+        :style="{ background: 'radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%)', animationDelay: '1s' }"
+      />
+
+      <!-- 网格背景 -->
+      <div
+        class="absolute inset-0 opacity-[0.03]"
+        style="background-image: linear-gradient(var(--accent-primary) 1px, transparent 1px), linear-gradient(90deg, var(--accent-primary) 1px, transparent 1px); background-size: 50px 50px;"
+      />
+
+      <!-- 扫描线效果 -->
+      <div
+        class="absolute inset-0 opacity-[0.02] pointer-events-none animate-scan-lines"
+        style="background: repeating-linear-gradient(0deg, transparent, transparent 2px, var(--accent-primary) 2px, var(--accent-primary) 4px);"
       />
     </div>
 
-    <div class="max-w-[1920px] mx-auto space-y-6">
-      <!-- 🌟 头部区域 (Header) -->
-      <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 animate-fade-in">
-        <div class="flex items-center gap-5">
-          <div class="relative group">
-            <div class="absolute inset-0 bg-guofeng-jade/20 blur-lg rounded-full group-hover:bg-guofeng-jade/30 transition-all duration-500" />
-            <div class="relative w-16 h-16 rounded-2xl glass-effect flex items-center justify-center border border-white/20 shadow-lg group-hover:scale-105 transition-transform duration-300">
-              <Terminal class="w-8 h-8 text-guofeng-jade" />
-            </div>
-          </div>
-          <div>
-            <h1 class="text-3xl font-bold brand-gradient-text tracking-tight mb-1">
-              {{ $t('ccrControl.title') }}
-            </h1>
-            <div class="flex items-center gap-3 text-sm text-guofeng-text-secondary">
-              <p>{{ $t('ccrControl.description') }}</p>
-              <!-- Version Badge -->
-              <div
-                v-if="versionInfo?.current_version"
-                class="flex items-center gap-2 px-2 py-0.5 rounded-md bg-guofeng-bg-tertiary/50 border border-guofeng-border/50 backdrop-blur-sm"
-              >
-                <span class="text-xs font-mono text-guofeng-text-muted">v{{ versionInfo.current_version }}</span>
-                <button 
-                  v-if="updateInfo?.has_update"
-                  class="flex items-center gap-1 text-[10px] font-bold text-guofeng-jade hover:underline"
-                  @click="executeUpdateCommand"
-                >
-                  <Sparkles class="w-3 h-3" />
-                  {{ $t('ccrControl.updateNow') }}
-                </button>
-              </div>
-            </div>
+    <!-- 🌟 头部区域 -->
+    <header class="flex-none px-6 py-4 flex items-center justify-between border-b border-border-color bg-bg-primary/80 backdrop-blur-md z-10 animate-fade-in-down">
+      <div class="flex items-center gap-4">
+        <div class="relative group">
+          <div class="absolute inset-0 bg-accent-primary/30 blur-xl rounded-full group-hover:bg-accent-primary/50 transition-all duration-500 animate-pulse-glow" />
+          <div class="relative w-10 h-10 rounded-xl glass-effect flex items-center justify-center border border-accent-primary/30 shadow-neon-jade group-hover:scale-110 group-hover:border-accent-primary/60 transition-all duration-300">
+            <Terminal class="w-5 h-5 text-accent-primary drop-shadow-neon" />
           </div>
         </div>
+        <div>
+          <h1 class="text-xl font-bold text-text-primary tracking-tight neon-text-glow flex items-center gap-3">
+            {{ $t('ccrControl.title') }}
+            <span
+              v-if="versionInfo?.current_version"
+              class="text-xs px-2 py-0.5 rounded-full bg-accent-primary/10 border border-accent-primary/20 text-accent-primary font-mono"
+            >
+              v{{ versionInfo.current_version }}
+            </span>
+          </h1>
+          <p class="text-xs text-text-secondary">
+            {{ $t('ccrControl.description') }}
+          </p>
+        </div>
+      </div>
 
-        <!-- Check Update Button -->
-        <button
-          class="group flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all backdrop-blur-md"
-          :disabled="loadingVersion"
-          @click="checkForUpdate"
-        >
-          <RefreshCw
-            class="w-4 h-4 text-guofeng-jade transition-transform duration-700"
-            :class="{ 'animate-spin': loadingVersion }"
-          />
-          <span class="text-sm font-medium text-guofeng-text-primary group-hover:text-guofeng-jade transition-colors">
-            {{ $t('ccrControl.checkUpdate') }}
-          </span>
-        </button>
-      </header>
+      <!-- 右侧装饰或状态 -->
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 text-xs font-mono text-text-muted">
+          <span class="w-2 h-2 rounded-full bg-accent-primary animate-pulse" />
+          System Online
+        </div>
+        <ThemeToggle />
+      </div>
+    </header>
 
-      <!-- 🧭 模块选择器 (Module Selector - Top Bar) -->
-      <section
-        class="animate-fade-in"
-        style="animation-delay: 0.1s"
-      >
-        <GuofengCard
-          variant="glass"
-          class="!p-1.5"
+    <!-- 🏗️ 主体内容区 -->
+    <div class="flex-1 flex overflow-hidden p-4 gap-4 animate-fade-in">
+      <!-- 👈 左侧侧边栏：命令/收藏/历史 -->
+      <aside class="w-80 flex-none flex flex-col gap-4 animate-slide-in-left">
+        <GuofengCard 
+          variant="glass" 
+          class="flex-1 flex flex-col !p-0 overflow-hidden neon-card"
+          :no-padding="true"
+          body-class="h-full flex flex-col"
         >
-          <div class="flex items-center gap-1 overflow-x-auto custom-scrollbar">
+          <!-- 侧边栏 Tabs -->
+          <div class="flex p-2 gap-1 border-b border-border-color bg-bg-secondary/50">
             <button
-              v-for="mod in modules"
-              :key="mod.id"
-              class="flex items-center gap-2 px-5 py-2.5 rounded-lg transition-all whitespace-nowrap relative group overflow-hidden shrink-0"
-              :class="selectedModuleId === mod.id 
-                ? 'bg-guofeng-jade/10 text-guofeng-jade ring-1 ring-guofeng-jade/30 shadow-sm' 
-                : 'hover:bg-white/5 text-guofeng-text-secondary hover:text-guofeng-text-primary'"
-              @click="selectModule(mod.id)"
+              v-for="tab in sidebarTabs"
+              :key="tab.id"
+              class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all duration-300 relative overflow-hidden group"
+              :class="activeTab === tab.id 
+                ? 'bg-accent-primary/10 text-accent-primary shadow-neon-jade-sm' 
+                : 'text-text-muted hover:bg-bg-hover hover:text-text-primary'"
+              @click="activeTab = tab.id"
             >
               <component
-                :is="getIcon(mod.icon)"
-                class="w-4 h-4 transition-transform group-hover:scale-110"
-                :class="{ 'text-guofeng-jade': selectedModuleId === mod.id, 'text-guofeng-text-muted group-hover:text-guofeng-text-primary': selectedModuleId !== mod.id }"
+                :is="tab.icon"
+                class="w-4 h-4"
               />
-              <span class="text-sm font-bold">{{ mod.name }}</span>
-              <span 
-                v-if="selectedModuleId !== mod.id"
-                class="ml-1 text-[10px] opacity-40 bg-black/10 px-1.5 py-0.5 rounded-full"
-              >
-                {{ mod.commands.length }}
-              </span>
+              <span>{{ tab.label }}</span>
+              <!-- Tab 激活光效 -->
+              <div
+                v-if="activeTab === tab.id"
+                class="absolute inset-0 bg-gradient-to-t from-accent-primary/10 to-transparent opacity-50"
+              />
             </button>
           </div>
-        </GuofengCard>
-      </section>
 
-      <!-- 🏗️ 主体内容区 (Main Content Grid) -->
-      <div
-        class="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in"
-        style="animation-delay: 0.2s"
-      >
-        <!-- 👈 左侧：命令列表 (Command List) - 3 cols -->
-        <div class="lg:col-span-3 flex flex-col gap-4 min-h-[500px]">
-          <div class="flex items-center justify-between px-1">
-            <h2 class="text-lg font-bold text-guofeng-text-primary flex items-center gap-2">
-              <Layers class="w-5 h-5 text-guofeng-jade" />
-              {{ $t('ccrControl.commands') }}
-            </h2>
-            <span class="text-xs text-guofeng-text-muted bg-white/5 px-2 py-1 rounded-md">
-              {{ selectedModule?.commands.length || 0 }}
-            </span>
-          </div>
-
-          <div class="grid grid-cols-1 gap-3 overflow-y-auto max-h-[calc(100vh-300px)] custom-scrollbar pr-1">
-            <button
-              v-for="cmd in selectedModule?.commands"
-              :key="cmd.command"
-              class="group relative text-left"
-              @click="selectCommand(cmd)"
+          <!-- 内容区域 -->
+          <div class="flex-1 overflow-hidden relative">
+            <Transition
+              name="fade-slide"
+              mode="out-in"
             >
-              <div 
-                class="relative p-3.5 rounded-xl border transition-all duration-300"
-                :class="selectedCommand?.command === cmd.command 
-                  ? 'bg-guofeng-jade/10 border-guofeng-jade/30 shadow-sm' 
-                  : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'"
+              <!-- 1. 命令列表 -->
+              <div
+                v-if="activeTab === 'commands'"
+                key="commands"
+                class="h-full flex flex-col"
               >
-                <!-- Header -->
-                <div class="flex justify-between items-start mb-2">
-                  <div class="flex items-center gap-3">
-                    <div
-                      class="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300"
-                      :class="selectedCommand?.command === cmd.command 
-                        ? 'bg-guofeng-jade text-white shadow-sm' 
-                        : 'bg-white/5 text-guofeng-text-muted group-hover:text-guofeng-text-primary'"
+                <!-- 模块选择 (Mini) -->
+                <div class="px-3 py-3 border-b border-border-color">
+                  <div class="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+                    <button
+                      v-for="mod in modules"
+                      :key="mod.id"
+                      class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-transparent"
+                      :class="selectedModuleId === mod.id
+                        ? 'bg-accent-primary/20 text-accent-primary border-accent-primary/30'
+                        : 'bg-bg-secondary text-text-muted hover:bg-bg-hover hover:text-text-primary'"
+                      @click="selectModule(mod.id)"
                     >
-                      <Terminal class="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div
-                        class="font-bold text-sm transition-colors"
-                        :class="selectedCommand?.command === cmd.command ? 'text-guofeng-jade' : 'text-guofeng-text-primary'"
-                      >
-                        {{ cmd.name }}
-                      </div>
-                      <div
-                        class="text-[10px] font-mono mt-0.5"
-                        :class="selectedCommand?.command === cmd.command ? 'text-guofeng-jade/70' : 'text-guofeng-text-muted'"
-                      >
-                        ccr {{ cmd.command }}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div class="flex items-center gap-1">
-                    <div
-                      v-if="cmd.dangerous" 
-                      class="p-1 rounded bg-guofeng-danger/10 text-guofeng-danger"
-                      title="Dangerous"
-                    >
-                      <AlertTriangle class="w-3 h-3" />
-                    </div>
-                    <div
-                      class="p-1 rounded hover:bg-white/10 transition-all"
-                      @click.stop="toggleFavorite(cmd)"
-                    >
-                      <Star 
-                        class="w-3.5 h-3.5 transition-all" 
-                        :class="isFavorite(cmd.command) ? 'text-guofeng-gold fill-guofeng-gold' : 'text-guofeng-text-muted/50 group-hover:text-guofeng-text-muted'" 
-                      />
-                    </div>
+                      {{ mod.name }}
+                    </button>
                   </div>
                 </div>
 
-                <!-- Description -->
-                <p
-                  class="text-xs leading-relaxed line-clamp-2"
-                  :class="selectedCommand?.command === cmd.command ? 'text-guofeng-text-secondary' : 'text-guofeng-text-muted'"
+                <!-- 命令列表 -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+                  <div
+                    v-for="cmd in selectedModule?.commands"
+                    :key="cmd.command"
+                    class="cursor-pointer group relative p-3 rounded-xl border border-transparent hover:bg-bg-hover hover:border-accent-primary/20 transition-all duration-300"
+                    :class="selectedCommand?.command === cmd.command ? 'bg-accent-primary/10 border-accent-primary/40 shadow-neon-jade-sm' : ''"
+                    @click="selectCommand(cmd)"
+                  >
+                    <div class="flex items-start gap-3">
+                      <div
+                        class="mt-0.5 w-7 h-7 rounded-lg bg-bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform"
+                        :class="selectedCommand?.command === cmd.command ? 'bg-accent-primary text-white' : 'text-text-muted group-hover:text-accent-primary'"
+                      >
+                        <Terminal class="w-4 h-4" />
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-0.5">
+                          <span
+                            class="text-sm font-bold truncate"
+                            :class="selectedCommand?.command === cmd.command ? 'text-accent-primary' : 'text-text-primary'"
+                          >{{ cmd.name }}</span>
+                          <div class="flex gap-1">
+                            <AlertTriangle
+                              v-if="cmd.dangerous"
+                              class="w-3 h-3 text-accent-danger animate-pulse"
+                            />
+                            <Star 
+                              class="w-3 h-3 transition-all cursor-pointer hover:scale-125" 
+                              :class="isFavorite(cmd.command) ? 'text-accent-warning fill-accent-warning' : 'text-transparent stroke-text-muted hover:stroke-accent-warning'"
+                              @click.stop="toggleFavorite(cmd)"
+                            />
+                          </div>
+                        </div>
+                        <div class="text-[10px] font-mono opacity-60 mb-1 text-text-secondary">
+                          ccr {{ cmd.command }}
+                        </div>
+                        <p class="text-[10px] text-text-muted line-clamp-2 leading-relaxed">
+                          {{ cmd.description }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. 收藏列表 -->
+              <div
+                v-else-if="activeTab === 'favorites'"
+                key="favorites"
+                class="h-full overflow-y-auto custom-scrollbar p-2 space-y-2"
+              >
+                <div
+                  v-if="favorites.length === 0"
+                  class="h-full flex flex-col items-center justify-center text-text-muted"
                 >
-                  {{ cmd.description }}
-                </p>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- 🖕 中间：执行面板 (Execution Panel) - 6 cols -->
-        <main class="lg:col-span-6 flex flex-col gap-6">
-          <!-- 参数配置 (Params) -->
-          <GuofengCard
-            variant="glass"
-            class="relative overflow-hidden flex flex-col !p-0"
-          >
-            <div class="p-4 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-sm">
-              <div class="flex items-center gap-2">
-                <Settings class="w-5 h-5 text-guofeng-jade" />
-                <h3 class="font-bold text-guofeng-text-primary">
-                  {{ selectedCommand ? $t('ccrControl.commandParams') : $t('ccrControl.selectCommandFirst') }}
-                </h3>
-              </div>
-            </div>
-            
-            <div
-              v-if="selectedCommand"
-              class="p-6 space-y-6"
-            >
-              <!-- Command Banner -->
-              <div class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
-                <div class="w-10 h-10 rounded-lg bg-guofeng-jade/10 flex items-center justify-center shrink-0">
-                  <Terminal class="w-5 h-5 text-guofeng-jade" />
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-xs text-guofeng-text-muted mb-0.5">
-                    Selected Command
-                  </div>
-                  <div class="text-lg font-mono font-bold text-guofeng-text-primary truncate">
-                    ccr {{ selectedCommand.command }}
-                  </div>
+                  <Star class="w-8 h-8 opacity-20 mb-2" />
+                  <span class="text-xs">{{ $t('ccrControl.noFavorites') }}</span>
                 </div>
                 <div
-                  v-if="selectedCommand.dangerous"
-                  class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-guofeng-danger/10 border border-guofeng-danger/20 text-xs font-bold text-guofeng-danger"
+                  v-for="fav in favorites"
+                  :key="fav.id"
+                  class="p-3 rounded-xl bg-bg-secondary border border-border-color hover:border-accent-warning/30 hover:shadow-neon-gold-sm transition-all cursor-pointer group"
+                  @click="executeFromFavorite(fav)"
                 >
-                  <AlertTriangle class="w-3.5 h-3.5" />
-                  Dangerous
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-accent-warning">{{ fav.display_name || fav.command }}</span>
+                    <button
+                      class="text-text-muted hover:text-accent-danger transition-colors"
+                      @click.stop="removeFromFavorites(fav.id)"
+                    >
+                      <X class="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div class="text-[10px] font-mono text-text-secondary mb-2">
+                    ccr {{ fav.command }}
+                  </div>
+                  <div class="flex justify-end">
+                    <button class="p-1.5 rounded-lg bg-accent-warning/10 text-accent-warning hover:bg-accent-warning hover:text-white transition-all">
+                      <Play class="w-3 h-3 fill-current" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <!-- Required Args -->
-              <div v-if="selectedCommand.args && selectedCommand.args.length > 0">
-                <h4 class="text-xs font-bold uppercase text-guofeng-text-muted mb-3 flex items-center gap-2">
-                  <div class="w-1 h-1 rounded-full bg-guofeng-jade" />
-                  {{ $t('ccrControl.requiredArgs') }}
-                </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div
-                    v-for="arg in selectedCommand.args"
-                    :key="arg.name"
-                    class="group"
+              <!-- 3. 历史记录 -->
+              <div
+                v-else-if="activeTab === 'history'"
+                key="history"
+                class="h-full flex flex-col"
+              >
+                <div class="p-2 border-b border-border-color flex justify-end">
+                  <button 
+                    v-if="history.length > 0"
+                    class="text-[10px] flex items-center gap-1 text-text-muted hover:text-accent-danger px-2 py-1 hover:bg-bg-hover rounded transition-all"
+                    @click="clearHistoryData"
                   >
-                    <label class="block text-xs font-medium text-guofeng-text-secondary mb-1.5 ml-1">
-                      {{ arg.name }} <span
-                        v-if="arg.required"
-                        class="text-guofeng-danger"
-                      >*</span>
-                    </label>
-                    <div class="relative">
-                      <select
-                        v-if="arg.type === 'select' && arg.options"
-                        v-model="commandArgs[arg.name]"
-                        class="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-guofeng-text-primary focus:outline-none focus:border-guofeng-jade/50 focus:bg-white/10 transition-all appearance-none"
-                      >
-                        <option
-                          value=""
-                          disabled
-                        >
-                          {{ $t('ccrControl.selectOption') }}
-                        </option>
-                        <option
-                          v-for="opt in arg.options"
-                          :key="opt"
-                          :value="opt"
-                        >
-                          {{ opt }}
-                        </option>
-                      </select>
-                      <input
-                        v-else
-                        v-model="commandArgs[arg.name]"
-                        type="text"
-                        :placeholder="arg.placeholder"
-                        class="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-guofeng-text-primary placeholder:text-guofeng-text-muted/50 focus:outline-none focus:border-guofeng-jade/50 focus:bg-white/10 transition-all"
-                      >
+                    <Trash2 class="w-3 h-3" />
+                    {{ $t('ccrControl.clearHistory') }}
+                  </button>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+                  <div
+                    v-if="history.length === 0"
+                    class="h-full flex flex-col items-center justify-center text-text-muted"
+                  >
+                    <History class="w-8 h-8 opacity-20 mb-2" />
+                    <span class="text-xs">{{ $t('ccrControl.noHistory') }}</span>
+                  </div>
+                  <div
+                    v-for="item in history"
+                    :key="item.id"
+                    class="p-2.5 rounded-lg bg-bg-secondary border border-border-color hover:bg-bg-hover transition-all cursor-pointer flex items-center gap-3 group"
+                    @click="executeFromHistory(item)"
+                  >
+                    <div
+                      class="w-2 h-2 rounded-full flex-shrink-0"
+                      :class="item.success ? 'bg-accent-success shadow-neon-jade-sm' : 'bg-accent-danger shadow-neon-danger-sm'"
+                    />
+                    <div class="flex-1 min-w-0">
+                      <div class="text-xs font-mono font-bold truncate text-text-primary">
+                        {{ item.command }}
+                      </div>
+                      <div class="text-[10px] text-text-muted flex items-center gap-2">
+                        <span>{{ formatTime(item.executed_at) }}</span>
+                        <span>{{ item.duration_ms }}ms</span>
+                      </div>
                     </div>
-                    <p class="mt-1.5 ml-1 text-[10px] text-guofeng-text-muted">
-                      {{ arg.description }}
-                    </p>
+                    <Play class="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-100 transition-all" />
                   </div>
                 </div>
               </div>
+            </Transition>
+          </div>
+        </GuofengCard>
+      </aside>
 
-              <!-- Optional Flags -->
-              <div v-if="selectedCommand.flags && selectedCommand.flags.length > 0">
-                <h4 class="text-xs font-bold uppercase text-guofeng-text-muted mb-3 flex items-center gap-2">
-                  <div class="w-1 h-1 rounded-full bg-guofeng-indigo" />
-                  {{ $t('ccrControl.optionalFlags') }}
-                </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div
-                    v-for="flag in selectedCommand.flags"
-                    :key="flag.name"
-                    class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors"
-                  >
-                    <template v-if="flag.type === 'boolean'">
-                      <div class="relative flex items-center">
-                        <input
-                          :id="`flag-${flag.name}`"
-                          v-model="commandFlags[flag.name]"
-                          type="checkbox"
-                          class="peer w-4 h-4 rounded border-guofeng-border text-guofeng-jade focus:ring-guofeng-jade/20 bg-transparent cursor-pointer"
-                        >
-                      </div>
-                      <label
-                        :for="`flag-${flag.name}`"
-                        class="cursor-pointer flex-1"
-                      >
-                        <div class="text-sm font-medium text-guofeng-text-primary">{{ flag.name }}</div>
-                        <div class="text-[10px] font-mono text-guofeng-text-muted">{{ flag.flag }}</div>
-                      </label>
-                    </template>
-                    <template v-else>
-                      <div class="flex-1">
-                        <label class="text-[10px] text-guofeng-text-secondary block mb-1">
-                          {{ flag.name }} <code class="text-[10px] text-guofeng-text-muted bg-white/10 px-1 rounded">{{ flag.flag }}</code>
-                        </label>
-                        <input
-                          v-model="commandFlags[flag.name]"
-                          :type="flag.type === 'number' ? 'number' : 'text'"
-                          :placeholder="String(flag.default ?? '')"
-                          class="w-full px-2 py-1.5 text-sm rounded-lg bg-black/10 border border-white/5 text-guofeng-text-primary focus:outline-none focus:border-guofeng-jade/50 transition-colors"
-                        >
-                      </div>
-                    </template>
-                  </div>
+      <!-- 👉 右侧主区域：参数配置 + 终端输出 -->
+      <main class="flex-1 flex flex-col gap-4 overflow-hidden animate-slide-in-right">
+        <!-- 1. 参数配置区 (高度自适应) -->
+        <GuofengCard 
+          variant="glass" 
+          class="flex-none overflow-hidden neon-card"
+          :no-padding="true"
+        >
+          <div class="p-3 border-b border-border-color bg-gradient-to-r from-accent-primary/5 to-transparent flex items-center gap-2">
+            <Settings class="w-4 h-4 text-accent-primary" />
+            <span class="text-xs font-bold text-text-primary">{{ selectedCommand ? $t('ccrControl.commandParams') : $t('ccrControl.selectCommandFirst') }}</span>
+          </div>
+           
+          <div class="p-4">
+            <div v-if="selectedCommand">
+              <!-- 命令预览 & 执行按钮行 -->
+              <div class="flex items-center gap-4 mb-4">
+                <div class="flex-1 px-4 py-2.5 rounded-lg bg-bg-secondary border border-accent-primary/20 font-mono text-sm text-accent-primary flex items-center gap-2 shadow-inner">
+                  <span class="text-text-muted select-none">$</span>
+                  ccr {{ selectedCommand.command }}
                 </div>
-              </div>
-
-              <!-- Action Bar -->
-              <div class="pt-6 border-t border-dashed border-white/10 flex items-center justify-end gap-4">
                 <button
-                  class="flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold text-white shadow-lg shadow-guofeng-jade/20 hover:shadow-guofeng-jade/40 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  :class="selectedCommand.dangerous ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-guofeng-jade to-emerald-500'"
+                  class="flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold text-sm text-white shadow-lg transition-all active:scale-95"
+                  :class="selectedCommand.dangerous
+                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-neon-danger'
+                    : 'bg-gradient-to-r from-accent-primary to-accent-secondary hover:from-accent-secondary hover:to-accent-primary shadow-neon-jade'"
                   :disabled="isExecuting"
                   @click="executeCommand(selectedCommand)"
                 >
@@ -348,204 +300,181 @@
                   {{ isExecuting ? $t('ccrControl.executing') : $t('ccrControl.execute') }}
                 </button>
               </div>
+
+              <!-- 参数表单 -->
+              <div
+                v-if="(selectedCommand.args && selectedCommand.args.length > 0) || (selectedCommand.flags && selectedCommand.flags.length > 0)"
+                class="grid grid-cols-2 gap-4 animate-fade-in"
+              >
+                <!-- Required Args -->
+                <div
+                  v-for="arg in selectedCommand.args"
+                  :key="arg.name"
+                >
+                  <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">{{ arg.name }} <span
+                    v-if="arg.required"
+                    class="text-accent-danger"
+                  >*</span></label>
+                  <input
+                    v-if="arg.type !== 'select'"
+                    v-model="commandArgs[arg.name]"
+                    type="text"
+                    :placeholder="arg.placeholder"
+                    class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-text-primary focus:border-accent-primary focus:bg-bg-hover transition-all font-mono"
+                  >
+                  <select
+                    v-else
+                    v-model="commandArgs[arg.name]"
+                    class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-text-primary focus:border-accent-primary transition-all font-mono"
+                  >
+                    <option
+                      value=""
+                      disabled
+                    >
+                      {{ $t('ccrControl.selectOption') }}
+                    </option>
+                    <option
+                      v-for="opt in arg.options"
+                      :key="opt"
+                      :value="opt"
+                    >
+                      {{ opt }}
+                    </option>
+                  </select>
+                </div>
+
+                <!-- Flags -->
+                <div
+                  v-for="flag in selectedCommand.flags"
+                  :key="flag.name"
+                  class="flex items-center gap-3 p-2 rounded-lg border border-border-color bg-bg-secondary/50"
+                >
+                  <template v-if="flag.type === 'boolean'">
+                    <input
+                      :id="`flag-${flag.name}`"
+                      v-model="commandFlags[flag.name]"
+                      type="checkbox"
+                      class="accent-accent-primary w-4 h-4 cursor-pointer"
+                    >
+                    <label
+                      :for="`flag-${flag.name}`"
+                      class="cursor-pointer flex-1"
+                    >
+                      <div class="text-xs font-medium text-text-primary">{{ flag.name }}</div>
+                      <div class="text-[10px] font-mono text-text-muted">{{ flag.flag }}</div>
+                    </label>
+                  </template>
+                  <template v-else>
+                    <div class="flex-1">
+                      <div class="text-[10px] text-text-muted mb-1">
+                        {{ flag.name }} <code class="bg-bg-tertiary px-1 rounded">{{ flag.flag }}</code>
+                      </div>
+                      <input 
+                        v-model="commandFlags[flag.name]" 
+                        :type="flag.type === 'number' ? 'number' : 'text'"
+                        class="w-full px-2 py-1 rounded bg-bg-tertiary border border-border-color text-xs font-mono text-text-primary focus:border-accent-secondary transition-all"
+                      >
+                    </div>
+                  </template>
+                </div>
+              </div>
             </div>
-            
-            <!-- Empty State -->
+              
             <div
               v-else
-              class="flex flex-col items-center justify-center py-20 text-guofeng-text-muted"
+              class="py-8 flex flex-col items-center justify-center text-text-muted opacity-50"
             >
-              <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-                <Terminal class="w-8 h-8 opacity-50" />
-              </div>
-              <p class="text-sm">
+              <Terminal class="w-12 h-12 mb-2" />
+              <p class="text-xs">
                 {{ $t('ccrControl.selectCommandHint') }}
               </p>
             </div>
-          </GuofengCard>
+          </div>
+        </GuofengCard>
 
-          <!-- 输出面板 (Output) -->
-          <GuofengCard
-            variant="glass"
-            class="flex-1 flex flex-col overflow-hidden min-h-[300px] !p-0"
-          >
-            <div class="p-3 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-md">
-              <h3 class="text-sm font-bold text-guofeng-text-primary flex items-center gap-2">
-                <Monitor class="w-4 h-4 text-guofeng-jade" />
-                {{ $t('ccrControl.output') }}
-              </h3>
-              <div class="flex items-center gap-2">
-                <div
-                  v-if="lastExitCode !== null"
-                  class="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono"
-                  :class="lastExitCode === 0 ? 'bg-guofeng-jade/10 text-guofeng-jade' : 'bg-guofeng-danger/10 text-guofeng-danger'"
-                >
-                  <component
-                    :is="lastExitCode === 0 ? CheckCircle : XCircle"
-                    class="w-3 h-3"
-                  />
-                  Code: {{ lastExitCode }}
-                </div>
+        <!-- 2. 终端输出区 (剩余空间全部占满) -->
+        <div class="flex-1 flex flex-col overflow-hidden min-h-0 rounded-xl border border-border-color bg-bg-primary/50 backdrop-blur-md shadow-2xl relative transition-all duration-300 hover:shadow-neon-jade-sm group">
+          <!-- Terminal Header -->
+          <div class="flex-none px-4 py-3 border-b border-border-color bg-bg-secondary/50 flex items-center justify-between backdrop-blur-sm">
+            <div class="flex items-center gap-2">
+              <div class="p-1 rounded bg-accent-primary/10">
+                <Monitor class="w-4 h-4 text-accent-primary" />
               </div>
+              <span class="text-xs font-bold text-text-primary">{{ $t('ccrControl.output') }}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-bg-tertiary text-text-muted font-mono">{{ outputLines.length }} lines</span>
             </div>
-            
-            <div class="flex-1 overflow-hidden relative">
-              <div 
-                ref="outputContainer"
-                class="h-full overflow-y-auto font-mono text-sm bg-[#0a0e27]/60 custom-scrollbar p-4"
-              >
-                <div
-                  v-if="outputLines.length === 0"
-                  class="h-full flex flex-col items-center justify-center text-guofeng-text-muted/30"
-                >
-                  <Terminal class="w-12 h-12 mb-2 opacity-20" />
-                  <span class="text-xs">{{ $t('ccrControl.noOutput') }}</span>
-                </div>
-                <div
-                  v-else
-                  class="space-y-1"
-                >
-                  <div
-                    v-for="(line, idx) in outputLines"
-                    :key="idx"
-                    class="break-all whitespace-pre-wrap terminal-line"
-                  >
-                    <span class="text-guofeng-text-muted/30 select-none w-8 inline-block text-right mr-3 text-xs">{{ idx + 1 }}</span>
-                    <span
-                      :class="{
-                        'text-guofeng-jade font-bold': line.startsWith('$') || line.startsWith('✅'),
-                        'text-red-400': line.startsWith('❌') || line.startsWith('[error]') || line.startsWith('[stderr]'),
-                        'text-amber-400': line.startsWith('⚠'),
-                        'text-gray-100': !line.startsWith('$') && !line.startsWith('✅') && !line.startsWith('❌') && !line.startsWith('⚠')
-                      }"
-                      v-html="renderAnsi(line)"
-                    />
-                  </div>
-                </div>
-              </div>
-               
-              <!-- Floating Actions -->
-              <div class="absolute top-2 right-2 flex gap-1">
-                <button
-                  v-if="outputLines.length > 0"
-                  class="p-1.5 rounded hover:bg-white/10 text-guofeng-text-muted hover:text-white transition-colors backdrop-blur-sm"
-                  :title="$t('ccrControl.clearOutput')"
-                  @click="clearOutput"
-                >
-                  <Trash2 class="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </GuofengCard>
-        </main>
-
-        <!-- 👉 右侧：历史与收藏 (History & Favorites) - 3 cols -->
-        <aside class="lg:col-span-3 flex flex-col gap-6">
-          <!-- Favorites -->
-          <GuofengCard
-            variant="glass"
-            class="flex flex-col overflow-hidden max-h-[400px] !p-0"
-          >
-            <div class="p-3 border-b border-white/5 flex items-center justify-between bg-white/5">
-              <h2 class="text-xs font-bold uppercase tracking-wider text-guofeng-text-secondary flex items-center gap-2">
-                <Star class="w-4 h-4 text-guofeng-gold" />
-                {{ $t('ccrControl.favorites') }}
-              </h2>
-              <span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-guofeng-text-muted">{{ favorites.length }}</span>
-            </div>
-            
-            <div class="p-2 space-y-1 overflow-y-auto custom-scrollbar flex-1">
+            <div class="flex items-center gap-3">
+              <!-- Exit Code Badge -->
               <div
-                v-if="favorites.length === 0"
-                class="p-4 text-center text-xs text-guofeng-text-muted"
+                v-if="lastExitCode !== null"
+                class="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono font-bold border transition-all animate-fade-in"
+                :class="lastExitCode === 0 ? 'bg-accent-success/10 text-accent-success border-accent-success/30' : 'bg-accent-danger/10 text-accent-danger border-accent-danger/30'"
               >
-                {{ $t('ccrControl.noFavorites') }}
+                <component
+                  :is="lastExitCode === 0 ? CheckCircle : XCircle"
+                  class="w-3.5 h-3.5"
+                />
+                <span>Exited: {{ lastExitCode }}</span>
               </div>
-              <div
-                v-for="fav in favorites"
-                :key="fav.id"
-                class="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
+              <!-- Clear Button -->
+              <button 
+                class="p-1.5 rounded-lg hover:bg-bg-hover text-text-muted hover:text-accent-danger transition-all active:scale-95"
+                :title="$t('ccrControl.clearOutput')"
+                @click="clearOutput"
               >
-                <button
-                  class="flex-1 flex items-center gap-2 text-left min-w-0"
-                  @click="executeFromFavorite(fav)"
-                >
-                  <div class="w-6 h-6 rounded bg-guofeng-jade/10 flex items-center justify-center shrink-0 group-hover:bg-guofeng-jade group-hover:text-white transition-colors text-guofeng-jade">
-                    <Play class="w-3 h-3 fill-current" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium text-guofeng-text-primary truncate">
-                      {{ fav.display_name || fav.command }}
-                    </div>
-                    <div class="text-[10px] text-guofeng-text-muted truncate font-mono">
-                      ccr {{ fav.command }}
-                    </div>
-                  </div>
-                </button>
-                <button
-                  class="p-1.5 rounded hover:bg-red-500/20 hover:text-red-400 text-guofeng-text-muted opacity-0 group-hover:opacity-100 transition-all"
-                  @click="removeFromFavorites(fav.id)"
-                >
-                  <X class="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </GuofengCard>
-
-          <!-- History -->
-          <GuofengCard
-            variant="glass"
-            class="flex flex-col overflow-hidden flex-1 min-h-[300px] !p-0"
-          >
-            <div class="p-3 border-b border-white/5 flex items-center justify-between bg-white/5">
-              <h2 class="text-xs font-bold uppercase tracking-wider text-guofeng-text-secondary flex items-center gap-2">
-                <History class="w-4 h-4 text-guofeng-indigo" />
-                {{ $t('ccrControl.history') }}
-              </h2>
-              <button
-                v-if="history.length > 0"
-                class="text-[10px] text-guofeng-text-muted hover:text-guofeng-danger transition-colors"
-                @click="clearHistoryData"
-              >
-                {{ $t('ccrControl.clearHistory') }}
+                <Trash2 class="w-4 h-4" />
               </button>
             </div>
-            
-            <div class="p-2 space-y-1 overflow-y-auto custom-scrollbar flex-1">
+          </div>
+
+          <!-- Terminal Body -->
+          <div class="flex-1 relative overflow-hidden bg-[#09090b]">
+            <!-- CRT Scanline Overlay -->
+            <div
+              class="absolute inset-0 pointer-events-none opacity-[0.03] animate-crt-scan z-10" 
+              style="background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.1) 2px, rgba(255, 255, 255, 0.1) 4px);"
+            />
+              
+            <!-- Terminal Content -->
+            <div
+              ref="outputContainer"
+              class="absolute inset-0 overflow-y-auto p-4 custom-scrollbar font-mono text-sm leading-relaxed z-20 scroll-smooth"
+            >
+              <!-- Empty State -->
               <div
-                v-if="history.length === 0"
-                class="p-4 text-center text-xs text-guofeng-text-muted"
+                v-if="outputLines.length === 0"
+                class="h-full flex flex-col items-center justify-center text-gray-600 opacity-50"
               >
-                {{ $t('ccrControl.noHistory') }}
+                <Terminal class="w-16 h-16 mb-4" />
+                <span class="text-xs tracking-[0.2em] uppercase font-bold">Ready for Input</span>
               </div>
-              <button
-                v-for="item in history"
-                :key="item.id"
-                class="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-all group text-left border border-transparent hover:border-white/5"
-                @click="executeFromHistory(item)"
+
+              <!-- Lines -->
+              <div
+                v-else
+                class="flex flex-col pb-4"
               >
-                <div class="relative">
-                  <div
-                    class="w-2 h-2 rounded-full"
-                    :class="item.success ? 'bg-guofeng-jade shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-guofeng-danger shadow-[0_0_8px_rgba(239,68,68,0.5)]'"
-                  />
+                <div
+                  v-for="(line, idx) in outputLines"
+                  :key="idx" 
+                  class="break-all whitespace-pre-wrap py-[1px] font-mono text-gray-300 hover:bg-white/5 transition-colors border-l-2 border-transparent hover:border-accent-primary pl-2 -ml-2"
+                >
+                  <span class="inline-block w-8 text-right mr-4 text-[10px] text-gray-700 select-none opacity-50">{{ idx + 1 }}</span>
+                  <span v-html="renderAnsi(line)" />
                 </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-xs font-mono text-guofeng-text-primary truncate">
-                    {{ item.command }}
-                  </div>
-                  <div class="flex items-center gap-2 text-[10px] text-guofeng-text-muted mt-0.5">
-                    <span>{{ formatTime(item.executed_at) }}</span>
-                    <span class="w-0.5 h-0.5 rounded-full bg-guofeng-text-muted" />
-                    <span>{{ item.duration_ms }}ms</span>
-                  </div>
+                    
+                <!-- Typing Cursor (Visual Only) -->
+                <div
+                  v-if="isExecuting"
+                  class="pl-14 mt-1"
+                >
+                  <span class="inline-block w-2 h-4 bg-accent-primary animate-pulse" />
                 </div>
-                <Play class="w-3 h-3 text-guofeng-jade opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-              </button>
+              </div>
             </div>
-          </GuofengCard>
-        </aside>
-      </div>
+          </div>
+        </div>
+      </main>
     </div>
   </div>
 </template>
@@ -555,8 +484,6 @@ import { ref, watch, nextTick } from 'vue'
 import { AnsiUp } from 'ansi_up'
 import {
   Terminal,
-  RefreshCw,
-  Layers,
   Star,
   History,
   Play,
@@ -568,46 +495,32 @@ import {
   Monitor,
   Trash2,
   Loader2,
-  Key,
-  Puzzle,
-  FileText,
-  FileUp,
-  ArrowRightLeft,
-  BarChart,
-  Sparkles,
+  List
 } from 'lucide-vue-next'
 
 import GuofengCard from '@/components/common/GuofengCard.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useCcrControl } from '@/composables/useCcrControl'
 import type { CcrCommand } from '@/api/ccr-control'
 
-// 使用组合式函数
+// Use Composables
 const {
-  // 版本
   versionInfo,
-  updateInfo,
-  loadingVersion,
   loadVersionInfo,
-  checkForUpdate,
-  // 模块
   modules,
   selectedModuleId,
   selectedModule,
   selectModule,
-  // 命令
   selectedCommand,
   selectCommand,
   commandArgs,
   commandFlags,
-  // 收藏
   favorites,
   addToFavorites,
   removeFromFavorites,
   isFavorite,
-  // 历史
   history,
   clearHistory: clearHistoryData,
-  // 执行
   isExecuting,
   outputLines,
   lastExitCode,
@@ -617,71 +530,46 @@ const {
   clearOutput
 } = useCcrControl()
 
-// 输出容器引用
+// UI State
+const activeTab = ref<'commands' | 'favorites' | 'history'>('commands')
 const outputContainer = ref<HTMLElement | null>(null)
 
-// 图标映射
-const iconMap: Record<string, any> = {
-  'Settings': Settings,
-  'Layers': Layers,
-  'FileUp': FileUp,
-  'ArrowRightLeft': ArrowRightLeft,
-  'Key': Key,
-  'Puzzle': Puzzle,
-  'FileText': FileText,
-  'BarChart': BarChart,
-  'Terminal': Terminal,
-}
+// Sidebar Tabs Configuration
+const sidebarTabs: { id: 'commands' | 'favorites' | 'history'; label: string; icon: any }[] = [
+  { id: 'commands', label: 'Commands', icon: List },
+  { id: 'favorites', label: 'Favorites', icon: Star },
+  { id: 'history', label: 'History', icon: History }
+]
 
-const getIcon = (name: string) => {
-  return iconMap[name] || Terminal
-}
 
-// Render ANSI to HTML
-// Create a new instance for each line to prevent state leakage between renders
+// Render ANSI
+const ansiUp = new AnsiUp()
 const renderAnsi = (text: string) => {
-  const ansiUp = new AnsiUp()
-  ansiUp.use_classes = true
-  return ansiUp.ansi_to_html(text)
+  return ansiUp.ansi_to_html(text || '')
 }
 
-// 切换收藏
+// Toggle Favorite
 const toggleFavorite = async (cmd: CcrCommand) => {
   if (isFavorite(cmd.command)) {
     const fav = favorites.value.find(f => f.command === cmd.command)
-    if (fav) {
-      await removeFromFavorites(fav.id)
-    }
+    if (fav) await removeFromFavorites(fav.id)
   } else {
     await addToFavorites(cmd)
   }
 }
 
-// 执行更新命令
-const executeUpdateCommand = () => {
-  const updateCmd = modules.value
-    .find(m => m.id === 'system')
-    ?.commands.find(c => c.command === 'update')
-    if (updateCmd) {
-    selectModule('system')
-    selectCommand(updateCmd)
-    executeCommand(updateCmd)
-  }
-}
-
-// 格式化时间
+// Format Time
 const formatTime = (dateStr: string) => {
   const date = new Date(dateStr)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
-  
   if (diff < 60000) return 'Just now'
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
   return date.toLocaleDateString()
 }
 
-// 自动滚动输出到底部
+// Auto Scroll
 watch(outputLines, async () => {
   await nextTick()
   if (outputContainer.value) {
@@ -689,59 +577,101 @@ watch(outputLines, async () => {
   }
 }, { deep: true })
 
-// 初始化
+// Init
 loadVersionInfo()
 </script>
 
 <style scoped>
+/* Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--accent-primary);
   border-radius: 2px;
+  opacity: 0.3;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--accent-secondary);
 }
 
-/* 玻璃拟态增强 */
+/* Neon Effects */
+.shadow-neon-jade { box-shadow: 0 0 15px rgba(var(--accent-primary-rgb), 0.25); }
+.shadow-neon-jade-sm { box-shadow: 0 0 8px rgba(var(--accent-primary-rgb), 0.2); }
+.shadow-neon-danger { box-shadow: 0 0 15px rgba(var(--accent-danger-rgb), 0.25); }
+.shadow-neon-gold-sm { box-shadow: 0 0 8px rgba(var(--accent-warning-rgb), 0.2); }
+.drop-shadow-neon { filter: drop-shadow(0 0 5px rgba(var(--accent-primary-rgb), 0.5)); }
+.neon-text-glow { text-shadow: 0 0 10px rgba(var(--accent-primary-rgb), 0.3); }
+
+/* Glass Effect */
 .glass-effect {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.neon-card {
+  border: 1px solid var(--border-color);
+}
+.terminal-card {
+  border: 1px solid var(--border-color);
 }
 
-/* 品牌渐变文字 */
-.brand-gradient-text {
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* Animations */
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-down { animation: fade-in-down 0.5s ease-out forwards; }
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-left { animation: slide-in-left 0.5s ease-out forwards; }
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-right { animation: slide-in-right 0.5s ease-out forwards; }
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.15; }
+}
+.animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+
+@keyframes crt-scan {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(100vh); }
+}
+.animate-crt-scan { animation: crt-scan 8s linear infinite; }
+
+/* Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.2s ease;
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
 }
 
-/* ANSI Colors - matching standard terminal colors but tweaked for the theme */
-:deep(.ansi-black-fg) { color: #3e4451; }
-:deep(.ansi-red-fg) { color: #e06c75; }
-:deep(.ansi-green-fg) { color: #98c379; }
-:deep(.ansi-yellow-fg) { color: #e5c07b; }
-:deep(.ansi-blue-fg) { color: #61afef; }
-:deep(.ansi-magenta-fg) { color: #c678dd; }
-:deep(.ansi-cyan-fg) { color: #56b6c2; }
-:deep(.ansi-white-fg) { color: #abb2bf; }
-
-:deep(.ansi-bright-black-fg) { color: #5c6370; }
-:deep(.ansi-bright-red-fg) { color: #e06c75; }
-:deep(.ansi-bright-green-fg) { color: #98c379; }
-:deep(.ansi-bright-yellow-fg) { color: #e5c07b; }
-:deep(.ansi-bright-blue-fg) { color: #61afef; }
-:deep(.ansi-bright-magenta-fg) { color: #c678dd; }
-:deep(.ansi-bright-cyan-fg) { color: #56b6c2; }
-:deep(.ansi-bright-white-fg) { color: #ffffff; }
+/* ANSI Colors - Themed */
+:deep(.ansi-black-fg) { color: var(--text-primary); }
+:deep(.ansi-red-fg) { color: var(--accent-danger); }
+:deep(.ansi-green-fg) { color: var(--accent-success); }
+:deep(.ansi-yellow-fg) { color: var(--accent-warning); }
+:deep(.ansi-blue-fg) { color: var(--accent-info); }
+:deep(.ansi-magenta-fg) { color: var(--accent-secondary); }
+:deep(.ansi-cyan-fg) { color: var(--accent-tertiary); }
+:deep(.ansi-white-fg) { color: var(--text-muted); }
 </style>

@@ -2,10 +2,13 @@
 
 pub mod agents;
 pub mod budget;
+pub mod builtin_prompts;
 pub mod command;
 pub mod config;
 pub mod converter;
+pub mod logs;
 pub mod mcp;
+pub mod mcp_presets;
 pub mod platform;
 pub mod platforms;
 pub mod plugins;

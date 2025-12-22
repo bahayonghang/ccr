@@ -15,13 +15,17 @@
     "jsx": "preserve",
 
     /* Linting */
-    "strict": false,
-    "noUnusedLocals": false,
+    "strict": true,
+    "noUnusedLocals": true,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "strictNullChecks": false,
-    "noImplicitAny": false,
-    "strictPropertyInitialization": false,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictPropertyInitialization": true,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUncheckedIndexedAccess": false,
 
     /* Path alias */
     "baseUrl": ".",

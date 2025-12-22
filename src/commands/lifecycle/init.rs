@@ -117,10 +117,10 @@ fn init_unified_mode(force: bool) -> Result<()> {
 
         print!("确认强制重新初始化? (y/N): ");
         use std::io::{self, Write};
-        io::stdout().flush().unwrap();
+        io::stdout().flush().expect("无法刷新标准输出");
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        io::stdin().read_line(&mut input).expect("无法读取用户输入");
 
         if !input.trim().eq_ignore_ascii_case("y") {
             ColorOutput::info("已取消初始化操作");
@@ -164,7 +164,11 @@ fn init_unified_mode(force: bool) -> Result<()> {
     ));
     ColorOutput::success(&format!(
         "✓ 历史目录: {}",
-        claude_paths.history_file.parent().unwrap().display()
+        claude_paths
+            .history_file
+            .parent()
+            .expect("无法获取历史文件父目录")
+            .display()
     ));
     ColorOutput::success(&format!(
         "✓ 备份目录: {}",
@@ -274,10 +278,10 @@ fn init_legacy_mode(force: bool) -> Result<()> {
 
             print!("确认强制重新初始化? (y/N): ");
             use std::io::{self, Write};
-            io::stdout().flush().unwrap();
+            io::stdout().flush().expect("无法刷新标准输出");
 
             let mut input = String::new();
-            io::stdin().read_line(&mut input).unwrap();
+            io::stdin().read_line(&mut input).expect("无法读取用户输入");
 
             if !input.trim().eq_ignore_ascii_case("y") {
                 ColorOutput::info("已取消初始化操作");
@@ -347,6 +351,7 @@ fn backup_existing_config(config_path: &PathBuf) -> Result<()> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

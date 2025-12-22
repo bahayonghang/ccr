@@ -20,6 +20,7 @@ pub fn ui_command(port: u16, backend_port: u16, auto_yes: bool) -> Result<()> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

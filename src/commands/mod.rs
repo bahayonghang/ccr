@@ -20,11 +20,14 @@ pub mod profile;
 // 🔄 保留的独立命令（暂未迁移到子模块）
 pub mod check_cmd;
 pub mod prompts_cmd;
+pub mod provider_cmd;
+pub mod sessions_cmd;
 pub mod skills_cmd;
 #[cfg(feature = "web")]
 pub mod sync_cmd;
 #[cfg(feature = "web")]
 pub mod sync_content_selector;
+pub mod temp_cmd;
 pub mod temp_token;
 pub mod ui;
 pub mod update;
@@ -71,6 +74,7 @@ pub use data::{StatsArgs, stats_command};
 pub use check_cmd::check_conflicts_command;
 #[cfg(feature = "web")]
 pub use sync_content_selector::SyncContentSelector;
+pub use temp_cmd::temp_command;
 pub use temp_token::{temp_token_clear, temp_token_set, temp_token_show};
 pub use ui::ui_command;
 pub use update::update_command;

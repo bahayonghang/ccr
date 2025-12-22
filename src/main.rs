@@ -14,6 +14,8 @@ mod managers;
 mod models;
 mod platforms;
 mod services;
+mod sessions;
+mod storage;
 mod sync;
 mod utils;
 
@@ -374,6 +376,13 @@ enum Commands {
         action: TempTokenAction,
     },
 
+    /// 临时配置快速设置（交互式）
+    ///
+    /// 无需依赖现有TOML配置，直接交互式输入 base_url、token、model
+    /// 并立即写入 settings.json。支持模型名称智能解析。
+    /// 示例: ccr temp
+    Temp,
+
     /// 多平台管理
     ///
     /// 管理和切换不同的 AI CLI 平台 (Claude, Codex, Gemini 等)
@@ -451,6 +460,22 @@ enum Commands {
         #[command(subcommand)]
         action: CheckAction,
     },
+
+    /// 📚 Session 管理
+    ///
+    /// 管理 AI CLI 的会话记录
+    /// 示例: ccr sessions list
+    ///       ccr sessions search "refactoring"
+    ///       ccr sessions reindex
+    Sessions(commands::sessions_cmd::SessionsArgs),
+
+    /// 🏥 Provider 健康检查
+    ///
+    /// 测试 Provider 端点连通性和 API Key 有效性
+    /// 示例: ccr provider test --all
+    ///       ccr provider test my-config --verbose
+    ///       ccr provider verify my-config
+    Provider(commands::provider_cmd::ProviderArgs),
 }
 
 /// 🔍 检查操作子命令
@@ -888,6 +913,7 @@ fn main() {
             TempTokenAction::Show => commands::temp_token_show(),
             TempTokenAction::Clear => commands::temp_token_clear(),
         },
+        Some(Commands::Temp) => commands::temp_command(),
         Some(Commands::Platform { action }) => match action {
             PlatformAction::List { json } => commands::platform_list_command(json),
             PlatformAction::Switch { platform_name } => {
@@ -941,6 +967,8 @@ fn main() {
         Some(Commands::Check { action }) => match action {
             CheckAction::Conflicts => commands::check_conflicts_command(),
         },
+        Some(Commands::Sessions(args)) => commands::sessions_cmd::execute(args),
+        Some(Commands::Provider(args)) => commands::provider_cmd::execute(args),
         None => {
             // 💡 智能处理：有配置名称则切换,否则显示当前状态
             if let Some(config_name) = cli.config_name {
@@ -1047,6 +1075,7 @@ fn command_name(cmd: &Commands) -> &'static str {
         Commands::Sync { .. } => "sync",
         Commands::Ui { .. } => "ui",
         Commands::TempToken { .. } => "temp-token",
+        Commands::Temp => "temp",
         Commands::Platform { .. } => "platform",
         Commands::Migrate { .. } => "migrate",
         #[cfg(feature = "web")]
@@ -1054,12 +1083,17 @@ fn command_name(cmd: &Commands) -> &'static str {
         Commands::Skills(_) => "skills",
         Commands::Prompts(_) => "prompts",
         Commands::Check { .. } => "check",
+        #[cfg(feature = "web")]
         Commands::Budget(_) => "budget",
+        #[cfg(feature = "web")]
         Commands::Pricing(_) => "pricing",
+        Commands::Sessions(_) => "sessions",
+        Commands::Provider(_) => "provider",
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

@@ -233,7 +233,7 @@
             
           <!-- Hover Points -->
           <circle
-            v-if="activeSeriesSet.has('input')"
+            v-if="activeSeriesSet.has('input') && hoveredData"
             :cx="getXPos(hoveredIndex)"
             :cy="getYPos(hoveredData.input)"
             r="4"
@@ -243,7 +243,7 @@
             class="dark:stroke-gray-800"
           />
           <circle
-            v-if="activeSeriesSet.has('output')"
+            v-if="activeSeriesSet.has('output') && hoveredData"
             :cx="getXPos(hoveredIndex)"
             :cy="getYPos(hoveredData.output)"
             r="4"
@@ -253,7 +253,7 @@
             class="dark:stroke-gray-800"
           />
           <circle
-            v-if="activeSeriesSet.has('cache')"
+            v-if="activeSeriesSet.has('cache') && hoveredData"
             :cx="getXPos(hoveredIndex)"
             :cy="getYPos(hoveredData.cache)"
             r="4"

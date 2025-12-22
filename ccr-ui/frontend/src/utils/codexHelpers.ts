@@ -49,22 +49,54 @@ export function handleCardHover(el: HTMLElement, hover: boolean): void {
 }
 
 /**
- * 格式化时间戳
+ * 格式化时间戳为绝对时间
  * @param timestamp - 时间戳或日期字符串
  * @returns 格式化后的时间字符串
  */
 export function formatTimestamp(timestamp: string | number | Date): string {
   const date = new Date(timestamp)
   if (isNaN(date.getTime())) return '-'
-  
+
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
   const seconds = String(date.getSeconds()).padStart(2, '0')
-  
+
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+/**
+ * 格式化时间戳为相对时间
+ * @param timestamp - 时间戳或日期字符串
+ * @returns 相对时间字符串（如：5分钟前、2小时前）
+ */
+export function formatRelativeTime(timestamp: string | number | Date): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+  if (diffInSeconds < 60) {
+    return '刚刚'
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60)
+    return `${minutes} 分钟前`
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600)
+    return `${hours} 小时前`
+  } else if (diffInSeconds < 604800) {
+    const days = Math.floor(diffInSeconds / 86400)
+    return `${days} 天前`
+  } else {
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 }
 
 /**

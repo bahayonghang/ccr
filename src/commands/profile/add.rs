@@ -168,10 +168,10 @@ fn prompt_provider_type() -> Option<ProviderType> {
     println!("    2) 第三方模型");
     println!("    留空跳过");
     print!("  请选择 [1/2]: ");
-    io::stdout().flush().unwrap();
+    io::stdout().flush().expect("无法刷新标准输出");
 
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
+    io::stdin().read_line(&mut input).expect("无法读取用户输入");
     let input = input.trim();
 
     match input {
@@ -182,6 +182,7 @@ fn prompt_provider_type() -> Option<ProviderType> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     #[test]
     fn test_add_command_structure() {

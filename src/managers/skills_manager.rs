@@ -92,18 +92,26 @@ impl SkillsManager {
             let entry = entry.map_err(CcrError::IoError)?;
             let path = entry.path();
             if path.is_dir() {
-                let name = path.file_name().unwrap().to_string_lossy().to_string();
+                let name = path
+                    .file_name()
+                    .expect("文件名应该存在")
+                    .to_string_lossy()
+                    .to_string();
                 let skill_file = path.join("SKILL.md");
 
                 if skill_file.exists() {
                     let instruction = fs::read_to_string(&skill_file).map_err(CcrError::IoError)?;
                     let description = instruction.lines().next().map(|s| s.to_string());
+                    let metadata = Skill::parse_metadata(&instruction);
 
                     skills.push(Skill {
                         name,
                         description,
                         path: path.to_string_lossy().to_string(),
                         instruction,
+                        metadata,
+                        is_remote: false,
+                        repository: None,
                     });
                 }
             }
@@ -126,12 +134,16 @@ impl SkillsManager {
 
         let instruction = fs::read_to_string(&skill_file).map_err(CcrError::IoError)?;
         let description = instruction.lines().next().map(|s| s.to_string());
+        let metadata = Skill::parse_metadata(&instruction);
 
         Ok(Skill {
             name: name.to_string(),
             description,
             path: skill_path.to_string_lossy().to_string(),
             instruction,
+            metadata,
+            is_remote: false,
+            repository: None,
         })
     }
 
@@ -297,8 +309,11 @@ impl SkillsManager {
                     skills.push(Skill {
                         name: name.to_string(),
                         description: Some(format!("Remote skill from {}", repo.name)),
-                        path: raw_url, // Store URL in path for now? Or add a new field?
-                        instruction: String::new(), // Empty instruction
+                        path: raw_url,
+                        instruction: String::new(),
+                        metadata: crate::models::skill::SkillMetadata::default(),
+                        is_remote: true,
+                        repository: Some(repo.name.clone()),
                     });
                 }
             }

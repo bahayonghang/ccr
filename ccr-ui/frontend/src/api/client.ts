@@ -64,6 +64,7 @@ import type {
   SetBudgetRequest,
   PricingListResponse,
   SetPricingRequest,
+  DailyStatsResponse,
 } from '@/types'
 
 // 创建 axios 实例
@@ -79,7 +80,7 @@ const createApiClient = (): AxiosInstance => {
   // 请求拦截器
   api.interceptors.request.use(
     (config) => {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`)
       }
       return config
@@ -90,17 +91,51 @@ const createApiClient = (): AxiosInstance => {
     }
   )
 
-  // 响应拦截器
+  // 响应拦截器：统一处理 ApiResponse 格式的响应
   api.interceptors.response.use(
     (response) => {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log(`[API] Response:`, response.data)
       }
+
+      // 如果响应是 ApiResponse 格式（包含 success 字段）
+      if (response.data && typeof response.data.success === 'boolean') {
+        // success=false 时统一抛出错误
+        if (!response.data.success) {
+          const errorMessage = response.data.message || 'Unknown API error'
+          console.error('[API] API returned error:', errorMessage)
+          return Promise.reject(new Error(errorMessage))
+        }
+      }
+
       return response
     },
     (error) => {
-      console.error('[API] Response error:', error)
-      return Promise.reject(error)
+      // 统一处理网络错误和 HTTP 错误
+      let errorMessage = 'Network error or server unreachable'
+
+      if (error.response) {
+        // 服务器返回了错误状态码
+        const status = error.response.status
+        const data = error.response.data
+
+        if (data && typeof data.message === 'string') {
+          errorMessage = data.message
+        } else if (data && typeof data.error === 'string') {
+          errorMessage = data.error
+        } else {
+          errorMessage = `HTTP ${status}: ${error.message}`
+        }
+      } else if (error.request) {
+        // 请求已发送但没有收到响应
+        errorMessage = 'No response from server'
+      } else {
+        // 请求配置出错
+        errorMessage = error.message
+      }
+
+      console.error('[API] Response error:', errorMessage)
+      return Promise.reject(new Error(errorMessage))
     }
   )
 
@@ -214,6 +249,15 @@ export const getUsageRecords = async (
   params.set('platform', platform)
   params.set('limit', limit.toString())
   const response = await api.get<UsageRecordsResponse>(`/usage/records?${params}`)
+  return response.data
+}
+
+/**
+ * 获取每日使用统计 - 支持 CodMate 风格的三视图切换
+ * @param days 查询天数，默认 30
+ */
+export const getDailyStats = async (days: number = 30): Promise<DailyStatsResponse> => {
+  const response = await api.get<DailyStatsResponse>(`/sessions/stats/daily?days=${days}`)
   return response.data
 }
 
@@ -375,6 +419,165 @@ export const deleteMcpServer = async (name: string): Promise<string> => {
 
 export const toggleMcpServer = async (name: string): Promise<string> => {
   const response = await api.put<ApiResponse<string>>(`/mcp/${encodeURIComponent(name)}/toggle`)
+  return response.data.data!
+}
+
+// ===================================
+// MCP Preset Management APIs
+// ===================================
+
+export interface McpPreset {
+  id: string
+  name: string
+  description: string
+  command: string | null
+  args: string[]
+  tags: string[]
+  homepage: string | null
+  docs: string | null
+  requires_api_key: boolean
+  api_key_env: string | null
+}
+
+export interface InstallPresetRequest {
+  preset_id: string
+  platforms: string[]
+  env?: Record<string, string>
+}
+
+export interface InstallPresetResult {
+  platform: string
+  success: boolean
+  message: string | null
+}
+
+export interface InstallPresetResponse {
+  message: string
+  results: InstallPresetResult[]
+}
+
+export const listMcpPresets = async (): Promise<McpPreset[]> => {
+  const response = await api.get<ApiResponse<McpPreset[]>>('/mcp/presets')
+  return response.data.data!
+}
+
+export const getMcpPreset = async (id: string): Promise<McpPreset> => {
+  const response = await api.get<ApiResponse<McpPreset>>(`/mcp/presets/${encodeURIComponent(id)}`)
+  return response.data.data!
+}
+
+export const installMcpPreset = async (
+  presetId: string,
+  platforms: string[],
+  env?: Record<string, string>
+): Promise<InstallPresetResponse> => {
+  const request: InstallPresetRequest = {
+    preset_id: presetId,
+    platforms,
+    env: env || {}
+  }
+  const response = await api.post<ApiResponse<InstallPresetResponse>>(
+    `/mcp/presets/${encodeURIComponent(presetId)}/install`,
+    request
+  )
+  return response.data.data!
+}
+
+export const installMcpPresetSingle = async (
+  presetId: string,
+  platform: string,
+  env?: Record<string, string>
+): Promise<{ message: string; platform: string }> => {
+  const request: InstallPresetRequest = {
+    preset_id: presetId,
+    platforms: [platform],
+    env: env || {}
+  }
+  const response = await api.post<ApiResponse<{ message: string; platform: string }>>(
+    '/mcp/presets/install',
+    request
+  )
+  return response.data.data!
+}
+
+// ===================================
+// MCP Sync APIs
+// ===================================
+
+export interface McpServerInfo {
+  name: string
+  command: string | null
+  args: string[]
+  env: Record<string, string>
+}
+
+export interface SyncResult {
+  platform: string
+  success: boolean
+  message: string | null
+}
+
+export interface SyncResponse {
+  message: string
+  results: SyncResult[]
+}
+
+export interface SyncAllResponse {
+  message: string
+  servers: Record<string, SyncResult[]>
+}
+
+export const listSourceMcpServers = async (): Promise<McpServerInfo[]> => {
+  const response = await api.get<ApiResponse<McpServerInfo[]>>('/mcp/sync/source')
+  return response.data.data!
+}
+
+export const syncMcpServer = async (
+  serverName: string,
+  targetPlatforms: string[]
+): Promise<SyncResponse> => {
+  const response = await api.post<ApiResponse<SyncResponse>>(
+    `/mcp/sync/${encodeURIComponent(serverName)}`,
+    { platforms: targetPlatforms }
+  )
+  return response.data.data!
+}
+
+export const syncAllMcpServers = async (
+  targetPlatforms: string[]
+): Promise<SyncAllResponse> => {
+  const response = await api.post<ApiResponse<SyncAllResponse>>(
+    '/mcp/sync/all',
+    { platforms: targetPlatforms }
+  )
+  return response.data.data!
+}
+
+// ===================================
+// Builtin Prompts Management APIs
+// ===================================
+
+export interface BuiltinPrompt {
+  id: string
+  name: string
+  description: string
+  content: string
+  category: string
+  tags: string[]
+}
+
+export const listBuiltinPrompts = async (): Promise<BuiltinPrompt[]> => {
+  const response = await api.get<ApiResponse<BuiltinPrompt[]>>('/prompts/builtin')
+  return response.data.data!
+}
+
+export const getBuiltinPrompt = async (id: string): Promise<BuiltinPrompt> => {
+  const response = await api.get<ApiResponse<BuiltinPrompt>>(`/prompts/builtin/${id}`)
+  return response.data.data!
+}
+
+export const getBuiltinPromptsByCategory = async (category: string): Promise<BuiltinPrompt[]> => {
+  const response = await api.get<ApiResponse<BuiltinPrompt[]>>(`/prompts/builtin/category/${category}`)
   return response.data.data!
 }
 
@@ -952,4 +1155,76 @@ export const deleteCodexPlugin = async (_id: string): Promise<string> => {
 
 export const toggleCodexPlugin = async (_id: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
+}
+
+// ===================================
+// Skills Management APIs
+// ===================================
+
+export interface Skill {
+  name: string
+  description?: string
+  path: string
+  instruction: string
+  metadata?: {
+    author?: string
+    version?: string
+    license?: string
+    tags?: string[]
+    updated_at?: string
+  }
+  is_remote?: boolean
+  repository?: string
+}
+
+export interface SkillRepository {
+  name: string
+  url: string
+  branch: string
+  description?: string
+  skill_count?: number
+  last_synced?: string
+  is_official?: boolean
+}
+
+export interface AddRepositoryRequest {
+  name: string
+  url: string
+  branch?: string
+  description?: string
+}
+
+export const listSkills = async (): Promise<Skill[]> => {
+  const response = await api.get<ApiResponse<Skill[]>>('/skills')
+  return response.data.data!
+}
+
+export const addSkill = async (name: string, instruction: string): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/skills', { name, instruction })
+  return response.data.data!
+}
+
+export const deleteSkill = async (name: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(`/skills/${encodeURIComponent(name)}`)
+  return response.data.data!
+}
+
+export const listSkillRepositories = async (): Promise<SkillRepository[]> => {
+  const response = await api.get<ApiResponse<SkillRepository[]>>('/skills/repositories')
+  return response.data.data!
+}
+
+export const addSkillRepository = async (request: AddRepositoryRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/skills/repositories', request)
+  return response.data.data!
+}
+
+export const removeSkillRepository = async (name: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(`/skills/repositories/${encodeURIComponent(name)}`)
+  return response.data.data!
+}
+
+export const scanSkillRepository = async (name: string): Promise<Skill[]> => {
+  const response = await api.get<ApiResponse<Skill[]>>(`/skills/repositories/${encodeURIComponent(name)}/scan`)
+  return response.data.data!
 }

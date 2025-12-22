@@ -9,6 +9,7 @@
 
 pub mod backup_service;
 pub mod config_service;
+pub mod health_check;
 pub mod history_service;
 pub mod multi_backup_service;
 pub mod settings_service;

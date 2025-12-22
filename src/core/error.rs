@@ -81,6 +81,9 @@ pub mod exit_codes {
 
     /// 📦 资源已存在
     pub const RESOURCE_ALREADY_EXISTS: i32 = 64;
+
+    /// 🗄️ 数据库错误
+    pub const DATABASE_ERROR: i32 = 72;
 }
 
 /// ❌ CCR 错误类型枚举
@@ -168,6 +171,10 @@ pub enum CcrError {
     /// 📦 资源已存在
     #[error("资源已存在: {0}")]
     ResourceAlreadyExists(String),
+
+    /// 🗄️ 数据库错误
+    #[error("数据库错误: {0}")]
+    DatabaseError(String),
 }
 
 impl CcrError {
@@ -198,6 +205,7 @@ impl CcrError {
             CcrError::NetworkError(_) => exit_codes::NETWORK_ERROR,
             CcrError::ResourceNotFound(_) => exit_codes::RESOURCE_NOT_FOUND,
             CcrError::ResourceAlreadyExists(_) => exit_codes::RESOURCE_ALREADY_EXISTS,
+            CcrError::DatabaseError(_) => exit_codes::DATABASE_ERROR,
         }
     }
 
@@ -311,6 +319,7 @@ impl CcrError {
 pub type Result<T> = std::result::Result<T, CcrError>;
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

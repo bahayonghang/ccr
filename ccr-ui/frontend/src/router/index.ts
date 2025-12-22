@@ -90,6 +90,11 @@ const router = createRouter({
           meta: { cache: true }
         },
         {
+          path: 'monitoring',
+          name: 'monitoring',
+          component: () => import('@/views/MonitoringView.vue')
+        },
+        {
           path: 'mcp',
           name: 'mcp',
           component: () => import('@/views/McpView.vue')
@@ -119,6 +124,16 @@ const router = createRouter({
           path: 'plugins',
           name: 'plugins',
           component: () => import('@/views/PluginsView.vue')
+        },
+        {
+          path: 'sessions',
+          name: 'sessions',
+          component: () => import('@/views/SessionsView.vue')
+        },
+        {
+          path: 'provider-health',
+          name: 'provider-health',
+          component: () => import('@/views/ProviderHealthView.vue')
         },
         // Codex 子页面
         {

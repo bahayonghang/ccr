@@ -67,6 +67,7 @@ macro_rules! spawn_blocking_with_error {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use axum::http::StatusCode;

@@ -224,13 +224,16 @@ impl BudgetStatus {
     /// 获取最严重的警告
     #[allow(dead_code)]
     pub fn worst_warning(&self) -> Option<&BudgetWarning> {
-        self.warnings
-            .iter()
-            .max_by(|a, b| a.usage_percent.partial_cmp(&b.usage_percent).unwrap())
+        self.warnings.iter().max_by(|a, b| {
+            a.usage_percent
+                .partial_cmp(&b.usage_percent)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

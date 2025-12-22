@@ -119,7 +119,7 @@
                     :style="{ color: 'var(--text-secondary)' }"
                   >
                     <Clock class="w-4 h-4" />
-                    {{ formatTimestamp(entry.timestamp) }}
+                    {{ formatRelativeTime(entry.timestamp) }}
                   </span>
                   <span
                     class="inline-flex items-center gap-1.5"
@@ -267,6 +267,7 @@
 <script setup lang="ts">
 import { ArrowRight, Clock, User, History, GitBranch, CheckCircle, RefreshCw, FileEdit, Trash2 } from 'lucide-vue-next'
 import type { HistoryEntry } from '@/types'
+import { formatRelativeTime } from '@/utils/codexHelpers'
 
 interface Props {
   entries: HistoryEntry[]
@@ -332,31 +333,4 @@ const getOperationColor = (operation: string, alpha: number): string => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-// 格式化时间戳
-const formatTimestamp = (timestamp: string): string => {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-  
-  if (diffInSeconds < 60) {
-    return '刚刚'
-  } else if (diffInSeconds < 3600) {
-    const minutes = Math.floor(diffInSeconds / 60)
-    return `${minutes} 分钟前`
-  } else if (diffInSeconds < 86400) {
-    const hours = Math.floor(diffInSeconds / 3600)
-    return `${hours} 小时前`
-  } else if (diffInSeconds < 604800) {
-    const days = Math.floor(diffInSeconds / 86400)
-    return `${days} 天前`
-  } else {
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-}
 </script>

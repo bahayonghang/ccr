@@ -226,7 +226,7 @@ async fn summary_command(args: SummaryArgs) -> Result<()> {
             println!("  (无数据)");
         } else {
             let mut models: Vec<_> = stats.by_model.iter().collect();
-            models.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
+            models.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(std::cmp::Ordering::Equal));
 
             for (model, cost) in models {
                 let short_model = shorten_model_name(model);
@@ -243,7 +243,7 @@ async fn summary_command(args: SummaryArgs) -> Result<()> {
             println!("  (无数据)");
         } else {
             let mut projects: Vec<_> = stats.by_project.iter().collect();
-            projects.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
+            projects.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(std::cmp::Ordering::Equal));
 
             for (project, cost) in projects.iter().take(10) {
                 let short_project = shorten_path(project);
@@ -505,7 +505,11 @@ fn parse_time_range(
     match range {
         "today" => {
             let now = Utc::now();
-            let start = now.date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
+            let start = now
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .expect("无效的日期时间")
+                .and_utc();
             Ok((start, now))
         }
         "week" => {
@@ -518,9 +522,9 @@ fn parse_time_range(
             let start = now
                 .date_naive()
                 .with_day(1)
-                .unwrap()
+                .expect("无法设置日期为每月第一天")
                 .and_hms_opt(0, 0, 0)
-                .unwrap()
+                .expect("无效的日期时间")
                 .and_utc();
             Ok((start, now))
         }
@@ -749,6 +753,7 @@ fn shorten_id(id: &str) -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

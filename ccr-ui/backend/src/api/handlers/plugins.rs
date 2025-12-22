@@ -156,7 +156,7 @@ pub async fn add_plugin(Json(req): Json<PluginRequest>) -> impl IntoResponse {
     if let Some(config) = req.config {
         plugin_data
             .as_object_mut()
-            .unwrap()
+            .expect("插件数据应该是 JSON 对象")
             .insert("config".to_string(), config);
     }
 
@@ -249,7 +249,7 @@ pub async fn update_plugin(
     if let Some(config) = req.config {
         plugin_data
             .as_object_mut()
-            .unwrap()
+            .expect("插件数据应该是 JSON 对象")
             .insert("config".to_string(), config);
     }
 

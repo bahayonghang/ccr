@@ -406,8 +406,8 @@ const savePricing = async () => {
       model: form.value.model,
       input_price: form.value.input_price,
       output_price: form.value.output_price,
-      cache_read_price: form.value.cache_read_price,
-      cache_write_price: form.value.cache_write_price,
+      cache_read_price: form.value.cache_read_price ?? undefined,
+      cache_write_price: form.value.cache_write_price ?? undefined,
     }
 
     await setPricing(request)

@@ -48,6 +48,12 @@
             </button>
           </div>
 
+          <!-- MCP Presets Panel -->
+          <McpPresetsPanel @installed="loadServers" />
+
+          <!-- MCP Sync Panel -->
+          <McpSyncPanel @synced="loadServers" />
+
           <!-- Content -->
           <div
             v-if="loading"
@@ -344,6 +350,8 @@ import Navbar from '@/components/Navbar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import McpPresetsPanel from '@/components/McpPresetsPanel.vue'
+import McpSyncPanel from '@/components/McpSyncPanel.vue'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -462,8 +470,8 @@ const confirmDelete = async () => {
 const handleToggle = (name: string) => {
   const server = servers.value.find(s => s.name === name)
   if (!server) return
-  
-  serverToToggle.value = { name, currentlyDisabled: server.disabled }
+
+  serverToToggle.value = { name, currentlyDisabled: server.disabled || false }
   showToggleModal.value = true
 }
 

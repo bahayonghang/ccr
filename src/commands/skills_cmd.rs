@@ -161,6 +161,9 @@ pub fn skills_command(args: SkillsArgs) -> Result<()> {
                         url,
                         branch: branch.unwrap_or_else(|| "main".to_string()),
                         description,
+                        skill_count: 0,
+                        last_synced: None,
+                        is_official: false,
                     };
                     manager.add_repository(repo)?;
                     println!("Repository '{}' added successfully.", name);

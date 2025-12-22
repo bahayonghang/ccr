@@ -14,6 +14,10 @@ is_windows := if os() == "windows" { "true" } else { "false" }
 is_macos := if os() == "macos" { "true" } else { "false" }
 is_linux := if os() == "linux" { "true" } else { "false" }
 
+# 🔧 端口配置（支持环境变量覆盖）
+vite_port := env("VITE_PORT", "5173")
+backend_port := env("BACKEND_PORT", "38081")
+
 # 默认命令：显示帮助信息
 default:
     @just help
@@ -31,7 +35,7 @@ help:
     @echo "最常用命令:"
     @echo "  just quick-start    一键启动（检查 + 安装 + 开发）"
     @echo "  just dev            启动开发环境（Vue 3 前端 + 后端）"
-    @echo "  just dev-react      启动 React 开发环境（Next.js 前端 + 后端）"
+    @echo "  just dev-fast       ⚡ 快速启动（使用 Release 构建，二次启动更快）"
     @echo "  just install        安装所有依赖"
     @echo "  just build          构建生产版本"
     @echo "  just check          检查代码"
@@ -129,22 +133,22 @@ dev: dev-clean
 
 _dev-start-linux:
     @echo "🚀 启动开发环境..."
-    @echo "📍 后端: http://localhost:38081"
-    @echo "📍 前端: http://localhost:5173 (Vue 3 + Vite)"
+    @echo "📍 后端: http://localhost:{{backend_port}}"
+    @echo "📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)"
     @echo ""
     @just dev-parallel
 
 _dev-start-macos:
     @echo "🚀 启动开发环境..."
-    @echo "📍 后端: http://localhost:38081"
-    @echo "📍 前端: http://localhost:5173 (Vue 3 + Vite)"
+    @echo "📍 后端: http://localhost:{{backend_port}}"
+    @echo "📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)"
     @echo ""
     @just dev-parallel
 
 _dev-start-windows:
     @Write-Output '🚀 启动开发环境...'
-    @Write-Output '📍 后端: http://localhost:38081'
-    @Write-Output '📍 前端: http://localhost:5173 (Vue 3 + Vite)'
+    @Write-Output '📍 后端: http://localhost:{{backend_port}}'
+    @Write-Output '📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)'
     @Write-Output ''
     @just dev-parallel
 
@@ -158,16 +162,24 @@ _dev-parallel-linux:
     #!/usr/bin/env bash
     set -e
     JDIR="{{justfile_directory()}}"
+    BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
+    VITE_PORT="${VITE_PORT:-{{vite_port}}}"
     mkdir -p "$JDIR/logs"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
-    # 启动后端并记录日志
-    cd "$JDIR/backend" && cargo run 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    # 启动后端并记录日志（传递端口参数）
+    cd "$JDIR/backend" && cargo run -- --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
     BACK_PID=$!
     # 轮询后端健康检查，避免前端在后端未就绪时启动
-    echo "⏳ 等待后端就绪 (http://127.0.0.1:38081/health)..."
+    echo "⏳ 等待后端就绪 (http://127.0.0.1:$BACKEND_PORT/health)..."
     if command -v curl >/dev/null 2>&1; then
-      for i in $(seq 1 90); do
-        if curl -sf http://127.0.0.1:38081/health >/dev/null 2>&1; then
+      # 动态超时：已编译则 30 秒，未编译则 120 秒
+      if [ -d "$JDIR/backend/target/debug" ]; then
+        MAX_WAIT=30
+      else
+        MAX_WAIT=120
+      fi
+      for i in $(seq 1 $MAX_WAIT); do
+        if curl -sf "http://127.0.0.1:$BACKEND_PORT/health" >/dev/null 2>&1; then
           echo "✅ 后端就绪"
           break
         fi
@@ -177,8 +189,8 @@ _dev-parallel-linux:
           exit 1
         fi
         sleep 1
-        if [ "$i" -eq 90 ]; then
-          echo "❌ 等待后端超时(90s)，请检查后端日志"
+        if [ "$i" -eq $MAX_WAIT ]; then
+          echo "❌ 等待后端超时(${MAX_WAIT}s)，请检查后端日志"
           exit 1
         fi
       done
@@ -192,24 +204,32 @@ _dev-parallel-linux:
         sleep 1
       done
     fi
-    # 启动前端并记录日志
-    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    # 启动前端并记录日志（传递端口参数）
+    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" &
     wait
 
 _dev-parallel-macos:
     #!/usr/bin/env bash
     set -e
     JDIR="{{justfile_directory()}}"
+    BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
+    VITE_PORT="${VITE_PORT:-{{vite_port}}}"
     mkdir -p "$JDIR/logs"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
-    # 启动后端并记录日志
-    cd "$JDIR/backend" && cargo run 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    # 启动后端并记录日志（传递端口参数）
+    cd "$JDIR/backend" && cargo run -- --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
     BACK_PID=$!
     # 轮询后端健康检查，避免前端在后端未就绪时启动
-    echo "⏳ 等待后端就绪 (http://127.0.0.1:38081/health)..."
+    echo "⏳ 等待后端就绪 (http://127.0.0.1:$BACKEND_PORT/health)..."
     if command -v curl >/dev/null 2>&1; then
-      for i in $(seq 1 90); do
-        if curl -sf http://127.0.0.1:38081/health >/dev/null 2>&1; then
+      # 动态超时：已编译则 30 秒，未编译则 120 秒
+      if [ -d "$JDIR/backend/target/debug" ]; then
+        MAX_WAIT=30
+      else
+        MAX_WAIT=120
+      fi
+      for i in $(seq 1 $MAX_WAIT); do
+        if curl -sf "http://127.0.0.1:$BACKEND_PORT/health" >/dev/null 2>&1; then
           echo "✅ 后端就绪"
           break
         fi
@@ -219,8 +239,8 @@ _dev-parallel-macos:
           exit 1
         fi
         sleep 1
-        if [ "$i" -eq 90 ]; then
-          echo "❌ 等待后端超时(90s)，请检查后端日志"
+        if [ "$i" -eq $MAX_WAIT ]; then
+          echo "❌ 等待后端超时(${MAX_WAIT}s)，请检查后端日志"
           exit 1
         fi
       done
@@ -234,19 +254,14 @@ _dev-parallel-macos:
         sleep 1
       done
     fi
-    # 启动前端并记录日志
-    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    # 启动前端并记录日志（传递端口参数）
+    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" &
     wait
 
 # 并行启动 - Windows
-# ⚠️ Windows 使用 Start-Process 以保持子进程在后台运行
+# ✨ 使用后台作业在当前窗口内并行运行，避免弹出新窗口
 _dev-parallel-windows:
-    @if (-not (Test-Path logs)) { New-Item -ItemType Directory -Path logs -Force | Out-Null }
-    @Write-Output '🦀 启动后端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd backend; cargo run 2>&1 | Tee-Object -FilePath ../logs/backend-console.log -Append' -WindowStyle Normal
-    @$maxWait=90; Write-Output '⏳ 等待后端就绪 (http://127.0.0.1:38081/health)...'; for($i=0; $i -lt $maxWait; $i++){ try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri 'http://127.0.0.1:38081/health'; if($r.StatusCode -eq 200){ Write-Output '✅ 后端就绪'; break } } catch { } Start-Sleep -Seconds 1; if($i -eq ($maxWait-1)){ Write-Output '❌ 等待后端超时(90s)，请检查 logs/backend-console.log'; exit 1 } }
-    @Write-Output '⚛️ 启动前端服务器...'; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd frontend; bun run dev 2>&1 | Tee-Object -FilePath ../logs/frontend.log -Append' -WindowStyle Normal
-    @Write-Output '📜 日志位于 logs/backend-console.log 与 logs/frontend.log'
-    @Write-Output '💡 提示: 两个新窗口已打开，关闭窗口即可停止服务器'
+    @powershell -ExecutionPolicy Bypass -File "{{justfile_directory()}}/scripts/dev-parallel-windows.ps1" -RootDir "{{justfile_directory()}}" -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}"
 
 # 并行启动 - Unix/Linux/macOS
 # 启动前清理（端口 + 缓存 + 残留进程）
@@ -254,41 +269,80 @@ dev-clean:
     @just _dev-clean-{{os()}}
 
 # 清理开发环境 - Linux
+# 优化：优先使用 PID 文件，仅清理本项目占用的端口，避免误杀其他项目
 _dev-clean-linux:
     #!/usr/bin/env bash
     set -e
+    JDIR="{{justfile_directory()}}"
+    BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
+    VITE_PORT="${VITE_PORT:-{{vite_port}}}"
     echo "🧹 开始清理开发环境..."
-    pkill -9 -f "ccr-ui-backend" 2>/dev/null || true
-    pkill -9 -f "vite" 2>/dev/null || true
-    pkill -9 -f "next-server" 2>/dev/null || true
-    pkill -9 -f "next dev" 2>/dev/null || true
-    lsof -ti:38081 2>/dev/null | xargs -r kill -9 || true
-    lsof -ti:5173 2>/dev/null | xargs -r kill -9 || true
-    lsof -ti:5174 2>/dev/null | xargs -r kill -9 || true
-    lsof -ti:3000 2>/dev/null | xargs -r kill -9 || true
-    rm -rf frontend/.next 2>/dev/null || true
+    # 优先使用 PID 文件清理（如果存在）
+    if [ -f "$JDIR/.backend.pid" ]; then
+        PID=$(cat "$JDIR/.backend.pid")
+        if kill -0 "$PID" 2>/dev/null; then
+            echo "  停止后端进程 (PID: $PID)..."
+            kill -9 "$PID" 2>/dev/null || true
+        fi
+        rm -f "$JDIR/.backend.pid"
+    fi
+    if [ -f "$JDIR/.frontend.pid" ]; then
+        PID=$(cat "$JDIR/.frontend.pid")
+        if kill -0 "$PID" 2>/dev/null; then
+            echo "  停止前端进程 (PID: $PID)..."
+            kill -9 "$PID" 2>/dev/null || true
+        fi
+        rm -f "$JDIR/.frontend.pid"
+    fi
+    # 仅清理本项目配置的端口（不使用 pkill 避免误杀）
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -ti:"$BACKEND_PORT" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+        lsof -ti:"$VITE_PORT" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+    fi
+    # 清理缓存目录
+    rm -rf "$JDIR/frontend/.next" 2>/dev/null || true
     echo "✅ 清理完成"
 
 # 清理开发环境 - macOS
+# 优化：优先使用 PID 文件，仅清理本项目占用的端口，避免误杀其他项目
 _dev-clean-macos:
     #!/usr/bin/env bash
     set -e
+    JDIR="{{justfile_directory()}}"
+    BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
+    VITE_PORT="${VITE_PORT:-{{vite_port}}}"
     echo "🧹 开始清理开发环境..."
-    pkill -9 -f "ccr-ui-backend" 2>/dev/null || true
-    pkill -9 -f "vite" 2>/dev/null || true
-    pkill -9 -f "next-server" 2>/dev/null || true
-    pkill -9 -f "next dev" 2>/dev/null || true
-    lsof -ti:38081 2>/dev/null | xargs kill -9 || true
-    lsof -ti:5173 2>/dev/null | xargs kill -9 || true
-    lsof -ti:5174 2>/dev/null | xargs kill -9 || true
-    lsof -ti:3000 2>/dev/null | xargs kill -9 || true
-    rm -rf frontend/.next 2>/dev/null || true
+    # 优先使用 PID 文件清理（如果存在）
+    if [ -f "$JDIR/.backend.pid" ]; then
+        PID=$(cat "$JDIR/.backend.pid")
+        if kill -0 "$PID" 2>/dev/null; then
+            echo "  停止后端进程 (PID: $PID)..."
+            kill -9 "$PID" 2>/dev/null || true
+        fi
+        rm -f "$JDIR/.backend.pid"
+    fi
+    if [ -f "$JDIR/.frontend.pid" ]; then
+        PID=$(cat "$JDIR/.frontend.pid")
+        if kill -0 "$PID" 2>/dev/null; then
+            echo "  停止前端进程 (PID: $PID)..."
+            kill -9 "$PID" 2>/dev/null || true
+        fi
+        rm -f "$JDIR/.frontend.pid"
+    fi
+    # 仅清理本项目配置的端口（不使用 pkill 避免误杀）
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -ti:"$BACKEND_PORT" 2>/dev/null | xargs kill -9 2>/dev/null || true
+        lsof -ti:"$VITE_PORT" 2>/dev/null | xargs kill -9 2>/dev/null || true
+    fi
+    # 清理缓存目录
+    rm -rf "$JDIR/frontend/.next" 2>/dev/null || true
     echo "✅ 清理完成"
 
 # 清理开发环境 - Windows
+# 优化：仅清理本项目配置的端口，避免误杀其他项目
 _dev-clean-windows:
     @Write-Output '🧹 开始清理开发环境...'
-    @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1
+    @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1 -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}"
     @Write-Output '... 清理前端构建目录...'
     @if (Test-Path 'frontend/.next') { Remove-Item -Recurse -Force 'frontend/.next' }
     @Write-Output '✅ 清理完成'
@@ -400,6 +454,114 @@ _build-frontend-windows:
     @Write-Output '🏗️  构建前端...'
     @Set-Location frontend; bun run build
     @Write-Output '✅ 前端构建完成'
+
+# ===== 快速开发模式（使用 Release 构建） =====
+
+# 快速开发模式 - 使用预编译的 Release 版本启动（二次启动更快）
+dev-fast: dev-clean
+    @just _dev-fast-start-{{os()}}
+
+_dev-fast-start-linux:
+    @echo "⚡ 快速开发模式（使用 Release 构建）..."
+    @echo "📍 后端: http://localhost:{{backend_port}}"
+    @echo "📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)"
+    @echo ""
+    @just dev-fast-parallel
+
+_dev-fast-start-macos:
+    @echo "⚡ 快速开发模式（使用 Release 构建）..."
+    @echo "📍 后端: http://localhost:{{backend_port}}"
+    @echo "📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)"
+    @echo ""
+    @just dev-fast-parallel
+
+_dev-fast-start-windows:
+    @Write-Output '⚡ 快速开发模式（使用 Release 构建）...'
+    @Write-Output '📍 后端: http://localhost:{{backend_port}}'
+    @Write-Output '📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)'
+    @Write-Output ''
+    @just dev-fast-parallel
+
+# 快速并行启动（Release 模式）
+dev-fast-parallel:
+    @just _dev-fast-parallel-{{os()}}
+
+_dev-fast-parallel-linux:
+    #!/usr/bin/env bash
+    set -e
+    JDIR="{{justfile_directory()}}"
+    BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
+    VITE_PORT="${VITE_PORT:-{{vite_port}}}"
+    mkdir -p "$JDIR/logs"
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT
+    # 检查是否已有 Release 构建，没有则先构建
+    if [ ! -f "$JDIR/backend/target/release/ccr-ui-backend" ]; then
+        echo "🏗️  首次运行，正在构建 Release 版本..."
+        cd "$JDIR/backend" && cargo build --release
+        echo "✅ Release 构建完成"
+    fi
+    # 启动后端（直接运行二进制，无需编译）
+    cd "$JDIR/backend" && ./target/release/ccr-ui-backend --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    BACK_PID=$!
+    echo "⏳ 等待后端就绪 (http://127.0.0.1:$BACKEND_PORT/health)..."
+    for i in $(seq 1 15); do
+        if curl -sf "http://127.0.0.1:$BACKEND_PORT/health" >/dev/null 2>&1; then
+            echo "✅ 后端就绪"
+            break
+        fi
+        if ! kill -0 $BACK_PID 2>/dev/null; then
+            echo "❌ 后端进程已退出"
+            exit 1
+        fi
+        sleep 1
+        if [ "$i" -eq 15 ]; then
+            echo "❌ 等待后端超时(15s)"
+            exit 1
+        fi
+    done
+    # 启动前端
+    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    wait
+
+_dev-fast-parallel-macos:
+    #!/usr/bin/env bash
+    set -e
+    JDIR="{{justfile_directory()}}"
+    BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
+    VITE_PORT="${VITE_PORT:-{{vite_port}}}"
+    mkdir -p "$JDIR/logs"
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT
+    # 检查是否已有 Release 构建，没有则先构建
+    if [ ! -f "$JDIR/backend/target/release/ccr-ui-backend" ]; then
+        echo "🏗️  首次运行，正在构建 Release 版本..."
+        cd "$JDIR/backend" && cargo build --release
+        echo "✅ Release 构建完成"
+    fi
+    # 启动后端（直接运行二进制，无需编译）
+    cd "$JDIR/backend" && ./target/release/ccr-ui-backend --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    BACK_PID=$!
+    echo "⏳ 等待后端就绪 (http://127.0.0.1:$BACKEND_PORT/health)..."
+    for i in $(seq 1 15); do
+        if curl -sf "http://127.0.0.1:$BACKEND_PORT/health" >/dev/null 2>&1; then
+            echo "✅ 后端就绪"
+            break
+        fi
+        if ! kill -0 $BACK_PID 2>/dev/null; then
+            echo "❌ 后端进程已退出"
+            exit 1
+        fi
+        sleep 1
+        if [ "$i" -eq 15 ]; then
+            echo "❌ 等待后端超时(15s)"
+            exit 1
+        fi
+    done
+    # 启动前端
+    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    wait
+
+_dev-fast-parallel-windows:
+    @powershell -ExecutionPolicy Bypass -File "{{justfile_directory()}}/scripts/dev-fast-windows.ps1" -RootDir "{{justfile_directory()}}" -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}"
 
 # ===== 运行生产版本 =====
 

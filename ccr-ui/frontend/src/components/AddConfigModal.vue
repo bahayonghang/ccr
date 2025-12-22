@@ -395,8 +395,16 @@ const handleSave = async () => {
   try {
     saving.value = true
     const payload: UpdateConfigRequest = {
-      ...formData.value,
-      model: (formData.value.model ?? '').trim() || undefined
+      name: formData.value.name,
+      description: formData.value.description,
+      base_url: formData.value.base_url,
+      auth_token: formData.value.auth_token,
+      model: (formData.value.model ?? '').trim() || undefined,
+      small_fast_model: formData.value.small_fast_model || undefined,
+      provider: formData.value.provider || undefined,
+      provider_type: formData.value.provider_type || undefined,
+      account: formData.value.account || undefined,
+      tags: formData.value.tags || undefined
     }
     await addConfig(payload)
     alert(t('configs.addConfig.success', { name: formData.value.name }))

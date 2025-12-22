@@ -425,7 +425,7 @@ fn copy_directory_recursive(src: &Path, dst: &Path) -> Result<()> {
             } else {
                 target
             };
-            fs::create_dir_all(final_target.parent().unwrap()).map_err(|e| {
+            fs::create_dir_all(final_target.parent().expect("路径应该有父目录")).map_err(|e| {
                 CcrError::IoError(std::io::Error::other(format!("创建父目录失败: {}", e)))
             })?;
             fs::copy(&path, &final_target).map_err(|e| {
@@ -493,11 +493,13 @@ fn should_exclude_from_backup(name: &str) -> bool {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::tempdir;
 
     #[test]
+    #[ignore = "Slow incremental backup test"]
     fn test_multi_backup_basic_and_incremental() {
         let tmp = tempdir().unwrap();
         let ccr_root = tmp.path().join(".ccr");

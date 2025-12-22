@@ -176,6 +176,7 @@ pub struct ConcurrencyInfo {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -191,7 +192,17 @@ mod tests {
     #[tokio::test]
     async fn test_simple_command() {
         let service = CommandService::new(2);
+        // Windows 上 echo 是 shell 内置命令，需要通过 cmd 执行
+        #[cfg(windows)]
+        let result = service
+            .execute(
+                "cmd",
+                &["/c".to_string(), "echo".to_string(), "test".to_string()],
+            )
+            .await;
+        #[cfg(not(windows))]
         let result = service.execute("echo", &["test".to_string()]).await;
+
         assert!(result.is_ok());
         let output = result.unwrap();
         assert!(output.success);

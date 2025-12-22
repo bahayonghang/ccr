@@ -337,7 +337,7 @@ pub fn sync_status_command() -> Result<()> {
 
         // 检查远程文件状态
         print!("🔍 正在检查远程状态...");
-        std::io::Write::flush(&mut std::io::stdout()).unwrap();
+        std::io::Write::flush(&mut std::io::stdout()).expect("无法刷新标准输出");
 
         let runtime = tokio::runtime::Runtime::new()
             .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
@@ -1885,6 +1885,7 @@ fn sync_folder_pull_internal(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

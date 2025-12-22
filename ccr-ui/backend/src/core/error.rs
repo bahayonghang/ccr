@@ -117,6 +117,7 @@ impl From<serde_json::Error> for ApiError {
 pub type ApiResult<T> = Result<T, ApiError>;
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

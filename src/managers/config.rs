@@ -66,7 +66,7 @@ impl ProviderType {
 /// - 🔑 认证令牌
 /// - 🤖 模型配置
 /// - 🏢 提供商信息（新增分类字段）
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ConfigSection {
     /// 📝 配置描述(可选)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -777,6 +777,7 @@ pub struct MigrationStatus {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

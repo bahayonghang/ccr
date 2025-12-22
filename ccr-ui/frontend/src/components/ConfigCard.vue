@@ -276,6 +276,7 @@ import { computed } from 'vue'
 import { FileText, Building2, User } from 'lucide-vue-next'
 import type { ConfigItem } from '@/types'
 import DetailField from './DetailField.vue'
+import { maskToken } from '@/utils/codexHelpers'
 
 interface Props {
   config: ConfigItem
@@ -325,10 +326,4 @@ const providerTypeBadge = computed(() => {
   return typeMap[props.config.provider_type]
 })
 
-// 遮蔽 Token
-const maskToken = (token: string): string => {
-  if (!token) return ''
-  if (token.length <= 8) return '***'
-  return `${token.substring(0, 4)}...${token.substring(token.length - 4)}`
-}
 </script>

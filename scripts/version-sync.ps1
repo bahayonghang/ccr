@@ -10,6 +10,12 @@ param(
     [switch]$Verbose
 )
 
+# 设置 UTF-8 编码以正确显示中文
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 | Out-Null
+
 $ErrorActionPreference = "Stop"
 
 # 获取脚本根目录
@@ -77,7 +83,9 @@ function Set-CargoVersion {
     )
     
     $content = Get-Content $Path -Raw
-    $updated = $content -replace '(\[package\](?:(?!\[).)*?version\s*=\s*)"[^"]+"', "`$1`"$NewVersion`""
+    # 使用回调方式替换，避免 $1 变量解释问题
+    $pattern = '(\[package\](?:(?!\[).)*?version\s*=\s*)"[^"]+"'
+    $updated = [regex]::Replace($content, $pattern, { param($m) $m.Groups[1].Value + '"' + $NewVersion + '"' }, [System.Text.RegularExpressions.RegexOptions]::Singleline)
     Set-Content -Path $Path -Value $updated -NoNewline
 }
 
@@ -117,7 +125,7 @@ function Set-UiVersion {
         Write-Error "❌ 在 $Path 中找不到 CCR UI 版本标记"
         exit 1
     }
-    $updated = $content -replace '(CCR UI v)[0-9A-Za-z._-]+', "$1$NewVersion"
+    $updated = $content -replace 'CCR UI v[0-9A-Za-z._-]+', "CCR UI v$NewVersion"
     Set-Content -Path $Path -Value $updated -NoNewline
 }
 
@@ -159,8 +167,6 @@ if ($Check) {
         Write-Host "  ccr-ui/frontend/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
         Write-Host "  ccr-ui/frontend/src/components/MainLayout.vue: $UI_COMPONENT_VER"
         Write-Host "  ccr-ui/frontend/src/layouts/MainLayout.vue:   $UI_LEGACY_VER"
-        Write-Host "  ccr-ui/frontend/src/components/Footer.vue: $UI_COMPONENT_FOOTER_VER"
-        Write-Host "  ccr-ui/frontend/src/layouts/Footer.vue:   $UI_LEGACY_FOOTER_VER"
         exit 1
     }
 }
@@ -170,9 +176,7 @@ if ($ROOT_VER -eq $BACKEND_VER -and
     $ROOT_VER -eq $TAURI_CARGO_VER -and 
     $ROOT_VER -eq $TAURI_CONF_VER -and 
     $ROOT_VER -eq $UI_COMPONENT_VER -and 
-    $ROOT_VER -eq $UI_LEGACY_VER -and 
-    $ROOT_VER -eq $UI_COMPONENT_FOOTER_VER -and 
-    $ROOT_VER -eq $UI_LEGACY_FOOTER_VER) {
+    $ROOT_VER -eq $UI_LEGACY_VER) {
     Write-Host "✅ 版本一致，无需同步"
     exit 0
 }

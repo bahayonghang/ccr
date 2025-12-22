@@ -578,6 +578,7 @@ fn should_exclude_from_sync(name: &str) -> bool {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

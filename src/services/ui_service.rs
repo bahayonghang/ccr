@@ -10,6 +10,9 @@ use std::process::{Command, Stdio};
 /// GitHub 仓库信息
 const GITHUB_REPO: &str = "bahayonghang/ccr";
 const GITHUB_BRANCH: &str = "main";
+/// GitHub raw Cargo.toml URL for version check
+const GITHUB_CARGO_TOML_URL: &str =
+    "https://raw.githubusercontent.com/bahayonghang/ccr/main/Cargo.toml";
 
 /// 🎨 UI 服务
 ///
@@ -49,31 +52,24 @@ impl UiService {
     ///
     /// 优先级:
     /// 1. 当前目录下的 ccr-ui/
-    /// 2. CCR 项目根目录下的 ccr-ui/
+    /// 2. CCR 项目根目录下的 ccr-ui/（父目录）
     fn detect_ccr_ui_path() -> Option<PathBuf> {
-        // 尝试当前目录
-        let current_dir_ui = std::env::current_dir().ok().map(|p| p.join("ccr-ui"));
+        // 只调用一次 current_dir()，避免重复系统调用
+        let current_dir = std::env::current_dir().ok()?;
 
-        if let Some(ref path) = current_dir_ui
-            && path.exists()
-            && path.join("justfile").exists()
-        {
-            return Some(path.clone());
-        }
+        // 候选路径列表
+        let candidates = [
+            current_dir.join("ccr-ui"),
+            current_dir
+                .parent()
+                .map(|p| p.join("ccr-ui"))
+                .unwrap_or_default(),
+        ];
 
-        // 尝试父目录 (适用于在 ccr/src 等子目录运行的情况)
-        let parent_dir_ui = std::env::current_dir()
-            .ok()
-            .and_then(|p| p.parent().map(|parent| parent.join("ccr-ui")));
-
-        if let Some(ref path) = parent_dir_ui
-            && path.exists()
-            && path.join("justfile").exists()
-        {
-            return Some(path.clone());
-        }
-
-        None
+        // 查找第一个有效的 ccr-ui 目录
+        candidates
+            .into_iter()
+            .find(|path| !path.as_os_str().is_empty() && path.join("justfile").exists())
     }
 
     /// 🚀 启动 UI (智能选择模式)
@@ -139,9 +135,157 @@ impl UiService {
 
     /// 🔄 更新/安装用户目录下的 CCR UI 到最新版本
     pub fn update(&self, auto_yes: bool) -> Result<()> {
-        ColorOutput::title("🔄 CCR UI 更新中...");
+        ColorOutput::title("🔄 CCR UI 更新检查");
+        println!();
+
+        // 获取本地版本
+        let local_version = self.get_local_ui_version();
+        if let Some(ref ver) = local_version {
+            ColorOutput::key_value("本地版本", ver, 2);
+        } else {
+            ColorOutput::info("📦 本地未安装 CCR UI");
+        }
+
+        // 获取远程版本
+        ColorOutput::info("🔍 正在检查远程版本...");
+        let remote_version = self.fetch_remote_version();
+
+        match remote_version {
+            Ok(ref ver) => {
+                ColorOutput::key_value("远程版本", ver, 2);
+                println!();
+
+                // 比较版本
+                if let Some(ref local_ver) = local_version {
+                    if !Self::compare_versions(local_ver, ver) {
+                        ColorOutput::success("✅ 当前已是最新版本，无需更新");
+                        println!();
+                        return Ok(());
+                    }
+                    ColorOutput::warning(&format!("🆕 发现新版本: {} -> {}", local_ver, ver));
+                } else {
+                    ColorOutput::info("📥 将安装最新版本");
+                }
+            }
+            Err(e) => {
+                ColorOutput::warning(&format!("⚠️  无法获取远程版本: {}", e));
+                println!();
+
+                // 如果本地已安装且无法获取远程版本，询问是否强制更新
+                if local_version.is_some() && !auto_yes {
+                    use dialoguer::Confirm;
+                    let confirmed = Confirm::new()
+                        .with_prompt("无法检查远程版本，是否仍要强制更新?")
+                        .default(false)
+                        .interact()
+                        .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;
+
+                    if !confirmed {
+                        ColorOutput::info("已取消更新");
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
         println!();
         self.sync_from_github(auto_yes)
+    }
+
+    /// 📖 获取本地 UI 版本（从 backend/Cargo.toml 读取）
+    fn get_local_ui_version(&self) -> Option<String> {
+        // 优先检查用户目录
+        let cargo_toml_path = self.ui_dir.join("backend/Cargo.toml");
+        if cargo_toml_path.exists()
+            && let Ok(content) = fs::read_to_string(&cargo_toml_path)
+        {
+            return Self::parse_version_from_cargo_toml(&content);
+        }
+
+        // 检查旧版目录
+        let legacy_cargo_toml = self.legacy_ui_dir.join("backend/Cargo.toml");
+        if legacy_cargo_toml.exists()
+            && let Ok(content) = fs::read_to_string(&legacy_cargo_toml)
+        {
+            return Self::parse_version_from_cargo_toml(&content);
+        }
+
+        None
+    }
+
+    /// 🌐 获取远程版本（从 GitHub Cargo.toml 读取）
+    fn fetch_remote_version(&self) -> Result<String> {
+        let client = reqwest::blocking::Client::builder()
+            .user_agent("ccr")
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
+            .map_err(|e| CcrError::ConfigError(format!("创建 HTTP 客户端失败: {}", e)))?;
+
+        let response = client
+            .get(GITHUB_CARGO_TOML_URL)
+            .send()
+            .map_err(|e| CcrError::ConfigError(format!("请求远程版本失败: {}", e)))?;
+
+        if !response.status().is_success() {
+            return Err(CcrError::ConfigError(format!(
+                "GitHub 返回错误状态: {}",
+                response.status()
+            )));
+        }
+
+        let content = response
+            .text()
+            .map_err(|e| CcrError::ConfigError(format!("读取响应内容失败: {}", e)))?;
+
+        Self::parse_version_from_cargo_toml(&content)
+            .ok_or_else(|| CcrError::ConfigError("无法从 Cargo.toml 解析版本号".to_string()))
+    }
+
+    /// 📝 从 Cargo.toml 内容解析版本号
+    fn parse_version_from_cargo_toml(content: &str) -> Option<String> {
+        // 只解析 [package] 区块中的 version
+        let mut in_package_section = false;
+
+        for line in content.lines() {
+            let line = line.trim();
+
+            // 检测 section 开始
+            if line.starts_with('[') {
+                in_package_section = line == "[package]";
+                continue;
+            }
+
+            // 在 [package] 区块中查找 version
+            if in_package_section
+                && line.starts_with("version")
+                && let Some(version) = line.split('=').nth(1)
+            {
+                let version = version.trim().trim_matches('"').trim_matches('\'');
+                return Some(version.to_string());
+            }
+        }
+
+        None
+    }
+
+    /// 🔢 比较版本号，返回 true 表示 latest > current（需要更新）
+    fn compare_versions(current: &str, latest: &str) -> bool {
+        let current_parts: Vec<u32> = current.split('.').filter_map(|s| s.parse().ok()).collect();
+        let latest_parts: Vec<u32> = latest.split('.').filter_map(|s| s.parse().ok()).collect();
+
+        let max_len = std::cmp::max(current_parts.len(), latest_parts.len());
+        for i in 0..max_len {
+            let current_part = current_parts.get(i).unwrap_or(&0);
+            let latest_part = latest_parts.get(i).unwrap_or(&0);
+
+            if latest_part > current_part {
+                return true;
+            } else if latest_part < current_part {
+                return false;
+            }
+        }
+
+        false // 版本相同
     }
 
     /// 🔧 开发模式启动
@@ -150,8 +294,8 @@ impl UiService {
     fn start_dev_mode(
         &self,
         ccr_ui_path: &Path,
-        _port: u16,
-        _backend_port: u16,
+        port: u16,
+        backend_port: u16,
         auto_yes: bool,
     ) -> Result<()> {
         ColorOutput::step("启动开发模式");
@@ -164,16 +308,21 @@ impl UiService {
         self.check_and_install_deps(ccr_ui_path, auto_yes)?;
 
         ColorOutput::info("🔧 使用开发模式启动 CCR UI");
-        ColorOutput::info("📍 后端: http://localhost:38081");
-        ColorOutput::info("📍 前端: http://localhost:3000 (Next.js)");
+        ColorOutput::info(&format!("📍 后端: http://localhost:{}", backend_port));
+        ColorOutput::info(&format!(
+            "📍 前端: http://localhost:{} (Vue 3 + Vite)",
+            port
+        ));
         println!();
 
         ColorOutput::warning("💡 提示: 按 Ctrl+C 停止服务");
         println!();
 
-        // 启动开发服务器
+        // 启动开发服务器，通过环境变量传递端口配置
         let status = Command::new("just")
             .arg("dev")
+            .env("VITE_PORT", port.to_string())
+            .env("BACKEND_PORT", backend_port.to_string())
             .current_dir(ccr_ui_path)
             .status()
             .map_err(|e| CcrError::ConfigError(format!("启动失败: {}", e)))?;
@@ -672,6 +821,7 @@ impl UiService {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -687,5 +837,61 @@ mod tests {
         let path = UiService::detect_ccr_ui_path();
         // 在 CI 环境中可能找不到 ccr-ui
         println!("检测到的 ccr-ui 路径: {:?}", path);
+    }
+
+    #[test]
+    fn test_compare_versions() {
+        // 远程版本更高，需要更新
+        assert!(UiService::compare_versions("1.0.0", "1.1.0"));
+        assert!(UiService::compare_versions("1.0.0", "2.0.0"));
+        assert!(UiService::compare_versions("1.2.3", "1.2.4"));
+        assert!(UiService::compare_versions("3.11.0", "3.12.5"));
+
+        // 本地版本更高或相同，不需要更新
+        assert!(!UiService::compare_versions("1.1.0", "1.0.0"));
+        assert!(!UiService::compare_versions("2.0.0", "1.0.0"));
+        assert!(!UiService::compare_versions("1.2.4", "1.2.3"));
+        assert!(!UiService::compare_versions("1.0.0", "1.0.0"));
+        assert!(!UiService::compare_versions("3.12.5", "3.11.0"));
+
+        // 不同长度版本号
+        assert!(UiService::compare_versions("1.0", "1.0.1"));
+        assert!(!UiService::compare_versions("1.0.1", "1.0"));
+    }
+
+    #[test]
+    fn test_parse_version_from_cargo_toml() {
+        let cargo_toml = r#"
+[package]
+name = "ccr-ui-backend"
+version = "3.12.5"
+edition = "2024"
+
+[dependencies]
+tokio = "1.0"
+"#;
+        let version = UiService::parse_version_from_cargo_toml(cargo_toml);
+        assert_eq!(version, Some("3.12.5".to_string()));
+
+        // 测试带有 workspace 的 Cargo.toml
+        let workspace_cargo = r#"
+[package]
+name = "ccr"
+version = "3.12.5"
+edition = "2024"
+
+[workspace]
+members = [".", "ccr-ui/backend"]
+
+[workspace.dependencies]
+tokio = { version = "1.0" }
+"#;
+        let version = UiService::parse_version_from_cargo_toml(workspace_cargo);
+        assert_eq!(version, Some("3.12.5".to_string()));
+
+        // 测试无效内容
+        let invalid = "invalid content";
+        let version = UiService::parse_version_from_cargo_toml(invalid);
+        assert_eq!(version, None);
     }
 }

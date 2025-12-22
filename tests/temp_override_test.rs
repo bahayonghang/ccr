@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // 🎯 临时Token功能集成测试
 // 测试临时配置覆盖功能的完整工作流程
 

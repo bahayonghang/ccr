@@ -31,6 +31,8 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 | [web](./web) | - | 轻量 Web API（兼容/脚本） | v2.0+ |
 | [skills](./skills) | - | 技能管理 | v3.5+ |
 | [prompts](./prompts) | - | 提示词模板管理 | v3.5+ |
+| [sessions](./sessions) | - | Session 会话管理（索引/搜索/恢复） | v3.12+ |
+| [provider](./provider) | - | Provider 健康检查（连通性/Key验证） | v3.12+ |
 | [check](./check) | - | 配置冲突检测 | v3.6+ |
 | [update](./update) | - | 更新到最新版本 | v1.0+ |
 | [version](./version) | `ver` | 显示版本信息 | v1.0+ |
@@ -66,6 +68,8 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 ### 扩展与维护
 
 - **[skills](./skills)** / **[prompts](./prompts)** - 扩展管理
+- **[sessions](./sessions)** - Session 会话管理（索引/搜索/恢复）
+- **[provider](./provider)** - Provider 健康检查
 - **[check](./check)** - 配置冲突检测
 - **[update](./update)** / **[version](./version)** - 更新与版本信息
 
@@ -150,6 +154,42 @@ ccr update
 
 # 查看版本
 ccr version
+```
+
+### Sessions 管理
+
+```bash
+# 重建会话索引
+ccr sessions reindex
+
+# 列出最近会话
+ccr sessions list
+
+# 按平台过滤
+ccr sessions list --platform claude --today
+
+# 搜索会话
+ccr sessions search "refactoring"
+
+# 查看详情并恢复
+ccr sessions show <id>
+ccr sessions resume <id>
+
+# 查看统计
+ccr sessions stats
+```
+
+### Provider 健康检查
+
+```bash
+# 测试单个配置
+ccr provider test my-provider
+
+# 测试所有配置
+ccr provider test --all
+
+# 验证 API Key
+ccr provider verify my-provider
 ```
 
 ## 环境变量

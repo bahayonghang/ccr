@@ -137,6 +137,24 @@ pub fn print_top_help() {
     println!("  {}  # 切换配置", cmd("ccr switch <名称>"));
     println!("  {}  # 快捷切换(省略 switch)", cmd("ccr anthropic"));
 
+    // 多平台切换
+    section_title("多平台切换");
+    println!("  {}  # 查看所有支持的平台", cmd("ccr platform list"));
+    println!("  {}  # 查看当前平台", cmd("ccr platform current"));
+    println!(
+        "  {}  # 切换到 Codex 平台",
+        cmd("ccr platform switch codex")
+    );
+    println!(
+        "  {}  # 切换到 Gemini 平台",
+        cmd("ccr platform switch gemini")
+    );
+    println!();
+    println!(
+        "  {} Claude, Codex, Gemini, Qwen, Aider 等平台",
+        "支持的平台:".white().bold()
+    );
+
     // 获取帮助
     section_title("获取帮助");
     println!("  {}  # 显示此帮助", cmd("ccr --help"));
@@ -312,8 +330,8 @@ pub fn print_top_help() {
     add_row(
         &mut sp_table,
         "platform",
-        "多平台管理",
-        Some("ccr platform list"),
+        "多平台管理(切换/列表/状态)",
+        Some("ccr platform switch codex"),
     );
     add_row(
         &mut sp_table,

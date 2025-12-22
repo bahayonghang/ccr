@@ -2,6 +2,7 @@
 // 定义跨模块共享的数据类型
 
 pub mod budget;
+pub mod mcp_preset;
 pub mod platform;
 pub mod pricing;
 pub mod prompt;
@@ -10,4 +11,4 @@ pub mod stats;
 pub mod sync_folder;
 
 // 重新导出常用类型
-pub use platform::{ConfigMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+pub use platform::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};

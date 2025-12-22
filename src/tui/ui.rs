@@ -2,7 +2,7 @@
 // 负责渲染所有 UI 组件
 
 use super::app::{App, TabState};
-use super::tabs::{ConfigsTab, HistoryTab, SyncTab, SystemTab};
+use super::tabs::{ConfigsTab, HistoryTab, SessionsTab, SyncTab, SystemTab};
 use super::widgets::StatusBar;
 use crate::tui::theme;
 use ratatui::{
@@ -38,6 +38,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     let titles = vec![
         TabState::Configs.title(),
         TabState::History.title(),
+        TabState::Sessions.title(),
         TabState::Sync.title(),
         TabState::System.title(),
     ];
@@ -45,8 +46,9 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     let index = match app.current_tab {
         TabState::Configs => 0,
         TabState::History => 1,
-        TabState::Sync => 2,
-        TabState::System => 3,
+        TabState::Sessions => 2,
+        TabState::Sync => 3,
+        TabState::System => 4,
     };
 
     let tabs = Tabs::new(titles)
@@ -74,6 +76,10 @@ fn render_content(f: &mut Frame, app: &mut App, area: Rect) {
         TabState::History => {
             let history_tab = HistoryTab::new();
             history_tab.render(f, app, area);
+        }
+        TabState::Sessions => {
+            let mut sessions_tab = SessionsTab::new();
+            sessions_tab.render(f, area);
         }
         TabState::Sync => {
             let sync_tab = SyncTab::new();

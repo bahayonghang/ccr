@@ -4,8 +4,11 @@
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
+use crate::managers::config::{CcsConfig, GlobalSettings};
 use crate::models::{Platform, PlatformPaths};
 use crate::platforms::create_platform;
+use indexmap::IndexMap;
+use std::fs;
 use std::str::FromStr;
 
 /// 🆕 初始化平台配置
@@ -57,6 +60,33 @@ pub fn platform_init_command(platform_name: &str) -> Result<()> {
             .display()
     ));
     ColorOutput::success(&format!("✓ 备份目录: {}", paths.backups_dir.display()));
+
+    // 创建默认 profiles.toml 文件
+    if !paths.profiles_file.exists() {
+        ColorOutput::info(&format!("正在创建默认 {} profiles.toml...", platform_name));
+
+        let default_ccs = CcsConfig {
+            default_config: "default".to_string(),
+            current_config: "default".to_string(),
+            settings: GlobalSettings::default(),
+            sections: IndexMap::new(),
+        };
+
+        let content = toml::to_string_pretty(&default_ccs)
+            .map_err(|e| CcrError::ConfigError(format!("序列化默认配置失败: {}", e)))?;
+        fs::write(&paths.profiles_file, content)
+            .map_err(|e| CcrError::ConfigError(format!("写入默认 profiles.toml 失败: {}", e)))?;
+
+        ColorOutput::success(&format!(
+            "✓ Profiles 文件: {}",
+            paths.profiles_file.display()
+        ));
+    } else {
+        ColorOutput::info(&format!(
+            "Profiles 文件已存在: {}",
+            paths.profiles_file.display()
+        ));
+    }
 
     // 注册平台到统一配置
     let manager = PlatformConfigManager::with_default()?;

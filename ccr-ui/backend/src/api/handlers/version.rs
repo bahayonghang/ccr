@@ -17,7 +17,12 @@ const GITHUB_REPO_URL: &str = "https://github.com/liyonghang/ccr";
 pub async fn get_version() -> impl IntoResponse {
     tracing::info!("Getting CCR version information");
 
-    match get_ccr_version() {
+    // 使用 spawn_blocking 避免阻塞异步执行器
+    let result = tokio::task::spawn_blocking(get_ccr_version)
+        .await
+        .unwrap_or_else(|e| Err(format!("Task join error: {}", e)));
+
+    match result {
         Ok(current_version) => {
             let version_info = VersionInfo {
                 current_version,
@@ -34,14 +39,18 @@ pub async fn get_version() -> impl IntoResponse {
 }
 
 /// Execute 'ccr --version' to get current version
-fn get_ccr_version() -> Result<String, Box<dyn std::error::Error>> {
-    let output = Command::new("ccr").arg("--version").output()?;
+fn get_ccr_version() -> Result<String, String> {
+    let output = Command::new("ccr")
+        .arg("--version")
+        .output()
+        .map_err(|e| format!("Failed to execute ccr: {}", e))?;
 
     if !output.status.success() {
-        return Err("CCR command failed".into());
+        return Err("CCR command failed".to_string());
     }
 
-    let version_output = String::from_utf8(output.stdout)?;
+    let version_output = String::from_utf8(output.stdout)
+        .map_err(|e| format!("Failed to parse version output: {}", e))?;
     // Parse "ccr X.Y.Z" format
     let version = version_output
         .split_whitespace()
@@ -56,8 +65,12 @@ fn get_ccr_version() -> Result<String, Box<dyn std::error::Error>> {
 pub async fn check_update() -> impl IntoResponse {
     tracing::info!("Checking for updates from GitHub Cargo.toml");
 
-    // Get current version
-    let current_version = match get_ccr_version() {
+    // 使用 spawn_blocking 获取当前版本（避免阻塞）
+    let current_version_result = tokio::task::spawn_blocking(get_ccr_version)
+        .await
+        .unwrap_or_else(|e| Err(format!("Task join error: {}", e)));
+
+    let current_version = match current_version_result {
         Ok(v) => v,
         Err(e) => {
             tracing::error!("Failed to get current CCR version: {}", e);
@@ -133,7 +146,12 @@ async fn fetch_latest_version_from_github() -> Result<String, Box<dyn std::error
 pub async fn update_ccr() -> impl IntoResponse {
     tracing::info!("Executing CCR update command");
 
-    match execute_ccr_update() {
+    // 使用 spawn_blocking 避免阻塞异步执行器
+    let result = tokio::task::spawn_blocking(execute_ccr_update)
+        .await
+        .unwrap_or_else(|e| Err(format!("Task join error: {}", e)));
+
+    match result {
         Ok(output) => {
             let response = UpdateExecutionResponse {
                 success: output.status.success(),
@@ -161,15 +179,22 @@ pub async fn update_ccr() -> impl IntoResponse {
 }
 
 /// Execute 'ccr update' command and capture output
-fn execute_ccr_update() -> Result<CommandOutput, Box<dyn std::error::Error>> {
+fn execute_ccr_update() -> Result<CommandOutput, String> {
     let mut child = Command::new("ccr")
         .arg("update")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn()?;
+        .spawn()
+        .map_err(|e| format!("Failed to spawn ccr update: {}", e))?;
 
-    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
-    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "Failed to capture stdout".to_string())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Failed to capture stderr".to_string())?;
 
     let mut stdout_lines = Vec::new();
     let mut stderr_lines = Vec::new();
@@ -188,7 +213,9 @@ fn execute_ccr_update() -> Result<CommandOutput, Box<dyn std::error::Error>> {
         stderr_lines.push(line);
     }
 
-    let status = child.wait()?;
+    let status = child
+        .wait()
+        .map_err(|e| format!("Failed to wait for ccr update: {}", e))?;
 
     Ok(CommandOutput {
         status,
@@ -226,6 +253,7 @@ fn compare_versions(current: &str, latest: &str) -> bool {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

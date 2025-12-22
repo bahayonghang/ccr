@@ -422,7 +422,11 @@ impl CostTracker {
     /// 🚀 **性能优化**: 使用流式读取
     pub fn get_today_cost(&self) -> Result<f64> {
         let now = Utc::now();
-        let start = now.date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
+        let start = now
+            .date_naive()
+            .and_hms_opt(0, 0, 0)
+            .expect("无效的日期时间")
+            .and_utc();
         let end = now;
 
         let records = self.read_by_time_range(start, end)?;
@@ -448,9 +452,9 @@ impl CostTracker {
         let start = now
             .date_naive()
             .with_day(1)
-            .unwrap()
+            .expect("无法设置日期为每月第一天")
             .and_hms_opt(0, 0, 0)
-            .unwrap()
+            .expect("无效的日期时间")
             .and_utc();
 
         let records = self.read_by_time_range(start, now)?;
@@ -587,7 +591,7 @@ impl CostTracker {
 
         // 排序并取前 N 个
         let mut sessions: Vec<(String, f64)> = session_costs.into_iter().collect();
-        sessions.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        sessions.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         sessions.truncate(limit);
 
         Ok(sessions)
@@ -595,6 +599,7 @@ impl CostTracker {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::TempDir;

@@ -2,16 +2,20 @@
 // 📦 Claude Code 平台配置管理
 //
 // 核心职责:
-// - 🔄 支持双模式运行（Legacy/Unified）
 // - 📋 管理 Claude profiles
 // - ⚙️ 操作 ~/.claude/settings.json
 // - 🔗 兼容现有 ConfigSection 结构
+//
+// 📁 配置结构 (Unified 模式):
+// - 配置文件: `~/.ccr/platforms/claude/profiles.toml`
+// - 设置文件: `~/.claude/settings.json`
+// - 支持多平台配置
 
 use crate::core::error::{CcrError, Result};
 use crate::managers::PlatformConfigManager;
-use crate::managers::config::{ConfigManager, ConfigSection};
+use crate::managers::config::ConfigSection;
 use crate::managers::settings::{ClaudeSettings, SettingsManager};
-use crate::models::{ConfigMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::utils::{Validatable, toml_json};
 use indexmap::IndexMap;
 use std::fs;
@@ -19,79 +23,26 @@ use std::path::PathBuf;
 
 /// 🤖 Claude Platform 实现
 ///
-/// ## 运行模式
+/// ## 配置结构 (Unified 模式)
 ///
-/// ### Legacy Mode (默认)
-/// - 配置文件: `~/.ccs_config.toml`
-/// - 设置文件: `~/.claude/settings.json`
-/// - 与 CCS Shell 版本兼容
-///
-/// ### Unified Mode (可选)
 /// - 配置文件: `~/.ccr/platforms/claude/profiles.toml`
-/// - 设置文件: `~/.claude/settings.json`（路径不变）
+/// - 设置文件: `~/.claude/settings.json`
 /// - 支持多平台配置
-///
-/// ## 模式检测
-///
-/// 优先级：
-/// 1. 环境变量 `CCR_ROOT` 存在 → Unified
-/// 2. `~/.ccr/config.toml` 存在 → Unified
-/// 3. 其他情况 → Legacy
 pub struct ClaudePlatform {
-    mode: ConfigMode,
     paths: PlatformPaths,
-    config_manager: Option<ConfigManager>,
     settings_manager: SettingsManager,
 }
 
 impl ClaudePlatform {
     /// 🏗️ 创建新的 Claude Platform 实例
-    ///
-    /// 自动检测运行模式并初始化相应的管理器
     pub fn new() -> Result<Self> {
-        let mode = Self::detect_mode()?;
         let paths = PlatformPaths::new(Platform::Claude)?;
         let settings_manager = SettingsManager::with_default()?;
 
-        let config_manager = if matches!(mode, ConfigMode::Legacy) {
-            Some(ConfigManager::with_default()?)
-        } else {
-            None
-        };
-
         Ok(Self {
-            mode,
             paths,
-            config_manager,
             settings_manager,
         })
-    }
-
-    /// 🔍 检测配置模式
-    ///
-    /// 检测规则：
-    /// 1. 环境变量 `CCR_ROOT` 存在 → Unified
-    /// 2. `~/.ccr/config.toml` 存在 → Unified
-    /// 3. 默认 → Legacy
-    fn detect_mode() -> Result<ConfigMode> {
-        // 检查环境变量
-        if std::env::var("CCR_ROOT").is_ok() {
-            tracing::debug!("检测到 CCR_ROOT 环境变量，使用 Unified 模式");
-            return Ok(ConfigMode::Unified);
-        }
-
-        // 检查 ~/.ccr/config.toml 是否存在
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
-        let unified_config = home.join(".ccr").join("config.toml");
-
-        if unified_config.exists() {
-            tracing::debug!("检测到 ~/.ccr/config.toml，使用 Unified 模式");
-            Ok(ConfigMode::Unified)
-        } else {
-            tracing::debug!("使用 Legacy 模式（默认）");
-            Ok(ConfigMode::Legacy)
-        }
     }
 
     /// 📋 从 ConfigSection 转换为 ProfileConfig
@@ -144,8 +95,8 @@ impl ClaudePlatform {
         })
     }
 
-    /// 💾 保存 profiles 到 TOML 文件（Unified 模式）
-    fn save_profiles_unified(&self, profiles: &IndexMap<String, ProfileConfig>) -> Result<()> {
+    /// 💾 保存 profiles 到 TOML 文件
+    fn save_profiles(&self, profiles: &IndexMap<String, ProfileConfig>) -> Result<()> {
         // 确保目录存在
         self.paths.ensure_directories()?;
 
@@ -155,20 +106,75 @@ impl ClaudePlatform {
             sections.insert(name.clone(), Self::profile_to_section(profile)?);
         }
 
-        // 构建完整配置（为了兼容性，包含默认字段）
+        // 📖 先读取现有配置，保留 current_config 和 default_config
         use crate::managers::config::{CcsConfig, GlobalSettings};
+        let (existing_default, existing_current, existing_settings) =
+            if self.paths.profiles_file.exists() {
+                let content = fs::read_to_string(&self.paths.profiles_file)
+                    .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
+                match toml::from_str::<CcsConfig>(&content) {
+                    Ok(existing) => (
+                        existing.default_config,
+                        existing.current_config,
+                        existing.settings,
+                    ),
+                    Err(_) => (
+                        profiles
+                            .keys()
+                            .next()
+                            .cloned()
+                            .unwrap_or_else(|| "default".to_string()),
+                        profiles
+                            .keys()
+                            .next()
+                            .cloned()
+                            .unwrap_or_else(|| "default".to_string()),
+                        GlobalSettings::default(),
+                    ),
+                }
+            } else {
+                (
+                    profiles
+                        .keys()
+                        .next()
+                        .cloned()
+                        .unwrap_or_else(|| "default".to_string()),
+                    profiles
+                        .keys()
+                        .next()
+                        .cloned()
+                        .unwrap_or_else(|| "default".to_string()),
+                    GlobalSettings::default(),
+                )
+            };
+
+        // 🔄 验证 current_config 和 default_config 是否仍然存在于 profiles 中
+        // 如果不存在，回退到第一个 profile
+        let default_config = if sections.contains_key(&existing_default) {
+            existing_default
+        } else {
+            profiles
+                .keys()
+                .next()
+                .cloned()
+                .unwrap_or_else(|| "default".to_string())
+        };
+
+        let current_config = if sections.contains_key(&existing_current) {
+            existing_current
+        } else {
+            profiles
+                .keys()
+                .next()
+                .cloned()
+                .unwrap_or_else(|| "default".to_string())
+        };
+
+        // 构建完整配置（保留现有的 current_config 和 default_config）
         let config = CcsConfig {
-            default_config: profiles
-                .keys()
-                .next()
-                .cloned()
-                .unwrap_or_else(|| "default".to_string()),
-            current_config: profiles
-                .keys()
-                .next()
-                .cloned()
-                .unwrap_or_else(|| "default".to_string()),
-            settings: GlobalSettings::default(),
+            default_config,
+            current_config,
+            settings: existing_settings,
             sections,
         };
 
@@ -184,8 +190,51 @@ impl ClaudePlatform {
         Ok(())
     }
 
-    /// 📖 从 TOML 文件加载 profiles（Unified 模式）
-    fn load_profiles_unified(&self) -> Result<IndexMap<String, ProfileConfig>> {
+    /// 🔄 更新 profiles.toml 中的 current_config 字段
+    ///
+    /// 在配置切换时调用，用于同步更新 profiles.toml 中记录的当前配置名称
+    fn update_current_config_in_profiles(&self, name: &str) -> Result<()> {
+        // 仅在文件存在时更新
+        if !self.paths.profiles_file.exists() {
+            return Ok(());
+        }
+
+        // 读取现有配置
+        let content = fs::read_to_string(&self.paths.profiles_file)
+            .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
+
+        // 解析 TOML
+        use crate::managers::config::CcsConfig;
+        let mut config: CcsConfig = match toml::from_str(&content) {
+            Ok(c) => c,
+            Err(_) => {
+                // 如果解析失败（可能是旧格式），跳过更新
+                tracing::warn!("⚠️ 无法解析 profiles.toml，跳过 current_config 更新");
+                return Ok(());
+            }
+        };
+
+        // 验证目标配置存在
+        if !config.sections.contains_key(name) {
+            return Err(CcrError::ConfigSectionNotFound(name.to_string()));
+        }
+
+        // 更新 current_config
+        config.current_config = name.to_string();
+
+        // 序列化并写回
+        let new_content = toml::to_string_pretty(&config)
+            .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
+
+        fs::write(&self.paths.profiles_file, new_content)
+            .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
+
+        tracing::debug!("✅ 已更新 profiles.toml 的 current_config: {}", name);
+        Ok(())
+    }
+
+    /// 📖 从 TOML 文件加载 profiles
+    fn load_profiles_from_file(&self) -> Result<IndexMap<String, ProfileConfig>> {
         if !self.paths.profiles_file.exists() {
             return Ok(IndexMap::new());
         }
@@ -210,65 +259,6 @@ impl ClaudePlatform {
 
         Ok(profiles)
     }
-
-    /// 📖 从 Legacy 配置加载 profiles
-    fn load_profiles_legacy(&self) -> Result<IndexMap<String, ProfileConfig>> {
-        let manager = self
-            .config_manager
-            .as_ref()
-            .ok_or_else(|| CcrError::ConfigError("Legacy 配置管理器未初始化".into()))?;
-
-        let config = manager.load()?;
-        let mut profiles = IndexMap::new();
-
-        for (name, section) in config.sections {
-            profiles.insert(name, Self::section_to_profile(&section));
-        }
-
-        Ok(profiles)
-    }
-
-    /// 💾 保存 profile 到 Legacy 配置
-    fn save_profile_legacy(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
-        let manager = self
-            .config_manager
-            .as_ref()
-            .ok_or_else(|| CcrError::ConfigError("Legacy 配置管理器未初始化".into()))?;
-
-        let mut config = manager.load()?;
-        let section = Self::profile_to_section(profile)?;
-
-        config.sections.insert(name.to_string(), section);
-        manager.save(&config)?;
-
-        Ok(())
-    }
-
-    /// 🗑️ 删除 Legacy 配置中的 profile
-    #[allow(dead_code)]
-    fn delete_profile_legacy(&self, name: &str) -> Result<()> {
-        let manager = self
-            .config_manager
-            .as_ref()
-            .ok_or_else(|| CcrError::ConfigError("Legacy 配置管理器未初始化".into()))?;
-
-        let mut config = manager.load()?;
-        config.remove_section(name)?;
-        manager.save(&config)?;
-
-        Ok(())
-    }
-
-    /// 📖 获取当前 profile（Legacy 模式）
-    fn get_current_profile_legacy(&self) -> Result<Option<String>> {
-        let manager = self
-            .config_manager
-            .as_ref()
-            .ok_or_else(|| CcrError::ConfigError("Legacy 配置管理器未初始化".into()))?;
-
-        let config = manager.load()?;
-        Ok(Some(config.current_config))
-    }
 }
 
 impl PlatformConfig for ClaudePlatform {
@@ -281,37 +271,24 @@ impl PlatformConfig for ClaudePlatform {
     }
 
     fn load_profiles(&self) -> Result<IndexMap<String, ProfileConfig>> {
-        match self.mode {
-            ConfigMode::Legacy => self.load_profiles_legacy(),
-            ConfigMode::Unified => self.load_profiles_unified(),
-        }
+        self.load_profiles_from_file()
     }
 
     fn save_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
         // 先验证
         self.validate_profile(profile)?;
 
-        match self.mode {
-            ConfigMode::Legacy => self.save_profile_legacy(name, profile),
-            ConfigMode::Unified => {
-                let mut profiles = self.load_profiles()?;
-                profiles.insert(name.to_string(), profile.clone());
-                self.save_profiles_unified(&profiles)
-            }
-        }
+        let mut profiles = self.load_profiles()?;
+        profiles.insert(name.to_string(), profile.clone());
+        self.save_profiles(&profiles)
     }
 
     fn delete_profile(&self, name: &str) -> Result<()> {
-        match self.mode {
-            ConfigMode::Legacy => self.delete_profile_legacy(name),
-            ConfigMode::Unified => {
-                let mut profiles = self.load_profiles()?;
-                if profiles.shift_remove(name).is_none() {
-                    return Err(CcrError::ProfileNotFound(name.to_string()));
-                }
-                self.save_profiles_unified(&profiles)
-            }
+        let mut profiles = self.load_profiles()?;
+        if profiles.shift_remove(name).is_none() {
+            return Err(CcrError::ProfileNotFound(name.to_string()));
         }
+        self.save_profiles(&profiles)
     }
 
     fn get_settings_path(&self) -> PathBuf {
@@ -344,19 +321,20 @@ impl PlatformConfig for ClaudePlatform {
         // 原子保存
         self.settings_manager.save_atomic(&settings)?;
 
-        // 在 Unified 模式下，同步更新注册表中的 current_profile
-        if matches!(self.mode, crate::models::ConfigMode::Unified) {
-            let platform_config_mgr = PlatformConfigManager::with_default()?;
-            let mut unified_config = platform_config_mgr.load()?;
+        // 🔧 更新 profiles.toml 中的 current_config
+        self.update_current_config_in_profiles(name)?;
 
-            // 更新 Claude 平台的 current_profile
-            unified_config.set_platform_profile("claude", name)?;
+        // 同步更新注册表中的 current_profile
+        let platform_config_mgr = PlatformConfigManager::with_default()?;
+        let mut unified_config = platform_config_mgr.load()?;
 
-            // 保存注册表
-            platform_config_mgr.save(&unified_config)?;
+        // 更新 Claude 平台的 current_profile
+        unified_config.set_platform_profile("claude", name)?;
 
-            tracing::debug!("✅ 已更新注册表 current_profile: {}", name);
-        }
+        // 保存注册表
+        platform_config_mgr.save(&unified_config)?;
+
+        tracing::debug!("✅ 已更新注册表 current_profile: {}", name);
 
         tracing::info!("✅ 已应用 Claude profile: {}", name);
         Ok(())
@@ -369,31 +347,20 @@ impl PlatformConfig for ClaudePlatform {
     }
 
     fn get_current_profile(&self) -> Result<Option<String>> {
-        match self.mode {
-            ConfigMode::Legacy => self.get_current_profile_legacy(),
-            ConfigMode::Unified => {
-                // 在 Unified 模式下，从注册表读取 current_profile
-                let platform_config_mgr = PlatformConfigManager::with_default()?;
-                let unified_config = platform_config_mgr.load()?;
+        // 从注册表读取 current_profile
+        let platform_config_mgr = PlatformConfigManager::with_default()?;
+        let unified_config = platform_config_mgr.load()?;
 
-                // 获取 Claude 平台的注册信息
-                let claude_entry = unified_config.get_platform("claude")?;
-                Ok(claude_entry.current_profile.clone())
-            }
-        }
+        // 获取 Claude 平台的注册信息
+        let claude_entry = unified_config.get_platform("claude")?;
+        Ok(claude_entry.current_profile.clone())
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_detect_mode() {
-        // 注意：这个测试依赖环境，可能在 CI 中需要调整
-        let mode = ClaudePlatform::detect_mode();
-        assert!(mode.is_ok());
-    }
 
     #[test]
     fn test_section_to_profile_conversion() {

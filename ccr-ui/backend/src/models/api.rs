@@ -14,22 +14,61 @@ pub struct ApiResponse<T> {
     pub success: bool,
     pub data: Option<T>,
     pub message: Option<String>,
+    /// 内部字段，用于确定 HTTP 状态码，不序列化
+    #[serde(skip)]
+    status_code: StatusCode,
 }
 
 impl<T> ApiResponse<T> {
+    /// 创建成功响应 (200 OK)
     pub fn success(data: T) -> Self {
         Self {
             success: true,
             data: Some(data),
             message: None,
+            status_code: StatusCode::OK,
         }
     }
 
+    /// 创建错误响应 (400 Bad Request)
     pub fn error(message: String) -> Self {
         Self {
             success: false,
             data: None,
             message: Some(message),
+            status_code: StatusCode::BAD_REQUEST,
+        }
+    }
+
+    /// 创建带自定义状态码的错误响应
+    #[allow(dead_code)]
+    pub fn error_with_status(message: String, status: StatusCode) -> Self {
+        Self {
+            success: false,
+            data: None,
+            message: Some(message),
+            status_code: status,
+        }
+    }
+
+    /// 从 ApiError 创建错误响应（自动选择正确状态码）
+    #[allow(dead_code)]
+    pub fn from_error(err: crate::core::error::ApiError) -> Self {
+        use crate::core::error::ApiError;
+
+        let (status, message) = match &err {
+            ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
+            ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.clone()),
+            ApiError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
+            ApiError::ServiceUnavailable(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg.clone()),
+            ApiError::Custom(status, msg) => (*status, msg.clone()),
+        };
+
+        Self {
+            success: false,
+            data: None,
+            message: Some(message),
+            status_code: status,
         }
     }
 }
@@ -37,11 +76,7 @@ impl<T> ApiResponse<T> {
 // Implement IntoResponse for Axum
 impl<T: Serialize> IntoResponse for ApiResponse<T> {
     fn into_response(self) -> Response {
-        let status = if self.success {
-            StatusCode::OK
-        } else {
-            StatusCode::BAD_REQUEST
-        };
+        let status = self.status_code;
         (status, Json(self)).into_response()
     }
 }
@@ -143,6 +178,7 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::UpdateConfigRequest;
 

@@ -49,6 +49,7 @@ pub fn mask_if_sensitive(var_name: &str, value: &str) -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

@@ -24,7 +24,7 @@ interface Props {
   padding?: string;
 }
 
-const _props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   padding: 'p-6',
 })
 </script>

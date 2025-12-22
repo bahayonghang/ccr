@@ -26,8 +26,11 @@
 
     <!-- Content -->
     <div
-      class="relative z-10 p-5"
-      :style="{ padding: 'var(--space-lg)' }"
+      class="relative z-10"
+      :class="[
+        noPadding ? '' : 'p-[var(--space-lg)]',
+        bodyClass
+      ]"
     >
       <slot />
     </div>
@@ -57,6 +60,8 @@ interface Props {
   pattern?: boolean
   className?: string
   style?: Record<string, any>
+  bodyClass?: string
+  noPadding?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -64,8 +69,11 @@ const props = withDefaults(defineProps<Props>(), {
   interactive: false,
   pattern: false,
   className: '',
-  style: () => ({})
+  style: () => ({}),
+  bodyClass: '',
+  noPadding: false
 })
+
 
 const emit = defineEmits(['mouseenter', 'mouseleave'])
 

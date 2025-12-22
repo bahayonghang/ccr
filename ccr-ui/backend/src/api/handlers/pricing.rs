@@ -142,6 +142,7 @@ fn internal_error<E: std::fmt::Display>(err: E) -> Response {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

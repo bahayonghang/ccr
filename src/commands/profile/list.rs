@@ -1,6 +1,6 @@
 // 📜 list 命令实现 - 列出所有可用配置
 // 📋 显示所有配置节,突出显示当前配置和默认配置
-// 🔄 支持平台感知: 检测并显示当前平台信息(unified 模式)
+// 🔄 显示当前平台信息
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
@@ -16,8 +16,7 @@ use comfy_table::{
 /// 📜 列出所有可用配置
 ///
 /// 显示内容:
-/// - 🔄 配置模式 (Legacy / Unified)
-/// - 🎯 当前平台 (unified 模式下)
+/// - 🎯 当前平台
 /// - ⚙️ 配置文件路径
 /// - 🎯 默认配置和当前配置
 /// - 📋 所有配置节列表(带验证状态)
@@ -25,29 +24,17 @@ use comfy_table::{
 pub fn list_command() -> Result<()> {
     ColorOutput::title("可用配置列表");
 
-    // 🔍 检测配置模式
-    let unified_config = PlatformConfigManager::with_default()
-        .ok()
-        .and_then(|mgr| mgr.load().ok());
-    let is_unified_mode = unified_config.is_some();
+    // 🔍 加载平台配置
+    let platform_config_mgr = PlatformConfigManager::with_default()?;
+    let unified_config = platform_config_mgr.load()?;
 
     println!();
 
-    // 显示配置模式和平台信息
-    if is_unified_mode {
-        if let Some(ref uc) = unified_config {
-            ColorOutput::info(&format!(
-                "配置模式: {} (多平台支持)",
-                "Unified".bright_cyan().bold()
-            ));
-            ColorOutput::info(&format!(
-                "当前平台: {}",
-                uc.current_platform.bright_yellow().bold()
-            ));
-        }
-    } else {
-        ColorOutput::info(&format!("配置模式: {} (传统模式)", "Legacy".bright_white()));
-    }
+    // 显示平台信息
+    ColorOutput::info(&format!(
+        "当前平台: {}",
+        unified_config.current_platform.bright_yellow().bold()
+    ));
 
     // 使用 ConfigService
     let service = ConfigService::with_default()?;
@@ -256,20 +243,12 @@ pub fn list_command() -> Result<()> {
     ColorOutput::success(&format!("共找到 {} 个配置", list.configs.len()));
     println!();
 
-    // 根据模式显示不同的提示信息
-    if is_unified_mode {
-        ColorOutput::info("提示 (Unified 模式):");
-        println!("  • 使用 'ccr platform switch <平台>' 切换平台");
-        println!("  • 使用 'ccr platform current' 查看当前平台详情");
-        println!("  • 使用 'ccr switch <名称>' 切换配置");
-        println!("  • 🔄 = 官方中转  🤖 = 第三方模型");
-    } else {
-        ColorOutput::info("提示 (Legacy 模式):");
-        println!("  • 使用 'ccr switch <名称>' 切换配置");
-        println!("  • 使用 'ccr current' 查看当前配置详情");
-        println!("  • 使用 'ccr migrate' 迁移到多平台模式");
-        println!("  • 🔄 = 官方中转  🤖 = 第三方模型");
-    }
+    // 显示提示信息
+    ColorOutput::info("提示:");
+    println!("  • 使用 'ccr platform switch <平台>' 切换平台");
+    println!("  • 使用 'ccr platform current' 查看当前平台详情");
+    println!("  • 使用 'ccr switch <名称>' 切换配置");
+    println!("  • 🔄 = 官方中转  🤖 = 第三方模型");
 
     Ok(())
 }

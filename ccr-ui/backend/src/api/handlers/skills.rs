@@ -33,26 +33,24 @@ pub struct AddRepositoryRequest {
 pub async fn list_skills() -> impl IntoResponse {
     let manager = match SkillsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.list_skills() {
-        Ok(skills) => Json(ApiResponse::success(skills)),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(skills) => ApiResponse::success(skills),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn add_skill(Json(payload): Json<CreateSkillRequest>) -> impl IntoResponse {
     let manager = match SkillsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.install_skill(&payload.name, &payload.instruction) {
-        Ok(_) => Json(ApiResponse::success(
-            "Skill created successfully".to_string(),
-        )),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(_) => ApiResponse::success("Skill created successfully".to_string()),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
@@ -62,35 +60,31 @@ pub async fn update_skill(
 ) -> impl IntoResponse {
     let manager = match SkillsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     // For update, we need to uninstall and reinstall
     // Or we could add an update method to SkillsManager
     match manager.uninstall_skill(&name) {
         Ok(_) => {}
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.install_skill(&name, &payload.instruction) {
-        Ok(_) => Json(ApiResponse::success(
-            "Skill updated successfully".to_string(),
-        )),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(_) => ApiResponse::success("Skill updated successfully".to_string()),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn delete_skill(Path(name): Path<String>) -> impl IntoResponse {
     let manager = match SkillsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.uninstall_skill(&name) {
-        Ok(_) => Json(ApiResponse::success(
-            "Skill deleted successfully".to_string(),
-        )),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(_) => ApiResponse::success("Skill deleted successfully".to_string()),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
@@ -99,19 +93,19 @@ pub async fn delete_skill(Path(name): Path<String>) -> impl IntoResponse {
 pub async fn list_repositories() -> impl IntoResponse {
     let manager = match SkillsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.list_repositories() {
-        Ok(repos) => Json(ApiResponse::success(repos)),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(repos) => ApiResponse::success(repos),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn add_repository(Json(payload): Json<AddRepositoryRequest>) -> impl IntoResponse {
     let manager = match SkillsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     let repo = SkillRepository {
@@ -119,38 +113,37 @@ pub async fn add_repository(Json(payload): Json<AddRepositoryRequest>) -> impl I
         url: payload.url,
         branch: payload.branch.unwrap_or_else(|| "main".to_string()),
         description: payload.description,
+        skill_count: 0,
+        last_synced: None,
+        is_official: false,
     };
 
     match manager.add_repository(repo) {
-        Ok(_) => Json(ApiResponse::success(
-            "Repository added successfully".to_string(),
-        )),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(_) => ApiResponse::success("Repository added successfully".to_string()),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn remove_repository(Path(name): Path<String>) -> impl IntoResponse {
     let manager = match SkillsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.remove_repository(&name) {
-        Ok(_) => Json(ApiResponse::success(
-            "Repository removed successfully".to_string(),
-        )),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(_) => ApiResponse::success("Repository removed successfully".to_string()),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn scan_repository(Path(repo_name): Path<String>) -> impl IntoResponse {
     let manager = match SkillsManager::new(Platform::Claude) {
         Ok(m) => m,
-        Err(e) => return Json(ApiResponse::error(e.to_string())),
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
 
     match manager.fetch_remote_skills(&repo_name).await {
-        Ok(skills) => Json(ApiResponse::success(skills)),
-        Err(e) => Json(ApiResponse::error(e.to_string())),
+        Ok(skills) => ApiResponse::success(skills),
+        Err(e) => ApiResponse::error(e.to_string()),
     }
 }

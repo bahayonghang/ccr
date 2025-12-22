@@ -82,6 +82,7 @@ impl PlatformConfig for IFlowPlatform {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

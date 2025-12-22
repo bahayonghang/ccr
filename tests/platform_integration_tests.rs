@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // 🧪 CCR 多平台集成测试
 //
 // ⚠️ **重要提示**: 这些测试修改全局环境变量 CCR_ROOT，因此必须串行运行

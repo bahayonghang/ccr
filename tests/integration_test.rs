@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // 🧪 CCR 集成测试
 // 测试核心功能的端到端工作流程
 
