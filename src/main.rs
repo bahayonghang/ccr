@@ -376,6 +376,13 @@ enum Commands {
         action: TempTokenAction,
     },
 
+    /// 临时配置快速设置（交互式）
+    ///
+    /// 无需依赖现有TOML配置，直接交互式输入 base_url、token、model
+    /// 并立即写入 settings.json。支持模型名称智能解析。
+    /// 示例: ccr temp
+    Temp,
+
     /// 多平台管理
     ///
     /// 管理和切换不同的 AI CLI 平台 (Claude, Codex, Gemini 等)
@@ -906,6 +913,7 @@ fn main() {
             TempTokenAction::Show => commands::temp_token_show(),
             TempTokenAction::Clear => commands::temp_token_clear(),
         },
+        Some(Commands::Temp) => commands::temp_command(),
         Some(Commands::Platform { action }) => match action {
             PlatformAction::List { json } => commands::platform_list_command(json),
             PlatformAction::Switch { platform_name } => {
@@ -1067,6 +1075,7 @@ fn command_name(cmd: &Commands) -> &'static str {
         Commands::Sync { .. } => "sync",
         Commands::Ui { .. } => "ui",
         Commands::TempToken { .. } => "temp-token",
+        Commands::Temp => "temp",
         Commands::Platform { .. } => "platform",
         Commands::Migrate { .. } => "migrate",
         #[cfg(feature = "web")]
