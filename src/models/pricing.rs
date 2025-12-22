@@ -43,6 +43,7 @@ fn default_version() -> String {
     "1.0".to_string()
 }
 
+#[allow(dead_code)]
 impl PricingConfig {
     /// 创建新的价格表配置
     pub fn new() -> Self {

@@ -181,6 +181,7 @@ impl ModelPricing {
     }
 
     /// 计算成本
+    #[allow(dead_code)]
     pub fn calculate_cost(&self, usage: &TokenUsage) -> Cost {
         let input_cost = (usage.input_tokens as f64) * self.input_price / 1_000_000.0;
         let output_cost = (usage.output_tokens as f64) * self.output_price / 1_000_000.0;
@@ -214,6 +215,7 @@ impl ModelPricing {
 
 /// 📊 成本统计汇总
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CostStats {
     /// 💰 总成本
     pub total_cost: f64,
@@ -241,6 +243,7 @@ pub struct CostStats {
 
 /// 🔢 Token 使用统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TokenStats {
     /// 📥 总输入 Token
     pub total_input_tokens: u64,

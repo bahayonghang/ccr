@@ -11,6 +11,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// 💰 预算管理器
+#[allow(dead_code)]
 pub struct BudgetManager {
     /// 📁 配置文件路径
     config_path: PathBuf,
@@ -19,6 +20,7 @@ pub struct BudgetManager {
     config: BudgetConfig,
 }
 
+#[allow(dead_code)]
 impl BudgetManager {
     /// 创建新的预算管理器
     pub fn new(config_path: PathBuf) -> Result<Self> {

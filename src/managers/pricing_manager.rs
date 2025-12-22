@@ -8,6 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// 💰 价格表管理器
+#[allow(dead_code)]
 pub struct PricingManager {
     /// 📁 配置文件路径
     config_path: PathBuf,
@@ -16,6 +17,7 @@ pub struct PricingManager {
     config: PricingConfig,
 }
 
+#[allow(dead_code)]
 impl PricingManager {
     /// 创建新的价格表管理器
     pub fn new(config_path: PathBuf) -> Result<Self> {

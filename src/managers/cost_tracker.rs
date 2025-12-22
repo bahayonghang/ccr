@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 /// 💰 成本追踪管理器
+#[allow(dead_code)]
 pub struct CostTracker {
     /// 📁 存储目录
     storage_dir: PathBuf,
@@ -25,6 +26,7 @@ pub struct CostTracker {
     pricing_manager: Option<PricingManager>,
 }
 
+#[allow(dead_code)]
 impl CostTracker {
     /// 创建新的成本追踪器
     pub fn new(storage_dir: PathBuf) -> Result<Self> {
