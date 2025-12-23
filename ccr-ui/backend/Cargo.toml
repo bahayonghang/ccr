@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.14.3"
+version = "3.14.4"
 edition = "2024"
 
 [dependencies]
@@ -115,7 +115,7 @@ rand = "0.9"
 base64 = "0.22"
 
 # Browser automation (for WAF bypass)
-chromiumoxide = { version = "0.7", features = ["tokio-runtime"] }
+chromiumoxide = { version = "0.8", features = ["tokio-runtime"] }
 
 # ✅ 独立构建支持说明：
 # - 所有依赖使用显式版本号，不依赖 workspace 继承
