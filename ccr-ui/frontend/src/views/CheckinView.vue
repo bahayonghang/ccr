@@ -456,7 +456,7 @@
                   提供商
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  API Key
+                  Cookies / API User
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   余额
@@ -489,8 +489,18 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {{ account.provider_name || getProviderName(account.provider_id) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-mono">
-                  {{ account.api_key_masked }}
+                <td class="px-6 py-4">
+                  <div class="text-sm text-gray-500 dark:text-gray-400">
+                    <div class="font-mono text-xs break-all">
+                      {{ account.cookies_masked }}
+                    </div>
+                    <div
+                      v-if="account.api_user"
+                      class="mt-1 text-xs text-blue-600 dark:text-blue-400"
+                    >
+                      User: {{ account.api_user }}
+                    </div>
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                   <span
@@ -871,15 +881,55 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              API Key {{ editingAccount ? '(留空不修改)' : '*' }}
+              Cookies JSON {{ editingAccount ? '(留空不修改)' : '*' }}
+            </label>
+            <textarea
+              v-model="accountForm.cookies_json"
+              :required="!editingAccount"
+              rows="4"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"
+              placeholder="{&quot;session&quot;:&quot;xxx&quot;}"
+            />
+            <div class="mt-2 flex items-center space-x-2">
+              <button
+                type="button"
+                class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded transition-colors"
+                @click="formatCookiesJson"
+              >
+                📋 格式化 JSON
+              </button>
+              <span
+                v-if="jsonError"
+                class="text-xs text-red-600 dark:text-red-400"
+              >
+                {{ jsonError }}
+              </span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              API User (可选)
             </label>
             <input
-              v-model="accountForm.api_key"
-              type="password"
-              :required="!editingAccount"
+              v-model="accountForm.api_user"
+              type="text"
               class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono"
-              placeholder="sk-xxx..."
+              placeholder="12345"
             >
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              通常为 5 位数字，可在浏览器开发者工具 Network 标签的请求头中找到 "New-Api-User"
+            </p>
+          </div>
+          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+            <p class="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
+              📋 如何获取 Cookies：
+            </p>
+            <ol class="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
+              <li>按 F12 打开浏览器开发者工具</li>
+              <li>转到 Application 标签页 → Cookies</li>
+              <li>选择目标站点，复制需要的 Cookie 值</li>
+              <li>以 JSON 格式填入上方输入框，如：{"session": "值"}</li>
+            </ol>
           </div>
           <div class="flex items-center">
             <input
@@ -982,13 +1032,14 @@ const showProviderModal = ref(false)
 const showAccountModal = ref(false)
 const editingProvider = ref<CheckinProvider | null>(null)
 const editingAccount = ref<AccountInfo | null>(null)
+const jsonError = ref<string | null>(null)
 
 // 表单
 const providerForm = ref({
   name: '',
   base_url: '',
   checkin_path: '/api/user/checkin',
-  balance_path: '/api/user/dashboard',
+  balance_path: '/api/user/self',
   user_info_path: '/api/user/self',
   auth_header: 'Authorization',
   auth_prefix: 'Bearer ',
@@ -997,7 +1048,8 @@ const providerForm = ref({
 const accountForm = ref({
   provider_id: '',
   name: '',
-  api_key: '',
+  cookies_json: '',
+  api_user: '',
   enabled: true,
 })
 
@@ -1105,7 +1157,7 @@ const openProviderModal = (provider?: CheckinProvider) => {
       name: '',
       base_url: '',
       checkin_path: '/api/user/checkin',
-      balance_path: '/api/user/dashboard',
+      balance_path: '/api/user/self',
       user_info_path: '/api/user/self',
       auth_header: 'Authorization',
       auth_prefix: 'Bearer ',
@@ -1139,20 +1191,43 @@ const deleteProvider = async (id: string) => {
 }
 
 // 账号操作
-const openAccountModal = (account?: AccountInfo) => {
+// Cookies JSON 默认模板
+const DEFAULT_COOKIES_TEMPLATE = '{"session":"xxx"}'
+
+const openAccountModal = async (account?: AccountInfo) => {
   editingAccount.value = account || null
+  jsonError.value = null
+  
   if (account) {
-    accountForm.value = {
-      provider_id: account.provider_id,
-      name: account.name,
-      api_key: '',
-      enabled: account.enabled,
+    // 编辑已有账号：从后端获取解密后的 cookies
+    try {
+      const { getCheckinAccountCookies } = await import('@/api/client')
+      const cookiesData = await getCheckinAccountCookies(account.id)
+      accountForm.value = {
+        provider_id: account.provider_id,
+        name: account.name,
+        cookies_json: cookiesData.cookies_json, // 使用真实的 cookies
+        api_user: cookiesData.api_user || '',
+        enabled: account.enabled,
+      }
+    } catch (e: any) {
+      console.error('Failed to get cookies:', e)
+      // 如果获取失败，使用默认模板
+      accountForm.value = {
+        provider_id: account.provider_id,
+        name: account.name,
+        cookies_json: DEFAULT_COOKIES_TEMPLATE,
+        api_user: account.api_user || '',
+        enabled: account.enabled,
+      }
     }
   } else {
+    // 添加新账号：使用默认模板
     accountForm.value = {
       provider_id: providers.value[0]?.id || '',
       name: '',
-      api_key: '',
+      cookies_json: DEFAULT_COOKIES_TEMPLATE,
+      api_user: '',
       enabled: true,
     }
   }
@@ -1162,19 +1237,23 @@ const openAccountModal = (account?: AccountInfo) => {
 const saveAccount = async () => {
   try {
     if (editingAccount.value) {
-      const updateData: { name?: string; api_key?: string; enabled?: boolean } = {
+      const updateData: { name?: string; cookies_json?: string; api_user?: string; enabled?: boolean } = {
         name: accountForm.value.name,
         enabled: accountForm.value.enabled,
       }
-      if (accountForm.value.api_key) {
-        updateData.api_key = accountForm.value.api_key
+      if (accountForm.value.cookies_json) {
+        updateData.cookies_json = accountForm.value.cookies_json
+      }
+      if (accountForm.value.api_user) {
+        updateData.api_user = accountForm.value.api_user
       }
       await updateCheckinAccount(editingAccount.value.id, updateData)
     } else {
       await createCheckinAccount({
         provider_id: accountForm.value.provider_id,
         name: accountForm.value.name,
-        api_key: accountForm.value.api_key,
+        cookies_json: accountForm.value.cookies_json,
+        api_user: accountForm.value.api_user || '',
       })
     }
     showAccountModal.value = false
@@ -1191,6 +1270,30 @@ const deleteAccount = async (id: string) => {
     await loadAllData()
   } catch (e: any) {
     alert('删除失败: ' + (e.message || '未知错误'))
+  }
+}
+
+// 格式化 Cookies JSON
+const formatCookiesJson = () => {
+  jsonError.value = null
+  const input = accountForm.value.cookies_json.trim()
+  
+  if (!input) {
+    jsonError.value = '请输入 JSON 内容'
+    return
+  }
+
+  try {
+    const parsed = JSON.parse(input)
+    // 验证是否为对象
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      jsonError.value = 'JSON 必须是对象格式，如 {"key": "value"}'
+      return
+    }
+    // 格式化并重新赋值
+    accountForm.value.cookies_json = JSON.stringify(parsed, null, 2)
+  } catch (e: any) {
+    jsonError.value = '无效的 JSON 格式: ' + (e.message || '未知错误')
   }
 }
 

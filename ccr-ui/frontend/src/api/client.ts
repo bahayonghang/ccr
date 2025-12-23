@@ -119,7 +119,9 @@ const createApiClient = (): AxiosInstance => {
         const status = error.response.status
         const data = error.response.data
 
-        if (data && typeof data.message === 'string') {
+        if (typeof data === 'string' && data.trim()) {
+          errorMessage = data
+        } else if (data && typeof data.message === 'string') {
           errorMessage = data.message
         } else if (data && typeof data.error === 'string') {
           errorMessage = data.error
@@ -1338,6 +1340,18 @@ export const updateCheckinAccount = async (id: string, request: UpdateAccountReq
 /** 删除签到账号 */
 export const deleteCheckinAccount = async (id: string): Promise<void> => {
   await api.delete(`/checkin/accounts/${id}`)
+}
+
+/** 账号 Cookies 响应（用于编辑） */
+export interface AccountCookiesResponse {
+  cookies_json: string
+  api_user: string
+}
+
+/** 获取账号的解密后 Cookies（用于编辑） */
+export const getCheckinAccountCookies = async (id: string): Promise<AccountCookiesResponse> => {
+  const response = await api.get<AccountCookiesResponse>(`/checkin/accounts/${id}/cookies`)
+  return response.data
 }
 
 // --- 签到操作 ---

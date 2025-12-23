@@ -82,13 +82,14 @@ export interface ProvidersResponse {
 // 账号类型
 // ═══════════════════════════════════════════════════════════
 
-/** 账号信息（包含遮罩的 API Key） */
+/** 账号信息（包含遮罩的 Cookies） */
 export interface AccountInfo {
   id: string
   provider_id: string
   provider_name?: string
   name: string
-  api_key_masked: string
+  cookies_masked: string
+  api_user: string
   enabled: boolean
   created_at: string
   last_checkin_at?: string
@@ -101,13 +102,15 @@ export interface AccountInfo {
 export interface CreateAccountRequest {
   provider_id: string
   name: string
-  api_key: string
+  cookies_json: string
+  api_user?: string
 }
 
 /** 更新账号请求 */
 export interface UpdateAccountRequest {
   name?: string
-  api_key?: string
+  cookies_json?: string
+  api_user?: string
   enabled?: boolean
 }
 
@@ -181,21 +184,21 @@ export interface CheckinRecordsResponse {
 
 /** 余额快照 */
 export interface BalanceSnapshot {
-  id: string
   account_id: string
   total_quota: number
   used_quota: number
   remaining_quota: number
   usage_percentage: number
   currency: string
-  raw_response?: string
   recorded_at: string
 }
 
 /** 余额历史项 */
 export interface BalanceHistoryItem {
+  total_quota: number
+  used_quota: number
   remaining_quota: number
-  usage_percentage: number
+  usage_percentage?: number
   change?: number
   currency: string
   recorded_at: string
@@ -235,8 +238,9 @@ export interface ExportAccount {
   id: string
   provider_id: string
   name: string
-  api_key: string
-  api_key_encrypted: boolean
+  cookies_json: string
+  cookies_json_encrypted: boolean
+  api_user: string
   enabled: boolean
   created_at: string
 }
