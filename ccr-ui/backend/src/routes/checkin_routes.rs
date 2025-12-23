@@ -32,6 +32,10 @@ pub fn routes() -> Router {
         .route("/checkin/accounts/{id}", get(checkin::get_account))
         .route("/checkin/accounts/{id}", put(checkin::update_account))
         .route("/checkin/accounts/{id}", delete(checkin::delete_account))
+        .route(
+            "/checkin/accounts/{id}/cookies",
+            get(checkin::get_account_cookies),
+        )
         // ═══════════════════════════════════════════════════════════
         // 签到操作
         // ═══════════════════════════════════════════════════════════

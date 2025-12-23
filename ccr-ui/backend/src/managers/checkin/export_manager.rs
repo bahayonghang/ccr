@@ -79,23 +79,24 @@ impl ExportManager {
         let mut export_accounts = Vec::with_capacity(accounts.len());
 
         for account in accounts {
-            let (api_key, encrypted) = if options.include_plaintext_keys {
-                // 导出明文 API Key
+            let (cookies_json, encrypted) = if options.include_plaintext_keys {
+                // 导出明文 Cookies JSON
                 let plaintext = crypto
-                    .decrypt(&account.api_key_encrypted)
+                    .decrypt(&account.cookies_json_encrypted)
                     .map_err(|e| ExportError::CryptoError(e.to_string()))?;
                 (plaintext, false)
             } else {
                 // 保持加密状态
-                (account.api_key_encrypted.clone(), true)
+                (account.cookies_json_encrypted.clone(), true)
             };
 
             export_accounts.push(ExportAccount {
                 id: account.id.clone(),
                 provider_id: account.provider_id.clone(),
                 name: account.name.clone(),
-                api_key,
-                api_key_encrypted: encrypted,
+                cookies_json,
+                cookies_json_encrypted: encrypted,
+                api_user: account.api_user.clone(),
                 enabled: account.enabled,
                 created_at: account.created_at,
             });
@@ -155,7 +156,7 @@ impl ExportManager {
         }
 
         // 检查账号
-        let keys_encrypted = data.accounts.iter().all(|a| a.api_key_encrypted);
+        let keys_encrypted = data.accounts.iter().all(|a| a.cookies_json_encrypted);
 
         for account in &data.accounts {
             let conflict = existing_accounts.iter().find(|a| a.id == account.id);
@@ -184,7 +185,7 @@ impl ExportManager {
         // 添加警告
         if keys_encrypted {
             warnings.push(
-                "API Key 已加密。如果在不同设备上导入，可能无法解密，需要重新输入 API Key。"
+                "Cookies 已加密。如果在不同设备上导入，可能无法解密，需要重新输入 Cookies。"
                     .to_string(),
             );
         }
@@ -236,9 +237,9 @@ impl ExportManager {
             let mut need_reauth = 0;
 
             for export_account in data.accounts {
-                let api_key_encrypted = if export_account.api_key_encrypted {
+                let cookies_json_encrypted = if export_account.cookies_json_encrypted {
                     // 尝试解密并重新加密（验证密钥是否匹配）
-                    match crypto.decrypt(&export_account.api_key) {
+                    match crypto.decrypt(&export_account.cookies_json) {
                         Ok(plaintext) => {
                             // 可以解密，重新加密
                             crypto
@@ -250,14 +251,14 @@ impl ExportManager {
                             need_reauth += 1;
                             // 使用空字符串作为占位符，标记需要重新输入
                             crypto
-                                .encrypt("")
+                                .encrypt("{}")
                                 .map_err(|e| ExportError::CryptoError(e.to_string()))?
                         }
                     }
                 } else {
-                    // 明文 API Key，直接加密
+                    // 明文 Cookies JSON，直接加密
                     crypto
-                        .encrypt(&export_account.api_key)
+                        .encrypt(&export_account.cookies_json)
                         .map_err(|e| ExportError::CryptoError(e.to_string()))?
                 };
 
@@ -265,7 +266,8 @@ impl ExportManager {
                     id: export_account.id,
                     provider_id: export_account.provider_id,
                     name: export_account.name,
-                    api_key_encrypted,
+                    cookies_json_encrypted,
+                    api_user: export_account.api_user,
                     enabled: export_account.enabled,
                     created_at: export_account.created_at,
                     updated_at: None,
@@ -285,7 +287,7 @@ impl ExportManager {
 
             if need_reauth > 0 {
                 result.add_warning(format!(
-                    "{} 个账号的 API Key 无法解密，需要重新输入。",
+                    "{} 个账号的 Cookies 无法解密，需要重新输入。",
                     need_reauth
                 ));
             }

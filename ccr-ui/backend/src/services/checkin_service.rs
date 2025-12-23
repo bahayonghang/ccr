@@ -2,15 +2,21 @@
 // 负责签到业务逻辑，包括执行签到、查询余额等
 
 use crate::core::crypto::CryptoManager;
-use crate::managers::checkin::{AccountManager, BalanceManager, ProviderManager, RecordManager};
+use crate::managers::checkin::{
+    AccountManager, BalanceManager, ProviderManager, RecordManager, WafCookieManager,
+};
 use crate::models::checkin::{
     BalanceHistoryResponse, BalanceSnapshot, CheckinProvider, CheckinRecord,
-    CheckinRecordsResponse, CheckinStatus,
+    CheckinRecordsResponse, CheckinStatus, CookieCredentials,
 };
-use reqwest::Client;
+use crate::services::waf_bypass::WafBypassService;
+use once_cell::sync::Lazy;
+use reqwest::{Client, Proxy};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
+use tokio::sync::Mutex;
 
 #[derive(Debug, thiserror::Error)]
 #[allow(clippy::enum_variant_names)]
@@ -33,33 +39,13 @@ pub enum CheckinServiceError {
 
 pub type Result<T> = std::result::Result<T, CheckinServiceError>;
 
-/// new-api 标准签到响应
+/// new-api 标准签到响应（保留用于参考，实际使用 serde_json::Value 解析）
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct NewApiCheckinResponse {
     success: Option<bool>,
     message: Option<String>,
     data: Option<serde_json::Value>,
-}
-
-/// new-api 标准用户信息响应
-#[derive(Debug, Deserialize)]
-struct NewApiDashboardResponse {
-    #[allow(dead_code)]
-    success: Option<bool>,
-    #[allow(dead_code)]
-    message: Option<String>,
-    data: Option<DashboardData>,
-}
-
-#[derive(Debug, Deserialize)]
-struct DashboardData {
-    #[serde(default)]
-    quota: f64,
-    #[serde(default)]
-    used_quota: f64,
-    #[serde(default)]
-    #[allow(dead_code)]
-    request_count: i64,
 }
 
 /// 签到执行结果
@@ -80,38 +66,194 @@ pub struct CheckinService {
     checkin_dir: PathBuf,
     /// HTTP 客户端
     client: Client,
+    /// 统一的代理配置（保证 HTTP 请求与浏览器出口一致）
+    proxy_url: Option<String>,
+}
+
+/// 安全截断 UTF-8 字符串（避免在多字节字符中间截断导致 panic）
+fn truncate_string(s: &str, max_chars: usize) -> String {
+    s.chars().take(max_chars).collect()
 }
 
 /// 默认 User-Agent
-const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
+
+/// WAF cookies 刷新锁（避免并发触发多次浏览器启动）
+static WAF_REFRESH_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+
+fn get_proxy_url_from_env() -> Option<String> {
+    for key in [
+        "HTTPS_PROXY",
+        "HTTP_PROXY",
+        "ALL_PROXY",
+        "https_proxy",
+        "http_proxy",
+        "all_proxy",
+    ] {
+        if let Ok(value) = std::env::var(key) {
+            let trimmed = value.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
+            }
+        }
+    }
+    None
+}
+
+#[cfg(target_os = "windows")]
+fn parse_windows_proxy_server(proxy_server: &str) -> Option<String> {
+    fn normalize_http_proxy(value: &str) -> Option<String> {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+
+        if trimmed.contains("://") {
+            return Some(trimmed.to_string());
+        }
+
+        Some(format!("http://{}", trimmed))
+    }
+
+    let raw = proxy_server.trim();
+    if raw.is_empty() {
+        return None;
+    }
+
+    if !raw.contains(';') && !raw.contains('=') {
+        return normalize_http_proxy(raw);
+    }
+
+    let mut https: Option<String> = None;
+    let mut http: Option<String> = None;
+
+    for segment in raw.split(';') {
+        let segment = segment.trim();
+        if segment.is_empty() {
+            continue;
+        }
+
+        let (key, value) = match segment.split_once('=') {
+            Some((k, v)) => (k.trim().to_lowercase(), v.trim()),
+            None => ("".to_string(), segment),
+        };
+
+        match key.as_str() {
+            "https" => https = Some(value.to_string()),
+            "http" | "" => http = Some(value.to_string()),
+            // socks/ftp 等暂不处理（ccr-ui backend 目前未启用 reqwest socks feature）
+            _ => {}
+        }
+    }
+
+    https
+        .as_deref()
+        .and_then(normalize_http_proxy)
+        .or_else(|| http.as_deref().and_then(normalize_http_proxy))
+}
+
+#[cfg(target_os = "windows")]
+fn get_proxy_url_from_windows_registry() -> Option<String> {
+    const KEY: &str = r"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings";
+
+    fn query_reg_value(key: &str, name: &str) -> Option<String> {
+        let output = std::process::Command::new("reg")
+            .args(["query", key, "/v", name])
+            .output()
+            .ok()?;
+        if !output.status.success() {
+            return None;
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            let line = line.trim();
+            if !line.starts_with(name) {
+                continue;
+            }
+
+            if let Some(rest) = line.split("REG_DWORD").nth(1) {
+                return Some(rest.trim().to_string());
+            }
+            if let Some(rest) = line.split("REG_SZ").nth(1) {
+                return Some(rest.trim().to_string());
+            }
+        }
+
+        None
+    }
+
+    let enabled = query_reg_value(KEY, "ProxyEnable")?;
+    let enabled = enabled.trim().to_lowercase();
+    if enabled != "0x1" && enabled != "1" {
+        return None;
+    }
+
+    let proxy_server = query_reg_value(KEY, "ProxyServer")?;
+    parse_windows_proxy_server(&proxy_server)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn get_proxy_url_from_windows_registry() -> Option<String> {
+    None
+}
+
+fn get_proxy_url() -> Option<String> {
+    get_proxy_url_from_env().or_else(get_proxy_url_from_windows_registry)
+}
+
+fn is_waf_challenge(text: &str) -> bool {
+    let trimmed = text.trim();
+    trimmed.starts_with('<') || trimmed.contains("acw_sc__v2") || trimmed.contains("<script>var arg1=")
+}
+
+fn merge_cookies(base: &HashMap<String, String>, extra: &HashMap<String, String>) -> HashMap<String, String> {
+    let mut merged = base.clone();
+    for (k, v) in extra {
+        merged.insert(k.clone(), v.clone());
+    }
+    merged
+}
+
+fn cookie_header_string(cookies: &HashMap<String, String>) -> String {
+    cookies
+        .iter()
+        .map(|(k, v)| format!("{}={}", k, v))
+        .collect::<Vec<_>>()
+        .join("; ")
+}
 
 impl CheckinService {
     /// 创建新的签到服务（默认使用系统代理）
     pub fn new(checkin_dir: PathBuf) -> Self {
-        // 尝试从环境变量获取代理
-        // reqwest 默认会读取 HTTP_PROXY, HTTPS_PROXY, ALL_PROXY 等环境变量
-        let client = Client::builder()
+        let proxy_url = get_proxy_url();
+
+        // 为保证浏览器获取的 WAF cookies 与 HTTP 请求出口一致：统一由这里决定代理，并显式注入 reqwest。
+        // （Windows 上很多代理软件只写入“系统代理”，不会写入 HTTP(S)_PROXY 环境变量）
+        let mut client_builder = Client::builder()
             .timeout(Duration::from_secs(30))
             .cookie_store(true)
             .user_agent(DEFAULT_USER_AGENT)
-            // 注意：不调用 .no_proxy()，让 reqwest 自动使用系统代理
-            // 系统代理通过环境变量配置：HTTP_PROXY, HTTPS_PROXY, ALL_PROXY
-            .build()
-            .expect("Failed to create HTTP client");
+            // 仅使用本服务显式配置的代理，避免环境/系统代理与浏览器不一致
+            .no_proxy();
 
-        // 记录代理状态
-        if let Ok(proxy) = std::env::var("HTTPS_PROXY")
-            .or_else(|_| std::env::var("HTTP_PROXY"))
-            .or_else(|_| std::env::var("ALL_PROXY"))
-        {
-            tracing::info!("📡 签到服务使用系统代理: {}", proxy);
-        } else {
-            tracing::debug!("📡 签到服务未检测到系统代理，直连模式");
+        match proxy_url.as_deref() {
+            Some(url) => match Proxy::all(url) {
+                Ok(proxy) => {
+                    tracing::info!("📡 签到服务使用代理: {}", url);
+                    client_builder = client_builder.proxy(proxy);
+                }
+                Err(e) => tracing::warn!("📡 代理格式无效，将忽略: {} ({})", url, e),
+            },
+            None => tracing::debug!("📡 签到服务未检测到代理，直连模式"),
         }
+
+        let client = client_builder.build().expect("Failed to create HTTP client");
 
         Self {
             checkin_dir,
             client,
+            proxy_url,
         }
     }
 
@@ -121,6 +263,119 @@ impl CheckinService {
             CheckinServiceError::ProviderError("Cannot find home directory".to_string())
         })?;
         Ok(home.join(".ccr").join("checkin"))
+    }
+
+    fn get_cached_waf_cookies(&self, provider_id: &str) -> Result<Option<HashMap<String, String>>> {
+        let manager = WafCookieManager::new(&self.checkin_dir);
+        manager
+            .get_valid(provider_id)
+            .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))
+    }
+
+    async fn refresh_waf_cookies(
+        &self,
+        provider: &CheckinProvider,
+        account_name: &str,
+    ) -> Result<HashMap<String, String>> {
+        let _guard = WAF_REFRESH_LOCK.lock().await;
+
+        // 这里是“检测到 WAF 挑战页后的刷新逻辑”，必须强制刷新。
+        // 否则如果缓存里的 WAF cookies 已因出口变化/失效而触发挑战页，会一直复用旧缓存导致永远绕不过去。
+        let manager = WafCookieManager::new(&self.checkin_dir);
+        let _ = manager.delete(&provider.id);
+
+        let login_url = format!("{}/login", provider.base_url.trim_end_matches('/'));
+        let waf_service =
+            WafBypassService::new(true, self.proxy_url.clone(), DEFAULT_USER_AGENT.to_string());
+
+        let waf_cookies = waf_service
+            .get_waf_cookies(&login_url, account_name)
+            .await
+            .map_err(|e| CheckinServiceError::ApiError(format!("WAF 绕过失败: {}", e)))?;
+
+        manager
+            .save(&provider.id, waf_cookies.clone())
+            .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))?;
+
+        Ok(waf_cookies)
+    }
+
+    async fn send_balance_request(
+        &self,
+        url: &str,
+        domain: &str,
+        credentials: &CookieCredentials,
+        cookie_string: &str,
+    ) -> Result<(reqwest::StatusCode, String)> {
+        let mut request = self
+            .client
+            .get(url)
+            .header("Accept", "application/json, text/plain, */*")
+            .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+            .header("X-Requested-With", "XMLHttpRequest")
+            .header("Referer", domain)
+            .header("Origin", domain);
+
+        if !cookie_string.is_empty() {
+            request = request.header("Cookie", cookie_string);
+        }
+
+        if credentials.has_api_user() {
+            request = request.header("new-api-user", &credentials.api_user);
+        }
+
+        let response = request
+            .send()
+            .await
+            .map_err(|e| CheckinServiceError::NetworkError(e.to_string()))?;
+
+        let status = response.status();
+        let body_bytes = response
+            .bytes()
+            .await
+            .map_err(|e| CheckinServiceError::NetworkError(e.to_string()))?;
+        let body = String::from_utf8_lossy(&body_bytes).to_string();
+
+        Ok((status, body))
+    }
+
+    async fn send_checkin_request(
+        &self,
+        url: &str,
+        domain: &str,
+        credentials: &CookieCredentials,
+        cookie_string: &str,
+    ) -> Result<(reqwest::StatusCode, String)> {
+        let mut request = self
+            .client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json, text/plain, */*")
+            .header("X-Requested-With", "XMLHttpRequest")
+            .header("Referer", domain)
+            .header("Origin", domain);
+
+        if !cookie_string.is_empty() {
+            request = request.header("Cookie", cookie_string);
+        }
+
+        if credentials.has_api_user() {
+            request = request.header("new-api-user", &credentials.api_user);
+        }
+
+        let response = request
+            .send()
+            .await
+            .map_err(|e| CheckinServiceError::NetworkError(e.to_string()))?;
+
+        let status = response.status();
+        let body_bytes = response
+            .bytes()
+            .await
+            .map_err(|e| CheckinServiceError::NetworkError(e.to_string()))?;
+        let body = String::from_utf8_lossy(&body_bytes).to_string();
+
+        Ok((status, body))
     }
 
     /// 执行单个账号签到
@@ -166,13 +421,20 @@ impl CheckinService {
             });
         }
 
-        // 解密 API Key
-        let api_key = crypto
-            .decrypt(&account.api_key_encrypted)
+        // 解密 Cookies JSON 并创建凭证
+        let cookies_json = crypto
+            .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::CryptoError(e.to_string()))?;
 
+        let credentials = CookieCredentials::from_json(&cookies_json, account.api_user.clone())
+            .map_err(|e| {
+                CheckinServiceError::CryptoError(format!("Invalid cookies JSON: {}", e))
+            })?;
+
         // 执行签到请求
-        let checkin_result = self.do_checkin(&provider, &api_key).await;
+        let checkin_result = self
+            .do_checkin(&provider, &credentials, &account.name)
+            .await;
 
         // 记录签到结果
         let (record, result) = match checkin_result {
@@ -224,11 +486,12 @@ impl CheckinService {
         Ok(result)
     }
 
-    /// 执行签到 HTTP 请求
+    /// 执行签到 HTTP 请求（使用 Cookie 认证）
     async fn do_checkin(
         &self,
         provider: &CheckinProvider,
-        api_key: &str,
+        credentials: &CookieCredentials,
+        account_name: &str,
     ) -> Result<(String, Option<String>)> {
         let url = format!(
             "{}{}",
@@ -236,50 +499,121 @@ impl CheckinService {
             provider.checkin_path
         );
 
-        let auth_value = if provider.auth_prefix.is_empty() {
-            api_key.to_string()
-        } else {
-            format!("{} {}", provider.auth_prefix, api_key)
-        };
+        let domain = provider.base_url.trim_end_matches('/');
 
-        let response = self
-            .client
-            .post(&url)
-            .header(&provider.auth_header, auth_value)
-            .send()
-            .await
-            .map_err(|e| CheckinServiceError::NetworkError(e.to_string()))?;
+        let mut cookies = credentials.cookies.clone();
+        if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
+            cookies = merge_cookies(&cookies, &waf_cookies);
+        }
+        let mut cookie_string = cookie_header_string(&cookies);
 
-        if !response.status().is_success() {
+        let (mut status, mut body) = self
+            .send_checkin_request(&url, domain, credentials, &cookie_string)
+            .await?;
+
+        tracing::info!("Checkin response status: {}", status);
+        tracing::info!(
+            "Checkin response body: {}",
+            truncate_string(&body, 500)
+        );
+
+        // 检测 WAF 挑战页面：自动刷新 WAF cookies 后重试一次
+        if is_waf_challenge(&body) {
+            tracing::warn!("[{}] Detected WAF challenge, attempting auto bypass...", account_name);
+
+            let waf_cookies = self.refresh_waf_cookies(provider, account_name).await?;
+            let merged = merge_cookies(&credentials.cookies, &waf_cookies);
+            cookie_string = cookie_header_string(&merged);
+
+            let (retry_status, retry_body) = self
+                .send_checkin_request(&url, domain, credentials, &cookie_string)
+                .await?;
+
+            status = retry_status;
+            body = retry_body;
+
+            tracing::info!("Checkin retry status: {}", status);
+            tracing::info!(
+                "Checkin retry response: {}",
+                truncate_string(&body, 500)
+            );
+        }
+
+        if !status.is_success() {
+            if is_waf_challenge(&body) {
+                return Err(CheckinServiceError::ApiError(
+                    "检测到 WAF 挑战页面，已尝试自动获取 WAF cookies 但仍失败。请检查代理/出口是否一致，或稍后重试。"
+                        .to_string(),
+                ));
+            }
+
             return Err(CheckinServiceError::ApiError(format!(
                 "HTTP {}: {}",
-                response.status().as_u16(),
-                response
-                    .status()
-                    .canonical_reason()
-                    .unwrap_or("Unknown error")
+                status.as_u16(),
+                truncate_string(&body, 200)
             )));
         }
 
-        let body = response
-            .text()
-            .await
-            .map_err(|e| CheckinServiceError::NetworkError(e.to_string()))?;
+        if is_waf_challenge(&body) {
+            return Err(CheckinServiceError::ApiError(
+                "检测到 WAF 挑战页面，已尝试自动获取 WAF cookies 但仍失败。请检查代理/出口是否一致，或稍后重试。"
+                    .to_string(),
+            ));
+        }
 
-        // 尝试解析 new-api 标准响应
-        if let Ok(api_response) = serde_json::from_str::<NewApiCheckinResponse>(&body) {
-            let success = api_response.success.unwrap_or(true);
-            let message = api_response
-                .message
-                .unwrap_or_else(|| "签到成功".to_string());
+        // 尝试解析 JSON 响应（支持多种 API 格式）
+        if let Ok(data) = serde_json::from_str::<serde_json::Value>(&body) {
+            tracing::debug!(
+                "Parsed JSON response: {}",
+                serde_json::to_string_pretty(&data).unwrap_or_default()
+            );
 
-            if !success && message.contains("已") {
-                // 已签到的情况
+            // 检查成功标识（支持多种格式，参考 NeuraDock）
+            let ret_value = data["ret"].as_i64();
+            let code_value = data["code"].as_i64();
+            let success_value = data["success"].as_bool();
+
+            tracing::debug!(
+                "Success indicators - ret: {:?}, code: {:?}, success: {:?}",
+                ret_value,
+                code_value,
+                success_value
+            );
+
+            // 判断是否成功
+            let success = ret_value == Some(1)
+                || code_value == Some(0)
+                || code_value == Some(200)
+                || success_value == Some(true);
+
+            // 提取消息（支持多种字段名）
+            let message = if success {
+                data["msg"]
+                    .as_str()
+                    .or(data["message"].as_str())
+                    .or(data["data"].as_str())
+                    .unwrap_or("签到成功")
+                    .to_string()
+            } else {
+                data["msg"]
+                    .as_str()
+                    .or(data["message"].as_str())
+                    .or(data["error"].as_str())
+                    .unwrap_or("签到失败")
+                    .to_string()
+            };
+
+            // 检查是否是"已签到"的情况
+            if !success && (message.contains("已") || message.contains("already")) {
                 return Ok((message, None));
             }
 
+            if !success {
+                return Err(CheckinServiceError::ApiError(message));
+            }
+
             // 尝试从 data 中提取奖励信息
-            let reward = api_response.data.and_then(|d| {
+            let reward = data["data"].as_object().and_then(|d| {
                 if let Some(reward_str) = d.get("reward").and_then(|v| v.as_str()) {
                     Some(reward_str.to_string())
                 } else {
@@ -291,8 +625,18 @@ impl CheckinService {
 
             Ok((message, reward))
         } else {
-            // 非标准响应，返回原始响应
-            Ok((body, None))
+            tracing::warn!("Failed to parse as JSON, raw response: {}", body);
+
+            // 如果不是 JSON，检查响应是否包含成功标识
+            if body.to_lowercase().contains("success") || body.contains("成功") {
+                Ok(("签到成功".to_string(), None))
+            } else {
+                // 返回原始响应作为错误信息
+                Err(CheckinServiceError::ApiError(format!(
+                    "无法解析响应: {}",
+                    truncate_string(&body, 100)
+                )))
+            }
         }
     }
 
@@ -314,14 +658,19 @@ impl CheckinService {
             .get(&account.provider_id)
             .map_err(|e| CheckinServiceError::ProviderError(e.to_string()))?;
 
-        // 解密 API Key
-        let api_key = crypto
-            .decrypt(&account.api_key_encrypted)
+        // 解密 Cookies JSON 并创建凭证
+        let cookies_json = crypto
+            .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::CryptoError(e.to_string()))?;
+
+        let credentials = CookieCredentials::from_json(&cookies_json, account.api_user.clone())
+            .map_err(|e| {
+                CheckinServiceError::CryptoError(format!("Invalid cookies JSON: {}", e))
+            })?;
 
         // 查询余额
         let snapshot = self
-            .do_query_balance(&provider, &api_key, account_id)
+            .do_query_balance(&provider, &credentials, account_id, &account.name)
             .await?;
 
         // 保存余额快照
@@ -335,12 +684,13 @@ impl CheckinService {
         Ok(snapshot)
     }
 
-    /// 执行余额查询 HTTP 请求
+    /// 执行余额查询 HTTP 请求（使用 Cookie 认证）
     async fn do_query_balance(
         &self,
         provider: &CheckinProvider,
-        api_key: &str,
+        credentials: &CookieCredentials,
         account_id: &str,
+        account_name: &str,
     ) -> Result<BalanceSnapshot> {
         let url = format!(
             "{}{}",
@@ -348,61 +698,148 @@ impl CheckinService {
             provider.balance_path
         );
 
-        let auth_value = if provider.auth_prefix.is_empty() {
-            api_key.to_string()
-        } else {
-            format!("{} {}", provider.auth_prefix, api_key)
-        };
+        let domain = provider.base_url.trim_end_matches('/');
 
-        let response = self
-            .client
-            .get(&url)
-            .header(&provider.auth_header, auth_value)
-            .send()
-            .await
-            .map_err(|e| CheckinServiceError::NetworkError(e.to_string()))?;
+        tracing::debug!("Querying balance for account {}: {}", account_id, url);
 
-        if !response.status().is_success() {
+        let mut cookies = credentials.cookies.clone();
+        if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
+            cookies = merge_cookies(&cookies, &waf_cookies);
+        }
+        let mut cookie_string = cookie_header_string(&cookies);
+
+        let (mut status, mut body) = self
+            .send_balance_request(&url, domain, credentials, &cookie_string)
+            .await?;
+
+        tracing::info!("Balance query response status: {}", status);
+        tracing::info!("Balance query response: {}", truncate_string(&body, 500));
+
+        // 检测 WAF 挑战页面：自动刷新 WAF cookies 后重试一次
+        if is_waf_challenge(&body) {
+            tracing::warn!("[{}] Detected WAF challenge, attempting auto bypass...", account_name);
+
+            let waf_cookies = self.refresh_waf_cookies(provider, account_name).await?;
+            let merged = merge_cookies(&credentials.cookies, &waf_cookies);
+            cookie_string = cookie_header_string(&merged);
+
+            let (retry_status, retry_body) = self
+                .send_balance_request(&url, domain, credentials, &cookie_string)
+                .await?;
+
+            status = retry_status;
+            body = retry_body;
+
+            tracing::info!("Balance query retry status: {}", status);
+            tracing::info!(
+                "Balance query retry response: {}",
+                truncate_string(&body, 500)
+            );
+        }
+
+        if !status.is_success() {
+            if is_waf_challenge(&body) {
+                return Err(CheckinServiceError::ApiError(
+                    "检测到 WAF 挑战页面，已尝试自动获取 WAF cookies 但仍失败。请检查代理/出口是否一致，或稍后重试。"
+                        .to_string(),
+                ));
+            }
+
             return Err(CheckinServiceError::ApiError(format!(
                 "HTTP {}: {}",
-                response.status().as_u16(),
-                response
-                    .status()
-                    .canonical_reason()
-                    .unwrap_or("Unknown error")
+                status.as_u16(),
+                truncate_string(&body, 200)
             )));
         }
 
-        let body = response
-            .text()
-            .await
-            .map_err(|e| CheckinServiceError::NetworkError(e.to_string()))?;
+        if is_waf_challenge(&body) {
+            return Err(CheckinServiceError::ApiError(
+                "检测到 WAF 挑战页面，已尝试自动获取 WAF cookies 但仍失败。请检查代理/出口是否一致，或稍后重试。"
+                    .to_string(),
+            ));
+        }
 
-        // 尝试解析 new-api 标准响应
-        if let Ok(api_response) = serde_json::from_str::<NewApiDashboardResponse>(&body)
-            && let Some(data) = api_response.data
-        {
-            // quota 和 used_quota 通常是 token 数量（整数），转换为金额需要除以倍率
-            // 这里假设倍率为 500000 (即 $1 = 500000 tokens)
+        // 使用 serde_json::Value 灵活解析（参考 NeuraDock）
+        let data: serde_json::Value = serde_json::from_str(&body).map_err(|e| {
+            CheckinServiceError::ApiError(format!(
+                "无法解析余额响应: {} - {}",
+                e,
+                truncate_string(&body, 200)
+            ))
+        })?;
+
+        tracing::debug!(
+            "Parsed balance response: {}",
+            serde_json::to_string_pretty(&data).unwrap_or_default()
+        );
+
+        // 参考 NeuraDock: 先检查 data 字段是否存在
+        if data["data"].is_null() {
+            // 检查是否有错误信息
+            let error_msg = data["message"]
+                .as_str()
+                .or_else(|| data["msg"].as_str())
+                .unwrap_or("API 响应缺少 'data' 字段");
+            return Err(CheckinServiceError::ApiError(format!(
+                "{}: {}",
+                error_msg,
+                truncate_string(&body, 200)
+            )));
+        }
+
+        // 参考 NeuraDock: 使用 ok_or_else 返回明确的错误信息
+        // 提取 quota 和 used_quota（支持 data.quota 或直接 quota 两种格式）
+        let quota_bytes = data["data"]["quota"]
+            .as_f64()
+            .or_else(|| data["quota"].as_f64());
+
+        let used_quota_bytes = data["data"]["used_quota"]
+            .as_f64()
+            .or_else(|| data["used_quota"].as_f64());
+
+        if let (Some(quota), Some(used_quota)) = (quota_bytes, used_quota_bytes) {
+            // quota 和 used_quota 是 token 数量，转换为金额 (500000 tokens = $1)
             let quota_rate = 500000.0;
-            let total_quota = data.quota / quota_rate;
-            let used_quota = data.used_quota / quota_rate;
-            let remaining_quota = total_quota - used_quota;
+            let current_balance = (quota / quota_rate * 100.0).round() / 100.0;
+            let total_consumed = (used_quota / quota_rate * 100.0).round() / 100.0;
+            let total_quota = current_balance + total_consumed;
 
             return Ok(BalanceSnapshot::new(
                 account_id.to_string(),
                 total_quota,
-                used_quota,
-                remaining_quota,
+                total_consumed,
+                current_balance,
                 "USD".to_string(),
             )
             .with_raw_response(body));
         }
 
-        // 非标准响应，尝试其他格式
-        Err(CheckinServiceError::ApiError(
-            "Unable to parse balance response".to_string(),
-        ))
+        // 尝试从其他字段获取余额信息
+        if let Some(balance) = data["data"]["balance"]
+            .as_f64()
+            .or(data["balance"].as_f64())
+        {
+            return Ok(BalanceSnapshot::new(
+                account_id.to_string(),
+                balance,
+                0.0,
+                balance,
+                "USD".to_string(),
+            )
+            .with_raw_response(body));
+        }
+
+        // 无法解析 - 提供更详细的错误信息
+        let available_fields: Vec<&str> = data["data"]
+            .as_object()
+            .map(|obj| obj.keys().map(|k| k.as_str()).collect())
+            .unwrap_or_default();
+
+        Err(CheckinServiceError::ApiError(format!(
+            "无法解析余额响应，缺少 quota/used_quota 字段。可用字段: {:?}，响应: {}",
+            available_fields,
+            truncate_string(&body, 200)
+        )))
     }
 
     /// 批量签到
@@ -528,10 +965,15 @@ impl CheckinService {
             .get(&account.provider_id)
             .map_err(|e| CheckinServiceError::ProviderError(e.to_string()))?;
 
-        // 解密 API Key
-        let api_key = crypto
-            .decrypt(&account.api_key_encrypted)
+        // 解密 Cookies JSON 并创建凭证
+        let cookies_json = crypto
+            .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::CryptoError(e.to_string()))?;
+
+        let credentials = CookieCredentials::from_json(&cookies_json, account.api_user.clone())
+            .map_err(|e| {
+                CheckinServiceError::CryptoError(format!("Invalid cookies JSON: {}", e))
+            })?;
 
         // 使用 user_info_path 测试连接
         let url = format!(
@@ -540,21 +982,32 @@ impl CheckinService {
             provider.user_info_path
         );
 
-        let auth_value = if provider.auth_prefix.is_empty() {
-            api_key.to_string()
-        } else {
-            format!("{} {}", provider.auth_prefix, api_key)
-        };
+        let domain = provider.base_url.trim_end_matches('/');
 
-        let response = self
-            .client
-            .get(&url)
-            .header(&provider.auth_header, auth_value)
-            .send()
-            .await
-            .map_err(|e| CheckinServiceError::NetworkError(e.to_string()))?;
+        let mut cookies = credentials.cookies.clone();
+        if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
+            cookies = merge_cookies(&cookies, &waf_cookies);
+        }
+        let mut cookie_string = cookie_header_string(&cookies);
 
-        Ok(response.status().is_success())
+        let (mut status, mut body) = self
+            .send_balance_request(&url, domain, &credentials, &cookie_string)
+            .await?;
+
+        if is_waf_challenge(&body) {
+            let waf_cookies = self.refresh_waf_cookies(&provider, &account.name).await?;
+            let merged = merge_cookies(&credentials.cookies, &waf_cookies);
+            cookie_string = cookie_header_string(&merged);
+
+            let (retry_status, retry_body) = self
+                .send_balance_request(&url, domain, &credentials, &cookie_string)
+                .await?;
+
+            status = retry_status;
+            body = retry_body;
+        }
+
+        Ok(status.is_success() && !is_waf_challenge(&body))
     }
 }
 

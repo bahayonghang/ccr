@@ -6,12 +6,14 @@ pub mod builtin_providers;
 pub mod export_manager;
 pub mod provider_manager;
 pub mod record_manager;
+pub mod waf_cookie_manager;
 
 pub use account_manager::AccountManager;
 pub use balance_manager::BalanceManager;
 pub use export_manager::ExportManager;
 pub use provider_manager::ProviderManager;
 pub use record_manager::RecordManager;
+pub use waf_cookie_manager::WafCookieManager;
 
 use std::path::PathBuf;
 

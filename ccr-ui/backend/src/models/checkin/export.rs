@@ -17,10 +17,12 @@ pub struct ExportAccount {
     pub provider_id: String,
     /// 账号备注名称
     pub name: String,
-    /// API Key (加密或明文，取决于导出选项)
-    pub api_key: String,
+    /// Cookies JSON (加密或明文，取决于导出选项)
+    pub cookies_json: String,
     /// 是否加密
-    pub api_key_encrypted: bool,
+    pub cookies_json_encrypted: bool,
+    /// API User ID
+    pub api_user: String,
     /// 是否启用
     pub enabled: bool,
     /// 创建时间
@@ -63,7 +65,7 @@ impl ExportData {
 /// 导出选项
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ExportOptions {
-    /// 是否导出明文 API Key (危险！需要用户确认)
+    /// 是否导出明文 Cookies (危险！需要用户确认)
     #[serde(default)]
     pub include_plaintext_keys: bool,
     /// 是否仅导出提供商 (不包含账号)
@@ -140,7 +142,7 @@ pub struct ImportPreviewResponse {
     pub new_accounts: usize,
     /// 冲突的账号数量
     pub conflicting_accounts: usize,
-    /// API Key 是否加密
+    /// Cookies 是否加密
     pub keys_encrypted: bool,
     /// 警告消息列表
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -162,7 +164,7 @@ pub struct ImportResult {
     pub accounts_imported: usize,
     /// 跳过的账号数量
     pub accounts_skipped: usize,
-    /// 需要重新输入 API Key 的账号数量
+    /// 需要重新输入 Cookies 的账号数量
     pub accounts_need_reauth: usize,
     /// 警告消息列表
     #[serde(skip_serializing_if = "Vec::is_empty")]

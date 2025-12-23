@@ -15,7 +15,7 @@ pub struct CheckinProvider {
     /// 签到 API 路径 (默认 /api/user/checkin)
     #[serde(default = "default_checkin_path")]
     pub checkin_path: String,
-    /// 余额查询 API 路径 (默认 /api/user/dashboard)
+    /// 余额查询 API 路径 (默认 /api/user/self)
     #[serde(default = "default_balance_path")]
     pub balance_path: String,
     /// 用户信息 API 路径 (默认 /api/user/self)
@@ -42,7 +42,7 @@ fn default_checkin_path() -> String {
 }
 
 fn default_balance_path() -> String {
-    "/api/user/dashboard".to_string()
+    "/api/user/self".to_string()
 }
 
 fn default_user_info_path() -> String {
@@ -222,7 +222,7 @@ mod tests {
         );
         assert_eq!(
             provider.balance_url(),
-            "https://api.example.com/api/user/dashboard"
+            "https://api.example.com/api/user/self"
         );
         assert_eq!(
             provider.user_info_url(),

@@ -1,9 +1,10 @@
 // 签到账号管理器
-// 负责账号的 CRUD 操作，包括 API Key 加密存储
+// 负责账号的 CRUD 操作，包括 Cookies JSON 加密存储
 
-use crate::core::crypto::{CryptoManager, mask_api_key};
+use crate::core::crypto::CryptoManager;
 use crate::models::checkin::{
     AccountInfo, AccountsResponse, CheckinAccount, CreateAccountRequest, UpdateAccountRequest,
+    mask_cookies_json,
 };
 use chrono::Utc;
 use std::fs;
@@ -138,11 +139,11 @@ impl AccountManager {
         Ok(accounts.iter().any(|a| a.provider_id == provider_id))
     }
 
-    /// 转换为账号信息 (遮罩 API Key)
+    /// 转换为账号信息 (遮罩 Cookies)
     fn to_account_info(&self, account: &CheckinAccount, crypto: &CryptoManager) -> AccountInfo {
-        // 尝试解密 API Key 以生成遮罩
-        let api_key_masked = match crypto.decrypt(&account.api_key_encrypted) {
-            Ok(plaintext) => mask_api_key(&plaintext),
+        // 尝试解密 Cookies JSON 以生成遮罩
+        let cookies_masked = match crypto.decrypt(&account.cookies_json_encrypted) {
+            Ok(plaintext) => mask_cookies_json(&plaintext),
             Err(_) => "****".to_string(), // 解密失败时显示占位符
         };
 
@@ -151,7 +152,8 @@ impl AccountManager {
             provider_id: account.provider_id.clone(),
             provider_name: None, // 由 Service 层填充
             name: account.name.clone(),
-            api_key_masked,
+            cookies_masked,
+            api_user: account.api_user.clone(),
             enabled: account.enabled,
             created_at: account.created_at,
             last_checkin_at: account.last_checkin_at,
@@ -170,21 +172,21 @@ impl AccountManager {
             .ok_or_else(|| AccountError::NotFound(id.to_string()))
     }
 
-    /// 根据 ID 获取账号信息 (遮罩 API Key)
+    /// 根据 ID 获取账号信息 (遮罩 Cookies)
     pub fn get_info(&self, id: &str) -> Result<AccountInfo> {
         let account = self.get(id)?;
         let crypto = self.get_crypto()?;
         Ok(self.to_account_info(&account, &crypto))
     }
 
-    /// 获取解密后的 API Key
-    #[allow(dead_code)]
-    pub fn get_api_key(&self, id: &str) -> Result<String> {
+    /// 获取解密后的 Cookies JSON 和 API User
+    pub fn get_cookies_json(&self, id: &str) -> Result<(String, String)> {
         let account = self.get(id)?;
         let crypto = self.get_crypto()?;
-        crypto
-            .decrypt(&account.api_key_encrypted)
-            .map_err(|e| AccountError::CryptoError(e.to_string()))
+        let cookies_json = crypto
+            .decrypt(&account.cookies_json_encrypted)
+            .map_err(|e| AccountError::CryptoError(e.to_string()))?;
+        Ok((cookies_json, account.api_user.clone()))
     }
 
     /// 创建账号
@@ -192,12 +194,17 @@ impl AccountManager {
         let crypto = self.get_crypto()?;
         let mut accounts = self.load_all()?;
 
-        // 加密 API Key
-        let api_key_encrypted = crypto
-            .encrypt(&request.api_key)
+        // 加密 Cookies JSON
+        let cookies_json_encrypted = crypto
+            .encrypt(&request.cookies_json)
             .map_err(|e| AccountError::CryptoError(e.to_string()))?;
 
-        let account = CheckinAccount::new(request.provider_id, request.name, api_key_encrypted);
+        let account = CheckinAccount::new(
+            request.provider_id,
+            request.name,
+            cookies_json_encrypted,
+            request.api_user,
+        );
 
         accounts.push(account.clone());
         self.save_all(&accounts)?;
@@ -220,10 +227,14 @@ impl AccountManager {
             account.name = name;
         }
 
-        if let Some(api_key) = request.api_key {
-            account.api_key_encrypted = crypto
-                .encrypt(&api_key)
+        if let Some(cookies_json) = request.cookies_json {
+            account.cookies_json_encrypted = crypto
+                .encrypt(&cookies_json)
                 .map_err(|e| AccountError::CryptoError(e.to_string()))?;
+        }
+
+        if let Some(api_user) = request.api_user {
+            account.api_user = api_user;
         }
 
         if let Some(enabled) = request.enabled {
@@ -339,19 +350,25 @@ mod tests {
         let request = CreateAccountRequest {
             provider_id: "provider-1".to_string(),
             name: "Test Account".to_string(),
-            api_key: "sk-1234567890abcdef".to_string(),
+            cookies_json: r#"{"session": "abc123", "token": "xyz789"}"#.to_string(),
+            api_user: "12345".to_string(),
         };
 
         let account = manager.create(request).unwrap();
         assert_eq!(account.name, "Test Account");
         assert!(account.enabled);
+        assert_eq!(account.api_user, "12345");
 
-        // 验证 API Key 已加密
-        assert_ne!(account.api_key_encrypted, "sk-1234567890abcdef");
+        // 验证 Cookies JSON 已加密
+        assert_ne!(
+            account.cookies_json_encrypted,
+            r#"{"session": "abc123", "token": "xyz789"}"#
+        );
 
         // 验证可以解密
-        let api_key = manager.get_api_key(&account.id).unwrap();
-        assert_eq!(api_key, "sk-1234567890abcdef");
+        let (cookies_json, api_user) = manager.get_cookies_json(&account.id).unwrap();
+        assert_eq!(cookies_json, r#"{"session": "abc123", "token": "xyz789"}"#);
+        assert_eq!(api_user, "12345");
     }
 
     #[test]
@@ -367,16 +384,17 @@ mod tests {
             .create(CreateAccountRequest {
                 provider_id: "provider-1".to_string(),
                 name: "Account 1".to_string(),
-                api_key: "sk-key1".to_string(),
+                cookies_json: r#"{"session": "key1value"}"#.to_string(),
+                api_user: String::new(),
             })
             .unwrap();
 
         let response = manager.list().unwrap();
         assert_eq!(response.total, 1);
 
-        // 验证 API Key 已遮罩
+        // 验证 Cookies 已遮罩
         let account_info = &response.accounts[0];
-        assert!(!account_info.api_key_masked.contains("sk-key1"));
+        assert!(!account_info.cookies_masked.contains("key1value"));
     }
 
     #[test]
@@ -387,7 +405,8 @@ mod tests {
             .create(CreateAccountRequest {
                 provider_id: "provider-1".to_string(),
                 name: "Original".to_string(),
-                api_key: "sk-original".to_string(),
+                cookies_json: r#"{"session": "original"}"#.to_string(),
+                api_user: "11111".to_string(),
             })
             .unwrap();
 
@@ -396,7 +415,8 @@ mod tests {
                 &account.id,
                 UpdateAccountRequest {
                     name: Some("Updated".to_string()),
-                    api_key: Some("sk-updated".to_string()),
+                    cookies_json: Some(r#"{"session": "updated"}"#.to_string()),
+                    api_user: Some("22222".to_string()),
                     enabled: Some(false),
                 },
             )
@@ -405,9 +425,10 @@ mod tests {
         assert_eq!(updated.name, "Updated");
         assert!(!updated.enabled);
 
-        // 验证新 API Key
-        let api_key = manager.get_api_key(&account.id).unwrap();
-        assert_eq!(api_key, "sk-updated");
+        // 验证新 Cookies 和 API User
+        let (cookies_json, api_user) = manager.get_cookies_json(&account.id).unwrap();
+        assert_eq!(cookies_json, r#"{"session": "updated"}"#);
+        assert_eq!(api_user, "22222");
     }
 
     #[test]
@@ -418,7 +439,8 @@ mod tests {
             .create(CreateAccountRequest {
                 provider_id: "provider-1".to_string(),
                 name: "To Delete".to_string(),
-                api_key: "sk-delete".to_string(),
+                cookies_json: r#"{"session": "delete"}"#.to_string(),
+                api_user: String::new(),
             })
             .unwrap();
 
@@ -437,7 +459,8 @@ mod tests {
             .create(CreateAccountRequest {
                 provider_id: "provider-1".to_string(),
                 name: "Account".to_string(),
-                api_key: "sk-key".to_string(),
+                cookies_json: r#"{"session": "key"}"#.to_string(),
+                api_user: String::new(),
             })
             .unwrap();
 

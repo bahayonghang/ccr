@@ -13,9 +13,9 @@ use crate::managers::checkin::{
     builtin_providers::{BuiltinProvider, get_builtin_providers},
 };
 use crate::models::checkin::{
-    AccountInfo, AccountsResponse, BalanceHistoryResponse, CheckinProvider, CheckinRecordsResponse,
-    CreateAccountRequest, CreateProviderRequest, ExportData, ExportOptions, ImportOptions,
-    ImportPreviewResponse, ImportResult, ProvidersResponse, UpdateAccountRequest,
+    AccountInfo, AccountsResponse, BalanceHistoryResponse, BalanceResponse, CheckinProvider,
+    CheckinRecordsResponse, CreateAccountRequest, CreateProviderRequest, ExportData, ExportOptions,
+    ImportOptions, ImportPreviewResponse, ImportResult, ProvidersResponse, UpdateAccountRequest,
     UpdateProviderRequest,
 };
 use crate::services::checkin_service::{CheckinExecutionResult, CheckinService, TodayCheckinStats};
@@ -219,7 +219,7 @@ pub async fn create_account(
     let manager = AccountManager::new(&checkin_dir);
 
     let account = manager.create(req).map_err(bad_request_error)?;
-    // 转换为 AccountInfo（包含遮罩的 API Key）
+    // 转换为 AccountInfo（包含遮罩的 Cookies）
     let account_info = manager.get_info(&account.id).map_err(internal_error)?;
     Ok(Json(account_info))
 }
@@ -233,7 +233,7 @@ pub async fn update_account(
     let manager = AccountManager::new(&checkin_dir);
 
     let account = manager.update(&id, req).map_err(bad_request_error)?;
-    // 转换为 AccountInfo（包含遮罩的 API Key）
+    // 转换为 AccountInfo（包含遮罩的 Cookies）
     let account_info = manager.get_info(&account.id).map_err(internal_error)?;
     Ok(Json(account_info))
 }
@@ -253,6 +253,27 @@ pub async fn delete_account(Path(id): Path<String>) -> Result<StatusCode, Respon
     let _ = balance_manager.delete_by_account(&id);
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// 获取 Cookies 响应（用于编辑）
+#[derive(Debug, Serialize)]
+pub struct AccountCookiesResponse {
+    pub cookies_json: String,
+    pub api_user: String,
+}
+
+/// GET /api/checkin/accounts/:id/cookies - 获取账号的解密后 Cookies（用于编辑）
+pub async fn get_account_cookies(
+    Path(id): Path<String>,
+) -> Result<Json<AccountCookiesResponse>, Response> {
+    let checkin_dir = get_checkin_dir()?;
+    let manager = AccountManager::new(&checkin_dir);
+
+    let (cookies_json, api_user) = manager.get_cookies_json(&id).map_err(not_found_error)?;
+    Ok(Json(AccountCookiesResponse {
+        cookies_json,
+        api_user,
+    }))
 }
 
 // ============================================================
@@ -338,12 +359,13 @@ pub async fn checkin_account(
 /// POST /api/checkin/accounts/:id/balance - 查询账号余额
 pub async fn query_balance(
     Path(id): Path<String>,
-) -> Result<Json<crate::models::checkin::BalanceSnapshot>, Response> {
+) -> Result<Json<BalanceResponse>, Response> {
     let checkin_dir = get_checkin_dir()?;
     let service = CheckinService::new(checkin_dir);
 
-    let balance = service.query_balance(&id).await.map_err(internal_error)?;
-    Ok(Json(balance))
+    let snapshot = service.query_balance(&id).await.map_err(internal_error)?;
+    let response: BalanceResponse = snapshot.into();
+    Ok(Json(response))
 }
 
 /// 历史记录查询参数
@@ -481,7 +503,7 @@ pub async fn test_connection(
         })),
         Ok(false) => Ok(Json(TestConnectionResponse {
             success: false,
-            message: "连接失败，请检查 API Key".to_string(),
+            message: "连接失败，请检查 Cookies 配置".to_string(),
         })),
         Err(e) => Ok(Json(TestConnectionResponse {
             success: false,

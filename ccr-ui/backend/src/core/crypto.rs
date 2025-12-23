@@ -205,6 +205,7 @@ impl CryptoManager {
 /// 掩码显示 API Key
 ///
 /// 例如: "sk-1234567890abcdef" -> "sk-****cdef"
+#[allow(dead_code)]
 pub fn mask_api_key(api_key: &str) -> String {
     if api_key.len() <= 8 {
         return "*".repeat(api_key.len());
