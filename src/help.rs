@@ -295,7 +295,7 @@ pub fn print_top_help() {
         &mut ui_table,
         "web",
         "启动轻量级 Legacy Web 界面 / Web API（兼容与编程访问，新的浏览器端推荐使用 ccr ui）",
-        Some("ccr web --port 8080 --no-browser"),
+        Some("ccr web --port 9527 --no-browser"),
     );
     add_row(&mut ui_table, "tui", "启动 TUI 交互式界面", Some("ccr tui"));
     add_row(

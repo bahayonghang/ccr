@@ -1275,7 +1275,7 @@ _tauri-build-windows:
     @Write-Output '   - .msi (安装程序)'
     @Write-Output '   - .exe (可执行文件)'
 
-# 构建 Tauri 调试版本（更快���带调试符号）
+# 构建 Tauri 调试版本（更快，带调试符号）
 tauri-build-debug:
     @just _tauri-build-debug-{{os()}}
 

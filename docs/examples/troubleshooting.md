@@ -271,7 +271,7 @@ Error: 读取历史文件失败: invalid JSON
 
 **解决方案**:
 ```bash
-# 1. 备份损坏的文��
+# 1. 备份损坏的文件
 mv ~/.ccr/history/claude.json ~/.ccr/history/claude.json.corrupted
 
 # 2. 创建新的空历史文件
@@ -406,7 +406,7 @@ ccr add official
 
 ### 内置帮助
 ```bash
-# ��看所有命令
+# 查看所有命令
 ccr --help
 
 # 查看特定命令帮助

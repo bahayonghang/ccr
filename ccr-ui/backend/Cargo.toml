@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.14.2"
+version = "3.14.3"
 edition = "2024"
 
 [dependencies]
@@ -83,7 +83,8 @@ num_cpus = "1.17.0"
 sysinfo = "0.37.2"  # 统一使用与 ccr 相同的版本
 
 # HTTP client for checking updates and checkin API calls
-reqwest = { version = "0.12.25", features = ["blocking", "json", "cookies"] }
+# NOTE: Enable `gzip` to transparently decode provider responses (see NeuraDock).
+reqwest = { version = "0.12.25", features = ["blocking", "json", "cookies", "gzip"] }
 
 # YAML support (for special cases)
 serde_yaml = "0.9.33"
@@ -113,7 +114,13 @@ rand = "0.9"
 # Base64 encoding for encrypted data
 base64 = "0.22"
 
+# Browser automation (for WAF bypass)
+chromiumoxide = { version = "0.7", features = ["tokio-runtime"] }
+
 # ✅ 独立构建支持说明：
 # - 所有依赖使用显式版本号，不依赖 workspace 继承
 # - 支持复制到 ~/.ccr/ccr-ui/ 后独立构建
 # - 版本号与主仓库 Cargo.toml 的 workspace.dependencies 保持同步
+
+[dev-dependencies]
+proptest = "1.6"

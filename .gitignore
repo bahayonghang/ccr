@@ -55,9 +55,12 @@ cmake-build-*/
 .factory/
 .trae/
 .agent/
+.kiro/
 
 openspec/
 .serena/
 
 
 ccr-ui/frontend/src-tauri/gen
+
+ref/

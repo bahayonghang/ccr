@@ -1684,7 +1684,7 @@ body {
   transition: all var(--duration-normal) var(--ease-out-cubic);
 }
 
-/* ☀️ 明亮主题输入框优化 - 光韵流���风格 */
+/* ☀️ 明亮主题输入框优化 - 光韵流转风格 */
 [data-theme="light"] input {
   background: linear-gradient(
     145deg,
