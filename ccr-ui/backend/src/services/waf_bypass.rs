@@ -57,8 +57,15 @@ impl WafBypassService {
         }
     }
 
-    pub async fn get_waf_cookies(&self, login_url: &str, account_name: &str) -> Result<HashMap<String, String>> {
-        tracing::info!("[{}] WAF bypass: fetching cookies via browser", account_name);
+    pub async fn get_waf_cookies(
+        &self,
+        login_url: &str,
+        account_name: &str,
+    ) -> Result<HashMap<String, String>> {
+        tracing::info!(
+            "[{}] WAF bypass: fetching cookies via browser",
+            account_name
+        );
 
         let (browser, handler_task, temp_dir) = self.launch_browser(account_name).await?;
 
@@ -66,12 +73,16 @@ impl WafBypassService {
             .navigate_and_extract_cookies(&browser, login_url, account_name)
             .await;
 
-        self.cleanup(browser, handler_task, &temp_dir, account_name).await;
+        self.cleanup(browser, handler_task, &temp_dir, account_name)
+            .await;
 
         cookies_result
     }
 
-    async fn launch_browser(&self, account_name: &str) -> Result<(Browser, JoinHandle<()>, PathBuf)> {
+    async fn launch_browser(
+        &self,
+        account_name: &str,
+    ) -> Result<(Browser, JoinHandle<()>, PathBuf)> {
         let temp_dir = std::env::temp_dir().join(format!("chromiumoxide-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&temp_dir)
             .map_err(|e| WafBypassError::TempDirError(e.to_string()))?;
@@ -96,16 +107,16 @@ impl WafBypassService {
             .build()
             .map_err(|e| WafBypassError::BrowserConfigError(e.to_string()))?;
 
-        let launch_result = tokio::time::timeout(DEFAULT_BROWSER_LAUNCH_TIMEOUT, Browser::launch(config)).await;
+        let launch_result =
+            tokio::time::timeout(DEFAULT_BROWSER_LAUNCH_TIMEOUT, Browser::launch(config)).await;
         let (browser, mut handler) = match launch_result {
             Ok(Ok(browser_handler)) => browser_handler,
             Ok(Err(e)) => return Err(WafBypassError::BrowserLaunchError(e.to_string())),
             Err(_) => return Err(WafBypassError::BrowserLaunchTimeout),
         };
 
-        let handler_task = tokio::spawn(async move {
-            while let Some(_event) = handler.next().await {}
-        });
+        let handler_task =
+            tokio::spawn(async move { while let Some(_event) = handler.next().await {} });
 
         tracing::info!("[{}] WAF bypass: browser launched", account_name);
         Ok((browser, handler_task, temp_dir))
@@ -158,7 +169,13 @@ impl WafBypassService {
         Ok(waf_cookies)
     }
 
-    async fn cleanup(&self, mut browser: Browser, handler_task: JoinHandle<()>, temp_dir: &PathBuf, account_name: &str) {
+    async fn cleanup(
+        &self,
+        mut browser: Browser,
+        handler_task: JoinHandle<()>,
+        temp_dir: &PathBuf,
+        account_name: &str,
+    ) {
         handler_task.abort();
 
         let _ = tokio::time::timeout(DEFAULT_BROWSER_CLOSE_TIMEOUT, browser.close()).await;
@@ -205,8 +222,12 @@ impl WafBypassService {
                 PathBuf::from(r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
                 PathBuf::from(r"C:\Program Files\Chromium\Application\chrome.exe"),
                 PathBuf::from(r"C:\Program Files (x86)\Chromium\Application\chrome.exe"),
-                PathBuf::from(r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"),
-                PathBuf::from(r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe"),
+                PathBuf::from(
+                    r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
+                ),
+                PathBuf::from(
+                    r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
+                ),
                 PathBuf::from(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
                 PathBuf::from(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
             ];
@@ -220,7 +241,8 @@ impl WafBypassService {
             if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
                 let candidates = vec![
                     PathBuf::from(&local_app_data).join("Google/Chrome/Application/chrome.exe"),
-                    PathBuf::from(&local_app_data).join("BraveSoftware/Brave-Browser/Application/brave.exe"),
+                    PathBuf::from(&local_app_data)
+                        .join("BraveSoftware/Brave-Browser/Application/brave.exe"),
                 ];
                 for path in candidates {
                     if path.exists() {
