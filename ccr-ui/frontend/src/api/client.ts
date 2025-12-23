@@ -1251,6 +1251,7 @@ import type {
   BalanceSnapshot,
   BalanceHistoryResponse,
   TodayCheckinStats,
+  CheckinAccountDashboardResponse,
   ExportOptions as CheckinExportOptions,
   ExportData as CheckinExportData,
   ImportPreviewResponse as CheckinImportPreviewResponse,
@@ -1322,6 +1323,15 @@ export const listCheckinAccounts = async (providerId?: string): Promise<Accounts
 /** 获取单个签到账号 */
 export const getCheckinAccount = async (id: string): Promise<AccountInfo> => {
   const response = await api.get<AccountInfo>(`/checkin/accounts/${id}`)
+  return response.data
+}
+
+/** 获取账号 Dashboard 聚合数据 */
+export const getCheckinAccountDashboard = async (
+  id: string,
+  params?: { year?: number; month?: number; days?: number }
+): Promise<CheckinAccountDashboardResponse> => {
+  const response = await api.get<CheckinAccountDashboardResponse>(`/checkin/accounts/${id}/dashboard`, { params })
   return response.data
 }
 
@@ -1434,4 +1444,3 @@ export const testCheckinConnection = async (id: string): Promise<TestConnectionR
   const response = await api.post<TestConnectionResponse>(`/checkin/accounts/${id}/test`)
   return response.data
 }
-

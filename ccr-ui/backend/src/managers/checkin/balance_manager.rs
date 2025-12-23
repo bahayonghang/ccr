@@ -3,6 +3,7 @@
 
 use crate::models::checkin::{BalanceHistoryItem, BalanceHistoryResponse, BalanceSnapshot};
 use chrono::{Duration, Utc};
+use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -132,6 +133,37 @@ impl BalanceManager {
             .into_iter()
             .filter(|b| b.account_id == account_id)
             .max_by_key(|b| b.recorded_at))
+    }
+
+    /// 获取所有账号的最新余额快照映射
+    pub fn get_latest_map(&self) -> Result<HashMap<String, BalanceSnapshot>> {
+        let balances = self.load_all()?;
+        let mut latest_map: HashMap<String, BalanceSnapshot> = HashMap::new();
+
+        for snapshot in balances {
+            let replace = match latest_map.get(&snapshot.account_id) {
+                Some(existing) => snapshot.recorded_at > existing.recorded_at,
+                None => true,
+            };
+
+            if replace {
+                latest_map.insert(snapshot.account_id.clone(), snapshot);
+            }
+        }
+
+        Ok(latest_map)
+    }
+
+    /// 获取账号所有余额快照（按时间升序）
+    pub fn list_by_account(&self, account_id: &str) -> Result<Vec<BalanceSnapshot>> {
+        let mut balances: Vec<_> = self
+            .load_all()?
+            .into_iter()
+            .filter(|b| b.account_id == account_id)
+            .collect();
+
+        balances.sort_by(|a, b| a.recorded_at.cmp(&b.recorded_at));
+        Ok(balances)
     }
 
     /// 获取账号余额历史

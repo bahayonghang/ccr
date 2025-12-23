@@ -481,9 +481,12 @@
                       class="w-2 h-2 rounded-full mr-3"
                       :class="account.enabled ? 'bg-green-400' : 'bg-gray-400'"
                     />
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">
+                    <button
+                      class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                      @click="openAccountDashboard(account.id)"
+                    >
                       {{ account.name }}
-                    </span>
+                    </button>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -517,35 +520,23 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {{ account.last_checkin_at ? formatDate(account.last_checkin_at) : '-' }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                  <button
-                    class="text-green-600 hover:text-green-700 dark:text-green-400"
-                    title="签到"
-                    @click="checkinSingle(account.id)"
-                  >
-                    签到
-                  </button>
-                  <button
-                    class="text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                    title="查余额"
-                    @click="queryBalance(account.id)"
-                  >
-                    余额
-                  </button>
-                  <button
-                    class="text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
-                    title="编辑"
-                    @click="openAccountModal(account)"
-                  >
-                    编辑
-                  </button>
-                  <button
-                    class="text-red-600 hover:text-red-700 dark:text-red-400"
-                    title="删除"
-                    @click="deleteAccount(account.id)"
-                  >
-                    删除
-                  </button>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  <div class="flex items-center gap-2">
+                    <button
+                      class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20"
+                      title="编辑"
+                      @click="openAccountModal(account)"
+                    >
+                      编辑
+                    </button>
+                    <button
+                      class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
+                      title="删除"
+                      @click="deleteAccount(account.id)"
+                    >
+                      删除
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -968,6 +959,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   listCheckinProviders,
   createCheckinProvider,
@@ -978,8 +970,6 @@ import {
   updateCheckinAccount,
   deleteCheckinAccount as apiDeleteAccount,
   executeCheckin,
-  checkinAccount,
-  queryCheckinBalance,
   listCheckinRecords,
   getTodayCheckinStats,
   exportCheckinConfig,
@@ -1004,6 +994,7 @@ const loading = ref(false)
 const checkinLoading = ref(false)
 const error = ref<string | null>(null)
 const activeTab = ref<'providers' | 'accounts' | 'records' | 'import-export'>('accounts')
+const router = useRouter()
 
 // 数据
 const providers = ref<CheckinProvider[]>([])
@@ -1114,28 +1105,6 @@ const executeCheckinAll = async () => {
     console.error('Checkin failed:', e)
   } finally {
     checkinLoading.value = false
-  }
-}
-
-// 单个账号签到
-const checkinSingle = async (accountId: string) => {
-  try {
-    const result = await checkinAccount(accountId)
-    alert(`签到${result.status === 'Success' ? '成功' : result.status === 'AlreadyCheckedIn' ? '：今日已签到' : '失败'}: ${result.message || ''}`)
-    await loadAllData()
-  } catch (e: any) {
-    alert('签到失败: ' + (e.message || '未知错误'))
-  }
-}
-
-// 查询余额
-const queryBalance = async (accountId: string) => {
-  try {
-    const result = await queryCheckinBalance(accountId)
-    alert(`余额: ${result.currency}${result.remaining_quota.toFixed(2)} (已用: ${result.usage_percentage.toFixed(1)}%)`)
-    await loadAllData()
-  } catch (e: any) {
-    alert('查询余额失败: ' + (e.message || '未知错误'))
   }
 }
 
@@ -1353,6 +1322,10 @@ const getProviderName = (providerId: string) => {
 
 const getAccountName = (accountId: string) => {
   return accounts.value.find(a => a.id === accountId)?.name || accountId
+}
+
+const openAccountDashboard = (accountId: string) => {
+  router.push({ name: 'checkin-account-dashboard', params: { accountId } })
 }
 
 const formatDate = (dateStr: string) => {

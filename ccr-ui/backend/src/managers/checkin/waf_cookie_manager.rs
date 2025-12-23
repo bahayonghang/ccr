@@ -13,6 +13,7 @@ const WAF_COOKIES_FILE: &str = "waf_cookies.json";
 const DEFAULT_CACHE_HOURS: i64 = 24;
 
 #[derive(Debug, thiserror::Error)]
+#[allow(clippy::enum_variant_names)]
 #[allow(dead_code)]
 pub enum WafCookieError {
     #[error("Failed to read WAF cookies: {0}")]
