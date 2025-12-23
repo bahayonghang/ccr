@@ -6,17 +6,19 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use chrono::{Datelike, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::managers::checkin::{
     AccountManager, BalanceManager, ExportManager, ProviderManager, RecordManager,
     builtin_providers::{BuiltinProvider, get_builtin_providers},
 };
 use crate::models::checkin::{
-    AccountInfo, AccountsResponse, BalanceHistoryResponse, BalanceResponse, CheckinProvider,
-    CheckinRecordsResponse, CreateAccountRequest, CreateProviderRequest, ExportData, ExportOptions,
-    ImportOptions, ImportPreviewResponse, ImportResult, ProvidersResponse, UpdateAccountRequest,
-    UpdateProviderRequest,
+    AccountInfo, AccountsResponse, BalanceHistoryResponse, BalanceResponse,
+    CheckinAccountDashboardResponse, CheckinProvider, CheckinRecordsResponse, CreateAccountRequest,
+    CreateProviderRequest, ExportData, ExportOptions, ImportOptions, ImportPreviewResponse,
+    ImportResult, ProvidersResponse, UpdateAccountRequest, UpdateProviderRequest,
 };
 use crate::services::checkin_service::{CheckinExecutionResult, CheckinService, TodayCheckinStats};
 
@@ -47,6 +49,31 @@ fn not_found_error<E: std::fmt::Display>(err: E) -> Response {
 /// 将错误转换为 400 响应
 fn bad_request_error<E: std::fmt::Display>(err: E) -> Response {
     (StatusCode::BAD_REQUEST, format!("Bad request: {}", err)).into_response()
+}
+
+#[allow(clippy::result_large_err)]
+fn enrich_accounts(
+    accounts: &mut [AccountInfo],
+    provider_manager: &ProviderManager,
+    balance_manager: &BalanceManager,
+) -> Result<(), Response> {
+    let providers = provider_manager.load_all().map_err(internal_error)?;
+    let provider_map: HashMap<String, String> =
+        providers.into_iter().map(|p| (p.id, p.name)).collect();
+    let balance_map = balance_manager.get_latest_map().map_err(internal_error)?;
+
+    for account in accounts.iter_mut() {
+        if let Some(name) = provider_map.get(&account.provider_id) {
+            account.provider_name = Some(name.clone());
+        }
+
+        if let Some(balance) = balance_map.get(&account.id) {
+            account.latest_balance = Some(balance.remaining_quota);
+            account.balance_currency = Some(balance.currency.clone());
+        }
+    }
+
+    Ok(())
 }
 
 // ============================================================
@@ -186,17 +213,22 @@ pub async fn list_accounts(
 ) -> Result<Json<AccountsResponse>, Response> {
     let checkin_dir = get_checkin_dir()?;
     let manager = AccountManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new(&checkin_dir);
+    let balance_manager = BalanceManager::new(&checkin_dir);
 
     let response = if let Some(provider_id) = query.provider_id {
-        let accounts = manager
+        let mut accounts = manager
             .list_by_provider(&provider_id)
             .map_err(internal_error)?;
+        enrich_accounts(&mut accounts, &provider_manager, &balance_manager)?;
         AccountsResponse {
             total: accounts.len(),
             accounts,
         }
     } else {
-        manager.list().map_err(internal_error)?
+        let mut response = manager.list().map_err(internal_error)?;
+        enrich_accounts(&mut response.accounts, &provider_manager, &balance_manager)?;
+        response
     };
 
     Ok(Json(response))
@@ -206,9 +238,57 @@ pub async fn list_accounts(
 pub async fn get_account(Path(id): Path<String>) -> Result<Json<AccountInfo>, Response> {
     let checkin_dir = get_checkin_dir()?;
     let manager = AccountManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new(&checkin_dir);
+    let balance_manager = BalanceManager::new(&checkin_dir);
 
-    let account = manager.get_info(&id).map_err(not_found_error)?;
+    let mut account = manager.get_info(&id).map_err(not_found_error)?;
+    enrich_accounts(
+        std::slice::from_mut(&mut account),
+        &provider_manager,
+        &balance_manager,
+    )?;
     Ok(Json(account))
+}
+
+/// 账号 Dashboard 查询参数
+#[derive(Debug, Deserialize)]
+pub struct AccountDashboardQuery {
+    pub year: Option<i32>,
+    pub month: Option<u32>,
+    pub days: Option<u32>,
+}
+
+/// GET /api/checkin/accounts/:id/dashboard - 获取账号 Dashboard 数据
+pub async fn get_account_dashboard(
+    Path(id): Path<String>,
+    Query(query): Query<AccountDashboardQuery>,
+) -> Result<Json<CheckinAccountDashboardResponse>, Response> {
+    let checkin_dir = get_checkin_dir()?;
+    let service = CheckinService::new(checkin_dir);
+
+    let now = Utc::now().date_naive();
+    let year = query.year.unwrap_or(now.year());
+    let month = query.month.unwrap_or(now.month());
+    let days = query.days.unwrap_or(30);
+
+    if !(1..=12).contains(&month) {
+        return Err(bad_request_error("Invalid month"));
+    }
+
+    if !(1..=365).contains(&days) {
+        return Err(bad_request_error("Invalid days"));
+    }
+
+    let dashboard = service
+        .get_account_dashboard(&id, year, month, days)
+        .map_err(|e| match e {
+            crate::services::checkin_service::CheckinServiceError::AccountError(_) => {
+                not_found_error(e)
+            }
+            _ => internal_error(e),
+        })?;
+
+    Ok(Json(dashboard))
 }
 
 /// POST /api/checkin/accounts - 创建账号
@@ -357,9 +437,7 @@ pub async fn checkin_account(
 // ============================================================
 
 /// POST /api/checkin/accounts/:id/balance - 查询账号余额
-pub async fn query_balance(
-    Path(id): Path<String>,
-) -> Result<Json<BalanceResponse>, Response> {
+pub async fn query_balance(Path(id): Path<String>) -> Result<Json<BalanceResponse>, Response> {
     let checkin_dir = get_checkin_dir()?;
     let service = CheckinService::new(checkin_dir);
 

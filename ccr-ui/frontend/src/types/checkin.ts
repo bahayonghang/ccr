@@ -165,10 +165,14 @@ export interface CheckinResponse {
 export interface CheckinRecordInfo {
   id: string
   account_id: string
+  account_name?: string
+  provider_name?: string
   status: CheckinStatus
   message?: string
   reward?: string
+  balance_before?: number
   balance_after?: number
+  balance_change?: number
   checked_in_at: string
 }
 
@@ -298,6 +302,86 @@ export interface ImportResult {
   accounts_skipped: number
   accounts_need_reauth: number
   warnings: string[]
+}
+
+// ═══════════════════════════════════════════════════════════
+// 账号 Dashboard 类型
+// ═══════════════════════════════════════════════════════════
+
+/** 账号概览 */
+export interface CheckinDashboardAccount {
+  id: string
+  name: string
+  provider_id: string
+  provider_name: string
+  enabled: boolean
+  last_checkin_at?: string
+  last_balance_check_at?: string
+  latest_balance?: number
+  balance_currency?: string
+  total_quota?: number
+  used_quota?: number
+  remaining_quota?: number
+}
+
+/** 连续签到统计 */
+export interface CheckinDashboardStreak {
+  current_streak: number
+  longest_streak: number
+  total_check_in_days: number
+  last_check_in_date?: string
+}
+
+/** 月度统计 */
+export interface CheckinDashboardMonthStats {
+  total_days: number
+  checked_in_days: number
+  check_in_rate: number
+  total_quota_increment: number
+}
+
+/** 日历单日数据 */
+export interface CheckinDashboardDay {
+  date: string
+  is_checked_in: boolean
+  income_increment?: number | null
+  current_balance: number
+  total_consumed: number
+  total_quota: number
+}
+
+/** 月度日历 */
+export interface CheckinDashboardCalendar {
+  account_id: string
+  year: number
+  month: number
+  days: CheckinDashboardDay[]
+  month_stats: CheckinDashboardMonthStats
+}
+
+/** 趋势数据点 */
+export interface CheckinDashboardTrendPoint {
+  date: string
+  total_quota: number
+  income_increment: number
+  current_balance: number
+  is_checked_in: boolean
+}
+
+/** 趋势数据 */
+export interface CheckinDashboardTrend {
+  account_id: string
+  start_date: string
+  end_date: string
+  data_points: CheckinDashboardTrendPoint[]
+}
+
+/** 账号 Dashboard 聚合响应 */
+export interface CheckinAccountDashboardResponse {
+  account: CheckinDashboardAccount
+  streak: CheckinDashboardStreak
+  calendar: CheckinDashboardCalendar
+  trend: CheckinDashboardTrend
 }
 
 // ═══════════════════════════════════════════════════════════

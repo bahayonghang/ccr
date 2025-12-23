@@ -136,6 +136,12 @@ const router = createRouter({
           component: () => import('@/views/ProviderHealthView.vue')
         },
         {
+          path: 'checkin/manage/:accountId',
+          name: 'checkin-account-dashboard',
+          component: () => import('@/views/checkin/CheckinAccountDashboardView.vue'),
+          props: true
+        },
+        {
           path: 'checkin',
           name: 'checkin',
           component: () => import('@/views/CheckinView.vue')

@@ -6,10 +6,14 @@ use crate::managers::checkin::{
     AccountManager, BalanceManager, ProviderManager, RecordManager, WafCookieManager,
 };
 use crate::models::checkin::{
-    BalanceHistoryResponse, BalanceSnapshot, CheckinProvider, CheckinRecord,
-    CheckinRecordsResponse, CheckinStatus, CookieCredentials,
+    BalanceHistoryResponse, BalanceSnapshot, CheckinAccountDashboardResponse,
+    CheckinDashboardAccount, CheckinDashboardCalendar, CheckinDashboardDay,
+    CheckinDashboardMonthStats, CheckinDashboardStreak, CheckinDashboardTrend,
+    CheckinDashboardTrendPoint, CheckinProvider, CheckinRecord, CheckinRecordsResponse,
+    CheckinStatus, CookieCredentials,
 };
 use crate::services::waf_bypass::WafBypassService;
+use chrono::{Datelike, Duration as ChronoDuration, NaiveDate, Utc};
 use once_cell::sync::Lazy;
 use reqwest::{Client, Proxy};
 use serde::{Deserialize, Serialize};
@@ -68,6 +72,14 @@ pub struct CheckinService {
     client: Client,
     /// 统一的代理配置（保证 HTTP 请求与浏览器出口一致）
     proxy_url: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct DailySummary {
+    date: NaiveDate,
+    total_quota: f64,
+    used_quota: f64,
+    remaining_quota: f64,
 }
 
 /// 安全截断 UTF-8 字符串（避免在多字节字符中间截断导致 panic）
@@ -154,7 +166,8 @@ fn parse_windows_proxy_server(proxy_server: &str) -> Option<String> {
 
 #[cfg(target_os = "windows")]
 fn get_proxy_url_from_windows_registry() -> Option<String> {
-    const KEY: &str = r"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings";
+    const KEY: &str =
+        r"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings";
 
     fn query_reg_value(key: &str, name: &str) -> Option<String> {
         let output = std::process::Command::new("reg")
@@ -204,10 +217,15 @@ fn get_proxy_url() -> Option<String> {
 
 fn is_waf_challenge(text: &str) -> bool {
     let trimmed = text.trim();
-    trimmed.starts_with('<') || trimmed.contains("acw_sc__v2") || trimmed.contains("<script>var arg1=")
+    trimmed.starts_with('<')
+        || trimmed.contains("acw_sc__v2")
+        || trimmed.contains("<script>var arg1=")
 }
 
-fn merge_cookies(base: &HashMap<String, String>, extra: &HashMap<String, String>) -> HashMap<String, String> {
+fn merge_cookies(
+    base: &HashMap<String, String>,
+    extra: &HashMap<String, String>,
+) -> HashMap<String, String> {
     let mut merged = base.clone();
     for (k, v) in extra {
         merged.insert(k.clone(), v.clone());
@@ -248,7 +266,9 @@ impl CheckinService {
             None => tracing::debug!("📡 签到服务未检测到代理，直连模式"),
         }
 
-        let client = client_builder.build().expect("Failed to create HTTP client");
+        let client = client_builder
+            .build()
+            .expect("Failed to create HTTP client");
 
         Self {
             checkin_dir,
@@ -512,14 +532,14 @@ impl CheckinService {
             .await?;
 
         tracing::info!("Checkin response status: {}", status);
-        tracing::info!(
-            "Checkin response body: {}",
-            truncate_string(&body, 500)
-        );
+        tracing::info!("Checkin response body: {}", truncate_string(&body, 500));
 
         // 检测 WAF 挑战页面：自动刷新 WAF cookies 后重试一次
         if is_waf_challenge(&body) {
-            tracing::warn!("[{}] Detected WAF challenge, attempting auto bypass...", account_name);
+            tracing::warn!(
+                "[{}] Detected WAF challenge, attempting auto bypass...",
+                account_name
+            );
 
             let waf_cookies = self.refresh_waf_cookies(provider, account_name).await?;
             let merged = merge_cookies(&credentials.cookies, &waf_cookies);
@@ -533,10 +553,7 @@ impl CheckinService {
             body = retry_body;
 
             tracing::info!("Checkin retry status: {}", status);
-            tracing::info!(
-                "Checkin retry response: {}",
-                truncate_string(&body, 500)
-            );
+            tracing::info!("Checkin retry response: {}", truncate_string(&body, 500));
         }
 
         if !status.is_success() {
@@ -717,7 +734,10 @@ impl CheckinService {
 
         // 检测 WAF 挑战页面：自动刷新 WAF cookies 后重试一次
         if is_waf_challenge(&body) {
-            tracing::warn!("[{}] Detected WAF challenge, attempting auto bypass...", account_name);
+            tracing::warn!(
+                "[{}] Detected WAF challenge, attempting auto bypass...",
+                account_name
+            );
 
             let waf_cookies = self.refresh_waf_cookies(provider, account_name).await?;
             let merged = merge_cookies(&credentials.cookies, &waf_cookies);
@@ -924,6 +944,62 @@ impl CheckinService {
             .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))
     }
 
+    /// 获取账号 Dashboard 聚合数据
+    pub fn get_account_dashboard(
+        &self,
+        account_id: &str,
+        year: i32,
+        month: u32,
+        days: u32,
+    ) -> Result<CheckinAccountDashboardResponse> {
+        let account_manager = AccountManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::new(&self.checkin_dir);
+        let balance_manager = BalanceManager::new(&self.checkin_dir);
+
+        let account = account_manager
+            .get(account_id)
+            .map_err(|e| CheckinServiceError::AccountError(e.to_string()))?;
+
+        let provider = provider_manager
+            .get(&account.provider_id)
+            .map_err(|e| CheckinServiceError::ProviderError(e.to_string()))?;
+
+        let latest_balance = balance_manager
+            .get_latest(account_id)
+            .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))?;
+
+        let dashboard_account = CheckinDashboardAccount {
+            id: account.id.clone(),
+            name: account.name.clone(),
+            provider_id: account.provider_id.clone(),
+            provider_name: provider.name.clone(),
+            enabled: account.enabled,
+            last_checkin_at: account.last_checkin_at,
+            last_balance_check_at: account.last_balance_check_at,
+            latest_balance: latest_balance.as_ref().map(|s| s.remaining_quota),
+            balance_currency: latest_balance.as_ref().map(|s| s.currency.clone()),
+            total_quota: latest_balance.as_ref().map(|s| s.total_quota),
+            used_quota: latest_balance.as_ref().map(|s| s.used_quota),
+            remaining_quota: latest_balance.as_ref().map(|s| s.remaining_quota),
+        };
+
+        let snapshots = balance_manager
+            .list_by_account(account_id)
+            .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))?;
+
+        let daily_summaries = build_daily_summaries(&snapshots);
+        let streak = compute_streak(&daily_summaries);
+        let calendar = build_calendar(account_id, year, month, &daily_summaries)?;
+        let trend = build_trend(account_id, days, &daily_summaries)?;
+
+        Ok(CheckinAccountDashboardResponse {
+            account: dashboard_account,
+            streak,
+            calendar,
+            trend,
+        })
+    }
+
     /// 获取今日签到统计
     pub fn get_today_stats(&self) -> Result<TodayCheckinStats> {
         let account_manager = AccountManager::new(&self.checkin_dir);
@@ -1009,6 +1085,218 @@ impl CheckinService {
 
         Ok(status.is_success() && !is_waf_challenge(&body))
     }
+}
+
+fn build_daily_summaries(snapshots: &[BalanceSnapshot]) -> Vec<DailySummary> {
+    let mut latest_by_day: HashMap<NaiveDate, BalanceSnapshot> = HashMap::new();
+
+    for snapshot in snapshots {
+        let date = snapshot.recorded_at.date_naive();
+        let replace = match latest_by_day.get(&date) {
+            Some(existing) => snapshot.recorded_at > existing.recorded_at,
+            None => true,
+        };
+
+        if replace {
+            latest_by_day.insert(date, snapshot.clone());
+        }
+    }
+
+    let mut daily: Vec<DailySummary> = latest_by_day
+        .into_iter()
+        .map(|(date, snapshot)| DailySummary {
+            date,
+            total_quota: snapshot.total_quota,
+            used_quota: snapshot.used_quota,
+            remaining_quota: snapshot.remaining_quota,
+        })
+        .collect();
+
+    daily.sort_by(|a, b| a.date.cmp(&b.date));
+    daily
+}
+
+fn compute_streak(daily: &[DailySummary]) -> CheckinDashboardStreak {
+    let mut prev_total: Option<f64> = None;
+    let mut current_streak = 0u32;
+    let mut longest_streak = 0u32;
+    let mut total_check_in_days = 0u32;
+    let mut last_check_in_date: Option<NaiveDate> = None;
+
+    for day in daily {
+        let is_checked_in = prev_total.is_none_or(|prev| day.total_quota > prev);
+
+        if is_checked_in {
+            current_streak = match last_check_in_date {
+                Some(prev_date) if day.date.signed_duration_since(prev_date).num_days() == 1 => {
+                    if current_streak == 0 {
+                        1
+                    } else {
+                        current_streak + 1
+                    }
+                }
+                _ => 1,
+            };
+
+            longest_streak = longest_streak.max(current_streak);
+            total_check_in_days += 1;
+            last_check_in_date = Some(day.date);
+        } else if let Some(prev_date) = last_check_in_date
+            && day.date.signed_duration_since(prev_date).num_days() > 1
+        {
+            current_streak = 0;
+        }
+
+        prev_total = Some(day.total_quota);
+    }
+
+    CheckinDashboardStreak {
+        current_streak,
+        longest_streak,
+        total_check_in_days,
+        last_check_in_date: last_check_in_date.map(|d| d.format("%Y-%m-%d").to_string()),
+    }
+}
+
+fn build_calendar(
+    account_id: &str,
+    year: i32,
+    month: u32,
+    daily: &[DailySummary],
+) -> Result<CheckinDashboardCalendar> {
+    let _first_day = NaiveDate::from_ymd_opt(year, month, 1)
+        .ok_or_else(|| CheckinServiceError::ApiError("Invalid month".to_string()))?;
+
+    let first_day_next_month = if month == 12 {
+        NaiveDate::from_ymd_opt(year + 1, 1, 1)
+    } else {
+        NaiveDate::from_ymd_opt(year, month + 1, 1)
+    };
+
+    let last_day = first_day_next_month
+        .and_then(|d| d.pred_opt())
+        .ok_or_else(|| CheckinServiceError::ApiError("Invalid month".to_string()))?;
+
+    let total_days = last_day.day();
+    let mut daily_map: HashMap<NaiveDate, &DailySummary> = HashMap::new();
+    for item in daily {
+        daily_map.insert(item.date, item);
+    }
+
+    let mut days = Vec::new();
+    let mut prev_total: Option<f64> = None;
+    let mut checked_in_days = 0u32;
+    let mut total_quota_increment = 0.0;
+
+    for day in 1..=total_days {
+        let date = NaiveDate::from_ymd_opt(year, month, day)
+            .ok_or_else(|| CheckinServiceError::ApiError("Invalid date".to_string()))?;
+        let date_str = date.format("%Y-%m-%d").to_string();
+
+        if let Some(summary) = daily_map.get(&date) {
+            let income_increment = prev_total.and_then(|prev| {
+                let diff = summary.total_quota - prev;
+                if diff > 0.0 { Some(diff) } else { None }
+            });
+
+            let is_checked_in = income_increment.is_some() || prev_total.is_none();
+
+            if is_checked_in {
+                checked_in_days += 1;
+                if let Some(inc) = income_increment {
+                    total_quota_increment += inc;
+                } else if prev_total.is_none() && summary.total_quota > 0.0 {
+                    total_quota_increment += summary.total_quota;
+                }
+            }
+
+            days.push(CheckinDashboardDay {
+                date: date_str,
+                is_checked_in,
+                income_increment,
+                current_balance: summary.remaining_quota,
+                total_consumed: summary.used_quota,
+                total_quota: summary.total_quota,
+            });
+
+            prev_total = Some(summary.total_quota);
+        } else {
+            days.push(CheckinDashboardDay {
+                date: date_str,
+                is_checked_in: false,
+                income_increment: None,
+                current_balance: 0.0,
+                total_consumed: 0.0,
+                total_quota: 0.0,
+            });
+        }
+    }
+
+    let check_in_rate = if total_days > 0 {
+        (checked_in_days as f64 / total_days as f64) * 100.0
+    } else {
+        0.0
+    };
+
+    Ok(CheckinDashboardCalendar {
+        account_id: account_id.to_string(),
+        year,
+        month,
+        days,
+        month_stats: CheckinDashboardMonthStats {
+            total_days,
+            checked_in_days,
+            check_in_rate,
+            total_quota_increment,
+        },
+    })
+}
+
+fn build_trend(
+    account_id: &str,
+    days: u32,
+    daily: &[DailySummary],
+) -> Result<CheckinDashboardTrend> {
+    if days == 0 || days > 365 {
+        return Err(CheckinServiceError::ApiError(
+            "Days must be between 1 and 365".to_string(),
+        ));
+    }
+
+    let end_date = Utc::now().date_naive();
+    let start_date = end_date - ChronoDuration::days(days as i64 - 1);
+
+    let mut data_points = Vec::new();
+    let mut prev_total: Option<f64> = None;
+
+    for item in daily
+        .iter()
+        .filter(|d| d.date >= start_date && d.date <= end_date)
+    {
+        let income_increment = prev_total.map_or(0.0, |prev| {
+            let diff = item.total_quota - prev;
+            if diff > 0.0 { diff } else { 0.0 }
+        });
+
+        let is_checked_in = income_increment > 0.0 || prev_total.is_none();
+
+        data_points.push(CheckinDashboardTrendPoint {
+            date: item.date.format("%Y-%m-%d").to_string(),
+            total_quota: item.total_quota,
+            income_increment,
+            current_balance: item.remaining_quota,
+            is_checked_in,
+        });
+
+        prev_total = Some(item.total_quota);
+    }
+
+    Ok(CheckinDashboardTrend {
+        account_id: account_id.to_string(),
+        start_date: start_date.format("%Y-%m-%d").to_string(),
+        end_date: end_date.format("%Y-%m-%d").to_string(),
+        data_points,
+    })
 }
 
 /// 今日签到统计

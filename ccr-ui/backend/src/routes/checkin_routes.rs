@@ -30,6 +30,10 @@ pub fn routes() -> Router {
         .route("/checkin/accounts", get(checkin::list_accounts))
         .route("/checkin/accounts", post(checkin::create_account))
         .route("/checkin/accounts/{id}", get(checkin::get_account))
+        .route(
+            "/checkin/accounts/{id}/dashboard",
+            get(checkin::get_account_dashboard),
+        )
         .route("/checkin/accounts/{id}", put(checkin::update_account))
         .route("/checkin/accounts/{id}", delete(checkin::delete_account))
         .route(

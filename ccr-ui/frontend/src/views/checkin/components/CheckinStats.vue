@@ -1,0 +1,166 @@
+<template>
+  <div class="checkin-stats">
+    <div class="stats-grid">
+      <div class="stat-card consecutive">
+        <div class="stat-icon">
+          🔥
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">
+            {{ stats.consecutive_days }}
+          </div>
+          <div class="stat-label">
+            连续签到(天)
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card total">
+        <div class="stat-icon">
+          📅
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">
+            {{ stats.total_days }}
+          </div>
+          <div class="stat-label">
+            累计签到(天)
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card longest">
+        <div class="stat-icon">
+          🏆
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">
+            {{ stats.longest_consecutive }}
+          </div>
+          <div class="stat-label">
+            最长连续(天)
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card rate">
+        <div class="stat-icon">
+          📈
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">
+            {{ stats.monthly_rate.toFixed(0) }}%
+          </div>
+          <div class="stat-label">
+            本月签到率
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="error"
+      class="error"
+    >
+      {{ error }}
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+
+interface DashboardStats {
+  consecutive_days: number
+  total_days: number
+  longest_consecutive: number
+  monthly_rate: number
+  weekly_rate: number
+  total_accounts: number
+  checked_in_today: number
+  not_checked_in_today: number
+}
+
+const stats = ref<DashboardStats>({
+  consecutive_days: 0,
+  total_days: 0,
+  longest_consecutive: 0,
+  monthly_rate: 0,
+  weekly_rate: 0,
+  total_accounts: 0,
+  checked_in_today: 0,
+  not_checked_in_today: 0
+})
+
+const error = ref<string | null>(null)
+
+const fetchStats = async () => {
+  try {
+    const response = await axios.get('/api/checkin/dashboard/stats')
+    stats.value = response.data
+  } catch (err) {
+    error.value = '加载统计数据失败'
+  }
+}
+
+onMounted(() => {
+  fetchStats()
+})
+</script>
+
+<style scoped>
+.checkin-stats {
+  width: 100%;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  margin-top: 0.25rem;
+}
+
+.error {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  text-align: center;
+  font-size: 0.875rem;
+}
+</style>
