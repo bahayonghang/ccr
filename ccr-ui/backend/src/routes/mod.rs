@@ -80,7 +80,7 @@ pub fn create_app() -> Router {
         .with_state(ws_state)
         // 健康检查
         .route("/health", axum::routing::get(health_check))
-        // API 路由分���
+        // API 路由分组
         .nest("/api", create_api_routes())
 }
 
