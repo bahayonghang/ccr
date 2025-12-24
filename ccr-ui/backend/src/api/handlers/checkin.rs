@@ -70,6 +70,8 @@ fn enrich_accounts(
         if let Some(balance) = balance_map.get(&account.id) {
             account.latest_balance = Some(balance.remaining_quota);
             account.balance_currency = Some(balance.currency.clone());
+            account.total_quota = Some(balance.total_quota);
+            account.total_consumed = Some(balance.used_quota);
         }
     }
 

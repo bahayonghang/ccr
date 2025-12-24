@@ -96,6 +96,8 @@ export interface AccountInfo {
   last_balance_check_at?: string
   latest_balance?: number
   balance_currency?: string
+  total_quota?: number
+  total_consumed?: number
 }
 
 /** 创建账号请求 */

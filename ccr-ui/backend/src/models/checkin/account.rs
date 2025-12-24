@@ -138,6 +138,12 @@ pub struct AccountInfo {
     /// 余额货币单位 (可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub balance_currency: Option<String>,
+    /// 总额度 (可选)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_quota: Option<f64>,
+    /// 历史消耗 (可选)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_consumed: Option<f64>,
 }
 
 /// 创建账号请求

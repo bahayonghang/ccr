@@ -160,6 +160,8 @@ impl AccountManager {
             last_balance_check_at: account.last_balance_check_at,
             latest_balance: None, // 由 Service 层填充
             balance_currency: None,
+            total_quota: None,    // 由 Service 层填充
+            total_consumed: None, // 由 Service 层填充
         }
     }
 
