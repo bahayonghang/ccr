@@ -86,126 +86,108 @@
         class="space-y-6"
       >
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div class="space-y-4">
-            <div class="dashboard-card">
-              <div class="card-header">
-                <h2>账号概览</h2>
-                <span class="card-tag">{{ dashboard.account.balance_currency || 'USD' }}</span>
+          <!-- 账号统计卡片 - 横排 -->
+          <div class="stats-card-row">
+            <div class="row-header">
+              <div class="stats-icon purple">
+                <TrendingUp class="w-4 h-4" />
               </div>
-              <div class="card-body">
-                <div class="metric-large">
-                  <span class="metric-label">当前余额</span>
-                  <span class="metric-value metric-green">
+              <h2>账号统计</h2>
+            </div>
+            <div class="row-items">
+              <div class="row-stat">
+                <div class="row-icon green">
+                  <Wallet class="w-4 h-4" />
+                </div>
+                <div class="row-content">
+                  <span class="row-label">当前余额</span>
+                  <span class="row-value green">
                     {{ formatCurrency(dashboard.account.latest_balance, dashboard.account.balance_currency) }}
                   </span>
                 </div>
-                <div class="metric-grid">
-                  <div>
-                    <p>总额度</p>
-                    <strong>{{ formatCurrency(dashboard.account.total_quota, dashboard.account.balance_currency) }}</strong>
-                  </div>
-                  <div>
-                    <p>已使用</p>
-                    <strong>{{ formatCurrency(dashboard.account.used_quota, dashboard.account.balance_currency) }}</strong>
-                  </div>
-                  <div>
-                    <p>剩余额度</p>
-                    <strong>{{ formatCurrency(dashboard.account.remaining_quota, dashboard.account.balance_currency) }}</strong>
-                  </div>
-                  <div>
-                    <p>余额检查</p>
-                    <strong>{{ formatDateTime(dashboard.account.last_balance_check_at) }}</strong>
-                  </div>
+              </div>
+              <div class="row-stat">
+                <div class="row-icon blue">
+                  <TrendingUp class="w-4 h-4" />
                 </div>
-                <div class="progress-block">
-                  <div class="progress-track">
-                    <div
-                      class="progress-bar"
-                      :style="{ width: `${usagePercent}%` }"
-                    />
-                  </div>
-                  <div class="progress-meta">
-                    已使用 {{ usagePercent.toFixed(1) }}%
-                  </div>
+                <div class="row-content">
+                  <span class="row-label">总额度</span>
+                  <span class="row-value blue">
+                    {{ formatCurrency(dashboard.account.total_quota, dashboard.account.balance_currency) }}
+                  </span>
                 </div>
               </div>
-            </div>
-
-            <div class="dashboard-card">
-              <div class="card-header">
-                <h2>签到统计</h2>
-                <span class="card-tag">本月</span>
-              </div>
-              <div class="card-body">
-                <div class="metric-grid highlight">
-                  <div>
-                    <p>当前连续</p>
-                    <strong class="metric-orange">{{ dashboard.streak.current_streak }} 天</strong>
-                  </div>
-                  <div>
-                    <p>最长连续</p>
-                    <strong>{{ dashboard.streak.longest_streak }} 天</strong>
-                  </div>
-                  <div>
-                    <p>累计签到</p>
-                    <strong>{{ dashboard.streak.total_check_in_days }} 天</strong>
-                  </div>
-                  <div>
-                    <p>本月增量</p>
-                    <strong class="metric-blue">
-                      {{ formatCurrency(dashboard.calendar.month_stats.total_quota_increment, dashboard.account.balance_currency) }}
-                    </strong>
-                  </div>
+              <div class="row-stat">
+                <div class="row-icon orange">
+                  <History class="w-4 h-4" />
                 </div>
-                <div class="progress-block">
-                  <div class="progress-track soft">
-                    <div
-                      class="progress-bar accent"
-                      :style="{ width: `${dashboard.calendar.month_stats.check_in_rate}%` }"
-                    />
-                  </div>
-                  <div class="progress-meta">
-                    本月签到率 {{ dashboard.calendar.month_stats.check_in_rate.toFixed(1) }}%
-                    · {{ dashboard.calendar.month_stats.checked_in_days }}/{{ dashboard.calendar.month_stats.total_days }} 天
-                  </div>
+                <div class="row-content">
+                  <span class="row-label">历史消耗</span>
+                  <span class="row-value orange">
+                    {{ formatCurrency(dashboard.account.used_quota, dashboard.account.balance_currency) }}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="dashboard-card xl:col-span-2">
+          <!-- 签到统计卡片 - 横排 -->
+          <div class="stats-card-row">
+            <div class="row-header">
+              <div class="stats-icon orange">
+                <CalendarDays class="w-4 h-4" />
+              </div>
+              <h2>签到统计</h2>
+              <span class="row-rate">{{ dashboard.calendar.month_stats.check_in_rate.toFixed(1) }}%</span>
+            </div>
+            <div class="row-items">
+              <div class="row-stat">
+                <div class="row-icon orange">
+                  <Flame class="w-4 h-4" />
+                </div>
+                <div class="row-content">
+                  <span class="row-label">当前连续</span>
+                  <span class="row-value orange">{{ dashboard.streak.current_streak }} <small>天</small></span>
+                </div>
+              </div>
+              <div class="row-stat">
+                <div class="row-icon yellow">
+                  <Trophy class="w-4 h-4" />
+                </div>
+                <div class="row-content">
+                  <span class="row-label">最长连续</span>
+                  <span class="row-value">{{ dashboard.streak.longest_streak }} <small>天</small></span>
+                </div>
+              </div>
+              <div class="row-stat">
+                <div class="row-icon purple">
+                  <Calendar class="w-4 h-4" />
+                </div>
+                <div class="row-content">
+                  <span class="row-label">总签到天数</span>
+                  <span class="row-value purple">{{ dashboard.streak.total_check_in_days }} <small>天</small></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 签到日历卡片 -->
+          <div class="dashboard-card xl:row-span-1">
             <div class="card-header">
               <div class="flex items-center gap-3">
                 <h2>签到日历</h2>
-                <span class="card-tag">{{ monthLabel }}</span>
               </div>
-              <div class="calendar-actions">
-                <button
-                  class="icon-button small"
-                  @click="prevMonth"
+              <div class="calendar-picker">
+                <input
+                  type="month"
+                  :value="`${calendarYear}-${String(calendarMonth).padStart(2, '0')}`"
+                  class="month-input"
+                  @change="handleMonthChange"
                 >
-                  ‹
-                </button>
-                <button
-                  class="icon-button small"
-                  @click="nextMonth"
-                >
-                  ›
-                </button>
-              </div>
-            </div>
-            <div class="calendar-meta">
-              <div>
-                <p>本月已签</p>
-                <strong>{{ dashboard.calendar.month_stats.checked_in_days }} / {{ dashboard.calendar.month_stats.total_days }}</strong>
-              </div>
-              <div>
-                <p>签到率</p>
-                <strong>{{ dashboard.calendar.month_stats.check_in_rate.toFixed(1) }}%</strong>
-              </div>
-              <div>
-                <p>累计增量</p>
-                <strong>{{ formatCurrency(dashboard.calendar.month_stats.total_quota_increment, dashboard.account.balance_currency) }}</strong>
+                <div class="calendar-nav">
+                  <button class="icon-button small" @click="prevMonth">‹</button>
+                  <button class="icon-button small" @click="nextMonth">›</button>
+                </div>
               </div>
             </div>
             <AccountDashboardCalendar :calendar="dashboard.calendar" />
@@ -240,7 +222,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, CheckCircle2, RefreshCw, Wallet } from 'lucide-vue-next'
+import { ArrowLeft, CheckCircle2, RefreshCw, Wallet, TrendingUp, History, CalendarDays, Flame, Trophy, Calendar } from 'lucide-vue-next'
 import { checkinAccount, getCheckinAccountDashboard, queryCheckinBalance } from '@/api/client'
 import type { CheckinAccountDashboardResponse } from '@/types/checkin'
 import AccountDashboardCalendar from './components/AccountDashboardCalendar.vue'
@@ -262,15 +244,7 @@ const calendarMonth = ref(now.getMonth() + 1)
 const trendDays = ref(30)
 const trendOptions = [7, 30, 90]
 
-const monthLabel = computed(() => `${calendarYear.value}年${calendarMonth.value}月`)
 const accountEnabled = computed(() => dashboard.value?.account.enabled ?? false)
-
-const usagePercent = computed(() => {
-  const total = dashboard.value?.account.total_quota ?? 0
-  const used = dashboard.value?.account.used_quota ?? 0
-  if (total <= 0) return 0
-  return Math.min(100, Math.max(0, (used / total) * 100))
-})
 
 const loadDashboard = async () => {
   if (!accountId.value) return
@@ -341,6 +315,15 @@ const nextMonth = () => {
     calendarYear.value += 1
   } else {
     calendarMonth.value += 1
+  }
+}
+
+const handleMonthChange = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const [year, month] = input.value.split('-').map(Number)
+  if (year && month) {
+    calendarYear.value = year
+    calendarMonth.value = month
   }
 }
 
@@ -732,6 +715,283 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 :global(.dark) .calendar-meta,
 :global(.dark) .progress-meta,
 :global(.dark) .header-sub {
+  color: #94a3b8;
+}
+
+/* 横排统计卡片样式 */
+.stats-card-row {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.row-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.row-header h2 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  flex: 1;
+}
+
+.row-rate {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+}
+
+.row-items {
+  display: flex;
+  gap: 1rem;
+}
+
+.row-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.row-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.row-icon.purple { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
+.row-icon.green { background: rgba(16, 185, 129, 0.12); color: #059669; }
+.row-icon.blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.row-icon.orange { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
+.row-icon.yellow { background: rgba(234, 179, 8, 0.12); color: #ca8a04; }
+
+.row-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.row-label {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.row-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.row-value.green { color: #10b981; }
+.row-value.blue { color: #3b82f6; }
+.row-value.orange { color: #f97316; }
+.row-value.purple { color: #8b5cf6; }
+
+.row-value small {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* 月份选择器 */
+.calendar-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.month-input {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  color: #334155;
+  cursor: pointer;
+}
+
+.month-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.calendar-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+:global(.dark) .stats-card-row {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(51, 65, 85, 0.8);
+}
+
+:global(.dark) .row-header {
+  border-color: rgba(51, 65, 85, 0.6);
+}
+
+:global(.dark) .row-header h2 {
+  color: #e2e8f0;
+}
+
+:global(.dark) .row-value {
+  color: #f8fafc;
+}
+
+:global(.dark) .row-label {
+  color: #94a3b8;
+}
+
+:global(.dark) .month-input {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(51, 65, 85, 0.8);
+  color: #e2e8f0;
+}
+
+/* 新版统计卡片样式 */
+.stats-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.stats-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.stats-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-icon.purple { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
+.stats-icon.green { background: rgba(16, 185, 129, 0.12); color: #059669; }
+.stats-icon.blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.stats-icon.orange { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
+.stats-icon.yellow { background: rgba(234, 179, 8, 0.12); color: #ca8a04; }
+
+.stats-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stat-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.stat-value.green { color: #10b981; }
+.stat-value.blue { color: #3b82f6; }
+.stat-value.orange { color: #f97316; }
+.stat-value.purple { color: #8b5cf6; }
+
+.stat-value small {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.stat-progress {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.stat-progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #475569;
+  margin-bottom: 0.4rem;
+}
+
+.stat-progress-footer {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.35rem;
+}
+
+:global(.dark) .stats-card {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(51, 65, 85, 0.8);
+}
+
+:global(.dark) .stats-header {
+  border-color: rgba(51, 65, 85, 0.6);
+}
+
+:global(.dark) .stats-header h2 {
+  color: #e2e8f0;
+}
+
+:global(.dark) .stat-value {
+  color: #f8fafc;
+}
+
+:global(.dark) .stat-label,
+:global(.dark) .stat-progress-header,
+:global(.dark) .stat-progress-footer {
   color: #94a3b8;
 }
 

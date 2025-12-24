@@ -33,13 +33,13 @@
           <span>{{ checkinLoading ? '签到中...' : '一键签到' }}</span>
         </button>
         <button
-          :disabled="loading"
+          :disabled="balanceRefreshing || accounts.length === 0"
           class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50 transition-colors"
-          @click="loadAllData"
+          @click="refreshAllBalances"
         >
           <svg
             class="w-5 h-5"
-            :class="{ 'animate-spin': loading }"
+            :class="{ 'animate-spin': balanceRefreshing }"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -51,7 +51,7 @@
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
             />
           </svg>
-          <span>刷新</span>
+          <span>{{ balanceRefreshing ? '刷新中...' : '刷新余额' }}</span>
         </button>
       </div>
     </div>
@@ -148,39 +148,55 @@
       v-if="!loading && !error"
       class="space-y-6"
     >
-      <!-- 今日统计卡片 -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            总账号数
-          </p>
-          <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-            {{ todayStats?.total_accounts ?? 0 }}
-          </p>
+      <!-- 统计卡片（NeuraDock 风格） -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 当前余额 -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+          <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              当前余额
+            </p>
+            <p class="mt-1 text-2xl font-bold text-green-600 dark:text-green-400 font-mono">
+              ${{ totalStatistics.currentBalance.toFixed(2) }}
+            </p>
+          </div>
+          <div class="p-3 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+          </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            今日已签到
-          </p>
-          <p class="mt-2 text-2xl font-bold text-green-600 dark:text-green-400">
-            {{ todayStats?.checked_in ?? 0 }}
-          </p>
+        <!-- 总额度 -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+          <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              总额度
+            </p>
+            <p class="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono">
+              ${{ totalStatistics.totalQuota.toFixed(2) }}
+            </p>
+          </div>
+          <div class="p-3 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            未签到
-          </p>
-          <p class="mt-2 text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-            {{ todayStats?.not_checked_in ?? 0 }}
-          </p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            签到失败
-          </p>
-          <p class="mt-2 text-2xl font-bold text-red-600 dark:text-red-400">
-            {{ todayStats?.failed ?? 0 }}
-          </p>
+        <!-- 历史消耗 -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+          <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              历史消耗
+            </p>
+            <p class="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400 font-mono">
+              ${{ totalStatistics.totalConsumed.toFixed(2) }}
+            </p>
+          </div>
+          <div class="p-3 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -409,10 +425,33 @@
         v-if="activeTab === 'accounts'"
         class="space-y-4"
       >
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between flex-wrap gap-4">
           <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
             签到账号
           </h2>
+          <!-- 搜索和过滤区域 -->
+          <div class="flex items-center gap-3 flex-1 justify-end">
+            <!-- 搜索框 -->
+            <div class="relative">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索账号..."
+                class="w-48 pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <!-- 提供商过滤 -->
+            <select
+              v-model="providerFilter"
+              class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">全部提供商</option>
+              <option v-for="p in providers" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+          </div>
           <button
             :disabled="providers.length === 0"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -444,98 +483,132 @@
         </div>
         <div
           v-else
-          class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+          class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
         >
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700/50">
+            <thead class="bg-gray-50/80 dark:bg-gray-700/50 backdrop-blur-sm sticky top-0">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  账号名称
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  账号名
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  提供商
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Cookies / API User
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   余额
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  总额度
+                </th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  历史消耗
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   最后签到
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider w-36">
                   操作
                 </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
               <tr
-                v-for="account in accounts"
+                v-for="account in filteredAccounts"
                 :key="account.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                class="hover:bg-gray-50/60 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
+                @click="openAccountDashboard(account.id)"
               >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center">
-                    <div
-                      class="w-2 h-2 rounded-full mr-3"
-                      :class="account.enabled ? 'bg-green-400' : 'bg-gray-400'"
-                    />
-                    <button
-                      class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                      @click="openAccountDashboard(account.id)"
-                    >
-                      {{ account.name }}
-                    </button>
+                <!-- 账号名 + 提供商 -->
+                <td class="px-4 py-3">
+                  <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                      <div
+                        class="w-2 h-2 rounded-full flex-shrink-0"
+                        :class="account.enabled ? 'bg-green-500' : 'bg-gray-400'"
+                      />
+                      <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                        {{ account.name }}
+                      </span>
+                    </div>
+                    <span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md w-fit">
+                      {{ account.provider_name || getProviderName(account.provider_id) }}
+                    </span>
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ account.provider_name || getProviderName(account.provider_id) }}
-                </td>
-                <td class="px-6 py-4">
-                  <div class="text-sm text-gray-500 dark:text-gray-400">
-                    <div class="font-mono text-xs break-all">
-                      {{ account.cookies_masked }}
-                    </div>
-                    <div
-                      v-if="account.api_user"
-                      class="mt-1 text-xs text-blue-600 dark:text-blue-400"
-                    >
-                      User: {{ account.api_user }}
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                <!-- 余额 -->
+                <td class="px-4 py-3 text-right">
                   <span
                     v-if="account.latest_balance !== undefined && account.latest_balance !== null"
-                    class="text-green-600 dark:text-green-400 font-semibold"
+                    class="font-mono text-sm font-semibold text-green-600 dark:text-green-400"
                   >
-                    {{ account.balance_currency || '$' }}{{ account.latest_balance.toFixed(2) }}
+                    ${{ account.latest_balance.toFixed(2) }}
                   </span>
-                  <span
-                    v-else
-                    class="text-gray-400"
-                  >-</span>
+                  <span v-else class="text-xs text-gray-400">-</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                <!-- 总额度 -->
+                <td class="px-4 py-3 text-right">
+                  <span
+                    v-if="account.total_quota !== undefined && account.total_quota !== null"
+                    class="font-mono text-sm font-semibold text-blue-600 dark:text-blue-400"
+                  >
+                    ${{ account.total_quota.toFixed(2) }}
+                  </span>
+                  <span v-else class="text-xs text-gray-400">-</span>
+                </td>
+                <!-- 历史消耗 -->
+                <td class="px-4 py-3 text-right">
+                  <span
+                    v-if="account.total_consumed !== undefined && account.total_consumed !== null"
+                    class="font-mono text-sm font-semibold text-orange-600 dark:text-orange-400"
+                  >
+                    ${{ account.total_consumed.toFixed(2) }}
+                  </span>
+                  <span v-else class="text-xs text-gray-400">-</span>
+                </td>
+                <!-- 最后签到 -->
+                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono text-xs">
                   {{ account.last_checkin_at ? formatDate(account.last_checkin_at) : '-' }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                  <div class="flex items-center gap-2">
+                <!-- 操作 -->
+                <td class="px-4 py-3" @click.stop>
+                  <div class="flex items-center justify-center gap-2">
                     <button
-                      class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20"
-                      title="编辑"
-                      @click="openAccountModal(account)"
+                      class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm transition-all duration-200"
+                      @click="executeCheckinSingle(account.id)"
                     >
-                      编辑
+                      📅 签到
                     </button>
-                    <button
-                      class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
-                      title="删除"
-                      @click="deleteAccount(account.id)"
-                    >
-                      删除
-                    </button>
+                    <div class="relative">
+                      <button
+                        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors"
+                        @click="toggleAccountMenu(account.id)"
+                      >
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
+                      </button>
+                      <!-- 下拉菜单 -->
+                      <div
+                        v-if="openMenuAccountId === account.id"
+                        class="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10"
+                      >
+                        <button
+                          class="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg"
+                          @click="refreshAccountBalance(account.id)"
+                        >
+                          刷新余额
+                        </button>
+                        <button
+                          class="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          @click="openAccountModal(account)"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          class="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-lg"
+                          @click="deleteAccount(account.id)"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -977,6 +1050,8 @@ import {
   importCheckinConfig,
   listBuiltinProviders,
   addBuiltinProvider as apiAddBuiltinProvider,
+  queryCheckinBalance,
+  checkinAccount,
 } from '@/api/client'
 import type {
   CheckinProvider,
@@ -992,9 +1067,13 @@ import type {
 // 状态
 const loading = ref(false)
 const checkinLoading = ref(false)
+const balanceRefreshing = ref(false)
 const error = ref<string | null>(null)
 const activeTab = ref<'providers' | 'accounts' | 'records' | 'import-export'>('accounts')
 const router = useRouter()
+const openMenuAccountId = ref<string | null>(null)
+const searchQuery = ref('')
+const providerFilter = ref<string>('all')
 
 // 数据
 const providers = ref<CheckinProvider[]>([])
@@ -1008,6 +1087,48 @@ const builtinProviders = ref<BuiltinProvider[]>([])
 const availableBuiltinProviders = computed(() => {
   const addedNames = new Set(providers.value.map(p => p.name))
   return builtinProviders.value.filter(bp => !addedNames.has(bp.name))
+})
+
+// 计算属性：汇总统计数据
+const totalStatistics = computed(() => {
+  const result = {
+    currentBalance: 0,
+    totalQuota: 0,
+    totalConsumed: 0,
+  }
+  for (const account of accounts.value) {
+    if (account.latest_balance !== undefined && account.latest_balance !== null) {
+      result.currentBalance += account.latest_balance
+    }
+    if (account.total_quota !== undefined && account.total_quota !== null) {
+      result.totalQuota += account.total_quota
+    }
+    if (account.total_consumed !== undefined && account.total_consumed !== null) {
+      result.totalConsumed += account.total_consumed
+    }
+  }
+  return result
+})
+
+// 计算属性：过滤后的账号列表
+const filteredAccounts = computed(() => {
+  let result = accounts.value
+  
+  // 按搜索词过滤
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(account => 
+      account.name.toLowerCase().includes(query) ||
+      (account.provider_name && account.provider_name.toLowerCase().includes(query))
+    )
+  }
+  
+  // 按提供商过滤
+  if (providerFilter.value !== 'all') {
+    result = result.filter(account => account.provider_id === providerFilter.value)
+  }
+  
+  return result
 })
 
 // Tab 配置
@@ -1105,6 +1226,56 @@ const executeCheckinAll = async () => {
     console.error('Checkin failed:', e)
   } finally {
     checkinLoading.value = false
+  }
+}
+
+// 批量刷新所有账号余额
+const refreshAllBalances = async () => {
+  if (accounts.value.length === 0) return
+  
+  balanceRefreshing.value = true
+  const enabledAccounts = accounts.value.filter(a => a.enabled)
+  
+  try {
+    await Promise.allSettled(
+      enabledAccounts.map(account => queryCheckinBalance(account.id))
+    )
+    await loadAllData()
+  } catch (e: any) {
+    console.error('Batch refresh failed:', e)
+  } finally {
+    balanceRefreshing.value = false
+  }
+}
+
+// 刷新单个账号余额
+const refreshAccountBalance = async (accountId: string) => {
+  openMenuAccountId.value = null
+  try {
+    await queryCheckinBalance(accountId)
+    await loadAllData()
+  } catch (e: any) {
+    alert('刷新余额失败: ' + (e.message || '未知错误'))
+  }
+}
+
+// 单账号签到
+const executeCheckinSingle = async (accountId: string) => {
+  try {
+    await checkinAccount(accountId)
+    await loadAllData()
+  } catch (e: any) {
+    alert('签到失败: ' + (e.message || '未知错误'))
+    console.error('Single checkin failed:', e)
+  }
+}
+
+// 切换账号菜单
+const toggleAccountMenu = (accountId: string) => {
+  if (openMenuAccountId.value === accountId) {
+    openMenuAccountId.value = null
+  } else {
+    openMenuAccountId.value = accountId
   }
 }
 

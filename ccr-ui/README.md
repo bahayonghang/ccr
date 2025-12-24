@@ -10,6 +10,7 @@ A graphical/desktop interface for CCR (Claude Code Configuration Switcher). Fron
 - **Multi-Platform Support**: Unified management of AI tool configurations (Claude Code, Codex, Gemini CLI, Qwen)
 - **WebDAV Sync**: Multi-directory sync, registration management, batch and single directory push/pull/status
 - **Format Conversion**: Convert configurations between different platforms (Claude ↔ Codex ↔ Gemini)
+- **Checkin Management**: Multi-account check-in for transit stations, balance queries, and history tracking
 - **Desktop Support**: Native desktop app built with Tauri 2.0
 
 ### Supported AI Platforms
@@ -190,6 +191,7 @@ Supports MCP, Agents, Slash Commands, Plugins, Config management
 /commands                - CCR command executor
 /converter               - Config format converter
 /sync                    - WebDAV sync management
+/checkin                 - Checkin management
 ```
 
 ### Claude Code Routes
