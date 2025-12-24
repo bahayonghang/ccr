@@ -74,6 +74,25 @@ $backendConsoleLogPath = Join-Path $backendLogsDir "console-$logDate.log"
 Write-Host "[CCR] Starting development environment (parallel mode)..." -ForegroundColor Cyan
 Write-Host ""
 
+# ========== Pre-compile Backend (避免健康检查超时) ==========
+Write-Host "[Backend] Pre-compiling..." -ForegroundColor Yellow
+
+$backendDir = Join-Path $RootDir "backend"
+Push-Location $backendDir
+try {
+    # 先编译，确保二进制文件存在，避免启动时编译超时
+    # 使用 & 执行 cargo，让输出直接显示
+    & cargo build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] Backend compilation failed (exit code: $LASTEXITCODE)" -ForegroundColor Red
+        Pop-Location
+        exit 1
+    }
+    Write-Host "[Backend] Compilation successful" -ForegroundColor Green
+} finally {
+    Pop-Location
+}
+
 # ========== Start Backend (Background Job) ==========
 Write-Host "[Backend] Starting server (background job)..." -ForegroundColor Yellow
 
@@ -81,7 +100,7 @@ $backendJob = Start-Job -ScriptBlock {
     param($workDir, $port, $logPath)
     Set-Location "$workDir/backend"
 
-    # Run cargo and log output (传递端口参数)
+    # Run cargo (已预编译，直接运行) 传递端口参数
     cargo run -- --port $port 2>&1 | Tee-Object -FilePath $logPath -Append
 } -ArgumentList $RootDir, $BackendPort, $backendConsoleLogPath
 
@@ -90,12 +109,8 @@ Write-Host "          Log file: $backendConsoleLogPath" -ForegroundColor Gray
 Write-Host ""
 
 # ========== Wait for Backend Ready ==========
-# 动态超时：已编译则 30 秒，未编译则 120 秒
-if (Test-Path "$RootDir/backend/target/debug") {
-    $maxWait = 30
-} else {
-    $maxWait = 120
-}
+# 编译已在启动前完成，只需等待服务器启动，固定 30 秒超时
+$maxWait = 30
 Write-Host "[Backend] Waiting for health check (http://127.0.0.1:$BackendPort/health)..." -ForegroundColor Cyan
 
 $backendReady = $false

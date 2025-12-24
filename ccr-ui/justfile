@@ -174,18 +174,24 @@ _dev-parallel-linux:
     VITE_PORT="${VITE_PORT:-{{vite_port}}}"
     mkdir -p "$JDIR/logs"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
-    # 启动后端并记录日志（传递端口参数）
+
+    # ========== 预编译后端（避免健康检查超时） ==========
+    echo "🔧 [Backend] Pre-compiling..."
+    cd "$JDIR/backend" && cargo build
+    if [ $? -ne 0 ]; then
+      echo "❌ [ERROR] Backend compilation failed"
+      exit 1
+    fi
+    echo "✅ [Backend] Compilation successful"
+
+    # ========== 启动后端（已预编译，直接运行） ==========
     cd "$JDIR/backend" && cargo run -- --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
     BACK_PID=$!
-    # 轮询后端健康检查，避免前端在后端未就绪时启动
+
+    # ========== 等待后端就绪（固定 30 秒超时） ==========
     echo "⏳ 等待后端就绪 (http://127.0.0.1:$BACKEND_PORT/health)..."
+    MAX_WAIT=30
     if command -v curl >/dev/null 2>&1; then
-      # 动态超时：已编译则 30 秒，未编译则 120 秒
-      if [ -d "$JDIR/backend/target/debug" ]; then
-        MAX_WAIT=30
-      else
-        MAX_WAIT=120
-      fi
       for i in $(seq 1 $MAX_WAIT); do
         if curl -sf "http://127.0.0.1:$BACKEND_PORT/health" >/dev/null 2>&1; then
           echo "✅ 后端就绪"
@@ -212,7 +218,8 @@ _dev-parallel-linux:
         sleep 1
       done
     fi
-    # 启动前端并记录日志（传递端口参数）
+
+    # ========== 启动前端 ==========
     cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" &
     wait
 
@@ -224,18 +231,24 @@ _dev-parallel-macos:
     VITE_PORT="${VITE_PORT:-{{vite_port}}}"
     mkdir -p "$JDIR/logs"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
-    # 启动后端并记录日志（传递端口参数）
+
+    # ========== 预编译后端（避免健康检查超时） ==========
+    echo "🔧 [Backend] Pre-compiling..."
+    cd "$JDIR/backend" && cargo build
+    if [ $? -ne 0 ]; then
+      echo "❌ [ERROR] Backend compilation failed"
+      exit 1
+    fi
+    echo "✅ [Backend] Compilation successful"
+
+    # ========== 启动后端（已预编译，直接运行） ==========
     cd "$JDIR/backend" && cargo run -- --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
     BACK_PID=$!
-    # 轮询后端健康检查，避免前端在后端未就绪时启动
+
+    # ========== 等待后端就绪（固定 30 秒超时） ==========
     echo "⏳ 等待后端就绪 (http://127.0.0.1:$BACKEND_PORT/health)..."
+    MAX_WAIT=30
     if command -v curl >/dev/null 2>&1; then
-      # 动态超时：已编译则 30 秒，未编译则 120 秒
-      if [ -d "$JDIR/backend/target/debug" ]; then
-        MAX_WAIT=30
-      else
-        MAX_WAIT=120
-      fi
       for i in $(seq 1 $MAX_WAIT); do
         if curl -sf "http://127.0.0.1:$BACKEND_PORT/health" >/dev/null 2>&1; then
           echo "✅ 后端就绪"
@@ -262,7 +275,8 @@ _dev-parallel-macos:
         sleep 1
       done
     fi
-    # 启动前端并记录日志（传递端口参数）
+
+    # ========== 启动前端 ==========
     cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" &
     wait
 
