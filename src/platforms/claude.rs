@@ -16,9 +16,9 @@ use crate::managers::PlatformConfigManager;
 use crate::managers::config::ConfigSection;
 use crate::managers::settings::{ClaudeSettings, SettingsManager};
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use crate::utils::{Validatable, toml_json};
+use crate::platforms::base;
+use crate::utils::Validatable;
 use indexmap::IndexMap;
-use std::fs;
 use std::path::PathBuf;
 
 /// 🤖 Claude Platform 实现
@@ -46,218 +46,31 @@ impl ClaudePlatform {
     }
 
     /// 📋 从 ConfigSection 转换为 ProfileConfig
+    #[allow(dead_code)]
     fn section_to_profile(section: &ConfigSection) -> ProfileConfig {
-        ProfileConfig {
-            description: section.description.clone(),
-            base_url: section.base_url.clone(),
-            auth_token: section.auth_token.clone(),
-            model: section.model.clone(),
-            small_fast_model: section.small_fast_model.clone(),
-            provider: section.provider.clone(),
-            provider_type: section
-                .provider_type
-                .as_ref()
-                .map(|t| t.to_string_value().to_string()),
-            account: section.account.clone(),
-            tags: section.tags.clone(),
-            usage_count: section.usage_count,
-            enabled: section.enabled,
-            platform_data: toml_json::toml_map_to_json_map(&section.other),
-        }
+        base::section_to_profile(section)
     }
 
     /// 📋 从 ProfileConfig 转换为 ConfigSection
     fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
-        use crate::managers::config::ProviderType;
-
-        let provider_type = profile
-            .provider_type
-            .as_ref()
-            .and_then(|s| match s.as_str() {
-                "official_relay" => Some(ProviderType::OfficialRelay),
-                "third_party_model" => Some(ProviderType::ThirdPartyModel),
-                _ => None,
-            });
-
-        Ok(ConfigSection {
-            description: profile.description.clone(),
-            base_url: profile.base_url.clone(),
-            auth_token: profile.auth_token.clone(),
-            model: profile.model.clone(),
-            small_fast_model: profile.small_fast_model.clone(),
-            provider: profile.provider.clone(),
-            provider_type,
-            account: profile.account.clone(),
-            tags: profile.tags.clone(),
-            usage_count: profile.usage_count,
-            enabled: profile.enabled,
-            other: toml_json::json_map_to_toml_map(&profile.platform_data),
-        })
+        base::profile_to_section(profile)
     }
 
     /// 💾 保存 profiles 到 TOML 文件
     fn save_profiles(&self, profiles: &IndexMap<String, ProfileConfig>) -> Result<()> {
-        // 确保目录存在
-        self.paths.ensure_directories()?;
-
-        // 转换为 ConfigSection 格式
-        let mut sections = IndexMap::new();
-        for (name, profile) in profiles {
-            sections.insert(name.clone(), Self::profile_to_section(profile)?);
-        }
-
-        // 📖 先读取现有配置，保留 current_config 和 default_config
-        use crate::managers::config::{CcsConfig, GlobalSettings};
-        let (existing_default, existing_current, existing_settings) =
-            if self.paths.profiles_file.exists() {
-                let content = fs::read_to_string(&self.paths.profiles_file)
-                    .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
-                match toml::from_str::<CcsConfig>(&content) {
-                    Ok(existing) => (
-                        existing.default_config,
-                        existing.current_config,
-                        existing.settings,
-                    ),
-                    Err(_) => (
-                        profiles
-                            .keys()
-                            .next()
-                            .cloned()
-                            .unwrap_or_else(|| "default".to_string()),
-                        profiles
-                            .keys()
-                            .next()
-                            .cloned()
-                            .unwrap_or_else(|| "default".to_string()),
-                        GlobalSettings::default(),
-                    ),
-                }
-            } else {
-                (
-                    profiles
-                        .keys()
-                        .next()
-                        .cloned()
-                        .unwrap_or_else(|| "default".to_string()),
-                    profiles
-                        .keys()
-                        .next()
-                        .cloned()
-                        .unwrap_or_else(|| "default".to_string()),
-                    GlobalSettings::default(),
-                )
-            };
-
-        // 🔄 验证 current_config 和 default_config 是否仍然存在于 profiles 中
-        // 如果不存在，回退到第一个 profile
-        let default_config = if sections.contains_key(&existing_default) {
-            existing_default
-        } else {
-            profiles
-                .keys()
-                .next()
-                .cloned()
-                .unwrap_or_else(|| "default".to_string())
-        };
-
-        let current_config = if sections.contains_key(&existing_current) {
-            existing_current
-        } else {
-            profiles
-                .keys()
-                .next()
-                .cloned()
-                .unwrap_or_else(|| "default".to_string())
-        };
-
-        // 构建完整配置（保留现有的 current_config 和 default_config）
-        let config = CcsConfig {
-            default_config,
-            current_config,
-            settings: existing_settings,
-            sections,
-        };
-
-        // 序列化为 TOML
-        let content = toml::to_string_pretty(&config)
-            .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
-
-        // 写入文件
-        fs::write(&self.paths.profiles_file, content)
-            .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
-
-        tracing::info!("✅ 已保存 Claude profiles: {:?}", self.paths.profiles_file);
-        Ok(())
+        base::save_profiles_to_toml(&self.paths.profiles_file, profiles, "claude", &self.paths)
     }
 
     /// 🔄 更新 profiles.toml 中的 current_config 字段
     ///
     /// 在配置切换时调用，用于同步更新 profiles.toml 中记录的当前配置名称
     fn update_current_config_in_profiles(&self, name: &str) -> Result<()> {
-        // 仅在文件存在时更新
-        if !self.paths.profiles_file.exists() {
-            return Ok(());
-        }
-
-        // 读取现有配置
-        let content = fs::read_to_string(&self.paths.profiles_file)
-            .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
-
-        // 解析 TOML
-        use crate::managers::config::CcsConfig;
-        let mut config: CcsConfig = match toml::from_str(&content) {
-            Ok(c) => c,
-            Err(_) => {
-                // 如果解析失败（可能是旧格式），跳过更新
-                tracing::warn!("⚠️ 无法解析 profiles.toml，跳过 current_config 更新");
-                return Ok(());
-            }
-        };
-
-        // 验证目标配置存在
-        if !config.sections.contains_key(name) {
-            return Err(CcrError::ConfigSectionNotFound(name.to_string()));
-        }
-
-        // 更新 current_config
-        config.current_config = name.to_string();
-
-        // 序列化并写回
-        let new_content = toml::to_string_pretty(&config)
-            .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
-
-        fs::write(&self.paths.profiles_file, new_content)
-            .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
-
-        tracing::debug!("✅ 已更新 profiles.toml 的 current_config: {}", name);
-        Ok(())
+        base::update_current_config(&self.paths.profiles_file, name)
     }
 
     /// 📖 从 TOML 文件加载 profiles
     fn load_profiles_from_file(&self) -> Result<IndexMap<String, ProfileConfig>> {
-        if !self.paths.profiles_file.exists() {
-            return Ok(IndexMap::new());
-        }
-
-        // 读取文件
-        let content = fs::read_to_string(&self.paths.profiles_file)
-            .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
-
-        // 解析 TOML
-        use crate::managers::config::{CcsConfig, ConfigSection};
-        let sections = match toml::from_str::<CcsConfig>(&content) {
-            Ok(config) => config.sections,
-            Err(_) => toml::from_str::<IndexMap<String, ConfigSection>>(&content)
-                .map_err(|e| CcrError::ConfigFormatInvalid(format!("TOML 解析失败: {}", e)))?,
-        };
-
-        // 转换为 ProfileConfig
-        let mut profiles = IndexMap::new();
-        for (name, section) in sections {
-            profiles.insert(name, Self::section_to_profile(&section));
-        }
-
-        Ok(profiles)
+        base::load_profiles_from_toml(&self.paths.profiles_file)
     }
 }
 
@@ -347,13 +160,7 @@ impl PlatformConfig for ClaudePlatform {
     }
 
     fn get_current_profile(&self) -> Result<Option<String>> {
-        // 从注册表读取 current_profile
-        let platform_config_mgr = PlatformConfigManager::with_default()?;
-        let unified_config = platform_config_mgr.load()?;
-
-        // 获取 Claude 平台的注册信息
-        let claude_entry = unified_config.get_platform("claude")?;
-        Ok(claude_entry.current_profile.clone())
+        base::get_current_profile_from_registry("claude")
     }
 }
 
