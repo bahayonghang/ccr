@@ -1,23 +1,19 @@
-<!-- Gemini Plugins Management -->
 <template>
   <div :style="{ background: 'var(--bg-primary)', minHeight: '100vh', padding: '20px' }">
     <div class="max-w-[1800px] mx-auto">
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
-        :items="[
-          { label: $t('common.home'), path: '/', icon: Home },
-          { label: 'Gemini CLI', path: '/gemini-cli', icon: Sparkles },
-          { label: $t('gemini.plugins.title'), path: '/gemini-cli/plugins', icon: Puzzle }
-        ]"
-        module-color="#8b5cf6"
+        :items="breadcrumbItems"
+        :module-color="moduleColor"
       />
       <div class="grid grid-cols-[auto_1fr] gap-4">
-        <CollapsibleSidebar module="gemini-cli" />
+        <CollapsibleSidebar :module="sidebarModule" />
 
         <main
           class="rounded-xl p-6 glass-effect"
           :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
         >
+          <!-- Header -->
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
               <Puzzle
@@ -28,7 +24,7 @@
                 class="text-2xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                {{ $t('gemini.plugins.pageTitle') }}
+                {{ $t(`${i18nPrefix}.title`) }}
               </h1>
               <span
                 class="px-3 py-1 rounded-full text-sm font-medium"
@@ -37,22 +33,23 @@
             </div>
             <div class="flex items-center gap-3">
               <RouterLink
-                to="/gemini-cli"
+                :to="parentPath"
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                 :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
               >
-                <Home class="w-4 h-4" /><span>{{ $t('gemini.plugins.backToHome') }}</span>
+                <ArrowLeft class="w-4 h-4" /><span>{{ $t('common.back') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
-                @click="handleAdd"
+                @click="openAddForm"
               >
-                <Plus class="w-4 h-4" />{{ $t('gemini.plugins.addPlugin') }}
+                <Plus class="w-4 h-4" />{{ $t(`${i18nPrefix}.addPlugin`) }}
               </button>
             </div>
           </div>
 
+          <!-- Loading State -->
           <div
             v-if="loading"
             class="flex justify-center py-20"
@@ -63,14 +60,16 @@
             />
           </div>
 
+          <!-- Empty State -->
           <div
             v-else-if="!plugins || plugins.length === 0"
             class="text-center py-10"
             :style="{ color: 'var(--text-muted)' }"
           >
-            {{ $t('gemini.plugins.emptyState') }}
+            {{ $t(`${i18nPrefix}.emptyState`) }}
           </div>
 
+          <!-- Plugin Grid -->
           <div
             v-else
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
@@ -83,6 +82,7 @@
               @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
               @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
             >
+              <!-- Plugin Header -->
               <div class="flex items-start justify-between mb-3">
                 <div class="flex-1">
                   <h3
@@ -92,7 +92,7 @@
                     {{ plugin.name }}
                   </h3>
                   <p
-                    class="text-xs font-mono mt-1"
+                    class="text-sm"
                     :style="{ color: 'var(--text-muted)' }"
                   >
                     ID: {{ plugin.id }}
@@ -102,46 +102,52 @@
                   v-if="!plugin.enabled"
                   class="px-2 py-0.5 rounded text-xs font-semibold uppercase"
                   :style="{ background: 'var(--accent-danger)', color: 'white' }"
-                >{{ $t('gemini.plugins.disabledBadge') }}</span>
+                >{{ $t(`${i18nPrefix}.disabledBadge`) }}</span>
               </div>
 
+              <!-- Plugin Info -->
               <div class="mb-4">
                 <p
                   class="text-sm"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
-                  <strong>Version:</strong> {{ plugin.version }}
+                  <strong>{{ $t('common.version') }}:</strong> {{ plugin.version }}
                 </p>
                 <p
                   v-if="plugin.config"
-                  class="text-xs mt-2 font-mono p-2 rounded overflow-auto max-h-32"
+                  class="text-xs font-mono mt-2 p-2 rounded overflow-auto max-h-24"
                   :style="{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }"
                 >
                   {{ JSON.stringify(plugin.config, null, 2) }}
                 </p>
               </div>
 
+              <!-- Actions -->
               <div class="flex gap-2">
                 <button
                   class="flex-1 p-2 rounded-lg transition-all hover:scale-105 flex items-center justify-center gap-1 text-sm font-medium"
-                  :style="{ background: plugin.enabled ? '#fef3c7' : '#d1fae5', color: plugin.enabled ? '#92400e' : '#065f46' }"
-                  :title="plugin.enabled ? $t('gemini.plugins.disable') : $t('gemini.plugins.enable')"
-                  @click="handleToggle(plugin.id)"
+                  :style="{
+                    background: plugin.enabled ? 'var(--bg-secondary)' : 'var(--accent-success)',
+                    border: '1px solid var(--border-color)',
+                    color: plugin.enabled ? 'var(--text-secondary)' : 'white'
+                  }"
+                  :title="plugin.enabled ? $t('common.disable') : $t('common.enable')"
+                  @click="togglePlugin(plugin)"
                 >
-                  <PowerOff
-                    v-if="!plugin.enabled"
+                  <Power
+                    v-if="plugin.enabled"
                     class="w-4 h-4"
-                  /><Power
+                  />
+                  <PowerOff
                     v-else
                     class="w-4 h-4"
                   />
-                  <span>{{ plugin.enabled ? $t('gemini.plugins.disable') : $t('gemini.plugins.enable') }}</span>
                 </button>
                 <button
                   class="p-2 rounded-lg transition-all hover:scale-110"
                   :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-primary)' }"
                   :title="$t('common.edit')"
-                  @click="handleEdit(plugin)"
+                  @click="openEditForm(plugin)"
                 >
                   <Edit2 class="w-4 h-4" />
                 </button>
@@ -149,7 +155,7 @@
                   class="p-2 rounded-lg transition-all hover:scale-110"
                   :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
                   :title="$t('common.delete')"
-                  @click="handleDelete(plugin.id)"
+                  @click="deletePlugin(plugin)"
                 >
                   <Trash2 class="w-4 h-4" />
                 </button>
@@ -157,8 +163,9 @@
             </div>
           </div>
 
+          <!-- Add/Edit Modal -->
           <div
-            v-if="showAddForm"
+            v-if="showForm"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
           >
             <div
@@ -169,99 +176,105 @@
                 class="text-xl font-bold mb-4"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                {{ editingPlugin ? $t('gemini.plugins.editPlugin') : $t('gemini.plugins.addPlugin') }}
+                {{ editingPlugin ? $t(`${i18nPrefix}.editPlugin`) : $t(`${i18nPrefix}.addPlugin`) }}
               </h2>
 
               <div class="space-y-4">
+                <!-- Plugin ID -->
                 <div>
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >{{ $t('gemini.plugins.idLabel') }}</label>
+                  >{{ $t(`${i18nPrefix}.idLabel`) }} *</label>
                   <input
                     v-model="formData.id"
                     type="text"
-                    class="w-full px-3 py-2 rounded-lg"
+                    class="w-full px-3 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    :placeholder="$t('gemini.plugins.idPlaceholder')"
+                    :placeholder="$t(`${i18nPrefix}.idPlaceholder`)"
+                    :disabled="!!editingPlugin"
                   >
                 </div>
 
+                <!-- Plugin Name -->
                 <div>
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >{{ $t('gemini.plugins.nameLabel') }}</label>
+                  >{{ $t(`${i18nPrefix}.nameLabel`) }} *</label>
                   <input
                     v-model="formData.name"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    :placeholder="$t('gemini.plugins.namePlaceholder')"
+                    :placeholder="$t(`${i18nPrefix}.namePlaceholder`)"
                   >
                 </div>
 
+                <!-- Plugin Version -->
                 <div>
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >{{ $t('gemini.plugins.versionLabel') }}</label>
+                  >{{ $t(`${i18nPrefix}.versionLabel`) }} *</label>
                   <input
                     v-model="formData.version"
                     type="text"
-                    class="w-full px-3 py-2 rounded-lg"
+                    class="w-full px-3 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    :placeholder="$t('gemini.plugins.versionPlaceholder')"
+                    placeholder="1.0.0"
                   >
                 </div>
 
+                <!-- Plugin Enabled -->
+                <div>
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      v-model="formData.enabled"
+                      type="checkbox"
+                      class="w-4 h-4"
+                    >
+                    <span
+                      class="text-sm font-semibold"
+                      :style="{ color: 'var(--text-secondary)' }"
+                    >{{ $t(`${i18nPrefix}.enabledLabel`) }}</span>
+                  </label>
+                </div>
+
+                <!-- Plugin Config (JSON) -->
                 <div>
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >{{ $t('gemini.plugins.configLabel') }}</label>
+                  >{{ $t(`${i18nPrefix}.configLabel`) }}</label>
                   <textarea
                     v-model="configJson"
-                    rows="10"
                     class="w-full px-3 py-2 rounded-lg font-mono text-sm"
-                    :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    :placeholder="$t('gemini.plugins.configPlaceholder')"
+                    :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', minHeight: '120px' }"
+                    :placeholder="$t(`${i18nPrefix}.configPlaceholder`)"
                   />
                   <div
                     class="text-xs mt-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    {{ $t('gemini.plugins.configHint') }}
+                    {{ $t(`${i18nPrefix}.configHint`) }}
                   </div>
-                </div>
-
-                <div class="flex items-center gap-2">
-                  <input
-                    id="enabled"
-                    v-model="formData.enabled"
-                    type="checkbox"
-                    class="w-4 h-4"
-                  >
-                  <label
-                    for="enabled"
-                    class="text-sm"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >{{ $t('gemini.plugins.enabledLabel') }}</label>
                 </div>
               </div>
 
+              <!-- Form Actions -->
               <div class="flex gap-3 mt-6">
                 <button
                   class="flex-1 px-4 py-2 rounded-lg font-semibold text-white"
                   :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
-                  @click="handleSubmit"
+                  @click="submitForm"
                 >
-                  {{ editingPlugin ? $t('gemini.plugins.save') : $t('gemini.plugins.add') }}
+                  {{ editingPlugin ? $t('common.save') : $t('common.add') }}
                 </button>
                 <button
                   class="flex-1 px-4 py-2 rounded-lg font-semibold"
                   :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }"
-                  @click="showAddForm = false"
+                  @click="closeForm"
                 >
                   {{ $t('common.cancel') }}
                 </button>
@@ -275,126 +288,85 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home, Sparkles
-} from 'lucide-vue-next'
-import { listGeminiPlugins, addGeminiPlugin, updateGeminiPlugin, deleteGeminiPlugin, toggleGeminiPlugin, listConfigs, getHistory } from '@/api/client'
-import type { Plugin as PluginType, PluginRequest } from '@/types'
+import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, ArrowLeft, Home, Sparkles, Zap, Flame } from 'lucide-vue-next'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+import { usePlatformPlugins, type PluginPlatformType } from '@/composables/usePlatformPlugins'
+
+// ============ Props ============
+
+interface Props {
+  platform: PluginPlatformType
+}
+
+const props = defineProps<Props>()
+
+// ============ Composable ============
 
 const { t } = useI18n()
 
-const plugins = ref<PluginType[]>([])
-const loading = ref(true)
-const currentConfig = ref<string>('')
-const totalConfigs = ref(0)
-const historyCount = ref(0)
-const showAddForm = ref(false)
-const editingPlugin = ref<PluginType | null>(null)
-const formData = ref<PluginRequest>({ id: '', name: '', version: '', enabled: true, config: undefined })
-const configJson = ref('')
+const {
+  moduleColor,
+  i18nPrefix,
+  parentPath,
+  sidebarModule,
+  plugins,
+  loading,
+  showForm,
+  editingPlugin,
+  formData,
+  configJson,
+  loadPlugins,
+  deletePlugin,
+  togglePlugin,
+  openAddForm,
+  openEditForm,
+  closeForm,
+  submitForm,
+} = usePlatformPlugins(props.platform)
 
-const loadPlugins = async () => {
-  try {
-    loading.value = true
-    const data = await listGeminiPlugins()
-    plugins.value = data || []
+// ============ Computed ============
 
-    try {
-      const configData = await listConfigs()
-      currentConfig.value = configData.current_config
-      totalConfigs.value = configData.configs.length
-
-      const historyData = await getHistory()
-      historyCount.value = historyData.total
-    } catch (err) {
-      console.error('Failed to load system info:', err)
-    }
-  } catch (err) {
-    console.error('Failed to load plugins:', err)
-    plugins.value = []
-    alert(t('gemini.plugins.messages.loadFailed'))
-  } finally {
-    loading.value = false
+/** 平台图标 */
+const platformIcon = computed(() => {
+  const iconMap: Record<PluginPlatformType, typeof Sparkles> = {
+    gemini: Sparkles,
+    qwen: Zap,
+    iflow: Flame,
   }
-}
+  return iconMap[props.platform]
+})
+
+/** 平台显示名称 */
+const platformName = computed(() => {
+  const nameMap: Record<PluginPlatformType, string> = {
+    gemini: 'Gemini CLI',
+    qwen: 'Qwen',
+    iflow: 'iFlow',
+  }
+  return nameMap[props.platform]
+})
+
+/** 面包屑导航项 */
+const breadcrumbItems = computed(() => [
+  { label: t('common.home'), path: '/', icon: Home },
+  { label: platformName.value, path: parentPath.value, icon: platformIcon.value },
+  { label: t(`${i18nPrefix.value}.title`), path: `${parentPath.value}/plugins`, icon: Puzzle },
+])
+
+// ============ Lifecycle ============
 
 onMounted(() => {
   loadPlugins()
 })
 
-const handleAdd = () => {
-  showAddForm.value = true
-  editingPlugin.value = null
-  formData.value = { id: '', name: '', version: '1.0.0', enabled: true, config: undefined }
-  configJson.value = ''
-}
+// ============ Event Handlers ============
 
-const handleEdit = (plugin: PluginType) => {
-  editingPlugin.value = plugin
-  showAddForm.value = true
-  formData.value = { id: plugin.id, name: plugin.name, version: plugin.version, enabled: plugin.enabled, config: plugin.config }
-  configJson.value = plugin.config ? JSON.stringify(plugin.config, null, 2) : ''
-}
-
-const handleSubmit = async () => {
-  if (!formData.value.id || !formData.value.name || !formData.value.version) {
-    alert(t('gemini.plugins.validation.required'))
-    return
-  }
-
-  let config = undefined
-  if (configJson.value.trim()) {
-    try {
-      config = JSON.parse(configJson.value)
-    } catch (err) {
-      alert(t('gemini.plugins.validation.invalidJson'))
-      return
-    }
-  }
-
-  const request: PluginRequest = { ...formData.value, config }
-
-  try {
-    if (editingPlugin.value) {
-      await updateGeminiPlugin(editingPlugin.value.id, request)
-      alert(t('gemini.plugins.messages.updateSuccess'))
-    } else {
-      await addGeminiPlugin(request)
-      alert(t('gemini.plugins.messages.addSuccess'))
-    }
-    showAddForm.value = false
-    await loadPlugins()
-  } catch (err) {
-    alert(t('gemini.plugins.messages.operationFailed', { error: err instanceof Error ? err.message : 'Unknown error' }))
-  }
-}
-
-const handleDelete = async (id: string) => {
-  if (!confirm(t('gemini.plugins.deleteConfirm', { name: id }))) return
-
-  try {
-    await deleteGeminiPlugin(id)
-    alert(t('gemini.plugins.messages.deleteSuccess'))
-    await loadPlugins()
-  } catch (err) {
-    alert(t('gemini.plugins.messages.deleteFailed', { error: err instanceof Error ? err.message : 'Unknown error' }))
-  }
-}
-
-const handleToggle = async (id: string) => {
-  try {
-    await toggleGeminiPlugin(id)
-    await loadPlugins()
-  } catch (err) {
-    alert(t('gemini.plugins.messages.toggleFailed', { error: err instanceof Error ? err.message : 'Unknown error' }))
-  }
-}
-
-const onCardHover = (el: HTMLElement, hover: boolean) => {
+/** 卡片悬停效果 */
+function onCardHover(el: HTMLElement, hover: boolean): void {
   if (hover) {
     el.style.background = 'rgba(255, 255, 255, 0.9)'
     el.style.borderColor = 'rgba(99, 102, 241, 0.24)'

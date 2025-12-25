@@ -3,20 +3,17 @@
     <div class="max-w-[1800px] mx-auto">
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
-        :items="[
-          { label: $t('common.home'), path: '/', icon: Home },
-          { label: 'Gemini CLI', path: '/gemini-cli', icon: Sparkles },
-          { label: $t('gemini.mcp.title'), path: '/gemini-cli/mcp', icon: Server }
-        ]"
-        module-color="#8b5cf6"
+        :items="breadcrumbItems"
+        :module-color="moduleColor"
       />
       <div class="grid grid-cols-[auto_1fr] gap-4">
-        <CollapsibleSidebar module="gemini-cli" />
+        <CollapsibleSidebar :module="sidebarModule" />
 
         <main
           class="rounded-xl p-6 glass-effect"
           :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
         >
+          <!-- Header -->
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
               <Server
@@ -27,12 +24,12 @@
                 class="text-2xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                {{ $t('gemini.mcp.pageTitle') }}
+                {{ $t(`${i18nPrefix}.pageTitle`) }}
               </h1>
             </div>
             <div class="flex items-center gap-3">
               <RouterLink
-                to="/gemini-cli"
+                :to="parentPath"
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                 :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
               >
@@ -41,13 +38,14 @@
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
-                @click="handleAdd"
+                @click="openAddForm"
               >
-                <Plus class="w-4 h-4" />{{ $t('gemini.mcp.addServer') }}
+                <Plus class="w-4 h-4" />{{ $t(`${i18nPrefix}.addServer`) }}
               </button>
             </div>
           </div>
 
+          <!-- Loading State -->
           <div
             v-if="loading"
             class="flex justify-center py-20"
@@ -58,21 +56,24 @@
             />
           </div>
 
+          <!-- Server List -->
           <div
             v-else
             class="space-y-3"
           >
+            <!-- Empty State -->
             <div
               v-if="!servers || servers.length === 0"
               class="text-center py-10"
               :style="{ color: 'var(--text-muted)' }"
             >
-              {{ $t('gemini.mcp.emptyState') }}
+              {{ $t(`${i18nPrefix}.emptyState`) }}
             </div>
 
+            <!-- Server Cards -->
             <div
               v-for="server in servers"
-              :key="server.command || server.url"
+              :key="getServerIdentifier(server)"
               class="group rounded-lg p-4 transition-all duration-300"
               :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }"
               @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
@@ -85,7 +86,7 @@
                       class="text-lg font-bold font-mono"
                       :style="{ color: 'var(--text-primary)' }"
                     >
-                      {{ server.command || server.url }}
+                      {{ server.name || server.command || server.url }}
                     </h3>
                     <span
                       v-if="server.url"
@@ -100,7 +101,7 @@
                   </div>
                   <div class="space-y-2 text-sm">
                     <div v-if="server.command">
-                      <span :style="{ color: 'var(--text-muted)' }">命令:</span>
+                      <span :style="{ color: 'var(--text-muted)' }">{{ $t('common.command') }}:</span>
                       <code
                         class="ml-2 px-2 py-1 rounded font-mono"
                         :style="{ background: 'var(--bg-secondary)', color: 'var(--accent-primary)' }"
@@ -114,14 +115,14 @@
                       >{{ server.url }}</code>
                     </div>
                     <div v-if="server.args && server.args.length > 0">
-                      <span :style="{ color: 'var(--text-muted)' }">参数:</span>
+                      <span :style="{ color: 'var(--text-muted)' }">{{ $t('common.args') }}:</span>
                       <code
                         class="ml-2 px-2 py-1 rounded font-mono"
                         :style="{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }"
                       >{{ server.args.join(' ') }}</code>
                     </div>
                     <div v-if="server.env && Object.keys(server.env).length > 0">
-                      <span :style="{ color: 'var(--text-muted)' }">环境变量:</span>
+                      <span :style="{ color: 'var(--text-muted)' }">{{ $t('common.envVars') }}:</span>
                       <div class="ml-2 mt-1 space-y-1">
                         <div
                           v-for="[key, value] in Object.entries(server.env)"
@@ -139,16 +140,16 @@
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110"
                     :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-primary)' }"
-                    title="编辑"
-                    @click="handleEdit(server)"
+                    :title="$t('common.edit')"
+                    @click="openEditForm(server)"
                   >
                     <Edit2 class="w-4 h-4" />
                   </button>
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110"
                     :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
-                    title="删除"
-                    @click="handleDelete(server.command || server.url || '')"
+                    :title="$t('common.delete')"
+                    @click="deleteServer(server)"
                   >
                     <Trash2 class="w-4 h-4" />
                   </button>
@@ -157,8 +158,9 @@
             </div>
           </div>
 
+          <!-- Add/Edit Modal -->
           <div
-            v-if="showAddForm"
+            v-if="showForm"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
           >
             <div
@@ -169,9 +171,10 @@
                 class="text-xl font-bold mb-4"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                {{ editingServer ? $t('gemini.mcp.editServer') : $t('gemini.mcp.addServer') }}
+                {{ editingServer ? $t(`${i18nPrefix}.editServer`) : $t(`${i18nPrefix}.addServer`) }}
               </h2>
 
+              <!-- Server Type Toggle -->
               <div class="mb-4">
                 <label class="flex items-center gap-2 cursor-pointer">
                   <input
@@ -182,85 +185,89 @@
                   <span
                     class="text-sm font-semibold"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >{{ $t('gemini.mcp.httpServerHint') }}</span>
+                  >{{ $t(`${i18nPrefix}.httpServerHint`) }}</span>
                 </label>
               </div>
 
               <div class="space-y-4">
+                <!-- URL (HTTP Server) -->
                 <div v-if="isHttpServer">
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >{{ $t('gemini.mcp.urlLabel') }}</label>
+                  >{{ $t(`${i18nPrefix}.urlLabel`) }} *</label>
                   <input
                     v-model="formData.url"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    :placeholder="$t('gemini.mcp.urlPlaceholder')"
+                    :placeholder="$t(`${i18nPrefix}.urlPlaceholder`)"
                   >
                 </div>
 
+                <!-- Command (STDIO Server) -->
                 <div v-else>
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >{{ $t('gemini.mcp.commandLabel') }}</label>
+                  >{{ $t(`${i18nPrefix}.commandLabel`) }} *</label>
                   <input
                     v-model="formData.command"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    :placeholder="$t('gemini.mcp.commandPlaceholder')"
+                    :placeholder="$t(`${i18nPrefix}.commandPlaceholder`)"
                   >
                 </div>
 
+                <!-- Args (STDIO Server) -->
                 <div v-if="!isHttpServer">
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >{{ $t('gemini.mcp.argsLabel') }}</label>
+                  >{{ $t(`${i18nPrefix}.argsLabel`) }}</label>
                   <input
                     v-model="argInput"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg font-mono"
                     :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                    :placeholder="$t('gemini.mcp.argPlaceholder')"
+                    :placeholder="$t(`${i18nPrefix}.argsPlaceholder`)"
                   >
                   <div
                     class="text-xs mt-1"
                     :style="{ color: 'var(--text-muted)' }"
                   >
-                    {{ $t('gemini.mcp.argsHint') }}
+                    {{ $t(`${i18nPrefix}.argsHint`) }}
                   </div>
                 </div>
 
+                <!-- Environment Variables -->
                 <div>
                   <label
                     class="block text-sm font-semibold mb-1"
                     :style="{ color: 'var(--text-secondary)' }"
-                  >{{ $t('gemini.mcp.envLabel') }}</label>
+                  >{{ $t(`${i18nPrefix}.envLabel`) }}</label>
                   <div class="flex gap-2 mb-2">
                     <input
                       v-model="envKey"
                       type="text"
                       class="flex-1 px-3 py-2 rounded-lg font-mono"
                       :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                      :placeholder="$t('gemini.mcp.envKey')"
+                      placeholder="KEY"
                     >
                     <input
                       v-model="envValue"
                       type="text"
                       class="flex-1 px-3 py-2 rounded-lg font-mono"
                       :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                      :placeholder="$t('gemini.mcp.envValue')"
+                      placeholder="VALUE"
                     >
                     <button
                       class="px-4 py-2 rounded-lg font-semibold text-sm text-white"
                       :style="{ background: 'var(--accent-primary)' }"
                       @click="addEnvVar"
                     >
-                      {{ $t('gemini.mcp.addEnv') }}
+                      {{ $t('common.add') }}
                     </button>
                   </div>
                   <div class="space-y-1">
@@ -286,18 +293,19 @@
                 </div>
               </div>
 
+              <!-- Form Actions -->
               <div class="flex gap-3 mt-6">
                 <button
                   class="flex-1 px-4 py-2 rounded-lg font-semibold text-white"
                   :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
-                  @click="handleSubmit"
+                  @click="submitForm"
                 >
-                  {{ editingServer ? $t('gemini.mcp.save') : $t('gemini.mcp.add') }}
+                  {{ editingServer ? $t('common.save') : $t('common.add') }}
                 </button>
                 <button
                   class="flex-1 px-4 py-2 rounded-lg font-semibold"
                   :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }"
-                  @click="showAddForm = false"
+                  @click="closeForm"
                 >
                   {{ $t('common.cancel') }}
                 </button>
@@ -311,114 +319,98 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Sparkles } from 'lucide-vue-next'
-import { listGeminiMcpServers, addGeminiMcpServer, updateGeminiMcpServer, deleteGeminiMcpServer, listConfigs, getHistory } from '@/api/client'
-import type { GeminiMcpServer, GeminiMcpServerRequest } from '@/types'
+import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Sparkles, Zap, Flame } from 'lucide-vue-next'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+import { usePlatformMcp, type PlatformType, getServerIdentifier } from '@/composables/usePlatformMcp'
+
+// ============ Props ============
+
+interface Props {
+  platform: PlatformType
+}
+
+const props = defineProps<Props>()
+
+// ============ Composable ============
 
 const { t } = useI18n()
 
-const servers = ref<GeminiMcpServer[]>([])
-const loading = ref(true)
-const currentConfig = ref<string>('')
-const totalConfigs = ref(0)
-const historyCount = ref(0)
-const showAddForm = ref(false)
-const editingServer = ref<GeminiMcpServer | null>(null)
-const isHttpServer = ref(false)
-const formData = ref<GeminiMcpServerRequest>({ name: '', command: undefined, url: undefined, args: [], env: {} })
-const argInput = ref('')
-const envKey = ref('')
-const envValue = ref('')
+const {
+  moduleColor,
+  i18nPrefix,
+  parentPath,
+  servers,
+  loading,
+  showForm,
+  editingServer,
+  isHttpServer,
+  formData,
+  argInput,
+  envKey,
+  envValue,
+  loadServers,
+  deleteServer,
+  openAddForm,
+  openEditForm,
+  closeForm,
+  submitForm,
+  addEnvVar,
+  removeEnvVar,
+} = usePlatformMcp(props.platform)
 
-const loadServers = async () => {
-  try {
-    loading.value = true
-    const data = await listGeminiMcpServers()
-    servers.value = data || []
+// ============ Computed ============
 
-    try {
-      const configData = await listConfigs()
-      currentConfig.value = configData.current_config
-      totalConfigs.value = configData.configs.length
-      const historyData = await getHistory()
-      historyCount.value = historyData.total
-    } catch (err) { console.error('Failed to load system info:', err) }
-  } catch (err) {
-    console.error('Failed to load Gemini MCP servers:', err)
-    servers.value = []
-    alert(t('gemini.mcp.messages.loadFailed'))
-  } finally { loading.value = false }
-}
-
-onMounted(() => { loadServers() })
-
-const handleAdd = () => {
-  showAddForm.value = true
-  editingServer.value = null
-  isHttpServer.value = false
-  formData.value = { name: '', command: '', url: undefined, args: [], env: {} }
-  argInput.value = ''
-}
-
-const handleEdit = (server: GeminiMcpServer) => {
-  editingServer.value = server
-  showAddForm.value = true
-  isHttpServer.value = !!server.url
-  formData.value = { name: server.name, command: server.command, url: server.url, args: server.args || [], env: server.env || {} }
-  argInput.value = server.args?.join(' ') || ''
-}
-
-const handleSubmit = async () => {
-  if (!isHttpServer.value && !formData.value.command) { alert(t('gemini.mcp.validation.required')); return }
-  if (isHttpServer.value && !formData.value.url) { alert(t('gemini.mcp.validation.required')); return }
-
-  const args = argInput.value.split(' ').filter((a) => a.trim())
-  const request: GeminiMcpServerRequest = { ...formData.value, args }
-  if (isHttpServer.value) request.command = undefined
-  else request.url = undefined
-
-  try {
-    if (editingServer.value) {
-      await updateGeminiMcpServer(editingServer.value.command || editingServer.value.url || '', request)
-      alert(t('gemini.mcp.messages.updateSuccess'))
-    } else {
-      await addGeminiMcpServer(request)
-      alert(t('gemini.mcp.messages.addSuccess'))
-    }
-    showAddForm.value = false
-    await loadServers()
-  } catch (err) { alert(t('gemini.mcp.messages.operationFailed', { error: err instanceof Error ? err.message : 'Unknown error' })) }
-}
-
-const handleDelete = async (name: string) => {
-  if (!confirm(t('gemini.mcp.deleteConfirm', { name }))) return
-  try {
-    await deleteGeminiMcpServer(name)
-    alert(t('gemini.mcp.messages.deleteSuccess'))
-    await loadServers()
-  } catch (err) { alert(t('gemini.mcp.messages.deleteFailed', { error: err instanceof Error ? err.message : 'Unknown error' })) }
-}
-
-const addEnvVar = () => {
-  if (envKey.value && envValue.value) {
-    formData.value.env = { ...formData.value.env, [envKey.value]: envValue.value }
-    envKey.value = ''
-    envValue.value = ''
+/** 侧边栏模块名称 */
+const sidebarModule = computed(() => {
+  const moduleMap: Record<PlatformType, string> = {
+    gemini: 'gemini-cli',
+    qwen: 'qwen',
+    iflow: 'iflow',
   }
-}
+  return moduleMap[props.platform]
+})
 
-const removeEnvVar = (key: string) => {
-  const newEnv = { ...formData.value.env }
-  delete newEnv[key]
-  formData.value.env = newEnv
-}
+/** 平台图标 */
+const platformIcon = computed(() => {
+  const iconMap: Record<PlatformType, typeof Sparkles> = {
+    gemini: Sparkles,
+    qwen: Zap,
+    iflow: Flame,
+  }
+  return iconMap[props.platform]
+})
 
-const onCardHover = (el: HTMLElement, hover: boolean) => {
+/** 平台显示名称 */
+const platformName = computed(() => {
+  const nameMap: Record<PlatformType, string> = {
+    gemini: 'Gemini CLI',
+    qwen: 'Qwen',
+    iflow: 'iFlow',
+  }
+  return nameMap[props.platform]
+})
+
+/** 面包屑导航项 */
+const breadcrumbItems = computed(() => [
+  { label: t('common.home'), path: '/', icon: Home },
+  { label: platformName.value, path: parentPath.value, icon: platformIcon.value },
+  { label: t(`${i18nPrefix.value}.title`), path: `${parentPath.value}/mcp`, icon: Server },
+])
+
+// ============ Lifecycle ============
+
+onMounted(() => {
+  loadServers()
+})
+
+// ============ Event Handlers ============
+
+/** 卡片悬停效果 */
+function onCardHover(el: HTMLElement, hover: boolean): void {
   if (hover) {
     el.style.background = 'rgba(255, 255, 255, 0.9)'
     el.style.borderColor = 'rgba(99, 102, 241, 0.24)'

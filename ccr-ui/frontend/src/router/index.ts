@@ -166,7 +166,8 @@ const router = createRouter({
         {
           path: 'gemini-cli/mcp',
           name: 'gemini-mcp',
-          component: () => import('@/views/GeminiMcpView.vue')
+          component: () => import('@/views/generic/PlatformMcpView.vue'),
+          props: { platform: 'gemini' }
         },
         {
           path: 'gemini-cli/agents',
@@ -182,13 +183,15 @@ const router = createRouter({
         {
           path: 'gemini-cli/plugins',
           name: 'gemini-plugins',
-          component: () => import('@/views/GeminiPluginsView.vue')
+          component: () => import('@/views/generic/PlatformPluginsView.vue'),
+          props: { platform: 'gemini' }
         },
         // Qwen 子页面
         {
           path: 'qwen/mcp',
           name: 'qwen-mcp',
-          component: () => import('@/views/QwenMcpView.vue')
+          component: () => import('@/views/generic/PlatformMcpView.vue'),
+          props: { platform: 'qwen' }
         },
         {
           path: 'qwen/agents',
@@ -204,13 +207,15 @@ const router = createRouter({
         {
           path: 'qwen/plugins',
           name: 'qwen-plugins',
-          component: () => import('@/views/QwenPluginsView.vue')
+          component: () => import('@/views/generic/PlatformPluginsView.vue'),
+          props: { platform: 'qwen' }
         },
         // iFlow 子页面
         {
           path: 'iflow/mcp',
           name: 'iflow-mcp',
-          component: () => import('@/views/IflowMcpView.vue')
+          component: () => import('@/views/generic/PlatformMcpView.vue'),
+          props: { platform: 'iflow' }
         },
         {
           path: 'iflow/agents',
@@ -226,7 +231,8 @@ const router = createRouter({
         {
           path: 'iflow/plugins',
           name: 'iflow-plugins',
-          component: () => import('@/views/IflowPluginsView.vue')
+          component: () => import('@/views/generic/PlatformPluginsView.vue'),
+          props: { platform: 'iflow' }
         }
       ]
     }
