@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.15.0] - 2025-12-25
+
+### ✨ 新增
+
+- **通用配置缓存体系**：新增 `ConfigCache` 支持 TTL 过期与自动缓存的 `CachedSettingsManager`，减少重复 I/O，显著提升配置读取性能
+- **平台基础抽象与统一响应**：新增 `platforms/base` 抽象层与 `response` 模块，平台 Handler 统一响应格式，并以宏简化 Manager 初始化与错误处理
+- **签到功能扩展与 WAF 绕过**：内置中转站提供商、账号总额度/消耗字段与 Dashboard 分析视图，加入 WAF 绕过与日志管理基础模块及配套 UI
+- **平台前端通用组件**：新增通用 `PlatformMcpView`、`PlatformPluginsView`、`ToastContainer`，引入组合式 `usePlatformMcp` / `usePlatformPlugins`，API 模块化提升复用
+- **性能与工具**：新增后端性能测试脚本（`benchmark.ps1`/`benchmark.sh`），更新文档补充缓存层说明
+
+### 🔧 改进
+
+- **配置与平台重构**：配置文件模块化为 `config/` 目录，删除重复的配置转换与保存逻辑；Claude/Codex/Gemini 等平台基于统一抽象重构
+- **交互与样式**：签到页面统计卡片、表格与 Dashboard 视觉优化，SVG 图标格式化提升可读性；通用组件与签到界面样式细节打磨
+- **依赖与版本管理**：逐步升级版本至 v3.15.0，期间补齐 v3.14.1~v3.14.5 跨平台脚本与依赖优化
+
+### 📊 统计数据
+
+- **代码变更**：新增 19,163 行，删除 5,155 行，净增 14,008 行
+
+### 🔗 相关资源
+
+- **GitHub Release**：[v3.15.0](https://github.com/bahayonghang/ccr/releases/tag/v3.15.0)
+- **详细文档**：详见 [docs/reference/changelog.md](docs/reference/changelog.md)
+- **对比 Diff**：[3.15.0]
+
 ## [3.14.0] - 2025-12-22
 
 ### ✨ 新增
@@ -96,3 +122,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [3.14.0]: https://github.com/bahayonghang/ccr/compare/v3.13.0...v3.14.0
 [3.13.0]: https://github.com/bahayonghang/ccr/releases/tag/v3.13.0
 [3.11.0]: https://github.com/bahayonghang/ccr/releases/tag/v3.11.0
+[3.15.0]: https://github.com/bahayonghang/ccr/compare/v3.14.0...v3.15.0
