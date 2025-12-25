@@ -36,11 +36,21 @@ impl SessionParser {
 
         let session_id = Self::extract_session_id(&events)
             .or_else(|| Self::extract_id_from_path(path))
-            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+            .unwrap_or_else(|| {
+                let id = uuid::Uuid::new_v4().to_string();
+                debug!("无法提取 session ID，生成新 ID: {}", id);
+                id
+            });
 
         let cwd = Self::extract_cwd(&events)
             .map(PathBuf::from)
-            .unwrap_or_else(|| path.parent().map(|p| p.to_path_buf()).unwrap_or_default());
+            .unwrap_or_else(|| {
+                let fallback = path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+                if fallback.as_os_str().is_empty() {
+                    debug!("无法提取工作目录，使用空路径: {}", path.display());
+                }
+                fallback
+            });
 
         let title = Self::extract_title(&events);
         let (created_at, updated_at) = Self::extract_timestamps(&events, path)?;
@@ -71,11 +81,21 @@ impl SessionParser {
 
         let session_id = Self::extract_session_id(&events)
             .or_else(|| Self::extract_id_from_path(path))
-            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+            .unwrap_or_else(|| {
+                let id = uuid::Uuid::new_v4().to_string();
+                debug!("无法提取 session ID，生成新 ID: {}", id);
+                id
+            });
 
         let cwd = Self::extract_cwd(&events)
             .map(PathBuf::from)
-            .unwrap_or_else(|| path.parent().map(|p| p.to_path_buf()).unwrap_or_default());
+            .unwrap_or_else(|| {
+                let fallback = path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+                if fallback.as_os_str().is_empty() {
+                    debug!("无法提取工作目录，使用空路径: {}", path.display());
+                }
+                fallback
+            });
 
         let title = Self::extract_title(&events);
         let (created_at, updated_at) = Self::extract_timestamps(&events, path)?;
@@ -103,12 +123,25 @@ impl SessionParser {
     /// 解析 Gemini session 文件
     pub fn parse_gemini(path: &Path) -> Result<Session> {
         // Gemini 使用不同的格式，尝试解析
-        let events = Self::read_jsonl(path).unwrap_or_default();
+        let events = Self::read_jsonl(path).unwrap_or_else(|e| {
+            debug!(
+                "Gemini session 文件解析失败，使用空事件列表: {} - {}",
+                path.display(),
+                e
+            );
+            Vec::new()
+        });
 
-        let session_id =
-            Self::extract_id_from_path(path).unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let session_id = Self::extract_id_from_path(path).unwrap_or_else(|| {
+            let id = uuid::Uuid::new_v4().to_string();
+            debug!("无法从路径提取 session ID，生成新 ID: {}", id);
+            id
+        });
 
-        let cwd = path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+        let cwd = path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| {
+            debug!("无法获取文件父目录: {}", path.display());
+            PathBuf::new()
+        });
 
         let title = Self::extract_title(&events);
         let (created_at, updated_at) = Self::extract_timestamps(&events, path)?;
@@ -135,12 +168,26 @@ impl SessionParser {
 
     /// 解析通用格式（用于 Qwen、iFlow 等）
     fn parse_generic(path: &Path, platform: Platform) -> Result<Session> {
-        let events = Self::read_jsonl(path).unwrap_or_default();
+        let events = Self::read_jsonl(path).unwrap_or_else(|e| {
+            debug!(
+                "{:?} session 文件解析失败，使用空事件列表: {} - {}",
+                platform,
+                path.display(),
+                e
+            );
+            Vec::new()
+        });
 
-        let session_id =
-            Self::extract_id_from_path(path).unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let session_id = Self::extract_id_from_path(path).unwrap_or_else(|| {
+            let id = uuid::Uuid::new_v4().to_string();
+            debug!("无法从路径提取 session ID，生成新 ID: {}", id);
+            id
+        });
 
-        let cwd = path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+        let cwd = path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| {
+            debug!("无法获取文件父目录: {}", path.display());
+            PathBuf::new()
+        });
 
         let title = Self::extract_title(&events);
         let (created_at, updated_at) = Self::extract_timestamps(&events, path)?;
@@ -256,9 +303,8 @@ impl SessionParser {
             .map(|dt| dt.with_timezone(&Utc))
             .collect();
 
-        if !timestamps.is_empty() {
-            let created = *timestamps.first().unwrap();
-            let updated = *timestamps.last().unwrap();
+        // 使用 first/last 的安全版本，避免 unwrap
+        if let (Some(&created), Some(&updated)) = (timestamps.first(), timestamps.last()) {
             return Ok((created, updated));
         }
 
@@ -416,10 +462,10 @@ mod tests {
     use tempfile::tempdir;
 
     fn create_test_jsonl(content: &str) -> PathBuf {
-        let dir = tempdir().unwrap();
+        let dir = tempdir().expect("Failed to create temp directory for test");
         let file_path = dir.path().join("test.jsonl");
-        let mut file = File::create(&file_path).unwrap();
-        write!(file, "{}", content).unwrap();
+        let mut file = File::create(&file_path).expect("Failed to create test JSONL file");
+        write!(file, "{}", content).expect("Failed to write test JSONL content");
         std::mem::forget(dir); // 保持目录存活
         file_path
     }
@@ -432,7 +478,7 @@ mod tests {
 "#;
 
         let path = create_test_jsonl(content);
-        let session = SessionParser::parse_claude(&path).unwrap();
+        let session = SessionParser::parse_claude(&path).expect("Failed to parse test session");
 
         assert_eq!(session.id, "test-123");
         assert_eq!(session.platform, Platform::Claude);

@@ -1,8 +1,8 @@
 use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
+use crate::cache::GLOBAL_SETTINGS_CACHE;
 use crate::managers::markdown_manager::{CommandFrontmatter, MarkdownManager};
-use crate::managers::settings_manager::SettingsManager;
 use crate::models::api::{SlashCommand, SlashCommandRequest};
 
 /// Extract description from markdown content
@@ -105,8 +105,8 @@ pub async fn list_slash_commands() -> impl IntoResponse {
         }
     }
 
-    // Fallback to settings.json
-    let settings_result = SettingsManager::default().and_then(|manager| manager.load());
+    // Fallback to settings.json (使用全局缓存)
+    let settings_result = GLOBAL_SETTINGS_CACHE.load();
 
     if let Ok(settings) = settings_result {
         let commands: Vec<SlashCommand> = settings
@@ -150,10 +150,8 @@ pub async fn list_slash_commands() -> impl IntoResponse {
 
 /// POST /api/slash-commands - Add a new slash command
 pub async fn add_slash_command(Json(req): Json<SlashCommandRequest>) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         let new_command = crate::managers::settings_manager::SlashCommand {
             name: req.name.clone(),
             description: req.description.clone(),
@@ -164,7 +162,7 @@ pub async fn add_slash_command(Json(req): Json<SlashCommandRequest>) -> impl Int
 
         settings.slash_commands.push(new_command);
 
-        if settings_manager.save(&settings).is_ok() {
+        if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
             return (
                 StatusCode::OK,
                 Json(json!({
@@ -194,10 +192,8 @@ pub async fn update_slash_command(
     Path(name): Path<String>,
     Json(req): Json<SlashCommandRequest>,
 ) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         if let Some(cmd) = settings.slash_commands.iter_mut().find(|c| c.name == name) {
             cmd.name = req.name;
             cmd.description = req.description;
@@ -207,7 +203,7 @@ pub async fn update_slash_command(
                 cmd.disabled = disabled;
             }
 
-            if settings_manager.save(&settings).is_ok() {
+            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
                 return (
                     StatusCode::OK,
                     Json(json!({
@@ -244,15 +240,13 @@ pub async fn update_slash_command(
 
 /// DELETE /api/slash-commands/:name - Delete a slash command
 pub async fn delete_slash_command(Path(name): Path<String>) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         let original_len = settings.slash_commands.len();
         settings.slash_commands.retain(|c| c.name != name);
 
         if settings.slash_commands.len() < original_len {
-            if settings_manager.save(&settings).is_ok() {
+            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
                 return (
                     StatusCode::OK,
                     Json(json!({
@@ -289,15 +283,13 @@ pub async fn delete_slash_command(Path(name): Path<String>) -> impl IntoResponse
 
 /// PATCH /api/slash-commands/:name/toggle - Toggle slash command enabled/disabled state
 pub async fn toggle_slash_command(Path(name): Path<String>) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         if let Some(cmd) = settings.slash_commands.iter_mut().find(|c| c.name == name) {
             cmd.disabled = !cmd.disabled;
             let new_state = if cmd.disabled { "disabled" } else { "enabled" };
 
-            if settings_manager.save(&settings).is_ok() {
+            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
                 return (
                     StatusCode::OK,
                     Json(json!({

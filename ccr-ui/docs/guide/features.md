@@ -141,6 +141,37 @@ exclude_patterns = ["*.log", "cache/"]
 - 独立备份存储
 - 独立 MCP/Agent/Plugin 管理
 
+## 📅 签到管理 (v3.7+)
+管理 AI 中转站的自动签到，追踪账号余额，和 NeuraDock 项目类似。
+
+**核心功能**：
+- 🏪 **内置中转站**：预置 AnyRouter、AgentRouter、CodeRouter 配置，一键添加
+- 📝 **自定义提供商**：支持添加任意中转站配置
+- 👤 **多账号管理**：每个提供商支持多个账号
+- ✅ **自动签到**：一键批量签到所有启用的账号
+- 💰 **余额查询**：查询账号剩余额度
+- 📊 **签到记录**：查看历史签到状态
+- 📦 **导入导出**：配置备份和迁移
+
+**内置中转站**：
+
+| 中转站 | 域名 | 签到支持 | 特性 |
+|--------|------|----------|------|
+| 🌐 AnyRouter | anyrouter.top | ✅ 支持 | 需要 WAF 绕过 |
+| 🤖 AgentRouter | agentrouter.org | ⚠️ 自动签到 | 查询用户信息时自动签到 |
+| 💻 CodeRouter | api.codemirror.codes | ❌ 不支持 | 无签到功能 |
+
+**代理支持**：
+签到服务默认使用系统代理，通过以下环境变量配置：
+```bash
+# Socks5 代理
+export ALL_PROXY=socks5://127.0.0.1:7890
+
+# 或 HTTP 代理
+export HTTPS_PROXY=http://127.0.0.1:7890
+export HTTP_PROXY=http://127.0.0.1:7890
+```
+
 ## 💻 系统信息监控
 实时监控系统状态和资源使用情况。
 

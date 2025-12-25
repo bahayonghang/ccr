@@ -422,7 +422,10 @@ pub struct McpSyncManager {
 impl McpSyncManager {
     /// 创建同步管理器
     pub fn new() -> Self {
-        let home = dirs::home_dir().unwrap_or_default();
+        let home = dirs::home_dir().unwrap_or_else(|| {
+            tracing::warn!("无法获取用户主目录，使用空路径");
+            PathBuf::new()
+        });
         Self {
             source: Platform::Claude,
             source_dir: home.join(".claude"),
@@ -599,11 +602,15 @@ mod tests {
 
     #[test]
     fn test_get_preset() {
-        let manager = McpPresetManager::new(Platform::Claude).unwrap();
+        let manager = McpPresetManager::new(Platform::Claude)
+            .expect("Failed to create McpPresetManager for test");
 
         let fetch = manager.get_preset("fetch");
         assert!(fetch.is_some());
-        assert_eq!(fetch.unwrap().name, "mcp-server-fetch");
+        assert_eq!(
+            fetch.expect("fetch preset should exist").name,
+            "mcp-server-fetch"
+        );
 
         let nonexistent = manager.get_preset("nonexistent");
         assert!(nonexistent.is_none());

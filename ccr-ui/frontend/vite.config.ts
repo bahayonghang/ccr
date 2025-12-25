@@ -2,6 +2,9 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
+// 后端端口配置（与 justfile 保持一致）
+const backendPort = process.env.BACKEND_PORT || '48081'
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
@@ -38,7 +41,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:38081',
+        target: `http://localhost:${backendPort}`,
         changeOrigin: true,
       },
     },

@@ -231,7 +231,10 @@ fn cmd_verify(name: &str) -> Result<()> {
                 .clone()
                 .unwrap_or_else(|| "https://api.anthropic.com".to_string());
 
-            let api_key = c.auth_token.clone().unwrap_or_default();
+            let api_key = c.auth_token.clone().unwrap_or_else(|| {
+                tracing::debug!("配置 {} 未设置 API Key", name);
+                String::new()
+            });
 
             if api_key.is_empty() {
                 ColorOutput::error("API Key 未配置");

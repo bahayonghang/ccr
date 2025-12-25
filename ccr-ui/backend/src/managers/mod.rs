@@ -1,5 +1,6 @@
 // Manager layer - data access and persistence
 
+pub mod checkin;
 pub mod config;
 pub mod markdown_manager;
 pub mod plugins_manager;

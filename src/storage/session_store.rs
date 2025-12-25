@@ -395,7 +395,10 @@ impl<'a> SessionStore<'a> {
 
         let total: i64 = conn
             .query_row("SELECT COUNT(*) FROM sessions", [], |row| row.get(0))
-            .unwrap_or(0);
+            .unwrap_or_else(|e| {
+                debug!("查询 session 总数失败: {}", e);
+                0
+            });
 
         let by_platform = conn
             .prepare("SELECT platform, COUNT(*) FROM sessions GROUP BY platform")
@@ -409,7 +412,10 @@ impl<'a> SessionStore<'a> {
                 }
                 Ok(map)
             })
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                debug!("按平台统计 session 失败: {}", e);
+                std::collections::HashMap::new()
+            });
 
         Ok(SessionStats {
             total: total as u64,
@@ -460,6 +466,7 @@ impl Platform {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::storage::Database;

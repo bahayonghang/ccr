@@ -104,6 +104,7 @@ export default {
     license: 'MIT License',
     mainModules: 'Main Modules',
     toolsCenter: 'Tools Center',
+    checkin: 'Check-in',
   },
   home: {
     title: 'CCR UI',

@@ -1,14 +1,14 @@
 use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
+use crate::cache::GLOBAL_SETTINGS_CACHE;
 use crate::managers::plugins_manager::PluginsManager;
-use crate::managers::settings_manager::SettingsManager;
 use crate::models::api::{Plugin, PluginRequest};
 
 /// GET /api/plugins - List all plugins
 pub async fn list_plugins() -> impl IntoResponse {
-    // Try settings.json first (preferred)
-    let settings_result = SettingsManager::default().and_then(|manager| manager.load());
+    // Try settings.json first (preferred，使用全局缓存)
+    let settings_result = GLOBAL_SETTINGS_CACHE.load();
 
     if let Ok(settings) = settings_result {
         let plugins: Vec<Plugin> = settings
@@ -104,10 +104,8 @@ pub async fn list_plugins() -> impl IntoResponse {
 
 /// POST /api/plugins - Add a new plugin
 pub async fn add_plugin(Json(req): Json<PluginRequest>) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         let new_plugin = crate::managers::settings_manager::Plugin {
             id: req.id.clone(),
             name: req.name.clone(),
@@ -118,7 +116,7 @@ pub async fn add_plugin(Json(req): Json<PluginRequest>) -> impl IntoResponse {
 
         settings.plugins.push(new_plugin);
 
-        if settings_manager.save(&settings).is_ok() {
+        if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
             return (
                 StatusCode::OK,
                 Json(json!({
@@ -187,10 +185,8 @@ pub async fn update_plugin(
     Path(id): Path<String>,
     Json(req): Json<PluginRequest>,
 ) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         if let Some(plugin) = settings.plugins.iter_mut().find(|p| p.id == id) {
             plugin.id = req.id.clone();
             plugin.name = req.name.clone();
@@ -200,7 +196,7 @@ pub async fn update_plugin(
             }
             plugin.config = req.config.clone();
 
-            if settings_manager.save(&settings).is_ok() {
+            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
                 return (
                     StatusCode::OK,
                     Json(json!({
@@ -277,15 +273,13 @@ pub async fn update_plugin(
 
 /// DELETE /api/plugins/:id - Delete a plugin
 pub async fn delete_plugin(Path(id): Path<String>) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓��)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         let original_len = settings.plugins.len();
         settings.plugins.retain(|p| p.id != id);
 
         if settings.plugins.len() < original_len {
-            if settings_manager.save(&settings).is_ok() {
+            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
                 return (
                     StatusCode::OK,
                     Json(json!({
@@ -349,10 +343,8 @@ pub async fn delete_plugin(Path(id): Path<String>) -> impl IntoResponse {
 
 /// PATCH /api/plugins/:id/toggle - Toggle plugin enabled/disabled state
 pub async fn toggle_plugin(Path(id): Path<String>) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         if let Some(plugin) = settings.plugins.iter_mut().find(|p| p.id == id) {
             plugin.enabled = !plugin.enabled;
             let new_state = if plugin.enabled {
@@ -361,7 +353,7 @@ pub async fn toggle_plugin(Path(id): Path<String>) -> impl IntoResponse {
                 "disabled"
             };
 
-            if settings_manager.save(&settings).is_ok() {
+            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
                 return (
                     StatusCode::OK,
                     Json(json!({

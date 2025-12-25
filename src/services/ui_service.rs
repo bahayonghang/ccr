@@ -63,7 +63,10 @@ impl UiService {
             current_dir
                 .parent()
                 .map(|p| p.join("ccr-ui"))
-                .unwrap_or_default(),
+                .unwrap_or_else(|| {
+                    tracing::trace!("当前目录没有父目录");
+                    PathBuf::new()
+                }),
         ];
 
         // 查找第一个有效的 ccr-ui 目录

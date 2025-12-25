@@ -121,10 +121,16 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     let old_env = old_settings
         .as_ref()
         .map(|s| s.anthropic_env_status())
-        .unwrap_or_default();
+        .unwrap_or_else(|| {
+            tracing::debug!("无法获取旧设置的环境变量状态");
+            std::collections::HashMap::new()
+        });
 
     // 🔄 应用新配置
-    let mut new_settings = old_settings.unwrap_or_default();
+    let mut new_settings = old_settings.unwrap_or_else(|| {
+        tracing::debug!("无法加载旧设置，使用默认设置");
+        Default::default()
+    });
     new_settings.update_from_config(&target_section);
 
     // 💾 原子性保存
@@ -135,7 +141,10 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     // 📝 步骤 4: 更新配置文件
     ColorOutput::step("步骤 4/5: 更新配置文件");
 
-    let old_current = platform_config.get_current_profile()?.unwrap_or_default();
+    let old_current = platform_config.get_current_profile()?.unwrap_or_else(|| {
+        tracing::debug!("无法获取当前 profile 名称");
+        String::new()
+    });
 
     // 📊 递增目标 profile 的使用次数
     {

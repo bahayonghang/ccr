@@ -20,37 +20,97 @@ if ($RootDir -eq $PSScriptRoot) {
 }
 Set-Location $RootDir
 
-# Create logs directory
-if (-not (Test-Path logs)) {
-    New-Item -ItemType Directory -Path logs -Force | Out-Null
+# ========== ANSI Escape Sequence Handling ==========
+
+# Remove ANSI escape sequences from text
+function Remove-AnsiEscapeSequences {
+    param([string]$Text)
+    # Match all ANSI escape sequences: ESC[...m, ESC[...H, ESC]...BEL, etc.
+    $ansiPattern = '\x1b\[[0-9;]*[a-zA-Z~]|\x1b\][^\x07]*\x07'
+    return $Text -replace $ansiPattern, ''
 }
+
+# Write cleaned log with timestamp
+function Write-CleanLog {
+    param(
+        [Parameter(ValueFromPipeline)]
+        [string]$Line,
+        [string]$LogPath
+    )
+    process {
+        if (-not [string]::IsNullOrEmpty($Line)) {
+            $cleanLine = Remove-AnsiEscapeSequences -Text $Line
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $logEntry = "[$timestamp] $cleanLine"
+            
+            # Write to log file (cleaned format with timestamp)
+            Add-Content -Path $LogPath -Value $logEntry -Encoding UTF8
+            
+            # Output to console (original format with colors)
+            Write-Host $Line
+        }
+    }
+}
+
+# ========== Log Directory Setup ==========
+
+# Create logs directory structure
+$logsDir = Join-Path $RootDir "logs"
+$backendLogsDir = Join-Path $logsDir "backend"
+$frontendLogsDir = Join-Path $logsDir "frontend"
+
+if (-not (Test-Path $backendLogsDir)) {
+    New-Item -ItemType Directory -Path $backendLogsDir -Force | Out-Null
+}
+if (-not (Test-Path $frontendLogsDir)) {
+    New-Item -ItemType Directory -Path $frontendLogsDir -Force | Out-Null
+}
+
+# Get today's date for log file names
+$logDate = Get-Date -Format "yyyy-MM-dd"
+$frontendLogPath = Join-Path $frontendLogsDir "$logDate.log"
+$backendConsoleLogPath = Join-Path $backendLogsDir "console-$logDate.log"
 
 Write-Host "[CCR] Starting development environment (parallel mode)..." -ForegroundColor Cyan
 Write-Host ""
+
+# ========== Pre-compile Backend (避免健康检查超时) ==========
+Write-Host "[Backend] Pre-compiling..." -ForegroundColor Yellow
+
+$backendDir = Join-Path $RootDir "backend"
+Push-Location $backendDir
+try {
+    # 先编译，确保二进制文件存在，避免启动时编译超时
+    # 使用 & 执行 cargo，让输出直接显示
+    & cargo build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] Backend compilation failed (exit code: $LASTEXITCODE)" -ForegroundColor Red
+        Pop-Location
+        exit 1
+    }
+    Write-Host "[Backend] Compilation successful" -ForegroundColor Green
+} finally {
+    Pop-Location
+}
 
 # ========== Start Backend (Background Job) ==========
 Write-Host "[Backend] Starting server (background job)..." -ForegroundColor Yellow
 
 $backendJob = Start-Job -ScriptBlock {
-    param($workDir, $port)
+    param($workDir, $port, $logPath)
     Set-Location "$workDir/backend"
 
-    # Run cargo and log output (传递端口参数)
-    $logPath = "$workDir/logs/backend-console.log"
+    # Run cargo (已预编译，直接运行) 传递端口参数
     cargo run -- --port $port 2>&1 | Tee-Object -FilePath $logPath -Append
-} -ArgumentList $RootDir, $BackendPort
+} -ArgumentList $RootDir, $BackendPort, $backendConsoleLogPath
 
 Write-Host "[Backend] Started in background (Job ID: $($backendJob.Id))" -ForegroundColor Green
-Write-Host "          Log file: logs/backend-console.log" -ForegroundColor Gray
+Write-Host "          Log file: $backendConsoleLogPath" -ForegroundColor Gray
 Write-Host ""
 
 # ========== Wait for Backend Ready ==========
-# 动态超时：已编译则 30 秒，未编译则 120 秒
-if (Test-Path "$RootDir/backend/target/debug") {
-    $maxWait = 30
-} else {
-    $maxWait = 120
-}
+# 编译已在启动前完成，只需等待服务器启动，固定 30 秒超时
+$maxWait = 30
 Write-Host "[Backend] Waiting for health check (http://127.0.0.1:$BackendPort/health)..." -ForegroundColor Cyan
 
 $backendReady = $false
@@ -83,7 +143,7 @@ for ($i = 0; $i -lt $maxWait; $i++) {
     if ($i -eq ($maxWait - 1)) {
         Write-Host ""
         Write-Host "[ERROR] Backend health check timeout (${maxWait}s)" -ForegroundColor Red
-        Write-Host "        Check logs/backend-console.log for details" -ForegroundColor Red
+        Write-Host "        Check $backendConsoleLogPath for details" -ForegroundColor Red
         Write-Host ""
         Write-Host "Recent backend log output:" -ForegroundColor Yellow
         Receive-Job -Job $backendJob -Keep | Select-Object -Last 20 | Write-Host
@@ -97,7 +157,7 @@ Write-Host ""
 
 # ========== Start Frontend (Foreground) ==========
 Write-Host "[Frontend] Starting server (foreground, live logs visible)..." -ForegroundColor Yellow
-Write-Host "           Log file: logs/frontend.log" -ForegroundColor Gray
+Write-Host "           Log file: $frontendLogPath" -ForegroundColor Gray
 Write-Host ""
 Write-Host "[TIP] Press Ctrl+C to stop both backend and frontend servers" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor DarkGray
@@ -109,10 +169,11 @@ try {
     # Suppress PowerShell treating stderr as error (bun/vite outputs to stderr)
     $ErrorActionPreference = "Continue"
 
-    # Frontend runs in foreground with live output, also writes to log (传递端口参数)
-    # Use cmd /c to prevent PowerShell from treating stderr as terminating error
-    # The '|| exit 0' ensures that if the process is killed (e.g. Ctrl+C), it doesn't return failure to Just
-    cmd /c "bun run dev -- --port $VitePort 2>&1 || exit 0" | Tee-Object -FilePath "$RootDir/logs/frontend.log" -Append
+    # Frontend runs in foreground with live output using Write-CleanLog
+    # --host 0.0.0.0 allows access from LAN IP addresses
+    cmd /c "bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 || exit 0" | ForEach-Object {
+        Write-CleanLog -Line $_ -LogPath $frontendLogPath
+    }
 } finally {
     # Cleanup: Stop backend job
     Write-Host ""

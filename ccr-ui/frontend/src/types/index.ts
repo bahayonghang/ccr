@@ -681,3 +681,7 @@ export interface SyncInfoResponse {
   setup_steps: string[];
   security_notes: string[];
 }
+
+// Re-export checkin types
+export * from './checkin'
+

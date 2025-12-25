@@ -10,6 +10,7 @@
 - **多平台支持**：统一管理 Claude Code、Codex、Gemini CLI、Qwen 等 AI 工具配置
 - **WebDAV 同步**：多目录同步、注册管理、批量与单目录 push/pull/status
 - **格式转换**：不同平台配置间的互相转换（Claude ↔ Codex ↔ Gemini）
+- **签到管理**：中转站多账号签到、余额查询、历史记录追踪
 - **桌面支持**：Tauri 2.0 构建原生桌面应用
 
 ### 支持的 AI 平台
@@ -190,6 +191,7 @@ ccr/ (workspace root)
 /commands                - CCR 命令执行器
 /converter               - 配置格式转换
 /sync                    - WebDAV 同步管理
+/checkin                 - 签到管理
 ```
 
 ### Claude Code 路由

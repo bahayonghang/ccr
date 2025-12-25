@@ -250,9 +250,9 @@ mod tests {
             return;
         }
 
-        let dir = tempdir().unwrap();
+        let dir = tempdir().expect("Failed to create temp directory for test");
         let db_path = dir.path().join("test.db");
-        let db = Database::init(&db_path).unwrap();
+        let db = Database::init(&db_path).expect("Failed to init test database");
         let _indexer = SessionIndexer::with_database(Arc::new(db));
     }
 }

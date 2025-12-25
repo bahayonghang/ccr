@@ -44,7 +44,10 @@ pub fn platform_info_command(platform_name: &str, json: bool) -> Result<()> {
     let description = registry.and_then(|r| r.description.clone());
 
     // 获取 profiles 列表
-    let profiles = platform_impl.list_profile_names().unwrap_or_default();
+    let profiles = platform_impl.list_profile_names().unwrap_or_else(|e| {
+        tracing::debug!("获取 {} 平台 profile 列表失败: {}", platform_name, e);
+        Vec::new()
+    });
 
     // 📤 JSON 输出
     if json {

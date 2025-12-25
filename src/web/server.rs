@@ -342,7 +342,7 @@ impl WebServer {
 
 /// Web 命令入口
 pub fn web_command(port: Option<u16>, no_browser: bool) -> Result<()> {
-    let port = port.unwrap_or(8080);
+    let port = port.unwrap_or(9527);
     let server = WebServer::new(port)?;
 
     // 🎯 创建 Tokio 运行时并执行异步服务器

@@ -344,6 +344,7 @@ pub fn get_prompts_by_category(category: PromptCategory) -> Vec<BuiltinPrompt> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

@@ -52,7 +52,7 @@ pub use platform_config::{PlatformConfigEntry, PlatformConfigManager, UnifiedCon
 #[allow(unused_imports)]
 pub use pricing_manager::PricingManager;
 #[allow(unused_imports)]
-pub use settings::{ClaudeSettings, SettingsManager};
+pub use settings::{CachedSettingsManager, ClaudeSettings, SettingsManager};
 #[allow(unused_imports)]
 pub use sync_config::{SyncConfig, SyncConfigManager};
 #[allow(unused_imports)]

@@ -214,14 +214,25 @@ impl Database {
 
         let session_count: i64 = conn
             .query_row("SELECT COUNT(*) FROM sessions", [], |row| row.get(0))
-            .unwrap_or(0);
+            .unwrap_or_else(|e| {
+                debug!("查询 session 数量失败: {}", e);
+                0
+            });
 
         let search_count: i64 = conn
             .query_row("SELECT COUNT(*) FROM search_history", [], |row| row.get(0))
-            .unwrap_or(0);
+            .unwrap_or_else(|e| {
+                debug!("查询搜索历史数量失败: {}", e);
+                0
+            });
 
         // 获取文件大小
-        let file_size = std::fs::metadata(&self.path).map(|m| m.len()).unwrap_or(0);
+        let file_size = std::fs::metadata(&self.path)
+            .map(|m| m.len())
+            .unwrap_or_else(|e| {
+                debug!("获取数据库文件大小失败: {}", e);
+                0
+            });
 
         Ok(DatabaseStats {
             session_count: session_count as u64,
@@ -269,6 +280,7 @@ impl DatabaseStats {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::tempdir;

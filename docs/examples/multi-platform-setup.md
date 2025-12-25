@@ -27,7 +27,7 @@
 ├── history/
 │   ├── claude.json                        # Claude 操作历史
 │   ├── codex.json                         # Codex 操作历史
-│   └── gemini.json                        # Gemini 操作��史
+│   └── gemini.json                        # Gemini 操作历史
 └── backups/
     ├── claude/                            # Claude 备份
     ├── codex/                             # Codex 备份
@@ -200,7 +200,7 @@ ccr platform info gemini
 ccr platform current
 ```
 
-## 🛠️ 配置��件示例
+## 🛠️ 配置文件示例
 
 ### ~/.ccr/config.toml (平台注册表)
 

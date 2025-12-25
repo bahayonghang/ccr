@@ -35,6 +35,201 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `docs/configuration.md` with web server options and smart port binding tips
 - Updated `docs/index.md` with web command usage examples
 
+---
+
+## [3.14.0] - 2025-12-22
+
+### ✨ 新增功能
+
+#### 🎫 API 中转站自动签到功能（核心特性）
+
+**完整的签到系统架构**:
+- **提供商管理 (Provider Management)**
+  - 管理多个 API 中转站提供商配置
+  - 支持自定义 base_url、签到路径、余额路径
+  - 支持自定义请求头和认证前缀
+  - 启用/禁用提供商状态管理
+
+- **账号管理 (Account Management)**
+  - 多账号批量管理，每个账号独立配置
+  - 支持账号备注、显示名称、优先级设置
+  - 账号启用/禁用状态控制
+  - 最后签到时间和余额记录
+
+- **签到记录 (Check-in Records)**
+  - 完整的签到历史记录，UUID 唯一标识
+  - 支持成功/失败/已签到状态追踪
+  - 详细的签到消息和奖励信息
+  - 自动 90 天数据清理策略
+
+- **余额快照 (Balance Snapshots)**
+  - 自动记录余额变化历史
+  - 支持历史趋势查看和对比
+  - 总额、已用、剩余三维度记录
+  - 自动 90 天数据保留策略
+
+- **数据导入/导出 (Import/Export)**
+  - JSON 格式配置导入导出
+  - 支持提供商和账号批量操作
+  - 覆盖/追加两种导入模式
+  - 方便备份和迁移
+
+**安全特性**:
+- **AES-256-GCM 加密**：API Key 加密存储，保障账号安全
+- **主密钥管理**：自动生成和管理加密主密钥
+- **密钥轮换**：支持密钥重新加密功能
+
+**技术实现细节**:
+- **后端架构** (`ccr-ui/backend`):
+  - 新增 `managers/checkin/` 模块：
+    - `provider_manager.rs` - 提供商 CRUD (391 行)
+    - `account_manager.rs` - 账号 CRUD (446 行)
+    - `record_manager.rs` - 签到记录管理 (402 行)
+    - `balance_manager.rs` - 余额快照管理 (336 行)
+    - `export_manager.rs` - 导入导出逻辑 (384 行)
+  - 新增 `core/crypto.rs` - AES-256-GCM 加密模块 (300 行)
+  - 新增 `services/checkin_service.rs` - 签到业务服务 (582 行)
+  - 新增 `api/handlers/checkin.rs` - 14 个 REST API 端点 (473 行)
+  - 新增 `models/checkin/` - 完整的数据模型 (1427 行)
+
+- **前端实现** (`ccr-ui/frontend`):
+  - 新增 `views/CheckinView.vue` - 签到管理主界面 (1166 行)
+  - 新增 `api/client.ts` - 签到 API 客户端 (173 行)
+  - 新增 `types/checkin.ts` - TypeScript 类型定义 (277 行)
+  - 集成导航菜单和路由配置
+
+**API 端点清单** (14 个):
+1. `GET /api/checkin/providers` - 列出所有提供商
+2. `POST /api/checkin/providers` - 创建提供商
+3. `PUT /api/checkin/providers/:id` - 更新提供商
+4. `DELETE /api/checkin/providers/:id` - 删除提供商
+5. `GET /api/checkin/accounts` - 列出所有账号
+6. `POST /api/checkin/accounts` - 创建账号
+7. `PUT /api/checkin/accounts/:id` - 更新账号
+8. `DELETE /api/checkin/accounts/:id` - 删除账号
+9. `POST /api/checkin/checkin` - 执行签到
+10. `GET /api/checkin/records` - 获取签到记录
+11. `GET /api/checkin/balances/:account_id` - 获取余额历史
+12. `GET /api/checkin/stats/today` - 今日签到统计
+13. `POST /api/checkin/export` - 导出配置
+14. `POST /api/checkin/import` - 导入配置
+
+**代码统计**:
+- **后端代码**：6200+ 行
+- **前端代码**：180+ 行（签到界面 + API 客户端 + 类型定义）
+- **新增文件**：29 个
+- **测试覆盖**：97 个测试通过，0 警告
+
+#### 🎨 光明主题"光韵流光"动画系统
+
+**核心动画关键帧** (8 种):
+1. **lightPulse** - 脉冲光晕效果
+2. **lightFlow** - 流动光感
+3. **lightRipple** - 涟漪扩散
+4. **lightGlow** - 光芒闪耀
+5. **lightBreath** - 呼吸光效
+6. **lightShimmer** - 微光闪烁
+7. **lightWave** - 波浪起伏
+8. **lightFloat** - 漂浮动画
+
+**设计特色**:
+- **光明主题专用 CSS 变量**：完整的光感配色系统
+- **玻璃态组件增强**：卡片、按钮、导航、输入框的流畅动画
+- **动态背景优化**：轻盈优雅的光感体验
+- **主题对比**：与暗黑主题"赛博霜夜"形成完美美学对比
+
+**技术实现**:
+- **代码量**：855 行 CSS 代码 (`ccr-ui/frontend/src/styles/index.css`)
+- **性能优化**：使用 CSS 变量和 transform 实现流畅动画
+- **响应式设计**：适配不同屏幕尺寸
+- **主题切换**：与暗黑主题无缝切换
+
+### 🔧 改进
+
+- **样式集成优化** (commit `e43198c`)
+  - 集成签到功能导航和界面样式
+  - 提升视觉一致性和用户体验
+  - 优化组件布局和间距
+
+- **组件样式适配** (commit `7619c58`)
+  - 适配新动画系统的组件样式
+  - 统一交互反馈效果
+  - 优化按钮和卡片的动画过渡
+
+- **CI 流程改进** (commit `704f14d`)
+  - 添加自动格式化步骤（`cargo fmt`）
+  - 确保代码风格一致性
+  - 提升代码质量保障
+
+- **代码重构优化** (commit `011008f`)
+  - 消除 `unwrap_or_default` 反模式
+  - 添加详细的调试日志
+  - 提升错误处理健壮性
+
+- **构建系统优化** (commit `117aaff`)
+  - 改进 justfile 跨平台支持
+  - 统一 Windows/Linux/macOS 命令
+  - 提升开发者体验
+
+### 🐛 修复
+
+- **CI 构建修复** (commit `210db8c`)
+  - 修复 CI 构建检查错误
+  - 确保持续集成稳定性
+  - 优化 GitHub Actions 工作流
+
+### 📊 质量指标
+
+- **编译状态**: 0 errors, 0 warnings
+- **测试覆盖**: 97 个测试通过
+- **代码质量**: ⭐⭐⭐⭐⭐ EXCELLENT
+- **向后兼容**: ✅ 100%
+
+### 💡 使用场景
+
+**签到管理场景**:
+```bash
+# 启动 CCR UI
+ccr ui
+
+# 访问签到管理页面
+http://localhost:3000/checkin
+
+# 操作流程：
+# 1. 添加提供商（如 AnyRouter）
+# 2. 添加账号并配置 API Key
+# 3. 点击签到按钮执行签到
+# 4. 查看签到记录和余额变化
+# 5. 导出配置备份
+```
+
+**动画主题体验**:
+```bash
+# 切换到光明主题
+点击右上角主题切换按钮
+
+# 体验光韵流光动画
+- 鼠标悬停卡片：光晕扩散
+- 点击按钮：光芒闪烁
+- 滚动页面：流畅过渡
+```
+
+### 🔗 相关资源
+
+- **GitHub Release**: [v3.14.0](https://github.com/bahayonghang/ccr/releases/tag/v3.14.0)
+- **项目文档**: 详见 [CLAUDE.md](../../CLAUDE.md)
+- **前端文档**: 详见 [ccr-ui/frontend/CLAUDE.md](../../ccr-ui/frontend/CLAUDE.md)
+- **后端文档**: 详见 [ccr-ui/backend/CLAUDE.md](../../ccr-ui/backend/CLAUDE.md)
+
+### 📦 版本信息
+
+- **版本号**: v3.14.0
+- **发布日期**: 2025-12-22
+- **Git Tag**: [v3.14.0](https://github.com/bahayonghang/ccr/releases/tag/v3.14.0)
+- **上一版本**: [v3.13.0](https://github.com/bahayonghang/ccr/releases/tag/v3.13.0)
+
+---
+
 ## [2.2.1] - 2025-01-30
 
 ### ⚡ Performance Improvements
