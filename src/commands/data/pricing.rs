@@ -9,14 +9,14 @@ use clap::{Args, Subcommand};
 use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
 
 /// 💰 价格表命令
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct PricingArgs {
     #[command(subcommand)]
     pub command: PricingSubcommand,
 }
 
 /// 📋 价格表子命令
-#[derive(Subcommand)]
+#[derive(Subcommand, Clone)]
 pub enum PricingSubcommand {
     /// 📊 列出所有模型定价
     ///
@@ -48,7 +48,7 @@ pub enum PricingSubcommand {
 }
 
 /// 📊 列表参数
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct ListArgs {
     /// 显示详细信息（包括缓存定价）
     #[arg(short, long)]
@@ -56,7 +56,7 @@ pub struct ListArgs {
 }
 
 /// ⚙️ 设置参数
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct SetArgs {
     /// 模型名称
     pub model: String,
@@ -79,7 +79,7 @@ pub struct SetArgs {
 }
 
 /// 🗑️ 移除参数
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct RemoveArgs {
     /// 模型名称
     pub model: String,
@@ -90,7 +90,7 @@ pub struct RemoveArgs {
 }
 
 /// 🔄 重置参数
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct ResetArgs {
     /// 强制重置，无需确认
     #[arg(long)]

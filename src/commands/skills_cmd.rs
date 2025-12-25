@@ -6,7 +6,7 @@ use clap::{Args, Subcommand};
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
 use std::str::FromStr;
 
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct SkillsArgs {
     #[command(subcommand)]
     pub action: SkillsAction,
@@ -16,7 +16,7 @@ pub struct SkillsArgs {
     pub platform: Option<String>,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Clone)]
 pub enum SkillsAction {
     /// List installed skills
     List,
@@ -49,7 +49,7 @@ pub enum SkillsAction {
     },
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Clone)]
 pub enum RepoAction {
     /// List configured repositories
     List,

@@ -10,14 +10,14 @@ use clap::{Args, Subcommand};
 use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
 
 /// Provider 命令参数
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct ProviderArgs {
     #[command(subcommand)]
     pub command: ProviderCommand,
 }
 
 /// Provider 子命令
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum ProviderCommand {
     /// 测试 Provider 端点
     Test {

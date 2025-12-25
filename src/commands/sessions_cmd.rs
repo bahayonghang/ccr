@@ -11,14 +11,14 @@ use clap::{Args, Subcommand};
 use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
 
 /// Sessions 命令参数
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct SessionsArgs {
     #[command(subcommand)]
     pub command: SessionsCommand,
 }
 
 /// Sessions 子命令
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum SessionsCommand {
     /// 列出 sessions
     #[command(alias = "ls")]
