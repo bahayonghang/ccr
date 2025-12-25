@@ -8,8 +8,10 @@
 // - 📝 原子文件写入
 // - 📁 文件管理抽象
 // - 💾 统一文件 I/O
+// - 🗄️ 配置缓存
 
 pub mod atomic_writer;
+pub mod cache;
 pub mod error;
 pub mod file_manager;
 pub mod fileio;
@@ -20,6 +22,8 @@ pub mod logging;
 // 注意: 这些导出是为了库的公共 API，即使在模块内未使用也需要保留
 #[allow(unused_imports)]
 pub use atomic_writer::AtomicWriter;
+#[allow(unused_imports)]
+pub use cache::{CacheStatus, ConfigCache};
 #[allow(unused_imports)]
 pub use error::{CcrError, Result};
 #[allow(unused_imports)]

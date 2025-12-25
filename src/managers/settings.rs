@@ -9,6 +9,7 @@
 // - 💾 自动备份机制
 // - 🌍 环境变量映射
 
+use crate::core::cache::ConfigCache;
 use crate::core::error::{CcrError, Result};
 use crate::core::lock::LockManager;
 use crate::managers::config::ConfigSection;
@@ -561,6 +562,143 @@ impl SettingsManager {
         } else {
             "Legacy"
         }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🗄️ 缓存设置管理器
+// ═══════════════════════════════════════════════════════════
+
+/// 🗄️ 缓存设置管理器
+///
+/// 封装 `SettingsManager`，添加自动缓存支持
+///
+/// ## 特性
+/// - 📖 自动缓存 load() 结果
+/// - 🔄 save_atomic() 时自动失效缓存
+/// - ⏰ TTL 过期自动重新加载
+/// - 🔒 线程安全
+///
+/// ## 使用示例
+/// ```rust,ignore
+/// let manager = CachedSettingsManager::with_default()?;
+///
+/// // 第一次加载从磁盘读取
+/// let settings = manager.load()?;
+///
+/// // 第二次加载命中缓存
+/// let settings2 = manager.load()?;
+///
+/// // 保存后缓存自动失效
+/// manager.save_atomic(&settings)?;
+/// ```
+pub struct CachedSettingsManager {
+    inner: SettingsManager,
+    cache: ConfigCache<ClaudeSettings>,
+}
+
+impl CachedSettingsManager {
+    /// 🏗️ 创建新的缓存设置管理器
+    ///
+    /// # 参数
+    /// - `inner`: 内部 SettingsManager
+    /// - `ttl`: 缓存有效期
+    pub fn new(inner: SettingsManager, ttl: Duration) -> Self {
+        Self {
+            inner,
+            cache: ConfigCache::new(ttl),
+        }
+    }
+
+    /// 🏠 使用默认路径和 TTL 创建管理器
+    ///
+    /// 默认 TTL: 30 秒
+    #[allow(dead_code)]
+    pub fn with_default() -> Result<Self> {
+        let inner = SettingsManager::with_default()?;
+        Ok(Self::new(inner, Duration::from_secs(30)))
+    }
+
+    /// 🎯 为指定平台创建缓存管理器
+    #[allow(dead_code)]
+    pub fn for_platform(platform_name: &str) -> Result<Self> {
+        let inner = SettingsManager::for_platform(platform_name)?;
+        Ok(Self::new(inner, Duration::from_secs(30)))
+    }
+
+    /// 📁 获取设置文件路径
+    #[allow(dead_code)]
+    pub fn settings_path(&self) -> &Path {
+        self.inner.settings_path()
+    }
+
+    /// 📖 加载设置文件（带缓存）
+    ///
+    /// 如果缓存有效，直接返回缓存数据
+    /// 如果缓存无效或过期，从磁盘加载并缓存
+    #[allow(dead_code)]
+    pub fn load(&self) -> Result<ClaudeSettings> {
+        self.cache.get_or_load(|| self.inner.load())
+    }
+
+    /// 💾 原子保存设置文件并失效缓存
+    ///
+    /// 保存后自动失效缓存，下次 load() 将重新从磁盘加载
+    #[allow(dead_code)]
+    pub fn save_atomic(&self, settings: &ClaudeSettings) -> Result<()> {
+        // 先保存
+        self.inner.save_atomic(settings)?;
+        // 然后失效缓存
+        self.cache.invalidate();
+        Ok(())
+    }
+
+    /// 💾 备份设置文件
+    #[allow(dead_code)]
+    pub fn backup(&self, config_name: Option<&str>) -> Result<PathBuf> {
+        self.inner.backup(config_name)
+    }
+
+    /// 🔄 从备份恢复设置文件并失效缓存
+    #[allow(dead_code)]
+    pub fn restore<P: AsRef<Path>>(&self, backup_path: P) -> Result<()> {
+        self.inner.restore(backup_path)?;
+        self.cache.invalidate();
+        Ok(())
+    }
+
+    /// 📋 列出所有备份文件
+    #[allow(dead_code)]
+    pub fn list_backups(&self) -> Result<Vec<PathBuf>> {
+        self.inner.list_backups()
+    }
+
+    /// 🧹 手动失效缓存
+    ///
+    /// 强制下次 load() 从磁盘读取
+    #[allow(dead_code)]
+    pub fn invalidate_cache(&self) {
+        self.cache.invalidate();
+    }
+
+    /// 🔍 检查缓存是否有效
+    #[allow(dead_code)]
+    pub fn is_cache_valid(&self) -> bool {
+        self.cache.is_valid()
+    }
+
+    /// 🔍 检测当前平台的配置模式
+    #[allow(dead_code)]
+    pub fn detect_mode(&self) -> &'static str {
+        self.inner.detect_mode()
+    }
+
+    /// 📊 获取内部 SettingsManager 引用
+    ///
+    /// 用于需要直接访问底层功能的场景
+    #[allow(dead_code)]
+    pub fn inner(&self) -> &SettingsManager {
+        &self.inner
     }
 }
 
