@@ -209,7 +209,7 @@
               />
             </button>
             <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
-              <span>CCR UI v3.15.0</span>
+              <span>CCR UI v3.15.1</span>
               <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
             </div>
           </div>
