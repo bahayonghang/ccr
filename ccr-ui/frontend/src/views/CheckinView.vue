@@ -161,8 +161,18 @@
             </p>
           </div>
           <div class="p-3 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+              />
             </svg>
           </div>
         </div>
@@ -177,8 +187,18 @@
             </p>
           </div>
           <div class="p-3 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+              />
             </svg>
           </div>
         </div>
@@ -193,8 +213,18 @@
             </p>
           </div>
           <div class="p-3 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
         </div>
@@ -439,8 +469,18 @@
                 placeholder="搜索账号..."
                 class="w-48 pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </div>
             <!-- 提供商过滤 -->
@@ -448,8 +488,16 @@
               v-model="providerFilter"
               class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">全部提供商</option>
-              <option v-for="p in providers" :key="p.id" :value="p.id">{{ p.name }}</option>
+              <option value="all">
+                全部提供商
+              </option>
+              <option
+                v-for="p in providers"
+                :key="p.id"
+                :value="p.id"
+              >
+                {{ p.name }}
+              </option>
             </select>
           </div>
           <button
@@ -540,7 +588,10 @@
                   >
                     ${{ account.latest_balance.toFixed(2) }}
                   </span>
-                  <span v-else class="text-xs text-gray-400">-</span>
+                  <span
+                    v-else
+                    class="text-xs text-gray-400"
+                  >-</span>
                 </td>
                 <!-- 总额度 -->
                 <td class="px-4 py-3 text-right">
@@ -550,7 +601,10 @@
                   >
                     ${{ account.total_quota.toFixed(2) }}
                   </span>
-                  <span v-else class="text-xs text-gray-400">-</span>
+                  <span
+                    v-else
+                    class="text-xs text-gray-400"
+                  >-</span>
                 </td>
                 <!-- 历史消耗 -->
                 <td class="px-4 py-3 text-right">
@@ -560,14 +614,20 @@
                   >
                     ${{ account.total_consumed.toFixed(2) }}
                   </span>
-                  <span v-else class="text-xs text-gray-400">-</span>
+                  <span
+                    v-else
+                    class="text-xs text-gray-400"
+                  >-</span>
                 </td>
                 <!-- 最后签到 -->
                 <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono text-xs">
                   {{ account.last_checkin_at ? formatDate(account.last_checkin_at) : '-' }}
                 </td>
                 <!-- 操作 -->
-                <td class="px-4 py-3" @click.stop>
+                <td
+                  class="px-4 py-3"
+                  @click.stop
+                >
                   <div class="flex items-center justify-center gap-2">
                     <button
                       class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm transition-all duration-200"
@@ -580,7 +640,11 @@
                         class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors"
                         @click="toggleAccountMenu(account.id)"
                       >
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <svg
+                          class="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                         </svg>
                       </button>

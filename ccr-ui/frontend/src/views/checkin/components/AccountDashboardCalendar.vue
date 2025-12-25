@@ -27,7 +27,10 @@
         :class="cellClass(cell)"
         :title="cell ? buildTitle(cell) : ''"
       >
-        <span v-if="cell" class="day-number">{{ getDayNumber(cell.date) }}</span>
+        <span
+          v-if="cell"
+          class="day-number"
+        >{{ getDayNumber(cell.date) }}</span>
         <span
           v-if="cell && cell.income_increment"
           class="day-increment"

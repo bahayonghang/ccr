@@ -6,8 +6,15 @@
     >
       暂无趋势数据
     </div>
-    <div v-else class="trend-chart-container">
-      <svg :viewBox="`0 0 ${width} ${height}`" class="trend-svg" preserveAspectRatio="xMidYMid meet">
+    <div
+      v-else
+      class="trend-chart-container"
+    >
+      <svg
+        :viewBox="`0 0 ${width} ${height}`"
+        class="trend-svg"
+        preserveAspectRatio="xMidYMid meet"
+      >
         <!-- 网格线 -->
         <line
           v-for="(_, i) in 5"
@@ -30,14 +37,32 @@
         </text>
         <!-- 面积填充 -->
         <defs>
-          <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(59, 130, 246, 0.25)" />
-            <stop offset="100%" stop-color="rgba(59, 130, 246, 0.02)" />
+          <linearGradient
+            id="areaGradient"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
+            <stop
+              offset="0%"
+              stop-color="rgba(59, 130, 246, 0.25)"
+            />
+            <stop
+              offset="100%"
+              stop-color="rgba(59, 130, 246, 0.02)"
+            />
           </linearGradient>
         </defs>
-        <path :d="areaPath" fill="url(#areaGradient)" />
+        <path
+          :d="areaPath"
+          fill="url(#areaGradient)"
+        />
         <!-- 折线 -->
-        <path :d="linePath" class="trend-line" />
+        <path
+          :d="linePath"
+          class="trend-line"
+        />
         <!-- 数据点 -->
         <circle
           v-for="(point, index) in chartData"
@@ -56,7 +81,9 @@
         class="chart-tooltip"
         :style="tooltipStyle"
       >
-        <div class="tooltip-date">{{ chartData[hoveredIndex].date }}</div>
+        <div class="tooltip-date">
+          {{ chartData[hoveredIndex].date }}
+        </div>
         <div class="tooltip-row">
           <span>总额度:</span>
           <span class="tooltip-value">${{ chartData[hoveredIndex].total_quota.toFixed(2) }}</span>
@@ -65,7 +92,10 @@
           <span>当日余额:</span>
           <span class="tooltip-value">${{ chartData[hoveredIndex].current_balance.toFixed(2) }}</span>
         </div>
-        <div v-if="chartData[hoveredIndex].income_increment > 0" class="tooltip-row">
+        <div
+          v-if="chartData[hoveredIndex].income_increment > 0"
+          class="tooltip-row"
+        >
           <span>增量:</span>
           <span class="tooltip-increment">+${{ chartData[hoveredIndex].income_increment.toFixed(2) }}</span>
         </div>

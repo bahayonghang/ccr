@@ -185,8 +185,18 @@
                   @change="handleMonthChange"
                 >
                 <div class="calendar-nav">
-                  <button class="icon-button small" @click="prevMonth">‹</button>
-                  <button class="icon-button small" @click="nextMonth">›</button>
+                  <button
+                    class="icon-button small"
+                    @click="prevMonth"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    class="icon-button small"
+                    @click="nextMonth"
+                  >
+                    ›
+                  </button>
                 </div>
               </div>
             </div>
