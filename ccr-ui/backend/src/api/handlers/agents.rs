@@ -1,8 +1,8 @@
 use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
+use crate::cache::GLOBAL_SETTINGS_CACHE;
 use crate::managers::markdown_manager::{AgentFrontmatter, MarkdownManager};
-use crate::managers::settings_manager::SettingsManager;
 use crate::models::api::{Agent, AgentRequest};
 
 /// GET /api/agents - List all agents
@@ -74,8 +74,8 @@ pub async fn list_agents() -> impl IntoResponse {
         }
     }
 
-    // Fallback to settings.json
-    let settings_result = SettingsManager::default().and_then(|manager| manager.load());
+    // Fallback to settings.json (使用全局缓存)
+    let settings_result = GLOBAL_SETTINGS_CACHE.load();
 
     if let Ok(settings) = settings_result {
         let agents: Vec<Agent> = settings
@@ -119,10 +119,8 @@ pub async fn list_agents() -> impl IntoResponse {
 
 /// POST /api/agents - Add a new agent
 pub async fn add_agent(Json(req): Json<AgentRequest>) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         let new_agent = crate::managers::settings_manager::Agent {
             name: req.name.clone(),
             model: req.model.clone(),
@@ -133,7 +131,7 @@ pub async fn add_agent(Json(req): Json<AgentRequest>) -> impl IntoResponse {
 
         settings.agents.push(new_agent);
 
-        if settings_manager.save(&settings).is_ok() {
+        if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
             return (
                 StatusCode::OK,
                 Json(json!({
@@ -163,9 +161,8 @@ pub async fn update_agent(
     Path(name): Path<String>,
     Json(req): Json<AgentRequest>,
 ) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load()
         && let Some(agent) = settings.agents.iter_mut().find(|a| a.name == name)
     {
         agent.name = req.name;
@@ -178,7 +175,7 @@ pub async fn update_agent(
             agent.disabled = disabled;
         }
 
-        if settings_manager.save(&settings).is_ok() {
+        if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
             return (
                 StatusCode::OK,
                 Json(json!({
@@ -189,8 +186,7 @@ pub async fn update_agent(
             )
                 .into_response();
         }
-    } else if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(settings) = settings_manager.load()
+    } else if let Ok(settings) = GLOBAL_SETTINGS_CACHE.load()
         && !settings.agents.iter().any(|a| a.name == name)
     {
         return (
@@ -217,15 +213,13 @@ pub async fn update_agent(
 
 /// DELETE /api/agents/:name - Delete an agent
 pub async fn delete_agent(Path(name): Path<String>) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         let original_len = settings.agents.len();
         settings.agents.retain(|a| a.name != name);
 
         if settings.agents.len() < original_len {
-            if settings_manager.save(&settings).is_ok() {
+            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
                 return (
                     StatusCode::OK,
                     Json(json!({
@@ -262,10 +256,8 @@ pub async fn delete_agent(Path(name): Path<String>) -> impl IntoResponse {
 
 /// PATCH /api/agents/:name/toggle - Toggle agent enabled/disabled state
 pub async fn toggle_agent(Path(name): Path<String>) -> impl IntoResponse {
-    // Try settings.json first
-    if let Ok(settings_manager) = SettingsManager::default()
-        && let Ok(mut settings) = settings_manager.load()
-    {
+    // Try settings.json first (使用全局缓存)
+    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         if let Some(agent) = settings.agents.iter_mut().find(|a| a.name == name) {
             agent.disabled = !agent.disabled;
             let new_state = if agent.disabled {
@@ -274,7 +266,7 @@ pub async fn toggle_agent(Path(name): Path<String>) -> impl IntoResponse {
                 "enabled"
             };
 
-            if settings_manager.save(&settings).is_ok() {
+            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
                 return (
                     StatusCode::OK,
                     Json(json!({

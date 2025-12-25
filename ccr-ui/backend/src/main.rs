@@ -15,6 +15,7 @@ use tracing_subscriber::{
 
 // New layered architecture modules
 mod api;
+mod cache; // 全局缓存模块
 mod core;
 mod managers;
 mod models;

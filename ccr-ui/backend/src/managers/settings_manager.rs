@@ -128,6 +128,10 @@ impl SettingsManager {
         Self { settings_path }
     }
 
+    #[deprecated(
+        since = "3.15.0",
+        note = "使用 `crate::cache::GLOBAL_SETTINGS_CACHE.load()` 代替，可减少 80% 文件 I/O"
+    )]
     pub fn default() -> Result<Self> {
         let home = dirs::home_dir()
             .ok_or_else(|| SettingsError::NotFound("Cannot get home directory".to_string()))?;
@@ -136,6 +140,10 @@ impl SettingsManager {
     }
 
     /// Load settings from file
+    #[deprecated(
+        since = "3.15.0",
+        note = "使用 `crate::cache::GLOBAL_SETTINGS_CACHE.load()` 代替，可减少 80% 文件 I/O"
+    )]
     pub fn load(&self) -> Result<ClaudeSettings> {
         if !self.settings_path.exists() {
             tracing::warn!(
@@ -156,6 +164,10 @@ impl SettingsManager {
     }
 
     /// Save settings to file atomically
+    #[deprecated(
+        since = "3.15.0",
+        note = "使用 `crate::cache::GLOBAL_SETTINGS_CACHE.save_atomic()` 代替，可自动失效缓存"
+    )]
     pub fn save(&self, settings: &ClaudeSettings) -> Result<()> {
         // Ensure parent directory exists
         if let Some(parent) = self.settings_path.parent() {
