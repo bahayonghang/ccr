@@ -37,7 +37,7 @@ export interface UseWebSocketOptions {
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
     const {
-        url = `ws://${window.location.hostname}:38081/ws`,
+        url = `ws://${window.location.hostname}:48081/ws`,
         reconnectInterval = 3000,
         maxReconnectAttempts = 5,
         onLog,
