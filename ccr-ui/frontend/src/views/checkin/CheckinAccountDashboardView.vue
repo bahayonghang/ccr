@@ -85,114 +85,111 @@
         v-else-if="dashboard"
         class="space-y-6"
       >
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <!-- 账号统计卡片 - 横排 -->
-          <div class="stats-card-row">
-            <div class="row-header">
+        <!-- 新布局：三列 - 账号统计 | 签到统计 | 日历 -->
+        <div class="dashboard-main-grid">
+          <!-- 账号统计卡片 - 垂直布局 -->
+          <div class="stats-card-vertical">
+            <div class="vertical-header">
               <div class="stats-icon purple">
                 <TrendingUp class="w-4 h-4" />
               </div>
               <h2>账号统计</h2>
             </div>
-            <div class="row-items">
-              <div class="row-stat">
-                <div class="row-icon green">
+            <div class="vertical-items">
+              <div class="vertical-stat">
+                <div class="vertical-icon green">
                   <Wallet class="w-4 h-4" />
                 </div>
-                <div class="row-content">
-                  <span class="row-label">当前余额</span>
-                  <span class="row-value green">
-                    {{ formatCurrency(dashboard.account.latest_balance, dashboard.account.balance_currency) }}
-                  </span>
-                </div>
+                <span class="vertical-label">当前余额</span>
+                <span class="vertical-value green">
+                  {{ formatCurrency(dashboard.account.latest_balance, dashboard.account.balance_currency) }}
+                </span>
               </div>
-              <div class="row-stat">
-                <div class="row-icon blue">
+              <div class="vertical-stat">
+                <div class="vertical-icon blue">
                   <TrendingUp class="w-4 h-4" />
                 </div>
-                <div class="row-content">
-                  <span class="row-label">总额度</span>
-                  <span class="row-value blue">
-                    {{ formatCurrency(dashboard.account.total_quota, dashboard.account.balance_currency) }}
-                  </span>
-                </div>
+                <span class="vertical-label">总额度</span>
+                <span class="vertical-value blue">
+                  {{ formatCurrency(dashboard.account.total_quota, dashboard.account.balance_currency) }}
+                </span>
               </div>
-              <div class="row-stat">
-                <div class="row-icon orange">
+              <div class="vertical-stat">
+                <div class="vertical-icon orange">
                   <History class="w-4 h-4" />
                 </div>
-                <div class="row-content">
-                  <span class="row-label">历史消耗</span>
-                  <span class="row-value orange">
-                    {{ formatCurrency(dashboard.account.used_quota, dashboard.account.balance_currency) }}
-                  </span>
-                </div>
+                <span class="vertical-label">历史消耗</span>
+                <span class="vertical-value orange">
+                  {{ formatCurrency(dashboard.account.used_quota, dashboard.account.balance_currency) }}
+                </span>
               </div>
             </div>
           </div>
 
-          <!-- 签到统计卡片 - 横排 -->
-          <div class="stats-card-row">
-            <div class="row-header">
+          <!-- 签到统计卡片 - 垂直布局 -->
+          <div class="stats-card-vertical">
+            <div class="vertical-header">
               <div class="stats-icon orange">
                 <CalendarDays class="w-4 h-4" />
               </div>
               <h2>签到统计</h2>
-              <span class="row-rate">{{ dashboard.calendar.month_stats.check_in_rate.toFixed(1) }}%</span>
             </div>
-            <div class="row-items">
-              <div class="row-stat">
-                <div class="row-icon orange">
+            <div class="vertical-items">
+              <div class="vertical-stat">
+                <div class="vertical-icon orange">
                   <Flame class="w-4 h-4" />
                 </div>
-                <div class="row-content">
-                  <span class="row-label">当前连续</span>
-                  <span class="row-value orange">{{ dashboard.streak.current_streak }} <small>天</small></span>
-                </div>
+                <span class="vertical-label">当前连续</span>
+                <span class="vertical-value orange">{{ dashboard.streak.current_streak }} <small>天</small></span>
               </div>
-              <div class="row-stat">
-                <div class="row-icon yellow">
+              <div class="vertical-stat">
+                <div class="vertical-icon yellow">
                   <Trophy class="w-4 h-4" />
                 </div>
-                <div class="row-content">
-                  <span class="row-label">最长连续</span>
-                  <span class="row-value">{{ dashboard.streak.longest_streak }} <small>天</small></span>
-                </div>
+                <span class="vertical-label">最长连续</span>
+                <span class="vertical-value">{{ dashboard.streak.longest_streak }} <small>天</small></span>
               </div>
-              <div class="row-stat">
-                <div class="row-icon purple">
+              <div class="vertical-stat">
+                <div class="vertical-icon purple">
                   <Calendar class="w-4 h-4" />
                 </div>
-                <div class="row-content">
-                  <span class="row-label">总签到天数</span>
-                  <span class="row-value purple">{{ dashboard.streak.total_check_in_days }} <small>天</small></span>
-                </div>
+                <span class="vertical-label">总签到天数</span>
+                <span class="vertical-value purple">{{ dashboard.streak.total_check_in_days }} <small>天</small></span>
+              </div>
+            </div>
+            <!-- 签到率进度条 -->
+            <div class="checkin-progress">
+              <div class="progress-info">
+                <span>签到率</span>
+                <span class="progress-percent">{{ dashboard.calendar.month_stats.check_in_rate.toFixed(1) }}%</span>
+              </div>
+              <div class="progress-bar-track">
+                <div 
+                  class="progress-bar-fill"
+                  :style="{ width: `${dashboard.calendar.month_stats.check_in_rate}%` }"
+                />
+              </div>
+              <div class="progress-days">
+                {{ dashboard.calendar.month_stats.checked_in_days }} / {{ dashboard.calendar.month_stats.total_days }} 天
               </div>
             </div>
           </div>
 
-          <!-- 签到日历卡片 -->
-          <div class="dashboard-card xl:row-span-1">
+          <!-- 右侧：签到日历卡片 -->
+          <div class="calendar-card">
             <div class="card-header">
-              <div class="flex items-center gap-3">
-                <h2>签到日历</h2>
-              </div>
+              <h2>签到日历</h2>
               <div class="calendar-picker">
-                <input
-                  type="month"
-                  :value="`${calendarYear}-${String(calendarMonth).padStart(2, '0')}`"
-                  class="month-input"
-                  @change="handleMonthChange"
-                >
                 <div class="calendar-nav">
                   <button
-                    class="icon-button small"
+                    class="nav-btn"
                     @click="prevMonth"
                   >
                     ‹
                   </button>
+                  <span class="calendar-month">{{ calendarYear }}年{{ calendarMonth }}月</span>
                   <button
-                    class="icon-button small"
+                    class="nav-btn"
                     @click="nextMonth"
                   >
                     ›
@@ -204,11 +201,12 @@
           </div>
         </div>
 
-        <div class="dashboard-card">
-          <div class="card-header">
-            <div class="flex items-center gap-3">
+        <!-- 签到趋势卡片 -->
+        <div class="trend-card">
+          <div class="trend-header">
+            <div class="trend-title">
               <h2>签到趋势</h2>
-              <span class="card-tag">近 {{ trendDays }} 天</span>
+              <span class="trend-tag">近 {{ trendDays }} 天</span>
             </div>
             <div class="trend-actions">
               <button
@@ -218,11 +216,13 @@
                 :class="{ active: trendDays === option }"
                 @click="trendDays = option"
               >
-                {{ option }}D
+                {{ option }}
               </button>
             </div>
           </div>
-          <AccountDashboardTrend :trend="dashboard.trend" />
+          <div class="trend-body">
+            <AccountDashboardTrend :trend="dashboard.trend" />
+          </div>
         </div>
       </div>
     </div>
@@ -328,14 +328,6 @@ const nextMonth = () => {
   }
 }
 
-const handleMonthChange = (e: Event) => {
-  const input = e.target as HTMLInputElement
-  const [year, month] = input.value.split('-').map(Number)
-  if (year && month) {
-    calendarYear.value = year
-    calendarMonth.value = month
-  }
-}
 
 const formatCurrency = (value?: number, currency?: string) => {
   if (value === undefined || value === null) return '-'
@@ -376,10 +368,13 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .dashboard-shell {
   position: relative;
   z-index: 1;
-  padding: 2rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .dashboard-header {
@@ -1005,9 +1000,325 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   color: #94a3b8;
 }
 
+/* 新布局样式 - 三列布局 */
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* 垂直统计卡片样式 */
+.stats-card-vertical {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  justify-content: space-between;
+}
+
+.vertical-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  width: 100%;
+}
+
+.vertical-header h2 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.vertical-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  flex: 1;
+  width: 100%;
+  justify-content: center;
+}
+
+.vertical-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.vertical-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.15rem;
+}
+
+.vertical-icon.purple { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
+.vertical-icon.green { background: rgba(16, 185, 129, 0.12); color: #059669; }
+.vertical-icon.blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.vertical-icon.orange { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
+.vertical-icon.yellow { background: rgba(234, 179, 8, 0.12); color: #ca8a04; }
+
+.vertical-label {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.vertical-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.vertical-value.green { color: #10b981; }
+.vertical-value.blue { color: #3b82f6; }
+.vertical-value.orange { color: #f97316; }
+.vertical-value.purple { color: #8b5cf6; }
+
+.vertical-value small {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* 签到进度条 */
+.checkin-progress {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(226, 232, 240, 0.6);
+  width: 100%;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-bottom: 0.4rem;
+}
+
+.progress-percent {
+  font-weight: 600;
+  color: #10b981;
+}
+
+.progress-bar-track {
+  height: 5px;
+  background: rgba(226, 232, 240, 0.8);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-days {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+  text-align: center;
+}
+
+/* 日历卡片样式 */
+.calendar-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.calendar-card .card-header h2 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.calendar-picker {
+  display: flex;
+  align-items: center;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-btn:hover {
+  background: white;
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.calendar-month {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #334155;
+  min-width: 5.5rem;
+  text-align: center;
+}
+
+/* 趋势卡片优化样式 */
+.trend-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.trend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.trend-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.trend-title h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.trend-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+}
+
+.trend-body {
+  min-height: 200px;
+}
+
+:global(.dark) .stats-card-vertical,
+:global(.dark) .calendar-card,
+:global(.dark) .trend-card {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(51, 65, 85, 0.8);
+}
+
+:global(.dark) .vertical-header h2,
+:global(.dark) .calendar-card .card-header h2,
+:global(.dark) .trend-title h2 {
+  color: #e2e8f0;
+}
+
+:global(.dark) .vertical-value {
+  color: #f8fafc;
+}
+
+:global(.dark) .vertical-label,
+:global(.dark) .progress-info,
+:global(.dark) .progress-days {
+  color: #94a3b8;
+}
+
+:global(.dark) .calendar-month {
+  color: #e2e8f0;
+}
+
+:global(.dark) .nav-btn {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(51, 65, 85, 0.8);
+  color: #e2e8f0;
+}
+
+:global(.dark) .nav-btn:hover {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+:global(.dark) .checkin-progress {
+  border-color: rgba(51, 65, 85, 0.6);
+}
+
+:global(.dark) .progress-bar-track {
+  background: rgba(51, 65, 85, 0.6);
+}
+
+:global(.dark) .trend-header {
+  border-color: rgba(51, 65, 85, 0.6);
+}
+
+@media (max-width: 1280px) {
+  .dashboard-main-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .calendar-card {
+    grid-column: span 2;
+  }
+}
+
 @media (max-width: 768px) {
+  .dashboard-main-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .calendar-card {
+    grid-column: span 1;
+  }
+
   .dashboard-shell {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   .header-sub {
@@ -1020,4 +1331,5 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
     justify-content: flex-start;
   }
 }
+
 </style>

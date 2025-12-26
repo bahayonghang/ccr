@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <div class="grid grid-cols-7 gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3">
+  <div class="calendar-wrapper">
+    <div class="grid grid-cols-7 gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-2">
       <div
         v-for="label in weekLabels"
         :key="label"
@@ -12,13 +12,13 @@
 
     <div
       v-if="cells.length === 0"
-      class="text-sm text-gray-400 dark:text-gray-500 text-center py-8"
+      class="text-sm text-gray-400 dark:text-gray-500 text-center py-6"
     >
       暂无日历数据
     </div>
     <div
       v-else
-      class="grid grid-cols-7 gap-2"
+      class="grid grid-cols-7 gap-1.5"
     >
       <div
         v-for="(cell, index) in cells"
@@ -40,16 +40,16 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mt-4">
-      <div class="flex items-center gap-1.5">
+    <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-3">
+      <div class="flex items-center gap-1">
         <span class="legend-dot checked" />
         已签到
       </div>
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center gap-1">
         <span class="legend-dot unchecked" />
         未签到
       </div>
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center gap-1">
         <span class="legend-dot today" />
         今天
       </div>
@@ -113,20 +113,19 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 
 <style scoped>
 .calendar-cell {
-  aspect-ratio: 1;
-  min-height: 2.5rem;
-  border-radius: 0.5rem;
+  height: 2.25rem;
+  border-radius: 0.375rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.15rem;
+  gap: 0.1rem;
   border: 1px solid transparent;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .calendar-cell:hover {
-  transform: scale(1.05);
+  transform: scale(1.02);
 }
 
 .cell-empty {
@@ -149,9 +148,10 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 }
 
 .day-number {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #334155;
+  line-height: 1;
 }
 
 .cell-checked .day-number {
@@ -159,9 +159,10 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 }
 
 .day-increment {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   font-weight: 500;
   color: #10b981;
+  line-height: 1;
 }
 
 .legend-dot {
