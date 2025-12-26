@@ -11,7 +11,7 @@ use crate::services::ui_service::UiService;
 /// - 生产环境: 启动预构建版本 (未来支持)
 ///
 /// # 参数
-/// - `port`: 前端端口 (默认 3000)
+/// - `port`: 前端端口 (默认 15173)
 /// - `backend_port`: 后端端口 (默认 38081)
 pub fn ui_command(port: u16, backend_port: u16, auto_yes: bool) -> Result<()> {
     let ui_service = UiService::new()?;

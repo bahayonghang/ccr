@@ -314,7 +314,7 @@ pub enum Commands {
     /// 推荐作为主要 Web 界面使用，提供功能完整的 CCR UI 图形界面并支持多 CLI 工具管理
     /// 开发环境：自动检测并启动源码版本
     /// 生产环境：启动预构建版本(未来支持)
-    /// 示例: ccr ui -p 3000
+    /// 示例: ccr ui -p 15173
     Ui {
         /// UI 子命令
         ///
@@ -324,8 +324,8 @@ pub enum Commands {
         #[command(subcommand)]
         action: Option<super::subcommands::ui::UiAction>,
 
-        /// 指定前端端口(默认: 3000)
-        #[arg(short, long, default_value_t = 3000)]
+        /// 指定前端端口(默认: 15173)
+        #[arg(short, long, default_value_t = 15173)]
         port: u16,
 
         /// 指定后端端口(默认: 38081)

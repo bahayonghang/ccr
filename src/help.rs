@@ -302,7 +302,7 @@ pub fn print_top_help() {
         &mut ui_table,
         "ui",
         "启动 CCR UI (推荐 Web 界面，完整 Web 应用)",
-        Some("ccr ui -p 3000"),
+        Some("ccr ui -p 15173"),
     );
     println!("{}", ui_table);
 
