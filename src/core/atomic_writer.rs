@@ -5,6 +5,8 @@ use crate::core::error::{CcrError, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::NamedTempFile;
+use tokio::fs as async_fs;
+use uuid::Uuid;
 
 /// 📝 原子写入器
 ///
@@ -32,6 +34,12 @@ use tempfile::NamedTempFile;
 /// ```
 #[allow(dead_code)]
 pub struct AtomicWriter {
+    target_path: PathBuf,
+}
+
+/// 📝 异步原子写入器
+#[allow(dead_code)]
+pub struct AsyncAtomicWriter {
     target_path: PathBuf,
 }
 
@@ -113,6 +121,63 @@ impl AtomicWriter {
     }
 }
 
+#[allow(dead_code)]
+impl AsyncAtomicWriter {
+    /// 🏗️ 创建新的异步原子写入器
+    pub fn new<P: AsRef<Path>>(target_path: P) -> Self {
+        Self {
+            target_path: target_path.as_ref().to_path_buf(),
+        }
+    }
+
+    /// 💾 异步原子写入内容到文件
+    pub async fn write_async(&self, content: &[u8]) -> Result<()> {
+        if let Some(parent) = self.target_path.parent() {
+            async_fs::create_dir_all(parent).await.map_err(|e| {
+                CcrError::IoError(std::io::Error::other(format!("创建目录失败: {}", e)))
+            })?;
+        }
+
+        let temp_path = self.temp_path();
+
+        async_fs::write(&temp_path, content).await.map_err(|e| {
+            CcrError::IoError(std::io::Error::other(format!("写入临时文件失败: {}", e)))
+        })?;
+
+        if let Err(e) = async_fs::rename(&temp_path, &self.target_path).await {
+            let _ = async_fs::remove_file(&temp_path).await;
+            return Err(CcrError::IoError(std::io::Error::other(format!(
+                "原子替换文件失败: {}",
+                e
+            ))));
+        }
+
+        tracing::debug!("✅ 文件已原子写入: {:?}", self.target_path);
+        Ok(())
+    }
+
+    /// 💾 异步原子写入字符串内容到文件
+    pub async fn write_string_async(&self, content: &str) -> Result<()> {
+        self.write_async(content.as_bytes()).await
+    }
+
+    /// 📁 获取目标文件路径
+    pub fn target_path(&self) -> &Path {
+        &self.target_path
+    }
+
+    fn temp_path(&self) -> PathBuf {
+        let parent = self.target_path.parent().unwrap_or_else(|| Path::new("."));
+        let file_name = self
+            .target_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("tmp");
+        let temp_name = format!(".{}.tmp-{}", file_name, Uuid::new_v4());
+        parent.join(temp_name)
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -173,5 +238,33 @@ mod tests {
         // 验证目录和文件都被创建
         assert!(nested_path.exists());
         assert_eq!(fs::read_to_string(&nested_path).unwrap(), "Nested file");
+    }
+
+    #[tokio::test]
+    async fn test_async_atomic_write() {
+        let temp_dir = tempdir().unwrap();
+        let target_path = temp_dir.path().join("test_async.txt");
+
+        let writer = AsyncAtomicWriter::new(&target_path);
+        writer.write_async(b"Hello, Async!").await.unwrap();
+
+        assert!(target_path.exists());
+        let content = fs::read_to_string(&target_path).unwrap();
+        assert_eq!(content, "Hello, Async!");
+    }
+
+    #[tokio::test]
+    async fn test_async_atomic_write_string() {
+        let temp_dir = tempdir().unwrap();
+        let target_path = temp_dir.path().join("test_async.txt");
+
+        let writer = AsyncAtomicWriter::new(&target_path);
+        writer
+            .write_string_async("Hello, Async String!")
+            .await
+            .unwrap();
+
+        let content = fs::read_to_string(&target_path).unwrap();
+        assert_eq!(content, "Hello, Async String!");
     }
 }

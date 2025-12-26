@@ -49,7 +49,7 @@ pub fn run_tui(auto_yes: bool) -> Result<()> {
 
     // 🎨 运行主循环
     // 首帧绘制
-    terminal.draw(|f| ui::draw(f, &mut app))?;
+    draw_frame(&mut terminal, &mut app)?;
 
     let res = run_app(&mut terminal, app, event_handler);
 
@@ -66,11 +66,15 @@ pub fn run_tui(auto_yes: bool) -> Result<()> {
 }
 
 /// 🔄 主事件循环
-fn run_app<B: ratatui::backend::Backend>(
+fn run_app<B>(
     terminal: &mut Terminal<B>,
     mut app: App,
     mut event_handler: EventHandler,
-) -> Result<()> {
+) -> Result<()>
+where
+    B: ratatui::backend::Backend,
+    B::Error: std::error::Error + Send + Sync + 'static,
+{
     // 📈 增量渲染策略：仅在事件或需要刷新时绘制
     // - Key 事件：总是重绘（状态或焦点可能变化）
     // - Tick 事件：仅在需要动画/消息帧计数变化时重绘
@@ -95,8 +99,19 @@ fn run_app<B: ratatui::backend::Backend>(
         }
 
         if should_redraw {
-            terminal.draw(|f| ui::draw(f, &mut app))?;
+            draw_frame(terminal, &mut app)?;
             should_redraw = false;
         }
     }
+}
+
+fn draw_frame<B>(terminal: &mut Terminal<B>, app: &mut App) -> Result<()>
+where
+    B: ratatui::backend::Backend,
+    B::Error: std::error::Error + Send + Sync + 'static,
+{
+    terminal
+        .draw(|f| ui::draw(f, app))
+        .map_err(|err| crate::core::error::CcrError::IoError(io::Error::other(err)))?;
+    Ok(())
 }

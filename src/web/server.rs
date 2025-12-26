@@ -341,13 +341,8 @@ impl WebServer {
 }
 
 /// Web 命令入口
-pub fn web_command(port: Option<u16>, no_browser: bool) -> Result<()> {
+pub async fn web_command(port: Option<u16>, no_browser: bool) -> Result<()> {
     let port = port.unwrap_or(9527);
     let server = WebServer::new(port)?;
-
-    // 🎯 创建 Tokio 运行时并执行异步服务器
-    let runtime = tokio::runtime::Runtime::new()
-        .map_err(|e| CcrError::ConfigError(format!("创建 Tokio 运行时失败: {}", e)))?;
-
-    runtime.block_on(server.start(no_browser))
+    server.start(no_browser).await
 }

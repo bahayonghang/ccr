@@ -10,14 +10,14 @@ use clap::{Args, Subcommand};
 use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
 
 /// Provider 命令参数
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct ProviderArgs {
     #[command(subcommand)]
     pub command: ProviderCommand,
 }
 
 /// Provider 子命令
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum ProviderCommand {
     /// 测试 Provider 端点
     Test {
@@ -41,24 +41,24 @@ pub enum ProviderCommand {
 }
 
 /// 执行 provider 命令
-pub fn execute(args: ProviderArgs) -> Result<()> {
+pub async fn execute(args: ProviderArgs) -> Result<()> {
     match args.command {
         ProviderCommand::Test { name, all, verbose } => {
             if all {
-                cmd_test_all(verbose)
+                cmd_test_all(verbose).await
             } else if let Some(n) = name {
-                cmd_test(&n, verbose)
+                cmd_test(&n, verbose).await
             } else {
                 ColorOutput::error("请指定 Provider 名称或使用 --all");
                 Ok(())
             }
         }
-        ProviderCommand::Verify { name } => cmd_verify(&name),
+        ProviderCommand::Verify { name } => cmd_verify(&name).await,
     }
 }
 
 /// 测试单个 Provider
-fn cmd_test(name: &str, verbose: bool) -> Result<()> {
+async fn cmd_test(name: &str, verbose: bool) -> Result<()> {
     let config_service = ConfigService::with_default()?;
     let config_list = config_service.list_configs()?;
 
@@ -69,22 +69,15 @@ fn cmd_test(name: &str, verbose: bool) -> Result<()> {
         Some(c) => {
             ColorOutput::info(&format!("测试 Provider: {}", name));
 
-            // 创建运行时执行异步测试
-            let rt = tokio::runtime::Runtime::new().map_err(|e| {
-                crate::core::error::CcrError::ConfigError(format!("无法创建运行时: {}", e))
-            })?;
-
             let service = HealthCheckService::new();
 
-            let result = rt.block_on(async {
-                let section = crate::managers::config::ConfigSection {
-                    auth_token: c.auth_token.clone(),
-                    base_url: c.base_url.clone(),
-                    model: c.model.clone(),
-                    ..Default::default()
-                };
-                service.check(name, &section).await
-            });
+            let section = crate::managers::config::ConfigSection {
+                auth_token: c.auth_token.clone(),
+                base_url: c.base_url.clone(),
+                model: c.model.clone(),
+                ..Default::default()
+            };
+            let result = service.check(name, &section).await;
 
             // 显示结果
             println!();
@@ -139,7 +132,7 @@ fn cmd_test(name: &str, verbose: bool) -> Result<()> {
 }
 
 /// 测试所有 Provider
-fn cmd_test_all(verbose: bool) -> Result<()> {
+async fn cmd_test_all(verbose: bool) -> Result<()> {
     let config_service = ConfigService::with_default()?;
     let config_list = config_service.list_configs()?;
 
@@ -154,9 +147,6 @@ fn cmd_test_all(verbose: bool) -> Result<()> {
     ));
     println!();
 
-    let rt = tokio::runtime::Runtime::new()
-        .map_err(|e| crate::core::error::CcrError::ConfigError(format!("无法创建运行时: {}", e)))?;
-
     let service = HealthCheckService::new();
 
     let mut table = Table::new();
@@ -170,15 +160,13 @@ fn cmd_test_all(verbose: bool) -> Result<()> {
     ]);
 
     for config in &config_list.configs {
-        let result = rt.block_on(async {
-            let section = crate::managers::config::ConfigSection {
-                auth_token: config.auth_token.clone(),
-                base_url: config.base_url.clone(),
-                model: config.model.clone(),
-                ..Default::default()
-            };
-            service.check(&config.name, &section).await
-        });
+        let section = crate::managers::config::ConfigSection {
+            auth_token: config.auth_token.clone(),
+            base_url: config.base_url.clone(),
+            model: config.model.clone(),
+            ..Default::default()
+        };
+        let result = service.check(&config.name, &section).await;
 
         let status_color = match result.status {
             HealthStatus::Healthy => Color::Green,
@@ -218,7 +206,7 @@ fn cmd_test_all(verbose: bool) -> Result<()> {
 }
 
 /// 验证 API Key
-fn cmd_verify(name: &str) -> Result<()> {
+async fn cmd_verify(name: &str) -> Result<()> {
     let config_service = ConfigService::with_default()?;
     let config_list = config_service.list_configs()?;
 
@@ -243,13 +231,9 @@ fn cmd_verify(name: &str) -> Result<()> {
 
             ColorOutput::info(&format!("验证 API Key: {}", name));
 
-            let rt = tokio::runtime::Runtime::new().map_err(|e| {
-                crate::core::error::CcrError::ConfigError(format!("无法创建运行时: {}", e))
-            })?;
-
             let service = HealthCheckService::new();
 
-            let valid = rt.block_on(async { service.verify_api_key(&base_url, &api_key).await })?;
+            let valid = service.verify_api_key(&base_url, &api_key).await?;
 
             println!();
             if valid {

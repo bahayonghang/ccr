@@ -2,6 +2,8 @@
 //!
 //! 提供 Session 管理相关的 CLI 命令。
 
+#![allow(clippy::unused_async)]
+
 use crate::core::ColorOutput;
 use crate::core::error::Result;
 use crate::models::Platform;
@@ -11,14 +13,14 @@ use clap::{Args, Subcommand};
 use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
 
 /// Sessions 命令参数
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct SessionsArgs {
     #[command(subcommand)]
     pub command: SessionsCommand,
 }
 
 /// Sessions 子命令
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum SessionsCommand {
     /// 列出 sessions
     #[command(alias = "ls")]
@@ -89,7 +91,7 @@ pub enum SessionsCommand {
 }
 
 /// 执行 sessions 命令
-pub fn execute(args: SessionsArgs) -> Result<()> {
+pub async fn execute(args: SessionsArgs) -> Result<()> {
     match args.command {
         SessionsCommand::List {
             platform,

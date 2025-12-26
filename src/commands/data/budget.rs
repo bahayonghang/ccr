@@ -9,14 +9,14 @@ use clap::{Args, Subcommand};
 use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
 
 /// 💰 预算命令
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct BudgetArgs {
     #[command(subcommand)]
     pub command: BudgetSubcommand,
 }
 
 /// 📋 预算子命令
-#[derive(Subcommand)]
+#[derive(Subcommand, Clone)]
 pub enum BudgetSubcommand {
     /// 📊 显示当前预算状态
     ///
@@ -42,7 +42,7 @@ pub enum BudgetSubcommand {
 }
 
 /// ⚙️ 预算配置参数
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct SetArgs {
     /// 📅 每日预算限制（美元）
     #[arg(long)]
@@ -70,7 +70,7 @@ pub struct SetArgs {
 }
 
 /// 🗑️ 重置参数
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct ResetArgs {
     /// 强制重置，无需确认
     #[arg(long)]

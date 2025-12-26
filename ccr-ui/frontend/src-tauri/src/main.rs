@@ -65,12 +65,9 @@ async fn list_profiles() -> Result<Vec<ProfileInfo>, String> {
 /// 切换到指定配置
 #[tauri::command]
 async fn switch_profile(name: String) -> Result<String, String> {
-    let profile_name = name.clone();
-    tokio::task::spawn_blocking(move || {
-        ccr::commands::switch_command(&profile_name).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))??;
+    ccr::commands::switch_command(&name)
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(format!("Successfully switched to profile: {}", name))
 }
@@ -131,47 +128,37 @@ struct HistoryEntryJson {
 async fn get_history(limit: Option<usize>) -> Result<Vec<HistoryEntryJson>, String> {
     let limit = limit.unwrap_or(100);
 
-    let result = tokio::task::spawn_blocking(move || {
-        let service = HistoryService::with_default()
-            .map_err(|e| format!("Failed to create HistoryService: {}", e))?;
+    let service = HistoryService::with_default()
+        .map_err(|e| format!("Failed to create HistoryService: {}", e))?;
 
-        let entries = service
-            .get_recent(limit)
-            .map_err(|e| format!("Failed to get history: {}", e))?;
+    let entries = service
+        .get_recent_async(limit)
+        .await
+        .map_err(|e| format!("Failed to get history: {}", e))?;
 
-        let json_entries: Vec<HistoryEntryJson> = entries
-            .into_iter()
-            .map(|e| HistoryEntryJson {
-                id: e.id.to_string(),
-                timestamp: e.timestamp.to_rfc3339(),
-                operation: format!("{:?}", e.operation),
-                actor: e.actor,
-            })
-            .collect();
+    let json_entries: Vec<HistoryEntryJson> = entries
+        .into_iter()
+        .map(|e| HistoryEntryJson {
+            id: e.id.to_string(),
+            timestamp: e.timestamp.to_rfc3339(),
+            operation: format!("{:?}", e.operation),
+            actor: e.actor,
+        })
+        .collect();
 
-        Ok::<Vec<HistoryEntryJson>, String>(json_entries)
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))??;
-
-    Ok(result)
+    Ok(json_entries)
 }
 
 /// 清理历史记录
 #[tauri::command]
 async fn clear_history() -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        let service = HistoryService::with_default()
-            .map_err(|e| format!("Failed to create HistoryService: {}", e))?;
+    let service = HistoryService::with_default()
+        .map_err(|e| format!("Failed to create HistoryService: {}", e))?;
 
-        service
-            .clear()
-            .map_err(|e| format!("Failed to clear history: {}", e))?;
-
-        Ok::<(), String>(())
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))??;
+    service
+        .clear_async()
+        .await
+        .map_err(|e| format!("Failed to clear history: {}", e))?;
 
     Ok("History cleared successfully".to_string())
 }

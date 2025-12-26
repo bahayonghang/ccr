@@ -9,6 +9,7 @@
 // - 💾 自动备份机制
 // - 🌍 环境变量映射
 
+use crate::core::atomic_writer::AsyncAtomicWriter;
 use crate::core::cache::ConfigCache;
 use crate::core::error::{CcrError, Result};
 use crate::core::lock::LockManager;
@@ -21,6 +22,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tempfile::NamedTempFile;
+use tokio::fs as async_fs;
 
 // 🎯 优化：定义常量避免重复分配字符串
 const ANTHROPIC_BASE_URL: &str = "ANTHROPIC_BASE_URL";
@@ -265,6 +267,28 @@ impl SettingsManager {
         Ok(settings)
     }
 
+    /// 📖 异步加载设置文件
+    pub async fn load_async(&self) -> Result<ClaudeSettings> {
+        let exists = async_fs::try_exists(&self.settings_path)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("检查设置文件失败: {}", e)))?;
+        if !exists {
+            return Err(CcrError::SettingsMissing(
+                self.settings_path.display().to_string(),
+            ));
+        }
+
+        let content = async_fs::read_to_string(&self.settings_path)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("读取设置文件失败: {}", e)))?;
+
+        let settings: ClaudeSettings = serde_json::from_str(&content)
+            .map_err(|e| CcrError::SettingsError(format!("解析设置文件失败: {}", e)))?;
+
+        tracing::debug!("✅ 成功加载设置文件: {:?}", self.settings_path);
+        Ok(settings)
+    }
+
     /// 💾 原子保存设置文件
     ///
     /// ⚠️ 这是核心方法,确保写入的原子性和安全性
@@ -308,6 +332,23 @@ impl SettingsManager {
         temp_file
             .persist(&self.settings_path)
             .map_err(|e| CcrError::SettingsError(format!("原子替换文件失败: {}", e)))?;
+
+        tracing::info!("✅ 设置文件已原子保存: {:?}", self.settings_path);
+        Ok(())
+    }
+
+    /// 💾 异步原子保存设置文件
+    pub async fn save_atomic_async(&self, settings: &ClaudeSettings) -> Result<()> {
+        let _lock = self.lock_manager.lock_settings(Duration::from_secs(10))?;
+
+        let content = serde_json::to_string_pretty(settings)
+            .map_err(|e| CcrError::SettingsError(format!("序列化设置失败: {}", e)))?;
+
+        let writer = AsyncAtomicWriter::new(&self.settings_path);
+        writer
+            .write_string_async(&content)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("原子保存设置失败: {}", e)))?;
 
         tracing::info!("✅ 设置文件已原子保存: {:?}", self.settings_path);
         Ok(())
@@ -376,6 +417,58 @@ impl SettingsManager {
         Ok(backup_path)
     }
 
+    /// 💾 异步备份设置文件
+    pub async fn backup_async(&self, config_name: Option<&str>) -> Result<PathBuf> {
+        let exists = async_fs::try_exists(&self.settings_path)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("检查设置文件失败: {}", e)))?;
+        if !exists {
+            return Err(CcrError::SettingsMissing(
+                self.settings_path.display().to_string(),
+            ));
+        }
+
+        async_fs::create_dir_all(&self.backup_dir)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("创建备份目录失败: {}", e)))?;
+
+        let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+        let backup_filename = if let Some(name) = config_name {
+            format!("settings.{}.{}.json.bak", name, timestamp)
+        } else {
+            format!("settings.{}.json.bak", timestamp)
+        };
+
+        let backup_path = self.backup_dir.join(backup_filename);
+
+        async_fs::copy(&self.settings_path, &backup_path)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("备份设置文件失败: {}", e)))?;
+
+        tracing::info!("💾 设置文件已备份: {:?}", backup_path);
+
+        const MAX_BACKUPS: usize = 10;
+        if let Ok(backups) = self.list_backups_async().await
+            && backups.len() > MAX_BACKUPS
+        {
+            let to_delete = &backups[MAX_BACKUPS..];
+            for old_backup in to_delete {
+                if let Err(e) = async_fs::remove_file(old_backup).await {
+                    tracing::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
+                } else {
+                    tracing::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
+                }
+            }
+            tracing::info!(
+                "🧹 已自动清理 {} 个旧备份,保留最近 {} 个",
+                to_delete.len(),
+                MAX_BACKUPS
+            );
+        }
+
+        Ok(backup_path)
+    }
+
     /// 🔄 从备份恢复设置文件
     ///
     /// 执行流程:
@@ -418,6 +511,42 @@ impl SettingsManager {
         Ok(())
     }
 
+    /// 🔄 异步从备份恢复设置文件
+    #[allow(dead_code)]
+    pub async fn restore_async<P: AsRef<Path>>(&self, backup_path: P) -> Result<()> {
+        let backup_path = backup_path.as_ref();
+
+        let exists = async_fs::try_exists(backup_path)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("检查备份文件失败: {}", e)))?;
+        if !exists {
+            return Err(CcrError::SettingsMissing(backup_path.display().to_string()));
+        }
+
+        let content = async_fs::read_to_string(backup_path)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("读取备份文件失败: {}", e)))?;
+
+        let _: ClaudeSettings = serde_json::from_str(&content)
+            .map_err(|e| CcrError::SettingsError(format!("备份文件格式无效: {}", e)))?;
+
+        let settings_exists = async_fs::try_exists(&self.settings_path)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("检查设置文件失败: {}", e)))?;
+        if settings_exists {
+            self.backup_async(Some("pre_restore")).await?;
+        }
+
+        let _lock = self.lock_manager.lock_settings(Duration::from_secs(10))?;
+
+        async_fs::copy(backup_path, &self.settings_path)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("恢复设置文件失败: {}", e)))?;
+
+        tracing::info!("✅ 设置文件已从备份恢复: {:?}", backup_path);
+        Ok(())
+    }
+
     /// 📋 列出所有备份文件
     ///
     /// 返回所有 .bak 扩展名的备份文件,按修改时间倒序排列(最新的在前)
@@ -451,6 +580,40 @@ impl SettingsManager {
         });
 
         Ok(backups)
+    }
+
+    /// 📋 异步列出所有备份文件
+    #[allow(dead_code)]
+    pub async fn list_backups_async(&self) -> Result<Vec<PathBuf>> {
+        let exists = async_fs::try_exists(&self.backup_dir)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("检查备份目录失败: {}", e)))?;
+        if !exists {
+            return Ok(vec![]);
+        }
+
+        let mut backups = Vec::new();
+        let mut entries = async_fs::read_dir(&self.backup_dir)
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("读取备份目录失败: {}", e)))?;
+
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(|e| CcrError::SettingsError(format!("读取目录项失败: {}", e)))?
+        {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("bak") {
+                let modified = async_fs::metadata(&path)
+                    .await
+                    .ok()
+                    .and_then(|m| m.modified().ok());
+                backups.push((path, modified));
+            }
+        }
+
+        backups.sort_by(|a, b| b.1.cmp(&a.1));
+        Ok(backups.into_iter().map(|(path, _)| path).collect())
     }
 
     // === 🆕 多平台支持方法 ===

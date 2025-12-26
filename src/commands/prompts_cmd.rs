@@ -1,3 +1,5 @@
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::managers::prompts_manager::PromptsManager;
 use crate::models::Platform;
@@ -6,7 +8,7 @@ use clap::{Args, Subcommand};
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
 use std::str::FromStr;
 
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct PromptsArgs {
     #[command(subcommand)]
     pub action: PromptsAction,
@@ -16,7 +18,7 @@ pub struct PromptsArgs {
     pub platform: Option<String>,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Clone)]
 pub enum PromptsAction {
     /// List all prompt presets
     List,
@@ -64,7 +66,7 @@ pub enum PromptsAction {
     },
 }
 
-pub fn prompts_command(args: PromptsArgs) -> Result<()> {
+pub async fn prompts_command(args: PromptsArgs) -> Result<()> {
     let platform = if let Some(p) = args.platform {
         Platform::from_str(&p)?
     } else {

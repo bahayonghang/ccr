@@ -3,8 +3,8 @@
 
 param(
     [string]$RootDir = $PSScriptRoot,
-    [string]$BackendPort = "38081",
-    [string]$VitePort = "5173"
+    [string]$BackendPort = "48081",
+    [string]$VitePort = "15173"
 )
 
 $ErrorActionPreference = "Stop"

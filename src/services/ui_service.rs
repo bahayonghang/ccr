@@ -2,6 +2,7 @@
 // 负责启动和管理 CCR UI (Web 应用)
 
 use crate::core::error::{CcrError, Result};
+use crate::core::http::HTTP_CLIENT;
 use crate::core::logging::ColorOutput;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -137,7 +138,7 @@ impl UiService {
     }
 
     /// 🔄 更新/安装用户目录下的 CCR UI 到最新版本
-    pub fn update(&self, auto_yes: bool) -> Result<()> {
+    pub async fn update(&self, auto_yes: bool) -> Result<()> {
         ColorOutput::title("🔄 CCR UI 更新检查");
         println!();
 
@@ -151,7 +152,7 @@ impl UiService {
 
         // 获取远程版本
         ColorOutput::info("🔍 正在检查远程版本...");
-        let remote_version = self.fetch_remote_version();
+        let remote_version = self.fetch_remote_version().await;
 
         match remote_version {
             Ok(ref ver) => {
@@ -217,16 +218,12 @@ impl UiService {
     }
 
     /// 🌐 获取远程版本（从 GitHub Cargo.toml 读取）
-    fn fetch_remote_version(&self) -> Result<String> {
-        let client = reqwest::blocking::Client::builder()
-            .user_agent("ccr")
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .map_err(|e| CcrError::ConfigError(format!("创建 HTTP 客户端失败: {}", e)))?;
-
+    async fn fetch_remote_version(&self) -> Result<String> {
+        let client = &*HTTP_CLIENT;
         let response = client
             .get(GITHUB_CARGO_TOML_URL)
             .send()
+            .await
             .map_err(|e| CcrError::ConfigError(format!("请求远程版本失败: {}", e)))?;
 
         if !response.status().is_success() {
@@ -238,6 +235,7 @@ impl UiService {
 
         let content = response
             .text()
+            .await
             .map_err(|e| CcrError::ConfigError(format!("读取响应内容失败: {}", e)))?;
 
         Self::parse_version_from_cargo_toml(&content)

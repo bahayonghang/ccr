@@ -172,7 +172,7 @@ fn show_sync_help() {
 /// ⚙️ 配置 WebDAV 同步
 ///
 /// 交互式配置 WebDAV 连接信息
-pub fn sync_config_command() -> Result<()> {
+pub async fn sync_config_command() -> Result<()> {
     ColorOutput::title("配置 WebDAV 同步");
     println!();
 
@@ -217,14 +217,8 @@ pub fn sync_config_command() -> Result<()> {
     ColorOutput::step("测试 WebDAV 连接");
     println!();
 
-    let runtime = tokio::runtime::Runtime::new()
-        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
-
-    runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.test_connection().await?;
-        Ok::<(), CcrError>(())
-    })?;
+    let service = SyncService::new(&sync_config).await?;
+    service.test_connection().await?;
 
     ColorOutput::success("✓ WebDAV 连接测试成功");
     println!();
@@ -247,7 +241,7 @@ pub fn sync_config_command() -> Result<()> {
 }
 
 /// 📊 显示同步状态
-pub fn sync_status_command() -> Result<()> {
+pub async fn sync_status_command() -> Result<()> {
     use colored::*;
     use comfy_table::{Attribute, Cell, Color as TableColor, Table};
 
@@ -339,13 +333,8 @@ pub fn sync_status_command() -> Result<()> {
         print!("🔍 正在检查远程状态...");
         std::io::Write::flush(&mut std::io::stdout()).expect("无法刷新标准输出");
 
-        let runtime = tokio::runtime::Runtime::new()
-            .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
-
-        let exists = runtime.block_on(async {
-            let service = SyncService::new(&sync_config).await?;
-            service.remote_exists().await
-        })?;
+        let service = SyncService::new(&sync_config).await?;
+        let exists = service.remote_exists().await?;
 
         print!("\r");
         if exists {
@@ -373,7 +362,7 @@ pub fn sync_status_command() -> Result<()> {
 /// # 参数
 /// - force: 是否强制上传，跳过确认
 /// - content_selection: 内容选择（可选），如果为None则显示选择面板
-pub fn sync_push_command_with_selection(
+pub async fn sync_push_command_with_selection(
     force: bool,
     content_selection: Option<SyncContentSelection>,
 ) -> Result<()> {
@@ -430,18 +419,13 @@ pub fn sync_push_command_with_selection(
     println!("   → 远程路径: {}", sync_config.remote_path.cyan());
     println!();
 
-    // 检查远程文件/目录是否存在
-    let runtime = tokio::runtime::Runtime::new()
-        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
+    let service = SyncService::new(&sync_config).await?;
 
     if !force {
         print!("🔍 正在检查远程状态...");
         let _ = io::stdout().flush();
 
-        let exists = runtime.block_on(async {
-            let service = SyncService::new(&sync_config).await?;
-            service.remote_exists().await
-        })?;
+        let exists = service.remote_exists().await?;
 
         print!("\r");
         if exists {
@@ -526,11 +510,7 @@ pub fn sync_push_command_with_selection(
     print!("🚀 正在上传...");
     let _ = io::stdout().flush();
 
-    runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.push(&temp_sync_path, None).await?;
-        Ok::<(), CcrError>(())
-    })?;
+    service.push(&temp_sync_path, None).await?;
 
     // 清理临时目录（如果需要）
     if temp_sync_path != sync_path {
@@ -554,7 +534,7 @@ pub fn sync_push_command_with_selection(
 }
 
 /// 🔽 从云端下载配置
-pub fn sync_pull_command(force: bool) -> Result<()> {
+pub async fn sync_pull_command(force: bool) -> Result<()> {
     use colored::*;
 
     ColorOutput::title("🔽  从云端下载配置");
@@ -624,13 +604,8 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     }
 
     // 🔍 检查远程是否存在（在备份前检查，避免不必要的备份）
-    let runtime = tokio::runtime::Runtime::new()
-        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
-
-    let remote_exists = runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.remote_exists().await
-    })?;
+    let service = SyncService::new(&sync_config).await?;
+    let remote_exists = service.remote_exists().await?;
 
     if !remote_exists {
         println!();
@@ -700,11 +675,7 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
     print!("⬇️  正在从云端下载...");
     let _ = io::stdout().flush();
 
-    runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.pull(&sync_path).await?;
-        Ok::<(), CcrError>(())
-    })?;
+    service.pull(&sync_path).await?;
 
     // 🔁 还原本地 config.toml，确保其不受远程内容影响
     if let Some((config_path, content)) = local_config_backup
@@ -746,9 +717,9 @@ pub fn sync_pull_command(force: bool) -> Result<()> {
 /// 🔼 上传配置到云端（向后兼容接口）
 ///
 /// 默认使用 SyncContentSelection::default()（当前为平台目录）
-pub fn sync_push_command(force: bool) -> Result<()> {
+pub async fn sync_push_command(force: bool) -> Result<()> {
     let default_selection = SyncContentSelection::default();
-    sync_push_command_with_selection(force, Some(default_selection))
+    sync_push_command_with_selection(force, Some(default_selection)).await
 }
 fn create_temp_sync_directory(
     original_path: &Path,
@@ -1181,7 +1152,7 @@ pub fn sync_folder_disable_command(name: &str) -> Result<()> {
 // ============================================================================
 
 /// 📤 批量上传所有启用的文件夹
-pub fn sync_all_push_command(force: bool) -> Result<()> {
+pub async fn sync_all_push_command(force: bool) -> Result<()> {
     use colored::*;
 
     ColorOutput::title("批量上传同步文件夹");
@@ -1214,7 +1185,7 @@ pub fn sync_all_push_command(force: bool) -> Result<()> {
             folder.name.bold()
         );
 
-        match sync_folder_push_internal(folder, &manager, force) {
+        match sync_folder_push_internal(folder, &manager, force).await {
             Ok(_) => {
                 println!("   {}", "✓ 上传成功".green());
                 success_count += 1;
@@ -1255,7 +1226,7 @@ pub fn sync_all_push_command(force: bool) -> Result<()> {
 }
 
 /// 📥 批量下载所有启用的文件夹
-pub fn sync_all_pull_command(force: bool) -> Result<()> {
+pub async fn sync_all_pull_command(force: bool) -> Result<()> {
     use colored::*;
 
     ColorOutput::title("批量下载同步文件夹");
@@ -1288,7 +1259,7 @@ pub fn sync_all_pull_command(force: bool) -> Result<()> {
             folder.name.bold()
         );
 
-        match sync_folder_pull_internal(folder, &manager, force) {
+        match sync_folder_pull_internal(folder, &manager, force).await {
             Ok(_) => {
                 println!("   {}", "✓ 下载成功".green());
                 success_count += 1;
@@ -1329,7 +1300,8 @@ pub fn sync_all_pull_command(force: bool) -> Result<()> {
 }
 
 /// 📊 显示所有文件夹的同步状态
-pub fn sync_all_status_command() -> Result<()> {
+#[allow(clippy::unused_async)]
+pub async fn sync_all_status_command() -> Result<()> {
     ColorOutput::title("同步文件夹状态");
     println!();
 
@@ -1406,7 +1378,7 @@ pub fn sync_all_status_command() -> Result<()> {
 /// 🎯 处理文件夹特定的同步命令
 ///
 /// 动态分发到具体操作: push, pull, status
-pub fn sync_folder_specific_command(args: &[String]) -> Result<()> {
+pub async fn sync_folder_specific_command(args: &[String]) -> Result<()> {
     // 🆘 特殊处理 help 命令
     if args.len() == 1 && args[0].eq_ignore_ascii_case("help") {
         show_sync_help();
@@ -1427,9 +1399,9 @@ pub fn sync_folder_specific_command(args: &[String]) -> Result<()> {
     let _folder = manager.get_folder(folder_name)?;
 
     match action.as_str() {
-        "push" => sync_folder_push_command(folder_name),
-        "pull" => sync_folder_pull_command(folder_name),
-        "status" => sync_folder_status_command(folder_name),
+        "push" => sync_folder_push_command(folder_name).await,
+        "pull" => sync_folder_pull_command(folder_name).await,
+        "status" => sync_folder_status_command(folder_name).await,
         _ => Err(CcrError::ConfigError(format!(
             "未知操作: '{}'。支持的操作: push, pull, status",
             action
@@ -1438,7 +1410,7 @@ pub fn sync_folder_specific_command(args: &[String]) -> Result<()> {
 }
 
 /// 📤 上传指定文件夹
-fn sync_folder_push_command(folder_name: &str) -> Result<()> {
+async fn sync_folder_push_command(folder_name: &str) -> Result<()> {
     use colored::*;
 
     ColorOutput::title(&format!("上传文件夹: {}", folder_name));
@@ -1485,13 +1457,8 @@ fn sync_folder_push_command(folder_name: &str) -> Result<()> {
     print!("🔍 正在检查远程状态...");
     let _ = io::stdout().flush();
 
-    let runtime = tokio::runtime::Runtime::new()
-        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
-
-    let exists = runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.remote_exists().await
-    })?;
+    let service = SyncService::new(&sync_config).await?;
+    let exists = service.remote_exists().await?;
 
     print!("\r");
     if exists {
@@ -1522,12 +1489,8 @@ fn sync_folder_push_command(folder_name: &str) -> Result<()> {
     print!("🚀 正在上传...");
     let _ = io::stdout().flush();
 
-    runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        // 🎯 不传递 allowed_paths，让 SyncService 使用内部的排除逻辑
-        service.push(&local_path, None).await?;
-        Ok::<(), CcrError>(())
-    })?;
+    // 🎯 不传递 allowed_paths，让 SyncService 使用内部的排除逻辑
+    service.push(&local_path, None).await?;
 
     print!("\r");
     println!(
@@ -1546,7 +1509,7 @@ fn sync_folder_push_command(folder_name: &str) -> Result<()> {
 }
 
 /// 📥 下载指定文件夹
-fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
+async fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
     use colored::*;
 
     ColorOutput::title(&format!("下载文件夹: {}", folder_name));
@@ -1576,13 +1539,8 @@ fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
     };
 
     // 🔍 检查远程是否存在
-    let runtime = tokio::runtime::Runtime::new()
-        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
-
-    let remote_exists = runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.remote_exists().await
-    })?;
+    let service = SyncService::new(&sync_config).await?;
+    let remote_exists = service.remote_exists().await?;
 
     if !remote_exists {
         println!();
@@ -1647,11 +1605,7 @@ fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
     print!("⬇️  正在从云端下载...");
     let _ = io::stdout().flush();
 
-    runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.pull(&local_path).await?;
-        Ok::<(), CcrError>(())
-    })?;
+    service.pull(&local_path).await?;
 
     print!("\r");
     println!(
@@ -1670,7 +1624,7 @@ fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
 }
 
 /// 📊 显示指定文件夹的同步状态
-fn sync_folder_status_command(folder_name: &str) -> Result<()> {
+async fn sync_folder_status_command(folder_name: &str) -> Result<()> {
     use colored::*;
 
     ColorOutput::title(&format!("文件夹状态: {}", folder_name));
@@ -1724,13 +1678,8 @@ fn sync_folder_status_command(folder_name: &str) -> Result<()> {
     print!("  远程状态: 正在检查...");
     let _ = io::stdout().flush();
 
-    let runtime = tokio::runtime::Runtime::new()
-        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
-
-    let remote_exists = runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.remote_exists().await
-    })?;
+    let service = SyncService::new(&sync_config).await?;
+    let remote_exists = service.remote_exists().await?;
 
     print!("\r");
     if remote_exists {
@@ -1758,7 +1707,7 @@ fn sync_folder_status_command(folder_name: &str) -> Result<()> {
 /// - folder: 要上传的文件夹配置
 /// - manager: SyncFolderManager 实例
 /// - force: 是否强制上传（跳过确认）
-fn sync_folder_push_internal(
+async fn sync_folder_push_internal(
     folder: &SyncFolder,
     manager: &SyncFolderManager,
     force: bool,
@@ -1787,15 +1736,10 @@ fn sync_folder_push_internal(
         auto_sync: false,
     };
 
-    let runtime = tokio::runtime::Runtime::new()
-        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
-
     // 🔍 检查远程是否已存在（仅在非强制模式下）
     if !force {
-        let exists = runtime.block_on(async {
-            let service = SyncService::new(&sync_config).await?;
-            service.remote_exists().await
-        })?;
+        let service = SyncService::new(&sync_config).await?;
+        let exists = service.remote_exists().await?;
 
         if exists {
             // 在批量模式下跳过已存在的文件夹
@@ -1804,11 +1748,8 @@ fn sync_folder_push_internal(
     }
 
     // 🚀 上传到云端
-    runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.push(&local_path, None).await?;
-        Ok::<(), CcrError>(())
-    })?;
+    let service = SyncService::new(&sync_config).await?;
+    service.push(&local_path, None).await?;
 
     Ok(())
 }
@@ -1819,7 +1760,7 @@ fn sync_folder_push_internal(
 /// - folder: 要下载的文件夹配置
 /// - manager: SyncFolderManager 实例
 /// - force: 是否强制下载（跳过确认）
-fn sync_folder_pull_internal(
+async fn sync_folder_pull_internal(
     folder: &SyncFolder,
     manager: &SyncFolderManager,
     force: bool,
@@ -1840,14 +1781,9 @@ fn sync_folder_pull_internal(
         auto_sync: false,
     };
 
-    let runtime = tokio::runtime::Runtime::new()
-        .map_err(|e| CcrError::SyncError(format!("创建异步运行时失败: {}", e)))?;
-
     // 🔍 检查远程是否存在
-    let remote_exists = runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.remote_exists().await
-    })?;
+    let service = SyncService::new(&sync_config).await?;
+    let remote_exists = service.remote_exists().await?;
 
     if !remote_exists {
         return Err(CcrError::SyncError("远程内容不存在".to_string()));
@@ -1875,11 +1811,7 @@ fn sync_folder_pull_internal(
     }
 
     // ⬇️ 从云端下载
-    runtime.block_on(async {
-        let service = SyncService::new(&sync_config).await?;
-        service.pull(&local_path).await?;
-        Ok::<(), CcrError>(())
-    })?;
+    service.pull(&local_path).await?;
 
     Ok(())
 }

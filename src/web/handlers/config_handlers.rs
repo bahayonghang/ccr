@@ -45,11 +45,7 @@ pub async fn handle_switch_config(
 ) -> Response {
     let config_name = req.config_name.clone();
 
-    let result = spawn_blocking_string(move || {
-        // 注意：这里使用 commands 模块的函数，因为它会更新实际的环境变量
-        crate::commands::switch_command(&config_name)
-    })
-    .await;
+    let result = crate::commands::switch_command(&config_name).await;
 
     match result {
         Ok(_) => {
@@ -58,7 +54,7 @@ pub async fn handle_switch_config(
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
             // 验证历史记录已成功写入
-            match state.history_service.get_recent(1) {
+            match state.history_service.get_recent_async(1).await {
                 Ok(_) => success_response("配置切换成功"),
                 Err(e) => {
                     tracing::warn!("历史记录可能未正确保存: {}", e);
@@ -66,7 +62,7 @@ pub async fn handle_switch_config(
                 }
             }
         }
-        Err(e) => internal_server_error(e),
+        Err(e) => internal_server_error(e.to_string()),
     }
 }
 

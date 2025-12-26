@@ -11,14 +11,14 @@ use std::fs;
 use std::path::PathBuf;
 
 /// 📊 统计命令
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct StatsArgs {
     #[command(subcommand)]
     pub command: StatsSubcommand,
 }
 
 /// 📋 统计子命令
-#[derive(Subcommand)]
+#[derive(Subcommand, Clone)]
 pub enum StatsSubcommand {
     /// 📊 显示成本统计摘要
     ///
@@ -56,7 +56,7 @@ pub enum StatsSubcommand {
 }
 
 /// 📊 统计摘要参数
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct SummaryArgs {
     /// 📅 时间范围: today, week, month, custom
     #[arg(long, default_value = "today")]
@@ -92,7 +92,7 @@ pub struct SummaryArgs {
 }
 
 /// 📥 导入参数
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct ImportArgs {
     /// 📄 CSV 文件路径
     pub csv_file: PathBuf,
@@ -107,7 +107,7 @@ pub struct ImportArgs {
 }
 
 /// 📤 导出参数
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct ExportArgs {
     /// 📋 导出格式: csv, json
     #[arg(long, default_value = "json")]
@@ -131,7 +131,7 @@ pub struct ExportArgs {
 }
 
 /// 🗑️  清理参数
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct ClearArgs {
     /// 📅 清理此日期之前的数据 (YYYY-MM-DD)
     #[arg(long)]

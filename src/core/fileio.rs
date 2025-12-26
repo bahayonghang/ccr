@@ -11,6 +11,7 @@ use crate::core::error::{CcrError, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use tokio::fs as async_fs;
 
 /// 📖 读取 TOML 文件并反序列化为指定类型
 ///
@@ -113,6 +114,129 @@ where
     Ok(())
 }
 
+/// 📖 读取 JSON 文件并反序列化为指定类型
+#[allow(dead_code)]
+pub fn read_json<T>(path: &Path) -> Result<T>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    let content = fs::read_to_string(path).map_err(|e| {
+        CcrError::ConfigError(format!("读取 JSON 文件 {} 失败: {}", path.display(), e))
+    })?;
+
+    let data: T = serde_json::from_str(&content).map_err(|e| {
+        CcrError::ConfigError(format!("解析 JSON 文件 {} 失败: {}", path.display(), e))
+    })?;
+
+    tracing::trace!("✅ 成功读取 JSON 文件: {}", path.display());
+    Ok(data)
+}
+
+/// 💾 将数据序列化为 JSON 并写入文件
+#[allow(dead_code)]
+pub fn write_json<T>(path: &Path, value: &T) -> Result<()>
+where
+    T: Serialize,
+{
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| {
+            CcrError::ConfigError(format!("创建目录 {} 失败: {}", parent.display(), e))
+        })?;
+    }
+
+    let content = serde_json::to_string_pretty(value)
+        .map_err(|e| CcrError::ConfigError(format!("序列化 JSON 数据失败: {}", e)))?;
+
+    fs::write(path, content).map_err(|e| {
+        CcrError::ConfigError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
+    })?;
+
+    tracing::trace!("✅ 成功写入 JSON 文件: {}", path.display());
+    Ok(())
+}
+
+/// 📖 异步读取 TOML 文件并反序列化为指定类型
+#[allow(dead_code)]
+pub async fn read_toml_async<T>(path: &Path) -> Result<T>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    let content = async_fs::read_to_string(path).await.map_err(|e| {
+        CcrError::ConfigError(format!("读取配置文件 {} 失败: {}", path.display(), e))
+    })?;
+
+    let data: T = toml::from_str(&content).map_err(|e| {
+        CcrError::ConfigError(format!("解析 TOML 文件 {} 失败: {}", path.display(), e))
+    })?;
+
+    tracing::trace!("✅ 成功读取 TOML 文件: {}", path.display());
+    Ok(data)
+}
+
+/// 💾 异步将数据序列化为 TOML 并写入文件
+#[allow(dead_code)]
+pub async fn write_toml_async<T>(path: &Path, value: &T) -> Result<()>
+where
+    T: Serialize,
+{
+    if let Some(parent) = path.parent() {
+        async_fs::create_dir_all(parent).await.map_err(|e| {
+            CcrError::ConfigError(format!("创建目录 {} 失败: {}", parent.display(), e))
+        })?;
+    }
+
+    let content = toml::to_string_pretty(value)
+        .map_err(|e| CcrError::ConfigError(format!("序列化 TOML 数据失败: {}", e)))?;
+
+    async_fs::write(path, content).await.map_err(|e| {
+        CcrError::ConfigError(format!("写入配置文件 {} 失败: {}", path.display(), e))
+    })?;
+
+    tracing::trace!("✅ 成功写入 TOML 文件: {}", path.display());
+    Ok(())
+}
+
+/// 📖 异步读取 JSON 文件并反序列化为指定类型
+#[allow(dead_code)]
+pub async fn read_json_async<T>(path: &Path) -> Result<T>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    let content = async_fs::read_to_string(path).await.map_err(|e| {
+        CcrError::ConfigError(format!("读取 JSON 文件 {} 失败: {}", path.display(), e))
+    })?;
+
+    let data: T = serde_json::from_str(&content).map_err(|e| {
+        CcrError::ConfigError(format!("解析 JSON 文件 {} 失败: {}", path.display(), e))
+    })?;
+
+    tracing::trace!("✅ 成功读取 JSON 文件: {}", path.display());
+    Ok(data)
+}
+
+/// 💾 异步将数据序列化为 JSON 并写入文件
+#[allow(dead_code)]
+pub async fn write_json_async<T>(path: &Path, value: &T) -> Result<()>
+where
+    T: Serialize,
+{
+    if let Some(parent) = path.parent() {
+        async_fs::create_dir_all(parent).await.map_err(|e| {
+            CcrError::ConfigError(format!("创建目录 {} 失败: {}", parent.display(), e))
+        })?;
+    }
+
+    let content = serde_json::to_string_pretty(value)
+        .map_err(|e| CcrError::ConfigError(format!("序列化 JSON 数据失败: {}", e)))?;
+
+    async_fs::write(path, content).await.map_err(|e| {
+        CcrError::ConfigError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
+    })?;
+
+    tracing::trace!("✅ 成功写入 JSON 文件: {}", path.display());
+    Ok(())
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -182,5 +306,53 @@ mod tests {
 
         let result: Result<TestConfig> = read_toml(&invalid_path);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_read_write_json() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("test_config.json");
+
+        let original = TestConfig {
+            name: "test".to_string(),
+            value: 42,
+            enabled: true,
+        };
+
+        write_json(&config_path, &original).unwrap();
+        let loaded: TestConfig = read_json(&config_path).unwrap();
+        assert_eq!(loaded, original);
+    }
+
+    #[tokio::test]
+    async fn test_read_write_toml_async() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("test_config_async.toml");
+
+        let original = TestConfig {
+            name: "test".to_string(),
+            value: 42,
+            enabled: true,
+        };
+
+        write_toml_async(&config_path, &original).await.unwrap();
+        let loaded: TestConfig = read_toml_async(&config_path).await.unwrap();
+        assert_eq!(loaded, original);
+    }
+
+    #[tokio::test]
+    async fn test_read_write_json_async() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("test_config_async.json");
+
+        let original = TestConfig {
+            name: "test".to_string(),
+            value: 42,
+            enabled: true,
+        };
+
+        write_json_async(&config_path, &original).await.unwrap();
+        let loaded: TestConfig = read_json_async(&config_path).await.unwrap();
+        assert_eq!(loaded, original);
     }
 }

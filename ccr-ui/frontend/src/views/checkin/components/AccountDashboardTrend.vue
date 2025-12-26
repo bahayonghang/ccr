@@ -117,8 +117,8 @@ const props = defineProps<{
 }>()
 
 const width = 800
-const height = 280
-const padding = 50
+const height = 220
+const padding = 45
 const chartWidth = width - padding * 2
 const chartHeight = height - padding * 2
 
@@ -179,12 +179,12 @@ const tooltipStyle = computed(() => {
 .trend-chart-container {
   position: relative;
   width: 100%;
-  min-height: 280px;
+  min-height: 220px;
 }
 
 .trend-svg {
   width: 100%;
-  height: 280px;
+  height: 220px;
 }
 
 .grid-line {
@@ -223,7 +223,7 @@ const tooltipStyle = computed(() => {
   justify-content: space-between;
   font-size: 0.75rem;
   color: #94a3b8;
-  padding: 0.5rem 50px 0;
+  padding: 0.5rem 45px 0;
 }
 
 .chart-tooltip {

@@ -1,6 +1,8 @@
 // ℹ️ platform info 命令实现
 // 显示指定平台的详细信息
 
+#![allow(clippy::unused_async)]
+
 use super::types::{PlatformInfoOutput, PlatformPathsOutput};
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
@@ -24,7 +26,7 @@ use std::str::FromStr;
 ///
 /// * `Ok(())` - 成功显示信息
 /// * `Err(CcrError::PlatformNotFound)` - 指定的平台不存在或未实现
-pub fn platform_info_command(platform_name: &str, json: bool) -> Result<()> {
+pub async fn platform_info_command(platform_name: &str, json: bool) -> Result<()> {
     // 验证平台是否存在
     let platform = Platform::from_str(platform_name)
         .map_err(|_| CcrError::PlatformNotFound(platform_name.to_string()))?;

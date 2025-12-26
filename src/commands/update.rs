@@ -1,6 +1,8 @@
 // 🔄 update 命令实现 - 自动更新 CCR
 // 📦 从 GitHub 仓库更新到最新版本(使用 cargo install)
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use std::process::{Command, Stdio};
@@ -19,7 +21,7 @@ use std::process::{Command, Stdio};
 /// 依赖:
 /// - 需要本地安装 Rust 和 cargo
 /// - 需要能访问 GitHub
-pub fn update_command(check_only: bool, branch: &str) -> Result<()> {
+pub async fn update_command(check_only: bool, branch: &str) -> Result<()> {
     ColorOutput::title("CCR 自动更新");
     println!();
 
@@ -138,11 +140,11 @@ pub fn update_command(check_only: bool, branch: &str) -> Result<()> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_update_command_check_only() {
+    #[tokio::test]
+    async fn test_update_command_check_only() {
         // 测试 --check 模式不会实际执行更新
         // 这个测试只验证函数能正常返回
-        let result = update_command(true, "main");
+        let result = update_command(true, "main").await;
         // check_only 模式应该总是成功返回
         assert!(result.is_ok());
     }

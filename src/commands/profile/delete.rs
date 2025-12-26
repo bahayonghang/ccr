@@ -1,6 +1,8 @@
 // 🗑️ delete 命令实现 - 删除配置
 // ⚠️ 删除指定的配置节，支持安全检查
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::services::ConfigService;
@@ -18,7 +20,7 @@ use colored::Colorize;
 /// 参数:
 /// - config_name: 要删除的配置名称
 /// - force: 跳过确认提示
-pub fn delete_command(config_name: &str, force: bool) -> Result<()> {
+pub async fn delete_command(config_name: &str, force: bool) -> Result<()> {
     ColorOutput::title(&format!("删除配置: {}", config_name));
     println!();
 

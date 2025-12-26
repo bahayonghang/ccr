@@ -35,7 +35,7 @@ export default defineConfig({
   },
   // 开发服务器优化
   server: {
-    port: 5173,
+    port: 15173,
     hmr: {
       overlay: true,
     },

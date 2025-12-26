@@ -1,8 +1,10 @@
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::managers::conflict_checker::{ConflictChecker, ConflictSeverity};
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
 
-pub fn check_conflicts_command() -> Result<()> {
+pub async fn check_conflicts_command() -> Result<()> {
     println!("🔍 Checking for environment variable conflicts across platforms...\n");
 
     let checker = ConflictChecker::new();

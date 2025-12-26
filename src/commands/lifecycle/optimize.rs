@@ -1,6 +1,8 @@
 // 🔄 optimize 命令实现 - 优化配置文件结构
 // 📋 按字母顺序排列配置节,提升可读性
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::config::ConfigManager;
@@ -17,7 +19,7 @@ use crate::managers::config::ConfigManager;
 /// - 手动编辑配置文件后,配置节顺序混乱
 /// - 希望配置文件更容易阅读和维护
 /// - 统一团队配置文件的格式风格
-pub fn optimize_command() -> Result<()> {
+pub async fn optimize_command() -> Result<()> {
     ColorOutput::title("配置文件优化");
     println!();
 

@@ -12,6 +12,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use tokio::fs as async_fs;
 
 /// 🎯 临时配置覆盖结构
 ///
@@ -130,6 +131,7 @@ impl TempOverrideManager {
     }
 
     /// 📁 获取临时配置文件路径
+    #[allow(dead_code)]
     pub fn override_path(&self) -> &Path {
         &self.override_path
     }
@@ -150,6 +152,29 @@ impl TempOverrideManager {
             .map_err(|e| CcrError::ConfigError(format!("读取临时配置文件失败: {}", e)))?;
 
         // 解析 JSON
+        let temp_override: TempOverride = serde_json::from_str(&content)
+            .map_err(|e| CcrError::ConfigError(format!("解析临时配置文件失败: {}", e)))?;
+
+        tracing::debug!(
+            "✅ 成功加载临时配置: {} 个字段覆盖",
+            temp_override.override_count()
+        );
+        Ok(Some(temp_override))
+    }
+
+    /// 📖 异步加载临时配置
+    pub async fn load_async(&self) -> Result<Option<TempOverride>> {
+        let exists = async_fs::try_exists(&self.override_path)
+            .await
+            .map_err(|e| CcrError::ConfigError(format!("检查临时配置文件失败: {}", e)))?;
+        if !exists {
+            return Ok(None);
+        }
+
+        let content = async_fs::read_to_string(&self.override_path)
+            .await
+            .map_err(|e| CcrError::ConfigError(format!("读取临时配置文件失败: {}", e)))?;
+
         let temp_override: TempOverride = serde_json::from_str(&content)
             .map_err(|e| CcrError::ConfigError(format!("解析临时配置文件失败: {}", e)))?;
 
@@ -181,10 +206,47 @@ impl TempOverrideManager {
         Ok(())
     }
 
+    /// 💾 异步保存临时配置
+    #[allow(dead_code)]
+    pub async fn save_async(&self, temp_override: &TempOverride) -> Result<()> {
+        if let Some(parent) = self.override_path.parent() {
+            async_fs::create_dir_all(parent)
+                .await
+                .map_err(|e| CcrError::ConfigError(format!("创建临时配置目录失败: {}", e)))?;
+        }
+
+        let content = serde_json::to_string_pretty(temp_override)
+            .map_err(|e| CcrError::ConfigError(format!("序列化临时配置失败: {}", e)))?;
+
+        async_fs::write(&self.override_path, content)
+            .await
+            .map_err(|e| CcrError::ConfigError(format!("写入临时配置文件失败: {}", e)))?;
+
+        tracing::info!("✅ 临时配置已保存: {:?}", self.override_path);
+        Ok(())
+    }
+
     /// 🧹 清除临时配置
+    #[allow(dead_code)]
     pub fn clear(&self) -> Result<()> {
         if self.override_path.exists() {
             fs::remove_file(&self.override_path)
+                .map_err(|e| CcrError::ConfigError(format!("删除临时配置文件失败: {}", e)))?;
+            tracing::info!("✅ 临时配置已清除");
+        } else {
+            tracing::debug!("临时配置文件不存在,无需清除");
+        }
+        Ok(())
+    }
+
+    /// 🧹 异步清除临时配置
+    pub async fn clear_async(&self) -> Result<()> {
+        let exists = async_fs::try_exists(&self.override_path)
+            .await
+            .map_err(|e| CcrError::ConfigError(format!("检查临时配置文件失败: {}", e)))?;
+        if exists {
+            async_fs::remove_file(&self.override_path)
+                .await
                 .map_err(|e| CcrError::ConfigError(format!("删除临时配置文件失败: {}", e)))?;
             tracing::info!("✅ 临时配置已清除");
         } else {
@@ -197,6 +259,14 @@ impl TempOverrideManager {
     #[allow(dead_code)]
     pub fn exists(&self) -> bool {
         self.load().ok().flatten().is_some()
+    }
+
+    /// 🔍 异步检查是否存在临时配置
+    #[allow(dead_code)]
+    pub async fn exists_async(&self) -> Result<bool> {
+        async_fs::try_exists(&self.override_path)
+            .await
+            .map_err(|e| CcrError::ConfigError(format!("检查临时配置文件失败: {}", e)))
     }
 }
 

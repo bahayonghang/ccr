@@ -357,5 +357,9 @@ export default withMermaid(defineConfig({
   },
   
   // Vite 配置
-  vite: {}
+  vite: {
+    build: {
+      chunkSizeWarningLimit: 1000
+    }
+  }
 }))  // withMermaid 闭合括号

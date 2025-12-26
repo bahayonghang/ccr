@@ -1,6 +1,8 @@
 // ✅ enable 命令实现 - 启用配置
 // 🔓 将指定配置标记为启用状态，使其可以被正常使用
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::services::config_service::ConfigService;
@@ -19,7 +21,7 @@ use crate::services::config_service::ConfigService;
 /// * `Ok(())` - 成功启用配置
 /// * `Err(CcrError::ConfigNotFound)` - 配置不存在
 /// * `Err(CcrError::ConfigError)` - 配置文件操作失败
-pub fn enable_command(config_name: &str) -> Result<()> {
+pub async fn enable_command(config_name: &str) -> Result<()> {
     ColorOutput::title("启用配置");
     println!();
 

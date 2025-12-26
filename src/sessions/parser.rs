@@ -6,6 +6,7 @@ use crate::core::error::{CcrError, Result};
 use crate::models::Platform;
 use crate::sessions::models::{IndexStats, Session, SessionEvent};
 use chrono::{DateTime, Utc};
+use rayon::prelude::*;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -358,14 +359,12 @@ impl SessionParser {
 
     /// 扫描目录查找 session 文件
     pub fn scan_directory(dir: &Path, platform: Platform) -> Result<Vec<PathBuf>> {
-        let mut files = Vec::new();
-
         if !dir.exists() {
             debug!("目录不存在: {}", dir.display());
-            return Ok(files);
+            return Ok(Vec::new());
         }
 
-        Self::scan_directory_recursive(dir, &mut files, platform)?;
+        let files = Self::scan_directory_recursive(dir, platform)?;
 
         debug!(
             "在 {} 中找到 {} 个 session 文件",
@@ -376,26 +375,35 @@ impl SessionParser {
         Ok(files)
     }
 
-    fn scan_directory_recursive(
-        dir: &Path,
-        files: &mut Vec<PathBuf>,
-        platform: Platform,
-    ) -> Result<()> {
+    fn scan_directory_recursive(dir: &Path, platform: Platform) -> Result<Vec<PathBuf>> {
         let entries = std::fs::read_dir(dir)
             .map_err(|e| CcrError::ConfigError(format!("无法读取目录 {}: {}", dir.display(), e)))?;
 
-        for entry in entries.flatten() {
-            let path = entry.path();
+        let entry_paths: Vec<PathBuf> = entries.flatten().map(|entry| entry.path()).collect();
 
-            if path.is_dir() {
-                // 递归扫描子目录
-                let _ = Self::scan_directory_recursive(&path, files, platform);
-            } else if Self::is_session_file(&path, &platform) {
-                files.push(path);
-            }
-        }
+        let files = entry_paths
+            .par_iter()
+            .map(|path| {
+                if path.is_dir() {
+                    match Self::scan_directory_recursive(path, platform) {
+                        Ok(files) => files,
+                        Err(e) => {
+                            warn!("扫描子目录失败 {}: {}", path.display(), e);
+                            Vec::new()
+                        }
+                    }
+                } else if Self::is_session_file(path, &platform) {
+                    vec![path.clone()]
+                } else {
+                    Vec::new()
+                }
+            })
+            .reduce(Vec::new, |mut acc, mut files| {
+                acc.append(&mut files);
+                acc
+            });
 
-        Ok(())
+        Ok(files)
     }
 
     /// 判断是否是 session 文件
@@ -429,25 +437,37 @@ impl SessionParser {
 
     /// 批量解析多个文件
     pub fn parse_files(paths: &[PathBuf], platform: Platform) -> (Vec<Session>, IndexStats) {
-        let mut sessions = Vec::new();
-        let mut stats = IndexStats::default();
-
         let start = std::time::Instant::now();
 
-        for path in paths {
-            stats.files_scanned += 1;
+        let (sessions, mut stats) = paths
+            .par_iter()
+            .fold(
+                || (Vec::new(), IndexStats::default()),
+                |(mut sessions, mut stats), path| {
+                    stats.files_scanned += 1;
 
-            match Self::parse_file(path, platform) {
-                Ok(session) => {
-                    sessions.push(session);
-                    stats.sessions_added += 1;
-                }
-                Err(e) => {
-                    warn!("解析文件失败 {}: {}", path.display(), e);
-                    stats.errors += 1;
-                }
-            }
-        }
+                    match Self::parse_file(path, platform) {
+                        Ok(session) => {
+                            sessions.push(session);
+                            stats.sessions_added += 1;
+                        }
+                        Err(e) => {
+                            warn!("解析文件失败 {}: {}", path.display(), e);
+                            stats.errors += 1;
+                        }
+                    }
+
+                    (sessions, stats)
+                },
+            )
+            .reduce(
+                || (Vec::new(), IndexStats::default()),
+                |(mut sessions, mut stats), (mut other_sessions, other_stats)| {
+                    sessions.append(&mut other_sessions);
+                    stats.merge(&other_stats);
+                    (sessions, stats)
+                },
+            );
 
         stats.duration_ms = start.elapsed().as_millis() as u64;
 
@@ -459,6 +479,7 @@ impl SessionParser {
 mod tests {
     use super::*;
     use std::io::Write;
+    use std::time::Instant;
     use tempfile::tempdir;
 
     fn create_test_jsonl(content: &str) -> PathBuf {
@@ -468,6 +489,21 @@ mod tests {
         write!(file, "{}", content).expect("Failed to write test JSONL content");
         std::mem::forget(dir); // 保持目录存活
         file_path
+    }
+
+    fn session_content(session_id: &str) -> String {
+        format!(
+            r#"{{"type": "init", "session_id": "{session_id}", "cwd": "/tmp/test"}}
+{{"type": "user", "role": "user", "message": "Hello"}}
+{{"type": "assistant", "role": "assistant", "message": "Hi"}}
+"#
+        )
+    }
+
+    fn write_session_file(dir: &Path, name: &str, session_id: &str) -> PathBuf {
+        let path = dir.join(name);
+        std::fs::write(&path, session_content(session_id)).expect("Failed to write session file");
+        path
     }
 
     #[test]
@@ -495,5 +531,94 @@ mod tests {
             Path::new("/tmp/test.txt"),
             &Platform::Claude
         ));
+    }
+
+    #[test]
+    fn test_parse_files_parallel_counts() {
+        let dir = tempdir().expect("Failed to create temp directory for test");
+        let mut paths = Vec::new();
+
+        for index in 0..3 {
+            let filename = format!("session-{}.jsonl", index);
+            let session_id = format!("session-{}", index);
+            paths.push(write_session_file(dir.path(), &filename, &session_id));
+        }
+
+        let (sessions, stats) = SessionParser::parse_files(&paths, Platform::Claude);
+
+        assert_eq!(sessions.len(), 3);
+        assert_eq!(stats.files_scanned, 3);
+        assert_eq!(stats.errors, 0);
+    }
+
+    #[test]
+    fn test_scan_directory_recursive_counts() {
+        let dir = tempdir().expect("Failed to create temp directory for test");
+        let nested = dir.path().join("nested");
+        std::fs::create_dir_all(&nested).expect("Failed to create nested dir");
+
+        write_session_file(dir.path(), "session-root.jsonl", "session-root");
+        write_session_file(&nested, "session-nested.jsonl", "session-nested");
+        std::fs::write(dir.path().join("note.txt"), "not a session")
+            .expect("Failed to write noise file");
+
+        let files = SessionParser::scan_directory(dir.path(), Platform::Claude)
+            .expect("Failed to scan directory");
+
+        assert_eq!(files.len(), 2);
+    }
+
+    #[test]
+    #[ignore]
+    fn benchmark_parse_files_parallel() {
+        let dir = tempdir().expect("Failed to create temp directory for benchmark");
+        let mut paths = Vec::new();
+        let file_count = 200;
+
+        for index in 0..file_count {
+            let filename = format!("session-{}.jsonl", index);
+            let session_id = format!("session-{}", index);
+            paths.push(write_session_file(dir.path(), &filename, &session_id));
+        }
+
+        let start = Instant::now();
+        let (sessions, stats) = SessionParser::parse_files(&paths, Platform::Claude);
+        let elapsed = start.elapsed();
+
+        assert_eq!(sessions.len(), file_count);
+        eprintln!(
+            "parse_files: files={}, duration={:?}, stats={{scanned={}, added={}, errors={}}}",
+            file_count, elapsed, stats.files_scanned, stats.sessions_added, stats.errors
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn benchmark_scan_directory_parallel() {
+        let dir = tempdir().expect("Failed to create temp directory for benchmark");
+        let nested = dir.path().join("nested");
+        std::fs::create_dir_all(&nested).expect("Failed to create nested dir");
+        let file_count = 300;
+
+        for index in 0..file_count {
+            let filename = format!("session-{}.jsonl", index);
+            let session_id = format!("session-{}", index);
+            if index % 2 == 0 {
+                write_session_file(dir.path(), &filename, &session_id);
+            } else {
+                write_session_file(&nested, &filename, &session_id);
+            }
+        }
+
+        let start = Instant::now();
+        let files = SessionParser::scan_directory(dir.path(), Platform::Claude)
+            .expect("Failed to scan directory");
+        let elapsed = start.elapsed();
+
+        assert_eq!(files.len(), file_count);
+        eprintln!(
+            "scan_directory: files={}, duration={:?}",
+            file_count, elapsed
+        );
     }
 }

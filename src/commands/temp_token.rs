@@ -6,6 +6,8 @@
 // 2. show - 显示当前临时配置
 // 3. clear - 清除临时配置
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::SettingsManager;
@@ -27,7 +29,11 @@ use comfy_table::{
 /// 2. 应用临时覆盖
 /// 3. 保存 settings.json
 /// 4. 立即清除临时配置（不保存到文件）
-pub fn temp_token_set(token: &str, base_url: Option<String>, model: Option<String>) -> Result<()> {
+pub async fn temp_token_set(
+    token: &str,
+    base_url: Option<String>,
+    model: Option<String>,
+) -> Result<()> {
     ColorOutput::title("设置临时 Token");
     println!();
 
@@ -35,7 +41,7 @@ pub fn temp_token_set(token: &str, base_url: Option<String>, model: Option<Strin
     let settings_manager = SettingsManager::with_default()?;
 
     // 读取当前设置
-    let mut current_settings = settings_manager.load()?;
+    let mut current_settings = settings_manager.load_async().await?;
 
     // 创建临时配置
     let mut temp_override = TempOverride::new(token.to_string());
@@ -71,7 +77,9 @@ pub fn temp_token_set(token: &str, base_url: Option<String>, model: Option<Strin
     }
 
     // 保存更新后的设置
-    settings_manager.save_atomic(&current_settings)?;
+    settings_manager
+        .save_atomic_async(&current_settings)
+        .await?;
 
     ColorOutput::success("✅ 临时配置已应用到当前设置");
     println!();
@@ -90,13 +98,13 @@ pub fn temp_token_set(token: &str, base_url: Option<String>, model: Option<Strin
 }
 
 /// 📊 显示当前临时配置
-pub fn temp_token_show() -> Result<()> {
+pub async fn temp_token_show() -> Result<()> {
     ColorOutput::title("临时配置状态");
     println!();
 
     let manager = TempOverrideManager::with_default()?;
 
-    match manager.load()? {
+    match manager.load_async().await? {
         Some(temp_override) => {
             ColorOutput::success(&format!(
                 "✅ 当前有 {} 个字段被临时覆盖",
@@ -116,18 +124,18 @@ pub fn temp_token_show() -> Result<()> {
 }
 
 /// 🧹 清除临时配置
-pub fn temp_token_clear() -> Result<()> {
+pub async fn temp_token_clear() -> Result<()> {
     ColorOutput::title("清除临时配置");
     println!();
 
     let manager = TempOverrideManager::with_default()?;
 
-    if !manager.override_path().exists() {
+    if !manager.exists_async().await? {
         ColorOutput::info("📝 当前没有临时配置需要清除");
         return Ok(());
     }
 
-    manager.clear()?;
+    manager.clear_async().await?;
     ColorOutput::success("✅ 临时配置已清除");
     println!();
     ColorOutput::info("💡 现在将使用 toml 配置文件中的设置");

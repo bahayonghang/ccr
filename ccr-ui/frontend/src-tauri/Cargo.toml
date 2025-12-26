@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "3.15.0"
+version = "3.16.0"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2021"

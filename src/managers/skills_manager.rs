@@ -1,4 +1,5 @@
 use crate::core::error::{CcrError, Result};
+use crate::core::http::HTTP_CLIENT;
 use crate::models::Platform;
 use crate::models::skill::{Skill, SkillRepository};
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,6 @@ struct SkillsConfig {
 pub struct SkillsManager {
     base_path: PathBuf,
     config_path: PathBuf,
-    client: reqwest::Client,
 }
 
 impl SkillsManager {
@@ -41,15 +41,9 @@ impl SkillsManager {
 
         let config_path = config_dir.join("skills.toml");
 
-        let client = reqwest::Client::builder()
-            .user_agent("ccr/3.5.2")
-            .build()
-            .map_err(|e| CcrError::NetworkError(format!("Failed to create HTTP client: {}", e)))?;
-
         Ok(Self {
             base_path,
             config_path,
-            client,
         })
     }
 
@@ -262,8 +256,9 @@ impl SkillsManager {
             owner, repo_name_gh
         );
 
+        let client = &*HTTP_CLIENT;
         let resp =
-            self.client.get(&api_url).send().await.map_err(|e| {
+            client.get(&api_url).send().await.map_err(|e| {
                 CcrError::NetworkError(format!("Failed to fetch repository: {}", e))
             })?;
 
@@ -323,8 +318,9 @@ impl SkillsManager {
     }
 
     pub async fn fetch_skill_content(&self, url: &str) -> Result<String> {
+        let client = &*HTTP_CLIENT;
         let resp =
-            self.client.get(url).send().await.map_err(|e| {
+            client.get(url).send().await.map_err(|e| {
                 CcrError::NetworkError(format!("Failed to fetch skill content: {}", e))
             })?;
 

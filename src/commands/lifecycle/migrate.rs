@@ -1,6 +1,8 @@
 // 🔄 migrate 命令实现 - 配置迁移
 // 📦 将 Legacy 模式配置迁移到 Unified 模式
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::{
@@ -11,7 +13,7 @@ use colored::Colorize;
 use std::io::{self, Write};
 
 /// 🔄 迁移配置到统一模式
-pub fn migrate_command(dry_run: bool, platform_filter: Option<&str>) -> Result<()> {
+pub async fn migrate_command(dry_run: bool, platform_filter: Option<&str>) -> Result<()> {
     if dry_run {
         ColorOutput::title("配置迁移检查 (dry-run 模式)");
     } else {
@@ -321,7 +323,7 @@ fn display_post_migration_instructions() {
 }
 
 /// 🔍 检查迁移状态（不执行迁移）
-pub fn migrate_check_command() -> Result<()> {
+pub async fn migrate_check_command() -> Result<()> {
     ColorOutput::title("迁移状态检查");
 
     let config_manager = ConfigManager::with_default()?;

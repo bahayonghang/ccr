@@ -3,8 +3,8 @@
 # NOTE: Excludes VS Code related processes to avoid killing shared IDE services
 
 param(
-    [string]$BackendPort = "38081",
-    [string]$VitePort = "5173"
+    [string]$BackendPort = "48081",
+    [string]$VitePort = "15173"
 )
 
 # 支持环境变量覆盖

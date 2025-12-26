@@ -1,6 +1,8 @@
 // ✅ validate 命令实现 - 验证配置和设置
 // 🔍 全面检查配置文件和 Claude Code 设置的完整性
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::services::{ConfigService, SettingsService};
@@ -24,7 +26,7 @@ use colored::*;
 /// 3. 📊 生成验证报告
 ///    - 显示错误和警告
 ///    - 提供修复建议
-pub fn validate_command() -> Result<()> {
+pub async fn validate_command() -> Result<()> {
     ColorOutput::title("配置验证报告");
     println!();
 
@@ -99,7 +101,7 @@ pub fn validate_command() -> Result<()> {
         }
     };
 
-    match settings_service.get_current_settings() {
+    match settings_service.get_current_settings_async().await {
         Ok(settings) => {
             ColorOutput::success(&format!(
                 "设置文件存在: {}",

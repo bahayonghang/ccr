@@ -1,6 +1,8 @@
 // 🎬 init 命令实现 - 初始化配置文件
 // 📦 初始化 CCR 多平台配置结构 (~/.ccr/) 或兼容旧版模式 (~/.ccs_config.toml)
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
@@ -73,7 +75,7 @@ fn generate_example_config() -> Result<String> {
 /// 🎬 初始化配置文件
 ///
 /// **新的行为 (2025)**: 默认使用 Unified Mode (~/.ccr/ 目录结构)
-pub fn init_command(force: bool) -> Result<()> {
+pub async fn init_command(force: bool) -> Result<()> {
     ColorOutput::title("CCR 配置初始化");
     println!();
 

@@ -1,6 +1,8 @@
 // 📚 history 命令实现 - 显示操作历史
 // 🔍 展示所有操作的审计追踪,支持筛选和统计
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::history::OperationType;
@@ -18,7 +20,7 @@ use colored::*;
 /// 参数:
 /// - limit: 显示记录数量(默认 20)
 /// - filter_type: 按操作类型筛选(switch/backup/restore/validate/update)
-pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Result<()> {
+pub async fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Result<()> {
     ColorOutput::title("操作历史记录");
     println!();
 
@@ -40,11 +42,11 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
                 return Ok(());
             }
         };
-        service.filter_by_type(op_type)?
+        service.filter_by_type_async(op_type).await?
     } else if let Some(n) = limit {
-        service.get_recent(n)?
+        service.get_recent_async(n).await?
     } else {
-        service.get_recent(100)?
+        service.get_recent_async(100).await?
     };
 
     if entries.is_empty() {
@@ -53,7 +55,7 @@ pub fn history_command(limit: Option<usize>, filter_type: Option<String>) -> Res
     }
 
     // 显示统计信息
-    let stats = service.get_stats()?;
+    let stats = service.get_stats_async().await?;
     ColorOutput::info(&format!("总操作数: {}", stats.total_operations));
     ColorOutput::info(&format!(
         "成功: {}, 失败: {}, 警告: {}",
