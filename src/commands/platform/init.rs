@@ -1,6 +1,8 @@
 // 🆕 platform init 命令实现
 // 初始化平台配置
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
@@ -33,7 +35,7 @@ use std::str::FromStr;
 ///    - `~/.ccr/{platform}/backups/` - 备份目录
 /// 3. **注册平台**: 在 `~/.ccr/config.toml` 中注册平台
 /// 4. **设置默认**: 如果是首个平台，设为默认和当前平台
-pub fn platform_init_command(platform_name: &str) -> Result<()> {
+pub async fn platform_init_command(platform_name: &str) -> Result<()> {
     ColorOutput::title(&format!("初始化平台: {}", platform_name));
 
     // 验证平台是否存在

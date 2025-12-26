@@ -1,3 +1,5 @@
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::managers::prompts_manager::PromptsManager;
 use crate::models::Platform;
@@ -64,7 +66,7 @@ pub enum PromptsAction {
     },
 }
 
-pub fn prompts_command(args: PromptsArgs) -> Result<()> {
+pub async fn prompts_command(args: PromptsArgs) -> Result<()> {
     let platform = if let Some(p) = args.platform {
         Platform::from_str(&p)?
     } else {

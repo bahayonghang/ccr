@@ -1,6 +1,8 @@
 // 🔄 platform switch 命令实现
 // 切换当前平台
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
@@ -31,7 +33,7 @@ use std::str::FromStr;
 /// 4. **时间戳记录**: 记录旧平台的最后使用时间
 /// 5. **配置保存**: 将更改持久化到 `~/.ccr/config.toml`
 /// 6. **提示信息**: 显示切换结果和当前 profile（如果有）
-pub fn platform_switch_command(platform_name: &str) -> Result<()> {
+pub async fn platform_switch_command(platform_name: &str) -> Result<()> {
     ColorOutput::title(&format!("切换到平台: {}", platform_name));
 
     let manager = PlatformConfigManager::with_default()?;

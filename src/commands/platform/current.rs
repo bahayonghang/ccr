@@ -1,6 +1,8 @@
 // 🔍 platform current 命令实现
 // 显示当前平台信息
 
+#![allow(clippy::unused_async)]
+
 use super::types::{PlatformInfoOutput, PlatformPathsOutput};
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
@@ -22,7 +24,7 @@ use std::str::FromStr;
 ///
 /// * `Ok(())` - 成功显示信息
 /// * `Err(CcrError::PlatformNotFound)` - 当前平台不存在（配置损坏）
-pub fn platform_current_command(json: bool) -> Result<()> {
+pub async fn platform_current_command(json: bool) -> Result<()> {
     let manager = PlatformConfigManager::with_default()?;
     let config = manager.load_or_create_default()?;
 

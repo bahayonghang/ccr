@@ -39,6 +39,11 @@ impl HistoryService {
         self.history_manager.add(entry)
     }
 
+    /// 📝 异步记录操作
+    pub async fn record_operation_async(&self, entry: HistoryEntry) -> Result<()> {
+        self.history_manager.add_async(entry).await
+    }
+
     /// 📋 获取最近的记录
     ///
     /// # Arguments
@@ -48,6 +53,11 @@ impl HistoryService {
     /// 按时间倒序的记录列表(最新的在前)
     pub fn get_recent(&self, limit: usize) -> Result<Vec<HistoryEntry>> {
         self.history_manager.get_recent(limit)
+    }
+
+    /// 📋 异步获取最近的记录
+    pub async fn get_recent_async(&self, limit: usize) -> Result<Vec<HistoryEntry>> {
+        self.history_manager.get_recent_async(limit).await
     }
 
     /// 🔍 按操作类型筛选
@@ -61,6 +71,13 @@ impl HistoryService {
         self.history_manager.filter_by_operation(op_type)
     }
 
+    /// 🔍 异步按操作类型筛选
+    pub async fn filter_by_type_async(&self, op_type: OperationType) -> Result<Vec<HistoryEntry>> {
+        self.history_manager
+            .filter_by_operation_async(op_type)
+            .await
+    }
+
     /// 📊 获取统计信息
     ///
     /// # Returns
@@ -69,9 +86,19 @@ impl HistoryService {
         self.history_manager.stats()
     }
 
+    /// 📊 异步获取统计信息
+    pub async fn get_stats_async(&self) -> Result<HistoryStats> {
+        self.history_manager.stats_async().await
+    }
+
     /// 📖 加载所有记录
     pub fn load_all(&self) -> Result<Vec<HistoryEntry>> {
         self.history_manager.load()
+    }
+
+    /// 📖 异步加载所有记录
+    pub async fn load_all_async(&self) -> Result<Vec<HistoryEntry>> {
+        self.history_manager.load_async().await
     }
 
     /// 📁 获取历史记录管理器
@@ -84,6 +111,11 @@ impl HistoryService {
     /// 删除所有历史记录条目
     pub fn clear(&self) -> Result<()> {
         self.history_manager.clear()
+    }
+
+    /// 🗑️ 异步清空所有历史记录
+    pub async fn clear_async(&self) -> Result<()> {
+        self.history_manager.clear_async().await
     }
 }
 

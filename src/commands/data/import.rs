@@ -1,6 +1,8 @@
 // 📥 import 命令实现 - 导入配置
 // 🔄 从备份文件恢复配置,支持合并和覆盖两种模式
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::config::{CcsConfig, ConfigManager};
@@ -30,7 +32,12 @@ pub enum ImportMode {
 /// - mode: 导入模式(Merge/Replace)
 /// - backup: 是否备份当前配置
 /// - force: 跳过确认提示（危险操作）
-pub fn import_command(input: String, mode: ImportMode, backup: bool, force: bool) -> Result<()> {
+pub async fn import_command(
+    input: String,
+    mode: ImportMode,
+    backup: bool,
+    force: bool,
+) -> Result<()> {
     ColorOutput::title("导入配置");
     println!();
 

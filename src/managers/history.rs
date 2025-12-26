@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use tokio::fs as async_fs;
 use uuid::Uuid;
 
 /// 📋 操作类型枚举
@@ -198,6 +199,25 @@ impl HistoryManager {
         Ok(entries)
     }
 
+    /// 异步加载历史记录
+    pub async fn load_async(&self) -> Result<Vec<HistoryEntry>> {
+        let exists = async_fs::try_exists(&self.history_path)
+            .await
+            .map_err(|e| CcrError::HistoryError(format!("检查历史文件失败: {}", e)))?;
+        if !exists {
+            return Ok(Vec::new());
+        }
+
+        let content = async_fs::read_to_string(&self.history_path)
+            .await
+            .map_err(|e| CcrError::HistoryError(format!("读取历史文件失败: {}", e)))?;
+
+        let entries: Vec<HistoryEntry> = serde_json::from_str(&content)
+            .map_err(|e| CcrError::HistoryError(format!("解析历史文件失败: {}", e)))?;
+
+        Ok(entries)
+    }
+
     /// 保存历史记录
     fn save(&self, entries: &[HistoryEntry]) -> Result<()> {
         // 确保目录存在
@@ -212,6 +232,24 @@ impl HistoryManager {
 
         // 写入文件
         fs::write(&self.history_path, content)
+            .map_err(|e| CcrError::HistoryError(format!("写入历史文件失败: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// 异步保存历史记录
+    async fn save_async(&self, entries: &[HistoryEntry]) -> Result<()> {
+        if let Some(parent) = self.history_path.parent() {
+            async_fs::create_dir_all(parent)
+                .await
+                .map_err(|e| CcrError::HistoryError(format!("创建历史目录失败: {}", e)))?;
+        }
+
+        let content = serde_json::to_string_pretty(entries)
+            .map_err(|e| CcrError::HistoryError(format!("序列化历史记录失败: {}", e)))?;
+
+        async_fs::write(&self.history_path, content)
+            .await
             .map_err(|e| CcrError::HistoryError(format!("写入历史文件失败: {}", e)))?;
 
         Ok(())
@@ -264,6 +302,43 @@ impl HistoryManager {
         Ok(())
     }
 
+    /// 异步添加历史记录条目
+    pub async fn add_async(&self, entry: HistoryEntry) -> Result<()> {
+        tracing::debug!(
+            "开始添加历史记录: operation={:?}, to_config={:?}",
+            entry.operation,
+            entry.details.to_config
+        );
+
+        let _lock = self.lock_manager.lock_history(Duration::from_secs(10))?;
+        tracing::debug!("已获取历史记录文件锁");
+
+        let mut entries = self.load_async().await?;
+        let old_count = entries.len();
+        tracing::debug!("已加载 {} 条现有历史记录", old_count);
+
+        entries.push(entry.clone());
+
+        entries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        const MAX_HISTORY_ENTRIES: usize = 10;
+        if entries.len() > MAX_HISTORY_ENTRIES {
+            let removed_count = entries.len() - MAX_HISTORY_ENTRIES;
+            entries.truncate(MAX_HISTORY_ENTRIES);
+            tracing::debug!("🗑️ 自动清理了 {} 条旧历史记录", removed_count);
+        }
+
+        self.save_async(&entries).await?;
+        tracing::info!(
+            "✅ 历史记录已添加 (ID: {}, 总数: {} -> {})",
+            entry.id,
+            old_count,
+            entries.len()
+        );
+        tracing::debug!("历史记录文件路径: {:?}", self.history_path);
+
+        Ok(())
+    }
+
     /// 按操作类型筛选
     pub fn filter_by_operation(&self, op_type: OperationType) -> Result<Vec<HistoryEntry>> {
         let entries = self.load()?;
@@ -273,9 +348,29 @@ impl HistoryManager {
             .collect())
     }
 
+    /// 异步按操作类型筛选
+    pub async fn filter_by_operation_async(
+        &self,
+        op_type: OperationType,
+    ) -> Result<Vec<HistoryEntry>> {
+        let entries = self.load_async().await?;
+        Ok(entries
+            .into_iter()
+            .filter(|e| e.operation == op_type)
+            .collect())
+    }
+
     /// 获取最近的 N 条记录
     pub fn get_recent(&self, limit: usize) -> Result<Vec<HistoryEntry>> {
         let mut entries = self.load()?;
+        entries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        entries.truncate(limit);
+        Ok(entries)
+    }
+
+    /// 异步获取最近的 N 条记录
+    pub async fn get_recent_async(&self, limit: usize) -> Result<Vec<HistoryEntry>> {
+        let mut entries = self.load_async().await?;
         entries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
         entries.truncate(limit);
         Ok(entries)
@@ -309,6 +404,33 @@ impl HistoryManager {
         Ok(stats)
     }
 
+    /// 异步统计操作
+    pub async fn stats_async(&self) -> Result<HistoryStats> {
+        let entries = self.load_async().await?;
+        let mut stats = HistoryStats::new();
+
+        for entry in &entries {
+            stats.total_operations += 1;
+
+            match &entry.result {
+                OperationResult::Success => stats.successful_operations += 1,
+                OperationResult::Failure(_) => stats.failed_operations += 1,
+                OperationResult::Warning(_) => stats.warning_operations += 1,
+            }
+
+            *stats
+                .operations_by_type
+                .entry(entry.operation.as_str().to_string())
+                .or_insert(0) += 1;
+        }
+
+        if let Some(latest) = entries.iter().max_by_key(|e| e.timestamp) {
+            stats.last_operation = Some(latest.clone());
+        }
+
+        Ok(stats)
+    }
+
     /// 🗑️ 清空所有历史记录
     ///
     /// 删除历史文件，清空所有历史记录
@@ -321,6 +443,21 @@ impl HistoryManager {
 
         // 保存空数组来清空历史
         self.save(&[])?;
+
+        tracing::info!("✅ 历史记录已清空");
+        tracing::debug!("历史记录文件路径: {:?}", self.history_path);
+
+        Ok(())
+    }
+
+    /// 🗑️ 异步清空所有历史记录
+    pub async fn clear_async(&self) -> Result<()> {
+        tracing::debug!("开始清空历史记录");
+
+        let _lock = self.lock_manager.lock_history(Duration::from_secs(10))?;
+        tracing::debug!("已获取历史记录文件锁");
+
+        self.save_async(&[]).await?;
 
         tracing::info!("✅ 历史记录已清空");
         tracing::debug!("历史记录文件路径: {:?}", self.history_path);

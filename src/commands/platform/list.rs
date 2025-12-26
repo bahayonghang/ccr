@@ -1,6 +1,8 @@
 // 📜 platform list 命令实现
 // 列出所有可用平台
 
+#![allow(clippy::unused_async)]
+
 use super::types::{PlatformListItem, PlatformListOutput};
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
@@ -29,7 +31,7 @@ use comfy_table::{
 ///
 /// * `Ok(())` - 成功执行
 /// * `Err(CcrError)` - 配置文件加载失败或其他错误
-pub fn platform_list_command(json: bool) -> Result<()> {
+pub async fn platform_list_command(json: bool) -> Result<()> {
     let manager = PlatformConfigManager::with_default()?;
     let config = manager.load_or_create_default()?;
 

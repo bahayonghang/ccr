@@ -1,6 +1,8 @@
 // ➕ add 命令实现 - 交互式添加配置
 // 📝 通过终端交互提示用户输入配置信息
 
+#![allow(clippy::unused_async)]
+
 use crate::commands::common::{prompt_optional, prompt_required, prompt_tags};
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
@@ -17,7 +19,7 @@ use std::io::{self, Write};
 /// 2. ✅ 验证输入的有效性
 /// 3. 💾 保存新配置
 /// 4. 📊 显示添加结果
-pub fn add_command() -> Result<()> {
+pub async fn add_command() -> Result<()> {
     ColorOutput::title("添加新配置");
     println!();
 

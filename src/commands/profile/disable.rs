@@ -1,6 +1,8 @@
 // ❌ disable 命令实现 - 禁用配置
 // 🔒 将指定配置标记为禁用状态，暂时不可使用
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::services::config_service::ConfigService;
@@ -22,7 +24,7 @@ use std::io::{self, Write};
 /// * `Ok(())` - 成功禁用配置
 /// * `Err(CcrError::ConfigNotFound)` - 配置不存在
 /// * `Err(CcrError::ConfigError)` - 配置文件操作失败
-pub fn disable_command(config_name: &str, force: bool) -> Result<()> {
+pub async fn disable_command(config_name: &str, force: bool) -> Result<()> {
     ColorOutput::title("禁用配置");
     println!();
 

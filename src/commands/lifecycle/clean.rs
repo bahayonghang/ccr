@@ -1,6 +1,8 @@
 // 🧹 clean 命令实现 - 清理旧备份文件
 // 📅 根据时间策略删除过期的 .bak 备份文件
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::config::ConfigManager;
@@ -19,7 +21,7 @@ use crate::services::BackupService;
 /// - days: 保留天数(删除 N 天前的文件)
 /// - dry_run: 模拟运行(不实际删除)
 /// - force: 跳过确认提示（危险操作）
-pub fn clean_command(days: u64, dry_run: bool, force: bool) -> Result<()> {
+pub async fn clean_command(days: u64, dry_run: bool, force: bool) -> Result<()> {
     ColorOutput::title("清理备份文件");
     println!();
 

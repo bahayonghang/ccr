@@ -12,6 +12,8 @@
 // 3. 交互式提示输入 model (可选，智能解析)
 // 4. 直接写入 settings.json
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::SettingsManager;
@@ -30,7 +32,7 @@ use std::io::{self, Write};
 /// - 快速测试新的 API 提供商
 /// - 使用临时 token 进行短期测试
 /// - 不想创建永久配置时的快速切换
-pub fn temp_command() -> Result<()> {
+pub async fn temp_command() -> Result<()> {
     ColorOutput::title("临时配置快速设置");
     println!();
 
@@ -74,7 +76,7 @@ pub fn temp_command() -> Result<()> {
 
     // 应用配置到 settings.json
     ColorOutput::step("应用临时配置");
-    apply_temp_config(&base_url, &token, model.as_deref())?;
+    apply_temp_config(&base_url, &token, model.as_deref()).await?;
 
     ColorOutput::success("✅ 临时配置已应用到 settings.json");
     println!();
@@ -271,11 +273,11 @@ fn display_temp_config(base_url: &str, token: &str, model: Option<&str>) {
 }
 
 /// 应用临时配置到 settings.json
-fn apply_temp_config(base_url: &str, token: &str, model: Option<&str>) -> Result<()> {
+async fn apply_temp_config(base_url: &str, token: &str, model: Option<&str>) -> Result<()> {
     let settings_manager = SettingsManager::with_default()?;
 
     // 加载当前设置
-    let mut current_settings = settings_manager.load()?;
+    let mut current_settings = settings_manager.load_async().await?;
 
     // 应用临时配置
     current_settings
@@ -292,7 +294,9 @@ fn apply_temp_config(base_url: &str, token: &str, model: Option<&str>) -> Result
     }
 
     // 保存设置
-    settings_manager.save_atomic(&current_settings)?;
+    settings_manager
+        .save_atomic_async(&current_settings)
+        .await?;
 
     Ok(())
 }

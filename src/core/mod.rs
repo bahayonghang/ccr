@@ -15,13 +15,14 @@ pub mod cache;
 pub mod error;
 pub mod file_manager;
 pub mod fileio;
+pub mod http;
 pub mod lock;
 pub mod logging;
 
 // 重新导出常用类型（供外部使用）
 // 注意: 这些导出是为了库的公共 API，即使在模块内未使用也需要保留
 #[allow(unused_imports)]
-pub use atomic_writer::AtomicWriter;
+pub use atomic_writer::{AsyncAtomicWriter, AtomicWriter};
 #[allow(unused_imports)]
 pub use cache::{CacheStatus, ConfigCache};
 #[allow(unused_imports)]
@@ -29,7 +30,12 @@ pub use error::{CcrError, Result};
 #[allow(unused_imports)]
 pub use file_manager::FileManager;
 #[allow(unused_imports)]
-pub use fileio::{read_toml, write_toml};
+pub use fileio::{
+    read_json, read_json_async, read_toml, read_toml_async, write_json, write_json_async,
+    write_toml, write_toml_async,
+};
+#[allow(unused_imports)]
+pub use http::HTTP_CLIENT;
 #[allow(unused_imports)]
 pub use lock::{CONFIG_LOCK, FileLock, LockManager};
 pub use logging::{ColorOutput, init_logger};

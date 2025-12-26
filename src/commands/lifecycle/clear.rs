@@ -6,6 +6,8 @@
 // 2. 清空所有 ANTHROPIC_* 前缀的环境变量
 // 3. 备份并保存更新后的设置
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::SettingsManager;
@@ -26,7 +28,7 @@ use comfy_table::{
 ///
 /// 参数:
 /// - force: 跳过确认提示（危险操作）
-pub fn clear_command(force: bool) -> Result<()> {
+pub async fn clear_command(force: bool) -> Result<()> {
     ColorOutput::title("清理 CCR 配置");
     println!();
 
@@ -41,7 +43,7 @@ pub fn clear_command(force: bool) -> Result<()> {
 
     // 📖 加载设置文件
     let settings_manager = SettingsManager::with_default()?;
-    let current_settings = settings_manager.load()?;
+    let current_settings = settings_manager.load_async().await?;
 
     // 📊 收集将被清除的环境变量
     let anthropic_vars: Vec<(String, String)> = current_settings
@@ -118,7 +120,7 @@ pub fn clear_command(force: bool) -> Result<()> {
 
     // 💾 备份当前设置
     ColorOutput::step("备份当前设置...");
-    let backup_path = settings_manager.backup(Some("pre_clear"))?;
+    let backup_path = settings_manager.backup_async(Some("pre_clear")).await?;
     ColorOutput::success(&format!("✅ 已备份到: {}", backup_path.display()));
 
     // 🧹 清空 ANTHROPIC_* 环境变量
@@ -128,7 +130,9 @@ pub fn clear_command(force: bool) -> Result<()> {
 
     // 💾 保存更新后的设置
     ColorOutput::step("保存更新后的设置...");
-    settings_manager.save_atomic(&updated_settings)?;
+    settings_manager
+        .save_atomic_async(&updated_settings)
+        .await?;
 
     println!();
     ColorOutput::separator();

@@ -5,6 +5,7 @@ use crate::core::error::{CcrError, Result};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
+use tokio::fs as async_fs;
 
 /// 🧹 清理结果
 #[derive(Debug, Clone)]
@@ -71,6 +72,23 @@ impl BackupService {
 
         let cutoff_time = SystemTime::now() - Duration::from_secs(days * 24 * 60 * 60);
         self.scan_and_clean(cutoff_time, dry_run)
+    }
+
+    /// 🧹 异步清理旧备份文件
+    pub async fn clean_old_backups_async(&self, days: u64, dry_run: bool) -> Result<CleanResult> {
+        let exists = async_fs::try_exists(&self.backup_dir)
+            .await
+            .map_err(|e| CcrError::ConfigError(format!("检查备份目录失败: {}", e)))?;
+        if !exists {
+            return Ok(CleanResult {
+                deleted_count: 0,
+                skipped_count: 0,
+                total_size: 0,
+            });
+        }
+
+        let cutoff_time = SystemTime::now() - Duration::from_secs(days * 24 * 60 * 60);
+        self.scan_and_clean_async(cutoff_time, dry_run).await
     }
 
     /// 📂 扫描备份目录
@@ -162,6 +180,60 @@ impl BackupService {
                 result.total_size += file_size;
             } else {
                 // 文件较新,保留
+                result.skipped_count += 1;
+            }
+        }
+
+        Ok(result)
+    }
+
+    /// 🔍 异步扫描并清理备份文件
+    async fn scan_and_clean_async(
+        &self,
+        cutoff_time: SystemTime,
+        dry_run: bool,
+    ) -> Result<CleanResult> {
+        let mut result = CleanResult {
+            deleted_count: 0,
+            skipped_count: 0,
+            total_size: 0,
+        };
+
+        let mut entries = async_fs::read_dir(&self.backup_dir)
+            .await
+            .map_err(|e| CcrError::ConfigError(format!("读取备份目录失败: {}", e)))?;
+
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(|e| CcrError::ConfigError(format!("读取目录项失败: {}", e)))?
+        {
+            let path = entry.path();
+
+            if !path.is_file() || path.extension().and_then(|s| s.to_str()) != Some("bak") {
+                continue;
+            }
+
+            let metadata = async_fs::metadata(&path)
+                .await
+                .map_err(|e| CcrError::ConfigError(format!("读取文件元数据失败: {}", e)))?;
+
+            let modified_time = metadata
+                .modified()
+                .map_err(|e| CcrError::ConfigError(format!("获取文件修改时间失败: {}", e)))?;
+
+            if modified_time < cutoff_time {
+                let file_size = metadata.len();
+
+                if !dry_run {
+                    async_fs::remove_file(&path)
+                        .await
+                        .map_err(|e| CcrError::ConfigError(format!("删除文件失败: {}", e)))?;
+                }
+
+                result.deleted_count += 1;
+                result.total_size += file_size;
+            } else {
                 result.skipped_count += 1;
             }
         }

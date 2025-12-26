@@ -12,8 +12,8 @@ use crate::sync::config::SyncConfig;
 use reqwest_dav::list_cmd::ListEntity;
 use reqwest_dav::re_exports::reqwest::StatusCode;
 use reqwest_dav::{Auth, Client, ClientBuilder, Depth, Error as DavError};
-use std::fs;
 use std::path::{Path, PathBuf};
+use tokio::fs;
 
 /// ☁️ WebDAV 同步服务
 ///
@@ -112,7 +112,7 @@ impl SyncService {
     /// 🔼 上传单个文件到 WebDAV
     async fn push_file(&self, local_path: &Path, remote_path: &str) -> Result<()> {
         // 📄 读取本地文件
-        let content = fs::read(local_path).map_err(|e| {
+        let content = fs::read(local_path).await.map_err(|e| {
             CcrError::SyncError(format!("读取本地文件失败 {}: {}", local_path.display(), e))
         })?;
 
@@ -142,16 +142,18 @@ impl SyncService {
         self.ensure_remote_directory(remote_dir).await?;
 
         // 🔍 读取本地目录
-        let entries = fs::read_dir(local_dir).map_err(|e| {
+        let mut entries = fs::read_dir(local_dir).await.map_err(|e| {
             CcrError::SyncError(format!("读取目录失败 {}: {}", local_dir.display(), e))
         })?;
 
         let mut file_count = 0;
         let mut dir_count = 0;
 
-        for entry in entries {
-            let entry = entry.map_err(|e| CcrError::SyncError(format!("读取目录项失败: {}", e)))?;
-
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(|e| CcrError::SyncError(format!("读取目录项失败: {}", e)))?
+        {
             let path = entry.path();
             let file_name = entry.file_name();
             let file_name_str = file_name.to_string_lossy();
@@ -255,13 +257,13 @@ impl SyncService {
 
         // 📁 确保本地目录存在
         if let Some(parent) = local_path.parent() {
-            fs::create_dir_all(parent).map_err(|e| {
+            fs::create_dir_all(parent).await.map_err(|e| {
                 CcrError::SyncError(format!("创建本地目录失败 {}: {}", parent.display(), e))
             })?;
         }
 
         // 💾 保存到本地
-        fs::write(local_path, content).map_err(|e| {
+        fs::write(local_path, content).await.map_err(|e| {
             CcrError::SyncError(format!(
                 "保存文件到本地失败 {}: {}",
                 local_path.display(),
@@ -278,7 +280,7 @@ impl SyncService {
         tracing::debug!("📁 处理目录: {} -> {}", remote_dir, local_dir.display());
 
         // 📁 确保本地目录存在
-        fs::create_dir_all(local_dir).map_err(|e| {
+        fs::create_dir_all(local_dir).await.map_err(|e| {
             CcrError::SyncError(format!("创建本地目录失败 {}: {}", local_dir.display(), e))
         })?;
 

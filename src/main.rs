@@ -39,7 +39,8 @@ use core::init_logger;
 /// 2. 📝 解析命令行参数
 /// 3. 🚀 路由并执行对应命令
 /// 4. ❌ 处理错误并返回退出码
-fn main() {
+#[tokio::main]
+async fn main() {
     // 🔧 初始化日志系统
     init_logger();
 
@@ -47,7 +48,7 @@ fn main() {
     let cli = Cli::parse();
 
     // 🚀 执行命令并处理错误
-    if let Err(e) = CommandDispatcher::dispatch(&cli) {
+    if let Err(e) = CommandDispatcher::dispatch(&cli).await {
         cli::dispatch::handle_error(e);
     }
 }

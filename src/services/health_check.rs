@@ -3,15 +3,14 @@
 //! 测试 Provider 端点的连通性和 API Key 有效性。
 
 use crate::core::error::{CcrError, Result};
+use crate::core::http::HTTP_CLIENT;
 use crate::managers::config::ConfigSection;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
 /// 🏥 健康检查服务
 pub struct HealthCheckService {
-    client: Client,
     timeout: Duration,
 }
 
@@ -80,13 +79,7 @@ impl Default for HealthCheckService {
 impl HealthCheckService {
     /// 创建新的健康检查服务
     pub fn new() -> Self {
-        let client = Client::builder()
-            .timeout(Duration::from_secs(30))
-            .build()
-            .unwrap_or_else(|_| Client::new());
-
         Self {
-            client,
             timeout: Duration::from_secs(10),
         }
     }
@@ -164,8 +157,8 @@ impl HealthCheckService {
 
         debug!("请求模型列表: {}", url);
 
-        let response = self
-            .client
+        let client = &*HTTP_CLIENT;
+        let response = client
             .get(&url)
             .header("Authorization", format!("Bearer {}", api_key))
             .header("x-api-key", api_key)
@@ -216,8 +209,8 @@ impl HealthCheckService {
 
         let url = format!("{}/v1/models", base_url.trim_end_matches('/'));
 
-        let response = self
-            .client
+        let client = &*HTTP_CLIENT;
+        let response = client
             .get(&url)
             .timeout(self.timeout)
             .send()
@@ -234,8 +227,8 @@ impl HealthCheckService {
     pub async fn verify_api_key(&self, base_url: &str, api_key: &str) -> Result<bool> {
         let url = format!("{}/v1/models", base_url.trim_end_matches('/'));
 
-        let response = self
-            .client
+        let client = &*HTTP_CLIENT;
+        let response = client
             .get(&url)
             .header("Authorization", format!("Bearer {}", api_key))
             .header("x-api-key", api_key)

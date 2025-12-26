@@ -7,6 +7,8 @@ use crate::models::Platform;
 use crate::sessions::models::{IndexStats, Session, SessionFilter, SessionSummary};
 use crate::sessions::parser::SessionParser;
 use crate::storage::{Database, SessionStore};
+use rayon::prelude::*;
+use std::path::Path;
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
@@ -59,39 +61,53 @@ impl SessionIndexer {
 
     /// 索引单个平台
     pub fn index_platform(&self, platform: Platform) -> Result<IndexStats> {
-        let start = std::time::Instant::now();
-        let mut stats = IndexStats::default();
-
         let session_dir = match SessionParser::get_platform_session_dir(&platform) {
             Some(dir) => dir,
             None => {
                 debug!("平台 {:?} 的 session 目录不存在", platform);
-                return Ok(stats);
+                return Ok(IndexStats::default());
             }
         };
 
         info!("索引平台 {:?}: {}", platform, session_dir.display());
 
+        self.index_platform_in_dir(platform, &session_dir)
+    }
+
+    fn index_platform_in_dir(&self, platform: Platform, session_dir: &Path) -> Result<IndexStats> {
+        let start = std::time::Instant::now();
+        let mut stats = IndexStats::default();
+
         // 扫描文件
-        let files = SessionParser::scan_directory(&session_dir, platform)?;
+        let files = SessionParser::scan_directory(session_dir, platform)?;
         stats.files_scanned = files.len() as u64;
 
         // 获取存储层
         let store = SessionStore::new(&self.db);
 
-        // 增量索引
-        for file_path in &files {
-            let file_path_str = file_path.to_string_lossy().to_string();
+        let file_hashes: Vec<(std::path::PathBuf, std::result::Result<String, String>)> = files
+            .par_iter()
+            .map(|file_path| {
+                let hash = std::fs::read(file_path)
+                    .map(|content| blake3::hash(&content).to_hex().to_string())
+                    .map_err(|e| format!("无法读取文件 {}: {}", file_path.display(), e));
+                (file_path.clone(), hash)
+            })
+            .collect();
 
-            // 检查是否已索引且未变化
-            let current_hash = match std::fs::read(file_path) {
-                Ok(content) => blake3::hash(&content).to_hex().to_string(),
-                Err(e) => {
-                    warn!("无法读取文件 {}: {}", file_path.display(), e);
+        let mut changed_files = Vec::new();
+
+        for (file_path, hash_result) in file_hashes {
+            let current_hash = match hash_result {
+                Ok(hash) => hash,
+                Err(message) => {
+                    warn!("{}", message);
                     stats.errors += 1;
                     continue;
                 }
             };
+
+            let file_path_str = file_path.to_string_lossy().to_string();
 
             if let Ok(Some(existing_hash)) = store.get_file_hash(&file_path_str)
                 && existing_hash == current_hash
@@ -100,8 +116,21 @@ impl SessionIndexer {
                 continue;
             }
 
-            // 解析并存储
-            match SessionParser::parse_file(file_path, platform) {
+            changed_files.push(file_path);
+        }
+
+        let parse_results: Vec<(std::path::PathBuf, Result<Session>)> = changed_files
+            .par_iter()
+            .map(|file_path| {
+                (
+                    file_path.clone(),
+                    SessionParser::parse_file(file_path, platform),
+                )
+            })
+            .collect();
+
+        for (file_path, session_result) in parse_results {
+            match session_result {
                 Ok(session) => {
                     // 转换为 storage 格式
                     let storage_session = crate::storage::session_store::Session {
@@ -241,6 +270,10 @@ impl SessionIndexer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::storage::SessionStore;
+    use crate::storage::session_store::SessionFilter as StorageSessionFilter;
+    use std::fs;
+    use std::path::{Path, PathBuf};
     use tempfile::tempdir;
 
     #[test]
@@ -254,5 +287,51 @@ mod tests {
         let db_path = dir.path().join("test.db");
         let db = Database::init(&db_path).expect("Failed to init test database");
         let _indexer = SessionIndexer::with_database(Arc::new(db));
+    }
+
+    fn session_content(session_id: &str) -> String {
+        format!(
+            r#"{{"type": "init", "session_id": "{session_id}", "cwd": "/tmp/test"}}
+{{"type": "user", "role": "user", "message": "Hello"}}
+{{"type": "assistant", "role": "assistant", "message": "Hi"}}
+"#
+        )
+    }
+
+    fn write_session_file(dir: &Path, name: &str, session_id: &str) -> PathBuf {
+        let path = dir.join(name);
+        fs::write(&path, session_content(session_id)).expect("Failed to write session file");
+        path
+    }
+
+    #[test]
+    fn test_index_platform_in_dir() {
+        let session_dir = tempdir().expect("Failed to create temp session dir");
+        let nested = session_dir.path().join("nested");
+        fs::create_dir_all(&nested).expect("Failed to create nested dir");
+
+        write_session_file(session_dir.path(), "session-1.jsonl", "session-1");
+        write_session_file(&nested, "session-2.jsonl", "session-2");
+        fs::write(session_dir.path().join("note.txt"), "not a session")
+            .expect("Failed to write noise file");
+
+        let db_dir = tempdir().expect("Failed to create temp db dir");
+        let db_path = db_dir.path().join("test.db");
+        let db = Arc::new(Database::init(&db_path).expect("Failed to init test database"));
+        let indexer = SessionIndexer::with_database(Arc::clone(&db));
+
+        let stats = indexer
+            .index_platform_in_dir(Platform::Claude, session_dir.path())
+            .expect("Indexing failed");
+
+        assert_eq!(stats.files_scanned, 2);
+        assert_eq!(stats.sessions_added, 2);
+        assert_eq!(stats.errors, 0);
+
+        let store = SessionStore::new(db.as_ref());
+        let list = store
+            .list(StorageSessionFilter::default())
+            .expect("Failed to list sessions");
+        assert_eq!(list.len(), 2);
     }
 }

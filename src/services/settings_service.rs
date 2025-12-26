@@ -6,6 +6,7 @@ use crate::managers::config::ConfigSection;
 use crate::managers::settings::{ClaudeSettings, SettingsManager};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use tokio::fs as async_fs;
 
 /// 📦 备份信息
 #[derive(Debug, Clone)]
@@ -42,6 +43,11 @@ impl SettingsService {
         self.settings_manager.load()
     }
 
+    /// 📖 异步获取当前设置
+    pub async fn get_current_settings_async(&self) -> Result<ClaudeSettings> {
+        self.settings_manager.load_async().await
+    }
+
     /// 🔄 应用配置到设置
     ///
     /// 从配置节更新 settings.json 中的环境变量
@@ -66,6 +72,16 @@ impl SettingsService {
         Ok(())
     }
 
+    /// 🔄 异步应用配置到设置
+    pub async fn apply_config_async(&self, section: &ConfigSection) -> Result<()> {
+        let mut settings = self.settings_manager.load_async().await.unwrap_or_default();
+
+        settings.update_from_config(section);
+        self.settings_manager.save_atomic_async(&settings).await?;
+
+        Ok(())
+    }
+
     /// 💾 备份当前设置
     ///
     /// # Arguments
@@ -75,6 +91,11 @@ impl SettingsService {
     /// 备份文件的路径
     pub fn backup_settings(&self, name: Option<&str>) -> Result<PathBuf> {
         self.settings_manager.backup(name)
+    }
+
+    /// 💾 异步备份当前设置
+    pub async fn backup_settings_async(&self, name: Option<&str>) -> Result<PathBuf> {
+        self.settings_manager.backup_async(name).await
     }
 
     /// 🔄 从备份恢复设置
@@ -90,6 +111,11 @@ impl SettingsService {
         self.settings_manager.restore(backup_path)
     }
 
+    /// 🔄 异步从备份恢复设置
+    pub async fn restore_settings_async(&self, backup_path: &Path) -> Result<()> {
+        self.settings_manager.restore_async(backup_path).await
+    }
+
     /// 📋 列出所有备份
     ///
     /// # Returns
@@ -100,6 +126,31 @@ impl SettingsService {
         let mut backups = Vec::new();
         for path in backup_paths {
             if let Ok(metadata) = std::fs::metadata(&path)
+                && let Ok(modified) = metadata.modified()
+            {
+                backups.push(BackupInfo {
+                    filename: path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string(),
+                    path: path.clone(),
+                    size_bytes: metadata.len(),
+                    created_at: modified,
+                });
+            }
+        }
+
+        Ok(backups)
+    }
+
+    /// 📋 异步列出所有备份
+    pub async fn list_backups_async(&self) -> Result<Vec<BackupInfo>> {
+        let backup_paths = self.settings_manager.list_backups_async().await?;
+
+        let mut backups = Vec::new();
+        for path in backup_paths {
+            if let Ok(metadata) = async_fs::metadata(&path).await
                 && let Ok(modified) = metadata.modified()
             {
                 backups.push(BackupInfo {

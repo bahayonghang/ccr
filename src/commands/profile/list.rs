@@ -2,6 +2,8 @@
 // 📋 显示所有配置节,突出显示当前配置和默认配置
 // 🔄 显示当前平台信息
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
@@ -21,7 +23,7 @@ use comfy_table::{
 /// - 🎯 默认配置和当前配置
 /// - 📋 所有配置节列表(带验证状态)
 /// - ▶️ 使用表格形式突出显示关键信息
-pub fn list_command() -> Result<()> {
+pub async fn list_command() -> Result<()> {
     ColorOutput::title("可用配置列表");
 
     // 🔍 加载平台配置

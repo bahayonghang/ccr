@@ -13,40 +13,51 @@ pub struct CommandDispatcher;
 
 impl CommandDispatcher {
     /// 分发并执行命令
-    pub fn dispatch(cli: &Cli) -> Result<(), CcrError> {
+    pub async fn dispatch(cli: &Cli) -> Result<(), CcrError> {
+        Self::dispatch_async(cli).await
+    }
+
+    /// 异步分发并执行命令
+    async fn dispatch_async(cli: &Cli) -> Result<(), CcrError> {
         let auto_yes = cli.auto_yes;
 
         match &cli.command {
             // 简单命令（无参数）
-            Some(Commands::List) => crate::commands::list_command(),
-            Some(Commands::Current) => crate::commands::current_command(),
-            Some(Commands::Add) => crate::commands::add_command(),
-            Some(Commands::Validate) => crate::commands::validate_command(),
-            Some(Commands::Optimize) => crate::commands::optimize_command(),
+            Some(Commands::List) => crate::commands::list_command().await,
+            Some(Commands::Current) => crate::commands::current_command().await,
+            Some(Commands::Add) => crate::commands::add_command().await,
+            Some(Commands::Validate) => crate::commands::validate_command().await,
+            Some(Commands::Optimize) => crate::commands::optimize_command().await,
             Some(Commands::Version) => {
                 Self::show_version();
                 Ok(())
             }
-            Some(Commands::Temp) => crate::commands::temp_command(),
+            Some(Commands::Temp) => crate::commands::temp_command().await,
 
             // 带参数命令
-            Some(Commands::Switch { config_name }) => crate::commands::switch_command(config_name),
-            Some(Commands::Delete { config_name, force }) => {
-                crate::commands::delete_command(config_name, auto_yes || *force)
+            Some(Commands::Switch { config_name }) => {
+                crate::commands::switch_command(config_name).await
             }
-            Some(Commands::Enable { config_name }) => crate::commands::enable_command(config_name),
+            Some(Commands::Delete { config_name, force }) => {
+                crate::commands::delete_command(config_name, auto_yes || *force).await
+            }
+            Some(Commands::Enable { config_name }) => {
+                crate::commands::enable_command(config_name).await
+            }
             Some(Commands::Disable { config_name, force }) => {
-                crate::commands::disable_command(config_name, auto_yes || *force)
+                crate::commands::disable_command(config_name, auto_yes || *force).await
             }
             Some(Commands::History { limit, filter_type }) => {
-                crate::commands::history_command(Some(*limit), filter_type.clone())
+                crate::commands::history_command(Some(*limit), filter_type.clone()).await
             }
             Some(Commands::Update { check, branch }) => {
-                crate::commands::update_command(*check, branch)
+                crate::commands::update_command(*check, branch).await
             }
-            Some(Commands::Init { force }) => crate::commands::init_command(auto_yes || *force),
+            Some(Commands::Init { force }) => {
+                crate::commands::init_command(auto_yes || *force).await
+            }
             Some(Commands::Export { output, no_secrets }) => {
-                crate::commands::export_command(output.clone(), !*no_secrets)
+                crate::commands::export_command(output.clone(), !*no_secrets).await
             }
             Some(Commands::Import {
                 input,
@@ -60,18 +71,21 @@ impl CommandDispatcher {
                     crate::commands::ImportMode::Replace
                 };
                 crate::commands::import_command(input.clone(), mode, *backup, auto_yes || *force)
+                    .await
             }
             Some(Commands::Clean {
                 days,
                 dry_run,
                 force,
-            }) => crate::commands::clean_command(*days, *dry_run, auto_yes || *force),
-            Some(Commands::Clear { force }) => crate::commands::clear_command(auto_yes || *force),
+            }) => crate::commands::clean_command(*days, *dry_run, auto_yes || *force).await,
+            Some(Commands::Clear { force }) => {
+                crate::commands::clear_command(auto_yes || *force).await
+            }
 
             // 带特性的命令
             #[cfg(feature = "web")]
             Some(Commands::Web { port, no_browser }) => {
-                crate::web::web_command(Some(*port), *no_browser)
+                crate::web::web_command(Some(*port), *no_browser).await
             }
 
             // 容器命令
@@ -83,45 +97,49 @@ impl CommandDispatcher {
                 action,
                 port,
                 backend_port,
-            }) => Self::dispatch_ui(action, *port, *backend_port, auto_yes),
+            }) => Self::dispatch_ui(action, *port, *backend_port, auto_yes).await,
 
-            Some(Commands::Sync { action }) => Self::dispatch_sync(action, auto_yes),
+            Some(Commands::Sync { action }) => Self::dispatch_sync(action, auto_yes).await,
 
-            Some(Commands::TempToken { action }) => Self::dispatch_temp_token(action),
+            Some(Commands::TempToken { action }) => Self::dispatch_temp_token(action).await,
 
-            Some(Commands::Platform { action }) => Self::dispatch_platform(action),
+            Some(Commands::Platform { action }) => Self::dispatch_platform(action).await,
 
             Some(Commands::Migrate { check, platform }) => {
                 if *check {
-                    crate::commands::migrate_check_command()
+                    crate::commands::migrate_check_command().await
                 } else {
-                    crate::commands::migrate_command(false, platform.as_deref())
+                    crate::commands::migrate_command(false, platform.as_deref()).await
                 }
             }
 
             #[cfg(feature = "web")]
-            Some(Commands::Stats(args)) => Self::dispatch_stats(args.clone()),
+            Some(Commands::Stats(args)) => Self::dispatch_stats(args.clone()).await,
 
             #[cfg(feature = "web")]
-            Some(Commands::Budget(args)) => Self::dispatch_budget(args.clone()),
+            Some(Commands::Budget(args)) => Self::dispatch_budget(args.clone()).await,
 
             #[cfg(feature = "web")]
-            Some(Commands::Pricing(args)) => Self::dispatch_pricing(args.clone()),
+            Some(Commands::Pricing(args)) => Self::dispatch_pricing(args.clone()).await,
 
             Some(Commands::Skills(args)) => {
-                crate::commands::skills_cmd::skills_command(args.clone())
+                crate::commands::skills_cmd::skills_command(args.clone()).await
             }
             Some(Commands::Prompts(args)) => {
-                crate::commands::prompts_cmd::prompts_command(args.clone())
+                crate::commands::prompts_cmd::prompts_command(args.clone()).await
             }
 
-            Some(Commands::Check { action }) => Self::dispatch_check(action),
+            Some(Commands::Check { action }) => Self::dispatch_check(action).await,
 
-            Some(Commands::Sessions(args)) => crate::commands::sessions_cmd::execute(args.clone()),
-            Some(Commands::Provider(args)) => crate::commands::provider_cmd::execute(args.clone()),
+            Some(Commands::Sessions(args)) => {
+                crate::commands::sessions_cmd::execute(args.clone()).await
+            }
+            Some(Commands::Provider(args)) => {
+                crate::commands::provider_cmd::execute(args.clone()).await
+            }
 
             // 无子命令时的处理
-            None => Self::handle_no_subcommand(cli),
+            None => Self::handle_no_subcommand(cli).await,
 
             // 帮助命令
             Some(Commands::Help { subcmd }) => match subcmd.as_deref() {
@@ -138,16 +156,16 @@ impl CommandDispatcher {
     }
 
     /// 处理无子命令的情况（快捷切换或显示当前）
-    fn handle_no_subcommand(cli: &Cli) -> Result<(), CcrError> {
+    async fn handle_no_subcommand(cli: &Cli) -> Result<(), CcrError> {
         if let Some(config_name) = &cli.config_name {
-            crate::commands::switch_command(config_name)
+            crate::commands::switch_command(config_name).await
         } else {
-            crate::commands::current_command()
+            crate::commands::current_command().await
         }
     }
 
     /// UI 命令分发
-    fn dispatch_ui(
+    async fn dispatch_ui(
         action: &Option<crate::cli::subcommands::UiAction>,
         port: u16,
         backend_port: u16,
@@ -159,15 +177,15 @@ impl CommandDispatcher {
                 Ok(())
             }
             Some(crate::cli::subcommands::UiAction::Update) => {
-                crate::services::ui_service::UiService::new()
-                    .and_then(|ui_service| ui_service.update(auto_yes))
+                let ui_service = crate::services::ui_service::UiService::new()?;
+                ui_service.update(auto_yes).await
             }
-            None => crate::commands::ui_command(port, backend_port, auto_yes),
+            None => crate::commands::ui_command(port, backend_port, auto_yes).await,
         }
     }
 
     /// Sync 命令分发
-    fn dispatch_sync(
+    async fn dispatch_sync(
         action: &crate::cli::subcommands::SyncAction,
         _auto_yes: bool,
     ) -> Result<(), CcrError> {
@@ -175,12 +193,12 @@ impl CommandDispatcher {
 
         match action {
             SyncAction::Folder { action } => Self::dispatch_folder(action),
-            SyncAction::All { action } => Self::dispatch_all_sync(action),
+            SyncAction::All { action } => Self::dispatch_all_sync(action).await,
             SyncAction::FolderSync(args) => {
-                crate::commands::sync_cmd::sync_folder_specific_command(args)
+                crate::commands::sync_cmd::sync_folder_specific_command(args).await
             }
-            SyncAction::Config => crate::commands::sync_cmd::sync_config_command(),
-            SyncAction::Status => crate::commands::sync_cmd::sync_status_command(),
+            SyncAction::Config => crate::commands::sync_cmd::sync_config_command().await,
+            SyncAction::Status => crate::commands::sync_cmd::sync_status_command().await,
             SyncAction::Push { force, interactive } => {
                 if *interactive {
                     let mut selector = crate::commands::SyncContentSelector::new();
@@ -190,14 +208,17 @@ impl CommandDispatcher {
                                 *force,
                                 Some(selection),
                             )
+                            .await
                         }
                         Err(e) => Err(e),
                     }
                 } else {
-                    crate::commands::sync_cmd::sync_push_command(*force)
+                    crate::commands::sync_cmd::sync_push_command(*force).await
                 }
             }
-            SyncAction::Pull { force } => crate::commands::sync_cmd::sync_pull_command(*force),
+            SyncAction::Pull { force } => {
+                crate::commands::sync_cmd::sync_pull_command(*force).await
+            }
         }
     }
 
@@ -232,20 +253,20 @@ impl CommandDispatcher {
     }
 
     /// AllSync 命令分发
-    fn dispatch_all_sync(action: &AllSyncAction) -> Result<(), CcrError> {
+    async fn dispatch_all_sync(action: &AllSyncAction) -> Result<(), CcrError> {
         match action {
             AllSyncAction::Push { force } => {
-                crate::commands::sync_cmd::sync_all_push_command(*force)
+                crate::commands::sync_cmd::sync_all_push_command(*force).await
             }
             AllSyncAction::Pull { force } => {
-                crate::commands::sync_cmd::sync_all_pull_command(*force)
+                crate::commands::sync_cmd::sync_all_pull_command(*force).await
             }
-            AllSyncAction::Status => crate::commands::sync_cmd::sync_all_status_command(),
+            AllSyncAction::Status => crate::commands::sync_cmd::sync_all_status_command().await,
         }
     }
 
     /// TempToken 命令分发
-    fn dispatch_temp_token(
+    async fn dispatch_temp_token(
         action: &crate::cli::subcommands::TempTokenAction,
     ) -> Result<(), CcrError> {
         match action {
@@ -253,62 +274,67 @@ impl CommandDispatcher {
                 token,
                 base_url,
                 model,
-            } => crate::commands::temp_token_set(token, base_url.clone(), model.clone()),
-            crate::cli::subcommands::TempTokenAction::Show => crate::commands::temp_token_show(),
-            crate::cli::subcommands::TempTokenAction::Clear => crate::commands::temp_token_clear(),
+            } => crate::commands::temp_token_set(token, base_url.clone(), model.clone()).await,
+            crate::cli::subcommands::TempTokenAction::Show => {
+                crate::commands::temp_token_show().await
+            }
+            crate::cli::subcommands::TempTokenAction::Clear => {
+                crate::commands::temp_token_clear().await
+            }
         }
     }
 
     /// Platform 命令分发
-    fn dispatch_platform(action: &crate::cli::subcommands::PlatformAction) -> Result<(), CcrError> {
+    async fn dispatch_platform(
+        action: &crate::cli::subcommands::PlatformAction,
+    ) -> Result<(), CcrError> {
         use crate::cli::subcommands::PlatformAction;
 
         match action {
-            PlatformAction::List { json } => crate::commands::platform_list_command(*json),
+            PlatformAction::List { json } => crate::commands::platform_list_command(*json).await,
             PlatformAction::Switch { platform_name } => {
-                crate::commands::platform_switch_command(platform_name)
+                crate::commands::platform_switch_command(platform_name).await
             }
-            PlatformAction::Current { json } => crate::commands::platform_current_command(*json),
+            PlatformAction::Current { json } => {
+                crate::commands::platform_current_command(*json).await
+            }
             PlatformAction::Info {
                 platform_name,
                 json,
-            } => crate::commands::platform_info_command(platform_name, *json),
+            } => crate::commands::platform_info_command(platform_name, *json).await,
             PlatformAction::Init { platform_name } => {
-                crate::commands::platform_init_command(platform_name)
+                crate::commands::platform_init_command(platform_name).await
             }
         }
     }
 
     /// Check 命令分发
-    fn dispatch_check(action: &crate::cli::subcommands::CheckAction) -> Result<(), CcrError> {
+    async fn dispatch_check(action: &crate::cli::subcommands::CheckAction) -> Result<(), CcrError> {
         match action {
             crate::cli::subcommands::CheckAction::Conflicts => {
-                crate::commands::check_conflicts_command()
+                crate::commands::check_conflicts_command().await
             }
         }
     }
 
     /// Stats 命令分发
     #[cfg(feature = "web")]
-    fn dispatch_stats(args: crate::commands::StatsArgs) -> Result<(), CcrError> {
+    async fn dispatch_stats(args: crate::commands::StatsArgs) -> Result<(), CcrError> {
         use crate::core::ColorOutput;
         let mut color_output = ColorOutput;
-        let rt = tokio::runtime::Runtime::new()?;
-        rt.block_on(async { crate::commands::stats_command(args, &mut color_output).await })
+        crate::commands::stats_command(args, &mut color_output).await
     }
 
     /// Budget 命令分发
     #[cfg(feature = "web")]
-    fn dispatch_budget(args: crate::commands::BudgetArgs) -> Result<(), CcrError> {
-        let rt = tokio::runtime::Runtime::new()?;
-        rt.block_on(async { crate::commands::budget_command(args).await })
+    async fn dispatch_budget(args: crate::commands::BudgetArgs) -> Result<(), CcrError> {
+        crate::commands::budget_command(args).await
     }
 
     /// Pricing 命令分发
     #[cfg(feature = "web")]
-    fn dispatch_pricing(args: crate::commands::PricingArgs) -> Result<(), CcrError> {
-        let rt = tokio::runtime::Runtime::new()?;
-        rt.block_on(async { crate::commands::pricing_command(args).await })
+    async fn dispatch_pricing(args: crate::commands::PricingArgs) -> Result<(), CcrError> {
+        crate::commands::pricing_command(args).await
     }
 
     /// 显示版本信息

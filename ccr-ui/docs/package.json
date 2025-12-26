@@ -10,9 +10,9 @@
     "serve": "vitepress serve"
   },
   "devDependencies": {
-    "mermaid": "^11.12.0",
+    "mermaid": "^11.12.2",
     "playwright": "^1.57.0",
-    "vitepress": "^1.0.0",
+    "vitepress": "^1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17"
   },
   "keywords": [

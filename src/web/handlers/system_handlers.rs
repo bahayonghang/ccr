@@ -39,15 +39,12 @@ pub async fn handle_get_history(State(state): State<AppState>) -> Response {
     tracing::debug!("开始获取历史记录");
 
     let history_service = Arc::clone(&state.history_service);
-    let entries = match spawn_blocking_string(move || {
-        let entries = history_service.get_recent(50)?;
-        tracing::info!("成功加载 {} 条历史记录", entries.len());
-        Ok::<_, crate::core::error::CcrError>(entries)
-    })
-    .await
-    {
-        Ok(result) => result,
-        Err(e) => return internal_server_error(e),
+    let entries = match history_service.get_recent_async(50).await {
+        Ok(entries) => {
+            tracing::info!("成功加载 {} 条历史记录", entries.len());
+            entries
+        }
+        Err(e) => return internal_server_error(e.to_string()),
     };
 
     tracing::debug!("准备序列化 {} 条历史记录为 JSON", entries.len());
@@ -123,9 +120,9 @@ pub async fn handle_clean(
     Json(req): Json<CleanRequest>,
 ) -> Response {
     let backup_service = Arc::clone(&state.backup_service);
-    let result =
-        spawn_blocking_string(move || backup_service.clean_old_backups(req.days, req.dry_run))
-            .await;
+    let result = backup_service
+        .clean_old_backups_async(req.days, req.dry_run)
+        .await;
 
     match result {
         Ok(result) => {
@@ -137,18 +134,17 @@ pub async fn handle_clean(
             };
             success_response(response_data)
         }
-        Err(e) => internal_server_error(e),
+        Err(e) => internal_server_error(e.to_string()),
     }
 }
 
 /// 处理获取 Settings 请求
 pub async fn handle_get_settings(State(state): State<AppState>) -> Response {
     let settings_service = Arc::clone(&state.settings_service);
-    let settings =
-        match spawn_blocking_string(move || settings_service.get_current_settings()).await {
-            Ok(settings) => settings,
-            Err(e) => return internal_server_error(e),
-        };
+    let settings = match settings_service.get_current_settings_async().await {
+        Ok(settings) => settings,
+        Err(e) => return internal_server_error(e.to_string()),
+    };
 
     match serde_json::to_value(&settings) {
         Ok(settings_value) => {
@@ -164,9 +160,9 @@ pub async fn handle_get_settings(State(state): State<AppState>) -> Response {
 /// 处理获取 Settings 备份列表请求
 pub async fn handle_get_settings_backups(State(state): State<AppState>) -> Response {
     let settings_service = Arc::clone(&state.settings_service);
-    let backups = match spawn_blocking_string(move || settings_service.list_backups()).await {
+    let backups = match settings_service.list_backups_async().await {
         Ok(backups) => backups,
-        Err(e) => return internal_server_error(e),
+        Err(e) => return internal_server_error(e.to_string()),
     };
 
     let backup_items: Vec<BackupItem> = backups
@@ -194,14 +190,13 @@ pub async fn handle_restore_settings(
     let settings_service = Arc::clone(&state.settings_service);
     let backup_path = req.backup_path.clone();
 
-    let result = spawn_blocking_string(move || {
-        settings_service.restore_settings(std::path::Path::new(&backup_path))
-    })
-    .await;
+    let result = settings_service
+        .restore_settings_async(std::path::Path::new(&backup_path))
+        .await;
 
     match result {
         Ok(_) => success_response("Settings 恢复成功"),
-        Err(e) => internal_server_error(e),
+        Err(e) => internal_server_error(e.to_string()),
     }
 }
 

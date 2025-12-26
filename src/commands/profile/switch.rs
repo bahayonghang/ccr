@@ -8,6 +8,8 @@
 // 4. 📝 更新配置文件当前配置标记
 // 5. 📚 记录操作历史(带环境变量变化)
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
@@ -24,11 +26,12 @@ use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
 use std::str::FromStr;
+use tokio::fs as async_fs;
 
 /// 🔄 切换到指定配置
 ///
 /// 这是一个原子性操作,确保配置切换的完整性和可追溯性
-pub fn switch_command(config_name: &str) -> Result<()> {
+pub async fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::title(&format!("切换配置: {}", config_name));
     println!();
 
@@ -103,8 +106,11 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::step("步骤 2/5: 备份当前设置");
     let settings_manager = SettingsManager::with_default()?;
 
-    let backup_path = if settings_manager.settings_path().exists() {
-        let path = settings_manager.backup(Some(config_name))?;
+    let settings_exists = async_fs::try_exists(settings_manager.settings_path())
+        .await
+        .map_err(|e| CcrError::SettingsError(format!("检查设置文件失败: {}", e)))?;
+    let backup_path = if settings_exists {
+        let path = settings_manager.backup_async(Some(config_name)).await?;
         ColorOutput::success(&format!("✅ 设置已备份: {}", path.display()));
         Some(path.display().to_string())
     } else {
@@ -117,7 +123,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::step("步骤 3/5: 更新 Claude Code 设置");
 
     // 📊 记录旧的环境变量状态(用于历史对比)
-    let old_settings = settings_manager.load().ok();
+    let old_settings = settings_manager.load_async().await.ok();
     let old_env = old_settings
         .as_ref()
         .map(|s| s.anthropic_env_status())
@@ -134,7 +140,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
     new_settings.update_from_config(&target_section);
 
     // 💾 原子性保存
-    settings_manager.save_atomic(&new_settings)?;
+    settings_manager.save_atomic_async(&new_settings).await?;
     ColorOutput::success("✅ Claude Code 设置已更新");
     println!();
 
@@ -202,7 +208,7 @@ pub fn switch_command(config_name: &str) -> Result<()> {
         history_entry.add_env_change(var_name, old_value, new_value);
     }
 
-    history_manager.add(history_entry)?;
+    history_manager.add_async(history_entry).await?;
     ColorOutput::success("✅ 操作历史已记录");
     println!();
 

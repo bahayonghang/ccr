@@ -2,6 +2,8 @@
 // 📊 显示当前激活的配置详情和 Claude Code 环境变量状态
 // 🔄 显示平台信息和路径
 
+#![allow(clippy::unused_async)]
+
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
@@ -30,7 +32,7 @@ use std::str::FromStr;
 /// 3. 🌍 Claude Code 环境变量状态
 ///    - ANTHROPIC_* 环境变量当前值
 ///    - 设置验证状态
-pub fn current_command() -> Result<()> {
+pub async fn current_command() -> Result<()> {
     ColorOutput::title("当前配置状态");
 
     // 🔍 加载平台配置
@@ -269,7 +271,7 @@ pub fn current_command() -> Result<()> {
 
     match SettingsService::with_default() {
         Ok(settings_service) => {
-            match settings_service.get_current_settings() {
+            match settings_service.get_current_settings_async().await {
                 Ok(settings) => {
                     let mut env_table = Table::new();
                     env_table
