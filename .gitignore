@@ -64,3 +64,6 @@ openspec/
 ccr-ui/frontend/src-tauri/gen
 
 ref/
+
+# Auto Claude data directory
+.auto-claude/
