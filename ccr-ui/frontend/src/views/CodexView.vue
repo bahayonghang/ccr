@@ -4,12 +4,12 @@
     <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
       <div
         class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
-        :style="{ background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)' }"
+        :style="{ background: 'linear-gradient(135deg, var(--platform-codex) 0%, var(--accent-danger) 100%)' }"
       />
       <div
         class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
-          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+          background: 'var(--gradient-secondary)',
           animationDelay: '1s'
         }"
       />
@@ -26,11 +26,11 @@
             >
               <Code2
                 class="w-10 h-10"
-                :style="{ color: '#f59e0b' }"
+                :style="{ color: 'var(--platform-codex)' }"
               />
             </div>
             <div>
-              <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[#f59e0b] via-[#ef4444] to-[#ec4899] bg-clip-text text-transparent">
+              <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[var(--platform-codex)] via-[var(--accent-danger)] to-[var(--accent-tertiary)] bg-clip-text text-transparent">
                 Codex
               </h1>
               <p
@@ -47,7 +47,7 @@
           >
             <Home
               class="w-5 h-5"
-              :style="{ color: '#64748b' }"
+              :style="{ color: 'var(--text-muted)' }"
             />
             <span
               class="font-medium"
@@ -60,7 +60,7 @@
         <div class="flex flex-wrap gap-3 mb-6">
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+            :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--platform-claude)' }"
           >
             {{ $t('codex.overview.features.mcpProtocol') }}
           </span>
@@ -75,7 +75,7 @@
         >
           <Boxes
             class="w-7 h-7"
-            :style="{ color: '#f59e0b' }"
+            :style="{ color: 'var(--platform-codex)' }"
           />
           {{ $t('codex.overview.modulesTitle') }}
         </h2>
@@ -92,7 +92,7 @@
                 >
                   <Server
                     class="w-7 h-7"
-                    :style="{ color: '#8b5cf6' }"
+                    :style="{ color: 'var(--platform-claude)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -112,7 +112,7 @@
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(139, 92, 246, 0.15)',
-                      color: '#8b5cf6'
+                      color: 'var(--platform-claude)'
                     }"
                   >
                     {{ $t('codex.overview.modules.mcp.badge') }}
@@ -134,7 +134,7 @@
                 >
                   <Settings
                     class="w-7 h-7"
-                    :style="{ color: '#ec4899' }"
+                    :style="{ color: 'var(--accent-tertiary)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -154,7 +154,7 @@
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(236, 72, 153, 0.15)',
-                      color: '#ec4899'
+                      color: 'var(--accent-tertiary)'
                     }"
                   >
                     {{ $t('codex.overview.modules.profiles.badge') }}
@@ -176,7 +176,7 @@
                 >
                   <Command
                     class="w-7 h-7"
-                    :style="{ color: '#f59e0b' }"
+                    :style="{ color: 'var(--platform-codex)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -196,7 +196,7 @@
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(245, 158, 11, 0.15)',
-                      color: '#f59e0b'
+                      color: 'var(--platform-codex)'
                     }"
                   >
                     {{ $t('codex.overview.modules.slashCommands.badge') }}
@@ -217,7 +217,7 @@
           >
             <Info
               class="w-6 h-6"
-              :style="{ color: '#f59e0b' }"
+              :style="{ color: 'var(--platform-codex)' }"
             />
           </div>
           <div class="flex-1">
