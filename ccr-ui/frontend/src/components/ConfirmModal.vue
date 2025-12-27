@@ -12,6 +12,11 @@
 
     <!-- 弹窗内容 -->
     <div
+      ref="modalRef"
+      role="dialog"
+      aria-modal="true"
+      :aria-labelledby="titleId"
+      :aria-describedby="descId"
       class="relative w-full max-w-md overflow-hidden rounded-2xl p-6 transition-all duration-300 transform scale-100"
       :style="{
         background: 'rgba(255, 255, 255, 0.95)',
@@ -42,12 +47,14 @@
       <!-- 标题和内容 -->
       <div class="text-center mb-6">
         <h3
+          :id="titleId"
           class="text-xl font-bold mb-2"
           :style="{ color: 'var(--text-primary)' }"
         >
           {{ title }}
         </h3>
         <p
+          :id="descId"
           class="text-sm"
           :style="{ color: 'var(--text-secondary)' }"
         >
@@ -87,8 +94,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { AlertTriangle, Info } from 'lucide-vue-next'
+import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 
 interface Props {
   isOpen: boolean
@@ -111,6 +119,36 @@ const emit = defineEmits<{
   'update:isOpen': [value: boolean]
 }>()
 
+// Generate unique IDs for ARIA labels
+const titleId = useUniqueId('confirm-modal-title')
+const descId = useUniqueId('confirm-modal-desc')
+
+// Modal container ref for focus trap
+const modalRef = ref<HTMLElement | null>(null)
+const isOpenRef = ref(props.isOpen)
+
+// Update isOpenRef when props.isOpen changes
+watch(() => props.isOpen, (newValue) => {
+  isOpenRef.value = newValue
+})
+
+// Cancel handler
+const handleCancel = () => {
+  emit('cancel')
+  emit('update:isOpen', false)
+}
+
+// Focus trap and escape key handling
+const { focusFirstElement } = useFocusTrap(modalRef, isOpenRef)
+useEscapeKey(handleCancel, isOpenRef)
+
+// Focus first element when modal opens
+watch(isOpenRef, (isOpen) => {
+  if (isOpen) {
+    setTimeout(() => focusFirstElement(), 100)
+  }
+})
+
 const iconComponent = computed(() => {
   switch (props.type) {
     case 'danger':
@@ -124,10 +162,5 @@ const iconComponent = computed(() => {
 
 const handleConfirm = () => {
   emit('confirm')
-}
-
-const handleCancel = () => {
-  emit('cancel')
-  emit('update:isOpen', false)
 }
 </script>

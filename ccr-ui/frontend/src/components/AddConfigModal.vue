@@ -10,6 +10,10 @@
 
     <!-- 弹窗内容 -->
     <div
+      ref="modalRef"
+      role="dialog"
+      aria-modal="true"
+      :aria-labelledby="titleId"
       class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-8 transition-all duration-300"
       :style="{
         background: 'rgba(255, 255, 255, 0.95)',
@@ -24,15 +28,16 @@
         <div class="flex items-center gap-3">
           <div
             class="p-3 rounded-xl"
-            :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
+            :style="{ background: 'rgba(var(--accent-success-rgb), 0.15)' }"
           >
             <Plus
               class="w-6 h-6"
-              :style="{ color: '#10b981' }"
+              :style="{ color: 'var(--accent-success)' }"
             />
           </div>
           <div>
             <h2
+              :id="titleId"
               class="text-2xl font-bold"
               :style="{ color: 'var(--text-primary)' }"
             >
@@ -52,6 +57,7 @@
             background: 'rgba(0, 0, 0, 0.05)',
             color: 'var(--text-secondary)'
           }"
+          :aria-label="$t('common.close')"
           @click="handleClose"
         >
           <X class="w-5 h-5" />
@@ -259,7 +265,7 @@
             :disabled="saving || !isFormValid"
             class="flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             :style="{
-              background: 'linear-gradient(135deg, #10b981, #059669)',
+              background: 'var(--gradient-primary)',
               boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)'
             }"
           >
@@ -275,6 +281,7 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, X } from 'lucide-vue-next'
+import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 import { addConfig } from '@/api'
 import type { UpdateConfigRequest } from '@/types'
 
@@ -301,6 +308,29 @@ const emit = defineEmits<{
 
 const { t } = useI18n({ useScope: 'global' })
 
+// Accessibility enhancements
+const titleId = useUniqueId('add-config-modal-title')
+const modalRef = ref<HTMLElement | null>(null)
+const isOpenRef = ref(props.isOpen)
+
+watch(() => props.isOpen, (newValue) => {
+  isOpenRef.value = newValue
+})
+
+// Close handler
+const handleClose = () => {
+  emit('close')
+}
+
+const { focusFirstElement } = useFocusTrap(modalRef, isOpenRef)
+useEscapeKey(handleClose, isOpenRef)
+
+watch(isOpenRef, (isOpen) => {
+  if (isOpen) {
+    setTimeout(() => focusFirstElement(), 100)
+  }
+})
+
 const saving = ref(false)
 const selectedTemplate = ref<string | null>(null)
 
@@ -320,7 +350,7 @@ const templates: ConfigTemplate[] = [
     label: 'CC 中转',
     description: 'Claude 官方中转服务',
     icon: '🔄',
-    color: '#6366f1',
+    color: 'var(--platform-gemini)',
     base_url: 'https://api.claudecc.com',
     model: 'claude-sonnet-4-20250514',
     provider_type: 'official_relay'
@@ -330,7 +360,7 @@ const templates: ConfigTemplate[] = [
     label: 'Kimi',
     description: '月之暗面 Moonshot',
     icon: '🌙',
-    color: '#8b5cf6',
+    color: 'var(--platform-claude)',
     base_url: 'https://api.moonshot.cn/v1',
     model: 'moonshot-v1-128k',
     provider_type: 'third_party_model'
@@ -340,7 +370,7 @@ const templates: ConfigTemplate[] = [
     label: '智谱 GLM',
     description: '智谱 AI ChatGLM',
     icon: '🧠',
-    color: '#0ea5e9',
+    color: 'var(--accent-info)',
     base_url: 'https://open.bigmodel.cn/api/paas/v4',
     model: 'glm-4.6',
     provider_type: 'third_party_model'
@@ -350,7 +380,7 @@ const templates: ConfigTemplate[] = [
     label: 'DeepSeek',
     description: 'DeepSeek Chat',
     icon: '🔍',
-    color: '#10b981',
+    color: 'var(--accent-success)',
     base_url: 'https://api.deepseek.com/v1',
     model: 'deepseek-chat',
     provider_type: 'third_party_model'
@@ -360,7 +390,7 @@ const templates: ConfigTemplate[] = [
     label: '通义千问',
     description: '阿里通义千问',
     icon: '☁️',
-    color: '#f59e0b',
+    color: 'var(--platform-qwen)',
     base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     model: 'qwen-max',
     provider_type: 'third_party_model'
@@ -416,10 +446,6 @@ const handleSave = async () => {
   } finally {
     saving.value = false
   }
-}
-
-const handleClose = () => {
-  emit('close')
 }
 
 // 重置表单

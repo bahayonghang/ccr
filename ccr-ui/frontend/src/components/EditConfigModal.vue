@@ -12,6 +12,10 @@
 
     <!-- 弹窗内容 -->
     <div
+      ref="modalRef"
+      role="dialog"
+      aria-modal="true"
+      :aria-labelledby="titleId"
       class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-8 transition-all duration-300"
       :style="{
         background: 'rgba(255, 255, 255, 0.95)',
@@ -35,6 +39,7 @@
           </div>
           <div>
             <h2
+              :id="titleId"
               class="text-2xl font-bold"
               :style="{ color: 'var(--text-primary)' }"
             >
@@ -54,6 +59,7 @@
             background: 'rgba(0, 0, 0, 0.05)',
             color: 'var(--text-secondary)'
           }"
+          aria-label="关闭"
           @click="handleClose"
         >
           <X class="w-5 h-5" />
@@ -228,6 +234,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { Settings, X } from 'lucide-vue-next'
+import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 import { getConfig, updateConfig } from '@/api'
 
 interface Props {
@@ -240,6 +247,29 @@ const emit = defineEmits<{
   close: []
   saved: []
 }>()
+
+// Accessibility enhancements
+const titleId = useUniqueId('edit-config-modal-title')
+const modalRef = ref<HTMLElement | null>(null)
+const isOpenRef = ref(props.isOpen)
+
+watch(() => props.isOpen, (newValue) => {
+  isOpenRef.value = newValue
+})
+
+// Close handler
+const handleClose = () => {
+  emit('close')
+}
+
+const { focusFirstElement } = useFocusTrap(modalRef, isOpenRef)
+useEscapeKey(handleClose, isOpenRef)
+
+watch(isOpenRef, (isOpen) => {
+  if (isOpen) {
+    setTimeout(() => focusFirstElement(), 100)
+  }
+})
 
 const loading = ref(false)
 const saving = ref(false)
@@ -294,10 +324,6 @@ const handleSave = async () => {
   } finally {
     saving.value = false
   }
-}
-
-const handleClose = () => {
-  emit('close')
 }
 
 // 监听弹窗打开
