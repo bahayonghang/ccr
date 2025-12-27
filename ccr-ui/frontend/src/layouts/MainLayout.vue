@@ -1,5 +1,12 @@
 <template>
   <div class="flex h-screen bg-bg-primary">
+    <!-- 跳过导航链接 - Accessibility Enhancement -->
+    <a
+      href="#main-content"
+      class="skip-to-content"
+    >
+      跳至主内容
+    </a>
     <!-- Sidebar -->
     <div class="w-64 bg-bg-secondary border-r border-border-color flex flex-col">
       <!-- Logo and Title -->
@@ -131,14 +138,18 @@
       <!-- Version Info -->
       <div class="p-4 border-t border-border-color">
         <div class="text-xs text-text-muted flex items-center justify-between">
-          <span>CCR UI v3.16.0</span>
+          <span>CCR UI v3.16.2</span>
           <span class="animate-pulse-subtle">●</span>
         </div>
       </div>
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 flex flex-col overflow-auto">
+    <div
+      id="main-content"
+      class="flex-1 flex flex-col overflow-auto"
+      tabindex="-1"
+    >
       <RouterView />
     </div>
   </div>
