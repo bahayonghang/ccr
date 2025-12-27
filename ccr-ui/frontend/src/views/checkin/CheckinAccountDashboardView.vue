@@ -6,6 +6,8 @@
         <div class="header-left">
           <button
             class="icon-button"
+            aria-label="返回账号列表"
+            title="返回账号列表"
             @click="goBack"
           >
             <ArrowLeft class="w-4 h-4" />
@@ -350,7 +352,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.15), transparent 45%),
     radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.12), transparent 40%),
     radial-gradient(circle at 80% 0%, rgba(217, 70, 239, 0.15), transparent 40%),
-    #f7f8fb;
+    var(--bg-secondary);
   overflow: hidden;
 }
 
@@ -402,14 +404,14 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   margin: 0;
   font-size: 1.75rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .header-sub {
   display: flex;
   gap: 1rem;
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin-top: 0.25rem;
 }
 
@@ -423,17 +425,17 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   font-size: 0.75rem;
   font-weight: 600;
   background: rgba(99, 102, 241, 0.1);
-  color: #4f46e5;
+  color: var(--platform-gemini);
 }
 
 .status-pill.status-on {
   background: rgba(16, 185, 129, 0.15);
-  color: #059669;
+  color: var(--accent-success);
 }
 
 .status-pill.status-off {
   background: rgba(248, 113, 113, 0.15);
-  color: #ef4444;
+  color: var(--accent-danger);
 }
 
 .icon-button {
@@ -445,7 +447,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #475569;
+  color: var(--text-secondary);
   transition: all 0.2s ease;
 }
 
@@ -473,7 +475,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   border-radius: 0.8rem;
   border: 1px solid rgba(148, 163, 184, 0.35);
   background: rgba(255, 255, 255, 0.8);
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 0.85rem;
   font-weight: 600;
   transition: all 0.2s ease;
@@ -485,7 +487,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  background: var(--gradient-secondary);
   color: white;
   border: none;
 }
@@ -517,7 +519,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .card-header h2 {
   margin: 0;
   font-size: 1rem;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .card-body {
@@ -534,7 +536,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .metric-label {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -545,7 +547,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 .metric-green {
-  color: #10b981;
+  color: var(--accent-success);
 }
 
 .metric-grid {
@@ -553,14 +555,14 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 0.75rem;
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .metric-grid strong {
   display: block;
   margin-top: 0.15rem;
   font-size: 1rem;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .metric-grid.highlight strong {
@@ -568,11 +570,11 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 .metric-orange {
-  color: #f97316;
+  color: var(--accent-warning);
 }
 
 .metric-blue {
-  color: #2563eb;
+  color: var(--platform-gemini);
 }
 
 .progress-block {
@@ -594,18 +596,18 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #10b981, #22d3ee);
+  background: linear-gradient(90deg, var(--accent-success), var(--platform-iflow));
   border-radius: inherit;
   transition: width 0.3s ease;
 }
 
 .progress-bar.accent {
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  background: var(--gradient-secondary);
 }
 
 .progress-meta {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .calendar-meta {
@@ -613,14 +615,14 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 0.75rem;
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .calendar-meta strong {
   display: block;
   margin-top: 0.2rem;
   font-size: 1.1rem;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .calendar-actions {
@@ -639,12 +641,12 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   border: 1px solid rgba(148, 163, 184, 0.35);
   background: rgba(255, 255, 255, 0.7);
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .trend-btn.active {
   background: rgba(37, 99, 235, 0.12);
-  color: #2563eb;
+  color: var(--platform-gemini);
   border-color: rgba(37, 99, 235, 0.4);
 }
 
@@ -656,12 +658,12 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(226, 232, 240, 0.9);
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .state-error {
   border-color: rgba(248, 113, 113, 0.4);
-  color: #ef4444;
+  color: var(--accent-danger);
   justify-content: space-between;
 }
 
@@ -683,7 +685,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   height: 1.5rem;
   border-radius: 999px;
   border: 2px solid rgba(148, 163, 184, 0.4);
-  border-top-color: #2563eb;
+  border-top-color: var(--platform-gemini);
   animation: spin 0.8s linear infinite;
 }
 
@@ -696,7 +698,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 :global(.dark) .checkin-account-dashboard {
   background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 45%),
     radial-gradient(circle at 60% 20%, rgba(168, 85, 247, 0.18), transparent 40%),
-    #0b1120;
+    var(--bg-primary);
 }
 
 :global(.dark) .dashboard-card,
@@ -706,13 +708,13 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 :global(.dark) .trend-btn {
   background: rgba(15, 23, 42, 0.85);
   border-color: rgba(51, 65, 85, 0.8);
-  color: #e2e8f0;
+  color: var(--text-secondary);
 }
 
 :global(.dark) .header-title h1,
 :global(.dark) .metric-grid strong,
 :global(.dark) .calendar-meta strong {
-  color: #f8fafc;
+  color: var(--text-primary);
 }
 
 :global(.dark) .card-header h2,
@@ -720,7 +722,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 :global(.dark) .calendar-meta,
 :global(.dark) .progress-meta,
 :global(.dark) .header-sub {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 /* 横排统计卡片样式 */
@@ -745,14 +747,14 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-secondary);
   flex: 1;
 }
 
 .row-rate {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #10b981;
+  color: var(--accent-success);
   background: rgba(16, 185, 129, 0.1);
   padding: 0.2rem 0.5rem;
   border-radius: 0.4rem;
@@ -780,11 +782,11 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   flex-shrink: 0;
 }
 
-.row-icon.purple { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
-.row-icon.green { background: rgba(16, 185, 129, 0.12); color: #059669; }
-.row-icon.blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
-.row-icon.orange { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
-.row-icon.yellow { background: rgba(234, 179, 8, 0.12); color: #ca8a04; }
+.row-icon.purple { background: rgba(var(--accent-secondary-rgb), 0.12); color: var(--platform-claude); }
+.row-icon.green { background: rgba(16, 185, 129, 0.12); color: var(--accent-success); }
+.row-icon.blue { background: rgba(59, 130, 246, 0.12); color: var(--platform-gemini); }
+.row-icon.orange { background: rgba(var(--accent-warning-rgb), 0.12); color: var(--accent-warning); }
+.row-icon.yellow { background: rgba(var(--accent-warning-rgb), 0.12); color: var(--platform-codex); }
 
 .row-content {
   display: flex;
@@ -793,24 +795,24 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .row-label {
   font-size: 0.7rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .row-value {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
-.row-value.green { color: #10b981; }
-.row-value.blue { color: #3b82f6; }
-.row-value.orange { color: #f97316; }
-.row-value.purple { color: #8b5cf6; }
+.row-value.green { color: var(--accent-success); }
+.row-value.blue { color: var(--platform-gemini); }
+.row-value.orange { color: var(--accent-warning); }
+.row-value.purple { color: var(--platform-claude); }
 
 .row-value small {
   font-size: 0.65rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 /* 月份选择器 */
@@ -826,13 +828,13 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 0.5rem;
   background: rgba(255, 255, 255, 0.8);
-  color: #334155;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .month-input:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--platform-gemini);
 }
 
 .calendar-nav {
@@ -850,21 +852,21 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 :global(.dark) .row-header h2 {
-  color: #e2e8f0;
+  color: var(--text-secondary);
 }
 
 :global(.dark) .row-value {
-  color: #f8fafc;
+  color: var(--text-primary);
 }
 
 :global(.dark) .row-label {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 :global(.dark) .month-input {
   background: rgba(15, 23, 42, 0.8);
   border-color: rgba(51, 65, 85, 0.8);
-  color: #e2e8f0;
+  color: var(--text-secondary);
 }
 
 /* 新版统计卡片样式 */
@@ -889,7 +891,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .stats-icon {
@@ -901,11 +903,11 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   justify-content: center;
 }
 
-.stats-icon.purple { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
-.stats-icon.green { background: rgba(16, 185, 129, 0.12); color: #059669; }
-.stats-icon.blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
-.stats-icon.orange { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
-.stats-icon.yellow { background: rgba(234, 179, 8, 0.12); color: #ca8a04; }
+.stats-icon.purple { background: rgba(var(--accent-secondary-rgb), 0.12); color: var(--platform-claude); }
+.stats-icon.green { background: rgba(16, 185, 129, 0.12); color: var(--accent-success); }
+.stats-icon.blue { background: rgba(59, 130, 246, 0.12); color: var(--platform-gemini); }
+.stats-icon.orange { background: rgba(var(--accent-warning-rgb), 0.12); color: var(--accent-warning); }
+.stats-icon.yellow { background: rgba(var(--accent-warning-rgb), 0.12); color: var(--platform-codex); }
 
 .stats-body {
   display: flex;
@@ -937,24 +939,24 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .stat-label {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .stat-value {
   font-size: 1.35rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
-.stat-value.green { color: #10b981; }
-.stat-value.blue { color: #3b82f6; }
-.stat-value.orange { color: #f97316; }
-.stat-value.purple { color: #8b5cf6; }
+.stat-value.green { color: var(--accent-success); }
+.stat-value.blue { color: var(--platform-gemini); }
+.stat-value.orange { color: var(--accent-warning); }
+.stat-value.purple { color: var(--platform-claude); }
 
 .stat-value small {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .stat-progress {
@@ -967,13 +969,13 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   display: flex;
   justify-content: space-between;
   font-size: 0.8rem;
-  color: #475569;
+  color: var(--text-secondary);
   margin-bottom: 0.4rem;
 }
 
 .stat-progress-footer {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-top: 0.35rem;
 }
 
@@ -987,17 +989,17 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 :global(.dark) .stats-header h2 {
-  color: #e2e8f0;
+  color: var(--text-secondary);
 }
 
 :global(.dark) .stat-value {
-  color: #f8fafc;
+  color: var(--text-primary);
 }
 
 :global(.dark) .stat-label,
 :global(.dark) .stat-progress-header,
 :global(.dark) .stat-progress-footer {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 /* 新布局样式 - 三列布局 */
@@ -1036,7 +1038,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .vertical-items {
@@ -1065,32 +1067,32 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   margin-bottom: 0.15rem;
 }
 
-.vertical-icon.purple { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
-.vertical-icon.green { background: rgba(16, 185, 129, 0.12); color: #059669; }
-.vertical-icon.blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
-.vertical-icon.orange { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
-.vertical-icon.yellow { background: rgba(234, 179, 8, 0.12); color: #ca8a04; }
+.vertical-icon.purple { background: rgba(var(--accent-secondary-rgb), 0.12); color: var(--platform-claude); }
+.vertical-icon.green { background: rgba(16, 185, 129, 0.12); color: var(--accent-success); }
+.vertical-icon.blue { background: rgba(59, 130, 246, 0.12); color: var(--platform-gemini); }
+.vertical-icon.orange { background: rgba(var(--accent-warning-rgb), 0.12); color: var(--accent-warning); }
+.vertical-icon.yellow { background: rgba(var(--accent-warning-rgb), 0.12); color: var(--platform-codex); }
 
 .vertical-label {
   font-size: 0.7rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .vertical-value {
   font-size: 1.35rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
-.vertical-value.green { color: #10b981; }
-.vertical-value.blue { color: #3b82f6; }
-.vertical-value.orange { color: #f97316; }
-.vertical-value.purple { color: #8b5cf6; }
+.vertical-value.green { color: var(--accent-success); }
+.vertical-value.blue { color: var(--platform-gemini); }
+.vertical-value.orange { color: var(--accent-warning); }
+.vertical-value.purple { color: var(--platform-claude); }
 
 .vertical-value small {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 /* 签到进度条 */
@@ -1105,13 +1107,13 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   display: flex;
   justify-content: space-between;
   font-size: 0.7rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: 0.4rem;
 }
 
 .progress-percent {
   font-weight: 600;
-  color: #10b981;
+  color: var(--accent-success);
 }
 
 .progress-bar-track {
@@ -1123,14 +1125,14 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  background: linear-gradient(90deg, var(--platform-gemini), var(--accent-info));
   border-radius: 3px;
   transition: width 0.3s ease;
 }
 
 .progress-days {
   font-size: 0.65rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-top: 0.25rem;
   text-align: center;
 }
@@ -1157,7 +1159,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .calendar-picker {
@@ -1180,7 +1182,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -1188,14 +1190,14 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .nav-btn:hover {
   background: white;
-  border-color: #3b82f6;
-  color: #3b82f6;
+  border-color: var(--platform-gemini);
+  color: var(--platform-gemini);
 }
 
 .calendar-month {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #334155;
+  color: var(--text-secondary);
   min-width: 5.5rem;
   text-align: center;
 }
@@ -1228,7 +1230,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .trend-tag {
@@ -1239,7 +1241,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   font-size: 0.75rem;
   font-weight: 600;
   background: rgba(99, 102, 241, 0.1);
-  color: #4f46e5;
+  color: var(--platform-gemini);
 }
 
 .trend-body {
@@ -1256,33 +1258,33 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 :global(.dark) .vertical-header h2,
 :global(.dark) .calendar-card .card-header h2,
 :global(.dark) .trend-title h2 {
-  color: #e2e8f0;
+  color: var(--text-secondary);
 }
 
 :global(.dark) .vertical-value {
-  color: #f8fafc;
+  color: var(--text-primary);
 }
 
 :global(.dark) .vertical-label,
 :global(.dark) .progress-info,
 :global(.dark) .progress-days {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 :global(.dark) .calendar-month {
-  color: #e2e8f0;
+  color: var(--text-secondary);
 }
 
 :global(.dark) .nav-btn {
   background: rgba(15, 23, 42, 0.8);
   border-color: rgba(51, 65, 85, 0.8);
-  color: #e2e8f0;
+  color: var(--text-secondary);
 }
 
 :global(.dark) .nav-btn:hover {
   background: rgba(30, 41, 59, 0.9);
-  border-color: #3b82f6;
-  color: #3b82f6;
+  border-color: var(--platform-gemini);
+  color: var(--platform-gemini);
 }
 
 :global(.dark) .checkin-progress {

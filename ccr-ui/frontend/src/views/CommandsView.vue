@@ -263,6 +263,7 @@
                 <button
                   class="p-1.5 rounded hover:bg-[#3e3e3e] transition-colors text-gray-400 hover:text-white"
                   :title="$t('commands.copyOutput')"
+                  :aria-label="$t('commands.copyOutput')"
                   @click="handleCopyOutput"
                 >
                   <Copy class="w-3.5 h-3.5" />
@@ -270,6 +271,7 @@
                 <button
                   class="p-1.5 rounded hover:bg-[#3e3e3e] transition-colors text-gray-400 hover:text-white"
                   :title="$t('commands.clearOutputButton')"
+                  :aria-label="$t('commands.clearOutputButton')"
                   @click="handleClearOutput"
                 >
                   <Trash2 class="w-3.5 h-3.5" />

@@ -73,6 +73,7 @@
           :class="actionButtonClass"
           :style="actionButtonStyle"
           :title="command.enabled ? $t('common.disable') : $t('common.enable')"
+          :aria-label="command.enabled ? $t('common.disable') : $t('common.enable')"
           @click="$emit('toggle', command.name)"
         >
           <Power class="w-4 h-4" />
@@ -81,6 +82,7 @@
           :class="actionButtonClass"
           :style="actionButtonStyle"
           :title="$t('common.edit')"
+          :aria-label="$t('common.edit')"
           @click="$emit('edit', command)"
         >
           <Edit class="w-4 h-4" />

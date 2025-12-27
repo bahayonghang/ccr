@@ -33,6 +33,7 @@
           v-if="isStreaming" 
           class="btn-action btn-stop hover:bg-red-500/20 hover:text-red-400" 
           :title="$t('common.stop')"
+          :aria-label="$t('common.stop')"
           @click="handleStop"
         >
           <Square class="w-3 h-3 fill-current" />
@@ -41,6 +42,7 @@
           class="btn-action hover:bg-white/10 hover:text-white" 
           :disabled="lines.length === 0"
           :title="$t('common.clear')"
+          :aria-label="$t('common.clear')"
           @click="handleClear"
         >
           <Trash2 class="w-3.5 h-3.5" />
@@ -49,6 +51,7 @@
           class="btn-action hover:bg-white/10 hover:text-white" 
           :disabled="lines.length === 0"
           :title="$t('common.copy')"
+          :aria-label="$t('common.copy')"
           @click="handleCopy"
         >
           <Copy class="w-3.5 h-3.5" />
