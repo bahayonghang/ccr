@@ -109,6 +109,18 @@
   --accent-danger: rgb(var(--accent-danger-rgb));
   --accent-info: rgb(var(--accent-info-rgb));
 
+  /* 🌐 平台专属颜色 - AI Platform Brand Colors */
+  --platform-codex: #f59e0b;       /* Codex Amber */
+  --platform-gemini: #3b82f6;      /* Gemini Blue */
+  --platform-claude: #8b5cf6;      /* Claude Purple */
+  --platform-qwen: #ef4444;        /* Qwen Red */
+  --platform-iflow: #06b6d4;       /* iFlow Cyan */
+
+  /* 🎭 状态颜色 - Component State Colors */
+  --state-empty: var(--text-muted);
+  --state-error: var(--accent-danger);
+  --state-loading: var(--accent-primary);
+
   /* Guofeng Specific Variables */
   --guofeng-bg: var(--bg-primary);
   --guofeng-bg-secondary: var(--bg-secondary);
@@ -200,6 +212,18 @@
   --accent-warning: rgb(var(--accent-warning-rgb));
   --accent-danger: rgb(var(--accent-danger-rgb));
   --accent-info: rgb(var(--accent-info-rgb));
+
+  /* 🌐 平台专属颜色 - AI Platform Brand Colors (Dark Theme) */
+  --platform-codex: #fbbf24;       /* Codex Amber (更亮的琥珀色适配暗黑主题) */
+  --platform-gemini: #60a5fa;      /* Gemini Blue (更亮的蓝色适配暗黑主题) */
+  --platform-claude: #a78bfa;      /* Claude Purple (更亮的紫色适配暗黑主题) */
+  --platform-qwen: #f87171;        /* Qwen Red (更亮的红色适配暗黑主题) */
+  --platform-iflow: #22d3ee;       /* iFlow Cyan (保持赛博青色主色调) */
+
+  /* 🎭 状态颜色 - Component State Colors */
+  --state-empty: var(--text-muted);
+  --state-error: var(--accent-danger);
+  --state-loading: var(--accent-primary);
 
   /* 🌈 渐变系统 - 动态霓虹 */
   --gradient-primary: linear-gradient(135deg, #22d3ee 0%, #8b5cf6 50%, #ec4899 100%);
@@ -357,7 +381,7 @@ body {
     radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
     radial-gradient(circle at 80% 70%, rgba(99, 102, 241, 0.06) 0%, transparent 40%),
     radial-gradient(circle at 40% 80%, rgba(252, 211, 77, 0.04) 0%, transparent 30%),
-    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+    linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
   background-attachment: fixed;
   position: relative;
 }
@@ -379,7 +403,7 @@ body {
 
 /* 暗色主题的背景 - Neon Frost 深邃夜空 */
 [data-theme="dark"] body {
-  background: #0a0d14;
+  background: var(--bg-primary);
   background-image:
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34, 211, 238, 0.08), transparent),
     radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 92, 246, 0.06), transparent);
@@ -548,7 +572,7 @@ body {
 
 /* 每个导航模块外框：1px #eaeaea 边框 + 4px 圆角。保持原有 padding 与布局不变 */
 .nav-group {
-  border: 1px solid #eaeaea;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 6px;
   /* 轻微内边距，不影响原有网格与响应式 */
@@ -558,28 +582,28 @@ body {
 /* 侧边栏导航：模块边框与激活态样式
 ================================ */
 .nav-group {
-  border: 1px solid #eaeaea;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 4px;
 }
 
 .nav-link {
-  border: 1px solid #eaeaea;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   background: transparent;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .nav-link:hover {
-  border-color: #dcdcdc;
+  border-color: var(--border-hover);
 }
 
 /* 激活态：浅灰背景 + 左侧 3px 蓝色条 + 文本加深 */
 .nav-link.nav-item-active,
 .nav-item-active.nav-link {
-  background: #f5f5f5;
-  border-left: 3px solid #1890ff;
-  color: #333 !important;
+  background: var(--bg-hover);
+  border-left: 3px solid var(--accent-primary);
+  color: var(--text-primary) !important;
 }
 
 /* 🌙 暗色导航优化 - Neon Frost 风格 */
@@ -1557,14 +1581,14 @@ body {
 }
 
 [data-theme="dark"] .brand-text-solid {
-  color: #22d3ee;
+  color: var(--accent-primary);
   text-shadow: 0 0 20px rgba(34, 211, 238, 0.5),
                0 0 40px rgba(139, 92, 246, 0.3);
 }
 
 /* 标签与按钮光泽统一 */
 .badge-soft {
-  background: linear-gradient(135deg, var(--accent-warning), #f19f0b);
+  background: linear-gradient(135deg, var(--accent-warning), var(--platform-codex));
   color: white;
   box-shadow: 0 6px 16px rgba(241, 159, 11, .25);
 }
@@ -1818,11 +1842,84 @@ body {
    可访问性增强
    =================================== */
 
-/* 聚焦指示器 */
+/* 聚焦指示器 - Enhanced for WCAG AA Compliance */
+
+/* 基础焦点样式 - 所有交互元素 */
 *:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+  transition: outline-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+/* 按钮焦点增强 */
+button:focus-visible,
+.btn:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+/* 输入框焦点增强 */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="textbox"]:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 0;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+/* 链接焦点增强 */
+a:focus-visible,
+[role="link"]:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 4px;
+  border-radius: 4px;
+  text-decoration-thickness: 2px;
+}
+
+/* 卡片和交互区域焦点 */
+.card:focus-visible,
+[role="article"]:focus-visible,
+[role="region"]:focus-visible,
+[tabindex]:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
-  border-radius: 4px;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.08);
+}
+
+/* 导航项焦点 */
+nav a:focus-visible,
+[role="navigation"] a:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  background-color: rgba(16, 185, 129, 0.08);
+}
+
+/* 暗黑模式焦点增强 - 提升可见性 */
+[data-theme="dark"] *:focus-visible {
+  outline-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25), 0 0 8px rgba(16, 185, 129, 0.35);
+}
+
+[data-theme="dark"] button:focus-visible,
+[data-theme="dark"] .btn:focus-visible {
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25), 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+[data-theme="dark"] input:focus-visible,
+[data-theme="dark"] textarea:focus-visible,
+[data-theme="dark"] select:focus-visible {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3), 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+/* 移除鼠标点击时的焦点样式，仅保留键盘焦点 */
+*:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
 }
 
 /* 跳过导航链接 */
@@ -2154,7 +2251,7 @@ body {
 }
 
 .provider-bar-vertical-fill.bar-color-2 {
-  background: linear-gradient(180deg, var(--accent-warning), #fbbf24);
+  background: linear-gradient(180deg, var(--accent-warning), var(--platform-codex));
 }
 
 .provider-bar-vertical-fill.bar-color-3 {
@@ -2202,5 +2299,95 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ================================================
+   Reduced Motion Support (可访问性: 动画偏好设置)
+   ================================================ */
+
+/**
+ * 尊重用户的动画偏好设置
+ * 当用户系统设置了 prefers-reduced-motion: reduce 时：
+ * - 禁用所有装饰性动画
+ * - 将过渡效果变为即时切换或非常短的时长
+ * - 保留必要的功能性动画（如 spinner），但减少时长和幅度
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* 禁用所有动画 */
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    
+    /* 大幅减少过渡时长 */
+    transition-duration: 0.01ms !important;
+    
+    /* 禁用滚动行为 */
+    scroll-behavior: auto !important;
+  }
+
+  /* 完全禁用装饰性动画类 */
+  .animate-pulse,
+  .animate-spin,
+  .animate-bounce,
+  .animate-shimmer,
+  .animate-float,
+  .animate-breathe,
+  .animate-glow,
+  .animate-ripple,
+  .animate-flow,
+  .light-pulse,
+  .light-flow,
+  .light-ripple,
+  .light-shimmer,
+  .light-float,
+  .light-breathe,
+  .neon-pulse,
+  .neon-flicker,
+  .cyber-ripple,
+  .border-flow,
+  .gradient-shift,
+  .card-float,
+  .pulse-subtle {
+    animation: none !important;
+  }
+
+  /* 必要的功能性动画保留但减少时长（如加载 spinner） */
+  .loading-spinner,
+  [role="progressbar"],
+  [aria-busy="true"] {
+    animation-duration: 0.5s !important;
+  }
+
+  /* 禁用背景动画 */
+  .bg-gradient-animated,
+  .mist-bg,
+  .light-rain {
+    animation: none !important;
+    background-position: center !important;
+  }
+
+  /* 禁用悬停和激活动画 */
+  .nav-hover,
+  .nav-active,
+  .sidebar-item-enter {
+    animation: none !important;
+  }
+
+  /* 禁用入场动画 */
+  .fade-in,
+  .slide-in-right,
+  .slide-in-up,
+  .bounce-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* 焦点指示器保持可见但移除动画 */
+  *:focus-visible {
+    transition: none !important;
   }
 }
