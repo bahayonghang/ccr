@@ -87,6 +87,18 @@ export default {
           danger: 'rgb(var(--accent-danger-rgb) / <alpha-value>)',
           info: 'rgb(var(--accent-info-rgb) / <alpha-value>)',
         },
+        platform: {
+          codex: 'var(--platform-codex)',
+          gemini: 'var(--platform-gemini)',
+          claude: 'var(--platform-claude)',
+          qwen: 'var(--platform-qwen)',
+          iflow: 'var(--platform-iflow)',
+        },
+        state: {
+          empty: 'var(--state-empty)',
+          error: 'var(--state-error)',
+          loading: 'var(--state-loading)',
+        },
         guofeng: {
           bg: {
             DEFAULT: '#fdfbf7', // Rice Paper (Xuan Zhi)
