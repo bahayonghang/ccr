@@ -48,10 +48,10 @@ docs/
 
 ## 开发
 ```bash
-npm install             # 安装依赖
-npm run docs:dev        # 本地预览 http://localhost:5174
-npm run docs:build      # 生成 .vitepress/dist/
-npm run docs:preview    # 预览构建产物
+bun install             # 安装依赖
+bun run dev             # 本地预览 http://localhost:5173
+bun run build           # 生成 .vitepress/dist/
+bun run preview         # 预览构建产物
 ```
 
 ## 新增/修改页面
