@@ -105,7 +105,7 @@ const quickLinks = [
 <HomeFeatures badge="快速导航" badge-type="info" title="开始使用" :features="quickLinks" />
 
 ## 版本与安装
-- 当前版本：3.12.5（Rust 2024）
+- 当前版本：3.16.2（Rust 2024）
 - 需求：Rust 1.85+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
 
 ```bash
@@ -161,6 +161,15 @@ ccr sessions search "keyword"        # 搜索会话
 ccr sessions resume <id>             # 恢复会话
 ccr provider test --all              # 测试所有 Provider 连通性
 ccr provider verify <name>           # 验证 API Key
+```
+
+### 成本与预算
+```bash
+ccr stats summary --range week --by-model --details  # 成本/用量统计（web 特性）
+ccr budget status                                    # 查看预算
+ccr budget set --monthly 200 --warn-at 90 --enable   # 配置预算
+ccr pricing list --verbose                           # 查看/校验模型定价
+ccr pricing set my-model --input 3.0 --output 15.0   # 设置自定义定价
 ```
 
 ## 目录结构（工作区）

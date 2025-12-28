@@ -22,6 +22,8 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 | [temp-token](./temp-token) | - | 临时覆盖 token/base_url/model | v2.0+ |
 | [history](./history) | - | 操作历史 | v1.0+ |
 | [stats](./stats) | - | 成本/调用统计（web 特性） | v2.0+ |
+| [budget](./budget) | - | 预算管理（web 特性） | v3.16+ |
+| [pricing](./pricing) | - | 模型定价管理（web 特性） | v3.16+ |
 | [export](./export) | - | 导出配置到文件 | v1.0+ |
 | [import](./import) | - | 从文件导入配置 | v1.0+ |
 | [clean](./clean) | - | 清理旧备份文件 | v2.0+ |
@@ -58,6 +60,7 @@ CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有
 - **[export](./export)** / **[import](./import)** / **[clean](./clean)** - 导出、导入、清理备份
 - **[sync](./sync)** - WebDAV 同步（注册目录、批量/单目录、交互式过滤）
 - **[history](./history)** / **[stats](./stats)** - 审计历史与统计
+- **[budget](./budget)** / **[pricing](./pricing)** - 预算与模型定价管理（web 特性）
 
 ### 界面
 
@@ -148,6 +151,10 @@ ccr ui
 
 # 启动 Legacy Web 界面 / Web API（适合脚本/CI 等场景）
 ccr web --port 8080
+
+# 预算与定价（web 特性）
+ccr budget status
+ccr pricing list --verbose
 
 # 更新 CCR
 ccr update

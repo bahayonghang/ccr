@@ -137,6 +137,8 @@ export default defineConfig({
                   items: [
                     { text: 'check - 冲突检测', link: '/reference/commands/check' },
                     { text: 'stats - 统计分析', link: '/reference/commands/stats' },
+                    { text: 'budget - 预算管理', link: '/reference/commands/budget' },
+                    { text: 'pricing - 模型定价', link: '/reference/commands/pricing' },
                     { text: 'sync - 云同步', link: '/reference/commands/sync' },
                     { text: 'skills - 技能管理', link: '/reference/commands/skills' },
                     { text: 'prompts - 提示词', link: '/reference/commands/prompts' },
@@ -301,6 +303,8 @@ export default defineConfig({
                 { text: 'web - Web Interface', link: '/en/reference/commands/web' },
                 { text: 'ui - CCR UI', link: '/en/reference/commands/ui' },
                 { text: 'stats - Statistics', link: '/en/reference/commands/stats' },
+                { text: 'budget - Budgeting', link: '/en/reference/commands/budget' },
+                { text: 'pricing - Model Pricing', link: '/en/reference/commands/pricing' },
                 { text: 'sync - Cloud Sync', link: '/en/reference/commands/sync' },
                 { text: 'skills - Skills Management', link: '/en/reference/commands/skills' },
                 { text: 'prompts - Prompt Presets', link: '/en/reference/commands/prompts' },
