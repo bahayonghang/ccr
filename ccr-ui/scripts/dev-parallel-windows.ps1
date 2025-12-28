@@ -40,6 +40,17 @@ function Write-CleanLog {
     process {
         if (-not [string]::IsNullOrEmpty($Line)) {
             $cleanLine = Remove-AnsiEscapeSequences -Text $Line
+            if ($script:FrontendPortFile -and ($cleanLine -match 'Local:\s+http://localhost:(\d+)/')) {
+                $detectedPort = $Matches[1]
+                if ($detectedPort -ne $script:FrontendPort) {
+                    $script:FrontendPort = $detectedPort
+                    Set-Content -Path $script:FrontendPortFile -Value $script:FrontendPort -Encoding ASCII -ErrorAction SilentlyContinue
+                }
+                if ($detectedPort -ne $script:FrontendPortAnnounced) {
+                    $script:FrontendPortAnnounced = $detectedPort
+                    Write-Host ("📍 前端: http://localhost:{0} (Vue 3 + Vite)" -f $detectedPort) -ForegroundColor Cyan
+                }
+            }
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $logEntry = "[$timestamp] $cleanLine"
             
@@ -70,6 +81,11 @@ if (-not (Test-Path $frontendLogsDir)) {
 $logDate = Get-Date -Format "yyyy-MM-dd"
 $frontendLogPath = Join-Path $frontendLogsDir "$logDate.log"
 $backendConsoleLogPath = Join-Path $backendLogsDir "console-$logDate.log"
+$frontendPortFile = Join-Path $logsDir "frontend.port"
+$script:FrontendPortFile = $frontendPortFile
+$script:FrontendPort = $VitePort
+$script:FrontendPortAnnounced = $null
+Set-Content -Path $frontendPortFile -Value $VitePort -Encoding ASCII -ErrorAction SilentlyContinue
 
 Write-Host "[CCR] Starting development environment (parallel mode)..." -ForegroundColor Cyan
 Write-Host ""

@@ -19,10 +19,25 @@ if ($RootDir -eq $PSScriptRoot) {
 }
 Set-Location $RootDir
 
+# ========== ANSI Escape Sequence Handling ==========
+
+# Remove ANSI escape sequences from text
+function Remove-AnsiEscapeSequences {
+    param([string]$Text)
+    # Match all ANSI escape sequences: ESC[...m, ESC[...H, ESC]...BEL, etc.
+    $ansiPattern = '\x1b\[[0-9;]*[a-zA-Z~]|\x1b\][^\x07]*\x07'
+    return $Text -replace $ansiPattern, ''
+}
+
 # Create logs directory
 if (-not (Test-Path logs)) {
     New-Item -ItemType Directory -Path logs -Force | Out-Null
 }
+$frontendPortFile = Join-Path $RootDir "logs/frontend.port"
+$script:FrontendPortFile = $frontendPortFile
+$script:FrontendPort = $VitePort
+$script:FrontendPortAnnounced = $null
+Set-Content -Path $frontendPortFile -Value $VitePort -Encoding ASCII -ErrorAction SilentlyContinue
 
 Write-Host "[CCR] Fast development mode (Release build)..." -ForegroundColor Cyan
 Write-Host ""
@@ -120,7 +135,26 @@ try {
 
     # Frontend runs in foreground with live output (传递端口参数)
     # --host 0.0.0.0 allows access from LAN IP addresses
-    cmd /c "bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 || exit 0" | Tee-Object -FilePath "$RootDir/logs/frontend.log" -Append
+    cmd /c "bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 || exit 0" |
+        Tee-Object -FilePath "$RootDir/logs/frontend.log" -Append |
+        ForEach-Object {
+            $line = $_
+            if (-not [string]::IsNullOrEmpty($line)) {
+                $cleanLine = Remove-AnsiEscapeSequences -Text $line
+                if ($script:FrontendPortFile -and ($cleanLine -match 'Local:\s+http://localhost:(\d+)/')) {
+                    $detectedPort = $Matches[1]
+                    if ($detectedPort -ne $script:FrontendPort) {
+                        $script:FrontendPort = $detectedPort
+                        Set-Content -Path $script:FrontendPortFile -Value $script:FrontendPort -Encoding ASCII -ErrorAction SilentlyContinue
+                    }
+                    if ($detectedPort -ne $script:FrontendPortAnnounced) {
+                        $script:FrontendPortAnnounced = $detectedPort
+                        Write-Host ("📍 前端: http://localhost:{0} (Vue 3 + Vite)" -f $detectedPort) -ForegroundColor Cyan
+                    }
+                }
+            }
+            Write-Host $line
+        }
 } finally {
     # Cleanup: Stop backend job
     Write-Host ""
