@@ -1,29 +1,11 @@
 # 后端架构设计
 
-CCR UI 的后端是一个基于 Rust 和 Axum 构建的高性能 Web 服务。作为 **CCR Cargo Workspace** 的成员，backend 直接使用 CCR 主 crate 的服务层，实现零开销的库调用。
+CCR UI 的后端是一个基于 Rust 和 Axum 0.8 构建的高性能 Web 服务。
 
-## 🏗️ Workspace 集成
-
-### 架构定位
-
-```
-ccr/ (Workspace Root)
-├── src/                                 # CCR 主 crate
-│   ├── lib.rs                          # 导出 Services, Managers, Core
-│   └── services/                       # 业务逻辑层（被 backend 复用）
-└── ccr-ui/backend/                     # Backend (Workspace Member)
-    ├── Cargo.toml                      # dependencies.ccr = { path = "../.." }
-    └── src/
-        ├── main.rs                     # Axum server
-        └── handlers/                   # 调用 CCR services
-```
-
-### 关键改进（v3.0.0）
-
-✅ **直接库调用**: 使用 `ccr::services::*` 替代子进程执行  
-✅ **共享依赖**: 15 个核心依赖统一版本管理  
-✅ **零序列化开销**: 直接调用服务层，无需 JSON 序列化/反序列化  
-✅ **统一构建**: 单个 `cargo build --workspace` 构建所有组件
+> **版本**: v3.16.2  
+> **最后更新**: 2025-12-28  
+> **框架**: Axum 0.8.6  
+> **架构模式**: 分层架构（6 层）
 
 ## 🎯 设计目标
 
@@ -34,59 +16,129 @@ ccr/ (Workspace Root)
 - **可靠性**：错误处理完善，系统稳定性高
 - **可扩展性**：模块化设计，易于添加新功能
 - **易维护性**：清晰的代码结构和完善的文档
-- **零开销集成**：直接使用 CCR 库，避免子进程和序列化开销
+- **高并发**：支持大量并发请求
 
 ## 🏗️ 整体架构
+
+### 分层架构（v3.15.0）
+
+CCR UI Backend 采用严格的 6 层架构，实现了关注点分离和依赖管理：
+
+```
+┌──────────────────────────────────────────────────────┐
+│  Routes Layer (路由层)                                 │
+│  - 25+ 路由模块，按功能严格分类                          │
+│  - HTTP 路由定义、中间件配置                            │
+└──────────────────────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────┐
+│  API Layer (API 处理层)                                │
+│  - handlers/ 目录：16+ 处理器文件                       │
+│  - HTTP 请求处理、参数验证、响应构建                     │
+└──────────────────────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────┐
+│  Services Layer (服务层)                               │
+│  - 业务逻辑编排、事务管理                               │
+│  - 跨平台转换、命令执行、签到服务                        │
+└──────────────────────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────┐
+│  Managers Layer (管理层)                               │
+│  - 数据访问、文件 I/O、持久化操作                        │
+│  - config/: 5 个平台配置管理器                          │
+│  - checkin/: 8 个签到管理器                            │
+│  - 其他: markdown, plugins, ui_state                 │
+└──────────────────────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────┐
+│  Cache Layer (缓存层) - v3.15.0+                       │
+│  - 全局设置缓存 (30s TTL)                              │
+│  - 减少 80% 文件 I/O，性能提升 50-100x                  │
+└──────────────────────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────┐
+│  Models Layer (模型层)                                 │
+│  - 数据结构定义、序列化/反序列化                         │
+│  - API 模型、平台模型、签到模型                          │
+└──────────────────────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────┐
+│  Core Layer (核心层)                                   │
+│  - 基础设施：error, crypto, executor                   │
+│  - log_manager, bom_writer                          │
+└──────────────────────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────┐
+│  Utils Layer (工具层)                                  │
+│  - 通用工具函数、配置读取                                │
+└──────────────────────────────────────────────────────┘
+```
+
+**依赖规则**：
+- ✅ **严格单向依赖**：只能向下依赖，不能反向依赖
+- ✅ **无循环依赖**：任何两层之间不能形成循环
+- ✅ **跨层调用禁止**：不能跨层直接调用（如 API 直接调用 Managers）
 
 ### 系统架构图
 
 ```mermaid
 graph TB
     subgraph "前端层"
-        Frontend["Vue 3 + TypeScript<br/>📱 http://localhost:5173"]
+        Frontend["Vue 3 + TypeScript<br/>📱 http://localhost:3000"]
     end
     
-    subgraph "后端层 - Axum Server :8081 (Workspace Member)"
+    subgraph "后端层 - Axum Server :38081"
         subgraph "入口 & 中间件"
             Server["🚀 Axum HTTP Server"]
-            Middleware["🔧 Middleware Stack<br/>├─ CORS<br/>├─ Compression (gzip/br/zstd)<br/>├─ Tracing<br/>└─ Error Handling"]
-            Router["🛣️ Router<br/>14 API Routes"]
+            Middleware["🔧 Middleware Stack<br/>├─ CORS<br/>├─ Compression<br/>├─ Tracing<br/>├─ Request ID<br/>└─ Error Handling"]
+            Router["🛣️ Router<br/>25 路由模块"]
         end
         
         subgraph "Handlers (API 层)"
-            HConfig["📋 Config Handler<br/>list/switch/validate/<br/>history/export/import"]
-            HCommand["⚡ Command Handler<br/>execute (legacy)"]
-            HMCP["🔌 MCP Handler<br/>CRUD + toggle"]
-            HAgent["🤖 Agent Handler<br/>CRUD + toggle"]
-            HSlash["💬 Slash Cmd Handler<br/>CRUD + toggle"]
-            HPlugin["🧩 Plugin Handler<br/>CRUD + toggle"]
-            HSystem["💻 System Handler<br/>info/stats"]
-            HVersion["🏷️ Version Handler<br/>check/update"]
+            HConfig["📋 Config Handler"]
+            HCommand["⚡ Command Handler"]
+            HMCP["🔌 MCP Handler"]
+            HAgent["🤖 Agent Handler"]
+            HCheckin["📅 Checkin Handler"]
+            HStats["📊 Stats Handler"]
+            HBudget["💰 Budget Handler"]
+            HSystem["💻 System Handler"]
         end
         
-        subgraph "CCR 库集成 (v3.0.0)"
-            CCRLib["📦 CCR Library<br/>use ccr::services::*<br/>├─ ConfigService<br/>├─ SettingsService<br/>├─ HistoryService<br/>└─ BackupService"]
+        subgraph "Services Layer"
+            SCommand["命令服务"]
+            SConverter["转换服务"]
+            SCheckin["签到服务"]
+            SWebSocket["WebSocket 服务"]
+            SWAFBypass["WAF 绕过服务"]
         end
         
-        subgraph "Backend 专有 Managers"
-            MClaudeConfig["📄 ClaudeConfigManager<br/>~/.claude.json"]
-            MMarkdown["📝 MarkdownManager<br/>Frontmatter + Content"]
-            MPlugins["🔌 PluginsManager<br/>~/.claude/plugins/"]
-            MConfigReader["📖 ConfigReader (Legacy)<br/>~/.ccs_config.toml"]
+        subgraph "Managers Layer"
+            MConfig["配置管理器组<br/>claude/codex/gemini/qwen"]
+            MCheckin["签到管理器组<br/>account/balance/provider/record"]
+            MMarkdown["Markdown 管理器"]
+            MPlugins["插件管理器"]
+        end
+        
+        subgraph "Cache Layer (v3.15.0+)"
+            Cache["全局设置缓存<br/>30s TTL"]
+        end
+        
+        subgraph "Core & Models"
+            CoreError["错误处理"]
+            CoreExecutor["命令执行器"]
+            CoreLog["日志管理"]
+            Models["数据模型"]
         end
     end
     
     subgraph "文件系统"
-        FSClaudeJSON["~/.claude.json<br/>(MCP servers)"]
-        FSSettings["~/.claude/settings.json<br/>(All configs)"]
-        FSAgents["~/.claude/agents/<br/>(Markdown files)"]
-        FSCommands["~/.claude/commands/<br/>(Markdown files)"]
-        FSPlugins["~/.claude/plugins/<br/>(config.json)"]
-        FSCcsConfig["~/.ccs_config.toml<br/>(CCR configs)"]
-    end
-    
-    subgraph "CCR CLI"
-        CLI["⚙️ CCR Binary<br/>(Installed in PATH)"]
+        FSSettings["~/.claude/settings.json"]
+        FSClaudeJSON["~/.claude.json"]
+        FSAgents["~/.claude/agents/"]
+        FSPlugins["~/.claude/plugins/"]
+        FSCheckin["~/.ccr-ui/checkin.db"]
     end
     
     Frontend ==>|"HTTP/JSON API"| Server
@@ -97,894 +149,345 @@ graph TB
     Router -.->|route| HCommand
     Router -.->|route| HMCP
     Router -.->|route| HAgent
-    Router -.->|route| HSlash
-    Router -.->|route| HPlugin
+    Router -.->|route| HCheckin
+    Router -.->|route| HStats
+    Router -.->|route| HBudget
     Router -.->|route| HSystem
-    Router -.->|route| HVersion
     
-    HConfig -->|"直接调用"| CCRLib
-    HConfig -->|use| MConfigReader
-    HMCP -->|use| MClaudeConfig
-    HAgent -->|use| MMarkdown
-    HSlash -->|use| MMarkdown
-    HPlugin -->|use| MPlugins
-    HSystem -->|"查询"| CCRLib
-    HVersion -->|"更新检查"| CCRLib
+    HConfig --> SCommand
+    HCheckin --> SCheckin
     
-    CCRLib -->|"ConfigService"| FSCcsConfig
-    CCRLib -->|"SettingsService"| FSSettings
-    MClaudeConfig -->|read/write| FSClaudeJSON
-    MMarkdown -->|read/write| FSAgents
-    MMarkdown -->|read/write| FSCommands
-    MPlugins -->|read/write| FSPlugins
-    MConfigReader -->|read| FSCcsConfig
+    SCommand --> MConfig
+    SCheckin --> MCheckin
+    
+    MConfig --> Cache
+    Cache --> FSSettings
+    MConfig --> FSClaudeJSON
+    MMarkdown --> FSAgents
+    MPlugins --> FSPlugins
+    MCheckin --> FSCheckin
+    
+    SCommand --> CoreExecutor
     
     style Frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     style Server fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style Middleware fill:#fce4ec,stroke:#c2185b,stroke-width:1px
-    style Router fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
-    style CCRLib fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-    
-    classDef handlerStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:1px
-    classDef managerStyle fill:#fff9c4,stroke:#f9a825,stroke-width:1px
-    classDef fileStyle fill:#efebe9,stroke:#5d4037,stroke-width:1px
-    
-    class HConfig,HCommand,HMCP,HAgent,HSlash,HPlugin,HSystem,HVersion handlerStyle
-    class MClaudeConfig,MMarkdown,MPlugins,MConfigReader managerStyle
-    class FSClaudeJSON,FSSettings,FSAgents,FSCommands,FSPlugins,FSCcsConfig fileStyle
+    style Cache fill:#fff9c4,stroke:#f9a825,stroke-width:2px
 ```
 
-### 数据流示例
+## 📦 主要模块
 
-以下展示一个典型的 **Agent 管理** 请求处理流程：
+### 1. Routes Layer (路由层)
 
-```mermaid
-sequenceDiagram
-    participant F as 前端 (Vue 3)
-    participant S as Axum Server
-    participant M as Middleware
-    participant R as Router
-    participant H as Agent Handler
-    participant MM as MarkdownManager
-    participant SM as SettingsManager
-    participant FS as File System
+位于 `src/routes/`，定义所有 HTTP 路由。
 
-    F->>+S: GET /api/agents
-    S->>+M: Apply CORS/Compression/Trace
-    M->>+R: Route to handler
-    R->>+H: list_agents()
-    
-    Note over H: 尝试 Markdown 文件 (优先级高)
-    H->>+MM: list_files_with_folders()
-    MM->>+FS: Read ~/.claude/agents/**/*.md
-    FS-->>-MM: Markdown files with frontmatter
-    MM-->>-H: Vec<(name, folder_path)>
-    
-    Note over H: 解析 Frontmatter
-    loop For each file
-        H->>+MM: read_file<AgentFrontmatter>(name)
-        MM->>FS: Read file content
-        FS-->>MM: Raw markdown
-        MM->>MM: Parse YAML frontmatter
-        MM-->>H: MarkdownFile<AgentFrontmatter>
-    end
-    
-    Note over H: Fallback to settings.json (if needed)
-    alt Markdown files empty
-        H->>+SM: load()
-        SM->>FS: Read ~/.claude/settings.json
-        FS-->>SM: JSON content
-        SM-->>-H: ClaudeSettings.agents
-    end
-    
-    Note over H: 构建响应
-    H->>H: Build ApiResponse<AgentsResponse>
-    H-->>-R: JSON response
-    R-->>-M: Response
-    M-->>-S: Compressed JSON
-    S-->>-F: HTTP 200 + JSON
-    
-    Note over F: 前端渲染 Agents 列表<br/>支持文件夹分组
+**25+ 路由模块**：
+```
+routes/
+├── mod.rs                      # 路由组装与中间件
+├── agents_routes.rs            # Agents 管理路由
+├── budget_routes.rs            # 预算管理路由
+├── builtin_prompts_routes.rs  # 内置提示词路由
+├── checkin_routes.rs           # 签到管理路由
+├── codex_routes.rs             # Codex 平台路由
+├── command_routes.rs           # 命令执行路由
+├── config_routes.rs            # 配置管理路由
+├── converter_routes.rs         # 配置转换路由
+├── gemini_routes.rs            # Gemini 平台路由
+├── mcp_routes.rs               # MCP 管理路由
+├── other_routes.rs             # 其他路由
+├── platform_routes.rs          # 平台管理路由
+├── plugins_routes.rs           # 插件管理路由
+├── pricing_routes.rs           # 定价管理路由
+├── prompts_routes.rs           # 提示词管理路由
+├── provider_health_routes.rs  # 提供商健康检查路由
+├── qwen_routes.rs              # Qwen 平台路由
+├── sessions_routes.rs          # 会话管理路由
+├── skills_routes.rs            # 技能管理路由
+├── slash_commands_routes.rs   # 斜杠命令路由
+├── stats_routes.rs             # 统计路由
+├── sync_routes.rs              # 同步路由
+├── system_routes.rs            # 系统信息路由
+├── ui_state_routes.rs          # UI 状态路由
+├── usage_routes.rs             # 使用记录路由
+└── version_routes.rs           # 版本管理路由
 ```
 
-### 技术栈（v3.0.0 - Workspace 架构）
+**中间件栈**（在 `routes/mod.rs::apply_middleware()`）：
+1. **Request ID**: 生成和传播唯一请求 ID
+2. **Tracing**: 结构化日志记录
+3. **CORS**: 跨域资源共享（允许所有来源）
+4. **Compression**: 自动压缩响应（gzip/br/zstd）
 
-| 组件 | 技术 | 版本 | 来源 | 用途 |
-|------|------|------|------|------|
-| **核心库** | CCR | 3.0.0 | Workspace | 配置管理服务层 |
-| Web 框架 | Axum | 0.8.6 | Workspace | HTTP 服务器和路由 |
-| 中间件 | Tower + Tower-HTTP | 0.5/0.6 | Workspace | CORS、压缩、日志 |
-| 异步运行时 | Tokio | 1.48.0 | Workspace | 异步任务执行 |
-| 序列化 | Serde + Serde JSON | 1.0 | Workspace | JSON/TOML 序列化 |
-| 配置解析 | TOML | 0.8 | Workspace | 配置文件解析 |
-| 错误处理 | Anyhow/Thiserror | 1.0 | Workspace | 错误处理和传播 |
-| 日志 | Tracing | 0.1 | Backend | 结构化日志记录 |
-| CLI 解析 | Clap | 4.5 | Workspace | 命令行参数解析 |
-| 系统信息 | Sysinfo | 0.37.2 | Backend | 系统信息获取 |
-| HTTP 客户端 | Reqwest | 0.12.24 | Workspace | 更新检查 |
+### 2. API Layer (API 处理层)
 
-**依赖管理**：15 个核心依赖由 workspace 根 `Cargo.toml` 统一管理，确保版本一致性。
+位于 `src/api/handlers/`，处理 HTTP 请求。
+
+**16+ 处理器文件**：
+```
+api/handlers/
+├── mod.rs                  # Handler 导出
+├── agents.rs               # Agents CRUD
+├── budget.rs               # 预算查询
+├── builtin_prompts.rs      # 内置提示词
+├── checkin.rs              # 签到功能（重要！）
+├── command.rs              # 命令执行
+├── config.rs               # 配置管理
+├── converter.rs            # 格式转换
+├── logs.rs                 # 日志查询
+├── mcp.rs                  # MCP 服务器
+├── mcp_presets.rs          # MCP 预设
+├── platform.rs             # 平台管理
+├── platforms/              # 平台专属处理器
+│   ├── codex.rs
+│   ├── gemini.rs
+│   ├── qwen.rs
+│   └── iflow.rs
+├── plugins.rs              # 插件管理
+├── pricing.rs              # 定价信息
+├── prompts.rs              # 提示词管理
+├── response.rs             # 响应构建
+├── skills.rs               # 技能管理
+├── slash_commands.rs       # 斜杠命令
+├── stats.rs                # 统计数据
+├── sync.rs                 # WebDAV 同步
+├── system.rs               # 系统信息
+├── ui_state.rs             # UI 状态
+├── usage.rs                # 使用记录
+└── version.rs              # 版本信息
+```
+
+### 3. Services Layer (服务层)
+
+位于 `src/services/`，实现业务逻辑。
+
+**7 个服务模块**：
+```
+services/
+├── mod.rs
+├── checkin_service.rs      # 签到业务逻辑
+├── commands.rs             # 命令服务
+├── converter_service.rs    # 配置转换服务
+├── log_persistence.rs      # 日志持久化
+├── waf_bypass.rs           # WAF 绕过（签到专用）
+└── websocket.rs            # WebSocket 服务
+```
+
+**关键服务**：
+- `checkin_service`: 管理签到流程、账号、提供商
+- `converter_service`: 跨平台配置格式转换
+- `waf_bypass`: 使用 chromiumoxide 绕过 WAF 限制
+
+### 4. Managers Layer (管理层)
+
+位于 `src/managers/`，负责数据访问和持久化。
+
+**Config 管理器组** (`managers/config/`):
+```
+config/
+├── mod.rs
+├── platform_manager.rs     # 平台抽象接口
+├── claude_manager.rs       # Claude Code 配置
+├── codex_manager.rs        # Codex 配置
+├── gemini_manager.rs       # Gemini CLI 配置
+└── qwen_manager.rs         # Qwen 配置
+```
+
+**Checkin 管理器组** (`managers/checkin/`) - **新增 v3.7+**:
+```
+checkin/
+├── mod.rs
+├── account_manager.rs      # 账号管理
+├── balance_manager.rs      # 余额查询
+├── provider_manager.rs     # 提供商管理
+├── record_manager.rs       # 签到记录
+├── waf_cookie_manager.rs   # Cookie 管理
+├── builtin_providers.rs    # 内置提供商配置
+└── export_manager.rs       # 导入导出
+```
+
+**其他管理器**：
+```
+managers/
+├── markdown_manager.rs     # Markdown 文件 CRUD
+├── plugins_manager.rs      # 插件配置管理
+├── settings_manager.rs     # 设置管理（已废弃）
+└── ui_state_manager.rs     # UI 状态持久化
+```
+
+### 5. Cache Layer (缓存层) - **v3.15.0+**
+
+位于 `src/cache/`，全局缓存机制。
+
+**特性**：
+- **TTL**: 30 秒自动过期
+- **性能**: 减少 80% 文件 I/O，提升 50-100x
+- **线程安全**: 使用 `Arc<RwLock<T>>`
+- **自动刷新**: 过期时自动重新加载
+
+**缓存的数据**：
+- `~/.claude/settings.json` 的全局配置
+- MCP 服务器列表
+- Agents 列表
+- 插件配置
+
+### 6. Models Layer (模型层)
+
+位于 `src/models/`，定义数据结构。
+
+```
+models/
+├── mod.rs
+├── api.rs                  # 通用 API 模型
+├── converter.rs            # 转换器模型
+├── monitoring.rs           # 监控模型
+├── ui_state.rs             # UI 状态模型
+├── usage.rs                # 使用记录模型
+├── checkin/                # 签到模型
+│   ├── account.rs
+│   ├── balance.rs
+│   ├── provider.rs
+│   ├── record.rs
+│   ├── dashboard.rs
+│   └── export.rs
+└── platforms/              # 平台特定模型
+    ├── codex.rs
+    ├── gemini.rs
+    └── qwen.rs
+```
+
+### 7. Core Layer (核心层)
+
+位于 `src/core/`，基础设施。
+
+```
+core/
+├── mod.rs
+├── error.rs                # 统一错误类型
+├── executor.rs             # CCR 命令执行器
+├── log_manager.rs          # 日志轮转与清理
+├── crypto.rs               # AES-256-GCM 加密（签到用）
+└── bom_writer.rs           # UTF-8 BOM 写入（Windows 兼容）
+```
+
+**关键模块**：
+- `error.rs`: 定义 `AppError` 枚举，统一错误处理
+- `executor.rs`: 通过子进程调用 CCR CLI
+- `crypto.rs`: API Key 加密存储（签到功能专用）
+- `log_manager.rs`: 日志文件日轮转、自动清理
+
+### 8. Utils Layer (工具层)
+
+位于 `src/utils/`，通用工具函数。
+
+```
+utils/
+├── mod.rs
+└── config_reader.rs        # 通用配置读取工具
+```
+
+## 🔑 核心功能模块
+
+### 签到管理系统 (v3.7+)
+
+**架构**：
+```
+Handlers → CheckinService → CheckinManagers → Models → SQLite
+```
+
+**功能**：
+1. **提供商管理**: 内置 + 自定义提供商
+2. **账号管理**: 多提供商、多账号支持
+3. **自动签到**: 批量签到、定时任务
+4. **余额查询**: 实时查询账号余额
+5. **记录追踪**: 签到历史、成功/失败统计
+6. **WAF 绕过**: 使用 Chromium 绕过 CloudFlare
+
+**内置提供商**：
+- AnyRouter (`anyrouter.top`) - 需 WAF 绕过
+- AgentRouter (`agentrouter.org`) - 自动签到
+- CodeRouter (`api.codemirror.codes`) - 无签到
+
+**数据存储**: `~/.ccr-ui/checkin.db` (SQLite)
+
+### WebSocket 实时通信
+
+**用途**：
+- 实时日志流
+- 命令执行进度
+- 系统状态更新
+
+**端点**: `/ws`
+
+## 🔒 安全特性
+
+1. **API Key 加密**: 使用 AES-256-GCM 加密存储
+2. **CORS 配置**: 可配置的跨域策略
+3. **Request ID**: 请求追踪和审计
+4. **错误隐藏**: 生产环境不暴露敏感错误
+5. **原子操作**: 文件写入使用临时文件 + 原子重命名
+
+## 📊 技术栈
+
+| 组件 | 技术 | 版本 | 用途 |
+|------|------|------|------|
+| **Web 框架** | Axum | 0.8.6 | HTTP 服务器和路由 |
+| **中间件** | Tower + Tower-HTTP | 0.5/0.6 | CORS、压缩、日志 |
+| **异步运行时** | Tokio | 1.48.0 | 异步任务执行 |
+| **序列化** | Serde + Serde JSON | 1.0 | JSON/TOML 序列化 |
+| **配置解析** | TOML | 0.9 | 配置文件解析 |
+| **错误处理** | Anyhow/Thiserror | 1.0/2.0 | 错误处理和传播 |
+| **日志** | Tracing | 0.1 | 结构化日志记录 |
+| **CLI 解析** | Clap | 4.5 | 命令行参数解析 |
+| **系统信息** | Sysinfo | 0.37.2 | 系统信息获取 |
+| **HTTP 客户端** | Reqwest | 0.12.25 | 签到 API 调用 |
+| **加密** | AES-GCM | 0.10 | API Key 加密 |
+| **浏览器自动化** | chromiumoxide | 0.8 | WAF 绕过 |
 
 ## 📁 项目结构
 
-```mermaid
-graph TD
-    Backend["backend/"]
-    Src["src/"]
-    Handlers["handlers/"]
-    Executor["executor/"]
-    
-    Backend --> Src
-    Backend --> Cargo["Cargo.toml<br/>(项目配置和依赖)"]
-    Backend --> Readme["README.md<br/>(项目说明)"]
-    
-    Src --> Main["main.rs<br/>(应用入口点)"]
-    Src --> ConfigReader["config_reader.rs<br/>(配置文件读取)"]
-    Src --> Models["models.rs<br/>(数据模型定义)"]
-    Src --> Handlers
-    Src --> Executor
-    
-    Handlers --> HMod["mod.rs"]
-    Handlers --> HConfig["config.rs<br/>(配置相关接口)"]
-    Handlers --> HCommand["command.rs<br/>(命令执行接口)"]
-    Handlers --> HSystem["system.rs<br/>(系统信息接口)"]
-    
-    Executor --> EMod["mod.rs"]
-    Executor --> ECliExecutor["cli_executor.rs<br/>(CLI 命令执行)"]
-    
-    style Backend fill:#e3f2fd
-    style Src fill:#f3e5f5
-    style Handlers fill:#e8f5e9
-    style Executor fill:#fff3e0
+完整的目录结构请参考 [`backend/CLAUDE.md`](../../backend/CLAUDE.md)。
+
+## 🚀 构建和部署
+
+### 开发模式
+
+```bash
+cd ccr-ui/backend
+cargo run -- --port 38081
+
+# 启用调试日志
+RUST_LOG=debug cargo run
 ```
 
-## 🔧 核心模块设计
+### 生产构建
 
-### 0. CCR 库集成 (v3.0.0 新增)
+```bash
+cd ccr-ui/backend
+cargo build --release
 
-Backend 现在直接使用 CCR 主 crate 的服务层，无需子进程调用：
-
-```rust
-// Cargo.toml
-[dependencies]
-ccr = { path = "../..", default-features = false }  // 从 workspace
-serde = { workspace = true }
-axum = { workspace = true }
-
-// Handler 示例
-use ccr::services::config_service::ConfigService;
-use ccr::services::settings_service::SettingsService;
-
-pub async fn switch_config(
-    Json(payload): Json<SwitchRequest>
-) -> Result<Json<ApiResponse>, StatusCode> {
-    // 直接调用 CCR 服务层，零开销
-    let service = ConfigService::default()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    service.switch_config(&payload.config_name)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
-    
-    Ok(Json(ApiResponse::success("切换成功")))
-}
+# 二进制文件: target/release/ccr-ui-backend
+./target/release/ccr-ui-backend --port 38081
 ```
 
-**优势**：
-- ✅ **零序列化开销**：直接函数调用，无需 JSON 序列化
-- ✅ **类型安全**：编译时类型检查，避免运行时错误
-- ✅ **性能提升**：避免子进程创建和进程间通信
-- ✅ **简化调试**：单进程调试，无需跨进程追踪
-
-### 1. 主应用模块 (main.rs)
-
-```rust
-use axum::{
-    routing::{get, post, put, delete},
-    Router,
-};
-use tower_http::{
-    cors::{Any, CorsLayer},
-    compression::CompressionLayer,
-    trace::TraceLayer,
-};
-use tower::ServiceBuilder;
-
-#[tokio::main]
-async fn main() {
-    // 初始化日志
-    tracing_subscriber::fmt::init();
-    
-    // 解析命令行参数
-    let args = Args::parse();
-    
-    tracing::info!("Starting CCR UI Backend on {}:{}", args.host, args.port);
-    
-    // 配置中间件
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
-    
-    let middleware = ServiceBuilder::new()
-        .layer(TraceLayer::new_for_http())
-        .layer(CompressionLayer::new())
-        .layer(cors);
-    
-    // 创建路由
-    let app = Router::new()
-        .route("/health", get(health_check))
-        .route("/api/configs", get(handlers::config::list_configs))
-        .route("/api/switch", post(handlers::config::switch_config))
-        .route("/api/history", get(handlers::config::get_history))
-        .route("/api/configs/:name", put(handlers::config::update_config))
-        .route("/api/configs/:name", delete(handlers::config::delete_config))
-        .route("/api/command/execute", post(handlers::command::execute_command))
-        .route("/api/command/list", get(handlers::command::list_commands))
-        .route("/api/system", get(handlers::system::get_system_info))
-        .layer(middleware);
-    
-    // 启动服务器
-    let listener = tokio::net::TcpListener::bind(format!("{}:{}", args.host, args.port))
-        .await
-        .unwrap();
-    
-    axum::serve(listener, app).await.unwrap();
-}
-```
-
-### 2. 数据模型 (models.rs)
-
-```rust
-use serde::{Deserialize, Serialize};
-use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Config {
-    pub name: String,
-    pub path: String,
-    pub is_active: bool,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct SwitchConfigRequest {
-    pub config_name: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ExecuteCommandRequest {
-    pub command: String,
-    pub args: Vec<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct CommandOutput {
-    pub success: bool,
-    pub stdout: String,
-    pub stderr: String,
-    pub exit_code: Option<i32>,
-    pub execution_time_ms: u64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct SystemInfo {
-    pub os: String,
-    pub arch: String,
-    pub cpu_count: usize,
-    pub username: String,
-    pub ccr_version: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ApiResponse<T: Serialize> {
-    pub success: bool,
-    pub data: Option<T>,
-    pub message: Option<String>,
-}
-
-// 实现 IntoResponse 用于 Axum
-impl<T: Serialize> IntoResponse for ApiResponse<T> {
-    fn into_response(self) -> Response {
-        let status = if self.success {
-            StatusCode::OK
-        } else {
-            StatusCode::BAD_REQUEST
-        };
-        (status, Json(self)).into_response()
-    }
-}
-```
-
-### 3. 配置处理器 (handlers/config.rs)
-
-```rust
-use axum::{
-    extract::{Path, Json},
-    http::StatusCode,
-    response::IntoResponse,
-};
-use crate::{models::*, config_reader::ConfigReader};
-
-/// GET /api/configs - 列出所有配置
-pub async fn list_configs() -> impl IntoResponse {
-    let reader = ConfigReader::new();
-    match reader.read_configs() {
-        Ok(configs) => {
-            let current = reader.get_current_config();
-            let default = reader.get_default_config();
-            
-            ApiResponse {
-                success: true,
-                data: Some(ConfigListResponse {
-                    current_config: current,
-                    default_config: default,
-                    configs,
-                }),
-                message: None,
-            }
-        }
-        Err(e) => {
-            tracing::error!("Failed to read configs: {}", e);
-            ApiResponse::<ConfigListResponse> {
-                success: false,
-                data: None,
-                message: Some(format!("Failed to read configs: {}", e)),
-            }
-        }
-    }
-}
-
-#[actix_web::post("/configs/switch")]
-pub async fn switch_config(req: web::Json<SwitchConfigRequest>) -> Result<HttpResponse> {
-    match execute_ccr_command("switch", &[&req.config_name]).await {
-        Ok(output) => {
-            if output.success {
-                Ok(HttpResponse::Ok().json(ApiResponse {
-                    success: true,
-                    data: Some(format!("Switched to config: {}", req.config_name)),
-                    error: None,
-                }))
-            } else {
-                Ok(HttpResponse::BadRequest().json(ApiResponse::<String> {
-                    success: false,
-                    data: None,
-                    error: Some(output.stderr),
-                }))
-            }
-        }
-        Err(e) => {
-            log::error!("Failed to switch config: {}", e);
-            Ok(HttpResponse::InternalServerError().json(ApiResponse::<String> {
-                success: false,
-                data: None,
-                error: Some(e.to_string()),
-            }))
-        }
-    }
-}
-
-fn parse_config_list(output: &str) -> Result<Vec<Config>, Box<dyn std::error::Error>> {
-    let mut configs = Vec::new();
-    
-    for line in output.lines() {
-        if let Some(config) = parse_config_line(line) {
-            configs.push(config);
-        }
-    }
-    
-    Ok(configs)
-}
-
-fn parse_config_line(line: &str) -> Option<Config> {
-    // 解析 CCR list 命令的输出格式
-    // 例如: "* config-name (/path/to/config)"
-    if line.trim().is_empty() {
-        return None;
-    }
-    
-    let is_active = line.starts_with('*');
-    let line = line.trim_start_matches('*').trim();
-    
-    if let Some(space_pos) = line.find(' ') {
-        let name = line[..space_pos].to_string();
-        let path = line[space_pos + 1..].trim_matches(|c| c == '(' || c == ')').to_string();
-        
-        Some(Config {
-            name,
-            path,
-            is_active,
-        })
-    } else {
-        None
-    }
-}
-```
-
-### 4. 命令执行器 (executor/cli_executor.rs)
-
-```rust
-use std::process::Stdio;
-use std::time::{Duration, Instant};
-use tokio::process::Command;
-use tokio::time::timeout;
-use anyhow::{Result, anyhow};
-use crate::models::CommandOutput;
-
-const COMMAND_TIMEOUT: Duration = Duration::from_secs(30);
-
-pub async fn execute_ccr_command(command: &str, args: &[&str]) -> Result<CommandOutput> {
-    let start_time = Instant::now();
-    
-    log::info!("Executing CCR command: ccr {} {}", command, args.join(" "));
-    
-    let mut cmd = Command::new("ccr");
-    cmd.arg(command);
-    cmd.args(args);
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
-    
-    // 设置超时执行
-    let result = timeout(COMMAND_TIMEOUT, cmd.output()).await;
-    
-    let execution_time = start_time.elapsed();
-    
-    match result {
-        Ok(Ok(output)) => {
-            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-            let success = output.status.success();
-            let exit_code = output.status.code();
-            
-            log::info!(
-                "Command completed in {}ms, success: {}, exit_code: {:?}",
-                execution_time.as_millis(),
-                success,
-                exit_code
-            );
-            
-            if !success {
-                log::warn!("Command stderr: {}", stderr);
-            }
-            
-            Ok(CommandOutput {
-                success,
-                stdout,
-                stderr,
-                exit_code,
-                execution_time_ms: execution_time.as_millis() as u64,
-            })
-        }
-        Ok(Err(e)) => {
-            log::error!("Failed to execute command: {}", e);
-            Err(anyhow!("Failed to execute command: {}", e))
-        }
-        Err(_) => {
-            log::error!("Command timed out after {}s", COMMAND_TIMEOUT.as_secs());
-            Err(anyhow!("Command timed out after {}s", COMMAND_TIMEOUT.as_secs()))
-        }
-    }
-}
-
-pub async fn execute_arbitrary_command(command: &str, args: &[String]) -> Result<CommandOutput> {
-    let start_time = Instant::now();
-    
-    log::info!("Executing command: {} {}", command, args.join(" "));
-    
-    let mut cmd = Command::new(command);
-    cmd.args(args);
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
-    
-    let result = timeout(COMMAND_TIMEOUT, cmd.output()).await;
-    let execution_time = start_time.elapsed();
-    
-    match result {
-        Ok(Ok(output)) => {
-            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-            let success = output.status.success();
-            let exit_code = output.status.code();
-            
-            Ok(CommandOutput {
-                success,
-                stdout,
-                stderr,
-                exit_code,
-                execution_time_ms: execution_time.as_millis() as u64,
-            })
-        }
-        Ok(Err(e)) => Err(anyhow!("Failed to execute command: {}", e)),
-        Err(_) => Err(anyhow!("Command timed out")),
-    }
-}
-```
-
-### 5. 系统信息处理器 (handlers/system.rs)
-
-```rust
-use actix_web::{HttpResponse, Result};
-use crate::{models::*, executor::cli_executor::execute_ccr_command};
-
-#[actix_web::get("/system/info")]
-pub async fn get_system_info() -> Result<HttpResponse> {
-    let system_info = SystemInfo {
-        os: std::env::consts::OS.to_string(),
-        arch: std::env::consts::ARCH.to_string(),
-        cpu_count: num_cpus::get(),
-        username: whoami::username(),
-        ccr_version: get_ccr_version().await,
-    };
-    
-    Ok(HttpResponse::Ok().json(ApiResponse {
-        success: true,
-        data: Some(system_info),
-        error: None,
-    }))
-}
-
-async fn get_ccr_version() -> Option<String> {
-    match execute_ccr_command("--version", &[]).await {
-        Ok(output) if output.success => {
-            Some(output.stdout.trim().to_string())
-        }
-        _ => None,
-    }
-}
-```
-
-## 🔒 安全性设计
-
-### 1. 命令注入防护
-
-```rust
-use regex::Regex;
-
-fn validate_command_args(args: &[String]) -> Result<(), String> {
-    let dangerous_patterns = [
-        r"[;&|`$()]",  // Shell 特殊字符
-        r"\.\./",      // 路径遍历
-        r"^-",         // 防止参数注入
-    ];
-    
-    for arg in args {
-        for pattern in &dangerous_patterns {
-            let re = Regex::new(pattern).unwrap();
-            if re.is_match(arg) {
-                return Err(format!("Dangerous pattern detected in argument: {}", arg));
-            }
-        }
-    }
-    
-    Ok(())
-}
-```
-
-### 2. 输入验证
-
-```rust
-use serde::de::{self, Deserializer, Visitor};
-
-impl<'de> Deserialize<'de> for SwitchConfigRequest {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct Helper {
-            config_name: String,
-        }
-        
-        let helper = Helper::deserialize(deserializer)?;
-        
-        // 验证配置名称格式
-        if helper.config_name.is_empty() {
-            return Err(de::Error::custom("config_name cannot be empty"));
-        }
-        
-        if helper.config_name.len() > 100 {
-            return Err(de::Error::custom("config_name too long"));
-        }
-        
-        // 只允许字母、数字、连字符和下划线
-        if !helper.config_name.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
-            return Err(de::Error::custom("config_name contains invalid characters"));
-        }
-        
-        Ok(SwitchConfigRequest {
-            config_name: helper.config_name,
-        })
-    }
-}
-```
-
-### 3. CORS 配置
-
-```rust
-use actix_cors::Cors;
-
-fn cors_config() -> Cors {
-    Cors::default()
-        .allowed_origin("http://localhost:5173")  // 开发环境
-        .allowed_origin("http://127.0.0.1:5173")
-        .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
-        .allowed_headers(vec!["Content-Type", "Authorization"])
-        .max_age(3600)
-}
-```
-
-## 📊 错误处理策略
-
-### 1. 错误类型定义
-
-```rust
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum AppError {
-    #[error("CCR command failed: {0}")]
-    CcrCommandError(String),
-    
-    #[error("Configuration not found: {0}")]
-    ConfigNotFound(String),
-    
-    #[error("Invalid input: {0}")]
-    InvalidInput(String),
-    
-    #[error("System error: {0}")]
-    SystemError(String),
-    
-    #[error("Timeout error: operation took too long")]
-    TimeoutError,
-}
-
-impl actix_web::ResponseError for AppError {
-    fn error_response(&self) -> HttpResponse {
-        match self {
-            AppError::CcrCommandError(msg) => {
-                HttpResponse::InternalServerError().json(ApiResponse::<()> {
-                    success: false,
-                    data: None,
-                    error: Some(msg.clone()),
-                })
-            }
-            AppError::ConfigNotFound(msg) => {
-                HttpResponse::NotFound().json(ApiResponse::<()> {
-                    success: false,
-                    data: None,
-                    error: Some(msg.clone()),
-                })
-            }
-            AppError::InvalidInput(msg) => {
-                HttpResponse::BadRequest().json(ApiResponse::<()> {
-                    success: false,
-                    data: None,
-                    error: Some(msg.clone()),
-                })
-            }
-            AppError::TimeoutError => {
-                HttpResponse::RequestTimeout().json(ApiResponse::<()> {
-                    success: false,
-                    data: None,
-                    error: Some("Request timeout".to_string()),
-                })
-            }
-            AppError::SystemError(msg) => {
-                HttpResponse::InternalServerError().json(ApiResponse::<()> {
-                    success: false,
-                    data: None,
-                    error: Some(msg.clone()),
-                })
-            }
-        }
-    }
-}
-```
-
-### 2. 统一错误处理中间件
-
-```rust
-use actix_web::{dev::ServiceRequest, Error, HttpMessage};
-use actix_web::middleware::ErrorHandlerResponse;
-
-pub fn error_handler<B>(res: dev::ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>, Error> {
-    let status = res.status();
-    
-    log::error!("HTTP Error {}: {}", status.as_u16(), status.canonical_reason().unwrap_or("Unknown"));
-    
-    Ok(ErrorHandlerResponse::Response(res.map_into_left_body()))
-}
-```
-
-## 📈 性能优化
-
-### 1. 异步处理
-
-```rust
-use tokio::task;
-use std::sync::Arc;
-
-pub async fn execute_multiple_commands(commands: Vec<String>) -> Vec<CommandOutput> {
-    let tasks: Vec<_> = commands
-        .into_iter()
-        .map(|cmd| {
-            task::spawn(async move {
-                execute_ccr_command(&cmd, &[]).await
-            })
-        })
-        .collect();
-    
-    let mut results = Vec::new();
-    for task in tasks {
-        match task.await {
-            Ok(Ok(output)) => results.push(output),
-            Ok(Err(e)) => {
-                log::error!("Command execution failed: {}", e);
-                results.push(CommandOutput {
-                    success: false,
-                    stdout: String::new(),
-                    stderr: e.to_string(),
-                    exit_code: None,
-                    execution_time_ms: 0,
-                });
-            }
-            Err(e) => {
-                log::error!("Task join failed: {}", e);
-            }
-        }
-    }
-    
-    results
-}
-```
-
-### 2. 缓存机制
-
-```rust
-use std::collections::HashMap;
-use std::sync::RwLock;
-use std::time::{Duration, Instant};
-
-pub struct CacheEntry<T> {
-    data: T,
-    timestamp: Instant,
-    ttl: Duration,
-}
-
-pub struct Cache<T> {
-    store: RwLock<HashMap<String, CacheEntry<T>>>,
-}
-
-impl<T: Clone> Cache<T> {
-    pub fn new() -> Self {
-        Self {
-            store: RwLock::new(HashMap::new()),
-        }
-    }
-    
-    pub fn get(&self, key: &str) -> Option<T> {
-        let store = self.store.read().unwrap();
-        if let Some(entry) = store.get(key) {
-            if entry.timestamp.elapsed() < entry.ttl {
-                return Some(entry.data.clone());
-            }
-        }
-        None
-    }
-    
-    pub fn set(&self, key: String, data: T, ttl: Duration) {
-        let mut store = self.store.write().unwrap();
-        store.insert(key, CacheEntry {
-            data,
-            timestamp: Instant::now(),
-            ttl,
-        });
-    }
-}
-```
-
-## 🧪 测试策略
-
-### 1. 单元测试
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[tokio::test]
-    async fn test_execute_ccr_command() {
-        let result = execute_ccr_command("--version", &[]).await;
-        assert!(result.is_ok());
-        
-        let output = result.unwrap();
-        assert!(output.success);
-        assert!(!output.stdout.is_empty());
-    }
-    
-    #[test]
-    fn test_parse_config_line() {
-        let line = "* test-config (/path/to/config)";
-        let config = parse_config_line(line).unwrap();
-        
-        assert_eq!(config.name, "test-config");
-        assert_eq!(config.path, "/path/to/config");
-        assert!(config.is_active);
-    }
-}
-```
-
-### 2. 集成测试
-
-```rust
-#[cfg(test)]
-mod integration_tests {
-    use actix_web::{test, App};
-    use super::*;
-    
-    #[actix_web::test]
-    async fn test_get_configs_endpoint() {
-        let app = test::init_service(
-            App::new().configure(configure_routes)
-        ).await;
-        
-        let req = test::TestRequest::get()
-            .uri("/api/configs")
-            .to_request();
-            
-        let resp = test::call_service(&app, req).await;
-        assert!(resp.status().is_success());
-    }
-}
-```
-
-## 🚀 部署配置
-
-### 1. Docker 支持
+### Docker 部署
 
 ```dockerfile
-FROM rust:1.70 as builder
-
+FROM rust:1.85 as builder
 WORKDIR /app
-COPY Cargo.toml Cargo.lock ./
-COPY src ./src
-
+COPY . .
 RUN cargo build --release
 
 FROM debian:bookworm-slim
-
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY --from=builder /app/target/release/ccr-ui-backend /usr/local/bin/
-
-EXPOSE 8081
-
-CMD ["ccr-ui-backend", "--port", "8081"]
-```
-
-### 2. 系统服务配置
-
-```ini
-[Unit]
-Description=CCR UI Backend
-After=network.target
-
-[Service]
-Type=simple
-User=ccr-ui
-WorkingDirectory=/opt/ccr-ui
-ExecStart=/opt/ccr-ui/ccr-ui-backend --port 8081
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
+EXPOSE 38081
+CMD ["ccr-ui-backend", "--port", "38081"]
 ```
 
 ## 📚 相关文档
 
-- [技术栈详解](/backend/tech-stack)
-- [开发指南](/backend/development)
-- [API 文档](/backend/api)
-- [部署指南](/backend/deployment)
-- [错误处理](/backend/error-handling)
+- [技术栈详解](./tech-stack.md)
+- [开发指南](./development.md)
+- [API 文档](./api.md)
+- [部署指南](./deployment.md)
+- [错误处理](./error-handling.md)
+- [Backend CLAUDE.md](../../backend/CLAUDE.md) - 最详细的开发文档
