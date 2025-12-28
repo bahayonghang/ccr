@@ -30,7 +30,7 @@
         <div class="flex items-center gap-3">
           <div
             class="p-3 rounded-xl"
-            :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
+            :style="{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))' }"
           >
             <Settings
               class="w-6 h-6"
@@ -41,15 +41,20 @@
             <h2
               :id="titleId"
               class="text-2xl font-bold"
-              :style="{ color: 'var(--text-primary)' }"
+              :style="{ 
+                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }"
             >
-              编辑配置
+              ⚙️ 编辑配置
             </h2>
             <p
-              class="text-sm"
+              class="text-sm flex items-center gap-1"
               :style="{ color: 'var(--text-secondary)' }"
             >
-              {{ configName }}
+              <span>📋</span> {{ configName }}
             </p>
           </div>
         </div>
@@ -89,15 +94,15 @@
         <!-- 描述 -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
-            :style="{ color: 'var(--text-primary)' }"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#10b981' }"
           >
-            描述
+            📝 描述
           </label>
           <input
             v-model="formData.description"
             type="text"
-            class="w-full px-4 py-3 rounded-xl transition-all"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
               background: 'rgba(255, 255, 255, 0.5)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -110,16 +115,16 @@
         <!-- Base URL -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
-            :style="{ color: 'var(--text-primary)' }"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#3b82f6' }"
           >
-            Base URL
+            🌐 Base URL
           </label>
           <input
             v-model="formData.base_url"
             type="url"
             required
-            class="w-full px-4 py-3 rounded-xl transition-all"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
               background: 'rgba(255, 255, 255, 0.5)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -132,16 +137,16 @@
         <!-- Auth Token -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
-            :style="{ color: 'var(--text-primary)' }"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#f59e0b' }"
           >
-            Auth Token
+            🔑 Auth Token
           </label>
           <input
             v-model="formData.auth_token"
-            type="password"
+            type="text"
             required
-            class="w-full px-4 py-3 rounded-xl transition-all font-mono"
+            class="w-full px-4 py-3 rounded-xl transition-all font-mono text-sm focus:ring-2 focus:ring-indigo-500/50"
             :style="{
               background: 'rgba(255, 255, 255, 0.5)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -154,35 +159,35 @@
         <!-- Model -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
-            :style="{ color: 'var(--text-primary)' }"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#8b5cf6' }"
           >
-            Model
+            🤖 Model
           </label>
           <input
             v-model="formData.model"
             type="text"
-            class="w-full px-4 py-3 rounded-xl transition-all"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
               background: 'rgba(255, 255, 255, 0.5)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
               color: 'var(--text-primary)'
             }"
-            placeholder="claude-3-5-sonnet-20241022"
+            placeholder="claude-sonnet-4-5-20250929"
           >
         </div>
 
         <!-- Provider Type -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
-            :style="{ color: 'var(--text-primary)' }"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#ec4899' }"
           >
-            Provider Type
+            🏷️ Provider Type
           </label>
           <select
             v-model="formData.provider_type"
-            class="w-full px-4 py-3 rounded-xl transition-all"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
               background: 'rgba(255, 255, 255, 0.5)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -205,25 +210,25 @@
         <div class="flex gap-3 pt-4">
           <button
             type="button"
-            class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105"
+            class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
             :style="{
               background: 'rgba(0, 0, 0, 0.05)',
               color: 'var(--text-secondary)'
             }"
             @click="handleClose"
           >
-            取消
+            ❌ 取消
           </button>
           <button
             type="submit"
             :disabled="saving"
-            class="flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50"
+            class="flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 flex items-center justify-center gap-2"
             :style="{
               background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
               boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
             }"
           >
-            {{ saving ? '保存中...' : '保存' }}
+            {{ saving ? '⏳ 保存中...' : '💾 保存' }}
           </button>
         </div>
       </form>
