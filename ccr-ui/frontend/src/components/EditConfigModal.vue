@@ -177,6 +177,27 @@
           >
         </div>
 
+        <!-- Small Fast Model -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#06b6d4' }"
+          >
+            ⚡ Small Fast Model
+          </label>
+          <input
+            v-model="formData.small_fast_model"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            placeholder="claude-3-haiku-20240307"
+          >
+        </div>
+
         <!-- Provider Type -->
         <div>
           <label
@@ -195,15 +216,96 @@
             }"
           >
             <option value="">
-              未分类
+              ❓ 未分类
             </option>
             <option value="official_relay">
-              官方中转
+              🔄 官方中转
             </option>
             <option value="third_party_model">
-              第三方模型
+              🤖 第三方模型
             </option>
           </select>
+        </div>
+
+        <!-- Provider Name -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#14b8a6' }"
+          >
+            🏢 提供商名称
+          </label>
+          <input
+            v-model="formData.provider"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            placeholder="如: anyrouter, glm, moonshot"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            用于标识同一提供商的不同配置
+          </p>
+        </div>
+
+        <!-- Account -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#f97316' }"
+          >
+            👤 账号标识
+          </label>
+          <input
+            v-model="formData.account"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            placeholder="如: github_5953, personal, work"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            用于区分同一提供商的不同账号
+          </p>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#a855f7' }"
+          >
+            🏷️ 标签
+          </label>
+          <input
+            v-model="tagsInput"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            placeholder="用逗号分隔，如: free, stable, backup"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            用于灵活分类和筛选，多个标签用逗号分隔
+          </p>
         </div>
 
         <!-- 按钮组 -->
@@ -278,12 +380,17 @@ watch(isOpenRef, (isOpen) => {
 
 const loading = ref(false)
 const saving = ref(false)
+const tagsInput = ref('')
 const formData = ref<any>({
   description: '',
   base_url: '',
   auth_token: '',
   model: '',
-  provider_type: ''
+  small_fast_model: '',
+  provider_type: '',
+  provider: '',
+  account: '',
+  tags: []
 })
 
 // 加载配置数据
@@ -299,8 +406,14 @@ const loadConfig = async () => {
       base_url: data.base_url || '',
       auth_token: data.auth_token || '',
       model: data.model || '',
-      provider_type: data.provider_type || ''
+      small_fast_model: data.small_fast_model || '',
+      provider_type: data.provider_type || '',
+      provider: data.provider || '',
+      account: data.account || '',
+      tags: data.tags || []
     }
+    // 将标签数组转换为逗号分隔的字符串
+    tagsInput.value = Array.isArray(data.tags) ? data.tags.join(', ') : ''
   } catch (err) {
     console.error('加载配置失败:', err)
     alert(`加载配置失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
@@ -309,15 +422,28 @@ const loadConfig = async () => {
   }
 }
 
+// 解析标签输入
+const parseTags = (input: string): string[] => {
+  return input.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+}
+
 // 保存配置
 const handleSave = async () => {
   try {
     saving.value = true
+    const tags = parseTags(tagsInput.value)
     // 构造符合后端 UpdateConfigRequest 结构的请求数据
     const payload = {
       name: props.configName,  // ✅ 添加必填的 name 字段
-      ...formData.value,
-      model: (formData.value.model ?? '').trim() || undefined
+      description: formData.value.description || undefined,
+      base_url: formData.value.base_url,
+      auth_token: formData.value.auth_token,
+      model: (formData.value.model ?? '').trim() || undefined,
+      small_fast_model: (formData.value.small_fast_model ?? '').trim() || undefined,
+      provider_type: formData.value.provider_type || undefined,
+      provider: (formData.value.provider ?? '').trim() || undefined,
+      account: (formData.value.account ?? '').trim() || undefined,
+      tags: tags.length > 0 ? tags : undefined
     }
     await updateConfig(props.configName, payload)
     alert(`✓ 成功保存配置 "${props.configName}"`)

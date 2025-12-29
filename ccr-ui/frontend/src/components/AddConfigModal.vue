@@ -229,13 +229,34 @@
           >
         </div>
 
+        <!-- Small Fast Model -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: 'var(--text-primary)' }"
+          >
+            ⚡ Small Fast Model
+          </label>
+          <input
+            v-model="formData.small_fast_model"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            :placeholder="$t('configs.addConfig.smallModelPlaceholder') || 'claude-3-haiku-20240307'"
+          >
+        </div>
+
         <!-- Provider Type -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
             :style="{ color: 'var(--text-primary)' }"
           >
-            Provider Type
+            🏷️ {{ $t('configs.addConfig.providerType') || 'Provider Type' }}
           </label>
           <select
             v-model="formData.provider_type"
@@ -247,15 +268,96 @@
             }"
           >
             <option value="">
-              {{ $t('configs.addConfig.providerUncategorized') }}
+              ❓ {{ $t('configs.addConfig.providerUncategorized') }}
             </option>
             <option value="official_relay">
-              {{ $t('configs.addConfig.providerOfficialRelay') }}
+              🔄 {{ $t('configs.addConfig.providerOfficialRelay') }}
             </option>
             <option value="third_party_model">
-              {{ $t('configs.addConfig.providerThirdParty') }}
+              🤖 {{ $t('configs.addConfig.providerThirdParty') }}
             </option>
           </select>
+        </div>
+
+        <!-- Provider Name -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: 'var(--text-primary)' }"
+          >
+            🏢 {{ $t('configs.addConfig.providerName') || '提供商名称' }}
+          </label>
+          <input
+            v-model="formData.provider"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            :placeholder="$t('configs.addConfig.providerNamePlaceholder') || '如: anyrouter, glm, moonshot'"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            {{ $t('configs.addConfig.providerNameHint') || '用于标识同一提供商的不同配置' }}
+          </p>
+        </div>
+
+        <!-- Account -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: 'var(--text-primary)' }"
+          >
+            👤 {{ $t('configs.addConfig.account') || '账号标识' }}
+          </label>
+          <input
+            v-model="formData.account"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            :placeholder="$t('configs.addConfig.accountPlaceholder') || '如: github_5953, personal, work'"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            {{ $t('configs.addConfig.accountHint') || '用于区分同一提供商的不同账号' }}
+          </p>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: 'var(--text-primary)' }"
+          >
+            🏷️ {{ $t('configs.addConfig.tags') || '标签' }}
+          </label>
+          <input
+            v-model="tagsInput"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            :placeholder="$t('configs.addConfig.tagsPlaceholder') || '用逗号分隔，如: free, stable, backup'"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            {{ $t('configs.addConfig.tagsHint') || '用于灵活分类和筛选，多个标签用逗号分隔' }}
+          </p>
         </div>
 
         <!-- 按钮组 -->
@@ -333,6 +435,7 @@ watch(isOpenRef, (isOpen) => {
 
 const saving = ref(false)
 const selectedTemplate = ref<string | null>(null)
+const tagsInput = ref('')
 
 const formData = ref<UpdateConfigRequest>({
   name: '',
@@ -340,7 +443,11 @@ const formData = ref<UpdateConfigRequest>({
   base_url: '',
   auth_token: '',
   model: '',
-  provider_type: ''
+  small_fast_model: '',
+  provider_type: '',
+  provider: '',
+  account: '',
+  tags: []
 })
 
 // 配置模板
@@ -418,23 +525,29 @@ const applyTemplate = (template: ConfigTemplate) => {
   }
 }
 
+// 解析标签输入
+const parseTags = (input: string): string[] => {
+  return input.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+}
+
 // 保存配置
 const handleSave = async () => {
   if (!isFormValid.value) return
 
   try {
     saving.value = true
+    const tags = parseTags(tagsInput.value)
     const payload: UpdateConfigRequest = {
       name: formData.value.name,
       description: formData.value.description,
       base_url: formData.value.base_url,
       auth_token: formData.value.auth_token,
       model: (formData.value.model ?? '').trim() || undefined,
-      small_fast_model: formData.value.small_fast_model || undefined,
-      provider: formData.value.provider || undefined,
+      small_fast_model: (formData.value.small_fast_model ?? '').trim() || undefined,
+      provider: (formData.value.provider ?? '').trim() || undefined,
       provider_type: formData.value.provider_type || undefined,
-      account: formData.value.account || undefined,
-      tags: formData.value.tags || undefined
+      account: (formData.value.account ?? '').trim() || undefined,
+      tags: tags.length > 0 ? tags : undefined
     }
     await addConfig(payload)
     alert(t('configs.addConfig.success', { name: formData.value.name }))
@@ -456,8 +569,13 @@ const resetForm = () => {
     base_url: '',
     auth_token: '',
     model: '',
-    provider_type: ''
+    small_fast_model: '',
+    provider_type: '',
+    provider: '',
+    account: '',
+    tags: []
   }
+  tagsInput.value = ''
   selectedTemplate.value = null
 }
 
