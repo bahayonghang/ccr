@@ -8,7 +8,29 @@ param(
     [string]$VitePort = "15173"
 )
 
+# ========== UTF-8 Encoding Setup (Fix Chinese character display) ==========
+# Set console output encoding to UTF-8 to properly display Chinese and emoji
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+# Also set code page to UTF-8 (65001)
+chcp 65001 | Out-Null
+
 $ErrorActionPreference = "Stop"
+
+# ========== Ctrl+C Handler Setup ==========
+# Track if we're in cleanup mode to prevent double cleanup
+$script:IsCleaningUp = $false
+$script:BackendJobId = $null
+
+# Register Ctrl+C handler to ensure clean exit
+$null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+    if (-not $script:IsCleaningUp -and $script:BackendJobId) {
+        $script:IsCleaningUp = $true
+        Stop-Job -Id $script:BackendJobId -ErrorAction SilentlyContinue
+        Remove-Job -Id $script:BackendJobId -Force -ErrorAction SilentlyContinue
+    }
+}
 
 # 支持环境变量覆盖
 if ($env:BACKEND_PORT) { $BackendPort = $env:BACKEND_PORT }
@@ -120,6 +142,9 @@ $backendJob = Start-Job -ScriptBlock {
     cargo run -- --port $port 2>&1 | Tee-Object -FilePath $logPath -Append
 } -ArgumentList $RootDir, $BackendPort, $backendConsoleLogPath
 
+# Save job ID for Ctrl+C handler
+$script:BackendJobId = $backendJob.Id
+
 Write-Host "[Backend] Started in background (Job ID: $($backendJob.Id))" -ForegroundColor Green
 Write-Host "          Log file: $backendConsoleLogPath" -ForegroundColor Gray
 Write-Host ""
@@ -179,6 +204,8 @@ Write-Host "[TIP] Press Ctrl+C to stop both backend and frontend servers" -Foreg
 Write-Host "======================================================================" -ForegroundColor DarkGray
 Write-Host ""
 
+# Use try/catch/finally to handle Ctrl+C gracefully
+$exitCode = 0
 try {
     Set-Location "$RootDir/frontend"
 
@@ -187,10 +214,34 @@ try {
 
     # Frontend runs in foreground with live output using Write-CleanLog
     # --host 0.0.0.0 allows access from LAN IP addresses
-    cmd /c "bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 || exit 0" | ForEach-Object {
+    # Use & operator for direct execution with proper stream handling
+    & bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 | ForEach-Object {
         Write-CleanLog -Line $_ -LogPath $frontendLogPath
     }
+} catch {
+    # Ctrl+C or other interruption - this is expected behavior
+    Write-Host ""
+    Write-Host "[Info] Received interrupt signal..." -ForegroundColor Yellow
 } finally {
+    # Mark cleanup in progress
+    $script:IsCleaningUp = $true
+
+    # Stop frontend process if still running (find by port)
+    try {
+        $frontendConn = Get-NetTCPConnection -LocalPort $VitePort -State Listen -ErrorAction SilentlyContinue
+        if ($frontendConn) {
+            $frontendPid = $frontendConn.OwningProcess
+            $frontendProc = Get-Process -Id $frontendPid -ErrorAction SilentlyContinue
+            if ($frontendProc -and $frontendProc.ProcessName -notmatch 'code|Code|electron') {
+                Write-Host "[Cleanup] Stopping frontend server (PID: $frontendPid)..." -ForegroundColor Yellow
+                Stop-Process -Id $frontendPid -Force -ErrorAction SilentlyContinue
+                Write-Host "[Cleanup] Frontend stopped" -ForegroundColor Green
+            }
+        }
+    } catch {
+        # Ignore errors during cleanup
+    }
+
     # Cleanup: Stop backend job
     Write-Host ""
     Write-Host "[Cleanup] Stopping backend server..." -ForegroundColor Yellow
@@ -201,8 +252,26 @@ try {
         Write-Host "[Cleanup] Backend stopped" -ForegroundColor Green
     }
 
+    # Also kill backend process by port (in case job cleanup missed it)
+    try {
+        $backendConn = Get-NetTCPConnection -LocalPort $BackendPort -State Listen -ErrorAction SilentlyContinue
+        if ($backendConn) {
+            $backendPid = $backendConn.OwningProcess
+            $backendProc = Get-Process -Id $backendPid -ErrorAction SilentlyContinue
+            if ($backendProc -and $backendProc.ProcessName -notmatch 'code|Code|electron') {
+                Write-Host "[Cleanup] Stopping backend process (PID: $backendPid)..." -ForegroundColor Yellow
+                Stop-Process -Id $backendPid -Force -ErrorAction SilentlyContinue
+            }
+        }
+    } catch {
+        # Ignore errors during cleanup
+    }
+
+    # Unregister event handler
+    Unregister-Event -SourceIdentifier PowerShell.Exiting -ErrorAction SilentlyContinue
+
     Write-Host "[CCR] Development environment closed" -ForegroundColor Cyan
 }
 
 # Explicitly exit 0 to ensure Just doesn't report a failure when the user stops the dev server
-exit 0
+[Environment]::Exit(0)

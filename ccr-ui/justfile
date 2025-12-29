@@ -403,11 +403,11 @@ _dev-clean-macos:
 # 清理开发环境 - Windows
 # 优化：仅清理本项目配置的端口，避免误杀其他项目
 _dev-clean-windows:
-    @Write-Output '🧹 开始清理开发环境...'
+    @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '🧹 开始清理开发环境...' -ForegroundColor Cyan"
     @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1 -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}"
-    @Write-Output '... 清理前端构建目录...'
+    @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '... 清理前端构建目录...' -ForegroundColor Gray"
     @if (Test-Path 'frontend/.next') { Remove-Item -Recurse -Force 'frontend/.next' }
-    @Write-Output '✅ 清理完成'
+    @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '✅ 清理完成' -ForegroundColor Green"
 
 # 启动前清理（端口 + 缓存 + 残留进程）
 # 仅启动后端开发服务器

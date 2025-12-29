@@ -7,6 +7,12 @@ param(
     [string]$VitePort = "15173"
 )
 
+# ========== UTF-8 Encoding Setup (Fix Chinese character display) ==========
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 | Out-Null
+
 # 支持环境变量覆盖
 if ($env:BACKEND_PORT) { $BackendPort = $env:BACKEND_PORT }
 if ($env:VITE_PORT) { $VitePort = $env:VITE_PORT }
