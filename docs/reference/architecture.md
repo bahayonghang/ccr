@@ -338,4 +338,4 @@ ccr/                     # Workspace root
 - [命令参考](/reference/commands/index.md)
 - [平台支持](/reference/platforms/)
 - [配置指南](/guide/configuration.md)
-- [迁移指南](/reference/migration.md)
+- [迁移指南](/reference/platforms/migration.md)
