@@ -348,115 +348,115 @@
     <div id="configModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title" id="modalTitle">添加配置</h2>
+                <h2 class="modal-title" id="modalTitle">➕ 添加配置</h2>
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
             <form id="configForm" onsubmit="saveConfig(event)">
                 <div class="form-group">
-                    <label class="form-label">配置名称 *</label>
-                    <input type="text" class="form-input" id="configName" required>
+                    <label class="form-label form-label-colored" style="color: var(--accent-primary);">📝 配置名称 *</label>
+                    <input type="text" class="form-input" id="configName" required placeholder="输入配置名称">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">描述</label>
-                    <input type="text" class="form-input" id="configDesc">
+                    <label class="form-label form-label-colored" style="color: var(--accent-success);">📋 描述</label>
+                    <input type="text" class="form-input" id="configDesc" placeholder="配置描述（可选）">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Base URL *</label>
-                    <input type="url" class="form-input" id="configBaseUrl" required>
+                    <label class="form-label form-label-colored" style="color: #3b82f6;">🌐 Base URL *</label>
+                    <input type="url" class="form-input" id="configBaseUrl" required placeholder="https://api.example.com">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Auth Token *</label>
-                    <input type="text" class="form-input" id="configAuthToken" required>
+                    <label class="form-label form-label-colored" style="color: #f59e0b;">🔑 Auth Token *</label>
+                    <input type="text" class="form-input" id="configAuthToken" required placeholder="sk-xxx...">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Model</label>
-                    <input type="text" class="form-input" id="configModel">
+                    <label class="form-label form-label-colored" style="color: #8b5cf6;">🤖 Model</label>
+                    <input type="text" class="form-input" id="configModel" placeholder="模型名称（可选）">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Small Fast Model</label>
-                    <input type="text" class="form-input" id="configSmallModel">
+                    <label class="form-label form-label-colored" style="color: #06b6d4;">⚡ Small Fast Model</label>
+                    <input type="text" class="form-input" id="configSmallModel" placeholder="小型快速模型（可选）">
                 </div>
                 <!-- 分类字段 -->
                 <div class="form-group">
-                    <label class="form-label">提供商类型</label>
+                    <label class="form-label form-label-colored" style="color: #ec4899;">🏷️ 提供商类型</label>
                     <select class="form-input" id="configProviderType">
-                        <option value="">未分类</option>
+                        <option value="">❓ 未分类</option>
                         <option value="official_relay">🔄 官方中转</option>
                         <option value="third_party_model">🤖 第三方模型</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">提供商名称</label>
+                    <label class="form-label form-label-colored" style="color: #14b8a6;">🏢 提供商名称</label>
                     <input type="text" class="form-input" id="configProvider" placeholder="如: anyrouter, glm, moonshot">
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    <div class="form-hint">
                         用于标识同一提供商的不同配置
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">账号标识</label>
+                    <label class="form-label form-label-colored" style="color: #f97316;">👤 账号标识</label>
                     <input type="text" class="form-input" id="configAccount" placeholder="如: github_5953, personal, work">
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    <div class="form-hint">
                         用于区分同一提供商的不同账号
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">标签</label>
+                    <label class="form-label form-label-colored" style="color: #a855f7;">🏷️ 标签</label>
                     <input type="text" class="form-input" id="configTags" placeholder="用逗号分隔，如: free, stable, backup">
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    <div class="form-hint">
                         用于灵活分类和筛选，多个标签用逗号分隔
                     </div>
                 </div>
                 <!-- Codex 专属配置 -->
                 <div id="codexFieldsSection" class="codex-section" style="display: none;">
                     <div class="codex-section-header">
-                        <h3>Codex 自定义 API 配置</h3>
+                        <h3>💻 Codex 自定义 API 配置</h3>
                         <p>这些字段仅在切换到 Codex 平台时生效，用于配置自定义 API 或官方 GitHub 模式。</p>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">API 模式</label>
+                        <label class="form-label form-label-colored" style="color: #6366f1;">⚙️ API 模式</label>
                         <select class="form-input" id="codexApiMode">
-                            <option value="custom">自定义 API</option>
-                            <option value="github">GitHub Copilot</option>
+                            <option value="custom">🔧 自定义 API</option>
+                            <option value="github">🐙 GitHub Copilot</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Wire API 协议</label>
+                        <label class="form-label form-label-colored" style="color: #0ea5e9;">📡 Wire API 协议</label>
                         <select class="form-input" id="codexWireApi">
-                            <option value="responses">Responses（推荐）</option>
-                            <option value="chat">Chat Completions</option>
+                            <option value="responses">✅ Responses（推荐）</option>
+                            <option value="chat">💬 Chat Completions</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">环境变量 KEY</label>
+                        <label class="form-label form-label-colored" style="color: #84cc16;">🔐 环境变量 KEY</label>
                         <input type="text" class="form-input" id="codexEnvKey" placeholder="默认为 PROVIDER_API_KEY，可自定义">
                     </div>
                     <div class="form-group checkbox-group">
-                        <label class="form-label">OpenAI 认证</label>
+                        <label class="form-label form-label-colored" style="color: #ef4444;">🔒 OpenAI 认证</label>
                         <label class="checkbox-label">
                             <input type="checkbox" id="codexRequiresAuth" checked>
                             <span>需要 OpenAI 登录授权</span>
                         </label>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">组织信息</label>
+                        <label class="form-label form-label-colored" style="color: #22c55e;">🏛️ 组织信息</label>
                         <input type="text" class="form-input" id="codexOrganization" placeholder="GitHub 组织或工作区">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">审批策略</label>
+                        <label class="form-label form-label-colored" style="color: #eab308;">📋 审批策略</label>
                         <input type="text" class="form-input" id="codexApprovalPolicy" placeholder="如: auto, on-request">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">沙盒模式</label>
+                        <label class="form-label form-label-colored" style="color: #f472b6;">📦 沙盒模式</label>
                         <input type="text" class="form-input" id="codexSandboxMode" placeholder="如: workspace-write">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">推理强度</label>
+                        <label class="form-label form-label-colored" style="color: #c084fc;">🧠 推理强度</label>
                         <input type="text" class="form-input" id="codexModelReasoning" placeholder="如: low, medium, high">
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">❌ 取消</button>
+                    <button type="submit" class="btn btn-primary">💾 保存</button>
                 </div>
             </form>
         </div>

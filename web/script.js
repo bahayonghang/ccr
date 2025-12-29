@@ -765,7 +765,7 @@ let currentEditingConfig = null;
         // 打开添加模态框
         function openAddModal() {
             currentEditingConfig = null;
-            document.getElementById('modalTitle').textContent = '添加配置';
+            document.getElementById('modalTitle').textContent = '➕ 添加配置';
             document.getElementById('configForm').reset();
             if (isCodexPlatformActive()) {
                 toggleCodexFieldsSection(true);
@@ -782,7 +782,7 @@ let currentEditingConfig = null;
             if (!cachedConfig) return;
 
             currentEditingConfig = name;
-            document.getElementById('modalTitle').textContent = '编辑配置';
+            document.getElementById('modalTitle').textContent = '✏️ 编辑配置';
             
             // 先用缓存数据填充表单（快速响应）
             document.getElementById('configName').value = cachedConfig.name;
