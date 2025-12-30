@@ -30,6 +30,8 @@ if ((Split-Path -Leaf $scriptRoot) -ieq "scripts") {
     $rootDir = Split-Path -Parent $scriptRoot
 }
 $frontendPortFile = Join-Path $rootDir "logs/frontend.port"
+$backendPidFile = Join-Path $rootDir ".backend.pid"
+$frontendPidFile = Join-Path $rootDir ".frontend.pid"
 $actualVitePort = $null
 if (Test-Path $frontendPortFile) {
     $portFromFile = Get-Content $frontendPortFile -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -47,6 +49,44 @@ if ($actualVitePort -and ($actualVitePort -ne $VitePort)) {
 }
 $ports = $ports | Sort-Object -Unique
 Write-Output ("... Terminating old processes on ports " + ($ports -join ", ") + " ...")
+
+if (Test-Path $backendPidFile) {
+    $backendPid = Get-Content $backendPidFile -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($backendPid -match '^\d+$') {
+        $backendPid = [int]$backendPid
+        $backendProc = Get-Process -Id $backendPid -ErrorAction SilentlyContinue
+        if ($backendProc) {
+            $backendListening = Get-NetTCPConnection -OwningProcess $backendPid -State Listen -ErrorAction SilentlyContinue |
+                Where-Object { $_.LocalPort -eq [int]$BackendPort } | Select-Object -First 1
+            if ($backendListening) {
+                Write-Output ("  - Stopping backend process (PID: " + $backendPid + ") from PID file ...")
+                Stop-Process -Id $backendPid -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    Remove-Item -Path $backendPidFile -Force -ErrorAction SilentlyContinue
+}
+
+if (Test-Path $frontendPidFile) {
+    $frontendPid = Get-Content $frontendPidFile -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($frontendPid -match '^\d+$') {
+        $frontendPid = [int]$frontendPid
+        $frontendProc = Get-Process -Id $frontendPid -ErrorAction SilentlyContinue
+        if ($frontendProc) {
+            $frontendPortToCheck = $VitePort
+            if ($actualVitePort) {
+                $frontendPortToCheck = $actualVitePort
+            }
+            $frontendListening = Get-NetTCPConnection -OwningProcess $frontendPid -State Listen -ErrorAction SilentlyContinue |
+                Where-Object { $_.LocalPort -eq [int]$frontendPortToCheck } | Select-Object -First 1
+            if ($frontendListening) {
+                Write-Output ("  - Stopping frontend process (PID: " + $frontendPid + ") from PID file ...")
+                Stop-Process -Id $frontendPid -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    Remove-Item -Path $frontendPidFile -Force -ErrorAction SilentlyContinue
+}
 
 foreach ($port in $ports) {
     try {

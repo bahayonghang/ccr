@@ -1285,6 +1285,8 @@ const executeCheckinAll = async () => {
     const result = await executeCheckin()
     checkinResult.value = result
     await loadAllData()
+    // 签到完成后自动刷新余额
+    await refreshAllBalances()
   } catch (e: any) {
     alert('签到失败: ' + (e.message || '未知错误'))
     console.error('Checkin failed:', e)

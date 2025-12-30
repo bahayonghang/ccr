@@ -22,6 +22,10 @@ $ErrorActionPreference = "Stop"
 # Track if we're in cleanup mode to prevent double cleanup
 $script:IsCleaningUp = $false
 $script:BackendJobId = $null
+$script:BackendPid = $null
+$script:FrontendPid = $null
+$script:BackendPidFile = $null
+$script:FrontendPidFile = $null
 
 # Register Ctrl+C handler to ensure clean exit
 $null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
@@ -64,13 +68,25 @@ function Write-CleanLog {
             $cleanLine = Remove-AnsiEscapeSequences -Text $Line
             if ($script:FrontendPortFile -and ($cleanLine -match 'Local:\s+http://localhost:(\d+)/')) {
                 $detectedPort = $Matches[1]
-                if ($detectedPort -ne $script:FrontendPort) {
+                $portChanged = $detectedPort -ne $script:FrontendPort
+                if ($portChanged) {
                     $script:FrontendPort = $detectedPort
                     Set-Content -Path $script:FrontendPortFile -Value $script:FrontendPort -Encoding ASCII -ErrorAction SilentlyContinue
                 }
                 if ($detectedPort -ne $script:FrontendPortAnnounced) {
                     $script:FrontendPortAnnounced = $detectedPort
                     Write-Host ("📍 前端: http://localhost:{0} (Vue 3 + Vite)" -f $detectedPort) -ForegroundColor Cyan
+                }
+                if ($script:FrontendPidFile -and ($portChanged -or -not $script:FrontendPid)) {
+                    try {
+                        $frontendConn = Get-NetTCPConnection -LocalPort $detectedPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+                        if ($frontendConn) {
+                            $script:FrontendPid = $frontendConn.OwningProcess
+                            Set-Content -Path $script:FrontendPidFile -Value $script:FrontendPid -Encoding ASCII -ErrorAction SilentlyContinue
+                        }
+                    } catch {
+                        # Ignore errors during PID capture
+                    }
                 }
             }
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -104,9 +120,13 @@ $logDate = Get-Date -Format "yyyy-MM-dd"
 $frontendLogPath = Join-Path $frontendLogsDir "$logDate.log"
 $backendConsoleLogPath = Join-Path $backendLogsDir "console-$logDate.log"
 $frontendPortFile = Join-Path $logsDir "frontend.port"
+$backendPidFile = Join-Path $RootDir ".backend.pid"
+$frontendPidFile = Join-Path $RootDir ".frontend.pid"
 $script:FrontendPortFile = $frontendPortFile
 $script:FrontendPort = $VitePort
 $script:FrontendPortAnnounced = $null
+$script:BackendPidFile = $backendPidFile
+$script:FrontendPidFile = $frontendPidFile
 Set-Content -Path $frontendPortFile -Value $VitePort -Encoding ASCII -ErrorAction SilentlyContinue
 
 Write-Host "[CCR] Starting development environment (parallel mode)..." -ForegroundColor Cyan
@@ -116,6 +136,7 @@ Write-Host ""
 Write-Host "[Backend] Pre-compiling..." -ForegroundColor Yellow
 
 $backendDir = Join-Path $RootDir "backend"
+$backendBinary = Join-Path $RootDir "backend/target/debug/ccr-ui-backend.exe"
 Push-Location $backendDir
 try {
     # 先编译，确保二进制文件存在，避免启动时编译超时
@@ -123,6 +144,11 @@ try {
     & cargo build
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] Backend compilation failed (exit code: $LASTEXITCODE)" -ForegroundColor Red
+        Pop-Location
+        exit 1
+    }
+    if (-not (Test-Path $backendBinary)) {
+        Write-Host "[ERROR] Backend binary not found: $backendBinary" -ForegroundColor Red
         Pop-Location
         exit 1
     }
@@ -135,12 +161,12 @@ try {
 Write-Host "[Backend] Starting server (background job)..." -ForegroundColor Yellow
 
 $backendJob = Start-Job -ScriptBlock {
-    param($workDir, $port, $logPath)
+    param($workDir, $binary, $port, $logPath)
     Set-Location "$workDir/backend"
 
-    # Run cargo (已预编译，直接运行) 传递端口参数
-    cargo run -- --port $port 2>&1 | Tee-Object -FilePath $logPath -Append
-} -ArgumentList $RootDir, $BackendPort, $backendConsoleLogPath
+    # Run pre-compiled backend binary (传递端口参数)
+    & "$binary" --port $port 2>&1 | Tee-Object -FilePath $logPath -Append
+} -ArgumentList $RootDir, $backendBinary, $BackendPort, $backendConsoleLogPath
 
 # Save job ID for Ctrl+C handler
 $script:BackendJobId = $backendJob.Id
@@ -172,6 +198,17 @@ for ($i = 0; $i -lt $maxWait; $i++) {
         if ($response.StatusCode -eq 200) {
             Write-Host "[Backend] Ready!" -ForegroundColor Green
             $backendReady = $true
+            try {
+                $backendConn = Get-NetTCPConnection -LocalPort $BackendPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($backendConn) {
+                    $script:BackendPid = $backendConn.OwningProcess
+                    if ($script:BackendPidFile) {
+                        Set-Content -Path $script:BackendPidFile -Value $script:BackendPid -Encoding ASCII -ErrorAction SilentlyContinue
+                    }
+                }
+            } catch {
+                # Ignore errors during PID capture
+            }
             break
         }
     } catch {
@@ -214,8 +251,8 @@ try {
 
     # Frontend runs in foreground with live output using Write-CleanLog
     # --host 0.0.0.0 allows access from LAN IP addresses
-    # Use & operator for direct execution with proper stream handling
-    & bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 | ForEach-Object {
+    # Use cmd wrapper to normalize Ctrl+C exit code
+    cmd /c "bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 || exit 0" | ForEach-Object {
         Write-CleanLog -Line $_ -LogPath $frontendLogPath
     }
 } catch {
@@ -228,9 +265,18 @@ try {
 
     # Stop frontend process if still running (find by port)
     try {
-        $frontendConn = Get-NetTCPConnection -LocalPort $VitePort -State Listen -ErrorAction SilentlyContinue
-        if ($frontendConn) {
-            $frontendPid = $frontendConn.OwningProcess
+        $frontendPid = $script:FrontendPid
+        if (-not $frontendPid) {
+            $frontendPort = $script:FrontendPort
+            if (-not $frontendPort) {
+                $frontendPort = $VitePort
+            }
+            $frontendConn = Get-NetTCPConnection -LocalPort $frontendPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($frontendConn) {
+                $frontendPid = $frontendConn.OwningProcess
+            }
+        }
+        if ($frontendPid) {
             $frontendProc = Get-Process -Id $frontendPid -ErrorAction SilentlyContinue
             if ($frontendProc -and $frontendProc.ProcessName -notmatch 'code|Code|electron') {
                 Write-Host "[Cleanup] Stopping frontend server (PID: $frontendPid)..." -ForegroundColor Yellow
@@ -246,26 +292,51 @@ try {
     Write-Host ""
     Write-Host "[Cleanup] Stopping backend server..." -ForegroundColor Yellow
 
-    if (Get-Job -Id $backendJob.Id -ErrorAction SilentlyContinue) {
-        Stop-Job -Job $backendJob -ErrorAction SilentlyContinue
-        Remove-Job -Job $backendJob -Force -ErrorAction SilentlyContinue
-        Write-Host "[Cleanup] Backend stopped" -ForegroundColor Green
+    $backendPid = $script:BackendPid
+    if (-not $backendPid) {
+        try {
+            $backendConn = Get-NetTCPConnection -LocalPort $BackendPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($backendConn) {
+                $backendPid = $backendConn.OwningProcess
+            }
+        } catch {
+            # Ignore errors during PID capture
+        }
     }
 
-    # Also kill backend process by port (in case job cleanup missed it)
+    if ($backendPid) {
+        Write-Host "[Cleanup] Stopping backend process (PID: $backendPid)..." -ForegroundColor Yellow
+        Stop-Process -Id $backendPid -Force -ErrorAction SilentlyContinue
+    }
+
+    if (Get-Job -Id $backendJob.Id -ErrorAction SilentlyContinue) {
+        Stop-Job -Job $backendJob -ErrorAction SilentlyContinue | Out-Null
+        Wait-Job -Job $backendJob -Timeout 2 | Out-Null
+        Remove-Job -Job $backendJob -Force -ErrorAction SilentlyContinue
+    }
+
+    # Fallback: ensure backend is not still listening
     try {
-        $backendConn = Get-NetTCPConnection -LocalPort $BackendPort -State Listen -ErrorAction SilentlyContinue
+        $backendConn = Get-NetTCPConnection -LocalPort $BackendPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($backendConn) {
-            $backendPid = $backendConn.OwningProcess
-            $backendProc = Get-Process -Id $backendPid -ErrorAction SilentlyContinue
-            if ($backendProc -and $backendProc.ProcessName -notmatch 'code|Code|electron') {
-                Write-Host "[Cleanup] Stopping backend process (PID: $backendPid)..." -ForegroundColor Yellow
-                Stop-Process -Id $backendPid -Force -ErrorAction SilentlyContinue
+            $fallbackPid = $backendConn.OwningProcess
+            if ($fallbackPid -and $fallbackPid -ne $backendPid) {
+                Write-Host "[Cleanup] Stopping backend process (PID: $fallbackPid)..." -ForegroundColor Yellow
+                Stop-Process -Id $fallbackPid -Force -ErrorAction SilentlyContinue
             }
         }
     } catch {
         # Ignore errors during cleanup
     }
+
+    if ($script:BackendPidFile) {
+        Remove-Item -Path $script:BackendPidFile -Force -ErrorAction SilentlyContinue
+    }
+    if ($script:FrontendPidFile) {
+        Remove-Item -Path $script:FrontendPidFile -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Host "[Cleanup] Backend stopped" -ForegroundColor Green
 
     # Unregister event handler
     Unregister-Event -SourceIdentifier PowerShell.Exiting -ErrorAction SilentlyContinue
