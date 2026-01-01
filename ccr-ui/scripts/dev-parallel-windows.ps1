@@ -135,13 +135,15 @@ Write-Host ""
 # ========== Pre-compile Backend (避免健康检查超时) ==========
 Write-Host "[Backend] Pre-compiling..." -ForegroundColor Yellow
 
+# Workspace root is parent of ccr-ui
+$workspaceRoot = Split-Path -Parent $RootDir
 $backendDir = Join-Path $RootDir "backend"
-$backendBinary = Join-Path $RootDir "backend/target/debug/ccr-ui-backend.exe"
-Push-Location $backendDir
+$backendBinary = Join-Path $workspaceRoot "target/debug/ccr-ui-backend.exe"
+Push-Location $workspaceRoot
 try {
-    # 先编译，确保二进制文件存在，避免启动时编译超时
+    # 从 workspace root 编译，确保二进制文件输出到正确位置
     # 使用 & 执行 cargo，让输出直接显示
-    & cargo build
+    & cargo build -p ccr-ui-backend
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] Backend compilation failed (exit code: $LASTEXITCODE)" -ForegroundColor Red
         Pop-Location
@@ -162,6 +164,7 @@ Write-Host "[Backend] Starting server (background job)..." -ForegroundColor Yell
 
 $backendJob = Start-Job -ScriptBlock {
     param($workDir, $binary, $port, $logPath)
+    # Set working directory to backend folder for correct relative paths
     Set-Location "$workDir/backend"
 
     # Run pre-compiled backend binary (传递端口参数)
@@ -251,8 +254,8 @@ try {
 
     # Frontend runs in foreground with live output using Write-CleanLog
     # --host 0.0.0.0 allows access from LAN IP addresses
-    # Use cmd wrapper to normalize Ctrl+C exit code
-    cmd /c "bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 || exit 0" | ForEach-Object {
+    # Use cmd wrapper with explicit UTF-8 code page to prevent Chinese character encoding issues
+    cmd /c "chcp 65001 >nul && bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 || exit 0" | ForEach-Object {
         Write-CleanLog -Line $_ -LogPath $frontendLogPath
     }
 } catch {

@@ -221,14 +221,19 @@ impl CostTracker {
             }
 
             // 移动到下个月的第一天
-            let next_month = if current.month() == 12 {
+            // 注意：需要先重置日期为1号，否则遇到31号时可能跳过短月份
+            let first_of_month = current
+                .with_day(1)
+                .ok_or_else(|| CcrError::ConfigError("无法重置日期为1号".to_string()))?;
+
+            let next_month = if first_of_month.month() == 12 {
                 // 跨年到下一年的 1 月
-                current
-                    .with_year(current.year() + 1)
+                first_of_month
+                    .with_year(first_of_month.year() + 1)
                     .and_then(|d| d.with_month(1))
             } else {
                 // 同年的下一个月
-                current.with_month(current.month() + 1)
+                first_of_month.with_month(first_of_month.month() + 1)
             };
 
             current =
