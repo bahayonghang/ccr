@@ -1,5 +1,14 @@
-// 🎯 platform 命令模块 - 多平台管理
-// 📋 管理和切换不同的 AI 平台 (Claude, Codex, Gemini 等)
+//! 🎯 platform 命令模块
+//!
+//! 管理和切换不同的 AI 平台 (Claude, Codex, Gemini 等)。
+//!
+//! ## 子命令
+//!
+//! - [`platform_list_command`] - 列出所有可用平台
+//! - [`platform_current_command`] - 显示当前平台信息
+//! - [`platform_info_command`] - 显示指定平台详细信息
+//! - [`platform_switch_command`] - 切换当前平台
+//! - [`platform_init_command`] - 初始化平台配置
 
 mod current;
 mod info;

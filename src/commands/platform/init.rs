@@ -1,5 +1,6 @@
-// 🆕 platform init 命令实现
-// 初始化平台配置
+//! 🆕 platform init 命令实现
+//!
+//! 初始化平台配置。
 
 #![allow(clippy::unused_async)]
 

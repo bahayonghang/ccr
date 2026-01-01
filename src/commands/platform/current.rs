@@ -1,5 +1,6 @@
-// 🔍 platform current 命令实现
-// 显示当前平台信息
+//! 🔍 platform current 命令实现
+//!
+//! 显示当前平台信息。
 
 #![allow(clippy::unused_async)]
 

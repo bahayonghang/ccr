@@ -1,5 +1,6 @@
-// ℹ️ platform info 命令实现
-// 显示指定平台的详细信息
+//! ℹ️ platform info 命令实现
+//!
+//! 显示指定平台的详细信息。
 
 #![allow(clippy::unused_async)]
 

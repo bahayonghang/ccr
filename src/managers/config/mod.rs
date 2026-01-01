@@ -1,11 +1,13 @@
-// ⚙️ CCR 配置管理模块
-// 📁 负责读写和管理配置文件
-//
-// 重构后的模块结构:
-// - types.rs: ProviderType, ConfigSection, GlobalSettings
-// - ccs_config.rs: CcsConfig 结构
-// - manager.rs: ConfigManager
-// - migration.rs: MigrationStatus
+//! ⚙️ CCR 配置管理模块
+//!
+//! 负责读写和管理配置文件。
+//!
+//! ## 模块结构
+//!
+//! - [`types`] - `ProviderType`, `ConfigSection`, `GlobalSettings`
+//! - [`ccs_config`] - `CcsConfig` 结构
+//! - [`manager`] - `ConfigManager`
+//! - [`migration`] - `MigrationStatus`
 
 mod ccs_config;
 mod manager;
