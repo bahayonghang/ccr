@@ -1,4 +1,8 @@
-// API Client for CCR UI Backend
+/**
+ * @fileoverview CCR UI 后端 API 客户端
+ *
+ * 提供与 CCR 后端服务通信的所有 API 函数。
+ */
 
 import axios, { type AxiosInstance } from 'axios'
 import type {
@@ -67,7 +71,11 @@ import type {
   DailyStatsResponse,
 } from '@/types'
 
-// 创建 axios 实例
+/**
+ * 创建 API 客户端实例
+ *
+ * @returns 配置好的 Axios 实例
+ */
 const createApiClient = (): AxiosInstance => {
   const api = axios.create({
     baseURL: '/api',
@@ -144,53 +152,103 @@ const createApiClient = (): AxiosInstance => {
   return api
 }
 
-// 导出 axios 实例供其他组件直接使用
+/** 导出 Axios 实例供其他组件直接使用 */
 export const api = createApiClient()
 
-// ===================================
+// ─────────────────────────────────────
 // Statistics APIs
-// ===================================
+// ─────────────────────────────────────
 
+/**
+ * 获取成本概览
+ *
+ * @param range - 时间范围，默认 'today'
+ * @returns 成本统计数据
+ */
 export const getCostOverview = async (range: string = 'today'): Promise<CostStats> => {
   const response = await api.get<CostStats>(`/stats/cost?range=${range}`)
   return response.data
 }
 
+/**
+ * 获取今日成本统计
+ *
+ * @returns 今日成本数据
+ */
 export const getCostToday = async (): Promise<CostStats> => {
   const response = await api.get<CostStats>('/stats/cost/today')
   return response.data
 }
 
+/**
+ * 获取本周成本统计
+ *
+ * @returns 本周成本数据
+ */
 export const getCostWeek = async (): Promise<CostStats> => {
   const response = await api.get<CostStats>('/stats/cost/week')
   return response.data
 }
 
+/**
+ * 获取本月成本统计
+ *
+ * @returns 本月成本数据
+ */
 export const getCostMonth = async (): Promise<CostStats> => {
   const response = await api.get<CostStats>('/stats/cost/month')
   return response.data
 }
 
+/**
+ * 获取成本趋势数据
+ *
+ * @param range - 时间范围，默认 'month'
+ * @returns 每日成本数组
+ */
 export const getCostTrend = async (range: string = 'month'): Promise<DailyCost[]> => {
   const response = await api.get<DailyCost[]>(`/stats/cost/trend?range=${range}`)
   return response.data
 }
 
+/**
+ * 按模型获取成本分布
+ *
+ * @param range - 时间范围，默认 'month'
+ * @returns 模型名称到成本的映射
+ */
 export const getCostByModel = async (range: string = 'month'): Promise<Record<string, number>> => {
   const response = await api.get<Record<string, number>>(`/stats/cost/by-model?range=${range}`)
   return response.data
 }
 
+/**
+ * 按项目获取成本分布
+ *
+ * @param range - 时间范围，默认 'month'
+ * @returns 项目名称到成本的映射
+ */
 export const getCostByProject = async (range: string = 'month'): Promise<Record<string, number>> => {
   const response = await api.get<Record<string, number>>(`/stats/cost/by-project?range=${range}`)
   return response.data
 }
 
+/**
+ * 获取提供商使用情况
+ *
+ * @returns 提供商名称到使用次数的映射
+ */
 export const getProviderUsage = async (): Promise<Record<string, number>> => {
   const response = await api.get<Record<string, number>>('/stats/provider-usage')
   return response.data
 }
 
+/**
+ * 获取成本最高的会话
+ *
+ * @param limit - 返回数量限制，默认 10
+ * @returns 会话列表
+ */
 export const getTopSessions = async (limit: number = 10): Promise<TopSession[]> => {
   const response = await api.get<TopSession[]>(`/stats/cost/top-sessions?limit=${limit}`)
   return response.data
