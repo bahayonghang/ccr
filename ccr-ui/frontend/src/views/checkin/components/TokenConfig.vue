@@ -1,22 +1,24 @@
 <template>
   <div class="token-config">
-    <h2>Token 配置</h2>
+    <h2>{{ t('checkin.token_config.title') }}</h2>
     <p class="info-text">
-      Token 配置已集成在账号管理中。请在账号管理中配置每个账号的 Cookies 和 API User。
+      {{ t('checkin.token_config.integrated_hint') }}
     </p>
     <button
       class="go-button"
       @click="goToCheckinManage"
     >
-      前往账号管理 →
+      {{ t('checkin.token_config.go_account_manage_arrow') }}
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const goToCheckinManage = () => {
   router.push({ name: 'checkin' })

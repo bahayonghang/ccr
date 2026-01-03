@@ -6,10 +6,10 @@
         @click="goBack"
       >
         <span class="text-lg">←</span>
-        返回配置
+        {{ t('checkin.backToConfigs') }}
       </button>
       <h1 class="page-title">
-        签到管理
+        {{ t('checkin.title') }}
       </h1>
     </div>
 
@@ -37,12 +37,14 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import CheckinStats from './components/CheckinStats.vue'
 import AccountManager from './components/AccountManager.vue'
 import TokenConfig from './components/TokenConfig.vue'
 import CheckinHistory from './components/CheckinHistory.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const goBack = () => {
   router.push({ name: 'configs' })
