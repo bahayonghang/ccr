@@ -38,6 +38,20 @@ pub async fn handle_list_configs(State(_state): State<AppState>) -> Response {
     })
 }
 
+/// 处理获取单个配置请求（返回完整信息，不掩码 token）
+/// 用于编辑功能，需要获取完整的 auth_token
+pub async fn handle_get_config(
+    State(_state): State<AppState>,
+    Path(name): Path<String>,
+) -> Response {
+    let result = spawn_blocking_string(move || get_single_config(&name)).await;
+
+    match result {
+        Ok(config_item) => success_response(config_item),
+        Err(e) => not_found(e),
+    }
+}
+
 /// 处理切换配置请求
 pub async fn handle_switch_config(
     State(state): State<AppState>,
@@ -258,6 +272,90 @@ fn get_legacy_mode_configs()
     let config_service = ConfigService::with_default()?;
     let list = config_service.list_configs()?;
     Ok((list.current_config, list.configs))
+}
+
+/// 🎯 获取单个配置（不掩码 token，供编辑使用）
+fn get_single_config(name: &str) -> Result<ConfigItem, CcrError> {
+    use crate::managers::ConfigManager;
+
+    let (is_unified, unified_config_path) = ConfigManager::detect_unified_mode();
+
+    if is_unified {
+        get_single_config_unified(name, unified_config_path)
+    } else {
+        get_single_config_legacy(name)
+    }
+}
+
+/// 🎯 Unified 模式获取单个配置
+fn get_single_config_unified(
+    name: &str,
+    unified_path: Option<std::path::PathBuf>,
+) -> Result<ConfigItem, CcrError> {
+    use crate::managers::PlatformConfigManager;
+
+    let unified_path =
+        unified_path.ok_or_else(|| CcrError::ConfigError("无法获取统一配置路径".to_string()))?;
+
+    let platform_manager = PlatformConfigManager::new(unified_path.clone());
+    let unified_config = platform_manager.load()?;
+    let current_platform = unified_config.current_platform.clone();
+
+    let platform = crate::models::Platform::from_str(&current_platform)
+        .map_err(|_| CcrError::ConfigError("无效的平台".to_string()))?;
+
+    let platform_config = crate::platforms::create_platform(platform)?;
+    let profiles = platform_config.load_profiles()?;
+
+    let current_profile = unified_config
+        .platforms
+        .get(&current_platform)
+        .and_then(|p| p.current_profile.clone())
+        .unwrap_or_else(|| "-".to_string());
+
+    let profile = profiles
+        .get(name)
+        .ok_or_else(|| CcrError::ConfigError(format!("配置 '{}' 不存在", name)))?;
+
+    Ok(ConfigItem {
+        name: name.to_string(),
+        description: profile.description.clone().unwrap_or_default(),
+        base_url: profile.base_url.clone().unwrap_or_default(),
+        auth_token: profile.auth_token.clone().unwrap_or_default(), // 🔑 完整 token，不掩码
+        model: profile.model.clone(),
+        small_fast_model: profile.small_fast_model.clone(),
+        is_current: name == current_profile,
+        is_default: false,
+        provider: profile.provider.clone(),
+        provider_type: profile.provider_type.clone(),
+        account: profile.account.clone(),
+        tags: profile.tags.clone(),
+        usage_count: profile.usage_count.unwrap_or(0),
+        enabled: profile.enabled.unwrap_or(true),
+    })
+}
+
+/// 🎯 Legacy 模式获取单个配置
+fn get_single_config_legacy(name: &str) -> Result<ConfigItem, CcrError> {
+    let config_service = ConfigService::with_default()?;
+    let config = config_service.get_config(name)?;
+
+    Ok(ConfigItem {
+        name: name.to_string(),
+        description: config.description,               // String 类型
+        base_url: config.base_url.unwrap_or_default(), // Option -> String
+        auth_token: config.auth_token.unwrap_or_default(), // 🔑 完整 token，不掩码
+        model: config.model,
+        small_fast_model: config.small_fast_model,
+        is_current: config.is_current,
+        is_default: config.is_default,
+        provider: config.provider,
+        provider_type: config.provider_type,
+        account: config.account,
+        tags: config.tags,
+        usage_count: config.usage_count, // u32 类型
+        enabled: config.enabled,         // bool 类型
+    })
 }
 
 // 🎯 为 UpdateConfigRequest 实现 to_config_section 方法

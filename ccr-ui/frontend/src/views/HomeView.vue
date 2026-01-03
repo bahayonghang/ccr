@@ -19,7 +19,11 @@
           <div class="relative group">
             <div class="absolute inset-0 bg-guofeng-jade/20 blur-lg rounded-full group-hover:bg-guofeng-jade/30 transition-all duration-500" />
             <div class="relative w-16 h-16 rounded-2xl glass-effect flex items-center justify-center border border-white/20 shadow-lg group-hover:scale-105 transition-transform duration-300">
-              <Code2 class="w-8 h-8 text-guofeng-jade" />
+              <img
+                src="@/assets/logo.png"
+                alt="CCR Logo"
+                class="w-10 h-10 object-contain drop-shadow-md"
+              >
             </div>
           </div>
           <div>
