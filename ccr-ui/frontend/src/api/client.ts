@@ -76,9 +76,28 @@ import type {
  *
  * @returns 配置好的 Axios 实例
  */
+const isTauriEnvironment = (): boolean => {
+  return typeof window !== 'undefined' && '__TAURI__' in window
+}
+
+const resolveApiBaseUrl = (): string => {
+  if (isTauriEnvironment()) {
+    const port = import.meta.env.VITE_TAURI_BACKEND_PORT || '38081'
+    return `http://127.0.0.1:${port}/api`
+  }
+
+  return '/api'
+}
+
+export const getBackendHealth = async (): Promise<void> => {
+  const baseUrl = resolveApiBaseUrl()
+  const rootUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl
+  await axios.get(`${rootUrl}/health`, { timeout: 4000 })
+}
+
 const createApiClient = (): AxiosInstance => {
   const api = axios.create({
-    baseURL: '/api',
+    baseURL: resolveApiBaseUrl(),
     timeout: 600000, // 10分钟超时，支持长时间编译更新
     headers: {
       'Content-Type': 'application/json',

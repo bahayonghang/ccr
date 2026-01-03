@@ -208,8 +208,9 @@
                 class="w-4 h-4 text-text-secondary"
               />
             </button>
+            <BackendStatusBadge />
             <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
-              <span>CCR UI v3.16.5</span>
+              <span>CCR UI v3.16.6</span>
               <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
             </div>
           </div>
@@ -219,6 +220,7 @@
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col overflow-auto">
+      <BackendStatusBanner />
       <RouterView />
     </div>
   </div>
@@ -241,6 +243,8 @@ import {
   ClipboardCheck
 } from 'lucide-vue-next'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import BackendStatusBadge from '@/components/BackendStatusBadge.vue'
+import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import { useThemeStore } from '@/store'
 
 const themeStore = useThemeStore()
