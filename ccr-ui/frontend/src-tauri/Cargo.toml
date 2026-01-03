@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "3.16.5"
+version = "3.16.6"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2021"
@@ -23,7 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Async runtime
-tokio = { version = "1.42", features = ["rt-multi-thread"] }
+tokio = { version = "1.42", features = ["rt-multi-thread", "io-util", "net", "time"] }
 
 # Logging
 tracing = "0.1"
