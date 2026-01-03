@@ -54,8 +54,8 @@ cmake-build-*/
 .spec-workflow/
 .factory/
 .trae/
-.agent/
 .kiro/
+# .agent/
 
 openspec/
 .serena/
@@ -68,3 +68,6 @@ ref/
 
 # Auto Claude data directory
 .auto-claude/
+
+# antigravity 共享
+# .shared/
