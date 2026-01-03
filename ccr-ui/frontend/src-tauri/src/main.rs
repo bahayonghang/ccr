@@ -3,7 +3,8 @@
 
 use serde::Serialize;
 use std::sync::Mutex;
-use tauri::State;
+use tauri::{Manager, RunEvent, State};
+use tauri_plugin_shell::{process::CommandChild, ShellExt};
 
 // 🎯 导入 CCR 核心库
 use ccr::{ConfigManager, ConfigService, HistoryService};
@@ -11,6 +12,234 @@ use ccr::{ConfigManager, ConfigService, HistoryService};
 /// 应用状态
 struct AppState {
     current_platform: Mutex<String>,
+    backend_child: Mutex<Option<CommandChild>>,
+}
+
+const BACKEND_HOST: &str = "127.0.0.1";
+const BACKEND_PORT: u16 = 38081;
+const BACKEND_STARTUP_TIMEOUT_SECS: u64 = 15;
+
+fn backend_port() -> u16 {
+    if let Ok(value) = std::env::var("CCR_UI_BACKEND_PORT")
+        .or_else(|_| std::env::var("BACKEND_PORT"))
+    {
+        if let Ok(port) = value.parse::<u16>() {
+            return port;
+        }
+    }
+    BACKEND_PORT
+}
+
+async fn wait_for_backend_ready(port: u16) -> bool {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpStream;
+    use tokio::time::{sleep, Duration};
+
+    let deadline = std::time::Instant::now() + Duration::from_secs(BACKEND_STARTUP_TIMEOUT_SECS);
+    while std::time::Instant::now() < deadline {
+        if let Ok(mut stream) = TcpStream::connect((BACKEND_HOST, port)).await {
+            let request = format!(
+                "GET /health HTTP/1.1\r\nHost: {}:{}\r\nConnection: close\r\n\r\n",
+                BACKEND_HOST, port
+            );
+            if stream.write_all(request.as_bytes()).await.is_ok() {
+                let mut buffer = [0u8; 12];
+                if stream.read(&mut buffer).await.is_ok() {
+                    return true;
+                }
+            }
+        }
+
+        sleep(Duration::from_millis(300)).await;
+    }
+
+    false
+}
+
+fn try_spawn_backend_sidecar(app: &tauri::AppHandle, port: u16) -> Result<CommandChild, String> {
+    let command = app
+        .shell()
+        .sidecar("ccr-ui-backend")
+        .map_err(|e| format!("Sidecar not available: {}", e))?
+        .args([
+            "--host",
+            BACKEND_HOST,
+            "--port",
+            &port.to_string(),
+        ]);
+
+    let (mut rx, child) = command
+        .spawn()
+        .map_err(|e| format!("Failed to spawn sidecar: {}", e))?;
+
+    tauri::async_runtime::spawn(async move {
+        use tauri_plugin_shell::process::CommandEvent;
+        while let Some(event) = rx.recv().await {
+            match event {
+                CommandEvent::Stdout(line) => {
+                    tracing::info!("[backend] {}", String::from_utf8_lossy(&line));
+                }
+                CommandEvent::Stderr(line) => {
+                    tracing::warn!("[backend] {}", String::from_utf8_lossy(&line));
+                }
+                CommandEvent::Error(error) => {
+                    tracing::error!("[backend] {}", error);
+                }
+                CommandEvent::Terminated(payload) => {
+                    tracing::warn!("[backend] exited: {:?}", payload.code);
+                }
+                _ => {}
+            }
+        }
+    });
+
+    Ok(child)
+}
+
+fn try_spawn_backend_from_repo(app: &tauri::AppHandle, port: u16) -> Result<CommandChild, String> {
+    use std::path::PathBuf;
+
+    let exe_dir = tauri::utils::platform::current_exe()
+        .map_err(|e| format!("Failed to resolve current exe: {}", e))?
+        .parent()
+        .ok_or_else(|| "Current exe has no parent directory".to_string())?
+        .to_path_buf();
+
+    let mut search_dir = Some(exe_dir.as_path());
+    let mut repo_root = None;
+
+    for _ in 0..6 {
+        if let Some(dir) = search_dir {
+            if dir.join("backend").exists() && dir.join("frontend").exists() {
+                repo_root = Some(dir.to_path_buf());
+                break;
+            }
+            search_dir = dir.parent();
+        }
+    }
+
+    let repo_root =
+        repo_root.ok_or_else(|| "Repo root not found for fallback backend".to_string())?;
+    let binary_name = if cfg!(windows) {
+        "ccr-ui-backend.exe"
+    } else {
+        "ccr-ui-backend"
+    };
+
+    let mut candidates: Vec<PathBuf> = Vec::new();
+
+    candidates.push(exe_dir.join(binary_name));
+
+    if let Ok(target_triple) = std::env::var("TARGET") {
+        candidates.push(
+            repo_root
+                .join("backend")
+                .join("target")
+                .join(&target_triple)
+                .join("release")
+                .join(binary_name),
+        );
+        candidates.push(
+            repo_root
+                .join("backend")
+                .join("target")
+                .join(&target_triple)
+                .join("debug")
+                .join(binary_name),
+        );
+    }
+
+    candidates.push(
+        repo_root
+            .join("backend")
+            .join("target")
+            .join("release")
+            .join(binary_name),
+    );
+    candidates.push(
+        repo_root
+            .join("backend")
+            .join("target")
+            .join("debug")
+            .join(binary_name),
+    );
+
+    if let Some(workspace_root) = repo_root.parent().and_then(|parent| {
+        let workspace = parent.join("Cargo.toml");
+        let ui_dir = parent.join("ccr-ui");
+        if workspace.exists() && ui_dir.exists() {
+            Some(parent.to_path_buf())
+        } else {
+            None
+        }
+    }) {
+        candidates.push(
+            workspace_root
+                .join("target")
+                .join("release")
+                .join(binary_name),
+        );
+        candidates.push(
+            workspace_root
+                .join("target")
+                .join("debug")
+                .join(binary_name),
+        );
+    }
+
+    let sidecar_bin_dir = repo_root.join("frontend").join("src-tauri").join("bin");
+    if let Ok(entries) = std::fs::read_dir(&sidecar_bin_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            let file_name = path.file_name().and_then(|name| name.to_str());
+            if let Some(file_name) = file_name {
+                if file_name.starts_with("ccr-ui-backend") {
+                    candidates.push(path);
+                }
+            }
+        }
+    }
+
+    let backend_bin = candidates
+        .into_iter()
+        .find(|candidate| candidate.exists())
+        .ok_or_else(|| "Fallback backend binary missing".to_string())?;
+
+    let command = app.shell().command(backend_bin).args([
+        "--host",
+        BACKEND_HOST,
+        "--port",
+        &port.to_string(),
+    ]);
+    let (mut rx, child) = command
+        .spawn()
+        .map_err(|e| format!("Failed to spawn fallback backend: {}", e))?;
+
+    tauri::async_runtime::spawn(async move {
+        use tauri_plugin_shell::process::CommandEvent;
+        while let Some(event) = rx.recv().await {
+            match event {
+                CommandEvent::Stdout(line) => {
+                    tracing::info!("[backend] {}", String::from_utf8_lossy(&line));
+                }
+                CommandEvent::Stderr(line) => {
+                    tracing::warn!("[backend] {}", String::from_utf8_lossy(&line));
+                }
+                CommandEvent::Error(error) => {
+                    tracing::error!("[backend] {}", error);
+                }
+                CommandEvent::Terminated(payload) => {
+                    tracing::warn!("[backend] exited: {:?}", payload.code);
+                }
+                _ => {}
+            }
+        }
+    });
+
+    Ok(child)
 }
 
 /// 配置项响应
@@ -287,11 +516,42 @@ fn main() {
         )
         .init();
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .manage(AppState {
             current_platform: Mutex::new("claude".to_string()),
+            backend_child: Mutex::new(None),
         })
         .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let port = backend_port();
+                let child = match try_spawn_backend_sidecar(&app_handle, port) {
+                    Ok(child) => Ok(child),
+                    Err(err) => {
+                        tracing::warn!("[backend] sidecar start failed, fallback: {}", err);
+                        try_spawn_backend_from_repo(&app_handle, port)
+                    }
+                };
+
+                match child {
+                    Ok(child) => {
+                        if wait_for_backend_ready(port).await {
+                            tracing::info!("[backend] ready at http://{}:{}", BACKEND_HOST, port);
+                        } else {
+                            tracing::warn!("[backend] readiness check timed out");
+                        }
+
+                        let state = app_handle.state::<AppState>();
+                        *state.backend_child.lock().unwrap() = Some(child);
+                    }
+                    Err(err) => {
+                        tracing::error!("[backend] failed to start: {}", err);
+                    }
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             // Configuration
             list_profiles,
@@ -310,6 +570,19 @@ fn main() {
             switch_platform,
             get_current_platform,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app, event| {
+        if let RunEvent::Exit = event {
+            let child = {
+                let app_state = app.state::<AppState>();
+                let mut guard = app_state.backend_child.lock().unwrap();
+                guard.take()
+            };
+            if let Some(child) = child {
+                let _ = child.kill();
+            }
+        }
+    });
 }

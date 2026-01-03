@@ -72,7 +72,7 @@ async fn main() -> std::io::Result<()> {
     info!("  - Version Info: http://{}/api/version", bind_addr);
 
     // Build the router with modular routes (先启动服务器，不阻塞)
-    let app = routes::create_app();
+    let app = routes::apply_middleware(routes::create_app());
 
     // 异步验证 CCR 是否可用（不阻塞服务器启动）
     tokio::spawn(async {
