@@ -361,7 +361,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.16.6"
+version = "3.16.7"
 dependencies = [
  "anyhow",
  "blake3",
@@ -400,7 +400,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "3.16.6"
+version = "3.16.7"
 dependencies = [
  "ccr",
  "serde",
