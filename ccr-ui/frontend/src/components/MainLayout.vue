@@ -1,7 +1,21 @@
 <template>
   <div class="flex h-screen bg-bg-primary">
     <!-- Sidebar -->
-    <div class="w-64 bg-bg-secondary border-r border-border-color flex flex-col">
+    <div
+      class="bg-bg-secondary border-r border-border-color flex flex-col relative flex-shrink-0"
+      :style="{ width: sidebarWidth + 'px', transition: isResizing ? 'none' : 'width 0.1s ease-out' }"
+    >
+      <!-- Resize Handle -->
+      <div
+        class="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-accent-primary/50 transition-colors z-50 group"
+        :class="{ 'bg-accent-primary': isResizing }"
+        @mousedown.prevent="startResize"
+      >
+        <div
+          class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-border-color rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          :class="{ 'opacity-100 bg-accent-primary': isResizing }"
+        />
+      </div>
       <!-- Logo and Title -->
       <div class="p-4 border-b border-border-color/50">
         <div class="flex items-center space-x-3">
@@ -16,6 +30,23 @@
               {{ $t('home.subtitle') }}
             </p>
           </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <LanguageSwitcher class="flex-1" />
+          <button
+            class="p-2 rounded-lg transition-all duration-300 hover:bg-bg-tertiary hover:scale-110"
+            :title="currentTheme === 'dark' ? '切换到明亮模式' : '切换到深色模式'"
+            @click="toggleTheme"
+          >
+            <Moon
+              v-if="currentTheme === 'dark'"
+              class="w-4 h-4 text-text-secondary"
+            />
+            <Sun
+              v-else
+              class="w-4 h-4 text-text-secondary"
+            />
+          </button>
         </div>
       </div>
 
@@ -191,29 +222,11 @@
       <!-- Version Info, Theme Toggle & Language Switcher -->
       <div class="p-4 border-t border-border-color/50 bg-bg-secondary/50 backdrop-blur-sm">
         <div class="flex items-center justify-between gap-3 animate-sidebar-item-enter">
-          <LanguageSwitcher />
-          <div class="flex items-center gap-2">
-            <!-- Theme Toggle Button -->
-            <button
-              class="p-2 rounded-lg transition-all duration-300 hover:bg-bg-tertiary hover:scale-110"
-              :title="currentTheme === 'dark' ? '切换到明亮模式' : '切换到深色模式'"
-              @click="toggleTheme"
-            >
-              <Moon
-                v-if="currentTheme === 'dark'"
-                class="w-4 h-4 text-text-secondary"
-              />
-              <Sun
-                v-else
-                class="w-4 h-4 text-text-secondary"
-              />
-            </button>
-            <BackendStatusBadge />
-            <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
-              <span>CCR UI v3.16.6</span>
-              <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-            </div>
+          <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
+            <span class="whitespace-nowrap">CCR UI v3.16.7</span>
+            <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
           </div>
+          <BackendStatusBadge />
         </div>
       </div>
     </div>
@@ -227,7 +240,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import {
   Home,
   Code2,
@@ -247,10 +260,60 @@ import BackendStatusBadge from '@/components/BackendStatusBadge.vue'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import { useThemeStore } from '@/store'
 
+const sidebarWidth = ref(260)
+const isResizing = ref(false)
+const minWidth = 200
+const maxWidth = 720
+
 const themeStore = useThemeStore()
 const currentTheme = computed(() => themeStore.currentTheme)
 
 const toggleTheme = () => {
   themeStore.toggleTheme()
 }
+
+const startResize = () => {
+  isResizing.value = true
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+
+  window.addEventListener('mousemove', handleResize)
+  window.addEventListener('mouseup', stopResize)
+}
+
+const handleResize = (e: MouseEvent) => {
+  if (!isResizing.value) return
+
+  let newWidth = e.clientX
+  if (newWidth < minWidth) newWidth = minWidth
+  if (newWidth > maxWidth) newWidth = maxWidth
+
+  sidebarWidth.value = newWidth
+}
+
+const stopResize = () => {
+  isResizing.value = false
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+
+  localStorage.setItem('ccr-sidebar-width', sidebarWidth.value.toString())
+
+  window.removeEventListener('mousemove', handleResize)
+  window.removeEventListener('mouseup', stopResize)
+}
+
+onMounted(() => {
+  const savedWidth = localStorage.getItem('ccr-sidebar-width')
+  if (savedWidth) {
+    const width = Number.parseInt(savedWidth, 10)
+    if (!Number.isNaN(width) && width >= minWidth && width <= maxWidth) {
+      sidebarWidth.value = width
+    }
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('mousemove', handleResize)
+  window.removeEventListener('mouseup', stopResize)
+})
 </script>

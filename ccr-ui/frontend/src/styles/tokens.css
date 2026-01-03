@@ -1,0 +1,290 @@
+/* ============================================
+   CCR-UI Neo-Terminal Design System
+   Design Tokens - CSS Variables
+   ============================================ */
+
+/* ========== 颜色系统 ========== */
+:root {
+    /* --- 背景层级 (暗色主题 - 默认) --- */
+    --color-bg-base: #0D0D0F;
+    --color-bg-elevated: #141419;
+    --color-bg-surface: #1A1A21;
+    --color-bg-overlay: #22222B;
+
+    /* --- 边框与分隔 --- */
+    --color-border-subtle: rgba(255, 255, 255, 0.06);
+    --color-border-default: rgba(255, 255, 255, 0.1);
+    --color-border-strong: rgba(255, 255, 255, 0.15);
+    --color-border-accent: rgba(6, 182, 212, 0.3);
+
+    /* --- 文字层级 --- */
+    --color-text-primary: #F8FAFC;
+    --color-text-secondary: #94A3B8;
+    --color-text-muted: #64748B;
+    --color-text-disabled: #475569;
+
+    /* --- 主强调色 - 赛博青 --- */
+    --color-accent-primary: #06B6D4;
+    --color-accent-primary-hover: #22D3EE;
+    --color-accent-primary-active: #0891B2;
+    --color-accent-primary-rgb: 6, 182, 212;
+    --color-accent-primary-glow: rgba(6, 182, 212, 0.15);
+
+    /* --- 辅助强调色 - 电光紫 --- */
+    --color-accent-secondary: #8B5CF6;
+    --color-accent-secondary-hover: #A78BFA;
+    --color-accent-secondary-active: #7C3AED;
+    --color-accent-secondary-rgb: 139, 92, 246;
+    --color-accent-secondary-glow: rgba(139, 92, 246, 0.15);
+
+    /* --- 功能色 --- */
+    --color-success: #10B981;
+    --color-success-hover: #34D399;
+    --color-success-rgb: 16, 185, 129;
+    --color-success-glow: rgba(16, 185, 129, 0.15);
+
+    --color-warning: #F59E0B;
+    --color-warning-hover: #FBBF24;
+    --color-warning-rgb: 245, 158, 11;
+    --color-warning-glow: rgba(245, 158, 11, 0.15);
+
+    --color-danger: #EF4444;
+    --color-danger-hover: #F87171;
+    --color-danger-rgb: 239, 68, 68;
+    --color-danger-glow: rgba(239, 68, 68, 0.15);
+
+    --color-info: #3B82F6;
+    --color-info-hover: #60A5FA;
+    --color-info-rgb: 59, 130, 246;
+    --color-info-glow: rgba(59, 130, 246, 0.15);
+
+    /* --- 平台专属色 --- */
+    --color-platform-claude: #FF6B35;
+    --color-platform-codex: #10B981;
+    --color-platform-gemini: #4285F4;
+    --color-platform-qwen: #00B5E2;
+    --color-platform-iflow: #FAAD14;
+}
+
+/* ========== 亮色主题 ========== */
+[data-theme="light"] {
+    /* --- 背景层级 --- */
+    --color-bg-base: #F8FAFC;
+    --color-bg-elevated: #FFFFFF;
+    --color-bg-surface: #F1F5F9;
+    --color-bg-overlay: #E2E8F0;
+
+    /* --- 边框与分隔 --- */
+    --color-border-subtle: rgba(0, 0, 0, 0.04);
+    --color-border-default: rgba(0, 0, 0, 0.08);
+    --color-border-strong: rgba(0, 0, 0, 0.12);
+    --color-border-accent: rgba(6, 182, 212, 0.4);
+
+    /* --- 文字层级 --- */
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94A3B8;
+    --color-text-disabled: #CBD5E1;
+
+    /* --- 发光效果调整（亮色模式下更微妙） --- */
+    --color-accent-primary-glow: rgba(6, 182, 212, 0.1);
+    --color-accent-secondary-glow: rgba(139, 92, 246, 0.1);
+    --color-success-glow: rgba(16, 185, 129, 0.1);
+    --color-warning-glow: rgba(245, 158, 11, 0.1);
+    --color-danger-glow: rgba(239, 68, 68, 0.1);
+    --color-info-glow: rgba(59, 130, 246, 0.1);
+}
+
+/* ========== 间距系统 (4px 基准) ========== */
+:root {
+    --space-0: 0;
+    --space-px: 1px;
+    --space-0-5: 0.125rem;
+    /* 2px */
+    --space-1: 0.25rem;
+    /* 4px */
+    --space-1-5: 0.375rem;
+    /* 6px */
+    --space-2: 0.5rem;
+    /* 8px */
+    --space-2-5: 0.625rem;
+    /* 10px */
+    --space-3: 0.75rem;
+    /* 12px */
+    --space-3-5: 0.875rem;
+    /* 14px */
+    --space-4: 1rem;
+    /* 16px */
+    --space-5: 1.25rem;
+    /* 20px */
+    --space-6: 1.5rem;
+    /* 24px */
+    --space-7: 1.75rem;
+    /* 28px */
+    --space-8: 2rem;
+    /* 32px */
+    --space-9: 2.25rem;
+    /* 36px */
+    --space-10: 2.5rem;
+    /* 40px */
+    --space-11: 2.75rem;
+    /* 44px */
+    --space-12: 3rem;
+    /* 48px */
+    --space-14: 3.5rem;
+    /* 56px */
+    --space-16: 4rem;
+    /* 64px */
+    --space-20: 5rem;
+    /* 80px */
+    --space-24: 6rem;
+    /* 96px */
+    --space-28: 7rem;
+    /* 112px */
+    --space-32: 8rem;
+    /* 128px */
+}
+
+/* ========== 字体系统 ========== */
+:root {
+    /* --- 字体族 --- */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+
+    /* --- 字号 --- */
+    --text-xs: 0.75rem;
+    /* 12px */
+    --text-sm: 0.875rem;
+    /* 14px */
+    --text-base: 1rem;
+    /* 16px */
+    --text-lg: 1.125rem;
+    /* 18px */
+    --text-xl: 1.25rem;
+    /* 20px */
+    --text-2xl: 1.5rem;
+    /* 24px */
+    --text-3xl: 1.875rem;
+    /* 30px */
+    --text-4xl: 2.25rem;
+    /* 36px */
+    --text-5xl: 3rem;
+    /* 48px */
+    --text-6xl: 3.75rem;
+    /* 60px */
+
+    /* --- 字重 --- */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+    --font-extrabold: 800;
+
+    /* --- 行高 --- */
+    --leading-none: 1;
+    --leading-tight: 1.25;
+    --leading-snug: 1.375;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.625;
+    --leading-loose: 2;
+
+    /* --- 字间距 --- */
+    --tracking-tighter: -0.05em;
+    --tracking-tight: -0.025em;
+    --tracking-normal: 0;
+    --tracking-wide: 0.025em;
+    --tracking-wider: 0.05em;
+    --tracking-widest: 0.1em;
+}
+
+/* ========== 圆角系统 ========== */
+:root {
+    --radius-none: 0;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-2xl: 16px;
+    --radius-3xl: 24px;
+    --radius-full: 9999px;
+}
+
+/* ========== 阴影与光效系统 ========== */
+:root {
+    /* --- 标准阴影 --- */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.25);
+    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+
+    /* --- 微妙发光效果 (Neo-Terminal 特色) --- */
+    --glow-primary: 0 0 15px var(--color-accent-primary-glow);
+    --glow-secondary: 0 0 15px var(--color-accent-secondary-glow);
+    --glow-success: 0 0 12px var(--color-success-glow);
+    --glow-warning: 0 0 12px var(--color-warning-glow);
+    --glow-danger: 0 0 12px var(--color-danger-glow);
+    --glow-info: 0 0 12px var(--color-info-glow);
+
+    /* --- 内发光 --- */
+    --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+    /* --- 渐变边框 --- */
+    --gradient-border: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
+    --gradient-brand: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
+}
+
+/* 亮色主题阴影调整 */
+[data-theme="light"] {
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+    --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* ========== 动画系统 ========== */
+:root {
+    /* --- 时长 --- */
+    --duration-instant: 50ms;
+    --duration-fast: 100ms;
+    --duration-normal: 200ms;
+    --duration-slow: 300ms;
+    --duration-slower: 500ms;
+
+    /* --- 缓动函数 --- */
+    --ease-linear: linear;
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* ========== Z-Index 层级系统 ========== */
+:root {
+    --z-behind: -1;
+    --z-base: 0;
+    --z-dropdown: 10;
+    --z-sticky: 20;
+    --z-fixed: 30;
+    --z-modal-backdrop: 40;
+    --z-modal: 50;
+    --z-popover: 60;
+    --z-tooltip: 70;
+    --z-toast: 80;
+}
+
+/* ========== 断点（仅用于参考，主要针对桌面） ========== */
+:root {
+    --breakpoint-sm: 640px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
+    --breakpoint-2xl: 1536px;
+}

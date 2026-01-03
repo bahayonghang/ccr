@@ -3,8 +3,9 @@
     <!-- 页面标题 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-          📋 签到管理
+        <h1 class="text-3xl font-bold text-text-primary flex items-center gap-3">
+          <ClipboardList class="w-8 h-8 text-accent-primary" />
+          签到管理
         </h1>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
           管理中转站签到账号，执行一键签到并追踪余额
@@ -236,13 +237,17 @@
           <button
             v-for="tab in tabs"
             :key="tab.id"
-            class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+            class="py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2"
             :class="activeTab === tab.id
-              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
+              ? 'border-accent-primary text-accent-primary'
+              : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border-default'"
             @click="activeTab = tab.id"
           >
-            {{ tab.icon }} {{ tab.name }}
+            <component
+              :is="tab.icon"
+              class="w-4 h-4"
+            />
+            {{ tab.name }}
           </button>
         </nav>
       </div>
@@ -255,8 +260,8 @@
         <!-- 内置中转站区域 -->
         <div v-if="availableBuiltinProviders.length > 0">
           <div class="flex items-center space-x-2 mb-4">
-            <span class="text-lg">🏪</span>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <Store class="w-5 h-5 text-accent-primary" />
+            <h2 class="text-lg font-semibold text-text-primary">
               内置中转站
             </h2>
             <span class="text-sm text-gray-500 dark:text-gray-400">
@@ -317,19 +322,23 @@
                     ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' 
                     : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'"
                 >
-                  {{ bp.checkin_bugged ? '⚠️ 自动签到' : '✅ 支持签到' }}
+                  <component
+                    :is="bp.checkin_bugged ? AlertTriangle : CheckCircle"
+                    class="w-3 h-3 mr-1 inline"
+                  />
+                  {{ bp.checkin_bugged ? '自动签到' : '支持签到' }}
                 </span>
                 <span
                   v-else
-                  class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded-full"
+                  class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded-full flex items-center"
                 >
-                  ❌ 无签到
+                  <XCircle class="w-3 h-3 mr-1" /> 无签到
                 </span>
                 <span
                   v-if="bp.requires_waf_bypass"
-                  class="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 rounded-full"
+                  class="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 rounded-full flex items-center"
                 >
-                  🛡️ 需要 WAF 绕过
+                  <Shield class="w-3 h-3 mr-1" /> 需要 WAF 绕过
                 </span>
               </div>
             </div>
@@ -340,8 +349,8 @@
         <div>
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center space-x-2">
-              <span class="text-lg">🏢</span>
-              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              <Building2 class="w-5 h-5 text-accent-secondary" />
+              <h2 class="text-lg font-semibold text-text-primary">
                 已添加的提供商
               </h2>
               <span class="text-sm text-gray-500 dark:text-gray-400">
@@ -375,7 +384,7 @@
             class="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
           >
             <p class="text-4xl mb-3">
-              📦
+              <Package class="w-12 h-12 mx-auto text-text-muted" />
             </p>
             <p>暂无提供商配置</p>
             <p class="text-sm mt-1">
@@ -633,7 +642,7 @@
                       class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm transition-all duration-200"
                       @click="executeCheckinSingle(account.id)"
                     >
-                      📅 签到
+                      <Calendar class="w-3 h-3 mr-1 inline" /> 签到
                     </button>
                     <div class="relative">
                       <button
@@ -1024,7 +1033,7 @@
                 class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded transition-colors"
                 @click="formatCookiesJson"
               >
-                📋 格式化 JSON
+                格式化 JSON
               </button>
               <span
                 v-if="jsonError"
@@ -1050,7 +1059,7 @@
           </div>
           <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
             <p class="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
-              📋 如何获取 Cookies：
+              如何获取 Cookies：
             </p>
             <ol class="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
               <li>按 F12 打开浏览器开发者工具</li>
@@ -1097,6 +1106,19 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  ClipboardList,
+  Store,
+  Building2,
+  Package,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Shield,
+  Calendar,
+  Users,
+  FileText,
+} from 'lucide-vue-next'
 import {
   listCheckinProviders,
   createCheckinProvider,
@@ -1197,10 +1219,10 @@ const filteredAccounts = computed(() => {
 
 // Tab 配置
 const tabs = [
-  { id: 'accounts' as const, name: '账号管理', icon: '👤' },
-  { id: 'providers' as const, name: '提供商', icon: '🏢' },
-  { id: 'records' as const, name: '签到记录', icon: '📜' },
-  { id: 'import-export' as const, name: '导入导出', icon: '📦' },
+  { id: 'accounts' as const, name: '账号管理', icon: Users },
+  { id: 'providers' as const, name: '提供商', icon: Building2 },
+  { id: 'records' as const, name: '签到记录', icon: FileText },
+  { id: 'import-export' as const, name: '导入导出', icon: Package },
 ]
 
 // 弹窗状态

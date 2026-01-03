@@ -1,0 +1,417 @@
+/* ============================================
+   CCR-UI Neo-Terminal Design System
+   Animations - Keyframes & Animation Classes
+   ============================================ */
+
+/* ========== 基础动画关键帧 ========== */
+
+/* 淡入 */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* 淡出 */
+@keyframes fade-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+/* 向上滑入 */
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 向下滑入 */
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 从左滑入 */
+@keyframes slide-in-left {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 从右滑入 */
+@keyframes slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 缩放入场 */
+@keyframes scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 缩放出场 */
+@keyframes scale-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+/* ========== Neo-Terminal 特色动画 ========== */
+
+/* 微妙脉冲 - 用于状态指示器 */
+@keyframes pulse-subtle {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* 发光脉冲 - 用于重要元素 */
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 var(--color-accent-primary-glow);
+    }
+
+    50% {
+        box-shadow: var(--glow-primary);
+    }
+}
+
+/* 旋转 - 用于加载指示器 */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 弹跳 - 用于按钮点击 */
+@keyframes bounce-in {
+    0% {
+        transform: scale(0.9);
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 摇晃 - 用于错误提示 */
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-4px);
+    }
+
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(4px);
+    }
+}
+
+/* 渐变流动 - 用于品牌元素 */
+@keyframes gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* 边框发光 - 用于选中状态 */
+@keyframes border-glow {
+
+    0%,
+    100% {
+        border-color: var(--color-border-accent);
+    }
+
+    50% {
+        border-color: var(--color-accent-primary);
+    }
+}
+
+/* 侧边栏项目入场 */
+@keyframes sidebar-item-enter {
+    from {
+        opacity: 0;
+        transform: translateX(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 卡片入场 */
+@keyframes card-enter {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 模态框入场 */
+@keyframes modal-enter {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 模态框出场 */
+@keyframes modal-exit {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+}
+
+/* 遮罩层入场 */
+@keyframes backdrop-enter {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* ========== 动画工具类 ========== */
+
+/* 基础动画 */
+.animate-fade-in {
+    animation: fade-in var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-fade-out {
+    animation: fade-out var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-slide-up {
+    animation: slide-up var(--duration-slow) var(--ease-out) forwards;
+}
+
+.animate-slide-down {
+    animation: slide-down var(--duration-slow) var(--ease-out) forwards;
+}
+
+.animate-slide-in-left {
+    animation: slide-in-left var(--duration-slow) var(--ease-out) forwards;
+}
+
+.animate-slide-in-right {
+    animation: slide-in-right var(--duration-slow) var(--ease-out) forwards;
+}
+
+.animate-scale-in {
+    animation: scale-in var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-scale-out {
+    animation: scale-out var(--duration-normal) var(--ease-out) forwards;
+}
+
+/* Neo-Terminal 特色动画类 */
+.animate-pulse-subtle {
+    animation: pulse-subtle 2s var(--ease-in-out) infinite;
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 2s var(--ease-in-out) infinite;
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+.animate-bounce-in {
+    animation: bounce-in var(--duration-normal) var(--ease-out-back);
+}
+
+.animate-shake {
+    animation: shake 0.5s var(--ease-in-out);
+}
+
+.animate-gradient-shift {
+    background-size: 200% 200%;
+    animation: gradient-shift 3s var(--ease-in-out) infinite;
+}
+
+.animate-sidebar-item-enter {
+    animation: sidebar-item-enter var(--duration-slow) var(--ease-out) forwards;
+}
+
+.animate-card-enter {
+    animation: card-enter var(--duration-slow) var(--ease-out) forwards;
+}
+
+.animate-modal-enter {
+    animation: modal-enter var(--duration-slow) var(--ease-out-back) forwards;
+}
+
+.animate-modal-exit {
+    animation: modal-exit var(--duration-normal) var(--ease-in) forwards;
+}
+
+.animate-backdrop-enter {
+    animation: backdrop-enter var(--duration-normal) var(--ease-out) forwards;
+}
+
+/* 延迟工具类 */
+.animate-delay-75 {
+    animation-delay: 75ms;
+}
+
+.animate-delay-100 {
+    animation-delay: 100ms;
+}
+
+.animate-delay-150 {
+    animation-delay: 150ms;
+}
+
+.animate-delay-200 {
+    animation-delay: 200ms;
+}
+
+.animate-delay-300 {
+    animation-delay: 300ms;
+}
+
+.animate-delay-500 {
+    animation-delay: 500ms;
+}
+
+/* 填充模式 */
+.animate-fill-forwards {
+    animation-fill-mode: forwards;
+}
+
+.animate-fill-both {
+    animation-fill-mode: both;
+}
+
+/* ========== GPU 加速 ========== */
+.gpu-accelerate {
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* 悬停时准备动画 */
+.hover-animate {
+    transition: transform var(--duration-fast) var(--ease-out),
+        box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.hover-animate:hover {
+    transform: translateY(-2px);
+}
+
+/* 导航悬停动画 */
+.nav-hover-effect {
+    transition: transform var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
+}
+
+.nav-hover-effect:hover {
+    transform: scale(1.05);
+}

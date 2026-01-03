@@ -154,10 +154,14 @@
         </div>
       </nav>
 
-      <!-- Version Info -->
-      <div class="p-4 border-t border-border-color">
+      <!-- Footer Actions -->
+      <div class="p-4 border-t border-border-color space-y-3">
+        <!-- Language Switcher -->
+        <LanguageSwitcher />
+        
+        <!-- Version Info -->
         <div class="text-xs text-text-muted flex items-center justify-between">
-          <span>CCR UI v3.16.6</span>
+          <span>CCR UI v3.16.7</span>
           <span class="animate-pulse-subtle">●</span>
         </div>
       </div>
@@ -187,12 +191,13 @@ import {
   TrendingUp, 
   Cloud,
 } from 'lucide-vue-next'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 
 // Sidebar Resizing Logic
 const sidebarWidth = ref(260)
 const isResizing = ref(false)
-const minWidth = 200
-const maxWidth = 600
+const minWidth = 180
+const maxWidth = 800
 
 const startResize = () => {
   isResizing.value = true

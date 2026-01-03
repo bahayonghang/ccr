@@ -95,13 +95,13 @@ const props = withDefaults(defineProps<Props>(), {
   ariaLabel: undefined,
 })
 
-// 变体样式 - 使用设计令牌
+// 变体样式 - 使用 Neo-Terminal 设计令牌
 const variantStyles = {
   primary: [
     'bg-accent-primary text-white',
-    'hover:bg-accent-primary/90',
+    'hover:bg-accent-primary/90 hover:shadow-glow-primary',
     'focus:ring-accent-primary/30',
-    'shadow-lg shadow-accent-primary/20',
+    'shadow-md',
   ],
   secondary: [
     'bg-bg-tertiary text-text-primary',
@@ -111,21 +111,21 @@ const variantStyles = {
   ],
   success: [
     'bg-accent-success text-white',
-    'hover:bg-accent-success/90',
+    'hover:bg-accent-success/90 hover:shadow-glow-success',
     'focus:ring-accent-success/30',
-    'shadow-lg shadow-accent-success/20',
+    'shadow-md',
   ],
   warning: [
     'bg-accent-warning text-white',
-    'hover:bg-accent-warning/90',
+    'hover:bg-accent-warning/90 hover:shadow-glow-warning',
     'focus:ring-accent-warning/30',
-    'shadow-lg shadow-accent-warning/20',
+    'shadow-md',
   ],
   danger: [
     'bg-accent-danger text-white',
-    'hover:bg-accent-danger/90',
+    'hover:bg-accent-danger/90 hover:shadow-glow-danger',
     'focus:ring-accent-danger/30',
-    'shadow-lg shadow-accent-danger/20',
+    'shadow-md',
   ],
   ghost: [
     'bg-transparent text-text-primary',
@@ -134,8 +134,8 @@ const variantStyles = {
   ],
   outline: [
     'bg-transparent text-accent-primary',
-    'border border-accent-primary',
-    'hover:bg-accent-primary/10',
+    'border border-accent-primary/50',
+    'hover:bg-accent-primary/10 hover:border-accent-primary',
     'focus:ring-accent-primary/30',
   ],
 }

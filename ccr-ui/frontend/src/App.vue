@@ -1,6 +1,6 @@
 <template>
   <RouterView v-slot="{ Component }">
-    <keep-alive :include="['HomeView', 'ConfigsView', 'CommandsView']">
+    <keep-alive :include="cachedViews">
       <component :is="Component" />
     </keep-alive>
   </RouterView>
@@ -11,6 +11,21 @@
 import { onMounted } from 'vue'
 import { useThemeStore } from '@/store'
 import ToastContainer from '@/components/common/ToastContainer.vue'
+
+// 扩展的 keep-alive 缓存列表
+// 包含频繁访问的页面以提升性能
+const cachedViews = [
+  'HomeView',
+  'ConfigsView', 
+  'CommandsView',
+  'ClaudeCodeView',
+  'CodexView',
+  'GeminiCliView',
+  'QwenView',
+  'IflowView',
+  'CheckinView',
+  'UsageView',
+]
 
 const themeStore = useThemeStore()
 
