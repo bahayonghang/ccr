@@ -62,6 +62,10 @@ pub struct ClaudeSettings {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub plugins: Vec<Plugin>,
 
+    /// Hooks
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hooks: Vec<Hook>,
+
     /// Other unknown fields (for forward compatibility)
     #[serde(flatten)]
     pub other: HashMap<String, Value>,
@@ -109,6 +113,16 @@ pub struct Plugin {
     pub enabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub config: Option<Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Hook {
+    pub event: String,
+    pub command: String,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -220,6 +234,7 @@ mod tests {
             slash_commands: Vec::new(),
             agents: Vec::new(),
             plugins: Vec::new(),
+            hooks: Vec::new(),
             other: HashMap::new(),
         };
 

@@ -468,6 +468,26 @@ pub struct PluginRequest {
     pub config: Option<serde_json::Value>,
 }
 
+// ===== Hook Management Models =====
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Hook {
+    pub event: String,
+    pub command: String,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HookRequest {
+    pub event: String,
+    pub command: String,
+    pub enabled: Option<bool>,
+    pub description: Option<String>,
+}
+
 // ===== Sync Models =====
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -670,4 +690,14 @@ pub struct PlatformProfileResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SetPlatformProfileRequest {
     pub profile_name: String,
+}
+
+// ===== Statusline Configuration Models =====
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct StatuslineConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    #[serde(default)]
+    pub enabled: bool,
 }

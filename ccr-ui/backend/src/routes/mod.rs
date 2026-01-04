@@ -10,8 +10,10 @@ pub mod command_routes;
 pub mod config_routes;
 pub mod converter_routes;
 pub mod gemini_routes;
+pub mod hooks_routes;
 pub mod marketplace_routes;
 pub mod mcp_routes;
+pub mod output_styles_routes;
 pub mod platform_routes;
 pub mod plugins_routes;
 pub mod pricing_routes;
@@ -22,6 +24,7 @@ pub mod sessions_routes;
 pub mod skills_routes;
 pub mod slash_commands_routes;
 pub mod stats_routes;
+pub mod statusline_routes;
 pub mod sync_routes;
 pub mod system_routes;
 pub mod ui_state_routes;
@@ -112,12 +115,18 @@ fn create_api_routes() -> Router {
         .merge(agents_routes::routes())
         // 插件管理
         .merge(plugins_routes::routes())
+        // Hooks 管理
+        .merge(hooks_routes::routes())
+        // Statusline 配置
+        .merge(statusline_routes::routes())
         // 统计数据
         .merge(stats_routes::routes())
         // 技能管理
         .merge(skills_routes::routes())
         // 提示词管理
         .merge(prompts_routes::routes())
+        // Output Styles 管理
+        .merge(output_styles_routes::routes())
         // 预算管理
         .merge(budget_routes::routes())
         // 定价管理

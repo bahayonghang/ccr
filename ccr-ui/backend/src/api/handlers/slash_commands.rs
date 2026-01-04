@@ -44,12 +44,16 @@ pub async fn list_slash_commands() -> impl IntoResponse {
                     }),
                     Err(_) => {
                         // If frontmatter parsing fails, try to read as plain markdown
-                        let path = std::env::var("HOME").ok().map(|home| {
-                            std::path::Path::new(&home)
-                                .join(".claude")
-                                .join("commands")
-                                .join(format!("{}.md", full_name))
-                        });
+                        // Support both Unix (HOME) and Windows (USERPROFILE)
+                        let path = std::env::var("HOME")
+                            .or_else(|_| std::env::var("USERPROFILE"))
+                            .ok()
+                            .map(|home| {
+                                std::path::Path::new(&home)
+                                    .join(".claude")
+                                    .join("commands")
+                                    .join(format!("{}.md", full_name))
+                            });
 
                         if let Some(path) = path {
                             if let Ok(content) = std::fs::read_to_string(&path) {

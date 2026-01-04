@@ -76,6 +76,24 @@ pub async fn update_skill(
     }
 }
 
+pub async fn get_skill(Path(name): Path<String>) -> impl IntoResponse {
+    let manager = match SkillsManager::new(Platform::Claude) {
+        Ok(m) => m,
+        Err(e) => return ApiResponse::error(e.to_string()),
+    };
+
+    match manager.list_skills() {
+        Ok(skills) => {
+            if let Some(skill) = skills.into_iter().find(|s| s.name == name) {
+                ApiResponse::success(skill)
+            } else {
+                ApiResponse::error(format!("Skill '{}' not found", name))
+            }
+        }
+        Err(e) => ApiResponse::error(e.to_string()),
+    }
+}
+
 pub async fn delete_skill(Path(name): Path<String>) -> impl IntoResponse {
     let manager = match SkillsManager::new(Platform::Claude) {
         Ok(m) => m,

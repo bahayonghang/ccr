@@ -10,6 +10,10 @@ pub fn routes() -> Router {
         .route("/agents", post(crate::api::handlers::agents::add_agent))
         .route(
             "/agents/{name}",
+            get(crate::api::handlers::agents::get_agent),
+        )
+        .route(
+            "/agents/{name}",
             put(crate::api::handlers::agents::update_agent),
         )
         .route(

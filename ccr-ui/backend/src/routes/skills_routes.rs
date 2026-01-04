@@ -10,6 +10,10 @@ pub fn routes() -> Router {
         .route("/skills", post(crate::api::handlers::skills::add_skill))
         .route(
             "/skills/{name}",
+            get(crate::api::handlers::skills::get_skill),
+        )
+        .route(
+            "/skills/{name}",
             put(crate::api::handlers::skills::update_skill),
         )
         .route(

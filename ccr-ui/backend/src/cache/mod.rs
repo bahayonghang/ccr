@@ -142,6 +142,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "依赖真实 Claude Code 配置文件，CI 环境可能不存在"]
     fn test_cache_basic_operations() {
         // 加载
         let settings = GLOBAL_SETTINGS_CACHE.load();

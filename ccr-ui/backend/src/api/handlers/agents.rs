@@ -211,6 +211,86 @@ pub async fn update_agent(
         .into_response()
 }
 
+/// GET /api/agents/:name - Get a single agent by name
+pub async fn get_agent(Path(name): Path<String>) -> impl IntoResponse {
+    // Try markdown files first (primary source with richer data)
+    if let Ok(manager) = MarkdownManager::from_home_subdir("agents")
+        && let Ok(files) = manager.list_files_with_folders()
+    {
+        for (file_name, folder_path) in files {
+            if file_name == name {
+                let full_name = if folder_path.is_empty() {
+                    file_name.clone()
+                } else {
+                    format!("{}/{}", folder_path, file_name)
+                };
+
+                if let Ok(file) = manager.read_file::<AgentFrontmatter>(&full_name) {
+                    let tools = file
+                        .frontmatter
+                        .tools
+                        .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
+                        .unwrap_or_default();
+
+                    let agent = Agent {
+                        name: file_name,
+                        model: String::new(),
+                        tools,
+                        system_prompt: Some(file.content),
+                        disabled: false,
+                        folder: folder_path,
+                    };
+
+                    return (
+                        StatusCode::OK,
+                        Json(json!({
+                            "success": true,
+                            "data": agent,
+                            "message": null
+                        })),
+                    )
+                        .into_response();
+                }
+            }
+        }
+    }
+
+    // Fallback to settings.json (使用全局缓存)
+    if let Ok(settings) = GLOBAL_SETTINGS_CACHE.load()
+        && let Some(agent) = settings.agents.iter().find(|a| a.name == name)
+    {
+        let api_agent = Agent {
+            name: agent.name.clone(),
+            model: agent.model.clone(),
+            tools: agent.tools.clone(),
+            system_prompt: agent.system_prompt.clone(),
+            disabled: agent.disabled,
+            folder: String::new(),
+        };
+
+        return (
+            StatusCode::OK,
+            Json(json!({
+                "success": true,
+                "data": api_agent,
+                "message": null
+            })),
+        )
+            .into_response();
+    }
+
+    // Agent not found
+    (
+        StatusCode::NOT_FOUND,
+        Json(json!({
+            "success": false,
+            "data": null,
+            "message": format!("Agent '{}' not found", name)
+        })),
+    )
+        .into_response()
+}
+
 /// DELETE /api/agents/:name - Delete an agent
 pub async fn delete_agent(Path(name): Path<String>) -> impl IntoResponse {
     // Try settings.json first (使用全局缓存)
