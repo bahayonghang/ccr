@@ -43,4 +43,8 @@ pub fn routes() -> Router {
             "/stats/summary",
             get(crate::api::handlers::stats::stats_summary),
         )
+        .route(
+            "/stats/heatmap",
+            get(crate::api::handlers::stats::get_heatmap_data),
+        )
 }

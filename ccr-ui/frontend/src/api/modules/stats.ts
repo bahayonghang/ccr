@@ -72,6 +72,19 @@ export const getStatsSummary = async (): Promise<StatsSummary> => {
     return response.data
 }
 
+// 热力图数据响应类型
+export interface HeatmapData {
+    data: Record<string, number>
+    max_value: number
+    total_tokens: number
+    active_days: number
+}
+
+export const getHeatmapData = async (): Promise<HeatmapData> => {
+    const response = await api.get<HeatmapData>('/stats/heatmap')
+    return response.data
+}
+
 // ═══════════════════════════════════════════════════════════
 // 💰 预算管理 API (Budget Management)
 // ═══════════════════════════════════════════════════════════

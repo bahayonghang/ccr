@@ -1230,8 +1230,18 @@ export default {
       loadFailedMessage: '加载统计数据失败',
       noData: '暂无数据',
       noStatsData: '暂无统计数据',
-      noStatsHint: '开始使用 AI API 后，这里将显示统计信息'
+      noStatsHint: '开始使用 AI API 后，这里将显示统计信息',
+      loading: '加载中...'
     }
+  },
+
+  // Activity Heatmap
+  activityHeatmap: {
+    title: '活动热力图',
+    less: '较少',
+    more: '较多',
+    activeDays: '活跃天数',
+    totalTokens: '总 Token 数'
   },
 
   // Codex Module

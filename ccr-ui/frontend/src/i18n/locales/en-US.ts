@@ -1176,8 +1176,18 @@ export default {
       loadFailedMessage: 'Failed to load statistics data',
       noData: 'No data',
       noStatsData: 'No statistics data',
-      noStatsHint: 'Statistics will appear here after you start using AI API'
+      noStatsHint: 'Statistics will appear here after you start using AI API',
+      loading: 'Loading...'
     }
+  },
+
+  // Activity Heatmap
+  activityHeatmap: {
+    title: 'Activity Heatmap',
+    less: 'Less',
+    more: 'More',
+    activeDays: 'Active Days',
+    totalTokens: 'Total Tokens'
   },
 
   // Codex Module
