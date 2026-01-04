@@ -91,8 +91,24 @@
         </button>
       </div>
 
+      <!-- Loading State -->
+      <div
+        v-if="loading"
+        class="text-center py-24"
+      >
+        <div class="bg-guofeng-bg-secondary w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Loader2 class="w-10 h-10 opacity-50 animate-spin" />
+        </div>
+        <h3 class="text-lg font-bold text-guofeng-text-primary mb-2">
+          {{ $t('common.loading') }}
+        </h3>
+      </div>
+
       <!-- Content Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div
+        v-else-if="!loading"
+        class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+      >
         <GuofengCard
           v-for="item in filteredItems"
           :key="item.id"
@@ -106,7 +122,7 @@
                 class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-sm transition-transform group-hover:scale-110 duration-300"
                 :class="getCategoryColor(item.category)"
               >
-                {{ item.icon }}
+                {{ getCategoryIcon(item) }}
               </div>
               <div>
                 <h3 class="font-bold text-lg text-guofeng-text-primary group-hover:text-guofeng-red transition-colors">
@@ -116,12 +132,12 @@
                   <span class="px-1.5 py-0.5 rounded bg-guofeng-bg-tertiary border border-guofeng-border/50 font-medium">
                     {{ item.category }}
                   </span>
-                  <span>by {{ item.author }}</span>
+                  <span>by {{ item.author || 'Unknown' }}</span>
                 </div>
               </div>
             </div>
             <div class="flex items-center gap-1 text-xs font-medium text-guofeng-text-secondary bg-guofeng-bg-tertiary px-2.5 py-1 rounded-full">
-              <Download class="w-3.5 h-3.5" /> {{ item.downloads }}
+              <Download class="w-3.5 h-3.5" /> {{ formatDownloads(item.downloads) }}
             </div>
           </div>
 
@@ -135,21 +151,25 @@
                 v-for="i in 5"
                 :key="i"
                 class="w-3.5 h-3.5"
-                :class="i <= item.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'"
+                :class="i <= (item.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'"
               />
             </div>
             <button 
               class="px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
               :class="item.installed 
                 ? 'bg-guofeng-bg-tertiary text-guofeng-text-muted cursor-default' 
-                : 'bg-guofeng-red text-white shadow-md shadow-guofeng-red/20 hover:shadow-lg hover:shadow-guofeng-red/30 hover:-translate-y-0.5'"
-              @click="!item.installed && handleInstall(item)"
+                : isInstalling(item.id)
+                  ? 'bg-guofeng-red/50 text-white cursor-wait'
+                  : 'bg-guofeng-red text-white shadow-md shadow-guofeng-red/20 hover:shadow-lg hover:shadow-guofeng-red/30 hover:-translate-y-0.5'"
+              :disabled="item.installed || isInstalling(item.id)"
+              @click="!item.installed && !isInstalling(item.id) && handleInstall(item)"
             >
               <component
-                :is="item.installed ? Check : Download"
+                :is="isInstalling(item.id) ? Loader2 : (item.installed ? Check : Download)"
                 class="w-3.5 h-3.5"
+                :class="{ 'animate-spin': isInstalling(item.id) }"
               />
-              {{ item.installed ? $t('market.installed') : $t('market.install') }}
+              {{ isInstalling(item.id) ? $t('common.installing') : (item.installed ? $t('market.installed') : $t('market.install')) }}
             </button>
           </div>
         </GuofengCard>
@@ -175,10 +195,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ShoppingBag, Home, Search, Download, Star, Check, ChevronRight, ArrowLeft } from 'lucide-vue-next'
+import { ShoppingBag, Home, Search, Download, Star, Check, ChevronRight, ArrowLeft, Loader2 } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'
+import { useMarketplace, type MarketItem, type MarketItemCategory } from '@/composables/useMarketplace'
+
+const { items, loading, fetchMarketItems, installItem, isInstalling } = useMarketplace()
 
 const searchQuery = ref('')
 const activeTab = ref('featured')
@@ -190,90 +213,33 @@ const tabs = [
   { id: 'mcp' }
 ]
 
-// Mock Data
-const items = [
-  {
-    id: 1,
-    name: 'Git Expert',
-    category: 'Skill',
-    icon: '🐙',
-    author: 'Anthropic',
-    description: 'Advanced Git operations helper. Can handle complex merges, rebases, and explain commit history.',
-    downloads: '12k',
-    rating: 5,
-    installed: true
-  },
-  {
-    id: 2,
-    name: 'Postgres MCP',
-    category: 'MCP',
-    icon: '🐘',
-    author: 'Community',
-    description: 'Connect Claude to your PostgreSQL database to query data, analyze schemas, and optimize queries.',
-    downloads: '8.5k',
-    rating: 4,
-    installed: false
-  },
-  {
-    id: 3,
-    name: 'Code Formatter',
-    category: 'Plugin',
-    icon: '✨',
-    author: 'Prettier',
-    description: 'Automatically format code in your project using Prettier rules. Supports multiple languages.',
-    downloads: '25k',
-    rating: 5,
-    installed: false
-  },
-  {
-    id: 4,
-    name: 'React Component Gen',
-    category: 'Skill',
-    icon: '⚛️',
-    author: 'ReactTeam',
-    description: 'Generate production-ready React components with Tailwind CSS styling and TypeScript interfaces.',
-    downloads: '15k',
-    rating: 5,
-    installed: false
-  },
-  {
-    id: 5,
-    name: 'Filesystem MCP',
-    category: 'MCP',
-    icon: '📂',
-    author: 'Anthropic',
-    description: 'Allow Claude to read and write files on your local system. Essential for coding tasks.',
-    downloads: '50k',
-    rating: 5,
-    installed: true
-  },
-  {
-    id: 6,
-    name: 'Jira Integration',
-    category: 'Plugin',
-    icon: '🎫',
-    author: 'Atlassian',
-    description: 'Create, update, and query Jira tickets directly from Claude Code. Keep your project management in sync.',
-    downloads: '3k',
-    rating: 3,
-    installed: false
-  }
-]
+// 加载市场数据
+onMounted(() => {
+  fetchMarketItems()
+})
 
-const filteredItems = computed(() => {
-  let result = items
-  
-  // Filter by Tab
-  if (activeTab.value !== 'featured') {
-    const categoryMap: Record<string, string> = {
-      'skills': 'Skill',
-      'plugins': 'Plugin',
-      'mcp': 'MCP'
-    }
-    result = result.filter(item => item.category === categoryMap[activeTab.value])
+// 监听 Tab 变化重新加载数据
+watch(activeTab, (newTab) => {
+  if (newTab === 'featured') {
+    fetchMarketItems()
   } else {
+    const categoryMap: Record<string, MarketItemCategory> = {
+      'skills': 'skill',
+      'plugins': 'plugin',
+      'mcp': 'mcp'
+    }
+    fetchMarketItems(categoryMap[newTab])
+  }
+})
+
+// 计算过滤后的项目
+const filteredItems = computed(() => {
+  let result = items.value
+  
+  // Filter by Tab (已在 API 层面处理，但需要处理 featured)
+  if (activeTab.value === 'featured') {
     // Featured shows high rated items
-    result = result.filter(item => item.rating >= 4)
+    result = result.filter(item => (item.rating || 0) >= 4)
   }
 
   // Filter by Search
@@ -281,23 +247,51 @@ const filteredItems = computed(() => {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(item => 
       item.name.toLowerCase().includes(query) || 
-      item.description.toLowerCase().includes(query)
+      item.description.toLowerCase().includes(query) ||
+      item.tags?.some(tag => tag.toLowerCase().includes(query))
     )
   }
 
   return result
 })
 
+// 获取分类对应的颜色
 const getCategoryColor = (category: string) => {
-  switch (category) {
-    case 'Skill': return 'bg-blue-100 text-blue-600'
-    case 'MCP': return 'bg-green-100 text-green-600'
-    case 'Plugin': return 'bg-purple-100 text-purple-600'
+  switch (category.toLowerCase()) {
+    case 'skill': return 'bg-blue-100 text-blue-600'
+    case 'mcp': return 'bg-green-100 text-green-600'
+    case 'plugin': return 'bg-purple-100 text-purple-600'
+    case 'command': return 'bg-orange-100 text-orange-600'
     default: return 'bg-gray-100 text-gray-600'
   }
 }
 
-const handleInstall = (item: any) => {
-  alert(`Install feature for ${item.name} coming soon!`)
+// 获取分类图标
+const getCategoryIcon = (item: MarketItem) => {
+  switch (item.category) {
+    case 'skill': return '📚'
+    case 'mcp': return '🔌'
+    case 'plugin': return '🧩'
+    case 'command': return '⌨️'
+    default: return '📦'
+  }
+}
+
+// 格式化下载数
+const formatDownloads = (downloads?: number) => {
+  if (!downloads) return '0'
+  if (downloads >= 1000) {
+    return `${(downloads / 1000).toFixed(1)}k`
+  }
+  return downloads.toString()
+}
+
+// 处理安装
+const handleInstall = async (item: MarketItem) => {
+  const success = await installItem(item)
+  if (success) {
+    // 可以添加成功提示
+    console.log(`${item.name} installed successfully`)
+  }
 }
 </script>

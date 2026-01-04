@@ -3,9 +3,24 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+        <svg
+          class="w-5 h-5 text-orange-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"
+          />
         </svg>
         <span>{{ $t('activityHeatmap.title', '活动热力图') }}</span>
       </h3>
@@ -25,16 +40,25 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="flex items-center justify-center py-12">
+    <div
+      v-if="loading"
+      class="flex items-center justify-center py-12"
+    >
       <div class="animate-spin rounded-full h-8 w-8 border-2 border-orange-200 border-t-orange-500" />
     </div>
 
     <!-- Heatmap Grid - Compact GitHub Style -->
-    <div v-else class="rounded-xl bg-gray-50/50 dark:bg-gray-900/30 p-4">
+    <div
+      v-else
+      class="rounded-xl bg-gray-50/50 dark:bg-gray-900/30 p-4"
+    >
       <!-- Month Labels - Aligned with weeks -->
       <div class="flex mb-2">
         <div class="w-8 flex-shrink-0" />
-        <div class="flex relative" style="width: calc(53 * 13px);">
+        <div
+          class="flex relative"
+          style="width: calc(53 * 13px);"
+        >
           <div
             v-for="(month, idx) in monthLabels"
             :key="idx"
@@ -51,11 +75,17 @@
         <!-- Day Labels (Mon, Wed, Fri) -->
         <div class="flex flex-col gap-[3px] text-xs font-medium text-gray-500 dark:text-gray-400 w-6 flex-shrink-0">
           <div class="h-[10px]" />
-          <div class="h-[10px] flex items-center">一</div>
+          <div class="h-[10px] flex items-center">
+            一
+          </div>
           <div class="h-[10px]" />
-          <div class="h-[10px] flex items-center">三</div>
+          <div class="h-[10px] flex items-center">
+            三
+          </div>
           <div class="h-[10px]" />
-          <div class="h-[10px] flex items-center">五</div>
+          <div class="h-[10px] flex items-center">
+            五
+          </div>
           <div class="h-[10px]" />
         </div>
 
@@ -99,8 +129,12 @@
           transform: 'translate(-50%, -120%)'
         }"
       >
-        <div class="font-semibold">{{ tooltip.date }}</div>
-        <div class="text-xs text-gray-300">{{ formatNumber(tooltip.count) }} tokens</div>
+        <div class="font-semibold">
+          {{ tooltip.date }}
+        </div>
+        <div class="text-xs text-gray-300">
+          {{ formatNumber(tooltip.count) }} tokens
+        </div>
       </div>
     </Teleport>
 
@@ -110,8 +144,18 @@
         <!-- Active Days -->
         <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-br from-orange-50/80 to-amber-50/80 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-200/50 dark:border-orange-800/50">
           <div class="p-2 rounded-lg bg-orange-500/20 dark:bg-orange-400/20">
-            <svg class="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              class="w-5 h-5 text-orange-600 dark:text-orange-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
           </div>
           <div>
@@ -127,8 +171,18 @@
         <!-- Total Tokens -->
         <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-br from-red-50/80 to-rose-50/80 dark:from-red-900/20 dark:to-rose-900/20 border border-red-200/50 dark:border-red-800/50">
           <div class="p-2 rounded-lg bg-red-500/20 dark:bg-red-400/20">
-            <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            <svg
+              class="w-5 h-5 text-red-600 dark:text-red-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+              />
             </svg>
           </div>
           <div>
