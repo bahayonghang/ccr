@@ -1,12 +1,12 @@
 <template>
   <div class="checkin-history">
     <div class="section-header">
-      <h2>签到历史</h2>
+      <h2>{{ t('checkin.history.title') }}</h2>
       <button
         class="refresh-button"
         @click="fetchRecords"
       >
-        刷新
+        {{ t('common.refresh') }}
       </button>
     </div>
 
@@ -14,7 +14,7 @@
       v-if="loading"
       class="loading"
     >
-      加载中...
+      {{ t('common.loading') }}
     </div>
     <div
       v-else-if="error"
@@ -27,7 +27,7 @@
         v-if="records.length === 0"
         class="empty"
       >
-        暂无签到记录
+        {{ t('checkin.history.no_history') }}
       </div>
       <table
         v-else
@@ -35,9 +35,9 @@
       >
         <thead>
           <tr>
-            <th>账号</th>
-            <th>状态</th>
-            <th>时间</th>
+            <th>{{ t('checkin.history.account') }}</th>
+            <th>{{ t('checkin.history.status') }}</th>
+            <th>{{ t('checkin.history.time') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -61,12 +61,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { listCheckinRecords } from '@/api/client'
 import type { CheckinRecordInfo } from '@/types/checkin'
 
 const records = ref<CheckinRecordInfo[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
+const { t } = useI18n()
 
 const fetchRecords = async () => {
   loading.value = true
@@ -76,7 +78,7 @@ const fetchRecords = async () => {
     const response = await listCheckinRecords(20)
     records.value = response.records
   } catch (err) {
-    error.value = '加载签到记录失败'
+    error.value = t('checkin.history.load_error')
   } finally {
     loading.value = false
   }
@@ -85,11 +87,11 @@ const fetchRecords = async () => {
 const statusText = (status: string) => {
   switch (status) {
     case 'Success':
-      return '成功'
+      return t('checkin.status.success')
     case 'AlreadyCheckedIn':
-      return '已签到'
+      return t('checkin.status.already_checked_in')
     case 'Failed':
-      return '失败'
+      return t('checkin.status.failed')
     default:
       return status
   }
@@ -108,7 +110,7 @@ const statusClass = (status: string) => {
   }
 }
 
-const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString('zh-CN')
+const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString()
 
 onMounted(() => {
   fetchRecords()

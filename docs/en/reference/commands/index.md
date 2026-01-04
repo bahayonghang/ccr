@@ -22,6 +22,8 @@ CCR commands are grouped by domain. All commands support `--help` for detailed u
 | [temp-token](./temp-token) | - | Temporary token/base_url/model override | v2.0+ |
 | [history](./history) | - | Operation history | v1.0+ |
 | [stats](./stats) | - | Cost/usage stats (web feature) | v2.0+ |
+| [budget](./budget) | - | Budgeting (web feature) | v3.16+ |
+| [pricing](./pricing) | - | Model pricing (web feature) | v3.16+ |
 | [export](./export) | - | Export configuration | v1.0+ |
 | [import](./import) | - | Import configuration (merge/replace) | v1.0+ |
 | [clean](./clean) | - | Clean old backups | v2.0+ |
@@ -56,6 +58,7 @@ CCR commands are grouped by domain. All commands support `--help` for detailed u
 - **[export](./export)** / **[import](./import)** / **[clean](./clean)** - Export/import/cleanup
 - **[sync](./sync)** - WebDAV sync (registry, batch/single, interactive filter)
 - **[history](./history)** / **[stats](./stats)** - Audit & metrics
+- **[budget](./budget)** / **[pricing](./pricing)** - Budgeting & model pricing (web feature)
 
 ### Interfaces
 
@@ -88,8 +91,12 @@ ccr sync config
 ccr sync folder add claude ~/.claude
 ccr sync push -i
 
-# Interfaces
-ccr ui -p 3000 --backend-port 38081
-ccr tui
-ccr web --port 8080 --no-browser
-```
+# Launch CCR UI (full web app)
+ccr ui
+
+# Launch legacy Web API (scripting/CI)
+ccr web --port 8080
+
+# Budget & pricing (web feature)
+ccr budget status
+ccr pricing list --verbose

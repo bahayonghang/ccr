@@ -19,18 +19,21 @@ CCR UI 的前端是一个基于 **Vue 3.5 + Vite 7.1** 构建的现代化 Web �
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| Vue | 3.5.22 | 渐进式 JavaScript 框架 |
-| Vite | 7.1.11 | 下一代前端构建工具 |
-| Vue Router | 4.4.5 | Vue 官方路由管理器 |
-| Pinia | 2.2.6 | Vue 状态管理库 |
-| TypeScript | 5.7.3 | 类型安全的 JavaScript 超集 |
-| Axios | 1.7.9 | HTTP 客户端 |
-| Tailwind CSS | 3.4.17 | 实用优先的 CSS 框架 |
-| Lucide Vue Next | 0.468.0 | 现代化图标库 |
+| **Vue.js** | 3.5.22 | 渐进式 JavaScript 框架 |
+| **Vite** | 7.1.11 | 下一代前端构建工具 |
+| **Vue Router** | 4.4.5 | Vue 官方路由管理器 |
+| **Pinia** | 2.2.6 | Vue 状态管理库 |
+| **TypeScript** | 5.7.3 | 类型安全的 JavaScript 超集 |
+| **Axios** | 1.7.9 | HTTP 客户端 |
+| **Tailwind CSS** | 3.4.17 | 实用优先的 CSS 框架 |
+| **Lucide Vue Next** | 0.468.0 | 现代化图标库 |
+| **Marked** | 17.0.1 | Markdown 渲染 |
+| **Highlight.js** | 11.11.1 | 代码高亮 |
+| **Vue I18n** | 9.14.5 | 国际化支持 |
 
 ### Vite 7.1 核心特性
 
-- **极速冷启动** - 原生 ESM 按需编译
+- **极速冷启动** - 原生 ESM 按需编译，毫秒级启动
 - **HMR（热模块替换）** - 毫秒级的模块热更新
 - **优化的构建** - 基于 Rollup 的生产优化
 - **TypeScript 支持** - 开箱即用的 TS 支持
@@ -44,84 +47,193 @@ CCR UI 的前端是一个基于 **Vue 3.5 + Vite 7.1** 构建的现代化 Web �
 - **PostCSS** - CSS 后处理器
 - **Autoprefixer** - CSS 自动前缀
 
+
 ## 📁 项目结构
 
 ```
 frontend/
 ├── public/                     # 静态资源
-│   └── vite.svg               # 应用图标
+│   └── favicon.svg            # 应用图标
+│
 ├── src/                       # 源代码
 │   ├── main.ts                # 应用入口
 │   ├── App.vue                # 根组件
 │   │
-│   ├── views/                 # 页面组件
+│   ├── views/                 # 页面组件 (30+ 视图)
 │   │   ├── HomeView.vue       # Dashboard 首页
 │   │   │
 │   │   ├── ClaudeCodeView.vue # Claude Code 主页
 │   │   ├── CodexView.vue      # Codex 主页
 │   │   ├── GeminiCliView.vue  # Gemini CLI 主页
 │   │   ├── QwenView.vue       # Qwen 主页
-│   │   ├── IflowView.vue      # IFLOW 主页
+│   │   ├── IflowView.vue      # iFlow 主页
 │   │   │
 │   │   ├── ConfigsView.vue    # 配置管理
-│   │   ├── SyncView.vue       # 云同步
+│   │   ├── SyncView.vue       # WebDAV 云同步
 │   │   ├── McpView.vue        # MCP 服务器管理
 │   │   ├── SlashCommandsView.vue # Slash Commands
-│   │   ├── AgentsView.vue     # Agents 管理
-│   │   ├── PluginsView.vue    # 插件管理
 │   │   ├── CommandsView.vue   # 命令执行中心
 │   │   ├── ConverterView.vue  # 配置转换器
 │   │   ├── StatsView.vue      # 统计分析
+│   │   ├── BudgetView.vue     # 预算管理
+│   │   ├── PricingView.vue    # 定价信息
+│   │   ├── UsageView.vue      # 使用记录
+│   │   ├── PluginsView.vue    # 插件管理
+│   │   ├── SessionsView.vue   # 会话管理
+│   │   ├── MonitoringView.vue # 系统监控
+│   │   ├── ProviderHealthView.vue # 提供商健康检查
 │   │   │
-│   │   ├── CodexMcpView.vue   # Codex MCP 子页面
+│   │   ├── checkin/           # 签到功能 (v3.7+)
+│   │   │   ├── CheckinView.vue  # 签到主页
+│   │   │   ├── CheckinManageView.vue # 签到管理
+│   │   │   ├── CheckinAccountDashboardView.vue # 账号仪表板
+│   │   │   └── components/    # 签到组件
+│   │   │       ├── AccountManager.vue
+│   │   │       ├── CheckinHistory.vue
+│   │   │       ├── CheckinStats.vue
+│   │   │       ├── TokenConfig.vue
+│   │   │       ├── AccountDashboardCalendar.vue
+│   │   │       └── AccountDashboardTrend.vue
+│   │   │
+│   │   ├── generic/           # 通用可复用视图
+│   │   │   ├── AgentsView.vue # Agents 管理（支持多平台）
+│   │   │   ├── SkillsView.vue # 技能管理
+│   │   │   ├── MarketView.vue # 技能市场
+│   │   │   ├── PlatformMcpView.vue # MCP（多平台）
+│   │   │   └── PlatformPluginsView.vue # 插件（多平台）
+│   │   │
+│   │   ├── CodexMcpView.vue   # Codex MCP
 │   │   ├── CodexProfilesView.vue # Codex Profiles
-│   │   ├── GeminiMcpView.vue  # Gemini MCP 子页面
-│   │   ├── QwenMcpView.vue    # Qwen MCP 子页面
-│   │   └── IflowMcpView.vue   # IFLOW MCP 子页面
+│   │   ├── CodexSlashCommandsView.vue # Codex Slash Commands
+│   │   ├── GeminiSlashCommandsView.vue # Gemini Slash Commands
+│   │   ├── QwenSlashCommandsView.vue # Qwen Slash Commands
+│   │   └── IflowSlashCommandsView.vue # iFlow Slash Commands
 │   │
-│   ├── components/            # 可复用组件
+│   ├── components/            # 可复用组件 (40+ 组件)
+│   │   ├── common/            # 通用组件
+│   │   │   ├── Breadcrumb.vue
+│   │   │   ├── EmptyState.vue
+│   │   │   ├── ErrorState.vue
+│   │   │   ├── GuofengCard.vue
+│   │   │   ├── LoadingOverlay.vue
+│   │   │   ├── Skeleton.vue
+│   │   │   ├── TerminalOutput.vue
+│   │   │   └── ToastContainer.vue
+│   │   │
 │   │   ├── MainLayout.vue     # 主布局
 │   │   ├── Navbar.vue         # 顶部导航栏
 │   │   ├── CollapsibleSidebar.vue # 侧边栏
 │   │   ├── RightSidebar.vue   # 右侧边栏
 │   │   ├── StatusHeader.vue   # 状态头部
-│   │   ├── HistoryList.vue    # 历史记录列表
-│   │   ├── VersionManager.vue # 版本管理器
-│   │   ├── ThemeToggle.vue    # 主题切换
+│   │   ├── FolderSidebar.vue  # 文件夹侧边栏
+│   │   │
+│   │   ├── ActivityHeatmap.vue # 活动热力图
+│   │   ├── UsageStatsDashboard.vue # 使用统计仪表板
+│   │   ├── TokenUsageChart.vue # Token 使用图表
+│   │   ├── UsageStatsChart.vue # 使用统计图表
+│   │   │
+│   │   ├── AddConfigModal.vue # 添加配置模态框
+│   │   ├── EditConfigModal.vue # 编辑配置模态框
 │   │   ├── UpdateModal.vue    # 更新对话框
+│   │   ├── ConfirmModal.vue   # 确认对话框
+│   │   ├── CommandFormModal.vue # 命令表单模态框
+│   │   │
 │   │   ├── ConfigCard.vue     # 配置卡片
+│   │   ├── ConfigItem.vue     # 配置项
+│   │   ├── DetailField.vue    # 详情字段
+│   │   ├── EnvironmentBadge.vue # 环境徽章
+│   │   │
+│   │   ├── BaseSlashCommands.vue # 基础斜杠命令
+│   │   ├── CommandList.vue    # 命令列表
+│   │   ├── BuiltinPromptsPanel.vue # 内置提示词面板
+│   │   ├── McpPresetsPanel.vue # MCP 预设面板
+│   │   ├── McpSyncPanel.vue   # MCP 同步面板
+│   │   ├── SkillRepositoriesPanel.vue # 技能仓库面板
+│   │   ├── SkillSearchPanel.vue # 技能搜索面板
+│   │   │
 │   │   ├── Button.vue         # 按钮组件
 │   │   ├── Card.vue           # 卡片组件
 │   │   ├── Input.vue          # 输入框组件
-│   │   └── Table.vue          # 表格组件
+│   │   ├── Table.vue          # 表格组件
+│   │   ├── DateRangePicker.vue # 日期范围选择器
+│   │   ├── ThemeToggle.vue    # 主题切换
+│   │   ├── LanguageSwitcher.vue # 语言切换
+│   │   ├── VersionManager.vue # 版本管理器
+│   │   ├── MarkdownEditor.vue # Markdown 编辑器
+│   │   └── SearchAndActions.vue # 搜索和操作栏
+│   │
+│   ├── composables/           # 组合式函数 (10 个)
+│   │   ├── useAccessibility.ts # 无障碍辅助
+│   │   ├── useAgents.ts       # Agents 管理
+│   │   ├── useApi.ts          # API 调用
+│   │   ├── useCcrControl.ts   # CCR 控制
+│   │   ├── usePlatformMcp.ts  # 平台 MCP 管理
+│   │   ├── usePlatformPlugins.ts # 平台插件管理
+│   │   ├── useSkills.ts       # 技能管理
+│   │   ├── useSkillsCache.ts  # 技能缓存
+│   │   ├── useStream.ts       # 流式数据处理
+│   │   └── useWebSocket.ts    # WebSocket 连接
 │   │
 │   ├── router/                # 路由配置
 │   │   └── index.ts           # Vue Router 配置
 │   │
 │   ├── stores/                # Pinia 状态管理
-│   │   ├── config.ts          # 配置状态
-│   │   ├── system.ts          # 系统状态
-│   │   └── theme.ts           # 主题状态
+│   │   ├── commands.ts        # 命令状态
+│   │   ├── configs.ts         # 配置状态
+│   │   ├── theme.ts           # 主题状态
+│   │   └── ui.ts              # UI 状态
 │   │
 │   ├── api/                   # API 客户端
-│   │   └── client.ts          # HTTP 客户端和 API 调用
+│   │   ├── client.ts          # Axios 客户端配置
+│   │   ├── core.ts            # 核心 API 函数
+│   │   ├── index.ts           # API 导出
+│   │   ├── tauri.ts           # Tauri API
+│   │   ├── ccr-control.ts     # CCR 控制 API
+│   │   └── modules/           # API 模块
+│   │       ├── config.ts
+│   │       ├── mcp.ts
+│   │       ├── stats.ts
+│   │       └── index.ts
+│   │
+│   ├── i18n/                  # 国际化
+│   │   ├── index.ts           # I18n 配置
+│   │   └── locales/           # 语言文件
+│   │       ├── zh-CN.ts       # 简体中文
+│   │       └── en-US.ts       # 英文
 │   │
 │   ├── types/                 # TypeScript 类型定义
-│   │   └── index.ts           # 通用类型
+│   │   ├── index.ts           # 通用类型
+│   │   ├── platform.ts        # 平台类型
+│   │   └── checkin.ts         # 签到类型
+│   │
+│   ├── utils/                 # 工具函数
+│   │   └── codexHelpers.ts    # Codex 辅助函数
+│   │
+│   ├── configs/               # 配置文件
+│   │   └── slashCommands.ts   # 斜杠命令配置
+│   │
+│   ├── layouts/               # 布局组件
+│   │   └── MainLayout.vue     # 主布局
 │   │
 │   ├── styles/                # 全局样式
-│   │   └── main.css           # 主样式文件
+│   │   ├── index.css          # 主样式文件（Tailwind）
+│   │   └── chart-colors.css   # 图表颜色
 │   │
-│   └── utils/                 # 工具函数
-│       └── helpers.ts         # 辅助函数
+│   └── assets/                # 静态资源
+│       └── favicon.svg        # 图标
 │
+├── index.html                # HTML 模板
 ├── package.json              # 项目配置
 ├── vite.config.ts            # Vite 配置
-├── tailwind.config.js        # Tailwind 配置
-└── tsconfig.json             # TypeScript 配置
+├── tailwind.config.ts        # Tailwind 配置
+├── postcss.config.js         # PostCSS 配置
+├── tsconfig.json             # TypeScript 配置
+├── tsconfig.node.json        # Node TypeScript 配置
+├── eslint.config.js          # ESLint 配置
+└── .prettierrc               # Prettier 配置
 ```
 
-## 🎨 设计系统
+## ## 🎨 设计系统
 
 ### 主题配置
 
@@ -431,51 +543,45 @@ apiClient.interceptors.response.use(
 
 ## 🔧 开发工具配置
 
-### Next.js 配置
+### Vite 配置
 
-```javascript
-// next.config.mjs
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Turbopack 是 Next.js 16 的默认打包器
-  experimental: {
-    // 启用文件系统缓存（Beta）
-    turbopackFileSystemCacheForDev: true,
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { fileURLToPath, URL } from 'node:url'
+
+export default defineConfig({
+  plugins: [vue()],
+  
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
   },
-
-  // Turbopack workspace root 配置
-  turbopack: {
-    root: process.cwd(),
+  
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:38081',
+        changeOrigin: true
+      }
+    }
   },
-
-  // 生产构建优化
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn'],
-    } : false,
-  },
-
-  // API 代理配置（开发环境）
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:8081/api/:path*',
-      },
-    ];
-  },
-
-  // 性能优化
-  poweredByHeader: false,
-  compress: true,
-
-  // 图片优化
-  images: {
-    formats: ['image/avif', 'image/webp'],
-  },
-};
-
-export default nextConfig;
+  
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'ui-vendor': ['lucide-vue-next'],
+          'http-vendor': ['axios']
+        }
+      }
+    }
+  }
+})
 ```
 
 ### TypeScript 配置
@@ -483,32 +589,52 @@ export default nextConfig;
 ```json
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "noEmit": true,
     "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.vue"],
   "exclude": ["node_modules"]
 }
 ```
+
+### Tailwind CSS 配置
+
+```typescript
+// tailwind.config.ts
+import type { Config } from 'tailwindcss'
+
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{vue,js,ts,jsx,tsx}",
+  ],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        // 自定义颜色
+      }
+    },
+  },
+  plugins: [],
+} satisfies Config
+```
+
 
 ## 📈 性能优化
 

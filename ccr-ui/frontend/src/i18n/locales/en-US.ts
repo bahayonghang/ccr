@@ -104,7 +104,67 @@ export default {
     license: 'MIT License',
     mainModules: 'Main Modules',
     toolsCenter: 'Tools Center',
-    checkin: 'Check-in',
+    checkin: 'Check-in Management',
+  },
+  checkin: {
+    title: 'Check-in Management',
+    description: 'Manage automatic check-in tasks and cookies for all platforms',
+    backToConfigs: 'Back to Configs',
+    stats: {
+      total_accounts: 'Total Accounts',
+      today_checkins: 'Today Check-ins',
+      success_rate: 'Success Rate',
+      active_cookies: 'Active Cookies',
+      consecutive_days: 'Consecutive Days',
+      total_days: 'Total Days',
+      longest_consecutive: 'Longest Streak',
+      monthly_rate: 'Monthly Rate',
+      load_error: 'Failed to load stats',
+    },
+    account_manager: {
+      title: 'Account Management',
+      go_manage: 'Manage',
+      dashboard: 'Dashboard',
+      load_error: 'Failed to load accounts',
+      delete_confirm: 'Are you sure you want to delete this account?',
+      delete_fail: 'Failed to delete account',
+    },
+    account_list: {
+      title: 'Account List',
+      add_account: 'Add Account',
+      no_accounts: 'No accounts',
+      platform: 'Platform',
+      account: 'Account',
+      status: 'Status',
+      last_checkin: 'Last Check-in',
+      actions: 'Actions',
+      edit: 'Edit',
+      delete: 'Delete',
+      delete_confirm: 'Are you sure you want to delete account {name}?',
+    },
+    token_config: {
+      title: 'Token Config',
+      description: 'Configure tokens for each platform',
+      save: 'Save Config',
+      placeholder: 'Enter Token',
+      integrated_hint: 'Token configuration is integrated in Account Management. Please configure Cookies and API User for each account there.',
+      go_account_manage_arrow: 'Go to Account Management →',
+    },
+    history: {
+      title: 'Check-in History',
+      time: 'Time',
+      platform: 'Platform',
+      account: 'Account',
+      status: 'Status',
+      message: 'Message',
+      no_history: 'No check-in history',
+      load_error: 'Failed to load history',
+    },
+    status: {
+      success: 'Success',
+      already_checked_in: 'Already Checked In',
+      failed: 'Failed',
+    },
   },
   home: {
     title: 'CCR UI',
@@ -661,9 +721,20 @@ export default {
       descriptionPlaceholder: 'Config description (optional)',
       tokenPlaceholder: 'Enter API Key or Token',
       modelPlaceholder: 'Model name (optional)',
+      smallModelPlaceholder: 'Small fast model (optional)',
+      providerType: 'Provider Type',
       providerUncategorized: 'Uncategorized',
       providerOfficialRelay: 'Official Relay',
       providerThirdParty: 'Third-party Model',
+      providerName: 'Provider Name',
+      providerNamePlaceholder: 'e.g. anyrouter, glm, moonshot',
+      providerNameHint: 'Used to identify different configs from the same provider',
+      account: 'Account ID',
+      accountPlaceholder: 'e.g. github_5953, personal, work',
+      accountHint: 'Used to distinguish different accounts from the same provider',
+      tags: 'Tags',
+      tagsPlaceholder: 'Comma separated, e.g. free, stable, backup',
+      tagsHint: 'For flexible categorization and filtering, separate with commas',
       cancel: 'Cancel',
       save: 'Add Config',
       saving: 'Adding...',
@@ -1044,11 +1115,27 @@ export default {
       featured: 'Featured',
       skills: 'Skills',
       plugins: 'Plugins',
-      mcp: 'MCP Servers'
+      mcp: 'MCP Servers',
+      commands: 'Commands'
     },
     install: 'Install',
     installed: 'Installed',
+    installing: 'Installing...',
+    uninstall: 'Uninstall',
+    loading: 'Loading marketplace...',
     noResults: 'No items found matching your search.',
+    error: 'Failed to load marketplace',
+    categories: {
+      skill: 'Skill',
+      mcp: 'MCP',
+      plugin: 'Plugin',
+      command: 'Command'
+    },
+    sources: {
+      builtin: 'Built-in',
+      remote: 'Remote',
+      local: 'Local'
+    },
     backToClaude: 'Back to Claude Code',
     backToHome: 'Back to Home',
     breadcrumb: {
@@ -1105,8 +1192,18 @@ export default {
       loadFailedMessage: 'Failed to load statistics data',
       noData: 'No data',
       noStatsData: 'No statistics data',
-      noStatsHint: 'Statistics will appear here after you start using AI API'
+      noStatsHint: 'Statistics will appear here after you start using AI API',
+      loading: 'Loading...'
     }
+  },
+
+  // Activity Heatmap
+  activityHeatmap: {
+    title: 'Activity Heatmap',
+    less: 'Less',
+    more: 'More',
+    activeDays: 'Active Days',
+    totalTokens: 'Total Tokens'
   },
 
   // Codex Module

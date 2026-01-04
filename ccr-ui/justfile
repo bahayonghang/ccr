@@ -142,21 +142,21 @@ dev: dev-clean
 _dev-start-linux:
     @echo "🚀 启动开发环境..."
     @echo "📍 后端: http://localhost:{{backend_port}}"
-    @echo "📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)"
+    @echo "📍 前端: 启动中 (实际端口启动后输出)"
     @echo ""
     @just dev-parallel
 
 _dev-start-macos:
     @echo "🚀 启动开发环境..."
     @echo "📍 后端: http://localhost:{{backend_port}}"
-    @echo "📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)"
+    @echo "📍 前端: 启动中 (实际端口启动后输出)"
     @echo ""
     @just dev-parallel
 
 _dev-start-windows:
     @Write-Output '🚀 启动开发环境...'
     @Write-Output '📍 后端: http://localhost:{{backend_port}}'
-    @Write-Output '📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)'
+    @Write-Output '📍 前端: 启动中 (实际端口启动后输出)'
     @Write-Output ''
     @just dev-parallel
 
@@ -173,6 +173,8 @@ _dev-parallel-linux:
     BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
     VITE_PORT="${VITE_PORT:-{{vite_port}}}"
     mkdir -p "$JDIR/logs"
+    FRONTEND_PORT_FILE="$JDIR/logs/frontend.port"
+    echo "$VITE_PORT" > "$FRONTEND_PORT_FILE"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
 
     # ========== 预编译后端（避免健康检查超时） ==========
@@ -220,7 +222,15 @@ _dev-parallel-linux:
     fi
 
     # ========== 启动前端 ==========
-    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
+      frontend_port=$(printf '%s\n' "$line" | sed -n 's/.*Local:[[:space:]]*http:\/\/localhost:\([0-9][0-9]*\)\/.*/\1/p')
+      if [ -n "$frontend_port" ] && [ "$frontend_port" != "$frontend_port_announced" ]; then
+        frontend_port_announced="$frontend_port"
+        echo "$frontend_port" > "$FRONTEND_PORT_FILE"
+        echo "📍 前端: http://localhost:$frontend_port (Vue 3 + Vite)"
+      fi
+      printf '%s\n' "$line"
+    done &
     wait
 
 _dev-parallel-macos:
@@ -230,6 +240,8 @@ _dev-parallel-macos:
     BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
     VITE_PORT="${VITE_PORT:-{{vite_port}}}"
     mkdir -p "$JDIR/logs"
+    FRONTEND_PORT_FILE="$JDIR/logs/frontend.port"
+    echo "$VITE_PORT" > "$FRONTEND_PORT_FILE"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
 
     # ========== 预编译后端（避免健康检查超时） ==========
@@ -277,7 +289,15 @@ _dev-parallel-macos:
     fi
 
     # ========== 启动前端 ==========
-    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
+      frontend_port=$(printf '%s\n' "$line" | sed -n 's/.*Local:[[:space:]]*http:\/\/localhost:\([0-9][0-9]*\)\/.*/\1/p')
+      if [ -n "$frontend_port" ] && [ "$frontend_port" != "$frontend_port_announced" ]; then
+        frontend_port_announced="$frontend_port"
+        echo "$frontend_port" > "$FRONTEND_PORT_FILE"
+        echo "📍 前端: http://localhost:$frontend_port (Vue 3 + Vite)"
+      fi
+      printf '%s\n' "$line"
+    done &
     wait
 
 # 并行启动 - Windows
@@ -298,6 +318,15 @@ _dev-clean-linux:
     JDIR="{{justfile_directory()}}"
     BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
     VITE_PORT="${VITE_PORT:-{{vite_port}}}"
+    FRONTEND_PORT_FILE="$JDIR/logs/frontend.port"
+    ACTUAL_VITE_PORT=""
+    if [ -f "$FRONTEND_PORT_FILE" ]; then
+        ACTUAL_VITE_PORT="$(head -n 1 "$FRONTEND_PORT_FILE" | tr -d '\r')"
+    fi
+    PORTS=("$BACKEND_PORT" "$VITE_PORT")
+    if [ -n "$ACTUAL_VITE_PORT" ] && [ "$ACTUAL_VITE_PORT" != "$VITE_PORT" ]; then
+        PORTS+=("$ACTUAL_VITE_PORT")
+    fi
     echo "🧹 开始清理开发环境..."
     # 优先使用 PID 文件清理（如果存在）
     if [ -f "$JDIR/.backend.pid" ]; then
@@ -318,8 +347,9 @@ _dev-clean-linux:
     fi
     # 仅清理本项目配置的端口（不使用 pkill 避免误杀）
     if command -v lsof >/dev/null 2>&1; then
-        lsof -ti:"$BACKEND_PORT" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-        lsof -ti:"$VITE_PORT" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+        for port in "${PORTS[@]}"; do
+            lsof -ti:"$port" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+        done
     fi
     # 清理缓存目录
     rm -rf "$JDIR/frontend/.next" 2>/dev/null || true
@@ -333,6 +363,15 @@ _dev-clean-macos:
     JDIR="{{justfile_directory()}}"
     BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
     VITE_PORT="${VITE_PORT:-{{vite_port}}}"
+    FRONTEND_PORT_FILE="$JDIR/logs/frontend.port"
+    ACTUAL_VITE_PORT=""
+    if [ -f "$FRONTEND_PORT_FILE" ]; then
+        ACTUAL_VITE_PORT="$(head -n 1 "$FRONTEND_PORT_FILE" | tr -d '\r')"
+    fi
+    PORTS=("$BACKEND_PORT" "$VITE_PORT")
+    if [ -n "$ACTUAL_VITE_PORT" ] && [ "$ACTUAL_VITE_PORT" != "$VITE_PORT" ]; then
+        PORTS+=("$ACTUAL_VITE_PORT")
+    fi
     echo "🧹 开始清理开发环境..."
     # 优先使用 PID 文件清理（如果存在）
     if [ -f "$JDIR/.backend.pid" ]; then
@@ -353,8 +392,9 @@ _dev-clean-macos:
     fi
     # 仅清理本项目配置的端口（不使用 pkill 避免误杀）
     if command -v lsof >/dev/null 2>&1; then
-        lsof -ti:"$BACKEND_PORT" 2>/dev/null | xargs kill -9 2>/dev/null || true
-        lsof -ti:"$VITE_PORT" 2>/dev/null | xargs kill -9 2>/dev/null || true
+        for port in "${PORTS[@]}"; do
+            lsof -ti:"$port" 2>/dev/null | xargs kill -9 2>/dev/null || true
+        done
     fi
     # 清理缓存目录
     rm -rf "$JDIR/frontend/.next" 2>/dev/null || true
@@ -363,11 +403,11 @@ _dev-clean-macos:
 # 清理开发环境 - Windows
 # 优化：仅清理本项目配置的端口，避免误杀其他项目
 _dev-clean-windows:
-    @Write-Output '🧹 开始清理开发环境...'
+    @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '🧹 开始清理开发环境...' -ForegroundColor Cyan"
     @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1 -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}"
-    @Write-Output '... 清理前端构建目录...'
+    @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '... 清理前端构建目录...' -ForegroundColor Gray"
     @if (Test-Path 'frontend/.next') { Remove-Item -Recurse -Force 'frontend/.next' }
-    @Write-Output '✅ 清理完成'
+    @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '✅ 清理完成' -ForegroundColor Green"
 
 # 启动前清理（端口 + 缓存 + 残留进程）
 # 仅启动后端开发服务器
@@ -486,21 +526,21 @@ dev-fast: dev-clean
 _dev-fast-start-linux:
     @echo "⚡ 快速开发模式（使用 Release 构建）..."
     @echo "📍 后端: http://localhost:{{backend_port}}"
-    @echo "📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)"
+    @echo "📍 前端: 启动中 (实际端口启动后输出)"
     @echo ""
     @just dev-fast-parallel
 
 _dev-fast-start-macos:
     @echo "⚡ 快速开发模式（使用 Release 构建）..."
     @echo "📍 后端: http://localhost:{{backend_port}}"
-    @echo "📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)"
+    @echo "📍 前端: 启动中 (实际端口启动后输出)"
     @echo ""
     @just dev-fast-parallel
 
 _dev-fast-start-windows:
     @Write-Output '⚡ 快速开发模式（使用 Release 构建）...'
     @Write-Output '📍 后端: http://localhost:{{backend_port}}'
-    @Write-Output '📍 前端: http://localhost:{{vite_port}} (Vue 3 + Vite)'
+    @Write-Output '📍 前端: 启动中 (实际端口启动后输出)'
     @Write-Output ''
     @just dev-fast-parallel
 
@@ -515,6 +555,8 @@ _dev-fast-parallel-linux:
     BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
     VITE_PORT="${VITE_PORT:-{{vite_port}}}"
     mkdir -p "$JDIR/logs"
+    FRONTEND_PORT_FILE="$JDIR/logs/frontend.port"
+    echo "$VITE_PORT" > "$FRONTEND_PORT_FILE"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
     # 检查是否已有 Release 构建，没有则先构建
     if [ ! -f "$JDIR/backend/target/release/ccr-ui-backend" ]; then
@@ -542,7 +584,15 @@ _dev-fast-parallel-linux:
         fi
     done
     # 启动前端
-    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
+        frontend_port=$(printf '%s\n' "$line" | sed -n 's/.*Local:[[:space:]]*http:\/\/localhost:\([0-9][0-9]*\)\/.*/\1/p')
+        if [ -n "$frontend_port" ] && [ "$frontend_port" != "$frontend_port_announced" ]; then
+            frontend_port_announced="$frontend_port"
+            echo "$frontend_port" > "$FRONTEND_PORT_FILE"
+            echo "📍 前端: http://localhost:$frontend_port (Vue 3 + Vite)"
+        fi
+        printf '%s\n' "$line"
+    done &
     wait
 
 _dev-fast-parallel-macos:
@@ -552,6 +602,8 @@ _dev-fast-parallel-macos:
     BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}"
     VITE_PORT="${VITE_PORT:-{{vite_port}}}"
     mkdir -p "$JDIR/logs"
+    FRONTEND_PORT_FILE="$JDIR/logs/frontend.port"
+    echo "$VITE_PORT" > "$FRONTEND_PORT_FILE"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
     # 检查是否已有 Release 构建，没有则先构建
     if [ ! -f "$JDIR/backend/target/release/ccr-ui-backend" ]; then
@@ -579,7 +631,15 @@ _dev-fast-parallel-macos:
         fi
     done
     # 启动前端
-    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" &
+    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
+        frontend_port=$(printf '%s\n' "$line" | sed -n 's/.*Local:[[:space:]]*http:\/\/localhost:\([0-9][0-9]*\)\/.*/\1/p')
+        if [ -n "$frontend_port" ] && [ "$frontend_port" != "$frontend_port_announced" ]; then
+            frontend_port_announced="$frontend_port"
+            echo "$frontend_port" > "$FRONTEND_PORT_FILE"
+            echo "📍 前端: http://localhost:$frontend_port (Vue 3 + Vite)"
+        fi
+        printf '%s\n' "$line"
+    done &
     wait
 
 _dev-fast-parallel-windows:

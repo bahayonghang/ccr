@@ -13,6 +13,10 @@
       >
         <!-- 模态框 -->
         <div
+          ref="modalRef"
+          role="dialog"
+          aria-modal="true"
+          :aria-labelledby="titleId"
           class="relative rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
           :style="{
             background: 'var(--bg-primary)',
@@ -61,6 +65,7 @@
               />
 
               <h2
+                :id="titleId"
                 class="text-xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
               >
@@ -374,7 +379,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch } from 'vue'
 import {
   X,
   AlertTriangle,
@@ -382,6 +387,7 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-vue-next'
+import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 
 interface Props {
   isOpen: boolean
@@ -399,6 +405,31 @@ const emit = defineEmits<{
   close: []
   confirm: []
 }>()
+
+// Accessibility enhancements
+const titleId = useUniqueId('update-modal-title')
+const modalRef = ref<HTMLElement | null>(null)
+const isOpenRef = ref(props.isOpen)
+
+// Close handler for composables
+const handleClose = () => {
+  if (props.stage !== 'updating') {
+    emit('close')
+  }
+}
+
+watch(() => props.isOpen, (newValue) => {
+  isOpenRef.value = newValue
+})
+
+const { focusFirstElement } = useFocusTrap(modalRef, isOpenRef)
+useEscapeKey(handleClose, isOpenRef)
+
+watch(isOpenRef, (isOpen) => {
+  if (isOpen) {
+    setTimeout(() => focusFirstElement(), 100)
+  }
+})
 
 const getTitle = () => {
   switch (props.stage) {
@@ -424,21 +455,6 @@ const handleBackdropClick = () => {
 const handleRefresh = () => {
   window.location.reload()
 }
-
-// 按 Escape 关闭
-const handleKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && props.stage !== 'updating') {
-    emit('close')
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('keydown', handleKeydown)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('keydown', handleKeydown)
-})
 </script>
 
 <style scoped>

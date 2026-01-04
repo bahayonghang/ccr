@@ -152,10 +152,59 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # 🖥️ Tauri 桌面应用构建
+  build-tauri:
+    name: Build Tauri ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            os: ubuntu-22.04
+          - platform: windows
+            os: windows-latest
+          - platform: macos
+            os: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install frontend dependencies
+        working-directory: ccr-ui/frontend
+        run: npm ci
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: ccr-ui/frontend
+          tagName: ${{ github.ref_name }}
+          releaseName: 'CCR ${{ github.ref_name }}'
+          releaseBody: 'See the release notes for details.'
+          releaseDraft: false
+          prerelease: false
+
   # 📢 发布后汇总
   post-release:
     name: Post Release Summary
-    needs: build-and-release
+    needs: [build-and-release, build-tauri]
     runs-on: ubuntu-latest
     steps:
       - name: Get version from tag
@@ -166,13 +215,21 @@ jobs:
         run: |
           echo "## ✅ Release ${{ steps.get_version.outputs.version }} 构建完成！" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 发布产物（3个主流平台）" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 CLI 产物（3个主流平台）" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| 平台 | 文件 | 校验和 |" >> $GITHUB_STEP_SUMMARY
           echo "|------|------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| 🐧 Linux | \`ccr-${{ steps.get_version.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz\` | ✓ |" >> $GITHUB_STEP_SUMMARY
           echo "| 🪟 Windows | \`ccr-${{ steps.get_version.outputs.version }}-x86_64-pc-windows-msvc.zip\` | ✓ |" >> $GITHUB_STEP_SUMMARY
           echo "| 🍎 macOS ARM | \`ccr-${{ steps.get_version.outputs.version }}-aarch64-apple-darwin.tar.gz\` | ✓ |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🖥️ 桌面应用 (Tauri)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 平台 | 格式 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐧 Linux | AppImage, deb |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🪟 Windows | msi, exe |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🍎 macOS | dmg, app |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 链接" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

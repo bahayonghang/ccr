@@ -17,48 +17,57 @@
       <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 animate-fade-in">
         <div class="flex items-center gap-5">
           <div class="relative group">
-            <div class="absolute inset-0 bg-guofeng-jade/20 blur-lg rounded-full group-hover:bg-guofeng-jade/30 transition-all duration-500" />
+            <div class="absolute inset-0 bg-accent-primary/20 blur-lg rounded-full group-hover:bg-accent-primary/30 transition-all duration-500" />
             <div class="relative w-16 h-16 rounded-2xl glass-effect flex items-center justify-center border border-white/20 shadow-lg group-hover:scale-105 transition-transform duration-300">
-              <Code2 class="w-8 h-8 text-guofeng-jade" />
+              <img
+                src="@/assets/logo.png"
+                alt="CCR Logo"
+                class="w-10 h-10 object-contain drop-shadow-md"
+              >
             </div>
           </div>
           <div>
             <h1 class="text-3xl font-bold brand-gradient-text tracking-tight mb-1">
               {{ $t('home.title') }}
             </h1>
-            <div class="flex items-center gap-3 text-sm text-guofeng-text-secondary">
+            <div class="flex items-center gap-3 text-sm text-text-secondary">
               <p>{{ $t('home.subtitle') }}</p>
             </div>
           </div>
         </div>
 
-        <!-- 系统状态小组件 -->
-        <div
-          v-if="systemInfo"
-          class="flex items-center gap-3 bg-guofeng-bg-secondary/40 p-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-sm"
-        >
-          <div class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20">
-            <Cpu class="w-4 h-4 text-guofeng-jade" />
-            <div class="flex flex-col">
-              <span class="text-[10px] uppercase text-guofeng-text-muted font-bold">CPU</span>
-              <span class="text-sm font-bold tabular-nums text-guofeng-text-primary">{{ systemInfo.cpu_usage?.toFixed(1) || '0.0' }}%</span>
+        <div class="flex flex-col md:flex-row items-center gap-4">
+          <!-- CCR 状态检查模块 -->
+          <CcrStatusWidget />
+
+          <!-- 系统状态小组件 -->
+          <div
+            v-if="systemInfo"
+            class="hidden md:flex items-center gap-3 bg-bg-secondary/40 p-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-sm"
+          >
+            <div class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20">
+              <Cpu class="w-4 h-4 text-accent-primary" />
+              <div class="flex flex-col">
+                <span class="text-[10px] uppercase text-text-muted font-bold">CPU</span>
+                <span class="text-sm font-bold tabular-nums text-text-primary">{{ systemInfo.cpu_usage?.toFixed(1) || '0.0' }}%</span>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20">
-            <HardDrive class="w-4 h-4 text-guofeng-indigo" />
-            <div class="flex flex-col">
-              <span class="text-[10px] uppercase text-guofeng-text-muted font-bold">MEM</span>
-              <span class="text-sm font-bold tabular-nums text-guofeng-text-primary">{{ systemInfo.memory_usage_percent?.toFixed(1) || '0.0' }}%</span>
+            <div class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20">
+              <HardDrive class="w-4 h-4 text-accent-secondary" />
+              <div class="flex flex-col">
+                <span class="text-[10px] uppercase text-text-muted font-bold">MEM</span>
+                <span class="text-sm font-bold tabular-nums text-text-primary">{{ systemInfo.memory_usage_percent?.toFixed(1) || '0.0' }}%</span>
+              </div>
             </div>
-          </div>
-          <div class="hidden sm:flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20">
-            <Activity class="w-4 h-4 text-guofeng-info" />
-            <div class="flex flex-col">
-              <span class="text-[10px] uppercase text-guofeng-text-muted font-bold">OS</span>
-              <span
-                class="text-sm font-bold text-guofeng-text-primary max-w-[100px] truncate"
-                :title="systemInfo.os"
-              >{{ systemInfo.os }}</span>
+            <div class="hidden sm:flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20">
+              <Activity class="w-4 h-4 text-accent-info" />
+              <div class="flex flex-col">
+                <span class="text-[10px] uppercase text-text-muted font-bold">OS</span>
+                <span
+                  class="text-sm font-bold text-text-primary max-w-[100px] truncate"
+                  :title="systemInfo.os"
+                >{{ systemInfo.os }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -70,8 +79,8 @@
         style="animation-delay: 0.1s"
       >
         <div class="flex items-center gap-2 mb-4 px-1">
-          <Zap class="w-5 h-5 text-guofeng-gold" />
-          <h2 class="text-lg font-bold text-guofeng-text-primary">
+          <Zap class="w-5 h-5 text-accent-warning" />
+          <h2 class="text-lg font-bold text-text-primary">
             {{ $t('home.quickActions') }}
           </h2>
         </div>
@@ -135,8 +144,8 @@
         style="animation-delay: 0.2s"
       >
         <div class="flex items-center gap-2 mb-4 px-1">
-          <Code2 class="w-5 h-5 text-guofeng-jade" />
-          <h2 class="text-lg font-bold text-guofeng-text-primary">
+          <Code2 class="w-5 h-5 text-accent-primary" />
+          <h2 class="text-lg font-bold text-text-primary">
             {{ $t('home.aiCliTools') }}
           </h2>
         </div>
@@ -219,23 +228,23 @@
           variant="glass"
           class="relative overflow-hidden group"
         >
-          <div class="absolute top-0 right-0 w-32 h-32 bg-guofeng-jade/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-guofeng-jade/20" />
+          <div class="absolute top-0 right-0 w-32 h-32 bg-accent-primary/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-accent-primary/20" />
           <div class="relative z-10">
             <div class="flex items-center justify-between mb-4">
-              <div class="w-12 h-12 rounded-xl bg-guofeng-jade/10 flex items-center justify-center">
-                <FileText class="w-6 h-6 text-guofeng-jade" />
+              <div class="w-12 h-12 rounded-xl bg-accent-primary/10 flex items-center justify-center">
+                <FileText class="w-6 h-6 text-accent-primary" />
               </div>
-              <TrendingUp class="w-5 h-5 text-guofeng-jade/50" />
+              <TrendingUp class="w-5 h-5 text-accent-primary/50" />
             </div>
-            <h3 class="text-2xl font-bold text-guofeng-text-primary mb-1">
+            <h3 class="text-2xl font-bold text-text-primary mb-1">
               {{ $t('home.configsCount') }}
             </h3>
-            <p class="text-sm text-guofeng-text-secondary">
+            <p class="text-sm text-text-secondary">
               {{ $t('home.totalConfigurations') }}
             </p>
             <RouterLink
               to="/configs"
-              class="mt-4 inline-flex items-center text-sm font-medium text-guofeng-jade hover:underline"
+              class="mt-4 inline-flex items-center text-sm font-medium text-accent-primary hover:underline"
             >
               {{ $t('common.viewDetails') }}
               <ChevronRight class="w-4 h-4 ml-1" />
@@ -247,23 +256,23 @@
           variant="glass"
           class="relative overflow-hidden group"
         >
-          <div class="absolute top-0 right-0 w-32 h-32 bg-guofeng-indigo/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-guofeng-indigo/20" />
+          <div class="absolute top-0 right-0 w-32 h-32 bg-accent-secondary/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-accent-secondary/20" />
           <div class="relative z-10">
             <div class="flex items-center justify-between mb-4">
-              <div class="w-12 h-12 rounded-xl bg-guofeng-indigo/10 flex items-center justify-center">
-                <Server class="w-6 h-6 text-guofeng-indigo" />
+              <div class="w-12 h-12 rounded-xl bg-accent-secondary/10 flex items-center justify-center">
+                <Server class="w-6 h-6 text-accent-secondary" />
               </div>
-              <TrendingUp class="w-5 h-5 text-guofeng-indigo/50" />
+              <TrendingUp class="w-5 h-5 text-accent-secondary/50" />
             </div>
-            <h3 class="text-2xl font-bold text-guofeng-text-primary mb-1">
+            <h3 class="text-2xl font-bold text-text-primary mb-1">
               {{ $t('home.mcpServers') }}
             </h3>
-            <p class="text-sm text-guofeng-text-secondary">
+            <p class="text-sm text-text-secondary">
               {{ $t('home.mcpServersDesc') }}
             </p>
             <RouterLink
               to="/claude-code"
-              class="mt-4 inline-flex items-center text-sm font-medium text-guofeng-indigo hover:underline"
+              class="mt-4 inline-flex items-center text-sm font-medium text-accent-secondary hover:underline"
             >
               {{ $t('common.viewDetails') }}
               <ChevronRight class="w-4 h-4 ml-1" />
@@ -283,10 +292,10 @@
               </div>
               <TrendingUp class="w-5 h-5 text-amber-500/50" />
             </div>
-            <h3 class="text-2xl font-bold text-guofeng-text-primary mb-1">
+            <h3 class="text-2xl font-bold text-text-primary mb-1">
               {{ $t('home.backupStatus') }}
             </h3>
-            <p class="text-sm text-guofeng-text-secondary">
+            <p class="text-sm text-text-secondary">
               {{ $t('home.lastBackup') }}
             </p>
             <RouterLink
@@ -309,65 +318,65 @@
           variant="glass"
           class="relative overflow-hidden"
         >
-          <div class="absolute top-0 right-0 w-64 h-64 bg-guofeng-jade/5 rounded-full blur-3xl -mr-16 -mt-16" />
+          <div class="absolute top-0 right-0 w-64 h-64 bg-accent-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
           <div class="relative z-10">
             <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-guofeng-jade/10 flex items-center justify-center shrink-0">
-                <Lightbulb class="w-6 h-6 text-guofeng-jade" />
+              <div class="w-12 h-12 rounded-xl bg-accent-primary/10 flex items-center justify-center shrink-0">
+                <Lightbulb class="w-6 h-6 text-accent-primary" />
               </div>
               <div class="flex-1">
-                <h3 class="text-lg font-bold text-guofeng-text-primary mb-2">
+                <h3 class="text-lg font-bold text-text-primary mb-2">
                   {{ $t('home.quickTipsTitle') }}
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="flex items-start gap-3 p-3 rounded-lg bg-guofeng-bg-secondary/30 border border-guofeng-border/30">
-                    <div class="w-6 h-6 rounded-md bg-guofeng-jade/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <span class="text-xs font-bold text-guofeng-jade">1</span>
+                  <div class="flex items-start gap-3 p-3 rounded-lg bg-bg-secondary/30 border border-border-subtle">
+                    <div class="w-6 h-6 rounded-md bg-accent-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <span class="text-xs font-bold text-accent-primary">1</span>
                     </div>
                     <div>
-                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">
+                      <h4 class="text-sm font-semibold text-text-primary mb-1">
                         {{ $t('home.tip1Title') }}
                       </h4>
-                      <p class="text-xs text-guofeng-text-secondary">
+                      <p class="text-xs text-text-secondary">
                         {{ $t('home.tip1Desc') }}
                       </p>
                     </div>
                   </div>
-                  <div class="flex items-start gap-3 p-3 rounded-lg bg-guofeng-bg-secondary/30 border border-guofeng-border/30">
-                    <div class="w-6 h-6 rounded-md bg-guofeng-indigo/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <span class="text-xs font-bold text-guofeng-indigo">2</span>
+                  <div class="flex items-start gap-3 p-3 rounded-lg bg-bg-secondary/30 border border-border-subtle">
+                    <div class="w-6 h-6 rounded-md bg-accent-secondary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <span class="text-xs font-bold text-accent-secondary">2</span>
                     </div>
                     <div>
-                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">
+                      <h4 class="text-sm font-semibold text-text-primary mb-1">
                         {{ $t('home.tip2Title') }}
                       </h4>
-                      <p class="text-xs text-guofeng-text-secondary">
+                      <p class="text-xs text-text-secondary">
                         {{ $t('home.tip2Desc') }}
                       </p>
                     </div>
                   </div>
-                  <div class="flex items-start gap-3 p-3 rounded-lg bg-guofeng-bg-secondary/30 border border-guofeng-border/30">
-                    <div class="w-6 h-6 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <span class="text-xs font-bold text-amber-500">3</span>
+                  <div class="flex items-start gap-3 p-3 rounded-lg bg-bg-secondary/30 border border-border-subtle">
+                    <div class="w-6 h-6 rounded-md bg-accent-warning/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <span class="text-xs font-bold text-accent-warning">3</span>
                     </div>
                     <div>
-                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">
+                      <h4 class="text-sm font-semibold text-text-primary mb-1">
                         {{ $t('home.tip3Title') }}
                       </h4>
-                      <p class="text-xs text-guofeng-text-secondary">
+                      <p class="text-xs text-text-secondary">
                         {{ $t('home.tip3Desc') }}
                       </p>
                     </div>
                   </div>
-                  <div class="flex items-start gap-3 p-3 rounded-lg bg-guofeng-bg-secondary/30 border border-guofeng-border/30">
-                    <div class="w-6 h-6 rounded-md bg-cyan-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <span class="text-xs font-bold text-cyan-500">4</span>
+                  <div class="flex items-start gap-3 p-3 rounded-lg bg-bg-secondary/30 border border-border-subtle">
+                    <div class="w-6 h-6 rounded-md bg-accent-info/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <span class="text-xs font-bold text-accent-info">4</span>
                     </div>
                     <div>
-                      <h4 class="text-sm font-semibold text-guofeng-text-primary mb-1">
+                      <h4 class="text-sm font-semibold text-text-primary mb-1">
                         {{ $t('home.tip4Title') }}
                       </h4>
-                      <p class="text-xs text-guofeng-text-secondary">
+                      <p class="text-xs text-text-secondary">
                         {{ $t('home.tip4Desc') }}
                       </p>
                     </div>
@@ -405,8 +414,9 @@ import {
   ChevronRight
 } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'
+import CcrStatusWidget from '@/components/CcrStatusWidget.vue'
 import UsageStatsDashboard from '@/components/UsageStatsDashboard.vue'
-import { getSystemInfo, getVersion } from '@/api/client'
+import { getSystemInfo } from '@/api/client'
 
 interface ModuleCard {
   titleKey: string;
@@ -426,16 +436,11 @@ interface SystemInfo {
 }
 
 const systemInfo = ref<SystemInfo | null>(null)
-const version = ref<string>('')
 
 onMounted(async () => {
   try {
-    const [sysInfo, versionInfo] = await Promise.all([
-      getSystemInfo(),
-      getVersion()
-    ])
+    const sysInfo = await getSystemInfo()
     systemInfo.value = sysInfo
-    version.value = versionInfo.current_version
   } catch (error) {
     console.error('Failed to load dashboard data:', error)
   }

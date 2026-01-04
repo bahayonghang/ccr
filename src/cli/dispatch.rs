@@ -2,6 +2,7 @@
 //
 // 将 CLI 命令路由到对应的处理函数
 
+#[cfg(feature = "web")]
 use crate::cli::subcommands::{AllSyncAction, FolderAction};
 use crate::cli::{Cli, Commands};
 use crate::core::error::CcrError;
@@ -89,6 +90,7 @@ impl CommandDispatcher {
             }
 
             // 容器命令
+            #[cfg(feature = "web")]
             Some(Commands::Tui {
                 auto_yes: cmd_auto_yes,
             }) => crate::tui::run_tui(auto_yes || *cmd_auto_yes),
@@ -99,6 +101,7 @@ impl CommandDispatcher {
                 backend_port,
             }) => Self::dispatch_ui(action, *port, *backend_port, auto_yes).await,
 
+            #[cfg(feature = "web")]
             Some(Commands::Sync { action }) => Self::dispatch_sync(action, auto_yes).await,
 
             Some(Commands::TempToken { action }) => Self::dispatch_temp_token(action).await,
@@ -185,6 +188,7 @@ impl CommandDispatcher {
     }
 
     /// Sync 命令分发
+    #[cfg(feature = "web")]
     async fn dispatch_sync(
         action: &crate::cli::subcommands::SyncAction,
         _auto_yes: bool,
@@ -223,6 +227,7 @@ impl CommandDispatcher {
     }
 
     /// Folder 命令分发
+    #[cfg(feature = "web")]
     fn dispatch_folder(action: &FolderAction) -> Result<(), CcrError> {
         match action {
             FolderAction::List => crate::commands::sync_cmd::sync_folder_list_command(),
@@ -253,6 +258,7 @@ impl CommandDispatcher {
     }
 
     /// AllSync 命令分发
+    #[cfg(feature = "web")]
     async fn dispatch_all_sync(action: &AllSyncAction) -> Result<(), CcrError> {
         match action {
             AllSyncAction::Push { force } => {

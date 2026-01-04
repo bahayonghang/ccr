@@ -72,6 +72,19 @@ fn default_limit() -> usize {
     10
 }
 
+/// 热力图数据响应
+#[derive(Debug, Serialize)]
+pub struct HeatmapResponse {
+    /// 日期 -> token 数量
+    pub data: HashMap<String, u64>,
+    /// 最大值（用于计算 level）
+    pub max_value: u64,
+    /// 总 token 数
+    pub total_tokens: u64,
+    /// 活跃天数
+    pub active_days: u32,
+}
+
 // ============================================================
 // API 处理器
 // ============================================================
@@ -267,6 +280,104 @@ pub async fn stats_summary() -> impl IntoResponse {
         )
             .into_response()
     }
+}
+
+/// GET /api/stats/heatmap - 热力图数据（按日期聚合 tokens）
+pub async fn get_heatmap_data() -> Result<Json<HeatmapResponse>, StatusCode> {
+    use serde_json::Value;
+    use walkdir::WalkDir;
+
+    // 获取 Claude 的 projects 目录
+    let home = dirs::home_dir().ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    let projects_dir = home.join(".claude").join("projects");
+
+    // 计算365天前的日期
+    let now = chrono::Utc::now();
+    let start_date = now - chrono::Duration::days(365);
+
+    let mut data: HashMap<String, u64> = HashMap::new();
+    let mut max_value: u64 = 0;
+    let mut total_tokens: u64 = 0;
+
+    // 遍历所有 .jsonl 文件
+    if projects_dir.exists() {
+        for entry in WalkDir::new(&projects_dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            if path.extension().is_some_and(|ext| ext == "jsonl")
+                && let Ok(content) = std::fs::read_to_string(path)
+            {
+                for line in content.lines() {
+                    if let Ok(json) = serde_json::from_str::<Value>(line) {
+                        // 解析 timestamp
+                        let timestamp = json
+                            .get("timestamp")
+                            .or_else(|| json.get("message").and_then(|m| m.get("timestamp")))
+                            .and_then(|t| t.as_str());
+
+                        // 解析 usage
+                        let usage = json
+                            .get("usage")
+                            .or_else(|| json.get("message").and_then(|m| m.get("usage")));
+
+                        if let (Some(ts), Some(usage)) = (timestamp, usage) {
+                            // 提取日期部分 (YYYY-MM-DD)
+                            if let Some(date_str) = ts.split('T').next() {
+                                // 检查是否在365天内
+                                if let Ok(date) =
+                                    chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+                                {
+                                    let date_utc = date.and_hms_opt(0, 0, 0).map(|dt| {
+                                        chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
+                                            dt,
+                                            chrono::Utc,
+                                        )
+                                    });
+                                    if date_utc.is_some_and(|d| d >= start_date) {
+                                        // 计算 tokens - 使用 map_or 避免 unwrap 系列
+                                        let input = usage
+                                            .get("input_tokens")
+                                            .and_then(|v| v.as_u64())
+                                            .map_or(0, |v| v);
+                                        let output = usage
+                                            .get("output_tokens")
+                                            .and_then(|v| v.as_u64())
+                                            .map_or(0, |v| v);
+                                        let cache = usage
+                                            .get("cache_read_input_tokens")
+                                            .and_then(|v| v.as_u64())
+                                            .map_or(0, |v| v);
+                                        let tokens = input + output + cache;
+
+                                        let entry = data.entry(date_str.to_string()).or_insert(0);
+                                        *entry += tokens;
+                                        total_tokens += tokens;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 计算 max_value 和 active_days
+    let active_days = data.len() as u32;
+    for count in data.values() {
+        if *count > max_value {
+            max_value = *count;
+        }
+    }
+
+    Ok(Json(HeatmapResponse {
+        data,
+        max_value,
+        total_tokens,
+        active_days,
+    }))
 }
 
 // ============================================================

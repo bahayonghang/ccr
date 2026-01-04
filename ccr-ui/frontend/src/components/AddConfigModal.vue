@@ -10,6 +10,10 @@
 
     <!-- 弹窗内容 -->
     <div
+      ref="modalRef"
+      role="dialog"
+      aria-modal="true"
+      :aria-labelledby="titleId"
       class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-8 transition-all duration-300"
       :style="{
         background: 'rgba(255, 255, 255, 0.95)',
@@ -24,15 +28,16 @@
         <div class="flex items-center gap-3">
           <div
             class="p-3 rounded-xl"
-            :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
+            :style="{ background: 'rgba(var(--accent-success-rgb), 0.15)' }"
           >
             <Plus
               class="w-6 h-6"
-              :style="{ color: '#10b981' }"
+              :style="{ color: 'var(--accent-success)' }"
             />
           </div>
           <div>
             <h2
+              :id="titleId"
               class="text-2xl font-bold"
               :style="{ color: 'var(--text-primary)' }"
             >
@@ -52,6 +57,7 @@
             background: 'rgba(0, 0, 0, 0.05)',
             color: 'var(--text-secondary)'
           }"
+          :aria-label="$t('common.close')"
           @click="handleClose"
         >
           <X class="w-5 h-5" />
@@ -223,13 +229,34 @@
           >
         </div>
 
+        <!-- Small Fast Model -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: 'var(--text-primary)' }"
+          >
+            ⚡ Small Fast Model
+          </label>
+          <input
+            v-model="formData.small_fast_model"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            :placeholder="$t('configs.addConfig.smallModelPlaceholder') || 'claude-3-haiku-20240307'"
+          >
+        </div>
+
         <!-- Provider Type -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
             :style="{ color: 'var(--text-primary)' }"
           >
-            Provider Type
+            🏷️ {{ $t('configs.addConfig.providerType') || 'Provider Type' }}
           </label>
           <select
             v-model="formData.provider_type"
@@ -241,15 +268,96 @@
             }"
           >
             <option value="">
-              {{ $t('configs.addConfig.providerUncategorized') }}
+              ❓ {{ $t('configs.addConfig.providerUncategorized') }}
             </option>
             <option value="official_relay">
-              {{ $t('configs.addConfig.providerOfficialRelay') }}
+              🔄 {{ $t('configs.addConfig.providerOfficialRelay') }}
             </option>
             <option value="third_party_model">
-              {{ $t('configs.addConfig.providerThirdParty') }}
+              🤖 {{ $t('configs.addConfig.providerThirdParty') }}
             </option>
           </select>
+        </div>
+
+        <!-- Provider Name -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: 'var(--text-primary)' }"
+          >
+            🏢 {{ $t('configs.addConfig.providerName') || '提供商名称' }}
+          </label>
+          <input
+            v-model="formData.provider"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            :placeholder="$t('configs.addConfig.providerNamePlaceholder') || '如: anyrouter, glm, moonshot'"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            {{ $t('configs.addConfig.providerNameHint') || '用于标识同一提供商的不同配置' }}
+          </p>
+        </div>
+
+        <!-- Account -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: 'var(--text-primary)' }"
+          >
+            👤 {{ $t('configs.addConfig.account') || '账号标识' }}
+          </label>
+          <input
+            v-model="formData.account"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            :placeholder="$t('configs.addConfig.accountPlaceholder') || '如: github_5953, personal, work'"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            {{ $t('configs.addConfig.accountHint') || '用于区分同一提供商的不同账号' }}
+          </p>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: 'var(--text-primary)' }"
+          >
+            🏷️ {{ $t('configs.addConfig.tags') || '标签' }}
+          </label>
+          <input
+            v-model="tagsInput"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            :placeholder="$t('configs.addConfig.tagsPlaceholder') || '用逗号分隔，如: free, stable, backup'"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            {{ $t('configs.addConfig.tagsHint') || '用于灵活分类和筛选，多个标签用逗号分隔' }}
+          </p>
         </div>
 
         <!-- 按钮组 -->
@@ -259,7 +367,7 @@
             :disabled="saving || !isFormValid"
             class="flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             :style="{
-              background: 'linear-gradient(135deg, #10b981, #059669)',
+              background: 'var(--gradient-primary)',
               boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)'
             }"
           >
@@ -275,6 +383,7 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, X } from 'lucide-vue-next'
+import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 import { addConfig } from '@/api'
 import type { UpdateConfigRequest } from '@/types'
 
@@ -301,8 +410,32 @@ const emit = defineEmits<{
 
 const { t } = useI18n({ useScope: 'global' })
 
+// Accessibility enhancements
+const titleId = useUniqueId('add-config-modal-title')
+const modalRef = ref<HTMLElement | null>(null)
+const isOpenRef = ref(props.isOpen)
+
+watch(() => props.isOpen, (newValue) => {
+  isOpenRef.value = newValue
+})
+
+// Close handler
+const handleClose = () => {
+  emit('close')
+}
+
+const { focusFirstElement } = useFocusTrap(modalRef, isOpenRef)
+useEscapeKey(handleClose, isOpenRef)
+
+watch(isOpenRef, (isOpen) => {
+  if (isOpen) {
+    setTimeout(() => focusFirstElement(), 100)
+  }
+})
+
 const saving = ref(false)
 const selectedTemplate = ref<string | null>(null)
+const tagsInput = ref('')
 
 const formData = ref<UpdateConfigRequest>({
   name: '',
@@ -310,7 +443,11 @@ const formData = ref<UpdateConfigRequest>({
   base_url: '',
   auth_token: '',
   model: '',
-  provider_type: ''
+  small_fast_model: '',
+  provider_type: '',
+  provider: '',
+  account: '',
+  tags: []
 })
 
 // 配置模板
@@ -320,7 +457,7 @@ const templates: ConfigTemplate[] = [
     label: 'CC 中转',
     description: 'Claude 官方中转服务',
     icon: '🔄',
-    color: '#6366f1',
+    color: 'var(--platform-gemini)',
     base_url: 'https://api.claudecc.com',
     model: 'claude-sonnet-4-20250514',
     provider_type: 'official_relay'
@@ -330,7 +467,7 @@ const templates: ConfigTemplate[] = [
     label: 'Kimi',
     description: '月之暗面 Moonshot',
     icon: '🌙',
-    color: '#8b5cf6',
+    color: 'var(--platform-claude)',
     base_url: 'https://api.moonshot.cn/v1',
     model: 'moonshot-v1-128k',
     provider_type: 'third_party_model'
@@ -340,7 +477,7 @@ const templates: ConfigTemplate[] = [
     label: '智谱 GLM',
     description: '智谱 AI ChatGLM',
     icon: '🧠',
-    color: '#0ea5e9',
+    color: 'var(--accent-info)',
     base_url: 'https://open.bigmodel.cn/api/paas/v4',
     model: 'glm-4.6',
     provider_type: 'third_party_model'
@@ -350,7 +487,7 @@ const templates: ConfigTemplate[] = [
     label: 'DeepSeek',
     description: 'DeepSeek Chat',
     icon: '🔍',
-    color: '#10b981',
+    color: 'var(--accent-success)',
     base_url: 'https://api.deepseek.com/v1',
     model: 'deepseek-chat',
     provider_type: 'third_party_model'
@@ -360,7 +497,7 @@ const templates: ConfigTemplate[] = [
     label: '通义千问',
     description: '阿里通义千问',
     icon: '☁️',
-    color: '#f59e0b',
+    color: 'var(--platform-qwen)',
     base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     model: 'qwen-max',
     provider_type: 'third_party_model'
@@ -388,23 +525,29 @@ const applyTemplate = (template: ConfigTemplate) => {
   }
 }
 
+// 解析标签输入
+const parseTags = (input: string): string[] => {
+  return input.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+}
+
 // 保存配置
 const handleSave = async () => {
   if (!isFormValid.value) return
 
   try {
     saving.value = true
+    const tags = parseTags(tagsInput.value)
     const payload: UpdateConfigRequest = {
       name: formData.value.name,
       description: formData.value.description,
       base_url: formData.value.base_url,
       auth_token: formData.value.auth_token,
       model: (formData.value.model ?? '').trim() || undefined,
-      small_fast_model: formData.value.small_fast_model || undefined,
-      provider: formData.value.provider || undefined,
+      small_fast_model: (formData.value.small_fast_model ?? '').trim() || undefined,
+      provider: (formData.value.provider ?? '').trim() || undefined,
       provider_type: formData.value.provider_type || undefined,
-      account: formData.value.account || undefined,
-      tags: formData.value.tags || undefined
+      account: (formData.value.account ?? '').trim() || undefined,
+      tags: tags.length > 0 ? tags : undefined
     }
     await addConfig(payload)
     alert(t('configs.addConfig.success', { name: formData.value.name }))
@@ -418,10 +561,6 @@ const handleSave = async () => {
   }
 }
 
-const handleClose = () => {
-  emit('close')
-}
-
 // 重置表单
 const resetForm = () => {
   formData.value = {
@@ -430,8 +569,13 @@ const resetForm = () => {
     base_url: '',
     auth_token: '',
     model: '',
-    provider_type: ''
+    small_fast_model: '',
+    provider_type: '',
+    provider: '',
+    account: '',
+    tags: []
   }
+  tagsInput.value = ''
   selectedTemplate.value = null
 }
 

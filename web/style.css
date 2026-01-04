@@ -1176,6 +1176,29 @@ body {
     font-weight: 600;
     color: var(--text-secondary);
     margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* 带颜色的表单标签 */
+.form-label-colored {
+    font-weight: 700;
+    transition: color 0.3s ease;
+}
+
+/* 表单提示文字 */
+.form-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    padding-left: 4px;
+    border-left: 2px solid var(--border-color);
+    transition: border-color 0.3s ease;
+}
+
+.form-group:hover .form-hint {
+    border-left-color: var(--accent-primary);
 }
 
 .form-input {

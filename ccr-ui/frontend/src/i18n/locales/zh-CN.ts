@@ -109,6 +109,66 @@ export default {
     toolsCenter: '工具中心',
     checkin: '签到管理',
   },
+  checkin: {
+    title: '签到管理',
+    description: '管理所有平台的自动签到任务和 Cookie',
+    backToConfigs: '返回配置',
+    stats: {
+      total_accounts: '总账号数',
+      today_checkins: '今日已签',
+      success_rate: '签到成功率',
+      active_cookies: '有效 Cookie',
+      consecutive_days: '连续签到(天)',
+      total_days: '累计签到(天)',
+      longest_consecutive: '最长连续(天)',
+      monthly_rate: '本月签到率',
+      load_error: '加载统计数据失败',
+    },
+    account_manager: {
+      title: '账号管理',
+      go_manage: '前往管理',
+      dashboard: 'Dashboard',
+      load_error: '加载账号列表失败',
+      delete_confirm: '确定要删除此账号吗？',
+      delete_fail: '删除失败',
+    },
+    account_list: {
+      title: '账号列表',
+      add_account: '添加账号',
+      no_accounts: '暂无账号',
+      platform: '平台',
+      account: '账号',
+      status: '状态',
+      last_checkin: '上次签到',
+      actions: '操作',
+      edit: '编辑',
+      delete: '删除',
+      delete_confirm: '确定删除账号 {name} 吗？',
+    },
+    token_config: {
+      title: 'Token 配置',
+      description: '配置各平台 Token',
+      save: '保存配置',
+      placeholder: '请输入 Token',
+      integrated_hint: 'Token 配置已集成在账号管理中。请在账号管理中配置每个账号的 Cookies 和 API User。',
+      go_account_manage_arrow: '前往账号管理 →',
+    },
+    history: {
+      title: '签到历史',
+      time: '时间',
+      platform: '平台',
+      account: '账号',
+      status: '状态',
+      message: '信息',
+      no_history: '暂无签到历史',
+      load_error: '加载签到记录失败',
+    },
+    status: {
+      success: '成功',
+      already_checked_in: '已签到',
+      failed: '失败',
+    },
+  },
   home: {
     title: 'CCR UI',
     subtitle: 'AI CLI 配置管理中心',
@@ -691,9 +751,20 @@ export default {
       descriptionPlaceholder: '配置描述（可选）',
       tokenPlaceholder: '输入 API Key 或 Token',
       modelPlaceholder: '模型名称（可选）',
+      smallModelPlaceholder: '小型快速模型（可选）',
+      providerType: '提供商类型',
       providerUncategorized: '未分类',
       providerOfficialRelay: '官方中转',
       providerThirdParty: '第三方模型',
+      providerName: '提供商名称',
+      providerNamePlaceholder: '如: anyrouter, glm, moonshot',
+      providerNameHint: '用于标识同一提供商的不同配置',
+      account: '账号标识',
+      accountPlaceholder: '如: github_5953, personal, work',
+      accountHint: '用于区分同一提供商的不同账号',
+      tags: '标签',
+      tagsPlaceholder: '用逗号分隔，如: free, stable, backup',
+      tagsHint: '用于灵活分类和筛选，多个标签用逗号分隔',
       cancel: '取消',
       save: '添加配置',
       saving: '添加中...',
@@ -1045,11 +1116,27 @@ export default {
       featured: '精选',
       skills: '技能',
       plugins: '插件',
-      mcp: 'MCP 服务器'
+      mcp: 'MCP 服务器',
+      commands: '命令'
     },
     install: '安装',
     installed: '已安装',
+    installing: '安装中...',
+    uninstall: '卸载',
+    loading: '正在加载市场...',
     noResults: '未找到匹配的项目。',
+    error: '加载市场失败',
+    categories: {
+      skill: '技能',
+      mcp: 'MCP',
+      plugin: '插件',
+      command: '命令'
+    },
+    sources: {
+      builtin: '内置',
+      remote: '远程',
+      local: '本地'
+    },
     backToClaude: '返回 Claude Code',
     backToHome: '返回首页',
     breadcrumb: {
@@ -1159,8 +1246,18 @@ export default {
       loadFailedMessage: '加载统计数据失败',
       noData: '暂无数据',
       noStatsData: '暂无统计数据',
-      noStatsHint: '开始使用 AI API 后，这里将显示统计信息'
+      noStatsHint: '开始使用 AI API 后，这里将显示统计信息',
+      loading: '加载中...'
     }
+  },
+
+  // Activity Heatmap
+  activityHeatmap: {
+    title: '活动热力图',
+    less: '较少',
+    more: '较多',
+    activeDays: '活跃天数',
+    totalTokens: '总 Token 数'
   },
 
   // Codex Module

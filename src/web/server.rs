@@ -161,6 +161,7 @@ impl WebServer {
                 get  "/api/configs"                      => crate::web::handlers::config_handlers::handle_list_configs,
                 post "/api/switch"                      => crate::web::handlers::config_handlers::handle_switch_config,
                 post "/api/config"                      => crate::web::handlers::config_handlers::handle_add_config,
+                get  "/api/config/{name}"               => crate::web::handlers::config_handlers::handle_get_config,
                 put  "/api/config/{name}"               => crate::web::handlers::config_handlers::handle_update_config,
                 delete "/api/config/{name}"             => crate::web::handlers::config_handlers::handle_delete_config,
                 patch "/api/config/{name}/enable"       => crate::web::handlers::config_handlers::enable_config,

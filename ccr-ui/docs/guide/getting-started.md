@@ -1,6 +1,6 @@
 # 快速开始
 
-面向 v3.6.2 的 CCR UI 使用与本地开发指南。
+面向 v3.9.4 的 CCR UI 使用与本地开发指南。
 
 ## 先决条件
 - Rust 1.85+（含 Cargo）
@@ -12,9 +12,15 @@
 ```bash
 ccr ui
 ```
-自动检测顺序：当前/父目录源码 → `~/.ccr/ccr-ui/` → GitHub 下载。默认端口：前端 3000，后端 8081，可用 `-p/--backend-port` 覆盖。
+自动检测顺序：当前/父目录源码 → `~/.ccr/ccr-ui/` → GitHub 下载。
 
-## 仓库开发
+**默认端口**：
+- 前端: **3000**
+- 后端: **38081** (从 v3.16+ 开始修改为 38081)
+
+可用 `-p/--backend-port` 覆盖后端端口。
+
+## ## 仓库开发
 ```bash
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr/ccr-ui
@@ -41,10 +47,12 @@ npm run dev   # http://localhost:5173
 ```
 
 ## 验证
-- 后端健康检查：`http://127.0.0.1:8081/api/system/info`
-- 前端访问：`http://localhost:5173`（或 `ccr ui` 设定的端口）
+- **后端健康检查**：`http://127.0.0.1:38081/api/system/info`
+- **前端访问**：`http://localhost:3000`（或 `ccr ui` 设定的端口）
 
-## 生产构建
+**注意**：如果您使用的是旧版本（v3.15 及之前），后端默认端口可能是 8081。
+
+## ## 生产构建
 ```bash
 cd ccr-ui
 just build        # 构建后端 + 前端

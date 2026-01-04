@@ -10,6 +10,8 @@ const zhNav = [
       { text: '快速开始', link: '/guide/getting-started' },
       { text: '功能概览', link: '/guide/features' },
       { text: '项目结构', link: '/guide/project-structure' },
+      { text: '统计与成本', link: '/guide/stats' },
+      { text: '使用统计分析', link: '/guide/usage-analytics' },
       { text: 'Tauri 桌面', link: '/guide/tauri' }
     ]
   },
@@ -112,7 +114,9 @@ export default withMermaid(defineConfig({
                 { text: '简介', link: '/' },
                 { text: '快速开始', link: '/guide/getting-started' },
                 { text: '功能概览', link: '/guide/features' },
-                { text: '项目结构', link: '/guide/project-structure' }
+                { text: '项目结构', link: '/guide/project-structure' },
+                { text: '统计与成本', link: '/guide/stats' },
+                { text: '使用统计分析', link: '/guide/usage-analytics' }
               ]
             },
             {

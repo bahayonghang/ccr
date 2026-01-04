@@ -1,8 +1,8 @@
 <template>
-  <div class="relative">
+  <div class="relative w-full">
     <!-- Language Switcher Button -->
     <button
-      class="px-3 py-2 rounded-lg font-semibold text-sm transition-all flex items-center space-x-1.5 hover:scale-105"
+      class="w-full px-3 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-between gap-2 hover:scale-[1.02]"
       :style="{
         background: 'var(--bg-tertiary)',
         color: 'var(--text-primary)',
@@ -12,8 +12,12 @@
       :title="$t('language.switchLanguage')"
       @click="toggleDropdown"
     >
-      <Languages class="w-4 h-4" />
-      <span class="hidden sm:inline">{{ currentLanguageName }}</span>
+      <span class="flex items-center gap-2 min-w-0">
+        <Languages class="w-4 h-4" />
+        <span class="text-left whitespace-normal break-words">
+          {{ currentLanguageName }} / {{ targetLanguageName }}
+        </span>
+      </span>
       <ChevronDown
         class="w-3 h-3 transition-transform"
         :class="{ 'rotate-180': showDropdown }"
@@ -31,7 +35,7 @@
     >
       <div
         v-if="showDropdown"
-        class="absolute right-0 mt-2 w-40 rounded-lg overflow-hidden glass-effect z-50"
+        class="absolute left-0 mt-2 w-40 rounded-lg overflow-hidden glass-effect z-50"
         :style="{
           border: '1px solid var(--border-color)',
           boxShadow: 'var(--shadow-large)'
@@ -100,6 +104,11 @@ const currentLocale = computed(() => locale.value)
 const currentLanguageName = computed(() => {
   const current = languages.find(lang => lang.code === currentLocale.value)
   return current ? current.name : languages[0].name
+})
+
+const targetLanguageName = computed(() => {
+  const target = languages.find(lang => lang.code !== currentLocale.value)
+  return target ? target.name : languages[0].name
 })
 
 const toggleDropdown = () => {

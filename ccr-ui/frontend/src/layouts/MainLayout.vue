@@ -1,12 +1,38 @@
 <template>
   <div class="flex h-screen bg-bg-primary">
+    <!-- 跳过导航链接 - Accessibility Enhancement -->
+    <a
+      href="#main-content"
+      class="skip-to-content"
+    >
+      跳至主内容
+    </a>
     <!-- Sidebar -->
-    <div class="w-64 bg-bg-secondary border-r border-border-color flex flex-col">
+    <div 
+      class="bg-bg-secondary border-r border-border-color flex flex-col relative flex-shrink-0"
+      :style="{ width: sidebarWidth + 'px', transition: isResizing ? 'none' : 'width 0.1s ease-out' }"
+    >
+      <!-- Resize Handle -->
+      <div 
+        class="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-accent-primary/50 transition-colors z-50 group"
+        :class="{ 'bg-accent-primary': isResizing }"
+        @mousedown.prevent="startResize"
+      >
+        <!-- Visual indicator on hover/active -->
+        <div
+          class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-border-color rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          :class="{ 'opacity-100 bg-accent-primary': isResizing }"
+        />
+      </div>
       <!-- Logo and Title -->
       <div class="p-4 border-b border-border-color">
         <div class="flex items-center space-x-3">
-          <div class="p-2 rounded-lg bg-bg-tertiary animate-pulse-subtle">
-            <Zap class="w-6 h-6 text-accent-primary" />
+          <div class="p-1.5 rounded-lg bg-bg-tertiary animate-pulse-subtle">
+            <img
+              src="@/assets/logo.png"
+              alt="CCR Logo"
+              class="w-8 h-8 object-contain"
+            >
           </div>
           <div>
             <h1 class="text-xl font-bold text-text-primary">
@@ -128,23 +154,32 @@
         </div>
       </nav>
 
-      <!-- Version Info -->
-      <div class="p-4 border-t border-border-color">
+      <!-- Footer Actions -->
+      <div class="p-4 border-t border-border-color space-y-3">
+        <!-- Language Switcher -->
+        <LanguageSwitcher />
+        
+        <!-- Version Info -->
         <div class="text-xs text-text-muted flex items-center justify-between">
-          <span>CCR UI v3.16.0</span>
+          <span>CCR UI v3.17.0</span>
           <span class="animate-pulse-subtle">●</span>
         </div>
       </div>
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 flex flex-col overflow-auto">
+    <div
+      id="main-content"
+      class="flex-1 flex flex-col overflow-auto"
+      tabindex="-1"
+    >
       <RouterView />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import { 
   Home, 
   Code2, 
@@ -156,4 +191,61 @@ import {
   TrendingUp, 
   Cloud,
 } from 'lucide-vue-next'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+
+// Sidebar Resizing Logic
+const sidebarWidth = ref(260)
+const isResizing = ref(false)
+const minWidth = 180
+const maxWidth = 800
+
+const startResize = () => {
+  isResizing.value = true
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none' // Prevent text selection while dragging
+  
+  window.addEventListener('mousemove', handleResize)
+  window.addEventListener('mouseup', stopResize)
+}
+
+const handleResize = (e: MouseEvent) => {
+  if (!isResizing.value) return
+  
+  // Calculate new width
+  let newWidth = e.clientX
+  
+  // Apply constraints
+  if (newWidth < minWidth) newWidth = minWidth
+  if (newWidth > maxWidth) newWidth = maxWidth
+  
+  sidebarWidth.value = newWidth
+}
+
+const stopResize = () => {
+  isResizing.value = false
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  
+  // Save preference
+  localStorage.setItem('ccr-sidebar-width', sidebarWidth.value.toString())
+  
+  window.removeEventListener('mousemove', handleResize)
+  window.removeEventListener('mouseup', stopResize)
+}
+
+onMounted(() => {
+  // Restore preference
+  const savedWidth = localStorage.getItem('ccr-sidebar-width')
+  if (savedWidth) {
+    const width = parseInt(savedWidth)
+    if (!isNaN(width) && width >= minWidth && width <= maxWidth) {
+      sidebarWidth.value = width
+    }
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('mousemove', handleResize)
+  window.removeEventListener('mouseup', stopResize)
+})
 </script>

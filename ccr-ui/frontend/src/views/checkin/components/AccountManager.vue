@@ -1,12 +1,12 @@
 <template>
   <div class="account-manager">
     <div class="section-header">
-      <h2>账号管理</h2>
+      <h2>{{ t('checkin.account_manager.title') }}</h2>
       <button
         class="add-button"
         @click="goToCheckinManage"
       >
-        前往管理
+        {{ t('checkin.account_manager.go_manage') }}
       </button>
     </div>
 
@@ -14,7 +14,7 @@
       v-if="loading"
       class="loading"
     >
-      加载中...
+      {{ t('common.loading') }}
     </div>
     <div
       v-else-if="error"
@@ -47,13 +47,13 @@
             class="action-button view"
             @click="openAccountDashboard(account.id)"
           >
-            Dashboard
+            {{ t('checkin.account_manager.dashboard') }}
           </button>
           <button
             class="action-button delete"
             @click="deleteAccount(account.id)"
           >
-            删除
+            {{ t('checkin.account_list.delete') }}
           </button>
         </div>
       </div>
@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { listCheckinAccounts, deleteCheckinAccount } from '@/api/client'
 import type { AccountInfo } from '@/types/checkin'
 
@@ -71,13 +72,14 @@ const accounts = ref<AccountInfo[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 const router = useRouter()
+const { t } = useI18n()
 
 const fetchAccounts = async () => {
   try {
     const response = await listCheckinAccounts()
     accounts.value = response.accounts
   } catch (err) {
-    error.value = '加载账号列表失败'
+    error.value = t('checkin.account_manager.load_error')
   } finally {
     loading.value = false
   }
@@ -88,12 +90,12 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 const deleteAccount = async (id: string) => {
-  if (!confirm('确定要删除此账号吗？')) return
+  if (!confirm(t('checkin.account_manager.delete_confirm'))) return
   try {
     await deleteCheckinAccount(id)
     accounts.value = accounts.value.filter(account => account.id !== id)
   } catch (err) {
-    alert('删除失败')
+    alert(t('checkin.account_manager.delete_fail'))
   }
 }
 

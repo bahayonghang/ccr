@@ -6,7 +6,7 @@
       <div
         class="absolute top-10 right-10 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl animate-pulse"
         :style="{ 
-          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
+          background: 'var(--gradient-primary)',
           animation: 'pulse 8s ease-in-out infinite'
         }"
       />
@@ -14,7 +14,7 @@
       <div
         class="absolute bottom-10 left-10 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
-          background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%)',
+          background: 'var(--gradient-brand)',
           animation: 'pulse 10s ease-in-out infinite',
           animationDelay: '2s'
         }"
@@ -23,7 +23,7 @@
       <div
         class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full opacity-10 blur-3xl animate-pulse"
         :style="{
-          background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
+          background: 'linear-gradient(135deg, var(--accent-warning), var(--accent-danger))',
           animation: 'pulse 12s ease-in-out infinite',
           animationDelay: '4s'
         }"
@@ -39,7 +39,7 @@
             { label: $t('configs.breadcrumb.claudeCode'), path: '/claude-code', icon: Code2 },
             { label: $t('configs.breadcrumb.configs'), path: '/configs', icon: Settings }
           ]"
-          module-color="#6366f1"
+          module-color="var(--platform-gemini)"
         />
 
         <!-- Environment Badge -->
@@ -146,7 +146,7 @@
                 class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300"
                 :style="{
                   background: activeTab === 'configs' 
-                    ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
+                    ? 'var(--gradient-secondary)' 
                     : 'transparent',
                   color: activeTab === 'configs' ? 'white' : 'var(--text-secondary)',
                   boxShadow: activeTab === 'configs' 
@@ -162,7 +162,7 @@
                 class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300"
                 :style="{
                   background: activeTab === 'history' 
-                    ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
+                    ? 'var(--gradient-secondary)' 
                     : 'transparent',
                   color: activeTab === 'history' ? 'white' : 'var(--text-secondary)',
                   boxShadow: activeTab === 'history' 
@@ -196,7 +196,7 @@
                     class="flex-1 py-3 px-5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105"
                     :style="{
                       background: currentFilter === filter.type
-                        ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                        ? 'var(--gradient-secondary)'
                         : 'rgba(255, 255, 255, 0.3)',
                       backdropFilter: currentFilter === filter.type ? 'blur(10px)' : 'none',
                       border: currentFilter === filter.type
@@ -267,7 +267,7 @@
                   <button
                     class="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 text-white transition-all hover:scale-105"
                     :style="{
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      background: 'var(--gradient-primary)',
                       boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
                     }"
                     @click="isAddModalOpen = true"
@@ -608,13 +608,13 @@ const providerError = ref<string | null>(null)
 const providerSortMode = ref<'count_desc' | 'count_asc' | 'name_asc'>('count_desc')
 const showProviderModal = ref(false)
 
-// 图表颜色配置 (赛博玉/水墨风格)
+// 图表颜色配置 - 使用设计令牌 (在运行时从 CSS 变量读取)
 const chartColors = [
-  '#10b981', // 翡翠 (Jade)
-  '#6366f1', // 靛青 (Indigo)
-  '#f59e0b', // 琥珀 (Amber)
-  '#0ea5e9', // 天青 (Sky Blue)
-  '#ef4444'  // 丹砂 (Cinnabar)
+  'var(--accent-success)',     // 翡翠 (Jade)
+  'var(--platform-gemini)',    // 靛青 (Indigo)  
+  'var(--platform-codex)',     // 琥珀 (Amber)
+  'var(--accent-info)',        // 天青 (Sky Blue)
+  'var(--accent-danger)'       // 丹砂 (Cinnabar)
 ]
 
 const filters = [

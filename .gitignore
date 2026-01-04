@@ -54,13 +54,20 @@ cmake-build-*/
 .spec-workflow/
 .factory/
 .trae/
-.agent/
 .kiro/
+# .agent/
 
 openspec/
 .serena/
 
 
 ccr-ui/frontend/src-tauri/gen
+ccr-ui/frontend/src-tauri/bin
 
 ref/
+
+# Auto Claude data directory
+.auto-claude/
+
+# antigravity 共享
+# .shared/

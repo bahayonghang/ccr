@@ -10,6 +10,7 @@ pub mod command;
 pub mod config;
 pub mod converter;
 pub mod logs;
+pub mod marketplace;
 pub mod mcp;
 pub mod mcp_presets;
 pub mod platform;

@@ -23,6 +23,12 @@ features:
   - icon: 🚀
     title: Multi-interface
     details: "CLI first; optional TUI, legacy Axum Web API (`ccr web`), and full CCR UI (`ccr ui`, Vue3 + Axum + Tauri)."
+  - icon: 💸
+    title: Budget guardrails
+    details: "Track monthly/weekly budgets with `ccr budget status/set/reset`; keep usage in check alongside pricing tables."
+  - icon: 📒
+    title: Pricing tables
+    details: "Manage per-model prices with `ccr pricing list/set/remove/reset`; clean JSON export for audits."
   - icon: 🔐
     title: Safe writes
     details: "File locks + in-process mutex + atomic writes to `settings.json` and config files."
@@ -37,12 +43,12 @@ features:
     details: "Folder registry/enablement, batch or single push/pull/status, interactive allow-list, smart filters for backups/history/locks/ccr-ui."
   - icon: 📊
     title: Stats & history
-    details: "`ccr stats` (web feature) for cost/usage with JSON output; full history with masked env diffs."
+    details: "`ccr stats summary/import/export/clear` with table/JSON/CSV; history with masked env diffs."
 ---
 
 ## Installation
 
-Current version: **3.9.0** (Rust 2024). Requirements: Rust 1.85+; optional Node.js 18+ + Bun 1.0+ for CCR UI development, `just` for scripts.
+Current version: **3.16.2** (Rust 2024). Requirements: Rust 1.85+; optional Node.js 18+ + Bun 1.0+ for CCR UI development, `just` for scripts.
 
 ### Quick Install
 
@@ -85,6 +91,14 @@ ccr sync all status
 ccr ui -p 3000 --backend-port 38081
 ccr tui
 ccr web --port 8080 --no-browser
+
+# Cost controls & reporting
+ccr pricing list --verbose
+ccr pricing set claude-3.5-sonnet 15
+ccr budget status
+ccr budget set --period monthly --limit 120
+ccr stats summary --format table
+ccr stats export --format json > stats.json
 ```
 
 ## File Structure
@@ -102,11 +116,12 @@ ccr web --port 8080 --no-browser
 
 ## Highlights
 
+- Cost controls: budgets (`ccr budget`) and pricing tables (`ccr pricing`) to monitor spend and keep rates current.
 - Direct Claude settings writes with backups and masked audit history.
 - Unified multi-platform registry (Claude, Codex, Gemini, Qwen, iFlow stubs) with `platform` commands.
 - WebDAV sync with folder registry, batch/all commands, allow-list and smart filters.
 - Full interfaces: CLI/TUI/legacy Web API + CCR UI (auto-detect local/user dir/download).
-- Stats & cost analysis (`ccr stats`, web feature), JSON-friendly outputs.
+- Stats: `ccr stats summary/import/export/clear` with table/JSON/CSV outputs for reporting.
 
 ## Differences from CCS
 

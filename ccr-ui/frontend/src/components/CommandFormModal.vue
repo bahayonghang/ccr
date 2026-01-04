@@ -4,6 +4,10 @@
     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
   >
     <div
+      ref="modalRef"
+      role="dialog"
+      aria-modal="true"
+      :aria-labelledby="titleId"
       :class="modalClass"
       :style="modalStyle"
     >
@@ -13,6 +17,7 @@
         :style="headerStyle"
       >
         <h3
+          :id="titleId"
           :class="titleClass"
           :style="titleStyle"
         >
@@ -21,6 +26,7 @@
         <button
           :class="closeButtonClass"
           :style="closeButtonStyle"
+          :aria-label="$t('common.close')"
           @click="close"
         >
           <X class="w-5 h-5" />
@@ -153,6 +159,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { X, RefreshCw } from 'lucide-vue-next'
+import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 
 interface SlashCommand {
   name: string
@@ -385,13 +392,32 @@ const submitButtonStyle = computed(() => {
   }
 })
 
-// 方法
+// Accessibility enhancements
+const titleId = useUniqueId('command-form-title')
+const modalRef = ref<HTMLElement | null>(null)
+const visibleRef = ref(props.visible)
+
+watch(() => props.visible, (newValue) => {
+  visibleRef.value = newValue
+})
+
+// Close handler
 const close = () => {
   emit('update:visible', false)
   emit('update:editingCommand', null)
   resetForm()
 }
 
+const { focusFirstElement } = useFocusTrap(modalRef, visibleRef)
+useEscapeKey(close, visibleRef)
+
+watch(visibleRef, (isOpen) => {
+  if (isOpen) {
+    setTimeout(() => focusFirstElement(), 100)
+  }
+})
+
+// 方法
 const resetForm = () => {
   form.value = {
     name: '',

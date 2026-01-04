@@ -1,132 +1,171 @@
 <template>
-  <div
-    v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4"
-    @click.self="handleCancel"
+  <BaseModal
+    :model-value="isOpen"
+    :title="title"
+    :description="message"
+    :close-on-backdrop="false"
+    :close-on-escape="true"
+    :show-close="false"
+    size="sm"
+    @update:model-value="handleModalChange"
+    @close="handleCancel"
   >
-    <!-- 背景遮罩 -->
-    <div
-      class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-      @click="handleCancel"
-    />
-
-    <!-- 弹窗内容 -->
-    <div
-      class="relative w-full max-w-md overflow-hidden rounded-2xl p-6 transition-all duration-300 transform scale-100"
-      :style="{
-        background: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        border: '1px solid rgba(255, 255, 255, 0.3)',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
-      }"
-    >
+    <!-- 图标和内容 -->
+    <div class="flex flex-col items-center text-center">
       <!-- 图标 -->
-      <div class="flex justify-center mb-4">
-        <div
-          class="p-3 rounded-full"
-          :style="{
-            background: type === 'danger' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(99, 102, 241, 0.1)',
-            color: type === 'danger' ? 'var(--accent-danger)' : 'var(--accent-primary)'
-          }"
-        >
-          <slot name="icon">
-            <component
-              :is="iconComponent"
-              class="w-8 h-8"
-            />
-          </slot>
-        </div>
+      <div :class="iconContainerClasses">
+        <slot name="icon">
+          <component
+            :is="iconComponent"
+            :class="iconClasses"
+          />
+        </slot>
       </div>
 
-      <!-- 标题和内容 -->
-      <div class="text-center mb-6">
-        <h3
-          class="text-xl font-bold mb-2"
-          :style="{ color: 'var(--text-primary)' }"
-        >
-          {{ title }}
-        </h3>
-        <p
-          class="text-sm"
-          :style="{ color: 'var(--text-secondary)' }"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <!-- 标题 -->
+      <h3 class="mt-4 text-lg font-semibold text-text-primary">
+        {{ title }}
+      </h3>
 
-      <!-- 按钮组 -->
-      <div class="flex gap-3">
+      <!-- 消息 -->
+      <p class="mt-2 text-sm text-text-secondary leading-relaxed">
+        {{ message }}
+      </p>
+    </div>
+
+    <!-- 按钮 -->
+    <template #footer>
+      <div class="flex w-full gap-3">
         <button
-          class="flex-1 px-4 py-2.5 rounded-xl font-semibold transition-all hover:scale-105"
-          :style="{
-            background: 'rgba(0, 0, 0, 0.05)',
-            color: 'var(--text-secondary)'
-          }"
+          type="button"
+          class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium
+                 bg-bg-tertiary text-text-secondary
+                 hover:bg-bg-hover hover:text-text-primary
+                 focus:outline-none focus:ring-2 focus:ring-accent-primary/30
+                 transition-colors duration-150"
           @click="handleCancel"
         >
-          {{ cancelText || $t('common.cancel') }}
+          {{ cancelText || '取消' }}
         </button>
         <button
-          class="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white transition-all hover:scale-105 shadow-lg"
-          :style="{
-            background: type === 'danger' 
-              ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
-              : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-            boxShadow: type === 'danger' 
-              ? '0 4px 12px rgba(239, 68, 68, 0.3)' 
-              : '0 4px 12px rgba(99, 102, 241, 0.3)'
-          }"
+          type="button"
+          :class="confirmButtonClasses"
           @click="handleConfirm"
         >
-          {{ confirmText || $t('common.confirm') }}
+          {{ confirmText || '确认' }}
         </button>
       </div>
-    </div>
-  </div>
+    </template>
+  </BaseModal>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { AlertTriangle, Info } from 'lucide-vue-next'
+import { AlertTriangle, Info, AlertCircle } from 'lucide-vue-next'
+import BaseModal from '@/components/common/BaseModal.vue'
 
+// Props interface
 interface Props {
+  /** 是否显示 */
   isOpen: boolean
+  /** 标题 */
   title: string
+  /** 消息内容 */
   message: string
+  /** 确认按钮文本 */
   confirmText?: string
+  /** 取消按钮文本 */
   cancelText?: string
+  /** 类型变体 */
   type?: 'danger' | 'info' | 'warning'
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  type: 'info',
-  confirmText: '',
-  cancelText: ''
-})
-
+// Emits
 const emit = defineEmits<{
   confirm: []
   cancel: []
   'update:isOpen': [value: boolean]
 }>()
 
-const iconComponent = computed(() => {
-  switch (props.type) {
-    case 'danger':
-      return AlertTriangle
-    case 'warning':
-      return AlertTriangle
-    default:
-      return Info
-  }
+// Props with defaults
+const props = withDefaults(defineProps<Props>(), {
+  type: 'info',
+  confirmText: '',
+  cancelText: '',
 })
 
-const handleConfirm = () => {
-  emit('confirm')
+// 图标组件映射
+const iconComponent = computed(() => {
+  const icons = {
+    danger: AlertTriangle,
+    warning: AlertCircle,
+    info: Info,
+  }
+  return icons[props.type]
+})
+
+// 图标容器样式
+const iconContainerClasses = computed(() => {
+  const baseClasses = 'w-14 h-14 rounded-full flex items-center justify-center'
+  const typeClasses = {
+    danger: 'bg-accent-danger/10',
+    warning: 'bg-accent-warning/10',
+    info: 'bg-accent-info/10',
+  }
+  return [baseClasses, typeClasses[props.type]]
+})
+
+// 图标样式
+const iconClasses = computed(() => {
+  const baseClasses = 'w-7 h-7'
+  const typeClasses = {
+    danger: 'text-accent-danger',
+    warning: 'text-accent-warning',
+    info: 'text-accent-info',
+  }
+  return [baseClasses, typeClasses[props.type]]
+})
+
+// 确认按钮样式
+const confirmButtonClasses = computed(() => {
+  const baseClasses = [
+    'flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white',
+    'focus:outline-none focus:ring-2 focus:ring-offset-2',
+    'transition-colors duration-150',
+  ]
+
+  const typeClasses = {
+    danger: [
+      'bg-accent-danger',
+      'hover:bg-accent-danger/90',
+      'focus:ring-accent-danger/30',
+    ],
+    warning: [
+      'bg-accent-warning',
+      'hover:bg-accent-warning/90',
+      'focus:ring-accent-warning/30',
+    ],
+    info: [
+      'bg-accent-primary',
+      'hover:bg-accent-primary/90',
+      'focus:ring-accent-primary/30',
+    ],
+  }
+
+  return [...baseClasses, ...typeClasses[props.type]]
+})
+
+// 事件处理
+function handleModalChange(value: boolean) {
+  emit('update:isOpen', value)
 }
 
-const handleCancel = () => {
+function handleConfirm() {
+  emit('confirm')
+  emit('update:isOpen', false)
+}
+
+function handleCancel() {
   emit('cancel')
   emit('update:isOpen', false)
 }

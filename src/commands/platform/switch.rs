@@ -1,5 +1,6 @@
-// 🔄 platform switch 命令实现
-// 切换当前平台
+//! 🔄 platform switch 命令实现
+//!
+//! 切换当前激活的平台。
 
 #![allow(clippy::unused_async)]
 

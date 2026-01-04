@@ -8,7 +8,7 @@
 
 ### 基础信息
 
-- **基础 URL**: `http://127.0.0.1:8081/api`
+- **基础 URL**: `http://127.0.0.1:38081/api` (v3.16+ 端口修改为 38081)
 - **协议**: HTTP/1.1
 - **数据格式**: JSON
 - **字符编码**: UTF-8
@@ -817,6 +817,707 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
   "content": "配置文件内容",
   "mode": "merge",
   "backup": true
+}
+```
+
+## 💰 预算管理接口 (Budget API)
+
+管理 AI 模型调用的预算和成本限制。
+
+### 获取预算配置
+
+获取当前的预算配置。
+
+**接口信息**
+- **URL**: `/budget`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "enabled": true,
+  "daily_limit": 50.00,
+  "weekly_limit": 200.00,
+  "monthly_limit": 500.00,
+  "current_usage": {
+    "daily": 12.34,
+    "weekly": 85.67,
+    "monthly": 127.45
+  },
+  "alerts": {
+    "daily_threshold": 80,
+    "weekly_threshold": 80,
+    "monthly_threshold": 90
+  }
+}
+```
+
+### 更新预算配置
+
+更新预算限制和警告阈值。
+
+**接口信息**
+- **URL**: `/budget`
+- **方法**: `PUT`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "enabled": true,
+  "daily_limit": 100.00,
+  "weekly_limit": 500.00,
+  "monthly_limit": 1500.00,
+  "alerts": {
+    "daily_threshold": 80,
+    "weekly_threshold": 80,
+    "monthly_threshold": 90
+  }
+}
+```
+
+### 检查预算状态
+
+检查当前使用是否超出预算限制。
+
+**接口信息**
+- **URL**: `/budget/check`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "within_budget": true,
+  "warnings": [],
+  "usage_percentage": {
+    "daily": 24.68,
+    "weekly": 42.84,
+    "monthly": 25.49
+  }
+}
+```
+
+## 💲 价格查询接口 (Pricing API)
+
+查询 AI 模型的实时价格信息。
+
+### 获取模型价格列表
+
+获取所有支持模型的价格信息。
+
+**接口信息**
+- **URL**: `/pricing`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "models": [
+    {
+      "model_id": "claude-3-5-sonnet-20241022",
+      "model_name": "Claude 3.5 Sonnet",
+      "provider": "anthropic",
+      "pricing": {
+        "input_per_million": 3.00,
+        "output_per_million": 15.00,
+        "cache_write_per_million": 3.75,
+        "cache_read_per_million": 0.30
+      },
+      "context_window": 200000,
+      "max_output": 8192
+    }
+  ],
+  "last_updated": "2024-12-22T10:00:00Z"
+}
+```
+
+### 计算成本估算
+
+根据 Token 数量估算调用成本。
+
+**接口信息**
+- **URL**: `/pricing/estimate`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "model": "claude-3-5-sonnet-20241022",
+  "input_tokens": 10000,
+  "output_tokens": 5000,
+  "cache_read_tokens": 2000,
+  "cache_write_tokens": 1000
+}
+```
+
+**响应示例**
+```json
+{
+  "model": "claude-3-5-sonnet-20241022",
+  "breakdown": {
+    "input_cost": 0.03,
+    "output_cost": 0.075,
+    "cache_read_cost": 0.0006,
+    "cache_write_cost": 0.00375
+  },
+  "total_cost": 0.10935,
+  "currency": "USD"
+}
+```
+
+## 📊 用量统计接口 (Usage API)
+
+查询详细的 API 用量和使用统计。
+
+### 获取用量概览
+
+获取指定时间范围的用量统计。
+
+**接口信息**
+- **URL**: `/usage`
+- **方法**: `GET`
+
+**查询参数**
+- `range` (可选): 时间范围 (`today`/`week`/`month`)
+- `model` (可选): 按模型筛选
+
+**响应示例**
+```json
+{
+  "total_requests": 1234,
+  "total_tokens": {
+    "input": 15200000,
+    "output": 8300000,
+    "cache_read": 3100000,
+    "cache_write": 1500000
+  },
+  "by_model": {
+    "claude-3-5-sonnet-20241022": {
+      "requests": 850,
+      "input_tokens": 10000000,
+      "output_tokens": 5000000
+    }
+  },
+  "by_project": {
+    "/path/to/project": {
+      "requests": 450,
+      "total_cost": 45.00
+    }
+  },
+  "cache_efficiency": 72.45
+}
+```
+
+### 获取会话详情
+
+获取指定会话的详细用量信息。
+
+**接口信息**
+- **URL**: `/usage/sessions/{session_id}`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "session_id": "sess_abc123",
+  "created_at": "2024-12-22T08:00:00Z",
+  "total_cost": 25.50,
+  "requests": 45,
+  "models_used": ["claude-3-5-sonnet-20241022"],
+  "token_usage": {
+    "input": 500000,
+    "output": 250000,
+    "cache_read": 100000
+  }
+}
+```
+
+## 🌐 平台管理接口 (Platform API)
+
+管理多个 AI CLI 平台（Claude Code、Codex、Gemini CLI 等）。
+
+### 获取平台列表
+
+获取所有支持的平台。
+
+**接口信息**
+- **URL**: `/platform`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "platforms": [
+    {
+      "name": "claude",
+      "display_name": "Claude Code",
+      "enabled": true,
+      "current": true,
+      "config_path": "~/.claude/config.json",
+      "version": "0.8.0"
+    },
+    {
+      "name": "codex",
+      "display_name": "Codex",
+      "enabled": true,
+      "current": false,
+      "config_path": "~/.codex/config.json"
+    }
+  ],
+  "current_platform": "claude"
+}
+```
+
+### 切换平台
+
+切换到指定平台。
+
+**接口信息**
+- **URL**: `/platform/switch`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "platform": "gemini"
+}
+```
+
+### 获取当前平台
+
+获取当前活跃的平台。
+
+**接口信息**
+- **URL**: `/platform/current`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "name": "claude",
+  "display_name": "Claude Code",
+  "config_path": "~/.claude/config.json",
+  "version": "0.8.0"
+}
+```
+
+### 初始化平台
+
+初始化指定平台的配置。
+
+**接口信息**
+- **URL**: `/platform/{name}/init`
+- **方法**: `POST`
+
+## ☁️ WebDAV 同步接口 (Sync API)
+
+管理 WebDAV 云端同步功能。
+
+### 获取同步配置
+
+获取 WebDAV 同步配置和文件夹列表。
+
+**接口信息**
+- **URL**: `/sync/config`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "webdav": {
+    "url": "https://dav.jianguoyun.com/dav/",
+    "username": "user@example.com",
+    "connected": true
+  },
+  "folders": [
+    {
+      "name": "claude",
+      "local_path": "~/.claude",
+      "remote_path": "/ccr/claude",
+      "enabled": true,
+      "last_sync": "2024-12-22T10:00:00Z",
+      "status": "synced"
+    }
+  ]
+}
+```
+
+### 推送文件夹
+
+推送本地文件到 WebDAV。
+
+**接口信息**
+- **URL**: `/sync/push`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "folder_name": "claude",
+  "force": false
+}
+```
+
+### 拉取文件夹
+
+从 WebDAV 拉取文件到本地。
+
+**接口信息**
+- **URL**: `/sync/pull`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "folder_name": "claude",
+  "force": false
+}
+```
+
+### 检查同步状态
+
+检查指定文件夹的同步状态。
+
+**接口信息**
+- **URL**: `/sync/status/{folder_name}`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "folder_name": "claude",
+  "local_files": 45,
+  "remote_files": 45,
+  "conflicts": 0,
+  "status": "synced",
+  "last_sync": "2024-12-22T10:00:00Z"
+}
+```
+
+### 批量同步
+
+同步所有启用的文件夹。
+
+**接口信息**
+- **URL**: `/sync/batch`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "direction": "push",
+  "force": false
+}
+```
+
+## 🖥️ 系统信息接口 (System API)
+
+查询系统状态和资源使用情况。
+
+### 获取系统信息
+
+获取完整的系统信息。
+
+**接口信息**
+- **URL**: `/system/info`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "version": "3.9.4",
+  "platform": {
+    "os": "Linux",
+    "arch": "x86_64",
+    "hostname": "dev-machine"
+  },
+  "runtime": {
+    "uptime_seconds": 86400,
+    "rust_version": "1.75.0"
+  },
+  "resources": {
+    "cpu_usage": 25.5,
+    "memory": {
+      "total_mb": 16384,
+      "used_mb": 8192,
+      "available_mb": 8192
+    },
+    "disk": {
+      "total_gb": 512,
+      "used_gb": 256,
+      "available_gb": 256
+    }
+  },
+  "paths": {
+    "config_dir": "~/.ccr",
+    "data_dir": "~/.ccr/data",
+    "cache_dir": "~/.ccr/cache"
+  }
+}
+```
+
+### 获取资源使用情况
+
+获取实时资源使用情况。
+
+**接口信息**
+- **URL**: `/system/resources`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "cpu_usage": 25.5,
+  "memory_usage_mb": 8192,
+  "memory_available_mb": 8192,
+  "disk_usage_gb": 256,
+  "disk_available_gb": 256
+}
+```
+
+## 🎯 技能管理接口 (Skills API)
+
+管理自定义技能和能力。
+
+### 获取技能列表
+
+获取所有已配置的技能。
+
+**接口信息**
+- **URL**: `/skills`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "skills": [
+    {
+      "id": "code-review",
+      "name": "代码审查",
+      "description": "执行代码质量审查",
+      "enabled": true,
+      "category": "development",
+      "commands": ["review", "check"],
+      "config": {
+        "check_style": true,
+        "check_security": true
+      }
+    }
+  ],
+  "categories": ["development", "testing", "deployment"]
+}
+```
+
+### 创建技能
+
+创建新的自定义技能。
+
+**接口信息**
+- **URL**: `/skills`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "name": "自动测试",
+  "description": "运行自动化测试套件",
+  "category": "testing",
+  "commands": ["test", "spec"],
+  "config": {
+    "timeout": 300,
+    "parallel": true
+  }
+}
+```
+
+### 更新技能
+
+更新现有技能配置。
+
+**接口信息**
+- **URL**: `/skills/{id}`
+- **方法**: `PUT`
+
+### 删除技能
+
+删除指定技能。
+
+**接口信息**
+- **URL**: `/skills/{id}`
+- **方法**: `DELETE`
+
+### 启用/禁用技能
+
+切换技能的启用状态。
+
+**接口信息**
+- **URL**: `/skills/{id}/toggle`
+- **方法**: `PUT`
+
+## 📝 内置提示词接口 (Builtin Prompts API)
+
+管理系统内置的提示词模板。
+
+### 获取内置提示词列表
+
+获取所有内置提示词模板。
+
+**接口信息**
+- **URL**: `/builtin-prompts`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "prompts": [
+    {
+      "id": "code-review",
+      "name": "代码审查",
+      "description": "审查代码质量和最佳实践",
+      "category": "development",
+      "template": "Please review the following code...",
+      "variables": ["code", "language"]
+    }
+  ],
+  "categories": ["development", "writing", "analysis"]
+}
+```
+
+### 获取提示词详情
+
+获取指定提示词的详细信息。
+
+**接口信息**
+- **URL**: `/builtin-prompts/{id}`
+- **方法**: `GET`
+
+### 渲染提示词
+
+使用变量渲染提示词模板。
+
+**接口信息**
+- **URL**: `/builtin-prompts/{id}/render`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "variables": {
+    "code": "function example() { return true; }",
+    "language": "JavaScript"
+  }
+}
+```
+
+## 📅 会话管理接口 (Sessions API)
+
+管理 AI 对话会话。
+
+### 获取会话列表
+
+获取所有会话记录。
+
+**接口信息**
+- **URL**: `/sessions`
+- **方法**: `GET`
+
+**查询参数**
+- `limit` (可选): 返回数量，默认 50
+- `offset` (可选): 分页偏移量
+
+**响应示例**
+```json
+{
+  "sessions": [
+    {
+      "id": "sess_abc123",
+      "created_at": "2024-12-22T08:00:00Z",
+      "model": "claude-3-5-sonnet-20241022",
+      "total_cost": 25.50,
+      "message_count": 10,
+      "status": "active"
+    }
+  ],
+  "total": 100,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+### 获取会话详情
+
+获取指定会话的详细信息。
+
+**接口信息**
+- **URL**: `/sessions/{id}`
+- **方法**: `GET`
+
+### 删除会话
+
+删除指定会话。
+
+**接口信息**
+- **URL**: `/sessions/{id}`
+- **方法**: `DELETE`
+
+## 🏥 提供商健康检查接口 (Provider Health API)
+
+检查 AI 服务提供商的健康状态。
+
+### 检查所有提供商
+
+检查所有配置的提供商健康状态。
+
+**接口信息**
+- **URL**: `/provider-health`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "providers": [
+    {
+      "name": "anthropic",
+      "status": "healthy",
+      "response_time_ms": 250,
+      "last_check": "2024-12-22T10:00:00Z",
+      "errors": []
+    },
+    {
+      "name": "openai",
+      "status": "degraded",
+      "response_time_ms": 1500,
+      "last_check": "2024-12-22T10:00:00Z",
+      "errors": ["High latency detected"]
+    }
+  ]
+}
+```
+
+### 检查单个提供商
+
+检查指定提供商的健康状态。
+
+**接口信息**
+- **URL**: `/provider-health/{provider}`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "name": "anthropic",
+  "status": "healthy",
+  "response_time_ms": 250,
+  "api_endpoint": "https://api.anthropic.com",
+  "last_check": "2024-12-22T10:00:00Z",
+  "uptime_percentage": 99.95
 }
 ```
 

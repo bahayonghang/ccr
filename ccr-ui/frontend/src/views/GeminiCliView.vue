@@ -4,12 +4,12 @@
     <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
       <div
         class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
-        :style="{ background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)' }"
+        :style="{ background: 'linear-gradient(135deg, var(--platform-gemini) 0%, var(--platform-iflow) 100%)' }"
       />
       <div
         class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
-          background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
+          background: 'linear-gradient(135deg, var(--accent-success) 0%, var(--platform-gemini) 100%)',
           animationDelay: '1s'
         }"
       />
@@ -26,11 +26,11 @@
             >
               <Sparkles
                 class="w-10 h-10"
-                :style="{ color: '#3b82f6' }"
+                :style="{ color: 'var(--platform-gemini)' }"
               />
             </div>
             <div>
-              <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[#3b82f6] via-[#06b6d4] to-[#10b981] bg-clip-text text-transparent">
+              <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[var(--platform-gemini)] via-[var(--platform-iflow)] to-[var(--accent-success)] bg-clip-text text-transparent">
                 Gemini CLI
               </h1>
               <p
@@ -47,7 +47,7 @@
           >
             <Home
               class="w-5 h-5"
-              :style="{ color: '#64748b' }"
+              :style="{ color: 'var(--text-muted)' }"
             />
             <span
               class="font-medium"
@@ -60,25 +60,25 @@
         <div class="flex flex-wrap gap-3 mb-6">
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
+            :style="{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--platform-gemini)' }"
           >
             🔌 MCP 服务器
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
+            :style="{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-success)' }"
           >
             🤖 智能代理
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+            :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--platform-claude)' }"
           >
             🧩 插件系统
           </span>
           <span
             class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(6, 182, 212, 0.1)', color: '#06b6d4' }"
+            :style="{ background: 'rgba(6, 182, 212, 0.1)', color: 'var(--platform-iflow)' }"
           >
             🌟 多模态
           </span>
@@ -93,7 +93,7 @@
         >
           <Boxes
             class="w-7 h-7"
-            :style="{ color: '#3b82f6' }"
+            :style="{ color: 'var(--platform-gemini)' }"
           />
           {{ $t('common.modules') }}
         </h2>
@@ -110,7 +110,7 @@
                 >
                   <Server
                     class="w-7 h-7"
-                    :style="{ color: '#3b82f6' }"
+                    :style="{ color: 'var(--platform-gemini)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -130,7 +130,7 @@
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(59, 130, 246, 0.15)',
-                      color: '#3b82f6'
+                      color: 'var(--platform-gemini)'
                     }"
                   >
                     🔌 MCP
@@ -152,7 +152,7 @@
                 >
                   <Bot
                     class="w-7 h-7"
-                    :style="{ color: '#10b981' }"
+                    :style="{ color: 'var(--accent-success)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -172,7 +172,7 @@
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(16, 185, 129, 0.15)',
-                      color: '#10b981'
+                      color: 'var(--accent-success)'
                     }"
                   >
                     🤖 AI
@@ -194,7 +194,7 @@
                 >
                   <Puzzle
                     class="w-7 h-7"
-                    :style="{ color: '#8b5cf6' }"
+                    :style="{ color: 'var(--platform-claude)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -214,7 +214,7 @@
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(139, 92, 246, 0.15)',
-                      color: '#8b5cf6'
+                      color: 'var(--platform-claude)'
                     }"
                   >
                     🧩 插件
@@ -236,7 +236,7 @@
                 >
                   <Command
                     class="w-7 h-7"
-                    :style="{ color: '#06b6d4' }"
+                    :style="{ color: 'var(--platform-iflow)' }"
                   />
                 </div>
                 <div class="flex-1">
@@ -256,7 +256,7 @@
                     class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
                     :style="{
                       background: 'rgba(6, 182, 212, 0.15)',
-                      color: '#06b6d4'
+                      color: 'var(--platform-iflow)'
                     }"
                   >
                     ⌨️ 命令
@@ -277,7 +277,7 @@
           >
             <Info
               class="w-6 h-6"
-              :style="{ color: '#3b82f6' }"
+              :style="{ color: 'var(--platform-gemini)' }"
             />
           </div>
           <div class="flex-1">

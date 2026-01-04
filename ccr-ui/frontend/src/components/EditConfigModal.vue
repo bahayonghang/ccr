@@ -12,6 +12,10 @@
 
     <!-- 弹窗内容 -->
     <div
+      ref="modalRef"
+      role="dialog"
+      aria-modal="true"
+      :aria-labelledby="titleId"
       class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-8 transition-all duration-300"
       :style="{
         background: 'rgba(255, 255, 255, 0.95)',
@@ -26,7 +30,7 @@
         <div class="flex items-center gap-3">
           <div
             class="p-3 rounded-xl"
-            :style="{ background: 'rgba(99, 102, 241, 0.15)' }"
+            :style="{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))' }"
           >
             <Settings
               class="w-6 h-6"
@@ -35,16 +39,22 @@
           </div>
           <div>
             <h2
+              :id="titleId"
               class="text-2xl font-bold"
-              :style="{ color: 'var(--text-primary)' }"
+              :style="{ 
+                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }"
             >
-              编辑配置
+              ⚙️ 编辑配置
             </h2>
             <p
-              class="text-sm"
+              class="text-sm flex items-center gap-1"
               :style="{ color: 'var(--text-secondary)' }"
             >
-              {{ configName }}
+              <span>📋</span> {{ configName }}
             </p>
           </div>
         </div>
@@ -54,6 +64,7 @@
             background: 'rgba(0, 0, 0, 0.05)',
             color: 'var(--text-secondary)'
           }"
+          aria-label="关闭"
           @click="handleClose"
         >
           <X class="w-5 h-5" />
@@ -83,15 +94,15 @@
         <!-- 描述 -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
-            :style="{ color: 'var(--text-primary)' }"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#10b981' }"
           >
-            描述
+            📝 描述
           </label>
           <input
             v-model="formData.description"
             type="text"
-            class="w-full px-4 py-3 rounded-xl transition-all"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
               background: 'rgba(255, 255, 255, 0.5)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -104,16 +115,16 @@
         <!-- Base URL -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
-            :style="{ color: 'var(--text-primary)' }"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#3b82f6' }"
           >
-            Base URL
+            🌐 Base URL
           </label>
           <input
             v-model="formData.base_url"
             type="url"
             required
-            class="w-full px-4 py-3 rounded-xl transition-all"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
               background: 'rgba(255, 255, 255, 0.5)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -126,16 +137,16 @@
         <!-- Auth Token -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
-            :style="{ color: 'var(--text-primary)' }"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#f59e0b' }"
           >
-            Auth Token
+            🔑 Auth Token
           </label>
           <input
             v-model="formData.auth_token"
-            type="password"
+            type="text"
             required
-            class="w-full px-4 py-3 rounded-xl transition-all font-mono"
+            class="w-full px-4 py-3 rounded-xl transition-all font-mono text-sm focus:ring-2 focus:ring-indigo-500/50"
             :style="{
               background: 'rgba(255, 255, 255, 0.5)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -148,35 +159,56 @@
         <!-- Model -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
-            :style="{ color: 'var(--text-primary)' }"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#8b5cf6' }"
           >
-            Model
+            🤖 Model
           </label>
           <input
             v-model="formData.model"
             type="text"
-            class="w-full px-4 py-3 rounded-xl transition-all"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
               background: 'rgba(255, 255, 255, 0.5)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
               color: 'var(--text-primary)'
             }"
-            placeholder="claude-3-5-sonnet-20241022"
+            placeholder="claude-sonnet-4-5-20250929"
+          >
+        </div>
+
+        <!-- Small Fast Model -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#06b6d4' }"
+          >
+            ⚡ Small Fast Model
+          </label>
+          <input
+            v-model="formData.small_fast_model"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            placeholder="claude-3-haiku-20240307"
           >
         </div>
 
         <!-- Provider Type -->
         <div>
           <label
-            class="block text-sm font-semibold mb-2"
-            :style="{ color: 'var(--text-primary)' }"
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#ec4899' }"
           >
-            Provider Type
+            🏷️ Provider Type
           </label>
           <select
             v-model="formData.provider_type"
-            class="w-full px-4 py-3 rounded-xl transition-all"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
               background: 'rgba(255, 255, 255, 0.5)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -184,40 +216,121 @@
             }"
           >
             <option value="">
-              未分类
+              ❓ 未分类
             </option>
             <option value="official_relay">
-              官方中转
+              🔄 官方中转
             </option>
             <option value="third_party_model">
-              第三方模型
+              🤖 第三方模型
             </option>
           </select>
+        </div>
+
+        <!-- Provider Name -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#14b8a6' }"
+          >
+            🏢 提供商名称
+          </label>
+          <input
+            v-model="formData.provider"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            placeholder="如: anyrouter, glm, moonshot"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            用于标识同一提供商的不同配置
+          </p>
+        </div>
+
+        <!-- Account -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#f97316' }"
+          >
+            👤 账号标识
+          </label>
+          <input
+            v-model="formData.account"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            placeholder="如: github_5953, personal, work"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            用于区分同一提供商的不同账号
+          </p>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <label
+            class="block text-sm font-semibold mb-2 flex items-center gap-1"
+            :style="{ color: '#a855f7' }"
+          >
+            🏷️ 标签
+          </label>
+          <input
+            v-model="tagsInput"
+            type="text"
+            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
+            :style="{
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: 'var(--text-primary)'
+            }"
+            placeholder="用逗号分隔，如: free, stable, backup"
+          >
+          <p
+            class="text-xs mt-1"
+            :style="{ color: 'var(--text-secondary)' }"
+          >
+            用于灵活分类和筛选，多个标签用逗号分隔
+          </p>
         </div>
 
         <!-- 按钮组 -->
         <div class="flex gap-3 pt-4">
           <button
             type="button"
-            class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105"
+            class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
             :style="{
               background: 'rgba(0, 0, 0, 0.05)',
               color: 'var(--text-secondary)'
             }"
             @click="handleClose"
           >
-            取消
+            ❌ 取消
           </button>
           <button
             type="submit"
             :disabled="saving"
-            class="flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50"
+            class="flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 flex items-center justify-center gap-2"
             :style="{
               background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
               boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
             }"
           >
-            {{ saving ? '保存中...' : '保存' }}
+            {{ saving ? '⏳ 保存中...' : '💾 保存' }}
           </button>
         </div>
       </form>
@@ -228,6 +341,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { Settings, X } from 'lucide-vue-next'
+import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 import { getConfig, updateConfig } from '@/api'
 
 interface Props {
@@ -241,14 +355,42 @@ const emit = defineEmits<{
   saved: []
 }>()
 
+// Accessibility enhancements
+const titleId = useUniqueId('edit-config-modal-title')
+const modalRef = ref<HTMLElement | null>(null)
+const isOpenRef = ref(props.isOpen)
+
+watch(() => props.isOpen, (newValue) => {
+  isOpenRef.value = newValue
+})
+
+// Close handler
+const handleClose = () => {
+  emit('close')
+}
+
+const { focusFirstElement } = useFocusTrap(modalRef, isOpenRef)
+useEscapeKey(handleClose, isOpenRef)
+
+watch(isOpenRef, (isOpen) => {
+  if (isOpen) {
+    setTimeout(() => focusFirstElement(), 100)
+  }
+})
+
 const loading = ref(false)
 const saving = ref(false)
+const tagsInput = ref('')
 const formData = ref<any>({
   description: '',
   base_url: '',
   auth_token: '',
   model: '',
-  provider_type: ''
+  small_fast_model: '',
+  provider_type: '',
+  provider: '',
+  account: '',
+  tags: []
 })
 
 // 加载配置数据
@@ -264,8 +406,14 @@ const loadConfig = async () => {
       base_url: data.base_url || '',
       auth_token: data.auth_token || '',
       model: data.model || '',
-      provider_type: data.provider_type || ''
+      small_fast_model: data.small_fast_model || '',
+      provider_type: data.provider_type || '',
+      provider: data.provider || '',
+      account: data.account || '',
+      tags: data.tags || []
     }
+    // 将标签数组转换为逗号分隔的字符串
+    tagsInput.value = Array.isArray(data.tags) ? data.tags.join(', ') : ''
   } catch (err) {
     console.error('加载配置失败:', err)
     alert(`加载配置失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
@@ -274,15 +422,28 @@ const loadConfig = async () => {
   }
 }
 
+// 解析标签输入
+const parseTags = (input: string): string[] => {
+  return input.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+}
+
 // 保存配置
 const handleSave = async () => {
   try {
     saving.value = true
+    const tags = parseTags(tagsInput.value)
     // 构造符合后端 UpdateConfigRequest 结构的请求数据
     const payload = {
       name: props.configName,  // ✅ 添加必填的 name 字段
-      ...formData.value,
-      model: (formData.value.model ?? '').trim() || undefined
+      description: formData.value.description || undefined,
+      base_url: formData.value.base_url,
+      auth_token: formData.value.auth_token,
+      model: (formData.value.model ?? '').trim() || undefined,
+      small_fast_model: (formData.value.small_fast_model ?? '').trim() || undefined,
+      provider_type: formData.value.provider_type || undefined,
+      provider: (formData.value.provider ?? '').trim() || undefined,
+      account: (formData.value.account ?? '').trim() || undefined,
+      tags: tags.length > 0 ? tags : undefined
     }
     await updateConfig(props.configName, payload)
     alert(`✓ 成功保存配置 "${props.configName}"`)
@@ -294,10 +455,6 @@ const handleSave = async () => {
   } finally {
     saving.value = false
   }
-}
-
-const handleClose = () => {
-  emit('close')
 }
 
 // 监听弹窗打开

@@ -38,10 +38,11 @@ pub async fn get_version() -> impl IntoResponse {
     }
 }
 
-/// Execute 'ccr --version' to get current version
+/// Execute 'ccr version' to get current version
 fn get_ccr_version() -> Result<String, String> {
+    // Try 'ccr version' command first (as seen in user terminal)
     let output = Command::new("ccr")
-        .arg("--version")
+        .arg("version")
         .output()
         .map_err(|e| format!("Failed to execute ccr: {}", e))?;
 
@@ -51,14 +52,34 @@ fn get_ccr_version() -> Result<String, String> {
 
     let version_output = String::from_utf8(output.stdout)
         .map_err(|e| format!("Failed to parse version output: {}", e))?;
-    // Parse "ccr X.Y.Z" format
-    let version = version_output
-        .split_whitespace()
-        .nth(1)
-        .ok_or("Failed to parse version")?
-        .to_string();
 
-    Ok(version)
+    // Parse "Version: X.Y.Z" format from the banner
+    for line in version_output.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("Version:") {
+            // Extract "3.16.6" from "Version: 3.16.6"
+            if let Some(v_str) = trimmed.split(':').nth(1) {
+                return Ok(v_str.trim().to_string());
+            }
+        }
+        // Also support "ccr X.Y.Z" simple format if it ever reverts
+        if trimmed.starts_with("ccr ")
+            && trimmed.chars().nth(4).is_some_and(|c| c.is_numeric())
+            && let Some(v_str) = trimmed.split_whitespace().nth(1)
+        {
+            return Ok(v_str.to_string());
+        }
+    }
+
+    // Fallback: try to find 'Version: ' anywhere
+    if let Some(start) = version_output.find("Version: ") {
+        let rest = &version_output[start + 9..];
+        if let Some(end) = rest.find('\n') {
+            return Ok(rest[..end].trim().to_string());
+        }
+    }
+
+    Err("Failed to parse version from output".to_string())
 }
 
 /// GET /api/version/check - Check for updates from GitHub Cargo.toml

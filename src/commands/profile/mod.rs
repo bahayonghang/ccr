@@ -1,5 +1,6 @@
-// 📋 profile 命令模块 - 配置管理
-// 管理 API 配置 profiles（添加、删除、切换、启用/禁用等）
+//! 📋 profile 命令模块
+//!
+//! 管理 API 配置 profiles（添加、删除、切换、启用/禁用等）。
 
 mod add;
 mod current;

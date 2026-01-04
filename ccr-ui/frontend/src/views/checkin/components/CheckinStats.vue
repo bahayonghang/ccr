@@ -10,7 +10,7 @@
             {{ stats.consecutive_days }}
           </div>
           <div class="stat-label">
-            连续签到(天)
+            {{ t('checkin.stats.consecutive_days') }}
           </div>
         </div>
       </div>
@@ -24,7 +24,7 @@
             {{ stats.total_days }}
           </div>
           <div class="stat-label">
-            累计签到(天)
+            {{ t('checkin.stats.total_days') }}
           </div>
         </div>
       </div>
@@ -38,7 +38,7 @@
             {{ stats.longest_consecutive }}
           </div>
           <div class="stat-label">
-            最长连续(天)
+            {{ t('checkin.stats.longest_consecutive') }}
           </div>
         </div>
       </div>
@@ -52,7 +52,7 @@
             {{ stats.monthly_rate.toFixed(0) }}%
           </div>
           <div class="stat-label">
-            本月签到率
+            {{ t('checkin.stats.monthly_rate') }}
           </div>
         </div>
       </div>
@@ -70,6 +70,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useI18n } from 'vue-i18n'
 
 interface DashboardStats {
   consecutive_days: number
@@ -81,6 +82,8 @@ interface DashboardStats {
   checked_in_today: number
   not_checked_in_today: number
 }
+
+const { t } = useI18n()
 
 const stats = ref<DashboardStats>({
   consecutive_days: 0,
@@ -100,7 +103,7 @@ const fetchStats = async () => {
     const response = await axios.get('/api/checkin/dashboard/stats')
     stats.value = response.data
   } catch (err) {
-    error.value = '加载统计数据失败'
+    error.value = t('checkin.stats.load_error')
   }
 }
 

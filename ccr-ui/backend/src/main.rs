@@ -72,7 +72,7 @@ async fn main() -> std::io::Result<()> {
     info!("  - Version Info: http://{}/api/version", bind_addr);
 
     // Build the router with modular routes (先启动服务器，不阻塞)
-    let app = routes::create_app();
+    let app = routes::apply_middleware(routes::create_app());
 
     // 异步验证 CCR 是否可用（不阻塞服务器启动）
     tokio::spawn(async {
@@ -116,6 +116,9 @@ fn setup_logging() -> std::io::Result<core::log_manager::LogConfig> {
     let backend_log_dir = config.log_dir.join("backend");
     let file_appender = tracing_appender::rolling::daily(&backend_log_dir, "");
 
+    // Wrap with BOM writer for Windows compatibility (ensures UTF-8 BOM is added)
+    let bom_writer = core::bom_writer::MakeBomWriter::new(file_appender, &backend_log_dir);
+
     // Console layer: colored output with local time (only warn and above for less noise)
     let console_filter = EnvFilter::new("warn,ccr_ui_backend=info");
     let console_layer = fmt::layer()
@@ -124,11 +127,11 @@ fn setup_logging() -> std::io::Result<core::log_manager::LogConfig> {
         .with_ansi(true)
         .with_filter(console_filter);
 
-    // File layer: no colors, local time
+    // File layer: no colors, local time, with UTF-8 BOM for Windows compatibility
     let file_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&config.log_level));
     let file_layer = fmt::layer()
-        .with_writer(file_appender)
+        .with_writer(bom_writer)
         .with_timer(LocalTime)
         .with_ansi(false)
         .with_filter(file_filter);
