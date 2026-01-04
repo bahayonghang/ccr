@@ -10,6 +10,7 @@ pub mod command_routes;
 pub mod config_routes;
 pub mod converter_routes;
 pub mod gemini_routes;
+pub mod marketplace_routes;
 pub mod mcp_routes;
 pub mod platform_routes;
 pub mod plugins_routes;
@@ -140,7 +141,9 @@ fn create_api_routes() -> Router {
         // Provider 健康检查
         .merge(provider_health_routes::routes())
         // 签到管理
-        .merge(checkin_routes::routes());
+        .merge(checkin_routes::routes())
+        // 资源市场
+        .merge(marketplace_routes::routes());
 
     apply_middleware(app)
 }

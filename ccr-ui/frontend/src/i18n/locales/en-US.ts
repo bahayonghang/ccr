@@ -1115,11 +1115,27 @@ export default {
       featured: 'Featured',
       skills: 'Skills',
       plugins: 'Plugins',
-      mcp: 'MCP Servers'
+      mcp: 'MCP Servers',
+      commands: 'Commands'
     },
     install: 'Install',
     installed: 'Installed',
+    installing: 'Installing...',
+    uninstall: 'Uninstall',
+    loading: 'Loading marketplace...',
     noResults: 'No items found matching your search.',
+    error: 'Failed to load marketplace',
+    categories: {
+      skill: 'Skill',
+      mcp: 'MCP',
+      plugin: 'Plugin',
+      command: 'Command'
+    },
+    sources: {
+      builtin: 'Built-in',
+      remote: 'Remote',
+      local: 'Local'
+    },
     backToClaude: 'Back to Claude Code',
     backToHome: 'Back to Home',
     breadcrumb: {

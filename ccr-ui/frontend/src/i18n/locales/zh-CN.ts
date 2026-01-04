@@ -1116,11 +1116,27 @@ export default {
       featured: '精选',
       skills: '技能',
       plugins: '插件',
-      mcp: 'MCP 服务器'
+      mcp: 'MCP 服务器',
+      commands: '命令'
     },
     install: '安装',
     installed: '已安装',
+    installing: '安装中...',
+    uninstall: '卸载',
+    loading: '正在加载市场...',
     noResults: '未找到匹配的项目。',
+    error: '加载市场失败',
+    categories: {
+      skill: '技能',
+      mcp: 'MCP',
+      plugin: '插件',
+      command: '命令'
+    },
+    sources: {
+      builtin: '内置',
+      remote: '远程',
+      local: '本地'
+    },
     backToClaude: '返回 Claude Code',
     backToHome: '返回首页',
     breadcrumb: {
