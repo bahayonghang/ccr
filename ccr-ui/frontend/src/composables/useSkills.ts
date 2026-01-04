@@ -19,6 +19,7 @@ export interface UpdateSkillRequest {
 
 export function useSkills() {
     const skills = ref<Skill[]>([])
+    const currentSkill = ref<Skill | null>(null)
     const loading = ref(false)
     const error = ref<string | null>(null)
 
@@ -30,6 +31,21 @@ export function useSkills() {
             skills.value = response.data
         } catch (err: any) {
             error.value = err.message || 'Failed to load skills'
+        } finally {
+            loading.value = false
+        }
+    }
+
+    const getSkill = async (name: string) => {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await api.get(`/skills/${encodeURIComponent(name)}`)
+            currentSkill.value = response.data
+            return response.data as Skill
+        } catch (err: any) {
+            error.value = err.message || 'Failed to load skill'
+            throw err
         } finally {
             loading.value = false
         }
@@ -79,9 +95,11 @@ export function useSkills() {
 
     return {
         skills,
+        currentSkill,
         loading,
         error,
         listSkills,
+        getSkill,
         addSkill,
         updateSkill,
         deleteSkill

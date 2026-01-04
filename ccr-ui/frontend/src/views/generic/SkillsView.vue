@@ -11,12 +11,12 @@
             {{ $t('skills.title') }}
           </h2>
           <span class="px-3 py-1 rounded-full text-sm font-medium bg-guofeng-red/10 text-guofeng-red border border-guofeng-red/20">
-            {{ skills.length }}
+            {{ filteredSkills.length }}
           </span>
         </div>
         <div class="flex items-center gap-3">
           <RouterLink
-            to="/claude"
+            to="/claude-code"
             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-guofeng-bg-secondary text-guofeng-text-secondary border border-guofeng-border hover:bg-guofeng-bg-tertiary"
           >
             <Home class="w-4 h-4" /><span>{{ $t('common.back') }}</span>
@@ -26,6 +26,26 @@
             @click="handleAdd"
           >
             <Plus class="w-5 h-5 mr-2" />{{ $t('skills.addSkill') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="mb-6 glass-effect rounded-xl p-4 border border-white/20 shadow-sm">
+        <div class="relative">
+          <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-guofeng-text-muted" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="$t('skills.searchPlaceholder')"
+            class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-guofeng-bg-tertiary/50 border border-guofeng-border hover:bg-guofeng-bg-tertiary focus:bg-guofeng-bg-tertiary focus:outline-none focus:ring-2 focus:ring-guofeng-red/20 text-guofeng-text-primary placeholder-guofeng-text-muted text-sm transition-all"
+          >
+          <button
+            v-if="searchQuery"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-guofeng-bg-tertiary text-guofeng-text-muted transition-all"
+            @click="searchQuery = ''"
+          >
+            <X class="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -56,7 +76,7 @@
         <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-guofeng-red/30 border-t-guofeng-red" />
         {{ $t('common.loading') }}
       </div>
-      
+
       <div
         v-else-if="skills.length === 0"
         class="text-center py-20 text-guofeng-text-muted"
@@ -73,16 +93,37 @@
       </div>
 
       <div
+        v-else-if="filteredSkills.length === 0"
+        class="text-center py-20 text-guofeng-text-muted"
+      >
+        <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Search class="w-10 h-10 opacity-50" />
+        </div>
+        <p class="text-lg font-medium">
+          {{ $t('skills.noSearchResults') }}
+        </p>
+        <p class="text-sm mt-2 opacity-70">
+          {{ $t('skills.noSearchResultsHint') }}
+        </p>
+        <button
+          class="mt-4 px-4 py-2 text-sm text-guofeng-red hover:bg-guofeng-red/5 rounded-lg transition-colors"
+          @click="searchQuery = ''"
+        >
+          {{ $t('skills.clearSearch') }}
+        </button>
+      </div>
+
+      <div
         v-else
         class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
       >
         <GuofengCard
-          v-for="skill in skills"
+          v-for="skill in filteredSkills"
           :key="skill.name"
           variant="glass"
           interactive
           pattern
-          @click="handleEdit(skill)"
+          @click="navigateToDetail(skill.name)"
         >
           <div class="relative z-10">
             <div class="flex items-start justify-between mb-3">
@@ -92,6 +133,13 @@
                 </h3>
               </div>
               <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <button
+                  class="p-1.5 rounded-md text-guofeng-blue hover:bg-guofeng-blue/10 transition-colors"
+                  :title="$t('common.view')"
+                  @click.stop="navigateToDetail(skill.name)"
+                >
+                  <Eye class="w-4 h-4" />
+                </button>
                 <button
                   class="p-1.5 rounded-md text-guofeng-blue hover:bg-guofeng-blue/10 transition-colors"
                   :title="$t('common.edit')"
@@ -137,7 +185,7 @@
         class="bg-guofeng-bg p-8 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-guofeng-border relative"
         @click.stop
       >
-        <button 
+        <button
           class="absolute top-4 right-4 p-2 rounded-full hover:bg-guofeng-bg-tertiary text-guofeng-text-muted transition-colors"
           @click="showModal = false"
         >
@@ -195,23 +243,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Book, Plus, Edit2, Trash2, X, Home, Info } from 'lucide-vue-next'
+import { Book, Plus, Edit2, Trash2, X, Home, Info, Search, Eye } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import { useSkills, type Skill } from '@/composables/useSkills'
 
+const router = useRouter()
 const { t } = useI18n()
 const { skills, loading, listSkills, addSkill, updateSkill, deleteSkill } = useSkills()
 
 const showModal = ref(false)
 const editingSkill = ref<Skill | null>(null)
 const formData = ref({ name: '', instruction: '' })
+const searchQuery = ref('')
+
+// 客户端过滤
+const filteredSkills = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return skills.value
+  }
+  const query = searchQuery.value.toLowerCase()
+  return skills.value.filter(skill =>
+    skill.name.toLowerCase().includes(query) ||
+    (skill.description && skill.description.toLowerCase().includes(query)) ||
+    (skill.instruction && skill.instruction.toLowerCase().includes(query))
+  )
+})
 
 onMounted(() => {
   listSkills()
 })
+
+const navigateToDetail = (name: string) => {
+  router.push(`/skills/${encodeURIComponent(name)}`)
+}
 
 const handleAdd = () => {
   showModal.value = true

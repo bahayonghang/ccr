@@ -142,7 +142,7 @@
               interactive
               pattern
               class="h-full flex flex-col group"
-              @click="handleEdit(agent)"
+              @click="navigateToDetail(agent)"
             >
               <div class="relative z-10 flex flex-col h-full">
                 <div class="flex items-start justify-between mb-3">
@@ -180,6 +180,14 @@
                         v-else
                         class="w-4 h-4"
                       />
+                    </button>
+                    <button
+                      v-if="module === 'agents'"
+                      class="p-1.5 rounded-lg text-guofeng-text-secondary hover:text-guofeng-jade hover:bg-guofeng-jade/10 transition-colors"
+                      :title="$t('common.view')"
+                      @click.stop="navigateToDetail(agent)"
+                    >
+                      <Eye class="w-4 h-4" />
                     </button>
                     <button
                       class="p-1.5 rounded-lg text-guofeng-text-secondary hover:text-guofeng-blue hover:bg-guofeng-blue/10 transition-colors"
@@ -391,7 +399,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, ChevronDown, Code2, Sparkles, Workflow } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, ChevronDown, Code2, Sparkles, Workflow, Eye } from 'lucide-vue-next'
 import Breadcrumb from '@/components/common/Breadcrumb.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import { useAgents } from '@/composables/useAgents'
@@ -402,6 +411,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const router = useRouter()
 const tPrefix = computed(() => props.module === 'agents' ? 'agents' : `${props.module}.agents`)
 const {
   agents,
@@ -565,6 +575,16 @@ const handleToggle = async (name: string) => {
   } catch (err) {
     console.error('Toggle failed:', err)
     alert(t(`${tPrefix.value}.messages.toggleFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
+  }
+}
+
+const navigateToDetail = (agent: Agent) => {
+  // Only navigate to detail for Claude Code agents module
+  if (props.module === 'agents') {
+    router.push(`/agents/${encodeURIComponent(agent.name)}`)
+  } else {
+    // For other platforms, open edit modal directly
+    handleEdit(agent)
   }
 }
 </script>

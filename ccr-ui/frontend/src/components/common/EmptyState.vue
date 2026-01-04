@@ -1,91 +1,60 @@
 <template>
   <div
-    class="empty-state"
+    class="glass-effect empty-state"
     role="status"
     aria-live="polite"
   >
-    <!-- 图标 -->
-    <div class="empty-state-icon">
+    <div
+      class="icon-wrapper"
+      aria-hidden="true"
+    >
       <component
-        :is="iconComponent"
-        :size="iconSize"
+        :is="icon"
+        :size="48"
         :stroke-width="1.5"
       />
     </div>
-
-    <!-- 标题 -->
-    <h3 class="empty-state-title">
+    <h3 class="title">
       {{ title }}
     </h3>
-
-    <!-- 描述 (可选) -->
     <p
       v-if="description"
-      class="empty-state-description"
+      class="description"
     >
       {{ description }}
     </p>
-
-    <!-- 操作按钮 (可选) -->
-    <div
-      v-if="actionLabel && actionHandler !== undefined"
-      class="empty-state-action"
+    <button
+      v-if="actionText && onAction"
+      class="action-btn min-h-[44px]"
+      @click="onAction"
     >
-      <button
-        class="empty-state-button"
-        @click="handleAction"
-      >
-        <Plus
-          v-if="showPlusIcon"
-          :size="16"
-          :stroke-width="2"
-        />
-        {{ actionLabel }}
-      </button>
-    </div>
+      <component
+        :is="actionIcon"
+        v-if="actionIcon"
+        class="action-icon"
+        aria-hidden="true"
+      />
+      {{ actionText }}
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
-import { FileX, Plus } from 'lucide-vue-next'
+import type { Component } from 'vue'
+import { FileX } from 'lucide-vue-next'
 
-// Props 定义
 interface Props {
-  /** 图标组件 (Lucide 图标或自定义组件) */
   icon?: Component
-  /** 标题文本 */
   title: string
-  /** 描述文本 (可选) */
   description?: string
-  /** 操作按钮文本 (可选) */
-  actionLabel?: string
-  /** 操作按钮回调 (可选) */
-  actionHandler?: () => void
-  /** 图标大小 */
-  iconSize?: number
-  /** 是否在按钮中显示加号图标 */
-  showPlusIcon?: boolean
+  actionText?: string
+  actionIcon?: Component
+  onAction?: () => void
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  icon: undefined,
-  description: undefined,
-  actionLabel: undefined,
-  actionHandler: undefined,
-  iconSize: 48,
-  showPlusIcon: true,
+withDefaults(defineProps<Props>(), {
+  icon: () => FileX,
 })
-
-// 计算使用的图标组件 (默认为 FileX)
-const iconComponent = computed(() => {
-  return props.icon || FileX
-})
-
-// 处理按钮点击
-const handleAction = () => {
-  props.actionHandler?.()
-}
 </script>
 
 <style scoped>
@@ -94,88 +63,65 @@ const handleAction = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-3xl) var(--space-xl);
+  padding: var(--space-12);
   text-align: center;
   min-height: 300px;
 }
 
-.empty-state-icon {
+.icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 80px;
   height: 80px;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-4);
   border-radius: var(--radius-full);
-  background: var(--bg-tertiary);
-  color: var(--state-empty);
-  transition: all 0.2s ease;
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
 }
 
-.empty-state-title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  margin-bottom: var(--space-sm);
-  line-height: var(--line-height-tight);
+.title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
 }
 
-.empty-state-description {
-  font-size: var(--font-size-base);
-  color: var(--text-secondary);
+.description {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
   max-width: 480px;
-  margin: 0 auto var(--space-lg);
-  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--space-4);
 }
 
-.empty-state-action {
-  margin-top: var(--space-md);
-}
-
-.empty-state-button {
+.action-btn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-lg);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
   color: white;
-  background: var(--accent-primary);
+  background: var(--color-accent-primary);
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(var(--accent-primary-rgb), 0.2);
+  transition: all var(--duration-normal) var(--ease-out);
 }
 
-.empty-state-button:hover {
+.action-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.action-btn:hover {
+  background: var(--color-accent-primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--accent-primary-rgb), 0.3);
+  box-shadow: var(--glow-primary);
 }
 
-.empty-state-button:active {
+.action-btn:active {
   transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(var(--accent-primary-rgb), 0.2);
-}
-
-.empty-state-button:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
-
-/* 尊重用户的动画偏好 */
-@media (prefers-reduced-motion: reduce) {
-  .empty-state-icon,
-  .empty-state-button {
-    transition: none;
-  }
-
-  .empty-state-button:hover {
-    transform: none;
-  }
-
-  .empty-state-button:active {
-    transform: none;
-  }
 }
 </style>

@@ -5,7 +5,7 @@ import {
     listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent,
     listIflowAgents, addIflowAgent, updateIflowAgent, deleteIflowAgent, toggleIflowAgent,
     listConfigs, getHistory,
-    listAgents, addAgent, updateAgent, deleteAgent, toggleAgent
+    listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent
 } from '@/api/client'
 import type { Agent, AgentRequest } from '@/types'
 
@@ -61,6 +61,7 @@ export function useAgents(module: ModuleType) {
     const api = apiMap[module]
 
     const agents = ref<Agent[]>([])
+    const currentAgent = ref<Agent | null>(null)
     const folders = ref<string[]>([])
     const loading = ref(true)
     const currentConfig = ref('')
@@ -92,6 +93,26 @@ export function useAgents(module: ModuleType) {
         }
     }
 
+    const getAgent = async (name: string): Promise<Agent> => {
+        loading.value = true
+        try {
+            // For now, only Claude Code (agents module) has the getAgent API
+            if (module === 'agents') {
+                currentAgent.value = await apiGetAgent(name)
+                return currentAgent.value
+            }
+            // For other platforms, find from loaded list
+            const agent = agents.value.find(a => a.name === name)
+            if (agent) {
+                currentAgent.value = agent
+                return agent
+            }
+            throw new Error(`Agent '${name}' not found`)
+        } finally {
+            loading.value = false
+        }
+    }
+
     const addAgent = async (req: AgentRequest) => {
         await api.add(req)
         await loadAgents()
@@ -114,12 +135,14 @@ export function useAgents(module: ModuleType) {
 
     return {
         agents,
+        currentAgent,
         folders,
         loading,
         currentConfig,
         totalConfigs,
         historyCount,
         loadAgents,
+        getAgent,
         addAgent,
         updateAgent,
         deleteAgent,
