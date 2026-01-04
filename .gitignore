@@ -24,8 +24,8 @@ benches/**
 *.tmp
 *.temp
 
-# Node.js lock files
-**/package-lock.json
+# Node.js lock files (保留 package-lock.json 以确保 CI 构建一致性)
+# **/package-lock.json
 
 # Environment variables file
 .env
