@@ -38,9 +38,15 @@ pub struct MarkdownManager {
 
 impl MarkdownManager {
     pub fn from_home_subdir(subdir: &str) -> io::Result<Self> {
-        let home = std::env::var("HOME").map_err(|_| {
-            io::Error::new(io::ErrorKind::NotFound, "HOME environment variable not set")
-        })?;
+        // Support both Unix (HOME) and Windows (USERPROFILE)
+        let home = std::env::var("HOME")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .map_err(|_| {
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    "HOME/USERPROFILE environment variable not set",
+                )
+            })?;
         let directory = Path::new(&home).join(".claude").join(subdir);
         Ok(Self { directory })
     }

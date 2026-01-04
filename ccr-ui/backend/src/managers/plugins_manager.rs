@@ -20,9 +20,15 @@ pub struct PluginsManager {
 
 impl PluginsManager {
     pub fn default() -> io::Result<Self> {
-        let home = std::env::var("HOME").map_err(|_| {
-            io::Error::new(io::ErrorKind::NotFound, "HOME environment variable not set")
-        })?;
+        // Support both Unix (HOME) and Windows (USERPROFILE)
+        let home = std::env::var("HOME")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .map_err(|_| {
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    "HOME/USERPROFILE environment variable not set",
+                )
+            })?;
         let config_path = Path::new(&home).join(".claude/plugins/config.json");
         Ok(Self { config_path })
     }

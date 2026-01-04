@@ -101,9 +101,15 @@ impl PlatformConfigManager {
         if let Ok(custom_root) = std::env::var("CCR_ROOT") {
             Ok(PathBuf::from(custom_root))
         } else {
-            let home = std::env::var("HOME").map_err(|_| {
-                io::Error::new(io::ErrorKind::NotFound, "HOME environment variable not set")
-            })?;
+            // Support both Unix (HOME) and Windows (USERPROFILE)
+            let home = std::env::var("HOME")
+                .or_else(|_| std::env::var("USERPROFILE"))
+                .map_err(|_| {
+                    io::Error::new(
+                        io::ErrorKind::NotFound,
+                        "HOME/USERPROFILE environment variable not set",
+                    )
+                })?;
             Ok(Path::new(&home).join(".ccr"))
         }
     }
