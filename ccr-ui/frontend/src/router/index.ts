@@ -111,9 +111,19 @@ const router = createRouter({
           props: { module: 'agents' }
         },
         {
+          path: 'agents/:name',
+          name: 'agent-detail',
+          component: () => import('@/views/generic/AgentDetailView.vue')
+        },
+        {
           path: 'skills',
           name: 'skills',
           component: () => import('@/views/generic/SkillsView.vue')
+        },
+        {
+          path: 'skills/:name',
+          name: 'skill-detail',
+          component: () => import('@/views/generic/SkillDetailView.vue')
         },
         {
           path: 'market',
@@ -129,6 +139,21 @@ const router = createRouter({
           path: 'sessions',
           name: 'sessions',
           component: () => import('@/views/SessionsView.vue')
+        },
+        {
+          path: 'hooks',
+          name: 'hooks',
+          component: () => import('@/views/HooksView.vue')
+        },
+        {
+          path: 'output-styles',
+          name: 'output-styles',
+          component: () => import('@/views/OutputStylesView.vue')
+        },
+        {
+          path: 'statusline',
+          name: 'statusline',
+          component: () => import('@/views/StatuslineView.vue')
         },
         {
           path: 'provider-health',

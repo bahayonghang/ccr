@@ -482,3 +482,28 @@
     font-size: var(--text-sm);
     max-width: 300px;
 }
+
+/* ========== 加载动画 ========== */
+.loading-spinner {
+    border: 3px solid;
+    border-radius: 50%;
+    border-top-color: currentColor;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ========== 屏幕阅读器专用 ========== */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}

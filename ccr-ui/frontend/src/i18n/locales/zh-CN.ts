@@ -530,6 +530,8 @@ export default {
     },
   },
   slashCommands: {
+    pageTitle: 'Slash Commands 管理',
+    pageSubtitle: '{platform} 自定义命令管理和文件夹组织',
     title: 'Slash Commands 管理',
     subtitle: '自定义命令管理和文件夹组织',
     badge: '命令',
@@ -556,6 +558,20 @@ export default {
     deleteFailed: '删除失败',
     toggleFailed: '切换失败',
     breadcrumb: { home: '首页', claudeCode: 'Claude Code', slashCommands: 'Slash Commands' },
+    // 视图控制
+    viewControls: {
+      sort: '排序',
+      sortByName: '名称',
+      sortByUsage: '使用频率',
+      sortByModified: '修改时间',
+      sortAsc: '升序',
+      sortDesc: '降序',
+      view: '视图',
+      flatView: '平铺视图',
+      treeView: '树形视图',
+      hideDeprecated: '隐藏废弃',
+      showDeprecated: '显示废弃',
+    },
   },
   plugins: {
     // Plugins Management

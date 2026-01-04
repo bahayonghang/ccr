@@ -252,12 +252,27 @@ try {
     # Suppress PowerShell treating stderr as error (bun/vite outputs to stderr)
     $ErrorActionPreference = "Continue"
 
-    # Frontend runs in foreground with live output using Write-CleanLog
+    # Frontend runs in foreground with live output
     # --host 0.0.0.0 allows access from LAN IP addresses
-    # Use cmd wrapper with explicit UTF-8 code page to prevent Chinese character encoding issues
-    cmd /c "chcp 65001 >nul && bun run dev -- --host 0.0.0.0 --port $VitePort 2>&1 || exit 0" | ForEach-Object {
-        Write-CleanLog -Line $_ -LogPath $frontendLogPath
+    # Run vite directly without any pipe to avoid stdin closure issues
+
+    Write-Host ("📍 前端: http://localhost:{0} (Vue 3 + Vite)" -f $VitePort) -ForegroundColor Cyan
+    Set-Content -Path $frontendPortFile -Value $VitePort -Encoding ASCII -ErrorAction SilentlyContinue
+
+    # Run vite using cmd /c to keep stdin connected
+    # This prevents Vite from exiting immediately due to stdin closure
+    $env:FORCE_COLOR = "1"
+
+    # Use cmd /c to wrap the command - this keeps stdin open properly
+    # Also use bun which is the project's package manager
+    $viteProcess = Start-Process -FilePath "cmd" -ArgumentList "/c", "bun run dev -- --host 0.0.0.0 --port $VitePort" -NoNewWindow -PassThru -WorkingDirectory "$RootDir/frontend"
+    $script:FrontendPid = $viteProcess.Id
+    if ($script:FrontendPidFile) {
+        Set-Content -Path $script:FrontendPidFile -Value $script:FrontendPid -Encoding ASCII -ErrorAction SilentlyContinue
     }
+
+    # Wait for the vite process (blocks until Ctrl+C or process exit)
+    $viteProcess.WaitForExit()
 } catch {
     # Ctrl+C or other interruption - this is expected behavior
     Write-Host ""

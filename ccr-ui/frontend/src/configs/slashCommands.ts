@@ -7,7 +7,13 @@ export const claudeCodeConfig: PlatformConfig = {
   api: {
     list: async () => {
       const response = await api.get('/slash-commands')
-      return response.data
+      const data = response.data.data || response.data
+      // Map 'disabled' field to 'enabled' for component compatibility
+      const commands = (data.commands || []).map((cmd: any) => ({
+        ...cmd,
+        enabled: cmd.enabled !== undefined ? cmd.enabled : !cmd.disabled
+      }))
+      return { commands, folders: data.folders || [] }
     },
     add: async (cmd: any) => {
       await api.post('/slash-commands', cmd)
