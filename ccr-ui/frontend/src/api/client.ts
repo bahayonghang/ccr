@@ -28,6 +28,7 @@ import type {
   McpServersResponse,
   SlashCommandRequest,
   SlashCommandsResponse,
+  Agent,
   AgentRequest,
   AgentsResponse,
   Plugin,
@@ -69,6 +70,9 @@ import type {
   PricingListResponse,
   SetPricingRequest,
   DailyStatsResponse,
+  Hook,
+  HookRequest,
+  HooksResponse,
 } from '@/types'
 
 /**
@@ -698,6 +702,11 @@ export const listAgents = async (): Promise<AgentsResponse> => {
   return response.data.data!
 }
 
+export const getAgent = async (name: string): Promise<Agent> => {
+  const response = await api.get<ApiResponse<Agent>>(`/agents/${encodeURIComponent(name)}`)
+  return response.data.data!
+}
+
 export const addAgent = async (request: AgentRequest): Promise<string> => {
   const response = await api.post<ApiResponse<string>>('/agents', request)
   return response.data.data!
@@ -1237,6 +1246,35 @@ export const toggleCodexPlugin = async (_id: string): Promise<string> => {
 }
 
 // ===================================
+// Hooks Management APIs
+// ===================================
+
+export const listHooks = async (): Promise<Hook[]> => {
+  const response = await api.get<ApiResponse<HooksResponse>>('/hooks')
+  return response.data.data!.hooks
+}
+
+export const addHook = async (request: HookRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/hooks', request)
+  return response.data.data!
+}
+
+export const updateHook = async (name: string, request: HookRequest): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/hooks/${encodeURIComponent(name)}`, request)
+  return response.data.data!
+}
+
+export const deleteHook = async (name: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(`/hooks/${encodeURIComponent(name)}`)
+  return response.data.data!
+}
+
+export const toggleHook = async (name: string): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/hooks/${encodeURIComponent(name)}/toggle`)
+  return response.data.data!
+}
+
+// ===================================
 // Skills Management APIs
 // ===================================
 
@@ -1520,4 +1558,55 @@ export const importCheckinConfig = async (request: CheckinImportRequest): Promis
 export const testCheckinConnection = async (id: string): Promise<TestConnectionResponse> => {
   const response = await api.post<TestConnectionResponse>(`/checkin/accounts/${id}/test`)
   return response.data
+}
+
+// ===================================
+// Output Styles Management APIs
+// ===================================
+
+import type {
+  OutputStyle,
+  OutputStyleRequest,
+  UpdateOutputStyleRequest,
+} from '@/types'
+
+export const listOutputStyles = async (): Promise<OutputStyle[]> => {
+  const response = await api.get<ApiResponse<OutputStyle[]>>('/output-styles')
+  return response.data.data!
+}
+
+export const getOutputStyle = async (name: string): Promise<OutputStyle> => {
+  const response = await api.get<ApiResponse<OutputStyle>>(`/output-styles/${encodeURIComponent(name)}`)
+  return response.data.data!
+}
+
+export const createOutputStyle = async (request: OutputStyleRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/output-styles', request)
+  return response.data.data!
+}
+
+export const updateOutputStyle = async (name: string, request: UpdateOutputStyleRequest): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>(`/output-styles/${encodeURIComponent(name)}`, request)
+  return response.data.data!
+}
+
+export const deleteOutputStyle = async (name: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(`/output-styles/${encodeURIComponent(name)}`)
+  return response.data.data!
+}
+
+// ===================================
+// Statusline Configuration APIs
+// ===================================
+
+import type { StatuslineConfig } from '@/types'
+
+export const getStatusline = async (): Promise<StatuslineConfig> => {
+  const response = await api.get<ApiResponse<StatuslineConfig>>('/statusline')
+  return response.data.data!
+}
+
+export const updateStatusline = async (config: StatuslineConfig): Promise<string> => {
+  const response = await api.put<ApiResponse<string>>('/statusline', config)
+  return response.data.data!
 }
