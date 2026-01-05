@@ -1545,7 +1545,19 @@ export default {
         deleteSuccess: '✓ Profile 删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}'
-      }
+      },
+      // 新增翻译 key
+      officialConfig: '官方配置',
+      customRelay: '自定义中转站',
+      quickSwitch: '快速切换',
+      listTitle: '配置列表',
+    },
+    // 状态卡片翻译
+    status: {
+      currentConfig: '当前配置',
+      totalProfiles: '配置总数',
+      configMode: '配置模式',
+      notSet: '未设置',
     },
 
     // Slash Commands module

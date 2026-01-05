@@ -1480,7 +1480,19 @@ export default {
         deleteSuccess: '✓ Profile deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}'
-      }
+      },
+      // New translation keys
+      officialConfig: 'Official Config',
+      customRelay: 'Custom Relay',
+      quickSwitch: 'Quick Switch',
+      listTitle: 'Configuration List',
+    },
+    // Status card translations
+    status: {
+      currentConfig: 'Current Config',
+      totalProfiles: 'Total Profiles',
+      configMode: 'Config Mode',
+      notSet: 'Not Set',
     },
 
     // Slash Commands module
