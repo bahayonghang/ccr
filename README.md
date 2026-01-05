@@ -3,7 +3,7 @@
 **High-performance, multi-platform configuration management tool written in Rust.**  
 Unified management for specific AI CLI tools including **Claude Code**, **Codex**, **Gemini**, **Qwen**, and more.
 
-![Version](https://img.shields.io/badge/version-3.13.0-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-3.17.3-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
 
 ---
 
@@ -13,7 +13,7 @@ Unified management for specific AI CLI tools including **Claude Code**, **Codex*
 - **Enterprise-Grade Safety**: Atomic writes, file locking (`fs4`), comprehensive audit logs, and automatic backups before every modification.
 - **Multi-Interface**: 
   - **CLI**: Powerful command-line interface for all operations.
-  - **TUI**: Interactive terminal UI (`ratatui`) for visual management.
+  - **TUI**: Interactive terminal configuration selector with Tab navigation.
   - **Web API**: Embedded Axum server for external integration.
   - **Desktop UI**: Full-stack application built with Vue 3 + Tauri.
 - **Smart Sync**: WebDAV-based multi-folder synchronization (`web` feature) to keep your configs consistent across machines.
@@ -63,17 +63,38 @@ ccr add
 # List all configs for current platform
 ccr list
 
+# View current configuration status
+ccr status
+
 # Switch to a specific config
 ccr switch my-work-config
+
+# Quick switch (shorthand)
+ccr my-work-config
 ```
 
+
 ### 4. Interactive TUI
-For a visual experience, launch the Terminal UI:
+Launch the Terminal UI configuration selector:
 ```bash
-ccr tui
+# Simply run ccr without arguments
+ccr
 ```
-*Navigation: `Tab` to switch views, `↑/↓` to select, `Enter` to apply.*
-*Shortcuts: `d` to delete (requires YOLO mode), `Y` to toggle YOLO mode.*
+
+**Keyboard Shortcuts:**
+| Key | Action |
+|-----|--------|
+| `Tab` | Switch between Claude/Codex platforms |
+| `←` / `→` | Navigate pages (when >20 configs) |
+| `↑` / `↓` / `j` / `k` | Select configuration |
+| `Enter` | Apply selected configuration |
+| `q` / `Esc` | Quit |
+
+**Features:**
+- Dual-tab interface for Claude Code and Codex CLI
+- Pagination support (20 configs per page)
+- Real-time status messages at the bottom
+- Platform-specific color themes (Orange for Claude, Purple for Codex)
 
 ## 🖥️ CCR UI
 

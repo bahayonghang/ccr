@@ -1471,7 +1471,7 @@ export default {
 
     // Profiles module
     profiles: {
-      title: 'Profiles 管理',
+      title: '配置管理',
       subtitle: '管理 Codex 平台 profiles.toml（CCR Unified 模式）',
       breadcrumb: 'Profiles 配置',
       addProfile: '添加 Profile',

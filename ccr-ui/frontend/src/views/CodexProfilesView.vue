@@ -1,5 +1,5 @@
 <template>
-  <div :style="{ background: 'var(--bg-primary)', minHeight: '100vh', padding: '20px' }">
+  <div class="min-h-screen bg-bg-base p-6">
     <div class="max-w-[1800px] mx-auto">
       <Breadcrumb
         :items="[
@@ -10,30 +10,21 @@
         module-color="#ec4899"
       />
 
-      <div class="grid grid-cols-[auto_1fr] gap-4">
+      <div class="grid grid-cols-[auto_1fr] gap-6 mt-6">
         <CollapsibleSidebar module="codex" />
 
-        <main
-          class="rounded-xl p-6 glass-effect"
-          :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
-        >
-          <div class="flex items-center justify-between mb-6">
+        <main class="flex flex-col gap-6 w-full min-w-0">
+          <!-- Header Section -->
+          <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <Settings
-                class="w-6 h-6"
-                :style="{ color: 'var(--accent-primary)' }"
-              />
+              <div class="p-2 rounded-xl bg-platform-codex/10">
+                <Settings class="w-6 h-6 text-platform-codex" />
+              </div>
               <div>
-                <h1
-                  class="text-2xl font-bold"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
+                <h1 class="text-2xl font-bold text-text-primary">
                   {{ $t('codex.profiles.title') }}
                 </h1>
-                <p
-                  class="text-sm mt-1"
-                  :style="{ color: 'var(--text-secondary)' }"
-                >
+                <p class="text-sm text-text-secondary mt-1">
                   {{ $t('codex.profiles.subtitle') }}
                 </p>
               </div>
@@ -42,561 +33,491 @@
             <div class="flex items-center gap-3">
               <RouterLink
                 to="/codex"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
-                :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
+                class="btn btn-secondary"
               >
                 <ArrowLeft class="w-4 h-4" />
                 <span>{{ $t('codex.profiles.backToCodex') }}</span>
               </RouterLink>
 
               <button
-                class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
-                :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
+                class="btn btn-primary"
                 @click="handleAdd"
               >
                 <Plus class="w-4 h-4" />
                 {{ $t('codex.profiles.addProfile') }}
               </button>
             </div>
+          </div>
 
-            <!-- 状态卡片区 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <!-- 当前配置 -->
-              <div
-                class="rounded-xl p-4 glass-effect"
-                :style="{ border: '2px solid rgba(245, 158, 11, 0.3)', background: 'rgba(245, 158, 11, 0.05)' }"
-              >
-                <div class="flex items-center gap-3">
-                  <div
-                    class="p-2 rounded-lg"
-                    :style="{ background: 'rgba(245, 158, 11, 0.15)' }"
-                  >
-                    <Zap
-                      class="w-5 h-5"
-                      :style="{ color: 'var(--platform-codex)' }"
-                    />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p
-                      class="text-xs font-medium"
-                      :style="{ color: 'var(--text-muted)' }"
-                    >
-                      {{ $t('codex.status.currentConfig') }}
-                    </p>
-                    <p
-                      class="text-lg font-bold truncate"
-                      :style="{ color: 'var(--text-primary)' }"
-                    >
-                      {{ currentProfile || $t('codex.status.notSet') }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 配置总数 -->
-              <div
-                class="rounded-xl p-4 glass-effect"
-                :style="{ border: '1px solid var(--border-color)' }"
-              >
-                <div class="flex items-center gap-3">
-                  <div
-                    class="p-2 rounded-lg"
-                    :style="{ background: 'rgba(139, 92, 246, 0.15)' }"
-                  >
-                    <Layers
-                      class="w-5 h-5"
-                      :style="{ color: 'var(--platform-claude)' }"
-                    />
-                  </div>
-                  <div class="flex-1">
-                    <p
-                      class="text-xs font-medium"
-                      :style="{ color: 'var(--text-muted)' }"
-                    >
-                      {{ $t('codex.status.totalProfiles') }}
-                    </p>
-                    <p
-                      class="text-lg font-bold"
-                      :style="{ color: 'var(--text-primary)' }"
-                    >
-                      {{ profiles.length }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 配置模式 -->
-              <div
-                class="rounded-xl p-4 glass-effect"
-                :style="{ border: '1px solid var(--border-color)' }"
-              >
-                <div class="flex items-center gap-3">
-                  <div
-                    class="p-2 rounded-lg"
-                    :style="{ background: currentConfigMode === 'official' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(236, 72, 153, 0.15)' }"
-                  >
-                    <component
-                      :is="currentConfigMode === 'official' ? Globe : Server"
-                      class="w-5 h-5"
-                      :style="{ color: currentConfigMode === 'official' ? 'var(--accent-success)' : 'var(--accent-tertiary)' }"
-                    />
-                  </div>
-                  <div class="flex-1">
-                    <p
-                      class="text-xs font-medium"
-                      :style="{ color: 'var(--text-muted)' }"
-                    >
-                      {{ $t('codex.status.configMode') }}
-                    </p>
-                    <p
-                      class="text-lg font-bold"
-                      :style="{ color: 'var(--text-primary)' }"
-                    >
-                      {{ currentConfigMode === 'official' ? $t('codex.profiles.officialConfig') : $t('codex.profiles.customRelay') }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 快速切换区 -->
-            <div
-              v-if="profiles.length > 0"
-              class="rounded-xl p-4 mb-6 glass-effect"
-              :style="{ border: '1px solid var(--border-color)' }"
+          <!-- Status Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Current Config -->
+            <NeoCard
+              :gradient-border="true"
+              glow-color="warning"
+              class="relative overflow-hidden group"
             >
-              <div class="flex items-center gap-2 mb-3">
-                <Shuffle
-                  class="w-4 h-4"
-                  :style="{ color: 'var(--platform-codex)' }"
-                />
-                <span
-                  class="text-sm font-semibold"
-                  :style="{ color: 'var(--text-secondary)' }"
-                >{{ $t('codex.profiles.quickSwitch') }}</span>
+              <div class="flex items-center gap-4">
+                <div class="p-3 rounded-xl bg-yellow-500/10 text-yellow-500 group-hover:scale-110 transition-transform duration-300">
+                  <Zap class="w-6 h-6" />
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
+                    {{ $t('codex.status.currentConfig') }}
+                  </p>
+                  <p class="text-xl font-bold text-text-primary truncate">
+                    {{ currentProfile || $t('codex.status.notSet') }}
+                  </p>
+                </div>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="profile in profiles"
-                  :key="profile.name"
-                  class="px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 cursor-pointer"
-                  :style="{
-                    background: profile.name === currentProfile ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-secondary)',
-                    border: profile.name === currentProfile ? '2px solid rgba(245, 158, 11, 0.5)' : '1px solid var(--border-color)',
-                    color: profile.name === currentProfile ? 'var(--platform-codex)' : 'var(--text-secondary)'
-                  }"
-                  @click="handleApply(profile.name)"
+            </NeoCard>
+
+            <!-- Total Profiles -->
+            <NeoCard
+              :interactive="true"
+              glow-color="primary"
+              class="group"
+            >
+              <div class="flex items-center gap-4">
+                <div class="p-3 rounded-xl bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform duration-300">
+                  <Layers class="w-6 h-6" />
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
+                    {{ $t('codex.status.totalProfiles') }}
+                  </p>
+                  <p class="text-xl font-bold text-text-primary">
+                    {{ profiles.length }}
+                  </p>
+                </div>
+              </div>
+            </NeoCard>
+
+            <!-- Config Mode -->
+            <NeoCard
+              :interactive="true"
+              :glow-color="currentConfigMode === 'official' ? 'success' : 'secondary'"
+              class="group"
+            >
+              <div class="flex items-center gap-4">
+                <div 
+                  class="p-3 rounded-xl transition-colors duration-300 group-hover:scale-110 transition-transform"
+                  :class="currentConfigMode === 'official' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-pink-500/10 text-pink-500'"
                 >
-                  <Star
-                    v-if="isOfficialConfig(profile)"
-                    class="w-3.5 h-3.5"
-                    :style="{ color: 'var(--accent-success)' }"
+                  <component
+                    :is="currentConfigMode === 'official' ? Globe : Server"
+                    class="w-6 h-6"
                   />
-                  <span>{{ profile.name }}</span>
-                  <Check
-                    v-if="profile.name === currentProfile"
-                    class="w-4 h-4"
-                  />
-                </button>
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
+                    {{ $t('codex.status.configMode') }}
+                  </p>
+                  <p class="text-xl font-bold text-text-primary">
+                    {{ currentConfigMode === 'official' ? $t('codex.profiles.officialConfig') : $t('codex.profiles.customRelay') }}
+                  </p>
+                </div>
               </div>
+            </NeoCard>
+          </div>
+
+          <!-- Quick Switch -->
+          <NeoCard
+            v-if="profiles.length > 0"
+            padding="lg"
+          >
+            <div class="flex items-center gap-2 mb-4">
+              <Shuffle class="w-5 h-5 text-platform-codex" />
+              <h3 class="text-base font-semibold text-text-primary">
+                {{ $t('codex.profiles.quickSwitch') }}
+              </h3>
             </div>
-
-            <!-- 配置列表标题 -->
-            <div class="flex items-center justify-between mb-4">
-              <h2
-                class="text-lg font-bold flex items-center gap-2"
-                :style="{ color: 'var(--text-primary)' }"
-              >
-                <ListFilter
-                  class="w-5 h-5"
-                  :style="{ color: 'var(--platform-codex)' }"
-                />
-                {{ $t('codex.profiles.listTitle') }}
-              </h2>
-            </div>
-
-            <div
-              v-if="loading"
-              class="flex justify-center py-20"
-            >
-              <div
-                class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
-                :style="{ borderTopColor: 'var(--accent-primary)', borderRightColor: 'var(--accent-secondary)' }"
-              />
-            </div>
-
-            <div
-              v-else
-              class="space-y-3"
-            >
-              <div
-                v-if="profiles.length === 0"
-                class="text-center py-10"
-                :style="{ color: 'var(--text-muted)' }"
-              >
-                {{ $t('codex.profiles.emptyState') }}
-              </div>
-
-              <div
+            <div class="flex flex-wrap gap-3">
+              <button
                 v-for="profile in profiles"
                 :key="profile.name"
-                class="group rounded-lg p-4 transition-all duration-300"
-                :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(99, 102, 241, 0.12)' }"
+                class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 border flex items-center gap-2.5"
+                :class="[
+                  profile.name === currentProfile
+                    ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                    : 'bg-bg-surface border-border-default text-text-secondary hover:border-platform-codex/30 hover:bg-bg-overlay'
+                ]"
+                @click="handleApply(profile.name)"
               >
-                <div class="flex items-start justify-between gap-3">
+                <Star
+                  v-if="isOfficialConfig(profile)"
+                  class="w-3.5 h-3.5"
+                  :class="profile.name === currentProfile ? 'text-platform-codex' : 'text-yellow-500'"
+                />
+                <span>{{ profile.name }}</span>
+                <div 
+                  v-if="profile.name === currentProfile" 
+                  class="flex items-center justify-center w-4 h-4 rounded-full bg-platform-codex text-white text-[10px]"
+                >
+                  <Check
+                    class="w-2.5 h-2.5"
+                    stroke-width="3"
+                  />
+                </div>
+              </button>
+            </div>
+          </NeoCard>
+
+          <!-- Profile List Title -->
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-text-primary flex items-center gap-2">
+              <ListFilter class="w-5 h-5 text-platform-codex" />
+              {{ $t('codex.profiles.listTitle') }}
+            </h2>
+          </div>
+            
+          <!-- Loading State -->
+          <div
+            v-if="loading"
+            class="flex justify-center py-20"
+          >
+            <div class="w-12 h-12 rounded-full border-4 border-transparent border-t-accent-primary border-r-accent-secondary animate-spin" />
+          </div>
+
+          <!-- Empty State -->
+          <div
+            v-else-if="profiles.length === 0"
+            class="empty-state bg-bg-elevated rounded-2xl border border-border-subtle"
+          >
+            <div class="p-4 rounded-full bg-bg-surface mb-4">
+              <Boxes class="w-8 h-8 text-text-muted" />
+            </div>
+            <p class="text-text-secondary">
+              {{ $t('codex.profiles.emptyState') }}
+            </p>
+          </div>
+
+          <!-- Profile Grid -->
+          <div
+            v-else
+            class="grid grid-cols-1 xl:grid-cols-2 gap-4"
+          >
+            <NeoCard 
+              v-for="profile in profiles" 
+              :key="profile.name"
+              class="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+              :class="{ 'ring-1 ring-platform-codex/50': currentProfile && profile.name === currentProfile }"
+              :glow-color="currentProfile && profile.name === currentProfile ? 'warning' : 'primary'"
+              padding="lg"
+            >
+              <!-- Active Indicator Background -->
+              <div 
+                v-if="currentProfile && profile.name === currentProfile"
+                class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-platform-codex/10 to-transparent -mr-8 -mt-8 rounded-bl-full pointer-events-none"
+              />
+
+              <div class="relative z-10">
+                <div class="flex items-start justify-between gap-4 mb-4">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-2">
-                      <h3
-                        class="text-lg font-bold font-mono truncate"
-                        :style="{ color: 'var(--text-primary)' }"
-                      >
+                      <h3 class="text-lg font-bold font-mono text-text-primary truncate">
                         {{ profile.name }}
                       </h3>
-                      <span
+                      <span 
                         v-if="currentProfile && profile.name === currentProfile"
-                        class="px-2 py-0.5 rounded text-xs font-semibold"
-                        :style="{ background: 'var(--accent-success)', color: 'white' }"
+                        class=" badge badge-primary"
                       >
                         {{ $t('codex.profiles.currentBadge') }}
                       </span>
-                      <span
+                      <span 
                         v-else-if="profile.enabled === false"
-                        class="px-2 py-0.5 rounded text-xs font-semibold"
-                        :style="{ background: 'var(--accent-danger)', color: 'white' }"
+                        class="badge badge-danger"
                       >
                         {{ $t('codex.states.disabled') }}
                       </span>
-                      <span
+                      <span 
                         v-else
-                        class="px-2 py-0.5 rounded text-xs font-semibold"
-                        :style="{ background: 'var(--accent-primary)', color: 'white' }"
+                        class="badge badge-success"
                       >
                         {{ $t('codex.states.enabled') }}
                       </span>
                     </div>
-
                     <p
                       v-if="profile.description"
-                      class="text-sm mb-2 line-clamp-2"
-                      :style="{ color: 'var(--text-secondary)' }"
+                      class="text-sm text-text-secondary line-clamp-1"
                     >
                       {{ profile.description }}
                     </p>
-
-                    <div class="space-y-1 text-sm">
-                      <div class="flex items-center gap-2">
-                        <span :style="{ color: 'var(--text-muted)' }">{{ $t('codex.profiles.fields.baseUrl') }}</span>
-                        <code
-                          class="px-2 py-1 rounded font-mono truncate"
-                          :style="{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }"
-                        >
-                          {{ profile.base_url }}
-                        </code>
-                      </div>
-
-                      <div class="flex items-center gap-2">
-                        <span :style="{ color: 'var(--text-muted)' }">{{ $t('codex.profiles.fields.model') }}</span>
-                        <code
-                          class="px-2 py-1 rounded font-mono"
-                          :style="{ background: 'var(--bg-secondary)', color: 'var(--accent-primary)' }"
-                        >
-                          {{ profile.model }}
-                        </code>
-                      </div>
-
-                      <div
-                        v-if="profile.provider || profile.provider_type"
-                        class="flex items-center gap-2"
-                      >
-                        <span :style="{ color: 'var(--text-muted)' }">{{ $t('codex.profiles.fields.provider') }}</span>
-                        <span :style="{ color: 'var(--text-secondary)' }">
-                          {{ profile.provider || '-' }}
-                        </span>
-                        <span
-                          v-if="profile.provider_type"
-                          class="px-2 py-0.5 rounded text-xs font-semibold"
-                          :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
-                        >
-                          {{ profile.provider_type }}
-                        </span>
-                      </div>
-
-                      <div
-                        v-if="profile.tags && profile.tags.length > 0"
-                        class="flex flex-wrap gap-1 mt-2"
-                      >
-                        <span
-                          v-for="tag in profile.tags"
-                          :key="tag"
-                          class="px-2 py-0.5 rounded text-xs font-semibold"
-                          :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
-                        >
-                          {{ tag }}
-                        </span>
-                      </div>
-
-                      <div
-                        v-if="profile.extra && Object.keys(profile.extra).length > 0"
-                        class="flex items-center gap-2 mt-2"
-                      >
-                        <span :style="{ color: 'var(--text-muted)' }">{{ $t('codex.profiles.fields.extra') }}</span>
-                        <span :style="{ color: 'var(--text-secondary)' }">
-                          {{ Object.keys(profile.extra).length }}
-                        </span>
-                      </div>
-                    </div>
                   </div>
-
-                  <div class="flex gap-2 shrink-0">
-                    <button
-                      class="p-2 rounded-lg transition-all hover:scale-110"
-                      :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-success)' }"
+                   
+                  <!-- Actions -->
+                  <div class="flex items-center gap-1 opacity-100 xl:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button 
+                      class="p-2 rounded-lg hover:bg-bg-overlay text-accent-success transition-colors"
                       :title="$t('codex.profiles.apply')"
-                      @click="handleApply(profile.name)"
+                      @click.stop="handleApply(profile.name)"
                     >
                       <Check class="w-4 h-4" />
                     </button>
-                    <button
-                      class="p-2 rounded-lg transition-all hover:scale-110"
-                      :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-primary)' }"
+                    <button 
+                      class="p-2 rounded-lg hover:bg-bg-overlay text-accent-primary transition-colors"
                       :title="$t('codex.actions.edit')"
-                      @click="handleEdit(profile.name)"
+                      @click.stop="handleEdit(profile.name)"
                     >
                       <Edit2 class="w-4 h-4" />
                     </button>
-                    <button
-                      class="p-2 rounded-lg transition-all hover:scale-110"
-                      :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
+                    <button 
+                      class="p-2 rounded-lg hover:bg-bg-overlay text-accent-danger transition-colors"
                       :title="$t('codex.actions.delete')"
-                      @click="handleDelete(profile.name)"
+                      @click.stop="handleDelete(profile.name)"
                     >
                       <Trash2 class="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <!-- Add/Edit Modal -->
-            <div
-              v-if="showForm"
-              class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-            >
-              <div
-                class="rounded-xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto"
-                :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }"
-              >
-                <h2
-                  class="text-xl font-bold mb-4"
-                  :style="{ color: 'var(--text-primary)' }"
+                <!-- Info Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                      {{ $t('codex.profiles.fields.baseUrl') }}
+                    </span>
+                    <code class="font-mono text-text-primary truncate px-2 py-1 rounded bg-bg-surface border border-border-subtle">
+                      {{ profile.base_url }}
+                    </code>
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                      {{ $t('codex.profiles.fields.model') }}
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono text-accent-primary bg-accent-primary/5 px-2 py-0.5 rounded">
+                        {{ profile.model }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                 
+                <div
+                  v-if="profile.tags?.length || profile.provider"
+                  class="mt-4 flex items-center justify-between border-t border-border-subtle pt-3"
                 >
+                  <div class="flex flex-wrap gap-1.5">
+                    <span 
+                      v-if="profile.provider"
+                      class="px-2 py-0.5 rounded-md text-xs font-medium bg-bg-surface text-text-secondary border border-border-subtle"
+                    >
+                      {{ profile.provider }}
+                    </span>
+                    <span 
+                      v-for="tag in profile.tags" 
+                      :key="tag"
+                      class="px-2 py-0.5 rounded-md text-xs font-medium bg-bg-surface text-text-muted border border-border-subtle"
+                    >
+                      #{{ tag }}
+                    </span>
+                  </div>
+                   
+                  <div
+                    v-if="profile.extra && Object.keys(profile.extra).length > 0"
+                    class="text-xs text-text-muted font-mono bg-bg-surface px-2 py-1 rounded"
+                  >
+                    +{{ Object.keys(profile.extra).length }} extras
+                  </div>
+                </div>
+              </div>
+            </NeoCard>
+          </div>
+            
+          <!-- Add/Edit Modal -->
+          <div
+            v-if="showForm"
+            class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <NeoCard
+              class="w-full max-w-3xl max-h-[90vh] overflow-y-auto !p-0 shadow-2xl animate-in zoom-in-95 duration-200"
+              :padding="'none'"
+            >
+              <!-- Modal Header -->
+              <div class="px-6 py-4 border-b border-border-subtle flex items-center justify-between sticky top-0 bg-bg-elevated/95 backdrop-blur z-10">
+                <h2 class="text-xl font-bold text-text-primary">
                   {{ editingName ? $t('codex.profiles.editProfile') : $t('codex.profiles.addProfile') }}
                 </h2>
+                <button
+                  class="p-1 rounded-lg hover:bg-bg-overlay text-text-muted transition-colors"
+                  @click="handleCloseForm"
+                >
+                  <X class="w-5 h-5" />
+                </button>
+              </div>
 
-                <div class="space-y-4">
-                  <div>
-                    <label
-                      class="block text-sm font-semibold mb-1"
-                      :style="{ color: 'var(--text-secondary)' }"
-                    >{{ $t('codex.profiles.fields.name') }}</label>
-                    <input
-                      v-model="form.name"
-                      :disabled="!!editingName"
-                      type="text"
-                      class="w-full px-3 py-2 rounded-lg font-mono disabled:opacity-60"
-                      :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                      :placeholder="$t('codex.profiles.placeholders.name')"
-                    >
-                  </div>
-
-                  <div>
-                    <label
-                      class="block text-sm font-semibold mb-1"
-                      :style="{ color: 'var(--text-secondary)' }"
-                    >{{ $t('codex.profiles.fields.description') }}</label>
-                    <input
-                      v-model="form.description"
-                      type="text"
-                      class="w-full px-3 py-2 rounded-lg"
-                      :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                      :placeholder="$t('codex.profiles.placeholders.description')"
-                    >
-                  </div>
-
+              <!-- Modal Content -->
+              <div class="p-6 space-y-6">
+                <!-- Use generic grid for form -->
+                <div class="grid grid-cols-1 gap-6">
+                  <!-- Name & Desc -->
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        class="block text-sm font-semibold mb-1"
-                        :style="{ color: 'var(--text-secondary)' }"
-                      >{{ $t('codex.profiles.fields.baseUrl') }}</label>
+                    <div class="space-y-1.5">
+                      <label class="text-sm font-semibold text-text-secondary">
+                        {{ $t('codex.profiles.fields.name') }} <span class="text-red-500">*</span>
+                      </label>
                       <input
-                        v-model="form.base_url"
+                        v-model="form.name"
+                        :disabled="!!editingName"
                         type="text"
-                        class="w-full px-3 py-2 rounded-lg font-mono"
-                        :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                        :placeholder="$t('codex.profiles.placeholders.baseUrl')"
+                        class="input"
+                        :placeholder="$t('codex.profiles.placeholders.name')"
                       >
                     </div>
-
-                    <div>
-                      <label
-                        class="block text-sm font-semibold mb-1"
-                        :style="{ color: 'var(--text-secondary)' }"
-                      >{{ $t('codex.profiles.fields.model') }}</label>
+                    <div class="space-y-1.5">
+                      <label class="text-sm font-semibold text-text-secondary">
+                        {{ $t('codex.profiles.fields.description') }}
+                      </label>
                       <input
-                        v-model="form.model"
+                        v-model="form.description"
                         type="text"
-                        class="w-full px-3 py-2 rounded-lg font-mono"
-                        :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                        :placeholder="$t('codex.profiles.placeholders.model')"
+                        class="input"
+                        :placeholder="$t('codex.profiles.placeholders.description')"
                       >
                     </div>
                   </div>
+                       
+                  <!-- URL & Token -->
+                  <div class="space-y-1.5">
+                    <label class="text-sm font-semibold text-text-secondary">
+                      {{ $t('codex.profiles.fields.baseUrl') }} <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                      v-model="form.base_url"
+                      type="text"
+                      class="input font-mono text-sm"
+                      :placeholder="$t('codex.profiles.placeholders.baseUrl')"
+                    >
+                  </div>
 
-                  <div>
-                    <label
-                      class="block text-sm font-semibold mb-1"
-                      :style="{ color: 'var(--text-secondary)' }"
-                    >{{ $t('codex.profiles.fields.authToken') }}</label>
+                  <div class="space-y-1.5">
+                    <label class="text-sm font-semibold text-text-secondary">
+                      {{ $t('codex.profiles.fields.authToken') }} <span class="text-red-500">*</span>
+                    </label>
                     <input
                       v-model="form.auth_token"
                       type="password"
-                      class="w-full px-3 py-2 rounded-lg font-mono"
-                      :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+                      class="input font-mono text-sm"
                       :placeholder="$t('codex.profiles.placeholders.authToken')"
                     >
                   </div>
 
+                  <!-- Models -->
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        class="block text-sm font-semibold mb-1"
-                        :style="{ color: 'var(--text-secondary)' }"
-                      >{{ $t('codex.profiles.fields.smallFastModel') }}</label>
+                    <div class="space-y-1.5">
+                      <label class="text-sm font-semibold text-text-secondary">
+                        {{ $t('codex.profiles.fields.model') }} <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        v-model="form.model"
+                        type="text"
+                        class="input font-mono text-sm"
+                        :placeholder="$t('codex.profiles.placeholders.model')"
+                      >
+                    </div>
+                    <div class="space-y-1.5">
+                      <label class="text-sm font-semibold text-text-secondary">
+                        {{ $t('codex.profiles.fields.smallFastModel') }}
+                      </label>
                       <input
                         v-model="form.small_fast_model"
                         type="text"
-                        class="w-full px-3 py-2 rounded-lg font-mono"
-                        :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+                        class="input font-mono text-sm"
                         :placeholder="$t('codex.profiles.placeholders.smallFastModel')"
                       >
                     </div>
-
-                    <div>
-                      <label
-                        class="block text-sm font-semibold mb-1"
-                        :style="{ color: 'var(--text-secondary)' }"
-                      >{{ $t('codex.profiles.fields.tags') }}</label>
+                  </div>
+                       
+                  <!-- Metadata -->
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="space-y-1.5">
+                      <label class="text-sm font-semibold text-text-secondary">
+                        {{ $t('codex.profiles.fields.provider') }}
+                      </label>
+                      <input
+                        v-model="form.provider"
+                        type="text"
+                        class="input"
+                        :placeholder="$t('codex.profiles.placeholders.provider')"
+                      >
+                    </div>
+                    <div class="space-y-1.5">
+                      <label class="text-sm font-semibold text-text-secondary">
+                        {{ $t('codex.profiles.fields.providerType') }}
+                      </label>
+                      <input
+                        v-model="form.provider_type"
+                        type="text"
+                        class="input"
+                        :placeholder="$t('codex.profiles.placeholders.providerType')"
+                      >
+                    </div>
+                    <div class="space-y-1.5">
+                      <label class="text-sm font-semibold text-text-secondary">
+                        {{ $t('codex.profiles.fields.tags') }}
+                      </label>
                       <input
                         v-model="tagsText"
                         type="text"
-                        class="w-full px-3 py-2 rounded-lg"
-                        :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+                        class="input"
                         :placeholder="$t('codex.profiles.placeholders.tags')"
                       >
                     </div>
                   </div>
-
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label
-                        class="block text-sm font-semibold mb-1"
-                        :style="{ color: 'var(--text-secondary)' }"
-                      >{{ $t('codex.profiles.fields.provider') }}</label>
-                      <input
-                        v-model="form.provider"
-                        type="text"
-                        class="w-full px-3 py-2 rounded-lg"
-                        :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                        :placeholder="$t('codex.profiles.placeholders.provider')"
-                      >
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-sm font-semibold mb-1"
-                        :style="{ color: 'var(--text-secondary)' }"
-                      >{{ $t('codex.profiles.fields.providerType') }}</label>
-                      <input
-                        v-model="form.provider_type"
-                        type="text"
-                        class="w-full px-3 py-2 rounded-lg"
-                        :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                        :placeholder="$t('codex.profiles.placeholders.providerType')"
-                      >
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-sm font-semibold mb-1"
-                        :style="{ color: 'var(--text-secondary)' }"
-                      >{{ $t('codex.profiles.fields.account') }}</label>
-                      <input
-                        v-model="form.account"
-                        type="text"
-                        class="w-full px-3 py-2 rounded-lg"
-                        :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
-                        :placeholder="$t('codex.profiles.placeholders.account')"
-                      >
-                    </div>
-                  </div>
-
-                  <div class="flex items-center gap-2">
+                       
+                  <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface border border-border-subtle">
                     <input
                       id="profileEnabled"
                       v-model="form.enabled"
                       type="checkbox"
-                      class="w-4 h-4"
+                      class="w-5 h-5 rounded border-border-default text-accent-primary focus:ring-accent-primary/20"
                     >
                     <label
                       for="profileEnabled"
-                      class="text-sm font-semibold"
-                      :style="{ color: 'var(--text-secondary)' }"
+                      class="text-sm font-medium text-text-primary cursor-pointer select-none"
                     >
                       {{ $t('codex.profiles.fields.enabled') }}
                     </label>
                   </div>
-
-                  <div>
-                    <label
-                      class="block text-sm font-semibold mb-1"
-                      :style="{ color: 'var(--text-secondary)' }"
-                    >{{ $t('codex.profiles.fields.extraJson') }}</label>
+                       
+                  <!-- Extra JSON -->
+                  <div class="space-y-1.5">
+                    <label class="text-sm font-semibold text-text-secondary flex justify-between">
+                      <span>{{ $t('codex.profiles.fields.extraJson') }}</span>
+                      <span class="text-xs font-normal text-text-muted">{{ $t('codex.profiles.extraHint') }}</span>
+                    </label>
                     <textarea
                       v-model="extraText"
-                      rows="10"
-                      class="w-full px-3 py-2 rounded-lg font-mono text-sm"
-                      :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+                      rows="6"
+                      class="input font-mono text-xs leading-relaxed"
                       :placeholder="$t('codex.profiles.placeholders.extraJson')"
                     />
-                    <p
-                      class="text-xs mt-2"
-                      :style="{ color: 'var(--text-muted)' }"
-                    >
-                      {{ $t('codex.profiles.extraHint') }}
-                    </p>
                   </div>
                 </div>
-
-                <div class="flex justify-end gap-3 mt-6">
-                  <button
-                    class="px-4 py-2 rounded-lg font-semibold text-sm"
-                    :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }"
-                    @click="handleCloseForm"
-                  >
-                    {{ $t('codex.actions.cancel') }}
-                  </button>
-                  <button
-                    class="px-4 py-2 rounded-lg font-semibold text-sm text-white"
-                    :disabled="saving"
-                    :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', opacity: saving ? 0.6 : 1 }"
-                    @click="handleSave"
-                  >
-                    {{ saving ? $t('codex.states.saving') : $t('codex.actions.save') }}
-                  </button>
-                </div>
               </div>
-            </div>
+
+              <!-- Footer -->
+              <div class="px-6 py-4 border-t border-border-subtle flex justify-end gap-3 bg-bg-surface/50">
+                <button
+                  class="btn btn-secondary"
+                  @click="handleCloseForm"
+                >
+                  {{ $t('codex.actions.cancel') }}
+                </button>
+                <button 
+                  class="btn btn-primary"
+                  :disabled="saving"
+                  @click="handleSave"
+                >
+                  <span
+                    v-if="saving"
+                    class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"
+                  />
+                  {{ saving ? $t('codex.states.saving') : $t('codex.actions.save') }}
+                </button>
+              </div>
+            </NeoCard>
           </div>
         </main>
       </div>
@@ -608,10 +529,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, Boxes, Check, Edit2, Globe, Home, Layers, ListFilter, Plus, Server, Settings, Shuffle, Star, Trash2, Zap } from 'lucide-vue-next'
+import { ArrowLeft, Boxes, Check, Edit2, Globe, Home, Layers, ListFilter, Plus, Server, Settings, Shuffle, Star, Trash2, Zap, X } from 'lucide-vue-next'
 
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
+import NeoCard from '@/components/ui/NeoCard.vue'
 import { addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexProfiles, updateCodexProfile } from '@/api'
 import type { CodexProfile, CodexProfileRequest } from '@/types'
 
@@ -829,4 +751,3 @@ onMounted(async () => {
   await loadProfiles()
 })
 </script>
-
