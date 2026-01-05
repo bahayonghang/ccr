@@ -24,6 +24,12 @@ benches/**
 *.tmp
 *.temp
 
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
 # Node.js lock files (保留 package-lock.json 以确保 CI 构建一致性)
 # **/package-lock.json
 
