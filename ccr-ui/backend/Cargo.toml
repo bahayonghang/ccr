@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.17.2"
+version = "3.17.3"
 edition = "2024"
 
 [dependencies]
@@ -14,7 +14,7 @@ ccr = { git = "https://github.com/bahayonghang/ccr", branch = "dev", default-fea
 # ═══════════════════════════════════════════════════════════
 
 # Web framework (Axum + Tower ecosystem)
-axum = { version = "0.8.6", features = [
+axum = { version = "0.8.8", features = [
     "json",
     "tokio",
     "http1",
@@ -39,7 +39,7 @@ tokio = { version = "1.48.0", features = ["full"] }
 
 # Serialization
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
+serde_json = "1.0.148"
 
 # Time
 chrono = { version = "0.4.42", features = ["serde"] }
@@ -64,33 +64,38 @@ rayon = "1.10"
 lazy_static = "1.5"
 
 # Logging
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = [
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = [
     "env-filter",
     "json",
     "fmt",
     "ansi",
 ] }
-tracing-appender = "0.2"
+tracing-appender = "0.2.4"
 tracing-log = "0.2" # Bridge log facade to tracing
 
 # CLI arguments
-clap = { version = "4.5.53", features = ["derive"] }
+clap = { version = "4.5.54", features = ["derive"] }
 
 # System information
-whoami = "1.5"
+whoami = "2.0.0"
 num_cpus = "1.17.0"
 sysinfo = "0.37.2"  # 统一使用与 ccr 相同的版本
 
 # HTTP client for checking updates and checkin API calls
 # NOTE: Enable `gzip` to transparently decode provider responses (see NeuraDock).
-reqwest = { version = "0.12.25", features = ["blocking", "json", "cookies", "gzip"] }
+reqwest = { version = "0.13.1", features = [
+    "blocking",
+    "json",
+    "cookies",
+    "gzip",
+] }
 
 # YAML support (for special cases)
 serde_yaml = "0.9.33"
 
 # Atomic file operations
-tempfile = "3.23"
+tempfile = "3.24.0"
 
 # File system utilities
 walkdir = "2.5"
