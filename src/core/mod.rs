@@ -38,4 +38,4 @@ pub use fileio::{
 pub use http::HTTP_CLIENT;
 #[allow(unused_imports)]
 pub use lock::{CONFIG_LOCK, FileLock, LockManager};
-pub use logging::{ColorOutput, init_logger};
+pub use logging::{ColorOutput, init_file_only_logger, init_logger};

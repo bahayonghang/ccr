@@ -1,12 +1,10 @@
 // 🖥️ TUI 模块 - 终端用户界面
-// 基于 ratatui 实现的交互式配置管理界面
+// 基于 ratatui 实现的双Tab配置选择器
 
 mod app;
 mod event;
-mod tabs;
 mod theme;
 mod ui;
-mod widgets;
 
 pub use app::App;
 pub use event::{Event, EventHandler};
@@ -21,10 +19,7 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 use std::io;
 
 /// 🚀 运行 TUI 应用
-///
-/// 参数:
-/// - auto_yes: 是否启动时启用自动确认模式（运行时可通过Y键切换）
-pub fn run_tui(auto_yes: bool) -> Result<()> {
+pub fn run_tui() -> Result<()> {
     // 🔧 设置终端
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -33,24 +28,10 @@ pub fn run_tui(auto_yes: bool) -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // 🎯 创建应用实例
-    let mut app = App::new()?;
-    // 根据命令行参数设置会话级自动确认模式（不持久化）
-    if auto_yes {
-        app.auto_confirm_mode = true;
-    }
+    let app = App::new()?;
     let event_handler = EventHandler::new(250);
 
-    // 🔄 首次渲染前刷新必要缓存，避免在渲染阶段进行 I/O
-    // 将读取配置与历史的磁盘操作移出渲染闭包，提升绘制性能与流畅度
-    if let Err(e) = app.refresh_caches() {
-        // 缓存刷新失败不影响 TUI 启动，但在状态栏给出提示
-        app.set_status(format!("初始化数据加载失败: {}", e), true);
-    }
-
     // 🎨 运行主循环
-    // 首帧绘制
-    draw_frame(&mut terminal, &mut app)?;
-
     let res = run_app(&mut terminal, app, event_handler);
 
     // 🧹 恢复终端
@@ -75,10 +56,9 @@ where
     B: ratatui::backend::Backend,
     B::Error: std::error::Error + Send + Sync + 'static,
 {
-    // 📈 增量渲染策略：仅在事件或需要刷新时绘制
-    // - Key 事件：总是重绘（状态或焦点可能变化）
-    // - Tick 事件：仅在需要动画/消息帧计数变化时重绘
-    let mut should_redraw = false;
+    // 首次绘制
+    draw_frame(terminal, &app)?;
+
     loop {
         match event_handler.poll_event()? {
             Event::Key(key) => {
@@ -87,25 +67,16 @@ where
                     // 用户请求退出
                     return Ok(());
                 }
-                should_redraw = true;
+                draw_frame(terminal, &app)?;
             }
             Event::Tick => {
-                // ⏱️ 处理周期性刷新（状态消息帧计数、微动画）
-                app.tick();
-                if app.should_redraw_on_tick() {
-                    should_redraw = true;
-                }
+                // ⏱️ 周期性刷新（可选）
             }
-        }
-
-        if should_redraw {
-            draw_frame(terminal, &mut app)?;
-            should_redraw = false;
         }
     }
 }
 
-fn draw_frame<B>(terminal: &mut Terminal<B>, app: &mut App) -> Result<()>
+fn draw_frame<B>(terminal: &mut Terminal<B>, app: &App) -> Result<()>
 where
     B: ratatui::backend::Backend,
     B::Error: std::error::Error + Send + Sync + 'static,

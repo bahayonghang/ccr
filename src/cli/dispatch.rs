@@ -89,12 +89,6 @@ impl CommandDispatcher {
                 crate::web::web_command(Some(*port), *no_browser).await
             }
 
-            // 容器命令
-            #[cfg(feature = "web")]
-            Some(Commands::Tui {
-                auto_yes: cmd_auto_yes,
-            }) => crate::tui::run_tui(auto_yes || *cmd_auto_yes),
-
             Some(Commands::Ui {
                 action,
                 port,
@@ -158,12 +152,21 @@ impl CommandDispatcher {
         }
     }
 
-    /// 处理无子命令的情况（快捷切换或显示当前）
+    /// 处理无子命令的情况（快捷切换或打开TUI）
     async fn handle_no_subcommand(cli: &Cli) -> Result<(), CcrError> {
         if let Some(config_name) = &cli.config_name {
+            // 快捷切换配置
             crate::commands::switch_command(config_name).await
         } else {
-            crate::commands::current_command().await
+            // 打开TUI配置选择器
+            #[cfg(feature = "tui")]
+            {
+                crate::tui::run_tui()
+            }
+            #[cfg(not(feature = "tui"))]
+            {
+                crate::commands::current_command().await
+            }
         }
     }
 

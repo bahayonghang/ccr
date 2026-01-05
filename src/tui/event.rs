@@ -2,7 +2,7 @@
 // 处理键盘输入和定时刷新事件
 
 use crate::core::error::Result;
-use crossterm::event::{self, Event as CrosstermEvent, KeyEvent};
+use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, KeyEventKind};
 use std::time::Duration;
 
 /// 🎯 事件类型
@@ -34,10 +34,22 @@ impl EventHandler {
     /// 获取下一个事件
     ///
     /// 阻塞直到有事件发生或超时
+    ///
+    /// 注意: 在 Windows 上，crossterm 会为每次按键发送 Press 和 Release 两个事件
+    /// 必须过滤只处理 Press 事件，否则会导致按键被处理两次
     pub fn poll_event(&mut self) -> Result<Event> {
         if event::poll(self.tick_rate)? {
             match event::read()? {
-                CrosstermEvent::Key(key) => Ok(Event::Key(key)),
+                CrosstermEvent::Key(key) => {
+                    // 🔑 关键修复: 只处理 Press 事件，忽略 Release 和 Repeat
+                    // Windows 上每次按键会触发 Press + Release 两个事件
+                    // 如果不过滤，Tab 切换会执行两次导致看起来没有效果
+                    if key.kind == KeyEventKind::Press {
+                        Ok(Event::Key(key))
+                    } else {
+                        Ok(Event::Tick)
+                    }
+                }
                 _ => Ok(Event::Tick),
             }
         } else {

@@ -136,6 +136,7 @@ pub fn print_top_help() {
     println!("  {}  # 查看所有配置", cmd("ccr list"));
     println!("  {}  # 切换配置", cmd("ccr switch <名称>"));
     println!("  {}  # 快捷切换(省略 switch)", cmd("ccr anthropic"));
+    println!("  {}  # 打开 TUI 配置选择器", cmd("ccr"));
 
     // 多平台切换
     section_title("多平台切换");
@@ -210,10 +211,11 @@ pub fn print_top_help() {
     );
     add_row(
         &mut conf_table,
-        "current",
+        "status",
         "显示当前激活的配置状态",
-        Some("ccr current"),
+        Some("ccr status"),
     );
+
     add_row(
         &mut conf_table,
         "switch",
@@ -297,7 +299,6 @@ pub fn print_top_help() {
         "启动轻量级 Legacy Web 界面 / Web API（兼容与编程访问，新的浏览器端推荐使用 ccr ui）",
         Some("ccr web --port 9527 --no-browser"),
     );
-    add_row(&mut ui_table, "tui", "启动 TUI 交互式界面", Some("ccr tui"));
     add_row(
         &mut ui_table,
         "ui",
@@ -305,6 +306,12 @@ pub fn print_top_help() {
         Some("ccr ui -p 15173"),
     );
     println!("{}", ui_table);
+    println!();
+    println!(
+        "  {} 直接运行 {} 即可打开 TUI 配置选择器（选择 Claude/Codex 平台配置）",
+        "💡".yellow(),
+        cmd("ccr")
+    );
 
     // 同步与平台
     section_title("同步与平台");

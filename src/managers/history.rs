@@ -120,7 +120,7 @@ impl HistoryEntry {
         Self {
             id: Uuid::new_v4().to_string(),
             timestamp: Local::now(),
-            actor: whoami::username(),
+            actor: whoami::username().unwrap_or_else(|_| "unknown".to_string()),
             operation,
             details,
             env_changes: Vec::new(),

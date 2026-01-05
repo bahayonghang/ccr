@@ -315,6 +315,54 @@ pub fn init_logger() {
         .try_init();
 }
 
+/// 🔇 初始化仅文件输出的日志系统（TUI 模式专用）
+///
+/// TUI 模式下需要禁用终端日志输出，避免日志覆盖 TUI 界面。
+/// 此函数仅将日志写入文件，不输出到终端。
+///
+/// 注意：由于 tracing 只能初始化一次，此函数会静默失败（如果已初始化）
+pub fn init_file_only_logger() {
+    // 初始化 log -> tracing 桥接
+    let _ = LogTracer::init();
+
+    // 从环境变量获取日志级别，默认 info
+    let log_level = std::env::var("CCR_LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
+    let env_filter = EnvFilter::new(log_level);
+
+    // 尝试创建文件日志层（无终端输出）
+    let file_layer = get_log_dir().and_then(|log_dir| {
+        // 确保日志目录存在
+        if std::fs::create_dir_all(&log_dir).is_err() {
+            return None;
+        }
+
+        // 清理过期日志
+        cleanup_old_logs(&log_dir);
+
+        // 创建按天轮转的文件 appender
+        let file_appender = RollingFileAppender::new(Rotation::DAILY, &log_dir, "ccr.log");
+
+        // 文件输出层（无色彩）
+        Some(
+            fmt::layer()
+                .with_target(false)
+                .with_thread_ids(false)
+                .with_thread_names(false)
+                .with_file(false)
+                .with_line_number(false)
+                .with_span_events(FmtSpan::NONE)
+                .with_ansi(false)
+                .with_writer(file_appender),
+        )
+    });
+
+    // 仅初始化文件日志层（无终端输出）
+    let _ = tracing_subscriber::registry()
+        .with(env_filter)
+        .with(file_layer)
+        .try_init();
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {

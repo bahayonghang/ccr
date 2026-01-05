@@ -61,6 +61,16 @@ pub struct Cli {
     pub config_name: Option<String>,
 }
 
+impl Cli {
+    /// 🖥️ 检测是否为 TUI 模式
+    ///
+    /// 当没有指定子命令和配置名称时，会进入 TUI 模式
+    #[cfg(feature = "tui")]
+    pub fn is_tui_mode(&self) -> bool {
+        self.command.is_none() && self.config_name.is_none()
+    }
+}
+
 /// 📋 命令枚举 - 定义所有可用的 CLI 子命令
 #[derive(Subcommand)]
 pub enum Commands {
@@ -84,9 +94,9 @@ pub enum Commands {
     /// 显示当前激活的配置状态
     ///
     /// 查看当前正在使用的配置方案详情,包括所有环境变量设置
-    /// 别名: show, status
-    #[command(alias = "show")]
+    /// 别名: status, show (推荐使用 ccr status)
     #[command(alias = "status")]
+    #[command(alias = "show")]
     Current,
 
     /// 切换到指定的配置方案
@@ -284,17 +294,6 @@ pub enum Commands {
     /// 别名: ver
     #[command(alias = "ver")]
     Version,
-
-    /// 启动 TUI (Terminal User Interface) 交互式界面
-    ///
-    /// 提供可视化的配置管理界面，支持实时操作和自动确认模式切换
-    /// 示例: ccr tui
-    #[cfg(feature = "tui")]
-    Tui {
-        /// 启动时启用自动确认模式
-        #[arg(short = 'y', long = "yes")]
-        auto_yes: bool,
-    },
 
     /// WebDAV 配置同步
     ///

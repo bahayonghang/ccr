@@ -156,7 +156,8 @@ pub mod web;
 /// - [`ColorOutput`] - 彩色终端输出
 /// - [`LockManager`] - 文件锁管理器
 /// - [`init_logger`] - 日志初始化函数
-pub use core::{CcrError, ColorOutput, LockManager, Result, init_logger};
+/// - [`init_file_only_logger`] - TUI 模式日志初始化函数（仅文件输出）
+pub use core::{CcrError, ColorOutput, LockManager, Result, init_file_only_logger, init_logger};
 
 /// 管理器层 - 数据访问和持久化
 ///

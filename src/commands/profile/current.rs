@@ -282,6 +282,21 @@ pub async fn current_command() -> Result<()> {
         ColorOutput::step(&format!("🌍 {} 环境变量状态", platform_display));
         println!();
 
+        // 对于 Claude 平台，从 settings.json 读取环境变量
+        // 对于其他平台，从系统环境变量读取
+        let settings_env = if platform == Platform::Claude {
+            match SettingsService::with_default() {
+                Ok(service) => service
+                    .get_current_settings_async()
+                    .await
+                    .ok()
+                    .map(|s| s.env),
+                Err(_) => None,
+            }
+        } else {
+            None
+        };
+
         let mut env_table = Table::new();
         env_table
             .load_preset(UTF8_FULL)
@@ -299,7 +314,12 @@ pub async fn current_command() -> Result<()> {
             ]);
 
         for var_name in &env_vars {
-            let value = std::env::var(var_name).ok();
+            // 优先从 settings.json 读取，如果没有则从系统环境变量读取
+            let value = if let Some(ref env_map) = settings_env {
+                env_map.get(*var_name).cloned()
+            } else {
+                std::env::var(var_name).ok()
+            };
             let is_sensitive = var_name.contains("TOKEN") || var_name.contains("KEY");
 
             let var_cell = Cell::new(format!("{} *", var_name)).fg(TableColor::Yellow);
