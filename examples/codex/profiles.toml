@@ -1,129 +1,47 @@
-# Codex (GitHub Copilot) 配置示例
+# Codex 配置示例
 # 适用于 Unified 模式下的平台配置
 # 路径: ~/.ccr/platforms/codex/profiles.toml
 
 # ⚠️ 注意：CCR 使用兼容 CCS 的 profiles.toml 格式（包含 default_config/current_config/settings）
-default_config = "duckcoding"
-current_config = "duckcoding"
+default_config = "default"
+current_config = "default"
 
-[settings]
-skip_confirmation = false
 
 # ═══════════════════════════════════════════════════════════════
-# GitHub Copilot 官方
+# OpenAI Codex 官方（使用 ChatGPT Plus/Pro 订阅或 API Key）
+# 切换到此配置时使用官方服务
 # ═══════════════════════════════════════════════════════════════
-[github]
-description = "GitHub Copilot Official"
-base_url = "https://api.github.com/copilot"
-auth_token = "ghp_...your-github-token"
-model = "gpt-4"
-small_fast_model = "gpt-3.5-turbo"
-provider = "GitHub"
-provider_type = "official_relay"
-api_mode = "github"
-usage_count = 0
+[default]
+description = "OpenAI Codex Official"
+# 官方服务不需要设置 base_url，使用默认值
+# auth_token 可以留空，Codex 会使用 ChatGPT 登录或 OPENAI_API_KEY 环境变量
+auth_token = ""
 enabled = true
 
-# ═══════════════════════════════════════════════════════════════
-# Copilot Enterprise
-# ═══════════════════════════════════════════════════════════════
-[github_enterprise]
-description = "GitHub Copilot Enterprise"
-base_url = "https://api.github.com/copilot"
-auth_token = "ghp_...enterprise-token"
-model = "gpt-4-turbo"
-small_fast_model = "gpt-3.5-turbo"
-provider = "GitHub Enterprise"
-provider_type = "official_relay"
-api_mode = "github"
-account = "enterprise@company.com"
-tags = ["enterprise", "production"]
-usage_count = 0
-enabled = true
 
 # ═══════════════════════════════════════════════════════════════
-# Codex 转发服务示例
+# 中转站配置示例
+# 只需配置 base_url 和 auth_token，其他参数在 Codex 内部修改
 # ═══════════════════════════════════════════════════════════════
-[codex_relay]
-description = "OpenAI 兼容转发服务（示例）"
-base_url = "https://your-openai-compatible.com/v1"
-auth_token = "sk-your-api-key"
-model = "gpt-5.1-codex"
-provider = "custom"
-provider_type = "official_relay"
-api_mode = "custom"
-wire_api = "responses"
-env_key = "CUSTOM_API_KEY"
-requires_openai_auth = true
-network_access = "enabled"
-disable_response_storage = true
-usage_count = 0
-enabled = true
 
-# ═══════════════════════════════════════════════════════════════
-# DuckCoding 示例（与你截图一致）
-# ═══════════════════════════════════════════════════════════════
 [duckcoding]
-description = "DuckCoding (OpenAI 兼容) - gpt-5.1-codex"
+description = "DuckCoding 中转站"
 base_url = "https://jp.duckcoding.com/v1"
 auth_token = "sk-...your-duckcoding-codex-token"
-model = "gpt-5.1-codex"
-provider = "duckcoding"
-provider_type = "official_relay"
-api_mode = "custom"
-wire_api = "responses"
-env_key = "DUCKCODING_API_KEY"
-requires_openai_auth = true
-approval_policy = "on-request"
-sandbox_mode = "workspace-write"
-model_reasoning_effort = "high"
-network_access = "enabled"
-disable_response_storage = true
-usage_count = 0
 enabled = true
 
-# ═══════════════════════════════════════════════════════════════
-# 开发/测试环境
-# ═══════════════════════════════════════════════════════════════
-[codex_dev]
-description = "Codex Development Environment"
-base_url = "https://api.github.com/copilot"
-auth_token = "ghp_...dev-token"
-model = "gpt-3.5-turbo"
-small_fast_model = "gpt-3.5-turbo"
-provider = "GitHub Dev"
-provider_type = "official_relay"
-api_mode = "github"
-account = "dev@example.com"
-tags = ["development", "testing"]
-usage_count = 0
+[88code]
+description = "88Code 中转站"
+base_url = "https://www.88code.ai/openai/v1"
+auth_token = "sk-your-api-key"
 enabled = true
 
-# ═══════════════════════════════════════════════════════════════
-# 已禁用的配置示例
-# ═══════════════════════════════════════════════════════════════
-[codex_old]
-description = "旧版 Codex 配置（已禁用）"
-base_url = "https://api.old-service.com"
-auth_token = "old-token"
-model = "codex-cushman-001"
-provider = "Old Codex"
-tags = ["deprecated"]
-usage_count = 28
-enabled = false
 
 # ═══════════════════════════════════════════════════════════════
-# 字段说明
+# 自定义中转站模板
 # ═══════════════════════════════════════════════════════════════
-# description     - 配置描述（可选）
-# base_url        - API 基础 URL（必填）
-# auth_token      - GitHub Token 或其他认证令牌（必填）
-# model           - 默认模型（必填）
-#   可选值: gpt-4, gpt-4-turbo, gpt-3.5-turbo
-# small_fast_model- 快速模型（可选）
-# provider        - 提供商名称（可选）
-# provider_type   - 提供商类型（可选：official_relay, third_party_model）
-# account         - 账号标识（可选）
-# tags            - 标签列表（可选）
-# usage_count     - 使用次数（自动追踪，默认 0）
-# enabled         - 是否启用（默认 true）
+# [custom]
+# description = "自定义中转站"
+# base_url = "https://your-proxy-url/v1"
+# auth_token = "sk-your-token"
+# enabled = true
