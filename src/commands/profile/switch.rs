@@ -25,8 +25,8 @@ use colored::Colorize;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
+use std::collections::HashMap;
 use std::str::FromStr;
-use tokio::fs as async_fs;
 
 /// 🔄 切换到指定配置
 ///
@@ -102,46 +102,39 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::success(&format!("✅ 目标配置 '{}' 验证通过", config_name));
     println!();
 
-    // 💾 步骤 2: 备份当前设置
+    // 💾 步骤 2: 备份当前设置（委托给平台）
     ColorOutput::step("步骤 2/5: 备份当前设置");
-    let settings_manager = SettingsManager::with_default()?;
-
-    let settings_exists = async_fs::try_exists(settings_manager.settings_path())
-        .await
-        .map_err(|e| CcrError::SettingsError(format!("检查设置文件失败: {}", e)))?;
-    let backup_path = if settings_exists {
-        let path = settings_manager.backup_async(Some(config_name)).await?;
+    let backup_path = platform_config.backup_settings(Some(config_name))?;
+    if let Some(ref path) = backup_path {
         ColorOutput::success(&format!("✅ 设置已备份: {}", path.display()));
-        Some(path.display().to_string())
     } else {
-        ColorOutput::info("📝 设置文件不存在,跳过备份(这可能是首次使用)");
-        None
-    };
+        ColorOutput::info("ℹ 当前平台无需备份设置文件");
+    }
     println!();
 
-    // ✏️ 步骤 3: 更新 settings.json(清空旧 ANTHROPIC_* 后写入新值)
-    ColorOutput::step("步骤 3/5: 更新 Claude Code 设置");
+    // 📊 记录旧的环境变量状态（仅 Claude 平台）
+    let (old_env, new_env_display): (
+        HashMap<String, Option<String>>,
+        HashMap<String, Option<String>>,
+    ) = if platform == Platform::Claude {
+        let settings_manager = SettingsManager::with_default()?;
+        let old_settings = settings_manager.load().ok();
+        let old = old_settings
+            .as_ref()
+            .map(|s| s.anthropic_env_status())
+            .unwrap_or_default();
 
-    // 📊 记录旧的环境变量状态(用于历史对比)
-    let old_settings = settings_manager.load_async().await.ok();
-    let old_env = old_settings
-        .as_ref()
-        .map(|s| s.anthropic_env_status())
-        .unwrap_or_else(|| {
-            tracing::debug!("无法获取旧设置的环境变量状态");
-            std::collections::HashMap::new()
-        });
+        // 应用新配置后获取新状态
+        let mut new_settings = old_settings.unwrap_or_default();
+        new_settings.update_from_config(&target_section);
+        let new = new_settings.anthropic_env_status();
+        (old, new)
+    } else {
+        (HashMap::new(), HashMap::new())
+    };
 
-    // 🔄 应用新配置
-    let mut new_settings = old_settings.unwrap_or_else(|| {
-        tracing::debug!("无法加载旧设置，使用默认设置");
-        Default::default()
-    });
-    new_settings.update_from_config(&target_section);
-
-    // 💾 原子性保存
-    settings_manager.save_atomic_async(&new_settings).await?;
-    ColorOutput::success("✅ Claude Code 设置已更新");
+    // ✏️ 步骤 3: 应用平台配置
+    ColorOutput::step("步骤 3/5: 应用平台配置");
     println!();
 
     // 📝 步骤 4: 更新配置文件
@@ -193,19 +186,18 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
                 Some(old_current.clone())
             },
             to_config: Some(config_name.to_string()),
-            backup_path,
+            backup_path: backup_path.map(|p| p.display().to_string()),
             extra: None,
         },
         OperationResult::Success,
     );
 
-    // 记录环境变量变化
-    let new_env = new_settings.anthropic_env_status();
-    let new_env_display = new_env.clone();
-
-    for (var_name, new_value) in new_env {
-        let old_value = old_env.get(&var_name).and_then(|v| v.clone());
-        history_entry.add_env_change(var_name, old_value, new_value);
+    // 记录环境变量变化（仅 Claude 平台）
+    if platform == Platform::Claude {
+        for (var_name, new_value) in new_env_display.clone() {
+            let old_value = old_env.get(&var_name).and_then(|v| v.clone());
+            history_entry.add_env_change(var_name, old_value, new_value);
+        }
     }
 
     history_manager.add_async(history_entry).await?;
@@ -341,13 +333,8 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
                 .fg(TableColor::Cyan),
         ]);
 
-    // 显示环境变量变化
-    let env_vars = [
-        "ANTHROPIC_BASE_URL",
-        "ANTHROPIC_AUTH_TOKEN",
-        "ANTHROPIC_MODEL",
-        "ANTHROPIC_SMALL_FAST_MODEL",
-    ];
+    // 显示环境变量变化（动态获取平台环境变量）
+    let env_vars = platform_config.get_env_var_names();
 
     for var_name in env_vars {
         let old_val = old_env.get(var_name).and_then(|v| v.as_ref());
@@ -416,14 +403,21 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
     println!("{}", env_changes_table);
     println!();
 
-    // 最终验证
-    match new_settings.validate() {
-        Ok(_) => {
-            ColorOutput::success("✓ 配置已生效,Claude Code 可以使用新的 API 配置");
+    // 最终验证（仅 Claude 平台）
+    if platform == Platform::Claude {
+        let settings_manager = SettingsManager::with_default()?;
+        if let Ok(settings) = settings_manager.load() {
+            match settings.validate() {
+                Ok(_) => {
+                    ColorOutput::success("✓ 配置已生效,Claude Code 可以使用新的 API 配置");
+                }
+                Err(e) => {
+                    ColorOutput::warning(&format!("⚠ 配置可能不完整: {}", e));
+                }
+            }
         }
-        Err(e) => {
-            ColorOutput::warning(&format!("⚠ 配置可能不完整: {}", e));
-        }
+    } else {
+        ColorOutput::success(&format!("✓ 平台 {} 配置已生效", platform_name));
     }
 
     println!();
@@ -437,7 +431,13 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
         "✓".bright_green()
     ));
 
-    ColorOutput::info("🔄 建议重启 Claude Code 以确保配置完全生效");
+    let restart_hint = match platform {
+        Platform::Claude => "建议重启 Claude Code 以确保配置完全生效",
+        Platform::Codex => "建议重启 Codex CLI 以确保配置完全生效",
+        Platform::Gemini => "建议重启 Gemini CLI 以确保配置完全生效",
+        _ => "建议重启对应 CLI 以确保配置完全生效",
+    };
+    ColorOutput::info(&format!("🔄 {}", restart_hint));
 
     Ok(())
 }

@@ -485,6 +485,30 @@ pub trait PlatformConfig: Send + Sync {
     fn list_profile_names(&self) -> Result<Vec<String>> {
         Ok(self.load_profiles()?.keys().cloned().collect())
     }
+
+    /// 💾 备份当前设置文件
+    ///
+    /// 各平台自行实现备份逻辑，默认返回 None（无备份）
+    ///
+    /// # 参数
+    /// - `suffix`: 可选的备份文件后缀（通常是 profile 名称）
+    ///
+    /// # 返回
+    /// - Ok(Some(PathBuf)): 备份文件路径
+    /// - Ok(None): 该平台不需要备份
+    fn backup_settings(&self, _suffix: Option<&str>) -> Result<Option<PathBuf>> {
+        Ok(None)
+    }
+
+    /// 🌍 获取平台相关的环境变量名称
+    ///
+    /// 用于 switch 命令显示环境变量变化
+    ///
+    /// # 返回
+    /// 环境变量名称列表
+    fn get_env_var_names(&self) -> Vec<&'static str> {
+        vec![]
+    }
 }
 
 #[cfg(test)]

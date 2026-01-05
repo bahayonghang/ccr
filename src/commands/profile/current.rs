@@ -263,109 +263,92 @@ pub async fn current_command() -> Result<()> {
     println!("{}", config_table);
     println!();
 
-    // === 第二部分：Claude Code 环境变量表格 ===
+    // === 第二部分：平台环境变量表格（根据平台动态显示）===
     ColorOutput::separator();
     println!();
-    ColorOutput::step("🌍 Claude Code 环境变量状态");
-    println!();
 
-    match SettingsService::with_default() {
-        Ok(settings_service) => {
-            match settings_service.get_current_settings_async().await {
-                Ok(settings) => {
-                    let mut env_table = Table::new();
-                    env_table
-                        .load_preset(UTF8_FULL)
-                        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
-                        .set_header(vec![
-                            Cell::new("环境变量")
-                                .add_attribute(Attribute::Bold)
-                                .fg(TableColor::Cyan),
-                            Cell::new("当前值")
-                                .add_attribute(Attribute::Bold)
-                                .fg(TableColor::Cyan),
-                            Cell::new("状态")
-                                .add_attribute(Attribute::Bold)
-                                .fg(TableColor::Cyan),
-                        ]);
+    // 根据当前平台获取环境变量名称
+    let env_vars = platform_config.get_env_var_names();
 
-                    let env_status = settings.anthropic_env_status();
-                    let env_vars = [
-                        ("ANTHROPIC_BASE_URL", true),
-                        ("ANTHROPIC_AUTH_TOKEN", true),
-                        ("ANTHROPIC_MODEL", false),
-                        ("ANTHROPIC_SMALL_FAST_MODEL", false),
-                    ];
+    // 仅在有环境变量时显示
+    if !env_vars.is_empty() {
+        let platform_display = match platform {
+            Platform::Claude => "Claude Code",
+            Platform::Codex => "Codex",
+            Platform::Gemini => "Gemini",
+            Platform::Qwen => "Qwen",
+            Platform::IFlow => "IFlow",
+        };
+        ColorOutput::step(&format!("🌍 {} 环境变量状态", platform_display));
+        println!();
 
-                    for (var_name, is_required) in env_vars {
-                        let value = env_status.get(var_name).and_then(|v| v.as_ref());
+        let mut env_table = Table::new();
+        env_table
+            .load_preset(UTF8_FULL)
+            .set_content_arrangement(ContentArrangement::DynamicFullWidth)
+            .set_header(vec![
+                Cell::new("环境变量")
+                    .add_attribute(Attribute::Bold)
+                    .fg(TableColor::Cyan),
+                Cell::new("当前值")
+                    .add_attribute(Attribute::Bold)
+                    .fg(TableColor::Cyan),
+                Cell::new("状态")
+                    .add_attribute(Attribute::Bold)
+                    .fg(TableColor::Cyan),
+            ]);
 
-                        let var_cell = if is_required {
-                            Cell::new(format!("{} *", var_name)).fg(TableColor::Yellow)
-                        } else {
-                            Cell::new(var_name)
-                        };
+        for var_name in &env_vars {
+            let value = std::env::var(var_name).ok();
+            let is_sensitive = var_name.contains("TOKEN") || var_name.contains("KEY");
 
-                        let (value_cell, status_cell) = match value {
-                            Some(v) => {
-                                let is_sensitive =
-                                    var_name.contains("TOKEN") || var_name.contains("KEY");
-                                let display_value = if is_sensitive {
-                                    ColorOutput::mask_sensitive(v)
-                                } else if v.len() > 40 {
-                                    format!("{}...", &v[..37])
-                                } else {
-                                    v.to_string()
-                                };
-                                (
-                                    Cell::new(display_value).fg(TableColor::Blue),
-                                    Cell::new("✓")
-                                        .fg(TableColor::Green)
-                                        .add_attribute(Attribute::Bold),
-                                )
-                            }
-                            None => {
-                                if is_required {
-                                    (
-                                        Cell::new("(未设置)").fg(TableColor::Red),
-                                        Cell::new("✗")
-                                            .fg(TableColor::Red)
-                                            .add_attribute(Attribute::Bold),
-                                    )
-                                } else {
-                                    (
-                                        Cell::new("(未设置)").fg(TableColor::DarkGrey),
-                                        Cell::new("○").fg(TableColor::DarkGrey),
-                                    )
-                                }
-                            }
-                        };
+            let var_cell = Cell::new(format!("{} *", var_name)).fg(TableColor::Yellow);
 
-                        env_table.add_row(vec![var_cell, value_cell, status_cell]);
-                    }
-
-                    println!("{}", env_table);
-                    println!();
-
-                    // 验证设置
-                    match settings.validate() {
-                        Ok(_) => ColorOutput::success("✓ Claude Code 设置验证通过"),
-                        Err(e) => ColorOutput::warning(&format!("⚠ 设置验证警告: {}", e)),
-                    }
-
-                    println!();
-                    ColorOutput::info("提示: * 标记的为必需环境变量");
+            let (value_cell, status_cell) = match value {
+                Some(v) => {
+                    let display_value = if is_sensitive {
+                        ColorOutput::mask_sensitive(&v)
+                    } else if v.len() > 40 {
+                        format!("{}...", &v[..37])
+                    } else {
+                        v
+                    };
+                    (
+                        Cell::new(display_value).fg(TableColor::Blue),
+                        Cell::new("✓")
+                            .fg(TableColor::Green)
+                            .add_attribute(Attribute::Bold),
+                    )
                 }
+                None => (
+                    Cell::new("(未设置)").fg(TableColor::DarkGrey),
+                    Cell::new("○").fg(TableColor::DarkGrey),
+                ),
+            };
+
+            env_table.add_row(vec![var_cell, value_cell, status_cell]);
+        }
+
+        println!("{}", env_table);
+        println!();
+        ColorOutput::info("提示: * 标记的为必需环境变量");
+    }
+
+    // 验证设置（仅对 Claude 平台）
+    if platform == Platform::Claude {
+        match SettingsService::with_default() {
+            Ok(settings_service) => match settings_service.get_current_settings_async().await {
+                Ok(settings) => match settings.validate() {
+                    Ok(_) => ColorOutput::success("✓ Claude Code 设置验证通过"),
+                    Err(e) => ColorOutput::warning(&format!("⚠ 设置验证警告: {}", e)),
+                },
                 Err(e) => {
                     ColorOutput::warning(&format!("无法加载 Claude Code 设置: {}", e));
-                    ColorOutput::info(
-                        "提示: 可能是首次使用,运行 'ccr switch <config>' 来初始化设置",
-                    );
                 }
+            },
+            Err(e) => {
+                ColorOutput::warning(&format!("无法访问 Claude Code 设置: {}", e));
             }
-        }
-        Err(e) => {
-            ColorOutput::warning(&format!("无法访问 Claude Code 设置: {}", e));
         }
     }
 

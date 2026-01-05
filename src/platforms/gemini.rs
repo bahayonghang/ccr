@@ -247,6 +247,10 @@ impl PlatformConfig for GeminiPlatform {
     fn get_current_profile(&self) -> Result<Option<String>> {
         base::get_current_profile_from_registry("gemini")
     }
+
+    fn get_env_var_names(&self) -> Vec<&'static str> {
+        vec!["GEMINI_API_KEY"]
+    }
 }
 
 impl Validatable for GeminiSettings {

@@ -85,6 +85,14 @@ impl CodexPlatform {
         Ok(Self::codex_dir()?.join("auth.json"))
     }
 
+    /// 🔍 判断是否为官方配置（无 base_url 或 base_url 为空）
+    fn is_official_profile(profile: &ProfileConfig) -> bool {
+        profile
+            .base_url
+            .as_ref()
+            .is_none_or(|url| url.trim().is_empty())
+    }
+
     /// 🔍 判断是否使用 GitHub Copilot CLI 兼容模式
     fn is_github_profile(profile: &ProfileConfig) -> bool {
         if let Some(mode) = Self::platform_string(profile, "api_mode") {
@@ -187,19 +195,6 @@ impl CodexPlatform {
         Self::sanitize_identifier(&candidate)
     }
 
-    fn resolve_env_key(profile: &ProfileConfig, provider_id: &str) -> String {
-        if let Some(key) = Self::platform_string(profile, "env_key") {
-            return key;
-        }
-
-        provider_id
-            .to_uppercase()
-            .replace('-', "_")
-            .trim()
-            .to_string()
-            + "_API_KEY"
-    }
-
     fn codex_settings_path() -> Result<PathBuf> {
         Ok(Self::codex_dir()?.join("settings.json"))
     }
@@ -244,7 +239,6 @@ impl CodexPlatform {
             String::new()
         });
         let wire_api = Self::resolve_wire_api(profile)?;
-        let env_key = Self::resolve_env_key(profile, &provider_id);
         let requires_auth = Self::platform_bool(profile, "requires_openai_auth").unwrap_or(true);
         let provider_model =
             Self::platform_string(profile, "provider_model").or_else(|| profile.model.clone());
@@ -309,7 +303,7 @@ impl CodexPlatform {
         provider_table.insert("name".into(), toml::Value::String(provider_name));
         provider_table.insert("base_url".into(), toml::Value::String(base_url));
         provider_table.insert("wire_api".into(), toml::Value::String(wire_api));
-        provider_table.insert("env_key".into(), toml::Value::String(env_key.clone()));
+        // 不写入 env_key，使用默认的 OPENAI_API_KEY
         provider_table.insert(
             "requires_openai_auth".into(),
             toml::Value::Boolean(requires_auth),
@@ -338,10 +332,8 @@ impl CodexPlatform {
         };
 
         let mut merged = auth_entries;
-        merged.insert(env_key.clone(), JsonValue::String(token.clone()));
-        if requires_auth {
-            merged.insert("OPENAI_API_KEY".into(), JsonValue::String(token));
-        }
+        // 统一使用 OPENAI_API_KEY，不使用自定义 env_key
+        merged.insert("OPENAI_API_KEY".into(), JsonValue::String(token));
 
         let auth_content = serde_json::to_string_pretty(&JsonValue::Object(merged))
             .map_err(|e| CcrError::SettingsError(format!("序列化 auth.json 失败: {}", e)))?;
@@ -353,6 +345,49 @@ impl CodexPlatform {
             "✅ 已写入 Codex config ({}) 并更新 auth.json",
             config_path.display()
         );
+        Ok(())
+    }
+
+    /// 🏛️ 应用官方配置（清除自定义 provider 设置）
+    fn apply_official_profile(&self) -> Result<()> {
+        let config_path = Self::codex_config_path()?;
+        let auth_path = Self::codex_auth_path()?;
+        let codex_dir = config_path
+            .parent()
+            .ok_or_else(|| CcrError::ConfigError("无效的 Codex 配置目录".into()))?;
+
+        // 确保目录存在
+        fs::create_dir_all(codex_dir)
+            .map_err(|e| CcrError::SettingsError(format!("创建 Codex 目录失败: {}", e)))?;
+
+        // 读取并清理 config.toml
+        if config_path.exists() {
+            let mut config = Self::read_codex_config(&config_path)?;
+            if let Some(table) = config.as_table_mut() {
+                table.remove("model_provider");
+                table.remove("model_providers");
+            }
+            let content = toml::to_string_pretty(&config)
+                .map_err(|e| CcrError::SettingsError(format!("序列化 config.toml 失败: {}", e)))?;
+            fs::write(&config_path, content)
+                .map_err(|e| CcrError::SettingsError(format!("写入 config.toml 失败: {}", e)))?;
+        }
+
+        // 清理 auth.json 中的自定义 key（保留 OPENAI_API_KEY 如有）
+        if auth_path.exists() {
+            let content = fs::read_to_string(&auth_path)
+                .map_err(|e| CcrError::SettingsError(format!("读取 auth.json 失败: {}", e)))?;
+            let mut entries = serde_json::from_str::<JsonMap<String, JsonValue>>(&content)
+                .unwrap_or_else(|_| JsonMap::new());
+            // 移除非 OPENAI_API_KEY 的 key
+            entries.retain(|k, _| k == "OPENAI_API_KEY");
+            let auth_content = serde_json::to_string_pretty(&JsonValue::Object(entries))
+                .map_err(|e| CcrError::SettingsError(format!("序列化 auth.json 失败: {}", e)))?;
+            fs::write(&auth_path, auth_content)
+                .map_err(|e| CcrError::SettingsError(format!("写入 auth.json 失败: {}", e)))?;
+        }
+
+        tracing::info!("✅ 已切换到 Codex 官方配置");
         Ok(())
     }
 
@@ -506,7 +541,10 @@ impl PlatformConfig for CodexPlatform {
         // 验证
         self.validate_profile(profile)?;
 
-        if Self::is_github_profile(profile) {
+        if Self::is_official_profile(profile) {
+            // 官方配置：清除自定义 provider 设置
+            self.apply_official_profile()?;
+        } else if Self::is_github_profile(profile) {
             // GitHub Copilot CLI 兼容模式
             let (api_endpoint, token, organization) = Self::extract_codex_fields(profile)?;
             let settings = CodexSettings {
@@ -531,7 +569,12 @@ impl PlatformConfig for CodexPlatform {
     }
 
     fn validate_profile(&self, profile: &ProfileConfig) -> Result<()> {
-        // 检查 base_url
+        // 官方配置允许 base_url 和 auth_token 为空
+        if Self::is_official_profile(profile) {
+            return Ok(());
+        }
+
+        // 自定义配置：检查 base_url
         let base_url = profile.base_url.as_ref().ok_or_else(|| {
             CcrError::ValidationError("Codex profile 缺少 base_url (api_endpoint)".into())
         })?;
@@ -563,6 +606,10 @@ impl PlatformConfig for CodexPlatform {
 
     fn get_current_profile(&self) -> Result<Option<String>> {
         base::get_current_profile_from_registry("codex")
+    }
+
+    fn get_env_var_names(&self) -> Vec<&'static str> {
+        vec!["OPENAI_API_KEY"]
     }
 }
 

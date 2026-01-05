@@ -162,6 +162,25 @@ impl PlatformConfig for ClaudePlatform {
     fn get_current_profile(&self) -> Result<Option<String>> {
         base::get_current_profile_from_registry("claude")
     }
+
+    fn backup_settings(&self, suffix: Option<&str>) -> Result<Option<PathBuf>> {
+        let settings_path = self.settings_manager.settings_path();
+        if settings_path.exists() {
+            let path = self.settings_manager.backup(suffix)?;
+            Ok(Some(path))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn get_env_var_names(&self) -> Vec<&'static str> {
+        vec![
+            "ANTHROPIC_BASE_URL",
+            "ANTHROPIC_AUTH_TOKEN",
+            "ANTHROPIC_MODEL",
+            "ANTHROPIC_SMALL_FAST_MODEL",
+        ]
+    }
 }
 
 #[cfg(test)]
