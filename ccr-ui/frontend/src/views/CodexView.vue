@@ -80,6 +80,59 @@
           {{ $t('codex.overview.modulesTitle') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- 配置管理卡片（置顶） -->
+          <RouterLink
+            to="/codex/profiles"
+            class="block group"
+          >
+            <div
+              class="glass-card p-6 h-full hover:scale-105 transition-all duration-300"
+              :style="{ border: '2px solid rgba(245, 158, 11, 0.3)' }"
+            >
+              <div class="flex items-start gap-4">
+                <div
+                  class="p-3 rounded-2xl"
+                  :style="{ background: 'rgba(245, 158, 11, 0.15)' }"
+                >
+                  <Settings
+                    class="w-7 h-7"
+                    :style="{ color: 'var(--platform-codex)' }"
+                  />
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <h3
+                      class="text-xl font-bold mb-2"
+                      :style="{ color: 'var(--text-primary)' }"
+                    >
+                      {{ $t('codex.overview.modules.profiles.title') }}
+                    </h3>
+                    <Star
+                      class="w-4 h-4"
+                      :style="{ color: 'var(--platform-codex)' }"
+                    />
+                  </div>
+                  <p
+                    class="text-sm mb-3"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
+                    {{ $t('codex.overview.modules.profiles.description') }}
+                  </p>
+                  <span
+                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
+                    :style="{
+                      background: 'rgba(245, 158, 11, 0.15)',
+                      color: 'var(--platform-codex)'
+                    }"
+                  >
+                    {{ $t('codex.overview.modules.profiles.badge') }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </RouterLink>
+
+          <!-- MCP 服务器卡片 -->
           <RouterLink
             to="/codex/mcp"
             class="block group"
@@ -116,48 +169,6 @@
                     }"
                   >
                     {{ $t('codex.overview.modules.mcp.badge') }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </RouterLink>
-
-          <RouterLink
-            to="/codex/profiles"
-            class="block group"
-          >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(236, 72, 153, 0.15)' }"
-                >
-                  <Settings
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--accent-tertiary)' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('codex.overview.modules.profiles.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('codex.overview.modules.profiles.description') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(236, 72, 153, 0.15)',
-                      color: 'var(--accent-tertiary)'
-                    }"
-                  >
-                    {{ $t('codex.overview.modules.profiles.badge') }}
                   </span>
                 </div>
               </div>
@@ -245,5 +256,5 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { Settings, Server, Home, Command, Code2, Boxes, Info } from 'lucide-vue-next'
+import { Settings, Server, Home, Command, Code2, Boxes, Info, Star } from 'lucide-vue-next'
 </script>
