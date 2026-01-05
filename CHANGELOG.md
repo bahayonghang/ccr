@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.17.3] - 2026-01-05
+
+### ✨ 新功能
+
+- **UI/UX 全面升级**：
+  - **Codex 增强**：重构 Codex Profiles 视图，采用 Neo-Terminal 风格，优化布局与交互体验
+  - **组件库扩展**：新增 `Badge`、`BaseModal`、`Hooks`、`OutputStyles`、`Statusline` 等视图及详情页
+  - **无障碍性 (A11y)**：全面增强模态框、按钮与导航的可访问性，支持屏幕阅读器与键盘导航
+  - **视觉优化**：统一前端组件代码格式，扩展 Tailwind 设计令牌，优化 Web 界面视觉效果
+- **核心功能扩展**：
+  - **资源市场**：实现资源市场 (Marketplace) 后端与前端集成
+  - **全栈配置增强**：新增 Hooks、OutputStyles 和 Statusline 的全栈支持 (API + Client + UI)
+  - **多平台管理**：增强后端多平台配置管理能力，支持 Windows 环境变量
+- **系统集成**：
+  - **Tauri 深度集成**：集成后端 Sidecar 自动启动与生命周期管理
+  - **健康检查**：新增后端健康检查与状态指示组件
+
+### 🔧 改进
+
+- **CI/CD 构建**：
+  - 新增 Tauri 桌面应用多平台构建流程
+  - 集成 `bun` 运行时，修复构建依赖问题
+- **开发体验**：
+  - 新增 `benchmark` 性能测试脚本
+  - 优化开发脚本 (clean/run) 与进程管理
+- **文档体系**：
+  - 新增架构文档、API 参考、Composables 参考及迁移指南
+  - 简化 Codex 配置示例文件
+
+### 🐛 修复
+
+- **平台兼容性**：修复 Windows 下环境变量获取与路径处理问题
+- **构建修复**：解决 `--no-default-features` 构建错误及 Tauri 依赖缺失
+- **代码质量**：修复 Rust Clippy 警告与前端组件硬编码颜色
+
+### 📊 统计数据
+
+- **版本跨度**：覆盖 v3.16.1 至 v3.17.3 的所有变更
+- **主要重点**：前端架构重构、A11y 支持、Tauri 集成完善
+
+### 🔗 相关资源
+
+- **完整变更**：[v3.16.0...v3.17.3](https://github.com/bahayonghang/ccr/compare/v3.16.0...v3.17.3)
+
+---
+
 ## [3.16.0] - 2025-12-26
 
 ### 🔧 核心重构
@@ -156,3 +202,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [3.13.0]: https://github.com/bahayonghang/ccr/releases/tag/v3.13.0
 [3.11.0]: https://github.com/bahayonghang/ccr/releases/tag/v3.11.0
 [3.15.0]: https://github.com/bahayonghang/ccr/compare/v3.14.0...v3.15.0
+[3.16.0]: https://github.com/bahayonghang/ccr/compare/v3.15.0...v3.16.0
+[3.17.3]: https://github.com/bahayonghang/ccr/compare/v3.16.0...v3.17.3
