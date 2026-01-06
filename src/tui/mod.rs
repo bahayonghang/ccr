@@ -32,7 +32,7 @@ pub fn run_tui() -> Result<()> {
     let event_handler = EventHandler::new(250);
 
     // 🎨 运行主循环
-    let res = run_app(&mut terminal, app, event_handler);
+    let final_app = run_app(&mut terminal, app, event_handler)?;
 
     // 🧹 恢复终端
     disable_raw_mode()?;
@@ -43,7 +43,16 @@ pub fn run_tui() -> Result<()> {
     )?;
     terminal.show_cursor()?;
 
-    res
+    // 📢 打印最后的切换结果
+    if let Some((platform, profile, success, error)) = final_app.last_applied {
+        if success {
+            println!("✅ [{}] 已切换到配置: {}", platform, profile);
+        } else if let Some(err) = error {
+            eprintln!("❌ [{}] 切换配置 {} 失败: {}", platform, profile, err);
+        }
+    }
+
+    Ok(())
 }
 
 /// 🔄 主事件循环
@@ -51,7 +60,7 @@ fn run_app<B>(
     terminal: &mut Terminal<B>,
     mut app: App,
     mut event_handler: EventHandler,
-) -> Result<()>
+) -> Result<App>
 where
     B: ratatui::backend::Backend,
     B::Error: std::error::Error + Send + Sync + 'static,
@@ -65,7 +74,7 @@ where
                 // ⌨️ 处理按键事件
                 if app.handle_key(key)? {
                     // 用户请求退出
-                    return Ok(());
+                    return Ok(app);
                 }
                 draw_frame(terminal, &app)?;
             }

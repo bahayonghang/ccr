@@ -87,7 +87,8 @@ ccr
 | `Tab` | Switch between Claude/Codex platforms |
 | `←` / `→` | Navigate pages (when >20 configs) |
 | `↑` / `↓` / `j` / `k` | Select configuration |
-| `Enter` | Apply selected configuration |
+| `Enter` | Apply selected configuration and exit |
+| `Space` | Apply selected configuration (stay in TUI) |
 | `q` / `Esc` | Quit |
 
 **Features:**

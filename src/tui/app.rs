@@ -74,6 +74,8 @@ pub struct App {
     claude_platform: Option<Arc<dyn PlatformConfig>>,
     /// Codex平台实例
     codex_platform: Option<Arc<dyn PlatformConfig>>,
+    /// 最后应用的配置信息 (平台, 配置名, 是否成功, 错误信息)
+    pub last_applied: Option<(String, String, bool, Option<String>)>,
 }
 
 impl App {
@@ -89,6 +91,7 @@ impl App {
             should_quit: false,
             claude_platform: None,
             codex_platform: None,
+            last_applied: None,
         };
 
         // 加载配置
@@ -238,14 +241,19 @@ impl App {
         };
 
         if let Some(platform) = platform {
-            match platform.apply_profile(&selected.name) {
+            let platform_name = self.current_tab.title().to_string();
+            let profile_name = selected.name.clone();
+            match platform.apply_profile(&profile_name) {
                 Ok(()) => {
-                    self.set_status(format!("✅ 已切换到: {}", selected.name), false);
+                    self.set_status(format!("✅ 已切换到: {}", profile_name), false);
+                    self.last_applied = Some((platform_name, profile_name, true, None));
                     // 重新加载配置以更新当前状态
                     let _ = self.load_profiles();
                 }
                 Err(e) => {
-                    self.set_status(format!("❌ 切换失败: {}", e), true);
+                    let err_msg = e.to_string();
+                    self.set_status(format!("❌ 切换失败: {}", err_msg), true);
+                    self.last_applied = Some((platform_name, profile_name, false, Some(err_msg)));
                 }
             }
         } else {
@@ -295,8 +303,15 @@ impl App {
                 self.select_next();
             }
 
-            // 应用配置
+            // 应用配置并退出
             KeyCode::Enter => {
+                self.apply_selected();
+                self.should_quit = true;
+                return Ok(true);
+            }
+
+            // 应用配置但不退出 (Space键)
+            KeyCode::Char(' ') => {
                 self.apply_selected();
             }
 

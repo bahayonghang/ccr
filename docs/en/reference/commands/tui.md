@@ -16,7 +16,8 @@ ccr
 | `Tab` | Switch between Claude Code / Codex CLI platforms |
 | `←` / `→` / `h` / `l` | Navigate pages (when >20 configs) |
 | `↑` / `↓` / `j` / `k` | Select configuration |
-| `Enter` | Apply selected configuration |
+| `Enter` | Apply selected configuration and exit TUI |
+| `Space` | Apply selected configuration (stay in TUI) |
 | `q` / `Esc` | Quit |
 
 ## Features
@@ -56,6 +57,8 @@ Status messages appear at the **bottom** of the screen:
 - ✅ Green - Success messages (e.g., "已切换到: my-config")
 - ❌ Red - Error messages (e.g., "切换失败: ...")
 
+> **Note**: When using `Enter` to switch, the result is printed to terminal after exiting TUI.
+
 ## Layout
 
 ```
@@ -83,8 +86,8 @@ Status messages appear at the **bottom** of the screen:
 ccr
 # Tab → switch to Codex (if needed)
 # ↓↓ → select config
-# Enter → apply
-# q → quit
+# Enter → apply and exit TUI
+# Terminal shows: ✅ [Claude] 已切换到配置: xxx
 ```
 
 ### Navigate Large Config Lists
@@ -93,8 +96,8 @@ ccr
 ccr
 # → → navigate to page 2
 # ↓ → select config on page 2
-# Enter → apply
-# q → quit
+# Space → apply (stay in TUI for more switches)
+# Enter → apply and exit
 ```
 
 ## Technical Details
