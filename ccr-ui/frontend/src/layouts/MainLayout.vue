@@ -161,7 +161,7 @@
         
         <!-- Version Info -->
         <div class="text-xs text-text-muted flex items-center justify-between">
-          <span>CCR UI v3.17.3</span>
+          <span>CCR UI v3.17.4</span>
           <span class="animate-pulse-subtle">●</span>
         </div>
       </div>
@@ -173,7 +173,14 @@
       class="flex-1 flex flex-col overflow-auto"
       tabindex="-1"
     >
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <Transition
+          name="page"
+          mode="out-in"
+        >
+          <component :is="Component" />
+        </Transition>
+      </RouterView>
     </div>
   </div>
 </template>

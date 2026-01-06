@@ -47,6 +47,31 @@
           <EnvironmentBadge />
         </div>
 
+        <!-- 🔗 功能模块快速导航 -->
+        <nav
+          class="flex flex-wrap gap-2 mb-6 p-3 rounded-2xl"
+          :style="{
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)'
+          }"
+        >
+          <RouterLink
+            v-for="navItem in moduleNavItems"
+            :key="navItem.path"
+            :to="navItem.path"
+            class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105"
+            :class="$route.path === navItem.path ? 'module-nav-active' : 'module-nav-inactive'"
+          >
+            <component
+              :is="navItem.icon"
+              class="w-4 h-4"
+            />
+            <span>{{ navItem.label }}</span>
+          </RouterLink>
+        </nav>
+
         <!-- 操作按钮栏（已移到 Navbar，保留此处作为备用） -->
         <div
           v-if="false"
@@ -116,11 +141,8 @@
           </button>
         </div>
 
-        <!-- 三列布局 -->
-        <div class="grid grid-cols-[auto_1fr_320px] gap-6">
-          <!-- 可折叠侧边栏 -->
-          <CollapsibleSidebar module="claude-code" />
-
+        <!-- 两列布局 (删除左侧子导航) -->
+        <div class="grid grid-cols-[1fr_320px] gap-6">
           <!-- 主内容区 - 液态玻璃效果 -->
           <main
             class="p-8 transition-all duration-300"
@@ -133,46 +155,55 @@
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
             }"
           >
-            <!-- Tab 导航 - 增强版 -->
+            <!-- Tab 导航 - 翡翠绿配色 -->
             <div
-              class="flex gap-2 mb-6 p-1.5 rounded-2xl"
+              class="flex gap-3 mb-6 p-2 rounded-2xl"
               :style="{ 
-                background: 'rgba(99, 102, 241, 0.08)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(99, 102, 241, 0.15)'
+                background: 'rgba(255, 255, 255, 0.7)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(16, 185, 129, 0.15)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)'
               }"
             >
               <button
-                class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300"
+                class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2"
                 :style="{
                   background: activeTab === 'configs' 
-                    ? 'var(--gradient-secondary)' 
-                    : 'transparent',
-                  color: activeTab === 'configs' ? 'white' : 'var(--text-secondary)',
+                    ? 'linear-gradient(135deg, #10b981, #06b6d4)' 
+                    : 'rgba(255, 255, 255, 0.6)',
+                  color: activeTab === 'configs' ? 'white' : '#475569',
                   boxShadow: activeTab === 'configs' 
-                    ? '0 4px 12px rgba(99, 102, 241, 0.3)' 
-                    : 'none',
+                    ? '0 4px 16px rgba(16, 185, 129, 0.35)' 
+                    : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                  border: activeTab === 'configs' 
+                    ? '1px solid rgba(16, 185, 129, 0.4)'
+                    : '1px solid rgba(0, 0, 0, 0.06)',
                   transform: activeTab === 'configs' ? 'scale(1.02)' : 'scale(1)'
                 }"
                 @click="activeTab = 'configs'"
               >
-                📋 {{ $t('configs.tabs.configList') }}
+                <Settings class="w-4 h-4" />
+                <span>{{ $t('configs.tabs.configList') }}</span>
               </button>
               <button
-                class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300"
+                class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2"
                 :style="{
                   background: activeTab === 'history' 
-                    ? 'var(--gradient-secondary)' 
-                    : 'transparent',
-                  color: activeTab === 'history' ? 'white' : 'var(--text-secondary)',
+                    ? 'linear-gradient(135deg, #10b981, #06b6d4)' 
+                    : 'rgba(255, 255, 255, 0.6)',
+                  color: activeTab === 'history' ? 'white' : '#475569',
                   boxShadow: activeTab === 'history' 
-                    ? '0 4px 12px rgba(99, 102, 241, 0.3)' 
-                    : 'none',
+                    ? '0 4px 16px rgba(16, 185, 129, 0.35)' 
+                    : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                  border: activeTab === 'history' 
+                    ? '1px solid rgba(16, 185, 129, 0.4)'
+                    : '1px solid rgba(0, 0, 0, 0.06)',
                   transform: activeTab === 'history' ? 'scale(1.02)' : 'scale(1)'
                 }"
                 @click="activeTab = 'history'"
               >
-                🕐 {{ $t('configs.tabs.history') }}
+                <History class="w-4 h-4" />
+                <span>{{ $t('configs.tabs.history') }}</span>
               </button>
             </div>
 
@@ -180,32 +211,31 @@
             <div v-if="activeTab === 'configs'">
               <!-- 筛选和排序控制栏 -->
               <div class="flex gap-4 mb-6 items-center">
-                <!-- 筛选按钮 - 液态玻璃风格 -->
+                <!-- 筛选按钮 - 翡翠绿配色 -->
                 <div
                   class="flex gap-3 flex-1 p-2 rounded-2xl"
                   :style="{
-                    background: 'rgba(255, 255, 255, 0.4)',
+                    background: 'rgba(255, 255, 255, 0.5)',
                     backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    border: '1px solid rgba(16, 185, 129, 0.12)',
                     boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)'
                   }"
                 >
                   <button
                     v-for="filter in filters"
                     :key="filter.type"
-                    class="flex-1 py-3 px-5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105"
+                    class="flex-1 py-3 px-5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-[1.02]"
                     :style="{
                       background: currentFilter === filter.type
-                        ? 'var(--gradient-secondary)'
-                        : 'rgba(255, 255, 255, 0.3)',
-                      backdropFilter: currentFilter === filter.type ? 'blur(10px)' : 'none',
+                        ? 'linear-gradient(135deg, #10b981, #06b6d4)'
+                        : 'rgba(255, 255, 255, 0.5)',
                       border: currentFilter === filter.type
-                        ? '1px solid rgba(99, 102, 241, 0.3)'
-                        : '1px solid rgba(255, 255, 255, 0.2)',
-                      color: currentFilter === filter.type ? 'white' : 'var(--text-secondary)',
+                        ? '1px solid rgba(16, 185, 129, 0.3)'
+                        : '1px solid rgba(0, 0, 0, 0.05)',
+                      color: currentFilter === filter.type ? 'white' : '#475569',
                       boxShadow: currentFilter === filter.type
-                        ? '0 4px 16px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
-                        : '0 2px 8px rgba(0, 0, 0, 0.05)'
+                        ? '0 4px 16px rgba(16, 185, 129, 0.25)'
+                        : '0 2px 8px rgba(0, 0, 0, 0.03)'
                     }"
                     @click="currentFilter = filter.type"
                   >
@@ -563,7 +593,14 @@ import {
   Settings,
   Home,
   PlusCircle,
+  Cloud,
+  Server,
+  Command,
+  Bot,
+  Puzzle,
+  History,
 } from 'lucide-vue-next'
+import { RouterLink } from 'vue-router'
 import type { ConfigItem, HistoryEntry } from '@/types'
 import {
   listConfigs,
@@ -578,13 +615,22 @@ import { getProviderUsage } from '@/api/client'
 import ConfigCard from '@/components/ConfigCard.vue'
 import HistoryList from '@/components/HistoryList.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
-import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import EnvironmentBadge from '@/components/EnvironmentBadge.vue'
 import EditConfigModal from '@/components/EditConfigModal.vue'
 import AddConfigModal from '@/components/AddConfigModal.vue'
 
 const { t } = useI18n({ useScope: 'global' })
+
+// 🔗 模块导航项配置
+const moduleNavItems = [
+  { path: '/configs', label: '配置管理', icon: Settings },
+  { path: '/sync', label: '云同步', icon: Cloud },
+  { path: '/mcp', label: 'MCP 服务器', icon: Server },
+  { path: '/slash-commands', label: 'Slash Commands', icon: Command },
+  { path: '/agents', label: 'Agents', icon: Bot },
+  { path: '/plugins', label: '插件管理', icon: Puzzle },
+]
 
 type FilterType = 'all' | 'official_relay' | 'third_party_model' | 'uncategorized'
 type SortType = 'name' | 'usage_count' | 'recent'
@@ -913,3 +959,26 @@ onMounted(async () => {
   await loadProviderUsage()
 })
 </script>
+
+<style scoped>
+/* 🔗 模块导航链接样式 - 翡翠绿配色 */
+.module-nav-active {
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.module-nav-inactive {
+  background: rgba(255, 255, 255, 0.6);
+  color: #475569;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.module-nav-inactive:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+</style>
