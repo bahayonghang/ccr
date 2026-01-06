@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.17.3"
+version = "3.17.4"
 edition = "2024"
 
 [dependencies]
@@ -22,8 +22,8 @@ axum = { version = "0.8.8", features = [
     "form",
     "macros",
     "ws",
-] }
-tower = { version = "0.5.2", features = ["timeout", "limit"] }
+] } # Web 服务框架 (核心 HTTP 处理)
+tower = { version = "0.5.2", features = ["timeout", "limit"] } # 服务中间件 (超时、限流等)
 tower-http = { version = "0.6.8", features = [
     "fs",
     "trace",
@@ -31,56 +31,56 @@ tower-http = { version = "0.6.8", features = [
     "compression-full",
     "request-id",
     "util",
-] }
-futures-util = "0.3"
+] } # HTTP 特定中间件 (CORS, 压缩, 静态文件)
+futures-util = "0.3" # 异步编程工具集 (Stream/Future 扩展)
 
 # Async runtime
-tokio = { version = "1.48.0", features = ["full"] }
+tokio = { version = "1.49.0", features = ["full"] } # 异步运行时 (全功能版)
 
 # Serialization
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.148"
+serde = { version = "1.0.228", features = ["derive"] } # 序列化框架
+serde_json = "1.0.148"                                 # JSON 处理
 
 # Time
-chrono = { version = "0.4.42", features = ["serde"] }
+chrono = { version = "0.4.42", features = ["serde"] } # 时间日期处理
 
 # Error handling
-thiserror = "2.0.17"
+thiserror = "2.0.17" # 自定义错误类型
 
 # Config file parsing
-toml = "0.9.8"
-dirs = "6.0.0"
+toml = "0.9.8" # TOML 解析
+dirs = "6.0.0" # 系统目录获取
 
 # ═══════════════════════════════════════════════════════════
 # 📦 Backend 专有依赖
 # ═══════════════════════════════════════════════════════════
 
 # Async helpers
-futures = "0.3"
-async-stream = "0.3"
+futures = "0.3"      # 异步原语 (Future trait 等)
+async-stream = "0.3" # 异步流宏 (用于 SSE/WebSocket)
 
 # Parallel processing
-rayon = "1.10"
-lazy_static = "1.5"
+rayon = "1.10"      # 并行计算 (数据处理加速)
+lazy_static = "1.5" # 静态变量懒加载
 
 # Logging
-tracing = "0.1.44"
+tracing = "0.1.44" # 结构化日志门面
 tracing-subscriber = { version = "0.3.22", features = [
     "env-filter",
     "json",
     "fmt",
     "ansi",
-] }
-tracing-appender = "0.2.4"
-tracing-log = "0.2" # Bridge log facade to tracing
+] } # 日志订阅者 (输出到控制台/文件)
+tracing-appender = "0.2.4" # 非阻塞日志写入
+tracing-log = "0.2" # log crate 兼容层
 
 # CLI arguments
-clap = { version = "4.5.54", features = ["derive"] }
+clap = { version = "4.5.54", features = ["derive"] } # 命令行参数解析
 
 # System information
-whoami = "2.0.0"
-num_cpus = "1.17.0"
-sysinfo = "0.37.2"  # 统一使用与 ccr 相同的版本
+whoami = "2.0.0"    # 获取当前用户身份
+num_cpus = "1.17.0" # 获取 CPU 核心数
+sysinfo = "0.37.2"  # 系统状态监控 (统一版本)
 
 # HTTP client for checking updates and checkin API calls
 # NOTE: Enable `gzip` to transparently decode provider responses (see NeuraDock).
@@ -89,38 +89,40 @@ reqwest = { version = "0.13.1", features = [
     "json",
     "cookies",
     "gzip",
-] }
+] } # HTTP 客户端 (支持 Cookie/Gzip)
 
 # YAML support (for special cases)
-serde_yaml = "0.9.33"
+serde_yaml = "0.9.33" # YAML 格式支持
 
 # Atomic file operations
-tempfile = "3.24.0"
+tempfile = "3.24.0" # 临时文件处理
 
 # File system utilities
-walkdir = "2.5"
+walkdir = "2.5" # 递归目录遍历
 
 # UUID generation
-uuid = { version = "1.18", features = ["v4", "serde"] }
+uuid = { version = "1.18", features = ["v4", "serde"] } # UUID 生成
 
 # Lazy static initialization
-once_cell = "1.21"
+once_cell = "1.21" # 单次初始化原语
 
 # ═══════════════════════════════════════════════════════════
 # 📦 签到功能依赖 (Checkin Feature)
 # ═══════════════════════════════════════════════════════════
 
 # AES-256-GCM encryption for API key storage
-aes-gcm = "0.10"
+aes-gcm = "0.10" # AES-GCM 加密 (敏感数据保护)
 
 # Random key generation
-rand = "0.9"
+rand = "0.9" # 随机数生成
 
 # Base64 encoding for encrypted data
-base64 = "0.22"
+base64 = "0.22" # Base64 编解码
 
 # Browser automation (for WAF bypass)
-chromiumoxide = { version = "0.8", features = ["tokio-runtime"] }
+chromiumoxide = { version = "0.8", features = [
+    "tokio-runtime",
+] } # Headless Chrome (用于过 WAF)
 
 # ✅ 独立构建支持说明：
 # - 所有依赖使用显式版本号，不依赖 workspace 继承
@@ -128,4 +130,4 @@ chromiumoxide = { version = "0.8", features = ["tokio-runtime"] }
 # - 版本号与主仓库 Cargo.toml 的 workspace.dependencies 保持同步
 
 [dev-dependencies]
-proptest = "1.6"
+proptest = "1.6" # 属性测试框架 (用于复杂测试用例生成)

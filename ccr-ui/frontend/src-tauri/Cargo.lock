@@ -373,7 +373,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.17.3"
+version = "3.17.4"
 dependencies = [
  "anyhow",
  "blake3",
@@ -384,7 +384,6 @@ dependencies = [
  "dialoguer",
  "dirs",
  "filetime",
- "flate2",
  "fs4",
  "indexmap 2.12.1",
  "once_cell",
@@ -396,7 +395,6 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
- "smallvec",
  "tempfile",
  "thiserror 2.0.17",
  "tokio",
@@ -412,7 +410,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "3.17.3"
+version = "3.17.4"
 dependencies = [
  "ccr",
  "serde",

@@ -458,7 +458,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.17.3"
+version = "3.17.4"
 dependencies = [
  "anyhow",
  "axum",
@@ -471,7 +471,6 @@ dependencies = [
  "dialoguer",
  "dirs",
  "filetime",
- "flate2",
  "fs4",
  "indexmap",
  "once_cell",
@@ -485,7 +484,6 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
- "smallvec",
  "sysinfo",
  "tempfile",
  "thiserror 2.0.17",
@@ -504,7 +502,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-ui-backend"
-version = "3.17.3"
+version = "3.17.4"
 dependencies = [
  "aes-gcm",
  "async-stream",
