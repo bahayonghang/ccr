@@ -39,6 +39,11 @@ const router = createRouter({
           name: 'iflow',
           component: () => import('@/views/IflowView.vue')
         },
+        {
+          path: 'droid',
+          name: 'droid',
+          component: () => import('@/views/DroidView.vue')
+        },
         // 工具中心
         {
           path: 'ccr-control',
@@ -258,6 +263,30 @@ const router = createRouter({
           name: 'iflow-plugins',
           component: () => import('@/views/generic/PlatformPluginsView.vue'),
           props: { platform: 'iflow' }
+        },
+        // Droid 子页面
+        {
+          path: 'droid/mcp',
+          name: 'droid-mcp',
+          component: () => import('@/views/generic/PlatformMcpView.vue'),
+          props: { platform: 'droid' }
+        },
+        {
+          path: 'droid/agents',
+          name: 'droid-agents',
+          component: () => import('@/views/generic/AgentsView.vue'),
+          props: { module: 'droid' }
+        },
+        {
+          path: 'droid/slash-commands',
+          name: 'droid-slash-commands',
+          component: () => import('@/views/DroidSlashCommandsView.vue')
+        },
+        {
+          path: 'droid/plugins',
+          name: 'droid-plugins',
+          component: () => import('@/views/generic/PlatformPluginsView.vue'),
+          props: { platform: 'droid' }
         }
       ]
     }

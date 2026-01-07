@@ -11,6 +11,7 @@ CCR supports managing configurations for multiple AI CLI platforms. Each platfor
 | **Claude Code** | 🤖 | Anthropic's official CLI with support for multiple relay services and third-party models | [Claude Guide](claude.md) |
 | **Codex** | 💻 | Codex CLI (OpenAI-compatible providers, GitHub Copilot compatible mode) | [Codex Guide](codex.md) |
 | **Gemini CLI** | ✨ | Google Gemini CLI for Google's AI models | [Gemini Guide](gemini.md) |
+| **Factory Droid** | 🏭 | Factory AI Droid CLI with custom model support (Anthropic, OpenAI, generic) | [Droid Guide](droid.md) |
 
 ### 🚧 Planned Platforms
 
@@ -69,15 +70,15 @@ ccr platform init gemini
 
 ## Platform Comparison
 
-| Feature | Claude Code | Codex | Gemini |
-|---------|-------------|-------|--------|
-| **Settings Path** | `~/.claude/settings.json` | `~/.codex/config.toml` | `~/.gemini/settings.json` |
-| **Profile Count** | 16 (example) | 5 (example) | 6 (example) |
-| **Relay Services** | ✅ Multiple (AnyRouter, HuSan, etc.) | ✅ GitHub official | ✅ Google official |
-| **Third-Party Models** | ✅ GLM, Kimi, SiliconFlow | ❌ | ❌ |
-| **Token Format** | `sk-ant-api03-...` or `sk-...` | `ghp_...` | `AIzaSy...` |
-| **History Tracking** | ✅ | ✅ | ✅ |
-| **Auto Backup** | ✅ | ✅ | ✅ |
+| Feature | Claude Code | Codex | Gemini | Droid |
+|---------|-------------|-------|--------|-------|
+| **Settings Path** | `~/.claude/settings.json` | `~/.codex/config.toml` | `~/.gemini/settings.json` | `~/.factory/settings.json` |
+| **Profile Count** | 16 (example) | 5 (example) | 6 (example) | 4 (example) |
+| **Relay Services** | ✅ Multiple (AnyRouter, HuSan, etc.) | ✅ GitHub official | ✅ Google official | ✅ Multiple providers |
+| **Third-Party Models** | ✅ GLM, Kimi, SiliconFlow | ❌ | ❌ | ✅ Any OpenAI-compatible |
+| **Token Format** | `sk-ant-api03-...` or `sk-...` | `ghp_...` | `AIzaSy...` | `sk-...` or provider-specific |
+| **History Tracking** | ✅ | ✅ | ✅ | ✅ |
+| **Auto Backup** | ✅ | ✅ | ✅ | ✅ |
 
 ## Configuration Modes
 
@@ -147,6 +148,15 @@ See [Codex Platform Guide](codex.md) for details.
 - **Fast model switching** between experimental and stable versions
 
 See [Gemini Platform Guide](gemini.md) for details.
+
+### Droid
+
+- **Multi-provider support** for Anthropic, OpenAI, and generic APIs
+- **Custom models** via `customModels` configuration
+- **Max output tokens** configuration per profile
+- **Local model support** via Ollama integration
+
+See [Droid Platform Guide](droid.md) for details.
 
 ## Migration Guide
 
@@ -344,6 +354,7 @@ ccr migrate
 - **[Claude Platform Guide](claude.md)** - Comprehensive Claude Code setup
 - **[Codex Platform Guide](codex.md)** - GitHub Copilot CLI configuration
 - **[Gemini Platform Guide](gemini.md)** - Google Gemini CLI setup
+- **[Droid Platform Guide](droid.md)** - Factory Droid CLI configuration
 - **[Migration Guide](migration.md)** - Legacy to Unified mode migration
 - **[Configuration Guide](../configuration.md)** - Advanced configuration options
 - **[Quick Start Guide](../quick-start.md)** - Getting started with CCR
@@ -360,7 +371,7 @@ ccr migrate
 - Third-Party Models: 4 (15%)
 - Test Profiles: 11 (41%)
 
-**Active Platforms**: 3 (Claude, Codex, Gemini)
+**Active Platforms**: 4 (Claude, Codex, Gemini, Droid)
 **Planned Platforms**: 2 (Qwen, iFlow)
 
 ---

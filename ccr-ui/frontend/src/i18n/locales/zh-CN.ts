@@ -97,6 +97,7 @@ export default {
     gemini: 'Gemini',
     qwen: 'Qwen',
     iflow: 'IFLOW',
+    droid: 'Factory Droid',
     mcp: 'MCP 服务器',
     agents: 'Agents',
     slashCommands: '斜杠命令',
@@ -2106,6 +2107,48 @@ export default {
         deleteFailed: '删除失败: {error}',
         toggleFailed: '切换状态失败: {error}'
       }
+    }
+  },
+
+  // Droid Platform
+  droid: {
+    overview: {
+      title: 'Factory Droid',
+      subtitle: 'Factory AI 编码助手',
+      description: 'Factory AI · 多 Provider · 自定义模型',
+      backToHome: '返回首页',
+      features: '功能模块',
+      feature1: '支持 Anthropic、OpenAI、OpenRouter 等多种 API Provider',
+      feature2: 'Custom Models 配置，自定义模型参数和端点',
+      feature3: 'max_output_tokens 控制输出长度，优化成本和性能',
+      feature4: '本地 Ollama 模型集成支持，保护数据隐私',
+      featureTitle: '💡 Factory Droid 特性',
+      tags: {
+        multiProvider: '🔗 多 Provider',
+        customModels: '🎛️ 自定义模型',
+        mcp: '🔌 MCP 支持',
+        coding: '💻 编程助手'
+      }
+    },
+    mcp: {
+      title: 'MCP 服务器',
+      description: 'Droid MCP 服务器配置管理',
+      badge: '🔌 MCP'
+    },
+    agents: {
+      title: 'Agents',
+      description: 'Droid Agent 配置和管理',
+      badge: '🤖 AI'
+    },
+    plugins: {
+      title: '插件管理',
+      description: 'Droid 插件配置和管理',
+      badge: '🧩 插件'
+    },
+    slashCommands: {
+      title: 'Slash Commands',
+      description: 'Droid 自定义命令管理',
+      badge: '⌨️ 命令'
     }
   },
 

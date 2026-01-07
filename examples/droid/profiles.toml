@@ -1,0 +1,69 @@
+# Droid 平台示例配置
+#
+# Factory Droid CLI 配置管理
+# 配置将写入 ~/.factory/settings.json 的 customModels 数组
+#
+# 使用方法:
+# 1. 复制此文件到 ~/.ccr/platforms/droid/profiles.toml
+# 2. 根据需要修改配置
+# 3. 使用 `ccr switch -p droid <profile-name>` 切换配置
+
+# 当前使用的配置名称
+default_config = "anthropic-api"
+
+# 正在激活的配置名称
+current_config = "anthropic-api"
+
+# ═══════════════════════════════════════════════════════════
+# Anthropic API 官方配置
+# ═══════════════════════════════════════════════════════════
+[anthropic-api]
+description = "Anthropic 官方 API"
+base_url = "https://api.anthropic.com/v1"
+auth_token = "sk-ant-api03-your-token-here"
+model = "claude-sonnet-4-5-20250929"
+provider = "anthropic"
+# Droid 特有字段 - 最大输出 token 数
+max_output_tokens = 8192
+tags = ["official", "anthropic"]
+enabled = true
+usage_count = 0
+
+# ═══════════════════════════════════════════════════════════
+# OpenAI 兼容配置
+# ═══════════════════════════════════════════════════════════
+[openai-compatible]
+description = "OpenAI 兼容 API"
+base_url = "https://api.openai.com/v1"
+auth_token = "sk-your-openai-key"
+model = "gpt-4o"
+provider = "openai"
+max_output_tokens = 4096
+tags = ["openai", "gpt"]
+enabled = true
+usage_count = 0
+
+# ═══════════════════════════════════════════════════════════
+# 通用 Chat Completion API (OpenRouter, Ollama, vLLM 等)
+# ═══════════════════════════════════════════════════════════
+[openrouter]
+description = "OpenRouter 聚合 API"
+base_url = "https://openrouter.ai/api/v1"
+auth_token = "sk-or-v1-your-openrouter-key"
+model = "anthropic/claude-3.5-sonnet"
+provider = "generic-chat-completion-api"
+max_output_tokens = 4096
+tags = ["openrouter", "aggregator"]
+enabled = true
+usage_count = 0
+
+[ollama-local]
+description = "Ollama 本地部署"
+base_url = "http://localhost:11434/v1"
+auth_token = "ollama"
+model = "qwen3:14b"
+provider = "generic-chat-completion-api"
+# 本地模型通常不限制 token
+tags = ["local", "ollama"]
+enabled = true
+usage_count = 0
