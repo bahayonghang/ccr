@@ -9,6 +9,7 @@ pub mod codex_routes;
 pub mod command_routes;
 pub mod config_routes;
 pub mod converter_routes;
+pub mod droid_routes;
 pub mod gemini_routes;
 pub mod hooks_routes;
 pub mod marketplace_routes;
@@ -141,6 +142,8 @@ fn create_api_routes() -> Router {
         .merge(gemini_routes::routes())
         // Qwen 平台
         .merge(qwen_routes::routes())
+        // Droid 平台
+        .merge(droid_routes::routes())
         // 配置转换
         .merge(converter_routes::routes())
         // UI 状态

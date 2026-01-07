@@ -53,21 +53,23 @@ fn cleanup_test_env(temp_dir: TempDir) {
 #[test]
 fn test_platform_all() {
     let platforms = Platform::all();
-    assert_eq!(platforms.len(), 5);
+    assert_eq!(platforms.len(), 6);
     assert!(platforms.contains(&Platform::Claude));
     assert!(platforms.contains(&Platform::Codex));
     assert!(platforms.contains(&Platform::Gemini));
     assert!(platforms.contains(&Platform::Qwen));
     assert!(platforms.contains(&Platform::IFlow));
+    assert!(platforms.contains(&Platform::Droid));
 }
 
 #[test]
 fn test_platform_implemented() {
     let implemented = Platform::implemented();
-    assert_eq!(implemented.len(), 3);
+    assert_eq!(implemented.len(), 4);
     assert!(implemented.contains(&Platform::Claude));
     assert!(implemented.contains(&Platform::Codex));
     assert!(implemented.contains(&Platform::Gemini));
+    assert!(implemented.contains(&Platform::Droid));
     assert!(!implemented.contains(&Platform::Qwen));
     assert!(!implemented.contains(&Platform::IFlow));
 }

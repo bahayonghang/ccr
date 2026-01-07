@@ -15,6 +15,7 @@ use std::sync::Arc;
 pub mod base;
 pub mod claude;
 pub mod codex;
+pub mod droid;
 pub mod gemini;
 pub mod iflow;
 pub mod qwen;
@@ -31,6 +32,7 @@ pub use base::{
 // 重新导出平台实现
 pub use claude::ClaudePlatform;
 pub use codex::CodexPlatform;
+pub use droid::DroidPlatform;
 pub use gemini::GeminiPlatform;
 pub use iflow::IFlowPlatform;
 pub use qwen::QwenPlatform;
@@ -75,6 +77,10 @@ pub fn create_platform(platform: Platform) -> Result<Arc<dyn PlatformConfig>> {
         Platform::IFlow => {
             let iflow = IFlowPlatform::new()?;
             Ok(Arc::new(iflow))
+        }
+        Platform::Droid => {
+            let droid = DroidPlatform::new()?;
+            Ok(Arc::new(droid))
         }
     }
 }
@@ -329,13 +335,14 @@ mod tests {
     #[test]
     fn test_platform_registry() {
         let registry = PlatformRegistry::new();
-        assert_eq!(registry.all_platforms().len(), 5);
+        assert_eq!(registry.all_platforms().len(), 6);
 
         let implemented = registry.implemented_platforms();
-        assert_eq!(implemented.len(), 3);
+        assert_eq!(implemented.len(), 4);
         assert!(implemented.contains(&Platform::Claude));
         assert!(implemented.contains(&Platform::Codex));
         assert!(implemented.contains(&Platform::Gemini));
+        assert!(implemented.contains(&Platform::Droid));
     }
 
     #[test]
@@ -360,6 +367,6 @@ mod tests {
     #[test]
     fn test_platform_detector() {
         let detector = PlatformDetector::new();
-        assert_eq!(detector.registry().all_platforms().len(), 5);
+        assert_eq!(detector.registry().all_platforms().len(), 6);
     }
 }

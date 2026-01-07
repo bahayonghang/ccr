@@ -2,6 +2,7 @@
 
 pub mod claude_manager;
 pub mod codex_manager;
+pub mod droid_manager;
 pub mod gemini_manager;
 pub mod platform_manager;
 pub mod qwen_manager;

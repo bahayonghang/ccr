@@ -39,6 +39,8 @@ pub enum Platform {
     Qwen,
     /// iFlow CLI - iFlow CLI (未实现)
     IFlow,
+    /// Factory Droid CLI - Factory AI Droid CLI
+    Droid,
 }
 
 impl Platform {
@@ -50,6 +52,7 @@ impl Platform {
             Platform::Gemini => "Gemini CLI",
             Platform::Qwen => "Qwen CLI",
             Platform::IFlow => "iFlow CLI",
+            Platform::Droid => "Factory Droid",
         }
     }
 
@@ -61,6 +64,7 @@ impl Platform {
             Platform::Gemini => "gemini",
             Platform::Qwen => "qwen",
             Platform::IFlow => "iflow",
+            Platform::Droid => "droid",
         }
     }
 
@@ -72,12 +76,16 @@ impl Platform {
             Platform::Gemini => "✨",
             Platform::Qwen => "🌟",
             Platform::IFlow => "🌊",
+            Platform::Droid => "🏭",
         }
     }
 
     /// 检查平台是否已实现
     pub fn is_implemented(&self) -> bool {
-        matches!(self, Platform::Claude | Platform::Codex | Platform::Gemini)
+        matches!(
+            self,
+            Platform::Claude | Platform::Codex | Platform::Gemini | Platform::Droid
+        )
     }
 
     /// 列出所有平台
@@ -88,6 +96,7 @@ impl Platform {
             Platform::Gemini,
             Platform::Qwen,
             Platform::IFlow,
+            Platform::Droid,
         ]
     }
 
@@ -117,6 +126,7 @@ impl FromStr for Platform {
             "gemini" => Ok(Platform::Gemini),
             "qwen" => Ok(Platform::Qwen),
             "iflow" => Ok(Platform::IFlow),
+            "droid" | "factory" => Ok(Platform::Droid),
             _ => Err(crate::core::error::CcrError::PlatformNotFound(
                 s.to_string(),
             )),
@@ -543,16 +553,18 @@ mod tests {
     #[test]
     fn test_platform_all() {
         let platforms = Platform::all();
-        assert_eq!(platforms.len(), 5);
+        assert_eq!(platforms.len(), 6);
         assert!(platforms.contains(&Platform::Claude));
         assert!(platforms.contains(&Platform::Qwen));
+        assert!(platforms.contains(&Platform::Droid));
     }
 
     #[test]
     fn test_platform_implemented() {
         let implemented = Platform::implemented();
-        assert_eq!(implemented.len(), 3);
+        assert_eq!(implemented.len(), 4);
         assert!(implemented.contains(&Platform::Claude));
+        assert!(implemented.contains(&Platform::Droid));
         assert!(!implemented.contains(&Platform::Qwen));
     }
 

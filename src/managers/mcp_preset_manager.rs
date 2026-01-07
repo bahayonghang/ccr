@@ -109,6 +109,7 @@ impl McpPresetManager {
             Platform::Gemini => home.join(".gemini"),
             Platform::Qwen => home.join(".qwen"),
             Platform::IFlow => home.join(".iflow"),
+            Platform::Droid => home.join(".factory"),
         };
 
         let ccr_dir = home.join(".ccr");
@@ -155,6 +156,7 @@ impl McpPresetManager {
             Platform::Gemini => self.install_to_gemini(&preset.id, &server_spec),
             Platform::Qwen => self.install_to_qwen(&preset.id, &server_spec),
             Platform::IFlow => self.install_to_iflow(&preset.id, &server_spec),
+            Platform::Droid => self.install_to_droid(&preset.id, &server_spec),
         }
     }
 
@@ -166,6 +168,7 @@ impl McpPresetManager {
             Platform::Gemini => self.install_to_gemini(name, spec),
             Platform::Qwen => self.install_to_qwen(name, spec),
             Platform::IFlow => self.install_to_iflow(name, spec),
+            Platform::Droid => self.install_to_droid(name, spec),
         }
     }
 
@@ -290,6 +293,29 @@ impl McpPresetManager {
 
         self.save_json_config(&config_path, &config)?;
         tracing::info!("Installed MCP preset '{}' to iFlow", id);
+        Ok(())
+    }
+
+    /// 安装到 Droid (~/.factory/settings.json)
+    fn install_to_droid(&self, id: &str, spec: &McpServerSpec) -> Result<()> {
+        // Droid 使用 settings.json，MCP 配置在 mcpServers 字段
+        let config_path = self.platform_dir.join("settings.json");
+        let mut config = self.load_json_config(&config_path)?;
+
+        let mcp_servers = config
+            .as_object_mut()
+            .ok_or_else(|| CcrError::ConfigError("Invalid Droid config format".into()))?
+            .entry("mcpServers")
+            .or_insert_with(|| serde_json::json!({}));
+
+        let server_config = self.spec_to_claude_format(spec);
+        mcp_servers
+            .as_object_mut()
+            .ok_or_else(|| CcrError::ConfigError("Invalid mcpServers format".into()))?
+            .insert(id.to_string(), server_config);
+
+        self.save_json_config(&config_path, &config)?;
+        tracing::info!("Installed MCP preset '{}' to Droid", id);
         Ok(())
     }
 

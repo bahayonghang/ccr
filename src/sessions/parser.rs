@@ -25,7 +25,9 @@ impl SessionParser {
             Platform::Claude => Self::parse_claude(path),
             Platform::Codex => Self::parse_codex(path),
             Platform::Gemini => Self::parse_gemini(path),
-            Platform::Qwen | Platform::IFlow => Self::parse_generic(path, platform),
+            Platform::Qwen | Platform::IFlow | Platform::Droid => {
+                Self::parse_generic(path, platform)
+            }
         }
     }
 
@@ -430,6 +432,7 @@ impl SessionParser {
             Platform::Gemini => home.join(".gemini").join("tmp"),
             Platform::Qwen => home.join(".qwen").join("sessions"),
             Platform::IFlow => home.join(".iflow").join("sessions"),
+            Platform::Droid => home.join(".factory").join("sessions"),
         };
 
         if path.exists() { Some(path) } else { None }
