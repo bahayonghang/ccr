@@ -458,7 +458,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.17.5"
+version = "3.18.0"
 dependencies = [
  "anyhow",
  "axum",
