@@ -505,6 +505,7 @@ name = "ccr-ui-backend"
 version = "3.18.0"
 dependencies = [
  "aes-gcm",
+ "anyhow",
  "async-stream",
  "axum",
  "base64",
@@ -515,6 +516,7 @@ dependencies = [
  "dirs",
  "futures",
  "futures-util",
+ "indexmap",
  "lazy_static",
  "num_cpus",
  "once_cell",
