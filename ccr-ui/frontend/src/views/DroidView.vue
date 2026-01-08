@@ -265,6 +265,132 @@
               </div>
             </div>
           </RouterLink>
+
+          <RouterLink
+            to="/droid/models"
+            class="block group"
+          >
+            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+              <div class="flex items-start gap-4">
+                <div
+                  class="p-3 rounded-2xl"
+                  :style="{ background: 'rgba(245, 158, 11, 0.15)' }"
+                >
+                  <Cpu
+                    class="w-7 h-7"
+                    :style="{ color: '#f59e0b' }"
+                  />
+                </div>
+                <div class="flex-1">
+                  <h3
+                    class="text-xl font-bold mb-2"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    Custom Models
+                  </h3>
+                  <p
+                    class="text-sm mb-3"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
+                    管理自定义 AI 模型配置
+                  </p>
+                  <span
+                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
+                    :style="{
+                      background: 'rgba(245, 158, 11, 0.15)',
+                      color: '#f59e0b'
+                    }"
+                  >
+                    多提供商支持
+                  </span>
+                </div>
+              </div>
+            </div>
+          </RouterLink>
+
+          <RouterLink
+            to="/droid/profiles"
+            class="block group"
+          >
+            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+              <div class="flex items-start gap-4">
+                <div
+                  class="p-3 rounded-2xl"
+                  :style="{ background: 'rgba(20, 184, 166, 0.15)' }"
+                >
+                  <Settings
+                    class="w-7 h-7"
+                    :style="{ color: '#14b8a6' }"
+                  />
+                </div>
+                <div class="flex-1">
+                  <h3
+                    class="text-xl font-bold mb-2"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    Profiles
+                  </h3>
+                  <p
+                    class="text-sm mb-3"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
+                    管理配置文件和环境设置
+                  </p>
+                  <span
+                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
+                    :style="{
+                      background: 'rgba(20, 184, 166, 0.15)',
+                      color: '#14b8a6'
+                    }"
+                  >
+                    快速切换
+                  </span>
+                </div>
+              </div>
+            </div>
+          </RouterLink>
+
+          <RouterLink
+            to="/droid/droids"
+            class="block group"
+          >
+            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+              <div class="flex items-start gap-4">
+                <div
+                  class="p-3 rounded-2xl"
+                  :style="{ background: 'rgba(168, 85, 247, 0.15)' }"
+                >
+                  <Bot
+                    class="w-7 h-7"
+                    :style="{ color: '#a855f7' }"
+                  />
+                </div>
+                <div class="flex-1">
+                  <h3
+                    class="text-xl font-bold mb-2"
+                    :style="{ color: 'var(--text-primary)' }"
+                  >
+                    Droids (Subagents)
+                  </h3>
+                  <p
+                    class="text-sm mb-3"
+                    :style="{ color: 'var(--text-secondary)' }"
+                  >
+                    管理自定义 AI Subagents
+                  </p>
+                  <span
+                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
+                    :style="{
+                      background: 'rgba(168, 85, 247, 0.15)',
+                      color: '#a855f7'
+                    }"
+                  >
+                    Markdown 配置
+                  </span>
+                </div>
+              </div>
+            </div>
+          </RouterLink>
         </div>
       </div>
 
@@ -317,5 +443,5 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { Server, Bot, Puzzle, Command, Home, Factory, Boxes, Info } from 'lucide-vue-next'
+import { Server, Bot, Puzzle, Command, Home, Factory, Boxes, Info, Cpu, Settings } from 'lucide-vue-next'
 </script>

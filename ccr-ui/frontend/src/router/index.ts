@@ -287,6 +287,21 @@ const router = createRouter({
           name: 'droid-plugins',
           component: () => import('@/views/generic/PlatformPluginsView.vue'),
           props: { platform: 'droid' }
+        },
+        {
+          path: 'droid/models',
+          name: 'droid-models',
+          component: () => import('@/views/DroidModelsView.vue')
+        },
+        {
+          path: 'droid/profiles',
+          name: 'droid-profiles',
+          component: () => import('@/views/DroidProfilesView.vue')
+        },
+        {
+          path: 'droid/droids',
+          name: 'droid-droids',
+          component: () => import('@/views/DroidDroidsView.vue')
         }
       ]
     }
