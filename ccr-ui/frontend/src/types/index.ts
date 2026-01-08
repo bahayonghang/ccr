@@ -732,3 +732,6 @@ export interface StatuslineConfig {
 // Re-export checkin types
 export * from './checkin'
 
+// Re-export api types
+export * from './api'
+

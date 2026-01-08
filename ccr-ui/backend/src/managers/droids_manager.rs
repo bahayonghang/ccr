@@ -1,13 +1,24 @@
 // Droids (Subagents) 文件管理器
 // 管理 .factory/droids/ 目录下的 Markdown 文件
 
-use std::fs;
-use std::path::PathBuf;
 use anyhow::{Context, Result};
 use serde_json;
 use serde_yaml;
+use std::fs;
+use std::path::PathBuf;
 
 use crate::models::platforms::droid::{Droid, DroidRequest};
+
+/// Droid frontmatter (不含 system_prompt，因为它在 markdown body 中)
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DroidFrontmatter {
+    pub name: String,
+    pub description: Option<String>,
+    pub model: String,
+    pub reasoning_effort: Option<String>,
+    pub tools: Option<serde_json::Value>,
+}
 
 /// Droids 文件管理器
 pub struct DroidsManager {
@@ -18,11 +29,10 @@ impl DroidsManager {
     /// 创建新的 DroidsManager
     pub fn new(base_dir: PathBuf) -> Result<Self> {
         let droids_dir = base_dir.join("droids");
-        
+
         // 确保目录存在
         if !droids_dir.exists() {
-            fs::create_dir_all(&droids_dir)
-                .context("创建 droids 目录失败")?;
+            fs::create_dir_all(&droids_dir).context("创建 droids 目录失败")?;
         }
 
         Ok(Self { droids_dir })
@@ -44,17 +54,15 @@ impl DroidsManager {
             return Ok(droids);
         }
 
-        for entry in fs::read_dir(&self.droids_dir)
-            .context("读取 droids 目录失败")?
-        {
+        for entry in fs::read_dir(&self.droids_dir).context("读取 droids 目录失败")? {
             let entry = entry.context("读取目录项失败")?;
             let path = entry.path();
 
             // 只处理 .md 文件
-            if path.extension().and_then(|s| s.to_str()) == Some("md") {
-                if let Ok(droid) = self.read_droid_file(&path) {
-                    droids.push(droid);
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("md")
+                && let Ok(droid) = self.read_droid_file(&path)
+            {
+                droids.push(droid);
             }
         }
 
@@ -67,7 +75,7 @@ impl DroidsManager {
     /// 获取单个 Droid
     pub fn get_droid(&self, name: &str) -> Result<Droid> {
         let file_path = self.droids_dir.join(format!("{}.md", name));
-        
+
         if !file_path.exists() {
             anyhow::bail!("Droid '{}' 不存在", name);
         }
@@ -116,14 +124,13 @@ impl DroidsManager {
         if name != request.name {
             self.validate_droid_name(&request.name)?;
             let new_file_path = self.droids_dir.join(format!("{}.md", request.name));
-            
+
             if new_file_path.exists() {
                 anyhow::bail!("Droid '{}' 已存在", request.name);
             }
 
             // 删除旧文件
-            fs::remove_file(&file_path)
-                .context("删除旧 Droid 文件失败")?;
+            fs::remove_file(&file_path).context("删除旧 Droid 文件失败")?;
         }
 
         // 构建 Droid
@@ -151,16 +158,14 @@ impl DroidsManager {
             anyhow::bail!("Droid '{}' 不存在", name);
         }
 
-        fs::remove_file(&file_path)
-            .context("删除 Droid 文件失败")?;
+        fs::remove_file(&file_path).context("删除 Droid 文件失败")?;
 
         Ok(())
     }
 
     /// 读取 Droid 文件
     fn read_droid_file(&self, path: &PathBuf) -> Result<Droid> {
-        let content = fs::read_to_string(path)
-            .context("读取 Droid 文件失败")?;
+        let content = fs::read_to_string(path).context("读取 Droid 文件失败")?;
 
         // 解析 Markdown frontmatter
         self.parse_droid_markdown(&content)
@@ -170,8 +175,7 @@ impl DroidsManager {
     fn write_droid_file(&self, path: &PathBuf, droid: &Droid) -> Result<()> {
         let content = self.format_droid_markdown(droid)?;
 
-        fs::write(path, content)
-            .context("写入 Droid 文件失败")?;
+        fs::write(path, content).context("写入 Droid 文件失败")?;
 
         Ok(())
     }
@@ -180,13 +184,16 @@ impl DroidsManager {
     fn parse_droid_markdown(&self, content: &str) -> Result<Droid> {
         // 查找 frontmatter 边界
         let lines: Vec<&str> = content.lines().collect();
-        
+
         if lines.is_empty() || lines[0] != "---" {
             anyhow::bail!("无效的 Droid 文件格式：缺少 frontmatter");
         }
 
         // 找到第二个 ---
-        let end_index = lines.iter().skip(1).position(|&line| line == "---")
+        let end_index = lines
+            .iter()
+            .skip(1)
+            .position(|&line| line == "---")
             .context("无效的 Droid 文件格式：frontmatter 未闭合")?;
 
         // 提取 frontmatter YAML
@@ -197,12 +204,19 @@ impl DroidsManager {
         let system_prompt_lines = &lines[end_index + 2..];
         let system_prompt = system_prompt_lines.join("\n").trim().to_string();
 
-        // 解析 YAML
-        let mut droid: Droid = serde_yaml::from_str(&frontmatter_yaml)
-            .context("解析 Droid frontmatter 失败")?;
+        // 解析 YAML 为 DroidFrontmatter（不包含 system_prompt）
+        let frontmatter: DroidFrontmatter =
+            serde_yaml::from_str(&frontmatter_yaml).context("解析 Droid frontmatter 失败")?;
 
-        // 设置系统提示
-        droid.system_prompt = system_prompt;
+        // 构建完整的 Droid 对象
+        let droid = Droid {
+            name: frontmatter.name,
+            description: frontmatter.description,
+            model: frontmatter.model,
+            reasoning_effort: frontmatter.reasoning_effort,
+            tools: frontmatter.tools,
+            system_prompt,
+        };
 
         Ok(droid)
     }
@@ -219,8 +233,8 @@ impl DroidsManager {
         });
 
         // 序列化为 YAML
-        let mut frontmatter = serde_yaml::to_string(&frontmatter_obj)
-            .context("序列化 Droid frontmatter 失败")?;
+        let mut frontmatter =
+            serde_yaml::to_string(&frontmatter_obj).context("序列化 Droid frontmatter 失败")?;
 
         // 移除 null 值
         frontmatter = frontmatter
@@ -246,7 +260,10 @@ impl DroidsManager {
         }
 
         // 只允许小写字母、数字、- 和 _
-        if !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_') {
+        if !name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_')
+        {
             anyhow::bail!("Droid 名称只能包含小写字母、数字、- 和 _");
         }
 
@@ -312,7 +329,7 @@ mod tests {
         assert!(manager.validate_droid_name("valid-name").is_ok());
         assert!(manager.validate_droid_name("valid_name").is_ok());
         assert!(manager.validate_droid_name("valid123").is_ok());
-        
+
         assert!(manager.validate_droid_name("Invalid-Name").is_err());
         assert!(manager.validate_droid_name("invalid name").is_err());
         assert!(manager.validate_droid_name("").is_err());

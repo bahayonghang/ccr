@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { listCommands, executeCommand } from '@/api/client'
 import type { CommandInfo, CommandRequest, CommandResponse } from '@/types'
+import { getErrorMessage } from '@/types'
 
 interface CommandsState {
   list: CommandInfo[]
@@ -47,8 +48,8 @@ export const useCommandsStore = defineStore('commands', {
     async loadList() {
       try {
         this.list = await listCommands()
-      } catch (err: any) {
-        this.error = err.message || '加载命令列表失败'
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, '加载命令列表失败')
         throw err
       }
     },
@@ -66,8 +67,8 @@ export const useCommandsStore = defineStore('commands', {
         const result = await executeCommand(payload)
         this.lastOutput = result
         return result
-      } catch (err: any) {
-        this.error = err.message || '命令执行失败'
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, '命令执行失败')
         throw err
       } finally {
         this.running = false

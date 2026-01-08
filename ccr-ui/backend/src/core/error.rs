@@ -27,11 +27,7 @@ pub enum ApiError {
     /// 500 Internal Server Error - 服务器内部错误
     Internal(String),
     /// 503 Service Unavailable - 服务不可用
-    #[allow(dead_code)] // Reserved for CommandService streaming implementation
     ServiceUnavailable(String),
-    /// 自定义状态码错误
-    #[allow(dead_code)] // Reserved for custom status code needs
-    Custom(StatusCode, String),
 }
 
 impl ApiError {
@@ -52,7 +48,6 @@ impl ApiError {
     }
 
     /// 创建 ServiceUnavailable 错误
-    #[allow(dead_code)] // Reserved for CommandService streaming implementation
     pub fn service_unavailable(msg: impl Into<String>) -> Self {
         ApiError::ServiceUnavailable(msg.into())
     }
@@ -64,7 +59,6 @@ impl ApiError {
             ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.clone()),
             ApiError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
             ApiError::ServiceUnavailable(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg.clone()),
-            ApiError::Custom(status, msg) => (*status, msg.clone()),
         }
     }
 }

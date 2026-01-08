@@ -71,17 +71,6 @@ fn get_default_log_dir() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("logs"))
 }
 
-/// Create required log directories (async version)
-/// Note: Currently unused, kept for future async initialization scenarios
-#[allow(dead_code)]
-pub async fn create_log_directories(base_dir: &Path) -> std::io::Result<()> {
-    let backend_dir = base_dir.join("backend");
-    let frontend_dir = base_dir.join("frontend");
-    fs::create_dir_all(&backend_dir).await?;
-    fs::create_dir_all(&frontend_dir).await?;
-    Ok(())
-}
-
 /// Create log directories synchronously (for startup before async runtime)
 pub fn create_log_directories_sync(base_dir: &Path) -> std::io::Result<()> {
     let backend_dir = base_dir.join("backend");

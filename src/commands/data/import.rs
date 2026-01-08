@@ -64,10 +64,10 @@ pub async fn import_command(
 
         print!("确认执行 Replace 操作? (y/N): ");
         use std::io::{self, Write};
-        io::stdout().flush().expect("无法刷新标准输出");
+        io::stdout().flush()?;
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("无法读取用户输入");
+        io::stdin().read_line(&mut input)?;
 
         if !input.trim().eq_ignore_ascii_case("y") {
             ColorOutput::info("已取消导入操作");

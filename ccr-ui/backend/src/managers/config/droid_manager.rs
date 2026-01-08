@@ -161,7 +161,11 @@ impl DroidConfigManager {
     }
 
     /// 更新自定义模型
-    pub fn update_custom_model(&self, model_id: &str, model: DroidCustomModel) -> Result<(), String> {
+    pub fn update_custom_model(
+        &self,
+        model_id: &str,
+        model: DroidCustomModel,
+    ) -> Result<(), String> {
         let mut config = self.read_config()?;
 
         if let Some(models) = &mut config.custom_models {

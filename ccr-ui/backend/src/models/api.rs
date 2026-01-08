@@ -61,7 +61,6 @@ impl<T> ApiResponse<T> {
             ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.clone()),
             ApiError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
             ApiError::ServiceUnavailable(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg.clone()),
-            ApiError::Custom(status, msg) => (*status, msg.clone()),
         };
 
         Self {

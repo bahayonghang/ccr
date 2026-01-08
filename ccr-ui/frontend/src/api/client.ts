@@ -73,6 +73,14 @@ import type {
   Hook,
   HookRequest,
   HooksResponse,
+  ConfigDetail,
+  ConfigUpdateData,
+  PlatformAgentsResponse,
+  PlatformSlashCommandsResponse,
+  PlatformAgentRequest,
+  PlatformSlashCommandRequest,
+  PlatformPluginRequest,
+  PlatformMcpServerRequest,
 } from '@/types'
 
 /**
@@ -406,12 +414,12 @@ export const disableConfig = async (configName: string): Promise<string> => {
   return response.data.data || 'Configuration disabled successfully'
 }
 
-export const getConfig = async (configName: string): Promise<any> => {
-  const response = await api.get<any>(`/configs/${configName}`)
+export const getConfig = async (configName: string): Promise<ConfigDetail> => {
+  const response = await api.get<ConfigDetail>(`/configs/${configName}`)
   return response.data
 }
 
-export const updateConfig = async (configName: string, configData: any): Promise<string> => {
+export const updateConfig = async (configName: string, configData: ConfigUpdateData): Promise<string> => {
   const response = await api.put<string>(`/configs/${configName}`, configData)
   return response.data
 }
@@ -976,16 +984,16 @@ export const pullSync = async (req: SyncOperationRequest): Promise<SyncOperation
 // Gemini Agents/SlashCommands/Plugins APIs (stub implementations)
 // ===================================
 
-export const listGeminiAgents = async (): Promise<any> => {
+export const listGeminiAgents = async (): Promise<PlatformAgentsResponse> => {
   // TODO: Backend implementation needed
   return { agents: [], folders: [] }
 }
 
-export const addGeminiAgent = async (_request: any): Promise<string> => {
+export const addGeminiAgent = async (_request: PlatformAgentRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateGeminiAgent = async (_name: string, _request: any): Promise<string> => {
+export const updateGeminiAgent = async (_name: string, _request: PlatformAgentRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -997,15 +1005,15 @@ export const toggleGeminiAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const listGeminiSlashCommands = async (): Promise<any> => {
+export const listGeminiSlashCommands = async (): Promise<PlatformSlashCommandsResponse> => {
   return { commands: [], folders: [] }
 }
 
-export const addGeminiSlashCommand = async (_request: any): Promise<string> => {
+export const addGeminiSlashCommand = async (_request: PlatformSlashCommandRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateGeminiSlashCommand = async (_name: string, _request: any): Promise<string> => {
+export const updateGeminiSlashCommand = async (_name: string, _request: PlatformSlashCommandRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1017,15 +1025,15 @@ export const toggleGeminiSlashCommand = async (_name: string): Promise<string> =
   throw new Error('Backend API not implemented yet')
 }
 
-export const listGeminiPlugins = async (): Promise<any[]> => {
+export const listGeminiPlugins = async (): Promise<Plugin[]> => {
   return []
 }
 
-export const addGeminiPlugin = async (_request: any): Promise<string> => {
+export const addGeminiPlugin = async (_request: PlatformPluginRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateGeminiPlugin = async (_id: string, _request: any): Promise<string> => {
+export const updateGeminiPlugin = async (_id: string, _request: PlatformPluginRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1041,15 +1049,15 @@ export const toggleGeminiPlugin = async (_id: string): Promise<string> => {
 // Qwen Agents/SlashCommands/Plugins APIs (stub implementations)
 // ===================================
 
-export const listQwenAgents = async (): Promise<any> => {
+export const listQwenAgents = async (): Promise<PlatformAgentsResponse> => {
   return { agents: [], folders: [] }
 }
 
-export const addQwenAgent = async (_request: any): Promise<string> => {
+export const addQwenAgent = async (_request: PlatformAgentRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateQwenAgent = async (_name: string, _request: any): Promise<string> => {
+export const updateQwenAgent = async (_name: string, _request: PlatformAgentRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1061,15 +1069,15 @@ export const toggleQwenAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const listQwenSlashCommands = async (): Promise<any> => {
+export const listQwenSlashCommands = async (): Promise<PlatformSlashCommandsResponse> => {
   return { commands: [], folders: [] }
 }
 
-export const addQwenSlashCommand = async (_request: any): Promise<string> => {
+export const addQwenSlashCommand = async (_request: PlatformSlashCommandRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateQwenSlashCommand = async (_name: string, _request: any): Promise<string> => {
+export const updateQwenSlashCommand = async (_name: string, _request: PlatformSlashCommandRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1081,15 +1089,15 @@ export const toggleQwenSlashCommand = async (_name: string): Promise<string> => 
   throw new Error('Backend API not implemented yet')
 }
 
-export const listQwenPlugins = async (): Promise<any[]> => {
+export const listQwenPlugins = async (): Promise<Plugin[]> => {
   return []
 }
 
-export const addQwenPlugin = async (_request: any): Promise<string> => {
+export const addQwenPlugin = async (_request: PlatformPluginRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateQwenPlugin = async (_id: string, _request: any): Promise<string> => {
+export const updateQwenPlugin = async (_id: string, _request: PlatformPluginRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1105,15 +1113,15 @@ export const toggleQwenPlugin = async (_id: string): Promise<string> => {
 // iFlow Agents/SlashCommands/Plugins/MCP APIs (stub implementations)
 // ===================================
 
-export const listIflowMcpServers = async (): Promise<any[]> => {
+export const listIflowMcpServers = async (): Promise<PlatformMcpServerRequest[]> => {
   return []
 }
 
-export const addIflowMcpServer = async (_request: any): Promise<string> => {
+export const addIflowMcpServer = async (_request: PlatformMcpServerRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateIflowMcpServer = async (_name: string, _request: any): Promise<string> => {
+export const updateIflowMcpServer = async (_name: string, _request: PlatformMcpServerRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1121,15 +1129,15 @@ export const deleteIflowMcpServer = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const listIflowAgents = async (): Promise<any> => {
+export const listIflowAgents = async (): Promise<PlatformAgentsResponse> => {
   return { agents: [], folders: [] }
 }
 
-export const addIflowAgent = async (_request: any): Promise<string> => {
+export const addIflowAgent = async (_request: PlatformAgentRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateIflowAgent = async (_name: string, _request: any): Promise<string> => {
+export const updateIflowAgent = async (_name: string, _request: PlatformAgentRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1141,15 +1149,15 @@ export const toggleIflowAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const listIflowSlashCommands = async (): Promise<any> => {
+export const listIflowSlashCommands = async (): Promise<PlatformSlashCommandsResponse> => {
   return { commands: [], folders: [] }
 }
 
-export const addIflowSlashCommand = async (_request: any): Promise<string> => {
+export const addIflowSlashCommand = async (_request: PlatformSlashCommandRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateIflowSlashCommand = async (_name: string, _request: any): Promise<string> => {
+export const updateIflowSlashCommand = async (_name: string, _request: PlatformSlashCommandRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1161,15 +1169,15 @@ export const toggleIflowSlashCommand = async (_name: string): Promise<string> =>
   throw new Error('Backend API not implemented yet')
 }
 
-export const listIflowPlugins = async (): Promise<any[]> => {
+export const listIflowPlugins = async (): Promise<Plugin[]> => {
   return []
 }
 
-export const addIflowPlugin = async (_request: any): Promise<string> => {
+export const addIflowPlugin = async (_request: PlatformPluginRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateIflowPlugin = async (_id: string, _request: any): Promise<string> => {
+export const updateIflowPlugin = async (_id: string, _request: PlatformPluginRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1185,15 +1193,15 @@ export const toggleIflowPlugin = async (_id: string): Promise<string> => {
 // Codex Agents/SlashCommands/Plugins APIs (stub implementations)
 // ===================================
 
-export const listCodexAgents = async (): Promise<any> => {
+export const listCodexAgents = async (): Promise<PlatformAgentsResponse> => {
   return { agents: [], folders: [] }
 }
 
-export const addCodexAgent = async (_request: any): Promise<string> => {
+export const addCodexAgent = async (_request: PlatformAgentRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateCodexAgent = async (_name: string, _request: any): Promise<string> => {
+export const updateCodexAgent = async (_name: string, _request: PlatformAgentRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1205,15 +1213,15 @@ export const toggleCodexAgent = async (_name: string): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const listCodexSlashCommands = async (): Promise<any> => {
+export const listCodexSlashCommands = async (): Promise<PlatformSlashCommandsResponse> => {
   return { commands: [], folders: [] }
 }
 
-export const addCodexSlashCommand = async (_request: any): Promise<string> => {
+export const addCodexSlashCommand = async (_request: PlatformSlashCommandRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateCodexSlashCommand = async (_name: string, _request: any): Promise<string> => {
+export const updateCodexSlashCommand = async (_name: string, _request: PlatformSlashCommandRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
@@ -1225,15 +1233,15 @@ export const toggleCodexSlashCommand = async (_name: string): Promise<string> =>
   throw new Error('Backend API not implemented yet')
 }
 
-export const listCodexPlugins = async (): Promise<any[]> => {
+export const listCodexPlugins = async (): Promise<Plugin[]> => {
   return []
 }
 
-export const addCodexPlugin = async (_request: any): Promise<string> => {
+export const addCodexPlugin = async (_request: PlatformPluginRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 
-export const updateCodexPlugin = async (_id: string, _request: any): Promise<string> => {
+export const updateCodexPlugin = async (_id: string, _request: PlatformPluginRequest): Promise<string> => {
   throw new Error('Backend API not implemented yet')
 }
 

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { listConfigs } from '@/api/client'
 import type { ConfigListResponse } from '@/types'
+import { getErrorMessage } from '@/types'
 
 interface ConfigsState {
   items: ConfigListResponse | null
@@ -62,8 +63,8 @@ export const useConfigsStore = defineStore('configs', {
         this.items = data
         this.lastFetchedAt = Date.now()
         return data
-      } catch (err: any) {
-        this.error = err.message || '获取配置列表失败'
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, '获取配置列表失败')
         throw err
       } finally {
         this.loading = false

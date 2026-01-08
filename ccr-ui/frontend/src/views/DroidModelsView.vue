@@ -25,7 +25,10 @@
               class="p-3 rounded-2xl glass-card hover:scale-105 transition-all duration-300"
               :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
             >
-              <ArrowLeft class="w-6 h-6" :style="{ color: '#10b981' }" />
+              <ArrowLeft
+                class="w-6 h-6"
+                :style="{ color: '#10b981' }"
+              />
             </RouterLink>
             <div>
               <h1
@@ -33,15 +36,18 @@
               >
                 Custom Models 管理
               </h1>
-              <p class="text-lg" :style="{ color: 'var(--text-secondary)' }">
+              <p
+                class="text-lg"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 管理 Droid 的自定义模型配置
               </p>
             </div>
           </div>
           <button
-            @click="showAddModal = true"
             class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300"
             :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
+            @click="showAddModal = true"
           >
             <Plus class="w-5 h-5" />
             <span class="font-medium">添加模型</span>
@@ -50,12 +56,21 @@
       </div>
 
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex justify-center items-center py-20">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2" :style="{ borderColor: '#10b981' }" />
+      <div
+        v-if="loading"
+        class="flex justify-center items-center py-20"
+      >
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2"
+          :style="{ borderColor: '#10b981' }"
+        />
       </div>
 
       <!-- 模型列表 -->
-      <div v-else-if="models.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div
+        v-else-if="models.length > 0"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
         <div
           v-for="model in models"
           :key="model.model"
@@ -64,25 +79,31 @@
           <!-- 模型头部 -->
           <div class="flex items-start justify-between mb-4">
             <div class="flex-1">
-              <h3 class="text-xl font-bold mb-1" :style="{ color: 'var(--text-primary)' }">
+              <h3
+                class="text-xl font-bold mb-1"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 {{ model.displayName || model.model }}
               </h3>
-              <p class="text-sm font-mono" :style="{ color: 'var(--text-secondary)' }">
+              <p
+                class="text-sm font-mono"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 {{ model.model }}
               </p>
             </div>
             <div class="flex gap-2">
               <button
-                @click="editModel(model)"
                 class="p-2 rounded-lg hover:bg-blue-500/10 transition-colors"
                 :style="{ color: '#3b82f6' }"
+                @click="editModel(model)"
               >
                 <Edit2 class="w-4 h-4" />
               </button>
               <button
-                @click="deleteModel(model.model)"
                 class="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
                 :style="{ color: '#ef4444' }"
+                @click="deleteModel(model.model)"
               >
                 <Trash2 class="w-4 h-4" />
               </button>
@@ -92,20 +113,41 @@
           <!-- 模型信息 -->
           <div class="space-y-2">
             <div class="flex items-center gap-2">
-              <Server class="w-4 h-4" :style="{ color: '#64748b' }" />
-              <span class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+              <Server
+                class="w-4 h-4"
+                :style="{ color: '#64748b' }"
+              />
+              <span
+                class="text-sm"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 {{ model.provider }}
               </span>
             </div>
             <div class="flex items-center gap-2">
-              <Globe class="w-4 h-4" :style color: '#64748b' }" />
-              <span class="text-sm truncate" :style="{ color: 'var(--text-secondary)' }">
+              <Globe
+                class="w-4 h-4"
+                :style="{ color: '#64748b' }"
+              />
+              <span
+                class="text-sm truncate"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 {{ model.baseUrl }}
               </span>
             </div>
-            <div v-if="model.maxOutputTokens" class="flex items-center gap-2">
-              <Zap class="w-4 h-4" :style="{ color: '#64748b' }" />
-              <span class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+            <div
+              v-if="model.maxOutputTokens"
+              class="flex items-center gap-2"
+            >
+              <Zap
+                class="w-4 h-4"
+                :style="{ color: '#64748b' }"
+              />
+              <span
+                class="text-sm"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 Max Tokens: {{ model.maxOutputTokens }}
               </span>
             </div>
@@ -114,14 +156,29 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-else class="text-center py-20">
-        <div class="inline-block p-6 rounded-3xl glass-card mb-6" :style="{ background: 'rgba(16, 185, 129, 0.1)' }">
-          <Inbox class="w-16 h-16" :style="{ color: '#10b981' }" />
+      <div
+        v-else
+        class="text-center py-20"
+      >
+        <div
+          class="inline-block p-6 rounded-3xl glass-card mb-6"
+          :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
+        >
+          <Inbox
+            class="w-16 h-16"
+            :style="{ color: '#10b981' }"
+          />
         </div>
-        <h3 class="text-2xl font-bold mb-2" :style="{ color: 'var(--text-primary)' }">
+        <h3
+          class="text-2xl font-bold mb-2"
+          :style="{ color: 'var(--text-primary)' }"
+        >
           还没有自定义模型
         </h3>
-        <p class="text-lg mb-6" :style="{ color: 'var(--text-secondary)' }">
+        <p
+          class="text-lg mb-6"
+          :style="{ color: 'var(--text-secondary)' }"
+        >
           点击"添加模型"按钮创建第一个自定义模型
         </p>
       </div>
@@ -134,18 +191,33 @@
       >
         <div class="glass-card p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
+            <h2
+              class="text-2xl font-bold"
+              :style="{ color: 'var(--text-primary)' }"
+            >
               {{ editingModel ? '编辑模型' : '添加模型' }}
             </h2>
-            <button @click="closeModal" class="p-2 hover:bg-gray-500/10 rounded-lg transition-colors">
-              <X class="w-5 h-5" :style="{ color: 'var(--text-secondary)' }" />
+            <button
+              class="p-2 hover:bg-gray-500/10 rounded-lg transition-colors"
+              @click="closeModal"
+            >
+              <X
+                class="w-5 h-5"
+                :style="{ color: 'var(--text-secondary)' }"
+              />
             </button>
           </div>
 
-          <form @submit.prevent="saveModel" class="space-y-4">
+          <form
+            class="space-y-4"
+            @submit.prevent="saveModel"
+          >
             <!-- 模型 ID -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 模型 ID *
               </label>
               <input
@@ -156,12 +228,15 @@
                 placeholder="claude-sonnet-4-5"
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
-              />
+              >
             </div>
 
             <!-- 显示名称 -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 显示名称
               </label>
               <input
@@ -170,12 +245,15 @@
                 placeholder="Claude Sonnet 4.5"
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
-              />
+              >
             </div>
 
             <!-- API 端点 -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 API 端点 *
               </label>
               <input
@@ -185,12 +263,15 @@
                 placeholder="https://api.anthropic.com/v1"
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
-              />
+              >
             </div>
 
             <!-- API Key -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 API Key *
               </label>
               <input
@@ -200,12 +281,15 @@
                 placeholder="sk-ant-..."
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
-              />
+              >
             </div>
 
             <!-- 提供商 -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 提供商 *
               </label>
               <select
@@ -214,15 +298,24 @@
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
               >
-                <option value="anthropic">Anthropic</option>
-                <option value="openai">OpenAI</option>
-                <option value="generic-chat-completion-api">Generic Chat Completion API</option>
+                <option value="anthropic">
+                  Anthropic
+                </option>
+                <option value="openai">
+                  OpenAI
+                </option>
+                <option value="generic-chat-completion-api">
+                  Generic Chat Completion API
+                </option>
               </select>
             </div>
 
             <!-- Max Output Tokens -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 最大输出 Tokens
               </label>
               <input
@@ -231,16 +324,16 @@
                 placeholder="8192"
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
-              />
+              >
             </div>
 
             <!-- 按钮 -->
             <div class="flex gap-3 pt-4">
               <button
                 type="button"
-                @click="closeModal"
                 class="flex-1 px-4 py-2 rounded-lg glass-card hover:scale-105 transition-all duration-300"
                 :style="{ color: 'var(--text-secondary)' }"
+                @click="closeModal"
               >
                 取消
               </button>

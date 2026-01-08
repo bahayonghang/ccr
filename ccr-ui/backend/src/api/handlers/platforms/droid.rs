@@ -8,10 +8,12 @@ use std::collections::HashMap;
 
 use crate::api::handlers::response::{bad_request, internal_error, ok, ok_message};
 use crate::managers::config::droid_manager::DroidConfigManager;
-use crate::models::platforms::droid::{DroidConfig, DroidCustomModel, DroidMcpServer, DroidMcpServerRequest};
+use crate::models::platforms::droid::{
+    DroidConfig, DroidCustomModel, DroidMcpServer, DroidMcpServerRequest,
+};
 
 // 导入核心 CLI 功能
-use ccr::{create_platform, Platform, ProfileConfig};
+use ccr::{Platform, ProfileConfig, create_platform};
 
 const PLATFORM: &str = "Droid";
 
@@ -178,10 +180,14 @@ pub async fn list_droid_profiles() -> impl IntoResponse {
             .into_iter()
             .map(|(name, profile)| {
                 // 从 platform_data 中提取 Droid 特定字段
-                let max_output_tokens = profile.platform_data.get("max_output_tokens")
+                let max_output_tokens = profile
+                    .platform_data
+                    .get("max_output_tokens")
                     .and_then(|v| v.as_u64())
                     .map(|v| v as u32);
-                let display_name = profile.platform_data.get("display_name")
+                let display_name = profile
+                    .platform_data
+                    .get("display_name")
                     .and_then(|v| v.as_str())
                     .map(String::from);
 
@@ -218,9 +224,7 @@ pub async fn list_droid_profiles() -> impl IntoResponse {
 }
 
 /// POST /api/droid/profiles - 添加 Droid Profile
-pub async fn add_droid_profile(
-    Json(request): Json<serde_json::Value>,
-) -> impl IntoResponse {
+pub async fn add_droid_profile(Json(request): Json<serde_json::Value>) -> impl IntoResponse {
     let result = tokio::task::spawn_blocking(move || {
         let name = request
             .get("name")
@@ -231,7 +235,10 @@ pub async fn add_droid_profile(
         // 构建 platform_data
         let mut platform_data = serde_json::Map::new();
         if let Some(max_tokens) = request.get("max_output_tokens").and_then(|v| v.as_u64()) {
-            platform_data.insert("max_output_tokens".to_string(), serde_json::json!(max_tokens));
+            platform_data.insert(
+                "max_output_tokens".to_string(),
+                serde_json::json!(max_tokens),
+            );
         }
         if let Some(display_name) = request.get("display_name").and_then(|v| v.as_str()) {
             platform_data.insert("display_name".to_string(), serde_json::json!(display_name));
@@ -242,14 +249,34 @@ pub async fn add_droid_profile(
             platform_data.into_iter().collect();
 
         let profile = ProfileConfig {
-            description: request.get("description").and_then(|v| v.as_str()).map(String::from),
-            base_url: request.get("base_url").and_then(|v| v.as_str()).map(String::from),
-            auth_token: request.get("api_key").and_then(|v| v.as_str()).map(String::from),
-            model: request.get("model").and_then(|v| v.as_str()).map(String::from),
-            provider: request.get("provider").and_then(|v| v.as_str()).map(String::from),
-            provider_type: request.get("provider_type").and_then(|v| v.as_str()).map(String::from),
+            description: request
+                .get("description")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            base_url: request
+                .get("base_url")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            auth_token: request
+                .get("api_key")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            model: request
+                .get("model")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            provider: request
+                .get("provider")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            provider_type: request
+                .get("provider_type")
+                .and_then(|v| v.as_str())
+                .map(String::from),
             tags: request.get("tags").and_then(|v| v.as_array()).map(|arr| {
-                arr.iter().filter_map(|v| v.as_str().map(String::from)).collect()
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
             }),
             enabled: request.get("enabled").and_then(|v| v.as_bool()),
             usage_count: Some(0),
@@ -257,8 +284,8 @@ pub async fn add_droid_profile(
             ..Default::default()
         };
 
-        let platform = create_platform(Platform::Droid)
-            .map_err(|e| format!("创建 Droid 平台失败: {}", e))?;
+        let platform =
+            create_platform(Platform::Droid).map_err(|e| format!("创建 Droid 平台失败: {}", e))?;
 
         platform
             .save_profile(&name, &profile)
@@ -286,7 +313,10 @@ pub async fn update_droid_profile(
         // 构建 platform_data
         let mut platform_data = serde_json::Map::new();
         if let Some(max_tokens) = request.get("max_output_tokens").and_then(|v| v.as_u64()) {
-            platform_data.insert("max_output_tokens".to_string(), serde_json::json!(max_tokens));
+            platform_data.insert(
+                "max_output_tokens".to_string(),
+                serde_json::json!(max_tokens),
+            );
         }
         if let Some(display_name) = request.get("display_name").and_then(|v| v.as_str()) {
             platform_data.insert("display_name".to_string(), serde_json::json!(display_name));
@@ -297,23 +327,46 @@ pub async fn update_droid_profile(
             platform_data.into_iter().collect();
 
         let profile = ProfileConfig {
-            description: request.get("description").and_then(|v| v.as_str()).map(String::from),
-            base_url: request.get("base_url").and_then(|v| v.as_str()).map(String::from),
-            auth_token: request.get("api_key").and_then(|v| v.as_str()).map(String::from),
-            model: request.get("model").and_then(|v| v.as_str()).map(String::from),
-            provider: request.get("provider").and_then(|v| v.as_str()).map(String::from),
-            provider_type: request.get("provider_type").and_then(|v| v.as_str()).map(String::from),
+            description: request
+                .get("description")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            base_url: request
+                .get("base_url")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            auth_token: request
+                .get("api_key")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            model: request
+                .get("model")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            provider: request
+                .get("provider")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            provider_type: request
+                .get("provider_type")
+                .and_then(|v| v.as_str())
+                .map(String::from),
             tags: request.get("tags").and_then(|v| v.as_array()).map(|arr| {
-                arr.iter().filter_map(|v| v.as_str().map(String::from)).collect()
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
             }),
             enabled: request.get("enabled").and_then(|v| v.as_bool()),
-            usage_count: request.get("usage_count").and_then(|v| v.as_u64()).map(|v| v as u32),
+            usage_count: request
+                .get("usage_count")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32),
             platform_data,
             ..Default::default()
         };
 
-        let platform = create_platform(Platform::Droid)
-            .map_err(|e| format!("创建 Droid 平台失败: {}", e))?;
+        let platform =
+            create_platform(Platform::Droid).map_err(|e| format!("创建 Droid 平台失败: {}", e))?;
 
         platform
             .save_profile(&profile_name, &profile)
@@ -334,8 +387,8 @@ pub async fn update_droid_profile(
 pub async fn delete_droid_profile(Path(name): Path<String>) -> impl IntoResponse {
     let result = tokio::task::spawn_blocking(move || {
         let profile_name = name.clone();
-        let platform = create_platform(Platform::Droid)
-            .map_err(|e| format!("创建 Droid 平台失败: {}", e))?;
+        let platform =
+            create_platform(Platform::Droid).map_err(|e| format!("创建 Droid 平台失败: {}", e))?;
 
         platform
             .delete_profile(&profile_name)
@@ -356,8 +409,8 @@ pub async fn delete_droid_profile(Path(name): Path<String>) -> impl IntoResponse
 pub async fn switch_droid_profile(Path(name): Path<String>) -> impl IntoResponse {
     let result = tokio::task::spawn_blocking(move || {
         let profile_name = name.clone();
-        let platform = create_platform(Platform::Droid)
-            .map_err(|e| format!("创建 Droid 平台失败: {}", e))?;
+        let platform =
+            create_platform(Platform::Droid).map_err(|e| format!("创建 Droid 平台失败: {}", e))?;
 
         platform
             .apply_profile(&profile_name)
@@ -395,7 +448,6 @@ pub async fn update_droid_config(Json(config): Json<DroidConfig>) -> impl IntoRe
         }
     })
 }
-
 
 // ============ Droids (Subagents) 管理 ============
 

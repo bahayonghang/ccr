@@ -25,7 +25,10 @@
               class="p-3 rounded-2xl glass-card hover:scale-105 transition-all duration-300"
               :style="{ background: 'rgba(139, 92, 246, 0.1)' }"
             >
-              <ArrowLeft class="w-6 h-6" :style="{ color: '#8b5cf6' }" />
+              <ArrowLeft
+                class="w-6 h-6"
+                :style="{ color: '#8b5cf6' }"
+              />
             </RouterLink>
             <div>
               <h1
@@ -33,15 +36,18 @@
               >
                 Droids 管理
               </h1>
-              <p class="text-lg" :style="{ color: 'var(--text-secondary)' }">
+              <p
+                class="text-lg"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 管理自定义 AI Subagents (Droids)
               </p>
             </div>
           </div>
           <button
-            @click="showAddModal = true"
             class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300"
             :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+            @click="showAddModal = true"
           >
             <Plus class="w-5 h-5" />
             <span class="font-medium">添加 Droid</span>
@@ -50,12 +56,21 @@
       </div>
 
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex justify-center items-center py-20">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2" :style="{ borderColor: '#8b5cf6' }" />
+      <div
+        v-if="loading"
+        class="flex justify-center items-center py-20"
+      >
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2"
+          :style="{ borderColor: '#8b5cf6' }"
+        />
       </div>
 
       <!-- Droids 列表 -->
-      <div v-else-if="droids.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div
+        v-else-if="droids.length > 0"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
         <div
           v-for="droid in droids"
           :key="droid.name"
@@ -64,25 +79,32 @@
           <!-- Droid 头部 -->
           <div class="flex items-start justify-between mb-4">
             <div class="flex-1">
-              <h3 class="text-xl font-bold mb-1" :style="{ color: 'var(--text-primary)' }">
+              <h3
+                class="text-xl font-bold mb-1"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 {{ droid.name }}
               </h3>
-              <p v-if="droid.description" class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+              <p
+                v-if="droid.description"
+                class="text-sm"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 {{ droid.description }}
               </p>
             </div>
             <div class="flex gap-2">
               <button
-                @click="editDroid(droid)"
                 class="p-2 rounded-lg hover:bg-blue-500/10 transition-colors"
                 :style="{ color: '#3b82f6' }"
+                @click="editDroid(droid)"
               >
                 <Edit2 class="w-4 h-4" />
               </button>
               <button
-                @click="deleteDroid(droid.name)"
                 class="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
                 :style="{ color: '#ef4444' }"
+                @click="deleteDroid(droid.name)"
               >
                 <Trash2 class="w-4 h-4" />
               </button>
@@ -92,28 +114,58 @@
           <!-- Droid 信息 -->
           <div class="space-y-2 mb-4">
             <div class="flex items-center gap-2">
-              <Cpu class="w-4 h-4" :style="{ color: '#64748b' }" />
-              <span class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+              <Cpu
+                class="w-4 h-4"
+                :style="{ color: '#64748b' }"
+              />
+              <span
+                class="text-sm"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 {{ droid.model }}
               </span>
             </div>
-            <div v-if="droid.reasoningEffort" class="flex items-center gap-2">
-              <Zap class="w-4 h-4" :style="{ color: '#64748b' }" />
-              <span class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+            <div
+              v-if="droid.reasoningEffort"
+              class="flex items-center gap-2"
+            >
+              <Zap
+                class="w-4 h-4"
+                :style="{ color: '#64748b' }"
+              />
+              <span
+                class="text-sm"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 Reasoning: {{ droid.reasoningEffort }}
               </span>
             </div>
-            <div v-if="droid.tools" class="flex items-center gap-2">
-              <Wrench class="w-4 h-4" :style="{ color: '#64748b' }" />
-              <span class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+            <div
+              v-if="droid.tools"
+              class="flex items-center gap-2"
+            >
+              <Wrench
+                class="w-4 h-4"
+                :style="{ color: '#64748b' }"
+              />
+              <span
+                class="text-sm"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 Tools: {{ formatTools(droid.tools) }}
               </span>
             </div>
           </div>
 
           <!-- 系统提示预览 -->
-          <div class="mt-4 p-3 rounded-lg" :style="{ background: 'rgba(139, 92, 246, 0.05)' }">
-            <p class="text-xs font-mono line-clamp-3" :style="{ color: 'var(--text-secondary)' }">
+          <div
+            class="mt-4 p-3 rounded-lg"
+            :style="{ background: 'rgba(139, 92, 246, 0.05)' }"
+          >
+            <p
+              class="text-xs font-mono line-clamp-3"
+              :style="{ color: 'var(--text-secondary)' }"
+            >
               {{ droid.systemPrompt }}
             </p>
           </div>
@@ -121,14 +173,29 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-else class="text-center py-20">
-        <div class="inline-block p-6 rounded-3xl glass-card mb-6" :style="{ background: 'rgba(139, 92, 246, 0.1)' }">
-          <Inbox class="w-16 h-16" :style="{ color: '#8b5cf6' }" />
+      <div
+        v-else
+        class="text-center py-20"
+      >
+        <div
+          class="inline-block p-6 rounded-3xl glass-card mb-6"
+          :style="{ background: 'rgba(139, 92, 246, 0.1)' }"
+        >
+          <Inbox
+            class="w-16 h-16"
+            :style="{ color: '#8b5cf6' }"
+          />
         </div>
-        <h3 class="text-2xl font-bold mb-2" :style="{ color: 'var(--text-primary)' }">
+        <h3
+          class="text-2xl font-bold mb-2"
+          :style="{ color: 'var(--text-primary)' }"
+        >
           还没有 Droid
         </h3>
-        <p class="text-lg mb-6" :style="{ color: 'var(--text-secondary)' }">
+        <p
+          class="text-lg mb-6"
+          :style="{ color: 'var(--text-secondary)' }"
+        >
           点击"添加 Droid"按钮创建第一个自定义 Subagent
         </p>
       </div>
@@ -141,18 +208,33 @@
       >
         <div class="glass-card p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
+            <h2
+              class="text-2xl font-bold"
+              :style="{ color: 'var(--text-primary)' }"
+            >
               {{ editingDroid ? '编辑 Droid' : '添加 Droid' }}
             </h2>
-            <button @click="closeModal" class="p-2 hover:bg-gray-500/10 rounded-lg transition-colors">
-              <X class="w-5 h-5" :style="{ color: 'var(--text-secondary)' }" />
+            <button
+              class="p-2 hover:bg-gray-500/10 rounded-lg transition-colors"
+              @click="closeModal"
+            >
+              <X
+                class="w-5 h-5"
+                :style="{ color: 'var(--text-secondary)' }"
+              />
             </button>
           </div>
 
-          <form @submit.prevent="saveDroid" class="space-y-4">
+          <form
+            class="space-y-4"
+            @submit.prevent="saveDroid"
+          >
             <!-- Droid 名称 -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 Droid 名称 * (小写字母、数字、-、_)
               </label>
               <input
@@ -164,12 +246,15 @@
                 pattern="[a-z0-9_-]+"
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
-              />
+              >
             </div>
 
             <!-- 描述 -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 描述 (最多500字符)
               </label>
               <input
@@ -179,12 +264,15 @@
                 placeholder="Reviews diffs for correctness, tests, and migration fallout"
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
-              />
+              >
             </div>
 
             <!-- 模型 -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 模型 *
               </label>
               <input
@@ -194,15 +282,21 @@
                 placeholder="inherit (或模型ID，如 claude-sonnet-4-5)"
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
-              />
-              <p class="text-xs mt-1" :style="{ color: 'var(--text-secondary)' }">
+              >
+              <p
+                class="text-xs mt-1"
+                :style="{ color: 'var(--text-secondary)' }"
+              >
                 使用 "inherit" 继承主模型，或指定具体模型ID
               </p>
             </div>
 
             <!-- 推理努力程度 -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 推理努力程度
               </label>
               <select
@@ -210,16 +304,27 @@
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
               >
-                <option value="">不指定</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
+                <option value="">
+                  不指定
+                </option>
+                <option value="low">
+                  Low
+                </option>
+                <option value="medium">
+                  Medium
+                </option>
+                <option value="high">
+                  High
+                </option>
               </select>
             </div>
 
             <!-- 工具 -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 工具配置
               </label>
               <select
@@ -227,9 +332,15 @@
                 class="w-full px-4 py-2 rounded-lg glass-card mb-2"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
               >
-                <option value="all">所有工具</option>
-                <option value="category">工具类别</option>
-                <option value="custom">自定义工具列表</option>
+                <option value="all">
+                  所有工具
+                </option>
+                <option value="category">
+                  工具类别
+                </option>
+                <option value="custom">
+                  自定义工具列表
+                </option>
               </select>
 
               <!-- 工具类别选择 -->
@@ -239,11 +350,21 @@
                 class="w-full px-4 py-2 rounded-lg glass-card"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
               >
-                <option value="read-only">read-only (Read, LS, Grep, Glob)</option>
-                <option value="edit">edit (Create, Edit, ApplyPatch)</option>
-                <option value="execute">execute (Execute)</option>
-                <option value="web">web (WebSearch, FetchUrl)</option>
-                <option value="mcp">mcp (MCP 工具)</option>
+                <option value="read-only">
+                  read-only (Read, LS, Grep, Glob)
+                </option>
+                <option value="edit">
+                  edit (Create, Edit, ApplyPatch)
+                </option>
+                <option value="execute">
+                  execute (Execute)
+                </option>
+                <option value="web">
+                  web (WebSearch, FetchUrl)
+                </option>
+                <option value="mcp">
+                  mcp (MCP 工具)
+                </option>
               </select>
 
               <!-- 自定义工具列表 -->
@@ -251,7 +372,7 @@
                 v-if="toolsMode === 'custom'"
                 v-model="toolsCustom"
                 rows="3"
-                placeholder='["Read", "Write", "Grep", "Glob"]'
+                placeholder="[&quot;Read&quot;, &quot;Write&quot;, &quot;Grep&quot;, &quot;Glob&quot;]"
                 class="w-full px-4 py-2 rounded-lg glass-card font-mono text-sm"
                 :style="{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }"
               />
@@ -259,7 +380,10 @@
 
             <!-- 系统提示 -->
             <div>
-              <label class="block text-sm font-medium mb-2" :style="{ color: 'var(--text-primary)' }">
+              <label
+                class="block text-sm font-medium mb-2"
+                :style="{ color: 'var(--text-primary)' }"
+              >
                 系统提示 * (Markdown)
               </label>
               <textarea
@@ -276,9 +400,9 @@
             <div class="flex gap-3 pt-4">
               <button
                 type="button"
-                @click="closeModal"
                 class="flex-1 px-4 py-2 rounded-lg glass-card hover:scale-105 transition-all duration-300"
                 :style="{ color: 'var(--text-secondary)' }"
+                @click="closeModal"
               >
                 取消
               </button>
