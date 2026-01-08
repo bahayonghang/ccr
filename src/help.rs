@@ -346,12 +346,6 @@ pub fn print_top_help() {
         "临时Token管理",
         Some("ccr temp-token show"),
     );
-    add_row(
-        &mut sp_table,
-        "migrate",
-        "配置迁移(legacy → unified)",
-        Some("ccr migrate --check"),
-    );
     println!("{}", sp_table);
 
     // 统计与维护

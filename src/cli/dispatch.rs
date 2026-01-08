@@ -102,14 +102,6 @@ impl CommandDispatcher {
 
             Some(Commands::Platform { action }) => Self::dispatch_platform(action).await,
 
-            Some(Commands::Migrate { check, platform }) => {
-                if *check {
-                    crate::commands::migrate_check_command().await
-                } else {
-                    crate::commands::migrate_command(false, platform.as_deref()).await
-                }
-            }
-
             #[cfg(feature = "web")]
             Some(Commands::Stats(args)) => Self::dispatch_stats(args.clone()).await,
 

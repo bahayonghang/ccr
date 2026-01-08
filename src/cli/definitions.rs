@@ -362,22 +362,8 @@ pub enum Commands {
         action: super::subcommands::platform::PlatformAction,
     },
 
-    /// 配置迁移
-    ///
-    /// 将 Legacy 模式配置迁移到 Unified 模式
-    /// 示例: ccr migrate --check      # 检查迁移状态
-    ///       ccr migrate              # 执行迁移
-    Migrate {
-        /// 仅检查迁移状态，不实际执行迁移 (dry-run 模式)
-        #[arg(short, long)]
-        check: bool,
-
-        /// 只迁移指定平台的配置
-        #[arg(short, long)]
-        platform: Option<String>,
-    },
-
     /// 统计与分析
+
     ///
     /// 查看使用统计、成本分析等信息
     /// 示例: ccr stats cost --today

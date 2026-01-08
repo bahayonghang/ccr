@@ -7,7 +7,7 @@
 //! - `common/` - 公共工具（模式检测、表格构建、交互提示）
 //! - `platform/` - 平台管理命令
 //! - `profile/` - 配置管理命令
-//! - `lifecycle/` - 生命周期命令（初始化、迁移、清理等）
+//! - `lifecycle/` - 生命周期命令（初始化、清理等）
 //! - `data/` - 数据操作命令（导入、导出、历史等）
 
 // 🔧 公共基础设施
@@ -59,7 +59,6 @@ pub use lifecycle::clear_command;
 pub use lifecycle::init_command;
 pub use lifecycle::optimize_command;
 pub use lifecycle::validate_command;
-pub use lifecycle::{migrate_check_command, migrate_command};
 
 // 📦 Data 命令
 pub use data::export_command;

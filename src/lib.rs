@@ -162,7 +162,7 @@ pub use core::{CcrError, ColorOutput, LockManager, Result, init_file_only_logger
 /// 管理器层 - 数据访问和持久化
 ///
 /// **配置管理**:
-/// - [`ConfigManager`] - Legacy 模式配置管理器（兼容 CCS）
+/// - [`ConfigManager`] - 配置管理器
 /// - [`PlatformConfigManager`] - Unified 模式统一配置管理器
 /// - [`SettingsManager`] - Claude Code settings.json 管理器
 /// - [`HistoryManager`] - 操作历史记录管理器
@@ -171,10 +171,10 @@ pub use core::{CcrError, ColorOutput, LockManager, Result, init_file_only_logger
 /// - [`PricingManager`] - 价格表管理器
 ///
 /// **配置类型**:
-/// - [`CcsConfig`] - Legacy 配置结构
+/// - [`CcsConfig`] - 配置结构
 /// - [`UnifiedConfig`] - Unified 配置结构
 /// - [`PlatformConfigEntry`] - 平台注册表条目
-/// - [`ConfigSection`] - Legacy 配置段
+/// - [`ConfigSection`] - 配置段
 /// - [`ClaudeSettings`] - Claude Code 设置结构
 /// - [`GlobalSettings`] - 全局设置
 ///
@@ -182,14 +182,11 @@ pub use core::{CcrError, ColorOutput, LockManager, Result, init_file_only_logger
 /// - [`TempOverrideManager`] - 临时 token 覆盖管理器
 /// - [`TempOverride`] - 临时覆盖配置
 ///
-/// **其他**:
-/// - [`MigrationStatus`] - 迁移状态
 /// - [`ProviderType`] - 提供商类型枚举
 pub use managers::{
     BudgetManager, CcsConfig, ClaudeSettings, ConfigManager, ConfigSection, CostTracker,
-    GlobalSettings, HistoryManager, MigrationStatus, PlatformConfigEntry, PlatformConfigManager,
-    PricingManager, ProviderType, SettingsManager, TempOverride, TempOverrideManager,
-    UnifiedConfig,
+    GlobalSettings, HistoryManager, PlatformConfigEntry, PlatformConfigManager, PricingManager,
+    ProviderType, SettingsManager, TempOverride, TempOverrideManager, UnifiedConfig,
 };
 
 /// 数据模型和平台 trait

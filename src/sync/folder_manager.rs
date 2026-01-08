@@ -26,8 +26,7 @@ use std::time::Duration;
 /// # 配置文件位置优先级
 ///
 /// 1. `CCR_SYNC_FOLDERS_CONFIG` 环境变量指定的路径
-/// 2. `~/.ccr/sync_folders.toml` (Unified 模式)
-/// 3. `~/.ccs_sync_folders.toml` (Legacy 模式)
+/// 2. `~/.ccr/sync_folders.toml`
 ///
 /// # Examples
 ///
@@ -76,8 +75,7 @@ impl SyncFolderManager {
     /// # 路径检测逻辑
     ///
     /// 1. 检查 `CCR_SYNC_FOLDERS_CONFIG` 环境变量
-    /// 2. 检查 `~/.ccr/` 目录是否存在（Unified 模式）
-    /// 3. 回退到 `~/.ccs_sync_folders.toml`（Legacy 模式）
+    /// 2. 使用 `~/.ccr/sync_folders.toml`
     ///
     /// # Errors
     ///
@@ -92,24 +90,11 @@ impl SyncFolderManager {
         let home =
             dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
 
-        // 2. 检查 ~/.ccr/ 统一模式目录
+        // 使用 ~/.ccr/ 目录
         let unified_root = home.join(".ccr");
-        if unified_root.exists() {
-            let sync_folders_path = unified_root.join("sync_folders.toml");
-            tracing::debug!(
-                "📁 Unified 模式: 使用sync_folders配置路径: {:?}",
-                sync_folders_path
-            );
-            return Ok(Self::new(sync_folders_path));
-        }
-
-        // 3. Legacy 模式
-        let legacy_sync_folders_path = home.join(".ccs_sync_folders.toml");
-        tracing::debug!(
-            "📁 Legacy 模式: 使用sync_folders配置路径: {:?}",
-            legacy_sync_folders_path
-        );
-        Ok(Self::new(legacy_sync_folders_path))
+        let sync_folders_path = unified_root.join("sync_folders.toml");
+        tracing::debug!("📁 使用sync_folders配置路径: {:?}", sync_folders_path);
+        Ok(Self::new(sync_folders_path))
     }
 
     /// 📁 获取配置文件路径
