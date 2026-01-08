@@ -2,6 +2,7 @@
 
 pub mod checkin;
 pub mod config;
+pub mod droids_manager;
 pub mod markdown_manager;
 pub mod plugins_manager;
 pub mod settings_manager;

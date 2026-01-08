@@ -112,6 +112,42 @@ pub struct DroidMcpServerRequest {
     pub timeout: Option<u64>,
 }
 
+/// Droid (Subagent) 配置
+/// 存储为 Markdown 文件: .factory/droids/<name>.md
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Droid {
+    /// Droid 名称 (小写字母、数字、-、_)
+    pub name: String,
+
+    /// 描述 (可选，最多500字符)
+    pub description: Option<String>,
+
+    /// 模型: "inherit" 或模型ID 或 "custom:model-name"
+    pub model: String,
+
+    /// 推理努力程度: "low" | "medium" | "high"
+    pub reasoning_effort: Option<String>,
+
+    /// 工具列表: "read-only" | "edit" | "execute" | "web" | "mcp" | 具体工具数组
+    pub tools: Option<serde_json::Value>,
+
+    /// 系统提示内容 (Markdown body)
+    pub system_prompt: String,
+}
+
+/// Droid 请求（用于 API）
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DroidRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub model: String,
+    pub reasoning_effort: Option<String>,
+    pub tools: Option<serde_json::Value>,
+    pub system_prompt: String,
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {

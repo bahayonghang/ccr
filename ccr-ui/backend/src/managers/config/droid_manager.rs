@@ -1,7 +1,7 @@
 // Droid CLI 配置管理器
 // 管理 .factory/settings.json 文件
 
-use crate::models::platforms::droid::{DroidConfig, DroidMcpServer};
+use crate::models::platforms::droid::{DroidConfig, DroidCustomModel, DroidMcpServer};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -132,6 +132,70 @@ impl DroidConfigManager {
             }
         } else {
             Err("配置中没有 MCP 服务器".to_string())
+        }
+    }
+
+    // ============ Custom Models 管理 ============
+
+    /// 列出所有自定义模型
+    pub fn list_custom_models(&self) -> Result<Vec<DroidCustomModel>, String> {
+        let config = self.read_config()?;
+        Ok(config.custom_models.unwrap_or_default())
+    }
+
+    /// 添加自定义模型
+    pub fn add_custom_model(&self, model: DroidCustomModel) -> Result<(), String> {
+        let mut config = self.read_config()?;
+        let mut models = config.custom_models.unwrap_or_default();
+
+        // 检查是否已存在同名模型
+        if models.iter().any(|m| m.model == model.model) {
+            return Err(format!("模型 '{}' 已存在", model.model));
+        }
+
+        models.push(model.clone());
+        config.custom_models = Some(models);
+        self.write_config(&config)?;
+        info!("已添加 Droid 自定义模型: {}", model.model);
+        Ok(())
+    }
+
+    /// 更新自定义模型
+    pub fn update_custom_model(&self, model_id: &str, model: DroidCustomModel) -> Result<(), String> {
+        let mut config = self.read_config()?;
+
+        if let Some(models) = &mut config.custom_models {
+            if let Some(existing) = models.iter_mut().find(|m| m.model == model_id) {
+                *existing = model;
+                self.write_config(&config)?;
+                info!("已更新 Droid 自定义模型: {}", model_id);
+                Ok(())
+            } else {
+                Err(format!("模型 '{}' 不存在", model_id))
+            }
+        } else {
+            Err("配置中没有自定义模型".to_string())
+        }
+    }
+
+    /// 删除自定义模型
+    pub fn delete_custom_model(&self, model_id: &str) -> Result<(), String> {
+        let mut config = self.read_config()?;
+
+        if let Some(models) = &mut config.custom_models {
+            let original_len = models.len();
+            models.retain(|m| m.model != model_id);
+
+            if models.len() < original_len {
+                config.custom_models = Some(models.clone());
+                self.write_config(&config)?;
+                info!("已删除 Droid 自定义模型: {}", model_id);
+                Ok(())
+            } else {
+                Err(format!("模型 '{}' 不存在", model_id))
+            }
+        } else {
+            Err("配置中没有自定义模型".to_string())
         }
     }
 
