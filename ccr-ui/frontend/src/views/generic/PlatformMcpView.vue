@@ -322,7 +322,7 @@
 import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Sparkles, Zap, Flame } from 'lucide-vue-next'
+import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Sparkles, Zap, Flame, Bot } from 'lucide-vue-next'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import { usePlatformMcp, type PlatformType, getServerIdentifier } from '@/composables/usePlatformMcp'
@@ -370,6 +370,7 @@ const sidebarModule = computed(() => {
     gemini: 'gemini-cli',
     qwen: 'qwen',
     iflow: 'iflow',
+    droid: 'droid',
   }
   return moduleMap[props.platform]
 })
@@ -380,6 +381,7 @@ const platformIcon = computed(() => {
     gemini: Sparkles,
     qwen: Zap,
     iflow: Flame,
+    droid: Bot,
   }
   return iconMap[props.platform]
 })
@@ -390,6 +392,7 @@ const platformName = computed(() => {
     gemini: 'Gemini CLI',
     qwen: 'Qwen',
     iflow: 'iFlow',
+    droid: 'Factory Droid',
   }
   return nameMap[props.platform]
 })

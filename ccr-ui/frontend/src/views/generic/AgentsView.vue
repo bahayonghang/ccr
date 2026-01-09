@@ -170,7 +170,7 @@
                       class="p-1.5 rounded-lg transition-colors hover:bg-guofeng-bg-tertiary"
                       :class="agent.disabled ? 'text-guofeng-text-muted hover:text-guofeng-jade' : 'text-guofeng-jade hover:text-guofeng-text-muted'"
                       :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
-                      @click.stop="handleToggle(agent.name)"
+                      @click.stop="handleToggle(agent)"
                     >
                       <PowerOff
                         v-if="agent.disabled"
@@ -199,7 +199,7 @@
                     <button
                       class="p-1.5 rounded-lg text-guofeng-text-secondary hover:text-guofeng-red hover:bg-guofeng-red/10 transition-colors"
                       :title="$t('common.delete')"
-                      @click.stop="handleDelete(agent.name)"
+                      @click.stop="handleDelete(agent)"
                     >
                       <Trash2 class="w-4 h-4" />
                     </button>
@@ -533,6 +533,11 @@ const removeTool = (tool: string) => {
   }
 }
 
+const getAgentApiName = (agent: Agent) => {
+  if (props.module !== 'droid') return agent.name
+  return agent.folder ? `${agent.folder}/${agent.name}` : agent.name
+}
+
 const handleSubmit = async () => {
   if (!formData.value.name || !formData.value.model) {
     alert(t(`${tPrefix.value}.validation.required`))
@@ -547,7 +552,7 @@ const handleSubmit = async () => {
   
   try {
     if (editingAgent.value) {
-      await updateAgent(editingAgent.value.name, request)
+      await updateAgent(getAgentApiName(editingAgent.value), request)
     } else {
       await addAgent(request)
     }
@@ -559,19 +564,20 @@ const handleSubmit = async () => {
   }
 }
 
-const handleDelete = async (name: string) => {
-  if (!confirm(t(`${tPrefix.value}.deleteConfirm`, { name }))) return
+const handleDelete = async (agent: Agent) => {
+  const displayName = getAgentApiName(agent)
+  if (!confirm(t(`${tPrefix.value}.deleteConfirm`, { name: displayName }))) return
   try {
-    await deleteAgent(name)
+    await deleteAgent(getAgentApiName(agent))
   } catch (err) {
     console.error('Delete failed:', err)
     alert(t(`${tPrefix.value}.messages.deleteFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 
-const handleToggle = async (name: string) => {
+const handleToggle = async (agent: Agent) => {
   try {
-    await toggleAgent(name)
+    await toggleAgent(getAgentApiName(agent))
   } catch (err) {
     console.error('Toggle failed:', err)
     alert(t(`${tPrefix.value}.messages.toggleFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
