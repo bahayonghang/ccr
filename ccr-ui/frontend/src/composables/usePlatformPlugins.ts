@@ -1,8 +1,8 @@
 /**
  * usePlatformPlugins - 通用平台插件管理 Composable
- * 
+ *
  * 消除各平台 Plugins 视图中的重复代码（GeminiPluginsView、QwenPluginsView、IflowPluginsView）
- * 
+ *
  * @example
  * const { plugins, loading, loadPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } = usePlatformPlugins('gemini')
  */

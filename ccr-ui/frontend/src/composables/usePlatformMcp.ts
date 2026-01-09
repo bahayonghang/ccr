@@ -26,6 +26,11 @@ import {
     addIflowMcpServer,
     updateIflowMcpServer,
     deleteIflowMcpServer,
+    // Droid APIs
+    listDroidMcpServers,
+    addDroidMcpServer,
+    updateDroidMcpServer,
+    deleteDroidMcpServer,
 } from '@/api/client'
 import type {
     GeminiMcpServer,
@@ -34,12 +39,14 @@ import type {
     QwenMcpServerRequest,
     IflowMcpServer,
     IflowMcpServerRequest,
+    DroidMcpServer,
+    DroidMcpServerRequest,
 } from '@/types'
 
 // ============ 类型定义 ============
 
 /** 支持的平台类型 */
-export type PlatformType = 'gemini' | 'qwen' | 'iflow'
+export type PlatformType = 'gemini' | 'qwen' | 'iflow' | 'droid'
 
 /** 统一的 MCP 服务器类型（合并各平台差异） */
 export interface UnifiedMcpServer {
@@ -188,6 +195,48 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
             return updateIflowMcpServer(name, iflowReq)
         },
         deleteApi: deleteIflowMcpServer,
+    },
+    droid: {
+        color: '#ec4899',
+        i18nPrefix: 'droid.mcp',
+        parentPath: '/droid',
+        listApi: async () => {
+            const servers = await listDroidMcpServers()
+            return servers.map((s: DroidMcpServer) => ({
+                name: s.name,
+                command: s.command,
+                url: s.url || s.httpUrl,
+                args: s.args,
+                env: s.env,
+                headers: s.headers,
+                timeout: s.timeout,
+            }))
+        },
+        addApi: async (req) => {
+            const droidReq: DroidMcpServerRequest = {
+                name: req.name,
+                command: req.command,
+                args: req.args,
+                env: req.env,
+                url: req.url,
+                headers: req.headers,
+                timeout: req.timeout,
+            }
+            return addDroidMcpServer(droidReq)
+        },
+        updateApi: async (name, req) => {
+            const droidReq: DroidMcpServerRequest = {
+                name: req.name,
+                command: req.command,
+                args: req.args,
+                env: req.env,
+                url: req.url,
+                headers: req.headers,
+                timeout: req.timeout,
+            }
+            return updateDroidMcpServer(name, droidReq)
+        },
+        deleteApi: deleteDroidMcpServer,
     },
 }
 

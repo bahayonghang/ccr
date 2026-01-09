@@ -4,12 +4,13 @@ import {
     listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent,
     listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent,
     listIflowAgents, addIflowAgent, updateIflowAgent, deleteIflowAgent, toggleIflowAgent,
+    listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent,
     listConfigs, getHistory,
     listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent
 } from '@/api/client'
 import type { Agent, AgentRequest } from '@/types'
 
-type ModuleType = 'codex' | 'gemini' | 'qwen' | 'iflow' | 'agents'
+type ModuleType = 'codex' | 'gemini' | 'qwen' | 'iflow' | 'droid' | 'agents'
 
 interface AgentApi {
     list: () => Promise<{ agents: Agent[], folders?: string[] }>
@@ -47,6 +48,13 @@ const apiMap: Record<ModuleType, AgentApi> = {
         update: updateIflowAgent,
         delete: deleteIflowAgent,
         toggle: toggleIflowAgent
+    },
+    droid: {
+        list: listDroidAgents,
+        add: addDroidAgent,
+        update: updateDroidAgent,
+        delete: deleteDroidAgent,
+        toggle: async () => { throw new Error('Droid agents do not support toggle') }
     },
     agents: {
         list: listAgents,

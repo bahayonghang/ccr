@@ -645,6 +645,38 @@ export interface IflowMcpServersResponse {
   servers: IflowMcpServer[];
 }
 
+// ============ Droid CLI Configuration Types ============
+
+// Droid MCP Server Types
+export interface DroidMcpServer {
+  name: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  url?: string;
+  httpUrl?: string;
+  headers?: Record<string, string>;
+  timeout?: number;
+  transportType?: string;
+}
+
+export interface DroidMcpServerRequest {
+  name: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  url?: string;
+  httpUrl?: string;
+  headers?: Record<string, string>;
+  timeout?: number;
+}
+
+// Droid Plugin Types
+export interface DroidPlugin {
+  id: string;
+  data: Record<string, unknown>;
+}
+
 // ============ Sync (WebDAV) Types ============
 
 export interface SyncConfigDetails {
