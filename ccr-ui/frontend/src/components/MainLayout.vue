@@ -134,8 +134,8 @@
               />
               <span class="font-medium">{{ $t('nav.qwen') }}</span>
             </RouterLink>
-            <RouterLink 
-              to="/iflow" 
+            <RouterLink
+              to="/iflow"
               class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
               active-class="nav-item-active"
             >
@@ -144,6 +144,17 @@
                 style="color: #faad14;"
               />
               <span class="font-medium">{{ $t('nav.iflow') }}</span>
+            </RouterLink>
+            <RouterLink
+              to="/droid"
+              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
+              active-class="nav-item-active"
+            >
+              <Bot
+                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
+                style="color: #ec4899;"
+              />
+              <span class="font-medium">{{ $t('nav.droid') }}</span>
             </RouterLink>
           </div>
         </div>
@@ -253,7 +264,8 @@ import {
   Cloud,
   Moon,
   Sun,
-  ClipboardCheck
+  ClipboardCheck,
+  Bot
 } from 'lucide-vue-next'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import BackendStatusBadge from '@/components/BackendStatusBadge.vue'

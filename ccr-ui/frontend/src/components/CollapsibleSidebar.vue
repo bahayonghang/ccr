@@ -312,7 +312,7 @@ interface NavGroup {
 
 // Props: 接受一个可选的 module 参数来过滤菜单
 interface Props {
-  module?: string  // 'claude-code' | 'codex' | 'gemini-cli' | 'qwen' | 'iflow' | 'commands' | 'converter'
+  module?: string  // 'claude-code' | 'codex' | 'gemini-cli' | 'qwen' | 'iflow' | 'droid' | 'commands' | 'converter'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -400,6 +400,18 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'Agents', href: '/iflow/agents', icon: Bot },
       { name: 'Slash Commands', href: '/iflow/slash-commands', icon: Command },
       { name: '插件管理', href: '/iflow/plugins', icon: Puzzle }
+    ]
+  },
+  {
+    title: 'Factory Droid',
+    icon: Bot,
+    defaultExpanded: false,
+    module: 'droid',
+    items: [
+      { name: 'MCP 服务器', href: '/droid/mcp', icon: Server },
+      { name: 'Agents', href: '/droid/agents', icon: Bot },
+      { name: 'Slash Commands', href: '/droid/slash-commands', icon: Command },
+      { name: '插件管理', href: '/droid/plugins', icon: Puzzle }
     ]
   },
   {
