@@ -94,6 +94,7 @@ export default {
     gemini: 'Gemini',
     qwen: 'Qwen',
     iflow: 'IFLOW',
+    droid: 'Factory Droid',
     mcp: 'MCP Servers',
     agents: 'Agents',
     slashCommands: 'Slash Commands',
@@ -2041,6 +2042,110 @@ export default {
         deleteFailed: 'Delete failed: {error}',
         toggleFailed: 'Toggle failed: {error}'
       }
+    }
+  },
+
+  // Droid Platform
+  droid: {
+    overview: {
+      title: 'Factory Droid',
+      subtitle: 'Factory AI Coding Assistant',
+      description: 'Factory AI · Multi Provider · Custom Models',
+      backToHome: 'Back to Home',
+      features: 'Features',
+      feature1: 'Support for multiple API providers including Anthropic, OpenAI, OpenRouter',
+      feature2: 'Custom Models configuration with customizable model parameters and endpoints',
+      feature3: 'max_output_tokens control for output length, optimizing cost and performance',
+      feature4: 'Local Ollama model integration support for data privacy protection',
+      featureTitle: '💡 Factory Droid Features',
+      tags: {
+        multiProvider: '🔗 Multi Provider',
+        customModels: '🎛️ Custom Models',
+        mcp: '🔌 MCP Support',
+        coding: '💻 Coding Assistant'
+      }
+    },
+    mcp: {
+      title: 'MCP Servers',
+      description: 'Droid MCP server configuration management',
+      badge: '🔌 MCP',
+      pageTitle: 'Droid MCP Server Management',
+      addServer: 'Add MCP Server',
+      editServer: 'Edit MCP Server',
+      nameLabel: 'Server Name *',
+      namePlaceholder: 'e.g., My MCP Server',
+      commandLabel: 'Command *',
+      commandPlaceholder: 'e.g., npx',
+      urlLabel: 'Server URL *',
+      urlPlaceholder: 'e.g., http://localhost:3000',
+      httpServerHint: 'HTTP Server (check for HTTP, otherwise STDIO)',
+      argsLabel: 'Arguments',
+      argsPlaceholder: 'arg1 arg2 arg3',
+      argsHint: 'Separate multiple arguments with spaces',
+      envLabel: 'Environment Variables',
+      envKeyPlaceholder: 'Variable Name',
+      envValuePlaceholder: 'Variable Value',
+      enabledLabel: 'Enable this server',
+      searchPlaceholder: 'Search MCP servers...',
+      searchResults: 'Found <strong>{count}</strong> matching servers',
+      loading: 'Loading...',
+      emptyState: 'No MCP servers configured',
+      noResults: 'No matching servers found',
+      noResultsHint: 'Try using other keywords',
+      disabledBadge: 'Disabled',
+      enable: 'Enable',
+      disable: 'Disable',
+      save: 'Save',
+      add: 'Add',
+      deleteConfirm: 'Are you sure you want to delete MCP server "{name}"?',
+      validation: {
+        required: 'Please fill in required fields',
+        invalidUrl: 'Invalid URL format',
+        commandRequired: 'Please enter a command',
+        urlRequired: 'Please enter a URL'
+      },
+      messages: {
+        loadFailed: 'Failed to load MCP servers',
+        updateSuccess: '✓ MCP server updated successfully',
+        addSuccess: '✓ MCP server added successfully',
+        deleteSuccess: '✓ MCP server deleted successfully',
+        operationFailed: 'Operation failed: {error}',
+        deleteFailed: 'Delete failed: {error}',
+        toggleFailed: 'Toggle failed: {error}'
+      }
+    },
+    agents: {
+      title: 'Agents',
+      description: 'Droid Agent configuration and management',
+      badge: '🤖 AI'
+    },
+    plugins: {
+      title: 'Plugins',
+      description: 'Droid plugin configuration and management',
+      badge: '🧩 Plugins',
+      pageTitle: 'Droid Plugin Management',
+      addPlugin: 'Add Plugin',
+      editPlugin: 'Edit Plugin',
+      idLabel: 'Plugin ID *',
+      idPlaceholder: 'e.g., my-plugin',
+      dataLabel: 'Plugin Data (JSON) *',
+      dataPlaceholder: '{\n  "key": "value"\n}',
+      dataHint: 'Enter plugin configuration data in JSON format',
+      loadFailed: 'Failed to load plugins',
+      addSuccess: '✓ Plugin added successfully',
+      updateSuccess: '✓ Plugin updated successfully',
+      deleteSuccess: '✓ Plugin deleted successfully',
+      saveFailed: 'Failed to save plugin',
+      deleteFailed: 'Failed to delete plugin',
+      deleteConfirm: 'Are you sure you want to delete plugin "{id}"?',
+      idRequired: 'Plugin ID is required',
+      invalidJson: 'Invalid JSON format',
+      emptyState: 'No plugins configured'
+    },
+    slashCommands: {
+      title: 'Slash Commands',
+      description: 'Droid custom command management',
+      badge: '⌨️ Commands'
     }
   },
 
