@@ -91,4 +91,59 @@ pub fn routes() -> Router {
             "/droid/droids/{name}",
             delete(crate::api::handlers::platforms::droid::delete_droid),
         )
+        // Agents routes
+        .route(
+            "/droid/agents",
+            get(crate::api::handlers::platforms::droid::list_droid_agents),
+        )
+        .route(
+            "/droid/agents",
+            post(crate::api::handlers::platforms::droid::add_droid_agent),
+        )
+        .route(
+            "/droid/agents/{name}",
+            get(crate::api::handlers::platforms::droid::get_droid_agent),
+        )
+        .route(
+            "/droid/agents/{name}",
+            put(crate::api::handlers::platforms::droid::update_droid_agent),
+        )
+        .route(
+            "/droid/agents/{name}",
+            delete(crate::api::handlers::platforms::droid::delete_droid_agent),
+        )
+        // Slash Commands routes
+        .route(
+            "/droid/slash-commands",
+            get(crate::api::handlers::platforms::droid::list_droid_slash_commands),
+        )
+        .route(
+            "/droid/slash-commands",
+            post(crate::api::handlers::platforms::droid::add_droid_slash_command),
+        )
+        .route(
+            "/droid/slash-commands/{name}",
+            put(crate::api::handlers::platforms::droid::update_droid_slash_command),
+        )
+        .route(
+            "/droid/slash-commands/{name}",
+            delete(crate::api::handlers::platforms::droid::delete_droid_slash_command),
+        )
+        // Plugins routes
+        .route(
+            "/droid/plugins",
+            get(crate::api::handlers::platforms::droid::list_droid_plugins),
+        )
+        .route(
+            "/droid/plugins",
+            post(crate::api::handlers::platforms::droid::add_droid_plugin),
+        )
+        .route(
+            "/droid/plugins/{id}",
+            put(crate::api::handlers::platforms::droid::update_droid_plugin),
+        )
+        .route(
+            "/droid/plugins/{id}",
+            delete(crate::api::handlers::platforms::droid::delete_droid_plugin),
+        )
 }

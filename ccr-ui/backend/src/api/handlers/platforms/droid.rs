@@ -532,3 +532,407 @@ pub async fn delete_droid(Path(name): Path<String>) -> impl IntoResponse {
         Err(e) => internal_error(format!("初始化 Droids 管理器失败: {}", e)).into_response(),
     }
 }
+
+// ============ Agents 管理 ============
+
+use crate::managers::droid_markdown_manager::{
+    DroidAgentFrontmatter, DroidCommandFrontmatter, DroidMarkdownFile, DroidMarkdownManager,
+};
+use crate::models::api::{Agent, AgentRequest, SlashCommand, SlashCommandRequest};
+
+/// GET /api/droid/agents - 列出所有 Droid Agents
+pub async fn list_droid_agents() -> impl IntoResponse {
+    match DroidMarkdownManager::from_factory_subdir("agents") {
+        Ok(manager) => match manager.list_files_with_folders() {
+            Ok(files) => {
+                let mut agents = Vec::new();
+
+                for (file_name, folder_path) in files {
+                    let full_name = if folder_path.is_empty() {
+                        file_name.clone()
+                    } else {
+                        format!("{}/{}", folder_path, file_name)
+                    };
+
+                    match manager.read_file::<DroidAgentFrontmatter>(&full_name) {
+                        Ok(file) => {
+                            let tools = file
+                                .frontmatter
+                                .tools
+                                .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
+                                .unwrap_or_default();
+
+                            agents.push(Agent {
+                                name: file_name.clone(),
+                                model: file.frontmatter.model.unwrap_or_default(),
+                                tools,
+                                system_prompt: Some(file.content),
+                                disabled: false,
+                                folder: folder_path,
+                            });
+                        }
+                        Err(e) => {
+                            tracing::warn!("Failed to read Droid agent {}: {}", full_name, e);
+                        }
+                    }
+                }
+
+                // Collect unique folders
+                let folders: Vec<String> = agents
+                    .iter()
+                    .filter_map(|a| {
+                        if !a.folder.is_empty() {
+                            Some(a.folder.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<std::collections::HashSet<_>>()
+                    .into_iter()
+                    .collect();
+
+                ok(json!({
+                    "agents": agents,
+                    "folders": folders
+                }))
+                .into_response()
+            }
+            Err(e) => internal_error(format!("列出 Droid Agents 失败: {}", e)).into_response(),
+        },
+        Err(e) => internal_error(format!("初始化 Droid Agents 管理器失败: {}", e)).into_response(),
+    }
+}
+
+/// GET /api/droid/agents/:name - 获取单个 Droid Agent
+pub async fn get_droid_agent(Path(name): Path<String>) -> impl IntoResponse {
+    match DroidMarkdownManager::from_factory_subdir("agents") {
+        Ok(manager) => match manager.read_file::<DroidAgentFrontmatter>(&name) {
+            Ok(file) => {
+                let tools = file
+                    .frontmatter
+                    .tools
+                    .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
+                    .unwrap_or_default();
+
+                let agent = Agent {
+                    name: file.frontmatter.name,
+                    model: file.frontmatter.model.unwrap_or_default(),
+                    tools,
+                    system_prompt: Some(file.content),
+                    disabled: false,
+                    folder: String::new(),
+                };
+
+                ok(agent).into_response()
+            }
+            Err(e) => bad_request(format!("获取 Droid Agent 失败: {}", e)).into_response(),
+        },
+        Err(e) => internal_error(format!("初始化 Droid Agents 管理器失败: {}", e)).into_response(),
+    }
+}
+
+/// POST /api/droid/agents - 创建 Droid Agent
+pub async fn add_droid_agent(Json(req): Json<AgentRequest>) -> impl IntoResponse {
+    match DroidMarkdownManager::from_factory_subdir("agents") {
+        Ok(manager) => {
+            if manager.file_exists(&req.name) {
+                return bad_request(format!("Agent '{}' 已存在", req.name)).into_response();
+            }
+
+            let file = DroidMarkdownFile {
+                frontmatter: DroidAgentFrontmatter {
+                    name: req.name.clone(),
+                    description: None,
+                    tools: req.tools.map(|t| t.join(", ")),
+                    model: Some(req.model),
+                },
+                content: req.system_prompt.unwrap_or_default(),
+            };
+
+            match manager.write_file(&req.name, &file) {
+                Ok(()) => ok_message(format!("Agent '{}' 创建成功", req.name)).into_response(),
+                Err(e) => bad_request(format!("创建 Agent 失败: {}", e)).into_response(),
+            }
+        }
+        Err(e) => internal_error(format!("初始化 Droid Agents 管理器失败: {}", e)).into_response(),
+    }
+}
+
+/// PUT /api/droid/agents/:name - 更新 Droid Agent
+pub async fn update_droid_agent(
+    Path(name): Path<String>,
+    Json(req): Json<AgentRequest>,
+) -> impl IntoResponse {
+    match DroidMarkdownManager::from_factory_subdir("agents") {
+        Ok(manager) => {
+            if !manager.file_exists(&name) {
+                return bad_request(format!("Agent '{}' 不存在", name)).into_response();
+            }
+
+            let file = DroidMarkdownFile {
+                frontmatter: DroidAgentFrontmatter {
+                    name: req.name.clone(),
+                    description: None,
+                    tools: req.tools.map(|t| t.join(", ")),
+                    model: Some(req.model),
+                },
+                content: req.system_prompt.unwrap_or_default(),
+            };
+
+            // If name changed, delete old file first
+            if name != req.name {
+                let _ = manager.delete_file(&name);
+            }
+
+            match manager.write_file(&req.name, &file) {
+                Ok(()) => ok_message(format!("Agent '{}' 更新成功", req.name)).into_response(),
+                Err(e) => bad_request(format!("更新 Agent 失败: {}", e)).into_response(),
+            }
+        }
+        Err(e) => internal_error(format!("初始化 Droid Agents 管理器失败: {}", e)).into_response(),
+    }
+}
+
+/// DELETE /api/droid/agents/:name - 删除 Droid Agent
+pub async fn delete_droid_agent(Path(name): Path<String>) -> impl IntoResponse {
+    match DroidMarkdownManager::from_factory_subdir("agents") {
+        Ok(manager) => match manager.delete_file(&name) {
+            Ok(()) => ok_message(format!("Agent '{}' 删除成功", name)).into_response(),
+            Err(e) => bad_request(format!("删除 Agent 失败: {}", e)).into_response(),
+        },
+        Err(e) => internal_error(format!("初始化 Droid Agents 管理器失败: {}", e)).into_response(),
+    }
+}
+
+// ============ Slash Commands 管理 ============
+
+/// Extract description from markdown content
+fn extract_description_from_content(content: &str, name: &str) -> String {
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if !line.is_empty() {
+            return line.to_string();
+        }
+    }
+    format!("Slash command: {}", name)
+}
+
+/// GET /api/droid/slash-commands - 列出所有 Droid Slash Commands
+pub async fn list_droid_slash_commands() -> impl IntoResponse {
+    match DroidMarkdownManager::from_factory_subdir("commands") {
+        Ok(manager) => match manager.list_files_with_folders() {
+            Ok(files) => {
+                let mut commands = Vec::new();
+
+                for (file_name, folder_path) in files {
+                    let full_name = if folder_path.is_empty() {
+                        file_name.clone()
+                    } else {
+                        format!("{}/{}", folder_path, file_name)
+                    };
+
+                    let description = match manager.read_file::<DroidCommandFrontmatter>(&full_name)
+                    {
+                        Ok(file) => file.frontmatter.description.clone().unwrap_or_else(|| {
+                            extract_description_from_content(&file.content, &file_name)
+                        }),
+                        Err(_) => {
+                            // Try to read as plain text
+                            format!("Slash command: {}", file_name)
+                        }
+                    };
+
+                    commands.push(SlashCommand {
+                        name: file_name.clone(),
+                        description,
+                        command: String::new(),
+                        args: None,
+                        disabled: false,
+                        folder: folder_path,
+                    });
+                }
+
+                // Collect unique folders
+                let folders: Vec<String> = commands
+                    .iter()
+                    .filter_map(|c| {
+                        if !c.folder.is_empty() {
+                            Some(c.folder.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<std::collections::HashSet<_>>()
+                    .into_iter()
+                    .collect();
+
+                ok(json!({
+                    "commands": commands,
+                    "folders": folders
+                }))
+                .into_response()
+            }
+            Err(e) => {
+                internal_error(format!("列出 Droid Slash Commands 失败: {}", e)).into_response()
+            }
+        },
+        Err(e) => {
+            internal_error(format!("初始化 Droid Commands 管理器失败: {}", e)).into_response()
+        }
+    }
+}
+
+/// POST /api/droid/slash-commands - 创建 Droid Slash Command
+pub async fn add_droid_slash_command(Json(req): Json<SlashCommandRequest>) -> impl IntoResponse {
+    match DroidMarkdownManager::from_factory_subdir("commands") {
+        Ok(manager) => {
+            if manager.file_exists(&req.name) {
+                return bad_request(format!("Slash Command '{}' 已存在", req.name)).into_response();
+            }
+
+            let file = DroidMarkdownFile {
+                frontmatter: DroidCommandFrontmatter {
+                    name: Some(req.name.clone()),
+                    description: Some(req.description.clone()),
+                    argument_hint: None,
+                },
+                content: req.command.clone(),
+            };
+
+            match manager.write_file(&req.name, &file) {
+                Ok(()) => {
+                    ok_message(format!("Slash Command '{}' 创建成功", req.name)).into_response()
+                }
+                Err(e) => bad_request(format!("创建 Slash Command 失败: {}", e)).into_response(),
+            }
+        }
+        Err(e) => {
+            internal_error(format!("初始化 Droid Commands 管理器失败: {}", e)).into_response()
+        }
+    }
+}
+
+/// PUT /api/droid/slash-commands/:name - 更新 Droid Slash Command
+pub async fn update_droid_slash_command(
+    Path(name): Path<String>,
+    Json(req): Json<SlashCommandRequest>,
+) -> impl IntoResponse {
+    match DroidMarkdownManager::from_factory_subdir("commands") {
+        Ok(manager) => {
+            if !manager.file_exists(&name) {
+                return bad_request(format!("Slash Command '{}' 不存在", name)).into_response();
+            }
+
+            let file = DroidMarkdownFile {
+                frontmatter: DroidCommandFrontmatter {
+                    name: Some(req.name.clone()),
+                    description: Some(req.description.clone()),
+                    argument_hint: None,
+                },
+                content: req.command.clone(),
+            };
+
+            // If name changed, delete old file first
+            if name != req.name {
+                let _ = manager.delete_file(&name);
+            }
+
+            match manager.write_file(&req.name, &file) {
+                Ok(()) => {
+                    ok_message(format!("Slash Command '{}' 更新成功", req.name)).into_response()
+                }
+                Err(e) => bad_request(format!("更新 Slash Command 失败: {}", e)).into_response(),
+            }
+        }
+        Err(e) => {
+            internal_error(format!("初始化 Droid Commands 管理器失败: {}", e)).into_response()
+        }
+    }
+}
+
+/// DELETE /api/droid/slash-commands/:name - 删除 Droid Slash Command
+pub async fn delete_droid_slash_command(Path(name): Path<String>) -> impl IntoResponse {
+    match DroidMarkdownManager::from_factory_subdir("commands") {
+        Ok(manager) => match manager.delete_file(&name) {
+            Ok(()) => ok_message(format!("Slash Command '{}' 删除成功", name)).into_response(),
+            Err(e) => bad_request(format!("删除 Slash Command 失败: {}", e)).into_response(),
+        },
+        Err(e) => {
+            internal_error(format!("初始化 Droid Commands 管理器失败: {}", e)).into_response()
+        }
+    }
+}
+
+// ============ Plugins 管理 ============
+
+use crate::managers::droid_plugins_manager::DroidPluginsManager;
+
+/// GET /api/droid/plugins - 列出所有 Droid Plugins
+pub async fn list_droid_plugins() -> impl IntoResponse {
+    match DroidPluginsManager::default() {
+        Ok(manager) => match manager.get_plugins() {
+            Ok(plugins) => {
+                let plugins_vec: Vec<_> = plugins
+                    .into_iter()
+                    .map(|(id, data)| {
+                        json!({
+                            "id": id,
+                            "data": data
+                        })
+                    })
+                    .collect();
+                ok(plugins_vec).into_response()
+            }
+            Err(e) => internal_error(format!("列出 Droid Plugins 失败: {}", e)).into_response(),
+        },
+        Err(e) => internal_error(format!("初始化 Droid Plugins 管理器失败: {}", e)).into_response(),
+    }
+}
+
+/// POST /api/droid/plugins - 添加 Droid Plugin
+pub async fn add_droid_plugin(Json(request): Json<serde_json::Value>) -> impl IntoResponse {
+    let id = match request.get("id").and_then(|v| v.as_str()) {
+        Some(id) => id.to_string(),
+        None => return bad_request("缺少 id 字段").into_response(),
+    };
+
+    let data = request.get("data").cloned().unwrap_or(json!({}));
+
+    match DroidPluginsManager::default() {
+        Ok(manager) => match manager.add_plugin(id.clone(), data) {
+            Ok(()) => ok_message(format!("Plugin '{}' 添加成功", id)).into_response(),
+            Err(e) => bad_request(format!("添加 Plugin 失败: {}", e)).into_response(),
+        },
+        Err(e) => internal_error(format!("初始化 Droid Plugins 管理器失败: {}", e)).into_response(),
+    }
+}
+
+/// PUT /api/droid/plugins/:id - 更新 Droid Plugin
+pub async fn update_droid_plugin(
+    Path(id): Path<String>,
+    Json(request): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    let data = request.get("data").cloned().unwrap_or(json!({}));
+
+    match DroidPluginsManager::default() {
+        Ok(manager) => match manager.update_plugin(&id, data) {
+            Ok(()) => ok_message(format!("Plugin '{}' 更新成功", id)).into_response(),
+            Err(e) => bad_request(format!("更新 Plugin 失败: {}", e)).into_response(),
+        },
+        Err(e) => internal_error(format!("初始化 Droid Plugins 管理器失败: {}", e)).into_response(),
+    }
+}
+
+/// DELETE /api/droid/plugins/:id - 删除 Droid Plugin
+pub async fn delete_droid_plugin(Path(id): Path<String>) -> impl IntoResponse {
+    match DroidPluginsManager::default() {
+        Ok(manager) => match manager.delete_plugin(&id) {
+            Ok(()) => ok_message(format!("Plugin '{}' 删除成功", id)).into_response(),
+            Err(e) => bad_request(format!("删除 Plugin 失败: {}", e)).into_response(),
+        },
+        Err(e) => internal_error(format!("初始化 Droid Plugins 管理器失败: {}", e)).into_response(),
+    }
+}
