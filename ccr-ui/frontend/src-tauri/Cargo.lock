@@ -374,9 +374,10 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.18.0"
+version = "3.18.2"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "blake3",
  "chrono",
  "clap",
@@ -411,7 +412,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "3.18.0"
+version = "3.18.1"
 dependencies = [
  "ccr",
  "serde",
