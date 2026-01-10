@@ -215,6 +215,36 @@ export const getCurrentPlatform = async (): Promise<string> => {
 }
 
 // ===================================
+// Settings Management
+// ===================================
+
+/**
+ * 获取是否跳过退出确认
+ * Tauri Command: get_skip_exit_confirm
+ */
+export const getSkipExitConfirm = async (): Promise<boolean> => {
+  try {
+    return await invoke<boolean>('get_skip_exit_confirm')
+  } catch (error) {
+    console.error('[Tauri] getSkipExitConfirm error:', error)
+    throw error
+  }
+}
+
+/**
+ * 设置是否跳过退出确认
+ * Tauri Command: set_skip_exit_confirm
+ */
+export const setSkipExitConfirm = async (skip: boolean): Promise<void> => {
+  try {
+    await invoke<void>('set_skip_exit_confirm', { skip })
+  } catch (error) {
+    console.error('[Tauri] setSkipExitConfirm error:', error)
+    throw error
+  }
+}
+
+// ===================================
 // Utility Functions
 // ===================================
 
@@ -265,6 +295,10 @@ export const TauriAPI = {
   listPlatforms,
   switchPlatform,
   getCurrentPlatform,
+
+  // Settings
+  getSkipExitConfirm,
+  setSkipExitConfirm,
 
   // Utils
   isTauriEnvironment,

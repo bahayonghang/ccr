@@ -106,7 +106,9 @@ const resolveApiBaseUrl = (): string => {
 export const getBackendHealth = async (): Promise<void> => {
   const baseUrl = resolveApiBaseUrl()
   const rootUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl
-  await axios.get(`${rootUrl}/health`, { timeout: 4000 })
+  // Tauri 环境下后端 sidecar 启动可能需要更长时间
+  const timeout = isTauriEnvironment() ? 20000 : 4000
+  await axios.get(`${rootUrl}/health`, { timeout })
 }
 
 const createApiClient = (): AxiosInstance => {

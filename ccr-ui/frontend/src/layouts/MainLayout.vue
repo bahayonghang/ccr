@@ -158,7 +158,25 @@
       <div class="p-4 border-t border-border-color space-y-3">
         <!-- Language Switcher -->
         <LanguageSwitcher />
-        
+
+        <!-- Exit Confirm Toggle (Tauri only) -->
+        <div
+          v-if="isTauri"
+          class="flex items-center justify-between text-xs"
+        >
+          <span class="text-text-secondary">退出时确认</span>
+          <button
+            class="relative w-10 h-5 rounded-full transition-colors"
+            :class="showExitConfirm ? 'bg-accent-primary' : 'bg-bg-tertiary'"
+            @click="toggleExitConfirm"
+          >
+            <span
+              class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+              :class="showExitConfirm ? 'translate-x-5' : 'translate-x-0.5'"
+            />
+          </button>
+        </div>
+
         <!-- Version Info -->
         <div class="text-xs text-text-muted flex items-center justify-between">
           <span>CCR UI v3.18.0</span>
@@ -187,18 +205,30 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { 
-  Home, 
-  Code2, 
-  Settings, 
-  Sparkles, 
-  Zap, 
-  Activity, 
-  Terminal, 
-  TrendingUp, 
+import {
+  Home,
+  Code2,
+  Settings,
+  Sparkles,
+  Zap,
+  Activity,
+  Terminal,
+  TrendingUp,
   Cloud,
 } from 'lucide-vue-next'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
+
+// Tauri 环境检测和退出确认设置
+const isTauri = ref(false)
+const showExitConfirm = ref(true)
+
+const toggleExitConfirm = async () => {
+  showExitConfirm.value = !showExitConfirm.value
+  if (isTauri.value) {
+    await setSkipExitConfirm(!showExitConfirm.value)
+  }
+}
 
 // Sidebar Resizing Logic
 const sidebarWidth = ref(260)
@@ -240,13 +270,24 @@ const stopResize = () => {
   window.removeEventListener('mouseup', stopResize)
 }
 
-onMounted(() => {
-  // Restore preference
+onMounted(async () => {
+  // Restore sidebar width preference
   const savedWidth = localStorage.getItem('ccr-sidebar-width')
   if (savedWidth) {
     const width = parseInt(savedWidth)
     if (!isNaN(width) && width >= minWidth && width <= maxWidth) {
       sidebarWidth.value = width
+    }
+  }
+
+  // Check Tauri environment and load settings
+  isTauri.value = isTauriEnvironment()
+  if (isTauri.value) {
+    try {
+      const skipConfirm = await getSkipExitConfirm()
+      showExitConfirm.value = !skipConfirm
+    } catch (e) {
+      console.error('Failed to load exit confirm setting:', e)
     }
   }
 })

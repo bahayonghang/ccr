@@ -17,13 +17,19 @@ ccr = { path = "../../../", default-features = false }
 # Tauri framework
 tauri = { version = "2.9.3", features = [] }
 tauri-plugin-shell = "2.0"
+tauri-plugin-dialog = "2"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Async runtime
-tokio = { version = "1.42", features = ["rt-multi-thread", "io-util", "net", "time"] }
+tokio = { version = "1.42", features = [
+    "rt-multi-thread",
+    "io-util",
+    "net",
+    "time",
+] }
 
 # Logging
 tracing = "0.1"

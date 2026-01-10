@@ -1,18 +1,37 @@
 // Prevents additional console window on Windows in release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
-use tauri::{Manager, RunEvent, State};
-use tauri_plugin_shell::{process::CommandChild, ShellExt};
+use tauri::{Manager, RunEvent, State, WindowEvent};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_shell::{ShellExt, process::CommandChild};
 
 // 🎯 导入 CCR 核心库
 use ccr::{ConfigManager, ConfigService, HistoryService};
+
+/// 应用设置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct AppSettings {
+    skip_exit_confirm: bool,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            skip_exit_confirm: false,
+        }
+    }
+}
 
 /// 应用状态
 struct AppState {
     current_platform: Mutex<String>,
     backend_child: Mutex<Option<CommandChild>>,
+    backend_ready: Mutex<bool>,
+    settings: Mutex<AppSettings>,
+    exit_confirmed: AtomicBool,
 }
 
 const BACKEND_HOST: &str = "127.0.0.1";
@@ -20,8 +39,8 @@ const BACKEND_PORT: u16 = 38081;
 const BACKEND_STARTUP_TIMEOUT_SECS: u64 = 15;
 
 fn backend_port() -> u16 {
-    if let Ok(value) = std::env::var("CCR_UI_BACKEND_PORT")
-        .or_else(|_| std::env::var("BACKEND_PORT"))
+    if let Ok(value) =
+        std::env::var("CCR_UI_BACKEND_PORT").or_else(|_| std::env::var("BACKEND_PORT"))
     {
         if let Ok(port) = value.parse::<u16>() {
             return port;
@@ -33,7 +52,7 @@ fn backend_port() -> u16 {
 async fn wait_for_backend_ready(port: u16) -> bool {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpStream;
-    use tokio::time::{sleep, Duration};
+    use tokio::time::{Duration, sleep};
 
     let deadline = std::time::Instant::now() + Duration::from_secs(BACKEND_STARTUP_TIMEOUT_SECS);
     while std::time::Instant::now() < deadline {
@@ -61,12 +80,7 @@ fn try_spawn_backend_sidecar(app: &tauri::AppHandle, port: u16) -> Result<Comman
         .shell()
         .sidecar("ccr-ui-backend")
         .map_err(|e| format!("Sidecar not available: {}", e))?
-        .args([
-            "--host",
-            BACKEND_HOST,
-            "--port",
-            &port.to_string(),
-        ]);
+        .args(["--host", BACKEND_HOST, "--port", &port.to_string()]);
 
     let (mut rx, child) = command
         .spawn()
@@ -486,10 +500,7 @@ async fn list_platforms() -> Result<Vec<String>, String> {
 
 /// 切换平台
 #[tauri::command]
-async fn switch_platform(
-    platform: String,
-    state: State<'_, AppState>,
-) -> Result<String, String> {
+async fn switch_platform(platform: String, state: State<'_, AppState>) -> Result<String, String> {
     let mut current = state.current_platform.lock().unwrap();
     *current = platform.clone();
 
@@ -501,6 +512,25 @@ async fn switch_platform(
 async fn get_current_platform(state: State<'_, AppState>) -> Result<String, String> {
     let current = state.current_platform.lock().unwrap();
     Ok(current.clone())
+}
+
+// ============================================================================
+// ⚙️ Settings Commands
+// ============================================================================
+
+/// 获取退出确认设置
+#[tauri::command]
+async fn get_skip_exit_confirm(state: State<'_, AppState>) -> Result<bool, String> {
+    let settings = state.settings.lock().unwrap();
+    Ok(settings.skip_exit_confirm)
+}
+
+/// 设置退出确认选项
+#[tauri::command]
+async fn set_skip_exit_confirm(skip: bool, state: State<'_, AppState>) -> Result<(), String> {
+    let mut settings = state.settings.lock().unwrap();
+    settings.skip_exit_confirm = skip;
+    Ok(())
 }
 
 // ============================================================================
@@ -520,8 +550,52 @@ fn main() {
         .manage(AppState {
             current_platform: Mutex::new("claude".to_string()),
             backend_child: Mutex::new(None),
+            backend_ready: Mutex::new(false),
+            settings: Mutex::new(AppSettings::default()),
+            exit_confirmed: AtomicBool::new(false),
         })
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                let app_state = window.state::<AppState>();
+
+                // 如果已确认退出，直接关闭
+                if app_state.exit_confirmed.load(Ordering::SeqCst) {
+                    return;
+                }
+
+                // 检查是否跳过确认
+                let skip_confirm = {
+                    let settings = app_state.settings.lock().unwrap();
+                    settings.skip_exit_confirm
+                };
+
+                if skip_confirm {
+                    return;
+                }
+
+                // 阻止默认关闭，显示确认对话框
+                api.prevent_close();
+                let window = window.clone();
+                window
+                    .dialog()
+                    .message("确定要关闭 CCR Desktop 吗？\n\n勾选下方选项可跳过此确认")
+                    .title("确认退出")
+                    .kind(MessageDialogKind::Warning)
+                    .buttons(MessageDialogButtons::OkCancelCustom(
+                        "退出".to_string(),
+                        "取消".to_string(),
+                    ))
+                    .show(move |confirmed| {
+                        if confirmed {
+                            let app_state = window.state::<AppState>();
+                            app_state.exit_confirmed.store(true, Ordering::SeqCst);
+                            let _ = window.close();
+                        }
+                    });
+            }
+        })
         .setup(|app| {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -538,6 +612,8 @@ fn main() {
                     Ok(child) => {
                         if wait_for_backend_ready(port).await {
                             tracing::info!("[backend] ready at http://{}:{}", BACKEND_HOST, port);
+                            let state = app_handle.state::<AppState>();
+                            *state.backend_ready.lock().unwrap() = true;
                         } else {
                             tracing::warn!("[backend] readiness check timed out");
                         }
@@ -569,19 +645,29 @@ fn main() {
             list_platforms,
             switch_platform,
             get_current_platform,
+            // Settings
+            get_skip_exit_confirm,
+            set_skip_exit_confirm,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
     app.run(|app, event| {
         if let RunEvent::Exit = event {
+            tracing::info!("[app] Application exiting, cleaning up...");
             let child = {
                 let app_state = app.state::<AppState>();
                 let mut guard = app_state.backend_child.lock().unwrap();
                 guard.take()
             };
             if let Some(child) = child {
-                let _ = child.kill();
+                tracing::info!("[backend] Terminating backend process...");
+                match child.kill() {
+                    Ok(()) => tracing::info!("[backend] Backend process terminated successfully"),
+                    Err(e) => tracing::error!("[backend] Failed to terminate backend: {}", e),
+                }
+            } else {
+                tracing::warn!("[backend] No backend process to terminate");
             }
         }
     });
