@@ -10,42 +10,8 @@ use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-/// Token 新鲜度状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TokenFreshness {
-    /// 新鲜 (< 1 天)
-    Fresh,
-    /// 陈旧 (1-7 天)
-    Stale,
-    /// 过期 (> 7 天)
-    Old,
-    /// 未知 (无法解析时间)
-    Unknown,
-}
-
-impl TokenFreshness {
-    /// 获取显示图标
-    #[allow(dead_code)]
-    pub fn icon(&self) -> &'static str {
-        match self {
-            TokenFreshness::Fresh => "✓",
-            TokenFreshness::Stale => "⚠",
-            TokenFreshness::Old => "✗",
-            TokenFreshness::Unknown => "?",
-        }
-    }
-
-    /// 获取描述文本
-    #[allow(dead_code)]
-    pub fn description(&self) -> &'static str {
-        match self {
-            TokenFreshness::Fresh => "Token 状态良好",
-            TokenFreshness::Stale => "Token 可能需要刷新",
-            TokenFreshness::Old => "Token 可能已过期，建议重新登录",
-            TokenFreshness::Unknown => "无法确定 Token 状态",
-        }
-    }
-}
+// Re-export shared types from ccr-types
+pub use ccr_types::{LoginState, TokenFreshness};
 
 /// Codex 账号元数据
 ///
@@ -152,19 +118,6 @@ pub struct CurrentAuthInfo {
     pub freshness: TokenFreshness,
 }
 
-/// TUI 登录状态
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum LoginState {
-    /// 未登录 (auth.json 不存在)
-    NotLoggedIn,
-
-    /// 已登录但未保存
-    LoggedInUnsaved,
-
-    /// 已登录且已保存 (账号名)
-    LoggedInSaved(String),
-}
-
 /// TUI 输入模式
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[allow(dead_code)]
@@ -225,10 +178,11 @@ mod tests {
 
     #[test]
     fn test_token_freshness_icon() {
-        assert_eq!(TokenFreshness::Fresh.icon(), "✓");
-        assert_eq!(TokenFreshness::Stale.icon(), "⚠");
-        assert_eq!(TokenFreshness::Old.icon(), "✗");
-        assert_eq!(TokenFreshness::Unknown.icon(), "?");
+        // Icons are now emoji from ccr-types
+        assert_eq!(TokenFreshness::Fresh.icon(), "🟢");
+        assert_eq!(TokenFreshness::Stale.icon(), "🟡");
+        assert_eq!(TokenFreshness::Old.icon(), "🔴");
+        assert_eq!(TokenFreshness::Unknown.icon(), "⚪");
     }
 
     #[test]

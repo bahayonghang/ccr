@@ -3,7 +3,7 @@
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.18.1"
+version = "3.18.2"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher (Rust implementation)"
@@ -42,6 +42,7 @@ web = ["dep:axum", "dep:open", "dep:sysinfo", "dep:tower", "dep:tower-http"]
 [dependencies]
 # --- Workspace 依赖 ---
 anyhow = { workspace = true }     # 灵活的错误处理 (Result<T, anyhow::Error>)
+ccr-types = { path = "ccr-types" } # 共享类型定义
 chrono = { workspace = true }     # 日期和时间处理
 clap = { workspace = true }       # 命令行参数解析 (CLI Interface)
 dirs = { workspace = true }       # 获取系统标准目录 (Config, Home, Data)
@@ -92,7 +93,7 @@ base64 = "0.22.1"
 # 🏗️ Workspace
 # ═══════════════════════════════════════════════════════════
 [workspace]
-members = [".", "ccr-ui/backend"]
+members = [".", "ccr-types", "ccr-ui/backend"]
 resolver = "3"
 
 [workspace.dependencies]

@@ -4,6 +4,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+// Re-export shared types from ccr-types
+pub use ccr_types::{LoginState, TokenFreshness};
+
 /// Codex 完整配置结构
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
@@ -216,53 +219,7 @@ pub struct CodexConfigResponse {
 
 // ============ Auth 管理 API 模型 ============
 
-/// Token 新鲜度状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TokenFreshness {
-    /// 新鲜 (< 1 天)
-    Fresh,
-    /// 陈旧 (1-7 天)
-    Stale,
-    /// 过期 (> 7 天)
-    Old,
-    /// 未知 (无法解析时间)
-    Unknown,
-}
-
-impl TokenFreshness {
-    /// 获取显示图标
-    pub fn icon(&self) -> &'static str {
-        match self {
-            TokenFreshness::Fresh => "🟢",
-            TokenFreshness::Stale => "🟡",
-            TokenFreshness::Old => "🔴",
-            TokenFreshness::Unknown => "⚪",
-        }
-    }
-
-    /// 获取描述文本
-    pub fn description(&self) -> &'static str {
-        match self {
-            TokenFreshness::Fresh => "Token 状态良好",
-            TokenFreshness::Stale => "Token 可能需要刷新",
-            TokenFreshness::Old => "Token 可能已过期，建议重新登录",
-            TokenFreshness::Unknown => "无法确定 Token 状态",
-        }
-    }
-}
-
-/// 登录状态
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(tag = "type", content = "account_name")]
-pub enum LoginState {
-    /// 未登录 (auth.json 不存在)
-    NotLoggedIn,
-    /// 已登录但未保存
-    LoggedInUnsaved,
-    /// 已登录且已保存 (账号名)
-    LoggedInSaved(String),
-}
+// TokenFreshness and LoginState are re-exported from ccr_types at the top of this file
 
 /// 账号列表项 (用于 API 响应)
 #[derive(Debug, Clone, Serialize)]

@@ -162,6 +162,7 @@ pub async fn add_slash_command(Json(req): Json<SlashCommandRequest>) -> impl Int
             command: req.command.clone(),
             args: req.args.clone(),
             disabled: req.disabled.unwrap_or(false),
+            other: std::collections::HashMap::new(),
         };
 
         settings.slash_commands.push(new_command);

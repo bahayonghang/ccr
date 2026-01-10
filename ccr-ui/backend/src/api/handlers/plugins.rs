@@ -112,6 +112,7 @@ pub async fn add_plugin(Json(req): Json<PluginRequest>) -> impl IntoResponse {
             version: req.version.clone(),
             enabled: req.enabled.unwrap_or(true),
             config: req.config.clone(),
+            other: std::collections::HashMap::new(),
         };
 
         settings.plugins.push(new_plugin);

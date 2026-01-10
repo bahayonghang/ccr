@@ -432,27 +432,8 @@ pub async fn update_codex_base_config(Json(config): Json<CodexConfig>) -> impl I
 
 // ============ Auth 账号管理 ============
 
-use ccr::models::{LoginState as CcrLoginState, TokenFreshness as CcrTokenFreshness};
 use ccr::services::CodexAuthService;
-
-/// 将 ccr 的 TokenFreshness 转换为 API 模型
-fn convert_freshness(freshness: CcrTokenFreshness) -> TokenFreshness {
-    match freshness {
-        CcrTokenFreshness::Fresh => TokenFreshness::Fresh,
-        CcrTokenFreshness::Stale => TokenFreshness::Stale,
-        CcrTokenFreshness::Old => TokenFreshness::Old,
-        CcrTokenFreshness::Unknown => TokenFreshness::Unknown,
-    }
-}
-
-/// 将 ccr 的 LoginState 转换为 API 模型
-fn convert_login_state(state: CcrLoginState) -> LoginState {
-    match state {
-        CcrLoginState::NotLoggedIn => LoginState::NotLoggedIn,
-        CcrLoginState::LoggedInUnsaved => LoginState::LoggedInUnsaved,
-        CcrLoginState::LoggedInSaved(name) => LoginState::LoggedInSaved(name),
-    }
-}
+// TokenFreshness and LoginState are now shared via ccr_types, no conversion needed
 
 /// GET /api/codex/auth/accounts - 列出所有 Codex Auth 账号
 pub async fn list_codex_auth_accounts() -> impl IntoResponse {
@@ -471,7 +452,7 @@ pub async fn list_codex_auth_accounts() -> impl IntoResponse {
         let accounts: Vec<CodexAuthAccountItem> = accounts
             .into_iter()
             .map(|item| {
-                let freshness = convert_freshness(item.freshness);
+                let freshness = item.freshness;
                 CodexAuthAccountItem {
                     name: item.name,
                     description: item.description,
@@ -487,7 +468,7 @@ pub async fn list_codex_auth_accounts() -> impl IntoResponse {
             })
             .collect();
 
-        Ok::<_, String>((accounts, convert_login_state(login_state)))
+        Ok::<_, String>((accounts, login_state))
     })
     .await;
 
@@ -514,7 +495,7 @@ pub async fn get_codex_auth_current() -> impl IntoResponse {
 
         let info = match service.get_current_auth_info() {
             Ok(current) => {
-                let freshness = convert_freshness(current.freshness);
+                let freshness = current.freshness;
                 Some(CodexAuthCurrentInfo {
                     account_id: current.account_id,
                     email: current.email,
@@ -529,7 +510,7 @@ pub async fn get_codex_auth_current() -> impl IntoResponse {
 
         let logged_in = info.is_some();
 
-        Ok::<_, String>((logged_in, info, convert_login_state(login_state)))
+        Ok::<_, String>((logged_in, info, login_state))
     })
     .await;
 
