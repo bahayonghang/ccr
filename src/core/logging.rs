@@ -321,6 +321,7 @@ pub fn init_logger() {
 /// 此函数仅将日志写入文件，不输出到终端。
 ///
 /// 注意：由于 tracing 只能初始化一次，此函数会静默失败（如果已初始化）
+#[allow(dead_code)]
 pub fn init_file_only_logger() {
     // 初始化 log -> tracing 桥接
     let _ = LogTracer::init();
