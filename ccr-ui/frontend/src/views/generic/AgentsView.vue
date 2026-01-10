@@ -407,7 +407,7 @@ import { useAgents } from '@/composables/useAgents'
 import type { Agent, AgentRequest } from '@/types'
 
 const props = defineProps<{
-  module: 'codex' | 'gemini' | 'qwen' | 'iflow' | 'agents'
+  module: 'codex' | 'gemini' | 'qwen' | 'iflow' | 'agents' | 'droid'
 }>()
 
 const { t } = useI18n()

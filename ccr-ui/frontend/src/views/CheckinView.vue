@@ -96,37 +96,96 @@
     <!-- 签到结果弹窗 -->
     <div
       v-if="checkinResult"
-      class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4"
+      class="rounded-lg p-4 border"
+      :class="checkinResult.summary.failed > 0
+        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+        : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'"
     >
       <div class="flex items-start justify-between">
-        <div class="flex">
-          <svg
-            class="h-5 w-5 text-green-400"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-green-800 dark:text-green-200">
-              签到完成
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <svg
+              class="h-5 w-5"
+              :class="checkinResult.summary.failed > 0 ? 'text-amber-500' : 'text-green-400'"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                v-if="checkinResult.summary.failed > 0"
+                fill-rule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clip-rule="evenodd"
+              />
+              <path
+                v-else
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <h3
+              class="text-sm font-medium"
+              :class="checkinResult.summary.failed > 0
+                ? 'text-amber-800 dark:text-amber-200'
+                : 'text-green-800 dark:text-green-200'"
+            >
+              {{ checkinResult.summary.failed > 0 ? '签到完成（部分失败）' : '签到完成' }}
             </h3>
-            <div class="mt-2 text-sm text-green-700 dark:text-green-300">
-              <p>
-                成功: {{ checkinResult.summary.success }} /
-                已签到: {{ checkinResult.summary.already_checked_in }} /
-                失败: {{ checkinResult.summary.failed }} /
-                总计: {{ checkinResult.summary.total }}
-              </p>
+          </div>
+          <!-- 汇总统计 -->
+          <div
+            class="mt-2 text-sm"
+            :class="checkinResult.summary.failed > 0
+              ? 'text-amber-700 dark:text-amber-300'
+              : 'text-green-700 dark:text-green-300'"
+          >
+            <p>
+              成功: {{ checkinResult.summary.success }} /
+              已签到: {{ checkinResult.summary.already_checked_in }} /
+              失败: {{ checkinResult.summary.failed }} /
+              总计: {{ checkinResult.summary.total }}
+            </p>
+          </div>
+          <!-- 失败账号详情 -->
+          <div
+            v-if="failedCheckinResults.length > 0"
+            class="mt-3 space-y-2"
+          >
+            <p class="text-xs font-medium text-red-600 dark:text-red-400">
+              失败账号:
+            </p>
+            <div class="space-y-1.5">
+              <div
+                v-for="item in failedCheckinResults"
+                :key="item.account_id"
+                class="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/30 rounded-md border border-red-200 dark:border-red-800"
+              >
+                <XCircle class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-medium text-red-800 dark:text-red-200">
+                      {{ item.account_name }}
+                    </span>
+                    <span class="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300 rounded">
+                      {{ item.provider_name }}
+                    </span>
+                  </div>
+                  <p
+                    v-if="item.message"
+                    class="text-xs text-red-600 dark:text-red-400 mt-0.5 break-all"
+                  >
+                    {{ item.message }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <button
-          class="text-green-400 hover:text-green-500"
+          class="ml-3 flex-shrink-0"
+          :class="checkinResult.summary.failed > 0
+            ? 'text-amber-400 hover:text-amber-500'
+            : 'text-green-400 hover:text-green-500'"
           @click="checkinResult = null"
         >
           <svg
@@ -540,10 +599,10 @@
         </div>
         <div
           v-else
-          class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+          class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
         >
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50/80 dark:bg-gray-700/50 backdrop-blur-sm sticky top-0">
+            <thead class="bg-gray-50/80 dark:bg-gray-700/50 backdrop-blur-sm sticky top-0 rounded-t-xl">
               <tr>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   账号名
@@ -657,26 +716,26 @@
                           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                         </svg>
                       </button>
-                      <!-- 下拉菜单 -->
+                      <!-- 下拉菜单 (向上弹出) -->
                       <div
                         v-if="openMenuAccountId === account.id"
-                        class="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10"
+                        class="absolute right-0 bottom-full mb-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
                       >
                         <button
                           class="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg"
-                          @click="refreshAccountBalance(account.id)"
+                          @click="refreshAccountBalance(account.id); openMenuAccountId = null"
                         >
                           刷新余额
                         </button>
                         <button
                           class="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          @click="openAccountModal(account)"
+                          @click="openAccountModal(account); openMenuAccountId = null"
                         >
                           编辑
                         </button>
                         <button
                           class="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-lg"
-                          @click="deleteAccount(account.id)"
+                          @click="deleteAccount(account.id); openMenuAccountId = null"
                         >
                           删除
                         </button>
@@ -1104,7 +1163,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ClipboardList,
@@ -1199,22 +1258,28 @@ const totalStatistics = computed(() => {
 // 计算属性：过滤后的账号列表
 const filteredAccounts = computed(() => {
   let result = accounts.value
-  
+
   // 按搜索词过滤
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    result = result.filter(account => 
+    result = result.filter(account =>
       account.name.toLowerCase().includes(query) ||
       (account.provider_name && account.provider_name.toLowerCase().includes(query))
     )
   }
-  
+
   // 按提供商过滤
   if (providerFilter.value !== 'all') {
     result = result.filter(account => account.provider_id === providerFilter.value)
   }
-  
+
   return result
+})
+
+// 计算属性：失败的签到结果
+const failedCheckinResults = computed(() => {
+  if (!checkinResult.value) return []
+  return checkinResult.value.results.filter(r => r.status === 'Failed')
 })
 
 // Tab 配置
@@ -1617,7 +1682,19 @@ const getStatusText = (status: string) => {
   }
 }
 
+// 点击页面其他地方关闭菜单
+const closeMenuOnClickOutside = (e: MouseEvent) => {
+  if (openMenuAccountId.value && !(e.target as HTMLElement).closest('.relative')) {
+    openMenuAccountId.value = null
+  }
+}
+
 onMounted(() => {
   loadAllData()
+  document.addEventListener('click', closeMenuOnClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeMenuOnClickOutside)
 })
 </script>
