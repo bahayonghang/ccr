@@ -171,6 +171,78 @@ pub struct CodexAuthTokens {
     pub account_id: Option<String>,
 }
 
+// ==================== 导入/导出数据结构 ====================
+
+/// Codex Auth 导出格式
+///
+/// 用于导入/导出账号数据
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexAuthExport {
+    /// 导出格式版本
+    #[serde(default = "default_export_version")]
+    pub version: String,
+
+    /// 导出时间
+    pub exported_at: DateTime<Utc>,
+
+    /// 账号数据
+    pub accounts: IndexMap<String, CodexAuthExportAccount>,
+}
+
+fn default_export_version() -> String {
+    "1.0".to_string()
+}
+
+/// 导出的账号数据
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexAuthExportAccount {
+    /// 账号描述
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+
+    /// 账号 ID (从 auth.json 提取)
+    pub account_id: String,
+
+    /// 邮箱 (脱敏后存储)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+
+    /// 保存时间
+    pub saved_at: DateTime<Utc>,
+
+    /// 最后使用时间
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_used: Option<DateTime<Utc>>,
+
+    /// 最后刷新时间 (从 auth.json 提取)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_refresh: Option<DateTime<Utc>>,
+
+    /// 完整的 auth.json 数据（可选，根据 include_secrets 决定）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth_data: Option<CodexAuthJson>,
+}
+
+/// 导入模式
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ImportMode {
+    /// 合并模式：保留现有账号，只添加新的
+    Merge,
+    /// 替换模式：覆盖同名账号
+    Replace,
+}
+
+/// 导入结果
+#[derive(Debug, Clone, Default)]
+pub struct ImportResult {
+    /// 新增账号数
+    pub added: usize,
+    /// 更新账号数
+    pub updated: usize,
+    /// 跳过账号数
+    pub skipped: usize,
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {

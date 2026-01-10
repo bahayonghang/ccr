@@ -13,8 +13,8 @@ pub mod sync_folder;
 
 // 重新导出常用类型
 pub use codex_auth::{
-    CodexAuthAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CurrentAuthInfo, LoginState,
-    TokenFreshness,
+    CodexAuthAccount, CodexAuthExport, CodexAuthExportAccount, CodexAuthItem, CodexAuthJson,
+    CodexAuthRegistry, CurrentAuthInfo, ImportMode, ImportResult, LoginState, TokenFreshness,
 };
 // 测试时需要的类型
 #[cfg(test)]

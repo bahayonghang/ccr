@@ -79,4 +79,39 @@ pub enum CodexAuthAction {
     /// 显示当前 ~/.codex/auth.json 的账号信息
     /// 示例: ccr codex auth current
     Current,
+
+    /// 导出所有账号到 JSON 文件
+    ///
+    /// 将所有已保存的账号导出为 JSON 格式
+    /// 示例: ccr codex auth export
+    ///       ccr codex auth export -o accounts.json
+    ///       ccr codex auth export --no-secrets  # 不包含 Token
+    Export {
+        /// 输出文件路径 (默认输出到标准输出)
+        #[arg(short, long)]
+        output: Option<String>,
+
+        /// 不包含敏感信息 (Token 等)
+        #[arg(long)]
+        no_secrets: bool,
+    },
+
+    /// 从 JSON 文件导入账号
+    ///
+    /// 从 JSON 文件导入账号数据
+    /// 示例: ccr codex auth import accounts.json
+    ///       ccr codex auth import accounts.json --replace  # 替换模式
+    ///       ccr codex auth import accounts.json --force    # 强制覆盖
+    Import {
+        /// 输入文件路径
+        input: String,
+
+        /// 使用替换模式 (覆盖同名账号)
+        #[arg(long)]
+        replace: bool,
+
+        /// 强制覆盖 (在合并模式下覆盖已存在的账号)
+        #[arg(short, long)]
+        force: bool,
+    },
 }

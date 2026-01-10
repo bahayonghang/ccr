@@ -10,8 +10,8 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::models::{
-    CodexAuthAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CurrentAuthInfo, LoginState,
-    TokenFreshness,
+    CodexAuthAccount, CodexAuthExport, CodexAuthExportAccount, CodexAuthItem, CodexAuthJson,
+    CodexAuthRegistry, CurrentAuthInfo, ImportMode, ImportResult, LoginState, TokenFreshness,
 };
 use chrono::{DateTime, Duration, Utc};
 use std::path::PathBuf;
@@ -625,6 +625,161 @@ impl CodexAuthService {
             // 不是有效邮箱格式，直接返回
             email.to_string()
         }
+    }
+
+    // ==================== 导入/导出 ====================
+
+    /// 导出所有账号到 JSON
+    ///
+    /// # 参数
+    ///
+    /// * `include_secrets` - 是否包含完整的 auth.json 数据（Token 等敏感信息）
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(String)` - JSON 格式的导出数据
+    /// * `Err(CcrError)` - 导出失败
+    pub fn export_accounts(&self, include_secrets: bool) -> Result<String> {
+        let registry = self.load_registry()?;
+
+        let mut export_accounts = indexmap::IndexMap::new();
+
+        for (name, account) in &registry.accounts {
+            let auth_data = if include_secrets {
+                // 读取完整的 auth.json
+                let auth_path = self.account_auth_path(name);
+                if auth_path.exists() {
+                    let content = fs::read_to_string(&auth_path)
+                        .map_err(|e| CcrError::ConfigError(format!("读取账号文件失败: {}", e)))?;
+                    Some(
+                        serde_json::from_str(&content).map_err(|e| {
+                            CcrError::ConfigError(format!("解析账号文件失败: {}", e))
+                        })?,
+                    )
+                } else {
+                    warn!("账号 {} 的 auth 文件不存在", name);
+                    None
+                }
+            } else {
+                None
+            };
+
+            export_accounts.insert(
+                name.clone(),
+                CodexAuthExportAccount {
+                    description: account.description.clone(),
+                    account_id: account.account_id.clone(),
+                    email: account.email.clone(),
+                    saved_at: account.saved_at,
+                    last_used: account.last_used,
+                    last_refresh: account.last_refresh,
+                    auth_data,
+                },
+            );
+        }
+
+        let export = CodexAuthExport {
+            version: "1.0".to_string(),
+            exported_at: Utc::now(),
+            accounts: export_accounts,
+        };
+
+        serde_json::to_string_pretty(&export)
+            .map_err(|e| CcrError::ConfigError(format!("序列化导出数据失败: {}", e)))
+    }
+
+    /// 导入账号数据
+    ///
+    /// # 参数
+    ///
+    /// * `content` - JSON 格式的导入数据
+    /// * `mode` - 导入模式 (Merge/Replace)
+    /// * `force` - 是否强制覆盖（仅在 Merge 模式下有效）
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(ImportResult)` - 导入结果统计
+    /// * `Err(CcrError)` - 导入失败
+    pub fn import_accounts(
+        &self,
+        content: &str,
+        mode: ImportMode,
+        force: bool,
+    ) -> Result<ImportResult> {
+        // 解析导入数据
+        let import_data: CodexAuthExport = serde_json::from_str(content)
+            .map_err(|e| CcrError::ConfigError(format!("解析导入数据失败: {}", e)))?;
+
+        let mut registry = self.load_registry()?;
+        let mut result = ImportResult::default();
+
+        // 确保存储目录存在
+        let auth_storage = self.auth_storage_dir();
+        fs::create_dir_all(&auth_storage)
+            .map_err(|e| CcrError::ConfigError(format!("创建存储目录失败: {}", e)))?;
+
+        for (name, import_account) in import_data.accounts {
+            // 验证账号名称
+            self.validate_account_name(&name)?;
+
+            let exists = registry.accounts.contains_key(&name);
+
+            match mode {
+                ImportMode::Merge => {
+                    if exists && !force {
+                        debug!("跳过已存在的账号: {}", name);
+                        result.skipped += 1;
+                        continue;
+                    }
+                }
+                ImportMode::Replace => {
+                    // Replace 模式允许覆盖
+                }
+            }
+
+            // 保存 auth 文件（如果有）
+            if let Some(auth_data) = &import_account.auth_data {
+                let auth_path = self.account_auth_path(&name);
+                let auth_content = serde_json::to_string_pretty(auth_data)
+                    .map_err(|e| CcrError::ConfigError(format!("序列化 auth 数据失败: {}", e)))?;
+                fs::write(&auth_path, auth_content)
+                    .map_err(|e| CcrError::ConfigError(format!("写入 auth 文件失败: {}", e)))?;
+
+                // 设置文件权限 (Unix)
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let perms = std::fs::Permissions::from_mode(0o600);
+                    let _ = fs::set_permissions(&auth_path, perms);
+                }
+
+                debug!("已写入账号 {} 的 auth 文件", name);
+            }
+
+            // 更新注册表
+            let account = CodexAuthAccount {
+                description: import_account.description,
+                account_id: import_account.account_id,
+                email: import_account.email,
+                saved_at: import_account.saved_at,
+                last_used: import_account.last_used,
+                last_refresh: import_account.last_refresh,
+            };
+
+            registry.accounts.insert(name.clone(), account);
+
+            if exists {
+                debug!("已更新账号: {}", name);
+                result.updated += 1;
+            } else {
+                debug!("已添加账号: {}", name);
+                result.added += 1;
+            }
+        }
+
+        self.save_registry(&registry)?;
+
+        Ok(result)
     }
 }
 
