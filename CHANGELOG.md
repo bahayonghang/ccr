@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.18.0] - 2026-01-10
+
+### ✨ 新功能
+
+- **Droid 平台完整支持**：
+  - 添加 Factory Droid 平台核心支持
+  - 实现后端 Droid 管理器和 API 端点
+  - 添加前端 Custom Models、Profiles 和 Droids 管理界面
+  - 添加 Droid 中英文国际化支持
+- **Tauri 桌面应用增强**：
+  - 添加应用退出确认功能（原生对话框）
+  - 侧边栏新增退出确认开关设置
+  - 更新应用图标并添加生成脚本
+
+### 🔧 改进
+
+- **签到功能优化**：
+  - 签到失败时显示警告样式和失败账号详情
+  - 修复下拉菜单改为向上弹出避免被遮挡
+  - 点击菜单项后自动关闭菜单
+- **代码重构**：
+  - 移除废弃的 migrate 命令及相关代码
+  - 添加 AI Agent 工作流与代码规范规则
+
+### 🐛 修复
+
+- **CI 构建修复**：修复 `--no-default-features` 构建时的 unused 警告
+
+### 📦 依赖更新
+
+- blake3: 1.5.4 → 1.8.3
+- indexmap: 2.12.1 → 2.13.0
+- whoami: 2.0.0 → 2.0.2
+- serde_json: 1.0.148 → 1.0.149
+
+### 🔗 相关资源
+
+- **GitHub Release**：[v3.18.0](https://github.com/bahayonghang/ccr/releases/tag/v3.18.0)
+- **完整变更**：[v3.17.3...v3.18.0](https://github.com/bahayonghang/ccr/compare/v3.17.3...v3.18.0)
+
+---
+
 ## [3.17.3] - 2026-01-05
 
 ### ✨ 新功能
@@ -204,3 +246,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [3.15.0]: https://github.com/bahayonghang/ccr/compare/v3.14.0...v3.15.0
 [3.16.0]: https://github.com/bahayonghang/ccr/compare/v3.15.0...v3.16.0
 [3.17.3]: https://github.com/bahayonghang/ccr/compare/v3.16.0...v3.17.3
+[3.18.0]: https://github.com/bahayonghang/ccr/compare/v3.17.3...v3.18.0
