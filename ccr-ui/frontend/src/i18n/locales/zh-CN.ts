@@ -1312,6 +1312,11 @@ export default {
           description: 'Codex 快捷命令管理',
           badge: '⌨️ 命令'
         },
+        auth: {
+          title: '认证管理',
+          description: 'Codex 认证账户切换和管理',
+          badge: '🔑 认证'
+        },
         plugins: {
           title: '插件管理',
           description: 'Codex 插件配置管理',
@@ -1604,6 +1609,67 @@ export default {
         operationFailed: '操作失败',
         deleteFailed: '删除失败',
         toggleFailed: '切换状态失败'
+      }
+    },
+
+    // Auth module
+    auth: {
+      title: '认证管理',
+      subtitle: '管理 Codex 认证账户',
+      breadcrumb: '认证管理',
+      backToCodex: '返回 Codex',
+      saveAccount: '保存账户',
+      currentSession: '当前会话',
+      quickSwitch: '快速切换',
+      listTitle: '账户列表',
+      refresh: '刷新',
+      emptyState: '暂无保存的账户',
+      emptyStateHint: '请先登录 Codex，然后将当前会话保存为账户',
+      currentBadge: '当前',
+      virtualBadge: '虚拟',
+      virtual: '虚拟',
+      switch: '切换到此账户',
+      forceOverwrite: '如果账户已存在则强制覆盖',
+      processWarning: '警告：检测到 Codex 进程',
+      processDetected: '检测到 Codex 进程 (PIDs: {pids})，切换可能导致问题',
+      confirmSwitch: '确定要切换到账户 "{name}" 吗？',
+      confirmDelete: '确定要删除账户 "{name}" 吗？',
+      status: {
+        loginState: '登录状态',
+        totalAccounts: '账户总数',
+        currentAccount: '当前账户',
+        noAccount: '无',
+        notAvailable: '不可用'
+      },
+      loginState: {
+        loggedInSaved: '已登录 ({name})',
+        loggedInUnsaved: '已登录 (未保存)',
+        notLoggedIn: '未登录'
+      },
+      fields: {
+        accountId: '账户 ID',
+        email: '邮箱',
+        tokenFreshness: 'Token 新鲜度',
+        lastRefresh: '上次刷新',
+        lastUsed: '上次使用',
+        accountName: '账户名称',
+        description: '描述'
+      },
+      placeholders: {
+        accountName: '输入账户名称',
+        description: '可选描述'
+      },
+      validation: {
+        nameRequired: '请输入账户名称'
+      },
+      messages: {
+        loadFailed: '加载认证信息失败',
+        saveFailed: '保存账户失败',
+        switchFailed: '切换账户失败',
+        deleteFailed: '删除账户失败',
+        saveSuccess: '账户保存成功',
+        switchSuccess: '账户切换成功',
+        deleteSuccess: '账户删除成功'
       }
     },
 

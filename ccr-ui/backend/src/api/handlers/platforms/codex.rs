@@ -429,3 +429,230 @@ pub async fn update_codex_base_config(Json(config): Json<CodexConfig>) -> impl I
         }
     })
 }
+
+// ============ Auth 账号管理 ============
+
+use ccr::models::{LoginState as CcrLoginState, TokenFreshness as CcrTokenFreshness};
+use ccr::services::CodexAuthService;
+
+/// 将 ccr 的 TokenFreshness 转换为 API 模型
+fn convert_freshness(freshness: CcrTokenFreshness) -> TokenFreshness {
+    match freshness {
+        CcrTokenFreshness::Fresh => TokenFreshness::Fresh,
+        CcrTokenFreshness::Stale => TokenFreshness::Stale,
+        CcrTokenFreshness::Old => TokenFreshness::Old,
+        CcrTokenFreshness::Unknown => TokenFreshness::Unknown,
+    }
+}
+
+/// 将 ccr 的 LoginState 转换为 API 模型
+fn convert_login_state(state: CcrLoginState) -> LoginState {
+    match state {
+        CcrLoginState::NotLoggedIn => LoginState::NotLoggedIn,
+        CcrLoginState::LoggedInUnsaved => LoginState::LoggedInUnsaved,
+        CcrLoginState::LoggedInSaved(name) => LoginState::LoggedInSaved(name),
+    }
+}
+
+/// GET /api/codex/auth/accounts - 列出所有 Codex Auth 账号
+pub async fn list_codex_auth_accounts() -> impl IntoResponse {
+    let result = tokio::task::spawn_blocking(move || {
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {}", e))?;
+
+        let accounts = service
+            .list_accounts()
+            .map_err(|e| format!("列出账号失败: {}", e))?;
+
+        let login_state = service
+            .get_login_state()
+            .map_err(|e| format!("获取登录状态失败: {}", e))?;
+
+        let accounts: Vec<CodexAuthAccountItem> = accounts
+            .into_iter()
+            .map(|item| {
+                let freshness = convert_freshness(item.freshness);
+                CodexAuthAccountItem {
+                    name: item.name,
+                    description: item.description,
+                    email: item.email,
+                    is_current: item.is_current,
+                    is_virtual: item.is_virtual,
+                    last_used: item.last_used.map(|dt| dt.to_rfc3339()),
+                    last_refresh: item.last_refresh.map(|dt| dt.to_rfc3339()),
+                    freshness,
+                    freshness_icon: freshness.icon().to_string(),
+                    freshness_description: freshness.description().to_string(),
+                }
+            })
+            .collect();
+
+        Ok::<_, String>((accounts, convert_login_state(login_state)))
+    })
+    .await;
+
+    match result {
+        Ok(Ok((accounts, login_state))) => ok(CodexAuthListResponse {
+            accounts,
+            login_state,
+        })
+        .into_response(),
+        Ok(Err(e)) => internal_error(format!("列出 Codex Auth 账号失败: {}", e)).into_response(),
+        Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
+    }
+}
+
+/// GET /api/codex/auth/current - 获取当前 Codex Auth 信息
+pub async fn get_codex_auth_current() -> impl IntoResponse {
+    let result = tokio::task::spawn_blocking(move || {
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {}", e))?;
+
+        let login_state = service
+            .get_login_state()
+            .map_err(|e| format!("获取登录状态失败: {}", e))?;
+
+        let info = match service.get_current_auth_info() {
+            Ok(current) => {
+                let freshness = convert_freshness(current.freshness);
+                Some(CodexAuthCurrentInfo {
+                    account_id: current.account_id,
+                    email: current.email,
+                    last_refresh: current.last_refresh.map(|dt| dt.to_rfc3339()),
+                    freshness,
+                    freshness_icon: freshness.icon().to_string(),
+                    freshness_description: freshness.description().to_string(),
+                })
+            }
+            Err(_) => None,
+        };
+
+        let logged_in = info.is_some();
+
+        Ok::<_, String>((logged_in, info, convert_login_state(login_state)))
+    })
+    .await;
+
+    match result {
+        Ok(Ok((logged_in, info, login_state))) => ok(CodexAuthCurrentResponse {
+            logged_in,
+            info,
+            login_state,
+        })
+        .into_response(),
+        Ok(Err(e)) => {
+            internal_error(format!("获取当前 Codex Auth 信息失败: {}", e)).into_response()
+        }
+        Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
+    }
+}
+
+/// POST /api/codex/auth/save - 保存当前登录到命名账号
+pub async fn save_codex_auth(Json(req): Json<CodexAuthSaveRequest>) -> impl IntoResponse {
+    let result = tokio::task::spawn_blocking(move || {
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {}", e))?;
+
+        service
+            .save_current(&req.name, req.description, req.force)
+            .map_err(|e| format!("{}", e))?;
+
+        Ok::<_, String>(req.name)
+    })
+    .await;
+
+    match result {
+        Ok(Ok(name)) => {
+            ok_message(format!("Codex Auth 账号 '{}' 已成功保存", name)).into_response()
+        }
+        Ok(Err(e)) => bad_request(format!("保存 Codex Auth 账号失败: {}", e)).into_response(),
+        Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
+    }
+}
+
+/// POST /api/codex/auth/switch/{name} - 切换到指定账号
+pub async fn switch_codex_auth(Path(name): Path<String>) -> impl IntoResponse {
+    let name_for_response = name.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {}", e))?;
+
+        service
+            .switch_account(&name)
+            .map_err(|e| format!("{}", e))?;
+
+        Ok::<_, String>(())
+    })
+    .await;
+
+    match result {
+        Ok(Ok(())) => {
+            ok_message(format!("已切换到 Codex Auth 账号 '{}'", name_for_response)).into_response()
+        }
+        Ok(Err(e)) => bad_request(format!("切换 Codex Auth 账号失败: {}", e)).into_response(),
+        Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
+    }
+}
+
+/// DELETE /api/codex/auth/{name} - 删除指定账号
+pub async fn delete_codex_auth(Path(name): Path<String>) -> impl IntoResponse {
+    let name_for_response = name.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {}", e))?;
+
+        service
+            .delete_account(&name)
+            .map_err(|e| format!("{}", e))?;
+
+        Ok::<_, String>(())
+    })
+    .await;
+
+    match result {
+        Ok(Ok(())) => ok_message(format!(
+            "Codex Auth 账号 '{}' 已成功删除",
+            name_for_response
+        ))
+        .into_response(),
+        Ok(Err(e)) => not_found(format!("删除 Codex Auth 账号失败: {}", e)).into_response(),
+        Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
+    }
+}
+
+/// GET /api/codex/auth/process - 检测运行中的 Codex 进程
+pub async fn detect_codex_process() -> impl IntoResponse {
+    let result = tokio::task::spawn_blocking(move || {
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {}", e))?;
+
+        let pids = service.detect_codex_process();
+        let has_running_process = !pids.is_empty();
+
+        let warning = if has_running_process {
+            Some(format!(
+                "检测到 {} 个运行中的 Codex 进程 (PID: {})，切换账号前请先关闭这些进程",
+                pids.len(),
+                pids.iter()
+                    .map(|p| p.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ))
+        } else {
+            None
+        };
+
+        Ok::<_, String>(CodexAuthProcessResponse {
+            has_running_process,
+            pids,
+            warning,
+        })
+    })
+    .await;
+
+    match result {
+        Ok(Ok(response)) => ok(response).into_response(),
+        Ok(Err(e)) => internal_error(format!("检测 Codex 进程失败: {}", e)).into_response(),
+        Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
+    }
+}

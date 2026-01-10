@@ -8,6 +8,7 @@
 // - ✅ 统一错误处理和验证
 
 pub mod backup_service;
+pub mod codex_auth_service;
 pub mod config_service;
 pub mod health_check;
 pub mod history_service;
@@ -20,6 +21,8 @@ pub mod validate_service;
 // Service 层为将来扩展准备,部分功能暂未在命令层使用
 #[allow(unused_imports)]
 pub use backup_service::BackupService;
+#[allow(unused_imports)]
+pub use codex_auth_service::CodexAuthService;
 #[allow(unused_imports)]
 pub use config_service::ConfigService;
 #[allow(unused_imports)]

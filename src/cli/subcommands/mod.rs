@@ -3,11 +3,13 @@
 // 定义所有需要独立出来的子命令枚举
 
 pub mod check;
+pub mod codex;
 pub mod platform;
 pub mod sync;
 pub mod ui;
 
 pub use check::CheckAction;
+pub use codex::{CodexAction, CodexAuthAction};
 pub use platform::PlatformAction;
 #[cfg(feature = "web")]
 pub use sync::{AllSyncAction, FolderAction, SyncAction};

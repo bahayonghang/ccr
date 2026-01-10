@@ -3,7 +3,7 @@
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.18.0"
+version = "3.18.1"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher (Rust implementation)"
@@ -86,6 +86,7 @@ ratatui = { version = "0.30.0", optional = true }   # TUI 框架 (基于 crosste
 sysinfo = { version = "0.37.2", optional = true }   # 系统信息获取 (CPU, 内存)
 tower = { workspace = true, optional = true }       # 网络服务组件 (中间件)
 tower-http = { workspace = true, optional = true }  # HTTP 中间件 (CORS 等)
+base64 = "0.22.1"
 
 # ═══════════════════════════════════════════════════════════
 # 🏗️ Workspace

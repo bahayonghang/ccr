@@ -214,6 +214,136 @@ pub struct CodexConfigResponse {
     pub config: CodexConfig,
 }
 
+// ============ Auth 管理 API 模型 ============
+
+/// Token 新鲜度状态
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TokenFreshness {
+    /// 新鲜 (< 1 天)
+    Fresh,
+    /// 陈旧 (1-7 天)
+    Stale,
+    /// 过期 (> 7 天)
+    Old,
+    /// 未知 (无法解析时间)
+    Unknown,
+}
+
+impl TokenFreshness {
+    /// 获取显示图标
+    pub fn icon(&self) -> &'static str {
+        match self {
+            TokenFreshness::Fresh => "🟢",
+            TokenFreshness::Stale => "🟡",
+            TokenFreshness::Old => "🔴",
+            TokenFreshness::Unknown => "⚪",
+        }
+    }
+
+    /// 获取描述文本
+    pub fn description(&self) -> &'static str {
+        match self {
+            TokenFreshness::Fresh => "Token 状态良好",
+            TokenFreshness::Stale => "Token 可能需要刷新",
+            TokenFreshness::Old => "Token 可能已过期，建议重新登录",
+            TokenFreshness::Unknown => "无法确定 Token 状态",
+        }
+    }
+}
+
+/// 登录状态
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "type", content = "account_name")]
+pub enum LoginState {
+    /// 未登录 (auth.json 不存在)
+    NotLoggedIn,
+    /// 已登录但未保存
+    LoggedInUnsaved,
+    /// 已登录且已保存 (账号名)
+    LoggedInSaved(String),
+}
+
+/// 账号列表项 (用于 API 响应)
+#[derive(Debug, Clone, Serialize)]
+pub struct CodexAuthAccountItem {
+    /// 账号名称
+    pub name: String,
+    /// 账号描述
+    pub description: Option<String>,
+    /// 脱敏后的邮箱
+    pub email: Option<String>,
+    /// 是否为当前激活账号
+    pub is_current: bool,
+    /// 是否为虚拟项 (未保存的 default)
+    pub is_virtual: bool,
+    /// 最后使用时间 (ISO 8601)
+    pub last_used: Option<String>,
+    /// 最后刷新时间 (ISO 8601)
+    pub last_refresh: Option<String>,
+    /// Token 新鲜度
+    pub freshness: TokenFreshness,
+    /// 新鲜度图标
+    pub freshness_icon: String,
+    /// 新鲜度描述
+    pub freshness_description: String,
+}
+
+/// 当前 auth 信息
+#[derive(Debug, Clone, Serialize)]
+pub struct CodexAuthCurrentInfo {
+    /// 账号 ID
+    pub account_id: String,
+    /// 邮箱 (脱敏)
+    pub email: Option<String>,
+    /// 最后刷新时间 (ISO 8601)
+    pub last_refresh: Option<String>,
+    /// Token 新鲜度
+    pub freshness: TokenFreshness,
+    /// 新鲜度图标
+    pub freshness_icon: String,
+    /// 新鲜度描述
+    pub freshness_description: String,
+}
+
+/// 列出账号的响应
+#[derive(Debug, Serialize)]
+pub struct CodexAuthListResponse {
+    pub accounts: Vec<CodexAuthAccountItem>,
+    pub login_state: LoginState,
+}
+
+/// 获取当前 auth 信息的响应
+#[derive(Debug, Serialize)]
+pub struct CodexAuthCurrentResponse {
+    pub logged_in: bool,
+    pub info: Option<CodexAuthCurrentInfo>,
+    pub login_state: LoginState,
+}
+
+/// 保存当前登录的请求
+#[derive(Debug, Deserialize)]
+pub struct CodexAuthSaveRequest {
+    /// 账号名称
+    pub name: String,
+    /// 账号描述 (可选)
+    pub description: Option<String>,
+    /// 是否强制覆盖
+    #[serde(default)]
+    pub force: bool,
+}
+
+/// 进程检测响应
+#[derive(Debug, Serialize)]
+pub struct CodexAuthProcessResponse {
+    /// 是否有运行中的 Codex 进程
+    pub has_running_process: bool,
+    /// 运行中的进程 PID 列表
+    pub pids: Vec<u32>,
+    /// 警告消息
+    pub warning: Option<String>,
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {

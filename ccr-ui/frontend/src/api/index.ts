@@ -251,6 +251,13 @@ export {
   updateCodexPlugin,
   deleteCodexPlugin,
   toggleCodexPlugin,
+  // Codex Auth (web-only)
+  listCodexAuthAccounts,
+  getCodexAuthCurrent,
+  saveCodexAuth,
+  switchCodexAuth,
+  deleteCodexAuth,
+  detectCodexProcess,
 
   // Gemini (web-only)
   listGeminiMcpServers,

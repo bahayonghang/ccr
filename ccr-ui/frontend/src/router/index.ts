@@ -192,6 +192,11 @@ const router = createRouter({
           name: 'codex-slash-commands',
           component: () => import('@/views/CodexSlashCommandsView.vue')
         },
+        {
+          path: 'codex/auth',
+          name: 'codex-auth',
+          component: () => import('@/views/CodexAuthView.vue')
+        },
         // Gemini CLI 子页面
         {
           path: 'gemini-cli/mcp',

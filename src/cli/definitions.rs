@@ -415,6 +415,18 @@ pub enum Commands {
         action: super::subcommands::check::CheckAction,
     },
 
+    /// 🔐 Codex 多账号管理
+    ///
+    /// 管理 Codex CLI 的多账号登录状态
+    /// 示例: ccr codex auth list
+    ///       ccr codex auth save my-account
+    ///       ccr codex auth switch work
+    /// 提示: 直接运行 `ccr codex` 可启动 TUI 界面
+    Codex {
+        #[command(subcommand)]
+        action: Option<super::subcommands::codex::CodexAction>,
+    },
+
     /// 📚 Session 管理
     ///
     /// 管理 AI CLI 的会话记录

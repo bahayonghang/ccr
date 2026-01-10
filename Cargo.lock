@@ -459,10 +459,11 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.18.0"
+version = "3.18.1"
 dependencies = [
  "anyhow",
  "axum",
+ "base64",
  "blake3",
  "chrono",
  "clap",
@@ -503,7 +504,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-ui-backend"
-version = "3.18.0"
+version = "3.18.1"
 dependencies = [
  "aes-gcm",
  "anyhow",

@@ -236,9 +236,9 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { 
+import {
   Settings, Server, Home, Command, Code2, Boxes, Info,
-  Zap, Activity, ArrowRight, Lightbulb, Cpu 
+  Zap, Activity, ArrowRight, Lightbulb, Cpu, KeyRound
 } from 'lucide-vue-next'
 
 import Breadcrumb from '@/components/Breadcrumb.vue'
@@ -283,6 +283,16 @@ const modules = computed(() => [
     color: 'var(--accent-tertiary)',
     bgClass: 'bg-pink-500/10',
     badgeClass: 'bg-pink-500/10 text-pink-500 border-pink-500/20'
+  },
+  {
+    path: '/codex/auth',
+    title: t('codex.overview.modules.auth.title'),
+    description: t('codex.overview.modules.auth.description'),
+    badge: t('codex.overview.modules.auth.badge'),
+    icon: KeyRound,
+    color: 'var(--accent-warning)',
+    bgClass: 'bg-amber-500/10',
+    badgeClass: 'bg-amber-500/10 text-amber-500 border-amber-500/20'
   }
 ])
 
