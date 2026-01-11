@@ -46,11 +46,11 @@
           >
             <stop
               offset="0%"
-              stop-color="rgba(59, 130, 246, 0.25)"
+              stop-color="rgba(var(--color-info-rgb), 0.25)"
             />
             <stop
               offset="100%"
-              stop-color="rgba(59, 130, 246, 0.02)"
+              stop-color="rgba(var(--color-info-rgb), 0.02)"
             />
           </linearGradient>
         </defs>
@@ -188,26 +188,26 @@ const tooltipStyle = computed(() => {
 }
 
 .grid-line {
-  stroke: rgba(148, 163, 184, 0.15);
+  stroke: rgba(var(--color-gray-rgb), 0.15);
   stroke-width: 1;
 }
 
 .axis-label {
   font-size: 10px;
-  fill: #94a3b8;
+  fill: var(--text-muted);
   text-anchor: end;
 }
 
 .trend-line {
   fill: none;
-  stroke: #3b82f6;
+  stroke: var(--accent-info);
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .data-point {
-  fill: #3b82f6;
+  fill: var(--accent-info);
   stroke: white;
   stroke-width: 2;
   cursor: pointer;
@@ -222,17 +222,17 @@ const tooltipStyle = computed(() => {
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   padding: 0.5rem 45px 0;
 }
 
 .chart-tooltip {
   position: absolute;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: var(--glass-bg-heavy);
+  border: 1px solid var(--border-color);
   border-radius: 0.6rem;
   padding: 0.85rem;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-medium);
   font-size: 0.8rem;
   min-width: 160px;
   pointer-events: none;
@@ -241,47 +241,47 @@ const tooltipStyle = computed(() => {
 
 .tooltip-date {
   font-weight: 600;
-  color: #334155;
+  color: var(--text-primary);
   margin-bottom: 0.6rem;
   padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .tooltip-row {
   display: flex;
   justify-content: space-between;
   margin-top: 0.3rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .tooltip-value {
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--accent-info);
 }
 
 .tooltip-increment {
   font-weight: 600;
-  color: #10b981;
+  color: var(--accent-success);
 }
 
 :global(.dark) .chart-tooltip {
-  background: rgba(15, 23, 42, 0.98);
-  border-color: rgba(51, 65, 85, 0.8);
+  background: rgba(var(--color-slate-dark-rgb), 0.98);
+  border-color: rgba(var(--color-slate-rgb), 0.8);
 }
 
 :global(.dark) .tooltip-date {
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 :global(.dark) .tooltip-row {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 :global(.dark) .grid-line {
-  stroke: rgba(51, 65, 85, 0.4);
+  stroke: rgba(var(--color-slate-rgb), 0.4);
 }
 
 :global(.dark) .axis-label {
-  fill: #64748b;
+  fill: var(--text-secondary);
 }
 </style>

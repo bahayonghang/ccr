@@ -133,35 +133,35 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 }
 
 .cell-checked {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(var(--color-success-rgb), 0.12);
+  border-color: rgba(var(--color-success-rgb), 0.3);
 }
 
 .cell-unchecked {
-  background: rgba(148, 163, 184, 0.08);
-  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(var(--color-gray-rgb), 0.08);
+  border-color: rgba(var(--color-gray-rgb), 0.2);
 }
 
 .cell-today {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+  border-color: var(--accent-info) !important;
+  box-shadow: 0 0 0 2px rgba(var(--color-info-rgb), 0.3);
 }
 
 .day-number {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-primary);
   line-height: 1;
 }
 
 .cell-checked .day-number {
-  color: #059669;
+  color: var(--accent-success);
 }
 
 .day-increment {
   font-size: 0.55rem;
   font-weight: 500;
-  color: #10b981;
+  color: var(--accent-success);
   line-height: 1;
 }
 
@@ -172,32 +172,32 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 }
 
 .legend-dot.checked {
-  background: #10b981;
+  background: var(--accent-success);
 }
 
 .legend-dot.unchecked {
-  background: #cbd5e1;
+  background: var(--border-color);
 }
 
 .legend-dot.today {
-  border: 2px solid #3b82f6;
+  border: 2px solid var(--accent-info);
 }
 
 :global(.dark) .day-number {
-  color: #e2e8f0;
+  color: var(--text-primary);
 }
 
 :global(.dark) .cell-checked .day-number {
-  color: #34d399;
+  color: var(--accent-success);
 }
 
 :global(.dark) .cell-checked {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(var(--color-success-rgb), 0.2);
+  border-color: rgba(var(--color-success-rgb), 0.4);
 }
 
 :global(.dark) .cell-unchecked {
-  background: rgba(51, 65, 85, 0.4);
-  border-color: rgba(51, 65, 85, 0.6);
+  background: rgba(var(--color-slate-rgb), 0.4);
+  border-color: rgba(var(--color-slate-rgb), 0.6);
 }
 </style>

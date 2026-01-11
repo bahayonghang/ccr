@@ -1,44 +1,24 @@
 <template>
   <aside
-    class="sticky top-6 h-fit rounded-2xl p-4 transition-all duration-300"
-    :style="{
-      background: 'rgba(255, 255, 255, 0.6)',
-      backdropFilter: 'blur(16px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-      border: '1px solid rgba(255, 255, 255, 0.4)',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-      maxHeight: 'calc(100vh - 160px)',
-      overflowY: 'auto'
-    }"
+    class="sticky top-6 h-fit rounded-2xl p-4 transition-all duration-300 glass-sidebar"
   >
     <!-- 🔍 标题和统计 -->
     <div class="flex items-center justify-between mb-4">
       <h2
-        class="text-base font-bold flex items-center gap-2"
-        :style="{ color: '#0f172a' }"
+        class="text-base font-bold flex items-center gap-2 text-primary"
       >
         <Layers class="w-4 h-4 text-emerald-500" />
         快速导航
       </h2>
       <div class="flex items-center gap-1.5 text-xs">
         <span
-          class="px-2 py-0.5 rounded-full font-semibold"
-          :style="{
-            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15))',
-            color: '#10b981',
-            border: '1px solid rgba(16, 185, 129, 0.2)'
-          }"
+          class="px-2 py-0.5 rounded-full font-semibold stat-badge-success"
         >
           {{ filteredConfigs.length }}
         </span>
-        <span :style="{ color: 'var(--text-muted)' }">/</span>
+        <span class="text-muted">/</span>
         <span
-          class="px-2 py-0.5 rounded-full font-semibold"
-          :style="{
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(14, 165, 233, 0.15))',
-            color: '#06b6d4',
-            border: '1px solid rgba(6, 182, 212, 0.2)'
-          }"
+          class="px-2 py-0.5 rounded-full font-semibold stat-badge-info"
         >
           {{ configs.length }}
         </span>
@@ -48,28 +28,19 @@
     <!-- 🔍 搜索框 -->
     <div class="relative mb-4">
       <Search
-        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-        :style="{ color: 'var(--text-muted)' }"
+        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
       />
       <input
         v-model="searchQuery"
         type="text"
         placeholder="搜索配置..."
-        class="w-full pl-9 pr-3 py-2 text-sm rounded-xl transition-all duration-200 outline-none"
-        :style="{
-          background: 'rgba(255, 255, 255, 0.6)',
-          border: '1px solid rgba(16, 185, 129, 0.2)',
-          color: '#0f172a'
-        }"
-        @focus="($event.target as HTMLInputElement).style.borderColor = 'rgba(16, 185, 129, 0.5)'"
-        @blur="($event.target as HTMLInputElement).style.borderColor = 'rgba(16, 185, 129, 0.2)'"
+        class="w-full pl-9 pr-3 py-2 text-sm rounded-xl transition-all duration-200 outline-none search-input"
       >
     </div>
 
     <!-- 📊 分类标签快速筛选 -->
     <div
-      class="grid grid-cols-2 gap-2 mb-4 pb-4"
-      :style="{ borderBottom: '1px solid rgba(16, 185, 129, 0.12)' }"
+      class="grid grid-cols-2 gap-2 mb-4 pb-4 category-filter-section"
     >
       <button
         v-for="category in categories"
@@ -116,19 +87,16 @@
           @click="toggleCategory('official_relay')"
         >
           <ChevronDown
-            class="w-3 h-3 transition-transform"
+            class="w-3 h-3 transition-transform text-info"
             :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'official_relay' }"
-            :style="{ color: '#3b82f6' }"
           />
           <span
-            class="text-[10px] font-bold uppercase tracking-wide"
-            :style="{ color: '#3b82f6' }"
+            class="text-[10px] font-bold uppercase tracking-wide text-info"
           >
             官方中转
           </span>
           <span
-            class="text-[9px]"
-            :style="{ color: 'var(--text-muted)' }"
+            class="text-[9px] text-muted"
           >
             ({{ officialRelayConfigs.length }})
           </span>
@@ -150,19 +118,16 @@
           @click="toggleCategory('third_party_model')"
         >
           <ChevronDown
-            class="w-3 h-3 transition-transform"
+            class="w-3 h-3 transition-transform text-purple"
             :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'third_party_model' }"
-            :style="{ color: '#a855f7' }"
           />
           <span
-            class="text-[10px] font-bold uppercase tracking-wide"
-            :style="{ color: '#a855f7' }"
+            class="text-[10px] font-bold uppercase tracking-wide text-purple"
           >
             第三方模型
           </span>
           <span
-            class="text-[9px]"
-            :style="{ color: 'var(--text-muted)' }"
+            class="text-[9px] text-muted"
           >
             ({{ thirdPartyConfigs.length }})
           </span>
@@ -184,19 +149,16 @@
           @click="toggleCategory('uncategorized')"
         >
           <ChevronDown
-            class="w-3 h-3 transition-transform"
+            class="w-3 h-3 transition-transform text-muted"
             :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'uncategorized' }"
-            :style="{ color: 'var(--text-muted)' }"
           />
           <span
-            class="text-[10px] font-bold uppercase tracking-wide"
-            :style="{ color: 'var(--text-muted)' }"
+            class="text-[10px] font-bold uppercase tracking-wide text-muted"
           >
             未分类
           </span>
           <span
-            class="text-[9px]"
-            :style="{ color: 'var(--text-muted)' }"
+            class="text-[9px] text-muted"
           >
             ({{ uncategorizedConfigs.length }})
           </span>
@@ -218,12 +180,10 @@
       class="text-center py-6"
     >
       <Search
-        class="w-5 h-5 mx-auto mb-2"
-        :style="{ color: 'var(--text-muted)' }"
+        class="w-5 h-5 mx-auto mb-2 text-muted"
       />
       <p
-        class="text-xs"
-        :style="{ color: 'var(--text-muted)' }"
+        class="text-xs text-muted"
       >
         未找到配置
       </p>
@@ -326,38 +286,95 @@ const categories = computed(() => [
     key: 'all' as FilterType,
     label: '全部',
     count: props.configs.length,
-    activeBackground: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15))',
-    activeColor: '#10b981',
-    activeBorder: 'rgba(16, 185, 129, 0.3)'
+    activeBackground: 'linear-gradient(135deg, rgba(var(--color-success-rgb), 0.15), rgba(var(--color-cyan-rgb), 0.15))',
+    activeColor: 'var(--color-success)',
+    activeBorder: 'rgba(var(--color-success-rgb), 0.3)'
   },
   {
     key: 'official_relay' as FilterType,
     label: '官方中转',
     count: props.configs.filter(c => c.provider_type === 'OfficialRelay' || c.provider_type === 'official_relay').length,
-    activeBackground: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(14, 165, 233, 0.15))',
-    activeColor: '#06b6d4',
-    activeBorder: 'rgba(6, 182, 212, 0.3)'
+    activeBackground: 'linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.15), rgba(var(--color-info-rgb), 0.15))',
+    activeColor: 'var(--color-cyan)',
+    activeBorder: 'rgba(var(--color-cyan-rgb), 0.3)'
   },
   {
     key: 'third_party_model' as FilterType,
     label: '第三方',
     count: props.configs.filter(c => c.provider_type === 'ThirdPartyModel' || c.provider_type === 'third_party_model').length,
-    activeBackground: 'linear-gradient(135deg, rgba(20, 184, 166, 0.15), rgba(34, 197, 94, 0.15))',
-    activeColor: '#14b8a6',
-    activeBorder: 'rgba(20, 184, 166, 0.3)'
+    activeBackground: 'linear-gradient(135deg, rgba(var(--color-teal-rgb), 0.15), rgba(var(--color-success-rgb), 0.15))',
+    activeColor: 'var(--color-teal)',
+    activeBorder: 'rgba(var(--color-teal-rgb), 0.3)'
   },
   {
     key: 'uncategorized' as FilterType,
     label: '未分类',
     count: props.configs.filter(c => !c.provider_type).length,
-    activeBackground: 'rgba(107, 114, 128, 0.12)',
-    activeColor: '#64748b',
-    activeBorder: 'rgba(107, 114, 128, 0.25)'
+    activeBackground: 'rgba(var(--color-gray-rgb), 0.12)',
+    activeColor: 'var(--text-muted)',
+    activeBorder: 'rgba(var(--color-gray-rgb), 0.25)'
   }
 ])
 </script>
 
 <style scoped>
+/* Glass sidebar effect */
+.glass-sidebar {
+  background: var(--glass-bg-medium);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--glass-border-medium);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-border-light);
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+}
+
+/* Text utility classes */
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-info {
+  color: var(--accent-info);
+}
+
+.text-purple {
+  color: var(--color-purple);
+}
+
+/* Stat badges */
+.stat-badge-success {
+  background: linear-gradient(135deg, rgba(var(--color-success-rgb), 0.15), rgba(var(--color-cyan-rgb), 0.15));
+  color: var(--accent-success);
+  border: 1px solid rgba(var(--color-success-rgb), 0.2);
+}
+
+.stat-badge-info {
+  background: linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.15), rgba(var(--color-info-rgb), 0.15));
+  color: var(--color-cyan);
+  border: 1px solid rgba(var(--color-cyan-rgb), 0.2);
+}
+
+/* Search input */
+.search-input {
+  background: var(--glass-bg-light);
+  border: 1px solid rgba(var(--color-success-rgb), 0.2);
+  color: var(--text-primary);
+}
+
+.search-input:focus {
+  border-color: rgba(var(--color-success-rgb), 0.5);
+}
+
+/* Category filter section */
+.category-filter-section {
+  border-bottom: 1px solid rgba(var(--color-success-rgb), 0.12);
+}
+
 /* 自定义滚动条 */
 aside::-webkit-scrollbar {
   width: 4px;

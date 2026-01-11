@@ -63,7 +63,7 @@
           :style="{
             padding: collapsed ? '12px' : '12px 16px',
             background: hasActiveChild(group.items)
-              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.2))'
+              ? 'linear-gradient(135deg, rgba(var(--color-accent-secondary-rgb), 0.2), rgba(var(--color-accent-secondary-rgb), 0.2))'
               : 'var(--bg-tertiary)',
             border: `1px solid ${hasActiveChild(group.items) ? 'var(--accent-primary)' : 'var(--border-color)'}`,
             color: hasActiveChild(group.items) ? 'var(--accent-primary)' : 'var(--text-primary)'
@@ -107,24 +107,14 @@
             :key="item.href"
             :to="item.href"
             class="flex items-center space-x-3 px-4 py-3 ml-2 rounded-lg transition-all duration-300 relative overflow-hidden group"
-            :class="isActive(item.href) ? 'scale-[1.02]' : 'hover:translate-x-1'"
+            :class="isActive(item.href) ? 'scale-[1.02] nav-item-active-glow' : 'hover:translate-x-1 nav-item-inactive'"
             :style="{
               marginTop: itemIndex > 0 ? '4px' : '0',
               marginBottom: '4px',
-              background: isActive(item.href)
-                ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.95), rgba(139, 92, 246, 0.95))'
-                : 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(10px)',
-              border: isActive(item.href)
-                ? '2px solid rgba(34, 211, 238, 0.8)'
-                : '1px solid rgba(34, 211, 238, 0.2)',
-              boxShadow: isActive(item.href)
-                ? '0 4px 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(168, 85, 247, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                : '0 2px 8px rgba(0, 0, 0, 0.1)',
               color: isActive(item.href) ? 'white' : 'var(--text-secondary)',
               fontWeight: isActive(item.href) ? '600' : '500',
               borderBottom: itemIndex < group.items.length - 1 && !isActive(item.href)
-                ? '1px solid rgba(139, 92, 246, 0.1)'
+                ? '1px solid rgba(var(--color-accent-secondary-rgb), 0.1)'
                 : undefined
             }"
             :aria-current="isActive(item.href) ? 'page' : undefined"
@@ -146,9 +136,9 @@
               :class="isActive(item.href) ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0 group-hover:scale-y-75 group-hover:opacity-50'"
               :style="{
                 background: isActive(item.href)
-                  ? 'linear-gradient(to bottom, #8b5cf6, #a855f7, #c084fc)'
-                  : 'rgba(139, 92, 246, 0.6)',
-                boxShadow: isActive(item.href) ? '0 0 10px #8b5cf6' : undefined
+                  ? 'linear-gradient(to bottom, var(--color-accent-secondary), var(--color-accent-secondary-hover))'
+                  : 'rgba(var(--color-accent-secondary-rgb), 0.6)',
+                boxShadow: isActive(item.href) ? '0 0 10px var(--color-accent-secondary)' : undefined
               }"
               aria-hidden="true"
             />
@@ -192,22 +182,12 @@
             :key="item.href"
             :to="item.href"
             class="flex items-center justify-center px-4 py-3 rounded-lg transition-all duration-300 relative overflow-hidden group"
-            :class="isActive(item.href) ? 'scale-110' : 'hover:scale-105'"
+            :class="isActive(item.href) ? 'scale-110 nav-item-active-glow' : 'hover:scale-105 nav-item-inactive'"
             :style="{
-              background: isActive(item.href)
-                ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.95), rgba(139, 92, 246, 0.95))'
-                : 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(10px)',
-              border: isActive(item.href)
-                ? '2px solid rgba(34, 211, 238, 0.8)'
-                : '1px solid rgba(34, 211, 238, 0.2)',
-              boxShadow: isActive(item.href)
-                ? '0 4px 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(168, 85, 247, 0.3)'
-                : undefined,
               color: isActive(item.href) ? 'white' : 'var(--text-secondary)',
               marginTop: itemIndex > 0 ? '4px' : '0',
               borderBottom: itemIndex < group.items.length - 1 && !isActive(item.href)
-                ? '1px solid rgba(139, 92, 246, 0.15)'
+                ? '1px solid rgba(var(--color-accent-secondary-rgb), 0.15)'
                 : undefined
             }"
             :title="item.name"

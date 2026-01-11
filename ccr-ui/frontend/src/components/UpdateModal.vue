@@ -180,7 +180,7 @@
               <div
                 class="rounded-lg p-4 flex items-start space-x-3"
                 :style="{
-                  background: 'rgba(34, 197, 94, 0.1)',
+                  background: 'rgba(var(--color-success-rgb), 0.1)',
                   border: '1px solid var(--accent-success)'
                 }"
               >
@@ -238,7 +238,7 @@
               <div
                 class="rounded-lg p-4 flex items-start space-x-3"
                 :style="{
-                  background: 'rgba(239, 68, 68, 0.1)',
+                  background: 'rgba(var(--color-danger-rgb), 0.1)',
                   border: '1px solid var(--accent-danger)'
                 }"
               >

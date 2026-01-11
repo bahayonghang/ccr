@@ -1,22 +1,25 @@
 <template>
   <div class="text-center py-12">
     <div
-      :class="iconClass"
-      :style="iconStyle"
+      class="mx-auto w-16 h-16 flex items-center justify-center rounded-full mb-4"
+      :style="{
+        background: 'var(--bg-tertiary)',
+        color: 'var(--text-muted)'
+      }"
     >
       <Command class="w-12 h-12" />
     </div>
 
     <h3
-      :class="titleClass"
-      :style="titleStyle"
+      class="text-lg font-medium mb-2"
+      :style="{ color: 'var(--text-primary)' }"
     >
       {{ titleText }}
     </h3>
 
     <p
-      :class="descriptionClass"
-      :style="descriptionStyle"
+      class="max-w-md mx-auto"
+      :style="{ color: 'var(--text-secondary)' }"
     >
       {{ descriptionText }}
     </p>
@@ -27,8 +30,12 @@
       class="mt-6"
     >
       <button
-        :class="buttonClass"
-        :style="buttonStyle"
+        class="inline-flex items-center px-4 py-2 rounded-lg border transition-colors hover:opacity-80"
+        :style="{
+          background: 'var(--bg-secondary)',
+          color: 'var(--text-secondary)',
+          border: '1px solid var(--border-color)'
+        }"
         @click="$emit('clear-search')"
       >
         {{ $t('common.clearSearch') }}
@@ -40,8 +47,12 @@
       class="mt-6"
     >
       <button
-        :class="buttonClass"
-        :style="buttonStyle"
+        class="inline-flex items-center px-4 py-2 rounded-lg border transition-colors hover:opacity-80"
+        :style="{
+          background: 'var(--bg-secondary)',
+          color: 'var(--text-secondary)',
+          border: '1px solid var(--border-color)'
+        }"
         @click="$emit('clear-filter')"
       >
         {{ $t('common.showAll') }}
@@ -53,8 +64,12 @@
       class="mt-6"
     >
       <button
-        :class="[buttonClass, addButtonClass]"
-        :style="[buttonStyle, addButtonStyle]"
+        class="inline-flex items-center px-4 py-2 rounded-lg border transition-colors hover:opacity-80"
+        :style="{
+          background: 'var(--accent-primary)',
+          color: '#fff',
+          borderColor: 'var(--accent-primary)'
+        }"
         @click="$emit('add-first')"
       >
         <Plus class="w-4 h-4 mr-2" />
@@ -75,16 +90,6 @@ const { t } = useI18n()
 interface Props {
   searchQuery: string
   selectedFolder: string
-  theme: 'claude-code' | 'css-variable'
-  themeColors: {
-    bg: string
-    bgSecondary: string
-    bgTertiary: string
-    primary: string
-    secondary: string
-    accent: string
-    accentBg: string
-  }
 }
 
 const props = defineProps<Props>()
@@ -119,96 +124,6 @@ const descriptionText = computed(() => {
     return t('slashCommands.tryDifferentFolder')
   } else {
     return t('slashCommands.addFirstCommand')
-  }
-})
-
-const iconClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-guofeng-bg-tertiary text-guofeng-text-muted mb-4'
-  }
-  return 'mx-auto w-16 h-16 flex items-center justify-center rounded-full mb-4'
-})
-
-const iconStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      background: 'var(--bg-tertiary)',
-      color: 'var(--text-muted)'
-    }
-  }
-})
-
-const titleClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'text-lg font-medium text-guofeng-text-primary mb-2'
-  }
-  return 'text-lg font-medium mb-2'
-})
-
-const titleStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      color: 'var(--text-primary)'
-    }
-  }
-})
-
-const descriptionClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'text-guofeng-text-secondary max-w-md mx-auto'
-  }
-  return 'max-w-md mx-auto'
-})
-
-const descriptionStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      color: 'var(--text-secondary)'
-    }
-  }
-})
-
-const buttonClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'inline-flex items-center px-4 py-2 rounded-lg border border-guofeng-border bg-guofeng-bg-secondary text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary hover:text-guofeng-text-primary transition-colors'
-  }
-  return 'inline-flex items-center px-4 py-2 rounded-lg border'
-})
-
-const buttonStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      background: 'var(--bg-secondary)',
-      color: 'var(--text-secondary)',
-      border: '1px solid var(--border-color)'
-    }
-  }
-})
-
-const addButtonClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'bg-guofeng-amber text-white hover:bg-guofeng-amber/90 border-guofeng-amber'
-  }
-  return ''
-})
-
-const addButtonStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      background: 'var(--accent-primary)',
-      color: '#fff',
-      borderColor: 'var(--accent-primary)'
-    }
   }
 })
 </script>

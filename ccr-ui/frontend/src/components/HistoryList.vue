@@ -71,9 +71,9 @@
         :key="entry.id"
         class="relative glass-card p-5 rounded-xl transition-all duration-300 hover:scale-[1.01]"
         :style="{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1.5px solid rgba(139, 92, 246, 0.2)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+          background: 'var(--glass-bg-light)',
+          border: '1.5px solid rgba(var(--color-accent-secondary-rgb), 0.2)',
+          boxShadow: 'var(--shadow-lg)',
           animationDelay: `${index * 0.05}s`
         }"
       >
@@ -156,8 +156,8 @@
               <div
                 class="px-3 py-1.5 rounded-md text-sm font-mono font-semibold"
                 :style="{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  color: '#ef4444'
+                  background: 'rgba(var(--color-danger-rgb), 0.15)',
+                  color: 'var(--accent-danger)'
                 }"
               >
                 {{ entry.from_config }}
@@ -169,8 +169,8 @@
               <div
                 class="px-3 py-1.5 rounded-md text-sm font-mono font-semibold"
                 :style="{
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#10b981'
+                  background: 'rgba(var(--color-success-rgb), 0.15)',
+                  color: 'var(--accent-success)'
                 }"
               >
                 {{ entry.to_config }}

@@ -13,9 +13,9 @@
         <!-- Header & Status Section -->
         <section class="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <!-- Hero Card -->
-          <NeoCard 
+          <GuofengCard
             class="lg:col-span-2 relative overflow-hidden group"
-            :padding="'lg'"
+            padding="lg"
             :gradient-border="true"
             glow-color="primary"
           >
@@ -48,12 +48,12 @@
                 </span>
               </div>
             </div>
-          </NeoCard>
+          </GuofengCard>
 
           <!-- Status Cards -->
           <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Active Profile -->
-            <NeoCard
+            <GuofengCard
               :interactive="false"
               class="flex flex-col justify-center"
             >
@@ -70,10 +70,10 @@
                   </p>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
 
             <!-- Total Profiles -->
-            <NeoCard
+            <GuofengCard
               :interactive="false"
               class="flex flex-col justify-center"
             >
@@ -90,10 +90,10 @@
                   </p>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
 
             <!-- System Status (Mock) -->
-            <NeoCard
+            <GuofengCard
               :interactive="false"
               class="flex flex-col justify-center"
             >
@@ -110,10 +110,10 @@
                   </p>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
               
             <!-- Quick Actions -->
-            <NeoCard
+            <GuofengCard
               :interactive="false"
               class="flex flex-col justify-center items-start gap-2"
             >
@@ -123,7 +123,7 @@
               <button class="w-full text-left text-sm font-medium text-accent-primary hover:underline flex items-center gap-1">
                 See Documentation <ArrowRight class="w-3 h-3" />
               </button>
-            </NeoCard>
+            </GuofengCard>
           </div>
         </section>
 
@@ -138,7 +138,7 @@
            
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Profiles Module -->
-            <NeoCard 
+            <GuofengCard 
               v-for="module in modules" 
               :key="module.path"
               :interactive="true"
@@ -181,14 +181,14 @@
                   <ArrowRight class="w-4 h-4 ml-1" />
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
           </div>
         </section>
 
         <!-- Info & Tips Section -->
         <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Codex Features -->
-          <NeoCard>
+          <GuofengCard>
             <div class="flex items-center gap-2 mb-4">
               <Cpu class="w-5 h-5 text-platform-codex" />
               <h3 class="text-lg font-bold text-text-primary">
@@ -205,10 +205,10 @@
                 <span class="text-sm text-text-secondary">{{ feature }}</span>
               </div>
             </div>
-          </NeoCard>
+          </GuofengCard>
 
           <!-- Tips Card -->
-          <NeoCard>
+          <GuofengCard>
             <div class="flex items-center gap-2 mb-4">
               <Info class="w-5 h-5 text-platform-codex" />
               <h3 class="text-lg font-bold text-text-primary">
@@ -225,7 +225,7 @@
                 </p>
               </div>
             </div>
-          </NeoCard>
+          </GuofengCard>
         </section>
       </div>
     </div>
@@ -242,7 +242,7 @@ import {
 } from 'lucide-vue-next'
 
 import Breadcrumb from '@/components/Breadcrumb.vue'
-import NeoCard from '@/components/ui/NeoCard.vue'
+import GuofengCard from '@/components/common/GuofengCard.vue'
 import { listCodexProfiles } from '@/api'
 
 const router = useRouter()

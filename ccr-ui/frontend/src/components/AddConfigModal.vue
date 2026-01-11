@@ -14,14 +14,7 @@
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"
-      class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-8 transition-all duration-300"
-      :style="{
-        background: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        border: '1px solid rgba(255, 255, 255, 0.3)',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
-      }"
+      class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-8 transition-all duration-300 glass-modal"
     >
       <!-- 标题栏 -->
       <div class="flex items-center justify-between mb-6">
@@ -54,7 +47,7 @@
         <button
           class="p-2 rounded-lg transition-all hover:scale-110"
           :style="{
-            background: 'rgba(0, 0, 0, 0.05)',
+            background: 'var(--color-bg-overlay)',
             color: 'var(--text-secondary)'
           }"
           :aria-label="$t('common.close')"
@@ -79,14 +72,14 @@
             type="button"
             class="p-3 rounded-xl text-left transition-all hover:scale-[1.02]"
             :style="{
-              background: selectedTemplate === template.id 
-                ? `linear-gradient(135deg, ${template.color}20, ${template.color}10)` 
-                : 'rgba(255, 255, 255, 0.5)',
-              border: selectedTemplate === template.id 
-                ? `2px solid ${template.color}` 
-                : '1px solid rgba(0, 0, 0, 0.1)',
-              boxShadow: selectedTemplate === template.id 
-                ? `0 4px 12px ${template.color}30` 
+              background: selectedTemplate === template.id
+                ? `linear-gradient(135deg, ${template.color}20, ${template.color}10)`
+                : 'var(--glass-bg)',
+              border: selectedTemplate === template.id
+                ? `2px solid ${template.color}`
+                : '1px solid var(--glass-border)',
+              boxShadow: selectedTemplate === template.id
+                ? `0 4px 12px ${template.color}30`
                 : 'none'
             }"
             @click="applyTemplate(template)"
@@ -113,7 +106,7 @@
       <!-- 分割线 -->
       <div
         class="mb-6 h-px"
-        :style="{ background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent)' }"
+        :style="{ background: 'linear-gradient(90deg, transparent, var(--color-border-default), transparent)' }"
       />
 
       <!-- 表单内容 -->
@@ -135,8 +128,8 @@
             required
             class="w-full px-4 py-3 rounded-xl transition-all"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)'
             }"
             :placeholder="$t('configs.addConfig.namePlaceholder')"
@@ -156,8 +149,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)'
             }"
             :placeholder="$t('configs.addConfig.descriptionPlaceholder')"
@@ -178,8 +171,8 @@
             required
             class="w-full px-4 py-3 rounded-xl transition-all"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)'
             }"
             placeholder="https://api.example.com"
@@ -200,8 +193,8 @@
             required
             class="w-full px-4 py-3 rounded-xl transition-all font-mono"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)'
             }"
             :placeholder="$t('configs.addConfig.tokenPlaceholder')"
@@ -221,8 +214,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)'
             }"
             :placeholder="$t('configs.addConfig.modelPlaceholder')"
@@ -242,8 +235,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)'
             }"
             :placeholder="$t('configs.addConfig.smallModelPlaceholder') || 'claude-3-haiku-20240307'"
@@ -262,8 +255,8 @@
             v-model="formData.provider_type"
             class="w-full px-4 py-3 rounded-xl transition-all cursor-pointer"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)'
             }"
           >
@@ -292,8 +285,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)'
             }"
             :placeholder="$t('configs.addConfig.providerNamePlaceholder') || '如: anyrouter, glm, moonshot'"
@@ -319,8 +312,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)'
             }"
             :placeholder="$t('configs.addConfig.accountPlaceholder') || '如: github_5953, personal, work'"
@@ -346,8 +339,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)'
             }"
             :placeholder="$t('configs.addConfig.tagsPlaceholder') || '用逗号分隔，如: free, stable, backup'"
@@ -368,7 +361,7 @@
             class="flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             :style="{
               background: 'var(--gradient-primary)',
-              boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)'
+              boxShadow: '0 4px 16px rgba(var(--color-success-rgb), 0.3)'
             }"
           >
             {{ saving ? $t('configs.addConfig.saving') : $t('configs.addConfig.save') }}

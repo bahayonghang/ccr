@@ -16,7 +16,7 @@
       <div
         class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{
-          background: 'linear-gradient(135deg, #10b981 0%, #f59e0b 100%)',
+          background: 'linear-gradient(135deg, var(--accent-success) 0%, var(--accent-warning) 100%)',
           animationDelay: '2s'
         }"
       />
@@ -30,7 +30,7 @@
           { label: $t('sync.breadcrumb.claudeCode'), path: '/claude-code', icon: Code2 },
           { label: $t('sync.breadcrumb.sync'), path: '/sync', icon: Cloud }
         ]"
-        module-color="#6366f1"
+        module-color="var(--accent-primary)"
       />
 
       <div class="mb-12">
@@ -38,11 +38,11 @@
           <div class="flex items-center gap-4">
             <div
               class="p-4 rounded-3xl glass-card"
-              :style="{ background: 'rgba(6, 182, 212, 0.1)' }"
+              :style="{ background: 'rgba(var(--color-cyan-rgb), 0.1)' }"
             >
               <Cloud
                 class="w-10 h-10"
-                :style="{ color: '#06b6d4' }"
+                :style="{ color: 'var(--accent-cyan)' }"
               />
             </div>
             <div>
@@ -63,7 +63,7 @@
           >
             <Home
               class="w-5 h-5"
-              :style="{ color: '#64748b' }"
+              :style="{ color: 'var(--text-muted)' }"
             />
             <span
               class="font-medium"
@@ -93,7 +93,7 @@
       >
         <div
           class="p-3 rounded-2xl"
-          :style="{ background: 'rgba(239, 68, 68, 0.1)' }"
+          :style="{ background: 'rgba(var(--color-danger-rgb), 0.1)' }"
         >
           <XCircle
             class="w-7 h-7"
@@ -130,7 +130,7 @@
               <div class="flex items-center gap-3">
                 <div
                   class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
+                  :style="{ background: 'rgba(var(--color-success-rgb), 0.1)' }"
                 >
                   <CheckSquare
                     class="w-6 h-6"
@@ -147,7 +147,7 @@
               <button
                 :disabled="applying || !hasChanges"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                :style="{ background: applying || !hasChanges ? 'rgba(156, 163, 175, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: applying || !hasChanges ? '#9ca3af' : 'var(--accent-success)' }"
+                :style="{ background: applying || !hasChanges ? 'rgba(var(--color-gray-rgb), 0.1)' : 'rgba(var(--color-success-rgb), 0.1)', color: applying || !hasChanges ? 'var(--text-muted)' : 'var(--accent-success)' }"
                 @click="applySelection"
               >
                 <Save class="w-4 h-4" />
@@ -158,12 +158,12 @@
             <!-- Config (required) -->
             <div
               class="mb-6 p-5 rounded-xl glass-card"
-              :style="{ background: 'rgba(245, 158, 11, 0.05)' }"
+              :style="{ background: 'rgba(var(--color-warning-rgb), 0.05)' }"
             >
               <div class="flex items-center gap-4">
                 <div
                   class="p-2 rounded-xl"
-                  :style="{ background: 'rgba(245, 158, 11, 0.15)' }"
+                  :style="{ background: 'rgba(var(--color-warning-rgb), 0.15)' }"
                 >
                   <CheckCircle
                     class="w-6 h-6"
@@ -180,7 +180,7 @@
                     </h3>
                     <span
                       class="px-2.5 py-1 rounded-full text-xs font-bold"
-                      :style="{ background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-warning)' }"
+                      :style="{ background: 'rgba(var(--color-warning-rgb), 0.2)', color: 'var(--accent-warning)' }"
                     >
                       {{ $t('sync.platformSelection.configRequiredBadge') }}
                     </span>
@@ -194,7 +194,7 @@
                   <div class="flex items-center gap-2">
                     <Folder
                       class="w-4 h-4"
-                      :style="{ color: '#94a3b8' }"
+                      :style="{ color: 'var(--text-muted)' }"
                     />
                     <input
                       v-model="presetItems.config.localPath"
@@ -214,8 +214,8 @@
                 v-for="(item, index) in optionalItems"
                 :key="item.key"
                 class="p-5 rounded-xl glass-card cursor-pointer hover:scale-[1.02] transition-all duration-300"
-                :style="{ 
-                  background: item.selected ? 'rgba(99, 102, 241, 0.05)' : 'transparent',
+                :style="{
+                  background: item.selected ? 'rgba(var(--color-accent-primary-rgb), 0.05)' : 'transparent',
                   animationDelay: `${index * 0.05}s`
                 }"
                 @click="toggleItem(item.key)"
@@ -224,15 +224,15 @@
                   <div class="flex-shrink-0">
                     <div
                       class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300"
-                      :style="{ 
-                        background: item.selected ? 'rgba(99, 102, 241, 0.15)' : 'rgba(156, 163, 175, 0.1)',
-                        border: item.selected ? '2px solid #6366f1' : '2px solid #e5e7eb'
+                      :style="{
+                        background: item.selected ? 'rgba(var(--color-accent-primary-rgb), 0.15)' : 'rgba(var(--color-gray-rgb), 0.1)',
+                        border: item.selected ? '2px solid var(--color-accent-primary)' : '2px solid var(--border-color)'
                       }"
                     >
                       <Check
                         v-if="item.selected"
                         class="w-4 h-4"
-                        :style="{ color: '#6366f1' }"
+                        :style="{ color: 'var(--color-accent-primary)' }"
                       />
                     </div>
                   </div>
@@ -240,12 +240,12 @@
                     <div class="flex items-center gap-3 mb-2">
                       <div
                         class="p-2 rounded-lg"
-                        :style="{ background: 'rgba(99, 102, 241, 0.1)' }"
+                        :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
                       >
                         <component
                           :is="item.icon"
                           class="w-5 h-5"
-                          :style="{ color: '#6366f1' }"
+                          :style="{ color: 'var(--color-accent-primary)' }"
                         />
                       </div>
                       <h3
@@ -269,7 +269,7 @@
                       <div class="flex items-center gap-2">
                         <Folder
                           class="w-4 h-4"
-                          :style="{ color: '#94a3b8' }"
+                          :style="{ color: 'var(--text-muted)' }"
                         />
                         <input
                           v-model="item.localPath"
@@ -282,7 +282,7 @@
                       <div class="flex items-center gap-2">
                         <Cloud
                           class="w-4 h-4"
-                          :style="{ color: '#94a3b8' }"
+                          :style="{ color: 'var(--text-muted)' }"
                         />
                         <input
                           v-model="item.remotePath"
@@ -301,12 +301,12 @@
             <!-- Custom folder -->
             <div
               class="mt-6 p-5 rounded-xl glass-card"
-              :style="{ background: 'rgba(139, 92, 246, 0.05)' }"
+              :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.05)' }"
             >
               <div class="flex items-center gap-3 mb-4">
                 <div
                   class="p-2 rounded-xl"
-                  :style="{ background: 'rgba(139, 92, 246, 0.15)' }"
+                  :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.15)' }"
                 >
                   <Plus
                     class="w-5 h-5"
@@ -353,7 +353,7 @@
               <button
                 :disabled="!customFolder.name || !customFolder.localPath || addingCustom"
                 class="w-full px-4 py-2.5 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--accent-secondary)' }"
+                :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
                 @click="addCustomFolder"
               >
                 <Plus class="w-5 h-5" />
@@ -368,7 +368,7 @@
               <div class="flex items-center gap-3">
                 <div
                   class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(59, 130, 246, 0.1)' }"
+                  :style="{ background: 'rgba(var(--color-info-rgb), 0.1)' }"
                 >
                   <Folders
                     class="w-6 h-6"
@@ -384,7 +384,7 @@
               </div>
               <button
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card transition-all duration-300 hover:scale-105"
-                :style="{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-info)' }"
+                :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
                 @click="refreshFolders"
               >
                 <RefreshCw
@@ -400,11 +400,11 @@
             >
               <div
                 class="p-4 rounded-2xl inline-block"
-                :style="{ background: 'rgba(156, 163, 175, 0.1)' }"
+                :style="{ background: 'rgba(var(--color-gray-rgb), 0.1)' }"
               >
                 <FolderOpen
                   class="w-16 h-16"
-                  :style="{ color: '#9ca3af' }"
+                  :style="{ color: 'var(--text-muted)' }"
                 />
               </div>
               <p
@@ -443,8 +443,8 @@
                       <span
                         class="px-3 py-1 rounded-full text-sm font-medium"
                         :style="{
-                          background: folder.enabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(156, 163, 175, 0.15)',
-                          color: folder.enabled ? 'var(--accent-success)' : '#9ca3af'
+                          background: folder.enabled ? 'rgba(var(--color-success-rgb), 0.15)' : 'rgba(var(--color-gray-rgb), 0.15)',
+                          color: folder.enabled ? 'var(--accent-success)' : 'var(--text-muted)'
                         }"
                       >
                         {{ folder.enabled ? $t('sync.enabledFolders.enabled') : $t('sync.enabledFolders.disabled') }}
@@ -480,7 +480,7 @@
                 <div class="flex flex-wrap gap-2">
                   <button
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
-                    :style="{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)' }"
+                    :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)', color: 'var(--accent-primary)' }"
                     @click="toggleFolder(folder.name, folder.enabled)"
                   >
                     <ToggleLeft class="w-4 h-4" />
@@ -489,7 +489,7 @@
                   <button
                     :disabled="!folder.enabled"
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    :style="{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-success)' }"
+                    :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', color: 'var(--accent-success)' }"
                     @click="pushFolder(folder.name)"
                   >
                     <Upload class="w-4 h-4" />
@@ -498,7 +498,7 @@
                   <button
                     :disabled="!folder.enabled"
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--accent-secondary)' }"
+                    :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
                     @click="pullFolder(folder.name)"
                   >
                     <Download class="w-4 h-4" />
@@ -506,7 +506,7 @@
                   </button>
                   <button
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
-                    :style="{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-info)' }"
+                    :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
                     @click="getFolderStatus(folder.name)"
                   >
                     <Info class="w-4 h-4" />
@@ -514,7 +514,7 @@
                   </button>
                   <button
                     class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
-                    :style="{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)' }"
+                    :style="{ background: 'rgba(var(--color-danger-rgb), 0.1)', color: 'var(--accent-danger)' }"
                     @click="removeFolder(folder.name)"
                   >
                     <Trash2 class="w-4 h-4" />
@@ -530,7 +530,7 @@
             <div class="flex items-center gap-3 mb-4">
               <div
                 class="p-3 rounded-2xl"
-                :style="{ background: 'rgba(245, 158, 11, 0.1)' }"
+                :style="{ background: 'rgba(var(--color-warning-rgb), 0.1)' }"
               >
                 <Layers
                   class="w-6 h-6"
@@ -555,7 +555,7 @@
               <button
                 :disabled="batchOperating || enabledFolders.length === 0"
                 class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                :style="{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-success)' }"
+                :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', color: 'var(--accent-success)' }"
                 @click="pushAllFolders"
               >
                 <Upload class="w-5 h-5" />
@@ -564,7 +564,7 @@
               <button
                 :disabled="batchOperating || enabledFolders.length === 0"
                 class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--accent-secondary)' }"
+                :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
                 @click="pullAllFolders"
               >
                 <Download class="w-5 h-5" />
@@ -573,7 +573,7 @@
               <button
                 :disabled="batchOperating || enabledFolders.length === 0"
                 class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                :style="{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-info)' }"
+                :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
                 @click="getAllFoldersStatus"
               >
                 <Info class="w-5 h-5" />
@@ -591,7 +591,7 @@
               <div class="flex items-center gap-3">
                 <div
                   class="p-2 rounded-xl"
-                  :style="{ background: 'rgba(99, 102, 241, 0.1)' }"
+                  :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
                 >
                   <Terminal
                     class="w-5 h-5"
@@ -607,12 +607,12 @@
               </div>
               <button
                 class="p-2 rounded-lg glass-card transition-all duration-300 hover:scale-110"
-                :style="{ background: 'rgba(156, 163, 175, 0.1)' }"
+                :style="{ background: 'rgba(var(--color-gray-rgb), 0.1)' }"
                 @click="operationOutput = ''"
               >
                 <XCircle
                   class="w-4 h-4"
-                  :style="{ color: '#9ca3af' }"
+                  :style="{ color: 'var(--text-muted)' }"
                 />
               </button>
             </div>
@@ -630,7 +630,7 @@
             <div class="flex items-center gap-3 mb-6">
               <div
                 class="p-3 rounded-2xl"
-                :style="{ background: 'rgba(99, 102, 241, 0.1)' }"
+                :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
               >
                 <Settings
                   class="w-6 h-6"
@@ -651,7 +651,7 @@
             >
               <div
                 class="flex items-center gap-3 px-4 py-3 rounded-xl"
-                :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
+                :style="{ background: 'rgba(var(--color-success-rgb), 0.1)' }"
               >
                 <CheckCircle
                   class="w-5 h-5"
@@ -715,7 +715,7 @@
             >
               <div
                 class="flex items-center gap-3 px-4 py-3 rounded-xl"
-                :style="{ background: 'rgba(245, 158, 11, 0.1)' }"
+                :style="{ background: 'rgba(var(--color-warning-rgb), 0.1)' }"
               >
                 <AlertCircle
                   class="w-5 h-5"
@@ -744,7 +744,7 @@
             <div class="flex items-center gap-3 mb-6">
               <div
                 class="p-3 rounded-2xl"
-                :style="{ background: 'rgba(236, 72, 153, 0.1)' }"
+                :style="{ background: 'rgba(var(--color-accent-tertiary-rgb), 0.1)' }"
               >
                 <BookOpen
                   class="w-6 h-6"
@@ -807,7 +807,7 @@
             <div class="flex items-center gap-3 mb-6">
               <div
                 class="p-3 rounded-2xl"
-                :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
+                :style="{ background: 'rgba(var(--color-success-rgb), 0.1)' }"
               >
                 <Server
                   class="w-6 h-6"

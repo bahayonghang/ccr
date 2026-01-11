@@ -74,7 +74,7 @@
               v-for="server in servers"
               :key="server.name"
               class="group rounded-lg p-4 transition-all duration-300"
-              :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }"
+              :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(var(--color-accent-primary-rgb), 0.12)', outline: 'none', cursor: 'default' }"
               @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
               @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
             >
@@ -436,12 +436,12 @@ const removeEnvVar = (key: string) => {
 const onCardHover = (el: HTMLElement, hover: boolean) => {
   if (hover) {
     el.style.background = 'rgba(255, 255, 255, 0.9)'
-    el.style.borderColor = 'rgba(99, 102, 241, 0.24)'
+    el.style.borderColor = 'rgba(var(--color-accent-primary-rgb), 0.24)'
     el.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.08)'
     el.style.transform = 'translateY(-2px)'
   } else {
     el.style.background = 'rgba(255, 255, 255, 0.7)'
-    el.style.borderColor = 'rgba(99, 102, 241, 0.12)'
+    el.style.borderColor = 'rgba(var(--color-accent-primary-rgb), 0.12)'
     el.style.boxShadow = 'none'
     el.style.transform = 'translateY(0)'
   }

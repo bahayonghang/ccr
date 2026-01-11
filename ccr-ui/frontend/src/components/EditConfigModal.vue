@@ -16,33 +16,26 @@
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"
-      class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-8 transition-all duration-300"
-      :style="{
-        background: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        border: '1px solid rgba(255, 255, 255, 0.3)',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
-      }"
+      class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-8 transition-all duration-300 glass-modal"
     >
       <!-- 标题栏 -->
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
           <div
             class="p-3 rounded-xl"
-            :style="{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))' }"
+            :style="{ background: 'linear-gradient(135deg, rgba(var(--color-accent-primary-rgb), 0.2), rgba(var(--color-accent-secondary-rgb), 0.2))' }"
           >
             <Settings
               class="w-6 h-6"
-              :style="{ color: '#6366f1' }"
+              :style="{ color: 'var(--color-accent-primary)' }"
             />
           </div>
           <div>
             <h2
               :id="titleId"
               class="text-2xl font-bold"
-              :style="{ 
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              :style="{
+                background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'
@@ -61,7 +54,7 @@
         <button
           class="p-2 rounded-lg transition-all hover:scale-110"
           :style="{
-            background: 'rgba(0, 0, 0, 0.05)',
+            background: 'var(--color-bg-overlay)',
             color: 'var(--text-secondary)'
           }"
           aria-label="关闭"
@@ -79,8 +72,8 @@
         <div
           class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
           :style="{
-            borderTopColor: '#6366f1',
-            borderRightColor: '#8b5cf6'
+            borderTopColor: 'var(--color-accent-primary)',
+            borderRightColor: 'var(--color-accent-secondary)'
           }"
         />
       </div>
@@ -95,7 +88,7 @@
         <div>
           <label
             class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: '#10b981' }"
+            :style="{ color: 'var(--color-success)' }"
           >
             📝 描述
           </label>
@@ -104,8 +97,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg-medium)',
+              border: '1px solid var(--color-border-default)',
               color: 'var(--text-primary)'
             }"
             placeholder="配置描述"
@@ -116,7 +109,7 @@
         <div>
           <label
             class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: '#3b82f6' }"
+            :style="{ color: 'var(--color-info)' }"
           >
             🌐 Base URL
           </label>
@@ -126,8 +119,8 @@
             required
             class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg-medium)',
+              border: '1px solid var(--color-border-default)',
               color: 'var(--text-primary)'
             }"
             placeholder="https://api.claude.ai"
@@ -138,7 +131,7 @@
         <div>
           <label
             class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: '#f59e0b' }"
+            :style="{ color: 'var(--color-warning)' }"
           >
             🔑 Auth Token
           </label>
@@ -148,8 +141,8 @@
             required
             class="w-full px-4 py-3 rounded-xl transition-all font-mono text-sm focus:ring-2 focus:ring-indigo-500/50"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg-medium)',
+              border: '1px solid var(--color-border-default)',
               color: 'var(--text-primary)'
             }"
             placeholder="sk-ant-..."
@@ -160,7 +153,7 @@
         <div>
           <label
             class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: '#8b5cf6' }"
+            :style="{ color: 'var(--color-accent-secondary)' }"
           >
             🤖 Model
           </label>
@@ -169,8 +162,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg-medium)',
+              border: '1px solid var(--color-border-default)',
               color: 'var(--text-primary)'
             }"
             placeholder="claude-sonnet-4-5-20250929"
@@ -181,7 +174,7 @@
         <div>
           <label
             class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: '#06b6d4' }"
+            :style="{ color: 'var(--color-accent-primary)' }"
           >
             ⚡ Small Fast Model
           </label>
@@ -190,8 +183,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg-medium)',
+              border: '1px solid var(--color-border-default)',
               color: 'var(--text-primary)'
             }"
             placeholder="claude-3-haiku-20240307"
@@ -202,7 +195,7 @@
         <div>
           <label
             class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: '#ec4899' }"
+            :style="{ color: 'var(--color-danger)' }"
           >
             🏷️ Provider Type
           </label>
@@ -210,8 +203,8 @@
             v-model="formData.provider_type"
             class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg-medium)',
+              border: '1px solid var(--color-border-default)',
               color: 'var(--text-primary)'
             }"
           >
@@ -231,7 +224,7 @@
         <div>
           <label
             class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: '#14b8a6' }"
+            :style="{ color: 'var(--color-success)' }"
           >
             🏢 提供商名称
           </label>
@@ -240,8 +233,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg-medium)',
+              border: '1px solid var(--color-border-default)',
               color: 'var(--text-primary)'
             }"
             placeholder="如: anyrouter, glm, moonshot"
@@ -258,7 +251,7 @@
         <div>
           <label
             class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: '#f97316' }"
+            :style="{ color: 'var(--color-warning)' }"
           >
             👤 账号标识
           </label>
@@ -267,8 +260,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg-medium)',
+              border: '1px solid var(--color-border-default)',
               color: 'var(--text-primary)'
             }"
             placeholder="如: github_5953, personal, work"
@@ -285,7 +278,7 @@
         <div>
           <label
             class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: '#a855f7' }"
+            :style="{ color: 'var(--color-accent-secondary)' }"
           >
             🏷️ 标签
           </label>
@@ -294,8 +287,8 @@
             type="text"
             class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
             :style="{
-              background: 'rgba(255, 255, 255, 0.5)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--glass-bg-medium)',
+              border: '1px solid var(--color-border-default)',
               color: 'var(--text-primary)'
             }"
             placeholder="用逗号分隔，如: free, stable, backup"
@@ -314,7 +307,7 @@
             type="button"
             class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
             :style="{
-              background: 'rgba(0, 0, 0, 0.05)',
+              background: 'var(--color-bg-overlay)',
               color: 'var(--text-secondary)'
             }"
             @click="handleClose"
@@ -326,8 +319,8 @@
             :disabled="saving"
             class="flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 flex items-center justify-center gap-2"
             :style="{
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
+              background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))',
+              boxShadow: '0 4px 16px rgba(var(--color-accent-primary-rgb), 0.3)'
             }"
           >
             {{ saving ? '⏳ 保存中...' : '💾 保存' }}

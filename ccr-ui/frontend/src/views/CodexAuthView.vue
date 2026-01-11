@@ -53,7 +53,7 @@
           <!-- Status Cards -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Login State -->
-            <NeoCard
+            <GuofengCard
               :gradient-border="true"
               :glow-color="loginStateColor"
               class="relative overflow-hidden group"
@@ -77,10 +77,10 @@
                   </p>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
 
             <!-- Total Accounts -->
-            <NeoCard
+            <GuofengCard
               :interactive="true"
               glow-color="primary"
               class="group"
@@ -98,10 +98,10 @@
                   </p>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
 
             <!-- Current Account -->
-            <NeoCard
+            <GuofengCard
               :interactive="true"
               :glow-color="currentAccount ? 'success' : 'secondary'"
               class="group"
@@ -122,11 +122,11 @@
                   </p>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
           </div>
 
           <!-- Current Session Info -->
-          <NeoCard
+          <GuofengCard
             v-if="currentInfo"
             padding="lg"
           >
@@ -176,10 +176,10 @@
                 </span>
               </div>
             </div>
-          </NeoCard>
+          </GuofengCard>
 
           <!-- Quick Switch -->
-          <NeoCard
+          <GuofengCard
             v-if="accounts.length > 0"
             padding="lg"
           >
@@ -220,7 +220,7 @@
                 </div>
               </button>
             </div>
-          </NeoCard>
+          </GuofengCard>
 
           <!-- Account List Title -->
           <div class="flex items-center justify-between">
@@ -269,7 +269,7 @@
             v-else
             class="grid grid-cols-1 xl:grid-cols-2 gap-4"
           >
-            <NeoCard
+            <GuofengCard
               v-for="account in accounts"
               :key="account.name"
               class="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
@@ -369,7 +369,7 @@
                   </span>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
           </div>
 
           <!-- Save Modal -->
@@ -377,7 +377,7 @@
             v-if="showSaveForm"
             class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           >
-            <NeoCard
+            <GuofengCard
               class="w-full max-w-lg max-h-[90vh] overflow-y-auto !p-0 shadow-2xl animate-in zoom-in-95 duration-200"
               :padding="'none'"
             >
@@ -474,7 +474,7 @@
                   {{ saving ? $t('codex.states.saving') : $t('codex.actions.save') }}
                 </button>
               </div>
-            </NeoCard>
+            </GuofengCard>
           </div>
         </main>
       </div>
@@ -508,7 +508,7 @@ import {
 
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import NeoCard from '@/components/ui/NeoCard.vue'
+import GuofengCard from '@/components/common/GuofengCard.vue'
 import {
   listCodexAuthAccounts,
   getCodexAuthCurrent,

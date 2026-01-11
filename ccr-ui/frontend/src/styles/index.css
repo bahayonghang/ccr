@@ -162,3 +162,11 @@
     --guofeng-border: var(--color-border-default);
     --guofeng-info: var(--color-info);
 }
+
+/* ========== 玻璃效果语义别名 ========== */
+:root {
+    /* 玻璃背景 - 映射到 tokens.css */
+    --glass-bg: var(--glass-bg-medium);
+    --glass-border: var(--glass-border-medium);
+    --glass-blur: var(--glass-blur-lg);
+}

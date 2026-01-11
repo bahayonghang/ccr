@@ -54,7 +54,7 @@ const goBack = () => {
 <style scoped>
 .checkin-manage-view {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-brand);
   padding: 2rem;
 }
 
@@ -70,8 +70,8 @@ const goBack = () => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border-light);
   border-radius: 0.5rem;
   color: white;
   cursor: pointer;
@@ -79,7 +79,7 @@ const goBack = () => {
 }
 
 .back-button:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--glass-bg-medium);
   transform: translateX(-2px);
 }
 
@@ -107,21 +107,19 @@ const goBack = () => {
 }
 
 .section-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--glass-bg-heavy);
   backdrop-filter: blur(10px);
   border-radius: 1rem;
   padding: 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-medium);
 }
 
 .section-card.full-width {
   grid-column: 1 / -1;
 }
 
-@media (prefers-color-scheme: dark) {
-  .section-card {
-    background: rgba(30, 30, 40, 0.95);
-  }
+:global(.dark) .section-card {
+  background: rgba(var(--color-slate-rgb), 0.95);
 }
 
 @media (max-width: 768px) {

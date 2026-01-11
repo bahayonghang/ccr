@@ -123,12 +123,12 @@ onMounted(() => {
 .section-header h2 {
   margin: 0;
   font-size: 1.25rem;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .add-button {
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-secondary);
   color: white;
   border: none;
   border-radius: 0.5rem;
@@ -152,14 +152,14 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--glass-border-medium);
 }
 
 .account-name {
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .account-link {
@@ -168,7 +168,7 @@ onMounted(() => {
   padding: 0;
   cursor: pointer;
   text-align: left;
-  color: #2563eb;
+  color: var(--accent-info);
 }
 
 .account-link:hover {
@@ -176,7 +176,7 @@ onMounted(() => {
 }
 .account-provider {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-muted);
   margin-top: 0.25rem;
 }
 
@@ -195,13 +195,13 @@ onMounted(() => {
 }
 
 .action-button.view {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: rgba(var(--color-info-rgb), 0.15);
+  color: var(--accent-info);
 }
 
 .action-button.delete {
-  background: #fee2e2;
-  color: #dc2626;
+  background: rgba(var(--color-danger-rgb), 0.15);
+  color: var(--accent-danger);
 }
 
 .loading,
@@ -211,6 +211,11 @@ onMounted(() => {
 }
 
 .error {
-  color: #dc2626;
+  color: var(--accent-danger);
+}
+
+:global(.dark) .account-item {
+  background: rgba(var(--color-slate-rgb), 0.4);
+  border-color: rgba(var(--color-slate-rgb), 0.6);
 }
 </style>

@@ -3,8 +3,8 @@
     class="rounded-xl mb-5 glass-effect overflow-hidden relative"
     :style="{
       border: '2px solid var(--accent-primary)',
-      boxShadow: '0 0 30px rgba(139, 92, 246, 0.25), 0 8px 32px rgba(0, 0, 0, 0.2)',
-      background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(168, 85, 247, 0.03))'
+      boxShadow: '0 0 30px rgba(var(--color-accent-secondary-rgb), 0.25), 0 8px 32px rgba(0, 0, 0, 0.2)',
+      background: 'linear-gradient(135deg, rgba(var(--color-accent-secondary-rgb), 0.05), rgba(var(--color-accent-secondary-rgb), 0.03))'
     }"
   >
     <!-- 顶部装饰条 -->
@@ -53,7 +53,7 @@
       <button
         class="p-2 rounded-lg transition-all hover:bg-opacity-20 hover:scale-110"
         :style="{
-          background: 'rgba(139, 92, 246, 0.1)',
+          background: 'rgba(var(--color-accent-secondary-rgb), 0.1)',
           color: 'var(--accent-primary)'
         }"
         :aria-label="isCollapsed ? '展开' : '收起'"
@@ -87,7 +87,7 @@
             :style="{
               background: 'linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary))',
               border: '2px solid var(--accent-primary)',
-              boxShadow: '0 0 20px rgba(139, 92, 246, 0.3), inset 0 0 20px rgba(139, 92, 246, 0.05)'
+              boxShadow: '0 0 20px rgba(var(--color-accent-secondary-rgb), 0.3), inset 0 0 20px rgba(var(--color-accent-secondary-rgb), 0.05)'
             }"
           >
             <div
@@ -128,7 +128,7 @@
             :style="{
               background: 'var(--bg-tertiary)',
               border: '2px solid var(--accent-secondary)',
-              boxShadow: '0 0 15px rgba(168, 85, 247, 0.2), inset 0 0 15px rgba(168, 85, 247, 0.05)'
+              boxShadow: '0 0 15px rgba(var(--color-accent-secondary-rgb), 0.2), inset 0 0 15px rgba(var(--color-accent-secondary-rgb), 0.05)'
             }"
           >
             <div
@@ -161,8 +161,8 @@
           class="rounded-lg p-4"
           :style="{
             background: 'var(--bg-tertiary)',
-            border: '2px solid rgba(34, 197, 94, 0.5)',
-            boxShadow: '0 0 15px rgba(34, 197, 94, 0.15), inset 0 0 15px rgba(34, 197, 94, 0.05)'
+            border: '2px solid rgba(var(--color-success-rgb), 0.5)',
+            boxShadow: '0 0 15px rgba(var(--color-success-rgb), 0.15), inset 0 0 15px rgba(var(--color-success-rgb), 0.05)'
           }"
         >
           <div class="flex items-center justify-between mb-3">
@@ -327,22 +327,22 @@ const SystemMetric = defineComponent({
   setup(props) {
     const getBorderColor = () => {
       if (props.progress === undefined) {
-        return 'rgba(139, 92, 246, 0.4)'
+        return 'rgba(var(--color-accent-secondary-rgb), 0.4)'
       }
       if (props.progress > 80) {
-        return 'rgba(239, 68, 68, 0.5)'
+        return 'rgba(var(--color-danger-rgb), 0.5)'
       }
-      return 'rgba(34, 197, 94, 0.5)'
+      return 'rgba(var(--color-success-rgb), 0.5)'
     }
 
     const getGlowColor = () => {
       if (props.progress === undefined) {
-        return 'rgba(139, 92, 246, 0.15)'
+        return 'rgba(var(--color-accent-secondary-rgb), 0.15)'
       }
       if (props.progress > 80) {
-        return 'rgba(239, 68, 68, 0.2)'
+        return 'rgba(var(--color-danger-rgb), 0.2)'
       }
-      return 'rgba(34, 197, 94, 0.15)'
+      return 'rgba(var(--color-success-rgb), 0.15)'
     }
 
     const getProgressBackground = () => {

@@ -8,24 +8,27 @@
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"
-      :class="modalClass"
-      :style="modalStyle"
+      class="rounded-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
+      :style="{
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)'
+      }"
     >
       <!-- 模态框标题 -->
       <div
-        :class="headerClass"
-        :style="headerStyle"
+        class="flex items-center justify-between p-6"
+        :style="{ borderBottom: '1px solid var(--border-color)' }"
       >
         <h3
           :id="titleId"
-          :class="titleClass"
-          :style="titleStyle"
+          class="text-lg font-semibold"
+          :style="{ color: 'var(--text-primary)' }"
         >
           {{ isEditing ? $t('common.edit') : $t('common.add') }}
         </h3>
         <button
-          :class="closeButtonClass"
-          :style="closeButtonStyle"
+          class="p-1 rounded-lg transition-colors hover:opacity-80"
+          :style="{ color: 'var(--text-muted)' }"
           :aria-label="$t('common.close')"
           @click="close"
         >
@@ -42,8 +45,8 @@
           <!-- 名称 -->
           <div>
             <label
-              :class="labelClass"
-              :style="labelStyle"
+              class="block text-sm font-medium mb-1"
+              :style="{ color: 'var(--text-primary)' }"
             >
               {{ $t('common.name') }}
             </label>
@@ -52,8 +55,13 @@
               type="text"
               required
               :disabled="isEditing"
-              :class="inputClass"
-              :style="inputStyle"
+              class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+              :style="{
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                '--tw-ring-color': 'var(--accent-primary)'
+              }"
               :placeholder="$t('slashCommands.namePlaceholder')"
             >
           </div>
@@ -61,8 +69,8 @@
           <!-- 命令 -->
           <div>
             <label
-              :class="labelClass"
-              :style="labelStyle"
+              class="block text-sm font-medium mb-1"
+              :style="{ color: 'var(--text-primary)' }"
             >
               {{ $t('common.command') }}
             </label>
@@ -70,8 +78,13 @@
               v-model="form.command"
               type="text"
               required
-              :class="inputClass"
-              :style="inputStyle"
+              class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+              :style="{
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                '--tw-ring-color': 'var(--accent-primary)'
+              }"
               :placeholder="$t('slashCommands.commandPlaceholder')"
             >
           </div>
@@ -79,8 +92,8 @@
           <!-- 描述 -->
           <div>
             <label
-              :class="labelClass"
-              :style="labelStyle"
+              class="block text-sm font-medium mb-1"
+              :style="{ color: 'var(--text-primary)' }"
             >
               {{ $t('common.description') }}
             </label>
@@ -88,8 +101,13 @@
               v-model="form.description"
               rows="3"
               required
-              :class="textareaClass"
-              :style="textareaStyle"
+              class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 resize-y min-h-[80px]"
+              :style="{
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                '--tw-ring-color': 'var(--accent-primary)'
+              }"
               :placeholder="$t('slashCommands.descriptionPlaceholder')"
             />
           </div>
@@ -97,16 +115,21 @@
           <!-- 文件夹 -->
           <div>
             <label
-              :class="labelClass"
-              :style="labelStyle"
+              class="block text-sm font-medium mb-1"
+              :style="{ color: 'var(--text-primary)' }"
             >
               {{ $t('common.folder') }}
             </label>
             <select
               v-model="form.folder"
               required
-              :class="selectClass"
-              :style="selectStyle"
+              class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+              :style="{
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                '--tw-ring-color': 'var(--accent-primary)'
+              }"
             >
               <option
                 value=""
@@ -126,14 +149,15 @@
         </div>
 
         <!-- 表单按钮 -->
-        <div
-          :class="footerClass"
-          :style="footerStyle"
-        >
+        <div class="flex justify-end gap-3 mt-6">
           <button
             type="button"
-            :class="cancelButtonClass"
-            :style="cancelButtonStyle"
+            class="px-4 py-2 rounded-lg transition-colors hover:opacity-80"
+            :style="{
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-color)'
+            }"
             @click="close"
           >
             {{ $t('common.cancel') }}
@@ -141,8 +165,13 @@
           <button
             type="submit"
             :disabled="loading"
-            :class="submitButtonClass"
-            :style="submitButtonStyle"
+            class="px-4 py-2 rounded-lg inline-flex items-center transition-colors hover:opacity-90"
+            :style="{
+              background: 'var(--accent-primary)',
+              color: '#fff',
+              opacity: loading ? 0.7 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }"
           >
             <RefreshCw
               v-if="loading"
@@ -181,16 +210,6 @@ interface Props {
   visible: boolean
   editingCommand: SlashCommand | null
   folders: string[]
-  theme: 'claude-code' | 'css-variable'
-  themeColors: {
-    bg: string
-    bgSecondary: string
-    bgTertiary: string
-    primary: string
-    secondary: string
-    accent: string
-    accentBg: string
-  }
 }
 
 const props = defineProps<Props>()
@@ -215,182 +234,6 @@ const form = ref<SlashCommandRequest>({
 
 // 计算属性
 const isEditing = computed(() => !!props.editingCommand)
-
-const modalClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'glass-effect rounded-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto'
-  }
-  return 'rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto'
-})
-
-const modalStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      background: 'var(--bg-secondary)',
-      border: '1px solid var(--border-color)'
-    }
-  }
-})
-
-const headerClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'flex items-center justify-between p-6 border-b border-white/20'
-  }
-  return 'flex items-center justify-between p-6 border-b'
-})
-
-const headerStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      borderBottom: '1px solid var(--border-color)'
-    }
-  }
-})
-
-const titleClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'text-lg font-semibold text-guofeng-text-primary'
-  }
-  return 'text-lg font-semibold'
-})
-
-const titleStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      color: 'var(--text-primary)'
-    }
-  }
-})
-
-const closeButtonClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'p-1 rounded-lg text-guofeng-text-muted hover:text-guofeng-text-primary hover:bg-guofeng-bg-tertiary transition-colors'
-  }
-  return 'p-1 rounded-lg'
-})
-
-const closeButtonStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      color: 'var(--text-muted)',
-      transition: 'all 0.2s'
-    }
-  }
-})
-
-const labelClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'block text-sm font-medium text-guofeng-text-primary mb-1'
-  }
-  return 'block text-sm font-medium mb-1'
-})
-
-const labelStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      color: 'var(--text-primary)'
-    }
-  }
-})
-
-const inputClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'w-full px-3 py-2 rounded-lg border border-guofeng-border bg-guofeng-bg-primary text-guofeng-text-primary placeholder-guofeng-text-muted focus:outline-none focus:ring-2 focus:ring-guofeng-amber focus:border-transparent'
-  }
-  return 'w-full px-3 py-2'
-})
-
-const inputStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      borderRadius: '6px',
-      border: '1px solid var(--border-color)',
-      background: 'var(--bg-primary)',
-      color: 'var(--text-primary)',
-      fontSize: '14px'
-    }
-  }
-})
-
-const textareaClass = computed(() => {
-  return inputClass.value
-})
-
-const textareaStyle = computed(() => {
-  const style = inputStyle.value
-  return {
-    ...style,
-    resize: 'vertical' as const,
-    minHeight: '80px'
-  }
-})
-
-const selectClass = computed(() => {
-  return inputClass.value
-})
-
-const selectStyle = computed(() => {
-  return inputStyle.value
-})
-
-const footerClass = computed(() => {
-  return 'flex justify-end gap-3 mt-6'
-})
-
-const footerStyle = computed(() => {
-  return {}
-})
-
-const cancelButtonClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'px-4 py-2 rounded-lg border border-guofeng-border bg-guofeng-bg-secondary text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary hover:text-guofeng-text-primary transition-colors'
-  }
-  return 'px-4 py-2 rounded-lg border'
-})
-
-const cancelButtonStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      background: 'var(--bg-secondary)',
-      color: 'var(--text-secondary)',
-      border: '1px solid var(--border-color)'
-    }
-  }
-})
-
-const submitButtonClass = computed(() => {
-  if (props.theme === 'claude-code') {
-    return 'px-4 py-2 rounded-lg bg-guofeng-amber text-white hover:bg-guofeng-amber/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center'
-  }
-  return 'px-4 py-2 rounded-lg inline-flex items-center'
-})
-
-const submitButtonStyle = computed(() => {
-  if (props.theme === 'claude-code') {
-    return {}
-  } else {
-    return {
-      background: 'var(--accent-primary)',
-      color: '#fff',
-      opacity: loading.value ? 0.7 : 1,
-      cursor: loading.value ? 'not-allowed' : 'pointer'
-    }
-  }
-})
 
 // Accessibility enhancements
 const titleId = useUniqueId('command-form-title')

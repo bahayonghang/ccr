@@ -2,10 +2,10 @@
   <div
     class="group cursor-pointer px-2 py-1.5 rounded-md transition-all duration-150 hover:translate-x-0.5"
     :style="{
-      background: config.is_current 
-        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.12))'
+      background: config.is_current
+        ? 'linear-gradient(135deg, rgba(var(--color-accent-primary-rgb), 0.12), rgba(var(--color-accent-secondary-rgb), 0.12))'
         : 'transparent',
-      borderLeft: config.is_current 
+      borderLeft: config.is_current
         ? '2px solid var(--accent-primary)'
         : '2px solid transparent'
     }"

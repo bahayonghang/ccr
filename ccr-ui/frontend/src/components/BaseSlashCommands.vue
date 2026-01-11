@@ -7,7 +7,6 @@
     <Breadcrumb
       v-if="props.config.features.breadcrumb"
       :items="breadcrumbItems"
-      :module-color="themeColors.module"
       class="mb-6"
     />
 
@@ -22,7 +21,6 @@
           :folders="folderOptions"
           :selected-folder="selectedFolder"
           :stats="stats"
-          :theme="config.theme"
           @folder-selected="selectedFolder = $event"
         />
 
@@ -36,16 +34,12 @@
               :count="filteredCommands.length"
               :total="stats.total"
               :home-path="config.route.homePath"
-              :theme="config.theme"
-              :theme-colors="themeColors"
             />
 
             <!-- 搜索和操作栏 -->
             <SearchAndActions
               v-model="searchQuery"
               :loading="loading"
-              :theme="config.theme"
-              :theme-colors="themeColors"
               @add-command="showAddModal = true"
               @refresh="loadData"
             />
@@ -147,10 +141,6 @@
                   <CommandList
                     :commands="folder.commands"
                     :loading="loading"
-                    :selected-folder="selectedFolder"
-                    :theme="config.theme"
-                    :theme-colors="themeColors"
-                    :config="config"
                     @edit="handleEdit"
                     @delete="handleDelete"
                     @toggle="handleToggle"
@@ -162,10 +152,6 @@
               v-else
               :commands="filteredCommands"
               :loading="loading"
-              :selected-folder="selectedFolder"
-              :theme="config.theme"
-              :theme-colors="themeColors"
-              :config="config"
               @edit="handleEdit"
               @delete="handleDelete"
               @toggle="handleToggle"
@@ -176,8 +162,9 @@
               v-if="!loading && filteredCommands.length === 0"
               :search-query="searchQuery"
               :selected-folder="selectedFolder"
-              :theme="config.theme"
-              :theme-colors="themeColors"
+              @clear-search="searchQuery = ''"
+              @clear-filter="selectedFolder = 'all'"
+              @add-first="showAddModal = true"
             />
           </div>
         </div>
@@ -189,8 +176,6 @@
       v-model:visible="showAddModal"
       v-model:editing-command="editingCommand"
       :folders="availableFolders"
-      :theme="config.theme"
-      :theme-colors="themeColors"
       @submit="handleSubmit"
     />
   </div>
@@ -432,36 +417,6 @@ const themeStyles = computed(() => {
         minHeight: '100vh',
         padding: '20px'
       }
-    }
-  }
-})
-
-const themeColors = computed(() => {
-  if (props.config.theme === 'claude-code') {
-    return {
-      module: '#f59e0b',
-      primary: 'text-guofeng-text-primary',
-      secondary: 'text-guofeng-text-secondary',
-      muted: 'text-guofeng-text-muted',
-      bg: 'bg-guofeng-bg-primary',
-      bgSecondary: 'bg-guofeng-bg-secondary',
-      bgTertiary: 'bg-guofeng-bg-tertiary',
-      accent: 'text-guofeng-amber',
-      accentBg: 'bg-guofeng-amber',
-      accentBorder: 'border-guofeng-amber'
-    }
-  } else {
-    return {
-      module: 'var(--accent-primary)',
-      primary: 'var(--text-primary)',
-      secondary: 'var(--text-secondary)',
-      muted: 'var(--text-muted)',
-      bg: 'var(--bg-primary)',
-      bgSecondary: 'var(--bg-secondary)',
-      bgTertiary: 'var(--bg-tertiary)',
-      accent: '#fff',
-      accentBg: 'var(--accent-primary)',
-      accentBorder: 'var(--accent-primary)'
     }
   }
 })

@@ -161,22 +161,22 @@
               :style="{ 
                 background: 'rgba(255, 255, 255, 0.7)',
                 backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(var(--color-success-rgb), 0.15)',
                 boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)'
               }"
             >
               <button
                 class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2"
                 :style="{
-                  background: activeTab === 'configs' 
-                    ? 'linear-gradient(135deg, #10b981, #06b6d4)' 
+                  background: activeTab === 'configs'
+                    ? 'var(--gradient-primary)'
                     : 'rgba(255, 255, 255, 0.6)',
-                  color: activeTab === 'configs' ? 'white' : '#475569',
+                  color: activeTab === 'configs' ? 'white' : 'var(--text-secondary)',
                   boxShadow: activeTab === 'configs' 
-                    ? '0 4px 16px rgba(16, 185, 129, 0.35)' 
+                    ? '0 4px 16px rgba(var(--color-success-rgb), 0.35)' 
                     : '0 2px 8px rgba(0, 0, 0, 0.04)',
                   border: activeTab === 'configs' 
-                    ? '1px solid rgba(16, 185, 129, 0.4)'
+                    ? '1px solid rgba(var(--color-success-rgb), 0.4)'
                     : '1px solid rgba(0, 0, 0, 0.06)',
                   transform: activeTab === 'configs' ? 'scale(1.02)' : 'scale(1)'
                 }"
@@ -188,15 +188,15 @@
               <button
                 class="flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2"
                 :style="{
-                  background: activeTab === 'history' 
-                    ? 'linear-gradient(135deg, #10b981, #06b6d4)' 
+                  background: activeTab === 'history'
+                    ? 'var(--gradient-primary)'
                     : 'rgba(255, 255, 255, 0.6)',
-                  color: activeTab === 'history' ? 'white' : '#475569',
+                  color: activeTab === 'history' ? 'white' : 'var(--text-secondary)',
                   boxShadow: activeTab === 'history' 
-                    ? '0 4px 16px rgba(16, 185, 129, 0.35)' 
+                    ? '0 4px 16px rgba(var(--color-success-rgb), 0.35)' 
                     : '0 2px 8px rgba(0, 0, 0, 0.04)',
                   border: activeTab === 'history' 
-                    ? '1px solid rgba(16, 185, 129, 0.4)'
+                    ? '1px solid rgba(var(--color-success-rgb), 0.4)'
                     : '1px solid rgba(0, 0, 0, 0.06)',
                   transform: activeTab === 'history' ? 'scale(1.02)' : 'scale(1)'
                 }"
@@ -210,156 +210,24 @@
             <!-- 配置列表 Tab -->
             <div v-if="activeTab === 'configs'">
               <!-- 筛选和排序控制栏 -->
-              <div class="flex gap-4 mb-6 items-center">
-                <!-- 筛选按钮 - 翡翠绿配色 -->
-                <div
-                  class="flex gap-3 flex-1 p-2 rounded-2xl"
-                  :style="{
-                    background: 'rgba(255, 255, 255, 0.5)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(16, 185, 129, 0.12)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)'
-                  }"
-                >
-                  <button
-                    v-for="filter in filters"
-                    :key="filter.type"
-                    class="flex-1 py-3 px-5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-[1.02]"
-                    :style="{
-                      background: currentFilter === filter.type
-                        ? 'linear-gradient(135deg, #10b981, #06b6d4)'
-                        : 'rgba(255, 255, 255, 0.5)',
-                      border: currentFilter === filter.type
-                        ? '1px solid rgba(16, 185, 129, 0.3)'
-                        : '1px solid rgba(0, 0, 0, 0.05)',
-                      color: currentFilter === filter.type ? 'white' : '#475569',
-                      boxShadow: currentFilter === filter.type
-                        ? '0 4px 16px rgba(16, 185, 129, 0.25)'
-                        : '0 2px 8px rgba(0, 0, 0, 0.03)'
-                    }"
-                    @click="currentFilter = filter.type"
-                  >
-                    {{ filter.label }}
-                  </button>
-                </div>
+              <ConfigFilters
+                v-model:current-filter="currentFilter"
+                v-model:current-sort="currentSort"
+                @show-provider-stats="showProviderModal = true"
+                @add-config="isAddModalOpen = true"
+              />
 
-                <!-- 📊 排序下拉菜单 + 提供商统计按钮 -->
-                <div class="flex items-center gap-3">
-                  <div class="flex items-center gap-2">
-                    <label
-                      class="text-sm font-medium whitespace-nowrap"
-                      :style="{ color: 'var(--text-secondary)' }"
-                    >
-                      {{ $t('configs.sort.label') }}
-                    </label>
-                    <select
-                      v-model="currentSort"
-                      class="px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer outline-none"
-                      :style="{
-                        background: 'rgba(255, 255, 255, 0.6)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(99, 102, 241, 0.3)',
-                        color: 'var(--text-primary)',
-                        boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)'
-                      }"
-                    >
-                      <option value="name">
-                        📝 {{ $t('configs.sort.name') }}
-                      </option>
-                      <option value="usage_count">
-                        📊 {{ $t('configs.sort.usageCount') }}
-                      </option>
-                      <option value="recent">
-                        🕒 {{ $t('configs.sort.recent') }}
-                      </option>
-                    </select>
-                  </div>
-                  <button
-                    class="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 border border-indigo-200/80 dark:border-indigo-500/70 text-indigo-700 dark:text-indigo-200 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800/80 transition shadow-sm"
-                    @click="showProviderModal = true"
-                  >
-                    <svg
-                      class="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M4 6h16M4 12h10M4 18h6"
-                      />
-                    </svg>
-                    <span>{{ $t('configs.provider.title') }}</span>
-                  </button>
-                  <!-- ➕ 添加配置按钮 -->
-                  <button
-                    class="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 text-white transition-all hover:scale-105"
-                    :style="{
-                      background: 'var(--gradient-primary)',
-                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                    }"
-                    @click="isAddModalOpen = true"
-                  >
-                    <PlusCircle class="w-4 h-4" />
-                    <span>{{ $t('configs.buttons.add') }}</span>
-                  </button>
-                </div>
-              </div>
-              <!-- 加载状态 -->
-              <div
-                v-if="loading"
-                class="flex items-center justify-center py-20"
-              >
-                <div
-                  class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
-                  :style="{
-                    borderTopColor: 'var(--accent-primary)',
-                    borderRightColor: 'var(--accent-secondary)'
-                  }"
-                />
-              </div>
-
-              <!-- 错误状态 -->
-              <div
-                v-else-if="error"
-                class="rounded-lg p-4 flex items-center space-x-2"
-                :style="{
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid var(--accent-danger)'
-                }"
-              >
-                <AlertCircle :style="{ color: 'var(--accent-danger)' }" />
-                <span :style="{ color: 'var(--accent-danger)' }">{{ $t('configs.operationFailed') }}: {{ error }}</span>
-              </div>
-
-              <!-- 提供商统计 + 配置卡片列表 -->
-              <div
-                v-else
-                class="space-y-8"
-              >
-                <!-- 配置卡片列表 -->
-                <div class="space-y-6">
-                  <div
-                    v-if="filteredConfigs.length === 0"
-                    class="text-center py-10"
-                    :style="{ color: 'var(--text-muted)' }"
-                  >
-                    {{ $t('configs.noConfigsInCategory') }}
-                  </div>
-                  <ConfigCard
-                    v-for="config in filteredConfigs"
-                    :key="config.name"
-                    :config="config"
-                    @switch="handleSwitch"
-                    @edit="handleEdit"
-                    @delete="handleDelete"
-                    @enable="handleEnable"
-                    @disable="handleDisable"
-                  />
-                </div>
-              </div>
+              <!-- 配置列表（含加载/错误/空状态） -->
+              <ConfigList
+                :configs="filteredConfigs"
+                :loading="loading"
+                :error="error"
+                @switch="handleSwitch"
+                @edit="handleEdit"
+                @delete="handleDelete"
+                @enable="handleEnable"
+                @disable="handleDisable"
+              />
             </div>
 
             <!-- 历史记录 Tab -->
@@ -397,190 +265,15 @@
     />
 
     <!-- 提供商统计模态框 -->
-    <div
-      v-if="showProviderModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      @click.self="showProviderModal = false"
-    >
-      <div
-        class="w-full max-w-5xl mx-4 rounded-3xl p-6"
-        :style="{
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: '1px solid rgba(148, 163, 184, 0.6)',
-          boxShadow: '0 20px 60px rgba(15, 23, 42, 0.4)'
-        }"
-      >
-        <div class="flex items-center justify-between mb-4 gap-4">
-          <div>
-            <h2 class="text-lg font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-              <span>🏢 {{ $t('configs.provider.stats') }}</span>
-            </h2>
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {{ $t('configs.provider.totalProviders', { count: providerEntries.length }) }} · {{ $t('configs.provider.totalCalls', { count: totalProviderUsage }) }}
-            </p>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-              <span>{{ $t('configs.provider.sortLabel') }}</span>
-              <select
-                v-model="providerSortMode"
-                class="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/70 dark:border-slate-600/70 bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-              >
-                <option value="count_desc">
-                  {{ $t('configs.provider.sortCountDesc') }}
-                </option>
-                <option value="count_asc">
-                  {{ $t('configs.provider.sortCountAsc') }}
-                </option>
-                <option value="name_asc">
-                  {{ $t('configs.provider.sortNameAsc') }}
-                </option>
-              </select>
-            </div>
-            <button
-              class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-500/80 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800/80 transition"
-              :disabled="providerLoading"
-              @click="loadProviderUsage"
-            >
-              <svg
-                class="w-3.5 h-3.5"
-                :class="{ 'animate-spin': providerLoading }"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              <span>{{ $t('configs.provider.refreshStats') }}</span>
-            </button>
-            <button
-              class="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 transition"
-              @click="showProviderModal = false"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        <div
-          v-if="providerLoading"
-          class="flex items-center justify-center py-10"
-        >
-          <div class="w-10 h-10 rounded-full border-4 border-transparent border-t-indigo-500 border-r-fuchsia-500 animate-spin" />
-        </div>
-        <div
-          v-else-if="providerError"
-          class="text-xs rounded-lg px-3 py-2 border border-red-300/70 bg-red-50/80 text-red-700 dark:border-red-700/70 dark:bg-red-900/30 dark:text-red-100"
-        >
-          {{ $t('configs.provider.loadFailed') }}: {{ providerError }}
-        </div>
-        <div
-          v-else-if="sortedProviderEntries.length === 0"
-          class="text-center text-xs text-slate-500 dark:text-slate-400 py-8"
-        >
-          {{ $t('configs.provider.noData') }}
-        </div>
-
-        <div
-          v-else
-          class="flex flex-col h-[500px]"
-        >
-          <!-- 统计摘要 -->
-          <div class="flex items-center gap-4 mb-6 p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
-            <div class="p-3 rounded-xl bg-indigo-100/50 dark:bg-indigo-800/50 text-indigo-600 dark:text-indigo-300">
-              <svg
-                class="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              /></svg>
-            </div>
-            <div>
-              <div class="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                {{ $t('configs.provider.totalProviders', { count: providerEntries.length }) }}
-              </div>
-              <div class="text-2xl font-bold text-slate-900 dark:text-slate-50">
-                {{ $t('configs.provider.totalCalls', { count: totalProviderUsage }) }}
-              </div>
-            </div>
-            <div class="ml-auto text-right text-xs text-slate-400 dark:text-slate-500">
-              <div>{{ $t('configs.provider.currentSort', { label: providerSortLabel }) }}</div>
-            </div>
-          </div>
-
-          <!-- 📊 垂直柱状图容器 -->
-          <div class="flex-1 relative min-h-0 flex flex-col">
-            <!-- Y轴网格线 -->
-            <div class="absolute inset-0 flex flex-col justify-between pointer-events-none z-0 pb-8 pl-8">
-              <div
-                v-for="tick in providerYTicks.slice().reverse()"
-                :key="tick.percent"
-                class="relative w-full h-px bg-slate-200/50 dark:bg-slate-700/30"
-              >
-                <span class="absolute -left-8 -top-2 text-[10px] text-slate-400 w-6 text-right">{{ tick.value }}</span>
-              </div>
-            </div>
-
-            <!-- 柱状图滚动区域 -->
-            <div class="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar z-10 pl-8 pb-2">
-              <div class="h-full flex items-end gap-4 min-w-max px-4 pt-4">
-                <div
-                  v-for="([provider, count], index) in sortedProviderEntries"
-                  :key="provider || index"
-                  class="group flex flex-col items-center gap-2 w-16"
-                  :style="{ animation: 'slideUp 0.4s ease ' + index * 0.05 + 's backwards' }"
-                >
-                  <!-- 数值提示 (Hover显示) -->
-                  <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg pointer-events-none whitespace-nowrap z-20">
-                    {{ count }}次 ({{ maxProviderCount ? ((count / totalProviderUsage) * 100).toFixed(1) : 0 }}%)
-                  </div>
-
-                  <!-- 柱子 -->
-                  <div class="relative w-full flex items-end justify-center h-[300px]">
-                    <div
-                      class="w-full rounded-t-lg transition-all duration-300 group-hover:brightness-110 relative overflow-hidden"
-                      :style="{ 
-                        height: Math.max((count / (maxProviderCount || 1)) * 100, 4) + '%',
-                        background: chartColors[index % 5],
-                        boxShadow: `0 4px 12px ${chartColors[index % 5]}40`
-                      }"
-                    >
-                      <!-- 玻璃光泽效果 -->
-                      <div class="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent opacity-50" />
-                    </div>
-                  </div>
-
-                  <!-- 标签 -->
-                  <div class="text-center w-full">
-                    <div 
-                      class="text-xs font-medium text-slate-600 dark:text-slate-300 truncate w-full cursor-help transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
-                      :title="provider || $t('configs.provider.unknown')"
-                    >
-                      {{ provider || $t('configs.provider.unknown') }}
-                    </div>
-                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">
-                      {{ count }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ProviderStatsModal
+      v-model:sort-mode="providerSortMode"
+      :visible="showProviderModal"
+      :provider-usage="providerUsage"
+      :loading="providerLoading"
+      :error="providerError"
+      @close="showProviderModal = false"
+      @refresh="loadProviderUsage"
+    />
   </div>
 </template>
 
@@ -588,11 +281,9 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  AlertCircle,
   Code2,
   Settings,
   Home,
-  PlusCircle,
   Cloud,
   Server,
   Command,
@@ -612,13 +303,15 @@ import {
   disableConfig,
 } from '@/api'
 import { getProviderUsage } from '@/api/client'
-import ConfigCard from '@/components/ConfigCard.vue'
 import HistoryList from '@/components/HistoryList.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import EnvironmentBadge from '@/components/EnvironmentBadge.vue'
 import EditConfigModal from '@/components/EditConfigModal.vue'
 import AddConfigModal from '@/components/AddConfigModal.vue'
+import ProviderStatsModal from '@/components/configs/ProviderStatsModal.vue'
+import ConfigFilters from '@/components/configs/ConfigFilters.vue'
+import ConfigList from '@/components/configs/ConfigList.vue'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -653,69 +346,6 @@ const providerLoading = ref(false)
 const providerError = ref<string | null>(null)
 const providerSortMode = ref<'count_desc' | 'count_asc' | 'name_asc'>('count_desc')
 const showProviderModal = ref(false)
-
-// 图表颜色配置 - 使用设计令牌 (在运行时从 CSS 变量读取)
-const chartColors = [
-  'var(--accent-success)',     // 翡翠 (Jade)
-  'var(--platform-gemini)',    // 靛青 (Indigo)  
-  'var(--platform-codex)',     // 琥珀 (Amber)
-  'var(--accent-info)',        // 天青 (Sky Blue)
-  'var(--accent-danger)'       // 丹砂 (Cinnabar)
-]
-
-const filters = [
-  { type: 'all' as FilterType, label: `📋 ${t('configs.filters.all')}` },
-  { type: 'official_relay' as FilterType, label: `🔄 ${t('configs.filters.officialRelay')}` },
-  { type: 'third_party_model' as FilterType, label: `🤖 ${t('configs.filters.thirdPartyModel')}` },
-  { type: 'uncategorized' as FilterType, label: `❓ ${t('configs.filters.uncategorized')}` },
-]
-
-const providerEntries = computed(() => {
-  return Object.entries(providerUsage.value || {})
-})
-
-const sortedProviderEntries = computed(() => {
-  const entries = [...providerEntries.value]
-  if (providerSortMode.value === 'count_asc') {
-    entries.sort((a, b) => a[1] - b[1])
-  } else if (providerSortMode.value === 'name_asc') {
-    entries.sort((a, b) => a[0].localeCompare(b[0]))
-  } else {
-    entries.sort((a, b) => b[1] - a[1])
-  }
-  return entries
-})
-
-const providerSortLabel = computed(() => {
-  if (providerSortMode.value === 'count_asc') {
-    return t('configs.provider.sortModes.countAsc')
-  }
-  if (providerSortMode.value === 'name_asc') {
-    return t('configs.provider.sortModes.nameAsc')
-  }
-  return t('configs.provider.sortModes.countDesc')
-})
-
-const maxProviderCount = computed(() => {
-  const values = providerEntries.value.map(([, count]) => count)
-  return values.length ? Math.max(...values) : 0
-})
-
-const totalProviderUsage = computed(() => {
-  return providerEntries.value.reduce((sum, [, count]) => sum + count, 0)
-})
-
-const providerYTicks = computed(() => {
-  const max = maxProviderCount.value || 0
-  const percents = [0, 25, 50, 75, 100]
-  if (max === 0) {
-    return percents.map(percent => ({ percent, value: 0 }))
-  }
-  return percents.map(percent => ({
-    percent,
-    value: Math.round((max * percent) / 100),
-  }))
-})
 
 // 根据当前筛选器过滤和排序配置
 const filteredConfigs = computed(() => {
@@ -963,22 +593,22 @@ onMounted(async () => {
 <style scoped>
 /* 🔗 模块导航链接样式 - 翡翠绿配色 */
 .module-nav-active {
-  background: linear-gradient(135deg, #10b981, #06b6d4);
+  background: var(--gradient-primary);
   color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 12px rgba(var(--color-success-rgb), 0.35);
+  border: 1px solid rgba(var(--color-success-rgb), 0.4);
 }
 
 .module-nav-inactive {
   background: rgba(255, 255, 255, 0.6);
-  color: #475569;
+  color: var(--text-secondary);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .module-nav-inactive:hover {
   background: rgba(255, 255, 255, 0.85);
-  color: #0f172a;
+  color: var(--text-primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-color: rgba(16, 185, 129, 0.2);
+  border-color: rgba(var(--color-success-rgb), 0.2);
 }
 </style>
