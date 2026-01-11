@@ -1,12 +1,10 @@
 // 🔄 switch 命令实现 - 切换配置
 // 💎 这是 CCR 最核心的命令,负责完整的配置切换流程
 //
-// 执行流程(5 个步骤):
+// 执行流程(3 个步骤):
 // 1. 📖 读取并验证目标配置 (从平台配置加载)
-// 2. 💾 备份当前 settings.json
-// 3. ✏️ 更新 Claude Code 设置
-// 4. 📝 更新配置文件当前配置标记
-// 5. 📚 记录操作历史(带环境变量变化)
+// 2. ✏️ 应用配置 (更新设置文件 + 更新配置标记)
+// 3. 📚 记录操作历史(带环境变量变化)
 
 #![allow(clippy::unused_async)]
 
@@ -42,7 +40,7 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
     let platform = Platform::from_str(platform_name)?;
 
     // 📖 步骤 1: 读取并校验目标配置
-    ColorOutput::step("步骤 1/5: 读取配置文件");
+    ColorOutput::step("步骤 1/3: 读取配置文件");
 
     ColorOutput::info(&format!("使用平台: {}", platform_name.bright_yellow()));
 
@@ -50,8 +48,8 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
     let platform_config = create_platform(platform)
         .map_err(|e| CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e)))?;
 
-    // 加载所有 profiles
-    let profiles = platform_config.load_profiles()?;
+    // 加载所有 profiles（后续会复用并更新 usage_count）
+    let mut profiles = platform_config.load_profiles()?;
 
     // 查找目标 profile
     let profile = profiles.get(config_name).ok_or_else(|| {
@@ -102,17 +100,7 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
     ColorOutput::success(&format!("✅ 目标配置 '{}' 验证通过", config_name));
     println!();
 
-    // 💾 步骤 2: 备份当前设置（委托给平台）
-    ColorOutput::step("步骤 2/5: 备份当前设置");
-    let backup_path = platform_config.backup_settings(Some(config_name))?;
-    if let Some(ref path) = backup_path {
-        ColorOutput::success(&format!("✅ 设置已备份: {}", path.display()));
-    } else {
-        ColorOutput::info("ℹ 当前平台无需备份设置文件");
-    }
-    println!();
-
-    // 📊 记录旧的环境变量状态（仅 Claude 平台）
+    // 📊 记录旧的环境变量状态（仅 Claude 平台，无副作用）
     let (old_env, new_env_display): (
         HashMap<String, Option<String>>,
         HashMap<String, Option<String>>,
@@ -124,44 +112,35 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
             .map(|s| s.anthropic_env_status())
             .unwrap_or_default();
 
-        // 应用新配置后获取新状态
-        let mut new_settings = old_settings.unwrap_or_default();
-        new_settings.update_from_config(&target_section);
-        let new = new_settings.anthropic_env_status();
+        // 使用无副作用的方法获取新状态（不会打印日志）
+        let new = target_section.to_anthropic_env_status();
         (old, new)
     } else {
         (HashMap::new(), HashMap::new())
     };
 
-    // ✏️ 步骤 3: 应用平台配置
-    ColorOutput::step("步骤 3/5: 应用平台配置");
-    println!();
-
-    // 📝 步骤 4: 更新配置文件
-    ColorOutput::step("步骤 4/5: 更新配置文件");
+    // ✏️ 步骤 2: 应用配置
+    ColorOutput::step("步骤 2/3: 应用配置");
 
     let old_current = platform_config.get_current_profile()?.unwrap_or_else(|| {
         tracing::debug!("无法获取当前 profile 名称");
         String::new()
     });
 
-    // 📊 递增目标 profile 的使用次数
-    {
-        let mut profiles = platform_config.load_profiles()?;
-        if let Some(profile) = profiles.get_mut(config_name) {
-            profile.usage_count = Some(profile.usage_count.unwrap_or(0) + 1);
-            tracing::debug!(
-                "📊 递增 profile '{}' 的使用次数: {}",
-                config_name,
-                profile.usage_count.unwrap_or(0)
-            );
-        }
-        // 保存更新后的 profiles（包含递增的 usage_count）
-        platform_config.save_profile(
+    // 📊 递增目标 profile 的使用次数（复用已加载的 profiles）
+    if let Some(profile) = profiles.get_mut(config_name) {
+        profile.usage_count = Some(profile.usage_count.unwrap_or(0) + 1);
+        tracing::debug!(
+            "📊 递增 profile '{}' 的使用次数: {}",
             config_name,
-            profiles.get(config_name).expect("配置名称应该存在"),
-        )?;
+            profile.usage_count.unwrap_or(0)
+        );
     }
+    // 保存更新后的 profiles（包含递增的 usage_count）
+    platform_config.save_profile(
+        config_name,
+        profiles.get(config_name).expect("配置名称应该存在"),
+    )?;
 
     // 应用 profile (这会设置当前profile并保存settings)
     platform_config.apply_profile(config_name)?;
@@ -173,8 +152,8 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
 
     println!();
 
-    // 📚 步骤 5: 记录历史(包含环境变量变化的掩码记录)
-    ColorOutput::step("步骤 5/5: 记录操作历史");
+    // 📚 步骤 3: 记录历史(包含环境变量变化的掩码记录)
+    ColorOutput::step("步骤 3/3: 记录操作历史");
     let history_manager = HistoryManager::with_default()?;
 
     let mut history_entry = HistoryEntry::new(
@@ -186,7 +165,7 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
                 Some(old_current.clone())
             },
             to_config: Some(config_name.to_string()),
-            backup_path: backup_path.map(|p| p.display().to_string()),
+            backup_path: None,
             extra: None,
         },
         OperationResult::Success,
