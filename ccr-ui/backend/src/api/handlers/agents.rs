@@ -127,6 +127,7 @@ pub async fn add_agent(Json(req): Json<AgentRequest>) -> impl IntoResponse {
             tools: req.tools.unwrap_or_default(),
             system_prompt: req.system_prompt.clone(),
             disabled: req.disabled.unwrap_or(false),
+            other: std::collections::HashMap::new(),
         };
 
         settings.agents.push(new_agent);

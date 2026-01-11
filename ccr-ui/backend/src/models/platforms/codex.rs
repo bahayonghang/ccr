@@ -4,6 +4,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+// Re-export shared types from ccr-types
+pub use ccr_types::{LoginState, TokenFreshness};
+
 /// Codex 完整配置结构
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
@@ -212,6 +215,90 @@ impl From<CodexProfileRequest> for CodexProfile {
 #[derive(Debug, Serialize)]
 pub struct CodexConfigResponse {
     pub config: CodexConfig,
+}
+
+// ============ Auth 管理 API 模型 ============
+
+// TokenFreshness and LoginState are re-exported from ccr_types at the top of this file
+
+/// 账号列表项 (用于 API 响应)
+#[derive(Debug, Clone, Serialize)]
+pub struct CodexAuthAccountItem {
+    /// 账号名称
+    pub name: String,
+    /// 账号描述
+    pub description: Option<String>,
+    /// 脱敏后的邮箱
+    pub email: Option<String>,
+    /// 是否为当前激活账号
+    pub is_current: bool,
+    /// 是否为虚拟项 (未保存的 default)
+    pub is_virtual: bool,
+    /// 最后使用时间 (ISO 8601)
+    pub last_used: Option<String>,
+    /// 最后刷新时间 (ISO 8601)
+    pub last_refresh: Option<String>,
+    /// Token 新鲜度
+    pub freshness: TokenFreshness,
+    /// 新鲜度图标
+    pub freshness_icon: String,
+    /// 新鲜度描述
+    pub freshness_description: String,
+}
+
+/// 当前 auth 信息
+#[derive(Debug, Clone, Serialize)]
+pub struct CodexAuthCurrentInfo {
+    /// 账号 ID
+    pub account_id: String,
+    /// 邮箱 (脱敏)
+    pub email: Option<String>,
+    /// 最后刷新时间 (ISO 8601)
+    pub last_refresh: Option<String>,
+    /// Token 新鲜度
+    pub freshness: TokenFreshness,
+    /// 新鲜度图标
+    pub freshness_icon: String,
+    /// 新鲜度描述
+    pub freshness_description: String,
+}
+
+/// 列出账号的响应
+#[derive(Debug, Serialize)]
+pub struct CodexAuthListResponse {
+    pub accounts: Vec<CodexAuthAccountItem>,
+    pub login_state: LoginState,
+}
+
+/// 获取当前 auth 信息的响应
+#[derive(Debug, Serialize)]
+pub struct CodexAuthCurrentResponse {
+    pub logged_in: bool,
+    pub info: Option<CodexAuthCurrentInfo>,
+    pub login_state: LoginState,
+}
+
+/// 保存当前登录的请求
+#[derive(Debug, Deserialize)]
+pub struct CodexAuthSaveRequest {
+    /// 账号名称
+    pub name: String,
+    /// 账号描述 (可选)
+    pub description: Option<String>,
+    /// 是否强制覆盖
+    #[serde(default)]
+    pub force: bool,
+}
+
+/// 进程检测响应
+#[derive(Debug, Serialize)]
+pub struct CodexAuthProcessResponse {
+    /// 是否有运行中的 Codex 进程
+    pub has_running_process: bool,
+    /// 运行中的进程 PID 列表
+    pub pids: Vec<u32>,
+    /// 警告消息
+    pub warning: Option<String>,
 }
 
 #[cfg(test)]

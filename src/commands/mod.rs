@@ -14,6 +14,7 @@
 pub mod common;
 
 // 📦 子模块
+pub mod codex;
 pub mod data;
 pub mod lifecycle;
 pub mod platform;

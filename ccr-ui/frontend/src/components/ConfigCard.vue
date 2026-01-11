@@ -2,20 +2,7 @@
   <article
     :id="`config-${config.name}`"
     class="relative p-6 transition-all duration-500 hover:scale-[1.02] group"
-    :style="{
-      background: config.is_current
-        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08), rgba(168, 85, 247, 0.06))'
-        : 'rgba(255, 255, 255, 0.5)',
-      border: config.is_current 
-        ? '2px solid rgba(99, 102, 241, 0.4)' 
-        : '1px solid rgba(255, 255, 255, 0.3)',
-      borderRadius: '20px',
-      boxShadow: config.is_current
-        ? '0 8px 32px rgba(99, 102, 241, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.6), 0 0 40px rgba(99, 102, 241, 0.1)'
-        : '0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)',
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(180%)'
-    }"
+    :class="config.is_current ? 'config-card-active' : 'glass-elevated'"
   >
     <!-- 头部 -->
     <header class="mb-3">
@@ -70,13 +57,14 @@
       <div
         class="flex items-center gap-1.5 p-2 px-3 rounded-md mb-2.5 transition-all hover:translate-x-0.5"
         :style="{
-          background: 'rgba(139, 92, 246, 0.08)',
+          background: 'rgba(var(--color-accent-secondary-rgb), 0.08)',
           borderLeft: '3px solid var(--accent-primary)'
         }"
       >
         <FileText
           class="w-3.5 h-3.5 flex-shrink-0"
           :style="{ opacity: 0.8 }"
+          aria-hidden="true"
         />
         <span
           class="text-xs font-medium leading-relaxed"
@@ -98,7 +86,10 @@
             border: '1px solid var(--border-color)'
           }"
         >
-          <Building2 class="w-3 h-3" />
+          <Building2
+            class="w-3 h-3"
+            aria-hidden="true"
+          />
           <span :style="{ color: 'var(--text-muted)' }">提供商:</span>
           <span
             class="font-semibold font-mono"
@@ -116,7 +107,10 @@
             border: '1px solid var(--border-color)'
           }"
         >
-          <User class="w-3 h-3" />
+          <User
+            class="w-3 h-3"
+            aria-hidden="true"
+          />
           <span :style="{ color: 'var(--text-muted)' }">账号:</span>
           <span
             class="font-semibold font-mono"
@@ -154,8 +148,8 @@
         <div
           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all"
           :style="{
-            background: 'rgba(99, 102, 241, 0.08)',
-            border: '1px solid rgba(99, 102, 241, 0.2)'
+            background: 'rgba(var(--color-accent-primary-rgb), 0.08)',
+            border: '1px solid rgba(var(--color-accent-primary-rgb), 0.2)'
           }"
         >
           <span :style="{ color: 'var(--text-muted)' }">使用次数:</span>
@@ -172,9 +166,9 @@
           v-if="config.enabled === false"
           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold"
           :style="{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#ef4444'
+            background: 'rgba(var(--color-danger-rgb), 0.15)',
+            border: '1px solid rgba(var(--color-danger-rgb), 0.3)',
+            color: 'var(--color-danger)'
           }"
         >
           ❌ 已禁用
@@ -213,6 +207,7 @@
           background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
           boxShadow: '0 0 20px var(--glow-primary)'
         }"
+        :aria-label="`切换到配置 ${config.name}`"
         @click="$emit('switch', config.name)"
       >
         切换
@@ -225,6 +220,7 @@
           color: 'var(--text-primary)',
           border: '1px solid var(--border-color)'
         }"
+        :aria-label="`编辑配置 ${config.name}`"
         @click="$emit('edit', config.name)"
       >
         编辑
@@ -237,8 +233,9 @@
         :style="{
           background: 'var(--accent-warning)',
           color: 'white',
-          boxShadow: '0 0 15px rgba(245, 158, 11, 0.3)'
+          boxShadow: '0 0 15px rgba(var(--color-warning-rgb), 0.3)'
         }"
+        :aria-label="`禁用配置 ${config.name}`"
         @click="$emit('disable', config.name)"
       >
         禁用
@@ -249,8 +246,9 @@
         class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:scale-105"
         :style="{
           background: 'var(--accent-success)',
-          boxShadow: '0 0 15px rgba(16, 185, 129, 0.3)'
+          boxShadow: '0 0 15px rgba(var(--color-success-rgb), 0.3)'
         }"
+        :aria-label="`启用配置 ${config.name}`"
         @click="$emit('enable', config.name)"
       >
         启用
@@ -263,6 +261,7 @@
           background: 'var(--accent-danger)',
           boxShadow: '0 0 20px var(--glow-danger)'
         }"
+        :aria-label="`删除配置 ${config.name}`"
         @click="$emit('delete', config.name)"
       >
         删除
@@ -299,27 +298,27 @@ const providerTypeBadge = computed(() => {
   const typeMap: Record<string, { text: string; background: string; color: string; border: string }> = {
     'OfficialRelay': {
       text: '🔄 官方中转',
-      background: 'rgba(59, 130, 246, 0.2)',
-      color: '#3b82f6',
-      border: 'rgba(59, 130, 246, 0.4)'
+      background: 'rgba(var(--color-info-rgb), 0.2)',
+      color: 'var(--accent-info)',
+      border: 'rgba(var(--color-info-rgb), 0.4)'
     },
     'official_relay': {
       text: '🔄 官方中转',
-      background: 'rgba(59, 130, 246, 0.2)',
-      color: '#3b82f6',
-      border: 'rgba(59, 130, 246, 0.4)'
+      background: 'rgba(var(--color-info-rgb), 0.2)',
+      color: 'var(--accent-info)',
+      border: 'rgba(var(--color-info-rgb), 0.4)'
     },
     'ThirdPartyModel': {
       text: '🤖 第三方模型',
-      background: 'rgba(168, 85, 247, 0.2)',
-      color: '#a855f7',
-      border: 'rgba(168, 85, 247, 0.4)'
+      background: 'rgba(var(--color-purple-rgb), 0.2)',
+      color: 'var(--color-purple)',
+      border: 'rgba(var(--color-purple-rgb), 0.4)'
     },
     'third_party_model': {
       text: '🤖 第三方模型',
-      background: 'rgba(168, 85, 247, 0.2)',
-      color: '#a855f7',
-      border: 'rgba(168, 85, 247, 0.4)'
+      background: 'rgba(var(--color-purple-rgb), 0.2)',
+      color: 'var(--color-purple)',
+      border: 'rgba(var(--color-purple-rgb), 0.4)'
     }
   }
 

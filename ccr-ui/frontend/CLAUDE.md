@@ -3,6 +3,7 @@
 [根目录](../../CLAUDE.md) > [ccr-ui](../CLAUDE.md) > **frontend**
 
 ## Change Log
+- **2026-01-11**: 添加设计系统文档 (Neo-Terminal Design System)
 - **2025-12-17**: 激进精简到 300 行以内，只保留核心架构和技术栈
 - **2025-12-16**: 按标准模板重新组织文档结构
 - **2025-10-22 00:04:36 CST**: 初始前端模块文档创建
@@ -87,6 +88,57 @@ frontend/
 |------|------|------|
 | **ESLint** | 9.19.0 | 代码检查 |
 | **Axios** | 1.7.9 | HTTP 客户端 |
+
+---
+
+## 设计系统 (Neo-Terminal Design System)
+
+### 设计令牌 (Design Tokens)
+
+设计系统基于 CSS 变量实现，支持暗色/亮色主题自动切换。
+
+**核心文件**: `src/styles/tokens.css`
+
+| 类别 | 变量前缀 | 示例 |
+|------|----------|------|
+| **背景色** | `--color-bg-*` | `--color-bg-base`, `--color-bg-elevated` |
+| **文字色** | `--color-text-*` | `--color-text-primary`, `--color-text-muted` |
+| **边框色** | `--color-border-*` | `--color-border-default`, `--color-border-accent` |
+| **强调色** | `--color-accent-*` | `--color-accent-primary`, `--color-accent-secondary` |
+| **功能色** | `--color-success/warning/danger/info` | 状态反馈色 |
+| **间距** | `--space-*` | `--space-1` (4px) 到 `--space-32` (128px) |
+| **圆角** | `--radius-*` | `--radius-sm` (4px) 到 `--radius-full` |
+| **阴影** | `--shadow-*` | `--shadow-sm` 到 `--shadow-2xl` |
+| **玻璃效果** | `--glass-*` | `--glass-bg-medium`, `--glass-blur-lg` |
+| **动画** | `--duration-*`, `--ease-*` | 时长和缓动函数 |
+
+### 状态组件
+
+| 组件 | 路径 | 用途 |
+|------|------|------|
+| **Skeleton** | `components/common/Skeleton.vue` | 加载骨架屏 |
+| **SkeletonCard** | `components/common/SkeletonCard.vue` | 卡片骨架屏 |
+| **ErrorState** | `components/common/ErrorState.vue` | 错误状态展示 |
+| **LoadingOverlay** | `components/common/LoadingOverlay.vue` | 加载遮罩层 |
+| **EmptyState** | `components/common/EmptyState.vue` | 空状态展示 |
+
+### 无障碍 (Accessibility)
+
+**Composable**: `src/composables/useAccessibility.ts`
+
+| 功能 | API | 说明 |
+|------|-----|------|
+| **焦点陷阱** | `useFocusTrap()` | 模态框焦点限制 |
+| **Escape 关闭** | `useEscapeKey()` | 按 Esc 关闭组件 |
+| **ARIA 工具** | `ariaUtils.*` | 生成 ARIA 属性 |
+| **焦点管理** | `focusUtils.*` | 焦点保存/恢复 |
+| **唯一 ID** | `useUniqueId()` | 生成 ARIA 关联 ID |
+
+**无障碍规范**:
+- 所有交互元素添加 `aria-label`
+- 装饰性图标添加 `aria-hidden="true"`
+- 列表使用 `role="listbox"` + `role="option"`
+- 模态框使用焦点陷阱和 Escape 关闭
 
 ---
 

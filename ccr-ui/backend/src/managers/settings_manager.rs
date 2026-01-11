@@ -1,13 +1,15 @@
 // Settings Manager for ~/.claude/settings.json
 // Reads and writes Claude Code settings with atomic operations
 
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use tempfile::NamedTempFile;
+
+// Re-export shared types from ccr-types
+pub use ccr_types::{Agent, ClaudeSettings, Hook, Plugin, SlashCommand};
+// Note: McpServer is also available from ccr_types but not re-exported here
+// as it's not directly used by this module's consumers
 
 #[derive(Debug, thiserror::Error)]
 pub enum SettingsError {
@@ -22,116 +24,6 @@ pub enum SettingsError {
 }
 
 pub type Result<T> = std::result::Result<T, SettingsError>;
-
-/// Claude Code settings structure
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ClaudeSettings {
-    /// Environment variables
-    #[serde(default)]
-    pub env: HashMap<String, String>,
-
-    /// Output style
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub output_style: Option<String>,
-
-    /// Permissions
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub permissions: Option<Value>,
-
-    /// MCP Servers
-    #[serde(
-        default,
-        rename = "mcpServers",
-        skip_serializing_if = "HashMap::is_empty"
-    )]
-    pub mcp_servers: HashMap<String, McpServer>,
-
-    /// Slash Commands
-    #[serde(
-        default,
-        rename = "slashCommands",
-        skip_serializing_if = "Vec::is_empty"
-    )]
-    pub slash_commands: Vec<SlashCommand>,
-
-    /// Agents
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub agents: Vec<Agent>,
-
-    /// Plugins
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub plugins: Vec<Plugin>,
-
-    /// Hooks
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub hooks: Vec<Hook>,
-
-    /// Other unknown fields (for forward compatibility)
-    #[serde(flatten)]
-    pub other: HashMap<String, Value>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct McpServer {
-    pub command: String,
-    pub args: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub env: Option<HashMap<String, String>>,
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub disabled: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SlashCommand {
-    pub name: String,
-    pub description: String,
-    pub command: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub args: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub disabled: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Agent {
-    pub name: String,
-    pub model: String,
-    #[serde(default)]
-    pub tools: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub system_prompt: Option<String>,
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub disabled: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Plugin {
-    pub id: String,
-    pub name: String,
-    pub version: String,
-    #[serde(default = "default_true")]
-    pub enabled: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub config: Option<Value>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Hook {
-    pub event: String,
-    pub command: String,
-    #[serde(default = "default_true")]
-    pub enabled: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-}
-
-fn is_false(b: &bool) -> bool {
-    !*b
-}
-
-fn default_true() -> bool {
-    true
-}
 
 pub struct SettingsManager {
     settings_path: PathBuf,
@@ -220,6 +112,7 @@ impl SettingsManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn test_serialize_settings() {

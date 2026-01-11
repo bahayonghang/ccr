@@ -50,6 +50,7 @@ pub async fn add_hook(Json(req): Json<HookRequest>) -> impl IntoResponse {
             command: req.command,
             enabled: req.enabled.unwrap_or(true),
             description: req.description,
+            other: std::collections::HashMap::new(),
         };
 
         settings.hooks.push(new_hook);

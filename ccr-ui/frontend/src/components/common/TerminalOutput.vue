@@ -301,8 +301,8 @@ defineExpose({
   overflow-y: auto;
   padding: 16px;
   /* Use a very dark transparent background for better contrast of colored text */
-  background: rgba(10, 14, 39, 0.6); 
-  color: #e5e7eb;
+  background: rgba(var(--color-slate-dark-rgb), 0.6);
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -377,11 +377,11 @@ defineExpose({
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--color-gray-rgb), 0.2);
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(var(--color-gray-rgb), 0.3);
 }
 </style>

@@ -5,13 +5,9 @@
 default:
     @just --list
 
-# 检查依赖是否已安装
+# 检查并安装依赖 (跨平台兼容)
 _check-deps:
-    #!/usr/bin/env bash
-    if [ ! -d "node_modules" ]; then
-        echo "⚠️  依赖未安装，正在自动安装..."
-        bun install
-    fi
+    @bun install
 
 # 安装依赖
 install:

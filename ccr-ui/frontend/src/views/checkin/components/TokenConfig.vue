@@ -35,12 +35,12 @@ const goToCheckinManage = () => {
 .token-config h2 {
   margin: 0;
   font-size: 1.25rem;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .info-text {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-muted);
   line-height: 1.5;
 }
 
@@ -48,13 +48,24 @@ const goToCheckinManage = () => {
   align-self: flex-start;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
-  background: white;
+  border: 1px solid rgba(var(--color-gray-rgb), 0.35);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 0.875rem;
+  transition: all 0.2s ease;
 }
 
 .go-button:hover {
-  background: #f3f4f6;
+  background: var(--bg-secondary);
+}
+
+:global(.dark) .go-button {
+  background: rgba(var(--color-slate-dark-rgb), 0.8);
+  border-color: rgba(var(--color-slate-rgb), 0.6);
+}
+
+:global(.dark) .go-button:hover {
+  background: rgba(var(--color-slate-rgb), 0.6);
 }
 </style>

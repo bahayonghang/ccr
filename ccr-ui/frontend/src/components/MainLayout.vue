@@ -234,8 +234,11 @@
       <div class="p-4 border-t border-border-color/50 bg-bg-secondary/50 backdrop-blur-sm">
         <div class="flex items-center justify-between gap-3 animate-sidebar-item-enter">
           <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
-            <span class="whitespace-nowrap">CCR UI v3.18.0</span>
-            <span class="w-2 h-2 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+            <span class="whitespace-nowrap">CCR UI v3.18.3</span>
+            <span
+              class="w-2 h-2 rounded-full bg-accent-success animate-pulse"
+              style="box-shadow: 0 0 8px rgba(var(--color-success-rgb), 0.4)"
+            />
           </div>
           <BackendStatusBadge />
         </div>

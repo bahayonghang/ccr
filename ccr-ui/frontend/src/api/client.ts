@@ -83,6 +83,10 @@ import type {
   PlatformMcpServerRequest,
   DroidMcpServer,
   DroidMcpServerRequest,
+  CodexAuthListResponse,
+  CodexAuthCurrentResponse,
+  CodexAuthSaveRequest,
+  CodexAuthProcessResponse,
 } from '@/types'
 
 /**
@@ -857,6 +861,44 @@ export const getCodexConfig = async (): Promise<CodexConfig> => {
 
 export const updateCodexConfig = async (config: CodexConfig): Promise<string> => {
   const response = await api.put<ApiResponse<string>>('/codex/config', config)
+  return response.data.data!
+}
+
+// ===================================
+// Codex Auth Management APIs
+// ===================================
+
+export const listCodexAuthAccounts = async (): Promise<CodexAuthListResponse> => {
+  const response = await api.get<ApiResponse<CodexAuthListResponse>>('/codex/auth/accounts')
+  return response.data.data!
+}
+
+export const getCodexAuthCurrent = async (): Promise<CodexAuthCurrentResponse> => {
+  const response = await api.get<ApiResponse<CodexAuthCurrentResponse>>('/codex/auth/current')
+  return response.data.data!
+}
+
+export const saveCodexAuth = async (request: CodexAuthSaveRequest): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>('/codex/auth/save', request)
+  return response.data.data!
+}
+
+export const switchCodexAuth = async (name: string): Promise<string> => {
+  const response = await api.post<ApiResponse<string>>(
+    `/codex/auth/switch/${encodeURIComponent(name)}`
+  )
+  return response.data.data!
+}
+
+export const deleteCodexAuth = async (name: string): Promise<string> => {
+  const response = await api.delete<ApiResponse<string>>(
+    `/codex/auth/${encodeURIComponent(name)}`
+  )
+  return response.data.data!
+}
+
+export const detectCodexProcess = async (): Promise<CodexAuthProcessResponse> => {
+  const response = await api.get<ApiResponse<CodexAuthProcessResponse>>('/codex/auth/process')
   return response.data.data!
 }
 

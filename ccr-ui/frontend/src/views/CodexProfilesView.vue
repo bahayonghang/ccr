@@ -52,7 +52,7 @@
           <!-- Status Cards -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Current Config -->
-            <NeoCard
+            <GuofengCard
               :gradient-border="true"
               glow-color="warning"
               class="relative overflow-hidden group"
@@ -70,10 +70,10 @@
                   </p>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
 
             <!-- Total Profiles -->
-            <NeoCard
+            <GuofengCard
               :interactive="true"
               glow-color="primary"
               class="group"
@@ -91,10 +91,10 @@
                   </p>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
 
             <!-- Config Mode -->
-            <NeoCard
+            <GuofengCard
               :interactive="true"
               :glow-color="currentConfigMode === 'official' ? 'success' : 'secondary'"
               class="group"
@@ -118,11 +118,11 @@
                   </p>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
           </div>
 
           <!-- Quick Switch -->
-          <NeoCard
+          <GuofengCard
             v-if="profiles.length > 0"
             padding="lg"
           >
@@ -161,7 +161,7 @@
                 </div>
               </button>
             </div>
-          </NeoCard>
+          </GuofengCard>
 
           <!-- Profile List Title -->
           <div class="flex items-center justify-between">
@@ -197,7 +197,7 @@
             v-else
             class="grid grid-cols-1 xl:grid-cols-2 gap-4"
           >
-            <NeoCard 
+            <GuofengCard 
               v-for="profile in profiles" 
               :key="profile.name"
               class="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
@@ -322,7 +322,7 @@
                   </div>
                 </div>
               </div>
-            </NeoCard>
+            </GuofengCard>
           </div>
             
           <!-- Add/Edit Modal -->
@@ -330,7 +330,7 @@
             v-if="showForm"
             class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           >
-            <NeoCard
+            <GuofengCard
               class="w-full max-w-3xl max-h-[90vh] overflow-y-auto !p-0 shadow-2xl animate-in zoom-in-95 duration-200"
               :padding="'none'"
             >
@@ -517,7 +517,7 @@
                   {{ saving ? $t('codex.states.saving') : $t('codex.actions.save') }}
                 </button>
               </div>
-            </NeoCard>
+            </GuofengCard>
           </div>
         </main>
       </div>
@@ -533,7 +533,7 @@ import { ArrowLeft, Boxes, Check, Edit2, Globe, Home, Layers, ListFilter, Plus, 
 
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import NeoCard from '@/components/ui/NeoCard.vue'
+import GuofengCard from '@/components/common/GuofengCard.vue'
 import { addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexProfiles, updateCodexProfile } from '@/api'
 import type { CodexProfile, CodexProfileRequest } from '@/types'
 

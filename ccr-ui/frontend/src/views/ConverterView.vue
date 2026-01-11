@@ -41,13 +41,13 @@
           <div
             v-if="error"
             class="rounded-lg p-4 flex items-start gap-3"
-            :style="{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)' }"
+            :style="{ background: 'rgba(var(--color-danger-rgb), 0.1)', border: '1px solid var(--color-danger)' }"
           >
             <AlertCircle
               class="w-5 h-5 flex-shrink-0 mt-0.5"
-              :style="{ color: 'rgb(239, 68, 68)' }"
+              :style="{ color: 'var(--color-danger)' }"
             />
-            <div :style="{ color: 'rgb(239, 68, 68)' }">
+            <div :style="{ color: 'var(--color-danger)' }">
               {{ error }}
             </div>
           </div>
@@ -55,13 +55,13 @@
           <div
             v-if="successMessage"
             class="rounded-lg p-4 flex items-start gap-3"
-            :style="{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgb(34, 197, 94)' }"
+            :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', border: '1px solid var(--color-success)' }"
           >
             <Check
               class="w-5 h-5 flex-shrink-0 mt-0.5"
-              :style="{ color: 'rgb(34, 197, 94)' }"
+              :style="{ color: 'var(--color-success)' }"
             />
-            <div :style="{ color: 'rgb(34, 197, 94)' }">
+            <div :style="{ color: 'var(--color-success)' }">
               {{ successMessage }}
             </div>
           </div>
@@ -104,7 +104,7 @@
                         : '1px solid var(--border-color)',
                     background:
                       sourceFormat === type.value
-                        ? 'rgba(139, 92, 246, 0.1)'
+                        ? 'rgba(var(--color-accent-secondary-rgb), 0.1)'
                         : 'var(--bg-tertiary)'
                   }"
                   @click="sourceFormat = type.value"
@@ -170,7 +170,7 @@
                         : '1px solid var(--border-color)',
                     background:
                       targetFormat === type.value && sourceFormat !== type.value
-                        ? 'rgba(168, 85, 247, 0.1)'
+                        ? 'rgba(var(--color-accent-secondary-rgb), 0.1)'
                         : 'var(--bg-tertiary)',
                     opacity: sourceFormat === type.value ? 0.5 : 1,
                     cursor: sourceFormat === type.value ? 'not-allowed' : 'pointer'
@@ -452,11 +452,11 @@
               <div
                 v-if="result.warnings && result.warnings.length > 0"
                 class="rounded-lg p-4"
-                :style="{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgb(234, 179, 8)' }"
+                :style="{ background: 'rgba(var(--color-warning-rgb), 0.1)', border: '1px solid var(--color-warning)' }"
               >
                 <div
                   class="font-medium mb-2"
-                  :style="{ color: 'rgb(234, 179, 8)' }"
+                  :style="{ color: 'var(--color-warning)' }"
                 >
                   {{ $t('converter.warnings') }}
                 </div>
@@ -465,7 +465,7 @@
                     v-for="(warning, index) in result.warnings"
                     :key="index"
                     class="text-sm"
-                    :style="{ color: 'rgb(234, 179, 8)' }"
+                    :style="{ color: 'var(--color-warning)' }"
                   >
                     {{ warning }}
                   </li>

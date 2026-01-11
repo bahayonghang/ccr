@@ -1242,6 +1242,11 @@ export default {
           description: 'Codex shortcut command management',
           badge: '⌨️ Command'
         },
+        auth: {
+          title: 'Auth Management',
+          description: 'Codex authentication account switching and management',
+          badge: '🔑 Auth'
+        },
         plugins: {
           title: 'Plugin Management',
           description: 'Codex plugin configuration management',
@@ -1539,6 +1544,67 @@ export default {
         operationFailed: 'Operation failed',
         deleteFailed: 'Delete failed',
         toggleFailed: 'Toggle failed'
+      }
+    },
+
+    // Auth module
+    auth: {
+      title: 'Auth Management',
+      subtitle: 'Manage Codex authentication accounts',
+      breadcrumb: 'Auth Management',
+      backToCodex: 'Back to Codex',
+      saveAccount: 'Save Account',
+      currentSession: 'Current Session',
+      quickSwitch: 'Quick Switch',
+      listTitle: 'Account List',
+      refresh: 'Refresh',
+      emptyState: 'No saved accounts',
+      emptyStateHint: 'Login to Codex first, then save the current session as an account',
+      currentBadge: 'Current',
+      virtualBadge: 'Virtual',
+      virtual: 'Virtual',
+      switch: 'Switch to this account',
+      forceOverwrite: 'Force overwrite if account exists',
+      processWarning: 'Warning: Codex process detected',
+      processDetected: 'Codex process detected (PIDs: {pids}), switching may cause issues',
+      confirmSwitch: 'Are you sure you want to switch to account "{name}"?',
+      confirmDelete: 'Are you sure you want to delete account "{name}"?',
+      status: {
+        loginState: 'Login State',
+        totalAccounts: 'Total Accounts',
+        currentAccount: 'Current Account',
+        noAccount: 'None',
+        notAvailable: 'N/A'
+      },
+      loginState: {
+        loggedInSaved: 'Logged in ({name})',
+        loggedInUnsaved: 'Logged in (Unsaved)',
+        notLoggedIn: 'Not logged in'
+      },
+      fields: {
+        accountId: 'Account ID',
+        email: 'Email',
+        tokenFreshness: 'Token Freshness',
+        lastRefresh: 'Last Refresh',
+        lastUsed: 'Last Used',
+        accountName: 'Account Name',
+        description: 'Description'
+      },
+      placeholders: {
+        accountName: 'Enter account name',
+        description: 'Optional description'
+      },
+      validation: {
+        nameRequired: 'Please enter account name'
+      },
+      messages: {
+        loadFailed: 'Failed to load auth info',
+        saveFailed: 'Failed to save account',
+        switchFailed: 'Failed to switch account',
+        deleteFailed: 'Failed to delete account',
+        saveSuccess: 'Account saved successfully',
+        switchSuccess: 'Switched to account successfully',
+        deleteSuccess: 'Account deleted successfully'
       }
     },
 

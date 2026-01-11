@@ -120,6 +120,8 @@ impl CommandDispatcher {
 
             Some(Commands::Check { action }) => Self::dispatch_check(action).await,
 
+            Some(Commands::Codex { action }) => Self::dispatch_codex(action).await,
+
             Some(Commands::Sessions(args)) => {
                 crate::commands::sessions_cmd::execute(args.clone()).await
             }
@@ -315,6 +317,53 @@ impl CommandDispatcher {
             crate::cli::subcommands::CheckAction::Conflicts => {
                 crate::commands::check_conflicts_command().await
             }
+        }
+    }
+
+    /// Codex 命令分发
+    async fn dispatch_codex(
+        action: &Option<crate::cli::subcommands::CodexAction>,
+    ) -> Result<(), CcrError> {
+        use crate::cli::subcommands::{CodexAction, CodexAuthAction};
+
+        match action {
+            // 无子命令时启动 TUI
+            None => {
+                #[cfg(feature = "tui")]
+                {
+                    crate::tui::codex_auth::run_codex_auth_tui()
+                }
+                #[cfg(not(feature = "tui"))]
+                {
+                    // 无 TUI 时显示账号列表
+                    crate::commands::codex::auth::list_command().await
+                }
+            }
+            // auth 子命令
+            Some(CodexAction::Auth { action }) => match action {
+                CodexAuthAction::Save {
+                    name,
+                    description,
+                    force,
+                } => {
+                    crate::commands::codex::auth::save_command(name, description.clone(), *force)
+                        .await
+                }
+                CodexAuthAction::List => crate::commands::codex::auth::list_command().await,
+                CodexAuthAction::Switch { name } => {
+                    crate::commands::codex::auth::switch_command(name).await
+                }
+                CodexAuthAction::Delete { name, force } => {
+                    crate::commands::codex::auth::delete_command(name, *force).await
+                }
+                CodexAuthAction::Current => crate::commands::codex::auth::current_command().await,
+                CodexAuthAction::Export { no_secrets } => {
+                    crate::commands::codex::auth::export_command(*no_secrets).await
+                }
+                CodexAuthAction::Import { replace, force } => {
+                    crate::commands::codex::auth::import_command(*replace, *force).await
+                }
+            },
         }
     }
 

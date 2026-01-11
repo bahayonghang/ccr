@@ -459,11 +459,13 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.18.0"
+version = "3.18.3"
 dependencies = [
  "anyhow",
  "axum",
+ "base64",
  "blake3",
+ "ccr-types",
  "chrono",
  "clap",
  "colored",
@@ -502,8 +504,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccr-types"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "ccr-ui-backend"
-version = "3.18.0"
+version = "3.18.3"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -511,6 +521,7 @@ dependencies = [
  "axum",
  "base64",
  "ccr",
+ "ccr-types",
  "chromiumoxide",
  "chrono",
  "clap",

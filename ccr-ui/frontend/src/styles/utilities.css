@@ -3,29 +3,57 @@
    Utilities - Reusable Utility Classes
    ============================================ */
 
-/* ========== 玻璃拟态效果 ========== */
+/* ========== 玻璃拟态效果 (主题感知) ========== */
+
+/* 基础玻璃效果 - 轻量级 */
+.glass-surface {
+    background: var(--glass-bg-light);
+    backdrop-filter: var(--glass-blur-md);
+    -webkit-backdrop-filter: var(--glass-blur-md);
+    border: 1px solid var(--glass-border-light);
+}
+
+/* 中等玻璃效果 */
 .glass-effect {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--color-border-subtle);
+    background: var(--glass-bg-medium);
+    backdrop-filter: var(--glass-blur-md);
+    -webkit-backdrop-filter: var(--glass-blur-md);
+    border: 1px solid var(--glass-border-medium);
 }
 
-[data-theme="light"] .glass-effect {
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid var(--color-border-default);
+/* 强玻璃效果 - 用于模态框、卡片等 */
+.glass-effect-strong,
+.glass-elevated {
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border: 1px solid var(--glass-border-strong);
+    box-shadow: var(--glass-shadow);
 }
 
-/* 更强的玻璃效果 */
-.glass-effect-strong {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--color-border-default);
+/* 超强玻璃效果 - 用于重要弹窗 */
+.glass-modal {
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur-xl);
+    -webkit-backdrop-filter: var(--glass-blur-xl);
+    border: 1px solid var(--glass-border-strong);
+    box-shadow: var(--glass-shadow-elevated), var(--glass-inner-glow);
 }
 
-[data-theme="light"] .glass-effect-strong {
-    background: rgba(255, 255, 255, 0.85);
+/* ========== 配置卡片样式 ========== */
+.config-card-active {
+    background: linear-gradient(135deg,
+            rgba(var(--color-accent-primary-rgb), 0.12),
+            rgba(var(--color-accent-secondary-rgb), 0.08),
+            rgba(var(--color-accent-secondary-rgb), 0.06));
+    border: 2px solid rgba(var(--color-accent-primary-rgb), 0.4);
+    border-radius: var(--radius-2xl);
+    box-shadow:
+        0 8px 32px rgba(var(--color-accent-primary-rgb), 0.2),
+        var(--glass-inner-glow),
+        0 0 40px rgba(var(--color-accent-primary-rgb), 0.1);
+    backdrop-filter: var(--glass-blur-xl);
+    -webkit-backdrop-filter: var(--glass-blur-xl);
 }
 
 /* ========== 渐变边框效果 ========== */
@@ -152,6 +180,34 @@
     background: linear-gradient(90deg,
             rgba(var(--color-accent-primary-rgb), 0.15) 0%,
             transparent 100%);
+}
+
+/* 导航项激活状态 - 发光效果 */
+.nav-item-active-glow {
+    background: linear-gradient(135deg,
+            rgba(var(--color-accent-primary-rgb), 0.95),
+            rgba(var(--color-accent-secondary-rgb), 0.95));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2px solid rgba(var(--color-accent-primary-rgb), 0.8);
+    box-shadow:
+        0 4px 20px rgba(var(--color-accent-secondary-rgb), 0.5),
+        0 0 30px rgba(var(--color-accent-secondary-rgb), 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* 导航项非激活状态 */
+.nav-item-inactive {
+    background: var(--glass-bg-light);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(var(--color-accent-primary-rgb), 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nav-item-inactive:hover {
+    background: var(--glass-bg-medium);
+    border-color: rgba(var(--color-accent-primary-rgb), 0.4);
 }
 
 /* ========== 按钮基础样式 ========== */

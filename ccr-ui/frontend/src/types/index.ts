@@ -503,6 +503,68 @@ export interface CodexConfigResponse {
   config: CodexConfig;
 }
 
+// ============ Codex Auth Management Types ============
+
+/** Token 新鲜度 */
+export type TokenFreshness = 'Fresh' | 'Stale' | 'Old' | 'Unknown'
+
+/** 登录状态 (tagged union) */
+export type LoginState =
+  | { type: 'NotLoggedIn' }
+  | { type: 'LoggedInUnsaved' }
+  | { type: 'LoggedInSaved'; account_name: string }
+
+/** Codex Auth 账号列表项 */
+export interface CodexAuthAccountItem {
+  name: string
+  description?: string
+  email?: string
+  is_current: boolean
+  is_virtual: boolean
+  last_used?: string
+  last_refresh?: string
+  freshness: TokenFreshness
+  freshness_icon: string
+  freshness_description: string
+}
+
+/** Codex Auth 当前信息 */
+export interface CodexAuthCurrentInfo {
+  account_id: string
+  email?: string
+  last_refresh?: string
+  freshness: TokenFreshness
+  freshness_icon: string
+  freshness_description: string
+}
+
+/** Codex Auth 账号列表响应 */
+export interface CodexAuthListResponse {
+  accounts: CodexAuthAccountItem[]
+  login_state: LoginState
+}
+
+/** Codex Auth 当前状态响应 */
+export interface CodexAuthCurrentResponse {
+  logged_in: boolean
+  info?: CodexAuthCurrentInfo
+  login_state: LoginState
+}
+
+/** Codex Auth 保存请求 */
+export interface CodexAuthSaveRequest {
+  name: string
+  description?: string
+  force?: boolean
+}
+
+/** Codex Auth 进程检测响应 */
+export interface CodexAuthProcessResponse {
+  has_running_process: boolean
+  pids: number[]
+  warning?: string
+}
+
 // ============ Config Converter Types ============
 
 export type CliType = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'iflow';

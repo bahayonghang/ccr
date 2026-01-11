@@ -2,6 +2,7 @@
 // 基于 ratatui 实现的双Tab配置选择器
 
 mod app;
+pub mod codex_auth;
 mod event;
 mod theme;
 mod ui;

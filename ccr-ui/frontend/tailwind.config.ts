@@ -180,6 +180,17 @@ export default {
         'glow-warning': 'var(--glow-warning)',
         'glow-danger': 'var(--glow-danger)',
         'glow-info': 'var(--glow-info)',
+        // 玻璃效果阴影
+        'glass': 'var(--glass-shadow)',
+        'glass-elevated': 'var(--glass-shadow-elevated)',
+      },
+
+      // ========== 背景模糊 ==========
+      backdropBlur: {
+        'glass-sm': '8px',
+        'glass-md': '12px',
+        'glass-lg': '20px',
+        'glass-xl': '24px',
       },
 
       // ========== 动画 ==========

@@ -374,10 +374,12 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "3.18.0"
+version = "3.18.2"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "blake3",
+ "ccr-types",
  "chrono",
  "clap",
  "colored",
@@ -411,7 +413,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "3.18.0"
+version = "3.18.2"
 dependencies = [
  "ccr",
  "serde",
@@ -423,6 +425,14 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "ccr-types"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

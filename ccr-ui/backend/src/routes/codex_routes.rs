@@ -57,4 +57,29 @@ pub fn routes() -> Router {
             "/codex/config",
             put(crate::api::handlers::platforms::codex::update_codex_base_config),
         )
+        // Auth routes
+        .route(
+            "/codex/auth/accounts",
+            get(crate::api::handlers::platforms::codex::list_codex_auth_accounts),
+        )
+        .route(
+            "/codex/auth/current",
+            get(crate::api::handlers::platforms::codex::get_codex_auth_current),
+        )
+        .route(
+            "/codex/auth/save",
+            post(crate::api::handlers::platforms::codex::save_codex_auth),
+        )
+        .route(
+            "/codex/auth/switch/{name}",
+            post(crate::api::handlers::platforms::codex::switch_codex_auth),
+        )
+        .route(
+            "/codex/auth/{name}",
+            delete(crate::api::handlers::platforms::codex::delete_codex_auth),
+        )
+        .route(
+            "/codex/auth/process",
+            get(crate::api::handlers::platforms::codex::detect_codex_process),
+        )
 }

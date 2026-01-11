@@ -44,7 +44,7 @@
       v-if="updateInfo && updateInfo.has_update"
       class="mb-3 p-2.5 rounded-lg"
       :style="{
-        background: 'rgba(16, 185, 129, 0.1)',
+        background: 'rgba(var(--color-success-rgb), 0.1)',
         border: '1px solid var(--accent-success)'
       }"
     >
