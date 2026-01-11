@@ -109,7 +109,11 @@ export default defineConfig({
                     { text: 'list - 列出配置', link: '/reference/commands/list' },
                     { text: 'current - 当前配置', link: '/reference/commands/current' },
                     { text: 'switch - 切换配置', link: '/reference/commands/switch' },
-                    { text: 'validate - 验证配置', link: '/reference/commands/validate' }
+                    { text: 'validate - 验证配置', link: '/reference/commands/validate' },
+                    { text: 'enable - 启用配置', link: '/reference/commands/enable' },
+                    { text: 'disable - 禁用配置', link: '/reference/commands/disable' },
+                    { text: 'clear - 清理配置', link: '/reference/commands/clear' },
+                    { text: 'optimize - 优化配置', link: '/reference/commands/optimize' }
                   ]
                 },
                 {
@@ -143,6 +147,8 @@ export default defineConfig({
                     { text: 'skills - 技能管理', link: '/reference/commands/skills' },
                     { text: 'prompts - 提示词', link: '/reference/commands/prompts' },
                     { text: 'temp-token - 临时令牌', link: '/reference/commands/temp-token' },
+                    { text: 'provider - 健康检查', link: '/reference/commands/provider' },
+                    { text: 'sessions - 会话管理', link: '/reference/commands/sessions' },
                     { text: 'update - 更新', link: '/reference/commands/update' },
                     { text: 'version - 版本', link: '/reference/commands/version' }
                   ]
@@ -157,6 +163,7 @@ export default defineConfig({
                 { text: 'Claude Code', link: '/reference/platforms/claude' },
                 { text: 'Codex (Copilot)', link: '/reference/platforms/codex' },
                 { text: 'Gemini CLI', link: '/reference/platforms/gemini' },
+                { text: 'Factory Droid', link: '/reference/platforms/droid' },
                 { text: '平台迁移', link: '/reference/platforms/migration' }
               ]
             },
@@ -297,6 +304,10 @@ export default defineConfig({
                 { text: 'current - Current Profile', link: '/en/reference/commands/current' },
                 { text: 'switch - Switch Profile', link: '/en/reference/commands/switch' },
                 { text: 'validate - Validate', link: '/en/reference/commands/validate' },
+                { text: 'enable - Enable Profile', link: '/en/reference/commands/enable' },
+                { text: 'disable - Disable Profile', link: '/en/reference/commands/disable' },
+                { text: 'clear - Clear Config', link: '/en/reference/commands/clear' },
+                { text: 'optimize - Optimize Config', link: '/en/reference/commands/optimize' },
                 { text: 'history - History', link: '/en/reference/commands/history' },
                 { text: 'check - Conflict Detection', link: '/en/reference/commands/check' },
                 { text: 'tui - Terminal UI', link: '/en/reference/commands/tui' },
@@ -309,6 +320,8 @@ export default defineConfig({
                 { text: 'skills - Skills Management', link: '/en/reference/commands/skills' },
                 { text: 'prompts - Prompt Presets', link: '/en/reference/commands/prompts' },
                 { text: 'temp-token - Temp Token', link: '/en/reference/commands/temp-token' },
+                { text: 'provider - Health Check', link: '/en/reference/commands/provider' },
+                { text: 'sessions - Session Management', link: '/en/reference/commands/sessions' },
                 { text: 'export - Export', link: '/en/reference/commands/export' },
                 { text: 'import - Import', link: '/en/reference/commands/import' },
                 { text: 'clean - Clean Backups', link: '/en/reference/commands/clean' },
@@ -324,6 +337,7 @@ export default defineConfig({
                 { text: 'Claude Code', link: '/en/reference/platforms/claude' },
                 { text: 'Codex (GitHub Copilot)', link: '/en/reference/platforms/codex' },
                 { text: 'Gemini CLI', link: '/en/reference/platforms/gemini' },
+                { text: 'Factory Droid', link: '/en/reference/platforms/droid' },
                 { text: 'Platform Migration', link: '/en/reference/platforms/migration' }
               ]
             },

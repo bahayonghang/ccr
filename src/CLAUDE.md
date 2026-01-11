@@ -3,6 +3,7 @@
 [根目录](../CLAUDE.md) > **src**
 
 ## Change Log
+- **2026-01-11**: 补充 cli/, sessions/, storage/, sync/, platforms/, models/ 模块详细描述
 - **2025-12-17**: 激进精简到 300 行以内，只保留核心架构和技术栈
 - **2025-12-16**: 按标准模板重新组织文档结构
 - **2025-10-22 00:04:36 CST**: 初始核心模块文档创建
@@ -16,12 +17,15 @@
 `src/` 模块是 CCR 的核心 CLI 应用，提供完整的命令行界面、服务层、管理层和基础设施。
 
 **核心功能**:
-1. **CLI 接口** - 13+ 命令的完整命令行接口
-2. **服务层** - 业务逻辑编排 (6 services)
-3. **管理层** - 数据访问与持久化 (3 managers)
+1. **CLI 接口** - 30+ 命令的完整命令行接口
+2. **服务层** - 业务逻辑编排 (7 services)
+3. **管理层** - 数据访问与持久化 (6+ managers)
 4. **Web API** - 轻量级 Axum REST API (14 endpoints)
 5. **TUI** - 交互式终端用户界面
 6. **核心基础设施** - 错误处理、文件锁定、原子写入、日志
+7. **Session 管理** - AI 会话解析、索引、搜索 (SQLite)
+8. **平台抽象** - 6 平台支持 (Claude/Codex/Gemini/Qwen/IFlow/Droid)
+9. **云端同步** - WebDAV 多文件夹同步
 
 **设计特点**:
 - 既是独立二进制 (`ccr`),也是可复用库
@@ -36,7 +40,9 @@
 src/
 ├── CLI/Web Layer (命令层)
 │   ├── main.rs              - CLI 入口 (Clap 解析)
-│   ├── commands/            - 13+ CLI 命令实现
+│   ├── cli/                 - CLI 定义和分发
+│   │   └── subcommands/     - 子命令模块 (check, codex, platform, sync, ui)
+│   ├── commands/            - 30+ CLI 命令实现
 │   ├── web/                 - Axum Web 服务器 (14 端点)
 │   └── tui/                 - 终端 UI (Ratatui)
 │
@@ -52,7 +58,42 @@ src/
 ├── Manager Layer (管理层)
 │   ├── config.rs            - 配置文件管理
 │   ├── settings.rs          - Settings.json 管理
-│   └── history.rs           - 历史文件管理
+│   ├── history.rs           - 历史文件管理
+│   ├── cost_tracker.rs      - 成本追踪管理
+│   ├── budget.rs            - 预算控制管理
+│   └── pricing.rs           - 价格表管理
+│
+├── Platform Layer (平台层)
+│   ├── mod.rs               - 平台工厂和注册表
+│   ├── base.rs              - 基础操作函数
+│   ├── claude.rs            - Claude 平台实现
+│   ├── codex.rs             - Codex 平台实现
+│   ├── gemini.rs            - Gemini 平台实现
+│   ├── qwen.rs              - Qwen 平台实现 (stub)
+│   ├── iflow.rs             - IFlow 平台实现 (stub)
+│   └── droid.rs             - Droid 平台实现
+│
+├── Session Layer (会话层)
+│   ├── models.rs            - Session 数据模型
+│   ├── parser.rs            - JSONL 解析器 (多平台)
+│   └── indexer.rs           - 索引管理器 (SQLite)
+│
+├── Storage Layer (存储层)
+│   ├── database.rs          - SQLite 数据库管理 (r2d2 连接池)
+│   └── session_store.rs     - Session 存储层 (CRUD)
+│
+├── Sync Layer (同步层)
+│   ├── config.rs            - 同步配置管理
+│   ├── folder_manager.rs    - 多文件夹管理
+│   ├── service.rs           - WebDAV 同步服务
+│   ├── commands.rs          - 同步命令 (feature = "web")
+│   └── content_selector.rs  - 内容选择器
+│
+├── Model Layer (模型层)
+│   ├── platform.rs          - Platform 枚举和 PlatformConfig trait
+│   ├── stats.rs             - 成本/Token 统计模型
+│   ├── budget.rs            - 预算配置模型
+│   └── pricing.rs           - 定价配置模型
 │
 └── Core/Utils Layer (核心层)
     ├── error.rs             - 自定义错误类型
@@ -120,9 +161,13 @@ src/
 |------|------|------|
 | **chrono** | 0.4+ | 日期时间 |
 | **uuid** | 1.18+ | UUID 生成 |
-| **whoami** | 1.6+ | 用户识别 |
+| **whoami** | 2.0+ | 用户识别 |
 | **sysinfo** | 0.37+ | 系统信息 |
 | **reqwest_dav** | 0.2+ | WebDAV 客户端 |
+| **blake3** | 1.8+ | 高性能哈希 (文件去重) |
+| **rayon** | 1.11+ | 并行迭代器 |
+| **rusqlite** | 0.38+ | SQLite 数据库 |
+| **r2d2** | 0.8+ | 数据库连接池 |
 
 ---
 
@@ -132,10 +177,19 @@ src/
 
 ```
 src/
-├── main.rs                    # CLI 入口点
-├── lib.rs                     # 库导出
+├── main.rs                    # CLI 入口点 (Clap 解析 + 命令路由)
+├── lib.rs                     # 库导出 (公开 API)
 │
-├── commands/                  # CLI 命令 (13+ 文件)
+├── cli/                       # CLI 定义和分发
+│   ├── mod.rs                 - CLI 主结构 (Clap derive)
+│   └── subcommands/           - 子命令模块
+│       ├── check.rs           - 检查命令
+│       ├── codex.rs           - Codex 相关命令
+│       ├── platform.rs        - 平台管理命令
+│       ├── sync.rs            - 同步命令
+│       └── ui.rs              - UI 命令
+│
+├── commands/                  # CLI 命令实现 (30+ 文件)
 │   ├── mod.rs
 │   ├── init.rs                - 初始化配置
 │   ├── list.rs                - 列出配置
@@ -150,11 +204,16 @@ src/
 │   ├── sync_cmd.rs            - WebDAV 同步
 │   ├── web_cmd.rs             - Web 服务器
 │   ├── ui_cmd.rs              - UI 启动
-│   └── tui_cmd.rs             - TUI 启动
+│   ├── tui_cmd.rs             - TUI 启动
+│   ├── stats_cmd.rs           - 成本统计
+│   ├── budget_cmd.rs          - 预算管理
+│   ├── pricing_cmd.rs         - 定价管理
+│   ├── sessions_cmd.rs        - 会话管理
+│   └── provider_cmd.rs        - Provider 健康检查
 │
-├── services/                  # 服务层 (6 文件)
+├── services/                  # 服务层 (7 文件)
 │   ├── mod.rs
-│   ├── config_service.rs      - 配置操作
+│   ├── config_service.rs      - 配置操作编排
 │   ├── settings_service.rs    - 设置管理
 │   ├── history_service.rs     - 审计日志
 │   ├── backup_service.rs      - 备份操作
@@ -162,39 +221,76 @@ src/
 │   ├── sync_service.rs        - WebDAV 同步
 │   └── ui_service.rs          - UI 启动器
 │
-├── managers/                  # 管理层 (3 文件)
+├── managers/                  # 管理层 (6+ 文件)
 │   ├── mod.rs
 │   ├── config.rs              - 配置文件管理
 │   ├── settings.rs            - Settings.json 管理
-│   └── history.rs             - 历史文件管理
+│   ├── history.rs             - 历史文件管理
+│   ├── cost_tracker.rs        - 成本追踪管理
+│   ├── budget.rs              - 预算控制管理
+│   ├── pricing.rs             - 价格表管理
+│   └── temp_override.rs       - 临时 Token 覆盖
 │
-├── core/                      # 核心基础设施 (5 文件)
+├── platforms/                 # 平台实现 (6 平台)
+│   ├── mod.rs                 - 平台工厂和注册表
+│   ├── base.rs                - 基础操作函数
+│   ├── claude.rs              - Claude 平台实现
+│   ├── codex.rs               - Codex 平台实现
+│   ├── gemini.rs              - Gemini 平台实现
+│   ├── qwen.rs                - Qwen 平台实现 (stub)
+│   ├── iflow.rs               - IFlow 平台实现 (stub)
+│   └── droid.rs               - Droid 平台实现
+│
+├── sessions/                  # 会话管理
 │   ├── mod.rs
-│   ├── error.rs               - 自定义错误类型
-│   ├── lock.rs                - 文件锁定机制
-│   ├── atomic_writer.rs       - 原子文件写入
-│   └── logging.rs             - 彩色输出
+│   ├── models.rs              - Session 数据模型
+│   ├── parser.rs              - JSONL 解析器 (多平台)
+│   └── indexer.rs             - 索引管理器 (SQLite)
 │
-├── web/                       # Web 服务器 (4 文件)
+├── storage/                   # 存储层
+│   ├── mod.rs
+│   ├── database.rs            - SQLite 数据库管理 (r2d2 连接池)
+│   └── session_store.rs       - Session 存储层 (CRUD)
+│
+├── sync/                      # 同步模块
+│   ├── mod.rs
+│   ├── config.rs              - 同步配置管理
+│   ├── folder_manager.rs      - 多文件夹管理
+│   ├── service.rs             - WebDAV 同步服务
+│   ├── commands.rs            - 同步命令 (feature = "web")
+│   └── content_selector.rs    - 内容选择器
+│
+├── models/                    # 数据模型
+│   ├── mod.rs
+│   ├── platform.rs            - Platform 枚举和 PlatformConfig trait
+│   ├── stats.rs               - 成本/Token 统计模型
+│   ├── budget.rs              - 预算配置模型
+│   └── pricing.rs             - 定价配置模型
+│
+├── core/                      # 核心基础设施
+│   ├── mod.rs
+│   ├── error.rs               - 自定义错误类型 (CcrError)
+│   ├── lock.rs                - 文件锁定机制 (LockManager)
+│   ├── atomic_writer.rs       - 原子文件写入
+│   └── logging.rs             - 彩色输出 (ColorOutput)
+│
+├── web/                       # Web 服务器 (feature = "web")
 │   ├── mod.rs
 │   ├── server.rs              - Axum 服务器 (port 8080)
-│   ├── routes.rs              - 路由定义
+│   ├── routes.rs              - 路由定义 (14 端点)
 │   └── handlers.rs            - API 处理器
 │
-├── tui/                       # 终端 UI (5 文件)
+├── tui/                       # 终端 UI (feature = "tui")
 │   ├── mod.rs
 │   ├── app.rs                 - TUI 应用状态
 │   ├── ui.rs                  - UI 渲染
 │   ├── event.rs               - 事件处理
-│   └── tabs.rs                - 标签页
+│   └── tabs.rs                - 标签页 (Claude/Codex)
 │
-├── utils/                     # 工具函数 (3 文件)
-│   ├── mod.rs
-│   ├── validation.rs          - 验证辅助函数
-│   └── mask.rs                - 敏感数据掩码
-│
-└── models/                    # 数据模型
-    └── mod.rs
+└── utils/                     # 工具函数
+    ├── mod.rs
+    ├── validation.rs          - 验证辅助函数 (Validatable trait)
+    └── mask.rs                - 敏感数据掩码
 ```
 
 ### 核心入口点
@@ -205,6 +301,9 @@ src/
 | **库入口** | `src/lib.rs` | 公开 API 导出 |
 | **Web 入口** | `src/web/server.rs` | Axum 服务器 (port 8080) |
 | **TUI 入口** | `src/tui/mod.rs` | 终端 UI 入口 |
+| **Session 入口** | `src/sessions/mod.rs` | 会话解析和索引 |
+| **Storage 入口** | `src/storage/mod.rs` | SQLite 数据库访问 |
+| **Sync 入口** | `src/sync/mod.rs` | WebDAV 同步服务 |
 
 ---
 
