@@ -357,14 +357,12 @@ impl CommandDispatcher {
                     crate::commands::codex::auth::delete_command(name, *force).await
                 }
                 CodexAuthAction::Current => crate::commands::codex::auth::current_command().await,
-                CodexAuthAction::Export { output, no_secrets } => {
-                    crate::commands::codex::auth::export_command(output.clone(), *no_secrets).await
+                CodexAuthAction::Export { no_secrets } => {
+                    crate::commands::codex::auth::export_command(*no_secrets).await
                 }
-                CodexAuthAction::Import {
-                    input,
-                    replace,
-                    force,
-                } => crate::commands::codex::auth::import_command(input, *replace, *force).await,
+                CodexAuthAction::Import { replace, force } => {
+                    crate::commands::codex::auth::import_command(*replace, *force).await
+                }
             },
         }
     }

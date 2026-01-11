@@ -82,15 +82,10 @@ pub enum CodexAuthAction {
 
     /// 导出所有账号到 JSON 文件
     ///
-    /// 将所有已保存的账号导出为 JSON 格式
-    /// 示例: ccr codex auth export
-    ///       ccr codex auth export -o accounts.json
-    ///       ccr codex auth export --no-secrets  # 不包含 Token
+    /// 将所有已保存的账号导出为 JSON 格式，默认保存到 Downloads 目录
+    /// 示例: ccr codex auth export              # 导出到 Downloads/codex-auth-export-YYYY-MM-DD.json
+    ///       ccr codex auth export --no-secrets # 不包含 Token
     Export {
-        /// 输出文件路径 (默认输出到标准输出)
-        #[arg(short, long)]
-        output: Option<String>,
-
         /// 不包含敏感信息 (Token 等)
         #[arg(long)]
         no_secrets: bool,
@@ -98,14 +93,11 @@ pub enum CodexAuthAction {
 
     /// 从 JSON 文件导入账号
     ///
-    /// 从 JSON 文件导入账号数据
-    /// 示例: ccr codex auth import accounts.json
-    ///       ccr codex auth import accounts.json --replace  # 替换模式
-    ///       ccr codex auth import accounts.json --force    # 强制覆盖
+    /// 从 JSON 文件导入账号数据，默认自动扫描 Downloads 目录
+    /// 示例: ccr codex auth import                  # 从 Downloads 自动查找
+    ///       ccr codex auth import --replace        # 替换模式
+    ///       ccr codex auth import --force          # 强制覆盖
     Import {
-        /// 输入文件路径
-        input: String,
-
         /// 使用替换模式 (覆盖同名账号)
         #[arg(long)]
         replace: bool,
