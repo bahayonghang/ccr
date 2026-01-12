@@ -263,121 +263,123 @@
       class="max-w-7xl mx-auto space-y-6"
     >
       <!-- Summary Cards Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <!-- Input Tokens Card -->
-        <div class="glass-card backdrop-blur-xl bg-gradient-to-br from-white/95 to-white/85 dark:from-gray-800/80 dark:to-gray-800/60 rounded-2xl p-5 border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 group">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
-                {{ $t('usage.summaryCards.inputTokens') }}
-              </p>
-              <p class="text-3xl font-black text-gray-900 dark:text-white">
-                {{ formatNumber(totalInputTokens) }}
-              </p>
-            </div>
-            <div class="p-3 bg-gradient-to-br from-blue-500/20 to-blue-600/20 dark:from-blue-400/20 dark:to-blue-500/20 rounded-xl group-hover:scale-110 transition-transform">
-              <svg
-                class="w-7 h-7 text-blue-600 dark:text-blue-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          :label="$t('usage.summaryCards.inputTokens')"
+          :value="totalInputTokens"
+          accent-color="blue"
+          :sparkline-data="inputTokensSparkline"
+          :trend="inputTokensTrend"
+          :trend-label="$t('usage.trends.vsLastPeriod')"
+        >
+          <template #icon>
+            <svg
+              class="w-7 h-7"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+              />
+            </svg>
+          </template>
+        </StatCard>
 
         <!-- Output Tokens Card -->
-        <div class="glass-card backdrop-blur-xl bg-gradient-to-br from-white/95 to-white/85 dark:from-gray-800/80 dark:to-gray-800/60 rounded-2xl p-5 border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 group">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
-                {{ $t('usage.summaryCards.outputTokens') }}
-              </p>
-              <p class="text-3xl font-black text-gray-900 dark:text-white">
-                {{ formatNumber(totalOutputTokens) }}
-              </p>
-            </div>
-            <div class="p-3 bg-gradient-to-br from-green-500/20 to-green-600/20 dark:from-green-400/20 dark:to-green-500/20 rounded-xl group-hover:scale-110 transition-transform">
-              <svg
-                class="w-7 h-7 text-green-600 dark:text-green-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          :label="$t('usage.summaryCards.outputTokens')"
+          :value="totalOutputTokens"
+          accent-color="green"
+          :sparkline-data="outputTokensSparkline"
+          :trend="outputTokensTrend"
+          :trend-label="$t('usage.trends.vsLastPeriod')"
+        >
+          <template #icon>
+            <svg
+              class="w-7 h-7"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M10l-3 3m3-3v12"
+              />
+            </svg>
+          </template>
+        </StatCard>
 
         <!-- Cache Read Tokens Card -->
-        <div class="glass-card backdrop-blur-xl bg-gradient-to-br from-white/95 to-white/85 dark:from-gray-800/80 dark:to-gray-800/60 rounded-2xl p-5 border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 group">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
-                {{ $t('usage.summaryCards.cacheRead') }}
-              </p>
-              <p class="text-3xl font-black text-gray-900 dark:text-white">
-                {{ formatNumber(totalCacheTokens) }}
-              </p>
-            </div>
-            <div class="p-3 bg-gradient-to-br from-amber-500/20 to-amber-600/20 dark:from-amber-400/20 dark:to-amber-500/20 rounded-xl group-hover:scale-110 transition-transform">
-              <svg
-                class="w-7 h-7 text-amber-600 dark:text-amber-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          :label="$t('usage.summaryCards.cacheRead')"
+          :value="totalCacheTokens"
+          accent-color="amber"
+          :sparkline-data="cacheTokensSparkline"
+          :trend="cacheTokensTrend"
+          :trend-label="$t('usage.trends.vsLastPeriod')"
+        >
+          <template #icon>
+            <svg
+              class="w-7 h-7"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+              />
+            </svg>
+          </template>
+        </StatCard>
 
-        <!-- Cache Efficiency Card -->
-        <div class="glass-card backdrop-blur-xl bg-gradient-to-br from-white/95 to-white/85 dark:from-gray-800/80 dark:to-gray-800/60 rounded-2xl p-5 border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 group">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
-                {{ $t('usage.summaryCards.cacheEfficiency') }}
-              </p>
-              <p class="text-3xl font-black text-gray-900 dark:text-white">
-                {{ cacheEfficiency.toFixed(1) }}%
-              </p>
-            </div>
-            <div class="p-3 bg-gradient-to-br from-purple-500/20 to-purple-600/20 dark:from-purple-400/20 dark:to-purple-500/20 rounded-xl group-hover:scale-110 transition-transform">
-              <svg
-                class="w-7 h-7 text-purple-600 dark:text-purple-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-            </div>
-          </div>
+        <!-- Request Count Card -->
+        <StatCard
+          :label="$t('usage.summaryCards.requests')"
+          :value="tokenStats.requestCount"
+          format="number"
+          accent-color="cyan"
+          :sparkline-data="requestCountSparkline"
+        >
+          <template #icon>
+            <svg
+              class="w-7 h-7"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+          </template>
+        </StatCard>
+
+        <!-- Cache Efficiency Ring -->
+        <div class="glass-card backdrop-blur-xl bg-gradient-to-br from-white/95 to-white/85 dark:from-gray-800/80 dark:to-gray-800/60 rounded-2xl p-5 border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] flex flex-col items-center justify-center">
+          <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide text-center">
+            {{ $t('usage.summaryCards.cacheEfficiency') }}
+          </p>
+          <RingProgress
+            :value="cacheEfficiency"
+            :size="100"
+            :stroke-width="10"
+            gradient-start="#8B5CF6"
+            gradient-end="#06B6D4"
+            label=""
+          />
         </div>
       </div>
 
@@ -454,6 +456,8 @@ import type { UsageRecord, TimeRange } from '@/types'
 import TokenUsageChart from '@/components/TokenUsageChart.vue'
 import ActivityHeatmap from '@/components/ActivityHeatmap.vue'
 import DateRangePicker from '@/components/DateRangePicker.vue'
+import StatCard from '@/components/usage/StatCard.vue'
+import RingProgress from '@/components/usage/RingProgress.vue'
 
 const { t } = useI18n()
 
@@ -645,15 +649,108 @@ const cacheEfficiency = computed(() => {
   return (totalCacheTokens.value / totalInputTokens.value) * 100
 })
 
-// Utility functions
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M'
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K'
+// Sparkline data - aggregate tokens by time buckets for mini charts
+const generateSparklineData = (records: UsageRecord[], extractor: (r: UsageRecord) => number): number[] => {
+  if (records.length === 0) return []
+
+  // Group by hour for sparkline (last 12 data points)
+  const buckets = new Map<string, number>()
+  const sortedRecords = [...records].sort((a, b) =>
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  )
+
+  for (const record of sortedRecords) {
+    const date = new Date(record.timestamp)
+    const bucketKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`
+    buckets.set(bucketKey, (buckets.get(bucketKey) || 0) + extractor(record))
   }
-  return num.toString()
+
+  const values = Array.from(buckets.values())
+  // Return last 12 data points for sparkline
+  return values.slice(-12)
 }
+
+const inputTokensSparkline = computed(() =>
+  generateSparklineData(filteredRecords.value, r => r.usage?.input_tokens || 0)
+)
+
+const outputTokensSparkline = computed(() =>
+  generateSparklineData(filteredRecords.value, r => r.usage?.output_tokens || 0)
+)
+
+const cacheTokensSparkline = computed(() =>
+  generateSparklineData(filteredRecords.value, r => r.usage?.cache_read_input_tokens || 0)
+)
+
+const requestCountSparkline = computed(() =>
+  generateSparklineData(filteredRecords.value, () => 1)
+)
+
+// Trend calculation - compare current period vs previous period
+const calculateTrend = (currentValue: number, previousValue: number): number => {
+  if (previousValue === 0) return currentValue > 0 ? 100 : 0
+  return ((currentValue - previousValue) / previousValue) * 100
+}
+
+const getPreviousPeriodRecords = computed(() => {
+  const now = new Date()
+  let periodMs: number
+
+  switch (selectedRange.value) {
+    case '5h':
+      periodMs = 5 * 60 * 60 * 1000
+      break
+    case 'today':
+      periodMs = 24 * 60 * 60 * 1000
+      break
+    case '7d':
+      periodMs = 7 * 24 * 60 * 60 * 1000
+      break
+    case 'week':
+      periodMs = 7 * 24 * 60 * 60 * 1000
+      break
+    case 'month':
+      periodMs = 30 * 24 * 60 * 60 * 1000
+      break
+    default:
+      return []
+  }
+
+  const currentStart = new Date(now.getTime() - periodMs)
+  const previousStart = new Date(currentStart.getTime() - periodMs)
+
+  // Apply the same model filter as filteredRecords
+  return records.value.filter(r => {
+    const recordDate = new Date(r.timestamp)
+    const inPreviousPeriod = recordDate >= previousStart && recordDate < currentStart
+    const matchesModel = selectedModel.value === 'all' || r.model === selectedModel.value
+    return inPreviousPeriod && matchesModel
+  })
+})
+
+const previousPeriodStats = computed(() => {
+  const stats = { input: 0, output: 0, cache: 0 }
+  for (const record of getPreviousPeriodRecords.value) {
+    if (record.usage) {
+      stats.input += record.usage.input_tokens || 0
+      stats.output += record.usage.output_tokens || 0
+      stats.cache += record.usage.cache_read_input_tokens || 0
+    }
+  }
+  return stats
+})
+
+const inputTokensTrend = computed(() =>
+  calculateTrend(totalInputTokens.value, previousPeriodStats.value.input)
+)
+
+const outputTokensTrend = computed(() =>
+  calculateTrend(totalOutputTokens.value, previousPeriodStats.value.output)
+)
+
+const cacheTokensTrend = computed(() =>
+  calculateTrend(totalCacheTokens.value, previousPeriodStats.value.cache)
+)
 
 const shortenModelName = (model: string): string => {
   return model.replace('claude-', '').replace(/-(202\d{5})/, '')

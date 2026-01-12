@@ -211,6 +211,27 @@ impl ConfigSection {
         self.usage_count = Some(count + 1);
     }
 
+    /// 📊 获取预期的 ANTHROPIC_* 环境变量状态（无副作用）
+    ///
+    /// 根据配置节的字段值，返回应用后的环境变量状态
+    /// 用于在不实际修改 settings 的情况下预览环境变量变化
+    pub fn to_anthropic_env_status(&self) -> std::collections::HashMap<String, Option<String>> {
+        use std::collections::HashMap;
+
+        let mut status = HashMap::new();
+
+        // 映射关系与 ClaudeSettings::update_from_config 保持一致
+        status.insert("ANTHROPIC_BASE_URL".to_string(), self.base_url.clone());
+        status.insert("ANTHROPIC_AUTH_TOKEN".to_string(), self.auth_token.clone());
+        status.insert("ANTHROPIC_MODEL".to_string(), self.model.clone());
+        status.insert(
+            "ANTHROPIC_SMALL_FAST_MODEL".to_string(),
+            self.small_fast_model.clone(),
+        );
+
+        status
+    }
+
     /// ✅ 启用配置
     pub fn enable(&mut self) {
         self.enabled = Some(true);

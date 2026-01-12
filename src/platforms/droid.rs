@@ -281,34 +281,6 @@ impl PlatformConfig for DroidPlatform {
         base::get_current_profile_from_registry("droid")
     }
 
-    fn backup_settings(&self, suffix: Option<&str>) -> Result<Option<PathBuf>> {
-        if self.settings_path.exists() {
-            // 创建备份目录
-            let backup_dir = self.paths.backups_dir.clone();
-            fs::create_dir_all(&backup_dir)
-                .map_err(|e| CcrError::SettingsError(format!("创建备份目录失败: {}", e)))?;
-
-            // 生成备份文件名
-            let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-            let backup_filename = if let Some(name) = suffix {
-                format!("settings.{}.{}.json.bak", name, timestamp)
-            } else {
-                format!("settings.{}.json.bak", timestamp)
-            };
-
-            let backup_path = backup_dir.join(backup_filename);
-
-            // 复制文件
-            fs::copy(&self.settings_path, &backup_path)
-                .map_err(|e| CcrError::SettingsError(format!("备份 Droid 设置失败: {}", e)))?;
-
-            tracing::info!("💾 Droid 设置已备份: {:?}", backup_path);
-            Ok(Some(backup_path))
-        } else {
-            Ok(None)
-        }
-    }
-
     fn get_env_var_names(&self) -> Vec<&'static str> {
         // Droid 不使用环境变量，直接写入 settings.json
         vec![]

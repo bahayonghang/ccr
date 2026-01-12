@@ -264,15 +264,15 @@ fn test_settings_service_backup_workflow() {
         &backup_dir,
         lock_manager,
     ));
-    let service = SettingsService::new(settings_manager);
+    let service = SettingsService::new(Arc::clone(&settings_manager));
 
     // 创建初始设置
     service
         .apply_config(&create_test_section("initial"))
         .unwrap();
 
-    // 备份
-    let backup_path = service.backup_settings(Some("test_backup")).unwrap();
+    // 备份（直接使用 settings_manager）
+    let backup_path = settings_manager.backup(Some("test_backup")).unwrap();
     assert!(backup_path.exists());
 
     // 列出备份
@@ -447,7 +447,7 @@ fn test_complete_config_switch_workflow() {
         &backup_dir,
         lock_manager,
     ));
-    let settings_service = SettingsService::new(settings_manager);
+    let settings_service = SettingsService::new(Arc::clone(&settings_manager));
 
     // 步骤 1: 应用 config1
     let section1 = config_service
@@ -464,10 +464,8 @@ fn test_complete_config_switch_workflow() {
         Some(&"https://api.config1.com".to_string())
     );
 
-    // 步骤 2: 备份当前设置
-    let backup_path = settings_service
-        .backup_settings(Some("before_switch"))
-        .unwrap();
+    // 步骤 2: 备份当前设置（直接使用 settings_manager）
+    let backup_path = settings_manager.backup(Some("before_switch")).unwrap();
     assert!(backup_path.exists());
 
     // 步骤 3: 切换到 config2
@@ -690,10 +688,10 @@ fn test_settings_service_error_handling() {
         &backup_dir,
         lock_manager,
     ));
-    let service = SettingsService::new(settings_manager);
+    let service = SettingsService::new(Arc::clone(&settings_manager));
 
-    // 测试备份不存在的设置
-    let result = service.backup_settings(Some("test"));
+    // 测试备份不存在的设置（直接使用 settings_manager）
+    let result = settings_manager.backup(Some("test"));
     assert!(result.is_err());
 
     // 测试恢复不存在的备份

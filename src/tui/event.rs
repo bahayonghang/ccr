@@ -10,6 +10,8 @@ use std::time::Duration;
 pub enum Event {
     /// ⌨️ 键盘事件
     Key(KeyEvent),
+    /// 📐 窗口大小变化
+    Resize(u16, u16),
     /// ⏱️ 定时刷新
     Tick,
 }
@@ -50,6 +52,7 @@ impl EventHandler {
                         Ok(Event::Tick)
                     }
                 }
+                CrosstermEvent::Resize(width, height) => Ok(Event::Resize(width, height)),
                 _ => Ok(Event::Tick),
             }
         } else {

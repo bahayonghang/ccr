@@ -82,22 +82,6 @@ impl SettingsService {
         Ok(())
     }
 
-    /// 💾 备份当前设置
-    ///
-    /// # Arguments
-    /// - `name` - 备份名称(可选,会加入到文件名中)
-    ///
-    /// # Returns
-    /// 备份文件的路径
-    pub fn backup_settings(&self, name: Option<&str>) -> Result<PathBuf> {
-        self.settings_manager.backup(name)
-    }
-
-    /// 💾 异步备份当前设置
-    pub async fn backup_settings_async(&self, name: Option<&str>) -> Result<PathBuf> {
-        self.settings_manager.backup_async(name).await
-    }
-
     /// 🔄 从备份恢复设置
     ///
     /// # Arguments

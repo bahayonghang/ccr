@@ -1054,7 +1054,12 @@ export default {
       inputTokens: 'Input Tokens',
       outputTokens: 'Output Tokens',
       cacheRead: 'Cache Read',
-      cacheEfficiency: 'Cache Efficiency'
+      cacheEfficiency: 'Cache Efficiency',
+      requests: 'Requests'
+    },
+
+    trends: {
+      vsLastPeriod: 'vs last period'
     },
 
     states: {
@@ -1204,7 +1209,10 @@ export default {
     less: 'Less',
     more: 'More',
     activeDays: 'Active Days',
-    totalTokens: 'Total Tokens'
+    totalTokens: 'Total Tokens',
+    mon: 'Mon',
+    wed: 'Wed',
+    fri: 'Fri'
   },
 
   // Codex Module
@@ -1596,6 +1604,13 @@ export default {
       },
       validation: {
         nameRequired: 'Please enter account name'
+      },
+      table: {
+        name: 'Account Name',
+        email: 'Email',
+        tokenStatus: 'Token Status',
+        lastUsed: 'Last Used',
+        actions: 'Actions'
       },
       messages: {
         loadFailed: 'Failed to load auth info',

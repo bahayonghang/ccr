@@ -87,7 +87,7 @@ fn test_settings_service_workflow() {
         lock_manager,
     ));
 
-    let service = SettingsService::new(settings_manager);
+    let service = SettingsService::new(Arc::clone(&settings_manager));
 
     // 测试应用配置
     let section = create_test_section("test");
@@ -104,8 +104,8 @@ fn test_settings_service_workflow() {
         Some(&"sk-test-token-test".to_string())
     );
 
-    // 测试备份
-    let backup_path = service.backup_settings(Some("test_backup")).unwrap();
+    // 测试备份（直接使用 settings_manager）
+    let backup_path = settings_manager.backup(Some("test_backup")).unwrap();
     assert!(backup_path.exists());
 
     // 测试列出备份

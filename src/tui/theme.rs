@@ -105,6 +105,11 @@ pub fn empty_hint_style() -> Style {
         .add_modifier(Modifier::ITALIC)
 }
 
+/// 全局背景样式
+pub fn background_style() -> Style {
+    Style::default().bg(BG_PRIMARY)
+}
+
 /// Claude 平台专属样式
 pub fn claude_style() -> Style {
     Style::default()
