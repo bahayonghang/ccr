@@ -25,6 +25,8 @@ pub fn run_codex_auth_tui() -> Result<()> {
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
+    // 确保进入 TUI 时清空旧输出，避免残留内容覆盖
+    terminal.clear()?;
 
     // 🎯 创建应用实例
     let app = CodexAuthApp::new()?;
@@ -75,6 +77,11 @@ where
                     // 用户请求退出
                     return Ok(app);
                 }
+                draw_frame(terminal, &app)?;
+            }
+            Event::Resize(_, _) => {
+                // 窗口变更时清屏，避免残影
+                terminal.clear()?;
                 draw_frame(terminal, &app)?;
             }
             Event::Tick => {

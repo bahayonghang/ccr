@@ -14,6 +14,10 @@ use ratatui::{
 
 /// 🎨 绘制主界面
 pub fn draw(f: &mut Frame, app: &CodexAuthApp) {
+    // 统一背景色
+    let background = Block::default().style(theme::background_style());
+    f.render_widget(background, f.area());
+
     // 主布局
     let chunks = Layout::default()
         .direction(Direction::Vertical)

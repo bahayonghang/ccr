@@ -9,7 +9,7 @@ use ratatui::{
     style::{Modifier, Style},
     symbols,
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, List, ListItem, Padding, Paragraph, Tabs},
+    widgets::{Block, Borders, List, ListItem, Padding, Paragraph, Tabs},
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -18,8 +18,9 @@ use ratatui::{
 
 /// 渲染主 UI
 pub fn draw(f: &mut Frame, app: &App) {
-    // 清除背景
-    f.render_widget(Clear, f.area());
+    // 统一背景色
+    let background = Block::default().style(theme::background_style());
+    f.render_widget(background, f.area());
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
