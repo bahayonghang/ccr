@@ -3,7 +3,7 @@
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.18.3"
+version = "3.18.4"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher (Rust implementation)"
@@ -41,18 +41,18 @@ web = ["dep:axum", "dep:open", "dep:sysinfo", "dep:tower", "dep:tower-http"]
 # ═══════════════════════════════════════════════════════════
 [dependencies]
 # --- Workspace 依赖 ---
-anyhow = { workspace = true }     # 灵活的错误处理 (Result<T, anyhow::Error>)
+anyhow = { workspace = true }      # 灵活的错误处理 (Result<T, anyhow::Error>)
 ccr-types = { path = "ccr-types" } # 共享类型定义
-chrono = { workspace = true }     # 日期和时间处理
-clap = { workspace = true }       # 命令行参数解析 (CLI Interface)
-dirs = { workspace = true }       # 获取系统标准目录 (Config, Home, Data)
-reqwest = { workspace = true }    # HTTP 客户端 (用于 API 调用)
-serde = { workspace = true }      # 序列化/反序列化框架
-serde_json = { workspace = true } # JSON 格式支持
-tempfile = { workspace = true }   # 临时文件创建 (测试和临时操作)
-thiserror = { workspace = true }  # 自定义错误类型派生
-tokio = { workspace = true }      # 异步运行时
-toml = { workspace = true }       # TOML 格式支持 (标准序列化)
+chrono = { workspace = true }      # 日期和时间处理
+clap = { workspace = true }        # 命令行参数解析 (CLI Interface)
+dirs = { workspace = true }        # 获取系统标准目录 (Config, Home, Data)
+reqwest = { workspace = true }     # HTTP 客户端 (用于 API 调用)
+serde = { workspace = true }       # 序列化/反序列化框架
+serde_json = { workspace = true }  # JSON 格式支持
+tempfile = { workspace = true }    # 临时文件创建 (测试和临时操作)
+thiserror = { workspace = true }   # 自定义错误类型派生
+tokio = { workspace = true }       # 异步运行时
+toml = { workspace = true }        # TOML 格式支持 (标准序列化)
 
 # --- 本地依赖 (字母顺序) ---
 blake3 = "1.8.3" # 高性能哈希算法 (用于文件去重/内容寻址)
