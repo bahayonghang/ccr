@@ -264,113 +264,13 @@
             </p>
           </div>
 
-          <!-- Account Grid -->
-          <div
+          <!-- Account Table -->
+          <AccountListTable
             v-else
-            class="grid grid-cols-1 xl:grid-cols-2 gap-4"
-          >
-            <GuofengCard
-              v-for="account in accounts"
-              :key="account.name"
-              class="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-              :class="{ 'ring-1 ring-platform-codex/50': account.is_current }"
-              :glow-color="account.is_current ? 'warning' : 'primary'"
-              padding="lg"
-            >
-              <!-- Active Indicator Background -->
-              <div
-                v-if="account.is_current"
-                class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-platform-codex/10 to-transparent -mr-8 -mt-8 rounded-bl-full pointer-events-none"
-              />
-
-              <div class="relative z-10">
-                <div class="flex items-start justify-between gap-4 mb-4">
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-2">
-                      <span class="text-2xl">{{ account.freshness_icon }}</span>
-                      <h3 class="text-lg font-bold font-mono text-text-primary truncate">
-                        {{ account.name }}
-                      </h3>
-                      <span
-                        v-if="account.is_current"
-                        class="badge badge-primary"
-                      >
-                        {{ $t('codex.auth.currentBadge') }}
-                      </span>
-                      <span
-                        v-if="account.is_virtual"
-                        class="badge badge-secondary"
-                      >
-                        {{ $t('codex.auth.virtualBadge') }}
-                      </span>
-                    </div>
-                    <p
-                      v-if="account.description"
-                      class="text-sm text-text-secondary line-clamp-1"
-                    >
-                      {{ account.description }}
-                    </p>
-                  </div>
-
-                  <!-- Actions -->
-                  <div class="flex items-center gap-1 opacity-100 xl:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button
-                      v-if="!account.is_current"
-                      class="p-2 rounded-lg hover:bg-bg-overlay text-accent-success transition-colors"
-                      :title="$t('codex.auth.switch')"
-                      @click.stop="handleSwitch(account.name)"
-                    >
-                      <Check class="w-4 h-4" />
-                    </button>
-                    <button
-                      v-if="!account.is_virtual"
-                      class="p-2 rounded-lg hover:bg-bg-overlay text-accent-danger transition-colors"
-                      :title="$t('codex.actions.delete')"
-                      @click.stop="handleDelete(account.name)"
-                    >
-                      <Trash2 class="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Info Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
-                  <div class="flex flex-col gap-1">
-                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {{ $t('codex.auth.fields.email') }}
-                    </span>
-                    <span class="text-text-primary truncate">
-                      {{ account.email || $t('codex.auth.status.notAvailable') }}
-                    </span>
-                  </div>
-
-                  <div class="flex flex-col gap-1">
-                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {{ $t('codex.auth.fields.tokenFreshness') }}
-                    </span>
-                    <span
-                      class="font-medium"
-                      :class="freshnessClass(account.freshness)"
-                    >
-                      {{ account.freshness_description }}
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  v-if="account.last_used || account.last_refresh"
-                  class="mt-4 flex items-center justify-between border-t border-border-subtle pt-3 text-xs text-text-muted"
-                >
-                  <span v-if="account.last_used">
-                    {{ $t('codex.auth.fields.lastUsed') }}: {{ account.last_used }}
-                  </span>
-                  <span v-if="account.last_refresh">
-                    {{ $t('codex.auth.fields.lastRefresh') }}: {{ account.last_refresh }}
-                  </span>
-                </div>
-              </div>
-            </GuofengCard>
-          </div>
+            :accounts="accounts"
+            @switch="handleSwitch"
+            @delete="handleDelete"
+          />
 
           <!-- Save Modal -->
           <div
@@ -500,7 +400,6 @@ import {
   RefreshCw,
   Save,
   Shuffle,
-  Trash2,
   UserCheck,
   Users,
   X
@@ -509,6 +408,7 @@ import {
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
+import AccountListTable from '@/components/usage/AccountListTable.vue'
 import {
   listCodexAuthAccounts,
   getCodexAuthCurrent,

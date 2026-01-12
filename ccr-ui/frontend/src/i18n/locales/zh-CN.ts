@@ -1199,7 +1199,12 @@ export default {
       inputTokens: '输入 Tokens',
       outputTokens: '输出 Tokens',
       cacheRead: '缓存读取',
-      cacheEfficiency: '缓存效率'
+      cacheEfficiency: '缓存效率',
+      requests: '请求次数'
+    },
+
+    trends: {
+      vsLastPeriod: '较上期'
     },
 
     states: {
@@ -1274,7 +1279,10 @@ export default {
     less: '较少',
     more: '较多',
     activeDays: '活跃天数',
-    totalTokens: '总 Token 数'
+    totalTokens: '总 Token 数',
+    mon: '一',
+    wed: '三',
+    fri: '五'
   },
 
   // Codex Module
@@ -1661,6 +1669,13 @@ export default {
       },
       validation: {
         nameRequired: '请输入账户名称'
+      },
+      table: {
+        name: '账户名称',
+        email: '邮箱',
+        tokenStatus: 'Token 状态',
+        lastUsed: '上次使用',
+        actions: '操作'
       },
       messages: {
         loadFailed: '加载认证信息失败',
