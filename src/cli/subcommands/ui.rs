@@ -2,6 +2,7 @@
 
 /// 🎨 UI 操作子命令
 #[derive(clap::Subcommand)]
+#[command(disable_help_subcommand = true)]
 pub enum UiAction {
     /// 显示 `ccr ui` 帮助
     Help,
@@ -12,7 +13,13 @@ pub enum UiAction {
 
 /// 🎯 临时Token操作子命令
 #[derive(clap::Subcommand)]
+#[command(disable_help_subcommand = true)]
 pub enum TempTokenAction {
+    /// 显示 TempToken 命令帮助
+    ///
+    /// 示例: ccr temp-token help
+    Help,
+
     /// 设置临时Token
     ///
     /// 临时覆盖当前配置的token,不修改toml配置文件

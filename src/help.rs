@@ -478,3 +478,39 @@ pub fn print_subcommand_help(name: &str) {
     println!("{}", "─".repeat(min(w, 60)).dimmed());
     decorate_bottom_border();
 }
+
+/// 打印嵌套子命令帮助（如 "codex auth"）
+///
+/// 支持多级嵌套的子命令路径
+/// 示例: print_nested_subcommand_help(&["codex", "auth"])
+pub fn print_nested_subcommand_help(path: &[&str]) {
+    use clap::CommandFactory;
+    let mut cmd = crate::Cli::command();
+    let w = term_width();
+
+    // 逐级查找子命令
+    for name in path {
+        if let Some(sc) = cmd.find_subcommand_mut(name) {
+            cmd = sc.clone();
+        } else {
+            decorate_top_border();
+            println!("未找到子命令: {}", path.join(" ").red());
+            decorate_bottom_border();
+            return;
+        }
+    }
+
+    // 打印帮助
+    decorate_top_border();
+    println!("{} {}", self::cmd("ccr"), env!("CARGO_PKG_VERSION"));
+    println!("子命令帮助: {}", path.join(" ").blue().bold());
+    println!("{}", "─".repeat(min(w, 60)).dimmed());
+
+    let mut buf = Vec::new();
+    cmd.write_long_help(&mut buf).ok();
+    let s = String::from_utf8_lossy(&buf);
+    println!("{}", s);
+
+    println!("{}", "─".repeat(min(w, 60)).dimmed());
+    decorate_bottom_border();
+}

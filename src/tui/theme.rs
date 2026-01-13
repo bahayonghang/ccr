@@ -107,7 +107,7 @@ pub fn empty_hint_style() -> Style {
 
 /// 全局背景样式
 pub fn background_style() -> Style {
-    Style::default().bg(BG_PRIMARY)
+    Style::default()
 }
 
 /// Claude 平台专属样式

@@ -8,7 +8,13 @@ use clap::Subcommand;
 ///
 /// 管理 Codex CLI 的多账号登录状态
 #[derive(Subcommand)]
+#[command(disable_help_subcommand = true)]
 pub enum CodexAction {
+    /// 显示 Codex 命令帮助
+    ///
+    /// 示例: ccr codex help
+    Help,
+
     /// 账号管理
     ///
     /// 管理 Codex 的多账号登录状态
@@ -25,7 +31,13 @@ pub enum CodexAction {
 ///
 /// 管理 Codex 账号的保存、切换、删除等操作
 #[derive(Subcommand)]
+#[command(disable_help_subcommand = true)]
 pub enum CodexAuthAction {
+    /// 显示 Codex Auth 命令帮助
+    ///
+    /// 示例: ccr codex auth help
+    Help,
+
     /// 保存当前登录到指定名称
     ///
     /// 将当前 ~/.codex/auth.json 保存为命名账号

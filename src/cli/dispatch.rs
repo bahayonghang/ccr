@@ -193,6 +193,10 @@ impl CommandDispatcher {
         use crate::cli::subcommands::SyncAction;
 
         match action {
+            SyncAction::Help => {
+                help::print_subcommand_help("sync");
+                Ok(())
+            }
             SyncAction::Folder { action } => Self::dispatch_folder(action),
             SyncAction::All { action } => Self::dispatch_all_sync(action).await,
             SyncAction::FolderSync(args) => {
@@ -227,6 +231,10 @@ impl CommandDispatcher {
     #[cfg(feature = "web")]
     fn dispatch_folder(action: &FolderAction) -> Result<(), CcrError> {
         match action {
+            FolderAction::Help => {
+                help::print_nested_subcommand_help(&["sync", "folder"]);
+                Ok(())
+            }
             FolderAction::List => crate::commands::sync_cmd::sync_folder_list_command(),
             FolderAction::Add {
                 name,
@@ -258,6 +266,10 @@ impl CommandDispatcher {
     #[cfg(feature = "web")]
     async fn dispatch_all_sync(action: &AllSyncAction) -> Result<(), CcrError> {
         match action {
+            AllSyncAction::Help => {
+                help::print_nested_subcommand_help(&["sync", "all"]);
+                Ok(())
+            }
             AllSyncAction::Push { force } => {
                 crate::commands::sync_cmd::sync_all_push_command(*force).await
             }
@@ -273,6 +285,10 @@ impl CommandDispatcher {
         action: &crate::cli::subcommands::TempTokenAction,
     ) -> Result<(), CcrError> {
         match action {
+            crate::cli::subcommands::TempTokenAction::Help => {
+                help::print_subcommand_help("temp-token");
+                Ok(())
+            }
             crate::cli::subcommands::TempTokenAction::Set {
                 token,
                 base_url,
@@ -294,6 +310,10 @@ impl CommandDispatcher {
         use crate::cli::subcommands::PlatformAction;
 
         match action {
+            PlatformAction::Help => {
+                help::print_subcommand_help("platform");
+                Ok(())
+            }
             PlatformAction::List { json } => crate::commands::platform_list_command(*json).await,
             PlatformAction::Switch { platform_name } => {
                 crate::commands::platform_switch_command(platform_name).await
@@ -314,6 +334,10 @@ impl CommandDispatcher {
     /// Check 命令分发
     async fn dispatch_check(action: &crate::cli::subcommands::CheckAction) -> Result<(), CcrError> {
         match action {
+            crate::cli::subcommands::CheckAction::Help => {
+                help::print_subcommand_help("check");
+                Ok(())
+            }
             crate::cli::subcommands::CheckAction::Conflicts => {
                 crate::commands::check_conflicts_command().await
             }
@@ -339,8 +363,17 @@ impl CommandDispatcher {
                     crate::commands::codex::auth::list_command().await
                 }
             }
+            // Codex help 子命令
+            Some(CodexAction::Help) => {
+                help::print_subcommand_help("codex");
+                Ok(())
+            }
             // auth 子命令
             Some(CodexAction::Auth { action }) => match action {
+                CodexAuthAction::Help => {
+                    help::print_nested_subcommand_help(&["codex", "auth"]);
+                    Ok(())
+                }
                 CodexAuthAction::Save {
                     name,
                     description,
