@@ -79,9 +79,11 @@ where
                 }
                 draw_frame(terminal, &app)?;
             }
-            Event::Resize(_, _) => {
+            Event::Resize => {
                 // 窗口变更时清屏，避免残影
-                terminal.clear()?;
+                terminal
+                    .clear()
+                    .map_err(|err| crate::core::error::CcrError::IoError(io::Error::other(err)))?;
                 draw_frame(terminal, &app)?;
             }
             Event::Tick => {

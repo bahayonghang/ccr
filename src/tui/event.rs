@@ -11,7 +11,7 @@ pub enum Event {
     /// ⌨️ 键盘事件
     Key(KeyEvent),
     /// 📐 窗口大小变化
-    Resize(u16, u16),
+    Resize,
     /// ⏱️ 定时刷新
     Tick,
 }
@@ -52,7 +52,7 @@ impl EventHandler {
                         Ok(Event::Tick)
                     }
                 }
-                CrosstermEvent::Resize(width, height) => Ok(Event::Resize(width, height)),
+                CrosstermEvent::Resize(_, _) => Ok(Event::Resize),
                 _ => Ok(Event::Tick),
             }
         } else {
