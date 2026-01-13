@@ -26,6 +26,11 @@
 cargo install --git https://github.com/bahayonghang/ccr ccr
 ```
 
+### 从 dev 分支安装（获取最新功能）
+```bash
+cargo install --git https://github.com/bahayonghang/ccr --branch dev ccr
+```
+
 ### 源码安装
 ```bash
 git clone https://github.com/bahayonghang/ccr.git
@@ -108,6 +113,31 @@ ccr ui
 # 指定自定义端口
 ccr ui -p 3000
 ```
+
+## 🔄 自动更新
+
+CCR 支持从 GitHub 自动更新到最新版本。
+
+```bash
+# 从 main 分支更新（稳定版）
+ccr update
+
+# 从 dev 分支更新（最新功能）
+ccr update dev
+
+# 仅检查更新，不实际安装
+ccr update --check
+
+# 检查 dev 分支的更新
+ccr update dev --check
+```
+
+| 命令 | 说明 |
+|------|------|
+| `ccr update` | 从 `main` 分支更新到最新稳定版 |
+| `ccr update dev` | 从 `dev` 分支更新，获取最新功能 |
+| `ccr update --check` | 预览更新命令，不实际执行 |
+
 
 ## 🛠️ 开发指南
 

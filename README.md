@@ -26,6 +26,11 @@ Unified management for specific AI CLI tools including **Claude Code**, **Codex*
 cargo install --git https://github.com/bahayonghang/ccr ccr
 ```
 
+### Install from dev branch (Recommended for latest features)
+```bash
+cargo install --git https://github.com/bahayonghang/ccr --branch dev ccr
+```
+
 ### From Source
 ```bash
 git clone https://github.com/bahayonghang/ccr.git
@@ -108,6 +113,31 @@ ccr ui
 # Specify custom port
 ccr ui -p 3000
 ```
+
+## 🔄 Auto Update
+
+CCR supports automatic updates from GitHub to the latest version.
+
+```bash
+# Update from main branch (stable)
+ccr update
+
+# Update from dev branch (latest features)
+ccr update dev
+
+# Check for updates only, without installing
+ccr update --check
+
+# Check for dev branch updates
+ccr update dev --check
+```
+
+| Command | Description |
+|---------|-------------|
+| `ccr update` | Update to the latest stable version from `main` branch |
+| `ccr update dev` | Update from `dev` branch to get the latest features |
+| `ccr update --check` | Preview the update command without executing |
+
 
 ## 🛠️ Development
 
