@@ -1030,26 +1030,32 @@
     <!-- 账号编辑弹窗 -->
     <div
       v-if="showAccountModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
       @click.self="showAccountModal = false"
     >
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
-        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          {{ editingAccount ? '编辑账号' : '添加账号' }}
-        </h3>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
+        <!-- 标题栏 -->
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Users class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            {{ editingAccount ? '编辑账号' : '添加账号' }}
+          </h3>
+        </div>
+        
         <form
-          class="space-y-4"
+          class="p-6 space-y-5"
           @submit.prevent="saveAccount"
         >
+          <!-- 提供商选择 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              提供商 *
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <span class="text-red-500">*</span> 提供商
             </label>
             <select
               v-model="accountForm.provider_id"
               required
               :disabled="!!editingAccount"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+              class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="">
                 选择提供商
@@ -1063,95 +1069,129 @@
               </option>
             </select>
           </div>
+          
+          <!-- 账号名称 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              账号名称 *
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <span class="text-red-500">*</span> 账号名称
             </label>
             <input
               v-model="accountForm.name"
               type="text"
               required
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="例如: 主账号"
             >
           </div>
+          
+          <!-- Session 输入 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Cookies JSON {{ editingAccount ? '(留空不修改)' : '*' }}
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <span
+                v-if="!editingAccount"
+                class="text-red-500"
+              >*</span> Session
+              <span
+                v-if="editingAccount"
+                class="text-gray-400 dark:text-gray-500 font-normal"
+              >(留空不修改)</span>
             </label>
             <textarea
-              v-model="accountForm.cookies_json"
+              v-model="accountForm.session"
               :required="!editingAccount"
-              rows="4"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"
-              placeholder="{&quot;session&quot;:&quot;xxx&quot;}"
+              rows="5"
+              class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed resize-y min-h-[120px] placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-colors"
+              placeholder="直接粘贴 session 值即可"
             />
-            <div class="mt-2 flex items-center space-x-2">
-              <button
-                type="button"
-                class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded transition-colors"
-                @click="formatCookiesJson"
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <svg
+                class="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                格式化 JSON
-              </button>
-              <span
-                v-if="jsonError"
-                class="text-xs text-red-600 dark:text-red-400"
-              >
-                {{ jsonError }}
-              </span>
-            </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              直接粘贴 session 值，后台会自动处理格式
+            </p>
           </div>
+          
+          <!-- API User -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              API User (可选)
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              API User
+              <span class="text-gray-400 dark:text-gray-500 font-normal">(可选)</span>
             </label>
             <input
               v-model="accountForm.api_user"
               type="text"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono"
+              class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="12345"
             >
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              通常为 5 位数字，可在浏览器开发者工具 Network 标签的请求头中找到 "New-Api-User"
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+              通常为 5 位数字，可在 Network 标签的请求头中找到 "New-Api-User"
             </p>
           </div>
-          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-            <p class="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
-              如何获取 Cookies：
+          
+          <!-- 帮助提示 -->
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4">
+            <p class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1.5">
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
+              </svg>
+              如何获取 Session
             </p>
-            <ol class="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
-              <li>按 F12 打开浏览器开发者工具</li>
-              <li>转到 Application 标签页 → Cookies</li>
-              <li>选择目标站点，复制需要的 Cookie 值</li>
-              <li>以 JSON 格式填入上方输入框，如：{"session": "值"}</li>
+            <ol class="text-xs text-blue-700 dark:text-blue-300/90 space-y-1.5 list-decimal list-inside ml-0.5">
+              <li>按 <kbd class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800/50 rounded text-blue-800 dark:text-blue-200 font-mono">F12</kbd> 打开浏览器开发者工具</li>
+              <li>转到 <span class="font-medium">Application</span> 标签页 → <span class="font-medium">Cookies</span></li>
+              <li>选择目标站点，找到 <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-800/50 rounded font-mono">session</code> 这一行</li>
+              <li>复制 session 的值，直接粘贴到上方输入框</li>
             </ol>
           </div>
-          <div class="flex items-center">
+          
+          <!-- 启用开关 -->
+          <div class="flex items-center py-1">
             <input
               id="account-enabled"
               v-model="accountForm.enabled"
               type="checkbox"
-              class="w-4 h-4 text-blue-600 border-gray-300 rounded"
+              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
             >
             <label
               for="account-enabled"
-              class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+              class="ml-2.5 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none"
             >
               启用此账号
             </label>
           </div>
-          <div class="flex justify-end space-x-3 pt-4">
+          
+          <!-- 操作按钮 -->
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
-              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              class="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 transition-colors"
               @click="showAccountModal = false"
             >
               取消
             </button>
             <button
               type="submit"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+              class="px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
             >
               保存
             </button>
@@ -1295,7 +1335,6 @@ const showProviderModal = ref(false)
 const showAccountModal = ref(false)
 const editingProvider = ref<CheckinProvider | null>(null)
 const editingAccount = ref<AccountInfo | null>(null)
-const jsonError = ref<string | null>(null)
 
 // 表单
 const providerForm = ref({
@@ -1311,7 +1350,7 @@ const providerForm = ref({
 const accountForm = ref({
   provider_id: '',
   name: '',
-  cookies_json: '',
+  session: '', // 简化：只需要输入 session 值，后台自动转换成 {"session": "xxx"}
   api_user: '',
   enabled: true,
 })
@@ -1484,12 +1523,37 @@ const deleteProvider = async (id: string) => {
 }
 
 // 账号操作
-// Cookies JSON 默认模板
-const DEFAULT_COOKIES_TEMPLATE = '{"session":"xxx"}'
+// 从 cookies JSON 中提取 session 值
+const extractSessionFromJson = (json: string): string => {
+  try {
+    const parsed = JSON.parse(json)
+    return parsed.session || ''
+  } catch {
+    return ''
+  }
+}
+
+// 将 session 值转换为 cookies JSON 格式
+const sessionToCookiesJson = (session: string): string => {
+  const trimmed = session.trim()
+  if (!trimmed) return ''
+  
+  // 如果用户输入的已经是 JSON 格式，直接返回
+  if (trimmed.startsWith('{')) {
+    try {
+      JSON.parse(trimmed)
+      return trimmed
+    } catch {
+      // 不是有效 JSON，当作 session 值处理
+    }
+  }
+  
+  // 否则包装成 {"session": "xxx"} 格式
+  return JSON.stringify({ session: trimmed })
+}
 
 const openAccountModal = async (account?: AccountInfo) => {
   editingAccount.value = account || null
-  jsonError.value = null
   
   if (account) {
     // 编辑已有账号：从后端获取解密后的 cookies
@@ -1499,27 +1563,27 @@ const openAccountModal = async (account?: AccountInfo) => {
       accountForm.value = {
         provider_id: account.provider_id,
         name: account.name,
-        cookies_json: cookiesData.cookies_json, // 使用真实的 cookies
+        session: extractSessionFromJson(cookiesData.cookies_json), // 提取 session 值
         api_user: cookiesData.api_user || '',
         enabled: account.enabled,
       }
     } catch (e: any) {
       console.error('Failed to get cookies:', e)
-      // 如果获取失败，使用默认模板
+      // 如果获取失败，留空
       accountForm.value = {
         provider_id: account.provider_id,
         name: account.name,
-        cookies_json: DEFAULT_COOKIES_TEMPLATE,
+        session: '',
         api_user: account.api_user || '',
         enabled: account.enabled,
       }
     }
   } else {
-    // 添加新账号：使用默认模板
+    // 添加新账号：留空
     accountForm.value = {
       provider_id: providers.value[0]?.id || '',
       name: '',
-      cookies_json: DEFAULT_COOKIES_TEMPLATE,
+      session: '',
       api_user: '',
       enabled: true,
     }
@@ -1529,23 +1593,30 @@ const openAccountModal = async (account?: AccountInfo) => {
 
 const saveAccount = async () => {
   try {
+    // 将 session 值转换为 cookies_json 格式
+    const cookiesJson = sessionToCookiesJson(accountForm.value.session)
+    
     if (editingAccount.value) {
       const updateData: { name?: string; cookies_json?: string; api_user?: string; enabled?: boolean } = {
         name: accountForm.value.name,
         enabled: accountForm.value.enabled,
       }
-      if (accountForm.value.cookies_json) {
-        updateData.cookies_json = accountForm.value.cookies_json
+      if (cookiesJson) {
+        updateData.cookies_json = cookiesJson
       }
       if (accountForm.value.api_user) {
         updateData.api_user = accountForm.value.api_user
       }
       await updateCheckinAccount(editingAccount.value.id, updateData)
     } else {
+      if (!cookiesJson) {
+        alert('请输入 Session 值')
+        return
+      }
       await createCheckinAccount({
         provider_id: accountForm.value.provider_id,
         name: accountForm.value.name,
-        cookies_json: accountForm.value.cookies_json,
+        cookies_json: cookiesJson,
         api_user: accountForm.value.api_user || '',
       })
     }
@@ -1563,30 +1634,6 @@ const deleteAccount = async (id: string) => {
     await loadAllData()
   } catch (e: any) {
     alert('删除失败: ' + (e.message || '未知错误'))
-  }
-}
-
-// 格式化 Cookies JSON
-const formatCookiesJson = () => {
-  jsonError.value = null
-  const input = accountForm.value.cookies_json.trim()
-  
-  if (!input) {
-    jsonError.value = '请输入 JSON 内容'
-    return
-  }
-
-  try {
-    const parsed = JSON.parse(input)
-    // 验证是否为对象
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      jsonError.value = 'JSON 必须是对象格式，如 {"key": "value"}'
-      return
-    }
-    // 格式化并重新赋值
-    accountForm.value.cookies_json = JSON.stringify(parsed, null, 2)
-  } catch (e: any) {
-    jsonError.value = '无效的 JSON 格式: ' + (e.message || '未知错误')
   }
 }
 
