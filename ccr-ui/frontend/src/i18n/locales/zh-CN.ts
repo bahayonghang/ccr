@@ -1342,7 +1342,16 @@ export default {
         profileManagement: '通过 Profiles 管理不同工作环境的配置',
         agentsFeature: 'Agents 功能允许创建特定任务的 AI 助手',
         pluginEcosystem: '丰富的插件生态系统扩展 Codex 能力'
-      }
+      },
+      // Usage panel
+      usageTitle: '使用量统计',
+      usage5h: '5小时窗口',
+      usage7d: '7天窗口',
+      requests: '请求',
+      usageError: '加载使用量数据失败',
+      noUsageData: '暂无使用量数据',
+      usageTip: '在 Codex 使用量仪表板查看官方限制。',
+      usageStatusTip: '在活跃的 Codex 会话中运行 /status 查看实时限制。'
     },
 
     // Common actions
@@ -1635,7 +1644,12 @@ export default {
       emptyStateHint: '请先登录 Codex，然后将当前会话保存为账户',
       currentBadge: '当前',
       virtualBadge: '虚拟',
+      expiredBadge: '已过期',
       virtual: '虚拟',
+      expired: '已过期',
+      expiredCannotSwitch: '账户已过期，无法切换',
+      noExpiry: '无过期时间',
+      expiresAtHint: '可选。设置账户的过期时间，用于提醒续订。',
       switch: '切换到此账户',
       forceOverwrite: '如果账户已存在则强制覆盖',
       processWarning: '警告：检测到 Codex 进程',
@@ -1660,6 +1674,7 @@ export default {
         tokenFreshness: 'Token 新鲜度',
         lastRefresh: '上次刷新',
         lastUsed: '上次使用',
+        expiresAt: '过期时间',
         accountName: '账户名称',
         description: '描述'
       },

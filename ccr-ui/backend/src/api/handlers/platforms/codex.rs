@@ -453,6 +453,7 @@ pub async fn list_codex_auth_accounts() -> impl IntoResponse {
             .into_iter()
             .map(|item| {
                 let freshness = item.freshness;
+                let is_expired = CodexAuthService::is_expired(item.expires_at);
                 CodexAuthAccountItem {
                     name: item.name,
                     description: item.description,
@@ -464,6 +465,8 @@ pub async fn list_codex_auth_accounts() -> impl IntoResponse {
                     freshness,
                     freshness_icon: freshness.icon().to_string(),
                     freshness_description: freshness.description().to_string(),
+                    expires_at: item.expires_at.map(|dt| dt.to_rfc3339()),
+                    is_expired,
                 }
             })
             .collect();
@@ -496,6 +499,11 @@ pub async fn get_codex_auth_current() -> impl IntoResponse {
         let info = match service.get_current_auth_info() {
             Ok(current) => {
                 let freshness = current.freshness;
+                let expires_at = service.load_registry().ok().and_then(|reg| {
+                    reg.current_auth
+                        .and_then(|name| reg.accounts.get(&name).and_then(|a| a.expires_at))
+                });
+                let is_expired = CodexAuthService::is_expired(expires_at);
                 Some(CodexAuthCurrentInfo {
                     account_id: current.account_id,
                     email: current.email,
@@ -503,6 +511,8 @@ pub async fn get_codex_auth_current() -> impl IntoResponse {
                     freshness,
                     freshness_icon: freshness.icon().to_string(),
                     freshness_description: freshness.description().to_string(),
+                    expires_at: expires_at.map(|dt| dt.to_rfc3339()),
+                    is_expired,
                 })
             }
             Err(_) => None,
@@ -534,8 +544,18 @@ pub async fn save_codex_auth(Json(req): Json<CodexAuthSaveRequest>) -> impl Into
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {}", e))?;
 
+        let expires_at = if let Some(ts) = req.expires_at.as_deref() {
+            Some(
+                chrono::DateTime::parse_from_rfc3339(ts)
+                    .map_err(|e| format!("expires_at 格式错误: {}", e))?
+                    .with_timezone(&chrono::Utc),
+            )
+        } else {
+            None
+        };
+
         service
-            .save_current(&req.name, req.description, req.force)
+            .save_current(&req.name, req.description, expires_at, req.force)
             .map_err(|e| format!("{}", e))?;
 
         Ok::<_, String>(req.name)
@@ -634,6 +654,72 @@ pub async fn detect_codex_process() -> impl IntoResponse {
     match result {
         Ok(Ok(response)) => ok(response).into_response(),
         Ok(Err(e)) => internal_error(format!("检测 Codex 进程失败: {}", e)).into_response(),
+        Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
+    }
+}
+
+// ============ Usage 统计 ============
+
+use ccr::services::CodexUsageService;
+
+/// GET /api/codex/usage - 获取 Codex 使用量统计
+pub async fn get_codex_usage() -> impl IntoResponse {
+    let result = tokio::task::spawn_blocking(move || {
+        // 获取 Codex 目录
+        let codex_dir = dirs::home_dir()
+            .ok_or_else(|| "无法获取用户主目录".to_string())?
+            .join(".codex");
+
+        let service = CodexUsageService::new(codex_dir);
+        let rolling = service
+            .compute_rolling_usage()
+            .map_err(|e| format!("计算使用量失败: {}", e))?;
+
+        Ok::<_, String>(CodexUsageResponse {
+            five_hour: CodexUsageStatsResponse {
+                total_input_tokens: rolling.five_hour.total_input_tokens,
+                total_output_tokens: rolling.five_hour.total_output_tokens,
+                total_requests: rolling.five_hour.total_requests,
+                window_start: rolling.five_hour.window_start.map(|dt| dt.to_rfc3339()),
+                window_end: rolling.five_hour.window_end.map(|dt| dt.to_rfc3339()),
+            },
+            seven_day: CodexUsageStatsResponse {
+                total_input_tokens: rolling.seven_day.total_input_tokens,
+                total_output_tokens: rolling.seven_day.total_output_tokens,
+                total_requests: rolling.seven_day.total_requests,
+                window_start: rolling.seven_day.window_start.map(|dt| dt.to_rfc3339()),
+                window_end: rolling.seven_day.window_end.map(|dt| dt.to_rfc3339()),
+            },
+            all_time: CodexUsageStatsResponse {
+                total_input_tokens: rolling.all_time.total_input_tokens,
+                total_output_tokens: rolling.all_time.total_output_tokens,
+                total_requests: rolling.all_time.total_requests,
+                window_start: rolling.all_time.window_start.map(|dt| dt.to_rfc3339()),
+                window_end: rolling.all_time.window_end.map(|dt| dt.to_rfc3339()),
+            },
+            by_model: rolling
+                .by_model
+                .into_iter()
+                .map(|(model, stats)| {
+                    (
+                        model,
+                        CodexUsageStatsResponse {
+                            total_input_tokens: stats.total_input_tokens,
+                            total_output_tokens: stats.total_output_tokens,
+                            total_requests: stats.total_requests,
+                            window_start: stats.window_start.map(|dt| dt.to_rfc3339()),
+                            window_end: stats.window_end.map(|dt| dt.to_rfc3339()),
+                        },
+                    )
+                })
+                .collect(),
+        })
+    })
+    .await;
+
+    match result {
+        Ok(Ok(response)) => ok(response).into_response(),
+        Ok(Err(e)) => internal_error(format!("获取 Codex 使用量失败: {}", e)).into_response(),
         Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
     }
 }

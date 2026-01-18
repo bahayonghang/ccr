@@ -3,8 +3,10 @@
 
 use crate::core::error::Result;
 use crate::models::{CodexAuthItem, LoginState, TokenFreshness};
-use crate::services::CodexAuthService;
+use crate::services::{CodexAuthService, CodexRollingUsage};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use dirs::home_dir;
+use std::path::PathBuf;
 
 /// 每页最多显示的账号数量
 pub const PAGE_SIZE: usize = 10;
@@ -18,6 +20,20 @@ pub enum Mode {
     ConfirmDelete,
     /// 输入保存名称模式
     InputSaveName,
+}
+
+/// 📊 使用情况数据状态
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub enum UsageState {
+    /// 加载中
+    Loading,
+    /// 加载成功
+    Loaded(CodexRollingUsage),
+    /// 加载失败
+    Error(String),
+    /// 无数据
+    NoData,
 }
 
 /// 📱 Codex Auth TUI 应用
@@ -42,6 +58,11 @@ pub struct CodexAuthApp {
     pub input_buffer: String,
     /// 最后操作信息 (操作类型, 账号名, 是否成功, 错误信息)
     pub last_action: Option<(String, String, bool, Option<String>)>,
+    /// 使用情况数据状态
+    pub usage_state: UsageState,
+    /// Codex 目录
+    #[allow(dead_code)]
+    codex_dir: Option<std::path::PathBuf>,
 }
 
 impl CodexAuthApp {
@@ -54,6 +75,12 @@ impl CodexAuthApp {
         // 找到当前账号的索引
         let selected_index = accounts.iter().position(|a| a.is_current).unwrap_or(0);
 
+        // 获取 Codex 目录
+        let codex_dir = home_dir().map(|d| d.join(".codex"));
+
+        // 初始加载使用情况数据
+        let usage_state = Self::load_usage_data(&codex_dir);
+
         Ok(Self {
             accounts,
             selected_index,
@@ -65,7 +92,36 @@ impl CodexAuthApp {
             service,
             input_buffer: String::new(),
             last_action: None,
+            usage_state,
+            codex_dir,
         })
+    }
+
+    /// 📊 加载使用情况数据
+    fn load_usage_data(codex_dir: &Option<PathBuf>) -> UsageState {
+        let Some(dir) = codex_dir else {
+            return UsageState::Error("无法获取用户目录".to_string());
+        };
+
+        use crate::services::CodexUsageService;
+        let usage_service = CodexUsageService::new(dir.clone());
+
+        match usage_service.compute_rolling_usage() {
+            Ok(usage) => {
+                if usage.all_time.total_requests == 0 {
+                    UsageState::NoData
+                } else {
+                    UsageState::Loaded(usage)
+                }
+            }
+            Err(e) => UsageState::Error(e.to_string()),
+        }
+    }
+
+    /// 🔄 刷新使用情况数据
+    #[allow(dead_code)]
+    pub fn refresh_usage(&mut self) {
+        self.usage_state = Self::load_usage_data(&self.codex_dir);
     }
 
     /// 🔄 重新加载账号列表
@@ -219,7 +275,7 @@ impl CodexAuthApp {
             KeyCode::Enter => {
                 if !self.input_buffer.is_empty() {
                     let name = self.input_buffer.clone();
-                    match self.service.save_current(&name, None, false) {
+                    match self.service.save_current(&name, None, None, false) {
                         Ok(()) => {
                             self.last_action =
                                 Some(("已保存".to_string(), name.clone(), true, None));
@@ -303,6 +359,12 @@ impl CodexAuthApp {
 
             if account.is_current {
                 self.status_message = Some(("已经是当前账号".to_string(), false));
+                return Ok(false);
+            }
+
+            // 过期检查
+            if CodexAuthService::is_expired(account.expires_at) {
+                self.status_message = Some(("账号已过期，无法切换".to_string(), true));
                 return Ok(false);
             }
 

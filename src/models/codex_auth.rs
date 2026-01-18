@@ -39,6 +39,10 @@ pub struct CodexAuthAccount {
     /// 最后刷新时间 (从 auth.json 提取)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_refresh: Option<DateTime<Utc>>,
+
+    /// 到期时间 (可选)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
 /// Codex 账号注册表
@@ -100,6 +104,9 @@ pub struct CodexAuthItem {
 
     /// Token 新鲜度
     pub freshness: TokenFreshness,
+
+    /// 到期时间
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
 /// 当前 auth.json 解析信息
@@ -218,6 +225,10 @@ pub struct CodexAuthExportAccount {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_refresh: Option<DateTime<Utc>>,
 
+    /// 到期时间 (可选)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<DateTime<Utc>>,
+
     /// 完整的 auth.json 数据（可选，根据 include_secrets 决定）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_data: Option<CodexAuthJson>,
@@ -289,5 +300,103 @@ mod tests {
         assert!(auth.tokens.is_some());
         let tokens = auth.tokens.unwrap();
         assert_eq!(tokens.account_id, Some("test-id".to_string()));
+    }
+
+    #[test]
+    fn test_codex_auth_account_with_expiry() {
+        let account = CodexAuthAccount {
+            description: Some("Test account".to_string()),
+            account_id: "acc-123".to_string(),
+            email: Some("t***@example.com".to_string()),
+            saved_at: Utc::now(),
+            last_used: None,
+            last_refresh: Some(Utc::now()),
+            expires_at: Some(Utc::now() + chrono::Duration::days(30)),
+        };
+
+        // Test serialization
+        let toml_str = toml::to_string(&account).unwrap();
+        assert!(toml_str.contains("expires_at"));
+        assert!(toml_str.contains("account_id"));
+
+        // Test deserialization
+        let parsed: CodexAuthAccount = toml::from_str(&toml_str).unwrap();
+        assert_eq!(parsed.account_id, "acc-123");
+        assert!(parsed.expires_at.is_some());
+    }
+
+    #[test]
+    fn test_codex_auth_account_without_expiry() {
+        let account = CodexAuthAccount {
+            description: None,
+            account_id: "acc-456".to_string(),
+            email: None,
+            saved_at: Utc::now(),
+            last_used: None,
+            last_refresh: None,
+            expires_at: None,
+        };
+
+        // Test serialization - expires_at should be omitted
+        let toml_str = toml::to_string(&account).unwrap();
+        assert!(!toml_str.contains("expires_at"));
+
+        // Test deserialization
+        let parsed: CodexAuthAccount = toml::from_str(&toml_str).unwrap();
+        assert_eq!(parsed.account_id, "acc-456");
+        assert!(parsed.expires_at.is_none());
+    }
+
+    #[test]
+    fn test_codex_auth_registry_serialization() {
+        let mut registry = CodexAuthRegistry {
+            current_auth: Some("main".to_string()),
+            ..Default::default()
+        };
+        registry.accounts.insert(
+            "main".to_string(),
+            CodexAuthAccount {
+                description: Some("Main account".to_string()),
+                account_id: "acc-main".to_string(),
+                email: Some("m***@example.com".to_string()),
+                saved_at: Utc::now(),
+                last_used: Some(Utc::now()),
+                last_refresh: Some(Utc::now()),
+                expires_at: Some(Utc::now() + chrono::Duration::days(7)),
+            },
+        );
+
+        // Test serialization
+        let toml_str = toml::to_string(&registry).unwrap();
+        assert!(toml_str.contains("version"));
+        assert!(toml_str.contains("current_auth"));
+        assert!(toml_str.contains("[accounts.main]"));
+        assert!(toml_str.contains("expires_at"));
+
+        // Test deserialization
+        let parsed: CodexAuthRegistry = toml::from_str(&toml_str).unwrap();
+        assert_eq!(parsed.version, "1.0");
+        assert_eq!(parsed.current_auth, Some("main".to_string()));
+        assert!(parsed.accounts.contains_key("main"));
+        assert!(parsed.accounts["main"].expires_at.is_some());
+    }
+
+    #[test]
+    fn test_codex_auth_registry_backward_compatibility() {
+        // Old format without expires_at
+        let old_toml = r#"
+version = "1.0"
+current_auth = "legacy"
+
+[accounts.legacy]
+account_id = "acc-legacy"
+saved_at = "2026-01-01T00:00:00Z"
+"#;
+
+        let parsed: CodexAuthRegistry = toml::from_str(old_toml).unwrap();
+        assert_eq!(parsed.version, "1.0");
+        assert_eq!(parsed.current_auth, Some("legacy".to_string()));
+        assert!(parsed.accounts.contains_key("legacy"));
+        assert!(parsed.accounts["legacy"].expires_at.is_none());
     }
 }

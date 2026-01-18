@@ -44,7 +44,7 @@
         <div class="flex items-center gap-3 min-w-0">
           <span class="text-lg flex-shrink-0">{{ account.freshness_icon }}</span>
           <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="font-mono font-semibold text-text-primary truncate">
                 {{ account.name }}
               </span>
@@ -63,6 +63,17 @@
                 class="flex-shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-full bg-gray-500/10 text-gray-500 border border-gray-500/20"
               >
                 {{ $t('codex.auth.virtualBadge') }}
+              </span>
+              <!-- Expired Badge -->
+              <span
+                v-if="account.is_expired"
+                class="flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-red-500/20 text-red-500 border border-red-500/30"
+              >
+                <AlertCircle
+                  class="w-2.5 h-2.5"
+                  stroke-width="3"
+                />
+                {{ $t('codex.auth.expiredBadge') }}
               </span>
             </div>
             <p
@@ -100,15 +111,24 @@
 
         <!-- Actions Column -->
         <div class="flex items-center justify-end gap-1">
-          <!-- Quick Switch Button (non-current accounts) -->
+          <!-- Quick Switch Button (non-current, non-expired accounts) -->
           <button
-            v-if="!account.is_current"
+            v-if="!account.is_current && !account.is_expired"
             class="p-2 rounded-lg text-text-muted hover:text-accent-success hover:bg-accent-success/10 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
             :title="$t('codex.auth.switch')"
             @click="$emit('switch', account.name)"
           >
             <ArrowRightCircle class="w-4 h-4" />
           </button>
+
+          <!-- Expired Account Warning -->
+          <div
+            v-else-if="account.is_expired && !account.is_current"
+            class="p-2 text-red-500"
+            :title="$t('codex.auth.expiredCannotSwitch')"
+          >
+            <AlertCircle class="w-4 h-4" />
+          </div>
 
           <!-- Current Account Indicator -->
           <div
@@ -153,6 +173,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
+  AlertCircle,
   ArrowRightCircle,
   Check,
   CheckCircle2,

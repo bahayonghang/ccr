@@ -82,4 +82,9 @@ pub fn routes() -> Router {
             "/codex/auth/process",
             get(crate::api::handlers::platforms::codex::detect_codex_process),
         )
+        // Usage routes
+        .route(
+            "/codex/usage",
+            get(crate::api::handlers::platforms::codex::get_codex_usage),
+        )
 }

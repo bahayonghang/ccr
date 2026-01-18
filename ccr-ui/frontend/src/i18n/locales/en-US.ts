@@ -1277,7 +1277,16 @@ export default {
         profileManagement: 'Manage different work environment configurations through Profiles',
         agentsFeature: 'Agents feature allows creating AI assistants for specific tasks',
         pluginEcosystem: 'Rich plugin ecosystem extends Codex capabilities'
-      }
+      },
+      // Usage panel
+      usageTitle: 'Usage Statistics',
+      usage5h: '5-Hour Window',
+      usage7d: '7-Day Window',
+      requests: 'requests',
+      usageError: 'Failed to load usage data',
+      noUsageData: 'No usage data available',
+      usageTip: 'Check official limits at the Codex usage dashboard.',
+      usageStatusTip: 'Run /status in an active Codex session for real-time limits.'
     },
 
     // Common actions
@@ -1570,7 +1579,12 @@ export default {
       emptyStateHint: 'Login to Codex first, then save the current session as an account',
       currentBadge: 'Current',
       virtualBadge: 'Virtual',
+      expiredBadge: 'Expired',
       virtual: 'Virtual',
+      expired: 'Expired',
+      expiredCannotSwitch: 'Account expired, cannot switch',
+      noExpiry: 'No expiration',
+      expiresAtHint: 'Optional. Set account expiration time to remind for renewal.',
       switch: 'Switch to this account',
       forceOverwrite: 'Force overwrite if account exists',
       processWarning: 'Warning: Codex process detected',
@@ -1595,6 +1609,7 @@ export default {
         tokenFreshness: 'Token Freshness',
         lastRefresh: 'Last Refresh',
         lastUsed: 'Last Used',
+        expiresAt: 'Expires At',
         accountName: 'Account Name',
         description: 'Description'
       },

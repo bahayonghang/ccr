@@ -258,6 +258,8 @@ export {
   switchCodexAuth,
   deleteCodexAuth,
   detectCodexProcess,
+  // Codex Usage (web-only)
+  getCodexUsage,
 
   // Gemini (web-only)
   listGeminiMcpServers,

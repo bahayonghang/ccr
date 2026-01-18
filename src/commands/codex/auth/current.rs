@@ -8,6 +8,7 @@ use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::models::{LoginState, TokenFreshness};
 use crate::services::CodexAuthService;
+use chrono::{DateTime, Local, Utc};
 use colored::Colorize;
 
 /// 📍 显示当前账号信息
@@ -41,7 +42,7 @@ pub async fn current_command() -> Result<()> {
             // 显示详细信息
             if let Ok(info) = service.get_current_auth_info() {
                 println!();
-                display_auth_info(&service, &info);
+                display_auth_info(&service, &info, None); // 未保存的账号没有过期时间
 
                 println!();
                 ColorOutput::warning("当前登录尚未保存");
@@ -57,8 +58,13 @@ pub async fn current_command() -> Result<()> {
 
             // 显示详细信息
             if let Ok(info) = service.get_current_auth_info() {
+                let expires_at = service
+                    .load_registry()
+                    .ok()
+                    .and_then(|reg| reg.accounts.get(&name).and_then(|a| a.expires_at));
+
                 println!();
-                display_auth_info(&service, &info);
+                display_auth_info(&service, &info, expires_at);
             }
 
             println!();
@@ -72,7 +78,11 @@ pub async fn current_command() -> Result<()> {
 }
 
 /// 显示账号详细信息
-fn display_auth_info(service: &CodexAuthService, info: &crate::models::CurrentAuthInfo) {
+fn display_auth_info(
+    service: &CodexAuthService,
+    info: &crate::models::CurrentAuthInfo,
+    expires_at: Option<DateTime<Utc>>,
+) {
     // 邮箱
     if let Some(email) = &info.email {
         ColorOutput::info(&format!("邮箱: {}", service.mask_email(email)));
@@ -102,6 +112,22 @@ fn display_auth_info(service: &CodexAuthService, info: &crate::models::CurrentAu
             "最后刷新: {}",
             local_time.format("%Y-%m-%d %H:%M:%S")
         ));
+    }
+
+    // 到期时间
+    if let Some(exp_at) = expires_at {
+        let expired = CodexAuthService::is_expired(Some(exp_at));
+        let local_ts = exp_at.with_timezone(&Local).format("%Y-%m-%d %H:%M");
+        let label = if expired {
+            format!("🔒 已过期: {}", local_ts)
+        } else {
+            format!("到期: {}", local_ts)
+        };
+        if expired {
+            ColorOutput::error(&label);
+        } else {
+            ColorOutput::info(&label);
+        }
     }
 }
 

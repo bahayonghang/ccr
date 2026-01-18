@@ -903,6 +903,17 @@ export const detectCodexProcess = async (): Promise<CodexAuthProcessResponse> =>
 }
 
 // ===================================
+// Codex Usage APIs
+// ===================================
+
+import type { CodexUsageResponse } from '@/types'
+
+export const getCodexUsage = async (): Promise<CodexUsageResponse> => {
+  const response = await api.get<ApiResponse<CodexUsageResponse>>('/codex/usage')
+  return response.data.data!
+}
+
+// ===================================
 // Config Converter APIs
 // ===================================
 

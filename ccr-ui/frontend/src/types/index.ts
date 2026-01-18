@@ -526,6 +526,10 @@ export interface CodexAuthAccountItem {
   freshness: TokenFreshness
   freshness_icon: string
   freshness_description: string
+  /** 到期时间 (ISO 8601) */
+  expires_at?: string
+  /** 是否已过期 */
+  is_expired: boolean
 }
 
 /** Codex Auth 当前信息 */
@@ -536,6 +540,10 @@ export interface CodexAuthCurrentInfo {
   freshness: TokenFreshness
   freshness_icon: string
   freshness_description: string
+  /** 到期时间 (ISO 8601) */
+  expires_at?: string
+  /** 是否已过期 */
+  is_expired: boolean
 }
 
 /** Codex Auth 账号列表响应 */
@@ -555,6 +563,8 @@ export interface CodexAuthCurrentResponse {
 export interface CodexAuthSaveRequest {
   name: string
   description?: string
+  /** 到期时间 (ISO 8601) */
+  expires_at?: string
   force?: boolean
 }
 
@@ -563,6 +573,25 @@ export interface CodexAuthProcessResponse {
   has_running_process: boolean
   pids: number[]
   warning?: string
+}
+
+// ============ Codex Usage Types ============
+
+/** Codex 使用量统计 */
+export interface CodexUsageStats {
+  total_input_tokens: number
+  total_output_tokens: number
+  total_requests: number
+  window_start?: string
+  window_end?: string
+}
+
+/** Codex 滚动窗口使用量响应 */
+export interface CodexUsageResponse {
+  five_hour: CodexUsageStats
+  seven_day: CodexUsageStats
+  all_time: CodexUsageStats
+  by_model: Record<string, CodexUsageStats>
 }
 
 // ============ Config Converter Types ============

@@ -8,6 +8,7 @@ use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::models::TokenFreshness;
 use crate::services::CodexAuthService;
+use chrono::Local;
 use comfy_table::{
     Attribute, Cell, CellAlignment, Color as TableColor, ContentArrangement, Table,
     presets::UTF8_FULL,
@@ -67,6 +68,9 @@ pub async fn list_command() -> Result<()> {
             Cell::new("邮箱")
                 .add_attribute(Attribute::Bold)
                 .fg(TableColor::Cyan),
+            Cell::new("到期")
+                .add_attribute(Attribute::Bold)
+                .fg(TableColor::Cyan),
             Cell::new("新鲜度")
                 .add_attribute(Attribute::Bold)
                 .fg(TableColor::Cyan),
@@ -102,6 +106,24 @@ pub async fn list_command() -> Result<()> {
         let email = account.email.as_deref().unwrap_or("-");
         let email_cell = Cell::new(email);
 
+        // 到期列
+        let (expire_label, expire_color) = match account.expires_at {
+            Some(ts) => {
+                let expired = CodexAuthService::is_expired(account.expires_at);
+                let local_ts = ts
+                    .with_timezone(&Local)
+                    .format("%Y-%m-%d %H:%M")
+                    .to_string();
+                if expired {
+                    (format!("🔒 {}", local_ts), TableColor::Red)
+                } else {
+                    (local_ts, TableColor::Green)
+                }
+            }
+            None => ("-".to_string(), TableColor::White),
+        };
+        let expire_cell = Cell::new(expire_label).fg(expire_color);
+
         // 新鲜度列
         let freshness_cell = match account.freshness {
             TokenFreshness::Fresh => Cell::new("🟢 新鲜").fg(TableColor::Green),
@@ -118,6 +140,7 @@ pub async fn list_command() -> Result<()> {
             status,
             name_cell,
             email_cell,
+            expire_cell,
             freshness_cell,
             desc_cell,
         ]);
@@ -130,9 +153,24 @@ pub async fn list_command() -> Result<()> {
     if let Some(column) = table.column_mut(3) {
         column.set_cell_alignment(CellAlignment::Center);
     }
+    if let Some(column) = table.column_mut(4) {
+        column.set_cell_alignment(CellAlignment::Center);
+    }
 
     println!("{}", table);
     println!();
+
+    // 统计过期账号
+    let expired_count = accounts
+        .iter()
+        .filter(|a| CodexAuthService::is_expired(a.expires_at))
+        .count();
+    if expired_count > 0 {
+        ColorOutput::warning(&format!(
+            "有 {} 个账号已过期，切换将被阻止。",
+            expired_count
+        ));
+    }
 
     // 统计信息
     let saved_count = accounts.iter().filter(|a| !a.is_virtual).count();

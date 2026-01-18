@@ -187,7 +187,127 @@
 
         <!-- Info & Tips Section -->
         <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Codex Features -->
+          <!-- Codex Usage Panel -->
+          <GuofengCard>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <BarChart3 class="w-5 h-5 text-platform-codex" />
+                <h3 class="text-lg font-bold text-text-primary">
+                  {{ $t('codex.overview.usageTitle') }}
+                </h3>
+              </div>
+              <button
+                class="p-1.5 rounded-lg hover:bg-bg-overlay/50 transition-colors text-text-muted hover:text-text-primary"
+                :disabled="usageLoading"
+                @click="refreshUsage"
+              >
+                <RefreshCw
+                  class="w-4 h-4"
+                  :class="{ 'animate-spin': usageLoading }"
+                />
+              </button>
+            </div>
+
+            <!-- Loading State -->
+            <div
+              v-if="usageLoading"
+              class="space-y-3"
+            >
+              <div class="h-16 bg-bg-overlay/30 rounded-lg animate-pulse" />
+              <div class="h-16 bg-bg-overlay/30 rounded-lg animate-pulse" />
+            </div>
+
+            <!-- Error State -->
+            <div
+              v-else-if="usageError"
+              class="text-center py-6"
+            >
+              <AlertCircle class="w-8 h-8 text-text-muted mx-auto mb-2" />
+              <p class="text-sm text-text-muted">
+                {{ $t('codex.overview.usageError') }}
+              </p>
+              <button
+                class="mt-2 text-xs text-accent-primary hover:underline"
+                @click="refreshUsage"
+              >
+                {{ $t('common.retry') }}
+              </button>
+            </div>
+
+            <!-- Empty State -->
+            <div
+              v-else-if="!usageData || usageData.all_time.total_requests === 0"
+              class="text-center py-6"
+            >
+              <Clock class="w-8 h-8 text-text-muted mx-auto mb-2" />
+              <p class="text-sm text-text-muted">
+                {{ $t('codex.overview.noUsageData') }}
+              </p>
+            </div>
+
+            <!-- Usage Data -->
+            <div
+              v-else
+              class="space-y-4"
+            >
+              <!-- 5-Hour Window -->
+              <div class="p-3 rounded-lg bg-bg-overlay/30 border border-border-subtle">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                    {{ $t('codex.overview.usage5h') }}
+                  </span>
+                  <span class="text-xs text-text-muted">
+                    {{ usageData.five_hour.total_requests }} {{ $t('codex.overview.requests') }}
+                  </span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-2xl font-bold text-text-primary">
+                    {{ formatTokens(usageData.five_hour.total_input_tokens + usageData.five_hour.total_output_tokens) }}
+                  </span>
+                  <span class="text-sm text-text-muted">tokens</span>
+                </div>
+                <div class="mt-1 text-xs text-text-muted">
+                  {{ formatTokens(usageData.five_hour.total_input_tokens) }} in / {{ formatTokens(usageData.five_hour.total_output_tokens) }} out
+                </div>
+              </div>
+
+              <!-- 7-Day Window -->
+              <div class="p-3 rounded-lg bg-bg-overlay/30 border border-border-subtle">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                    {{ $t('codex.overview.usage7d') }}
+                  </span>
+                  <span class="text-xs text-text-muted">
+                    {{ usageData.seven_day.total_requests }} {{ $t('codex.overview.requests') }}
+                  </span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-2xl font-bold text-text-primary">
+                    {{ formatTokens(usageData.seven_day.total_input_tokens + usageData.seven_day.total_output_tokens) }}
+                  </span>
+                  <span class="text-sm text-text-muted">tokens</span>
+                </div>
+                <div class="mt-1 text-xs text-text-muted">
+                  {{ formatTokens(usageData.seven_day.total_input_tokens) }} in / {{ formatTokens(usageData.seven_day.total_output_tokens) }} out
+                </div>
+              </div>
+            </div>
+
+            <!-- Usage Dashboard Link -->
+            <div class="mt-4 pt-4 border-t border-border-subtle">
+              <div class="flex items-start gap-3 p-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                <Info class="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                <div class="text-xs text-text-secondary">
+                  <p>{{ $t('codex.overview.usageTip') }}</p>
+                  <p class="mt-1 text-text-muted">
+                    {{ $t('codex.overview.usageStatusTip') }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </GuofengCard>
+
+          <!-- Tips Card -->
           <GuofengCard>
             <div class="flex items-center gap-2 mb-4">
               <Cpu class="w-5 h-5 text-platform-codex" />
@@ -238,12 +358,14 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   Settings, Server, Home, Command, Code2, Boxes, Info,
-  Zap, Activity, ArrowRight, Lightbulb, Cpu, KeyRound
+  Zap, Activity, ArrowRight, Lightbulb, Cpu, KeyRound,
+  BarChart3, RefreshCw, AlertCircle, Clock
 } from 'lucide-vue-next'
 
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
-import { listCodexProfiles } from '@/api'
+import { listCodexProfiles, getCodexUsage } from '@/api'
+import type { CodexUsageResponse } from '@/types'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -251,6 +373,35 @@ const { t } = useI18n()
 // State
 const profilesCount = ref(0)
 const currentProfile = ref<string | null>(null)
+
+// Usage State
+const usageData = ref<CodexUsageResponse | null>(null)
+const usageLoading = ref(false)
+const usageError = ref(false)
+
+// Format tokens with K/M suffix
+const formatTokens = (tokens: number): string => {
+  if (tokens >= 1_000_000) {
+    return `${(tokens / 1_000_000).toFixed(1)}M`
+  } else if (tokens >= 1_000) {
+    return `${(tokens / 1_000).toFixed(1)}K`
+  }
+  return tokens.toString()
+}
+
+// Refresh usage data
+const refreshUsage = async () => {
+  usageLoading.value = true
+  usageError.value = false
+  try {
+    usageData.value = await getCodexUsage()
+  } catch (error) {
+    console.error('Failed to load usage data:', error)
+    usageError.value = true
+  } finally {
+    usageLoading.value = false
+  }
+}
 
 // Modules Data
 const modules = computed(() => [
@@ -313,5 +464,8 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load profile status:', error)
   }
+
+  // Load usage data
+  refreshUsage()
 })
 </script>

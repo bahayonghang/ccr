@@ -1,9 +1,11 @@
 // 🎨 Codex Auth TUI 界面渲染
 // 绘制 Codex 多账号管理界面
 
-use super::app::{CodexAuthApp, Mode};
+use super::app::{CodexAuthApp, Mode, UsageState};
 use crate::models::TokenFreshness;
+use crate::services::CodexUsageService;
 use crate::tui::theme;
+use chrono::{Local, Utc};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -23,10 +25,11 @@ pub fn draw(f: &mut Frame, app: &CodexAuthApp) {
         .direction(Direction::Vertical)
         .margin(1)
         .constraints([
-            Constraint::Length(3), // 标题
-            Constraint::Min(10),   // 账号列表
-            Constraint::Length(3), // 状态栏
-            Constraint::Length(2), // 帮助栏
+            Constraint::Length(3),  // 标题
+            Constraint::Min(8),     // 账号列表
+            Constraint::Length(10), // 使用情况面板
+            Constraint::Length(3),  // 状态栏
+            Constraint::Length(2),  // 帮助栏
         ])
         .split(f.area());
 
@@ -36,11 +39,14 @@ pub fn draw(f: &mut Frame, app: &CodexAuthApp) {
     // 绘制账号列表
     draw_account_list(f, chunks[1], app);
 
+    // 绘制使用情况面板
+    draw_usage_panel(f, chunks[2], app);
+
     // 绘制状态栏
-    draw_status_bar(f, chunks[2], app);
+    draw_status_bar(f, chunks[3], app);
 
     // 绘制帮助栏
-    draw_help_bar(f, chunks[3], app);
+    draw_help_bar(f, chunks[4], app);
 
     // 绘制弹窗
     match app.mode {
@@ -106,6 +112,23 @@ fn draw_account_list(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
             // 新鲜度
             let freshness = CodexAuthApp::freshness_text(account.freshness);
 
+            // 到期
+            let (expire_text, expire_style) = match account.expires_at {
+                Some(ts) => {
+                    let expired = ts <= Utc::now();
+                    let local_ts = ts.with_timezone(&Local).format("%Y-%m-%d %H:%M");
+                    let text = if expired {
+                        format!("🔒 {}", local_ts)
+                    } else {
+                        local_ts.to_string()
+                    };
+                    let style =
+                        Style::default().fg(if expired { Color::Red } else { Color::Green });
+                    (text, style)
+                }
+                None => ("-".to_string(), Style::default().fg(Color::DarkGray)),
+            };
+
             // 描述
             let desc = account.description.as_deref().unwrap_or("");
 
@@ -147,6 +170,8 @@ fn draw_account_list(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         TokenFreshness::Unknown => Color::DarkGray,
                     }),
                 ),
+                Span::raw(" "),
+                Span::styled(format!("{:<18}", expire_text), expire_style),
                 Span::raw(" "),
                 Span::styled(desc.to_string(), Style::default().fg(Color::DarkGray)),
             ]);
@@ -214,6 +239,132 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     );
 
     f.render_widget(status, area);
+}
+
+/// 绘制使用情况面板
+fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+    let title = Line::from(vec![
+        Span::styled(" 📊 ", Style::default().fg(Color::Cyan)),
+        Span::styled(
+            "Codex 使用情况",
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        ),
+    ]);
+
+    let content = match &app.usage_state {
+        UsageState::NoData => {
+            vec![
+                Line::from(""),
+                Line::from(Span::styled(
+                    "📭 暂无使用数据",
+                    Style::default().fg(Color::DarkGray),
+                )),
+                Line::from(""),
+                Line::from(Span::styled(
+                    "使用 Codex 后将会显示使用统计",
+                    Style::default().fg(Color::DarkGray),
+                )),
+            ]
+        }
+        UsageState::Error(err) => {
+            vec![
+                Line::from(""),
+                Line::from(Span::styled("⚠️ 加载失败", Style::default().fg(Color::Red))),
+                Line::from(""),
+                Line::from(Span::styled(
+                    err.as_str(),
+                    Style::default().fg(Color::DarkGray),
+                )),
+            ]
+        }
+        UsageState::Loaded(usage) => {
+            let five_total =
+                usage.five_hour.total_input_tokens + usage.five_hour.total_output_tokens;
+            let seven_total =
+                usage.seven_day.total_input_tokens + usage.seven_day.total_output_tokens;
+
+            vec![
+                Line::from(""),
+                // 5小时窗口
+                Line::from(vec![
+                    Span::styled("5小时: ", Style::default().fg(Color::Cyan)),
+                    Span::styled(
+                        format!(
+                            "{} tokens ({} 请求)",
+                            CodexUsageService::format_tokens(five_total),
+                            usage.five_hour.total_requests
+                        ),
+                        Style::default().fg(Color::White),
+                    ),
+                ]),
+                Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(
+                        format!(
+                            "{} in / {} out",
+                            CodexUsageService::format_tokens(usage.five_hour.total_input_tokens),
+                            CodexUsageService::format_tokens(usage.five_hour.total_output_tokens)
+                        ),
+                        Style::default().fg(Color::DarkGray),
+                    ),
+                ]),
+                Line::from(""),
+                // 7天窗口
+                Line::from(vec![
+                    Span::styled("7天:   ", Style::default().fg(Color::Cyan)),
+                    Span::styled(
+                        format!(
+                            "{} tokens ({} 请求)",
+                            CodexUsageService::format_tokens(seven_total),
+                            usage.seven_day.total_requests
+                        ),
+                        Style::default().fg(Color::White),
+                    ),
+                ]),
+                Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(
+                        format!(
+                            "{} in / {} out",
+                            CodexUsageService::format_tokens(usage.seven_day.total_input_tokens),
+                            CodexUsageService::format_tokens(usage.seven_day.total_output_tokens)
+                        ),
+                        Style::default().fg(Color::DarkGray),
+                    ),
+                ]),
+                Line::from(""),
+                // 提示信息
+                Line::from(Span::styled(
+                    "💡 在 Codex CLI 中运行 /status 查看官方限制",
+                    Style::default().fg(Color::Yellow),
+                )),
+            ]
+        }
+        UsageState::Loading => {
+            vec![
+                Line::from(""),
+                Line::from(Span::styled(
+                    "⏳ 加载中...",
+                    Style::default().fg(Color::DarkGray),
+                )),
+            ]
+        }
+    };
+
+    let panel = Paragraph::new(content)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(title)
+                .title_style(Style::default().fg(theme::ACCENT)),
+        )
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(panel, area);
 }
 
 /// 绘制帮助栏

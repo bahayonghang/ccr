@@ -52,6 +52,10 @@ pub enum CodexAuthAction {
         #[arg(short, long)]
         description: Option<String>,
 
+        /// 到期时间 (RFC3339，可选)，例如 2026-02-01T00:00:00Z
+        #[arg(long)]
+        expires_at: Option<String>,
+
         /// 强制覆盖已存在的账号
         #[arg(short, long)]
         force: bool,

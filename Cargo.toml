@@ -3,7 +3,7 @@
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.18.7"
+version = "3.18.8"
 edition = "2024"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher (Rust implementation)"
@@ -68,7 +68,7 @@ r2d2_sqlite = "0.32.0" # SQLite 连接池实现
 rayon = "1.11" # 并行迭代器 (用于加速大数据处理)
 reqwest_dav = "0.2" # WebDAV 协议支持 (用于云端同步)
 rusqlite = { version = "0.38.0", features = ["bundled"] } # SQLite 数据库驱动
-toml_edit = "0.23.9" # 保留格式的 TOML 编辑器 (用于修改配置文件)
+toml_edit = "0.24.0" # 保留格式的 TOML 编辑器 (用于修改配置文件)
 tracing = "0.1.43" # 结构化日志门面
 tracing-appender = "0.2.4" # 日志文件写入器
 tracing-log = "0.2" # 标准 log crate 兼容层
@@ -139,7 +139,7 @@ axum = { version = "0.8.6", default-features = false, features = [
     "query",
     "tokio",
 ] }
-tower = { version = "0.5.2", default-features = false }
+tower = { version = "0.5.3", default-features = false }
 tower-http = { version = "0.6.8", default-features = false, features = [
     "cors",
 ] }

@@ -164,7 +164,13 @@ impl CodexAuthService {
     // ==================== 账号管理操作 ====================
 
     /// 保存当前登录到指定名称
-    pub fn save_current(&self, name: &str, description: Option<String>, force: bool) -> Result<()> {
+    pub fn save_current(
+        &self,
+        name: &str,
+        description: Option<String>,
+        expires_at: Option<DateTime<Utc>>,
+        force: bool,
+    ) -> Result<()> {
         // 检查是否已登录
         if !self.is_logged_in() {
             return Err(CcrError::ConfigError(
@@ -214,6 +220,7 @@ impl CodexAuthService {
             saved_at: Utc::now(),
             last_used: Some(Utc::now()),
             last_refresh: current_info.last_refresh,
+            expires_at,
         };
 
         registry.accounts.insert(name.to_string(), account);
@@ -250,6 +257,7 @@ impl CodexAuthService {
                 last_used: None,
                 last_refresh: info.last_refresh,
                 freshness: info.freshness,
+                expires_at: None, // 虚拟项没有过期时间
             });
         }
 
@@ -272,6 +280,7 @@ impl CodexAuthService {
                 last_used: account.last_used,
                 last_refresh: account.last_refresh,
                 freshness,
+                expires_at: account.expires_at,
             });
         }
 
@@ -287,6 +296,16 @@ impl CodexAuthService {
             return Err(CcrError::ConfigError(format!(
                 "账号 '{}' 不存在。可用账号: {:?}",
                 name, available
+            )));
+        }
+
+        // 检查是否过期
+        if let Some(account) = registry.accounts.get(name)
+            && Self::is_expired(account.expires_at)
+        {
+            return Err(CcrError::ValidationError(format!(
+                "账号 '{}' 已过期，无法切换。请更新或保存新的登录。",
+                name
             )));
         }
 
@@ -544,7 +563,7 @@ impl CodexAuthService {
     // ==================== 注册表管理 ====================
 
     /// 加载注册表
-    fn load_registry(&self) -> Result<CodexAuthRegistry> {
+    pub fn load_registry(&self) -> Result<CodexAuthRegistry> {
         let path = self.registry_path();
         if !path.exists() {
             return Ok(CodexAuthRegistry::default());
@@ -673,6 +692,7 @@ impl CodexAuthService {
                     saved_at: account.saved_at,
                     last_used: account.last_used,
                     last_refresh: account.last_refresh,
+                    expires_at: account.expires_at,
                     auth_data,
                 },
             );
@@ -764,6 +784,7 @@ impl CodexAuthService {
                 saved_at: import_account.saved_at,
                 last_used: import_account.last_used,
                 last_refresh: import_account.last_refresh,
+                expires_at: import_account.expires_at,
             };
 
             registry.accounts.insert(name.clone(), account);
@@ -780,6 +801,15 @@ impl CodexAuthService {
         self.save_registry(&registry)?;
 
         Ok(result)
+    }
+
+    /// 判断账号是否过期
+    pub fn is_expired(expires_at: Option<DateTime<Utc>>) -> bool {
+        if let Some(ts) = expires_at {
+            ts <= Utc::now()
+        } else {
+            false
+        }
     }
 }
 
@@ -964,6 +994,7 @@ mod tests {
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,
+                expires_at: None,
             },
         );
 
@@ -1042,7 +1073,7 @@ mod tests {
 
         // 2. 保存账号
         service
-            .save_current("account1", Some("First account".to_string()), false)
+            .save_current("account1", Some("First account".to_string()), None, false)
             .unwrap();
 
         // 验证保存成功
@@ -1056,7 +1087,7 @@ mod tests {
         fs::write(&auth_path, auth_content2).unwrap();
 
         service
-            .save_current("account2", Some("Second account".to_string()), false)
+            .save_current("account2", Some("Second account".to_string()), None, false)
             .unwrap();
 
         // 验证两个账号
@@ -1089,10 +1120,12 @@ mod tests {
         fs::write(&auth_path, auth_content).unwrap();
 
         // 第一次保存
-        service.save_current("myaccount", None, false).unwrap();
+        service
+            .save_current("myaccount", None, None, false)
+            .unwrap();
 
         // 第二次保存同名 - 应该失败
-        let result = service.save_current("myaccount", None, false);
+        let result = service.save_current("myaccount", None, None, false);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("已存在"));
     }
@@ -1107,10 +1140,12 @@ mod tests {
         fs::write(&auth_path, auth_content).unwrap();
 
         // 第一次保存
-        service.save_current("myaccount", None, false).unwrap();
+        service
+            .save_current("myaccount", None, None, false)
+            .unwrap();
 
         // 第二次保存同名 with force - 应该成功
-        let result = service.save_current("myaccount", Some("Updated".to_string()), true);
+        let result = service.save_current("myaccount", Some("Updated".to_string()), None, true);
         assert!(result.is_ok());
 
         // 验证描述已更新
@@ -1165,7 +1200,9 @@ mod tests {
         fs::write(&auth_path, auth_content).unwrap();
 
         // 保存账号
-        service.save_current("myaccount", None, false).unwrap();
+        service
+            .save_current("myaccount", None, None, false)
+            .unwrap();
 
         // 列出账号 - 不应该有虚拟 default
         let accounts = service.list_accounts().unwrap();
@@ -1282,5 +1319,175 @@ mod tests {
         let pids = service.detect_codex_process();
         // 返回类型正确即可
         assert!(pids.is_empty() || !pids.is_empty());
+    }
+
+    // ==================== 账号过期测试 ====================
+
+    #[test]
+    fn test_is_expired_none() {
+        // None 不视为过期
+        assert!(!CodexAuthService::is_expired(None));
+    }
+
+    #[test]
+    fn test_is_expired_future() {
+        // 未来时间不过期
+        let future = Utc::now() + Duration::days(30);
+        assert!(!CodexAuthService::is_expired(Some(future)));
+    }
+
+    #[test]
+    fn test_is_expired_past() {
+        // 过去时间已过期
+        let past = Utc::now() - Duration::days(1);
+        assert!(CodexAuthService::is_expired(Some(past)));
+    }
+
+    #[test]
+    fn test_is_expired_boundary() {
+        // 刚好现在 - 应该视为过期
+        let now = Utc::now();
+        assert!(CodexAuthService::is_expired(Some(now)));
+    }
+
+    #[test]
+    fn test_registry_with_expiry_serialization() {
+        let mut registry = CodexAuthRegistry {
+            current_auth: Some("test-account".to_string()),
+            ..Default::default()
+        };
+
+        let expires_at = Utc::now() + Duration::days(30);
+        registry.accounts.insert(
+            "test-account".to_string(),
+            CodexAuthAccount {
+                description: Some("Test".to_string()),
+                account_id: "acc-123".to_string(),
+                email: Some("tes***@example.com".to_string()),
+                saved_at: Utc::now(),
+                last_used: None,
+                last_refresh: None,
+                expires_at: Some(expires_at),
+            },
+        );
+
+        // 序列化
+        let toml_str = toml::to_string_pretty(&registry).unwrap();
+        assert!(toml_str.contains("expires_at"));
+
+        // 反序列化
+        let parsed: CodexAuthRegistry = toml::from_str(&toml_str).unwrap();
+        let account = parsed.accounts.get("test-account").unwrap();
+        assert!(account.expires_at.is_some());
+    }
+
+    #[test]
+    fn test_registry_without_expiry_serialization() {
+        let mut registry = CodexAuthRegistry {
+            current_auth: Some("test-account".to_string()),
+            ..Default::default()
+        };
+
+        registry.accounts.insert(
+            "test-account".to_string(),
+            CodexAuthAccount {
+                description: Some("Test".to_string()),
+                account_id: "acc-123".to_string(),
+                email: Some("tes***@example.com".to_string()),
+                saved_at: Utc::now(),
+                last_used: None,
+                last_refresh: None,
+                expires_at: None,
+            },
+        );
+
+        // 序列化时 None 应该被跳过
+        let toml_str = toml::to_string_pretty(&registry).unwrap();
+        assert!(!toml_str.contains("expires_at"));
+
+        // 反序列化
+        let parsed: CodexAuthRegistry = toml::from_str(&toml_str).unwrap();
+        let account = parsed.accounts.get("test-account").unwrap();
+        assert!(account.expires_at.is_none());
+    }
+
+    #[test]
+    fn test_switch_to_expired_account_blocked() {
+        let (service, _ccr, codex) = create_test_service();
+
+        // 创建 auth.json
+        let auth_path = codex.path().join("auth.json");
+        let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content).unwrap();
+
+        // 保存账号并设置过期时间为过去
+        let past = Utc::now() - Duration::days(1);
+        service
+            .save_current(
+                "expired-account",
+                Some("Expired".to_string()),
+                Some(past),
+                false,
+            )
+            .unwrap();
+
+        // 创建另一个 auth.json 以便切换
+        let auth_content2 = create_test_auth_json("test-id-2", "2026-01-09T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content2).unwrap();
+
+        // 尝试切换到过期账号 - 应该失败
+        let result = service.switch_account("expired-account");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("已过期"));
+    }
+
+    #[test]
+    fn test_switch_to_non_expired_account_allowed() {
+        let (service, _ccr, codex) = create_test_service();
+
+        // 创建 auth.json
+        let auth_path = codex.path().join("auth.json");
+        let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content).unwrap();
+
+        // 保存账号并设置过期时间为未来
+        let future = Utc::now() + Duration::days(30);
+        service
+            .save_current(
+                "valid-account",
+                Some("Valid".to_string()),
+                Some(future),
+                false,
+            )
+            .unwrap();
+
+        // 创建另一个 auth.json 以便切换
+        let auth_content2 = create_test_auth_json("test-id-2", "2026-01-09T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content2).unwrap();
+
+        // 切换到未过期账号 - 应该成功
+        let result = service.switch_account("valid-account");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_list_accounts_includes_expiry() {
+        let (service, _ccr, codex) = create_test_service();
+
+        // 创建 auth.json
+        let auth_path = codex.path().join("auth.json");
+        let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content).unwrap();
+
+        // 保存账号并设置过期时间
+        let future = Utc::now() + Duration::days(30);
+        service
+            .save_current("with-expiry", None, Some(future), false)
+            .unwrap();
+
+        // 列出账号
+        let accounts = service.list_accounts().unwrap();
+        let account = accounts.iter().find(|a| a.name == "with-expiry").unwrap();
+        assert!(account.expires_at.is_some());
     }
 }

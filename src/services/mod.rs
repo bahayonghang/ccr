@@ -9,6 +9,7 @@
 
 pub mod backup_service;
 pub mod codex_auth_service;
+pub mod codex_usage_service;
 pub mod config_service;
 pub mod health_check;
 pub mod history_service;
@@ -23,6 +24,8 @@ pub mod validate_service;
 pub use backup_service::BackupService;
 #[allow(unused_imports)]
 pub use codex_auth_service::CodexAuthService;
+#[allow(unused_imports)]
+pub use codex_usage_service::{CodexRollingUsage, CodexUsageService};
 #[allow(unused_imports)]
 pub use config_service::ConfigService;
 #[allow(unused_imports)]

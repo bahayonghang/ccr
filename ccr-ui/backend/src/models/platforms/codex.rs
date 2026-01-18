@@ -244,6 +244,13 @@ pub struct CodexAuthAccountItem {
     pub freshness_icon: String,
     /// 新鲜度描述
     pub freshness_description: String,
+
+    /// 到期时间 (ISO 8601)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<String>,
+
+    /// 是否已过期
+    pub is_expired: bool,
 }
 
 /// 当前 auth 信息
@@ -261,6 +268,13 @@ pub struct CodexAuthCurrentInfo {
     pub freshness_icon: String,
     /// 新鲜度描述
     pub freshness_description: String,
+
+    /// 到期时间 (ISO 8601)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<String>,
+
+    /// 是否已过期
+    pub is_expired: bool,
 }
 
 /// 列出账号的响应
@@ -285,6 +299,8 @@ pub struct CodexAuthSaveRequest {
     pub name: String,
     /// 账号描述 (可选)
     pub description: Option<String>,
+    /// 到期时间 (ISO 8601，可选)
+    pub expires_at: Option<String>,
     /// 是否强制覆盖
     #[serde(default)]
     pub force: bool,
@@ -299,6 +315,38 @@ pub struct CodexAuthProcessResponse {
     pub pids: Vec<u32>,
     /// 警告消息
     pub warning: Option<String>,
+}
+
+// ============ Usage 统计 API 模型 ============
+
+/// 使用量统计响应
+#[derive(Debug, Clone, Serialize)]
+pub struct CodexUsageStatsResponse {
+    /// 总输入 tokens
+    pub total_input_tokens: u64,
+    /// 总输出 tokens
+    pub total_output_tokens: u64,
+    /// 总请求数
+    pub total_requests: u64,
+    /// 窗口开始时间 (ISO 8601)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub window_start: Option<String>,
+    /// 窗口结束时间 (ISO 8601)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub window_end: Option<String>,
+}
+
+/// 滚动窗口使用量响应
+#[derive(Debug, Serialize)]
+pub struct CodexUsageResponse {
+    /// 5小时窗口统计
+    pub five_hour: CodexUsageStatsResponse,
+    /// 7天窗口统计
+    pub seven_day: CodexUsageStatsResponse,
+    /// 全部时间统计
+    pub all_time: CodexUsageStatsResponse,
+    /// 按模型分组的统计
+    pub by_model: std::collections::HashMap<String, CodexUsageStatsResponse>,
 }
 
 #[cfg(test)]

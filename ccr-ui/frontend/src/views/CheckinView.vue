@@ -96,6 +96,7 @@
     <!-- 签到结果弹窗 -->
     <div
       v-if="checkinResult"
+      ref="checkinResultRef"
       class="rounded-lg p-4 border"
       :class="checkinResult.summary.failed > 0
         ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
@@ -1203,7 +1204,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ClipboardList,
@@ -1254,6 +1255,7 @@ const loading = ref(false)
 const checkinLoading = ref(false)
 const balanceRefreshing = ref(false)
 const error = ref<string | null>(null)
+const checkinResultRef = ref<HTMLElement | null>(null)
 const activeTab = ref<'providers' | 'accounts' | 'records' | 'import-export'>('accounts')
 const router = useRouter()
 const openMenuAccountId = ref<string | null>(null)
@@ -1413,6 +1415,12 @@ const executeCheckinAll = async () => {
     await loadAllData()
     // 签到完成后自动刷新余额
     await refreshAllBalances()
+    
+    // 如果有失败的签到，自动滚动到结果区域确保用户能看到详情
+    if (result.summary.failed > 0) {
+      await nextTick()
+      checkinResultRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
   } catch (e: any) {
     alert('签到失败: ' + (e.message || '未知错误'))
     console.error('Checkin failed:', e)
