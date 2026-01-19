@@ -75,7 +75,7 @@ const fetchRecords = async () => {
   error.value = null
 
   try {
-    const response = await listCheckinRecords(20)
+    const response = await listCheckinRecords({ page: 1, page_size: 20 })
     records.value = response.records
   } catch (err) {
     error.value = t('checkin.history.load_error')

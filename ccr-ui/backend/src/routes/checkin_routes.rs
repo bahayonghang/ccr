@@ -63,6 +63,7 @@ pub fn routes() -> Router {
         // 签到记录
         // ═══════════════════════════════════════════════════════════
         .route("/checkin/records", get(checkin::list_records))
+        .route("/checkin/records/export", get(checkin::export_records))
         .route(
             "/checkin/accounts/{id}/records",
             get(checkin::get_account_records),

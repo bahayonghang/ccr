@@ -61,6 +61,7 @@ cmake-build-*/
 .factory/
 .trae/
 .kiro/
+.codex/
 # .agent/
 
 openspec/

@@ -97,7 +97,7 @@
     <div
       v-if="checkinResult"
       ref="checkinResultRef"
-      class="rounded-lg p-4 border"
+      class="rounded-lg p-4 border shadow-sm"
       :class="checkinResult.summary.failed > 0
         ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
         : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'"
@@ -134,48 +134,119 @@
             </h3>
           </div>
           <!-- 汇总统计 -->
-          <div
-            class="mt-2 text-sm"
-            :class="checkinResult.summary.failed > 0
-              ? 'text-amber-700 dark:text-amber-300'
-              : 'text-green-700 dark:text-green-300'"
-          >
-            <p>
-              成功: {{ checkinResult.summary.success }} /
-              已签到: {{ checkinResult.summary.already_checked_in }} /
-              失败: {{ checkinResult.summary.failed }} /
-              总计: {{ checkinResult.summary.total }}
-            </p>
+          <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200">
+              <CheckCircle class="w-3.5 h-3.5" />
+              成功 {{ checkinResult.summary.success }}
+            </span>
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+              <Calendar class="w-3.5 h-3.5" />
+              已签到 {{ checkinResult.summary.already_checked_in }}
+            </span>
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200">
+              <XCircle class="w-3.5 h-3.5" />
+              失败 {{ checkinResult.summary.failed }}
+            </span>
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+              总计 {{ checkinResult.summary.total }}
+            </span>
           </div>
-          <!-- 失败账号详情 -->
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            <!-- 成功账号详情 -->
+            <div
+              v-if="successCheckinResults.length > 0"
+              class="space-y-2"
+            >
+              <p class="text-xs font-medium text-green-700 dark:text-green-300">
+                成功账号 ({{ successCheckinResults.length }}):
+              </p>
+              <div class="space-y-1.5">
+                <div
+                  v-for="item in successCheckinResults"
+                  :key="item.account_id"
+                  class="flex items-start gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800"
+                >
+                  <CheckCircle class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-sm font-medium text-green-800 dark:text-green-200">
+                        {{ item.account_name }}
+                      </span>
+                      <span class="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 rounded">
+                        {{ item.provider_name }}
+                      </span>
+                      <span
+                        v-if="item.reward"
+                        class="text-xs px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-200 rounded"
+                      >
+                        奖励 {{ item.reward }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-green-700 dark:text-green-300 mt-0.5 break-all">
+                      {{ getSuccessDetail(item) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 失败账号详情 -->
+            <div
+              v-if="failedCheckinResults.length > 0"
+              class="space-y-2"
+            >
+              <p class="text-xs font-medium text-red-600 dark:text-red-400">
+                失败账号 ({{ failedCheckinResults.length }}):
+              </p>
+              <div class="space-y-1.5">
+                <div
+                  v-for="item in failedCheckinResults"
+                  :key="item.account_id"
+                  class="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/30 rounded-md border border-red-200 dark:border-red-800"
+                >
+                  <XCircle class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-sm font-medium text-red-800 dark:text-red-200">
+                        {{ item.account_name }}
+                      </span>
+                      <span class="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300 rounded">
+                        {{ item.provider_name }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-red-600 dark:text-red-400 mt-0.5 break-all">
+                      {{ getFailedDetail(item) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 已签到账号详情 -->
           <div
-            v-if="failedCheckinResults.length > 0"
-            class="mt-3 space-y-2"
+            v-if="alreadyCheckedInResults.length > 0"
+            class="mt-4 space-y-2"
           >
-            <p class="text-xs font-medium text-red-600 dark:text-red-400">
-              失败账号:
+            <p class="text-xs font-medium text-blue-700 dark:text-blue-300">
+              已签到账号 ({{ alreadyCheckedInResults.length }}):
             </p>
             <div class="space-y-1.5">
               <div
-                v-for="item in failedCheckinResults"
+                v-for="item in alreadyCheckedInResults"
                 :key="item.account_id"
-                class="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/30 rounded-md border border-red-200 dark:border-red-800"
+                class="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800"
               >
-                <XCircle class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <Calendar class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-medium text-red-800 dark:text-red-200">
+                    <span class="text-sm font-medium text-blue-800 dark:text-blue-200">
                       {{ item.account_name }}
                     </span>
-                    <span class="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300 rounded">
+                    <span class="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded">
                       {{ item.provider_name }}
                     </span>
                   </div>
-                  <p
-                    v-if="item.message"
-                    class="text-xs text-red-600 dark:text-red-400 mt-0.5 break-all"
-                  >
-                    {{ item.message }}
+                  <p class="text-xs text-blue-700 dark:text-blue-300 mt-0.5 break-all">
+                    {{ getAlreadyCheckedInDetail(item) }}
                   </p>
                 </div>
               </div>
@@ -766,63 +837,265 @@
         </div>
         <div
           v-else
-          class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+          class="space-y-4"
         >
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700/50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  时间
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  账号
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  状态
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  奖励
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  余额
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  消息
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-              <tr
-                v-for="record in records"
-                :key="record.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
-              >
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ formatDate(record.checked_in_at) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ getAccountName(record.account_id) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    class="px-2 py-1 text-xs font-medium rounded-full"
-                    :class="getStatusClass(record.status)"
+          <details class="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/60 rounded-lg overflow-hidden">
+            <summary class="cursor-pointer select-none px-4 py-3 text-sm font-medium text-red-700 dark:text-red-200 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <XCircle class="w-4 h-4" />
+                失败历史记录 ({{ failedHistoryTotal }})
+              </div>
+              <span class="text-xs text-red-600/80 dark:text-red-300/80">
+                点击展开详情
+              </span>
+            </summary>
+            <div class="px-4 pb-4 pt-2">
+              <div class="flex flex-wrap items-center gap-2 pb-3">
+                <select
+                  v-model="failedHistoryProviderFilter"
+                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 bg-white/80 dark:bg-red-950/30 text-xs text-red-700 dark:text-red-200"
+                >
+                  <option value="all">
+                    全部提供商
+                  </option>
+                  <option
+                    v-for="provider in providers"
+                    :key="provider.id"
+                    :value="provider.id"
                   >
-                    {{ getStatusText(record.status) }}
+                    {{ provider.name }}
+                  </option>
+                </select>
+                <input
+                  v-model="failedHistoryKeyword"
+                  type="text"
+                  placeholder="账号 / ID / 消息"
+                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 bg-white/80 dark:bg-red-950/30 text-xs text-red-700 dark:text-red-200"
+                >
+                <button
+                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/30"
+                  :disabled="failedHistoryLoading"
+                  @click="applyFailedHistoryFilters"
+                >
+                  筛选
+                </button>
+                <button
+                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/30"
+                  :disabled="failedHistoryLoading"
+                  @click="resetFailedHistoryFilters"
+                >
+                  重置
+                </button>
+                <button
+                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/30"
+                  :disabled="failedHistoryLoading"
+                  @click="exportFailedHistory"
+                >
+                  导出
+                </button>
+              </div>
+              <div
+                v-if="failedHistoryLoading"
+                class="text-sm text-red-500/80 dark:text-red-300/80"
+              >
+                加载中...
+              </div>
+              <div
+                v-else-if="failedHistoryTotal === 0"
+                class="text-sm text-red-500/80 dark:text-red-300/80"
+              >
+                暂无失败记录
+              </div>
+              <div
+                v-else
+                class="space-y-2"
+              >
+                <div
+                  v-for="record in failedHistoryRecords"
+                  :key="record.id"
+                  class="p-3 rounded-md border border-red-200 dark:border-red-800 bg-white/70 dark:bg-red-950/30"
+                >
+                  <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div class="text-sm font-medium text-red-800 dark:text-red-200">
+                      {{ getAccountName(record.account_id) }}
+                    </div>
+                    <div class="text-xs text-red-600 dark:text-red-300">
+                      {{ formatDate(record.checked_in_at) }}
+                    </div>
+                  </div>
+                  <div class="mt-1 text-xs text-red-600 dark:text-red-300">
+                    提供商: {{ getRecordProviderName(record) }} · 账号ID: {{ record.account_id }}
+                  </div>
+                  <div class="mt-2 text-xs text-red-600 dark:text-red-300 break-all">
+                    原因: {{ getRecordReason(record) }}
+                  </div>
+                </div>
+                <div class="flex items-center justify-between pt-2 text-xs text-red-600 dark:text-red-300">
+                  <span>
+                    第 {{ failedHistoryPage }} / {{ failedHistoryTotalPages }} 页
                   </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
-                  {{ record.reward || '-' }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                  {{ record.message || '-' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <div class="flex items-center gap-2">
+                    <button
+                      class="px-2 py-1 rounded border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50"
+                      :disabled="failedHistoryPage === 1"
+                      @click="goToFailedHistoryPage(failedHistoryPage - 1)"
+                    >
+                      上一页
+                    </button>
+                    <button
+                      class="px-2 py-1 rounded border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50"
+                      :disabled="failedHistoryPage === failedHistoryTotalPages"
+                      @click="goToFailedHistoryPage(failedHistoryPage + 1)"
+                    >
+                      下一页
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    时间
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    账号
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    状态
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    奖励
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    余额
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    原因
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    详情
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <template
+                  v-for="record in records"
+                  :key="record.id"
+                >
+                  <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {{ formatDate(record.checked_in_at) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {{ getAccountName(record.account_id) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span
+                        class="px-2 py-1 text-xs font-medium rounded-full"
+                        :class="getStatusClass(record.status)"
+                      >
+                        {{ getStatusText(record.status) }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
+                      {{ record.reward || '-' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                      {{ getRecordReason(record) }}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      <button
+                        class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
+                        :aria-expanded="isRecordExpanded(record.id)"
+                        @click="toggleRecordExpanded(record.id)"
+                      >
+                        <ChevronUp
+                          v-if="isRecordExpanded(record.id)"
+                          class="w-4 h-4"
+                        />
+                        <ChevronDown
+                          v-else
+                          class="w-4 h-4"
+                        />
+                        详情
+                      </button>
+                    </td>
+                  </tr>
+                  <tr
+                    v-if="isRecordExpanded(record.id)"
+                    class="bg-gray-50/70 dark:bg-gray-800/60"
+                  >
+                    <td
+                      colspan="7"
+                      class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300"
+                    >
+                      <div class="grid gap-3 md:grid-cols-3">
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            提供商
+                          </div>
+                          <div class="text-sm">
+                            {{ getRecordProviderName(record) }}
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            账号ID
+                          </div>
+                          <div class="text-sm break-all">
+                            {{ record.account_id }}
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            原因
+                          </div>
+                          <div class="text-sm break-all">
+                            {{ getRecordReason(record) }}
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            原始消息
+                          </div>
+                          <div class="text-sm break-all">
+                            {{ getRecordRawMessage(record) }}
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            奖励 / 余额变化
+                          </div>
+                          <div class="text-sm">
+                            {{ record.reward || '-' }} ·
+                            {{ record.balance_change !== undefined && record.balance_change !== null ? `$${record.balance_change.toFixed(2)}` : '-' }}
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            余额前 / 后
+                          </div>
+                          <div class="text-sm">
+                            {{ record.balance_before !== undefined && record.balance_before !== null ? `$${record.balance_before.toFixed(2)}` : '-' }}
+                            →
+                            {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -1204,7 +1477,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ClipboardList,
@@ -1218,6 +1491,8 @@ import {
   Calendar,
   Users,
   FileText,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-vue-next'
 import {
   listCheckinProviders,
@@ -1230,6 +1505,7 @@ import {
   deleteCheckinAccount as apiDeleteAccount,
   executeCheckin,
   listCheckinRecords,
+  exportCheckinRecords,
   getTodayCheckinStats,
   exportCheckinConfig,
   previewCheckinImport,
@@ -1245,6 +1521,8 @@ import type {
   CheckinRecordInfo,
   TodayCheckinStats,
   CheckinResponse,
+  CheckinExecutionResult,
+  CheckinRecordsQuery,
   ExportData,
   ImportPreviewResponse,
   BuiltinProvider,
@@ -1269,6 +1547,14 @@ const records = ref<CheckinRecordInfo[]>([])
 const todayStats = ref<TodayCheckinStats | null>(null)
 const checkinResult = ref<CheckinResponse | null>(null)
 const builtinProviders = ref<BuiltinProvider[]>([])
+const expandedRecordIds = ref<string[]>([])
+const failedHistoryRecords = ref<CheckinRecordInfo[]>([])
+const failedHistoryTotal = ref(0)
+const failedHistoryLoading = ref(false)
+const failedHistoryPage = ref(1)
+const failedHistoryPageSize = ref(5)
+const failedHistoryProviderFilter = ref<string>('all')
+const failedHistoryKeyword = ref('')
 
 // 计算属性：过滤出尚未添加的内置提供商
 const availableBuiltinProviders = computed(() => {
@@ -1324,6 +1610,42 @@ const failedCheckinResults = computed(() => {
   return checkinResult.value.results.filter(r => r.status === 'Failed')
 })
 
+const failedHistoryTotalPages = computed(() => {
+  const total = Math.ceil(failedHistoryTotal.value / failedHistoryPageSize.value)
+  return total > 0 ? total : 1
+})
+
+const successCheckinResults = computed(() => {
+  if (!checkinResult.value) return []
+  return checkinResult.value.results.filter(r => r.status === 'Success')
+})
+
+const alreadyCheckedInResults = computed(() => {
+  if (!checkinResult.value) return []
+  return checkinResult.value.results.filter(r => r.status === 'AlreadyCheckedIn')
+})
+
+const buildCheckinDetail = (item: CheckinExecutionResult, fallback: string) => {
+  const details: string[] = []
+  if (item.reward) {
+    details.push(`奖励: ${item.reward}`)
+  }
+  if (item.balance !== undefined && item.balance !== null) {
+    details.push(`余额: ${item.balance}`)
+  }
+  if (item.message) {
+    details.push(item.message)
+  }
+  return details.length > 0 ? details.join(' · ') : fallback
+}
+
+const getSuccessDetail = (item: CheckinExecutionResult) => buildCheckinDetail(item, '签到成功')
+
+const getAlreadyCheckedInDetail = (item: CheckinExecutionResult) =>
+  buildCheckinDetail(item, '今日已签到')
+
+const getFailedDetail = (item: CheckinExecutionResult) => item.message || '未知原因'
+
 // Tab 配置
 const tabs = [
   { id: 'accounts' as const, name: '账号管理', icon: Users },
@@ -1375,7 +1697,7 @@ const loadAllData = async () => {
     const [providersRes, accountsRes, recordsRes, statsRes, builtinRes] = await Promise.all([
       listCheckinProviders(),
       listCheckinAccounts(),
-      listCheckinRecords(100),
+      listCheckinRecords({ page: 1, page_size: 100 }),
       getTodayCheckinStats(),
       listBuiltinProviders(),
     ])
@@ -1385,6 +1707,7 @@ const loadAllData = async () => {
     records.value = recordsRes.records
     todayStats.value = statsRes
     builtinProviders.value = builtinRes.providers
+    await loadFailedHistory()
   } catch (e: any) {
     error.value = e.message || '加载失败'
     console.error('Failed to load checkin data:', e)
@@ -1736,6 +2059,113 @@ const getStatusText = (status: string) => {
       return status
   }
 }
+
+const getRecordProviderName = (record: CheckinRecordInfo) => {
+  if (record.provider_name) return record.provider_name
+  const account = accounts.value.find(a => a.id === record.account_id)
+  return account?.provider_id ? getProviderName(account.provider_id) : '-'
+}
+
+const getRecordReason = (record: CheckinRecordInfo) => {
+  if (record.message) return record.message
+  switch (record.status) {
+    case 'Success':
+      return record.reward ? `签到成功 · 奖励 ${record.reward}` : '签到成功'
+    case 'AlreadyCheckedIn':
+      return '今日已签到'
+    case 'Failed':
+      return '未知原因'
+    default:
+      return '-'
+  }
+}
+
+const getRecordRawMessage = (record: CheckinRecordInfo) => record.message || '-'
+
+const isRecordExpanded = (recordId: string) => {
+  return expandedRecordIds.value.includes(recordId)
+}
+
+const toggleRecordExpanded = (recordId: string) => {
+  expandedRecordIds.value = expandedRecordIds.value.includes(recordId)
+    ? expandedRecordIds.value.filter(id => id !== recordId)
+    : [...expandedRecordIds.value, recordId]
+}
+
+const loadFailedHistory = async () => {
+  failedHistoryLoading.value = true
+  try {
+    const params: CheckinRecordsQuery = {
+      status: 'failed',
+      page: failedHistoryPage.value,
+      page_size: failedHistoryPageSize.value,
+    }
+    if (failedHistoryProviderFilter.value !== 'all') {
+      params.provider_id = failedHistoryProviderFilter.value
+    }
+    if (failedHistoryKeyword.value.trim()) {
+      params.keyword = failedHistoryKeyword.value.trim()
+    }
+    const response = await listCheckinRecords(params)
+    failedHistoryRecords.value = response.records
+    failedHistoryTotal.value = response.total
+  } catch (e: any) {
+    console.error('Failed to load failed history:', e)
+  } finally {
+    failedHistoryLoading.value = false
+  }
+}
+
+const applyFailedHistoryFilters = async () => {
+  failedHistoryPage.value = 1
+  await loadFailedHistory()
+}
+
+const resetFailedHistoryFilters = async () => {
+  failedHistoryProviderFilter.value = 'all'
+  failedHistoryKeyword.value = ''
+  failedHistoryPage.value = 1
+  await loadFailedHistory()
+}
+
+const goToFailedHistoryPage = async (page: number) => {
+  const nextPage = Math.min(Math.max(page, 1), failedHistoryTotalPages.value)
+  if (nextPage === failedHistoryPage.value) return
+  failedHistoryPage.value = nextPage
+  await loadFailedHistory()
+}
+
+const exportFailedHistory = async () => {
+  try {
+    const params: CheckinRecordsQuery = { status: 'failed' }
+    if (failedHistoryProviderFilter.value !== 'all') {
+      params.provider_id = failedHistoryProviderFilter.value
+    }
+    if (failedHistoryKeyword.value.trim()) {
+      params.keyword = failedHistoryKeyword.value.trim()
+    }
+    const { blob, filename } = await exportCheckinRecords(params)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  } catch (e: any) {
+    alert('导出失败: ' + (e.message || '未知错误'))
+  }
+}
+
+watch(
+  () => failedHistoryTotal.value,
+  () => {
+    if (failedHistoryPage.value > failedHistoryTotalPages.value) {
+      failedHistoryPage.value = failedHistoryTotalPages.value
+    }
+  }
+)
 
 // 点击页面其他地方关闭菜单
 const closeMenuOnClickOutside = (e: MouseEvent) => {

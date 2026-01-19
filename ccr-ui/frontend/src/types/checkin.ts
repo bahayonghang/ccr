@@ -184,6 +184,17 @@ export interface CheckinRecordsResponse {
   total: number
 }
 
+/** 签到记录查询参数 */
+export interface CheckinRecordsQuery {
+  limit?: number
+  page?: number
+  page_size?: number
+  status?: string
+  account_id?: string
+  provider_id?: string
+  keyword?: string
+}
+
 // ═══════════════════════════════════════════════════════════
 // 余额类型
 // ═══════════════════════════════════════════════════════════

@@ -1534,6 +1534,7 @@ import type {
   CheckinResponse,
   CheckinExecutionResult,
   CheckinRecordsResponse,
+  CheckinRecordsQuery,
   BalanceSnapshot,
   BalanceHistoryResponse,
   TodayCheckinStats,
@@ -1682,17 +1683,37 @@ export const getCheckinBalanceHistory = async (id: string, limit?: number): Prom
 // --- 签到记录 ---
 
 /** 获取所有签到记录 */
-export const listCheckinRecords = async (limit?: number): Promise<CheckinRecordsResponse> => {
-  const params = limit ? { limit } : {}
-  const response = await api.get<CheckinRecordsResponse>('/checkin/records', { params })
+export const listCheckinRecords = async (params?: CheckinRecordsQuery): Promise<CheckinRecordsResponse> => {
+  const response = await api.get<CheckinRecordsResponse>('/checkin/records', { params: params || {} })
   return response.data
 }
 
 /** 获取账号签到记录 */
-export const getAccountCheckinRecords = async (id: string, limit?: number): Promise<CheckinRecordsResponse> => {
-  const params = limit ? { limit } : {}
-  const response = await api.get<CheckinRecordsResponse>(`/checkin/accounts/${id}/records`, { params })
+export const getAccountCheckinRecords = async (
+  id: string,
+  params?: CheckinRecordsQuery
+): Promise<CheckinRecordsResponse> => {
+  const response = await api.get<CheckinRecordsResponse>(`/checkin/accounts/${id}/records`, {
+    params: params || {},
+  })
   return response.data
+}
+
+/** 导出签到记录 */
+export const exportCheckinRecords = async (
+  params?: CheckinRecordsQuery
+): Promise<{ blob: Blob; filename: string }> => {
+  const response = await api.get('/checkin/records/export', {
+    params: params || {},
+    responseType: 'blob',
+  })
+  const disposition = (response.headers['content-disposition'] as string | undefined) || ''
+  const match = disposition.match(/filename="?(?<filename>[^"]+)"?/i)
+  const filename = match?.groups?.filename || 'checkin_records.json'
+  return {
+    blob: response.data as Blob,
+    filename,
+  }
 }
 
 // --- 统计 ---

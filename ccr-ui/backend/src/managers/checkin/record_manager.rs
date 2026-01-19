@@ -61,6 +61,11 @@ impl RecordManager {
         Ok(records)
     }
 
+    /// 获取所有签到记录（原始数据）
+    pub fn get_all_raw(&self) -> Result<Vec<CheckinRecord>> {
+        self.load_all()
+    }
+
     /// 保存所有签到记录
     fn save_all(&self, records: &[CheckinRecord]) -> Result<()> {
         // 确保目录存在
@@ -150,6 +155,7 @@ impl RecordManager {
     }
 
     /// 获取账号的签到记录
+    #[allow(dead_code)]
     pub fn get_by_account(
         &self,
         account_id: &str,
@@ -181,6 +187,7 @@ impl RecordManager {
     }
 
     /// 获取所有签到记录
+    #[allow(dead_code)]
     pub fn get_all(&self, limit: Option<usize>) -> Result<CheckinRecordsResponse> {
         let mut records = self.load_all()?;
 

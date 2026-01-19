@@ -904,6 +904,7 @@ impl CheckinService {
     }
 
     /// 获取账号签到记录
+    #[allow(dead_code)]
     pub fn get_checkin_records(
         &self,
         account_id: &str,
@@ -916,6 +917,7 @@ impl CheckinService {
     }
 
     /// 获取所有签到记录
+    #[allow(dead_code)]
     pub fn get_all_records(&self, limit: Option<usize>) -> Result<CheckinRecordsResponse> {
         let record_manager = RecordManager::new(&self.checkin_dir);
         record_manager
