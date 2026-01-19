@@ -513,7 +513,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-ui-backend"
-version = "3.18.9"
+version = "3.19.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -536,9 +536,11 @@ dependencies = [
  "rand 0.9.2",
  "rayon",
  "reqwest 0.13.1",
+ "rusqlite",
  "serde",
  "serde_json",
  "serde_yaml",
+ "sha2",
  "sysinfo",
  "tempfile",
  "thiserror 2.0.17",

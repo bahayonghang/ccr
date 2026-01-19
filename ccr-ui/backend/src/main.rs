@@ -17,6 +17,7 @@ use tracing_subscriber::{
 mod api;
 mod cache; // 全局缓存模块
 mod core;
+mod database; // 统一 SQLite 存储模块
 mod managers;
 mod models;
 mod routes; // 新增路由模块
@@ -54,6 +55,12 @@ async fn main() -> std::io::Result<()> {
 
     // Spawn async cleanup task for old logs
     core::log_manager::spawn_cleanup_task(log_config.log_dir, log_config.retention_days);
+
+    // Initialize unified SQLite database
+    if let Err(e) = database::initialize() {
+        warn!("Failed to initialize database: {}", e);
+        warn!("Some features may be unavailable");
+    }
 
     let bind_addr: SocketAddr = format!("{}:{}", args.host, args.port)
         .parse()
