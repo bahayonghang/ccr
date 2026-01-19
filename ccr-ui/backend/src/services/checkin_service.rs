@@ -286,7 +286,7 @@ impl CheckinService {
     }
 
     fn get_cached_waf_cookies(&self, provider_id: &str) -> Result<Option<HashMap<String, String>>> {
-        let manager = WafCookieManager::new(&self.checkin_dir);
+        let manager = WafCookieManager::new();
         manager
             .get_valid(provider_id)
             .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))
@@ -301,7 +301,7 @@ impl CheckinService {
 
         // 这里是“检测到 WAF 挑战页后的刷新逻辑”，必须强制刷新。
         // 否则如果缓存里的 WAF cookies 已因出口变化/失效而触发挑战页，会一直复用旧缓存导致永远绕不过去。
-        let manager = WafCookieManager::new(&self.checkin_dir);
+        let manager = WafCookieManager::new();
         let _ = manager.delete(&provider.id);
 
         let login_url = format!("{}/login", provider.base_url.trim_end_matches('/'));
@@ -400,9 +400,9 @@ impl CheckinService {
 
     /// 执行单个账号签到
     pub async fn checkin(&self, account_id: &str) -> Result<CheckinExecutionResult> {
-        let provider_manager = ProviderManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::new();
         let account_manager = AccountManager::new(&self.checkin_dir);
-        let record_manager = RecordManager::new(&self.checkin_dir);
+        let record_manager = RecordManager::new();
         let crypto = CryptoManager::new(&self.checkin_dir)
             .map_err(|e| CheckinServiceError::CryptoError(e.to_string()))?;
 
@@ -659,9 +659,9 @@ impl CheckinService {
 
     /// 查询账号余额
     pub async fn query_balance(&self, account_id: &str) -> Result<BalanceSnapshot> {
-        let provider_manager = ProviderManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::new();
         let account_manager = AccountManager::new(&self.checkin_dir);
-        let balance_manager = BalanceManager::new(&self.checkin_dir);
+        let balance_manager = BalanceManager::new();
         let crypto = CryptoManager::new(&self.checkin_dir)
             .map_err(|e| CheckinServiceError::CryptoError(e.to_string()))?;
 
@@ -910,7 +910,7 @@ impl CheckinService {
         account_id: &str,
         limit: Option<usize>,
     ) -> Result<CheckinRecordsResponse> {
-        let record_manager = RecordManager::new(&self.checkin_dir);
+        let record_manager = RecordManager::new();
         record_manager
             .get_by_account(account_id, limit)
             .map_err(|e| CheckinServiceError::RecordError(e.to_string()))
@@ -919,7 +919,7 @@ impl CheckinService {
     /// 获取所有签到记录
     #[allow(dead_code)]
     pub fn get_all_records(&self, limit: Option<usize>) -> Result<CheckinRecordsResponse> {
-        let record_manager = RecordManager::new(&self.checkin_dir);
+        let record_manager = RecordManager::new();
         record_manager
             .get_all(limit)
             .map_err(|e| CheckinServiceError::RecordError(e.to_string()))
@@ -931,7 +931,7 @@ impl CheckinService {
         account_id: &str,
         limit: Option<usize>,
     ) -> Result<BalanceHistoryResponse> {
-        let balance_manager = BalanceManager::new(&self.checkin_dir);
+        let balance_manager = BalanceManager::new();
         balance_manager
             .get_history(account_id, limit)
             .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))
@@ -940,7 +940,7 @@ impl CheckinService {
     /// 获取账号最新余额
     #[allow(dead_code)]
     pub fn get_latest_balance(&self, account_id: &str) -> Result<Option<BalanceSnapshot>> {
-        let balance_manager = BalanceManager::new(&self.checkin_dir);
+        let balance_manager = BalanceManager::new();
         balance_manager
             .get_latest(account_id)
             .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))
@@ -955,8 +955,8 @@ impl CheckinService {
         days: u32,
     ) -> Result<CheckinAccountDashboardResponse> {
         let account_manager = AccountManager::new(&self.checkin_dir);
-        let provider_manager = ProviderManager::new(&self.checkin_dir);
-        let balance_manager = BalanceManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::new();
+        let balance_manager = BalanceManager::new();
 
         let account = account_manager
             .get(account_id)
@@ -1005,7 +1005,7 @@ impl CheckinService {
     /// 获取今日签到统计
     pub fn get_today_stats(&self) -> Result<TodayCheckinStats> {
         let account_manager = AccountManager::new(&self.checkin_dir);
-        let record_manager = RecordManager::new(&self.checkin_dir);
+        let record_manager = RecordManager::new();
 
         let all_accounts = account_manager
             .load_all()
@@ -1028,7 +1028,7 @@ impl CheckinService {
 
     /// 测试账号连接
     pub async fn test_connection(&self, account_id: &str) -> Result<bool> {
-        let provider_manager = ProviderManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::new();
         let account_manager = AccountManager::new(&self.checkin_dir);
         let crypto = CryptoManager::new(&self.checkin_dir)
             .map_err(|e| CheckinServiceError::CryptoError(e.to_string()))?;
@@ -1318,9 +1318,12 @@ pub struct TodayCheckinStats {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::database;
     use tempfile::TempDir;
 
     fn setup() -> (TempDir, CheckinService) {
+        // Initialize in-memory database for tests
+        database::initialize_for_test().unwrap();
         let temp_dir = TempDir::new().unwrap();
         let service = CheckinService::new(temp_dir.path().to_path_buf());
         (temp_dir, service)

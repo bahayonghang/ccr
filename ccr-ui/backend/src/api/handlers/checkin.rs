@@ -85,8 +85,7 @@ fn enrich_accounts(
 
 /// GET /api/checkin/providers - 获取所有提供商
 pub async fn list_providers() -> Result<Json<ProvidersResponse>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let manager = ProviderManager::new(&checkin_dir);
+    let manager = ProviderManager::new();
 
     let response = manager.list().map_err(internal_error)?;
     Ok(Json(response))
@@ -94,8 +93,7 @@ pub async fn list_providers() -> Result<Json<ProvidersResponse>, Response> {
 
 /// GET /api/checkin/providers/:id - 获取单个提供商
 pub async fn get_provider(Path(id): Path<String>) -> Result<Json<CheckinProvider>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let manager = ProviderManager::new(&checkin_dir);
+    let manager = ProviderManager::new();
 
     let provider = manager.get(&id).map_err(not_found_error)?;
     Ok(Json(provider))
@@ -105,8 +103,7 @@ pub async fn get_provider(Path(id): Path<String>) -> Result<Json<CheckinProvider
 pub async fn create_provider(
     Json(req): Json<CreateProviderRequest>,
 ) -> Result<Json<CheckinProvider>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let manager = ProviderManager::new(&checkin_dir);
+    let manager = ProviderManager::new();
 
     let provider = manager.create(req).map_err(bad_request_error)?;
     Ok(Json(provider))
@@ -117,8 +114,7 @@ pub async fn update_provider(
     Path(id): Path<String>,
     Json(req): Json<UpdateProviderRequest>,
 ) -> Result<Json<CheckinProvider>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let manager = ProviderManager::new(&checkin_dir);
+    let manager = ProviderManager::new();
 
     let provider = manager.update(&id, req).map_err(bad_request_error)?;
     Ok(Json(provider))
@@ -127,7 +123,7 @@ pub async fn update_provider(
 /// DELETE /api/checkin/providers/:id - 删除提供商
 pub async fn delete_provider(Path(id): Path<String>) -> Result<StatusCode, Response> {
     let checkin_dir = get_checkin_dir()?;
-    let provider_manager = ProviderManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
     let account_manager = AccountManager::new(&checkin_dir);
 
     // 检查是否有关联账号
@@ -172,8 +168,7 @@ pub async fn add_builtin_provider(
 ) -> Result<Json<CheckinProvider>, Response> {
     use crate::managers::checkin::builtin_providers::get_builtin_provider_by_id;
 
-    let checkin_dir = get_checkin_dir()?;
-    let manager = ProviderManager::new(&checkin_dir);
+    let manager = ProviderManager::new();
 
     // 获取内置提供商配置
     let builtin = get_builtin_provider_by_id(&req.builtin_id)
@@ -216,8 +211,8 @@ pub async fn list_accounts(
 ) -> Result<Json<AccountsResponse>, Response> {
     let checkin_dir = get_checkin_dir()?;
     let manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new(&checkin_dir);
-    let balance_manager = BalanceManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
+    let balance_manager = BalanceManager::new();
 
     let response = if let Some(provider_id) = query.provider_id {
         let mut accounts = manager
@@ -241,8 +236,8 @@ pub async fn list_accounts(
 pub async fn get_account(Path(id): Path<String>) -> Result<Json<AccountInfo>, Response> {
     let checkin_dir = get_checkin_dir()?;
     let manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new(&checkin_dir);
-    let balance_manager = BalanceManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
+    let balance_manager = BalanceManager::new();
 
     let mut account = manager.get_info(&id).map_err(not_found_error)?;
     enrich_accounts(
@@ -325,8 +320,8 @@ pub async fn update_account(
 pub async fn delete_account(Path(id): Path<String>) -> Result<StatusCode, Response> {
     let checkin_dir = get_checkin_dir()?;
     let account_manager = AccountManager::new(&checkin_dir);
-    let record_manager = RecordManager::new(&checkin_dir);
-    let balance_manager = BalanceManager::new(&checkin_dir);
+    let record_manager = RecordManager::new();
+    let balance_manager = BalanceManager::new();
 
     // 删除账号
     account_manager.delete(&id).map_err(not_found_error)?;
@@ -604,9 +599,9 @@ pub async fn list_records(
     Query(query): Query<HistoryQuery>,
 ) -> Result<Json<CheckinRecordsResponse>, Response> {
     let checkin_dir = get_checkin_dir()?;
-    let record_manager = RecordManager::new(&checkin_dir);
+    let record_manager = RecordManager::new();
     let account_manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
 
     let accounts = account_manager.load_all().map_err(internal_error)?;
     let providers = provider_manager.load_all().map_err(internal_error)?;
@@ -661,9 +656,9 @@ pub async fn get_account_records(
     Query(query): Query<HistoryQuery>,
 ) -> Result<Json<CheckinRecordsResponse>, Response> {
     let checkin_dir = get_checkin_dir()?;
-    let record_manager = RecordManager::new(&checkin_dir);
+    let record_manager = RecordManager::new();
     let account_manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
 
     let accounts = account_manager.load_all().map_err(internal_error)?;
     let providers = provider_manager.load_all().map_err(internal_error)?;
@@ -707,9 +702,9 @@ pub async fn get_account_records(
 /// GET /api/checkin/records/export - 导出签到记录
 pub async fn export_records(Query(query): Query<HistoryQuery>) -> Result<Response, Response> {
     let checkin_dir = get_checkin_dir()?;
-    let record_manager = RecordManager::new(&checkin_dir);
+    let record_manager = RecordManager::new();
     let account_manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
 
     let accounts = account_manager.load_all().map_err(internal_error)?;
     let providers = provider_manager.load_all().map_err(internal_error)?;

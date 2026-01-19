@@ -44,7 +44,7 @@ impl ExportManager {
 
     /// 导出配置
     pub fn export(&self, options: &ExportOptions) -> Result<ExportData> {
-        let provider_manager = ProviderManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::new();
         let account_manager = AccountManager::new(&self.checkin_dir);
 
         // 获取所有提供商
@@ -107,7 +107,7 @@ impl ExportManager {
 
     /// 预览导入
     pub fn preview_import(&self, data: &ExportData) -> Result<ImportPreviewResponse> {
-        let provider_manager = ProviderManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::new();
         let account_manager = AccountManager::new(&self.checkin_dir);
 
         // 检查版本兼容性
@@ -212,7 +212,7 @@ impl ExportManager {
 
     /// 执行导入
     pub fn import(&self, data: ExportData, options: &ImportOptions) -> Result<ImportResult> {
-        let provider_manager = ProviderManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::new();
         let account_manager = AccountManager::new(&self.checkin_dir);
 
         let mut result = ImportResult::success("导入完成");
@@ -301,10 +301,15 @@ impl ExportManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::database;
     use crate::models::checkin::{CheckinProvider, CreateProviderRequest};
     use tempfile::TempDir;
 
     fn setup() -> (TempDir, ExportManager) {
+        // Initialize in-memory database for tests
+        database::initialize_for_test().unwrap();
+        // Reset database to ensure test isolation
+        database::reset_for_test().unwrap();
         let temp_dir = TempDir::new().unwrap();
         let manager = ExportManager::new(temp_dir.path());
         (temp_dir, manager)
@@ -324,10 +329,10 @@ mod tests {
 
     #[test]
     fn test_export_with_providers() {
-        let (temp_dir, manager) = setup();
+        let (_temp_dir, manager) = setup();
 
         // 创建提供商
-        let provider_manager = ProviderManager::new(temp_dir.path());
+        let provider_manager = ProviderManager::new();
         provider_manager
             .create(CreateProviderRequest {
                 name: "Test Provider".to_string(),
