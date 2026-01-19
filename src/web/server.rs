@@ -18,6 +18,7 @@ use axum::{
 use once_cell::sync::Lazy;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
+use tokio::signal;
 use tower_http::cors::CorsLayer;
 
 // 🎯 平台模式缓存 - 避免重复检测 （预留给将来的优化使用）
@@ -220,10 +221,25 @@ impl WebServer {
         // 🎯 添加中间件
         let app = app.layer(CorsLayer::permissive()); // CORS 支持
 
-        // 🚀 启动服务器
-        axum::serve(listener, app)
-            .await
-            .map_err(|e| CcrError::ConfigError(format!("服务器运行错误: {}", e)))?;
+        // 🚀 启动服务器（支持 Ctrl+C 优雅退出）
+        let shutdown_cache = Arc::clone(&self.system_info_cache);
+        let shutdown_signal = async move {
+            if let Err(e) = signal::ctrl_c().await {
+                tracing::error!("监听 Ctrl+C 失败: {}", e);
+                std::future::pending::<()>().await;
+            }
+            ColorOutput::warning("⚠️ 收到 Ctrl+C，正在停止服务器...");
+            shutdown_cache.stop();
+        };
+
+        let serve_result = axum::serve(listener, app)
+            .with_graceful_shutdown(shutdown_signal)
+            .await;
+
+        // 确保后台线程停止（即使不是 Ctrl+C 触发的退出）
+        self.system_info_cache.stop();
+
+        serve_result.map_err(|e| CcrError::ConfigError(format!("服务器运行错误: {}", e)))?;
 
         Ok(())
     }
