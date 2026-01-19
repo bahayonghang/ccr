@@ -1,16 +1,19 @@
 // Usage Analytics API Handler
 // 读取和解析 Claude Code 的 usage 日志
+// 支持增量导入和 SQLite 缓存
 
 use axum::{Json, extract::Query, http::StatusCode};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 use walkdir::WalkDir;
 
+use crate::models::api::ApiResponse;
 use crate::models::usage::{UsageData, UsageRecord, UsageRecordsResponse};
+use crate::services::usage_import_service::{ImportConfig, ImportResult, UsageImportService};
 
 // 缓存结构
 struct CachedUsageData {
@@ -317,6 +320,207 @@ fn parse_usage_data(json: &Value) -> Option<UsageData> {
         output_tokens,
         cache_read_input_tokens,
     })
+}
+
+// ═══════════════════════════════════════════════════════════
+// Usage Import Pipeline Endpoints (SQLite-backed)
+// ═══════════════════════════════════════════════════════════
+
+/// 导入请求参数
+#[derive(Debug, Deserialize)]
+pub struct ImportQuery {
+    /// 平台 (claude, codex, gemini)
+    #[serde(default = "default_platform")]
+    pub platform: String,
+}
+
+/// 导入响应
+#[derive(Debug, Serialize)]
+pub struct ImportResponse {
+    pub result: ImportResult,
+    pub message: String,
+}
+
+/// POST /api/usage/import - 触发增量导入
+///
+/// 从平台日志文件增量导入 usage 数据到 SQLite
+pub async fn import_usage(
+    Query(params): Query<ImportQuery>,
+) -> Result<Json<ApiResponse<ImportResponse>>, (StatusCode, String)> {
+    info!("Triggering usage import for platform: {}", params.platform);
+
+    // 验证 platform 参数
+    let valid_platforms = ["claude", "codex", "gemini"];
+    if !valid_platforms.contains(&params.platform.as_str()) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            format!(
+                "Platform '{}' not supported. Supported platforms: claude, codex, gemini",
+                params.platform
+            ),
+        ));
+    }
+
+    let service = UsageImportService::new(ImportConfig::default());
+
+    match service.import_platform(&params.platform) {
+        Ok(result) => {
+            let message = format!(
+                "Imported {} records from {} files for {} ({})",
+                result.records_imported,
+                result.files_processed,
+                result.platform,
+                if result.completed {
+                    "completed"
+                } else {
+                    "partial"
+                }
+            );
+            info!("{}", message);
+
+            Ok(Json(ApiResponse::success(ImportResponse {
+                result,
+                message,
+            })))
+        }
+        Err(e) => {
+            error!("Import failed for {}: {}", params.platform, e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Import failed: {}", e),
+            ))
+        }
+    }
+}
+
+/// 导入所有平台响应
+#[derive(Debug, Serialize)]
+pub struct ImportAllResponse {
+    pub results: Vec<ImportResult>,
+    pub total_imported: usize,
+    pub total_files: usize,
+}
+
+/// POST /api/usage/import/all - 导入所有平台
+///
+/// 依次导入 claude, codex, gemini 平台的 usage 数据
+pub async fn import_all_usage() -> Result<Json<ApiResponse<ImportAllResponse>>, (StatusCode, String)>
+{
+    info!("Triggering usage import for all platforms");
+
+    let service = UsageImportService::new(ImportConfig::default());
+    let mut results = Vec::new();
+    let mut total_imported = 0;
+    let mut total_files = 0;
+
+    for platform in &["claude", "codex", "gemini"] {
+        match service.import_platform(platform) {
+            Ok(result) => {
+                total_imported += result.records_imported;
+                total_files += result.files_processed;
+                results.push(result);
+            }
+            Err(e) => {
+                warn!("Import failed for {}: {}", platform, e);
+            }
+        }
+    }
+
+    info!(
+        "Import complete: {} records from {} files across {} platforms",
+        total_imported,
+        total_files,
+        results.len()
+    );
+
+    Ok(Json(ApiResponse::success(ImportAllResponse {
+        results,
+        total_imported,
+        total_files,
+    })))
+}
+
+/// 统计信息响应
+#[derive(Debug, Serialize)]
+pub struct UsageStatsResponse {
+    pub total_sources: i64,
+    pub total_records: i64,
+    pub records_by_platform: Vec<(String, i64)>,
+}
+
+/// GET /api/usage/stats - 获取使用统计
+///
+/// 返回数据库中的记录统计信息
+pub async fn get_usage_stats() -> Result<Json<ApiResponse<UsageStatsResponse>>, (StatusCode, String)>
+{
+    let service = UsageImportService::new(ImportConfig::default());
+
+    match service.get_stats() {
+        Ok(stats) => Ok(Json(ApiResponse::success(UsageStatsResponse {
+            total_sources: stats.total_sources,
+            total_records: stats.total_records,
+            records_by_platform: stats.records_by_platform,
+        }))),
+        Err(e) => {
+            error!("Failed to get usage stats: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to get stats: {}", e),
+            ))
+        }
+    }
+}
+
+/// 清理请求参数
+#[derive(Debug, Deserialize)]
+pub struct CleanupQuery {
+    /// 保留天数 (默认 90)
+    #[serde(default = "default_retention_days")]
+    pub retention_days: i64,
+}
+
+fn default_retention_days() -> i64 {
+    90
+}
+
+/// 清理响应
+#[derive(Debug, Serialize)]
+pub struct CleanupResponse {
+    pub records_deleted: usize,
+}
+
+/// POST /api/usage/cleanup - 清理旧记录
+///
+/// 删除超过保留期限的旧记录
+pub async fn cleanup_usage(
+    Query(params): Query<CleanupQuery>,
+) -> Result<Json<ApiResponse<CleanupResponse>>, (StatusCode, String)> {
+    info!(
+        "Cleaning up records older than {} days",
+        params.retention_days
+    );
+
+    let config = ImportConfig {
+        retention_days: params.retention_days,
+        ..Default::default()
+    };
+    let service = UsageImportService::new(config);
+
+    match service.cleanup_old_records() {
+        Ok(deleted) => {
+            info!("Cleaned up {} old records", deleted);
+            Ok(Json(ApiResponse::success(CleanupResponse {
+                records_deleted: deleted,
+            })))
+        }
+        Err(e) => {
+            error!("Cleanup failed: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Cleanup failed: {}", e),
+            ))
+        }
+    }
 }
 
 #[cfg(test)]
