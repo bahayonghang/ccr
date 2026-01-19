@@ -40,6 +40,7 @@ pub struct CommandHistory {
 }
 
 /// UI 状态持久化数据
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UiState {
     /// 收藏的命令列表
@@ -52,6 +53,7 @@ pub struct UiState {
     pub last_updated: Option<DateTime<Utc>>,
 }
 
+#[allow(dead_code)]
 impl UiState {
     /// 创建新的 UI 状态
     pub fn new() -> Self {
