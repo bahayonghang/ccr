@@ -59,14 +59,22 @@ impl SystemInfoCache {
                 "🔄 系统信息缓存后台线程已启动，更新间隔: {:?}",
                 update_interval
             );
+
+            // 🎯 将睡眠时间分割成小块，以便更快响应停止信号
+            let sleep_chunk = Duration::from_millis(100); // 每次睡眠 100ms
+            let chunks = (update_interval.as_millis() / sleep_chunk.as_millis()) as u32;
+
             loop {
-                if stop_clone.load(Ordering::Relaxed) {
-                    break;
+                // 🔍 分段睡眠，每 100ms 检查一次停止标志
+                for _ in 0..chunks {
+                    if stop_clone.load(Ordering::Relaxed) {
+                        tracing::info!("🛑 系统信息缓存后台线程已停止");
+                        return;
+                    }
+                    thread::sleep(sleep_chunk);
                 }
-                thread::sleep(update_interval);
-                if stop_clone.load(Ordering::Relaxed) {
-                    break;
-                }
+
+                // 🔄 更新系统信息
                 let new_info = Self::fetch_system_info();
 
                 if let Ok(mut cached) = cache_clone.write() {
@@ -76,7 +84,6 @@ impl SystemInfoCache {
                     tracing::warn!("⚠️ 无法获取写锁更新系统信息");
                 }
             }
-            tracing::info!("🛑 系统信息缓存后台线程已停止");
         });
 
         Self { cache, stop_flag }

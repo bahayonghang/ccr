@@ -230,6 +230,9 @@ impl WebServer {
             }
             ColorOutput::warning("⚠️ 收到 Ctrl+C，正在停止服务器...");
             shutdown_cache.stop();
+
+            // 🎯 给后台线程一点时间优雅退出（最多等待 500ms）
+            tokio::time::sleep(Duration::from_millis(500)).await;
         };
 
         let serve_result = axum::serve(listener, app)
