@@ -409,6 +409,46 @@ impl CodexAuthService {
         Ok(backup_path)
     }
 
+    fn backup_registry(&self) -> Result<Option<PathBuf>> {
+        let registry_path = self.registry_path();
+        if !registry_path.exists() {
+            return Ok(None);
+        }
+
+        let backup_dir = self.backup_dir();
+        fs::create_dir_all(&backup_dir)
+            .map_err(|e| CcrError::ConfigError(format!("创建备份目录失败: {}", e)))?;
+
+        let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
+        let backup_name = format!("auth_registry_{}.toml", timestamp);
+        let backup_path = backup_dir.join(&backup_name);
+
+        fs::copy(&registry_path, &backup_path)
+            .map_err(|e| CcrError::ConfigError(format!("备份注册表失败: {}", e)))?;
+
+        Ok(Some(backup_path))
+    }
+
+    fn backup_account_auth(&self, name: &str) -> Result<Option<PathBuf>> {
+        let auth_path = self.account_auth_path(name);
+        if !auth_path.exists() {
+            return Ok(None);
+        }
+
+        let backup_dir = self.backup_dir();
+        fs::create_dir_all(&backup_dir)
+            .map_err(|e| CcrError::ConfigError(format!("创建备份目录失败: {}", e)))?;
+
+        let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
+        let backup_name = format!("auth_account_{}_{}.json", name, timestamp);
+        let backup_path = backup_dir.join(&backup_name);
+
+        fs::copy(&auth_path, &backup_path)
+            .map_err(|e| CcrError::ConfigError(format!("备份 auth 文件失败: {}", e)))?;
+
+        Ok(Some(backup_path))
+    }
+
     /// 清理旧备份，保留最新的 MAX_BACKUPS 个
     fn cleanup_old_backups(&self) -> Result<()> {
         let backup_dir = self.backup_dir();
@@ -740,11 +780,20 @@ impl CodexAuthService {
         fs::create_dir_all(&auth_storage)
             .map_err(|e| CcrError::ConfigError(format!("创建存储目录失败: {}", e)))?;
 
+        let mut registry_backed_up = false;
+
         for (name, import_account) in import_data.accounts {
             // 验证账号名称
             self.validate_account_name(&name)?;
 
             let exists = registry.accounts.contains_key(&name);
+
+            if force && exists && !registry_backed_up {
+                if let Some(path) = self.backup_registry()? {
+                    debug!("已备份注册表: {}", path.display());
+                }
+                registry_backed_up = true;
+            }
 
             match mode {
                 ImportMode::Merge => {
@@ -764,6 +813,29 @@ impl CodexAuthService {
                         result.overwritten.push(name.clone());
                     }
                 }
+            }
+
+            if force && exists {
+                if let Some(path) = self.backup_account_auth(&name)? {
+                    debug!("已备份账号 {} 的 auth 文件: {}", name, path.display());
+                }
+
+                let auth_path = self.account_auth_path(&name);
+                if auth_path.exists() {
+                    let metadata = fs::metadata(&auth_path)
+                        .map_err(|e| CcrError::ConfigError(format!("无法读取文件元数据: {}", e)))?;
+                    if metadata.permissions().readonly() {
+                        return Err(CcrError::ConfigError(format!(
+                            "无法覆盖账号 '{}': 文件为只读",
+                            name
+                        )));
+                    }
+
+                    fs::remove_file(&auth_path)
+                        .map_err(|e| CcrError::ConfigError(format!("删除 auth 文件失败: {}", e)))?;
+                }
+
+                registry.accounts.shift_remove(&name);
             }
 
             // 保存 auth 文件（如果有）
@@ -1652,6 +1724,73 @@ mod tests {
             existing.description,
             Some("Updated description".to_string())
         );
+    }
+
+    #[test]
+    fn test_import_accounts_force_creates_backups() {
+        let (service, _ccr, _codex) = create_test_service();
+
+        let auth_path = service.codex_dir.join("auth.json");
+        let auth_content = create_test_auth_json("existing-id", "2026-01-08T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content).unwrap();
+        service
+            .save_current(
+                "existing",
+                Some("Existing account".to_string()),
+                None,
+                false,
+            )
+            .unwrap();
+
+        let import_json = r#"{
+            "version": "1.0",
+            "exported_at": "2026-01-22T00:00:00Z",
+            "accounts": {
+                "existing": {
+                    "description": "Updated description",
+                    "account_id": "new-id",
+                    "email": "new***@example.com",
+                    "saved_at": "2026-01-22T00:00:00Z",
+                    "auth_data": {
+                        "tokens": {
+                            "id_token": "new_token",
+                            "access_token": "new_access",
+                            "refresh_token": "new_refresh",
+                            "account_id": "new-id"
+                        },
+                        "last_refresh": "2026-01-22T00:00:00Z"
+                    }
+                }
+            }
+        }"#;
+
+        service
+            .import_accounts(import_json, ImportMode::Merge, true)
+            .unwrap();
+
+        let stored_auth_path = service.account_auth_path("existing");
+        let stored_auth = fs::read_to_string(&stored_auth_path).unwrap();
+        assert!(stored_auth.contains("new_access"));
+
+        let backup_dir = service.backup_dir();
+        let backups: Vec<_> = fs::read_dir(&backup_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .collect();
+
+        let has_registry_backup = backups.iter().any(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .starts_with("auth_registry_")
+        });
+        let has_account_backup = backups.iter().any(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .starts_with("auth_account_existing_")
+        });
+
+        assert!(has_registry_backup);
+        assert!(has_account_backup);
     }
 
     #[test]

@@ -179,7 +179,7 @@
 
         <!-- Version Info -->
         <div class="text-xs text-text-muted flex items-center justify-between">
-          <span>CCR UI v3.19.2</span>
+          <span>CCR UI v3.19.3</span>
           <span class="animate-pulse-subtle">●</span>
         </div>
       </div>
