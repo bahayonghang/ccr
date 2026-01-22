@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### ✨ 新功能
+
+- **Codex Auth 导入增强**：
+  - `ccr codex auth import` 新增 `--force` 选项
+  - 支持在合并模式下强制覆盖已存在的账号
+  - 导入结果显示被覆盖账号的详细列表
+  - 添加文件权限检查，防止覆盖只读文件
+  - 新增 5 个测试用例覆盖强制导入功能
+
+---
+
 ## [3.19.0] - 2026-01-10
 
 ### ✨ 新功能
