@@ -114,6 +114,78 @@ ccr ui
 ccr ui -p 3000
 ```
 
+## 🔐 Codex 多账号管理
+
+CCR 为 Codex CLI 提供强大的多账号管理功能，让您可以轻松在不同的 GitHub 账号之间切换。
+
+### 基础命令
+
+```bash
+# 保存当前登录为命名账号
+ccr codex auth save work
+
+# 保存时添加描述
+ccr codex auth save personal -d "个人 GitHub 账号"
+
+# 保存时设置过期时间
+ccr codex auth save temp --expires-at 2026-02-01T00:00:00Z
+
+# 强制覆盖已存在的账号
+ccr codex auth save work --force
+
+# 列出所有已保存的账号
+ccr codex auth list
+
+# 切换到指定账号
+ccr codex auth switch work
+
+# 显示当前账号信息
+ccr codex auth current
+
+# 删除账号
+ccr codex auth delete old-account
+
+# 删除时跳过确认
+ccr codex auth delete old-account --force
+```
+
+### 导出与导入
+
+```bash
+# 导出所有账号到 Downloads 文件夹
+ccr codex auth export
+
+# 导出时不包含敏感数据（Token）
+ccr codex auth export --no-secrets
+
+# 从文件导入账号（交互式）
+ccr codex auth import
+
+# 使用替换模式导入（覆盖同名账号）
+ccr codex auth import --replace
+
+# 使用强制模式导入（合并模式下覆盖已存在账号）
+ccr codex auth import --force
+```
+
+**导入模式说明：**
+- **合并模式（默认）**：跳过已存在的账号，只添加新账号
+- **合并 + --force**：强制覆盖已存在的账号
+- **替换模式**：始终覆盖同名账号
+
+### 交互式 TUI
+
+启动 Codex 账号管理界面：
+```bash
+ccr codex
+```
+
+**功能特性：**
+- 可视化账号列表，带 Token 新鲜度指示器
+- 🟢 新鲜 (<1天) | 🟡 陈旧 (1-7天) | 🔴 过期 (>7天)
+- 切换前进程检测警告
+- 邮箱脱敏保护隐私（如 `use***@example.com`）
+
 ## 🔄 自动更新
 
 CCR 支持从 GitHub 自动更新到最新版本。

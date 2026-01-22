@@ -6,7 +6,6 @@
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
-use crate::models::TokenFreshness;
 use crate::services::CodexAuthService;
 use chrono::Local;
 use comfy_table::{
@@ -71,7 +70,7 @@ pub async fn list_command() -> Result<()> {
             Cell::new("到期")
                 .add_attribute(Attribute::Bold)
                 .fg(TableColor::Cyan),
-            Cell::new("新鲜度")
+            Cell::new("添加日期")
                 .add_attribute(Attribute::Bold)
                 .fg(TableColor::Cyan),
             Cell::new("描述")
@@ -124,13 +123,12 @@ pub async fn list_command() -> Result<()> {
         };
         let expire_cell = Cell::new(expire_label).fg(expire_color);
 
-        // 新鲜度列
-        let freshness_cell = match account.freshness {
-            TokenFreshness::Fresh => Cell::new("🟢 新鲜").fg(TableColor::Green),
-            TokenFreshness::Stale => Cell::new("🟡 陈旧").fg(TableColor::Yellow),
-            TokenFreshness::Old => Cell::new("🔴 过期").fg(TableColor::Red),
-            TokenFreshness::Unknown => Cell::new("⚪ 未知").fg(TableColor::White),
-        };
+        // 添加日期列
+        let saved_at = account
+            .saved_at
+            .map(|ts| ts.with_timezone(&Local).format("%Y-%m-%d").to_string())
+            .unwrap_or_else(|| "-".to_string());
+        let saved_at_cell = Cell::new(saved_at).fg(TableColor::White);
 
         // 描述列
         let description = account.description.as_deref().unwrap_or("-");
@@ -141,7 +139,7 @@ pub async fn list_command() -> Result<()> {
             name_cell,
             email_cell,
             expire_cell,
-            freshness_cell,
+            saved_at_cell,
             desc_cell,
         ]);
     }

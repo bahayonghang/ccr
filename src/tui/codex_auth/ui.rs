@@ -2,7 +2,6 @@
 // 绘制 Codex 多账号管理界面
 
 use super::app::{CodexAuthApp, Mode, UsageState};
-use crate::models::TokenFreshness;
 use crate::services::CodexUsageService;
 use crate::tui::theme;
 use chrono::{Local, Utc};
@@ -109,8 +108,11 @@ fn draw_account_list(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
             // 邮箱
             let email = account.email.as_deref().unwrap_or("-");
 
-            // 新鲜度
-            let freshness = CodexAuthApp::freshness_text(account.freshness);
+            // 添加日期
+            let saved_at = account
+                .saved_at
+                .map(|ts| ts.with_timezone(&Local).format("%Y-%m-%d").to_string())
+                .unwrap_or_else(|| "-".to_string());
 
             // 到期
             let (expire_text, expire_style) = match account.expires_at {
@@ -162,13 +164,8 @@ fn draw_account_list(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                 Span::styled(format!("{:<24}", email), Style::default().fg(Color::Cyan)),
                 Span::raw(" "),
                 Span::styled(
-                    format!("{:<10}", freshness),
-                    Style::default().fg(match account.freshness {
-                        TokenFreshness::Fresh => Color::Green,
-                        TokenFreshness::Stale => Color::Yellow,
-                        TokenFreshness::Old => Color::Red,
-                        TokenFreshness::Unknown => Color::DarkGray,
-                    }),
+                    format!("{:<12}", saved_at),
+                    Style::default().fg(Color::White),
                 ),
                 Span::raw(" "),
                 Span::styled(format!("{:<18}", expire_text), expire_style),

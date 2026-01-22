@@ -254,6 +254,7 @@ impl CodexAuthService {
                 email: info.email.clone().map(|e| self.mask_email(&e)),
                 is_current: true,
                 is_virtual: true,
+                saved_at: None,
                 last_used: None,
                 last_refresh: info.last_refresh,
                 freshness: info.freshness,
@@ -277,6 +278,7 @@ impl CodexAuthService {
                 email: account.email.clone(),
                 is_current,
                 is_virtual: false,
+                saved_at: Some(account.saved_at),
                 last_used: account.last_used,
                 last_refresh: account.last_refresh,
                 freshness,
@@ -751,19 +753,40 @@ impl CodexAuthService {
                         result.skipped += 1;
                         continue;
                     }
+                    if exists && force {
+                        debug!("强制覆盖已存在的账号: {}", name);
+                        result.overwritten.push(name.clone());
+                    }
                 }
                 ImportMode::Replace => {
-                    // Replace 模式允许覆盖
+                    if exists {
+                        debug!("替换模式覆盖账号: {}", name);
+                        result.overwritten.push(name.clone());
+                    }
                 }
             }
 
             // 保存 auth 文件（如果有）
             if let Some(auth_data) = &import_account.auth_data {
                 let auth_path = self.account_auth_path(&name);
+
+                // 检查文件写入权限
+                if auth_path.exists() {
+                    let metadata = fs::metadata(&auth_path)
+                        .map_err(|e| CcrError::ConfigError(format!("无法读取文件元数据: {}", e)))?;
+                    if metadata.permissions().readonly() {
+                        return Err(CcrError::ConfigError(format!(
+                            "无法覆盖账号 '{}': 文件为只读",
+                            name
+                        )));
+                    }
+                }
+
                 let auth_content = serde_json::to_string_pretty(auth_data)
                     .map_err(|e| CcrError::ConfigError(format!("序列化 auth 数据失败: {}", e)))?;
-                fs::write(&auth_path, auth_content)
-                    .map_err(|e| CcrError::ConfigError(format!("写入 auth 文件失败: {}", e)))?;
+                fs::write(&auth_path, auth_content).map_err(|e| {
+                    CcrError::ConfigError(format!("写入 auth 文件失败 (账号: {}): {}", name, e))
+                })?;
 
                 // 设置文件权限 (Unix)
                 #[cfg(unix)]
@@ -1489,5 +1512,233 @@ mod tests {
         let accounts = service.list_accounts().unwrap();
         let account = accounts.iter().find(|a| a.name == "with-expiry").unwrap();
         assert!(account.expires_at.is_some());
+    }
+
+    // ==================== 导入账号测试 ====================
+
+    #[test]
+    fn test_import_accounts_merge_without_force() {
+        let (service, _ccr, _codex) = create_test_service();
+
+        // 先保存一个账号
+        let auth_path = service.codex_dir.join("auth.json");
+        let auth_content = create_test_auth_json("existing-id", "2026-01-08T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content).unwrap();
+        service
+            .save_current(
+                "existing",
+                Some("Existing account".to_string()),
+                None,
+                false,
+            )
+            .unwrap();
+
+        // 准备导入数据（包含同名账号和新账号）
+        let import_json = r#"{
+            "version": "1.0",
+            "exported_at": "2026-01-22T00:00:00Z",
+            "accounts": {
+                "existing": {
+                    "description": "Updated description",
+                    "account_id": "new-id",
+                    "email": "new***@example.com",
+                    "saved_at": "2026-01-22T00:00:00Z",
+                    "auth_data": {
+                        "tokens": {
+                            "id_token": "new_token",
+                            "access_token": "new_access",
+                            "refresh_token": "new_refresh",
+                            "account_id": "new-id"
+                        },
+                        "last_refresh": "2026-01-22T00:00:00Z"
+                    }
+                },
+                "new-account": {
+                    "description": "New account",
+                    "account_id": "new-account-id",
+                    "email": "new***@example.com",
+                    "saved_at": "2026-01-22T00:00:00Z"
+                }
+            }
+        }"#;
+
+        // 合并模式，不强制覆盖
+        let result = service
+            .import_accounts(import_json, ImportMode::Merge, false)
+            .unwrap();
+
+        // 验证结果
+        assert_eq!(result.added, 1); // new-account
+        assert_eq!(result.updated, 0);
+        assert_eq!(result.skipped, 1); // existing
+        assert_eq!(result.overwritten.len(), 0);
+
+        // 验证 registry 中的账号数量
+        let registry = service.load_registry().unwrap();
+        assert_eq!(registry.accounts.len(), 2);
+
+        // 验证 existing 账号没有被更新
+        let existing = registry.accounts.get("existing").unwrap();
+        assert_eq!(existing.account_id, "existing-id");
+        assert_eq!(existing.description, Some("Existing account".to_string()));
+    }
+
+    #[test]
+    fn test_import_accounts_merge_with_force() {
+        let (service, _ccr, _codex) = create_test_service();
+
+        // 先保存一个账号
+        let auth_path = service.codex_dir.join("auth.json");
+        let auth_content = create_test_auth_json("existing-id", "2026-01-08T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content).unwrap();
+        service
+            .save_current(
+                "existing",
+                Some("Existing account".to_string()),
+                None,
+                false,
+            )
+            .unwrap();
+
+        // 准备导入数据
+        let import_json = r#"{
+            "version": "1.0",
+            "exported_at": "2026-01-22T00:00:00Z",
+            "accounts": {
+                "existing": {
+                    "description": "Updated description",
+                    "account_id": "new-id",
+                    "email": "new***@example.com",
+                    "saved_at": "2026-01-22T00:00:00Z",
+                    "auth_data": {
+                        "tokens": {
+                            "id_token": "new_token",
+                            "access_token": "new_access",
+                            "refresh_token": "new_refresh",
+                            "account_id": "new-id"
+                        },
+                        "last_refresh": "2026-01-22T00:00:00Z"
+                    }
+                },
+                "new-account": {
+                    "description": "New account",
+                    "account_id": "new-account-id",
+                    "email": "new***@example.com",
+                    "saved_at": "2026-01-22T00:00:00Z"
+                }
+            }
+        }"#;
+
+        // 合并模式，强制覆盖
+        let result = service
+            .import_accounts(import_json, ImportMode::Merge, true)
+            .unwrap();
+
+        // 验证结果
+        assert_eq!(result.added, 1); // new-account
+        assert_eq!(result.updated, 1); // existing 被更新
+        assert_eq!(result.skipped, 0);
+        assert_eq!(result.overwritten.len(), 1);
+        assert_eq!(result.overwritten[0], "existing");
+
+        // 验证 registry 中的账号数量
+        let registry = service.load_registry().unwrap();
+        assert_eq!(registry.accounts.len(), 2);
+
+        // 验证 existing 账号已被更新
+        let existing = registry.accounts.get("existing").unwrap();
+        assert_eq!(existing.account_id, "new-id");
+        assert_eq!(
+            existing.description,
+            Some("Updated description".to_string())
+        );
+    }
+
+    #[test]
+    fn test_import_accounts_replace_mode() {
+        let (service, _ccr, _codex) = create_test_service();
+
+        // 先保存一个账号
+        let auth_path = service.codex_dir.join("auth.json");
+        let auth_content = create_test_auth_json("existing-id", "2026-01-08T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content).unwrap();
+        service
+            .save_current(
+                "existing",
+                Some("Existing account".to_string()),
+                None,
+                false,
+            )
+            .unwrap();
+
+        // 准备导入数据
+        let import_json = r#"{
+            "version": "1.0",
+            "exported_at": "2026-01-22T00:00:00Z",
+            "accounts": {
+                "existing": {
+                    "description": "Replaced description",
+                    "account_id": "replaced-id",
+                    "email": "rep***@example.com",
+                    "saved_at": "2026-01-22T00:00:00Z"
+                }
+            }
+        }"#;
+
+        // 替换模式（force 参数在 Replace 模式下被忽略）
+        let result = service
+            .import_accounts(import_json, ImportMode::Replace, false)
+            .unwrap();
+
+        // 验证结果
+        assert_eq!(result.added, 0);
+        assert_eq!(result.updated, 1);
+        assert_eq!(result.skipped, 0);
+        assert_eq!(result.overwritten.len(), 1);
+        assert_eq!(result.overwritten[0], "existing");
+
+        // 验证账号已被替换 - 从 registry 读取
+        let registry = service.load_registry().unwrap();
+        let existing = registry.accounts.get("existing").unwrap();
+        assert_eq!(existing.account_id, "replaced-id");
+        assert_eq!(
+            existing.description,
+            Some("Replaced description".to_string())
+        );
+    }
+
+    #[test]
+    fn test_import_accounts_invalid_name() {
+        let (service, _ccr, _codex) = create_test_service();
+
+        // 准备包含无效账号名的导入数据
+        let import_json = r#"{
+            "version": "1.0",
+            "exported_at": "2026-01-22T00:00:00Z",
+            "accounts": {
+                "invalid name": {
+                    "description": "Invalid",
+                    "account_id": "test-id",
+                    "email": "test***@example.com",
+                    "saved_at": "2026-01-22T00:00:00Z"
+                }
+            }
+        }"#;
+
+        // 应该返回错误
+        let result = service.import_accounts(import_json, ImportMode::Merge, false);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_import_accounts_invalid_json() {
+        let (service, _ccr, _codex) = create_test_service();
+
+        // 无效的 JSON
+        let invalid_json = "{ invalid json }";
+
+        // 应该返回错误
+        let result = service.import_accounts(invalid_json, ImportMode::Merge, false);
+        assert!(result.is_err());
     }
 }

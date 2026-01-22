@@ -96,6 +96,9 @@ pub struct CodexAuthItem {
     /// 是否为虚拟项 (未保存的 default)
     pub is_virtual: bool,
 
+    /// 添加时间
+    pub saved_at: Option<DateTime<Utc>>,
+
     /// 最后使用时间
     pub last_used: Option<DateTime<Utc>>,
 
@@ -252,6 +255,8 @@ pub struct ImportResult {
     pub updated: usize,
     /// 跳过账号数
     pub skipped: usize,
+    /// 被覆盖的账号列表
+    pub overwritten: Vec<String>,
 }
 
 #[cfg(test)]

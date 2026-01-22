@@ -76,6 +76,16 @@ pub fn list_normal_style() -> Style {
     Style::default().fg(FG_PRIMARY)
 }
 
+pub fn list_description_style(is_selected: bool, is_current: bool) -> Style {
+    if is_selected {
+        list_selected_style()
+    } else if is_current {
+        list_current_style()
+    } else {
+        Style::default().fg(FG_MUTED)
+    }
+}
+
 /// 快捷键样式
 pub fn shortcut_key_style() -> Style {
     Style::default()

@@ -189,25 +189,84 @@ ccr history
 
 ### Multi-Account Management
 
+CCR 为 Codex CLI 提供强大的多账号管理功能，让您可以轻松在不同的 GitHub 账号之间切换。
+
+#### 保存和管理账号
+
 ```bash
-# Personal account
-[personal]
-description = "Personal GitHub Account"
-base_url = "https://api.github.com/copilot"
-auth_token = "ghp_personal_token"
-model = "gpt-4"
+# 保存当前登录为命名账号
+ccr codex auth save work
 
-# Work account
-[work]
-description = "Work GitHub Account"
-base_url = "https://api.github.com/copilot"
-auth_token = "ghp_work_token"
-model = "gpt-4"
+# 保存时添加描述
+ccr codex auth save personal -d "个人 GitHub 账号"
 
-# Switch between accounts
-ccr switch personal  # Use personal
-ccr switch work      # Use work
+# 保存时设置过期时间
+ccr codex auth save temp --expires-at 2026-02-01T00:00:00Z
+
+# 强制覆盖已存在的账号
+ccr codex auth save work --force
+
+# 列出所有已保存的账号
+ccr codex auth list
+
+# 切换到指定账号
+ccr codex auth switch work
+
+# 显示当前账号信息
+ccr codex auth current
+
+# 删除账号
+ccr codex auth delete old-account
+
+# 删除时跳过确认
+ccr codex auth delete old-account --force
 ```
+
+#### 导出与导入账号
+
+```bash
+# 导出所有账号到 Downloads 文件夹
+ccr codex auth export
+
+# 导出时不包含敏感数据（Token）
+ccr codex auth export --no-secrets
+
+# 从文件导入账号（交互式）
+ccr codex auth import
+
+# 使用替换模式导入（覆盖同名账号）
+ccr codex auth import --replace
+
+# 使用强制模式导入（合并模式下覆盖已存在账号）
+ccr codex auth import --force
+```
+
+**导入模式说明：**
+- **合并模式（默认）**：跳过已存在的账号，只添加新账号
+- **合并 + --force**：强制覆盖已存在的账号，显示被覆盖账号列表
+- **替换模式（--replace）**：始终覆盖同名账号
+
+**功能特性：**
+- 🟢 Token 新鲜度指示：新鲜 (<1天) | 🟡 陈旧 (1-7天) | 🔴 过期 (>7天)
+- 📧 邮箱脱敏保护隐私（如 `use***@example.com`）
+- 🔒 自动备份轮转，保留最近 10 个备份
+- ⚠️ 切换前进程检测警告
+- 🔐 Unix 系统下 auth 文件权限自动设置为 0600
+
+#### 交互式 TUI
+
+启动 Codex 账号管理界面：
+```bash
+ccr codex
+```
+
+**键盘快捷键：**
+| 按键 | 功能 |
+|------|------|
+| `↑` / `↓` / `j` / `k` | 选择账号 |
+| `Enter` | 切换到选中的账号并退出 |
+| `Space` | 切换到选中的账号（保持 TUI） |
+| `q` / `Esc` | 退出 |
 
 ### Testing Free Tokens
 
@@ -461,6 +520,16 @@ ccr list                    # List Codex profiles
 ccr switch <name>           # Switch Codex profile
 ccr add                     # Add new profile
 ccr delete <name>           # Delete profile
+
+# Multi-account management
+ccr codex auth save <name>  # Save current login as named account
+ccr codex auth list         # List all saved accounts
+ccr codex auth switch <name> # Switch to specific account
+ccr codex auth current      # Show current account info
+ccr codex auth delete <name> # Delete account
+ccr codex auth export       # Export accounts to file
+ccr codex auth import       # Import accounts from file
+ccr codex                   # Launch interactive TUI
 
 # Validation and diagnostics
 ccr validate                # Validate all profiles

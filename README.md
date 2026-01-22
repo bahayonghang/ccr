@@ -114,6 +114,78 @@ ccr ui
 ccr ui -p 3000
 ```
 
+## 🔐 Codex Multi-Account Management
+
+CCR provides powerful multi-account management for Codex CLI, allowing you to easily switch between different GitHub accounts.
+
+### Basic Commands
+
+```bash
+# Save current login as a named account
+ccr codex auth save work
+
+# Save with description
+ccr codex auth save personal -d "Personal GitHub account"
+
+# Save with expiry time
+ccr codex auth save temp --expires-at 2026-02-01T00:00:00Z
+
+# Force overwrite existing account
+ccr codex auth save work --force
+
+# List all saved accounts
+ccr codex auth list
+
+# Switch to a specific account
+ccr codex auth switch work
+
+# Show current account info
+ccr codex auth current
+
+# Delete an account
+ccr codex auth delete old-account
+
+# Delete without confirmation
+ccr codex auth delete old-account --force
+```
+
+### Export & Import
+
+```bash
+# Export all accounts to Downloads folder
+ccr codex auth export
+
+# Export without sensitive data (tokens)
+ccr codex auth export --no-secrets
+
+# Import accounts from file (interactive)
+ccr codex auth import
+
+# Import in replace mode (overwrite existing accounts)
+ccr codex auth import --replace
+
+# Import with force (overwrite in merge mode)
+ccr codex auth import --force
+```
+
+**Import Modes:**
+- **Merge (default)**: Skip existing accounts, only add new ones
+- **Merge + --force**: Overwrite existing accounts with imported data
+- **Replace**: Always overwrite accounts with the same name
+
+### Interactive TUI
+
+Launch the Codex account management interface:
+```bash
+ccr codex
+```
+
+**Features:**
+- Visual account list with token freshness indicators
+- 🟢 Fresh (<1 day) | 🟡 Stale (1-7 days) | 🔴 Old (>7 days)
+- Process detection warnings before switching
+- Email masking for privacy (e.g., `use***@example.com`)
+
 ## 🔄 Auto Update
 
 CCR supports automatic updates from GitHub to the latest version.

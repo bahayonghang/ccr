@@ -122,6 +122,33 @@ fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
     let platform_name = app.current_tab.title();
     let current_tab = app.current_tab;
 
+    fn truncate_text(text: &str, width: usize) -> String {
+        if width == 0 {
+            return String::new();
+        }
+        let len = text.chars().count();
+        if len <= width {
+            return text.to_string();
+        }
+        if width == 1 {
+            return "…".to_string();
+        }
+        let mut out: String = text.chars().take(width - 1).collect();
+        out.push('…');
+        out
+    }
+
+    fn pad_text(text: &str, width: usize) -> String {
+        let len = text.chars().count();
+        if len >= width {
+            return text.to_string();
+        }
+        let mut out = String::with_capacity(width);
+        out.push_str(text);
+        out.extend(std::iter::repeat_n(' ', width - len));
+        out
+    }
+
     // 根据当前 Tab 设置边框颜色
     let border_color = match current_tab {
         TabState::Claude => theme::CLAUDE_PRIMARY,
@@ -158,7 +185,23 @@ fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
         return;
     }
 
-    // 构建列表项
+    let inner_width = area.width.saturating_sub(4) as usize;
+    let gap = 2usize;
+    let available = inner_width.saturating_sub(gap);
+    let min_name = 12usize;
+    let min_desc = 10usize;
+    let mut name_width = available * 3 / 10;
+    if name_width < min_name {
+        name_width = min_name;
+    }
+    let max_name = available.saturating_sub(min_desc);
+    if max_name == 0 {
+        name_width = available;
+    } else if name_width > max_name {
+        name_width = max_name;
+    }
+    let desc_width = available.saturating_sub(name_width);
+
     let items: Vec<ListItem> = profiles
         .iter()
         .enumerate()
@@ -171,42 +214,30 @@ fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
             // 当前激活标记 (实心/空心圆)
             let current_marker = if profile.is_current { "●" } else { "○" };
 
-            // 配置名称
             let name = &profile.name;
-
-            // 描述信息 (截断过长的描述)
-            let desc = profile
-                .description
-                .as_ref()
-                .map(|d| {
-                    let truncated = if d.len() > 40 {
-                        format!("{}...", &d[..37])
-                    } else {
-                        d.clone()
-                    };
-                    format!("  ─  {}", truncated)
-                })
-                .unwrap_or_default();
+            let desc = profile.description.as_deref().unwrap_or("");
 
             // 当前标签
             let current_tag = if profile.is_current { " ✓" } else { "" };
 
-            // 组合内容
-            let content = format!(
-                "{}{} {}{}{}",
-                selector, current_marker, name, desc, current_tag
-            );
+            let name_raw = format!("{}{} {}{}", selector, current_marker, name, current_tag);
+            let name_cell = pad_text(&truncate_text(&name_raw, name_width), name_width);
+            let desc_cell = pad_text(&truncate_text(desc, desc_width), desc_width);
 
-            // 计算样式
-            let style = if is_selected {
+            let name_style = if is_selected {
                 theme::list_selected_style()
             } else if profile.is_current {
                 theme::list_current_style()
             } else {
                 theme::list_normal_style()
             };
+            let desc_style = theme::list_description_style(is_selected, profile.is_current);
 
-            ListItem::new(Line::from(Span::styled(content, style)))
+            ListItem::new(Line::from(vec![
+                Span::styled(name_cell, name_style),
+                Span::raw("  "),
+                Span::styled(desc_cell, desc_style),
+            ]))
         })
         .collect();
 

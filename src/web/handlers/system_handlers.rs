@@ -41,7 +41,7 @@ pub async fn handle_get_history(State(state): State<AppState>) -> Response {
     let history_service = Arc::clone(&state.history_service);
     let entries = match history_service.get_recent_async(50).await {
         Ok(entries) => {
-            tracing::info!("成功加载 {} 条历史记录", entries.len());
+            tracing::debug!("成功加载 {} 条历史记录", entries.len());
             entries
         }
         Err(e) => return internal_server_error(e.to_string()),

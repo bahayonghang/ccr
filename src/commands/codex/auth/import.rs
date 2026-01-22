@@ -166,6 +166,15 @@ pub async fn import_command(replace: bool, force: bool) -> Result<()> {
                     result.skipped.to_string().bright_cyan()
                 ));
             }
+            if !result.overwritten.is_empty() {
+                ColorOutput::warning(&format!(
+                    "覆盖账号: {}",
+                    result.overwritten.len().to_string().bright_magenta()
+                ));
+                for name in &result.overwritten {
+                    println!("  • {}", name.bright_magenta());
+                }
+            }
 
             let total = result.added + result.updated + result.skipped;
             if total == 0 {

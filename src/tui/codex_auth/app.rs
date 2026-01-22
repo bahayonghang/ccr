@@ -395,6 +395,7 @@ impl CodexAuthApp {
     }
 
     /// 获取新鲜度显示文本
+    #[allow(dead_code)]
     pub fn freshness_text(freshness: TokenFreshness) -> &'static str {
         match freshness {
             TokenFreshness::Fresh => "🟢 新鲜",
