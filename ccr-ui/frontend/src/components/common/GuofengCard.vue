@@ -172,6 +172,7 @@ const onMouseLeave = (e: MouseEvent) => {
 <style scoped>
 .guofeng-card {
   position: relative;
+
   /* 性能优化 */
   transform: var(--hardware-acceleration);
   will-change: var(--will-change-auto);
@@ -184,7 +185,7 @@ const onMouseLeave = (e: MouseEvent) => {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-border-default), transparent);
   opacity: 0.5;
 }
 
@@ -195,14 +196,14 @@ const onMouseLeave = (e: MouseEvent) => {
 
 /* 专注状态增强 */
 .guofeng-card:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
   border-radius: var(--radius-xl);
 }
 
 /* 暗色主题适配 */
 [data-theme="dark"] .guofeng-card {
-  border-color: var(--border-color);
+  border-color: var(--color-border-default);
 }
 
 /* 减少动画效果 */

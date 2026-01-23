@@ -75,7 +75,7 @@
       
       <div
         v-else-if="lines.length === 0"
-        class="terminal-empty text-guofeng-text-muted/30"
+        class="terminal-empty text-[var(--color-text-muted)]/30"
       >
         <div class="empty-icon mb-3">
           <Terminal class="w-12 h-12 opacity-20" />
@@ -94,7 +94,7 @@
           :key="index"
           class="terminal-line hover:bg-white/5 transition-colors"
         >
-          <span class="line-number text-guofeng-text-muted/30 select-none w-8 text-right mr-3 text-xs">{{ index + 1 }}</span>
+          <span class="line-number text-[var(--color-text-muted)]/30 select-none w-8 text-right mr-3 text-xs">{{ index + 1 }}</span>
           <span
             class="line-content"
             v-html="renderAnsi(line)"
@@ -106,7 +106,7 @@
     <!-- 行数提示 -->
     <div
       v-if="lines.length > 0"
-      class="terminal-footer border-t border-white/5 bg-white/5 backdrop-blur-sm text-xs text-guofeng-text-muted"
+      class="terminal-footer border-t border-white/5 bg-white/5 backdrop-blur-sm text-xs text-[var(--color-text-muted)]"
     >
       <span class="line-count">{{ lines.length }} lines</span>
       <span
@@ -243,7 +243,7 @@ defineExpose({
   height: 100%;
   border-radius: 12px;
   overflow: hidden;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
 }
 
 .terminal-toolbar {
@@ -275,8 +275,16 @@ defineExpose({
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.8); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
 }
 
 .terminal-actions {
@@ -300,8 +308,9 @@ defineExpose({
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+
   /* Use a very dark transparent background for better contrast of colored text */
-  background: rgba(var(--color-slate-dark-rgb), 0.6);
+  background: rgb(var(--color-slate-dark-rgb), 0.6);
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
@@ -365,7 +374,7 @@ defineExpose({
 :deep(.ansi-bright-blue-fg) { color: #61afef; }
 :deep(.ansi-bright-magenta-fg) { color: #c678dd; }
 :deep(.ansi-bright-cyan-fg) { color: #56b6c2; }
-:deep(.ansi-bright-white-fg) { color: #ffffff; }
+:deep(.ansi-bright-white-fg) { color: #fff; }
 
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
@@ -377,11 +386,11 @@ defineExpose({
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(var(--color-gray-rgb), 0.2);
+  background: rgb(var(--color-gray-rgb), 0.2);
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--color-gray-rgb), 0.3);
+  background: rgb(var(--color-gray-rgb), 0.3);
 }
 </style>

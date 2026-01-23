@@ -221,6 +221,7 @@ onMounted(() => {
     transform: scale(1);
     opacity: 0.3;
   }
+
   50% {
     transform: scale(1.05);
     opacity: 0.1;

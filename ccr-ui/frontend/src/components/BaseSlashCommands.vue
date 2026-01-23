@@ -48,10 +48,10 @@
             <div class="mb-4 flex items-center gap-3 flex-wrap">
               <!-- 排序控件 -->
               <div class="flex items-center gap-2">
-                <span class="text-sm text-guofeng-text-secondary">{{ t('slashCommands.viewControls.sort') }}:</span>
+                <span class="text-sm text-[var(--color-text-secondary)]">{{ t('slashCommands.viewControls.sort') }}:</span>
                 <select
                   v-model="viewStore.sortKey"
-                  class="px-3 py-1.5 text-sm rounded-lg border border-guofeng-border bg-guofeng-bg-secondary text-guofeng-text-primary focus:outline-none focus:ring-2 focus:ring-guofeng-amber"
+                  class="px-3 py-1.5 text-sm rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-warning)]"
                 >
                   <option value="name">
                     {{ t('slashCommands.viewControls.sortByName') }}
@@ -64,7 +64,7 @@
                   </option>
                 </select>
                 <button
-                  class="p-1.5 rounded-lg hover:bg-guofeng-bg-tertiary transition-colors"
+                  class="p-1.5 rounded-lg hover:bg-[var(--color-bg-surface)] transition-colors"
                   :title="viewStore.sortDir === 'asc' ? t('slashCommands.viewControls.sortAsc') : t('slashCommands.viewControls.sortDesc')"
                   @click="viewStore.toggleSortDir()"
                 >
@@ -78,11 +78,11 @@
 
               <!-- 视图模式切换 -->
               <div class="flex items-center gap-2">
-                <span class="text-sm text-guofeng-text-secondary">{{ t('slashCommands.viewControls.view') }}:</span>
+                <span class="text-sm text-[var(--color-text-secondary)]">{{ t('slashCommands.viewControls.view') }}:</span>
                 <button
                   :class="[
                     'p-1.5 rounded-lg transition-colors',
-                    viewStore.viewMode === 'flat' ? 'bg-guofeng-amber text-white' : 'hover:bg-guofeng-bg-tertiary'
+                    viewStore.viewMode === 'flat' ? 'bg-[var(--color-warning)] text-white' : 'hover:bg-[var(--color-bg-surface)]'
                   ]"
                   :title="t('slashCommands.viewControls.flatView')"
                   @click="viewStore.setViewMode('flat')"
@@ -92,7 +92,7 @@
                 <button
                   :class="[
                     'p-1.5 rounded-lg transition-colors',
-                    viewStore.viewMode === 'tree' ? 'bg-guofeng-amber text-white' : 'hover:bg-guofeng-bg-tertiary'
+                    viewStore.viewMode === 'tree' ? 'bg-[var(--color-warning)] text-white' : 'hover:bg-[var(--color-bg-surface)]'
                   ]"
                   :title="t('slashCommands.viewControls.treeView')"
                   @click="viewStore.setViewMode('tree')"
@@ -105,7 +105,7 @@
               <button
                 :class="[
                   'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors',
-                  viewStore.showDeprecated ? 'bg-guofeng-bg-secondary hover:bg-guofeng-bg-tertiary' : 'bg-guofeng-amber text-white'
+                  viewStore.showDeprecated ? 'bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-surface)]' : 'bg-[var(--color-warning)] text-white'
                 ]"
                 @click="viewStore.toggleShowDeprecated()"
               >
@@ -122,12 +122,12 @@
                 class="mb-4"
               >
                 <button
-                  class="w-full flex items-center gap-2 px-4 py-2 rounded-lg bg-guofeng-bg-secondary hover:bg-guofeng-bg-tertiary transition-colors text-left"
+                  class="w-full flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-surface)] transition-colors text-left"
                   @click="viewStore.toggleFolder(folder.name)"
                 >
                   <FolderTree :size="16" />
                   <span class="font-medium">{{ folder.name }}</span>
-                  <span class="text-sm text-guofeng-text-muted">({{ folder.commands.length }})</span>
+                  <span class="text-sm text-[var(--color-text-muted)]">({{ folder.commands.length }})</span>
                   <ArrowUpDown
                     :size="14"
                     :class="viewStore.expandedFolders.includes(folder.name) ? 'rotate-180' : ''"

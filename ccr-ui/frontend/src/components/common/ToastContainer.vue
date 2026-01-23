@@ -63,7 +63,7 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
   gap: 0.75rem;
   padding: 0.875rem 1rem;
   border-radius: 0.5rem;
-  background: rgba(var(--color-slate-dark-rgb), 0.95);
+  background: rgb(var(--color-slate-dark-rgb), 0.95);
   backdrop-filter: blur(8px);
   color: var(--text-primary);
   box-shadow: var(--shadow-lg);
@@ -148,6 +148,7 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
     opacity: 0;
     transform: translateX(100%);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -159,6 +160,7 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
     opacity: 1;
     transform: translateX(0);
   }
+
   to {
     opacity: 0;
     transform: translateX(100%);

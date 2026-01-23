@@ -322,7 +322,6 @@ const categories = computed(() => [
 .glass-sidebar {
   background: var(--glass-bg-medium);
   backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid var(--glass-border-medium);
   box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-border-light);
   max-height: calc(100vh - 160px);
@@ -348,31 +347,31 @@ const categories = computed(() => [
 
 /* Stat badges */
 .stat-badge-success {
-  background: linear-gradient(135deg, rgba(var(--color-success-rgb), 0.15), rgba(var(--color-cyan-rgb), 0.15));
+  background: linear-gradient(135deg, rgb(var(--color-success-rgb), 0.15), rgb(var(--color-cyan-rgb), 0.15));
   color: var(--accent-success);
-  border: 1px solid rgba(var(--color-success-rgb), 0.2);
+  border: 1px solid rgb(var(--color-success-rgb), 0.2);
 }
 
 .stat-badge-info {
-  background: linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.15), rgba(var(--color-info-rgb), 0.15));
+  background: linear-gradient(135deg, rgb(var(--color-cyan-rgb), 0.15), rgb(var(--color-info-rgb), 0.15));
   color: var(--color-cyan);
-  border: 1px solid rgba(var(--color-cyan-rgb), 0.2);
+  border: 1px solid rgb(var(--color-cyan-rgb), 0.2);
 }
 
 /* Search input */
 .search-input {
   background: var(--glass-bg-light);
-  border: 1px solid rgba(var(--color-success-rgb), 0.2);
+  border: 1px solid rgb(var(--color-success-rgb), 0.2);
   color: var(--text-primary);
 }
 
 .search-input:focus {
-  border-color: rgba(var(--color-success-rgb), 0.5);
+  border-color: rgb(var(--color-success-rgb), 0.5);
 }
 
 /* Category filter section */
 .category-filter-section {
-  border-bottom: 1px solid rgba(var(--color-success-rgb), 0.12);
+  border-bottom: 1px solid rgb(var(--color-success-rgb), 0.12);
 }
 
 /* 自定义滚动条 */

@@ -232,19 +232,19 @@ const freshnessDotClass = (freshness: TokenFreshness) => {
 }
 
 /* Responsive grid adjustments */
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .account-list-table > div {
     grid-template-columns: minmax(180px, 2fr) minmax(120px, 1fr) minmax(100px, auto) auto !important;
   }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .account-list-table > div {
     grid-template-columns: minmax(180px, 2fr) minmax(120px, 1fr) auto !important;
   }
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
   .account-list-table > div {
     grid-template-columns: 1fr auto !important;
   }

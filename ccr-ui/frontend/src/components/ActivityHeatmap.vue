@@ -359,9 +359,9 @@ const formatNumber = (num: number): string => {
 
   /* Heat colors - warm gradient */
   --heat-0: var(--color-bg-overlay);
-  --heat-1: rgba(6, 182, 212, 0.3);
-  --heat-2: rgba(6, 182, 212, 0.5);
-  --heat-3: rgba(6, 182, 212, 0.75);
+  --heat-1: rgb(6 182 212 / 30%);
+  --heat-2: rgb(6 182 212 / 50%);
+  --heat-3: rgb(6 182 212 / 75%);
   --heat-4: var(--color-accent-primary);
 
   background: var(--glass-bg-light);
@@ -594,6 +594,7 @@ const formatNumber = (num: number): string => {
     opacity: 0;
     transform: scale(0);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -740,22 +741,22 @@ const formatNumber = (num: number): string => {
 }
 
 .stat-card-primary {
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
-  border-color: rgba(6, 182, 212, 0.2);
+  background: linear-gradient(135deg, rgb(6 182 212 / 10%), rgb(6 182 212 / 5%));
+  border-color: rgb(6 182 212 / 20%);
 }
 
 .stat-card-primary:hover {
-  border-color: rgba(6, 182, 212, 0.4);
+  border-color: rgb(6 182 212 / 40%);
   box-shadow: var(--glow-primary);
 }
 
 .stat-card-secondary {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05));
-  border-color: rgba(139, 92, 246, 0.2);
+  background: linear-gradient(135deg, rgb(139 92 246 / 10%), rgb(139 92 246 / 5%));
+  border-color: rgb(139 92 246 / 20%);
 }
 
 .stat-card-secondary:hover {
-  border-color: rgba(139, 92, 246, 0.4);
+  border-color: rgb(139 92 246 / 40%);
   box-shadow: var(--glow-secondary);
 }
 
@@ -769,12 +770,12 @@ const formatNumber = (num: number): string => {
 }
 
 .stat-card-primary .stat-icon {
-  background: rgba(6, 182, 212, 0.15);
+  background: rgb(6 182 212 / 15%);
   color: var(--color-accent-primary);
 }
 
 .stat-card-secondary .stat-icon {
-  background: rgba(139, 92, 246, 0.15);
+  background: rgb(139 92 246 / 15%);
   color: var(--color-accent-secondary);
 }
 
@@ -803,7 +804,7 @@ const formatNumber = (num: number): string => {
 }
 
 /* Responsive */
-@media (max-width: 640px) {
+@media (width <= 640px) {
   .heatmap-header {
     flex-direction: column;
     align-items: flex-start;

@@ -134,9 +134,11 @@ onMounted(() => {
     transform: translateY(-100%);
     opacity: 0;
   }
+
   50% {
     opacity: 0.5;
   }
+
   100% {
     transform: translateY(0);
     opacity: 1;

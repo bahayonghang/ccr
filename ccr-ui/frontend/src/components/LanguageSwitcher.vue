@@ -132,7 +132,6 @@ const switchLanguage = (langCode: string) => {
 <style scoped>
 .glass-effect {
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   background: var(--bg-secondary);
 }
 </style>
