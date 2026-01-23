@@ -119,10 +119,10 @@ const goBack = () => {
 }
 
 :global(.dark) .section-card {
-  background: rgba(var(--color-slate-rgb), 0.95);
+  background: rgb(var(--color-slate-rgb), 0.95);
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .checkin-manage-view {
     padding: 1rem;
   }

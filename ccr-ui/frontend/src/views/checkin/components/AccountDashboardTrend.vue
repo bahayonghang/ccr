@@ -188,7 +188,7 @@ const tooltipStyle = computed(() => {
 }
 
 .grid-line {
-  stroke: rgba(var(--color-gray-rgb), 0.15);
+  stroke: rgb(var(--color-gray-rgb), 0.15);
   stroke-width: 1;
 }
 
@@ -211,11 +211,13 @@ const tooltipStyle = computed(() => {
   stroke: white;
   stroke-width: 2;
   cursor: pointer;
-  transition: r 0.15s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.15s ease;
 }
 
 .data-point:hover {
-  r: 7;
+  transform: scale(1.4);
 }
 
 .chart-axis {
@@ -265,8 +267,8 @@ const tooltipStyle = computed(() => {
 }
 
 :global(.dark) .chart-tooltip {
-  background: rgba(var(--color-slate-dark-rgb), 0.98);
-  border-color: rgba(var(--color-slate-rgb), 0.8);
+  background: rgb(var(--color-slate-dark-rgb), 0.98);
+  border-color: rgb(var(--color-slate-rgb), 0.8);
 }
 
 :global(.dark) .tooltip-date {
@@ -278,7 +280,7 @@ const tooltipStyle = computed(() => {
 }
 
 :global(.dark) .grid-line {
-  stroke: rgba(var(--color-slate-rgb), 0.4);
+  stroke: rgb(var(--color-slate-rgb), 0.4);
 }
 
 :global(.dark) .axis-label {

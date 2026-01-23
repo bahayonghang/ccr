@@ -133,18 +133,18 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 }
 
 .cell-checked {
-  background: rgba(var(--color-success-rgb), 0.12);
-  border-color: rgba(var(--color-success-rgb), 0.3);
+  background: rgb(var(--color-success-rgb), 0.12);
+  border-color: rgb(var(--color-success-rgb), 0.3);
 }
 
 .cell-unchecked {
-  background: rgba(var(--color-gray-rgb), 0.08);
-  border-color: rgba(var(--color-gray-rgb), 0.2);
+  background: rgb(var(--color-gray-rgb), 0.08);
+  border-color: rgb(var(--color-gray-rgb), 0.2);
 }
 
 .cell-today {
   border-color: var(--accent-info) !important;
-  box-shadow: 0 0 0 2px rgba(var(--color-info-rgb), 0.3);
+  box-shadow: 0 0 0 2px rgb(var(--color-info-rgb), 0.3);
 }
 
 .day-number {
@@ -192,12 +192,12 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 }
 
 :global(.dark) .cell-checked {
-  background: rgba(var(--color-success-rgb), 0.2);
-  border-color: rgba(var(--color-success-rgb), 0.4);
+  background: rgb(var(--color-success-rgb), 0.2);
+  border-color: rgb(var(--color-success-rgb), 0.4);
 }
 
 :global(.dark) .cell-unchecked {
-  background: rgba(var(--color-slate-rgb), 0.4);
-  border-color: rgba(var(--color-slate-rgb), 0.6);
+  background: rgb(var(--color-slate-rgb), 0.4);
+  border-color: rgb(var(--color-slate-rgb), 0.6);
 }
 </style>

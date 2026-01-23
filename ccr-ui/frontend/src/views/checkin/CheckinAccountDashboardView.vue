@@ -349,9 +349,9 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .checkin-account-dashboard {
   position: relative;
   min-height: 100vh;
-  background: radial-gradient(circle at top left, rgba(var(--color-info-rgb), 0.15), transparent 45%),
-    radial-gradient(circle at 20% 20%, rgba(var(--color-success-rgb), 0.12), transparent 40%),
-    radial-gradient(circle at 80% 0%, rgba(var(--color-accent-secondary-rgb), 0.15), transparent 40%),
+  background: radial-gradient(circle at top left, rgb(var(--color-info-rgb), 0.15), transparent 45%),
+    radial-gradient(circle at 20% 20%, rgb(var(--color-success-rgb), 0.12), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgb(var(--color-accent-secondary-rgb), 0.15), transparent 40%),
     var(--bg-secondary);
   overflow: hidden;
 }
@@ -362,7 +362,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   right: -80px;
   width: 280px;
   height: 280px;
-  background: radial-gradient(circle, rgba(var(--color-accent-primary-rgb), 0.25), transparent 70%);
+  background: radial-gradient(circle, rgb(var(--color-accent-primary-rgb), 0.25), transparent 70%);
   filter: blur(10px);
   pointer-events: none;
 }
@@ -424,17 +424,17 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(var(--color-accent-primary-rgb), 0.1);
+  background: rgb(var(--color-accent-primary-rgb), 0.1);
   color: var(--platform-gemini);
 }
 
 .status-pill.status-on {
-  background: rgba(var(--color-success-rgb), 0.15);
+  background: rgb(var(--color-success-rgb), 0.15);
   color: var(--accent-success);
 }
 
 .status-pill.status-off {
-  background: rgba(var(--color-danger-rgb), 0.15);
+  background: rgb(var(--color-danger-rgb), 0.15);
   color: var(--accent-danger);
 }
 
@@ -442,7 +442,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   height: 2.25rem;
   width: 2.25rem;
   border-radius: 999px;
-  border: 1px solid rgba(var(--color-gray-rgb), 0.35);
+  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
   background: var(--glass-bg-heavy);
   display: flex;
   align-items: center;
@@ -473,7 +473,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   gap: 0.4rem;
   padding: 0.5rem 0.9rem;
   border-radius: 0.8rem;
-  border: 1px solid rgba(var(--color-gray-rgb), 0.35);
+  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
   background: var(--glass-bg-heavy);
   color: var(--text-primary);
   font-size: 0.85rem;
@@ -586,7 +586,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .progress-track {
   height: 0.45rem;
   border-radius: 999px;
-  background: rgba(var(--color-gray-rgb), 0.2);
+  background: rgb(var(--color-gray-rgb), 0.2);
   overflow: hidden;
 }
 
@@ -638,16 +638,16 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .trend-btn {
   padding: 0.3rem 0.6rem;
   border-radius: 0.6rem;
-  border: 1px solid rgba(var(--color-gray-rgb), 0.35);
+  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
   background: var(--glass-bg-medium);
   font-size: 0.75rem;
   color: var(--text-muted);
 }
 
 .trend-btn.active {
-  background: rgba(var(--color-info-rgb), 0.12);
+  background: rgb(var(--color-info-rgb), 0.12);
   color: var(--platform-gemini);
-  border-color: rgba(var(--color-info-rgb), 0.4);
+  border-color: rgb(var(--color-info-rgb), 0.4);
 }
 
 .state-card {
@@ -662,7 +662,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 .state-error {
-  border-color: rgba(var(--color-danger-rgb), 0.4);
+  border-color: rgb(var(--color-danger-rgb), 0.4);
   color: var(--accent-danger);
   justify-content: space-between;
 }
@@ -684,7 +684,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 999px;
-  border: 2px solid rgba(var(--color-gray-rgb), 0.4);
+  border: 2px solid rgb(var(--color-gray-rgb), 0.4);
   border-top-color: var(--platform-gemini);
   animation: spin 0.8s linear infinite;
 }
@@ -696,8 +696,8 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 :global(.dark) .checkin-account-dashboard {
-  background: radial-gradient(circle at top left, rgba(var(--color-cyan-rgb), 0.12), transparent 45%),
-    radial-gradient(circle at 60% 20%, rgba(var(--color-accent-secondary-rgb), 0.18), transparent 40%),
+  background: radial-gradient(circle at top left, rgb(var(--color-cyan-rgb), 0.12), transparent 45%),
+    radial-gradient(circle at 60% 20%, rgb(var(--color-accent-secondary-rgb), 0.18), transparent 40%),
     var(--bg-primary);
 }
 
@@ -706,8 +706,8 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 :global(.dark) .icon-button,
 :global(.dark) .action-btn,
 :global(.dark) .trend-btn {
-  background: rgba(var(--color-slate-dark-rgb), 0.85);
-  border-color: rgba(var(--color-slate-rgb), 0.8);
+  background: rgb(var(--color-slate-dark-rgb), 0.85);
+  border-color: rgb(var(--color-slate-rgb), 0.8);
   color: var(--text-secondary);
 }
 
@@ -740,7 +740,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   gap: 0.6rem;
   margin-bottom: 0.75rem;
   padding-bottom: 0.6rem;
-  border-bottom: 1px solid rgba(var(--color-gray-rgb), 0.2);
+  border-bottom: 1px solid rgb(var(--color-gray-rgb), 0.2);
 }
 
 .row-header h2 {
@@ -755,7 +755,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--accent-success);
-  background: rgba(var(--color-success-rgb), 0.1);
+  background: rgb(var(--color-success-rgb), 0.1);
   padding: 0.2rem 0.5rem;
   border-radius: 0.4rem;
 }
@@ -782,11 +782,30 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   flex-shrink: 0;
 }
 
-.row-icon.purple { background: rgba(var(--color-accent-secondary-rgb), 0.12); color: var(--platform-claude); }
-.row-icon.green { background: rgba(var(--color-success-rgb), 0.12); color: var(--accent-success); }
-.row-icon.blue { background: rgba(var(--color-info-rgb), 0.12); color: var(--platform-gemini); }
-.row-icon.orange { background: rgba(var(--color-warning-rgb), 0.12); color: var(--accent-warning); }
-.row-icon.yellow { background: rgba(var(--color-warning-rgb), 0.12); color: var(--platform-codex); }
+.row-icon.purple {
+  background: rgb(var(--color-accent-secondary-rgb), 0.12);
+  color: var(--platform-claude);
+}
+
+.row-icon.green {
+  background: rgb(var(--color-success-rgb), 0.12);
+  color: var(--accent-success);
+}
+
+.row-icon.blue {
+  background: rgb(var(--color-info-rgb), 0.12);
+  color: var(--platform-gemini);
+}
+
+.row-icon.orange {
+  background: rgb(var(--color-warning-rgb), 0.12);
+  color: var(--accent-warning);
+}
+
+.row-icon.yellow {
+  background: rgb(var(--color-warning-rgb), 0.12);
+  color: var(--platform-codex);
+}
 
 .row-content {
   display: flex;
@@ -825,7 +844,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .month-input {
   font-size: 0.8rem;
   padding: 0.25rem 0.5rem;
-  border: 1px solid rgba(var(--color-gray-rgb), 0.35);
+  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
   border-radius: 0.5rem;
   background: var(--glass-bg-heavy);
   color: var(--text-secondary);
@@ -843,12 +862,12 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 :global(.dark) .stats-card-row {
-  background: rgba(var(--color-slate-dark-rgb), 0.9);
-  border-color: rgba(var(--color-slate-rgb), 0.8);
+  background: rgb(var(--color-slate-dark-rgb), 0.9);
+  border-color: rgb(var(--color-slate-rgb), 0.8);
 }
 
 :global(.dark) .row-header {
-  border-color: rgba(var(--color-slate-rgb), 0.6);
+  border-color: rgb(var(--color-slate-rgb), 0.6);
 }
 
 :global(.dark) .row-header h2 {
@@ -864,8 +883,8 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 :global(.dark) .month-input {
-  background: rgba(var(--color-slate-dark-rgb), 0.8);
-  border-color: rgba(var(--color-slate-rgb), 0.8);
+  background: rgb(var(--color-slate-dark-rgb), 0.8);
+  border-color: rgb(var(--color-slate-rgb), 0.8);
   color: var(--text-secondary);
 }
 
@@ -884,7 +903,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   gap: 0.75rem;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(var(--color-gray-rgb), 0.2);
+  border-bottom: 1px solid rgb(var(--color-gray-rgb), 0.2);
 }
 
 .stats-header h2 {
@@ -903,11 +922,30 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   justify-content: center;
 }
 
-.stats-icon.purple { background: rgba(var(--color-accent-secondary-rgb), 0.12); color: var(--platform-claude); }
-.stats-icon.green { background: rgba(var(--color-success-rgb), 0.12); color: var(--accent-success); }
-.stats-icon.blue { background: rgba(var(--color-info-rgb), 0.12); color: var(--platform-gemini); }
-.stats-icon.orange { background: rgba(var(--color-warning-rgb), 0.12); color: var(--accent-warning); }
-.stats-icon.yellow { background: rgba(var(--color-warning-rgb), 0.12); color: var(--platform-codex); }
+.stats-icon.purple {
+  background: rgb(var(--color-accent-secondary-rgb), 0.12);
+  color: var(--platform-claude);
+}
+
+.stats-icon.green {
+  background: rgb(var(--color-success-rgb), 0.12);
+  color: var(--accent-success);
+}
+
+.stats-icon.blue {
+  background: rgb(var(--color-info-rgb), 0.12);
+  color: var(--platform-gemini);
+}
+
+.stats-icon.orange {
+  background: rgb(var(--color-warning-rgb), 0.12);
+  color: var(--accent-warning);
+}
+
+.stats-icon.yellow {
+  background: rgb(var(--color-warning-rgb), 0.12);
+  color: var(--platform-codex);
+}
 
 .stats-body {
   display: flex;
@@ -962,7 +1000,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .stat-progress {
   margin-top: 0.5rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(var(--color-gray-rgb), 0.2);
+  border-top: 1px solid rgb(var(--color-gray-rgb), 0.2);
 }
 
 .stat-progress-header {
@@ -980,12 +1018,12 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 :global(.dark) .stats-card {
-  background: rgba(var(--color-slate-dark-rgb), 0.9);
-  border-color: rgba(var(--color-slate-rgb), 0.8);
+  background: rgb(var(--color-slate-dark-rgb), 0.9);
+  border-color: rgb(var(--color-slate-rgb), 0.8);
 }
 
 :global(.dark) .stats-header {
-  border-color: rgba(var(--color-slate-rgb), 0.6);
+  border-color: rgb(var(--color-slate-rgb), 0.6);
 }
 
 :global(.dark) .stats-header h2 {
@@ -1067,11 +1105,30 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   margin-bottom: 0.15rem;
 }
 
-.vertical-icon.purple { background: rgba(var(--color-accent-secondary-rgb), 0.12); color: var(--platform-claude); }
-.vertical-icon.green { background: rgba(var(--color-success-rgb), 0.12); color: var(--accent-success); }
-.vertical-icon.blue { background: rgba(var(--color-info-rgb), 0.12); color: var(--platform-gemini); }
-.vertical-icon.orange { background: rgba(var(--color-warning-rgb), 0.12); color: var(--accent-warning); }
-.vertical-icon.yellow { background: rgba(var(--color-warning-rgb), 0.12); color: var(--platform-codex); }
+.vertical-icon.purple {
+  background: rgb(var(--color-accent-secondary-rgb), 0.12);
+  color: var(--platform-claude);
+}
+
+.vertical-icon.green {
+  background: rgb(var(--color-success-rgb), 0.12);
+  color: var(--accent-success);
+}
+
+.vertical-icon.blue {
+  background: rgb(var(--color-info-rgb), 0.12);
+  color: var(--platform-gemini);
+}
+
+.vertical-icon.orange {
+  background: rgb(var(--color-warning-rgb), 0.12);
+  color: var(--accent-warning);
+}
+
+.vertical-icon.yellow {
+  background: rgb(var(--color-warning-rgb), 0.12);
+  color: var(--platform-codex);
+}
 
 .vertical-label {
   font-size: 0.7rem;
@@ -1099,7 +1156,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .checkin-progress {
   margin-top: auto;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(var(--color-gray-rgb), 0.2);
+  border-top: 1px solid rgb(var(--color-gray-rgb), 0.2);
   width: 100%;
 }
 
@@ -1118,7 +1175,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .progress-bar-track {
   height: 5px;
-  background: rgba(var(--color-gray-rgb), 0.3);
+  background: rgb(var(--color-gray-rgb), 0.3);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -1162,12 +1219,12 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   color: var(--text-secondary);
 }
 
-.calendar-picker {
+.calendar-card .calendar-picker {
   display: flex;
   align-items: center;
 }
 
-.calendar-nav {
+.calendar-card .calendar-nav {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1177,7 +1234,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 0.375rem;
-  border: 1px solid rgba(var(--color-gray-rgb), 0.35);
+  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
   background: var(--glass-bg-heavy);
   display: flex;
   align-items: center;
@@ -1217,7 +1274,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(var(--color-gray-rgb), 0.2);
+  border-bottom: 1px solid rgb(var(--color-gray-rgb), 0.2);
 }
 
 .trend-title {
@@ -1240,7 +1297,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(var(--color-accent-primary-rgb), 0.1);
+  background: rgb(var(--color-accent-primary-rgb), 0.1);
   color: var(--platform-gemini);
 }
 
@@ -1251,8 +1308,8 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 :global(.dark) .stats-card-vertical,
 :global(.dark) .calendar-card,
 :global(.dark) .trend-card {
-  background: rgba(var(--color-slate-dark-rgb), 0.9);
-  border-color: rgba(var(--color-slate-rgb), 0.8);
+  background: rgb(var(--color-slate-dark-rgb), 0.9);
+  border-color: rgb(var(--color-slate-rgb), 0.8);
 }
 
 :global(.dark) .vertical-header h2,
@@ -1276,30 +1333,30 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 :global(.dark) .nav-btn {
-  background: rgba(var(--color-slate-dark-rgb), 0.8);
-  border-color: rgba(var(--color-slate-rgb), 0.8);
+  background: rgb(var(--color-slate-dark-rgb), 0.8);
+  border-color: rgb(var(--color-slate-rgb), 0.8);
   color: var(--text-secondary);
 }
 
 :global(.dark) .nav-btn:hover {
-  background: rgba(var(--color-slate-rgb), 0.9);
+  background: rgb(var(--color-slate-rgb), 0.9);
   border-color: var(--platform-gemini);
   color: var(--platform-gemini);
 }
 
 :global(.dark) .checkin-progress {
-  border-color: rgba(var(--color-slate-rgb), 0.6);
+  border-color: rgb(var(--color-slate-rgb), 0.6);
 }
 
 :global(.dark) .progress-bar-track {
-  background: rgba(var(--color-slate-rgb), 0.6);
+  background: rgb(var(--color-slate-rgb), 0.6);
 }
 
 :global(.dark) .trend-header {
-  border-color: rgba(var(--color-slate-rgb), 0.6);
+  border-color: rgb(var(--color-slate-rgb), 0.6);
 }
 
-@media (max-width: 1280px) {
+@media (width <= 1280px) {
   .dashboard-main-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1309,7 +1366,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .dashboard-main-grid {
     grid-template-columns: 1fr;
     gap: 1rem;

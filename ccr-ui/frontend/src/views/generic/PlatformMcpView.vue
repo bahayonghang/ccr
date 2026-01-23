@@ -1,5 +1,5 @@
 <template>
-  <div :style="{ background: 'var(--bg-primary)', minHeight: '100vh', padding: '20px' }">
+  <div :style="{ background: 'var(--color-bg-base)', minHeight: '100vh', padding: '20px' }">
     <div class="max-w-[1800px] mx-auto">
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
@@ -11,18 +11,18 @@
 
         <main
           class="rounded-xl p-6 glass-effect"
-          :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
+          :style="{ border: '1px solid var(--color-border-default)', boxShadow: 'var(--shadow-sm)' }"
         >
           <!-- Header -->
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
               <Server
                 class="w-6 h-6"
-                :style="{ color: 'var(--accent-primary)' }"
+                :style="{ color: 'var(--color-accent-primary)' }"
               />
               <h1
                 class="text-2xl font-bold"
-                :style="{ color: 'var(--text-primary)' }"
+                :style="{ color: 'var(--color-text-primary)' }"
               >
                 {{ $t(`${i18nPrefix}.pageTitle`) }}
               </h1>
@@ -31,13 +31,13 @@
               <RouterLink
                 :to="parentPath"
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
-                :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
+                :style="{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-default)' }"
               >
                 <ArrowLeft class="w-4 h-4" /><span>{{ $t('common.back') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
-                :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
+                :style="{ background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="openAddForm"
               >
                 <Plus class="w-4 h-4" />{{ $t(`${i18nPrefix}.addServer`) }}
@@ -52,7 +52,7 @@
           >
             <div
               class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
-              :style="{ borderTopColor: 'var(--accent-primary)', borderRightColor: 'var(--accent-secondary)' }"
+              :style="{ borderTopColor: 'var(--color-accent-primary)', borderRightColor: 'var(--color-accent-secondary)' }"
             />
           </div>
 
@@ -65,7 +65,7 @@
             <div
               v-if="!servers || servers.length === 0"
               class="text-center py-10"
-              :style="{ color: 'var(--text-muted)' }"
+              :style="{ color: 'var(--color-text-muted)' }"
             >
               {{ $t(`${i18nPrefix}.emptyState`) }}
             </div>
@@ -75,7 +75,7 @@
               v-for="server in servers"
               :key="getServerIdentifier(server)"
               class="group rounded-lg p-4 transition-all duration-300"
-              :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(99, 102, 241, 0.12)', outline: 'none', cursor: 'default' }"
+              :style="{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', outline: 'none', cursor: 'default' }"
               @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
               @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
             >
@@ -84,53 +84,53 @@
                   <div class="flex items-center gap-2 mb-2">
                     <h3
                       class="text-lg font-bold font-mono"
-                      :style="{ color: 'var(--text-primary)' }"
+                      :style="{ color: 'var(--color-text-primary)' }"
                     >
                       {{ server.name || server.command || server.url }}
                     </h3>
                     <span
                       v-if="server.url"
                       class="px-2 py-0.5 rounded text-xs font-semibold"
-                      :style="{ background: 'var(--accent-secondary)', color: 'white' }"
+                      :style="{ background: 'var(--color-accent-secondary)', color: 'white' }"
                     >HTTP</span>
                     <span
                       v-else
                       class="px-2 py-0.5 rounded text-xs font-semibold"
-                      :style="{ background: 'var(--accent-primary)', color: 'white' }"
+                      :style="{ background: 'var(--color-accent-primary)', color: 'white' }"
                     >STDIO</span>
                   </div>
                   <div class="space-y-2 text-sm">
                     <div v-if="server.command">
-                      <span :style="{ color: 'var(--text-muted)' }">{{ $t('common.command') }}:</span>
+                      <span :style="{ color: 'var(--color-text-muted)' }">{{ $t('common.command') }}:</span>
                       <code
                         class="ml-2 px-2 py-1 rounded font-mono"
-                        :style="{ background: 'var(--bg-secondary)', color: 'var(--accent-primary)' }"
+                        :style="{ background: 'var(--color-bg-elevated)', color: 'var(--color-accent-primary)' }"
                       >{{ server.command }}</code>
                     </div>
                     <div v-if="server.url">
-                      <span :style="{ color: 'var(--text-muted)' }">URL:</span>
+                      <span :style="{ color: 'var(--color-text-muted)' }">URL:</span>
                       <code
                         class="ml-2 px-2 py-1 rounded font-mono"
-                        :style="{ background: 'var(--bg-secondary)', color: 'var(--accent-primary)' }"
+                        :style="{ background: 'var(--color-bg-elevated)', color: 'var(--color-accent-primary)' }"
                       >{{ server.url }}</code>
                     </div>
                     <div v-if="server.args && server.args.length > 0">
-                      <span :style="{ color: 'var(--text-muted)' }">{{ $t('common.args') }}:</span>
+                      <span :style="{ color: 'var(--color-text-muted)' }">{{ $t('common.args') }}:</span>
                       <code
                         class="ml-2 px-2 py-1 rounded font-mono"
-                        :style="{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }"
+                        :style="{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-primary)' }"
                       >{{ server.args.join(' ') }}</code>
                     </div>
                     <div v-if="server.env && Object.keys(server.env).length > 0">
-                      <span :style="{ color: 'var(--text-muted)' }">{{ $t('common.envVars') }}:</span>
+                      <span :style="{ color: 'var(--color-text-muted)' }">{{ $t('common.envVars') }}:</span>
                       <div class="ml-2 mt-1 space-y-1">
                         <div
                           v-for="[key, value] in Object.entries(server.env)"
                           :key="key"
                           class="text-xs font-mono px-2 py-1 rounded"
-                          :style="{ background: 'var(--bg-secondary)' }"
+                          :style="{ background: 'var(--color-bg-elevated)' }"
                         >
-                          <span :style="{ color: 'var(--accent-secondary)' }">{{ key }}</span>=<span :style="{ color: 'var(--text-primary)' }">{{ value }}</span>
+                          <span :style="{ color: 'var(--color-accent-secondary)' }">{{ key }}</span>=<span :style="{ color: 'var(--color-text-primary)' }">{{ value }}</span>
                         </div>
                       </div>
                     </div>
@@ -139,7 +139,7 @@
                 <div class="flex gap-2">
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110"
-                    :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-primary)' }"
+                    :style="{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', color: 'var(--color-accent-primary)' }"
                     :title="$t('common.edit')"
                     @click="openEditForm(server)"
                   >
@@ -147,7 +147,7 @@
                   </button>
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110"
-                    :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
+                    :style="{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', color: 'var(--color-danger)' }"
                     :title="$t('common.delete')"
                     @click="deleteServer(server)"
                   >
@@ -165,11 +165,11 @@
           >
             <div
               class="rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }"
+              :style="{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)' }"
             >
               <h2
                 class="text-xl font-bold mb-4"
-                :style="{ color: 'var(--text-primary)' }"
+                :style="{ color: 'var(--color-text-primary)' }"
               >
                 {{ editingServer ? $t(`${i18nPrefix}.editServer`) : $t(`${i18nPrefix}.addServer`) }}
               </h2>
@@ -184,7 +184,7 @@
                   >
                   <span
                     class="text-sm font-semibold"
-                    :style="{ color: 'var(--text-secondary)' }"
+                    :style="{ color: 'var(--color-text-secondary)' }"
                   >{{ $t(`${i18nPrefix}.httpServerHint`) }}</span>
                 </label>
               </div>
@@ -194,13 +194,13 @@
                 <div v-if="isHttpServer">
                   <label
                     class="block text-sm font-semibold mb-1"
-                    :style="{ color: 'var(--text-secondary)' }"
+                    :style="{ color: 'var(--color-text-secondary)' }"
                   >{{ $t(`${i18nPrefix}.urlLabel`) }} *</label>
                   <input
                     v-model="formData.url"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg"
-                    :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+                    :style="{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }"
                     :placeholder="$t(`${i18nPrefix}.urlPlaceholder`)"
                   >
                 </div>
@@ -209,13 +209,13 @@
                 <div v-else>
                   <label
                     class="block text-sm font-semibold mb-1"
-                    :style="{ color: 'var(--text-secondary)' }"
+                    :style="{ color: 'var(--color-text-secondary)' }"
                   >{{ $t(`${i18nPrefix}.commandLabel`) }} *</label>
                   <input
                     v-model="formData.command"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg font-mono"
-                    :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+                    :style="{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }"
                     :placeholder="$t(`${i18nPrefix}.commandPlaceholder`)"
                   >
                 </div>
@@ -224,18 +224,18 @@
                 <div v-if="!isHttpServer">
                   <label
                     class="block text-sm font-semibold mb-1"
-                    :style="{ color: 'var(--text-secondary)' }"
+                    :style="{ color: 'var(--color-text-secondary)' }"
                   >{{ $t(`${i18nPrefix}.argsLabel`) }}</label>
                   <input
                     v-model="argInput"
                     type="text"
                     class="w-full px-3 py-2 rounded-lg font-mono"
-                    :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+                    :style="{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }"
                     :placeholder="$t(`${i18nPrefix}.argsPlaceholder`)"
                   >
                   <div
                     class="text-xs mt-1"
-                    :style="{ color: 'var(--text-muted)' }"
+                    :style="{ color: 'var(--color-text-muted)' }"
                   >
                     {{ $t(`${i18nPrefix}.argsHint`) }}
                   </div>
@@ -245,26 +245,26 @@
                 <div>
                   <label
                     class="block text-sm font-semibold mb-1"
-                    :style="{ color: 'var(--text-secondary)' }"
+                    :style="{ color: 'var(--color-text-secondary)' }"
                   >{{ $t(`${i18nPrefix}.envLabel`) }}</label>
                   <div class="flex gap-2 mb-2">
                     <input
                       v-model="envKey"
                       type="text"
                       class="flex-1 px-3 py-2 rounded-lg font-mono"
-                      :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+                      :style="{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }"
                       placeholder="KEY"
                     >
                     <input
                       v-model="envValue"
                       type="text"
                       class="flex-1 px-3 py-2 rounded-lg font-mono"
-                      :style="{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }"
+                      :style="{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }"
                       placeholder="VALUE"
                     >
                     <button
                       class="px-4 py-2 rounded-lg font-semibold text-sm text-white"
-                      :style="{ background: 'var(--accent-primary)' }"
+                      :style="{ background: 'var(--color-accent-primary)' }"
                       @click="addEnvVar"
                     >
                       {{ $t('common.add') }}
@@ -275,15 +275,15 @@
                       v-for="[key, value] in Object.entries(formData.env || {})"
                       :key="key"
                       class="flex items-center justify-between px-3 py-2 rounded"
-                      :style="{ background: 'var(--bg-secondary)' }"
+                      :style="{ background: 'var(--color-bg-surface)' }"
                     >
                       <code
                         class="text-sm font-mono"
-                        :style="{ color: 'var(--text-primary)' }"
+                        :style="{ color: 'var(--color-text-primary)' }"
                       >{{ key }}={{ value }}</code>
                       <button
                         class="text-xs"
-                        :style="{ color: 'var(--accent-danger)' }"
+                        :style="{ color: 'var(--color-danger)' }"
                         @click="removeEnvVar(key)"
                       >
                         {{ $t('common.delete') }}
@@ -297,14 +297,14 @@
               <div class="flex gap-3 mt-6">
                 <button
                   class="flex-1 px-4 py-2 rounded-lg font-semibold text-white"
-                  :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
+                  :style="{ background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))' }"
                   @click="submitForm"
                 >
                   {{ editingServer ? $t('common.save') : $t('common.add') }}
                 </button>
                 <button
                   class="flex-1 px-4 py-2 rounded-lg font-semibold"
-                  :style="{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }"
+                  :style="{ background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }"
                   @click="closeForm"
                 >
                   {{ $t('common.cancel') }}

@@ -6,23 +6,23 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-4">
-          <h2 class="text-2xl font-bold text-guofeng-text-primary flex items-center">
-            <Book class="w-7 h-7 mr-2 text-guofeng-red" />
+          <h2 class="text-2xl font-bold text-[var(--color-text-primary)] flex items-center">
+            <Book class="w-7 h-7 mr-2 text-[var(--color-danger)]" />
             {{ $t('skills.title') }}
           </h2>
-          <span class="px-3 py-1 rounded-full text-sm font-medium bg-guofeng-red/10 text-guofeng-red border border-guofeng-red/20">
+          <span class="px-3 py-1 rounded-full text-sm font-medium bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/20">
             {{ filteredSkills.length }}
           </span>
         </div>
         <div class="flex items-center gap-3">
           <RouterLink
             to="/claude-code"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-guofeng-bg-secondary text-guofeng-text-secondary border border-guofeng-border hover:bg-guofeng-bg-tertiary"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)]"
           >
             <Home class="w-4 h-4" /><span>{{ $t('common.back') }}</span>
           </RouterLink>
           <button
-            class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-guofeng-red text-white shadow-md hover:shadow-lg flex items-center"
+            class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-[var(--color-danger)] text-white shadow-md hover:shadow-lg flex items-center"
             @click="handleAdd"
           >
             <Plus class="w-5 h-5 mr-2" />{{ $t('skills.addSkill') }}
@@ -33,16 +33,16 @@
       <!-- Search Bar -->
       <div class="mb-6 glass-effect rounded-xl p-4 border border-white/20 shadow-sm">
         <div class="relative">
-          <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-guofeng-text-muted" />
+          <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[var(--color-text-muted)]" />
           <input
             v-model="searchQuery"
             type="text"
             :placeholder="$t('skills.searchPlaceholder')"
-            class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-guofeng-bg-tertiary/50 border border-guofeng-border hover:bg-guofeng-bg-tertiary focus:bg-guofeng-bg-tertiary focus:outline-none focus:ring-2 focus:ring-guofeng-red/20 text-guofeng-text-primary placeholder-guofeng-text-muted text-sm transition-all"
+            class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[var(--color-bg-surface)]/50 border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)] focus:bg-[var(--color-bg-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--color-danger)]/20 text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm transition-all"
           >
           <button
             v-if="searchQuery"
-            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-guofeng-bg-tertiary text-guofeng-text-muted transition-all"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-all"
             @click="searchQuery = ''"
           >
             <X class="w-4 h-4" />
@@ -52,17 +52,17 @@
 
       <!-- Help Box -->
       <div class="mb-8 glass-effect border border-white/20 rounded-xl p-5 flex items-start gap-4 shadow-sm">
-        <div class="p-2 bg-guofeng-blue/10 rounded-lg text-guofeng-blue">
+        <div class="p-2 bg-[var(--color-info)]/10 rounded-lg text-[var(--color-info)]">
           <Info class="w-6 h-6" />
         </div>
         <div>
-          <h3 class="font-bold text-guofeng-text-primary mb-1">
+          <h3 class="font-bold text-[var(--color-text-primary)] mb-1">
             {{ $t('skills.help.title') }}
           </h3>
-          <p class="text-sm text-guofeng-text-secondary mb-2 leading-relaxed">
+          <p class="text-sm text-[var(--color-text-secondary)] mb-2 leading-relaxed">
             {{ $t('skills.help.description') }}
           </p>
-          <div class="flex items-center gap-4 text-xs text-guofeng-text-muted font-mono bg-guofeng-bg-tertiary px-3 py-1.5 rounded-md inline-block border border-guofeng-border/50">
+          <div class="flex items-center gap-4 text-xs text-[var(--color-text-muted)] font-mono bg-[var(--color-bg-surface)] px-3 py-1.5 rounded-md inline-block border border-[var(--color-border-default)]/50">
             {{ $t('skills.help.structure') }}
           </div>
         </div>
@@ -71,17 +71,17 @@
       <!-- Skills Grid -->
       <div
         v-if="loading"
-        class="text-center py-20 text-guofeng-text-muted"
+        class="text-center py-20 text-[var(--color-text-muted)]"
       >
-        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-guofeng-red/30 border-t-guofeng-red" />
+        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-[var(--color-danger)]/30 border-t-[var(--color-danger)]" />
         {{ $t('common.loading') }}
       </div>
 
       <div
         v-else-if="skills.length === 0"
-        class="text-center py-20 text-guofeng-text-muted"
+        class="text-center py-20 text-[var(--color-text-muted)]"
       >
-        <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div class="bg-[var(--color-bg-elevated)] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
           <Book class="w-10 h-10 opacity-50" />
         </div>
         <p class="text-lg font-medium">
@@ -94,9 +94,9 @@
 
       <div
         v-else-if="filteredSkills.length === 0"
-        class="text-center py-20 text-guofeng-text-muted"
+        class="text-center py-20 text-[var(--color-text-muted)]"
       >
-        <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div class="bg-[var(--color-bg-elevated)] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
           <Search class="w-10 h-10 opacity-50" />
         </div>
         <p class="text-lg font-medium">
@@ -106,7 +106,7 @@
           {{ $t('skills.noSearchResultsHint') }}
         </p>
         <button
-          class="mt-4 px-4 py-2 text-sm text-guofeng-red hover:bg-guofeng-red/5 rounded-lg transition-colors"
+          class="mt-4 px-4 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-danger)]/5 rounded-lg transition-colors"
           @click="searchQuery = ''"
         >
           {{ $t('skills.clearSearch') }}
@@ -128,27 +128,27 @@
           <div class="relative z-10">
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center gap-2">
-                <h3 class="text-lg font-bold text-guofeng-text-primary group-hover:text-guofeng-red transition-colors">
+                <h3 class="text-lg font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-danger)] transition-colors">
                   {{ skill.name }}
                 </h3>
               </div>
               <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <button
-                  class="p-1.5 rounded-md text-guofeng-blue hover:bg-guofeng-blue/10 transition-colors"
+                  class="p-1.5 rounded-md text-[var(--color-info)] hover:bg-[var(--color-info)]/10 transition-colors"
                   :title="$t('common.view')"
                   @click.stop="navigateToDetail(skill.name)"
                 >
                   <Eye class="w-4 h-4" />
                 </button>
                 <button
-                  class="p-1.5 rounded-md text-guofeng-blue hover:bg-guofeng-blue/10 transition-colors"
+                  class="p-1.5 rounded-md text-[var(--color-info)] hover:bg-[var(--color-info)]/10 transition-colors"
                   :title="$t('common.edit')"
                   @click.stop="handleEdit(skill)"
                 >
                   <Edit2 class="w-4 h-4" />
                 </button>
                 <button
-                  class="p-1.5 rounded-md text-guofeng-red hover:bg-guofeng-red/10 transition-colors"
+                  class="p-1.5 rounded-md text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors"
                   :title="$t('common.delete')"
                   @click.stop="handleDelete(skill.name)"
                 >
@@ -160,12 +160,12 @@
             <div class="space-y-2 text-sm">
               <div
                 v-if="skill.description"
-                class="text-guofeng-text-secondary line-clamp-2"
+                class="text-[var(--color-text-secondary)] line-clamp-2"
               >
                 {{ skill.description }}
               </div>
-              <div class="mt-3 pt-3 border-t border-guofeng-border/50">
-                <p class="text-xs text-guofeng-text-muted font-mono truncate">
+              <div class="mt-3 pt-3 border-t border-[var(--color-border-default)]/50">
+                <p class="text-xs text-[var(--color-text-muted)] font-mono truncate">
                   {{ skill.path }}
                 </p>
               </div>
@@ -178,60 +178,60 @@
     <!-- Add/Edit Modal -->
     <div
       v-if="showModal"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-all"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-sm transition-all"
       @click="showModal = false"
     >
       <div
-        class="bg-guofeng-bg p-8 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-guofeng-border relative"
+        class="bg-[var(--color-bg-base)] p-8 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-[var(--color-border-default)] relative"
         @click.stop
       >
         <button
-          class="absolute top-4 right-4 p-2 rounded-full hover:bg-guofeng-bg-tertiary text-guofeng-text-muted transition-colors"
+          class="absolute top-4 right-4 p-2 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-colors"
           @click="showModal = false"
         >
           <X class="w-5 h-5" />
         </button>
 
-        <h3 class="text-2xl font-bold mb-6 text-guofeng-text-primary flex items-center">
+        <h3 class="text-2xl font-bold mb-6 text-[var(--color-text-primary)] flex items-center">
           <component
             :is="editingSkill ? Edit2 : Plus"
-            class="w-6 h-6 mr-2 text-guofeng-red"
+            class="w-6 h-6 mr-2 text-[var(--color-danger)]"
           />
           {{ editingSkill ? $t('skills.editSkill') : $t('skills.addSkill') }}
         </h3>
 
         <div class="space-y-5">
           <div>
-            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t('skills.nameLabel') }}</label>
+            <label class="block mb-1.5 text-sm font-semibold text-[var(--color-text-secondary)]">{{ $t('skills.nameLabel') }}</label>
             <input
               v-model="formData.name"
               type="text"
               :disabled="!!editingSkill"
-              class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              class="w-full px-4 py-2.5 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] focus:border-[var(--color-danger)] focus:ring-1 focus:ring-[var(--color-danger)] outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               :placeholder="$t('skills.namePlaceholder')"
             >
           </div>
 
           <div>
-            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t('skills.instructionLabel') }}</label>
+            <label class="block mb-1.5 text-sm font-semibold text-[var(--color-text-secondary)]">{{ $t('skills.instructionLabel') }}</label>
             <textarea
               v-model="formData.instruction"
               rows="10"
-              class="w-full px-4 py-3 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all resize-y font-mono text-sm"
+              class="w-full px-4 py-3 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] focus:border-[var(--color-danger)] focus:ring-1 focus:ring-[var(--color-danger)] outline-none transition-all resize-y font-mono text-sm"
               :placeholder="`# Skill Name\n\nDescription of what this skill does.\n\n## Instructions\n\n1. Step one\n2. Step two`"
             />
           </div>
         </div>
 
-        <div class="flex gap-4 mt-8 pt-6 border-t border-guofeng-border">
+        <div class="flex gap-4 mt-8 pt-6 border-t border-[var(--color-border-default)]">
           <button
-            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-guofeng-bg-tertiary text-guofeng-text-secondary hover:bg-guofeng-bg-secondary border border-guofeng-border"
+            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)]"
             @click="showModal = false"
           >
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-guofeng-red text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
+            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-[var(--color-danger)] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
             @click="handleSubmit"
           >
             {{ editingSkill ? $t('common.save') : $t('common.add') }}

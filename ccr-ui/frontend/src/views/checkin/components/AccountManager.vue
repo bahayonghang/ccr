@@ -174,6 +174,7 @@ onMounted(() => {
 .account-link:hover {
   text-decoration: underline;
 }
+
 .account-provider {
   font-size: 0.875rem;
   color: var(--text-muted);
@@ -195,12 +196,12 @@ onMounted(() => {
 }
 
 .action-button.view {
-  background: rgba(var(--color-info-rgb), 0.15);
+  background: rgb(var(--color-info-rgb), 0.15);
   color: var(--accent-info);
 }
 
 .action-button.delete {
-  background: rgba(var(--color-danger-rgb), 0.15);
+  background: rgb(var(--color-danger-rgb), 0.15);
   color: var(--accent-danger);
 }
 
@@ -215,7 +216,7 @@ onMounted(() => {
 }
 
 :global(.dark) .account-item {
-  background: rgba(var(--color-slate-rgb), 0.4);
-  border-color: rgba(var(--color-slate-rgb), 0.6);
+  background: rgb(var(--color-slate-rgb), 0.4);
+  border-color: rgb(var(--color-slate-rgb), 0.6);
 }
 </style>

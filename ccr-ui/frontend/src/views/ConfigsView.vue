@@ -595,20 +595,20 @@ onMounted(async () => {
 .module-nav-active {
   background: var(--gradient-primary);
   color: white;
-  box-shadow: 0 4px 12px rgba(var(--color-success-rgb), 0.35);
-  border: 1px solid rgba(var(--color-success-rgb), 0.4);
+  box-shadow: 0 4px 12px rgb(var(--color-success-rgb), 0.35);
+  border: 1px solid rgb(var(--color-success-rgb), 0.4);
 }
 
 .module-nav-inactive {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgb(255 255 255 / 60%);
   color: var(--text-secondary);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgb(0 0 0 / 6%);
 }
 
 .module-nav-inactive:hover {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgb(255 255 255 / 85%);
   color: var(--text-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-color: rgba(var(--color-success-rgb), 0.2);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+  border-color: rgb(var(--color-success-rgb), 0.2);
 }
 </style>

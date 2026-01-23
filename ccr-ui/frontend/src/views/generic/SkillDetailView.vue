@@ -7,9 +7,9 @@
       <!-- Loading State -->
       <div
         v-if="loading"
-        class="text-center py-20 text-guofeng-text-muted"
+        class="text-center py-20 text-[var(--color-text-muted)]"
       >
-        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-guofeng-red/30 border-t-guofeng-red" />
+        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-[var(--color-danger)]/30 border-t-[var(--color-danger)]" />
         {{ $t('common.loading') }}
       </div>
 
@@ -18,18 +18,18 @@
         v-else-if="error"
         class="text-center py-20"
       >
-        <div class="bg-guofeng-red/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertCircle class="w-10 h-10 text-guofeng-red" />
+        <div class="bg-[var(--color-danger)]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertCircle class="w-10 h-10 text-[var(--color-danger)]" />
         </div>
-        <p class="text-lg font-medium text-guofeng-text-primary">
+        <p class="text-lg font-medium text-[var(--color-text-primary)]">
           {{ $t('skills.loadError') }}
         </p>
-        <p class="text-sm mt-2 text-guofeng-text-muted">
+        <p class="text-sm mt-2 text-[var(--color-text-muted)]">
           {{ error }}
         </p>
         <RouterLink
           to="/skills"
-          class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-guofeng-bg-secondary hover:bg-guofeng-bg-tertiary transition-colors"
+          class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-surface)] transition-colors"
         >
           <ArrowLeft class="w-4 h-4" />
           {{ $t('common.back') }}
@@ -43,24 +43,24 @@
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-3 mb-2">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-guofeng-red/10 to-guofeng-blue/10 flex items-center justify-center text-xl shadow-sm border border-white/20">
-                  <Book class="w-6 h-6 text-guofeng-red" />
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--color-danger)]/10 to-[var(--color-info)]/10 flex items-center justify-center text-xl shadow-sm border border-white/20">
+                  <Book class="w-6 h-6 text-[var(--color-danger)]" />
                 </div>
                 <div>
-                  <h1 class="text-2xl font-bold text-guofeng-text-primary">
+                  <h1 class="text-2xl font-bold text-[var(--color-text-primary)]">
                     {{ skill.name }}
                   </h1>
                   <p
                     v-if="skill.description"
-                    class="text-sm text-guofeng-text-secondary mt-1"
+                    class="text-sm text-[var(--color-text-secondary)] mt-1"
                   >
                     {{ skill.description }}
                   </p>
                 </div>
               </div>
 
-              <div class="flex items-center gap-3 mt-4 text-xs text-guofeng-text-muted">
-                <div class="flex items-center gap-1.5 bg-guofeng-bg-tertiary px-2.5 py-1 rounded-md border border-guofeng-border/50">
+              <div class="flex items-center gap-3 mt-4 text-xs text-[var(--color-text-muted)]">
+                <div class="flex items-center gap-1.5 bg-[var(--color-bg-surface)] px-2.5 py-1 rounded-md border border-[var(--color-border-default)]/50">
                   <FolderOpen class="w-3.5 h-3.5" />
                   <span class="font-mono truncate max-w-[300px]">{{ skill.path }}</span>
                 </div>
@@ -69,14 +69,14 @@
 
             <div class="flex items-center gap-2">
               <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-guofeng-blue/10 text-guofeng-blue hover:bg-guofeng-blue/20 flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-[var(--color-info)]/10 text-[var(--color-info)] hover:bg-[var(--color-info)]/20 flex items-center gap-2"
                 @click="handleEdit"
               >
                 <Edit2 class="w-4 h-4" />
                 {{ $t('common.edit') }}
               </button>
               <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-guofeng-red/10 text-guofeng-red hover:bg-guofeng-red/20 flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 flex items-center gap-2"
                 @click="handleDelete"
               >
                 <Trash2 class="w-4 h-4" />
@@ -89,12 +89,12 @@
         <!-- Instruction Content -->
         <div class="glass-effect rounded-2xl p-6 border border-white/20 shadow-sm">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-guofeng-text-primary flex items-center gap-2">
-              <FileText class="w-5 h-5 text-guofeng-red" />
+            <h2 class="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
+              <FileText class="w-5 h-5 text-[var(--color-danger)]" />
               {{ $t('skills.instructionLabel') }}
             </h2>
             <button
-              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-guofeng-bg-tertiary hover:bg-guofeng-bg-secondary text-guofeng-text-secondary flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-[var(--color-bg-surface)] hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] flex items-center gap-1.5"
               @click="copyInstruction"
             >
               <Copy class="w-3.5 h-3.5" />
@@ -103,8 +103,8 @@
           </div>
 
           <div class="relative">
-            <pre class="bg-guofeng-bg-tertiary/50 rounded-xl p-4 overflow-auto max-h-[600px] border border-guofeng-border/30">
-              <code class="text-sm font-mono text-guofeng-text-primary whitespace-pre-wrap break-words leading-relaxed">{{ skill.instruction }}</code>
+            <pre class="bg-[var(--color-bg-surface)]/50 rounded-xl p-4 overflow-auto max-h-[600px] border border-[var(--color-border-default)]/30">
+              <code class="text-sm font-mono text-[var(--color-text-primary)] whitespace-pre-wrap break-words leading-relaxed">{{ skill.instruction }}</code>
             </pre>
           </div>
         </div>
@@ -114,55 +114,55 @@
     <!-- Edit Modal -->
     <div
       v-if="showEditModal"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-all"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-sm transition-all"
       @click="showEditModal = false"
     >
       <div
-        class="bg-guofeng-bg p-8 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-guofeng-border relative"
+        class="bg-[var(--color-bg-base)] p-8 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-[var(--color-border-default)] relative"
         @click.stop
       >
         <button
-          class="absolute top-4 right-4 p-2 rounded-full hover:bg-guofeng-bg-tertiary text-guofeng-text-muted transition-colors"
+          class="absolute top-4 right-4 p-2 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-colors"
           @click="showEditModal = false"
         >
           <X class="w-5 h-5" />
         </button>
 
-        <h3 class="text-2xl font-bold mb-6 text-guofeng-text-primary flex items-center">
-          <Edit2 class="w-6 h-6 mr-2 text-guofeng-red" />
+        <h3 class="text-2xl font-bold mb-6 text-[var(--color-text-primary)] flex items-center">
+          <Edit2 class="w-6 h-6 mr-2 text-[var(--color-danger)]" />
           {{ $t('skills.editSkill') }}
         </h3>
 
         <div class="space-y-5">
           <div>
-            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t('skills.nameLabel') }}</label>
+            <label class="block mb-1.5 text-sm font-semibold text-[var(--color-text-secondary)]">{{ $t('skills.nameLabel') }}</label>
             <input
               :value="skill?.name"
               type="text"
               disabled
-              class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border opacity-60 cursor-not-allowed"
+              class="w-full px-4 py-2.5 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] opacity-60 cursor-not-allowed"
             >
           </div>
 
           <div>
-            <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary">{{ $t('skills.instructionLabel') }}</label>
+            <label class="block mb-1.5 text-sm font-semibold text-[var(--color-text-secondary)]">{{ $t('skills.instructionLabel') }}</label>
             <textarea
               v-model="editInstruction"
               rows="12"
-              class="w-full px-4 py-3 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all resize-y font-mono text-sm"
+              class="w-full px-4 py-3 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] focus:border-[var(--color-danger)] focus:ring-1 focus:ring-[var(--color-danger)] outline-none transition-all resize-y font-mono text-sm"
             />
           </div>
         </div>
 
-        <div class="flex gap-4 mt-8 pt-6 border-t border-guofeng-border">
+        <div class="flex gap-4 mt-8 pt-6 border-t border-[var(--color-border-default)]">
           <button
-            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-guofeng-bg-tertiary text-guofeng-text-secondary hover:bg-guofeng-bg-secondary border border-guofeng-border"
+            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)]"
             @click="showEditModal = false"
           >
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-guofeng-red text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
+            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-[var(--color-danger)] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
             :disabled="saving"
             @click="handleSave"
           >
