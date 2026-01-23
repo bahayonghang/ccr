@@ -12,10 +12,10 @@
     --color-bg-overlay: #22222B;
 
     /* --- 边框与分隔 --- */
-    --color-border-subtle: rgba(255, 255, 255, 0.06);
-    --color-border-default: rgba(255, 255, 255, 0.1);
-    --color-border-strong: rgba(255, 255, 255, 0.15);
-    --color-border-accent: rgba(6, 182, 212, 0.3);
+    --color-border-subtle: rgb(255 255 255 / 6%);
+    --color-border-default: rgb(255 255 255 / 10%);
+    --color-border-strong: rgb(255 255 255 / 15%);
+    --color-border-accent: rgb(6 182 212 / 30%);
 
     /* --- 文字层级 --- */
     --color-text-primary: #F8FAFC;
@@ -28,43 +28,38 @@
     --color-accent-primary-hover: #22D3EE;
     --color-accent-primary-active: #0891B2;
     --color-accent-primary-rgb: 6, 182, 212;
-    --color-accent-primary-glow: rgba(6, 182, 212, 0.15);
+    --color-accent-primary-glow: rgb(6 182 212 / 15%);
 
     /* --- 辅助强调色 - 电光紫 --- */
     --color-accent-secondary: #8B5CF6;
     --color-accent-secondary-hover: #A78BFA;
     --color-accent-secondary-active: #7C3AED;
     --color-accent-secondary-rgb: 139, 92, 246;
-    --color-accent-secondary-glow: rgba(139, 92, 246, 0.15);
+    --color-accent-secondary-glow: rgb(139 92 246 / 15%);
 
     /* --- 功能色 --- */
     --color-success: #10B981;
     --color-success-hover: #34D399;
     --color-success-rgb: 16, 185, 129;
-    --color-success-glow: rgba(16, 185, 129, 0.15);
-
+    --color-success-glow: rgb(16 185 129 / 15%);
     --color-warning: #F59E0B;
     --color-warning-hover: #FBBF24;
     --color-warning-rgb: 245, 158, 11;
-    --color-warning-glow: rgba(245, 158, 11, 0.15);
-
+    --color-warning-glow: rgb(245 158 11 / 15%);
     --color-danger: #EF4444;
     --color-danger-hover: #F87171;
     --color-danger-rgb: 239, 68, 68;
-    --color-danger-glow: rgba(239, 68, 68, 0.15);
-
+    --color-danger-glow: rgb(239 68 68 / 15%);
     --color-info: #3B82F6;
     --color-info-hover: #60A5FA;
     --color-info-rgb: 59, 130, 246;
-    --color-info-glow: rgba(59, 130, 246, 0.15);
+    --color-info-glow: rgb(59 130 246 / 15%);
 
     /* --- 扩展功能色 --- */
     --color-cyan: #06B6D4;
     --color-cyan-rgb: 6, 182, 212;
-
     --color-teal: #14B8A6;
     --color-teal-rgb: 20, 184, 166;
-
     --color-gray: #6B7280;
     --color-gray-rgb: 107, 114, 128;
 
@@ -80,15 +75,15 @@
 [data-theme="light"] {
     /* --- 背景层级 --- */
     --color-bg-base: #F8FAFC;
-    --color-bg-elevated: #FFFFFF;
+    --color-bg-elevated: #FFF;
     --color-bg-surface: #F1F5F9;
     --color-bg-overlay: #E2E8F0;
 
     /* --- 边框与分隔 --- */
-    --color-border-subtle: rgba(0, 0, 0, 0.04);
-    --color-border-default: rgba(0, 0, 0, 0.08);
-    --color-border-strong: rgba(0, 0, 0, 0.12);
-    --color-border-accent: rgba(6, 182, 212, 0.4);
+    --color-border-subtle: rgb(0 0 0 / 4%);
+    --color-border-default: rgb(0 0 0 / 8%);
+    --color-border-strong: rgb(0 0 0 / 12%);
+    --color-border-accent: rgb(6 182 212 / 40%);
 
     /* --- 文字层级 --- */
     --color-text-primary: #0F172A;
@@ -97,90 +92,122 @@
     --color-text-disabled: #CBD5E1;
 
     /* --- 发光效果调整（亮色模式下更微妙） --- */
-    --color-accent-primary-glow: rgba(6, 182, 212, 0.1);
-    --color-accent-secondary-glow: rgba(139, 92, 246, 0.1);
-    --color-success-glow: rgba(16, 185, 129, 0.1);
-    --color-warning-glow: rgba(245, 158, 11, 0.1);
-    --color-danger-glow: rgba(239, 68, 68, 0.1);
-    --color-info-glow: rgba(59, 130, 246, 0.1);
+    --color-accent-primary-glow: rgb(6 182 212 / 10%);
+    --color-accent-secondary-glow: rgb(139 92 246 / 10%);
+    --color-success-glow: rgb(16 185 129 / 10%);
+    --color-warning-glow: rgb(245 158 11 / 10%);
+    --color-danger-glow: rgb(239 68 68 / 10%);
+    --color-info-glow: rgb(59 130 246 / 10%);
 }
 
 /* ========== 间距系统 (4px 基准) ========== */
-:root {
+:root:where(:root) {
     --space-0: 0;
     --space-px: 1px;
     --space-0-5: 0.125rem;
+
     /* 2px */
     --space-1: 0.25rem;
+
     /* 4px */
     --space-1-5: 0.375rem;
+
     /* 6px */
     --space-2: 0.5rem;
+
     /* 8px */
     --space-2-5: 0.625rem;
+
     /* 10px */
     --space-3: 0.75rem;
+
     /* 12px */
     --space-3-5: 0.875rem;
+
     /* 14px */
     --space-4: 1rem;
+
     /* 16px */
     --space-5: 1.25rem;
+
     /* 20px */
     --space-6: 1.5rem;
+
     /* 24px */
     --space-7: 1.75rem;
+
     /* 28px */
     --space-8: 2rem;
+
     /* 32px */
     --space-9: 2.25rem;
+
     /* 36px */
     --space-10: 2.5rem;
+
     /* 40px */
     --space-11: 2.75rem;
+
     /* 44px */
     --space-12: 3rem;
+
     /* 48px */
     --space-14: 3.5rem;
+
     /* 56px */
     --space-16: 4rem;
+
     /* 64px */
     --space-20: 5rem;
+
     /* 80px */
     --space-24: 6rem;
+
     /* 96px */
     --space-28: 7rem;
+
     /* 112px */
     --space-32: 8rem;
+
     /* 128px */
 }
 
 /* ========== 字体系统 ========== */
-:root {
+:root:where(:root):where(:root) {
     /* --- 字体族 --- */
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    --font-sans: 'Inter', -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', consolas, monospace;
 
     /* --- 字号 --- */
     --text-xs: 0.75rem;
+
     /* 12px */
     --text-sm: 0.875rem;
+
     /* 14px */
     --text-base: 1rem;
+
     /* 16px */
     --text-lg: 1.125rem;
+
     /* 18px */
     --text-xl: 1.25rem;
+
     /* 20px */
     --text-2xl: 1.5rem;
+
     /* 24px */
     --text-3xl: 1.875rem;
+
     /* 30px */
     --text-4xl: 2.25rem;
+
     /* 36px */
     --text-5xl: 3rem;
+
     /* 48px */
     --text-6xl: 3.75rem;
+
     /* 60px */
 
     /* --- 字重 --- */
@@ -208,7 +235,7 @@
 }
 
 /* ========== 圆角系统 ========== */
-:root {
+:root:where(:root):where(:root):where(:root) {
     --radius-none: 0;
     --radius-sm: 4px;
     --radius-md: 6px;
@@ -220,15 +247,15 @@
 }
 
 /* ========== 阴影与光效系统 ========== */
-:root {
+:root:where(:root):where(:root):where(:root):where(:root) {
     /* --- 标准阴影 --- */
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.25);
-    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 20%);
+    --shadow-sm: 0 1px 3px rgb(0 0 0 / 25%), 0 1px 2px rgb(0 0 0 / 20%);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 30%), 0 2px 4px -1px rgb(0 0 0 / 20%);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 35%), 0 4px 6px -2px rgb(0 0 0 / 20%);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 40%), 0 10px 10px -5px rgb(0 0 0 / 25%);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 50%);
+    --shadow-inner: inset 0 2px 4px rgb(0 0 0 / 20%);
 
     /* --- 微妙发光效果 (Neo-Terminal 特色) --- */
     --glow-primary: 0 0 15px var(--color-accent-primary-glow);
@@ -239,7 +266,7 @@
     --glow-info: 0 0 12px var(--color-info-glow);
 
     /* --- 内发光 --- */
-    --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --inner-glow: inset 0 1px 0 rgb(255 255 255 / 4%);
 
     /* --- 渐变边框 --- */
     --gradient-border: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
@@ -247,28 +274,28 @@
 }
 
 /* 亮色主题阴影调整 */
-[data-theme="light"] {
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-    --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.04);
-    --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+[data-theme="light"]:where([data-theme="light"]) {
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 5%);
+    --shadow-sm: 0 1px 3px rgb(0 0 0 / 8%), 0 1px 2px rgb(0 0 0 / 4%);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 8%), 0 2px 4px -1px rgb(0 0 0 / 4%);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -2px rgb(0 0 0 / 5%);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 10px 10px -5px rgb(0 0 0 / 4%);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 15%);
+    --shadow-inner: inset 0 2px 4px rgb(0 0 0 / 4%);
+    --inner-glow: inset 0 1px 0 rgb(255 255 255 / 50%);
 }
 
 /* ========== 玻璃效果系统 ========== */
-:root {
+:root:where(:root):where(:root):where(:root):where(:root):where(:root) {
     /* --- 玻璃背景 --- */
-    --glass-bg-light: rgba(255, 255, 255, 0.03);
-    --glass-bg-medium: rgba(255, 255, 255, 0.06);
-    --glass-bg-strong: rgba(255, 255, 255, 0.1);
+    --glass-bg-light: rgb(255 255 255 / 3%);
+    --glass-bg-medium: rgb(255 255 255 / 6%);
+    --glass-bg-strong: rgb(255 255 255 / 10%);
 
     /* --- 玻璃边框 --- */
-    --glass-border-light: rgba(255, 255, 255, 0.06);
-    --glass-border-medium: rgba(255, 255, 255, 0.1);
-    --glass-border-strong: rgba(255, 255, 255, 0.15);
+    --glass-border-light: rgb(255 255 255 / 6%);
+    --glass-border-medium: rgb(255 255 255 / 10%);
+    --glass-border-strong: rgb(255 255 255 / 15%);
 
     /* --- 玻璃模糊 --- */
     --glass-blur-sm: blur(8px);
@@ -277,28 +304,26 @@
     --glass-blur-xl: blur(24px) saturate(180%);
 
     /* --- 玻璃阴影 --- */
-    --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-    --glass-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.2);
-    --glass-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --glass-shadow: 0 4px 24px rgb(0 0 0 / 15%);
+    --glass-shadow-elevated: 0 8px 32px rgb(0 0 0 / 20%);
+    --glass-inner-glow: inset 0 1px 0 rgb(255 255 255 / 4%);
 }
 
 /* 亮色主题玻璃效果 */
-[data-theme="light"] {
-    --glass-bg-light: rgba(255, 255, 255, 0.5);
-    --glass-bg-medium: rgba(255, 255, 255, 0.7);
-    --glass-bg-strong: rgba(255, 255, 255, 0.85);
-
-    --glass-border-light: rgba(255, 255, 255, 0.3);
-    --glass-border-medium: rgba(255, 255, 255, 0.4);
-    --glass-border-strong: rgba(255, 255, 255, 0.5);
-
-    --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-    --glass-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    --glass-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+[data-theme="light"]:where([data-theme="light"]):where([data-theme="light"]) {
+    --glass-bg-light: rgb(255 255 255 / 50%);
+    --glass-bg-medium: rgb(255 255 255 / 70%);
+    --glass-bg-strong: rgb(255 255 255 / 85%);
+    --glass-border-light: rgb(255 255 255 / 30%);
+    --glass-border-medium: rgb(255 255 255 / 40%);
+    --glass-border-strong: rgb(255 255 255 / 50%);
+    --glass-shadow: 0 4px 24px rgb(0 0 0 / 8%);
+    --glass-shadow-elevated: 0 8px 32px rgb(0 0 0 / 12%), inset 0 1px 0 rgb(255 255 255 / 60%);
+    --glass-inner-glow: inset 0 1px 0 rgb(255 255 255 / 50%);
 }
 
 /* ========== 动画系统 ========== */
-:root {
+:root:where(:root):where(:root):where(:root):where(:root):where(:root):where(:root) {
     /* --- 时长 --- */
     --duration-instant: 50ms;
     --duration-fast: 100ms;
@@ -316,7 +341,7 @@
 }
 
 /* ========== Z-Index 层级系统 ========== */
-:root {
+:root:where(:root):where(:root):where(:root):where(:root):where(:root):where(:root):where(:root) {
     --z-behind: -1;
     --z-base: 0;
     --z-dropdown: 10;
@@ -330,7 +355,7 @@
 }
 
 /* ========== 断点（仅用于参考，主要针对桌面） ========== */
-:root {
+:root:where(:root):where(:root):where(:root):where(:root):where(:root):where(:root):where(:root):where(:root) {
     --breakpoint-sm: 640px;
     --breakpoint-md: 768px;
     --breakpoint-lg: 1024px;

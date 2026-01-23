@@ -3,250 +3,248 @@
    Base Styles - Reset & Global Styles
    ============================================ */
 
-/* ========== 字体导入 ========== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* ========== CSS Reset & Base Styles ========== */
+@layer base {
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
-/* ========== CSS Reset ========== */
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+    /* 防止字体大小调整 */
+    html {
+        text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizelegibility;
+    }
+
+    /* 基础 body 样式 */
+    body {
+        font-family: var(--font-sans);
+        font-size: var(--text-base);
+        line-height: var(--leading-normal);
+        color: var(--color-text-primary);
+        background-color: var(--color-bg-base);
+        min-height: 100vh;
+        transition:
+            background-color var(--duration-normal) var(--ease-out),
+            color var(--duration-normal) var(--ease-out);
+    }
+
+    /* App 容器 */
+    #app {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* 移除列表默认样式 */
+    ul,
+    ol {
+        list-style: none;
+    }
+
+    /* 链接默认样式 */
+    a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    /* 图片响应式 */
+    img,
+    svg {
+        display: block;
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* 按钮和输入重置 */
+    button,
+    input,
+    textarea,
+    select {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: none;
+        outline: none;
+    }
+
+    button {
+        cursor: pointer;
+    }
+
+    button:disabled {
+        cursor: not-allowed;
+    }
+
+    /* 表格重置 */
+    table {
+        border-collapse: collapse;
+        border-spacing: 0;
+    }
+
+    /* 移除输入框的默认样式 */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        appearance: none;
+        margin: 0;
+    }
+
+    input[type="number"] {
+        appearance: textfield;
+    }
+
+    /* 选择文本颜色 */
+    ::selection {
+        background-color: var(--color-accent-primary);
+        color: white;
+    }
+
+    /* ========== 滚动条样式 ========== */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--color-bg-elevated);
+        border-radius: var(--radius-sm);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--color-border-strong);
+        border-radius: var(--radius-sm);
+        transition: background var(--duration-fast) var(--ease-out);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--color-accent-primary);
+    }
+
+    /* Firefox 滚动条 */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-border-strong) var(--color-bg-elevated);
+    }
+
+    /* ========== 焦点可见性 ========== */
+    :focus-visible {
+        outline: 2px solid var(--color-accent-primary);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);
+    }
+
+    /* 移除默认焦点环但保留可访问性 */
+    :focus:not(:focus-visible) {
+        outline: none;
+    }
 }
 
-/* 防止字体大小调整 */
-html {
-    -webkit-text-size-adjust: 100%;
-    -moz-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-}
+/* ========== 工具类 (Utilities) ========== */
+@layer utilities {
+    /* 屏幕阅读器专用 */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+    }
 
-/* 基础 body 样式 */
-body {
-    font-family: var(--font-sans);
-    font-size: var(--text-base);
-    line-height: var(--leading-normal);
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-base);
-    min-height: 100vh;
-    transition:
-        background-color var(--duration-normal) var(--ease-out),
-        color var(--duration-normal) var(--ease-out);
-}
+    /* 跳过导航链接 */
+    .skip-to-content {
+        position: absolute;
+        top: -100%;
+        left: var(--space-4);
+        z-index: var(--z-toast);
+        padding: var(--space-3) var(--space-6);
+        background: var(--color-accent-primary);
+        color: white;
+        font-weight: var(--font-semibold);
+        border-radius: var(--radius-lg);
+        transition: top var(--duration-fast) var(--ease-out);
+    }
 
-/* App 容器 */
-#app {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
+    .skip-to-content:focus {
+        top: var(--space-4);
+    }
 
-/* 移除列表默认样式 */
-ul,
-ol {
-    list-style: none;
-}
+    /* 排版工具类 */
+    .font-sans {
+        font-family: var(--font-sans);
+    }
 
-/* 链接默认样式 */
-a {
-    color: inherit;
-    text-decoration: none;
-}
+    .font-mono {
+        font-family: var(--font-mono);
+    }
 
-/* 图片响应式 */
-img,
-svg {
-    display: block;
-    max-width: 100%;
-    height: auto;
-}
+    /* 标题样式 */
+    .text-display {
+        font-size: var(--text-5xl);
+        font-weight: var(--font-extrabold);
+        line-height: var(--leading-tight);
+        letter-spacing: var(--tracking-tight);
+    }
 
-/* 按钮和输入重置 */
-button,
-input,
-textarea,
-select {
-    font: inherit;
-    color: inherit;
-    background: none;
-    border: none;
-    outline: none;
-}
+    .text-headline {
+        font-size: var(--text-3xl);
+        font-weight: var(--font-bold);
+        line-height: var(--leading-tight);
+        letter-spacing: var(--tracking-tight);
+    }
 
-button {
-    cursor: pointer;
-}
+    .text-title {
+        font-size: var(--text-xl);
+        font-weight: var(--font-semibold);
+        line-height: var(--leading-snug);
+    }
 
-button:disabled {
-    cursor: not-allowed;
-}
+    .text-subtitle {
+        font-size: var(--text-lg);
+        font-weight: var(--font-medium);
+        line-height: var(--leading-normal);
+    }
 
-/* 表格重置 */
-table {
-    border-collapse: collapse;
-    border-spacing: 0;
-}
+    .text-body {
+        font-size: var(--text-base);
+        font-weight: var(--font-normal);
+        line-height: var(--leading-relaxed);
+    }
 
-/* 移除输入框的默认样式 */
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
+    .text-caption {
+        font-size: var(--text-sm);
+        font-weight: var(--font-normal);
+        line-height: var(--leading-normal);
+        color: var(--color-text-secondary);
+    }
 
-input[type="number"] {
-    -moz-appearance: textfield;
-}
+    .text-label {
+        font-size: var(--text-xs);
+        font-weight: var(--font-medium);
+        line-height: var(--leading-normal);
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+    }
 
-/* 选择文本颜色 */
-::selection {
-    background-color: var(--color-accent-primary);
-    color: white;
-}
-
-/* ========== 滚动条样式 ========== */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-sm);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--color-border-strong);
-    border-radius: var(--radius-sm);
-    transition: background var(--duration-fast) var(--ease-out);
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--color-accent-primary);
-}
-
-/* Firefox 滚动条 */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-border-strong) var(--color-bg-elevated);
-}
-
-/* ========== 焦点可见性 ========== */
-:focus-visible {
-    outline: 2px solid var(--color-accent-primary);
-    outline-offset: 2px;
-    border-radius: var(--radius-sm);
-}
-
-/* 移除默认焦点环但保留可访问性 */
-:focus:not(:focus-visible) {
-    outline: none;
-}
-
-/* ========== 屏幕阅读器专用 ========== */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* ========== 跳过导航链接 ========== */
-.skip-to-content {
-    position: absolute;
-    top: -100%;
-    left: var(--space-4);
-    z-index: var(--z-toast);
-    padding: var(--space-3) var(--space-6);
-    background: var(--color-accent-primary);
-    color: white;
-    font-weight: var(--font-semibold);
-    border-radius: var(--radius-lg);
-    transition: top var(--duration-fast) var(--ease-out);
-}
-
-.skip-to-content:focus {
-    top: var(--space-4);
-}
-
-/* ========== 排版工具类 ========== */
-.font-sans {
-    font-family: var(--font-sans);
-}
-
-.font-mono {
-    font-family: var(--font-mono);
-}
-
-/* 标题样式 */
-.text-display {
-    font-size: var(--text-5xl);
-    font-weight: var(--font-extrabold);
-    line-height: var(--leading-tight);
-    letter-spacing: var(--tracking-tight);
-}
-
-.text-headline {
-    font-size: var(--text-3xl);
-    font-weight: var(--font-bold);
-    line-height: var(--leading-tight);
-    letter-spacing: var(--tracking-tight);
-}
-
-.text-title {
-    font-size: var(--text-xl);
-    font-weight: var(--font-semibold);
-    line-height: var(--leading-snug);
-}
-
-.text-subtitle {
-    font-size: var(--text-lg);
-    font-weight: var(--font-medium);
-    line-height: var(--leading-normal);
-}
-
-.text-body {
-    font-size: var(--text-base);
-    font-weight: var(--font-normal);
-    line-height: var(--leading-relaxed);
-}
-
-.text-caption {
-    font-size: var(--text-sm);
-    font-weight: var(--font-normal);
-    line-height: var(--leading-normal);
-    color: var(--color-text-secondary);
-}
-
-.text-label {
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
-    line-height: var(--leading-normal);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-}
-
-/* ========== 品牌渐变文字 ========== */
-.brand-gradient-text {
-    background: var(--gradient-brand);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    /* 品牌渐变文字 */
+    .brand-gradient-text {
+        background: var(--gradient-brand);
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
 }
 
 /* ========== 禁用动画（无障碍） ========== */
 @media (prefers-reduced-motion: reduce) {
-
     *,
     *::before,
     *::after {
