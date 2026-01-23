@@ -40,8 +40,31 @@ if (Test-Path $frontendPortFile) {
     }
 }
 
-# VS Code 相关进程名（不应被杀死）
-$excludedProcessNames = @('code', 'Code', 'code-server', 'node', 'electron')
+$excludedProcessNamePatterns = @(
+    '^code$',
+    '^Code$',
+    '^Code - Insiders$',
+    '^code-server$',
+    '^electron$'
+)
+
+function Get-ProcessDetailsSafely {
+    param([int]$Pid)
+    try {
+        $p = Get-CimInstance Win32_Process -Filter "ProcessId=$Pid" -ErrorAction Stop
+        return [pscustomobject]@{
+            Name           = $p.Name
+            ExecutablePath = $p.ExecutablePath
+            CommandLine    = $p.CommandLine
+        }
+    } catch {
+        return [pscustomobject]@{
+            Name           = $null
+            ExecutablePath = $null
+            CommandLine    = $null
+        }
+    }
+}
 
 $ports = @([int]$BackendPort, [int]$VitePort)
 if ($actualVitePort -and ($actualVitePort -ne $VitePort)) {
@@ -90,30 +113,65 @@ if (Test-Path $frontendPidFile) {
 
 foreach ($port in $ports) {
     try {
-        $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop 2>$null
-        if ($conn) {
-            $procId = $conn.OwningProcess
+        $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop 2>$null
+        if (-not $conns) { continue }
+
+        $owningPids = $conns | Select-Object -ExpandProperty OwningProcess -Unique
+        foreach ($procId in $owningPids) {
             $proc = Get-Process -Id $procId -ErrorAction SilentlyContinue
-            
-            if ($proc) {
-                # 检查是否为 VS Code 相关进程
-                $isExcluded = $false
-                foreach ($excludedName in $excludedProcessNames) {
-                    if ($proc.ProcessName -match $excludedName) {
-                        $isExcluded = $true
-                        break
-                    }
-                }
-                
-                if ($isExcluded) {
-                    Write-Output ("  - Skipping port " + $port + " (VS Code related process: " + $proc.ProcessName + ", PID: " + $procId + ")")
-                } else {
-                    Write-Output ("  - Terminating process on port " + $port + " (" + $proc.ProcessName + ", PID: " + $procId + ") ...")
-                    Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
-                }
-            } else {
+            if (-not $proc) {
                 Write-Output ("  - Process on port " + $port + " (PID: " + $procId + ") no longer exists.")
+                continue
             }
+
+            $details = Get-ProcessDetailsSafely -Pid $procId
+            $procName = $proc.ProcessName
+            $cmd = $details.CommandLine
+            $exe = $details.ExecutablePath
+
+            $isVscodeRelated = $false
+            foreach ($pattern in $excludedProcessNamePatterns) {
+                if ($procName -match $pattern) {
+                    $isVscodeRelated = $true
+                    break
+                }
+            }
+            if (-not $isVscodeRelated -and $cmd) {
+                if ($cmd -match '(?i)(vscode|\.vscode|vscode-server|\.vscode-server|ms-vscode|remote-ssh)') {
+                    $isVscodeRelated = $true
+                }
+            }
+
+            $isCcrDevProcess = $false
+            if ($cmd) {
+                if ($port -eq [int]$BackendPort) {
+                    if ($cmd -match '(?i)(ccr-ui-backend|ccr-ui\\backend)') { $isCcrDevProcess = $true }
+                } else {
+                    if ($cmd -match '(?i)(vite|ccr-ui\\frontend)') { $isCcrDevProcess = $true }
+                }
+            }
+            if (-not $isCcrDevProcess -and $exe) {
+                if ($port -eq [int]$BackendPort) {
+                    if ($exe -match '(?i)(ccr-ui\\backend|ccr-ui-backend)') { $isCcrDevProcess = $true }
+                } else {
+                    if ($exe -match '(?i)(ccr-ui\\frontend)') { $isCcrDevProcess = $true }
+                }
+            }
+            if (-not $isCcrDevProcess -and ($procName -match '(?i)^ccr-ui-backend$')) { $isCcrDevProcess = $true }
+
+            if ($isVscodeRelated) {
+                Write-Output ("  - Skipping port " + $port + " (VS Code related process: " + $procName + ", PID: " + $procId + ")")
+                continue
+            }
+
+            if (-not $isCcrDevProcess) {
+                Write-Output ("  - Skipping port " + $port + " (unrecognized process: " + $procName + ", PID: " + $procId + ")")
+                Write-Output ("    Hint: set VITE_PORT/BACKEND_PORT to a free port or stop that process manually.")
+                continue
+            }
+
+            Write-Output ("  - Terminating CCR dev process on port " + $port + " (" + $procName + ", PID: " + $procId + ") ...")
+            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
         }
     } catch {
         # Port is not in use or other error - this is fine
