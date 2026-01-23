@@ -132,44 +132,6 @@ export default {
           danger: '#EF4444',
           info: '#3B82F6',
         },
-        // 向后兼容: guofeng 映射到 neo
-        guofeng: {
-          bg: {
-            DEFAULT: 'var(--color-bg-base)',
-            secondary: 'var(--color-bg-elevated)',
-            tertiary: 'var(--color-bg-surface)',
-            card: 'var(--color-bg-elevated)',
-          },
-          ink: {
-            DEFAULT: 'var(--color-text-primary)',
-            light: 'var(--color-text-secondary)',
-            lighter: 'var(--color-text-muted)',
-          },
-          jade: {
-            DEFAULT: 'var(--color-accent-primary)',
-            dim: '#0891B2',
-          },
-          indigo: 'var(--color-accent-secondary)',
-          red: {
-            DEFAULT: 'var(--color-danger)',
-            dim: '#DC2626',
-          },
-          gold: {
-            DEFAULT: 'var(--color-warning)',
-            dim: '#D97706',
-          },
-          blue: {
-            DEFAULT: 'var(--color-info)',
-            dim: '#2563EB',
-          },
-          border: 'var(--color-border-default)',
-          info: 'var(--color-info)',
-          text: {
-            primary: 'var(--color-text-primary)',
-            secondary: 'var(--color-text-secondary)',
-            muted: 'var(--color-text-muted)',
-          },
-        },
       },
 
       // ========== 阴影系统 ==========
