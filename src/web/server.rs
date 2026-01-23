@@ -48,12 +48,13 @@ pub struct WebServer {
     backup_service: Arc<BackupService>,
     validate_service: Arc<ValidateService>,
     system_info_cache: Arc<SystemInfoCache>,
+    host: std::net::IpAddr,
     port: u16,
 }
 
 impl WebServer {
     /// 🏗️ 创建新的 Web 服务器
-    pub fn new(port: u16) -> Result<Self> {
+    pub fn new(host: std::net::IpAddr, port: u16) -> Result<Self> {
         let config_service = Arc::new(ConfigService::with_default()?);
         let settings_service = Arc::new(SettingsService::with_default()?);
         let history_service = Arc::new(HistoryService::with_default()?);
@@ -70,6 +71,7 @@ impl WebServer {
             backup_service,
             validate_service,
             system_info_cache,
+            host,
             port,
         })
     }
@@ -84,29 +86,47 @@ impl WebServer {
     /// - 🔄 长时间操作不阻塞其他请求
     pub async fn start(&self, no_browser: bool) -> Result<()> {
         // 🎯 尝试绑定端口，如果失败则尝试其他端口
-        let (listener, actual_port) = Self::bind_available_port(self.port).await?;
+        // Windows 下可能遇到 WSAEACCES (os error 10013)，例如端口被系统/安全策略保留或禁止绑定到 0.0.0.0。
+        let (listener, actual_port, bound_ip) =
+            Self::bind_available_port(self.host, self.port).await?;
 
         ColorOutput::success("🌐 CCR Web 服务器已启动（异步模式）");
 
         // 🔍 检测 WSL 环境并获取 IP 地址
         let is_wsl = Self::detect_wsl_environment();
         let local_ip = Self::get_local_ip();
+        let localhost_only = bound_ip.is_loopback();
+        let bound_any = match bound_ip {
+            std::net::IpAddr::V4(ip) => ip.is_unspecified(),
+            std::net::IpAddr::V6(ip) => ip.is_unspecified(),
+        };
 
         // 📍 输出访问地址
         if is_wsl {
             ColorOutput::info(&format!("📍 本地访问: http://localhost:{}", actual_port));
-            if let Some(ip) = &local_ip {
+            if bound_any && !localhost_only && let Some(ip) = &local_ip {
                 ColorOutput::info(&format!(
                     "📍 内网访问: http://{}:{} (推荐用于 Windows 主机)",
                     ip, actual_port
                 ));
+            } else if !bound_any && !localhost_only {
+                ColorOutput::info(&format!("📍 绑定地址: http://{}:{}", bound_ip, actual_port));
+            } else if localhost_only {
+                ColorOutput::warning("⚠️ 当前仅绑定到 localhost，无法通过内网 IP 访问");
             } else {
                 ColorOutput::warning("⚠️ 无法获取内网 IP 地址，请手动查看网络配置");
             }
         } else {
-            ColorOutput::info(&format!("📍 地址: http://localhost:{}", actual_port));
-            if let Some(ip) = &local_ip {
+            if bound_any || localhost_only {
+                ColorOutput::info(&format!("📍 地址: http://localhost:{}", actual_port));
+            } else {
+                ColorOutput::info(&format!("📍 地址: http://{}:{}", bound_ip, actual_port));
+            }
+
+            if bound_any && !localhost_only && let Some(ip) = &local_ip {
                 ColorOutput::info(&format!("💡 内网访问: http://{}:{}", ip, actual_port));
+            } else if localhost_only {
+                ColorOutput::warning("⚠️ 当前仅绑定到 localhost，无法通过内网 IP 访问");
             }
         }
 
@@ -116,7 +136,12 @@ impl WebServer {
         // 🌐 根据参数决定是否打开浏览器
         // WSL 环境中不自动打开浏览器（避免打开 WSL 内部浏览器）
         if !no_browser && !is_wsl {
-            if let Err(e) = open::that(format!("http://localhost:{}", actual_port)) {
+            let open_url = if bound_any || localhost_only {
+                format!("http://localhost:{}", actual_port)
+            } else {
+                format!("http://{}:{}", bound_ip, actual_port)
+            };
+            if let Err(e) = open::that(open_url) {
                 ColorOutput::warning(&format!("⚠️ 无法自动打开浏览器: {}", e));
                 ColorOutput::info(&format!("💡 请手动访问 http://localhost:{}", actual_port));
             }
@@ -249,14 +274,14 @@ impl WebServer {
 
     /// 📦 提供 HTML 页面（从原来的 handlers.rs 移过来）
     pub async fn serve_html() -> Html<&'static str> {
-        Html(include_str!("../../web/index.html"))
+        Html(include_str!("../../web/dist/index.html"))
     }
 
     /// 📦 提供 CSS 样式文件（从原来的 handlers.rs 移过来）
     pub async fn serve_css() -> impl IntoResponse {
         (
             [(axum::http::header::CONTENT_TYPE, "text/css; charset=utf-8")],
-            include_str!("../../web/style.css"),
+            include_str!("../../web/dist/style.css"),
         )
     }
 
@@ -267,20 +292,27 @@ impl WebServer {
                 axum::http::header::CONTENT_TYPE,
                 "application/javascript; charset=utf-8",
             )],
-            include_str!("../../web/script.js"),
+            include_str!("../../web/dist/script.js"),
         )
     }
 
     /// 🎯 尝试绑定可用端口
     ///
     /// 从指定端口开始，如果被占用则尝试后续 10 个端口
-    async fn bind_available_port(start_port: u16) -> Result<(tokio::net::TcpListener, u16)> {
+    async fn bind_available_port(
+        host: std::net::IpAddr,
+        start_port: u16,
+    ) -> Result<(tokio::net::TcpListener, u16, std::net::IpAddr)> {
         let max_attempts = 10;
+        let mut last_error_message: Option<String> = None;
+        let host_is_any = match host {
+            std::net::IpAddr::V4(ip) => ip.is_unspecified(),
+            std::net::IpAddr::V6(ip) => ip.is_unspecified(),
+        };
 
         for offset in 0..max_attempts {
             let port = start_port + offset;
-            let addr = format!("0.0.0.0:{}", port);
-
+            let addr = format!("{}:{}", host, port);
             match tokio::net::TcpListener::bind(&addr).await {
                 Ok(listener) => {
                     if offset > 0 {
@@ -289,21 +321,83 @@ impl WebServer {
                             start_port, port
                         ));
                     }
-                    return Ok((listener, port));
+                    return Ok((listener, port, host));
                 }
-                Err(_) if offset < max_attempts - 1 => continue,
                 Err(e) => {
-                    return Err(CcrError::ConfigError(format!(
-                        "无法绑定端口 {}-{}: {}",
-                        start_port,
-                        start_port + max_attempts - 1,
-                        e
-                    )));
+                    last_error_message = Some(e.to_string());
+                    if e.kind() == std::io::ErrorKind::PermissionDenied && host_is_any {
+                        let addr_local = format!("127.0.0.1:{}", port);
+                        match tokio::net::TcpListener::bind(&addr_local).await {
+                            Ok(listener) => {
+                                ColorOutput::warning(&format!(
+                                    "⚠️ 绑定到 {} 被拒绝（权限/策略），已改为绑定到 localhost:{}",
+                                    addr, port
+                                ));
+                                return Ok((listener, port, std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)));
+                            }
+                            Err(local_err) => {
+                                last_error_message = Some(local_err.to_string());
+                                continue;
+                            }
+                        }
+                    } else {
+                        continue;
+                    }
                 }
-            }
+            };
         }
 
-        unreachable!()
+        let last_error_message = last_error_message.unwrap_or_else(|| "unknown".to_string());
+        let listener = if host_is_any {
+            match tokio::net::TcpListener::bind("127.0.0.1:0").await {
+                Ok(listener) => listener,
+                Err(e_local) => {
+                    let local_message = e_local.to_string();
+                    tokio::net::TcpListener::bind("0.0.0.0:0").await.map_err(|e_any| {
+                        CcrError::ConfigError(format!(
+                            "无法绑定任何端口（{}-{}），且自动分配端口也失败（localhost 最后错误: {}）: {}",
+                            start_port,
+                            start_port + max_attempts - 1,
+                            local_message,
+                            e_any
+                        ))
+                    })?
+                }
+            }
+        } else {
+            tokio::net::TcpListener::bind(format!("{}:0", host))
+                .await
+                .map_err(|e_host| {
+                    CcrError::ConfigError(format!(
+                        "无法绑定任何端口（{}-{}，host={}），且自动分配端口也失败: {}",
+                        start_port,
+                        start_port + max_attempts - 1,
+                        host,
+                        e_host
+                    ))
+                })?
+        };
+
+        let actual_port = listener
+            .local_addr()
+            .map(|addr| addr.port())
+            .unwrap_or(0);
+
+        ColorOutput::warning(&format!(
+            "⚠️ 端口 {}-{} 均不可用（最后错误: {}），已自动分配端口 {}",
+            start_port,
+            start_port + max_attempts - 1,
+            last_error_message,
+            actual_port
+        ));
+
+        let bound_ip = if host_is_any {
+            std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)
+        } else {
+            host
+        };
+
+        Ok((listener, actual_port, bound_ip))
     }
 
     /// 🎯 获取平台模式（使用缓存）
@@ -361,8 +455,13 @@ impl WebServer {
 }
 
 /// Web 命令入口
-pub async fn web_command(port: Option<u16>, no_browser: bool) -> Result<()> {
-    let port = port.unwrap_or(9527);
-    let server = WebServer::new(port)?;
+pub async fn web_command(
+    host: Option<std::net::IpAddr>,
+    port: Option<u16>,
+    no_browser: bool,
+) -> Result<()> {
+    let host = host.unwrap_or(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED));
+    let port = port.unwrap_or(19527);
+    let server = WebServer::new(host, port)?;
     server.start(no_browser).await
 }

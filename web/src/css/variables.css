@@ -1,0 +1,52 @@
+/* 暗色主题 - 赛博朋克·科技蓝配色 */
+:root[data-theme="dark"] {
+    --bg-primary: #0a0d1a;
+    --bg-secondary: #12162b;
+    --bg-tertiary: #1a1f3a;
+    --bg-card: rgba(18, 22, 43, 0.75);
+    --border-color: rgba(0, 212, 255, 0.2);
+    --border-glow: rgba(0, 212, 255, 0.4);
+    --text-primary: #e8f4ff;
+    --text-secondary: #8fa5c7;
+    --text-muted: #5a6c88;
+    --accent-primary: #00d4ff;
+    --accent-secondary: #00ff88;
+    --accent-tertiary: #0088ff;
+    --accent-success: #00ff88;
+    --accent-warning: #ffaa00;
+    --accent-danger: #ff3366;
+    --accent-info: #00d4ff;
+    --glow-primary: rgba(0, 212, 255, 0.3);
+    --glow-secondary: rgba(0, 255, 136, 0.3);
+    --glow-danger: rgba(255, 51, 102, 0.3);
+    --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.5);
+    --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-large: 0 10px 40px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 20px var(--glow-primary), 0 0 40px var(--glow-primary);
+}
+
+/* 明色主题 - 清爽科技蓝配色 */
+:root[data-theme="light"] {
+    --bg-primary: #f0f5ff;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e8f1ff;
+    --bg-card: rgba(255, 255, 255, 0.9);
+    --border-color: rgba(0, 136, 255, 0.15);
+    --border-glow: rgba(0, 136, 255, 0.3);
+    --text-primary: #0a1628;
+    --text-secondary: #4a5f7f;
+    --text-muted: #7a8ea8;
+    --accent-primary: #0088ff;
+    --accent-secondary: #00aa66;
+    --accent-tertiary: #0066cc;
+    --accent-success: #00cc66;
+    --accent-warning: #ff9900;
+    --accent-danger: #ff3366;
+    --accent-info: #0088ff;
+    --glow-primary: rgba(0, 136, 255, 0.15);
+    --glow-secondary: rgba(0, 170, 102, 0.15);
+    --glow-danger: rgba(255, 51, 102, 0.15);
+    --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.1);
+    --shadow-large: 0 10px 40px rgba(0, 0, 0, 0.15);
+}

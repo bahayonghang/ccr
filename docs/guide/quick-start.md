@@ -73,7 +73,7 @@ ccr sync all pull --force                 # 批量
 ```bash
 ccr ui -p 3000 --backend-port 8081   # 完整 CCR UI（Vue 3 + Axum + Tauri）
 ccr tui                              # 需开启 tui 特性
-ccr web -p 8080 --no-browser         # 轻量 API/兼容场景
+ccr web --host 0.0.0.0 -p 19527 --no-browser    # 轻量 API/兼容场景
 ```
 
 ## 日常调试

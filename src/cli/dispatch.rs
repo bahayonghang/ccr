@@ -85,8 +85,12 @@ impl CommandDispatcher {
 
             // 带特性的命令
             #[cfg(feature = "web")]
-            Some(Commands::Web { port, no_browser }) => {
-                crate::web::web_command(Some(*port), *no_browser).await
+            Some(Commands::Web {
+                host,
+                port,
+                no_browser,
+            }) => {
+                crate::web::web_command(Some(*host), Some(*port), *no_browser).await
             }
 
             Some(Commands::Ui {

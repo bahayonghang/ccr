@@ -90,7 +90,7 @@ ccr sync all status
 # Interfaces
 ccr ui -p 3000 --backend-port 38081
 ccr tui
-ccr web --port 8080 --no-browser
+ccr web --host 0.0.0.0 --port 19527 --no-browser
 
 # Cost controls & reporting
 ccr pricing list --verbose

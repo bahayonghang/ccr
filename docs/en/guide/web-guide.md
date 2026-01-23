@@ -21,6 +21,9 @@ Built-in lightweight Axum API server for programmatic access and legacy web inte
 # Start with default settings
 ccr web
 
+# Localhost only (do not expose to LAN)
+ccr web --host 127.0.0.1
+
 # Custom port
 ccr web --port 9000
 
@@ -28,7 +31,7 @@ ccr web --port 9000
 ccr web --no-browser
 
 # Custom port without browser
-ccr web -p 8080 --no-browser
+ccr web -p 19527 --no-browser
 ```
 
 ### Features

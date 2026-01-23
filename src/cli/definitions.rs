@@ -179,8 +179,12 @@ pub enum Commands {
     /// 提示：如需在浏览器中使用完整图形界面，推荐改用 `ccr ui` 启动 CCR UI 应用
     #[cfg(feature = "web")]
     Web {
-        /// 指定 Web 服务器监听端口(默认: 9527)
-        #[arg(short, long, default_value_t = 9527)]
+        /// 指定 Web 服务器监听地址（默认: 0.0.0.0，支持内网访问）
+        #[arg(long, default_value = "0.0.0.0")]
+        host: std::net::IpAddr,
+
+        /// 指定 Web 服务器监听端口(默认: 19527)
+        #[arg(short, long, default_value_t = 19527)]
         port: u16,
 
         /// 不自动打开浏览器

@@ -356,11 +356,11 @@ Use CCR's web API for programmatic access:
 
 ```bash
 # Start API server
-ccr web --port 8080 --no-browser
+ccr web --host 0.0.0.0 --port 19527 --no-browser
 
 # Use API endpoints
-curl http://localhost:8080/api/configs
-curl -X POST http://localhost:8080/api/switch -d '{"name":"anthropic"}'
+curl http://localhost:19527/api/configs
+curl -X POST http://localhost:19527/api/switch -d '{"name":"anthropic"}'
 ```
 
 ## Troubleshooting

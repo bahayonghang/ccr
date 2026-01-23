@@ -150,7 +150,7 @@ ccr tui --yes      # 或 ccr tui -y
 ccr ui
 
 # 启动 Legacy Web 界面 / Web API（适合脚本/CI 等场景）
-ccr web --port 8080
+ccr web --host 0.0.0.0 --port 19527
 
 # 预算与定价（web 特性）
 ccr budget status

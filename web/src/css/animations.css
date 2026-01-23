@@ -1,0 +1,177 @@
+/* 动态背景 - 电路纹理风格 */
+.bg-effect {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    opacity: 0.3;
+    background:
+        /* 扫描线 */
+        repeating-linear-gradient(
+            0deg,
+            rgba(0, 212, 255, 0.03) 0px,
+            transparent 1px,
+            transparent 2px,
+            rgba(0, 212, 255, 0.03) 3px
+        ),
+        /* 电路网格 */
+        repeating-linear-gradient(
+            90deg,
+            rgba(0, 255, 136, 0.02) 0px,
+            transparent 1px,
+            transparent 80px,
+            rgba(0, 255, 136, 0.02) 81px
+        ),
+        /* 辐射渐变 - 霓虹蓝 */
+        radial-gradient(circle at 20% 50%, var(--accent-primary) 0%, transparent 50%),
+        /* 辐射渐变 - 电路绿 */
+        radial-gradient(circle at 80% 80%, var(--accent-secondary) 0%, transparent 50%),
+        /* 辐射渐变 - 深蓝 */
+        radial-gradient(circle at 40% 40%, var(--accent-tertiary) 0%, transparent 50%);
+    filter: blur(80px);
+    animation: data-flow 20s ease-in-out infinite alternate;
+    transition: opacity 0.3s ease;
+}
+
+[data-theme="light"] .bg-effect {
+    opacity: 0.15;
+}
+
+/* 动画定义 */
+@keyframes data-flow {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+        filter: blur(80px) hue-rotate(0deg);
+    }
+    50% {
+        transform: translate(20px, -20px) scale(1.1);
+        filter: blur(80px) hue-rotate(10deg);
+    }
+}
+
+@keyframes circuit-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 20px var(--glow-primary),
+            0 0 0 1px var(--border-glow);
+    }
+    50% {
+        box-shadow:
+            0 0 40px var(--glow-primary),
+            0 0 60px var(--glow-secondary),
+            0 0 0 2px var(--accent-primary);
+    }
+}
+
+@keyframes scan-line {
+    0% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    50% {
+        opacity: 0.3;
+    }
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(400px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@keyframes scan {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.9); }
+}
+
+@keyframes iconBounce {
+    0%, 100% { transform: scale(1.1); }
+    50% { transform: scale(1.25); }
+}
+
+@keyframes platformSwitch {
+    0%, 100% { transform: translateY(0); opacity: 1; }
+    50% { transform: translateY(-5px); opacity: 0.7; }
+}
+
+@keyframes platformActivated {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.1); }
+    50% { transform: scale(0.95); }
+    75% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes badgeUpdate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3) rotate(10deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes successPulse {
+    0% {
+        box-shadow: 0 0 0 0 var(--glow-success);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+@keyframes itemActivating {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(8px); }
+    75% { transform: translateX(-4px); }
+}
+
+@keyframes configFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes skeleton {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}

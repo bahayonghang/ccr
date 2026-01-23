@@ -15,5 +15,5 @@ use crate::core::error::Result;
 /// Web 命令入口
 #[allow(dead_code)]
 pub async fn start_web_server(port: Option<u16>) -> Result<()> {
-    web_command(port, false).await
+    web_command(None, port, false).await
 }

@@ -151,7 +151,7 @@ ccr sync push -i
 ```bash
 ccr ui -p 3000 --backend-port 38081  # 完整 CCR UI（自动检测或下载）
 ccr tui                              # 需启用 tui 特性
-ccr web -p 8080 --no-browser         # 轻量 API/兼容用途
+ccr web --host 0.0.0.0 -p 19527 --no-browser   # 轻量 API/兼容用途
 ```
 
 ### Sessions 与 Provider

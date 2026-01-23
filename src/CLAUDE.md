@@ -276,7 +276,7 @@ src/
 │
 ├── web/                       # Web 服务器 (feature = "web")
 │   ├── mod.rs
-│   ├── server.rs              - Axum 服务器 (port 8080)
+│   ├── server.rs              - Axum 服务器 (port 19527)
 │   ├── routes.rs              - 路由定义 (14 端点)
 │   └── handlers.rs            - API 处理器
 │
@@ -299,7 +299,7 @@ src/
 |----------|------|------|
 | **CLI 入口** | `src/main.rs` | Clap 解析 + 命令路由 |
 | **库入口** | `src/lib.rs` | 公开 API 导出 |
-| **Web 入口** | `src/web/server.rs` | Axum 服务器 (port 8080) |
+| **Web 入口** | `src/web/server.rs` | Axum 服务器 (port 19527) |
 | **TUI 入口** | `src/tui/mod.rs` | 终端 UI 入口 |
 | **Session 入口** | `src/sessions/mod.rs` | 会话解析和索引 |
 | **Storage 入口** | `src/storage/mod.rs` | SQLite 数据库访问 |
