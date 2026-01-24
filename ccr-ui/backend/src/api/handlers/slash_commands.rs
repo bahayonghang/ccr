@@ -22,54 +22,60 @@ fn extract_description_from_content(content: &str, name: &str) -> String {
 
 /// GET /api/slash-commands - List all slash commands
 pub async fn list_slash_commands() -> impl IntoResponse {
-    // Try markdown files first (primary source with richer data)
-    if let Ok(manager) = MarkdownManager::from_home_subdir("commands")
-        && let Ok(files) = manager.list_files_with_folders()
-    {
-        let mut commands = Vec::new();
+    let start = std::env::current_dir().ok();
+    let project_root = start.as_ref().map(|start| {
+        let mut current = start.as_path();
+        loop {
+            if current.join(".git").exists() {
+                return current.to_path_buf();
+            }
+            match current.parent() {
+                Some(parent) => current = parent,
+                None => return start.clone(),
+            }
+        }
+    });
 
+    let project_manager = project_root.as_ref().and_then(|root| {
+        MarkdownManager::from_directory(root.join(".claude").join("commands")).ok()
+    });
+    let user_manager = MarkdownManager::from_home_subdir("commands").ok();
+
+    let mut merged: std::collections::HashMap<String, SlashCommand> =
+        std::collections::HashMap::new();
+
+    for manager in [project_manager.as_ref(), user_manager.as_ref()]
+        .into_iter()
+        .flatten()
+    {
+        let files = match manager.list_files_with_folders() {
+            Ok(f) => f,
+            Err(_) => continue,
+        };
         for (file_name, folder_path) in files {
-            // Build full path for reading (e.g., "subfolder/command" for subfolder files)
             let full_name = if folder_path.is_empty() {
                 file_name.clone()
             } else {
                 format!("{}/{}", folder_path, file_name)
             };
 
-            // Try to read with frontmatter first
-            let description =
-                match manager.read_file::<CommandFrontmatter>(&full_name) {
-                    Ok(file) => file.frontmatter.description.clone().unwrap_or_else(|| {
+            let description = match manager.read_file::<CommandFrontmatter>(&full_name) {
+                Ok(file) => {
+                    file.frontmatter.description.clone().unwrap_or_else(|| {
                         extract_description_from_content(&file.content, &file_name)
-                    }),
-                    Err(_) => {
-                        // If frontmatter parsing fails, try to read as plain markdown
-                        // Support both Unix (HOME) and Windows (USERPROFILE)
-                        let path = std::env::var("HOME")
-                            .or_else(|_| std::env::var("USERPROFILE"))
-                            .ok()
-                            .map(|home| {
-                                std::path::Path::new(&home)
-                                    .join(".claude")
-                                    .join("commands")
-                                    .join(format!("{}.md", full_name))
-                            });
-
-                        if let Some(path) = path {
-                            if let Ok(content) = std::fs::read_to_string(&path) {
-                                extract_description_from_content(&content, &file_name)
-                            } else {
-                                tracing::warn!("Failed to read slash command file: {}", full_name);
-                                continue;
-                            }
-                        } else {
-                            tracing::warn!("Failed to get HOME directory");
-                            continue;
-                        }
+                    })
+                }
+                Err(_) => match manager.read_file_content(&full_name) {
+                    Ok(content) => extract_description_from_content(&content, &file_name),
+                    Err(e) => {
+                        tracing::warn!("Failed to read slash command file {}: {}", full_name, e);
+                        continue;
                     }
-                };
+                },
+            };
 
-            commands.push(SlashCommand {
+            let key = full_name.clone();
+            merged.entry(key).or_insert(SlashCommand {
                 name: file_name.clone(),
                 description,
                 command: String::new(),
@@ -78,35 +84,37 @@ pub async fn list_slash_commands() -> impl IntoResponse {
                 folder: folder_path,
             });
         }
+    }
 
-        if !commands.is_empty() {
-            // Collect unique folders
-            let folders: Vec<String> = commands
-                .iter()
-                .filter_map(|c| {
-                    if !c.folder.is_empty() {
-                        Some(c.folder.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect::<std::collections::HashSet<_>>()
-                .into_iter()
-                .collect();
+    let mut commands: Vec<SlashCommand> = merged.into_values().collect();
+    commands.sort_by(|a, b| a.name.cmp(&b.name));
 
-            return (
-                StatusCode::OK,
-                Json(json!({
-                    "success": true,
-                    "data": {
-                        "commands": commands,
-                        "folders": folders
-                    },
-                    "message": null
-                })),
-            )
-                .into_response();
-        }
+    if !commands.is_empty() {
+        let folders: Vec<String> = commands
+            .iter()
+            .filter_map(|c| {
+                if c.folder.is_empty() {
+                    None
+                } else {
+                    Some(c.folder.clone())
+                }
+            })
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
+            .collect();
+
+        return (
+            StatusCode::OK,
+            Json(json!({
+                "success": true,
+                "data": {
+                    "commands": commands,
+                    "folders": folders
+                },
+                "message": null
+            })),
+        )
+            .into_response();
     }
 
     // Fallback to settings.json (使用全局缓存)

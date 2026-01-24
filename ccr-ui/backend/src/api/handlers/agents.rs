@@ -5,73 +5,120 @@ use crate::cache::GLOBAL_SETTINGS_CACHE;
 use crate::managers::markdown_manager::{AgentFrontmatter, MarkdownManager};
 use crate::models::api::{Agent, AgentRequest};
 
-/// GET /api/agents - List all agents
-pub async fn list_agents() -> impl IntoResponse {
-    // Try markdown files first (primary source with richer data)
-    if let Ok(manager) = MarkdownManager::from_home_subdir("agents")
-        && let Ok(files) = manager.list_files_with_folders()
-    {
-        let mut agents = Vec::new();
+fn find_project_root() -> Option<std::path::PathBuf> {
+    let start = std::env::current_dir().ok()?;
+    let mut current = start.as_path();
+    loop {
+        if current.join(".git").exists() {
+            return Some(current.to_path_buf());
+        }
+        match current.parent() {
+            Some(parent) => current = parent,
+            None => return Some(start),
+        }
+    }
+}
 
-        for (file_name, folder_path) in files {
-            // Build full path for reading (e.g., "kfc/spec-design" for subfolder files)
-            let full_name = if folder_path.is_empty() {
-                file_name.clone()
-            } else {
-                format!("{}/{}", folder_path, file_name)
-            };
+fn load_agents_from_manager(manager: &MarkdownManager) -> Vec<Agent> {
+    let files = match manager.list_files_with_folders() {
+        Ok(f) => f,
+        Err(_) => return Vec::new(),
+    };
 
-            match manager.read_file::<AgentFrontmatter>(&full_name) {
-                Ok(file) => {
-                    let tools = file
-                        .frontmatter
-                        .tools
-                        .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
-                        .unwrap_or_default();
+    let mut agents = Vec::new();
+    for (file_name, folder_path) in files {
+        let full_name = if folder_path.is_empty() {
+            file_name.clone()
+        } else {
+            format!("{}/{}", folder_path, file_name)
+        };
 
-                    agents.push(Agent {
-                        name: file_name.clone(),
-                        model: String::new(),
-                        tools,
-                        system_prompt: Some(file.content),
-                        disabled: false,
-                        folder: folder_path,
-                    });
-                }
-                Err(e) => {
-                    tracing::warn!("Failed to read agent {}: {}", full_name, e);
-                }
+        match manager.read_file::<AgentFrontmatter>(&full_name) {
+            Ok(file) => {
+                let tools = file
+                    .frontmatter
+                    .tools
+                    .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
+                    .unwrap_or_default();
+
+                agents.push(Agent {
+                    name: file_name.clone(),
+                    model: String::new(),
+                    tools,
+                    system_prompt: Some(file.content),
+                    disabled: false,
+                    folder: folder_path,
+                });
+            }
+            Err(e) => {
+                tracing::warn!("Failed to read agent {}: {}", full_name, e);
             }
         }
+    }
+    agents
+}
 
-        if !agents.is_empty() {
-            // Collect unique folders
-            let folders: Vec<String> = agents
-                .iter()
-                .filter_map(|a| {
-                    if !a.folder.is_empty() {
-                        Some(a.folder.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect::<std::collections::HashSet<_>>()
-                .into_iter()
-                .collect();
+/// GET /api/agents - List all agents
+pub async fn list_agents() -> impl IntoResponse {
+    let project_root = find_project_root();
+    let project_manager = project_root
+        .as_ref()
+        .and_then(|root| MarkdownManager::from_directory(root.join(".claude").join("agents")).ok());
+    let user_manager = MarkdownManager::from_home_subdir("agents").ok();
 
-            return (
-                StatusCode::OK,
-                Json(json!({
-                    "success": true,
-                    "data": {
-                        "agents": agents,
-                        "folders": folders
-                    },
-                    "message": null
-                })),
-            )
-                .into_response();
+    let mut merged: std::collections::HashMap<String, Agent> = std::collections::HashMap::new();
+
+    if let Some(m) = project_manager.as_ref() {
+        for agent in load_agents_from_manager(m) {
+            let key = if agent.folder.is_empty() {
+                agent.name.clone()
+            } else {
+                format!("{}/{}", agent.folder, agent.name)
+            };
+            merged.insert(key, agent);
         }
+    }
+
+    if let Some(m) = user_manager.as_ref() {
+        for agent in load_agents_from_manager(m) {
+            let key = if agent.folder.is_empty() {
+                agent.name.clone()
+            } else {
+                format!("{}/{}", agent.folder, agent.name)
+            };
+            merged.entry(key).or_insert(agent);
+        }
+    }
+
+    let mut agents: Vec<Agent> = merged.into_values().collect();
+    agents.sort_by(|a, b| a.name.cmp(&b.name));
+
+    if !agents.is_empty() {
+        let folders: Vec<String> = agents
+            .iter()
+            .filter_map(|a| {
+                if a.folder.is_empty() {
+                    None
+                } else {
+                    Some(a.folder.clone())
+                }
+            })
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
+            .collect();
+
+        return (
+            StatusCode::OK,
+            Json(json!({
+                "success": true,
+                "data": {
+                    "agents": agents,
+                    "folders": folders
+                },
+                "message": null
+            })),
+        )
+            .into_response();
     }
 
     // Fallback to settings.json (使用全局缓存)
@@ -214,12 +261,21 @@ pub async fn update_agent(
 
 /// GET /api/agents/:name - Get a single agent by name
 pub async fn get_agent(Path(name): Path<String>) -> impl IntoResponse {
-    // Try markdown files first (primary source with richer data)
-    if let Ok(manager) = MarkdownManager::from_home_subdir("agents")
-        && let Ok(files) = manager.list_files_with_folders()
+    let project_root = find_project_root();
+    let project_manager = project_root
+        .as_ref()
+        .and_then(|root| MarkdownManager::from_directory(root.join(".claude").join("agents")).ok());
+    let user_manager = MarkdownManager::from_home_subdir("agents").ok();
+
+    for manager in [project_manager.as_ref(), user_manager.as_ref()]
+        .into_iter()
+        .flatten()
     {
-        for (file_name, folder_path) in files {
-            if file_name == name {
+        if let Ok(files) = manager.list_files_with_folders() {
+            for (file_name, folder_path) in files {
+                if file_name != name {
+                    continue;
+                }
                 let full_name = if folder_path.is_empty() {
                     file_name.clone()
                 } else {
