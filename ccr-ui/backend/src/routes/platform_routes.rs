@@ -19,6 +19,10 @@ pub fn routes() -> Router {
             post(crate::api::handlers::platform::switch_platform),
         )
         .route(
+            "/platforms/capabilities",
+            get(crate::api::handlers::platform::get_platform_capabilities),
+        )
+        .route(
             "/platforms/{name}",
             get(crate::api::handlers::platform::get_platform),
         )

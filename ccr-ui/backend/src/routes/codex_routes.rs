@@ -87,4 +87,24 @@ pub fn routes() -> Router {
             "/codex/usage",
             get(crate::api::handlers::platforms::codex::get_codex_usage),
         )
+        .route(
+            "/codex/slash-commands",
+            get(crate::api::handlers::platforms::codex::list_codex_slash_commands),
+        )
+        .route(
+            "/codex/slash-commands",
+            post(crate::api::handlers::platforms::codex::add_codex_slash_command),
+        )
+        .route(
+            "/codex/slash-commands/{name}",
+            put(crate::api::handlers::platforms::codex::update_codex_slash_command),
+        )
+        .route(
+            "/codex/slash-commands/{name}",
+            delete(crate::api::handlers::platforms::codex::delete_codex_slash_command),
+        )
+        .route(
+            "/codex/slash-commands/{name}/toggle",
+            put(crate::api::handlers::platforms::codex::toggle_codex_slash_command),
+        )
 }

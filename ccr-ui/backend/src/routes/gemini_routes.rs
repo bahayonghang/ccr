@@ -32,4 +32,24 @@ pub fn routes() -> Router {
             "/gemini/config",
             put(crate::api::handlers::platforms::gemini::update_gemini_config),
         )
+        .route(
+            "/gemini/slash-commands",
+            get(crate::api::handlers::platforms::gemini::list_gemini_slash_commands),
+        )
+        .route(
+            "/gemini/slash-commands",
+            post(crate::api::handlers::platforms::gemini::add_gemini_slash_command),
+        )
+        .route(
+            "/gemini/slash-commands/{name}",
+            put(crate::api::handlers::platforms::gemini::update_gemini_slash_command),
+        )
+        .route(
+            "/gemini/slash-commands/{name}",
+            delete(crate::api::handlers::platforms::gemini::delete_gemini_slash_command),
+        )
+        .route(
+            "/gemini/slash-commands/{name}/toggle",
+            put(crate::api::handlers::platforms::gemini::toggle_gemini_slash_command),
+        )
 }
