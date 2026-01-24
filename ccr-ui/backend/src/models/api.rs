@@ -685,6 +685,25 @@ pub struct PlatformProfileResponse {
     pub current_profile: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformModuleCapabilities {
+    pub config: bool,
+    pub mcp: bool,
+    pub profiles: bool,
+    pub auth: bool,
+    pub usage: bool,
+    pub agents: bool,
+    pub slash_commands: bool,
+    pub skills: bool,
+    pub plugins: bool,
+    pub commands: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformCapabilitiesResponse {
+    pub platforms: std::collections::BTreeMap<String, PlatformModuleCapabilities>,
+}
+
 /// Set platform profile request for POST /api/platforms/:name/profile
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SetPlatformProfileRequest {

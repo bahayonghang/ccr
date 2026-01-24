@@ -3,11 +3,13 @@
 // 使用统一的响应工具模块减少重复代码
 
 use axum::{Json, extract::Path, response::IntoResponse};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::api::handlers::response::{bad_request, internal_error, not_found, ok, ok_message};
 use crate::managers::config::codex_manager::CodexConfigManager;
+use crate::managers::markdown_manager::{MarkdownFile, MarkdownManager};
+use crate::models::api::{SlashCommand, SlashCommandRequest};
 use crate::models::platforms::codex::*;
 
 // CCR 平台 Profiles（~/.ccr/platforms/codex/profiles.toml）
@@ -721,5 +723,187 @@ pub async fn get_codex_usage() -> impl IntoResponse {
         Ok(Ok(response)) => ok(response).into_response(),
         Ok(Err(e)) => internal_error(format!("获取 Codex 使用量失败: {}", e)).into_response(),
         Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CodexPromptFrontmatter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "argument-hint")]
+    pub argument_hint: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disabled: Option<bool>,
+}
+
+fn extract_description_from_body(body: &str, name: &str) -> String {
+    for line in body.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        return line.to_string();
+    }
+    format!("Slash command: {}", name)
+}
+
+fn codex_prompts_dir() -> Result<std::path::PathBuf, String> {
+    let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
+    Ok(home.join(".codex").join("prompts"))
+}
+
+pub async fn list_codex_slash_commands() -> impl IntoResponse {
+    let prompts_dir = match codex_prompts_dir() {
+        Ok(p) => p,
+        Err(e) => return internal_error(e).into_response(),
+    };
+
+    let manager = match MarkdownManager::from_directory(prompts_dir) {
+        Ok(m) => m,
+        Err(e) => {
+            return internal_error(format!("初始化 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    let files = match manager.list_files_top_level() {
+        Ok(f) => f,
+        Err(e) => {
+            return internal_error(format!("读取 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    let mut commands: Vec<SlashCommand> = Vec::new();
+    for name in files {
+        match manager.read_file::<CodexPromptFrontmatter>(&name) {
+            Ok(file) => commands.push(SlashCommand {
+                name: name.clone(),
+                description: file
+                    .frontmatter
+                    .description
+                    .clone()
+                    .unwrap_or_else(|| extract_description_from_body(&file.content, &name)),
+                command: file.content,
+                args: None,
+                disabled: file.frontmatter.disabled.unwrap_or(false),
+                folder: String::new(),
+            }),
+            Err(e) => {
+                tracing::warn!("读取 Codex prompt 失败: {} ({})", name, e);
+            }
+        }
+    }
+
+    ok(json!({
+        "commands": commands,
+        "folders": Vec::<String>::new()
+    }))
+    .into_response()
+}
+
+pub async fn add_codex_slash_command(Json(req): Json<SlashCommandRequest>) -> impl IntoResponse {
+    let prompts_dir = match codex_prompts_dir() {
+        Ok(p) => p,
+        Err(e) => return internal_error(e).into_response(),
+    };
+
+    let manager = match MarkdownManager::from_directory(prompts_dir) {
+        Ok(m) => m,
+        Err(e) => {
+            return internal_error(format!("初始化 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    let file = MarkdownFile {
+        frontmatter: CodexPromptFrontmatter {
+            description: Some(req.description),
+            argument_hint: None,
+            disabled: req.disabled,
+        },
+        content: req.command,
+    };
+
+    match manager.write_file(&req.name, &file) {
+        Ok(_) => ok_message("Codex slash command added successfully").into_response(),
+        Err(e) => internal_error(format!("写入 Codex prompt 失败: {}", e)).into_response(),
+    }
+}
+
+pub async fn update_codex_slash_command(
+    Path(name): Path<String>,
+    Json(req): Json<SlashCommandRequest>,
+) -> impl IntoResponse {
+    let prompts_dir = match codex_prompts_dir() {
+        Ok(p) => p,
+        Err(e) => return internal_error(e).into_response(),
+    };
+
+    let manager = match MarkdownManager::from_directory(prompts_dir) {
+        Ok(m) => m,
+        Err(e) => {
+            return internal_error(format!("初始化 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    let file = MarkdownFile {
+        frontmatter: CodexPromptFrontmatter {
+            description: Some(req.description),
+            argument_hint: None,
+            disabled: req.disabled,
+        },
+        content: req.command,
+    };
+
+    match manager.write_file(&name, &file) {
+        Ok(_) => ok_message("Codex slash command updated successfully").into_response(),
+        Err(e) => internal_error(format!("写入 Codex prompt 失败: {}", e)).into_response(),
+    }
+}
+
+pub async fn delete_codex_slash_command(Path(name): Path<String>) -> impl IntoResponse {
+    let prompts_dir = match codex_prompts_dir() {
+        Ok(p) => p,
+        Err(e) => return internal_error(e).into_response(),
+    };
+
+    let manager = match MarkdownManager::from_directory(prompts_dir) {
+        Ok(m) => m,
+        Err(e) => {
+            return internal_error(format!("初始化 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    match manager.delete_file(&name) {
+        Ok(_) => ok_message("Codex slash command deleted successfully").into_response(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            not_found("Codex slash command not found").into_response()
+        }
+        Err(e) => internal_error(format!("删除 Codex prompt 失败: {}", e)).into_response(),
+    }
+}
+
+pub async fn toggle_codex_slash_command(Path(name): Path<String>) -> impl IntoResponse {
+    let prompts_dir = match codex_prompts_dir() {
+        Ok(p) => p,
+        Err(e) => return internal_error(e).into_response(),
+    };
+
+    let manager = match MarkdownManager::from_directory(prompts_dir) {
+        Ok(m) => m,
+        Err(e) => {
+            return internal_error(format!("初始化 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    let mut file = match manager.read_file::<CodexPromptFrontmatter>(&name) {
+        Ok(f) => f,
+        Err(e) => return not_found(format!("读取 Codex prompt 失败: {}", e)).into_response(),
+    };
+
+    let current = file.frontmatter.disabled.unwrap_or(false);
+    file.frontmatter.disabled = Some(!current);
+
+    match manager.write_file(&name, &file) {
+        Ok(_) => ok_message("Codex slash command toggled successfully").into_response(),
+        Err(e) => internal_error(format!("写入 Codex prompt 失败: {}", e)).into_response(),
     }
 }
