@@ -89,9 +89,7 @@ impl CommandDispatcher {
                 host,
                 port,
                 no_browser,
-            }) => {
-                crate::web::web_command(Some(*host), Some(*port), *no_browser).await
-            }
+            }) => crate::web::web_command(Some(*host), Some(*port), *no_browser).await,
 
             Some(Commands::Ui {
                 action,

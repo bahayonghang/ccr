@@ -104,7 +104,10 @@ impl WebServer {
         // 📍 输出访问地址
         if is_wsl {
             ColorOutput::info(&format!("📍 本地访问: http://localhost:{}", actual_port));
-            if bound_any && !localhost_only && let Some(ip) = &local_ip {
+            if bound_any
+                && !localhost_only
+                && let Some(ip) = &local_ip
+            {
                 ColorOutput::info(&format!(
                     "📍 内网访问: http://{}:{} (推荐用于 Windows 主机)",
                     ip, actual_port
@@ -123,7 +126,10 @@ impl WebServer {
                 ColorOutput::info(&format!("📍 地址: http://{}:{}", bound_ip, actual_port));
             }
 
-            if bound_any && !localhost_only && let Some(ip) = &local_ip {
+            if bound_any
+                && !localhost_only
+                && let Some(ip) = &local_ip
+            {
                 ColorOutput::info(&format!("💡 内网访问: http://{}:{}", ip, actual_port));
             } else if localhost_only {
                 ColorOutput::warning("⚠️ 当前仅绑定到 localhost，无法通过内网 IP 访问");
@@ -333,7 +339,11 @@ impl WebServer {
                                     "⚠️ 绑定到 {} 被拒绝（权限/策略），已改为绑定到 localhost:{}",
                                     addr, port
                                 ));
-                                return Ok((listener, port, std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)));
+                                return Ok((
+                                    listener,
+                                    port,
+                                    std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST),
+                                ));
                             }
                             Err(local_err) => {
                                 last_error_message = Some(local_err.to_string());
@@ -378,10 +388,7 @@ impl WebServer {
                 })?
         };
 
-        let actual_port = listener
-            .local_addr()
-            .map(|addr| addr.port())
-            .unwrap_or(0);
+        let actual_port = listener.local_addr().map(|addr| addr.port()).unwrap_or(0);
 
         ColorOutput::warning(&format!(
             "⚠️ 端口 {}-{} 均不可用（最后错误: {}），已自动分配端口 {}",
