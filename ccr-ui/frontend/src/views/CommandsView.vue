@@ -347,6 +347,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { 
   Zap, Sparkles, Gem, Workflow, 
   Play, Copy, Trash2, Terminal, 
@@ -373,6 +374,8 @@ hljs.registerLanguage('plaintext', plaintext)
 type CliClient = 'ccr' | 'claude' | 'qwen' | 'gemini' | 'iflow'
 
 const { t } = useI18n({ useScope: 'global' })
+const route = useRoute()
+const router = useRouter()
 
 const CLI_CLIENTS = [
   { id: 'ccr' as CliClient, name: 'CCR', icon: Zap, color: 'rgba(139, 92, 246, 0.2)' },
@@ -464,16 +467,44 @@ const loadCommands = async () => {
   }
 }
 
+const normalizeClientParam = (clientParam: unknown): CliClient | null => {
+  if (typeof clientParam !== 'string' || !clientParam) return null
+  if (clientParam === 'claude-code') return 'claude'
+  if (clientParam === 'ccr' || clientParam === 'claude' || clientParam === 'qwen' || clientParam === 'gemini' || clientParam === 'iflow') {
+    return clientParam
+  }
+  return null
+}
+
 onMounted(() => {
+  const initialClient = normalizeClientParam(route.params.client)
+  if (initialClient) {
+    selectedClient.value = initialClient
+  }
   loadCommands()
   loadConfigs()
 })
+
+watch(
+  () => route.params.client,
+  (clientParam) => {
+    const client = normalizeClientParam(clientParam)
+    if (client && client !== selectedClient.value) {
+      selectedClient.value = client
+    }
+  }
+)
 
 watch(selectedClient, () => {
   selectedCommand.value = ''
   args.value = ''
   output.value = null
   loadCommands()
+
+  const current = normalizeClientParam(route.params.client) || 'ccr'
+  if (current !== selectedClient.value) {
+    router.replace({ name: 'commands', params: { client: selectedClient.value } })
+  }
 })
 
 const setSelectedClient = (client: CliClient) => {

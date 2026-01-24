@@ -253,6 +253,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import api from '@/api/core'
+import type { PlatformCapabilitiesResponse, PlatformModuleCapabilities } from '@/types/platform'
 import {
   Settings,
   Terminal,
@@ -302,6 +304,39 @@ const props = withDefaults(defineProps<Props>(), {
 const route = useRoute()
 const collapsed = ref(false)
 const expandedGroups = reactive<Record<string, boolean>>({})
+const capabilities = ref<PlatformCapabilitiesResponse | null>(null)
+
+type CapabilityKey = keyof PlatformModuleCapabilities
+
+const moduleToPlatformKey = (module?: string): string | null => {
+  if (!module) return null
+  if (module === 'claude') return 'claude-code'
+  return module
+}
+
+const featureForHref = (href: string): CapabilityKey | null => {
+  if (href.includes('/mcp')) return 'mcp'
+  if (href.includes('/agents')) return 'agents'
+  if (href.includes('/slash-commands')) return 'slash_commands'
+  if (href.includes('/plugins')) return 'plugins'
+  if (href.includes('/skills')) return 'skills'
+  if (href.includes('/usage')) return 'usage'
+  if (href.includes('/profiles')) return 'profiles'
+  if (href.includes('/auth')) return 'auth'
+  if (href.includes('/config')) return 'config'
+  if (href.startsWith('/commands')) return 'commands'
+  return null
+}
+
+const isItemEnabled = (groupModule: string | undefined, href: string): boolean => {
+  const platformKey = moduleToPlatformKey(groupModule)
+  const feature = featureForHref(href)
+  if (!platformKey || !feature) return true
+  if (!capabilities.value) return true
+  const platformCaps = capabilities.value.platforms?.[platformKey]
+  if (!platformCaps) return false
+  return Boolean(platformCaps[feature])
+}
 
 // 完整的导航菜单结构
 const allNavigationGroups: NavGroup[] = [
@@ -410,13 +445,33 @@ const navigationGroups = computed(() => {
   if (!props.module) {
     // 如果没有指定 module，显示所有菜单
     return allNavigationGroups
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item => isItemEnabled(group.module, item.href))
+      }))
+      .filter(group => group.items.length > 0)
   }
   
   // 否则只显示指定 module 的菜单
-  return allNavigationGroups.filter(group => group.module === props.module)
+  return allNavigationGroups
+    .filter(group => group.module === props.module)
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => isItemEnabled(group.module, item.href))
+    }))
+    .filter(group => group.items.length > 0)
 })
 
 onMounted(() => {
+  api.get('/platforms/capabilities')
+    .then((response) => {
+      const data = response.data?.data ?? response.data
+      capabilities.value = data
+    })
+    .catch(() => {
+      capabilities.value = null
+    })
+
   // 初始化展开状态
   navigationGroups.value.forEach(group => {
     expandedGroups[group.title] = group.defaultExpanded

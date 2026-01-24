@@ -56,7 +56,7 @@ export const codexConfig: PlatformConfig = {
   api: {
     list: async () => {
       const response = await api.get('/codex/slash-commands')
-      return response.data
+      return response.data?.data ?? response.data
     },
     add: async (cmd: any) => {
       await api.post('/codex/slash-commands', cmd)
@@ -94,7 +94,7 @@ export const geminiConfig: PlatformConfig = {
   api: {
     list: async () => {
       const response = await api.get('/gemini/slash-commands')
-      return response.data
+      return response.data?.data ?? response.data
     },
     add: async (cmd: any) => {
       await api.post('/gemini/slash-commands', cmd)
@@ -132,7 +132,7 @@ export const qwenConfig: PlatformConfig = {
   api: {
     list: async () => {
       const response = await api.get('/qwen/slash-commands')
-      return response.data
+      return response.data?.data ?? response.data
     },
     add: async (cmd: any) => {
       await api.post('/qwen/slash-commands', cmd)
@@ -170,7 +170,7 @@ export const iflowConfig: PlatformConfig = {
   api: {
     list: async () => {
       const response = await api.get('/iflow/slash-commands')
-      return response.data
+      return response.data?.data ?? response.data
     },
     add: async (cmd: any) => {
       await api.post('/iflow/slash-commands', cmd)

@@ -1042,8 +1042,7 @@ export const pullSync = async (req: SyncOperationRequest): Promise<SyncOperation
 // ===================================
 
 export const listGeminiAgents = async (): Promise<PlatformAgentsResponse> => {
-  // TODO: Backend implementation needed
-  return { agents: [], folders: [] }
+  throw new Error('Gemini agents are not supported by backend')
 }
 
 export const addGeminiAgent = async (_request: PlatformAgentRequest): Promise<string> => {
@@ -1063,27 +1062,32 @@ export const toggleGeminiAgent = async (_name: string): Promise<string> => {
 }
 
 export const listGeminiSlashCommands = async (): Promise<PlatformSlashCommandsResponse> => {
-  return { commands: [], folders: [] }
+  const response = await api.get<ApiResponse<PlatformSlashCommandsResponse>>('/gemini/slash-commands')
+  return response.data.data ?? (response.data as any)
 }
 
 export const addGeminiSlashCommand = async (_request: PlatformSlashCommandRequest): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.post<ApiResponse<string>>('/gemini/slash-commands', _request)
+  return response.data.message || 'OK'
 }
 
 export const updateGeminiSlashCommand = async (_name: string, _request: PlatformSlashCommandRequest): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.put<ApiResponse<string>>(`/gemini/slash-commands/${encodeURIComponent(_name)}`, _request)
+  return response.data.message || 'OK'
 }
 
 export const deleteGeminiSlashCommand = async (_name: string): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.delete<ApiResponse<string>>(`/gemini/slash-commands/${encodeURIComponent(_name)}`)
+  return response.data.message || 'OK'
 }
 
 export const toggleGeminiSlashCommand = async (_name: string): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.put<ApiResponse<string>>(`/gemini/slash-commands/${encodeURIComponent(_name)}/toggle`)
+  return response.data.message || 'OK'
 }
 
 export const listGeminiPlugins = async (): Promise<Plugin[]> => {
-  return []
+  throw new Error('Gemini plugins are not supported by backend')
 }
 
 export const addGeminiPlugin = async (_request: PlatformPluginRequest): Promise<string> => {
@@ -1107,7 +1111,7 @@ export const toggleGeminiPlugin = async (_id: string): Promise<string> => {
 // ===================================
 
 export const listQwenAgents = async (): Promise<PlatformAgentsResponse> => {
-  return { agents: [], folders: [] }
+  throw new Error('Qwen agents are not supported by backend')
 }
 
 export const addQwenAgent = async (_request: PlatformAgentRequest): Promise<string> => {
@@ -1127,27 +1131,32 @@ export const toggleQwenAgent = async (_name: string): Promise<string> => {
 }
 
 export const listQwenSlashCommands = async (): Promise<PlatformSlashCommandsResponse> => {
-  return { commands: [], folders: [] }
+  const response = await api.get<ApiResponse<PlatformSlashCommandsResponse>>('/qwen/slash-commands')
+  return response.data.data ?? (response.data as any)
 }
 
 export const addQwenSlashCommand = async (_request: PlatformSlashCommandRequest): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.post<ApiResponse<string>>('/qwen/slash-commands', _request)
+  return response.data.message || 'OK'
 }
 
 export const updateQwenSlashCommand = async (_name: string, _request: PlatformSlashCommandRequest): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.put<ApiResponse<string>>(`/qwen/slash-commands/${encodeURIComponent(_name)}`, _request)
+  return response.data.message || 'OK'
 }
 
 export const deleteQwenSlashCommand = async (_name: string): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.delete<ApiResponse<string>>(`/qwen/slash-commands/${encodeURIComponent(_name)}`)
+  return response.data.message || 'OK'
 }
 
 export const toggleQwenSlashCommand = async (_name: string): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.put<ApiResponse<string>>(`/qwen/slash-commands/${encodeURIComponent(_name)}/toggle`)
+  return response.data.message || 'OK'
 }
 
 export const listQwenPlugins = async (): Promise<Plugin[]> => {
-  return []
+  throw new Error('Qwen plugins are not supported by backend')
 }
 
 export const addQwenPlugin = async (_request: PlatformPluginRequest): Promise<string> => {
@@ -1171,23 +1180,28 @@ export const toggleQwenPlugin = async (_id: string): Promise<string> => {
 // ===================================
 
 export const listIflowMcpServers = async (): Promise<PlatformMcpServerRequest[]> => {
-  return []
+  const response = await api.get<ApiResponse<PlatformMcpServerRequest[]>>('/iflow/mcp')
+  return response.data.data ?? (response.data as any)
 }
 
 export const addIflowMcpServer = async (_request: PlatformMcpServerRequest): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.post<ApiResponse<string>>('/iflow/mcp', _request)
+  return response.data.message || 'OK'
 }
 
 export const updateIflowMcpServer = async (_name: string, _request: PlatformMcpServerRequest): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.put<ApiResponse<string>>(`/iflow/mcp/${encodeURIComponent(_name)}`, _request)
+  return response.data.message || 'OK'
 }
 
 export const deleteIflowMcpServer = async (_name: string): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.delete<ApiResponse<string>>(`/iflow/mcp/${encodeURIComponent(_name)}`)
+  return response.data.message || 'OK'
 }
 
 export const listIflowAgents = async (): Promise<PlatformAgentsResponse> => {
-  return { agents: [], folders: [] }
+  const response = await api.get<ApiResponse<PlatformAgentsResponse>>('/iflow/agents')
+  return response.data.data ?? (response.data as any)
 }
 
 export const addIflowAgent = async (_request: PlatformAgentRequest): Promise<string> => {
@@ -1203,31 +1217,38 @@ export const deleteIflowAgent = async (_name: string): Promise<string> => {
 }
 
 export const toggleIflowAgent = async (_name: string): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.put<ApiResponse<string>>(`/iflow/agents/${encodeURIComponent(_name)}/toggle`)
+  return response.data.message || 'OK'
 }
 
 export const listIflowSlashCommands = async (): Promise<PlatformSlashCommandsResponse> => {
-  return { commands: [], folders: [] }
+  const response = await api.get<ApiResponse<PlatformSlashCommandsResponse>>('/iflow/slash-commands')
+  return response.data.data ?? (response.data as any)
 }
 
 export const addIflowSlashCommand = async (_request: PlatformSlashCommandRequest): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.post<ApiResponse<string>>('/iflow/slash-commands', _request)
+  return response.data.message || 'OK'
 }
 
 export const updateIflowSlashCommand = async (_name: string, _request: PlatformSlashCommandRequest): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.put<ApiResponse<string>>(`/iflow/slash-commands/${encodeURIComponent(_name)}`, _request)
+  return response.data.message || 'OK'
 }
 
 export const deleteIflowSlashCommand = async (_name: string): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.delete<ApiResponse<string>>(`/iflow/slash-commands/${encodeURIComponent(_name)}`)
+  return response.data.message || 'OK'
 }
 
 export const toggleIflowSlashCommand = async (_name: string): Promise<string> => {
-  throw new Error('Backend API not implemented yet')
+  const response = await api.put<ApiResponse<string>>(`/iflow/slash-commands/${encodeURIComponent(_name)}/toggle`)
+  return response.data.message || 'OK'
 }
 
 export const listIflowPlugins = async (): Promise<Plugin[]> => {
-  return []
+  const response = await api.get<ApiResponse<Plugin[]>>('/iflow/plugins')
+  return response.data.data ?? (response.data as any)
 }
 
 export const addIflowPlugin = async (_request: PlatformPluginRequest): Promise<string> => {

@@ -70,3 +70,20 @@ export interface ThemeColors {
   accentBg: string
   accentBorder: string
 }
+
+export interface PlatformModuleCapabilities {
+  config: boolean
+  mcp: boolean
+  profiles: boolean
+  auth: boolean
+  usage: boolean
+  agents: boolean
+  slash_commands: boolean
+  skills: boolean
+  plugins: boolean
+  commands: boolean
+}
+
+export interface PlatformCapabilitiesResponse {
+  platforms: Record<string, PlatformModuleCapabilities>
+}

@@ -52,7 +52,7 @@ const router = createRouter({
           meta: { cache: true }
         },
         {
-          path: 'commands',
+          path: 'commands/:client?',
           name: 'commands',
           component: () => import('@/views/CommandsView.vue'),
           meta: { cache: true, stream: true }
