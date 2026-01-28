@@ -8,6 +8,8 @@
       paddingClasses,
       className
     ]"
+    :role="role"
+    :tabindex="tabindex"
     :style="{
       borderRadius: 'var(--radius-xl)',
       border: '1px solid var(--border-color)',
@@ -15,6 +17,7 @@
       ...style
     }"
     @click="handleClick"
+    @keydown="onKeydown"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
   >
@@ -84,6 +87,9 @@ interface Props {
   bodyClass?: string
   /** 内边距大小 */
   padding?: 'none' | 'sm' | 'md' | 'lg'
+  role?: string
+  tabindex?: number | string
+  onKeydown?: (event: KeyboardEvent) => void
   /** 是否启用渐变边框 */
   gradientBorder?: boolean
   /** 是否启用发光效果 */
@@ -102,6 +108,9 @@ const props = withDefaults(defineProps<Props>(), {
   style: () => ({}),
   bodyClass: '',
   padding: 'md',
+  role: undefined,
+  tabindex: undefined,
+  onKeydown: undefined,
   gradientBorder: false,
   glowEffect: false,
   glowColor: 'primary',

@@ -1,5 +1,13 @@
 <template>
   <div class="flex h-screen bg-bg-primary">
+    <!-- Skip Link for Accessibility -->
+    <a
+      href="#main-content"
+      class="skip-to-content"
+    >
+      {{ $t('common.skipToContent') || 'Skip to content' }}
+    </a>
+
     <!-- Sidebar -->
     <div
       class="bg-bg-secondary border-r border-border-color flex flex-col relative flex-shrink-0"
@@ -7,9 +15,18 @@
     >
       <!-- Resize Handle -->
       <div
-        class="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-accent-primary/50 transition-colors z-50 group"
+        class="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-accent-primary/50 transition-colors z-50 group outline-none focus-visible:bg-accent-primary"
         :class="{ 'bg-accent-primary': isResizing }"
+        tabindex="0"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Sidebar resize handle"
+        :aria-valuenow="sidebarWidth"
+        :aria-valuemin="minWidth"
+        :aria-valuemax="maxWidth"
         @mousedown.prevent="startResize"
+        @keydown.left.prevent="resizeKeyboard(-10)"
+        @keydown.right.prevent="resizeKeyboard(10)"
       >
         <div
           class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-border-color rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
@@ -234,7 +251,7 @@
       <div class="p-4 border-t border-border-color/50 bg-bg-secondary/50 backdrop-blur-sm">
         <div class="flex items-center justify-between gap-3 animate-sidebar-item-enter">
           <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
-            <span class="whitespace-nowrap">CCR UI v3.20.0</span>
+            <span class="whitespace-nowrap">CCR UI v3.20.1</span>
             <span
               class="w-2 h-2 rounded-full bg-accent-success animate-pulse"
               style="box-shadow: 0 0 8px rgb(var(--color-success-rgb), 0.4)"
@@ -242,11 +259,34 @@
           </div>
           <BackendStatusBadge />
         </div>
+        
+        <!-- Exit Confirm Toggle (Tauri only) -->
+        <div
+          v-if="isTauri"
+          class="flex items-center justify-between text-xs mt-3 pt-3 border-t border-border-color/30"
+        >
+          <span class="text-text-secondary">{{ $t('common.exitConfirm') || '退出确认' }}</span>
+          <button
+            class="relative w-8 h-4 rounded-full transition-colors"
+            :class="showExitConfirm ? 'bg-accent-primary' : 'bg-bg-tertiary'"
+            @click="toggleExitConfirm"
+            aria-label="Toggle exit confirmation"
+          >
+            <span
+              class="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform"
+              :class="showExitConfirm ? 'translate-x-4' : 'translate-x-0.5'"
+            />
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 flex flex-col overflow-auto">
+    <div
+      id="main-content"
+      class="flex-1 flex flex-col overflow-auto focus:outline-none"
+      tabindex="-1"
+    >
       <BackendStatusBanner />
       <RouterView />
     </div>
@@ -274,11 +314,23 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import BackendStatusBadge from '@/components/BackendStatusBadge.vue'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import { useThemeStore } from '@/store'
+import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
 
 const sidebarWidth = ref(260)
 const isResizing = ref(false)
 const minWidth = 200
 const maxWidth = 720
+
+// Tauri Environment
+const isTauri = ref(false)
+const showExitConfirm = ref(true)
+
+const toggleExitConfirm = async () => {
+  showExitConfirm.value = !showExitConfirm.value
+  if (isTauri.value) {
+    await setSkipExitConfirm(!showExitConfirm.value)
+  }
+}
 
 const themeStore = useThemeStore()
 const currentTheme = computed(() => themeStore.currentTheme)
@@ -294,6 +346,14 @@ const startResize = () => {
 
   window.addEventListener('mousemove', handleResize)
   window.addEventListener('mouseup', stopResize)
+}
+
+const resizeKeyboard = (delta: number) => {
+  let newWidth = sidebarWidth.value + delta
+  if (newWidth < minWidth) newWidth = minWidth
+  if (newWidth > maxWidth) newWidth = maxWidth
+  sidebarWidth.value = newWidth
+  localStorage.setItem('ccr-sidebar-width', sidebarWidth.value.toString())
 }
 
 const handleResize = (e: MouseEvent) => {
@@ -317,12 +377,23 @@ const stopResize = () => {
   window.removeEventListener('mouseup', stopResize)
 }
 
-onMounted(() => {
+onMounted(async () => {
   const savedWidth = localStorage.getItem('ccr-sidebar-width')
   if (savedWidth) {
     const width = Number.parseInt(savedWidth, 10)
     if (!Number.isNaN(width) && width >= minWidth && width <= maxWidth) {
       sidebarWidth.value = width
+    }
+  }
+
+  // Check Tauri environment and load settings
+  isTauri.value = isTauriEnvironment()
+  if (isTauri.value) {
+    try {
+      const skipConfirm = await getSkipExitConfirm()
+      showExitConfirm.value = !skipConfirm
+    } catch (e) {
+      console.error('Failed to load exit confirm setting:', e)
     }
   }
 })
