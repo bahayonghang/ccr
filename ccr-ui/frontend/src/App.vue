@@ -1,6 +1,9 @@
 <template>
   <RouterView v-slot="{ Component }">
-    <keep-alive :include="cachedViews">
+    <keep-alive
+      :include="cachedViews"
+      :max="5"
+    >
       <component :is="Component" />
     </keep-alive>
   </RouterView>
