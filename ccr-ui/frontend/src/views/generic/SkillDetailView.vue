@@ -181,6 +181,7 @@ import { useI18n } from 'vue-i18n'
 import { Book, Edit2, Trash2, ArrowLeft, FolderOpen, FileText, Copy, X, AlertCircle, Home } from 'lucide-vue-next'
 import Breadcrumb from '@/components/common/Breadcrumb.vue'
 import { useSkills, type Skill } from '@/composables/useSkills'
+import { extractStringParam } from '@/types/router'
 
 const route = useRoute()
 const router = useRouter()
@@ -200,7 +201,7 @@ const breadcrumbs = computed(() => [
 ])
 
 onMounted(async () => {
-  const name = route.params.name as string
+  const name = extractStringParam(route.params.name)
   if (name) {
     try {
       skill.value = await getSkill(name)

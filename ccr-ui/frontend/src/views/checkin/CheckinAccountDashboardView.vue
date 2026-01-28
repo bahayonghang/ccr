@@ -237,13 +237,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, CheckCircle2, RefreshCw, Wallet, TrendingUp, History, CalendarDays, Flame, Trophy, Calendar } from 'lucide-vue-next'
 import { checkinAccount, getCheckinAccountDashboard, queryCheckinBalance } from '@/api/client'
 import type { CheckinAccountDashboardResponse } from '@/types/checkin'
+import { extractStringParam } from '@/types/router'
 import AccountDashboardCalendar from './components/AccountDashboardCalendar.vue'
 import AccountDashboardTrend from './components/AccountDashboardTrend.vue'
 
 const route = useRoute()
 const router = useRouter()
 
-const accountId = computed(() => route.params.accountId as string)
+const accountId = computed(() => extractStringParam(route.params.accountId) || '')
 const dashboard = ref<CheckinAccountDashboardResponse | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)

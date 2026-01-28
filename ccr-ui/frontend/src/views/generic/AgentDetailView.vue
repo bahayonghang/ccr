@@ -303,6 +303,7 @@ import {
 import Breadcrumb from '@/components/common/Breadcrumb.vue'
 import { useAgents } from '@/composables/useAgents'
 import type { Agent, AgentRequest } from '@/types'
+import { extractStringParam } from '@/types/router'
 
 const route = useRoute()
 const router = useRouter()
@@ -326,7 +327,7 @@ const breadcrumbs = computed(() => [
 ])
 
 onMounted(async () => {
-  const name = route.params.name as string
+  const name = extractStringParam(route.params.name)
   if (name) {
     try {
       agent.value = await getAgent(name)
@@ -334,6 +335,8 @@ onMounted(async () => {
       console.error('Failed to load agent:', err)
       error.value = err.message || 'Failed to load agent'
     }
+  } else {
+    error.value = 'Invalid agent name parameter'
   }
 })
 

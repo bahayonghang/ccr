@@ -362,7 +362,7 @@ import {
   BarChart3, RefreshCw, AlertCircle, Clock
 } from 'lucide-vue-next'
 
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import { listCodexProfiles, getCodexUsage } from '@/api'
 import type { CodexUsageResponse } from '@/types'

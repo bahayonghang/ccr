@@ -362,6 +362,7 @@ import 'highlight.js/styles/atom-one-dark.css'
 
 import { listCommands, executeCommand, listConfigs } from '@/api/client'
 import type { CommandInfo, CommandResponse, ConfigItem } from '@/types'
+import { normalizeCliClient, type CliClient } from '@/types/router'
 import Navbar from '@/components/Navbar.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 
@@ -370,8 +371,6 @@ hljs.registerLanguage('bash', bash)
 hljs.registerLanguage('json', json)
 hljs.registerLanguage('markdown', markdown)
 hljs.registerLanguage('plaintext', plaintext)
-
-type CliClient = 'ccr' | 'claude' | 'qwen' | 'gemini' | 'iflow'
 
 const { t } = useI18n({ useScope: 'global' })
 const route = useRoute()
@@ -467,17 +466,8 @@ const loadCommands = async () => {
   }
 }
 
-const normalizeClientParam = (clientParam: unknown): CliClient | null => {
-  if (typeof clientParam !== 'string' || !clientParam) return null
-  if (clientParam === 'claude-code') return 'claude'
-  if (clientParam === 'ccr' || clientParam === 'claude' || clientParam === 'qwen' || clientParam === 'gemini' || clientParam === 'iflow') {
-    return clientParam
-  }
-  return null
-}
-
 onMounted(() => {
-  const initialClient = normalizeClientParam(route.params.client)
+  const initialClient = normalizeCliClient(route.params.client)
   if (initialClient) {
     selectedClient.value = initialClient
   }
@@ -488,7 +478,7 @@ onMounted(() => {
 watch(
   () => route.params.client,
   (clientParam) => {
-    const client = normalizeClientParam(clientParam)
+    const client = normalizeCliClient(clientParam)
     if (client && client !== selectedClient.value) {
       selectedClient.value = client
     }
@@ -501,7 +491,7 @@ watch(selectedClient, () => {
   output.value = null
   loadCommands()
 
-  const current = normalizeClientParam(route.params.client) || 'ccr'
+  const current = normalizeCliClient(route.params.client) || 'ccr'
   if (current !== selectedClient.value) {
     router.replace({ name: 'commands', params: { client: selectedClient.value } })
   }

@@ -67,7 +67,7 @@
         <GuofengCard 
           variant="glass" 
           class="flex-1 flex flex-col !p-0 overflow-hidden neon-card"
-          :no-padding="true"
+          padding="none"
           body-class="h-full flex flex-col"
         >
           <!-- 侧边栏 Tabs -->
@@ -266,7 +266,7 @@
         <GuofengCard 
           variant="glass" 
           class="flex-none overflow-hidden neon-card"
-          :no-padding="true"
+          padding="none"
         >
           <div class="p-3 border-b border-border-color bg-gradient-to-r from-accent-primary/5 to-transparent flex items-center gap-2">
             <Settings class="w-4 h-4 text-accent-primary" />

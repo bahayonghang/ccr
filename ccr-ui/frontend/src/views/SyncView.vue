@@ -895,7 +895,7 @@ import {
   Check,
   Save
 } from 'lucide-vue-next'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 
 // 使用 api/client.ts 中配置的 axios 实例，支持 Vite 代理
 

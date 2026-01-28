@@ -232,7 +232,7 @@ import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Puzzle, Plus, Edit2, Trash2, ArrowLeft, Home, Eye, ChevronDown } from 'lucide-vue-next'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import { useDroidPlugins } from '@/composables/useDroidPlugins'
 
 // ============ Composable ============

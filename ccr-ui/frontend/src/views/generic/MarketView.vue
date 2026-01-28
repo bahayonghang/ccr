@@ -147,12 +147,15 @@
 
           <div class="mt-auto pt-4 border-t border-[var(--color-border-default)]/50 flex items-center justify-between">
             <div class="flex gap-0.5">
-              <Star
+              <template
                 v-for="i in 5"
                 :key="i"
-                class="w-3.5 h-3.5"
-                :class="i <= (item.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'"
-              />
+              >
+                <Star
+                  class="w-3.5 h-3.5"
+                  :class="i <= (item.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'"
+                />
+              </template>
             </div>
             <button 
               class="px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"

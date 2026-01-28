@@ -182,7 +182,7 @@ import {
   Monitor
 } from 'lucide-vue-next'
 import Navbar from '@/components/Navbar.vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import { useWebSocket, type LogMessage } from '@/composables/useWebSocket'
 
 const { t } = useI18n({ useScope: 'global' })

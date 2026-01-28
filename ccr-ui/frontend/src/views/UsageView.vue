@@ -393,7 +393,7 @@
         />
 
         <!-- Activity Heatmap -->
-        <ActivityHeatmap :records="filteredRecords" />
+        <ActivityHeatmap />
       </div>
 
       <!-- Truncated Warning -->

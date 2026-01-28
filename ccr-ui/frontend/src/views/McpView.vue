@@ -347,7 +347,7 @@ import {
 } from '@/api/client'
 import type { McpServer, McpServerRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import McpPresetsPanel from '@/components/McpPresetsPanel.vue'

@@ -290,6 +290,11 @@ import {
   Bot,
   Puzzle,
   History,
+  RefreshCw,
+  CheckCircle,
+  Trash2,
+  Upload,
+  Download,
 } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import type { ConfigItem, HistoryEntry } from '@/types'
@@ -305,7 +310,7 @@ import {
 import { getProviderUsage } from '@/api/client'
 import HistoryList from '@/components/HistoryList.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import EnvironmentBadge from '@/components/EnvironmentBadge.vue'
 import EditConfigModal from '@/components/EditConfigModal.vue'
 import AddConfigModal from '@/components/AddConfigModal.vue'

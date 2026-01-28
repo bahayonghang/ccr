@@ -324,7 +324,7 @@ import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Sparkles, Zap, Flame, Bot } from 'lucide-vue-next'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import { usePlatformMcp, type PlatformType, getServerIdentifier } from '@/composables/usePlatformMcp'
 
 // ============ Props ============

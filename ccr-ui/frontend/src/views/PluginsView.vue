@@ -267,7 +267,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home, Code2, X } from 'lucide-vue-next'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import { listPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } from '@/api/client'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'

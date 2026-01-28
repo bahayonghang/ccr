@@ -453,7 +453,7 @@ import {
   X
 } from 'lucide-vue-next'
 
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import AccountListTable from '@/components/usage/AccountListTable.vue'
