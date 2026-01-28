@@ -65,7 +65,7 @@ export default [
       'vue/multi-word-component-names': 'off',
       'vue/no-v-html': 'off', // Disabled because v-html is legitimately used for rendering ANSI terminal output
       'vue/require-default-prop': 'off',
-      'vue/require-explicit-emits': 'off',
+      'vue/require-explicit-emits': 'error',
       'vue/one-component-per-file': 'off',
 
       // TypeScript rules - 更宽松的设置适合开发阶段

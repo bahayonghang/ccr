@@ -36,7 +36,7 @@
         <slot name="skeleton">
           <!-- 默认骨架屏 -->
           <Skeleton
-            variant="card"
+            shape="rectangle"
             height="200px"
           />
         </slot>
