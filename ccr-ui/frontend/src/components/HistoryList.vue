@@ -61,200 +61,224 @@
       </p>
     </div>
 
-    <!-- 历史记录时间线 -->
+    <!-- 虚拟滚动历史记录 -->
     <div
       v-else
-      class="space-y-4"
+      ref="parentRef"
+      class="h-[600px] overflow-auto pr-2 scrollbar-thin"
     >
       <div
-        v-for="(entry, index) in entries"
-        :key="entry.id"
-        class="relative glass-card p-5 rounded-xl transition-all duration-300 hover:scale-[1.01]"
         :style="{
-          background: 'var(--glass-bg-light)',
-          border: '1.5px solid rgba(var(--color-accent-secondary-rgb), 0.2)',
-          boxShadow: 'var(--shadow-lg)',
-          animationDelay: `${index * 0.05}s`
+          height: `${rowVirtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
         }"
       >
-        <!-- 时间线连接线 -->
         <div
-          v-if="index < entries.length - 1"
-          class="absolute left-8 top-full w-0.5 h-4 -mb-4"
-          :style="{ background: 'var(--border-color)' }"
-        />
-
-        <div class="flex gap-4">
-          <!-- 图标区域 -->
-          <div class="flex-shrink-0">
+          v-for="virtualRow in rowVirtualizer.getVirtualItems()"
+          :key="entries[virtualRow.index].id"
+          :style="{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            transform: `translateY(${virtualRow.start}px)`,
+          }"
+        >
+          <!-- 外层包裹 div 用于测量高度，包含底部间距 -->
+          <div
+            :ref="(el) => measureElement(el)"
+            class="pb-4"
+          >
             <div
-              class="w-12 h-12 rounded-xl flex items-center justify-center"
+              class="relative glass-card p-5 rounded-xl transition-all duration-300 hover:scale-[1.01]"
               :style="{
-                background: getOperationColor(entry.operation, 0.15),
-                border: `2px solid ${getOperationColor(entry.operation, 0.4)}`
+                background: 'var(--glass-bg-light)',
+                border: '1.5px solid rgba(var(--color-accent-secondary-rgb), 0.2)',
+                boxShadow: 'var(--shadow-lg)',
               }"
             >
-              <component
-                :is="getOperationIcon(entry.operation)"
-                class="w-6 h-6"
-                :style="{ color: getOperationColor(entry.operation, 1) }"
+              <!-- 时间线连接线 -->
+              <div
+                v-if="virtualRow.index < entries.length - 1"
+                class="absolute left-8 top-full w-0.5 h-4 -mb-4 z-10"
+                :style="{ background: 'var(--border-color)' }"
               />
-            </div>
-          </div>
 
-          <!-- 内容区域 -->
-          <div class="flex-1 min-w-0">
-            <!-- 操作标题和时间 -->
-            <div class="flex items-start justify-between mb-3">
-              <div>
-                <h3
-                  class="text-lg font-bold mb-1"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
-                  {{ getOperationLabel(entry.operation) }}
-                </h3>
-                <div class="flex items-center gap-3 text-sm">
-                  <span
-                    class="inline-flex items-center gap-1.5"
-                    :style="{ color: 'var(--text-secondary)' }"
+              <div class="flex gap-4">
+                <!-- 图标区域 -->
+                <div class="flex-shrink-0">
+                  <div
+                    class="w-12 h-12 rounded-xl flex items-center justify-center"
+                    :style="{
+                      background: getOperationColor(entries[virtualRow.index].operation, 0.15),
+                      border: `2px solid ${getOperationColor(entries[virtualRow.index].operation, 0.4)}`
+                    }"
                   >
-                    <Clock class="w-4 h-4" />
-                    {{ formatRelativeTime(entry.timestamp) }}
-                  </span>
-                  <span
-                    class="inline-flex items-center gap-1.5"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    <User class="w-4 h-4" />
-                    {{ entry.actor }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- 操作类型徽章 -->
-              <span
-                class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide"
-                :style="{
-                  background: getOperationColor(entry.operation, 0.2),
-                  color: getOperationColor(entry.operation, 1),
-                  border: `1px solid ${getOperationColor(entry.operation, 0.4)}`
-                }"
-              >
-                {{ entry.operation }}
-              </span>
-            </div>
-
-            <!-- 配置切换信息 -->
-            <div
-              v-if="entry.from_config && entry.to_config"
-              class="flex items-center gap-3 mb-4 p-3 rounded-lg"
-              :style="{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)'
-              }"
-            >
-              <div
-                class="px-3 py-1.5 rounded-md text-sm font-mono font-semibold"
-                :style="{
-                  background: 'rgba(var(--color-danger-rgb), 0.15)',
-                  color: 'var(--accent-danger)'
-                }"
-              >
-                {{ entry.from_config }}
-              </div>
-              <ArrowRight
-                class="w-5 h-5"
-                :style="{ color: 'var(--text-muted)' }"
-              />
-              <div
-                class="px-3 py-1.5 rounded-md text-sm font-mono font-semibold"
-                :style="{
-                  background: 'rgba(var(--color-success-rgb), 0.15)',
-                  color: 'var(--accent-success)'
-                }"
-              >
-                {{ entry.to_config }}
-              </div>
-            </div>
-
-            <!-- 环境变量变化 -->
-            <div
-              v-if="entry.changes && entry.changes.length > 0"
-              class="space-y-2"
-            >
-              <h4
-                class="text-xs font-semibold uppercase tracking-wide mb-2"
-                :style="{ color: 'var(--text-muted)' }"
-              >
-                环境变量变化 ({{ entry.changes.length }})
-              </h4>
-              <div
-                v-for="change in entry.changes.slice(0, 5)"
-                :key="change.key"
-                class="p-2.5 rounded-md text-xs font-mono"
-                :style="{
-                  background: 'var(--bg-tertiary)',
-                  border: '1px solid var(--border-color)'
-                }"
-              >
-                <div class="flex items-center gap-2 mb-1">
-                  <span
-                    class="font-bold"
-                    :style="{ color: 'var(--accent-secondary)' }"
-                  >
-                    {{ change.key }}
-                  </span>
-                </div>
-                <div class="flex items-start gap-2 text-[11px]">
-                  <div class="flex-1">
-                    <span :style="{ color: 'var(--text-muted)' }">旧值:</span>
-                    <span
-                      class="ml-1"
-                      :style="{ color: 'var(--text-secondary)' }"
-                    >
-                      {{ change.old_value || '(空)' }}
-                    </span>
-                  </div>
-                  <ArrowRight
-                    class="w-3 h-3 mt-0.5 flex-shrink-0"
-                    :style="{ color: 'var(--text-muted)' }"
-                  />
-                  <div class="flex-1">
-                    <span :style="{ color: 'var(--text-muted)' }">新值:</span>
-                    <span
-                      class="ml-1"
-                      :style="{ color: 'var(--text-secondary)' }"
-                    >
-                      {{ change.new_value || '(空)' }}
-                    </span>
+                    <component
+                      :is="getOperationIcon(entries[virtualRow.index].operation)"
+                      class="w-6 h-6"
+                      :style="{ color: getOperationColor(entries[virtualRow.index].operation, 1) }"
+                    />
                   </div>
                 </div>
-              </div>
-              <button
-                v-if="entry.changes.length > 5"
-                class="text-xs font-medium px-3 py-1.5 rounded-md transition-all hover:scale-105"
-                :style="{
-                  background: 'var(--bg-tertiary)',
-                  color: 'var(--accent-primary)',
-                  border: '1px solid var(--border-color)'
-                }"
-              >
-                查看全部 {{ entry.changes.length }} 项变化
-              </button>
-            </div>
 
-            <!-- 操作 ID -->
-            <div
-              class="mt-3 pt-3"
-              :style="{ borderTop: '1px solid var(--border-color)' }"
-            >
-              <div class="flex items-center justify-between">
-                <span
-                  class="text-xs"
-                  :style="{ color: 'var(--text-muted)' }"
-                >
-                  ID: <code class="font-mono">{{ entry.id }}</code>
-                </span>
+                <!-- 内容区域 -->
+                <div class="flex-1 min-w-0">
+                  <!-- 操作标题和时间 -->
+                  <div class="flex items-start justify-between mb-3">
+                    <div>
+                      <h3
+                        class="text-lg font-bold mb-1"
+                        :style="{ color: 'var(--text-primary)' }"
+                      >
+                        {{ getOperationLabel(entries[virtualRow.index].operation) }}
+                      </h3>
+                      <div class="flex items-center gap-3 text-sm">
+                        <span
+                          class="inline-flex items-center gap-1.5"
+                          :style="{ color: 'var(--text-secondary)' }"
+                        >
+                          <Clock class="w-4 h-4" />
+                          {{ formatRelativeTime(entries[virtualRow.index].timestamp) }}
+                        </span>
+                        <span
+                          class="inline-flex items-center gap-1.5"
+                          :style="{ color: 'var(--text-secondary)' }"
+                        >
+                          <User class="w-4 h-4" />
+                          {{ entries[virtualRow.index].actor }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- 操作类型徽章 -->
+                    <span
+                      class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide"
+                      :style="{
+                        background: getOperationColor(entries[virtualRow.index].operation, 0.2),
+                        color: getOperationColor(entries[virtualRow.index].operation, 1),
+                        border: `1px solid ${getOperationColor(entries[virtualRow.index].operation, 0.4)}`
+                      }"
+                    >
+                      {{ entries[virtualRow.index].operation }}
+                    </span>
+                  </div>
+
+                  <!-- 配置切换信息 -->
+                  <div
+                    v-if="entries[virtualRow.index].from_config && entries[virtualRow.index].to_config"
+                    class="flex items-center gap-3 mb-4 p-3 rounded-lg"
+                    :style="{
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)'
+                    }"
+                  >
+                    <div
+                      class="px-3 py-1.5 rounded-md text-sm font-mono font-semibold"
+                      :style="{
+                        background: 'rgba(var(--color-danger-rgb), 0.15)',
+                        color: 'var(--accent-danger)'
+                      }"
+                    >
+                      {{ entries[virtualRow.index].from_config }}
+                    </div>
+                    <ArrowRight
+                      class="w-5 h-5"
+                      :style="{ color: 'var(--text-muted)' }"
+                    />
+                    <div
+                      class="px-3 py-1.5 rounded-md text-sm font-mono font-semibold"
+                      :style="{
+                        background: 'rgba(var(--color-success-rgb), 0.15)',
+                        color: 'var(--accent-success)'
+                      }"
+                    >
+                      {{ entries[virtualRow.index].to_config }}
+                    </div>
+                  </div>
+
+                  <!-- 环境变量变化 -->
+                  <div
+                    v-if="entries[virtualRow.index].changes && entries[virtualRow.index].changes.length > 0"
+                    class="space-y-2"
+                  >
+                    <h4
+                      class="text-xs font-semibold uppercase tracking-wide mb-2"
+                      :style="{ color: 'var(--text-muted)' }"
+                    >
+                      环境变量变化 ({{ entries[virtualRow.index].changes.length }})
+                    </h4>
+                    <div
+                      v-for="change in entries[virtualRow.index].changes.slice(0, 5)"
+                      :key="change.key"
+                      class="p-2.5 rounded-md text-xs font-mono"
+                      :style="{
+                        background: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-color)'
+                      }"
+                    >
+                      <div class="flex items-center gap-2 mb-1">
+                        <span
+                          class="font-bold"
+                          :style="{ color: 'var(--accent-secondary)' }"
+                        >
+                          {{ change.key }}
+                        </span>
+                      </div>
+                      <div class="flex items-start gap-2 text-[11px]">
+                        <div class="flex-1">
+                          <span :style="{ color: 'var(--text-muted)' }">旧值:</span>
+                          <span
+                            class="ml-1"
+                            :style="{ color: 'var(--text-secondary)' }"
+                          >
+                            {{ change.old_value || '(空)' }}
+                          </span>
+                        </div>
+                        <ArrowRight
+                          class="w-3 h-3 mt-0.5 flex-shrink-0"
+                          :style="{ color: 'var(--text-muted)' }"
+                        />
+                        <div class="flex-1">
+                          <span :style="{ color: 'var(--text-muted)' }">新值:</span>
+                          <span
+                            class="ml-1"
+                            :style="{ color: 'var(--text-secondary)' }"
+                          >
+                            {{ change.new_value || '(空)' }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      v-if="entries[virtualRow.index].changes.length > 5"
+                      class="text-xs font-medium px-3 py-1.5 rounded-md transition-all hover:scale-105"
+                      :style="{
+                        background: 'var(--bg-tertiary)',
+                        color: 'var(--accent-primary)',
+                        border: '1px solid var(--border-color)'
+                      }"
+                    >
+                      查看全部 {{ entries[virtualRow.index].changes.length }} 项变化
+                    </button>
+                  </div>
+
+                  <!-- 操作 ID -->
+                  <div
+                    class="mt-3 pt-3"
+                    :style="{ borderTop: '1px solid var(--border-color)' }"
+                  >
+                    <div class="flex items-center justify-between">
+                      <span
+                        class="text-xs"
+                        :style="{ color: 'var(--text-muted)' }"
+                      >
+                        ID: <code class="font-mono">{{ entries[virtualRow.index].id }}</code>
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -265,7 +289,10 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { ArrowRight, Clock, User, History, GitBranch, CheckCircle, RefreshCw, FileEdit, Trash2 } from 'lucide-vue-next'
+import { useVirtualizer } from '@tanstack/vue-virtual'
+import type { ComponentPublicInstance } from 'vue'
 import type { HistoryEntry } from '@/types'
 import { formatRelativeTime } from '@/utils/codexHelpers'
 
@@ -274,9 +301,24 @@ interface Props {
   loading?: boolean
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   loading: false
 })
+
+const parentRef = ref<HTMLElement | null>(null)
+
+const rowVirtualizer = useVirtualizer(computed(() => ({
+  count: props.entries.length,
+  getScrollElement: () => parentRef.value,
+  estimateSize: () => 200,
+  overscan: 5,
+})))
+
+const measureElement = (el: Element | ComponentPublicInstance | null) => {
+  if (el instanceof Element) {
+    rowVirtualizer.value.measureElement(el)
+  }
+}
 
 // 操作类型映射
 const getOperationLabel = (operation: string): string => {
