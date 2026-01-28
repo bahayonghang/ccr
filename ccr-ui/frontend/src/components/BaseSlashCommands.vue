@@ -160,11 +160,10 @@
             <!-- 空状态 -->
             <EmptyState
               v-if="!loading && filteredCommands.length === 0"
-              :search-query="searchQuery"
-              :selected-folder="selectedFolder"
-              @clear-search="searchQuery = ''"
-              @clear-filter="selectedFolder = 'all'"
-              @add-first="showAddModal = true"
+              :title="emptyStateTitle"
+              :description="emptyStateDescription"
+              :action-text="emptyStateActionText"
+              :on-action="emptyStateAction"
             />
           </div>
         </div>
@@ -188,13 +187,12 @@ import { Command, Home, Code2, ArrowUpDown, List, FolderTree, EyeOff } from 'luc
 import { useCommandsViewStore } from '@/stores/commandsView'
 
 // 组件导入
-import Breadcrumb from './Breadcrumb.vue'
+import { Breadcrumb, EmptyState } from '@/components/ui'
 import CollapsibleSidebar from './CollapsibleSidebar.vue'
 import FolderSidebar from './FolderSidebar.vue'
 import PageHeader from './PageHeader.vue'
 import SearchAndActions from './SearchAndActions.vue'
 import CommandList from './CommandList.vue'
-import EmptyState from './EmptyState.vue'
 import CommandFormModal from './CommandFormModal.vue'
 
 // 类型定义
@@ -420,6 +418,31 @@ const themeStyles = computed(() => {
     }
   }
 })
+
+// 空状态计算属性
+const emptyStateTitle = computed(() => {
+  if (searchQuery.value.trim()) return t('slashCommands.noSearchResults')
+  if (selectedFolder.value !== 'all') return t('slashCommands.noCommandsInFolder')
+  return t('slashCommands.noCommands')
+})
+
+const emptyStateDescription = computed(() => {
+  if (searchQuery.value.trim()) return t('slashCommands.tryDifferentSearch')
+  if (selectedFolder.value !== 'all') return t('slashCommands.tryDifferentFolder')
+  return t('slashCommands.addFirstCommand')
+})
+
+const emptyStateActionText = computed(() => {
+  if (searchQuery.value.trim()) return t('common.clearSearch')
+  if (selectedFolder.value !== 'all') return t('common.showAll')
+  return t('slashCommands.addFirst')
+})
+
+const emptyStateAction = () => {
+  if (searchQuery.value.trim()) searchQuery.value = ''
+  else if (selectedFolder.value !== 'all') selectedFolder.value = 'all'
+  else showAddModal.value = true
+}
 
 // 方法
 const loadData = async () => {

@@ -11,15 +11,7 @@
       <template v-if="index < items.length - 1">
         <RouterLink
           :to="item.path"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-          :style="{
-            color: 'var(--text-secondary)',
-            background: 'transparent',
-            fontSize: '14px',
-            fontWeight: '500'
-          }"
-          @mouseenter="(e) => onHover(e.currentTarget as HTMLElement, true)"
-          @mouseleave="(e) => onHover(e.currentTarget as HTMLElement, false)"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all hover:scale-105 text-text-secondary bg-transparent text-sm font-medium hover:bg-bg-secondary hover:text-text-primary"
         >
           <component
             :is="item.icon"
@@ -31,22 +23,19 @@
         
         <!-- 分隔符 -->
         <ChevronRight
-          class="w-4 h-4"
-          :style="{ color: 'var(--text-muted)', opacity: 0.5 }"
+          class="w-4 h-4 text-text-muted opacity-50"
         />
       </template>
       
       <!-- 最后一项：当前页面，不可点击 -->
       <template v-else>
         <div
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
-          :style="{
-            color: 'var(--text-primary)',
-            background: moduleColor ? `${moduleColor}15` : 'var(--bg-tertiary)',
-            fontSize: '14px',
-            fontWeight: '600',
-            border: moduleColor ? `1px solid ${moduleColor}30` : '1px solid var(--border-color)'
-          }"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-text-primary text-sm font-semibold border"
+          :class="moduleColor ? '' : 'bg-bg-tertiary border-border-color'"
+          :style="moduleColor ? {
+            background: `${moduleColor}15`,
+            borderColor: `${moduleColor}30`
+          } : {}"
         >
           <component
             :is="item.icon"
@@ -78,14 +67,4 @@ interface Props {
 }
 
 defineProps<Props>()
-
-const onHover = (element: HTMLElement, isHover: boolean) => {
-  if (isHover) {
-    element.style.background = 'var(--bg-secondary)'
-    element.style.color = 'var(--text-primary)'
-  } else {
-    element.style.background = 'transparent'
-    element.style.color = 'var(--text-secondary)'
-  }
-}
 </script>
