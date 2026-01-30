@@ -4,7 +4,7 @@
    ============================================ */
 
 /* 设计令牌 - 必须首先导入 */
-@import './tokens.css';
+@import './theme.css';
 
 /* 基础样式和重置 */
 @import './base.css';
@@ -14,6 +14,9 @@
 
 /* 工具类 */
 @import './utilities.css';
+
+/* 背景系统 */
+@import './backgrounds.css';
 
 /* 图表配色（保留现有） */
 @import './chart-colors.css';

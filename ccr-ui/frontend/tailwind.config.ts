@@ -7,195 +7,98 @@ export default {
     './src/**/*.{vue,js,ts,jsx,tsx}',
   ],
   theme: {
+    // Override default font family to use our tokens
+    fontFamily: {
+      sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui'],
+      mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+    },
     extend: {
-      // ========== 设计令牌 - 间距系统 ==========
-      spacing: {
-        'xs': 'var(--space-xs)',
-        'sm': 'var(--space-sm)',
-        'md': 'var(--space-md)',
-        'lg': 'var(--space-lg)',
-        'xl': 'var(--space-xl)',
-        '2xl': 'var(--space-2xl)',
-        '3xl': 'var(--space-3xl)',
-        '4xl': 'var(--space-4xl)',
-        '5xl': 'var(--space-5xl)',
-      },
-
-      // ========== 字体系统 ==========
-      fontSize: {
-        'xs': 'var(--text-xs)',
-        'sm': 'var(--text-sm)',
-        'base': 'var(--text-base)',
-        'lg': 'var(--text-lg)',
-        'xl': 'var(--text-xl)',
-        '2xl': 'var(--text-2xl)',
-        '3xl': 'var(--text-3xl)',
-        '4xl': 'var(--text-4xl)',
-        '5xl': 'var(--text-5xl)',
-        '6xl': 'var(--text-6xl)',
-      },
-      fontFamily: {
-        'sans': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        'mono': ['JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'monospace'],
-        'display': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        'body': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-      },
-      fontWeight: {
-        'light': '300',
-        'normal': '400',
-        'medium': '500',
-        'semibold': '600',
-        'bold': '700',
-        'extrabold': '800',
-        'black': '900',
-      },
-      lineHeight: {
-        'tight': '1.25',
-        'snug': '1.375',
-        'normal': '1.5',
-        'relaxed': '1.625',
-        'loose': '2',
-      },
-
-      // ========== 圆角系统 ==========
-      borderRadius: {
-        'xs': 'var(--radius-sm)',
-        'sm': 'var(--radius-md)',
-        'md': 'var(--radius-lg)',
-        'lg': 'var(--radius-xl)',
-        'xl': 'var(--radius-2xl)',
-        '2xl': 'var(--radius-3xl)',
-        'full': 'var(--radius-full)',
-      },
-
-      // ========== 颜色系统 ==========
       colors: {
-        // 背景色
         bg: {
-          primary: 'var(--color-bg-base)',
-          secondary: 'var(--color-bg-elevated)',
-          tertiary: 'var(--color-bg-surface)',
-          card: 'var(--color-bg-elevated)',
-          hover: 'var(--color-bg-overlay)',
-          // 向后兼容
           base: 'var(--color-bg-base)',
           elevated: 'var(--color-bg-elevated)',
           surface: 'var(--color-bg-surface)',
           overlay: 'var(--color-bg-overlay)',
         },
-        // 边框色
-        border: {
-          color: 'var(--color-border-default)',
-          hover: 'var(--color-border-strong)',
-          subtle: 'var(--color-border-subtle)',
-          default: 'var(--color-border-default)',
-          strong: 'var(--color-border-strong)',
-          accent: 'var(--color-border-accent)',
-        },
-        // 文字色
         text: {
           primary: 'var(--color-text-primary)',
           secondary: 'var(--color-text-secondary)',
           muted: 'var(--color-text-muted)',
+          ghost: 'var(--color-text-ghost)',
           disabled: 'var(--color-text-disabled)',
+          inverted: 'var(--color-text-inverted)',
         },
-        // 强调色 (支持透明度)
         accent: {
           primary: 'rgb(var(--color-accent-primary-rgb) / <alpha-value>)',
           secondary: 'rgb(var(--color-accent-secondary-rgb) / <alpha-value>)',
-          tertiary: 'rgb(var(--color-info-rgb) / <alpha-value>)',
           success: 'rgb(var(--color-success-rgb) / <alpha-value>)',
           warning: 'rgb(var(--color-warning-rgb) / <alpha-value>)',
           danger: 'rgb(var(--color-danger-rgb) / <alpha-value>)',
           info: 'rgb(var(--color-info-rgb) / <alpha-value>)',
         },
-        // 平台专属色
-        platform: {
-          claude: 'var(--color-platform-claude)',
-          codex: 'var(--color-platform-codex)',
-          gemini: 'var(--color-platform-gemini)',
-          qwen: 'var(--color-platform-qwen)',
-          iflow: 'var(--color-platform-iflow)',
-        },
-        // 状态色
-        state: {
-          empty: 'var(--color-text-muted)',
-          error: 'var(--color-danger)',
-          loading: 'var(--color-accent-primary)',
-        },
-        // Neo 颜色（直接值）
-        neo: {
-          cyan: '#06B6D4',
-          purple: '#8B5CF6',
-          success: '#10B981',
-          warning: '#F59E0B',
-          danger: '#EF4444',
-          info: '#3B82F6',
+        border: {
+          subtle: 'var(--color-border-subtle)',
+          default: 'var(--color-border-default)',
+          strong: 'var(--color-border-strong)',
+          interactive: 'var(--color-border-interactive)',
         },
       },
-
-      // ========== 阴影系统 ==========
+      spacing: {
+        px: '1px',
+        1: 'var(--space-1)',
+        2: 'var(--space-2)',
+        3: 'var(--space-3)',
+        4: 'var(--space-4)',
+        5: 'var(--space-5)',
+        6: 'var(--space-6)',
+        8: 'var(--space-8)',
+        10: 'var(--space-10)',
+        12: 'var(--space-12)',
+        16: 'var(--space-16)',
+        20: 'var(--space-20)',
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
+      },
       boxShadow: {
-        'glow-primary': 'var(--glow-primary)',
-        'glow-secondary': 'var(--glow-secondary)',
-        'glow-success': 'var(--glow-success)',
-        'glow-warning': 'var(--glow-warning)',
-        'glow-danger': 'var(--glow-danger)',
-        'glow-info': 'var(--glow-info)',
-        // 玻璃效果阴影
-        'glass': 'var(--glass-shadow)',
-        'glass-elevated': 'var(--glass-shadow-elevated)',
+        'glow-primary': 'var(--shadow-glow-primary)',
+        'glow-success': 'var(--shadow-glow-success)',
+        'glow-danger': 'var(--shadow-glow-danger)',
       },
-
-      // ========== 背景模糊 ==========
-      backdropBlur: {
-        'glass-sm': '8px',
-        'glass-md': '12px',
-        'glass-lg': '20px',
-        'glass-xl': '24px',
+      transitionDuration: {
+        fast: 'var(--duration-fast)',
+        normal: 'var(--duration-normal)',
+        slow: 'var(--duration-slow)',
       },
-
-      // ========== 动画 ==========
+      transitionTimingFunction: {
+        DEFAULT: 'var(--ease-default)',
+        in: 'var(--ease-in)',
+        out: 'var(--ease-out)',
+        spring: 'var(--ease-spring)',
+      },
+      // Custom Animation Keyframes (GPU Optimized)
+      keyframes: {
+        'fade-in': {
+          '0%': { opacity: '0', transform: 'translateZ(0)' },
+          '100%': { opacity: '1', transform: 'translateZ(0)' },
+        },
+        'slide-up': {
+          '0%': { opacity: '0', transform: 'translate3d(0, 10px, 0)' },
+          '100%': { opacity: '1', transform: 'translate3d(0, 0, 0)' },
+        },
+        'scale-in': {
+          '0%': { opacity: '0', transform: 'scale(0.95) translateZ(0)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateZ(0)' },
+        }
+      },
       animation: {
         'fade-in': 'fade-in var(--duration-normal) var(--ease-out) forwards',
-        'slide-up': 'slide-up var(--duration-slow) var(--ease-out) forwards',
-        'slide-down': 'slide-down var(--duration-slow) var(--ease-out) forwards',
-        'scale-in': 'scale-in var(--duration-normal) var(--ease-out) forwards',
-        'pulse-subtle': 'pulse-subtle 2s var(--ease-in-out) infinite',
-        'pulse-glow': 'pulse-glow 2s var(--ease-in-out) infinite',
-        'sidebar-item-enter': 'sidebar-item-enter var(--duration-slow) var(--ease-out) forwards',
-        'card-enter': 'card-enter var(--duration-slow) var(--ease-out) forwards',
-        'nav-hover': 'nav-hover 0.4s var(--ease-out)',
-      },
-
-      // ========== 过渡 ==========
-      transitionDuration: {
-        'instant': 'var(--duration-instant)',
-        'fast': 'var(--duration-fast)',
-        'normal': 'var(--duration-normal)',
-        'slow': 'var(--duration-slow)',
-        'slower': 'var(--duration-slower)',
-      },
-
-      transitionTimingFunction: {
-        'out': 'var(--ease-out)',
-        'in-out': 'var(--ease-in-out)',
-        'spring': 'var(--ease-spring)',
-        'out-back': 'var(--ease-out-back)',
-      },
-
-      // ========== Z-Index ==========
-      zIndex: {
-        'behind': '-1',
-        'dropdown': '10',
-        'sticky': '20',
-        'fixed': '30',
-        'modal-backdrop': '40',
-        'modal': '50',
-        'popover': '60',
-        'tooltip': '70',
-        'toast': '80',
-      },
+        'slide-up': 'slide-up var(--duration-normal) var(--ease-out) forwards',
+        'scale-in': 'scale-in var(--duration-fast) var(--ease-spring) forwards',
+      }
     },
   },
   plugins: [],

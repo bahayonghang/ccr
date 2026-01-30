@@ -1,0 +1,157 @@
+/* ============================================
+   CCR-UI Premium Background System
+   Mesh Gradients & Patterns
+   ============================================ */
+
+/* Definition of background animations */
+@keyframes blob-bounce {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    33% {
+        transform: translate(30px, -50px) scale(1.1);
+    }
+
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+}
+
+@keyframes blob-spin {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: rotate(180deg) scale(1.2);
+    }
+
+    100% {
+        transform: rotate(360deg) scale(1);
+    }
+}
+
+.premium-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* ============================================
+   Light Mode Implementation
+   Style: Clean Modern + Subtle Mesh
+   ============================================ */
+:root {
+    --bg-mesh-1: rgb(37 99 235 / 8%);
+
+    /* Blue-600 very transparent */
+    --bg-mesh-2: rgb(124 58 237 / 8%);
+
+    /* Violet-600 very transparent */
+    --bg-mesh-3: rgb(6 182 212 / 8%);
+
+    /* Cyan-500 very transparent */
+    --bg-pattern-color: rgb(15 23 42 / 3%);
+
+    /* Slate-900 very transparent */
+}
+
+/* Light Mode Elements */
+.premium-bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.8;
+}
+
+.orb-1 {
+    top: -10%;
+    left: -10%;
+    width: 50vw;
+    height: 50vw;
+    background: var(--bg-mesh-1);
+    animation: blob-bounce 20s infinite ease-in-out;
+}
+
+.orb-2 {
+    bottom: -10%;
+    right: -10%;
+    width: 50vw;
+    height: 50vw;
+    background: var(--bg-mesh-2);
+    animation: blob-bounce 25s infinite ease-in-out reverse;
+}
+
+.orb-3 {
+    top: 40%;
+    left: 40%;
+    width: 30vw;
+    height: 30vw;
+    background: var(--bg-mesh-3);
+    animation: blob-spin 30s infinite linear;
+    mix-blend-mode: multiply;
+}
+
+.premium-bg-pattern {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(var(--bg-pattern-color) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: radial-gradient(circle at center, black 60%, transparent 100%);
+    opacity: 0.6;
+}
+
+/* ============================================
+   Dark Mode Implementation
+   Style: Deep Cyber / Neo-Terminal
+   ============================================ */
+:root[class~="dark"],
+[data-theme="dark"] {
+    --bg-mesh-1: rgb(37 99 235 / 15%);
+
+    /* Blue-600 */
+    --bg-mesh-2: rgb(139 92 246 / 12%);
+
+    /* Violet-500 */
+    --bg-mesh-3: rgb(6 182 212 / 10%);
+
+    /* Cyan-500 */
+    --bg-grid-line: rgb(248 250 252 / 3%);
+
+    /* Slate-50 transparent */
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .premium-bg-pattern {
+    background-image:
+        linear-gradient(to right, var(--bg-grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--bg-grid-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(circle at 50% 0%, black 40%, transparent 100%);
+    opacity: 1;
+}
+
+[data-theme="dark"] .orb-1 {
+    opacity: 0.4;
+    mix-blend-mode: screen;
+}
+
+[data-theme="dark"] .orb-2 {
+    opacity: 0.3;
+    mix-blend-mode: screen;
+}
+
+[data-theme="dark"] .orb-3 {
+    opacity: 0.2;
+    mix-blend-mode: screen;
+}

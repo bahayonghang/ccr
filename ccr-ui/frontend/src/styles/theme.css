@@ -1,0 +1,243 @@
+@layer base {
+  :root {
+    /* ========================================================================
+       NEO-TERMINAL DESIGN SYSTEM v1.0
+       ======================================================================== */
+
+    /* --- Color Palette: Light Mode (Clean, High Contrast) --- */
+
+    /* Neutral / Greyscale */
+    --color-bg-base: #fff;
+    --color-bg-elevated: #f8fafc;
+
+    /* Slate-50 */
+    --color-bg-surface: #f1f5f9;
+
+    /* Slate-100 */
+    --color-bg-overlay: #e2e8f0;
+
+    /* Slate-200 */
+
+    --color-text-primary: #0f172a;
+
+    /* Slate-900 */
+    --color-text-secondary: #475569;
+
+    /* Slate-600 */
+    --color-text-muted: #94a3b8;
+
+    /* Slate-400 */
+    --color-text-ghost: #cbd5e1;
+
+    /* Slate-300 */
+    --color-text-disabled: #e2e8f0;
+
+    /* Slate-200 */
+    --color-text-inverted: #fff;
+    --color-border-subtle: #f1f5f9;
+
+    /* Slate-100 */
+    --color-border-default: #e2e8f0;
+
+    /* Slate-200 */
+    --color-border-strong: #cbd5e1;
+
+    /* Slate-300 */
+    --color-border-interactive: #3b82f6;
+
+    /* Blue-500 */
+
+    /* Brand Accents */
+    --color-accent-primary: #2563eb;
+
+    /* Blue-600 */
+    --color-accent-secondary: #7c3aed;
+
+    /* Violet-600 */
+    --color-success: #059669;
+
+    /* Emerald-600 */
+    --color-warning: #d97706;
+
+    /* Amber-600 */
+    --color-danger: #dc2626;
+
+    /* Red-600 */
+    --color-info: #0891b2;
+
+    /* Cyan-600 */
+
+    /* RGB Values for Opacity Manipulation (e.g. bg-accent-primary/50) */
+    --color-accent-primary-rgb: 37 99 235;
+    --color-accent-secondary-rgb: 124 58 237;
+    --color-success-rgb: 5 150 105;
+    --color-warning-rgb: 217 119 6;
+    --color-danger-rgb: 220 38 38;
+    --color-info-rgb: 8 145 178;
+
+    /* --- Spacing System --- */
+    --space-1: 0.25rem;
+
+    /* 4px */
+    --space-2: 0.5rem;
+
+    /* 8px */
+    --space-3: 0.75rem;
+
+    /* 12px */
+    --space-4: 1rem;
+
+    /* 16px */
+    --space-5: 1.25rem;
+
+    /* 20px */
+    --space-6: 1.5rem;
+
+    /* 24px */
+    --space-8: 2rem;
+
+    /* 32px */
+    --space-10: 2.5rem;
+
+    /* 40px */
+    --space-12: 3rem;
+
+    /* 48px */
+    --space-16: 4rem;
+
+    /* 64px */
+    --space-20: 5rem;
+
+    /* 80px */
+
+    /* --- Radius System --- */
+    --radius-sm: 0.25rem;
+
+    /* 4px */
+    --radius-md: 0.5rem;
+
+    /* 8px */
+    --radius-lg: 0.75rem;
+
+    /* 12px */
+    --radius-xl: 1rem;
+
+    /* 16px */
+    --radius-full: 9999px;
+
+    /* --- Shadow System --- */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 5%);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%);
+
+    /* Glows (Light mode glows are subtle) */
+    --shadow-glow-primary: 0 0 15px rgb(37 99 235 / 15%);
+    --shadow-glow-success: 0 0 15px rgb(5 150 105 / 15%);
+    --shadow-glow-danger: 0 0 15px rgb(220 38 38 / 15%);
+
+    /* --- Typography --- */
+    --font-sans: "Inter", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "Fira Code", monospace;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+
+    /* --- Animation --- */
+    --duration-fast: 150ms;
+    --duration-normal: 300ms;
+    --duration-slow: 500ms;
+    --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* --- Dark Mode (Cyber / Neo-Terminal) --- */
+  :root[class~="dark"],
+  [data-theme="dark"] {
+    /* Neutral / Greyscale */
+    --color-bg-base: #020617;
+
+    /* Slate-950 (Deepest) */
+    --color-bg-elevated: #0f172a;
+
+    /* Slate-900 */
+    --color-bg-surface: #1e293b;
+
+    /* Slate-800 */
+    --color-bg-overlay: #334155;
+
+    /* Slate-700 */
+
+    --color-text-primary: #f8fafc;
+
+    /* Slate-50 */
+    --color-text-secondary: #cbd5e1;
+
+    /* Slate-300 */
+    --color-text-muted: #94a3b8;
+
+    /* Slate-400 */
+    --color-text-ghost: #64748b;
+
+    /* Slate-500 */
+    --color-text-disabled: #475569;
+
+    /* Slate-600 */
+    --color-text-inverted: #020617;
+    --color-border-subtle: #1e293b;
+
+    /* Slate-800 */
+    --color-border-default: #334155;
+
+    /* Slate-700 */
+    --color-border-strong: #475569;
+
+    /* Slate-600 */
+    --color-border-interactive: #60a5fa;
+
+    /* Blue-400 */
+
+    /* Brand Accents (Vibrant/Neon) */
+    --color-accent-primary: #3b82f6;
+
+    /* Blue-500 */
+    --color-accent-secondary: #8b5cf6;
+
+    /* Violet-500 */
+    --color-success: #10b981;
+
+    /* Emerald-500 */
+    --color-warning: #f59e0b;
+
+    /* Amber-500 */
+    --color-danger: #ef4444;
+
+    /* Red-500 */
+    --color-info: #06b6d4;
+
+    /* Cyan-500 */
+
+    --color-accent-primary-rgb: 59 130 246;
+    --color-accent-secondary-rgb: 139 92 246;
+    --color-success-rgb: 16 185 129;
+    --color-warning-rgb: 245 158 11;
+    --color-danger-rgb: 239 68 68;
+    --color-info-rgb: 6 182 212;
+
+    /* Glows (Stronger in dark mode) */
+    --shadow-glow-primary: 0 0 20px rgb(59 130 246 / 30%);
+    --shadow-glow-success: 0 0 20px rgb(16 185 129 / 30%);
+    --shadow-glow-danger: 0 0 20px rgb(239 68 68 / 30%);
+
+    /* Stronger Shadows for depth */
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 30%), 0 2px 4px -2px rgb(0 0 0 / 30%);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 40%), 0 4px 6px -4px rgb(0 0 0 / 40%);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 50%), 0 8px 10px -6px rgb(0 0 0 / 50%);
+  }
+}
