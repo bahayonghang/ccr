@@ -1,5 +1,9 @@
 export default {
   common: {
+    language: {
+      switchLanguage: 'Switch Language',
+      current: 'Current Language',
+    },
     save: 'Save',
     cancel: 'Cancel',
     confirm: 'Confirm',
@@ -106,6 +110,12 @@ export default {
     mainModules: 'Main Modules',
     toolsCenter: 'Tools Center',
     checkin: 'Check-in Management',
+    user: {
+      role: 'Operator',
+      session: 'Session',
+      version: 'Version',
+      status: 'Online',
+    },
   },
   checkin: {
     title: 'Check-in Management',
@@ -233,6 +243,29 @@ export default {
     usageTitle: 'Token Usage',
     usageDesc: 'Token usage visualization, activity heatmap and usage trends',
     usageStats: 'Real-time Monitor',
+
+    // New Keys for HomeView Redesign
+    welcomeBack: 'Welcome back',
+    roleEngineer: 'Engineer',
+    statusMsg: 'System status operational. All nodes calibrated.',
+    platformModules: 'Platform Modules',
+    systemActivity: 'System Activity',
+    fullReport: 'Full Report',
+    operational: 'Operational',
+
+    // Quick Actions
+    actionCommandRunner: 'Command Runner',
+    actionCommandRunnerDesc: 'Execute system commands directly.',
+    actionConfigManager: 'Config Manager',
+    actionConfigManagerDesc: 'Manage AI provider configurations.',
+    actionCloudSync: 'Cloud Sync',
+    actionCloudSyncDesc: 'Sync configurations via WebDAV.',
+    actionUsageStats: 'Usage Stats',
+    actionUsageStatsDesc: 'View detailed token consumption.',
+
+    // Factory Droid
+    factoryDroidTitle: 'Factory Droid',
+    factoryDroidDesc: 'Automated agent mesh for complex task execution.',
   },
   claudeCode: {
     // ClaudeCodeView - Overview page

@@ -1,5 +1,9 @@
 export default {
   common: {
+    language: {
+      switchLanguage: '切换语言',
+      current: '当前语言',
+    },
     save: '保存',
     cancel: '取消',
     confirm: '确认',
@@ -109,6 +113,12 @@ export default {
     mainModules: '主要模块',
     toolsCenter: '工具中心',
     checkin: '签到管理',
+    user: {
+      role: '操作员',
+      session: '会话',
+      version: '版本',
+      status: '在线',
+    },
   },
   checkin: {
     title: '签到管理',
@@ -258,6 +268,29 @@ export default {
     usageTitle: 'Token 使用统计',
     usageDesc: 'Token 使用量可视化分析，活动热力图和使用趋势',
     usageStats: '实时监控',
+
+    // New Keys for HomeView Redesign
+    welcomeBack: '欢迎回来',
+    roleEngineer: '工程师',
+    statusMsg: '系统状态正常，所有节点已校准。',
+    platformModules: '平台模块',
+    systemActivity: '系统活动',
+    fullReport: '完整报告',
+    operational: '运行中',
+
+    // Quick Actions
+    actionCommandRunner: '命令执行器',
+    actionCommandRunnerDesc: '直接执行系统命令。',
+    actionConfigManager: '配置管理器',
+    actionConfigManagerDesc: '管理 AI 提供商配置。',
+    actionCloudSync: '云端同步',
+    actionCloudSyncDesc: '通过 WebDAV 同步配置。',
+    actionUsageStats: '使用统计',
+    actionUsageStatsDesc: '查看详细的 Token 消耗。',
+
+    // Factory Droid
+    factoryDroidTitle: 'Factory Droid',
+    factoryDroidDesc: '自动化代理网络，用于复杂任务执行。',
   },
   claudeCode: {
     // ClaudeCodeView - Overview page

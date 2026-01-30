@@ -37,5 +37,6 @@
     "strictTemplates": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "exclude": ["src/**/*.stories.ts", "src/**/*.stories.tsx", "**/.storybook/**"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
