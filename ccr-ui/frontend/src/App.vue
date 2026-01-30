@@ -1,4 +1,10 @@
 <template>
+  <div class="premium-background">
+    <div class="premium-bg-orb orb-1" />
+    <div class="premium-bg-orb orb-2" />
+    <div class="premium-bg-orb orb-3" />
+    <div class="premium-bg-pattern" />
+  </div>
   <RouterView v-slot="{ Component }">
     <keep-alive
       :include="cachedViews"
@@ -36,4 +42,3 @@ onMounted(() => {
   themeStore.initializeTheme()
 })
 </script>
-

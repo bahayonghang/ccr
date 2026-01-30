@@ -1,373 +1,352 @@
 <template>
-  <div class="min-h-screen bg-bg-base p-6">
-    <div class="max-w-[1800px] mx-auto">
-      <Breadcrumb
-        :items="[
-          { label: $t('common.home'), path: '/', icon: Home },
-          { label: 'Codex', path: '/codex', icon: Code2 }
-        ]"
-        module-color="#ec4899"
+  <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
+    <!-- Background Mesh -->
+    <div class="fixed inset-0 pointer-events-none -z-10 bg-bg-base">
+      <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-pink-500/5 rounded-full blur-[120px] animate-pulse-subtle" />
+      <div
+        class="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[100px] animate-pulse-subtle"
+        style="animation-delay: 2s"
       />
+    </div>
 
-      <div class="mt-8 space-y-8">
-        <!-- Header & Status Section -->
-        <section class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <!-- Hero Card -->
-          <GuofengCard
-            class="lg:col-span-2 relative overflow-hidden group"
-            padding="lg"
-            :gradient-border="true"
-            glow-color="primary"
-          >
-            <!-- Background Decoration -->
-            <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-platform-codex/10 to-transparent -mr-16 -mt-16 rounded-bl-full pointer-events-none" />
-
-            <div class="relative z-10 flex flex-col justify-between h-full">
-              <div>
-                <div class="flex items-center gap-3 mb-4">
-                  <div class="p-3 rounded-xl bg-platform-codex/10 text-platform-codex">
-                    <Code2 class="w-8 h-8" />
-                  </div>
-                  <div>
-                    <h1 class="text-3xl font-bold bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent">
-                      Codex
-                    </h1>
-                    <p class="text-sm text-text-secondary mt-1 max-w-md">
-                      {{ $t('codex.overview.subtitle') }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="flex flex-wrap gap-2 mt-4">
-                <span class="px-3 py-1 rounded-full text-xs font-medium bg-platform-codex/10 text-platform-codex border border-platform-codex/20">
-                  {{ $t('codex.overview.features.mcpProtocol') }}
-                </span>
-                <span class="px-3 py-1 rounded-full text-xs font-medium bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20">
-                  v1.0.0
-                </span>
-              </div>
-            </div>
-          </GuofengCard>
-
-          <!-- Status Cards -->
-          <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <!-- Active Profile -->
-            <GuofengCard
-              :interactive="false"
-              class="flex flex-col justify-center"
-            >
-              <div class="flex items-center gap-4">
-                <div class="p-3 rounded-xl bg-yellow-500/10 text-yellow-500">
-                  <Zap class="w-6 h-6" />
-                </div>
-                <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
-                    {{ $t('codex.status.currentConfig') }}
-                  </p>
-                  <p class="text-xl font-bold text-text-primary truncate max-w-[150px]">
-                    {{ currentProfile || $t('codex.status.notSet') }}
-                  </p>
-                </div>
-              </div>
-            </GuofengCard>
-
-            <!-- Total Profiles -->
-            <GuofengCard
-              :interactive="false"
-              class="flex flex-col justify-center"
-            >
-              <div class="flex items-center gap-4">
-                <div class="p-3 rounded-xl bg-blue-500/10 text-blue-500">
-                  <Settings class="w-6 h-6" />
-                </div>
-                <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
-                    {{ $t('codex.status.totalProfiles') }}
-                  </p>
-                  <p class="text-xl font-bold text-text-primary">
-                    {{ profilesCount }}
-                  </p>
-                </div>
-              </div>
-            </GuofengCard>
-
-            <!-- System Status (Mock) -->
-            <GuofengCard
-              :interactive="false"
-              class="flex flex-col justify-center"
-            >
-              <div class="flex items-center gap-4">
-                <div class="p-3 rounded-xl bg-emerald-500/10 text-emerald-500">
-                  <Activity class="w-6 h-6" />
-                </div>
-                <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
-                    System Status
-                  </p>
-                  <p class="text-xl font-bold text-text-primary">
-                    Online
-                  </p>
-                </div>
-              </div>
-            </GuofengCard>
-              
-            <!-- Quick Actions -->
-            <GuofengCard
-              :interactive="false"
-              class="flex flex-col justify-center items-start gap-2"
-            >
-              <p class="text-xs font-medium text-text-muted uppercase tracking-wider w-full">
-                Quick Access
-              </p>
-              <button class="w-full text-left text-sm font-medium text-accent-primary hover:underline flex items-center gap-1">
-                See Documentation <ArrowRight class="w-3 h-3" />
-              </button>
-            </GuofengCard>
-          </div>
-        </section>
-
-        <!-- Modules Grid -->
-        <section>
-          <div class="flex items-center gap-2 mb-4">
-            <Boxes class="w-5 h-5 text-platform-codex" />
-            <h2 class="text-xl font-bold text-text-primary">
-              {{ $t('codex.overview.modulesTitle') }}
-            </h2>
-          </div>
+    <div class="max-w-7xl mx-auto space-y-8">
+      <!-- HEADER -->
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up">
+        <!-- Hero Card -->
+        <Card
+          variant="glass"
+          class="lg:col-span-2 relative overflow-hidden p-8 flex flex-col justify-between min-h-[240px]"
+        >
+          <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-pink-500/10 to-transparent -mr-16 -mt-16 rounded-bl-full pointer-events-none" />
            
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Profiles Module -->
-            <GuofengCard 
-              v-for="module in modules" 
-              :key="module.path"
-              :interactive="true"
-              padding="lg"
-              class="group h-full"
-              @click="router.push(module.path)"
-            >
-              <div class="flex flex-col h-full">
-                <div class="flex justify-between items-start mb-4">
-                  <div
-                    class="p-3 rounded-xl transition-transform duration-300 group-hover:scale-110"
-                    :class="module.bgClass"
-                  >
-                    <component
-                      :is="module.icon"
-                      class="w-8 h-8"
-                      :style="{ color: module.color }"
-                    />
-                  </div>
-                  <div
-                    class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border" 
-                    :class="module.badgeClass"
-                  >
-                    {{ module.badge }}
-                  </div>
-                </div>
-                    
-                <h3 class="text-xl font-bold text-text-primary mb-2 group-hover:text-platform-codex transition-colors">
-                  {{ module.title }}
-                </h3>
-                <p class="text-sm text-text-secondary leading-relaxed flex-grow">
-                  {{ module.description }}
+          <div class="relative z-10">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="w-16 h-16 rounded-2xl bg-pink-500/10 flex items-center justify-center border border-pink-500/20 shadow-lg backdrop-blur-md">
+                <Code2 class="w-8 h-8 text-pink-500" />
+              </div>
+              <div>
+                <h1 class="text-4xl font-bold font-display text-text-primary tracking-tight">
+                  Codex
+                </h1>
+                <p class="text-text-secondary text-lg mt-1 max-w-md">
+                  {{ $t('codex.overview.subtitle') }}
                 </p>
-                    
-                <div
-                  class="mt-4 pt-4 border-t border-border-subtle flex items-center text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0"
-                  :style="{ color: module.color }"
-                >
-                  <span>Open Module</span>
-                  <ArrowRight class="w-4 h-4 ml-1" />
-                </div>
               </div>
-            </GuofengCard>
+            </div>
+             
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-pink-500/10 text-pink-500 border border-pink-500/20 flex items-center gap-2">
+                <Server class="w-3 h-3" /> {{ $t('codex.overview.features.mcpProtocol') }}
+              </span>
+              <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20">
+                v1.0.0
+              </span>
+            </div>
           </div>
-        </section>
+        </Card>
 
-        <!-- Info & Tips Section -->
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Codex Usage Panel -->
-          <GuofengCard>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <BarChart3 class="w-5 h-5 text-platform-codex" />
-                <h3 class="text-lg font-bold text-text-primary">
-                  {{ $t('codex.overview.usageTitle') }}
-                </h3>
-              </div>
-              <button
-                class="p-1.5 rounded-lg hover:bg-bg-overlay/50 transition-colors text-text-muted hover:text-text-primary"
-                :disabled="usageLoading"
-                @click="refreshUsage"
-              >
-                <RefreshCw
-                  class="w-4 h-4"
-                  :class="{ 'animate-spin': usageLoading }"
-                />
-              </button>
+        <!-- Status Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+          <!-- Active Profile -->
+          <Card
+            variant="elevated"
+            class="p-5 flex items-center gap-4 border-l-4 border-l-yellow-500"
+          >
+            <div class="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center text-yellow-500 shrink-0">
+              <Zap class="w-6 h-6" />
             </div>
-
-            <!-- Loading State -->
-            <div
-              v-if="usageLoading"
-              class="space-y-3"
-            >
-              <div class="h-16 bg-bg-overlay/30 rounded-lg animate-pulse" />
-              <div class="h-16 bg-bg-overlay/30 rounded-lg animate-pulse" />
-            </div>
-
-            <!-- Error State -->
-            <div
-              v-else-if="usageError"
-              class="text-center py-6"
-            >
-              <AlertCircle class="w-8 h-8 text-text-muted mx-auto mb-2" />
-              <p class="text-sm text-text-muted">
-                {{ $t('codex.overview.usageError') }}
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+                {{ $t('codex.status.currentConfig') }}
               </p>
-              <button
-                class="mt-2 text-xs text-accent-primary hover:underline"
-                @click="refreshUsage"
+              <p
+                class="text-lg font-bold text-text-primary truncate"
+                :title="currentProfile || ''"
               >
-                {{ $t('common.retry') }}
-              </button>
-            </div>
-
-            <!-- Empty State -->
-            <div
-              v-else-if="!usageData || usageData.all_time.total_requests === 0"
-              class="text-center py-6"
-            >
-              <Clock class="w-8 h-8 text-text-muted mx-auto mb-2" />
-              <p class="text-sm text-text-muted">
-                {{ $t('codex.overview.noUsageData') }}
+                {{ currentProfile || $t('codex.status.notSet') }}
               </p>
             </div>
+          </Card>
 
-            <!-- Usage Data -->
-            <div
-              v-else
-              class="space-y-4"
+          <!-- Total Profiles -->
+          <Card
+            variant="elevated"
+            class="p-5 flex items-center gap-4 border-l-4 border-l-blue-500"
+          >
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
+              <Settings class="w-6 h-6" />
+            </div>
+            <div>
+              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+                {{ $t('codex.status.totalProfiles') }}
+              </p>
+              <p class="text-lg font-bold text-text-primary">
+                {{ profilesCount }}
+              </p>
+            </div>
+          </Card>
+
+          <!-- System Status -->
+          <Card
+            variant="elevated"
+            class="p-5 flex items-center gap-4 border-l-4 border-l-emerald-500"
+          >
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
+              <Activity class="w-6 h-6" />
+            </div>
+            <div>
+              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+                System Status
+              </p>
+              <p class="text-lg font-bold text-text-primary">
+                Online
+              </p>
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      <!-- MODULES GRID -->
+      <section
+        class="animate-slide-up"
+        style="animation-delay: 200ms"
+      >
+        <div class="flex items-center gap-3 mb-6">
+          <Boxes class="w-5 h-5 text-pink-500" />
+          <h2 class="text-lg font-bold uppercase tracking-widest text-text-muted">
+            {{ $t('codex.overview.modulesTitle') }}
+          </h2>
+          <div class="h-px flex-1 bg-border-subtle" />
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <RouterLink 
+            v-for="module in modules" 
+            :key="module.path" 
+            :to="module.path"
+            class="group h-full"
+          >
+            <Card
+              variant="glass"
+              hover
+              glow
+              class="h-full p-6 flex flex-col relative overflow-hidden"
             >
-              <!-- 5-Hour Window -->
-              <div class="p-3 rounded-lg bg-bg-overlay/30 border border-border-subtle">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
-                    {{ $t('codex.overview.usage5h') }}
-                  </span>
-                  <span class="text-xs text-text-muted">
-                    {{ usageData.five_hour.total_requests }} {{ $t('codex.overview.requests') }}
-                  </span>
+              <div class="flex items-start justify-between mb-4">
+                <div
+                  class="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 border border-white/5"
+                  :class="module.bgClass"
+                >
+                  <component
+                    :is="module.icon"
+                    class="w-6 h-6"
+                    :class="module.textClass"
+                  />
                 </div>
-                <div class="flex items-baseline gap-2">
-                  <span class="text-2xl font-bold text-text-primary">
-                    {{ formatTokens(usageData.five_hour.total_input_tokens + usageData.five_hour.total_output_tokens) }}
-                  </span>
-                  <span class="text-sm text-text-muted">tokens</span>
-                </div>
-                <div class="mt-1 text-xs text-text-muted">
-                  {{ formatTokens(usageData.five_hour.total_input_tokens) }} in / {{ formatTokens(usageData.five_hour.total_output_tokens) }} out
-                </div>
+                <span
+                  class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border bg-bg-base/50"
+                  :class="module.badgeBorderClass"
+                >
+                  {{ module.badge }}
+                </span>
               </div>
+                  
+              <h3 class="text-lg font-bold text-text-primary mb-2 group-hover:text-pink-500 transition-colors">
+                {{ module.title }}
+              </h3>
+              <p class="text-sm text-text-secondary leading-relaxed flex-grow">
+                {{ module.description }}
+              </p>
 
-              <!-- 7-Day Window -->
-              <div class="p-3 rounded-lg bg-bg-overlay/30 border border-border-subtle">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
-                    {{ $t('codex.overview.usage7d') }}
-                  </span>
-                  <span class="text-xs text-text-muted">
-                    {{ usageData.seven_day.total_requests }} {{ $t('codex.overview.requests') }}
-                  </span>
-                </div>
-                <div class="flex items-baseline gap-2">
-                  <span class="text-2xl font-bold text-text-primary">
-                    {{ formatTokens(usageData.seven_day.total_input_tokens + usageData.seven_day.total_output_tokens) }}
-                  </span>
-                  <span class="text-sm text-text-muted">tokens</span>
-                </div>
-                <div class="mt-1 text-xs text-text-muted">
-                  {{ formatTokens(usageData.seven_day.total_input_tokens) }} in / {{ formatTokens(usageData.seven_day.total_output_tokens) }} out
-                </div>
+              <div
+                class="mt-4 flex items-center text-sm font-bold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
+                :class="module.textClass"
+              >
+                Open Module <ArrowRight class="w-4 h-4 ml-1" />
+              </div>
+            </Card>
+          </RouterLink>
+        </div>
+      </section>
+
+      <!-- USAGE AND TIPS -->
+      <section
+        class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-up"
+        style="animation-delay: 300ms"
+      >
+        <!-- Usage Panel -->
+        <Card
+          variant="glass"
+          class="p-6"
+        >
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+              <div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
+                <BarChart3 class="w-5 h-5" />
+              </div>
+              <h3 class="text-lg font-bold text-text-primary">
+                {{ $t('codex.overview.usageTitle') }}
+              </h3>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              :disabled="usageLoading"
+              @click="refreshUsage"
+            >
+              <RefreshCw
+                class="w-4 h-4"
+                :class="{ 'animate-spin': usageLoading }"
+              />
+            </Button>
+          </div>
+
+          <div
+            v-if="usageLoading"
+            class="space-y-4"
+          >
+            <div class="h-20 bg-bg-elevated animate-pulse rounded-xl" />
+            <div class="h-20 bg-bg-elevated animate-pulse rounded-xl" />
+          </div>
+
+          <div
+            v-else-if="usageError"
+            class="text-center py-10"
+          >
+            <AlertCircle class="w-10 h-10 text-text-muted mx-auto mb-3" />
+            <p class="text-sm text-text-muted mb-3">
+              {{ $t('codex.overview.usageError') }}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              @click="refreshUsage"
+            >
+              {{ $t('common.retry') }}
+            </Button>
+          </div>
+
+          <div
+            v-else-if="!usageData || usageData.all_time.total_requests === 0"
+            class="text-center py-10"
+          >
+            <Clock class="w-10 h-10 text-text-muted mx-auto mb-3" />
+            <p class="text-sm text-text-muted">
+              {{ $t('codex.overview.noUsageData') }}
+            </p>
+          </div>
+
+          <div
+            v-else
+            class="space-y-4"
+          >
+            <!-- 5H Usage -->
+            <div class="p-4 rounded-xl bg-bg-surface/50 border border-border-subtle">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-text-muted uppercase tracking-wider">{{ $t('codex.overview.usage5h') }}</span>
+                <span class="text-xs font-mono text-text-secondary">{{ usageData.five_hour.total_requests }} reqs</span>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-bold text-text-primary font-mono">{{ formatTokens(usageData.five_hour.total_input_tokens + usageData.five_hour.total_output_tokens) }}</span>
+                <span class="text-xs text-text-muted">tokens</span>
+              </div>
+              <div class="w-full bg-bg-base rounded-full h-1.5 mt-2 overflow-hidden">
+                <div
+                  class="bg-pink-500 h-full rounded-full"
+                  style="width: 45%"
+                /> <!-- Mock width for visual -->
               </div>
             </div>
-
-            <!-- Usage Dashboard Link -->
-            <div class="mt-4 pt-4 border-t border-border-subtle">
-              <div class="flex items-start gap-3 p-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
-                <Info class="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                <div class="text-xs text-text-secondary">
-                  <p>{{ $t('codex.overview.usageTip') }}</p>
-                  <p class="mt-1 text-text-muted">
-                    {{ $t('codex.overview.usageStatusTip') }}
-                  </p>
-                </div>
+               
+            <!-- 7D Usage -->
+            <div class="p-4 rounded-xl bg-bg-surface/50 border border-border-subtle">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-text-muted uppercase tracking-wider">{{ $t('codex.overview.usage7d') }}</span>
+                <span class="text-xs font-mono text-text-secondary">{{ usageData.seven_day.total_requests }} reqs</span>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-bold text-text-primary font-mono">{{ formatTokens(usageData.seven_day.total_input_tokens + usageData.seven_day.total_output_tokens) }}</span>
+                <span class="text-xs text-text-muted">tokens</span>
+              </div>
+              <div class="w-full bg-bg-base rounded-full h-1.5 mt-2 overflow-hidden">
+                <div
+                  class="bg-purple-500 h-full rounded-full"
+                  style="width: 75%"
+                /> <!-- Mock width -->
               </div>
             </div>
-          </GuofengCard>
+          </div>
+        </Card>
 
-          <!-- Tips Card -->
-          <GuofengCard>
-            <div class="flex items-center gap-2 mb-4">
-              <Cpu class="w-5 h-5 text-platform-codex" />
+        <!-- Capabilities & Tips -->
+        <div class="space-y-6">
+          <Card
+            variant="glass"
+            class="p-6"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
+                <Cpu class="w-5 h-5" />
+              </div>
               <h3 class="text-lg font-bold text-text-primary">
                 System Capabilities
               </h3>
             </div>
-            <div class="space-y-3">
+            <div class="space-y-2">
               <div
                 v-for="(feature, index) in features"
                 :key="index"
-                class="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-overlay/50 transition-colors"
+                class="flex items-center gap-3 p-3 rounded-xl bg-bg-surface/30 border border-border-subtle/50"
               >
-                <div class="w-1.5 h-1.5 rounded-full bg-platform-codex shadow-[0_0_8px_var(--platform-codex)]" />
+                <div class="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]" />
                 <span class="text-sm text-text-secondary">{{ feature }}</span>
               </div>
             </div>
-          </GuofengCard>
+          </Card>
 
-          <!-- Tips Card -->
-          <GuofengCard>
-            <div class="flex items-center gap-2 mb-4">
-              <Info class="w-5 h-5 text-platform-codex" />
-              <h3 class="text-lg font-bold text-text-primary">
-                {{ $t('codex.overview.tipsTitle') }}
-              </h3>
-            </div>
-            <div class="flex items-start gap-4 p-2">
-              <div class="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 shrink-0">
-                <Lightbulb class="w-5 h-5" />
-              </div>
-              <div>
-                <p class="text-sm text-text-secondary leading-relaxed">
+          <Card
+            variant="outline"
+            class="p-4 bg-amber-500/5 border-amber-500/20"
+          >
+            <div class="flex gap-3">
+              <Lightbulb class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div class="space-y-1">
+                <h4 class="text-sm font-bold text-amber-500">
+                  {{ $t('codex.overview.tipsTitle') }}
+                </h4>
+                <p class="text-xs text-text-secondary leading-relaxed opacity-80">
                   {{ $t('codex.overview.tips.mcpConnection') }}
                 </p>
               </div>
             </div>
-          </GuofengCard>
-        </section>
-      </div>
+          </Card>
+        </div>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
-  Settings, Server, Home, Command, Code2, Boxes, Info,
+  Settings, Server, Command, Code2, Boxes,
   Zap, Activity, ArrowRight, Lightbulb, Cpu, KeyRound,
   BarChart3, RefreshCw, AlertCircle, Clock
 } from 'lucide-vue-next'
+// ...
+// const router = useRouter() DELETE THIS LINE if it exists below in user code
+// I cannot replace non-contiguous lines easily.
+// I will just replace the top block.
+// And I will assume `const router = ...` is further down.
+// Wait, I need to see where `const router` is.
 
-import { Breadcrumb } from '@/components/ui'
-import GuofengCard from '@/components/common/GuofengCard.vue'
+
+import Card from '@/components/ui/Card.vue'
+import Button from '@/components/ui/Button.vue'
 import { listCodexProfiles, getCodexUsage } from '@/api'
 import type { CodexUsageResponse } from '@/types'
 
-const router = useRouter()
 const { t } = useI18n()
 
 // State
@@ -379,7 +358,6 @@ const usageData = ref<CodexUsageResponse | null>(null)
 const usageLoading = ref(false)
 const usageError = ref(false)
 
-// Format tokens with K/M suffix
 const formatTokens = (tokens: number): string => {
   if (tokens >= 1_000_000) {
     return `${(tokens / 1_000_000).toFixed(1)}M`
@@ -389,7 +367,6 @@ const formatTokens = (tokens: number): string => {
   return tokens.toString()
 }
 
-// Refresh usage data
 const refreshUsage = async () => {
   usageLoading.value = true
   usageError.value = false
@@ -403,7 +380,6 @@ const refreshUsage = async () => {
   }
 }
 
-// Modules Data
 const modules = computed(() => [
   {
     path: '/codex/profiles',
@@ -411,9 +387,9 @@ const modules = computed(() => [
     description: t('codex.overview.modules.profiles.description'),
     badge: t('codex.overview.modules.profiles.badge'),
     icon: Settings,
-    color: 'var(--platform-codex)',
-    bgClass: 'bg-platform-codex/10',
-    badgeClass: 'bg-platform-codex/10 text-platform-codex border-platform-codex/20'
+    textClass: 'text-pink-500', 
+    bgClass: 'bg-pink-500/10',
+    badgeBorderClass: 'border-pink-500/20 text-pink-500'
   },
   {
     path: '/codex/mcp',
@@ -421,9 +397,9 @@ const modules = computed(() => [
     description: t('codex.overview.modules.mcp.description'),
     badge: t('codex.overview.modules.mcp.badge'),
     icon: Server,
-    color: 'var(--platform-claude)',
+    textClass: 'text-indigo-500',
     bgClass: 'bg-indigo-500/10',
-    badgeClass: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20'
+    badgeBorderClass: 'border-indigo-500/20 text-indigo-500'
   },
   {
     path: '/codex/slash-commands',
@@ -431,9 +407,9 @@ const modules = computed(() => [
     description: t('codex.overview.modules.slashCommands.description'),
     badge: t('codex.overview.modules.slashCommands.badge'),
     icon: Command,
-    color: 'var(--accent-tertiary)',
-    bgClass: 'bg-pink-500/10',
-    badgeClass: 'bg-pink-500/10 text-pink-500 border-pink-500/20'
+    textClass: 'text-rose-500',
+    bgClass: 'bg-rose-500/10',
+    badgeBorderClass: 'border-rose-500/20 text-rose-500'
   },
   {
     path: '/codex/auth',
@@ -441,9 +417,9 @@ const modules = computed(() => [
     description: t('codex.overview.modules.auth.description'),
     badge: t('codex.overview.modules.auth.badge'),
     icon: KeyRound,
-    color: 'var(--accent-warning)',
+    textClass: 'text-amber-500',
     bgClass: 'bg-amber-500/10',
-    badgeClass: 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+    badgeBorderClass: 'border-amber-500/20 text-amber-500'
   }
 ])
 
@@ -464,8 +440,6 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load profile status:', error)
   }
-
-  // Load usage data
   refreshUsage()
 })
 </script>
