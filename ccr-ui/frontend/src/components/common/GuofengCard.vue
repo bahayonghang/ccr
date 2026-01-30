@@ -1,8 +1,8 @@
 <template>
   <div
-    class="guofeng-card group relative overflow-hidden transition-all"
+    class="guofeng-card group relative overflow-hidden transition-all duration-300"
     :class="[
-      interactive && !disabled ? 'hover:-translate-y-1 cursor-pointer animate-gpu-accelerated' : '',
+      interactive && !disabled ? 'hover:-translate-y-1 cursor-pointer' : '',
       variant === 'glass' ? 'glass-effect' : 'bg-[var(--bg-secondary)]',
       disabled ? 'opacity-50 cursor-not-allowed' : '',
       paddingClasses,
@@ -13,7 +13,9 @@
     :style="{
       borderRadius: 'var(--radius-xl)',
       border: '1px solid var(--border-color)',
-      transition: `all var(--duration-normal) var(--ease-out-cubic)`,
+      background: interactive && !disabled && isHovered 
+        ? `linear-gradient(145deg, rgba(255,255,255,0.05) 0%, ${glowColors[glowColor].replace(')', ', 0.05)')} 100%)`
+        : 'rgba(255, 255, 255, 0.03)',
       ...style
     }"
     @click="handleClick"
@@ -21,6 +23,45 @@
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
   >
+    <!-- Noise Texture for "Premium" feel -->
+    <div
+      class="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay"
+      :style="{ backgroundImage: 'url(https://grainy-gradients.vercel.app/noise.svg)' }"
+    />
+
+    <!-- Modern Gradient Mask (Breathing Light Effect) -->
+    <div
+      v-if="interactive && !disabled"
+      class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+      :style="{
+        background: `radial-gradient(circle at center, ${glowColors[glowColor]} 0%, transparent 70%)`,
+        mixBlendMode: 'overlay',
+        filter: 'blur(20px)',
+      }"
+    />
+
+    <!-- Iconified Entry Indicator (Top Right) -->
+    <div
+      v-if="interactive && !disabled"
+      class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"
+    >
+      <div class="p-1.5 rounded-full bg-white/10 backdrop-blur-sm text-[var(--color-text-primary)]">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M7 17L17 7M17 7H7M17 7V17" />
+        </svg>
+      </div>
+    </div>
+
     <!-- Gradient border effect (optional) -->
     <div
       v-if="gradientBorder"
@@ -49,17 +90,6 @@
     >
       <slot />
     </div>
-
-    <!-- Enhanced hover glow effect -->
-    <div
-      v-if="(interactive || glowEffect) && !disabled"
-      class="absolute inset-0 opacity-0 pointer-events-none transition-opacity"
-      :class="{ 'opacity-100': isHovered }"
-      :style="{
-        boxShadow: glowColors[glowColor],
-        transition: `opacity var(--duration-normal) var(--ease-out-cubic)`
-      }"
-    />
 
     <!-- Interactive ripple effect -->
     <div
@@ -153,7 +183,8 @@ const gradientBorderStyle = computed(() => ({
   maskComposite: 'exclude',
 }))
 
-const BACKGROUND_PATTERN = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+// Dot pattern for modern look
+const BACKGROUND_PATTERN = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.15' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='1'/%3E%3C/g%3E%3C/svg%3E")`
 
 const handleClick = (e: MouseEvent) => {
   if (!props.disabled) {

@@ -1,327 +1,269 @@
 <template>
-  <div class="flex h-screen bg-bg-primary">
-    <!-- Skip Link for Accessibility -->
+  <div class="flex h-screen bg-bg-base text-text-primary overflow-hidden font-sans selection:bg-accent-primary/30">
+    <!-- Skip Link -->
     <a
       href="#main-content"
-      class="skip-to-content"
+      class="skip-to-content z-50"
     >
       {{ $t('common.skipToContent') || 'Skip to content' }}
     </a>
 
-    <!-- Sidebar -->
+    <!-- Sidebar (Glassmorphism + Resize) -->
     <div
-      class="bg-bg-secondary border-r border-border-color flex flex-col relative flex-shrink-0"
-      :style="{ width: sidebarWidth + 'px', transition: isResizing ? 'none' : 'width 0.1s ease-out' }"
+      class="flex flex-col relative flex-shrink-0 z-40 transition-all duration-300 ease-out will-change-[width]"
+      :class="[
+        'bg-bg-elevated/80 backdrop-blur-xl border-r border-border-subtle shadow-xl',
+        isResizing ? 'select-none' : ''
+      ]"
+      :style="{ width: sidebarWidth + 'px' }"
     >
       <!-- Resize Handle -->
       <div
-        class="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-accent-primary/50 transition-colors z-50 group outline-none focus-visible:bg-accent-primary"
-        :class="{ 'bg-accent-primary': isResizing }"
-        tabindex="0"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Sidebar resize handle"
-        :aria-valuenow="sidebarWidth"
-        :aria-valuemin="minWidth"
-        :aria-valuemax="maxWidth"
+        class="absolute -right-1 top-0 w-2 h-full cursor-col-resize z-50 group outline-none"
         @mousedown.prevent="startResize"
-        @keydown.left.prevent="resizeKeyboard(-10)"
-        @keydown.right.prevent="resizeKeyboard(10)"
       >
-        <div
-          class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-border-color rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-          :class="{ 'opacity-100 bg-accent-primary': isResizing }"
-        />
+        <div class="absolute inset-y-0 right-1/2 w-[1px] bg-border-subtle group-hover:bg-accent-primary/50 transition-colors delay-75" />
       </div>
-      <!-- Logo and Title -->
-      <div class="p-4 border-b border-border-color/50">
-        <div class="flex items-center space-x-3">
-          <div class="p-2 rounded-xl bg-gradient-to-br from-accent-primary/10 to-accent-secondary/10 animate-pulse-subtle shadow-sm">
-            <Zap class="w-6 h-6 text-accent-primary animate-sidebar-item-enter" />
+
+      <!-- Logo Area -->
+      <div class="h-16 flex items-center px-4 border-b border-white/5">
+        <div class="flex items-center gap-3">
+          <div class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-accent-primary to-accent-secondary shadow-glow-primary">
+            <Zap class="w-5 h-5 text-white" />
           </div>
-          <div class="animate-sidebar-item-enter">
-            <h1 class="text-xl font-black brand-gradient-text brand-gradient-text-hover tracking-tight">
-              CCR UI
+          <div>
+            <h1 class="text-lg font-bold font-display tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-text-primary to-text-secondary">
+              CCR <span class="text-accent-primary">UI</span>
             </h1>
-            <p class="text-xs text-text-secondary font-medium">
-              {{ $t('home.subtitle') }}
+            <p class="text-[10px] uppercase tracking-widest text-text-muted font-bold mt-0.5 opacity-60">
+              Terminal Node
             </p>
           </div>
         </div>
-        <div class="mt-3 flex items-center gap-2">
-          <LanguageSwitcher class="flex-1" />
-          <button
-            class="p-2 rounded-lg transition-all duration-300 hover:bg-bg-tertiary hover:scale-110"
-            :title="currentTheme === 'dark' ? '切换到明亮模式' : '切换到深色模式'"
-            @click="toggleTheme"
-          >
-            <Moon
-              v-if="currentTheme === 'dark'"
-              class="w-4 h-4 text-text-secondary"
-            />
-            <Sun
-              v-else
-              class="w-4 h-4 text-text-secondary"
-            />
-          </button>
-        </div>
       </div>
 
-      <!-- Navigation Menu -->
-      <nav class="flex-1 overflow-y-auto py-4">
-        <!-- 首页链接 -->
-        <div class="px-3 space-y-1">
-          <RouterLink 
-            to="/" 
-            class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm"
-            active-class="nav-item-active"
+      <!-- Navigation -->
+      <nav class="flex-1 overflow-y-auto p-3 space-y-6 scrollbar-hide">
+        <!-- Section: Main -->
+        <div class="space-y-1">
+          <RouterLink
+            to="/"
+            class="nav-item"
           >
-            <Home
-              class="w-5 h-5 mr-3"
-              style="color: #1890ff;"
-            />
-            <span class="font-medium">{{ $t('nav.home') }}</span>
+            <Home class="w-4 h-4" />
+            <span>{{ $t('nav.home') }}</span>
           </RouterLink>
         </div>
 
-        <!-- 分隔线 -->
-        <div class="px-3 mt-4">
-          <div class="border-t border-border-color/30" />
-        </div>
-
-        <!-- 主要模块 -->
-        <div class="px-3 mt-4">
-          <h2 class="px-3 text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center">
-            <span class="flex-1">{{ $t('nav.mainModules') }}</span>
-            <span class="w-2 h-2 rounded-full bg-accent-primary/30 animate-pulse" />
-          </h2>
-          <div class="space-y-1 nav-group">
-            <RouterLink 
-              to="/ccr-control" 
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
+        <!-- Section: Modules -->
+        <div>
+          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted/60 flex items-center gap-2">
+            {{ $t('nav.mainModules') }}
+            <div class="h-px flex-1 bg-border-subtle" />
+          </div>
+          <div class="space-y-0.5">
+            <RouterLink
+              to="/claude-code"
+              class="nav-item group"
             >
-              <Terminal
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #10b981;"
-              />
-              <span class="font-medium">{{ $t('nav.ccrControl') }}</span>
+              <Code2 class="w-4 h-4 text-purple-400 group-hover:text-purple-300 transition-colors" />
+              <span>{{ $t('nav.claudeCode') }}</span>
             </RouterLink>
-            <RouterLink 
-              to="/claude-code" 
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
+            <RouterLink
+              to="/codex"
+              class="nav-item group"
             >
-              <Code2
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #8b5cf6;"
-              />
-              <span class="font-medium">{{ $t('nav.claudeCode') }}</span>
+              <Settings class="w-4 h-4 text-emerald-400 group-hover:text-emerald-300 transition-colors" />
+              <span>{{ $t('nav.codex') }}</span>
             </RouterLink>
-            <RouterLink 
-              to="/codex" 
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
+            <RouterLink
+              to="/gemini-cli"
+              class="nav-item group"
             >
-              <Settings
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #10b981;"
-              />
-              <span class="font-medium">{{ $t('nav.codex') }}</span>
+              <Sparkles class="w-4 h-4 text-sky-400 group-hover:text-sky-300 transition-colors" />
+              <span>{{ $t('nav.gemini') }}</span>
             </RouterLink>
-            <RouterLink 
-              to="/gemini-cli" 
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
+            <RouterLink
+              to="/qwen"
+              class="nav-item group"
             >
-              <Sparkles
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #1a73e8;"
-              />
-              <span class="font-medium">{{ $t('nav.gemini') }}</span>
-            </RouterLink>
-            <RouterLink 
-              to="/qwen" 
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
-            >
-              <Zap
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #00b5e2;"
-              />
-              <span class="font-medium">{{ $t('nav.qwen') }}</span>
+              <Zap class="w-4 h-4 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
+              <span>{{ $t('nav.qwen') }}</span>
             </RouterLink>
             <RouterLink
               to="/iflow"
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
+              class="nav-item group"
             >
-              <Activity
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #faad14;"
-              />
-              <span class="font-medium">{{ $t('nav.iflow') }}</span>
+              <Activity class="w-4 h-4 text-amber-400 group-hover:text-amber-300 transition-colors" />
+              <span>{{ $t('nav.iflow') }}</span>
             </RouterLink>
             <RouterLink
               to="/droid"
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
+              class="nav-item group"
             >
-              <Bot
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #ec4899;"
-              />
-              <span class="font-medium">{{ $t('nav.droid') }}</span>
+              <Bot class="w-4 h-4 text-pink-400 group-hover:text-pink-300 transition-colors" />
+              <span>{{ $t('nav.droid') }}</span>
             </RouterLink>
           </div>
         </div>
 
-        <!-- 分隔线 -->
-        <div class="px-3 mt-4">
-          <div class="border-t border-border-color/30" />
-        </div>
-
-        <!-- 工具中心 -->
-        <div class="px-3 mt-4">
-          <h2 class="px-3 text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center">
-            <span class="flex-1">{{ $t('nav.toolsCenter') }}</span>
-            <span class="w-2 h-2 rounded-full bg-accent-warning/30 animate-pulse" />
-          </h2>
-          <div class="space-y-1 nav-group">
-            <RouterLink 
-              to="/commands" 
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
+        <!-- Section: Tools -->
+        <div>
+          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted/60 flex items-center gap-2">
+            {{ $t('nav.toolsCenter') }}
+            <div class="h-px flex-1 bg-border-subtle" />
+          </div>
+          <div class="space-y-0.5">
+            <RouterLink
+              to="/ccr-control"
+              class="nav-item"
             >
-              <Terminal
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #3b82f6;"
-              />
-              <span class="font-medium">{{ $t('nav.commands') }}</span>
-            </RouterLink>
-            <RouterLink 
-              to="/converter" 
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
-            >
-              <TrendingUp
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #13c2c2;"
-              />
-              <span class="font-medium">{{ $t('nav.converter') }}</span>
+              <Terminal class="w-4 h-4" />
+              <span>{{ $t('nav.ccrControl') }}</span>
             </RouterLink>
             <RouterLink
-              to="/sync"
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
+              to="/commands"
+              class="nav-item"
             >
-              <Cloud
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #1890ff;"
-              />
-              <span class="font-medium">{{ $t('nav.sync') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/usage"
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
-            >
-              <Activity
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #10b981;"
-              />
-              <span class="font-medium">{{ $t('nav.usage') }}</span>
+              <Terminal class="w-4 h-4" />
+              <span>{{ $t('nav.commands') }}</span>
             </RouterLink>
             <RouterLink
               to="/checkin"
-              class="nav-link flex items-center px-3 py-3 rounded-xl text-text-secondary hover:bg-bg-tertiary transition-all duration-300 transform hover:scale-[1.02] hover:shadow-sm group"
-              active-class="nav-item-active"
+              class="nav-item"
             >
-              <ClipboardCheck
-                class="w-5 h-5 mr-3 group-hover:animate-nav-hover"
-                style="color: #f59e0b;"
-              />
-              <span class="font-medium">{{ $t('nav.checkin') }}</span>
+              <ClipboardList class="w-4 h-4" />
+              <span>{{ $t('nav.checkin') }}</span>
+            </RouterLink>
+            <RouterLink
+              to="/sync"
+              class="nav-item"
+            >
+              <Cloud class="w-4 h-4" />
+              <span>{{ $t('nav.sync') }}</span>
+            </RouterLink>
+            <RouterLink
+              to="/usage"
+              class="nav-item"
+            >
+              <Activity class="w-4 h-4" />
+              <span>{{ $t('nav.usage') }}</span>
             </RouterLink>
           </div>
         </div>
       </nav>
 
-      <!-- Version Info, Theme Toggle & Language Switcher -->
-      <div class="p-4 border-t border-border-color/50 bg-bg-secondary/50 backdrop-blur-sm">
-        <div class="flex items-center justify-between gap-3 animate-sidebar-item-enter">
-          <div class="text-xs text-text-muted flex items-center gap-2 font-medium">
-            <span class="whitespace-nowrap">CCR UI v3.20.1</span>
-            <span
-              class="w-2 h-2 rounded-full bg-accent-success animate-pulse"
-              style="box-shadow: 0 0 8px rgb(var(--color-success-rgb), 0.4)"
-            />
+      <!-- Footer: User Profile -->
+      <div class="p-4 border-t border-white/5 bg-black/20">
+        <div class="relative group rounded-xl bg-white/5 border border-white/5 p-3 transition-all hover:bg-white/10 hover:border-white/10 hover:shadow-lg">
+          <!-- Top Row: Avatar & Toggle -->
+          <div class="flex items-start justify-between mb-3">
+            <!-- Avatar (Hexagon Style for Neo-Terminal) -->
+            <div class="relative">
+              <div class="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white font-bold font-mono text-xs shadow-glow-primary">
+                ENG
+              </div>
+              <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-bg-base rounded-full flex items-center justify-center">
+                <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+              </div>
+            </div>
+
+            <!-- Theme Toggle (Fixed Position & Clickable) -->
+            <ThemeToggle class="relative z-20 hover:text-accent-primary transition-colors" />
           </div>
-          <BackendStatusBadge />
-        </div>
-        
-        <!-- Exit Confirm Toggle (Tauri only) -->
-        <div
-          v-if="isTauri"
-          class="flex items-center justify-between text-xs mt-3 pt-3 border-t border-border-color/30"
-        >
-          <span class="text-text-secondary">{{ $t('common.exitConfirm') || '退出确认' }}</span>
-          <button
-            class="relative w-8 h-4 rounded-full transition-colors"
-            :class="showExitConfirm ? 'bg-accent-primary' : 'bg-bg-tertiary'"
-            @click="toggleExitConfirm"
-            aria-label="Toggle exit confirmation"
-          >
-            <span
-              class="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform"
-              :class="showExitConfirm ? 'translate-x-4' : 'translate-x-0.5'"
-            />
-          </button>
+
+          <!-- Bottom Row: User Info -->
+          <div class="space-y-0.5">
+            <h3 class="text-sm font-bold text-text-primary tracking-wide">
+              ENGINEER
+            </h3>
+            <div class="flex items-center justify-between">
+              <p class="text-[10px] text-text-muted font-mono uppercase tracking-wider">
+                Session: <span class="text-emerald-500">Active</span>
+              </p>
+              <span class="text-[10px] font-mono text-text-muted/40">CCR UI v3.20.2</span>
+            </div>
+          </div>
+
+          <!-- Decorative Lines -->
+          <div class="absolute bottom-3 right-3 w-8 h-[2px] bg-white/10 rounded-full" />
         </div>
       </div>
     </div>
 
-    <!-- Main Content -->
-    <div
+    <!-- Main Content Area -->
+    <main
       id="main-content"
-      class="flex-1 flex flex-col overflow-auto focus:outline-none"
-      tabindex="-1"
+      class="flex-1 relative overflow-hidden flex flex-col"
     >
-      <BackendStatusBanner />
-      <RouterView />
-    </div>
+      <!-- Top Bar (Optional, if needed for breadcrumbs or global search) -->
+      <div class="h-14 flex items-center px-6 border-b border-border-subtle bg-bg-base/50 backdrop-blur-sm z-30 sticky top-0 justify-between">
+        <!-- Breadcrumbs Placeholder -->
+        <div class="flex items-center text-sm text-text-muted">
+          <span class="opacity-50">App</span>
+          <span class="mx-2 opacity-30">/</span>
+          <span class="text-text-primary font-medium">Dashboard</span>
+        </div>
+         
+        <div class="flex items-center gap-4">
+          <LanguageSwitcher />
+          <div
+            v-if="isTauri"
+            class="h-4 w-px bg-border-subtle mx-2"
+          />
+          <!-- Exit Toggle -->
+          <button
+            v-if="isTauri"
+            class="flex items-center gap-2 text-xs font-medium text-text-muted hover:text-text-primary transition-colors"
+            :class="{ 'text-accent-primary': showExitConfirm }"
+            @click="toggleExitConfirm"
+          >
+            <div class="w-3 h-3 rounded-full border border-current flex items-center justify-center">
+              <div
+                class="w-1.5 h-1.5 rounded-full bg-current transition-transform duration-300"
+                :class="showExitConfirm ? 'scale-100' : 'scale-0'"
+              />
+            </div>
+            Exit Confirm
+          </button>
+        </div>
+      </div>
+
+      <!-- Scrollable Content -->
+      <div class="flex-1 overflow-y-auto scroll-smooth p-6">
+        <BackendStatusBanner class="mb-6" />
+        <RouterView v-slot="{ Component }">
+          <transition 
+            name="fade-slide" 
+            mode="out-in"
+            appear
+          >
+            <component :is="Component" />
+          </transition>
+        </RouterView>
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import {
-  Home,
-  Code2,
-  Settings,
-  Sparkles,
-  Zap,
-  Activity,
-  Terminal,
-  TrendingUp,
-  Cloud,
-  Moon,
-  Sun,
-  ClipboardCheck,
-  Bot
+import { ref, onMounted, onUnmounted } from 'vue'
+import { 
+  Home, Code2, Settings, Sparkles, Zap, Activity, 
+  Terminal, Cloud, Bot, ClipboardList 
 } from 'lucide-vue-next'
-import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
-import BackendStatusBadge from '@/components/BackendStatusBadge.vue'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
-import { useThemeStore } from '@/store'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
 
-const sidebarWidth = ref(260)
+// Sidebar State
+const sidebarWidth = ref(240)
 const isResizing = ref(false)
 const minWidth = 200
-const maxWidth = 720
+const maxWidth = 480
 
-// Tauri Environment
+// Tauri State
 const isTauri = ref(false)
 const showExitConfirm = ref(true)
 
@@ -332,37 +274,20 @@ const toggleExitConfirm = async () => {
   }
 }
 
-const themeStore = useThemeStore()
-const currentTheme = computed(() => themeStore.currentTheme)
-
-const toggleTheme = () => {
-  themeStore.toggleTheme()
-}
-
+// Resizing Logic
 const startResize = () => {
   isResizing.value = true
   document.body.style.cursor = 'col-resize'
   document.body.style.userSelect = 'none'
-
   window.addEventListener('mousemove', handleResize)
   window.addEventListener('mouseup', stopResize)
 }
 
-const resizeKeyboard = (delta: number) => {
-  let newWidth = sidebarWidth.value + delta
-  if (newWidth < minWidth) newWidth = minWidth
-  if (newWidth > maxWidth) newWidth = maxWidth
-  sidebarWidth.value = newWidth
-  localStorage.setItem('ccr-sidebar-width', sidebarWidth.value.toString())
-}
-
 const handleResize = (e: MouseEvent) => {
   if (!isResizing.value) return
-
   let newWidth = e.clientX
   if (newWidth < minWidth) newWidth = minWidth
   if (newWidth > maxWidth) newWidth = maxWidth
-
   sidebarWidth.value = newWidth
 }
 
@@ -370,31 +295,21 @@ const stopResize = () => {
   isResizing.value = false
   document.body.style.cursor = ''
   document.body.style.userSelect = ''
-
   localStorage.setItem('ccr-sidebar-width', sidebarWidth.value.toString())
-
   window.removeEventListener('mousemove', handleResize)
   window.removeEventListener('mouseup', stopResize)
 }
 
 onMounted(async () => {
   const savedWidth = localStorage.getItem('ccr-sidebar-width')
-  if (savedWidth) {
-    const width = Number.parseInt(savedWidth, 10)
-    if (!Number.isNaN(width) && width >= minWidth && width <= maxWidth) {
-      sidebarWidth.value = width
-    }
-  }
-
-  // Check Tauri environment and load settings
+  if (savedWidth) sidebarWidth.value = Number(savedWidth) || 240
+  
   isTauri.value = isTauriEnvironment()
   if (isTauri.value) {
     try {
       const skipConfirm = await getSkipExitConfirm()
       showExitConfirm.value = !skipConfirm
-    } catch (e) {
-      console.error('Failed to load exit confirm setting:', e)
-    }
+    } catch (e) { console.error(e) }
   }
 })
 
@@ -403,3 +318,42 @@ onUnmounted(() => {
   window.removeEventListener('mouseup', stopResize)
 })
 </script>
+
+<style scoped>
+/* Nav Item Styles */
+.nav-item {
+  @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-text-secondary 
+         transition-all duration-200 relative overflow-hidden;
+}
+
+.nav-item:hover {
+  @apply bg-bg-surface text-text-primary;
+}
+
+.nav-item.router-link-active {
+  @apply bg-accent-primary/10 text-accent-primary shadow-sm;
+}
+
+/* Active indicator strip */
+.nav-item.router-link-active::before {
+  content: '';
+
+  @apply absolute left-0 top-1/2 -translate-y-1/2 h-4 w-1 bg-accent-primary rounded-r-full;
+}
+
+/* Page Transition */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+</style>

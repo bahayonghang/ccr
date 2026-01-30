@@ -2,24 +2,19 @@
   <div class="relative w-full">
     <!-- Language Switcher Button -->
     <button
-      class="w-full px-3 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-between gap-2 hover:scale-[1.02]"
-      :style="{
-        background: 'var(--bg-tertiary)',
-        color: 'var(--text-primary)',
-        border: '1px solid var(--border-color)'
-      }"
-      :aria-label="$t('language.switchLanguage')"
-      :title="$t('language.switchLanguage')"
+      class="w-full px-3 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-between gap-2 hover:scale-[1.02] bg-bg-surface border border-border-subtle hover:border-accent-primary/50"
+      :aria-label="$t('common.language.switchLanguage')"
+      :title="$t('common.language.switchLanguage')"
       @click="toggleDropdown"
     >
-      <span class="flex items-center gap-2 min-w-0">
+      <span class="flex items-center gap-2 min-w-0 text-text-primary">
         <Languages class="w-4 h-4" />
         <span class="text-left whitespace-normal break-words">
           {{ currentLanguageName }} / {{ targetLanguageName }}
         </span>
       </span>
       <ChevronDown
-        class="w-3 h-3 transition-transform"
+        class="w-3 h-3 transition-transform text-text-muted"
         :class="{ 'rotate-180': showDropdown }"
       />
     </button>
@@ -35,35 +30,25 @@
     >
       <div
         v-if="showDropdown"
-        class="absolute left-0 mt-2 w-40 rounded-lg overflow-hidden glass-effect z-50"
-        :style="{
-          border: '1px solid var(--border-color)',
-          boxShadow: 'var(--shadow-large)'
-        }"
+        class="absolute left-0 mt-2 w-44 rounded-xl overflow-hidden z-50 bg-bg-elevated border border-border-subtle shadow-2xl"
       >
         <button
           v-for="lang in languages"
           :key="lang.code"
-          class="w-full px-4 py-2.5 text-left text-sm font-medium transition-all flex items-center justify-between"
+          class="lang-option w-full px-4 py-3 text-left text-sm font-medium transition-all flex items-center justify-between"
           :class="{
-            'bg-gradient-to-r from-accent-primary/10 to-accent-secondary/10': currentLocale === lang.code
-          }"
-          :style="{
-            color: currentLocale === lang.code ? 'var(--accent-primary)' : 'var(--text-secondary)',
-            backgroundColor: currentLocale === lang.code ? '' : 'transparent'
+            'lang-active': currentLocale === lang.code,
+            'lang-inactive': currentLocale !== lang.code
           }"
           @click="switchLanguage(lang.code)"
-          @mouseenter="hoveredLang = lang.code"
-          @mouseleave="hoveredLang = null"
         >
-          <span class="flex items-center space-x-2">
+          <span class="flex items-center gap-3">
             <span class="text-lg">{{ lang.flag }}</span>
             <span>{{ lang.name }}</span>
           </span>
           <Check
             v-if="currentLocale === lang.code"
-            class="w-4 h-4"
-            :style="{ color: 'var(--accent-primary)' }"
+            class="w-4 h-4 text-white"
           />
         </button>
       </div>
@@ -86,7 +71,6 @@ import { Languages, ChevronDown, Check } from 'lucide-vue-next'
 const { locale, t: _t } = useI18n({ useScope: 'global' })
 
 const showDropdown = ref(false)
-const hoveredLang = ref<string | null>(null)
 
 interface Language {
   code: string
@@ -95,8 +79,8 @@ interface Language {
 }
 
 const languages: Language[] = [
-  { code: 'zh-CN', name: '中文', flag: '🇨🇳' },
-  { code: 'en-US', name: 'English', flag: '🇺🇸' },
+  { code: 'zh-CN', name: '中文', flag: 'CN' },
+  { code: 'en-US', name: 'English', flag: 'US' },
 ]
 
 const currentLocale = computed(() => locale.value)
@@ -130,8 +114,16 @@ const switchLanguage = (langCode: string) => {
 </script>
 
 <style scoped>
-.glass-effect {
-  backdrop-filter: blur(10px);
-  background: var(--bg-secondary);
+.lang-option {
+  position: relative;
+}
+
+.lang-active {
+  @apply bg-accent-primary text-white font-bold;
+}
+
+.lang-inactive {
+  @apply text-text-secondary hover:bg-bg-surface hover:text-text-primary;
 }
 </style>
+

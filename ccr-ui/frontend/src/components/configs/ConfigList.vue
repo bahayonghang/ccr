@@ -1,45 +1,42 @@
 <template>
-  <div class="space-y-6">
-    <!-- 加载状态 -->
+  <div class="space-y-4">
+    <!-- Loading State -->
     <div
       v-if="loading"
-      class="flex items-center justify-center py-20"
+      class="flex flex-col items-center justify-center py-20 text-text-muted"
     >
-      <div
-        class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
-        :style="{
-          borderTopColor: 'var(--accent-primary)',
-          borderRightColor: 'var(--accent-secondary)'
-        }"
+      <Spinner
+        size="xl"
+        class="text-accent-primary mb-4"
       />
+      <span class="text-sm font-mono animate-pulse">Loading configurations...</span>
     </div>
 
-    <!-- 错误状态 -->
+    <!-- Error State -->
     <div
       v-else-if="error"
-      class="rounded-lg p-4 flex items-center space-x-2"
-      :style="{
-        background: 'color-mix(in srgb, var(--accent-danger) 10%, transparent)',
-        border: '1px solid var(--accent-danger)'
-      }"
+      class="p-4 rounded-xl bg-accent-danger/10 border border-accent-danger/20 flex items-center gap-3 text-accent-danger"
     >
-      <AlertCircle :style="{ color: 'var(--accent-danger)' }" />
-      <span :style="{ color: 'var(--accent-danger)' }">
-        {{ $t('configs.operationFailed') }}: {{ error }}
-      </span>
+      <AlertCircle class="w-5 h-5 shrink-0" />
+      <span>{{ $t('configs.operationFailed') }}: {{ error }}</span>
     </div>
 
-    <!-- 空状态 -->
+    <!-- Empty State -->
     <div
       v-else-if="configs.length === 0"
-      class="text-center py-10"
-      :style="{ color: 'var(--text-muted)' }"
+      class="py-20 flex flex-col items-center justify-center text-text-muted"
     >
-      {{ $t('configs.noConfigsInCategory') }}
+      <div class="w-16 h-16 rounded-2xl bg-bg-surface flex items-center justify-center mb-4">
+        <Settings class="w-8 h-8 opacity-20" />
+      </div>
+      <p>{{ $t('configs.noConfigsInCategory') }}</p>
     </div>
 
-    <!-- 配置卡片列表 -->
-    <template v-else>
+    <!-- Config Grid -->
+    <div
+      v-else
+      class="grid grid-cols-1 xl:grid-cols-2 gap-4"
+    >
       <ConfigCard
         v-for="config in configs"
         :key="config.name"
@@ -50,30 +47,27 @@
         @enable="$emit('enable', $event)"
         @disable="$emit('disable', $event)"
       />
-    </template>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { AlertCircle } from 'lucide-vue-next'
+import { AlertCircle, Settings } from 'lucide-vue-next'
 import type { ConfigItem } from '@/types'
 import ConfigCard from '@/components/ConfigCard.vue'
+import Spinner from '@/components/ui/Spinner.vue'
 
-interface Props {
+defineProps<{
   configs: ConfigItem[]
   loading: boolean
   error: string | null
-}
+}>()
 
-defineProps<Props>()
-
-interface Emits {
-  (e: 'switch', configName: string): void
-  (e: 'edit', configName: string): void
-  (e: 'delete', configName: string): void
-  (e: 'enable', configName: string): void
-  (e: 'disable', configName: string): void
-}
-
-defineEmits<Emits>()
+defineEmits<{
+  switch: [name: string]
+  edit: [name: string]
+  delete: [name: string]
+  enable: [name: string]
+  disable: [name: string]
+}>()
 </script>
