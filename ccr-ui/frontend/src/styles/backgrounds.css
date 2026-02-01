@@ -36,6 +36,47 @@
     }
 }
 
+@keyframes gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes aurora-wave {
+    0% {
+        transform: translateX(-100%) skewX(-15deg);
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateX(100%) skewX(-15deg);
+        opacity: 0;
+    }
+}
+
+@keyframes float-gentle {
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-20px) rotate(2deg);
+    }
+}
+
 .premium-background {
     position: fixed;
     top: 0;
@@ -64,6 +105,11 @@
     --bg-pattern-color: rgb(15 23 42 / 3%);
 
     /* Slate-900 very transparent */
+
+    /* Aurora gradient colors */
+    --aurora-1: rgb(6 182 212 / 15%);
+    --aurora-2: rgb(139 92 246 / 12%);
+    --aurora-3: rgb(236 72 153 / 10%);
 }
 
 /* Light Mode Elements */
@@ -129,6 +175,11 @@
     --bg-grid-line: rgb(248 250 252 / 3%);
 
     /* Slate-50 transparent */
+
+    /* Aurora gradient colors - enhanced for dark mode */
+    --aurora-1: rgb(6 182 212 / 20%);
+    --aurora-2: rgb(139 92 246 / 18%);
+    --aurora-3: rgb(236 72 153 / 15%);
 }
 
 /* Dark Mode Overrides */
@@ -154,4 +205,123 @@
 [data-theme="dark"] .orb-3 {
     opacity: 0.2;
     mix-blend-mode: screen;
+}
+
+/* ============================================
+   Enhanced Background Variants
+   ============================================ */
+
+/* Animated Gradient Background */
+.bg-animated-gradient {
+    background: linear-gradient(
+        -45deg,
+        var(--color-bg-base),
+        rgb(var(--color-accent-primary-rgb) / 5%),
+        var(--color-bg-base),
+        rgb(var(--color-accent-secondary-rgb) / 5%)
+    );
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+}
+
+/* Aurora Effect Background */
+.bg-aurora {
+    position: relative;
+    overflow: hidden;
+}
+
+.bg-aurora::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: linear-gradient(
+        180deg,
+        var(--aurora-1) 0%,
+        var(--aurora-2) 50%,
+        transparent 100%
+    );
+    filter: blur(60px);
+    opacity: 0.6;
+    animation: float-gentle 8s ease-in-out infinite;
+}
+
+/* Cyber Grid Background */
+.bg-cyber-grid {
+    background-image:
+        linear-gradient(to right, rgb(var(--color-accent-primary-rgb) / 3%) 1px, transparent 1px),
+        linear-gradient(to bottom, rgb(var(--color-accent-primary-rgb) / 3%) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+[data-theme="dark"] .bg-cyber-grid {
+    background-image:
+        linear-gradient(to right, rgb(var(--color-accent-primary-rgb) / 6%) 1px, transparent 1px),
+        linear-gradient(to bottom, rgb(var(--color-accent-primary-rgb) / 6%) 1px, transparent 1px);
+}
+
+/* Radial Glow Background */
+.bg-radial-glow {
+    background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgb(var(--color-accent-primary-rgb) / 15%), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgb(var(--color-accent-secondary-rgb) / 10%), transparent),
+        var(--color-bg-base);
+}
+
+[data-theme="dark"] .bg-radial-glow {
+    background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgb(var(--color-accent-primary-rgb) / 20%), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgb(var(--color-accent-secondary-rgb) / 15%), transparent),
+        var(--color-bg-base);
+}
+
+/* Mesh Gradient Background */
+.bg-mesh-gradient {
+    background:
+        radial-gradient(at 40% 20%, rgb(var(--color-accent-primary-rgb) / 10%) 0, transparent 50%),
+        radial-gradient(at 80% 0%, rgb(var(--color-info-rgb) / 8%) 0, transparent 50%),
+        radial-gradient(at 0% 50%, rgb(var(--color-accent-secondary-rgb) / 8%) 0, transparent 50%),
+        radial-gradient(at 80% 50%, rgb(var(--color-success-rgb) / 6%) 0, transparent 50%),
+        radial-gradient(at 0% 100%, rgb(var(--color-warning-rgb) / 6%) 0, transparent 50%),
+        var(--color-bg-base);
+}
+
+[data-theme="dark"] .bg-mesh-gradient {
+    background:
+        radial-gradient(at 40% 20%, rgb(var(--color-accent-primary-rgb) / 15%) 0, transparent 50%),
+        radial-gradient(at 80% 0%, rgb(var(--color-info-rgb) / 12%) 0, transparent 50%),
+        radial-gradient(at 0% 50%, rgb(var(--color-accent-secondary-rgb) / 12%) 0, transparent 50%),
+        radial-gradient(at 80% 50%, rgb(var(--color-success-rgb) / 10%) 0, transparent 50%),
+        radial-gradient(at 0% 100%, rgb(var(--color-warning-rgb) / 10%) 0, transparent 50%),
+        var(--color-bg-base);
+}
+
+/* Spotlight Background */
+.bg-spotlight {
+    background:
+        radial-gradient(circle at 50% 0%, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 50%),
+        var(--color-bg-base);
+}
+
+[data-theme="dark"] .bg-spotlight {
+    background:
+        radial-gradient(circle at 50% 0%, rgb(var(--color-accent-primary-rgb) / 18%) 0%, transparent 50%),
+        var(--color-bg-base);
+}
+
+/* Noise Texture Overlay */
+.bg-noise-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] .bg-noise-overlay::after {
+    opacity: 0.05;
 }

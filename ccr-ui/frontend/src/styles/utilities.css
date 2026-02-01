@@ -557,4 +557,287 @@
         white-space: nowrap;
         border-width: 0;
     }
+
+    /* ========== 渐变文字效果 ========== */
+
+    /* 品牌渐变 - 青紫渐变 */
+    .text-gradient-brand {
+        background: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* 青色渐变 - 科技感 */
+    .text-gradient-cyan {
+        background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* 紫色渐变 - 优雅感 */
+    .text-gradient-purple {
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* 绿色渐变 - 成功/健康 */
+    .text-gradient-green {
+        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* 橙色渐变 - 警告/活力 */
+    .text-gradient-orange {
+        background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* 彩虹渐变 - 特殊强调 */
+    .text-gradient-rainbow {
+        background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* ========== 文字发光效果 ========== */
+
+    .text-glow-primary {
+        text-shadow: 0 0 20px rgb(var(--color-accent-primary-rgb) / 50%),
+                     0 0 40px rgb(var(--color-accent-primary-rgb) / 30%);
+    }
+
+    .text-glow-secondary {
+        text-shadow: 0 0 20px rgb(var(--color-accent-secondary-rgb) / 50%),
+                     0 0 40px rgb(var(--color-accent-secondary-rgb) / 30%);
+    }
+
+    .text-glow-success {
+        text-shadow: 0 0 20px rgb(var(--color-success-rgb) / 50%),
+                     0 0 40px rgb(var(--color-success-rgb) / 30%);
+    }
+
+    .text-glow-warning {
+        text-shadow: 0 0 20px rgb(var(--color-warning-rgb) / 50%),
+                     0 0 40px rgb(var(--color-warning-rgb) / 30%);
+    }
+
+    .text-glow-danger {
+        text-shadow: 0 0 20px rgb(var(--color-danger-rgb) / 50%),
+                     0 0 40px rgb(var(--color-danger-rgb) / 30%);
+    }
+
+    /* ========== 数字统计样式 ========== */
+
+    /* 大数字展示 - 用于统计卡片 */
+    .stat-number {
+        font-size: var(--text-4xl);
+        font-weight: var(--font-extrabold);
+        line-height: 1;
+        letter-spacing: var(--tracking-tight);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .stat-number-lg {
+        font-size: var(--text-5xl);
+        font-weight: var(--font-extrabold);
+        line-height: 1;
+        letter-spacing: var(--tracking-tight);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .stat-number-sm {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        line-height: 1;
+        letter-spacing: var(--tracking-tight);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* 带颜色的统计数字 */
+    .stat-primary {
+        color: var(--color-accent-primary);
+    }
+
+    .stat-secondary {
+        color: var(--color-accent-secondary);
+    }
+
+    .stat-success {
+        color: var(--color-success);
+    }
+
+    .stat-warning {
+        color: var(--color-warning);
+    }
+
+    .stat-danger {
+        color: var(--color-danger);
+    }
+
+    .stat-info {
+        color: var(--color-info);
+    }
+
+    /* ========== 标签样式增强 ========== */
+
+    /* 发光标签 */
+    .tag-glow {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .tag-glow::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: inherit;
+        filter: blur(8px);
+        opacity: 0.5;
+        z-index: -1;
+    }
+
+    /* 渐变边框标签 */
+    .tag-gradient-border {
+        position: relative;
+        background: var(--color-bg-elevated);
+        border: none;
+    }
+
+    .tag-gradient-border::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        padding: 1px;
+        border-radius: inherit;
+        background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+
+    /* ========== 模块标题样式 ========== */
+
+    /* 带装饰线的标题 */
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        font-size: var(--text-sm);
+        font-weight: var(--font-bold);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-widest);
+        color: var(--color-text-muted);
+    }
+
+    .section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, var(--color-border-subtle), transparent);
+    }
+
+    /* 带图标的模块标题 */
+    .module-title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+    }
+
+    .module-title-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-xl);
+        background: rgb(var(--color-accent-primary-rgb) / 10%);
+        color: var(--color-accent-primary);
+    }
+
+    .module-title-text {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        color: var(--color-text-primary);
+    }
+
+    .module-title-desc {
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        margin-top: var(--space-1);
+    }
+
+    /* ========== 代码/命令样式 ========== */
+
+    .code-inline {
+        padding: var(--space-0-5) var(--space-2);
+        border-radius: var(--radius-md);
+        background: var(--color-bg-surface);
+        border: 1px solid var(--color-border-subtle);
+        font-family: var(--font-mono);
+        font-size: 0.875em;
+        color: var(--color-accent-primary);
+    }
+
+    .code-block {
+        padding: var(--space-4);
+        border-radius: var(--radius-lg);
+        background: var(--color-bg-surface);
+        border: 1px solid var(--color-border-subtle);
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+        color: var(--color-text-primary);
+        overflow-x: auto;
+    }
+
+    /* ========== 悬停效果增强 ========== */
+
+    .hover-lift {
+        transition: transform var(--duration-fast) var(--ease-out),
+                    box-shadow var(--duration-fast) var(--ease-out);
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .hover-scale {
+        transition: transform var(--duration-fast) var(--ease-out);
+    }
+
+    .hover-scale:hover {
+        transform: scale(1.02);
+    }
+
+    .hover-glow {
+        transition: box-shadow var(--duration-fast) var(--ease-out);
+    }
+
+    .hover-glow:hover {
+        box-shadow: var(--glow-primary);
+    }
+
+    /* ========== 动画入场效果 ========== */
+
+    .animate-fade-in {
+        animation: fade-in var(--duration-normal) var(--ease-out) forwards;
+    }
+
+    .animate-slide-up {
+        animation: slide-up var(--duration-normal) var(--ease-out) forwards;
+    }
+
+    .animate-scale-in {
+        animation: scale-in var(--duration-fast) var(--ease-spring) forwards;
+    }
+
+    /* 延迟动画 */
+    .delay-100 { animation-delay: 100ms; }
+    .delay-200 { animation-delay: 200ms; }
+    .delay-300 { animation-delay: 300ms; }
+    .delay-400 { animation-delay: 400ms; }
+    .delay-500 { animation-delay: 500ms; }
 }
