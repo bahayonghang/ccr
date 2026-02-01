@@ -91,6 +91,7 @@ pub struct CodexUsageService {
 
 impl CodexUsageService {
     /// 创建新的服务实例
+    #[allow(dead_code)]
     pub fn new(codex_dir: PathBuf) -> Self {
         Self { codex_dir }
     }
