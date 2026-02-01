@@ -181,7 +181,7 @@
               <p class="text-[10px] text-text-muted font-mono uppercase tracking-wider">
                 Session: <span class="text-emerald-500">Active</span>
               </p>
-              <span class="text-[10px] font-mono text-text-muted/40">CCR UI v3.20.2</span>
+              <span class="text-[10px] font-mono text-text-muted/40">CCR UI v3.20.3</span>
             </div>
           </div>
 
