@@ -23,6 +23,7 @@ pub mod prompts_routes;
 pub mod provider_health_routes;
 pub mod qwen_routes;
 pub mod sessions_routes;
+pub mod skill_hub_routes;
 pub mod skills_routes;
 pub mod slash_commands_routes;
 pub mod stats_routes;
@@ -125,6 +126,8 @@ fn create_api_routes() -> Router {
         .merge(stats_routes::routes())
         // 技能管理
         .merge(skills_routes::routes())
+        // Skill Hub
+        .merge(skill_hub_routes::routes())
         // 提示词管理
         .merge(prompts_routes::routes())
         // Output Styles 管理

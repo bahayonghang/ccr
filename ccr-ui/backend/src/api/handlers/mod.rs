@@ -20,6 +20,7 @@ pub mod platforms;
 pub mod plugins;
 pub mod pricing;
 pub mod prompts;
+pub mod skill_hub;
 pub mod skills;
 pub mod slash_commands;
 pub mod stats;
