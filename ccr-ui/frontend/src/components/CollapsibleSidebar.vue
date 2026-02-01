@@ -257,6 +257,7 @@ import api from '@/api/core'
 import type { PlatformCapabilitiesResponse, PlatformModuleCapabilities } from '@/types/platform'
 import {
   Settings,
+  Book,
   Terminal,
   ChevronLeft,
   ChevronRight,
@@ -365,6 +366,8 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'MCP 服务器', href: '/mcp', icon: Server },
       { name: 'Slash Commands', href: '/slash-commands', icon: Command },
       { name: 'Agents', href: '/agents', icon: Bot },
+      { name: 'Skills', href: '/skills', icon: Book },
+      { name: 'Skill Hub', href: '/skills/hub', icon: Boxes },
       { name: '插件管理', href: '/plugins', icon: Puzzle }
     ]
   },

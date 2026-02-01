@@ -94,3 +94,18 @@ export {
     type SyncAllResponse,
     type BuiltinPrompt,
 } from './mcp'
+
+export {
+  getSkillHubTrending,
+  searchSkillHubMarketplace,
+  getSkillHubAgents,
+  getSkillHubAgentSkills,
+  installSkillHubSkill,
+  removeSkillHubSkill,
+  type SkillHubMarketplaceItem,
+  type SkillHubMarketplaceResponse,
+  type SkillHubAgentSummary,
+  type SkillHubInstalledSkill,
+  type SkillHubOperationResponse,
+  type SkillHubOperationResult,
+} from './skillHub'

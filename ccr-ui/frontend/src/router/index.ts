@@ -126,6 +126,11 @@ const router = createRouter({
           component: () => import('@/views/generic/SkillsView.vue')
         },
         {
+          path: 'skills/hub',
+          name: 'skill-hub',
+          component: () => import('@/views/generic/SkillHubView.vue')
+        },
+        {
           path: 'skills/:name',
           name: 'skill-detail',
           component: () => import('@/views/generic/SkillDetailView.vue')
