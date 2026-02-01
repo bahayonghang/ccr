@@ -13,9 +13,9 @@
       </div>
       <div class="flex items-center space-x-3">
         <button
-          :disabled="loading || checkinLoading"
+          :disabled="loading || checkinLoading || enabledAccounts.length === 0"
           class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50 transition-colors"
-          @click="executeCheckinAll"
+          @click="showCheckinConfirm = true"
         >
           <svg
             class="w-5 h-5"
@@ -1474,6 +1474,28 @@
       </div>
     </div>
   </div>
+
+  <!-- 签到确认弹窗 -->
+  <ConfirmModal
+    :is-open="showCheckinConfirm"
+    title="确认一键签到"
+    :message="`即将对 ${enabledAccounts.length} 个启用账号执行签到操作，是否继续？`"
+    confirm-text="开始签到"
+    cancel-text="取消"
+    type="info"
+    @confirm="handleCheckinConfirm"
+    @cancel="showCheckinConfirm = false"
+    @update:is-open="showCheckinConfirm = $event"
+  />
+
+  <!-- 签到进度弹窗 -->
+  <CheckinProgressModal
+    :is-open="showProgressModal"
+    :total="checkinProgress.total"
+    :current="checkinProgress.completed"
+    :current-account-name="checkinProgress.currentAccountName"
+    :logs="checkinLogs"
+  />
 </template>
 
 <script setup lang="ts">
@@ -1494,6 +1516,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-vue-next'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import CheckinProgressModal from '@/components/CheckinProgressModal.vue'
 import {
   listCheckinProviders,
   createCheckinProvider,
@@ -1503,7 +1527,6 @@ import {
   createCheckinAccount,
   updateCheckinAccount,
   deleteCheckinAccount as apiDeleteAccount,
-  executeCheckin,
   listCheckinRecords,
   exportCheckinRecords,
   getTodayCheckinStats,
@@ -1526,6 +1549,7 @@ import type {
   ExportData,
   ImportPreviewResponse,
   BuiltinProvider,
+  CheckinLogEntry,
 } from '@/types/checkin'
 
 // 状态
@@ -1539,6 +1563,10 @@ const router = useRouter()
 const openMenuAccountId = ref<string | null>(null)
 const searchQuery = ref('')
 const providerFilter = ref<string>('all')
+const showCheckinConfirm = ref(false)
+const showProgressModal = ref(false)
+const checkinProgress = ref({ total: 0, completed: 0, currentAccountName: '' })
+const checkinLogs = ref<CheckinLogEntry[]>([])
 
 // 数据
 const providers = ref<CheckinProvider[]>([])
@@ -1602,6 +1630,11 @@ const filteredAccounts = computed(() => {
   }
 
   return result
+})
+
+// 计算属性：启用的账号列表
+const enabledAccounts = computed(() => {
+  return accounts.value.filter(a => a.enabled)
 })
 
 // 计算属性：失败的签到结果
@@ -1727,24 +1760,124 @@ const addBuiltinProvider = async (builtinId: string) => {
   }
 }
 
-// 执行全部签到
+// 确认签到弹窗回调
+const handleCheckinConfirm = () => {
+  showCheckinConfirm.value = false
+  executeCheckinAll()
+}
+
+// 执行全部签到（逐个签到模式，实现实时进度）
 const executeCheckinAll = async () => {
+  const accountsToCheckin = enabledAccounts.value
+  if (accountsToCheckin.length === 0) return
+
   checkinLoading.value = true
   checkinResult.value = null
+  showProgressModal.value = true
+
+  // 初始化进度
+  checkinProgress.value = {
+    total: accountsToCheckin.length,
+    completed: 0,
+    currentAccountName: ''
+  }
+
+  // 初始化日志
+  checkinLogs.value = accountsToCheckin.map(acc => ({
+    accountId: acc.id,
+    accountName: acc.name,
+    providerName: acc.provider_name || '未知',
+    status: 'pending' as const,
+    timestamp: new Date()
+  }))
+
+  // 收集结果用于最终汇总
+  const results: CheckinExecutionResult[] = []
+  let successCount = 0
+  let alreadyCheckedInCount = 0
+  let failedCount = 0
 
   try {
-    const result = await executeCheckin()
-    checkinResult.value = result
+    for (let i = 0; i < accountsToCheckin.length; i++) {
+      const account = accountsToCheckin[i]
+
+      // 更新当前进度
+      checkinProgress.value.currentAccountName = account.name
+
+      // 更新日志状态为处理中
+      const logIndex = checkinLogs.value.findIndex(l => l.accountId === account.id)
+      if (logIndex >= 0) {
+        checkinLogs.value[logIndex].status = 'processing'
+        checkinLogs.value[logIndex].timestamp = new Date()
+      }
+
+      try {
+        const result = await checkinAccount(account.id)
+        results.push(result)
+
+        // 更新日志
+        if (logIndex >= 0) {
+          if (result.status === 'Success') {
+            checkinLogs.value[logIndex].status = 'success'
+            checkinLogs.value[logIndex].message = result.reward ? `奖励: ${result.reward}` : '签到成功'
+            successCount++
+          } else if (result.status === 'AlreadyCheckedIn') {
+            checkinLogs.value[logIndex].status = 'already_checked_in'
+            checkinLogs.value[logIndex].message = '今日已签到'
+            alreadyCheckedInCount++
+          } else {
+            checkinLogs.value[logIndex].status = 'failed'
+            checkinLogs.value[logIndex].message = result.message || '签到失败'
+            failedCount++
+          }
+          checkinLogs.value[logIndex].balance = result.balance
+          checkinLogs.value[logIndex].reward = result.reward
+        }
+      } catch (e: any) {
+        // 单个账号签到失败
+        if (logIndex >= 0) {
+          checkinLogs.value[logIndex].status = 'failed'
+          checkinLogs.value[logIndex].message = e.message || '请求失败'
+        }
+        failedCount++
+        results.push({
+          account_id: account.id,
+          account_name: account.name,
+          provider_name: account.provider_name || '未知',
+          status: 'Failed',
+          message: e.message || '请求失败'
+        })
+      }
+
+      // 更新完成进度
+      checkinProgress.value.completed = i + 1
+    }
+
+    // 构建签到结果
+    checkinResult.value = {
+      results,
+      summary: {
+        total: accountsToCheckin.length,
+        success: successCount,
+        already_checked_in: alreadyCheckedInCount,
+        failed: failedCount
+      }
+    }
+
+    // 关闭进度弹窗
+    showProgressModal.value = false
+
     await loadAllData()
     // 签到完成后自动刷新余额
     await refreshAllBalances()
-    
+
     // 如果有失败的签到，自动滚动到结果区域确保用户能看到详情
-    if (result.summary.failed > 0) {
+    if (failedCount > 0) {
       await nextTick()
       checkinResultRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   } catch (e: any) {
+    showProgressModal.value = false
     alert('签到失败: ' + (e.message || '未知错误'))
     console.error('Checkin failed:', e)
   } finally {
