@@ -45,31 +45,39 @@
       <button
         v-for="category in categories"
         :key="category.key"
-        class="px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+        class="category-btn px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+        :class="{ 'category-btn-active': expandedCategory === category.key }"
         :style="{
-          background: expandedCategory === category.key 
-            ? category.activeBackground 
-            : 'rgba(255, 255, 255, 0.4)',
-          color: expandedCategory === category.key 
-            ? category.activeColor 
+          background: expandedCategory === category.key
+            ? category.activeBackground
+            : 'var(--glass-bg-light)',
+          color: expandedCategory === category.key
+            ? category.activeColor
             : 'var(--text-secondary)',
-          border: expandedCategory === category.key 
-            ? `1px solid ${category.activeBorder}` 
-            : '1px solid rgba(255, 255, 255, 0.3)',
-          boxShadow: expandedCategory === category.key 
+          border: expandedCategory === category.key
+            ? `1px solid ${category.activeBorder}`
+            : '1px solid var(--glass-border-light)',
+          boxShadow: expandedCategory === category.key
             ? `0 4px 12px ${category.activeBorder}40`
             : 'none'
         }"
         @click="toggleCategory(category.key)"
       >
-        <div class="flex items-center justify-between">
-          <span>{{ category.label }}</span>
-          <span 
-            class="ml-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+        <div class="flex items-center justify-between gap-1.5">
+          <div class="flex items-center gap-1.5">
+            <component
+              :is="category.icon"
+              class="w-3.5 h-3.5"
+              :class="expandedCategory === category.key ? '' : category.iconColor"
+            />
+            <span>{{ category.label }}</span>
+          </div>
+          <span
+            class="px-1.5 py-0.5 rounded-md text-[10px] font-bold"
             :style="{
               background: expandedCategory === category.key
                 ? 'rgba(255, 255, 255, 0.25)'
-                : 'rgba(0, 0, 0, 0.06)'
+                : 'rgba(0, 0, 0, 0.08)'
             }"
           >
             {{ category.count }}
@@ -83,22 +91,19 @@
       <!-- 官方中转分类 -->
       <div v-if="officialRelayConfigs.length > 0 && (expandedCategory === 'all' || expandedCategory === 'official_relay')">
         <div
-          class="flex items-center gap-1.5 mb-1.5 cursor-pointer select-none"
+          class="flex items-center gap-1.5 mb-2 cursor-pointer select-none group"
           @click="toggleCategory('official_relay')"
         >
           <ChevronDown
-            class="w-3 h-3 transition-transform text-info"
+            class="w-3 h-3 transition-transform text-cyan-400"
             :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'official_relay' }"
           />
-          <span
-            class="text-[10px] font-bold uppercase tracking-wide text-info"
-          >
+          <Zap class="w-3.5 h-3.5 text-cyan-400" />
+          <span class="text-[10px] font-bold uppercase tracking-wide text-cyan-400 group-hover:text-cyan-300 transition-colors">
             官方中转
           </span>
-          <span
-            class="text-[9px] text-muted"
-          >
-            ({{ officialRelayConfigs.length }})
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-400 font-semibold">
+            {{ officialRelayConfigs.length }}
           </span>
         </div>
         <div class="space-y-1 ml-1">
@@ -114,22 +119,19 @@
       <!-- 第三方模型分类 -->
       <div v-if="thirdPartyConfigs.length > 0 && (expandedCategory === 'all' || expandedCategory === 'third_party_model')">
         <div
-          class="flex items-center gap-1.5 mb-1.5 cursor-pointer select-none"
+          class="flex items-center gap-1.5 mb-2 cursor-pointer select-none group"
           @click="toggleCategory('third_party_model')"
         >
           <ChevronDown
-            class="w-3 h-3 transition-transform text-purple"
+            class="w-3 h-3 transition-transform text-violet-400"
             :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'third_party_model' }"
           />
-          <span
-            class="text-[10px] font-bold uppercase tracking-wide text-purple"
-          >
+          <Cpu class="w-3.5 h-3.5 text-violet-400" />
+          <span class="text-[10px] font-bold uppercase tracking-wide text-violet-400 group-hover:text-violet-300 transition-colors">
             第三方模型
           </span>
-          <span
-            class="text-[9px] text-muted"
-          >
-            ({{ thirdPartyConfigs.length }})
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-400 font-semibold">
+            {{ thirdPartyConfigs.length }}
           </span>
         </div>
         <div class="space-y-1 ml-1">
@@ -145,22 +147,19 @@
       <!-- 未分类 -->
       <div v-if="uncategorizedConfigs.length > 0 && (expandedCategory === 'all' || expandedCategory === 'uncategorized')">
         <div
-          class="flex items-center gap-1.5 mb-1.5 cursor-pointer select-none"
+          class="flex items-center gap-1.5 mb-2 cursor-pointer select-none group"
           @click="toggleCategory('uncategorized')"
         >
           <ChevronDown
-            class="w-3 h-3 transition-transform text-muted"
+            class="w-3 h-3 transition-transform text-amber-400"
             :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'uncategorized' }"
           />
-          <span
-            class="text-[10px] font-bold uppercase tracking-wide text-muted"
-          >
+          <HelpCircle class="w-3.5 h-3.5 text-amber-400" />
+          <span class="text-[10px] font-bold uppercase tracking-wide text-amber-400 group-hover:text-amber-300 transition-colors">
             未分类
           </span>
-          <span
-            class="text-[9px] text-muted"
-          >
-            ({{ uncategorizedConfigs.length }})
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 font-semibold">
+            {{ uncategorizedConfigs.length }}
           </span>
         </div>
         <div class="space-y-1 ml-1">
@@ -193,7 +192,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ChevronDown, Search, Layers } from 'lucide-vue-next'
+import { ChevronDown, Search, Layers, LayoutGrid, Zap, Cpu, HelpCircle } from 'lucide-vue-next'
 import type { ConfigItem as ConfigItemType } from '@/types'
 import ConfigItem from './ConfigItem.vue'
 
@@ -280,12 +279,14 @@ const uncategorizedConfigs = computed(() =>
   filteredConfigs.value.filter(c => !c.provider_type)
 )
 
-// 分类信息 - 翡翠绿配色
+// 分类信息 - 使用图标和增强样式
 const categories = computed(() => [
   {
     key: 'all' as FilterType,
     label: '全部',
     count: props.configs.length,
+    icon: LayoutGrid,
+    iconColor: 'text-emerald-400',
     activeBackground: 'linear-gradient(135deg, rgba(var(--color-success-rgb), 0.15), rgba(var(--color-cyan-rgb), 0.15))',
     activeColor: 'var(--color-success)',
     activeBorder: 'rgba(var(--color-success-rgb), 0.3)'
@@ -294,6 +295,8 @@ const categories = computed(() => [
     key: 'official_relay' as FilterType,
     label: '官方中转',
     count: props.configs.filter(c => c.provider_type === 'OfficialRelay' || c.provider_type === 'official_relay').length,
+    icon: Zap,
+    iconColor: 'text-cyan-400',
     activeBackground: 'linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.15), rgba(var(--color-info-rgb), 0.15))',
     activeColor: 'var(--color-cyan)',
     activeBorder: 'rgba(var(--color-cyan-rgb), 0.3)'
@@ -302,6 +305,8 @@ const categories = computed(() => [
     key: 'third_party_model' as FilterType,
     label: '第三方',
     count: props.configs.filter(c => c.provider_type === 'ThirdPartyModel' || c.provider_type === 'third_party_model').length,
+    icon: Cpu,
+    iconColor: 'text-violet-400',
     activeBackground: 'linear-gradient(135deg, rgba(var(--color-teal-rgb), 0.15), rgba(var(--color-success-rgb), 0.15))',
     activeColor: 'var(--color-teal)',
     activeBorder: 'rgba(var(--color-teal-rgb), 0.3)'
@@ -310,6 +315,8 @@ const categories = computed(() => [
     key: 'uncategorized' as FilterType,
     label: '未分类',
     count: props.configs.filter(c => !c.provider_type).length,
+    icon: HelpCircle,
+    iconColor: 'text-amber-400',
     activeBackground: 'rgba(var(--color-gray-rgb), 0.12)',
     activeColor: 'var(--text-muted)',
     activeBorder: 'rgba(var(--color-gray-rgb), 0.25)'

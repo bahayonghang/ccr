@@ -1,23 +1,17 @@
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
-    <!-- Background Mesh (Consistent with Home) -->
-    <div class="fixed inset-0 pointer-events-none -z-10 bg-bg-base">
-      <div class="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-accent-primary/5 rounded-full blur-[120px] animate-pulse-subtle" />
-      <div
-        class="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-accent-secondary/5 rounded-full blur-[100px] animate-pulse-subtle"
-        style="animation-delay: 2s"
-      />
-    </div>
+    <!-- Enhanced Animated Background -->
+    <AnimatedBackground variant="aurora" />
 
     <div class="max-w-7xl mx-auto space-y-10">
       <!-- HEADER -->
       <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 animate-slide-up">
         <div class="flex items-center gap-5">
-          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20 border border-white/10 flex items-center justify-center shadow-lg backdrop-blur-md">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20 border border-accent-primary/30 flex items-center justify-center shadow-lg backdrop-blur-md">
             <Code2 class="w-8 h-8 text-accent-primary" />
           </div>
           <div>
-            <h1 class="text-4xl font-bold font-display tracking-tight text-text-primary mb-1">
+            <h1 class="text-4xl font-bold font-display tracking-tight text-gradient-brand mb-1">
               Claude Code
             </h1>
             <p class="text-text-secondary text-lg">
@@ -42,13 +36,13 @@
         class="flex flex-wrap gap-3 animate-slide-up"
         style="animation-delay: 100ms"
       >
-        <div class="px-3 py-1.5 rounded-full bg-accent-primary/10 border border-accent-primary/20 text-accent-primary text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+        <div class="px-3 py-1.5 rounded-full bg-accent-primary/15 border border-accent-primary/30 text-accent-primary text-xs font-bold uppercase tracking-wider flex items-center gap-2">
           <Zap class="w-3 h-3" /> {{ $t('claudeCode.features.mcpSupport') }}
         </div>
-        <div class="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-500 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+        <div class="px-3 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
           <Bot class="w-3 h-3" /> {{ $t('claudeCode.features.aiAgents') }}
         </div>
-        <div class="px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-500 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+        <div class="px-3 py-1.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
           <Cloud class="w-3 h-3" /> {{ $t('claudeCode.features.cloudSync') }}
         </div>
       </div>
@@ -66,12 +60,12 @@
             variant="glass"
             hover
             glow
-            class="h-full p-6 flex items-start gap-5 relative overflow-hidden"
+            class="h-full p-6 flex items-start gap-5 relative overflow-hidden border-accent-primary/20 hover:border-accent-primary/40"
           >
             <!-- Decorative bg icon -->
             <Settings class="absolute -right-4 -bottom-4 w-32 h-32 text-accent-primary/5 rotate-12 group-hover:text-accent-primary/10 transition-colors" />
-             
-            <div class="w-12 h-12 rounded-xl bg-accent-primary/10 flex items-center justify-center shrink-0 border border-accent-primary/20 group-hover:scale-110 transition-transform duration-300">
+
+            <div class="w-12 h-12 rounded-xl bg-accent-primary/15 flex items-center justify-center shrink-0 border border-accent-primary/30 group-hover:scale-110 transition-transform duration-300">
               <Settings class="w-6 h-6 text-accent-primary" />
             </div>
             <div class="relative z-10">
@@ -79,7 +73,7 @@
                 <h3 class="text-xl font-bold text-text-primary group-hover:text-accent-primary transition-colors">
                   {{ $t('claudeCode.modules.configManagement.title') }}
                 </h3>
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-accent-primary/20 text-accent-primary border border-accent-primary/20">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-accent-primary/20 text-accent-primary border border-accent-primary/30">
                   {{ $t('claudeCode.modules.configManagement.badge') }}
                 </span>
               </div>
@@ -98,12 +92,12 @@
             variant="glass"
             hover
             glow
-            class="h-full p-6 flex items-start gap-5 relative overflow-hidden"
+            class="h-full p-6 flex items-start gap-5 relative overflow-hidden border-accent-secondary/20 hover:border-accent-secondary/40"
           >
             <!-- Decorative bg icon -->
             <Cloud class="absolute -right-4 -bottom-4 w-32 h-32 text-accent-secondary/5 rotate-12 group-hover:text-accent-secondary/10 transition-colors" />
 
-            <div class="w-12 h-12 rounded-xl bg-accent-secondary/10 flex items-center justify-center shrink-0 border border-accent-secondary/20 group-hover:scale-110 transition-transform duration-300">
+            <div class="w-12 h-12 rounded-xl bg-accent-secondary/15 flex items-center justify-center shrink-0 border border-accent-secondary/30 group-hover:scale-110 transition-transform duration-300">
               <Cloud class="w-6 h-6 text-accent-secondary" />
             </div>
             <div class="relative z-10">
@@ -111,7 +105,7 @@
                 <h3 class="text-xl font-bold text-text-primary group-hover:text-accent-secondary transition-colors">
                   {{ $t('claudeCode.modules.cloudSync.title') }}
                 </h3>
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-accent-secondary/20 text-accent-secondary border border-accent-secondary/20">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-accent-secondary/20 text-accent-secondary border border-accent-secondary/30">
                   {{ $t('claudeCode.modules.cloudSync.badge') }}
                 </span>
               </div>
@@ -402,6 +396,7 @@ import {
 } from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
+import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 
 const { t } = useI18n()
 

@@ -1,5 +1,8 @@
 <template>
-  <div class="flex h-screen bg-bg-base text-text-primary overflow-hidden font-sans selection:bg-accent-primary/30">
+  <div class="flex h-screen text-text-primary overflow-hidden font-sans selection:bg-accent-primary/30">
+    <!-- Background Image Layer -->
+    <BackgroundImage />
+
     <!-- Skip Link -->
     <a
       href="#main-content"
@@ -10,11 +13,8 @@
 
     <!-- Sidebar (Glassmorphism + Resize) -->
     <div
-      class="flex flex-col relative flex-shrink-0 z-40 transition-all duration-300 ease-out will-change-[width]"
-      :class="[
-        'bg-bg-elevated/80 backdrop-blur-xl border-r border-border-subtle shadow-xl',
-        isResizing ? 'select-none' : ''
-      ]"
+      class="flex flex-col relative flex-shrink-0 z-40 transition-all duration-300 ease-out will-change-[width] sidebar-glass"
+      :class="[isResizing ? 'select-none' : '']"
       :style="{ width: sidebarWidth + 'px' }"
     >
       <!-- Resize Handle -->
@@ -26,16 +26,16 @@
       </div>
 
       <!-- Logo Area -->
-      <div class="h-16 flex items-center px-4 border-b border-white/5">
+      <div class="h-16 flex items-center px-4 border-b border-black/5 dark:border-white/10">
         <div class="flex items-center gap-3">
-          <div class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-accent-primary to-accent-secondary shadow-glow-primary">
+          <div class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-accent-primary to-accent-secondary shadow-lg shadow-accent-primary/30">
             <Zap class="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 class="text-lg font-bold font-display tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-text-primary to-text-secondary">
+            <h1 class="text-lg font-bold font-display tracking-tight leading-none text-slate-800 dark:text-white">
               CCR <span class="text-accent-primary">UI</span>
             </h1>
-            <p class="text-[10px] uppercase tracking-widest text-text-muted font-bold mt-0.5 opacity-60">
+            <p class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold mt-0.5">
               Terminal Node
             </p>
           </div>
@@ -57,9 +57,9 @@
 
         <!-- Section: Modules -->
         <div>
-          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted/60 flex items-center gap-2">
+          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
             {{ $t('nav.mainModules') }}
-            <div class="h-px flex-1 bg-border-subtle" />
+            <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
           </div>
           <div class="space-y-0.5">
             <RouterLink
@@ -109,9 +109,9 @@
 
         <!-- Section: Tools -->
         <div>
-          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted/60 flex items-center gap-2">
+          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
             {{ $t('nav.toolsCenter') }}
-            <div class="h-px flex-1 bg-border-subtle" />
+            <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
           </div>
           <div class="space-y-0.5">
             <RouterLink
@@ -153,40 +153,75 @@
         </div>
       </nav>
 
-      <!-- Footer: User Profile -->
-      <div class="p-4 border-t border-white/5 bg-black/20">
-        <div class="relative group rounded-xl bg-white/5 border border-white/5 p-3 transition-all hover:bg-white/10 hover:border-white/10 hover:shadow-lg">
-          <!-- Top Row: Avatar & Toggle -->
-          <div class="flex items-start justify-between mb-3">
-            <!-- Avatar (Hexagon Style for Neo-Terminal) -->
-            <div class="relative">
-              <div class="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white font-bold font-mono text-xs shadow-glow-primary">
-                ENG
+      <!-- Footer: User Profile - Neo-Terminal Cyber Style -->
+      <div class="p-3 border-t border-black/5 dark:border-white/10">
+        <div class="user-card group relative rounded-2xl overflow-hidden transition-all duration-300">
+          <!-- Animated gradient background -->
+          <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/15 via-violet-500/12 to-purple-500/15 opacity-80" />
+          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.12),transparent_50%)]" />
+
+          <!-- Cyber grid pattern -->
+          <div class="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:8px_8px]" />
+
+          <!-- Glow effect on hover -->
+          <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500/0 via-violet-500/20 to-purple-500/0 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+          <!-- Inner content -->
+          <div class="relative p-3.5 backdrop-blur-sm">
+            <!-- Top Row: Avatar & Toggle -->
+            <div class="flex items-start justify-between mb-3">
+              <!-- Avatar with cyber glow -->
+              <div class="relative">
+                <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-500 text-white font-bold font-mono text-sm shadow-lg shadow-violet-500/40 ring-2 ring-violet-400/30">
+                  <span class="drop-shadow-[0_0_8px_rgba(167,139,250,0.8)]">ENG</span>
+                </div>
+                <!-- Pulsing status ring -->
+                <div class="absolute -bottom-0.5 -right-0.5">
+                  <div class="w-4 h-4 rounded-full bg-slate-900 flex items-center justify-center ring-2 ring-slate-800">
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,1)] animate-pulse" />
+                  </div>
+                </div>
               </div>
-              <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-bg-base rounded-full flex items-center justify-center">
-                <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+
+              <!-- Theme Toggle with glass effect -->
+              <ThemeToggle class="relative z-20 p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-violet-500/30 transition-all duration-200" />
+            </div>
+
+            <!-- User Info -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-2.5">
+                <h3 class="text-sm font-bold text-white tracking-wide drop-shadow-sm">
+                  ENGINEER
+                </h3>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-violet-500/30 to-purple-500/30 text-violet-300 border border-violet-400/30 shadow-sm shadow-violet-500/20">
+                  Pro
+                </span>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <p class="text-[11px] font-mono uppercase tracking-wider flex items-center gap-2">
+                  <span class="text-slate-400">Session:</span>
+                  <span class="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                    </span>
+                    Active
+                  </span>
+                </p>
+                <span class="text-[10px] font-mono text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-700/50">
+                  CCR UI v3.20.4
+                </span>
               </div>
             </div>
 
-            <!-- Theme Toggle (Fixed Position & Clickable) -->
-            <ThemeToggle class="relative z-20 hover:text-accent-primary transition-colors" />
+            <!-- Decorative corner accents -->
+            <div class="absolute top-2 right-14 w-8 h-[1px] bg-gradient-to-r from-violet-500/50 to-transparent" />
+            <div class="absolute bottom-2 left-2 w-6 h-[1px] bg-gradient-to-r from-transparent to-indigo-500/50" />
           </div>
 
-          <!-- Bottom Row: User Info -->
-          <div class="space-y-0.5">
-            <h3 class="text-sm font-bold text-text-primary tracking-wide">
-              ENGINEER
-            </h3>
-            <div class="flex items-center justify-between">
-              <p class="text-[10px] text-text-muted font-mono uppercase tracking-wider">
-                Session: <span class="text-emerald-500">Active</span>
-              </p>
-              <span class="text-[10px] font-mono text-text-muted/40">CCR UI v3.20.3</span>
-            </div>
-          </div>
-
-          <!-- Decorative Lines -->
-          <div class="absolute bottom-3 right-3 w-8 h-[2px] bg-white/10 rounded-full" />
+          <!-- Bottom accent line -->
+          <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
         </div>
       </div>
     </div>
@@ -197,19 +232,19 @@
       class="flex-1 relative overflow-hidden flex flex-col"
     >
       <!-- Top Bar (Optional, if needed for breadcrumbs or global search) -->
-      <div class="h-14 flex items-center px-6 border-b border-border-subtle bg-bg-base/50 backdrop-blur-sm z-30 sticky top-0 justify-between">
+      <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl z-30 sticky top-0 justify-between">
         <!-- Breadcrumbs Placeholder -->
         <div class="flex items-center text-sm text-text-muted">
           <span class="opacity-50">App</span>
           <span class="mx-2 opacity-30">/</span>
           <span class="text-text-primary font-medium">Dashboard</span>
         </div>
-         
+
         <div class="flex items-center gap-4">
           <LanguageSwitcher />
           <div
             v-if="isTauri"
-            class="h-4 w-px bg-border-subtle mx-2"
+            class="h-4 w-px bg-black/10 dark:bg-white/10 mx-2"
           />
           <!-- Exit Toggle -->
           <button
@@ -229,12 +264,12 @@
         </div>
       </div>
 
-      <!-- Scrollable Content -->
-      <div class="flex-1 overflow-y-auto scroll-smooth p-6">
+      <!-- Scrollable Content with glass effect -->
+      <div class="flex-1 overflow-y-auto scroll-smooth p-6 bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm">
         <BackendStatusBanner class="mb-6" />
         <RouterView v-slot="{ Component }">
-          <transition 
-            name="fade-slide" 
+          <transition
+            name="fade-slide"
             mode="out-in"
             appear
           >
@@ -255,6 +290,7 @@ import {
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import BackgroundImage from '@/components/common/BackgroundImage.vue'
 import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
 
 // Sidebar State
@@ -320,18 +356,67 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Nav Item Styles */
+/* Sidebar Glass Effect - Dark Mode */
+:root[data-theme="dark"] .sidebar-glass,
+.dark .sidebar-glass {
+  background: linear-gradient(
+    180deg,
+    rgb(15 23 42 / 85%) 0%,
+    rgb(15 23 42 / 90%) 50%,
+    rgb(15 23 42 / 95%) 100%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  border-right: 1px solid rgb(255 255 255 / 8%);
+  box-shadow:
+    4px 0 24px rgb(0 0 0 / 30%),
+    inset -1px 0 0 rgb(255 255 255 / 5%);
+}
+
+/* Sidebar Glass Effect - Light Mode */
+.sidebar-glass {
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 95%) 0%,
+    rgb(248 250 252 / 98%) 50%,
+    rgb(241 245 249 / 100%) 100%
+  );
+  backdrop-filter: blur(12px) saturate(150%);
+  border-right: 1px solid rgb(0 0 0 / 8%);
+  box-shadow:
+    4px 0 16px rgb(0 0 0 / 5%),
+    inset -1px 0 0 rgb(255 255 255 / 50%);
+}
+
+/* Nav Item Styles - Light Mode */
 .nav-item {
-  @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-text-secondary 
+  @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600
          transition-all duration-200 relative overflow-hidden;
 }
 
 .nav-item:hover {
-  @apply bg-bg-surface text-text-primary;
+  @apply bg-slate-100 text-slate-900;
 }
 
 .nav-item.router-link-active {
   @apply bg-accent-primary/10 text-accent-primary shadow-sm;
+}
+
+/* Nav Item Styles - Dark Mode */
+:root[data-theme="dark"] .nav-item,
+.dark .nav-item {
+  @apply text-slate-300;
+}
+
+:root[data-theme="dark"] .nav-item:hover,
+.dark .nav-item:hover {
+  @apply bg-white/10 text-white;
+}
+
+:root[data-theme="dark"] .nav-item.router-link-active,
+.dark .nav-item.router-link-active {
+  @apply bg-accent-primary/20 text-accent-primary;
+
+  box-shadow: 0 0 20px rgb(var(--color-accent-primary-rgb) / 15%);
 }
 
 /* Active indicator strip */
@@ -339,6 +424,32 @@ onUnmounted(() => {
   content: '';
 
   @apply absolute left-0 top-1/2 -translate-y-1/2 h-4 w-1 bg-accent-primary rounded-r-full;
+}
+
+:root[data-theme="dark"] .nav-item.router-link-active::before,
+.dark .nav-item.router-link-active::before {
+  box-shadow: 0 0 8px rgb(var(--color-accent-primary-rgb) / 60%);
+}
+
+/* User Card - Neo-Terminal Cyber Style */
+.user-card {
+  background: linear-gradient(135deg,
+    rgb(55 48 107 / 90%) 0%,
+    rgb(79 70 158 / 80%) 50%,
+    rgb(109 76 176 / 70%) 100%
+  );
+  border: 1px solid rgb(167 139 250 / 25%);
+  box-shadow:
+    0 4px 20px rgb(0 0 0 / 25%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+.user-card:hover {
+  border-color: rgb(167 139 250 / 45%);
+  box-shadow:
+    0 8px 32px rgb(167 139 250 / 15%),
+    0 4px 20px rgb(0 0 0 / 25%),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 /* Page Transition */
