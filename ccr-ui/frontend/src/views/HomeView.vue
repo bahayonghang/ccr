@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
     <!-- Animated Background Mesh -->
-    <div class="fixed inset-0 pointer-events-none -z-10 bg-bg-base">
+    <div class="fixed inset-0 pointer-events-none -z-10">
       <div class="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-accent-primary/5 rounded-full blur-[120px] animate-pulse-subtle" />
       <div
         class="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-accent-secondary/5 rounded-full blur-[100px] animate-pulse-subtle"

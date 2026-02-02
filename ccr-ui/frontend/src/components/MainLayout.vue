@@ -190,7 +190,7 @@
             <!-- User Info -->
             <div class="space-y-2">
               <div class="flex items-center gap-2.5">
-                <h3 class="text-sm font-bold text-white tracking-wide drop-shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 dark:text-white tracking-wide drop-shadow-sm">
                   ENGINEER
                 </h3>
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-violet-500/30 to-purple-500/30 text-violet-300 border border-violet-400/30 shadow-sm shadow-violet-500/20">
@@ -209,8 +209,8 @@
                     Active
                   </span>
                 </p>
-                <span class="text-[10px] font-mono text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-700/50">
-                  CCR UI v3.20.4
+                <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
+                  CCR UI v3.20.5
                 </span>
               </div>
             </div>
@@ -376,9 +376,9 @@ onUnmounted(() => {
 .sidebar-glass {
   background: linear-gradient(
     180deg,
-    rgb(255 255 255 / 95%) 0%,
-    rgb(248 250 252 / 98%) 50%,
-    rgb(241 245 249 / 100%) 100%
+    rgb(255 255 255 / 30%) 0%,
+    rgb(255 255 255 / 40%) 50%,
+    rgb(255 255 255 / 50%) 100%
   );
   backdrop-filter: blur(12px) saturate(150%);
   border-right: 1px solid rgb(0 0 0 / 8%);
@@ -450,6 +450,26 @@ onUnmounted(() => {
     0 8px 32px rgb(167 139 250 / 15%),
     0 4px 20px rgb(0 0 0 / 25%),
     inset 0 1px 0 rgb(255 255 255 / 12%);
+}
+
+/* User Card - Light Mode Override */
+[data-theme="light"] .user-card {
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] .user-card:hover {
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.8) 100%
+  );
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
 }
 
 /* Page Transition */

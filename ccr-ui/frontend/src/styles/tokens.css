@@ -69,6 +69,12 @@
     --color-platform-gemini: #4285F4;
     --color-platform-qwen: #00B5E2;
     --color-platform-iflow: #FAAD14;
+
+    /* --- Super Wow Gradient (User Requested) --- */
+    --color-premium-pink: #FFE1E1;
+    --color-premium-pink-rgb: 255, 225, 225;
+    --color-premium-blue: #E3F4FF;
+    --color-premium-blue-rgb: 227, 244, 255;
 }
 
 /* ========== 亮色主题 ========== */

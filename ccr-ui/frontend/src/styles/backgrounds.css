@@ -67,6 +67,7 @@
 }
 
 @keyframes float-gentle {
+
     0%,
     100% {
         transform: translateY(0) rotate(0deg);
@@ -93,15 +94,14 @@
    Style: Clean Modern + Subtle Mesh
    ============================================ */
 :root {
-    --bg-mesh-1: rgb(37 99 235 / 8%);
+    --bg-mesh-1: rgb(var(--color-premium-pink-rgb) / 80%);
+    /* Pinkish */
 
-    /* Blue-600 very transparent */
-    --bg-mesh-2: rgb(124 58 237 / 8%);
+    --bg-mesh-2: rgb(var(--color-premium-blue-rgb) / 80%);
+    /* Blueish */
 
-    /* Violet-600 very transparent */
-    --bg-mesh-3: rgb(6 182 212 / 8%);
-
-    /* Cyan-500 very transparent */
+    --bg-mesh-3: rgb(var(--color-premium-pink-rgb) / 60%);
+    /* Mix */
     --bg-pattern-color: rgb(15 23 42 / 3%);
 
     /* Slate-900 very transparent */
@@ -148,6 +148,12 @@
     mix-blend-mode: multiply;
 }
 
+
+
+[data-theme="light"] .premium-background {
+    background: linear-gradient(135deg, var(--color-premium-pink) 0%, #fff 50%, var(--color-premium-blue) 100%);
+}
+
 .premium-bg-pattern {
     position: absolute;
     inset: 0;
@@ -163,14 +169,13 @@
    ============================================ */
 :root[class~="dark"],
 [data-theme="dark"] {
-    --bg-mesh-1: rgb(37 99 235 / 15%);
+    --bg-mesh-1: rgb(255 105 180 / 15%);
+    /* Hot Pink */
 
-    /* Blue-600 */
-    --bg-mesh-2: rgb(139 92 246 / 12%);
+    --bg-mesh-2: rgb(var(--color-premium-blue-rgb) / 12%);
+    /* Premium Blue */
 
-    /* Violet-500 */
     --bg-mesh-3: rgb(6 182 212 / 10%);
-
     /* Cyan-500 */
     --bg-grid-line: rgb(248 250 252 / 3%);
 
@@ -213,13 +218,11 @@
 
 /* Animated Gradient Background */
 .bg-animated-gradient {
-    background: linear-gradient(
-        -45deg,
-        var(--color-bg-base),
-        rgb(var(--color-accent-primary-rgb) / 5%),
-        var(--color-bg-base),
-        rgb(var(--color-accent-secondary-rgb) / 5%)
-    );
+    background: linear-gradient(-45deg,
+            var(--color-bg-base),
+            rgb(var(--color-accent-primary-rgb) / 5%),
+            var(--color-bg-base),
+            rgb(var(--color-accent-secondary-rgb) / 5%));
     background-size: 400% 400%;
     animation: gradient-shift 15s ease infinite;
 }
@@ -237,12 +240,10 @@
     left: 0;
     right: 0;
     height: 60%;
-    background: linear-gradient(
-        180deg,
-        var(--aurora-1) 0%,
-        var(--aurora-2) 50%,
-        transparent 100%
-    );
+    background: linear-gradient(180deg,
+            var(--aurora-1) 0%,
+            var(--aurora-2) 50%,
+            transparent 100%);
     filter: blur(60px);
     opacity: 0.6;
     animation: float-gentle 8s ease-in-out infinite;

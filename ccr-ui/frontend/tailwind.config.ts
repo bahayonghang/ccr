@@ -42,6 +42,13 @@ export default {
           strong: 'var(--color-border-strong)',
           interactive: 'var(--color-border-interactive)',
         },
+        premium: {
+          pink: 'var(--color-premium-pink)',
+          blue: 'var(--color-premium-blue)',
+        },
+      },
+      backgroundImage: {
+        'premium-gradient': 'linear-gradient(135deg, var(--color-premium-pink) 0%, var(--color-premium-blue) 100%)',
       },
       spacing: {
         px: '1px',
