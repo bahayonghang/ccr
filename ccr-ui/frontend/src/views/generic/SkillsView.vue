@@ -1,303 +1,386 @@
 <template>
-  <div class="min-h-screen p-5 transition-colors duration-300">
-    <div class="mb-6" />
+  <div class="min-h-full p-6 lg:p-10 relative overflow-hidden transition-colors duration-500">
+    <!-- Enhanced Background -->
+    <AnimatedBackground variant="aurora" />
 
-    <div class="max-w-[1600px] mx-auto">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-4">
-          <h2 class="text-2xl font-bold text-[var(--color-text-primary)] flex items-center">
-            <Book class="w-7 h-7 mr-2 text-[var(--color-danger)]" />
+    <div class="max-w-[1600px] mx-auto space-y-8 relative z-10">
+      
+      <!-- HERO HEADER -->
+      <header class="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-slide-up">
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 mb-1">
+            <span class="px-2.5 py-1 rounded-md bg-accent-primary/10 border border-accent-primary/20 text-accent-primary text-xs font-bold uppercase tracking-wider backdrop-blur-md">
+              Skills Hub
+            </span>
+          </div>
+          <h1 class="text-4xl md:text-5xl font-bold font-display tracking-tight text-text-primary flex items-center gap-4">
             {{ $t('skills.title') }}
-          </h2>
-          <span class="px-3 py-1 rounded-full text-sm font-medium bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/20">
-            {{ filteredSkills.length }}
-          </span>
-        </div>
-        <div class="flex items-center gap-3">
-          <RouterLink
-            to="/claude-code"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)]"
-          >
-            <Home class="w-4 h-4" /><span>{{ $t('common.back') }}</span>
-          </RouterLink>
-          <button
-            class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-[var(--color-danger)] text-white shadow-md hover:shadow-lg flex items-center"
-            @click="handleAdd"
-          >
-            <Plus class="w-5 h-5 mr-2" />{{ $t('skills.addSkill') }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Search Bar -->
-      <div class="mb-6 glass-effect rounded-xl p-4 border border-white/20 shadow-sm">
-        <div class="relative">
-          <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[var(--color-text-muted)]" />
-          <input
-            v-model="searchQuery"
-            type="text"
-            :placeholder="$t('skills.searchPlaceholder')"
-            class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[var(--color-bg-surface)]/50 border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)] focus:bg-[var(--color-bg-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--color-danger)]/20 text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm transition-all"
-          >
-          <button
-            v-if="searchQuery"
-            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-all"
-            @click="searchQuery = ''"
-          >
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Help Box -->
-      <div class="mb-8 glass-effect border border-white/20 rounded-xl p-5 flex items-start gap-4 shadow-sm">
-        <div class="p-2 bg-[var(--color-info)]/10 rounded-lg text-[var(--color-info)]">
-          <Info class="w-6 h-6" />
-        </div>
-        <div>
-          <h3 class="font-bold text-[var(--color-text-primary)] mb-1">
-            {{ $t('skills.help.title') }}
-          </h3>
-          <p class="text-sm text-[var(--color-text-secondary)] mb-2 leading-relaxed">
+            <span class="w-3 h-3 rounded-full bg-accent-secondary animate-pulse mt-2"></span>
+          </h1>
+          <p class="text-text-secondary text-lg max-w-2xl">
             {{ $t('skills.help.description') }}
           </p>
-          <div class="flex items-center gap-4 text-xs text-[var(--color-text-muted)] font-mono bg-[var(--color-bg-surface)] px-3 py-1.5 rounded-md inline-block border border-[var(--color-border-default)]/50">
-            {{ $t('skills.help.structure') }}
+        </div>
+
+        <div class="flex items-center gap-3 pb-2">
+           <RouterLink
+            to="/claude-code"
+          >
+            <Button variant="ghost" class="group">
+              <ArrowLeft class="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+              {{ $t('common.back') }}
+            </Button>
+          </RouterLink>
+          <Button
+            variant="solid" 
+            class="shadow-lg shadow-accent-primary/20 hover:shadow-accent-primary/40"
+            @click="handleAdd"
+          >
+            <Plus class="w-5 h-5 mr-2" />
+            <span class="font-bold">{{ $t('skills.addSkill') }}</span>
+          </Button>
+        </div>
+      </header>
+
+      <!-- SEARCH & FILTERS -->
+      <section 
+        class="sticky top-4 z-40 bg-bg-base/60 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-2xl animate-slide-up flex flex-col md:flex-row gap-2"
+        style="animation-delay: 100ms;"
+      >
+        <div class="relative flex-1 group">
+          <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent-primary transition-colors" />
+          <input 
+            v-model="searchQuery"
+            type="text"
+            class="w-full bg-transparent border-none text-text-primary placeholder:text-text-muted/50 pl-12 pr-4 py-3 focus:outline-none focus:ring-0 text-sm font-medium"
+            :placeholder="$t('skills.searchPlaceholder')"
+          />
+          <div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
+            <span 
+              v-if="filteredSkills.length"
+              class="text-[10px] font-mono px-2 py-0.5 rounded bg-bg-elevated text-text-muted border border-border-default"
+            >
+              {{ filteredSkills.length }}
+            </span>
+            <button 
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              class="p-1 hover:bg-bg-elevated rounded-full text-text-muted transition-colors"
+            >
+              <X class="w-3 h-3" />
+            </button>
           </div>
         </div>
-      </div>
 
-      <!-- Skills Grid -->
-      <div
-        v-if="loading"
-        class="text-center py-20 text-[var(--color-text-muted)]"
-      >
-        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-[var(--color-danger)]/30 border-t-[var(--color-danger)]" />
-        {{ $t('common.loading') }}
-      </div>
+        <div class="h-px md:h-full w-full md:w-px bg-border-subtle mx-2" />
 
-      <div
-        v-else-if="skills.length === 0"
-        class="text-center py-20 text-[var(--color-text-muted)]"
-      >
-        <div class="bg-[var(--color-bg-elevated)] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Book class="w-10 h-10 opacity-50" />
+        <div class="flex items-center gap-2 px-2 overflow-x-auto no-scrollbar">
+          <!-- Source Toggle -->
+          <div class="flex bg-bg-surface/50 p-1 rounded-xl border border-border-subtle shrink-0">
+             <button
+              v-for="opt in sourceOptions" 
+              :key="opt.value"
+              @click="selectedSource = opt.value"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all relative"
+              :class="selectedSource === opt.value ? 'text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'"
+             >
+                <div v-if="selectedSource === opt.value" class="absolute inset-0 bg-bg-elevated rounded-lg shadow-sm -z-10" />
+                {{ opt.label }}
+             </button>
+          </div>
+
+          <!-- Category Pills -->
+          <div class="flex gap-2 pl-2 border-l border-border-subtle shrink-0">
+            <button
+               v-for="cat in availableCategories"
+               :key="cat"
+               @click="toggleCategory(cat)"
+               class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap"
+               :class="selectedCategory === cat 
+                 ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary shadow-[0_0_10px_rgba(var(--color-accent-primary-rgb),0.2)]' 
+                 : 'bg-bg-surface/30 border-transparent hover:bg-bg-surface text-text-secondary'"
+            >
+              {{ formatCategory(cat) }}
+            </button>
+          </div>
         </div>
-        <p class="text-lg font-medium">
-          {{ $t('skills.noSkills') }}
-        </p>
-        <p class="text-sm mt-2 opacity-70">
-          {{ $t('skills.noSkillsHint') }}
-        </p>
-      </div>
+      </section>
 
-      <div
-        v-else-if="filteredSkills.length === 0"
-        class="text-center py-20 text-[var(--color-text-muted)]"
-      >
-        <div class="bg-[var(--color-bg-elevated)] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Search class="w-10 h-10 opacity-50" />
+      <!-- SKILLS GRID -->
+      <section v-if="loading" class="py-20 flex justify-center">
+         <div class="w-8 h-8 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" />
+      </section>
+
+      <div v-else-if="filteredSkills.length === 0" class="py-20 text-center animate-fade-in">
+        <div class="w-20 h-20 rounded-full bg-bg-elevated/50 flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/5">
+          <component :is="searchQuery ? Search : Book" class="w-8 h-8 text-text-muted" />
         </div>
-        <p class="text-lg font-medium">
-          {{ $t('skills.noSearchResults') }}
-        </p>
-        <p class="text-sm mt-2 opacity-70">
-          {{ $t('skills.noSearchResultsHint') }}
-        </p>
-        <button
-          class="mt-4 px-4 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-danger)]/5 rounded-lg transition-colors"
-          @click="searchQuery = ''"
-        >
+        <h3 class="text-lg font-bold text-text-primary">{{ searchQuery ? $t('skills.noSearchResults') : $t('skills.noSkills') }}</h3>
+        <p class="text-text-secondary text-sm mt-1 mb-4">{{ searchQuery ? $t('skills.noSearchResultsHint') : $t('skills.noSkillsHint') }}</p>
+        <Button v-if="searchQuery" variant="outline" size="sm" @click="clearAllFilters">
           {{ $t('skills.clearSearch') }}
-        </button>
+        </Button>
       </div>
 
-      <div
+      <TransitionGroup 
         v-else
-        class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
+        tag="div" 
+        name="staggered-grid"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
       >
-        <GuofengCard
-          v-for="skill in filteredSkills"
+        <Card
+          v-for="(skill, index) in filteredSkills"
           :key="skill.name"
           variant="glass"
-          interactive
-          pattern
+          hover
+          glow
+          class="group min-h-[220px] flex flex-col p-0 overflow-visible transition-all duration-300 relative border-white/5"
+          :style="{ animationDelay: `${index * 50}ms` }"
           @click="navigateToDetail(skill.name)"
         >
-          <div class="relative z-10">
-            <div class="flex items-start justify-between mb-3">
-              <div class="flex items-center gap-2">
-                <h3 class="text-lg font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-danger)] transition-colors">
-                  {{ skill.name }}
-                </h3>
-              </div>
-              <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button
-                  class="p-1.5 rounded-md text-[var(--color-info)] hover:bg-[var(--color-info)]/10 transition-colors"
-                  :title="$t('common.view')"
-                  @click.stop="navigateToDetail(skill.name)"
-                >
-                  <Eye class="w-4 h-4" />
-                </button>
-                <button
-                  class="p-1.5 rounded-md text-[var(--color-info)] hover:bg-[var(--color-info)]/10 transition-colors"
-                  :title="$t('common.edit')"
-                  @click.stop="handleEdit(skill)"
-                >
-                  <Edit2 class="w-4 h-4" />
-                </button>
-                <button
-                  class="p-1.5 rounded-md text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors"
-                  :title="$t('common.delete')"
-                  @click.stop="handleDelete(skill.name)"
-                >
-                  <Trash2 class="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div class="space-y-2 text-sm">
-              <div
-                v-if="skill.description"
-                class="text-[var(--color-text-secondary)] line-clamp-2"
-              >
-                {{ skill.description }}
-              </div>
-              <div class="mt-3 pt-3 border-t border-[var(--color-border-default)]/50">
-                <p class="text-xs text-[var(--color-text-muted)] font-mono truncate">
-                  {{ skill.path }}
-                </p>
-              </div>
-            </div>
+          <!-- Skill Category Decorator -->
+          <div 
+             class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-100 transition-opacity pointer-events-none"
+             :class="skill.repository ? 'text-accent-secondary' : 'text-accent-primary'"
+          >
+             <component :is="getSkillIcon(skill.name)" class="w-24 h-24 -mt-8 -mr-8 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
           </div>
-        </GuofengCard>
-      </div>
-    </div>
 
-    <!-- Add/Edit Modal -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-sm transition-all"
-      @click="showModal = false"
-    >
-      <div
-        class="bg-[var(--color-bg-base)] p-8 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-[var(--color-border-default)] relative"
-        @click.stop
-      >
-        <button
-          class="absolute top-4 right-4 p-2 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-colors"
-          @click="showModal = false"
-        >
-          <X class="w-5 h-5" />
-        </button>
-
-        <h3 class="text-2xl font-bold mb-6 text-[var(--color-text-primary)] flex items-center">
-          <component
-            :is="editingSkill ? Edit2 : Plus"
-            class="w-6 h-6 mr-2 text-[var(--color-danger)]"
-          />
-          {{ editingSkill ? $t('skills.editSkill') : $t('skills.addSkill') }}
-        </h3>
-
-        <div class="space-y-5">
-          <div>
-            <label class="block mb-1.5 text-sm font-semibold text-[var(--color-text-secondary)]">{{ $t('skills.nameLabel') }}</label>
-            <input
-              v-model="formData.name"
-              type="text"
-              :disabled="!!editingSkill"
-              class="w-full px-4 py-2.5 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] focus:border-[var(--color-danger)] focus:ring-1 focus:ring-[var(--color-danger)] outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              :placeholder="$t('skills.namePlaceholder')"
+          <!-- Card Header -->
+          <div class="p-5 pb-0 flex items-start justify-between relative z-10">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold font-mono shadow-inner transition-colors duration-300"
+               :class="skill.repository 
+                 ? 'bg-accent-warning/10 text-accent-warning border border-accent-warning/20 group-hover:bg-accent-warning/20' 
+                 : 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20 group-hover:bg-accent-primary/20'"
             >
+              {{ skill.name.charAt(0).toUpperCase() }}
+            </div>
+
+            <!-- Actions (Visible on hover) -->
+            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+               <button v-if="!skill.repository" @click.stop="handleEdit(skill)" class="p-1.5 rounded-lg hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors">
+                  <Edit2 class="w-4 h-4" />
+               </button>
+               <button v-if="!skill.repository" @click.stop="handleDelete(skill.name)" class="p-1.5 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-colors">
+                  <Trash2 class="w-4 h-4" />
+               </button>
+            </div>
           </div>
 
-          <div>
-            <label class="block mb-1.5 text-sm font-semibold text-[var(--color-text-secondary)]">{{ $t('skills.instructionLabel') }}</label>
-            <textarea
-              v-model="formData.instruction"
-              rows="10"
-              class="w-full px-4 py-3 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] focus:border-[var(--color-danger)] focus:ring-1 focus:ring-[var(--color-danger)] outline-none transition-all resize-y font-mono text-sm"
-              :placeholder="`# Skill Name\n\nDescription of what this skill does.\n\n## Instructions\n\n1. Step one\n2. Step two`"
-            />
+          <!-- Card Body -->
+          <div class="p-5 flex-1 relative z-10 flex flex-col">
+            <h3 class="text-lg font-bold text-text-primary mb-2 line-clamp-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent-primary group-hover:to-accent-secondary transition-all">
+              {{ skill.name }}
+            </h3>
+            
+            <p class="text-sm text-text-secondary leading-relaxed line-clamp-2 mb-4 flex-1">
+              {{ skill.description || $t('skills.search.noDescription') }}
+            </p>
+
+            <!-- Tags -->
+            <div class="flex flex-wrap gap-1.5 mt-auto">
+               <span 
+                 v-if="skill.repository"
+                 class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20"
+               >
+                 PLUGIN
+               </span>
+               <span 
+                 v-else
+                 class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+               >
+                 USER
+               </span>
+               <span 
+                  v-for="tag in (skill.metadata?.tags || []).slice(0, 2)"
+                  :key="tag"
+                  class="text-[10px] px-2 py-0.5 rounded bg-bg-surface border border-border-default text-text-muted"
+               >
+                  #{{ tag }}
+               </span>
+            </div>
+          </div>
+
+          <!-- Card Footer (Path) -->
+          <div class="px-5 py-3 border-t border-white/5 bg-black/10 backdrop-blur-sm text-[10px] text-text-muted font-mono truncate opacity-60 group-hover:opacity-100 transition-opacity">
+            {{ skill.path }}
+          </div>
+        </Card>
+      </TransitionGroup>
+
+      <!-- ADD MODAL -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showModal = false" />
+          
+          <div class="relative w-full max-w-2xl bg-bg-base/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-white/5 flex items-center justify-between">
+               <h3 class="text-xl font-bold text-text-primary flex items-center gap-3">
+                 <div class="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary">
+                   <component :is="editingSkill ? Edit2 : Plus" class="w-4 h-4" />
+                 </div>
+                 {{ editingSkill ? $t('skills.editSkill') : $t('skills.addSkill') }}
+               </h3>
+               <button @click="showModal = false" class="text-text-muted hover:text-text-primary transition-colors">
+                 <X class="w-5 h-5" />
+               </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar">
+              <div class="space-y-2">
+                 <label class="text-sm font-semibold text-text-secondary">{{ $t('skills.nameLabel') }}</label>
+                 <input 
+                   v-model="formData.name" 
+                   :disabled="!!editingSkill"
+                   type="text" 
+                   placeholder="e.g. data-analysis-pro"
+                   class="w-full px-4 py-3 rounded-xl bg-bg-surface/50 border border-border-default focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-all font-mono text-sm"
+                 />
+              </div>
+
+              <div class="space-y-2">
+                 <div class="flex justify-between">
+                    <label class="text-sm font-semibold text-text-secondary">{{ $t('skills.instructionLabel') }}</label>
+                    <span class="text-xs text-text-muted">Markdown supported</span>
+                 </div>
+                 <textarea 
+                   v-model="formData.instruction"
+                   rows="12"
+                   class="w-full px-4 py-3 rounded-xl bg-bg-surface/50 border border-border-default focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-all font-mono text-sm leading-relaxed custom-scrollbar"
+                   placeholder="# Skill Name..."
+                 />
+              </div>
+            </div>
+
+            <div class="p-6 border-t border-white/5 bg-bg-surface/30 flex justify-end gap-3">
+               <Button variant="ghost" @click="showModal = false">
+                 {{ $t('common.cancel') }}
+               </Button>
+               <Button variant="solid" @click="handleSubmit">
+                 {{ editingSkill ? $t('common.save') : $t('common.add') }}
+               </Button>
+            </div>
           </div>
         </div>
+      </Transition>
 
-        <div class="flex gap-4 mt-8 pt-6 border-t border-[var(--color-border-default)]">
-          <button
-            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)]"
-            @click="showModal = false"
-          >
-            {{ $t('common.cancel') }}
-          </button>
-          <button
-            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-[var(--color-danger)] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
-            @click="handleSubmit"
-          >
-            {{ editingSkill ? $t('common.save') : $t('common.add') }}
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Book, Plus, Edit2, Trash2, X, Home, Info, Search, Eye } from 'lucide-vue-next'
-import GuofengCard from '@/components/common/GuofengCard.vue'
+import { 
+  Book, Plus, Edit2, Trash2, X, ArrowLeft, Search, 
+  Tag, Layers, Code2, Zap, Terminal, Box, Feather,
+  Cpu, Globe, Database, PenTool
+} from 'lucide-vue-next'
+import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
+import Card from '@/components/ui/Card.vue'
+import Button from '@/components/ui/Button.vue'
 import { useSkills, type Skill } from '@/composables/useSkills'
 
 const router = useRouter()
 const { t } = useI18n()
 const { skills, loading, listSkills, addSkill, updateSkill, deleteSkill } = useSkills()
 
+// --- State ---
 const showModal = ref(false)
 const editingSkill = ref<Skill | null>(null)
 const formData = ref({ name: '', instruction: '' })
 const searchQuery = ref('')
+const selectedCategory = ref<string | null>(null)
+const selectedSource = ref<'all' | 'user' | 'plugin'>('all')
 
-// 客户端过滤
-const filteredSkills = computed(() => {
-  if (!searchQuery.value.trim()) {
-    return skills.value
-  }
-  const query = searchQuery.value.toLowerCase()
-  return skills.value.filter(skill =>
-    skill.name.toLowerCase().includes(query) ||
-    (skill.description && skill.description.toLowerCase().includes(query)) ||
-    (skill.instruction && skill.instruction.toLowerCase().includes(query))
-  )
+const sourceOptions = computed(() => [
+  { label: t('skills.filter.allSources'), value: 'all' },
+  { label: t('skills.filter.userSkill'), value: 'user' },
+  { label: t('skills.filter.pluginSkill'), value: 'plugin' }
+])
+
+// --- Helpers ---
+const availableCategories = computed(() => {
+  const categories = new Set<string>()
+  skills.value.forEach(skill => {
+    if (skill.metadata?.category) categories.add(skill.metadata.category)
+  })
+  return Array.from(categories).sort()
 })
 
-onMounted(() => {
-  listSkills()
-})
-
-const navigateToDetail = (name: string) => {
-  router.push(`/skills/${encodeURIComponent(name)}`)
+const formatCategory = (category: string) => {
+  return category.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
+const toggleCategory = (cat: string) => {
+  selectedCategory.value = selectedCategory.value === cat ? null : cat
+}
+
+// Icon mapper
+const getSkillIcon = (name: string) => {
+   const n = name.toLowerCase()
+   if (n.includes('write') || n.includes('doc')) return PenTool
+   if (n.includes('data') || n.includes('sql')) return Database
+   if (n.includes('web') || n.includes('browser')) return Globe
+   if (n.includes('code') || n.includes('dev')) return Code2
+   if (n.includes('agent')) return Zap
+   return Box
+}
+
+// --- Filtering ---
+const filteredSkills = computed(() => {
+  let result = skills.value
+
+  if (selectedSource.value === 'user') result = result.filter(s => !s.repository)
+  else if (selectedSource.value === 'plugin') result = result.filter(s => !!s.repository)
+
+  if (selectedCategory.value) {
+    result = result.filter(s => s.metadata?.category === selectedCategory.value)
+  }
+
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase()
+    result = result.filter(s => 
+      s.name.toLowerCase().includes(q) || 
+      (s.description?.toLowerCase().includes(q)) ||
+      (s.metadata?.tags || []).some(t => t.toLowerCase().includes(q))
+    )
+  }
+  return result
+})
+
+const clearAllFilters = () => {
+  searchQuery.value = ''
+  selectedCategory.value = null
+  selectedSource.value = 'all'
+}
+
+// --- Actions ---
+const navigateToDetail = (name: string) => router.push(`/skills/${encodeURIComponent(name)}`)
+
 const handleAdd = () => {
-  showModal.value = true
   editingSkill.value = null
   formData.value = { name: '', instruction: '' }
+  showModal.value = true
 }
 
 const handleEdit = (skill: Skill) => {
   editingSkill.value = skill
+  formData.value = { name: skill.name, instruction: skill.instruction || '' }
   showModal.value = true
-  formData.value = { name: skill.name, instruction: skill.instruction }
 }
 
 const handleSubmit = async () => {
-  if (!formData.value.name || !formData.value.instruction) {
-    alert(t('skills.validation.required'))
-    return
-  }
-
+  if (!formData.value.name || !formData.value.instruction) return
+  
   try {
     if (editingSkill.value) {
       await updateSkill(editingSkill.value.name, { instruction: formData.value.instruction })
@@ -306,18 +389,40 @@ const handleSubmit = async () => {
     }
     showModal.value = false
   } catch (err) {
-    console.error('Operation failed:', err)
-    alert(t('common.operationFailed'))
+    console.error(err)
   }
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(t('skills.deleteConfirm', { name }))) return
-  try {
+  if (confirm(t('skills.deleteConfirm', { name }))) {
     await deleteSkill(name)
-  } catch (err) {
-    console.error('Delete failed:', err)
-    alert(t('common.deleteFailed'))
   }
 }
+
+onMounted(listSkills)
 </script>
+
+<style scoped>
+/* Custom Scrollbar for Modal content */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.02);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>

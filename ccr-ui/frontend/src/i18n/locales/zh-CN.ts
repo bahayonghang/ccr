@@ -1113,6 +1113,17 @@ export default {
     noSkills: '暂无技能配置',
     noSkillsHint: '点击"添加技能"按钮创建您的第一个技能',
     deleteConfirm: '确定要删除技能 "{name}" 吗？',
+    searchPlaceholder: '搜索技能名称或描述...',
+    noSearchResults: '未找到匹配的技能',
+    noSearchResultsHint: '尝试其他搜索条件或清除筛选',
+    clearSearch: '清除搜索',
+    filter: {
+      allCategories: '全部分类',
+      allTags: '全部标签',
+      allSources: '全部来源',
+      userSkill: '用户技能',
+      pluginSkill: '插件技能',
+    },
     validation: {
       required: '请填写必填项'
     },
