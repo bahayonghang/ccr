@@ -13,19 +13,6 @@ use ccr::models::Platform;
 use ccr::models::skill::Skill;
 use ccr::models::skill::SkillRepository;
 
-/// Extract description fallback: skip frontmatter block, take first content line
-fn description_fallback(instruction: &str) -> Option<String> {
-    let trimmed = instruction.trim();
-    if let Some(after_prefix) = trimmed.strip_prefix("---")
-        && let Some(end_idx) = after_prefix.find("---")
-    {
-        let after_frontmatter = after_prefix[end_idx + 3..].trim();
-        after_frontmatter.lines().next().map(|s| s.to_string())
-    } else {
-        instruction.lines().next().map(|s| s.to_string())
-    }
-}
-
 // Request/Response models
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateSkillRequest {
@@ -90,9 +77,8 @@ fn list_project_claude_skills(project_root: &std::path::Path) -> Vec<Skill> {
             Err(_) => continue,
         };
         // Use frontmatter parsing to extract description and metadata
-        let (metadata, frontmatter_desc) = Skill::parse_frontmatter(&instruction);
-        // Prefer frontmatter description, fallback to first non-frontmatter line
-        let description = frontmatter_desc.or_else(|| description_fallback(&instruction));
+        // Use frontmatter parsing to extract description and metadata
+        let (metadata, description) = Skill::parse_with_fallback(&instruction);
 
         skills.push(Skill {
             name,
@@ -217,10 +203,8 @@ fn list_plugin_skills() -> Vec<Skill> {
                         Err(_) => continue,
                     };
                     // Use frontmatter parsing to extract description and metadata
-                    let (metadata, frontmatter_desc) = Skill::parse_frontmatter(&instruction);
-                    // Prefer frontmatter description, fallback to first non-frontmatter line
-                    let description =
-                        frontmatter_desc.or_else(|| description_fallback(&instruction));
+                    // Use frontmatter parsing to extract description and metadata
+                    let (metadata, description) = Skill::parse_with_fallback(&instruction);
 
                     // Create qualified name: "plugin-name:skill-name"
                     let qualified_name = format!("{}:{}", plugin_name, skill_name);

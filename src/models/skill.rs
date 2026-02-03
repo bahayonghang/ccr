@@ -122,6 +122,28 @@ impl Skill {
 
         metadata
     }
+
+    /// Parse markdown content to extract metadata and description
+    /// Prioritizes frontmatter description, then falls back to first line of content
+    pub fn parse_with_fallback(content: &str) -> (SkillMetadata, Option<String>) {
+        let (metadata, frontmatter_desc) = Self::parse_frontmatter(content);
+
+        let description = frontmatter_desc.or_else(|| {
+            let trimmed = content.trim();
+            // Check if we have frontmatter block
+            #[allow(clippy::collapsible_if)]
+            if let Some(after_prefix) = trimmed.strip_prefix("---") {
+                if let Some(end_idx) = after_prefix.find("---") {
+                    let after_frontmatter = after_prefix[end_idx + 3..].trim();
+                    return after_frontmatter.lines().next().map(|s| s.to_string());
+                }
+            }
+            // No valid frontmatter or incomplete
+            content.lines().next().map(|s| s.to_string())
+        });
+
+        (metadata, description)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
