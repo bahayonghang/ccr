@@ -150,14 +150,6 @@
                   {{ module.desc }}
                 </p>
               </div>
-
-              <div class="z-10 mt-auto pt-4 border-t border-white/5 flex items-center gap-2">
-                <div
-                  class="w-2 h-2 rounded-full"
-                  :style="{ background: module.color }"
-                />
-                <span class="text-xs font-mono text-text-muted">{{ $t('home.operational') }}</span>
-              </div>
             </Card>
           </RouterLink>
         </div>

@@ -67,7 +67,6 @@
 }
 
 @keyframes float-gentle {
-
     0%,
     100% {
         transform: translateY(0) rotate(0deg);
@@ -95,12 +94,15 @@
    ============================================ */
 :root {
     --bg-mesh-1: rgb(var(--color-premium-pink-rgb) / 80%);
+
     /* Pinkish */
 
     --bg-mesh-2: rgb(var(--color-premium-blue-rgb) / 80%);
+
     /* Blueish */
 
     --bg-mesh-3: rgb(var(--color-premium-pink-rgb) / 60%);
+
     /* Mix */
     --bg-pattern-color: rgb(15 23 42 / 3%);
 
@@ -170,12 +172,15 @@
 :root[class~="dark"],
 [data-theme="dark"] {
     --bg-mesh-1: rgb(255 105 180 / 15%);
+
     /* Hot Pink */
 
     --bg-mesh-2: rgb(var(--color-premium-blue-rgb) / 12%);
+
     /* Premium Blue */
 
     --bg-mesh-3: rgb(6 182 212 / 10%);
+
     /* Cyan-500 */
     --bg-grid-line: rgb(248 250 252 / 3%);
 

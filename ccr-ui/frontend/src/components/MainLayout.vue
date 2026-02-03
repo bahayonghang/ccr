@@ -210,7 +210,7 @@
                   </span>
                 </p>
                 <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                  CCR UI v3.20.5
+                  CCR UI v3.20.6
                 </span>
               </div>
             </div>
@@ -455,21 +455,21 @@ onUnmounted(() => {
 /* User Card - Light Mode Override */
 [data-theme="light"] .user-card {
   background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.4) 0%,
-    rgba(255, 255, 255, 0.6) 100%
+    rgb(255 255 255 / 40%) 0%,
+    rgb(255 255 255 / 60%) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid rgb(255 255 255 / 60%);
   box-shadow:
-    0 4px 15px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 4px 15px rgb(0 0 0 / 5%),
+    inset 0 1px 0 rgb(255 255 255 / 80%);
 }
 
 [data-theme="light"] .user-card:hover {
   background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.6) 0%,
-    rgba(255, 255, 255, 0.8) 100%
+    rgb(255 255 255 / 60%) 0%,
+    rgb(255 255 255 / 80%) 100%
   );
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 25px rgb(0 0 0 / 8%);
 }
 
 /* Page Transition */

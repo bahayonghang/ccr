@@ -292,6 +292,59 @@ export default {
     factoryDroidTitle: 'Factory Droid',
     factoryDroidDesc: '自动化代理网络，用于复杂任务执行。',
   },
+  skills: {
+    title: '技能中心',
+    help: {
+      description: '浏览和管理 Claude Code 的扩展技能，每个技能都是一个包含 SKILL.md 的可执行单元。',
+    },
+    filter: {
+      allSources: '全部来源',
+      userSkill: '用户技能',
+      pluginSkill: '插件技能',
+      tags: '标签',
+    },
+    category: {
+      uncategorized: '未分类',
+    },
+    searchPlaceholder: '搜索技能 名称/描述/标签...',
+    noSkills: '暂无技能',
+    noSkillsHint: '您可以尝试安装插件或创建自己的技能',
+    noSearchResults: '没有找到匹配的技能',
+    noSearchResultsHint: '尝试使用更宽泛的关键词',
+    clearSearch: '清空筛选',
+    addSkill: '添加技能',
+    editSkill: '编辑技能',
+    deleteConfirm: '确定要删除技能 {name} 吗？',
+    nameLabel: '技能名称',
+    instructionLabel: '指令内容 (SKILL.md)',
+    search: {
+      noDescription: '暂无描述信息',
+    },
+    repositories: {
+      title: '技能仓库',
+      subtitle: '管理远程技能仓库',
+      add: '添加仓库',
+      addTitle: '添加技能仓库',
+      name: '仓库名称',
+      url: 'GitHub URL',
+      branch: '分支',
+      description: '描述',
+      empty: '暂无配置仓库',
+      emptyHint: '添加仓库后可下载远程技能',
+      skills: '个技能',
+      official: '官方',
+      scan: '扫描',
+      confirmDelete: '确定要删除仓库 "{name}" 吗？',
+    },
+    validation: {
+      required: '请填写必填项'
+    },
+    messages: {
+      loadFailed: '加载技能失败',
+      operationFailed: '操作失败',
+      deleteFailed: '删除失败'
+    },
+  },
   claudeCode: {
     // ClaudeCodeView - Overview page
     title: 'Claude Code',
@@ -1097,75 +1150,7 @@ export default {
     copiedToClipboard: '已复制到剪贴板',
   },
 
-  // Skills module
-  skills: {
-    title: 'Claude Code 技能管理',
-    subtitle: '管理 Claude Code Skills (SKILL.md)',
-    breadcrumb: '技能管理',
-    pageTitle: 'Claude Code 技能管理',
-    backToHome: '返回首页',
-    addSkill: '添加技能',
-    editSkill: '编辑技能',
-    nameLabel: '技能名称 *',
-    namePlaceholder: '例如: format-json',
-    instructionLabel: '技能指令 (Instruction) *',
-    instructionPlaceholder: '输入技能指令 (支持 Markdown)...',
-    noSkills: '暂无技能配置',
-    noSkillsHint: '点击"添加技能"按钮创建您的第一个技能',
-    deleteConfirm: '确定要删除技能 "{name}" 吗？',
-    searchPlaceholder: '搜索技能名称或描述...',
-    noSearchResults: '未找到匹配的技能',
-    noSearchResultsHint: '尝试其他搜索条件或清除筛选',
-    clearSearch: '清除搜索',
-    filter: {
-      allCategories: '全部分类',
-      allTags: '全部标签',
-      allSources: '全部来源',
-      userSkill: '用户技能',
-      pluginSkill: '插件技能',
-    },
-    validation: {
-      required: '请填写必填项'
-    },
-    messages: {
-      loadFailed: '加载技能失败',
-      operationFailed: '操作失败',
-      deleteFailed: '删除失败'
-    },
-    help: {
-      title: '什么是 Claude Code Skills?',
-      description: 'Skills 是 Claude Code 的模块化能力。每个 Skill 是一个包含 SKILL.md 文件的文件夹，定义了 Claude 可以执行的可重用任务。',
-      structure: '结构: ~/.claude/skills/<skill-name>/SKILL.md',
-      learnMore: '了解更多'
-    },
-    repositories: {
-      title: '技能仓库',
-      subtitle: '管理远程技能仓库',
-      add: '添加仓库',
-      addTitle: '添加技能仓库',
-      name: '仓库名称',
-      url: 'GitHub URL',
-      branch: '分支',
-      description: '描述',
-      empty: '暂无配置仓库',
-      emptyHint: '添加仓库后可下载远程技能',
-      skills: '个技能',
-      official: '官方',
-      scan: '扫描',
-      confirmDelete: '确定要删除仓库 "{name}" 吗？',
-    },
-    search: {
-      title: '技能搜索',
-      skillsFound: '个技能',
-      placeholder: '搜索技能名称、标签、作者...',
-      repository: '仓库',
-      tags: '标签',
-      local: '本地',
-      noResults: '未找到匹配的技能',
-      tryDifferent: '尝试其他搜索条件',
-      noDescription: '暂无描述',
-    },
-  },
+
 
   // Market module
   market: {
