@@ -210,7 +210,7 @@
                   </span>
                 </p>
                 <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                  CCR UI v3.20.6
+                  CCR UI v3.20.7
                 </span>
               </div>
             </div>

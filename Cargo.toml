@@ -3,8 +3,9 @@
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.20.6"
+version = "3.20.7"
 edition = "2024"
+rust-version = "1.85"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher (Rust implementation)"
 license = "MIT"
@@ -55,6 +56,7 @@ tokio = { workspace = true }       # 异步运行时
 toml = { workspace = true }        # TOML 格式支持 (标准序列化)
 
 # --- 本地依赖 (字母顺序) ---
+base64 = "0.22.1" # Base64 编解码
 blake3 = "1.8.3" # 高性能哈希算法 (用于文件去重/内容寻址)
 colored = "3.0.0" # 终端文本着色
 comfy-table = "7.2" # 漂亮的 CLI 表格输出
@@ -87,7 +89,6 @@ ratatui = { version = "0.30.0", optional = true }   # TUI 框架 (基于 crosste
 sysinfo = { version = "0.37.2", optional = true }   # 系统信息获取 (CPU, 内存)
 tower = { workspace = true, optional = true }       # 网络服务组件 (中间件)
 tower-http = { workspace = true, optional = true }  # HTTP 中间件 (CORS 等)
-base64 = "0.22.1"
 
 # ═══════════════════════════════════════════════════════════
 # 🏗️ Workspace
@@ -164,9 +165,3 @@ codegen-units = 1
 lto = true
 opt-level = 3
 strip = false     # Tauri 需要保留符号
-
-# ═══════════════════════════════════════════════════════════
-# 🩹 Patch
-# ═══════════════════════════════════════════════════════════
-[patch."https://github.com/bahayonghang/ccr"]
-ccr = { path = "." }

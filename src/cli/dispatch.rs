@@ -448,7 +448,6 @@ impl CommandDispatcher {
         println!("  配置备份和恢复功能");
         println!("  自动配置验证");
         println!("  WebDAV 云端同步（支持坚果云）");
-        println!("  与 CCS 完全兼容");
         println!();
 
         ColorOutput::info("常用命令:");
