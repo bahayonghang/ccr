@@ -82,17 +82,19 @@ pub async fn export_command(no_secrets: bool) -> Result<()> {
         "默认导出路径: {}",
         default_path.display().to_string().bright_cyan()
     ));
-    print!("是否修改导出路径? [y/N]: ");
-    io::stdout()
-        .flush()
-        .map_err(|e| CcrError::ConfigError(e.to_string()))?;
 
-    let mut confirm = String::new();
-    io::stdin()
-        .read_line(&mut confirm)
-        .map_err(|e| CcrError::ConfigError(e.to_string()))?;
+    let default_path_for_task = default_path.clone();
+    let export_path = tokio::task::spawn_blocking(move || -> Result<PathBuf> {
+        print!("是否修改导出路径? [y/N]: ");
+        io::stdout()
+            .flush()
+            .map_err(|e| CcrError::FileIoError(e.to_string()))?;
 
-    let export_path =
+        let mut confirm = String::new();
+        io::stdin()
+            .read_line(&mut confirm)
+            .map_err(|e| CcrError::FileIoError(e.to_string()))?;
+
         if confirm.trim().eq_ignore_ascii_case("y") || confirm.trim().eq_ignore_ascii_case("yes") {
             println!("请输入导出路径 (文件或目录):");
             match read_user_path() {
@@ -102,26 +104,29 @@ pub async fn export_command(no_secrets: bool) -> Result<()> {
                     if path.is_dir() || custom_path.ends_with('/') || custom_path.ends_with('\\') {
                         let date = Local::now().format("%Y-%m-%d");
                         let filename = format!("codex-auth-export-{}.json", date);
-                        path.join(filename)
+                        Ok(path.join(filename))
                     } else {
-                        path
+                        Ok(path)
                     }
                 }
                 None => {
                     ColorOutput::info("使用默认路径");
-                    default_path
+                    Ok(default_path_for_task)
                 }
             }
         } else {
-            default_path
-        };
+            Ok(default_path_for_task)
+        }
+    })
+    .await
+    .map_err(|e| CcrError::FileIoError(format!("读取导出路径失败: {}", e)))??;
 
     // 确保父目录存在
     if let Some(parent) = export_path.parent()
         && !parent.exists()
     {
         fs::create_dir_all(parent)
-            .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+            .map_err(|e| CcrError::FileIoError(format!("创建目录失败: {}", e)))?;
     }
 
     // 执行导出
@@ -130,7 +135,7 @@ pub async fn export_command(no_secrets: bool) -> Result<()> {
 
     // 写入文件
     fs::write(&export_path, &json)
-        .map_err(|e| CcrError::ConfigError(format!("写入文件失败: {}", e)))?;
+        .map_err(|e| CcrError::FileIoError(format!("写入文件失败: {}", e)))?;
 
     println!();
     ColorOutput::success(&format!(

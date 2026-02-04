@@ -283,15 +283,21 @@ async fn reset_command(args: ResetArgs) -> Result<()> {
         ColorOutput::warning("⚠️  这将重置所有预算限制配置！");
         ColorOutput::info("当前配置将被清除，预算控制保持当前启用状态");
 
-        print!("\n确认重置？(y/N): ");
-        use std::io::{self, Write};
-        io::stdout().flush()?;
+        let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
+            print!("\n确认重置？(y/N): ");
+            use std::io::{self, Write};
+            io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
 
-        let input = input.trim().to_lowercase();
-        if input != "y" && input != "yes" {
+            let input = input.trim().to_lowercase();
+            Ok(input == "y" || input == "yes")
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+        if !confirmed {
             ColorOutput::info("✅ 已取消重置");
             return Ok(());
         }

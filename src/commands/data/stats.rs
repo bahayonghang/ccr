@@ -469,14 +469,21 @@ async fn clear_command(args: ClearArgs) -> Result<()> {
 
     // 确认删除
     if !args.force {
-        use std::io::{self, Write};
-        print!("确认删除这些文件吗? (y/N): ");
-        io::stdout().flush()?;
+        let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
+            print!("确认删除这些文件吗? (y/N): ");
+            use std::io::{self, Write};
+            io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
 
-        if !input.trim().eq_ignore_ascii_case("y") {
+            let input = input.trim();
+            Ok(input.eq_ignore_ascii_case("y"))
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+        if !confirmed {
             ColorOutput::warning("已取消");
             return Ok(());
         }

@@ -14,7 +14,7 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
+use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::SettingsManager;
 use crate::utils::mask_sensitive;
@@ -43,14 +43,16 @@ pub async fn temp_command() -> Result<()> {
     ColorOutput::separator();
     println!();
 
-    // 1. 提示输入 Base URL（必填）
-    let base_url = prompt_base_url()?;
-
-    // 2. 提示输入 Token（必填）
-    let token = prompt_token()?;
-
-    // 3. 提示输入 Model（可选，智能解析）
-    let model = prompt_model_with_smart_parse();
+    // 1-3. 交互式输入临时配置
+    let (base_url, token, model) =
+        tokio::task::spawn_blocking(|| -> Result<(String, String, Option<String>)> {
+            let base_url = prompt_base_url()?;
+            let token = prompt_token()?;
+            let model = prompt_model_with_smart_parse();
+            Ok((base_url, token, model))
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
 
     println!();
     ColorOutput::separator();
@@ -64,7 +66,13 @@ pub async fn temp_command() -> Result<()> {
     println!();
 
     // 确认应用
-    if !ColorOutput::ask_confirmation("确认应用此临时配置?", true) {
+    let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
+        Ok(ColorOutput::ask_confirmation("确认应用此临时配置?", true))
+    })
+    .await
+    .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+    if !confirmed {
         println!();
         ColorOutput::info("已取消操作");
         return Ok(());

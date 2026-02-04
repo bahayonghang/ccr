@@ -91,8 +91,17 @@ pub async fn delete_command(config_name: &str, force: bool) -> Result<()> {
         ColorOutput::warning("此操作不可恢复！");
         println!();
 
-        if !ColorOutput::ask_confirmation(&format!("确认删除配置 '{}'?", config_name), false)
-        {
+        let config_name = config_name.to_string();
+        let confirmed = tokio::task::spawn_blocking(move || -> Result<bool> {
+            Ok(ColorOutput::ask_confirmation(
+                &format!("确认删除配置 '{}'?", config_name),
+                false,
+            ))
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+        if !confirmed {
             println!();
             ColorOutput::info("已取消删除");
             return Ok(());

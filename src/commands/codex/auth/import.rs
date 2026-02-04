@@ -24,7 +24,7 @@ fn scan_downloads_for_exports() -> Result<Vec<PathBuf>> {
     let downloads = get_downloads_dir()?;
 
     let mut files: Vec<(PathBuf, std::time::SystemTime)> = fs::read_dir(&downloads)
-        .map_err(|e| CcrError::ConfigError(format!("读取 Downloads 目录失败: {}", e)))?
+        .map_err(|e| CcrError::FileIoError(format!("读取 Downloads 目录失败: {}", e)))?
         .filter_map(|entry| entry.ok())
         .filter(|entry| {
             let name = entry.file_name();
@@ -85,44 +85,52 @@ pub async fn import_command(replace: bool, force: bool) -> Result<()> {
         ColorOutput::warning("未在 Downloads 中找到导出文件");
     }
 
-    print!("是否修改导入路径? [y/N]: ");
-    io::stdout()
-        .flush()
-        .map_err(|e| CcrError::ConfigError(e.to_string()))?;
+    let default_file_for_task = default_file.clone();
+    let import_path = tokio::task::spawn_blocking(move || -> Result<PathBuf> {
+        print!("是否修改导入路径? [y/N]: ");
+        io::stdout()
+            .flush()
+            .map_err(|e| CcrError::FileIoError(e.to_string()))?;
 
-    let mut confirm = String::new();
-    io::stdin()
-        .read_line(&mut confirm)
-        .map_err(|e| CcrError::ConfigError(e.to_string()))?;
+        let mut confirm = String::new();
+        io::stdin()
+            .read_line(&mut confirm)
+            .map_err(|e| CcrError::FileIoError(e.to_string()))?;
 
-    let import_path =
         if confirm.trim().eq_ignore_ascii_case("y") || confirm.trim().eq_ignore_ascii_case("yes") {
             println!("请输入导入文件路径 (JSON 文件):");
             match read_user_path() {
-                Some(custom_path) => PathBuf::from(custom_path),
+                Some(custom_path) => Ok(PathBuf::from(custom_path)),
                 None => {
-                    if let Some(file) = default_file {
+                    if let Some(file) = default_file_for_task {
                         ColorOutput::info("使用默认文件");
-                        file
+                        Ok(file)
                     } else {
                         ColorOutput::error("未指定文件且无默认文件可用");
-                        return Ok(());
+                        Ok(PathBuf::new())
                     }
                 }
             }
         } else {
-            match default_file {
-                Some(file) => file,
+            match default_file_for_task {
+                Some(file) => Ok(file),
                 None => {
                     ColorOutput::error("在 Downloads 目录中未找到导出文件");
                     println!();
                     ColorOutput::info("提示:");
                     println!("  • 先使用 'ccr codex auth export' 导出账号");
                     println!("  • 或输入 'y' 手动指定文件路径");
-                    return Ok(());
+                    Ok(PathBuf::new())
                 }
             }
-        };
+        }
+    })
+    .await
+    .map_err(|e| CcrError::FileIoError(format!("读取导入路径失败: {}", e)))??;
+
+    if import_path.as_os_str().is_empty() {
+        return Ok(());
+    }
 
     if !import_path.exists() {
         ColorOutput::error(&format!("文件不存在: {}", import_path.display()));
@@ -134,7 +142,7 @@ pub async fn import_command(replace: bool, force: bool) -> Result<()> {
     }
 
     let content = fs::read_to_string(&import_path)
-        .map_err(|e| CcrError::ConfigError(format!("读取文件失败: {}", e)))?;
+        .map_err(|e| CcrError::FileIoError(format!("读取文件失败: {}", e)))?;
 
     let mode = if replace {
         ImportMode::Replace

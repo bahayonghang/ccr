@@ -3,7 +3,7 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
+use crate::core::error::{CcrError, Result};
 use crate::services::ui_service::UiService;
 
 /// 🎨 启动 CCR UI
@@ -17,7 +17,9 @@ use crate::services::ui_service::UiService;
 /// - `backend_port`: 后端端口 (默认 38081)
 pub async fn ui_command(port: u16, backend_port: u16, auto_yes: bool) -> Result<()> {
     let ui_service = UiService::new()?;
-    ui_service.start(port, backend_port, auto_yes)?;
+    tokio::task::spawn_blocking(move || ui_service.start(port, backend_port, auto_yes))
+        .await
+        .map_err(|e| CcrError::UiError(format!("启动 UI 任务失败: {}", e)))??;
     Ok(())
 }
 

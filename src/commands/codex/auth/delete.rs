@@ -4,7 +4,7 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
+use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::services::CodexAuthService;
 use colored::Colorize;
@@ -60,13 +60,18 @@ pub async fn delete_command(name: &str, force: bool) -> Result<()> {
         }
 
         println!();
-        print!("确认删除? (输入 'yes' 确认): ");
-        io::stdout().flush()?;
+        let confirmed = tokio::task::spawn_blocking(|| -> io::Result<bool> {
+            print!("确认删除? (输入 'yes' 确认): ");
+            io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            Ok(input.trim().eq_ignore_ascii_case("yes"))
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取确认输入失败: {}", e)))??;
 
-        if input.trim().to_lowercase() != "yes" {
+        if !confirmed {
             ColorOutput::info("已取消删除");
             return Ok(());
         }

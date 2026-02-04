@@ -3,11 +3,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
+use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::services::config_service::ConfigService;
 use colored::Colorize;
-use std::io::{self, Write};
 
 /// ❌ 禁用指定配置
 ///
@@ -41,13 +40,20 @@ pub async fn disable_command(config_name: &str, force: bool) -> Result<()> {
         println!();
 
         // 询问确认
-        print!("{}", "确认禁用当前配置? (y/N): ".bright_yellow().bold());
-        io::stdout().flush()?;
+        let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
+            use std::io::{self, Write};
+            print!("{}", "确认禁用当前配置? (y/N): ".bright_yellow().bold());
+            io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
 
-        if !input.trim().eq_ignore_ascii_case("y") {
+            Ok(input.trim().eq_ignore_ascii_case("y"))
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+        if !confirmed {
             ColorOutput::info("已取消禁用操作");
             return Ok(());
         }

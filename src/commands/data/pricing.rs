@@ -269,15 +269,21 @@ async fn remove_command(args: RemoveArgs) -> Result<()> {
         ColorOutput::warning(&format!("⚠️  这将移除模型 {} 的定价配置！", args.model));
         ColorOutput::info("移除后，该模型将使用默认定价（如果已配置）");
 
-        print!("\n确认移除？(y/N): ");
-        use std::io::{self, Write};
-        io::stdout().flush()?;
+        let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
+            print!("\n确认移除？(y/N): ");
+            use std::io::{self, Write};
+            io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
 
-        let input = input.trim().to_lowercase();
-        if input != "y" && input != "yes" {
+            let input = input.trim().to_lowercase();
+            Ok(input == "y" || input == "yes")
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+        if !confirmed {
             ColorOutput::info("✅ 已取消移除");
             return Ok(());
         }
@@ -302,15 +308,21 @@ async fn reset_command(args: ResetArgs) -> Result<()> {
         ColorOutput::warning("⚠️  这将重置所有定价配置为 Claude 默认值！");
         ColorOutput::info("所有自定义模型定价将被删除");
 
-        print!("\n确认重置？(y/N): ");
-        use std::io::{self, Write};
-        io::stdout().flush()?;
+        let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
+            print!("\n确认重置？(y/N): ");
+            use std::io::{self, Write};
+            io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
 
-        let input = input.trim().to_lowercase();
-        if input != "y" && input != "yes" {
+            let input = input.trim().to_lowercase();
+            Ok(input == "y" || input == "yes")
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+        if !confirmed {
             ColorOutput::info("✅ 已取消重置");
             return Ok(());
         }

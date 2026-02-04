@@ -22,12 +22,15 @@ use std::process::{Command, Stdio};
 /// - 需要本地安装 Rust 和 cargo
 /// - 需要能访问 GitHub
 pub async fn update_command(check_only: bool, branch: &str) -> Result<()> {
+    use crate::core::CCR_GITHUB_REPO;
+
     ColorOutput::title("CCR 自动更新");
     println!();
 
     let current_version = env!("CARGO_PKG_VERSION");
+    let repo_url = format!("https://github.com/{}", CCR_GITHUB_REPO);
     ColorOutput::key_value("当前版本", current_version, 2);
-    ColorOutput::key_value("仓库地址", "https://github.com/bahayonghang/ccr", 2);
+    ColorOutput::key_value("仓库地址", &repo_url, 2);
     ColorOutput::key_value("更新分支", branch, 2);
     println!();
 
@@ -38,8 +41,8 @@ pub async fn update_command(check_only: bool, branch: &str) -> Result<()> {
         println!();
         ColorOutput::step("更新命令预览");
         println!(
-            "  cargo install --git https://github.com/bahayonghang/ccr ccr --branch {} --force",
-            branch
+            "  cargo install --git {} ccr --branch {} --force",
+            repo_url, branch
         );
         println!();
         ColorOutput::info("💡 提示: 运行 'ccr update' 执行更新(去掉 --check 参数)");
@@ -49,7 +52,13 @@ pub async fn update_command(check_only: bool, branch: &str) -> Result<()> {
 
     // 确认更新
     println!();
-    if !ColorOutput::ask_confirmation("确认更新到最新版本?", true) {
+    let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
+        Ok(ColorOutput::ask_confirmation("确认更新到最新版本?", true))
+    })
+    .await
+    .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+    if !confirmed {
         println!();
         ColorOutput::info("已取消更新");
         println!();
@@ -63,38 +72,45 @@ pub async fn update_command(check_only: bool, branch: &str) -> Result<()> {
     println!();
     ColorOutput::info("执行命令:");
     println!(
-        "  cargo install --git https://github.com/bahayonghang/ccr ccr --branch {} --force",
-        branch
+        "  cargo install --git {} ccr --branch {} --force",
+        repo_url, branch
     );
     println!();
     ColorOutput::separator();
     println!();
 
-    // 执行 cargo install,实时显示输出
-    let mut child = Command::new("cargo")
-        .args([
-            "install",
-            "--git",
-            "https://github.com/bahayonghang/ccr",
-            "ccr", // 指定包名
-            "--branch",
-            branch,
-            "--force",
-        ])
-        .stdout(Stdio::inherit()) // 实时显示标准输出
-        .stderr(Stdio::inherit()) // 实时显示标准错误
-        .spawn()
-        .map_err(|e| {
-            CcrError::ConfigError(format!(
-                "无法启动 cargo 命令: {}\n\n可能原因：\n  • 未安装 Rust 工具链\n  • cargo 不在系统 PATH 中",
-                e
-            ))
-        })?;
+    let repo_url_for_task = repo_url.clone();
+    let branch_for_task = branch.to_string();
 
-    // 等待命令执行完成
-    let status = child
-        .wait()
-        .map_err(|e| CcrError::ConfigError(format!("等待 cargo 命令完成失败: {}", e)))?;
+    // 执行 cargo install,实时显示输出
+    let status = tokio::task::spawn_blocking(move || -> Result<std::process::ExitStatus> {
+        let mut child = Command::new("cargo")
+            .args([
+                "install",
+                "--git",
+                repo_url_for_task.as_str(),
+                "ccr", // 指定包名
+                "--branch",
+                branch_for_task.as_str(),
+                "--force",
+            ])
+            .stdout(Stdio::inherit()) // 实时显示标准输出
+            .stderr(Stdio::inherit()) // 实时显示标准错误
+            .spawn()
+            .map_err(|e| {
+                CcrError::ExternalCommandError(format!(
+                    "无法启动 cargo 命令: {}\n\n可能原因：\n  • 未安装 Rust 工具链\n  • cargo 不在系统 PATH 中",
+                    e
+                ))
+            })?;
+
+        // 等待命令执行完成
+        child
+            .wait()
+            .map_err(|e| CcrError::ExternalCommandError(format!("等待 cargo 命令完成失败: {}", e)))
+    })
+    .await
+    .map_err(|e| CcrError::ExternalCommandError(format!("执行更新任务失败: {}", e)))??;
 
     println!();
     ColorOutput::separator();
@@ -121,12 +137,12 @@ pub async fn update_command(check_only: bool, branch: &str) -> Result<()> {
         println!("  2. 更新 Rust 工具链: rustup update");
         println!("  3. 检查 cargo 版本: cargo --version");
         println!(
-            "  4. 手动安装: cargo install --git https://github.com/bahayonghang/ccr ccr --branch {} --force",
-            branch
+            "  4. 手动安装: cargo install --git {} ccr --branch {} --force",
+            repo_url, branch
         );
         println!();
 
-        return Err(CcrError::ConfigError(format!(
+        return Err(CcrError::UpdateError(format!(
             "更新失败,退出码: {}",
             status.code().unwrap_or(-1)
         )));
