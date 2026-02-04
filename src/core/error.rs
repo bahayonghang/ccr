@@ -55,6 +55,9 @@ pub mod exit_codes {
     /// 💾 IO 错误
     pub const IO_ERROR: i32 = 50;
 
+    /// 💾 文件 I/O 错误
+    pub const FILE_IO_ERROR: i32 = 51;
+
     /// 📚 历史记录错误
     pub const HISTORY_ERROR: i32 = 80;
 
@@ -84,6 +87,15 @@ pub mod exit_codes {
 
     /// 🗄️ 数据库错误
     pub const DATABASE_ERROR: i32 = 72;
+
+    /// 🔄 更新错误
+    pub const UPDATE_ERROR: i32 = 73;
+
+    /// 🎨 UI 错误
+    pub const UI_ERROR: i32 = 74;
+
+    /// 🧰 外部命令错误
+    pub const EXTERNAL_COMMAND_ERROR: i32 = 75;
 }
 
 /// ❌ CCR 错误类型枚举
@@ -135,6 +147,10 @@ pub enum CcrError {
     #[error("IO 错误: {0}")]
     IoError(#[from] std::io::Error),
 
+    /// 💾 文件 I/O 错误
+    #[error("文件 I/O 错误: {0}")]
+    FileIoError(String),
+
     /// 📚 历史记录错误
     #[error("历史记录错误: {0}")]
     HistoryError(String),
@@ -175,6 +191,18 @@ pub enum CcrError {
     /// 🗄️ 数据库错误
     #[error("数据库错误: {0}")]
     DatabaseError(String),
+
+    /// 🔄 更新错误
+    #[error("更新错误: {0}")]
+    UpdateError(String),
+
+    /// 🎨 UI 错误
+    #[error("UI 错误: {0}")]
+    UiError(String),
+
+    /// 🧰 外部命令错误
+    #[error("外部命令错误: {0}")]
+    ExternalCommandError(String),
 }
 
 impl CcrError {
@@ -196,6 +224,7 @@ impl CcrError {
             CcrError::JsonError(_) => exit_codes::JSON_ERROR,
             CcrError::TomlError(_) => exit_codes::TOML_ERROR,
             CcrError::IoError(_) => exit_codes::IO_ERROR,
+            CcrError::FileIoError(_) => exit_codes::FILE_IO_ERROR,
             CcrError::HistoryError(_) => exit_codes::HISTORY_ERROR,
             CcrError::ValidationError(_) => exit_codes::VALIDATION_ERROR,
             CcrError::SyncError(_) => exit_codes::SYNC_ERROR,
@@ -206,6 +235,9 @@ impl CcrError {
             CcrError::ResourceNotFound(_) => exit_codes::RESOURCE_NOT_FOUND,
             CcrError::ResourceAlreadyExists(_) => exit_codes::RESOURCE_ALREADY_EXISTS,
             CcrError::DatabaseError(_) => exit_codes::DATABASE_ERROR,
+            CcrError::UpdateError(_) => exit_codes::UPDATE_ERROR,
+            CcrError::UiError(_) => exit_codes::UI_ERROR,
+            CcrError::ExternalCommandError(_) => exit_codes::EXTERNAL_COMMAND_ERROR,
         }
     }
 
@@ -310,6 +342,24 @@ impl CcrError {
                     name
                 )
             }
+            CcrError::UpdateError(msg) => {
+                format!(
+                    "更新失败: {}\n建议: 检查网络连接、Rust 工具链与 cargo 是否可用",
+                    msg
+                )
+            }
+            CcrError::UiError(msg) => {
+                format!(
+                    "UI 启动或更新失败: {}\n建议: 检查 UI 依赖、just 命令与本地环境",
+                    msg
+                )
+            }
+            CcrError::ExternalCommandError(msg) => {
+                format!(
+                    "外部命令执行失败: {}\n建议: 检查命令是否安装、PATH 是否配置正确",
+                    msg
+                )
+            }
             _ => self.to_string(),
         }
     }
@@ -328,6 +378,8 @@ mod tests {
         assert_eq!(CcrError::ConfigError("test".into()).exit_code(), 10);
         assert_eq!(CcrError::ConfigMissing("test".into()).exit_code(), 11);
         assert_eq!(CcrError::SettingsError("test".into()).exit_code(), 20);
+        assert_eq!(CcrError::FileIoError("test".into()).exit_code(), 51);
+        assert_eq!(CcrError::UpdateError("test".into()).exit_code(), 73);
     }
 
     #[test]

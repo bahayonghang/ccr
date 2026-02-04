@@ -19,6 +19,12 @@ pub mod http;
 pub mod lock;
 pub mod logging;
 
+/// GitHub 仓库标识（owner/repo）
+pub const CCR_GITHUB_REPO: &str = "bahayonghang/ccr";
+
+/// UI 仓库标识（owner/repo），与主仓库一致时复用
+pub const CCR_UI_REPO: &str = "bahayonghang/ccr";
+
 // 重新导出常用类型（供外部使用）
 // 注意: 这些导出是为了库的公共 API，即使在模块内未使用也需要保留
 #[allow(unused_imports)]
