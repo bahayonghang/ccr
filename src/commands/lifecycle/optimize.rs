@@ -5,7 +5,7 @@
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
-use crate::managers::config::ConfigManager;
+use crate::services::ConfigService;
 
 /// 🔄 优化配置文件结构
 ///
@@ -25,10 +25,14 @@ pub async fn optimize_command() -> Result<()> {
 
     // 加载配置文件
     ColorOutput::step("加载配置文件");
-    let config_manager = ConfigManager::with_default()?;
-    let config_path = config_manager.config_path().display().to_string();
+    let config_service = ConfigService::with_default()?;
+    let config_path = config_service
+        .config_manager()
+        .config_path()
+        .display()
+        .to_string();
 
-    let mut config = config_manager.load()?;
+    let mut config = config_service.load_config()?;
     ColorOutput::success(&format!("配置文件: {}", config_path));
 
     // 显示优化前的配置节顺序
@@ -62,7 +66,7 @@ pub async fn optimize_command() -> Result<()> {
     // 保存配置文件
     println!();
     ColorOutput::step("保存优化后的配置");
-    config_manager.save(&config)?;
+    config_service.save_config(&config)?;
     ColorOutput::success("配置文件已优化并保存");
 
     println!();

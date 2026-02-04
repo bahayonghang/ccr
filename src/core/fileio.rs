@@ -43,12 +43,12 @@ where
 {
     // 读取文件内容
     let content = fs::read_to_string(path).map_err(|e| {
-        CcrError::ConfigError(format!("读取配置文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("读取配置文件 {} 失败: {}", path.display(), e))
     })?;
 
     // 解析 TOML
     let data: T = toml::from_str(&content).map_err(|e| {
-        CcrError::ConfigError(format!("解析 TOML 文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("解析 TOML 文件 {} 失败: {}", path.display(), e))
     })?;
 
     tracing::trace!("✅ 成功读取 TOML 文件: {}", path.display());
@@ -97,17 +97,17 @@ where
     // 确保父目录存在
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| {
-            CcrError::ConfigError(format!("创建目录 {} 失败: {}", parent.display(), e))
+            CcrError::FileIoError(format!("创建目录 {} 失败: {}", parent.display(), e))
         })?;
     }
 
     // 序列化为 TOML（使用漂亮格式）
     let content = toml::to_string_pretty(value)
-        .map_err(|e| CcrError::ConfigError(format!("序列化 TOML 数据失败: {}", e)))?;
+        .map_err(|e| CcrError::FileIoError(format!("序列化 TOML 数据失败: {}", e)))?;
 
     // 写入文件
     fs::write(path, content).map_err(|e| {
-        CcrError::ConfigError(format!("写入配置文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("写入配置文件 {} 失败: {}", path.display(), e))
     })?;
 
     tracing::trace!("✅ 成功写入 TOML 文件: {}", path.display());
@@ -121,11 +121,11 @@ where
     T: for<'de> Deserialize<'de>,
 {
     let content = fs::read_to_string(path).map_err(|e| {
-        CcrError::ConfigError(format!("读取 JSON 文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("读取 JSON 文件 {} 失败: {}", path.display(), e))
     })?;
 
     let data: T = serde_json::from_str(&content).map_err(|e| {
-        CcrError::ConfigError(format!("解析 JSON 文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("解析 JSON 文件 {} 失败: {}", path.display(), e))
     })?;
 
     tracing::trace!("✅ 成功读取 JSON 文件: {}", path.display());
@@ -140,15 +140,15 @@ where
 {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| {
-            CcrError::ConfigError(format!("创建目录 {} 失败: {}", parent.display(), e))
+            CcrError::FileIoError(format!("创建目录 {} 失败: {}", parent.display(), e))
         })?;
     }
 
     let content = serde_json::to_string_pretty(value)
-        .map_err(|e| CcrError::ConfigError(format!("序列化 JSON 数据失败: {}", e)))?;
+        .map_err(|e| CcrError::FileIoError(format!("序列化 JSON 数据失败: {}", e)))?;
 
     fs::write(path, content).map_err(|e| {
-        CcrError::ConfigError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
     })?;
 
     tracing::trace!("✅ 成功写入 JSON 文件: {}", path.display());
@@ -162,11 +162,11 @@ where
     T: for<'de> Deserialize<'de>,
 {
     let content = async_fs::read_to_string(path).await.map_err(|e| {
-        CcrError::ConfigError(format!("读取配置文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("读取配置文件 {} 失败: {}", path.display(), e))
     })?;
 
     let data: T = toml::from_str(&content).map_err(|e| {
-        CcrError::ConfigError(format!("解析 TOML 文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("解析 TOML 文件 {} 失败: {}", path.display(), e))
     })?;
 
     tracing::trace!("✅ 成功读取 TOML 文件: {}", path.display());
@@ -181,15 +181,15 @@ where
 {
     if let Some(parent) = path.parent() {
         async_fs::create_dir_all(parent).await.map_err(|e| {
-            CcrError::ConfigError(format!("创建目录 {} 失败: {}", parent.display(), e))
+            CcrError::FileIoError(format!("创建目录 {} 失败: {}", parent.display(), e))
         })?;
     }
 
     let content = toml::to_string_pretty(value)
-        .map_err(|e| CcrError::ConfigError(format!("序列化 TOML 数据失败: {}", e)))?;
+        .map_err(|e| CcrError::FileIoError(format!("序列化 TOML 数据失败: {}", e)))?;
 
     async_fs::write(path, content).await.map_err(|e| {
-        CcrError::ConfigError(format!("写入配置文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("写入配置文件 {} 失败: {}", path.display(), e))
     })?;
 
     tracing::trace!("✅ 成功写入 TOML 文件: {}", path.display());
@@ -203,11 +203,11 @@ where
     T: for<'de> Deserialize<'de>,
 {
     let content = async_fs::read_to_string(path).await.map_err(|e| {
-        CcrError::ConfigError(format!("读取 JSON 文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("读取 JSON 文件 {} 失败: {}", path.display(), e))
     })?;
 
     let data: T = serde_json::from_str(&content).map_err(|e| {
-        CcrError::ConfigError(format!("解析 JSON 文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("解析 JSON 文件 {} 失败: {}", path.display(), e))
     })?;
 
     tracing::trace!("✅ 成功读取 JSON 文件: {}", path.display());
@@ -222,15 +222,15 @@ where
 {
     if let Some(parent) = path.parent() {
         async_fs::create_dir_all(parent).await.map_err(|e| {
-            CcrError::ConfigError(format!("创建目录 {} 失败: {}", parent.display(), e))
+            CcrError::FileIoError(format!("创建目录 {} 失败: {}", parent.display(), e))
         })?;
     }
 
     let content = serde_json::to_string_pretty(value)
-        .map_err(|e| CcrError::ConfigError(format!("序列化 JSON 数据失败: {}", e)))?;
+        .map_err(|e| CcrError::FileIoError(format!("序列化 JSON 数据失败: {}", e)))?;
 
     async_fs::write(path, content).await.map_err(|e| {
-        CcrError::ConfigError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
+        CcrError::FileIoError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
     })?;
 
     tracing::trace!("✅ 成功写入 JSON 文件: {}", path.display());

@@ -8,10 +8,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
+use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::SettingsManager;
-use crate::managers::config::ConfigManager;
+use crate::services::ConfigService;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
@@ -33,8 +33,8 @@ pub async fn clear_command(force: bool) -> Result<()> {
     println!();
 
     // ⚡ 检查自动确认模式：--force 参数 OR 配置文件中的 skip_confirmation
-    let config_manager = ConfigManager::with_default()?;
-    let config = config_manager.load()?;
+    let config_service = ConfigService::with_default()?;
+    let config = config_service.load_config()?;
     let skip_confirmation = force || config.settings.skip_confirmation;
 
     if config.settings.skip_confirmation && !force {
@@ -101,14 +101,19 @@ pub async fn clear_command(force: bool) -> Result<()> {
         );
         println!();
 
-        print!("确认执行清理操作? (y/N): ");
-        use std::io::{self, Write};
-        io::stdout().flush()?;
+        let confirmed = tokio::task::spawn_blocking(|| -> std::io::Result<bool> {
+            use std::io::{self, Write};
+            print!("确认执行清理操作? (y/N): ");
+            io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            Ok(input.trim().eq_ignore_ascii_case("y"))
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取确认输入失败: {}", e)))??;
 
-        if !input.trim().eq_ignore_ascii_case("y") {
+        if !confirmed {
             ColorOutput::info("已取消清理操作");
             return Ok(());
         }

@@ -165,8 +165,7 @@ impl WebServer {
         }
 
         // 🎯 加载初始配置到缓存
-        let config_manager = ConfigManager::with_default()?;
-        let initial_config = config_manager.load()?;
+        let initial_config = self.config_service.load_config()?;
 
         // 创建共享状态
         let state = AppState::new(
