@@ -36,6 +36,8 @@ pub mod version_routes;
 
 use axum::Router;
 
+use crate::state::AppState;
+
 /// 应用中间件
 pub fn apply_middleware(app: Router) -> Router {
     use tower::ServiceBuilder;
@@ -72,98 +74,100 @@ pub fn apply_middleware(app: Router) -> Router {
     app.layer(middleware)
 }
 
-/// 组装所有路由
-pub fn create_app() -> Router {
-    // 创建 WebSocket 状态
-    let ws_state = std::sync::Arc::new(crate::services::websocket::WsState::new());
-
+/// 组装所有路由（使用 AppState）
+pub fn create_app(app_state: AppState) -> Router {
     // 基础路由
     Router::new()
-        // WebSocket 路由
+        // WebSocket 路由（使用 AppState 中的 ws）
         .route(
             "/ws",
             axum::routing::get(crate::services::websocket::ws_handler),
         )
-        .with_state(ws_state)
+        .with_state(app_state.ws.clone())
         // 健康检查
         .route("/health", axum::routing::get(health_check))
         // API 路由分组
         .nest("/api", create_api_routes())
+        // 注入 AppState 到所有路由（供未来 Handler 使用）
+        .with_state(app_state)
 }
 
 /// API 路由
-fn create_api_routes() -> Router {
-    let app = Router::new()
+///
+/// 注意：中间件在 main.rs 中统一应用，这里不再重复应用
+/// 使用 `Router::new()` 创建无状态路由，然后通过 `with_state` 在上层注入 AppState
+fn create_api_routes() -> Router<AppState> {
+    // 所有子路由返回 Router<()>，通过 with_state(()) 转换为 Router<AppState>
+    // 这样可以保持向后兼容，同时允许未来的 Handler 使用 AppState
+    Router::new()
         // 配置管理
-        .merge(config_routes::routes())
+        .merge(config_routes::routes().with_state(()))
         // 命令执行
-        .merge(command_routes::routes())
+        .merge(command_routes::routes().with_state(()))
         // 系统信息
-        .merge(system_routes::routes())
+        .merge(system_routes::routes().with_state(()))
         // 版本管理
-        .merge(version_routes::routes())
+        .merge(version_routes::routes().with_state(()))
         // 平台管理
-        .merge(platform_routes::routes())
+        .merge(platform_routes::routes().with_state(()))
         // MCP 服务器管理
-        .merge(mcp_routes::routes())
+        .merge(mcp_routes::routes().with_state(()))
         // MCP 预设管理
-        .merge(mcp_routes::presets_routes())
+        .merge(mcp_routes::presets_routes().with_state(()))
         // MCP 同步
-        .merge(mcp_routes::sync_routes())
+        .merge(mcp_routes::sync_routes().with_state(()))
         // 内置提示词
-        .merge(builtin_prompts_routes::routes())
+        .merge(builtin_prompts_routes::routes().with_state(()))
         // 斜杠命令
-        .merge(slash_commands_routes::routes())
+        .merge(slash_commands_routes::routes().with_state(()))
         // Agent 管理
-        .merge(agents_routes::routes())
+        .merge(agents_routes::routes().with_state(()))
         // 插件管理
-        .merge(plugins_routes::routes())
+        .merge(plugins_routes::routes().with_state(()))
         // Hooks 管理
-        .merge(hooks_routes::routes())
+        .merge(hooks_routes::routes().with_state(()))
         // Statusline 配置
-        .merge(statusline_routes::routes())
+        .merge(statusline_routes::routes().with_state(()))
         // 统计数据
-        .merge(stats_routes::routes())
+        .merge(stats_routes::routes().with_state(()))
         // 技能管理
-        .merge(skills_routes::routes())
+        .merge(skills_routes::routes().with_state(()))
         // Skill Hub
-        .merge(skill_hub_routes::routes())
+        .merge(skill_hub_routes::routes().with_state(()))
         // 提示词管理
-        .merge(prompts_routes::routes())
+        .merge(prompts_routes::routes().with_state(()))
         // Output Styles 管理
-        .merge(output_styles_routes::routes())
+        .merge(output_styles_routes::routes().with_state(()))
         // 预算管理
-        .merge(budget_routes::routes())
+        .merge(budget_routes::routes().with_state(()))
         // 定价管理
-        .merge(pricing_routes::routes())
+        .merge(pricing_routes::routes().with_state(()))
         // 使用记录
-        .merge(usage_routes::routes())
+        .merge(usage_routes::routes().with_state(()))
         // 同步管理
-        .merge(sync_routes::routes())
+        .merge(sync_routes::routes().with_state(()))
         // Codex 平台
-        .merge(codex_routes::routes())
+        .merge(codex_routes::routes().with_state(()))
         // Gemini 平台
-        .merge(gemini_routes::routes())
+        .merge(gemini_routes::routes().with_state(()))
         // Qwen 平台
-        .merge(qwen_routes::routes())
+        .merge(qwen_routes::routes().with_state(()))
         // iFlow 平台
-        .merge(iflow_routes::routes())
+        .merge(iflow_routes::routes().with_state(()))
         // Droid 平台
-        .merge(droid_routes::routes())
+        .merge(droid_routes::routes().with_state(()))
         // 配置转换
-        .merge(converter_routes::routes())
+        .merge(converter_routes::routes().with_state(()))
         // UI 状态
-        .merge(ui_state_routes::routes())
+        .merge(ui_state_routes::routes().with_state(()))
         // Sessions 管理
-        .merge(sessions_routes::routes())
+        .merge(sessions_routes::routes().with_state(()))
         // Provider 健康检查
-        .merge(provider_health_routes::routes())
+        .merge(provider_health_routes::routes().with_state(()))
         // 签到管理
-        .merge(checkin_routes::routes())
+        .merge(checkin_routes::routes().with_state(()))
         // 资源市场
-        .merge(marketplace_routes::routes());
-
-    apply_middleware(app)
+        .merge(marketplace_routes::routes().with_state(()))
 }
 
 /// 健康检查端点

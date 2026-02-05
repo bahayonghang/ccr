@@ -22,6 +22,7 @@ mod managers;
 mod models;
 mod routes; // 新增路由模块
 mod services;
+mod state; // 统一应用状态模块
 mod utils;
 
 #[derive(Parser, Debug)]
@@ -62,6 +63,25 @@ async fn main() -> std::io::Result<()> {
         warn!("Some features may be unavailable");
     }
 
+    // Initialize unified AppState
+    let app_state = match state::AppState::initialize() {
+        Ok(state) => {
+            info!("AppState initialized successfully");
+            state
+        }
+        Err(e) => {
+            warn!("Failed to initialize AppState: {}", e);
+            warn!("Using fallback initialization");
+            // Fallback: 创建最小化的 AppState
+            state::AppState::new(
+                database::create_app_pool().expect("Database pool required"),
+                reqwest::Client::new(),
+                std::sync::Arc::new(services::websocket::WsState::new()),
+                cache::GLOBAL_SETTINGS_CACHE.clone(),
+            )
+        }
+    };
+
     let bind_addr: SocketAddr = format!("{}:{}", args.host, args.port)
         .parse()
         .expect("Failed to parse bind address");
@@ -78,8 +98,8 @@ async fn main() -> std::io::Result<()> {
     info!("  - System Info: http://{}/api/system", bind_addr);
     info!("  - Version Info: http://{}/api/version", bind_addr);
 
-    // Build the router with modular routes (先启动服务器，不阻塞)
-    let app = routes::apply_middleware(routes::create_app());
+    // Build the router with modular routes and AppState
+    let app = routes::apply_middleware(routes::create_app(app_state));
 
     // 异步验证 CCR 是否可用（不阻塞服务器启动）
     tokio::spawn(async {
