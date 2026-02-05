@@ -3,12 +3,13 @@
 //
 // Architecture:
 // - Single SQLite file at ~/.ccr-ui/ccr-ui.db
-// - Connection pool with thread-safe access
+// - Connection pool with thread-safe access (r2d2)
 // - Automatic schema migration on initialization
 //
 // See: openspec/changes/add-unified-sqlite-storage/proposal.md
 
 pub mod migrations;
+pub mod pool;
 pub mod repositories;
 pub mod schema;
 
@@ -21,9 +22,17 @@ use tracing::info;
 use migrations::MigrationError;
 use schema::DB_RELATIVE_PATH;
 
-/// Global database connection holder
+// Re-export pool types for convenience
+// NOTE: 当前为 Phase 1 基础设施，Phase 2 会在 Handler 中使用
+#[allow(unused_imports)]
+pub use pool::{DbPool, PoolConfig, PoolError, PooledConn};
+
+/// Global database connection holder (legacy, for backward compatibility)
 /// Uses Arc<Mutex<Connection>> for thread-safe access
 static DB_CONNECTION: OnceCell<Arc<Mutex<Connection>>> = OnceCell::new();
+
+/// Global connection pool holder (new, preferred)
+static DB_POOL: OnceCell<DbPool> = OnceCell::new();
 
 /// Database initialization error
 #[derive(Debug, thiserror::Error)]
@@ -45,6 +54,12 @@ pub enum DatabaseError {
 
     #[error("Query error: {0}")]
     Query(#[from] rusqlite::Error),
+
+    #[error("Pool error: {0}")]
+    Pool(#[from] PoolError),
+
+    #[error("Failed to get connection from pool: {0}")]
+    PoolGet(String),
 }
 
 /// Get the database file path
@@ -55,7 +70,7 @@ pub fn get_db_path() -> PathBuf {
         .join(DB_RELATIVE_PATH)
 }
 
-/// Initialize the database connection and run migrations
+/// Initialize the database with connection pool and run migrations
 /// This should be called once during application startup
 pub fn initialize() -> Result<(), DatabaseError> {
     let db_path = get_db_path();
@@ -67,10 +82,25 @@ pub fn initialize() -> Result<(), DatabaseError> {
 
     info!("Initializing database at: {}", db_path.display());
 
-    // Open connection with WAL mode for better concurrency
-    let conn = Connection::open(&db_path).map_err(DatabaseError::ConnectionOpen)?;
+    // Create connection pool (new approach)
+    let db_pool = pool::create_pool(&db_path, None)?;
 
-    // Configure SQLite for performance
+    // Run migrations using a connection from the pool
+    {
+        let conn = db_pool
+            .get()
+            .map_err(|e| DatabaseError::PoolGet(e.to_string()))?;
+        let home_dir = dirs::home_dir().expect("Failed to get home directory");
+        migrations::run_all_migrations(&conn, &home_dir)?;
+    }
+
+    // Store pool globally
+    if DB_POOL.set(db_pool).is_err() {
+        info!("Database pool already initialized");
+    }
+
+    // Also initialize legacy connection for backward compatibility
+    let conn = Connection::open(&db_path).map_err(DatabaseError::ConnectionOpen)?;
     conn.execute_batch(
         "PRAGMA journal_mode = WAL;
          PRAGMA synchronous = NORMAL;
@@ -79,22 +109,57 @@ pub fn initialize() -> Result<(), DatabaseError> {
     )
     .map_err(DatabaseError::ConnectionOpen)?;
 
-    // Run migrations
-    let home_dir = dirs::home_dir().expect("Failed to get home directory");
-    migrations::run_all_migrations(&conn, &home_dir)?;
-
-    // Store connection globally
-    let result = DB_CONNECTION.set(Arc::new(Mutex::new(conn)));
-    if result.is_err() {
-        // Already initialized - this is fine
-        info!("Database already initialized");
+    if DB_CONNECTION.set(Arc::new(Mutex::new(conn))).is_err() {
+        info!("Legacy database connection already initialized");
     }
 
-    info!("Database initialization complete");
+    info!("Database initialization complete (pool + legacy)");
     Ok(())
 }
 
-/// Get a reference to the database connection
+/// Get the database connection pool
+/// Returns None if not initialized
+///
+/// NOTE: 当前为 Phase 1 基础设施，Phase 2 会在 AppState 中使用
+#[allow(dead_code)]
+pub fn get_pool() -> Option<DbPool> {
+    DB_POOL.get().cloned()
+}
+
+/// Create a new connection pool instance (for AppState)
+/// This creates a fresh pool that can be owned by AppState
+///
+/// NOTE: 当前为 Phase 1 基础设施，Phase 2 会在 main.rs 中使用
+#[allow(dead_code)]
+pub fn create_app_pool() -> Result<DbPool, DatabaseError> {
+    let db_path = get_db_path();
+
+    // Ensure parent directory exists
+    if let Some(parent) = db_path.parent() {
+        std::fs::create_dir_all(parent).map_err(DatabaseError::DirectoryCreation)?;
+    }
+
+    let db_pool = pool::create_pool(&db_path, None)?;
+    Ok(db_pool)
+}
+
+/// Execute a function with a pooled connection (new, preferred)
+/// Uses the connection pool for better concurrency
+///
+/// NOTE: 当前为 Phase 1 基础设施，Phase 2 会替代 with_connection 使用
+#[allow(dead_code)]
+pub fn with_pooled_connection<F, T>(f: F) -> Result<T, DatabaseError>
+where
+    F: FnOnce(&Connection) -> Result<T, rusqlite::Error>,
+{
+    let pool = DB_POOL.get().ok_or(DatabaseError::NotInitialized)?;
+    let conn = pool
+        .get()
+        .map_err(|e| DatabaseError::PoolGet(e.to_string()))?;
+    f(&conn).map_err(DatabaseError::Query)
+}
+
+/// Get a reference to the database connection (legacy)
 /// Returns an Arc<Mutex<Connection>> for thread-safe access
 ///
 /// # Panics
@@ -107,7 +172,7 @@ pub fn get_connection() -> Arc<Mutex<Connection>> {
         .expect("Database not initialized - call initialize() first")
 }
 
-/// Try to get a reference to the database connection
+/// Try to get a reference to the database connection (legacy)
 /// Returns None if not initialized
 pub fn try_get_connection() -> Option<Arc<Mutex<Connection>>> {
     DB_CONNECTION.get().cloned()
@@ -115,16 +180,27 @@ pub fn try_get_connection() -> Option<Arc<Mutex<Connection>>> {
 
 /// Execute a function with the database connection
 /// Handles locking and error conversion
+///
+/// Note: Prefer `with_pooled_connection` for new code
 pub fn with_connection<F, T>(f: F) -> Result<T, DatabaseError>
 where
     F: FnOnce(&Connection) -> Result<T, rusqlite::Error>,
 {
+    // Try pool first, fall back to legacy connection
+    if let Some(pool) = DB_POOL.get() {
+        let conn = pool
+            .get()
+            .map_err(|e| DatabaseError::PoolGet(e.to_string()))?;
+        return f(&conn).map_err(DatabaseError::Query);
+    }
+
+    // Legacy fallback
     let conn = try_get_connection().ok_or(DatabaseError::NotInitialized)?;
     let guard = conn.lock().map_err(|_| DatabaseError::LockPoisoned)?;
     f(&guard).map_err(DatabaseError::Query)
 }
 
-/// Execute a function with mutable access to the database connection
+/// Execute a function with mutable access to the database connection (legacy)
 /// Use this for transactions or batch operations
 #[allow(dead_code)]
 pub fn with_connection_mut<F, T>(f: F) -> Result<T, DatabaseError>
@@ -165,7 +241,7 @@ pub fn shutdown() {
 
 /// Check if database is initialized
 pub fn is_initialized() -> bool {
-    DB_CONNECTION.get().is_some()
+    DB_POOL.get().is_some() || DB_CONNECTION.get().is_some()
 }
 
 /// Initialize an in-memory database for testing
