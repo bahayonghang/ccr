@@ -247,7 +247,7 @@ impl CheckinService {
         let proxy_url = get_proxy_url();
 
         // 为保证浏览器获取的 WAF cookies 与 HTTP 请求出口一致：统一由这里决定代理，并显式注入 reqwest。
-        // （Windows 上很多代理软件只写入“系统代理”，不会写入 HTTP(S)_PROXY 环境变量）
+        // （Windows 上很多代理软件只写入"系统代理"，不会写入 HTTP(S)_PROXY 环境变量）
         let mut client_builder = Client::builder()
             .timeout(Duration::from_secs(30))
             .cookie_store(true)
@@ -270,6 +270,28 @@ impl CheckinService {
             .build()
             .expect("Failed to create HTTP client");
 
+        Self {
+            checkin_dir,
+            client,
+            proxy_url,
+        }
+    }
+
+    /// 使用共享的 HTTP 客户端创建签到服务
+    ///
+    /// 这个构造函数允许从 AppState 注入共享的 HTTP 客户端，
+    /// 避免每次创建服务时都新建客户端，提高资源利用率。
+    ///
+    /// # Arguments
+    /// * `checkin_dir` - 签到数据目录
+    /// * `client` - 共享的 HTTP 客户端
+    ///
+    /// # Note
+    /// 使用此方法时，代理配置由传入的 client 决定，
+    /// `proxy_url` 字段仅用于 WAF bypass 时的浏览器代理配置。
+    #[allow(dead_code)] // Phase 2: 将在 Handler 迁移时使用
+    pub fn with_client(checkin_dir: PathBuf, client: Client) -> Self {
+        let proxy_url = get_proxy_url();
         Self {
             checkin_dir,
             client,
@@ -416,12 +438,25 @@ impl CheckinService {
             .get(&account.provider_id)
             .map_err(|e| CheckinServiceError::ProviderError(e.to_string()))?;
 
+        tracing::info!(
+            "🚀 [签到开始] 账号: {} | 提供商: {} | ID: {}",
+            account.name,
+            provider.name,
+            account_id
+        );
+
         // 检查今日是否已签到
         let already_checked = record_manager
             .has_checked_in_today(account_id)
             .map_err(|e| CheckinServiceError::RecordError(e.to_string()))?;
 
         if already_checked {
+            tracing::info!(
+                "⏭️ [已签到] 账号: {} | 提供商: {} | 状态: 今日已签到，跳过",
+                account.name,
+                provider.name
+            );
+
             let record = CheckinRecord::already_checked_in(
                 account_id.to_string(),
                 Some("今日已签到".to_string()),
@@ -459,6 +494,14 @@ impl CheckinService {
         // 记录签到结果
         let (record, result) = match checkin_result {
             Ok((message, reward)) => {
+                tracing::info!(
+                    "✅ [签到成功] 账号: {} | 提供商: {} | 消息: {} | 奖励: {}",
+                    account.name,
+                    provider.name,
+                    message,
+                    reward.as_deref().unwrap_or("-")
+                );
+
                 let record = CheckinRecord::success(
                     account_id.to_string(),
                     Some(message.clone()),
@@ -479,6 +522,13 @@ impl CheckinService {
             }
             Err(e) => {
                 let error_msg = e.to_string();
+                tracing::error!(
+                    "❌ [签到失败] 账号: {} | 提供商: {} | 错误: {}",
+                    account.name,
+                    provider.name,
+                    error_msg
+                );
+
                 let record = CheckinRecord::failed(account_id.to_string(), error_msg.clone());
 
                 let result = CheckinExecutionResult {
