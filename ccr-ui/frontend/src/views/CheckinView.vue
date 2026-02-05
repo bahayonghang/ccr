@@ -1495,6 +1495,8 @@
     :current="checkinProgress.completed"
     :current-account-name="checkinProgress.currentAccountName"
     :logs="checkinLogs"
+    :is-finished="isCheckinFinished"
+    @close="closeCheckinModal"
   />
 </template>
 
@@ -1565,6 +1567,7 @@ const searchQuery = ref('')
 const providerFilter = ref<string>('all')
 const showCheckinConfirm = ref(false)
 const showProgressModal = ref(false)
+const isCheckinFinished = ref(false)
 const checkinProgress = ref({ total: 0, completed: 0, currentAccountName: '' })
 const checkinLogs = ref<CheckinLogEntry[]>([])
 
@@ -1766,6 +1769,14 @@ const handleCheckinConfirm = () => {
   executeCheckinAll()
 }
 
+// 关闭签到弹窗
+const closeCheckinModal = () => {
+  showProgressModal.value = false
+  setTimeout(() => {
+    isCheckinFinished.value = false
+  }, 300)
+}
+
 // 执行全部签到（逐个签到模式，实现实时进度）
 const executeCheckinAll = async () => {
   const accountsToCheckin = enabledAccounts.value
@@ -1774,6 +1785,7 @@ const executeCheckinAll = async () => {
   checkinLoading.value = true
   checkinResult.value = null
   showProgressModal.value = true
+  isCheckinFinished.value = false
 
   // 初始化进度
   checkinProgress.value = {
@@ -1864,8 +1876,8 @@ const executeCheckinAll = async () => {
       }
     }
 
-    // 关闭进度弹窗
-    showProgressModal.value = false
+    // 标记签到完成
+    isCheckinFinished.value = true
 
     await loadAllData()
     // 签到完成后自动刷新余额
