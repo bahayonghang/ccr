@@ -86,11 +86,11 @@ const fetchRecords = async () => {
 
 const statusText = (status: string) => {
   switch (status) {
-    case 'Success':
+    case 'success':
       return t('checkin.status.success')
-    case 'AlreadyCheckedIn':
+    case 'already_checked_in':
       return t('checkin.status.already_checked_in')
-    case 'Failed':
+    case 'failed':
       return t('checkin.status.failed')
     default:
       return status
@@ -99,11 +99,11 @@ const statusText = (status: string) => {
 
 const statusClass = (status: string) => {
   switch (status) {
-    case 'Success':
+    case 'success':
       return 'status success'
-    case 'AlreadyCheckedIn':
+    case 'already_checked_in':
       return 'status warning'
-    case 'Failed':
+    case 'failed':
       return 'status danger'
     default:
       return 'status'

@@ -282,7 +282,8 @@ const handleCheckin = async () => {
   checkinLoading.value = true
   try {
     const result = await checkinAccount(accountId.value)
-    alert(`签到${result.status === 'Success' ? '成功' : result.status === 'AlreadyCheckedIn' ? '：今日已签到' : '失败'}: ${result.message || ''}`)
+    // 注意：后端使用 snake_case 序列化枚举
+    alert(`签到${result.status === 'success' ? '成功' : result.status === 'already_checked_in' ? '：今日已签到' : '失败'}: ${result.message || ''}`)
     await loadDashboard()
   } catch (e: any) {
     alert('签到失败: ' + (e.message || '未知错误'))

@@ -1641,9 +1641,10 @@ const enabledAccounts = computed(() => {
 })
 
 // 计算属性：失败的签到结果
+// 注意：后端使用 snake_case 序列化枚举，status 值为 'success' / 'already_checked_in' / 'failed'
 const failedCheckinResults = computed(() => {
   if (!checkinResult.value) return []
-  return checkinResult.value.results.filter(r => r.status === 'Failed')
+  return checkinResult.value.results.filter(r => r.status === 'failed')
 })
 
 const failedHistoryTotalPages = computed(() => {
@@ -1653,12 +1654,12 @@ const failedHistoryTotalPages = computed(() => {
 
 const successCheckinResults = computed(() => {
   if (!checkinResult.value) return []
-  return checkinResult.value.results.filter(r => r.status === 'Success')
+  return checkinResult.value.results.filter(r => r.status === 'success')
 })
 
 const alreadyCheckedInResults = computed(() => {
   if (!checkinResult.value) return []
-  return checkinResult.value.results.filter(r => r.status === 'AlreadyCheckedIn')
+  return checkinResult.value.results.filter(r => r.status === 'already_checked_in')
 })
 
 const buildCheckinDetail = (item: CheckinExecutionResult, fallback: string) => {
@@ -1828,12 +1829,14 @@ const executeCheckinAll = async () => {
         results.push(result)
 
         // 更新日志
+        // 注意：后端使用 #[serde(rename_all = "snake_case")] 序列化枚举
+        // 因此 status 值为 'success' / 'already_checked_in' / 'failed'（小写 snake_case）
         if (logIndex >= 0) {
-          if (result.status === 'Success') {
+          if (result.status === 'success') {
             checkinLogs.value[logIndex].status = 'success'
-            checkinLogs.value[logIndex].message = result.reward ? `奖励: ${result.reward}` : '签到成功'
+            checkinLogs.value[logIndex].message = result.reward ? `签到成功，获得 ${result.reward}` : '签到成功'
             successCount++
-          } else if (result.status === 'AlreadyCheckedIn') {
+          } else if (result.status === 'already_checked_in') {
             checkinLogs.value[logIndex].status = 'already_checked_in'
             checkinLogs.value[logIndex].message = '今日已签到'
             alreadyCheckedInCount++
@@ -1856,7 +1859,7 @@ const executeCheckinAll = async () => {
           account_id: account.id,
           account_name: account.name,
           provider_name: account.provider_name || '未知',
-          status: 'Failed',
+          status: 'failed',
           message: e.message || '请求失败'
         })
       }
@@ -2181,11 +2184,11 @@ const formatDate = (dateStr: string) => {
 
 const getStatusClass = (status: string) => {
   switch (status) {
-    case 'Success':
+    case 'success':
       return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-    case 'AlreadyCheckedIn':
+    case 'already_checked_in':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-    case 'Failed':
+    case 'failed':
       return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
@@ -2194,11 +2197,11 @@ const getStatusClass = (status: string) => {
 
 const getStatusText = (status: string) => {
   switch (status) {
-    case 'Success':
+    case 'success':
       return '成功'
-    case 'AlreadyCheckedIn':
+    case 'already_checked_in':
       return '已签到'
-    case 'Failed':
+    case 'failed':
       return '失败'
     default:
       return status
@@ -2214,11 +2217,11 @@ const getRecordProviderName = (record: CheckinRecordInfo) => {
 const getRecordReason = (record: CheckinRecordInfo) => {
   if (record.message) return record.message
   switch (record.status) {
-    case 'Success':
+    case 'success':
       return record.reward ? `签到成功 · 奖励 ${record.reward}` : '签到成功'
-    case 'AlreadyCheckedIn':
+    case 'already_checked_in':
       return '今日已签到'
-    case 'Failed':
+    case 'failed':
       return '未知原因'
     default:
       return '-'

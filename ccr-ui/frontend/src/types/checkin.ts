@@ -127,7 +127,7 @@ export interface AccountsResponse {
 // ═══════════════════════════════════════════════════════════
 
 /** 签到状态 */
-export type CheckinStatus = 'Success' | 'AlreadyCheckedIn' | 'Failed'
+export type CheckinStatus = 'success' | 'already_checked_in' | 'failed'
 
 /** 签到执行结果 */
 export interface CheckinExecutionResult {
