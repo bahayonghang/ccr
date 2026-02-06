@@ -6,18 +6,18 @@
   >
     <!-- Background Backdrop -->
     <div
-      class="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
+      class="absolute inset-0 bg-bg-base/95 backdrop-blur-md"
       @click="handleClose"
     />
 
     <!-- Modal Content -->
     <Card 
       ref="modalRef" 
-      variant="glass"
-      class="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto p-0 shadow-2xl animate-scale-in"
+      variant="elevated"
+      class="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto p-0 shadow-2xl animate-scale-in bg-bg-elevated"
     >
       <!-- Header -->
-      <div class="sticky top-0 z-10 px-6 py-4 border-b border-border-subtle bg-bg-elevated/80 backdrop-blur-xl flex items-center justify-between">
+      <div class="sticky top-0 z-10 px-6 py-4 border-b border-border-subtle bg-bg-elevated backdrop-blur-xl flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="p-2 rounded-lg bg-accent-success/10 text-accent-success">
             <Plus class="w-5 h-5" />
@@ -156,7 +156,7 @@
               <div class="relative">
                 <select
                   v-model="formData.provider_type"
-                  class="w-full bg-bg-surface/50 border border-border-default rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20 appearance-none shadow-sm hover:border-border-strong cursor-pointer"
+                  class="w-full bg-bg-surface border border-border-default rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20 appearance-none shadow-sm hover:border-border-strong cursor-pointer"
                 >
                   <option value="">
                     {{ $t('configs.addConfig.providerUncategorized') }}
@@ -211,7 +211,7 @@
       </div>
 
       <!-- Footer -->
-      <div class="sticky bottom-0 z-10 px-6 py-4 border-t border-border-subtle bg-bg-elevated/80 backdrop-blur-xl flex gap-3 justify-end">
+      <div class="sticky bottom-0 z-10 px-6 py-4 border-t border-border-subtle bg-bg-elevated backdrop-blur-xl flex gap-3 justify-end">
         <Button
           variant="ghost"
           @click="handleClose"
