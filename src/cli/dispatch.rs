@@ -353,7 +353,7 @@ impl CommandDispatcher {
         use crate::cli::subcommands::{CodexAction, CodexAuthAction};
 
         match action {
-            // 无子命令时启动 TUI
+            // 无子命令时启动主 TUI 的 Codex Auth 视图
             None => {
                 #[cfg(feature = "tui")]
                 {

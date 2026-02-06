@@ -65,9 +65,13 @@ impl Cli {
     /// 🖥️ 检测是否为 TUI 模式
     ///
     /// 当没有指定子命令和配置名称时，会进入 TUI 模式
+    /// `ccr codex` 无参数也视为 TUI 模式
     #[cfg(feature = "tui")]
     pub fn is_tui_mode(&self) -> bool {
-        self.command.is_none() && self.config_name.is_none()
+        if self.command.is_none() && self.config_name.is_none() {
+            return true;
+        }
+        matches!(self.command, Some(Commands::Codex { action: None }))
     }
 }
 

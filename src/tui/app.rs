@@ -1,171 +1,148 @@
-// 📱 TUI 应用状态机
-// 管理双Tab配置选择器的状态
+// TUI application state — Tab-based dispatch (Claude + Codex only)
 
 use crate::core::error::Result;
 use crate::models::platform::{Platform, PlatformConfig};
 use crate::platforms::create_platform;
+use crate::tui::action::Action;
+use crate::tui::toast::{Toast, ToastManager};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::Frame;
 use std::sync::Arc;
 
-/// 每页最多显示的配置数量
+use super::codex_auth::CodexAuthApp;
+use super::runtime::TuiApp;
+use super::ui;
+
+/// Maximum profiles per page
 pub const PAGE_SIZE: usize = 20;
 
-/// 🏷️ Tab状态 - Claude 或 Codex
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TabState {
-    Claude,
-    Codex,
-}
-
-impl TabState {
-    /// 切换到另一个Tab
-    pub fn toggle(&self) -> Self {
-        match self {
-            TabState::Claude => TabState::Codex,
-            TabState::Codex => TabState::Claude,
-        }
-    }
-
-    /// 获取Tab标题
-    pub fn title(&self) -> &'static str {
-        match self {
-            TabState::Claude => "Claude",
-            TabState::Codex => "Codex",
-        }
-    }
-
-    /// 获取对应的Platform枚举
-    pub fn platform(&self) -> Platform {
-        match self {
-            TabState::Claude => Platform::Claude,
-            TabState::Codex => Platform::Codex,
-        }
-    }
-}
-
-/// 📋 配置项信息
+/// A single profile entry for display
 #[derive(Debug, Clone)]
 pub struct ProfileItem {
-    /// 配置名称
     pub name: String,
-    /// 配置描述
     pub description: Option<String>,
-    /// 是否是当前激活的配置
     pub is_current: bool,
 }
 
-/// 📱 TUI 应用
+/// A tab representing one platform with its profiles loaded
+pub struct PlatformTab {
+    pub platform: Platform,
+    pub profiles: Vec<ProfileItem>,
+    pub instance: Option<Arc<dyn PlatformConfig>>,
+}
+
+/// Main TUI application state
 pub struct App {
-    /// 当前Tab
-    pub current_tab: TabState,
-    /// Claude配置列表
-    pub claude_profiles: Vec<ProfileItem>,
-    /// Codex配置列表
-    pub codex_profiles: Vec<ProfileItem>,
-    /// 当前选中索引 (在当前页内的索引)
+    /// Dynamic list of platform tabs (Claude + Codex only)
+    pub tabs: Vec<PlatformTab>,
+    /// Index of the currently active tab
+    pub active_tab: usize,
+    /// Index of the selected profile within the current page
     pub selected_index: usize,
-    /// 当前页码 (从0开始)
+    /// Current page number (0-based)
     pub current_page: usize,
-    /// 状态消息 (消息, 是否错误)
-    pub status_message: Option<(String, bool)>,
-    /// 是否应该退出
-    pub should_quit: bool,
-    /// Claude平台实例
-    claude_platform: Option<Arc<dyn PlatformConfig>>,
-    /// Codex平台实例
-    codex_platform: Option<Arc<dyn PlatformConfig>>,
-    /// 最后应用的配置信息 (平台, 配置名, 是否成功, 错误信息)
+    /// Toast notification manager
+    pub toasts: ToastManager,
+    /// Last applied profile info (platform_name, profile_name, success, error)
     pub last_applied: Option<(String, String, bool, Option<String>)>,
+    /// Embedded Codex Auth app (eagerly initialized)
+    pub codex_auth_app: Option<CodexAuthApp>,
+    /// Last codex auth action info (action_type, account_name, success, error)
+    pub last_codex_action: Option<(String, String, bool, Option<String>)>,
 }
 
 impl App {
-    /// 🏗️ 创建新的应用实例
+    /// Build the app with Claude + Codex tabs only.
     pub fn new() -> Result<Self> {
-        let mut app = Self {
-            current_tab: TabState::Claude,
-            claude_profiles: Vec::new(),
-            codex_profiles: Vec::new(),
-            selected_index: 0,
-            current_page: 0,
-            status_message: None,
-            should_quit: false,
-            claude_platform: None,
-            codex_platform: None,
-            last_applied: None,
+        let mut tabs = Vec::new();
+
+        for platform in Platform::implemented() {
+            // Only keep Claude and Codex tabs
+            if !matches!(platform, Platform::Claude | Platform::Codex) {
+                continue;
+            }
+
+            match create_platform(platform) {
+                Ok(instance) => {
+                    let current = instance.get_current_profile().ok().flatten();
+                    match instance.load_profiles() {
+                        Ok(profiles) => {
+                            let items: Vec<ProfileItem> = profiles
+                                .into_iter()
+                                .map(|(name, config)| ProfileItem {
+                                    is_current: current.as_ref() == Some(&name),
+                                    description: config.description.clone(),
+                                    name,
+                                })
+                                .collect();
+                            tabs.push(PlatformTab {
+                                platform,
+                                profiles: items,
+                                instance: Some(instance),
+                            });
+                        }
+                        Err(e) => {
+                            tracing::warn!("Failed to load {} profiles: {}", platform, e);
+                            // Still add core platforms even if load fails
+                            tabs.push(PlatformTab {
+                                platform,
+                                profiles: Vec::new(),
+                                instance: Some(instance),
+                            });
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to create {} platform: {}", platform, e);
+                }
+            }
+        }
+
+        // Fallback: ensure at least Claude tab exists
+        if tabs.is_empty() {
+            tabs.push(PlatformTab {
+                platform: Platform::Claude,
+                profiles: Vec::new(),
+                instance: None,
+            });
+        }
+
+        // Eagerly initialize CodexAuthApp
+        let codex_auth_app = match CodexAuthApp::new() {
+            Ok(app) => Some(app),
+            Err(e) => {
+                tracing::warn!("Failed to init CodexAuthApp: {}", e);
+                None
+            }
         };
 
-        // 加载配置
-        app.load_profiles()?;
-
-        Ok(app)
+        Ok(Self {
+            tabs,
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            codex_auth_app,
+            last_codex_action: None,
+        })
     }
 
-    /// 📖 加载所有平台的配置
-    fn load_profiles(&mut self) -> Result<()> {
-        // 加载 Claude 配置
-        match create_platform(Platform::Claude) {
-            Ok(platform) => {
-                let current = platform.get_current_profile().ok().flatten();
-                match platform.load_profiles() {
-                    Ok(profiles) => {
-                        self.claude_profiles = profiles
-                            .into_iter()
-                            .map(|(name, config)| ProfileItem {
-                                is_current: current.as_ref() == Some(&name),
-                                description: config.description.clone(),
-                                name,
-                            })
-                            .collect();
-                        self.claude_platform = Some(platform);
-                    }
-                    Err(e) => {
-                        tracing::warn!("加载 Claude 配置失败: {}", e);
-                    }
-                }
-            }
-            Err(e) => {
-                tracing::warn!("创建 Claude 平台失败: {}", e);
-            }
-        }
+    // -- Accessors --
 
-        // 加载 Codex 配置
-        match create_platform(Platform::Codex) {
-            Ok(platform) => {
-                let current = platform.get_current_profile().ok().flatten();
-                match platform.load_profiles() {
-                    Ok(profiles) => {
-                        self.codex_profiles = profiles
-                            .into_iter()
-                            .map(|(name, config)| ProfileItem {
-                                is_current: current.as_ref() == Some(&name),
-                                description: config.description.clone(),
-                                name,
-                            })
-                            .collect();
-                        self.codex_platform = Some(platform);
-                    }
-                    Err(e) => {
-                        tracing::warn!("加载 Codex 配置失败: {}", e);
-                    }
-                }
-            }
-            Err(e) => {
-                tracing::warn!("创建 Codex 平台失败: {}", e);
-            }
-        }
-
-        Ok(())
+    #[allow(dead_code)]
+    pub fn current_tab(&self) -> &PlatformTab {
+        &self.tabs[self.active_tab]
     }
 
-    /// 📋 获取当前Tab的所有配置列表
+    pub fn current_platform(&self) -> Platform {
+        self.tabs[self.active_tab].platform
+    }
+
     pub fn current_profiles(&self) -> &[ProfileItem] {
-        match self.current_tab {
-            TabState::Claude => &self.claude_profiles,
-            TabState::Codex => &self.codex_profiles,
-        }
+        &self.tabs[self.active_tab].profiles
     }
 
-    /// 📄 获取当前页的配置列表
     pub fn current_page_profiles(&self) -> &[ProfileItem] {
         let all = self.current_profiles();
         let start = self.current_page * PAGE_SIZE;
@@ -177,7 +154,6 @@ impl App {
         }
     }
 
-    /// 📊 获取总页数
     pub fn total_pages(&self) -> usize {
         let total = self.current_profiles().len();
         if total == 0 {
@@ -187,137 +163,191 @@ impl App {
         }
     }
 
-    /// 🔄 切换Tab
-    fn switch_tab(&mut self) {
-        self.current_tab = self.current_tab.toggle();
-        // 重置页码和选中索引
-        self.current_page = 0;
-        self.selected_index = 0;
-    }
+    // -- Key to Action mapping (pure logic, no side effects) --
 
-    /// ◀️ 上一页
-    fn prev_page(&mut self) {
-        if self.current_page > 0 {
-            self.current_page -= 1;
-            self.selected_index = 0;
+    fn map_key(&self, key: KeyEvent) -> Action {
+        // Ctrl+C always quits
+        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
+            return Action::Quit;
+        }
+
+        match key.code {
+            KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
+            KeyCode::Tab => Action::NextTab,
+            KeyCode::Left | KeyCode::Char('h') => Action::PrevPage,
+            KeyCode::Right | KeyCode::Char('l') => Action::NextPage,
+            KeyCode::Up | KeyCode::Char('k') => Action::SelectPrev,
+            KeyCode::Down | KeyCode::Char('j') => Action::SelectNext,
+            KeyCode::Enter => Action::ApplySelected,
+            KeyCode::Char(' ') => Action::ApplySelected,
+            KeyCode::Char('r') => Action::Reload,
+            _ => Action::Noop,
         }
     }
 
-    /// ▶️ 下一页
-    fn next_page(&mut self) {
-        if self.current_page < self.total_pages() - 1 {
-            self.current_page += 1;
-            self.selected_index = 0;
+    // -- Action dispatch (executes side effects) --
+
+    fn dispatch(&mut self, action: Action) -> Result<bool> {
+        match action {
+            Action::Noop => {}
+            Action::Quit => return Ok(true),
+            Action::NextTab => {
+                if self.tabs.len() > 1 {
+                    self.active_tab = (self.active_tab + 1) % self.tabs.len();
+                    self.current_page = 0;
+                    self.selected_index = 0;
+                }
+            }
+            Action::SwitchTab(idx) => {
+                if idx < self.tabs.len() {
+                    self.active_tab = idx;
+                    self.current_page = 0;
+                    self.selected_index = 0;
+                }
+            }
+            Action::SelectPrev => {
+                if self.selected_index > 0 {
+                    self.selected_index -= 1;
+                }
+            }
+            Action::SelectNext => {
+                let page_len = self.current_page_profiles().len();
+                if page_len > 0 && self.selected_index < page_len - 1 {
+                    self.selected_index += 1;
+                }
+            }
+            Action::PrevPage => {
+                if self.current_page > 0 {
+                    self.current_page -= 1;
+                    self.selected_index = 0;
+                }
+            }
+            Action::NextPage => {
+                if self.current_page < self.total_pages() - 1 {
+                    self.current_page += 1;
+                    self.selected_index = 0;
+                }
+            }
+            Action::ApplySelected => {
+                self.apply_selected();
+            }
+            Action::ApplyAndQuit => {
+                self.apply_selected();
+                return Ok(true);
+            }
+            Action::Reload => {
+                self.reload_profiles();
+                self.toasts.push(Toast::info("已刷新配置列表"));
+            }
         }
+        Ok(false)
     }
 
-    /// ⬆️ 向上选择
-    fn select_previous(&mut self) {
-        if self.selected_index > 0 {
-            self.selected_index -= 1;
-        }
-    }
-
-    /// ⬇️ 向下选择
-    fn select_next(&mut self) {
-        let page_items = self.current_page_profiles().len();
-        if page_items > 0 && self.selected_index < page_items - 1 {
-            self.selected_index += 1;
-        }
-    }
-
-    /// ✅ 应用选中的配置
     fn apply_selected(&mut self) {
         let page_profiles = self.current_page_profiles();
         if page_profiles.is_empty() {
-            self.set_status("没有可用的配置".to_string(), true);
+            self.toasts.push(Toast::warning("没有可用的配置"));
             return;
         }
 
         let selected = &page_profiles[self.selected_index];
-        let platform = match self.current_tab {
-            TabState::Claude => &self.claude_platform,
-            TabState::Codex => &self.codex_platform,
-        };
+        let tab = &self.tabs[self.active_tab];
+        let platform_name = tab.platform.display_name().to_string();
+        let profile_name = selected.name.clone();
 
-        if let Some(platform) = platform {
-            let platform_name = self.current_tab.title().to_string();
-            let profile_name = selected.name.clone();
-            match platform.apply_profile(&profile_name) {
+        if let Some(instance) = &tab.instance {
+            match instance.apply_profile(&profile_name) {
                 Ok(()) => {
-                    self.set_status(format!("✅ 已切换到: {}", profile_name), false);
+                    self.toasts
+                        .push(Toast::success(format!("✅ 已切换到: {}", profile_name)));
                     self.last_applied = Some((platform_name, profile_name, true, None));
-                    // 重新加载配置以更新当前状态
-                    let _ = self.load_profiles();
+                    self.reload_profiles();
                 }
                 Err(e) => {
                     let err_msg = e.to_string();
-                    self.set_status(format!("❌ 切换失败: {}", err_msg), true);
+                    self.toasts
+                        .push(Toast::error(format!("❌ 切换失败: {}", err_msg)));
                     self.last_applied = Some((platform_name, profile_name, false, Some(err_msg)));
                 }
             }
         } else {
-            self.set_status("平台未初始化".to_string(), true);
+            self.toasts.push(Toast::error("平台未初始化"));
         }
     }
 
-    /// 📝 设置状态消息
-    pub fn set_status(&mut self, message: String, is_error: bool) {
-        self.status_message = Some((message, is_error));
+    fn reload_profiles(&mut self) {
+        for tab in &mut self.tabs {
+            if let Some(instance) = &tab.instance {
+                let current = instance.get_current_profile().ok().flatten();
+                if let Ok(profiles) = instance.load_profiles() {
+                    tab.profiles = profiles
+                        .into_iter()
+                        .map(|(name, config)| ProfileItem {
+                            is_current: current.as_ref() == Some(&name),
+                            description: config.description.clone(),
+                            name,
+                        })
+                        .collect();
+                }
+            }
+        }
     }
 
-    /// ⌨️ 处理键盘输入
-    ///
-    /// 返回: true 表示应该退出应用
-    pub fn handle_key(&mut self, key: KeyEvent) -> Result<bool> {
-        // Ctrl+C 强制退出
+    // -- Tab helpers --
+
+    /// Check if the currently active tab is the Codex platform
+    pub fn is_codex_tab(&self) -> bool {
+        self.current_platform() == Platform::Codex
+    }
+
+    /// Pre-select Codex tab (for `ccr codex` entry)
+    pub fn with_codex_tab(mut self) -> Self {
+        if let Some(idx) = self.tabs.iter().position(|t| t.platform == Platform::Codex) {
+            self.active_tab = idx;
+        }
+        self
+    }
+}
+
+// -- TuiApp trait implementation (tab-based dispatch) --
+
+impl TuiApp for App {
+    fn handle_key(&mut self, key: KeyEvent) -> Result<bool> {
+        // Ctrl+C always quits the entire TUI
         if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
             return Ok(true);
         }
 
-        match key.code {
-            // 退出
-            KeyCode::Char('q') | KeyCode::Esc => {
-                self.should_quit = true;
-                return Ok(true);
+        if self.is_codex_tab() {
+            // Tab key: switch to next tab (intercepted before CodexAuthApp)
+            if key.code == KeyCode::Tab {
+                return self.dispatch(Action::NextTab);
             }
-
-            // Tab 键切换平台
-            KeyCode::Tab => {
-                self.switch_tab();
+            // Delegate all other keys to CodexAuthApp
+            if let Some(ref mut codex_app) = self.codex_auth_app {
+                let quit = codex_app.handle_key(key)?;
+                if quit {
+                    self.last_codex_action = codex_app.last_action.clone();
+                    return Ok(true);
+                }
             }
-
-            // 左右方向键翻页
-            KeyCode::Left | KeyCode::Char('h') => {
-                self.prev_page();
-            }
-            KeyCode::Right | KeyCode::Char('l') => {
-                self.next_page();
-            }
-
-            // 上下选择
-            KeyCode::Up | KeyCode::Char('k') => {
-                self.select_previous();
-            }
-            KeyCode::Down | KeyCode::Char('j') => {
-                self.select_next();
-            }
-
-            // 应用配置并退出
-            KeyCode::Enter => {
-                self.apply_selected();
-                self.should_quit = true;
-                return Ok(true);
-            }
-
-            // 应用配置但不退出 (Space键)
-            KeyCode::Char(' ') => {
-                self.apply_selected();
-            }
-
-            _ => {}
+            Ok(false)
+        } else {
+            // Claude tab: original key mapping + dispatch
+            let action = self.map_key(key);
+            self.dispatch(action)
         }
+    }
 
-        Ok(false)
+    fn on_tick(&mut self) -> bool {
+        if self.is_codex_tab() {
+            self.codex_auth_app.as_mut().is_some_and(|a| a.on_tick())
+        } else {
+            self.toasts.tick()
+        }
+    }
+
+    fn render(&self, frame: &mut Frame) {
+        ui::draw(frame, self);
     }
 }
