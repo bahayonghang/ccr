@@ -3,26 +3,12 @@
     <div class="max-w-7xl mx-auto">
       <!-- Breadcrumbs & Navigation -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-fade-in">
-        <nav class="flex items-center text-sm text-[var(--color-text-secondary)]">
-          <RouterLink
-            to="/"
-            class="hover:text-[var(--color-danger)] transition-colors flex items-center gap-1"
-          >
-            <Home class="w-3.5 h-3.5" />
-            {{ $t('market.breadcrumb.home') }}
-          </RouterLink>
-          <ChevronRight class="w-4 h-4 mx-2 text-[var(--color-text-muted)]" />
-          <RouterLink
-            to="/claude-code"
-            class="hover:text-[var(--color-danger)] transition-colors"
-          >
-            {{ $t('market.breadcrumb.claude') }}
-          </RouterLink>
-          <ChevronRight class="w-4 h-4 mx-2 text-[var(--color-text-muted)]" />
-          <span class="font-medium text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] px-2 py-0.5 rounded-md">
-            {{ $t('market.breadcrumb.market') }}
-          </span>
-        </nav>
+        <!-- Standard Breadcrumb Component -->
+        <Breadcrumb 
+          :items="breadcrumbItems" 
+          module-color="var(--color-danger)"
+          class="mb-0"
+        />
 
         <div class="flex items-center gap-3">
           <RouterLink
@@ -200,11 +186,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ShoppingBag, Home, Search, Download, Star, Check, ChevronRight, ArrowLeft, Loader2 } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+import { ShoppingBag, Home, Search, Download, Star, Check, ArrowLeft, Loader2, Code2 } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'
+import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import { useMarketplace, type MarketItem, type MarketItemCategory } from '@/composables/useMarketplace'
 
+const { t } = useI18n()
 const { items, loading, fetchMarketItems, installItem, isInstalling } = useMarketplace()
+
+const breadcrumbItems = computed(() => [
+  { label: t('market.breadcrumb.home'), path: '/', icon: Home },
+  { label: t('market.breadcrumb.claude'), path: '/claude-code', icon: Code2 },
+  { label: t('market.breadcrumb.market'), path: '', icon: ShoppingBag }
+])
 
 const searchQuery = ref('')
 const activeTab = ref('featured')
