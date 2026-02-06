@@ -736,7 +736,7 @@ export default {
       authToken: 'Auth Token',
       authTokenPlaceholder: 'sk-ant-api03-...',
       model: 'Main Model',
-      modelPlaceholder: 'claude-sonnet-4-5-20250929',
+      modelPlaceholder: 'claude-opus-4-5-20251101',
       smallFastModel: 'Small Fast Model',
       smallFastModelPlaceholder: 'claude-3-5-haiku-20241022',
       provider: 'Provider',

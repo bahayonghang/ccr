@@ -835,7 +835,7 @@ export default {
       authToken: '认证令牌',
       authTokenPlaceholder: 'sk-ant-api03-...',
       model: '主模型',
-      modelPlaceholder: 'claude-sonnet-4-5-20250929',
+      modelPlaceholder: 'claude-opus-4-5-20251101',
       smallFastModel: '小型快速模型',
       smallFastModelPlaceholder: 'claude-3-5-haiku-20241022',
       provider: '提供商',
