@@ -4,6 +4,7 @@ export default {
       switchLanguage: '切换语言',
       current: '当前语言',
     },
+    exitConfirm: '退出确认',
     save: '保存',
     cancel: '取消',
     confirm: '确认',
@@ -13,11 +14,11 @@ export default {
     close: '关闭',
     search: '搜索',
     refresh: '刷新',
-    loading: '加载中...',
-    success: '成功',
-    error: '错误',
-    warning: '警告',
-    info: '信息',
+    loading: '少女祈祷中...喵',
+    success: '成功喵',
+    error: '出错啦喵',
+    warning: '注意喵',
+    info: '信息喵',
     yes: '是',
     no: '否',
     home: '首页',
@@ -59,12 +60,12 @@ export default {
     requiredArgs: '必填参数',
     selectOption: '请选择',
     optionalFlags: '可选参数',
-    dangerousCommand: '危险操作',
-    executing: '执行中...',
-    execute: '执行',
+    dangerousCommand: '危险操作喵',
+    executing: '正在执行中喵...',
+    execute: '执行喵',
     output: '执行输出',
     clearOutput: '清空输出',
-    noOutput: '执行命令后输出将在此显示',
+    noOutput: '执行命令后输出将在此显示喵',
     favorites: '收藏命令',
     noFavorites: '暂无收藏命令',
     history: '命令历史',
@@ -114,7 +115,7 @@ export default {
     toolsCenter: '工具中心',
     checkin: '签到管理',
     user: {
-      role: '操作员',
+      role: '主人',
       session: '会话',
       version: '版本',
       status: '在线',
@@ -183,7 +184,7 @@ export default {
   home: {
     title: 'CCR UI',
     subtitle: 'AI CLI 配置管理中心',
-    description: '现代化的多 CLI 工具配置管理解决方案，支持 Claude、Codex、Gemini 等多种 AI 平台。集成配置转换、云同步、命令执行等强大功能，让 AI 工具配置管理更简单高效。',
+    description: '现代化的多 CLI 工具配置管理解决方案，支持 Claude、Codex、Gemini 等多种 AI 平台。集成配置转换、云同步、命令执行等强大功能，让 AI 工具配置管理更简单高效喵~',
     version: 'v',
     coreFeatures: '核心特性',
     feature1Title: '多平台支持',
@@ -271,12 +272,12 @@ export default {
 
     // New Keys for HomeView Redesign
     welcomeBack: '欢迎回来',
-    roleEngineer: '工程师',
-    statusMsg: '系统状态正常，所有节点已校准。',
+    roleEngineer: '主人', // Changed from Engineer to Master
+    statusMsg: '系统状态正常，所有节点已校准喵~',
     platformModules: '平台模块',
     systemActivity: '系统活动',
     fullReport: '完整报告',
-    operational: '运行中',
+    operational: '正常运行喵',
 
     // Quick Actions
     actionCommandRunner: '命令执行器',
@@ -295,7 +296,7 @@ export default {
   skills: {
     title: '技能中心',
     help: {
-      description: '浏览和管理 Claude Code 的扩展技能，每个技能都是一个包含 SKILL.md 的可执行单元。',
+      description: '浏览和管理 Claude Code 的扩展技能，每个技能都是一个包含 SKILL.md 的可执行单元喵。',
     },
     filter: {
       allSources: '全部来源',
@@ -408,13 +409,13 @@ export default {
       sdkRepo: 'SDK 仓库',
     },
     tips: {
-      title: '使用提示',
-      tip1: 'Claude Code 支持多配置管理，可以为不同项目创建专属配置',
-      tip2: 'MCP 服务器可以扩展 Claude 的能力，连接外部工具和数据源',
-      tip3: '使用云同步功能可以在多台设备间同步配置，保持工作环境一致',
-      tip4: 'Agents 功能允许你创建专门的 AI 助手，绑定特定工具和上下文',
+      title: '使用提示喵',
+      tip1: 'Claude Code 支持多配置管理，可以为不同项目创建专属配置喵',
+      tip2: 'MCP 服务器可以扩展 Claude 的能力，连接外部工具和数据源喵',
+      tip3: '使用云同步功能可以在多台设备间同步配置，保持工作环境一致喵',
+      tip4: 'Agents 功能允许主人创建专门的 AI 助手，绑定特定工具和上下文喵',
       label: '提示',
-      cliHint: '您可以通过命令行工具 (CLI) 执行更多高级操作。',
+      cliHint: '主人可以通过命令行工具 (CLI) 执行更多高级操作喵。',
     },
   },
   mcp: {
@@ -512,8 +513,8 @@ export default {
     estimatedCost: '预估成本',
     realTimeLogs: '实时日志',
     allLevels: '所有级别',
-    noLogs: '暂无日志',
-    waitingForLogs: '等待日志消息...',
+    noLogs: '暂无日志喵',
+    waitingForLogs: '正在等待日志消息喵...',
   },
   prompts: {
     builtin: {
