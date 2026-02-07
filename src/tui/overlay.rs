@@ -61,10 +61,10 @@ impl Overlay {
 
     /// Push a character to input buffer (Input variant only)
     pub fn push_char(&mut self, c: char) {
-        if let Self::Input { buffer, .. } = self {
-            if buffer.len() < 32 {
-                buffer.push(c);
-            }
+        if let Self::Input { buffer, .. } = self
+            && buffer.len() < 32
+        {
+            buffer.push(c);
         }
     }
 

@@ -288,10 +288,10 @@ impl CodexAuthApp {
                 }
             }
             KeyCode::Char(c) => {
-                if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
-                    if let Some(overlay) = &mut self.overlay {
-                        overlay.push_char(c);
-                    }
+                if (c.is_ascii_alphanumeric() || c == '_' || c == '-')
+                    && let Some(overlay) = &mut self.overlay
+                {
+                    overlay.push_char(c);
                 }
             }
             _ => {}
