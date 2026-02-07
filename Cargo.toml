@@ -3,9 +3,9 @@
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.20.9"
+version = "3.20.10"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher (Rust implementation)"
 license = "MIT"
