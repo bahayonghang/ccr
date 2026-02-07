@@ -34,12 +34,53 @@
       </nav>
 
       <!-- Main Content Layout -->
-      <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-        <!-- Left Panel: Main Content -->
+      <div 
+        class="grid grid-cols-1 gap-6 transition-all duration-300"
+        :class="sidebarCollapsed ? 'lg:grid-cols-[48px_1fr]' : 'lg:grid-cols-[280px_1fr]'"
+      >
+        <!-- Left Panel: Sidebar -->
+        <div class="space-y-4 lg:order-first">
+          <RightSidebar
+            :configs="configs"
+            :current-filter="currentFilter"
+            :collapsed="sidebarCollapsed"
+            @config-click="handleConfigClick"
+            @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
+          />
+           
+          <!-- Quick Actions (visible when expanded) -->
+          <Card
+            v-if="!sidebarCollapsed"
+            variant="elevated"
+            class="p-4 space-y-3"
+          >
+            <h3 class="text-xs font-bold uppercase text-text-muted">
+              Batch Actions
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              block
+              @click="handleValidate"
+            >
+              <CheckCircle class="w-4 h-4 mr-2" /> Validate All
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              block
+              @click="handleClean"
+            >
+              <Trash2 class="w-4 h-4 mr-2" /> Clean Backups
+            </Button>
+          </Card>
+        </div>
+
+        <!-- Right Panel: Main Content -->
         <Card
           variant="glass"
           glow
-          class="p-6 h-fit min-h-[600px] flex flex-col"
+          class="p-6 h-fit min-h-[600px] flex flex-col lg:order-last"
         >
           <!-- Tab Navigation -->
           <div class="flex gap-4 border-b border-border-subtle pb-4 mb-6">
@@ -93,11 +134,13 @@
               :configs="filteredConfigs"
               :loading="loading"
               :error="error"
+              :expanded-config-name="expandedConfigName"
               @switch="handleSwitch"
               @edit="handleEdit"
               @delete="handleDelete"
               @enable="handleEnable"
               @disable="handleDisable"
+              @expand-config="expandedConfigName = $event"
             />
           </div>
 
@@ -109,41 +152,6 @@
             />
           </div>
         </Card>
-
-        <!-- Right Panel: Sidebar -->
-        <div class="space-y-6">
-          <RightSidebar
-            :configs="configs"
-            :current-filter="currentFilter"
-            @config-click="handleConfigClick"
-          />
-           
-          <!-- Quick Actions Card (Example) -->
-          <Card
-            variant="elevated"
-            class="p-4 space-y-3"
-          >
-            <h3 class="text-xs font-bold uppercase text-text-muted">
-              Batch Actions
-            </h3>
-            <Button
-              variant="outline"
-              size="sm"
-              block
-              @click="handleValidate"
-            >
-              <CheckCircle class="w-4 h-4 mr-2" /> Validate All
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              block
-              @click="handleClean"
-            >
-              <Trash2 class="w-4 h-4 mr-2" /> Clean Backups
-            </Button>
-          </Card>
-        </div>
       </div>
     </div>
 
@@ -172,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Settings, Home, Cloud, Server, Command, Bot, History,
@@ -210,6 +218,8 @@ const error = ref<string | null>(null)
 const activeTab = ref<'configs' | 'history'>('configs')
 const currentFilter = ref<any>('all')
 const currentSort = ref('name') as any
+const sidebarCollapsed = ref(false)
+const expandedConfigName = ref<string | null>(null)
 
 // Modals
 const isEditModalOpen = ref(false)
@@ -304,8 +314,22 @@ const handleEnable = async (name: string) => { await enableConfig(name); refresh
 const handleDisable = async (name: string) => { await disableConfig(name); refreshData() }
 const handleValidate = async () => { await apiValidateConfigs(); alert('Validated') }
 const handleClean = () => alert('Coming soon')
-const handleConfigClick = (_name: string) => {
-   // scroll logic
+const handleConfigClick = async (name: string) => {
+  // 1. 设置展开状态
+  expandedConfigName.value = name
+  
+  // 2. 等待DOM更新
+  await nextTick()
+  
+  // 3. 找到目标卡片并滚动
+  const targetCard = document.querySelector(`[data-config-name="${name}"]`)
+  if (targetCard) {
+    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    
+    // 4. 添加高亮动画
+    targetCard.classList.add('highlight-pulse')
+    setTimeout(() => targetCard.classList.remove('highlight-pulse'), 1500)
+  }
 }
 
 watch(activeTab, (val) => { if (val === 'history') loadHistory() })

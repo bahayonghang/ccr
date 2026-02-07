@@ -41,11 +41,13 @@
         v-for="config in configs"
         :key="config.name"
         :config="config"
+        :expanded="expandedConfigName === config.name"
         @switch="$emit('switch', $event)"
         @edit="$emit('edit', $event)"
         @delete="$emit('delete', $event)"
         @enable="$emit('enable', $event)"
         @disable="$emit('disable', $event)"
+        @toggle-expand="$emit('expandConfig', config.name === expandedConfigName ? null : config.name)"
       />
     </div>
   </div>
@@ -61,6 +63,7 @@ defineProps<{
   configs: ConfigItem[]
   loading: boolean
   error: string | null
+  expandedConfigName?: string | null
 }>()
 
 defineEmits<{
@@ -69,5 +72,6 @@ defineEmits<{
   delete: [name: string]
   enable: [name: string]
   disable: [name: string]
+  expandConfig: [name: string | null]
 }>()
 </script>
