@@ -166,14 +166,23 @@
           <!-- Glow effect on hover -->
           <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500/0 via-violet-500/20 to-purple-500/0 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
+          <!-- Catgirl Image (Absolute Bottom Left) -->
+          <div class="absolute -bottom-4 -left-4 w-32 h-32 z-0 pointer-events-none opacity-80 hover:opacity-100 transition-opacity duration-500">
+            <img
+              src="/catgirl_avatar.png"
+              alt="Catgirl"
+              class="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(167,139,250,0.5)]"
+            >
+          </div>
+
           <!-- Inner content -->
-          <div class="relative p-3.5 backdrop-blur-sm">
+          <div class="relative p-3.5 backdrop-blur-sm z-10">
             <!-- Top Row: Avatar & Toggle -->
             <div class="flex items-start justify-between mb-3">
               <!-- Avatar with cyber glow -->
               <div class="relative">
                 <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-500 text-white font-bold font-mono text-sm shadow-lg shadow-violet-500/40 ring-2 ring-violet-400/30">
-                  <span class="drop-shadow-[0_0_8px_rgba(167,139,250,0.8)]">ENG</span>
+                  <span class="drop-shadow-[0_0_8px_rgba(167,139,250,0.8)]">NYA</span>
                 </div>
                 <!-- Pulsing status ring -->
                 <div class="absolute -bottom-0.5 -right-0.5">
@@ -191,7 +200,7 @@
             <div class="space-y-2">
               <div class="flex items-center gap-2.5">
                 <h3 class="text-sm font-bold text-slate-800 dark:text-white tracking-wide drop-shadow-sm">
-                  ENGINEER
+                  {{ $t('nav.user.role') }}
                 </h3>
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-violet-500/30 to-purple-500/30 text-violet-300 border border-violet-400/30 shadow-sm shadow-violet-500/20">
                   Pro
@@ -210,7 +219,7 @@
                   </span>
                 </p>
                 <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                  CCR UI v3.20.9
+                  CCR UI v3.20.10
                 </span>
               </div>
             </div>
@@ -249,8 +258,13 @@
           <!-- Exit Toggle -->
           <button
             v-if="isTauri"
-            class="flex items-center gap-2 text-xs font-medium text-text-muted hover:text-text-primary transition-colors"
-            :class="{ 'text-accent-primary': showExitConfirm }"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border"
+            :class="[
+              showExitConfirm 
+                ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' 
+                : 'bg-bg-surface border-border-default text-text-secondary hover:text-text-primary hover:border-accent-primary/30 hover:bg-bg-elevated'
+            ]"
+            :title="showExitConfirm ? $t('common.yes') : $t('common.no')"
             @click="toggleExitConfirm"
           >
             <div class="w-3 h-3 rounded-full border border-current flex items-center justify-center">
@@ -259,7 +273,7 @@
                 :class="showExitConfirm ? 'scale-100' : 'scale-0'"
               />
             </div>
-            Exit Confirm
+            {{ $t('common.exitConfirm') }}
           </button>
         </div>
       </div>
