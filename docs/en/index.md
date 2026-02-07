@@ -48,7 +48,7 @@ features:
 
 ## Installation
 
-Current version: **3.18.2** (Rust 2024). Requirements: Rust 1.85+; optional Node.js 18+ + Bun 1.0+ for CCR UI development, `just` for scripts.
+Current version: **3.18.2** (Rust 2024). Requirements: Rust 1.88+; optional Node.js 18+ + Bun 1.0+ for CCR UI development, `just` for scripts.
 
 ### Quick Install
 

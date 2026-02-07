@@ -106,7 +106,7 @@ const quickLinks = [
 
 ## 版本与安装
 - 当前版本：3.18.2（Rust 2024）
-- 需求：Rust 1.85+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
+- 需求：Rust 1.88+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
 
 ```bash
 # 推荐：直接安装

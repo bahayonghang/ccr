@@ -126,7 +126,7 @@ web = ["dep:axum", "dep:tower", ...]        # Web API server
 ## Code Style
 
 ### Rust
-- Edition 2024 (requires Rust 1.85+)
+- Edition 2024 (requires Rust 1.88+)
 - Format: `cargo fmt` (default rustfmt)
 - Naming: `snake_case` modules/functions, `PascalCase` types
 - Error handling: Custom `CcrError` type with `thiserror`

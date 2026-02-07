@@ -303,7 +303,7 @@ cargo build --release
 
 ### 环境要求
 
-- **Rust**: 1.85+ (Edition 2024)
+- **Rust**: 1.88+ (Edition 2024)
 - **Cargo**: 最新稳定版
 
 ### 开发命令

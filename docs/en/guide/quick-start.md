@@ -28,7 +28,7 @@ cargo build --release
 cargo install --path .
 ```
 
-**Requirements:** Rust 1.85+ (for edition 2024 features)
+**Requirements:** Rust 1.88+ (for edition 2024 features)
 
 ## First Time Use
 

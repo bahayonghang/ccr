@@ -58,7 +58,7 @@ just s                  # 启动前后端开发模式（最常用）
 
 ## 先决条件
 
-- **Rust 1.85+**（工作区共享依赖）
+- **Rust 1.88+**（工作区共享依赖）
 - **Node.js 18+** + **Bun 1.0+**（包管理器）
 - **CCR CLI**（已安装，PATH 可见）
 - **just**（可选但推荐：`cargo install just`）
@@ -308,7 +308,7 @@ cp -r dist/* ../dist/static/
 
 ### Docker 部署（可选）
 ```dockerfile
-FROM rust:1.85 as backend-builder
+FROM rust:1.88 as backend-builder
 WORKDIR /app/ccr-ui/backend
 COPY . .
 RUN cargo build --release

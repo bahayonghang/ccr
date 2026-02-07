@@ -119,7 +119,7 @@ src/
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| **Rust** | Edition 2024 | 编程语言 (需要 1.85+) |
+| **Rust** | Edition 2024 | 编程语言 (需要 1.88+) |
 | **Clap** | 4.5+ | CLI 参数解析 (derive 宏) |
 | **Tokio** | 1.48+ | 异步运行时 |
 | **Axum** | 0.8+ | Web 框架 |
@@ -318,7 +318,7 @@ src/
 - **常量**: `SCREAMING_SNAKE_CASE` (如 `DEFAULT_CONFIG`, `MAX_BACKUPS`)
 
 #### 代码风格
-- **Edition**: 2024 (需要 Rust 1.85+)
+- **Edition**: 2024 (需要 Rust 1.88+)
 - **格式化**: 使用 `cargo fmt` (默认 rustfmt 设置)
 - **检查**: 通过 `cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used`
 - **错误处理**: 使用 `CcrError` 类型,详细错误消息
@@ -384,7 +384,7 @@ cargo audit
 
 ### 环境要求
 
-- **Rust**: 1.85+ (Edition 2024)
+- **Rust**: 1.88+ (Edition 2024)
 - **Cargo**: 最新稳定版
 
 ### 开发命令

@@ -3,7 +3,7 @@
 面向 CCR v3.4.1 的安装、初始化与日常使用指引。
 
 ## 环境要求
-- Rust 1.85+（含 Cargo）
+- Rust 1.88+（含 Cargo）
 - 可选：Node.js 18+（仅当开发 CCR UI 前端时）
 - 建议：`just` 任务工具（`cargo install just`）
 

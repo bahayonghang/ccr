@@ -39,7 +39,7 @@ cargo install --path .
 ```
 
 ### Build Requirements
-- **Rust**: 1.85+ (Edition 2024)
+- **Rust**: 1.88+ (Edition 2024)
 - **Node.js**: 18+ (For UI development)
 
 ## 🚀 Quick Start
