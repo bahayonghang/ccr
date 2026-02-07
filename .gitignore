@@ -79,3 +79,5 @@ ref/
 
 # antigravity 共享
 # .shared/
+
+.omc/
