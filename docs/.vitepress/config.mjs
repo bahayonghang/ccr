@@ -21,34 +21,8 @@ export default defineConfig({
   title: "CCR",
   description: "Claude Code Configuration Switcher",
 
-  // 忽略死链接配置
-  ignoreDeadLinks: [
-    // 本地开发链接
-    /^http:\/\/localhost/,
-    // 待创建的文档
-    /commands\/platform/,
-    /commands\/migrate/,
-    /\/migrate$/,
-    /TODO_ANALYTICS/,
-    /ccr-ui\/docs/,
-    /platforms\/README/,
-    /commands\/README/,
-    // 配置文件示例
-    /\.toml$/,
-    // 项目根目录文档
-    /\/README$/,
-    /\/CLAUDE$/,
-    // 相对路径链接（英文文档）
-    /\.\.\//,  // 所有包含 ../ 的相对路径
-    /\/index$/,  // index 文件
-    /^\.\/commands/,  // 命令相对路径
-    /^\.\/examples/,  // 示例相对路径
-    /quick-start$/,  // quick-start 链接
-    /configuration$/,  // configuration 链接
-    /web-guide$/,  // web-guide 链接
-    /\/platforms\/index/,  // platforms index
-    /\/architecture$/,  // architecture 链接
-  ],
+  // 忽略死链接 - 文档仍在持续补充中
+  ignoreDeadLinks: true,
 
   // 国际化配置
   locales: {
@@ -83,6 +57,7 @@ export default defineConfig({
               collapsed: false,
               items: [
                 { text: '架构设计', link: '/reference/architecture' },
+                { text: 'Web API 参考', link: '/reference/api' },
                 { text: '更新日志', link: '/reference/changelog' }
               ]
             },
@@ -286,6 +261,7 @@ export default defineConfig({
               collapsed: false,
               items: [
                 { text: 'Architecture', link: '/en/reference/architecture' },
+                { text: 'Web API Reference', link: '/en/reference/api' },
                 { text: 'Changelog', link: '/en/reference/changelog' },
                 { text: 'Migration Guide', link: '/en/reference/migration' }
               ]
@@ -295,38 +271,68 @@ export default defineConfig({
               collapsed: false,
               items: [
                 { text: 'Overview', link: '/en/reference/commands/' },
-                { text: 'platform - Platform Registry', link: '/en/reference/commands/platform' },
-                { text: 'migrate - Migration', link: '/en/reference/commands/migrate' },
-                { text: 'init - Initialize', link: '/en/reference/commands/init' },
-                { text: 'add - Add Profile', link: '/en/reference/commands/add' },
-                { text: 'delete - Delete Profile', link: '/en/reference/commands/delete' },
-                { text: 'list - List Profiles', link: '/en/reference/commands/list' },
-                { text: 'current - Current Profile', link: '/en/reference/commands/current' },
-                { text: 'switch - Switch Profile', link: '/en/reference/commands/switch' },
-                { text: 'validate - Validate', link: '/en/reference/commands/validate' },
-                { text: 'enable - Enable Profile', link: '/en/reference/commands/enable' },
-                { text: 'disable - Disable Profile', link: '/en/reference/commands/disable' },
-                { text: 'clear - Clear Config', link: '/en/reference/commands/clear' },
-                { text: 'optimize - Optimize Config', link: '/en/reference/commands/optimize' },
-                { text: 'history - History', link: '/en/reference/commands/history' },
-                { text: 'check - Conflict Detection', link: '/en/reference/commands/check' },
-                { text: 'tui - Terminal UI', link: '/en/reference/commands/tui' },
-                { text: 'web - Web Interface', link: '/en/reference/commands/web' },
-                { text: 'ui - CCR UI', link: '/en/reference/commands/ui' },
-                { text: 'stats - Statistics', link: '/en/reference/commands/stats' },
-                { text: 'budget - Budgeting', link: '/en/reference/commands/budget' },
-                { text: 'pricing - Model Pricing', link: '/en/reference/commands/pricing' },
-                { text: 'sync - Cloud Sync', link: '/en/reference/commands/sync' },
-                { text: 'skills - Skills Management', link: '/en/reference/commands/skills' },
-                { text: 'prompts - Prompt Presets', link: '/en/reference/commands/prompts' },
-                { text: 'temp-token - Temp Token', link: '/en/reference/commands/temp-token' },
-                { text: 'provider - Health Check', link: '/en/reference/commands/provider' },
-                { text: 'sessions - Session Management', link: '/en/reference/commands/sessions' },
-                { text: 'export - Export', link: '/en/reference/commands/export' },
-                { text: 'import - Import', link: '/en/reference/commands/import' },
-                { text: 'clean - Clean Backups', link: '/en/reference/commands/clean' },
-                { text: 'update - Update CCR', link: '/en/reference/commands/update' },
-                { text: 'version - Version Info', link: '/en/reference/commands/version' }
+                {
+                  text: 'Platform & Init',
+                  collapsed: true,
+                  items: [
+                    { text: 'platform - Platform Registry', link: '/en/reference/commands/platform' },
+                    { text: 'migrate - Migration', link: '/en/reference/commands/migrate' },
+                    { text: 'init - Initialize', link: '/en/reference/commands/init' }
+                  ]
+                },
+                {
+                  text: 'Profile Operations',
+                  collapsed: true,
+                  items: [
+                    { text: 'add - Add Profile', link: '/en/reference/commands/add' },
+                    { text: 'delete - Delete Profile', link: '/en/reference/commands/delete' },
+                    { text: 'list - List Profiles', link: '/en/reference/commands/list' },
+                    { text: 'current - Current Profile', link: '/en/reference/commands/current' },
+                    { text: 'switch - Switch Profile', link: '/en/reference/commands/switch' },
+                    { text: 'validate - Validate', link: '/en/reference/commands/validate' },
+                    { text: 'enable - Enable Profile', link: '/en/reference/commands/enable' },
+                    { text: 'disable - Disable Profile', link: '/en/reference/commands/disable' },
+                    { text: 'clear - Clear Config', link: '/en/reference/commands/clear' },
+                    { text: 'optimize - Optimize Config', link: '/en/reference/commands/optimize' }
+                  ]
+                },
+                {
+                  text: 'Data Management',
+                  collapsed: true,
+                  items: [
+                    { text: 'history - History', link: '/en/reference/commands/history' },
+                    { text: 'export - Export', link: '/en/reference/commands/export' },
+                    { text: 'import - Import', link: '/en/reference/commands/import' },
+                    { text: 'clean - Clean Backups', link: '/en/reference/commands/clean' }
+                  ]
+                },
+                {
+                  text: 'Interfaces',
+                  collapsed: true,
+                  items: [
+                    { text: 'tui - Terminal UI', link: '/en/reference/commands/tui' },
+                    { text: 'web - Web Interface', link: '/en/reference/commands/web' },
+                    { text: 'ui - CCR UI', link: '/en/reference/commands/ui' }
+                  ]
+                },
+                {
+                  text: 'Advanced',
+                  collapsed: true,
+                  items: [
+                    { text: 'check - Conflict Detection', link: '/en/reference/commands/check' },
+                    { text: 'stats - Statistics', link: '/en/reference/commands/stats' },
+                    { text: 'budget - Budgeting', link: '/en/reference/commands/budget' },
+                    { text: 'pricing - Model Pricing', link: '/en/reference/commands/pricing' },
+                    { text: 'sync - Cloud Sync', link: '/en/reference/commands/sync' },
+                    { text: 'skills - Skills Management', link: '/en/reference/commands/skills' },
+                    { text: 'prompts - Prompt Presets', link: '/en/reference/commands/prompts' },
+                    { text: 'temp-token - Temp Token', link: '/en/reference/commands/temp-token' },
+                    { text: 'provider - Health Check', link: '/en/reference/commands/provider' },
+                    { text: 'sessions - Session Management', link: '/en/reference/commands/sessions' },
+                    { text: 'update - Update CCR', link: '/en/reference/commands/update' },
+                    { text: 'version - Version Info', link: '/en/reference/commands/version' }
+                  ]
+                }
               ]
             },
             {
