@@ -46,7 +46,8 @@ pub fn run_tui() -> Result<()> {
 
     run_loop(&mut guard, &mut app, &mut events)?;
 
-    // TerminalGuard::drop restores terminal automatically (RAII)
+    // Must drop guard BEFORE printing so terminal leaves alternate screen first
+    drop(guard);
     print_exit_info(&app);
 
     Ok(())
@@ -60,7 +61,8 @@ pub fn run_tui_with_codex_auth() -> Result<()> {
 
     run_loop(&mut guard, &mut app, &mut events)?;
 
-    // TerminalGuard::drop restores terminal automatically (RAII)
+    // Must drop guard BEFORE printing so terminal leaves alternate screen first
+    drop(guard);
     print_exit_info(&app);
 
     Ok(())

@@ -178,7 +178,7 @@ impl App {
             KeyCode::Right | KeyCode::Char('l') => Action::NextPage,
             KeyCode::Up | KeyCode::Char('k') => Action::SelectPrev,
             KeyCode::Down | KeyCode::Char('j') => Action::SelectNext,
-            KeyCode::Enter => Action::ApplySelected,
+            KeyCode::Enter => Action::ApplyAndQuit,
             KeyCode::Char(' ') => Action::ApplySelected,
             KeyCode::Char('r') => Action::Reload,
             _ => Action::Noop,
