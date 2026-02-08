@@ -420,7 +420,7 @@ Web 界面提供完整的 RESTful API,支持编程访问。
 ### 获取所有配置
 
 ```http
-GET http://localhost:8080/api/configs
+GET http://localhost:19527/api/configs
 ```
 
 **响应：**
@@ -444,7 +444,7 @@ GET http://localhost:8080/api/configs
 ### 切换配置
 
 ```http
-POST http://localhost:8080/api/switch
+POST http://localhost:19527/api/switch
 Content-Type: application/json
 
 {
@@ -463,7 +463,7 @@ Content-Type: application/json
 ### 获取操作历史
 
 ```http
-GET http://localhost:8080/api/history?limit=20&type=switch
+GET http://localhost:19527/api/history?limit=20&type=switch
 ```
 
 **查询参数：**
@@ -473,7 +473,7 @@ GET http://localhost:8080/api/history?limit=20&type=switch
 ### 验证配置
 
 ```http
-POST http://localhost:8080/api/validate
+POST http://localhost:19527/api/validate
 ```
 
 **响应：**
@@ -488,7 +488,7 @@ POST http://localhost:8080/api/validate
 ### 清理备份
 
 ```http
-POST http://localhost:8080/api/clean
+POST http://localhost:19527/api/clean
 Content-Type: application/json
 
 {
@@ -509,7 +509,7 @@ Content-Type: application/json
 ### 添加配置
 
 ```http
-POST http://localhost:8080/api/config
+POST http://localhost:19527/api/config
 Content-Type: application/json
 
 {
@@ -524,7 +524,7 @@ Content-Type: application/json
 ### 更新配置
 
 ```http
-PUT http://localhost:8080/api/config/anthropic
+PUT http://localhost:19527/api/config/anthropic
 Content-Type: application/json
 
 {
@@ -536,7 +536,7 @@ Content-Type: application/json
 ### 删除配置
 
 ```http
-DELETE http://localhost:8080/api/config/oldconfig
+DELETE http://localhost:19527/api/config/oldconfig
 ```
 
 ## 使用场景
@@ -547,10 +547,10 @@ DELETE http://localhost:8080/api/config/oldconfig
 
 ```bash
 # 在服务器上启动
-ccr web --port 8080 --no-browser
+ccr web --port 19527 --no-browser
 ```
 
-团队成员可以通过浏览器访问 `http://server-ip:8080` 进行配置管理。
+团队成员可以通过浏览器访问 `http://server-ip:19527` 进行配置管理。
 
 ### 远程管理
 
@@ -561,8 +561,8 @@ ccr web --port 8080 --no-browser
 ccr web --no-browser
 
 # 在本地
-ssh -L 8080:localhost:8080 user@remote-server
-# 访问 http://localhost:8080
+ssh -L 19527:localhost:19527 user@remote-server
+# 访问 http://localhost:19527
 ```
 
 ### 自动化集成
@@ -571,14 +571,14 @@ ssh -L 8080:localhost:8080 user@remote-server
 
 ```bash
 # 使用 curl 切换配置
-curl -X POST http://localhost:8080/api/switch \
+curl -X POST http://localhost:19527/api/switch \
   -H "Content-Type: application/json" \
   -d '{"config_name": "production"}'
 
 # 使用 Python
 import requests
 response = requests.post(
-    "http://localhost:8080/api/switch",
+    "http://localhost:19527/api/switch",
     json={"config_name": "production"}
 )
 print(response.json())
@@ -605,7 +605,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://localhost:8080;
+        proxy_pass http://localhost:19527;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }

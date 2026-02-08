@@ -190,7 +190,7 @@ ccr sessions prune [OPTIONS]
 会话索引存储在 SQLite 数据库中：
 
 ```
-~/.ccr/data.db
+~/.ccr/sessions.db
 ```
 
 首次运行 `ccr sessions` 命令时会自动创建数据库并执行初始索引。

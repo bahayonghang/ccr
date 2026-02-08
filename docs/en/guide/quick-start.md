@@ -253,7 +253,7 @@ Creates `~/.ccs_config.toml` (compatible with shell-based CCS)
 
 ## Next Steps
 
-- 📖 [Command Reference](/en/commands/) - Learn all available commands
+- 📖 [Command Reference](/en/reference/commands/) - Learn all available commands
 - 🎨 [Web Guide](/en/web-guide) - Explore the web interface
 - 🔧 [Configuration Guide](/en/configuration) - Advanced configuration options
 - 💡 [Examples](/en/examples/) - Real-world usage examples

@@ -105,7 +105,7 @@ const quickLinks = [
 <HomeFeatures badge="快速导航" badge-type="info" title="开始使用" :features="quickLinks" />
 
 ## 版本与安装
-- 当前版本：3.18.2（Rust 2024）
+- 当前版本：3.20.11（Rust 2024）
 - 需求：Rust 1.88+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
 
 ```bash

@@ -1,6 +1,6 @@
 # 核心命令
 
-CCR 提供了丰富的命令来管理 Claude Code 配置。本页面概览所有可用命令。
+CCR 提供了丰富的命令来管理多平台 AI CLI 配置。本页面概览所有可用命令。
 
 ## 命令概览
 
@@ -275,6 +275,6 @@ ccr import config.toml --merge && ccr validate
 
 ## 下一步
 
-- 查看 [快速开始](/quick-start) 了解基本使用流程
+- 查看 [快速开始](/guide/quick-start) 了解基本使用流程
 - 查看 [配置管理](/configuration) 了解高级配置选项
 - 点击上方表格中的命令查看详细文档
