@@ -198,22 +198,22 @@
         linear-gradient(to right, var(--bg-grid-line) 1px, transparent 1px),
         linear-gradient(to bottom, var(--bg-grid-line) 1px, transparent 1px);
     background-size: 40px 40px;
-    mask-image: radial-gradient(circle at 50% 0%, black 40%, transparent 100%);
+    mask-image: radial-gradient(ellipse 120% 140% at 50% 30%, black 15%, transparent 85%);
     opacity: 1;
 }
 
 [data-theme="dark"] .orb-1 {
-    opacity: 0.4;
+    opacity: 0.35;
     mix-blend-mode: screen;
 }
 
 [data-theme="dark"] .orb-2 {
-    opacity: 0.3;
+    opacity: 0.35;
     mix-blend-mode: screen;
 }
 
 [data-theme="dark"] .orb-3 {
-    opacity: 0.2;
+    opacity: 0.25;
     mix-blend-mode: screen;
 }
 

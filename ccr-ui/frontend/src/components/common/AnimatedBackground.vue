@@ -13,7 +13,7 @@
       </div>
 
       <!-- 2. Cyber Grid Pattern -->
-      <div class="absolute inset-0 cyber-grid [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+      <div class="absolute inset-0 cyber-grid [mask-image:radial-gradient(ellipse_120%_140%_at_50%_30%,#000_20%,transparent_85%)]" />
 
       <!-- 3. Noise Texture (Film Grain Effect) -->
       <div class="noise-overlay" />
@@ -36,7 +36,7 @@
         class="absolute inset-0"
         :class="spotlightColorClass"
       />
-      <div class="absolute inset-0 cyber-grid opacity-50 [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,#000_50%,transparent_100%)]" />
+      <div class="absolute inset-0 cyber-grid opacity-50 [mask-image:radial-gradient(ellipse_120%_140%_at_50%_30%,#000_20%,transparent_85%)]" />
       <div class="noise-overlay" />
     </template>
 

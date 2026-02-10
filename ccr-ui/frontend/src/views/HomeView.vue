@@ -1,14 +1,5 @@
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
-    <!-- Animated Background Mesh -->
-    <div class="fixed inset-0 pointer-events-none -z-10">
-      <div class="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-accent-primary/5 rounded-full blur-[120px] animate-pulse-subtle" />
-      <div
-        class="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-accent-secondary/5 rounded-full blur-[100px] animate-pulse-subtle"
-        style="animation-delay: 2s"
-      />
-    </div>
-
     <div class="max-w-7xl mx-auto space-y-10">
       <!-- HEADER SECTION -->
       <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 animate-slide-up">

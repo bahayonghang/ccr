@@ -1,24 +1,12 @@
 <template>
   <div class="fixed inset-0 -z-20 overflow-hidden bg-bg-base">
-    <!-- Background Image - Only show in dark mode -->
-    <div
-      v-if="isDarkMode"
-      class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
-      :style="{
-        backgroundImage: `url(${currentImage})`,
-        opacity: imageLoaded ? 1 : 0
-      }"
-    />
-
-    <!-- Dark mode overlays -->
+    <!-- Dark mode - multi-point radial gradient mesh -->
     <template v-if="isDarkMode">
-      <!-- Gradient Overlay - 从左到右渐变遮罩 -->
       <div class="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/85 to-slate-900/70" />
-
-      <!-- Top gradient for better header visibility -->
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_40%_50%_at_15%_20%,rgb(var(--color-accent-primary-rgb)/0.12),transparent)]" />
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_35%_40%_at_80%_75%,rgb(var(--color-accent-secondary-rgb)/0.10),transparent)]" />
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_50%_30%_at_50%_50%,rgb(var(--color-accent-primary-rgb)/0.05),transparent)]" />
       <div class="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-900/90 to-transparent" />
-
-      <!-- Bottom gradient -->
       <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-900/90 to-transparent" />
     </template>
 
@@ -28,7 +16,7 @@
       <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.08),transparent_50%)]" />
     </template>
 
-    <!-- Noise texture overlay (both modes, lighter in light mode) -->
+    <!-- Noise texture overlay (inline SVG, no external resources) -->
     <div
       class="absolute inset-0 mix-blend-overlay pointer-events-none"
       :class="isDarkMode ? 'opacity-[0.03]' : 'opacity-[0.02]'"
@@ -40,7 +28,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 
-// 检测暗色模式
 const isDarkMode = ref(false)
 
 const checkDarkMode = () => {
@@ -48,47 +35,18 @@ const checkDarkMode = () => {
     document.documentElement.classList.contains('dark')
 }
 
-// 监听主题变化
 let observer: MutationObserver | null = null
 
 onMounted(() => {
   checkDarkMode()
-
-  // 监听 html 元素的 class 和 data-theme 变化
   observer = new MutationObserver(checkDarkMode)
   observer.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['class', 'data-theme']
   })
-
-  // 只在暗色模式下预加载图片
-  if (isDarkMode.value) {
-    preloadImage()
-  }
 })
 
 onUnmounted(() => {
   observer?.disconnect()
 })
-
-// 二次元风格背景图片列表
-const backgroundImages = [
-  'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1920&q=80',
-  'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=1920&q=80',
-  'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80',
-]
-
-const currentImage = ref(backgroundImages[0])
-const imageLoaded = ref(false)
-
-const preloadImage = () => {
-  const randomIndex = Math.floor(Math.random() * backgroundImages.length)
-  currentImage.value = backgroundImages[randomIndex]
-
-  const img = new Image()
-  img.onload = () => {
-    imageLoaded.value = true
-  }
-  img.src = currentImage.value
-}
 </script>
