@@ -40,7 +40,7 @@ const variantClasses = computed(() => {
   const map = {
     base: 'bg-bg-base border border-border-subtle',
     elevated: 'bg-bg-elevated border border-border-subtle shadow-lg',
-    glass: 'bg-bg-elevated/60 backdrop-blur-xl border border-white/5 shadow-xl',
+    glass: 'liquid-glass',
     outline: 'bg-transparent border border-border-default',
   }
   return map[props.variant]

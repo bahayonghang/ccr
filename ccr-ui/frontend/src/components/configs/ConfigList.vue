@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-2">
     <!-- Loading State -->
     <div
       v-if="loading"
@@ -32,22 +32,20 @@
       <p>{{ $t('configs.noConfigsInCategory') }}</p>
     </div>
 
-    <!-- Config Grid -->
+    <!-- Config List (Single Column) -->
     <div
       v-else
-      class="grid grid-cols-1 xl:grid-cols-2 gap-4"
+      class="flex flex-col gap-2"
     >
       <ConfigCard
         v-for="config in configs"
         :key="config.name"
         :config="config"
-        :expanded="expandedConfigName === config.name"
         @switch="$emit('switch', $event)"
         @edit="$emit('edit', $event)"
         @delete="$emit('delete', $event)"
         @enable="$emit('enable', $event)"
         @disable="$emit('disable', $event)"
-        @toggle-expand="$emit('expandConfig', config.name === expandedConfigName ? null : config.name)"
       />
     </div>
   </div>
@@ -63,7 +61,6 @@ defineProps<{
   configs: ConfigItem[]
   loading: boolean
   error: string | null
-  expandedConfigName?: string | null
 }>()
 
 defineEmits<{
@@ -72,6 +69,5 @@ defineEmits<{
   delete: [name: string]
   enable: [name: string]
   disable: [name: string]
-  expandConfig: [name: string | null]
 }>()
 </script>

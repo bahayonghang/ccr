@@ -1,161 +1,143 @@
 <template>
-  <Card
-    :variant="config.is_current ? 'glass' : 'elevated'"
-    :glow="config.is_current"
+  <div
     v-bind="{ 'data-config-name': config.name }"
-    class="config-card group transition-all duration-300"
-    :class="{ 
-      'config-card--expanded': expanded,
-      'config-card--current': config.is_current,
-      'ring-2 ring-accent-primary/30': config.is_current
+    class="config-row group relative flex items-stretch transition-all duration-300 rounded-xl overflow-hidden"
+    :class="{
+      'config-row--current': config.is_current,
+      'config-row--disabled': config.enabled === false,
     }"
+    @click="$emit('edit', config.name)"
   >
-    <div class="p-5 flex flex-col">
-      <!-- Header (Always visible) -->
-      <div class="flex items-start justify-between">
-        <div class="flex-1 min-w-0">
-          <!-- Name & Status -->
-          <div class="flex items-center gap-2 mb-1">
-            <div
-              class="w-7 h-7 rounded-lg bg-bg-surface flex items-center justify-center text-xs font-bold shrink-0"
-              :class="config.is_current ? 'bg-accent-primary/20 text-accent-primary' : 'text-text-muted'"
-            >
-              {{ config.provider?.[0]?.toUpperCase() || 'C' }}
-            </div>
-            <h3 
-              class="text-base font-bold font-display truncate transition-colors duration-300"
-              :class="titleColorClass"
-            >
-              {{ config.name }}
-            </h3>
-            
-            <!-- Status Badges -->
-            <div class="flex gap-1 shrink-0">
-              <span
-                v-if="config.is_current"
-                class="relative flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-accent-success bg-accent-success/10 px-2 py-0.5 rounded-full"
-              >
-                <span class="w-1.5 h-1.5 bg-accent-success rounded-full animate-pulse" />
-                Active
-              </span>
-              <span
-                v-if="config.is_default"
-                class="text-[10px] font-bold uppercase tracking-wider text-accent-warning bg-accent-warning/10 px-2 py-0.5 rounded-full"
-              >Default</span>
-            </div>
-          </div>
-          
-          <!-- Description (Always visible) -->
-          <p class="text-xs text-text-secondary line-clamp-1 mb-2 ml-9">
-            {{ config.description || 'No description provided.' }}
-          </p>
-          
-          <!-- Provider (Always visible) -->
-          <div class="flex items-center gap-2 ml-9 text-xs text-text-muted">
-            <Building2 class="w-3 h-3" />
-            <span class="font-mono">{{ config.provider || '-' }}</span>
-          </div>
-        </div>
-        
-        <!-- Expand Toggle -->
-        <button 
-          class="p-1.5 rounded-lg hover:bg-bg-surface transition-colors shrink-0"
-          @click="$emit('toggleExpand')"
+    <!-- Left Accent Bar -->
+    <div
+      class="accent-bar w-[3px] shrink-0 transition-all duration-300"
+      :class="accentBarClass"
+    />
+
+    <!-- Main Content -->
+    <div class="flex-1 flex items-center gap-4 px-5 py-4 min-w-0">
+      <!-- Provider Avatar -->
+      <div
+        class="avatar-wrapper relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-md transition-transform duration-300 group-hover:scale-105"
+        :class="avatarClass"
+      >
+        {{ config.provider?.[0]?.toUpperCase() || 'C' }}
+        <!-- Active Indicator Dot -->
+        <span
+          v-if="config.is_current"
+          class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-bg-elevated shadow-sm"
         >
-          <ChevronDown 
-            class="w-4 h-4 text-text-muted transition-transform duration-300"
-            :class="{ 'rotate-180': expanded }"
-          />
-        </button>
+          <span class="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />
+        </span>
       </div>
 
-      <!-- Expanded Content -->
-      <Transition name="expand">
-        <div
-          v-if="expanded"
-          class="mt-4 pt-4 border-t border-border-subtle space-y-4"
-        >
-          <!-- Meta Grid -->
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div class="flex flex-col gap-0.5">
-              <span class="text-[10px] text-text-muted uppercase font-bold">Model</span>
-              <span
-                class="font-mono text-xs text-text-primary truncate"
-                :title="config.model"
-              >
-                {{ config.model || '-' }}
-              </span>
-            </div>
-            <div class="flex flex-col gap-0.5">
-              <span class="text-[10px] text-text-muted uppercase font-bold">Calls</span>
-              <span class="font-mono text-xs text-accent-primary font-bold">
-                {{ config.usage_count || 0 }}
-              </span>
-            </div>
-            <div class="flex flex-col gap-0.5">
-              <span class="text-[10px] text-text-muted uppercase font-bold">Type</span>
-              <span class="font-mono text-xs text-text-primary">
-                {{ config.provider_type || 'Unknown' }}
-              </span>
-            </div>
-            <div
-              v-if="config.account"
-              class="flex flex-col gap-0.5"
-            >
-              <span class="text-[10px] text-text-muted uppercase font-bold">Account</span>
-              <span class="font-mono text-xs text-text-primary truncate">
-                {{ config.account }}
-              </span>
-            </div>
-          </div>
+      <!-- Info Block -->
+      <div class="flex-1 min-w-0 space-y-1.5">
+        <!-- Top Row: Name + Status -->
+        <div class="flex items-center gap-2.5 min-w-0">
+          <h3
+            class="text-sm font-bold font-display truncate transition-colors duration-300"
+            :class="nameColorClass"
+          >
+            {{ config.name }}
+          </h3>
 
-          <!-- Actions -->
-          <div class="flex items-center gap-2 pt-2">
-            <Button 
-              v-if="!config.is_current" 
-              size="sm" 
-              variant="primary" 
-              class="flex-1"
-              @click="$emit('switch', config.name)"
+          <!-- Status Badges -->
+          <div class="flex gap-1.5 shrink-0">
+            <span
+              v-if="config.is_current"
+              class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full ring-1 ring-emerald-400/20"
             >
-              <ArrowRightLeft class="w-3.5 h-3.5 mr-1.5" />
-              Switch
-            </Button>
-            <Button 
-              v-else 
-              size="sm" 
-              variant="glass" 
-              class="flex-1 cursor-default text-accent-success border-accent-success/20 bg-accent-success/5"
-            >
-              <CheckCircle class="w-3.5 h-3.5 mr-1.5" />
               Active
-            </Button>
-            
-            <Button
-              size="sm"
-              variant="ghost"
-              class="px-2"
-              @click="$emit('edit', config.name)"
+            </span>
+            <span
+              v-if="config.is_default"
+              class="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full ring-1 ring-amber-400/20"
             >
-              <Settings class="w-4 h-4" />
-            </Button>
+              Default
+            </span>
           </div>
         </div>
-      </Transition>
+
+        <!-- Description -->
+        <p class="text-xs text-text-secondary truncate leading-relaxed">
+          {{ config.description || 'No description provided.' }}
+        </p>
+      </div>
+
+      <!-- Meta Chips -->
+      <div class="hidden md:flex items-center gap-2 shrink-0">
+        <!-- Model -->
+        <div
+          v-if="config.model"
+          class="meta-chip"
+          :title="config.model"
+        >
+          <Sparkles class="w-3 h-3 text-accent-primary opacity-70" />
+          <span class="truncate max-w-[120px]">{{ config.model }}</span>
+        </div>
+
+        <!-- Provider -->
+        <div
+          v-if="config.provider"
+          class="meta-chip"
+        >
+          <Building2 class="w-3 h-3 opacity-50" />
+          <span>{{ config.provider }}</span>
+        </div>
+
+        <!-- Calls Count -->
+        <div
+          v-if="(config.usage_count ?? 0) > 0"
+          class="meta-chip"
+        >
+          <TrendingUp class="w-3 h-3 text-accent-secondary opacity-70" />
+          <span class="font-bold text-accent-secondary">{{ config.usage_count }}</span>
+        </div>
+      </div>
     </div>
-  </Card>
+
+    <!-- Right Action Area -->
+    <div class="flex items-center gap-2 pr-4 shrink-0">
+      <!-- Switch Button -->
+      <button
+        v-if="!config.is_current"
+        class="switch-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+        @click.stop="$emit('switch', config.name)"
+      >
+        <ArrowRightLeft class="w-3.5 h-3.5 mr-1 inline-block" />
+        Switch
+      </button>
+      <span
+        v-else
+        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-400/70 bg-emerald-400/5 cursor-default"
+      >
+        <CheckCircle class="w-3.5 h-3.5" />
+        In Use
+      </span>
+
+      <!-- Edit Button -->
+      <button
+        class="edit-btn p-2 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+        :class="config.is_current ? 'opacity-60' : ''"
+        @click.stop="$emit('edit', config.name)"
+      >
+        <Settings class="w-4 h-4" />
+      </button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Settings, ChevronDown, Building2, ArrowRightLeft, CheckCircle } from 'lucide-vue-next'
+import {
+  Settings, Building2, ArrowRightLeft, CheckCircle,
+  Sparkles, TrendingUp
+} from 'lucide-vue-next'
 import type { ConfigItem } from '@/types'
-import Card from '@/components/ui/Card.vue'
-import Button from '@/components/ui/Button.vue'
 
 interface Props {
   config: ConfigItem
-  expanded?: boolean
 }
 
 const props = defineProps<Props>()
@@ -166,51 +148,143 @@ defineEmits<{
   delete: [name: string]
   enable: [name: string]
   disable: [name: string]
-  toggleExpand: []
 }>()
 
-const titleColorClass = computed(() => {
+// Provider type detection
+const providerType = computed(() => {
   const type = props.config.provider_type?.toLowerCase() || ''
-  if (type.includes('official')) return 'text-cyan-400 group-hover:text-cyan-300'
-  if (type.includes('third')) return 'text-violet-400 group-hover:text-violet-300'
-  return 'text-amber-400 group-hover:text-amber-300'
+  if (type.includes('official')) return 'official'
+  if (type.includes('third')) return 'third'
+  return 'uncategorized'
+})
+
+// Left accent bar color by provider type
+const accentBarClass = computed(() => {
+  const map = {
+    official: 'bg-cyan-400 group-hover:bg-cyan-300',
+    third: 'bg-violet-400 group-hover:bg-violet-300',
+    uncategorized: 'bg-amber-400 group-hover:bg-amber-300',
+  }
+  return map[providerType.value]
+})
+
+// Avatar gradient by provider type
+const avatarClass = computed(() => {
+  const map = {
+    official: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
+    third: 'bg-gradient-to-br from-violet-500 to-violet-700',
+    uncategorized: 'bg-gradient-to-br from-amber-500 to-amber-700',
+  }
+  return map[providerType.value]
+})
+
+// Name color by provider type
+const nameColorClass = computed(() => {
+  const map = {
+    official: 'text-cyan-400 group-hover:text-cyan-300',
+    third: 'text-violet-400 group-hover:text-violet-300',
+    uncategorized: 'text-amber-400 group-hover:text-amber-300',
+  }
+  return map[providerType.value]
 })
 </script>
 
 <style scoped>
-/* Expand transition */
-.expand-enter-active,
-.expand-leave-active {
-  transition: all 0.3s ease;
-  overflow: hidden;
+/* === Row Base - 液态玻璃 === */
+.config-row {
+  background: var(--liquid-glass-bg);
+  backdrop-filter: var(--liquid-glass-blur);
+  backdrop-filter: var(--liquid-glass-blur);
+  border: 1px solid var(--liquid-glass-border);
+  box-shadow: var(--liquid-glass-highlight);
+  cursor: pointer;
 }
 
-.expand-enter-from,
-.expand-leave-to {
-  opacity: 0;
-  max-height: 0;
-  margin-top: 0;
-  padding-top: 0;
+.config-row:hover {
+  background: var(--glass-bg-medium);
+  border-color: var(--glass-border-medium);
+  box-shadow: var(--liquid-glass-shadow);
+  transform: translateX(2px);
 }
 
-.expand-enter-to,
-.expand-leave-from {
-  opacity: 1;
-  max-height: 300px;
+/* === Current Config Highlight === */
+.config-row--current {
+  background: linear-gradient(135deg,
+    rgb(6 182 212 / 6%) 0%,
+    rgb(139 92 246 / 4%) 100%
+  );
+  border-color: rgb(6 182 212 / 15%);
+  box-shadow: var(--glow-primary);
 }
 
-/* Highlight pulse animation for scroll-to */
-.config-card.highlight-pulse {
-  animation: highlight-pulse 1.5s ease-out;
+.config-row--current:hover {
+  border-color: rgb(6 182 212 / 25%);
+  box-shadow:
+    var(--glow-primary),
+    var(--shadow-md);
 }
 
-@keyframes highlight-pulse {
+/* === Disabled Config === */
+.config-row--disabled {
+  opacity: 0.5;
+}
+
+/* === Meta Chips === */
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.config-row:hover .meta-chip {
+  background: var(--glass-bg-medium);
+  border-color: var(--color-border-default);
+}
+
+/* === Switch Button === */
+.switch-btn {
+  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+  color: white;
+  box-shadow: 0 2px 8px rgb(var(--color-accent-primary-rgb) / 25%);
+}
+
+.switch-btn:hover {
+  box-shadow: 0 4px 16px rgb(var(--color-accent-primary-rgb) / 40%);
+  transform: translateY(-1px);
+}
+
+/* === Edit Button === */
+.edit-btn {
+  color: var(--color-text-muted);
+  background: transparent;
+}
+
+.edit-btn:hover {
+  color: var(--color-accent-primary);
+  background: var(--glass-bg-medium);
+}
+
+/* === Highlight Pulse (scroll-to) === */
+.config-row.highlight-pulse {
+  animation: row-highlight-pulse 1.5s ease-out;
+}
+
+@keyframes row-highlight-pulse {
   0% {
     box-shadow: 0 0 0 0 rgb(6 182 212 / 40%);
   }
 
   50% {
-    box-shadow: 0 0 0 8px rgb(6 182 212 / 10%);
+    box-shadow: 0 0 0 6px rgb(6 182 212 / 10%);
   }
 
   100% {
@@ -218,11 +292,8 @@ const titleColorClass = computed(() => {
   }
 }
 
-/* Current config glow */
-.config-card--current {
-  background: linear-gradient(135deg, 
-    rgb(6 182 212 / 5%) 0%, 
-    rgb(139 92 246 / 5%) 100%
-  );
+/* === Accent bar glow for current === */
+.config-row--current .accent-bar {
+  box-shadow: 2px 0 8px rgb(6 182 212 / 30%);
 }
 </style>

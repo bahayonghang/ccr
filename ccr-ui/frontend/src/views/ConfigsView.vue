@@ -39,7 +39,7 @@
         :class="sidebarCollapsed ? 'lg:grid-cols-[48px_1fr]' : 'lg:grid-cols-[280px_1fr]'"
       >
         <!-- Left Panel: Sidebar -->
-        <div class="space-y-4 lg:order-first">
+        <div class="lg:order-first">
           <RightSidebar
             :configs="configs"
             :current-filter="currentFilter"
@@ -47,33 +47,6 @@
             @config-click="handleConfigClick"
             @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
           />
-           
-          <!-- Quick Actions (visible when expanded) -->
-          <Card
-            v-if="!sidebarCollapsed"
-            variant="elevated"
-            class="p-4 space-y-3"
-          >
-            <h3 class="text-xs font-bold uppercase text-text-muted">
-              Batch Actions
-            </h3>
-            <Button
-              variant="outline"
-              size="sm"
-              block
-              @click="handleValidate"
-            >
-              <CheckCircle class="w-4 h-4 mr-2" /> Validate All
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              block
-              @click="handleClean"
-            >
-              <Trash2 class="w-4 h-4 mr-2" /> Clean Backups
-            </Button>
-          </Card>
         </div>
 
         <!-- Right Panel: Main Content -->
@@ -134,13 +107,11 @@
               :configs="filteredConfigs"
               :loading="loading"
               :error="error"
-              :expanded-config-name="expandedConfigName"
               @switch="handleSwitch"
               @edit="handleEdit"
               @delete="handleDelete"
               @enable="handleEnable"
               @disable="handleDisable"
-              @expand-config="expandedConfigName = $event"
             />
           </div>
 
@@ -184,7 +155,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Settings, Home, Cloud, Server, Command, Bot, History,
-  RefreshCw, CheckCircle, Trash2
+  RefreshCw
 } from 'lucide-vue-next'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
@@ -201,7 +172,7 @@ import ProviderStatsModal from '@/components/configs/ProviderStatsModal.vue'
 
 // API Imports
 import {
-  listConfigs, switchConfig, validateConfigs as apiValidateConfigs,
+  listConfigs, switchConfig,
   getHistory, deleteConfig, enableConfig, disableConfig
 } from '@/api'
 import { getProviderUsage } from '@/api/client'
@@ -219,7 +190,6 @@ const activeTab = ref<'configs' | 'history'>('configs')
 const currentFilter = ref<any>('all')
 const currentSort = ref('name') as any
 const sidebarCollapsed = ref(false)
-const expandedConfigName = ref<string | null>(null)
 
 // Modals
 const isEditModalOpen = ref(false)
@@ -312,21 +282,14 @@ const handleEdit = (name: string) => { editingConfigName.value = name; isEditMod
 const handleDelete = async (name: string) => { if(confirm('Delete?')) { await deleteConfig(name); refreshData() } }
 const handleEnable = async (name: string) => { await enableConfig(name); refreshData() }
 const handleDisable = async (name: string) => { await disableConfig(name); refreshData() }
-const handleValidate = async () => { await apiValidateConfigs(); alert('Validated') }
-const handleClean = () => alert('Coming soon')
 const handleConfigClick = async (name: string) => {
-  // 1. 设置展开状态
-  expandedConfigName.value = name
-  
-  // 2. 等待DOM更新
   await nextTick()
-  
-  // 3. 找到目标卡片并滚动
+
   const targetCard = document.querySelector(`[data-config-name="${name}"]`)
   if (targetCard) {
-    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    
-    // 4. 添加高亮动画
+    targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+
+    // 添加高亮动画
     targetCard.classList.add('highlight-pulse')
     setTimeout(() => targetCard.classList.remove('highlight-pulse'), 1500)
   }
