@@ -37,6 +37,15 @@
         box-shadow: var(--glass-shadow-elevated), var(--glass-inner-glow);
     }
 
+    /* 液态玻璃效果 - 高级折射感 */
+    .liquid-glass {
+        background: var(--liquid-glass-bg);
+        backdrop-filter: var(--liquid-glass-blur);
+        backdrop-filter: var(--liquid-glass-blur);
+        border: 1px solid var(--liquid-glass-border);
+        box-shadow: var(--liquid-glass-shadow), var(--liquid-glass-highlight);
+    }
+
     /* ========== 配置卡片样式 ========== */
     .config-card-active {
         background: linear-gradient(135deg,

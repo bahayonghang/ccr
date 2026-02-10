@@ -73,6 +73,24 @@
         outline: none;
     }
 
+    /* 恢复复选框和单选按钮的原生样式 */
+    input[type="checkbox"],
+    input[type="radio"] {
+        appearance: auto;
+        background: initial;
+        border: initial;
+        accent-color: var(--color-accent-primary);
+        cursor: pointer;
+    }
+
+    /* 暗色模式：让原生表单控件使用深色渲染 */
+    [data-theme="dark"] input[type="checkbox"],
+    [data-theme="dark"] input[type="radio"],
+    .dark input[type="checkbox"],
+    .dark input[type="radio"] {
+        color-scheme: dark;
+    }
+
     button {
         cursor: pointer;
     }

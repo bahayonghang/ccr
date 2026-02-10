@@ -313,6 +313,13 @@
     --glass-shadow: 0 4px 24px rgb(0 0 0 / 15%);
     --glass-shadow-elevated: 0 8px 32px rgb(0 0 0 / 20%);
     --glass-inner-glow: inset 0 1px 0 rgb(255 255 255 / 4%);
+
+    /* --- 液态玻璃效果 --- */
+    --liquid-glass-bg: rgb(255 255 255 / 4%);
+    --liquid-glass-blur: blur(24px) saturate(180%);
+    --liquid-glass-border: rgb(255 255 255 / 8%);
+    --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 6%), inset 0 0 20px rgb(255 255 255 / 2%);
+    --liquid-glass-shadow: 0 8px 32px rgb(0 0 0 / 20%), 0 2px 8px rgb(0 0 0 / 10%);
 }
 
 /* 亮色主题玻璃效果 */
@@ -326,6 +333,13 @@
     --glass-shadow: 0 4px 24px rgb(0 0 0 / 8%);
     --glass-shadow-elevated: 0 8px 32px rgb(0 0 0 / 12%), inset 0 1px 0 rgb(255 255 255 / 60%);
     --glass-inner-glow: inset 0 1px 0 rgb(255 255 255 / 50%);
+
+    /* --- 液态玻璃效果 --- */
+    --liquid-glass-bg: rgb(255 255 255 / 60%);
+    --liquid-glass-blur: blur(24px) saturate(180%);
+    --liquid-glass-border: rgb(255 255 255 / 40%);
+    --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 70%), inset 0 0 20px rgb(255 255 255 / 15%);
+    --liquid-glass-shadow: 0 8px 32px rgb(0 0 0 / 8%), 0 2px 8px rgb(0 0 0 / 4%);
 }
 
 /* ========== 动画系统 ========== */
