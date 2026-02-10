@@ -1,7 +1,7 @@
 <template>
   <aside
-    class="sticky top-6 h-fit rounded-2xl transition-all duration-300 glass-sidebar overflow-hidden"
-    :class="collapsed ? 'w-12 p-2' : 'p-4'"
+    class="sticky top-6 h-fit rounded-2xl transition-all duration-300 sidebar-container overflow-hidden"
+    :class="collapsed ? 'w-12 p-2' : 'p-3'"
   >
     <!-- Collapse Toggle Button (Top Bar Style) -->
     <div 
@@ -374,12 +374,11 @@ const categories = computed(() => [
 </script>
 
 <style scoped>
-/* Glass sidebar effect */
-.glass-sidebar {
-  background: var(--glass-bg-medium);
-  backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid var(--glass-border-medium);
-  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-border-light);
+/* 侧边栏 - 轻量玻璃容器 */
+.sidebar-container {
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--glass-blur-sm);
+  backdrop-filter: var(--glass-blur-sm);
   max-height: calc(100vh - 160px);
   overflow-y: auto;
 }
@@ -393,59 +392,27 @@ const categories = computed(() => [
   color: var(--text-muted);
 }
 
-.text-info {
-  color: var(--accent-info);
-}
-
-.text-purple {
-  color: var(--color-purple);
-}
-
-/* Stat badges */
-.stat-badge-success {
-  background: linear-gradient(135deg, rgb(var(--color-success-rgb), 0.15), rgb(var(--color-cyan-rgb), 0.15));
-  color: var(--accent-success);
-  border: 1px solid rgb(var(--color-success-rgb), 0.2);
-}
-
-.stat-badge-info {
-  background: linear-gradient(135deg, rgb(var(--color-cyan-rgb), 0.15), rgb(var(--color-info-rgb), 0.15));
-  color: var(--color-cyan);
-  border: 1px solid rgb(var(--color-cyan-rgb), 0.2);
-}
-
-/* Search input */
-.search-input {
-  background: var(--glass-bg-light);
-  border: 1px solid rgb(var(--color-success-rgb), 0.2);
-  color: var(--text-primary);
-}
-
-.search-input:focus {
-  border-color: rgb(var(--color-success-rgb), 0.5);
-}
-
 /* Category filter section */
 .category-filter-section {
-  border-bottom: 1px solid rgb(var(--color-success-rgb), 0.12);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: 0.75rem;
 }
 
 /* 自定义滚动条 */
 aside::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
 }
 
 aside::-webkit-scrollbar-track {
-  background: var(--bg-tertiary);
-  border-radius: 2px;
+  background: transparent;
 }
 
 aside::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: var(--color-border-subtle);
   border-radius: 2px;
 }
 
 aside::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--color-border-default);
 }
 </style>
