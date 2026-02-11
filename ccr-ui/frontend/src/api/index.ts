@@ -166,17 +166,17 @@ export const getCurrentPlatform = async (): Promise<string> => {
 }
 
 // ===================================
-// Re-export HTTP API functions
+// Re-export all HTTP API functions from modules
 // (Web-only features or features not yet implemented in Tauri)
 // ===================================
 
 export {
-  // Command execution (web-only)
+  // Command execution
   executeCommand,
   listCommands,
   getCommandHelp,
 
-  // Advanced config operations (web-only for now)
+  // Advanced config operations
   cleanBackups,
   exportConfig,
   importConfig,
@@ -187,43 +187,43 @@ export {
   enableConfig,
   disableConfig,
 
-  // System info (web-only)
+  // System info
   getSystemInfo,
 
-  // Version management (web-only)
+  // Version management
   getVersion,
   checkUpdate,
   updateCCR,
 
-  // MCP Servers (web-only)
+  // MCP Servers
   listMcpServers,
   addMcpServer,
   updateMcpServer,
   deleteMcpServer,
   toggleMcpServer,
 
-  // Agents (web-only)
+  // Agents
   listAgents,
   addAgent,
   updateAgent,
   deleteAgent,
   toggleAgent,
 
-  // Slash Commands (web-only)
+  // Slash Commands
   listSlashCommands,
   addSlashCommand,
   updateSlashCommand,
   deleteSlashCommand,
   toggleSlashCommand,
 
-  // Plugins (web-only)
+  // Plugins
   listPlugins,
   addPlugin,
   updatePlugin,
   deletePlugin,
   togglePlugin,
 
-  // Codex (web-only)
+  // Codex
   listCodexMcpServers,
   addCodexMcpServer,
   updateCodexMcpServer,
@@ -251,17 +251,17 @@ export {
   updateCodexPlugin,
   deleteCodexPlugin,
   toggleCodexPlugin,
-  // Codex Auth (web-only)
+  // Codex Auth
   listCodexAuthAccounts,
   getCodexAuthCurrent,
   saveCodexAuth,
   switchCodexAuth,
   deleteCodexAuth,
   detectCodexProcess,
-  // Codex Usage (web-only)
+  // Codex Usage
   getCodexUsage,
 
-  // Gemini (web-only)
+  // Gemini
   listGeminiMcpServers,
   addGeminiMcpServer,
   updateGeminiMcpServer,
@@ -284,7 +284,7 @@ export {
   deleteGeminiPlugin,
   toggleGeminiPlugin,
 
-  // Qwen (web-only)
+  // Qwen
   listQwenMcpServers,
   addQwenMcpServer,
   updateQwenMcpServer,
@@ -307,7 +307,7 @@ export {
   deleteQwenPlugin,
   toggleQwenPlugin,
 
-  // iFlow (web-only)
+  // iFlow
   listIflowMcpServers,
   addIflowMcpServer,
   updateIflowMcpServer,
@@ -328,16 +328,35 @@ export {
   deleteIflowPlugin,
   toggleIflowPlugin,
 
-  // Converter (web-only)
+  // Droid
+  listDroidMcpServers,
+  addDroidMcpServer,
+  updateDroidMcpServer,
+  deleteDroidMcpServer,
+  listDroidAgents,
+  getDroidAgent,
+  addDroidAgent,
+  updateDroidAgent,
+  deleteDroidAgent,
+  listDroidSlashCommands,
+  addDroidSlashCommand,
+  updateDroidSlashCommand,
+  deleteDroidSlashCommand,
+  listDroidPlugins,
+  addDroidPlugin,
+  updateDroidPlugin,
+  deleteDroidPlugin,
+
+  // Converter
   convertConfig,
 
-  // Sync (web-only for now)
+  // Sync (WebDAV)
   getSyncStatus,
   getSyncInfo,
   pushSync,
   pullSync,
 
-  // Statistics (web-only)
+  // Statistics
   getCostOverview,
   getCostToday,
   getCostWeek,
@@ -347,8 +366,25 @@ export {
   getCostByProject,
   getTopSessions,
   getStatsSummary,
+  getProviderUsage,
 
-  // Checkin (web-only)
+  // Hooks
+  listHooks,
+  addHook,
+  updateHook,
+  deleteHook,
+  toggleHook,
+
+  // Skills
+  listSkills,
+  addSkill,
+  deleteSkill,
+  listSkillRepositories,
+  addSkillRepository,
+  removeSkillRepository,
+  scanSkillRepository,
+
+  // Checkin
   listCheckinProviders,
   getCheckinProvider,
   createCheckinProvider,
@@ -358,20 +394,34 @@ export {
   addBuiltinProvider,
   listCheckinAccounts,
   getCheckinAccount,
+  getCheckinAccountDashboard,
   createCheckinAccount,
   updateCheckinAccount,
   deleteCheckinAccount,
+  getCheckinAccountCookies,
   executeCheckin,
   checkinAccount,
   queryCheckinBalance,
   getCheckinBalanceHistory,
   listCheckinRecords,
   getAccountCheckinRecords,
+  exportCheckinRecords,
   getTodayCheckinStats,
   exportCheckinConfig,
   previewCheckinImport,
   importCheckinConfig,
   testCheckinConnection,
+
+  // Output Styles
+  listOutputStyles,
+  getOutputStyle,
+  createOutputStyle,
+  updateOutputStyle,
+  deleteOutputStyle,
+
+  // Statusline
+  getStatusline,
+  updateStatusline,
 } from './client'
 
 // ===================================
