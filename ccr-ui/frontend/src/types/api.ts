@@ -3,7 +3,7 @@
  * 用于修复 client.ts 中的 any 类型问题
  */
 
-import type { Agent, SlashCommand } from './index'
+import type { Agent, SlashCommand } from './mcp'
 
 // ============ MCP Preset Types ============
 

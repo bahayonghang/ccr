@@ -299,8 +299,8 @@ export interface ImportPreviewResponse {
   warnings: string[]
 }
 
-/** 导入请求 */
-export interface ImportRequest {
+/** 签到导入请求 */
+export interface CheckinImportRequest {
   data: ExportData
   options: ImportOptions
 }
