@@ -1,37 +1,24 @@
 // Qwen CLI API 处理器
 //
-// 使用统一的响应工具模块减少重复代码
+// MCP/Config 使用 QwenConfigManager，Slash Commands 委托 toml_commands 共享模块
 
 use axum::{Json, extract::Path, response::IntoResponse};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 use crate::api::handlers::response::{bad_request, internal_error, ok, ok_message};
 use crate::managers::config::qwen_manager::QwenConfigManager;
 use crate::models::platforms::qwen::{QwenConfig, QwenMcpServer, QwenMcpServerRequest};
 
+use super::toml_commands;
+
 const PLATFORM: &str = "Qwen";
-
-// ============ 辅助宏 ============
-
-/// 初始化 Manager 并处理错误
-macro_rules! with_qwen_manager {
-    ($body:expr) => {
-        match QwenConfigManager::default() {
-            Ok(manager) => $body(manager),
-            Err(e) => internal_error(format!("初始化 {} 配置管理器失败: {}", PLATFORM, e))
-                .into_response(),
-        }
-    };
-}
 
 // ============ MCP 服务器管理 ============
 
 /// GET /api/qwen/mcp - 列出所有 MCP 服务器
 pub async fn list_qwen_mcp_servers() -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         match manager.list_mcp_servers() {
             Ok(servers) => {
                 let servers_vec: Vec<_> = servers
@@ -59,7 +46,7 @@ pub async fn list_qwen_mcp_servers() -> impl IntoResponse {
 
 /// POST /api/qwen/mcp - 添加 MCP 服务器
 pub async fn add_qwen_mcp_server(Json(request): Json<QwenMcpServerRequest>) -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         let server = QwenMcpServer {
             command: request.command,
             args: request.args,
@@ -83,7 +70,7 @@ pub async fn update_qwen_mcp_server(
     Path(name): Path<String>,
     Json(request): Json<QwenMcpServerRequest>,
 ) -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         let server = QwenMcpServer {
             command: request.command,
             args: request.args,
@@ -104,7 +91,7 @@ pub async fn update_qwen_mcp_server(
 
 /// DELETE /api/qwen/mcp/:name - 删除 MCP 服务器
 pub async fn delete_qwen_mcp_server(Path(name): Path<String>) -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         match manager.delete_mcp_server(&name) {
             Ok(()) => ok_message(format!("MCP 服务器 '{}' 删除成功", name)).into_response(),
             Err(e) => bad_request(format!("删除 MCP 服务器失败: {}", e)).into_response(),
@@ -116,7 +103,7 @@ pub async fn delete_qwen_mcp_server(Path(name): Path<String>) -> impl IntoRespon
 
 /// GET /api/qwen/config - 获取完整配置
 pub async fn get_qwen_config() -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         match manager.get_config() {
             Ok(config) => ok(config).into_response(),
             Err(e) => internal_error(format!("读取配置失败: {}", e)).into_response(),
@@ -126,7 +113,7 @@ pub async fn get_qwen_config() -> impl IntoResponse {
 
 /// PUT /api/qwen/config - 更新完整配置
 pub async fn update_qwen_config(Json(config): Json<QwenConfig>) -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         match manager.update_config(&config) {
             Ok(()) => ok_message("配置更新成功").into_response(),
             Err(e) => bad_request(format!("更新配置失败: {}", e)).into_response(),
@@ -134,265 +121,34 @@ pub async fn update_qwen_config(Json(config): Json<QwenConfig>) -> impl IntoResp
     })
 }
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct UiSlashCommandRequest {
-    pub name: String,
-    pub description: String,
-    pub command: String,
-    #[serde(default)]
-    pub folder: String,
-}
+// ============ 斜杠命令管理（委托 toml_commands 共享模块）============
 
-#[derive(Debug, Serialize)]
-struct TomlCommandFile {
-    pub prompt: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-}
-
-fn find_project_root() -> Result<PathBuf, String> {
-    let start = std::env::current_dir().map_err(|e| format!("无法获取当前目录: {}", e))?;
-    let mut current = start.as_path();
-    loop {
-        if current.join(".git").exists() {
-            return Ok(current.to_path_buf());
-        }
-        match current.parent() {
-            Some(parent) => current = parent,
-            None => return Ok(start),
-        }
-    }
-}
-
-fn qwen_commands_dirs() -> Result<(PathBuf, PathBuf), String> {
-    let project_root = find_project_root()?;
-    let project = project_root.join(".qwen").join("commands");
-    let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
-    let user = home.join(".qwen").join("commands");
-    Ok((project, user))
-}
-
-fn list_toml_commands(
-    project_dir: &PathBuf,
-    user_dir: &PathBuf,
-) -> Result<Vec<crate::models::api::SlashCommand>, String> {
-    let mut chosen: std::collections::HashMap<String, PathBuf> = std::collections::HashMap::new();
-
-    for base in [project_dir, user_dir] {
-        if !base.exists() {
-            continue;
-        }
-        for entry in walkdir::WalkDir::new(base)
-            .follow_links(false)
-            .into_iter()
-            .filter_map(Result::ok)
-        {
-            if !entry.file_type().is_file() {
-                continue;
-            }
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) != Some("toml") {
-                continue;
-            }
-            let rel = path.strip_prefix(base).map_err(|e| e.to_string())?;
-            let rel_no_ext = rel.with_extension("");
-            let key = rel_no_ext.to_string_lossy().replace('\\', "/");
-            chosen.entry(key).or_insert_with(|| path.to_path_buf());
-        }
-    }
-
-    let mut commands = Vec::new();
-    for (key, path) in chosen {
-        let content = std::fs::read_to_string(&path).map_err(|e| format!("读取命令失败: {}", e))?;
-        let value: toml::Value =
-            toml::from_str(&content).map_err(|e| format!("解析 TOML 失败: {}", e))?;
-        let prompt = value
-            .get("prompt")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| format!("缺少 prompt 字段: {}", key))?
-            .to_string();
-        let description = value
-            .get("description")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| {
-                prompt
-                    .lines()
-                    .find(|l| !l.trim().is_empty())
-                    .unwrap_or("Command")
-                    .trim()
-                    .to_string()
-            });
-
-        let (folder, name) = match key.rsplit_once('/') {
-            Some((f, n)) => (f.to_string(), n.to_string()),
-            None => (String::new(), key.clone()),
-        };
-
-        commands.push(crate::models::api::SlashCommand {
-            name,
-            description,
-            command: prompt,
-            args: None,
-            disabled: false,
-            folder,
-        });
-    }
-
-    commands.sort_by(|a, b| a.name.cmp(&b.name));
-    Ok(commands)
-}
-
+/// GET /api/qwen/slash-commands - 列出所有斜杠命令
 pub async fn list_qwen_slash_commands() -> impl IntoResponse {
-    let (project_dir, user_dir) = match qwen_commands_dirs() {
-        Ok(d) => d,
-        Err(e) => return internal_error(e).into_response(),
-    };
-
-    let commands = match list_toml_commands(&project_dir, &user_dir) {
-        Ok(c) => c,
-        Err(e) => return internal_error(e).into_response(),
-    };
-
-    let folders: Vec<String> = commands
-        .iter()
-        .filter_map(|c| {
-            if c.folder.is_empty() {
-                None
-            } else {
-                Some(c.folder.clone())
-            }
-        })
-        .collect::<std::collections::HashSet<_>>()
-        .into_iter()
-        .collect();
-
-    ok(json!({ "commands": commands, "folders": folders })).into_response()
+    toml_commands::list_slash_commands("qwen")
 }
 
-pub async fn add_qwen_slash_command(Json(req): Json<UiSlashCommandRequest>) -> impl IntoResponse {
-    let (project_dir, _user_dir) = match qwen_commands_dirs() {
-        Ok(d) => d,
-        Err(e) => return internal_error(e).into_response(),
-    };
-
-    let mut target_dir = project_dir;
-    if !req.folder.trim().is_empty() {
-        target_dir = target_dir.join(req.folder.trim());
-    }
-
-    if let Err(e) = std::fs::create_dir_all(&target_dir) {
-        return internal_error(format!("创建目录失败: {}", e)).into_response();
-    }
-
-    let file_path = target_dir.join(format!("{}.toml", req.name));
-    let file = TomlCommandFile {
-        prompt: req.command,
-        description: Some(req.description),
-    };
-
-    let toml_str = match toml::to_string_pretty(&file) {
-        Ok(s) => s,
-        Err(e) => return internal_error(format!("序列化 TOML 失败: {}", e)).into_response(),
-    };
-
-    match std::fs::write(&file_path, toml_str) {
-        Ok(_) => ok_message("Qwen command created successfully").into_response(),
-        Err(e) => internal_error(format!("写入文件失败: {}", e)).into_response(),
-    }
+/// POST /api/qwen/slash-commands - 添加斜杠命令
+pub async fn add_qwen_slash_command(
+    Json(req): Json<toml_commands::UiSlashCommandRequest>,
+) -> impl IntoResponse {
+    toml_commands::add_slash_command("qwen", PLATFORM, req)
 }
 
-fn find_command_file_by_name(
-    project_dir: &PathBuf,
-    user_dir: &PathBuf,
-    name: &str,
-) -> Result<Option<PathBuf>, String> {
-    let mut matches = Vec::new();
-    for base in [project_dir, user_dir] {
-        if !base.exists() {
-            continue;
-        }
-        for entry in walkdir::WalkDir::new(base)
-            .follow_links(false)
-            .into_iter()
-            .filter_map(Result::ok)
-        {
-            if !entry.file_type().is_file() {
-                continue;
-            }
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) != Some("toml") {
-                continue;
-            }
-            if path.file_stem().and_then(|s| s.to_str()) == Some(name) {
-                matches.push(path.to_path_buf());
-            }
-        }
-    }
-    match matches.len() {
-        0 => Ok(None),
-        1 => Ok(Some(matches.remove(0))),
-        _ => Err("存在多个同名命令文件，请先重命名以避免歧义".to_string()),
-    }
-}
-
+/// PUT /api/qwen/slash-commands/:name - 更新斜杠命令
 pub async fn update_qwen_slash_command(
     Path(name): Path<String>,
-    Json(req): Json<UiSlashCommandRequest>,
+    Json(req): Json<toml_commands::UiSlashCommandRequest>,
 ) -> impl IntoResponse {
-    let (project_dir, user_dir) = match qwen_commands_dirs() {
-        Ok(d) => d,
-        Err(e) => return internal_error(e).into_response(),
-    };
-
-    let target = match find_command_file_by_name(&project_dir, &user_dir, &name) {
-        Ok(Some(p)) => p,
-        Ok(None) => return bad_request("命令不存在").into_response(),
-        Err(e) => return bad_request(e).into_response(),
-    };
-
-    let file = TomlCommandFile {
-        prompt: req.command,
-        description: Some(req.description),
-    };
-
-    let toml_str = match toml::to_string_pretty(&file) {
-        Ok(s) => s,
-        Err(e) => return internal_error(format!("序列化 TOML 失败: {}", e)).into_response(),
-    };
-
-    match std::fs::write(&target, toml_str) {
-        Ok(_) => ok_message("Qwen command updated successfully").into_response(),
-        Err(e) => internal_error(format!("写入文件失败: {}", e)).into_response(),
-    }
+    toml_commands::update_slash_command("qwen", PLATFORM, &name, req)
 }
 
+/// DELETE /api/qwen/slash-commands/:name - 删除斜杠命令
 pub async fn delete_qwen_slash_command(Path(name): Path<String>) -> impl IntoResponse {
-    let (project_dir, user_dir) = match qwen_commands_dirs() {
-        Ok(d) => d,
-        Err(e) => return internal_error(e).into_response(),
-    };
-
-    let target = match find_command_file_by_name(&project_dir, &user_dir, &name) {
-        Ok(Some(p)) => p,
-        Ok(None) => return bad_request("命令不存在").into_response(),
-        Err(e) => return bad_request(e).into_response(),
-    };
-
-    match std::fs::remove_file(&target) {
-        Ok(_) => ok_message("Qwen command deleted successfully").into_response(),
-        Err(e) => internal_error(format!("删除文件失败: {}", e)).into_response(),
-    }
+    toml_commands::delete_slash_command("qwen", PLATFORM, &name)
 }
 
+/// PATCH /api/qwen/slash-commands/:name/toggle - 切换启用/禁用（不支持）
 pub async fn toggle_qwen_slash_command(Path(_name): Path<String>) -> impl IntoResponse {
-    (
-        axum::http::StatusCode::NOT_IMPLEMENTED,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Qwen Code custom commands do not support enable/disable toggle via API"
-        })),
-    )
-        .into_response()
+    toml_commands::toggle_not_supported("Qwen Code")
 }

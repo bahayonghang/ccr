@@ -29,17 +29,6 @@ fn mask_token(token: &str) -> String {
     }
 }
 
-/// 初始化 Codex Manager 并处理错误
-macro_rules! with_codex_manager {
-    ($body:expr) => {
-        match CodexConfigManager::default() {
-            Ok(manager) => $body(manager),
-            Err(e) => internal_error(format!("初始化 {} 配置管理器失败: {}", PLATFORM, e))
-                .into_response(),
-        }
-    };
-}
-
 /// 处理 spawn_blocking 的结果
 #[allow(dead_code)]
 fn handle_blocking_result<T, F>(
@@ -60,14 +49,17 @@ where
 
 /// GET /api/codex/mcp - 列出所有 Codex MCP 服务器
 pub async fn list_codex_mcp_servers() -> impl IntoResponse {
-    with_codex_manager!(|manager: CodexConfigManager| {
-        match manager.list_mcp_servers() {
-            Ok(servers) => ok(CodexMcpListResponse { servers }).into_response(),
-            Err(e) => {
-                internal_error(format!("读取 {} MCP 服务器失败: {}", PLATFORM, e)).into_response()
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            match manager.list_mcp_servers() {
+                Ok(servers) => ok(CodexMcpListResponse { servers }).into_response(),
+                Err(e) => internal_error(format!("读取 {} MCP 服务器失败: {}", PLATFORM, e))
+                    .into_response(),
             }
         }
-    })
+    )
 }
 
 /// POST /api/codex/mcp - 添加 Codex MCP 服务器
@@ -78,25 +70,27 @@ pub async fn add_codex_mcp_server(Json(req): Json<CodexMcpServerRequest>) -> imp
             .into_response();
     }
 
-    with_codex_manager!(|manager: CodexConfigManager| {
-        let name = req
-            .name
-            .clone()
-            .or(req.command.clone())
-            .or(req.url.clone())
-            .unwrap_or_else(|| "unknown".to_string());
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            let name = req
+                .name
+                .clone()
+                .or(req.command.clone())
+                .or(req.url.clone())
+                .unwrap_or_else(|| "unknown".to_string());
 
-        let server: CodexMcpServer = req.into();
+            let server: CodexMcpServer = req.into();
 
-        match manager.add_mcp_server(name.clone(), server) {
-            Ok(_) => {
-                ok_message(format!("{} MCP 服务器 '{}' 已成功添加", PLATFORM, name)).into_response()
-            }
-            Err(e) => {
-                internal_error(format!("添加 {} MCP 服务器失败: {}", PLATFORM, e)).into_response()
+            match manager.add_mcp_server(name.clone(), server) {
+                Ok(_) => ok_message(format!("{} MCP 服务器 '{}' 已成功添加", PLATFORM, name))
+                    .into_response(),
+                Err(e) => internal_error(format!("添加 {} MCP 服务器失败: {}", PLATFORM, e))
+                    .into_response(),
             }
         }
-    })
+    )
 }
 
 /// PUT /api/codex/mcp/:name - 更新 Codex MCP 服务器
@@ -104,30 +98,37 @@ pub async fn update_codex_mcp_server(
     Path(name): Path<String>,
     Json(req): Json<CodexMcpServerRequest>,
 ) -> impl IntoResponse {
-    with_codex_manager!(|manager: CodexConfigManager| {
-        let server: CodexMcpServer = req.into();
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            let server: CodexMcpServer = req.into();
 
-        match manager.update_mcp_server(&name, server) {
-            Ok(_) => {
-                ok_message(format!("{} MCP 服务器 '{}' 已成功更新", PLATFORM, name)).into_response()
-            }
-            Err(e) => {
-                internal_error(format!("更新 {} MCP 服务器失败: {}", PLATFORM, e)).into_response()
+            match manager.update_mcp_server(&name, server) {
+                Ok(_) => ok_message(format!("{} MCP 服务器 '{}' 已成功更新", PLATFORM, name))
+                    .into_response(),
+                Err(e) => internal_error(format!("更新 {} MCP 服务器失败: {}", PLATFORM, e))
+                    .into_response(),
             }
         }
-    })
+    )
 }
 
 /// DELETE /api/codex/mcp/:name - 删除 Codex MCP 服务器
 pub async fn delete_codex_mcp_server(Path(name): Path<String>) -> impl IntoResponse {
-    with_codex_manager!(|manager: CodexConfigManager| {
-        match manager.delete_mcp_server(&name) {
-            Ok(_) => {
-                ok_message(format!("{} MCP 服务器 '{}' 已成功删除", PLATFORM, name)).into_response()
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            match manager.delete_mcp_server(&name) {
+                Ok(_) => ok_message(format!("{} MCP 服务器 '{}' 已成功删除", PLATFORM, name))
+                    .into_response(),
+                Err(e) => {
+                    not_found(format!("删除 {} MCP 服务器失败: {}", PLATFORM, e)).into_response()
+                }
             }
-            Err(e) => not_found(format!("删除 {} MCP 服务器失败: {}", PLATFORM, e)).into_response(),
         }
-    })
+    )
 }
 
 // ============ Profile 管理 ============
@@ -406,30 +407,40 @@ pub async fn apply_codex_profile(Path(name): Path<String>) -> impl IntoResponse 
 
 /// GET /api/codex/config - 获取完整的 Codex 配置
 pub async fn get_codex_config() -> impl IntoResponse {
-    with_codex_manager!(|manager: CodexConfigManager| {
-        match manager.read_config() {
-            Ok(config) => ok(CodexConfigResponse { config }).into_response(),
-            Err(e) => internal_error(format!("读取 {} 配置失败: {}", PLATFORM, e)).into_response(),
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            match manager.read_config() {
+                Ok(config) => ok(CodexConfigResponse { config }).into_response(),
+                Err(e) => {
+                    internal_error(format!("读取 {} 配置失败: {}", PLATFORM, e)).into_response()
+                }
+            }
         }
-    })
+    )
 }
 
 /// PUT /api/codex/config - 更新 Codex 基础配置
 pub async fn update_codex_base_config(Json(config): Json<CodexConfig>) -> impl IntoResponse {
-    with_codex_manager!(|manager: CodexConfigManager| {
-        match manager.update_base_config(
-            config.model,
-            config.model_provider,
-            config.approval_policy,
-            config.sandbox_mode,
-            config.model_reasoning_effort,
-        ) {
-            Ok(_) => ok_message(format!("{} 基础配置已成功更新", PLATFORM)).into_response(),
-            Err(e) => {
-                internal_error(format!("更新 {} 基础配置失败: {}", PLATFORM, e)).into_response()
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            match manager.update_base_config(
+                config.model,
+                config.model_provider,
+                config.approval_policy,
+                config.sandbox_mode,
+                config.model_reasoning_effort,
+            ) {
+                Ok(_) => ok_message(format!("{} 基础配置已成功更新", PLATFORM)).into_response(),
+                Err(e) => {
+                    internal_error(format!("更新 {} 基础配置失败: {}", PLATFORM, e)).into_response()
+                }
             }
         }
-    })
+    )
 }
 
 // ============ Auth 账号管理 ============

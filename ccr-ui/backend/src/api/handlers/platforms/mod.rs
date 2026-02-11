@@ -5,3 +5,4 @@ pub mod droid;
 pub mod gemini;
 pub mod iflow;
 pub mod qwen;
+pub mod toml_commands;
