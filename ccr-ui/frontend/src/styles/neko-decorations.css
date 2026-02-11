@@ -1,0 +1,350 @@
+/* ============================================
+   CCR-UI Nekomata Kawaii Design System
+   Neko Decorations - Cat Ears, Paws, Tails
+   ============================================ */
+
+/* ========== 猫耳装饰 (Cat Ear Decorations) ========== */
+
+/* 猫耳 - 添加到卡片或容器的顶部 */
+.neko-ears {
+    position: relative;
+}
+
+.neko-ears::before,
+.neko-ears::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    width: 24px;
+    height: 24px;
+    background: var(--color-accent-primary);
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    z-index: 10;
+    transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.neko-ears::before {
+    left: 20px;
+    transform: rotate(-15deg);
+}
+
+.neko-ears::after {
+    right: 20px;
+    transform: rotate(15deg);
+}
+
+/* 猫耳内部粉色 */
+.neko-ears-inner {
+    position: relative;
+}
+
+.neko-ears-inner::before,
+.neko-ears-inner::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    width: 16px;
+    height: 16px;
+    background: var(--color-premium-pink);
+    clip-path: polygon(50% 15%, 10% 100%, 90% 100%);
+    z-index: 11;
+}
+
+.neko-ears-inner::before {
+    left: 24px;
+    transform: rotate(-15deg);
+}
+
+.neko-ears-inner::after {
+    right: 24px;
+    transform: rotate(15deg);
+}
+
+/* 猫耳抖动效果 */
+.neko-ears:hover::before {
+    transform: rotate(-20deg) scale(1.1);
+}
+
+.neko-ears:hover::after {
+    transform: rotate(20deg) scale(1.1);
+}
+
+/* 小型猫耳 - 用于按钮等小元素 */
+.neko-ears-sm::before,
+.neko-ears-sm::after {
+    width: 14px;
+    height: 14px;
+    top: -8px;
+}
+
+.neko-ears-sm::before {
+    left: 12px;
+}
+
+.neko-ears-sm::after {
+    right: 12px;
+}
+
+/* ========== 猫爪装饰 (Cat Paw Decorations) ========== */
+
+/* 猫爪图标 - SVG 内联 */
+.neko-paw-icon {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F472B6'%3E%3Cellipse cx='12' cy='17' rx='5' ry='4'/%3E%3Ccircle cx='7' cy='10' r='2.5'/%3E%3Ccircle cx='17' cy='10' r='2.5'/%3E%3Ccircle cx='5' cy='14' r='2'/%3E%3Ccircle cx='19' cy='14' r='2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+    vertical-align: middle;
+}
+
+/* 猫爪 Loading 动画 */
+.neko-loading {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.neko-loading::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F472B6'%3E%3Cellipse cx='12' cy='17' rx='5' ry='4'/%3E%3Ccircle cx='7' cy='10' r='2.5'/%3E%3Ccircle cx='17' cy='10' r='2.5'/%3E%3Ccircle cx='5' cy='14' r='2'/%3E%3Ccircle cx='19' cy='14' r='2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+    animation: neko-paw-bounce 1.2s var(--ease-spring) infinite;
+}
+
+/* 暗色模式猫爪颜色 */
+[data-theme="dark"] .neko-loading::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F9A8D4'%3E%3Cellipse cx='12' cy='17' rx='5' ry='4'/%3E%3Ccircle cx='7' cy='10' r='2.5'/%3E%3Ccircle cx='17' cy='10' r='2.5'/%3E%3Ccircle cx='5' cy='14' r='2'/%3E%3Ccircle cx='19' cy='14' r='2'/%3E%3C/svg%3E");
+}
+
+/* 猫爪 Loading 小尺寸 */
+.neko-loading-sm {
+    width: 24px;
+    height: 24px;
+}
+
+.neko-loading-sm::before {
+    width: 20px;
+    height: 20px;
+}
+
+@keyframes neko-paw-bounce {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+
+    25% {
+        transform: scale(0.8) rotate(-10deg);
+        opacity: 0.7;
+    }
+
+    50% {
+        transform: scale(1.15) rotate(5deg);
+        opacity: 1;
+    }
+
+    75% {
+        transform: scale(0.9) rotate(-5deg);
+        opacity: 0.8;
+    }
+}
+
+/* ========== 猫爪印花纹 (Paw Print Pattern) ========== */
+
+/* 替代 dot grid 的猫爪印背景 */
+.neko-paw-pattern {
+    position: relative;
+}
+
+.neko-paw-pattern::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cellipse cx='30' cy='38' rx='8' ry='6' fill='%23F472B6'/%3E%3Ccircle cx='22' cy='26' r='4' fill='%23F472B6'/%3E%3Ccircle cx='38' cy='26' r='4' fill='%23F472B6'/%3E%3Ccircle cx='18' cy='33' r='3' fill='%23F472B6'/%3E%3Ccircle cx='42' cy='33' r='3' fill='%23F472B6'/%3E%3C/svg%3E");
+    background-size: 80px 80px;
+    mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
+}
+
+[data-theme="dark"] .neko-paw-pattern::after {
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cellipse cx='30' cy='38' rx='8' ry='6' fill='%23F9A8D4'/%3E%3Ccircle cx='22' cy='26' r='4' fill='%23F9A8D4'/%3E%3Ccircle cx='38' cy='26' r='4' fill='%23F9A8D4'/%3E%3Ccircle cx='18' cy='33' r='3' fill='%23F9A8D4'/%3E%3Ccircle cx='42' cy='33' r='3' fill='%23F9A8D4'/%3E%3C/svg%3E");
+}
+
+/* ========== 猫尾分隔线 (Cat Tail Divider) ========== */
+
+.neko-divider {
+    position: relative;
+    height: 20px;
+    margin: var(--space-4) 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='20' viewBox='0 0 200 20'%3E%3Cpath d='M0 10 C30 10, 40 2, 60 2 S90 18, 120 10 S150 2, 180 10 L200 10' fill='none' stroke='%23F472B6' stroke-width='2' stroke-linecap='round' opacity='0.3'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-position: center;
+    background-size: 200px 20px;
+}
+
+[data-theme="dark"] .neko-divider {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='20' viewBox='0 0 200 20'%3E%3Cpath d='M0 10 C30 10, 40 2, 60 2 S90 18, 120 10 S150 2, 180 10 L200 10' fill='none' stroke='%23F9A8D4' stroke-width='2' stroke-linecap='round' opacity='0.3'/%3E%3C/svg%3E");
+}
+
+/* ========== 猫铃铛徽章 (Cat Bell Badge) ========== */
+
+.neko-bell-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
+    box-shadow:
+        0 2px 8px rgb(251 191 36 / 30%),
+        inset 0 1px 0 rgb(255 255 255 / 40%);
+    font-size: 12px;
+    color: #92400E;
+    font-weight: var(--font-bold);
+}
+
+/* 铃铛装饰环 */
+.neko-bell-badge::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 6px;
+    border: 2px solid var(--color-accent-primary);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+}
+
+/* 铃铛光泽 */
+.neko-bell-badge::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: var(--radius-full);
+    background: #92400E;
+}
+
+/* ========== 猫娘卡片 (Neko Card) ========== */
+
+/* 带猫耳的特殊卡片样式 */
+.neko-card {
+    position: relative;
+    border-radius: var(--radius-2xl);
+    overflow: visible;
+    margin-top: 14px; /* 为猫耳腾出空间 */
+}
+
+.neko-card::before,
+.neko-card::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    width: 24px;
+    height: 24px;
+    background: var(--color-accent-primary);
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    z-index: 10;
+    transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.neko-card::before {
+    left: 24px;
+    transform: rotate(-15deg);
+}
+
+.neko-card::after {
+    right: 24px;
+    transform: rotate(15deg);
+}
+
+.neko-card:hover::before {
+    transform: rotate(-20deg) translateY(-2px);
+    animation: neko-ear-wiggle 0.5s var(--ease-spring);
+}
+
+.neko-card:hover::after {
+    transform: rotate(20deg) translateY(-2px);
+    animation: neko-ear-wiggle 0.5s var(--ease-spring) 0.1s;
+}
+
+@keyframes neko-ear-wiggle {
+    0% { transform: rotate(-15deg); }
+    25% { transform: rotate(-25deg) translateY(-3px); }
+    50% { transform: rotate(-10deg) translateY(-1px); }
+    75% { transform: rotate(-22deg) translateY(-2px); }
+    100% { transform: rotate(-20deg) translateY(-2px); }
+}
+
+/* ========== 猫咪空状态 (Neko Empty State) ========== */
+
+.neko-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12);
+    text-align: center;
+}
+
+.neko-empty-state-icon {
+    width: 80px;
+    height: 80px;
+    margin-bottom: var(--space-4);
+    opacity: 0.6;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3C!-- Cat face --%3E%3Ccircle cx='50' cy='55' r='30' fill='%23FFF0F5' stroke='%23F472B6' stroke-width='2'/%3E%3C!-- Left ear --%3E%3Cpolygon points='25,35 15,10 40,28' fill='%23FFF0F5' stroke='%23F472B6' stroke-width='2'/%3E%3C!-- Right ear --%3E%3Cpolygon points='75,35 85,10 60,28' fill='%23FFF0F5' stroke='%23F472B6' stroke-width='2'/%3E%3C!-- Eyes --%3E%3Cellipse cx='38' cy='50' rx='4' ry='5' fill='%23F472B6'/%3E%3Cellipse cx='62' cy='50' rx='4' ry='5' fill='%23F472B6'/%3E%3C!-- Nose --%3E%3Ccircle cx='50' cy='58' r='2' fill='%23F9A8D4'/%3E%3C!-- Mouth --%3E%3Cpath d='M45 62 Q50 67 55 62' fill='none' stroke='%23F472B6' stroke-width='1.5'/%3E%3C!-- Whiskers --%3E%3Cline x1='15' y1='52' x2='33' y2='55' stroke='%23F472B6' stroke-width='1' opacity='0.5'/%3E%3Cline x1='15' y1='58' x2='33' y2='58' stroke='%23F472B6' stroke-width='1' opacity='0.5'/%3E%3Cline x1='85' y1='52' x2='67' y2='55' stroke='%23F472B6' stroke-width='1' opacity='0.5'/%3E%3Cline x1='85' y1='58' x2='67' y2='58' stroke='%23F472B6' stroke-width='1' opacity='0.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+    animation: neko-float 3s ease-in-out infinite;
+}
+
+[data-theme="dark"] .neko-empty-state-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='55' r='30' fill='%23321A40' stroke='%23F9A8D4' stroke-width='2'/%3E%3Cpolygon points='25,35 15,10 40,28' fill='%23321A40' stroke='%23F9A8D4' stroke-width='2'/%3E%3Cpolygon points='75,35 85,10 60,28' fill='%23321A40' stroke='%23F9A8D4' stroke-width='2'/%3E%3Cellipse cx='38' cy='50' rx='4' ry='5' fill='%23F9A8D4'/%3E%3Cellipse cx='62' cy='50' rx='4' ry='5' fill='%23F9A8D4'/%3E%3Ccircle cx='50' cy='58' r='2' fill='%23FBCFE8'/%3E%3Cpath d='M45 62 Q50 67 55 62' fill='none' stroke='%23F9A8D4' stroke-width='1.5'/%3E%3Cline x1='15' y1='52' x2='33' y2='55' stroke='%23F9A8D4' stroke-width='1' opacity='0.5'/%3E%3Cline x1='15' y1='58' x2='33' y2='58' stroke='%23F9A8D4' stroke-width='1' opacity='0.5'/%3E%3Cline x1='85' y1='52' x2='67' y2='55' stroke='%23F9A8D4' stroke-width='1' opacity='0.5'/%3E%3Cline x1='85' y1='58' x2='67' y2='58' stroke='%23F9A8D4' stroke-width='1' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+@keyframes neko-float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+/* ========== 工具类 ========== */
+
+/* 粉色柔光边框 */
+.neko-border-glow {
+    border: 1px solid rgb(var(--color-accent-primary-rgb) / 20%);
+    box-shadow: 0 0 15px rgb(var(--color-accent-primary-rgb) / 10%);
+}
+
+.neko-border-glow:hover {
+    border-color: rgb(var(--color-accent-primary-rgb) / 40%);
+    box-shadow: 0 0 25px rgb(var(--color-accent-primary-rgb) / 20%);
+}
+
+/* 猫娘渐变背景 */
+.neko-gradient-bg {
+    background: linear-gradient(135deg,
+        rgb(var(--color-accent-primary-rgb) / 5%) 0%,
+        transparent 50%,
+        rgb(var(--color-accent-secondary-rgb) / 5%) 100%);
+}

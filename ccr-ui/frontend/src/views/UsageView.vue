@@ -4,15 +4,15 @@
     <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
       <div
         class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-10 dark:opacity-20 blur-3xl animate-float"
-        style="background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%)"
+        style="background: radial-gradient(circle, rgb(59 130 246 / 40%) 0%, transparent 70%)"
       />
       <div
         class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-10 dark:opacity-20 blur-3xl animate-float-delayed"
-        style="background: radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, transparent 70%)"
+        style="background: radial-gradient(circle, rgb(16 185 129 / 40%) 0%, transparent 70%)"
       />
       <div
         class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-8 dark:opacity-15 blur-3xl animate-float-slow"
-        style="background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)"
+        style="background: radial-gradient(circle, rgb(139 92 246 / 30%) 0%, transparent 70%)"
       />
     </div>
 
@@ -393,7 +393,7 @@
         />
 
         <!-- Activity Heatmap -->
-        <ActivityHeatmap :records="filteredRecords" />
+        <ActivityHeatmap />
       </div>
 
       <!-- Truncated Warning -->
@@ -764,12 +764,12 @@ const shortenModelName = (model: string): string => {
 }
 
 .glass-card {
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  box-shadow: 0 8px 32px 0 rgb(31 38 135 / 15%);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  box-shadow: 0 12px 48px 0 rgba(31, 38, 135, 0.25);
+  box-shadow: 0 12px 48px 0 rgb(31 38 135 / 25%);
 }
 
 select, button {
@@ -785,6 +785,7 @@ select:hover, button:hover:not(:disabled) {
   0%, 100% {
     transform: translate(0, 0);
   }
+
   50% {
     transform: translate(30px, -30px);
   }
@@ -794,6 +795,7 @@ select:hover, button:hover:not(:disabled) {
   0%, 100% {
     transform: translate(0, 0);
   }
+
   50% {
     transform: translate(-30px, 30px);
   }
@@ -803,6 +805,7 @@ select:hover, button:hover:not(:disabled) {
   0%, 100% {
     transform: translate(-50%, -50%);
   }
+
   50% {
     transform: translate(calc(-50% + 40px), calc(-50% - 40px));
   }

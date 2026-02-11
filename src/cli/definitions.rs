@@ -65,9 +65,13 @@ impl Cli {
     /// 🖥️ 检测是否为 TUI 模式
     ///
     /// 当没有指定子命令和配置名称时，会进入 TUI 模式
+    /// `ccr codex` 无参数也视为 TUI 模式
     #[cfg(feature = "tui")]
     pub fn is_tui_mode(&self) -> bool {
-        self.command.is_none() && self.config_name.is_none()
+        if self.command.is_none() && self.config_name.is_none() {
+            return true;
+        }
+        matches!(self.command, Some(Commands::Codex { action: None }))
     }
 }
 
@@ -179,8 +183,12 @@ pub enum Commands {
     /// 提示：如需在浏览器中使用完整图形界面，推荐改用 `ccr ui` 启动 CCR UI 应用
     #[cfg(feature = "web")]
     Web {
-        /// 指定 Web 服务器监听端口(默认: 9527)
-        #[arg(short, long, default_value_t = 9527)]
+        /// 指定 Web 服务器监听地址（默认: 0.0.0.0，支持内网访问）
+        #[arg(long, default_value = "0.0.0.0")]
+        host: std::net::IpAddr,
+
+        /// 指定 Web 服务器监听端口(默认: 19527)
+        #[arg(short, long, default_value_t = 19527)]
         port: u16,
 
         /// 不自动打开浏览器

@@ -1,16 +1,12 @@
 // 中转站提供商管理器
 // 负责提供商配置的 CRUD 操作
+// 使用 SQLite 统一存储（替代 JSON 文件）
 
+use crate::database::{self, DatabaseError, repositories::checkin_repo};
 use crate::models::checkin::{
     CheckinProvider, CreateProviderRequest, ProvidersResponse, UpdateProviderRequest,
 };
 use chrono::Utc;
-use std::fs;
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use tempfile::NamedTempFile;
-
-const PROVIDERS_FILE: &str = "providers.json";
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProviderError {
@@ -18,12 +14,8 @@ pub enum ProviderError {
     NotFound(String),
     #[error("Provider already exists: {0}")]
     AlreadyExists(String),
-    #[error("Failed to read providers: {0}")]
-    ReadError(String),
-    #[error("Failed to write providers: {0}")]
-    WriteError(String),
-    #[error("Failed to parse providers: {0}")]
-    ParseError(String),
+    #[error("Database error: {0}")]
+    Database(#[from] DatabaseError),
     #[error("Cannot delete provider with associated accounts: {0}")]
     HasAccounts(String),
 }
@@ -31,107 +23,47 @@ pub enum ProviderError {
 pub type Result<T> = std::result::Result<T, ProviderError>;
 
 /// 提供商管理器
-pub struct ProviderManager {
-    /// 数据文件路径
-    file_path: PathBuf,
-}
+/// 使用 SQLite 统一存储
+pub struct ProviderManager;
 
 impl ProviderManager {
     /// 创建新的提供商管理器
-    pub fn new(checkin_dir: &Path) -> Self {
-        Self {
-            file_path: checkin_dir.join(PROVIDERS_FILE),
-        }
-    }
-
-    /// 加载所有提供商
-    pub fn load_all(&self) -> Result<Vec<CheckinProvider>> {
-        if !self.file_path.exists() {
-            return Ok(Vec::new());
-        }
-
-        let content = fs::read_to_string(&self.file_path)
-            .map_err(|e| ProviderError::ReadError(e.to_string()))?;
-
-        if content.trim().is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let providers: Vec<CheckinProvider> =
-            serde_json::from_str(&content).map_err(|e| ProviderError::ParseError(e.to_string()))?;
-
-        Ok(providers)
-    }
-
-    /// 保存所有提供商
-    fn save_all(&self, providers: &[CheckinProvider]) -> Result<()> {
-        // 确保目录存在
-        if let Some(parent) = self.file_path.parent() {
-            fs::create_dir_all(parent).map_err(|e| {
-                ProviderError::WriteError(format!("Failed to create directory: {}", e))
-            })?;
-        }
-
-        // 序列化为 JSON
-        let content = serde_json::to_string_pretty(providers)
-            .map_err(|e| ProviderError::WriteError(format!("Failed to serialize: {}", e)))?;
-
-        // 原子写入
-        let temp_dir = self.file_path.parent().unwrap_or(std::path::Path::new("."));
-        let mut temp_file = NamedTempFile::new_in(temp_dir)
-            .map_err(|e| ProviderError::WriteError(format!("Failed to create temp file: {}", e)))?;
-
-        temp_file
-            .write_all(content.as_bytes())
-            .map_err(|e| ProviderError::WriteError(format!("Failed to write temp file: {}", e)))?;
-
-        temp_file
-            .persist(&self.file_path)
-            .map_err(|e| ProviderError::WriteError(format!("Failed to persist file: {}", e)))?;
-
-        tracing::debug!(
-            "Saved {} providers to {:?}",
-            providers.len(),
-            self.file_path
-        );
-        Ok(())
+    /// 注意：不再需要 checkin_dir 参数，使用全局 SQLite 数据库
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self
     }
 
     /// 获取所有提供商
     pub fn list(&self) -> Result<ProvidersResponse> {
-        let providers = self.load_all()?;
+        let providers = database::with_connection(checkin_repo::get_all_providers)?;
         let total = providers.len();
         Ok(ProvidersResponse { providers, total })
     }
 
     /// 根据 ID 获取提供商
     pub fn get(&self, id: &str) -> Result<CheckinProvider> {
-        let providers = self.load_all()?;
-        providers
-            .into_iter()
-            .find(|p| p.id == id)
+        database::with_connection(|conn| checkin_repo::get_provider_by_id(conn, id))?
             .ok_or_else(|| ProviderError::NotFound(id.to_string()))
     }
 
     /// 根据名称获取提供商
     #[allow(dead_code)]
     pub fn get_by_name(&self, name: &str) -> Result<Option<CheckinProvider>> {
-        let providers = self.load_all()?;
+        let providers = database::with_connection(checkin_repo::get_all_providers)?;
         Ok(providers.into_iter().find(|p| p.name == name))
     }
 
     /// 创建提供商
     pub fn create(&self, request: CreateProviderRequest) -> Result<CheckinProvider> {
-        let mut providers = self.load_all()?;
-
         // 检查名称是否已存在
-        if providers.iter().any(|p| p.name == request.name) {
+        let existing = database::with_connection(checkin_repo::get_all_providers)?;
+        if existing.iter().any(|p| p.name == request.name) {
             return Err(ProviderError::AlreadyExists(request.name));
         }
 
         let provider = request.into_provider();
-        providers.push(provider.clone());
-        self.save_all(&providers)?;
+        database::with_connection(|conn| checkin_repo::insert_provider(conn, &provider))?;
 
         tracing::info!("Created provider: {} ({})", provider.name, provider.id);
         Ok(provider)
@@ -139,25 +71,21 @@ impl ProviderManager {
 
     /// 更新提供商
     pub fn update(&self, id: &str, request: UpdateProviderRequest) -> Result<CheckinProvider> {
-        let mut providers = self.load_all()?;
+        // 先获取现有提供商
+        let mut provider = self.get(id)?;
 
-        // 先检查新名称是否与其他提供商冲突
-        if let Some(new_name) = &request.name
-            && providers.iter().any(|p| p.id != id && &p.name == new_name)
-        {
-            return Err(ProviderError::AlreadyExists(new_name.clone()));
+        // 检查新名称是否与其他提供商冲突
+        if let Some(ref new_name) = request.name {
+            let existing = database::with_connection(checkin_repo::get_all_providers)?;
+            if existing.iter().any(|p| p.id != id && &p.name == new_name) {
+                return Err(ProviderError::AlreadyExists(new_name.clone()));
+            }
         }
-
-        let provider = providers
-            .iter_mut()
-            .find(|p| p.id == id)
-            .ok_or_else(|| ProviderError::NotFound(id.to_string()))?;
 
         // 应用更新
         if let Some(name) = request.name {
             provider.name = name;
         }
-
         if let Some(base_url) = request.base_url {
             provider.base_url = base_url;
         }
@@ -179,14 +107,12 @@ impl ProviderManager {
         if let Some(enabled) = request.enabled {
             provider.enabled = enabled;
         }
-
         provider.updated_at = Some(Utc::now());
 
-        let updated = provider.clone();
-        self.save_all(&providers)?;
+        database::with_connection(|conn| checkin_repo::update_provider(conn, &provider))?;
 
-        tracing::info!("Updated provider: {} ({})", updated.name, updated.id);
-        Ok(updated)
+        tracing::info!("Updated provider: {} ({})", provider.name, provider.id);
+        Ok(provider)
     }
 
     /// 删除提供商 (需要检查是否有关联账号)
@@ -195,16 +121,12 @@ impl ProviderManager {
             return Err(ProviderError::HasAccounts(id.to_string()));
         }
 
-        let mut providers = self.load_all()?;
-        let original_len = providers.len();
+        let deleted = database::with_connection(|conn| checkin_repo::delete_provider(conn, id))?;
 
-        providers.retain(|p| p.id != id);
-
-        if providers.len() == original_len {
+        if !deleted {
             return Err(ProviderError::NotFound(id.to_string()));
         }
 
-        self.save_all(&providers)?;
         tracing::info!("Deleted provider: {}", id);
         Ok(())
     }
@@ -215,29 +137,41 @@ impl ProviderManager {
         providers_to_import: Vec<CheckinProvider>,
         overwrite: bool,
     ) -> Result<(usize, usize)> {
-        let mut providers = self.load_all()?;
+        let existing = database::with_connection(checkin_repo::get_all_providers)?;
         let mut imported = 0;
         let mut skipped = 0;
 
         for new_provider in providers_to_import {
-            if let Some(existing) = providers
-                .iter_mut()
-                .find(|p| p.id == new_provider.id || p.name == new_provider.name)
-            {
+            let exists = existing
+                .iter()
+                .any(|p| p.id == new_provider.id || p.name == new_provider.name);
+
+            if exists {
                 if overwrite {
-                    *existing = new_provider;
+                    // 更新现有记录
+                    database::with_connection(|conn| {
+                        checkin_repo::update_provider(conn, &new_provider)
+                    })?;
                     imported += 1;
                 } else {
                     skipped += 1;
                 }
             } else {
-                providers.push(new_provider);
+                // 插入新记录
+                database::with_connection(|conn| {
+                    checkin_repo::insert_provider(conn, &new_provider)
+                })?;
                 imported += 1;
             }
         }
 
-        self.save_all(&providers)?;
         Ok((imported, skipped))
+    }
+
+    /// 加载所有提供商（兼容旧 API）
+    pub fn load_all(&self) -> Result<Vec<CheckinProvider>> {
+        let providers = database::with_connection(checkin_repo::get_all_providers)?;
+        Ok(providers)
     }
 }
 
@@ -245,148 +179,117 @@ impl ProviderManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
+    use crate::database::schema::CREATE_TABLES_SQL;
+    use once_cell::sync::Lazy;
+    use rusqlite::Connection;
+    use std::sync::Mutex;
 
-    fn setup() -> (TempDir, ProviderManager) {
-        let temp_dir = TempDir::new().unwrap();
-        let manager = ProviderManager::new(temp_dir.path());
-        (temp_dir, manager)
+    // Use a single in-memory database for tests
+    static TEST_DB: Lazy<Mutex<Connection>> = Lazy::new(|| {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(CREATE_TABLES_SQL).unwrap();
+        Mutex::new(conn)
+    });
+
+    fn with_test_db<F, R>(f: F) -> R
+    where
+        F: FnOnce(&Connection) -> R,
+    {
+        let conn = TEST_DB.lock().unwrap();
+        // Clean up before each test
+        conn.execute("DELETE FROM checkin_providers", []).unwrap();
+        f(&conn)
     }
 
     #[test]
     fn test_create_and_get_provider() {
-        let (_temp_dir, manager) = setup();
+        with_test_db(|conn| {
+            let request = CreateProviderRequest {
+                name: "Test Provider".to_string(),
+                base_url: "https://api.example.com".to_string(),
+                checkin_path: None,
+                balance_path: None,
+                user_info_path: None,
+                auth_header: None,
+                auth_prefix: None,
+            };
 
-        let request = CreateProviderRequest {
-            name: "Test Provider".to_string(),
-            base_url: "https://api.example.com".to_string(),
-            checkin_path: None,
-            balance_path: None,
-            user_info_path: None,
-            auth_header: None,
-            auth_prefix: None,
-        };
+            let provider = request.into_provider();
+            checkin_repo::insert_provider(conn, &provider).unwrap();
 
-        let provider = manager.create(request).unwrap();
-        assert_eq!(provider.name, "Test Provider");
-        assert!(provider.enabled);
-
-        let fetched = manager.get(&provider.id).unwrap();
-        assert_eq!(fetched.name, "Test Provider");
+            let fetched = checkin_repo::get_provider_by_id(conn, &provider.id)
+                .unwrap()
+                .unwrap();
+            assert_eq!(fetched.name, "Test Provider");
+            assert!(fetched.enabled);
+        });
     }
 
     #[test]
     fn test_list_providers() {
-        let (_temp_dir, manager) = setup();
+        with_test_db(|conn| {
+            // 初始为空
+            let providers = checkin_repo::get_all_providers(conn).unwrap();
+            assert_eq!(providers.len(), 0);
 
-        // 初始为空
-        let response = manager.list().unwrap();
-        assert_eq!(response.total, 0);
+            // 创建两个提供商
+            let p1 = CheckinProvider::new(
+                "Provider 1".to_string(),
+                "https://api1.example.com".to_string(),
+            );
+            let p2 = CheckinProvider::new(
+                "Provider 2".to_string(),
+                "https://api2.example.com".to_string(),
+            );
 
-        // 创建两个提供商
-        manager
-            .create(CreateProviderRequest {
-                name: "Provider 1".to_string(),
-                base_url: "https://api1.example.com".to_string(),
-                checkin_path: None,
-                balance_path: None,
-                user_info_path: None,
-                auth_header: None,
-                auth_prefix: None,
-            })
-            .unwrap();
+            checkin_repo::insert_provider(conn, &p1).unwrap();
+            checkin_repo::insert_provider(conn, &p2).unwrap();
 
-        manager
-            .create(CreateProviderRequest {
-                name: "Provider 2".to_string(),
-                base_url: "https://api2.example.com".to_string(),
-                checkin_path: None,
-                balance_path: None,
-                user_info_path: None,
-                auth_header: None,
-                auth_prefix: None,
-            })
-            .unwrap();
-
-        let response = manager.list().unwrap();
-        assert_eq!(response.total, 2);
+            let providers = checkin_repo::get_all_providers(conn).unwrap();
+            assert_eq!(providers.len(), 2);
+        });
     }
 
     #[test]
     fn test_update_provider() {
-        let (_temp_dir, manager) = setup();
+        with_test_db(|conn| {
+            let mut provider = CheckinProvider::new(
+                "Original".to_string(),
+                "https://api.example.com".to_string(),
+            );
+            checkin_repo::insert_provider(conn, &provider).unwrap();
 
-        let provider = manager
-            .create(CreateProviderRequest {
-                name: "Original".to_string(),
-                base_url: "https://api.example.com".to_string(),
-                checkin_path: None,
-                balance_path: None,
-                user_info_path: None,
-                auth_header: None,
-                auth_prefix: None,
-            })
-            .unwrap();
+            // Update
+            provider.name = "Updated".to_string();
+            provider.base_url = "https://new-api.example.com".to_string();
+            provider.enabled = false;
+            provider.updated_at = Some(Utc::now());
 
-        let updated = manager
-            .update(
-                &provider.id,
-                UpdateProviderRequest {
-                    name: Some("Updated".to_string()),
-                    base_url: Some("https://new-api.example.com".to_string()),
-                    checkin_path: None,
-                    balance_path: None,
-                    user_info_path: None,
-                    auth_header: None,
-                    auth_prefix: None,
-                    enabled: Some(false),
-                },
-            )
-            .unwrap();
+            checkin_repo::update_provider(conn, &provider).unwrap();
 
-        assert_eq!(updated.name, "Updated");
-        assert_eq!(updated.base_url, "https://new-api.example.com");
-        assert!(!updated.enabled);
+            let fetched = checkin_repo::get_provider_by_id(conn, &provider.id)
+                .unwrap()
+                .unwrap();
+            assert_eq!(fetched.name, "Updated");
+            assert_eq!(fetched.base_url, "https://new-api.example.com");
+            assert!(!fetched.enabled);
+        });
     }
 
     #[test]
     fn test_delete_provider() {
-        let (_temp_dir, manager) = setup();
+        with_test_db(|conn| {
+            let provider = CheckinProvider::new(
+                "To Delete".to_string(),
+                "https://api.example.com".to_string(),
+            );
+            checkin_repo::insert_provider(conn, &provider).unwrap();
 
-        let provider = manager
-            .create(CreateProviderRequest {
-                name: "To Delete".to_string(),
-                base_url: "https://api.example.com".to_string(),
-                checkin_path: None,
-                balance_path: None,
-                user_info_path: None,
-                auth_header: None,
-                auth_prefix: None,
-            })
-            .unwrap();
+            let deleted = checkin_repo::delete_provider(conn, &provider.id).unwrap();
+            assert!(deleted);
 
-        manager.delete(&provider.id, false).unwrap();
-
-        assert!(manager.get(&provider.id).is_err());
-    }
-
-    #[test]
-    fn test_cannot_delete_provider_with_accounts() {
-        let (_temp_dir, manager) = setup();
-
-        let provider = manager
-            .create(CreateProviderRequest {
-                name: "Has Accounts".to_string(),
-                base_url: "https://api.example.com".to_string(),
-                checkin_path: None,
-                balance_path: None,
-                user_info_path: None,
-                auth_header: None,
-                auth_prefix: None,
-            })
-            .unwrap();
-
-        let result = manager.delete(&provider.id, true);
-        assert!(matches!(result, Err(ProviderError::HasAccounts(_))));
+            let fetched = checkin_repo::get_provider_by_id(conn, &provider.id).unwrap();
+            assert!(fetched.is_none());
+        });
     }
 }

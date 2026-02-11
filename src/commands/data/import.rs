@@ -5,7 +5,8 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
-use crate::managers::config::{CcsConfig, ConfigManager};
+use crate::managers::config::CcsConfig;
+use crate::services::ConfigService;
 use std::fs;
 use std::path::PathBuf;
 
@@ -42,8 +43,8 @@ pub async fn import_command(
     println!();
 
     // ⚡ 检查自动确认模式
-    let config_manager = ConfigManager::with_default()?;
-    let config = config_manager.load().unwrap_or_else(|_| CcsConfig {
+    let config_service = ConfigService::with_default()?;
+    let config = config_service.load_config().unwrap_or_else(|_| CcsConfig {
         default_config: String::new(),
         current_config: String::new(),
         settings: crate::managers::config::GlobalSettings::default(),
@@ -62,14 +63,19 @@ pub async fn import_command(
         ColorOutput::info("建议: 使用 --merge 参数保留现有配置");
         println!();
 
-        print!("确认执行 Replace 操作? (y/N): ");
-        use std::io::{self, Write};
-        io::stdout().flush()?;
+        let confirmed = tokio::task::spawn_blocking(|| -> std::io::Result<bool> {
+            use std::io::{self, Write};
+            print!("确认执行 Replace 操作? (y/N): ");
+            io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            Ok(input.trim().eq_ignore_ascii_case("y"))
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取确认输入失败: {}", e)))??;
 
-        if !input.trim().eq_ignore_ascii_case("y") {
+        if !confirmed {
             ColorOutput::info("已取消导入操作");
             return Ok(());
         }
@@ -97,9 +103,8 @@ pub async fn import_command(
     // 备份现有配置(如果需要)
     if backup {
         ColorOutput::step("步骤 3/4: 备份当前配置");
-        let config_manager = ConfigManager::with_default()?;
-        if config_manager.config_path().exists() {
-            backup_current_config(&config_manager)?;
+        if config_service.config_manager().config_path().exists() {
+            backup_current_config(&config_service)?;
         } else {
             ColorOutput::info("当前无配置文件,跳过备份");
         }
@@ -133,7 +138,7 @@ pub async fn import_command(
 /// 解析导入文件
 fn parse_import_file(path: &PathBuf) -> Result<CcsConfig> {
     let content = fs::read_to_string(path)
-        .map_err(|e| CcrError::ConfigError(format!("读取文件失败: {}", e)))?;
+        .map_err(|e| CcrError::FileIoError(format!("读取文件失败: {}", e)))?;
 
     let config: CcsConfig = toml::from_str(&content)
         .map_err(|e| CcrError::ConfigFormatInvalid(format!("解析 TOML 失败: {}", e)))?;
@@ -142,45 +147,34 @@ fn parse_import_file(path: &PathBuf) -> Result<CcsConfig> {
 }
 
 /// 备份当前配置
-fn backup_current_config(config_manager: &ConfigManager) -> Result<()> {
-    let backup_path = config_manager.backup(Some("import_backup"))?;
+fn backup_current_config(config_service: &ConfigService) -> Result<()> {
+    let backup_path = config_service.backup_config(Some("import_backup"))?;
     ColorOutput::success(&format!("已备份到: {}", backup_path.display()));
     Ok(())
 }
 
 /// 根据模式导入配置
 fn import_config_with_mode(import_config: CcsConfig, mode: ImportMode) -> Result<ImportResult> {
-    let config_manager = ConfigManager::with_default()?;
+    let service = ConfigService::with_default()?;
+    let content = toml::to_string_pretty(&import_config)
+        .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
 
-    let result = match mode {
-        ImportMode::Merge => {
-            if config_manager.config_path().exists() {
-                let mut current_config = config_manager.load()?;
-                merge_configs(&mut current_config, import_config)?
-            } else {
-                config_manager.save(&import_config)?;
-                ImportResult {
-                    added: import_config.sections.len(),
-                    updated: 0,
-                    skipped: 0,
-                }
-            }
-        }
-        ImportMode::Replace => {
-            let count = import_config.sections.len();
-            config_manager.save(&import_config)?;
-            ImportResult {
-                added: count,
-                updated: 0,
-                skipped: 0,
-            }
-        }
+    let service_mode = match mode {
+        ImportMode::Merge => crate::services::config_service::ImportMode::Merge,
+        ImportMode::Replace => crate::services::config_service::ImportMode::Replace,
     };
 
-    Ok(result)
+    let result = service.import_config(&content, service_mode, false)?;
+
+    Ok(ImportResult {
+        added: result.added,
+        updated: result.updated,
+        skipped: result.skipped,
+    })
 }
 
-/// 合并配置
+/// 合并配置（仅测试使用）
+#[cfg(test)]
 fn merge_configs(current: &mut CcsConfig, import: CcsConfig) -> Result<ImportResult> {
     let mut result = ImportResult {
         added: 0,
@@ -200,7 +194,7 @@ fn merge_configs(current: &mut CcsConfig, import: CcsConfig) -> Result<ImportRes
 
     current.default_config = import.default_config;
 
-    let config_manager = ConfigManager::with_default()?;
+    let config_manager = crate::managers::config::ConfigManager::with_default()?;
     config_manager.save(current)?;
 
     Ok(result)
@@ -241,7 +235,9 @@ mod tests {
 
     #[test]
     fn test_merge_configs() {
-        let _guard = CONFIG_LOCK.lock().expect("配置锁已中毒");
+        let _guard = CONFIG_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let temp_dir = tempdir().unwrap();
         let temp_root = temp_dir.path().to_path_buf();
 

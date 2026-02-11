@@ -1,105 +1,69 @@
-// 🖥️ TUI 模块 - 终端用户界面
-// 基于 ratatui 实现的双Tab配置选择器
+// TUI module — terminal user interface
+// Built on ratatui with unified runtime infrastructure
 
+pub mod action;
 mod app;
 pub mod codex_auth;
 mod event;
-mod theme;
+pub mod overlay;
+pub mod runtime;
+pub mod theme;
+pub mod toast;
 mod ui;
 
 pub use app::App;
-pub use event::{Event, EventHandler};
+pub use event::EventHandler;
 
 use crate::core::error::Result;
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
-    execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
-};
-use ratatui::{Terminal, backend::CrosstermBackend};
-use std::io;
+use runtime::{TerminalGuard, run_loop};
 
-/// 🚀 运行 TUI 应用
-pub fn run_tui() -> Result<()> {
-    // 🔧 设置终端
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-    // 确保进入 TUI 时清空旧输出，避免残留内容覆盖
-    terminal.clear()?;
-
-    // 🎯 创建应用实例
-    let app = App::new()?;
-    let event_handler = EventHandler::new(250);
-
-    // 🎨 运行主循环
-    let final_app = run_app(&mut terminal, app, event_handler)?;
-
-    // 🧹 恢复终端
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
-
-    // 📢 打印最后的切换结果
-    if let Some((platform, profile, success, error)) = final_app.last_applied {
-        if success {
+/// Print exit info for both profile and codex auth actions.
+fn print_exit_info(app: &App) {
+    // Profile switch result
+    if let Some((platform, profile, success, error)) = &app.last_applied {
+        if *success {
             println!("✅ [{}] 已切换到配置: {}", platform, profile);
         } else if let Some(err) = error {
             eprintln!("❌ [{}] 切换配置 {} 失败: {}", platform, profile, err);
         }
     }
 
-    Ok(())
-}
-
-/// 🔄 主事件循环
-fn run_app<B>(
-    terminal: &mut Terminal<B>,
-    mut app: App,
-    mut event_handler: EventHandler,
-) -> Result<App>
-where
-    B: ratatui::backend::Backend,
-    B::Error: std::error::Error + Send + Sync + 'static,
-{
-    // 首次绘制
-    draw_frame(terminal, &app)?;
-
-    loop {
-        match event_handler.poll_event()? {
-            Event::Key(key) => {
-                // ⌨️ 处理按键事件
-                if app.handle_key(key)? {
-                    // 用户请求退出
-                    return Ok(app);
-                }
-                draw_frame(terminal, &app)?;
-            }
-            Event::Resize(_, _) => {
-                // 窗口变更时清屏，避免残影
-                terminal.clear()?;
-                draw_frame(terminal, &app)?;
-            }
-            Event::Tick => {
-                // ⏱️ 周期性刷新（可选）
-            }
+    // Codex auth action result
+    if let Some((action, name, success, error)) = &app.last_codex_action {
+        if *success {
+            println!("✅ {} 账号: {}", action, name);
+        } else if let Some(err) = error {
+            eprintln!("❌ {} 账号 {} 失败: {}", action, name, err);
         }
     }
 }
 
-fn draw_frame<B>(terminal: &mut Terminal<B>, app: &App) -> Result<()>
-where
-    B: ratatui::backend::Backend,
-    B::Error: std::error::Error + Send + Sync + 'static,
-{
-    terminal
-        .draw(|f| ui::draw(f, app))
-        .map_err(|err| crate::core::error::CcrError::IoError(io::Error::other(err)))?;
+/// Run the main profile-switching TUI.
+pub fn run_tui() -> Result<()> {
+    let mut guard = TerminalGuard::new()?;
+    let mut app = App::new()?;
+    let mut events = EventHandler::new(250);
+
+    run_loop(&mut guard, &mut app, &mut events)?;
+
+    // Must drop guard BEFORE printing so terminal leaves alternate screen first
+    drop(guard);
+    print_exit_info(&app);
+
+    Ok(())
+}
+
+/// Run the main TUI pre-selected to the Codex tab.
+pub fn run_tui_with_codex_auth() -> Result<()> {
+    let mut guard = TerminalGuard::new()?;
+    let mut app = App::new()?.with_codex_tab();
+    let mut events = EventHandler::new(250);
+
+    run_loop(&mut guard, &mut app, &mut events)?;
+
+    // Must drop guard BEFORE printing so terminal leaves alternate screen first
+    drop(guard);
+    print_exit_info(&app);
+
     Ok(())
 }

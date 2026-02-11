@@ -1,151 +1,294 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCR - Multi-Platform AI Configuration Manager</title>
-    <link rel="stylesheet" href="style.css">
+    <title>CCR - Cloud Config Registry</title>
 </head>
 <body>
     <div class="bg-effect"></div>
-
+    
     <div class="container">
         <!-- 顶部导航 -->
         <nav class="navbar">
             <div class="brand-section">
                 <div class="logo-container">
-                    <div class="logo">⚡ CCR</div>
-                    <div class="logo-subtitle">Multi-Platform Console</div>
+                    <div class="logo">CCR</div>
+                    <div class="logo-subtitle">Cloud Config Registry</div>
                 </div>
                 <div class="divider"></div>
                 <div class="project-info">
-                    <div class="project-title">AI Configuration Manager</div>
+                    <div class="project-title">配置管理中心</div>
                     <div class="project-meta">
                         <div class="meta-item">
                             <span class="meta-dot"></span>
-                            <span id="modeIndicator">检测中...</span>
+                            <span>v3.19.4</span>
                         </div>
-                        <div class="meta-item" id="currentPlatformIndicator" style="display: none;">
-                            <span class="meta-dot" style="background: var(--accent-success);"></span>
-                            <span>当前平台: <strong id="activePlatformName">-</strong></span>
+                        <div class="meta-item">
+                            <span id="modeIndicator" style="color: var(--accent-success);">Unified 模式</span>
                         </div>
                     </div>
                 </div>
             </div>
+            
             <div class="nav-actions">
-                <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
+                <button class="btn btn-primary" onclick="window.openAddModal()">
+                    <span>➕ 添加配置</span>
+                </button>
+                <button class="btn btn-secondary" onclick="window.openCleanModal()">
+                    <span>🧹 清理备份</span>
+                </button>
+                <button class="btn btn-secondary" onclick="window.openExportModal()">
+                    <span>📤 导出</span>
+                </button>
+                <button class="btn btn-secondary" onclick="window.openImportModal()">
+                    <span>📥 导入</span>
+                </button>
+                <button class="theme-toggle" onclick="window.toggleTheme()" title="切换主题">
                     <span class="theme-icon" id="themeIcon">🌙</span>
-                </button>
-                <button class="btn btn-secondary" onclick="loadData()">
-                    🔄 刷新
-                </button>
-                <button class="btn btn-secondary" onclick="openImportModal()">
-                    📥 导入
-                </button>
-                <button class="btn btn-secondary" onclick="openExportModal()">
-                    📤 导出
-                </button>
-                <button class="btn btn-primary" onclick="openAddModal()">
-                    ➕ 添加配置
                 </button>
             </div>
         </nav>
 
-        <!-- 平台导航栏 (Unified 模式显示) -->
-        <div id="platformNavBar" class="platform-nav-bar" style="display: none;">
-            <div class="platform-tabs">
-                <button class="platform-tab active" data-platform="claude" onclick="switchPlatform('claude')">
-                    <span class="platform-icon">🤖</span>
-                    <span class="platform-name">Claude</span>
-                    <span class="platform-badge" id="badge-claude">0</span>
-                </button>
-                <button class="platform-tab" data-platform="codex" onclick="switchPlatform('codex')">
-                    <span class="platform-icon">💻</span>
-                    <span class="platform-name">Codex</span>
-                    <span class="platform-badge" id="badge-codex">0</span>
-                </button>
-                <button class="platform-tab" data-platform="gemini" onclick="switchPlatform('gemini')">
-                    <span class="platform-icon">✨</span>
-                    <span class="platform-name">Gemini</span>
-                    <span class="platform-badge" id="badge-gemini">0</span>
-                </button>
-            </div>
-            <div class="platform-actions">
-                <button class="btn btn-sm btn-success" onclick="activateCurrentPlatform()" id="activatePlatformBtn" style="display: none;">
-                    ✓ 激活此平台
-                </button>
-            </div>
-        </div>
-
-        <!-- 主内容 -->
         <div class="main-content">
-            <!-- 左侧边栏 -->
+            <!-- 左侧导航 -->
             <aside class="sidebar-left">
-                <!-- 当前配置 -->
                 <div class="sidebar-section">
-                    <div class="sidebar-title">当前配置</div>
+                    <div class="sidebar-title">配置概览</div>
                     <div class="current-config-display">
                         <div class="config-status">
-                            <span class="status-dot"></span>
-                            <span style="font-size: 11px; color: var(--text-secondary);">ACTIVE</span>
+                            <div class="status-dot"></div>
+                            <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">当前使用</span>
                         </div>
                         <div class="config-name" id="currentConfigName">-</div>
                     </div>
                 </div>
 
-                <!-- 平台状态 (Unified 模式) -->
-                <div class="sidebar-section" id="platformStatusSection" style="display: none;">
-                    <div class="sidebar-title">平台状态</div>
-                    <div id="platformStatusList" class="platform-status-list"></div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">快速统计</div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalConfigs">-</div>
+                            <div class="stat-label">总配置数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="historyCount">-</div>
+                            <div class="stat-label">历史记录</div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- 系统信息 -->
+                <div class="sidebar-section">
+                    <div class="sidebar-title">快速导航</div>
+                    <ul class="config-nav" id="configNav">
+                        <!-- 动态生成 -->
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- 中间主内容 -->
+            <main class="content-area">
+                <!-- 平台导航 (Unified模式显示) -->
+                <div class="platform-nav-bar" id="platformNavBar" style="display: none;">
+                    <div class="platform-tabs">
+                        <div class="platform-tab active" data-platform="claude" onclick="window.switchPlatform('claude')">
+                            <span class="platform-icon">🤖</span>
+                            <span class="platform-name">Claude</span>
+                            <span class="platform-badge" id="badge-claude">0</span>
+                        </div>
+                        <div class="platform-tab" data-platform="codex" onclick="window.switchPlatform('codex')">
+                            <span class="platform-icon">💻</span>
+                            <span class="platform-name">Codex</span>
+                            <span class="platform-badge" id="badge-codex">0</span>
+                        </div>
+                        <div class="platform-tab" data-platform="gemini" onclick="window.switchPlatform('gemini')">
+                            <span class="platform-icon">✨</span>
+                            <span class="platform-name">Gemini</span>
+                            <span class="platform-badge" id="badge-gemini">0</span>
+                        </div>
+                        <div class="platform-tab" data-platform="qwen" onclick="window.switchPlatform('qwen')">
+                            <span class="platform-icon">🐉</span>
+                            <span class="platform-name">Qwen</span>
+                            <span class="platform-badge" id="badge-qwen">0</span>
+                        </div>
+                        <div class="platform-tab" data-platform="iflow" onclick="window.switchPlatform('iflow')">
+                            <span class="platform-icon">🌊</span>
+                            <span class="platform-name">iFlow</span>
+                            <span class="platform-badge" id="badge-iflow">0</span>
+                        </div>
+                    </div>
+                    <div class="platform-actions">
+                        <button id="activatePlatformBtn" class="btn btn-primary btn-sm" onclick="window.activateCurrentPlatform()" style="display: none;">
+                            激活此平台
+                        </button>
+                    </div>
+                </div>
+
+                <div class="tab-nav">
+                    <button class="tab-btn active" onclick="window.switchTab('configs', event)">配置列表</button>
+                    <button class="tab-btn" onclick="window.switchTab('history', event)">历史记录</button>
+                    <button class="tab-btn" onclick="window.switchTab('sync', event)">云同步</button>
+                </div>
+
+                <!-- 配置列表 Tab -->
+                <div id="configs-tab" class="tab-content active">
+                    <div class="configs-section">
+                        <div class="section-header">
+                            <div class="section-title">所有配置</div>
+                            <div class="config-type-filter">
+                                <button class="type-filter-btn active" data-filter="all">
+                                    <span>全部</span>
+                                </button>
+                                <button class="type-filter-btn" data-filter="official_relay">
+                                    <span>🔄 官方中转</span>
+                                </button>
+                                <button class="type-filter-btn" data-filter="third_party_model">
+                                    <span>🤖 第三方模型</span>
+                                </button>
+                                <button class="type-filter-btn" data-filter="uncategorized">
+                                    <span>❓ 未分类</span>
+                                </button>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <select id="sortSelect" class="form-input" style="width: auto;">
+                                    <option value="name">按名称排序</option>
+                                    <option value="recent">最近使用</option>
+                                    <option value="usage_count">使用次数</option>
+                                </select>
+                                <button class="btn btn-secondary btn-sm" onclick="window.validateConfigs(event)">
+                                    验证配置
+                                </button>
+                            </div>
+                        </div>
+                        <div id="configsList">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 历史记录 Tab -->
+                <div id="history-tab" class="tab-content">
+                    <div class="configs-section">
+                        <div class="section-header">
+                            <div class="section-title">操作历史</div>
+                            <button class="btn btn-secondary btn-sm" onclick="window.loadHistory()">刷新</button>
+                        </div>
+                        <div id="historyList">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 云同步 Tab -->
+                <div id="sync-tab" class="tab-content">
+                    <div class="configs-section">
+                        <div class="section-header">
+                            <div class="section-title">云同步设置 (WebDAV)</div>
+                            <button id="syncRefreshBtn" class="btn btn-secondary btn-sm" onclick="window.loadSyncStatus()">刷新状态</button>
+                        </div>
+                        
+                        <!-- 状态概览 -->
+                        <div class="system-info-card" style="margin-bottom: 20px;">
+                            <div class="config-details">
+                                <div class="config-field">
+                                    <div class="field-label">已配置</div>
+                                    <div class="field-value" id="syncConfiguredValue">-</div>
+                                </div>
+                                <div class="config-field">
+                                    <div class="field-label">已启用</div>
+                                    <div class="field-value" id="syncEnabledValue">-</div>
+                                </div>
+                                <div class="config-field">
+                                    <div class="field-label">云端文件存在</div>
+                                    <div class="field-value" id="syncRemoteExistsValue">-</div>
+                                </div>
+                                <div class="config-field">
+                                    <div class="field-label">自动同步</div>
+                                    <div class="field-value" id="syncAutoSyncValue">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="syncForm" onsubmit="window.saveSyncConfig(event)">
+                            <div class="form-group">
+                                <label class="form-label">WebDAV URL</label>
+                                <input type="text" id="syncWebdavUrl" class="form-input" placeholder="https://dav.jianguoyun.com/dav/">
+                            </div>
+                            <div class="config-details">
+                                <div class="form-group">
+                                    <label class="form-label">用户名</label>
+                                    <input type="text" id="syncUsername" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">密码</label>
+                                    <input type="password" id="syncPassword" class="form-input" placeholder="留空则不修改">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">远程路径 (可选)</label>
+                                <input type="text" id="syncRemotePath" class="form-input" placeholder="ccr/config_backup.json">
+                            </div>
+                            
+                            <div class="sync-actions">
+                                <label class="form-switch">
+                                    <input type="checkbox" id="syncEnabled">
+                                    <span>启用同步</span>
+                                </label>
+                                <label class="form-switch">
+                                    <input type="checkbox" id="syncAutoSync">
+                                    <span>自动同步 (变更时上传)</span>
+                                </label>
+                                <div style="flex: 1;"></div>
+                                <button type="submit" id="syncSaveBtn" class="btn btn-primary">保存配置</button>
+                            </div>
+                        </form>
+
+                        <div class="divider" style="height: 1px; width: 100%; margin: 20px 0;"></div>
+
+                        <div class="section-title" style="font-size: 16px; margin-bottom: 12px;">手动操作</div>
+                        <div class="sync-actions">
+                            <button id="syncPushBtn" class="btn btn-primary" onclick="window.executeSyncPush()" disabled>
+                                📤 上传到云端 (Push)
+                            </button>
+                            <button id="syncPullBtn" class="btn btn-secondary" onclick="window.executeSyncPull()" disabled>
+                                📥 从云端下载 (Pull)
+                            </button>
+                            
+                            <div style="flex: 1;"></div>
+                            
+                            <label class="checkbox-label" style="font-size: 12px;">
+                                <input type="checkbox" id="syncForcePush"> 强制上传 (覆盖云端)
+                            </label>
+                            <label class="checkbox-label" style="font-size: 12px;">
+                                <input type="checkbox" id="syncForcePull"> 强制下载 (覆盖本地)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+
+            <!-- 右侧信息栏 -->
+            <aside class="sidebar-right">
                 <div class="sidebar-section">
                     <div class="sidebar-title">系统信息</div>
                     <div class="system-info-card">
                         <div class="system-info-item">
-                            <div class="system-info-icon">💻</div>
+                            <span class="system-info-icon">💻</span>
                             <div class="system-info-content">
-                                <div class="system-info-label">主机</div>
+                                <div class="system-info-label">主机名</div>
                                 <div class="system-info-value" id="sysHostname">-</div>
                             </div>
                         </div>
                         <div class="system-info-item">
-                            <div class="system-info-icon">🖥️</div>
+                            <span class="system-info-icon">🖥️</span>
                             <div class="system-info-content">
-                                <div class="system-info-label">系统</div>
+                                <div class="system-info-label">操作系统</div>
                                 <div class="system-info-value" id="sysOS">-</div>
                             </div>
                         </div>
                         <div class="system-info-item">
-                            <div class="system-info-icon">⚙️</div>
-                            <div class="system-info-content">
-                                <div class="system-info-label">CPU</div>
-                                <div class="system-info-value" id="sysCPU">-</div>
-                            </div>
-                        </div>
-                        <div class="system-info-item">
-                            <div class="system-info-icon">📊</div>
-                            <div class="system-info-content">
-                                <div class="system-info-label">CPU 使用率</div>
-                                <div class="system-info-progress">
-                                    <div class="progress-bar" id="sysCPUBar"></div>
-                                </div>
-                                <div class="system-info-value" id="sysCPUUsage">0%</div>
-                            </div>
-                        </div>
-                        <div class="system-info-item">
-                            <div class="system-info-icon">💾</div>
-                            <div class="system-info-content">
-                                <div class="system-info-label">内存</div>
-                                <div class="system-info-progress">
-                                    <div class="progress-bar" id="sysMemBar"></div>
-                                </div>
-                                <div class="system-info-value" id="sysMemory">0 GB / 0 GB</div>
-                            </div>
-                        </div>
-                        <div class="system-info-item">
-                            <div class="system-info-icon">⏱️</div>
+                            <span class="system-info-icon">⏱️</span>
                             <div class="system-info-content">
                                 <div class="system-info-label">运行时间</div>
                                 <div class="system-info-value" id="sysUptime">-</div>
@@ -154,441 +297,308 @@
                     </div>
                 </div>
 
-                <!-- 统计 -->
                 <div class="sidebar-section">
-                    <div class="sidebar-title">统计</div>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="totalConfigs">0</div>
-                            <div class="stat-label">总配置</div>
+                    <div class="sidebar-title">资源监控</div>
+                    <div class="system-info-card">
+                        <div style="margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="font-size: 11px; color: var(--text-muted);">CPU (<span id="sysCPU">-</span>)</span>
+                                <span style="font-size: 11px; color: var(--accent-primary);" id="sysCPUUsage">0%</span>
+                            </div>
+                            <div class="system-info-progress">
+                                <div class="progress-bar" id="sysCPUBar" style="width: 0%"></div>
+                            </div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="historyCount">0</div>
-                            <div class="stat-label">历史</div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="font-size: 11px; color: var(--text-muted);">内存</span>
+                                <span style="font-size: 11px; color: var(--accent-secondary);" id="sysMemory">-</span>
+                            </div>
+                            <div class="system-info-progress">
+                                <div class="progress-bar" id="sysMemBar" style="width: 0%; background: linear-gradient(90deg, var(--accent-secondary), var(--accent-tertiary));"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 操作按钮 -->
+                <div class="sidebar-section" id="platformStatusSection" style="display: none;">
+                    <div class="sidebar-title">平台状态</div>
+                    <div class="platform-status-list" id="platformStatusList">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+
                 <div class="sidebar-section">
-                    <button class="btn btn-secondary" style="width: 100%;" onclick="validateConfigs()">
-                        ✓ 验证
+                    <div class="sidebar-title">统计信息</div>
+                    <button class="btn btn-secondary btn-sm" style="width: 100%;" onclick="window.openProviderStatsModal()">
+                        📊 查看提供商统计
                     </button>
                 </div>
-
-                <div class="sidebar-section">
-                    <button class="btn btn-warning" style="width: 100%;" onclick="openCleanModal()">
-                        🗑️ 清理备份
-                    </button>
-                </div>
-            </aside>
-
-            <!-- 配置区域 -->
-            <main class="configs-section">
-                <div class="tab-nav">
-                    <button class="tab-btn active" onclick="switchTab('configs')">配置列表</button>
-                    <button class="tab-btn" onclick="switchTab('history')">历史记录</button>
-                    <button class="tab-btn" onclick="switchTab('sync')">云同步</button>
-                </div>
-
-                <!-- 配置列表 -->
-                <div id="configs-tab" class="tab-content active">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <!-- 配置类型过滤 -->
-                        <div class="config-type-filter">
-                            <button class="type-filter-btn active" data-type="all" onclick="filterConfigsByType('all')">
-                                📋 全部配置
-                            </button>
-                            <button class="type-filter-btn" data-type="official_relay" onclick="filterConfigsByType('official_relay')">
-                                🔄 官方中转
-                            </button>
-                            <button class="type-filter-btn" data-type="third_party_model" onclick="filterConfigsByType('third_party_model')">
-                                🤖 第三方模型
-                            </button>
-                            <button class="type-filter-btn" data-type="uncategorized" onclick="filterConfigsByType('uncategorized')">
-                                ❓ 未分类
-                            </button>
-                        </div>
-                        <!-- 排序下拉菜单 -->
-                        <div class="sort-controls">
-                            <label for="sortBy" style="margin-right: 8px; font-size: 14px; color: var(--text-secondary);">排序:</label>
-                            <select id="sortBy" class="sort-select" onchange="sortConfigs(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-primary); cursor: pointer; font-size: 14px;">
-                                <option value="name">📝 名称</option>
-                                <option value="usage_count">📊 使用次数</option>
-                                <option value="recent">🕒 最近使用</option>
-                            </select>
-                            <button class="btn btn-secondary" style="margin-left: 8px;" onclick="openProviderStatsModal()">🏢 提供商统计</button>
-                        </div>
-                    </div>
-                    <div id="configsList"></div>
-                </div>
-
-                <!-- 历史记录 -->
-                <div id="history-tab" class="tab-content">
-                    <div id="historyList"></div>
-                </div>
-
-                <!-- 云同步 -->
-                <div id="sync-tab" class="tab-content">
-                    <!-- 设置卡片 -->
-                    <div class="config-card">
-                        <div class="config-header">
-                            <div class="config-info">
-                                <h3>云同步设置</h3>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-switch">
-                                <input type="checkbox" id="syncEnabled">
-                                <span>启用 WebDAV 同步</span>
-                            </label>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">WebDAV URL *</label>
-                            <input type="url" class="form-input" id="syncWebdavUrl" placeholder="如: https://dav.jianguoyun.com/dav/">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">用户名 *</label>
-                            <input type="text" class="form-input" id="syncUsername" placeholder="请输入 WebDAV 用户名">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">密码 *</label>
-                            <input type="password" class="form-input" id="syncPassword" placeholder="请输入 WebDAV 密码">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">远程路径</label>
-                            <input type="text" class="form-input" id="syncRemotePath" placeholder="默认 /ccr/">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-switch">
-                                <input type="checkbox" id="syncAutoSync">
-                                <span>自动同步（未来版本）</span>
-                            </label>
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn btn-secondary" onclick="loadSyncStatus()" id="syncRefreshBtn">刷新状态</button>
-                            <button class="btn btn-primary" onclick="saveSyncConfig(event)" id="syncSaveBtn">保存并测试连接</button>
-                        </div>
-                    </div>
-
-                    <!-- 状态与操作卡片 -->
-                    <div class="config-card">
-                        <div class="config-header">
-                            <div class="config-info">
-                                <h3>同步状态</h3>
-                            </div>
-                        </div>
-                        <div class="config-details">
-                            <div class="config-field">
-                                <div class="field-label">已配置</div>
-                                <div class="field-value" id="syncConfiguredValue">-</div>
-                            </div>
-                            <div class="config-field">
-                                <div class="field-label">是否启用</div>
-                                <div class="field-value" id="syncEnabledValue">-</div>
-                            </div>
-                            <div class="config-field">
-                                <div class="field-label">WebDAV URL</div>
-                                <div class="field-value" id="syncWebdavUrlValue">-</div>
-                            </div>
-                            <div class="config-field">
-                                <div class="field-label">用户名</div>
-                                <div class="field-value" id="syncUsernameValue">-</div>
-                            </div>
-                            <div class="config-field">
-                                <div class="field-label">远程路径</div>
-                                <div class="field-value" id="syncRemotePathValue">-</div>
-                            </div>
-                            <div class="config-field">
-                                <div class="field-label">自动同步</div>
-                                <div class="field-value" id="syncAutoSyncValue">-</div>
-                            </div>
-                            <div class="config-field">
-                                <div class="field-label">本地路径</div>
-                                <div class="field-value" id="syncLocalPathValue">-</div>
-                            </div>
-                            <div class="config-field">
-                                <div class="field-label">同步类型</div>
-                                <div class="field-value" id="syncTypeValue">-</div>
-                            </div>
-                            <div class="config-field">
-                                <div class="field-label">远程是否存在</div>
-                                <div class="field-value" id="syncRemoteExistsValue">-</div>
-                            </div>
-                        </div>
-                        <div class="sync-actions">
-                            <label class="form-switch">
-                                <input type="checkbox" id="syncForcePush">
-                                <span>Push 强制覆盖</span>
-                            </label>
-                            <button class="btn btn-success" onclick="executeSyncPush()" id="syncPushBtn">📤 Push 上传</button>
-                            <label class="form-switch">
-                                <input type="checkbox" id="syncForcePull">
-                                <span>Pull 强制覆盖</span>
-                            </label>
-                            <button class="btn btn-success" onclick="executeSyncPull()" id="syncPullBtn">📥 Pull 下载</button>
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-            <!-- 右侧配置目录 -->
-            <aside class="sidebar-right">
-                <div class="sidebar-title">配置目录</div>
-                <ul class="config-nav" id="configNav">
-                    <li class="config-nav-item">
-                        <span style="font-size: 12px; color: var(--text-muted);">加载中...</span>
-                    </li>
-                </ul>
             </aside>
         </div>
     </div>
 
-    <!-- 添加/编辑配置模态框 -->
-    <div id="configModal" class="modal">
+    <!-- 模态框: 添加/编辑配置 -->
+    <div class="modal" id="configModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title" id="modalTitle">➕ 添加配置</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
+                <div class="modal-title" id="modalTitle">配置</div>
+                <button class="close-btn" onclick="window.closeModal()">×</button>
             </div>
-            <form id="configForm" onsubmit="saveConfig(event)">
+            <form id="configForm" onsubmit="window.saveConfig(event)">
                 <div class="form-group">
-                    <label class="form-label form-label-colored" style="color: var(--accent-primary);">📝 配置名称 *</label>
-                    <input type="text" class="form-input" id="configName" required placeholder="输入配置名称">
+                    <label class="form-label">配置名称 <span style="color: var(--accent-danger)">*</span></label>
+                    <input type="text" id="configName" class="form-input" required placeholder="例如: default">
                 </div>
                 <div class="form-group">
-                    <label class="form-label form-label-colored" style="color: var(--accent-success);">📋 描述</label>
-                    <input type="text" class="form-input" id="configDesc" placeholder="配置描述（可选）">
+                    <label class="form-label">描述</label>
+                    <input type="text" id="configDesc" class="form-input" placeholder="配置描述信息">
                 </div>
                 <div class="form-group">
-                    <label class="form-label form-label-colored" style="color: #3b82f6;">🌐 Base URL *</label>
-                    <input type="url" class="form-input" id="configBaseUrl" required placeholder="https://api.example.com">
+                    <label class="form-label">Base URL <span style="color: var(--accent-danger)">*</span></label>
+                    <input type="text" id="configBaseUrl" class="form-input" required placeholder="https://api.openai.com/v1">
                 </div>
                 <div class="form-group">
-                    <label class="form-label form-label-colored" style="color: #f59e0b;">🔑 Auth Token *</label>
-                    <input type="text" class="form-input" id="configAuthToken" required placeholder="sk-xxx...">
+                    <label class="form-label">Auth Token <span style="color: var(--accent-danger)">*</span></label>
+                    <input type="password" id="configAuthToken" class="form-input" required placeholder="sk-...">
                 </div>
-                <div class="form-group">
-                    <label class="form-label form-label-colored" style="color: #8b5cf6;">🤖 Model</label>
-                    <input type="text" class="form-input" id="configModel" placeholder="模型名称（可选）">
-                </div>
-                <div class="form-group">
-                    <label class="form-label form-label-colored" style="color: #06b6d4;">⚡ Small Fast Model</label>
-                    <input type="text" class="form-input" id="configSmallModel" placeholder="小型快速模型（可选）">
-                </div>
-                <!-- 分类字段 -->
-                <div class="form-group">
-                    <label class="form-label form-label-colored" style="color: #ec4899;">🏷️ 提供商类型</label>
-                    <select class="form-input" id="configProviderType">
-                        <option value="">❓ 未分类</option>
-                        <option value="official_relay">🔄 官方中转</option>
-                        <option value="third_party_model">🤖 第三方模型</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label form-label-colored" style="color: #14b8a6;">🏢 提供商名称</label>
-                    <input type="text" class="form-input" id="configProvider" placeholder="如: anyrouter, glm, moonshot">
-                    <div class="form-hint">
-                        用于标识同一提供商的不同配置
+                
+                <div class="config-details">
+                    <div class="form-group">
+                        <label class="form-label">默认模型</label>
+                        <input type="text" id="configModel" class="form-input" placeholder="claude-opus-4-5-20251101">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">快速模型</label>
+                        <input type="text" id="configSmallModel" class="form-input" placeholder="gpt-3.5-turbo">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label form-label-colored" style="color: #f97316;">👤 账号标识</label>
-                    <input type="text" class="form-input" id="configAccount" placeholder="如: github_5953, personal, work">
-                    <div class="form-hint">
-                        用于区分同一提供商的不同账号
+
+                <div class="config-details">
+                    <div class="form-group">
+                        <label class="form-label">提供商类型</label>
+                        <input type="text" id="configProviderType" class="form-input" placeholder="OfficialRelay">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">提供商名称</label>
+                        <input type="text" id="configProvider" class="form-input" placeholder="OpenAI">
                     </div>
                 </div>
+
                 <div class="form-group">
-                    <label class="form-label form-label-colored" style="color: #a855f7;">🏷️ 标签</label>
-                    <input type="text" class="form-input" id="configTags" placeholder="用逗号分隔，如: free, stable, backup">
-                    <div class="form-hint">
-                        用于灵活分类和筛选，多个标签用逗号分隔
-                    </div>
+                    <label class="form-label">账号标识</label>
+                    <input type="text" id="configAccount" class="form-input" placeholder="user@example.com">
                 </div>
-                <!-- Codex 专属配置 -->
+
+                <div class="form-group">
+                    <label class="form-label">标签 (逗号分隔)</label>
+                    <input type="text" id="configTags" class="form-input" placeholder="dev, test, production">
+                </div>
+
+                <!-- Codex 特定字段 -->
                 <div id="codexFieldsSection" class="codex-section" style="display: none;">
                     <div class="codex-section-header">
-                        <h3>💻 Codex 自定义 API 配置</h3>
-                        <p>这些字段仅在切换到 Codex 平台时生效，用于配置自定义 API 或官方 GitHub 模式。</p>
+                        <h3>Codex 专属配置</h3>
+                        <p>针对 Codex 平台的扩展设置</p>
                     </div>
+                    
+                    <div class="config-details">
+                        <div class="form-group">
+                            <label class="form-label">API 模式</label>
+                            <select id="codexApiMode" class="form-input">
+                                <option value="custom">自定义 API</option>
+                                <option value="github">GitHub 官方</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Wire API</label>
+                            <select id="codexWireApi" class="form-input">
+                                <option value="responses">Responses (Default)</option>
+                                <option value="native">Native</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="form-group">
-                        <label class="form-label form-label-colored" style="color: #6366f1;">⚙️ API 模式</label>
-                        <select class="form-input" id="codexApiMode">
-                            <option value="custom">🔧 自定义 API</option>
-                            <option value="github">🐙 GitHub Copilot</option>
-                        </select>
+                        <label class="form-label">Environment Key</label>
+                        <input type="text" id="codexEnvKey" class="form-input" placeholder="用于区分环境的密钥">
                     </div>
-                    <div class="form-group">
-                        <label class="form-label form-label-colored" style="color: #0ea5e9;">📡 Wire API 协议</label>
-                        <select class="form-input" id="codexWireApi">
-                            <option value="responses">✅ Responses（推荐）</option>
-                            <option value="chat">💬 Chat Completions</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label form-label-colored" style="color: #84cc16;">🔐 环境变量 KEY</label>
-                        <input type="text" class="form-input" id="codexEnvKey" placeholder="默认为 PROVIDER_API_KEY，可自定义">
-                    </div>
+
                     <div class="form-group checkbox-group">
-                        <label class="form-label form-label-colored" style="color: #ef4444;">🔒 OpenAI 认证</label>
                         <label class="checkbox-label">
                             <input type="checkbox" id="codexRequiresAuth" checked>
-                            <span>需要 OpenAI 登录授权</span>
+                            需要 OpenAI 认证
                         </label>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label form-label-colored" style="color: #22c55e;">🏛️ 组织信息</label>
-                        <input type="text" class="form-input" id="codexOrganization" placeholder="GitHub 组织或工作区">
+
+                    <div class="config-details">
+                        <div class="form-group">
+                            <label class="form-label">Organization</label>
+                            <input type="text" id="codexOrganization" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Approval Policy</label>
+                            <input type="text" id="codexApprovalPolicy" class="form-input">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label form-label-colored" style="color: #eab308;">📋 审批策略</label>
-                        <input type="text" class="form-input" id="codexApprovalPolicy" placeholder="如: auto, on-request">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label form-label-colored" style="color: #f472b6;">📦 沙盒模式</label>
-                        <input type="text" class="form-input" id="codexSandboxMode" placeholder="如: workspace-write">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label form-label-colored" style="color: #c084fc;">🧠 推理强度</label>
-                        <input type="text" class="form-input" id="codexModelReasoning" placeholder="如: low, medium, high">
+
+                    <div class="config-details">
+                        <div class="form-group">
+                            <label class="form-label">Sandbox Mode</label>
+                            <input type="text" id="codexSandboxMode" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Reasoning Effort</label>
+                            <input type="text" id="codexModelReasoning" class="form-input">
+                        </div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">❌ 取消</button>
-                    <button type="submit" class="btn btn-primary">💾 保存</button>
+
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="window.closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存配置</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 导出配置模态框 -->
-    <div id="exportModal" class="modal">
+    <!-- 模态框: 清理备份 -->
+    <div class="modal" id="cleanModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">📤 导出配置</h2>
-                <button class="close-btn" onclick="closeExportModal()">&times;</button>
+                <div class="modal-title">🧹 清理备份文件</div>
+                <button class="close-btn" onclick="window.closeCleanModal()">×</button>
             </div>
-            <div style="padding: 20px;">
+            <div style="padding: 10px 0;">
                 <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="exportIncludeSecrets" checked>
-                        <span>包含敏感信息 (API 密钥)</span>
-                    </label>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px; margin-left: 24px;">
-                        ⚠️ 如果勾选,导出文件将包含完整的 API 密钥，请妥善保管
-                    </div>
+                    <label class="form-label">清理超过多少天的备份: <span id="cleanDaysDisplay" style="color: var(--accent-primary); font-weight: bold;">7</span> 天</label>
+                    <input type="range" id="cleanDays" class="form-input" min="1" max="365" value="7" oninput="window.updateCleanDaysDisplay()">
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeExportModal()">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="executeExport()">📥 下载配置文件</button>
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="cleanDryRun" checked>
+                        模拟运行 (不实际删除)
+                    </label>
+                </div>
+                
+                <div id="cleanPreview" style="display: none; margin-top: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; border: 1px dashed var(--border-color);">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">预览结果:</div>
+                    <div id="cleanPreviewContent" style="font-size: 13px; font-family: monospace;"></div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="window.previewClean(event)">预览</button>
+                    <button id="cleanExecuteBtn" class="btn btn-danger" onclick="window.executeClean()">执行清理</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 导入配置模态框 -->
-    <div id="importModal" class="modal">
+    <!-- 模态框: 导出 -->
+    <div class="modal" id="exportModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">📥 导入配置</h2>
-                <button class="close-btn" onclick="closeImportModal()">&times;</button>
+                <div class="modal-title">📤 导出配置</div>
+                <button class="close-btn" onclick="window.closeExportModal()">×</button>
             </div>
-            <div style="padding: 20px;">
-                <div class="form-group">
-                    <label class="form-label">选择配置文件 *</label>
-                    <input type="file" class="form-input" id="importFile" accept=".toml" style="padding: 8px;">
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
-                        请选择 .toml 格式的配置文件
-                    </div>
+            <div style="padding: 10px 0;">
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">将导出所有配置文件和设置到 JSON 文件。</p>
+                
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="exportIncludeSecrets" checked>
+                        包含敏感信息 (Token/API Keys)
+                    </label>
+                    <p style="font-size: 11px; color: var(--accent-warning); margin-top: 4px; margin-left: 24px;">
+                        ⚠ 如果取消勾选，导出的配置将不包含 API Key，导入时需要重新填写。
+                    </p>
                 </div>
+
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="window.closeExportModal()">取消</button>
+                    <button class="btn btn-primary" onclick="window.executeExport(event)">确认导出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框: 导入 -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📥 导入配置</div>
+                <button class="close-btn" onclick="window.closeImportModal()">×</button>
+            </div>
+            <div style="padding: 10px 0;">
+                <div class="form-group">
+                    <label class="form-label">选择配置文件 (.json)</label>
+                    <input type="file" id="importFile" class="form-input" accept=".json">
+                </div>
+
+                <div id="importPreview" style="display: none; margin-bottom: 16px;">
+                    <label class="form-label">文件预览</label>
+                    <div id="importPreviewContent" style="max-height: 150px; overflow-y: auto; background: var(--bg-tertiary); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 11px; white-space: pre-wrap;"></div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">导入模式</label>
-                    <select class="form-input" id="importMode">
-                        <option value="merge">合并 - 保留现有配置，添加/更新导入的配置</option>
-                        <option value="replace">替换 - 完全替换为导入的配置</option>
+                    <select id="importMode" class="form-input">
+                        <option value="merge">合并 (跳过同名配置)</option>
+                        <option value="overwrite">覆盖 (更新同名配置)</option>
+                        <option value="replace">完全替换 (删除现有所有配置)</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
                         <input type="checkbox" id="importBackup" checked>
-                        <span>导入前备份当前配置</span>
+                        导入前备份现有配置
                     </label>
                 </div>
-                <div id="importPreview" style="margin-top: 20px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color); display: none;">
-                    <div style="font-size: 14px; font-weight: 500; margin-bottom: 10px; color: var(--accent-primary);">文件预览</div>
-                    <div id="importPreviewContent" style="font-size: 12px; color: var(--text-secondary);"></div>
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeImportModal()">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="executeImport()" id="importExecuteBtn">执行导入</button>
+
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="window.closeImportModal()">取消</button>
+                    <button id="importExecuteBtn" class="btn btn-primary" onclick="window.executeImport()">执行导入</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 清理备份模态框 -->
-    <div id="cleanModal" class="modal">
-        <div class="modal-content">
+    <!-- 模态框: 提供商统计 -->
+    <div class="modal" id="providerModal">
+        <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
-                <h2 class="modal-title">清理备份文件</h2>
-                <button class="close-btn" onclick="closeCleanModal()">&times;</button>
+                <div class="modal-title">📊 提供商统计</div>
+                <button class="close-btn" onclick="window.closeProviderModal()">×</button>
             </div>
-            <div style="padding: 20px;">
-                <div class="form-group">
-                    <label class="form-label">保留天数</label>
-                    <input type="number" class="form-input" id="cleanDays" value="7" min="1" max="365" oninput="updateCleanDaysDisplay()">
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
-                        将删除 <span id="cleanDaysDisplay" style="color: var(--accent-warning); font-weight: 600;">7</span> 天前的备份文件
+            <div style="padding: 10px 0;">
+                <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                    <select id="providerSort" class="form-input" style="width: auto;">
+                        <option value="count_desc">按次数 (高→低)</option>
+                        <option value="count_asc">按次数 (低→高)</option>
+                        <option value="name_asc">按名称 (A→Z)</option>
+                    </select>
+                </div>
+
+                <div id="providerStatsBody" class="provider-stats-body">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <div class="loading-text">正在加载数据...</div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="cleanDryRun" checked>
-                        <span>模拟运行(预览不删除)</span>
-                    </label>
-                </div>
-                <div id="cleanPreview" style="margin-top: 20px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color); display: none;">
-                    <div style="font-size: 14px; font-weight: 500; margin-bottom: 10px; color: var(--accent-primary);">清理预览</div>
-                    <div id="cleanPreviewContent"></div>
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeCleanModal()">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="previewClean()">预览</button>
-                    <button type="button" class="btn btn-warning" onclick="executeClean()" id="cleanExecuteBtn">执行清理</button>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- 提供商统计模态框 -->
-    <div id="providerModal" class="modal">
-        <div class="modal-content" style="max-width: 960px;">
-            <div class="modal-header">
-                <h2 class="modal-title">🏢 提供商使用次数</h2>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <select id="providerSort" class="sort-select" onchange="setProviderSort(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; font-size: 14px;">
-                        <option value="count_desc">使用次数 ↓</option>
-                        <option value="count_asc">使用次数 ↑</option>
-                        <option value="name_asc">供应商 A-Z</option>
-                    </select>
-                    <select id="providerRange" class="sort-select" onchange="loadProviderStats(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; font-size: 14px;">
-                        <option value="today">今日</option>
-                        <option value="week">本周</option>
-                        <option value="month" selected>本月</option>
-                    </select>
-                    <button class="close-btn" onclick="closeProviderModal()">&times;</button>
-                </div>
-            </div>
-            <div id="providerStatsBody" class="provider-stats-body" style="max-height: 60vh; overflow-y: auto;">
-                <div class="empty-state">加载中...</div>
-            </div>
+    <!-- 全局通知 -->
+    <div id="notification" class="notification">
+        <div class="notification-content">
+            <span class="notification-icon">ℹ️</span>
+            <div class="notification-text"></div>
         </div>
     </div>
 
-    <!-- 通知 -->
-    <div id="notification" class="notification"></div>
-
-    <script src="script.js"></script>
+    <!-- 主脚本 -->
+    <script type="module" src="src/js/main.js"></script>
 </body>
 </html>

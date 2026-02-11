@@ -3,7 +3,7 @@
 面向 v3.9.4 的 CCR UI 使用与本地开发指南。
 
 ## 先决条件
-- Rust 1.85+（含 Cargo）
+- Rust 1.88+（含 Cargo）
 - Node.js 18+（含 npm）
 - 已安装 `ccr`（PATH 可见）
 - 建议：`just`（`cargo install just`）

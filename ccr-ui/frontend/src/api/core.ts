@@ -1,17 +1,48 @@
 /**
  * API Client Core - Axios 实例和拦截器配置
- * 
+ *
  * 这是所有 API 模块的基础，提供统一的 axios 实例
+ * 支持 Web 和 Tauri 两种运行环境
  */
 
 import axios, { type AxiosInstance } from 'axios'
+
+// ═══════════════════════════════════════════════════════════
+// 🔍 环境检测 (Environment Detection)
+// ═══════════════════════════════════════════════════════════
+
+/** 检测是否在 Tauri 桌面应用环境中运行 */
+export const isTauriEnvironment = (): boolean => {
+    return typeof window !== 'undefined' && '__TAURI__' in window
+}
+
+/** 根据运行环境解析 API 基础 URL */
+export const resolveApiBaseUrl = (): string => {
+    if (isTauriEnvironment()) {
+        const port = import.meta.env.VITE_TAURI_BACKEND_PORT || '38081'
+        return `http://127.0.0.1:${port}/api`
+    }
+    return '/api'
+}
+
+/** 健康检查（等待后端启动） */
+export const getBackendHealth = async (): Promise<void> => {
+    const baseUrl = resolveApiBaseUrl()
+    const rootUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl
+    const timeout = isTauriEnvironment() ? 20000 : 4000
+    await axios.get(`${rootUrl}/health`, { timeout })
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🔧 Axios 实例 (Axios Instance)
+// ═══════════════════════════════════════════════════════════
 
 /**
  * 创建配置好的 axios 实例
  */
 function createApiClient(): AxiosInstance {
     const instance = axios.create({
-        baseURL: '/api',
+        baseURL: resolveApiBaseUrl(),
         timeout: 600000, // 10分钟超时，支持长时间编译更新
         headers: {
             'Content-Type': 'application/json',
@@ -85,7 +116,7 @@ function createApiClient(): AxiosInstance {
     return instance
 }
 
-/** 
+/**
  * 共享的 axios 实例
  * 所有 API 模块都应该使用这个实例
  */

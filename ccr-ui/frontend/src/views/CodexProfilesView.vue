@@ -531,7 +531,7 @@ import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Boxes, Check, Edit2, Globe, Home, Layers, ListFilter, Plus, Server, Settings, Shuffle, Star, Trash2, Zap, X } from 'lucide-vue-next'
 
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import { addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexProfiles, updateCodexProfile } from '@/api'

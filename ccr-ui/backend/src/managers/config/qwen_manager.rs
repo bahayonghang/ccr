@@ -15,12 +15,30 @@ pub struct QwenConfigManager {
 impl QwenConfigManager {
     /// 创建默认实例，使用项目根目录的 .qwen/settings.json
     pub fn default() -> Result<Self, String> {
-        let current_dir =
-            std::env::current_dir().map_err(|e| format!("无法获取当前目录: {}", e))?;
-        let qwen_dir = current_dir.join(".qwen");
-        let config_path = qwen_dir.join("settings.json");
+        let start = std::env::current_dir().map_err(|e| format!("无法获取当前目录: {}", e))?;
+        let mut current = start.as_path();
 
-        // 确保目录存在
+        let project_root = loop {
+            if current.join(".git").exists() {
+                break current.to_path_buf();
+            }
+            match current.parent() {
+                Some(parent) => current = parent,
+                None => break start.clone(),
+            }
+        };
+
+        let project_dir = project_root.join(".qwen");
+        let project_config = project_dir.join("settings.json");
+
+        let (qwen_dir, config_path) = if project_dir.exists() || project_config.exists() {
+            (project_dir, project_config)
+        } else {
+            let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
+            let user_dir = home.join(".qwen");
+            (user_dir.clone(), user_dir.join("settings.json"))
+        };
+
         if !qwen_dir.exists() {
             fs::create_dir_all(&qwen_dir).map_err(|e| format!("创建 .qwen 目录失败: {}", e))?;
         }

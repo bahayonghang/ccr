@@ -1,0 +1,158 @@
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 260px 1fr 220px;
+    gap: 16px;
+}
+
+/* 响应式布局 */
+@media (max-width: 1400px) {
+    .main-content {
+        grid-template-columns: 240px 1fr 200px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar-left,
+    .sidebar-right {
+        position: static;
+        max-height: none;
+    }
+
+    .sidebar-right {
+        order: -1;
+    }
+    
+    .platform-nav-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .platform-tabs {
+        order: 1;
+    }
+
+    .platform-actions {
+        order: 2;
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+
+    .navbar {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+
+    .brand-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .divider {
+        display: none;
+    }
+
+    .nav-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .nav-actions .btn {
+        flex: 1;
+    }
+
+    .config-header {
+        flex-direction: column;
+        align-items: start;
+        gap: 10px;
+    }
+
+    .config-actions-top {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .btn-action-top {
+        min-width: 70px;
+        height: 36px;
+        padding: 0 10px;
+        gap: 4px;
+    }
+
+    .btn-action-top .btn-icon {
+        font-size: 14px;
+    }
+
+    .btn-action-top .btn-text {
+        font-size: 12px;
+    }
+
+    .config-actions {
+        width: 100%;
+    }
+
+    .btn-small {
+        flex: 1;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .config-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .platform-nav-bar {
+        padding: 12px;
+    }
+
+    .platform-tabs {
+        gap: 4px;
+        padding: 4px;
+        overflow-x: scroll;
+    }
+
+    .platform-tab {
+        min-width: 80px;
+        padding: 8px 10px;
+        font-size: 11px;
+        gap: 4px;
+    }
+
+    .platform-icon {
+        font-size: 16px;
+    }
+
+    .platform-name {
+        display: none; /* 小屏幕隐藏文字，只显示图标和数字 */
+    }
+
+    .platform-badge {
+        min-width: 18px;
+        height: 18px;
+        font-size: 10px;
+    }
+
+    .platform-actions {
+        flex-direction: column;
+        gap: 6px;
+    }
+}

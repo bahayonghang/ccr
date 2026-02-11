@@ -1,6 +1,6 @@
 {
   "name": "ccr-ui-frontend-vue",
-  "version": "3.18.4",
+  "version": "4.0.0",
   "private": true,
   "type": "module",
   "packageManager": "npm@10.9.2",
@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --fix",
+    "lint": "eslint . --fix && npm run lint:style",
+    "lint:style": "stylelint \"src/**/*.{css,vue}\" --fix",
     "type-check": "vue-tsc --noEmit",
     "test": "node tests/i18n.test.cjs",
     "test:i18n": "node tests/i18n.test.cjs",
@@ -25,9 +26,12 @@
     "tauri:clippy": "cd src-tauri && cargo clippy",
     "tauri:fmt": "cd src-tauri && cargo fmt",
     "tauri:test": "cd src-tauri && cargo test",
-    "check:all": "npm run type-check && npm run lint && npm run tauri:check"
+    "check:all": "npm run type-check && npm run lint && npm run tauri:check",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@tanstack/vue-virtual": "^3.13.18",
     "@tauri-apps/api": "^2.9.1",
     "@types/marked": "^6.0.0",
     "ansi_up": "^6.0.6",
@@ -53,10 +57,26 @@
     "eslint-plugin-vue": "^10.6.2",
     "globals": "^16.5.0",
     "postcss": "^8.5.6",
+    "postcss-html": "^1.8.1",
+    "stylelint": "^17.0.0",
+    "stylelint-config-recommended-vue": "^1.6.1",
+    "stylelint-config-standard": "^40.0.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.1",
     "vite": "^7.3.0",
     "vue-eslint-parser": "^10.2.0",
-    "vue-tsc": "^2.2.12"
+    "vue-tsc": "^2.2.12",
+    "storybook": "^10.1.11",
+    "@storybook/vue3-vite": "^10.1.11",
+    "@chromatic-com/storybook": "^5.0.0",
+    "@storybook/addon-vitest": "^10.1.11",
+    "@storybook/addon-a11y": "^10.1.11",
+    "@storybook/addon-docs": "^10.1.11",
+    "@storybook/addon-onboarding": "^10.1.11",
+    "eslint-plugin-storybook": "^10.1.11",
+    "vitest": "^4.0.18",
+    "playwright": "^1.58.0",
+    "@vitest/browser-playwright": "^4.0.18",
+    "@vitest/coverage-v8": "^4.0.18"
   }
 }

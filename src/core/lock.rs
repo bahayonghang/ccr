@@ -157,7 +157,8 @@ impl Drop for FileLock {
     /// 当 FileLock 离开作用域时自动释放锁
     fn drop(&mut self) {
         // ✅ 确保锁总是被释放
-        let _ = self.file.unlock();
+        // 显式调用 fs4::FileExt，避免在较新 Rust 版本中命中 std::fs::File::unlock 的 MSRV 变更
+        let _ = FileExt::unlock(&self.file);
         tracing::debug!("🔓 文件锁已自动释放: {:?}", self.lock_path);
     }
 }

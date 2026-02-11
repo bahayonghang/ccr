@@ -1,10 +1,11 @@
 // Platform management routes
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{get, post, put},
 };
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route(
             "/platforms",
@@ -17,6 +18,10 @@ pub fn routes() -> Router {
         .route(
             "/platforms/switch",
             post(crate::api::handlers::platform::switch_platform),
+        )
+        .route(
+            "/platforms/capabilities",
+            get(crate::api::handlers::platform::get_platform_capabilities),
         )
         .route(
             "/platforms/{name}",

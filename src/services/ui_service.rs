@@ -1,6 +1,7 @@
 // 🎨 UI 服务层
 // 负责启动和管理 CCR UI (Web 应用)
 
+use crate::core::CCR_UI_REPO;
 use crate::core::error::{CcrError, Result};
 use crate::core::http::HTTP_CLIENT;
 use crate::core::logging::ColorOutput;
@@ -9,15 +10,13 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// GitHub 仓库信息
-const GITHUB_REPO: &str = "bahayonghang/ccr";
+const GITHUB_REPO: &str = CCR_UI_REPO;
 const GITHUB_BRANCH: &str = "main";
-/// GitHub raw Cargo.toml URL for version check
-const GITHUB_CARGO_TOML_URL: &str =
-    "https://raw.githubusercontent.com/bahayonghang/ccr/main/Cargo.toml";
 
 /// 🎨 UI 服务
 ///
 /// 提供 CCR UI 的启动和管理功能
+#[derive(Clone)]
 pub struct UiService {
     /// CCR-UI 项目路径 (开发模式使用)
     ccr_ui_path: Option<PathBuf>,
@@ -31,8 +30,8 @@ impl UiService {
     /// 🏗️ 创建新的 UI 服务
     pub fn new() -> Result<Self> {
         // 获取用户主目录
-        let home = dirs::home_dir()
-            .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".to_string()))?;
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::UiError("无法获取用户主目录".to_string()))?;
 
         // UI 安装目录 (~/.ccr/ccr-ui/) - 用户侧固定目录
         let ui_dir = home.join(".ccr/ccr-ui");
@@ -132,7 +131,7 @@ impl UiService {
             return self.start_dev_mode(&self.ui_dir, port, backend_port, auto_yes);
         }
 
-        Err(CcrError::ConfigError(
+        Err(CcrError::UiError(
             "用户取消下载，无法启动 CCR UI".to_string(),
         ))
     }
@@ -182,7 +181,7 @@ impl UiService {
                         .with_prompt("无法检查远程版本，是否仍要强制更新?")
                         .default(false)
                         .interact()
-                        .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;
+                        .map_err(|e| CcrError::UiError(format!("交互失败: {}", e)))?;
 
                     if !confirmed {
                         ColorOutput::info("已取消更新");
@@ -193,7 +192,13 @@ impl UiService {
         }
 
         println!();
-        self.sync_from_github(auto_yes)
+        let service = self.clone();
+        tokio::task::spawn_blocking(move || service.sync_from_github(auto_yes))
+            .await
+            .map_err(|e| {
+                CcrError::ExternalCommandError(format!("执行 UI 同步任务失败: {}", e))
+            })??;
+        Ok(())
     }
 
     /// 📖 获取本地 UI 版本（从 backend/Cargo.toml 读取）
@@ -220,14 +225,18 @@ impl UiService {
     /// 🌐 获取远程版本（从 GitHub Cargo.toml 读取）
     async fn fetch_remote_version(&self) -> Result<String> {
         let client = &*HTTP_CLIENT;
+        let cargo_toml_url = format!(
+            "https://raw.githubusercontent.com/{}/{}/Cargo.toml",
+            GITHUB_REPO, GITHUB_BRANCH
+        );
         let response = client
-            .get(GITHUB_CARGO_TOML_URL)
+            .get(cargo_toml_url)
             .send()
             .await
-            .map_err(|e| CcrError::ConfigError(format!("请求远程版本失败: {}", e)))?;
+            .map_err(|e| CcrError::UiError(format!("请求远程版本失败: {}", e)))?;
 
         if !response.status().is_success() {
-            return Err(CcrError::ConfigError(format!(
+            return Err(CcrError::UiError(format!(
                 "GitHub 返回错误状态: {}",
                 response.status()
             )));
@@ -236,10 +245,10 @@ impl UiService {
         let content = response
             .text()
             .await
-            .map_err(|e| CcrError::ConfigError(format!("读取响应内容失败: {}", e)))?;
+            .map_err(|e| CcrError::UiError(format!("读取响应内容失败: {}", e)))?;
 
         Self::parse_version_from_cargo_toml(&content)
-            .ok_or_else(|| CcrError::ConfigError("无法从 Cargo.toml 解析版本号".to_string()))
+            .ok_or_else(|| CcrError::UiError("无法从 Cargo.toml 解析版本号".to_string()))
     }
 
     /// 📝 从 Cargo.toml 内容解析版本号
@@ -326,10 +335,10 @@ impl UiService {
             .env("BACKEND_PORT", backend_port.to_string())
             .current_dir(ccr_ui_path)
             .status()
-            .map_err(|e| CcrError::ConfigError(format!("启动失败: {}", e)))?;
+            .map_err(|e| CcrError::ExternalCommandError(format!("启动失败: {}", e)))?;
 
         if !status.success() {
-            return Err(CcrError::ConfigError(
+            return Err(CcrError::ExternalCommandError(
                 "开发模式启动失败,请查看上方错误信息".to_string(),
             ));
         }
@@ -366,7 +375,7 @@ impl UiService {
         ColorOutput::info("  cargo install just");
         println!();
 
-        Err(CcrError::ConfigError(
+        Err(CcrError::UiError(
             "缺少必要工具: just (请安装后重试)".to_string(),
         ))
     }
@@ -395,7 +404,7 @@ impl UiService {
 
             // 询问用户是否继续
             if !self.confirm_installation(auto_yes)? {
-                return Err(CcrError::ConfigError("用户取消安装".to_string()));
+                return Err(CcrError::UiError("用户取消安装".to_string()));
             }
 
             // 运行 just install
@@ -404,10 +413,10 @@ impl UiService {
                 .arg("install")
                 .current_dir(ccr_ui_path)
                 .status()
-                .map_err(|e| CcrError::ConfigError(format!("安装依赖失败: {}", e)))?;
+                .map_err(|e| CcrError::ExternalCommandError(format!("安装依赖失败: {}", e)))?;
 
             if !status.success() {
-                return Err(CcrError::ConfigError(
+                return Err(CcrError::ExternalCommandError(
                     "依赖安装失败,请查看上方错误信息".to_string(),
                 ));
             }
@@ -433,7 +442,7 @@ impl UiService {
             .with_prompt("是否立即安装 CCR UI 依赖?")
             .default(true)
             .interact()
-            .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;
+            .map_err(|e| CcrError::UiError(format!("交互失败: {}", e)))?;
 
         Ok(confirmed)
     }
@@ -458,7 +467,7 @@ impl UiService {
             .with_prompt("是否迁移到新目录?")
             .default(true)
             .interact()
-            .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;
+            .map_err(|e| CcrError::UiError(format!("交互失败: {}", e)))?;
 
         Ok(confirmed)
     }
@@ -470,7 +479,7 @@ impl UiService {
         }
 
         if self.ui_dir.exists() {
-            return Err(CcrError::ConfigError(format!(
+            return Err(CcrError::UiError(format!(
                 "无法迁移：目标目录已存在: {}",
                 self.ui_dir.display()
             )));
@@ -479,11 +488,11 @@ impl UiService {
         let parent_dir = self
             .ui_dir
             .parent()
-            .ok_or_else(|| CcrError::ConfigError("无法获取 UI 目录父路径".to_string()))?;
+            .ok_or_else(|| CcrError::UiError("无法获取 UI 目录父路径".to_string()))?;
 
         if !parent_dir.exists() {
             fs::create_dir_all(parent_dir)
-                .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+                .map_err(|e| CcrError::UiError(format!("创建目录失败: {}", e)))?;
         }
 
         // 优先尝试原地移动（同文件系统时为 O(1)）
@@ -511,15 +520,15 @@ impl UiService {
                 .arg("dev-frontend")
                 .current_dir(ccr_ui_path)
                 .status()
-                .map_err(|e| CcrError::ConfigError(format!("启动前端失败: {}", e)))?;
+                .map_err(|e| CcrError::ExternalCommandError(format!("启动前端失败: {}", e)))?;
 
             if !status.success() {
-                return Err(CcrError::ConfigError("前端启动失败".to_string()));
+                return Err(CcrError::ExternalCommandError("前端启动失败".to_string()));
             }
 
             Ok(())
         } else {
-            Err(CcrError::ConfigError("未找到 ccr-ui 目录".to_string()))
+            Err(CcrError::UiError("未找到 ccr-ui 目录".to_string()))
         }
     }
 
@@ -533,15 +542,15 @@ impl UiService {
                 .arg("dev-backend")
                 .current_dir(ccr_ui_path)
                 .status()
-                .map_err(|e| CcrError::ConfigError(format!("启动后端失败: {}", e)))?;
+                .map_err(|e| CcrError::ExternalCommandError(format!("启动后端失败: {}", e)))?;
 
             if !status.success() {
-                return Err(CcrError::ConfigError("后端启动失败".to_string()));
+                return Err(CcrError::ExternalCommandError("后端启动失败".to_string()));
             }
 
             Ok(())
         } else {
-            Err(CcrError::ConfigError("未找到 ccr-ui 目录".to_string()))
+            Err(CcrError::UiError("未找到 ccr-ui 目录".to_string()))
         }
     }
 
@@ -557,10 +566,10 @@ impl UiService {
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .status()
-                .map_err(|e| CcrError::ConfigError(format!("构建失败: {}", e)))?;
+                .map_err(|e| CcrError::ExternalCommandError(format!("构建失败: {}", e)))?;
 
             if !status.success() {
-                return Err(CcrError::ConfigError("生产构建失败".to_string()));
+                return Err(CcrError::ExternalCommandError("生产构建失败".to_string()));
             }
 
             ColorOutput::success("✅ 生产构建完成");
@@ -575,7 +584,7 @@ impl UiService {
 
             Ok(())
         } else {
-            Err(CcrError::ConfigError("未找到 ccr-ui 目录".to_string()))
+            Err(CcrError::UiError("未找到 ccr-ui 目录".to_string()))
         }
     }
 
@@ -598,7 +607,7 @@ impl UiService {
             .with_prompt("是否立即从 GitHub 下载 CCR UI?")
             .default(true)
             .interact()
-            .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;
+            .map_err(|e| CcrError::UiError(format!("交互失败: {}", e)))?;
 
         Ok(confirmed)
     }
@@ -610,8 +619,8 @@ impl UiService {
         ColorOutput::step("从 GitHub 同步 CCR UI");
         println!();
 
-        let temp_dir = TempDir::new()
-            .map_err(|e| CcrError::ConfigError(format!("创建临时目录失败: {}", e)))?;
+        let temp_dir =
+            TempDir::new().map_err(|e| CcrError::UiError(format!("创建临时目录失败: {}", e)))?;
 
         ColorOutput::info(&format!(
             "📦 克隆仓库: https://github.com/{}.git",
@@ -632,27 +641,27 @@ impl UiService {
             .arg(temp_dir.path())
             .status()
             .map_err(|e| {
-                CcrError::ConfigError(format!(
+                CcrError::ExternalCommandError(format!(
                     "执行 git clone 失败: {}\n\n💡 请确保已安装 git: sudo apt-get install git",
                     e
                 ))
             })?;
 
         if !status.success() {
-            return Err(CcrError::ConfigError(
+            return Err(CcrError::ExternalCommandError(
                 "下载失败，请检查网络连接和 git 安装".to_string(),
             ));
         }
 
         let ccr_ui_src = temp_dir.path().join("ccr-ui");
         if !ccr_ui_src.exists() {
-            return Err(CcrError::ConfigError(
+            return Err(CcrError::UiError(
                 "下载的仓库中未找到 ccr-ui 目录".to_string(),
             ));
         }
 
         if !ccr_ui_src.join("justfile").exists() {
-            return Err(CcrError::ConfigError(
+            return Err(CcrError::UiError(
                 "ccr-ui 目录不完整，缺少 justfile".to_string(),
             ));
         }
@@ -670,11 +679,11 @@ impl UiService {
         let parent_dir = self
             .ui_dir
             .parent()
-            .ok_or_else(|| CcrError::ConfigError("无法获取 UI 目录父路径".to_string()))?;
+            .ok_or_else(|| CcrError::UiError("无法获取 UI 目录父路径".to_string()))?;
 
         if !parent_dir.exists() {
             fs::create_dir_all(parent_dir)
-                .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+                .map_err(|e| CcrError::UiError(format!("创建目录失败: {}", e)))?;
         }
 
         // 兼容：如果旧路径存在且新路径不存在，优先引导迁移（保留缓存）
@@ -699,22 +708,22 @@ impl UiService {
                 .with_prompt("是否继续更新?")
                 .default(true)
                 .interact()
-                .map_err(|e| CcrError::ConfigError(format!("交互失败: {}", e)))?;
+                .map_err(|e| CcrError::UiError(format!("交互失败: {}", e)))?;
 
             if !confirmed {
-                return Err(CcrError::ConfigError("用户取消更新".to_string()));
+                return Err(CcrError::UiError("用户取消更新".to_string()));
             }
         }
 
         // 先把新版本复制到同目录的 staging，避免复制失败导致现有安装损坏
         let staging_dir = TempDir::new_in(parent_dir)
-            .map_err(|e| CcrError::ConfigError(format!("创建临时目录失败: {}", e)))?;
+            .map_err(|e| CcrError::UiError(format!("创建临时目录失败: {}", e)))?;
         self.copy_dir_recursive(src_ui_dir, staging_dir.path())?;
 
         // 需要保留的缓存目录（相对 ui_dir）
         let preserve_rel_paths = ["frontend/node_modules", "backend/target"];
         let preserve_dir = TempDir::new_in(parent_dir)
-            .map_err(|e| CcrError::ConfigError(format!("创建临时目录失败: {}", e)))?;
+            .map_err(|e| CcrError::UiError(format!("创建临时目录失败: {}", e)))?;
 
         let mut preserved: Vec<(PathBuf, PathBuf)> = Vec::new();
         if self.ui_dir.exists() {
@@ -726,10 +735,10 @@ impl UiService {
                 let to = preserve_dir.path().join(rel);
                 if let Some(parent) = to.parent() {
                     fs::create_dir_all(parent)
-                        .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+                        .map_err(|e| CcrError::UiError(format!("创建目录失败: {}", e)))?;
                 }
                 fs::rename(&from, &to)
-                    .map_err(|e| CcrError::ConfigError(format!("移动缓存目录失败: {}", e)))?;
+                    .map_err(|e| CcrError::UiError(format!("移动缓存目录失败: {}", e)))?;
                 preserved.push((to, self.ui_dir.join(rel)));
             }
         }
@@ -737,21 +746,21 @@ impl UiService {
         // 清空旧安装目录（缓存已暂存）
         if self.ui_dir.exists() {
             fs::remove_dir_all(&self.ui_dir)
-                .map_err(|e| CcrError::ConfigError(format!("删除旧目录失败: {}", e)))?;
+                .map_err(|e| CcrError::UiError(format!("删除旧目录失败: {}", e)))?;
         }
 
         // 将 staging 目录原子替换为目标目录
         fs::rename(staging_dir.path(), &self.ui_dir)
-            .map_err(|e| CcrError::ConfigError(format!("写入新版本失败: {}", e)))?;
+            .map_err(|e| CcrError::UiError(format!("写入新版本失败: {}", e)))?;
 
         // 恢复缓存目录
         for (from, to) in preserved {
             if let Some(parent) = to.parent() {
                 fs::create_dir_all(parent)
-                    .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+                    .map_err(|e| CcrError::UiError(format!("创建目录失败: {}", e)))?;
             }
             fs::rename(from, to)
-                .map_err(|e| CcrError::ConfigError(format!("恢复缓存目录失败: {}", e)))?;
+                .map_err(|e| CcrError::UiError(format!("恢复缓存目录失败: {}", e)))?;
         }
 
         ColorOutput::success("✅ CCR UI 已同步到最新版本");
@@ -772,13 +781,13 @@ impl UiService {
 
         if !dst.exists() {
             fs::create_dir_all(dst)
-                .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
+                .map_err(|e| CcrError::UiError(format!("创建目录失败: {}", e)))?;
         }
 
         for entry in
-            fs::read_dir(src).map_err(|e| CcrError::ConfigError(format!("读取目录失败: {}", e)))?
+            fs::read_dir(src).map_err(|e| CcrError::UiError(format!("读取目录失败: {}", e)))?
         {
-            let entry = entry.map_err(|e| CcrError::ConfigError(format!("读取条目失败: {}", e)))?;
+            let entry = entry.map_err(|e| CcrError::UiError(format!("读取条目失败: {}", e)))?;
             let path = entry.path();
             let file_name = entry.file_name();
             let dst_path = dst.join(&file_name);
@@ -791,7 +800,7 @@ impl UiService {
                 Self::copy_dir_recursive_impl(&path, &dst_path)?;
             } else {
                 fs::copy(&path, &dst_path)
-                    .map_err(|e| CcrError::ConfigError(format!("复制文件失败: {}", e)))?;
+                    .map_err(|e| CcrError::UiError(format!("复制文件失败: {}", e)))?;
             }
         }
 
@@ -810,14 +819,14 @@ impl UiService {
     #[allow(dead_code)]
     fn download_and_install(&self) -> Result<()> {
         ColorOutput::info("📥 预构建版本下载功能将在未来版本中实现");
-        Err(CcrError::ConfigError("预构建版本功能尚未实现".to_string()))
+        Err(CcrError::UiError("预构建版本功能尚未实现".to_string()))
     }
 
     /// 🚀 启动本地预构建版本 (预留)
     #[allow(dead_code)]
     fn start_local(&self, _port: u16, _backend_port: u16) -> Result<()> {
         ColorOutput::info("🚀 预构建版本启动功能将在未来版本中实现");
-        Err(CcrError::ConfigError("预构建版本功能尚未实现".to_string()))
+        Err(CcrError::UiError("预构建版本功能尚未实现".to_string()))
     }
 }
 

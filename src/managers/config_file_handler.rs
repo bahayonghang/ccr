@@ -47,9 +47,11 @@ impl ConfigFileHandler {
     /// 1. ✅ 检查文件是否存在
     /// 2. 📄 读取文件内容
     /// 3. 🔍 解析 TOML 格式
-    /// 4. 🔄 自动补全缺失字段
     ///
     /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
+    ///
+    /// 注意: 此方法为纯读取，不会自动修复或写回文件。
+    /// 如需自动补全并保存，请使用 `load_with_autofix`。
     pub fn load(&self) -> Result<CcsConfig> {
         // ✅ 检查文件是否存在
         if !self.config_path.exists() {
@@ -59,13 +61,27 @@ impl ConfigFileHandler {
         }
 
         // 使用统一的 fileio 读取 TOML
-        let mut config: CcsConfig = fileio::read_toml(&self.config_path)?;
+        let config: CcsConfig = fileio::read_toml(&self.config_path)?;
 
         tracing::debug!(
             "✅ 成功加载配置文件: {:?}, 配置节数量: {}",
             self.config_path,
             config.sections.len()
         );
+
+        Ok(config)
+    }
+
+    /// 🔄 加载配置并自动补全缺失字段（必要时写回）
+    ///
+    /// 执行步骤:
+    /// 1. 📖 调用 `load` 读取配置
+    /// 2. 🔍 自动补全缺失字段
+    /// 3. 💾 如果有变更则保存
+    ///
+    /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
+    pub fn load_with_autofix(&self) -> Result<CcsConfig> {
+        let mut config = self.load()?;
 
         // 🔄 自动补全缺失字段
         let mut modified = false;

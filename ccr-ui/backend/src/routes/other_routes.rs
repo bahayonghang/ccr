@@ -5,9 +5,10 @@ use axum::{
     routing::{delete, get, patch, post, put},
     Router,
 };
+use crate::state::AppState;
 
 /// Platform management routes
-pub fn platform_routes() -> Router {
+pub fn platform_routes() -> Router<AppState> {
     Router::new()
         .route("/platforms", get(crate::api::handlers::platform::list_platforms))
         .route("/platforms/current", get(crate::api::handlers::platform::get_current_platform))
@@ -21,7 +22,7 @@ pub fn platform_routes() -> Router {
 }
 
 /// MCP server management routes
-pub fn mcp_routes() -> Router {
+pub fn mcp_routes() -> Router<AppState> {
     Router::new()
         .merge(mcp_server_routes())
         .merge(mcp_presets_routes())
@@ -29,7 +30,7 @@ pub fn mcp_routes() -> Router {
 }
 
 /// MCP server endpoints
-fn mcp_server_routes() -> Router {
+fn mcp_server_routes() -> Router<AppState> {
     Router::new()
         .route("/mcp", get(crate::api::handlers::mcp::list_mcp_servers))
         .route("/mcp", post(crate::api::handlers::mcp::add_mcp_server))
@@ -39,7 +40,7 @@ fn mcp_server_routes() -> Router {
 }
 
 /// MCP presets routes
-pub fn mcp_presets_routes() -> Router {
+pub fn mcp_presets_routes() -> Router<AppState> {
     Router::new()
         .route("/mcp/presets", get(crate::api::handlers::mcp_presets::list_presets))
         .route("/mcp/presets/{id}", get(crate::api::handlers::mcp_presets::get_preset))
@@ -48,7 +49,7 @@ pub fn mcp_presets_routes() -> Router {
 }
 
 /// MCP sync routes
-pub fn mcp_sync_routes() -> Router {
+pub fn mcp_sync_routes() -> Router<AppState> {
     Router::new()
         .route("/mcp/sync/source", get(crate::api::handlers::mcp_presets::list_source_mcp_servers))
         .route("/mcp/sync/all", post(crate::api::handlers::mcp_presets::sync_all_mcp_servers))
@@ -56,7 +57,7 @@ pub fn mcp_sync_routes() -> Router {
 }
 
 /// Builtin prompts routes
-pub fn builtin_prompts_routes() -> Router {
+pub fn builtin_prompts_routes() -> Router<AppState> {
     Router::new()
         .route("/prompts/builtin", get(crate::api::handlers::builtin_prompts::list_builtin_prompts))
         .route("/prompts/builtin/{id}", get(crate::api::handlers::builtin_prompts::get_builtin_prompt))
@@ -67,7 +68,7 @@ pub fn builtin_prompts_routes() -> Router {
 }
 
 /// Slash command management routes
-pub fn slash_commands_routes() -> Router {
+pub fn slash_commands_routes() -> Router<AppState> {
     Router::new()
         .route("/slash-commands", get(crate::api::handlers::slash_commands::list_slash_commands))
         .route("/slash-commands", post(crate::api::handlers::slash_commands::add_slash_command))
@@ -86,7 +87,7 @@ pub fn slash_commands_routes() -> Router {
 }
 
 /// Agent management routes
-pub fn agents_routes() -> Router {
+pub fn agents_routes() -> Router<AppState> {
     Router::new()
         .route("/agents", get(crate::api::handlers::agents::list_agents))
         .route("/agents", post(crate::api::handlers::agents::add_agent))
@@ -96,7 +97,7 @@ pub fn agents_routes() -> Router {
 }
 
 /// Plugin management routes
-pub fn plugins_routes() -> Router {
+pub fn plugins_routes() -> Router<AppState> {
     Router::new()
         .route("/plugins", get(crate::api::handlers::plugins::list_plugins))
         .route("/plugins", post(crate::api::handlers::plugins::add_plugin))
@@ -106,7 +107,7 @@ pub fn plugins_routes() -> Router {
 }
 
 /// Statistics routes
-pub fn stats_routes() -> Router {
+pub fn stats_routes() -> Router<AppState> {
     Router::new()
         .route("/stats/cost", get(crate::api::handlers::stats::cost_overview))
         .route("/stats/cost/today", get(crate::api::handlers::stats::cost_today))
@@ -121,7 +122,7 @@ pub fn stats_routes() -> Router {
 }
 
 /// Skills management routes
-pub fn skills_routes() -> Router {
+pub fn skills_routes() -> Router<AppState> {
     Router::new()
         .route("/skills", get(crate::api::handlers::skills::list_skills))
         .route("/skills", post(crate::api::handlers::skills::add_skill))
@@ -134,7 +135,7 @@ pub fn skills_routes() -> Router {
 }
 
 /// Prompts management routes
-pub fn prompts_routes() -> Router {
+pub fn prompts_routes() -> Router<AppState> {
     Router::new()
         .route("/prompts", get(crate::api::handlers::prompts::list_prompts))
         .route("/prompts", post(crate::api::handlers::prompts::add_prompt))
@@ -145,7 +146,7 @@ pub fn prompts_routes() -> Router {
 }
 
 /// Budget management routes
-pub fn budget_routes() -> Router {
+pub fn budget_routes() -> Router<AppState> {
     Router::new()
         .route("/budget/status", get(crate::api::handlers::budget::get_budget_status))
         .route("/budget/set", post(crate::api::handlers::budget::set_budget))
@@ -153,7 +154,7 @@ pub fn budget_routes() -> Router {
 }
 
 /// Pricing management routes
-pub fn pricing_routes() -> Router {
+pub fn pricing_routes() -> Router<AppState> {
     Router::new()
         .route("/pricing/list", get(crate::api::handlers::pricing::get_pricing_list))
         .route("/pricing/set", post(crate::api::handlers::pricing::set_pricing))
@@ -162,13 +163,13 @@ pub fn pricing_routes() -> Router {
 }
 
 /// Usage analytics routes
-pub fn usage_routes() -> Router {
+pub fn usage_routes() -> Router<AppState> {
     Router::new()
         .route("/usage/records", get(crate::api::handlers::usage::get_usage_records))
 }
 
 /// Sync management routes
-pub fn sync_routes() -> Router {
+pub fn sync_routes() -> Router<AppState> {
     Router::new()
         .merge(sync_basic_routes())
         .merge(sync_folder_routes())
@@ -176,7 +177,7 @@ pub fn sync_routes() -> Router {
 }
 
 /// Basic sync routes
-fn sync_basic_routes() -> Router {
+fn sync_basic_routes() -> Router<AppState> {
     Router::new()
         .route("/sync/status", get(crate::api::handlers::sync::get_sync_status))
         .route("/sync/push", post(crate::api::handlers::sync::push_config))
@@ -186,7 +187,7 @@ fn sync_basic_routes() -> Router {
 }
 
 /// Folder sync routes
-fn sync_folder_routes() -> Router {
+fn sync_folder_routes() -> Router<AppState> {
     Router::new()
         .route("/sync/folders", get(crate::api::handlers::sync::list_sync_folders))
         .route("/sync/folders", post(crate::api::handlers::sync::add_sync_folder))
@@ -200,7 +201,7 @@ fn sync_folder_routes() -> Router {
 }
 
 /// Batch sync operations routes
-fn sync_batch_routes() -> Router {
+fn sync_batch_routes() -> Router<AppState> {
     Router::new()
         .route("/sync/all/push", post(crate::api::handlers::sync::push_all_folders))
         .route("/sync/all/pull", post(crate::api::handlers::sync::pull_all_folders))
@@ -208,7 +209,7 @@ fn sync_batch_routes() -> Router {
 }
 
 /// Codex platform routes
-pub fn codex_routes() -> Router {
+pub fn codex_routes() -> Router<AppState> {
     Router::new()
         .merge(codex_mcp_routes())
         .merge(codex_profiles_routes())
@@ -216,7 +217,7 @@ pub fn codex_routes() -> Router {
 }
 
 /// Codex MCP routes
-fn codex_mcp_routes() -> Router {
+fn codex_mcp_routes() -> Router<AppState> {
     Router::new()
         .route("/codex/mcp", get(crate::api::handlers::platforms::codex::list_codex_mcp_servers))
         .route("/codex/mcp", post(crate::api::handlers::platforms::codex::add_codex_mcp_server))
@@ -225,7 +226,7 @@ fn codex_mcp_routes() -> Router {
 }
 
 /// Codex profiles routes
-fn codex_profiles_routes() -> Router {
+fn codex_profiles_routes() -> Router<AppState> {
     Router::new()
         .route("/codex/profiles", get(crate::api::handlers::platforms::codex::list_codex_profiles))
         .route("/codex/profiles", post(crate::api::handlers::platforms::codex::add_codex_profile))
@@ -236,21 +237,21 @@ fn codex_profiles_routes() -> Router {
 }
 
 /// Codex config routes
-fn codex_config_routes() -> Router {
+fn codex_config_routes() -> Router<AppState> {
     Router::new()
         .route("/codex/config", get(crate::api::handlers::platforms::codex::get_codex_config))
         .route("/codex/config", put(crate::api::handlers::platforms::codex::update_codex_base_config))
 }
 
 /// Gemini platform routes
-pub fn gemini_routes() -> Router {
+pub fn gemini_routes() -> Router<AppState> {
     Router::new()
         .merge(gemini_mcp_routes())
         .merge(gemini_config_routes())
 }
 
 /// Gemini MCP routes
-fn gemini_mcp_routes() -> Router {
+fn gemini_mcp_routes() -> Router<AppState> {
     Router::new()
         .route("/gemini/mcp", get(crate::api::handlers::platforms::gemini::list_gemini_mcp_servers))
         .route("/gemini/mcp", post(crate::api::handlers::platforms::gemini::add_gemini_mcp_server))
@@ -259,21 +260,21 @@ fn gemini_mcp_routes() -> Router {
 }
 
 /// Gemini config routes
-fn gemini_config_routes() -> Router {
+fn gemini_config_routes() -> Router<AppState> {
     Router::new()
         .route("/gemini/config", get(crate::api::handlers::platforms::gemini::get_gemini_config))
         .route("/gemini/config", put(crate::api::handlers::platforms::gemini::update_gemini_config))
 }
 
 /// Qwen platform routes
-pub fn qwen_routes() -> Router {
+pub fn qwen_routes() -> Router<AppState> {
     Router::new()
         .merge(qwen_mcp_routes())
         .merge(qwen_config_routes())
 }
 
 /// Qwen MCP routes
-fn qwen_mcp_routes() -> Router {
+fn qwen_mcp_routes() -> Router<AppState> {
     Router::new()
         .route("/qwen/mcp", get(crate::api::handlers::platforms::qwen::list_qwen_mcp_servers))
         .route("/qwen/mcp", post(crate::api::handlers::platforms::qwen::add_qwen_mcp_server))
@@ -282,20 +283,20 @@ fn qwen_mcp_routes() -> Router {
 }
 
 /// Qwen config routes
-fn qwen_config_routes() -> Router {
+fn qwen_config_routes() -> Router<AppState> {
     Router::new()
         .route("/qwen/config", get(crate::api::handlers::platforms::qwen::get_qwen_config))
         .route("/qwen/config", put(crate::api::handlers::platforms::qwen::update_qwen_config))
 }
 
 /// Config converter routes
-pub fn converter_routes() -> Router {
+pub fn converter_routes() -> Router<AppState> {
     Router::new()
         .route("/converter/convert", post(crate::api::handlers::converter::convert_config))
 }
 
 /// UI state routes
-pub fn ui_state_routes() -> Router {
+pub fn ui_state_routes() -> Router<AppState> {
     Router::new()
         .route("/ui-state/favorites", get(crate::api::handlers::ui_state::get_favorites))
         .route("/ui-state/favorites", post(crate::api::handlers::ui_state::add_favorite))

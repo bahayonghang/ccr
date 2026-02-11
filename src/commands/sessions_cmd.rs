@@ -5,7 +5,7 @@
 #![allow(clippy::unused_async)]
 
 use crate::core::ColorOutput;
-use crate::core::error::Result;
+use crate::core::error::{CcrError, Result};
 use crate::models::Platform;
 use crate::sessions::models::SessionFilter;
 use crate::sessions::{SessionIndexer, SessionSummary};
@@ -110,7 +110,7 @@ pub async fn execute(args: SessionsArgs) -> Result<()> {
         } => cmd_resume(&session_id, dry_run),
         SessionsCommand::Reindex { force, platform } => cmd_reindex(force, platform),
         SessionsCommand::Stats => cmd_stats(),
-        SessionsCommand::Prune { confirm } => cmd_prune(confirm),
+        SessionsCommand::Prune { confirm } => cmd_prune(confirm).await,
     }
 }
 
@@ -321,21 +321,27 @@ fn cmd_stats() -> Result<()> {
 }
 
 /// 清理过期 sessions
-fn cmd_prune(confirm: bool) -> Result<()> {
+async fn cmd_prune(confirm: bool) -> Result<()> {
     if !confirm {
         ColorOutput::warning("将删除文件已不存在的 session 记录");
         ColorOutput::info("使用 --confirm 跳过确认");
 
         // 简单确认
         println!();
-        print!("是否继续? (y/N): ");
-        use std::io::{self, Write};
-        io::stdout().flush().ok();
+        let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
+            print!("是否继续? (y/N): ");
+            use std::io::{self, Write};
+            io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).ok();
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
 
-        if !input.trim().eq_ignore_ascii_case("y") {
+            Ok(input.trim().eq_ignore_ascii_case("y"))
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+        if !confirmed {
             ColorOutput::info("已取消");
             return Ok(());
         }

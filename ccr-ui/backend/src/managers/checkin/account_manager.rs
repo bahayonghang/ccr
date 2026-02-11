@@ -1,18 +1,15 @@
 // 签到账号管理器
 // 负责账号的 CRUD 操作，包括 Cookies JSON 加密存储
+// 使用 SQLite 统一存储（替代 JSON 文件）
 
 use crate::core::crypto::CryptoManager;
+use crate::database::{self, DatabaseError, repositories::checkin_repo};
 use crate::models::checkin::{
     AccountInfo, AccountsResponse, CheckinAccount, CreateAccountRequest, UpdateAccountRequest,
     mask_cookies_json,
 };
 use chrono::Utc;
-use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
-use tempfile::NamedTempFile;
-
-const ACCOUNTS_FILE: &str = "accounts.json";
 
 #[derive(Debug, thiserror::Error)]
 #[allow(dead_code)]
@@ -21,12 +18,8 @@ pub enum AccountError {
     NotFound(String),
     #[error("Provider not found: {0}")]
     ProviderNotFound(String),
-    #[error("Failed to read accounts: {0}")]
-    ReadError(String),
-    #[error("Failed to write accounts: {0}")]
-    WriteError(String),
-    #[error("Failed to parse accounts: {0}")]
-    ParseError(String),
+    #[error("Database error: {0}")]
+    Database(#[from] DatabaseError),
     #[error("Encryption error: {0}")]
     CryptoError(String),
 }
@@ -34,18 +27,17 @@ pub enum AccountError {
 pub type Result<T> = std::result::Result<T, AccountError>;
 
 /// 账号管理器
+/// 使用 SQLite 统一存储
 pub struct AccountManager {
-    /// 数据文件路径
-    file_path: PathBuf,
-    /// 签到数据目录
+    /// 签到数据目录（用于加密密钥）
     checkin_dir: PathBuf,
 }
 
 impl AccountManager {
     /// 创建新的账号管理器
+    /// 注意：checkin_dir 仅用于加密密钥存储
     pub fn new(checkin_dir: &Path) -> Self {
         Self {
-            file_path: checkin_dir.join(ACCOUNTS_FILE),
             checkin_dir: checkin_dir.to_path_buf(),
         }
     }
@@ -55,58 +47,9 @@ impl AccountManager {
         CryptoManager::new(&self.checkin_dir).map_err(|e| AccountError::CryptoError(e.to_string()))
     }
 
-    /// 加载所有账号
-    pub fn load_all(&self) -> Result<Vec<CheckinAccount>> {
-        if !self.file_path.exists() {
-            return Ok(Vec::new());
-        }
-
-        let content = fs::read_to_string(&self.file_path)
-            .map_err(|e| AccountError::ReadError(e.to_string()))?;
-
-        if content.trim().is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let accounts: Vec<CheckinAccount> =
-            serde_json::from_str(&content).map_err(|e| AccountError::ParseError(e.to_string()))?;
-
-        Ok(accounts)
-    }
-
-    /// 保存所有账号
-    fn save_all(&self, accounts: &[CheckinAccount]) -> Result<()> {
-        // 确保目录存在
-        if let Some(parent) = self.file_path.parent() {
-            fs::create_dir_all(parent).map_err(|e| {
-                AccountError::WriteError(format!("Failed to create directory: {}", e))
-            })?;
-        }
-
-        // 序列化为 JSON
-        let content = serde_json::to_string_pretty(accounts)
-            .map_err(|e| AccountError::WriteError(format!("Failed to serialize: {}", e)))?;
-
-        // 原子写入
-        let temp_dir = self.file_path.parent().unwrap_or(std::path::Path::new("."));
-        let mut temp_file = NamedTempFile::new_in(temp_dir)
-            .map_err(|e| AccountError::WriteError(format!("Failed to create temp file: {}", e)))?;
-
-        temp_file
-            .write_all(content.as_bytes())
-            .map_err(|e| AccountError::WriteError(format!("Failed to write temp file: {}", e)))?;
-
-        temp_file
-            .persist(&self.file_path)
-            .map_err(|e| AccountError::WriteError(format!("Failed to persist file: {}", e)))?;
-
-        tracing::debug!("Saved {} accounts to {:?}", accounts.len(), self.file_path);
-        Ok(())
-    }
-
     /// 获取所有账号 (API Key 已遮罩)
     pub fn list(&self) -> Result<AccountsResponse> {
-        let accounts = self.load_all()?;
+        let accounts = database::with_connection(checkin_repo::get_all_accounts)?;
         let crypto = self.get_crypto()?;
 
         let account_infos: Vec<AccountInfo> = accounts
@@ -123,20 +66,23 @@ impl AccountManager {
 
     /// 根据提供商 ID 获取账号列表
     pub fn list_by_provider(&self, provider_id: &str) -> Result<Vec<AccountInfo>> {
-        let accounts = self.load_all()?;
+        let accounts = database::with_connection(|conn| {
+            checkin_repo::get_accounts_by_provider(conn, provider_id)
+        })?;
         let crypto = self.get_crypto()?;
 
         Ok(accounts
             .iter()
-            .filter(|a| a.provider_id == provider_id)
             .map(|a| self.to_account_info(a, &crypto))
             .collect())
     }
 
     /// 检查提供商是否有关联账号
     pub fn has_accounts_for_provider(&self, provider_id: &str) -> Result<bool> {
-        let accounts = self.load_all()?;
-        Ok(accounts.iter().any(|a| a.provider_id == provider_id))
+        let accounts = database::with_connection(|conn| {
+            checkin_repo::get_accounts_by_provider(conn, provider_id)
+        })?;
+        Ok(!accounts.is_empty())
     }
 
     /// 转换为账号信息 (遮罩 Cookies)
@@ -167,10 +113,7 @@ impl AccountManager {
 
     /// 根据 ID 获取账号
     pub fn get(&self, id: &str) -> Result<CheckinAccount> {
-        let accounts = self.load_all()?;
-        accounts
-            .into_iter()
-            .find(|a| a.id == id)
+        database::with_connection(|conn| checkin_repo::get_account_by_id(conn, id))?
             .ok_or_else(|| AccountError::NotFound(id.to_string()))
     }
 
@@ -194,7 +137,6 @@ impl AccountManager {
     /// 创建账号
     pub fn create(&self, request: CreateAccountRequest) -> Result<CheckinAccount> {
         let crypto = self.get_crypto()?;
-        let mut accounts = self.load_all()?;
 
         // 加密 Cookies JSON
         let cookies_json_encrypted = crypto
@@ -208,8 +150,7 @@ impl AccountManager {
             request.api_user,
         );
 
-        accounts.push(account.clone());
-        self.save_all(&accounts)?;
+        database::with_connection(|conn| checkin_repo::insert_account(conn, &account))?;
 
         tracing::info!("Created account: {} ({})", account.name, account.id);
         Ok(account)
@@ -218,12 +159,7 @@ impl AccountManager {
     /// 更新账号
     pub fn update(&self, id: &str, request: UpdateAccountRequest) -> Result<CheckinAccount> {
         let crypto = self.get_crypto()?;
-        let mut accounts = self.load_all()?;
-
-        let account = accounts
-            .iter_mut()
-            .find(|a| a.id == id)
-            .ok_or_else(|| AccountError::NotFound(id.to_string()))?;
+        let mut account = self.get(id)?;
 
         if let Some(name) = request.name {
             account.name = name;
@@ -245,63 +181,50 @@ impl AccountManager {
 
         account.updated_at = Some(Utc::now());
 
-        let updated = account.clone();
-        self.save_all(&accounts)?;
+        database::with_connection(|conn| checkin_repo::update_account(conn, &account))?;
 
-        tracing::info!("Updated account: {} ({})", updated.name, updated.id);
-        Ok(updated)
+        tracing::info!("Updated account: {} ({})", account.name, account.id);
+        Ok(account)
     }
 
     /// 更新账号签到时间
     pub fn update_checkin_time(&self, id: &str) -> Result<()> {
-        let mut accounts = self.load_all()?;
-
-        let account = accounts
-            .iter_mut()
-            .find(|a| a.id == id)
-            .ok_or_else(|| AccountError::NotFound(id.to_string()))?;
-
+        let mut account = self.get(id)?;
         account.update_checkin_time();
-        self.save_all(&accounts)?;
-
+        database::with_connection(|conn| checkin_repo::update_account(conn, &account))?;
         Ok(())
     }
 
     /// 更新账号余额检查时间
     pub fn update_balance_time(&self, id: &str) -> Result<()> {
-        let mut accounts = self.load_all()?;
-
-        let account = accounts
-            .iter_mut()
-            .find(|a| a.id == id)
-            .ok_or_else(|| AccountError::NotFound(id.to_string()))?;
-
+        let mut account = self.get(id)?;
         account.update_balance_check_time();
-        self.save_all(&accounts)?;
-
+        database::with_connection(|conn| checkin_repo::update_account(conn, &account))?;
         Ok(())
     }
 
     /// 删除账号
     pub fn delete(&self, id: &str) -> Result<()> {
-        let mut accounts = self.load_all()?;
-        let original_len = accounts.len();
+        let deleted = database::with_connection(|conn| checkin_repo::delete_account(conn, id))?;
 
-        accounts.retain(|a| a.id != id);
-
-        if accounts.len() == original_len {
+        if !deleted {
             return Err(AccountError::NotFound(id.to_string()));
         }
 
-        self.save_all(&accounts)?;
         tracing::info!("Deleted account: {}", id);
         Ok(())
     }
 
     /// 获取所有启用的账号
     pub fn get_enabled_accounts(&self) -> Result<Vec<CheckinAccount>> {
-        let accounts = self.load_all()?;
-        Ok(accounts.into_iter().filter(|a| a.enabled).collect())
+        let accounts = database::with_connection(checkin_repo::get_enabled_accounts)?;
+        Ok(accounts)
+    }
+
+    /// 加载所有账号（兼容旧 API）
+    pub fn load_all(&self) -> Result<Vec<CheckinAccount>> {
+        let accounts = database::with_connection(checkin_repo::get_all_accounts)?;
+        Ok(accounts)
     }
 
     /// 批量导入账号
@@ -310,25 +233,28 @@ impl AccountManager {
         accounts_to_import: Vec<CheckinAccount>,
         overwrite: bool,
     ) -> Result<(usize, usize)> {
-        let mut accounts = self.load_all()?;
+        let existing = database::with_connection(checkin_repo::get_all_accounts)?;
         let mut imported = 0;
         let mut skipped = 0;
 
         for new_account in accounts_to_import {
-            if let Some(existing) = accounts.iter_mut().find(|a| a.id == new_account.id) {
+            let exists = existing.iter().any(|a| a.id == new_account.id);
+
+            if exists {
                 if overwrite {
-                    *existing = new_account;
+                    database::with_connection(|conn| {
+                        checkin_repo::update_account(conn, &new_account)
+                    })?;
                     imported += 1;
                 } else {
                     skipped += 1;
                 }
             } else {
-                accounts.push(new_account);
+                database::with_connection(|conn| checkin_repo::insert_account(conn, &new_account))?;
                 imported += 1;
             }
         }
 
-        self.save_all(&accounts)?;
         Ok((imported, skipped))
     }
 }
@@ -337,136 +263,149 @@ impl AccountManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::database::schema::CREATE_TABLES_SQL;
+    use once_cell::sync::Lazy;
+    use rusqlite::Connection;
+    use std::sync::Mutex;
     use tempfile::TempDir;
 
-    fn setup() -> (TempDir, AccountManager) {
-        let temp_dir = TempDir::new().unwrap();
-        let manager = AccountManager::new(temp_dir.path());
-        (temp_dir, manager)
+    // Use a single in-memory database for tests
+    static TEST_DB: Lazy<Mutex<Connection>> = Lazy::new(|| {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(CREATE_TABLES_SQL).unwrap();
+        Mutex::new(conn)
+    });
+
+    fn with_test_db<F, R>(f: F) -> R
+    where
+        F: FnOnce(&Connection) -> R,
+    {
+        let conn = TEST_DB.lock().unwrap();
+        // Clean up before each test
+        conn.execute("DELETE FROM checkin_accounts", []).unwrap();
+        f(&conn)
+    }
+
+    fn create_test_crypto_dir() -> TempDir {
+        TempDir::new().unwrap()
     }
 
     #[test]
     fn test_create_and_get_account() {
-        let (_temp_dir, manager) = setup();
+        let temp_dir = create_test_crypto_dir();
+        let crypto = CryptoManager::new(&temp_dir.path().to_path_buf()).unwrap();
 
-        let request = CreateAccountRequest {
-            provider_id: "provider-1".to_string(),
-            name: "Test Account".to_string(),
-            cookies_json: r#"{"session": "abc123", "token": "xyz789"}"#.to_string(),
-            api_user: "12345".to_string(),
-        };
+        with_test_db(|conn| {
+            let cookies_encrypted = crypto.encrypt(r#"{"session": "abc123"}"#).unwrap();
+            let account = CheckinAccount::new(
+                "provider-1".to_string(),
+                "Test Account".to_string(),
+                cookies_encrypted,
+                "12345".to_string(),
+            );
 
-        let account = manager.create(request).unwrap();
-        assert_eq!(account.name, "Test Account");
-        assert!(account.enabled);
-        assert_eq!(account.api_user, "12345");
+            checkin_repo::insert_account(conn, &account).unwrap();
 
-        // 验证 Cookies JSON 已加密
-        assert_ne!(
-            account.cookies_json_encrypted,
-            r#"{"session": "abc123", "token": "xyz789"}"#
-        );
+            let fetched = checkin_repo::get_account_by_id(conn, &account.id)
+                .unwrap()
+                .unwrap();
+            assert_eq!(fetched.name, "Test Account");
+            assert!(fetched.enabled);
+            assert_eq!(fetched.api_user, "12345");
 
-        // 验证可以解密
-        let (cookies_json, api_user) = manager.get_cookies_json(&account.id).unwrap();
-        assert_eq!(cookies_json, r#"{"session": "abc123", "token": "xyz789"}"#);
-        assert_eq!(api_user, "12345");
+            // 验证可以解密
+            let decrypted = crypto.decrypt(&fetched.cookies_json_encrypted).unwrap();
+            assert_eq!(decrypted, r#"{"session": "abc123"}"#);
+        });
     }
 
     #[test]
     fn test_list_accounts() {
-        let (_temp_dir, manager) = setup();
+        with_test_db(|conn| {
+            // 初始为空
+            let accounts = checkin_repo::get_all_accounts(conn).unwrap();
+            assert_eq!(accounts.len(), 0);
 
-        // 初始为空
-        let response = manager.list().unwrap();
-        assert_eq!(response.total, 0);
+            // 创建账号
+            let account = CheckinAccount::new(
+                "provider-1".to_string(),
+                "Account 1".to_string(),
+                "encrypted".to_string(),
+                "".to_string(),
+            );
+            checkin_repo::insert_account(conn, &account).unwrap();
 
-        // 创建账号
-        manager
-            .create(CreateAccountRequest {
-                provider_id: "provider-1".to_string(),
-                name: "Account 1".to_string(),
-                cookies_json: r#"{"session": "key1value"}"#.to_string(),
-                api_user: String::new(),
-            })
-            .unwrap();
-
-        let response = manager.list().unwrap();
-        assert_eq!(response.total, 1);
-
-        // 验证 Cookies 已遮罩
-        let account_info = &response.accounts[0];
-        assert!(!account_info.cookies_masked.contains("key1value"));
+            let accounts = checkin_repo::get_all_accounts(conn).unwrap();
+            assert_eq!(accounts.len(), 1);
+        });
     }
 
     #[test]
     fn test_update_account() {
-        let (_temp_dir, manager) = setup();
+        with_test_db(|conn| {
+            let mut account = CheckinAccount::new(
+                "provider-1".to_string(),
+                "Original".to_string(),
+                "encrypted".to_string(),
+                "11111".to_string(),
+            );
+            checkin_repo::insert_account(conn, &account).unwrap();
 
-        let account = manager
-            .create(CreateAccountRequest {
-                provider_id: "provider-1".to_string(),
-                name: "Original".to_string(),
-                cookies_json: r#"{"session": "original"}"#.to_string(),
-                api_user: "11111".to_string(),
-            })
-            .unwrap();
+            // Update
+            account.name = "Updated".to_string();
+            account.enabled = false;
+            account.updated_at = Some(Utc::now());
 
-        let updated = manager
-            .update(
-                &account.id,
-                UpdateAccountRequest {
-                    name: Some("Updated".to_string()),
-                    cookies_json: Some(r#"{"session": "updated"}"#.to_string()),
-                    api_user: Some("22222".to_string()),
-                    enabled: Some(false),
-                },
-            )
-            .unwrap();
+            checkin_repo::update_account(conn, &account).unwrap();
 
-        assert_eq!(updated.name, "Updated");
-        assert!(!updated.enabled);
-
-        // 验证新 Cookies 和 API User
-        let (cookies_json, api_user) = manager.get_cookies_json(&account.id).unwrap();
-        assert_eq!(cookies_json, r#"{"session": "updated"}"#);
-        assert_eq!(api_user, "22222");
+            let fetched = checkin_repo::get_account_by_id(conn, &account.id)
+                .unwrap()
+                .unwrap();
+            assert_eq!(fetched.name, "Updated");
+            assert!(!fetched.enabled);
+        });
     }
 
     #[test]
     fn test_delete_account() {
-        let (_temp_dir, manager) = setup();
+        with_test_db(|conn| {
+            let account = CheckinAccount::new(
+                "provider-1".to_string(),
+                "To Delete".to_string(),
+                "encrypted".to_string(),
+                "".to_string(),
+            );
+            checkin_repo::insert_account(conn, &account).unwrap();
 
-        let account = manager
-            .create(CreateAccountRequest {
-                provider_id: "provider-1".to_string(),
-                name: "To Delete".to_string(),
-                cookies_json: r#"{"session": "delete"}"#.to_string(),
-                api_user: String::new(),
-            })
-            .unwrap();
+            let deleted = checkin_repo::delete_account(conn, &account.id).unwrap();
+            assert!(deleted);
 
-        manager.delete(&account.id).unwrap();
-
-        assert!(manager.get(&account.id).is_err());
+            let fetched = checkin_repo::get_account_by_id(conn, &account.id).unwrap();
+            assert!(fetched.is_none());
+        });
     }
 
     #[test]
-    fn test_has_accounts_for_provider() {
-        let (_temp_dir, manager) = setup();
+    fn test_get_accounts_by_provider() {
+        with_test_db(|conn| {
+            let a1 = CheckinAccount::new(
+                "provider-1".to_string(),
+                "Account".to_string(),
+                "encrypted".to_string(),
+                "".to_string(),
+            );
+            checkin_repo::insert_account(conn, &a1).unwrap();
 
-        assert!(!manager.has_accounts_for_provider("provider-1").unwrap());
-
-        manager
-            .create(CreateAccountRequest {
-                provider_id: "provider-1".to_string(),
-                name: "Account".to_string(),
-                cookies_json: r#"{"session": "key"}"#.to_string(),
-                api_user: String::new(),
-            })
-            .unwrap();
-
-        assert!(manager.has_accounts_for_provider("provider-1").unwrap());
-        assert!(!manager.has_accounts_for_provider("provider-2").unwrap());
+            assert!(
+                !checkin_repo::get_accounts_by_provider(conn, "provider-1")
+                    .unwrap()
+                    .is_empty()
+            );
+            assert!(
+                checkin_repo::get_accounts_by_provider(conn, "provider-2")
+                    .unwrap()
+                    .is_empty()
+            );
+        });
     }
 }

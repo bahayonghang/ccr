@@ -92,8 +92,14 @@ impl ConfigManager {
     }
 
     /// 📖 加载配置文件
+    #[allow(dead_code)]
     pub fn load(&self) -> Result<CcsConfig> {
         self.file_handler.load()
+    }
+
+    /// 🔄 加载配置并自动补全缺失字段（必要时写回）
+    pub fn load_with_autofix(&self) -> Result<CcsConfig> {
+        self.file_handler.load_with_autofix()
     }
 
     /// 💾 保存配置文件

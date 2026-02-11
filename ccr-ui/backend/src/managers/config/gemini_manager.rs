@@ -15,11 +15,30 @@ pub struct GeminiConfigManager {
 impl GeminiConfigManager {
     /// 创建默认实例，使用 ~/.gemini/settings.json
     pub fn default() -> Result<Self, String> {
-        let home = dirs::home_dir().ok_or("无法获取用户主目录")?;
-        let gemini_dir = home.join(".gemini");
-        let config_path = gemini_dir.join("settings.json");
+        let start = std::env::current_dir().map_err(|e| format!("无法获取当前目录: {}", e))?;
+        let mut current = start.as_path();
 
-        // 确保目录存在
+        let project_root = loop {
+            if current.join(".git").exists() {
+                break current.to_path_buf();
+            }
+            match current.parent() {
+                Some(parent) => current = parent,
+                None => break start.clone(),
+            }
+        };
+
+        let project_dir = project_root.join(".gemini");
+        let project_config = project_dir.join("settings.json");
+
+        let (gemini_dir, config_path) = if project_dir.exists() || project_config.exists() {
+            (project_dir, project_config)
+        } else {
+            let home = dirs::home_dir().ok_or("无法获取用户主目录")?;
+            let user_dir = home.join(".gemini");
+            (user_dir.clone(), user_dir.join("settings.json"))
+        };
+
         if !gemini_dir.exists() {
             fs::create_dir_all(&gemini_dir).map_err(|e| format!("创建 .gemini 目录失败: {}", e))?;
         }

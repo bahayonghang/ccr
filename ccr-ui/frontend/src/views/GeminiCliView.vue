@@ -1,316 +1,219 @@
 <template>
-  <div class="min-h-screen relative">
-    <!-- 🎨 彩色背景装饰 -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+  <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
+    <!-- Background Mesh -->
+    <div class="fixed inset-0 pointer-events-none -z-10 bg-bg-base">
+      <div class="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-platform-gemini/5 rounded-full blur-[120px] animate-pulse-subtle" />
       <div
-        class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
-        :style="{ background: 'linear-gradient(135deg, var(--platform-gemini) 0%, var(--platform-iflow) 100%)' }"
-      />
-      <div
-        class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
-        :style="{
-          background: 'linear-gradient(135deg, var(--accent-success) 0%, var(--platform-gemini) 100%)',
-          animationDelay: '1s'
-        }"
+        class="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-accent-success/5 rounded-full blur-[100px] animate-pulse-subtle"
+        style="animation-delay: 2s"
       />
     </div>
 
-    <div class="relative z-10 p-6 max-w-7xl mx-auto">
-      <!-- Hero 区域 -->
-      <div class="mb-8">
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-4">
-            <div
-              class="p-4 rounded-3xl glass-card"
-              :style="{ background: 'rgba(59, 130, 246, 0.1)' }"
-            >
-              <Sparkles
-                class="w-10 h-10"
-                :style="{ color: 'var(--platform-gemini)' }"
-              />
+    <div class="max-w-7xl mx-auto space-y-8">
+      <!-- HEADER -->
+      <section class="animate-slide-up">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+          <div class="flex items-center gap-5">
+            <div class="w-16 h-16 rounded-2xl bg-platform-gemini/10 flex items-center justify-center border border-platform-gemini/20 shadow-lg backdrop-blur-md">
+              <Sparkles class="w-8 h-8 text-platform-gemini" />
             </div>
             <div>
-              <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[var(--platform-gemini)] via-[var(--platform-iflow)] to-[var(--accent-success)] bg-clip-text text-transparent">
+              <h1 class="text-4xl font-bold font-display bg-gradient-to-r from-platform-gemini via-platform-iflow to-accent-success bg-clip-text text-transparent tracking-tight">
                 Gemini CLI
               </h1>
-              <p
-                class="text-lg"
-                :style="{ color: 'var(--text-secondary)' }"
-              >
+              <p class="text-text-secondary text-lg mt-1 max-w-xl">
                 {{ $t('gemini.overview.description') }}
               </p>
             </div>
           </div>
-          <RouterLink 
-            to="/" 
-            class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300"
-          >
-            <Home
-              class="w-5 h-5"
-              :style="{ color: 'var(--text-muted)' }"
-            />
-            <span
-              class="font-medium"
-              :style="{ color: 'var(--text-secondary)' }"
-            >{{ $t('common.backToHome') }}</span>
+          
+          <RouterLink to="/">
+            <Button
+              variant="glass"
+              class="gap-2"
+            >
+              <Home class="w-4 h-4" />
+              {{ $t('common.backToHome') }}
+            </Button>
           </RouterLink>
         </div>
 
-        <!-- 特性标签 -->
-        <div class="flex flex-wrap gap-3 mb-6">
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--platform-gemini)' }"
-          >
-            🔌 MCP 服务器
+        <!-- Tags -->
+        <div class="flex flex-wrap gap-3">
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-gemini/10 text-platform-gemini border border-platform-gemini/20 flex items-center gap-2">
+            <Server class="w-3 h-3" /> MCP Server
           </span>
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-success)' }"
-          >
-            🤖 智能代理
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-accent-success/10 text-accent-success border border-accent-success/20 flex items-center gap-2">
+            <Bot class="w-3 h-3" /> Smart Agents
           </span>
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(139, 92, 246, 0.1)', color: 'var(--platform-claude)' }"
-          >
-            🧩 插件系统
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-claude/10 text-platform-claude border border-platform-claude/20 flex items-center gap-2">
+            <Puzzle class="w-3 h-3" /> Plugin System
           </span>
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(6, 182, 212, 0.1)', color: 'var(--platform-iflow)' }"
-          >
-            🌟 多模态
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-iflow/10 text-platform-iflow border border-platform-iflow/20 flex items-center gap-2">
+            <Sparkles class="w-3 h-3" /> Multimodal
           </span>
         </div>
-      </div>
+      </section>
 
-      <!-- 功能模块网格 -->
-      <div class="mb-8">
-        <h2
-          class="text-2xl font-bold mb-6 flex items-center gap-3"
-          :style="{ color: 'var(--text-primary)' }"
-        >
-          <Boxes
-            class="w-7 h-7"
-            :style="{ color: 'var(--platform-gemini)' }"
-          />
-          {{ $t('common.modules') }}
-        </h2>
+      <!-- MODULES -->
+      <section
+        class="animate-slide-up"
+        style="animation-delay: 100ms"
+      >
+        <div class="flex items-center gap-3 mb-6">
+          <Boxes class="w-5 h-5 text-platform-gemini" />
+          <h2 class="text-lg font-bold uppercase tracking-widest text-text-muted">
+            {{ $t('common.modules') }}
+          </h2>
+          <div class="h-px flex-1 bg-border-subtle" />
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- MCP -->
           <RouterLink
             to="/gemini-cli/mcp"
-            class="block group"
+            class="group h-full"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(59, 130, 246, 0.15)' }"
-                >
-                  <Server
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--platform-gemini)' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('gemini.mcp.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('gemini.mcp.subtitle') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(59, 130, 246, 0.15)',
-                      color: 'var(--platform-gemini)'
-                    }"
-                  >
-                    🔌 MCP
-                  </span>
-                </div>
+            <Card
+              variant="glass"
+              hover
+              glow
+              class="h-full p-6 flex items-start gap-4"
+            >
+              <div class="p-3 rounded-xl bg-platform-gemini/10 text-platform-gemini group-hover:scale-110 transition-transform duration-300">
+                <Server class="w-6 h-6" />
               </div>
-            </div>
+              <div>
+                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-platform-gemini transition-colors">
+                  {{ $t('gemini.mcp.title') }}
+                </h3>
+                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                  {{ $t('gemini.mcp.subtitle') }}
+                </p>
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-gemini/10 text-platform-gemini border border-platform-gemini/20">MCP</span>
+              </div>
+            </Card>
           </RouterLink>
 
+          <!-- Agents -->
           <RouterLink
             to="/gemini-cli/agents"
-            class="block group"
+            class="group h-full"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
-                >
-                  <Bot
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--accent-success)' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('gemini.agents.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('gemini.agents.subtitle') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      color: 'var(--accent-success)'
-                    }"
-                  >
-                    🤖 AI
-                  </span>
-                </div>
+            <Card
+              variant="glass"
+              hover
+              glow
+              class="h-full p-6 flex items-start gap-4"
+            >
+              <div class="p-3 rounded-xl bg-accent-success/10 text-accent-success group-hover:scale-110 transition-transform duration-300">
+                <Bot class="w-6 h-6" />
               </div>
-            </div>
+              <div>
+                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-accent-success transition-colors">
+                  {{ $t('gemini.agents.title') }}
+                </h3>
+                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                  {{ $t('gemini.agents.subtitle') }}
+                </p>
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-accent-success/10 text-accent-success border border-accent-success/20">AI Agents</span>
+              </div>
+            </Card>
           </RouterLink>
 
+          <!-- Plugins -->
           <RouterLink
             to="/gemini-cli/plugins"
-            class="block group"
+            class="group h-full"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(139, 92, 246, 0.15)' }"
-                >
-                  <Puzzle
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--platform-claude)' }"
-                  />
-                </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('gemini.plugins.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('gemini.plugins.subtitle') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(139, 92, 246, 0.15)',
-                      color: 'var(--platform-claude)'
-                    }"
-                  >
-                    🧩 插件
-                  </span>
-                </div>
+            <Card
+              variant="glass"
+              hover
+              glow
+              class="h-full p-6 flex items-start gap-4"
+            >
+              <div class="p-3 rounded-xl bg-platform-claude/10 text-platform-claude group-hover:scale-110 transition-transform duration-300">
+                <Puzzle class="w-6 h-6" />
               </div>
-            </div>
+              <div>
+                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-platform-claude transition-colors">
+                  {{ $t('gemini.plugins.title') }}
+                </h3>
+                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                  {{ $t('gemini.plugins.subtitle') }}
+                </p>
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-claude/10 text-platform-claude border border-platform-claude/20">Plugins</span>
+              </div>
+            </Card>
           </RouterLink>
 
+          <!-- Slash Commands -->
           <RouterLink
             to="/gemini-cli/slash-commands"
-            class="block group"
+            class="group h-full md:col-span-2 lg:col-span-1"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
-              <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(6, 182, 212, 0.15)' }"
-                >
-                  <Command
-                    class="w-7 h-7"
-                    :style="{ color: 'var(--platform-iflow)' }"
-                  />
+            <Card
+              variant="glass"
+              hover
+              glow
+              class="h-full p-6 flex items-start gap-4"
+            >
+              <div class="p-3 rounded-xl bg-platform-iflow/10 text-platform-iflow group-hover:scale-110 transition-transform duration-300">
+                <Command class="w-6 h-6" />
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-platform-iflow transition-colors">
+                  {{ $t('gemini.slashCommands.title') }}
+                </h3>
+                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                  {{ $t('gemini.slashCommands.subtitle') }}
+                </p>
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-iflow/10 text-platform-iflow border border-platform-iflow/20">Commands</span>
+              </div>
+            </Card>
+          </RouterLink>
+        </div>
+      </section>
+
+      <!-- INFO -->
+      <section
+        class="animate-slide-up"
+        style="animation-delay: 200ms"
+      >
+        <Card
+          variant="glass"
+          class="p-6"
+        >
+          <div class="flex items-start gap-4">
+            <div class="p-3 rounded-xl bg-platform-gemini/10 text-platform-gemini shrink-0">
+              <Info class="w-6 h-6" />
+            </div>
+            <div class="space-y-4">
+              <h3 class="text-lg font-bold text-text-primary">
+                💡 {{ $t('gemini.overview.welcome') }}
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                  <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
+                  <span class="text-sm text-text-secondary">{{ $t('gemini.overview.feature1') }}</span>
                 </div>
-                <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ $t('gemini.slashCommands.title') }}
-                  </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
-                    {{ $t('gemini.slashCommands.subtitle') }}
-                  </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(6, 182, 212, 0.15)',
-                      color: 'var(--platform-iflow)'
-                    }"
-                  >
-                    ⌨️ 命令
-                  </span>
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                  <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
+                  <span class="text-sm text-text-secondary">{{ $t('gemini.overview.feature2') }}</span>
+                </div>
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                  <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
+                  <span class="text-sm text-text-secondary">{{ $t('gemini.overview.feature3') }}</span>
+                </div>
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                  <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
+                  <span class="text-sm text-text-secondary">{{ $t('gemini.overview.feature4') }}</span>
                 </div>
               </div>
             </div>
-          </RouterLink>
-        </div>
-      </div>
-
-      <!-- 提示卡片 -->
-      <div class="glass-card p-6">
-        <div class="flex items-start gap-4">
-          <div
-            class="p-3 rounded-2xl"
-            :style="{ background: 'rgba(59, 130, 246, 0.15)' }"
-          >
-            <Info
-              class="w-6 h-6"
-              :style="{ color: 'var(--platform-gemini)' }"
-            />
           </div>
-          <div class="flex-1">
-            <h3
-              class="text-lg font-bold mb-2"
-              :style="{ color: 'var(--text-primary)' }"
-            >
-              💡 {{ $t('gemini.overview.welcome') }}
-            </h3>
-            <ul
-              class="space-y-2 text-sm"
-              :style="{ color: 'var(--text-secondary)' }"
-            >
-              <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
-                <span>{{ $t('gemini.overview.feature1') }}</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
-                <span>{{ $t('gemini.overview.feature2') }}</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
-                <span>{{ $t('gemini.overview.feature3') }}</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
-                <span>{{ $t('gemini.overview.feature4') }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+        </Card>
+      </section>
     </div>
   </div>
 </template>
@@ -318,4 +221,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { Server, Bot, Puzzle, Command, Home, Sparkles, Boxes, Info } from 'lucide-vue-next'
+import Card from '@/components/ui/Card.vue'
+import Button from '@/components/ui/Button.vue'
 </script>

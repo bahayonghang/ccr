@@ -1,4 +1,4 @@
-# CCR 架构设计（v3.10.0+）
+# CCR 架构设计（v3.20.11）
 
 > 面向 Rust 2024 Edition 的分层架构；默认开启 `web` + `tui` 特性。CCR 本身提供 CLI/TUI/轻量 Web API，同时作为 CCR UI 后端的核心依赖。
 

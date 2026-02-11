@@ -36,7 +36,7 @@
         <slot name="skeleton">
           <!-- 默认骨架屏 -->
           <Skeleton
-            variant="card"
+            shape="rectangle"
             height="200px"
           />
         </slot>
@@ -98,14 +98,11 @@ const overlayStyle = computed(() => {
 <style scoped>
 .loading-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--bg-primary-rgb, 255, 255, 255), var(--overlay-opacity, 0.7));
+  background: rgb(var(--bg-primary-rgb, 255, 255, 255), var(--overlay-opacity, 0.7));
   z-index: 1000;
   transition: opacity 0.22s ease, backdrop-filter 0.22s ease;
 }
@@ -132,6 +129,7 @@ const overlayStyle = computed(() => {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

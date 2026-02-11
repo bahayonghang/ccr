@@ -9,6 +9,8 @@ pub struct SkillMetadata {
     pub version: Option<String>,
     /// 许可证
     pub license: Option<String>,
+    /// 分类
+    pub category: Option<String>,
     /// 标签列表
     #[serde(default)]
     pub tags: Vec<String>,
@@ -33,7 +35,53 @@ pub struct Skill {
 }
 
 impl Skill {
-    /// 从 SKILL.md 内容解析元数据
+    /// Parse frontmatter and inline metadata from SKILL.md content.
+    /// Returns (metadata, description_from_frontmatter)
+    #[allow(dead_code)] // Used by ccr-ui-backend crate
+    pub fn parse_frontmatter(content: &str) -> (SkillMetadata, Option<String>) {
+        let mut metadata = SkillMetadata::default();
+        let mut description = None;
+
+        // Try YAML frontmatter (--- delimited)
+        let trimmed = content.trim();
+        if let Some(after_prefix) = trimmed.strip_prefix("---")
+            && let Some(end_idx) = after_prefix.find("---")
+        {
+            let frontmatter = &after_prefix[..end_idx];
+            for line in frontmatter.lines() {
+                let line = line.trim();
+                if let Some((key, value)) = line.split_once(':') {
+                    let key = key.trim().to_lowercase();
+                    let value = value.trim().to_string();
+                    match key.as_str() {
+                        "name" => {} // name is set separately
+                        "description" => description = Some(value),
+                        "category" => metadata.category = Some(value),
+                        "author" => metadata.author = Some(value),
+                        "version" => metadata.version = Some(value),
+                        "license" => metadata.license = Some(value),
+                        "tags" => {
+                            // Parse YAML array: [tag1, tag2] or comma separated
+                            let stripped = value.trim_start_matches('[').trim_end_matches(']');
+                            metadata.tags = stripped
+                                .split(',')
+                                .map(|s| s.trim().trim_matches('"').trim_matches('\'').to_string())
+                                .filter(|s| !s.is_empty())
+                                .collect();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            return (metadata, description);
+        }
+
+        // Fallback: parse inline key: value format
+        metadata = Self::parse_metadata(content);
+        (metadata, None)
+    }
+
+    /// 从 SKILL.md 内容解析元数据 (legacy inline format)
     pub fn parse_metadata(content: &str) -> SkillMetadata {
         let mut metadata = SkillMetadata::default();
 
@@ -56,6 +104,11 @@ impl Skill {
             {
                 metadata.license = Some(rest.trim().to_string());
             } else if let Some(rest) = line
+                .strip_prefix("Category:")
+                .or_else(|| line.strip_prefix("**Category**:"))
+            {
+                metadata.category = Some(rest.trim().to_string());
+            } else if let Some(rest) = line
                 .strip_prefix("Tags:")
                 .or_else(|| line.strip_prefix("**Tags**:"))
             {
@@ -68,6 +121,28 @@ impl Skill {
         }
 
         metadata
+    }
+
+    /// Parse markdown content to extract metadata and description
+    /// Prioritizes frontmatter description, then falls back to first line of content
+    pub fn parse_with_fallback(content: &str) -> (SkillMetadata, Option<String>) {
+        let (metadata, frontmatter_desc) = Self::parse_frontmatter(content);
+
+        let description = frontmatter_desc.or_else(|| {
+            let trimmed = content.trim();
+            // Check if we have frontmatter block
+            #[allow(clippy::collapsible_if)]
+            if let Some(after_prefix) = trimmed.strip_prefix("---") {
+                if let Some(end_idx) = after_prefix.find("---") {
+                    let after_frontmatter = after_prefix[end_idx + 3..].trim();
+                    return after_frontmatter.lines().next().map(|s| s.to_string());
+                }
+            }
+            // No valid frontmatter or incomplete
+            content.lines().next().map(|s| s.to_string())
+        });
+
+        (metadata, description)
     }
 }
 

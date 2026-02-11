@@ -68,27 +68,7 @@ pub async fn get_log_stats(State(service): State<Arc<LogPersistenceService>>) ->
 pub async fn list_log_dates(
     State(service): State<Arc<LogPersistenceService>>,
 ) -> impl IntoResponse {
-    use std::fs;
-
-    let stats = service.get_stats().await;
-    let storage_dir = std::path::PathBuf::from(&stats.storage_dir);
-
-    let mut dates: Vec<String> = Vec::new();
-
-    if let Ok(entries) = fs::read_dir(&storage_dir) {
-        for entry in entries.filter_map(|e| e.ok()) {
-            let path = entry.path();
-            if let Some(name) = path.file_name().and_then(|n| n.to_str())
-                && name.starts_with("logs_")
-                && name.ends_with(".jsonl")
-            {
-                let date_str = &name[5..15]; // logs_YYYY-MM-DD.jsonl
-                dates.push(date_str.to_string());
-            }
-        }
-    }
-
-    dates.sort_by(|a, b| b.cmp(a)); // 最新日期在前
+    let dates = service.get_available_dates().await;
     ApiResponse::success(dates)
 }
 
@@ -111,18 +91,14 @@ pub async fn delete_logs_by_date(
     State(service): State<Arc<LogPersistenceService>>,
     Path(date): Path<String>,
 ) -> impl IntoResponse {
-    use std::fs;
-
-    let stats = service.get_stats().await;
-    let storage_dir = std::path::PathBuf::from(&stats.storage_dir);
-    let file_path = storage_dir.join(format!("logs_{}.jsonl", date));
-
-    if file_path.exists() {
-        match fs::remove_file(&file_path) {
-            Ok(_) => ApiResponse::success(format!("Deleted logs for {}", date)),
-            Err(e) => ApiResponse::error(format!("Failed to delete: {}", e)),
+    match service.delete_logs_by_date(&date).await {
+        Ok(deleted) => {
+            if deleted > 0 {
+                ApiResponse::success(format!("Deleted {} logs for {}", deleted, date))
+            } else {
+                ApiResponse::error(format!("No logs found for {}", date))
+            }
         }
-    } else {
-        ApiResponse::error(format!("No logs found for {}", date))
+        Err(e) => ApiResponse::error(format!("Failed to delete: {}", e)),
     }
 }

@@ -1,5 +1,10 @@
 export default {
   common: {
+    language: {
+      switchLanguage: '切换语言',
+      current: '当前语言',
+    },
+    exitConfirm: '退出确认',
     save: '保存',
     cancel: '取消',
     confirm: '确认',
@@ -9,11 +14,11 @@ export default {
     close: '关闭',
     search: '搜索',
     refresh: '刷新',
-    loading: '加载中...',
-    success: '成功',
-    error: '错误',
-    warning: '警告',
-    info: '信息',
+    loading: '少女祈祷中...喵',
+    success: '成功喵',
+    error: '出错啦喵',
+    warning: '注意喵',
+    info: '信息喵',
     yes: '是',
     no: '否',
     home: '首页',
@@ -55,12 +60,12 @@ export default {
     requiredArgs: '必填参数',
     selectOption: '请选择',
     optionalFlags: '可选参数',
-    dangerousCommand: '危险操作',
-    executing: '执行中...',
-    execute: '执行',
+    dangerousCommand: '危险操作喵',
+    executing: '正在执行中喵...',
+    execute: '执行喵',
     output: '执行输出',
     clearOutput: '清空输出',
-    noOutput: '执行命令后输出将在此显示',
+    noOutput: '执行命令后输出将在此显示喵',
     favorites: '收藏命令',
     noFavorites: '暂无收藏命令',
     history: '命令历史',
@@ -109,6 +114,12 @@ export default {
     mainModules: '主要模块',
     toolsCenter: '工具中心',
     checkin: '签到管理',
+    user: {
+      role: '主人',
+      session: '会话',
+      version: '版本',
+      status: '在线',
+    },
   },
   checkin: {
     title: '签到管理',
@@ -173,7 +184,7 @@ export default {
   home: {
     title: 'CCR UI',
     subtitle: 'AI CLI 配置管理中心',
-    description: '现代化的多 CLI 工具配置管理解决方案，支持 Claude、Codex、Gemini 等多种 AI 平台。集成配置转换、云同步、命令执行等强大功能，让 AI 工具配置管理更简单高效。',
+    description: '现代化的多 CLI 工具配置管理解决方案，支持 Claude、Codex、Gemini 等多种 AI 平台。集成配置转换、云同步、命令执行等强大功能，让 AI 工具配置管理更简单高效喵~',
     version: 'v',
     coreFeatures: '核心特性',
     feature1Title: '多平台支持',
@@ -258,6 +269,82 @@ export default {
     usageTitle: 'Token 使用统计',
     usageDesc: 'Token 使用量可视化分析，活动热力图和使用趋势',
     usageStats: '实时监控',
+
+    // New Keys for HomeView Redesign
+    welcomeBack: '欢迎回来',
+    roleEngineer: '主人', // Changed from Engineer to Master
+    statusMsg: '系统状态正常，所有节点已校准喵~',
+    platformModules: '平台模块',
+    systemActivity: '系统活动',
+    fullReport: '完整报告',
+    operational: '正常运行喵',
+
+    // Quick Actions
+    actionCommandRunner: '命令执行器',
+    actionCommandRunnerDesc: '直接执行系统命令。',
+    actionConfigManager: '配置管理器',
+    actionConfigManagerDesc: '管理 AI 提供商配置。',
+    actionCloudSync: '云端同步',
+    actionCloudSyncDesc: '通过 WebDAV 同步配置。',
+    actionUsageStats: '使用统计',
+    actionUsageStatsDesc: '查看详细的 Token 消耗。',
+
+    // Factory Droid
+    factoryDroidTitle: 'Factory Droid',
+    factoryDroidDesc: '自动化代理网络，用于复杂任务执行。',
+  },
+  skills: {
+    title: '技能中心',
+    help: {
+      description: '浏览和管理 Claude Code 的扩展技能，每个技能都是一个包含 SKILL.md 的可执行单元喵。',
+    },
+    filter: {
+      allSources: '全部来源',
+      userSkill: '用户技能',
+      pluginSkill: '插件技能',
+      tags: '标签',
+    },
+    category: {
+      uncategorized: '未分类',
+    },
+    searchPlaceholder: '搜索技能 名称/描述/标签...',
+    noSkills: '暂无技能',
+    noSkillsHint: '您可以尝试安装插件或创建自己的技能',
+    noSearchResults: '没有找到匹配的技能',
+    noSearchResultsHint: '尝试使用更宽泛的关键词',
+    clearSearch: '清空筛选',
+    addSkill: '添加技能',
+    editSkill: '编辑技能',
+    deleteConfirm: '确定要删除技能 {name} 吗？',
+    nameLabel: '技能名称',
+    instructionLabel: '指令内容 (SKILL.md)',
+    search: {
+      noDescription: '暂无描述信息',
+    },
+    repositories: {
+      title: '技能仓库',
+      subtitle: '管理远程技能仓库',
+      add: '添加仓库',
+      addTitle: '添加技能仓库',
+      name: '仓库名称',
+      url: 'GitHub URL',
+      branch: '分支',
+      description: '描述',
+      empty: '暂无配置仓库',
+      emptyHint: '添加仓库后可下载远程技能',
+      skills: '个技能',
+      official: '官方',
+      scan: '扫描',
+      confirmDelete: '确定要删除仓库 "{name}" 吗？',
+    },
+    validation: {
+      required: '请填写必填项'
+    },
+    messages: {
+      loadFailed: '加载技能失败',
+      operationFailed: '操作失败',
+      deleteFailed: '删除失败'
+    },
   },
   claudeCode: {
     // ClaudeCodeView - Overview page
@@ -322,13 +409,13 @@ export default {
       sdkRepo: 'SDK 仓库',
     },
     tips: {
-      title: '使用提示',
-      tip1: 'Claude Code 支持多配置管理，可以为不同项目创建专属配置',
-      tip2: 'MCP 服务器可以扩展 Claude 的能力，连接外部工具和数据源',
-      tip3: '使用云同步功能可以在多台设备间同步配置，保持工作环境一致',
-      tip4: 'Agents 功能允许你创建专门的 AI 助手，绑定特定工具和上下文',
+      title: '使用提示喵',
+      tip1: 'Claude Code 支持多配置管理，可以为不同项目创建专属配置喵',
+      tip2: 'MCP 服务器可以扩展 Claude 的能力，连接外部工具和数据源喵',
+      tip3: '使用云同步功能可以在多台设备间同步配置，保持工作环境一致喵',
+      tip4: 'Agents 功能允许主人创建专门的 AI 助手，绑定特定工具和上下文喵',
       label: '提示',
-      cliHint: '您可以通过命令行工具 (CLI) 执行更多高级操作。',
+      cliHint: '主人可以通过命令行工具 (CLI) 执行更多高级操作喵。',
     },
   },
   mcp: {
@@ -426,8 +513,8 @@ export default {
     estimatedCost: '预估成本',
     realTimeLogs: '实时日志',
     allLevels: '所有级别',
-    noLogs: '暂无日志',
-    waitingForLogs: '等待日志消息...',
+    noLogs: '暂无日志喵',
+    waitingForLogs: '正在等待日志消息喵...',
   },
   prompts: {
     builtin: {
@@ -749,7 +836,7 @@ export default {
       authToken: '认证令牌',
       authTokenPlaceholder: 'sk-ant-api03-...',
       model: '主模型',
-      modelPlaceholder: 'claude-sonnet-4-5-20250929',
+      modelPlaceholder: 'claude-opus-4-5-20251101',
       smallFastModel: '小型快速模型',
       smallFastModelPlaceholder: 'claude-3-5-haiku-20241022',
       provider: '提供商',
@@ -1064,64 +1151,7 @@ export default {
     copiedToClipboard: '已复制到剪贴板',
   },
 
-  // Skills module
-  skills: {
-    title: 'Claude Code 技能管理',
-    subtitle: '管理 Claude Code Skills (SKILL.md)',
-    breadcrumb: '技能管理',
-    pageTitle: 'Claude Code 技能管理',
-    backToHome: '返回首页',
-    addSkill: '添加技能',
-    editSkill: '编辑技能',
-    nameLabel: '技能名称 *',
-    namePlaceholder: '例如: format-json',
-    instructionLabel: '技能指令 (Instruction) *',
-    instructionPlaceholder: '输入技能指令 (支持 Markdown)...',
-    noSkills: '暂无技能配置',
-    noSkillsHint: '点击"添加技能"按钮创建您的第一个技能',
-    deleteConfirm: '确定要删除技能 "{name}" 吗？',
-    validation: {
-      required: '请填写必填项'
-    },
-    messages: {
-      loadFailed: '加载技能失败',
-      operationFailed: '操作失败',
-      deleteFailed: '删除失败'
-    },
-    help: {
-      title: '什么是 Claude Code Skills?',
-      description: 'Skills 是 Claude Code 的模块化能力。每个 Skill 是一个包含 SKILL.md 文件的文件夹，定义了 Claude 可以执行的可重用任务。',
-      structure: '结构: ~/.claude/skills/<skill-name>/SKILL.md',
-      learnMore: '了解更多'
-    },
-    repositories: {
-      title: '技能仓库',
-      subtitle: '管理远程技能仓库',
-      add: '添加仓库',
-      addTitle: '添加技能仓库',
-      name: '仓库名称',
-      url: 'GitHub URL',
-      branch: '分支',
-      description: '描述',
-      empty: '暂无配置仓库',
-      emptyHint: '添加仓库后可下载远程技能',
-      skills: '个技能',
-      official: '官方',
-      scan: '扫描',
-      confirmDelete: '确定要删除仓库 "{name}" 吗？',
-    },
-    search: {
-      title: '技能搜索',
-      skillsFound: '个技能',
-      placeholder: '搜索技能名称、标签、作者...',
-      repository: '仓库',
-      tags: '标签',
-      local: '本地',
-      noResults: '未找到匹配的技能',
-      tryDifferent: '尝试其他搜索条件',
-      noDescription: '暂无描述',
-    },
-  },
+
 
   // Market module
   market: {
@@ -1342,7 +1372,16 @@ export default {
         profileManagement: '通过 Profiles 管理不同工作环境的配置',
         agentsFeature: 'Agents 功能允许创建特定任务的 AI 助手',
         pluginEcosystem: '丰富的插件生态系统扩展 Codex 能力'
-      }
+      },
+      // Usage panel
+      usageTitle: '使用量统计',
+      usage5h: '5小时窗口',
+      usage7d: '7天窗口',
+      requests: '请求',
+      usageError: '加载使用量数据失败',
+      noUsageData: '暂无使用量数据',
+      usageTip: '在 Codex 使用量仪表板查看官方限制。',
+      usageStatusTip: '在活跃的 Codex 会话中运行 /status 查看实时限制。'
     },
 
     // Common actions
@@ -1635,7 +1674,12 @@ export default {
       emptyStateHint: '请先登录 Codex，然后将当前会话保存为账户',
       currentBadge: '当前',
       virtualBadge: '虚拟',
+      expiredBadge: '已过期',
       virtual: '虚拟',
+      expired: '已过期',
+      expiredCannotSwitch: '账户已过期，无法切换',
+      noExpiry: '无过期时间',
+      expiresAtHint: '可选。设置账户的过期时间，用于提醒续订。',
       switch: '切换到此账户',
       forceOverwrite: '如果账户已存在则强制覆盖',
       processWarning: '警告：检测到 Codex 进程',
@@ -1660,6 +1704,7 @@ export default {
         tokenFreshness: 'Token 新鲜度',
         lastRefresh: '上次刷新',
         lastUsed: '上次使用',
+        expiresAt: '过期时间',
         accountName: '账户名称',
         description: '描述'
       },

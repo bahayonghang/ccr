@@ -105,7 +105,7 @@ const handleRetry = () => {
   height: 80px;
   margin-bottom: var(--space-lg);
   border-radius: var(--radius-full);
-  background: rgba(var(--accent-danger-rgb), 0.1);
+  background: rgb(var(--accent-danger-rgb), 0.1);
   color: var(--state-error);
   transition: all 0.2s ease;
 }
@@ -125,7 +125,7 @@ const handleRetry = () => {
   margin: 0 auto var(--space-lg);
   line-height: var(--line-height-relaxed);
   padding: var(--space-md);
-  background: rgba(var(--accent-danger-rgb), 0.05);
+  background: rgb(var(--accent-danger-rgb), 0.05);
   border-left: 3px solid var(--accent-danger);
   border-radius: var(--radius-sm);
   text-align: left;
@@ -148,18 +148,18 @@ const handleRetry = () => {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(var(--accent-danger-rgb), 0.2);
+  box-shadow: 0 2px 8px rgb(var(--accent-danger-rgb), 0.2);
 }
 
 .error-state-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--accent-danger-rgb), 0.3);
+  box-shadow: 0 4px 12px rgb(var(--accent-danger-rgb), 0.3);
   filter: brightness(1.1);
 }
 
 .error-state-button:active {
   transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(var(--accent-danger-rgb), 0.2);
+  box-shadow: 0 1px 4px rgb(var(--accent-danger-rgb), 0.2);
 }
 
 .error-state-button:focus-visible {

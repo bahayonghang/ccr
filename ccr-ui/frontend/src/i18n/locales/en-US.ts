@@ -1,5 +1,10 @@
 export default {
   common: {
+    language: {
+      switchLanguage: 'Switch Language',
+      current: 'Current Language',
+    },
+    exitConfirm: 'Exit Confirm',
     save: 'Save',
     cancel: 'Cancel',
     confirm: 'Confirm',
@@ -9,11 +14,11 @@ export default {
     close: 'Close',
     search: 'Search',
     refresh: 'Refresh',
-    loading: 'Loading...',
-    success: 'Success',
-    error: 'Error',
-    warning: 'Warning',
-    info: 'Info',
+    loading: 'Loading... Meow',
+    success: 'Success Meow',
+    error: 'Error Meow',
+    warning: 'Warning Meow',
+    info: 'Info Meow',
     yes: 'Yes',
     no: 'No',
     home: 'Home',
@@ -52,12 +57,12 @@ export default {
     requiredArgs: 'Required Arguments',
     selectOption: 'Select option',
     optionalFlags: 'Optional Flags',
-    dangerousCommand: 'Dangerous Command',
-    executing: 'Executing...',
-    execute: 'Execute',
+    dangerousCommand: 'Dangerous Command Meow',
+    executing: 'Executing... Meow',
+    execute: 'Execute Meow',
     output: 'Output',
     clearOutput: 'Clear Output',
-    noOutput: 'Command output will appear here',
+    noOutput: 'Command output will appear here Meow',
     favorites: 'Favorites',
     noFavorites: 'No favorite commands',
     history: 'History',
@@ -106,6 +111,12 @@ export default {
     mainModules: 'Main Modules',
     toolsCenter: 'Tools Center',
     checkin: 'Check-in Management',
+    user: {
+      role: 'Master',
+      session: 'Session',
+      version: 'Version',
+      status: 'Online',
+    },
   },
   checkin: {
     title: 'Check-in Management',
@@ -170,7 +181,7 @@ export default {
   home: {
     title: 'CCR UI',
     subtitle: 'AI CLI Configuration Center',
-    description: 'Modern multi-CLI tool configuration management solution supporting Claude, Codex, Gemini and other AI platforms. Integrated with configuration conversion, cloud sync, command execution and other powerful features to make AI tool configuration management simpler and more efficient.',
+    description: 'Modern multi-CLI tool configuration management solution supporting Claude, Codex, Gemini and other AI platforms. Integrated with configuration conversion, cloud sync, command execution and other powerful features to make AI tool configuration management simpler and more efficient Meow.',
     version: 'v',
     coreFeatures: 'Core Features',
     feature1Title: 'Multi-Platform',
@@ -233,6 +244,29 @@ export default {
     usageTitle: 'Token Usage',
     usageDesc: 'Token usage visualization, activity heatmap and usage trends',
     usageStats: 'Real-time Monitor',
+
+    // New Keys for HomeView Redesign
+    welcomeBack: 'Welcome back',
+    roleEngineer: 'Master', // Changed from Engineer to Master
+    statusMsg: 'System status operational. All nodes calibrated, Meow.',
+    platformModules: 'Platform Modules',
+    systemActivity: 'System Activity',
+    fullReport: 'Full Report',
+    operational: 'Operational Meow',
+
+    // Quick Actions
+    actionCommandRunner: 'Command Runner',
+    actionCommandRunnerDesc: 'Execute system commands directly.',
+    actionConfigManager: 'Config Manager',
+    actionConfigManagerDesc: 'Manage AI provider configurations.',
+    actionCloudSync: 'Cloud Sync',
+    actionCloudSyncDesc: 'Sync configurations via WebDAV.',
+    actionUsageStats: 'Usage Stats',
+    actionUsageStatsDesc: 'View detailed token consumption.',
+
+    // Factory Droid
+    factoryDroidTitle: 'Factory Droid',
+    factoryDroidDesc: 'Automated agent mesh for complex task execution.',
   },
   claudeCode: {
     // ClaudeCodeView - Overview page
@@ -396,8 +430,8 @@ export default {
     estimatedCost: 'Estimated Cost',
     realTimeLogs: 'Real-Time Logs',
     allLevels: 'All Levels',
-    noLogs: 'No logs yet',
-    waitingForLogs: 'Waiting for log messages...',
+    noLogs: 'No logs yet Meow',
+    waitingForLogs: 'Waiting for log messages... Meow',
   },
   prompts: {
     builtin: {
@@ -703,7 +737,7 @@ export default {
       authToken: 'Auth Token',
       authTokenPlaceholder: 'sk-ant-api03-...',
       model: 'Main Model',
-      modelPlaceholder: 'claude-sonnet-4-5-20250929',
+      modelPlaceholder: 'claude-opus-4-5-20251101',
       smallFastModel: 'Small Fast Model',
       smallFastModelPlaceholder: 'claude-3-5-haiku-20241022',
       provider: 'Provider',
@@ -1277,7 +1311,16 @@ export default {
         profileManagement: 'Manage different work environment configurations through Profiles',
         agentsFeature: 'Agents feature allows creating AI assistants for specific tasks',
         pluginEcosystem: 'Rich plugin ecosystem extends Codex capabilities'
-      }
+      },
+      // Usage panel
+      usageTitle: 'Usage Statistics',
+      usage5h: '5-Hour Window',
+      usage7d: '7-Day Window',
+      requests: 'requests',
+      usageError: 'Failed to load usage data',
+      noUsageData: 'No usage data available',
+      usageTip: 'Check official limits at the Codex usage dashboard.',
+      usageStatusTip: 'Run /status in an active Codex session for real-time limits.'
     },
 
     // Common actions
@@ -1570,7 +1613,12 @@ export default {
       emptyStateHint: 'Login to Codex first, then save the current session as an account',
       currentBadge: 'Current',
       virtualBadge: 'Virtual',
+      expiredBadge: 'Expired',
       virtual: 'Virtual',
+      expired: 'Expired',
+      expiredCannotSwitch: 'Account expired, cannot switch',
+      noExpiry: 'No expiration',
+      expiresAtHint: 'Optional. Set account expiration time to remind for renewal.',
       switch: 'Switch to this account',
       forceOverwrite: 'Force overwrite if account exists',
       processWarning: 'Warning: Codex process detected',
@@ -1595,6 +1643,7 @@ export default {
         tokenFreshness: 'Token Freshness',
         lastRefresh: 'Last Refresh',
         lastUsed: 'Last Used',
+        expiresAt: 'Expires At',
         accountName: 'Account Name',
         description: 'Description'
       },

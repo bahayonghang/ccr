@@ -668,15 +668,15 @@ button:hover {
 
 path {
   transition: d 0.3s ease, opacity 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 10%));
 }
 
 path:hover {
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 15%));
 }
 
 .glass-card {
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  box-shadow: 0 8px 32px 0 rgb(31 38 135 / 15%);
 }
 
 /* Axis labels animation */

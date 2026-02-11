@@ -1,12 +1,96 @@
 //! API 响应工具模块
 //!
 //! 提供统一的 API 响应格式和错误处理，减少 Handler 中的重复代码。
+//!
+//! ## 推荐用法（新代码）
+//!
+//! Handler 返回 `ApiResult<ApiSuccess<T>>` 即可自动生成标准化 JSON 响应：
+//!
+//! ```rust,ignore
+//! pub async fn list_items() -> ApiResult<ApiSuccess<Vec<Item>>> {
+//!     let items = load_items()?; // 错误自动转为 ApiError
+//!     Ok(ApiSuccess(items))
+//! }
+//! ```
 
-use axum::{Json, http::StatusCode, response::IntoResponse};
+use axum::{
+    Json,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use serde::Serialize;
 use serde_json::json;
 
-/// 统一的 API 响应结构
+// ============================================================
+// 新统一响应类型（推荐新代码使用）
+// ============================================================
+
+/// 内部序列化用的响应体
+#[derive(Serialize)]
+struct SuccessBody<T: Serialize> {
+    success: bool,
+    data: T,
+    message: Option<String>,
+}
+
+/// 统一成功响应包装器
+///
+/// 与 `ApiResult<T>` 配合使用，实现零样板 Handler：
+///
+/// ```rust,ignore
+/// pub async fn get_data() -> ApiResult<ApiSuccess<MyData>> {
+///     let data = fetch_data()?;
+///     Ok(ApiSuccess(data))
+/// }
+/// ```
+///
+/// 生成的 JSON 响应：`{ "success": true, "data": <T>, "message": null }`
+pub struct ApiSuccess<T: Serialize>(pub T);
+
+impl<T: Serialize> IntoResponse for ApiSuccess<T> {
+    fn into_response(self) -> Response {
+        let body = SuccessBody {
+            success: true,
+            data: self.0,
+            message: None,
+        };
+        (StatusCode::OK, Json(body)).into_response()
+    }
+}
+
+impl<T: Serialize> ApiSuccess<T> {
+    /// 创建带消息的成功响应
+    #[allow(dead_code)]
+    pub fn with_message(data: T, message: impl Into<String>) -> ApiSuccessWithMessage<T> {
+        ApiSuccessWithMessage {
+            data,
+            message: message.into(),
+        }
+    }
+}
+
+/// 带消息的成功响应（通过 `ApiSuccess::with_message()` 创建）
+pub struct ApiSuccessWithMessage<T: Serialize> {
+    data: T,
+    message: String,
+}
+
+impl<T: Serialize> IntoResponse for ApiSuccessWithMessage<T> {
+    fn into_response(self) -> Response {
+        let body = SuccessBody {
+            success: true,
+            data: self.data,
+            message: Some(self.message),
+        };
+        (StatusCode::OK, Json(body)).into_response()
+    }
+}
+
+// ============================================================
+// 旧版响应类型（保留向后兼容，逐步迁移到 ApiSuccess）
+// ============================================================
+
+/// 统一的 API 响应结构（旧版，新代码请使用 `ApiSuccess<T>`）
 #[derive(Debug, Serialize)]
 pub struct ApiResponse<T: Serialize> {
     pub success: bool,

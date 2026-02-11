@@ -1,13 +1,13 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.18.4"
+version = "4.0.0"
 edition = "2024"
 
 [dependencies]
 # 🎯 CCR 核心库 - 直接使用服务层（无子进程开销）
 # 开发时使用路径依赖（在 workspace 中自动覆盖）
-# 独立构建时使用 git 依赖
-ccr = { git = "https://github.com/bahayonghang/ccr", branch = "dev", default-features = false }
+# 独立构建如需脱离仓库，可改为 git 依赖
+ccr = { path = "../..", default-features = false }
 
 # 🎯 共享类型定义
 ccr-types = { path = "../../ccr-types" }
@@ -44,6 +44,7 @@ tokio = { version = "1.49.0", features = ["full"] } # 异步运行时 (全功能
 serde = { version = "1.0.228", features = ["derive"] } # 序列化框架
 serde_json = "1.0.148"                                 # JSON 处理
 indexmap = "2.12"                                      # 有序 Map (保持配置顺序)
+scraper = "0.25.0"                                     # HTML 解析
 
 # Time
 chrono = { version = "0.4.42", features = ["serde"] } # 时间日期处理
@@ -85,7 +86,7 @@ clap = { version = "4.5.54", features = ["derive"] } # 命令行参数解析
 # System information
 whoami = "2.0.0"    # 获取当前用户身份
 num_cpus = "1.17.0" # 获取 CPU 核心数
-sysinfo = "0.37.2"  # 系统状态监控 (统一版本)
+sysinfo = "0.38.1"  # 系统状态监控 (统一版本)
 
 # HTTP client for checking updates and checkin API calls
 # NOTE: Enable `gzip` to transparently decode provider responses (see NeuraDock).
@@ -112,6 +113,17 @@ uuid = { version = "1.18", features = ["v4", "serde"] } # UUID 生成
 once_cell = "1.21" # 单次初始化原语
 
 # ═══════════════════════════════════════════════════════════
+# 📦 SQLite 统一存储依赖 (Unified Storage)
+# ═══════════════════════════════════════════════════════════
+
+# SQLite database (embedded, zero-config)
+rusqlite = { version = "0.38", features = ["bundled"] }
+
+# Connection pool for SQLite
+r2d2 = "0.8"
+r2d2_sqlite = "0.32" # SQLite 连接池
+
+# ═══════════════════════════════════════════════════════════
 # 📦 签到功能依赖 (Checkin Feature)
 # ═══════════════════════════════════════════════════════════
 
@@ -119,7 +131,7 @@ once_cell = "1.21" # 单次初始化原语
 aes-gcm = "0.10" # AES-GCM 加密 (敏感数据保护)
 
 # Random key generation
-rand = "0.9" # 随机数生成
+rand = "0.10.0" # 随机数生成
 
 # Base64 encoding for encrypted data
 base64 = "0.22" # Base64 编解码
@@ -128,6 +140,7 @@ base64 = "0.22" # Base64 编解码
 chromiumoxide = { version = "0.8", features = [
     "tokio-runtime",
 ] } # Headless Chrome (用于过 WAF)
+sha2 = "0.10.9"
 
 # ✅ 独立构建支持说明：
 # - 所有依赖使用显式版本号，不依赖 workspace 继承

@@ -48,7 +48,7 @@ const goToCheckinManage = () => {
   align-self: flex-start;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
-  border: 1px solid rgba(var(--color-gray-rgb), 0.35);
+  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
   background: var(--bg-primary);
   color: var(--text-primary);
   cursor: pointer;
@@ -61,11 +61,11 @@ const goToCheckinManage = () => {
 }
 
 :global(.dark) .go-button {
-  background: rgba(var(--color-slate-dark-rgb), 0.8);
-  border-color: rgba(var(--color-slate-rgb), 0.6);
+  background: rgb(var(--color-slate-dark-rgb), 0.8);
+  border-color: rgb(var(--color-slate-rgb), 0.6);
 }
 
 :global(.dark) .go-button:hover {
-  background: rgba(var(--color-slate-rgb), 0.6);
+  background: rgb(var(--color-slate-rgb), 0.6);
 }
 </style>

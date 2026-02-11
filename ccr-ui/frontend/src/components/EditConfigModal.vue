@@ -1,341 +1,296 @@
 <template>
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
     @click.self="handleClose"
   >
-    <!-- 背景遮罩 -->
+    <!-- Background Backdrop -->
     <div
-      class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      class="absolute inset-0 bg-black/70 backdrop-blur-md"
       @click="handleClose"
     />
 
-    <!-- 弹窗内容 -->
+    <!-- Modal Content -->
     <div
       ref="modalRef"
       role="dialog"
-      aria-modal="true"
+      :aria-modal="true"
       :aria-labelledby="titleId"
-      class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-8 transition-all duration-300 glass-modal"
+      class="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-xl bg-bg-elevated/60 backdrop-blur-xl border border-white/5 shadow-2xl animate-scale-in"
     >
-      <!-- 标题栏 -->
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <div
-            class="p-3 rounded-xl"
-            :style="{ background: 'linear-gradient(135deg, rgba(var(--color-accent-primary-rgb), 0.2), rgba(var(--color-accent-secondary-rgb), 0.2))' }"
-          >
-            <Settings
-              class="w-6 h-6"
-              :style="{ color: 'var(--color-accent-primary)' }"
-            />
+      <!-- Header -->
+      <div class="shrink-0 px-8 py-6 border-b border-border-subtle bg-bg-elevated rounded-t-xl flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="p-3 rounded-xl bg-accent-primary/10 text-accent-primary">
+            <Settings class="w-6 h-6" />
           </div>
           <div>
             <h2
               :id="titleId"
-              class="text-2xl font-bold"
-              :style="{
-                background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }"
+              class="text-xl font-bold bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent"
             >
-              ⚙️ 编辑配置
+              Edit Configuration
             </h2>
-            <p
-              class="text-sm flex items-center gap-1"
-              :style="{ color: 'var(--text-secondary)' }"
-            >
-              <span>📋</span> {{ configName }}
+            <p class="text-xs text-text-secondary font-mono flex items-center gap-1">
+              <span>ID:</span> {{ configName }}
             </p>
           </div>
         </div>
-        <button
-          class="p-2 rounded-lg transition-all hover:scale-110"
-          :style="{
-            background: 'var(--color-bg-overlay)',
-            color: 'var(--text-secondary)'
-          }"
-          aria-label="关闭"
+        <Button
+          variant="ghost"
+          size="icon"
           @click="handleClose"
         >
           <X class="w-5 h-5" />
-        </button>
+        </Button>
       </div>
 
-      <!-- 加载状态 -->
-      <div
-        v-if="loading"
-        class="flex justify-center py-20"
-      >
-        <div
-          class="w-12 h-12 rounded-full border-4 border-transparent animate-spin"
-          :style="{
-            borderTopColor: 'var(--color-accent-primary)',
-            borderRightColor: 'var(--color-accent-secondary)'
-          }"
-        />
+      <!-- Body -->
+      <div class="flex-1 min-h-0 overflow-y-auto">
+        <div class="p-8">
+          <!-- Loading -->
+          <div
+            v-if="loading"
+            class="flex justify-center py-20"
+          >
+            <Spinner
+              size="lg"
+              class="text-accent-primary"
+            />
+          </div>
+
+          <!-- Form -->
+          <form
+            v-else
+            class="space-y-8"
+            @submit.prevent="handleSave"
+          >
+            <!-- Section: Description -->
+            <div class="space-y-4">
+              <div class="flex items-center gap-2 mb-1">
+                <FileText class="w-4 h-4 text-emerald-400" />
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                  Basic Info
+                </h3>
+                <div class="h-px flex-1 bg-emerald-400/20" />
+              </div>
+              <Input
+                v-model="formData.description"
+                label="Description"
+                placeholder="Brief description of this config"
+              >
+                <template #leading>
+                  <FileText class="w-4 h-4 text-emerald-400" />
+                </template>
+              </Input>
+            </div>
+
+            <!-- Section: Connection -->
+            <div class="space-y-4">
+              <div class="flex items-center gap-2 mb-1">
+                <Globe class="w-4 h-4 text-cyan-400" />
+                <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                  Connection
+                </h3>
+                <div class="h-px flex-1 bg-cyan-400/20" />
+              </div>
+
+              <Input
+                v-model="formData.base_url"
+                label="Base URL"
+                placeholder="https://api.anthropic.com"
+              >
+                <template #leading>
+                  <Globe class="w-4 h-4 text-cyan-400" />
+                </template>
+              </Input>
+
+              <div class="relative group">
+                <Input
+                  v-model="formData.auth_token"
+                  label="Auth Token"
+                  placeholder="sk-..."
+                  :type="showToken ? 'text' : 'password'"
+                >
+                  <template #leading>
+                    <KeyRound class="w-4 h-4 text-amber-400" />
+                  </template>
+                </Input>
+                <!-- Toggle visibility button -->
+                <button
+                  type="button"
+                  class="absolute right-3 top-[34px] p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-white/10 transition-all duration-200"
+                  :title="showToken ? 'Hide token' : 'Show token'"
+                  @click="showToken = !showToken"
+                >
+                  <Eye
+                    v-if="!showToken"
+                    class="w-4 h-4"
+                  />
+                  <EyeOff
+                    v-else
+                    class="w-4 h-4"
+                  />
+                </button>
+              </div>
+            </div>
+
+            <!-- Section: Models -->
+            <div class="space-y-4">
+              <div class="flex items-center gap-2 mb-1">
+                <Bot class="w-4 h-4 text-violet-400" />
+                <h3 class="text-xs font-bold uppercase tracking-wider text-violet-400">
+                  Models
+                </h3>
+                <div class="h-px flex-1 bg-violet-400/20" />
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  v-model="formData.model"
+                  label="Default Model"
+                  placeholder="claude-3-opus-20240229"
+                >
+                  <template #leading>
+                    <Bot class="w-4 h-4 text-violet-400" />
+                  </template>
+                </Input>
+
+                <Input
+                  v-model="formData.small_fast_model"
+                  label="Fast Model"
+                  placeholder="claude-3-haiku-20240307"
+                >
+                  <template #leading>
+                    <Zap class="w-4 h-4 text-yellow-400" />
+                  </template>
+                </Input>
+              </div>
+            </div>
+
+            <!-- Section: Provider -->
+            <div class="space-y-4">
+              <div class="flex items-center gap-2 mb-1">
+                <Building2 class="w-4 h-4 text-orange-400" />
+                <h3 class="text-xs font-bold uppercase tracking-wider text-orange-400">
+                  Provider
+                </h3>
+                <div class="h-px flex-1 bg-orange-400/20" />
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Provider Type Select -->
+                <div class="w-full">
+                  <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5 ml-1">Provider Type</label>
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Tag class="w-4 h-4 text-orange-400" />
+                    </div>
+                    <select
+                      v-model="formData.provider_type"
+                      class="w-full bg-bg-surface border border-border-default rounded-lg pl-10 pr-8 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary appearance-none transition-all duration-300 hover:border-border-strong shadow-sm"
+                    >
+                      <option value="">
+                        Uncategorized
+                      </option>
+                      <option value="official_relay">
+                        Official Relay
+                      </option>
+                      <option value="third_party_model">
+                        Third Party
+                      </option>
+                    </select>
+                    <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                      <ChevronDown class="w-3.5 h-3.5 text-text-muted" />
+                    </div>
+                  </div>
+                </div>
+
+                <Input
+                  v-model="formData.provider"
+                  label="Provider Name"
+                  placeholder="e.g. anthropic"
+                  hint="Grouping identifier"
+                >
+                  <template #leading>
+                    <Building2 class="w-4 h-4 text-orange-400" />
+                  </template>
+                </Input>
+
+                <Input
+                  v-model="formData.account"
+                  label="Account ID"
+                  placeholder="e.g. personal"
+                  hint="Account differentiator"
+                >
+                  <template #leading>
+                    <User class="w-4 h-4 text-pink-400" />
+                  </template>
+                </Input>
+              </div>
+            </div>
+
+            <!-- Section: Tags -->
+            <div class="space-y-4">
+              <div class="flex items-center gap-2 mb-1">
+                <Tags class="w-4 h-4 text-sky-400" />
+                <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400">
+                  Tags
+                </h3>
+                <div class="h-px flex-1 bg-sky-400/20" />
+              </div>
+
+              <Input
+                v-model="tagsInput"
+                label="Tags"
+                placeholder="production, backup, test"
+                hint="Comma separated"
+              >
+                <template #leading>
+                  <Tags class="w-4 h-4 text-sky-400" />
+                </template>
+              </Input>
+            </div>
+          </form>
+        </div>
       </div>
 
-      <!-- 表单内容 -->
-      <form
-        v-else
-        class="space-y-4"
-        @submit.prevent="handleSave"
-      >
-        <!-- 描述 -->
-        <div>
-          <label
-            class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: 'var(--color-success)' }"
-          >
-            📝 描述
-          </label>
-          <input
-            v-model="formData.description"
-            type="text"
-            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
-            :style="{
-              background: 'var(--glass-bg-medium)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--text-primary)'
-            }"
-            placeholder="配置描述"
-          >
-        </div>
-
-        <!-- Base URL -->
-        <div>
-          <label
-            class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: 'var(--color-info)' }"
-          >
-            🌐 Base URL
-          </label>
-          <input
-            v-model="formData.base_url"
-            type="url"
-            required
-            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
-            :style="{
-              background: 'var(--glass-bg-medium)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--text-primary)'
-            }"
-            placeholder="https://api.claude.ai"
-          >
-        </div>
-
-        <!-- Auth Token -->
-        <div>
-          <label
-            class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: 'var(--color-warning)' }"
-          >
-            🔑 Auth Token
-          </label>
-          <input
-            v-model="formData.auth_token"
-            type="text"
-            required
-            class="w-full px-4 py-3 rounded-xl transition-all font-mono text-sm focus:ring-2 focus:ring-indigo-500/50"
-            :style="{
-              background: 'var(--glass-bg-medium)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--text-primary)'
-            }"
-            placeholder="sk-ant-..."
-          >
-        </div>
-
-        <!-- Model -->
-        <div>
-          <label
-            class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: 'var(--color-accent-secondary)' }"
-          >
-            🤖 Model
-          </label>
-          <input
-            v-model="formData.model"
-            type="text"
-            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
-            :style="{
-              background: 'var(--glass-bg-medium)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--text-primary)'
-            }"
-            placeholder="claude-sonnet-4-5-20250929"
-          >
-        </div>
-
-        <!-- Small Fast Model -->
-        <div>
-          <label
-            class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: 'var(--color-accent-primary)' }"
-          >
-            ⚡ Small Fast Model
-          </label>
-          <input
-            v-model="formData.small_fast_model"
-            type="text"
-            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
-            :style="{
-              background: 'var(--glass-bg-medium)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--text-primary)'
-            }"
-            placeholder="claude-3-haiku-20240307"
-          >
-        </div>
-
-        <!-- Provider Type -->
-        <div>
-          <label
-            class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: 'var(--color-danger)' }"
-          >
-            🏷️ Provider Type
-          </label>
-          <select
-            v-model="formData.provider_type"
-            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
-            :style="{
-              background: 'var(--glass-bg-medium)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--text-primary)'
-            }"
-          >
-            <option value="">
-              ❓ 未分类
-            </option>
-            <option value="official_relay">
-              🔄 官方中转
-            </option>
-            <option value="third_party_model">
-              🤖 第三方模型
-            </option>
-          </select>
-        </div>
-
-        <!-- Provider Name -->
-        <div>
-          <label
-            class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: 'var(--color-success)' }"
-          >
-            🏢 提供商名称
-          </label>
-          <input
-            v-model="formData.provider"
-            type="text"
-            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
-            :style="{
-              background: 'var(--glass-bg-medium)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--text-primary)'
-            }"
-            placeholder="如: anyrouter, glm, moonshot"
-          >
-          <p
-            class="text-xs mt-1"
-            :style="{ color: 'var(--text-secondary)' }"
-          >
-            用于标识同一提供商的不同配置
-          </p>
-        </div>
-
-        <!-- Account -->
-        <div>
-          <label
-            class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: 'var(--color-warning)' }"
-          >
-            👤 账号标识
-          </label>
-          <input
-            v-model="formData.account"
-            type="text"
-            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
-            :style="{
-              background: 'var(--glass-bg-medium)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--text-primary)'
-            }"
-            placeholder="如: github_5953, personal, work"
-          >
-          <p
-            class="text-xs mt-1"
-            :style="{ color: 'var(--text-secondary)' }"
-          >
-            用于区分同一提供商的不同账号
-          </p>
-        </div>
-
-        <!-- Tags -->
-        <div>
-          <label
-            class="block text-sm font-semibold mb-2 flex items-center gap-1"
-            :style="{ color: 'var(--color-accent-secondary)' }"
-          >
-            🏷️ 标签
-          </label>
-          <input
-            v-model="tagsInput"
-            type="text"
-            class="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-indigo-500/50"
-            :style="{
-              background: 'var(--glass-bg-medium)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--text-primary)'
-            }"
-            placeholder="用逗号分隔，如: free, stable, backup"
-          >
-          <p
-            class="text-xs mt-1"
-            :style="{ color: 'var(--text-secondary)' }"
-          >
-            用于灵活分类和筛选，多个标签用逗号分隔
-          </p>
-        </div>
-
-        <!-- 按钮组 -->
-        <div class="flex gap-3 pt-4">
-          <button
-            type="button"
-            class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
-            :style="{
-              background: 'var(--color-bg-overlay)',
-              color: 'var(--text-secondary)'
-            }"
-            @click="handleClose"
-          >
-            ❌ 取消
-          </button>
-          <button
-            type="submit"
-            :disabled="saving"
-            class="flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 flex items-center justify-center gap-2"
-            :style="{
-              background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))',
-              boxShadow: '0 4px 16px rgba(var(--color-accent-primary-rgb), 0.3)'
-            }"
-          >
-            {{ saving ? '⏳ 保存中...' : '💾 保存' }}
-          </button>
-        </div>
-      </form>
+      <!-- Footer -->
+      <div class="shrink-0 px-8 py-6 border-t border-border-subtle bg-bg-elevated rounded-b-xl flex gap-4">
+        <Button
+          variant="ghost"
+          class="flex-1"
+          @click="handleClose"
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          class="flex-1"
+          :loading="saving"
+          @click="handleSave"
+        >
+          Save Changes
+        </Button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { Settings, X } from 'lucide-vue-next'
+import { ref, watch, onUnmounted } from 'vue'
+import {
+  Settings, X, FileText, Globe, KeyRound, Bot, Zap,
+  Building2, User, Tag, Tags, Eye, EyeOff, ChevronDown
+} from 'lucide-vue-next'
 import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 import { getConfig, updateConfig } from '@/api'
+import Button from '@/components/ui/Button.vue'
+import Input from '@/components/ui/Input.vue'
+import Spinner from '@/components/ui/Spinner.vue'
+
+// typed
+import type { UpdateConfigRequest, ConfigItem } from '@/types'
 
 interface Props {
   isOpen: boolean
@@ -343,117 +298,72 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits<{
-  close: []
-  saved: []
-}>()
+const emit = defineEmits(['close', 'saved'])
 
-// Accessibility enhancements
-const titleId = useUniqueId('edit-config-modal-title')
+const titleId = useUniqueId('edit-config-title')
 const modalRef = ref<HTMLElement | null>(null)
 const isOpenRef = ref(props.isOpen)
 
-watch(() => props.isOpen, (newValue) => {
-  isOpenRef.value = newValue
+// Auth token visibility toggle
+const showToken = ref(true)
+
+watch(() => props.isOpen, (val) => {
+  isOpenRef.value = val
+  // 锁定/恢复 body 滚动，防止弹窗打开时背景可滚动
+  document.body.style.overflow = val ? 'hidden' : ''
 })
 
-// Close handler
-const handleClose = () => {
-  emit('close')
-}
-
+const handleClose = () => emit('close')
 const { focusFirstElement } = useFocusTrap(modalRef, isOpenRef)
 useEscapeKey(handleClose, isOpenRef)
 
-watch(isOpenRef, (isOpen) => {
-  if (isOpen) {
-    setTimeout(() => focusFirstElement(), 100)
-  }
-})
+watch(isOpenRef, (open) => { if(open) setTimeout(() => focusFirstElement(), 100) })
 
 const loading = ref(false)
 const saving = ref(false)
 const tagsInput = ref('')
-const formData = ref<any>({
-  description: '',
-  base_url: '',
-  auth_token: '',
-  model: '',
-  small_fast_model: '',
-  provider_type: '',
-  provider: '',
-  account: '',
-  tags: []
-})
 
-// 加载配置数据
+const formData = ref<Partial<ConfigItem>>({})
+
 const loadConfig = async () => {
   if (!props.configName) return
-
+  loading.value = true
   try {
-    loading.value = true
-    // 从API获取配置数据
     const data = await getConfig(props.configName)
-    formData.value = {
-      description: data.description || '',
-      base_url: data.base_url || '',
-      auth_token: data.auth_token || '',
-      model: data.model || '',
-      small_fast_model: data.small_fast_model || '',
-      provider_type: data.provider_type || '',
-      provider: data.provider || '',
-      account: data.account || '',
-      tags: data.tags || []
-    }
-    // 将标签数组转换为逗号分隔的字符串
+    formData.value = { ...data }
     tagsInput.value = Array.isArray(data.tags) ? data.tags.join(', ') : ''
-  } catch (err) {
-    console.error('加载配置失败:', err)
-    alert(`加载配置失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
-  } finally {
-    loading.value = false
-  }
+  } catch (e: any) { alert(e.message) }
+  finally { loading.value = false }
 }
 
-// 解析标签输入
-const parseTags = (input: string): string[] => {
-  return input.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
-}
-
-// 保存配置
 const handleSave = async () => {
+  saving.value = true
   try {
-    saving.value = true
-    const tags = parseTags(tagsInput.value)
-    // 构造符合后端 UpdateConfigRequest 结构的请求数据
-    const payload = {
-      name: props.configName,  // ✅ 添加必填的 name 字段
-      description: formData.value.description || undefined,
-      base_url: formData.value.base_url,
-      auth_token: formData.value.auth_token,
-      model: (formData.value.model ?? '').trim() || undefined,
-      small_fast_model: (formData.value.small_fast_model ?? '').trim() || undefined,
-      provider_type: formData.value.provider_type || undefined,
-      provider: (formData.value.provider ?? '').trim() || undefined,
-      account: (formData.value.account ?? '').trim() || undefined,
-      tags: tags.length > 0 ? tags : undefined
+    const tags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean)
+    // Construct valid request payload
+    const payload: UpdateConfigRequest = {
+       name: props.configName,
+       description: formData.value.description,
+       base_url: formData.value.base_url || '',
+       auth_token: formData.value.auth_token || '',
+       model: formData.value.model,
+       small_fast_model: formData.value.small_fast_model,
+       provider: formData.value.provider,
+       provider_type: formData.value.provider_type,
+       account: formData.value.account,
+       tags: tags.length ? tags : undefined
     }
     await updateConfig(props.configName, payload)
-    alert(`✓ 成功保存配置 "${props.configName}"`)
     emit('saved')
     handleClose()
-  } catch (err) {
-    console.error('保存配置失败:', err)
-    alert(`保存失败: ${err instanceof Error ? err.message : 'Unknown error'}`)
-  } finally {
-    saving.value = false
-  }
+  } catch (e: any) { alert(e.message) }
+  finally { saving.value = false }
 }
 
-// 监听弹窗打开
-watch(() => props.isOpen, (newVal) => {
-  if (newVal) {
-    loadConfig()
-  }
+watch(() => props.isOpen, (val) => { if(val) loadConfig() })
+
+// 组件卸载时恢复 body 滚动
+onUnmounted(() => {
+  document.body.style.overflow = ''
 })
 </script>

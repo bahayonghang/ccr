@@ -1,10 +1,11 @@
 // Qwen platform routes
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, post, put},
 };
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         // MCP routes
         .route(
@@ -31,5 +32,25 @@ pub fn routes() -> Router {
         .route(
             "/qwen/config",
             put(crate::api::handlers::platforms::qwen::update_qwen_config),
+        )
+        .route(
+            "/qwen/slash-commands",
+            get(crate::api::handlers::platforms::qwen::list_qwen_slash_commands),
+        )
+        .route(
+            "/qwen/slash-commands",
+            post(crate::api::handlers::platforms::qwen::add_qwen_slash_command),
+        )
+        .route(
+            "/qwen/slash-commands/{name}",
+            put(crate::api::handlers::platforms::qwen::update_qwen_slash_command),
+        )
+        .route(
+            "/qwen/slash-commands/{name}",
+            delete(crate::api::handlers::platforms::qwen::delete_qwen_slash_command),
+        )
+        .route(
+            "/qwen/slash-commands/{name}/toggle",
+            put(crate::api::handlers::platforms::qwen::toggle_qwen_slash_command),
         )
 }

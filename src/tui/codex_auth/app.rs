@@ -1,79 +1,126 @@
-// 🔐 Codex Auth TUI 应用状态机
-// 管理 Codex 多账号选择器的状态
+// Codex Auth TUI application state machine
+// Manages the Codex multi-account selector state
 
 use crate::core::error::Result;
 use crate::models::{CodexAuthItem, LoginState, TokenFreshness};
-use crate::services::CodexAuthService;
+use crate::services::{CodexAuthService, CodexRollingUsage};
+use crate::tui::overlay::Overlay;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use dirs::home_dir;
+use ratatui::Frame;
 
-/// 每页最多显示的账号数量
+use crate::tui::runtime::TuiApp;
+use crate::tui::toast::{Toast, ToastManager};
+use std::path::PathBuf;
+
+/// Maximum accounts per page
 pub const PAGE_SIZE: usize = 10;
 
-/// 🎯 操作模式
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Mode {
-    /// 正常浏览模式
-    Normal,
-    /// 确认删除模式
-    ConfirmDelete,
-    /// 输入保存名称模式
-    InputSaveName,
+/// Usage data state
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub enum UsageState {
+    /// Loading
+    Loading,
+    /// Loaded successfully
+    Loaded(CodexRollingUsage),
+    /// Load failed
+    Error(String),
+    /// No data
+    NoData,
 }
 
-/// 📱 Codex Auth TUI 应用
+/// Codex Auth TUI application
 pub struct CodexAuthApp {
-    /// 账号列表
+    /// Account list
     pub accounts: Vec<CodexAuthItem>,
-    /// 当前选中索引
+    /// Currently selected index
     pub selected_index: usize,
-    /// 当前页码 (从0开始)
+    /// Current page (0-based)
     pub current_page: usize,
-    /// 当前模式
-    pub mode: Mode,
-    /// 状态消息 (消息, 是否错误)
-    pub status_message: Option<(String, bool)>,
-    /// 是否应该退出
+    /// Active overlay (None = normal mode)
+    pub overlay: Option<Overlay>,
+    /// Toast notification manager
+    pub toasts: ToastManager,
+    /// Whether should quit
     pub should_quit: bool,
-    /// 登录状态
+    /// Login state
     pub login_state: LoginState,
-    /// 服务实例
+    /// Service instance
     service: CodexAuthService,
-    /// 输入缓冲区 (用于保存名称)
-    pub input_buffer: String,
-    /// 最后操作信息 (操作类型, 账号名, 是否成功, 错误信息)
+    /// Last action info (action_type, account_name, success, error)
     pub last_action: Option<(String, String, bool, Option<String>)>,
+    /// Usage data state
+    pub usage_state: UsageState,
+    /// Codex directory
+    #[allow(dead_code)]
+    codex_dir: Option<PathBuf>,
 }
 
 impl CodexAuthApp {
-    /// 🏗️ 创建新的应用实例
+    /// Create a new application instance
     pub fn new() -> Result<Self> {
         let service = CodexAuthService::new()?;
         let login_state = service.get_login_state()?;
         let accounts = service.list_accounts()?;
 
-        // 找到当前账号的索引
+        // Find the current account index
         let selected_index = accounts.iter().position(|a| a.is_current).unwrap_or(0);
+
+        // Codex directory
+        let codex_dir = home_dir().map(|d| d.join(".codex"));
+
+        // Load usage data
+        let usage_state = Self::load_usage_data(&codex_dir);
 
         Ok(Self {
             accounts,
             selected_index,
             current_page: 0,
-            mode: Mode::Normal,
-            status_message: None,
+            overlay: None,
+            toasts: ToastManager::new(),
             should_quit: false,
             login_state,
             service,
-            input_buffer: String::new(),
             last_action: None,
+            usage_state,
+            codex_dir,
         })
     }
 
-    /// 🔄 重新加载账号列表
+    /// Load usage data
+    fn load_usage_data(codex_dir: &Option<PathBuf>) -> UsageState {
+        let Some(dir) = codex_dir else {
+            return UsageState::Error("无法获取用户目录".to_string());
+        };
+
+        use crate::services::CodexUsageService;
+        let usage_service = CodexUsageService::new(dir.clone());
+
+        match usage_service.compute_rolling_usage() {
+            Ok(usage) => {
+                if usage.all_time.total_requests == 0 {
+                    UsageState::NoData
+                } else {
+                    UsageState::Loaded(usage)
+                }
+            }
+            Err(e) => UsageState::Error(e.to_string()),
+        }
+    }
+
+    /// Refresh usage data
+    #[allow(dead_code)]
+    pub fn refresh_usage(&mut self) {
+        self.usage_state = Self::load_usage_data(&self.codex_dir);
+    }
+
+    /// Reload account list
     pub fn reload_accounts(&mut self) -> Result<()> {
         self.login_state = self.service.get_login_state()?;
         self.accounts = self.service.list_accounts()?;
 
-        // 确保选中索引有效
+        // Ensure selected index is valid
         if self.selected_index >= self.accounts.len() {
             self.selected_index = self.accounts.len().saturating_sub(1);
         }
@@ -81,7 +128,7 @@ impl CodexAuthApp {
         Ok(())
     }
 
-    /// 📊 获取当前页的账号列表
+    /// Get current page accounts
     pub fn current_page_accounts(&self) -> &[CodexAuthItem] {
         let start = self.current_page * PAGE_SIZE;
         let end = (start + PAGE_SIZE).min(self.accounts.len());
@@ -92,7 +139,7 @@ impl CodexAuthApp {
         }
     }
 
-    /// 📄 获取总页数
+    /// Get total pages
     pub fn total_pages(&self) -> usize {
         if self.accounts.is_empty() {
             1
@@ -101,153 +148,150 @@ impl CodexAuthApp {
         }
     }
 
-    /// 🎯 获取当前选中的账号
+    /// Get currently selected account
     pub fn selected_account(&self) -> Option<&CodexAuthItem> {
         let page_accounts = self.current_page_accounts();
         page_accounts.get(self.selected_index)
     }
 
-    /// ⌨️ 处理按键事件
-    /// 返回 true 表示应该退出
-    pub fn handle_key(&mut self, key: KeyEvent) -> Result<bool> {
-        // 清除状态消息
-        self.status_message = None;
+    // ═══════════════════════════════════════════════════════════
+    // Key handlers
+    // ═══════════════════════════════════════════════════════════
 
-        match self.mode {
-            Mode::Normal => self.handle_normal_mode(key),
-            Mode::ConfirmDelete => self.handle_confirm_delete(key),
-            Mode::InputSaveName => self.handle_input_save_name(key),
-        }
-    }
-
-    /// 处理正常模式按键
+    /// Handle normal mode key events
     fn handle_normal_mode(&mut self, key: KeyEvent) -> Result<bool> {
         match key.code {
-            // 退出
             KeyCode::Char('q') | KeyCode::Esc => {
                 self.should_quit = true;
                 return Ok(true);
             }
-            // Ctrl+C 退出
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.should_quit = true;
                 return Ok(true);
             }
-            // 向上移动
             KeyCode::Up | KeyCode::Char('k') => {
                 self.move_up();
             }
-            // 向下移动
             KeyCode::Down | KeyCode::Char('j') => {
                 self.move_down();
             }
-            // 上一页
             KeyCode::PageUp | KeyCode::Char('h') => {
                 self.prev_page();
             }
-            // 下一页
             KeyCode::PageDown | KeyCode::Char('l') => {
                 self.next_page();
             }
-            // 切换账号
             KeyCode::Enter => {
                 if self.switch_selected_account()? {
                     return Ok(true);
                 }
             }
-            // 保存当前登录
             KeyCode::Char('s') => {
                 if matches!(self.login_state, LoginState::LoggedInUnsaved) {
-                    self.mode = Mode::InputSaveName;
-                    self.input_buffer.clear();
+                    self.overlay = Some(Overlay::save_input());
                 } else {
-                    self.status_message = Some(("当前登录已保存或未登录".to_string(), true));
+                    self.toasts.push(Toast::warning("当前登录已保存或未登录"));
                 }
             }
-            // 删除账号
             KeyCode::Char('d') | KeyCode::Delete => {
                 if let Some(account) = self.selected_account() {
                     if !account.is_virtual {
-                        self.mode = Mode::ConfirmDelete;
+                        self.overlay = Some(Overlay::confirm_delete(account.name.clone()));
                     } else {
-                        self.status_message = Some(("无法删除未保存的登录".to_string(), true));
+                        self.toasts.push(Toast::warning("无法删除未保存的登录"));
                     }
                 }
             }
-            // 刷新
             KeyCode::Char('r') => {
                 self.reload_accounts()?;
-                self.status_message = Some(("已刷新账号列表".to_string(), false));
+                self.toasts.push(Toast::info("已刷新账号列表"));
             }
             _ => {}
         }
         Ok(false)
     }
 
-    /// 处理确认删除模式
-    fn handle_confirm_delete(&mut self, key: KeyEvent) -> Result<bool> {
+    /// Dispatch overlay key events by variant
+    fn handle_overlay_key(&mut self, key: KeyEvent) -> Result<bool> {
+        let is_confirm = matches!(self.overlay, Some(Overlay::Confirm { .. }));
+        if is_confirm {
+            return self.handle_confirm_key(key);
+        }
+        self.handle_input_key(key)
+    }
+
+    /// Handle confirm overlay keys
+    fn handle_confirm_key(&mut self, key: KeyEvent) -> Result<bool> {
         match key.code {
             KeyCode::Char('y') | KeyCode::Char('Y') => {
-                if let Some(account) = self.selected_account().cloned() {
-                    match self.service.delete_account(&account.name) {
-                        Ok(()) => {
-                            self.last_action =
-                                Some(("已删除".to_string(), account.name.clone(), true, None));
-                            self.status_message =
-                                Some((format!("已删除账号: {}", account.name), false));
-                            self.reload_accounts()?;
-                        }
-                        Err(e) => {
-                            self.status_message = Some((format!("删除失败: {}", e), true));
-                        }
+                // Extract subject before mutable operations
+                let subject = match &self.overlay {
+                    Some(Overlay::Confirm { subject, .. }) => subject.clone(),
+                    _ => return Ok(false),
+                };
+
+                match self.service.delete_account(&subject) {
+                    Ok(()) => {
+                        self.last_action =
+                            Some(("已删除".to_string(), subject.clone(), true, None));
+                        self.toasts
+                            .push(Toast::success(format!("已删除账号: {}", subject)));
+                        self.reload_accounts()?;
+                    }
+                    Err(e) => {
+                        self.toasts.push(Toast::error(format!("删除失败: {}", e)));
                     }
                 }
-                self.mode = Mode::Normal;
+                self.overlay = None;
             }
             KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
-                self.mode = Mode::Normal;
-                self.status_message = Some(("已取消删除".to_string(), false));
+                self.overlay = None;
+                self.toasts.push(Toast::info("已取消删除"));
             }
             _ => {}
         }
         Ok(false)
     }
 
-    /// 处理输入保存名称模式
-    fn handle_input_save_name(&mut self, key: KeyEvent) -> Result<bool> {
+    /// Handle input overlay keys
+    fn handle_input_key(&mut self, key: KeyEvent) -> Result<bool> {
         match key.code {
             KeyCode::Enter => {
-                if !self.input_buffer.is_empty() {
-                    let name = self.input_buffer.clone();
-                    match self.service.save_current(&name, None, false) {
+                let name = match &mut self.overlay {
+                    Some(overlay) => overlay.take_input(),
+                    None => String::new(),
+                };
+
+                if !name.is_empty() {
+                    match self.service.save_current(&name, None, None, false) {
                         Ok(()) => {
                             self.last_action =
                                 Some(("已保存".to_string(), name.clone(), true, None));
-                            self.status_message = Some((format!("已保存账号: {}", name), false));
+                            self.toasts
+                                .push(Toast::success(format!("已保存账号: {}", name)));
                             self.reload_accounts()?;
                         }
                         Err(e) => {
-                            self.status_message = Some((format!("保存失败: {}", e), true));
+                            self.toasts.push(Toast::error(format!("保存失败: {}", e)));
                         }
                     }
                 }
-                self.mode = Mode::Normal;
-                self.input_buffer.clear();
+                self.overlay = None;
             }
             KeyCode::Esc => {
-                self.mode = Mode::Normal;
-                self.input_buffer.clear();
-                self.status_message = Some(("已取消保存".to_string(), false));
+                self.overlay = None;
+                self.toasts.push(Toast::info("已取消保存"));
             }
             KeyCode::Backspace => {
-                self.input_buffer.pop();
+                if let Some(overlay) = &mut self.overlay {
+                    overlay.pop_char();
+                }
             }
             KeyCode::Char(c) => {
-                // 只允许有效字符
                 if (c.is_ascii_alphanumeric() || c == '_' || c == '-')
-                    && self.input_buffer.len() < 32
+                    && let Some(overlay) = &mut self.overlay
                 {
-                    self.input_buffer.push(c);
+                    overlay.push_char(c);
                 }
             }
             _ => {}
@@ -255,7 +299,11 @@ impl CodexAuthApp {
         Ok(false)
     }
 
-    /// 向上移动选择
+    // ═══════════════════════════════════════════════════════════
+    // Navigation helpers
+    // ═══════════════════════════════════════════════════════════
+
+    /// Move selection up
     fn move_up(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
@@ -265,7 +313,7 @@ impl CodexAuthApp {
         }
     }
 
-    /// 向下移动选择
+    /// Move selection down
     fn move_down(&mut self) {
         let page_accounts = self.current_page_accounts();
         if self.selected_index < page_accounts.len().saturating_sub(1) {
@@ -276,7 +324,7 @@ impl CodexAuthApp {
         }
     }
 
-    /// 上一页
+    /// Previous page
     fn prev_page(&mut self) {
         if self.current_page > 0 {
             self.current_page -= 1;
@@ -284,7 +332,7 @@ impl CodexAuthApp {
         }
     }
 
-    /// 下一页
+    /// Next page
     fn next_page(&mut self) {
         if self.current_page < self.total_pages() - 1 {
             self.current_page += 1;
@@ -292,47 +340,54 @@ impl CodexAuthApp {
         }
     }
 
-    /// 切换到选中的账号
-    /// 返回 true 表示切换成功，应该退出 TUI
+    /// Switch to selected account
+    /// Returns true if switch succeeded and TUI should exit
     fn switch_selected_account(&mut self) -> Result<bool> {
         if let Some(account) = self.selected_account().cloned() {
             if account.is_virtual {
-                self.status_message = Some(("这是当前登录，无需切换".to_string(), false));
+                self.toasts.push(Toast::info("这是当前登录，无需切换"));
                 return Ok(false);
             }
 
             if account.is_current {
-                self.status_message = Some(("已经是当前账号".to_string(), false));
+                self.toasts.push(Toast::info("已经是当前账号"));
                 return Ok(false);
             }
 
-            // 检测 Codex 进程
+            // Expiry check
+            if CodexAuthService::is_expired(account.expires_at) {
+                self.toasts.push(Toast::warning("账号已过期，无法切换"));
+                return Ok(false);
+            }
+
+            // Detect running Codex processes
             let running = self.service.detect_codex_process();
             if !running.is_empty() {
-                self.status_message = Some((
-                    format!("警告: 检测到 {} 个 Codex 进程正在运行", running.len()),
-                    true,
-                ));
+                self.toasts.push(Toast::warning(format!(
+                    "警告: 检测到 {} 个 Codex 进程正在运行",
+                    running.len()
+                )));
             }
 
             match self.service.switch_account(&account.name) {
                 Ok(()) => {
                     self.last_action =
                         Some(("已切换到".to_string(), account.name.clone(), true, None));
-                    self.status_message = Some((format!("已切换到账号: {}", account.name), false));
-                    // 切换成功，设置退出标志
+                    self.toasts
+                        .push(Toast::success(format!("已切换到账号: {}", account.name)));
                     self.should_quit = true;
                     return Ok(true);
                 }
                 Err(e) => {
-                    self.status_message = Some((format!("切换失败: {}", e), true));
+                    self.toasts.push(Toast::error(format!("切换失败: {}", e)));
                 }
             }
         }
         Ok(false)
     }
 
-    /// 获取新鲜度显示文本
+    /// Get freshness display text
+    #[allow(dead_code)]
     pub fn freshness_text(freshness: TokenFreshness) -> &'static str {
         match freshness {
             TokenFreshness::Fresh => "🟢 新鲜",
@@ -340,5 +395,24 @@ impl CodexAuthApp {
             TokenFreshness::Old => "🔴 过期",
             TokenFreshness::Unknown => "⚪ 未知",
         }
+    }
+}
+
+// -- TuiApp trait implementation --
+
+impl TuiApp for CodexAuthApp {
+    fn handle_key(&mut self, key: KeyEvent) -> Result<bool> {
+        if self.overlay.is_some() {
+            return self.handle_overlay_key(key);
+        }
+        self.handle_normal_mode(key)
+    }
+
+    fn on_tick(&mut self) -> bool {
+        self.toasts.tick()
+    }
+
+    fn render(&self, frame: &mut Frame) {
+        super::ui::draw(frame, self);
     }
 }

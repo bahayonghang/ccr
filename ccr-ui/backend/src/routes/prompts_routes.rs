@@ -1,10 +1,11 @@
 // Prompts management routes
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, post},
 };
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/prompts", get(crate::api::handlers::prompts::list_prompts))
         .route("/prompts", post(crate::api::handlers::prompts::add_prompt))

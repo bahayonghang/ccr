@@ -1,6 +1,6 @@
 // Qwen CLI API 处理器
 //
-// 使用统一的响应工具模块减少重复代码
+// MCP/Config 使用 QwenConfigManager，Slash Commands 委托 toml_commands 共享模块
 
 use axum::{Json, extract::Path, response::IntoResponse};
 use serde_json::json;
@@ -10,26 +10,15 @@ use crate::api::handlers::response::{bad_request, internal_error, ok, ok_message
 use crate::managers::config::qwen_manager::QwenConfigManager;
 use crate::models::platforms::qwen::{QwenConfig, QwenMcpServer, QwenMcpServerRequest};
 
+use super::toml_commands;
+
 const PLATFORM: &str = "Qwen";
-
-// ============ 辅助宏 ============
-
-/// 初始化 Manager 并处理错误
-macro_rules! with_qwen_manager {
-    ($body:expr) => {
-        match QwenConfigManager::default() {
-            Ok(manager) => $body(manager),
-            Err(e) => internal_error(format!("初始化 {} 配置管理器失败: {}", PLATFORM, e))
-                .into_response(),
-        }
-    };
-}
 
 // ============ MCP 服务器管理 ============
 
 /// GET /api/qwen/mcp - 列出所有 MCP 服务器
 pub async fn list_qwen_mcp_servers() -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         match manager.list_mcp_servers() {
             Ok(servers) => {
                 let servers_vec: Vec<_> = servers
@@ -57,7 +46,7 @@ pub async fn list_qwen_mcp_servers() -> impl IntoResponse {
 
 /// POST /api/qwen/mcp - 添加 MCP 服务器
 pub async fn add_qwen_mcp_server(Json(request): Json<QwenMcpServerRequest>) -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         let server = QwenMcpServer {
             command: request.command,
             args: request.args,
@@ -81,7 +70,7 @@ pub async fn update_qwen_mcp_server(
     Path(name): Path<String>,
     Json(request): Json<QwenMcpServerRequest>,
 ) -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         let server = QwenMcpServer {
             command: request.command,
             args: request.args,
@@ -102,7 +91,7 @@ pub async fn update_qwen_mcp_server(
 
 /// DELETE /api/qwen/mcp/:name - 删除 MCP 服务器
 pub async fn delete_qwen_mcp_server(Path(name): Path<String>) -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         match manager.delete_mcp_server(&name) {
             Ok(()) => ok_message(format!("MCP 服务器 '{}' 删除成功", name)).into_response(),
             Err(e) => bad_request(format!("删除 MCP 服务器失败: {}", e)).into_response(),
@@ -114,7 +103,7 @@ pub async fn delete_qwen_mcp_server(Path(name): Path<String>) -> impl IntoRespon
 
 /// GET /api/qwen/config - 获取完整配置
 pub async fn get_qwen_config() -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         match manager.get_config() {
             Ok(config) => ok(config).into_response(),
             Err(e) => internal_error(format!("读取配置失败: {}", e)).into_response(),
@@ -124,10 +113,42 @@ pub async fn get_qwen_config() -> impl IntoResponse {
 
 /// PUT /api/qwen/config - 更新完整配置
 pub async fn update_qwen_config(Json(config): Json<QwenConfig>) -> impl IntoResponse {
-    with_qwen_manager!(|manager: QwenConfigManager| {
+    crate::with_manager!(QwenConfigManager, PLATFORM, |manager: QwenConfigManager| {
         match manager.update_config(&config) {
             Ok(()) => ok_message("配置更新成功").into_response(),
             Err(e) => bad_request(format!("更新配置失败: {}", e)).into_response(),
         }
     })
+}
+
+// ============ 斜杠命令管理（委托 toml_commands 共享模块）============
+
+/// GET /api/qwen/slash-commands - 列出所有斜杠命令
+pub async fn list_qwen_slash_commands() -> impl IntoResponse {
+    toml_commands::list_slash_commands("qwen")
+}
+
+/// POST /api/qwen/slash-commands - 添加斜杠命令
+pub async fn add_qwen_slash_command(
+    Json(req): Json<toml_commands::UiSlashCommandRequest>,
+) -> impl IntoResponse {
+    toml_commands::add_slash_command("qwen", PLATFORM, req)
+}
+
+/// PUT /api/qwen/slash-commands/:name - 更新斜杠命令
+pub async fn update_qwen_slash_command(
+    Path(name): Path<String>,
+    Json(req): Json<toml_commands::UiSlashCommandRequest>,
+) -> impl IntoResponse {
+    toml_commands::update_slash_command("qwen", PLATFORM, &name, req)
+}
+
+/// DELETE /api/qwen/slash-commands/:name - 删除斜杠命令
+pub async fn delete_qwen_slash_command(Path(name): Path<String>) -> impl IntoResponse {
+    toml_commands::delete_slash_command("qwen", PLATFORM, &name)
+}
+
+/// PATCH /api/qwen/slash-commands/:name/toggle - 切换启用/禁用（不支持）
+pub async fn toggle_qwen_slash_command(Path(_name): Path<String>) -> impl IntoResponse {
+    toml_commands::toggle_not_supported("Qwen Code")
 }

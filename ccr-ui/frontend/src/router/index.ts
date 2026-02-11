@@ -52,7 +52,7 @@ const router = createRouter({
           meta: { cache: true }
         },
         {
-          path: 'commands',
+          path: 'commands/:client?',
           name: 'commands',
           component: () => import('@/views/CommandsView.vue'),
           meta: { cache: true, stream: true }
@@ -124,6 +124,11 @@ const router = createRouter({
           path: 'skills',
           name: 'skills',
           component: () => import('@/views/generic/SkillsView.vue')
+        },
+        {
+          path: 'skills/hub',
+          name: 'skill-hub',
+          component: () => import('@/views/generic/SkillHubView.vue')
         },
         {
           path: 'skills/:name',

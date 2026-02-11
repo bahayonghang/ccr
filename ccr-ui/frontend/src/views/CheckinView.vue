@@ -13,9 +13,9 @@
       </div>
       <div class="flex items-center space-x-3">
         <button
-          :disabled="loading || checkinLoading"
+          :disabled="loading || checkinLoading || enabledAccounts.length === 0"
           class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50 transition-colors"
-          @click="executeCheckinAll"
+          @click="showCheckinConfirm = true"
         >
           <svg
             class="w-5 h-5"
@@ -96,7 +96,8 @@
     <!-- 签到结果弹窗 -->
     <div
       v-if="checkinResult"
-      class="rounded-lg p-4 border"
+      ref="checkinResultRef"
+      class="rounded-lg p-4 border shadow-sm"
       :class="checkinResult.summary.failed > 0
         ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
         : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'"
@@ -133,48 +134,119 @@
             </h3>
           </div>
           <!-- 汇总统计 -->
-          <div
-            class="mt-2 text-sm"
-            :class="checkinResult.summary.failed > 0
-              ? 'text-amber-700 dark:text-amber-300'
-              : 'text-green-700 dark:text-green-300'"
-          >
-            <p>
-              成功: {{ checkinResult.summary.success }} /
-              已签到: {{ checkinResult.summary.already_checked_in }} /
-              失败: {{ checkinResult.summary.failed }} /
-              总计: {{ checkinResult.summary.total }}
-            </p>
+          <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200">
+              <CheckCircle class="w-3.5 h-3.5" />
+              成功 {{ checkinResult.summary.success }}
+            </span>
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+              <Calendar class="w-3.5 h-3.5" />
+              已签到 {{ checkinResult.summary.already_checked_in }}
+            </span>
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200">
+              <XCircle class="w-3.5 h-3.5" />
+              失败 {{ checkinResult.summary.failed }}
+            </span>
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+              总计 {{ checkinResult.summary.total }}
+            </span>
           </div>
-          <!-- 失败账号详情 -->
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            <!-- 成功账号详情 -->
+            <div
+              v-if="successCheckinResults.length > 0"
+              class="space-y-2"
+            >
+              <p class="text-xs font-medium text-green-700 dark:text-green-300">
+                成功账号 ({{ successCheckinResults.length }}):
+              </p>
+              <div class="space-y-1.5">
+                <div
+                  v-for="item in successCheckinResults"
+                  :key="item.account_id"
+                  class="flex items-start gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800"
+                >
+                  <CheckCircle class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-sm font-medium text-green-800 dark:text-green-200">
+                        {{ item.account_name }}
+                      </span>
+                      <span class="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 rounded">
+                        {{ item.provider_name }}
+                      </span>
+                      <span
+                        v-if="item.reward"
+                        class="text-xs px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-200 rounded"
+                      >
+                        奖励 {{ item.reward }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-green-700 dark:text-green-300 mt-0.5 break-all">
+                      {{ getSuccessDetail(item) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 失败账号详情 -->
+            <div
+              v-if="failedCheckinResults.length > 0"
+              class="space-y-2"
+            >
+              <p class="text-xs font-medium text-red-600 dark:text-red-400">
+                失败账号 ({{ failedCheckinResults.length }}):
+              </p>
+              <div class="space-y-1.5">
+                <div
+                  v-for="item in failedCheckinResults"
+                  :key="item.account_id"
+                  class="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/30 rounded-md border border-red-200 dark:border-red-800"
+                >
+                  <XCircle class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-sm font-medium text-red-800 dark:text-red-200">
+                        {{ item.account_name }}
+                      </span>
+                      <span class="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300 rounded">
+                        {{ item.provider_name }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-red-600 dark:text-red-400 mt-0.5 break-all">
+                      {{ getFailedDetail(item) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 已签到账号详情 -->
           <div
-            v-if="failedCheckinResults.length > 0"
-            class="mt-3 space-y-2"
+            v-if="alreadyCheckedInResults.length > 0"
+            class="mt-4 space-y-2"
           >
-            <p class="text-xs font-medium text-red-600 dark:text-red-400">
-              失败账号:
+            <p class="text-xs font-medium text-blue-700 dark:text-blue-300">
+              已签到账号 ({{ alreadyCheckedInResults.length }}):
             </p>
             <div class="space-y-1.5">
               <div
-                v-for="item in failedCheckinResults"
+                v-for="item in alreadyCheckedInResults"
                 :key="item.account_id"
-                class="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/30 rounded-md border border-red-200 dark:border-red-800"
+                class="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800"
               >
-                <XCircle class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <Calendar class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-medium text-red-800 dark:text-red-200">
+                    <span class="text-sm font-medium text-blue-800 dark:text-blue-200">
                       {{ item.account_name }}
                     </span>
-                    <span class="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300 rounded">
+                    <span class="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded">
                       {{ item.provider_name }}
                     </span>
                   </div>
-                  <p
-                    v-if="item.message"
-                    class="text-xs text-red-600 dark:text-red-400 mt-0.5 break-all"
-                  >
-                    {{ item.message }}
+                  <p class="text-xs text-blue-700 dark:text-blue-300 mt-0.5 break-all">
+                    {{ getAlreadyCheckedInDetail(item) }}
                   </p>
                 </div>
               </div>
@@ -765,63 +837,265 @@
         </div>
         <div
           v-else
-          class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+          class="space-y-4"
         >
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700/50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  时间
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  账号
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  状态
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  奖励
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  余额
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  消息
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-              <tr
-                v-for="record in records"
-                :key="record.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
-              >
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ formatDate(record.checked_in_at) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ getAccountName(record.account_id) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    class="px-2 py-1 text-xs font-medium rounded-full"
-                    :class="getStatusClass(record.status)"
+          <details class="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/60 rounded-lg overflow-hidden">
+            <summary class="cursor-pointer select-none px-4 py-3 text-sm font-medium text-red-700 dark:text-red-200 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <XCircle class="w-4 h-4" />
+                失败历史记录 ({{ failedHistoryTotal }})
+              </div>
+              <span class="text-xs text-red-600/80 dark:text-red-300/80">
+                点击展开详情
+              </span>
+            </summary>
+            <div class="px-4 pb-4 pt-2">
+              <div class="flex flex-wrap items-center gap-2 pb-3">
+                <select
+                  v-model="failedHistoryProviderFilter"
+                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 bg-white/80 dark:bg-red-950/30 text-xs text-red-700 dark:text-red-200"
+                >
+                  <option value="all">
+                    全部提供商
+                  </option>
+                  <option
+                    v-for="provider in providers"
+                    :key="provider.id"
+                    :value="provider.id"
                   >
-                    {{ getStatusText(record.status) }}
+                    {{ provider.name }}
+                  </option>
+                </select>
+                <input
+                  v-model="failedHistoryKeyword"
+                  type="text"
+                  placeholder="账号 / ID / 消息"
+                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 bg-white/80 dark:bg-red-950/30 text-xs text-red-700 dark:text-red-200"
+                >
+                <button
+                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/30"
+                  :disabled="failedHistoryLoading"
+                  @click="applyFailedHistoryFilters"
+                >
+                  筛选
+                </button>
+                <button
+                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/30"
+                  :disabled="failedHistoryLoading"
+                  @click="resetFailedHistoryFilters"
+                >
+                  重置
+                </button>
+                <button
+                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/30"
+                  :disabled="failedHistoryLoading"
+                  @click="exportFailedHistory"
+                >
+                  导出
+                </button>
+              </div>
+              <div
+                v-if="failedHistoryLoading"
+                class="text-sm text-red-500/80 dark:text-red-300/80"
+              >
+                加载中...
+              </div>
+              <div
+                v-else-if="failedHistoryTotal === 0"
+                class="text-sm text-red-500/80 dark:text-red-300/80"
+              >
+                暂无失败记录
+              </div>
+              <div
+                v-else
+                class="space-y-2"
+              >
+                <div
+                  v-for="record in failedHistoryRecords"
+                  :key="record.id"
+                  class="p-3 rounded-md border border-red-200 dark:border-red-800 bg-white/70 dark:bg-red-950/30"
+                >
+                  <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div class="text-sm font-medium text-red-800 dark:text-red-200">
+                      {{ getAccountName(record.account_id) }}
+                    </div>
+                    <div class="text-xs text-red-600 dark:text-red-300">
+                      {{ formatDate(record.checked_in_at) }}
+                    </div>
+                  </div>
+                  <div class="mt-1 text-xs text-red-600 dark:text-red-300">
+                    提供商: {{ getRecordProviderName(record) }} · 账号ID: {{ record.account_id }}
+                  </div>
+                  <div class="mt-2 text-xs text-red-600 dark:text-red-300 break-all">
+                    原因: {{ getRecordReason(record) }}
+                  </div>
+                </div>
+                <div class="flex items-center justify-between pt-2 text-xs text-red-600 dark:text-red-300">
+                  <span>
+                    第 {{ failedHistoryPage }} / {{ failedHistoryTotalPages }} 页
                   </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
-                  {{ record.reward || '-' }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                  {{ record.message || '-' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <div class="flex items-center gap-2">
+                    <button
+                      class="px-2 py-1 rounded border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50"
+                      :disabled="failedHistoryPage === 1"
+                      @click="goToFailedHistoryPage(failedHistoryPage - 1)"
+                    >
+                      上一页
+                    </button>
+                    <button
+                      class="px-2 py-1 rounded border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50"
+                      :disabled="failedHistoryPage === failedHistoryTotalPages"
+                      @click="goToFailedHistoryPage(failedHistoryPage + 1)"
+                    >
+                      下一页
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    时间
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    账号
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    状态
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    奖励
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    余额
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    原因
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    详情
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <template
+                  v-for="record in records"
+                  :key="record.id"
+                >
+                  <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {{ formatDate(record.checked_in_at) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {{ getAccountName(record.account_id) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span
+                        class="px-2 py-1 text-xs font-medium rounded-full"
+                        :class="getStatusClass(record.status)"
+                      >
+                        {{ getStatusText(record.status) }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
+                      {{ record.reward || '-' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                      {{ getRecordReason(record) }}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      <button
+                        class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
+                        :aria-expanded="isRecordExpanded(record.id)"
+                        @click="toggleRecordExpanded(record.id)"
+                      >
+                        <ChevronUp
+                          v-if="isRecordExpanded(record.id)"
+                          class="w-4 h-4"
+                        />
+                        <ChevronDown
+                          v-else
+                          class="w-4 h-4"
+                        />
+                        详情
+                      </button>
+                    </td>
+                  </tr>
+                  <tr
+                    v-if="isRecordExpanded(record.id)"
+                    class="bg-gray-50/70 dark:bg-gray-800/60"
+                  >
+                    <td
+                      colspan="7"
+                      class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300"
+                    >
+                      <div class="grid gap-3 md:grid-cols-3">
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            提供商
+                          </div>
+                          <div class="text-sm">
+                            {{ getRecordProviderName(record) }}
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            账号ID
+                          </div>
+                          <div class="text-sm break-all">
+                            {{ record.account_id }}
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            原因
+                          </div>
+                          <div class="text-sm break-all">
+                            {{ getRecordReason(record) }}
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            原始消息
+                          </div>
+                          <div class="text-sm break-all">
+                            {{ getRecordRawMessage(record) }}
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            奖励 / 余额变化
+                          </div>
+                          <div class="text-sm">
+                            {{ record.reward || '-' }} ·
+                            {{ record.balance_change !== undefined && record.balance_change !== null ? `$${record.balance_change.toFixed(2)}` : '-' }}
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            余额前 / 后
+                          </div>
+                          <div class="text-sm">
+                            {{ record.balance_before !== undefined && record.balance_before !== null ? `$${record.balance_before.toFixed(2)}` : '-' }}
+                            →
+                            {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -1030,26 +1304,32 @@
     <!-- 账号编辑弹窗 -->
     <div
       v-if="showAccountModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
       @click.self="showAccountModal = false"
     >
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
-        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          {{ editingAccount ? '编辑账号' : '添加账号' }}
-        </h3>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
+        <!-- 标题栏 -->
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Users class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            {{ editingAccount ? '编辑账号' : '添加账号' }}
+          </h3>
+        </div>
+        
         <form
-          class="space-y-4"
+          class="p-6 space-y-5"
           @submit.prevent="saveAccount"
         >
+          <!-- 提供商选择 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              提供商 *
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <span class="text-red-500">*</span> 提供商
             </label>
             <select
               v-model="accountForm.provider_id"
               required
               :disabled="!!editingAccount"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+              class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="">
                 选择提供商
@@ -1063,95 +1343,129 @@
               </option>
             </select>
           </div>
+          
+          <!-- 账号名称 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              账号名称 *
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <span class="text-red-500">*</span> 账号名称
             </label>
             <input
               v-model="accountForm.name"
               type="text"
               required
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="例如: 主账号"
             >
           </div>
+          
+          <!-- Session 输入 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Cookies JSON {{ editingAccount ? '(留空不修改)' : '*' }}
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <span
+                v-if="!editingAccount"
+                class="text-red-500"
+              >*</span> Session
+              <span
+                v-if="editingAccount"
+                class="text-gray-400 dark:text-gray-500 font-normal"
+              >(留空不修改)</span>
             </label>
             <textarea
-              v-model="accountForm.cookies_json"
+              v-model="accountForm.session"
               :required="!editingAccount"
-              rows="4"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"
-              placeholder="{&quot;session&quot;:&quot;xxx&quot;}"
+              rows="5"
+              class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed resize-y min-h-[120px] placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-colors"
+              placeholder="直接粘贴 session 值即可"
             />
-            <div class="mt-2 flex items-center space-x-2">
-              <button
-                type="button"
-                class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded transition-colors"
-                @click="formatCookiesJson"
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <svg
+                class="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                格式化 JSON
-              </button>
-              <span
-                v-if="jsonError"
-                class="text-xs text-red-600 dark:text-red-400"
-              >
-                {{ jsonError }}
-              </span>
-            </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              直接粘贴 session 值，后台会自动处理格式
+            </p>
           </div>
+          
+          <!-- API User -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              API User (可选)
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              API User
+              <span class="text-gray-400 dark:text-gray-500 font-normal">(可选)</span>
             </label>
             <input
               v-model="accountForm.api_user"
               type="text"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono"
+              class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="12345"
             >
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              通常为 5 位数字，可在浏览器开发者工具 Network 标签的请求头中找到 "New-Api-User"
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+              通常为 5 位数字，可在 Network 标签的请求头中找到 "New-Api-User"
             </p>
           </div>
-          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-            <p class="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
-              如何获取 Cookies：
+          
+          <!-- 帮助提示 -->
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4">
+            <p class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1.5">
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
+              </svg>
+              如何获取 Session
             </p>
-            <ol class="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
-              <li>按 F12 打开浏览器开发者工具</li>
-              <li>转到 Application 标签页 → Cookies</li>
-              <li>选择目标站点，复制需要的 Cookie 值</li>
-              <li>以 JSON 格式填入上方输入框，如：{"session": "值"}</li>
+            <ol class="text-xs text-blue-700 dark:text-blue-300/90 space-y-1.5 list-decimal list-inside ml-0.5">
+              <li>按 <kbd class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800/50 rounded text-blue-800 dark:text-blue-200 font-mono">F12</kbd> 打开浏览器开发者工具</li>
+              <li>转到 <span class="font-medium">Application</span> 标签页 → <span class="font-medium">Cookies</span></li>
+              <li>选择目标站点，找到 <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-800/50 rounded font-mono">session</code> 这一行</li>
+              <li>复制 session 的值，直接粘贴到上方输入框</li>
             </ol>
           </div>
-          <div class="flex items-center">
+          
+          <!-- 启用开关 -->
+          <div class="flex items-center py-1">
             <input
               id="account-enabled"
               v-model="accountForm.enabled"
               type="checkbox"
-              class="w-4 h-4 text-blue-600 border-gray-300 rounded"
+              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
             >
             <label
               for="account-enabled"
-              class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+              class="ml-2.5 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none"
             >
               启用此账号
             </label>
           </div>
-          <div class="flex justify-end space-x-3 pt-4">
+          
+          <!-- 操作按钮 -->
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
-              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              class="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 transition-colors"
               @click="showAccountModal = false"
             >
               取消
             </button>
             <button
               type="submit"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+              class="px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
             >
               保存
             </button>
@@ -1160,10 +1474,34 @@
       </div>
     </div>
   </div>
+
+  <!-- 签到确认弹窗 -->
+  <ConfirmModal
+    :is-open="showCheckinConfirm"
+    title="确认一键签到"
+    :message="`即将对 ${enabledAccounts.length} 个启用账号执行签到操作，是否继续？`"
+    confirm-text="开始签到"
+    cancel-text="取消"
+    type="info"
+    @confirm="handleCheckinConfirm"
+    @cancel="showCheckinConfirm = false"
+    @update:is-open="showCheckinConfirm = $event"
+  />
+
+  <!-- 签到进度弹窗 -->
+  <CheckinProgressModal
+    :is-open="showProgressModal"
+    :total="checkinProgress.total"
+    :current="checkinProgress.completed"
+    :current-account-name="checkinProgress.currentAccountName"
+    :logs="checkinLogs"
+    :is-finished="isCheckinFinished"
+    @close="closeCheckinModal"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ClipboardList,
@@ -1177,7 +1515,11 @@ import {
   Calendar,
   Users,
   FileText,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-vue-next'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import CheckinProgressModal from '@/components/CheckinProgressModal.vue'
 import {
   listCheckinProviders,
   createCheckinProvider,
@@ -1187,8 +1529,8 @@ import {
   createCheckinAccount,
   updateCheckinAccount,
   deleteCheckinAccount as apiDeleteAccount,
-  executeCheckin,
   listCheckinRecords,
+  exportCheckinRecords,
   getTodayCheckinStats,
   exportCheckinConfig,
   previewCheckinImport,
@@ -1204,9 +1546,12 @@ import type {
   CheckinRecordInfo,
   TodayCheckinStats,
   CheckinResponse,
+  CheckinExecutionResult,
+  CheckinRecordsQuery,
   ExportData,
   ImportPreviewResponse,
   BuiltinProvider,
+  CheckinLogEntry,
 } from '@/types/checkin'
 
 // 状态
@@ -1214,11 +1559,17 @@ const loading = ref(false)
 const checkinLoading = ref(false)
 const balanceRefreshing = ref(false)
 const error = ref<string | null>(null)
+const checkinResultRef = ref<HTMLElement | null>(null)
 const activeTab = ref<'providers' | 'accounts' | 'records' | 'import-export'>('accounts')
 const router = useRouter()
 const openMenuAccountId = ref<string | null>(null)
 const searchQuery = ref('')
 const providerFilter = ref<string>('all')
+const showCheckinConfirm = ref(false)
+const showProgressModal = ref(false)
+const isCheckinFinished = ref(false)
+const checkinProgress = ref({ total: 0, completed: 0, currentAccountName: '' })
+const checkinLogs = ref<CheckinLogEntry[]>([])
 
 // 数据
 const providers = ref<CheckinProvider[]>([])
@@ -1227,6 +1578,14 @@ const records = ref<CheckinRecordInfo[]>([])
 const todayStats = ref<TodayCheckinStats | null>(null)
 const checkinResult = ref<CheckinResponse | null>(null)
 const builtinProviders = ref<BuiltinProvider[]>([])
+const expandedRecordIds = ref<string[]>([])
+const failedHistoryRecords = ref<CheckinRecordInfo[]>([])
+const failedHistoryTotal = ref(0)
+const failedHistoryLoading = ref(false)
+const failedHistoryPage = ref(1)
+const failedHistoryPageSize = ref(5)
+const failedHistoryProviderFilter = ref<string>('all')
+const failedHistoryKeyword = ref('')
 
 // 计算属性：过滤出尚未添加的内置提供商
 const availableBuiltinProviders = computed(() => {
@@ -1276,11 +1635,53 @@ const filteredAccounts = computed(() => {
   return result
 })
 
+// 计算属性：启用的账号列表
+const enabledAccounts = computed(() => {
+  return accounts.value.filter(a => a.enabled)
+})
+
 // 计算属性：失败的签到结果
+// 注意：后端使用 snake_case 序列化枚举，status 值为 'success' / 'already_checked_in' / 'failed'
 const failedCheckinResults = computed(() => {
   if (!checkinResult.value) return []
-  return checkinResult.value.results.filter(r => r.status === 'Failed')
+  return checkinResult.value.results.filter(r => r.status === 'failed')
 })
+
+const failedHistoryTotalPages = computed(() => {
+  const total = Math.ceil(failedHistoryTotal.value / failedHistoryPageSize.value)
+  return total > 0 ? total : 1
+})
+
+const successCheckinResults = computed(() => {
+  if (!checkinResult.value) return []
+  return checkinResult.value.results.filter(r => r.status === 'success')
+})
+
+const alreadyCheckedInResults = computed(() => {
+  if (!checkinResult.value) return []
+  return checkinResult.value.results.filter(r => r.status === 'already_checked_in')
+})
+
+const buildCheckinDetail = (item: CheckinExecutionResult, fallback: string) => {
+  const details: string[] = []
+  if (item.reward) {
+    details.push(`奖励: ${item.reward}`)
+  }
+  if (item.balance !== undefined && item.balance !== null) {
+    details.push(`余额: ${item.balance}`)
+  }
+  if (item.message) {
+    details.push(item.message)
+  }
+  return details.length > 0 ? details.join(' · ') : fallback
+}
+
+const getSuccessDetail = (item: CheckinExecutionResult) => buildCheckinDetail(item, '签到成功')
+
+const getAlreadyCheckedInDetail = (item: CheckinExecutionResult) =>
+  buildCheckinDetail(item, '今日已签到')
+
+const getFailedDetail = (item: CheckinExecutionResult) => item.message || '未知原因'
 
 // Tab 配置
 const tabs = [
@@ -1295,7 +1696,6 @@ const showProviderModal = ref(false)
 const showAccountModal = ref(false)
 const editingProvider = ref<CheckinProvider | null>(null)
 const editingAccount = ref<AccountInfo | null>(null)
-const jsonError = ref<string | null>(null)
 
 // 表单
 const providerForm = ref({
@@ -1311,7 +1711,7 @@ const providerForm = ref({
 const accountForm = ref({
   provider_id: '',
   name: '',
-  cookies_json: '',
+  session: '', // 简化：只需要输入 session 值，后台自动转换成 {"session": "xxx"}
   api_user: '',
   enabled: true,
 })
@@ -1334,7 +1734,7 @@ const loadAllData = async () => {
     const [providersRes, accountsRes, recordsRes, statsRes, builtinRes] = await Promise.all([
       listCheckinProviders(),
       listCheckinAccounts(),
-      listCheckinRecords(100),
+      listCheckinRecords({ page: 1, page_size: 100 }),
       getTodayCheckinStats(),
       listBuiltinProviders(),
     ])
@@ -1344,6 +1744,7 @@ const loadAllData = async () => {
     records.value = recordsRes.records
     todayStats.value = statsRes
     builtinProviders.value = builtinRes.providers
+    await loadFailedHistory()
   } catch (e: any) {
     error.value = e.message || '加载失败'
     console.error('Failed to load checkin data:', e)
@@ -1363,18 +1764,135 @@ const addBuiltinProvider = async (builtinId: string) => {
   }
 }
 
-// 执行全部签到
+// 确认签到弹窗回调
+const handleCheckinConfirm = () => {
+  showCheckinConfirm.value = false
+  executeCheckinAll()
+}
+
+// 关闭签到弹窗
+const closeCheckinModal = () => {
+  showProgressModal.value = false
+  setTimeout(() => {
+    isCheckinFinished.value = false
+  }, 300)
+}
+
+// 执行全部签到（逐个签到模式，实现实时进度）
 const executeCheckinAll = async () => {
+  const accountsToCheckin = enabledAccounts.value
+  if (accountsToCheckin.length === 0) return
+
   checkinLoading.value = true
   checkinResult.value = null
+  showProgressModal.value = true
+  isCheckinFinished.value = false
+
+  // 初始化进度
+  checkinProgress.value = {
+    total: accountsToCheckin.length,
+    completed: 0,
+    currentAccountName: ''
+  }
+
+  // 初始化日志
+  checkinLogs.value = accountsToCheckin.map(acc => ({
+    accountId: acc.id,
+    accountName: acc.name,
+    providerName: acc.provider_name || '未知',
+    status: 'pending' as const,
+    timestamp: new Date()
+  }))
+
+  // 收集结果用于最终汇总
+  const results: CheckinExecutionResult[] = []
+  let successCount = 0
+  let alreadyCheckedInCount = 0
+  let failedCount = 0
 
   try {
-    const result = await executeCheckin()
-    checkinResult.value = result
+    for (let i = 0; i < accountsToCheckin.length; i++) {
+      const account = accountsToCheckin[i]
+
+      // 更新当前进度
+      checkinProgress.value.currentAccountName = account.name
+
+      // 更新日志状态为处理中
+      const logIndex = checkinLogs.value.findIndex(l => l.accountId === account.id)
+      if (logIndex >= 0) {
+        checkinLogs.value[logIndex].status = 'processing'
+        checkinLogs.value[logIndex].timestamp = new Date()
+      }
+
+      try {
+        const result = await checkinAccount(account.id)
+        results.push(result)
+
+        // 更新日志
+        // 注意：后端使用 #[serde(rename_all = "snake_case")] 序列化枚举
+        // 因此 status 值为 'success' / 'already_checked_in' / 'failed'（小写 snake_case）
+        if (logIndex >= 0) {
+          if (result.status === 'success') {
+            checkinLogs.value[logIndex].status = 'success'
+            checkinLogs.value[logIndex].message = result.reward ? `签到成功，获得 ${result.reward}` : '签到成功'
+            successCount++
+          } else if (result.status === 'already_checked_in') {
+            checkinLogs.value[logIndex].status = 'already_checked_in'
+            checkinLogs.value[logIndex].message = '今日已签到'
+            alreadyCheckedInCount++
+          } else {
+            checkinLogs.value[logIndex].status = 'failed'
+            checkinLogs.value[logIndex].message = result.message || '签到失败'
+            failedCount++
+          }
+          checkinLogs.value[logIndex].balance = result.balance
+          checkinLogs.value[logIndex].reward = result.reward
+        }
+      } catch (e: any) {
+        // 单个账号签到失败
+        if (logIndex >= 0) {
+          checkinLogs.value[logIndex].status = 'failed'
+          checkinLogs.value[logIndex].message = e.message || '请求失败'
+        }
+        failedCount++
+        results.push({
+          account_id: account.id,
+          account_name: account.name,
+          provider_name: account.provider_name || '未知',
+          status: 'failed',
+          message: e.message || '请求失败'
+        })
+      }
+
+      // 更新完成进度
+      checkinProgress.value.completed = i + 1
+    }
+
+    // 构建签到结果
+    checkinResult.value = {
+      results,
+      summary: {
+        total: accountsToCheckin.length,
+        success: successCount,
+        already_checked_in: alreadyCheckedInCount,
+        failed: failedCount
+      }
+    }
+
+    // 标记签到完成
+    isCheckinFinished.value = true
+
     await loadAllData()
     // 签到完成后自动刷新余额
     await refreshAllBalances()
+
+    // 如果有失败的签到，自动滚动到结果区域确保用户能看到详情
+    if (failedCount > 0) {
+      await nextTick()
+      checkinResultRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
   } catch (e: any) {
+    showProgressModal.value = false
     alert('签到失败: ' + (e.message || '未知错误'))
     console.error('Checkin failed:', e)
   } finally {
@@ -1484,12 +2002,37 @@ const deleteProvider = async (id: string) => {
 }
 
 // 账号操作
-// Cookies JSON 默认模板
-const DEFAULT_COOKIES_TEMPLATE = '{"session":"xxx"}'
+// 从 cookies JSON 中提取 session 值
+const extractSessionFromJson = (json: string): string => {
+  try {
+    const parsed = JSON.parse(json)
+    return parsed.session || ''
+  } catch {
+    return ''
+  }
+}
+
+// 将 session 值转换为 cookies JSON 格式
+const sessionToCookiesJson = (session: string): string => {
+  const trimmed = session.trim()
+  if (!trimmed) return ''
+  
+  // 如果用户输入的已经是 JSON 格式，直接返回
+  if (trimmed.startsWith('{')) {
+    try {
+      JSON.parse(trimmed)
+      return trimmed
+    } catch {
+      // 不是有效 JSON，当作 session 值处理
+    }
+  }
+  
+  // 否则包装成 {"session": "xxx"} 格式
+  return JSON.stringify({ session: trimmed })
+}
 
 const openAccountModal = async (account?: AccountInfo) => {
   editingAccount.value = account || null
-  jsonError.value = null
   
   if (account) {
     // 编辑已有账号：从后端获取解密后的 cookies
@@ -1499,27 +2042,27 @@ const openAccountModal = async (account?: AccountInfo) => {
       accountForm.value = {
         provider_id: account.provider_id,
         name: account.name,
-        cookies_json: cookiesData.cookies_json, // 使用真实的 cookies
+        session: extractSessionFromJson(cookiesData.cookies_json), // 提取 session 值
         api_user: cookiesData.api_user || '',
         enabled: account.enabled,
       }
     } catch (e: any) {
       console.error('Failed to get cookies:', e)
-      // 如果获取失败，使用默认模板
+      // 如果获取失败，留空
       accountForm.value = {
         provider_id: account.provider_id,
         name: account.name,
-        cookies_json: DEFAULT_COOKIES_TEMPLATE,
+        session: '',
         api_user: account.api_user || '',
         enabled: account.enabled,
       }
     }
   } else {
-    // 添加新账号：使用默认模板
+    // 添加新账号：留空
     accountForm.value = {
       provider_id: providers.value[0]?.id || '',
       name: '',
-      cookies_json: DEFAULT_COOKIES_TEMPLATE,
+      session: '',
       api_user: '',
       enabled: true,
     }
@@ -1529,23 +2072,30 @@ const openAccountModal = async (account?: AccountInfo) => {
 
 const saveAccount = async () => {
   try {
+    // 将 session 值转换为 cookies_json 格式
+    const cookiesJson = sessionToCookiesJson(accountForm.value.session)
+    
     if (editingAccount.value) {
       const updateData: { name?: string; cookies_json?: string; api_user?: string; enabled?: boolean } = {
         name: accountForm.value.name,
         enabled: accountForm.value.enabled,
       }
-      if (accountForm.value.cookies_json) {
-        updateData.cookies_json = accountForm.value.cookies_json
+      if (cookiesJson) {
+        updateData.cookies_json = cookiesJson
       }
       if (accountForm.value.api_user) {
         updateData.api_user = accountForm.value.api_user
       }
       await updateCheckinAccount(editingAccount.value.id, updateData)
     } else {
+      if (!cookiesJson) {
+        alert('请输入 Session 值')
+        return
+      }
       await createCheckinAccount({
         provider_id: accountForm.value.provider_id,
         name: accountForm.value.name,
-        cookies_json: accountForm.value.cookies_json,
+        cookies_json: cookiesJson,
         api_user: accountForm.value.api_user || '',
       })
     }
@@ -1563,30 +2113,6 @@ const deleteAccount = async (id: string) => {
     await loadAllData()
   } catch (e: any) {
     alert('删除失败: ' + (e.message || '未知错误'))
-  }
-}
-
-// 格式化 Cookies JSON
-const formatCookiesJson = () => {
-  jsonError.value = null
-  const input = accountForm.value.cookies_json.trim()
-  
-  if (!input) {
-    jsonError.value = '请输入 JSON 内容'
-    return
-  }
-
-  try {
-    const parsed = JSON.parse(input)
-    // 验证是否为对象
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      jsonError.value = 'JSON 必须是对象格式，如 {"key": "value"}'
-      return
-    }
-    // 格式化并重新赋值
-    accountForm.value.cookies_json = JSON.stringify(parsed, null, 2)
-  } catch (e: any) {
-    jsonError.value = '无效的 JSON 格式: ' + (e.message || '未知错误')
   }
 }
 
@@ -1658,11 +2184,11 @@ const formatDate = (dateStr: string) => {
 
 const getStatusClass = (status: string) => {
   switch (status) {
-    case 'Success':
+    case 'success':
       return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-    case 'AlreadyCheckedIn':
+    case 'already_checked_in':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-    case 'Failed':
+    case 'failed':
       return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
@@ -1671,16 +2197,123 @@ const getStatusClass = (status: string) => {
 
 const getStatusText = (status: string) => {
   switch (status) {
-    case 'Success':
+    case 'success':
       return '成功'
-    case 'AlreadyCheckedIn':
+    case 'already_checked_in':
       return '已签到'
-    case 'Failed':
+    case 'failed':
       return '失败'
     default:
       return status
   }
 }
+
+const getRecordProviderName = (record: CheckinRecordInfo) => {
+  if (record.provider_name) return record.provider_name
+  const account = accounts.value.find(a => a.id === record.account_id)
+  return account?.provider_id ? getProviderName(account.provider_id) : '-'
+}
+
+const getRecordReason = (record: CheckinRecordInfo) => {
+  if (record.message) return record.message
+  switch (record.status) {
+    case 'success':
+      return record.reward ? `签到成功 · 奖励 ${record.reward}` : '签到成功'
+    case 'already_checked_in':
+      return '今日已签到'
+    case 'failed':
+      return '未知原因'
+    default:
+      return '-'
+  }
+}
+
+const getRecordRawMessage = (record: CheckinRecordInfo) => record.message || '-'
+
+const isRecordExpanded = (recordId: string) => {
+  return expandedRecordIds.value.includes(recordId)
+}
+
+const toggleRecordExpanded = (recordId: string) => {
+  expandedRecordIds.value = expandedRecordIds.value.includes(recordId)
+    ? expandedRecordIds.value.filter(id => id !== recordId)
+    : [...expandedRecordIds.value, recordId]
+}
+
+const loadFailedHistory = async () => {
+  failedHistoryLoading.value = true
+  try {
+    const params: CheckinRecordsQuery = {
+      status: 'failed',
+      page: failedHistoryPage.value,
+      page_size: failedHistoryPageSize.value,
+    }
+    if (failedHistoryProviderFilter.value !== 'all') {
+      params.provider_id = failedHistoryProviderFilter.value
+    }
+    if (failedHistoryKeyword.value.trim()) {
+      params.keyword = failedHistoryKeyword.value.trim()
+    }
+    const response = await listCheckinRecords(params)
+    failedHistoryRecords.value = response.records
+    failedHistoryTotal.value = response.total
+  } catch (e: any) {
+    console.error('Failed to load failed history:', e)
+  } finally {
+    failedHistoryLoading.value = false
+  }
+}
+
+const applyFailedHistoryFilters = async () => {
+  failedHistoryPage.value = 1
+  await loadFailedHistory()
+}
+
+const resetFailedHistoryFilters = async () => {
+  failedHistoryProviderFilter.value = 'all'
+  failedHistoryKeyword.value = ''
+  failedHistoryPage.value = 1
+  await loadFailedHistory()
+}
+
+const goToFailedHistoryPage = async (page: number) => {
+  const nextPage = Math.min(Math.max(page, 1), failedHistoryTotalPages.value)
+  if (nextPage === failedHistoryPage.value) return
+  failedHistoryPage.value = nextPage
+  await loadFailedHistory()
+}
+
+const exportFailedHistory = async () => {
+  try {
+    const params: CheckinRecordsQuery = { status: 'failed' }
+    if (failedHistoryProviderFilter.value !== 'all') {
+      params.provider_id = failedHistoryProviderFilter.value
+    }
+    if (failedHistoryKeyword.value.trim()) {
+      params.keyword = failedHistoryKeyword.value.trim()
+    }
+    const { blob, filename } = await exportCheckinRecords(params)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  } catch (e: any) {
+    alert('导出失败: ' + (e.message || '未知错误'))
+  }
+}
+
+watch(
+  () => failedHistoryTotal.value,
+  () => {
+    if (failedHistoryPage.value > failedHistoryTotalPages.value) {
+      failedHistoryPage.value = failedHistoryTotalPages.value
+    }
+  }
+)
 
 // 点击页面其他地方关闭菜单
 const closeMenuOnClickOutside = (e: MouseEvent) => {

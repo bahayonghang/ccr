@@ -48,7 +48,7 @@ features:
 
 ## Installation
 
-Current version: **3.18.2** (Rust 2024). Requirements: Rust 1.85+; optional Node.js 18+ + Bun 1.0+ for CCR UI development, `just` for scripts.
+Current version: **3.20.11** (Rust 2024). Requirements: Rust 1.88+; optional Node.js 18+ + Bun 1.0+ for CCR UI development, `just` for scripts.
 
 ### Quick Install
 
@@ -90,7 +90,7 @@ ccr sync all status
 # Interfaces
 ccr ui -p 3000 --backend-port 38081
 ccr tui
-ccr web --port 8080 --no-browser
+ccr web --host 0.0.0.0 --port 19527 --no-browser
 
 # Cost controls & reporting
 ccr pricing list --verbose

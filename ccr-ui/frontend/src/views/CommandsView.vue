@@ -347,6 +347,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { 
   Zap, Sparkles, Gem, Workflow, 
   Play, Copy, Trash2, Terminal, 
@@ -361,6 +362,7 @@ import 'highlight.js/styles/atom-one-dark.css'
 
 import { listCommands, executeCommand, listConfigs } from '@/api/client'
 import type { CommandInfo, CommandResponse, ConfigItem } from '@/types'
+import { normalizeCliClient, type CliClient } from '@/types/router'
 import Navbar from '@/components/Navbar.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 
@@ -370,9 +372,9 @@ hljs.registerLanguage('json', json)
 hljs.registerLanguage('markdown', markdown)
 hljs.registerLanguage('plaintext', plaintext)
 
-type CliClient = 'ccr' | 'claude' | 'qwen' | 'gemini' | 'iflow'
-
 const { t } = useI18n({ useScope: 'global' })
+const route = useRoute()
+const router = useRouter()
 
 const CLI_CLIENTS = [
   { id: 'ccr' as CliClient, name: 'CCR', icon: Zap, color: 'rgba(139, 92, 246, 0.2)' },
@@ -465,15 +467,34 @@ const loadCommands = async () => {
 }
 
 onMounted(() => {
+  const initialClient = normalizeCliClient(route.params.client)
+  if (initialClient) {
+    selectedClient.value = initialClient
+  }
   loadCommands()
   loadConfigs()
 })
+
+watch(
+  () => route.params.client,
+  (clientParam) => {
+    const client = normalizeCliClient(clientParam)
+    if (client && client !== selectedClient.value) {
+      selectedClient.value = client
+    }
+  }
+)
 
 watch(selectedClient, () => {
   selectedCommand.value = ''
   args.value = ''
   output.value = null
   loadCommands()
+
+  const current = normalizeCliClient(route.params.client) || 'ccr'
+  if (current !== selectedClient.value) {
+    router.replace({ name: 'commands', params: { client: selectedClient.value } })
+  }
 })
 
 const setSelectedClient = (client: CliClient) => {
@@ -554,15 +575,18 @@ const handleClearOutput = () => {
   width: 6px;
   height: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / 10%);
   border-radius: 3px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgb(255 255 255 / 20%);
 }
 
 /* Override highlight.js background to match our theme */

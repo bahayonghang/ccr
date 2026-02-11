@@ -475,7 +475,7 @@ onMounted(() => {
   background: var(--glass-bg);
   backdrop-filter: blur(10px);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px 0 rgb(0 0 0 / 10%);
 }
 
 input,

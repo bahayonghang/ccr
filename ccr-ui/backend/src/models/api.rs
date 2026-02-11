@@ -58,7 +58,11 @@ impl<T> ApiResponse<T> {
 
         let (status, message) = match &err {
             ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
+            ApiError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
+            ApiError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg.clone()),
             ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.clone()),
+            ApiError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
+            ApiError::UnprocessableEntity(msg) => (StatusCode::UNPROCESSABLE_ENTITY, msg.clone()),
             ApiError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
             ApiError::ServiceUnavailable(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg.clone()),
         };
@@ -383,7 +387,9 @@ pub struct McpServerRequest {
     pub disabled: Option<bool>,
 }
 
+/// MCP 服务器响应（旧版，保留兼容）
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct McpServersResponse {
     pub success: bool,
     pub data: serde_json::Value,
@@ -683,6 +689,25 @@ pub struct PlatformProfileResponse {
     pub platform_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub current_profile: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformModuleCapabilities {
+    pub config: bool,
+    pub mcp: bool,
+    pub profiles: bool,
+    pub auth: bool,
+    pub usage: bool,
+    pub agents: bool,
+    pub slash_commands: bool,
+    pub skills: bool,
+    pub plugins: bool,
+    pub commands: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformCapabilitiesResponse {
+    pub platforms: std::collections::BTreeMap<String, PlatformModuleCapabilities>,
 }
 
 /// Set platform profile request for POST /api/platforms/:name/profile

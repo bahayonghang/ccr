@@ -5,7 +5,7 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
-use crate::managers::config::ConfigManager;
+use crate::services::ConfigService;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -24,10 +24,11 @@ pub async fn export_command(output: Option<String>, include_secrets: bool) -> Re
     ColorOutput::title("导出配置");
     println!();
 
+    let config_service = ConfigService::with_default()?;
+
     // 加载当前配置
     ColorOutput::step("步骤 1/3: 读取配置");
-    let config_manager = ConfigManager::with_default()?;
-    let config = config_manager.load()?;
+    let config = config_service.load_config()?;
     ColorOutput::success(&format!("已加载配置,共 {} 个配置节", config.sections.len()));
     println!();
 
@@ -39,7 +40,7 @@ pub async fn export_command(output: Option<String>, include_secrets: bool) -> Re
 
     // 导出配置
     ColorOutput::step("步骤 3/3: 写入文件");
-    export_to_file(&config_manager, &output_path, include_secrets)?;
+    export_to_file(&config_service, &output_path, include_secrets)?;
 
     println!();
     ColorOutput::separator();
@@ -74,54 +75,23 @@ fn determine_output_path(output: Option<String>) -> Result<PathBuf> {
 
 /// 导出到文件
 fn export_to_file(
-    config_manager: &ConfigManager,
+    config_service: &ConfigService,
     output_path: &Path,
     include_secrets: bool,
 ) -> Result<()> {
-    let mut config = config_manager.load()?;
-
-    if !include_secrets {
-        for section in config.sections.values_mut() {
-            if let Some(ref token) = section.auth_token {
-                section.auth_token = Some(mask_token(token));
-            }
-        }
-    }
-
-    let content = toml::to_string_pretty(&config)
-        .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
+    let content = config_service.export_config(include_secrets)?;
 
     fs::write(output_path, content)
-        .map_err(|e| CcrError::ConfigError(format!("写入文件失败: {}", e)))?;
+        .map_err(|e| CcrError::FileIoError(format!("写入文件失败: {}", e)))?;
 
     ColorOutput::success(&format!("已导出到: {}", output_path.display()));
     Ok(())
-}
-
-/// 掩码处理 token
-fn mask_token(token: &str) -> String {
-    if token.len() <= 10 {
-        "*".repeat(token.len())
-    } else {
-        let prefix = &token[..4];
-        let suffix = &token[token.len() - 4..];
-        format!("{}...{} (已移除)", prefix, suffix)
-    }
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_mask_token() {
-        assert_eq!(
-            mask_token("sk-ant-1234567890abcdef"),
-            "sk-a...cdef (已移除)"
-        );
-        assert_eq!(mask_token("short"), "*****");
-    }
 
     #[test]
     fn test_determine_output_path() {

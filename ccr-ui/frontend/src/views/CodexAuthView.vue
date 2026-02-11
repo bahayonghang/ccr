@@ -136,7 +136,7 @@
                 {{ $t('codex.auth.currentSession') }}
               </h3>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div class="flex flex-col gap-1">
                 <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
                   {{ $t('codex.auth.fields.accountId') }}
@@ -175,6 +175,32 @@
                   {{ currentInfo.last_refresh || $t('codex.auth.status.notAvailable') }}
                 </span>
               </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                  {{ $t('codex.auth.fields.expiresAt') }}
+                </span>
+                <div class="flex items-center gap-2">
+                  <span
+                    v-if="currentInfo.is_expired"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-500/10 text-red-500 border border-red-500/20"
+                  >
+                    <AlertTriangle class="w-3 h-3" />
+                    {{ $t('codex.auth.expired') }}
+                  </span>
+                  <span
+                    v-else-if="currentInfo.expires_at"
+                    class="text-text-secondary text-sm"
+                  >
+                    {{ formatExpiryDate(currentInfo.expires_at) }}
+                  </span>
+                  <span
+                    v-else
+                    class="text-text-muted text-sm"
+                  >
+                    {{ $t('codex.auth.noExpiry') }}
+                  </span>
+                </div>
+              </div>
             </div>
           </GuofengCard>
 
@@ -195,11 +221,14 @@
                 :key="account.name"
                 class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 border flex items-center gap-2.5"
                 :class="[
-                  account.is_current
-                    ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                    : 'bg-bg-surface border-border-default text-text-secondary hover:border-platform-codex/30 hover:bg-bg-overlay'
+                  account.is_expired
+                    ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60'
+                    : account.is_current
+                      ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                      : 'bg-bg-surface border-border-default text-text-secondary hover:border-platform-codex/30 hover:bg-bg-overlay'
                 ]"
-                @click="handleSwitch(account.name)"
+                :disabled="account.is_expired"
+                @click="!account.is_expired && handleSwitch(account.name)"
               >
                 <span>{{ account.freshness_icon }}</span>
                 <span>{{ account.name }}</span>
@@ -208,6 +237,12 @@
                   class="text-xs text-text-muted"
                 >
                   ({{ $t('codex.auth.virtual') }})
+                </span>
+                <span
+                  v-if="account.is_expired"
+                  class="text-xs"
+                >
+                  ({{ $t('codex.auth.expired') }})
                 </span>
                 <div
                   v-if="account.is_current"
@@ -337,6 +372,19 @@
                       :placeholder="$t('codex.auth.placeholders.description')"
                     >
                   </div>
+                  <div class="space-y-1.5">
+                    <label class="text-sm font-semibold text-text-secondary">
+                      {{ $t('codex.auth.fields.expiresAt') }}
+                    </label>
+                    <input
+                      v-model="saveForm.expires_at"
+                      type="datetime-local"
+                      class="input"
+                    >
+                    <p class="text-xs text-text-muted mt-1">
+                      {{ $t('codex.auth.expiresAtHint') }}
+                    </p>
+                  </div>
                   <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface border border-border-subtle">
                     <input
                       id="forceOverwrite"
@@ -405,7 +453,7 @@ import {
   X
 } from 'lucide-vue-next'
 
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import AccountListTable from '@/components/usage/AccountListTable.vue'
@@ -439,6 +487,7 @@ const processWarning = ref<string | null>(null)
 const saveForm = reactive({
   name: '',
   description: '',
+  expires_at: '',
   force: false,
 })
 
@@ -494,6 +543,15 @@ const freshnessClass = (freshness: TokenFreshness) => {
   }
 }
 
+const formatExpiryDate = (dateStr: string) => {
+  try {
+    const date = new Date(dateStr)
+    return date.toLocaleString()
+  } catch {
+    return dateStr
+  }
+}
+
 // Data loading
 const loadAccounts = async () => {
   try {
@@ -543,6 +601,7 @@ const handleSave = async () => {
   // Reset form
   saveForm.name = ''
   saveForm.description = ''
+  saveForm.expires_at = ''
   saveForm.force = false
   showSaveForm.value = true
 }
@@ -560,9 +619,17 @@ const handleConfirmSave = async () => {
 
   try {
     saving.value = true
+    // Convert local datetime to ISO 8601 UTC format if provided
+    let expiresAt: string | undefined
+    if (saveForm.expires_at) {
+      const localDate = new Date(saveForm.expires_at)
+      expiresAt = localDate.toISOString()
+    }
+
     await saveCodexAuth({
       name: saveForm.name.trim(),
       description: saveForm.description.trim() || undefined,
+      expires_at: expiresAt,
       force: saveForm.force,
     })
     handleCloseSaveForm()

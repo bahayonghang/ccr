@@ -1,16 +1,20 @@
 /* ===================================
-   图表配色 - 赛博玉/水墨风格
+   图表配色 - 猫娘粉紫色系 (Neko Kawaii)
    =================================== */
 :root {
-  /* 0: 翡翠 (Jade) */
+  /* 0: 猫娘粉 (Neko Pink) */
   --chart-color-0: var(--accent-primary);
-  /* 1: 靛青 (Indigo) */
+
+  /* 1: 薰衣草紫 (Lavender) */
   --chart-color-1: var(--accent-secondary);
-  /* 2: 琥珀 (Amber) */
+
+  /* 2: 琥珀金 (Amber) */
   --chart-color-2: var(--accent-warning);
-  /* 3: 天青 (Sky Blue) */
+
+  /* 3: 紫罗兰 (Violet) */
   --chart-color-3: var(--accent-tertiary);
-  /* 4: 丹砂 (Cinnabar/Red) */
+
+  /* 4: 玫瑰红 (Rose) */
   --chart-color-4: var(--accent-danger);
 }
 

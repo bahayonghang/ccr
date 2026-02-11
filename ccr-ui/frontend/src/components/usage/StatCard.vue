@@ -219,29 +219,29 @@ const trendClasses = computed(() => {
 <style scoped>
 .stat-card {
   box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -1px rgb(0 0 0 / 6%),
+    inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .stat-card:hover {
   box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    0 20px 25px -5px rgb(0 0 0 / 10%),
+    0 10px 10px -5px rgb(0 0 0 / 4%),
+    inset 0 1px 0 rgb(255 255 255 / 15%);
 }
 
 :deep(.dark) .stat-card {
   box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.3),
-    0 2px 4px -1px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 4px 6px -1px rgb(0 0 0 / 30%),
+    0 2px 4px -1px rgb(0 0 0 / 20%),
+    inset 0 1px 0 rgb(255 255 255 / 5%);
 }
 
 :deep(.dark) .stat-card:hover {
   box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.4),
-    0 10px 10px -5px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 20px 25px -5px rgb(0 0 0 / 40%),
+    0 10px 10px -5px rgb(0 0 0 / 20%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 </style>

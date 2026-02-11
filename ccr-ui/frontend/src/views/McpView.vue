@@ -1,8 +1,14 @@
 <template>
   <div class="min-h-screen p-6 transition-colors duration-300">
+    <!-- Enhanced Animated Background -->
+    <AnimatedBackground
+      variant="spotlight"
+      spotlight-color="secondary"
+    />
+
     <div class="max-w-[1800px] mx-auto">
       <Navbar />
-      
+
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
@@ -21,26 +27,26 @@
           <!-- Header -->
           <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-xl shadow-sm">
             <div class="flex items-center gap-4">
-              <div class="p-3 rounded-xl bg-guofeng-indigo/10 text-guofeng-indigo">
-                <Server class="w-6 h-6" />
+              <div class="p-3 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 border border-violet-500/30">
+                <Server class="w-6 h-6 text-violet-400" />
               </div>
               <div>
                 <div class="flex items-center gap-3">
-                  <h1 class="text-2xl font-bold text-guofeng-text-primary">
+                  <h1 class="text-2xl font-bold text-gradient-purple">
                     {{ $t('mcp.title') }}
                   </h1>
-                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-guofeng-indigo/10 text-guofeng-indigo border border-guofeng-indigo/20">
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-500/15 text-violet-400 border border-violet-500/30">
                     {{ $t('mcp.badge') }}
                   </span>
                 </div>
-                <p class="text-sm mt-1 text-guofeng-text-secondary">
+                <p class="text-sm mt-1 text-text-secondary">
                   {{ $t('mcp.subtitle') }}
                 </p>
               </div>
             </div>
             
             <button
-              class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all hover:scale-105 bg-guofeng-indigo shadow-lg shadow-guofeng-indigo/20 hover:shadow-guofeng-indigo/30"
+              class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all hover:scale-105 bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40"
               @click="handleAdd"
             >
               <Plus class="w-5 h-5" />
@@ -59,7 +65,7 @@
             v-if="loading"
             class="flex justify-center py-20"
           >
-            <div class="w-10 h-10 rounded-full border-4 border-guofeng-indigo/30 border-t-guofeng-indigo animate-spin" />
+            <div class="w-10 h-10 rounded-full border-4 border-violet-500/30 border-t-violet-500 animate-spin" />
           </div>
 
           <div
@@ -70,10 +76,10 @@
               v-if="!servers || servers.length === 0"
               class="text-center py-16 glass-effect rounded-3xl border border-white/20 border-dashed"
             >
-              <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Server class="w-10 h-10 opacity-30 text-guofeng-text-muted" />
+              <div class="bg-bg-surface w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Server class="w-10 h-10 opacity-30 text-text-muted" />
               </div>
-              <p class="text-lg font-bold text-guofeng-text-primary">
+              <p class="text-lg font-bold text-text-primary">
                 {{ $t('mcp.noServers') }}
               </p>
             </div>
@@ -81,32 +87,32 @@
             <div
               v-for="server in servers"
               :key="server.name"
-              class="group glass-effect rounded-2xl p-5 border border-white/20 transition-all duration-300 hover:shadow-md hover:border-guofeng-indigo/30"
+              class="group glass-effect rounded-2xl p-5 border border-white/20 transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/10 hover:border-violet-500/30"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-3">
-                    <h3 class="text-lg font-bold font-mono text-guofeng-text-primary group-hover:text-guofeng-indigo transition-colors">
+                    <h3 class="text-lg font-bold font-mono text-text-primary group-hover:text-violet-400 transition-colors">
                       {{ server.name }}
                     </h3>
                     <span
                       v-if="server.disabled"
-                      class="px-2 py-0.5 rounded text-xs font-semibold uppercase bg-guofeng-red/10 text-guofeng-red border border-guofeng-red/20"
+                      class="px-2 py-0.5 rounded text-xs font-semibold uppercase bg-danger/15 text-danger border border-danger/30"
                     >
                       {{ $t('mcp.disabled') }}
                     </span>
                   </div>
-                  
+
                   <div class="space-y-2 text-sm">
                     <div class="flex items-center gap-2">
-                      <span class="text-guofeng-text-muted w-20">{{ $t('mcp.command') }}:</span>
-                      <code class="px-2 py-1 rounded font-mono bg-guofeng-bg-tertiary text-guofeng-indigo border border-guofeng-border/50">
+                      <span class="text-text-muted w-20">{{ $t('mcp.command') }}:</span>
+                      <code class="px-2 py-1 rounded font-mono bg-bg-surface text-violet-400 border border-border-subtle">
                         {{ server.command }}
                       </code>
                     </div>
                     <div class="flex items-start gap-2">
-                      <span class="text-guofeng-text-muted w-20 mt-1">{{ $t('mcp.args') }}:</span>
-                      <code class="px-2 py-1 rounded font-mono bg-guofeng-bg-tertiary text-guofeng-text-primary border border-guofeng-border/50 break-all">
+                      <span class="text-text-muted w-20 mt-1">{{ $t('mcp.args') }}:</span>
+                      <code class="px-2 py-1 rounded font-mono bg-bg-surface text-text-primary border border-border-subtle break-all">
                         {{ server.args.join(' ') }}
                       </code>
                     </div>
@@ -114,24 +120,24 @@
                       v-if="server.env && Object.keys(server.env).length > 0"
                       class="flex items-start gap-2"
                     >
-                      <span class="text-guofeng-text-muted w-20 mt-1">{{ $t('mcp.envVars') }}:</span>
+                      <span class="text-text-muted w-20 mt-1">{{ $t('mcp.envVars') }}:</span>
                       <div class="space-y-1">
                         <div
                           v-for="[key, value] in Object.entries(server.env)"
                           :key="key"
-                          class="text-xs font-mono px-2 py-1 rounded bg-guofeng-bg-tertiary border border-guofeng-border/50"
+                          class="text-xs font-mono px-2 py-1 rounded bg-bg-surface border border-border-subtle"
                         >
-                          <span class="text-guofeng-indigo">{{ key }}</span>=<span class="text-guofeng-text-primary">{{ value }}</span>
+                          <span class="text-violet-400">{{ key }}</span>=<span class="text-text-primary">{{ value }}</span>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <button
                     class="p-2 rounded-lg transition-all hover:scale-110 border border-transparent"
-                    :class="server.disabled ? 'text-guofeng-text-muted hover:text-guofeng-green hover:bg-guofeng-green/10' : 'text-guofeng-green hover:text-guofeng-text-muted hover:bg-guofeng-bg-tertiary'"
+                    :class="server.disabled ? 'text-text-muted hover:text-success hover:bg-success/10' : 'text-success hover:text-text-muted hover:bg-bg-surface'"
                     :title="server.disabled ? $t('mcp.enable') : $t('mcp.disable')"
                     @click="handleToggle(server.name)"
                   >
@@ -145,14 +151,14 @@
                     />
                   </button>
                   <button
-                    class="p-2 rounded-lg transition-all hover:scale-110 text-guofeng-text-secondary hover:text-guofeng-indigo hover:bg-guofeng-indigo/10"
+                    class="p-2 rounded-lg transition-all hover:scale-110 text-text-secondary hover:text-violet-400 hover:bg-violet-500/10"
                     :title="$t('mcp.edit')"
                     @click="handleEdit(server)"
                   >
                     <Edit2 class="w-4 h-4" />
                   </button>
                   <button
-                    class="p-2 rounded-lg transition-all hover:scale-110 text-guofeng-text-secondary hover:text-guofeng-red hover:bg-guofeng-red/10"
+                    class="p-2 rounded-lg transition-all hover:scale-110 text-text-secondary hover:text-danger hover:bg-danger/10"
                     :title="$t('mcp.delete')"
                     @click="handleDelete(server.name)"
                   >
@@ -166,89 +172,89 @@
           <!-- Add/Edit Form Modal -->
           <div
             v-if="showAddForm"
-            class="fixed inset-0 bg-guofeng-ink/20 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-all"
+            class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-all"
             @click="showAddForm = false"
           >
             <div
               class="glass-effect rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-white/30 relative"
               @click.stop
             >
-              <button 
-                class="absolute top-4 right-4 p-2 rounded-full hover:bg-guofeng-bg-tertiary text-guofeng-text-muted transition-colors"
+              <button
+                class="absolute top-4 right-4 p-2 rounded-full hover:bg-bg-surface text-text-muted transition-colors"
                 @click="showAddForm = false"
               >
                 <X class="w-5 h-5" />
               </button>
 
-              <h2 class="text-2xl font-bold mb-6 text-guofeng-text-primary flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-guofeng-indigo/10 flex items-center justify-center text-guofeng-indigo">
+              <h2 class="text-2xl font-bold mb-6 text-text-primary flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 flex items-center justify-center text-violet-400 border border-violet-500/30">
                   <component
                     :is="editingServer ? Edit2 : Plus"
                     class="w-5 h-5"
                   />
                 </div>
-                {{ editingServer ? $t('mcp.editServer') : $t('mcp.addServer') }}
+                <span class="text-gradient-purple">{{ editingServer ? $t('mcp.editServer') : $t('mcp.addServer') }}</span>
               </h2>
 
               <div class="space-y-5">
                 <div>
-                  <label class="block text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider mb-2">
-                    {{ $t('mcp.serverName') }} <span class="text-guofeng-red">*</span>
+                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                    {{ $t('mcp.serverName') }} <span class="text-danger">*</span>
                   </label>
                   <input
                     v-model="formData.name"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-all"
+                    class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-text-primary"
                     :placeholder="$t('mcp.namePlaceholder')"
                   >
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider mb-2">
-                    {{ $t('mcp.command') }} <span class="text-guofeng-red">*</span>
+                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                    {{ $t('mcp.command') }} <span class="text-danger">*</span>
                   </label>
                   <input
                     v-model="formData.command"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-all"
+                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-text-primary"
                     :placeholder="$t('mcp.commandPlaceholder')"
                   >
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider mb-2">
-                    {{ $t('mcp.args') }} <span class="text-guofeng-red">*</span>
+                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                    {{ $t('mcp.args') }} <span class="text-danger">*</span>
                   </label>
                   <input
                     v-model="argInput"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-all"
+                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-text-primary"
                     :placeholder="$t('mcp.argsPlaceholder')"
                   >
-                  <div class="text-xs mt-1.5 text-guofeng-text-muted">
+                  <div class="text-xs mt-1.5 text-text-muted">
                     {{ $t('mcp.argsHint') }}
                   </div>
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider mb-2">
+                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
                     {{ $t('mcp.envVars') }}
                   </label>
                   <div class="flex gap-2 mb-3">
                     <input
                       v-model="envKey"
                       type="text"
-                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-all"
+                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-text-primary"
                       :placeholder="$t('mcp.envKey')"
                     >
                     <input
                       v-model="envValue"
                       type="text"
-                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-all"
+                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-text-primary"
                       :placeholder="$t('mcp.envValue')"
                     >
                     <button
-                      class="px-4 py-2 rounded-xl font-bold text-sm text-white bg-guofeng-indigo hover:bg-guofeng-indigo/90 transition-colors shadow-lg shadow-guofeng-indigo/20"
+                      class="px-4 py-2 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-violet-500 to-purple-600 hover:opacity-90 transition-opacity shadow-lg shadow-violet-500/20"
                       @click="addEnvVar"
                     >
                       {{ $t('mcp.addEnv') }}
@@ -258,13 +264,13 @@
                     <div
                       v-for="[key, value] in Object.entries(formData.env || {})"
                       :key="key"
-                      class="flex items-center justify-between px-4 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border/50"
+                      class="flex items-center justify-between px-4 py-2 rounded-lg bg-bg-surface border border-border-subtle"
                     >
-                      <code class="text-sm font-mono text-guofeng-text-primary">
-                        {{ key }}={{ value }}
+                      <code class="text-sm font-mono text-text-primary">
+                        <span class="text-violet-400">{{ key }}</span>=<span>{{ value }}</span>
                       </code>
                       <button
-                        class="text-guofeng-text-muted hover:text-guofeng-red transition-colors"
+                        class="text-text-muted hover:text-danger transition-colors"
                         @click="removeEnvVar(key)"
                       >
                         <X class="w-4 h-4" />
@@ -273,31 +279,31 @@
                   </div>
                 </div>
 
-                <div class="flex items-center gap-3 p-4 rounded-xl bg-guofeng-bg-tertiary/50 border border-guofeng-border/50">
+                <div class="flex items-center gap-3 p-4 rounded-xl bg-bg-surface/50 border border-border-subtle">
                   <input
                     id="disabled"
                     v-model="formData.disabled"
                     type="checkbox"
-                    class="w-5 h-5 rounded text-guofeng-indigo focus:ring-guofeng-indigo/20 border-guofeng-border"
+                    class="w-5 h-5 rounded text-violet-500 focus:ring-violet-500/20 border-border-default"
                   >
                   <label
                     for="disabled"
-                    class="text-sm font-medium text-guofeng-text-secondary cursor-pointer"
+                    class="text-sm font-medium text-text-secondary cursor-pointer"
                   >
                     {{ $t('mcp.disableServer') }}
                   </label>
                 </div>
               </div>
 
-              <div class="flex gap-4 mt-8 pt-6 border-t border-guofeng-border/50">
+              <div class="flex gap-4 mt-8 pt-6 border-t border-border-subtle">
                 <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border"
+                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-bg-surface text-text-secondary hover:bg-bg-overlay border border-border-default"
                   @click="showAddForm = false"
                 >
                   {{ $t('mcp.cancel') }}
                 </button>
                 <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-guofeng-indigo text-white shadow-lg shadow-guofeng-indigo/20 hover:shadow-xl hover:shadow-guofeng-indigo/30 hover:-translate-y-0.5"
+                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/35 hover:-translate-y-0.5"
                   @click="handleSubmit"
                 >
                   {{ editingServer ? $t('mcp.update') : $t('mcp.add') }}
@@ -347,11 +353,12 @@ import {
 } from '@/api/client'
 import type { McpServer, McpServerRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import McpPresetsPanel from '@/components/McpPresetsPanel.vue'
 import McpSyncPanel from '@/components/McpSyncPanel.vue'
+import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 
 const { t } = useI18n({ useScope: 'global' })
 

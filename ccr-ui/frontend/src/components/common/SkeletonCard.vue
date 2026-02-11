@@ -9,12 +9,12 @@
     <!-- 头部：标题和状态 -->
     <div class="flex items-center justify-between">
       <Skeleton
-        variant="text"
+        shape="text"
         width="40%"
         class="h-6"
       />
       <Skeleton
-        variant="rectangular"
+        shape="rectangle"
         width="60px"
         height="24px"
         class="rounded-full"
@@ -24,15 +24,15 @@
     <!-- 内容区域 -->
     <div class="space-y-3">
       <Skeleton
-        variant="text"
+        shape="text"
         width="100%"
       />
       <Skeleton
-        variant="text"
+        shape="text"
         width="80%"
       />
       <Skeleton
-        variant="text"
+        shape="text"
         width="60%"
       />
     </div>
@@ -40,13 +40,13 @@
     <!-- 底部：操作按钮 -->
     <div class="flex items-center gap-3 pt-2">
       <Skeleton
-        variant="rectangular"
+        shape="rectangle"
         width="80px"
         height="32px"
         class="rounded-lg"
       />
       <Skeleton
-        variant="rectangular"
+        shape="rectangle"
         width="80px"
         height="32px"
         class="rounded-lg"

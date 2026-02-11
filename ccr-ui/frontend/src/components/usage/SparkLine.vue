@@ -226,7 +226,7 @@ onMounted(() => {
 }
 
 .sparkline-dot {
-  filter: drop-shadow(0 0 4px currentColor);
+  filter: drop-shadow(0 0 4px currentcolor);
 }
 
 .sparkline-dot-glow {
@@ -235,13 +235,14 @@ onMounted(() => {
 
 .trend-indicator {
   font-size: 10px;
-  text-shadow: 0 0 8px currentColor;
+  text-shadow: 0 0 8px currentcolor;
 }
 
 @keyframes area-fade-in {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -252,6 +253,7 @@ onMounted(() => {
     opacity: 0.3;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.1;
     transform: scale(1.5);

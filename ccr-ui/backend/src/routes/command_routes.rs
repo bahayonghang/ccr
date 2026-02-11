@@ -1,13 +1,14 @@
 // Command execution routes
 // 命令执行相关路由
 
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{get, post},
 };
 
 /// Command execution routes
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route(
             "/command/execute",

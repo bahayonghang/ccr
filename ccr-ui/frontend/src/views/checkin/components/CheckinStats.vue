@@ -137,7 +137,7 @@ onMounted(() => {
 .stat-icon {
   width: 48px;
   height: 48px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgb(255 255 255 / 20%);
   border-radius: 0.75rem;
   display: flex;
   align-items: center;
@@ -161,7 +161,7 @@ onMounted(() => {
   margin-top: 1rem;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
-  background: rgba(var(--color-danger-rgb), 0.2);
+  background: rgb(var(--color-danger-rgb), 0.2);
   color: var(--accent-danger);
   text-align: center;
   font-size: 0.875rem;

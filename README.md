@@ -26,6 +26,11 @@ Unified management for specific AI CLI tools including **Claude Code**, **Codex*
 cargo install --git https://github.com/bahayonghang/ccr ccr
 ```
 
+### Install from dev branch (Recommended for latest features)
+```bash
+cargo install --git https://github.com/bahayonghang/ccr --branch dev ccr
+```
+
 ### From Source
 ```bash
 git clone https://github.com/bahayonghang/ccr.git
@@ -34,7 +39,7 @@ cargo install --path .
 ```
 
 ### Build Requirements
-- **Rust**: 1.85+ (Edition 2024)
+- **Rust**: 1.88+ (Edition 2024)
 - **Node.js**: 18+ (For UI development)
 
 ## 🚀 Quick Start
@@ -108,6 +113,103 @@ ccr ui
 # Specify custom port
 ccr ui -p 3000
 ```
+
+## 🔐 Codex Multi-Account Management
+
+CCR provides powerful multi-account management for Codex CLI, allowing you to easily switch between different GitHub accounts.
+
+### Basic Commands
+
+```bash
+# Save current login as a named account
+ccr codex auth save work
+
+# Save with description
+ccr codex auth save personal -d "Personal GitHub account"
+
+# Save with expiry time
+ccr codex auth save temp --expires-at 2026-02-01T00:00:00Z
+
+# Force overwrite existing account
+ccr codex auth save work --force
+
+# List all saved accounts
+ccr codex auth list
+
+# Switch to a specific account
+ccr codex auth switch work
+
+# Show current account info
+ccr codex auth current
+
+# Delete an account
+ccr codex auth delete old-account
+
+# Delete without confirmation
+ccr codex auth delete old-account --force
+```
+
+### Export & Import
+
+```bash
+# Export all accounts to Downloads folder
+ccr codex auth export
+
+# Export without sensitive data (tokens)
+ccr codex auth export --no-secrets
+
+# Import accounts from file (interactive)
+ccr codex auth import
+
+# Import in replace mode (overwrite existing accounts)
+ccr codex auth import --replace
+
+# Import with force (overwrite in merge mode)
+ccr codex auth import --force
+```
+
+**Import Modes:**
+- **Merge (default)**: Skip existing accounts, only add new ones
+- **Merge + --force**: Overwrite existing accounts with imported data
+- **Replace**: Always overwrite accounts with the same name
+
+### Interactive TUI
+
+Launch the Codex account management interface:
+```bash
+ccr codex
+```
+
+**Features:**
+- Visual account list with token freshness indicators
+- 🟢 Fresh (<1 day) | 🟡 Stale (1-7 days) | 🔴 Old (>7 days)
+- Process detection warnings before switching
+- Email masking for privacy (e.g., `use***@example.com`)
+
+## 🔄 Auto Update
+
+CCR supports automatic updates from GitHub to the latest version.
+
+```bash
+# Update from main branch (stable)
+ccr update
+
+# Update from dev branch (latest features)
+ccr update dev
+
+# Check for updates only, without installing
+ccr update --check
+
+# Check for dev branch updates
+ccr update dev --check
+```
+
+| Command | Description |
+|---------|-------------|
+| `ccr update` | Update to the latest stable version from `main` branch |
+| `ccr update dev` | Update from `dev` branch to get the latest features |
+| `ccr update --check` | Preview the update command without executing |
+
 
 ## 🛠️ Development
 

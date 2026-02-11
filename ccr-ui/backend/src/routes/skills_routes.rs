@@ -1,10 +1,11 @@
 // Skills management routes
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, post, put},
 };
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/skills", get(crate::api::handlers::skills::list_skills))
         .route("/skills", post(crate::api::handlers::skills::add_skill))

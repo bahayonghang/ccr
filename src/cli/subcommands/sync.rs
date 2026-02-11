@@ -2,7 +2,13 @@
 
 /// ☁️ 同步操作子命令
 #[derive(clap::Subcommand)]
+#[command(disable_help_subcommand = true)]
 pub enum SyncAction {
+    /// 显示 Sync 命令帮助
+    ///
+    /// 示例: ccr sync help
+    Help,
+
     /// 管理同步文件夹注册
     ///
     /// 管理可同步的文件夹列表
@@ -73,7 +79,13 @@ pub enum SyncAction {
 
 /// 📁 文件夹管理操作
 #[derive(clap::Subcommand)]
+#[command(disable_help_subcommand = true)]
 pub enum FolderAction {
+    /// 显示 Folder 命令帮助
+    ///
+    /// 示例: ccr sync folder help
+    Help,
+
     /// 列出所有注册的同步文件夹
     ///
     /// 显示文件夹名称、状态、路径等信息
@@ -139,7 +151,13 @@ pub enum FolderAction {
 
 /// 🔄 批量同步操作
 #[derive(clap::Subcommand)]
+#[command(disable_help_subcommand = true)]
 pub enum AllSyncAction {
+    /// 显示批量同步命令帮助
+    ///
+    /// 示例: ccr sync all help
+    Help,
+
     /// 上传所有启用的文件夹
     ///
     /// 示例: ccr sync all push

@@ -1,8 +1,10 @@
-// TUI UI 渲染模块
-// 负责渲染双Tab配置选择器界面
+// TUI UI rendering module
+// Renders dynamic multi-platform profile switcher interface
 
-use super::app::{App, TabState};
+use super::app::App;
+use super::codex_auth;
 use super::theme;
+use super::toast::ToastKind;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -13,85 +15,115 @@ use ratatui::{
 };
 
 // ═══════════════════════════════════════════════════════════
-// 🎨 主渲染入口
+// Main render entry
 // ═══════════════════════════════════════════════════════════
 
-/// 渲染主 UI
+/// Render the main UI (responsive to terminal size)
 pub fn draw(f: &mut Frame, app: &App) {
-    // 统一背景色
     let background = Block::default().style(theme::background_style());
     f.render_widget(background, f.area());
 
+    let area = f.area();
+    let (constraints, compact) = responsive_constraints(area.height);
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // Header with tabs
-            Constraint::Min(0),    // Profile list
-            Constraint::Length(5), // Footer: shortcuts + status
-        ])
-        .split(f.area());
+        .constraints(constraints)
+        .split(area);
 
     render_header(f, app, chunks[0]);
-    render_profile_list(f, app, chunks[1]);
-    render_footer(f, app, chunks[2]);
+
+    if app.is_codex_tab() {
+        // Codex tab: delegate content + footer to codex_auth embedded renderer
+        if let Some(ref codex_app) = app.codex_auth_app {
+            codex_auth::ui::draw_embedded(f, codex_app, chunks[1], chunks[2], compact);
+        }
+    } else {
+        // Claude tab: profile list + footer
+        render_profile_list(f, app, chunks[1]);
+        if compact {
+            render_toast(f, app, chunks[2]);
+        } else {
+            render_footer(f, app, chunks[2]);
+        }
+    }
+}
+
+/// Calculate responsive layout constraints based on terminal height
+fn responsive_constraints(height: u16) -> (Vec<Constraint>, bool) {
+    let compact = height < 20;
+    let constraints = if compact {
+        vec![
+            Constraint::Length(3), // Header with tabs
+            Constraint::Min(0),    // Profile list / Codex content
+            Constraint::Length(2), // Toast only (compact)
+        ]
+    } else {
+        vec![
+            Constraint::Length(3), // Header with tabs
+            Constraint::Min(0),    // Profile list / Codex content
+            Constraint::Length(5), // Footer: shortcuts + toast
+        ]
+    };
+    (constraints, compact)
+}
+
+/// Calculate column widths for profile list (responsive to terminal width)
+/// Returns (name_width, desc_width) — desc_width is 0 when terminal is narrow
+fn column_widths(area_width: u16) -> (usize, usize) {
+    let inner = area_width.saturating_sub(4) as usize;
+    let gap = 2usize;
+    let available = inner.saturating_sub(gap);
+
+    // Narrow terminal: name only, no description
+    if area_width < 60 {
+        return (available, 0);
+    }
+
+    let min_name = 12usize;
+    let min_desc = 10usize;
+    let mut name_width = available * 3 / 10;
+    if name_width < min_name {
+        name_width = min_name;
+    }
+    let max_name = available.saturating_sub(min_desc);
+    if max_name == 0 {
+        name_width = available;
+    } else if name_width > max_name {
+        name_width = max_name;
+    }
+    let desc_width = available.saturating_sub(name_width);
+    (name_width, desc_width)
 }
 
 // ═══════════════════════════════════════════════════════════
-// 🏷️ 标题栏和 Tab 渲染
+// Header and Tab rendering
 // ═══════════════════════════════════════════════════════════
 
-/// 渲染标题栏和Tab
+/// Render header with dynamic platform tabs
 fn render_header(f: &mut Frame, app: &App, area: Rect) {
-    let current_tab = app.current_tab;
+    // Build tab titles dynamically from loaded platforms
+    let tab_titles: Vec<Line> = app
+        .tabs
+        .iter()
+        .enumerate()
+        .map(|(i, tab)| {
+            let is_active = i == app.active_tab;
+            let indicator = if is_active { "▸ " } else { "  " };
+            let style = if is_active {
+                theme::platform_style_for(tab.platform)
+            } else {
+                theme::tab_normal_style()
+            };
+            Line::from(vec![
+                Span::styled(indicator, style),
+                Span::raw(format!("{} ", tab.platform.icon())),
+                Span::styled(tab.platform.display_name(), style),
+            ])
+        })
+        .collect();
 
-    // 构建 Tab 标题，带平台图标和状态指示
-    let claude_style = if current_tab == TabState::Claude {
-        theme::claude_style()
-    } else {
-        theme::tab_normal_style()
-    };
-
-    let codex_style = if current_tab == TabState::Codex {
-        theme::codex_style()
-    } else {
-        theme::tab_normal_style()
-    };
-
-    // Tab 选中指示器
-    let claude_indicator = if current_tab == TabState::Claude {
-        "▸ "
-    } else {
-        "  "
-    };
-    let codex_indicator = if current_tab == TabState::Codex {
-        "▸ "
-    } else {
-        "  "
-    };
-
-    let tab_titles: Vec<Line> = vec![
-        Line::from(vec![
-            Span::styled(claude_indicator, claude_style),
-            Span::raw("🤖 "),
-            Span::styled("Claude Code", claude_style),
-        ]),
-        Line::from(vec![
-            Span::styled(codex_indicator, codex_style),
-            Span::raw("💻 "),
-            Span::styled("Codex CLI", codex_style),
-        ]),
-    ];
-
-    let index = match current_tab {
-        TabState::Claude => 0,
-        TabState::Codex => 1,
-    };
-
-    // 根据当前 Tab 设置边框颜色
-    let border_color = match current_tab {
-        TabState::Claude => theme::CLAUDE_PRIMARY,
-        TabState::Codex => theme::CODEX_PRIMARY,
-    };
+    let border_color = theme::platform_color_for(app.current_platform());
 
     let tabs = Tabs::new(tab_titles)
         .block(
@@ -103,7 +135,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
                 .title_alignment(Alignment::Center)
                 .title_style(theme::title_style()),
         )
-        .select(index)
+        .select(app.active_tab)
         .style(theme::tab_normal_style())
         .highlight_style(theme::tab_highlight_style())
         .divider(Span::styled("  │  ", Style::default().fg(theme::BORDER)));
@@ -112,23 +144,45 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 📋 配置列表渲染
+// Profile list rendering
 // ═══════════════════════════════════════════════════════════
 
-/// 渲染配置列表
+/// Render profile list with platform-aware accent color
 fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
     let profiles = app.current_page_profiles();
     let all_profiles = app.current_profiles();
-    let platform_name = app.current_tab.title();
-    let current_tab = app.current_tab;
+    let platform = app.current_platform();
+    let platform_name = platform.display_name();
+    let accent = theme::platform_color_for(platform);
 
-    // 根据当前 Tab 设置边框颜色
-    let border_color = match current_tab {
-        TabState::Claude => theme::CLAUDE_PRIMARY,
-        TabState::Codex => theme::CODEX_PRIMARY,
-    };
+    fn truncate_text(text: &str, width: usize) -> String {
+        if width == 0 {
+            return String::new();
+        }
+        let len = text.chars().count();
+        if len <= width {
+            return text.to_string();
+        }
+        if width == 1 {
+            return "…".to_string();
+        }
+        let mut out: String = text.chars().take(width - 1).collect();
+        out.push('…');
+        out
+    }
 
-    // 标题显示配置数量和分页信息
+    fn pad_text(text: &str, width: usize) -> String {
+        let len = text.chars().count();
+        if len >= width {
+            return text.to_string();
+        }
+        let mut out = String::with_capacity(width);
+        out.push_str(text);
+        out.extend(std::iter::repeat_n(' ', width - len));
+        out
+    }
+
+    // Title with profile count and pagination
     let total_pages = app.total_pages();
     let title = if all_profiles.is_empty() {
         format!(" {} Profiles ", platform_name)
@@ -147,10 +201,10 @@ fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_set(symbols::border::ROUNDED)
-        .border_style(Style::default().fg(border_color))
+        .border_style(Style::default().fg(accent))
         .title(title)
         .title_alignment(Alignment::Left)
-        .title_style(theme::platform_style(platform_name))
+        .title_style(theme::platform_style_for(platform))
         .padding(Padding::horizontal(1));
 
     if profiles.is_empty() {
@@ -158,55 +212,58 @@ fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
         return;
     }
 
-    // 构建列表项
+    let (name_width, desc_width) = column_widths(area.width);
+
+    // Platform-aware selection highlight
+    let selected_style = Style::default()
+        .fg(theme::BG_PRIMARY)
+        .bg(accent)
+        .add_modifier(Modifier::BOLD);
+
     let items: Vec<ListItem> = profiles
         .iter()
         .enumerate()
         .map(|(i, profile)| {
             let is_selected = i == app.selected_index;
 
-            // 构建选中指示器 (箭头)
             let selector = if is_selected { "▶ " } else { "  " };
-
-            // 当前激活标记 (实心/空心圆)
             let current_marker = if profile.is_current { "●" } else { "○" };
 
-            // 配置名称
             let name = &profile.name;
-
-            // 描述信息 (截断过长的描述)
-            let desc = profile
-                .description
-                .as_ref()
-                .map(|d| {
-                    let truncated = if d.len() > 40 {
-                        format!("{}...", &d[..37])
-                    } else {
-                        d.clone()
-                    };
-                    format!("  ─  {}", truncated)
-                })
-                .unwrap_or_default();
-
-            // 当前标签
+            let desc = profile.description.as_deref().unwrap_or("");
             let current_tag = if profile.is_current { " ✓" } else { "" };
 
-            // 组合内容
-            let content = format!(
-                "{}{} {}{}{}",
-                selector, current_marker, name, desc, current_tag
-            );
+            let name_raw = format!("{}{} {}{}", selector, current_marker, name, current_tag);
+            let name_cell = pad_text(&truncate_text(&name_raw, name_width), name_width);
 
-            // 计算样式
-            let style = if is_selected {
-                theme::list_selected_style()
+            let name_style = if is_selected {
+                selected_style
             } else if profile.is_current {
                 theme::list_current_style()
             } else {
                 theme::list_normal_style()
             };
 
-            ListItem::new(Line::from(Span::styled(content, style)))
+            // Responsive: hide description column when narrow
+            let line_spans = if desc_width > 0 {
+                let desc_cell = pad_text(&truncate_text(desc, desc_width), desc_width);
+                let desc_style = if is_selected {
+                    selected_style
+                } else if profile.is_current {
+                    theme::list_current_style()
+                } else {
+                    Style::default().fg(theme::FG_MUTED)
+                };
+                vec![
+                    Span::styled(name_cell, name_style),
+                    Span::raw("  "),
+                    Span::styled(desc_cell, desc_style),
+                ]
+            } else {
+                vec![Span::styled(name_cell, name_style)]
+            };
+
+            ListItem::new(Line::from(line_spans))
         })
         .collect();
 
@@ -214,10 +271,10 @@ fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(list, area);
 }
 
-/// 渲染空状态
+/// Render empty state for current platform
 fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
-    let platform_name = app.current_tab.title();
-    let platform = app.current_tab.platform();
+    let platform = app.current_platform();
+    let platform_name = platform.display_name();
     let short_name = platform.short_name();
 
     let empty_text = vec![
@@ -246,28 +303,24 @@ fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 📝 底部状态栏渲染
+// Footer rendering
 // ═══════════════════════════════════════════════════════════
 
-/// 渲染底部快捷键和状态
+/// Render footer with keyboard shortcuts and toast notification
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Length(2)])
         .split(area);
 
-    // 快捷键提示
     render_shortcuts(f, app, chunks[0]);
-
-    // 状态消息 (显示在最下面)
-    render_status_message(f, app, chunks[1]);
+    render_toast(f, app, chunks[1]);
 }
 
-/// 渲染快捷键提示
+/// Render keyboard shortcuts bar (Claude tab only)
 fn render_shortcuts(f: &mut Frame, app: &App, area: Rect) {
     let sep = Span::styled(" │ ", Style::default().fg(theme::BORDER));
 
-    // 根据是否有多页显示不同的翻页提示
     let page_hint = if app.total_pages() > 1 {
         vec![
             Span::styled("←→", theme::shortcut_key_style()),
@@ -294,6 +347,9 @@ fn render_shortcuts(f: &mut Frame, app: &App, area: Rect) {
         sep.clone(),
         Span::styled("Enter", theme::shortcut_key_style()),
         Span::styled(" Apply", theme::shortcut_desc_style()),
+        sep.clone(),
+        Span::styled("r", theme::shortcut_key_style()),
+        Span::styled(" Reload", theme::shortcut_desc_style()),
         sep,
         Span::styled("q", theme::shortcut_key_style()),
         Span::styled(" Quit", theme::shortcut_desc_style()),
@@ -320,17 +376,20 @@ fn render_shortcuts(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(shortcuts_paragraph, area);
 }
 
-/// 渲染状态消息 (显示在最底部)
-fn render_status_message(f: &mut Frame, app: &App, area: Rect) {
-    if let Some((message, is_error)) = &app.status_message {
-        let style = if *is_error {
-            theme::error_style()
-        } else {
-            theme::success_style()
+/// Render toast notification (replaces old status_message)
+fn render_toast(f: &mut Frame, app: &App, area: Rect) {
+    if let Some(toast) = app.toasts.active() {
+        let style = match toast.kind {
+            ToastKind::Success => theme::success_style(),
+            ToastKind::Error => theme::error_style(),
+            ToastKind::Warning => Style::default()
+                .fg(theme::FG_WARNING)
+                .add_modifier(Modifier::BOLD),
+            ToastKind::Info => Style::default().fg(theme::FG_SECONDARY),
         };
 
-        let status =
-            Paragraph::new(Span::styled(message.as_str(), style)).alignment(Alignment::Center);
+        let status = Paragraph::new(Span::styled(toast.message.as_str(), style))
+            .alignment(Alignment::Center);
 
         f.render_widget(status, area);
     }

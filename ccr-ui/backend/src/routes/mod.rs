@@ -12,6 +12,7 @@ pub mod converter_routes;
 pub mod droid_routes;
 pub mod gemini_routes;
 pub mod hooks_routes;
+pub mod iflow_routes;
 pub mod marketplace_routes;
 pub mod mcp_routes;
 pub mod output_styles_routes;
@@ -22,6 +23,7 @@ pub mod prompts_routes;
 pub mod provider_health_routes;
 pub mod qwen_routes;
 pub mod sessions_routes;
+pub mod skill_hub_routes;
 pub mod skills_routes;
 pub mod slash_commands_routes;
 pub mod stats_routes;
@@ -33,6 +35,8 @@ pub mod usage_routes;
 pub mod version_routes;
 
 use axum::Router;
+
+use crate::state::AppState;
 
 /// 应用中间件
 pub fn apply_middleware(app: Router) -> Router {
@@ -70,28 +74,30 @@ pub fn apply_middleware(app: Router) -> Router {
     app.layer(middleware)
 }
 
-/// 组装所有路由
-pub fn create_app() -> Router {
-    // 创建 WebSocket 状态
-    let ws_state = std::sync::Arc::new(crate::services::websocket::WsState::new());
-
+/// 组装所有路由（使用 AppState）
+pub fn create_app(app_state: AppState) -> Router {
     // 基础路由
     Router::new()
-        // WebSocket 路由
+        // WebSocket 路由（使用 AppState 中的 ws）
         .route(
             "/ws",
             axum::routing::get(crate::services::websocket::ws_handler),
         )
-        .with_state(ws_state)
+        .with_state(app_state.ws.clone())
         // 健康检查
         .route("/health", axum::routing::get(health_check))
         // API 路由分组
         .nest("/api", create_api_routes())
+        // 注入 AppState 到所有路由（供未来 Handler 使用）
+        .with_state(app_state)
 }
 
 /// API 路由
-fn create_api_routes() -> Router {
-    let app = Router::new()
+///
+/// 所有子路由返回 `Router<AppState>`，Handler 可通过 `State<AppState>` 提取共享资源。
+/// 未使用 State 提取器的 Handler 仍然兼容，无需修改。
+fn create_api_routes() -> Router<AppState> {
+    Router::new()
         // 配置管理
         .merge(config_routes::routes())
         // 命令执行
@@ -124,6 +130,8 @@ fn create_api_routes() -> Router {
         .merge(stats_routes::routes())
         // 技能管理
         .merge(skills_routes::routes())
+        // Skill Hub
+        .merge(skill_hub_routes::routes())
         // 提示词管理
         .merge(prompts_routes::routes())
         // Output Styles 管理
@@ -142,6 +150,8 @@ fn create_api_routes() -> Router {
         .merge(gemini_routes::routes())
         // Qwen 平台
         .merge(qwen_routes::routes())
+        // iFlow 平台
+        .merge(iflow_routes::routes())
         // Droid 平台
         .merge(droid_routes::routes())
         // 配置转换
@@ -155,9 +165,7 @@ fn create_api_routes() -> Router {
         // 签到管理
         .merge(checkin_routes::routes())
         // 资源市场
-        .merge(marketplace_routes::routes());
-
-    apply_middleware(app)
+        .merge(marketplace_routes::routes())
 }
 
 /// 健康检查端点

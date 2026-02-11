@@ -190,7 +190,7 @@ ccr sessions prune [OPTIONS]
 Session index is stored in SQLite database:
 
 ```
-~/.ccr/data.db
+~/.ccr/sessions.db
 ```
 
 The database is automatically created and initial indexing is performed on first run of `ccr sessions` command.

@@ -29,7 +29,7 @@
             class="flex items-center"
             :style="{ gap: 'var(--space-sm)' }"
           >
-            <Zap
+            <Cat
               class="w-7 h-7"
               :style="{ color: 'var(--accent-primary)' }"
             />
@@ -55,7 +55,7 @@
               marginTop: 'var(--space-xs)'
             }"
           >
-            Web Console
+            Neko Console
           </div>
         </div>
 
@@ -219,7 +219,7 @@
 
 <script setup lang="ts">
 import {
-  Zap,
+  Cat,
   RefreshCw,
   Upload,
   Download,

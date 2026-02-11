@@ -5,7 +5,7 @@
 #![allow(clippy::unused_async)]
 
 use crate::commands::common::{prompt_optional, prompt_required, prompt_tags};
-use crate::core::error::Result;
+use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::config::{ConfigSection, ProviderType};
 use crate::services::ConfigService;
@@ -28,8 +28,74 @@ pub async fn add_command() -> Result<()> {
     ColorOutput::info("标记 * 的为必填项，其他为可选项");
     println!();
 
-    // 1. 配置名称（必需）
-    let name = prompt_required("配置名称", "例如: my_provider")?;
+    // 1~10. 交互式收集输入（放入阻塞线程，避免阻塞 async 运行时）
+    let (
+        name,
+        description,
+        base_url,
+        auth_token,
+        model,
+        small_fast_model,
+        provider,
+        provider_type,
+        account,
+        tags,
+    ) = tokio::task::spawn_blocking(|| -> Result<_> {
+        // 1. 配置名称（必需）
+        let name = prompt_required("配置名称", "例如: my_provider")?;
+
+        println!();
+        ColorOutput::separator();
+        println!();
+
+        // 2. 描述（可选）
+        let description = prompt_optional("描述", "例如: 我的API提供商");
+
+        // 3. Base URL（必需）
+        let base_url = prompt_required("Base URL", "例如: https://api.example.com")?;
+
+        // 4. Auth Token（必需）
+        let auth_token = prompt_required("Auth Token", "例如: sk-ant-xxxxx")?;
+
+        // 5. 模型（可选）
+        let model = prompt_optional("主模型", "例如: claude-3-5-sonnet-20241022");
+
+        // 6. 快速小模型（可选）
+        let small_fast_model = prompt_optional("快速小模型", "例如: claude-3-5-haiku-20241022");
+
+        println!();
+        ColorOutput::separator();
+        println!();
+        ColorOutput::info("以下为分类字段（可选）");
+        println!();
+
+        // 7. 提供商（可选）
+        let provider = prompt_optional("提供商名称", "例如: anyrouter, glm, moonshot");
+
+        // 8. 提供商类型（可选）
+        let provider_type = prompt_provider_type();
+
+        // 9. 账号（可选）
+        let account = prompt_optional("账号标识", "例如: github_5953");
+
+        // 10. 标签（可选）
+        let tags = prompt_tags();
+
+        Ok((
+            name,
+            description,
+            base_url,
+            auth_token,
+            model,
+            small_fast_model,
+            provider,
+            provider_type,
+            account,
+            tags,
+        ))
+    })
+    .await
+    .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {}", e)))??;
 
     // 检查配置是否已存在
     let service = ConfigService::with_default()?;
@@ -38,43 +104,6 @@ pub async fn add_command() -> Result<()> {
         ColorOutput::info("提示: 使用 'ccr list' 查看已有配置");
         return Ok(());
     }
-
-    println!();
-    ColorOutput::separator();
-    println!();
-
-    // 2. 描述（可选）
-    let description = prompt_optional("描述", "例如: 我的API提供商");
-
-    // 3. Base URL（必需）
-    let base_url = prompt_required("Base URL", "例如: https://api.example.com")?;
-
-    // 4. Auth Token（必需）
-    let auth_token = prompt_required("Auth Token", "例如: sk-ant-xxxxx")?;
-
-    // 5. 模型（可选）
-    let model = prompt_optional("主模型", "例如: claude-3-5-sonnet-20241022");
-
-    // 6. 快速小模型（可选）
-    let small_fast_model = prompt_optional("快速小模型", "例如: claude-3-5-haiku-20241022");
-
-    println!();
-    ColorOutput::separator();
-    println!();
-    ColorOutput::info("以下为分类字段（可选）");
-    println!();
-
-    // 7. 提供商（可选）
-    let provider = prompt_optional("提供商名称", "例如: anyrouter, glm, moonshot");
-
-    // 8. 提供商类型（可选）
-    let provider_type = prompt_provider_type();
-
-    // 9. 账号（可选）
-    let account = prompt_optional("账号标识", "例如: github_5953");
-
-    // 10. 标签（可选）
-    let tags = prompt_tags();
 
     println!();
     ColorOutput::separator();
@@ -140,7 +169,13 @@ pub async fn add_command() -> Result<()> {
     println!();
 
     // 确认添加
-    if !ColorOutput::ask_confirmation("确认添加此配置?", true) {
+    let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
+        Ok(ColorOutput::ask_confirmation("确认添加此配置?", true))
+    })
+    .await
+    .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+    if !confirmed {
         println!();
         ColorOutput::info("已取消添加");
         return Ok(());

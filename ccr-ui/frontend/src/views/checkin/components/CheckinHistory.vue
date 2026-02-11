@@ -75,7 +75,7 @@ const fetchRecords = async () => {
   error.value = null
 
   try {
-    const response = await listCheckinRecords(20)
+    const response = await listCheckinRecords({ page: 1, page_size: 20 })
     records.value = response.records
   } catch (err) {
     error.value = t('checkin.history.load_error')
@@ -86,11 +86,11 @@ const fetchRecords = async () => {
 
 const statusText = (status: string) => {
   switch (status) {
-    case 'Success':
+    case 'success':
       return t('checkin.status.success')
-    case 'AlreadyCheckedIn':
+    case 'already_checked_in':
       return t('checkin.status.already_checked_in')
-    case 'Failed':
+    case 'failed':
       return t('checkin.status.failed')
     default:
       return status
@@ -99,11 +99,11 @@ const statusText = (status: string) => {
 
 const statusClass = (status: string) => {
   switch (status) {
-    case 'Success':
+    case 'success':
       return 'status success'
-    case 'AlreadyCheckedIn':
+    case 'already_checked_in':
       return 'status warning'
-    case 'Failed':
+    case 'failed':
       return 'status danger'
     default:
       return 'status'
@@ -138,7 +138,7 @@ onMounted(() => {
 .refresh-button {
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
-  border: 1px solid rgba(var(--color-gray-rgb), 0.35);
+  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
   background: var(--bg-primary);
   color: var(--text-primary);
   cursor: pointer;
@@ -176,17 +176,17 @@ onMounted(() => {
 }
 
 .status.success {
-  background: rgba(var(--color-success-rgb), 0.15);
+  background: rgb(var(--color-success-rgb), 0.15);
   color: var(--accent-success);
 }
 
 .status.warning {
-  background: rgba(var(--color-warning-rgb), 0.15);
+  background: rgb(var(--color-warning-rgb), 0.15);
   color: var(--accent-warning);
 }
 
 .status.danger {
-  background: rgba(var(--color-danger-rgb), 0.15);
+  background: rgb(var(--color-danger-rgb), 0.15);
   color: var(--accent-danger);
 }
 
@@ -203,16 +203,16 @@ onMounted(() => {
 }
 
 :global(.dark) .refresh-button {
-  background: rgba(var(--color-slate-dark-rgb), 0.8);
-  border-color: rgba(var(--color-slate-rgb), 0.6);
+  background: rgb(var(--color-slate-dark-rgb), 0.8);
+  border-color: rgb(var(--color-slate-rgb), 0.6);
 }
 
 :global(.dark) .refresh-button:hover {
-  background: rgba(var(--color-slate-rgb), 0.6);
+  background: rgb(var(--color-slate-rgb), 0.6);
 }
 
 :global(.dark) .history-table th,
 :global(.dark) .history-table td {
-  border-color: rgba(var(--color-slate-rgb), 0.4);
+  border-color: rgb(var(--color-slate-rgb), 0.4);
 }
 </style>

@@ -1,11 +1,24 @@
 import { ref } from 'vue'
 import { api } from '@/api/client'
 
+export interface SkillMetadata {
+    author?: string
+    version?: string
+    license?: string
+    category?: string
+    tags?: string[]
+    updated_at?: string
+}
+
 export interface Skill {
     name: string
     description?: string
     path: string
     instruction: string
+    metadata?: SkillMetadata
+    is_remote?: boolean
+    /** Plugin name (for plugin skills, e.g., "plugin-name@marketplace-name") */
+    repository?: string
 }
 
 export interface CreateSkillRequest {
@@ -28,9 +41,19 @@ export function useSkills() {
         error.value = null
         try {
             const response = await api.get('/skills')
-            skills.value = response.data
+            // API returns ApiResponse<Skill[]> format: { success: true, data: [...] }
+            const rawData = response.data
+            if (rawData && typeof rawData === 'object' && 'data' in rawData && Array.isArray(rawData.data)) {
+                skills.value = rawData.data
+            } else if (Array.isArray(rawData)) {
+                skills.value = rawData
+            } else {
+                skills.value = []
+                console.warn('[useSkills] Unexpected response format:', rawData)
+            }
         } catch (err: any) {
             error.value = err.message || 'Failed to load skills'
+            skills.value = []
         } finally {
             loading.value = false
         }
@@ -41,8 +64,16 @@ export function useSkills() {
         error.value = null
         try {
             const response = await api.get(`/skills/${encodeURIComponent(name)}`)
-            currentSkill.value = response.data
-            return response.data as Skill
+            // API returns ApiResponse<Skill> format: { success: true, data: {...} }
+            const rawData = response.data
+            let skill: Skill | null = null
+            if (rawData && typeof rawData === 'object' && 'data' in rawData && rawData.data) {
+                skill = rawData.data as Skill
+            } else if (rawData && 'name' in rawData) {
+                skill = rawData as Skill
+            }
+            currentSkill.value = skill
+            return skill
         } catch (err: any) {
             error.value = err.message || 'Failed to load skill'
             throw err

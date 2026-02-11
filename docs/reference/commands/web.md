@@ -14,7 +14,8 @@ ccr web [OPTIONS]
 
 ## 选项
 
-- `--port <PORT>`: 指定监听端口(默认：8080)
+- `--host <HOST>`: 指定监听地址(默认：0.0.0.0)
+- `--port <PORT>`: 指定监听端口(默认：19527)
 - `--no-browser`: 不自动打开浏览器
 
 ::: tip 智能端口绑定
@@ -43,8 +44,11 @@ CCR Web 提供了一个现代化的、功能完整的 Web 管理界面，具有�
 ## 示例
 
 ```bash
-# 使用默认端口 8080，自动打开浏览器
+# 使用默认地址 0.0.0.0 + 默认端口 19527，自动打开浏览器
 ccr web
+
+# 仅本机访问（不暴露到内网）
+ccr web --host 127.0.0.1
 
 # 使用自定义端口
 ccr web --port 3000
@@ -61,13 +65,13 @@ ccr web --port 9000 --no-browser
 ```
 2025-10-31 16:05:12 [INFO] 🔄 系统信息缓存后台线程已启动，更新间隔: 2s
 ✓ 🌐 CCR Web 服务器已启动（异步模式）
-ℹ 📍 地址: http://localhost:8080
+ℹ 📍 地址: http://localhost:19527
 ℹ ⏹️ 按 Ctrl+C 停止服务器
-💡 请手动访问 http://localhost:8080
+💡 请手动访问 http://localhost:19527
 ```
 
 ::: info 端口占用处理
-如果 8080 端口被占用，CCR 会自动尝试 8081、8082 等端口，直到找到可用端口。实际使用的端口会在启动信息中显示。
+如果默认端口被占用，CCR 会自动尝试后续端口，直到找到可用端口。实际使用的端口会在启动信息中显示。
 :::
 
 ## Web 界面详解
@@ -416,7 +420,7 @@ Web 界面提供完整的 RESTful API,支持编程访问。
 ### 获取所有配置
 
 ```http
-GET http://localhost:8080/api/configs
+GET http://localhost:19527/api/configs
 ```
 
 **响应：**
@@ -440,7 +444,7 @@ GET http://localhost:8080/api/configs
 ### 切换配置
 
 ```http
-POST http://localhost:8080/api/switch
+POST http://localhost:19527/api/switch
 Content-Type: application/json
 
 {
@@ -459,7 +463,7 @@ Content-Type: application/json
 ### 获取操作历史
 
 ```http
-GET http://localhost:8080/api/history?limit=20&type=switch
+GET http://localhost:19527/api/history?limit=20&type=switch
 ```
 
 **查询参数：**
@@ -469,7 +473,7 @@ GET http://localhost:8080/api/history?limit=20&type=switch
 ### 验证配置
 
 ```http
-POST http://localhost:8080/api/validate
+POST http://localhost:19527/api/validate
 ```
 
 **响应：**
@@ -484,7 +488,7 @@ POST http://localhost:8080/api/validate
 ### 清理备份
 
 ```http
-POST http://localhost:8080/api/clean
+POST http://localhost:19527/api/clean
 Content-Type: application/json
 
 {
@@ -505,7 +509,7 @@ Content-Type: application/json
 ### 添加配置
 
 ```http
-POST http://localhost:8080/api/config
+POST http://localhost:19527/api/config
 Content-Type: application/json
 
 {
@@ -520,7 +524,7 @@ Content-Type: application/json
 ### 更新配置
 
 ```http
-PUT http://localhost:8080/api/config/anthropic
+PUT http://localhost:19527/api/config/anthropic
 Content-Type: application/json
 
 {
@@ -532,7 +536,7 @@ Content-Type: application/json
 ### 删除配置
 
 ```http
-DELETE http://localhost:8080/api/config/oldconfig
+DELETE http://localhost:19527/api/config/oldconfig
 ```
 
 ## 使用场景
@@ -543,10 +547,10 @@ DELETE http://localhost:8080/api/config/oldconfig
 
 ```bash
 # 在服务器上启动
-ccr web --port 8080 --no-browser
+ccr web --port 19527 --no-browser
 ```
 
-团队成员可以通过浏览器访问 `http://server-ip:8080` 进行配置管理。
+团队成员可以通过浏览器访问 `http://server-ip:19527` 进行配置管理。
 
 ### 远程管理
 
@@ -557,8 +561,8 @@ ccr web --port 8080 --no-browser
 ccr web --no-browser
 
 # 在本地
-ssh -L 8080:localhost:8080 user@remote-server
-# 访问 http://localhost:8080
+ssh -L 19527:localhost:19527 user@remote-server
+# 访问 http://localhost:19527
 ```
 
 ### 自动化集成
@@ -567,14 +571,14 @@ ssh -L 8080:localhost:8080 user@remote-server
 
 ```bash
 # 使用 curl 切换配置
-curl -X POST http://localhost:8080/api/switch \
+curl -X POST http://localhost:19527/api/switch \
   -H "Content-Type: application/json" \
   -d '{"config_name": "production"}'
 
 # 使用 Python
 import requests
 response = requests.post(
-    "http://localhost:8080/api/switch",
+    "http://localhost:19527/api/switch",
     json={"config_name": "production"}
 )
 print(response.json())
@@ -601,7 +605,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://localhost:8080;
+        proxy_pass http://localhost:19527;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }

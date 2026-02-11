@@ -331,7 +331,7 @@ import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Boxes } from 'lucide-vue-
 import { listCodexMcpServers, addCodexMcpServer, updateCodexMcpServer, deleteCodexMcpServer, listConfigs, getHistory } from '@/api/client'
 import type { CodexMcpServer, CodexMcpServerRequest } from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()

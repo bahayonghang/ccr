@@ -243,7 +243,7 @@ npm run build           # 构建验证
 
 ### 环境要求
 
-- **Rust**: 1.85+ (Edition 2024)
+- **Rust**: 1.88+ (Edition 2024)
 - **Node.js**: 18.x+
 - **Cargo**: 最新稳定版
 - **npm/yarn/pnpm**: 9.x+

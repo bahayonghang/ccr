@@ -194,7 +194,7 @@
                 v-for="([provider, count], index) in sortedEntries"
                 :key="provider || index"
                 class="group flex flex-col items-center gap-2 w-16"
-                :style="{ animation: 'slideUp 0.4s ease ' + index * 0.05 + 's backwards' }"
+                :style="{ animation: 'slide-up 0.4s ease ' + index * 0.05 + 's backwards' }"
               >
                 <!-- 数值提示 (Hover显示) -->
                 <div
@@ -336,11 +336,12 @@ const yTicks = computed(() => {
 </script>
 
 <style scoped>
-@keyframes slideUp {
+@keyframes slide-up {
   from {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

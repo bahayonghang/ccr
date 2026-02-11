@@ -95,8 +95,7 @@ impl SkillsManager {
 
                 if skill_file.exists() {
                     let instruction = fs::read_to_string(&skill_file).map_err(CcrError::IoError)?;
-                    let description = instruction.lines().next().map(|s| s.to_string());
-                    let metadata = Skill::parse_metadata(&instruction);
+                    let (metadata, description) = Skill::parse_with_fallback(&instruction);
 
                     skills.push(Skill {
                         name,
@@ -127,8 +126,7 @@ impl SkillsManager {
         }
 
         let instruction = fs::read_to_string(&skill_file).map_err(CcrError::IoError)?;
-        let description = instruction.lines().next().map(|s| s.to_string());
-        let metadata = Skill::parse_metadata(&instruction);
+        let (metadata, description) = Skill::parse_with_fallback(&instruction);
 
         Ok(Skill {
             name: name.to_string(),

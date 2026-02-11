@@ -6,6 +6,8 @@ use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 use crate::managers::config::platform_manager::PlatformConfigManager;
 use crate::models::api::*;
 use crate::utils::config_reader;
+use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 /// GET /api/platforms - List all platforms with registry info
 pub async fn list_platforms() -> impl IntoResponse {
@@ -430,4 +432,162 @@ pub async fn set_platform_profile(
             ))),
         ),
     }
+}
+
+fn get_home_dir() -> Option<PathBuf> {
+    std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .ok()
+        .map(PathBuf::from)
+}
+
+fn find_project_root() -> Option<PathBuf> {
+    let start = std::env::current_dir().ok()?;
+    let mut current = start.as_path();
+
+    loop {
+        if current.join(".git").exists() {
+            return Some(current.to_path_buf());
+        }
+        match current.parent() {
+            Some(parent) => current = parent,
+            None => return Some(start),
+        }
+    }
+}
+
+fn detect_claude_dirs(project_root: &std::path::Path) -> (bool, bool, bool) {
+    let home = match get_home_dir() {
+        Some(h) => h,
+        None => return (false, false, false),
+    };
+
+    let user_base = home.join(".claude");
+    let project_base = project_root.join(".claude");
+
+    let agents = user_base.join("agents").exists() || project_base.join("agents").exists();
+    let slash_commands =
+        user_base.join("commands").exists() || project_base.join("commands").exists();
+    let skills = user_base.join("skills").exists() || project_base.join("skills").exists();
+
+    (agents, slash_commands, skills)
+}
+
+pub async fn get_platform_capabilities() -> impl IntoResponse {
+    let project_root = match find_project_root() {
+        Some(p) => p,
+        None => {
+            return ApiResponse::<PlatformCapabilitiesResponse>::error(
+                "Failed to locate project root".to_string(),
+            );
+        }
+    };
+
+    let (claude_agents, claude_slash, claude_skills) = detect_claude_dirs(project_root.as_path());
+
+    let mut platforms: BTreeMap<String, PlatformModuleCapabilities> = BTreeMap::new();
+
+    platforms.insert(
+        "claude-code".to_string(),
+        PlatformModuleCapabilities {
+            config: true,
+            mcp: true,
+            profiles: false,
+            auth: false,
+            usage: true,
+            agents: true,
+            slash_commands: true,
+            skills: true,
+            plugins: true,
+            commands: true,
+        },
+    );
+
+    platforms.insert(
+        "codex".to_string(),
+        PlatformModuleCapabilities {
+            config: true,
+            mcp: true,
+            profiles: true,
+            auth: true,
+            usage: true,
+            agents: false,
+            slash_commands: true,
+            skills: false,
+            plugins: false,
+            commands: false,
+        },
+    );
+
+    platforms.insert(
+        "gemini-cli".to_string(),
+        PlatformModuleCapabilities {
+            config: true,
+            mcp: true,
+            profiles: false,
+            auth: false,
+            usage: false,
+            agents: false,
+            slash_commands: true,
+            skills: false,
+            plugins: false,
+            commands: false,
+        },
+    );
+
+    platforms.insert(
+        "qwen".to_string(),
+        PlatformModuleCapabilities {
+            config: true,
+            mcp: true,
+            profiles: false,
+            auth: false,
+            usage: false,
+            agents: false,
+            slash_commands: true,
+            skills: false,
+            plugins: false,
+            commands: false,
+        },
+    );
+
+    platforms.insert(
+        "iflow".to_string(),
+        PlatformModuleCapabilities {
+            config: false,
+            mcp: false,
+            profiles: false,
+            auth: false,
+            usage: false,
+            agents: false,
+            slash_commands: false,
+            skills: false,
+            plugins: false,
+            commands: false,
+        },
+    );
+
+    platforms.insert(
+        "droid".to_string(),
+        PlatformModuleCapabilities {
+            config: true,
+            mcp: true,
+            profiles: true,
+            auth: false,
+            usage: false,
+            agents: true,
+            slash_commands: true,
+            skills: false,
+            plugins: true,
+            commands: false,
+        },
+    );
+
+    if let Some(claude) = platforms.get_mut("claude-code") {
+        claude.agents = claude_agents;
+        claude.slash_commands = claude_slash;
+        claude.skills = claude_skills;
+    }
+
+    ApiResponse::success(PlatformCapabilitiesResponse { platforms })
 }

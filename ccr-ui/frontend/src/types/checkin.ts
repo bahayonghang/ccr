@@ -127,7 +127,7 @@ export interface AccountsResponse {
 // ═══════════════════════════════════════════════════════════
 
 /** 签到状态 */
-export type CheckinStatus = 'Success' | 'AlreadyCheckedIn' | 'Failed'
+export type CheckinStatus = 'success' | 'already_checked_in' | 'failed'
 
 /** 签到执行结果 */
 export interface CheckinExecutionResult {
@@ -182,6 +182,17 @@ export interface CheckinRecordInfo {
 export interface CheckinRecordsResponse {
   records: CheckinRecordInfo[]
   total: number
+}
+
+/** 签到记录查询参数 */
+export interface CheckinRecordsQuery {
+  limit?: number
+  page?: number
+  page_size?: number
+  status?: string
+  account_id?: string
+  provider_id?: string
+  keyword?: string
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -288,8 +299,8 @@ export interface ImportPreviewResponse {
   warnings: string[]
 }
 
-/** 导入请求 */
-export interface ImportRequest {
+/** 签到导入请求 */
+export interface CheckinImportRequest {
   data: ExportData
   options: ImportOptions
 }
@@ -394,4 +405,31 @@ export interface CheckinAccountDashboardResponse {
 export interface TestConnectionResponse {
   success: boolean
   message: string
+}
+
+// ═══════════════════════════════════════════════════════════
+// 签到进度类型（用于 UI 显示）
+// ═══════════════════════════════════════════════════════════
+
+/** 签到日志条目状态 */
+export type CheckinLogStatus = 'pending' | 'processing' | 'success' | 'already_checked_in' | 'failed'
+
+/** 签到日志条目 */
+export interface CheckinLogEntry {
+  accountId: string
+  accountName: string
+  providerName: string
+  status: CheckinLogStatus
+  message?: string
+  reward?: string
+  balance?: number
+  timestamp: Date
+}
+
+/** 签到进度状态 */
+export interface CheckinProgressState {
+  isRunning: boolean
+  total: number
+  completed: number
+  currentAccountName: string
 }

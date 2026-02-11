@@ -1,4 +1,4 @@
-# Architecture (v3.9.0)
+# Architecture (v3.20.11)
 
 CCR is a Rust 2024 workspace with a strict layered design and dual config modes (Unified by default, Legacy compatible). It ships CLI/TUI/legacy Web API and powers the full CCR UI app.
 

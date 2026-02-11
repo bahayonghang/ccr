@@ -37,6 +37,10 @@ pub struct MarkdownManager {
 }
 
 impl MarkdownManager {
+    pub fn from_directory(directory: PathBuf) -> io::Result<Self> {
+        Ok(Self { directory })
+    }
+
     pub fn from_home_subdir(subdir: &str) -> io::Result<Self> {
         // Support both Unix (HOME) and Windows (USERPROFILE)
         let home = std::env::var("HOME")
@@ -49,6 +53,30 @@ impl MarkdownManager {
             })?;
         let directory = Path::new(&home).join(".claude").join(subdir);
         Ok(Self { directory })
+    }
+
+    pub fn list_files_top_level(&self) -> io::Result<Vec<String>> {
+        if !self.directory.exists() {
+            return Ok(Vec::new());
+        }
+
+        let entries = fs::read_dir(&self.directory)?;
+        let mut files = Vec::new();
+
+        for entry in entries {
+            let entry = entry?;
+            let path = entry.path();
+
+            if path.is_file()
+                && path.extension().and_then(|s| s.to_str()) == Some("md")
+                && let Some(name) = path.file_stem().and_then(|s| s.to_str())
+            {
+                files.push(name.to_string());
+            }
+        }
+
+        files.sort();
+        Ok(files)
     }
 
     /// List all files with their folder information (recursive)
@@ -134,6 +162,11 @@ impl MarkdownManager {
             frontmatter,
             content: body,
         })
+    }
+
+    pub fn read_file_content(&self, name: &str) -> io::Result<String> {
+        let path = self.directory.join(format!("{}.md", name));
+        fs::read_to_string(&path)
     }
 
     /// Write a markdown file with frontmatter

@@ -1,22 +1,17 @@
 <template>
   <button
-    class="w-10 h-10 rounded-full transition-all hover:rotate-180 hover:scale-110 flex items-center justify-center"
-    :style="{
-      background: 'var(--bg-tertiary)',
-      border: '1px solid var(--border-color)',
-      color: 'var(--text-secondary)',
-    }"
+    class="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-bg-surface hover:bg-bg-elevated border border-border-default hover:border-accent-primary/30 text-text-secondary hover:text-accent-primary"
     :title="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
     :aria-label="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
-    @click="toggleTheme"
+    @click.stop="toggleTheme"
   >
     <Moon
       v-if="currentTheme === 'dark'"
-      class="w-5 h-5"
+      class="w-4 h-4"
     />
     <Sun
       v-else
-      class="w-5 h-5"
+      class="w-4 h-4"
     />
   </button>
 </template>

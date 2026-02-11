@@ -3,12 +3,12 @@
 
 use axum::{
     extract::{Json, Path, Query},
-    http::StatusCode,
+    http::{StatusCode, header},
     response::{IntoResponse, Response},
 };
 use chrono::{Datelike, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::managers::checkin::{
     AccountManager, BalanceManager, ExportManager, ProviderManager, RecordManager,
@@ -16,9 +16,10 @@ use crate::managers::checkin::{
 };
 use crate::models::checkin::{
     AccountInfo, AccountsResponse, BalanceHistoryResponse, BalanceResponse,
-    CheckinAccountDashboardResponse, CheckinProvider, CheckinRecordsResponse, CreateAccountRequest,
-    CreateProviderRequest, ExportData, ExportOptions, ImportOptions, ImportPreviewResponse,
-    ImportResult, ProvidersResponse, UpdateAccountRequest, UpdateProviderRequest,
+    CheckinAccountDashboardResponse, CheckinProvider, CheckinRecord, CheckinRecordInfo,
+    CheckinRecordsResponse, CheckinStatus, CreateAccountRequest, CreateProviderRequest, ExportData,
+    ExportOptions, ImportOptions, ImportPreviewResponse, ImportResult, ProvidersResponse,
+    UpdateAccountRequest, UpdateProviderRequest,
 };
 use crate::services::checkin_service::{CheckinExecutionResult, CheckinService, TodayCheckinStats};
 
@@ -84,8 +85,7 @@ fn enrich_accounts(
 
 /// GET /api/checkin/providers - 获取所有提供商
 pub async fn list_providers() -> Result<Json<ProvidersResponse>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let manager = ProviderManager::new(&checkin_dir);
+    let manager = ProviderManager::new();
 
     let response = manager.list().map_err(internal_error)?;
     Ok(Json(response))
@@ -93,8 +93,7 @@ pub async fn list_providers() -> Result<Json<ProvidersResponse>, Response> {
 
 /// GET /api/checkin/providers/:id - 获取单个提供商
 pub async fn get_provider(Path(id): Path<String>) -> Result<Json<CheckinProvider>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let manager = ProviderManager::new(&checkin_dir);
+    let manager = ProviderManager::new();
 
     let provider = manager.get(&id).map_err(not_found_error)?;
     Ok(Json(provider))
@@ -104,8 +103,7 @@ pub async fn get_provider(Path(id): Path<String>) -> Result<Json<CheckinProvider
 pub async fn create_provider(
     Json(req): Json<CreateProviderRequest>,
 ) -> Result<Json<CheckinProvider>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let manager = ProviderManager::new(&checkin_dir);
+    let manager = ProviderManager::new();
 
     let provider = manager.create(req).map_err(bad_request_error)?;
     Ok(Json(provider))
@@ -116,8 +114,7 @@ pub async fn update_provider(
     Path(id): Path<String>,
     Json(req): Json<UpdateProviderRequest>,
 ) -> Result<Json<CheckinProvider>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let manager = ProviderManager::new(&checkin_dir);
+    let manager = ProviderManager::new();
 
     let provider = manager.update(&id, req).map_err(bad_request_error)?;
     Ok(Json(provider))
@@ -126,7 +123,7 @@ pub async fn update_provider(
 /// DELETE /api/checkin/providers/:id - 删除提供商
 pub async fn delete_provider(Path(id): Path<String>) -> Result<StatusCode, Response> {
     let checkin_dir = get_checkin_dir()?;
-    let provider_manager = ProviderManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
     let account_manager = AccountManager::new(&checkin_dir);
 
     // 检查是否有关联账号
@@ -171,8 +168,7 @@ pub async fn add_builtin_provider(
 ) -> Result<Json<CheckinProvider>, Response> {
     use crate::managers::checkin::builtin_providers::get_builtin_provider_by_id;
 
-    let checkin_dir = get_checkin_dir()?;
-    let manager = ProviderManager::new(&checkin_dir);
+    let manager = ProviderManager::new();
 
     // 获取内置提供商配置
     let builtin = get_builtin_provider_by_id(&req.builtin_id)
@@ -215,8 +211,8 @@ pub async fn list_accounts(
 ) -> Result<Json<AccountsResponse>, Response> {
     let checkin_dir = get_checkin_dir()?;
     let manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new(&checkin_dir);
-    let balance_manager = BalanceManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
+    let balance_manager = BalanceManager::new();
 
     let response = if let Some(provider_id) = query.provider_id {
         let mut accounts = manager
@@ -240,8 +236,8 @@ pub async fn list_accounts(
 pub async fn get_account(Path(id): Path<String>) -> Result<Json<AccountInfo>, Response> {
     let checkin_dir = get_checkin_dir()?;
     let manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new(&checkin_dir);
-    let balance_manager = BalanceManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
+    let balance_manager = BalanceManager::new();
 
     let mut account = manager.get_info(&id).map_err(not_found_error)?;
     enrich_accounts(
@@ -324,8 +320,8 @@ pub async fn update_account(
 pub async fn delete_account(Path(id): Path<String>) -> Result<StatusCode, Response> {
     let checkin_dir = get_checkin_dir()?;
     let account_manager = AccountManager::new(&checkin_dir);
-    let record_manager = RecordManager::new(&checkin_dir);
-    let balance_manager = BalanceManager::new(&checkin_dir);
+    let record_manager = RecordManager::new();
+    let balance_manager = BalanceManager::new();
 
     // 删除账号
     account_manager.delete(&id).map_err(not_found_error)?;
@@ -452,6 +448,132 @@ pub async fn query_balance(Path(id): Path<String>) -> Result<Json<BalanceRespons
 #[derive(Debug, Deserialize)]
 pub struct HistoryQuery {
     pub limit: Option<usize>,
+    pub page: Option<usize>,
+    pub page_size: Option<usize>,
+    pub status: Option<String>,
+    pub account_id: Option<String>,
+    pub provider_id: Option<String>,
+    pub keyword: Option<String>,
+}
+
+const DEFAULT_RECORDS_PAGE_SIZE: usize = 100;
+const MAX_RECORDS_PAGE_SIZE: usize = 500;
+
+fn parse_status_filter(value: &str) -> Option<CheckinStatus> {
+    let normalized = value.trim().replace(['-', ' '], "_").to_lowercase();
+    match normalized.as_str() {
+        "success" => Some(CheckinStatus::Success),
+        "already_checked_in" | "alreadycheckedin" | "checked_in" | "checkedin" => {
+            Some(CheckinStatus::AlreadyCheckedIn)
+        }
+        "failed" | "failure" | "error" => Some(CheckinStatus::Failed),
+        _ => None,
+    }
+}
+
+fn filter_checkin_records(
+    records: Vec<CheckinRecord>,
+    status_filter: Option<CheckinStatus>,
+    account_id_filter: Option<&str>,
+    provider_account_ids: Option<&HashSet<String>>,
+    keyword_filter: Option<&str>,
+    account_name_map: &HashMap<String, String>,
+    account_provider_name_map: &HashMap<String, String>,
+) -> Vec<CheckinRecord> {
+    let keyword = keyword_filter
+        .map(|value| value.trim().to_lowercase())
+        .filter(|value| !value.is_empty());
+
+    records
+        .into_iter()
+        .filter(|record| {
+            if let Some(status) = status_filter
+                && record.status != status
+            {
+                return false;
+            }
+
+            if let Some(account_id) = account_id_filter
+                && record.account_id != account_id
+            {
+                return false;
+            }
+
+            if let Some(account_ids) = provider_account_ids
+                && !account_ids.contains(&record.account_id)
+            {
+                return false;
+            }
+
+            if let Some(ref keyword) = keyword {
+                let mut matched = record.account_id.to_lowercase().contains(keyword);
+                if !matched && let Some(message) = record.message.as_ref() {
+                    matched = message.to_lowercase().contains(keyword);
+                }
+                if !matched && let Some(name) = account_name_map.get(&record.account_id) {
+                    matched = name.to_lowercase().contains(keyword);
+                }
+                if !matched && let Some(name) = account_provider_name_map.get(&record.account_id) {
+                    matched = name.to_lowercase().contains(keyword);
+                }
+                if !matched {
+                    return false;
+                }
+            }
+
+            true
+        })
+        .collect()
+}
+
+fn paginate_checkin_records(
+    mut records: Vec<CheckinRecord>,
+    query: &HistoryQuery,
+) -> (Vec<CheckinRecord>, usize) {
+    records.sort_by(|a, b| b.checked_in_at.cmp(&a.checked_in_at));
+    let total = records.len();
+
+    let use_limit = query.limit.is_some() && query.page.is_none() && query.page_size.is_none();
+    if use_limit {
+        if let Some(limit) = query.limit {
+            records.truncate(limit);
+        }
+        return (records, total);
+    }
+
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = query
+        .page_size
+        .unwrap_or(DEFAULT_RECORDS_PAGE_SIZE)
+        .clamp(1, MAX_RECORDS_PAGE_SIZE);
+    let start = (page - 1) * page_size;
+    if start >= records.len() {
+        return (Vec::new(), total);
+    }
+    let end = (start + page_size).min(records.len());
+    let paged = records.drain(start..end).collect();
+    (paged, total)
+}
+
+fn build_record_response(
+    records: Vec<CheckinRecord>,
+    total: usize,
+    account_name_map: &HashMap<String, String>,
+    account_provider_name_map: &HashMap<String, String>,
+) -> CheckinRecordsResponse {
+    let mut record_infos: Vec<CheckinRecordInfo> = records.into_iter().map(|r| r.into()).collect();
+    for record in record_infos.iter_mut() {
+        if let Some(name) = account_name_map.get(&record.account_id) {
+            record.account_name = Some(name.clone());
+        }
+        if let Some(name) = account_provider_name_map.get(&record.account_id) {
+            record.provider_name = Some(name.clone());
+        }
+    }
+    CheckinRecordsResponse {
+        records: record_infos,
+        total,
+    }
 }
 
 /// GET /api/checkin/accounts/:id/balance/history - 获取余额历史
@@ -477,12 +599,55 @@ pub async fn list_records(
     Query(query): Query<HistoryQuery>,
 ) -> Result<Json<CheckinRecordsResponse>, Response> {
     let checkin_dir = get_checkin_dir()?;
-    let service = CheckinService::new(checkin_dir);
+    let record_manager = RecordManager::new();
+    let account_manager = AccountManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
 
-    let records = service
-        .get_all_records(query.limit)
-        .map_err(internal_error)?;
-    Ok(Json(records))
+    let accounts = account_manager.load_all().map_err(internal_error)?;
+    let providers = provider_manager.load_all().map_err(internal_error)?;
+    let provider_map: HashMap<String, String> =
+        providers.into_iter().map(|p| (p.id, p.name)).collect();
+
+    let mut account_name_map = HashMap::new();
+    let mut account_provider_name_map = HashMap::new();
+    let mut provider_account_ids: Option<HashSet<String>> =
+        query.provider_id.as_ref().map(|_| HashSet::new());
+
+    for account in accounts {
+        account_name_map.insert(account.id.clone(), account.name.clone());
+        if let Some(provider_name) = provider_map.get(&account.provider_id) {
+            account_provider_name_map.insert(account.id.clone(), provider_name.clone());
+        }
+        if let (Some(provider_id), Some(ref mut id_set)) =
+            (query.provider_id.as_ref(), provider_account_ids.as_mut())
+            && &account.provider_id == provider_id
+        {
+            id_set.insert(account.id.clone());
+        }
+    }
+
+    let status_filter = match query.status.as_deref() {
+        Some(value) => Some(
+            parse_status_filter(value).ok_or_else(|| bad_request_error("Invalid status filter"))?,
+        ),
+        None => None,
+    };
+
+    let records = record_manager.get_all_raw().map_err(internal_error)?;
+    let filtered = filter_checkin_records(
+        records,
+        status_filter,
+        query.account_id.as_deref(),
+        provider_account_ids.as_ref(),
+        query.keyword.as_deref(),
+        &account_name_map,
+        &account_provider_name_map,
+    );
+
+    let (paged, total) = paginate_checkin_records(filtered, &query);
+    let response =
+        build_record_response(paged, total, &account_name_map, &account_provider_name_map);
+    Ok(Json(response))
 }
 
 /// GET /api/checkin/accounts/:id/records - 获取账号签到记录
@@ -491,12 +656,121 @@ pub async fn get_account_records(
     Query(query): Query<HistoryQuery>,
 ) -> Result<Json<CheckinRecordsResponse>, Response> {
     let checkin_dir = get_checkin_dir()?;
-    let service = CheckinService::new(checkin_dir);
+    let record_manager = RecordManager::new();
+    let account_manager = AccountManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
 
-    let records = service
-        .get_checkin_records(&id, query.limit)
+    let accounts = account_manager.load_all().map_err(internal_error)?;
+    let providers = provider_manager.load_all().map_err(internal_error)?;
+    let provider_map: HashMap<String, String> =
+        providers.into_iter().map(|p| (p.id, p.name)).collect();
+
+    let mut account_name_map = HashMap::new();
+    let mut account_provider_name_map = HashMap::new();
+
+    for account in accounts {
+        account_name_map.insert(account.id.clone(), account.name.clone());
+        if let Some(provider_name) = provider_map.get(&account.provider_id) {
+            account_provider_name_map.insert(account.id.clone(), provider_name.clone());
+        }
+    }
+
+    let status_filter = match query.status.as_deref() {
+        Some(value) => Some(
+            parse_status_filter(value).ok_or_else(|| bad_request_error("Invalid status filter"))?,
+        ),
+        None => None,
+    };
+
+    let records = record_manager.get_all_raw().map_err(internal_error)?;
+    let filtered = filter_checkin_records(
+        records,
+        status_filter,
+        Some(&id),
+        None,
+        query.keyword.as_deref(),
+        &account_name_map,
+        &account_provider_name_map,
+    );
+
+    let (paged, total) = paginate_checkin_records(filtered, &query);
+    let response =
+        build_record_response(paged, total, &account_name_map, &account_provider_name_map);
+    Ok(Json(response))
+}
+
+/// GET /api/checkin/records/export - 导出签到记录
+pub async fn export_records(Query(query): Query<HistoryQuery>) -> Result<Response, Response> {
+    let checkin_dir = get_checkin_dir()?;
+    let record_manager = RecordManager::new();
+    let account_manager = AccountManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
+
+    let accounts = account_manager.load_all().map_err(internal_error)?;
+    let providers = provider_manager.load_all().map_err(internal_error)?;
+    let provider_map: HashMap<String, String> =
+        providers.into_iter().map(|p| (p.id, p.name)).collect();
+
+    let mut account_name_map = HashMap::new();
+    let mut account_provider_name_map = HashMap::new();
+    let mut provider_account_ids: Option<HashSet<String>> =
+        query.provider_id.as_ref().map(|_| HashSet::new());
+
+    for account in accounts {
+        account_name_map.insert(account.id.clone(), account.name.clone());
+        if let Some(provider_name) = provider_map.get(&account.provider_id) {
+            account_provider_name_map.insert(account.id.clone(), provider_name.clone());
+        }
+        if let (Some(provider_id), Some(ref mut id_set)) =
+            (query.provider_id.as_ref(), provider_account_ids.as_mut())
+            && &account.provider_id == provider_id
+        {
+            id_set.insert(account.id.clone());
+        }
+    }
+
+    let status_filter = match query.status.as_deref() {
+        Some(value) => Some(
+            parse_status_filter(value).ok_or_else(|| bad_request_error("Invalid status filter"))?,
+        ),
+        None => None,
+    };
+
+    let records = record_manager.get_all_raw().map_err(internal_error)?;
+    let filtered = filter_checkin_records(
+        records,
+        status_filter,
+        query.account_id.as_deref(),
+        provider_account_ids.as_ref(),
+        query.keyword.as_deref(),
+        &account_name_map,
+        &account_provider_name_map,
+    );
+
+    let total = filtered.len();
+    let response_data = build_record_response(
+        filtered,
+        total,
+        &account_name_map,
+        &account_provider_name_map,
+    );
+    let content = serde_json::to_string_pretty(&response_data).map_err(internal_error)?;
+    let filename = format!(
+        "checkin_records_{}.json",
+        Utc::now().format("%Y%m%d_%H%M%S")
+    );
+
+    let response = Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/json")
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{}\"", filename),
+        )
+        .body(content.into())
         .map_err(internal_error)?;
-    Ok(Json(records))
+
+    Ok(response)
 }
 
 // ============================================================

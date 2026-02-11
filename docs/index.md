@@ -105,8 +105,8 @@ const quickLinks = [
 <HomeFeatures badge="快速导航" badge-type="info" title="开始使用" :features="quickLinks" />
 
 ## 版本与安装
-- 当前版本：3.18.2（Rust 2024）
-- 需求：Rust 1.85+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
+- 当前版本：3.20.11（Rust 2024）
+- 需求：Rust 1.88+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
 
 ```bash
 # 推荐：直接安装
@@ -151,7 +151,7 @@ ccr sync push -i
 ```bash
 ccr ui -p 3000 --backend-port 38081  # 完整 CCR UI（自动检测或下载）
 ccr tui                              # 需启用 tui 特性
-ccr web -p 8080 --no-browser         # 轻量 API/兼容用途
+ccr web --host 0.0.0.0 -p 19527 --no-browser   # 轻量 API/兼容用途
 ```
 
 ### Sessions 与 Provider

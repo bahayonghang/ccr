@@ -1,10 +1,11 @@
 // Plugin management routes
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, post, put},
 };
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/plugins", get(crate::api::handlers::plugins::list_plugins))
         .route("/plugins", post(crate::api::handlers::plugins::add_plugin))

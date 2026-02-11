@@ -1,5 +1,5 @@
 <template>
-  <div class="usage-stats-chart h-64 relative select-none">
+  <div class="usage-stats-chart h-72 relative select-none">
     <!-- 图例 -->
     <div class="absolute top-0 right-0 flex items-center gap-4 text-xs z-10">
       <div class="flex items-center gap-1.5">
@@ -21,6 +21,10 @@
       class="flex flex-col h-full pt-8 pb-6"
     >
       <div class="flex-1 flex items-end justify-between relative gap-[2px]">
+        <!-- 水平参考网格线 -->
+        <div class="absolute bottom-[25%] left-0 right-0 h-px bg-guofeng-border/15 pointer-events-none" />
+        <div class="absolute bottom-[50%] left-0 right-0 h-px bg-guofeng-border/20 pointer-events-none" />
+        <div class="absolute bottom-[75%] left-0 right-0 h-px bg-guofeng-border/15 pointer-events-none" />
         <!-- 底部轴线 -->
         <div class="absolute bottom-0 left-0 right-0 h-px bg-guofeng-border/50" />
 
@@ -177,7 +181,7 @@ const maxValue = computed(() => {
 // 计算柱子高度
 const getBarHeight = (item: DailyStatsItem, platform: 'claude' | 'codex' | 'gemini'): number => {
   const value = getValue(item, platform)
-  const maxHeight = 120 // 调整最大高度以适应新布局
+  const maxHeight = 150 // 调整最大高度以适应新布局
   return Math.max(0, (value / maxValue.value) * maxHeight) // 允许 0 高度
 }
 
@@ -350,11 +354,13 @@ const tooltipStyle = computed(() => {
 .fade-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
   transform: translateY(4px) translateX(-50%);
 }
+
 /* Adjust transforms for edge cases if needed in CSS, 
    but inline styles override mostly. */
 </style>

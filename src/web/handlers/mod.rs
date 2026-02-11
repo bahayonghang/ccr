@@ -54,8 +54,7 @@ impl AppState {
     }
 
     pub fn reload_config_cache(&self) -> Result<(), crate::core::error::CcrError> {
-        let config_manager = crate::managers::ConfigManager::with_default()?;
-        let new_config = config_manager.load()?;
+        let new_config = self.config_service.load_config()?;
 
         let mut cache = self.config_cache.write().map_err(|e| {
             crate::core::error::CcrError::ConfigError(format!("获取配置缓存写锁失败: {}", e))

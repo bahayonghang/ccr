@@ -61,7 +61,10 @@ cmake-build-*/
 .factory/
 .trae/
 .kiro/
-# .agent/
+.codex/
+.agent/
+.gemini/
+.agents/
 
 openspec/
 .serena/
@@ -77,3 +80,5 @@ ref/
 
 # antigravity 共享
 # .shared/
+
+.omc/

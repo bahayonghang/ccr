@@ -3,11 +3,13 @@
 // 使用统一的响应工具模块减少重复代码
 
 use axum::{Json, extract::Path, response::IntoResponse};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::api::handlers::response::{bad_request, internal_error, not_found, ok, ok_message};
 use crate::managers::config::codex_manager::CodexConfigManager;
+use crate::managers::markdown_manager::{MarkdownFile, MarkdownManager};
+use crate::models::api::{SlashCommand, SlashCommandRequest};
 use crate::models::platforms::codex::*;
 
 // CCR 平台 Profiles（~/.ccr/platforms/codex/profiles.toml）
@@ -25,17 +27,6 @@ fn mask_token(token: &str) -> String {
         let suffix = &token[token.len() - 4..];
         format!("{}...{}", prefix, suffix)
     }
-}
-
-/// 初始化 Codex Manager 并处理错误
-macro_rules! with_codex_manager {
-    ($body:expr) => {
-        match CodexConfigManager::default() {
-            Ok(manager) => $body(manager),
-            Err(e) => internal_error(format!("初始化 {} 配置管理器失败: {}", PLATFORM, e))
-                .into_response(),
-        }
-    };
 }
 
 /// 处理 spawn_blocking 的结果
@@ -58,14 +49,17 @@ where
 
 /// GET /api/codex/mcp - 列出所有 Codex MCP 服务器
 pub async fn list_codex_mcp_servers() -> impl IntoResponse {
-    with_codex_manager!(|manager: CodexConfigManager| {
-        match manager.list_mcp_servers() {
-            Ok(servers) => ok(CodexMcpListResponse { servers }).into_response(),
-            Err(e) => {
-                internal_error(format!("读取 {} MCP 服务器失败: {}", PLATFORM, e)).into_response()
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            match manager.list_mcp_servers() {
+                Ok(servers) => ok(CodexMcpListResponse { servers }).into_response(),
+                Err(e) => internal_error(format!("读取 {} MCP 服务器失败: {}", PLATFORM, e))
+                    .into_response(),
             }
         }
-    })
+    )
 }
 
 /// POST /api/codex/mcp - 添加 Codex MCP 服务器
@@ -76,25 +70,27 @@ pub async fn add_codex_mcp_server(Json(req): Json<CodexMcpServerRequest>) -> imp
             .into_response();
     }
 
-    with_codex_manager!(|manager: CodexConfigManager| {
-        let name = req
-            .name
-            .clone()
-            .or(req.command.clone())
-            .or(req.url.clone())
-            .unwrap_or_else(|| "unknown".to_string());
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            let name = req
+                .name
+                .clone()
+                .or(req.command.clone())
+                .or(req.url.clone())
+                .unwrap_or_else(|| "unknown".to_string());
 
-        let server: CodexMcpServer = req.into();
+            let server: CodexMcpServer = req.into();
 
-        match manager.add_mcp_server(name.clone(), server) {
-            Ok(_) => {
-                ok_message(format!("{} MCP 服务器 '{}' 已成功添加", PLATFORM, name)).into_response()
-            }
-            Err(e) => {
-                internal_error(format!("添加 {} MCP 服务器失败: {}", PLATFORM, e)).into_response()
+            match manager.add_mcp_server(name.clone(), server) {
+                Ok(_) => ok_message(format!("{} MCP 服务器 '{}' 已成功添加", PLATFORM, name))
+                    .into_response(),
+                Err(e) => internal_error(format!("添加 {} MCP 服务器失败: {}", PLATFORM, e))
+                    .into_response(),
             }
         }
-    })
+    )
 }
 
 /// PUT /api/codex/mcp/:name - 更新 Codex MCP 服务器
@@ -102,30 +98,37 @@ pub async fn update_codex_mcp_server(
     Path(name): Path<String>,
     Json(req): Json<CodexMcpServerRequest>,
 ) -> impl IntoResponse {
-    with_codex_manager!(|manager: CodexConfigManager| {
-        let server: CodexMcpServer = req.into();
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            let server: CodexMcpServer = req.into();
 
-        match manager.update_mcp_server(&name, server) {
-            Ok(_) => {
-                ok_message(format!("{} MCP 服务器 '{}' 已成功更新", PLATFORM, name)).into_response()
-            }
-            Err(e) => {
-                internal_error(format!("更新 {} MCP 服务器失败: {}", PLATFORM, e)).into_response()
+            match manager.update_mcp_server(&name, server) {
+                Ok(_) => ok_message(format!("{} MCP 服务器 '{}' 已成功更新", PLATFORM, name))
+                    .into_response(),
+                Err(e) => internal_error(format!("更新 {} MCP 服务器失败: {}", PLATFORM, e))
+                    .into_response(),
             }
         }
-    })
+    )
 }
 
 /// DELETE /api/codex/mcp/:name - 删除 Codex MCP 服务器
 pub async fn delete_codex_mcp_server(Path(name): Path<String>) -> impl IntoResponse {
-    with_codex_manager!(|manager: CodexConfigManager| {
-        match manager.delete_mcp_server(&name) {
-            Ok(_) => {
-                ok_message(format!("{} MCP 服务器 '{}' 已成功删除", PLATFORM, name)).into_response()
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            match manager.delete_mcp_server(&name) {
+                Ok(_) => ok_message(format!("{} MCP 服务器 '{}' 已成功删除", PLATFORM, name))
+                    .into_response(),
+                Err(e) => {
+                    not_found(format!("删除 {} MCP 服务器失败: {}", PLATFORM, e)).into_response()
+                }
             }
-            Err(e) => not_found(format!("删除 {} MCP 服务器失败: {}", PLATFORM, e)).into_response(),
         }
-    })
+    )
 }
 
 // ============ Profile 管理 ============
@@ -404,30 +407,40 @@ pub async fn apply_codex_profile(Path(name): Path<String>) -> impl IntoResponse 
 
 /// GET /api/codex/config - 获取完整的 Codex 配置
 pub async fn get_codex_config() -> impl IntoResponse {
-    with_codex_manager!(|manager: CodexConfigManager| {
-        match manager.read_config() {
-            Ok(config) => ok(CodexConfigResponse { config }).into_response(),
-            Err(e) => internal_error(format!("读取 {} 配置失败: {}", PLATFORM, e)).into_response(),
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            match manager.read_config() {
+                Ok(config) => ok(CodexConfigResponse { config }).into_response(),
+                Err(e) => {
+                    internal_error(format!("读取 {} 配置失败: {}", PLATFORM, e)).into_response()
+                }
+            }
         }
-    })
+    )
 }
 
 /// PUT /api/codex/config - 更新 Codex 基础配置
 pub async fn update_codex_base_config(Json(config): Json<CodexConfig>) -> impl IntoResponse {
-    with_codex_manager!(|manager: CodexConfigManager| {
-        match manager.update_base_config(
-            config.model,
-            config.model_provider,
-            config.approval_policy,
-            config.sandbox_mode,
-            config.model_reasoning_effort,
-        ) {
-            Ok(_) => ok_message(format!("{} 基础配置已成功更新", PLATFORM)).into_response(),
-            Err(e) => {
-                internal_error(format!("更新 {} 基础配置失败: {}", PLATFORM, e)).into_response()
+    crate::with_manager!(
+        CodexConfigManager,
+        PLATFORM,
+        |manager: CodexConfigManager| {
+            match manager.update_base_config(
+                config.model,
+                config.model_provider,
+                config.approval_policy,
+                config.sandbox_mode,
+                config.model_reasoning_effort,
+            ) {
+                Ok(_) => ok_message(format!("{} 基础配置已成功更新", PLATFORM)).into_response(),
+                Err(e) => {
+                    internal_error(format!("更新 {} 基础配置失败: {}", PLATFORM, e)).into_response()
+                }
             }
         }
-    })
+    )
 }
 
 // ============ Auth 账号管理 ============
@@ -453,6 +466,7 @@ pub async fn list_codex_auth_accounts() -> impl IntoResponse {
             .into_iter()
             .map(|item| {
                 let freshness = item.freshness;
+                let is_expired = CodexAuthService::is_expired(item.expires_at);
                 CodexAuthAccountItem {
                     name: item.name,
                     description: item.description,
@@ -464,6 +478,8 @@ pub async fn list_codex_auth_accounts() -> impl IntoResponse {
                     freshness,
                     freshness_icon: freshness.icon().to_string(),
                     freshness_description: freshness.description().to_string(),
+                    expires_at: item.expires_at.map(|dt| dt.to_rfc3339()),
+                    is_expired,
                 }
             })
             .collect();
@@ -496,6 +512,11 @@ pub async fn get_codex_auth_current() -> impl IntoResponse {
         let info = match service.get_current_auth_info() {
             Ok(current) => {
                 let freshness = current.freshness;
+                let expires_at = service.load_registry().ok().and_then(|reg| {
+                    reg.current_auth
+                        .and_then(|name| reg.accounts.get(&name).and_then(|a| a.expires_at))
+                });
+                let is_expired = CodexAuthService::is_expired(expires_at);
                 Some(CodexAuthCurrentInfo {
                     account_id: current.account_id,
                     email: current.email,
@@ -503,6 +524,8 @@ pub async fn get_codex_auth_current() -> impl IntoResponse {
                     freshness,
                     freshness_icon: freshness.icon().to_string(),
                     freshness_description: freshness.description().to_string(),
+                    expires_at: expires_at.map(|dt| dt.to_rfc3339()),
+                    is_expired,
                 })
             }
             Err(_) => None,
@@ -534,8 +557,18 @@ pub async fn save_codex_auth(Json(req): Json<CodexAuthSaveRequest>) -> impl Into
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {}", e))?;
 
+        let expires_at = if let Some(ts) = req.expires_at.as_deref() {
+            Some(
+                chrono::DateTime::parse_from_rfc3339(ts)
+                    .map_err(|e| format!("expires_at 格式错误: {}", e))?
+                    .with_timezone(&chrono::Utc),
+            )
+        } else {
+            None
+        };
+
         service
-            .save_current(&req.name, req.description, req.force)
+            .save_current(&req.name, req.description, expires_at, req.force)
             .map_err(|e| format!("{}", e))?;
 
         Ok::<_, String>(req.name)
@@ -635,5 +668,253 @@ pub async fn detect_codex_process() -> impl IntoResponse {
         Ok(Ok(response)) => ok(response).into_response(),
         Ok(Err(e)) => internal_error(format!("检测 Codex 进程失败: {}", e)).into_response(),
         Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
+    }
+}
+
+// ============ Usage 统计 ============
+
+use ccr::services::CodexUsageService;
+
+/// GET /api/codex/usage - 获取 Codex 使用量统计
+pub async fn get_codex_usage() -> impl IntoResponse {
+    let result = tokio::task::spawn_blocking(move || {
+        // 获取 Codex 目录
+        let codex_dir = dirs::home_dir()
+            .ok_or_else(|| "无法获取用户主目录".to_string())?
+            .join(".codex");
+
+        let service = CodexUsageService::new(codex_dir);
+        let rolling = service
+            .compute_rolling_usage()
+            .map_err(|e| format!("计算使用量失败: {}", e))?;
+
+        Ok::<_, String>(CodexUsageResponse {
+            five_hour: CodexUsageStatsResponse {
+                total_input_tokens: rolling.five_hour.total_input_tokens,
+                total_output_tokens: rolling.five_hour.total_output_tokens,
+                total_requests: rolling.five_hour.total_requests,
+                window_start: rolling.five_hour.window_start.map(|dt| dt.to_rfc3339()),
+                window_end: rolling.five_hour.window_end.map(|dt| dt.to_rfc3339()),
+            },
+            seven_day: CodexUsageStatsResponse {
+                total_input_tokens: rolling.seven_day.total_input_tokens,
+                total_output_tokens: rolling.seven_day.total_output_tokens,
+                total_requests: rolling.seven_day.total_requests,
+                window_start: rolling.seven_day.window_start.map(|dt| dt.to_rfc3339()),
+                window_end: rolling.seven_day.window_end.map(|dt| dt.to_rfc3339()),
+            },
+            all_time: CodexUsageStatsResponse {
+                total_input_tokens: rolling.all_time.total_input_tokens,
+                total_output_tokens: rolling.all_time.total_output_tokens,
+                total_requests: rolling.all_time.total_requests,
+                window_start: rolling.all_time.window_start.map(|dt| dt.to_rfc3339()),
+                window_end: rolling.all_time.window_end.map(|dt| dt.to_rfc3339()),
+            },
+            by_model: rolling
+                .by_model
+                .into_iter()
+                .map(|(model, stats)| {
+                    (
+                        model,
+                        CodexUsageStatsResponse {
+                            total_input_tokens: stats.total_input_tokens,
+                            total_output_tokens: stats.total_output_tokens,
+                            total_requests: stats.total_requests,
+                            window_start: stats.window_start.map(|dt| dt.to_rfc3339()),
+                            window_end: stats.window_end.map(|dt| dt.to_rfc3339()),
+                        },
+                    )
+                })
+                .collect(),
+        })
+    })
+    .await;
+
+    match result {
+        Ok(Ok(response)) => ok(response).into_response(),
+        Ok(Err(e)) => internal_error(format!("获取 Codex 使用量失败: {}", e)).into_response(),
+        Err(e) => internal_error(format!("任务执行失败: {}", e)).into_response(),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CodexPromptFrontmatter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "argument-hint")]
+    pub argument_hint: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disabled: Option<bool>,
+}
+
+fn extract_description_from_body(body: &str, name: &str) -> String {
+    for line in body.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        return line.to_string();
+    }
+    format!("Slash command: {}", name)
+}
+
+fn codex_prompts_dir() -> Result<std::path::PathBuf, String> {
+    let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
+    Ok(home.join(".codex").join("prompts"))
+}
+
+pub async fn list_codex_slash_commands() -> impl IntoResponse {
+    let prompts_dir = match codex_prompts_dir() {
+        Ok(p) => p,
+        Err(e) => return internal_error(e).into_response(),
+    };
+
+    let manager = match MarkdownManager::from_directory(prompts_dir) {
+        Ok(m) => m,
+        Err(e) => {
+            return internal_error(format!("初始化 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    let files = match manager.list_files_top_level() {
+        Ok(f) => f,
+        Err(e) => {
+            return internal_error(format!("读取 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    let mut commands: Vec<SlashCommand> = Vec::new();
+    for name in files {
+        match manager.read_file::<CodexPromptFrontmatter>(&name) {
+            Ok(file) => commands.push(SlashCommand {
+                name: name.clone(),
+                description: file
+                    .frontmatter
+                    .description
+                    .clone()
+                    .unwrap_or_else(|| extract_description_from_body(&file.content, &name)),
+                command: file.content,
+                args: None,
+                disabled: file.frontmatter.disabled.unwrap_or(false),
+                folder: String::new(),
+            }),
+            Err(e) => {
+                tracing::warn!("读取 Codex prompt 失败: {} ({})", name, e);
+            }
+        }
+    }
+
+    ok(json!({
+        "commands": commands,
+        "folders": Vec::<String>::new()
+    }))
+    .into_response()
+}
+
+pub async fn add_codex_slash_command(Json(req): Json<SlashCommandRequest>) -> impl IntoResponse {
+    let prompts_dir = match codex_prompts_dir() {
+        Ok(p) => p,
+        Err(e) => return internal_error(e).into_response(),
+    };
+
+    let manager = match MarkdownManager::from_directory(prompts_dir) {
+        Ok(m) => m,
+        Err(e) => {
+            return internal_error(format!("初始化 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    let file = MarkdownFile {
+        frontmatter: CodexPromptFrontmatter {
+            description: Some(req.description),
+            argument_hint: None,
+            disabled: req.disabled,
+        },
+        content: req.command,
+    };
+
+    match manager.write_file(&req.name, &file) {
+        Ok(_) => ok_message("Codex slash command added successfully").into_response(),
+        Err(e) => internal_error(format!("写入 Codex prompt 失败: {}", e)).into_response(),
+    }
+}
+
+pub async fn update_codex_slash_command(
+    Path(name): Path<String>,
+    Json(req): Json<SlashCommandRequest>,
+) -> impl IntoResponse {
+    let prompts_dir = match codex_prompts_dir() {
+        Ok(p) => p,
+        Err(e) => return internal_error(e).into_response(),
+    };
+
+    let manager = match MarkdownManager::from_directory(prompts_dir) {
+        Ok(m) => m,
+        Err(e) => {
+            return internal_error(format!("初始化 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    let file = MarkdownFile {
+        frontmatter: CodexPromptFrontmatter {
+            description: Some(req.description),
+            argument_hint: None,
+            disabled: req.disabled,
+        },
+        content: req.command,
+    };
+
+    match manager.write_file(&name, &file) {
+        Ok(_) => ok_message("Codex slash command updated successfully").into_response(),
+        Err(e) => internal_error(format!("写入 Codex prompt 失败: {}", e)).into_response(),
+    }
+}
+
+pub async fn delete_codex_slash_command(Path(name): Path<String>) -> impl IntoResponse {
+    let prompts_dir = match codex_prompts_dir() {
+        Ok(p) => p,
+        Err(e) => return internal_error(e).into_response(),
+    };
+
+    let manager = match MarkdownManager::from_directory(prompts_dir) {
+        Ok(m) => m,
+        Err(e) => {
+            return internal_error(format!("初始化 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    match manager.delete_file(&name) {
+        Ok(_) => ok_message("Codex slash command deleted successfully").into_response(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            not_found("Codex slash command not found").into_response()
+        }
+        Err(e) => internal_error(format!("删除 Codex prompt 失败: {}", e)).into_response(),
+    }
+}
+
+pub async fn toggle_codex_slash_command(Path(name): Path<String>) -> impl IntoResponse {
+    let prompts_dir = match codex_prompts_dir() {
+        Ok(p) => p,
+        Err(e) => return internal_error(e).into_response(),
+    };
+
+    let manager = match MarkdownManager::from_directory(prompts_dir) {
+        Ok(m) => m,
+        Err(e) => {
+            return internal_error(format!("初始化 Codex prompts 目录失败: {}", e)).into_response();
+        }
+    };
+
+    let mut file = match manager.read_file::<CodexPromptFrontmatter>(&name) {
+        Ok(f) => f,
+        Err(e) => return not_found(format!("读取 Codex prompt 失败: {}", e)).into_response(),
+    };
+
+    let current = file.frontmatter.disabled.unwrap_or(false);
+    file.frontmatter.disabled = Some(!current);
+
+    match manager.write_file(&name, &file) {
+        Ok(_) => ok_message("Codex slash command toggled successfully").into_response(),
+        Err(e) => internal_error(format!("写入 Codex prompt 失败: {}", e)).into_response(),
     }
 }

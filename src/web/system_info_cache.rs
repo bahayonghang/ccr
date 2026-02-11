@@ -2,6 +2,7 @@
 // 提供高性能的系统信息查询，避免每次请求都扫描系统
 
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 use std::thread;
 use std::time::Duration;
@@ -33,6 +34,7 @@ pub struct CachedSystemInfo {
 /// - ⚡ 极低延迟的读取（无阻塞）
 pub struct SystemInfoCache {
     cache: Arc<RwLock<CachedSystemInfo>>,
+    stop_flag: Arc<AtomicBool>,
 }
 
 impl SystemInfoCache {
@@ -47,16 +49,32 @@ impl SystemInfoCache {
         // 🎯 首次获取系统信息
         let initial_info = Self::fetch_system_info();
         let cache = Arc::new(RwLock::new(initial_info));
+        let stop_flag = Arc::new(AtomicBool::new(false));
 
         // 🔄 启动后台更新线程
         let cache_clone = Arc::clone(&cache);
+        let stop_clone = Arc::clone(&stop_flag);
         thread::spawn(move || {
             tracing::info!(
                 "🔄 系统信息缓存后台线程已启动，更新间隔: {:?}",
                 update_interval
             );
+
+            // 🎯 将睡眠时间分割成小块，以便更快响应停止信号
+            let sleep_chunk = Duration::from_millis(100); // 每次睡眠 100ms
+            let chunks = (update_interval.as_millis() / sleep_chunk.as_millis()) as u32;
+
             loop {
-                thread::sleep(update_interval);
+                // 🔍 分段睡眠，每 100ms 检查一次停止标志
+                for _ in 0..chunks {
+                    if stop_clone.load(Ordering::Relaxed) {
+                        tracing::info!("🛑 系统信息缓存后台线程已停止");
+                        return;
+                    }
+                    thread::sleep(sleep_chunk);
+                }
+
+                // 🔄 更新系统信息
                 let new_info = Self::fetch_system_info();
 
                 if let Ok(mut cached) = cache_clone.write() {
@@ -68,7 +86,7 @@ impl SystemInfoCache {
             }
         });
 
-        Self { cache }
+        Self { cache, stop_flag }
     }
 
     /// 📖 读取缓存的系统信息
@@ -85,6 +103,11 @@ impl SystemInfoCache {
                 poisoned.into_inner()
             })
             .clone()
+    }
+
+    /// 🛑 停止后台更新线程
+    pub fn stop(&self) {
+        self.stop_flag.store(true, Ordering::Relaxed);
     }
 
     /// 🔍 获取系统信息（内部方法）

@@ -1,281 +1,140 @@
 <template>
-  <article
-    :id="`config-${config.name}`"
-    class="relative p-6 transition-all duration-500 hover:scale-[1.02] group"
-    :class="config.is_current ? 'config-card-active' : 'glass-elevated'"
+  <div
+    v-bind="{ 'data-config-name': config.name }"
+    class="config-row group relative flex items-stretch transition-all duration-300 rounded-xl overflow-hidden"
+    :class="{
+      'config-row--current': config.is_current,
+      'config-row--disabled': config.enabled === false,
+    }"
+    @click="$emit('edit', config.name)"
   >
-    <!-- 头部 -->
-    <header class="mb-3">
-      <h3 class="flex items-center flex-wrap gap-2 mb-2">
-        <!-- Provider Type 徽章 -->
-        <span
-          v-if="providerTypeBadge"
-          class="inline-block px-2.5 py-0.5 rounded-lg text-xs font-semibold uppercase tracking-wide"
-          :style="{
-            background: providerTypeBadge.background,
-            color: providerTypeBadge.color,
-            border: `1px solid ${providerTypeBadge.border}`
-          }"
-        >
-          {{ providerTypeBadge.text }}
-        </span>
+    <!-- Left Accent Bar -->
+    <div
+      class="accent-bar w-[3px] shrink-0 transition-all duration-300"
+      :class="accentBarClass"
+    />
 
-        <!-- 配置名称 -->
-        <span
-          class="text-base font-bold font-mono tracking-wide"
-          :style="{ color: 'var(--text-primary)' }"
-        >
-          {{ config.name }}
-        </span>
-
-        <!-- 当前徽章 -->
+    <!-- Main Content -->
+    <div class="flex-1 flex items-center gap-4 px-5 py-4 min-w-0">
+      <!-- Provider Avatar -->
+      <div
+        class="avatar-wrapper relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-md transition-transform duration-300 group-hover:scale-105"
+        :class="avatarClass"
+      >
+        {{ config.provider?.[0]?.toUpperCase() || 'C' }}
+        <!-- Active Indicator Dot -->
         <span
           v-if="config.is_current"
-          class="px-2 py-0.5 rounded-lg text-xs font-semibold uppercase"
-          :style="{
-            background: 'var(--accent-success)',
-            color: 'white'
-          }"
+          class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-bg-elevated shadow-sm"
         >
-          当前
-        </span>
-
-        <!-- 默认徽章 -->
-        <span
-          v-if="config.is_default"
-          class="px-2 py-0.5 rounded-lg text-xs font-semibold uppercase"
-          :style="{
-            background: 'var(--accent-warning)',
-            color: 'white'
-          }"
-        >
-          默认
-        </span>
-      </h3>
-
-      <!-- 描述 -->
-      <div
-        class="flex items-center gap-1.5 p-2 px-3 rounded-md mb-2.5 transition-all hover:translate-x-0.5"
-        :style="{
-          background: 'rgba(var(--color-accent-secondary-rgb), 0.08)',
-          borderLeft: '3px solid var(--accent-primary)'
-        }"
-      >
-        <FileText
-          class="w-3.5 h-3.5 flex-shrink-0"
-          :style="{ opacity: 0.8 }"
-          aria-hidden="true"
-        />
-        <span
-          class="text-xs font-medium leading-relaxed"
-          :style="{ color: 'var(--text-secondary)' }"
-        >
-          {{ config.description || '无描述' }}
+          <span class="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />
         </span>
       </div>
 
-      <!-- Provider 信息 -->
-      <div
-        v-if="config.provider"
-        class="flex flex-wrap gap-3 py-2"
-      >
-        <div
-          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-all"
-          :style="{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)'
-          }"
-        >
-          <Building2
-            class="w-3 h-3"
-            aria-hidden="true"
-          />
-          <span :style="{ color: 'var(--text-muted)' }">提供商:</span>
-          <span
-            class="font-semibold font-mono"
-            :style="{ color: 'var(--accent-secondary)' }"
+      <!-- Info Block -->
+      <div class="flex-1 min-w-0 space-y-1.5">
+        <!-- Top Row: Name + Status -->
+        <div class="flex items-center gap-2.5 min-w-0">
+          <h3
+            class="text-sm font-bold font-display truncate transition-colors duration-300"
+            :class="nameColorClass"
           >
-            {{ config.provider }}
-          </span>
+            {{ config.name }}
+          </h3>
+
+          <!-- Status Badges -->
+          <div class="flex gap-1.5 shrink-0">
+            <span
+              v-if="config.is_current"
+              class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full ring-1 ring-emerald-400/20"
+            >
+              Active
+            </span>
+            <span
+              v-if="config.is_default"
+              class="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full ring-1 ring-amber-400/20"
+            >
+              Default
+            </span>
+          </div>
         </div>
 
-        <div
-          v-if="config.account"
-          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-all"
-          :style="{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)'
-          }"
-        >
-          <User
-            class="w-3 h-3"
-            aria-hidden="true"
-          />
-          <span :style="{ color: 'var(--text-muted)' }">账号:</span>
-          <span
-            class="font-semibold font-mono"
-            :style="{ color: 'var(--accent-success)' }"
-          >
-            {{ config.account }}
-          </span>
-        </div>
+        <!-- Description -->
+        <p class="text-xs text-text-secondary truncate leading-relaxed">
+          {{ config.description || 'No description provided.' }}
+        </p>
       </div>
 
-      <!-- 标签 -->
-      <div
-        v-if="config.tags && config.tags.length > 0"
-        class="flex flex-wrap gap-1 mt-2"
-      >
-        <span
-          v-for="tag in config.tags"
-          :key="tag"
-          class="px-2 py-0.5 rounded-md text-xs transition-all"
-          :style="{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            color: 'var(--text-muted)'
-          }"
-        >
-          {{ tag }}
-        </span>
-      </div>
-
-      <!-- 📊 使用次数显示 -->
-      <div
-        v-if="config.usage_count !== undefined"
-        class="flex items-center gap-2 mt-3"
-      >
+      <!-- Meta Chips -->
+      <div class="hidden md:flex items-center gap-2 shrink-0">
+        <!-- Model -->
         <div
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all"
-          :style="{
-            background: 'rgba(var(--color-accent-primary-rgb), 0.08)',
-            border: '1px solid rgba(var(--color-accent-primary-rgb), 0.2)'
-          }"
+          v-if="config.model"
+          class="meta-chip"
+          :title="config.model"
         >
-          <span :style="{ color: 'var(--text-muted)' }">使用次数:</span>
-          <span
-            class="font-bold font-mono"
-            :style="{ color: 'var(--accent-primary)' }"
-          >
-            {{ config.usage_count }}
-          </span>
+          <Sparkles class="w-3 h-3 text-accent-primary opacity-70" />
+          <span class="truncate max-w-[120px]">{{ config.model }}</span>
         </div>
 
-        <!-- 禁用状态徽章 -->
+        <!-- Provider -->
         <div
-          v-if="config.enabled === false"
-          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold"
-          :style="{
-            background: 'rgba(var(--color-danger-rgb), 0.15)',
-            border: '1px solid rgba(var(--color-danger-rgb), 0.3)',
-            color: 'var(--color-danger)'
-          }"
+          v-if="config.provider"
+          class="meta-chip"
         >
-          ❌ 已禁用
+          <Building2 class="w-3 h-3 opacity-50" />
+          <span>{{ config.provider }}</span>
+        </div>
+
+        <!-- Calls Count -->
+        <div
+          v-if="(config.usage_count ?? 0) > 0"
+          class="meta-chip"
+        >
+          <TrendingUp class="w-3 h-3 text-accent-secondary opacity-70" />
+          <span class="font-bold text-accent-secondary">{{ config.usage_count }}</span>
         </div>
       </div>
-    </header>
-
-    <!-- 详细信息 -->
-    <div class="grid grid-cols-2 gap-2.5 mb-3">
-      <DetailField
-        label="Base URL"
-        :value="config.base_url"
-      />
-      <DetailField
-        label="Auth Token"
-        :value="maskToken(config.auth_token)"
-      />
-      <DetailField
-        v-if="config.model"
-        label="Model"
-        :value="config.model"
-      />
-      <DetailField
-        v-if="config.small_fast_model"
-        label="Small Fast Model"
-        :value="config.small_fast_model"
-      />
     </div>
 
-    <!-- 操作按钮 -->
-    <div class="flex gap-2 flex-wrap">
+    <!-- Right Action Area -->
+    <div class="flex items-center gap-2 pr-4 shrink-0">
+      <!-- Switch Button -->
       <button
         v-if="!config.is_current"
-        class="btn-primary px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:scale-105 transition-transform"
-        :style="{
-          background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-          boxShadow: '0 0 20px var(--glow-primary)'
-        }"
-        :aria-label="`切换到配置 ${config.name}`"
-        @click="$emit('switch', config.name)"
+        class="switch-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+        @click.stop="$emit('switch', config.name)"
       >
-        切换
+        <ArrowRightLeft class="w-3.5 h-3.5 mr-1 inline-block" />
+        Switch
       </button>
-
-      <button
-        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
-        :style="{
-          background: 'var(--bg-tertiary)',
-          color: 'var(--text-primary)',
-          border: '1px solid var(--border-color)'
-        }"
-        :aria-label="`编辑配置 ${config.name}`"
-        @click="$emit('edit', config.name)"
-      >
-        编辑
-      </button>
-
-      <!-- 📊 启用/禁用按钮 -->
-      <button
-        v-if="config.enabled !== false"
-        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
-        :style="{
-          background: 'var(--accent-warning)',
-          color: 'white',
-          boxShadow: '0 0 15px rgba(var(--color-warning-rgb), 0.3)'
-        }"
-        :aria-label="`禁用配置 ${config.name}`"
-        @click="$emit('disable', config.name)"
-      >
-        禁用
-      </button>
-
-      <button
+      <span
         v-else
-        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:scale-105"
-        :style="{
-          background: 'var(--accent-success)',
-          boxShadow: '0 0 15px rgba(var(--color-success-rgb), 0.3)'
-        }"
-        :aria-label="`启用配置 ${config.name}`"
-        @click="$emit('enable', config.name)"
+        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-400/70 bg-emerald-400/5 cursor-default"
       >
-        启用
-      </button>
+        <CheckCircle class="w-3.5 h-3.5" />
+        In Use
+      </span>
 
+      <!-- Edit Button -->
       <button
-        v-if="!config.is_current && !config.is_default"
-        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:scale-105"
-        :style="{
-          background: 'var(--accent-danger)',
-          boxShadow: '0 0 20px var(--glow-danger)'
-        }"
-        :aria-label="`删除配置 ${config.name}`"
-        @click="$emit('delete', config.name)"
+        class="edit-btn p-2 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+        :class="config.is_current ? 'opacity-60' : ''"
+        @click.stop="$emit('edit', config.name)"
       >
-        删除
+        <Settings class="w-4 h-4" />
       </button>
     </div>
-  </article>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { FileText, Building2, User } from 'lucide-vue-next'
+import {
+  Settings, Building2, ArrowRightLeft, CheckCircle,
+  Sparkles, TrendingUp
+} from 'lucide-vue-next'
 import type { ConfigItem } from '@/types'
-import DetailField from './DetailField.vue'
-import { maskToken } from '@/utils/codexHelpers'
 
 interface Props {
   config: ConfigItem
@@ -284,45 +143,156 @@ interface Props {
 const props = defineProps<Props>()
 
 defineEmits<{
-  switch: [configName: string]
-  edit: [configName: string]
-  delete: [configName: string]
-  enable: [configName: string]
-  disable: [configName: string]
+  switch: [name: string]
+  edit: [name: string]
+  delete: [name: string]
+  enable: [name: string]
+  disable: [name: string]
 }>()
 
-// Provider Type 徽章
-const providerTypeBadge = computed(() => {
-  if (!props.config.provider_type) return null
-
-  const typeMap: Record<string, { text: string; background: string; color: string; border: string }> = {
-    'OfficialRelay': {
-      text: '🔄 官方中转',
-      background: 'rgba(var(--color-info-rgb), 0.2)',
-      color: 'var(--accent-info)',
-      border: 'rgba(var(--color-info-rgb), 0.4)'
-    },
-    'official_relay': {
-      text: '🔄 官方中转',
-      background: 'rgba(var(--color-info-rgb), 0.2)',
-      color: 'var(--accent-info)',
-      border: 'rgba(var(--color-info-rgb), 0.4)'
-    },
-    'ThirdPartyModel': {
-      text: '🤖 第三方模型',
-      background: 'rgba(var(--color-purple-rgb), 0.2)',
-      color: 'var(--color-purple)',
-      border: 'rgba(var(--color-purple-rgb), 0.4)'
-    },
-    'third_party_model': {
-      text: '🤖 第三方模型',
-      background: 'rgba(var(--color-purple-rgb), 0.2)',
-      color: 'var(--color-purple)',
-      border: 'rgba(var(--color-purple-rgb), 0.4)'
-    }
-  }
-
-  return typeMap[props.config.provider_type]
+// Provider type detection
+const providerType = computed(() => {
+  const type = props.config.provider_type?.toLowerCase() || ''
+  if (type.includes('official')) return 'official'
+  if (type.includes('third')) return 'third'
+  return 'uncategorized'
 })
 
+// Left accent bar color by provider type
+const accentBarClass = computed(() => {
+  const map = {
+    official: 'bg-cyan-400 group-hover:bg-cyan-300',
+    third: 'bg-violet-400 group-hover:bg-violet-300',
+    uncategorized: 'bg-amber-400 group-hover:bg-amber-300',
+  }
+  return map[providerType.value]
+})
+
+// Avatar gradient by provider type
+const avatarClass = computed(() => {
+  const map = {
+    official: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
+    third: 'bg-gradient-to-br from-violet-500 to-violet-700',
+    uncategorized: 'bg-gradient-to-br from-amber-500 to-amber-700',
+  }
+  return map[providerType.value]
+})
+
+// Name color by provider type
+const nameColorClass = computed(() => {
+  const map = {
+    official: 'text-cyan-400 group-hover:text-cyan-300',
+    third: 'text-violet-400 group-hover:text-violet-300',
+    uncategorized: 'text-amber-400 group-hover:text-amber-300',
+  }
+  return map[providerType.value]
+})
 </script>
+
+<style scoped>
+/* === Row Base - 液态玻璃 === */
+.config-row {
+  background: var(--liquid-glass-bg);
+  backdrop-filter: var(--liquid-glass-blur);
+  border: 1px solid var(--liquid-glass-border);
+  box-shadow: var(--liquid-glass-highlight);
+  cursor: pointer;
+}
+
+.config-row:hover {
+  background: var(--glass-bg-medium);
+  border-color: var(--glass-border-medium);
+  box-shadow: var(--liquid-glass-shadow);
+  transform: translateX(2px);
+}
+
+/* === Current Config Highlight === */
+.config-row--current {
+  background: linear-gradient(135deg,
+    rgb(6 182 212 / 6%) 0%,
+    rgb(139 92 246 / 4%) 100%
+  );
+  border-color: rgb(6 182 212 / 15%);
+  box-shadow: var(--glow-primary);
+}
+
+.config-row--current:hover {
+  border-color: rgb(6 182 212 / 25%);
+  box-shadow:
+    var(--glow-primary),
+    var(--shadow-md);
+}
+
+/* === Disabled Config === */
+.config-row--disabled {
+  opacity: 0.5;
+}
+
+/* === Meta Chips === */
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.config-row:hover .meta-chip {
+  background: var(--glass-bg-medium);
+  border-color: var(--color-border-default);
+}
+
+/* === Switch Button === */
+.switch-btn {
+  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+  color: white;
+  box-shadow: 0 2px 8px rgb(var(--color-accent-primary-rgb) / 25%);
+}
+
+.switch-btn:hover {
+  box-shadow: 0 4px 16px rgb(var(--color-accent-primary-rgb) / 40%);
+  transform: translateY(-1px);
+}
+
+/* === Edit Button === */
+.edit-btn {
+  color: var(--color-text-muted);
+  background: transparent;
+}
+
+.edit-btn:hover {
+  color: var(--color-accent-primary);
+  background: var(--glass-bg-medium);
+}
+
+/* === Highlight Pulse (scroll-to) === */
+.config-row.highlight-pulse {
+  animation: row-highlight-pulse 1.5s ease-out;
+}
+
+@keyframes row-highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(6 182 212 / 40%);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgb(6 182 212 / 10%);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgb(6 182 212 / 0%);
+  }
+}
+
+/* === Accent bar glow for current === */
+.config-row--current .accent-bar {
+  box-shadow: 2px 0 8px rgb(6 182 212 / 30%);
+}
+</style>

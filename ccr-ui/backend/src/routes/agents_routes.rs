@@ -1,10 +1,11 @@
 // Agent management routes
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, post, put},
 };
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/agents", get(crate::api::handlers::agents::list_agents))
         .route("/agents", post(crate::api::handlers::agents::add_agent))

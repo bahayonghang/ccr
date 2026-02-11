@@ -2,12 +2,13 @@
 //!
 //! 提供 Session 管理的 API 端点
 
+use crate::state::AppState;
 use axum::{Json, Router, routing::get};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// 创建 sessions 路由
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/sessions", get(list_sessions))
         .route("/sessions/stats", get(get_stats))

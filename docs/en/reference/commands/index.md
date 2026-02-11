@@ -95,7 +95,7 @@ ccr sync push -i
 ccr ui
 
 # Launch legacy Web API (scripting/CI)
-ccr web --port 8080
+ccr web --host 0.0.0.0 --port 19527
 
 # Budget & pricing (web feature)
 ccr budget status

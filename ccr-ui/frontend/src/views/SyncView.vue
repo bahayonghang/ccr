@@ -1,26 +1,7 @@
 <template>
   <div class="min-h-screen relative">
-    <!-- 🎨 彩色渐变背景装饰 - 像首页一样 -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-      <div
-        class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
-        :style="{ background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' }"
-      />
-      <div
-        class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
-        :style="{
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          animationDelay: '1s'
-        }"
-      />
-      <div
-        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
-        :style="{
-          background: 'linear-gradient(135deg, var(--accent-success) 0%, var(--accent-warning) 100%)',
-          animationDelay: '2s'
-        }"
-      />
-    </div>
+    <!-- Enhanced Animated Background -->
+    <AnimatedBackground variant="mesh" />
 
     <main class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-8">
       <!-- Breadcrumb Navigation -->
@@ -30,45 +11,30 @@
           { label: $t('sync.breadcrumb.claudeCode'), path: '/claude-code', icon: Code2 },
           { label: $t('sync.breadcrumb.sync'), path: '/sync', icon: Cloud }
         ]"
-        module-color="var(--accent-primary)"
+        module-color="var(--color-accent-primary)"
       />
 
       <div class="mb-12">
         <div class="flex items-center justify-between mb-6 animate-fade-in">
           <div class="flex items-center gap-4">
-            <div
-              class="p-4 rounded-3xl glass-card"
-              :style="{ background: 'rgba(var(--color-cyan-rgb), 0.1)' }"
-            >
-              <Cloud
-                class="w-10 h-10"
-                :style="{ color: 'var(--accent-cyan)' }"
-              />
+            <div class="p-4 rounded-3xl glass-effect border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
+              <Cloud class="w-10 h-10 text-cyan-400" />
             </div>
             <div>
-              <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[#06b6d4] via-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent">
+              <h1 class="text-4xl md:text-5xl font-bold mb-2 text-gradient-cyan">
                 {{ $t('sync.title') }}
               </h1>
-              <p
-                class="text-lg"
-                :style="{ color: 'var(--text-secondary)' }"
-              >
+              <p class="text-lg text-text-secondary">
                 {{ $t('sync.subtitle') }}
               </p>
             </div>
           </div>
           <RouterLink
             to="/"
-            class="group glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300"
+            class="group glass-effect flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300 border border-border-subtle hover:border-cyan-500/30"
           >
-            <Home
-              class="w-5 h-5"
-              :style="{ color: 'var(--text-muted)' }"
-            />
-            <span
-              class="font-medium"
-              :style="{ color: 'var(--text-secondary)' }"
-            >{{ $t('sync.backHome') }}</span>
+            <Home class="w-5 h-5 text-text-muted group-hover:text-cyan-400 transition-colors" />
+            <span class="font-medium text-text-secondary group-hover:text-text-primary transition-colors">{{ $t('sync.backHome') }}</span>
           </RouterLink>
         </div>
       </div>
@@ -78,39 +44,24 @@
         v-if="loading"
         class="flex items-center justify-center py-16"
       >
-        <div class="p-8 glass-card">
-          <RefreshCw
-            class="w-12 h-12 animate-spin"
-            :style="{ color: 'var(--accent-info)' }"
-          />
+        <div class="p-8 glass-effect rounded-2xl border border-cyan-500/20">
+          <RefreshCw class="w-12 h-12 animate-spin text-cyan-400" />
         </div>
       </div>
 
       <!-- Error state -->
       <div
         v-else-if="error"
-        class="glass-card p-6 flex items-start gap-4"
+        class="glass-effect p-6 flex items-start gap-4 border border-danger/30 rounded-2xl"
       >
-        <div
-          class="p-3 rounded-2xl"
-          :style="{ background: 'rgba(var(--color-danger-rgb), 0.1)' }"
-        >
-          <XCircle
-            class="w-7 h-7"
-            :style="{ color: 'var(--accent-danger)' }"
-          />
+        <div class="p-3 rounded-2xl bg-danger/15">
+          <XCircle class="w-7 h-7 text-danger" />
         </div>
         <div class="flex-1">
-          <h3
-            class="font-bold text-xl mb-2"
-            :style="{ color: 'var(--text-primary)' }"
-          >
+          <h3 class="font-bold text-xl mb-2 text-text-primary">
             {{ $t('sync.loadFailed') }}
           </h3>
-          <p
-            class="text-base"
-            :style="{ color: 'var(--text-secondary)' }"
-          >
+          <p class="text-base text-text-secondary">
             {{ error }}
           </p>
         </div>
@@ -124,30 +75,23 @@
         <!-- 左侧主内容区 (2 columns) -->
         <div class="lg:col-span-2 space-y-6">
           <!-- Platform selection -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
+          <div class="glass-effect p-6 hover:scale-[1.01] transition-all duration-300 rounded-2xl border border-border-subtle hover:border-cyan-500/30">
             <!-- Header -->
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(var(--color-success-rgb), 0.1)' }"
-                >
-                  <CheckSquare
-                    class="w-6 h-6"
-                    :style="{ color: 'var(--accent-success)' }"
-                  />
+                <div class="p-3 rounded-2xl bg-success/15 border border-success/30">
+                  <CheckSquare class="w-6 h-6 text-success" />
                 </div>
-                <h2
-                  class="text-2xl font-bold"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
+                <h2 class="text-2xl font-bold text-text-primary">
                   {{ $t('sync.platformSelection.title') }}
                 </h2>
               </div>
               <button
                 :disabled="applying || !hasChanges"
-                class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                :style="{ background: applying || !hasChanges ? 'rgba(var(--color-gray-rgb), 0.1)' : 'rgba(var(--color-success-rgb), 0.1)', color: applying || !hasChanges ? 'var(--text-muted)' : 'var(--accent-success)' }"
+                class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-effect font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border"
+                :class="applying || !hasChanges
+                  ? 'bg-bg-surface text-text-muted border-border-subtle'
+                  : 'bg-success/15 text-success border-success/30 hover:bg-success/20'"
                 @click="applySelection"
               >
                 <Save class="w-4 h-4" />
@@ -156,51 +100,29 @@
             </div>
 
             <!-- Config (required) -->
-            <div
-              class="mb-6 p-5 rounded-xl glass-card"
-              :style="{ background: 'rgba(var(--color-warning-rgb), 0.05)' }"
-            >
+            <div class="mb-6 p-5 rounded-xl glass-effect bg-warning/5 border border-warning/30">
               <div class="flex items-center gap-4">
-                <div
-                  class="p-2 rounded-xl"
-                  :style="{ background: 'rgba(var(--color-warning-rgb), 0.15)' }"
-                >
-                  <CheckCircle
-                    class="w-6 h-6"
-                    :style="{ color: 'var(--accent-warning)' }"
-                  />
+                <div class="p-2 rounded-xl bg-warning/15">
+                  <CheckCircle class="w-6 h-6 text-warning" />
                 </div>
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
-                    <h3
-                      class="text-lg font-bold"
-                      :style="{ color: 'var(--text-primary)' }"
-                    >
+                    <h3 class="text-lg font-bold text-text-primary">
                       {{ $t('sync.platformSelection.configRequired') }}
                     </h3>
-                    <span
-                      class="px-2.5 py-1 rounded-full text-xs font-bold"
-                      :style="{ background: 'rgba(var(--color-warning-rgb), 0.2)', color: 'var(--accent-warning)' }"
-                    >
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-warning/20 text-warning border border-warning/30">
                       {{ $t('sync.platformSelection.configRequiredBadge') }}
                     </span>
                   </div>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
+                  <p class="text-sm mb-3 text-text-secondary">
                     {{ $t('sync.platformSelection.configDescription') }}
                   </p>
                   <div class="flex items-center gap-2">
-                    <Folder
-                      class="w-4 h-4"
-                      :style="{ color: 'var(--text-muted)' }"
-                    />
+                    <Folder class="w-4 h-4 text-text-muted" />
                     <input
                       v-model="presetItems.config.localPath"
                       type="text"
-                      class="flex-1 px-3 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
-                      :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+                      class="flex-1 px-3 py-2 rounded-lg glass-effect text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-bg-surface border border-border-subtle text-text-primary"
                       :placeholder="$t('sync.customFolder.localPathPlaceholder')"
                     >
                   </div>
@@ -895,7 +817,8 @@ import {
   Check,
   Save
 } from 'lucide-vue-next'
-import Breadcrumb from '@/components/Breadcrumb.vue'
+import { Breadcrumb } from '@/components/ui'
+import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 
 // 使用 api/client.ts 中配置的 axios 实例，支持 Vite 代理
 

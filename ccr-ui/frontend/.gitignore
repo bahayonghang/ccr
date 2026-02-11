@@ -64,3 +64,5 @@ playwright-report/
 test-results/
 cypress/videos/
 cypress/screenshots/
+*storybook.log
+storybook-static

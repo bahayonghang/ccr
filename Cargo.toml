@@ -3,8 +3,9 @@
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "3.18.4"
+version = "4.0.0"
 edition = "2024"
+rust-version = "1.88"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher (Rust implementation)"
 license = "MIT"
@@ -55,9 +56,10 @@ tokio = { workspace = true }       # 异步运行时
 toml = { workspace = true }        # TOML 格式支持 (标准序列化)
 
 # --- 本地依赖 (字母顺序) ---
+base64 = "0.22.1" # Base64 编解码
 blake3 = "1.8.3" # 高性能哈希算法 (用于文件去重/内容寻址)
-colored = "3.0.0" # 终端文本着色
-comfy-table = "7.2" # 漂亮的 CLI 表格输出
+colored = "3.1.1" # 终端文本着色
+comfy-table = "7.2.2" # 漂亮的 CLI 表格输出
 dialoguer = "0.12.0" # 交互式命令行提示符 (Select, Confirm)
 filetime = "0.2" # 文件修改时间操作 (用于备份/同步)
 fs4 = "0.13.1" # 跨平台文件锁 (防止并发写入冲突)
@@ -66,9 +68,9 @@ once_cell = "1.21" # 全局静态变量/懒加载初始化
 r2d2 = "0.8" # 数据库连接池通用接口
 r2d2_sqlite = "0.32.0" # SQLite 连接池实现
 rayon = "1.11" # 并行迭代器 (用于加速大数据处理)
-reqwest_dav = "0.2" # WebDAV 协议支持 (用于云端同步)
+reqwest_dav = "0.3.2" # WebDAV 协议支持 (用于云端同步)
 rusqlite = { version = "0.38.0", features = ["bundled"] } # SQLite 数据库驱动
-toml_edit = "0.23.9" # 保留格式的 TOML 编辑器 (用于修改配置文件)
+toml_edit = "0.24.1+spec-1.1.0" # 保留格式的 TOML 编辑器 (用于修改配置文件)
 tracing = "0.1.43" # 结构化日志门面
 tracing-appender = "0.2.4" # 日志文件写入器
 tracing-log = "0.2" # 标准 log crate 兼容层
@@ -77,17 +79,16 @@ tracing-subscriber = { version = "0.3.22", features = [
     "fmt",
 ] } # 日志订阅与格式化
 uuid = { version = "1.19.0", features = ["serde", "v4"] } # 通用唯一标识符 (UUID)
-whoami = "2.0.2" # 获取当前用户名和主机名
+whoami = "2.0.5" # 获取当前用户名和主机名
 
 # --- 可选依赖 (字母顺序) ---
 axum = { workspace = true, optional = true }        # Web 服务器框架 (用于 UI 后端)
 crossterm = { version = "0.29.0", optional = true } # 跨平台终端操作 (TUI 基础)
 open = { version = "5.3.3", optional = true }       # 打开文件/链接
 ratatui = { version = "0.30.0", optional = true }   # TUI 框架 (基于 crossterm)
-sysinfo = { version = "0.37.2", optional = true }   # 系统信息获取 (CPU, 内存)
+sysinfo = { version = "0.38.1", optional = true }   # 系统信息获取 (CPU, 内存)
 tower = { workspace = true, optional = true }       # 网络服务组件 (中间件)
 tower-http = { workspace = true, optional = true }  # HTTP 中间件 (CORS 等)
-base64 = "0.22.1"
 
 # ═══════════════════════════════════════════════════════════
 # 🏗️ Workspace
@@ -110,11 +111,11 @@ tokio = { version = "1.49.0", features = [
 ] }
 
 # CLI
-clap = { version = "4.5.54", features = ["cargo", "derive"] }
+clap = { version = "4.5.57", features = ["cargo", "derive"] }
 
 # Error handling
-anyhow = "1.0.100"
-thiserror = "2.0.17"
+anyhow = "1.0.101"
+thiserror = "2.0.18"
 
 # HTTP client
 reqwest = { version = "0.13.1", features = ["json"] }
@@ -125,11 +126,11 @@ serde_json = "1.0.149"
 toml = "0.9.8"
 
 # Time
-chrono = { version = "0.4.42", features = ["serde"] }
+chrono = { version = "0.4.43", features = ["serde"] }
 
 # Utilities
 dirs = "6.0.0"
-tempfile = "3.23"
+tempfile = "3.25.0"
 
 # Web framework
 axum = { version = "0.8.6", default-features = false, features = [
@@ -139,7 +140,7 @@ axum = { version = "0.8.6", default-features = false, features = [
     "query",
     "tokio",
 ] }
-tower = { version = "0.5.2", default-features = false }
+tower = { version = "0.5.3", default-features = false }
 tower-http = { version = "0.6.8", default-features = false, features = [
     "cors",
 ] }
@@ -164,9 +165,3 @@ codegen-units = 1
 lto = true
 opt-level = 3
 strip = false     # Tauri 需要保留符号
-
-# ═══════════════════════════════════════════════════════════
-# 🩹 Patch
-# ═══════════════════════════════════════════════════════════
-[patch."https://github.com/bahayonghang/ccr"]
-ccr = { path = "." }

@@ -40,14 +40,20 @@ pub async fn init_command(force: bool) -> Result<()> {
         ColorOutput::info("提示: 现有配置会自动备份");
         println!();
 
-        print!("确认强制重新初始化? (y/N): ");
-        use std::io::{self, Write};
-        io::stdout().flush().expect("无法刷新标准输出");
+        let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
+            print!("确认强制重新初始化? (y/N): ");
+            use std::io::{self, Write};
+            io::stdout().flush()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("无法读取用户输入");
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
 
-        if !input.trim().eq_ignore_ascii_case("y") {
+            Ok(input.trim().eq_ignore_ascii_case("y"))
+        })
+        .await
+        .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
+
+        if !confirmed {
             ColorOutput::info("已取消初始化操作");
             return Ok(());
         }

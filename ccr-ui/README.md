@@ -58,7 +58,7 @@ just s                  # Start frontend + backend development mode (most common
 
 ## Prerequisites
 
-- **Rust 1.85+** (workspace shares dependencies)
+- **Rust 1.88+** (workspace shares dependencies)
 - **Node.js 18+** + **Bun 1.0+** (package manager)
 - **CCR CLI** (installed and visible in PATH)
 - **just** (optional but recommended: `cargo install just`)
@@ -308,7 +308,7 @@ cp -r dist/* ../dist/static/
 
 ### Docker Deployment (Optional)
 ```dockerfile
-FROM rust:1.85 as backend-builder
+FROM rust:1.88 as backend-builder
 WORKDIR /app/ccr-ui/backend
 COPY . .
 RUN cargo build --release
