@@ -26,17 +26,17 @@
       </div>
 
       <!-- Logo Area -->
-      <div class="h-16 flex items-center px-4 border-b border-black/5 dark:border-white/10">
+      <div class="h-16 flex items-center px-4 border-b border-pink-200/20 dark:border-pink-300/10">
         <div class="flex items-center gap-3">
-          <div class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-accent-primary to-accent-secondary shadow-lg shadow-accent-primary/30">
-            <Zap class="w-5 h-5 text-white" />
+          <div class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-pink-400 to-violet-400 shadow-lg shadow-pink-400/30">
+            <Cat class="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 class="text-lg font-bold font-display tracking-tight leading-none text-slate-800 dark:text-white">
               CCR <span class="text-accent-primary">UI</span>
             </h1>
-            <p class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-              Terminal Node
+            <p class="text-[10px] uppercase tracking-widest text-pink-400 dark:text-pink-300 font-bold mt-0.5">
+              Neko Console
             </p>
           </div>
         </div>
@@ -153,36 +153,31 @@
         </div>
       </nav>
 
-      <!-- Footer: User Profile - Neo-Terminal Cyber Style -->
-      <div class="p-3 border-t border-black/5 dark:border-white/10">
+      <!-- Footer: User Profile - Neko Kawaii Style -->
+      <div class="p-3 border-t border-pink-200/10 dark:border-pink-300/10">
         <div class="user-card group relative rounded-2xl overflow-hidden transition-all duration-300">
           <!-- Animated gradient background -->
-          <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/15 via-violet-500/12 to-purple-500/15 opacity-80" />
-          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.12),transparent_50%)]" />
+          <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 via-fuchsia-500/12 to-violet-500/15 opacity-80" />
+          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(244,114,182,0.12),transparent_50%)]" />
 
-          <!-- Cyber grid pattern -->
-          <div class="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:8px_8px]" />
+          <!-- Neko dot pattern -->
+          <div class="absolute inset-0 opacity-10 bg-[radial-gradient(circle,rgba(255,255,255,0.15)_1px,transparent_1px)] bg-[size:10px_10px]" />
 
           <!-- Glow effect on hover -->
-          <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500/0 via-violet-500/20 to-purple-500/0 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-          <!-- Catgirl Image (Absolute Bottom Left) -->
-          <div class="absolute -bottom-4 -left-4 w-32 h-32 z-0 pointer-events-none opacity-80 hover:opacity-100 transition-opacity duration-500">
-            <img
-              src="/catgirl_avatar.png"
-              alt="Catgirl"
-              class="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(167,139,250,0.5)]"
-            >
-          </div>
+          <div class="absolute -inset-1 bg-gradient-to-r from-pink-500/0 via-fuchsia-400/20 to-violet-500/0 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
           <!-- Inner content -->
           <div class="relative p-3.5 backdrop-blur-sm z-10">
-            <!-- Top Row: Avatar & Toggle -->
+            <!-- Top Row: Catgirl Avatar & NYA Badge & Toggle -->
             <div class="flex items-start justify-between mb-3">
-              <!-- Avatar with cyber glow -->
+              <!-- Catgirl Avatar with neko glow frame -->
               <div class="relative">
-                <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-500 text-white font-bold font-mono text-sm shadow-lg shadow-violet-500/40 ring-2 ring-violet-400/30">
-                  <span class="drop-shadow-[0_0_8px_rgba(167,139,250,0.8)]">NYA</span>
+                <div class="w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-pink-400/20 via-fuchsia-400/20 to-violet-400/20 shadow-lg shadow-pink-500/40 ring-2 ring-pink-300/30 group-hover:ring-pink-400/50 group-hover:shadow-pink-500/60 transition-all duration-300">
+                  <img
+                    src="/catgirl_avatar.png"
+                    alt="Catgirl"
+                    class="w-full h-full object-cover object-top scale-[1.3] group-hover:scale-[1.4] transition-transform duration-500 drop-shadow-[0_0_8px_rgba(244,114,182,0.5)]"
+                  >
                 </div>
                 <!-- Pulsing status ring -->
                 <div class="absolute -bottom-0.5 -right-0.5">
@@ -192,8 +187,13 @@
                 </div>
               </div>
 
-              <!-- Theme Toggle with glass effect -->
-              <ThemeToggle class="relative z-20 p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-violet-500/30 transition-all duration-200" />
+              <!-- NYA Badge + Theme Toggle -->
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-1 rounded-lg text-[10px] font-bold font-mono tracking-wider bg-gradient-to-br from-pink-400 via-fuchsia-400 to-violet-400 text-white shadow-md shadow-pink-500/30 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]">
+                  NYA
+                </span>
+                <ThemeToggle class="relative z-20 p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-pink-400/30 transition-all duration-200" />
+              </div>
             </div>
 
             <!-- User Info -->
@@ -202,7 +202,7 @@
                 <h3 class="text-sm font-bold text-slate-800 dark:text-white tracking-wide drop-shadow-sm">
                   {{ $t('nav.user.role') }}
                 </h3>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-violet-500/30 to-purple-500/30 text-violet-300 border border-violet-400/30 shadow-sm shadow-violet-500/20">
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-pink-500/30 to-fuchsia-500/30 text-pink-300 border border-pink-400/30 shadow-sm shadow-pink-500/20">
                   Pro
                 </span>
               </div>
@@ -219,18 +219,18 @@
                   </span>
                 </p>
                 <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                  CCR UI v3.20.12
+                  CCR UI v4.0.0
                 </span>
               </div>
             </div>
 
             <!-- Decorative corner accents -->
-            <div class="absolute top-2 right-14 w-8 h-[1px] bg-gradient-to-r from-violet-500/50 to-transparent" />
-            <div class="absolute bottom-2 left-2 w-6 h-[1px] bg-gradient-to-r from-transparent to-indigo-500/50" />
+            <div class="absolute top-2 right-14 w-8 h-[1px] bg-gradient-to-r from-pink-400/50 to-transparent" />
+            <div class="absolute bottom-2 left-2 w-6 h-[1px] bg-gradient-to-r from-transparent to-fuchsia-500/50" />
           </div>
 
           <!-- Bottom accent line -->
-          <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
+          <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-pink-400/50 to-transparent" />
         </div>
       </div>
     </div>
@@ -297,9 +297,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { 
-  Home, Code2, Settings, Sparkles, Zap, Activity, 
-  Terminal, Cloud, Bot, ClipboardList 
+import {
+  Home, Code2, Settings, Sparkles, Zap, Activity,
+  Terminal, Cloud, Bot, ClipboardList, Cat
 } from 'lucide-vue-next'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
@@ -370,60 +370,60 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Sidebar Glass Effect - Dark Mode */
+/* Sidebar Glass Effect - Dark Mode (Neko Purple Night) */
 :root[data-theme="dark"] .sidebar-glass,
 .dark .sidebar-glass {
   background: linear-gradient(
     180deg,
-    rgb(15 23 42 / 85%) 0%,
-    rgb(15 23 42 / 90%) 50%,
-    rgb(15 23 42 / 95%) 100%
+    rgb(26 10 32 / 88%) 0%,
+    rgb(38 18 50 / 90%) 50%,
+    rgb(26 10 32 / 95%) 100%
   );
   backdrop-filter: blur(20px) saturate(180%);
-  border-right: 1px solid rgb(255 255 255 / 8%);
+  border-right: 1px solid rgb(249 168 212 / 8%);
   box-shadow:
     4px 0 24px rgb(0 0 0 / 30%),
-    inset -1px 0 0 rgb(255 255 255 / 5%);
+    inset -1px 0 0 rgb(249 168 212 / 5%);
 }
 
-/* Sidebar Glass Effect - Light Mode */
+/* Sidebar Glass Effect - Light Mode (Neko Pink Glass) */
 .sidebar-glass {
   background: linear-gradient(
     180deg,
-    rgb(255 255 255 / 30%) 0%,
-    rgb(255 255 255 / 40%) 50%,
-    rgb(255 255 255 / 50%) 100%
+    rgb(255 240 245 / 40%) 0%,
+    rgb(255 245 247 / 50%) 50%,
+    rgb(255 255 255 / 55%) 100%
   );
   backdrop-filter: blur(12px) saturate(150%);
-  border-right: 1px solid rgb(0 0 0 / 8%);
+  border-right: 1px solid rgb(244 114 182 / 10%);
   box-shadow:
-    4px 0 16px rgb(0 0 0 / 5%),
+    4px 0 16px rgb(244 114 182 / 5%),
     inset -1px 0 0 rgb(255 255 255 / 50%);
 }
 
-/* Nav Item Styles - Light Mode */
+/* Nav Item Styles - Light Mode (Neko Pink) */
 .nav-item {
-  @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600
+  @apply flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600
          transition-all duration-200 relative overflow-hidden;
 }
 
 .nav-item:hover {
-  @apply bg-slate-100 text-slate-900;
+  @apply bg-pink-50 text-pink-900;
 }
 
 .nav-item.router-link-active {
   @apply bg-accent-primary/10 text-accent-primary shadow-sm;
 }
 
-/* Nav Item Styles - Dark Mode */
+/* Nav Item Styles - Dark Mode (Neko Purple Night) */
 :root[data-theme="dark"] .nav-item,
 .dark .nav-item {
-  @apply text-slate-300;
+  @apply text-pink-200/80;
 }
 
 :root[data-theme="dark"] .nav-item:hover,
 .dark .nav-item:hover {
-  @apply bg-white/10 text-white;
+  @apply bg-pink-300/10 text-pink-100;
 }
 
 :root[data-theme="dark"] .nav-item.router-link-active,
@@ -445,23 +445,23 @@ onUnmounted(() => {
   box-shadow: 0 0 8px rgb(var(--color-accent-primary-rgb) / 60%);
 }
 
-/* User Card - Neo-Terminal Cyber Style */
+/* User Card - Neko Kawaii Style */
 .user-card {
   background: linear-gradient(135deg,
-    rgb(55 48 107 / 90%) 0%,
-    rgb(79 70 158 / 80%) 50%,
-    rgb(109 76 176 / 70%) 100%
+    rgb(120 40 90 / 85%) 0%,
+    rgb(140 60 130 / 75%) 50%,
+    rgb(100 50 150 / 70%) 100%
   );
-  border: 1px solid rgb(167 139 250 / 25%);
+  border: 1px solid rgb(244 114 182 / 25%);
   box-shadow:
     0 4px 20px rgb(0 0 0 / 25%),
     inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .user-card:hover {
-  border-color: rgb(167 139 250 / 45%);
+  border-color: rgb(244 114 182 / 45%);
   box-shadow:
-    0 8px 32px rgb(167 139 250 / 15%),
+    0 8px 32px rgb(244 114 182 / 15%),
     0 4px 20px rgb(0 0 0 / 25%),
     inset 0 1px 0 rgb(255 255 255 / 12%);
 }
@@ -469,21 +469,23 @@ onUnmounted(() => {
 /* User Card - Light Mode Override */
 [data-theme="light"] .user-card {
   background: linear-gradient(135deg,
-    rgb(255 255 255 / 40%) 0%,
-    rgb(255 255 255 / 60%) 100%
+    rgb(255 240 245 / 50%) 0%,
+    rgb(255 228 237 / 60%) 50%,
+    rgb(243 232 255 / 50%) 100%
   );
-  border: 1px solid rgb(255 255 255 / 60%);
+  border: 1px solid rgb(244 114 182 / 20%);
   box-shadow:
-    0 4px 15px rgb(0 0 0 / 5%),
+    0 4px 15px rgb(244 114 182 / 8%),
     inset 0 1px 0 rgb(255 255 255 / 80%);
 }
 
 [data-theme="light"] .user-card:hover {
   background: linear-gradient(135deg,
-    rgb(255 255 255 / 60%) 0%,
-    rgb(255 255 255 / 80%) 100%
+    rgb(255 240 245 / 70%) 0%,
+    rgb(255 228 237 / 80%) 50%,
+    rgb(243 232 255 / 70%) 100%
   );
-  box-shadow: 0 8px 25px rgb(0 0 0 / 8%);
+  box-shadow: 0 8px 25px rgb(244 114 182 / 12%);
 }
 
 /* Page Transition */

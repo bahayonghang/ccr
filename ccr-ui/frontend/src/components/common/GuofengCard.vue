@@ -165,13 +165,13 @@ const paddingMap = {
 
 const paddingClasses = computed(() => paddingMap[props.padding])
 
-// 发光颜色映射
+// 发光颜色映射 - 猫娘粉紫色系
 const glowColors = {
-  primary: 'var(--glow-primary)',
-  secondary: 'var(--glow-secondary)',
-  success: 'var(--glow-success)',
-  warning: 'var(--glow-warning)',
-  danger: 'var(--glow-danger)',
+  primary: 'rgba(244, 114, 182, 0.15)',
+  secondary: 'rgba(167, 139, 250, 0.15)',
+  success: 'rgba(52, 211, 153, 0.15)',
+  warning: 'rgba(251, 191, 36, 0.15)',
+  danger: 'rgba(251, 113, 133, 0.15)',
 }
 
 // 渐变边框样式
