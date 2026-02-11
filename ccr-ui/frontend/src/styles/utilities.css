@@ -1,5 +1,5 @@
 /* ============================================
-   CCR-UI Neo-Terminal Design System
+   CCR-UI Nekomata Kawaii Design System
    Utilities - Reusable Utility Classes
    ============================================ */
 
@@ -575,37 +575,38 @@
         -webkit-text-fill-color: transparent;
     }
 
-    /* 青色渐变 - 科技感 */
-    .text-gradient-cyan {
-        background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+    /* 粉色渐变 - 甜美感 */
+    .text-gradient-cyan,
+    .text-gradient-pink {
+        background: linear-gradient(135deg, #F472B6 0%, #EC4899 100%);
         background-clip: text;
         -webkit-text-fill-color: transparent;
     }
 
     /* 紫色渐变 - 优雅感 */
     .text-gradient-purple {
-        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        background: linear-gradient(135deg, #A78BFA 0%, #C084FC 100%);
         background-clip: text;
         -webkit-text-fill-color: transparent;
     }
 
     /* 绿色渐变 - 成功/健康 */
     .text-gradient-green {
-        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+        background: linear-gradient(135deg, #34D399 0%, #6EE7B7 100%);
         background-clip: text;
         -webkit-text-fill-color: transparent;
     }
 
     /* 橙色渐变 - 警告/活力 */
     .text-gradient-orange {
-        background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+        background: linear-gradient(135deg, #FBBF24 0%, #FB7185 100%);
         background-clip: text;
         -webkit-text-fill-color: transparent;
     }
 
-    /* 彩虹渐变 - 特殊强调 */
+    /* 彩虹渐变 - 猫娘特色 */
     .text-gradient-rainbow {
-        background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
+        background: linear-gradient(90deg, #F472B6, #A78BFA, #C084FC, #34D399, #FBBF24);
         background-clip: text;
         -webkit-text-fill-color: transparent;
     }
