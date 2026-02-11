@@ -1,10 +1,11 @@
 // Hook management routes
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, patch, post},
 };
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/hooks", get(crate::api::handlers::hooks::list_hooks))
         .route("/hooks", post(crate::api::handlers::hooks::add_hook))

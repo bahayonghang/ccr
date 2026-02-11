@@ -1,9 +1,10 @@
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, post, put},
 };
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route(
             "/iflow/mcp",

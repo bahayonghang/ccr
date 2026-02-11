@@ -1,6 +1,7 @@
 // Marketplace Routes
 // 资源市场 API 路由
 
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, post},
@@ -8,7 +9,7 @@ use axum::{
 
 use crate::api::handlers::marketplace;
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         // 获取所有市场项目
         .route("/marketplace", get(marketplace::list_marketplace_items))

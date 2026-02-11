@@ -2,11 +2,12 @@
 //!
 //! 提供 Provider 健康检查的 API 端点
 
+use crate::state::AppState;
 use axum::{Json, Router, routing::get, routing::post};
 use serde::{Deserialize, Serialize};
 
 /// 创建 provider-health 路由
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/provider-health/test", post(test_provider))
         .route("/provider-health/test-all", get(test_all_providers))

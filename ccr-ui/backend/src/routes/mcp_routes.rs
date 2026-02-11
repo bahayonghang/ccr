@@ -1,10 +1,11 @@
 // MCP server management routes
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, post, put},
 };
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/mcp", get(crate::api::handlers::mcp::list_mcp_servers))
         .route("/mcp", post(crate::api::handlers::mcp::add_mcp_server))
@@ -22,7 +23,7 @@ pub fn routes() -> Router {
         )
 }
 
-pub fn presets_routes() -> Router {
+pub fn presets_routes() -> Router<AppState> {
     Router::new()
         .route(
             "/mcp/presets",
@@ -42,7 +43,7 @@ pub fn presets_routes() -> Router {
         )
 }
 
-pub fn sync_routes() -> Router {
+pub fn sync_routes() -> Router<AppState> {
     Router::new()
         .route(
             "/mcp/sync/source",

@@ -1,7 +1,8 @@
 // Statistics routes
+use crate::state::AppState;
 use axum::{Router, routing::get};
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route(
             "/stats/cost",

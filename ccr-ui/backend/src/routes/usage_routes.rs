@@ -1,4 +1,5 @@
 // Usage analytics routes
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{get, post},
@@ -6,7 +7,7 @@ use axum::{
 
 use crate::api::handlers::usage;
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         // 原有端点：从文件读取 usage 记录 (带内存缓存)
         .route("/usage/records", get(usage::get_usage_records))

@@ -1,13 +1,14 @@
 // Configuration management routes
 // CCR 配置相关路由
 
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, patch, post, put},
 };
 
 /// Configuration management routes
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         // List configurations
         .route("/configs", get(crate::api::handlers::config::list_configs))

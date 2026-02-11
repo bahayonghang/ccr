@@ -1,4 +1,5 @@
 // 签到管理路由
+use crate::state::AppState;
 use axum::{
     Router,
     routing::{delete, get, post, put},
@@ -6,7 +7,7 @@ use axum::{
 
 use crate::api::handlers::checkin;
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<AppState> {
     Router::new()
         // ═══════════════════════════════════════════════════════════
         // 提供商管理
