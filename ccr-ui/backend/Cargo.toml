@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "3.20.12"
+version = "4.0.0"
 edition = "2024"
 
 [dependencies]
@@ -44,7 +44,7 @@ tokio = { version = "1.49.0", features = ["full"] } # 异步运行时 (全功能
 serde = { version = "1.0.228", features = ["derive"] } # 序列化框架
 serde_json = "1.0.148"                                 # JSON 处理
 indexmap = "2.12"                                      # 有序 Map (保持配置顺序)
-scraper = "0.23.1"                                     # HTML 解析
+scraper = "0.25.0"                                     # HTML 解析
 
 # Time
 chrono = { version = "0.4.42", features = ["serde"] } # 时间日期处理
@@ -86,7 +86,7 @@ clap = { version = "4.5.54", features = ["derive"] } # 命令行参数解析
 # System information
 whoami = "2.0.0"    # 获取当前用户身份
 num_cpus = "1.17.0" # 获取 CPU 核心数
-sysinfo = "0.37.2"  # 系统状态监控 (统一版本)
+sysinfo = "0.38.1"  # 系统状态监控 (统一版本)
 
 # HTTP client for checking updates and checkin API calls
 # NOTE: Enable `gzip` to transparently decode provider responses (see NeuraDock).
@@ -131,7 +131,7 @@ r2d2_sqlite = "0.32" # SQLite 连接池
 aes-gcm = "0.10" # AES-GCM 加密 (敏感数据保护)
 
 # Random key generation
-rand = "0.9" # 随机数生成
+rand = "0.10.0" # 随机数生成
 
 # Base64 encoding for encrypted data
 base64 = "0.22" # Base64 编解码
