@@ -194,7 +194,6 @@ const nameColorClass = computed(() => {
 .config-row {
   background: var(--liquid-glass-bg);
   backdrop-filter: var(--liquid-glass-blur);
-  backdrop-filter: var(--liquid-glass-blur);
   border: 1px solid var(--liquid-glass-border);
   box-shadow: var(--liquid-glass-highlight);
   cursor: pointer;

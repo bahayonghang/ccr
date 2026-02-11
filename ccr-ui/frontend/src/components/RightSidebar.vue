@@ -378,7 +378,6 @@ const categories = computed(() => [
 .sidebar-container {
   background: var(--glass-bg-light);
   backdrop-filter: var(--glass-blur-sm);
-  backdrop-filter: var(--glass-blur-sm);
   max-height: calc(100vh - 160px);
   overflow-y: auto;
 }
