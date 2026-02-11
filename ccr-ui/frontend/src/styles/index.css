@@ -1,5 +1,5 @@
 /* ============================================
-   CCR-UI Neo-Terminal Design System
+   CCR-UI Nekomata Kawaii Design System
    Main Entry Point
    ============================================ */
 
@@ -18,7 +18,10 @@
 /* 背景系统 */
 @import './backgrounds.css';
 
-/* 图表配色（保留现有） */
+/* 猫娘装饰元素 */
+@import './neko-decorations.css';
+
+/* 图表配色 */
 @import './chart-colors.css';
 
 /* Tailwind CSS 指令 */

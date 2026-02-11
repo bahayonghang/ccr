@@ -1,5 +1,5 @@
 /* ============================================
-   CCR-UI Neo-Terminal Design System
+   CCR-UI Nekomata Kawaii Design System
    Animations - Keyframes & Animation Classes
    ============================================ */
 
@@ -270,6 +270,125 @@
         }
     }
 
+    /* ========== 猫娘特色动画 (Neko Kawaii) ========== */
+
+    /* 猫爪按压 - 用于按钮点击反馈 */
+    @keyframes neko-press {
+        0% {
+            transform: scale(1);
+        }
+
+        40% {
+            transform: scale(0.92);
+        }
+
+        70% {
+            transform: scale(1.04);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    /* 猫耳抖动 - 用于 hover 装饰效果 */
+    @keyframes neko-ear-wiggle {
+        0%,
+        100% {
+            transform: rotate(0deg);
+        }
+
+        20% {
+            transform: rotate(-8deg);
+        }
+
+        40% {
+            transform: rotate(6deg);
+        }
+
+        60% {
+            transform: rotate(-4deg);
+        }
+
+        80% {
+            transform: rotate(2deg);
+        }
+    }
+
+    /* 猫尾摇摆 - 用于 loading 状态 */
+    @keyframes neko-tail-wag {
+        0%,
+        100% {
+            transform: rotate(-5deg) scaleX(1);
+        }
+
+        25% {
+            transform: rotate(8deg) scaleX(1.05);
+        }
+
+        50% {
+            transform: rotate(-3deg) scaleX(1);
+        }
+
+        75% {
+            transform: rotate(6deg) scaleX(0.95);
+        }
+    }
+
+    /* 猫爪印出现 - 用于步骤指示 */
+    @keyframes paw-appear {
+        0% {
+            opacity: 0;
+            transform: scale(0.3) rotate(-20deg);
+        }
+
+        50% {
+            opacity: 1;
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        100% {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+    }
+
+    /* 浮动猫爪粒子 - 用于背景装饰 */
+    @keyframes neko-float {
+        0%,
+        100% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 0.6;
+        }
+
+        25% {
+            transform: translateY(-15px) rotate(5deg);
+            opacity: 0.9;
+        }
+
+        50% {
+            transform: translateY(-8px) rotate(-3deg);
+            opacity: 0.7;
+        }
+
+        75% {
+            transform: translateY(-20px) rotate(3deg);
+            opacity: 0.8;
+        }
+    }
+
+    /* 猫娘呼吸灯 - 用于卡片边框发光 */
+    @keyframes neko-breathe {
+        0%,
+        100% {
+            box-shadow: 0 0 8px rgb(244 114 182 / 15%);
+        }
+
+        50% {
+            box-shadow: 0 0 16px rgb(244 114 182 / 30%);
+        }
+    }
+
     /* ========== 动画工具类 ========== */
 
     /* 基础动画 */
@@ -368,6 +487,37 @@
     .animate-backdrop-enter {
         animation: backdrop-enter var(--duration-normal) var(--ease-out) forwards;
         will-change: opacity;
+    }
+
+    /* 猫娘特色动画类 (Neko Kawaii) */
+    .animate-neko-press {
+        animation: neko-press 0.4s var(--ease-out);
+        will-change: transform;
+    }
+
+    .animate-neko-ear-wiggle {
+        animation: neko-ear-wiggle 0.6s var(--ease-in-out);
+        will-change: transform;
+    }
+
+    .animate-neko-tail-wag {
+        animation: neko-tail-wag 1.2s var(--ease-in-out) infinite;
+        will-change: transform;
+    }
+
+    .animate-paw-appear {
+        animation: paw-appear 0.5s var(--ease-out-back) forwards;
+        will-change: transform, opacity;
+    }
+
+    .animate-neko-float {
+        animation: neko-float 4s var(--ease-in-out) infinite;
+        will-change: transform, opacity;
+    }
+
+    .animate-neko-breathe {
+        animation: neko-breathe 3s var(--ease-in-out) infinite;
+        will-change: box-shadow;
     }
 
     /* 延迟工具类 */

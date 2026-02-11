@@ -99,12 +99,32 @@ export default {
         'scale-in': {
           '0%': { opacity: '0', transform: 'scale(0.95) translateZ(0)' },
           '100%': { opacity: '1', transform: 'scale(1) translateZ(0)' },
-        }
+        },
+        'neko-press': {
+          '0%': { transform: 'scale(1)' },
+          '40%': { transform: 'scale(0.92)' },
+          '70%': { transform: 'scale(1.04)' },
+          '100%': { transform: 'scale(1)' },
+        },
+        'neko-ear-wiggle': {
+          '0%, 100%': { transform: 'rotate(0deg)' },
+          '20%': { transform: 'rotate(-8deg)' },
+          '40%': { transform: 'rotate(6deg)' },
+          '60%': { transform: 'rotate(-4deg)' },
+          '80%': { transform: 'rotate(2deg)' },
+        },
+        'neko-breathe': {
+          '0%, 100%': { boxShadow: '0 0 8px rgb(244 114 182 / 15%)' },
+          '50%': { boxShadow: '0 0 16px rgb(244 114 182 / 30%)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in var(--duration-normal) var(--ease-out) forwards',
         'slide-up': 'slide-up var(--duration-normal) var(--ease-out) forwards',
         'scale-in': 'scale-in var(--duration-fast) var(--ease-spring) forwards',
+        'neko-press': 'neko-press 0.4s ease-out',
+        'neko-ear-wiggle': 'neko-ear-wiggle 0.6s ease-in-out',
+        'neko-breathe': 'neko-breathe 3s ease-in-out infinite',
       }
     },
   },
