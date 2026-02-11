@@ -2,7 +2,7 @@
 // 读取和解析 Claude Code 的 usage 日志
 // 支持增量导入和 SQLite 缓存
 
-use axum::{Json, extract::Query, http::StatusCode};
+use axum::{Json, extract::Query};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -11,7 +11,8 @@ use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};
 use walkdir::WalkDir;
 
-use crate::models::api::ApiResponse;
+use crate::api::handlers::response::ApiSuccess;
+use crate::core::error::{ApiError, ApiResult};
 use crate::models::usage::{UsageData, UsageRecord, UsageRecordsResponse};
 use crate::services::usage_import_service::{ImportConfig, ImportResult, UsageImportService};
 
@@ -54,9 +55,10 @@ fn default_limit() -> usize {
 /// GET /api/usage/records - 获取 usage 记录
 ///
 /// 从 Claude Code 日志文件中读取 usage 数据（带缓存）
+/// 注：此端点直接返回 UsageRecordsResponse（不包裹在 success envelope 中）
 pub async fn get_usage_records(
     Query(params): Query<UsageRecordsQuery>,
-) -> Result<Json<UsageRecordsResponse>, (StatusCode, String)> {
+) -> ApiResult<Json<UsageRecordsResponse>> {
     debug!(
         "Fetching usage records for platform: {}, limit: {}",
         params.platform, params.limit
@@ -65,13 +67,10 @@ pub async fn get_usage_records(
     // 验证 platform 参数
     let valid_platforms = ["claude", "codex", "gemini"];
     if !valid_platforms.contains(&params.platform.as_str()) {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            format!(
-                "Platform '{}' not supported for usage analytics. Supported platforms: claude, codex, gemini",
-                params.platform
-            ),
-        ));
+        return Err(ApiError::bad_request(format!(
+            "Platform '{}' not supported for usage analytics. Supported platforms: claude, codex, gemini",
+            params.platform
+        )));
     }
 
     // 验证 limit 参数
@@ -104,38 +103,34 @@ pub async fn get_usage_records(
         "Cache miss or expired for platform: {}, reading from files",
         params.platform
     );
-    match read_usage_files(&params.platform, limit).await {
-        Ok((records, total)) => {
-            // 更新缓存
-            {
-                let mut cache = USAGE_CACHE.lock().expect("无法获取缓存锁");
-                cache.insert(
-                    params.platform.clone(),
-                    CachedUsageData {
-                        records: records.clone(),
-                        total_records: total,
-                        timestamp: Instant::now(),
-                    },
-                );
-            }
-
-            let response = UsageRecordsResponse::new(records, total, limit);
-            debug!(
-                "Successfully read {} records (total: {}, truncated: {})",
-                response.records.len(),
-                response.total_records,
-                response.truncated
-            );
-            Ok(Json(response))
-        }
-        Err(e) => {
+    let (records, total) = read_usage_files(&params.platform, limit)
+        .await
+        .map_err(|e| {
             error!("Failed to read usage files: {}", e);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to read usage files: {}", e),
-            ))
-        }
+            ApiError::internal(format!("Failed to read usage files: {}", e))
+        })?;
+
+    // 更新缓存
+    {
+        let mut cache = USAGE_CACHE.lock().expect("无法获取缓存锁");
+        cache.insert(
+            params.platform.clone(),
+            CachedUsageData {
+                records: records.clone(),
+                total_records: total,
+                timestamp: Instant::now(),
+            },
+        );
     }
+
+    let response = UsageRecordsResponse::new(records, total, limit);
+    debug!(
+        "Successfully read {} records (total: {}, truncated: {})",
+        response.records.len(),
+        response.total_records,
+        response.truncated
+    );
+    Ok(Json(response))
 }
 
 /// 读取平台 usage 文件
@@ -346,51 +341,39 @@ pub struct ImportResponse {
 /// 从平台日志文件增量导入 usage 数据到 SQLite
 pub async fn import_usage(
     Query(params): Query<ImportQuery>,
-) -> Result<Json<ApiResponse<ImportResponse>>, (StatusCode, String)> {
+) -> ApiResult<ApiSuccess<ImportResponse>> {
     info!("Triggering usage import for platform: {}", params.platform);
 
     // 验证 platform 参数
     let valid_platforms = ["claude", "codex", "gemini"];
     if !valid_platforms.contains(&params.platform.as_str()) {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            format!(
-                "Platform '{}' not supported. Supported platforms: claude, codex, gemini",
-                params.platform
-            ),
-        ));
+        return Err(ApiError::bad_request(format!(
+            "Platform '{}' not supported. Supported platforms: claude, codex, gemini",
+            params.platform
+        )));
     }
 
     let service = UsageImportService::new(ImportConfig::default());
 
-    match service.import_platform(&params.platform) {
-        Ok(result) => {
-            let message = format!(
-                "Imported {} records from {} files for {} ({})",
-                result.records_imported,
-                result.files_processed,
-                result.platform,
-                if result.completed {
-                    "completed"
-                } else {
-                    "partial"
-                }
-            );
-            info!("{}", message);
+    let result = service.import_platform(&params.platform).map_err(|e| {
+        error!("Import failed for {}: {}", params.platform, e);
+        ApiError::internal(format!("Import failed: {}", e))
+    })?;
 
-            Ok(Json(ApiResponse::success(ImportResponse {
-                result,
-                message,
-            })))
+    let message = format!(
+        "Imported {} records from {} files for {} ({})",
+        result.records_imported,
+        result.files_processed,
+        result.platform,
+        if result.completed {
+            "completed"
+        } else {
+            "partial"
         }
-        Err(e) => {
-            error!("Import failed for {}: {}", params.platform, e);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Import failed: {}", e),
-            ))
-        }
-    }
+    );
+    info!("{}", message);
+
+    Ok(ApiSuccess(ImportResponse { result, message }))
 }
 
 /// 导入所有平台响应
@@ -404,8 +387,7 @@ pub struct ImportAllResponse {
 /// POST /api/usage/import/all - 导入所有平台
 ///
 /// 依次导入 claude, codex, gemini 平台的 usage 数据
-pub async fn import_all_usage() -> Result<Json<ApiResponse<ImportAllResponse>>, (StatusCode, String)>
-{
+pub async fn import_all_usage() -> ApiResult<ApiSuccess<ImportAllResponse>> {
     info!("Triggering usage import for all platforms");
 
     let service = UsageImportService::new(ImportConfig::default());
@@ -433,11 +415,11 @@ pub async fn import_all_usage() -> Result<Json<ApiResponse<ImportAllResponse>>, 
         results.len()
     );
 
-    Ok(Json(ApiResponse::success(ImportAllResponse {
+    Ok(ApiSuccess(ImportAllResponse {
         results,
         total_imported,
         total_files,
-    })))
+    }))
 }
 
 /// 统计信息响应
@@ -451,24 +433,19 @@ pub struct UsageStatsResponse {
 /// GET /api/usage/stats - 获取使用统计
 ///
 /// 返回数据库中的记录统计信息
-pub async fn get_usage_stats() -> Result<Json<ApiResponse<UsageStatsResponse>>, (StatusCode, String)>
-{
+pub async fn get_usage_stats() -> ApiResult<ApiSuccess<UsageStatsResponse>> {
     let service = UsageImportService::new(ImportConfig::default());
 
-    match service.get_stats() {
-        Ok(stats) => Ok(Json(ApiResponse::success(UsageStatsResponse {
-            total_sources: stats.total_sources,
-            total_records: stats.total_records,
-            records_by_platform: stats.records_by_platform,
-        }))),
-        Err(e) => {
-            error!("Failed to get usage stats: {}", e);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to get stats: {}", e),
-            ))
-        }
-    }
+    let stats = service.get_stats().map_err(|e| {
+        error!("Failed to get usage stats: {}", e);
+        ApiError::internal(format!("Failed to get stats: {}", e))
+    })?;
+
+    Ok(ApiSuccess(UsageStatsResponse {
+        total_sources: stats.total_sources,
+        total_records: stats.total_records,
+        records_by_platform: stats.records_by_platform,
+    }))
 }
 
 /// 清理请求参数
@@ -494,7 +471,7 @@ pub struct CleanupResponse {
 /// 删除超过保留期限的旧记录
 pub async fn cleanup_usage(
     Query(params): Query<CleanupQuery>,
-) -> Result<Json<ApiResponse<CleanupResponse>>, (StatusCode, String)> {
+) -> ApiResult<ApiSuccess<CleanupResponse>> {
     info!(
         "Cleaning up records older than {} days",
         params.retention_days
@@ -506,21 +483,15 @@ pub async fn cleanup_usage(
     };
     let service = UsageImportService::new(config);
 
-    match service.cleanup_old_records() {
-        Ok(deleted) => {
-            info!("Cleaned up {} old records", deleted);
-            Ok(Json(ApiResponse::success(CleanupResponse {
-                records_deleted: deleted,
-            })))
-        }
-        Err(e) => {
-            error!("Cleanup failed: {}", e);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Cleanup failed: {}", e),
-            ))
-        }
-    }
+    let deleted = service.cleanup_old_records().map_err(|e| {
+        error!("Cleanup failed: {}", e);
+        ApiError::internal(format!("Cleanup failed: {}", e))
+    })?;
+
+    info!("Cleaned up {} old records", deleted);
+    Ok(ApiSuccess(CleanupResponse {
+        records_deleted: deleted,
+    }))
 }
 
 #[cfg(test)]

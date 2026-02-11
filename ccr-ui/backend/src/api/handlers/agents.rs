@@ -1,7 +1,9 @@
-use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
+use axum::{Json, extract::Path};
 use serde_json::json;
 
+use crate::api::handlers::response::ApiSuccess;
 use crate::cache::GLOBAL_SETTINGS_CACHE;
+use crate::core::error::{ApiError, ApiResult};
 use crate::managers::markdown_manager::{AgentFrontmatter, MarkdownManager};
 use crate::models::api::{Agent, AgentRequest};
 
@@ -59,7 +61,7 @@ fn load_agents_from_manager(manager: &MarkdownManager) -> Vec<Agent> {
 }
 
 /// GET /api/agents - List all agents
-pub async fn list_agents() -> impl IntoResponse {
+pub async fn list_agents() -> ApiResult<ApiSuccess<serde_json::Value>> {
     let project_root = find_project_root();
     let project_manager = project_root
         .as_ref()
@@ -107,160 +109,95 @@ pub async fn list_agents() -> impl IntoResponse {
             .into_iter()
             .collect();
 
-        return (
-            StatusCode::OK,
-            Json(json!({
-                "success": true,
-                "data": {
-                    "agents": agents,
-                    "folders": folders
-                },
-                "message": null
-            })),
-        )
-            .into_response();
+        return Ok(ApiSuccess(json!({
+            "agents": agents,
+            "folders": folders
+        })));
     }
 
     // Fallback to settings.json (使用全局缓存)
-    let settings_result = GLOBAL_SETTINGS_CACHE.load();
+    let settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-    if let Ok(settings) = settings_result {
-        let agents: Vec<Agent> = settings
-            .agents
-            .into_iter()
-            .map(|agent| Agent {
-                name: agent.name,
-                model: agent.model,
-                tools: agent.tools,
-                system_prompt: agent.system_prompt,
-                disabled: agent.disabled,
-                folder: String::new(), // Settings don't have folder concept
-            })
-            .collect();
+    let agents: Vec<Agent> = settings
+        .agents
+        .into_iter()
+        .map(|agent| Agent {
+            name: agent.name,
+            model: agent.model,
+            tools: agent.tools,
+            system_prompt: agent.system_prompt,
+            disabled: agent.disabled,
+            folder: String::new(),
+        })
+        .collect();
 
-        return (
-            StatusCode::OK,
-            Json(json!({
-                "success": true,
-                "data": {
-                    "agents": agents,
-                    "folders": Vec::<String>::new()
-                },
-                "message": null
-            })),
-        )
-            .into_response();
-    }
-
-    // Both sources failed
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Failed to load agents from both markdown files and settings.json"
-        })),
-    )
-        .into_response()
+    Ok(ApiSuccess(json!({
+        "agents": agents,
+        "folders": Vec::<String>::new()
+    })))
 }
 
 /// POST /api/agents - Add a new agent
-pub async fn add_agent(Json(req): Json<AgentRequest>) -> impl IntoResponse {
+pub async fn add_agent(Json(req): Json<AgentRequest>) -> ApiResult<ApiSuccess<&'static str>> {
     // Try settings.json first (使用全局缓存)
-    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
-        let new_agent = crate::managers::settings_manager::Agent {
-            name: req.name.clone(),
-            model: req.model.clone(),
-            tools: req.tools.unwrap_or_default(),
-            system_prompt: req.system_prompt.clone(),
-            disabled: req.disabled.unwrap_or(false),
-            other: std::collections::HashMap::new(),
-        };
+    let mut settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-        settings.agents.push(new_agent);
+    let new_agent = crate::managers::settings_manager::Agent {
+        name: req.name.clone(),
+        model: req.model.clone(),
+        tools: req.tools.unwrap_or_default(),
+        system_prompt: req.system_prompt.clone(),
+        disabled: req.disabled.unwrap_or(false),
+        other: std::collections::HashMap::new(),
+    };
 
-        if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-            return (
-                StatusCode::OK,
-                Json(json!({
-                    "success": true,
-                    "data": "Agent added successfully",
-                    "message": null
-                })),
-            )
-                .into_response();
-        }
-    }
+    settings.agents.push(new_agent);
 
-    // Fallback to markdown files
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Agent addition via markdown files not implemented"
-        })),
-    )
-        .into_response()
+    GLOBAL_SETTINGS_CACHE
+        .save_atomic(&settings)
+        .map_err(|e| ApiError::internal(format!("Failed to save settings: {}", e)))?;
+
+    Ok(ApiSuccess("Agent added successfully"))
 }
 
 /// PATCH /api/agents/:name - Update an agent
 pub async fn update_agent(
     Path(name): Path<String>,
     Json(req): Json<AgentRequest>,
-) -> impl IntoResponse {
-    // Try settings.json first (使用全局缓存)
-    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load()
-        && let Some(agent) = settings.agents.iter_mut().find(|a| a.name == name)
-    {
-        agent.name = req.name;
-        agent.model = req.model;
-        if let Some(tools) = req.tools {
-            agent.tools = tools;
-        }
-        agent.system_prompt = req.system_prompt;
-        if let Some(disabled) = req.disabled {
-            agent.disabled = disabled;
-        }
+) -> ApiResult<ApiSuccess<&'static str>> {
+    let mut settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-        if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-            return (
-                StatusCode::OK,
-                Json(json!({
-                    "success": true,
-                    "data": "Agent updated successfully",
-                    "message": null
-                })),
-            )
-                .into_response();
-        }
-    } else if let Ok(settings) = GLOBAL_SETTINGS_CACHE.load()
-        && !settings.agents.iter().any(|a| a.name == name)
-    {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(json!({
-                "success": false,
-                "data": null,
-                "message": "Agent not found"
-            })),
-        )
-            .into_response();
+    let agent = settings
+        .agents
+        .iter_mut()
+        .find(|a| a.name == name)
+        .ok_or_else(|| ApiError::not_found("Agent not found"))?;
+
+    agent.name = req.name;
+    agent.model = req.model;
+    if let Some(tools) = req.tools {
+        agent.tools = tools;
+    }
+    agent.system_prompt = req.system_prompt;
+    if let Some(disabled) = req.disabled {
+        agent.disabled = disabled;
     }
 
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Failed to update agent"
-        })),
-    )
-        .into_response()
+    GLOBAL_SETTINGS_CACHE
+        .save_atomic(&settings)
+        .map_err(|e| ApiError::internal(format!("Failed to save settings: {}", e)))?;
+
+    Ok(ApiSuccess("Agent updated successfully"))
 }
 
 /// GET /api/agents/:name - Get a single agent by name
-pub async fn get_agent(Path(name): Path<String>) -> impl IntoResponse {
+pub async fn get_agent(Path(name): Path<String>) -> ApiResult<ApiSuccess<serde_json::Value>> {
     let project_root = find_project_root();
     let project_manager = project_root
         .as_ref()
@@ -298,142 +235,77 @@ pub async fn get_agent(Path(name): Path<String>) -> impl IntoResponse {
                         folder: folder_path,
                     };
 
-                    return (
-                        StatusCode::OK,
-                        Json(json!({
-                            "success": true,
-                            "data": agent,
-                            "message": null
-                        })),
-                    )
-                        .into_response();
+                    return Ok(ApiSuccess(json!(agent)));
                 }
             }
         }
     }
 
     // Fallback to settings.json (使用全局缓存)
-    if let Ok(settings) = GLOBAL_SETTINGS_CACHE.load()
-        && let Some(agent) = settings.agents.iter().find(|a| a.name == name)
-    {
-        let api_agent = Agent {
-            name: agent.name.clone(),
-            model: agent.model.clone(),
-            tools: agent.tools.clone(),
-            system_prompt: agent.system_prompt.clone(),
-            disabled: agent.disabled,
-            folder: String::new(),
-        };
+    let settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-        return (
-            StatusCode::OK,
-            Json(json!({
-                "success": true,
-                "data": api_agent,
-                "message": null
-            })),
-        )
-            .into_response();
-    }
+    let agent = settings
+        .agents
+        .iter()
+        .find(|a| a.name == name)
+        .ok_or_else(|| ApiError::not_found(format!("Agent '{}' not found", name)))?;
 
-    // Agent not found
-    (
-        StatusCode::NOT_FOUND,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": format!("Agent '{}' not found", name)
-        })),
-    )
-        .into_response()
+    let api_agent = Agent {
+        name: agent.name.clone(),
+        model: agent.model.clone(),
+        tools: agent.tools.clone(),
+        system_prompt: agent.system_prompt.clone(),
+        disabled: agent.disabled,
+        folder: String::new(),
+    };
+
+    Ok(ApiSuccess(json!(api_agent)))
 }
 
 /// DELETE /api/agents/:name - Delete an agent
-pub async fn delete_agent(Path(name): Path<String>) -> impl IntoResponse {
-    // Try settings.json first (使用全局缓存)
-    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
-        let original_len = settings.agents.len();
-        settings.agents.retain(|a| a.name != name);
+pub async fn delete_agent(Path(name): Path<String>) -> ApiResult<ApiSuccess<&'static str>> {
+    let mut settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-        if settings.agents.len() < original_len {
-            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-                return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "success": true,
-                        "data": "Agent deleted successfully",
-                        "message": null
-                    })),
-                )
-                    .into_response();
-            }
-        } else {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": "Agent not found"
-                })),
-            )
-                .into_response();
-        }
+    let original_len = settings.agents.len();
+    settings.agents.retain(|a| a.name != name);
+
+    if settings.agents.len() >= original_len {
+        return Err(ApiError::not_found("Agent not found"));
     }
 
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Failed to delete agent"
-        })),
-    )
-        .into_response()
+    GLOBAL_SETTINGS_CACHE
+        .save_atomic(&settings)
+        .map_err(|e| ApiError::internal(format!("Failed to save settings: {}", e)))?;
+
+    Ok(ApiSuccess("Agent deleted successfully"))
 }
 
 /// PATCH /api/agents/:name/toggle - Toggle agent enabled/disabled state
-pub async fn toggle_agent(Path(name): Path<String>) -> impl IntoResponse {
-    // Try settings.json first (使用全局缓存)
-    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
-        if let Some(agent) = settings.agents.iter_mut().find(|a| a.name == name) {
-            agent.disabled = !agent.disabled;
-            let new_state = if agent.disabled {
-                "disabled"
-            } else {
-                "enabled"
-            };
+pub async fn toggle_agent(Path(name): Path<String>) -> ApiResult<ApiSuccess<String>> {
+    let mut settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-                return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "success": true,
-                        "data": format!("Agent toggled to {}", new_state),
-                        "message": null
-                    })),
-                )
-                    .into_response();
-            }
-        } else {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": "Agent not found"
-                })),
-            )
-                .into_response();
-        }
-    }
+    let agent = settings
+        .agents
+        .iter_mut()
+        .find(|a| a.name == name)
+        .ok_or_else(|| ApiError::not_found("Agent not found"))?;
 
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Failed to toggle agent"
-        })),
-    )
-        .into_response()
+    agent.disabled = !agent.disabled;
+    let new_state = if agent.disabled {
+        "disabled"
+    } else {
+        "enabled"
+    };
+
+    GLOBAL_SETTINGS_CACHE
+        .save_atomic(&settings)
+        .map_err(|e| ApiError::internal(format!("Failed to save settings: {}", e)))?;
+
+    Ok(ApiSuccess(format!("Agent toggled to {}", new_state)))
 }

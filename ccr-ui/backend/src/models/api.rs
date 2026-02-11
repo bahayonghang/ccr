@@ -387,7 +387,9 @@ pub struct McpServerRequest {
     pub disabled: Option<bool>,
 }
 
+/// MCP 服务器响应（旧版，保留兼容）
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct McpServersResponse {
     pub success: bool,
     pub data: serde_json::Value,

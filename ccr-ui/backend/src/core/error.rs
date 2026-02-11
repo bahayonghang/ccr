@@ -13,8 +13,9 @@ use std::fmt;
 use crate::database::DatabaseError;
 use crate::services::checkin_service::CheckinServiceError;
 
-/// 统一的 API 错误响应体
+/// 统一的 API 错误响应体（旧格式，保留用于兼容）
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 pub struct ApiErrorBody {
     pub code: u16,
     pub message: String,
@@ -116,22 +117,32 @@ impl fmt::Display for ApiError {
 
 impl std::error::Error for ApiError {}
 
+/// 统一的错误响应体（与前端 `{ success, data, message }` 格式一致）
+#[derive(Debug, Serialize)]
+struct ApiErrorResponse {
+    success: bool,
+    data: Option<()>,
+    message: String,
+}
+
 /// 实现 IntoResponse，自动将错误转换为 HTTP 响应
+///
+/// 输出格式与前端约定一致：`{ "success": false, "data": null, "message": "..." }`
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, message) = self.status_and_message();
-
-        let body = ApiErrorBody {
-            code: status.as_u16(),
-            message: message.clone(),
-            details: None,
-        };
 
         tracing::error!(
             status = status.as_u16(),
             message = %message,
             "API error occurred"
         );
+
+        let body = ApiErrorResponse {
+            success: false,
+            data: None,
+            message,
+        };
 
         (status, Json(body)).into_response()
     }
@@ -211,6 +222,20 @@ impl From<reqwest::Error> for ApiError {
         } else {
             ApiError::Internal(format!("HTTP client error: {}", err))
         }
+    }
+}
+
+/// 从 String 转换（便于 `.map_err(|e| format!("..."))?` 模式）
+impl From<String> for ApiError {
+    fn from(msg: String) -> Self {
+        ApiError::Internal(msg)
+    }
+}
+
+/// 从 tokio::task::JoinError 转换（spawn_blocking 场景）
+impl From<tokio::task::JoinError> for ApiError {
+    fn from(err: tokio::task::JoinError) -> Self {
+        ApiError::Internal(format!("Task join error: {}", err))
     }
 }
 

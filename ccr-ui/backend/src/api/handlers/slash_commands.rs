@@ -1,13 +1,14 @@
-use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
+use axum::{Json, extract::Path};
 use serde_json::json;
 
+use crate::api::handlers::response::ApiSuccess;
 use crate::cache::GLOBAL_SETTINGS_CACHE;
+use crate::core::error::{ApiError, ApiResult};
 use crate::managers::markdown_manager::{CommandFrontmatter, MarkdownManager};
 use crate::models::api::{SlashCommand, SlashCommandRequest};
 
 /// Extract description from markdown content
 fn extract_description_from_content(content: &str, name: &str) -> String {
-    // Try to extract first paragraph or heading
     for line in content.lines() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
@@ -21,7 +22,7 @@ fn extract_description_from_content(content: &str, name: &str) -> String {
 }
 
 /// GET /api/slash-commands - List all slash commands
-pub async fn list_slash_commands() -> impl IntoResponse {
+pub async fn list_slash_commands() -> ApiResult<ApiSuccess<serde_json::Value>> {
     let start = std::env::current_dir().ok();
     let project_root = start.as_ref().map(|start| {
         let mut current = start.as_path();
@@ -103,236 +104,133 @@ pub async fn list_slash_commands() -> impl IntoResponse {
             .into_iter()
             .collect();
 
-        return (
-            StatusCode::OK,
-            Json(json!({
-                "success": true,
-                "data": {
-                    "commands": commands,
-                    "folders": folders
-                },
-                "message": null
-            })),
-        )
-            .into_response();
+        return Ok(ApiSuccess(json!({
+            "commands": commands,
+            "folders": folders
+        })));
     }
 
     // Fallback to settings.json (使用全局缓存)
-    let settings_result = GLOBAL_SETTINGS_CACHE.load();
+    let settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-    if let Ok(settings) = settings_result {
-        let commands: Vec<SlashCommand> = settings
-            .slash_commands
-            .into_iter()
-            .map(|cmd| SlashCommand {
-                name: cmd.name,
-                description: cmd.description,
-                command: cmd.command,
-                args: cmd.args,
-                disabled: cmd.disabled,
-                folder: String::new(), // Settings don't have folder concept
-            })
-            .collect();
+    let commands: Vec<SlashCommand> = settings
+        .slash_commands
+        .into_iter()
+        .map(|cmd| SlashCommand {
+            name: cmd.name,
+            description: cmd.description,
+            command: cmd.command,
+            args: cmd.args,
+            disabled: cmd.disabled,
+            folder: String::new(),
+        })
+        .collect();
 
-        return (
-            StatusCode::OK,
-            Json(json!({
-                "success": true,
-                "data": {
-                    "commands": commands,
-                    "folders": Vec::<String>::new()
-                },
-                "message": null
-            })),
-        )
-            .into_response();
-    }
-
-    // Both sources failed
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Failed to load slash commands from both markdown files and settings.json"
-        })),
-    )
-        .into_response()
+    Ok(ApiSuccess(json!({
+        "commands": commands,
+        "folders": Vec::<String>::new()
+    })))
 }
 
 /// POST /api/slash-commands - Add a new slash command
-pub async fn add_slash_command(Json(req): Json<SlashCommandRequest>) -> impl IntoResponse {
-    // Try settings.json first (使用全局缓存)
-    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
-        let new_command = crate::managers::settings_manager::SlashCommand {
-            name: req.name.clone(),
-            description: req.description.clone(),
-            command: req.command.clone(),
-            args: req.args.clone(),
-            disabled: req.disabled.unwrap_or(false),
-            other: std::collections::HashMap::new(),
-        };
+pub async fn add_slash_command(
+    Json(req): Json<SlashCommandRequest>,
+) -> ApiResult<ApiSuccess<&'static str>> {
+    let mut settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-        settings.slash_commands.push(new_command);
+    let new_command = crate::managers::settings_manager::SlashCommand {
+        name: req.name.clone(),
+        description: req.description.clone(),
+        command: req.command.clone(),
+        args: req.args.clone(),
+        disabled: req.disabled.unwrap_or(false),
+        other: std::collections::HashMap::new(),
+    };
 
-        if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-            return (
-                StatusCode::OK,
-                Json(json!({
-                    "success": true,
-                    "data": "Slash command added successfully",
-                    "message": null
-                })),
-            )
-                .into_response();
-        }
-    }
+    settings.slash_commands.push(new_command);
 
-    // Fallback to markdown files
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Slash command addition via markdown files not implemented"
-        })),
-    )
-        .into_response()
+    GLOBAL_SETTINGS_CACHE
+        .save_atomic(&settings)
+        .map_err(|e| ApiError::internal(format!("Failed to save settings: {}", e)))?;
+
+    Ok(ApiSuccess("Slash command added successfully"))
 }
 
 /// PATCH /api/slash-commands/:name - Update a slash command
 pub async fn update_slash_command(
     Path(name): Path<String>,
     Json(req): Json<SlashCommandRequest>,
-) -> impl IntoResponse {
-    // Try settings.json first (使用全局缓存)
-    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
-        if let Some(cmd) = settings.slash_commands.iter_mut().find(|c| c.name == name) {
-            cmd.name = req.name;
-            cmd.description = req.description;
-            cmd.command = req.command;
-            cmd.args = req.args;
-            if let Some(disabled) = req.disabled {
-                cmd.disabled = disabled;
-            }
+) -> ApiResult<ApiSuccess<&'static str>> {
+    let mut settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-                return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "success": true,
-                        "data": "Slash command updated successfully",
-                        "message": null
-                    })),
-                )
-                    .into_response();
-            }
-        } else {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": "Slash command not found"
-                })),
-            )
-                .into_response();
-        }
+    let cmd = settings
+        .slash_commands
+        .iter_mut()
+        .find(|c| c.name == name)
+        .ok_or_else(|| ApiError::not_found("Slash command not found"))?;
+
+    cmd.name = req.name;
+    cmd.description = req.description;
+    cmd.command = req.command;
+    cmd.args = req.args;
+    if let Some(disabled) = req.disabled {
+        cmd.disabled = disabled;
     }
 
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Failed to update slash command"
-        })),
-    )
-        .into_response()
+    GLOBAL_SETTINGS_CACHE
+        .save_atomic(&settings)
+        .map_err(|e| ApiError::internal(format!("Failed to save settings: {}", e)))?;
+
+    Ok(ApiSuccess("Slash command updated successfully"))
 }
 
 /// DELETE /api/slash-commands/:name - Delete a slash command
-pub async fn delete_slash_command(Path(name): Path<String>) -> impl IntoResponse {
-    // Try settings.json first (使用全局缓存)
-    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
-        let original_len = settings.slash_commands.len();
-        settings.slash_commands.retain(|c| c.name != name);
+pub async fn delete_slash_command(Path(name): Path<String>) -> ApiResult<ApiSuccess<&'static str>> {
+    let mut settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-        if settings.slash_commands.len() < original_len {
-            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-                return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "success": true,
-                        "data": "Slash command deleted successfully",
-                        "message": null
-                    })),
-                )
-                    .into_response();
-            }
-        } else {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": "Slash command not found"
-                })),
-            )
-                .into_response();
-        }
+    let original_len = settings.slash_commands.len();
+    settings.slash_commands.retain(|c| c.name != name);
+
+    if settings.slash_commands.len() >= original_len {
+        return Err(ApiError::not_found("Slash command not found"));
     }
 
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Failed to delete slash command"
-        })),
-    )
-        .into_response()
+    GLOBAL_SETTINGS_CACHE
+        .save_atomic(&settings)
+        .map_err(|e| ApiError::internal(format!("Failed to save settings: {}", e)))?;
+
+    Ok(ApiSuccess("Slash command deleted successfully"))
 }
 
 /// PATCH /api/slash-commands/:name/toggle - Toggle slash command enabled/disabled state
-pub async fn toggle_slash_command(Path(name): Path<String>) -> impl IntoResponse {
-    // Try settings.json first (使用全局缓存)
-    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
-        if let Some(cmd) = settings.slash_commands.iter_mut().find(|c| c.name == name) {
-            cmd.disabled = !cmd.disabled;
-            let new_state = if cmd.disabled { "disabled" } else { "enabled" };
+pub async fn toggle_slash_command(Path(name): Path<String>) -> ApiResult<ApiSuccess<String>> {
+    let mut settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-                return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "success": true,
-                        "data": format!("Slash command toggled to {}", new_state),
-                        "message": null
-                    })),
-                )
-                    .into_response();
-            }
-        } else {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": "Slash command not found"
-                })),
-            )
-                .into_response();
-        }
-    }
+    let cmd = settings
+        .slash_commands
+        .iter_mut()
+        .find(|c| c.name == name)
+        .ok_or_else(|| ApiError::not_found("Slash command not found"))?;
 
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Failed to toggle slash command"
-        })),
-    )
-        .into_response()
+    cmd.disabled = !cmd.disabled;
+    let new_state = if cmd.disabled { "disabled" } else { "enabled" };
+
+    GLOBAL_SETTINGS_CACHE
+        .save_atomic(&settings)
+        .map_err(|e| ApiError::internal(format!("Failed to save settings: {}", e)))?;
+
+    Ok(ApiSuccess(format!(
+        "Slash command toggled to {}",
+        new_state
+    )))
 }

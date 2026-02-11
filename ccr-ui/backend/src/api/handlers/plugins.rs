@@ -1,16 +1,16 @@
-use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
+use axum::{Json, extract::Path};
 use serde_json::json;
 
+use crate::api::handlers::response::ApiSuccess;
 use crate::cache::GLOBAL_SETTINGS_CACHE;
+use crate::core::error::{ApiError, ApiResult};
 use crate::managers::plugins_manager::PluginsManager;
 use crate::models::api::{Plugin, PluginRequest};
 
 /// GET /api/plugins - List all plugins
-pub async fn list_plugins() -> impl IntoResponse {
+pub async fn list_plugins() -> ApiResult<ApiSuccess<serde_json::Value>> {
     // Try settings.json first (preferred，使用全局缓存)
-    let settings_result = GLOBAL_SETTINGS_CACHE.load();
-
-    if let Ok(settings) = settings_result {
+    if let Ok(settings) = GLOBAL_SETTINGS_CACHE.load() {
         let plugins: Vec<Plugin> = settings
             .plugins
             .into_iter()
@@ -23,87 +23,50 @@ pub async fn list_plugins() -> impl IntoResponse {
             })
             .collect();
 
-        return (
-            StatusCode::OK,
-            Json(json!({
-                "success": true,
-                "data": { "plugins": plugins },
-                "message": null
-            })),
-        )
-            .into_response();
+        return Ok(ApiSuccess(json!({ "plugins": plugins })));
     }
 
     // Fallback to plugins config
-    let manager = match PluginsManager::default() {
-        Ok(m) => m,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": format!("Failed to initialize plugins manager: {}", e)
-                })),
-            )
-                .into_response();
-        }
-    };
+    let manager = PluginsManager::default()
+        .map_err(|e| ApiError::internal(format!("Failed to initialize plugins manager: {}", e)))?;
 
-    match manager.get_plugins() {
-        Ok(plugins_map) => {
-            let plugins: Vec<Plugin> = plugins_map
-                .into_iter()
-                .map(|(id, value)| {
-                    let name = value
-                        .get("name")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or(&id)
-                        .to_string();
-                    let version = value
-                        .get("version")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("1.0.0")
-                        .to_string();
-                    let enabled = value
-                        .get("enabled")
-                        .and_then(|v| v.as_bool())
-                        .unwrap_or(true);
+    let plugins_map = manager
+        .get_plugins()
+        .map_err(|e| ApiError::internal(format!("Failed to list plugins: {}", e)))?;
 
-                    Plugin {
-                        id,
-                        name,
-                        version,
-                        enabled,
-                        config: Some(value),
-                    }
-                })
-                .collect();
+    let plugins: Vec<Plugin> = plugins_map
+        .into_iter()
+        .map(|(id, value)| {
+            let name = value
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or(&id)
+                .to_string();
+            let version = value
+                .get("version")
+                .and_then(|v| v.as_str())
+                .unwrap_or("1.0.0")
+                .to_string();
+            let enabled = value
+                .get("enabled")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true);
 
-            (
-                StatusCode::OK,
-                Json(json!({
-                    "success": true,
-                    "data": { "plugins": plugins },
-                    "message": null
-                })),
-            )
-                .into_response()
-        }
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({
-                "success": false,
-                "data": null,
-                "message": format!("Failed to list plugins: {}", e)
-            })),
-        )
-            .into_response(),
-    }
+            Plugin {
+                id,
+                name,
+                version,
+                enabled,
+                config: Some(value),
+            }
+        })
+        .collect();
+
+    Ok(ApiSuccess(json!({ "plugins": plugins })))
 }
 
 /// POST /api/plugins - Add a new plugin
-pub async fn add_plugin(Json(req): Json<PluginRequest>) -> impl IntoResponse {
+pub async fn add_plugin(Json(req): Json<PluginRequest>) -> ApiResult<ApiSuccess<&'static str>> {
     // Try settings.json first (使用全局缓存)
     if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         let new_plugin = crate::managers::settings_manager::Plugin {
@@ -118,33 +81,13 @@ pub async fn add_plugin(Json(req): Json<PluginRequest>) -> impl IntoResponse {
         settings.plugins.push(new_plugin);
 
         if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-            return (
-                StatusCode::OK,
-                Json(json!({
-                    "success": true,
-                    "data": "Plugin added successfully",
-                    "message": null
-                })),
-            )
-                .into_response();
+            return Ok(ApiSuccess("Plugin added successfully"));
         }
     }
 
     // Fallback to plugins config
-    let manager = match PluginsManager::default() {
-        Ok(m) => m,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": format!("Failed to initialize plugins manager: {}", e)
-                })),
-            )
-                .into_response();
-        }
-    };
+    let manager = PluginsManager::default()
+        .map_err(|e| ApiError::internal(format!("Failed to initialize plugins manager: {}", e)))?;
 
     let mut plugin_data = json!({
         "name": req.name,
@@ -152,40 +95,24 @@ pub async fn add_plugin(Json(req): Json<PluginRequest>) -> impl IntoResponse {
         "enabled": req.enabled.unwrap_or(true),
     });
 
-    if let Some(config) = req.config {
-        plugin_data
-            .as_object_mut()
-            .expect("插件数据应该是 JSON 对象")
-            .insert("config".to_string(), config);
+    if let Some(config) = req.config
+        && let Some(obj) = plugin_data.as_object_mut()
+    {
+        obj.insert("config".to_string(), config);
     }
 
-    match manager.add_plugin(req.id, plugin_data) {
-        Ok(_) => (
-            StatusCode::OK,
-            Json(json!({
-                "success": true,
-                "data": "Plugin added successfully",
-                "message": null
-            })),
-        )
-            .into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({
-                "success": false,
-                "data": null,
-                "message": format!("Failed to add plugin: {}", e)
-            })),
-        )
-            .into_response(),
-    }
+    manager
+        .add_plugin(req.id, plugin_data)
+        .map_err(|e| ApiError::internal(format!("Failed to add plugin: {}", e)))?;
+
+    Ok(ApiSuccess("Plugin added successfully"))
 }
 
 /// PATCH /api/plugins/:id - Update a plugin
 pub async fn update_plugin(
     Path(id): Path<String>,
     Json(req): Json<PluginRequest>,
-) -> impl IntoResponse {
+) -> ApiResult<ApiSuccess<&'static str>> {
     // Try settings.json first (使用全局缓存)
     if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         if let Some(plugin) = settings.plugins.iter_mut().find(|p| p.id == id) {
@@ -198,44 +125,16 @@ pub async fn update_plugin(
             plugin.config = req.config.clone();
 
             if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-                return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "success": true,
-                        "data": "Plugin updated successfully",
-                        "message": null
-                    })),
-                )
-                    .into_response();
+                return Ok(ApiSuccess("Plugin updated successfully"));
             }
         } else {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": "Plugin not found"
-                })),
-            )
-                .into_response();
+            return Err(ApiError::not_found("Plugin not found"));
         }
     }
 
     // Fallback to plugins config
-    let manager = match PluginsManager::default() {
-        Ok(m) => m,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": format!("Failed to initialize plugins manager: {}", e)
-                })),
-            )
-                .into_response();
-        }
-    };
+    let manager = PluginsManager::default()
+        .map_err(|e| ApiError::internal(format!("Failed to initialize plugins manager: {}", e)))?;
 
     let mut plugin_data = json!({
         "name": req.name,
@@ -243,148 +142,68 @@ pub async fn update_plugin(
         "enabled": req.enabled.unwrap_or(true),
     });
 
-    if let Some(config) = req.config {
-        plugin_data
-            .as_object_mut()
-            .expect("插件数据应该是 JSON 对象")
-            .insert("config".to_string(), config);
+    if let Some(config) = req.config
+        && let Some(obj) = plugin_data.as_object_mut()
+    {
+        obj.insert("config".to_string(), config);
     }
 
-    match manager.update_plugin(&id, plugin_data) {
-        Ok(_) => (
-            StatusCode::OK,
-            Json(json!({
-                "success": true,
-                "data": "Plugin updated successfully",
-                "message": null
-            })),
-        )
-            .into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({
-                "success": false,
-                "data": null,
-                "message": format!("Failed to update plugin: {}", e)
-            })),
-        )
-            .into_response(),
-    }
+    manager
+        .update_plugin(&id, plugin_data)
+        .map_err(|e| ApiError::internal(format!("Failed to update plugin: {}", e)))?;
+
+    Ok(ApiSuccess("Plugin updated successfully"))
 }
 
 /// DELETE /api/plugins/:id - Delete a plugin
-pub async fn delete_plugin(Path(id): Path<String>) -> impl IntoResponse {
-    // Try settings.json first (使用全局缓��)
+pub async fn delete_plugin(Path(id): Path<String>) -> ApiResult<ApiSuccess<&'static str>> {
+    // Try settings.json first (使用全局缓存)
     if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
         let original_len = settings.plugins.len();
         settings.plugins.retain(|p| p.id != id);
 
         if settings.plugins.len() < original_len {
             if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-                return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "success": true,
-                        "data": "Plugin deleted successfully",
-                        "message": null
-                    })),
-                )
-                    .into_response();
+                return Ok(ApiSuccess("Plugin deleted successfully"));
             }
         } else {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": "Plugin not found"
-                })),
-            )
-                .into_response();
+            return Err(ApiError::not_found("Plugin not found"));
         }
     }
 
     // Fallback to plugins config
-    let manager = match PluginsManager::default() {
-        Ok(m) => m,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": format!("Failed to initialize plugins manager: {}", e)
-                })),
-            )
-                .into_response();
-        }
-    };
+    let manager = PluginsManager::default()
+        .map_err(|e| ApiError::internal(format!("Failed to initialize plugins manager: {}", e)))?;
 
-    match manager.delete_plugin(&id) {
-        Ok(_) => (
-            StatusCode::OK,
-            Json(json!({
-                "success": true,
-                "data": "Plugin deleted successfully",
-                "message": null
-            })),
-        )
-            .into_response(),
-        Err(e) => (
-            StatusCode::NOT_FOUND,
-            Json(json!({
-                "success": false,
-                "data": null,
-                "message": format!("Failed to delete plugin: {}", e)
-            })),
-        )
-            .into_response(),
-    }
+    manager
+        .delete_plugin(&id)
+        .map_err(|e| ApiError::not_found(format!("Failed to delete plugin: {}", e)))?;
+
+    Ok(ApiSuccess("Plugin deleted successfully"))
 }
 
 /// PATCH /api/plugins/:id/toggle - Toggle plugin enabled/disabled state
-pub async fn toggle_plugin(Path(id): Path<String>) -> impl IntoResponse {
-    // Try settings.json first (使用全局缓存)
-    if let Ok(mut settings) = GLOBAL_SETTINGS_CACHE.load() {
-        if let Some(plugin) = settings.plugins.iter_mut().find(|p| p.id == id) {
-            plugin.enabled = !plugin.enabled;
-            let new_state = if plugin.enabled {
-                "enabled"
-            } else {
-                "disabled"
-            };
+pub async fn toggle_plugin(Path(id): Path<String>) -> ApiResult<ApiSuccess<String>> {
+    let mut settings = GLOBAL_SETTINGS_CACHE
+        .load()
+        .map_err(|e| ApiError::internal(format!("Failed to load settings: {}", e)))?;
 
-            if GLOBAL_SETTINGS_CACHE.save_atomic(&settings).is_ok() {
-                return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "success": true,
-                        "data": format!("Plugin toggled to {}", new_state),
-                        "message": null
-                    })),
-                )
-                    .into_response();
-            }
-        } else {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "success": false,
-                    "data": null,
-                    "message": "Plugin not found"
-                })),
-            )
-                .into_response();
-        }
-    }
+    let plugin = settings
+        .plugins
+        .iter_mut()
+        .find(|p| p.id == id)
+        .ok_or_else(|| ApiError::not_found("Plugin not found"))?;
 
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "success": false,
-            "data": null,
-            "message": "Failed to toggle plugin"
-        })),
-    )
-        .into_response()
+    plugin.enabled = !plugin.enabled;
+    let new_state = if plugin.enabled {
+        "enabled"
+    } else {
+        "disabled"
+    };
+
+    GLOBAL_SETTINGS_CACHE
+        .save_atomic(&settings)
+        .map_err(|e| ApiError::internal(format!("Failed to save settings: {}", e)))?;
+
+    Ok(ApiSuccess(format!("Plugin toggled to {}", new_state)))
 }
