@@ -18,9 +18,9 @@ pub type DbConnection = PooledConnection<SqliteConnectionManager>;
 /// 🗄️ 数据库管理器
 ///
 /// 管理 SQLite 数据库连接池和迁移。
-#[allow(dead_code)]
 pub struct Database {
     pool: DbPool,
+    #[allow(dead_code)]
     path: PathBuf,
 }
 
@@ -82,6 +82,7 @@ impl Database {
     }
 
     /// 获取数据库路径
+    #[allow(dead_code)]
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -242,7 +243,6 @@ impl Database {
     }
 
     /// 清空所有数据（危险操作）
-    #[allow(dead_code)]
     pub fn clear_all(&self) -> Result<()> {
         warn!("清空所有数据库数据");
         let conn = self.conn()?;
@@ -264,9 +264,9 @@ pub struct DatabaseStats {
     pub file_size_bytes: u64,
 }
 
-#[allow(dead_code)]
 impl DatabaseStats {
     /// 格式化文件大小
+    #[allow(dead_code)]
     pub fn file_size_display(&self) -> String {
         let size = self.file_size_bytes;
         if size < 1024 {

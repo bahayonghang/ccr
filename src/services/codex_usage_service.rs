@@ -66,7 +66,7 @@ pub struct CodexRollingUsage {
 struct JsonlEvent {
     /// 事件类型 (保留用于过滤)
     #[serde(rename = "type")]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     event_type: Option<String>,
     timestamp: Option<String>,
     session_id: Option<String>,
@@ -91,7 +91,6 @@ pub struct CodexUsageService {
 
 impl CodexUsageService {
     /// 创建新的服务实例
-    #[allow(dead_code)]
     pub fn new(codex_dir: PathBuf) -> Self {
         Self { codex_dir }
     }

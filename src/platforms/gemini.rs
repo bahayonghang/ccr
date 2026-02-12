@@ -77,7 +77,7 @@ impl GeminiPlatform {
     }
 
     /// 📖 加载 Gemini settings
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn load_settings(&self) -> Result<GeminiSettings> {
         if !self.paths.settings_file.exists() {
             return Err(CcrError::SettingsMissing(

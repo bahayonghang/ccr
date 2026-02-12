@@ -35,6 +35,7 @@ impl HistoryService {
     /// 2. 加载现有记录
     /// 3. 添加新记录
     /// 4. 保存到文件
+    #[allow(dead_code)]
     pub fn record_operation(&self, entry: HistoryEntry) -> Result<()> {
         self.history_manager.add(entry)
     }

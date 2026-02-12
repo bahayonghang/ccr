@@ -38,7 +38,6 @@ pub struct AtomicWriter {
 }
 
 /// 📝 异步原子写入器
-#[allow(dead_code)]
 pub struct AsyncAtomicWriter {
     target_path: PathBuf,
 }
@@ -52,6 +51,7 @@ impl AtomicWriter {
     ///
     /// # Returns
     /// 新的 `AtomicWriter` 实例
+    #[allow(dead_code)]
     pub fn new<P: AsRef<Path>>(target_path: P) -> Self {
         Self {
             target_path: target_path.as_ref().to_path_buf(),
@@ -114,14 +114,8 @@ impl AtomicWriter {
     pub fn write_string(&self, content: &str) -> Result<()> {
         self.write(content.as_bytes())
     }
-
-    /// 📁 获取目标文件路径
-    pub fn target_path(&self) -> &Path {
-        &self.target_path
-    }
 }
 
-#[allow(dead_code)]
 impl AsyncAtomicWriter {
     /// 🏗️ 创建新的异步原子写入器
     pub fn new<P: AsRef<Path>>(target_path: P) -> Self {
@@ -159,11 +153,6 @@ impl AsyncAtomicWriter {
     /// 💾 异步原子写入字符串内容到文件
     pub async fn write_string_async(&self, content: &str) -> Result<()> {
         self.write_async(content.as_bytes()).await
-    }
-
-    /// 📁 获取目标文件路径
-    pub fn target_path(&self) -> &Path {
-        &self.target_path
     }
 
     fn temp_path(&self) -> PathBuf {

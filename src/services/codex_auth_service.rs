@@ -370,15 +370,6 @@ impl CodexAuthService {
         Ok(())
     }
 
-    /// 检查当前登录是否已保存
-    #[allow(dead_code)]
-    pub fn is_current_saved(&self) -> Result<Option<String>> {
-        match self.get_login_state()? {
-            LoginState::LoggedInSaved(name) => Ok(Some(name)),
-            _ => Ok(None),
-        }
-    }
-
     // ==================== 备份管理 ====================
 
     /// 备份当前 auth.json

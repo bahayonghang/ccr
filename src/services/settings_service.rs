@@ -10,7 +10,6 @@ use tokio::fs as async_fs;
 
 /// 📦 备份信息
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BackupInfo {
     pub filename: String,
     pub path: PathBuf,
@@ -38,7 +37,7 @@ impl SettingsService {
         Ok(Self::new(settings_manager))
     }
 
-    /// 📖 获取当前设置
+    #[allow(dead_code)]
     pub fn get_current_settings(&self) -> Result<ClaudeSettings> {
         self.settings_manager.load()
     }
@@ -60,6 +59,7 @@ impl SettingsService {
     /// 2. 清空旧的 ANTHROPIC_* 变量
     /// 3. 从配置节设置新的环境变量
     /// 4. 原子保存设置文件
+    #[allow(dead_code)]
     pub fn apply_config(&self, section: &ConfigSection) -> Result<()> {
         let mut settings = self
             .settings_manager

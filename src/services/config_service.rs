@@ -13,10 +13,8 @@ use std::time::Duration;
 #[derive(Debug, Clone)]
 pub struct ConfigInfo {
     pub name: String,
-    #[allow(dead_code)]
     pub description: String,
     pub base_url: Option<String>,
-    #[allow(dead_code)]
     pub auth_token: Option<String>,
     pub model: Option<String>,
     pub small_fast_model: Option<String>,
@@ -42,7 +40,6 @@ pub struct ConfigList {
 
 /// 📊 验证报告
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ValidationReport {
     pub valid_count: usize,
     pub invalid_count: usize,
@@ -61,7 +58,6 @@ pub struct ConfigService {
     validator: ConfigValidator,
 }
 
-#[allow(dead_code)]
 impl ConfigService {
     /// 🏗️ 创建新的配置服务
     ///
@@ -266,19 +262,11 @@ impl ConfigService {
         Ok(())
     }
 
-    /// 🔄 设置当前配置
-    ///
-    /// 注意：这只更新配置文件中的 current_config 标记,
-    /// 不会修改 settings.json。要完整切换配置,应使用 switch_config。
-    ///
-    /// 🔐 **并发安全**: 使用跨进程锁 + CONFIG_LOCK 保护整个 RMW 序列
-    ///
-    /// 💡 **新增功能**: 自动递增目标配置的使用次数
+    #[allow(dead_code)]
     pub fn set_current(&self, name: &str) -> Result<()> {
         let (_file_lock, _guard) = self.lock_config()?;
         let mut config = self.config_manager.load_with_autofix()?;
 
-        // ✅ 检查目标配置是否启用
         if let Ok(section) = config.get_section(name)
             && !section.is_enabled()
         {
@@ -288,7 +276,6 @@ impl ConfigService {
             )));
         }
 
-        // 📊 递增目标配置的使用次数
         if let Ok(section) = config.get_section_mut(name) {
             section.increment_usage();
             tracing::debug!(
@@ -496,13 +483,11 @@ impl ConfigService {
 pub struct ImportResult {
     pub added: usize,
     pub updated: usize,
-    #[allow(dead_code)]
     pub skipped: usize,
 }
 
 /// 📋 导入模式
 #[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
 pub enum ImportMode {
     /// 🔗 合并模式：保留现有配置，只添加新的
     Merge,

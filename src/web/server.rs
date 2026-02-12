@@ -52,6 +52,7 @@ pub struct WebServer {
     port: u16,
 }
 
+#[allow(dead_code)]
 impl WebServer {
     /// 🏗️ 创建新的 Web 服务器
     pub fn new(host: std::net::IpAddr, port: u16) -> Result<Self> {
@@ -419,7 +420,6 @@ impl WebServer {
     }
 
     /// 🎯 刷新平台模式缓存
-    #[allow(dead_code)]
     pub fn refresh_platform_mode() {
         let mut cache = PLATFORM_MODE.write().unwrap_or_else(|poisoned| {
             eprintln!("⚠️  PLATFORM_MODE RwLock 被毒化，尝试恢复");

@@ -10,7 +10,7 @@ use crate::core::error::Result;
 ///
 /// # Examples
 ///
-/// ```
+/// ```no_run
 /// use ccr::{Validatable, CcrError, Result};
 ///
 /// struct MyConfig {

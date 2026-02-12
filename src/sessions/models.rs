@@ -26,7 +26,6 @@ pub struct SessionSummary {
     pub message_count: u32,
 }
 
-#[allow(dead_code)]
 impl SessionSummary {
     /// 获取显示标题
     pub fn display_title(&self) -> &str {
@@ -34,6 +33,7 @@ impl SessionSummary {
     }
 
     /// 格式化持续时间
+    #[allow(dead_code)]
     pub fn duration_display(&self) -> String {
         let duration = self.updated_at.signed_duration_since(self.created_at);
         let minutes = duration.num_minutes();
@@ -97,9 +97,9 @@ pub struct Session {
     pub indexed_at: DateTime<Utc>,
 }
 
-#[allow(dead_code)]
 impl Session {
     /// 转换为摘要
+    #[allow(dead_code)]
     pub fn to_summary(&self) -> SessionSummary {
         SessionSummary {
             id: self.id.clone(),
@@ -163,7 +163,6 @@ pub struct SessionEvent {
     pub raw_json: Option<String>,
 }
 
-#[allow(dead_code)]
 impl SessionEvent {
     /// 获取消息文本内容
     pub fn message_text(&self) -> Option<String> {
@@ -232,6 +231,7 @@ impl SessionEvent {
     }
 
     /// 是否是 session 开始事件
+    #[allow(dead_code)]
     pub fn is_session_start(&self) -> bool {
         self.event_type == "init"
             || self.event_type == "session_start"
@@ -241,7 +241,6 @@ impl SessionEvent {
 
 /// 🔍 Session 过滤条件
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct SessionFilter {
     /// 平台过滤
     pub platform: Option<Platform>,
@@ -256,6 +255,7 @@ pub struct SessionFilter {
     /// 偏移量
     pub offset: Option<usize>,
     /// 仅今天
+    #[allow(dead_code)]
     pub today_only: bool,
 }
 
@@ -270,6 +270,7 @@ impl SessionFilter {
     }
 
     /// 创建指定平台的过滤器
+    #[allow(dead_code)]
     pub fn for_platform(platform: Platform) -> Self {
         Self {
             platform: Some(platform),

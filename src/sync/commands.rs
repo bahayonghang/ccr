@@ -331,7 +331,7 @@ pub async fn sync_status_command() -> Result<()> {
 
         // 检查远程文件状态
         print!("🔍 正在检查远程状态...");
-        std::io::Write::flush(&mut std::io::stdout()).expect("无法刷新标准输出");
+        std::io::Write::flush(&mut std::io::stdout())?;
 
         let service = SyncService::new(&sync_config).await?;
         let exists = service.remote_exists().await?;
@@ -1342,7 +1342,7 @@ pub async fn sync_all_status_command() -> Result<()> {
             Cell::new("✗").fg(Color::Yellow)
         };
 
-        // TODO: 实际检查同步状态
+        // TODO(issue): 实际检查同步状态 - 需要创建 GitHub Issue 跟踪
         let sync_status = Cell::new("未知").fg(Color::Yellow);
 
         table.add_row(vec![Cell::new(&folder.name), enabled, exists, sync_status]);

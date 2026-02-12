@@ -21,20 +21,10 @@ pub enum ProviderType {
 
 impl ProviderType {
     /// 获取类型的显示名称
-    #[allow(dead_code)]
     pub fn display_name(&self) -> &str {
         match self {
             ProviderType::OfficialRelay => "官方中转",
             ProviderType::ThirdPartyModel => "第三方模型",
-        }
-    }
-
-    /// 获取类型的图标（用于 CLI 显示）
-    #[allow(dead_code)]
-    pub fn icon(&self) -> &str {
-        match self {
-            ProviderType::OfficialRelay => "🔄",
-            ProviderType::ThirdPartyModel => "🤖",
         }
     }
 
@@ -141,6 +131,7 @@ impl Validatable for ConfigSection {
     }
 }
 
+#[allow(dead_code)]
 impl ConfigSection {
     /// 📝 获取配置的人类可读描述
     pub fn display_description(&self) -> &str {
@@ -154,7 +145,6 @@ impl ConfigSection {
     }
 
     /// 🏷️ 获取提供商类型显示名称
-    #[allow(dead_code)]
     pub fn provider_type_display(&self) -> &str {
         self.provider_type
             .as_ref()
@@ -162,23 +152,12 @@ impl ConfigSection {
             .unwrap_or("未分类")
     }
 
-    /// 🎨 获取提供商类型图标
-    #[allow(dead_code)]
-    pub fn provider_type_icon(&self) -> &str {
-        self.provider_type
-            .as_ref()
-            .map(|t| t.icon())
-            .unwrap_or("❓")
-    }
-
     /// 👤 获取账号显示名称
-    #[allow(dead_code)]
     pub fn account_display(&self) -> &str {
         self.account.as_deref().unwrap_or("")
     }
 
     /// 🏷️ 检查是否有指定标签
-    #[allow(dead_code)]
     pub fn has_tag(&self, tag: &str) -> bool {
         self.tags
             .as_ref()
@@ -187,7 +166,6 @@ impl ConfigSection {
     }
 
     /// 📋 获取所有标签
-    #[allow(dead_code)]
     pub fn tags_display(&self) -> String {
         self.tags
             .as_ref()

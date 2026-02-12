@@ -26,6 +26,7 @@ pub struct CcsConfig {
     pub sections: IndexMap<String, ConfigSection>,
 }
 
+#[allow(dead_code)]
 impl CcsConfig {
     /// 🔍 获取指定配置节
     pub fn get_section(&self, name: &str) -> Result<&ConfigSection> {
@@ -47,6 +48,7 @@ impl CcsConfig {
     }
 
     /// 🔄 设置当前配置
+    #[allow(dead_code)]
     pub fn set_current(&mut self, name: &str) -> Result<()> {
         if !self.sections.contains_key(name) {
             return Err(CcrError::ConfigSectionNotFound(name.to_string()));
@@ -56,13 +58,11 @@ impl CcsConfig {
     }
 
     /// ➕ 添加或更新配置节
-    #[allow(dead_code)]
     pub fn set_section(&mut self, name: String, section: ConfigSection) {
         self.sections.insert(name, section);
     }
 
     /// ➖ 删除配置节
-    #[allow(dead_code)]
     pub fn remove_section(&mut self, name: &str) -> Result<ConfigSection> {
         self.sections
             .shift_remove(name)
@@ -84,7 +84,6 @@ impl CcsConfig {
     // === 分类和筛选方法 ===
 
     /// 🏢 按提供商分组获取配置
-    #[allow(dead_code)]
     pub fn group_by_provider(&self) -> IndexMap<String, Vec<String>> {
         let mut groups: IndexMap<String, Vec<String>> = IndexMap::new();
 
@@ -101,7 +100,6 @@ impl CcsConfig {
     }
 
     /// 🏷️ 按提供商类型分组获取配置
-    #[allow(dead_code)]
     pub fn group_by_provider_type(&self) -> IndexMap<String, Vec<String>> {
         let mut groups: IndexMap<String, Vec<String>> = IndexMap::new();
 
@@ -118,7 +116,6 @@ impl CcsConfig {
     }
 
     /// 🔍 按标签筛选配置
-    #[allow(dead_code)]
     pub fn filter_by_tag(&self, tag: &str) -> Vec<String> {
         let mut names: Vec<String> = self
             .sections
@@ -132,7 +129,6 @@ impl CcsConfig {
     }
 
     /// 🔍 按提供商筛选配置
-    #[allow(dead_code)]
     pub fn filter_by_provider(&self, provider: &str) -> Vec<String> {
         let mut names: Vec<String> = self
             .sections
@@ -146,7 +142,6 @@ impl CcsConfig {
     }
 
     /// 🔍 按提供商类型筛选配置
-    #[allow(dead_code)]
     pub fn filter_by_provider_type(&self, provider_type: &ProviderType) -> Vec<String> {
         let mut names: Vec<String> = self
             .sections

@@ -153,7 +153,7 @@ impl DroidPlatform {
     }
 
     /// 📋 从 ConfigSection 转换为 ProfileConfig
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn section_to_profile(section: &ConfigSection) -> ProfileConfig {
         base::section_to_profile(section)
     }

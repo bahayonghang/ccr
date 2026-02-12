@@ -15,6 +15,7 @@ pub struct ConfigMode {
     unified_config: UnifiedConfig,
 }
 
+#[allow(dead_code)]
 impl ConfigMode {
     /// 加载配置
     pub fn load() -> Result<Self> {
@@ -30,6 +31,7 @@ impl ConfigMode {
     }
 
     /// 获取 Unified 配置
+    #[expect(dead_code)]
     pub fn unified_config(&self) -> &UnifiedConfig {
         &self.unified_config
     }
@@ -46,12 +48,14 @@ impl ConfigMode {
     }
 
     /// 获取当前平台路径
+    #[expect(dead_code)]
     pub fn current_platform_paths(&self) -> Result<PlatformPaths> {
         let platform = self.current_platform_enum()?;
         PlatformPaths::new(platform)
     }
 
     /// 获取当前平台实现
+    #[expect(dead_code)]
     pub fn current_platform_impl(&self) -> Result<Arc<dyn PlatformConfig>> {
         let platform = self.current_platform_enum()?;
         create_platform(platform)
@@ -59,6 +63,7 @@ impl ConfigMode {
 }
 
 /// 快速加载配置
+#[allow(dead_code)]
 pub fn detect_config_mode() -> Result<UnifiedConfig> {
     let manager = PlatformConfigManager::with_default()?;
     manager.load()

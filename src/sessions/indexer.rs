@@ -19,7 +19,6 @@ pub struct SessionIndexer {
     db: Arc<Database>,
 }
 
-#[allow(dead_code)]
 impl SessionIndexer {
     /// 创建新的索引器
     pub fn new() -> Result<Self> {
@@ -28,6 +27,7 @@ impl SessionIndexer {
     }
 
     /// 使用现有数据库创建索引器
+    #[allow(dead_code)]
     pub fn with_database(db: Arc<Database>) -> Self {
         Self { db }
     }

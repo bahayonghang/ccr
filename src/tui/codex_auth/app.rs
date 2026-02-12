@@ -18,9 +18,9 @@ pub const PAGE_SIZE: usize = 10;
 
 /// Usage data state
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum UsageState {
     /// Loading
+    #[allow(dead_code)]
     Loading,
     /// Loaded successfully
     Loaded(CodexRollingUsage),
@@ -57,6 +57,7 @@ pub struct CodexAuthApp {
     codex_dir: Option<PathBuf>,
 }
 
+#[allow(dead_code)]
 impl CodexAuthApp {
     /// Create a new application instance
     pub fn new() -> Result<Self> {
@@ -387,7 +388,6 @@ impl CodexAuthApp {
     }
 
     /// Get freshness display text
-    #[allow(dead_code)]
     pub fn freshness_text(freshness: TokenFreshness) -> &'static str {
         match freshness {
             TokenFreshness::Fresh => "🟢 新鲜",

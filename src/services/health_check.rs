@@ -46,7 +46,6 @@ pub enum HealthStatus {
     Unknown,
 }
 
-#[allow(dead_code)]
 impl HealthStatus {
     /// 获取状态显示文本
     pub fn display(&self) -> &str {
@@ -59,6 +58,7 @@ impl HealthStatus {
     }
 
     /// 获取状态颜色
+    #[allow(dead_code)]
     pub fn color(&self) -> &str {
         match self {
             HealthStatus::Healthy => "green",
@@ -85,6 +85,7 @@ impl HealthCheckService {
     }
 
     /// 设置超时时间
+    #[allow(dead_code)]
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self

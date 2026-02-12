@@ -2,13 +2,13 @@
 
 /// Represents all possible user-initiated state transitions in the TUI.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum Action {
     /// No-op — ignore this event
     Noop,
     /// Exit the TUI
     Quit,
     /// Switch to the tab at the given index (wraps on overflow)
+    #[allow(dead_code)]
     SwitchTab(usize),
     /// Cycle to the next tab
     NextTab,

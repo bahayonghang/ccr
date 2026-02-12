@@ -184,6 +184,7 @@ impl HistoryManager {
     }
 
     /// 加载历史记录
+    #[allow(dead_code)]
     pub fn load(&self) -> Result<Vec<HistoryEntry>> {
         if !self.history_path.exists() {
             // 文件不存在时返回空列表

@@ -27,6 +27,7 @@ use std::time::{Duration, Instant};
 /// // 手动失效
 /// cache.invalidate();
 /// ```
+#[allow(dead_code)]
 pub struct ConfigCache<T> {
     /// 缓存数据和时间戳
     data: RwLock<Option<(T, Instant)>>,
@@ -34,11 +35,13 @@ pub struct ConfigCache<T> {
     ttl: Duration,
 }
 
+#[allow(dead_code)]
 impl<T: Clone> ConfigCache<T> {
     /// 🏗️ 创建新的缓存实例
     ///
     /// # 参数
     /// - `ttl`: 缓存有效期
+    #[allow(dead_code)]
     pub fn new(ttl: Duration) -> Self {
         Self {
             data: RwLock::new(None),
@@ -47,7 +50,6 @@ impl<T: Clone> ConfigCache<T> {
     }
 
     /// 🏠 使用默认 TTL(30秒) 创建缓存
-    #[allow(dead_code)]
     pub fn with_default_ttl() -> Self {
         Self::new(Duration::from_secs(30))
     }
@@ -63,7 +65,6 @@ impl<T: Clone> ConfigCache<T> {
     /// # 返回
     /// - Ok(T): 缓存或新加载的数据
     /// - Err: 加载失败
-    #[allow(dead_code)]
     pub fn get_or_load<F, E>(&self, loader: F) -> Result<T, E>
     where
         F: FnOnce() -> Result<T, E>,
@@ -100,7 +101,6 @@ impl<T: Clone> ConfigCache<T> {
     ///
     /// 如果缓存有效，返回 Some(T)
     /// 如果缓存无效或过期，返回 None
-    #[allow(dead_code)]
     pub fn get(&self) -> Option<T> {
         let guard = self
             .data
@@ -128,7 +128,6 @@ impl<T: Clone> ConfigCache<T> {
     /// 🔄 更新缓存数据
     ///
     /// 直接设置缓存数据，而不通过 loader
-    #[allow(dead_code)]
     pub fn set(&self, data: T) {
         let mut guard = self
             .data
@@ -138,7 +137,6 @@ impl<T: Clone> ConfigCache<T> {
     }
 
     /// ⏰ 检查缓存是否有效
-    #[allow(dead_code)]
     pub fn is_valid(&self) -> bool {
         let guard = self
             .data
@@ -152,7 +150,6 @@ impl<T: Clone> ConfigCache<T> {
     }
 
     /// 📊 获取缓存状态信息
-    #[allow(dead_code)]
     pub fn status(&self) -> CacheStatus {
         let guard = self
             .data
@@ -182,18 +179,6 @@ pub enum CacheStatus {
     Expired { age: Duration },
     /// 缓存为空
     Empty,
-}
-
-impl CacheStatus {
-    /// 获取状态描述
-    #[allow(dead_code)]
-    pub fn description(&self) -> String {
-        match self {
-            CacheStatus::Valid { age } => format!("有效 (已存在 {:?})", age),
-            CacheStatus::Expired { age } => format!("已过期 (已存在 {:?})", age),
-            CacheStatus::Empty => "空".to_string(),
-        }
-    }
 }
 
 // ═══════════════════════════════════════════════════════════

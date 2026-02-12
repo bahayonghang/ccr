@@ -510,50 +510,6 @@ impl UiService {
         }
     }
 
-    /// 🌐 仅启动前端 (用于测试)
-    #[allow(dead_code)]
-    pub fn start_frontend_only(&self) -> Result<()> {
-        if let Some(ref ccr_ui_path) = self.ccr_ui_path {
-            ColorOutput::info("🌐 启动前端服务器...");
-
-            let status = Command::new("just")
-                .arg("dev-frontend")
-                .current_dir(ccr_ui_path)
-                .status()
-                .map_err(|e| CcrError::ExternalCommandError(format!("启动前端失败: {}", e)))?;
-
-            if !status.success() {
-                return Err(CcrError::ExternalCommandError("前端启动失败".to_string()));
-            }
-
-            Ok(())
-        } else {
-            Err(CcrError::UiError("未找到 ccr-ui 目录".to_string()))
-        }
-    }
-
-    /// 🦀 仅启动后端 (用于测试)
-    #[allow(dead_code)]
-    pub fn start_backend_only(&self) -> Result<()> {
-        if let Some(ref ccr_ui_path) = self.ccr_ui_path {
-            ColorOutput::info("🦀 启动后端服务器...");
-
-            let status = Command::new("just")
-                .arg("dev-backend")
-                .current_dir(ccr_ui_path)
-                .status()
-                .map_err(|e| CcrError::ExternalCommandError(format!("启动后端失败: {}", e)))?;
-
-            if !status.success() {
-                return Err(CcrError::ExternalCommandError("后端启动失败".to_string()));
-            }
-
-            Ok(())
-        } else {
-            Err(CcrError::UiError("未找到 ccr-ui 目录".to_string()))
-        }
-    }
-
     /// 🏗️ 构建生产版本
     #[allow(dead_code)]
     pub fn build_production(&self) -> Result<()> {
@@ -810,20 +766,20 @@ impl UiService {
     // === 预留接口: 预构建版本管理 ===
 
     /// 🔍 检查本地预构建版本 (预留)
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn has_local_version(&self) -> Result<bool> {
         Ok(self.ui_dir.join("version.txt").exists())
     }
 
     /// 📥 下载并安装预构建版本 (预留)
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn download_and_install(&self) -> Result<()> {
         ColorOutput::info("📥 预构建版本下载功能将在未来版本中实现");
         Err(CcrError::UiError("预构建版本功能尚未实现".to_string()))
     }
 
     /// 🚀 启动本地预构建版本 (预留)
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn start_local(&self, _port: u16, _backend_port: u16) -> Result<()> {
         ColorOutput::info("🚀 预构建版本启动功能将在未来版本中实现");
         Err(CcrError::UiError("预构建版本功能尚未实现".to_string()))

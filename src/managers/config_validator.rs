@@ -52,7 +52,6 @@ impl ValidationReport {
     }
 
     /// ⚠️ 检查是否有警告
-    #[allow(dead_code)]
     pub fn has_warnings(&self) -> bool {
         !self.warnings.is_empty()
     }
@@ -83,6 +82,7 @@ impl Default for ValidationReport {
 /// - 📊 生成详细的验证报告
 pub struct ConfigValidator;
 
+#[allow(dead_code)]
 impl ConfigValidator {
     /// 🆕 创建新的配置验证器
     pub fn new() -> Self {
@@ -180,7 +180,6 @@ impl ConfigValidator {
     /// 1. 验证所有配置节
     /// 2. 验证配置一致性
     /// 3. 生成综合验证报告
-    #[allow(dead_code)]
     pub fn validate_complete(&self, config: &CcsConfig) -> ValidationReport {
         let mut report = self.validate_all_sections(config);
 
@@ -200,7 +199,6 @@ impl ConfigValidator {
     /// 📊 生成人类可读的验证报告摘要
     ///
     /// 将验证报告格式化为易于阅读的字符串
-    #[allow(dead_code)]
     pub fn format_report(&self, report: &ValidationReport) -> String {
         let mut output = String::new();
 

@@ -8,7 +8,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// 💰 价格表管理器
-#[allow(dead_code)]
 pub struct PricingManager {
     /// 📁 配置文件路径
     config_path: PathBuf,
@@ -95,7 +94,6 @@ impl PricingManager {
     }
 
     /// 更新配置
-    #[allow(dead_code)]
     pub fn update_config(&mut self, config: PricingConfig) -> Result<()> {
         config.validate().map_err(CcrError::ValidationError)?;
         self.config = config;
@@ -128,21 +126,18 @@ impl PricingManager {
     }
 
     /// 设置默认定价
-    #[allow(dead_code)]
     pub fn set_default_pricing(&mut self, pricing: ModelPricing) -> Result<()> {
         self.config.set_default_pricing(pricing);
         self.save_config()
     }
 
     /// 清除默认定价
-    #[allow(dead_code)]
     pub fn clear_default_pricing(&mut self) -> Result<()> {
         self.config.clear_default_pricing();
         self.save_config()
     }
 
     /// 清空所有定价
-    #[allow(dead_code)]
     pub fn clear_all(&mut self) -> Result<()> {
         self.config.clear_all();
         self.save_config()
@@ -170,7 +165,6 @@ impl PricingManager {
     }
 
     /// 批量导入定价
-    #[allow(dead_code)]
     pub fn import_pricing(&mut self, pricing_list: Vec<(String, ModelPricing)>) -> Result<()> {
         for (model, pricing) in pricing_list {
             self.config.set_pricing(model, pricing);
@@ -179,7 +173,6 @@ impl PricingManager {
     }
 
     /// 导出所有定价
-    #[allow(dead_code)]
     pub fn export_pricing(&self) -> Vec<(String, ModelPricing)> {
         let mut result = Vec::new();
         for model_name in self.config.model_names() {
@@ -191,7 +184,6 @@ impl PricingManager {
     }
 
     /// 合并另一个价格表配置
-    #[allow(dead_code)]
     pub fn merge_config(&mut self, other: &PricingConfig) -> Result<()> {
         self.config.merge(other);
         self.save_config()

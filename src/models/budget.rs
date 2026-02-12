@@ -166,12 +166,6 @@ impl std::fmt::Display for BudgetPeriod {
 }
 
 impl BudgetConfig {
-    /// 创建新的预算配置
-    #[allow(dead_code)]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     /// 检查配置是否有效
     pub fn validate(&self) -> Result<(), String> {
         if self.warn_at_percent > 100 {
@@ -206,13 +200,8 @@ impl BudgetConfig {
     }
 }
 
+#[allow(dead_code)]
 impl BudgetStatus {
-    /// 检查是否超出预算
-    #[allow(dead_code)]
-    pub fn is_over_budget(&self) -> bool {
-        !self.warnings.is_empty()
-    }
-
     /// 检查是否接近预算限制
     #[allow(dead_code)]
     pub fn is_near_limit(&self, threshold_percent: u8) -> bool {
@@ -222,7 +211,6 @@ impl BudgetStatus {
     }
 
     /// 获取最严重的警告
-    #[allow(dead_code)]
     pub fn worst_warning(&self) -> Option<&BudgetWarning> {
         self.warnings.iter().max_by(|a, b| {
             a.usage_percent

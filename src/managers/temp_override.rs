@@ -103,6 +103,7 @@ pub struct TempOverrideManager {
     override_path: PathBuf,
 }
 
+#[allow(dead_code)]
 impl TempOverrideManager {
     /// 🏗️ 创建新的临时配置管理器
     pub fn new<P: AsRef<Path>>(override_path: P) -> Self {
@@ -186,7 +187,6 @@ impl TempOverrideManager {
     }
 
     /// 💾 保存临时配置
-    #[allow(dead_code)]
     pub fn save(&self, temp_override: &TempOverride) -> Result<()> {
         // 📁 确保目录存在
         if let Some(parent) = self.override_path.parent() {
@@ -207,7 +207,6 @@ impl TempOverrideManager {
     }
 
     /// 💾 异步保存临时配置
-    #[allow(dead_code)]
     pub async fn save_async(&self, temp_override: &TempOverride) -> Result<()> {
         if let Some(parent) = self.override_path.parent() {
             async_fs::create_dir_all(parent)
@@ -227,7 +226,6 @@ impl TempOverrideManager {
     }
 
     /// 🧹 清除临时配置
-    #[allow(dead_code)]
     pub fn clear(&self) -> Result<()> {
         if self.override_path.exists() {
             fs::remove_file(&self.override_path)
@@ -256,13 +254,11 @@ impl TempOverrideManager {
     }
 
     /// 🔍 检查是否存在临时配置
-    #[allow(dead_code)]
     pub fn exists(&self) -> bool {
         self.load().ok().flatten().is_some()
     }
 
     /// 🔍 异步检查是否存在临时配置
-    #[allow(dead_code)]
     pub async fn exists_async(&self) -> Result<bool> {
         async_fs::try_exists(&self.override_path)
             .await

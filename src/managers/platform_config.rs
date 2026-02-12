@@ -101,6 +101,7 @@ impl Default for UnifiedConfig {
     }
 }
 
+#[allow(dead_code)]
 impl UnifiedConfig {
     /// 🔍 获取指定平台的注册信息
     pub fn get_platform(&self, name: &str) -> Result<&PlatformConfigEntry> {
@@ -166,7 +167,6 @@ impl UnifiedConfig {
     /// ➖ 注销平台
     ///
     /// 如果要注销的是当前平台，会自动切换到默认平台
-    #[allow(dead_code)]
     pub fn unregister_platform(&mut self, name: &str) -> Result<PlatformConfigEntry> {
         // ✅ 防止注销当前平台时没有后备平台
         if name == self.current_platform && self.platforms.len() <= 1 {
@@ -185,7 +185,6 @@ impl UnifiedConfig {
     }
 
     /// 🔌 启用平台
-    #[allow(dead_code)]
     pub fn enable_platform(&mut self, name: &str) -> Result<()> {
         let registry = self.get_platform_mut(name)?;
         registry.enabled = true;
@@ -196,7 +195,6 @@ impl UnifiedConfig {
     /// 🔌 禁用平台
     ///
     /// 如果要禁用的是当前平台，会自动切换到默认平台
-    #[allow(dead_code)]
     pub fn disable_platform(&mut self, name: &str) -> Result<()> {
         // ✅ 防止禁用当前激活的平台
         if name == self.current_platform {
@@ -210,7 +208,6 @@ impl UnifiedConfig {
     }
 
     /// 📜 列出所有已启用的平台名称
-    #[allow(dead_code)]
     pub fn list_enabled_platforms(&self) -> Vec<&String> {
         self.platforms
             .iter()
@@ -220,13 +217,11 @@ impl UnifiedConfig {
     }
 
     /// 📜 列出所有平台名称(包括禁用的)
-    #[allow(dead_code)]
     pub fn list_all_platforms(&self) -> Vec<&String> {
         self.platforms.keys().collect()
     }
 
     /// 🔄 设置平台的当前 profile
-    #[allow(dead_code)]
     pub fn set_platform_profile(&mut self, platform_name: &str, profile_name: &str) -> Result<()> {
         let registry = self.get_platform_mut(platform_name)?;
         registry.current_profile = Some(profile_name.to_string());
@@ -236,7 +231,6 @@ impl UnifiedConfig {
     }
 
     /// 🔍 获取平台的当前 profile
-    #[allow(dead_code)]
     pub fn get_platform_profile(&self, platform_name: &str) -> Result<Option<&str>> {
         let registry = self.get_platform(platform_name)?;
         Ok(registry.current_profile.as_deref())
@@ -256,6 +250,7 @@ pub struct PlatformConfigManager {
     config_path: PathBuf,
 }
 
+#[allow(dead_code)]
 impl PlatformConfigManager {
     /// 🏗️ 创建新的平台配置管理器
     pub fn new<P: AsRef<Path>>(config_path: P) -> Self {
@@ -372,7 +367,6 @@ impl PlatformConfigManager {
     ///
     /// 文件名格式: config.toml.{timestamp}.bak
     /// 备份位置: ~/.ccr/backups/
-    #[allow(dead_code)]
     pub fn backup(&self, tag: Option<&str>) -> Result<PathBuf> {
         // ✅ 验证源文件存在
         if !self.config_path.exists() {
@@ -405,7 +399,6 @@ impl PlatformConfigManager {
     }
 
     /// 🔄 从备份恢复配置
-    #[allow(dead_code)]
     pub fn restore(&self, backup_path: &Path) -> Result<()> {
         if !backup_path.exists() {
             return Err(CcrError::ConfigMissing(backup_path.display().to_string()));
@@ -420,7 +413,6 @@ impl PlatformConfigManager {
     }
 
     /// 📜 列出所有备份文件
-    #[allow(dead_code)]
     pub fn list_backups(&self) -> Result<Vec<PathBuf>> {
         let backup_dir = self.root_dir()?.join("backups");
 
@@ -455,7 +447,6 @@ impl PlatformConfigManager {
     /// 🧹 清理旧备份
     ///
     /// 保留最近 N 个备份，删除其余的
-    #[allow(dead_code)]
     pub fn cleanup_old_backups(&self, keep_count: usize) -> Result<usize> {
         let backups = self.list_backups()?;
 

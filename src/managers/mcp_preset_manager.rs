@@ -93,7 +93,7 @@ pub struct McpPresetManager {
     /// 平台配置目录
     platform_dir: PathBuf,
     /// CCR 统一配置目录
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     ccr_dir: PathBuf,
 }
 
@@ -439,7 +439,7 @@ impl McpPresetManager {
 /// 多平台同步管理器
 pub struct McpSyncManager {
     /// 源平台（默认 Claude）
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     source: Platform,
     /// 源平台配置目录
     source_dir: PathBuf,

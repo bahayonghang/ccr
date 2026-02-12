@@ -160,7 +160,6 @@ pub enum CcrError {
     ValidationError(String),
 
     /// ☁️ 同步错误
-    #[allow(dead_code)]
     #[error("同步错误: {0}")]
     SyncError(String),
 

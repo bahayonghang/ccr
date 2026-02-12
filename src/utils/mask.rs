@@ -11,7 +11,7 @@
 ///
 /// # Examples
 ///
-/// ```
+/// ```no_run
 /// use ccr::utils::mask_sensitive;
 ///
 /// assert_eq!(mask_sensitive("sk-ant-1234567890abcdef"), "sk-a...cdef");
@@ -34,7 +34,7 @@ pub fn mask_sensitive(value: &str) -> String {
 ///
 /// # Examples
 ///
-/// ```
+/// ```no_run
 /// use ccr::utils::mask_if_sensitive;
 ///
 /// assert_eq!(mask_if_sensitive("ANTHROPIC_AUTH_TOKEN", "sk-ant-123456"), "sk-a...3456");

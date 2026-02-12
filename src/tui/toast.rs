@@ -39,7 +39,6 @@ impl Toast {
         }
     }
 
-    #[allow(dead_code)]
     pub fn warning(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
@@ -49,7 +48,6 @@ impl Toast {
         }
     }
 
-    #[allow(dead_code)]
     pub fn info(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),

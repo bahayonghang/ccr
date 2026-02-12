@@ -16,6 +16,7 @@ pub struct ConfigManager {
     file_handler: crate::managers::config_file_handler::ConfigFileHandler,
 }
 
+#[allow(dead_code)]
 impl ConfigManager {
     /// 🏗️ 创建新的配置管理器
     pub fn new<P: AsRef<Path>>(config_path: P) -> Self {
@@ -113,7 +114,6 @@ impl ConfigManager {
     }
 
     /// 📋 列出所有配置备份文件
-    #[allow(dead_code)]
     pub fn list_backups(&self) -> Result<Vec<PathBuf>> {
         self.file_handler.list_backups()
     }

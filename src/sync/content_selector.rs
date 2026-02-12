@@ -265,7 +265,7 @@ impl SyncContentSelector {
             println!();
 
             print!("请选择操作: ");
-            io::stdout().flush().expect("无法刷新标准输出");
+            io::stdout().flush()?;
 
             let mut input = String::new();
             io::stdin().read_line(&mut input)?;

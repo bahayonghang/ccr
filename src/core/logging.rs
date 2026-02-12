@@ -34,6 +34,7 @@ use tracing_subscriber::{
 /// - ▶️ step: 青色(步骤提示)
 pub struct ColorOutput;
 
+#[allow(dead_code)]
 impl ColorOutput {
     /// 输出成功消息 (绿色)
     pub fn success(msg: &str) {
@@ -124,13 +125,11 @@ impl ColorOutput {
     }
 
     /// ▶️ 输出当前配置标记(带颜色)
-    #[allow(dead_code)]
     pub fn current_marker() -> String {
         "▶".green().bold().to_string()
     }
 
     /// ○ 输出普通项目标记
-    #[allow(dead_code)]
     pub fn normal_marker() -> String {
         " ".to_string()
     }
@@ -155,7 +154,6 @@ impl ColorOutput {
     }
 
     /// 输出配置节状态
-    #[allow(dead_code)]
     pub fn config_status(name: &str, is_current: bool, description: Option<&str>) {
         let marker = if is_current {
             Self::current_marker()
@@ -171,7 +169,6 @@ impl ColorOutput {
     }
 
     /// 输出环境变量状态
-    #[allow(dead_code)]
     pub fn env_status(var_name: &str, value: Option<&str>, is_sensitive: bool) {
         match value {
             Some(v) => {
@@ -321,7 +318,6 @@ pub fn init_logger() {
 /// 此函数仅将日志写入文件，不输出到终端。
 ///
 /// 注意：由于 tracing 只能初始化一次，此函数会静默失败（如果已初始化）
-#[allow(dead_code)]
 pub fn init_file_only_logger() {
     // 初始化 log -> tracing 桥接
     let _ = LogTracer::init();
