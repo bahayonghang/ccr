@@ -120,20 +120,22 @@ const router = createRouter({
           name: 'agent-detail',
           component: () => import('@/views/generic/AgentDetailView.vue')
         },
+        // Skills Hub (统一管理中心)
         {
           path: 'skills',
           name: 'skills',
-          component: () => import('@/views/generic/SkillsView.vue')
+          component: () => import('@/views/skills/UnifiedSkillsView.vue'),
+          meta: { cache: true }
         },
         {
           path: 'skills/hub',
-          name: 'skill-hub',
-          component: () => import('@/views/generic/SkillHubView.vue')
+          redirect: '/skills'
         },
         {
-          path: 'skills/:name',
+          path: 'skills/:platform/:name',
           name: 'skill-detail',
-          component: () => import('@/views/generic/SkillDetailView.vue')
+          component: () => import('@/views/generic/SkillDetailView.vue'),
+          props: true
         },
         {
           path: 'market',

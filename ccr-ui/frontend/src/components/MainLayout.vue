@@ -55,6 +55,23 @@
           </RouterLink>
         </div>
 
+        <!-- Section: Skills Hub -->
+        <div>
+          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
+            {{ $t('nav.skillsHub') }}
+            <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
+          </div>
+          <div class="space-y-0.5">
+            <RouterLink
+              to="/skills"
+              class="nav-item group"
+            >
+              <Package class="w-4 h-4 text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors" />
+              <span>{{ $t('nav.skills') }}</span>
+            </RouterLink>
+          </div>
+        </div>
+
         <!-- Section: Modules -->
         <div>
           <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
@@ -219,7 +236,7 @@
                   </span>
                 </p>
                 <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                  CCR UI v4.0.0
+                  CCR UI v4.0.1
                 </span>
               </div>
             </div>
@@ -299,7 +316,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import {
   Home, Code2, Settings, Sparkles, Zap, Activity,
-  Terminal, Cloud, Bot, ClipboardList, Cat
+  Terminal, Cloud, Bot, ClipboardList, Cat, Package
 } from 'lucide-vue-next'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'

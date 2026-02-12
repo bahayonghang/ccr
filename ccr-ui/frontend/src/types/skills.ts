@@ -1,0 +1,180 @@
+/**
+ * Unified Skills Management Types
+ * 统一 Skills 管理类型定义
+ */
+
+// Platform identifiers
+export type Platform = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'iflow' | 'droid'
+
+// Source type for filtering
+export type SkillSource = 'all' | 'user' | 'plugin' | 'remote'
+
+// Platform information
+export interface PlatformInfo {
+  id: Platform
+  displayName: string
+  globalSkillsDir: string
+  detected: boolean
+  installedCount: number
+  icon: string
+  color: string
+}
+
+// Platform configuration with colors and icons
+export const PLATFORM_CONFIG: Record<Platform, { displayName: string; icon: string; color: string; tailwindColor: string }> = {
+  'claude-code': {
+    displayName: 'Claude Code',
+    icon: 'Code2',
+    color: '#A78BFA',
+    tailwindColor: 'purple-400'
+  },
+  'codex': {
+    displayName: 'Codex',
+    icon: 'Settings',
+    color: '#34D399',
+    tailwindColor: 'emerald-400'
+  },
+  'gemini': {
+    displayName: 'Gemini CLI',
+    icon: 'Sparkles',
+    color: '#38BDF8',
+    tailwindColor: 'sky-400'
+  },
+  'qwen': {
+    displayName: 'Qwen',
+    icon: 'Zap',
+    color: '#22D3EE',
+    tailwindColor: 'cyan-400'
+  },
+  'iflow': {
+    displayName: 'iFlow',
+    icon: 'Activity',
+    color: '#FBBF24',
+    tailwindColor: 'amber-400'
+  },
+  'droid': {
+    displayName: 'Droid',
+    icon: 'Bot',
+    color: '#F472B6',
+    tailwindColor: 'pink-400'
+  }
+}
+
+// Skill metadata from SKILL.md frontmatter
+export interface SkillMetadata {
+  author?: string
+  version?: string
+  license?: string
+  category?: string
+  tags?: string[]
+  updatedAt?: string
+}
+
+// Unified skill with platform information
+export interface UnifiedSkill {
+  name: string
+  description?: string
+  skillDir: string
+  platform: Platform
+  platformName: string
+  category?: string
+  tags: string[]
+  // Extended fields for UI
+  isRemote?: boolean
+  repository?: string
+  // Metadata fields (from backend SkillInstallMeta + frontmatter)
+  version?: string
+  author?: string
+  source?: string        // "marketplace" | "github" | "local"
+  sourceUrl?: string
+  installDate?: number   // Unix timestamp (ms)
+  commitHash?: string
+}
+
+// Backend response for unified skills
+export interface UnifiedSkillsResponse {
+  skills: UnifiedSkill[]
+  total: number
+  platforms: PlatformSummary[]
+}
+
+// Platform summary from backend
+export interface PlatformSummary {
+  id: Platform
+  display_name: string
+  global_skills_dir: string
+  detected: boolean
+  installed_count: number
+}
+
+// Marketplace item from skills.sh
+export interface MarketplaceItem {
+  package: string
+  owner: string
+  repo: string
+  skill?: string
+  skillsShUrl: string
+}
+
+// Marketplace response
+export interface MarketplaceResponse {
+  items: MarketplaceItem[]
+  total: number
+  cached: boolean
+}
+
+// Filter state
+export interface SkillFilters {
+  search: string
+  source: SkillSource
+  category: string | null
+  tags: string[]
+  platform: Platform | 'all'
+}
+
+// Install request
+export interface InstallRequest {
+  package: string
+  agents: string[]
+  force?: boolean
+}
+
+// Remove request
+export interface RemoveRequest {
+  skill: string
+  agents: string[]
+}
+
+// Operation result for a single agent
+export interface AgentOperationResult {
+  agent: string
+  ok: boolean
+  message?: string
+}
+
+// Operation response
+export interface OperationResponse {
+  results: AgentOperationResult[]
+}
+
+// Content tab type
+export type ContentTab = 'installed' | 'marketplace' | 'repositories'
+
+// Stats for display
+export interface SkillsStats {
+  installed: number
+  available: number
+  activePlatforms: number
+  totalPlatforms: number
+}
+
+// Skill content response from backend (full SKILL.md content)
+export interface SkillContent {
+  name: string
+  description?: string
+  category?: string
+  tags: string[]
+  content: string    // Markdown body (after frontmatter)
+  raw: string        // Full raw SKILL.md content (for editing)
+  skillDir: string
+}
