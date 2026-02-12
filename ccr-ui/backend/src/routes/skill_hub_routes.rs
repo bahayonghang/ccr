@@ -30,4 +30,19 @@ pub fn routes() -> Router<AppState> {
             "/skill_hub/remove",
             post(crate::api::handlers::skill_hub::remove),
         )
+        // Unified skills endpoints
+        .route(
+            "/skill_hub/unified",
+            get(crate::api::handlers::skill_hub::list_unified_skills),
+        )
+        .route(
+            "/skill_hub/unified/{platform}",
+            get(crate::api::handlers::skill_hub::list_unified_skills_by_platform),
+        )
+        // Skill content read/write
+        .route(
+            "/skill_hub/skill/content",
+            get(crate::api::handlers::skill_hub::get_skill_content)
+                .post(crate::api::handlers::skill_hub::save_skill_content),
+        )
 }

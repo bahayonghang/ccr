@@ -16,6 +16,8 @@ use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
+use crate::database;
+use crate::database::repositories::log_repo;
 use crate::models::api::ApiResponse;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,6 +52,58 @@ pub struct SkillHubInstalledSkill {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     pub skill_dir: String,
+}
+
+/// Skill installation metadata (persisted as `.skill-meta.json`)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SkillInstallMeta {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_date: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_hash: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub author: Option<String>,
+}
+
+/// Unified skill with platform information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnifiedSkill {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    pub skill_dir: String,
+    pub platform: String,
+    pub platform_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    // Extended metadata fields
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub author: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_date: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_hash: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnifiedSkillsResponse {
+    pub skills: Vec<UnifiedSkill>,
+    pub total: usize,
+    pub platforms: Vec<SkillHubAgentSummary>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -163,7 +217,7 @@ pub async fn list_agents() -> impl IntoResponse {
         .map(|agent| {
             let dir = agent_global_skills_dir(&agent.id);
             let (detected, installed_count) = match &dir {
-                Some(p) => (p.exists(), count_installed_skills(p)),
+                Some(p) => (p.exists(), count_installed_skills_fast(p)),
                 None => (false, 0),
             };
 
@@ -178,6 +232,83 @@ pub async fn list_agents() -> impl IntoResponse {
         .collect::<Vec<_>>();
 
     ApiResponse::success(agents)
+}
+
+/// GET /skill_hub/unified - List all skills from all platforms
+pub async fn list_unified_skills() -> impl IntoResponse {
+    let agents = list_supported_agents();
+    let mut all_skills = Vec::new();
+    let mut platforms = Vec::new();
+
+    for agent in agents {
+        let dir = agent_global_skills_dir(&agent.id);
+        let detected = dir.as_ref().is_some_and(|p| p.exists());
+
+        // Single scan: list skills first, derive count from result (no double I/O)
+        let skills = match &dir {
+            Some(dir_path) if detected => {
+                list_unified_skills_in_dir(dir_path, &agent.id, &agent.display_name)
+            }
+            _ => Vec::new(),
+        };
+        let installed_count = skills.len();
+        all_skills.extend(skills);
+
+        platforms.push(SkillHubAgentSummary {
+            id: agent.id.clone(),
+            display_name: agent.display_name.clone(),
+            global_skills_dir: dir.as_ref().map(|p| path_to_string(p)).unwrap_or_default(),
+            detected,
+            installed_count,
+        });
+    }
+
+    let total = all_skills.len();
+    ApiResponse::success(UnifiedSkillsResponse {
+        skills: all_skills,
+        total,
+        platforms,
+    })
+}
+
+/// GET /skill_hub/unified/{platform} - List skills for a specific platform
+pub async fn list_unified_skills_by_platform(
+    AxumPath(platform): AxumPath<String>,
+) -> impl IntoResponse {
+    let agents = list_supported_agents();
+    let agent = match agents.iter().find(|a| a.id == platform) {
+        Some(a) => a.clone(),
+        None => {
+            return ApiResponse::<UnifiedSkillsResponse>::error("Unknown platform".to_string());
+        }
+    };
+
+    let dir = agent_global_skills_dir(&agent.id);
+    let detected = dir.as_ref().is_some_and(|p| p.exists());
+
+    // Single scan: list skills first, derive count from result (no double I/O)
+    let skills = match &dir {
+        Some(dir_path) if detected => {
+            list_unified_skills_in_dir(dir_path, &agent.id, &agent.display_name)
+        }
+        _ => Vec::new(),
+    };
+    let installed_count = skills.len();
+
+    let platform_summary = SkillHubAgentSummary {
+        id: agent.id.clone(),
+        display_name: agent.display_name.clone(),
+        global_skills_dir: dir.as_ref().map(|p| path_to_string(p)).unwrap_or_default(),
+        detected,
+        installed_count,
+    };
+
+    let total = skills.len();
+    ApiResponse::success(UnifiedSkillsResponse {
+        skills,
+        total,
+        platforms: vec![platform_summary],
+    })
 }
 
 pub async fn list_agent_skills(AxumPath(agent): AxumPath<String>) -> impl IntoResponse {
@@ -250,11 +381,31 @@ pub async fn install(Json(req): Json<InstallRequest>) -> impl IntoResponse {
         };
 
         match install_skill_from_github(&owner, &repo, &skill, &global_dir, req.force).await {
-            Ok(_) => results.push(AgentOperationResult {
-                agent,
-                ok: true,
-                message: None,
-            }),
+            Ok(_) => {
+                // Log install operation
+                let log_entry = log_repo::LogEntry {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    timestamp: chrono::Utc::now(),
+                    level: "INFO".to_string(),
+                    source: "SkillHub".to_string(),
+                    message: format!("Installed skill '{}' to {}", req.package, agent),
+                    metadata_json: Some(
+                        serde_json::json!({
+                            "action": "install",
+                            "package": req.package,
+                            "agent": agent
+                        })
+                        .to_string(),
+                    ),
+                };
+                let _ = database::with_connection(|conn| log_repo::insert_log(conn, &log_entry));
+
+                results.push(AgentOperationResult {
+                    agent,
+                    ok: true,
+                    message: None,
+                })
+            }
             Err(err) => results.push(AgentOperationResult {
                 agent,
                 ok: false,
@@ -304,11 +455,32 @@ pub async fn remove(Json(req): Json<RemoveRequest>) -> impl IntoResponse {
         };
 
         match fs::remove_dir_all(&resolved_dir) {
-            Ok(_) => results.push(AgentOperationResult {
-                agent,
-                ok: true,
-                message: None,
-            }),
+            Ok(_) => {
+                // Log remove operation
+                let log_entry = log_repo::LogEntry {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    timestamp: chrono::Utc::now(),
+                    level: "INFO".to_string(),
+                    source: "SkillHub".to_string(),
+                    message: format!("Removed skill '{}' from {}", req.skill, agent),
+                    metadata_json: Some(
+                        serde_json::json!({
+                            "action": "remove",
+                            "skill": req.skill,
+                            "agent": agent,
+                            "skill_dir": path_to_string(&resolved_dir)
+                        })
+                        .to_string(),
+                    ),
+                };
+                let _ = database::with_connection(|conn| log_repo::insert_log(conn, &log_entry));
+
+                results.push(AgentOperationResult {
+                    agent,
+                    ok: true,
+                    message: None,
+                })
+            }
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                 results.push(AgentOperationResult {
                     agent,
@@ -344,12 +516,20 @@ fn list_supported_agents() -> Vec<SupportedAgent> {
             display_name: "Codex".to_string(),
         },
         SupportedAgent {
-            id: "antigravity".to_string(),
-            display_name: "Antigravity".to_string(),
+            id: "gemini".to_string(),
+            display_name: "Gemini CLI".to_string(),
         },
         SupportedAgent {
-            id: "opencode".to_string(),
-            display_name: "OpenCode".to_string(),
+            id: "qwen".to_string(),
+            display_name: "Qwen".to_string(),
+        },
+        SupportedAgent {
+            id: "iflow".to_string(),
+            display_name: "iFlow".to_string(),
+        },
+        SupportedAgent {
+            id: "droid".to_string(),
+            display_name: "Droid".to_string(),
         },
     ]
 }
@@ -359,8 +539,10 @@ fn agent_global_skills_dir(agent: &str) -> Option<PathBuf> {
     match agent {
         "claude-code" => Some(home.join(".claude").join("skills")),
         "codex" => Some(home.join(".codex").join("skills")),
-        "antigravity" => Some(home.join(".gemini").join("antigravity").join("skills")),
-        "opencode" => Some(home.join(".config").join("opencode").join("skills")),
+        "gemini" => Some(home.join(".gemini").join("skills")),
+        "qwen" => Some(home.join(".qwen").join("skills")),
+        "iflow" => Some(home.join(".iflow").join("skills")),
+        "droid" => Some(home.join(".gemini").join("antigravity").join("skills")),
         _ => None,
     }
 }
@@ -403,8 +585,76 @@ fn list_installed_skills_in_dir(dir: &Path) -> Vec<SkillHubInstalledSkill> {
     skills
 }
 
-fn count_installed_skills(dir: &Path) -> usize {
-    list_installed_skills_in_dir(dir).len()
+fn list_unified_skills_in_dir(
+    dir: &Path,
+    platform: &str,
+    platform_name: &str,
+) -> Vec<UnifiedSkill> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Vec::new();
+    };
+
+    let mut skills = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+
+        let skill_md = path.join("SKILL.md");
+        if !skill_md.is_file() {
+            continue;
+        }
+
+        let parsed = parse_skill_md_full(&skill_md).unwrap_or_else(|| SkillMdParsed {
+            name: path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string(),
+            description: None,
+            category: None,
+            tags: Vec::new(),
+            version: None,
+            author: None,
+        });
+
+        // Load persisted metadata (.skill-meta.json) if available
+        let meta = load_skill_metadata(&path);
+
+        skills.push(UnifiedSkill {
+            name: parsed.name,
+            description: parsed.description,
+            skill_dir: path_to_string(&path),
+            platform: platform.to_string(),
+            platform_name: platform_name.to_string(),
+            category: parsed.category,
+            tags: parsed.tags,
+            // version/author: prefer frontmatter, fallback to meta
+            version: parsed.version.or_else(|| meta.as_ref().and_then(|m| m.version.clone())),
+            author: parsed.author.or_else(|| meta.as_ref().and_then(|m| m.author.clone())),
+            // source fields: from persisted metadata only
+            source: meta.as_ref().and_then(|m| m.source.clone()),
+            source_url: meta.as_ref().and_then(|m| m.source_url.clone()),
+            install_date: meta.as_ref().and_then(|m| m.install_date),
+            commit_hash: meta.as_ref().and_then(|m| m.commit_hash.clone()),
+        });
+    }
+
+    skills.sort_by(|a, b| a.name.cmp(&b.name));
+    skills
+}
+
+/// Lightweight skill count: only checks for subdirs containing SKILL.md,
+/// does NOT parse file contents. Use this when you only need the count.
+fn count_installed_skills_fast(dir: &Path) -> usize {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return 0;
+    };
+    entries
+        .flatten()
+        .filter(|e| e.path().is_dir() && e.path().join("SKILL.md").is_file())
+        .count()
 }
 
 fn find_installed_skill_dir_by_name(dir: &Path, name: &str) -> Option<PathBuf> {
@@ -463,8 +713,307 @@ fn parse_skill_md_frontmatter(path: &Path) -> Option<(String, Option<String>)> {
     Some((name, description))
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillContentResponse {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    pub content: String,
+    pub raw: String,
+    pub skill_dir: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SkillContentQuery {
+    pub skill_dir: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SaveSkillContentRequest {
+    pub skill_dir: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone)]
+struct SkillMdParsed {
+    name: String,
+    description: Option<String>,
+    category: Option<String>,
+    tags: Vec<String>,
+    version: Option<String>,
+    author: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct SkillMdWithContent {
+    name: String,
+    description: Option<String>,
+    category: Option<String>,
+    tags: Vec<String>,
+    content: String,
+    raw: String,
+}
+
+fn parse_skill_md_full(path: &Path) -> Option<SkillMdParsed> {
+    let content = fs::read_to_string(path).ok()?;
+    let mut lines = content.lines();
+
+    if lines.next()? != "---" {
+        return None;
+    }
+
+    let mut yaml_lines = Vec::new();
+    for line in lines.by_ref() {
+        if line == "---" {
+            break;
+        }
+        yaml_lines.push(line);
+    }
+
+    let yaml = yaml_lines.join("\n");
+    let value: serde_yaml::Value = serde_yaml::from_str(&yaml).ok()?;
+
+    let name = value
+        .get("name")
+        .and_then(|v| v.as_str())
+        .map(|v| v.to_string())?;
+
+    let description = value
+        .get("description")
+        .and_then(|v| v.as_str())
+        .map(|v| v.to_string());
+
+    let category = value
+        .get("category")
+        .and_then(|v| v.as_str())
+        .map(|v| v.to_string());
+
+    let tags = value
+        .get("tags")
+        .and_then(|v| v.as_sequence())
+        .map(|seq| {
+            seq.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let version = value
+        .get("version")
+        .and_then(|v| v.as_str())
+        .map(|v| v.to_string());
+
+    let author = value
+        .get("author")
+        .and_then(|v| v.as_str())
+        .map(|v| v.to_string());
+
+    Some(SkillMdParsed {
+        name,
+        description,
+        category,
+        tags,
+        version,
+        author,
+    })
+}
+
+fn parse_skill_md_with_content(path: &Path) -> Option<SkillMdWithContent> {
+    let raw = fs::read_to_string(path).ok()?;
+    let mut lines = raw.lines();
+
+    if lines.next()? != "---" {
+        // No frontmatter, treat entire file as content
+        return Some(SkillMdWithContent {
+            name: path
+                .parent()
+                .and_then(|p| p.file_name())
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string(),
+            description: None,
+            category: None,
+            tags: Vec::new(),
+            content: raw.clone(),
+            raw,
+        });
+    }
+
+    let mut yaml_lines = Vec::new();
+    for line in lines.by_ref() {
+        if line == "---" {
+            break;
+        }
+        yaml_lines.push(line);
+    }
+
+    // Collect remaining lines as markdown body
+    let content: String = lines.collect::<Vec<_>>().join("\n").trim().to_string();
+
+    let yaml = yaml_lines.join("\n");
+    let value: serde_yaml::Value = serde_yaml::from_str(&yaml).ok()?;
+
+    let name = value
+        .get("name")
+        .and_then(|v| v.as_str())
+        .map(|v| v.to_string())
+        .unwrap_or_else(|| {
+            path.parent()
+                .and_then(|p| p.file_name())
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+        });
+
+    let description = value
+        .get("description")
+        .and_then(|v| v.as_str())
+        .map(|v| v.to_string());
+
+    let category = value
+        .get("category")
+        .and_then(|v| v.as_str())
+        .map(|v| v.to_string());
+
+    let tags = value
+        .get("tags")
+        .and_then(|v| v.as_sequence())
+        .map(|seq| {
+            seq.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Some(SkillMdWithContent {
+        name,
+        description,
+        category,
+        tags,
+        content,
+        raw,
+    })
+}
+
+/// Validate that a skill_dir is under a known agent's global skills directory.
+/// Returns the canonicalized path if valid.
+fn validate_skill_dir(skill_dir: &str) -> Result<PathBuf, String> {
+    let requested = PathBuf::from(skill_dir);
+
+    // Reject obvious path traversal
+    let normalized = requested.to_string_lossy();
+    if normalized.contains("..") {
+        return Err("Invalid path: path traversal not allowed".to_string());
+    }
+
+    // Check that the path is under a known agent's skills directory
+    let agents = list_supported_agents();
+    for agent in &agents {
+        if let Some(global_dir) = agent_global_skills_dir(&agent.id) {
+            let global_str = path_to_string(&global_dir);
+            if normalized.starts_with(&global_str) {
+                // Valid: path is under a known skills directory
+                return Ok(requested);
+            }
+        }
+    }
+
+    Err("Invalid path: not under any known skills directory".to_string())
+}
+
+/// GET /skill_hub/skill/content - Read SKILL.md content for a specific skill
+pub async fn get_skill_content(Query(q): Query<SkillContentQuery>) -> impl IntoResponse {
+    let skill_dir = match validate_skill_dir(&q.skill_dir) {
+        Ok(p) => p,
+        Err(msg) => {
+            return ApiResponse::<SkillContentResponse>::error(msg);
+        }
+    };
+
+    let skill_md = skill_dir.join("SKILL.md");
+    if !skill_md.is_file() {
+        return ApiResponse::<SkillContentResponse>::error(
+            "SKILL.md not found in the specified directory".to_string(),
+        );
+    }
+
+    match parse_skill_md_with_content(&skill_md) {
+        Some(parsed) => ApiResponse::success(SkillContentResponse {
+            name: parsed.name,
+            description: parsed.description,
+            category: parsed.category,
+            tags: parsed.tags,
+            content: parsed.content,
+            raw: parsed.raw,
+            skill_dir: path_to_string(&skill_dir),
+        }),
+        None => ApiResponse::<SkillContentResponse>::error("Failed to parse SKILL.md".to_string()),
+    }
+}
+
+/// POST /skill_hub/skill/content - Save SKILL.md content
+pub async fn save_skill_content(Json(req): Json<SaveSkillContentRequest>) -> impl IntoResponse {
+    let skill_dir = match validate_skill_dir(&req.skill_dir) {
+        Ok(p) => p,
+        Err(msg) => {
+            return ApiResponse::<()>::error(msg);
+        }
+    };
+
+    let skill_md = skill_dir.join("SKILL.md");
+
+    // Atomic write: write to temp file first, then rename
+    let tmp_path = skill_dir.join(format!(".SKILL.md.tmp-{}", uuid::Uuid::new_v4()));
+
+    if let Err(err) = fs::write(&tmp_path, &req.content) {
+        return ApiResponse::<()>::error(format!("Failed to write temporary file: {}", err));
+    }
+
+    if let Err(err) = fs::rename(&tmp_path, &skill_md) {
+        // Clean up temp file on rename failure
+        let _ = fs::remove_file(&tmp_path);
+        return ApiResponse::<()>::error(format!("Failed to save SKILL.md: {}", err));
+    }
+
+    ApiResponse::success(())
+}
+
 fn path_to_string(path: &Path) -> String {
     path.to_string_lossy().to_string()
+}
+
+/// Load skill installation metadata from `.skill-meta.json`
+fn load_skill_metadata(skill_dir: &Path) -> Option<SkillInstallMeta> {
+    let meta_path = skill_dir.join(".skill-meta.json");
+    let content = fs::read_to_string(meta_path).ok()?;
+    serde_json::from_str(&content).ok()
+}
+
+/// Save skill installation metadata to `.skill-meta.json` (atomic write)
+fn save_skill_metadata(skill_dir: &Path, metadata: &SkillInstallMeta) -> Result<(), String> {
+    let content = serde_json::to_string_pretty(metadata)
+        .map_err(|e| format!("Failed to serialize metadata: {e}"))?;
+    let tmp_path = skill_dir.join(format!(".skill-meta.json.tmp-{}", uuid::Uuid::new_v4()));
+    fs::write(&tmp_path, &content)
+        .map_err(|e| format!("Failed to write metadata tmp: {e}"))?;
+    fs::rename(&tmp_path, skill_dir.join(".skill-meta.json"))
+        .map_err(|e| {
+            let _ = fs::remove_file(&tmp_path);
+            format!("Failed to rename metadata: {e}")
+        })
+}
+
+/// Current time as Unix timestamp in milliseconds
+fn current_timestamp_ms() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 async fn get_marketplace_items_cached(
@@ -680,6 +1229,17 @@ async fn install_skill_from_github(
         fs::remove_dir_all(&target_dir)?;
     }
     fs::rename(&tmp_dir, &target_dir)?;
+
+    // Persist installation metadata
+    let meta = SkillInstallMeta {
+        source: Some("marketplace".to_string()),
+        source_url: Some(format!("https://skills.sh/{owner}/{repo}")),
+        install_date: Some(current_timestamp_ms()),
+        commit_hash: None,
+        version: None,
+        author: None,
+    };
+    let _ = save_skill_metadata(&target_dir, &meta);
 
     Ok(())
 }
