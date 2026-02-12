@@ -88,7 +88,7 @@ impl SkillsManager {
             if path.is_dir() {
                 let name = path
                     .file_name()
-                    .expect("文件名应该存在")
+                    .ok_or_else(|| CcrError::FileIoError("文件名应该存在".into()))?
                     .to_string_lossy()
                     .to_string();
                 let skill_file = path.join("SKILL.md");

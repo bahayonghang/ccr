@@ -211,11 +211,15 @@ impl CodexPlatform {
             .map_err(|e| CcrError::SettingsError(format!("解析 Codex config.toml 失败: {}", e)))
     }
 
-    fn ensure_toml_table(value: &mut toml::Value) -> &mut toml::map::Map<String, toml::Value> {
+    fn ensure_toml_table(
+        value: &mut toml::Value,
+    ) -> Result<&mut toml::map::Map<String, toml::Value>> {
         if !matches!(value, toml::Value::Table(_)) {
             *value = toml::Value::Table(toml::map::Map::new());
         }
-        value.as_table_mut().expect("table ensured")
+        value
+            .as_table_mut()
+            .ok_or_else(|| CcrError::ConfigError("TOML table expected".into()))
     }
 
     fn apply_custom_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
@@ -251,7 +255,7 @@ impl CodexPlatform {
             .clone();
 
         let mut config = Self::read_codex_config(&config_path)?;
-        let root = Self::ensure_toml_table(&mut config);
+        let root = Self::ensure_toml_table(&mut config)?;
 
         if let Some(model) = profile.model.as_ref() {
             root.insert("model".into(), toml::Value::String(model.clone()));
@@ -293,12 +297,12 @@ impl CodexPlatform {
         let providers_value = root
             .entry("model_providers")
             .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
-        let providers_table = Self::ensure_toml_table(providers_value);
+        let providers_table = Self::ensure_toml_table(providers_value)?;
 
         let provider_value = providers_table
             .entry(provider_id.clone())
             .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
-        let provider_table = Self::ensure_toml_table(provider_value);
+        let provider_table = Self::ensure_toml_table(provider_value)?;
 
         provider_table.insert("name".into(), toml::Value::String(provider_name));
         provider_table.insert("base_url".into(), toml::Value::String(base_url));
@@ -402,7 +406,7 @@ impl CodexPlatform {
     }
 
     /// 📖 加载 Codex settings
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn load_settings(&self) -> Result<CodexSettings> {
         let settings_path = Self::codex_settings_path()?;
         if !settings_path.exists() {

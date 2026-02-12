@@ -139,7 +139,9 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
     // 保存更新后的 profiles（包含递增的 usage_count）
     platform_config.save_profile(
         config_name,
-        profiles.get(config_name).expect("配置名称应该存在"),
+        profiles
+            .get(config_name)
+            .ok_or_else(|| CcrError::ConfigError("配置名称应该存在".into()))?,
     )?;
 
     // 应用 profile (这会设置当前profile并保存settings)

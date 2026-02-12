@@ -38,7 +38,7 @@ pub async fn delete_command(name: &str, force: bool) -> Result<()> {
         return Ok(());
     }
 
-    let account = account.expect("account should exist");
+    let account = account.ok_or_else(|| CcrError::ConfigError("account should exist".into()))?;
 
     // 确认删除
     if !force {

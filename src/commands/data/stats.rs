@@ -515,7 +515,7 @@ fn parse_time_range(
             let start = now
                 .date_naive()
                 .and_hms_opt(0, 0, 0)
-                .expect("无效的日期时间")
+                .ok_or_else(|| CcrError::ConfigError("无效的日期时间".into()))?
                 .and_utc();
             Ok((start, now))
         }
@@ -529,9 +529,9 @@ fn parse_time_range(
             let start = now
                 .date_naive()
                 .with_day(1)
-                .expect("无法设置日期为每月第一天")
+                .ok_or_else(|| CcrError::ConfigError("无法设置日期为每月第一天".into()))?
                 .and_hms_opt(0, 0, 0)
-                .expect("无效的日期时间")
+                .ok_or_else(|| CcrError::ConfigError("无效的日期时间".into()))?
                 .and_utc();
             Ok((start, now))
         }
@@ -674,7 +674,7 @@ fn parse_csv_line_claude_hub(
     line_num: usize,
     skip_validation: bool,
 ) -> Result<CostRecord> {
-    // TODO: 实现 Claude Hub 特定的解析逻辑
+    // TODO(issue): 实现 Claude Hub 特定的解析逻辑 - 需要创建 GitHub Issue 跟踪
     // 目前先使用标准格式
     parse_csv_line_standard(line, line_num, skip_validation)
 }
