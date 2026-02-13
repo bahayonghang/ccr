@@ -28,6 +28,13 @@ pub struct SkillHubMarketplaceItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub skill: Option<String>,
     pub skills_sh_url: String,
+    // 增强字段（从 skills.sh HTML 解析）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub author_avatar: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stars: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -135,7 +142,14 @@ static HTTP: Lazy<reqwest::Client> = Lazy::new(|| {
 static MARKETPLACE_CACHE: Lazy<RwLock<HashMap<String, CacheEntry<Vec<SkillHubMarketplaceItem>>>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
-const CACHE_TTL: Duration = Duration::from_secs(60 * 5);
+const CACHE_TTL: Duration = Duration::from_secs(60 * 60 * 24); // 24h — 手动刷新优先
+
+/// POST /skill_hub/marketplace/refresh-cache — 手动清除市场缓存
+pub async fn refresh_marketplace_cache() -> impl IntoResponse {
+    let mut cache = MARKETPLACE_CACHE.write().await;
+    cache.clear();
+    ApiResponse::success(serde_json::json!({ "cleared": true }))
+}
 
 pub async fn marketplace_trending(
     Query(q): Query<PaginationQuery>,
@@ -631,8 +645,12 @@ fn list_unified_skills_in_dir(
             category: parsed.category,
             tags: parsed.tags,
             // version/author: prefer frontmatter, fallback to meta
-            version: parsed.version.or_else(|| meta.as_ref().and_then(|m| m.version.clone())),
-            author: parsed.author.or_else(|| meta.as_ref().and_then(|m| m.author.clone())),
+            version: parsed
+                .version
+                .or_else(|| meta.as_ref().and_then(|m| m.version.clone())),
+            author: parsed
+                .author
+                .or_else(|| meta.as_ref().and_then(|m| m.author.clone())),
             // source fields: from persisted metadata only
             source: meta.as_ref().and_then(|m| m.source.clone()),
             source_url: meta.as_ref().and_then(|m| m.source_url.clone()),
@@ -998,13 +1016,11 @@ fn save_skill_metadata(skill_dir: &Path, metadata: &SkillInstallMeta) -> Result<
     let content = serde_json::to_string_pretty(metadata)
         .map_err(|e| format!("Failed to serialize metadata: {e}"))?;
     let tmp_path = skill_dir.join(format!(".skill-meta.json.tmp-{}", uuid::Uuid::new_v4()));
-    fs::write(&tmp_path, &content)
-        .map_err(|e| format!("Failed to write metadata tmp: {e}"))?;
-    fs::rename(&tmp_path, skill_dir.join(".skill-meta.json"))
-        .map_err(|e| {
-            let _ = fs::remove_file(&tmp_path);
-            format!("Failed to rename metadata: {e}")
-        })
+    fs::write(&tmp_path, &content).map_err(|e| format!("Failed to write metadata tmp: {e}"))?;
+    fs::rename(&tmp_path, skill_dir.join(".skill-meta.json")).map_err(|e| {
+        let _ = fs::remove_file(&tmp_path);
+        format!("Failed to rename metadata: {e}")
+    })
 }
 
 /// Current time as Unix timestamp in milliseconds
@@ -1055,6 +1071,11 @@ async fn get_marketplace_items_cached(
 fn parse_skills_sh_links(html: &str) -> Vec<SkillHubMarketplaceItem> {
     let document = Html::parse_document(html);
     let selector = Selector::parse("a[href]").expect("valid selector");
+
+    // 尝试解析卡片级别的描述和星标信息
+    // skills.sh 页面结构：每个 skill 卡片可能包含描述文本和星标徽章
+    let card_selector = Selector::parse("a[href] p, a[href] span").ok();
+    let star_selector = Selector::parse("a[href] [class*='star'], a[href] [data-stars]").ok();
 
     let mut seen = HashSet::<String>::new();
     let mut items = Vec::new();
@@ -1109,16 +1130,125 @@ fn parse_skills_sh_links(html: &str) -> Vec<SkillHubMarketplaceItem> {
             continue;
         }
 
+        // 从卡片内容中提取描述文本（graceful fallback）
+        let description = extract_card_text(&node, &card_selector);
+
+        // 尝试从卡片中解析星标数字
+        let stars = extract_card_stars(&node, &star_selector);
+
+        // 头像通过 GitHub avatars 模板推导（无需 API 调用）
+        let author_avatar = Some(format!(
+            "https://avatars.githubusercontent.com/{}?s=64",
+            owner
+        ));
+
         items.push(SkillHubMarketplaceItem {
             package,
             owner,
             repo,
             skill,
             skills_sh_url: absolute,
+            description,
+            author_avatar,
+            stars,
         });
     }
 
     items
+}
+
+/// 从卡片节点中提取描述文本
+fn extract_card_text(
+    node: &scraper::ElementRef,
+    card_selector: &Option<Selector>,
+) -> Option<String> {
+    if let Some(sel) = card_selector {
+        for child in node.select(sel) {
+            let text = child.text().collect::<String>().trim().to_string();
+            // 过滤掉太短的文本（可能是按钮/标签），保留像描述一样的文本
+            if text.len() > 15 && !text.starts_with("http") {
+                return Some(text);
+            }
+        }
+    }
+
+    // Fallback: 收集节点内除了链接文字以外的文本
+    let full_text: String = node
+        .text()
+        .map(|t| t.trim())
+        .filter(|t| !t.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    // 如果文本足够长，可能包含描述
+    if full_text.len() > 30 {
+        // 尝试跳过前面的 owner/repo 部分
+        let parts: Vec<&str> = full_text.splitn(3, ' ').collect();
+        if parts.len() >= 3 {
+            let desc = parts[2..].join(" ");
+            if desc.len() > 10 {
+                return Some(desc);
+            }
+        }
+    }
+
+    None
+}
+
+/// 从卡片节点中解析星标数字
+fn extract_card_stars(node: &scraper::ElementRef, star_selector: &Option<Selector>) -> Option<u64> {
+    // 方法1: 通过专门的星标选择器
+    if let Some(sel) = star_selector {
+        for child in node.select(sel) {
+            let text = child.text().collect::<String>();
+            if let Some(n) = parse_star_count(&text) {
+                return Some(n);
+            }
+        }
+    }
+
+    // 方法2: 在整个节点文本中查找星标模式（如 "⭐ 1.2k" 或 "★ 42"）
+    let full_text: String = node.text().collect::<String>();
+    for segment in full_text.split_whitespace() {
+        if let Some(n) = parse_star_count(segment) {
+            return Some(n);
+        }
+    }
+
+    None
+}
+
+/// 解析星标数字文本（支持 "1.2k", "42", "1,234" 等格式）
+fn parse_star_count(text: &str) -> Option<u64> {
+    let cleaned: String = text
+        .chars()
+        .filter(|c| {
+            c.is_ascii_digit() || *c == '.' || *c == 'k' || *c == 'K' || *c == 'm' || *c == 'M'
+        })
+        .collect();
+
+    if cleaned.is_empty() {
+        return None;
+    }
+
+    // Handle "1.2k" format
+    if cleaned.ends_with('k') || cleaned.ends_with('K') {
+        let num_part = &cleaned[..cleaned.len() - 1];
+        if let Ok(n) = num_part.parse::<f64>() {
+            return Some((n * 1000.0) as u64);
+        }
+    }
+
+    // Handle "1.2m" format
+    if cleaned.ends_with('m') || cleaned.ends_with('M') {
+        let num_part = &cleaned[..cleaned.len() - 1];
+        if let Ok(n) = num_part.parse::<f64>() {
+            return Some((n * 1_000_000.0) as u64);
+        }
+    }
+
+    // Plain number
+    cleaned.replace(',', "").parse::<u64>().ok()
 }
 
 fn paginate<T: Clone>(items: Vec<T>, limit: usize, page: usize) -> Vec<T> {
@@ -1143,6 +1273,11 @@ fn filter_items(items: Vec<SkillHubMarketplaceItem>, query: &str) -> Vec<SkillHu
                     .skill
                     .as_ref()
                     .map(|s| s.to_lowercase().contains(&q))
+                    .unwrap_or(false)
+                || item
+                    .description
+                    .as_ref()
+                    .map(|d| d.to_lowercase().contains(&q))
                     .unwrap_or(false)
         })
         .collect()
@@ -1441,4 +1576,761 @@ async fn github_download_bytes(
         .bytes()
         .await?
         .to_vec())
+}
+
+// ========================================================================
+// 新增端点: GitHub URL 导入 / 本地导入 / npx 集成 / 批量安装
+// ========================================================================
+
+#[derive(Debug, Deserialize)]
+pub struct ImportGithubRequest {
+    pub url: String,
+    #[serde(default)]
+    pub agents: Vec<String>,
+    #[serde(default)]
+    pub force: bool,
+}
+
+/// POST /skill_hub/import/github — 从 GitHub URL 直接导入 skill
+pub async fn import_github(Json(req): Json<ImportGithubRequest>) -> impl IntoResponse {
+    let parsed = match parse_github_url(&req.url) {
+        Ok(v) => v,
+        Err(msg) => {
+            return ApiResponse::<SkillHubOperationResponse>::error(msg);
+        }
+    };
+
+    let target_agents = resolve_target_agents(&req.agents);
+    let mut results = Vec::new();
+
+    match parsed {
+        GithubUrlParsed::RepoWithSkill { owner, repo, skill } => {
+            // 安装特定 skill
+            for agent in &target_agents {
+                let Some(global_dir) = agent_global_skills_dir(agent) else {
+                    results.push(AgentOperationResult {
+                        agent: agent.clone(),
+                        ok: false,
+                        message: Some("Unknown agent".to_string()),
+                    });
+                    continue;
+                };
+
+                match install_skill_from_github(&owner, &repo, &skill, &global_dir, req.force).await
+                {
+                    Ok(_) => {
+                        // 设置 metadata source 为 github
+                        let meta = SkillInstallMeta {
+                            source: Some("github".to_string()),
+                            source_url: Some(req.url.clone()),
+                            install_date: Some(current_timestamp_ms()),
+                            ..Default::default()
+                        };
+                        let _ = save_skill_metadata(&global_dir.join(&skill), &meta);
+
+                        log_operation(
+                            "install",
+                            &format!("github:{}/{}/{}", owner, repo, skill),
+                            agent,
+                        );
+                        results.push(AgentOperationResult {
+                            agent: agent.clone(),
+                            ok: true,
+                            message: None,
+                        });
+                    }
+                    Err(err) => {
+                        results.push(AgentOperationResult {
+                            agent: agent.clone(),
+                            ok: false,
+                            message: Some(err.to_string()),
+                        });
+                    }
+                }
+            }
+        }
+        GithubUrlParsed::RepoOnly { owner, repo } => {
+            // 整仓库导入: 扫描仓库中所有 skill 目录
+            match discover_repo_skills(&owner, &repo).await {
+                Ok(skill_names) if !skill_names.is_empty() => {
+                    for skill in &skill_names {
+                        for agent in &target_agents {
+                            let Some(global_dir) = agent_global_skills_dir(agent) else {
+                                continue;
+                            };
+                            match install_skill_from_github(
+                                &owner,
+                                &repo,
+                                skill,
+                                &global_dir,
+                                req.force,
+                            )
+                            .await
+                            {
+                                Ok(_) => {
+                                    let meta = SkillInstallMeta {
+                                        source: Some("github".to_string()),
+                                        source_url: Some(req.url.clone()),
+                                        install_date: Some(current_timestamp_ms()),
+                                        ..Default::default()
+                                    };
+                                    let _ = save_skill_metadata(&global_dir.join(skill), &meta);
+
+                                    log_operation(
+                                        "install",
+                                        &format!("github:{}/{}/{}", owner, repo, skill),
+                                        agent,
+                                    );
+                                    results.push(AgentOperationResult {
+                                        agent: agent.clone(),
+                                        ok: true,
+                                        message: Some(format!("Installed skill: {}", skill)),
+                                    });
+                                }
+                                Err(err) => {
+                                    results.push(AgentOperationResult {
+                                        agent: agent.clone(),
+                                        ok: false,
+                                        message: Some(format!("{}: {}", skill, err)),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                Ok(_) => {
+                    return ApiResponse::error("No skills found in repository".to_string());
+                }
+                Err(err) => {
+                    return ApiResponse::error(format!("Failed to scan repository: {}", err));
+                }
+            }
+        }
+    }
+
+    ApiResponse::success(SkillHubOperationResponse { results })
+}
+
+#[derive(Debug)]
+enum GithubUrlParsed {
+    RepoOnly {
+        owner: String,
+        repo: String,
+    },
+    RepoWithSkill {
+        owner: String,
+        repo: String,
+        skill: String,
+    },
+}
+
+/// 解析多种 GitHub URL 格式
+fn parse_github_url(input: &str) -> Result<GithubUrlParsed, String> {
+    let trimmed = input.trim();
+
+    // Format: owner/repo@skill
+    if let Some((repo_part, skill)) = trimmed.split_once('@')
+        && !repo_part.starts_with("http")
+    {
+        let parts: Vec<&str> = repo_part.split('/').collect();
+        if parts.len() == 2 && !parts[0].is_empty() && !parts[1].is_empty() {
+            return Ok(GithubUrlParsed::RepoWithSkill {
+                owner: parts[0].to_string(),
+                repo: parts[1].to_string(),
+                skill: skill.to_string(),
+            });
+        }
+    }
+
+    // Format: owner/repo (simple shorthand)
+    if !trimmed.starts_with("http") && !trimmed.contains('@') {
+        let parts: Vec<&str> = trimmed.split('/').collect();
+        if parts.len() == 2 && !parts[0].is_empty() && !parts[1].is_empty() {
+            return Ok(GithubUrlParsed::RepoOnly {
+                owner: parts[0].to_string(),
+                repo: parts[1].to_string(),
+            });
+        }
+    }
+
+    // Format: Full URL https://github.com/owner/repo[/tree/branch/.../skill-name]
+    if let Ok(url) = Url::parse(trimmed) {
+        let host = url.host_str().unwrap_or("");
+        if host != "github.com" && host != "skills.sh" {
+            return Err("Only github.com and skills.sh URLs are supported".to_string());
+        }
+
+        let segments: Vec<String> = url
+            .path_segments()
+            .map(|s| s.filter(|p| !p.is_empty()).map(|p| p.to_string()).collect())
+            .unwrap_or_default();
+
+        if segments.len() < 2 {
+            return Err("URL must contain at least owner/repo".to_string());
+        }
+
+        let owner = segments[0].clone();
+        let repo = segments[1].clone();
+
+        // Check for /tree/branch/.../skill-name pattern
+        if segments.len() >= 4 && segments[2] == "tree" {
+            // segments: [owner, repo, "tree", branch, ...path_parts]
+            // The last non-empty segment is the skill name
+            if let Some(last) = segments.last()
+                && last != "tree"
+                && last != &segments[3]
+            {
+                return Ok(GithubUrlParsed::RepoWithSkill {
+                    owner,
+                    repo,
+                    skill: last.clone(),
+                });
+            }
+        }
+
+        // skills.sh URL: /owner/repo/skill
+        if host == "skills.sh" && segments.len() >= 3 {
+            return Ok(GithubUrlParsed::RepoWithSkill {
+                owner,
+                repo,
+                skill: segments[2].clone(),
+            });
+        }
+
+        return Ok(GithubUrlParsed::RepoOnly { owner, repo });
+    }
+
+    Err(
+        "Invalid URL format. Expected: owner/repo, owner/repo@skill, or full GitHub URL"
+            .to_string(),
+    )
+}
+
+/// 扫描 GitHub 仓库中的 skill 目录
+async fn discover_repo_skills(owner: &str, repo: &str) -> anyhow::Result<Vec<String>> {
+    let branch = github_default_branch(owner, repo).await?;
+    let mut skills = Vec::new();
+
+    // 检查常见 skill 目录位置
+    let candidates = ["skills", ".claude/skills", ""];
+    for base in candidates {
+        let path = if base.is_empty() {
+            ".".to_string()
+        } else {
+            base.to_string()
+        };
+        if let Ok(entries) = github_list_dir(owner, repo, &branch, &path).await {
+            for entry in &entries {
+                if entry.kind == "dir" {
+                    // 检查子目录是否包含 SKILL.md
+                    let sub_path = if base.is_empty() {
+                        entry.name.clone()
+                    } else {
+                        format!("{}/{}", base, entry.name)
+                    };
+                    if let Ok(sub_entries) = github_list_dir(owner, repo, &branch, &sub_path).await
+                        && sub_entries
+                            .iter()
+                            .any(|i| i.kind == "file" && i.name == "SKILL.md")
+                    {
+                        skills.push(entry.name.clone());
+                    }
+                }
+            }
+        }
+        if !skills.is_empty() {
+            break;
+        }
+    }
+
+    Ok(skills)
+}
+
+// --- 本地文件夹导入 ---
+
+#[derive(Debug, Deserialize)]
+pub struct ImportLocalRequest {
+    pub source_path: String,
+    #[serde(default)]
+    pub agents: Vec<String>,
+    #[serde(default)]
+    pub skill_name: Option<String>,
+}
+
+/// POST /skill_hub/import/local — 从本地文件夹导入 skill
+pub async fn import_local(Json(req): Json<ImportLocalRequest>) -> impl IntoResponse {
+    let source = PathBuf::from(&req.source_path);
+
+    // 路径安全校验
+    let normalized = source.to_string_lossy();
+    if normalized.contains("..") {
+        return ApiResponse::<SkillHubOperationResponse>::error(
+            "Invalid path: path traversal not allowed".to_string(),
+        );
+    }
+
+    // 验证源路径存在且包含 SKILL.md
+    if !source.is_dir() {
+        return ApiResponse::<SkillHubOperationResponse>::error(
+            "Source path does not exist or is not a directory".to_string(),
+        );
+    }
+    if !source.join("SKILL.md").is_file() {
+        return ApiResponse::<SkillHubOperationResponse>::error(
+            "Source directory must contain SKILL.md".to_string(),
+        );
+    }
+
+    // 确定 skill 名称
+    let skill_name = req.skill_name.unwrap_or_else(|| {
+        source
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string()
+    });
+
+    let target_agents = resolve_target_agents(&req.agents);
+    let mut results = Vec::new();
+
+    for agent in &target_agents {
+        let Some(global_dir) = agent_global_skills_dir(agent) else {
+            results.push(AgentOperationResult {
+                agent: agent.clone(),
+                ok: false,
+                message: Some("Unknown agent".to_string()),
+            });
+            continue;
+        };
+
+        match copy_skill_dir(&source, &global_dir, &skill_name) {
+            Ok(_) => {
+                // 设置 metadata
+                let meta = SkillInstallMeta {
+                    source: Some("local".to_string()),
+                    source_url: Some(req.source_path.clone()),
+                    install_date: Some(current_timestamp_ms()),
+                    ..Default::default()
+                };
+                let _ = save_skill_metadata(&global_dir.join(&skill_name), &meta);
+
+                log_operation("install", &format!("local:{}", skill_name), agent);
+                results.push(AgentOperationResult {
+                    agent: agent.clone(),
+                    ok: true,
+                    message: None,
+                });
+            }
+            Err(err) => {
+                results.push(AgentOperationResult {
+                    agent: agent.clone(),
+                    ok: false,
+                    message: Some(err),
+                });
+            }
+        }
+    }
+
+    ApiResponse::success(SkillHubOperationResponse { results })
+}
+
+/// 递归复制 skill 目录（atomic: 先复制到 tmp，再 rename）
+fn copy_skill_dir(source: &Path, global_dir: &Path, skill_name: &str) -> Result<(), String> {
+    fs::create_dir_all(global_dir).map_err(|e| format!("Failed to create skills dir: {e}"))?;
+
+    let target = global_dir.join(skill_name);
+    let tmp_dir = global_dir.join(format!(".{}.tmp-{}", skill_name, uuid::Uuid::new_v4()));
+
+    // 递归复制到临时目录
+    copy_dir_recursive(source, &tmp_dir).map_err(|e| {
+        let _ = fs::remove_dir_all(&tmp_dir);
+        format!("Failed to copy skill directory: {e}")
+    })?;
+
+    // Atomic rename
+    if target.exists() {
+        fs::remove_dir_all(&target).map_err(|e| {
+            let _ = fs::remove_dir_all(&tmp_dir);
+            format!("Failed to remove existing skill: {e}")
+        })?;
+    }
+    fs::rename(&tmp_dir, &target).map_err(|e| {
+        let _ = fs::remove_dir_all(&tmp_dir);
+        format!("Failed to finalize skill installation: {e}")
+    })?;
+
+    Ok(())
+}
+
+/// 递归复制目录
+fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+
+        if src_path.is_dir() {
+            copy_dir_recursive(&src_path, &dst_path)?;
+        } else {
+            fs::copy(&src_path, &dst_path)?;
+        }
+    }
+    Ok(())
+}
+
+// --- npx skills CLI 集成 ---
+
+#[derive(Debug, Deserialize)]
+pub struct NpxInstallRequest {
+    pub package: String,
+    #[serde(default)]
+    pub agents: Vec<String>,
+    #[serde(default)]
+    pub global: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NpxInstallResponse {
+    pub success: bool,
+    pub method: String,
+    pub stdout: Option<String>,
+    pub stderr: Option<String>,
+    pub results: Vec<AgentOperationResult>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NpxStatusResponse {
+    pub available: bool,
+    pub version: Option<String>,
+    pub path: Option<String>,
+}
+
+/// GET /skill_hub/npx/status — 检查 npx 可用性
+pub async fn npx_status() -> impl IntoResponse {
+    let status = check_npx_available().await;
+    ApiResponse::success(status)
+}
+
+/// POST /skill_hub/import/npx — 通过 npx skills 安装
+pub async fn import_npx(Json(req): Json<NpxInstallRequest>) -> impl IntoResponse {
+    let target_agents = resolve_target_agents(&req.agents);
+    let npx_available = check_npx_available().await;
+
+    if npx_available.available {
+        // 策略 A: 直接调用 npx skills add
+        let agents_arg = target_agents.join(",");
+        let mut cmd = tokio::process::Command::new("npx");
+        cmd.arg("skills")
+            .arg("add")
+            .arg(&req.package)
+            .arg("-a")
+            .arg(&agents_arg)
+            .arg("-y");
+
+        if req.global {
+            cmd.arg("-g");
+        }
+
+        match cmd.output().await {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                let success = output.status.success();
+
+                let results = target_agents
+                    .iter()
+                    .map(|a| AgentOperationResult {
+                        agent: a.clone(),
+                        ok: success,
+                        message: if success { None } else { Some(stderr.clone()) },
+                    })
+                    .collect();
+
+                if success {
+                    for agent in &target_agents {
+                        log_operation("install", &format!("npx:{}", req.package), agent);
+                    }
+                }
+
+                ApiResponse::success(NpxInstallResponse {
+                    success,
+                    method: "npx".to_string(),
+                    stdout: Some(stdout),
+                    stderr: Some(stderr),
+                    results,
+                })
+            }
+            Err(_err) => {
+                // npx 执行失败，回退到 GitHub API
+                fallback_github_install(&req.package, &target_agents).await
+            }
+        }
+    } else {
+        // 策略 B: npx 不可用，回退到 GitHub API
+        fallback_github_install(&req.package, &target_agents).await
+    }
+}
+
+/// npx 不可用时回退到 GitHub API 安装
+async fn fallback_github_install(
+    package: &str,
+    target_agents: &[String],
+) -> ApiResponse<NpxInstallResponse> {
+    // 尝试解析 package 为 owner/repo@skill 或 owner/repo
+    let (owner, repo, skill_opt) = match parse_package_flexible(package) {
+        Ok(v) => v,
+        Err(msg) => {
+            return ApiResponse::error(format!("Cannot parse package for fallback: {}", msg));
+        }
+    };
+
+    let mut results = Vec::new();
+
+    if let Some(skill) = &skill_opt {
+        for agent in target_agents {
+            let Some(global_dir) = agent_global_skills_dir(agent) else {
+                results.push(AgentOperationResult {
+                    agent: agent.clone(),
+                    ok: false,
+                    message: Some("Unknown agent".to_string()),
+                });
+                continue;
+            };
+
+            match install_skill_from_github(&owner, &repo, skill, &global_dir, false).await {
+                Ok(_) => {
+                    let meta = SkillInstallMeta {
+                        source: Some("github".to_string()),
+                        source_url: Some(format!("https://github.com/{}/{}", owner, repo)),
+                        install_date: Some(current_timestamp_ms()),
+                        ..Default::default()
+                    };
+                    let _ = save_skill_metadata(&global_dir.join(skill), &meta);
+
+                    log_operation("install", &format!("npx-fallback:{}", package), agent);
+                    results.push(AgentOperationResult {
+                        agent: agent.clone(),
+                        ok: true,
+                        message: None,
+                    });
+                }
+                Err(err) => {
+                    results.push(AgentOperationResult {
+                        agent: agent.clone(),
+                        ok: false,
+                        message: Some(err.to_string()),
+                    });
+                }
+            }
+        }
+    } else {
+        return ApiResponse::error(
+            "Package must be in owner/repo@skill format for GitHub fallback".to_string(),
+        );
+    }
+
+    let success = results.iter().any(|r| r.ok);
+    ApiResponse::success(NpxInstallResponse {
+        success,
+        method: "github_fallback".to_string(),
+        stdout: None,
+        stderr: None,
+        results,
+    })
+}
+
+/// 灵活解析 package 标识: owner/repo@skill 或 owner/repo
+fn parse_package_flexible(package: &str) -> Result<(String, String, Option<String>), String> {
+    let trimmed = package.trim();
+
+    if let Some((repo_part, skill)) = trimmed.split_once('@') {
+        let parts: Vec<&str> = repo_part.split('/').collect();
+        if parts.len() == 2 && !parts[0].is_empty() && !parts[1].is_empty() {
+            return Ok((
+                parts[0].to_string(),
+                parts[1].to_string(),
+                Some(skill.to_string()),
+            ));
+        }
+    }
+
+    let parts: Vec<&str> = trimmed.split('/').collect();
+    if parts.len() == 2 && !parts[0].is_empty() && !parts[1].is_empty() {
+        return Ok((parts[0].to_string(), parts[1].to_string(), None));
+    }
+
+    Err("Expected format: owner/repo or owner/repo@skill".to_string())
+}
+
+/// 检测 npx 是否可用
+async fn check_npx_available() -> NpxStatusResponse {
+    let cmd = if cfg!(windows) { "where" } else { "which" };
+
+    match tokio::process::Command::new(cmd).arg("npx").output().await {
+        Ok(output) if output.status.success() => {
+            let path = String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .next()
+                .unwrap_or("")
+                .trim()
+                .to_string();
+
+            // 获取版本号
+            let version = match tokio::process::Command::new("npx")
+                .arg("--version")
+                .output()
+                .await
+            {
+                Ok(v) if v.status.success() => {
+                    Some(String::from_utf8_lossy(&v.stdout).trim().to_string())
+                }
+                _ => None,
+            };
+
+            NpxStatusResponse {
+                available: true,
+                version,
+                path: Some(path),
+            }
+        }
+        _ => NpxStatusResponse {
+            available: false,
+            version: None,
+            path: None,
+        },
+    }
+}
+
+// --- 批量安装 ---
+
+#[derive(Debug, Deserialize)]
+pub struct BatchInstallRequest {
+    pub packages: Vec<String>,
+    #[serde(default)]
+    pub agents: Vec<String>,
+    #[serde(default)]
+    pub force: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BatchItemResult {
+    pub package: String,
+    pub ok: bool,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BatchInstallResponse {
+    pub total: usize,
+    pub success_count: usize,
+    pub fail_count: usize,
+    pub results: Vec<BatchItemResult>,
+}
+
+/// POST /skill_hub/batch-install — 批量安装多个 skills
+pub async fn batch_install(Json(req): Json<BatchInstallRequest>) -> impl IntoResponse {
+    let target_agents = resolve_target_agents(&req.agents);
+    let mut results = Vec::new();
+
+    for package in &req.packages {
+        let (owner, repo, skill) = match parse_owner_repo_skill(package) {
+            Ok(v) => v,
+            Err(msg) => {
+                results.push(BatchItemResult {
+                    package: package.clone(),
+                    ok: false,
+                    message: Some(msg),
+                });
+                continue;
+            }
+        };
+
+        let mut all_ok = true;
+        let mut last_err = None;
+
+        for agent in &target_agents {
+            let Some(global_dir) = agent_global_skills_dir(agent) else {
+                all_ok = false;
+                last_err = Some("Unknown agent".to_string());
+                continue;
+            };
+
+            match install_skill_from_github(&owner, &repo, &skill, &global_dir, req.force).await {
+                Ok(_) => {
+                    log_operation("install", &format!("batch:{}", package), agent);
+                }
+                Err(err) => {
+                    all_ok = false;
+                    last_err = Some(err.to_string());
+                }
+            }
+        }
+
+        results.push(BatchItemResult {
+            package: package.clone(),
+            ok: all_ok,
+            message: if all_ok { None } else { last_err },
+        });
+    }
+
+    let total = results.len();
+    let success_count = results.iter().filter(|r| r.ok).count();
+    let fail_count = total - success_count;
+
+    ApiResponse::success(BatchInstallResponse {
+        total,
+        success_count,
+        fail_count,
+        results,
+    })
+}
+
+// --- 桌面端文件夹浏览（Tauri 环境） ---
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BrowseFolderResponse {
+    pub path: Option<String>,
+}
+
+/// POST /skill_hub/browse-folder — 打开原生文件夹选择对话框
+pub async fn browse_folder() -> impl IntoResponse {
+    use rfd::FileDialog;
+    let path = FileDialog::new()
+        .set_title("Select skill folder")
+        .pick_folder()
+        .map(|p| path_to_string(&p));
+
+    ApiResponse::success(BrowseFolderResponse { path })
+}
+
+// --- 辅助函数 ---
+
+/// 解析目标平台列表（空则使用所有已知平台）
+fn resolve_target_agents(agents: &[String]) -> Vec<String> {
+    if agents.is_empty() {
+        list_supported_agents().into_iter().map(|a| a.id).collect()
+    } else {
+        agents.to_vec()
+    }
+}
+
+/// 记录操作日志
+fn log_operation(action: &str, package: &str, agent: &str) {
+    let log_entry = log_repo::LogEntry {
+        id: uuid::Uuid::new_v4().to_string(),
+        timestamp: chrono::Utc::now(),
+        level: "INFO".to_string(),
+        source: "SkillHub".to_string(),
+        message: format!("{} '{}' for {}", action, package, agent),
+        metadata_json: Some(
+            serde_json::json!({
+                "action": action,
+                "package": package,
+                "agent": agent
+            })
+            .to_string(),
+        ),
+    };
+    let _ = database::with_connection(|conn| log_repo::insert_log(conn, &log_entry));
 }

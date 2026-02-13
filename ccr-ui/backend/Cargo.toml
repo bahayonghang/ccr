@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "4.0.1"
+version = "4.0.2"
 edition = "2024"
 
 [dependencies]
@@ -105,6 +105,7 @@ tempfile = "3.24.0" # 临时文件处理
 
 # File system utilities
 walkdir = "2.5" # 递归目录遍历
+rfd = "0.15"    # 原生文件对话框 (文件夹选择器)
 
 # UUID generation
 uuid = { version = "1.18", features = ["v4", "serde"] } # UUID 生成
