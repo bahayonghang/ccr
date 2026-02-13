@@ -1851,6 +1851,80 @@ const loadAllData = async () => {
   }
 }
 
+interface CheckinRefreshOptions {
+  reloadProviders?: boolean
+  reloadAccounts?: boolean
+  reloadRecords?: boolean
+  reloadStats?: boolean
+  reloadBuiltin?: boolean
+  reloadFailedHistory?: boolean
+}
+
+const applyBalanceSnapshot = (snapshot: {
+  account_id: string
+  remaining_quota: number
+  total_quota: number
+  used_quota: number
+  currency: string
+  recorded_at: string
+}) => {
+  const index = accounts.value.findIndex(a => a.id === snapshot.account_id)
+  if (index < 0) return
+  const account = accounts.value[index]
+  accounts.value[index] = {
+    ...account,
+    latest_balance: snapshot.remaining_quota,
+    total_quota: snapshot.total_quota,
+    total_consumed: snapshot.used_quota,
+    balance_currency: snapshot.currency,
+    last_balance_check_at: snapshot.recorded_at,
+  }
+}
+
+const refreshCheckinData = async (options: CheckinRefreshOptions = {}) => {
+  const {
+    reloadProviders = false,
+    reloadAccounts = true,
+    reloadRecords = true,
+    reloadStats = true,
+    reloadBuiltin = false,
+    reloadFailedHistory = true,
+  } = options
+
+  const tasks: Promise<any>[] = []
+
+  if (reloadProviders) {
+    tasks.push(listCheckinProviders().then((res) => {
+      providers.value = res.providers
+    }))
+  }
+  if (reloadAccounts) {
+    tasks.push(listCheckinAccounts().then((res) => {
+      accounts.value = res.accounts
+    }))
+  }
+  if (reloadRecords) {
+    tasks.push(listCheckinRecords({ page: 1, page_size: 100 }).then((res) => {
+      records.value = res.records
+    }))
+  }
+  if (reloadStats) {
+    tasks.push(getTodayCheckinStats().then((res) => {
+      todayStats.value = res
+    }))
+  }
+  if (reloadBuiltin) {
+    tasks.push(listBuiltinProviders().then((res) => {
+      builtinProviders.value = res.providers
+    }))
+  }
+
+  await Promise.all(tasks)
+  if (reloadFailedHistory) {
+    await loadFailedHistory()
+  }
+}
+
 // 添加内置提供商
 const addBuiltinProvider = async (builtinId: string) => {
   try {
@@ -1986,9 +2060,12 @@ const executeCheckinAll = async () => {
     // 标记签到完成
     isCheckinFinished.value = true
 
-    await loadAllData()
-    // 签到完成后自动刷新余额
-    await refreshAllBalances()
+    await refreshCheckinData({
+      reloadAccounts: true,
+      reloadRecords: true,
+      reloadStats: true,
+      reloadFailedHistory: true,
+    })
 
     // 如果有失败的签到，自动滚动到结果区域确保用户能看到详情
     if (failedCount > 0) {
@@ -2012,10 +2089,20 @@ const refreshAllBalances = async () => {
   const enabledAccounts = accounts.value.filter(a => a.enabled)
   
   try {
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       enabledAccounts.map(account => queryCheckinBalance(account.id))
     )
-    await loadAllData()
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        applyBalanceSnapshot(result.value)
+      }
+    }
+    await refreshCheckinData({
+      reloadAccounts: false,
+      reloadRecords: true,
+      reloadStats: true,
+      reloadFailedHistory: true,
+    })
   } catch (e: any) {
     console.error('Batch refresh failed:', e)
   } finally {
@@ -2027,8 +2114,14 @@ const refreshAllBalances = async () => {
 const refreshAccountBalance = async (accountId: string) => {
   openMenuAccountId.value = null
   try {
-    await queryCheckinBalance(accountId)
-    await loadAllData()
+    const snapshot = await queryCheckinBalance(accountId)
+    applyBalanceSnapshot(snapshot)
+    await refreshCheckinData({
+      reloadAccounts: false,
+      reloadRecords: false,
+      reloadStats: true,
+      reloadFailedHistory: false,
+    })
   } catch (e: any) {
     alert('刷新余额失败: ' + (e.message || '未知错误'))
   }
@@ -2038,7 +2131,12 @@ const refreshAccountBalance = async (accountId: string) => {
 const executeCheckinSingle = async (accountId: string) => {
   try {
     await checkinAccount(accountId)
-    await loadAllData()
+    await refreshCheckinData({
+      reloadAccounts: true,
+      reloadRecords: true,
+      reloadStats: true,
+      reloadFailedHistory: true,
+    })
   } catch (e: any) {
     alert('签到失败: ' + (e.message || '未知错误'))
     console.error('Single checkin failed:', e)

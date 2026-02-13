@@ -60,28 +60,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { listCheckinRecords } from '@/api/client'
-import type { CheckinRecordInfo } from '@/types/checkin'
+import { useCheckinStore } from '@/stores/checkin'
 
-const records = ref<CheckinRecordInfo[]>([])
-const loading = ref(true)
-const error = ref<string | null>(null)
+const store = useCheckinStore()
 const { t } = useI18n()
 
-const fetchRecords = async () => {
-  loading.value = true
-  error.value = null
+const records = computed(() => store.records)
+const loading = computed(() => store.recordsLoading)
+const error = computed(() => store.recordsError ? t('checkin.history.load_error') : null)
 
-  try {
-    const response = await listCheckinRecords({ page: 1, page_size: 20 })
-    records.value = response.records
-  } catch (err) {
-    error.value = t('checkin.history.load_error')
-  } finally {
-    loading.value = false
-  }
+const fetchRecords = () => {
+  store.fetchRecords({ page: 1, page_size: 20 }, true)
 }
 
 const statusText = (status: string) => {
@@ -113,7 +104,7 @@ const statusClass = (status: string) => {
 const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString()
 
 onMounted(() => {
-  fetchRecords()
+  store.fetchRecords({ page: 1, page_size: 20 })
 })
 </script>
 
