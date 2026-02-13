@@ -126,8 +126,8 @@ pub fn insert_account(conn: &Connection, account: &CheckinAccount) -> Result<(),
 
     conn.execute(
         "INSERT INTO checkin_accounts (id, provider_id, name, cookies_json_encrypted, api_user,
-         enabled, created_at, updated_at, last_checkin_at, last_balance_check_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+         enabled, created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             account.id,
             account.provider_id,
@@ -139,6 +139,7 @@ pub fn insert_account(conn: &Connection, account: &CheckinAccount) -> Result<(),
             updated_at,
             last_checkin_at,
             last_balance_check_at,
+            account.extra_config,
         ],
     )?;
 
@@ -150,7 +151,7 @@ pub fn insert_account(conn: &Connection, account: &CheckinAccount) -> Result<(),
 pub fn get_all_accounts(conn: &Connection) -> Result<Vec<CheckinAccount>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
-                created_at, updated_at, last_checkin_at, last_balance_check_at
+                created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts
          ORDER BY created_at DESC",
     )?;
@@ -169,7 +170,7 @@ pub fn get_accounts_by_provider(
 ) -> Result<Vec<CheckinAccount>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
-                created_at, updated_at, last_checkin_at, last_balance_check_at
+                created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts
          WHERE provider_id = ?1
          ORDER BY created_at DESC",
@@ -186,7 +187,7 @@ pub fn get_accounts_by_provider(
 pub fn get_enabled_accounts(conn: &Connection) -> Result<Vec<CheckinAccount>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
-                created_at, updated_at, last_checkin_at, last_balance_check_at
+                created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts
          WHERE enabled = 1
          ORDER BY created_at DESC",
@@ -206,7 +207,7 @@ pub fn get_account_by_id(
 ) -> Result<Option<CheckinAccount>, rusqlite::Error> {
     conn.query_row(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
-                created_at, updated_at, last_checkin_at, last_balance_check_at
+                created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts WHERE id = ?1",
         params![id],
         row_to_account,
@@ -226,8 +227,9 @@ pub fn update_account(
     let affected = conn.execute(
         "UPDATE checkin_accounts SET
          provider_id = ?1, name = ?2, cookies_json_encrypted = ?3, api_user = ?4,
-         enabled = ?5, updated_at = ?6, last_checkin_at = ?7, last_balance_check_at = ?8
-         WHERE id = ?9",
+         enabled = ?5, updated_at = ?6, last_checkin_at = ?7, last_balance_check_at = ?8,
+         extra_config = ?9
+         WHERE id = ?10",
         params![
             account.provider_id,
             account.name,
@@ -237,6 +239,7 @@ pub fn update_account(
             updated_at,
             last_checkin_at,
             last_balance_check_at,
+            account.extra_config,
             account.id,
         ],
     )?;
@@ -625,6 +628,9 @@ fn row_to_account(row: &rusqlite::Row) -> Result<CheckinAccount, rusqlite::Error
     let updated_at_str: Option<String> = row.get(7)?;
     let last_checkin_at_str: Option<String> = row.get(8)?;
     let last_balance_check_at_str: Option<String> = row.get(9)?;
+    let extra_config: String = row
+        .get::<_, Option<String>>(10)?
+        .unwrap_or_else(|| "{}".to_string());
 
     let created_at = DateTime::parse_from_rfc3339(&created_at_str)
         .map(|dt| dt.with_timezone(&Utc))
@@ -659,6 +665,7 @@ fn row_to_account(row: &rusqlite::Row) -> Result<CheckinAccount, rusqlite::Error
         updated_at,
         last_checkin_at,
         last_balance_check_at,
+        extra_config,
     })
 }
 

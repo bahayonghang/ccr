@@ -1,9 +1,10 @@
 // Database schema definitions for unified SQLite storage
-// Schema version: 1
+// Schema version: 2
 // See: openspec/changes/add-unified-sqlite-storage/proposal.md
 
 /// Current schema version for migration tracking
-pub const SCHEMA_VERSION: i32 = 1;
+#[allow(dead_code)]
+pub const SCHEMA_VERSION: i32 = 2;
 
 /// Database file path relative to user home directory
 pub const DB_RELATIVE_PATH: &str = ".ccr-ui/ccr-ui.db";
@@ -74,7 +75,8 @@ CREATE TABLE IF NOT EXISTS checkin_accounts (
     created_at TEXT NOT NULL,
     updated_at TEXT,
     last_checkin_at TEXT,
-    last_balance_check_at TEXT
+    last_balance_check_at TEXT,
+    extra_config TEXT NOT NULL DEFAULT '{}'  -- JSON: CDK credentials, OAuth tokens, etc.
 );
 
 CREATE INDEX IF NOT EXISTS idx_checkin_accounts_provider_id

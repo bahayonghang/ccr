@@ -9,7 +9,7 @@ use std::path::Path;
 use tracing::{debug, error, info, warn};
 
 use super::repositories::{checkin_repo, ui_state_repo};
-use super::schema::{CREATE_TABLES_SQL, INSERT_MIGRATION_SQL, SCHEMA_VERSION};
+use super::schema::{CREATE_TABLES_SQL, INSERT_MIGRATION_SQL};
 use crate::models::checkin::balance::BalanceSnapshot;
 use crate::models::checkin::{CheckinAccount, CheckinProvider, CheckinRecord};
 use crate::models::ui_state::FavoriteCommand;
@@ -58,19 +58,13 @@ pub fn is_migration_applied(conn: &Connection, version: i32) -> MigrationResult<
 /// Run initial schema migration (version 1)
 /// Creates all tables and indexes as defined in schema.rs
 pub fn run_initial_migration(conn: &Connection) -> MigrationResult<()> {
-    // Check if already applied
-    if is_migration_applied(conn, SCHEMA_VERSION)? {
-        info!(
-            "Migration version {} already applied, skipping",
-            SCHEMA_VERSION
-        );
+    // Check if already applied (always version 1 for initial schema)
+    if is_migration_applied(conn, 1)? {
+        info!("Migration version 1 (initial_schema) already applied, skipping");
         return Ok(());
     }
 
-    info!(
-        "Running initial schema migration (version {})",
-        SCHEMA_VERSION
-    );
+    info!("Running initial schema migration (version 1)");
 
     // Execute schema creation in a transaction
     conn.execute_batch(CREATE_TABLES_SQL)?;
@@ -79,7 +73,7 @@ pub fn run_initial_migration(conn: &Connection) -> MigrationResult<()> {
     let now = Utc::now().to_rfc3339();
     conn.execute(
         INSERT_MIGRATION_SQL,
-        rusqlite::params![SCHEMA_VERSION, "initial_schema", now],
+        rusqlite::params![1, "initial_schema", now],
     )?;
 
     info!("Initial schema migration completed successfully");
@@ -478,11 +472,50 @@ fn import_waf_cookies(_conn: &Connection, home_dir: &Path) -> MigrationResult<us
     Ok(0)
 }
 
+/// Run migration v2: Add extra_config column to checkin_accounts
+/// Stores CDK credentials, OAuth tokens, and other extensible config as JSON
+pub fn run_migration_v2(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 2)? {
+        debug!("Migration v2 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v2: add extra_config to checkin_accounts");
+
+    // ALTER TABLE to add extra_config column for existing databases
+    // New databases already have this column from CREATE_TABLES_SQL
+    conn.execute_batch(
+        "ALTER TABLE checkin_accounts ADD COLUMN extra_config TEXT NOT NULL DEFAULT '{}'",
+    )
+    .or_else(|e| {
+        // Column may already exist if DB was freshly created with v2 schema
+        if e.to_string().contains("duplicate column name") {
+            debug!("Column extra_config already exists, skipping ALTER TABLE");
+            Ok(())
+        } else {
+            Err(e)
+        }
+    })?;
+
+    // Record migration
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![2, "add_extra_config", now],
+    )?;
+
+    info!("Migration v2 completed successfully");
+    Ok(())
+}
+
 /// Run all migrations (schema + legacy data import)
 /// This is the main entry point called during initialization
 pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult<()> {
-    // Step 1: Run schema migration
+    // Step 1: Run schema migration (v1 - initial tables)
     run_initial_migration(conn)?;
+
+    // Step 1.5: Run v2 migration (extra_config column)
+    run_migration_v2(conn)?;
 
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {
@@ -556,6 +589,63 @@ mod tests {
         let count: i32 = conn
             .query_row(
                 "SELECT COUNT(*) FROM migrations WHERE version = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_migration_v2() {
+        let conn = Connection::open_in_memory().unwrap();
+
+        // Run v1 first
+        run_initial_migration(&conn).unwrap();
+
+        // Run v2
+        run_migration_v2(&conn).unwrap();
+
+        // Verify v2 migration recorded
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 2",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+
+        // Verify extra_config column exists by inserting a test account
+        conn.execute(
+            "INSERT INTO checkin_accounts (id, provider_id, name, cookies_json_encrypted, api_user, enabled, created_at, extra_config)
+             VALUES ('test', 'p1', 'Test', 'enc', 'user', 1, '2024-01-01T00:00:00Z', '{\"cdk_type\":\"test\"}')",
+            [],
+        )
+        .unwrap();
+
+        let extra: String = conn
+            .query_row(
+                "SELECT extra_config FROM checkin_accounts WHERE id = 'test'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(extra, r#"{"cdk_type":"test"}"#);
+    }
+
+    #[test]
+    fn test_migration_v2_idempotent() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+
+        // Run v2 twice - should not fail
+        run_migration_v2(&conn).unwrap();
+        run_migration_v2(&conn).unwrap();
+
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 2",
                 [],
                 |row| row.get(0),
             )

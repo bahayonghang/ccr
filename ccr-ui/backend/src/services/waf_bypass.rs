@@ -9,9 +9,32 @@ use std::time::Duration;
 use tokio::task::JoinHandle;
 
 const REQUIRED_WAF_COOKIES: &[&str] = &["acw_tc", "cdn_sec_tc", "acw_sc__v2"];
-const DEFAULT_WAF_WAIT: Duration = Duration::from_secs(8);
+const DEFAULT_WAF_WAIT: Duration = Duration::from_secs(12);
 const DEFAULT_BROWSER_LAUNCH_TIMEOUT: Duration = Duration::from_secs(30);
 const DEFAULT_BROWSER_CLOSE_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Stealth JS: 移除 headless 检测标记，伪装为真实浏览器
+const STEALTH_JS: &str = r#"
+    // 移除 navigator.webdriver 标记
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    // 伪装 Chrome runtime
+    window.chrome = { runtime: {}, loadTimes: function(){}, csi: function(){} };
+    // 伪装 permissions API
+    const originalQuery = window.navigator.permissions.query;
+    window.navigator.permissions.query = (parameters) => (
+        parameters.name === 'notifications' ?
+            Promise.resolve({ state: Notification.permission }) :
+            originalQuery(parameters)
+    );
+    // 伪装 plugins（headless 通常为空）
+    Object.defineProperty(navigator, 'plugins', {
+        get: () => [1, 2, 3, 4, 5]
+    });
+    // 伪装 languages
+    Object.defineProperty(navigator, 'languages', {
+        get: () => ['zh-CN', 'zh', 'en-US', 'en']
+    });
+"#;
 
 #[derive(Debug, thiserror::Error)]
 #[allow(clippy::enum_variant_names)]
@@ -93,7 +116,12 @@ impl WafBypassService {
             .window_size(1920, 1080)
             .no_sandbox()
             .user_data_dir(&temp_dir)
-            .chrome_executable(&browser_path);
+            .chrome_executable(&browser_path)
+            // 反 headless 检测参数
+            .arg("--disable-blink-features=AutomationControlled")
+            .arg("--disable-features=IsolateOrigins,site-per-process")
+            .arg("--disable-infobars")
+            .arg("--disable-dev-shm-usage");
 
         if let Some(proxy_url) = self.proxy_url.as_deref() {
             builder = builder.arg(format!("--proxy-server={}", proxy_url));
@@ -138,6 +166,15 @@ impl WafBypassService {
         page.set_user_agent(&self.user_agent)
             .await
             .map_err(|e| WafBypassError::UserAgentError(e.to_string()))?;
+
+        // 在导航前注入反检测 JS（about:blank 阶段执行，确保后续页面加载时生效）
+        if let Err(e) = page.evaluate(STEALTH_JS).await {
+            tracing::warn!(
+                "[{}] WAF bypass: stealth JS injection failed: {}",
+                account_name,
+                e
+            );
+        }
 
         page.goto(login_url)
             .await
@@ -190,7 +227,9 @@ impl WafBypassService {
         }
     }
 
-    fn find_browser() -> Option<PathBuf> {
+    /// 查找系统中已安装的 Chromium 内核浏览器
+    /// 公开此方法以便其他需要浏览器自动化的服务复用（如 CF Clearance 绕过）
+    pub fn find_browser() -> Option<PathBuf> {
         let browser_paths = vec![
             // macOS
             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",

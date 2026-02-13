@@ -1,5 +1,7 @@
 // Service layer modules
 
+pub mod cdk_service;
+pub mod cf_bypass;
 pub mod checkin_service;
 pub mod commands;
 pub mod converter_service;

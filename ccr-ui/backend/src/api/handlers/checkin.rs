@@ -21,6 +21,7 @@ use crate::models::checkin::{
     ExportOptions, ImportOptions, ImportPreviewResponse, ImportResult, ProvidersResponse,
     UpdateAccountRequest, UpdateProviderRequest,
 };
+use crate::services::cdk_service::{CdkExtraConfig, CdkService, CdkTopupResult};
 use crate::services::checkin_service::{CheckinExecutionResult, CheckinService, TodayCheckinStats};
 
 // ============================================================
@@ -864,6 +865,255 @@ pub async fn test_connection(
             message: format!("连接失败: {}", e),
         })),
     }
+}
+
+// ============================================================
+// CDK 充值 API
+// ============================================================
+
+/// POST /api/checkin/accounts/:id/topup - 执行 CDK 充值
+pub async fn execute_topup(Path(id): Path<String>) -> Result<Json<CdkTopupResult>, Response> {
+    let checkin_dir = get_checkin_dir()?;
+    let account_manager = AccountManager::new(&checkin_dir);
+    let provider_manager = ProviderManager::new();
+
+    // 获取账号
+    let account = account_manager.get(&id).map_err(not_found_error)?;
+
+    // 获取提供商
+    let provider = provider_manager
+        .get(&account.provider_id)
+        .map_err(not_found_error)?;
+
+    // 查找内置提供商的 CDK 配置
+    use crate::managers::checkin::builtin_providers::get_builtin_providers;
+    let builtin_providers = get_builtin_providers();
+    let cdk_config = builtin_providers
+        .iter()
+        .find(|bp| {
+            bp.name == provider.name || bp.id == format!("builtin-{}", provider.name.to_lowercase())
+        })
+        .and_then(|bp| bp.cdk_config.as_ref());
+
+    let cdk_config = match cdk_config {
+        Some(config) => config,
+        None => {
+            return Err(bad_request_error(format!(
+                "Provider {} does not support CDK topup",
+                provider.name
+            )));
+        }
+    };
+
+    // 解析账号的 extra_config
+    let extra_config = CdkExtraConfig::from_json(&account.extra_config);
+
+    // 解密 Cookies 用于 topup
+    let crypto = crate::core::crypto::CryptoManager::new(&checkin_dir)
+        .map_err(|e| internal_error(format!("Crypto error: {}", e)))?;
+    let cookies_json = crypto
+        .decrypt(&account.cookies_json_encrypted)
+        .map_err(|e| internal_error(format!("Decrypt error: {}", e)))?;
+
+    // 解析 cookies JSON 为 HashMap
+    let topup_cookies: HashMap<String, String> =
+        serde_json::from_str(&cookies_json).unwrap_or_default();
+
+    // 构造 topup URL
+    let topup_url = cdk_config
+        .topup_path
+        .as_ref()
+        .map(|path| format!("{}{}", provider.base_url, path));
+
+    // 创建 CDK 服务并执行
+    let cdk_service = CdkService::new(None); // TODO: 从环境获取 proxy
+    let result = cdk_service
+        .fetch_and_topup(
+            &cdk_config.cdk_type,
+            &extra_config,
+            topup_url.as_deref(),
+            &topup_cookies,
+            &account.api_user,
+        )
+        .await;
+
+    Ok(Json(result))
+}
+
+// ============================================================
+// OAuth 引导登录 API
+// ============================================================
+
+/// OAuth state 请求
+#[derive(Debug, Deserialize)]
+pub struct OAuthStateRequest {
+    pub provider_id: String,
+    pub oauth_type: String, // "github" | "linuxdo"
+}
+
+/// OAuth state 响应
+#[derive(Debug, Serialize)]
+pub struct OAuthStateResponse {
+    pub success: bool,
+    pub authorize_url: Option<String>,
+    pub provider_name: String,
+    pub oauth_type: String,
+    pub message: Option<String>,
+    /// 引导用户提取 cookies 的说明
+    pub extraction_guide: Vec<String>,
+}
+
+/// POST /api/checkin/oauth/authorize-url - 获取 OAuth 授权 URL
+/// 引导式 OAuth：构造授权 URL，用户在浏览器中完成登录后手动提取 cookies
+pub async fn get_oauth_authorize_url(
+    Json(request): Json<OAuthStateRequest>,
+) -> Result<Json<OAuthStateResponse>, Response> {
+    use crate::managers::checkin::builtin_providers::get_builtin_providers;
+
+    // 查找提供商的 OAuth 配置
+    let builtin_providers = get_builtin_providers();
+    let provider = builtin_providers
+        .iter()
+        .find(|p| p.id == request.provider_id);
+
+    let provider = match provider {
+        Some(p) => p,
+        None => {
+            return Ok(Json(OAuthStateResponse {
+                success: false,
+                authorize_url: None,
+                provider_name: String::new(),
+                oauth_type: request.oauth_type.clone(),
+                message: Some(format!("Provider {} not found", request.provider_id)),
+                extraction_guide: vec![],
+            }));
+        }
+    };
+
+    let oauth_config = match &provider.oauth_config {
+        Some(config) => config,
+        None => {
+            return Ok(Json(OAuthStateResponse {
+                success: false,
+                authorize_url: None,
+                provider_name: provider.name.clone(),
+                oauth_type: request.oauth_type.clone(),
+                message: Some(format!("Provider {} does not support OAuth", provider.name)),
+                extraction_guide: vec![],
+            }));
+        }
+    };
+
+    // 根据 OAuth 类型选择 client_id
+    let client_id = match request.oauth_type.as_str() {
+        "github" => oauth_config.github_client_id.as_deref(),
+        "linuxdo" => oauth_config.linuxdo_client_id.as_deref(),
+        _ => None,
+    };
+
+    let client_id = match client_id {
+        Some(id) => id.to_string(),
+        None => {
+            return Ok(Json(OAuthStateResponse {
+                success: false,
+                authorize_url: None,
+                provider_name: provider.name.clone(),
+                oauth_type: request.oauth_type.clone(),
+                message: Some(format!(
+                    "Provider {} does not support {} OAuth",
+                    provider.name, request.oauth_type
+                )),
+                extraction_guide: vec![],
+            }));
+        }
+    };
+
+    // 尝试从 provider 获取 OAuth state
+    let state_url = format!(
+        "{}{}?client_id={}",
+        provider.base_url.trim_end_matches('/'),
+        oauth_config.oauth_state_path,
+        client_id
+    );
+
+    let http_client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .unwrap_or_default();
+
+    let state_result = http_client
+        .get(&state_url)
+        .header("Accept", "application/json")
+        .send()
+        .await;
+
+    let (authorize_url, message) = match state_result {
+        Ok(response) if response.status().is_success() => {
+            let body = response.text().await.unwrap_or_default();
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
+                // 从响应中提取 state
+                let state = json
+                    .get("data")
+                    .or(Some(&json))
+                    .and_then(|d| d.get("state").or(d.get("oauth_state")))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+
+                // 构造授权 URL
+                let url = match request.oauth_type.as_str() {
+                    "github" => format!(
+                        "https://github.com/login/oauth/authorize?client_id={}&state={}&scope=user:email",
+                        client_id, state
+                    ),
+                    "linuxdo" => format!(
+                        "https://connect.linux.do/oauth2/authorize?client_id={}&response_type=code&state={}&scope=read",
+                        client_id, state
+                    ),
+                    _ => String::new(),
+                };
+
+                if url.is_empty() {
+                    (None, Some("Unsupported OAuth type".to_string()))
+                } else {
+                    (Some(url), None)
+                }
+            } else {
+                (
+                    None,
+                    Some(format!("Failed to parse OAuth state response: {}", body)),
+                )
+            }
+        }
+        Ok(response) => (
+            None,
+            Some(format!(
+                "OAuth state request failed: HTTP {}",
+                response.status()
+            )),
+        ),
+        Err(e) => (None, Some(format!("OAuth state request failed: {}", e))),
+    };
+
+    // 生成引导说明
+    let extraction_guide = vec![
+        "1. 点击上方授权链接，在浏览器中完成登录和授权".to_string(),
+        "2. 授权完成后，页面会跳转回提供商站点".to_string(),
+        "3. 在浏览器中按 F12 打开开发者工具".to_string(),
+        "4. 切换到 Application → Cookies → 复制所有 cookies".to_string(),
+        format!(
+            "5. 或在 Console 中输入: JSON.stringify({{cookies: document.cookie, api_user: localStorage.getItem('user')}})"
+        ),
+        "6. 将复制的内容粘贴到下方的输入框中".to_string(),
+    ];
+
+    Ok(Json(OAuthStateResponse {
+        success: authorize_url.is_some(),
+        authorize_url,
+        provider_name: provider.name.clone(),
+        oauth_type: request.oauth_type,
+        message,
+        extraction_guide,
+    }))
 }
 
 // ============================================================

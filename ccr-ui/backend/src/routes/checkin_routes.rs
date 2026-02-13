@@ -50,6 +50,10 @@ pub fn routes() -> Router<AppState> {
             post(checkin::checkin_account),
         )
         // ═══════════════════════════════════════════════════════════
+        // CDK 充值
+        // ═══════════════════════════════════════════════════════════
+        .route("/checkin/accounts/{id}/topup", post(checkin::execute_topup))
+        // ═══════════════════════════════════════════════════════════
         // 余额查询
         // ═══════════════════════════════════════════════════════════
         .route(
@@ -85,5 +89,12 @@ pub fn routes() -> Router<AppState> {
         .route(
             "/checkin/accounts/{id}/test",
             post(checkin::test_connection),
+        )
+        // ═══════════════════════════════════════════════════════════
+        // OAuth 引导登录
+        // ═══════════════════════════════════════════════════════════
+        .route(
+            "/checkin/oauth/authorize-url",
+            post(checkin::get_oauth_authorize_url),
         )
 }

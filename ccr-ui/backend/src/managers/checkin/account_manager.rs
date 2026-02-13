@@ -108,6 +108,7 @@ impl AccountManager {
             balance_currency: None,
             total_quota: None,    // 由 Service 层填充
             total_consumed: None, // 由 Service 层填充
+            extra_config: account.extra_config.clone(),
         }
     }
 
@@ -143,12 +144,15 @@ impl AccountManager {
             .encrypt(&request.cookies_json)
             .map_err(|e| AccountError::CryptoError(e.to_string()))?;
 
-        let account = CheckinAccount::new(
+        let mut account = CheckinAccount::new(
             request.provider_id,
             request.name,
             cookies_json_encrypted,
             request.api_user,
         );
+
+        // 设置扩展配置 (CDK 凭证等)
+        account.extra_config = request.extra_config;
 
         database::with_connection(|conn| checkin_repo::insert_account(conn, &account))?;
 
@@ -177,6 +181,10 @@ impl AccountManager {
 
         if let Some(enabled) = request.enabled {
             account.enabled = enabled;
+        }
+
+        if let Some(extra_config) = request.extra_config {
+            account.extra_config = extra_config;
         }
 
         account.updated_at = Some(Utc::now());
