@@ -262,6 +262,7 @@ fn cookie_header_string(cookies: &HashMap<String, String>) -> String {
 
 impl CheckinService {
     /// 创建新的签到服务（默认使用系统代理）
+    #[allow(dead_code)]
     pub fn new(checkin_dir: PathBuf) -> Self {
         let proxy_url = get_proxy_url();
 
@@ -308,7 +309,6 @@ impl CheckinService {
     /// # Note
     /// 使用此方法时，代理配置由传入的 client 决定，
     /// `proxy_url` 字段仅用于 WAF bypass 时的浏览器代理配置。
-    #[allow(dead_code)] // Phase 2: 将在 Handler 迁移时使用
     pub fn with_client(checkin_dir: PathBuf, client: Client) -> Self {
         let proxy_url = get_proxy_url();
         Self {
@@ -1248,29 +1248,44 @@ impl CheckinService {
         )))
     }
 
-    /// 批量签到
+    /// 批量签到（并发执行，最多 5 个同时）
     pub async fn batch_checkin(&self, account_ids: &[String]) -> Vec<CheckinExecutionResult> {
-        let mut results = Vec::with_capacity(account_ids.len());
+        use std::sync::Arc;
+        use tokio::sync::Semaphore;
 
-        for account_id in account_ids {
-            let result = self.checkin(account_id).await;
-            match result {
-                Ok(r) => results.push(r),
-                Err(e) => {
-                    results.push(CheckinExecutionResult {
-                        account_id: account_id.clone(),
-                        account_name: "Unknown".to_string(),
-                        provider_name: "Unknown".to_string(),
-                        status: CheckinStatus::Failed,
-                        message: Some(e.to_string()),
-                        reward: None,
-                        balance: None,
-                    });
+        let semaphore = Arc::new(Semaphore::new(5));
+        let futures: Vec<_> = account_ids
+            .iter()
+            .map(|account_id| {
+                let sem = semaphore.clone();
+                let id = account_id.clone();
+                let client = self.client.clone();
+                let checkin_dir = self.checkin_dir.clone();
+                let proxy_url = self.proxy_url.clone();
+                async move {
+                    let _permit = sem.acquire().await.expect("semaphore closed");
+                    let svc = CheckinService {
+                        checkin_dir,
+                        client,
+                        proxy_url,
+                    };
+                    match svc.checkin(&id).await {
+                        Ok(r) => r,
+                        Err(e) => CheckinExecutionResult {
+                            account_id: id,
+                            account_name: "Unknown".to_string(),
+                            provider_name: "Unknown".to_string(),
+                            status: CheckinStatus::Failed,
+                            message: Some(e.to_string()),
+                            reward: None,
+                            balance: None,
+                        },
+                    }
                 }
-            }
-        }
+            })
+            .collect();
 
-        results
+        futures::future::join_all(futures).await
     }
 
     /// 签到所有启用的账号

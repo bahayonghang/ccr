@@ -78,6 +78,8 @@ async fn main() -> std::io::Result<()> {
                 reqwest::Client::new(),
                 std::sync::Arc::new(services::websocket::WsState::new()),
                 cache::GLOBAL_SETTINGS_CACHE.clone(),
+                services::checkin_service::CheckinService::default_checkin_dir()
+                    .unwrap_or_else(|_| std::path::PathBuf::from(".ccr/checkin")),
             )
         }
     };

@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use crate::cache::{GLOBAL_SETTINGS_CACHE, SettingsCache};
 use crate::database::{self, DbPool};
+use crate::services::checkin_service::CheckinService;
 use crate::services::websocket::WsState;
 
 /// AppState 初始化错误
@@ -30,18 +31,20 @@ pub enum AppStateError {
 /// 包含所有需要在 Handler 之间共享的资源。
 /// 通过 `Clone` 实现零成本复制（内部都是 Arc）。
 ///
-/// NOTE: 字段当前未被 Handler 直接使用，Phase 2 后续会迁移 Handler 使用这些字段
-#[allow(dead_code)]
 #[derive(Clone)]
 pub struct AppState {
-    /// 数据库连接池
+    /// 数据库连接池（预留，后续 handler 迁移使用）
+    #[allow(dead_code)]
     pub db: DbPool,
     /// 共享的 HTTP 客户端（用于签到、API 调用等）
     pub http_client: reqwest::Client,
     /// WebSocket 状态（广播通道、日志缓存）
     pub ws: Arc<WsState>,
-    /// 设置缓存（30s TTL）
+    /// 设置缓存（30s TTL，预留）
+    #[allow(dead_code)]
     pub settings_cache: Arc<SettingsCache>,
+    /// 签到数据目录（启动时初始化一次）
+    pub checkin_dir: std::path::PathBuf,
 }
 
 impl AppState {
@@ -57,13 +60,20 @@ impl AppState {
         http_client: reqwest::Client,
         ws: Arc<WsState>,
         settings_cache: Arc<SettingsCache>,
+        checkin_dir: std::path::PathBuf,
     ) -> Self {
         Self {
             db,
             http_client,
             ws,
             settings_cache,
+            checkin_dir,
         }
+    }
+
+    /// 创建签到服务（复用共享 HTTP 客户端）
+    pub fn checkin_service(&self) -> CheckinService {
+        CheckinService::with_client(self.checkin_dir.clone(), self.http_client.clone())
     }
 
     /// 使用默认配置初始化应用状态
@@ -83,6 +93,8 @@ impl AppState {
             .connect_timeout(Duration::from_secs(10))
             .pool_max_idle_per_host(10)
             .pool_idle_timeout(Duration::from_secs(90))
+            .cookie_store(true)
+            .user_agent("ccr-ui/1.0")
             .build()?;
 
         // 创建 WebSocket 状态
@@ -91,11 +103,16 @@ impl AppState {
         // 使用全局设置缓存单例
         let settings_cache = GLOBAL_SETTINGS_CACHE.clone();
 
+        // 计算签到数据目录
+        let checkin_dir = CheckinService::default_checkin_dir()
+            .unwrap_or_else(|_| std::path::PathBuf::from(".ccr/checkin"));
+
         Ok(Self {
             db,
             http_client,
             ws,
             settings_cache,
+            checkin_dir,
         })
     }
 }

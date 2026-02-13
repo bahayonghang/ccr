@@ -2,13 +2,16 @@
 // 提供中转站签到功能的 Web API
 
 use axum::{
-    extract::{Json, Path, Query},
+    extract::{Json, Path, Query, State},
     http::{StatusCode, header},
     response::{IntoResponse, Response},
 };
 use chrono::{Datelike, Utc};
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 
 use crate::managers::checkin::{
     AccountManager, BalanceManager, ExportManager, ProviderManager, RecordManager,
@@ -17,12 +20,13 @@ use crate::managers::checkin::{
 use crate::models::checkin::{
     AccountInfo, AccountsResponse, BalanceHistoryResponse, BalanceResponse,
     CheckinAccountDashboardResponse, CheckinProvider, CheckinRecord, CheckinRecordInfo,
-    CheckinRecordsResponse, CheckinStatus, CreateAccountRequest, CreateProviderRequest, ExportData,
-    ExportOptions, ImportOptions, ImportPreviewResponse, ImportResult, ProvidersResponse,
-    UpdateAccountRequest, UpdateProviderRequest,
+    CheckinRecordsResponse, CreateAccountRequest, CreateProviderRequest, ExportData, ExportOptions,
+    ImportOptions, ImportPreviewResponse, ImportResult, ProvidersResponse, UpdateAccountRequest,
+    UpdateProviderRequest,
 };
 use crate::services::cdk_service::{CdkExtraConfig, CdkService, CdkTopupResult};
 use crate::services::checkin_service::{CheckinExecutionResult, CheckinService, TodayCheckinStats};
+use crate::state::AppState;
 
 // ============================================================
 // 辅助函数
@@ -53,16 +57,70 @@ fn bad_request_error<E: std::fmt::Display>(err: E) -> Response {
     (StatusCode::BAD_REQUEST, format!("Bad request: {}", err)).into_response()
 }
 
+// ============================================================
+// 缓存层
+// ============================================================
+
+#[derive(Clone)]
+struct CacheEntry<T> {
+    expires_at: Instant,
+    value: T,
+}
+
+/// 可缓存的记录名称映射（账号名与提供商名）
+#[derive(Clone)]
+struct RecordNameMapsCache {
+    account_name_map: HashMap<String, String>,
+    account_provider_name_map: HashMap<String, String>,
+}
+
+type ProviderMapCache = Lazy<RwLock<Option<CacheEntry<HashMap<String, String>>>>>;
+type BalanceMapCache =
+    Lazy<RwLock<Option<CacheEntry<HashMap<String, crate::models::checkin::BalanceSnapshot>>>>>;
+type NameMapsCache = Lazy<RwLock<Option<CacheEntry<RecordNameMapsCache>>>>;
+
+/// Provider name map 缓存 (30s TTL)
+static PROVIDER_MAP_CACHE: ProviderMapCache = Lazy::new(|| RwLock::new(None));
+const PROVIDER_MAP_TTL: Duration = Duration::from_secs(30);
+
+/// Balance map 缓存 (10s TTL)
+static BALANCE_MAP_CACHE: BalanceMapCache = Lazy::new(|| RwLock::new(None));
+const BALANCE_MAP_TTL: Duration = Duration::from_secs(10);
+
+/// Record name maps 缓存 (30s TTL)
+static NAME_MAPS_CACHE: NameMapsCache = Lazy::new(|| RwLock::new(None));
+const NAME_MAPS_TTL: Duration = Duration::from_secs(30);
+
+/// 使 provider map 缓存失效
+async fn invalidate_provider_cache() {
+    *PROVIDER_MAP_CACHE.write().await = None;
+}
+
+/// 使 balance map 缓存失效
+async fn invalidate_balance_cache() {
+    *BALANCE_MAP_CACHE.write().await = None;
+}
+
+/// 使 name maps 缓存失效
+async fn invalidate_name_maps_cache() {
+    *NAME_MAPS_CACHE.write().await = None;
+}
+
+/// 使所有签到相关缓存失效
+async fn invalidate_all_checkin_caches() {
+    invalidate_provider_cache().await;
+    invalidate_balance_cache().await;
+    invalidate_name_maps_cache().await;
+}
+
 #[allow(clippy::result_large_err)]
 fn enrich_accounts(
     accounts: &mut [AccountInfo],
     provider_manager: &ProviderManager,
     balance_manager: &BalanceManager,
 ) -> Result<(), Response> {
-    let providers = provider_manager.load_all().map_err(internal_error)?;
-    let provider_map: HashMap<String, String> =
-        providers.into_iter().map(|p| (p.id, p.name)).collect();
-    let balance_map = balance_manager.get_latest_map().map_err(internal_error)?;
+    let provider_map = get_provider_map_cached(provider_manager)?;
+    let balance_map = get_balance_map_cached(balance_manager)?;
 
     for account in accounts.iter_mut() {
         if let Some(name) = provider_map.get(&account.provider_id) {
@@ -78,6 +136,57 @@ fn enrich_accounts(
     }
 
     Ok(())
+}
+
+/// 获取 provider name map（带缓存）
+#[allow(clippy::result_large_err)]
+fn get_provider_map_cached(
+    provider_manager: &ProviderManager,
+) -> Result<HashMap<String, String>, Response> {
+    // 同步上下文中使用 try_read 检查缓存
+    if let Ok(cache) = PROVIDER_MAP_CACHE.try_read()
+        && let Some(entry) = cache.as_ref()
+        && Instant::now() < entry.expires_at
+    {
+        return Ok(entry.value.clone());
+    }
+
+    let providers = provider_manager.load_all().map_err(internal_error)?;
+    let map: HashMap<String, String> = providers.into_iter().map(|p| (p.id, p.name)).collect();
+
+    // 尝试写入缓存（非阻塞）
+    if let Ok(mut cache) = PROVIDER_MAP_CACHE.try_write() {
+        *cache = Some(CacheEntry {
+            expires_at: Instant::now() + PROVIDER_MAP_TTL,
+            value: map.clone(),
+        });
+    }
+
+    Ok(map)
+}
+
+/// 获取 balance map（带缓存）
+#[allow(clippy::result_large_err)]
+fn get_balance_map_cached(
+    balance_manager: &BalanceManager,
+) -> Result<HashMap<String, crate::models::checkin::BalanceSnapshot>, Response> {
+    if let Ok(cache) = BALANCE_MAP_CACHE.try_read()
+        && let Some(entry) = cache.as_ref()
+        && Instant::now() < entry.expires_at
+    {
+        return Ok(entry.value.clone());
+    }
+
+    let map = balance_manager.get_latest_map().map_err(internal_error)?;
+
+    if let Ok(mut cache) = BALANCE_MAP_CACHE.try_write() {
+        *cache = Some(CacheEntry {
+            expires_at: Instant::now() + BALANCE_MAP_TTL,
+            value: map.clone(),
+        });
+    }
+
+    Ok(map)
 }
 
 // ============================================================
@@ -107,6 +216,8 @@ pub async fn create_provider(
     let manager = ProviderManager::new();
 
     let provider = manager.create(req).map_err(bad_request_error)?;
+    invalidate_provider_cache().await;
+    invalidate_name_maps_cache().await;
     Ok(Json(provider))
 }
 
@@ -118,6 +229,8 @@ pub async fn update_provider(
     let manager = ProviderManager::new();
 
     let provider = manager.update(&id, req).map_err(bad_request_error)?;
+    invalidate_provider_cache().await;
+    invalidate_name_maps_cache().await;
     Ok(Json(provider))
 }
 
@@ -136,6 +249,7 @@ pub async fn delete_provider(Path(id): Path<String>) -> Result<StatusCode, Respo
         .delete(&id, has_accounts)
         .map_err(bad_request_error)?;
 
+    invalidate_all_checkin_caches().await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -259,11 +373,11 @@ pub struct AccountDashboardQuery {
 
 /// GET /api/checkin/accounts/:id/dashboard - 获取账号 Dashboard 数据
 pub async fn get_account_dashboard(
+    State(state): State<AppState>,
     Path(id): Path<String>,
     Query(query): Query<AccountDashboardQuery>,
 ) -> Result<Json<CheckinAccountDashboardResponse>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let service = CheckinService::new(checkin_dir);
+    let service = state.checkin_service();
 
     let now = Utc::now().date_naive();
     let year = query.year.unwrap_or(now.year());
@@ -300,6 +414,7 @@ pub async fn create_account(
     let account = manager.create(req).map_err(bad_request_error)?;
     // 转换为 AccountInfo（包含遮罩的 Cookies）
     let account_info = manager.get_info(&account.id).map_err(internal_error)?;
+    invalidate_name_maps_cache().await;
     Ok(Json(account_info))
 }
 
@@ -314,6 +429,7 @@ pub async fn update_account(
     let account = manager.update(&id, req).map_err(bad_request_error)?;
     // 转换为 AccountInfo（包含遮罩的 Cookies）
     let account_info = manager.get_info(&account.id).map_err(internal_error)?;
+    invalidate_name_maps_cache().await;
     Ok(Json(account_info))
 }
 
@@ -331,6 +447,8 @@ pub async fn delete_account(Path(id): Path<String>) -> Result<StatusCode, Respon
     let _ = record_manager.delete_by_account(&id);
     let _ = balance_manager.delete_by_account(&id);
 
+    invalidate_name_maps_cache().await;
+    invalidate_balance_cache().await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -383,10 +501,10 @@ pub struct CheckinSummary {
 
 /// POST /api/checkin/execute - 执行签到
 pub async fn execute_checkin(
+    State(state): State<AppState>,
     Json(req): Json<CheckinRequest>,
 ) -> Result<Json<CheckinResponse>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let service = CheckinService::new(checkin_dir);
+    let service = state.checkin_service();
 
     let results = if let Some(account_ids) = req.account_ids {
         service.batch_checkin(&account_ids).await
@@ -407,6 +525,8 @@ pub async fn execute_checkin(
         }
     }
 
+    invalidate_balance_cache().await;
+
     let response = CheckinResponse {
         summary: CheckinSummary {
             total: results.len(),
@@ -422,12 +542,13 @@ pub async fn execute_checkin(
 
 /// POST /api/checkin/accounts/:id/checkin - 执行单个账号签到
 pub async fn checkin_account(
+    State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<CheckinExecutionResult>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let service = CheckinService::new(checkin_dir);
+    let service = state.checkin_service();
 
     let result = service.checkin(&id).await.map_err(internal_error)?;
+    invalidate_balance_cache().await;
     Ok(Json(result))
 }
 
@@ -436,9 +557,11 @@ pub async fn checkin_account(
 // ============================================================
 
 /// POST /api/checkin/accounts/:id/balance - 查询账号余额
-pub async fn query_balance(Path(id): Path<String>) -> Result<Json<BalanceResponse>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let service = CheckinService::new(checkin_dir);
+pub async fn query_balance(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<BalanceResponse>, Response> {
+    let service = state.checkin_service();
 
     let snapshot = service.query_balance(&id).await.map_err(internal_error)?;
     let response: BalanceResponse = snapshot.into();
@@ -457,103 +580,19 @@ pub struct HistoryQuery {
     pub keyword: Option<String>,
 }
 
-const DEFAULT_RECORDS_PAGE_SIZE: usize = 100;
-const MAX_RECORDS_PAGE_SIZE: usize = 500;
+const DEFAULT_RECORDS_PAGE_SIZE: usize = 20;
+const MAX_RECORDS_PAGE_SIZE: usize = 100;
 
-fn parse_status_filter(value: &str) -> Option<CheckinStatus> {
+fn parse_status_filter(value: &str) -> Option<&'static str> {
     let normalized = value.trim().replace(['-', ' '], "_").to_lowercase();
     match normalized.as_str() {
-        "success" => Some(CheckinStatus::Success),
+        "success" => Some("success"),
         "already_checked_in" | "alreadycheckedin" | "checked_in" | "checkedin" => {
-            Some(CheckinStatus::AlreadyCheckedIn)
+            Some("already_checked_in")
         }
-        "failed" | "failure" | "error" => Some(CheckinStatus::Failed),
+        "failed" | "failure" | "error" => Some("failed"),
         _ => None,
     }
-}
-
-fn filter_checkin_records(
-    records: Vec<CheckinRecord>,
-    status_filter: Option<CheckinStatus>,
-    account_id_filter: Option<&str>,
-    provider_account_ids: Option<&HashSet<String>>,
-    keyword_filter: Option<&str>,
-    account_name_map: &HashMap<String, String>,
-    account_provider_name_map: &HashMap<String, String>,
-) -> Vec<CheckinRecord> {
-    let keyword = keyword_filter
-        .map(|value| value.trim().to_lowercase())
-        .filter(|value| !value.is_empty());
-
-    records
-        .into_iter()
-        .filter(|record| {
-            if let Some(status) = status_filter
-                && record.status != status
-            {
-                return false;
-            }
-
-            if let Some(account_id) = account_id_filter
-                && record.account_id != account_id
-            {
-                return false;
-            }
-
-            if let Some(account_ids) = provider_account_ids
-                && !account_ids.contains(&record.account_id)
-            {
-                return false;
-            }
-
-            if let Some(ref keyword) = keyword {
-                let mut matched = record.account_id.to_lowercase().contains(keyword);
-                if !matched && let Some(message) = record.message.as_ref() {
-                    matched = message.to_lowercase().contains(keyword);
-                }
-                if !matched && let Some(name) = account_name_map.get(&record.account_id) {
-                    matched = name.to_lowercase().contains(keyword);
-                }
-                if !matched && let Some(name) = account_provider_name_map.get(&record.account_id) {
-                    matched = name.to_lowercase().contains(keyword);
-                }
-                if !matched {
-                    return false;
-                }
-            }
-
-            true
-        })
-        .collect()
-}
-
-fn paginate_checkin_records(
-    mut records: Vec<CheckinRecord>,
-    query: &HistoryQuery,
-) -> (Vec<CheckinRecord>, usize) {
-    records.sort_by(|a, b| b.checked_in_at.cmp(&a.checked_in_at));
-    let total = records.len();
-
-    let use_limit = query.limit.is_some() && query.page.is_none() && query.page_size.is_none();
-    if use_limit {
-        if let Some(limit) = query.limit {
-            records.truncate(limit);
-        }
-        return (records, total);
-    }
-
-    let page = query.page.unwrap_or(1).max(1);
-    let page_size = query
-        .page_size
-        .unwrap_or(DEFAULT_RECORDS_PAGE_SIZE)
-        .clamp(1, MAX_RECORDS_PAGE_SIZE);
-    let start = (page - 1) * page_size;
-    if start >= records.len() {
-        return (Vec::new(), total);
-    }
-    let end = (start + page_size).min(records.len());
-    let paged = records.drain(start..end).collect();
-    (paged, total)
 }
 
 fn build_record_response(
@@ -579,11 +618,11 @@ fn build_record_response(
 
 /// GET /api/checkin/accounts/:id/balance/history - 获取余额历史
 pub async fn get_balance_history(
+    State(state): State<AppState>,
     Path(id): Path<String>,
     Query(query): Query<HistoryQuery>,
 ) -> Result<Json<BalanceHistoryResponse>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let service = CheckinService::new(checkin_dir);
+    let service = state.checkin_service();
 
     let history = service
         .get_balance_history(&id, query.limit)
@@ -595,165 +634,198 @@ pub async fn get_balance_history(
 // 签到记录 API
 // ============================================================
 
+/// 构建签到记录的名称映射（去重辅助函数）
+struct RecordNameMaps {
+    account_name_map: HashMap<String, String>,
+    account_provider_name_map: HashMap<String, String>,
+}
+
+#[allow(clippy::result_large_err)]
+fn build_record_name_maps(checkin_dir: &std::path::Path) -> Result<RecordNameMaps, Response> {
+    // 尝试从缓存获取基础映射
+    let base = if let Ok(cache) = NAME_MAPS_CACHE.try_read()
+        && let Some(entry) = cache.as_ref()
+        && Instant::now() < entry.expires_at
+    {
+        Some(entry.value.clone())
+    } else {
+        None
+    };
+
+    let base = match base {
+        Some(b) => b,
+        None => {
+            let account_manager = AccountManager::new(checkin_dir);
+            let provider_manager = ProviderManager::new();
+
+            let accounts = account_manager.load_all().map_err(internal_error)?;
+            let providers = provider_manager.load_all().map_err(internal_error)?;
+            let provider_map: HashMap<String, String> =
+                providers.into_iter().map(|p| (p.id, p.name)).collect();
+
+            let mut account_name_map = HashMap::new();
+            let mut account_provider_name_map = HashMap::new();
+
+            for account in &accounts {
+                account_name_map.insert(account.id.clone(), account.name.clone());
+                if let Some(provider_name) = provider_map.get(&account.provider_id) {
+                    account_provider_name_map.insert(account.id.clone(), provider_name.clone());
+                }
+            }
+
+            let new_base = RecordNameMapsCache {
+                account_name_map,
+                account_provider_name_map,
+            };
+
+            if let Ok(mut cache) = NAME_MAPS_CACHE.try_write() {
+                *cache = Some(CacheEntry {
+                    expires_at: Instant::now() + NAME_MAPS_TTL,
+                    value: new_base.clone(),
+                });
+            }
+
+            new_base
+        }
+    };
+
+    Ok(RecordNameMaps {
+        account_name_map: base.account_name_map,
+        account_provider_name_map: base.account_provider_name_map,
+    })
+}
+
 /// GET /api/checkin/records - 获取所有签到记录
 pub async fn list_records(
+    State(state): State<AppState>,
     Query(query): Query<HistoryQuery>,
 ) -> Result<Json<CheckinRecordsResponse>, Response> {
-    let checkin_dir = get_checkin_dir()?;
+    let maps = build_record_name_maps(&state.checkin_dir)?;
     let record_manager = RecordManager::new();
-    let account_manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new();
-
-    let accounts = account_manager.load_all().map_err(internal_error)?;
-    let providers = provider_manager.load_all().map_err(internal_error)?;
-    let provider_map: HashMap<String, String> =
-        providers.into_iter().map(|p| (p.id, p.name)).collect();
-
-    let mut account_name_map = HashMap::new();
-    let mut account_provider_name_map = HashMap::new();
-    let mut provider_account_ids: Option<HashSet<String>> =
-        query.provider_id.as_ref().map(|_| HashSet::new());
-
-    for account in accounts {
-        account_name_map.insert(account.id.clone(), account.name.clone());
-        if let Some(provider_name) = provider_map.get(&account.provider_id) {
-            account_provider_name_map.insert(account.id.clone(), provider_name.clone());
-        }
-        if let (Some(provider_id), Some(ref mut id_set)) =
-            (query.provider_id.as_ref(), provider_account_ids.as_mut())
-            && &account.provider_id == provider_id
-        {
-            id_set.insert(account.id.clone());
-        }
-    }
-
-    let status_filter = match query.status.as_deref() {
+    let status_str = match query.status.as_deref() {
         Some(value) => Some(
             parse_status_filter(value).ok_or_else(|| bad_request_error("Invalid status filter"))?,
         ),
         None => None,
     };
+    let keyword = query
+        .keyword
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty());
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = if query.limit.is_some() && query.page.is_none() && query.page_size.is_none() {
+        query
+            .limit
+            .unwrap_or(DEFAULT_RECORDS_PAGE_SIZE)
+            .clamp(1, MAX_RECORDS_PAGE_SIZE)
+    } else {
+        query
+            .page_size
+            .unwrap_or(DEFAULT_RECORDS_PAGE_SIZE)
+            .clamp(1, MAX_RECORDS_PAGE_SIZE)
+    };
 
-    let records = record_manager.get_all_raw().map_err(internal_error)?;
-    let filtered = filter_checkin_records(
+    let (records, total) = record_manager
+        .get_paginated_advanced(
+            status_str,
+            query.account_id.as_deref(),
+            query.provider_id.as_deref(),
+            keyword,
+            page,
+            page_size,
+        )
+        .map_err(internal_error)?;
+
+    let response = build_record_response(
         records,
-        status_filter,
-        query.account_id.as_deref(),
-        provider_account_ids.as_ref(),
-        query.keyword.as_deref(),
-        &account_name_map,
-        &account_provider_name_map,
+        total,
+        &maps.account_name_map,
+        &maps.account_provider_name_map,
     );
-
-    let (paged, total) = paginate_checkin_records(filtered, &query);
-    let response =
-        build_record_response(paged, total, &account_name_map, &account_provider_name_map);
     Ok(Json(response))
 }
 
 /// GET /api/checkin/accounts/:id/records - 获取账号签到记录
 pub async fn get_account_records(
+    State(state): State<AppState>,
     Path(id): Path<String>,
     Query(query): Query<HistoryQuery>,
 ) -> Result<Json<CheckinRecordsResponse>, Response> {
-    let checkin_dir = get_checkin_dir()?;
+    let maps = build_record_name_maps(&state.checkin_dir)?;
     let record_manager = RecordManager::new();
-    let account_manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new();
-
-    let accounts = account_manager.load_all().map_err(internal_error)?;
-    let providers = provider_manager.load_all().map_err(internal_error)?;
-    let provider_map: HashMap<String, String> =
-        providers.into_iter().map(|p| (p.id, p.name)).collect();
-
-    let mut account_name_map = HashMap::new();
-    let mut account_provider_name_map = HashMap::new();
-
-    for account in accounts {
-        account_name_map.insert(account.id.clone(), account.name.clone());
-        if let Some(provider_name) = provider_map.get(&account.provider_id) {
-            account_provider_name_map.insert(account.id.clone(), provider_name.clone());
-        }
-    }
-
-    let status_filter = match query.status.as_deref() {
+    let status_str = match query.status.as_deref() {
         Some(value) => Some(
             parse_status_filter(value).ok_or_else(|| bad_request_error("Invalid status filter"))?,
         ),
         None => None,
     };
+    let keyword = query
+        .keyword
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty());
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = if query.limit.is_some() && query.page.is_none() && query.page_size.is_none() {
+        query
+            .limit
+            .unwrap_or(DEFAULT_RECORDS_PAGE_SIZE)
+            .clamp(1, MAX_RECORDS_PAGE_SIZE)
+    } else {
+        query
+            .page_size
+            .unwrap_or(DEFAULT_RECORDS_PAGE_SIZE)
+            .clamp(1, MAX_RECORDS_PAGE_SIZE)
+    };
 
-    let records = record_manager.get_all_raw().map_err(internal_error)?;
-    let filtered = filter_checkin_records(
+    let (records, total) = record_manager
+        .get_paginated_advanced(status_str, Some(&id), None, keyword, page, page_size)
+        .map_err(internal_error)?;
+
+    let response = build_record_response(
         records,
-        status_filter,
-        Some(&id),
-        None,
-        query.keyword.as_deref(),
-        &account_name_map,
-        &account_provider_name_map,
+        total,
+        &maps.account_name_map,
+        &maps.account_provider_name_map,
     );
-
-    let (paged, total) = paginate_checkin_records(filtered, &query);
-    let response =
-        build_record_response(paged, total, &account_name_map, &account_provider_name_map);
     Ok(Json(response))
 }
 
 /// GET /api/checkin/records/export - 导出签到记录
-pub async fn export_records(Query(query): Query<HistoryQuery>) -> Result<Response, Response> {
-    let checkin_dir = get_checkin_dir()?;
+pub async fn export_records(
+    State(state): State<AppState>,
+    Query(query): Query<HistoryQuery>,
+) -> Result<Response, Response> {
+    let maps = build_record_name_maps(&state.checkin_dir)?;
     let record_manager = RecordManager::new();
-    let account_manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new();
 
-    let accounts = account_manager.load_all().map_err(internal_error)?;
-    let providers = provider_manager.load_all().map_err(internal_error)?;
-    let provider_map: HashMap<String, String> =
-        providers.into_iter().map(|p| (p.id, p.name)).collect();
-
-    let mut account_name_map = HashMap::new();
-    let mut account_provider_name_map = HashMap::new();
-    let mut provider_account_ids: Option<HashSet<String>> =
-        query.provider_id.as_ref().map(|_| HashSet::new());
-
-    for account in accounts {
-        account_name_map.insert(account.id.clone(), account.name.clone());
-        if let Some(provider_name) = provider_map.get(&account.provider_id) {
-            account_provider_name_map.insert(account.id.clone(), provider_name.clone());
-        }
-        if let (Some(provider_id), Some(ref mut id_set)) =
-            (query.provider_id.as_ref(), provider_account_ids.as_mut())
-            && &account.provider_id == provider_id
-        {
-            id_set.insert(account.id.clone());
-        }
-    }
-
-    let status_filter = match query.status.as_deref() {
+    let status_str = match query.status.as_deref() {
         Some(value) => Some(
             parse_status_filter(value).ok_or_else(|| bad_request_error("Invalid status filter"))?,
         ),
         None => None,
     };
+    let keyword = query
+        .keyword
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty());
 
-    let records = record_manager.get_all_raw().map_err(internal_error)?;
-    let filtered = filter_checkin_records(
-        records,
-        status_filter,
-        query.account_id.as_deref(),
-        provider_account_ids.as_ref(),
-        query.keyword.as_deref(),
-        &account_name_map,
-        &account_provider_name_map,
-    );
+    let filtered = record_manager
+        .get_filtered_advanced(
+            status_str,
+            query.account_id.as_deref(),
+            query.provider_id.as_deref(),
+            keyword,
+        )
+        .map_err(internal_error)?;
 
     let total = filtered.len();
     let response_data = build_record_response(
         filtered,
         total,
-        &account_name_map,
-        &account_provider_name_map,
+        &maps.account_name_map,
+        &maps.account_provider_name_map,
     );
     let content = serde_json::to_string_pretty(&response_data).map_err(internal_error)?;
     let filename = format!(
@@ -779,9 +851,10 @@ pub async fn export_records(Query(query): Query<HistoryQuery>) -> Result<Respons
 // ============================================================
 
 /// GET /api/checkin/stats/today - 获取今日签到统计
-pub async fn get_today_stats() -> Result<Json<TodayCheckinStats>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let service = CheckinService::new(checkin_dir);
+pub async fn get_today_stats(
+    State(state): State<AppState>,
+) -> Result<Json<TodayCheckinStats>, Response> {
+    let service = state.checkin_service();
 
     let stats = service.get_today_stats().map_err(internal_error)?;
     Ok(Json(stats))
@@ -846,10 +919,10 @@ pub struct TestConnectionResponse {
 
 /// POST /api/checkin/accounts/:id/test - 测试账号连接
 pub async fn test_connection(
+    State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<TestConnectionResponse>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let service = CheckinService::new(checkin_dir);
+    let service = state.checkin_service();
 
     match service.test_connection(&id).await {
         Ok(true) => Ok(Json(TestConnectionResponse {
@@ -872,9 +945,11 @@ pub async fn test_connection(
 // ============================================================
 
 /// POST /api/checkin/accounts/:id/topup - 执行 CDK 充值
-pub async fn execute_topup(Path(id): Path<String>) -> Result<Json<CdkTopupResult>, Response> {
-    let checkin_dir = get_checkin_dir()?;
-    let account_manager = AccountManager::new(&checkin_dir);
+pub async fn execute_topup(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<CdkTopupResult>, Response> {
+    let account_manager = AccountManager::new(&state.checkin_dir);
     let provider_manager = ProviderManager::new();
 
     // 获取账号
@@ -909,7 +984,7 @@ pub async fn execute_topup(Path(id): Path<String>) -> Result<Json<CdkTopupResult
     let extra_config = CdkExtraConfig::from_json(&account.extra_config);
 
     // 解密 Cookies 用于 topup
-    let crypto = crate::core::crypto::CryptoManager::new(&checkin_dir)
+    let crypto = crate::core::crypto::CryptoManager::new(&state.checkin_dir)
         .map_err(|e| internal_error(format!("Crypto error: {}", e)))?;
     let cookies_json = crypto
         .decrypt(&account.cookies_json_encrypted)
@@ -966,6 +1041,7 @@ pub struct OAuthStateResponse {
 /// POST /api/checkin/oauth/authorize-url - 获取 OAuth 授权 URL
 /// 引导式 OAuth：构造授权 URL，用户在浏览器中完成登录后手动提取 cookies
 pub async fn get_oauth_authorize_url(
+    State(state): State<AppState>,
     Json(request): Json<OAuthStateRequest>,
 ) -> Result<Json<OAuthStateResponse>, Response> {
     use crate::managers::checkin::builtin_providers::get_builtin_providers;
@@ -1036,12 +1112,8 @@ pub async fn get_oauth_authorize_url(
         client_id
     );
 
-    let http_client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .unwrap_or_default();
-
-    let state_result = http_client
+    let state_result = state
+        .http_client
         .get(&state_url)
         .header("Accept", "application/json")
         .send()
