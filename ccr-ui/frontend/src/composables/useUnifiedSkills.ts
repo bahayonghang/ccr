@@ -104,6 +104,30 @@ export function useUnifiedSkills() {
     }
   }
 
+  // Collapse bursty mutation refreshes into a single full reload.
+  let mutationRefreshTimer: ReturnType<typeof setTimeout> | null = null
+  let mutationRefreshPromise: Promise<void> | null = null
+  let mutationRefreshResolve: (() => void) | null = null
+
+  function scheduleMutationRefresh(delayMs: number = 200): Promise<void> {
+    if (!mutationRefreshPromise) {
+      mutationRefreshPromise = new Promise<void>((resolve) => {
+        mutationRefreshResolve = resolve
+      })
+    }
+
+    if (mutationRefreshTimer) clearTimeout(mutationRefreshTimer)
+    mutationRefreshTimer = setTimeout(async () => {
+      mutationRefreshTimer = null
+      await fetchAllSkills()
+      mutationRefreshResolve?.()
+      mutationRefreshPromise = null
+      mutationRefreshResolve = null
+    }, delayMs)
+
+    return mutationRefreshPromise
+  }
+
   // Fetch all skills from all platforms
   async function fetchAllSkills() {
     store.setLoading(true)
@@ -226,8 +250,7 @@ export function useUnifiedSkills() {
         request
       )
 
-      // Refresh skills after install
-      await fetchAllSkills()
+      await scheduleMutationRefresh()
 
       return response.data.data
     } catch (err: any) {
@@ -244,8 +267,7 @@ export function useUnifiedSkills() {
         request
       )
 
-      // Refresh skills after removal
-      await fetchAllSkills()
+      await scheduleMutationRefresh()
 
       return response.data.data
     } catch (err: any) {
@@ -264,17 +286,21 @@ export function useUnifiedSkills() {
     }
   }
 
-  // Initialize - fetch all data
+  // Initialize - fetch all data (deduplicated)
+  let initPromise: Promise<void> | null = null
   async function initialize() {
-    await Promise.all([
+    if (initPromise) return initPromise
+    initPromise = Promise.all([
       fetchAllSkills(),
       fetchMarketplaceTrending()
-    ])
+    ]).then(() => {})
+    return initPromise
   }
 
-  // Refresh all data
+  // Refresh all data (force re-fetch)
   async function refresh() {
-    await initialize()
+    initPromise = null
+    return initialize()
   }
 
   // 手动清除市场缓存并重新拉取
@@ -315,7 +341,13 @@ export function useUnifiedSkills() {
       content
     })
     // Refresh skills list after save to reflect any metadata changes
-    await fetchAllSkills()
+    // 从 store 中查找 skill 所属平台进行精准刷新
+    const skill = store.skills.find(s => s.skillDir === skillDir)
+    if (skill) {
+      await fetchSkillsByPlatform(skill.platform as Platform)
+    } else {
+      await fetchAllSkills()
+    }
   }
 
   // === 新增 API 方法 ===
@@ -327,7 +359,7 @@ export function useUnifiedSkills() {
         `${SKILL_HUB_BASE}/import/github`,
         { url: request.url, agents: request.agents, force: request.force ?? false }
       )
-      await fetchAllSkills()
+      await scheduleMutationRefresh()
       return response.data.data
     } catch (err: any) {
       console.error('Failed to import from GitHub:', err)
@@ -342,7 +374,7 @@ export function useUnifiedSkills() {
         `${SKILL_HUB_BASE}/import/local`,
         { source_path: request.sourcePath, agents: request.agents, skill_name: request.skillName }
       )
-      await fetchAllSkills()
+      await scheduleMutationRefresh()
       return response.data.data
     } catch (err: any) {
       console.error('Failed to import from local:', err)
@@ -357,7 +389,7 @@ export function useUnifiedSkills() {
         `${SKILL_HUB_BASE}/import/npx`,
         { package: request.package, agents: request.agents, global: request.global ?? false }
       )
-      await fetchAllSkills()
+      await scheduleMutationRefresh()
       return response.data.data
     } catch (err: any) {
       console.error('Failed to install via npx:', err)
@@ -372,7 +404,7 @@ export function useUnifiedSkills() {
         `${SKILL_HUB_BASE}/batch-install`,
         { packages: request.packages, agents: request.agents, force: request.force ?? false }
       )
-      await fetchAllSkills()
+      await scheduleMutationRefresh()
       return response.data.data
     } catch (err: any) {
       console.error('Failed to batch install:', err)

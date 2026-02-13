@@ -3,7 +3,7 @@
  * Pinia 状态管理 for Skills Hub
  */
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch, shallowRef, triggerRef } from 'vue'
 import type {
   SkillFilters,
   UnifiedSkill,
@@ -33,7 +33,7 @@ export const useSkillsStore = defineStore('skills', () => {
 
   // 批量模式
   const batchMode = ref(false)
-  const batchSelection = ref<Set<string>>(new Set())
+  const batchSelection = shallowRef<Set<string>>(new Set())
 
   // npx 状态
   const npxStatus = ref<NpxStatus | null>(null)
@@ -52,6 +52,14 @@ export const useSkillsStore = defineStore('skills', () => {
     platform: 'all'
   })
 
+  // 防抖搜索值（250ms 延迟）
+  const debouncedSearch = ref('')
+  let searchTimer: ReturnType<typeof setTimeout> | null = null
+  watch(() => filters.value.search, (val) => {
+    if (searchTimer) clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => { debouncedSearch.value = val }, 250)
+  })
+
   // Active content tab
   const activeTab = ref<ContentTab>('installed')
 
@@ -64,9 +72,9 @@ export const useSkillsStore = defineStore('skills', () => {
       result = result.filter(s => s.platform === filters.value.platform)
     }
 
-    // Filter by search query
-    if (filters.value.search) {
-      const query = filters.value.search.toLowerCase()
+    // Filter by search query (debounced)
+    if (debouncedSearch.value) {
+      const query = debouncedSearch.value.toLowerCase()
       result = result.filter(s =>
         s.name.toLowerCase().includes(query) ||
         s.description?.toLowerCase().includes(query) ||
@@ -204,26 +212,28 @@ export const useSkillsStore = defineStore('skills', () => {
   function toggleBatchMode() {
     batchMode.value = !batchMode.value
     if (!batchMode.value) {
-      batchSelection.value = new Set()
+      batchSelection.value.clear()
+      triggerRef(batchSelection)
     }
   }
 
   function toggleBatchSelection(packageId: string) {
-    const newSet = new Set(batchSelection.value)
-    if (newSet.has(packageId)) {
-      newSet.delete(packageId)
+    if (batchSelection.value.has(packageId)) {
+      batchSelection.value.delete(packageId)
     } else {
-      newSet.add(packageId)
+      batchSelection.value.add(packageId)
     }
-    batchSelection.value = newSet
+    triggerRef(batchSelection)
   }
 
   function selectAllBatch(packageIds: string[]) {
     batchSelection.value = new Set(packageIds)
+    triggerRef(batchSelection)
   }
 
   function clearBatchSelection() {
-    batchSelection.value = new Set()
+    batchSelection.value.clear()
+    triggerRef(batchSelection)
   }
 
   function setMarketplacePage(page: number) {
