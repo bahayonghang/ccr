@@ -128,6 +128,11 @@ const router = createRouter({
           meta: { cache: true }
         },
         {
+          path: 'skills/add',
+          name: 'skills-add',
+          component: () => import('@/views/skills/AddSkillView.vue'),
+        },
+        {
           path: 'skills/hub',
           redirect: '/skills'
         },

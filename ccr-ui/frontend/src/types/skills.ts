@@ -114,6 +114,10 @@ export interface MarketplaceItem {
   repo: string
   skill?: string
   skillsShUrl: string
+  // 新增（从 skills.sh HTML 解析）
+  description?: string
+  authorAvatar?: string    // 推导自 https://avatars.githubusercontent.com/{owner}
+  stars?: number
 }
 
 // Marketplace response
@@ -177,4 +181,78 @@ export interface SkillContent {
   content: string    // Markdown body (after frontmatter)
   raw: string        // Full raw SKILL.md content (for editing)
   skillDir: string
+}
+
+// === 多源安装相关类型 ===
+
+// 安装来源类型
+export type ImportSource = 'marketplace' | 'github' | 'local' | 'npx'
+
+// GitHub URL 导入请求
+export interface ImportGithubRequest {
+  url: string
+  agents: string[]
+  force?: boolean
+}
+
+// 本地文件夹导入请求
+export interface ImportLocalRequest {
+  sourcePath: string
+  agents: string[]
+  skillName?: string
+}
+
+// npx skills 安装请求
+export interface NpxInstallRequest {
+  package: string
+  agents: string[]
+  global?: boolean
+}
+
+// 批量安装请求
+export interface BatchInstallRequest {
+  packages: string[]
+  agents: string[]
+  force?: boolean
+}
+
+// 批量安装单项结果
+export interface BatchItemResult {
+  package: string
+  ok: boolean
+  message?: string
+}
+
+// 批量安装响应
+export interface BatchInstallResponse {
+  total: number
+  successCount: number
+  failCount: number
+  results: BatchItemResult[]
+}
+
+// npx 可用性状态
+export interface NpxStatus {
+  available: boolean
+  version?: string
+  path?: string
+}
+
+// npx 安装响应
+export interface NpxInstallResponse {
+  success: boolean
+  method: string  // "npx" | "github_fallback"
+  stdout?: string
+  stderr?: string
+  results: AgentOperationResult[]
+}
+
+// 安装进度状态
+export type InstallPhase = 'idle' | 'downloading' | 'installing' | 'done' | 'error'
+
+export interface InstallProgress {
+  phase: InstallPhase
+  package: string
+  message?: string
+  startedAt: number
 }

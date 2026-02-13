@@ -69,6 +69,13 @@
               <Package class="w-4 h-4 text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors" />
               <span>{{ $t('nav.skills') }}</span>
             </RouterLink>
+            <RouterLink
+              to="/skills/add"
+              class="nav-item group"
+            >
+              <PlusCircle class="w-4 h-4 text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors" />
+              <span>{{ $t('nav.addSkill') }}</span>
+            </RouterLink>
           </div>
         </div>
 
@@ -236,7 +243,7 @@
                   </span>
                 </p>
                 <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                  CCR UI v4.0.1
+                  CCR UI v4.0.2
                 </span>
               </div>
             </div>
@@ -316,7 +323,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import {
   Home, Code2, Settings, Sparkles, Zap, Activity,
-  Terminal, Cloud, Bot, ClipboardList, Cat, Package
+  Terminal, Cloud, Bot, ClipboardList, Cat, Package, PlusCircle
 } from 'lucide-vue-next'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'

@@ -33,7 +33,9 @@ export default defineConfig({
           // 将 UI 库单独打包
           'ui-vendor': ['lucide-vue-next'],
           // 将 axios 单独打包
-          'http-vendor': ['axios']
+          'http-vendor': ['axios'],
+          // 将 i18n 单独打包
+          'i18n-vendor': ['vue-i18n']
         }
       }
     },

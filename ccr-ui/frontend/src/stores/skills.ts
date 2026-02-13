@@ -10,7 +10,9 @@ import type {
   PlatformSummary,
   MarketplaceItem,
   ContentTab,
-  SkillsStats
+  SkillsStats,
+  NpxStatus,
+  InstallProgress
 } from '@/types/skills'
 
 export const useSkillsStore = defineStore('skills', () => {
@@ -23,6 +25,23 @@ export const useSkillsStore = defineStore('skills', () => {
   const error = ref<string | null>(null)
   const marketplaceError = ref<string | null>(null)
   const marketplaceCached = ref(false)
+
+  // === 新增状态 ===
+  // 安装状态
+  const isInstalling = ref(false)
+  const installProgress = ref<InstallProgress | null>(null)
+
+  // 批量模式
+  const batchMode = ref(false)
+  const batchSelection = ref<Set<string>>(new Set())
+
+  // npx 状态
+  const npxStatus = ref<NpxStatus | null>(null)
+
+  // 市场分页
+  const marketplacePage = ref(1)
+  const marketplaceTotal = ref(0)
+  const marketplacePageSize = ref(20)
 
   // Filters
   const filters = ref<SkillFilters>({
@@ -181,6 +200,52 @@ export const useSkillsStore = defineStore('skills', () => {
     marketplaceError.value = err
   }
 
+  // === 新增 Actions ===
+  function toggleBatchMode() {
+    batchMode.value = !batchMode.value
+    if (!batchMode.value) {
+      batchSelection.value = new Set()
+    }
+  }
+
+  function toggleBatchSelection(packageId: string) {
+    const newSet = new Set(batchSelection.value)
+    if (newSet.has(packageId)) {
+      newSet.delete(packageId)
+    } else {
+      newSet.add(packageId)
+    }
+    batchSelection.value = newSet
+  }
+
+  function selectAllBatch(packageIds: string[]) {
+    batchSelection.value = new Set(packageIds)
+  }
+
+  function clearBatchSelection() {
+    batchSelection.value = new Set()
+  }
+
+  function setMarketplacePage(page: number) {
+    marketplacePage.value = page
+  }
+
+  function setMarketplaceTotal(total: number) {
+    marketplaceTotal.value = total
+  }
+
+  function setNpxStatus(status: NpxStatus | null) {
+    npxStatus.value = status
+  }
+
+  function setInstalling(installing: boolean) {
+    isInstalling.value = installing
+  }
+
+  function setInstallProgress(progress: InstallProgress | null) {
+    installProgress.value = progress
+  }
+
   return {
     // State
     skills,
@@ -193,6 +258,15 @@ export const useSkillsStore = defineStore('skills', () => {
     marketplaceCached,
     filters,
     activeTab,
+    // 新增状态
+    isInstalling,
+    installProgress,
+    batchMode,
+    batchSelection,
+    npxStatus,
+    marketplacePage,
+    marketplaceTotal,
+    marketplacePageSize,
 
     // Computed
     filteredSkills,
@@ -211,6 +285,16 @@ export const useSkillsStore = defineStore('skills', () => {
     setLoading,
     setMarketplaceLoading,
     setError,
-    setMarketplaceError
+    setMarketplaceError,
+    // 新增 Actions
+    toggleBatchMode,
+    toggleBatchSelection,
+    selectAllBatch,
+    clearBatchSelection,
+    setMarketplacePage,
+    setMarketplaceTotal,
+    setNpxStatus,
+    setInstalling,
+    setInstallProgress
   }
 })

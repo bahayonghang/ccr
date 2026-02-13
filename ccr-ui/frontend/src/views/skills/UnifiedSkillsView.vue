@@ -17,6 +17,14 @@
         </p>
       </div>
       <div class="skills-header__actions">
+        <!-- Add Skill Button -->
+        <button
+          class="btn-add"
+          @click="$router.push('/skills/add')"
+        >
+          <Plus class="w-4 h-4" />
+          <span class="hidden sm:inline">{{ $t('skills.addSkill') }}</span>
+        </button>
         <!-- Mobile Filter Toggle -->
         <button
           class="btn-filter lg:hidden"
@@ -139,8 +147,10 @@
             :items="marketplaceItems"
             :is-loading="isMarketplaceLoading"
             :error="marketplaceError"
+            :installed-packages="installedPackageSet"
             @install="handleInstallFromMarketplace"
             @search="handleMarketplaceSearch"
+            @batch-install="handleBatchInstall"
           />
 
           <!-- Repositories Tab (Placeholder) -->
@@ -222,11 +232,17 @@
 
     <!-- Operation Log Modal -->
     <SkillOperationLogModal v-model="showLogModal" />
+
+    <!-- Install Progress Toast -->
+    <SkillInstallToast
+      :progress="installProgress"
+      @dismiss="installProgress = null"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   RefreshCw,
@@ -237,19 +253,37 @@ import {
   FolderGit2,
   Filter,
   ScrollText,
+  Plus,
   X
 } from 'lucide-vue-next'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import { useUIStore } from '@/stores/ui'
+import type { Platform, UnifiedSkill, MarketplaceItem, ContentTab, SkillFilters } from '@/types/skills'
+
+// 静态导入: 首屏必需组件（始终可见）
 import SkillsFilterPanel from '@/components/skills/SkillsFilterPanel.vue'
 import SkillsStatsCards from '@/components/skills/SkillsStatsCards.vue'
 import SkillsInstalledTab from '@/components/skills/SkillsInstalledTab.vue'
-import SkillsMarketplaceTab from '@/components/skills/SkillsMarketplaceTab.vue'
-import SkillInstallModal from '@/components/skills/SkillInstallModal.vue'
-import SkillDetailModal from '@/components/skills/SkillDetailModal.vue'
-import SkillDeleteConfirmModal from '@/components/skills/SkillDeleteConfirmModal.vue'
-import SkillOperationLogModal from '@/components/skills/SkillOperationLogModal.vue'
-import type { Platform, UnifiedSkill, MarketplaceItem, ContentTab, SkillFilters } from '@/types/skills'
+import SkillInstallToast from '@/components/skills/SkillInstallToast.vue'
+
+// 懒加载: Tab 内容（按需加载，切换 tab 时才触发）
+const SkillsMarketplaceTab = defineAsyncComponent(
+  () => import('@/components/skills/SkillsMarketplaceTab.vue')
+)
+
+// 懒加载: Modal 组件（用户交互时才加载）
+const SkillInstallModal = defineAsyncComponent(
+  () => import('@/components/skills/SkillInstallModal.vue')
+)
+const SkillDetailModal = defineAsyncComponent(
+  () => import('@/components/skills/SkillDetailModal.vue')
+)
+const SkillDeleteConfirmModal = defineAsyncComponent(
+  () => import('@/components/skills/SkillDeleteConfirmModal.vue')
+)
+const SkillOperationLogModal = defineAsyncComponent(
+  () => import('@/components/skills/SkillOperationLogModal.vue')
+)
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -268,6 +302,7 @@ const {
   availableCategories,
   availableTags,
   stats,
+  installProgress,
   setFilter,
   setActiveTab,
   initialize,
@@ -275,7 +310,8 @@ const {
   fetchMarketplaceTrending,
   searchMarketplace,
   installSkill,
-  removeSkill
+  removeSkill,
+  batchInstall
 } = useUnifiedSkills()
 
 // Local state
@@ -298,6 +334,15 @@ const showLogModal = ref(false)
 // Filter panel state
 const filterPanelCollapsed = ref(false)
 const showMobileFilter = ref(false)
+
+// Installed packages set (for marketplace installed detection)
+const installedPackageSet = computed(() => {
+  const set = new Set<string>()
+  for (const skill of filteredSkills.value) {
+    set.add(skill.name)
+  }
+  return set
+})
 
 // Filter panel v-model binding (includes platform)
 const filterPanelValue = computed({
@@ -412,6 +457,23 @@ async function handleMarketplaceSearch(query: string) {
   }
 }
 
+async function handleBatchInstall(packages: string[]) {
+  if (packages.length === 0) return
+  try {
+    const detectedPlatforms = platforms.value
+      .filter(p => p.detected)
+      .map(p => p.id)
+    await batchInstall({
+      packages,
+      agents: detectedPlatforms,
+      force: false
+    })
+    uiStore.showSuccess(t('skills.donePhase'))
+  } catch (err: any) {
+    uiStore.showError(err.message || 'Batch install failed')
+  }
+}
+
 // Initialize on mount
 onMounted(() => {
   initialize()
@@ -460,6 +522,13 @@ watch(activeTab, (newTab) => {
          text-text-secondary hover:text-text-primary
          border border-border-subtle hover:border-border-default
          transition-all duration-200 disabled:opacity-50;
+}
+
+.btn-add {
+  @apply flex items-center gap-1.5 px-3 py-2 rounded-xl
+         text-sm font-semibold text-white
+         bg-accent-primary hover:bg-accent-primary/90
+         transition-all duration-200;
 }
 
 .btn-log {

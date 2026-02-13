@@ -13,7 +13,14 @@ import type {
   RemoveRequest,
   OperationResponse,
   PlatformSummary,
-  SkillContent
+  SkillContent,
+  ImportGithubRequest,
+  ImportLocalRequest,
+  NpxInstallRequest,
+  NpxInstallResponse,
+  BatchInstallRequest,
+  BatchInstallResponse,
+  NpxStatus
 } from '@/types/skills'
 
 // API endpoints
@@ -26,6 +33,10 @@ interface BackendMarketplaceItem {
   repo: string
   skill?: string
   skills_sh_url: string
+  // 新增（从 skills.sh HTML 解析）
+  description?: string
+  author_avatar?: string
+  stars?: number
 }
 
 interface BackendMarketplaceResponse {
@@ -51,7 +62,16 @@ export function useUnifiedSkills() {
     availableCategories,
     availableTags,
     stats,
-    skillsByPlatform
+    skillsByPlatform,
+    // 新增状态
+    isInstalling,
+    installProgress,
+    batchMode,
+    batchSelection,
+    npxStatus,
+    marketplacePage,
+    marketplaceTotal,
+    marketplacePageSize
   } = storeToRefs(store)
 
   // Transform backend response to frontend format
@@ -150,7 +170,10 @@ export function useUnifiedSkills() {
           owner: item.owner,
           repo: item.repo,
           skill: item.skill,
-          skillsShUrl: item.skills_sh_url
+          skillsShUrl: item.skills_sh_url,
+          description: item.description,
+          authorAvatar: item.author_avatar || `https://avatars.githubusercontent.com/${item.owner}?s=64`,
+          stars: item.stars,
         })),
         data.cached
       )
@@ -180,7 +203,10 @@ export function useUnifiedSkills() {
           owner: item.owner,
           repo: item.repo,
           skill: item.skill,
-          skillsShUrl: item.skills_sh_url
+          skillsShUrl: item.skills_sh_url,
+          description: item.description,
+          authorAvatar: item.author_avatar || `https://avatars.githubusercontent.com/${item.owner}?s=64`,
+          stars: item.stars,
         })),
         data.cached
       )
@@ -251,6 +277,20 @@ export function useUnifiedSkills() {
     await initialize()
   }
 
+  // 手动清除市场缓存并重新拉取
+  async function refreshMarketplaceCache() {
+    store.setMarketplaceLoading(true)
+    try {
+      await api.post(`${SKILL_HUB_BASE}/marketplace/refresh-cache`)
+      await fetchMarketplaceTrending()
+    } catch (err: any) {
+      store.setMarketplaceError(err.message || 'Failed to refresh cache')
+      console.error('Failed to refresh marketplace cache:', err)
+    } finally {
+      store.setMarketplaceLoading(false)
+    }
+  }
+
   // Fetch skill content (full SKILL.md with frontmatter + body)
   async function fetchSkillContent(skillDir: string): Promise<SkillContent> {
     const response = await api.get<{ data: any }>(`${SKILL_HUB_BASE}/skill/content`, {
@@ -278,6 +318,92 @@ export function useUnifiedSkills() {
     await fetchAllSkills()
   }
 
+  // === 新增 API 方法 ===
+
+  // 从 GitHub URL 导入
+  async function importFromGithub(request: ImportGithubRequest): Promise<OperationResponse> {
+    try {
+      const response = await api.post<{ data: OperationResponse }>(
+        `${SKILL_HUB_BASE}/import/github`,
+        { url: request.url, agents: request.agents, force: request.force ?? false }
+      )
+      await fetchAllSkills()
+      return response.data.data
+    } catch (err: any) {
+      console.error('Failed to import from GitHub:', err)
+      throw err
+    }
+  }
+
+  // 从本地文件夹导入
+  async function importFromLocal(request: ImportLocalRequest): Promise<OperationResponse> {
+    try {
+      const response = await api.post<{ data: OperationResponse }>(
+        `${SKILL_HUB_BASE}/import/local`,
+        { source_path: request.sourcePath, agents: request.agents, skill_name: request.skillName }
+      )
+      await fetchAllSkills()
+      return response.data.data
+    } catch (err: any) {
+      console.error('Failed to import from local:', err)
+      throw err
+    }
+  }
+
+  // 通过 npx skills 安装
+  async function importViaNpx(request: NpxInstallRequest): Promise<NpxInstallResponse> {
+    try {
+      const response = await api.post<{ data: NpxInstallResponse }>(
+        `${SKILL_HUB_BASE}/import/npx`,
+        { package: request.package, agents: request.agents, global: request.global ?? false }
+      )
+      await fetchAllSkills()
+      return response.data.data
+    } catch (err: any) {
+      console.error('Failed to install via npx:', err)
+      throw err
+    }
+  }
+
+  // 批量安装
+  async function batchInstall(request: BatchInstallRequest): Promise<BatchInstallResponse> {
+    try {
+      const response = await api.post<{ data: BatchInstallResponse }>(
+        `${SKILL_HUB_BASE}/batch-install`,
+        { packages: request.packages, agents: request.agents, force: request.force ?? false }
+      )
+      await fetchAllSkills()
+      return response.data.data
+    } catch (err: any) {
+      console.error('Failed to batch install:', err)
+      throw err
+    }
+  }
+
+  // 检查 npx 可用性
+  async function checkNpxStatus(): Promise<NpxStatus> {
+    try {
+      const response = await api.get<{ data: NpxStatus }>(`${SKILL_HUB_BASE}/npx/status`)
+      store.setNpxStatus(response.data.data)
+      return response.data.data
+    } catch (err: any) {
+      console.error('Failed to check npx status:', err)
+      return { available: false }
+    }
+  }
+
+  // 浏览文件夹（桌面端 Tauri 原生对话框）
+  async function browseFolder(): Promise<string | null> {
+    try {
+      const response = await api.post<{ data: { path: string | null } }>(
+        `${SKILL_HUB_BASE}/browse-folder`
+      )
+      return response.data.data.path
+    } catch {
+      return null
+    }
+  }
+
   return {
     // State (reactive refs from store)
     skills,
@@ -290,6 +416,15 @@ export function useUnifiedSkills() {
     marketplaceCached,
     filters,
     activeTab,
+    // 新增状态
+    isInstalling,
+    installProgress,
+    batchMode,
+    batchSelection,
+    npxStatus,
+    marketplacePage,
+    marketplaceTotal,
+    marketplacePageSize,
 
     // Computed
     filteredSkills,
@@ -302,6 +437,14 @@ export function useUnifiedSkills() {
     setFilter: store.setFilter,
     resetFilters: store.resetFilters,
     setActiveTab: store.setActiveTab,
+    // 新增 store actions
+    toggleBatchMode: store.toggleBatchMode,
+    toggleBatchSelection: store.toggleBatchSelection,
+    selectAllBatch: store.selectAllBatch,
+    clearBatchSelection: store.clearBatchSelection,
+    setMarketplacePage: store.setMarketplacePage,
+    setInstalling: store.setInstalling,
+    setInstallProgress: store.setInstallProgress,
 
     // API actions
     fetchAllSkills,
@@ -314,6 +457,14 @@ export function useUnifiedSkills() {
     fetchSkillContent,
     saveSkillContent,
     initialize,
-    refresh
+    refresh,
+    refreshMarketplaceCache,
+    // 新增 API actions
+    importFromGithub,
+    importFromLocal,
+    importViaNpx,
+    batchInstall,
+    checkNpxStatus,
+    browseFolder
   }
 }
