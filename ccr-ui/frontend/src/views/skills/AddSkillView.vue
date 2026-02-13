@@ -564,6 +564,10 @@ const sortedItems = computed(() => {
   return list
 })
 
+const installedSkillNameSet = computed(() => {
+  return new Set(skills.value.map(s => s.name.toLowerCase()))
+})
+
 // Pagination
 const pagedItems = computed(() => {
   const start = (currentPage.value - 1) * pageSize
@@ -572,9 +576,8 @@ const pagedItems = computed(() => {
 
 // Check installed
 function isSkillInstalled(item: MarketplaceItem): boolean {
-  const installedNames = new Set(skills.value.map(s => s.name.toLowerCase()))
   const skillName = (item.skill || item.repo || '').toLowerCase()
-  return installedNames.has(skillName)
+  return installedSkillNameSet.value.has(skillName)
 }
 
 // Search with debounce
