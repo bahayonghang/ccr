@@ -3,9 +3,12 @@ use axum::{
     extract::{Json, Path},
     response::IntoResponse,
 };
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 
 // Use the enhanced SkillsManager from ccr crate
 use ccr::managers::skills_manager::SkillsManager;
@@ -110,6 +113,21 @@ struct InstalledPluginsFile {
     #[allow(dead_code)]
     version: Option<u32>,
     plugins: HashMap<String, Vec<InstalledPlugin>>,
+}
+
+#[derive(Clone)]
+struct CacheEntry<T> {
+    expires_at: Instant,
+    value: T,
+}
+
+static LEGACY_SKILLS_CACHE: Lazy<RwLock<Option<CacheEntry<Vec<Skill>>>>> =
+    Lazy::new(|| RwLock::new(None));
+const LEGACY_SKILLS_TTL: Duration = Duration::from_secs(30);
+
+async fn invalidate_legacy_skills_cache() {
+    let mut cache = LEGACY_SKILLS_CACHE.write().await;
+    *cache = None;
 }
 
 /// List all skills from installed plugins
@@ -226,45 +244,61 @@ fn list_plugin_skills() -> Vec<Skill> {
     skills
 }
 
-pub async fn list_skills() -> impl IntoResponse {
-    let manager = match SkillsManager::new(Platform::Claude) {
-        Ok(m) => m,
-        Err(e) => return ApiResponse::error(e.to_string()),
-    };
-
-    let user_skills = match manager.list_skills() {
-        Ok(skills) => skills,
-        Err(e) => return ApiResponse::error(e.to_string()),
-    };
-
+fn collect_all_skills_sync() -> Result<Vec<Skill>, String> {
+    let manager = SkillsManager::new(Platform::Claude).map_err(|e| e.to_string())?;
+    let user_skills = manager.list_skills().map_err(|e| e.to_string())?;
     let project_root = find_project_root();
     let project_skills = project_root
         .as_ref()
         .map(|p| list_project_claude_skills(p.as_path()))
         .unwrap_or_default();
-
-    // Scan plugin skills from installed plugins
     let plugin_skills = list_plugin_skills();
 
     // Merge all skill sources with priority: project > user > plugin
     let mut merged: std::collections::BTreeMap<String, Skill> = std::collections::BTreeMap::new();
-
-    // Add plugin skills first (lowest priority)
     for s in plugin_skills {
         merged.insert(s.name.clone(), s);
     }
-
-    // Add user skills (medium priority, can override plugin)
     for s in user_skills {
         merged.insert(s.name.clone(), s);
     }
-
-    // Add project skills (highest priority, can override all)
     for s in project_skills {
         merged.insert(s.name.clone(), s);
     }
 
-    ApiResponse::success(merged.into_values().collect::<Vec<_>>())
+    Ok(merged.into_values().collect::<Vec<_>>())
+}
+
+async fn list_skills_cached() -> Result<Vec<Skill>, String> {
+    {
+        let cache = LEGACY_SKILLS_CACHE.read().await;
+        if let Some(entry) = cache.as_ref()
+            && Instant::now() < entry.expires_at
+        {
+            return Ok(entry.value.clone());
+        }
+    }
+
+    let skills = tokio::task::spawn_blocking(collect_all_skills_sync)
+        .await
+        .map_err(|e| format!("Skill scan task failed: {}", e))??;
+
+    {
+        let mut cache = LEGACY_SKILLS_CACHE.write().await;
+        *cache = Some(CacheEntry {
+            expires_at: Instant::now() + LEGACY_SKILLS_TTL,
+            value: skills.clone(),
+        });
+    }
+
+    Ok(skills)
+}
+
+pub async fn list_skills() -> impl IntoResponse {
+    match list_skills_cached().await {
+        Ok(skills) => ApiResponse::success(skills),
+        Err(e) => ApiResponse::error(e),
+    }
 }
 
 pub async fn add_skill(Json(payload): Json<CreateSkillRequest>) -> impl IntoResponse {
@@ -274,7 +308,10 @@ pub async fn add_skill(Json(payload): Json<CreateSkillRequest>) -> impl IntoResp
     };
 
     match manager.install_skill(&payload.name, &payload.instruction) {
-        Ok(_) => ApiResponse::success("Skill created successfully".to_string()),
+        Ok(_) => {
+            invalidate_legacy_skills_cache().await;
+            ApiResponse::success("Skill created successfully".to_string())
+        }
         Err(e) => ApiResponse::error(e.to_string()),
     }
 }
@@ -296,35 +333,20 @@ pub async fn update_skill(
     };
 
     match manager.install_skill(&name, &payload.instruction) {
-        Ok(_) => ApiResponse::success("Skill updated successfully".to_string()),
+        Ok(_) => {
+            invalidate_legacy_skills_cache().await;
+            ApiResponse::success("Skill updated successfully".to_string())
+        }
         Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
 pub async fn get_skill(Path(name): Path<String>) -> impl IntoResponse {
-    let manager = match SkillsManager::new(Platform::Claude) {
-        Ok(m) => m,
-        Err(e) => return ApiResponse::error(e.to_string()),
+    let skills = match list_skills_cached().await {
+        Ok(skills) => skills,
+        Err(e) => return ApiResponse::error(e),
     };
-
-    // First check user skills from SkillsManager
-    if let Ok(skills) = manager.list_skills()
-        && let Some(skill) = skills.into_iter().find(|s| s.name == name)
-    {
-        return ApiResponse::success(skill);
-    }
-
-    // Then check project skills
-    if let Some(project_root) = find_project_root() {
-        let project_skills = list_project_claude_skills(&project_root);
-        if let Some(skill) = project_skills.into_iter().find(|s| s.name == name) {
-            return ApiResponse::success(skill);
-        }
-    }
-
-    // Finally check plugin skills
-    let plugin_skills = list_plugin_skills();
-    if let Some(skill) = plugin_skills.into_iter().find(|s| s.name == name) {
+    if let Some(skill) = skills.into_iter().find(|s| s.name == name) {
         return ApiResponse::success(skill);
     }
 
@@ -338,7 +360,10 @@ pub async fn delete_skill(Path(name): Path<String>) -> impl IntoResponse {
     };
 
     match manager.uninstall_skill(&name) {
-        Ok(_) => ApiResponse::success("Skill deleted successfully".to_string()),
+        Ok(_) => {
+            invalidate_legacy_skills_cache().await;
+            ApiResponse::success("Skill deleted successfully".to_string())
+        }
         Err(e) => ApiResponse::error(e.to_string()),
     }
 }
@@ -374,7 +399,10 @@ pub async fn add_repository(Json(payload): Json<AddRepositoryRequest>) -> impl I
     };
 
     match manager.add_repository(repo) {
-        Ok(_) => ApiResponse::success("Repository added successfully".to_string()),
+        Ok(_) => {
+            invalidate_legacy_skills_cache().await;
+            ApiResponse::success("Repository added successfully".to_string())
+        }
         Err(e) => ApiResponse::error(e.to_string()),
     }
 }
@@ -386,7 +414,10 @@ pub async fn remove_repository(Path(name): Path<String>) -> impl IntoResponse {
     };
 
     match manager.remove_repository(&name) {
-        Ok(_) => ApiResponse::success("Repository removed successfully".to_string()),
+        Ok(_) => {
+            invalidate_legacy_skills_cache().await;
+            ApiResponse::success("Repository removed successfully".to_string())
+        }
         Err(e) => ApiResponse::error(e.to_string()),
     }
 }

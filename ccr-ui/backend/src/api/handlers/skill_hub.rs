@@ -144,6 +144,22 @@ static MARKETPLACE_CACHE: Lazy<RwLock<HashMap<String, CacheEntry<Vec<SkillHubMar
 
 const CACHE_TTL: Duration = Duration::from_secs(60 * 60 * 24); // 24h — 手动刷新优先
 
+static INSTALLED_SKILLS_CACHE: Lazy<RwLock<Option<CacheEntry<UnifiedSkillsResponse>>>> =
+    Lazy::new(|| RwLock::new(None));
+static INSTALLED_SKILLS_PLATFORM_CACHE: Lazy<
+    RwLock<HashMap<String, CacheEntry<UnifiedSkillsResponse>>>,
+> = Lazy::new(|| RwLock::new(HashMap::new()));
+
+const INSTALLED_SKILLS_TTL: Duration = Duration::from_secs(30);
+
+/// 使 installed skills 缓存失效
+async fn invalidate_installed_cache() {
+    let mut cache = INSTALLED_SKILLS_CACHE.write().await;
+    *cache = None;
+    let mut platform_cache = INSTALLED_SKILLS_PLATFORM_CACHE.write().await;
+    platform_cache.clear();
+}
+
 /// POST /skill_hub/marketplace/refresh-cache — 手动清除市场缓存
 pub async fn refresh_marketplace_cache() -> impl IntoResponse {
     let mut cache = MARKETPLACE_CACHE.write().await;
@@ -226,6 +242,16 @@ async fn marketplace_trending_impl(
 }
 
 pub async fn list_agents() -> impl IntoResponse {
+    // 优先从 installed skills 缓存获取 platforms 数据
+    {
+        let cache = INSTALLED_SKILLS_CACHE.read().await;
+        if let Some(entry) = cache.as_ref()
+            && Instant::now() < entry.expires_at
+        {
+            return ApiResponse::success(entry.value.platforms.clone());
+        }
+    }
+
     let agents = list_supported_agents()
         .into_iter()
         .map(|agent| {
@@ -250,45 +276,156 @@ pub async fn list_agents() -> impl IntoResponse {
 
 /// GET /skill_hub/unified - List all skills from all platforms
 pub async fn list_unified_skills() -> impl IntoResponse {
+    // 检查缓存
+    {
+        let cache = INSTALLED_SKILLS_CACHE.read().await;
+        if let Some(entry) = cache.as_ref()
+            && Instant::now() < entry.expires_at
+        {
+            return ApiResponse::success(entry.value.clone());
+        }
+    }
+
     let agents = list_supported_agents();
+
+    // 并行扫描各平台目录（仅在缓存 miss 时触发）
+    let handles: Vec<_> = agents
+        .into_iter()
+        .map(|agent| {
+            tokio::task::spawn_blocking(move || {
+                let dir = agent_global_skills_dir(&agent.id);
+                let detected = dir.as_ref().is_some_and(|p| p.exists());
+                let skills = match &dir {
+                    Some(dir_path) if detected => {
+                        list_unified_skills_in_dir(dir_path, &agent.id, &agent.display_name)
+                    }
+                    _ => Vec::new(),
+                };
+                let installed_count = skills.len();
+                (
+                    skills,
+                    SkillHubAgentSummary {
+                        id: agent.id,
+                        display_name: agent.display_name,
+                        global_skills_dir: dir
+                            .as_ref()
+                            .map(|p| path_to_string(p))
+                            .unwrap_or_default(),
+                        detected,
+                        installed_count,
+                    },
+                )
+            })
+        })
+        .collect();
+
     let mut all_skills = Vec::new();
     let mut platforms = Vec::new();
-
-    for agent in agents {
-        let dir = agent_global_skills_dir(&agent.id);
-        let detected = dir.as_ref().is_some_and(|p| p.exists());
-
-        // Single scan: list skills first, derive count from result (no double I/O)
-        let skills = match &dir {
-            Some(dir_path) if detected => {
-                list_unified_skills_in_dir(dir_path, &agent.id, &agent.display_name)
+    for handle in handles {
+        match handle.await {
+            Ok((skills, summary)) => {
+                all_skills.extend(skills);
+                platforms.push(summary);
             }
-            _ => Vec::new(),
-        };
-        let installed_count = skills.len();
-        all_skills.extend(skills);
-
-        platforms.push(SkillHubAgentSummary {
-            id: agent.id.clone(),
-            display_name: agent.display_name.clone(),
-            global_skills_dir: dir.as_ref().map(|p| path_to_string(p)).unwrap_or_default(),
-            detected,
-            installed_count,
-        });
+            Err(e) => {
+                tracing::warn!("Platform scan task failed: {}", e);
+            }
+        }
     }
 
     let total = all_skills.len();
-    ApiResponse::success(UnifiedSkillsResponse {
+    let response = UnifiedSkillsResponse {
         skills: all_skills,
         total,
         platforms,
-    })
+    };
+
+    // 写入缓存
+    {
+        let mut cache = INSTALLED_SKILLS_CACHE.write().await;
+        *cache = Some(CacheEntry {
+            expires_at: Instant::now() + INSTALLED_SKILLS_TTL,
+            value: response.clone(),
+        });
+    }
+    // 同步写入平台级缓存，减少后续 /unified/{platform} 重扫
+    {
+        let expires_at = Instant::now() + INSTALLED_SKILLS_TTL;
+        let mut grouped: HashMap<String, Vec<UnifiedSkill>> = HashMap::new();
+        for skill in &response.skills {
+            grouped
+                .entry(skill.platform.clone())
+                .or_default()
+                .push(skill.clone());
+        }
+        let mut platform_cache = INSTALLED_SKILLS_PLATFORM_CACHE.write().await;
+        platform_cache.clear();
+        for summary in &response.platforms {
+            let skills = grouped.remove(&summary.id).unwrap_or_default();
+            let platform_response = UnifiedSkillsResponse {
+                total: skills.len(),
+                skills,
+                platforms: vec![summary.clone()],
+            };
+            platform_cache.insert(
+                summary.id.clone(),
+                CacheEntry {
+                    expires_at,
+                    value: platform_response,
+                },
+            );
+        }
+    }
+
+    ApiResponse::success(response)
 }
 
 /// GET /skill_hub/unified/{platform} - List skills for a specific platform
 pub async fn list_unified_skills_by_platform(
     AxumPath(platform): AxumPath<String>,
 ) -> impl IntoResponse {
+    // 优先命中平台级缓存
+    {
+        let cache = INSTALLED_SKILLS_PLATFORM_CACHE.read().await;
+        if let Some(entry) = cache.get(&platform)
+            && Instant::now() < entry.expires_at
+        {
+            return ApiResponse::success(entry.value.clone());
+        }
+    }
+
+    // 其次尝试从全量缓存切片，避免重复扫描目录
+    {
+        let cache = INSTALLED_SKILLS_CACHE.read().await;
+        if let Some(entry) = cache.as_ref()
+            && Instant::now() < entry.expires_at
+            && let Some(summary) = entry.value.platforms.iter().find(|p| p.id == platform)
+        {
+            let skills = entry
+                .value
+                .skills
+                .iter()
+                .filter(|s| s.platform == platform)
+                .cloned()
+                .collect::<Vec<_>>();
+            let platform_response = UnifiedSkillsResponse {
+                total: skills.len(),
+                skills,
+                platforms: vec![summary.clone()],
+            };
+            drop(cache);
+            let mut platform_cache = INSTALLED_SKILLS_PLATFORM_CACHE.write().await;
+            platform_cache.insert(
+                platform_response.platforms[0].id.clone(),
+                CacheEntry {
+                    expires_at: Instant::now() + INSTALLED_SKILLS_TTL,
+                    value: platform_response.clone(),
+                },
+            );
+            return ApiResponse::success(platform_response);
+        }
+    }
+
     let agents = list_supported_agents();
     let agent = match agents.iter().find(|a| a.id == platform) {
         Some(a) => a.clone(),
@@ -318,11 +455,22 @@ pub async fn list_unified_skills_by_platform(
     };
 
     let total = skills.len();
-    ApiResponse::success(UnifiedSkillsResponse {
+    let response = UnifiedSkillsResponse {
         skills,
         total,
         platforms: vec![platform_summary],
-    })
+    };
+    {
+        let mut platform_cache = INSTALLED_SKILLS_PLATFORM_CACHE.write().await;
+        platform_cache.insert(
+            platform.clone(),
+            CacheEntry {
+                expires_at: Instant::now() + INSTALLED_SKILLS_TTL,
+                value: response.clone(),
+            },
+        );
+    }
+    ApiResponse::success(response)
 }
 
 pub async fn list_agent_skills(AxumPath(agent): AxumPath<String>) -> impl IntoResponse {
@@ -428,6 +576,7 @@ pub async fn install(Json(req): Json<InstallRequest>) -> impl IntoResponse {
         }
     }
 
+    invalidate_installed_cache().await;
     ApiResponse::success(SkillHubOperationResponse { results })
 }
 
@@ -510,6 +659,7 @@ pub async fn remove(Json(req): Json<RemoveRequest>) -> impl IntoResponse {
         }
     }
 
+    invalidate_installed_cache().await;
     ApiResponse::success(SkillHubOperationResponse { results })
 }
 
@@ -997,6 +1147,7 @@ pub async fn save_skill_content(Json(req): Json<SaveSkillContentRequest>) -> imp
         return ApiResponse::<()>::error(format!("Failed to save SKILL.md: {}", err));
     }
 
+    invalidate_installed_cache().await;
     ApiResponse::success(())
 }
 
@@ -1708,6 +1859,7 @@ pub async fn import_github(Json(req): Json<ImportGithubRequest>) -> impl IntoRes
         }
     }
 
+    invalidate_installed_cache().await;
     ApiResponse::success(SkillHubOperationResponse { results })
 }
 
@@ -1931,6 +2083,7 @@ pub async fn import_local(Json(req): Json<ImportLocalRequest>) -> impl IntoRespo
         }
     }
 
+    invalidate_installed_cache().await;
     ApiResponse::success(SkillHubOperationResponse { results })
 }
 
@@ -2051,6 +2204,7 @@ pub async fn import_npx(Json(req): Json<NpxInstallRequest>) -> impl IntoResponse
                     for agent in &target_agents {
                         log_operation("install", &format!("npx:{}", req.package), agent);
                     }
+                    invalidate_installed_cache().await;
                 }
 
                 ApiResponse::success(NpxInstallResponse {
@@ -2131,6 +2285,9 @@ async fn fallback_github_install(
     }
 
     let success = results.iter().any(|r| r.ok);
+    if success {
+        invalidate_installed_cache().await;
+    }
     ApiResponse::success(NpxInstallResponse {
         success,
         method: "github_fallback".to_string(),
@@ -2278,6 +2435,7 @@ pub async fn batch_install(Json(req): Json<BatchInstallRequest>) -> impl IntoRes
     let success_count = results.iter().filter(|r| r.ok).count();
     let fail_count = total - success_count;
 
+    invalidate_installed_cache().await;
     ApiResponse::success(BatchInstallResponse {
         total,
         success_count,
