@@ -1026,19 +1026,32 @@ onMounted(async () => {
 
 .batch-bar__count { @apply text-sm font-semibold text-text-primary; }
 .batch-bar__actions { @apply flex items-center gap-2; }
+
 .batch-bar__clear {
   @apply px-3 py-1.5 rounded-lg text-sm text-text-secondary
          hover:text-text-primary hover:bg-bg-surface transition-colors;
 }
+
 .batch-bar__install {
   @apply flex items-center gap-1.5 px-4 py-1.5 rounded-lg
          text-sm font-semibold text-white
          bg-accent-primary hover:bg-accent-primary/90 transition-colors;
 }
 
-.batch-bar-enter-active, .batch-bar-leave-active { transition: all 0.3s ease; }
-.batch-bar-enter-from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-.batch-bar-leave-to { opacity: 0; transform: translateX(-50%) translateY(20px); }
+.batch-bar-enter-active,
+.batch-bar-leave-active {
+  transition: all 0.3s ease;
+}
+
+.batch-bar-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
+}
+
+.batch-bar-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
+}
 
 /* Manual Install */
 .manual-tabs {
@@ -1094,6 +1107,7 @@ onMounted(async () => {
 }
 
 .npx-indicator { @apply w-2 h-2 rounded-full; }
+
 .npx-indicator--ok {
   background: rgb(var(--color-success-rgb));
   box-shadow: 0 0 6px rgb(var(--color-success-rgb) / 50%);
@@ -1103,6 +1117,7 @@ onMounted(async () => {
 .checkbox-label {
   @apply flex items-center gap-2 text-sm text-text-secondary cursor-pointer;
 }
+
 .checkbox-input {
   @apply rounded border-border-default text-accent-primary focus:ring-accent-primary/20;
 }
@@ -1116,6 +1131,7 @@ onMounted(async () => {
 .platform-section__actions { @apply flex items-center gap-2; }
 .platform-action { @apply text-xs text-accent-primary hover:underline cursor-pointer; }
 .platform-grid { @apply grid grid-cols-2 sm:grid-cols-3 gap-2; }
+
 .platform-item {
   @apply flex items-center gap-2 px-3 py-2 rounded-lg
          bg-bg-surface text-sm cursor-pointer
@@ -1158,22 +1174,44 @@ onMounted(async () => {
 
 .platform-modal__header { @apply flex items-center justify-between; }
 .platform-modal__title { @apply text-lg font-bold text-text-primary; }
+
 .platform-modal__close {
   @apply p-2 rounded-lg text-text-muted
          hover:text-text-primary hover:bg-bg-surface transition-colors;
 }
+
 .platform-modal__pkg {
   @apply text-sm text-text-secondary font-mono truncate
          px-3 py-2 rounded-lg bg-bg-surface;
 }
+
 .platform-modal__footer {
   @apply flex items-center justify-end gap-3 pt-3 border-t border-border-subtle;
 }
 
 /* Modal animations */
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s ease; }
-.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
-.modal-scale-enter-active, .modal-scale-leave-active { transition: all 0.25s ease; }
-.modal-scale-enter-from { opacity: 0; transform: scale(0.95); }
-.modal-scale-leave-to { opacity: 0; transform: scale(0.95); }
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-scale-enter-active,
+.modal-scale-leave-active {
+  transition: all 0.25s ease;
+}
+
+.modal-scale-enter-from {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.modal-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
 </style>
