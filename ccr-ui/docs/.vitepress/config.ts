@@ -9,9 +9,11 @@ const zhNav = [
     items: [
       { text: '快速开始', link: '/guide/getting-started' },
       { text: '功能概览', link: '/guide/features' },
+      { text: '技能管理', link: '/guide/skills' },
       { text: '项目结构', link: '/guide/project-structure' },
       { text: '统计与成本', link: '/guide/stats' },
       { text: '使用统计分析', link: '/guide/usage-analytics' },
+      { text: '签到管理', link: '/guide/checkin' },
       { text: 'Tauri 桌面', link: '/guide/tauri' }
     ]
   },
@@ -45,6 +47,8 @@ const enNav = [
       { text: 'Getting Started', link: '/en/guide/getting-started' },
       { text: 'Project Structure', link: '/en/guide/project-structure' },
       { text: 'Statistics', link: '/en/guide/stats' },
+      { text: 'Skills Management', link: '/en/guide/skills' },
+      { text: 'Checkin Management', link: '/en/guide/checkin' },
       { text: 'Tauri Desktop App', link: '/en/guide/tauri' }
     ]
   },
@@ -117,6 +121,21 @@ export default withMermaid(defineConfig({
                 { text: '项目结构', link: '/guide/project-structure' },
                 { text: '统计与成本', link: '/guide/stats' },
                 { text: '使用统计分析', link: '/guide/usage-analytics' }
+              ]
+            },
+            {
+              text: '✅ 签到管理',
+              collapsed: false,
+              items: [
+                { text: '签到概览', link: '/guide/checkin' },
+                { text: '详细指南', link: '/guide/checkin-detailed' }
+              ]
+            },
+            {
+              text: '🛠️ 技能管理',
+              collapsed: false,
+              items: [
+                { text: '技能管理指南', link: '/guide/skills' }
               ]
             },
             {
@@ -260,6 +279,8 @@ export default withMermaid(defineConfig({
                 { text: 'Getting Started', link: '/en/guide/getting-started' },
                 { text: 'Project Structure', link: '/en/guide/project-structure' },
                 { text: 'Statistics', link: '/en/guide/stats' },
+                { text: '🛠️ Skills Management', link: '/en/guide/skills' },
+                { text: '✅ Checkin Management', link: '/en/guide/checkin' },
                 { text: '🖥️ Tauri Desktop App', link: '/en/guide/tauri' }
               ]
             }

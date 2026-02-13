@@ -1,10 +1,10 @@
 # 签到功能详细指南
 
-> **版本**: v3.7+  
-> **最后更新**: 2025-12-28  
+> **版本**: v4.0+
+> **最后更新**: 2026-02-13
 > **功能状态**: ✅ 稳定
 
-AI 中转站自动签到功能，支持多提供商、多账号管理，自动签到获取积分/额度。
+AI 中转站自动签到功能，支持 30+ 内置提供商、多账号管理、WAF/CF 绕过、CDK 充值、OAuth 引导登录，自动签到获取积分/额度。
 
 ## 📋 目录
 
@@ -15,610 +15,718 @@ AI 中转站自动签到功能，支持多提供商、多账号管理，自动�
 - [账号管理](#账号管理)
 - [签到操作](#签到操作)
 - [余额查询](#余额查询)
-- [WAF 绕过](#waf-绕过)
+- [WAF 绕过](#waf-绕过阿里云-waf)
+- [CF Clearance 绕过](#cf-clearance-绕过cloudflare)
+- [CDK 充值](#cdk-充值)
+- [账号 Dashboard](#账号-dashboard)
 - [数据管理](#数据管理)
 - [常见问题](#常见问题)
 
-## 🎯 功能概述
+---
 
-CCR UI 的签到功能允许您：
+## 🌟 功能概述
 
-- 📝 **管理多个中转站提供商**（内置 + 自定义）
-- 👤 **每个提供商支持多个账号**
-- ✅ **一键批量签到**所有启用的账号
-- 💰 **查询账号剩余额度**
-- 📊 **查看签到历史和统计**
-- 🔒 **API Key 加密存储**（AES-256-GCM）
-- 🌐 **WAF 绕过**（使用 Chromium 自动化）
-- 📦 **导入导出配置**
+### 核心能力
 
-## 🧩 核心概念
+| 功能 | 说明 |
+|------|------|
+| 📋 多提供商支持 | 30+ 内置提供商，按分类管理（标准/WAF/CF/特殊） |
+| 👥 多账号管理 | 每个提供商可配置多个账号，独立管理 |
+| 🔄 自动签到 | 一键批量签到所有账号，支持单账号签到 |
+| 💰 余额查询 | 实时查询账号余额、配额、消耗量 |
+| 📊 账号 Dashboard | 连续签到统计、月历日历、余额趋势图 |
+| 🛡️ WAF 绕过 | 自动处理阿里云 WAF 防护（AnyRouter） |
+| ☁️ CF Clearance 绕过 | 自动处理 Cloudflare 防护（4 个站点） |
+| 🎁 CDK 充值 | 自动获取并兑换充值码（3 个站点） |
+| 🔑 OAuth 引导登录 | GitHub/LinuxDo OAuth 向导简化账号配置 |
+| 📦 导入/导出 | 完整配置备份与恢复，冲突策略可选 |
+| 🔒 加密存储 | AES-256-GCM 加密 Cookie，SQLite 本地存储 |
+| 🧪 连接测试 | 验证账号连通性，确保配置正确 |
+
+### 统计卡片
+
+签到页面顶部显示三个核心统计卡片：
+
+- **当前余额** 🟢 — 所有账号的可用余额总和
+- **总配额** 🔵 — 所有账号累计获得的配额
+- **历史消耗** 🟠 — 所有账号累计使用量
+
+---
+
+## 📖 核心概念
 
 ### 提供商 (Provider)
 
-中转站服务提供商的配置信息。
+提供商是 AI 中转站的服务配置，包含域名、API 路径、认证方式等信息。
 
-**内置提供商**：
-- 🌐 **AnyRouter** - `anyrouter.top`
-  - 支持签到: ✅
-  - 需要 WAF 绕过: ✅
-  - 特点: 需要使用浏览器自动化绕过 CloudFlare
+**提供商分类：**
 
-- 🤖 **AgentRouter** - `agentrouter.org`
-  - 支持签到: ⚠️ 自动签到
-  - 特点: 查询用户信息时自动签到
-
-- 💻 **CodeRouter** - `api.codemirror.codes`
-  - 支持签到: ❌
-  - 特点: 无签到功能
-
-**自定义提供商**：
-您可以添加任何支持标准签到 API 的中转站。
+| 分类 | 说明 | 数量 |
+|------|------|------|
+| `standard` | 标准 NewAPI 站点，无特殊绕过 | 24 |
+| `waf_required` | 需要阿里云 WAF 绕过 | 1 |
+| `cf_required` | 需要 Cloudflare Clearance 绕过 | 4 |
+| `special` | 特殊签到机制 | 2 |
 
 ### 账号 (Account)
 
-绑定到提供商的具体账号，包含：
-- 账号名称（自定义标识）
-- API Key（加密存储）
-- 启用状态
-- 最后签到时间
+账号是在某个提供商下的用户凭证，包含 Cookie、API User 等认证信息。
+
+- 每个提供商可配置多个账号
+- Cookie 使用 **AES-256-GCM** 加密存储
+- 支持 `extra_config` 扩展字段（如 CDK 凭证）
 
 ### 签到记录 (Record)
 
-每次签到操作的记录，包含：
-- 签到时间
-- 成功/失败状态
-- 返回消息
-- 获得的积分/额度
+每次签到操作会生成一条记录，包含签到状态、获得的积分/额度、签到时间等。
+
+---
 
 ## 🚀 快速开始
 
-### 1. 访问签到管理页面
+### 1. 添加提供商
 
-在 CCR UI 主界面：
-1. 点击左侧菜单的 **"签到"**
-2. 或直接访问 `http://localhost:3000/checkin`
+从 30+ 内置提供商中选择：
 
-### 2. 添加第一个提供商
+1. 进入「签到管理」页面
+2. 点击「添加提供商」按钮
+3. 在「内置提供商」标签页中选择提供商
+4. 提供商按分类展示（标准 / WAF / CF / 特殊）
+5. 点击「添加」完成配置
 
-**使用内置提供商**（推荐）：
+也可以手动添加自定义提供商，填写域名、签到路径等信息。
 
-1. 在签到页面点击 **"添加提供商"** 按钮
-2. 选择 **"从内置列表选择"** 标签
-3. 浏览内置提供商列表：
-   - 🌐 AnyRouter
-   - 🤖 AgentRouter
-   - 💻 CodeRouter
-4. 点击提供商卡片的 **"添加"** 按钮
-5. 提供商自动添加到您的配置中
+### 2. 添加账号
 
-**添加自定义提供商**：
+#### 方式一：手动配置
 
-1. 点击 **"添加提供商"** → **"自定义配置"**
-2. 填写以下信息：
-   ```
-   名称: My Provider
-   基础 URL: https://example.com
-   签到路径: /api/user/sign_in
-   余额查询路径: /api/user/self
-   用户信息路径: /api/user/self
-   认证头: Authorization
-   认证前缀: Bearer 
-   ```
-3. 点击 **"保存"**
+1. 选择一个提供商
+2. 点击「添加账号」
+3. 填写账号名称
+4. 在浏览器中登录对应站点，打开 DevTools → Application → Cookies
+5. 复制所有 Cookie，粘贴到 Cookie 输入框（JSON 格式）
+6. 可选填 `api_user` 字段
+7. 保存
 
-### 3. 添加账号
+#### 方式二：OAuth 引导登录
 
-1. 在提供商列表中找到您添加的提供商
-2. 点击 **"管理账号"** 或 **"添加账号"**
-3. 填写账号信息：
-   ```
-   账号名称: 主账号
-   API Key: sk-xxx... (从中转站获取)
-   启用签到: ✅
-   ```
-4. 点击 **"保存"**
+支持 OAuth 的提供商会显示「OAuth 登录」按钮：
 
-### 4. 执行签到
+1. 点击「OAuth 登录」
+2. 选择 OAuth 方式（GitHub / LinuxDo）
+3. 系统生成授权链接，点击在浏览器中打开
+4. 在浏览器完成登录和授权
+5. 授权完成后，按引导从浏览器复制 Cookie
+6. 粘贴到向导中，自动解析并创建账号
 
-**批量签到**（推荐）：
-1. 点击页面顶部的 **"批量签到"** 按钮
-2. 系统自动对所有启用的账号执行签到
-3. 查看签到结果统计
+### 3. 执行签到
 
-**单个账号签到**：
-1. 在账号列表中找到目标账号
-2. 点击账号卡片上的 **"立即签到"** 按钮
-3. 查看签到结果
+- **批量签到**：点击页面顶部的「一键签到」按钮
+- **单账号签到**：在账号列表中点击对应账号的「签到」按钮
 
-## 🏪 提供商管理
+### 4. 查看结果
 
-### 查看提供商列表
+- 签到结果会实时显示在页面上
+- 可在「签到记录」标签页查看历史记录
+- 余额变化会自动更新到统计卡片
 
-在签到主页，您可以看到所有已添加的提供商：
+---
 
-```
-┌──────────────────────────────────────┐
-│ 🌐 AnyRouter                          │
-│ https://anyrouter.top                 │
-│ 账号数: 2 | 今日签到: 2/2             │
-│ [管理账号] [查看详情] [删除]          │
-└──────────────────────────────────────┘
-```
+## 📡 提供商管理
 
-### 编辑提供商
+### 内置提供商列表
 
-1. 点击提供商卡片上的 **"编辑"** 按钮
-2. 修改提供商配置
-3. 点击 **"保存"** 应用更改
+#### 📦 标准站点（24 个）
 
-**可编辑的字段**：
-- 基础 URL
-- 签到路径
-- 余额查询路径
-- 用户信息路径
-- 认证头和前缀
+无需特殊绕过，使用标准 Cookie + API User 认证，签到路径统一为 `/api/user/checkin`。
 
-**不可编辑**：
-- 提供商 ID（系统生成）
-- 创建时间
+| 名称 | 域名 | 签到路径 |
+|------|------|----------|
+| Wong | wzw.pp.ua | `/api/user/checkin` |
+| Huan666 | ai.huan666.de | `/api/user/checkin` |
+| KFC | kfc-api.sxxe.net | `/api/user/checkin` |
+| Neb | ai.zzhdsgsss.xyz | `/api/user/checkin` |
+| LightLLM | lightllm.online | `/api/user/checkin` |
+| TakeAPI | codex.661118.xyz | `/api/user/checkin` |
+| ThatAPI | gyapi.zxiaoruan.cn | `/api/user/checkin` |
+| DuckCoding | duckcoding.com | `/api/user/checkin` |
+| Free DuckCoding | free.duckcoding.com | `/api/user/checkin` |
+| Taizi | api.codeme.me | `/api/user/checkin` |
+| OpenAI Test | openai.api-test.us.ci | `/api/user/checkin` |
+| ChengTX | api.chengtx.vip | `/api/user/checkin` |
+| Codex.cab | codex.cab | `/api/user/checkin` |
+| Clove | clove.cc.cd | `/api/user/checkin` |
+| NPCodex | npcodex.kiroxubei.tech | `/api/user/checkin` |
+| MuAPI | ai.muapi.cn | `/api/user/checkin` |
+| Feisakura | api.feisakura.fun | `/api/user/checkin` |
+| Xionger | api.xionger.ccwu.cc | `/api/user/checkin` |
+| Einzieg | api.einzieg.site | `/api/user/checkin` |
+| 2020111 | api.2020111.xyz | `/api/user/checkin` |
+| 361888 | api.361888.xyz | `/api/user/checkin` |
+| YYDS | yyds.215.im | `/api/user/checkin` |
+| Anthorpic | anthorpic.us.ci | `/api/user/checkin` |
+| Nanohajimi | free.nanohajimi.mom | `/api/user/checkin` |
 
-### 删除提供商
+#### 🛡️ 需 WAF 绕过（1 个）
 
-⚠️ **警告**：删除提供商将同时删除该提供商下的所有账号和签到记录！
+| 名称 | 域名 | 说明 |
+|------|------|------|
+| AnyRouter | anyrouter.top | 需要阿里云 WAF Cookie 绕过 |
 
-1. 点击提供商卡片上的 **"删除"** 按钮
-2. 在确认对话框中点击 **"确认删除"**
+#### ☁️ 需 CF Clearance 绕过（4 个）
 
-### 启用/禁用提供商
+| 名称 | 域名 | 附加功能 |
+|------|------|----------|
+| RunAnytime | runanytime.hxi.me | 支持 CDK 充值（fuli.hxi.me） |
+| Elysiver | elysiver.h-e.top | — |
+| Hotaru | hotaruapi.com | — |
+| B4U | b4u.qzz.io | 支持 CDK 充值（tw.b4u.qzz.io） |
 
-1. 点击提供商卡片上的切换开关
-2. 禁用后，该提供商下的所有账号将不参与批量签到
+#### ⚡ 特殊站点（2 个）
+
+| 名称 | 域名 | 机制 |
+|------|------|------|
+| AgentRouter | agentrouter.cc | 查询用户信息时自动触发签到 |
+| CodeRouter | coderouter.cc | 仅余额查询，无签到接口 |
+
+### 自定义提供商
+
+如果目标站点不在内置列表中，可以手动添加：
+
+**必填字段：**
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `name` | 提供商名称 | `MyProvider` |
+| `base_url` | 站点基础 URL | `https://example.com` |
+| `checkin_path` | 签到 API 路径 | `/api/user/checkin` |
+| `balance_path` | 余额查询路径 | `/api/user/self` |
+| `user_info_path` | 用户信息路径 | `/api/user/self` |
+| `auth_header` | 认证请求头名 | `Authorization` |
+| `auth_prefix` | 认证前缀 | `Bearer` |
+
+---
 
 ## 👤 账号管理
 
-### 添加账号
+### 账号信息
 
-1. 进入提供商的账号管理页面
-2. 点击 **"添加账号"** 按钮
-3. 填写表单：
+每个账号包含以下信息：
 
-   | 字段 | 说明 | 示例 |
-   |------|------|------|
-   | **账号名称** | 自定义标识 | 主账号、测试账号 |
-   | **API Key** | 从中转站获取的密钥 | sk-ant-xxx... |
-   | **启用签到** | 是否参与自动签到 | ✅ |
+| 字段 | 说明 |
+|------|------|
+| `name` | 账号显示名称 |
+| `provider_id` | 所属提供商 |
+| `cookies_json` | Cookie（JSON 格式，加密存储） |
+| `api_user` | API User 标识（可选） |
+| `enabled` | 是否启用 |
+| `extra_config` | 扩展配置（CDK 凭证等） |
+| `last_checkin_at` | 上次签到时间 |
+| `latest_balance` | 最新余额 |
+| `total_quota` | 总配额 |
+| `total_consumed` | 总消耗 |
 
-4. 点击 **"保存"**
+### Cookie 格式
 
-**安全提示**：
-- API Key 使用 AES-256-GCM 加密存储
-- 存储在 `~/.ccr-ui/checkin.db`
-- 只有您的机器可以解密
+Cookie 支持以下格式输入：
 
-### 查看账号列表
-
-在提供商详情页，查看该提供商的所有账号：
-
-```
-┌────────────────────────────────────────────┐
-│ 主账号                                      │
-│ API Key: sk-ant-****1234                    │
-│ 剩余额度: $10.50 | 最后签到: 2小时前        │
-│ 状态: ✅ 已启用                              │
-│ [立即签到] [查询余额] [编辑] [删除]         │
-└────────────────────────────────────────────┘
+```json
+{
+  "session": "abc123",
+  "new-api-user": "user_token_here"
+}
 ```
 
-### 编辑账号
+或者直接使用浏览器的 Cookie 字符串：
 
-1. 点击账号卡片上的 **"编辑"** 按钮
-2. 修改账号信息（除 API Key 外的所有字段）
-3. 点击 **"保存"**
+```
+session=abc123; new-api-user=user_token_here
+```
 
-**注意**：API Key 一旦保存无法直接查看，只能重新输入替换。
+### 连接测试
 
-### 删除账号
+添加账号后，建议先执行连接测试：
 
-1. 点击账号卡片上的 **"删除"** 按钮
-2. 确认删除操作
+1. 点击账号旁的「测试」按钮
+2. 系统会尝试调用 `/api/user/self` 获取用户信息
+3. 成功则显示用户名和余额信息
+4. 失败会显示具体错误原因
 
-**影响**：
-- 账号配置被删除
-- 该账号的签到记录保留（可选清除）
+### OAuth 引导登录
 
-### 启用/禁用账号
+支持 OAuth 的提供商可使用引导式登录：
 
-使用账号卡片上的切换开关：
-- ✅ **启用**：参与批量签到
-- ❌ **禁用**：跳过签到
+**支持的 OAuth 方式：**
+- **GitHub OAuth** — 部分提供商支持（如 AnyRouter, AgentRouter, DuckCoding）
+- **LinuxDo OAuth** — 大多数提供商支持
+
+**使用流程：**
+
+1. 在添加账号对话框中点击「OAuth 引导登录」
+2. 选择 OAuth 方式（GitHub / LinuxDo）
+3. 系统调用 `POST /checkin/oauth/authorize-url` 获取授权链接
+4. 点击链接，在系统浏览器中打开
+5. 在浏览器中完成登录和授权
+6. 授权完成后，按引导从浏览器 DevTools 中复制 Cookie
+7. 将 Cookie 粘贴到向导输入框
+8. 系统自动解析并创建账号
+
+::: tip 提示
+OAuth 引导式登录不会在后端存储您的 OAuth 密码，所有登录操作在您自己的浏览器中完成。
+:::
+
+---
 
 ## ✅ 签到操作
 
 ### 批量签到
 
-**触发方式**：
-1. 手动：点击 **"批量签到"** 按钮
-2. 定时：设置自动签到（计划中功能）
-
-**执行流程**：
 ```
-1. 收集所有启用的账号
-2. 按提供商分组
-3. 对每个账号：
-   a. 检查最后签到时间（避免重复）
-   b. 发送签到请求
-   c. 记录签到结果
-4. 显示统计结果
+POST /checkin/execute
 ```
 
-**结果展示**：
+请求体（可选）：
+
+```json
+{
+  "account_ids": ["account_id_1", "account_id_2"]
+}
 ```
-签到完成！
-✅ 成功: 5 个账号
-❌ 失败: 1 个账号
-⏭️ 跳过: 2 个账号（今日已签到）
-```
+
+- 不传 `account_ids` 时签到所有启用的账号
+- 传入特定 ID 列表时只签到指定账号
 
 ### 单账号签到
 
-1. 在账号列表找到目标账号
-2. 点击 **"立即签到"** 按钮
-3. 等待签到完成（通常 1-3 秒）
-4. 查看结果：
-   - ✅ 成功：显示获得的积分/额度
-   - ❌ 失败：显示错误信息
+```
+POST /checkin/accounts/{id}/checkin
+```
 
-### 签到结果类型
+### 签到响应
 
-| 状态 | 图标 | 说明 |
-|------|------|------|
-| **Success** | ✅ | 签到成功，获得奖励 |
-| **AlreadyCheckedIn** | ⏭️ | 今日已签到，跳过 |
-| **Failed** | ❌ | 签到失败（网络错误、API 错误等） |
-| **Skipped** | ⚠️ | 账号已禁用，跳过 |
+签到成功后返回签到记录，包含：
 
-### 查看签到历史
+```json
+{
+  "id": "record_id",
+  "account_id": "account_id",
+  "provider_id": "provider_id",
+  "status": "success",
+  "message": "签到成功！获得 1000 积分",
+  "reward_amount": 1000.0,
+  "balance_after": 5000.0,
+  "checked_in_at": "2026-02-13T10:00:00Z"
+}
+```
 
-1. 点击 **"签到记录"** 标签
-2. 查看历史记录列表：
+### 签到状态
 
-   | 时间 | 账号 | 提供商 | 状态 | 消息 |
-   |------|------|--------|------|------|
-   | 10:30 | 主账号 | AnyRouter | ✅ | 签到成功，获得 1000 积分 |
-   | 10:32 | 测试账号 | AnyRouter | ⏭️ | 今日已签到 |
-   | 10:35 | 账号 3 | AgentRouter | ❌ | API Key 无效 |
+| 状态 | 说明 |
+|------|------|
+| `success` | 签到成功 |
+| `already_checked_in` | 今日已签到 |
+| `failed` | 签到失败 |
+| `waf_challenge` | 遇到 WAF 挑战（自动重试） |
+| `cf_challenge` | 遇到 CF 挑战（自动重试） |
 
-3. 使用过滤器：
-   - 按提供商过滤
-   - 按状态过滤
-   - 按日期范围过滤
+---
 
 ## 💰 余额查询
 
-### 查询单个账号余额
+### 查询余额
 
-1. 在账号列表找到目标账号
-2. 点击 **"查询余额"** 按钮
-3. 等待查询完成（通常 1-2 秒）
-4. 查看余额信息：
-
-   ```
-   剩余额度: $10.50
-   已用额度: $5.25
-   总额度: $15.75
-   使用率: 33.33%
-   查询时间: 2025-12-28 14:30:00
-   ```
-
-### 批量余额查询
-
-1. 在账号管理页面顶部
-2. 点击 **"批量查询余额"** 按钮
-3. 系统自动查询所有启用账号的余额
-4. 更新账号卡片上的余额显示
-
-### 自动余额更新
-
-余额信息会在以下情况自动更新：
-- ✅ 签到成功后
-- 🔄 手动刷新页面时
-- ⏰ 定时刷新（每 5 分钟，可配置）
-
-### 余额显示格式
-
-不同提供商可能有不同的额度单位：
-
-| 提供商 | 单位 | 显示格式 |
-|--------|------|----------|
-| AnyRouter | 积分 | 10,000 积分 |
-| AgentRouter | 美元 | $10.50 |
-| CodeRouter | 次数 | 500 次 |
-
-## 🌐 WAF 绕过
-
-某些中转站使用 CloudFlare 等 WAF 保护，需要使用浏览器自动化绕过。
-
-### 什么时候需要 WAF 绕过？
-
-**标识**：
-- 提供商配置中 `requires_waf_bypass: true`
-- 签到失败，错误信息包含 "403"、"CloudFlare"、"Challenge"
-
-**支持 WAF 绕过的提供商**：
-- 🌐 AnyRouter（默认启用）
-
-### 如何工作
-
-1. 系统启动一个无头 Chromium 浏览器
-2. 访问目标网站，自动解决 CloudFlare Challenge
-3. 获取通过验证的 Cookie
-4. 使用 Cookie 发送签到请求
-
-**技术细节**：
-- 浏览器引擎: Chromium (chromiumoxide)
-- 无头模式: 是
-- 自动化框架: Chrome DevTools Protocol (CDP)
-- Cookie 存储: 内存（每次签到重新获取）
-
-### 配置代理
-
-WAF 绕过默认使用系统代理设置：
-
-**Windows**:
-```cmd
-set HTTPS_PROXY=http://127.0.0.1:7890
-set HTTP_PROXY=http://127.0.0.1:7890
+```
+POST /checkin/accounts/{id}/balance
 ```
 
-**Linux/macOS**:
-```bash
-export HTTPS_PROXY=http://127.0.0.1:7890
-export HTTP_PROXY=http://127.0.0.1:7890
-```
+返回余额快照：
 
-**Socks5 代理**:
-```bash
-export ALL_PROXY=socks5://127.0.0.1:7890
-```
-
-### 故障排除
-
-**问题**: WAF 绕过失败
-
-**可能原因**：
-1. Chromium 未安装
-   - 解决: 后端首次运行会自动下载
-2. 代理配置错误
-   - 检查代理是否正常工作
-   - 尝试在浏览器中访问目标网站
-3. CloudFlare 规则更新
-   - 等待后端更新绕过逻辑
-
-**调试模式**：
-```bash
-# 启动后端时启用调试日志
-RUST_LOG=debug cargo run
-```
-
-查看日志中的 WAF 绕过过程：
-```
-[DEBUG] WAF bypass started for anyrouter.top
-[DEBUG] Launching Chromium...
-[DEBUG] Navigating to https://anyrouter.top
-[DEBUG] Waiting for CloudFlare challenge...
-[DEBUG] Challenge solved, extracting cookies
-[DEBUG] Cookie obtained: cf_clearance=...
-[INFO] WAF bypass successful
-```
-
-## 📦 数据管理
-
-### 导出配置
-
-**用途**：
-- 备份签到配置
-- 迁移到其他机器
-- 与他人分享提供商配置
-
-**步骤**：
-1. 点击 **"导出配置"** 按钮
-2. 选择导出选项：
-   - ✅ **包含提供商配置**
-   - ✅ **包含账号配置**
-   - ⚠️ **包含明文 API Key**（不推荐）
-   - ❌ **不包含签到记录**（可选）
-3. 点击 **"导出"**
-4. 保存 JSON 文件
-
-**导出文件格式**：
 ```json
 {
-  "version": "1.0",
-  "export_time": "2025-12-28T14:30:00Z",
-  "providers": [
+  "balance": 5000.0,
+  "currency": "积分",
+  "total_quota": 10000.0,
+  "total_consumed": 5000.0,
+  "checked_at": "2026-02-13T10:00:00Z"
+}
+```
+
+### 余额历史
+
+```
+GET /checkin/accounts/{id}/balance/history?limit=30
+```
+
+返回历史余额快照列表，支持按时间范围查询，用于绘制趋势图。
+
+---
+
+## 🛡️ WAF 绕过（阿里云 WAF）
+
+### 概述
+
+AnyRouter（anyrouter.top）使用阿里云 WAF 防护，直接请求 API 会被拦截。CCR UI 通过 headless Chromium 浏览器自动获取 WAF Cookie，实现绕过。
+
+### 工作原理
+
+```
+1. 启动 headless Chromium 浏览器
+2. 注入反检测 JS（Stealth JS）
+3. 访问目标站点登录页
+4. 等待 WAF 验证完成（~12 秒）
+5. 提取 WAF Cookie（acw_tc, cdn_sec_tc, acw_sc__v2）
+6. 将 WAF Cookie 合并到后续 API 请求中
+```
+
+### 需要的 Cookie
+
+| Cookie 名 | 说明 |
+|-----------|------|
+| `acw_tc` | 阿里云 WAF 跟踪 Cookie |
+| `cdn_sec_tc` | CDN 安全验证 Cookie |
+| `acw_sc__v2` | 阿里云 WAF 安全挑战 Cookie |
+
+### Stealth JS 注入
+
+为了避免 headless 浏览器被检测，CCR UI 在页面加载前注入反检测脚本：
+
+```javascript
+// 移除 navigator.webdriver 标记
+Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+
+// 伪装 Chrome runtime
+window.chrome = { runtime: {}, loadTimes: function(){}, csi: function(){} };
+
+// 伪装 permissions API
+const originalQuery = window.navigator.permissions.query;
+window.navigator.permissions.query = (parameters) => (
+    parameters.name === 'notifications' ?
+        Promise.resolve({ state: Notification.permission }) :
+        originalQuery(parameters)
+);
+
+// 伪装 plugins（headless 通常为空）
+Object.defineProperty(navigator, 'plugins', {
+    get: () => [1, 2, 3, 4, 5]
+});
+
+// 伪装 languages
+Object.defineProperty(navigator, 'languages', {
+    get: () => ['zh-CN', 'zh', 'en-US', 'en']
+});
+```
+
+### 反检测浏览器参数
+
+```
+--disable-blink-features=AutomationControlled
+--disable-features=IsolateOrigins,site-per-process
+--disable-infobars
+--disable-dev-shm-usage
+```
+
+### 前置条件
+
+- 系统需安装 Chromium 内核浏览器（Chrome/Chromium/Brave/Edge）
+- 支持 Windows、macOS、Linux 系统
+- 自动检测浏览器安装路径
+
+---
+
+## ☁️ CF Clearance 绕过（Cloudflare）
+
+### 概述
+
+4 个提供商使用 Cloudflare 防护：**RunAnytime**、**Elysiver**、**Hotaru**、**B4U**。访问时会出现 "Just a moment..." 挑战页面，CCR UI 通过 headless Chromium 自动解决。
+
+### 工作原理
+
+```
+1. 启动 headless Chromium 浏览器
+2. 注入反检测 JS（同 WAF 绕过）
+3. 访问目标站点
+4. 检测页面标题（轮询判断是否仍在 "Just a moment..." 挑战页）
+5. 等待 Cloudflare 验证通过（标题变化表示挑战通过）
+6. 提取 cf_clearance Cookie
+7. 将 cf_clearance 合并到后续 API 请求中
+```
+
+### 需要的 Cookie
+
+| Cookie 名 | 说明 |
+|-----------|------|
+| `cf_clearance` | Cloudflare 挑战通过凭证 |
+
+### 需要 CF 绕过的站点
+
+| 站点 | 域名 | 附加说明 |
+|------|------|----------|
+| RunAnytime | runanytime.hxi.me | 还支持 CDK 充值 |
+| Elysiver | elysiver.h-e.top | — |
+| Hotaru | hotaruapi.com | — |
+| B4U | b4u.qzz.io | 还支持 CDK 充值 |
+
+### 自动重试机制
+
+当签到或余额查询时检测到 CF 挑战响应（HTTP 403 + CF 标记），系统会：
+
+1. 自动触发 CF Clearance 获取
+2. 重新发送原请求（附带 `cf_clearance` Cookie）
+3. 如果再次失败，记录为 `cf_challenge` 状态
+
+::: warning 注意
+CF Clearance 有效期有限（通常几小时），系统会在过期后自动重新获取。首次获取可能需要 10-30 秒。
+:::
+
+---
+
+## 🎁 CDK 充值
+
+### 概述
+
+3 个站点支持通过外部福利站获取充值码（CDK）并自动充值到账户。
+
+### 支持站点
+
+| 站点 | CDK 来源 | 获取方式 | 充值方式 |
+|------|----------|----------|----------|
+| RunAnytime | fuli.hxi.me | 签到 + 大转盘 | `POST /api/user/topup` |
+| B4U | tw.b4u.qzz.io | 幸运抽奖 | `POST /api/user/topup` |
+| x666 | up.x666.me | 每日抽奖 | 直接到账（无需充值） |
+
+### 使用方式
+
+1. 为支持 CDK 的账号配置 CDK 凭证（`extra_config` 中）
+2. 签到完成后，系统会自动检测 CDK 配置
+3. 自动获取充值码并执行充值
+4. 也可以手动点击「CDK 充值」按钮
+
+### CDK 充值 API
+
+```
+POST /checkin/accounts/{id}/topup
+```
+
+返回 `CdkTopupResult`：
+
+```json
+{
+  "cdk_type": "runawaytime",
+  "success": true,
+  "message": "充值成功",
+  "codes_found": 3,
+  "codes_redeemed": 2,
+  "failed_codes": ["INVALID_CODE"],
+  "direct_reward": null
+}
+```
+
+### RunAnytime CDK 详解
+
+1. **签到**: POST `fuli.hxi.me/api/checkin` → 获取 CDK 码
+2. **大转盘**: POST `fuli.hxi.me/api/wheel` → 循环抽奖直到次数用完
+3. **充值**: 将所有 CDK 码逐个发送到 `/api/user/topup`
+
+**需要的凭证**: `fuli.hxi.me` 的登录 Cookie（存储在 `extra_config.cdk_cookies` 中）
+
+### B4U CDK 详解
+
+1. 需要先获取 `cf_clearance`（复用 CF 绕过服务）
+2. 访问 `tw.b4u.qzz.io/luckydraw` 执行抽奖
+3. 解析 Next.js Server Actions 响应格式
+4. 将获得的 CDK 码充值到账户
+
+**需要的凭证**: `tw.b4u.qzz.io` 的登录 Cookie
+
+### x666 CDK 详解
+
+1. 使用 JWT `access_token` 认证
+2. POST `up.x666.me/api/checkin/spin` 执行抽奖
+3. 奖励直接充值到账户（无需额外 topup 步骤）
+
+**需要的凭证**: `access_token`（JWT，存储在 `extra_config.access_token` 中）
+
+---
+
+## 📊 账号 Dashboard
+
+### 概述
+
+每个账号都有独立的 Dashboard 面板，展示详细的签到统计、日历视图和余额趋势。
+
+### 访问方式
+
+```
+GET /checkin/accounts/{id}/dashboard?year=2026&month=2&days=30
+```
+
+### Dashboard 数据
+
+#### 连续签到统计 (Streak)
+
+```json
+{
+  "current_streak": 15,
+  "longest_streak": 30,
+  "total_check_in_days": 120
+}
+```
+
+#### 月历日历 (Calendar)
+
+展示当月每天的签到状态：
+
+```json
+{
+  "days": [
     {
-      "id": "anyrouter",
-      "name": "AnyRouter",
-      "base_url": "https://anyrouter.top",
-      "..."
-    }
-  ],
-  "accounts": [
-    {
-      "provider_id": "anyrouter",
-      "name": "主账号",
-      "api_key": "***encrypted***",
-      "enabled": true
+      "date": "2026-02-01",
+      "is_checked_in": true,
+      "income_increment": 1000.0,
+      "current_balance": 5000.0
     }
   ]
 }
 ```
 
-### 导入配置
+#### 余额趋势 (Trend)
 
-**用途**：
-- 从备份恢复
-- 从其他机器迁移
-- 导入他人分享的配置
+展示指定天数内的余额变化趋势：
 
-**步骤**：
-1. 点击 **"导入配置"** 按钮
-2. 选择 JSON 文件
-3. 选择冲突处理策略：
-   - **跳过** (skip): 跳过已存在的项
-   - **覆盖** (overwrite): 覆盖已存在的项
-   - **合并** (merge): 保留两者（重命名冲突项）
-4. 点击 **"导入"**
-5. 查看导入结果
-
-**冲突处理示例**：
-```
-已存在提供商: AnyRouter
-策略: 跳过 → 保持原有配置
-策略: 覆盖 → 使用导入的配置
-策略: 合并 → 重命名为 "AnyRouter (2)"
+```json
+{
+  "data_points": [
+    {
+      "date": "2026-02-01",
+      "total_quota": 10000.0,
+      "income_increment": 1000.0,
+      "current_balance": 5000.0,
+      "is_checked_in": true
+    }
+  ]
+}
 ```
 
-### 清理数据
+---
 
-**清理签到记录**：
-1. 进入 **"设置"** → **"数据管理"**
-2. 点击 **"清理签到记录"**
-3. 选择清理范围：
-   - 7 天前的记录
-   - 30 天前的记录
-   - 所有记录
-4. 确认清理
+## 📦 数据管理
 
-**重置所有数据**：
-⚠️ **危险操作**：将删除所有提供商、账号和记录！
+### 导出配置
 
-1. 进入 **"设置"** → **"数据管理"**
-2. 点击 **"重置所有数据"**
-3. 输入确认码: `DELETE ALL`
-4. 确认重置
+```
+POST /checkin/export
+```
+
+请求参数：
+
+```json
+{
+  "include_plaintext_keys": false,
+  "providers_only": false
+}
+```
+
+- `include_plaintext_keys`: 是否包含明文 Cookie（默认加密）
+- `providers_only`: 是否只导出提供商（不含账号）
+
+### 预览导入
+
+```
+POST /checkin/import/preview
+```
+
+上传导出文件，预览将要导入的内容和冲突项。
+
+### 执行导入
+
+```
+POST /checkin/import
+```
+
+请求参数：
+
+```json
+{
+  "data": { "...导出数据..." },
+  "options": {
+    "conflict_strategy": "skip"
+  }
+}
+```
+
+**冲突策略：**
+
+| 策略 | 说明 |
+|------|------|
+| `skip` | 跳过冲突项，保留现有配置 |
+| `overwrite` | 覆盖冲突项，使用导入的配置 |
+
+### 导出签到记录
+
+```
+GET /checkin/records/export
+```
+
+以文件下载方式导出签到记录。
+
+---
 
 ## ❓ 常见问题
 
-### Q1: 签到失败，提示 "API Key 无效"
+### Q1: 支持哪些提供商？
 
-**原因**：
-- API Key 错误或已过期
-- 提供商更改了 API 规则
+CCR UI 内置 30+ 提供商，覆盖主流 NewAPI 公益 AI 中转站。分为四类：
+- **标准站点** (24 个)：直接 Cookie 认证
+- **WAF 站点** (1 个)：AnyRouter，需自动绕过阿里云 WAF
+- **CF 站点** (4 个)：需自动绕过 Cloudflare 防护
+- **特殊站点** (2 个)：AgentRouter（自动签到）、CodeRouter（仅余额）
 
-**解决**：
-1. 登录中转站网站，检查 API Key 是否有效
-2. 复制新的 API Key
-3. 在 CCR UI 中编辑账号，更新 API Key
+### Q2: WAF/CF 绕过需要什么前置条件？
 
-### Q2: 显示 "今日已签到"，但我没有签过
+需要系统安装 Chromium 内核浏览器（Chrome、Chromium、Brave 或 Edge）。系统会自动检测安装路径，支持 Windows/macOS/Linux。
 
-**原因**：
-- 中转站可能在其他地方已经签到（网页、手机 App）
-- 签到记录时间判断问题
+### Q3: Cookie 如何获取？
 
-**解决**：
-- 正常现象，等待明天再签到
-- 如果确认未签到，联系中转站客服
+三种方式：
+1. **手动获取**：在浏览器中登录站点 → F12 打开 DevTools → Application → Cookies → 复制
+2. **OAuth 引导**：使用 GitHub/LinuxDo OAuth 向导（支持的提供商会显示按钮）
+3. **字符串格式**：直接粘贴浏览器的 Cookie 字符串（`key1=value1; key2=value2`）
 
-### Q3: WAF 绕过一直失败
+### Q4: CDK 充值如何配置？
 
-**可能原因**：
-1. 代理未配置或无法访问目标网站
-2. Chromium 未正确安装
+在编辑账号时，为支持 CDK 的提供商配置 `extra_config`：
+- **RunAnytime**: 填入 `fuli.hxi.me` 的登录 Cookie
+- **B4U**: 填入 `tw.b4u.qzz.io` 的登录 Cookie
+- **x666**: 填入 `access_token`（JWT）
 
-**解决步骤**：
-1. 检查代理配置：
-   ```bash
-   echo $HTTPS_PROXY
-   curl -v https://anyrouter.top
-   ```
-2. 重新安装 Chromium：
-   删除 `~/.cache/chromiumoxide/`，重启后端
-3. 查看后端日志，寻找详细错误
+### Q5: 签到失败怎么办？
 
-### Q4: 余额查询返回 0 或错误数据
-
-**原因**：
-- 提供商 API 响应格式变化
-- 余额查询路径错误
-
-**解决**：
-1. 检查提供商配置中的 `balance_path`
-2. 手动访问该路径，查看返回数据格式
-3. 如果格式不匹配，联系开发者更新
-
-### Q5: 批量签到速度很慢
-
-**原因**：
-- 网络延迟
-- WAF 绕过耗时（启动 Chromium 需要 3-5 秒）
-
-**优化建议**：
-1. 使用代理加速网络
-2. 对于不需要 WAF 绕过的提供商，配置 `requires_waf_bypass: false`
-3. 避免过多账号同时签到（建议分批）
+1. 先执行「连接测试」确认账号可用
+2. 检查 Cookie 是否过期（重新登录获取新 Cookie）
+3. WAF/CF 站点：确认系统已安装 Chrome/Chromium 浏览器
+4. 查看签到记录中的错误信息排查具体原因
 
 ### Q6: 数据存储在哪里？
 
-**位置**：
-- SQLite 数据库: `~/.ccr-ui/checkin.db`
-- API Key 加密密钥: 存储在系统密钥链或本地文件
+- 数据库路径：`~/.ccr-ui/checkin.db`（SQLite）
+- Cookie 加密方式：AES-256-GCM
+- 所有数据完全在本地存储，不会上传到任何服务器
 
-**备份建议**：
-1. 定期导出配置到 JSON 文件
-2. 备份 `~/.ccr-ui/` 整个目录
+### Q7: 如何迁移到新设备？
 
-### Q7: 如何迁移到新机器？
+使用导入/导出功能：
+1. 在旧设备上执行「导出配置」（勾选"包含明文密钥"）
+2. 将导出文件传输到新设备
+3. 在新设备上执行「导入配置」
+4. 选择冲突策略（skip 或 overwrite）
 
-**步骤**：
-1. 在旧机器：导出配置（勾选 "包含明文 API Key"）
-2. 将 JSON 文件复制到新机器
-3. 在新机器：安装 CCR UI，导入配置
-4. 验证签到功能正常
+### Q8: OAuth 登录安全吗？
 
-**注意**：
-- 不勾选明文导出时，API Key 只能在同一机器上解密
-- 跨机器迁移必须导出明文 API Key
-
-### Q8: 可以自动定时签到吗？
-
-**当前状态**：计划中功能（v3.8+）
-
-**临时解决方案**：
-1. 使用系统定时任务（cron/Task Scheduler）
-2. 调用 CCR UI 的签到 API：
-   ```bash
-   curl -X POST http://localhost:38081/api/checkin/execute
-   ```
-
-**Linux crontab 示例**：
-```bash
-# 每天 8:00 自动签到
-0 8 * * * curl -X POST http://localhost:38081/api/checkin/execute
-```
-
-**Windows 任务计划程序**：
-- 触发器: 每天 08:00
-- 操作: 启动程序
-  - 程序: `curl`
-  - 参数: `-X POST http://localhost:38081/api/checkin/execute`
-
-## 🔗 相关文档
-
-- [功能概览](./features.md) - 所有功能列表
-- [后端 API 文档](../reference/backend/api.md) - 签到 API 端点详情
-- [后端架构](../reference/backend/architecture.md) - 签到功能技术实现
-
-## 📞 获取帮助
-
-如果您遇到问题：
-
-1. 查看本文档的常见问题部分
-2. 查看后端日志: `~/.ccr-ui/logs/backend/`
-3. 提交 Issue: [GitHub Issues](https://github.com/bahayonghang/ccr/issues)
-4. 加入讨论: [GitHub Discussions](https://github.com/bahayonghang/ccr/discussions)
+完全安全。OAuth 引导式登录在您自己的浏览器中完成：
+- CCR UI 仅获取授权链接，不接触您的密码
+- 登录和授权在系统浏览器中进行
+- 您手动复制 Cookie 粘贴到 CCR UI
+- Cookie 使用 AES-256-GCM 加密后存入本地数据库
 
 ---
 
