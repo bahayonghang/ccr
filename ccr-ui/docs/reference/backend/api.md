@@ -551,34 +551,7 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost?range=month"
 }
 ```
 
-### 获取今日成本
-
-获取今日成本统计的快捷方式。
-
-**接口信息**
-- **URL**: `/stats/cost/today`
-- **方法**: `GET`
-
-**请求示例**
-```bash
-curl -X GET http://127.0.0.1:8081/api/stats/cost/today
-```
-
-### 获取本周成本
-
-获取本周成本统计的快捷方式。
-
-**接口信息**
-- **URL**: `/stats/cost/week`
-- **方法**: `GET`
-
-### 获取本月成本
-
-获取本月成本统计的快捷方式。
-
-**接口信息**
-- **URL**: `/stats/cost/month`
-- **方法**: `GET`
+> **注意**: 之前的快捷端点 `/api/stats/cost/today`、`/week`、`/month` 已被移除。请使用 `GET /api/stats/cost?range=today|week|month` 替代。
 
 ### 获取成本趋势
 

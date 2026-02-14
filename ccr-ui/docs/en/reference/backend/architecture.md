@@ -342,10 +342,7 @@ PUT    /api/plugins/:name/toggle - Toggle plugin
 ### Statistics APIs
 
 ```
-GET    /api/stats/cost         - Get cost statistics
-GET    /api/stats/cost/today   - Get today's cost
-GET    /api/stats/cost/week    - Get this week's cost
-GET    /api/stats/cost/month   - Get this month's cost
+GET    /api/stats/cost         - Get cost statistics (supports range parameter: today/week/month)
 ```
 
 ## Configuration

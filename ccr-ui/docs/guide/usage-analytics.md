@@ -268,34 +268,10 @@ CCR UI 提供了全面的 Token 使用统计分析功能，帮助您实时追踪
 
 ## API 端点
 
-### GET /api/usage/records
-
-获取 Token 使用记录。
-
-**查询参数**:
-- `platform`: 平台名称 (`claude` | `codex` | `gemini`)，默认 `claude`
-- `limit`: 返回记录数限制，默认 10000，最大 50000
-
-**响应**:
-```json
-{
-  "records": [
-    {
-      "uuid": "abc123",
-      "timestamp": "2025-11-18T10:30:00Z",
-      "model": "claude-sonnet-4-5-20250929",
-      "usage": {
-        "input_tokens": 1000,
-        "output_tokens": 500,
-        "cache_read_input_tokens": 2000
-      }
-    }
-  ],
-  "total_records": 1234,
-  "returned_records": 1000,
-  "truncated": true
-}
-```
+> **注意**: V1 端点 `/api/usage/records` 已被移除。请使用新的 V2 端点：
+> - `GET /api/usage/dashboard` - 聚合数据
+> - `GET /api/usage/logs` - 分页日志
+> - `GET /api/usage/summary`, `/trends`, `/by-model`, `/by-project`, `/heatmap` - 专项统计
 
 ### 数据源
 
@@ -408,7 +384,7 @@ Vue Component
     ↓
 API Client (Axios)
     ↓
-GET /api/usage/records?platform=claude&limit=10000
+GET /api/usage/dashboard (V2 聚合端点)
     ↓
 Axum Handler (usage.rs)
     ↓
@@ -422,7 +398,7 @@ Axum Handler (usage.rs)
     ↓
 按时间戳排序
     ↓
-截断到 limit
+聚合统计
     ↓
 更新缓存
     ↓
@@ -522,7 +498,7 @@ Vue Component 更新
 
 **替代方案**:
 1. 直接访问 JSONL 文件：`~/.claude/projects/**/*.jsonl`
-2. 使用 API 获取 JSON：`curl http://localhost:8081/api/usage/records?platform=claude&limit=50000`
+2. 使用新的 V2 API 端点获取数据
 3. 复制浏览器 Network 面板的响应数据
 
 **未来计划**:
