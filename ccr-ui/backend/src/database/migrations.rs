@@ -665,6 +665,74 @@ fn backfill_usage_records(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+/// Run migration v4: Add composite indexes for usage analytics pagination/filtering
+pub fn run_migration_v4(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 4)? {
+        debug!("Migration v4 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v4: add usage composite indexes");
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_usage_records_platform_model_recorded_at_id
+             ON usage_records (platform, model, recorded_at DESC, id DESC);
+         CREATE INDEX IF NOT EXISTS idx_usage_records_platform_recorded_at_id
+             ON usage_records (platform, recorded_at DESC, id DESC);",
+    )?;
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![4, "usage_composite_indexes", now],
+    )?;
+
+    info!("Migration v4 completed successfully");
+    Ok(())
+}
+
+/// Run migration v5: Create usage_daily_agg pre-aggregation table
+/// Enables fast heatmap and trend queries without scanning usage_records
+pub fn run_migration_v5(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 5)? {
+        debug!("Migration v5 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v5: usage_daily_agg pre-aggregation table");
+
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS usage_daily_agg (
+            date TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            request_count INTEGER DEFAULT 0,
+            input_tokens INTEGER DEFAULT 0,
+            output_tokens INTEGER DEFAULT 0,
+            cache_read_tokens INTEGER DEFAULT 0,
+            cost_usd REAL DEFAULT 0,
+            PRIMARY KEY (date, platform)
+        );",
+    )?;
+
+    // Backfill from existing usage_records
+    conn.execute_batch(
+        "INSERT OR REPLACE INTO usage_daily_agg (date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd)
+         SELECT DATE(recorded_at), platform, COUNT(*),
+                COALESCE(SUM(input_tokens),0), COALESCE(SUM(output_tokens),0),
+                COALESCE(SUM(cache_read_tokens),0), COALESCE(SUM(cost_usd),0)
+         FROM usage_records
+         GROUP BY DATE(recorded_at), platform;",
+    )?;
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![5, "usage_daily_agg", now],
+    )?;
+
+    info!("Migration v5 completed successfully");
+    Ok(())
+}
+
 /// Run all migrations (schema + legacy data import)
 /// This is the main entry point called during initialization
 pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult<()> {
@@ -676,6 +744,12 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
 
     // Step 1.6: Run v3 migration (usage extracted columns + model_pricing)
     run_migration_v3(conn)?;
+
+    // Step 1.7: Run v4 migration (usage composite indexes)
+    run_migration_v4(conn)?;
+
+    // Step 1.8: Run v5 migration (usage daily aggregation table)
+    run_migration_v5(conn)?;
 
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {

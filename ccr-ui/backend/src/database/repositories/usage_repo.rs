@@ -147,6 +147,7 @@ pub fn delete_source(conn: &Connection, id: &str) -> Result<usize, rusqlite::Err
 // ═══════════════════════════════════════════════════════════
 
 /// Insert a usage record
+#[allow(dead_code)]
 pub fn insert_record(conn: &Connection, record: &UsageRecord) -> Result<(), rusqlite::Error> {
     conn.execute(
         "INSERT OR REPLACE INTO usage_records
@@ -167,6 +168,8 @@ pub fn insert_record(conn: &Connection, record: &UsageRecord) -> Result<(), rusq
             record.cost_usd,
         ],
     )?;
+    // Sync daily aggregation
+    upsert_daily_agg_from_records(conn, std::slice::from_ref(record))?;
     Ok(())
 }
 
@@ -175,15 +178,84 @@ pub fn insert_records_batch(
     conn: &Connection,
     records: &[UsageRecord],
 ) -> Result<usize, rusqlite::Error> {
+    if records.is_empty() {
+        return Ok(0);
+    }
+
+    let tx = conn.unchecked_transaction()?;
+    let mut stmt = tx.prepare(
+        "INSERT OR REPLACE INTO usage_records
+         (id, platform, project_path, record_json, recorded_at, source_id,
+          model, input_tokens, output_tokens, cache_read_tokens, cost_usd)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+    )?;
+
     let mut count = 0;
     for record in records {
-        insert_record(conn, record)?;
+        stmt.execute(params![
+            record.id,
+            record.platform,
+            record.project_path,
+            record.record_json,
+            record.recorded_at.to_rfc3339(),
+            record.source_id,
+            record.model,
+            record.input_tokens,
+            record.output_tokens,
+            record.cache_read_tokens,
+            record.cost_usd,
+        ])?;
         count += 1;
     }
+
+    drop(stmt);
+
+    // Sync daily aggregation table
+    upsert_daily_agg_from_records(&tx, records)?;
+
+    tx.commit()?;
     Ok(count)
 }
 
-/// 所有列的 SELECT 片段
+/// Update usage_daily_agg from a batch of records (within an existing transaction)
+fn upsert_daily_agg_from_records(
+    conn: &Connection,
+    records: &[UsageRecord],
+) -> Result<(), rusqlite::Error> {
+    if records.is_empty() {
+        return Ok(());
+    }
+
+    // Group by (date, platform)
+    #[allow(clippy::type_complexity)]
+    let mut agg: HashMap<(String, String), (i64, i64, i64, i64, f64)> = HashMap::new();
+    for r in records {
+        let date = r.recorded_at.format("%Y-%m-%d").to_string();
+        let entry = agg.entry((date, r.platform.clone())).or_default();
+        entry.0 += 1;
+        entry.1 += r.input_tokens;
+        entry.2 += r.output_tokens;
+        entry.3 += r.cache_read_tokens;
+        entry.4 += r.cost_usd;
+    }
+
+    let mut stmt = conn.prepare(
+        "INSERT INTO usage_daily_agg (date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+         ON CONFLICT(date, platform) DO UPDATE SET
+           request_count = request_count + excluded.request_count,
+           input_tokens = input_tokens + excluded.input_tokens,
+           output_tokens = output_tokens + excluded.output_tokens,
+           cache_read_tokens = cache_read_tokens + excluded.cache_read_tokens,
+           cost_usd = cost_usd + excluded.cost_usd",
+    )?;
+
+    for ((date, platform), (count, input, output, cache, cost)) in &agg {
+        stmt.execute(params![date, platform, count, input, output, cache, cost])?;
+    }
+
+    Ok(())
+}
 const USAGE_RECORD_COLUMNS: &str = "id, platform, project_path, record_json, recorded_at, source_id, model, input_tokens, output_tokens, cache_read_tokens, cost_usd";
 
 /// Get recent records by platform
@@ -346,9 +418,10 @@ pub struct ProjectStat {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaginatedLogs {
     pub records: Vec<UsageRecord>,
-    pub total: i64,
+    pub total: Option<i64>,
     pub page: i64,
     pub page_size: i64,
+    pub next_cursor: Option<String>,
 }
 
 /// 构建平台+时间范围的 WHERE 子句和参数
@@ -422,19 +495,40 @@ pub fn get_usage_summary(
     })
 }
 
-/// 获取每日趋势
+/// 获取每日趋势（从预聚合表查询）
 pub fn get_daily_trends(
     conn: &Connection,
     platform: &Option<String>,
     start: &Option<String>,
     end: &Option<String>,
 ) -> Result<Vec<DailyTrend>, rusqlite::Error> {
-    let (where_sql, bind_params) = build_where_clause(platform, start, end);
+    let mut conditions: Vec<String> = Vec::new();
+    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+
+    if let Some(p) = platform {
+        bind_params.push(Box::new(p.clone()));
+        conditions.push(format!("platform = ?{}", bind_params.len()));
+    }
+    if let Some(s) = start {
+        bind_params.push(Box::new(s.clone()));
+        conditions.push(format!("date >= ?{}", bind_params.len()));
+    }
+    if let Some(e) = end {
+        bind_params.push(Box::new(e.clone()));
+        conditions.push(format!("date <= ?{}", bind_params.len()));
+    }
+
+    let where_sql = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", conditions.join(" AND "))
+    };
+
     let sql = format!(
-        "SELECT DATE(recorded_at) as d, COUNT(*), SUM(input_tokens), SUM(output_tokens),
+        "SELECT date, SUM(request_count), SUM(input_tokens), SUM(output_tokens),
                 SUM(cache_read_tokens), SUM(cost_usd)
-         FROM usage_records{}
-         GROUP BY d ORDER BY d ASC",
+         FROM usage_daily_agg{}
+         GROUP BY date ORDER BY date ASC",
         where_sql
     );
 
@@ -525,29 +619,26 @@ pub fn get_project_stats(
     Ok(rows)
 }
 
-/// 获取热力图数据（按日期统计请求数）
+/// 获取热力图数据（从预聚合表查询）
 pub fn get_heatmap_data(
     conn: &Connection,
     platform: &Option<String>,
     days: i64,
 ) -> Result<HashMap<String, i64>, rusqlite::Error> {
     let cutoff = Utc::now() - chrono::Duration::days(days);
-    let cutoff_str = cutoff.to_rfc3339();
+    let cutoff_str = cutoff.format("%Y-%m-%d").to_string();
 
-    let (base_where, mut bind_params) = build_where_clause(platform, &None, &None);
-    // 添加日期截止条件
-    bind_params.push(Box::new(cutoff_str));
-    let date_cond = format!("recorded_at >= ?{}", bind_params.len());
+    let mut conditions = vec![format!("date >= ?1")];
+    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![Box::new(cutoff_str)];
 
-    let where_sql = if base_where.is_empty() {
-        format!(" WHERE {}", date_cond)
-    } else {
-        format!("{} AND {}", base_where, date_cond)
-    };
+    if let Some(p) = platform {
+        bind_params.push(Box::new(p.clone()));
+        conditions.push(format!("platform = ?{}", bind_params.len()));
+    }
 
     let sql = format!(
-        "SELECT DATE(recorded_at) as d, COUNT(*) FROM usage_records{} GROUP BY d",
-        where_sql
+        "SELECT date, SUM(request_count) FROM usage_daily_agg WHERE {} GROUP BY date",
+        conditions.join(" AND ")
     );
 
     let params_ref: Vec<&dyn rusqlite::types::ToSql> =
@@ -570,6 +661,7 @@ pub fn get_paginated_logs(
     page: i64,
     page_size: i64,
     model_filter: &Option<String>,
+    include_total: bool,
 ) -> Result<PaginatedLogs, rusqlite::Error> {
     // 构建 WHERE
     let mut conditions: Vec<String> = Vec::new();
@@ -590,11 +682,14 @@ pub fn get_paginated_logs(
         format!(" WHERE {}", conditions.join(" AND "))
     };
 
-    // Count
-    let count_sql = format!("SELECT COUNT(*) FROM usage_records{}", where_sql);
-    let params_ref: Vec<&dyn rusqlite::types::ToSql> =
-        bind_params.iter().map(|p| p.as_ref()).collect();
-    let total: i64 = conn.query_row(&count_sql, params_ref.as_slice(), |row| row.get(0))?;
+    let total = if include_total {
+        let count_sql = format!("SELECT COUNT(*) FROM usage_records{}", where_sql);
+        let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+            bind_params.iter().map(|p| p.as_ref()).collect();
+        Some(conn.query_row(&count_sql, params_ref.as_slice(), |row| row.get(0))?)
+    } else {
+        None
+    };
 
     // Data
     let offset = (page - 1) * page_size;
@@ -621,6 +716,119 @@ pub fn get_paginated_logs(
         total,
         page,
         page_size,
+        next_cursor: None,
+    })
+}
+
+fn parse_cursor(cursor: &str) -> Option<(String, String)> {
+    let mut parts = cursor.splitn(2, '|');
+    let recorded_at = parts.next()?.trim().to_string();
+    let id = parts.next()?.trim().to_string();
+    if recorded_at.is_empty() || id.is_empty() {
+        return None;
+    }
+    Some((recorded_at, id))
+}
+
+fn format_cursor(record: &UsageRecord) -> String {
+    format!("{}|{}", record.recorded_at.to_rfc3339(), record.id)
+}
+
+/// 基于游标分页日志（Keyset Pagination）
+pub fn get_logs_by_cursor(
+    conn: &Connection,
+    platform: &Option<String>,
+    page_size: i64,
+    model_filter: &Option<String>,
+    cursor: &Option<String>,
+    include_total: bool,
+) -> Result<PaginatedLogs, rusqlite::Error> {
+    let mut conditions: Vec<String> = Vec::new();
+    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+
+    if let Some(p) = platform {
+        bind_params.push(Box::new(p.clone()));
+        conditions.push(format!("platform = ?{}", bind_params.len()));
+    }
+
+    if let Some(m) = model_filter {
+        bind_params.push(Box::new(m.clone()));
+        conditions.push(format!("model = ?{}", bind_params.len()));
+    }
+
+    if let Some(raw_cursor) = cursor
+        && let Some((recorded_at, id)) = parse_cursor(raw_cursor)
+    {
+        bind_params.push(Box::new(recorded_at.clone()));
+        let recorded_idx = bind_params.len();
+        bind_params.push(Box::new(recorded_at));
+        let recorded_eq_idx = bind_params.len();
+        bind_params.push(Box::new(id));
+        let id_idx = bind_params.len();
+        conditions.push(format!(
+            "(recorded_at < ?{} OR (recorded_at = ?{} AND id < ?{}))",
+            recorded_idx, recorded_eq_idx, id_idx
+        ));
+    }
+
+    let where_sql = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", conditions.join(" AND "))
+    };
+
+    let total = if include_total {
+        let mut count_conditions: Vec<String> = Vec::new();
+        let mut count_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+        if let Some(p) = platform {
+            count_params.push(Box::new(p.clone()));
+            count_conditions.push(format!("platform = ?{}", count_params.len()));
+        }
+        if let Some(m) = model_filter {
+            count_params.push(Box::new(m.clone()));
+            count_conditions.push(format!("model = ?{}", count_params.len()));
+        }
+        let count_where = if count_conditions.is_empty() {
+            String::new()
+        } else {
+            format!(" WHERE {}", count_conditions.join(" AND "))
+        };
+        let count_sql = format!("SELECT COUNT(*) FROM usage_records{}", count_where);
+        let count_params_ref: Vec<&dyn rusqlite::types::ToSql> =
+            count_params.iter().map(|p| p.as_ref()).collect();
+        Some(conn.query_row(&count_sql, count_params_ref.as_slice(), |row| row.get(0))?)
+    } else {
+        None
+    };
+
+    bind_params.push(Box::new(page_size + 1));
+    let limit_idx = bind_params.len();
+    let sql = format!(
+        "SELECT {} FROM usage_records{} ORDER BY recorded_at DESC, id DESC LIMIT ?{}",
+        USAGE_RECORD_COLUMNS, where_sql, limit_idx
+    );
+
+    let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        bind_params.iter().map(|p| p.as_ref()).collect();
+    let mut stmt = conn.prepare(&sql)?;
+    let mut records: Vec<UsageRecord> = stmt
+        .query_map(params_ref.as_slice(), UsageRecord::from_row)?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    let next_cursor = if records.len() as i64 > page_size {
+        records.pop();
+        records.last().map(format_cursor)
+    } else {
+        None
+    };
+
+    Ok(PaginatedLogs {
+        records,
+        total,
+        page: 1,
+        page_size,
+        next_cursor,
     })
 }
 
