@@ -243,7 +243,7 @@
                   </span>
                 </p>
                 <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                  CCR UI v4.0.3
+                  CCR UI v4.0.4
                 </span>
               </div>
             </div>
@@ -266,11 +266,11 @@
     >
       <!-- Top Bar (Optional, if needed for breadcrumbs or global search) -->
       <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl z-30 sticky top-0 justify-between">
-        <!-- Breadcrumbs Placeholder -->
+        <!-- Breadcrumbs -->
         <div class="flex items-center text-sm text-text-muted">
-          <span class="opacity-50">App</span>
+          <span class="opacity-50">{{ $t('nav.mainModules') }}</span>
           <span class="mx-2 opacity-30">/</span>
-          <span class="text-text-primary font-medium">Dashboard</span>
+          <span class="text-text-primary font-medium">{{ currentPageTitle }}</span>
         </div>
 
         <div class="flex items-center gap-4">
@@ -320,16 +320,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Home, Code2, Settings, Sparkles, Zap, Activity,
   Terminal, Cloud, Bot, ClipboardList, Cat, Package, PlusCircle
 } from 'lucide-vue-next'
+import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import BackgroundImage from '@/components/common/BackgroundImage.vue'
 import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
+
+const route = useRoute()
+const { t } = useI18n()
+
+// 路由名 → i18n 键映射
+const routeTitleMap: Record<string, string> = {
+  home: 'nav.home',
+  skills: 'nav.skills',
+  'add-skill': 'nav.addSkill',
+  'claude-code': 'nav.claudeCode',
+  codex: 'nav.codex',
+  'gemini-cli': 'nav.gemini',
+  qwen: 'nav.qwen',
+  iflow: 'nav.iflow',
+  droid: 'nav.droid',
+  'ccr-control': 'nav.ccrControl',
+  commands: 'nav.commands',
+  checkin: 'nav.checkin',
+  sync: 'nav.sync',
+  usage: 'nav.usage',
+}
+
+const currentPageTitle = computed(() => {
+  const name = route.name as string
+  const key = routeTitleMap[name]
+  return key ? t(key) : name || 'Home'
+})
 
 // Sidebar State
 const sidebarWidth = ref(240)
