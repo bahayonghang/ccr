@@ -4,7 +4,7 @@
 # ────────────────────────────────────────────────────────
 # 查看命令：just --list 或 just help
 # 快速开发：just dev (检查+测试) 或 just watch (自动重编译)
-# 代码检查：just lint (格式+Clippy) 或 just ci (完整CI)
+# 代码检查：just lint (格式+Clippy)
 # 构建程序：just build (Debug) 或 just release (优化版)
 # 运行程序：just run -- <参数> 或 just run-release -- <参数>
 # 本地安装：just install (安装到 ~/.cargo/bin)
@@ -141,12 +141,7 @@ _help-windows:
     @Write-Host "   🔒 安全审计命令："
     @Write-Host "     • just audit               运行 cargo audit 安全审计"
     @Write-Host ""
-    @Write-Host "   🎯 完整 CI 流程："
-    @Write-Host "     • just ci                  完整 CI 流程（对齐 GitHub Actions）"
-    @Write-Host "                                版本同步 → 格式检查 → Clippy"
-    @Write-Host "                                → 测试 → 构建 → 安全审计"
-    @Write-Host "                                → 前端完整检查"
-    @Write-Host ""
+
     @Write-Host ""
 
 [private]
@@ -176,12 +171,7 @@ _help-linux:
     @printf '%s\n' "   🔒 安全审计命令："
     @printf '%s\n' "     • just audit               运行 cargo audit 安全审计"
     @printf '%s\n' ""
-    @printf '%s\n' "   🎯 完整 CI 流程："
-    @printf '%s\n' "     • just ci                  完整 CI 流程（对齐 GitHub Actions）"
-    @printf '%s\n' "                                版本同步 → 格式检查 → Clippy"
-    @printf '%s\n' "                                → 测试 → 构建 → 安全审计"
-    @printf '%s\n' "                                → 前端完整检查"
-    @printf '%s\n' ""
+
     @printf '\n'
 
 [private]
@@ -211,12 +201,7 @@ _help-macos:
     @printf '%s\n' "   🔒 安全审计命令："
     @printf '%s\n' "     • just audit               运行 cargo audit 安全审计"
     @printf '%s\n' ""
-    @printf '%s\n' "   🎯 完整 CI 流程："
-    @printf '%s\n' "     • just ci                  完整 CI 流程（对齐 GitHub Actions）"
-    @printf '%s\n' "                                版本同步 → 格式检查 → Clippy"
-    @printf '%s\n' "                                → 测试 → 构建 → 安全审计"
-    @printf '%s\n' "                                → 前端完整检查"
-    @printf '%s\n' ""
+
     @printf '\n'
 
 # ═══════════════════════════════════════════════════════════
@@ -350,24 +335,7 @@ watch:
     @just info "📌 使用 cargo-watch (需要安装: cargo install cargo-watch)"
     cargo watch -x check -x test
 
-# 🎯 完整 CI 流程 (版本同步 + 自动格式化 + 格式检查 + 严格 Clippy + 测试 + 构建 + 安全审计 + 前端完整检查)
-ci: version-sync fmt fmt-check lint-strict test release audit frontend-check
-    @just _ci-done-{{os()}}
 
-[private]
-_ci-done-windows:
-    @Write-Host ""
-    @Write-Host "          🎉 CI 流程全部通过 - 代码质量优秀！"
-
-[private]
-_ci-done-linux:
-    @printf '\n'
-    @printf '%s\n' "          🎉 CI 流程全部通过 - 代码质量优秀！"
-
-[private]
-_ci-done-macos:
-    @printf '\n'
-    @printf '%s\n' "          🎉 CI 流程全部通过 - 代码质量优秀！"
 
 # ═══════════════════════════════════════════════════════════
 # 🌐 前端检查命令
