@@ -54,14 +54,25 @@ export interface UsageRecordV2 {
 /** 分页日志 */
 export interface PaginatedLogs {
   records: UsageRecordV2[]
-  total: number
+  total?: number | null
   page: number
   page_size: number
+  next_cursor?: string | null
 }
 
 /** 热力图响应 */
 export interface HeatmapResponse {
   data: Record<string, number>
+}
+
+/** 仪表盘聚合响应 */
+export interface UsageDashboardResponse {
+  summary: UsageSummary
+  trends: DailyTrend[]
+  model_stats: ModelStat[]
+  project_stats: ProjectStat[]
+  heatmap: HeatmapResponse
+  generated_at: string
 }
 
 /** 导入结果 */

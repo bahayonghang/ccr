@@ -280,13 +280,23 @@ const dateRanges = [
 // 数据状态
 const dailyStats = ref<DailyStatsResponse | null>(null)
 const loading = ref(true)
+const DAILY_STATS_CACHE_TTL = 60_000
+const dailyStatsCache = new Map<number, { data: DailyStatsResponse; ts: number }>()
 
-// 设置日期范围
-const setDateRange = async (days: number) => {
-  selectedDays.value = days
+const loadDailyStats = async (days: number, force: boolean = false) => {
+  const cached = dailyStatsCache.get(days)
+  const now = Date.now()
+  if (!force && cached && now - cached.ts < DAILY_STATS_CACHE_TTL) {
+    dailyStats.value = cached.data
+    loading.value = false
+    return
+  }
+
   loading.value = true
   try {
-    dailyStats.value = await getDailyStats(days)
+    const data = await getDailyStats(days)
+    dailyStats.value = data
+    dailyStatsCache.set(days, { data, ts: now })
   } catch (error) {
     console.error('Failed to load daily stats:', error)
   } finally {
@@ -294,15 +304,16 @@ const setDateRange = async (days: number) => {
   }
 }
 
+// 设置日期范围
+const setDateRange = async (days: number) => {
+  if (selectedDays.value === days && dailyStats.value) return
+  selectedDays.value = days
+  await loadDailyStats(days)
+}
+
 // 加载数据
 onMounted(async () => {
-  try {
-    dailyStats.value = await getDailyStats(selectedDays.value)
-  } catch (error) {
-    console.error('Failed to load daily stats:', error)
-  } finally {
-    loading.value = false
-  }
+  await loadDailyStats(selectedDays.value)
 })
 
 // 获取平台统计

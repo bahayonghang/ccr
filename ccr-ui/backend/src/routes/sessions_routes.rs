@@ -6,6 +6,31 @@ use crate::state::AppState;
 use axum::{Json, Router, routing::get};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+use tracing::info;
+
+struct CachedDailyStats {
+    response: DailyStatsResponse,
+    timestamp: Instant,
+}
+
+lazy_static::lazy_static! {
+    static ref DAILY_STATS_CACHE: Arc<Mutex<HashMap<u32, CachedDailyStats>>> =
+        Arc::new(Mutex::new(HashMap::new()));
+}
+
+const DAILY_STATS_CACHE_TTL: Duration = Duration::from_secs(60);
+
+fn sessions_daily_cache_enabled() -> bool {
+    std::env::var("SESSIONS_DAILY_CACHE")
+        .ok()
+        .map(|v| {
+            let normalized = v.trim().to_ascii_lowercase();
+            matches!(normalized.as_str(), "1" | "true" | "yes" | "on")
+        })
+        .unwrap_or(true)
+}
 
 /// 创建 sessions 路由
 pub fn routes() -> Router<AppState> {
@@ -70,7 +95,7 @@ pub struct PlatformDailyStats {
 }
 
 /// 每日统计项
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct DailyStatsItem {
     pub date: String,
     pub claude: PlatformDailyStats,
@@ -79,7 +104,7 @@ pub struct DailyStatsItem {
 }
 
 /// 汇总统计
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct StatsSummary {
     pub total_sessions: u64,
     pub total_messages: u64,
@@ -88,7 +113,7 @@ pub struct StatsSummary {
 }
 
 /// 每日统计响应
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct DailyStatsResponse {
     pub daily_stats: Vec<DailyStatsItem>,
     pub summary: StatsSummary,
@@ -185,17 +210,61 @@ async fn get_stats() -> Json<SessionStatsResponse> {
 async fn get_daily_stats(
     axum::extract::Query(query): axum::extract::Query<DailyStatsQuery>,
 ) -> Json<DailyStatsResponse> {
+    let timer = Instant::now();
+    let days = query.days.unwrap_or(30).clamp(1, 3650);
+
+    if sessions_daily_cache_enabled() {
+        let cache = DAILY_STATS_CACHE
+            .lock()
+            .expect("daily stats cache poisoned");
+        if let Some(cached) = cache.get(&days)
+            && cached.timestamp.elapsed() < DAILY_STATS_CACHE_TTL
+        {
+            info!(
+                "sessions daily stats cache hit (days={}, elapsed={}ms)",
+                days,
+                timer.elapsed().as_millis()
+            );
+            return Json(cached.response.clone());
+        }
+    }
+
+    let response = build_daily_stats_response(days, !sessions_daily_cache_enabled());
+
+    if sessions_daily_cache_enabled() {
+        let mut cache = DAILY_STATS_CACHE
+            .lock()
+            .expect("daily stats cache poisoned");
+        cache.insert(
+            days,
+            CachedDailyStats {
+                response: response.clone(),
+                timestamp: Instant::now(),
+            },
+        );
+    }
+
+    info!(
+        "sessions daily stats computed (days={}, elapsed={}ms, cache={})",
+        days,
+        timer.elapsed().as_millis(),
+        sessions_daily_cache_enabled()
+    );
+    Json(response)
+}
+
+fn build_daily_stats_response(days: u32, refresh_index: bool) -> DailyStatsResponse {
     use ccr::sessions::{SessionIndexer, models::SessionFilter};
     use chrono::{Duration, Local, NaiveDate};
 
-    let days = query.days.unwrap_or(30) as i64;
+    let days_i64 = days as i64;
     let today = Local::now().date_naive();
-    let start_date = today - Duration::days(days);
+    let start_date = today - Duration::days(days_i64);
 
     let indexer = match SessionIndexer::new() {
         Ok(i) => i,
         Err(_) => {
-            return Json(DailyStatsResponse {
+            return DailyStatsResponse {
                 daily_stats: vec![],
                 summary: StatsSummary {
                     total_sessions: 0,
@@ -204,12 +273,13 @@ async fn get_daily_stats(
                     by_platform: HashMap::new(),
                 },
                 last_updated: Local::now().to_rfc3339(),
-            });
+            };
         }
     };
 
-    // 先确保索引是最新的（类似 CLI 中的 cmd_list）
-    let _ = indexer.index_all();
+    if refresh_index {
+        let _ = indexer.index_all();
+    }
 
     // 获取所有 sessions
     let filter = SessionFilter {
@@ -224,7 +294,7 @@ async fn get_daily_stats(
     let mut summary_by_platform: HashMap<String, PlatformDailyStats> = HashMap::new();
 
     // 初始化日期范围
-    for i in 0..=days {
+    for i in 0..=days_i64 {
         let date = start_date + Duration::days(i);
         daily_map.insert(date, HashMap::new());
     }
@@ -285,7 +355,7 @@ async fn get_daily_stats(
         .map(|s| s.duration_seconds)
         .sum();
 
-    Json(DailyStatsResponse {
+    DailyStatsResponse {
         daily_stats,
         summary: StatsSummary {
             total_sessions,
@@ -294,7 +364,7 @@ async fn get_daily_stats(
             by_platform: summary_by_platform,
         },
         last_updated: Local::now().to_rfc3339(),
-    })
+    }
 }
 
 /// 重建索引
@@ -326,6 +396,13 @@ async fn reindex() -> Json<ReindexResponse> {
             });
         }
     };
+
+    if sessions_daily_cache_enabled() {
+        let mut cache = DAILY_STATS_CACHE
+            .lock()
+            .expect("daily stats cache poisoned");
+        cache.clear();
+    }
 
     Json(ReindexResponse {
         files_scanned: stats.files_scanned,

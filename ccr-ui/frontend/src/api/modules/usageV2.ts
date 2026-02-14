@@ -12,6 +12,7 @@ import type {
   ProjectStat,
   PaginatedLogs,
   HeatmapResponse,
+  UsageDashboardResponse,
   ImportResult,
 } from '@/types/usage'
 
@@ -31,6 +32,22 @@ export const getUsageSummaryV2 = async (
   if (start) params.set('start', start)
   if (end) params.set('end', end)
   return unwrap(await api.get(`/v2/usage/summary?${params}`))
+}
+
+export const getUsageDashboardV2 = async (
+  platform?: string,
+  start?: string,
+  end?: string,
+  days: number = 365,
+  includeHeatmap: boolean = true,
+): Promise<UsageDashboardResponse> => {
+  const params = new URLSearchParams()
+  if (platform) params.set('platform', platform)
+  if (start) params.set('start', start)
+  if (end) params.set('end', end)
+  params.set('days', days.toString())
+  params.set('include_heatmap', includeHeatmap ? 'true' : 'false')
+  return unwrap(await api.get(`/v2/usage/dashboard?${params}`))
 }
 
 export const getUsageTrendsV2 = async (
@@ -73,13 +90,20 @@ export const getUsageHeatmapV2 = async (
 }
 
 export const getUsageLogsV2 = async (
-  platform?: string, page: number = 1, pageSize: number = 50, model?: string
+  platform?: string,
+  page: number = 1,
+  pageSize: number = 50,
+  model?: string,
+  cursor?: string,
+  includeTotal: boolean = false,
 ): Promise<PaginatedLogs> => {
   const params = new URLSearchParams()
   if (platform) params.set('platform', platform)
   params.set('page', page.toString())
   params.set('page_size', pageSize.toString())
   if (model) params.set('model', model)
+  if (cursor) params.set('cursor', cursor)
+  params.set('include_total', includeTotal ? 'true' : 'false')
   return unwrap(await api.get(`/v2/usage/logs?${params}`))
 }
 

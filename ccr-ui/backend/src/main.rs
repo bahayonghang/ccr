@@ -46,6 +46,16 @@ impl FormatTime for LocalTime {
     }
 }
 
+fn env_flag(name: &str, default: bool) -> bool {
+    std::env::var(name)
+        .ok()
+        .map(|v| {
+            let normalized = v.trim().to_ascii_lowercase();
+            matches!(normalized.as_str(), "1" | "true" | "yes" | "on")
+        })
+        .unwrap_or(default)
+}
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     // Parse command line arguments
@@ -127,6 +137,36 @@ async fn main() -> std::io::Result<()> {
             }
         }
     });
+
+    if env_flag("SESSIONS_DAILY_CACHE", true) {
+        tokio::spawn(async {
+            use ccr::sessions::SessionIndexer;
+            use tokio::time::{Duration, interval};
+
+            if let Ok(indexer) = SessionIndexer::new() {
+                let _ = indexer.index_all();
+            }
+
+            let mut tick = interval(Duration::from_secs(60));
+            loop {
+                tick.tick().await;
+                match SessionIndexer::new() {
+                    Ok(indexer) => {
+                        let _ = indexer.index_all();
+                    }
+                    Err(e) => {
+                        warn!(
+                            "Failed to create SessionIndexer for background refresh: {}",
+                            e
+                        );
+                    }
+                }
+            }
+        });
+        info!("Session daily cache background index refresh enabled");
+    } else {
+        info!("Session daily cache background index refresh disabled");
+    }
 
     // 异步验证 CCR 是否可用（不阻塞服务器启动）
     tokio::spawn(async {

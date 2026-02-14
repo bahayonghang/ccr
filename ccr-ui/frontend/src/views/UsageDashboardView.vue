@@ -373,11 +373,11 @@
             v-model="logModelFilter"
             :placeholder="$t('usage.dashboard.logs.filterPlaceholder')"
             class="toolbar-select flex-1 max-w-xs"
-            @keyup.enter="loadLogs"
+            @keyup.enter="loadLogs('reset')"
           >
           <button
             class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent-primary/20 text-accent-primary hover:bg-accent-primary/30 transition-colors"
-            @click="loadLogs"
+            @click="loadLogs('reset')"
           >
             {{ $t('usage.dashboard.logs.search') }}
           </button>
@@ -442,21 +442,28 @@
         </div>
         <!-- 分页 -->
         <div
-          v-if="store.logs && store.logs.total > store.logs.page_size"
+          v-if="store.logs && (store.canPrevLogs || store.canNextLogs)"
           class="flex items-center justify-center gap-2"
         >
           <button
             class="px-3 py-1 rounded text-xs bg-bg-elevated text-text-secondary hover:text-text-primary disabled:opacity-40 transition-colors"
-            :disabled="store.logsPage <= 1"
-            @click="store.logsPage--; loadLogs()"
+            :disabled="!store.canPrevLogs"
+            @click="loadLogs('prev')"
           >
             {{ $t('usage.dashboard.logs.prev') }}
           </button>
-          <span class="text-xs text-text-muted">{{ store.logsPage }} / {{ Math.ceil(store.logs.total / store.logs.page_size) }}</span>
+          <span
+            v-if="store.logs.total"
+            class="text-xs text-text-muted"
+          >{{ store.logsPage }} / {{ store.logsTotalPages }}</span>
+          <span
+            v-else
+            class="text-xs text-text-muted"
+          >{{ store.logsPage }}</span>
           <button
             class="px-3 py-1 rounded text-xs bg-bg-elevated text-text-secondary hover:text-text-primary disabled:opacity-40 transition-colors"
-            :disabled="store.logsPage >= Math.ceil(store.logs.total / store.logs.page_size)"
-            @click="store.logsPage++; loadLogs()"
+            :disabled="!store.canNextLogs"
+            @click="loadLogs('next')"
           >
             {{ $t('usage.dashboard.logs.next') }}
           </button>
@@ -514,22 +521,33 @@ async function doImport() {
   importing.value = true
   try {
     await store.triggerImport()
-    await store.fetchAll()
+    await store.fetchAll({ includeHeatmap: true, reason: 'import' })
   } finally {
     importing.value = false
   }
 }
 
 // 加载日志
-function loadLogs() {
+function loadLogs(direction: 'reset' | 'next' | 'prev' | 'same' = 'reset') {
   store.logsModelFilter = logModelFilter.value || undefined
-  store.fetchLogs()
+  store.fetchLogs(direction)
 }
 
 // 切换到 Logs 标签时自动加载
 watch(activeTab, (tab) => {
-  if (tab === 'logs' && !store.logs) loadLogs()
+  if (tab === 'logs' && !store.logs) loadLogs('reset')
 })
+
+function onVisibilityChange() {
+  if (document.hidden) {
+    store.stopAutoRefresh()
+    return
+  }
+  store.startAutoRefresh()
+  if (activeTab.value === 'logs') {
+    loadLogs('same')
+  }
+}
 
 // 汇总卡片
 const summaryCards = computed(() => {
@@ -583,10 +601,12 @@ const pieOptions = computed(() => ({
 onMounted(async () => {
   onFilterChange()
   store.startAutoRefresh()
+  document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
 onUnmounted(() => {
   store.stopAutoRefresh()
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
 

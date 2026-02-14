@@ -20,6 +20,7 @@ pub fn routes() -> Router<AppState> {
         // 新增端点：清理旧记录
         .route("/usage/cleanup", post(usage::cleanup_usage))
         // ═══ V2 聚合 API ═══
+        .route("/v2/usage/dashboard", get(usage::get_usage_dashboard_v2))
         .route("/v2/usage/summary", get(usage::get_usage_summary_v2))
         .route("/v2/usage/trends", get(usage::get_usage_trends_v2))
         .route("/v2/usage/by-model", get(usage::get_usage_by_model_v2))
