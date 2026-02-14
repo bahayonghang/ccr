@@ -350,3 +350,13 @@ export {
     deleteDroidPlugin,
     type DroidPlugin,
 } from './droid'
+
+// Claude Code Settings - 全局设置
+export {
+    getClaudeSettings,
+    updateClaudeSettings,
+    type ClaudeSettingsData,
+    type PermissionsData,
+    type SandboxData,
+    type AttributionData,
+} from './claudeSettings'

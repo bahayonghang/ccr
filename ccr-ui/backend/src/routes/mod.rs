@@ -5,6 +5,7 @@ pub mod agents_routes;
 pub mod budget_routes;
 pub mod builtin_prompts_routes;
 pub mod checkin_routes;
+pub mod claude_settings_routes;
 pub mod codex_routes;
 pub mod command_routes;
 pub mod config_routes;
@@ -98,6 +99,8 @@ pub fn create_app(app_state: AppState) -> Router {
 /// 未使用 State 提取器的 Handler 仍然兼容，无需修改。
 fn create_api_routes() -> Router<AppState> {
     Router::new()
+        // Claude Code Settings
+        .merge(claude_settings_routes::routes())
         // 配置管理
         .merge(config_routes::routes())
         // 命令执行
