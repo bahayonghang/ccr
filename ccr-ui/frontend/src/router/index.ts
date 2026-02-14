@@ -75,8 +75,7 @@ const router = createRouter({
         },
         {
           path: 'stats',
-          name: 'stats',
-          component: () => import('@/views/StatsView.vue')
+          redirect: '/usage'
         },
         {
           path: 'budget',
@@ -91,7 +90,7 @@ const router = createRouter({
         {
           path: 'usage',
           name: 'usage',
-          component: () => import('@/views/UsageView.vue'),
+          component: () => import('@/views/UsageDashboardView.vue'),
           meta: { cache: true }
         },
         {
