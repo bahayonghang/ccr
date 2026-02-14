@@ -158,30 +158,6 @@ pub async fn cost_overview(
     Ok(Json(response))
 }
 
-/// GET /api/stats/cost/today - 今日成本
-pub async fn cost_today() -> Result<Json<CostStatsResponse>, StatusCode> {
-    cost_overview(Query(TimeRangeQuery {
-        range: "today".to_string(),
-    }))
-    .await
-}
-
-/// GET /api/stats/cost/week - 本周成本
-pub async fn cost_week() -> Result<Json<CostStatsResponse>, StatusCode> {
-    cost_overview(Query(TimeRangeQuery {
-        range: "week".to_string(),
-    }))
-    .await
-}
-
-/// GET /api/stats/cost/month - 本月成本
-pub async fn cost_month() -> Result<Json<CostStatsResponse>, StatusCode> {
-    cost_overview(Query(TimeRangeQuery {
-        range: "month".to_string(),
-    }))
-    .await
-}
-
 /// GET /api/stats/cost/trend - 成本趋势
 pub async fn cost_trend(
     Query(params): Query<TimeRangeQuery>,
@@ -262,8 +238,18 @@ pub async fn stats_summary() -> impl IntoResponse {
         total_sessions: usize,
     }
 
-    // 并行获取今日、本周、本月成本（使用 tokio::join! 明确并行）
-    let (today, week, month) = tokio::join!(cost_today(), cost_week(), cost_month());
+    // 并行获取今日、本周、本月成本
+    let (today, week, month) = tokio::join!(
+        cost_overview(Query(TimeRangeQuery {
+            range: "today".to_string()
+        })),
+        cost_overview(Query(TimeRangeQuery {
+            range: "week".to_string()
+        })),
+        cost_overview(Query(TimeRangeQuery {
+            range: "month".to_string()
+        })),
+    );
 
     if let (Ok(today), Ok(week), Ok(month)) = (today, week, month) {
         let summary = Summary {

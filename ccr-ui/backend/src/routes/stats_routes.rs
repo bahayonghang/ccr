@@ -9,18 +9,6 @@ pub fn routes() -> Router<AppState> {
             get(crate::api::handlers::stats::cost_overview),
         )
         .route(
-            "/stats/cost/today",
-            get(crate::api::handlers::stats::cost_today),
-        )
-        .route(
-            "/stats/cost/week",
-            get(crate::api::handlers::stats::cost_week),
-        )
-        .route(
-            "/stats/cost/month",
-            get(crate::api::handlers::stats::cost_month),
-        )
-        .route(
             "/stats/cost/trend",
             get(crate::api::handlers::stats::cost_trend),
         )
