@@ -202,6 +202,9 @@ CREATE INDEX IF NOT EXISTS idx_usage_records_platform_model_recorded_at_id
 CREATE INDEX IF NOT EXISTS idx_usage_records_platform_recorded_at_id
     ON usage_records (platform, recorded_at DESC, id DESC);
 
+CREATE INDEX IF NOT EXISTS idx_usage_records_platform_project
+    ON usage_records (platform, project_path, recorded_at DESC);
+
 -- ═══════════════════════════════════════════════════════════
 -- Usage Daily Aggregation Table (pre-computed)
 -- ═══════════════════════════════════════════════════════════

@@ -23,8 +23,6 @@ pub struct ImportConfig {
     pub max_lines_per_source: usize,
     /// Soft time budget in seconds
     pub time_budget_secs: u64,
-    /// Retention days for records
-    pub retention_days: i64,
 }
 
 impl Default for ImportConfig {
@@ -32,7 +30,6 @@ impl Default for ImportConfig {
         Self {
             max_lines_per_source: 5000,
             time_budget_secs: 2,
-            retention_days: 365,
         }
     }
 }
@@ -427,19 +424,6 @@ impl UsageImportService {
         database::with_connection(|conn| usage_repo::get_recent_records(conn, platform, limit))
             .map_err(|e| e.to_string())
     }
-
-    /// Get import statistics
-    pub fn get_stats(&self) -> Result<usage_repo::UsageStats, String> {
-        database::with_connection(usage_repo::get_usage_stats).map_err(|e| e.to_string())
-    }
-
-    /// Cleanup old records
-    pub fn cleanup_old_records(&self) -> Result<usize, String> {
-        database::with_connection(|conn| {
-            usage_repo::delete_old_records(conn, self.config.retention_days)
-        })
-        .map_err(|e| e.to_string())
-    }
 }
 
 #[cfg(test)]
@@ -459,7 +443,6 @@ mod tests {
         let config = ImportConfig::default();
         assert_eq!(config.max_lines_per_source, 5000);
         assert_eq!(config.time_budget_secs, 2);
-        assert_eq!(config.retention_days, 365);
     }
 
     #[test]

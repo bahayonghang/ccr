@@ -323,53 +323,6 @@ pub fn delete_records_by_source(
     )
 }
 
-/// Delete old records by date
-pub fn delete_old_records(
-    conn: &Connection,
-    retention_days: i64,
-) -> Result<usize, rusqlite::Error> {
-    let cutoff = Utc::now() - chrono::Duration::days(retention_days);
-    let cutoff_str = cutoff.to_rfc3339();
-
-    conn.execute(
-        "DELETE FROM usage_records WHERE recorded_at < ?1",
-        params![cutoff_str],
-    )
-}
-
-/// Usage statistics
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UsageStats {
-    pub total_sources: i64,
-    pub total_records: i64,
-    pub records_by_platform: Vec<(String, i64)>,
-}
-
-/// Get usage statistics
-pub fn get_usage_stats(conn: &Connection) -> Result<UsageStats, rusqlite::Error> {
-    let total_sources: i64 =
-        conn.query_row("SELECT COUNT(*) FROM usage_sources", [], |row| row.get(0))?;
-
-    let total_records: i64 =
-        conn.query_row("SELECT COUNT(*) FROM usage_records", [], |row| row.get(0))?;
-
-    let mut stmt =
-        conn.prepare("SELECT platform, COUNT(*) FROM usage_records GROUP BY platform")?;
-
-    let records_by_platform: Vec<(String, i64)> = stmt
-        .query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-        })?
-        .filter_map(|r| r.ok())
-        .collect();
-
-    Ok(UsageStats {
-        total_sources,
-        total_records,
-        records_by_platform,
-    })
-}
-
 // ═══════════════════════════════════════════════════════════
 // V2 聚合查询
 // ═══════════════════════════════════════════════════════════
@@ -978,15 +931,5 @@ mod tests {
             cost_usd: 0.0,
         };
         insert_record(&conn, &record).unwrap();
-
-        let stats = get_usage_stats(&conn).unwrap();
-        assert_eq!(stats.total_sources, 1);
-        assert_eq!(stats.total_records, 1);
-        assert!(
-            stats
-                .records_by_platform
-                .iter()
-                .any(|(p, c)| p == "gemini" && *c == 1)
-        );
     }
 }
