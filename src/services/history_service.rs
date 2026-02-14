@@ -124,21 +124,23 @@ impl HistoryService {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::core::lock::LockManager;
     use crate::managers::history::{OperationDetails, OperationResult};
+    use crate::storage::Database;
     use tempfile::tempdir;
+
+    fn setup_service() -> HistoryService {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let db = Database::init(&db_path).unwrap();
+        std::mem::forget(dir);
+        let manager = Arc::new(HistoryManager::new(db));
+        HistoryService::new(manager)
+    }
 
     #[test]
     fn test_history_service_record_and_get() {
-        let temp_dir = tempdir().unwrap();
-        let history_path = temp_dir.path().join("history.json");
-        let lock_dir = temp_dir.path().join("locks");
+        let service = setup_service();
 
-        let lock_manager = LockManager::new(lock_dir);
-        let manager = Arc::new(HistoryManager::new(history_path, lock_manager));
-        let service = HistoryService::new(manager);
-
-        // 记录操作
         let entry = HistoryEntry::new(
             OperationType::Switch,
             OperationDetails {
@@ -152,7 +154,6 @@ mod tests {
 
         service.record_operation(entry).unwrap();
 
-        // 获取记录
         let recent = service.get_recent(10).unwrap();
         assert_eq!(recent.len(), 1);
         assert_eq!(recent[0].operation, OperationType::Switch);
@@ -160,15 +161,8 @@ mod tests {
 
     #[test]
     fn test_history_service_filter() {
-        let temp_dir = tempdir().unwrap();
-        let history_path = temp_dir.path().join("history.json");
-        let lock_dir = temp_dir.path().join("locks");
+        let service = setup_service();
 
-        let lock_manager = LockManager::new(lock_dir);
-        let manager = Arc::new(HistoryManager::new(history_path, lock_manager));
-        let service = HistoryService::new(manager);
-
-        // 记录不同类型的操作
         service
             .record_operation(HistoryEntry::new(
                 OperationType::Switch,
@@ -195,7 +189,6 @@ mod tests {
             ))
             .unwrap();
 
-        // 筛选
         let switch_ops = service.filter_by_type(OperationType::Switch).unwrap();
         assert_eq!(switch_ops.len(), 1);
 

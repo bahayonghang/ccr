@@ -125,7 +125,7 @@ pub async fn history_command(limit: Option<usize>, filter_type: Option<String>) 
             "历史记录较多 ({} 条),建议定期清理旧记录",
             stats.total_operations
         ));
-        ColorOutput::info("提示: 可以手动编辑 ~/.claude/ccr_history.json 或等待自动清理功能");
+        ColorOutput::info("提示: 使用 ccr history --clear 清理历史记录");
     }
 
     Ok(())

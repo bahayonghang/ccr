@@ -250,6 +250,7 @@ impl LockManager {
     /// 用于保护 ~/.claude/ccr_history.json 的并发写入
     ///
     /// 这是 `lock_resource("ccr_history", timeout)` 的便捷方法
+    #[allow(dead_code)]
     pub fn lock_history(&self, timeout: Duration) -> Result<FileLock> {
         self.lock_resource("ccr_history", timeout)
     }

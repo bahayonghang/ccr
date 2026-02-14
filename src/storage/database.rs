@@ -119,6 +119,11 @@ impl Database {
             "002_create_search_history",
             Self::migration_002_create_search_history,
         )?;
+        self.run_migration(
+            &conn,
+            "003_create_history",
+            Self::migration_003_create_history,
+        )?;
 
         info!("数据库迁移完成");
         Ok(())
@@ -205,6 +210,34 @@ impl Database {
             "#,
         )
         .map_err(|e| CcrError::DatabaseError(format!("创建 search_history 表失败: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// 迁移 003: 创建 history 表
+    fn migration_003_create_history(conn: &Connection) -> Result<()> {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS history (
+                id TEXT PRIMARY KEY,
+                timestamp TEXT NOT NULL,
+                actor TEXT NOT NULL,
+                operation TEXT NOT NULL,
+                result TEXT NOT NULL,
+                result_message TEXT,
+                from_config TEXT,
+                to_config TEXT,
+                backup_path TEXT,
+                extra TEXT,
+                notes TEXT,
+                env_changes TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_history_timestamp ON history(timestamp);
+            CREATE INDEX IF NOT EXISTS idx_history_operation ON history(operation);
+            "#,
+        )
+        .map_err(|e| CcrError::DatabaseError(format!("创建 history 表失败: {}", e)))?;
 
         Ok(())
     }

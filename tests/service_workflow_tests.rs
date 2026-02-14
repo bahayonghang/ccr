@@ -303,14 +303,10 @@ fn test_settings_service_backup_workflow() {
 #[test]
 fn test_history_service_record_and_query() {
     let temp_dir = tempdir().unwrap();
-    let history_path = temp_dir.path().join("history.json");
-    let lock_dir = temp_dir.path().join("locks");
+    let db_path = temp_dir.path().join("test.db");
+    let db = ccr::storage::Database::init(&db_path).unwrap();
 
-    let lock_manager = LockManager::new(lock_dir);
-    let history_manager = Arc::new(ccr::managers::history::HistoryManager::new(
-        &history_path,
-        lock_manager,
-    ));
+    let history_manager = Arc::new(ccr::managers::history::HistoryManager::new(db));
     let service = HistoryService::new(history_manager);
 
     // 记录操作
@@ -582,14 +578,10 @@ fn test_settings_service_multiple_switches() {
 #[test]
 fn test_history_service_workflow() {
     let temp_dir = tempdir().unwrap();
-    let history_path = temp_dir.path().join("history.json");
-    let lock_dir = temp_dir.path().join("locks");
+    let db_path = temp_dir.path().join("test.db");
+    let db = ccr::storage::Database::init(&db_path).unwrap();
 
-    let lock_manager = LockManager::new(&lock_dir);
-    let history_manager = Arc::new(ccr::managers::history::HistoryManager::new(
-        &history_path,
-        lock_manager,
-    ));
+    let history_manager = Arc::new(ccr::managers::history::HistoryManager::new(db));
     let service = HistoryService::new(history_manager);
 
     // 记录多个操作

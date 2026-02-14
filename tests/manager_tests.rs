@@ -328,11 +328,9 @@ fn test_settings_validation() {
 #[test]
 fn test_history_manager_add_and_load() {
     let temp_dir = tempdir().unwrap();
-    let history_path = temp_dir.path().join("history.json");
-    let lock_dir = temp_dir.path().join("locks");
-
-    let lock_manager = LockManager::new(lock_dir);
-    let manager = HistoryManager::new(&history_path, lock_manager);
+    let db_path = temp_dir.path().join("test.db");
+    let db = ccr::storage::Database::init(&db_path).unwrap();
+    let manager = HistoryManager::new(db);
 
     // 添加第一条记录
     let entry1 = HistoryEntry::new(
@@ -370,11 +368,9 @@ fn test_history_manager_add_and_load() {
 #[test]
 fn test_history_manager_filtering() {
     let temp_dir = tempdir().unwrap();
-    let history_path = temp_dir.path().join("history.json");
-    let lock_dir = temp_dir.path().join("locks");
-
-    let lock_manager = LockManager::new(lock_dir);
-    let manager = HistoryManager::new(&history_path, lock_manager);
+    let db_path = temp_dir.path().join("test.db");
+    let db = ccr::storage::Database::init(&db_path).unwrap();
+    let manager = HistoryManager::new(db);
 
     let details = OperationDetails {
         from_config: None,
@@ -429,11 +425,9 @@ fn test_history_manager_filtering() {
 #[test]
 fn test_history_manager_recent_limit() {
     let temp_dir = tempdir().unwrap();
-    let history_path = temp_dir.path().join("history.json");
-    let lock_dir = temp_dir.path().join("locks");
-
-    let lock_manager = LockManager::new(lock_dir);
-    let manager = HistoryManager::new(&history_path, lock_manager);
+    let db_path = temp_dir.path().join("test.db");
+    let db = ccr::storage::Database::init(&db_path).unwrap();
+    let manager = HistoryManager::new(db);
 
     let details = OperationDetails {
         from_config: None,
@@ -467,11 +461,9 @@ fn test_history_manager_recent_limit() {
 #[test]
 fn test_history_manager_stats() {
     let temp_dir = tempdir().unwrap();
-    let history_path = temp_dir.path().join("history.json");
-    let lock_dir = temp_dir.path().join("locks");
-
-    let lock_manager = LockManager::new(lock_dir);
-    let manager = HistoryManager::new(&history_path, lock_manager);
+    let db_path = temp_dir.path().join("test.db");
+    let db = ccr::storage::Database::init(&db_path).unwrap();
+    let manager = HistoryManager::new(db);
 
     let details = OperationDetails {
         from_config: None,
