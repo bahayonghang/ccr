@@ -1382,7 +1382,62 @@ export default {
     emptyState: {
       title: '暂无使用数据',
       subtitle: '开始使用 {platform} 后，此处将显示使用统计信息'
-    }
+    },
+
+    // Dashboard V2
+    dashboard: {
+      allPlatforms: '全部平台',
+      days7: '近 7 天',
+      days30: '近 30 天',
+      days90: '近 90 天',
+      days365: '近 365 天',
+      import: '导入',
+      importing: '导入中...',
+
+      tabs: {
+        overview: '总览',
+        models: '模型',
+        projects: '项目',
+        logs: '日志',
+      },
+
+      cards: {
+        totalRequests: '总请求数',
+        totalTokens: '总 Tokens',
+        totalCost: '总费用',
+        cacheEfficiency: '缓存效率',
+      },
+
+      chart: {
+        trendTitle: 'Token 使用趋势',
+        input: '输入',
+        output: '输出',
+        cache: '缓存',
+        noTrend: '暂无趋势数据',
+        costByModel: '模型费用分布',
+      },
+
+      table: {
+        model: '模型',
+        project: '项目',
+        requests: '请求数',
+        tokens: 'Tokens',
+        cost: '费用',
+        time: '时间',
+        platform: '平台',
+        input: '输入',
+        output: '输出',
+        noData: '暂无数据',
+      },
+
+      logs: {
+        filterPlaceholder: '按模型筛选...',
+        search: '搜索',
+        prev: '上一页',
+        next: '下一页',
+        noLogs: '暂无日志',
+      },
+    },
   },
 
   // Statistics Module

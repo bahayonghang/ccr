@@ -1297,6 +1297,57 @@ export default {
       structure: 'Structure: ~/.claude/skills/<skill-name>/SKILL.md',
       learnMore: 'Learn More'
     },
+
+    // Dashboard V2
+    dashboard: {
+      allPlatforms: 'All Platforms',
+      days7: '7 Days',
+      days30: '30 Days',
+      days90: '90 Days',
+      days365: '365 Days',
+      import: 'Import',
+      importing: 'Importing...',
+      tabs: {
+        overview: 'Overview',
+        models: 'Models',
+        projects: 'Projects',
+        logs: 'Logs',
+      },
+      cards: {
+        totalRequests: 'Total Requests',
+        totalTokens: 'Total Tokens',
+        totalCost: 'Total Cost',
+        cacheEfficiency: 'Cache Efficiency',
+      },
+      chart: {
+        trendTitle: 'Token Usage Trend',
+        input: 'Input',
+        output: 'Output',
+        cache: 'Cache',
+        noTrend: 'No trend data',
+        costByModel: 'Cost by Model',
+      },
+      table: {
+        model: 'Model',
+        project: 'Project',
+        requests: 'Requests',
+        tokens: 'Tokens',
+        cost: 'Cost',
+        time: 'Time',
+        platform: 'Platform',
+        input: 'Input',
+        output: 'Output',
+        noData: 'No data',
+      },
+      logs: {
+        filterPlaceholder: 'Filter by model...',
+        search: 'Search',
+        prev: 'Prev',
+        next: 'Next',
+        noLogs: 'No logs',
+      },
+    },
+
     help: {
       title: 'What are Claude Code Skills?',
       description: 'Skills are modular capabilities for Claude Code. Each Skill is a folder containing a SKILL.md file that defines reusable tasks Claude can perform.',
