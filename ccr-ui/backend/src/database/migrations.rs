@@ -508,6 +508,163 @@ pub fn run_migration_v2(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+/// Run migration v3: Add extracted columns to usage_records + model_pricing table
+/// Enables efficient aggregation queries without JSON parsing
+pub fn run_migration_v3(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 3)? {
+        debug!("Migration v3 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v3: usage_records extracted columns + model_pricing");
+
+    // 为 usage_records 添加提取列（幂等：忽略 duplicate column 错误）
+    let alter_stmts = [
+        "ALTER TABLE usage_records ADD COLUMN model TEXT",
+        "ALTER TABLE usage_records ADD COLUMN input_tokens INTEGER DEFAULT 0",
+        "ALTER TABLE usage_records ADD COLUMN output_tokens INTEGER DEFAULT 0",
+        "ALTER TABLE usage_records ADD COLUMN cache_read_tokens INTEGER DEFAULT 0",
+        "ALTER TABLE usage_records ADD COLUMN cost_usd REAL DEFAULT 0",
+    ];
+    for stmt in &alter_stmts {
+        conn.execute_batch(stmt).or_else(|e| {
+            if e.to_string().contains("duplicate column name") {
+                debug!("Column already exists, skipping: {}", stmt);
+                Ok(())
+            } else {
+                Err(e)
+            }
+        })?;
+    }
+
+    // 创建索引
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_usage_records_model ON usage_records (model);
+         CREATE INDEX IF NOT EXISTS idx_usage_records_recorded_at ON usage_records (recorded_at);",
+    )?;
+
+    // 创建 model_pricing 表
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS model_pricing (
+            model_id TEXT PRIMARY KEY,
+            display_name TEXT NOT NULL,
+            input_cost_per_million REAL NOT NULL,
+            output_cost_per_million REAL NOT NULL,
+            cache_read_cost_per_million REAL NOT NULL DEFAULT 0
+        );",
+    )?;
+
+    // 预置模型价格
+    conn.execute_batch(
+        "INSERT OR IGNORE INTO model_pricing VALUES ('claude-sonnet-4-20250514','Claude Sonnet 4',3,15,0.3);
+         INSERT OR IGNORE INTO model_pricing VALUES ('claude-opus-4-20250514','Claude Opus 4',15,75,1.5);
+         INSERT OR IGNORE INTO model_pricing VALUES ('claude-haiku-3-5-20241022','Claude Haiku 3.5',0.8,4,0.08);
+         INSERT OR IGNORE INTO model_pricing VALUES ('gpt-4.1','GPT-4.1',2,8,0.5);
+         INSERT OR IGNORE INTO model_pricing VALUES ('gemini-2.5-pro','Gemini 2.5 Pro',1.25,10,0.315);
+         INSERT OR IGNORE INTO model_pricing VALUES ('gemini-2.5-flash','Gemini 2.5 Flash',0.15,0.6,0.0375);",
+    )?;
+
+    // 回填现有记录：从 record_json 提取字段
+    backfill_usage_records(conn)?;
+
+    // 记录迁移
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![3, "usage_extracted_columns", now],
+    )?;
+
+    info!("Migration v3 completed successfully");
+    Ok(())
+}
+
+/// 回填 usage_records 的提取列（从 record_json 解析）
+fn backfill_usage_records(conn: &Connection) -> MigrationResult<()> {
+    // 读取所有需要回填的记录（model 为 NULL 的）
+    let mut select_stmt =
+        conn.prepare("SELECT id, record_json FROM usage_records WHERE model IS NULL")?;
+
+    let rows: Vec<(String, String)> = select_stmt
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    if rows.is_empty() {
+        return Ok(());
+    }
+
+    info!(
+        "Backfilling {} usage records with extracted fields",
+        rows.len()
+    );
+
+    // 加载定价表
+    let mut pricing_stmt = conn.prepare(
+        "SELECT model_id, input_cost_per_million, output_cost_per_million, cache_read_cost_per_million FROM model_pricing",
+    )?;
+    let pricing: std::collections::HashMap<String, (f64, f64, f64)> = pricing_stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                (
+                    row.get::<_, f64>(1)?,
+                    row.get::<_, f64>(2)?,
+                    row.get::<_, f64>(3)?,
+                ),
+            ))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    let mut update_stmt = conn.prepare(
+        "UPDATE usage_records SET model=?1, input_tokens=?2, output_tokens=?3, cache_read_tokens=?4, cost_usd=?5 WHERE id=?6",
+    )?;
+
+    for (id, json_str) in &rows {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(json_str) {
+            // 提取 model
+            let model = json
+                .get("model")
+                .or_else(|| json.get("message").and_then(|m| m.get("model")))
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown");
+
+            // 提取 usage
+            let usage = json
+                .get("usage")
+                .or_else(|| json.get("message").and_then(|m| m.get("usage")));
+
+            let (input, output, cache) = if let Some(u) = usage {
+                (
+                    u.get("input_tokens").and_then(|v| v.as_i64()).unwrap_or(0),
+                    u.get("output_tokens").and_then(|v| v.as_i64()).unwrap_or(0),
+                    u.get("cache_read_input_tokens")
+                        .and_then(|v| v.as_i64())
+                        .unwrap_or(0),
+                )
+            } else {
+                (0, 0, 0)
+            };
+
+            // 计算费用：匹配定价表（模糊匹配前缀）
+            let cost = pricing
+                .iter()
+                .find(|(k, _)| model.starts_with(k.as_str()) || k.starts_with(model))
+                .map(|(_, (ic, oc, cc))| {
+                    (input as f64 * ic + output as f64 * oc + cache as f64 * cc) / 1_000_000.0
+                })
+                .unwrap_or(0.0);
+
+            let _ = update_stmt.execute(rusqlite::params![model, input, output, cache, cost, id]);
+        }
+    }
+
+    info!("Backfill complete");
+    Ok(())
+}
+
 /// Run all migrations (schema + legacy data import)
 /// This is the main entry point called during initialization
 pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult<()> {
@@ -516,6 +673,9 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
 
     // Step 1.5: Run v2 migration (extra_config column)
     run_migration_v2(conn)?;
+
+    // Step 1.6: Run v3 migration (usage extracted columns + model_pricing)
+    run_migration_v3(conn)?;
 
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {

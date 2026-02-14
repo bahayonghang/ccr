@@ -13,6 +13,7 @@ use walkdir::WalkDir;
 
 use crate::api::handlers::response::ApiSuccess;
 use crate::core::error::{ApiError, ApiResult};
+use crate::database::{self, repositories::usage_repo};
 use crate::models::usage::{UsageData, UsageRecord, UsageRecordsResponse};
 use crate::services::usage_import_service::{ImportConfig, ImportResult, UsageImportService};
 
@@ -492,6 +493,147 @@ pub async fn cleanup_usage(
     Ok(ApiSuccess(CleanupResponse {
         records_deleted: deleted,
     }))
+}
+
+// ═══════════════════════════════════════════════════════════
+// V2 聚合 API 端点
+// ═══════════════════════════════════════════════════════════
+
+/// V2 查询参数
+#[derive(Debug, Deserialize)]
+pub struct UsageQueryParams {
+    pub platform: Option<String>,
+    pub start: Option<String>,
+    pub end: Option<String>,
+}
+
+/// V2 热力图查询参数
+#[derive(Debug, Deserialize)]
+pub struct HeatmapQueryParams {
+    pub platform: Option<String>,
+    #[serde(default = "default_heatmap_days")]
+    pub days: i64,
+}
+
+fn default_heatmap_days() -> i64 {
+    365
+}
+
+/// V2 分页查询参数
+#[derive(Debug, Deserialize)]
+pub struct LogsQueryParams {
+    pub platform: Option<String>,
+    #[serde(default = "default_page")]
+    pub page: i64,
+    #[serde(default = "default_page_size")]
+    pub page_size: i64,
+    pub model: Option<String>,
+}
+
+fn default_page() -> i64 {
+    1
+}
+fn default_page_size() -> i64 {
+    50
+}
+
+/// 热力图响应
+#[derive(Debug, Serialize)]
+pub struct HeatmapResponse {
+    pub data: HashMap<String, i64>,
+}
+
+/// GET /api/v2/usage/summary
+pub async fn get_usage_summary_v2(
+    Query(params): Query<UsageQueryParams>,
+) -> ApiResult<ApiSuccess<usage_repo::UsageSummary>> {
+    let summary = database::with_connection(|conn| {
+        usage_repo::get_usage_summary(conn, &params.platform, &params.start, &params.end)
+    })?;
+    Ok(ApiSuccess(summary))
+}
+
+/// GET /api/v2/usage/trends
+pub async fn get_usage_trends_v2(
+    Query(params): Query<UsageQueryParams>,
+) -> ApiResult<ApiSuccess<Vec<usage_repo::DailyTrend>>> {
+    let trends = database::with_connection(|conn| {
+        usage_repo::get_daily_trends(conn, &params.platform, &params.start, &params.end)
+    })?;
+    Ok(ApiSuccess(trends))
+}
+
+/// GET /api/v2/usage/by-model
+pub async fn get_usage_by_model_v2(
+    Query(params): Query<UsageQueryParams>,
+) -> ApiResult<ApiSuccess<Vec<usage_repo::ModelStat>>> {
+    let stats = database::with_connection(|conn| {
+        usage_repo::get_model_stats(conn, &params.platform, &params.start, &params.end)
+    })?;
+    Ok(ApiSuccess(stats))
+}
+
+/// GET /api/v2/usage/by-project
+pub async fn get_usage_by_project_v2(
+    Query(params): Query<UsageQueryParams>,
+) -> ApiResult<ApiSuccess<Vec<usage_repo::ProjectStat>>> {
+    let stats = database::with_connection(|conn| {
+        usage_repo::get_project_stats(conn, &params.platform, &params.start, &params.end)
+    })?;
+    Ok(ApiSuccess(stats))
+}
+
+/// GET /api/v2/usage/heatmap
+pub async fn get_usage_heatmap_v2(
+    Query(params): Query<HeatmapQueryParams>,
+) -> ApiResult<ApiSuccess<HeatmapResponse>> {
+    let data = database::with_connection(|conn| {
+        usage_repo::get_heatmap_data(conn, &params.platform, params.days)
+    })?;
+    Ok(ApiSuccess(HeatmapResponse { data }))
+}
+
+/// GET /api/v2/usage/logs
+pub async fn get_usage_logs_v2(
+    Query(params): Query<LogsQueryParams>,
+) -> ApiResult<ApiSuccess<usage_repo::PaginatedLogs>> {
+    let logs = database::with_connection(|conn| {
+        usage_repo::get_paginated_logs(
+            conn,
+            &params.platform,
+            params.page,
+            params.page_size,
+            &params.model,
+        )
+    })?;
+    Ok(ApiSuccess(logs))
+}
+
+/// POST /api/v2/usage/import
+pub async fn import_usage_v2(
+    Query(params): Query<ImportQuery>,
+) -> ApiResult<ApiSuccess<ImportResponse>> {
+    info!("V2 import for platform: {}", params.platform);
+
+    let valid_platforms = ["claude", "codex", "gemini"];
+    if !valid_platforms.contains(&params.platform.as_str()) {
+        return Err(ApiError::bad_request(format!(
+            "Platform '{}' not supported. Supported: claude, codex, gemini",
+            params.platform
+        )));
+    }
+
+    let service = UsageImportService::new(ImportConfig::default());
+    let result = service.import_platform(&params.platform).map_err(|e| {
+        error!("V2 import failed for {}: {}", params.platform, e);
+        ApiError::internal(format!("Import failed: {}", e))
+    })?;
+
+    let message = format!(
+        "Imported {} records from {} files for {}",
+        result.records_imported, result.files_processed, result.platform
+    );
+    Ok(ApiSuccess(ImportResponse { result, message }))
 }
 
 #[cfg(test)]

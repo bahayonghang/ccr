@@ -19,4 +19,12 @@ pub fn routes() -> Router<AppState> {
         .route("/usage/stats", get(usage::get_usage_stats))
         // 新增端点：清理旧记录
         .route("/usage/cleanup", post(usage::cleanup_usage))
+        // ═══ V2 聚合 API ═══
+        .route("/v2/usage/summary", get(usage::get_usage_summary_v2))
+        .route("/v2/usage/trends", get(usage::get_usage_trends_v2))
+        .route("/v2/usage/by-model", get(usage::get_usage_by_model_v2))
+        .route("/v2/usage/by-project", get(usage::get_usage_by_project_v2))
+        .route("/v2/usage/heatmap", get(usage::get_usage_heatmap_v2))
+        .route("/v2/usage/logs", get(usage::get_usage_logs_v2))
+        .route("/v2/usage/import", post(usage::import_usage_v2))
 }

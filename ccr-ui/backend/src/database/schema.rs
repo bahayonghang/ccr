@@ -4,7 +4,7 @@
 
 /// Current schema version for migration tracking
 #[allow(dead_code)]
-pub const SCHEMA_VERSION: i32 = 2;
+pub const SCHEMA_VERSION: i32 = 3;
 
 /// Database file path relative to user home directory
 pub const DB_RELATIVE_PATH: &str = ".ccr-ui/ccr-ui.db";

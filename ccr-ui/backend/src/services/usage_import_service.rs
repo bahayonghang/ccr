@@ -32,7 +32,7 @@ impl Default for ImportConfig {
         Self {
             max_lines_per_source: 5000,
             time_budget_secs: 2,
-            retention_days: 90,
+            retention_days: 365,
         }
     }
 }
@@ -297,25 +297,50 @@ impl UsageImportService {
             .map(|dt| dt.with_timezone(&Utc))
             .ok()?;
 
+        // Extract model
+        let model = json
+            .get("model")
+            .or_else(|| json.get("message").and_then(|m| m.get("model")))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
         // Check if this has valid usage data
         let usage_obj = json
             .get("usage")
             .or_else(|| json.get("message").and_then(|m| m.get("usage")));
 
         // Must have at least one token field
-        if let Some(usage) = usage_obj {
-            let has_tokens = usage.get("input_tokens").is_some()
-                || usage.get("output_tokens").is_some()
-                || usage.get("cache_read_input_tokens").is_some();
-            if !has_tokens {
+        let (input_tokens, output_tokens, cache_read_tokens) = if let Some(usage) = usage_obj {
+            let input = usage
+                .get("input_tokens")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            let output = usage
+                .get("output_tokens")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            let cache = usage
+                .get("cache_read_input_tokens")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            if input == 0 && output == 0 && cache == 0 {
                 return None;
             }
+            (input, output, cache)
         } else {
             return None;
-        }
+        };
 
         // Store the original JSON for flexibility
         let record_json = json.to_string();
+
+        // 计算费用（简化：使用内联定价表）
+        let cost_usd = self.calculate_cost(
+            model.as_deref().unwrap_or("unknown"),
+            input_tokens,
+            output_tokens,
+            cache_read_tokens,
+        );
 
         Some(usage_repo::UsageRecord {
             id: uuid.to_string(),
@@ -324,7 +349,33 @@ impl UsageImportService {
             record_json,
             recorded_at,
             source_id: source_id.to_string(),
+            model,
+            input_tokens,
+            output_tokens,
+            cache_read_tokens,
+            cost_usd,
         })
+    }
+
+    /// 根据模型名称计算费用（每百万 token 定价）
+    fn calculate_cost(&self, model: &str, input: i64, output: i64, cache: i64) -> f64 {
+        // (input_cost, output_cost, cache_read_cost) per million tokens
+        let (ic, oc, cc) = if model.contains("opus") {
+            (15.0, 75.0, 1.5)
+        } else if model.contains("sonnet") {
+            (3.0, 15.0, 0.3)
+        } else if model.contains("haiku") {
+            (0.8, 4.0, 0.08)
+        } else if model.contains("gpt-4") {
+            (2.0, 8.0, 0.5)
+        } else if model.contains("gemini") && model.contains("pro") {
+            (1.25, 10.0, 0.315)
+        } else if model.contains("gemini") && model.contains("flash") {
+            (0.15, 0.6, 0.0375)
+        } else {
+            (0.0, 0.0, 0.0)
+        };
+        (input as f64 * ic + output as f64 * oc + cache as f64 * cc) / 1_000_000.0
     }
 
     /// Calculate file hash (first 4KB for efficiency)
@@ -408,7 +459,7 @@ mod tests {
         let config = ImportConfig::default();
         assert_eq!(config.max_lines_per_source, 5000);
         assert_eq!(config.time_budget_secs, 2);
-        assert_eq!(config.retention_days, 90);
+        assert_eq!(config.retention_days, 365);
     }
 
     #[test]

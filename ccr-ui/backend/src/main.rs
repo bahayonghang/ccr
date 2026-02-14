@@ -103,6 +103,31 @@ async fn main() -> std::io::Result<()> {
     // Build the router with modular routes and AppState
     let app = routes::apply_middleware(routes::create_app(app_state));
 
+    // 后台使用数据导入调度（每 60s 增量导入各平台 JSONL）
+    tokio::spawn(async {
+        use services::usage_import_service::{ImportConfig, UsageImportService};
+        use tokio::time::{Duration, interval};
+
+        // 启动时立即执行一次导入
+        let svc = UsageImportService::new(ImportConfig::default());
+        for platform in &["claude", "codex", "gemini"] {
+            if let Err(e) = svc.import_platform(platform) {
+                warn!("Initial usage import for {} failed: {}", platform, e);
+            }
+        }
+        info!("Initial usage data import complete");
+
+        // 每 60s 增量导入
+        let mut tick = interval(Duration::from_secs(60));
+        loop {
+            tick.tick().await;
+            let svc = UsageImportService::new(ImportConfig::default());
+            for platform in &["claude", "codex", "gemini"] {
+                let _ = svc.import_platform(platform);
+            }
+        }
+    });
+
     // 异步验证 CCR 是否可用（不阻塞服务器启动）
     tokio::spawn(async {
         match core::executor::execute_command(vec!["version".to_string()]).await {
