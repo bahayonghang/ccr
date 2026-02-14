@@ -2135,3 +2135,20 @@
     color: var(--text-secondary);
     font-size: 13px;
 }
+
+/* 特殊标题样式 */
+.special-title {
+    background: linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77, #4D96FF);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: rainbow 5s ease infinite;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+@keyframes rainbow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}

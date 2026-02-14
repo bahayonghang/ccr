@@ -65,8 +65,13 @@ export function closeModal() {
 export function openAddModal() {
     appState.currentEditingConfig = null;
     document.getElementById('modalTitle').textContent = '➕ 添加配置';
+    document.getElementById('modalTitle').textContent = '✏️ 编辑配置'; // Default to edit icon, will be overwritten if adding
     document.getElementById('configForm').reset();
-    
+
+    // Set default models
+    document.getElementById('configModel').value = 'claude-opus-4-5-20251101';
+    document.getElementById('configSmallModel').value = 'claude-haiku-4-5-20251001';
+
     if (isCodexPlatformActive()) {
         toggleCodexFieldsSection(true);
         resetCodexFields();
@@ -193,7 +198,7 @@ export function updatePlatformUI() {
         if (platformStatusSection) platformStatusSection.style.display = 'none';
         if (currentPlatformIndicator) currentPlatformIndicator.style.display = 'none';
     }
-    
+
     toggleCodexFieldsSection(isCodexPlatformActive());
 }
 

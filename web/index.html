@@ -342,7 +342,7 @@
     <div class="modal" id="configModal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title" id="modalTitle">配置</div>
+                <div class="modal-title special-title" id="modalTitle">配置</div>
                 <button class="close-btn" onclick="window.closeModal()">×</button>
             </div>
             <form id="configForm" onsubmit="window.saveConfig(event)">
@@ -360,7 +360,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Auth Token <span style="color: var(--accent-danger)">*</span></label>
-                    <input type="password" id="configAuthToken" class="form-input" required placeholder="sk-...">
+                    <input type="text" id="configAuthToken" class="form-input" required placeholder="sk-...">
                 </div>
                 
                 <div class="config-details">
@@ -370,7 +370,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">快速模型</label>
-                        <input type="text" id="configSmallModel" class="form-input" placeholder="gpt-3.5-turbo">
+                        <input type="text" id="configSmallModel" class="form-input" placeholder="claude-haiku-4-5-20251001">
                     </div>
                 </div>
 
