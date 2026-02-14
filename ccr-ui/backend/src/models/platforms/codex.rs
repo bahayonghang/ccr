@@ -24,6 +24,27 @@ pub struct CodexConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_reasoning_effort: Option<String>,
 
+    // ============ 模型与推理（扩展） ============
+    /// 推理摘要模式（"auto", "concise", "detailed", "none"）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_reasoning_summary: Option<String>,
+
+    /// 模型详细程度（"low", "medium", "high"）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_verbosity: Option<String>,
+
+    /// 上下文窗口大小
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_context_window: Option<i64>,
+
+    /// 自动压缩 token 限制
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_auto_compact_token_limit: Option<i64>,
+
+    /// 个性模式（"none", "friendly", "pragmatic"）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub personality: Option<String>,
+
     // ============ 安全策略 ============
     /// 批准策略（"auto", "on-request", "read-only", "full-access"）
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -33,9 +54,59 @@ pub struct CodexConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sandbox_mode: Option<String>,
 
+    /// 禁用响应存储
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disable_response_storage: Option<bool>,
+
+    /// 沙盒工作区写入配置
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sandbox_workspace_write: Option<SandboxWorkspaceWrite>,
+
     // ============ Shell 环境策略 ============
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shell_environment_policy: Option<ShellEnvironmentPolicy>,
+
+    // ============ 工具与搜索 ============
+    /// 网页搜索模式（"disabled", "cached", "live"）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub web_search: Option<String>,
+
+    /// 文件打开器（"vscode", "cursor", "windsurf", "none"）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_opener: Option<String>,
+
+    /// 开发者指令
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub developer_instructions: Option<String>,
+
+    /// 系统指令
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instructions: Option<String>,
+
+    /// 工具配置
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<ToolsConfig>,
+
+    // ============ TUI 与界面 ============
+    /// TUI 配置
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tui: Option<TuiConfig>,
+
+    /// 隐藏 Agent 推理过程
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hide_agent_reasoning: Option<bool>,
+
+    /// 显示原始 Agent 推理
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub show_raw_agent_reasoning: Option<bool>,
+
+    /// 启动时检查更新
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub check_for_update_on_startup: Option<bool>,
+
+    /// 抑制不稳定功能警告
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suppress_unstable_features_warning: Option<bool>,
 
     // ============ MCP 服务器配置 ============
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -45,14 +116,92 @@ pub struct CodexConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub profiles: Option<HashMap<String, CodexProfile>>,
 
-    // ============ 实验性特性 ============
+    // ============ 实验性特性与功能开关 ============
     #[serde(skip_serializing_if = "Option::is_none")]
     pub experimental_use_rmcp_client: Option<bool>,
+
+    /// 历史记录配置
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub history: Option<HistoryConfig>,
+
+    /// 分析配置
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub analytics: Option<AnalyticsConfig>,
+
+    /// 反馈配置
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub feedback: Option<FeedbackConfig>,
+
+    /// 功能开关
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub features: Option<HashMap<String, bool>>,
 
     // ============ 其他未知字段 ============
     /// 保留未知字段，避免覆盖用户自定义配置
     #[serde(flatten)]
     pub other: HashMap<String, toml::Value>,
+}
+
+/// 沙盒工作区写入配置
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct SandboxWorkspaceWrite {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub writable_roots: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub network_access: Option<bool>,
+}
+
+/// TUI 界面配置
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct TuiConfig {
+    /// 备用屏幕模式（"auto", "always", "never"）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alternate_screen: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub animations: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notifications: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub show_tooltips: Option<bool>,
+}
+
+/// 历史记录配置
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct HistoryConfig {
+    /// 持久化模式（"save-all", "none"）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub persistence: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_bytes: Option<u64>,
+}
+
+/// 分析配置
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct AnalyticsConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+}
+
+/// 反馈配置
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct FeedbackConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+}
+
+/// 工具配置
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct ToolsConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub view_image: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub web_search: Option<bool>,
 }
 
 /// Shell 环境策略

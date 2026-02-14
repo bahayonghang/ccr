@@ -208,6 +208,11 @@ const router = createRouter({
           name: 'codex-auth',
           component: () => import('@/views/CodexAuthView.vue')
         },
+        {
+          path: 'codex/settings',
+          name: 'codex-settings',
+          component: () => import('@/views/CodexSettingsView.vue')
+        },
         // Gemini CLI 子页面
         {
           path: 'gemini-cli/mcp',

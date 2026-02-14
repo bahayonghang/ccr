@@ -1610,6 +1610,11 @@ export default {
           description: 'Codex 认证账户切换和管理',
           badge: '🔑 认证'
         },
+        settings: {
+          title: '设置',
+          description: 'Codex 完整配置管理（模型、安全、工具、界面、功能开关）',
+          badge: '⚙️ 设置'
+        },
         plugins: {
           title: '插件管理',
           description: 'Codex 插件配置管理',
@@ -1866,6 +1871,75 @@ export default {
       totalProfiles: '配置总数',
       configMode: '配置模式',
       notSet: '未设置',
+    },
+
+    // Settings module
+    settings: {
+      title: 'Codex 设置',
+      saving: '保存中...',
+      tabs: {
+        model: '🧠 模型与推理',
+        security: '🔒 安全与权限',
+        tools: '🔧 工具与搜索',
+        ui: '🖥️ 界面设置',
+        features: '⚡ 功能开关',
+      },
+      model: {
+        model: '默认模型',
+        modelPlaceholder: 'gpt-5 / gpt-5-codex',
+        modelProvider: '模型提供者',
+        reasoningEffort: '推理深度',
+        reasoningSummary: '推理摘要模式',
+        verbosity: '详细程度',
+        contextWindow: '上下文窗口',
+        autoCompactLimit: '自动压缩 Token 限制',
+        personality: '个性模式',
+      },
+      security: {
+        approvalPolicy: '批准策略',
+        sandboxMode: '沙盒模式',
+        disableResponseStorage: '禁用响应存储',
+        writableRoots: '可写根目录',
+        writableRootsPlaceholder: '/path/a, /path/b',
+        writableRootsHint: '逗号分隔的可写目录路径',
+        networkAccess: '沙盒网络访问',
+        shellIncludeOnly: 'Shell 环境变量白名单',
+        shellIncludeOnlyPlaceholder: 'PATH, HOME, USER',
+        shellIncludeOnlyHint: '逗号分隔的环境变量名',
+      },
+      tools: {
+        webSearch: '网页搜索',
+        fileOpener: '文件打开器',
+        viewImage: '启用图片查看工具',
+        toolWebSearch: '启用网页搜索工具',
+        developerInstructions: '开发者指令',
+        developerInstructionsPlaceholder: '自定义开发者指令...',
+        instructions: '系统指令',
+        instructionsPlaceholder: '自定义系统指令...',
+      },
+      ui: {
+        alternateScreen: '备用屏幕模式',
+        animations: '启用动画',
+        notifications: '启用通知',
+        showTooltips: '显示工具提示',
+        hideAgentReasoning: '隐藏 Agent 推理过程',
+        showRawAgentReasoning: '显示原始 Agent 推理',
+        checkForUpdate: '启动时检查更新',
+        suppressUnstableWarning: '抑制不稳定功能警告',
+      },
+      features: {
+        experimentalRmcp: '实验性 RMCP 客户端',
+        historyPersistence: '历史记录持久化',
+        historyMaxBytes: '历史记录最大字节数',
+        analytics: '启用分析',
+        feedback: '启用反馈',
+        featureFlags: '功能标志',
+      },
+      messages: {
+        loadFailed: '加载 Codex 配置失败',
+        saveSuccess: '✓ Codex 配置已保存',
+        saveFailed: '保存 Codex 配置失败',
+      },
     },
 
     // Slash Commands module

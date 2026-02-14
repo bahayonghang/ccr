@@ -330,7 +330,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  Settings, Server, Command, Code2, Boxes,
+  Settings, Settings2, Server, Command, Code2, Boxes,
   Zap, Activity, ArrowRight, Lightbulb, Cpu, KeyRound,
   BarChart3, RefreshCw, AlertCircle, Clock
 } from 'lucide-vue-next'
@@ -420,6 +420,16 @@ const modules = computed(() => [
     textClass: 'text-amber-500',
     bgClass: 'bg-amber-500/10',
     badgeBorderClass: 'border-amber-500/20 text-amber-500'
+  },
+  {
+    path: '/codex/settings',
+    title: t('codex.overview.modules.settings.title'),
+    description: t('codex.overview.modules.settings.description'),
+    badge: t('codex.overview.modules.settings.badge'),
+    icon: Settings2,
+    textClass: 'text-emerald-500',
+    bgClass: 'bg-emerald-500/10',
+    badgeBorderClass: 'border-emerald-500/20 text-emerald-500'
   }
 ])
 

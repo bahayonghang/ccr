@@ -1593,6 +1593,11 @@ export default {
           description: 'Codex authentication account switching and management',
           badge: '🔑 Auth'
         },
+        settings: {
+          title: 'Settings',
+          description: 'Full Codex config management (model, security, tools, UI, features)',
+          badge: '⚙️ Settings'
+        },
         plugins: {
           title: 'Plugin Management',
           description: 'Codex plugin configuration management',
@@ -1854,6 +1859,75 @@ export default {
       totalProfiles: 'Total Profiles',
       configMode: 'Config Mode',
       notSet: 'Not Set',
+    },
+
+    // Settings module
+    settings: {
+      title: 'Codex Settings',
+      saving: 'Saving...',
+      tabs: {
+        model: '🧠 Model & Reasoning',
+        security: '🔒 Security & Permissions',
+        tools: '🔧 Tools & Search',
+        ui: '🖥️ Interface',
+        features: '⚡ Feature Toggles',
+      },
+      model: {
+        model: 'Default Model',
+        modelPlaceholder: 'gpt-5 / gpt-5-codex',
+        modelProvider: 'Model Provider',
+        reasoningEffort: 'Reasoning Effort',
+        reasoningSummary: 'Reasoning Summary',
+        verbosity: 'Verbosity',
+        contextWindow: 'Context Window',
+        autoCompactLimit: 'Auto Compact Token Limit',
+        personality: 'Personality',
+      },
+      security: {
+        approvalPolicy: 'Approval Policy',
+        sandboxMode: 'Sandbox Mode',
+        disableResponseStorage: 'Disable Response Storage',
+        writableRoots: 'Writable Roots',
+        writableRootsPlaceholder: '/path/a, /path/b',
+        writableRootsHint: 'Comma-separated writable directory paths',
+        networkAccess: 'Sandbox Network Access',
+        shellIncludeOnly: 'Shell Env Include Only',
+        shellIncludeOnlyPlaceholder: 'PATH, HOME, USER',
+        shellIncludeOnlyHint: 'Comma-separated environment variable names',
+      },
+      tools: {
+        webSearch: 'Web Search',
+        fileOpener: 'File Opener',
+        viewImage: 'Enable Image Viewer Tool',
+        toolWebSearch: 'Enable Web Search Tool',
+        developerInstructions: 'Developer Instructions',
+        developerInstructionsPlaceholder: 'Custom developer instructions...',
+        instructions: 'System Instructions',
+        instructionsPlaceholder: 'Custom system instructions...',
+      },
+      ui: {
+        alternateScreen: 'Alternate Screen Mode',
+        animations: 'Enable Animations',
+        notifications: 'Enable Notifications',
+        showTooltips: 'Show Tooltips',
+        hideAgentReasoning: 'Hide Agent Reasoning',
+        showRawAgentReasoning: 'Show Raw Agent Reasoning',
+        checkForUpdate: 'Check for Updates on Startup',
+        suppressUnstableWarning: 'Suppress Unstable Features Warning',
+      },
+      features: {
+        experimentalRmcp: 'Experimental RMCP Client',
+        historyPersistence: 'History Persistence',
+        historyMaxBytes: 'History Max Bytes',
+        analytics: 'Enable Analytics',
+        feedback: 'Enable Feedback',
+        featureFlags: 'Feature Flags',
+      },
+      messages: {
+        loadFailed: 'Failed to load Codex config',
+        saveSuccess: '✓ Codex config saved',
+        saveFailed: 'Failed to save Codex config',
+      },
     },
 
     // Slash Commands module
