@@ -10,7 +10,6 @@ import type {
     DailyCost,
     TopSession,
     StatsSummary,
-    UsageRecordsResponse,
     BudgetStatus,
     SetBudgetRequest,
     PricingListResponse,
@@ -27,20 +26,6 @@ export const getCostOverview = async (range: string = 'today'): Promise<CostStat
     return response.data
 }
 
-export const getCostToday = async (): Promise<CostStats> => {
-    const response = await api.get<CostStats>('/stats/cost/today')
-    return response.data
-}
-
-export const getCostWeek = async (): Promise<CostStats> => {
-    const response = await api.get<CostStats>('/stats/cost/week')
-    return response.data
-}
-
-export const getCostMonth = async (): Promise<CostStats> => {
-    const response = await api.get<CostStats>('/stats/cost/month')
-    return response.data
-}
 
 export const getCostTrend = async (range: string = 'month'): Promise<DailyCost[]> => {
     const response = await api.get<DailyCost[]>(`/stats/cost/trend?range=${range}`)
@@ -127,16 +112,6 @@ export const resetPricing = async (): Promise<void> => {
 // 📈 使用分析 API (Usage Analytics)
 // ═══════════════════════════════════════════════════════════
 
-export const getUsageRecords = async (
-    platform: string = 'claude',
-    limit: number = 10000
-): Promise<UsageRecordsResponse> => {
-    const params = new URLSearchParams()
-    params.set('platform', platform)
-    params.set('limit', limit.toString())
-    const response = await api.get<UsageRecordsResponse>(`/usage/records?${params}`)
-    return response.data
-}
 
 /**
  * 获取每日使用统计 - 支持 CodMate 风格的三视图切换

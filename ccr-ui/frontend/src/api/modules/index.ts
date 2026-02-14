@@ -11,10 +11,7 @@ export { api, isTauriEnvironment, resolveApiBaseUrl, getBackendHealth } from '..
 export {
     // 成本统计
     getCostOverview,
-    getCostToday,
-    getCostWeek,
-    getCostMonth,
-    getCostTrend,
+getCostTrend,
     getCostByModel,
     getCostByProject,
     getProviderUsage,
@@ -31,7 +28,6 @@ export {
     removePricing,
     resetPricing,
     // 使用分析
-    getUsageRecords,
     getDailyStats,
     // 类型
     type HeatmapData,

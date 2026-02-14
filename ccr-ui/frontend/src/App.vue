@@ -33,7 +33,7 @@ const cachedViews = [
   'QwenView',
   'IflowView',
   'CheckinView',
-  'UsageView',
+
 ]
 
 const themeStore = useThemeStore()

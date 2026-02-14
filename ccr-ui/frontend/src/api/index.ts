@@ -358,9 +358,6 @@ export {
 
   // Statistics
   getCostOverview,
-  getCostToday,
-  getCostWeek,
-  getCostMonth,
   getCostTrend,
   getCostByModel,
   getCostByProject,

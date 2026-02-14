@@ -31,7 +31,7 @@ export const getUsageSummaryV2 = async (
   if (platform) params.set('platform', platform)
   if (start) params.set('start', start)
   if (end) params.set('end', end)
-  return unwrap(await api.get(`/v2/usage/summary?${params}`))
+  return unwrap(await api.get(`/usage/summary?${params}`))
 }
 
 export const getUsageDashboardV2 = async (
@@ -47,7 +47,7 @@ export const getUsageDashboardV2 = async (
   if (end) params.set('end', end)
   params.set('days', days.toString())
   params.set('include_heatmap', includeHeatmap ? 'true' : 'false')
-  return unwrap(await api.get(`/v2/usage/dashboard?${params}`))
+  return unwrap(await api.get(`/usage/dashboard?${params}`))
 }
 
 export const getUsageTrendsV2 = async (
@@ -57,7 +57,7 @@ export const getUsageTrendsV2 = async (
   if (platform) params.set('platform', platform)
   if (start) params.set('start', start)
   if (end) params.set('end', end)
-  return unwrap(await api.get(`/v2/usage/trends?${params}`))
+  return unwrap(await api.get(`/usage/trends?${params}`))
 }
 
 export const getUsageByModelV2 = async (
@@ -67,7 +67,7 @@ export const getUsageByModelV2 = async (
   if (platform) params.set('platform', platform)
   if (start) params.set('start', start)
   if (end) params.set('end', end)
-  return unwrap(await api.get(`/v2/usage/by-model?${params}`))
+  return unwrap(await api.get(`/usage/by-model?${params}`))
 }
 
 export const getUsageByProjectV2 = async (
@@ -77,7 +77,7 @@ export const getUsageByProjectV2 = async (
   if (platform) params.set('platform', platform)
   if (start) params.set('start', start)
   if (end) params.set('end', end)
-  return unwrap(await api.get(`/v2/usage/by-project?${params}`))
+  return unwrap(await api.get(`/usage/by-project?${params}`))
 }
 
 export const getUsageHeatmapV2 = async (
@@ -86,7 +86,7 @@ export const getUsageHeatmapV2 = async (
   const params = new URLSearchParams()
   if (platform) params.set('platform', platform)
   params.set('days', days.toString())
-  return unwrap(await api.get(`/v2/usage/heatmap?${params}`))
+  return unwrap(await api.get(`/usage/heatmap?${params}`))
 }
 
 export const getUsageLogsV2 = async (
@@ -104,17 +104,15 @@ export const getUsageLogsV2 = async (
   if (model) params.set('model', model)
   if (cursor) params.set('cursor', cursor)
   params.set('include_total', includeTotal ? 'true' : 'false')
-  return unwrap(await api.get(`/v2/usage/logs?${params}`))
+  return unwrap(await api.get(`/usage/logs?${params}`))
 }
 
 export const importUsageV2 = async (platform: string): Promise<ImportResult> => {
-  return unwrap(await api.post(`/v2/usage/import?platform=${platform}`))
+  return unwrap(await api.post(`/usage/import?platform=${platform}`))
 }
 
 export const importAllUsageV2 = async (): Promise<ImportResult[]> => {
-  const results: ImportResult[] = []
-  for (const p of ['claude', 'codex', 'gemini']) {
-    results.push(await importUsageV2(p))
-  }
-  return results
+  return Promise.all(
+    ['claude', 'codex', 'gemini'].map(p => importUsageV2(p))
+  )
 }
