@@ -3,6 +3,7 @@
 //! Shared types for Claude Code settings management.
 //! All nested types preserve unknown fields via `#[serde(flatten)] other`.
 
+use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -15,6 +16,18 @@ pub fn is_false(b: &bool) -> bool {
 /// Helper function to return true as default
 pub fn default_true() -> bool {
     true
+}
+
+/// Deserialize hooks: accept both array and object (treat object as empty array)
+fn deserialize_hooks<'de, D>(deserializer: D) -> Result<Vec<Hook>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::Array(_) => serde_json::from_value(value).map_err(serde::de::Error::custom),
+        _ => Ok(Vec::new()),
+    }
 }
 
 /// Claude Code settings structure
@@ -60,7 +73,11 @@ pub struct ClaudeSettings {
     pub plugins: Vec<Plugin>,
 
     /// Hooks
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        deserialize_with = "deserialize_hooks"
+    )]
     pub hooks: Vec<Hook>,
 
     /// Other unknown fields (for forward compatibility)
@@ -71,8 +88,12 @@ pub struct ClaudeSettings {
 /// MCP Server configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpServer {
-    /// Command to execute
-    pub command: String,
+    /// Command to execute (for stdio-based servers)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    /// URL endpoint (for HTTP/SSE-based servers)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
     /// Command arguments
     #[serde(default)]
     pub args: Vec<String>,
@@ -233,7 +254,7 @@ mod tests {
         }"#;
 
         let server: McpServer = serde_json::from_str(json).unwrap();
-        assert_eq!(server.command, "node");
+        assert_eq!(server.command, Some("node".to_string()));
         assert!(server.other.contains_key("future_mcp_field"));
 
         let serialized = serde_json::to_string(&server).unwrap();
@@ -301,7 +322,8 @@ mod tests {
         settings.mcp_servers.insert(
             "test-server".to_string(),
             McpServer {
-                command: "node".to_string(),
+                command: Some("node".to_string()),
+                url: None,
                 args: vec!["server.js".to_string()],
                 env: None,
                 disabled: false,
