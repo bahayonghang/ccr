@@ -1,11 +1,5 @@
 <template>
   <div class="min-h-screen p-6 transition-colors duration-300">
-    <!-- Enhanced Animated Background -->
-    <AnimatedBackground
-      variant="spotlight"
-      spotlight-color="secondary"
-    />
-
     <div class="max-w-[1800px] mx-auto">
       <Navbar />
 
@@ -358,7 +352,7 @@ import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import McpPresetsPanel from '@/components/McpPresetsPanel.vue'
 import McpSyncPanel from '@/components/McpSyncPanel.vue'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
+
 
 const { t } = useI18n({ useScope: 'global' })
 

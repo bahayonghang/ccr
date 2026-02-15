@@ -1,19 +1,8 @@
 <template>
   <div class="min-h-screen relative">
     <!-- 🎨 彩色背景装饰 -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-      <div
-        class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
-        :style="{ background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)' }"
-      />
-      <div
-        class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
-        :style="{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-          animationDelay: '1s'
-        }"
-      />
-    </div>
+    <!-- Standard Animated Background -->
+    <AnimatedBackground variant="mesh" />
 
     <div class="relative z-10 p-6 max-w-7xl mx-auto">
       <!-- Hero 区域 -->
@@ -317,5 +306,6 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import { Server, Bot, Puzzle, Command, Home, Workflow, Boxes, Info } from 'lucide-vue-next'
 </script>

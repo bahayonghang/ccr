@@ -154,6 +154,19 @@
     background: linear-gradient(135deg, #FFF5F7 0%, #FFF 50%, #F3E8FF 100%);
 }
 
+/* Dark Mode Premium Gradient: Deep Space "Pro Max" */
+[data-theme="dark"] .premium-background {
+    background:
+        /* Top Center: Subtle Neko Pink visual interest */
+        radial-gradient(circle at 50% 0%, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 60%),
+        /* Bottom Right: Lavender depth */
+        radial-gradient(circle at 80% 80%, rgb(var(--color-accent-secondary-rgb) / 6%) 0%, transparent 50%),
+        /* Bottom Left: Info/Purple mystery */
+        radial-gradient(circle at 0% 100%, rgb(var(--color-info-rgb) / 6%) 0%, transparent 50%),
+        /* Base: Deep Void Gradient - Softened */
+        linear-gradient(180deg, var(--color-bg-base) 0%, #15081a 100%);
+}
+
 /* Cat paw print pattern overlay */
 .premium-bg-pattern {
     position: absolute;
@@ -207,23 +220,31 @@
         linear-gradient(to bottom, var(--bg-grid-line) 1px, transparent 1px);
     background-size: 40px 40px;
     background-position: 0 0;
-    mask-image: radial-gradient(ellipse 120% 140% at 50% 30%, black 15%, transparent 85%);
-    opacity: 1;
+
+    /* Soften the mask for a more expansive feel */
+    mask-image: radial-gradient(ellipse 120% 140% at 50% 30%, black 25%, transparent 85%);
+    opacity: 0.4;
+    mix-blend-mode: overlay;
 }
 
 [data-theme="dark"] .orb-1 {
-    opacity: 0.35;
+    opacity: 0.45;
     mix-blend-mode: screen;
+    filter: blur(100px);
+
+    /* Softer blur for depth */
 }
 
 [data-theme="dark"] .orb-2 {
-    opacity: 0.35;
+    opacity: 0.45;
     mix-blend-mode: screen;
+    filter: blur(100px);
 }
 
 [data-theme="dark"] .orb-3 {
-    opacity: 0.25;
+    opacity: 0.35;
     mix-blend-mode: screen;
+    filter: blur(90px);
 }
 
 /* ============================================
