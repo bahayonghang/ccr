@@ -361,6 +361,20 @@ pub struct UpdateExecutionResponse {
     pub exit_code: i32,
 }
 
+// ===== CLI Version Detection Models =====
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CliVersionEntry {
+    pub platform: String,
+    pub installed: bool,
+    pub version: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CliVersionsResponse {
+    pub versions: Vec<CliVersionEntry>,
+}
+
 // ===== MCP Server Management Models =====
 
 #[derive(Debug, Serialize, Deserialize)]

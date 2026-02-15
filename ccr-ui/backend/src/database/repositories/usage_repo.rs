@@ -391,11 +391,20 @@ fn build_where_clause(
         conditions.push(format!("platform = ?{}", bind_params.len()));
     }
     if let Some(s) = start {
+        // 纯日期 "YYYY-MM-DD" 自然 <= 任何当天的 RFC3339 时间戳，无需补齐
         bind_params.push(Box::new(s.clone()));
         conditions.push(format!("recorded_at >= ?{}", bind_params.len()));
     }
     if let Some(e) = end {
-        bind_params.push(Box::new(e.clone()));
+        // 前端传纯日期 "YYYY-MM-DD"，但 recorded_at 是 RFC3339 格式
+        // "2026-02-15" < "2026-02-15T00:00:00Z"，会排除当天记录
+        // 追加 T23:59:59Z 确保包含当天所有记录
+        let end_val = if e.len() == 10 && !e.contains('T') {
+            format!("{}T23:59:59Z", e)
+        } else {
+            e.clone()
+        };
+        bind_params.push(Box::new(end_val));
         conditions.push(format!("recorded_at <= ?{}", bind_params.len()));
     }
 

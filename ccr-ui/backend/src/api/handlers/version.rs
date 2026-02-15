@@ -251,6 +251,80 @@ struct CommandOutput {
     stderr: String,
 }
 
+/// GET /api/version/cli-versions - Detect installed CLI versions for all platforms
+pub async fn get_cli_versions() -> impl IntoResponse {
+    let platforms: Vec<(&str, &str)> = vec![
+        ("claude-code", "claude"),
+        ("codex", "codex"),
+        ("gemini-cli", "gemini"),
+        ("qwen", "qwen"),
+        ("iflow", "iflow"),
+        ("droid", "droid"),
+    ];
+
+    let mut handles = Vec::new();
+    for (platform, binary) in platforms {
+        let platform = platform.to_string();
+        let binary = binary.to_string();
+        handles.push(tokio::task::spawn_blocking(move || {
+            // Windows 上 npm 全局命令是 .cmd 文件，需要通过 cmd /c 执行
+            let output = if cfg!(target_os = "windows") {
+                Command::new("cmd")
+                    .args(["/c", &binary, "--version"])
+                    .output()
+            } else {
+                Command::new(&binary).arg("--version").output()
+            };
+            match output {
+                Ok(out) if out.status.success() => {
+                    let text = String::from_utf8_lossy(&out.stdout);
+                    let version = parse_version_output(&text)
+                        .or_else(|| parse_version_output(&String::from_utf8_lossy(&out.stderr)));
+                    CliVersionEntry {
+                        platform,
+                        installed: true,
+                        version,
+                    }
+                }
+                _ => CliVersionEntry {
+                    platform,
+                    installed: false,
+                    version: None,
+                },
+            }
+        }));
+    }
+
+    let mut versions = Vec::new();
+    for handle in handles {
+        if let Ok(entry) = handle.await {
+            versions.push(entry);
+        }
+    }
+
+    ApiResponse::success(CliVersionsResponse { versions })
+}
+
+/// 从 CLI 输出中提取版本号
+fn parse_version_output(text: &str) -> Option<String> {
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if let Some(v) = trimmed.strip_prefix("Version:") {
+            let v = v.trim();
+            if !v.is_empty() {
+                return Some(v.to_string());
+            }
+        }
+        for word in trimmed.split_whitespace() {
+            let clean = word.trim_start_matches('v');
+            if clean.contains('.') && clean.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+                return Some(clean.to_string());
+            }
+        }
+    }
+    None
+}
+
 /// Compare version strings and return true if latest > current
 /// Simple comparison: split by '.' and compare each part numerically
 fn compare_versions(current: &str, latest: &str) -> bool {

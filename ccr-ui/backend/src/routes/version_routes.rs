@@ -19,4 +19,8 @@ pub fn routes() -> Router<AppState> {
             "/version/update",
             post(crate::api::handlers::version::update_ccr),
         )
+        .route(
+            "/version/cli-versions",
+            get(crate::api::handlers::version::get_cli_versions),
+        )
 }
