@@ -275,6 +275,9 @@ export default {
     // Factory Droid
     factoryDroidTitle: 'Factory Droid',
     factoryDroidDesc: 'Automated agent mesh for complex task execution.',
+
+    // CLI Version
+    notInstalled: 'Not Installed',
   },
   skills: {
     title: 'Skills Management Center',
@@ -1452,15 +1455,24 @@ export default {
   // Market module
   market: {
     title: 'Market',
+    badge: 'Agent Store',
     description: 'Discover and install Skills, Plugins, and MCP Servers from the community.',
+    subtitle: 'Discover and install community extensions',
     explore: 'Explore Market',
+    stats: {
+      total: 'Total',
+      installed: 'Installed',
+      skills: 'Skills',
+      mcp: 'MCP Servers',
+    },
     searchPlaceholder: 'Search for skills, plugins, mcp...',
     tabs: {
       featured: 'Featured',
       skills: 'Skills',
       plugins: 'Plugins',
       mcp: 'MCP Servers',
-      commands: 'Commands'
+      commands: 'Commands',
+      installed: 'Installed'
     },
     install: 'Install',
     installed: 'Installed',
@@ -1468,7 +1480,9 @@ export default {
     uninstall: 'Uninstall',
     loading: 'Loading marketplace...',
     noResults: 'No items found matching your search.',
+    noResultsHint: 'Try adjusting your search or filters',
     error: 'Failed to load marketplace',
+    requiresApiKey: 'Requires API Key:',
     categories: {
       skill: 'Skill',
       mcp: 'MCP',
@@ -1486,6 +1500,11 @@ export default {
       home: 'Home',
       claude: 'Claude Code',
       market: 'Market'
+    },
+    installModal: {
+      title: 'Install MCP Server',
+      platforms: 'Select target platforms',
+      apiKeyPlaceholder: 'Enter API Key...',
     }
   },
 

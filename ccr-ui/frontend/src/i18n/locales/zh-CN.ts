@@ -300,6 +300,9 @@ export default {
     // Factory Droid
     factoryDroidTitle: 'Factory Droid',
     factoryDroidDesc: '自动化代理网络，用于复杂任务执行。',
+
+    // CLI Version
+    notInstalled: '未安装',
   },
   skills: {
     title: 'Skills 管理中心',
@@ -1356,15 +1359,24 @@ export default {
   // Market module
   market: {
     title: '市场 (Market)',
+    badge: 'Agent 商店',
     description: '发现并安装来自社区的技能、插件和 MCP 服务器。',
+    subtitle: '发现并安装社区扩展',
     explore: '探索市场',
+    stats: {
+      total: '全部',
+      installed: '已安装',
+      skills: '技能',
+      mcp: 'MCP 服务器',
+    },
     searchPlaceholder: '搜索技能、插件、MCP...',
     tabs: {
       featured: '精选',
       skills: '技能',
       plugins: '插件',
       mcp: 'MCP 服务器',
-      commands: '命令'
+      commands: '命令',
+      installed: '已安装'
     },
     install: '安装',
     installed: '已安装',
@@ -1372,7 +1384,9 @@ export default {
     uninstall: '卸载',
     loading: '正在加载市场...',
     noResults: '未找到匹配的项目。',
+    noResultsHint: '尝试调整搜索条件或筛选器',
     error: '加载市场失败',
+    requiresApiKey: '需要 API Key:',
     categories: {
       skill: '技能',
       mcp: 'MCP',
@@ -1390,6 +1404,11 @@ export default {
       home: '首页',
       claude: 'Claude Code',
       market: '市场'
+    },
+    installModal: {
+      title: '安装 MCP 服务器',
+      platforms: '选择目标平台',
+      apiKeyPlaceholder: '输入 API Key...',
     }
   },
 
