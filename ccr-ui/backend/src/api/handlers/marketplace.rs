@@ -4,6 +4,7 @@
 use axum::{Json, extract::Path, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 
+use crate::managers::config::claude_manager::ClaudeConfigManager;
 use crate::models::api::ApiResponse;
 
 use ccr::managers::mcp_preset_manager::get_builtin_presets;
@@ -48,6 +49,10 @@ pub struct MarketItem {
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub homepage: Option<String>,
+    #[serde(default)]
+    pub requires_api_key: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_key_env: Option<String>,
 }
 
 /// 市场项目列表响应
@@ -68,54 +73,107 @@ pub struct InstallRequest {
     pub env: std::collections::HashMap<String, String>,
 }
 
+// ===== Helpers =====
+
+/// 获取已安装的 MCP server 名称集合
+fn get_installed_mcp_names() -> std::collections::HashSet<String> {
+    ClaudeConfigManager::default()
+        .and_then(|mgr| mgr.get_mcp_servers())
+        .map(|servers| servers.keys().cloned().collect())
+        .unwrap_or_default()
+}
+
+/// 构建 Skill MarketItem
+fn skill_to_market_item(skill: &ccr::models::skill::Skill) -> MarketItem {
+    MarketItem {
+        id: format!("skill-{}", skill.name),
+        name: skill.name.clone(),
+        description: skill
+            .description
+            .clone()
+            .unwrap_or_else(|| "Local skill".to_string()),
+        category: MarketItemCategory::Skill,
+        author: Some("Local".to_string()),
+        version: None,
+        downloads: None,
+        rating: None,
+        installed: true,
+        source: MarketItemSource::Local,
+        tags: None,
+        homepage: None,
+        requires_api_key: false,
+        api_key_env: None,
+    }
+}
+
+/// 构建 MCP Preset MarketItem
+fn preset_to_market_item(
+    preset: &ccr::models::mcp_preset::McpPreset,
+    installed_names: &std::collections::HashSet<String>,
+) -> MarketItem {
+    MarketItem {
+        id: format!("mcp-{}", preset.id),
+        name: preset.name.clone(),
+        description: preset.description.clone(),
+        category: MarketItemCategory::Mcp,
+        author: Some("MCP".to_string()),
+        version: None,
+        downloads: None,
+        rating: Some(5.0),
+        installed: installed_names.contains(&preset.id),
+        source: MarketItemSource::Builtin,
+        tags: Some(preset.tags.clone()),
+        homepage: preset.homepage.clone(),
+        requires_api_key: preset.requires_api_key,
+        api_key_env: preset.api_key_env.clone(),
+    }
+}
+
+/// 构建已安装 MCP server MarketItem（非预设的自定义 server）
+fn mcp_server_to_market_item(name: &str) -> MarketItem {
+    MarketItem {
+        id: format!("mcp-{}", name),
+        name: name.to_string(),
+        description: "Installed MCP server".to_string(),
+        category: MarketItemCategory::Mcp,
+        author: None,
+        version: None,
+        downloads: None,
+        rating: None,
+        installed: true,
+        source: MarketItemSource::Local,
+        tags: None,
+        homepage: None,
+        requires_api_key: false,
+        api_key_env: None,
+    }
+}
+
+/// 收集 Skills 列表
+fn collect_skills() -> Vec<MarketItem> {
+    SkillsManager::new(Platform::Claude)
+        .and_then(|mgr| mgr.list_skills())
+        .map(|skills| skills.iter().map(skill_to_market_item).collect())
+        .unwrap_or_default()
+}
+
+/// 收集 MCP Presets 列表（带安装状态检测）
+fn collect_mcp_presets(installed_names: &std::collections::HashSet<String>) -> Vec<MarketItem> {
+    get_builtin_presets()
+        .iter()
+        .map(|p| preset_to_market_item(p, installed_names))
+        .collect()
+}
+
 // ===== API Handlers =====
 
 /// GET /api/marketplace - 获取所有市场项目
 pub async fn list_marketplace_items() -> impl IntoResponse {
+    let installed_names = get_installed_mcp_names();
     let mut items: Vec<MarketItem> = Vec::new();
 
-    // 1. 获取本地 Skills
-    if let Ok(manager) = SkillsManager::new(Platform::Claude)
-        && let Ok(skills) = manager.list_skills()
-    {
-        for skill in skills {
-            items.push(MarketItem {
-                id: format!("skill-{}", skill.name),
-                name: skill.name.clone(),
-                description: skill
-                    .description
-                    .unwrap_or_else(|| "Local skill".to_string()),
-                category: MarketItemCategory::Skill,
-                author: Some("Local".to_string()),
-                version: None,
-                downloads: None,
-                rating: None,
-                installed: true,
-                source: MarketItemSource::Local,
-                tags: None,
-                homepage: None,
-            });
-        }
-    }
-
-    // 2. 获取内置 MCP Presets
-    let presets = get_builtin_presets();
-    for preset in presets {
-        items.push(MarketItem {
-            id: format!("mcp-{}", preset.id),
-            name: preset.name,
-            description: preset.description,
-            category: MarketItemCategory::Mcp,
-            author: Some("Anthropic".to_string()),
-            version: None,
-            downloads: None,
-            rating: Some(5.0),
-            installed: false, // TODO: 检查是否已安装
-            source: MarketItemSource::Builtin,
-            tags: Some(preset.tags),
-            homepage: preset.homepage,
-        });
-    }
+    items.extend(collect_skills());
+    items.extend(collect_mcp_presets(&installed_names));
 
     let total = items.len();
     ApiResponse::success(MarketplaceResponse { items, total })
@@ -131,60 +189,14 @@ pub async fn list_items_by_category(Path(category): Path<String>) -> impl IntoRe
         _ => return ApiResponse::error(format!("Unknown category: {}", category)),
     };
 
-    let mut items: Vec<MarketItem> = Vec::new();
-
-    match target_category {
-        MarketItemCategory::Skill => {
-            // 获取本地 Skills
-            if let Ok(manager) = SkillsManager::new(Platform::Claude)
-                && let Ok(skills) = manager.list_skills()
-            {
-                for skill in skills {
-                    items.push(MarketItem {
-                        id: format!("skill-{}", skill.name),
-                        name: skill.name.clone(),
-                        description: skill
-                            .description
-                            .unwrap_or_else(|| "Local skill".to_string()),
-                        category: MarketItemCategory::Skill,
-                        author: Some("Local".to_string()),
-                        version: None,
-                        downloads: None,
-                        rating: None,
-                        installed: true,
-                        source: MarketItemSource::Local,
-                        tags: None,
-                        homepage: None,
-                    });
-                }
-            }
-        }
+    let items: Vec<MarketItem> = match target_category {
+        MarketItemCategory::Skill => collect_skills(),
         MarketItemCategory::Mcp => {
-            let presets = get_builtin_presets();
-            for preset in presets {
-                items.push(MarketItem {
-                    id: format!("mcp-{}", preset.id),
-                    name: preset.name,
-                    description: preset.description,
-                    category: MarketItemCategory::Mcp,
-                    author: Some("Anthropic".to_string()),
-                    version: None,
-                    downloads: None,
-                    rating: Some(5.0),
-                    installed: false,
-                    source: MarketItemSource::Builtin,
-                    tags: Some(preset.tags),
-                    homepage: preset.homepage,
-                });
-            }
+            let installed_names = get_installed_mcp_names();
+            collect_mcp_presets(&installed_names)
         }
-        MarketItemCategory::Plugin => {
-            // TODO: 获取插件列表
-        }
-        MarketItemCategory::Command => {
-            // TODO: 获取命令模板列表
-        }
-    }
+        MarketItemCategory::Plugin | MarketItemCategory::Command => Vec::new(),
+    };
 
     let total = items.len();
     ApiResponse::success(MarketplaceResponse { items, total })
@@ -194,19 +206,14 @@ pub async fn list_items_by_category(Path(category): Path<String>) -> impl IntoRe
 pub async fn install_item(Json(req): Json<InstallRequest>) -> impl IntoResponse {
     match req.category {
         MarketItemCategory::Mcp => {
-            // 提取 preset_id
             let preset_id = req.item_id.strip_prefix("mcp-").unwrap_or(&req.item_id);
-
-            // 使用 MCP Preset Manager 安装
             let sync_manager = ccr::managers::mcp_preset_manager::McpSyncManager::new();
 
-            let mut target_platforms: Vec<Platform> = Vec::new();
-            for platform_str in &req.platforms {
-                if let Ok(p) = platform_str.parse::<Platform>() {
-                    target_platforms.push(p);
-                }
-            }
-
+            let mut target_platforms: Vec<Platform> = req
+                .platforms
+                .iter()
+                .filter_map(|s| s.parse::<Platform>().ok())
+                .collect();
             if target_platforms.is_empty() {
                 target_platforms.push(Platform::Claude);
             }
@@ -219,8 +226,7 @@ pub async fn install_item(Json(req): Json<InstallRequest>) -> impl IntoResponse 
 
             match sync_manager.sync_preset_to_all(preset_id, custom_env, &target_platforms) {
                 Ok(results) => {
-                    let all_success = results.iter().all(|(_, r)| r.is_ok());
-                    if all_success {
+                    if results.iter().all(|(_, r)| r.is_ok()) {
                         ApiResponse::success(format!(
                             "MCP preset '{}' installed successfully",
                             preset_id
@@ -233,10 +239,7 @@ pub async fn install_item(Json(req): Json<InstallRequest>) -> impl IntoResponse 
             }
         }
         MarketItemCategory::Skill => {
-            // 提取 skill 名称
             let skill_name = req.item_id.strip_prefix("skill-").unwrap_or(&req.item_id);
-
-            // TODO: 实现远程 Skill 安装
             ApiResponse::error(format!(
                 "Skill installation for '{}' not yet implemented",
                 skill_name
@@ -255,31 +258,25 @@ pub async fn install_item(Json(req): Json<InstallRequest>) -> impl IntoResponse 
 pub async fn list_installed_items() -> impl IntoResponse {
     let mut items: Vec<MarketItem> = Vec::new();
 
-    // 获取本地 Skills
-    if let Ok(manager) = SkillsManager::new(Platform::Claude)
-        && let Ok(skills) = manager.list_skills()
-    {
-        for skill in skills {
-            items.push(MarketItem {
-                id: format!("skill-{}", skill.name),
-                name: skill.name.clone(),
-                description: skill
-                    .description
-                    .unwrap_or_else(|| "Installed skill".to_string()),
-                category: MarketItemCategory::Skill,
-                author: Some("Local".to_string()),
-                version: None,
-                downloads: None,
-                rating: None,
-                installed: true,
-                source: MarketItemSource::Local,
-                tags: None,
-                homepage: None,
-            });
+    // 已安装的 Skills
+    items.extend(collect_skills());
+
+    // 已安装的 MCP servers
+    let installed_names = get_installed_mcp_names();
+    let preset_ids: std::collections::HashSet<String> =
+        get_builtin_presets().iter().map(|p| p.id.clone()).collect();
+
+    for name in &installed_names {
+        if preset_ids.contains(name) {
+            // 是内置预设，用预设信息
+            if let Some(preset) = get_builtin_presets().into_iter().find(|p| &p.id == name) {
+                items.push(preset_to_market_item(&preset, &installed_names));
+            }
+        } else {
+            // 自定义 MCP server
+            items.push(mcp_server_to_market_item(name));
         }
     }
-
-    // TODO: 获取已安装的 MCP servers、Plugins 等
 
     let total = items.len();
     ApiResponse::success(MarketplaceResponse { items, total })
@@ -287,25 +284,35 @@ pub async fn list_installed_items() -> impl IntoResponse {
 
 /// DELETE /api/marketplace/uninstall/:item_id - 卸载市场项目
 pub async fn uninstall_item(Path(item_id): Path<String>) -> impl IntoResponse {
-    // 解析 item_id 格式: category-name
-    if let Some(skill_name) = item_id.strip_prefix("skill-") {
-        // 卸载 Skill
-        if let Ok(manager) = SkillsManager::new(Platform::Claude) {
-            match manager.uninstall_skill(skill_name) {
-                Ok(_) => {
-                    return ApiResponse::success(format!(
-                        "Skill '{}' uninstalled successfully",
-                        skill_name
-                    ));
-                }
-                Err(e) => return ApiResponse::error(format!("Failed to uninstall skill: {}", e)),
+    if let Some(skill_name) = item_id.strip_prefix("skill-")
+        && let Ok(manager) = SkillsManager::new(Platform::Claude)
+    {
+        match manager.uninstall_skill(skill_name) {
+            Ok(_) => {
+                return ApiResponse::success(format!(
+                    "Skill '{}' uninstalled successfully",
+                    skill_name
+                ));
             }
+            Err(e) => return ApiResponse::error(format!("Failed to uninstall skill: {}", e)),
         }
     }
 
-    if item_id.starts_with("mcp-") {
-        // TODO: 实现 MCP server 移除
-        return ApiResponse::error("MCP uninstallation not yet implemented".to_string());
+    if let Some(mcp_name) = item_id.strip_prefix("mcp-") {
+        if let Ok(manager) = ClaudeConfigManager::default() {
+            match manager.delete_mcp_server(mcp_name) {
+                Ok(_) => {
+                    return ApiResponse::success(format!(
+                        "MCP server '{}' uninstalled successfully",
+                        mcp_name
+                    ));
+                }
+                Err(e) => {
+                    return ApiResponse::error(format!("Failed to uninstall MCP server: {}", e));
+                }
+            }
+        }
+        return ApiResponse::error("Failed to initialize config manager".to_string());
     }
 
     ApiResponse::error(format!("Unknown item type for: {}", item_id))
