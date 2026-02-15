@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="visible"
-    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm"
   >
     <div
       ref="modalRef"
@@ -10,25 +10,26 @@
       :aria-labelledby="titleId"
       class="rounded-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
       :style="{
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)'
+        background: 'var(--color-bg-elevated)',
+        border: '1px solid var(--color-border-strong)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
       }"
     >
       <!-- 模态框标题 -->
       <div
         class="flex items-center justify-between p-6"
-        :style="{ borderBottom: '1px solid var(--border-color)' }"
+        :style="{ borderBottom: '1px solid var(--color-border-default)' }"
       >
         <h3
           :id="titleId"
           class="text-lg font-semibold"
-          :style="{ color: 'var(--text-primary)' }"
+          :style="{ color: 'var(--color-text-primary)' }"
         >
           {{ isEditing ? $t('common.edit') : $t('common.add') }}
         </h3>
         <button
           class="p-1 rounded-lg transition-colors hover:opacity-80"
-          :style="{ color: 'var(--text-muted)' }"
+          :style="{ color: 'var(--color-text-muted)' }"
           :aria-label="$t('common.close')"
           @click="close"
         >
@@ -46,7 +47,7 @@
           <div>
             <label
               class="block text-sm font-medium mb-1"
-              :style="{ color: 'var(--text-primary)' }"
+              :style="{ color: 'var(--color-text-primary)' }"
             >
               {{ $t('common.name') }}
             </label>
@@ -57,10 +58,10 @@
               :disabled="isEditing"
               class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
               :style="{
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                '--tw-ring-color': 'var(--accent-primary)'
+                border: '1px solid var(--color-border-default)',
+                background: 'var(--color-bg-surface)',
+                color: 'var(--color-text-primary)',
+                '--tw-ring-color': 'var(--color-accent-primary)'
               }"
               :placeholder="$t('slashCommands.namePlaceholder')"
             >
@@ -70,7 +71,7 @@
           <div>
             <label
               class="block text-sm font-medium mb-1"
-              :style="{ color: 'var(--text-primary)' }"
+              :style="{ color: 'var(--color-text-primary)' }"
             >
               {{ $t('common.command') }}
             </label>
@@ -80,10 +81,10 @@
               required
               class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
               :style="{
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                '--tw-ring-color': 'var(--accent-primary)'
+                border: '1px solid var(--color-border-default)',
+                background: 'var(--color-bg-surface)',
+                color: 'var(--color-text-primary)',
+                '--tw-ring-color': 'var(--color-accent-primary)'
               }"
               :placeholder="$t('slashCommands.commandPlaceholder')"
             >
@@ -93,7 +94,7 @@
           <div>
             <label
               class="block text-sm font-medium mb-1"
-              :style="{ color: 'var(--text-primary)' }"
+              :style="{ color: 'var(--color-text-primary)' }"
             >
               {{ $t('common.description') }}
             </label>
@@ -103,10 +104,10 @@
               required
               class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 resize-y min-h-[80px]"
               :style="{
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                '--tw-ring-color': 'var(--accent-primary)'
+                border: '1px solid var(--color-border-default)',
+                background: 'var(--color-bg-surface)',
+                color: 'var(--color-text-primary)',
+                '--tw-ring-color': 'var(--color-accent-primary)'
               }"
               :placeholder="$t('slashCommands.descriptionPlaceholder')"
             />
@@ -116,7 +117,7 @@
           <div>
             <label
               class="block text-sm font-medium mb-1"
-              :style="{ color: 'var(--text-primary)' }"
+              :style="{ color: 'var(--color-text-primary)' }"
             >
               {{ $t('common.folder') }}
             </label>
@@ -125,10 +126,10 @@
               required
               class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
               :style="{
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                '--tw-ring-color': 'var(--accent-primary)'
+                border: '1px solid var(--color-border-default)',
+                background: 'var(--color-bg-surface)',
+                color: 'var(--color-text-primary)',
+                '--tw-ring-color': 'var(--color-accent-primary)'
               }"
             >
               <option
@@ -154,9 +155,9 @@
             type="button"
             class="px-4 py-2 rounded-lg transition-colors hover:opacity-80"
             :style="{
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-color)'
+              background: 'var(--color-bg-surface)',
+              color: 'var(--color-text-secondary)',
+              border: '1px solid var(--color-border-default)'
             }"
             @click="close"
           >
@@ -167,7 +168,7 @@
             :disabled="loading"
             class="px-4 py-2 rounded-lg inline-flex items-center transition-colors hover:opacity-90"
             :style="{
-              background: 'var(--accent-primary)',
+              background: 'var(--color-accent-primary)',
               color: '#fff',
               opacity: loading ? 0.7 : 1,
               cursor: loading ? 'not-allowed' : 'pointer'
