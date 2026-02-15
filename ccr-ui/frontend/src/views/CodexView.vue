@@ -1,34 +1,29 @@
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
     <!-- Background Mesh -->
-    <div class="fixed inset-0 pointer-events-none -z-10 bg-bg-base">
-      <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-pink-500/5 rounded-full blur-[120px] animate-pulse-subtle" />
-      <div
-        class="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[100px] animate-pulse-subtle"
-        style="animation-delay: 2s"
-      />
-    </div>
+    <!-- Standard Animated Background -->
+    <AnimatedBackground variant="complex" />
 
-    <div class="max-w-7xl mx-auto space-y-8">
+    <div class="max-w-7xl mx-auto space-y-5">
       <!-- HEADER -->
-      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up">
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-slide-up">
         <!-- Hero Card -->
         <Card
           variant="glass"
-          class="lg:col-span-2 relative overflow-hidden p-8 flex flex-col justify-between min-h-[240px]"
+          class="lg:col-span-2 relative overflow-hidden p-5 flex flex-col"
         >
-          <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-pink-500/10 to-transparent -mr-16 -mt-16 rounded-bl-full pointer-events-none" />
+          <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-pink-500/10 to-transparent -mr-12 -mt-12 rounded-bl-full pointer-events-none" />
            
           <div class="relative z-10">
-            <div class="flex items-center gap-4 mb-6">
-              <div class="w-16 h-16 rounded-2xl bg-pink-500/10 flex items-center justify-center border border-pink-500/20 shadow-lg backdrop-blur-md">
-                <Code2 class="w-8 h-8 text-pink-500" />
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-12 h-12 rounded-xl bg-pink-500/10 flex items-center justify-center border border-pink-500/20 shadow-lg backdrop-blur-md">
+                <Code2 class="w-6 h-6 text-pink-500" />
               </div>
               <div>
-                <h1 class="text-4xl font-bold font-display text-text-primary tracking-tight">
+                <h1 class="text-3xl font-bold font-display text-text-primary tracking-tight">
                   Codex
                 </h1>
-                <p class="text-text-secondary text-lg mt-1 max-w-md">
+                <p class="text-text-secondary text-base max-w-md">
                   {{ $t('codex.overview.subtitle') }}
                 </p>
               </div>
@@ -39,28 +34,28 @@
                 <Server class="w-3 h-3" /> {{ $t('codex.overview.features.mcpProtocol') }}
               </span>
               <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20">
-                v1.0.0
+                {{ codexVersion }}
               </span>
             </div>
           </div>
         </Card>
 
         <!-- Status Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+        <div class="grid grid-cols-1 gap-3">
           <!-- Active Profile -->
           <Card
             variant="elevated"
-            class="p-5 flex items-center gap-4 border-l-4 border-l-yellow-500"
+            class="p-3 flex items-center gap-3 border-l-4 border-l-yellow-500"
           >
-            <div class="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center text-yellow-500 shrink-0">
-              <Zap class="w-6 h-6" />
+            <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-500 shrink-0">
+              <Zap class="w-5 h-5" />
             </div>
             <div class="min-w-0">
-              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">
                 {{ $t('codex.status.currentConfig') }}
               </p>
               <p
-                class="text-lg font-bold text-text-primary truncate"
+                class="text-base font-bold text-text-primary truncate"
                 :title="currentProfile || ''"
               >
                 {{ currentProfile || $t('codex.status.notSet') }}
@@ -71,16 +66,16 @@
           <!-- Total Profiles -->
           <Card
             variant="elevated"
-            class="p-5 flex items-center gap-4 border-l-4 border-l-blue-500"
+            class="p-3 flex items-center gap-3 border-l-4 border-l-blue-500"
           >
-            <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
-              <Settings class="w-6 h-6" />
+            <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
+              <Settings class="w-5 h-5" />
             </div>
             <div>
-              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">
                 {{ $t('codex.status.totalProfiles') }}
               </p>
-              <p class="text-lg font-bold text-text-primary">
+              <p class="text-base font-bold text-text-primary">
                 {{ profilesCount }}
               </p>
             </div>
@@ -89,16 +84,16 @@
           <!-- System Status -->
           <Card
             variant="elevated"
-            class="p-5 flex items-center gap-4 border-l-4 border-l-emerald-500"
+            class="p-3 flex items-center gap-3 border-l-4 border-l-emerald-500"
           >
-            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
-              <Activity class="w-6 h-6" />
+            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
+              <Activity class="w-5 h-5" />
             </div>
             <div>
-              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">
                 System Status
               </p>
-              <p class="text-lg font-bold text-text-primary">
+              <p class="text-base font-bold text-text-primary">
                 Online
               </p>
             </div>
@@ -111,7 +106,7 @@
         class="animate-slide-up"
         style="animation-delay: 200ms"
       >
-        <div class="flex items-center gap-3 mb-6">
+        <div class="flex items-center gap-3 mb-3">
           <Boxes class="w-5 h-5 text-pink-500" />
           <h2 class="text-lg font-bold uppercase tracking-widest text-text-muted">
             {{ $t('codex.overview.modulesTitle') }}
@@ -119,7 +114,7 @@
           <div class="h-px flex-1 bg-border-subtle" />
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <RouterLink 
             v-for="module in modules" 
             :key="module.path" 
@@ -130,11 +125,11 @@
               variant="glass"
               hover
               glow
-              class="h-full p-6 flex flex-col relative overflow-hidden"
+              class="h-full p-4 flex flex-col relative overflow-hidden"
             >
-              <div class="flex items-start justify-between mb-4">
+              <div class="flex items-start justify-between mb-2">
                 <div
-                  class="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 border border-white/5"
+                  class="w-10 h-10 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110 border border-white/5"
                   :class="module.bgClass"
                 >
                   <component
@@ -151,7 +146,7 @@
                 </span>
               </div>
                   
-              <h3 class="text-lg font-bold text-text-primary mb-2 group-hover:text-pink-500 transition-colors">
+              <h3 class="text-base font-bold text-text-primary mb-1 group-hover:text-pink-500 transition-colors">
                 {{ module.title }}
               </h3>
               <p class="text-sm text-text-secondary leading-relaxed flex-grow">
@@ -159,7 +154,7 @@
               </p>
 
               <div
-                class="mt-4 flex items-center text-sm font-bold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
+                class="mt-2 flex items-center text-sm font-bold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
                 :class="module.textClass"
               >
                 Open Module <ArrowRight class="w-4 h-4 ml-1" />
@@ -171,20 +166,20 @@
 
       <!-- USAGE AND TIPS -->
       <section
-        class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-up"
+        class="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-slide-up"
         style="animation-delay: 300ms"
       >
         <!-- Usage Panel -->
         <Card
           variant="glass"
-          class="p-6"
+          class="p-4"
         >
-          <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-3">
               <div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
                 <BarChart3 class="w-5 h-5" />
               </div>
-              <h3 class="text-lg font-bold text-text-primary">
+              <h3 class="text-base font-bold text-text-primary">
                 {{ $t('codex.overview.usageTitle') }}
               </h3>
             </div>
@@ -211,7 +206,7 @@
 
           <div
             v-else-if="usageError"
-            class="text-center py-10"
+            class="text-center py-6"
           >
             <AlertCircle class="w-10 h-10 text-text-muted mx-auto mb-3" />
             <p class="text-sm text-text-muted mb-3">
@@ -228,7 +223,7 @@
 
           <div
             v-else-if="!usageData || usageData.all_time.total_requests === 0"
-            class="text-center py-10"
+            class="text-center py-6"
           >
             <Clock class="w-10 h-10 text-text-muted mx-auto mb-3" />
             <p class="text-sm text-text-muted">
@@ -238,16 +233,16 @@
 
           <div
             v-else
-            class="space-y-4"
+            class="space-y-3"
           >
             <!-- 5H Usage -->
-            <div class="p-4 rounded-xl bg-bg-surface/50 border border-border-subtle">
+            <div class="p-3 rounded-xl bg-bg-surface/50 border border-border-subtle">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-xs font-bold text-text-muted uppercase tracking-wider">{{ $t('codex.overview.usage5h') }}</span>
                 <span class="text-xs font-mono text-text-secondary">{{ usageData.five_hour.total_requests }} reqs</span>
               </div>
               <div class="flex items-baseline gap-2">
-                <span class="text-2xl font-bold text-text-primary font-mono">{{ formatTokens(usageData.five_hour.total_input_tokens + usageData.five_hour.total_output_tokens) }}</span>
+                <span class="text-xl font-bold text-text-primary font-mono">{{ formatTokens(usageData.five_hour.total_input_tokens + usageData.five_hour.total_output_tokens) }}</span>
                 <span class="text-xs text-text-muted">tokens</span>
               </div>
               <div class="w-full bg-bg-base rounded-full h-1.5 mt-2 overflow-hidden">
@@ -259,13 +254,13 @@
             </div>
                
             <!-- 7D Usage -->
-            <div class="p-4 rounded-xl bg-bg-surface/50 border border-border-subtle">
+            <div class="p-3 rounded-xl bg-bg-surface/50 border border-border-subtle">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-xs font-bold text-text-muted uppercase tracking-wider">{{ $t('codex.overview.usage7d') }}</span>
                 <span class="text-xs font-mono text-text-secondary">{{ usageData.seven_day.total_requests }} reqs</span>
               </div>
               <div class="flex items-baseline gap-2">
-                <span class="text-2xl font-bold text-text-primary font-mono">{{ formatTokens(usageData.seven_day.total_input_tokens + usageData.seven_day.total_output_tokens) }}</span>
+                <span class="text-xl font-bold text-text-primary font-mono">{{ formatTokens(usageData.seven_day.total_input_tokens + usageData.seven_day.total_output_tokens) }}</span>
                 <span class="text-xs text-text-muted">tokens</span>
               </div>
               <div class="w-full bg-bg-base rounded-full h-1.5 mt-2 overflow-hidden">
@@ -279,16 +274,16 @@
         </Card>
 
         <!-- Capabilities & Tips -->
-        <div class="space-y-6">
+        <div class="space-y-3">
           <Card
             variant="glass"
-            class="p-6"
+            class="p-4"
           >
             <div class="flex items-center gap-3 mb-4">
               <div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
                 <Cpu class="w-5 h-5" />
               </div>
-              <h3 class="text-lg font-bold text-text-primary">
+              <h3 class="text-base font-bold text-text-primary">
                 System Capabilities
               </h3>
             </div>
@@ -296,7 +291,7 @@
               <div
                 v-for="(feature, index) in features"
                 :key="index"
-                class="flex items-center gap-3 p-3 rounded-xl bg-bg-surface/30 border border-border-subtle/50"
+                class="flex items-center gap-2 p-2 rounded-lg bg-bg-surface/30 border border-border-subtle/50"
               >
                 <div class="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]" />
                 <span class="text-sm text-text-secondary">{{ feature }}</span>
@@ -344,7 +339,8 @@ import {
 
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
-import { listCodexProfiles, getCodexUsage } from '@/api'
+import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
+import { listCodexProfiles, getCodexUsage, getCliVersions } from '@/api'
 import type { CodexUsageResponse } from '@/types'
 
 const { t } = useI18n()
@@ -352,6 +348,7 @@ const { t } = useI18n()
 // State
 const profilesCount = ref(0)
 const currentProfile = ref<string | null>(null)
+const codexVersion = ref('v1.0.0') // Default fallback
 
 // Usage State
 const usageData = ref<CodexUsageResponse | null>(null)
@@ -447,8 +444,15 @@ onMounted(async () => {
       profilesCount.value = data.profiles.length
       currentProfile.value = data.current_profile ?? null
     }
+    
+    // Fetch Codex version
+    const versions = await getCliVersions()
+    const codex = versions.versions.find(v => v.platform === 'codex')
+    if (codex && codex.version) {
+      codexVersion.value = codex.version
+    }
   } catch (error) {
-    console.error('Failed to load profile status:', error)
+    console.error('Failed to load profile status or version:', error)
   }
   refreshUsage()
 })

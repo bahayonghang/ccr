@@ -125,8 +125,13 @@
                     :style="{ color: module.color }"
                   />
                 </div>
-                <div class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-bg-surface border border-white/5 text-text-muted">
-                  v{{ module.version || '1.0' }}
+                <div class="flex items-center gap-2">
+                  <div
+                    class="px-2 py-1 rounded text-[10px] font-bold uppercase border border-white/5"
+                    :class="getVersionClass(module.platformKey)"
+                  >
+                    {{ getVersionLabel(module.platformKey) }}
+                  </div>
                 </div>
               </div>
 
@@ -176,26 +181,50 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  Terminal, ArrowRight, Grid, Activity, 
+  Terminal, ArrowRight, Grid, Activity,
   Code2, Sparkles, Zap, Bot, Settings, Cloud,
   Workflow
 } from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import UsageStatsDashboard from '@/components/UsageStatsDashboard.vue'
-import { getSystemInfo } from '@/api/client'
+import { getSystemInfo, getCliVersions } from '@/api/client'
+import type { CliVersionEntry } from '@/types'
 
 const { t } = useI18n()
 
 const systemInfo = ref<any>(null)
+const cliVersions = ref<Map<string, CliVersionEntry>>(new Map())
 
 onMounted(async () => {
   try {
-    systemInfo.value = await getSystemInfo()
+    const [sysInfo, versions] = await Promise.all([
+      getSystemInfo().catch(() => null),
+      getCliVersions().catch(() => null),
+    ])
+    systemInfo.value = sysInfo
+    if (versions) {
+      for (const entry of versions.versions) {
+        cliVersions.value.set(entry.platform, entry)
+      }
+    }
   } catch (e) {
     console.error(e)
   }
 })
+
+const getVersionLabel = (platformKey: string) => {
+  const entry = cliVersions.value.get(platformKey)
+  if (!entry) return '...'
+  if (!entry.installed) return t('home.notInstalled')
+  return entry.version ? `v${entry.version}` : 'installed'
+}
+
+const getVersionClass = (platformKey: string) => {
+  const entry = cliVersions.value.get(platformKey)
+  if (entry && !entry.installed) return 'bg-red-500/10 text-red-400'
+  return 'bg-bg-surface text-text-muted'
+}
 
 const quickActions = computed(() => [
   { 
@@ -240,34 +269,7 @@ const mainModules = computed(() => [
     icon: Code2,
     color: '#ef4444',
     gradientClass: 'from-red-400 to-orange-400',
-    version: '2.1'
-  },
-  {
-    title: t('home.geminiTitle'),
-    desc: t('home.geminiDesc'),
-    path: '/gemini-cli',
-    icon: Sparkles,
-    color: '#3b82f6',
-    gradientClass: 'from-blue-400 to-cyan-400',
-    version: '1.5-pro'
-  },
-  {
-    title: t('home.qwenTitle'),
-    desc: t('home.qwenDesc'),
-    path: '/qwen',
-    icon: Zap,
-    color: '#f59e0b',
-    gradientClass: 'from-amber-400 to-yellow-300',
-    version: '2.5'
-  },
-  {
-    title: t('home.iflowTitle'),
-    desc: t('home.iflowDesc'),
-    path: '/iflow',
-    icon: Workflow,
-    color: '#8b5cf6',
-    gradientClass: 'from-violet-400 to-fuchsia-400',
-    version: '1.0'
+    platformKey: 'claude-code'
   },
   {
     title: t('home.codexTitle'),
@@ -276,7 +278,34 @@ const mainModules = computed(() => [
     icon: Settings,
     color: '#10b981',
     gradientClass: 'from-emerald-400 to-green-300',
-    version: '3.0'
+    platformKey: 'codex'
+  },
+  {
+    title: t('home.geminiTitle'),
+    desc: t('home.geminiDesc'),
+    path: '/gemini-cli',
+    icon: Sparkles,
+    color: '#3b82f6',
+    gradientClass: 'from-blue-400 to-cyan-400',
+    platformKey: 'gemini-cli'
+  },
+  {
+    title: t('home.qwenTitle'),
+    desc: t('home.qwenDesc'),
+    path: '/qwen',
+    icon: Zap,
+    color: '#f59e0b',
+    gradientClass: 'from-amber-400 to-yellow-300',
+    platformKey: 'qwen'
+  },
+  {
+    title: t('home.iflowTitle'),
+    desc: t('home.iflowDesc'),
+    path: '/iflow',
+    icon: Workflow,
+    color: '#8b5cf6',
+    gradientClass: 'from-violet-400 to-fuchsia-400',
+    platformKey: 'iflow'
   },
   {
     title: t('home.factoryDroidTitle'),
@@ -285,7 +314,7 @@ const mainModules = computed(() => [
     icon: Bot,
     color: '#ec4899',
     gradientClass: 'from-pink-400 to-rose-400',
-    version: '0.9'
+    platformKey: 'droid'
   }
 ])
 </script>

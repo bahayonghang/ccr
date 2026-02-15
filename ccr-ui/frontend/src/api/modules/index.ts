@@ -59,6 +59,7 @@ export {
     getVersion,
     checkUpdate,
     updateCCR,
+    getCliVersions,
 } from './config'
 
 // MCP - MCP 服务器管理、预设、同步、内置提示词

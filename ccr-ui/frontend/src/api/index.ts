@@ -194,6 +194,7 @@ export {
   getVersion,
   checkUpdate,
   updateCCR,
+  getCliVersions,
 
   // MCP Servers
   listMcpServers,

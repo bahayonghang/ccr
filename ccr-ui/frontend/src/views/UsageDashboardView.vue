@@ -599,8 +599,8 @@ const pieOptions = computed(() => ({
 
 // 生命周期
 onMounted(async () => {
-  onFilterChange()
   store.startAutoRefresh()
+  onFilterChange()
   document.addEventListener('visibilitychange', onVisibilityChange)
 })
 

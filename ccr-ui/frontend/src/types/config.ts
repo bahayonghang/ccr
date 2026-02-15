@@ -167,3 +167,13 @@ export interface UpdateExecutionResponse {
   error: string;
   exit_code: number;
 }
+
+export interface CliVersionEntry {
+  platform: string;
+  installed: boolean;
+  version?: string;
+}
+
+export interface CliVersionsResponse {
+  versions: CliVersionEntry[];
+}

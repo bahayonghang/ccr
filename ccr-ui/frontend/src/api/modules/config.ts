@@ -24,6 +24,7 @@ import type {
     UpdateCheckResponse,
     UpdateExecutionResponse,
     UpdateConfigRequest,
+    CliVersionsResponse,
 } from '@/types'
 
 // ═══════════════════════════════════════════════════════════
@@ -153,5 +154,10 @@ export const checkUpdate = async (): Promise<UpdateCheckResponse> => {
 
 export const updateCCR = async (): Promise<UpdateExecutionResponse> => {
     const response = await api.post<ApiResponse<UpdateExecutionResponse>>('/version/update')
+    return response.data.data!
+}
+
+export const getCliVersions = async (): Promise<CliVersionsResponse> => {
+    const response = await api.get<ApiResponse<CliVersionsResponse>>('/version/cli-versions')
     return response.data.data!
 }
