@@ -17,32 +17,44 @@ const router = createRouter({
         {
           path: 'claude-code',
           name: 'claude-code',
-          component: () => import('@/views/ClaudeCodeView.vue')
+          component: () => import('@/views/ClaudeCodeView.vue'),
+          meta: { hideGlobalBackground: true }
+        },
+        {
+          path: 'claude-code/settings',
+          name: 'claude-code-settings',
+          component: () => import('@/views/ClaudeCodeSettingsView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'codex',
           name: 'codex',
-          component: () => import('@/views/CodexView.vue')
+          component: () => import('@/views/CodexView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'gemini-cli',
           name: 'gemini-cli',
-          component: () => import('@/views/GeminiCliView.vue')
+          component: () => import('@/views/GeminiCliView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'qwen',
           name: 'qwen',
-          component: () => import('@/views/QwenView.vue')
+          component: () => import('@/views/QwenView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'iflow',
           name: 'iflow',
-          component: () => import('@/views/IflowView.vue')
+          component: () => import('@/views/IflowView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'droid',
           name: 'droid',
-          component: () => import('@/views/DroidView.vue')
+          component: () => import('@/views/DroidView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         // 工具中心
         {
@@ -65,13 +77,14 @@ const router = createRouter({
         {
           path: 'sync',
           name: 'sync',
-          component: () => import('@/views/SyncView.vue')
+          component: () => import('@/views/SyncView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'configs',
           name: 'configs',
           component: () => import('@/views/ConfigsView.vue'),
-          meta: { cache: true }
+          meta: { cache: true, hideGlobalBackground: true }
         },
         {
           path: 'stats',
@@ -91,7 +104,7 @@ const router = createRouter({
           path: 'usage',
           name: 'usage',
           component: () => import('@/views/UsageDashboardView.vue'),
-          meta: { cache: true }
+          meta: { cache: true, hideGlobalBackground: true }
         },
         {
           path: 'monitoring',
@@ -124,7 +137,7 @@ const router = createRouter({
           path: 'skills',
           name: 'skills',
           component: () => import('@/views/skills/UnifiedSkillsView.vue'),
-          meta: { cache: true }
+          meta: { cache: true, hideGlobalBackground: true }
         },
         {
           path: 'skills/add',
@@ -191,137 +204,161 @@ const router = createRouter({
         {
           path: 'codex/mcp',
           name: 'codex-mcp',
-          component: () => import('@/views/CodexMcpView.vue')
+          component: () => import('@/views/CodexMcpView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'codex/profiles',
           name: 'codex-profiles',
-          component: () => import('@/views/CodexProfilesView.vue')
+          component: () => import('@/views/CodexProfilesView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'codex/slash-commands',
           name: 'codex-slash-commands',
-          component: () => import('@/views/CodexSlashCommandsView.vue')
+          component: () => import('@/views/CodexSlashCommandsView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'codex/auth',
           name: 'codex-auth',
-          component: () => import('@/views/CodexAuthView.vue')
+          component: () => import('@/views/CodexAuthView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'codex/settings',
           name: 'codex-settings',
-          component: () => import('@/views/CodexSettingsView.vue')
+          component: () => import('@/views/CodexSettingsView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         // Gemini CLI 子页面
         {
           path: 'gemini-cli/mcp',
           name: 'gemini-mcp',
           component: () => import('@/views/generic/PlatformMcpView.vue'),
-          props: { platform: 'gemini' }
+          props: { platform: 'gemini' },
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'gemini-cli/agents',
           name: 'gemini-agents',
           component: () => import('@/views/generic/AgentsView.vue'),
-          props: { module: 'gemini' }
+          props: { module: 'gemini' },
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'gemini-cli/slash-commands',
           name: 'gemini-slash-commands',
-          component: () => import('@/views/GeminiSlashCommandsView.vue')
+          component: () => import('@/views/GeminiSlashCommandsView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'gemini-cli/plugins',
           name: 'gemini-plugins',
           component: () => import('@/views/generic/PlatformPluginsView.vue'),
-          props: { platform: 'gemini' }
+          props: { platform: 'gemini' },
+          meta: { hideGlobalBackground: true }
         },
         // Qwen 子页面
         {
           path: 'qwen/mcp',
           name: 'qwen-mcp',
           component: () => import('@/views/generic/PlatformMcpView.vue'),
-          props: { platform: 'qwen' }
+          props: { platform: 'qwen' },
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'qwen/agents',
           name: 'qwen-agents',
           component: () => import('@/views/generic/AgentsView.vue'),
-          props: { module: 'qwen' }
+          props: { module: 'qwen' },
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'qwen/slash-commands',
           name: 'qwen-slash-commands',
-          component: () => import('@/views/QwenSlashCommandsView.vue')
+          component: () => import('@/views/QwenSlashCommandsView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'qwen/plugins',
           name: 'qwen-plugins',
           component: () => import('@/views/generic/PlatformPluginsView.vue'),
-          props: { platform: 'qwen' }
+          props: { platform: 'qwen' },
+          meta: { hideGlobalBackground: true }
         },
         // iFlow 子页面
         {
           path: 'iflow/mcp',
           name: 'iflow-mcp',
           component: () => import('@/views/generic/PlatformMcpView.vue'),
-          props: { platform: 'iflow' }
+          props: { platform: 'iflow' },
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'iflow/agents',
           name: 'iflow-agents',
           component: () => import('@/views/generic/AgentsView.vue'),
-          props: { module: 'iflow' }
+          props: { module: 'iflow' },
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'iflow/slash-commands',
           name: 'iflow-slash-commands',
-          component: () => import('@/views/IflowSlashCommandsView.vue')
+          component: () => import('@/views/IflowSlashCommandsView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'iflow/plugins',
           name: 'iflow-plugins',
           component: () => import('@/views/generic/PlatformPluginsView.vue'),
-          props: { platform: 'iflow' }
+          props: { platform: 'iflow' },
+          meta: { hideGlobalBackground: true }
         },
         // Droid 子页面
         {
           path: 'droid/mcp',
           name: 'droid-mcp',
           component: () => import('@/views/generic/PlatformMcpView.vue'),
-          props: { platform: 'droid' }
+          props: { platform: 'droid' },
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'droid/agents',
           name: 'droid-agents',
           component: () => import('@/views/generic/AgentsView.vue'),
-          props: { module: 'droid' }
+          props: { module: 'droid' },
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'droid/slash-commands',
           name: 'droid-slash-commands',
-          component: () => import('@/views/DroidSlashCommandsView.vue')
+          component: () => import('@/views/DroidSlashCommandsView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'droid/plugins',
           name: 'droid-plugins',
-          component: () => import('@/views/DroidPluginsView.vue')
+          component: () => import('@/views/DroidPluginsView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'droid/models',
           name: 'droid-models',
-          component: () => import('@/views/DroidModelsView.vue')
+          component: () => import('@/views/DroidModelsView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'droid/profiles',
           name: 'droid-profiles',
-          component: () => import('@/views/DroidProfilesView.vue')
+          component: () => import('@/views/DroidProfilesView.vue'),
+          meta: { hideGlobalBackground: true }
         },
         {
           path: 'droid/droids',
           name: 'droid-droids',
-          component: () => import('@/views/DroidDroidsView.vue')
+          component: () => import('@/views/DroidDroidsView.vue'),
+          meta: { hideGlobalBackground: true }
         }
       ]
     }

@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen text-text-primary overflow-hidden font-sans selection:bg-accent-primary/30">
     <!-- Background Image Layer -->
-    <BackgroundImage />
+    <BackgroundImage v-if="!route.meta.hideGlobalBackground" />
 
     <!-- Skip Link -->
     <a
@@ -303,7 +303,12 @@
       </div>
 
       <!-- Scrollable Content with glass effect -->
-      <div class="flex-1 overflow-y-auto scroll-smooth p-6 bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm">
+      <div
+        class="flex-1 overflow-y-auto scroll-smooth p-6"
+        :class="{
+          'bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm': !route.meta.hideGlobalBackground
+        }"
+      >
         <BackendStatusBanner class="mb-6" />
         <RouterView v-slot="{ Component }">
           <transition
@@ -311,7 +316,12 @@
             mode="out-in"
             appear
           >
-            <component :is="Component" />
+            <keep-alive
+              :include="cachedViews"
+              :max="10"
+            >
+              <component :is="Component" />
+            </keep-alive>
           </transition>
         </RouterView>
       </div>
@@ -335,6 +345,12 @@ import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/ap
 
 const route = useRoute()
 const { t } = useI18n()
+
+// keep-alive 缓存列表（仅缓存高频访问页面）
+const cachedViews = [
+  'HomeView', 'ConfigsView', 'CommandsView', 'ClaudeCodeView',
+  'CodexView', 'GeminiCliView', 'QwenView', 'IflowView', 'CheckinView',
+]
 
 // 路由名 → i18n 键映射
 const routeTitleMap: Record<string, string> = {
