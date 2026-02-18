@@ -3,7 +3,7 @@
 # ═══════════════════════════════════════════════════════════
 [package]
 name = "ccr"
-version = "4.1.0"
+version = "4.1.1"
 edition = "2024"
 rust-version = "1.88"
 authors = ["Yonghang Li"]
@@ -70,7 +70,7 @@ r2d2_sqlite = "0.32.0" # SQLite 连接池实现
 rayon = "1.11" # 并行迭代器 (用于加速大数据处理)
 reqwest_dav = "0.3.2" # WebDAV 协议支持 (用于云端同步)
 rusqlite = { version = "0.38.0", features = ["bundled"] } # SQLite 数据库驱动
-toml_edit = "0.23.9" # 保留格式的 TOML 编辑器 (用于修改配置文件)
+toml_edit = "0.25.2+spec-1.1.0" # 保留格式的 TOML 编辑器 (用于修改配置文件)
 tracing = "0.1.43" # 结构化日志门面
 tracing-appender = "0.2.4" # 日志文件写入器
 tracing-log = "0.2" # 标准 log crate 兼容层
@@ -78,7 +78,7 @@ tracing-subscriber = { version = "0.3.22", features = [
     "env-filter",
     "fmt",
 ] } # 日志订阅与格式化
-uuid = { version = "1.20.0", features = ["serde", "v4"] } # 通用唯一标识符 (UUID)
+uuid = { version = "1.21.0", features = ["serde", "v4"] } # 通用唯一标识符 (UUID)
 whoami = "2.0.0" # 获取当前用户名和主机名
 
 # --- 可选依赖 (字母顺序) ---
@@ -86,7 +86,7 @@ axum = { workspace = true, optional = true }        # Web 服务器框架 (用�
 crossterm = { version = "0.29.0", optional = true } # 跨平台终端操作 (TUI 基础)
 open = { version = "5.3.3", optional = true }       # 打开文件/链接
 ratatui = { version = "0.30.0", optional = true }   # TUI 框架 (基于 crossterm)
-sysinfo = { version = "0.38.1", optional = true }   # 系统信息获取 (CPU, 内存)
+sysinfo = { version = "0.38.2", optional = true }   # 系统信息获取 (CPU, 内存)
 tower = { workspace = true, optional = true }       # 网络服务组件 (中间件)
 tower-http = { workspace = true, optional = true }  # HTTP 中间件 (CORS 等)
 
@@ -111,7 +111,7 @@ tokio = { version = "1.49.0", features = [
 ] }
 
 # CLI
-clap = { version = "4.5.58", features = ["cargo", "derive"] }
+clap = { version = "4.5.59", features = ["cargo", "derive"] }
 
 # Error handling
 anyhow = "1.0.101"
@@ -123,7 +123,7 @@ reqwest = { version = "0.13.2", features = ["json"] }
 # Serialization
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
-toml = "0.9.8"
+toml = "1.0.2+spec-1.1.0"
 
 # Time
 chrono = { version = "0.4.43", features = ["serde"] }
