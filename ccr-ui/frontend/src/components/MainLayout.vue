@@ -243,7 +243,7 @@
                   </span>
                 </p>
                 <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                  CCR UI v4.1.0
+                  CCR UI v4.1.1
                 </span>
               </div>
             </div>
@@ -312,7 +312,7 @@
         <BackendStatusBanner class="mb-6" />
         <RouterView v-slot="{ Component }">
           <transition
-            name="fade-slide"
+            :name="transitionName"
             mode="out-in"
             appear
           >
@@ -342,9 +342,11 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import BackgroundImage from '@/components/common/BackgroundImage.vue'
 import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
+import { usePageTransition } from '@/composables/usePageTransition'
 
 const route = useRoute()
 const { t } = useI18n()
+const { transitionName } = usePageTransition()
 
 // keep-alive 缓存列表（仅缓存高频访问页面）
 const cachedViews = [
@@ -557,19 +559,4 @@ onUnmounted(() => {
   box-shadow: 0 8px 25px rgb(244 114 182 / 12%);
 }
 
-/* Page Transition */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-5px);
-}
 </style>
