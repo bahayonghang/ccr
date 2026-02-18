@@ -16,7 +16,6 @@
 use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 
 use crate::core::error::{ApiError, ApiResult};
-use crate::core::executor; // TODO: 逐步移除（export/import 还在使用）
 use crate::models::api::*;
 
 // 🎯 导入 CCR 核心库
@@ -165,71 +164,64 @@ pub async fn clean_backups(Json(req): Json<CleanRequest>) -> impl IntoResponse {
 
 /// POST /api/configs/export - Export configurations
 pub async fn export_config(Json(req): Json<ExportRequest>) -> impl IntoResponse {
-    let mut args = vec!["export".to_string()];
+    let result = tokio::task::spawn_blocking(move || {
+        let service = ConfigService::with_default()
+            .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
-    if !req.include_secrets {
-        args.push("--no-secrets".to_string());
-    }
+        let content = service
+            .export_config(req.include_secrets)
+            .map_err(|e| format!("Failed to export config: {}", e))?;
 
-    let result = executor::execute_command(args).await;
+        Ok::<String, String>(content)
+    })
+    .await;
 
     match result {
-        Ok(output) if output.success => {
-            // Read the exported file (CCR writes to a file)
-            // For simplicity, we'll return the stdout
+        Ok(Ok(content)) => {
             let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
             let response = ExportResponse {
-                content: output.stdout,
+                content,
                 filename: format!("ccs_config_export_{}.toml", timestamp),
             };
             ApiResponse::success(response)
         }
-        Ok(output) => ApiResponse::<ExportResponse>::error(output.stderr),
+        Ok(Err(e)) => ApiResponse::<ExportResponse>::error(e),
         Err(e) => ApiResponse::<ExportResponse>::error(e.to_string()),
     }
 }
 
 /// POST /api/configs/import - Import configurations
 pub async fn import_config(Json(req): Json<ImportRequest>) -> impl IntoResponse {
-    // Write the content to a temporary file
-    let temp_file = match tempfile::NamedTempFile::new() {
-        Ok(f) => f,
-        Err(e) => {
-            return ApiResponse::<ImportResponse>::error(format!(
-                "Failed to create temp file: {}",
-                e
-            ));
-        }
-    };
+    use ccr::services::config_service::ImportMode;
 
-    if let Err(e) = std::fs::write(temp_file.path(), &req.content) {
-        return ApiResponse::<ImportResponse>::error(format!("Failed to write temp file: {}", e));
-    }
+    let result = tokio::task::spawn_blocking(move || {
+        let mode = match req.mode.to_lowercase().as_str() {
+            "merge" => ImportMode::Merge,
+            "replace" => ImportMode::Replace,
+            _ => return Err(format!("Invalid import mode: {}", req.mode)),
+        };
 
-    let mut args = vec![
-        "import".to_string(),
-        temp_file.path().to_string_lossy().to_string(),
-        "--mode".to_string(),
-        req.mode.clone(),
-    ];
+        let service = ConfigService::with_default()
+            .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
-    if !req.backup {
-        args.push("--no-backup".to_string());
-    }
+        let result = service
+            .import_config(&req.content, mode, req.backup)
+            .map_err(|e| format!("Import failed: {}", e))?;
 
-    let result = executor::execute_command(args).await;
+        Ok::<_, String>(result)
+    })
+    .await;
 
     match result {
-        Ok(output) if output.success => {
-            // Parse output for import statistics (simplified)
+        Ok(Ok(result)) => {
             let response = ImportResponse {
-                added: 0,
-                updated: 0,
-                skipped: 0,
+                added: result.added,
+                updated: result.updated,
+                skipped: result.skipped,
             };
             ApiResponse::success(response)
         }
-        Ok(output) => ApiResponse::<ImportResponse>::error(output.stderr),
+        Ok(Err(e)) => ApiResponse::<ImportResponse>::error(e),
         Err(e) => ApiResponse::<ImportResponse>::error(e.to_string()),
     }
 }

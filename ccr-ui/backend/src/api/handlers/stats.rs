@@ -195,37 +195,30 @@ pub async fn provider_usage() -> Result<Json<HashMap<String, u64>>, StatusCode> 
 pub async fn cost_top_sessions(
     Query(params): Query<TopNQuery>,
 ) -> Result<Json<Vec<TopSessionResponse>>, StatusCode> {
-    // 创建唯一的临时文件（避免并发冲突）
-    let temp_file =
-        tempfile::NamedTempFile::new().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let temp_path = temp_file
-        .path()
-        .to_str()
-        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?
-        .to_string();
+    use ccr::managers::CostTracker;
 
-    let args = vec![
-        "stats".to_string(),
-        "cost".to_string(),
-        "--top".to_string(),
-        params.limit.to_string(),
-        "--export".to_string(),
-        temp_path,
-    ];
+    // 获取默认存储目录
+    let storage_dir =
+        CostTracker::default_storage_dir().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let output = executor::execute_command(args)
-        .await
+    // 创建 CostTracker 实例
+    let tracker = CostTracker::new(storage_dir).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // 获取 Top N 会话
+    let top_sessions = tracker
+        .get_top_sessions(params.limit)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    if !output.success {
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    }
+    // 转换为响应格式
+    let response: Vec<TopSessionResponse> = top_sessions
+        .into_iter()
+        .map(|(id, cost)| TopSessionResponse {
+            session_id: id,
+            cost,
+        })
+        .collect();
 
-    // 从输出解析 top sessions
-    // 临时实现：返回空列表
-    // TODO: 改进 CLI 输出格式以便解析
-    // 临时文件会在 temp_file drop 时自动删除
-    Ok(Json(vec![]))
+    Ok(Json(response))
 }
 
 /// GET /api/stats/summary - 快速摘要
