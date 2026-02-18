@@ -2,8 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{Manager, RunEvent, State, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_shell::{ShellExt, process::CommandChild};
@@ -479,8 +479,79 @@ async fn sync_pull(force: Option<bool>) -> Result<String, String> {
 /// 获取同步状态
 #[tauri::command]
 async fn sync_status() -> Result<String, String> {
-    // TODO: 实现同步状态查询
-    Ok("Sync status not yet implemented in Tauri".to_string())
+    use ccr::sync::{SyncConfigManager, SyncService};
+
+    let result = tokio::task::spawn_blocking(move || {
+        let manager = SyncConfigManager::with_default()
+            .map_err(|e| format!("Failed to create SyncConfigManager: {}", e))?;
+
+        let config = manager
+            .load()
+            .map_err(|e| format!("Failed to load sync config: {}", e))?;
+
+        if !config.enabled {
+            return Ok("Sync is disabled".to_string());
+        }
+
+        // Return a formatted status string
+        let mut status = String::new();
+        status.push_str(&format!("Server: {}\n", config.webdav_url));
+        status.push_str(&format!("User: {}\n", config.username));
+        status.push_str(&format!("Remote Path: {}\n", config.remote_path));
+        status.push_str(&format!(
+            "Auto Sync: {}\n",
+            if config.auto_sync {
+                "Enabled"
+            } else {
+                "Disabled"
+            }
+        ));
+
+        // We can't easily do async check in this blocking task if we want to be quick,
+        // but SyncService::new is async.
+        // So we need to use a runtime handle or return config info and let frontend check connectivity?
+        // Or better, do the check in the async block outside spawn_blocking if possible.
+        // But SyncConfigManager is blocking (rusqlite/fs).
+
+        Ok::<String, String>(status)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))??;
+
+    // Check connectivity in async context
+    if result != "Sync is disabled" {
+        // We need config again for service. Ideally pass config out.
+        // Let's re-load config in async block for connectivity check? No, minimal overhead.
+        // Actually best is to implement this properly.
+
+        let check_result = async {
+            let manager = SyncConfigManager::with_default()
+                .map_err(|e| format!("Failed to create SyncConfigManager: {}", e))?;
+            let config = manager
+                .load()
+                .map_err(|e| format!("Failed to load sync config: {}", e))?;
+
+            let service = SyncService::new(&config)
+                .await
+                .map_err(|e| format!("Failed to create SyncService: {}", e))?;
+
+            let exists = service
+                .remote_exists()
+                .await
+                .map_err(|e| format!("Check remote failed: {}", e))?;
+
+            Ok::<String, String>(if exists {
+                format!("{}\nRemote Status: Connected (Content Exists)", result)
+            } else {
+                format!("{}\nRemote Status: Connected (Content Missing)", result)
+            })
+        }
+        .await;
+
+        return check_result;
+    }
+
+    Ok(result)
 }
 
 // ============================================================================
@@ -490,11 +561,12 @@ async fn sync_status() -> Result<String, String> {
 /// 列出所有平台
 #[tauri::command]
 async fn list_platforms() -> Result<Vec<String>, String> {
-    // TODO: 实现平台列表
     Ok(vec![
         "claude".to_string(),
         "codex".to_string(),
         "gemini".to_string(),
+        "qwen".to_string(),
+        "iflow".to_string(),
     ])
 }
 

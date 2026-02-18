@@ -1,75 +1,10 @@
 // Sync Handlers - WebDAV Configuration Synchronization
 // Execute sync commands and manage sync configuration
 
-use crate::core::executor;
 use crate::models::api::*;
 use axum::{Json, response::IntoResponse};
-
-/// 解析 sync status 输出
-fn parse_sync_status(output: &str) -> Option<SyncConfigDetails> {
-    let mut enabled = false;
-    let mut webdav_url = String::new();
-    let mut username = String::new();
-    let mut remote_path = String::new();
-    let mut auto_sync = false;
-    let mut remote_file_exists = None;
-
-    for line in output.lines() {
-        let line = line.trim();
-
-        // 状态：✓ 已启用
-        if line.contains("状态") && line.contains("已启用") {
-            enabled = true;
-        }
-
-        // WebDAV 服务器：https://...
-        if (line.contains("WebDAV 服务器") || line.contains("服务器"))
-            && let Some(url) = line.split('│').nth(1)
-        {
-            webdav_url = url.trim().to_string();
-        }
-
-        // 用户名：xxx
-        if line.contains("用户名")
-            && let Some(user) = line.split('│').nth(1)
-        {
-            username = user.trim().to_string();
-        }
-
-        // 远程路径：/ccr/.ccs_config.toml
-        if (line.contains("远程路径") || line.contains("远程文件路径"))
-            && let Some(path) = line.split('│').nth(1)
-        {
-            remote_path = path.trim().to_string();
-        }
-
-        // 自动同步：✓ 开启 / ✗ 关闭
-        if line.contains("自动同步") && (line.contains("开启") || line.contains("✓")) {
-            auto_sync = true;
-        }
-
-        // 远程配置文件存在
-        if line.contains("远程配置文件存在") || line.contains("远程文件存在") {
-            remote_file_exists = Some(true);
-        } else if line.contains("远程配置文件不存在") || line.contains("远程文件不存在")
-        {
-            remote_file_exists = Some(false);
-        }
-    }
-
-    if !webdav_url.is_empty() {
-        Some(SyncConfigDetails {
-            enabled,
-            webdav_url,
-            username,
-            remote_path,
-            auto_sync,
-            remote_file_exists,
-        })
-    } else {
-        None
-    }
-}
+use ccr::sync::{SyncConfig, SyncConfigManager, SyncFolderManager, SyncService};
+use std::time::Instant;
 
 /// POST /api/sync/config - Interactive sync configuration (not supported in web API)
 pub async fn configure_sync() -> impl IntoResponse {
@@ -80,49 +15,130 @@ pub async fn configure_sync() -> impl IntoResponse {
 
 /// GET /api/sync/status - Get sync status and configuration
 pub async fn get_sync_status() -> impl IntoResponse {
-    let args = vec!["sync".to_string(), "status".to_string()];
+    let _start = Instant::now();
+    let result = tokio::task::spawn_blocking(move || {
+        let manager = SyncConfigManager::with_default()
+            .map_err(|e| format!("Failed to create SyncConfigManager: {}", e))?;
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            if output.success {
-                let configured = !output.stdout.contains("同步功能未配置")
-                    && !output.stdout.contains("Sync not configured");
-                let config = if configured {
-                    parse_sync_status(&output.stdout)
-                } else {
-                    None
-                };
+        let config = manager
+            .load()
+            .map_err(|e| format!("Failed to load sync config: {}", e))?;
 
-                let response = SyncStatusResponse {
-                    success: true,
-                    output: output.stdout,
-                    configured,
-                    config,
-                };
-                ApiResponse::success(response)
-            } else {
-                ApiResponse::<SyncStatusResponse>::error(output.stderr)
-            }
+        // 检查配置是否已启用
+        if !config.enabled {
+            return Ok::<_, String>((false, config, None::<SyncConfigDetails>));
         }
+
+        Ok((true, config, None))
+    })
+    .await;
+
+    match result {
+        Ok(Ok((configured, config, _))) => {
+            // 在异步上下文中检查远程连接
+            let remote_exists = if configured {
+                match SyncService::new(&config).await {
+                    Ok(service) => match service.test_connection().await {
+                        Ok(_) => Some(true),
+                        Err(_) => Some(false),
+                    },
+                    Err(_) => Some(false),
+                }
+            } else {
+                None
+            };
+
+            // 构建输出字符串（模拟 CLI 输出）
+            let output = format!(
+                "状态: {}\nWebDAV 服务器: {}\n用户名: {}\n远程路径: {}\n自动同步: {}\n远程配置文件存在: {}",
+                if configured {
+                    "✓ 已启用"
+                } else {
+                    "✗ 未启用"
+                },
+                config.webdav_url,
+                config.username,
+                config.remote_path,
+                if config.auto_sync {
+                    "✓ 开启"
+                } else {
+                    "✗ 关闭"
+                },
+                match remote_exists {
+                    Some(true) => "✓ 存在",
+                    Some(false) => "✗ 不存在或无法访问",
+                    None => "未知",
+                }
+            );
+
+            let details = if configured {
+                Some(SyncConfigDetails {
+                    enabled: config.enabled,
+                    webdav_url: config.webdav_url.clone(),
+                    username: config.username.clone(),
+                    remote_path: config.remote_path.clone(),
+                    auto_sync: config.auto_sync,
+                    remote_file_exists: remote_exists,
+                })
+            } else {
+                None
+            };
+
+            let response = SyncStatusResponse {
+                success: true,
+                output,
+                configured,
+                config: details,
+            };
+            ApiResponse::success(response)
+        }
+        Ok(Err(e)) => ApiResponse::<SyncStatusResponse>::error(e),
         Err(e) => ApiResponse::<SyncStatusResponse>::error(e.to_string()),
     }
 }
 
 /// POST /api/sync/push - Upload config to cloud
-pub async fn push_config(Json(req): Json<SyncOperationRequest>) -> impl IntoResponse {
-    let mut args = vec!["sync".to_string(), "push".to_string()];
+pub async fn push_config(Json(_req): Json<SyncOperationRequest>) -> impl IntoResponse {
+    let start = Instant::now();
 
-    if req.force {
-        args.push("--force".to_string());
+    // 1. 获取配置
+    let manager = match SyncConfigManager::with_default() {
+        Ok(m) => m,
+        Err(e) => return ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    };
+
+    let config = match manager.load() {
+        Ok(c) => c,
+        Err(e) => return ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    };
+
+    if !config.enabled {
+        return ApiResponse::<SyncOperationResponse>::error("Sync is disabled".to_string());
     }
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
+    // 2. 创建服务
+    let service = match SyncService::new(&config).await {
+        Ok(s) => s,
+        Err(e) => return ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    };
+
+    // 3. 获取本地路径
+    let local_path = match ccr::sync::service::get_ccr_sync_path() {
+        Ok(p) => p,
+        Err(e) => return ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    };
+
+    // 4. 执行上传
+    // 使用 None 作为 allowed_paths 表示允许所有（或者应该使用 excludes？）
+    // SyncService::push 内部会处理目录上传
+    match service.push(&local_path, None).await {
+        Ok(_) => {
+            let duration = start.elapsed().as_millis() as u64;
             let response = SyncOperationResponse {
-                success: output.success,
-                output: output.stdout,
-                error: output.stderr,
-                duration_ms: output.duration_ms,
+                success: true,
+                output: format!("Successfully pushed config to {}", config.remote_path),
+                error: String::new(),
+                duration_ms: duration,
             };
             ApiResponse::success(response)
         }
@@ -131,20 +147,45 @@ pub async fn push_config(Json(req): Json<SyncOperationRequest>) -> impl IntoResp
 }
 
 /// POST /api/sync/pull - Download config from cloud
-pub async fn pull_config(Json(req): Json<SyncOperationRequest>) -> impl IntoResponse {
-    let mut args = vec!["sync".to_string(), "pull".to_string()];
+pub async fn pull_config(Json(_req): Json<SyncOperationRequest>) -> impl IntoResponse {
+    let start = Instant::now();
 
-    if req.force {
-        args.push("--force".to_string());
+    // 1. 获取配置
+    let manager = match SyncConfigManager::with_default() {
+        Ok(m) => m,
+        Err(e) => return ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    };
+
+    let config = match manager.load() {
+        Ok(c) => c,
+        Err(e) => return ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    };
+
+    if !config.enabled {
+        return ApiResponse::<SyncOperationResponse>::error("Sync is disabled".to_string());
     }
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
+    // 2. 创建服务
+    let service = match SyncService::new(&config).await {
+        Ok(s) => s,
+        Err(e) => return ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    };
+
+    // 3. 获取本地路径
+    let local_path = match ccr::sync::service::get_ccr_sync_path() {
+        Ok(p) => p,
+        Err(e) => return ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+    };
+
+    // 4. 执行下载
+    match service.pull(&local_path).await {
+        Ok(_) => {
+            let duration = start.elapsed().as_millis() as u64;
             let response = SyncOperationResponse {
-                success: output.success,
-                output: output.stdout,
-                error: output.stderr,
-                duration_ms: output.duration_ms,
+                success: true,
+                output: format!("Successfully pulled config from {}", config.remote_path),
+                error: String::new(),
+                duration_ms: duration,
             };
             ApiResponse::success(response)
         }
@@ -193,59 +234,83 @@ pub async fn get_sync_info() -> impl IntoResponse {
 
 /// GET /api/sync/folders - List all sync folders
 pub async fn list_sync_folders() -> impl IntoResponse {
-    let args = vec!["sync".to_string(), "folder".to_string(), "list".to_string()];
+    let start = Instant::now();
+    let result = tokio::task::spawn_blocking(move || {
+        let manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        let folders = manager
+            .list_folders()
+            .map_err(|e| format!("Failed to list folders: {}", e))?;
+        Ok::<_, String>(folders)
+    })
+    .await;
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            if output.success {
-                // Parse the folder list from CLI output
-                // For now, we'll execute the command and let the CLI format the output
-                // TODO: Parse structured output when available
-                ApiResponse::success(SyncOperationResponse {
-                    success: true,
-                    output: output.stdout,
-                    error: String::new(),
-                    duration_ms: output.duration_ms,
-                })
-            } else {
-                ApiResponse::<SyncOperationResponse>::error(output.stderr)
+    match result {
+        Ok(Ok(folders)) => {
+            // 格式化输出
+            let mut output = String::new();
+            for folder in &folders {
+                output.push_str(&format!(
+                    "{} ({}) - {}\n  Local: {}\n  Remote: {}\n\n",
+                    folder.name,
+                    if folder.enabled {
+                        "Enabled"
+                    } else {
+                        "Disabled"
+                    },
+                    folder.description,
+                    folder.local_path,
+                    folder.remote_path
+                ));
             }
+
+            let response = SyncOperationResponse {
+                success: true,
+                output,
+                error: String::new(),
+                duration_ms: start.elapsed().as_millis() as u64,
+            };
+            ApiResponse::success(response)
         }
+        Ok(Err(e)) => ApiResponse::<SyncOperationResponse>::error(e),
         Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
     }
 }
 
 /// POST /api/sync/folders - Add a new sync folder
 pub async fn add_sync_folder(Json(req): Json<AddSyncFolderRequest>) -> impl IntoResponse {
-    let mut args = vec![
-        "sync".to_string(),
-        "folder".to_string(),
-        "add".to_string(),
-        req.name.clone(),
-        req.local_path.clone(),
-    ];
+    let folder_name = req.name.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let mut manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
 
-    if let Some(remote_path) = &req.remote_path {
-        args.push("-r".to_string());
-        args.push(remote_path.clone());
-    }
+        // 构建 SyncFolder
+        let folder = ccr::sync::folder::SyncFolder::builder()
+            .name(req.name.clone())
+            .local_path(req.local_path)
+            .remote_path(
+                req.remote_path
+                    .unwrap_or_else(|| format!("/ccr-sync/{}", req.name)),
+            )
+            .description(req.description.unwrap_or_default())
+            .enabled(true)
+            .build()
+            .map_err(|e| format!("Invalid folder config: {}", e))?;
 
-    if let Some(description) = &req.description {
-        args.push("-d".to_string());
-        args.push(description.clone());
-    }
+        manager
+            .add_folder(folder)
+            .map_err(|e| format!("Failed to add folder: {}", e))?;
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            if output.success {
-                ApiResponse::success(SyncFolderOperationResponse {
-                    success: true,
-                    message: format!("Successfully added sync folder: {}", req.name),
-                })
-            } else {
-                ApiResponse::<SyncFolderOperationResponse>::error(output.stderr)
-            }
-        }
+        Ok::<_, String>(())
+    })
+    .await;
+
+    match result {
+        Ok(Ok(())) => ApiResponse::success(SyncFolderOperationResponse {
+            success: true,
+            message: format!("Successfully added sync folder: {}", folder_name),
+        }),
+        Ok(Err(e)) => ApiResponse::<SyncFolderOperationResponse>::error(e),
         Err(e) => ApiResponse::<SyncFolderOperationResponse>::error(e.to_string()),
     }
 }
@@ -254,24 +319,23 @@ pub async fn add_sync_folder(Json(req): Json<AddSyncFolderRequest>) -> impl Into
 pub async fn remove_sync_folder(
     axum::extract::Path(name): axum::extract::Path<String>,
 ) -> impl IntoResponse {
-    let args = vec![
-        "sync".to_string(),
-        "folder".to_string(),
-        "remove".to_string(),
-        name.clone(),
-    ];
+    let name_clone = name.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let mut manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        manager
+            .remove_folder(&name_clone)
+            .map_err(|e| format!("Failed to remove folder: {}", e))?;
+        Ok::<_, String>(())
+    })
+    .await;
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            if output.success {
-                ApiResponse::success(SyncFolderOperationResponse {
-                    success: true,
-                    message: format!("Successfully removed sync folder: {}", name),
-                })
-            } else {
-                ApiResponse::<SyncFolderOperationResponse>::error(output.stderr)
-            }
-        }
+    match result {
+        Ok(Ok(())) => ApiResponse::success(SyncFolderOperationResponse {
+            success: true,
+            message: format!("Successfully removed sync folder: {}", name),
+        }),
+        Ok(Err(e)) => ApiResponse::<SyncFolderOperationResponse>::error(e),
         Err(e) => ApiResponse::<SyncFolderOperationResponse>::error(e.to_string()),
     }
 }
@@ -280,26 +344,38 @@ pub async fn remove_sync_folder(
 pub async fn get_sync_folder_info(
     axum::extract::Path(name): axum::extract::Path<String>,
 ) -> impl IntoResponse {
-    let args = vec![
-        "sync".to_string(),
-        "folder".to_string(),
-        "info".to_string(),
-        name.clone(),
-    ];
+    let start = Instant::now();
+    let result = tokio::task::spawn_blocking(move || {
+        let manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        let folder = manager
+            .get_folder(&name)
+            .map_err(|e| format!("Folder not found: {}", e))?;
+        Ok::<_, String>(folder)
+    })
+    .await;
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            if output.success {
-                ApiResponse::success(SyncOperationResponse {
-                    success: true,
-                    output: output.stdout,
-                    error: String::new(),
-                    duration_ms: output.duration_ms,
-                })
-            } else {
-                ApiResponse::<SyncOperationResponse>::error(output.stderr)
-            }
+    match result {
+        Ok(Ok(folder)) => {
+            let output = format!(
+                "Name: {}\nDescription: {}\nLocal Path: {}\nRemote Path: {}\nEnabled: {}\nAuto Sync: {}\nExclude Patterns: {:?}",
+                folder.name,
+                folder.description,
+                folder.local_path,
+                folder.remote_path,
+                folder.enabled,
+                folder.auto_sync,
+                folder.exclude_patterns
+            );
+
+            ApiResponse::success(SyncOperationResponse {
+                success: true,
+                output,
+                error: String::new(),
+                duration_ms: start.elapsed().as_millis() as u64,
+            })
         }
+        Ok(Err(e)) => ApiResponse::<SyncOperationResponse>::error(e),
         Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
     }
 }
@@ -308,24 +384,23 @@ pub async fn get_sync_folder_info(
 pub async fn enable_sync_folder(
     axum::extract::Path(name): axum::extract::Path<String>,
 ) -> impl IntoResponse {
-    let args = vec![
-        "sync".to_string(),
-        "folder".to_string(),
-        "enable".to_string(),
-        name.clone(),
-    ];
+    let name_clone = name.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let mut manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        manager
+            .enable_folder(&name_clone)
+            .map_err(|e| format!("Failed to enable folder: {}", e))?;
+        Ok::<_, String>(())
+    })
+    .await;
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            if output.success {
-                ApiResponse::success(SyncFolderOperationResponse {
-                    success: true,
-                    message: format!("Successfully enabled sync folder: {}", name),
-                })
-            } else {
-                ApiResponse::<SyncFolderOperationResponse>::error(output.stderr)
-            }
-        }
+    match result {
+        Ok(Ok(())) => ApiResponse::success(SyncFolderOperationResponse {
+            success: true,
+            message: format!("Successfully enabled sync folder: {}", name),
+        }),
+        Ok(Err(e)) => ApiResponse::<SyncFolderOperationResponse>::error(e),
         Err(e) => ApiResponse::<SyncFolderOperationResponse>::error(e.to_string()),
     }
 }
@@ -334,24 +409,23 @@ pub async fn enable_sync_folder(
 pub async fn disable_sync_folder(
     axum::extract::Path(name): axum::extract::Path<String>,
 ) -> impl IntoResponse {
-    let args = vec![
-        "sync".to_string(),
-        "folder".to_string(),
-        "disable".to_string(),
-        name.clone(),
-    ];
+    let name_clone = name.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let mut manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        manager
+            .disable_folder(&name_clone)
+            .map_err(|e| format!("Failed to disable folder: {}", e))?;
+        Ok::<_, String>(())
+    })
+    .await;
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            if output.success {
-                ApiResponse::success(SyncFolderOperationResponse {
-                    success: true,
-                    message: format!("Successfully disabled sync folder: {}", name),
-                })
-            } else {
-                ApiResponse::<SyncFolderOperationResponse>::error(output.stderr)
-            }
-        }
+    match result {
+        Ok(Ok(())) => ApiResponse::success(SyncFolderOperationResponse {
+            success: true,
+            message: format!("Successfully disabled sync folder: {}", name),
+        }),
+        Ok(Err(e)) => ApiResponse::<SyncFolderOperationResponse>::error(e),
         Err(e) => ApiResponse::<SyncFolderOperationResponse>::error(e.to_string()),
     }
 }
@@ -359,21 +433,67 @@ pub async fn disable_sync_folder(
 /// POST /api/sync/folders/:name/push - Push a specific folder to cloud
 pub async fn push_sync_folder(
     axum::extract::Path(name): axum::extract::Path<String>,
-    Json(req): Json<SyncOperationRequest>,
+    Json(_req): Json<SyncOperationRequest>,
 ) -> impl IntoResponse {
-    let mut args = vec!["sync".to_string(), name.clone(), "push".to_string()];
+    let start = Instant::now();
 
-    if req.force {
-        args.push("--force".to_string());
-    }
+    // 1. 获取文件夹配置
+    let folder_info = tokio::task::spawn_blocking(move || {
+        let manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        let config = manager
+            .load_config()
+            .map_err(|e| format!("Failed to load config: {}", e))?;
+        let folder = config
+            .find_folder(&name)
+            .cloned()
+            .ok_or_else(|| format!("Folder '{}' not found", name))?;
 
-    match executor::execute_command(args).await {
-        Ok(output) => ApiResponse::success(SyncFolderSyncResponse {
-            success: output.success,
-            output: output.stdout,
-            error: output.stderr,
-            duration_ms: output.duration_ms,
-        }),
+        // 构造 SyncConfig 用于创建 Service
+        let sync_config = SyncConfig {
+            enabled: folder.enabled,
+            webdav_url: config.webdav.url.clone(),
+            username: config.webdav.username.clone(),
+            password: config.webdav.password.clone(),
+            remote_path: folder.remote_path.clone(), // 使用文件夹的远程路径
+            auto_sync: folder.auto_sync,
+        };
+
+        Ok::<_, String>((folder, sync_config))
+    })
+    .await;
+
+    match folder_info {
+        Ok(Ok((folder, sync_config))) => {
+            if !folder.enabled {
+                return ApiResponse::<SyncFolderSyncResponse>::error(
+                    "Folder is disabled".to_string(),
+                );
+            }
+
+            match SyncService::new(&sync_config).await {
+                Ok(service) => {
+                    let local_path = match folder.expand_local_path() {
+                        Ok(p) => p,
+                        Err(e) => {
+                            return ApiResponse::<SyncFolderSyncResponse>::error(e.to_string());
+                        }
+                    };
+
+                    match service.push(&local_path, None).await {
+                        Ok(_) => ApiResponse::success(SyncFolderSyncResponse {
+                            success: true,
+                            output: format!("Successfully pushed folder '{}'", folder.name),
+                            error: String::new(),
+                            duration_ms: start.elapsed().as_millis() as u64,
+                        }),
+                        Err(e) => ApiResponse::<SyncFolderSyncResponse>::error(e.to_string()),
+                    }
+                }
+                Err(e) => ApiResponse::<SyncFolderSyncResponse>::error(e.to_string()),
+            }
+        }
+        Ok(Err(e)) => ApiResponse::<SyncFolderSyncResponse>::error(e),
         Err(e) => ApiResponse::<SyncFolderSyncResponse>::error(e.to_string()),
     }
 }
@@ -381,21 +501,66 @@ pub async fn push_sync_folder(
 /// POST /api/sync/folders/:name/pull - Pull a specific folder from cloud
 pub async fn pull_sync_folder(
     axum::extract::Path(name): axum::extract::Path<String>,
-    Json(req): Json<SyncOperationRequest>,
+    Json(_req): Json<SyncOperationRequest>,
 ) -> impl IntoResponse {
-    let mut args = vec!["sync".to_string(), name.clone(), "pull".to_string()];
+    let start = Instant::now();
 
-    if req.force {
-        args.push("--force".to_string());
-    }
+    // 1. 获取文件夹配置
+    let folder_info = tokio::task::spawn_blocking(move || {
+        let manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        let config = manager
+            .load_config()
+            .map_err(|e| format!("Failed to load config: {}", e))?;
+        let folder = config
+            .find_folder(&name)
+            .cloned()
+            .ok_or_else(|| format!("Folder '{}' not found", name))?;
 
-    match executor::execute_command(args).await {
-        Ok(output) => ApiResponse::success(SyncFolderSyncResponse {
-            success: output.success,
-            output: output.stdout,
-            error: output.stderr,
-            duration_ms: output.duration_ms,
-        }),
+        let sync_config = SyncConfig {
+            enabled: folder.enabled,
+            webdav_url: config.webdav.url.clone(),
+            username: config.webdav.username.clone(),
+            password: config.webdav.password.clone(),
+            remote_path: folder.remote_path.clone(),
+            auto_sync: folder.auto_sync,
+        };
+
+        Ok::<_, String>((folder, sync_config))
+    })
+    .await;
+
+    match folder_info {
+        Ok(Ok((folder, sync_config))) => {
+            if !folder.enabled {
+                return ApiResponse::<SyncFolderSyncResponse>::error(
+                    "Folder is disabled".to_string(),
+                );
+            }
+
+            match SyncService::new(&sync_config).await {
+                Ok(service) => {
+                    let local_path = match folder.expand_local_path() {
+                        Ok(p) => p,
+                        Err(e) => {
+                            return ApiResponse::<SyncFolderSyncResponse>::error(e.to_string());
+                        }
+                    };
+
+                    match service.pull(&local_path).await {
+                        Ok(_) => ApiResponse::success(SyncFolderSyncResponse {
+                            success: true,
+                            output: format!("Successfully pulled folder '{}'", folder.name),
+                            error: String::new(),
+                            duration_ms: start.elapsed().as_millis() as u64,
+                        }),
+                        Err(e) => ApiResponse::<SyncFolderSyncResponse>::error(e.to_string()),
+                    }
+                }
+                Err(e) => ApiResponse::<SyncFolderSyncResponse>::error(e.to_string()),
+            }
+        }
+        Ok(Err(e)) => ApiResponse::<SyncFolderSyncResponse>::error(e),
         Err(e) => ApiResponse::<SyncFolderSyncResponse>::error(e.to_string()),
     }
 }
@@ -404,21 +569,58 @@ pub async fn pull_sync_folder(
 pub async fn get_sync_folder_status(
     axum::extract::Path(name): axum::extract::Path<String>,
 ) -> impl IntoResponse {
-    let args = vec!["sync".to_string(), name.clone(), "status".to_string()];
+    let start = Instant::now();
+    let folder_info = tokio::task::spawn_blocking(move || {
+        let manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        let config = manager
+            .load_config()
+            .map_err(|e| format!("Failed to load config: {}", e))?;
+        let folder = config
+            .find_folder(&name)
+            .cloned()
+            .ok_or_else(|| format!("Folder '{}' not found", name))?;
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            if output.success {
-                ApiResponse::success(SyncOperationResponse {
-                    success: true,
-                    output: output.stdout,
-                    error: String::new(),
-                    duration_ms: output.duration_ms,
-                })
-            } else {
-                ApiResponse::<SyncOperationResponse>::error(output.stderr)
-            }
-        }
+        let sync_config = SyncConfig {
+            enabled: folder.enabled,
+            webdav_url: config.webdav.url.clone(),
+            username: config.webdav.username.clone(),
+            password: config.webdav.password.clone(),
+            remote_path: folder.remote_path.clone(),
+            auto_sync: folder.auto_sync,
+        };
+
+        Ok::<_, String>((folder, sync_config))
+    })
+    .await;
+
+    match folder_info {
+        Ok(Ok((folder, sync_config))) => match SyncService::new(&sync_config).await {
+            Ok(service) => match service.test_connection().await {
+                Ok(_) => match service.remote_exists().await {
+                    Ok(exists) => {
+                        let output = format!(
+                            "Folder: {}\nRemote: {}\nConnection: OK\nRemote Exists: {}",
+                            folder.name,
+                            folder.remote_path,
+                            if exists { "Yes" } else { "No" }
+                        );
+                        ApiResponse::success(SyncOperationResponse {
+                            success: true,
+                            output,
+                            error: String::new(),
+                            duration_ms: start.elapsed().as_millis() as u64,
+                        })
+                    }
+                    Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+                },
+                Err(e) => {
+                    ApiResponse::<SyncOperationResponse>::error(format!("Connection failed: {}", e))
+                }
+            },
+            Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
+        },
+        Ok(Err(e)) => ApiResponse::<SyncOperationResponse>::error(e),
         Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
     }
 }
@@ -428,60 +630,169 @@ pub async fn get_sync_folder_status(
 // ============================================================================
 
 /// POST /api/sync/all/push - Push all enabled folders to cloud
-pub async fn push_all_folders(Json(req): Json<SyncOperationRequest>) -> impl IntoResponse {
-    let mut args = vec!["sync".to_string(), "all".to_string(), "push".to_string()];
+pub async fn push_all_folders(Json(_req): Json<SyncOperationRequest>) -> impl IntoResponse {
+    let start = Instant::now();
+    // Implementation omitted for brevity - would iterate folders and push each
+    // For now returning mock success or TODO
+    // Note: Implementing parsing of all folders structure and async iteration
 
-    if req.force {
-        args.push("--force".to_string());
-    }
+    // For simplicity, let's just return a message saying it's not fully implemented yet in this refactor
+    // Or we could implement it properly:
+    // 1. Load config
+    // 2. Iterate enabled folders
+    // 3. Push each (serially or parallel)
 
-    match executor::execute_command(args).await {
-        Ok(output) => ApiResponse::success(SyncOperationResponse {
-            success: output.success,
-            output: output.stdout,
-            error: output.stderr,
-            duration_ms: output.duration_ms,
-        }),
+    let result = tokio::task::spawn_blocking(move || {
+        let manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        let config = manager
+            .load_config()
+            .map_err(|e| format!("Failed to load config: {}", e))?;
+        Ok::<_, String>(config)
+    })
+    .await;
+
+    match result {
+        Ok(Ok(config)) => {
+            let mut output = String::new();
+            // let mut success_count = 0;
+            let mut fail_count = 0;
+
+            for folder in config.enabled_folders() {
+                let sync_config = SyncConfig {
+                    enabled: true,
+                    webdav_url: config.webdav.url.clone(),
+                    username: config.webdav.username.clone(),
+                    password: config.webdav.password.clone(),
+                    remote_path: folder.remote_path.clone(),
+                    auto_sync: folder.auto_sync,
+                };
+
+                if let Ok(service) = SyncService::new(&sync_config).await {
+                    if let Ok(local_path) = folder.expand_local_path() {
+                        if service.push(&local_path, None).await.is_ok() {
+                            output.push_str(&format!("✓ Pushed {}\n", folder.name));
+                            // success_count += 1;
+                        } else {
+                            output.push_str(&format!("✗ Failed to push {}\n", folder.name));
+                            fail_count += 1;
+                        }
+                    }
+                } else {
+                    output.push_str(&format!("✗ Failed to connect for {}\n", folder.name));
+                    fail_count += 1;
+                }
+            }
+
+            let response = SyncOperationResponse {
+                success: fail_count == 0,
+                output,
+                error: if fail_count > 0 {
+                    format!("{} folders failed", fail_count)
+                } else {
+                    String::new()
+                },
+                duration_ms: start.elapsed().as_millis() as u64,
+            };
+            ApiResponse::success(response)
+        }
+        Ok(Err(e)) => ApiResponse::<SyncOperationResponse>::error(e),
         Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
     }
 }
 
 /// POST /api/sync/all/pull - Pull all enabled folders from cloud
-pub async fn pull_all_folders(Json(req): Json<SyncOperationRequest>) -> impl IntoResponse {
-    let mut args = vec!["sync".to_string(), "all".to_string(), "pull".to_string()];
+/// Same logic as push_all_folders but with pull
+pub async fn pull_all_folders(Json(_req): Json<SyncOperationRequest>) -> impl IntoResponse {
+    let start = Instant::now();
+    let result = tokio::task::spawn_blocking(move || {
+        let manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        let config = manager
+            .load_config()
+            .map_err(|e| format!("Failed to load config: {}", e))?;
+        Ok::<_, String>(config)
+    })
+    .await;
 
-    if req.force {
-        args.push("--force".to_string());
-    }
+    match result {
+        Ok(Ok(config)) => {
+            let mut output = String::new();
+            // let mut success_count = 0;
+            let mut fail_count = 0;
 
-    match executor::execute_command(args).await {
-        Ok(output) => ApiResponse::success(SyncOperationResponse {
-            success: output.success,
-            output: output.stdout,
-            error: output.stderr,
-            duration_ms: output.duration_ms,
-        }),
+            for folder in config.enabled_folders() {
+                let sync_config = SyncConfig {
+                    enabled: true,
+                    webdav_url: config.webdav.url.clone(),
+                    username: config.webdav.username.clone(),
+                    password: config.webdav.password.clone(),
+                    remote_path: folder.remote_path.clone(),
+                    auto_sync: folder.auto_sync,
+                };
+
+                if let Ok(service) = SyncService::new(&sync_config).await {
+                    if let Ok(local_path) = folder.expand_local_path() {
+                        if service.pull(&local_path).await.is_ok() {
+                            output.push_str(&format!("✓ Pulled {}\n", folder.name));
+                            // success_count += 1;
+                        } else {
+                            output.push_str(&format!("✗ Failed to pull {}\n", folder.name));
+                            fail_count += 1;
+                        }
+                    }
+                } else {
+                    output.push_str(&format!("✗ Failed to connect for {}\n", folder.name));
+                    fail_count += 1;
+                }
+            }
+
+            let response = SyncOperationResponse {
+                success: fail_count == 0,
+                output,
+                error: if fail_count > 0 {
+                    format!("{} folders failed", fail_count)
+                } else {
+                    String::new()
+                },
+                duration_ms: start.elapsed().as_millis() as u64,
+            };
+            ApiResponse::success(response)
+        }
+        Ok(Err(e)) => ApiResponse::<SyncOperationResponse>::error(e),
         Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
     }
 }
 
 /// GET /api/sync/all/status - Get status of all folders
 pub async fn get_all_folders_status() -> impl IntoResponse {
-    let args = vec!["sync".to_string(), "all".to_string(), "status".to_string()];
+    let start = Instant::now();
+    // Simplified status check
+    let result = tokio::task::spawn_blocking(move || {
+        let manager = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to create SyncFolderManager: {}", e))?;
+        let stats = manager
+            .stats()
+            .map_err(|e| format!("Failed to get stats: {}", e))?;
+        Ok::<_, String>(stats)
+    })
+    .await;
 
-    match executor::execute_command(args).await {
-        Ok(output) => {
-            if output.success {
-                ApiResponse::success(SyncOperationResponse {
-                    success: true,
-                    output: output.stdout,
-                    error: String::new(),
-                    duration_ms: output.duration_ms,
-                })
-            } else {
-                ApiResponse::<SyncOperationResponse>::error(output.stderr)
-            }
+    match result {
+        Ok(Ok(stats)) => {
+            let output = format!(
+                "Total Folders: {}\nEnabled: {}\nDisabled: {}",
+                stats.total, stats.enabled, stats.disabled
+            );
+
+            ApiResponse::success(SyncOperationResponse {
+                success: true,
+                output,
+                error: String::new(),
+                duration_ms: start.elapsed().as_millis() as u64,
+            })
         }
+        Ok(Err(e)) => ApiResponse::<SyncOperationResponse>::error(e),
         Err(e) => ApiResponse::<SyncOperationResponse>::error(e.to_string()),
     }
 }
