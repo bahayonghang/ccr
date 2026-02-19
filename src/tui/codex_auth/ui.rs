@@ -78,6 +78,8 @@ fn draw_title(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 
 /// Draw account list
 fn draw_account_list(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+    // 🖱️ 缓存列表区域供鼠标点击使用
+    app.list_area.set(Some(area));
     let accounts = app.current_page_accounts();
 
     let items: Vec<ListItem> = accounts
@@ -351,7 +353,7 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let help_text = match &app.overlay {
         Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
         Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
-        None => "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | q 退出",
+        None => "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | 🖱️ 鼠标 | q 退出",
     };
 
     let help = Paragraph::new(help_text)
@@ -412,6 +414,8 @@ pub fn draw_embedded(
 
 /// Draw account list with login status merged into the title
 fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+    // 🖱️ 缓存列表区域供鼠标点击使用
+    app.list_area.set(Some(area));
     let accounts = app.current_page_accounts();
 
     let items: Vec<ListItem> = accounts
@@ -545,7 +549,7 @@ fn draw_help_bar_embedded(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
         Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
         None => {
-            "Tab 切换 | ↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | q 退出"
+            "Tab 切换 | ↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | 🖱️ 鼠标 | q 退出"
         }
     };
 

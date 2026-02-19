@@ -16,6 +16,8 @@ pub enum Action {
     SelectPrev,
     /// Move selection cursor down
     SelectNext,
+    /// Jump selection to a specific index (e.g. mouse click)
+    SelectAt(usize),
     /// Go to previous page
     PrevPage,
     /// Go to next page

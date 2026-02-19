@@ -5,10 +5,13 @@ use crate::core::error::Result;
 use crate::models::{CodexAuthItem, LoginState, TokenFreshness};
 use crate::services::{CodexAuthService, CodexRollingUsage};
 use crate::tui::overlay::Overlay;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use dirs::home_dir;
 use ratatui::Frame;
+use ratatui::layout::Rect;
+use std::cell::Cell;
 
+use crate::tui::app::list_hit_test;
 use crate::tui::runtime::TuiApp;
 use crate::tui::toast::{Toast, ToastManager};
 use std::path::PathBuf;
@@ -55,6 +58,8 @@ pub struct CodexAuthApp {
     /// Codex directory
     #[allow(dead_code)]
     codex_dir: Option<PathBuf>,
+    /// 🖱️ Cached account list area for mouse hit-testing
+    pub list_area: Cell<Option<Rect>>,
 }
 
 #[allow(dead_code)]
@@ -86,6 +91,7 @@ impl CodexAuthApp {
             last_action: None,
             usage_state,
             codex_dir,
+            list_area: Cell::new(None),
         })
     }
 
@@ -406,6 +412,34 @@ impl TuiApp for CodexAuthApp {
             return self.handle_overlay_key(key);
         }
         self.handle_normal_mode(key)
+    }
+
+    fn handle_mouse(&mut self, mouse: MouseEvent) -> Result<bool> {
+        // Overlay 激活时忽略鼠标事件
+        if self.overlay.is_some() {
+            return Ok(false);
+        }
+
+        match mouse.kind {
+            // 🖱️ 左键点击列表项
+            MouseEventKind::Down(MouseButton::Left) => {
+                if let Some(area) = self.list_area.get()
+                    && let Some(idx) = list_hit_test(area, mouse.row, self.current_page_accounts().len())
+                {
+                    self.selected_index = idx;
+                }
+            }
+            // 🖱️ 滚轮上
+            MouseEventKind::ScrollUp => {
+                self.move_up();
+            }
+            // 🖱️ 滚轮下
+            MouseEventKind::ScrollDown => {
+                self.move_down();
+            }
+            _ => {}
+        }
+        Ok(false)
     }
 
     fn on_tick(&mut self) -> bool {

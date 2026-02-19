@@ -2,7 +2,7 @@
 // 处理键盘输入和定时刷新事件
 
 use crate::core::error::Result;
-use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, KeyEventKind};
+use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, KeyEventKind, MouseEvent};
 use std::time::Duration;
 
 /// 🎯 事件类型
@@ -10,6 +10,8 @@ use std::time::Duration;
 pub enum Event {
     /// ⌨️ 键盘事件
     Key(KeyEvent),
+    /// 🖱️ 鼠标事件
+    Mouse(MouseEvent),
     /// 📐 窗口大小变化
     Resize,
     /// ⏱️ 定时刷新
@@ -53,6 +55,7 @@ impl EventHandler {
                     }
                 }
                 CrosstermEvent::Resize(_, _) => Ok(Event::Resize),
+                CrosstermEvent::Mouse(mouse) => Ok(Event::Mouse(mouse)),
                 _ => Ok(Event::Tick),
             }
         } else {

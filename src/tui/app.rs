@@ -5,8 +5,11 @@ use crate::models::platform::{Platform, PlatformConfig};
 use crate::platforms::create_platform;
 use crate::tui::action::Action;
 use crate::tui::toast::{Toast, ToastManager};
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::Frame;
+use ratatui::layout::Rect;
+use ratatui::widgets::{Block, Borders};
+use std::cell::Cell;
 use std::sync::Arc;
 
 use super::codex_auth::CodexAuthApp;
@@ -49,6 +52,10 @@ pub struct App {
     pub codex_auth_app: Option<CodexAuthApp>,
     /// Last codex auth action info (action_type, account_name, success, error)
     pub last_codex_action: Option<(String, String, bool, Option<String>)>,
+    /// 🖱️ Cached header (tab bar) area for mouse hit-testing
+    pub header_area: Cell<Option<Rect>>,
+    /// 🖱️ Cached profile list area for mouse hit-testing
+    pub list_area: Cell<Option<Rect>>,
 }
 
 impl App {
@@ -125,6 +132,8 @@ impl App {
             last_applied: None,
             codex_auth_app,
             last_codex_action: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
         })
     }
 
@@ -214,6 +223,12 @@ impl App {
                 let page_len = self.current_page_profiles().len();
                 if page_len > 0 && self.selected_index < page_len - 1 {
                     self.selected_index += 1;
+                }
+            }
+            Action::SelectAt(idx) => {
+                let page_len = self.current_page_profiles().len();
+                if idx < page_len {
+                    self.selected_index = idx;
                 }
             }
             Action::PrevPage => {
@@ -307,6 +322,59 @@ impl App {
         }
         self
     }
+
+    /// 🖱️ Delegate mouse event to embedded CodexAuthApp
+    fn delegate_mouse_to_codex(&mut self, mouse: MouseEvent) -> Result<bool> {
+        if let Some(ref mut codex_app) = self.codex_auth_app {
+            codex_app.handle_mouse(mouse)
+        } else {
+            Ok(false)
+        }
+    }
+}
+
+// -- Mouse hit-test helpers (pure functions for testability) --
+
+/// Calculate which list item was clicked based on mouse row and list area.
+/// Uses `Block::inner()` for robust border offset calculation.
+/// Returns `None` if click is outside the list content area.
+pub(crate) fn list_hit_test(area: Rect, mouse_row: u16, page_len: usize) -> Option<usize> {
+    let inner = Block::default().borders(Borders::ALL).inner(area);
+    if mouse_row >= inner.y && mouse_row < inner.y + inner.height {
+        let clicked_row = (mouse_row - inner.y) as usize;
+        if clicked_row < page_len {
+            return Some(clicked_row);
+        }
+    }
+    None
+}
+
+/// Calculate which tab was clicked based on mouse position and header area.
+/// Returns `None` if no tab switch should occur (same tab, single tab, or outside header).
+fn tab_hit_test(
+    header: Rect,
+    mouse_row: u16,
+    mouse_col: u16,
+    tab_count: usize,
+    active_tab: usize,
+) -> Option<usize> {
+    if mouse_row < header.y || mouse_row >= header.y + header.height {
+        return None;
+    }
+    if tab_count <= 1 {
+        return None;
+    }
+    let tab_width = header.width / tab_count as u16;
+    if tab_width == 0 {
+        return None;
+    }
+    let rel_x = mouse_col.saturating_sub(header.x);
+    let tab_idx = (rel_x / tab_width) as usize;
+    if tab_idx < tab_count && tab_idx != active_tab {
+        Some(tab_idx)
+    } else {
+        None
+    }
 }
 
 // -- TuiApp trait implementation (tab-based dispatch) --
@@ -339,6 +407,57 @@ impl TuiApp for App {
         }
     }
 
+    fn handle_mouse(&mut self, mouse: MouseEvent) -> Result<bool> {
+        match mouse.kind {
+            // 🖱️ 左键点击
+            MouseEventKind::Down(MouseButton::Left) => {
+                // Tab 栏点击（所有 tab 共用）
+                if let Some(header) = self.header_area.get() {
+                    if let Some(tab_idx) =
+                        tab_hit_test(header, mouse.row, mouse.column, self.tabs.len(), self.active_tab)
+                    {
+                        return self.dispatch(Action::SwitchTab(tab_idx));
+                    }
+                    // 点击了 Tab 栏区域但未触发切换，直接返回
+                    if mouse.row >= header.y && mouse.row < header.y + header.height {
+                        return Ok(false);
+                    }
+                }
+
+                // Codex tab: 委托给 CodexAuthApp
+                if self.is_codex_tab() {
+                    return self.delegate_mouse_to_codex(mouse);
+                }
+
+                // Claude tab: 列表项点击
+                if let Some(area) = self.list_area.get()
+                    && let Some(idx) = list_hit_test(area, mouse.row, self.current_page_profiles().len())
+                {
+                    return self.dispatch(Action::SelectAt(idx));
+                }
+            }
+
+            // 🖱️ 滚轮上
+            MouseEventKind::ScrollUp => {
+                if self.is_codex_tab() {
+                    return self.delegate_mouse_to_codex(mouse);
+                }
+                return self.dispatch(Action::SelectPrev);
+            }
+
+            // 🖱️ 滚轮下
+            MouseEventKind::ScrollDown => {
+                if self.is_codex_tab() {
+                    return self.delegate_mouse_to_codex(mouse);
+                }
+                return self.dispatch(Action::SelectNext);
+            }
+
+            _ => {}
+        }
+        Ok(false)
+    }
+
     fn on_tick(&mut self) -> bool {
         if self.is_codex_tab() {
             self.codex_auth_app.as_mut().is_some_and(|a| a.on_tick())
@@ -349,5 +468,128 @@ impl TuiApp for App {
 
     fn render(&self, frame: &mut Frame) {
         ui::draw(frame, self);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Unit tests for mouse hit-testing pure functions
+// ═══════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+    use super::*;
+
+    // -- list_hit_test tests --
+
+    #[test]
+    fn list_hit_test_clicks_first_item() {
+        // area: y=5, height=12 (border top at y=5, inner starts at y=6)
+        let area = Rect::new(0, 5, 40, 12);
+        assert_eq!(list_hit_test(area, 6, 5), Some(0));
+    }
+
+    #[test]
+    fn list_hit_test_clicks_third_item() {
+        let area = Rect::new(0, 5, 40, 12);
+        assert_eq!(list_hit_test(area, 8, 5), Some(2));
+    }
+
+    #[test]
+    fn list_hit_test_ignores_top_border() {
+        let area = Rect::new(0, 5, 40, 12);
+        // Click on the top border row (y=5) — should NOT select anything
+        assert_eq!(list_hit_test(area, 5, 5), None);
+    }
+
+    #[test]
+    fn list_hit_test_ignores_bottom_border() {
+        let area = Rect::new(0, 5, 40, 12);
+        // Bottom border is at y=5+12-1=16
+        assert_eq!(list_hit_test(area, 16, 5), None);
+    }
+
+    #[test]
+    fn list_hit_test_ignores_click_beyond_items() {
+        let area = Rect::new(0, 5, 40, 12);
+        // Only 3 items in the list, click on row index 3 (4th position)
+        assert_eq!(list_hit_test(area, 9, 3), None);
+    }
+
+    #[test]
+    fn list_hit_test_ignores_click_outside_area() {
+        let area = Rect::new(0, 5, 40, 12);
+        // Click above the area
+        assert_eq!(list_hit_test(area, 2, 5), None);
+        // Click below the area
+        assert_eq!(list_hit_test(area, 20, 5), None);
+    }
+
+    #[test]
+    fn list_hit_test_zero_height_area() {
+        let area = Rect::new(0, 5, 40, 0);
+        assert_eq!(list_hit_test(area, 5, 3), None);
+    }
+
+    // -- tab_hit_test tests --
+
+    #[test]
+    fn tab_hit_test_clicks_second_tab() {
+        // header: x=0, y=0, width=80, height=3
+        let header = Rect::new(0, 0, 80, 3);
+        // 2 tabs, each 40px wide. Click at col 50 → tab index 1
+        assert_eq!(tab_hit_test(header, 1, 50, 2, 0), Some(1));
+    }
+
+    #[test]
+    fn tab_hit_test_clicks_first_tab() {
+        let header = Rect::new(0, 0, 80, 3);
+        // Click at col 10 → tab index 0, but active_tab is already 0 → None
+        assert_eq!(tab_hit_test(header, 1, 10, 2, 0), None);
+    }
+
+    #[test]
+    fn tab_hit_test_switch_from_second_to_first() {
+        let header = Rect::new(0, 0, 80, 3);
+        // Active tab is 1, click at col 10 → tab index 0
+        assert_eq!(tab_hit_test(header, 1, 10, 2, 1), Some(0));
+    }
+
+    #[test]
+    fn tab_hit_test_ignores_click_outside_header() {
+        let header = Rect::new(0, 0, 80, 3);
+        // Click below header (row 5)
+        assert_eq!(tab_hit_test(header, 5, 50, 2, 0), None);
+    }
+
+    #[test]
+    fn tab_hit_test_single_tab_returns_none() {
+        let header = Rect::new(0, 0, 80, 3);
+        // Only 1 tab — no switching possible
+        assert_eq!(tab_hit_test(header, 1, 10, 1, 0), None);
+    }
+
+    #[test]
+    fn tab_hit_test_zero_tab_width_returns_none() {
+        // Extremely narrow terminal: width=1, 2 tabs → tab_width = 0
+        let header = Rect::new(0, 0, 1, 3);
+        assert_eq!(tab_hit_test(header, 1, 0, 2, 0), None);
+    }
+
+    #[test]
+    fn tab_hit_test_narrow_terminal_no_panic() {
+        // width=0, 2 tabs — must not panic
+        let header = Rect::new(0, 0, 0, 3);
+        assert_eq!(tab_hit_test(header, 1, 0, 2, 0), None);
+    }
+
+    #[test]
+    fn tab_hit_test_three_tabs() {
+        // 3 tabs, width=90, each tab ~30px
+        let header = Rect::new(0, 0, 90, 3);
+        // Click at col 35 → tab index 1
+        assert_eq!(tab_hit_test(header, 1, 35, 3, 0), Some(1));
+        // Click at col 65 → tab index 2
+        assert_eq!(tab_hit_test(header, 1, 65, 3, 0), Some(2));
     }
 }

@@ -17,6 +17,12 @@ pub trait TuiApp {
     /// Handle a key event. Return `true` to exit the TUI.
     fn handle_key(&mut self, key: crossterm::event::KeyEvent) -> Result<bool>;
 
+    /// Handle a mouse event. Return `true` to exit the TUI.
+    /// Default implementation is a no-op.
+    fn handle_mouse(&mut self, _mouse: crossterm::event::MouseEvent) -> Result<bool> {
+        Ok(false)
+    }
+
     /// Handle a tick event (periodic refresh, toast expiry, etc.).
     /// Return `true` if the UI needs a redraw (e.g. toast expired).
     fn on_tick(&mut self) -> bool {
@@ -83,6 +89,20 @@ pub fn run_loop<A: TuiApp>(
                     return Ok(());
                 }
                 draw_frame(guard, app)?;
+            }
+            Event::Mouse(mouse) => {
+                // 只处理可操作的鼠标事件，忽略移动/拖拽等高频无效事件
+                if matches!(
+                    mouse.kind,
+                    crossterm::event::MouseEventKind::Down(_)
+                        | crossterm::event::MouseEventKind::ScrollUp
+                        | crossterm::event::MouseEventKind::ScrollDown
+                ) {
+                    if app.handle_mouse(mouse)? {
+                        return Ok(());
+                    }
+                    draw_frame(guard, app)?;
+                }
             }
             Event::Resize => {
                 guard
