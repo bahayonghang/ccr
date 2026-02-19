@@ -82,3 +82,4 @@ ref/
 # .shared/
 
 .omc/
+.workflow/
