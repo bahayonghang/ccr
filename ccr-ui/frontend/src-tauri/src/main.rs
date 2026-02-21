@@ -2,11 +2,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use tauri::{Manager, RunEvent, State, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-use tauri_plugin_shell::{ShellExt, process::CommandChild};
+use tauri_plugin_shell::{process::CommandChild, ShellExt};
 
 // 🎯 导入 CCR 核心库
 use ccr::{ConfigManager, ConfigService, HistoryService};
@@ -32,6 +32,7 @@ struct AppState {
     backend_ready: Mutex<bool>,
     settings: Mutex<AppSettings>,
     exit_confirmed: AtomicBool,
+    backend_shutdown_requested: AtomicBool,
 }
 
 const BACKEND_HOST: &str = "127.0.0.1";
@@ -52,7 +53,7 @@ fn backend_port() -> u16 {
 async fn wait_for_backend_ready(port: u16) -> bool {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpStream;
-    use tokio::time::{Duration, sleep};
+    use tokio::time::{sleep, Duration};
 
     let deadline = std::time::Instant::now() + Duration::from_secs(BACKEND_STARTUP_TIMEOUT_SECS);
     while std::time::Instant::now() < deadline {
@@ -254,6 +255,27 @@ fn try_spawn_backend_from_repo(app: &tauri::AppHandle, port: u16) -> Result<Comm
     });
 
     Ok(child)
+}
+
+fn terminate_backend_process(app: &tauri::AppHandle, reason: &str) {
+    let child = {
+        let app_state = app.state::<AppState>();
+        let mut guard = app_state.backend_child.lock().unwrap();
+        guard.take()
+    };
+
+    if let Some(child) = child {
+        tracing::info!("[backend] terminating backend process ({reason})...");
+        match child.kill() {
+            Ok(()) => tracing::info!("[backend] backend process terminated successfully"),
+            Err(e) => tracing::error!("[backend] failed to terminate backend: {}", e),
+        }
+    } else {
+        tracing::warn!("[backend] no backend process to terminate ({reason})");
+    }
+
+    let app_state = app.state::<AppState>();
+    *app_state.backend_ready.lock().unwrap() = false;
 }
 
 /// 配置项响应
@@ -625,6 +647,7 @@ fn main() {
             backend_ready: Mutex::new(false),
             settings: Mutex::new(AppSettings::default()),
             exit_confirmed: AtomicBool::new(false),
+            backend_shutdown_requested: AtomicBool::new(false),
         })
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -682,6 +705,22 @@ fn main() {
 
                 match child {
                     Ok(child) => {
+                        {
+                            let state = app_handle.state::<AppState>();
+                            *state.backend_child.lock().unwrap() = Some(child);
+                        }
+
+                        {
+                            let state = app_handle.state::<AppState>();
+                            if state.backend_shutdown_requested.load(Ordering::SeqCst) {
+                                tracing::info!(
+                                    "[backend] shutdown already requested during startup, terminating immediately"
+                                );
+                                terminate_backend_process(&app_handle, "shutdown_requested_during_startup");
+                                return;
+                            }
+                        }
+
                         if wait_for_backend_ready(port).await {
                             tracing::info!("[backend] ready at http://{}:{}", BACKEND_HOST, port);
                             let state = app_handle.state::<AppState>();
@@ -689,9 +728,6 @@ fn main() {
                         } else {
                             tracing::warn!("[backend] readiness check timed out");
                         }
-
-                        let state = app_handle.state::<AppState>();
-                        *state.backend_child.lock().unwrap() = Some(child);
                     }
                     Err(err) => {
                         tracing::error!("[backend] failed to start: {}", err);
@@ -724,23 +760,22 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
-    app.run(|app, event| {
-        if let RunEvent::Exit = event {
-            tracing::info!("[app] Application exiting, cleaning up...");
-            let child = {
-                let app_state = app.state::<AppState>();
-                let mut guard = app_state.backend_child.lock().unwrap();
-                guard.take()
-            };
-            if let Some(child) = child {
-                tracing::info!("[backend] Terminating backend process...");
-                match child.kill() {
-                    Ok(()) => tracing::info!("[backend] Backend process terminated successfully"),
-                    Err(e) => tracing::error!("[backend] Failed to terminate backend: {}", e),
-                }
-            } else {
-                tracing::warn!("[backend] No backend process to terminate");
-            }
+    app.run(|app, event| match event {
+        RunEvent::ExitRequested { .. } => {
+            let app_state = app.state::<AppState>();
+            app_state
+                .backend_shutdown_requested
+                .store(true, Ordering::SeqCst);
+            terminate_backend_process(app, "exit_requested");
         }
+        RunEvent::Exit => {
+            tracing::info!("[app] application exiting, cleaning up...");
+            let app_state = app.state::<AppState>();
+            app_state
+                .backend_shutdown_requested
+                .store(true, Ordering::SeqCst);
+            terminate_backend_process(app, "exit");
+        }
+        _ => {}
     });
 }
