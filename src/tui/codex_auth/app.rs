@@ -424,7 +424,8 @@ impl TuiApp for CodexAuthApp {
             // 🖱️ 左键点击列表项
             MouseEventKind::Down(MouseButton::Left) => {
                 if let Some(area) = self.list_area.get()
-                    && let Some(idx) = list_hit_test(area, mouse.row, self.current_page_accounts().len())
+                    && let Some(idx) =
+                        list_hit_test(area, mouse.row, self.current_page_accounts().len())
                 {
                     self.selected_index = idx;
                 }

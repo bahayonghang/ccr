@@ -413,9 +413,13 @@ impl TuiApp for App {
             MouseEventKind::Down(MouseButton::Left) => {
                 // Tab 栏点击（所有 tab 共用）
                 if let Some(header) = self.header_area.get() {
-                    if let Some(tab_idx) =
-                        tab_hit_test(header, mouse.row, mouse.column, self.tabs.len(), self.active_tab)
-                    {
+                    if let Some(tab_idx) = tab_hit_test(
+                        header,
+                        mouse.row,
+                        mouse.column,
+                        self.tabs.len(),
+                        self.active_tab,
+                    ) {
                         return self.dispatch(Action::SwitchTab(tab_idx));
                     }
                     // 点击了 Tab 栏区域但未触发切换，直接返回
@@ -431,7 +435,8 @@ impl TuiApp for App {
 
                 // Claude tab: 列表项点击
                 if let Some(area) = self.list_area.get()
-                    && let Some(idx) = list_hit_test(area, mouse.row, self.current_page_profiles().len())
+                    && let Some(idx) =
+                        list_hit_test(area, mouse.row, self.current_page_profiles().len())
                 {
                     return self.dispatch(Action::SelectAt(idx));
                 }

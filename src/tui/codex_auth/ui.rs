@@ -353,7 +353,9 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let help_text = match &app.overlay {
         Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
         Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
-        None => "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | 🖱️ 鼠标 | q 退出",
+        None => {
+            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | 🖱️ 鼠标 | q 退出"
+        }
     };
 
     let help = Paragraph::new(help_text)
