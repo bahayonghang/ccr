@@ -172,8 +172,12 @@ export interface CliVersionEntry {
   platform: string;
   installed: boolean;
   version?: string;
+  status?: 'ok' | 'not_installed' | 'timeout' | 'error';
+  elapsed_ms?: number;
 }
 
 export interface CliVersionsResponse {
   versions: CliVersionEntry[];
 }
+
+export type CliVersionsMode = 'fast' | 'full';

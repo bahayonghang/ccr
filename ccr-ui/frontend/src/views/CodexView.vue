@@ -34,7 +34,7 @@
                 <Server class="w-3 h-3" /> {{ $t('codex.overview.features.mcpProtocol') }}
               </span>
               <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20">
-                {{ codexVersion }}
+                {{ codexVersionLabel }}
               </span>
             </div>
           </div>
@@ -329,26 +329,34 @@ import {
   Zap, Activity, ArrowRight, Lightbulb, Cpu, KeyRound,
   BarChart3, RefreshCw, AlertCircle, Clock
 } from 'lucide-vue-next'
-// ...
-// const router = useRouter() DELETE THIS LINE if it exists below in user code
-// I cannot replace non-contiguous lines easily.
-// I will just replace the top block.
-// And I will assume `const router = ...` is further down.
-// Wait, I need to see where `const router` is.
-
-
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import { listCodexProfiles, getCodexUsage, getCliVersions } from '@/api'
-import type { CodexUsageResponse } from '@/types'
+import type { CliVersionEntry, CodexUsageResponse } from '@/types'
 
 const { t } = useI18n()
 
 // State
 const profilesCount = ref(0)
 const currentProfile = ref<string | null>(null)
-const codexVersion = ref('v1.0.0') // Default fallback
+const codexVersion = ref('...')
+const codexVersionStatus = ref<'loading' | 'ok' | 'timeout' | 'error' | 'not_installed'>('loading')
+
+const codexVersionLabel = computed(() => {
+  switch (codexVersionStatus.value) {
+    case 'timeout':
+      return '检测中...'
+    case 'error':
+      return '重试检测'
+    case 'not_installed':
+      return 'Not Installed'
+    case 'ok':
+      return codexVersion.value
+    default:
+      return '...'
+  }
+})
 
 // Usage State
 const usageData = ref<CodexUsageResponse | null>(null)
@@ -437,6 +445,35 @@ const features = [
   'Context-Aware AI Coding Assistance'
 ]
 
+const applyCodexVersionEntry = (entry?: CliVersionEntry) => {
+  if (!entry) {
+    codexVersionStatus.value = 'error'
+    codexVersion.value = '...'
+    return
+  }
+
+  if (entry.status === 'timeout') {
+    codexVersionStatus.value = 'timeout'
+    codexVersion.value = '...'
+    return
+  }
+
+  if (entry.status === 'error') {
+    codexVersionStatus.value = 'error'
+    codexVersion.value = '...'
+    return
+  }
+
+  if (entry.status === 'not_installed' || !entry.installed) {
+    codexVersionStatus.value = 'not_installed'
+    codexVersion.value = 'Not Installed'
+    return
+  }
+
+  codexVersionStatus.value = 'ok'
+  codexVersion.value = entry.version ? `v${entry.version}` : 'Installed'
+}
+
 onMounted(async () => {
   try {
     const data = await listCodexProfiles()
@@ -446,13 +483,12 @@ onMounted(async () => {
     }
     
     // Fetch Codex version
-    const versions = await getCliVersions()
+    const versions = await getCliVersions({ mode: 'fast', timeout: 3500 })
     const codex = versions.versions.find(v => v.platform === 'codex')
-    if (codex && codex.version) {
-      codexVersion.value = codex.version
-    }
+    applyCodexVersionEntry(codex)
   } catch (error) {
     console.error('Failed to load profile status or version:', error)
+    codexVersionStatus.value = 'error'
   }
   refreshUsage()
 })

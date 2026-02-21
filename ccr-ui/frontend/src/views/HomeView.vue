@@ -196,33 +196,103 @@ const { t } = useI18n()
 const systemInfo = ref<any>(null)
 const cliVersions = ref<Map<string, CliVersionEntry>>(new Map())
 
-onMounted(async () => {
+const markPerf = (name: string) => {
+  if (!import.meta.env.DEV || typeof performance === 'undefined') return
+  performance.mark(name)
+}
+
+const applyCliVersions = (entries: CliVersionEntry[]) => {
+  for (const entry of entries) {
+    cliVersions.value.set(entry.platform, entry)
+  }
+  markPerf('home:cli-badges-updated')
+}
+
+const loadSystemInfo = async () => {
   try {
-    const [sysInfo, versions] = await Promise.all([
-      getSystemInfo().catch(() => null),
-      getCliVersions().catch(() => null),
-    ])
+    const sysInfo = await getSystemInfo().catch(() => null)
     systemInfo.value = sysInfo
+    markPerf('home:system-ready')
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const loadCliVersions = async () => {
+  try {
+    const versions = await getCliVersions({ mode: 'fast', timeout: 3500 }).catch(() => null)
     if (versions) {
-      for (const entry of versions.versions) {
-        cliVersions.value.set(entry.platform, entry)
-      }
+      applyCliVersions(versions.versions)
     }
   } catch (e) {
     console.error(e)
   }
+}
+
+const scheduleCliVersionsLoad = () => {
+  const requestIdle = (window as Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+  }).requestIdleCallback
+
+  if (typeof requestIdle === 'function') {
+    requestIdle(() => {
+      void loadCliVersions()
+    }, { timeout: 300 })
+    return
+  }
+
+  setTimeout(() => {
+    void loadCliVersions()
+  }, 0)
+}
+
+const logHomePerfSnapshot = () => {
+  if (!import.meta.env.DEV || typeof performance === 'undefined') return
+
+  setTimeout(() => {
+    const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
+    const relevant = resources
+      .filter((entry) =>
+        entry.name.includes('/api/system') ||
+        entry.name.includes('/api/version/cli-versions') ||
+        entry.name.includes('/api/sessions/stats/daily')
+      )
+      .map((entry) => ({
+        name: entry.name,
+        responseEnd: Math.round(entry.responseEnd),
+        duration: Math.round(entry.duration),
+      }))
+
+    const badgeMarks = performance.getEntriesByName('home:cli-badges-updated')
+    const lastBadgeMark = badgeMarks.length > 0 ? Math.round(badgeMarks[badgeMarks.length - 1].startTime) : null
+
+    console.info('[HomePerf]', {
+      apiResponses: relevant,
+      cliBadgeUpdatedAt: lastBadgeMark,
+    })
+  }, 4500)
+}
+
+onMounted(() => {
+  void loadSystemInfo()
+  scheduleCliVersionsLoad()
+  logHomePerfSnapshot()
 })
 
 const getVersionLabel = (platformKey: string) => {
   const entry = cliVersions.value.get(platformKey)
   if (!entry) return '...'
-  if (!entry.installed) return t('home.notInstalled')
+  if (entry.status === 'timeout' || entry.status === 'error') return '...'
+  if (entry.status === 'not_installed' || !entry.installed) return t('home.notInstalled')
   return entry.version ? `v${entry.version}` : 'installed'
 }
 
 const getVersionClass = (platformKey: string) => {
   const entry = cliVersions.value.get(platformKey)
-  if (entry && !entry.installed) return 'bg-red-500/10 text-red-400'
+  if (!entry) return 'bg-bg-surface text-text-muted'
+  if (entry.status === 'timeout') return 'bg-amber-500/10 text-amber-400'
+  if (entry.status === 'error') return 'bg-orange-500/10 text-orange-400'
+  if (entry.status === 'not_installed' || !entry.installed) return 'bg-red-500/10 text-red-400'
   return 'bg-bg-surface text-text-muted'
 }
 

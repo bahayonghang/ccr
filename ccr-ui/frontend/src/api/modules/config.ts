@@ -25,6 +25,7 @@ import type {
     UpdateExecutionResponse,
     UpdateConfigRequest,
     CliVersionsResponse,
+    CliVersionsMode,
 } from '@/types'
 
 // ═══════════════════════════════════════════════════════════
@@ -157,7 +158,63 @@ export const updateCCR = async (): Promise<UpdateExecutionResponse> => {
     return response.data.data!
 }
 
-export const getCliVersions = async (): Promise<CliVersionsResponse> => {
-    const response = await api.get<ApiResponse<CliVersionsResponse>>('/version/cli-versions')
-    return response.data.data!
+const CLI_VERSIONS_FRONTEND_TTL_MS = 60_000
+const CLI_VERSIONS_DEFAULT_TIMEOUT_MS = 3_500
+
+let cliVersionsCache: { data: CliVersionsResponse; expiresAt: number } | null = null
+let cliVersionsInFlight: Promise<CliVersionsResponse> | null = null
+
+export interface GetCliVersionsOptions {
+    mode?: CliVersionsMode
+    timeout?: number
+    force?: boolean
+}
+
+export const getCliVersions = async (
+    options: GetCliVersionsOptions = {}
+): Promise<CliVersionsResponse> => {
+    const mode = options.mode ?? 'fast'
+    const timeout = options.timeout ?? CLI_VERSIONS_DEFAULT_TIMEOUT_MS
+    const force = options.force ?? false
+    const now = Date.now()
+
+    if (!force && mode === 'fast' && cliVersionsCache && cliVersionsCache.expiresAt > now) {
+        return cliVersionsCache.data
+    }
+
+    if (!force && mode === 'fast' && cliVersionsInFlight) {
+        return cliVersionsInFlight
+    }
+
+    const request = api
+        .get<ApiResponse<CliVersionsResponse>>('/version/cli-versions', {
+            params: { mode },
+            timeout,
+        })
+        .then((response) => response.data.data!)
+
+    if (mode === 'fast') {
+        cliVersionsInFlight = request
+    }
+
+    try {
+        const data = await request
+        if (mode === 'fast') {
+            cliVersionsCache = {
+                data,
+                expiresAt: Date.now() + CLI_VERSIONS_FRONTEND_TTL_MS,
+            }
+        }
+        return data
+    } catch (error) {
+        // Fast 模式下请求失败可回退最近缓存，避免页面状态抖动
+        if (mode === 'fast' && cliVersionsCache) {
+            return cliVersionsCache.data
+        }
+        throw error
+    } finally {
+        if (mode === 'fast') {
+            cliVersionsInFlight = null
+        }
+    }
 }
