@@ -1,11 +1,12 @@
 {
   "name": "ccr-ui-frontend-vue",
-  "version": "4.1.1",
+  "version": "4.1.4",
   "private": true,
   "type": "module",
   "packageManager": "npm@10.9.2",
   "scripts": {
     "dev": "vite",
+    "prebundle": "vite optimize",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --fix && npm run lint:style",
