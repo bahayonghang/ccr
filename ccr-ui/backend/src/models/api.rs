@@ -363,14 +363,18 @@ pub struct UpdateExecutionResponse {
 
 // ===== CLI Version Detection Models =====
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CliVersionEntry {
     pub platform: String,
     pub installed: bool,
     pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub elapsed_ms: Option<u64>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CliVersionsResponse {
     pub versions: Vec<CliVersionEntry>,
 }

@@ -2452,12 +2452,18 @@ pub struct BrowseFolderResponse {
 }
 
 /// POST /skill_hub/browse-folder — 打开原生文件夹选择对话框
+/// 注意：rfd::FileDialog::pick_folder() 是阻塞调用，必须在 spawn_blocking 中运行
 pub async fn browse_folder() -> impl IntoResponse {
-    use rfd::FileDialog;
-    let path = FileDialog::new()
-        .set_title("Select skill folder")
-        .pick_folder()
-        .map(|p| path_to_string(&p));
+    let path = tokio::task::spawn_blocking(|| {
+        use rfd::FileDialog;
+        FileDialog::new()
+            .set_title("Select skill folder")
+            .pick_folder()
+            .map(|p| p.to_string_lossy().into_owned())
+    })
+    .await
+    .ok()
+    .flatten();
 
     ApiResponse::success(BrowseFolderResponse { path })
 }

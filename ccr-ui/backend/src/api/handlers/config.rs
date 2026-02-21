@@ -37,8 +37,8 @@ fn mask_token(token: &str) -> String {
 pub async fn list_configs() -> ApiResult<Json<ConfigListResponse>> {
     // 在 spawn_blocking 中运行同步代码
     let result = tokio::task::spawn_blocking(move || {
-        // 使用 CCR 核心库的 ConfigManager
-        let manager = ccr::ConfigManager::with_default()
+        // 使用 CCR 核心库的 ConfigManager（固定 claude 平台）
+        let manager = ccr::ConfigManager::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
         let config = manager
@@ -95,7 +95,7 @@ pub async fn list_configs() -> ApiResult<Json<ConfigListResponse>> {
 pub async fn switch_config(Json(req): Json<SwitchRequest>) -> ApiResult<Json<&'static str>> {
     let config_name = req.config_name.clone();
 
-    match ccr::commands::switch_command(&config_name).await {
+    match ccr::commands::switch_command_for_platform(&config_name, "claude").await {
         Ok(_) => Ok(Json("Configuration switched successfully")),
         Err(e) => Err(ApiError::bad_request(e.to_string())),
     }
@@ -106,8 +106,8 @@ pub async fn switch_config(Json(req): Json<SwitchRequest>) -> ApiResult<Json<&'s
 pub async fn validate_configs() -> ApiResult<Json<&'static str>> {
     // 在 spawn_blocking 中运行同步代码（避免阻塞异步执行器）
     let result = tokio::task::spawn_blocking(move || {
-        // 创建 ConfigService 实例（使用默认配置管理器）
-        let service = ConfigService::with_default()
+        // 创建 ConfigService 实例（固定 claude 平台）
+        let service = ConfigService::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
         // 调用验证方法
@@ -165,7 +165,7 @@ pub async fn clean_backups(Json(req): Json<CleanRequest>) -> impl IntoResponse {
 /// POST /api/configs/export - Export configurations
 pub async fn export_config(Json(req): Json<ExportRequest>) -> impl IntoResponse {
     let result = tokio::task::spawn_blocking(move || {
-        let service = ConfigService::with_default()
+        let service = ConfigService::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
         let content = service
@@ -201,7 +201,7 @@ pub async fn import_config(Json(req): Json<ImportRequest>) -> impl IntoResponse 
             _ => return Err(format!("Invalid import mode: {}", req.mode)),
         };
 
-        let service = ConfigService::with_default()
+        let service = ConfigService::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
         let result = service
@@ -275,8 +275,8 @@ pub async fn get_history() -> ApiResult<Json<HistoryResponse>> {
 /// GET /api/configs/:name - Get a specific configuration
 pub async fn get_config(Path(name): Path<String>) -> ApiResult<Json<ConfigItem>> {
     let result = tokio::task::spawn_blocking(move || {
-        // 使用 CCR 核心库的 ConfigManager
-        let manager = ccr::ConfigManager::with_default()
+        // 使用 CCR 核心库的 ConfigManager（固定 claude 平台）
+        let manager = ccr::ConfigManager::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
         let config = manager
@@ -332,8 +332,8 @@ pub async fn add_config(Json(req): Json<UpdateConfigRequest>) -> impl IntoRespon
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
 
-        // 加载配置
-        let manager = ccr::ConfigManager::with_default()
+        // 加载配置（固定 claude 平台）
+        let manager = ccr::ConfigManager::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
         let mut config = manager
@@ -404,8 +404,8 @@ pub async fn update_config(
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
 
-        // 加载配置
-        let manager = ccr::ConfigManager::with_default()
+        // 加载配置（固定 claude 平台，与 list/get 保持一致）
+        let manager = ccr::ConfigManager::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
         let mut config = manager
@@ -423,21 +423,21 @@ pub async fn update_config(
         let old_enabled = old_section.enabled;
         let old_other = old_section.other.clone();
 
-        // 更新配置节
+        // 更新配置节（保留请求中的所有字段）
         let section = ConfigSection {
             description: req.description,
             base_url: Some(req.base_url),
             auth_token: Some(req.auth_token),
             model: req.model,
-            small_fast_model: None,
-            provider: None,
+            small_fast_model: req.small_fast_model,
+            provider: req.provider,
             provider_type: req.provider_type.as_ref().and_then(|s| match s.as_str() {
                 "official_relay" => Some(ProviderType::OfficialRelay),
                 "third_party_model" => Some(ProviderType::ThirdPartyModel),
                 _ => None,
             }),
-            account: None,
-            tags: None,
+            account: req.account,
+            tags: req.tags,
             usage_count: old_usage_count,
             enabled: old_enabled,
             other: old_other,
@@ -478,8 +478,8 @@ pub async fn delete_config(Path(name): Path<String>) -> impl IntoResponse {
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
 
-        // 加载配置
-        let manager = ccr::ConfigManager::with_default()
+        // 加载配置（固定 claude 平台，与 list/get 保持一致）
+        let manager = ccr::ConfigManager::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
         let mut config = manager
@@ -523,8 +523,8 @@ pub async fn delete_config(Path(name): Path<String>) -> impl IntoResponse {
 pub async fn enable_config(Path(name): Path<String>) -> impl IntoResponse {
     let name_clone = name.clone(); // Clone for use in response message
     let result = tokio::task::spawn_blocking(move || {
-        // 使用 ConfigService 启用配置
-        let service = ConfigService::with_default()
+        // 使用 ConfigService 启用配置（固定 claude 平台）
+        let service = ConfigService::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
         service
@@ -553,8 +553,8 @@ pub async fn enable_config(Path(name): Path<String>) -> impl IntoResponse {
 pub async fn disable_config(Path(name): Path<String>) -> impl IntoResponse {
     let name_clone = name.clone(); // Clone for use in response message
     let result = tokio::task::spawn_blocking(move || {
-        // 使用 ConfigService 禁用配置
-        let service = ConfigService::with_default()
+        // 使用 ConfigService 禁用配置（固定 claude 平台）
+        let service = ConfigService::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
         service

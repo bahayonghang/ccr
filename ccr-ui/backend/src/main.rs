@@ -56,6 +56,13 @@ fn env_flag(name: &str, default: bool) -> bool {
         .unwrap_or(default)
 }
 
+fn env_u64(name: &str, default: u64) -> u64 {
+    std::env::var(name)
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .unwrap_or(default)
+}
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     // Parse command line arguments
@@ -113,44 +120,63 @@ async fn main() -> std::io::Result<()> {
     // Build the router with modular routes and AppState
     let app = routes::apply_middleware(routes::create_app(app_state));
 
-    // 后台使用数据导入调度（每 60s 增量导入各平台 JSONL）
-    tokio::spawn(async {
-        use services::usage_import_service::{ImportConfig, UsageImportService};
-        use tokio::time::{Duration, interval};
+    let usage_import_initial_delay_secs = env_u64("USAGE_IMPORT_INITIAL_DELAY_SECS", 25);
+    let session_index_initial_delay_secs = env_u64("SESSION_INDEX_INITIAL_DELAY_SECS", 30);
 
-        // 启动时立即执行一次导入
-        let svc = UsageImportService::new(ImportConfig::default());
-        for platform in &["claude", "codex", "gemini"] {
-            if let Err(e) = svc.import_platform(platform) {
-                warn!("Initial usage import for {} failed: {}", platform, e);
+    // 后台使用数据导入调度（每 60s 增量导入各平台 JSONL）
+    tokio::spawn(async move {
+        use services::usage_import_service::{ImportConfig, UsageImportService};
+        use tokio::time::{Duration, interval, sleep};
+
+        // 默认延迟 25s，避免与首批前端请求争抢 I/O 和阻塞线程
+        sleep(Duration::from_secs(usage_import_initial_delay_secs)).await;
+
+        // 启动时执行一次导入（使用 spawn_blocking 避免阻塞异步工作线程）
+        let _ = tokio::task::spawn_blocking(|| {
+            let svc = UsageImportService::new(ImportConfig::default());
+            for platform in &["claude", "codex", "gemini"] {
+                if let Err(e) = svc.import_platform(platform) {
+                    warn!("Initial usage import for {} failed: {}", platform, e);
+                }
             }
-        }
-        info!("Initial usage data import complete");
+            info!("Initial usage data import complete");
+        })
+        .await;
 
         // 每 60s 增量导入
         let mut tick = interval(Duration::from_secs(60));
         loop {
             tick.tick().await;
-            let svc = UsageImportService::new(ImportConfig::default());
-            for platform in &["claude", "codex", "gemini"] {
-                let _ = svc.import_platform(platform);
-            }
+            let _ = tokio::task::spawn_blocking(|| {
+                let svc = UsageImportService::new(ImportConfig::default());
+                for platform in &["claude", "codex", "gemini"] {
+                    let _ = svc.import_platform(platform);
+                }
+            })
+            .await;
         }
     });
 
     if env_flag("SESSIONS_DAILY_CACHE", true) {
-        tokio::spawn(async {
+        tokio::spawn(async move {
             use ccr::sessions::SessionIndexer;
-            use tokio::time::{Duration, interval};
+            use tokio::time::{Duration, interval, sleep};
 
-            if let Ok(indexer) = SessionIndexer::new() {
-                let _ = indexer.index_all();
-            }
+            // 默认延迟 30s，降低冷启动阶段的资源竞争
+            sleep(Duration::from_secs(session_index_initial_delay_secs)).await;
+
+            // 初始索引（使用 spawn_blocking 避免阻塞异步工作线程）
+            let _ = tokio::task::spawn_blocking(|| {
+                if let Ok(indexer) = SessionIndexer::new() {
+                    let _ = indexer.index_all();
+                }
+            })
+            .await;
 
             let mut tick = interval(Duration::from_secs(60));
             loop {
                 tick.tick().await;
-                match SessionIndexer::new() {
+                let _ = tokio::task::spawn_blocking(|| match SessionIndexer::new() {
                     Ok(indexer) => {
                         let _ = indexer.index_all();
                     }
@@ -160,13 +186,22 @@ async fn main() -> std::io::Result<()> {
                             e
                         );
                     }
-                }
+                })
+                .await;
             }
         });
         info!("Session daily cache background index refresh enabled");
     } else {
         info!("Session daily cache background index refresh disabled");
     }
+
+    // 启动后 1s 预热 CLI 版本缓存（fast 模式，非阻塞）
+    tokio::spawn(async {
+        use tokio::time::{Duration, sleep};
+        sleep(Duration::from_secs(1)).await;
+        crate::api::handlers::version::trigger_cli_versions_prewarm();
+        info!("CLI versions cache prewarm triggered");
+    });
 
     // 异步验证 CCR 是否可用（不阻塞服务器启动）
     tokio::spawn(async {

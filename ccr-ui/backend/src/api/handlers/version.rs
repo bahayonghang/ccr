@@ -1,12 +1,74 @@
 // Version Management Handler
 // Get version information by executing 'ccr --version' and check for updates from GitHub Cargo.toml
 
-use axum::response::IntoResponse;
+use axum::{extract::Query, response::IntoResponse};
 use reqwest;
+use serde::Deserialize;
+use std::collections::{HashMap, HashSet};
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
+use std::sync::{
+    LazyLock, Mutex,
+    atomic::{AtomicBool, Ordering},
+};
+use std::time::{Duration, Instant};
+use tokio::task::JoinSet;
 
 use crate::models::api::*;
+
+// ===== CLI 版本检测缓存策略 =====
+
+struct CachedCliVersions {
+    data: CliVersionsResponse,
+    cached_at: Instant,
+    mode: CliVersionsMode,
+}
+
+static CLI_VERSIONS_CACHE: LazyLock<Mutex<Option<CachedCliVersions>>> =
+    LazyLock::new(|| Mutex::new(None));
+static CLI_VERSIONS_REFRESHING: AtomicBool = AtomicBool::new(false);
+
+const CLI_VERSIONS_FRESH_TTL: Duration = Duration::from_secs(60);
+const CLI_VERSIONS_STALE_TTL: Duration = Duration::from_secs(600);
+const CLI_VERSION_FAST_TIMEOUT: Duration = Duration::from_millis(1200);
+const CLI_VERSION_FULL_TIMEOUT: Duration = Duration::from_secs(8);
+const CLI_VERSIONS_FAST_BUDGET: Duration = Duration::from_millis(2000);
+
+const CLI_VERSION_PLATFORMS: [(&str, &str); 6] = [
+    ("claude-code", "claude"),
+    ("codex", "codex"),
+    ("gemini-cli", "gemini"),
+    ("qwen", "qwen"),
+    ("iflow", "iflow"),
+    ("droid", "droid"),
+];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CliVersionsMode {
+    Fast,
+    Full,
+}
+
+impl CliVersionsMode {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Fast => "fast",
+            Self::Full => "full",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CacheState {
+    Fresh,
+    Stale,
+    Expired,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct CliVersionsQuery {
+    pub mode: Option<String>,
+}
 
 // GitHub raw Cargo.toml URL for CCR
 const GITHUB_CARGO_TOML_URL: &str =
@@ -251,58 +313,397 @@ struct CommandOutput {
     stderr: String,
 }
 
-/// GET /api/version/cli-versions - Detect installed CLI versions for all platforms
-pub async fn get_cli_versions() -> impl IntoResponse {
-    let platforms: Vec<(&str, &str)> = vec![
-        ("claude-code", "claude"),
-        ("codex", "codex"),
-        ("gemini-cli", "gemini"),
-        ("qwen", "qwen"),
-        ("iflow", "iflow"),
-        ("droid", "droid"),
-    ];
+/// 启动后预热 CLI 版本缓存（非阻塞）
+pub fn trigger_cli_versions_prewarm() {
+    spawn_cli_versions_cache_refresh("startup_prewarm");
+}
 
-    let mut handles = Vec::new();
-    for (platform, binary) in platforms {
-        let platform = platform.to_string();
-        let binary = binary.to_string();
-        handles.push(tokio::task::spawn_blocking(move || {
-            // Windows 上 npm 全局命令是 .cmd 文件，需要通过 cmd /c 执行
-            let output = if cfg!(target_os = "windows") {
-                Command::new("cmd")
-                    .args(["/c", &binary, "--version"])
-                    .output()
-            } else {
-                Command::new(&binary).arg("--version").output()
-            };
-            match output {
-                Ok(out) if out.status.success() => {
-                    let text = String::from_utf8_lossy(&out.stdout);
-                    let version = parse_version_output(&text)
-                        .or_else(|| parse_version_output(&String::from_utf8_lossy(&out.stderr)));
-                    CliVersionEntry {
-                        platform,
-                        installed: true,
-                        version,
-                    }
+/// GET /api/version/cli-versions - Detect installed CLI versions for all platforms
+/// 支持 mode=fast|full（默认 fast）
+pub async fn get_cli_versions(Query(query): Query<CliVersionsQuery>) -> impl IntoResponse {
+    let mode = parse_cli_versions_mode(query.mode.as_deref());
+    let request_started = Instant::now();
+
+    // 缓存命中判定：Fresh 直接返回，Fast + Stale 走 SWR
+    let cached = {
+        let cache = CLI_VERSIONS_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+        cache
+            .as_ref()
+            .map(|entry| (entry.data.clone(), entry.cached_at.elapsed(), entry.mode))
+    };
+
+    if let Some((cached_data, age, cached_mode)) = cached {
+        match cache_state_for_age(age) {
+            CacheState::Fresh => {
+                if mode == CliVersionsMode::Full && cached_mode != CliVersionsMode::Full {
+                    tracing::info!(
+                        mode = mode.as_str(),
+                        age_ms = age.as_millis() as u64,
+                        cached_mode = cached_mode.as_str(),
+                        "cli versions fresh cache skipped for full mode"
+                    );
+                } else {
+                    tracing::info!(
+                        mode = mode.as_str(),
+                        age_ms = age.as_millis() as u64,
+                        cached_mode = cached_mode.as_str(),
+                        "cli versions cache hit (fresh)"
+                    );
+                    return ApiResponse::success(cached_data);
                 }
-                _ => CliVersionEntry {
-                    platform,
-                    installed: false,
-                    version: None,
-                },
             }
-        }));
+            CacheState::Stale if mode == CliVersionsMode::Fast => {
+                tracing::info!(
+                    mode = mode.as_str(),
+                    age_ms = age.as_millis() as u64,
+                    cached_mode = cached_mode.as_str(),
+                    "cli versions cache hit (stale), serving stale and refreshing in background"
+                );
+                spawn_cli_versions_cache_refresh("stale_cache");
+                return ApiResponse::success(cached_data);
+            }
+            CacheState::Stale | CacheState::Expired => {
+                tracing::info!(
+                    mode = mode.as_str(),
+                    age_ms = age.as_millis() as u64,
+                    cached_mode = cached_mode.as_str(),
+                    "cli versions cache stale/expired, recomputing"
+                );
+            }
+        }
+    } else {
+        tracing::info!(mode = mode.as_str(), "cli versions cache miss");
     }
 
-    let mut versions = Vec::new();
-    for handle in handles {
-        if let Ok(entry) = handle.await {
-            versions.push(entry);
+    let response = detect_cli_versions(mode).await;
+    store_cli_versions_cache(response.clone(), mode);
+
+    tracing::info!(
+        mode = mode.as_str(),
+        elapsed_ms = request_started.elapsed().as_millis() as u64,
+        "cli versions request computed"
+    );
+
+    ApiResponse::success(response)
+}
+
+fn parse_cli_versions_mode(raw: Option<&str>) -> CliVersionsMode {
+    match raw.map(|v| v.trim().to_ascii_lowercase()) {
+        Some(mode) if mode == "full" => CliVersionsMode::Full,
+        _ => CliVersionsMode::Fast,
+    }
+}
+
+fn cache_state_for_age(age: Duration) -> CacheState {
+    if age < CLI_VERSIONS_FRESH_TTL {
+        CacheState::Fresh
+    } else if age < CLI_VERSIONS_STALE_TTL {
+        CacheState::Stale
+    } else {
+        CacheState::Expired
+    }
+}
+
+fn store_cli_versions_cache(data: CliVersionsResponse, mode: CliVersionsMode) {
+    let mut cache = CLI_VERSIONS_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    *cache = Some(CachedCliVersions {
+        data,
+        cached_at: Instant::now(),
+        mode,
+    });
+}
+
+fn spawn_cli_versions_cache_refresh(reason: &'static str) {
+    if CLI_VERSIONS_REFRESHING
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        tracing::debug!(
+            reason = reason,
+            "cli versions cache refresh already in-flight"
+        );
+        return;
+    }
+
+    tokio::spawn(async move {
+        struct RefreshGuard;
+        impl Drop for RefreshGuard {
+            fn drop(&mut self) {
+                CLI_VERSIONS_REFRESHING.store(false, Ordering::Release);
+            }
+        }
+
+        let _guard = RefreshGuard;
+        let started = Instant::now();
+        let response = detect_cli_versions(CliVersionsMode::Fast).await;
+        store_cli_versions_cache(response, CliVersionsMode::Fast);
+
+        tracing::info!(
+            reason = reason,
+            elapsed_ms = started.elapsed().as_millis() as u64,
+            "cli versions cache refresh completed"
+        );
+    });
+}
+
+async fn detect_cli_versions(mode: CliVersionsMode) -> CliVersionsResponse {
+    let started = Instant::now();
+    let versions = match mode {
+        CliVersionsMode::Fast => detect_cli_versions_fast().await,
+        CliVersionsMode::Full => detect_cli_versions_full().await,
+    };
+
+    tracing::info!(
+        mode = mode.as_str(),
+        elapsed_ms = started.elapsed().as_millis() as u64,
+        "cli version detection batch finished"
+    );
+
+    CliVersionsResponse { versions }
+}
+
+async fn detect_cli_versions_fast() -> Vec<CliVersionEntry> {
+    let mut set = JoinSet::new();
+    for (platform, binary) in CLI_VERSION_PLATFORMS {
+        set.spawn(detect_single_cli_version(
+            platform.to_string(),
+            binary.to_string(),
+            CliVersionsMode::Fast,
+        ));
+    }
+
+    let mut entries = Vec::with_capacity(CLI_VERSION_PLATFORMS.len());
+    let deadline = tokio::time::Instant::now() + CLI_VERSIONS_FAST_BUDGET;
+
+    while entries.len() < CLI_VERSION_PLATFORMS.len() {
+        let now = tokio::time::Instant::now();
+        if now >= deadline {
+            break;
+        }
+
+        let remaining = deadline.saturating_duration_since(now);
+        match tokio::time::timeout(remaining, set.join_next()).await {
+            Ok(Some(Ok(entry))) => entries.push(entry),
+            Ok(Some(Err(err))) => {
+                tracing::warn!(error = %err, "cli version detection task failed");
+            }
+            Ok(None) => break,
+            Err(_) => break,
         }
     }
 
-    ApiResponse::success(CliVersionsResponse { versions })
+    if entries.len() < CLI_VERSION_PLATFORMS.len() {
+        set.abort_all();
+        let existing_platforms: HashSet<String> =
+            entries.iter().map(|entry| entry.platform.clone()).collect();
+        for (platform, _) in CLI_VERSION_PLATFORMS {
+            if !existing_platforms.contains(platform) {
+                entries.push(build_cli_version_entry(
+                    platform.to_string(),
+                    false,
+                    None,
+                    "timeout",
+                    CLI_VERSIONS_FAST_BUDGET.as_millis() as u64,
+                ));
+            }
+        }
+    }
+
+    sort_cli_entries(entries)
+}
+
+async fn detect_cli_versions_full() -> Vec<CliVersionEntry> {
+    let mut set = JoinSet::new();
+    for (platform, binary) in CLI_VERSION_PLATFORMS {
+        set.spawn(detect_single_cli_version(
+            platform.to_string(),
+            binary.to_string(),
+            CliVersionsMode::Full,
+        ));
+    }
+
+    let mut entries = Vec::with_capacity(CLI_VERSION_PLATFORMS.len());
+    while let Some(result) = set.join_next().await {
+        match result {
+            Ok(entry) => entries.push(entry),
+            Err(err) => tracing::warn!(error = %err, "cli version detection task failed"),
+        }
+    }
+
+    // full 模式也保证返回完整平台集合
+    let existing_platforms: HashSet<String> =
+        entries.iter().map(|entry| entry.platform.clone()).collect();
+    for (platform, _) in CLI_VERSION_PLATFORMS {
+        if !existing_platforms.contains(platform) {
+            entries.push(build_cli_version_entry(
+                platform.to_string(),
+                false,
+                None,
+                "error",
+                0,
+            ));
+        }
+    }
+
+    sort_cli_entries(entries)
+}
+
+fn sort_cli_entries(entries: Vec<CliVersionEntry>) -> Vec<CliVersionEntry> {
+    let mut by_platform: HashMap<String, CliVersionEntry> = entries
+        .into_iter()
+        .map(|entry| (entry.platform.clone(), entry))
+        .collect();
+
+    let mut sorted = Vec::with_capacity(CLI_VERSION_PLATFORMS.len());
+    for (platform, _) in CLI_VERSION_PLATFORMS {
+        if let Some(entry) = by_platform.remove(platform) {
+            sorted.push(entry);
+        }
+    }
+
+    sorted
+}
+
+async fn detect_single_cli_version(
+    platform: String,
+    binary: String,
+    mode: CliVersionsMode,
+) -> CliVersionEntry {
+    let started = Instant::now();
+
+    let output = match mode {
+        CliVersionsMode::Fast => {
+            match tokio::time::timeout(CLI_VERSION_FAST_TIMEOUT, run_cli_version_command(&binary))
+                .await
+            {
+                Ok(result) => result,
+                Err(_) => {
+                    let elapsed_ms = started.elapsed().as_millis() as u64;
+                    let entry = build_cli_version_entry(
+                        platform.clone(),
+                        false,
+                        None,
+                        "timeout",
+                        elapsed_ms,
+                    );
+                    log_cli_detection_entry(mode, &entry);
+                    return entry;
+                }
+            }
+        }
+        CliVersionsMode::Full => {
+            match tokio::time::timeout(CLI_VERSION_FULL_TIMEOUT, run_cli_version_command(&binary))
+                .await
+            {
+                Ok(result) => result,
+                Err(_) => {
+                    let elapsed_ms = started.elapsed().as_millis() as u64;
+                    let entry = build_cli_version_entry(
+                        platform.clone(),
+                        false,
+                        None,
+                        "timeout",
+                        elapsed_ms,
+                    );
+                    log_cli_detection_entry(mode, &entry);
+                    return entry;
+                }
+            }
+        }
+    };
+
+    let elapsed_ms = started.elapsed().as_millis() as u64;
+    let entry = match output {
+        Ok(output) if output.status.success() => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let version = parse_version_output(&stdout).or_else(|| parse_version_output(&stderr));
+            build_cli_version_entry(platform.clone(), true, version, "ok", elapsed_ms)
+        }
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let missing = is_command_missing(output.status.code(), &stdout, &stderr);
+            if missing {
+                build_cli_version_entry(platform.clone(), false, None, "not_installed", elapsed_ms)
+            } else {
+                build_cli_version_entry(platform.clone(), false, None, "error", elapsed_ms)
+            }
+        }
+        Err(err) => {
+            if err.kind() == std::io::ErrorKind::NotFound {
+                build_cli_version_entry(platform.clone(), false, None, "not_installed", elapsed_ms)
+            } else {
+                build_cli_version_entry(platform.clone(), false, None, "error", elapsed_ms)
+            }
+        }
+    };
+
+    log_cli_detection_entry(mode, &entry);
+    entry
+}
+
+fn build_cli_version_entry(
+    platform: String,
+    installed: bool,
+    version: Option<String>,
+    status: &str,
+    elapsed_ms: u64,
+) -> CliVersionEntry {
+    CliVersionEntry {
+        platform,
+        installed,
+        version,
+        status: Some(status.to_string()),
+        elapsed_ms: Some(elapsed_ms),
+    }
+}
+
+fn log_cli_detection_entry(mode: CliVersionsMode, entry: &CliVersionEntry) {
+    tracing::info!(
+        mode = mode.as_str(),
+        platform = %entry.platform,
+        status = entry.status.as_deref().unwrap_or("unknown"),
+        elapsed_ms = entry.elapsed_ms.unwrap_or_default(),
+        "cli version detection finished"
+    );
+}
+
+async fn run_cli_version_command(binary: &str) -> std::io::Result<std::process::Output> {
+    if cfg!(target_os = "windows") {
+        tokio::process::Command::new("cmd")
+            .args(["/c", binary, "--version"])
+            .output()
+            .await
+    } else {
+        tokio::process::Command::new(binary)
+            .arg("--version")
+            .output()
+            .await
+    }
+}
+
+fn is_command_missing(status_code: Option<i32>, stdout: &str, stderr: &str) -> bool {
+    if status_code == Some(127) {
+        return true;
+    }
+
+    let lower = format!(
+        "{} {}",
+        stdout.to_ascii_lowercase(),
+        stderr.to_ascii_lowercase()
+    );
+    let patterns = [
+        "not found",
+        "not recognized",
+        "is not recognized",
+        "no such file or directory",
+        "cannot find",
+        "找不到",
+        "不是内部或外部命令",
+    ];
+
+    patterns.iter().any(|pattern| lower.contains(pattern))
 }
 
 /// 从 CLI 输出中提取版本号
@@ -368,5 +769,51 @@ mod tests {
         // Different lengths
         assert!(compare_versions("1.0", "1.0.1"));
         assert!(!compare_versions("1.0.1", "1.0"));
+    }
+
+    #[test]
+    fn test_parse_cli_versions_mode_defaults_to_fast() {
+        assert_eq!(parse_cli_versions_mode(None), CliVersionsMode::Fast);
+        assert_eq!(parse_cli_versions_mode(Some("FAST")), CliVersionsMode::Fast);
+        assert_eq!(
+            parse_cli_versions_mode(Some("invalid")),
+            CliVersionsMode::Fast
+        );
+        assert_eq!(parse_cli_versions_mode(Some("full")), CliVersionsMode::Full);
+    }
+
+    #[test]
+    fn test_cache_state_for_age() {
+        assert_eq!(
+            cache_state_for_age(Duration::from_secs(10)),
+            CacheState::Fresh
+        );
+        assert_eq!(
+            cache_state_for_age(Duration::from_secs(120)),
+            CacheState::Stale
+        );
+        assert_eq!(
+            cache_state_for_age(Duration::from_secs(1200)),
+            CacheState::Expired
+        );
+    }
+
+    #[test]
+    fn test_is_command_missing_patterns() {
+        assert!(is_command_missing(
+            Some(1),
+            "",
+            "'abc' is not recognized as an internal or external command"
+        ));
+        assert!(is_command_missing(Some(127), "", ""));
+        assert!(!is_command_missing(Some(1), "", "permission denied"));
+    }
+
+    #[test]
+    fn test_timeout_entry_has_timeout_status() {
+        let entry = build_cli_version_entry("codex".to_string(), false, None, "timeout", 1200);
+        assert_eq!(entry.platform, "codex");
+        assert_eq!(entry.status.as_deref(), Some("timeout"));
+        assert_eq!(entry.elapsed_ms, Some(1200));
     }
 }
