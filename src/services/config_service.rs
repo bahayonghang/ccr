@@ -75,6 +75,16 @@ impl ConfigService {
         Ok(Self::new(config_manager))
     }
 
+    /// 🎯 为指定平台创建配置服务
+    ///
+    /// 直接加载指定平台的配置，不依赖 `current_platform`。
+    /// 适用于 UI 等需要按平台独立管理配置的场景。
+    #[allow(dead_code)]
+    pub fn for_platform(platform_name: &str) -> Result<Self> {
+        let config_manager = Arc::new(ConfigManager::for_platform(platform_name)?);
+        Ok(Self::new(config_manager))
+    }
+
     /// 🔐 获取配置锁（跨进程 + 进程内）
     fn lock_config(
         &self,

@@ -16,4 +16,4 @@ pub use delete::delete_command;
 pub use disable::disable_command;
 pub use enable::enable_command;
 pub use list::list_command;
-pub use switch::switch_command;
+pub use switch::{switch_command, switch_command_for_platform};

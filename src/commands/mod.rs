@@ -53,6 +53,7 @@ pub use profile::disable_command;
 pub use profile::enable_command;
 pub use profile::list_command;
 pub use profile::switch_command;
+pub use profile::switch_command_for_platform;
 
 // 🔄 Lifecycle 命令
 pub use lifecycle::clean_command;

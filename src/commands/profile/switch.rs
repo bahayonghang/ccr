@@ -30,13 +30,19 @@ use std::str::FromStr;
 ///
 /// 这是一个原子性操作,确保配置切换的完整性和可追溯性
 pub async fn switch_command(config_name: &str) -> Result<()> {
-    ColorOutput::title(&format!("切换配置: {}", config_name));
-    println!();
-
     // 🔍 加载平台配置
     let platform_config_mgr = PlatformConfigManager::with_default()?;
     let unified_config = platform_config_mgr.load()?;
-    let platform_name = &unified_config.current_platform;
+    switch_command_for_platform(config_name, &unified_config.current_platform).await
+}
+
+/// 🔄 在指定平台内切换到配置
+///
+/// 用于需要固定平台上下文的调用方（如 Web API）。
+pub async fn switch_command_for_platform(config_name: &str, platform_name: &str) -> Result<()> {
+    ColorOutput::title(&format!("切换配置: {}", config_name));
+    println!();
+
     let platform = Platform::from_str(platform_name)?;
 
     // 📖 步骤 1: 读取并校验目标配置
