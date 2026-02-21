@@ -839,12 +839,16 @@ async function handleManualInstall() {
 
 // === Init ===
 onMounted(async () => {
-  await Promise.all([
-    fetchPlatforms(),
-    fetchMarketplaceTrending(),
-    checkNpxStatus(),
-  ])
-  selectDetected()
+  try {
+    await Promise.all([
+      fetchPlatforms(),
+      fetchMarketplaceTrending(),
+      checkNpxStatus(),
+    ])
+    selectDetected()
+  } catch (err) {
+    console.error('[AddSkillView] onMounted error:', err)
+  }
 })
 </script>
 
