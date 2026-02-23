@@ -120,7 +120,7 @@
     <div
       v-if="showAddDialog"
       class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"
+      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
       @click.self="showAddDialog = false"
     >
       <Card
@@ -147,7 +147,7 @@
             placeholder="例：@opencode-ai/omo"
             class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-emerald-500"
             @keyup.enter="doAdd"
-          />
+          >
         </div>
 
         <div class="flex justify-end gap-3">
@@ -177,7 +177,7 @@
     <div
       v-if="deletingNpm"
       class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"
+      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
       @click.self="deletingNpm = ''"
     >
       <Card

@@ -171,7 +171,7 @@
     <div
       v-if="showAddDialog || editingServer"
       class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"
+      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
       @click.self="closeDialog"
     >
       <Card
@@ -199,7 +199,7 @@
             type="text"
             placeholder="例：my-mcp-server"
             class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-blue-500 disabled:opacity-50"
-          />
+          >
         </div>
 
         <!-- 类型选择 -->
@@ -237,7 +237,7 @@
             type="text"
             placeholder="例：npx -y @modelcontextprotocol/server-everything"
             class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-blue-500"
-          />
+          >
           <p class="text-xs text-text-muted mt-1">
             命令将被拆分为数组：["npx", "-y", "@modelcontextprotocol/server-everything"]
           </p>
@@ -251,7 +251,7 @@
             type="text"
             placeholder="例：https://mcp.example.com/sse"
             class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-blue-500"
-          />
+          >
         </div>
 
         <!-- 操作按钮 -->
@@ -282,7 +282,7 @@
     <div
       v-if="deletingServer"
       class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"
+      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
       @click.self="deletingServer = null"
     >
       <Card

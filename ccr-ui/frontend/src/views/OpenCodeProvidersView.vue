@@ -156,7 +156,7 @@
     <div
       v-if="showAddDialog || editingProvider"
       class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"
+      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
       @click.self="closeDialog"
     >
       <Card
@@ -184,7 +184,7 @@
             type="text"
             placeholder="例：my-claude"
             class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-violet-500 disabled:opacity-50"
-          />
+          >
         </div>
 
         <!-- npm 包名（预设选择） -->
@@ -200,8 +200,12 @@
                 : 'bg-bg-elevated border-border-default text-text-muted hover:border-violet-500/50'"
               @click="selectPreset(preset)"
             >
-              <div class="font-bold truncate">{{ preset.label }}</div>
-              <div class="opacity-70 truncate font-mono text-xs">{{ preset.npm }}</div>
+              <div class="font-bold truncate">
+                {{ preset.label }}
+              </div>
+              <div class="opacity-70 truncate font-mono text-xs">
+                {{ preset.npm }}
+              </div>
             </button>
           </div>
           <input
@@ -209,7 +213,7 @@
             type="text"
             placeholder="或输入自定义 npm 包名"
             class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-violet-500"
-          />
+          >
         </div>
 
         <!-- API Key -->
@@ -220,7 +224,7 @@
             type="password"
             placeholder="sk-... 或 {env:VAR_NAME}"
             class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-violet-500"
-          />
+          >
           <p class="text-xs text-text-muted mt-1">
             支持环境变量格式：{env:MY_API_KEY}
           </p>
@@ -234,7 +238,7 @@
             type="text"
             placeholder="https://api.example.com/v1"
             class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-violet-500"
-          />
+          >
         </div>
 
         <!-- 操作按钮 -->
@@ -265,7 +269,7 @@
     <div
       v-if="deletingProvider"
       class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"
+      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
       @click.self="deletingProvider = null"
     >
       <Card

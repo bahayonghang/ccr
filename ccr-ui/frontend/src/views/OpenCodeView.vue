@@ -97,7 +97,10 @@
       </section>
 
       <!-- MODULE NAVIGATION -->
-      <section class="animate-slide-up" style="animation-delay: 0.1s">
+      <section
+        class="animate-slide-up"
+        style="animation-delay: 0.1s"
+      >
         <h2 class="text-lg font-bold text-text-primary mb-3">
           功能模块
         </h2>
