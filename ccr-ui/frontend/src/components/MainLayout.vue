@@ -178,7 +178,7 @@
       </nav>
 
       <!-- Footer: User Profile - Neko Kawaii Style -->
-      <div class="p-3 border-t border-pink-200/10 dark:border-pink-300/10">
+      <div class="p-3 pb-6 border-t border-pink-200/10 dark:border-pink-300/10">
         <div class="user-card group relative rounded-2xl overflow-hidden transition-all duration-300">
           <!-- Animated gradient background -->
           <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 via-fuchsia-500/12 to-violet-500/15 opacity-80" />
