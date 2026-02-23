@@ -103,6 +103,22 @@ export default defineConfig({
       'axios',
       'lucide-vue-next', // MainLayout 中使用 13+ 图标，需预打包
       'vue-i18n',        // 多处导入的国际化库
+      'marked',          // CJS→ESM 互操作需预打包
+      // highlight.js 为 CJS 包，必须预打包以避免 ESM 链接错误
+      'highlight.js/lib/core',
+      'highlight.js/lib/languages/javascript',
+      'highlight.js/lib/languages/typescript',
+      'highlight.js/lib/languages/python',
+      'highlight.js/lib/languages/bash',
+      'highlight.js/lib/languages/json',
+      'highlight.js/lib/languages/yaml',
+      'highlight.js/lib/languages/xml',
+      'highlight.js/lib/languages/css',
+      'highlight.js/lib/languages/rust',
+      'highlight.js/lib/languages/go',
+      'highlight.js/lib/languages/sql',
+      'highlight.js/lib/languages/markdown',
+      'highlight.js/lib/languages/diff',
     ]
   },
   test: {
