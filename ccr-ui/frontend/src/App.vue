@@ -8,7 +8,10 @@
     <div class="premium-bg-orb orb-3" />
     <div class="premium-bg-pattern" />
   </div>
-  <RouterView />
+  <Titlebar />
+  <div class="pt-9 h-screen overflow-hidden">
+    <RouterView />
+  </div>
   <ToastContainer />
 </template>
 
@@ -16,6 +19,7 @@
 import { onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useThemeStore } from '@/store'
+import Titlebar from '@/components/layout/Titlebar.vue'
 import ToastContainer from '@/components/common/ToastContainer.vue'
 
 const themeStore = useThemeStore()
