@@ -705,22 +705,40 @@ fn main() {
 
                 match child {
                     Ok(child) => {
+                        // 1. 存储前检查 — 若已请求关闭，立即 kill 并返回
+                        {
+                            let state = app_handle.state::<AppState>();
+                            if state.backend_shutdown_requested.load(Ordering::SeqCst) {
+                                tracing::info!(
+                                    "[backend] shutdown requested before storing child, killing"
+                                );
+                                let _ = child.kill();
+                                return;
+                            }
+                        }
+
+                        // 2. 存储 child handle
                         {
                             let state = app_handle.state::<AppState>();
                             *state.backend_child.lock().unwrap() = Some(child);
                         }
 
+                        // 3. 存储后再次检查 — 处理 check-store 之间的极端窗口
                         {
                             let state = app_handle.state::<AppState>();
                             if state.backend_shutdown_requested.load(Ordering::SeqCst) {
                                 tracing::info!(
-                                    "[backend] shutdown already requested during startup, terminating immediately"
+                                    "[backend] shutdown requested after storing child, terminating"
                                 );
-                                terminate_backend_process(&app_handle, "shutdown_requested_during_startup");
+                                terminate_backend_process(
+                                    &app_handle,
+                                    "shutdown_requested_after_store",
+                                );
                                 return;
                             }
                         }
 
+                        // 4. 等待 backend 就绪
                         if wait_for_backend_ready(port).await {
                             tracing::info!("[backend] ready at http://{}:{}", BACKEND_HOST, port);
                             let state = app_handle.state::<AppState>();
