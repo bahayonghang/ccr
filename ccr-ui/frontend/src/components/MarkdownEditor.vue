@@ -170,8 +170,8 @@ const insertVariable = (key: string) => {
 }
 
 onMounted(() => {
-  // 配置 marked 选项
-  marked.setOptions({
+  // 配置 marked 选项（marked v12+ 使用 .use() 替代已废弃的 .setOptions()）
+  marked.use({
     breaks: true,
     gfm: true
   })
