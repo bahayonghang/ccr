@@ -4,6 +4,7 @@
 use chrono::Local;
 use clap::Parser;
 use std::net::SocketAddr;
+use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 use tracing_log::LogTracer;
 use tracing_subscriber::{
@@ -101,6 +102,9 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
+    // 创建 CancellationToken 用于优雅关闭所有后台任务
+    let cancel_token = CancellationToken::new();
+
     let bind_addr: SocketAddr = format!("{}:{}", args.host, args.port)
         .parse()
         .expect("Failed to parse bind address");
@@ -124,12 +128,19 @@ async fn main() -> std::io::Result<()> {
     let session_index_initial_delay_secs = env_u64("SESSION_INDEX_INITIAL_DELAY_SECS", 30);
 
     // 后台使用数据导入调度（每 60s 增量导入各平台 JSONL）
+    let usage_token = cancel_token.clone();
     tokio::spawn(async move {
         use services::usage_import_service::{ImportConfig, UsageImportService};
         use tokio::time::{Duration, interval, sleep};
 
         // 默认延迟 25s，避免与首批前端请求争抢 I/O 和阻塞线程
-        sleep(Duration::from_secs(usage_import_initial_delay_secs)).await;
+        tokio::select! {
+            _ = usage_token.cancelled() => {
+                info!("[background] usage import cancelled during initial delay");
+                return;
+            }
+            _ = sleep(Duration::from_secs(usage_import_initial_delay_secs)) => {}
+        }
 
         // 启动时执行一次导入（使用 spawn_blocking 避免阻塞异步工作线程）
         let _ = tokio::task::spawn_blocking(|| {
@@ -146,24 +157,38 @@ async fn main() -> std::io::Result<()> {
         // 每 60s 增量导入
         let mut tick = interval(Duration::from_secs(60));
         loop {
-            tick.tick().await;
-            let _ = tokio::task::spawn_blocking(|| {
-                let svc = UsageImportService::new(ImportConfig::default());
-                for platform in &["claude", "codex", "gemini"] {
-                    let _ = svc.import_platform(platform);
+            tokio::select! {
+                _ = usage_token.cancelled() => {
+                    info!("[background] usage import task cancelled, exiting");
+                    break;
                 }
-            })
-            .await;
+                _ = tick.tick() => {
+                    let _ = tokio::task::spawn_blocking(|| {
+                        let svc = UsageImportService::new(ImportConfig::default());
+                        for platform in &["claude", "codex", "gemini"] {
+                            let _ = svc.import_platform(platform);
+                        }
+                    })
+                    .await;
+                }
+            }
         }
     });
 
     if env_flag("SESSIONS_DAILY_CACHE", true) {
+        let session_token = cancel_token.clone();
         tokio::spawn(async move {
             use ccr::sessions::SessionIndexer;
             use tokio::time::{Duration, interval, sleep};
 
             // 默认延迟 30s，降低冷启动阶段的资源竞争
-            sleep(Duration::from_secs(session_index_initial_delay_secs)).await;
+            tokio::select! {
+                _ = session_token.cancelled() => {
+                    info!("[background] session indexer cancelled during initial delay");
+                    return;
+                }
+                _ = sleep(Duration::from_secs(session_index_initial_delay_secs)) => {}
+            }
 
             // 初始索引（使用 spawn_blocking 避免阻塞异步工作线程）
             let _ = tokio::task::spawn_blocking(|| {
@@ -175,19 +200,26 @@ async fn main() -> std::io::Result<()> {
 
             let mut tick = interval(Duration::from_secs(60));
             loop {
-                tick.tick().await;
-                let _ = tokio::task::spawn_blocking(|| match SessionIndexer::new() {
-                    Ok(indexer) => {
-                        let _ = indexer.index_all();
+                tokio::select! {
+                    _ = session_token.cancelled() => {
+                        info!("[background] session indexer task cancelled, exiting");
+                        break;
                     }
-                    Err(e) => {
-                        warn!(
-                            "Failed to create SessionIndexer for background refresh: {}",
-                            e
-                        );
+                    _ = tick.tick() => {
+                        let _ = tokio::task::spawn_blocking(|| match SessionIndexer::new() {
+                            Ok(indexer) => {
+                                let _ = indexer.index_all();
+                            }
+                            Err(e) => {
+                                warn!(
+                                    "Failed to create SessionIndexer for background refresh: {}",
+                                    e
+                                );
+                            }
+                        })
+                        .await;
                     }
-                })
-                .await;
+                }
             }
         });
         info!("Session daily cache background index refresh enabled");
@@ -220,11 +252,18 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
-    // Start the server
+    // Start the server with graceful shutdown
     let listener = tokio::net::TcpListener::bind(bind_addr).await?;
     info!("Server started successfully, listening on {}", bind_addr);
 
+    let shutdown_token = cancel_token.clone();
     axum::serve(listener, app)
+        .with_graceful_shutdown(async move {
+            // 监听 Ctrl+C / SIGTERM (Windows 上是 ctrl_c)
+            let _ = tokio::signal::ctrl_c().await;
+            info!("[server] shutdown signal received, draining connections...");
+            shutdown_token.cancel(); // 通知所有后台任务退出
+        })
         .await
         .map_err(std::io::Error::other)
 }
