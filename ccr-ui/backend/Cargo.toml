@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "4.1.4"
+version = "4.2.2"
 edition = "2024"
 
 [dependencies]
@@ -39,6 +39,7 @@ futures-util = "0.3" # 异步编程工具集 (Stream/Future 扩展)
 
 # Async runtime
 tokio = { version = "1.49.0", features = ["full"] } # 异步运行时 (全功能版)
+tokio-util = { version = "0.7", features = ["rt"] }  # 异步工具 (CancellationToken)
 
 # Serialization
 serde = { version = "1.0.228", features = ["derive"] } # 序列化框架
