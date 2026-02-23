@@ -352,6 +352,22 @@ export {
     type DroidPlugin,
 } from './droid'
 
+// OpenCode Platform
+export {
+    listOpenCodeProviders,
+    addOpenCodeProvider,
+    updateOpenCodeProvider,
+    deleteOpenCodeProvider,
+    listOpenCodeMcpServers,
+    addOpenCodeMcpServer,
+    updateOpenCodeMcpServer,
+    deleteOpenCodeMcpServer,
+    listOpenCodePlugins,
+    addOpenCodePlugin,
+    deleteOpenCodePlugin,
+    getOpenCodeConfig,
+} from './opencode'
+
 // Claude Code Settings - 全局设置
 export {
     getClaudeSettings,

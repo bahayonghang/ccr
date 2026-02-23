@@ -276,7 +276,8 @@ import {
   Code2,
   ArrowLeftRight,
   Boxes,
-  Flame
+  Flame,
+  Layers
 } from 'lucide-vue-next'
 
 interface NavItem {
@@ -295,7 +296,7 @@ interface NavGroup {
 
 // Props: 接受一个可选的 module 参数来过滤菜单
 interface Props {
-  module?: string  // 'claude-code' | 'codex' | 'gemini-cli' | 'qwen' | 'iflow' | 'droid' | 'commands' | 'converter'
+  module?: string  // 'claude-code' | 'codex' | 'gemini-cli' | 'qwen' | 'iflow' | 'droid' | 'opencode' | 'commands' | 'converter'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -430,6 +431,18 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'Agents', href: '/droid/agents', icon: Bot },
       { name: 'Slash Commands', href: '/droid/slash-commands', icon: Command },
       { name: '插件管理', href: '/droid/plugins', icon: Puzzle }
+    ]
+  },
+  {
+    title: 'OpenCode',
+    icon: Layers,
+    defaultExpanded: false,
+    module: 'opencode',
+    items: [
+      { name: 'Providers', href: '/opencode/providers', icon: Layers },
+      { name: 'MCP 服务器', href: '/opencode/mcp', icon: Server },
+      { name: 'Skills', href: '/skills', icon: Book },
+      { name: '插件管理', href: '/opencode/plugins', icon: Puzzle }
     ]
   },
   {

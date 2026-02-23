@@ -396,6 +396,31 @@ const router = createRouter({
           name: 'droid-droids',
           component: () => import('@/views/DroidDroidsView.vue'),
           meta: { hideGlobalBackground: true, depth: 2, group: 'droid' }
+        },
+        // OpenCode 子页面 (depth: 2, group: 'opencode')
+        {
+          path: 'opencode',
+          name: 'opencode',
+          component: () => import('@/views/OpenCodeView.vue'),
+          meta: { hideGlobalBackground: true, depth: 1, group: 'opencode' }
+        },
+        {
+          path: 'opencode/providers',
+          name: 'opencode-providers',
+          component: () => import('@/views/OpenCodeProvidersView.vue'),
+          meta: { hideGlobalBackground: true, depth: 2, group: 'opencode' }
+        },
+        {
+          path: 'opencode/mcp',
+          name: 'opencode-mcp',
+          component: () => import('@/views/OpenCodeMcpView.vue'),
+          meta: { hideGlobalBackground: true, depth: 2, group: 'opencode' }
+        },
+        {
+          path: 'opencode/plugins',
+          name: 'opencode-plugins',
+          component: () => import('@/views/OpenCodePluginsView.vue'),
+          meta: { hideGlobalBackground: true, depth: 2, group: 'opencode' }
         }
       ]
     }

@@ -16,6 +16,7 @@ pub mod hooks_routes;
 pub mod iflow_routes;
 pub mod marketplace_routes;
 pub mod mcp_routes;
+pub mod opencode_routes;
 pub mod output_styles_routes;
 pub mod platform_routes;
 pub mod plugins_routes;
@@ -157,6 +158,8 @@ fn create_api_routes() -> Router<AppState> {
         .merge(iflow_routes::routes())
         // Droid 平台
         .merge(droid_routes::routes())
+        // OpenCode 平台
+        .merge(opencode_routes::routes())
         // 配置转换
         .merge(converter_routes::routes())
         // UI 状态
