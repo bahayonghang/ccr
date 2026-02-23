@@ -95,6 +95,7 @@ pub async fn list_configs() -> ApiResult<Json<ConfigListResponse>> {
 pub async fn switch_config(Json(req): Json<SwitchRequest>) -> ApiResult<Json<&'static str>> {
     let config_name = req.config_name.clone();
 
+    // Switch command signature: switch_command_for_platform(name: &str, platform: &str)
     match ccr::commands::switch_command_for_platform(&config_name, "claude").await {
         Ok(_) => Ok(Json("Configuration switched successfully")),
         Err(e) => Err(ApiError::bad_request(e.to_string())),
