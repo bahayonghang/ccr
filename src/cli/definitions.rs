@@ -103,6 +103,19 @@ pub enum Commands {
     #[command(alias = "show")]
     Current,
 
+    /// 临时使用指定配置执行代码 (不修改全局配置)
+    ///
+    /// 通过注入环境变量的方式启动 Claude/Codex
+    /// 示例: ccr run my_config -- claude -p "Hello"
+    Run {
+        /// 要使用的配置方案名称
+        config_name: String,
+
+        /// 传递给底层 AI CLI 工具的参数
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
     /// 切换到指定的配置方案
     ///
     /// 将 Claude Code 的配置切换到指定方案,自动备份当前配置并应用新配置
