@@ -12,6 +12,7 @@ CCR 提供了丰富的命令来管理多平台 AI CLI 配置。本页面概览�
 | [list](./list) | `ls` | 列出当前平台的 profiles | v1.0+ |
 | [current](./current) | `status`, `show` | 当前 profile 状态 | v1.0+ |
 | [switch](./switch) | - | 切换 profile（支持快捷 `ccr <name>`） | v1.0+ |
+| [run](./run) | - | 临时运行隔离环境 | v3.17+ |
 | [add](./add) | - | 交互式添加新配置 | v1.0+ |
 | [delete](./delete) | - | 删除指定配置 | v1.0+ |
 | enable | - | 启用 profile（当前平台） | v1.0+ |
@@ -50,6 +51,7 @@ CCR 提供了丰富的命令来管理多平台 AI CLI 配置。本页面概览�
 ### Profile 管理
 
 - **[list](./list)** / **[current](./current)** / **[switch](./switch)** - 查看与切换
+- **[run](./run)** - 临时配置运行（环境变量隔离）
 - **[add](./add)** / **[delete](./delete)** - 增删 profile
 - **enable/disable** - 启用/禁用 profile
 - **[validate](./validate)** / optimize / clear - 校验、排序、清除写入
@@ -90,6 +92,9 @@ ccr list
 # 切换配置(两种方式)
 ccr switch anthropic
 ccr anthropic
+
+# 临时运行（不修改全局配置）
+ccr run anthropic -- claude -p "Hello"
 
 # 添加新配置
 ccr add

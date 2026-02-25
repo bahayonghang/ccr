@@ -76,6 +76,9 @@ ccr switch my-work-config
 
 # 快捷切换（省略 switch）
 ccr my-work-config
+
+# 使用指定配置临时运行命令（不修改全局状态）
+ccr run my-work-config -- claude -p "Hello"
 ```
 
 

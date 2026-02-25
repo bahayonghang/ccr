@@ -46,6 +46,7 @@ ccr init
 ccr platform list                    # 查看平台
 ccr add                              # 引导创建配置
 ccr list && ccr switch <name>        # 查看/切换；可直接 ccr <name>
+ccr run <name> -- claude -p "hi"     # 临时配置运行（环境变量隔离）
 ccr enable <name> | ccr disable <name> [--force]
 ccr validate                         # 校验配置与 settings
 ccr history -l 50                    # 查看历史
