@@ -30,16 +30,14 @@ pub async fn execute(config_name: &str, args: &[String]) -> Result<()> {
     let mut target_profile = None;
 
     for (platform_name, _) in unified_config.platforms.iter() {
-        if let Ok(platform) = crate::models::Platform::from_str(platform_name) {
-            if let Ok(platform_impl) = crate::platforms::create_platform(platform.clone()) {
-                if let Ok(profiles) = platform_impl.load_profiles() {
-                    if let Some(profile) = profiles.get(config_name) {
-                        target_platform = Some(platform_name.clone());
-                        target_profile = Some((platform, profile.clone()));
-                        break;
-                    }
-                }
-            }
+        if let Ok(platform) = crate::models::Platform::from_str(platform_name)
+            && let Ok(platform_impl) = crate::platforms::create_platform(platform)
+            && let Ok(profiles) = platform_impl.load_profiles()
+            && let Some(profile) = profiles.get(config_name)
+        {
+            target_platform = Some(platform_name.clone());
+            target_profile = Some((platform, profile.clone()));
+            break;
         }
     }
 
@@ -51,7 +49,9 @@ pub async fn execute(config_name: &str, args: &[String]) -> Result<()> {
         CcrError::ConfigSectionNotFound(config_name.to_string())
     })?;
 
-    let (platform, profile) = target_profile.unwrap();
+    // target_profile 与 target_platform 同时设置，此处必定为 Some
+    let (platform, profile) =
+        target_profile.ok_or_else(|| CcrError::ConfigSectionNotFound(config_name.to_string()))?;
 
     ColorOutput::success(&format!(
         "✅ 找到配置 '{}' 属于平台: {}",
