@@ -164,17 +164,11 @@ impl OpenCodeConfigManager {
         }
 
         // 写入临时文件
-        let temp_file = NamedTempFile::new_in(
-            self.config_path
-                .parent()
-                .unwrap_or_else(|| Path::new(".")),
-        )?;
+        let temp_file =
+            NamedTempFile::new_in(self.config_path.parent().unwrap_or_else(|| Path::new(".")))?;
 
         let content = serde_json::to_string_pretty(config).map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("序列化配置失败: {}", e),
-            )
+            io::Error::new(io::ErrorKind::InvalidData, format!("序列化配置失败: {}", e))
         })?;
 
         fs::write(temp_file.path(), content)?;
