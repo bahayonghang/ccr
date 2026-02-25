@@ -12,6 +12,7 @@
     "core:window:allow-set-focus",
     "core:window:allow-toggle-maximize",
     "core:window:allow-internal-toggle-maximize",
+    "core:window:allow-start-dragging",
     "core:event:default",
     "core:event:allow-listen",
     "core:event:allow-emit",
