@@ -129,7 +129,6 @@ pub struct CodexProfileItem {
     pub provider_type: Option<String>,
     pub account: Option<String>,
     pub tags: Option<Vec<String>>,
-    pub api_mode: Option<String>,
     pub wire_api: Option<String>,
     pub env_key: Option<String>,
     pub requires_openai_auth: Option<bool>,
@@ -138,7 +137,6 @@ pub struct CodexProfileItem {
     pub model_reasoning_effort: Option<String>,
     pub network_access: Option<String>,
     pub disable_response_storage: Option<bool>,
-    pub organization: Option<String>,
     pub is_current: bool,
 }
 
@@ -164,7 +162,6 @@ pub struct CodexProfileRequest {
     pub model_reasoning_effort: Option<String>,
     pub network_access: Option<String>,
     pub disable_response_storage: Option<bool>,
-    pub organization: Option<String>,
 }
 
 /// 历史记录响应

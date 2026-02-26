@@ -136,11 +136,6 @@ fn build_profile_config(req: &CodexProfileRequest) -> crate::models::ProfileConf
         "disable_response_storage",
         req.disable_response_storage,
     );
-    insert_string(
-        &mut platform_data,
-        "organization",
-        req.organization.as_ref(),
-    );
 
     ProfileConfig {
         description: req.description.clone(),
@@ -176,7 +171,6 @@ fn build_profile_item(
         provider_type: profile.provider_type.clone(),
         account: profile.account.clone(),
         tags: profile.tags.clone(),
-        api_mode: get_string(data, "api_mode"),
         wire_api: get_string(data, "wire_api"),
         env_key: get_string(data, "env_key"),
         requires_openai_auth: get_bool(data, "requires_openai_auth"),
@@ -185,7 +179,6 @@ fn build_profile_item(
         model_reasoning_effort: get_string(data, "model_reasoning_effort"),
         network_access: get_string(data, "network_access"),
         disable_response_storage: get_bool(data, "disable_response_storage"),
-        organization: get_string(data, "organization"),
         is_current: false,
     };
     item.is_current = item.name == current_profile;
@@ -225,4 +218,40 @@ fn get_bool(map: &IndexMap<String, JsonValue>, key: &str) -> Option<bool> {
         },
         _ => None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_profile_config_preserves_api_mode() {
+        let req = CodexProfileRequest {
+            name: "legacy".to_string(),
+            description: Some("legacy github mode".to_string()),
+            base_url: "https://api.github.com".to_string(),
+            auth_token: "ghp_test".to_string(),
+            model: Some("gpt-4".to_string()),
+            small_fast_model: None,
+            provider: Some("github".to_string()),
+            provider_type: None,
+            account: None,
+            tags: None,
+            api_mode: Some("github".to_string()),
+            wire_api: Some("responses".to_string()),
+            env_key: None,
+            requires_openai_auth: None,
+            approval_policy: None,
+            sandbox_mode: None,
+            model_reasoning_effort: None,
+            network_access: None,
+            disable_response_storage: None,
+        };
+
+        let profile = build_profile_config(&req);
+        assert_eq!(
+            profile.platform_data.get("api_mode"),
+            Some(&JsonValue::String("github".to_string()))
+        );
+    }
 }
