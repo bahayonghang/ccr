@@ -133,35 +133,35 @@ pub async fn current_command() -> Result<()> {
 
     if platform == Platform::Codex {
         use crate::managers::CodexConfigManager;
-        if let Ok(mgr) = CodexConfigManager::with_default() {
-            if let Ok(auth) = mgr.load_auth() {
-                let requires_auth = profile
-                    .platform_data
-                    .get("requires_openai_auth")
-                    .and_then(|v| match v {
-                        serde_json::Value::Bool(b) => Some(*b),
-                        serde_json::Value::String(s) => match s.to_lowercase().as_str() {
-                            "true" | "1" => Some(true),
-                            "false" | "0" => Some(false),
-                            _ => None,
-                        },
+        if let Ok(mgr) = CodexConfigManager::with_default()
+            && let Ok(auth) = mgr.load_auth()
+        {
+            let requires_auth = profile
+                .platform_data
+                .get("requires_openai_auth")
+                .and_then(|v| match v {
+                    serde_json::Value::Bool(b) => Some(*b),
+                    serde_json::Value::String(s) => match s.to_lowercase().as_str() {
+                        "true" | "1" => Some(true),
+                        "false" | "0" => Some(false),
                         _ => None,
-                    })
-                    .unwrap_or(true);
+                    },
+                    _ => None,
+                })
+                .unwrap_or(true);
 
-                let env_key_name = if requires_auth {
-                    "OPENAI_API_KEY"
-                } else {
-                    profile
-                        .platform_data
-                        .get("env_key")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("OPENAI_API_KEY")
-                };
+            let env_key_name = if requires_auth {
+                "OPENAI_API_KEY"
+            } else {
+                profile
+                    .platform_data
+                    .get("env_key")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("OPENAI_API_KEY")
+            };
 
-                if let Some(token) = auth.get(env_key_name).and_then(|v| v.as_str()) {
-                    current_section.auth_token = Some(token.to_string());
-                }
+            if let Some(token) = auth.get(env_key_name).and_then(|v| v.as_str()) {
+                current_section.auth_token = Some(token.to_string());
             }
         }
     }

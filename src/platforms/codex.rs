@@ -962,13 +962,19 @@ mod tests {
         provider_table.insert("wire_api".into(), toml::Value::String("responses".into()));
         provider_table.insert("requires_openai_auth".into(), toml::Value::Boolean(false));
         provider_table.insert("env_key".into(), toml::Value::String("OLD_API_KEY".into()));
-        provider_table.insert("model".into(), toml::Value::String("old-provider-model".into()));
+        provider_table.insert(
+            "model".into(),
+            toml::Value::String("old-provider-model".into()),
+        );
 
         let mut providers_table = toml::map::Map::new();
         providers_table.insert("custom".into(), toml::Value::Table(provider_table));
 
         let mut root_table = toml::map::Map::new();
-        root_table.insert("model_provider".into(), toml::Value::String("custom".into()));
+        root_table.insert(
+            "model_provider".into(),
+            toml::Value::String("custom".into()),
+        );
         root_table.insert(
             "model_providers".into(),
             toml::Value::Table(providers_table),
@@ -1000,7 +1006,9 @@ mod tests {
             .insert("requires_openai_auth".into(), json!(false));
         // 故意不设置 env_key / provider_model，验证旧字段会被清理
 
-        platform.apply_third_party_profile("custom", &profile).unwrap();
+        platform
+            .apply_third_party_profile("custom", &profile)
+            .unwrap();
 
         let config = config_manager.load_config().unwrap();
         let root = config.as_table().unwrap();
