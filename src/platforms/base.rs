@@ -282,10 +282,20 @@ pub fn update_current_config(profiles_path: &Path, name: &str) -> Result<()> {
 
 /// 🔄 更新注册表中的 current_profile
 ///
-/// 在 apply_profile 后调用，同步更新统一配置管理器中的当前 profile
+/// 在 apply_profile 后调用，同步更新统一配置管理器中的当前 profile。
+/// 如果平台尚未在注册表中注册，会自动补全条目。
 pub fn update_registry_current_profile(platform_name: &str, profile_name: &str) -> Result<()> {
     let platform_config_mgr = PlatformConfigManager::with_default()?;
     let mut unified_config = platform_config_mgr.load()?;
+
+    // 如果平台不存在于注册表中，自动注册
+    if unified_config.get_platform(platform_name).is_err() {
+        tracing::info!("📋 平台 '{}' 未在注册表中，自动注册", platform_name);
+        unified_config.register_platform(
+            platform_name.to_string(),
+            crate::managers::platform_config::PlatformConfigEntry::default(),
+        )?;
+    }
 
     // 更新平台的 current_profile
     unified_config.set_platform_profile(platform_name, profile_name)?;
@@ -298,12 +308,16 @@ pub fn update_registry_current_profile(platform_name: &str, profile_name: &str) 
 }
 
 /// 🔍 获取当前 profile (从注册表)
+///
+/// 如果平台未在注册表中注册，返回 None 而非报错
 pub fn get_current_profile_from_registry(platform_name: &str) -> Result<Option<String>> {
     let platform_config_mgr = PlatformConfigManager::with_default()?;
     let unified_config = platform_config_mgr.load()?;
 
-    let entry = unified_config.get_platform(platform_name)?;
-    Ok(entry.current_profile.clone())
+    match unified_config.get_platform(platform_name) {
+        Ok(entry) => Ok(entry.current_profile.clone()),
+        Err(_) => Ok(None),
+    }
 }
 
 // ═══════════════════════════════════════════════════════════
