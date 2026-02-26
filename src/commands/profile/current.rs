@@ -109,7 +109,7 @@ pub async fn current_command() -> Result<()> {
     })?;
 
     // 转换为 ConfigSection
-    let current_section = crate::managers::config::ConfigSection {
+    let mut current_section = crate::managers::config::ConfigSection {
         description: profile.description.clone(),
         base_url: profile.base_url.clone(),
         auth_token: profile.auth_token.clone(),
@@ -130,6 +130,41 @@ pub async fn current_command() -> Result<()> {
         enabled: profile.enabled,
         other: indexmap::IndexMap::new(),
     };
+
+    if platform == Platform::Codex {
+        use crate::managers::CodexConfigManager;
+        if let Ok(mgr) = CodexConfigManager::with_default() {
+            if let Ok(auth) = mgr.load_auth() {
+                let requires_auth = profile
+                    .platform_data
+                    .get("requires_openai_auth")
+                    .and_then(|v| match v {
+                        serde_json::Value::Bool(b) => Some(*b),
+                        serde_json::Value::String(s) => match s.to_lowercase().as_str() {
+                            "true" | "1" => Some(true),
+                            "false" | "0" => Some(false),
+                            _ => None,
+                        },
+                        _ => None,
+                    })
+                    .unwrap_or(true);
+
+                let env_key_name = if requires_auth {
+                    "OPENAI_API_KEY"
+                } else {
+                    profile
+                        .platform_data
+                        .get("env_key")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("OPENAI_API_KEY")
+                };
+
+                if let Some(token) = auth.get(env_key_name).and_then(|v| v.as_str()) {
+                    current_section.auth_token = Some(token.to_string());
+                }
+            }
+        }
+    }
 
     let current_name = current_profile;
     let config_file_path = paths.profiles_file.clone();
@@ -317,7 +352,7 @@ pub async fn current_command() -> Result<()> {
         for var_name in &env_vars {
             // 优先从 settings.json 读取，如果没有则从系统环境变量读取
             let value = if let Some(ref env_map) = settings_env {
-                env_map.get(*var_name).cloned()
+                env_map.get(var_name.as_str()).cloned()
             } else {
                 std::env::var(var_name).ok()
             };
