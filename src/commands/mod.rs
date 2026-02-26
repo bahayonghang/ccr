@@ -24,8 +24,6 @@ pub mod profile;
 pub mod check_cmd;
 pub mod prompts_cmd;
 pub mod provider_cmd;
-#[cfg(feature = "web")]
-pub mod run_cmd;
 pub mod sessions_cmd;
 pub mod skills_cmd;
 #[cfg(feature = "web")]

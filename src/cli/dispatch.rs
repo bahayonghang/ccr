@@ -36,9 +36,6 @@ impl CommandDispatcher {
             Some(Commands::Temp) => crate::commands::temp_command().await,
 
             // 带参数命令
-            Some(Commands::Run { config_name, args }) => {
-                crate::commands::run_cmd::execute(config_name, args).await
-            }
             Some(Commands::Switch { config_name }) => {
                 crate::commands::switch_command(config_name).await
             }

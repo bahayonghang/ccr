@@ -77,8 +77,6 @@ ccr switch my-work-config
 # Quick switch (shorthand)
 ccr my-work-config
 
-# Temporarily run a command with a specific config (without modifying global state)
-ccr run my-work-config -- claude -p "Hello"
 ```
 
 
