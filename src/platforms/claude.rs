@@ -163,12 +163,12 @@ impl PlatformConfig for ClaudePlatform {
         base::get_current_profile_from_registry("claude")
     }
 
-    fn get_env_var_names(&self) -> Vec<&'static str> {
+    fn get_env_var_names(&self) -> Vec<String> {
         vec![
-            "ANTHROPIC_BASE_URL",
-            "ANTHROPIC_AUTH_TOKEN",
-            "ANTHROPIC_MODEL",
-            "ANTHROPIC_SMALL_FAST_MODEL",
+            "ANTHROPIC_BASE_URL".into(),
+            "ANTHROPIC_AUTH_TOKEN".into(),
+            "ANTHROPIC_MODEL".into(),
+            "ANTHROPIC_SMALL_FAST_MODEL".into(),
         ]
     }
 }

@@ -304,91 +304,95 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
     println!();
 
     // === 环境变量变化对比表格 ===
-    ColorOutput::step("🔄 环境变量变化");
-    println!();
-
-    let mut env_changes_table = Table::new();
-    env_changes_table
-        .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
-        .set_header(vec![
-            Cell::new("环境变量")
-                .add_attribute(Attribute::Bold)
-                .fg(TableColor::Cyan),
-            Cell::new("变化")
-                .add_attribute(Attribute::Bold)
-                .fg(TableColor::Cyan),
-        ]);
-
     // 显示环境变量变化（动态获取平台环境变量）
     let env_vars = platform_config.get_env_var_names();
 
-    for var_name in env_vars {
-        let old_val = old_env.get(var_name).and_then(|v| v.as_ref());
-        let new_val = new_env_display.get(var_name).and_then(|v| v.as_ref());
+    if !env_vars.is_empty() {
+        ColorOutput::step("🔄 环境变量变化");
+        println!();
 
-        let is_sensitive = var_name.contains("TOKEN") || var_name.contains("KEY");
+        let mut env_changes_table = Table::new();
+        env_changes_table
+            .load_preset(UTF8_FULL)
+            .set_content_arrangement(ContentArrangement::DynamicFullWidth)
+            .set_header(vec![
+                Cell::new("环境变量")
+                    .add_attribute(Attribute::Bold)
+                    .fg(TableColor::Cyan),
+                Cell::new("变化")
+                    .add_attribute(Attribute::Bold)
+                    .fg(TableColor::Cyan),
+            ]);
 
-        let change_display = match (old_val, new_val) {
-            (None, None) => "-".to_string(),
-            (None, Some(new)) => {
-                let new_display = if is_sensitive {
-                    ColorOutput::mask_sensitive(new)
-                } else if new.len() > 35 {
-                    format!("{}...", &new[..32])
-                } else {
-                    new.to_string()
-                };
-                format!("➕ 新增: {}", new_display)
-            }
-            (Some(old), None) => {
-                let old_display = if is_sensitive {
-                    ColorOutput::mask_sensitive(old)
-                } else if old.len() > 35 {
-                    format!("{}...", &old[..32])
-                } else {
-                    old.to_string()
-                };
-                format!("➖ 删除: {}", old_display)
-            }
-            (Some(old), Some(new)) => {
-                if old == new {
-                    "○ 未变化".to_string()
-                } else {
-                    let old_display = if is_sensitive {
-                        ColorOutput::mask_sensitive(old)
-                    } else if old.len() > 20 {
-                        format!("{}...", &old[..17])
-                    } else {
-                        old.to_string()
-                    };
+        for var_name in &env_vars {
+            let old_val = old_env.get(var_name.as_str()).and_then(|v| v.as_ref());
+            let new_val = new_env_display
+                .get(var_name.as_str())
+                .and_then(|v| v.as_ref());
+
+            let is_sensitive = var_name.contains("TOKEN") || var_name.contains("KEY");
+
+            let change_display = match (old_val, new_val) {
+                (None, None) => "-".to_string(),
+                (None, Some(new)) => {
                     let new_display = if is_sensitive {
                         ColorOutput::mask_sensitive(new)
-                    } else if new.len() > 20 {
-                        format!("{}...", &new[..17])
+                    } else if new.len() > 35 {
+                        format!("{}...", &new[..32])
                     } else {
                         new.to_string()
                     };
-                    format!("🔄 {} → {}", old_display, new_display)
+                    format!("➕ 新增: {}", new_display)
                 }
-            }
-        };
+                (Some(old), None) => {
+                    let old_display = if is_sensitive {
+                        ColorOutput::mask_sensitive(old)
+                    } else if old.len() > 35 {
+                        format!("{}...", &old[..32])
+                    } else {
+                        old.to_string()
+                    };
+                    format!("➖ 删除: {}", old_display)
+                }
+                (Some(old), Some(new)) => {
+                    if old == new {
+                        "○ 未变化".to_string()
+                    } else {
+                        let old_display = if is_sensitive {
+                            ColorOutput::mask_sensitive(old)
+                        } else if old.len() > 20 {
+                            format!("{}...", &old[..17])
+                        } else {
+                            old.to_string()
+                        };
+                        let new_display = if is_sensitive {
+                            ColorOutput::mask_sensitive(new)
+                        } else if new.len() > 20 {
+                            format!("{}...", &new[..17])
+                        } else {
+                            new.to_string()
+                        };
+                        format!("🔄 {} → {}", old_display, new_display)
+                    }
+                }
+            };
 
-        let change_cell = if change_display.starts_with("➕") {
-            Cell::new(change_display).fg(TableColor::Green)
-        } else if change_display.starts_with("➖") {
-            Cell::new(change_display).fg(TableColor::Red)
-        } else if change_display.starts_with("🔄") {
-            Cell::new(change_display).fg(TableColor::Yellow)
-        } else {
-            Cell::new(change_display).fg(TableColor::DarkGrey)
-        };
+            let change_cell = if change_display.starts_with("➕") {
+                Cell::new(change_display).fg(TableColor::Green)
+            } else if change_display.starts_with("➖") {
+                Cell::new(change_display).fg(TableColor::Red)
+            } else if change_display.starts_with("🔄") {
+                Cell::new(change_display).fg(TableColor::Yellow)
+            } else {
+                Cell::new(change_display).fg(TableColor::DarkGrey)
+            };
 
-        env_changes_table.add_row(vec![Cell::new(var_name), change_cell]);
+            env_changes_table.add_row(vec![Cell::new(var_name.as_str()), change_cell]);
+        }
+
+        println!("{}", env_changes_table);
+        println!();
     }
-
-    println!("{}", env_changes_table);
-    println!();
 
     // 最终验证（仅 Claude 平台）
     if platform == Platform::Claude {

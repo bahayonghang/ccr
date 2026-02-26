@@ -281,7 +281,7 @@ impl PlatformConfig for DroidPlatform {
         base::get_current_profile_from_registry("droid")
     }
 
-    fn get_env_var_names(&self) -> Vec<&'static str> {
+    fn get_env_var_names(&self) -> Vec<String> {
         // Droid 不使用环境变量，直接写入 settings.json
         vec![]
     }

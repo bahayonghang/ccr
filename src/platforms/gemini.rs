@@ -248,8 +248,8 @@ impl PlatformConfig for GeminiPlatform {
         base::get_current_profile_from_registry("gemini")
     }
 
-    fn get_env_var_names(&self) -> Vec<&'static str> {
-        vec!["GEMINI_API_KEY"]
+    fn get_env_var_names(&self) -> Vec<String> {
+        vec!["GEMINI_API_KEY".into()]
     }
 }
 

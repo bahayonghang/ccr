@@ -493,7 +493,7 @@ pub trait PlatformConfig: Send + Sync {
     ///
     /// # 返回
     /// 环境变量名称列表
-    fn get_env_var_names(&self) -> Vec<&'static str> {
+    fn get_env_var_names(&self) -> Vec<String> {
         vec![]
     }
 }
