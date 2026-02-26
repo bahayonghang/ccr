@@ -37,7 +37,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     app.header_area.set(Some(chunks[0]));
     app.list_area.set(Some(chunks[1]));
 
-    if app.is_codex_tab() {
+    if app.is_codex_auth_tab() {
         // Codex tab: delegate content + footer to codex_auth embedded renderer
         if let Some(ref codex_app) = app.codex_auth_app {
             codex_auth::ui::draw_embedded(f, codex_app, chunks[1], chunks[2], compact);
@@ -122,7 +122,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
             Line::from(vec![
                 Span::styled(indicator, style),
                 Span::raw(format!("{} ", tab.platform.icon())),
-                Span::styled(tab.platform.display_name(), style),
+                Span::styled(&tab.label, style),
             ])
         })
         .collect();

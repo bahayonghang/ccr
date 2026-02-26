@@ -27,9 +27,20 @@ pub struct ProfileItem {
     pub is_current: bool,
 }
 
+/// Distinguishes tab types for the same platform
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TabVariant {
+    /// Standard profile switching (Claude, Codex Profile)
+    Profile,
+    /// Codex account/auth management
+    CodexAuth,
+}
+
 /// A tab representing one platform with its profiles loaded
 pub struct PlatformTab {
     pub platform: Platform,
+    pub variant: TabVariant,
+    pub label: String,
     pub profiles: Vec<ProfileItem>,
     pub instance: Option<Arc<dyn PlatformConfig>>,
 }
@@ -64,7 +75,7 @@ impl App {
         let mut tabs = Vec::new();
 
         for platform in Platform::implemented() {
-            // Only keep Claude and Codex tabs
+            // Only keep Claude and Codex platforms
             if !matches!(platform, Platform::Claude | Platform::Codex) {
                 continue;
             }
@@ -72,31 +83,50 @@ impl App {
             match create_platform(platform) {
                 Ok(instance) => {
                     let current = instance.get_current_profile().ok().flatten();
-                    match instance.load_profiles() {
-                        Ok(profiles) => {
-                            let items: Vec<ProfileItem> = profiles
-                                .into_iter()
-                                .map(|(name, config)| ProfileItem {
-                                    is_current: current.as_ref() == Some(&name),
-                                    description: config.description.clone(),
-                                    name,
-                                })
-                                .collect();
+                    let items = match instance.load_profiles() {
+                        Ok(profiles) => profiles
+                            .into_iter()
+                            .map(|(name, config)| ProfileItem {
+                                is_current: current.as_ref() == Some(&name),
+                                description: config.description.clone(),
+                                name,
+                            })
+                            .collect(),
+                        Err(e) => {
+                            tracing::warn!("Failed to load {} profiles: {}", platform, e);
+                            Vec::new()
+                        }
+                    };
+
+                    match platform {
+                        Platform::Claude => {
                             tabs.push(PlatformTab {
                                 platform,
+                                variant: TabVariant::Profile,
+                                label: platform.display_name().to_string(),
                                 profiles: items,
                                 instance: Some(instance),
                             });
                         }
-                        Err(e) => {
-                            tracing::warn!("Failed to load {} profiles: {}", platform, e);
-                            // Still add core platforms even if load fails
+                        Platform::Codex => {
+                            // Codex Auth tab (account management)
                             tabs.push(PlatformTab {
                                 platform,
+                                variant: TabVariant::CodexAuth,
+                                label: "Codex Auth".to_string(),
                                 profiles: Vec::new(),
+                                instance: Some(Arc::clone(&instance)),
+                            });
+                            // Codex Profile tab (profile switching)
+                            tabs.push(PlatformTab {
+                                platform,
+                                variant: TabVariant::Profile,
+                                label: "Codex Profile".to_string(),
+                                profiles: items,
                                 instance: Some(instance),
                             });
                         }
+                        _ => {}
                     }
                 }
                 Err(e) => {
@@ -109,6 +139,8 @@ impl App {
         if tabs.is_empty() {
             tabs.push(PlatformTab {
                 platform: Platform::Claude,
+                variant: TabVariant::Profile,
+                label: Platform::Claude.display_name().to_string(),
                 profiles: Vec::new(),
                 instance: None,
             });
@@ -267,7 +299,8 @@ impl App {
 
         let selected = &page_profiles[self.selected_index];
         let tab = &self.tabs[self.active_tab];
-        let platform_name = tab.platform.display_name().to_string();
+        // Use tab.label to distinguish Codex Auth vs Codex Profile in exit info
+        let platform_label = tab.label.clone();
         let profile_name = selected.name.clone();
 
         if let Some(instance) = &tab.instance {
@@ -275,14 +308,23 @@ impl App {
                 Ok(()) => {
                     self.toasts
                         .push(Toast::success(format!("✅ 已切换到: {}", profile_name)));
-                    self.last_applied = Some((platform_name, profile_name, true, None));
+                    self.last_applied = Some((platform_label, profile_name.clone(), true, None));
+
+                    // Increment usage_count (best-effort, don't fail on error)
+                    if let Ok(profiles) = instance.load_profiles()
+                        && let Some(mut profile) = profiles.get(&profile_name).cloned()
+                    {
+                        profile.increment_usage();
+                        let _ = instance.save_profile(&profile_name, &profile);
+                    }
+
                     self.reload_profiles();
                 }
                 Err(e) => {
                     let err_msg = e.to_string();
                     self.toasts
                         .push(Toast::error(format!("❌ 切换失败: {}", err_msg)));
-                    self.last_applied = Some((platform_name, profile_name, false, Some(err_msg)));
+                    self.last_applied = Some((platform_label, profile_name, false, Some(err_msg)));
                 }
             }
         } else {
@@ -292,6 +334,10 @@ impl App {
 
     fn reload_profiles(&mut self) {
         for tab in &mut self.tabs {
+            // Only reload Profile tabs (CodexAuth has no profile data)
+            if tab.variant != TabVariant::Profile {
+                continue;
+            }
             if let Some(instance) = &tab.instance {
                 let current = instance.get_current_profile().ok().flatten();
                 if let Ok(profiles) = instance.load_profiles() {
@@ -310,14 +356,18 @@ impl App {
 
     // -- Tab helpers --
 
-    /// Check if the currently active tab is the Codex platform
-    pub fn is_codex_tab(&self) -> bool {
-        self.current_platform() == Platform::Codex
+    /// Check if the currently active tab is the Codex Auth variant
+    pub fn is_codex_auth_tab(&self) -> bool {
+        self.tabs[self.active_tab].variant == TabVariant::CodexAuth
     }
 
-    /// Pre-select Codex tab (for `ccr codex` entry)
+    /// Pre-select Codex Auth tab (for `ccr codex` entry)
     pub fn with_codex_tab(mut self) -> Self {
-        if let Some(idx) = self.tabs.iter().position(|t| t.platform == Platform::Codex) {
+        if let Some(idx) = self
+            .tabs
+            .iter()
+            .position(|t| t.platform == Platform::Codex && t.variant == TabVariant::CodexAuth)
+        {
             self.active_tab = idx;
         }
         self
@@ -386,7 +436,7 @@ impl TuiApp for App {
             return Ok(true);
         }
 
-        if self.is_codex_tab() {
+        if self.is_codex_auth_tab() {
             // Tab key: switch to next tab (intercepted before CodexAuthApp)
             if key.code == KeyCode::Tab {
                 return self.dispatch(Action::NextTab);
@@ -401,7 +451,7 @@ impl TuiApp for App {
             }
             Ok(false)
         } else {
-            // Claude tab: original key mapping + dispatch
+            // Profile tabs (Claude / Codex Profile): key mapping + dispatch
             let action = self.map_key(key);
             self.dispatch(action)
         }
@@ -428,12 +478,12 @@ impl TuiApp for App {
                     }
                 }
 
-                // Codex tab: 委托给 CodexAuthApp
-                if self.is_codex_tab() {
+                // Codex Auth tab: 委托给 CodexAuthApp
+                if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
 
-                // Claude tab: 列表项点击
+                // Profile tabs (Claude / Codex Profile): 列表项点击
                 if let Some(area) = self.list_area.get()
                     && let Some(idx) =
                         list_hit_test(area, mouse.row, self.current_page_profiles().len())
@@ -444,7 +494,7 @@ impl TuiApp for App {
 
             // 🖱️ 滚轮上
             MouseEventKind::ScrollUp => {
-                if self.is_codex_tab() {
+                if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
                 return self.dispatch(Action::SelectPrev);
@@ -452,7 +502,7 @@ impl TuiApp for App {
 
             // 🖱️ 滚轮下
             MouseEventKind::ScrollDown => {
-                if self.is_codex_tab() {
+                if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
                 return self.dispatch(Action::SelectNext);
@@ -464,7 +514,7 @@ impl TuiApp for App {
     }
 
     fn on_tick(&mut self) -> bool {
-        if self.is_codex_tab() {
+        if self.is_codex_auth_tab() {
             self.codex_auth_app.as_mut().is_some_and(|a| a.on_tick())
         } else {
             self.toasts.tick()
