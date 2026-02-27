@@ -13,6 +13,7 @@
 
     <!-- Sidebar (Glassmorphism + Resize) -->
     <div
+      v-if="!route.meta.hideSidebar"
       class="flex flex-col relative flex-shrink-0 z-40 transition-all duration-300 ease-out will-change-[width] sidebar-glass"
       :class="[isResizing ? 'select-none' : '']"
       :style="{ width: sidebarWidth + 'px' }"
@@ -212,7 +213,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                CCR UI v4.2.7
+                CCR UI v4.2.8
               </span>
             </div>
           </div>
@@ -228,13 +229,26 @@
       id="main-content"
       class="flex-1 relative overflow-hidden flex flex-col"
     >
-      <!-- Top Bar (Optional, if needed for breadcrumbs or global search) -->
+      <!-- Top Bar -->
       <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl z-30 sticky top-0 justify-between">
-        <!-- Breadcrumbs -->
+        <!-- Left: Breadcrumbs or Back + Title -->
         <div class="flex items-center text-sm text-text-muted">
-          <span class="opacity-50">{{ $t('nav.mainModules') }}</span>
-          <span class="mx-2 opacity-30">/</span>
-          <span class="text-text-primary font-medium">{{ currentPageTitle }}</span>
+          <template v-if="route.meta.hideSidebar">
+            <button
+              class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-200"
+              @click="router.back()"
+            >
+              <ArrowLeft class="w-4 h-4" />
+              <span class="text-xs font-medium">返回</span>
+            </button>
+            <span class="mx-2 opacity-30">|</span>
+            <span class="text-text-primary font-semibold">{{ currentPageTitle }}</span>
+          </template>
+          <template v-else>
+            <span class="opacity-50">{{ $t('nav.mainModules') }}</span>
+            <span class="mx-2 opacity-30">/</span>
+            <span class="text-text-primary font-medium">{{ currentPageTitle }}</span>
+          </template>
         </div>
 
         <div class="flex items-center gap-4">
@@ -297,9 +311,9 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Home, Code2, Settings, Sparkles, Zap, Activity,
-  Terminal, Cloud, Bot, ClipboardList, Cat, Package, PlusCircle
+  Terminal, Cloud, Bot, ClipboardList, Cat, Package, PlusCircle, ArrowLeft
 } from 'lucide-vue-next'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
@@ -309,6 +323,7 @@ import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/ap
 import { usePageTransition } from '@/composables/usePageTransition'
 
 const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 const { transitionName } = usePageTransition()
 
@@ -334,6 +349,7 @@ const routeTitleMap: Record<string, string> = {
   checkin: 'nav.checkin',
   sync: 'nav.sync',
   usage: 'nav.usage',
+  'mcp-unified': 'MCP 统一管理',
 }
 
 const currentPageTitle = computed(() => {

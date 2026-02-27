@@ -368,6 +368,15 @@ export {
     getOpenCodeConfig,
 } from './opencode'
 
+// Unified MCP - 统一 MCP 管理
+export {
+    listUnifiedMcp,
+    addUnifiedMcp,
+    updateUnifiedMcp,
+    deleteUnifiedMcp,
+    toggleUnifiedMcp,
+} from './unifiedMcp'
+
 // Claude Code Settings - 全局设置
 export {
     getClaudeSettings,

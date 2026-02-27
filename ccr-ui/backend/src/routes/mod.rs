@@ -33,6 +33,7 @@ pub mod statusline_routes;
 pub mod sync_routes;
 pub mod system_routes;
 pub mod ui_state_routes;
+pub mod unified_mcp_routes;
 pub mod usage_routes;
 pub mod version_routes;
 
@@ -172,6 +173,8 @@ fn create_api_routes() -> Router<AppState> {
         .merge(checkin_routes::routes())
         // 资源市场
         .merge(marketplace_routes::routes())
+        // 统一 MCP 管理
+        .merge(unified_mcp_routes::routes())
 }
 
 /// 健康检查端点

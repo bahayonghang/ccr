@@ -10,6 +10,8 @@ declare module 'vue-router' {
     depth?: number
     /** 路由分组: 用于判断是否是同一平台/模块内的导航 */
     group?: string
+    /** 隐藏侧边栏，启用全宽布局模式 */
+    hideSidebar?: boolean
   }
 }
 
@@ -130,12 +132,18 @@ const router = createRouter({
           component: () => import('@/views/MonitoringView.vue'),
           meta: { depth: 1, group: 'data' }
         },
-        // 配置组子页面 (depth: 1, group: 'config')
+        // MCP 管理
         {
           path: 'mcp',
           name: 'mcp',
           component: () => import('@/views/McpView.vue'),
           meta: { depth: 1, group: 'config' }
+        },
+        {
+          path: 'mcp/unified',
+          name: 'mcp-unified',
+          component: () => import('@/views/mcp/UnifiedMcpView.vue'),
+          meta: { cache: true, hideGlobalBackground: true, hideSidebar: true, depth: 1, group: 'config' }
         },
         {
           path: 'slash-commands',

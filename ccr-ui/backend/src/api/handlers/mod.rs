@@ -29,5 +29,6 @@ pub mod statusline;
 pub mod sync;
 pub mod system;
 pub mod ui_state;
+pub mod unified_mcp;
 pub mod usage;
 pub mod version;
