@@ -40,7 +40,7 @@ cargo install --path .
 
 ### 构建要求
 - **Rust**: 1.88+ (2024 版本)
-- **Node.js**: 18+ (用于 UI 开发)
+- **Node.js**: 18+（默认启用 `web` 特性时，安装/更新需用于构建内嵌 Web 资源）
 
 ## 🚀 快速开始
 
@@ -190,6 +190,8 @@ ccr codex
 ## 🔄 自动更新
 
 CCR 支持从 GitHub 自动更新到最新版本。
+
+> 注意：`ccr update` 会编译默认 `web` 特性，需要 Node.js 18+ 和 npm。
 
 ```bash
 # 从 main 分支更新（稳定版）

@@ -40,7 +40,7 @@ cargo install --path .
 
 ### Build Requirements
 - **Rust**: 1.88+ (Edition 2024)
-- **Node.js**: 18+ (For UI development)
+- **Node.js**: 18+ (Required for install/update with default `web` feature to build embedded web assets)
 
 ## 🚀 Quick Start
 
@@ -190,6 +190,8 @@ ccr codex
 ## 🔄 Auto Update
 
 CCR supports automatic updates from GitHub to the latest version.
+
+> Note: `ccr update` compiles the default `web` feature and requires Node.js 18+ with npm.
 
 ```bash
 # Update from main branch (stable)
