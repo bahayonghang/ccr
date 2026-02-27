@@ -6,9 +6,10 @@
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
+use crate::managers::ConfigManager;
 use crate::managers::PlatformConfigManager;
 use crate::models::{Platform, PlatformPaths};
-use crate::platforms::create_platform;
+use crate::platforms::{base::profile_to_section, create_platform};
 use crate::services::SettingsService;
 use crate::utils::Validatable;
 use colored::Colorize;
@@ -108,28 +109,8 @@ pub async fn current_command() -> Result<()> {
         crate::core::error::CcrError::ConfigSectionNotFound(current_profile.clone())
     })?;
 
-    // 转换为 ConfigSection
-    let mut current_section = crate::managers::config::ConfigSection {
-        description: profile.description.clone(),
-        base_url: profile.base_url.clone(),
-        auth_token: profile.auth_token.clone(),
-        model: profile.model.clone(),
-        small_fast_model: profile.small_fast_model.clone(),
-        provider: profile.provider.clone(),
-        provider_type: profile.provider_type.as_ref().and_then(|pt| {
-            use crate::managers::config::ProviderType;
-            match pt.as_str() {
-                "official_relay" => Some(ProviderType::OfficialRelay),
-                "third_party_model" => Some(ProviderType::ThirdPartyModel),
-                _ => None,
-            }
-        }),
-        account: profile.account.clone(),
-        tags: profile.tags.clone(),
-        usage_count: profile.usage_count,
-        enabled: profile.enabled,
-        other: indexmap::IndexMap::new(),
-    };
+    // 转换为 ConfigSection（统一复用平台公共转换逻辑）
+    let mut current_section = profile_to_section(profile)?;
 
     if platform == Platform::Codex {
         use crate::managers::CodexConfigManager;
@@ -168,11 +149,14 @@ pub async fn current_command() -> Result<()> {
 
     let current_name = current_profile;
     let config_file_path = paths.profiles_file.clone();
-    let default_name = unified_config.default_platform.clone();
+    let default_name = ConfigManager::for_platform(platform_name)
+        .and_then(|m| m.load_with_autofix())
+        .map(|cfg| cfg.default_config)
+        .unwrap_or_else(|_| "-".to_string());
 
     println!();
     ColorOutput::info(&format!("配置文件: {}", config_file_path.display()));
-    ColorOutput::info(&format!("默认配置: {}", default_name.bright_yellow()));
+    ColorOutput::info(&format!("默认 Profile: {}", default_name.bright_yellow()));
     println!();
 
     // === 第一部分：配置详情表格 ===

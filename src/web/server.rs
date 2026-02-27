@@ -12,14 +12,16 @@ use crate::web::handlers::AppState;
 use crate::web::system_info_cache::SystemInfoCache;
 use axum::{
     Router,
+    http::{HeaderValue, Method},
     response::{Html, IntoResponse},
     routing::get,
 };
 use once_cell::sync::Lazy;
+use std::collections::BTreeSet;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::signal;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{AllowHeaders, CorsLayer};
 
 // 🎯 平台模式缓存 - 避免重复检测 （预留给将来的优化使用）
 #[allow(dead_code)]
@@ -54,6 +56,49 @@ pub struct WebServer {
 
 #[allow(dead_code)]
 impl WebServer {
+    fn build_cors_layer() -> CorsLayer {
+        let mut origins = BTreeSet::new();
+        origins.insert("http://localhost:5173".to_string());
+        origins.insert("http://127.0.0.1:5173".to_string());
+        origins.insert("http://localhost:1420".to_string());
+        origins.insert("http://127.0.0.1:1420".to_string());
+        origins.insert("http://localhost:3000".to_string());
+        origins.insert("http://127.0.0.1:3000".to_string());
+
+        if let Ok(env_origins) = std::env::var("CCR_WEB_CORS_ORIGINS") {
+            for origin in env_origins
+                .split(',')
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+            {
+                origins.insert(origin.to_string());
+            }
+        }
+
+        let allow_origins: Vec<HeaderValue> = origins
+            .into_iter()
+            .filter_map(|origin| match HeaderValue::from_str(&origin) {
+                Ok(value) => Some(value),
+                Err(error) => {
+                    tracing::warn!("跳过非法 CORS Origin '{}': {}", origin, error);
+                    None
+                }
+            })
+            .collect();
+
+        CorsLayer::new()
+            .allow_origin(allow_origins)
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::PATCH,
+                Method::DELETE,
+                Method::OPTIONS,
+            ])
+            .allow_headers(AllowHeaders::any())
+    }
+
     /// 🏗️ 创建新的 Web 服务器
     pub fn new(host: std::net::IpAddr, port: u16) -> Result<Self> {
         let config_service = Arc::new(ConfigService::with_default()?);
@@ -250,7 +295,7 @@ impl WebServer {
         );
 
         // 🎯 添加中间件
-        let app = app.layer(CorsLayer::permissive()); // CORS 支持
+        let app = app.layer(Self::build_cors_layer()); // CORS 白名单
 
         // 🚀 启动服务器（支持 Ctrl+C 优雅退出）
         let shutdown_cache = Arc::clone(&self.system_info_cache);
@@ -466,7 +511,7 @@ pub async fn web_command(
     port: Option<u16>,
     no_browser: bool,
 ) -> Result<()> {
-    let host = host.unwrap_or(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED));
+    let host = host.unwrap_or(std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST));
     let port = port.unwrap_or(19527);
     let server = WebServer::new(host, port)?;
     server.start(no_browser).await

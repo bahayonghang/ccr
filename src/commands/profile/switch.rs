@@ -8,13 +8,10 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::application::profile_switch::switch_profile_for_platform as run_switch_profile_for_platform;
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
-use crate::managers::config::ConfigSection;
-use crate::managers::history::{
-    HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
-};
 use crate::managers::settings::SettingsManager;
 use crate::models::Platform;
 use crate::platforms::create_platform;
@@ -23,8 +20,6 @@ use colored::Colorize;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
-use std::collections::HashMap;
-use std::str::FromStr;
 
 /// 🔄 切换到指定配置
 ///
@@ -43,153 +38,32 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
     ColorOutput::title(&format!("切换配置: {}", config_name));
     println!();
 
-    let platform = Platform::from_str(platform_name)?;
-
-    // 📖 步骤 1: 读取并校验目标配置
+    // 📖 步骤 1: 读取并校验目标配置（由统一用例执行）
     ColorOutput::step("步骤 1/3: 读取配置文件");
-
     ColorOutput::info(&format!("使用平台: {}", platform_name.bright_yellow()));
+    let result = run_switch_profile_for_platform(config_name, platform_name).await?;
+    let platform = result.platform;
+    let target_section = result.target_section;
+    let old_env = result.old_env;
+    let new_env_display = result.new_env;
+    let old_current = result.previous_profile.unwrap_or_default();
 
-    // 从平台配置加载 profile
-    let platform_config = create_platform(platform)
-        .map_err(|e| CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e)))?;
-
-    // 加载所有 profiles（后续会复用并更新 usage_count）
-    let mut profiles = platform_config.load_profiles()?;
-
-    // 查找目标 profile
-    let profile = profiles.get(config_name).ok_or_else(|| {
-        ColorOutput::error(&format!(
-            "配置 '{}' 在平台 {} 中不存在",
-            config_name, platform_name
-        ));
-        println!();
-        ColorOutput::info("💡 提示:");
-        println!("  • 运行 'ccr list' 查看可用配置");
-        println!("  • 运行 'ccr add <配置名>' 添加新配置");
-        println!(
-            "  • 或编辑配置文件: ~/.ccr/platforms/{}/profiles.toml",
-            platform_name
-        );
-        CcrError::ConfigSectionNotFound(config_name.to_string())
-    })?;
-
-    // 转换 ProfileConfig 为 ConfigSection
-    let target_section = ConfigSection {
-        description: profile.description.clone(),
-        base_url: profile.base_url.clone(),
-        auth_token: profile.auth_token.clone(),
-        model: profile.model.clone(),
-        small_fast_model: profile.small_fast_model.clone(),
-        provider: profile.provider.clone(),
-        provider_type: profile.provider_type.as_ref().and_then(|pt| {
-            use crate::managers::config::ProviderType;
-            match pt.as_str() {
-                "official_relay" => Some(ProviderType::OfficialRelay),
-                "third_party_model" => Some(ProviderType::ThirdPartyModel),
-                _ => None,
-            }
-        }),
-        account: profile.account.clone(),
-        tags: profile.tags.clone(),
-        usage_count: profile.usage_count,
-        enabled: profile.enabled,
-        other: indexmap::IndexMap::new(),
-    };
-
-    // 验证目标配置
-    target_section.validate().map_err(|e| {
-        ColorOutput::error(&format!("目标配置验证失败: {}", e));
-        e
-    })?;
-
-    ColorOutput::success(&format!("✅ 目标配置 '{}' 验证通过", config_name));
-    println!();
-
-    // 📊 记录旧的环境变量状态（仅 Claude 平台，无副作用）
-    let (old_env, new_env_display): (
-        HashMap<String, Option<String>>,
-        HashMap<String, Option<String>>,
-    ) = if platform == Platform::Claude {
-        let settings_manager = SettingsManager::with_default()?;
-        let old_settings = settings_manager.load().ok();
-        let old = old_settings
-            .as_ref()
-            .map(|s| s.anthropic_env_status())
-            .unwrap_or_default();
-
-        // 使用无副作用的方法获取新状态（不会打印日志）
-        let new = target_section.to_anthropic_env_status();
-        (old, new)
-    } else {
-        (HashMap::new(), HashMap::new())
-    };
-
-    // ✏️ 步骤 2: 应用配置
+    // ✏️ 步骤 2: 应用配置（已在用例中执行）
     ColorOutput::step("步骤 2/3: 应用配置");
-
-    let old_current = platform_config.get_current_profile()?.unwrap_or_else(|| {
-        tracing::debug!("无法获取当前 profile 名称");
-        String::new()
-    });
-
-    // 📊 递增目标 profile 的使用次数（复用已加载的 profiles）
-    if let Some(profile) = profiles.get_mut(config_name) {
-        profile.usage_count = Some(profile.usage_count.unwrap_or(0) + 1);
-        tracing::debug!(
-            "📊 递增 profile '{}' 的使用次数: {}",
-            config_name,
-            profile.usage_count.unwrap_or(0)
-        );
-    }
-    // 保存更新后的 profiles（包含递增的 usage_count）
-    platform_config.save_profile(
-        config_name,
-        profiles
-            .get(config_name)
-            .ok_or_else(|| CcrError::ConfigError("配置名称应该存在".into()))?,
-    )?;
-
-    // 应用 profile (这会设置当前profile并保存settings)
-    platform_config.apply_profile(config_name)?;
-
     ColorOutput::success(&format!(
         "✅ 平台 {} 的当前配置已设置为: {}",
-        platform_name, config_name
+        result.platform_name, result.current_profile
     ));
 
     println!();
 
-    // 📚 步骤 3: 记录历史(包含环境变量变化的掩码记录)
+    // 📚 步骤 3: 记录历史（已在用例中执行）
     ColorOutput::step("步骤 3/3: 记录操作历史");
-    let history_manager = HistoryManager::with_default()?;
-
-    let mut history_entry = HistoryEntry::new(
-        OperationType::Switch,
-        OperationDetails {
-            from_config: if old_current.is_empty() {
-                None
-            } else {
-                Some(old_current.clone())
-            },
-            to_config: Some(config_name.to_string()),
-            backup_path: None,
-            extra: None,
-        },
-        OperationResult::Success,
-    );
-
-    // 记录环境变量变化（仅 Claude 平台）
-    if platform == Platform::Claude {
-        for (var_name, new_value) in new_env_display.clone() {
-            let old_value = old_env.get(&var_name).and_then(|v| v.clone());
-            history_entry.add_env_change(var_name, old_value, new_value);
-        }
-    }
-
-    history_manager.add_async(history_entry).await?;
     ColorOutput::success("✅ 操作历史已记录");
     println!();
+
+    let platform_config = create_platform(platform)
+        .map_err(|e| CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e)))?;
 
     // 📋 输出新配置细节与校验结果
     ColorOutput::separator();
