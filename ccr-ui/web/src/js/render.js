@@ -1,7 +1,5 @@
 import { appState } from './state.js';
 import { escapeHtml } from './utils.js';
-import { isCodexPlatformActive } from './main.js'; // Need to expose this or put in utils/state helper
-import { switchConfig, editConfig, deleteConfig, enableConfig, disableConfig, switchPlatform, activateCurrentPlatform, scrollToConfig } from './main.js'; // These will be attached to window
 
 // Helper to check platform active state
 function isCodexActive() {
