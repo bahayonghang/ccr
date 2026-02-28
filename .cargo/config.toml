@@ -3,8 +3,11 @@
 
 [build]
 # debuginfo=1：提供基本行号信息，平衡调试体验与编译速度。
-# /DEBUG:FASTLINK：让 MSVC linker 生成快速 PDB（2~3x 链接加速）。
-rustflags = ["-C", "debuginfo=1", "-C", "link-arg=/DEBUG:FASTLINK"]
+rustflags = ["-C", "debuginfo=1"]
+
+# MSVC 专属：让 Windows linker 生成快速 PDB（2~3x 链接加速）。
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=/DEBUG:FASTLINK"]
 
 # 增量编译（默认已启用，显式声明以防意外关闭）
 incremental = true
