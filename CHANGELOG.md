@@ -36,6 +36,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `toml`、`uuid`、`sysinfo`、`clap` 等核心依赖升级至最新版本
 
+### 🐛 修复
+
+- **CI Linux 构建依赖补齐**：
+  - 为 CI 的 `clippy`、`build`、`test`（Linux 分支）补充 `pkg-config` 与 `libwayland-dev`
+  - 为 Release 的 Linux Tauri 构建补充相同依赖基线
+  - 新增 `pkg-config` 与 `wayland-client` 版本探测，提升失败诊断效率
+
+- **跨平台链接参数修复**：
+  - 将 `/DEBUG:FASTLINK` 从全局 `rustflags` 调整为 `x86_64-pc-windows-msvc` 目标专属
+  - 修复 Linux/macOS Release 流程中链接器误用 Windows 参数导致的构建失败
+
+---
+
+## [4.3.0] - 2026-02-28
+
+### ✨ 新功能
+
+- **统一 MCP 跨平台管理**：
+  - 新增 MCP 全栈管理能力，支持多平台统一配置与操作
+
+- **构建链路自动化增强**：
+  - 新增 `build.rs` 自动构建并嵌入 Web 前端资源
+  - `install/reinstall` 前自动执行嵌入式前端构建，降低安装后运行异常风险
+
+- **Codex 平台能力升级**：
+  - 重构 Codex 平台，引入 `CodexConfigManager` 双路分发架构
+  - TUI 新增 Codex Auth 独立标签页与 `TabVariant` 枚举
+
+### 🔧 改进
+
+- **核心与平台架构优化**：
+  - 收紧 Web 默认暴露面，抽离切换用例，优化核心模块边界
+  - `get_env_var_names` 返回类型调整为 `Vec<String>`，统一平台层抽象
+
+- **发布与工程流程优化**：
+  - 升级至 `v4.3.0` 并优化发布构建配置
+  - 清理过时 GEMINI 项目上下文文档与部分历史文档噪音
+
+### 🐛 修复
+
+- **平台与配置稳定性修复**：
+  - `current` 命令改为从 `auth.json` 读取 Codex 实际 token
+  - 自动补全未注册平台并增强 current profile 容错读取
+  - 修复 `codex_handlers` 以适配新 `CodexConfigManager` 架构
+
+- **前端与桌面端修复**：
+  - 修复 `render.js` 无效 ES module 导入
+  - 修复 Tauri backend 进程关闭时序问题并引入优雅关闭机制
+  - 修复 `run` 命令相关 Clippy 警告（合并嵌套 if-let 链并替换 unwrap）
+
 ---
 
 ## [4.1.1] - 2026-02-18
@@ -447,6 +497,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[4.3.0]: https://github.com/bahayonghang/ccr/compare/v4.1.1...v4.3.0
 [4.1.1]: https://github.com/bahayonghang/ccr/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/bahayonghang/ccr/compare/v4.0.9...v4.1.0
 [4.0.9]: https://github.com/bahayonghang/ccr/compare/v4.0.8...v4.0.9
