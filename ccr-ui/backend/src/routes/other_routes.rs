@@ -106,20 +106,6 @@ pub fn plugins_routes() -> Router<AppState> {
         .route("/plugins/{id}/toggle", put(crate::api::handlers::plugins::toggle_plugin))
 }
 
-/// Statistics routes
-pub fn stats_routes() -> Router<AppState> {
-    Router::new()
-        .route("/stats/cost", get(crate::api::handlers::stats::cost_overview))
-        .route("/stats/cost/today", get(crate::api::handlers::stats::cost_today))
-        .route("/stats/cost/week", get(crate::api::handlers::stats::cost_week))
-        .route("/stats/cost/month", get(crate::api::handlers::stats::cost_month))
-        .route("/stats/cost/trend", get(crate::api::handlers::stats::cost_trend))
-        .route("/stats/cost/by-model", get(crate::api::handlers::stats::cost_by_model))
-        .route("/stats/cost/by-project", get(crate::api::handlers::stats::cost_by_project))
-        .route("/stats/provider-usage", get(crate::api::handlers::stats::provider_usage))
-        .route("/stats/cost/top-sessions", get(crate::api::handlers::stats::cost_top_sessions))
-        .route("/stats/summary", get(crate::api::handlers::stats::stats_summary))
-}
 
 /// Skills management routes
 pub fn skills_routes() -> Router<AppState> {
@@ -160,12 +146,6 @@ pub fn pricing_routes() -> Router<AppState> {
         .route("/pricing/set", post(crate::api::handlers::pricing::set_pricing))
         .route("/pricing/remove/{model}", delete(crate::api::handlers::pricing::remove_pricing))
         .route("/pricing/reset", post(crate::api::handlers::pricing::reset_pricing))
-}
-
-/// Usage analytics routes
-pub fn usage_routes() -> Router<AppState> {
-    Router::new()
-        .route("/usage/records", get(crate::api::handlers::usage::get_usage_records))
 }
 
 /// Sync management routes

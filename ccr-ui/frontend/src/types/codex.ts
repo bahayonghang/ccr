@@ -87,14 +87,41 @@ export interface CodexConfig {
   model?: string;
   model_provider?: string;
   model_reasoning_effort?: string;
+  // 模型与推理（扩展）
+  model_reasoning_summary?: string;
+  model_verbosity?: string;
+  model_context_window?: number;
+  model_auto_compact_token_limit?: number;
+  personality?: string;
+  // 安全与权限
   approval_policy?: string;
   sandbox_mode?: string;
+  disable_response_storage?: boolean;
+  sandbox_workspace_write?: { writable_roots?: string[]; network_access?: boolean };
   shell_environment_policy?: {
     include_only?: string[];
   };
+  // 工具与搜索
+  web_search?: string;
+  file_opener?: string;
+  developer_instructions?: string;
+  instructions?: string;
+  tools?: { view_image?: boolean; web_search?: boolean };
+  // TUI 与界面
+  tui?: { alternate_screen?: string; animations?: boolean; notifications?: boolean; show_tooltips?: boolean };
+  hide_agent_reasoning?: boolean;
+  show_raw_agent_reasoning?: boolean;
+  check_for_update_on_startup?: boolean;
+  suppress_unstable_features_warning?: boolean;
+  // MCP / Profiles（独立管理）
   mcp_servers?: Record<string, Omit<CodexMcpServer, 'name'>>;
   profiles?: Record<string, CodexCliProfile>;
+  // 功能开关
   experimental_use_rmcp_client?: boolean;
+  history?: { persistence?: string; max_bytes?: number };
+  analytics?: { enabled?: boolean };
+  feedback?: { enabled?: boolean };
+  features?: Record<string, boolean>;
 }
 
 export interface CodexConfigResponse {

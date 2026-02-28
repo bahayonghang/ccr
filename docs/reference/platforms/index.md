@@ -9,7 +9,7 @@ CCR supports managing configurations for multiple AI CLI platforms. Each platfor
 | Platform | Icon | Description | Guide |
 |----------|------|-------------|-------|
 | **Claude Code** | 🤖 | Anthropic's official CLI with support for multiple relay services and third-party models | [Claude Guide](claude.md) |
-| **Codex** | 💻 | Codex CLI (OpenAI-compatible providers, GitHub Copilot compatible mode) | [Codex Guide](codex.md) |
+| **Codex** | 💻 | Codex CLI (Official / ThirdParty two-way dispatch, atomic writes) | [Codex Guide](codex.md) |
 | **Gemini CLI** | ✨ | Google Gemini CLI for Google's AI models | [Gemini Guide](gemini.md) |
 | **Factory Droid** | 🏭 | Factory AI Droid CLI with custom model support (Anthropic, OpenAI, generic) | [Droid Guide](droid.md) |
 
@@ -34,7 +34,7 @@ Output:
 │ 状态   ┆ 平台名称 ┆ 启用 ┆ 当前 Profile ┆ 描述                     │
 ╞════════╪══════════╪══════╪══════════════╪══════════════════════════╡
 │ ▶ 当前 ┆ claude   ┆ ✓    ┆ husan        ┆ Claude Code AI Assistant │
-│        ┆ codex    ┆ ✓    ┆ github       ┆ GitHub Copilot CLI       │
+│        ┆ codex    ┆ ✓    ┆ duckcoding   ┆ Codex CLI                │
 │        ┆ gemini   ┆ ✓    ┆ google       ┆ Google Gemini CLI        │
 └────────┴──────────┴──────┴──────────────┴──────────────────────────┘
 ```
@@ -45,7 +45,7 @@ Output:
 # Switch to Claude Code
 ccr platform switch claude
 
-# Switch to Codex (GitHub Copilot)
+# Switch to Codex
 ccr platform switch codex
 
 # Switch to Gemini
@@ -74,9 +74,9 @@ ccr platform init gemini
 |---------|-------------|-------|--------|-------|
 | **Settings Path** | `~/.claude/settings.json` | `~/.codex/config.toml` | `~/.gemini/settings.json` | `~/.factory/settings.json` |
 | **Profile Count** | 16 (example) | 5 (example) | 6 (example) | 4 (example) |
-| **Relay Services** | ✅ Multiple (AnyRouter, HuSan, etc.) | ✅ GitHub official | ✅ Google official | ✅ Multiple providers |
-| **Third-Party Models** | ✅ GLM, Kimi, SiliconFlow | ❌ | ❌ | ✅ Any OpenAI-compatible |
-| **Token Format** | `sk-ant-api03-...` or `sk-...` | `ghp_...` | `AIzaSy...` | `sk-...` or provider-specific |
+| **Relay Services** | ✅ Multiple (AnyRouter, HuSan, etc.) | ✅ Official + ThirdParty | ✅ Google official | ✅ Multiple providers |
+| **Third-Party Models** | ✅ GLM, Kimi, SiliconFlow | ✅ Any OpenAI-compatible | ❌ | ✅ Any OpenAI-compatible |
+| **Token Format** | `sk-ant-api03-...` or `sk-...` | `sk-...` (OpenAI-compatible) | `AIzaSy...` | `sk-...` or provider-specific |
 | **History Tracking** | ✅ | ✅ | ✅ | ✅ |
 | **Auto Backup** | ✅ | ✅ | ✅ | ✅ |
 
@@ -133,9 +133,11 @@ See [Claude Platform Guide](claude.md) for details.
 
 ### Codex
 
-- **GitHub Personal Access Token** authentication
-- **GitHub Copilot** model access
-- **Organization support** with appropriate scopes
+- **Two-way dispatch**: Official (full reset) and ThirdParty (read-modify-write) modes
+- **Atomic writes** with file locking for concurrent safety
+- **Auto-backup** before official mode reset (keeps last 10)
+- **Config caching** with 30s TTL for performance
+- **OpenAI-compatible providers** support via `provider_type` classification
 - **Multiple profile management** for different projects
 
 See [Codex Platform Guide](codex.md) for details.
@@ -253,7 +255,8 @@ Each platform maintains separate:
 - Add descriptive tags: ["free", "paid", "stable", "backup"]
 
 **Codex Platform:**
-- GitHub official: `github`
+- Official mode: `official` (resets to defaults)
+- ThirdParty providers: Use provider name (duckcoding, custom, etc.)
 - Test profiles: `profile-1`, `profile-2`, etc.
 
 **Gemini Platform:**
@@ -286,10 +289,11 @@ account = "github_5953"
 tags = ["free", "development", "primary"]
 
 # Codex platform profile
-[github]
-description = "GitHub Copilot Official - Main development account"
-provider = "GitHub"
-tags = ["official", "primary"]
+[duckcoding]
+description = "DuckCoding (OpenAI compatible) - Main development provider"
+provider = "duckcoding"
+provider_type = "third_party_model"
+tags = ["third-party", "primary"]
 
 # Gemini platform profile
 [google]
@@ -352,7 +356,7 @@ ccr migrate
 ## Additional Resources
 
 - **[Claude Platform Guide](claude.md)** - Comprehensive Claude Code setup
-- **[Codex Platform Guide](codex.md)** - GitHub Copilot CLI configuration
+- **[Codex Platform Guide](codex.md)** - Codex CLI configuration
 - **[Gemini Platform Guide](gemini.md)** - Google Gemini CLI setup
 - **[Droid Platform Guide](droid.md)** - Factory Droid CLI configuration
 - **[Migration Guide](migration.md)** - Legacy to Unified mode migration

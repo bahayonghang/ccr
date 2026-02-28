@@ -114,7 +114,6 @@ impl MultiBackupService {
     }
 
     /// 使用指定 CCR 根目录构建服务（测试与自定义场景）
-    #[allow(dead_code)]
     pub fn with_root(ccr_root: PathBuf) -> Result<Self> {
         let backup_root = ccr_root.join("backups");
         let manifest_path = backup_root.join("multi_manifest.json");
@@ -425,7 +424,12 @@ fn copy_directory_recursive(src: &Path, dst: &Path) -> Result<()> {
             } else {
                 target
             };
-            fs::create_dir_all(final_target.parent().expect("路径应该有父目录")).map_err(|e| {
+            fs::create_dir_all(
+                final_target
+                    .parent()
+                    .ok_or_else(|| CcrError::FileIoError("路径应该有父目录".into()))?,
+            )
+            .map_err(|e| {
                 CcrError::IoError(std::io::Error::other(format!("创建父目录失败: {}", e)))
             })?;
             fs::copy(&path, &final_target).map_err(|e| {

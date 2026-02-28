@@ -551,34 +551,7 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost?range=month"
 }
 ```
 
-### 获取今日成本
-
-获取今日成本统计的快捷方式。
-
-**接口信息**
-- **URL**: `/stats/cost/today`
-- **方法**: `GET`
-
-**请求示例**
-```bash
-curl -X GET http://127.0.0.1:8081/api/stats/cost/today
-```
-
-### 获取本周成本
-
-获取本周成本统计的快捷方式。
-
-**接口信息**
-- **URL**: `/stats/cost/week`
-- **方法**: `GET`
-
-### 获取本月成本
-
-获取本月成本统计的快捷方式。
-
-**接口信息**
-- **URL**: `/stats/cost/month`
-- **方法**: `GET`
+> **注意**: 之前的快捷端点 `/api/stats/cost/today`、`/week`、`/month` 已被移除。请使用 `GET /api/stats/cost?range=today|week|month` 替代。
 
 ### 获取成本趋势
 
@@ -1282,11 +1255,11 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 
 ## 🎯 技能管理接口 (Skills API)
 
-管理自定义技能和能力。
+管理自定义技能，支持基础 CRUD 操作。
 
 ### 获取技能列表
 
-获取所有已配置的技能。
+获取当前平台的已安装技能。
 
 **接口信息**
 - **URL**: `/skills`
@@ -1295,21 +1268,21 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 **响应示例**
 ```json
 {
-  "skills": [
+  "success": true,
+  "data": [
     {
-      "id": "code-review",
-      "name": "代码审查",
+      "name": "code-review",
       "description": "执行代码质量审查",
-      "enabled": true,
-      "category": "development",
-      "commands": ["review", "check"],
-      "config": {
-        "check_style": true,
-        "check_security": true
-      }
+      "path": "~/.claude/commands/code-review",
+      "instruction": "...",
+      "metadata": {
+        "author": "user",
+        "version": "1.0.0",
+        "tags": ["review", "quality"]
+      },
+      "is_remote": false
     }
-  ],
-  "categories": ["development", "testing", "deployment"]
+  ]
 }
 ```
 
@@ -1325,40 +1298,408 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 **请求参数**
 ```json
 {
-  "name": "自动测试",
-  "description": "运行自动化测试套件",
-  "category": "testing",
-  "commands": ["test", "spec"],
-  "config": {
-    "timeout": 300,
-    "parallel": true
+  "name": "my-skill",
+  "instruction": "技能指令内容..."
+}
+```
+
+### 删除技能
+
+删除指定名称的技能。
+
+**接口信息**
+- **URL**: `/skills/{name}`
+- **方法**: `DELETE`
+
+### 获取技能仓库列表
+
+获取所有已配置的技能仓库。
+
+**接口信息**
+- **URL**: `/skills/repositories`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "name": "official",
+      "url": "https://github.com/org/skills-repo",
+      "branch": "main",
+      "description": "官方技能仓库",
+      "skill_count": 25,
+      "last_synced": "2025-01-15T10:00:00Z",
+      "is_official": true
+    }
+  ]
+}
+```
+
+### 添加技能仓库
+
+添加新的技能仓库。
+
+**接口信息**
+- **URL**: `/skills/repositories`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "name": "my-repo",
+  "url": "https://github.com/user/skills",
+  "branch": "main",
+  "description": "自定义技能仓库"
+}
+```
+
+### 移除技能仓库
+
+移除指定名称的技能仓库。
+
+**接口信息**
+- **URL**: `/skills/repositories/{name}`
+- **方法**: `DELETE`
+
+### 扫描技能仓库
+
+扫描并列出仓库中的所有技能。
+
+**接口信息**
+- **URL**: `/skills/repositories/{name}/scan`
+- **方法**: `GET`
+
+## 🏪 统一技能中心接口 (SkillHub API) (v4.0+)
+
+跨平台统一技能管理中心，支持多源安装、市场浏览和批量操作。
+
+> 📖 **前端指南**：[技能管理详细指南](/guide/skills)
+
+### 获取平台代理列表
+
+获取所有支持的 AI CLI 平台及状态。
+
+**接口信息**
+- **URL**: `/skill_hub/agents`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "claude-code",
+      "display_name": "Claude Code",
+      "global_skills_dir": "~/.claude/commands",
+      "detected": true,
+      "installed_count": 12
+    },
+    {
+      "id": "codex",
+      "display_name": "Codex",
+      "global_skills_dir": "~/.codex/commands",
+      "detected": true,
+      "installed_count": 5
+    },
+    {
+      "id": "gemini",
+      "display_name": "Gemini CLI",
+      "global_skills_dir": "~/.gemini/commands",
+      "detected": false,
+      "installed_count": 0
+    }
+  ]
+}
+```
+
+### 获取平台已安装技能
+
+获取指定平台已安装的技能列表。
+
+**接口信息**
+- **URL**: `/skill_hub/agents/{agent}/skills`
+- **方法**: `GET`
+
+**路径参数**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `agent` | string | 平台标识（如 `claude-code`、`codex`） |
+
+**响应示例**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "name": "code-review",
+      "description": "代码审查技能",
+      "skill_dir": "~/.claude/commands/code-review"
+    }
+  ]
+}
+```
+
+### 市场热门技能
+
+获取 skills.sh 市场热门技能列表。
+
+**接口信息**
+- **URL**: `/skill_hub/marketplace/trending`
+- **方法**: `GET`
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `limit` | number | 否 | 返回数量（默认 50） |
+| `page` | number | 否 | 页码（默认 1） |
+
+**响应示例**
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "package": "anthropics/skill-code-review",
+        "owner": "anthropics",
+        "repo": "skill-code-review",
+        "skill": "code-review",
+        "skills_sh_url": "https://skills.sh/anthropics/skill-code-review"
+      }
+    ],
+    "total": 120,
+    "cached": true
   }
 }
 ```
 
-### 更新技能
+### 市场搜索
 
-更新现有技能配置。
-
-**接口信息**
-- **URL**: `/skills/{id}`
-- **方法**: `PUT`
-
-### 删除技能
-
-删除指定技能。
+按关键词搜索市场技能。
 
 **接口信息**
-- **URL**: `/skills/{id}`
-- **方法**: `DELETE`
+- **URL**: `/skill_hub/marketplace/search`
+- **方法**: `GET`
 
-### 启用/禁用技能
+**查询参数**
 
-切换技能的启用状态。
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `q` | string | 是 | 搜索关键词 |
+| `limit` | number | 否 | 返回数量（默认 20） |
+| `page` | number | 否 | 页码（默认 1） |
+
+### 刷新市场缓存
+
+强制刷新 skills.sh 市场数据缓存。
 
 **接口信息**
-- **URL**: `/skills/{id}/toggle`
-- **方法**: `PUT`
+- **URL**: `/skill_hub/marketplace/refresh`
+- **方法**: `POST`
+
+### 安装技能
+
+从市场安装技能到指定平台。
+
+**接口信息**
+- **URL**: `/skill_hub/install`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "package": "owner/repo",
+  "agents": ["claude-code", "codex"],
+  "force": false
+}
+```
+
+**参数说明**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `package` | string | 是 | 包标识（owner/repo 格式） |
+| `agents` | string[] | 否 | 目标平台列表（默认所有已检测平台） |
+| `force` | boolean | 否 | 是否强制覆盖安装（默认 false） |
+
+**响应示例**
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      { "agent": "claude-code", "ok": true, "message": "Installed successfully" },
+      { "agent": "codex", "ok": true, "message": "Installed successfully" }
+    ]
+  }
+}
+```
+
+### 卸载技能
+
+从指定平台卸载技能。
+
+**接口信息**
+- **URL**: `/skill_hub/remove`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "skill": "skill-name",
+  "agents": ["claude-code"]
+}
+```
+
+### 批量安装
+
+一次安装多个技能包到目标平台。
+
+**接口信息**
+- **URL**: `/skill_hub/install/batch`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "packages": ["owner1/repo1", "owner2/repo2", "owner3/repo3"],
+  "agents": ["claude-code", "codex"],
+  "force": false
+}
+```
+
+**响应示例**
+```json
+{
+  "success": true,
+  "data": {
+    "total": 3,
+    "successCount": 2,
+    "failCount": 1,
+    "results": [
+      { "package": "owner1/repo1", "ok": true },
+      { "package": "owner2/repo2", "ok": true },
+      { "package": "owner3/repo3", "ok": false, "message": "Repository not found" }
+    ]
+  }
+}
+```
+
+### GitHub URL 导入
+
+从 GitHub 仓库 URL 导入技能。
+
+**接口信息**
+- **URL**: `/skill_hub/import/github`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "url": "https://github.com/owner/repo",
+  "agents": ["claude-code", "gemini"],
+  "force": false
+}
+```
+
+**支持的 URL 格式**：
+- `https://github.com/owner/repo` — 整个仓库
+- `https://github.com/owner/repo/tree/branch/path` — 指定路径
+- `owner/repo` — 简写格式
+
+### 本地文件夹导入
+
+从本地文件系统导入技能。
+
+**接口信息**
+- **URL**: `/skill_hub/import/local`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "sourcePath": "/path/to/skill-folder",
+  "agents": ["claude-code"],
+  "skillName": "my-custom-skill"
+}
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `sourcePath` | string | 是 | 本地技能文件夹路径 |
+| `agents` | string[] | 是 | 目标平台列表 |
+| `skillName` | string | 否 | 自定义技能名（默认使用文件夹名） |
+
+### npx 安装
+
+通过 npx 执行 npm 包安装技能。
+
+**接口信息**
+- **URL**: `/skill_hub/import/npx`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+```json
+{
+  "package": "@scope/skill-package",
+  "agents": ["claude-code"],
+  "global": false
+}
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `package` | string | 是 | npm 包名 |
+| `agents` | string[] | 是 | 目标平台列表 |
+| `global` | boolean | 否 | 是否全局安装（默认 false） |
+
+### npx 可用性检测
+
+检测系统中 npx 是否可用。
+
+**接口信息**
+- **URL**: `/skill_hub/npx/status`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "success": true,
+  "data": {
+    "available": true,
+    "version": "10.2.3",
+    "path": "/usr/local/bin/npx"
+  }
+}
+```
+
+### 浏览文件夹
+
+打开系统文件夹选择对话框（仅 Tauri 桌面模式可用）。
+
+**接口信息**
+- **URL**: `/skill_hub/browse`
+- **方法**: `POST`
+
+**响应示例**
+```json
+{
+  "success": true,
+  "data": "/Users/user/my-skills/custom-skill"
+}
+```
 
 ## 📝 内置提示词接口 (Builtin Prompts API)
 
@@ -1521,11 +1862,15 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 }
 ```
 
-## 📅 签到管理接口 (v3.7+)
+## 📅 签到管理接口 (v4.0+)
 
-管理 AI 中转站的签到功能，支持多提供商、多账号管理。
+管理 AI 中转站的签到功能，支持 30+ 内置提供商、多账号管理、WAF/CF 绕过、CDK 充值、OAuth 引导登录。
 
-### 获取提供商列表
+---
+
+### 提供商管理
+
+#### 获取提供商列表
 
 获取所有已配置的签到提供商。
 
@@ -1545,17 +1890,51 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
       "balance_path": "/api/user/self",
       "user_info_path": "/api/user/self",
       "auth_header": "Authorization",
-      "auth_prefix": "Bearer ",
+      "auth_prefix": "Bearer",
       "enabled": true,
-      "created_at": "2024-12-22T10:00:00Z"
+      "created_at": "2026-01-15T10:00:00Z"
     }
   ]
 }
 ```
 
-### 获取内置提供商列表
+#### 创建自定义提供商
 
-获取系统预置的中转站配置。
+添加自定义中转站配置。
+
+**接口信息**
+- **URL**: `/checkin/providers`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 提供商名称 |
+| `base_url` | string | 是 | 站点基础 URL |
+| `checkin_path` | string | 否 | 签到路径（默认 `/api/user/checkin`） |
+| `balance_path` | string | 是 | 余额查询路径 |
+| `user_info_path` | string | 是 | 用户信息路径 |
+| `auth_header` | string | 是 | 认证头名称 |
+| `auth_prefix` | string | 是 | 认证前缀 |
+
+**请求示例**
+```json
+{
+  "name": "My Provider",
+  "base_url": "https://example.com",
+  "checkin_path": "/api/user/checkin",
+  "balance_path": "/api/user/self",
+  "user_info_path": "/api/user/self",
+  "auth_header": "Authorization",
+  "auth_prefix": "Bearer"
+}
+```
+
+#### 获取内置提供商列表
+
+获取系统预置的 30+ 中转站配置，按分类返回。
 
 **接口信息**
 - **URL**: `/checkin/providers/builtin`
@@ -1566,26 +1945,43 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 {
   "providers": [
     {
-      "id": "anyrouter",
+      "id": "builtin-anyrouter",
       "name": "AnyRouter",
-      "domain": "https://anyrouter.top",
+      "description": "AnyRouter 中转站，支持多种模型",
+      "domain": "anyrouter.top",
       "base_url": "https://anyrouter.top",
       "checkin_path": "/api/user/sign_in",
       "balance_path": "/api/user/self",
       "user_info_path": "/api/user/self",
       "auth_header": "Authorization",
-      "auth_prefix": "Bearer ",
-      "icon": "🌐",
-      "description": "AnyRouter 中转站，支持多种模型",
+      "auth_prefix": "Bearer",
       "supports_checkin": true,
       "requires_waf_bypass": true,
-      "checkin_bugged": false
+      "requires_cf_clearance": false,
+      "checkin_bugged": false,
+      "icon": "🛡️",
+      "category": "waf_required",
+      "cdk_config": null,
+      "oauth_config": {
+        "github_client_id": "abc123",
+        "linuxdo_client_id": "def456",
+        "oauth_state_path": "/api/oauth/state"
+      }
     }
   ]
 }
 ```
 
-### 添加内置提供商
+**提供商分类（category）**
+
+| 分类 | 说明 | 数量 |
+|------|------|------|
+| `standard` | 标准 NewAPI 站点 | 24 |
+| `waf_required` | 需阿里云 WAF 绕过 | 1 |
+| `cf_required` | 需 Cloudflare Clearance 绕过 | 4 |
+| `special` | 特殊签到机制 | 2 |
+
+#### 添加内置提供商
 
 将内置提供商添加到用户配置中。
 
@@ -1597,44 +1993,36 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 **请求参数**
 ```json
 {
-  "builtin_id": "anyrouter"
+  "builtin_id": "builtin-wong"
 }
 ```
 
-**响应示例**
-```json
-{
-  "id": "provider_abc123",
-  "name": "AnyRouter",
-  "base_url": "https://anyrouter.top",
-  "enabled": true,
-  "created_at": "2024-12-22T10:00:00Z"
-}
-```
-
-### 创建自定义提供商
-
-添加自定义中转站配置。
+#### 获取单个提供商
 
 **接口信息**
-- **URL**: `/checkin/providers`
-- **方法**: `POST`
+- **URL**: `/checkin/providers/{id}`
+- **方法**: `GET`
+
+#### 更新提供商
+
+**接口信息**
+- **URL**: `/checkin/providers/{id}`
+- **方法**: `PUT`
 - **Content-Type**: `application/json`
 
-**请求参数**
-```json
-{
-  "name": "My Provider",
-  "base_url": "https://example.com",
-  "checkin_path": "/api/user/checkin",
-  "balance_path": "/api/user/dashboard",
-  "user_info_path": "/api/user/self",
-  "auth_header": "Authorization",
-  "auth_prefix": "Bearer "
-}
-```
+#### 删除提供商
 
-### 获取账号列表
+删除提供商及其下所有账号（级联删除）。
+
+**接口信息**
+- **URL**: `/checkin/providers/{id}`
+- **方法**: `DELETE`
+
+---
+
+### 账号管理
+
+#### 获取账号列表
 
 获取所有签到账号。
 
@@ -1643,11 +2031,37 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 - **方法**: `GET`
 
 **查询参数**
-- `provider_id` (可选): 按提供商筛选
 
-### 创建签到账号
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `provider_id` | string | 否 | 按提供商筛选 |
 
-为指定提供商添加账号。
+**响应示例**
+```json
+{
+  "accounts": [
+    {
+      "id": "acc_abc123",
+      "provider_id": "provider_xyz",
+      "provider_name": "Wong",
+      "name": "主账号",
+      "cookies_masked": "ses***; new***",
+      "api_user": "user_123",
+      "enabled": true,
+      "created_at": "2026-01-15T10:00:00Z",
+      "last_checkin_at": "2026-02-13T08:00:00Z",
+      "last_balance_check_at": "2026-02-13T08:00:00Z",
+      "latest_balance": 5000.0,
+      "balance_currency": "积分",
+      "total_quota": 10000.0,
+      "total_consumed": 5000.0,
+      "extra_config": null
+    }
+  ]
+}
+```
+
+#### 创建签到账号
 
 **接口信息**
 - **URL**: `/checkin/accounts`
@@ -1655,25 +2069,129 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 - **Content-Type**: `application/json`
 
 **请求参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `provider_id` | string | 是 | 提供商 ID |
+| `name` | string | 是 | 账号名称 |
+| `cookies_json` | string | 是 | Cookie（JSON 格式，会加密存储） |
+| `api_user` | string | 否 | API User 标识 |
+| `extra_config` | object | 否 | 扩展配置（CDK 凭证等） |
+
+**请求示例**
 ```json
 {
-  "provider_id": "provider_abc123",
+  "provider_id": "provider_xyz",
   "name": "主账号",
-  "api_key": "sk-xxx...",
-  "enabled": true
+  "cookies_json": "{\"session\": \"abc123\", \"new-api-user\": \"token\"}",
+  "api_user": "user_123",
+  "extra_config": null
 }
 ```
 
-### 执行签到
+#### 获取单个账号
 
-执行批量签到或单个账号签到。
+**接口信息**
+- **URL**: `/checkin/accounts/{id}`
+- **方法**: `GET`
+
+#### 获取账号 Dashboard
+
+获取账号的签到统计、月历日历、余额趋势等详细数据。
+
+**接口信息**
+- **URL**: `/checkin/accounts/{id}/dashboard`
+- **方法**: `GET`
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `year` | number | 否 | 日历年份（默认当前年） |
+| `month` | number | 否 | 日历月份（默认当前月） |
+| `days` | number | 否 | 趋势天数（默认 30） |
+
+**响应示例**
+```json
+{
+  "account": { "id": "acc_abc123", "name": "主账号", "..." : "..." },
+  "streak": {
+    "current_streak": 15,
+    "longest_streak": 30,
+    "total_check_in_days": 120
+  },
+  "calendar": {
+    "days": [
+      {
+        "date": "2026-02-01",
+        "is_checked_in": true,
+        "income_increment": 1000.0,
+        "current_balance": 5000.0
+      }
+    ]
+  },
+  "trend": {
+    "data_points": [
+      {
+        "date": "2026-02-01",
+        "total_quota": 10000.0,
+        "income_increment": 1000.0,
+        "current_balance": 5000.0,
+        "is_checked_in": true
+      }
+    ]
+  }
+}
+```
+
+#### 更新账号
+
+**接口信息**
+- **URL**: `/checkin/accounts/{id}`
+- **方法**: `PUT`
+- **Content-Type**: `application/json`
+
+#### 删除账号
+
+**接口信息**
+- **URL**: `/checkin/accounts/{id}`
+- **方法**: `DELETE`
+
+#### 获取解密 Cookie
+
+获取账号的解密 Cookie（用于编辑）。
+
+**接口信息**
+- **URL**: `/checkin/accounts/{id}/cookies`
+- **方法**: `GET`
+
+**响应示例**
+```json
+{
+  "cookies": "{\"session\": \"abc123\", \"new-api-user\": \"token\"}"
+}
+```
+
+---
+
+### 签到操作
+
+#### 批量签到
+
+执行批量签到，可指定账号列表。
 
 **接口信息**
 - **URL**: `/checkin/execute`
 - **方法**: `POST`
 - **Content-Type**: `application/json`
 
-**请求参数**（可选）
+**请求参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `account_ids` | string[] | 否 | 指定账号 ID 列表，不传则签到所有启用账号 |
+
+**请求示例**
 ```json
 {
   "account_ids": ["acc_123", "acc_456"]
@@ -1690,17 +2208,64 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
     {
       "account_id": "acc_123",
       "account_name": "主账号",
-      "provider_name": "AnyRouter",
-      "status": "Success",
-      "message": "签到成功，获得 1000 积分"
+      "provider_name": "Wong",
+      "status": "success",
+      "message": "签到成功，获得 1000 积分",
+      "reward_amount": 1000.0,
+      "balance_after": 5000.0
     }
   ]
 }
 ```
 
-### 查询余额
+#### 单账号签到
 
-查询指定账号的余额。
+**接口信息**
+- **URL**: `/checkin/accounts/{id}/checkin`
+- **方法**: `POST`
+
+---
+
+### CDK 充值
+
+#### 执行 CDK 充值
+
+获取 CDK 充值码并自动兑换。仅支持配置了 `cdk_config` 的提供商。
+
+**接口信息**
+- **URL**: `/checkin/accounts/{id}/topup`
+- **方法**: `POST`
+
+**响应示例**
+```json
+{
+  "cdk_type": "runawaytime",
+  "success": true,
+  "message": "成功兑换 2 个充值码",
+  "codes_found": 3,
+  "codes_redeemed": 2,
+  "failed_codes": ["INVALID_CODE"],
+  "direct_reward": null
+}
+```
+
+**CdkProviderConfig 结构**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `cdk_type` | string | CDK 类型（`runawaytime` / `b4u` / `x666`） |
+| `cdk_source_url` | string | CDK 来源站点 URL |
+| `topup_path` | string? | 充值路径（x666 为 null，直接到账） |
+| `requires_cdk_cookies` | bool | 是否需要 CDK 站 Cookie |
+| `requires_access_token` | bool | 是否需要 access_token（x666） |
+
+---
+
+### 余额查询
+
+#### 查询余额
+
+查询指定账号的当前余额。
 
 **接口信息**
 - **URL**: `/checkin/accounts/{id}/balance`
@@ -1709,27 +2274,93 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 **响应示例**
 ```json
 {
-  "remaining_quota": 10000.50,
-  "used_quota": 5000.25,
-  "total_quota": 15000.75,
-  "currency": "$",
-  "usage_percentage": 33.33,
-  "query_time": "2024-12-22T10:00:00Z"
+  "balance": 5000.0,
+  "currency": "积分",
+  "total_quota": 10000.0,
+  "total_consumed": 5000.0,
+  "checked_at": "2026-02-13T10:00:00Z"
 }
 ```
 
-### 获取签到记录
+#### 获取余额历史
 
-获取历史签到记录。
+获取账号的历史余额快照。
+
+**接口信息**
+- **URL**: `/checkin/accounts/{id}/balance/history`
+- **方法**: `GET`
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `limit` | number | 否 | 返回数量（默认 30） |
+
+**响应示例**
+```json
+{
+  "history": [
+    {
+      "balance": 5000.0,
+      "total_quota": 10000.0,
+      "total_consumed": 5000.0,
+      "checked_at": "2026-02-13T10:00:00Z"
+    },
+    {
+      "balance": 4500.0,
+      "total_quota": 9500.0,
+      "total_consumed": 5000.0,
+      "checked_at": "2026-02-12T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### 签到记录
+
+#### 获取所有记录
+
+获取签到历史记录，支持分页和过滤。
 
 **接口信息**
 - **URL**: `/checkin/records`
 - **方法**: `GET`
 
 **查询参数**
-- `limit` (可选): 返回记录数量，默认 100
 
-### 获取今日统计
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `limit` | number | 否 | 每页数量（默认 20） |
+| `page` | number | 否 | 页码（默认 1） |
+| `page_size` | number | 否 | 每页大小 |
+| `status` | string | 否 | 按状态筛选（success/failed/already_checked_in） |
+| `account_id` | string | 否 | 按账号筛选 |
+| `provider_id` | string | 否 | 按提供商筛选 |
+| `keyword` | string | 否 | 关键词搜索 |
+
+#### 导出签到记录
+
+以文件下载方式导出签到记录。
+
+**接口信息**
+- **URL**: `/checkin/records/export`
+- **方法**: `GET`
+
+#### 获取账号签到记录
+
+获取指定账号的签到记录。
+
+**接口信息**
+- **URL**: `/checkin/accounts/{id}/records`
+- **方法**: `GET`
+
+---
+
+### 统计
+
+#### 获取今日统计
 
 获取今日签到统计数据。
 
@@ -1740,15 +2371,19 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 **响应示例**
 ```json
 {
-  "total_accounts": 5,
-  "checked_in_count": 3,
+  "total_accounts": 10,
+  "checked_in_count": 8,
   "pending_count": 2,
   "failed_count": 0,
-  "last_checkin_at": "2024-12-22T08:00:00Z"
+  "last_checkin_at": "2026-02-13T08:00:00Z"
 }
 ```
 
-### 导出签到配置
+---
+
+### 导入/导出
+
+#### 导出签到配置
 
 导出提供商和账号配置。
 
@@ -1758,6 +2393,13 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 - **Content-Type**: `application/json`
 
 **请求参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `include_plaintext_keys` | bool | 否 | 是否包含明文 Cookie（默认 false） |
+| `providers_only` | bool | 否 | 是否只导出提供商（默认 false） |
+
+**请求示例**
 ```json
 {
   "include_plaintext_keys": false,
@@ -1765,9 +2407,18 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 }
 ```
 
-### 导入签到配置
+#### 预览导入
 
-导入提供商和账号配置。
+上传导出数据预览将要导入的内容和冲突项。
+
+**接口信息**
+- **URL**: `/checkin/import/preview`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+#### 执行导入
+
+执行配置导入。
 
 **接口信息**
 - **URL**: `/checkin/import`
@@ -1777,11 +2428,82 @@ curl -X GET "http://127.0.0.1:8081/api/stats/cost/top-sessions?limit=20"
 **请求参数**
 ```json
 {
-  "data": { ... },
-  "conflict_strategy": "skip"
+  "data": { "...导出数据..." },
+  "options": {
+    "conflict_strategy": "skip"
+  }
 }
 ```
 
 **conflict_strategy 选项**
-- `skip`: 跳过冲突项
-- `overwrite`: 覆盖冲突项
+
+| 策略 | 说明 |
+|------|------|
+| `skip` | 跳过冲突项，保留现有配置 |
+| `overwrite` | 覆盖冲突项，使用导入的配置 |
+
+---
+
+### 连接测试
+
+#### 测试账号连通性
+
+验证账号配置是否正确、Cookie 是否有效。
+
+**接口信息**
+- **URL**: `/checkin/accounts/{id}/test`
+- **方法**: `POST`
+
+**响应示例**
+```json
+{
+  "success": true,
+  "message": "连接成功",
+  "user_name": "test_user",
+  "balance": 5000.0
+}
+```
+
+---
+
+### OAuth 引导登录
+
+#### 获取 OAuth 授权 URL
+
+获取 OAuth 授权链接，用于引导用户在浏览器中完成登录。
+
+**接口信息**
+- **URL**: `/checkin/oauth/authorize-url`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+
+**请求参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `provider_id` | string | 是 | 提供商 ID |
+| `oauth_type` | string | 是 | OAuth 类型（`github` / `linuxdo`） |
+
+**请求示例**
+```json
+{
+  "provider_id": "provider_xyz",
+  "oauth_type": "github"
+}
+```
+
+**响应示例**
+```json
+{
+  "authorize_url": "https://github.com/login/oauth/authorize?client_id=abc&state=xyz&scope=user:email",
+  "extraction_guide": "授权完成后，请在浏览器中打开 DevTools → Application → Cookies，复制所有 Cookie 粘贴到下方输入框"
+}
+```
+
+**OAuthProviderConfig 结构**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `github_client_id` | string? | GitHub OAuth client_id |
+| `linuxdo_client_id` | string? | LinuxDo OAuth client_id |
+| `oauth_state_path` | string | OAuth state 获取路径 |

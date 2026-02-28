@@ -7,6 +7,7 @@
 // - 🔒 文件锁保证并发安全
 // - 🌐 Web 管理界面
 
+mod application;
 mod commands;
 mod core;
 mod help;

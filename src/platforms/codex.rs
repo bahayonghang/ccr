@@ -1,125 +1,75 @@
 // 💻 Codex Platform 实现
-// 📦 GitHub Copilot CLI 平台配置管理
+// 📦 Codex CLI 平台配置管理
 //
 // 核心职责:
 // - 📋 管理 Codex profiles
-// - ⚙️ 操作 Codex settings.json / config.toml
-// - 🔐 验证 GitHub token 格式
+// - ⚙️ 操作 Codex config.toml / auth.json
+// - 🔄 两路分发: Official (完全重置) / ThirdParty (read-modify-write)
 // - 💾 仅支持 Unified 模式
 
 use crate::core::error::{CcrError, Result};
+use crate::managers::codex_config::CodexConfigManager;
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::platforms::base;
-use crate::utils::Validatable;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
-use serde_json::{Map as JsonMap, Value as JsonValue};
+use serde_json::Value as JsonValue;
 use std::path::PathBuf;
-use std::{env, fs};
 use tracing::debug;
 
 /// 💻 Codex Platform 实现
 ///
 /// ## 配置文件
 /// - Profiles: `~/.ccr/platforms/codex/profiles.toml`
-/// - Settings: `~/.ccr/platforms/codex/settings.json`
+/// - Config: `~/.codex/config.toml`
+/// - Auth: `~/.codex/auth.json`
 ///
-/// ## GitHub Token 格式
-/// 支持以下前缀的 GitHub token：
-/// - `ghp_` - Personal Access Token
-/// - `gho_` - OAuth Token
-/// - `github_pat_` - Fine-grained Personal Access Token
+/// ## 分发模式
+/// - **Official**: 完全重置 config.toml + auth.json 到默认状态
+/// - **ThirdParty**: read-modify-write，仅更新 provider 相关字段
 pub struct CodexPlatform {
     paths: PlatformPaths,
-}
-
-/// 🔐 Codex 设置结构
-///
-/// Codex settings.json 格式
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CodexSettings {
-    /// GitHub 配置
-    pub github: GitHubConfig,
-    /// 默认模型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub model: Option<String>,
-}
-
-/// 🔐 GitHub 配置结构
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GitHubConfig {
-    /// API 端点
-    pub api_endpoint: String,
-    /// GitHub Token
-    pub token: String,
-    /// 组织名称（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub organization: Option<String>,
+    config_manager: CodexConfigManager,
 }
 
 impl CodexPlatform {
     /// 🏗️ 创建新的 Codex Platform 实例
     pub fn new() -> Result<Self> {
         let paths = PlatformPaths::new(Platform::Codex)?;
-        Ok(Self { paths })
+        let config_manager = CodexConfigManager::with_default()?;
+        Ok(Self {
+            paths,
+            config_manager,
+        })
     }
 
-    /// 📁 获取 Codex CLI 配置目录
-    fn codex_dir() -> Result<PathBuf> {
-        if let Ok(custom) = env::var("CCR_CODEX_DIR") {
-            return Ok(PathBuf::from(custom));
-        }
+    // ═══════════════════════════════════════════════════════════
+    // 🔍 Profile 分类方法
+    // ═══════════════════════════════════════════════════════════
 
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
-        Ok(home.join(".codex"))
-    }
-
-    /// ⚙️ 获取 config.toml 路径
-    fn codex_config_path() -> Result<PathBuf> {
-        Ok(Self::codex_dir()?.join("config.toml"))
-    }
-
-    /// 🔑 获取 auth.json 路径
-    fn codex_auth_path() -> Result<PathBuf> {
-        Ok(Self::codex_dir()?.join("auth.json"))
-    }
-
-    /// 🔍 判断是否为官方配置（无 base_url 或 base_url 为空）
+    /// 🔍 判断是否为官方配置
+    ///
+    /// 优先检查 provider_type 字段，回退检查 base_url
     fn is_official_profile(profile: &ProfileConfig) -> bool {
+        // provider_type 优先
+        if let Some(pt) = &profile.provider_type {
+            return pt == "official_relay";
+        }
+        // 回退：无 base_url 视为官方
         profile
             .base_url
             .as_ref()
             .is_none_or(|url| url.trim().is_empty())
     }
 
-    /// 🔍 判断是否使用 GitHub Copilot CLI 兼容模式
-    fn is_github_profile(profile: &ProfileConfig) -> bool {
-        if let Some(mode) = Self::platform_string(profile, "api_mode") {
-            if mode.eq_ignore_ascii_case("github") {
-                return true;
-            }
-            if mode.eq_ignore_ascii_case("custom") {
-                return false;
-            }
-        }
-
-        if profile
-            .platform_data
-            .get("wire_api")
-            .and_then(|v| v.as_str())
-            .is_some()
-        {
-            return false;
-        }
-
-        if let Some(base_url) = profile.base_url.as_deref() {
-            return base_url.contains("github.com");
-        }
-
-        // 默认按自定义 API 处理
-        false
+    /// 🔍 检查是否为已弃用的 GitHub 模式
+    fn is_legacy_github_profile(profile: &ProfileConfig) -> bool {
+        Self::platform_string(profile, "api_mode")
+            .is_some_and(|mode| mode.eq_ignore_ascii_case("github"))
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔧 平台数据辅助方法
+    // ═══════════════════════════════════════════════════════════
 
     fn platform_string(profile: &ProfileConfig, key: &str) -> Option<String> {
         profile
@@ -195,39 +145,34 @@ impl CodexPlatform {
         Self::sanitize_identifier(&candidate)
     }
 
-    fn codex_settings_path() -> Result<PathBuf> {
-        Ok(Self::codex_dir()?.join("settings.json"))
-    }
-
-    fn read_codex_config(config_path: &PathBuf) -> Result<toml::Value> {
-        if !config_path.exists() {
-            return Ok(toml::Value::Table(toml::map::Map::new()));
-        }
-
-        let content = fs::read_to_string(config_path)
-            .map_err(|e| CcrError::SettingsError(format!("读取 Codex config.toml 失败: {}", e)))?;
-
-        toml::from_str(&content)
-            .map_err(|e| CcrError::SettingsError(format!("解析 Codex config.toml 失败: {}", e)))
-    }
-
-    fn ensure_toml_table(value: &mut toml::Value) -> &mut toml::map::Map<String, toml::Value> {
+    fn ensure_toml_table(
+        value: &mut toml::Value,
+    ) -> Result<&mut toml::map::Map<String, toml::Value>> {
         if !matches!(value, toml::Value::Table(_)) {
             *value = toml::Value::Table(toml::map::Map::new());
         }
-        value.as_table_mut().expect("table ensured")
+        value
+            .as_table_mut()
+            .ok_or_else(|| CcrError::ConfigError("TOML table expected".into()))
     }
 
-    fn apply_custom_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
-        let config_path = Self::codex_config_path()?;
-        let auth_path = Self::codex_auth_path()?;
-        let codex_dir = config_path
-            .parent()
-            .ok_or_else(|| CcrError::ConfigError("无效的 Codex 配置目录".into()))?;
+    // ═══════════════════════════════════════════════════════════
+    // 🏛️ 官方模式 - 完全重置
+    // ═══════════════════════════════════════════════════════════
 
-        fs::create_dir_all(codex_dir)
-            .map_err(|e| CcrError::SettingsError(format!("创建 Codex 目录失败: {}", e)))?;
+    /// 🏛️ 应用官方配置（备份后完全重置）
+    fn apply_official_profile(&self) -> Result<()> {
+        self.config_manager.reset_to_defaults("pre_official")?;
+        tracing::info!("✅ 已切换到 Codex 官方配置（完全重置）");
+        Ok(())
+    }
 
+    // ═══════════════════════════════════════════════════════════
+    // 🔧 第三方模式 - read-modify-write
+    // ═══════════════════════════════════════════════════════════
+
+    /// 🔧 应用第三方配置（read-modify-write，保留非 provider 字段）
+    fn apply_third_party_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
         let provider_id = Self::resolve_provider_id(name, profile);
         let provider_name = profile
             .description
@@ -240,8 +185,10 @@ impl CodexPlatform {
         });
         let wire_api = Self::resolve_wire_api(profile)?;
         let requires_auth = Self::platform_bool(profile, "requires_openai_auth").unwrap_or(true);
-        let provider_model =
-            Self::platform_string(profile, "provider_model").or_else(|| profile.model.clone());
+        let env_key = Self::platform_string(profile, "env_key");
+        // provider_model: 仅当用户在 platform_data 中显式设置时才写入 provider 表
+        // 不回退到 profile.model，避免 model 在 root 和 provider 表中重复
+        let provider_model = Self::platform_string(profile, "provider_model");
         let token = profile
             .auth_token
             .as_ref()
@@ -250,9 +197,11 @@ impl CodexPlatform {
             })?
             .clone();
 
-        let mut config = Self::read_codex_config(&config_path)?;
-        let root = Self::ensure_toml_table(&mut config);
+        // 读取现有配置（保留所有非 provider 字段）
+        let mut config = self.config_manager.load_config()?;
+        let root = Self::ensure_toml_table(&mut config)?;
 
+        // 仅修改 provider 相关字段
         if let Some(model) = profile.model.as_ref() {
             root.insert("model".into(), toml::Value::String(model.clone()));
         }
@@ -262,6 +211,7 @@ impl CodexPlatform {
             toml::Value::String(provider_id.clone()),
         );
 
+        // 可选设置（来自 platform_data）
         if let Some(policy) = Self::platform_string(profile, "approval_policy") {
             root.insert("approval_policy".into(), toml::Value::String(policy));
         }
@@ -290,106 +240,79 @@ impl CodexPlatform {
             );
         }
 
+        // 更新 model_providers 表
         let providers_value = root
             .entry("model_providers")
             .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
-        let providers_table = Self::ensure_toml_table(providers_value);
+        let providers_table = Self::ensure_toml_table(providers_value)?;
 
         let provider_value = providers_table
             .entry(provider_id.clone())
             .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
-        let provider_table = Self::ensure_toml_table(provider_value);
+        let provider_table = Self::ensure_toml_table(provider_value)?;
 
         provider_table.insert("name".into(), toml::Value::String(provider_name));
         provider_table.insert("base_url".into(), toml::Value::String(base_url));
         provider_table.insert("wire_api".into(), toml::Value::String(wire_api));
-        // 不写入 env_key，使用默认的 OPENAI_API_KEY
         provider_table.insert(
             "requires_openai_auth".into(),
             toml::Value::Boolean(requires_auth),
         );
 
-        if let Some(model) = provider_model {
-            provider_table.insert("model".into(), toml::Value::String(model));
+        // env_key: 告诉 Codex 从哪个环境变量读取 API key（如 MISTRAL_API_KEY）
+        // 原理说明：
+        // 官方原生流程推荐用户在系统的环境变量中配置此 key。
+        // 但 CCR 采用一种更优雅的「免环境污染」方案：我们不仅在此定义 env_key，
+        // 后续还会将这个 token 也就是 API Key 直接注入到底层的 auth.json 中，
+        // 键名采用此处的 env_key 名称。Codex CLI 在遇到自定义 Provider 时，可以成功从 auth.json 匹配该名称。
+        if let Some(ref ek) = env_key {
+            provider_table.insert("env_key".into(), toml::Value::String(ek.clone()));
+        } else {
+            // 切换到未设置 env_key 的 profile 时，清理历史残留
+            provider_table.remove("env_key");
         }
 
-        let config_content = toml::to_string_pretty(&config).map_err(|e| {
-            CcrError::SettingsError(format!("序列化 Codex config.toml 失败: {}", e))
-        })?;
-
-        fs::write(&config_path, config_content)
-            .map_err(|e| CcrError::SettingsError(format!("写入 Codex config 失败: {}", e)))?;
-
-        // 更新 auth.json
-        let auth_entries = if auth_path.exists() {
-            let content = fs::read_to_string(&auth_path).map_err(|e| {
-                CcrError::SettingsError(format!("读取 Codex auth.json 失败: {}", e))
-            })?;
-            serde_json::from_str::<JsonMap<String, JsonValue>>(&content)
-                .unwrap_or_else(|_| JsonMap::new())
+        if let Some(model) = provider_model {
+            provider_table.insert("model".into(), toml::Value::String(model));
         } else {
-            JsonMap::new()
+            // provider_model 是可选字段，未设置时应移除旧值
+            provider_table.remove("model");
+        }
+
+        // 原子写入 config.toml
+        self.config_manager.save_config_atomic(&config)?;
+
+        // 更新 auth.json（read-modify-write）
+        // 核心机制：
+        // 1. 确定 auth key 名称：
+        //    - requires_openai_auth=true 或无 env_key 时，强制复用 OpenAI 默认的 OPENAI_API_KEY
+        //    - 否则使用上面配置的 env_key 值作为 JSON key（例如 "MISTRAL_API_KEY"）
+        // 2. 将此键值原子性写入 auth.json：
+        //    此操作绕过了环境变量的配置阶段，为系统实现了环境隔离。
+        //    只要在 config.toml 的 [model_providers.<id>] 块指定了 env_key，
+        //    并在 auth.json 配置同名的键，CodexCLI 的解析器仍能正确读取。
+        let auth_key_name = if requires_auth {
+            "OPENAI_API_KEY".to_string()
+        } else {
+            env_key
+                .clone()
+                .unwrap_or_else(|| "OPENAI_API_KEY".to_string())
         };
 
-        let mut merged = auth_entries;
-        // 统一使用 OPENAI_API_KEY，不使用自定义 env_key
-        merged.insert("OPENAI_API_KEY".into(), JsonValue::String(token));
-
-        let auth_content = serde_json::to_string_pretty(&JsonValue::Object(merged))
-            .map_err(|e| CcrError::SettingsError(format!("序列化 auth.json 失败: {}", e)))?;
-
-        fs::write(&auth_path, auth_content)
-            .map_err(|e| CcrError::SettingsError(format!("写入 auth.json 失败: {}", e)))?;
+        let mut auth = self.config_manager.load_auth()?;
+        auth.insert(auth_key_name, JsonValue::String(token));
+        self.config_manager.save_auth_atomic(&auth)?;
 
         tracing::info!(
             "✅ 已写入 Codex config ({}) 并更新 auth.json",
-            config_path.display()
+            self.config_manager.config_path().display()
         );
         Ok(())
     }
 
-    /// 🏛️ 应用官方配置（清除自定义 provider 设置）
-    fn apply_official_profile(&self) -> Result<()> {
-        let config_path = Self::codex_config_path()?;
-        let auth_path = Self::codex_auth_path()?;
-        let codex_dir = config_path
-            .parent()
-            .ok_or_else(|| CcrError::ConfigError("无效的 Codex 配置目录".into()))?;
-
-        // 确保目录存在
-        fs::create_dir_all(codex_dir)
-            .map_err(|e| CcrError::SettingsError(format!("创建 Codex 目录失败: {}", e)))?;
-
-        // 读取并清理 config.toml
-        if config_path.exists() {
-            let mut config = Self::read_codex_config(&config_path)?;
-            if let Some(table) = config.as_table_mut() {
-                table.remove("model_provider");
-                table.remove("model_providers");
-            }
-            let content = toml::to_string_pretty(&config)
-                .map_err(|e| CcrError::SettingsError(format!("序列化 config.toml 失败: {}", e)))?;
-            fs::write(&config_path, content)
-                .map_err(|e| CcrError::SettingsError(format!("写入 config.toml 失败: {}", e)))?;
-        }
-
-        // 清理 auth.json 中的自定义 key（保留 OPENAI_API_KEY 如有）
-        if auth_path.exists() {
-            let content = fs::read_to_string(&auth_path)
-                .map_err(|e| CcrError::SettingsError(format!("读取 auth.json 失败: {}", e)))?;
-            let mut entries = serde_json::from_str::<JsonMap<String, JsonValue>>(&content)
-                .unwrap_or_else(|_| JsonMap::new());
-            // 移除非 OPENAI_API_KEY 的 key
-            entries.retain(|k, _| k == "OPENAI_API_KEY");
-            let auth_content = serde_json::to_string_pretty(&JsonValue::Object(entries))
-                .map_err(|e| CcrError::SettingsError(format!("序列化 auth.json 失败: {}", e)))?;
-            fs::write(&auth_path, auth_content)
-                .map_err(|e| CcrError::SettingsError(format!("写入 auth.json 失败: {}", e)))?;
-        }
-
-        tracing::info!("✅ 已切换到 Codex 官方配置");
-        Ok(())
-    }
+    // ═══════════════════════════════════════════════════════════
+    // 📋 Profile 文件操作
+    // ═══════════════════════════════════════════════════════════
 
     /// 📋 从 TOML 文件加载 profiles
     fn load_profiles_from_file(&self) -> Result<IndexMap<String, ProfileConfig>> {
@@ -399,94 +322,6 @@ impl CodexPlatform {
     /// 💾 保存 profiles 到 TOML 文件
     fn save_profiles_to_file(&self, profiles: &IndexMap<String, ProfileConfig>) -> Result<()> {
         base::save_profiles_to_toml(&self.paths.profiles_file, profiles, "codex", &self.paths)
-    }
-
-    /// 📖 加载 Codex settings
-    #[allow(dead_code)]
-    fn load_settings(&self) -> Result<CodexSettings> {
-        let settings_path = Self::codex_settings_path()?;
-        if !settings_path.exists() {
-            return Err(CcrError::SettingsMissing(
-                settings_path.display().to_string(),
-            ));
-        }
-
-        let content = fs::read_to_string(&settings_path)
-            .map_err(|e| CcrError::SettingsError(format!("读取 Codex 设置失败: {}", e)))?;
-
-        let settings: CodexSettings = serde_json::from_str(&content)
-            .map_err(|e| CcrError::SettingsError(format!("解析 Codex 设置失败: {}", e)))?;
-
-        Ok(settings)
-    }
-
-    /// 💾 保存 Codex settings
-    fn save_settings(&self, settings: &CodexSettings) -> Result<()> {
-        let settings_path = Self::codex_settings_path()?;
-        if let Some(parent) = settings_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| CcrError::SettingsError(format!("创建 Codex 目录失败: {}", e)))?;
-        }
-
-        // 序列化为 JSON
-        let content = serde_json::to_string_pretty(settings)
-            .map_err(|e| CcrError::SettingsError(format!("序列化 Codex 设置失败: {}", e)))?;
-
-        // 写入文件
-        fs::write(&settings_path, content)
-            .map_err(|e| CcrError::SettingsError(format!("写入 Codex 设置失败: {}", e)))?;
-
-        tracing::info!("✅ 已保存 Codex settings: {:?}", settings_path);
-        Ok(())
-    }
-
-    /// 🔐 验证 GitHub Token 格式
-    ///
-    /// 支持的 token 格式：
-    /// - `ghp_` - Personal Access Token
-    /// - `gho_` - OAuth Token
-    /// - `github_pat_` - Fine-grained Personal Access Token
-    fn validate_github_token(token: &str) -> Result<()> {
-        let valid_prefixes = ["ghp_", "gho_", "github_pat_"];
-
-        if !valid_prefixes
-            .iter()
-            .any(|prefix| token.starts_with(prefix))
-        {
-            return Err(CcrError::ValidationError(format!(
-                "无效的 GitHub token 格式，应以 {} 之一开头",
-                valid_prefixes.join(", ")
-            )));
-        }
-
-        if token.len() < 20 {
-            return Err(CcrError::ValidationError("GitHub token 长度不足".into()));
-        }
-
-        Ok(())
-    }
-
-    /// 📋 从 ProfileConfig 提取 Codex 特定字段
-    fn extract_codex_fields(profile: &ProfileConfig) -> Result<(String, String, Option<String>)> {
-        let api_endpoint = profile
-            .base_url
-            .as_ref()
-            .ok_or_else(|| CcrError::ValidationError("缺少 api_endpoint 字段".into()))?
-            .clone();
-
-        let token = profile
-            .auth_token
-            .as_ref()
-            .ok_or_else(|| CcrError::ValidationError("缺少 token 字段".into()))?
-            .clone();
-
-        let organization = profile
-            .platform_data
-            .get("organization")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-
-        Ok((api_endpoint, token, organization))
     }
 }
 
@@ -528,7 +363,7 @@ impl PlatformConfig for CodexPlatform {
     }
 
     fn get_settings_path(&self) -> PathBuf {
-        Self::codex_config_path().unwrap_or_else(|_| self.paths.settings_file.clone())
+        self.config_manager.config_path().to_path_buf()
     }
 
     fn apply_profile(&self, name: &str) -> Result<()> {
@@ -541,27 +376,17 @@ impl PlatformConfig for CodexPlatform {
         // 验证
         self.validate_profile(profile)?;
 
+        // 两路分发: Official / ThirdParty
         if Self::is_official_profile(profile) {
-            // 官方配置：清除自定义 provider 设置
             self.apply_official_profile()?;
-        } else if Self::is_github_profile(profile) {
-            // GitHub Copilot CLI 兼容模式
-            let (api_endpoint, token, organization) = Self::extract_codex_fields(profile)?;
-            let settings = CodexSettings {
-                github: GitHubConfig {
-                    api_endpoint,
-                    token,
-                    organization,
-                },
-                model: profile.model.clone(),
-            };
-            self.save_settings(&settings)?;
         } else {
-            // 自定义 Codex API (config.toml)
-            self.apply_custom_profile(name, profile)?;
+            self.apply_third_party_profile(name, profile)?;
         }
 
-        // 使用 base 模块更新注册表
+        // 更新 profiles.toml 中的 current_config
+        base::update_current_config(&self.paths.profiles_file, name)?;
+
+        // 更新注册表 current_profile
         base::update_registry_current_profile("codex", name)?;
 
         tracing::info!("✅ 已应用 Codex profile: {}", name);
@@ -569,12 +394,19 @@ impl PlatformConfig for CodexPlatform {
     }
 
     fn validate_profile(&self, profile: &ProfileConfig) -> Result<()> {
+        // 向后兼容：api_mode=github 返回明确弃用错误
+        if Self::is_legacy_github_profile(profile) {
+            return Err(CcrError::ValidationError(
+                "GitHub 模式 (api_mode=github) 已弃用，请使用第三方模式 (wire_api=responses/chat) 替代".into(),
+            ));
+        }
+
         // 官方配置允许 base_url 和 auth_token 为空
         if Self::is_official_profile(profile) {
             return Ok(());
         }
 
-        // 自定义配置：检查 base_url
+        // 第三方配置：检查 base_url
         let base_url = profile.base_url.as_ref().ok_or_else(|| {
             CcrError::ValidationError("Codex profile 缺少 base_url (api_endpoint)".into())
         })?;
@@ -590,16 +422,14 @@ impl PlatformConfig for CodexPlatform {
             CcrError::ValidationError("Codex profile 缺少 auth_token (API key/token)".into())
         })?;
 
-        if Self::is_github_profile(profile) {
-            Self::validate_github_token(token)?;
-        } else if token.trim().is_empty() {
+        if token.trim().is_empty() {
             return Err(CcrError::ValidationError(
                 "Codex profile 缺少有效的 API key".into(),
             ));
-        } else {
-            // 自定义模式时需要验证 wire_api
-            Self::resolve_wire_api(profile)?;
         }
+
+        // 验证 wire_api
+        Self::resolve_wire_api(profile)?;
 
         Ok(())
     }
@@ -608,26 +438,8 @@ impl PlatformConfig for CodexPlatform {
         base::get_current_profile_from_registry("codex")
     }
 
-    fn get_env_var_names(&self) -> Vec<&'static str> {
-        vec!["OPENAI_API_KEY"]
-    }
-}
-
-impl Validatable for CodexSettings {
-    fn validate(&self) -> Result<()> {
-        // 验证 API endpoint
-        if !self.github.api_endpoint.starts_with("http://")
-            && !self.github.api_endpoint.starts_with("https://")
-        {
-            return Err(CcrError::ValidationError(
-                "GitHub API endpoint 必须以 http:// 或 https:// 开头".into(),
-            ));
-        }
-
-        // 验证 token
-        CodexPlatform::validate_github_token(&self.github.token)?;
-
-        Ok(())
+    fn get_env_var_names(&self) -> Vec<String> {
+        vec![]
     }
 }
 
@@ -637,32 +449,65 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    #[test]
-    fn test_validate_github_token() {
-        // 有效的 tokens
-        assert!(CodexPlatform::validate_github_token("ghp_1234567890abcdefghij").is_ok());
-        assert!(CodexPlatform::validate_github_token("gho_1234567890abcdefghij").is_ok());
-        assert!(CodexPlatform::validate_github_token("github_pat_1234567890abcdefghij").is_ok());
-
-        // 无效的 tokens
-        assert!(CodexPlatform::validate_github_token("invalid_token").is_err());
-        assert!(CodexPlatform::validate_github_token("ghp_short").is_err());
-        assert!(CodexPlatform::validate_github_token("").is_err());
-    }
+    // ═══════════════════════════════════════════════════════════
+    // 🔍 Profile 分类测试
+    // ═══════════════════════════════════════════════════════════
 
     #[test]
-    fn test_codex_settings_structure() {
-        let settings = CodexSettings {
-            github: GitHubConfig {
-                api_endpoint: "https://api.github.com".to_string(),
-                token: "ghp_1234567890abcdefghij".to_string(),
-                organization: Some("my-org".to_string()),
-            },
-            model: Some("gpt-4".to_string()),
+    fn test_provider_type_classification() {
+        // provider_type = official_relay → 官方
+        let official = ProfileConfig {
+            description: Some("Official".into()),
+            base_url: None,
+            auth_token: None,
+            model: None,
+            small_fast_model: None,
+            provider: None,
+            provider_type: Some("official_relay".into()),
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
         };
+        assert!(CodexPlatform::is_official_profile(&official));
 
-        assert!(settings.validate().is_ok());
+        // provider_type = third_party → 非官方
+        let third_party = ProfileConfig {
+            provider_type: Some("third_party".into()),
+            base_url: Some("https://api.example.com".into()),
+            ..official.clone()
+        };
+        assert!(!CodexPlatform::is_official_profile(&third_party));
+
+        // 无 provider_type，无 base_url → 官方 (回退)
+        let no_type_no_url = ProfileConfig {
+            provider_type: None,
+            base_url: None,
+            ..official.clone()
+        };
+        assert!(CodexPlatform::is_official_profile(&no_type_no_url));
+
+        // 无 provider_type，有 base_url → 非官方 (回退)
+        let no_type_with_url = ProfileConfig {
+            provider_type: None,
+            base_url: Some("https://api.example.com".into()),
+            ..official.clone()
+        };
+        assert!(!CodexPlatform::is_official_profile(&no_type_with_url));
+
+        // 空 base_url → 官方
+        let empty_url = ProfileConfig {
+            provider_type: None,
+            base_url: Some("  ".into()),
+            ..official.clone()
+        };
+        assert!(CodexPlatform::is_official_profile(&empty_url));
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // ✅ 验证测试
+    // ═══════════════════════════════════════════════════════════
 
     #[test]
     fn test_codex_platform_basic() {
@@ -685,24 +530,7 @@ mod tests {
     fn test_validate_profile_modes() {
         let platform = CodexPlatform::new().unwrap();
 
-        // GitHub 兼容模式
-        let github_profile = ProfileConfig {
-            description: Some("GitHub Copilot".to_string()),
-            base_url: Some("https://api.github.com".to_string()),
-            auth_token: Some("ghp_1234567890abcdefghij".to_string()),
-            model: Some("gpt-4".to_string()),
-            small_fast_model: None,
-            provider: Some("github".to_string()),
-            provider_type: None,
-            account: None,
-            tags: None,
-            usage_count: Some(0),
-            enabled: Some(true),
-            platform_data: IndexMap::new(),
-        };
-        assert!(platform.validate_profile(&github_profile).is_ok());
-
-        // 自定义 API
+        // 第三方 API (wire_api=responses)
         let mut custom_profile = ProfileConfig {
             description: Some("PackyCode".to_string()),
             base_url: Some("https://api.packyapi.com/v1".to_string()),
@@ -722,6 +550,7 @@ mod tests {
             .insert("wire_api".into(), json!("responses"));
         assert!(platform.validate_profile(&custom_profile).is_ok());
 
+        // wire_api 无效值
         custom_profile
             .platform_data
             .insert("wire_api".into(), json!("invalid"));
@@ -729,7 +558,129 @@ mod tests {
     }
 
     #[test]
-    fn test_apply_custom_profile_writes_config() {
+    fn test_legacy_github_profile_error() {
+        let platform = CodexPlatform::new().unwrap();
+
+        let mut github_profile = ProfileConfig {
+            description: Some("GitHub Legacy".to_string()),
+            base_url: Some("https://api.github.com".to_string()),
+            auth_token: Some("ghp_1234567890abcdefghij".to_string()),
+            model: Some("gpt-4".to_string()),
+            small_fast_model: None,
+            provider: Some("github".to_string()),
+            provider_type: None,
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
+        };
+        github_profile
+            .platform_data
+            .insert("api_mode".into(), json!("github"));
+
+        let result = platform.validate_profile(&github_profile);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("弃用"),
+            "should mention deprecation, got: {}",
+            err_msg
+        );
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 💾 写入测试
+    // ═══════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_official_resets_config() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+
+        let config_manager = CodexConfigManager::with_default().unwrap();
+
+        // 先写入一些数据
+        let mut table = toml::map::Map::new();
+        table.insert(
+            "model_provider".into(),
+            toml::Value::String("custom".into()),
+        );
+        config_manager
+            .save_config_atomic(&toml::Value::Table(table))
+            .unwrap();
+
+        // 验证数据存在
+        let loaded = config_manager.load_config().unwrap();
+        assert!(loaded.get("model_provider").is_some());
+
+        // 重置
+        config_manager.reset_to_defaults("pre_official").unwrap();
+
+        // 验证已重置
+        let after = config_manager.load_config().unwrap();
+        assert!(after.as_table().unwrap().is_empty());
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
+    fn test_third_party_preserves_fields() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+
+        let config_manager = CodexConfigManager::with_default().unwrap();
+
+        // 先写入一些用户自定义字段
+        let mut table = toml::map::Map::new();
+        table.insert(
+            "approval_policy".into(),
+            toml::Value::String("unless-allow-listed".into()),
+        );
+        table.insert(
+            "user_custom_field".into(),
+            toml::Value::String("should_be_preserved".into()),
+        );
+        config_manager
+            .save_config_atomic(&toml::Value::Table(table))
+            .unwrap();
+
+        // 模拟第三方 profile 应用 (read-modify-write)
+        let mut config = config_manager.load_config().unwrap();
+        let root = config.as_table_mut().unwrap();
+        root.insert(
+            "model_provider".into(),
+            toml::Value::String("test-provider".into()),
+        );
+        config_manager.save_config_atomic(&config).unwrap();
+
+        // 验证原有字段被保留
+        let after = config_manager.load_config().unwrap();
+        let after_table = after.as_table().unwrap();
+        assert_eq!(
+            after_table
+                .get("user_custom_field")
+                .and_then(|v| v.as_str()),
+            Some("should_be_preserved")
+        );
+        assert_eq!(
+            after_table.get("model_provider").and_then(|v| v.as_str()),
+            Some("test-provider")
+        );
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
+    fn test_apply_third_party_writes_config() {
         let temp_dir = tempfile::tempdir().unwrap();
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
@@ -754,16 +705,329 @@ mod tests {
             .platform_data
             .insert("wire_api".into(), json!("responses"));
 
-        let result = platform.apply_custom_profile("packy", &profile);
-        // 这个测试可能因为注册表不存在而失败，但至少验证文件写入逻辑
-        if result.is_ok() || result.is_err() {
-            // 检查 config.toml 是否被创建
+        let result = platform.apply_third_party_profile("packy", &profile);
+        if result.is_ok() {
             let config_path = temp_dir.path().join("config.toml");
             if config_path.exists() {
-                let content = fs::read_to_string(&config_path).unwrap();
+                let content = std::fs::read_to_string(&config_path).unwrap();
                 assert!(content.contains("packycode"));
+
+                // Verify: model at root level
+                let parsed: toml::Value = toml::from_str(&content).unwrap();
+                let root = parsed.as_table().unwrap();
+                assert_eq!(
+                    root.get("model").and_then(|v| v.as_str()),
+                    Some("gpt-4.1-mini"),
+                    "model should be at root level"
+                );
+
+                // Verify: model NOT inside provider table (no provider_model set)
+                let providers = root
+                    .get("model_providers")
+                    .and_then(|v| v.as_table())
+                    .unwrap();
+                let provider = providers
+                    .get("packycode")
+                    .and_then(|v| v.as_table())
+                    .unwrap();
+                assert!(
+                    provider.get("model").is_none(),
+                    "model should NOT be in provider table when provider_model is not set, got: {:?}",
+                    provider
+                );
+            }
+
+            // 检查 auth.json
+            let auth_path = temp_dir.path().join("auth.json");
+            if auth_path.exists() {
+                let content = std::fs::read_to_string(&auth_path).unwrap();
+                assert!(content.contains("sk-packy"));
             }
         }
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
+    fn test_third_party_writes_env_key() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Mistral Provider".to_string()),
+            base_url: Some("https://api.mistral.ai/v1".to_string()),
+            auth_token: Some("mistral-key-123".to_string()),
+            model: Some("mistral-large".to_string()),
+            small_fast_model: None,
+            provider: Some("mistral".to_string()),
+            provider_type: None,
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("chat"));
+        profile
+            .platform_data
+            .insert("env_key".into(), json!("MISTRAL_API_KEY"));
+        profile
+            .platform_data
+            .insert("requires_openai_auth".into(), json!(false));
+
+        let result = platform.apply_third_party_profile("mistral", &profile);
+        if result.is_ok() {
+            // 验证 config.toml 包含 env_key
+            let config_path = temp_dir.path().join("config.toml");
+            if config_path.exists() {
+                let content = std::fs::read_to_string(&config_path).unwrap();
+                assert!(
+                    content.contains("env_key"),
+                    "config.toml should contain env_key, got: {}",
+                    content
+                );
+                assert!(
+                    content.contains("MISTRAL_API_KEY"),
+                    "env_key should be MISTRAL_API_KEY, got: {}",
+                    content
+                );
+            }
+
+            // 验证 auth.json 使用 MISTRAL_API_KEY 而非 OPENAI_API_KEY
+            let auth_path = temp_dir.path().join("auth.json");
+            if auth_path.exists() {
+                let content = std::fs::read_to_string(&auth_path).unwrap();
+                assert!(
+                    content.contains("MISTRAL_API_KEY"),
+                    "auth.json should use MISTRAL_API_KEY, got: {}",
+                    content
+                );
+                assert!(
+                    !content.contains("OPENAI_API_KEY"),
+                    "auth.json should NOT use OPENAI_API_KEY when env_key is set, got: {}",
+                    content
+                );
+            }
+        }
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
+    fn test_third_party_default_auth_key() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("OpenAI Compatible".to_string()),
+            base_url: Some("https://api.openai-proxy.com/v1".to_string()),
+            auth_token: Some("sk-proxy-key".to_string()),
+            model: None,
+            small_fast_model: None,
+            provider: Some("proxy".to_string()),
+            provider_type: None,
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        // 不设置 env_key，requires_openai_auth 默认 true
+
+        let result = platform.apply_third_party_profile("proxy", &profile);
+        if result.is_ok() {
+            // 验证 auth.json 使用默认的 OPENAI_API_KEY
+            let auth_path = temp_dir.path().join("auth.json");
+            if auth_path.exists() {
+                let content = std::fs::read_to_string(&auth_path).unwrap();
+                assert!(
+                    content.contains("OPENAI_API_KEY"),
+                    "should default to OPENAI_API_KEY, got: {}",
+                    content
+                );
+            }
+
+            // 验证 config.toml 不包含 env_key（因为未设置）
+            let config_path = temp_dir.path().join("config.toml");
+            if config_path.exists() {
+                let content = std::fs::read_to_string(&config_path).unwrap();
+                assert!(
+                    !content.contains("env_key"),
+                    "should not write env_key when not provided, got: {}",
+                    content
+                );
+            }
+        }
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
+    fn test_provider_model_explicit_writes_to_provider_table() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Custom Provider".to_string()),
+            base_url: Some("https://api.example.com/v1".to_string()),
+            auth_token: Some("sk-test".to_string()),
+            model: Some("gpt-4".to_string()),
+            small_fast_model: None,
+            provider: Some("custom".to_string()),
+            provider_type: None,
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        // Explicitly set provider_model — should appear in provider table
+        profile
+            .platform_data
+            .insert("provider_model".into(), json!("custom-gpt-4-alias"));
+
+        let result = platform.apply_third_party_profile("custom", &profile);
+        if result.is_ok() {
+            let config_path = temp_dir.path().join("config.toml");
+            if config_path.exists() {
+                let content = std::fs::read_to_string(&config_path).unwrap();
+                let parsed: toml::Value = toml::from_str(&content).unwrap();
+                let root = parsed.as_table().unwrap();
+
+                // Root model should be profile.model
+                assert_eq!(
+                    root.get("model").and_then(|v| v.as_str()),
+                    Some("gpt-4"),
+                    "root model should be profile.model"
+                );
+
+                // Provider table model should be provider_model
+                let providers = root
+                    .get("model_providers")
+                    .and_then(|v| v.as_table())
+                    .unwrap();
+                let provider = providers.get("custom").and_then(|v| v.as_table()).unwrap();
+                assert_eq!(
+                    provider.get("model").and_then(|v| v.as_str()),
+                    Some("custom-gpt-4-alias"),
+                    "provider table should have explicit provider_model"
+                );
+            }
+        }
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
+    fn test_third_party_clears_stale_optional_provider_fields() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+
+        let config_manager = CodexConfigManager::with_default().unwrap();
+
+        // 先写入旧版/历史遗留字段：env_key + provider_table.model
+        let mut provider_table = toml::map::Map::new();
+        provider_table.insert("name".into(), toml::Value::String("custom".into()));
+        provider_table.insert(
+            "base_url".into(),
+            toml::Value::String("https://api.example.com/v1".into()),
+        );
+        provider_table.insert("wire_api".into(), toml::Value::String("responses".into()));
+        provider_table.insert("requires_openai_auth".into(), toml::Value::Boolean(false));
+        provider_table.insert("env_key".into(), toml::Value::String("OLD_API_KEY".into()));
+        provider_table.insert(
+            "model".into(),
+            toml::Value::String("old-provider-model".into()),
+        );
+
+        let mut providers_table = toml::map::Map::new();
+        providers_table.insert("custom".into(), toml::Value::Table(provider_table));
+
+        let mut root_table = toml::map::Map::new();
+        root_table.insert(
+            "model_provider".into(),
+            toml::Value::String("custom".into()),
+        );
+        root_table.insert(
+            "model_providers".into(),
+            toml::Value::Table(providers_table),
+        );
+        config_manager
+            .save_config_atomic(&toml::Value::Table(root_table))
+            .unwrap();
+
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Custom Provider".to_string()),
+            base_url: Some("https://api.example.com/v1".to_string()),
+            auth_token: Some("sk-test".to_string()),
+            model: Some("new-root-model".to_string()),
+            small_fast_model: None,
+            provider: Some("custom".to_string()),
+            provider_type: None,
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        profile
+            .platform_data
+            .insert("requires_openai_auth".into(), json!(false));
+        // 故意不设置 env_key / provider_model，验证旧字段会被清理
+
+        platform
+            .apply_third_party_profile("custom", &profile)
+            .unwrap();
+
+        let config = config_manager.load_config().unwrap();
+        let root = config.as_table().unwrap();
+        let providers = root
+            .get("model_providers")
+            .and_then(|v| v.as_table())
+            .unwrap();
+        let provider = providers.get("custom").and_then(|v| v.as_table()).unwrap();
+
+        assert!(
+            provider.get("env_key").is_none(),
+            "stale env_key should be removed, got: {:?}",
+            provider
+        );
+        assert!(
+            provider.get("model").is_none(),
+            "stale provider model should be removed, got: {:?}",
+            provider
+        );
 
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");

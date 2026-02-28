@@ -194,6 +194,7 @@ export {
   getVersion,
   checkUpdate,
   updateCCR,
+  getCliVersions,
 
   // MCP Servers
   listMcpServers,
@@ -358,9 +359,6 @@ export {
 
   // Statistics
   getCostOverview,
-  getCostToday,
-  getCostWeek,
-  getCostMonth,
   getCostTrend,
   getCostByModel,
   getCostByProject,

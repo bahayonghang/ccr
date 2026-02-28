@@ -18,9 +18,9 @@ pub type DbConnection = PooledConnection<SqliteConnectionManager>;
 /// 🗄️ 数据库管理器
 ///
 /// 管理 SQLite 数据库连接池和迁移。
-#[allow(dead_code)]
 pub struct Database {
     pool: DbPool,
+    #[allow(dead_code)]
     path: PathBuf,
 }
 
@@ -82,6 +82,7 @@ impl Database {
     }
 
     /// 获取数据库路径
+    #[allow(dead_code)]
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -117,6 +118,11 @@ impl Database {
             &conn,
             "002_create_search_history",
             Self::migration_002_create_search_history,
+        )?;
+        self.run_migration(
+            &conn,
+            "003_create_history",
+            Self::migration_003_create_history,
         )?;
 
         info!("数据库迁移完成");
@@ -208,6 +214,34 @@ impl Database {
         Ok(())
     }
 
+    /// 迁移 003: 创建 history 表
+    fn migration_003_create_history(conn: &Connection) -> Result<()> {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS history (
+                id TEXT PRIMARY KEY,
+                timestamp TEXT NOT NULL,
+                actor TEXT NOT NULL,
+                operation TEXT NOT NULL,
+                result TEXT NOT NULL,
+                result_message TEXT,
+                from_config TEXT,
+                to_config TEXT,
+                backup_path TEXT,
+                extra TEXT,
+                notes TEXT,
+                env_changes TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_history_timestamp ON history(timestamp);
+            CREATE INDEX IF NOT EXISTS idx_history_operation ON history(operation);
+            "#,
+        )
+        .map_err(|e| CcrError::DatabaseError(format!("创建 history 表失败: {}", e)))?;
+
+        Ok(())
+    }
+
     /// 获取数据库统计信息
     pub fn stats(&self) -> Result<DatabaseStats> {
         let conn = self.conn()?;
@@ -242,7 +276,6 @@ impl Database {
     }
 
     /// 清空所有数据（危险操作）
-    #[allow(dead_code)]
     pub fn clear_all(&self) -> Result<()> {
         warn!("清空所有数据库数据");
         let conn = self.conn()?;
@@ -264,9 +297,9 @@ pub struct DatabaseStats {
     pub file_size_bytes: u64,
 }
 
-#[allow(dead_code)]
 impl DatabaseStats {
     /// 格式化文件大小
+    #[allow(dead_code)]
     pub fn file_size_display(&self) -> String {
         let size = self.file_size_bytes;
         if size < 1024 {

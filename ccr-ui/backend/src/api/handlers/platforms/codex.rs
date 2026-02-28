@@ -421,22 +421,16 @@ pub async fn get_codex_config() -> impl IntoResponse {
     )
 }
 
-/// PUT /api/codex/config - 更新 Codex 基础配置
+/// PUT /api/codex/config - 更新 Codex 配置（整体合并写入）
 pub async fn update_codex_base_config(Json(config): Json<CodexConfig>) -> impl IntoResponse {
     crate::with_manager!(
         CodexConfigManager,
         PLATFORM,
         |manager: CodexConfigManager| {
-            match manager.update_base_config(
-                config.model,
-                config.model_provider,
-                config.approval_policy,
-                config.sandbox_mode,
-                config.model_reasoning_effort,
-            ) {
-                Ok(_) => ok_message(format!("{} 基础配置已成功更新", PLATFORM)).into_response(),
+            match manager.update_full_config(config) {
+                Ok(_) => ok_message(format!("{} 配置已成功更新", PLATFORM)).into_response(),
                 Err(e) => {
-                    internal_error(format!("更新 {} 基础配置失败: {}", PLATFORM, e)).into_response()
+                    internal_error(format!("更新 {} 配置失败: {}", PLATFORM, e)).into_response()
                 }
             }
         }

@@ -68,24 +68,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-
-interface DashboardStats {
-  consecutive_days: number
-  total_days: number
-  longest_consecutive: number
-  monthly_rate: number
-  weekly_rate: number
-  total_accounts: number
-  checked_in_today: number
-  not_checked_in_today: number
-}
+import { useCheckinStore } from '@/stores/checkin'
 
 const { t } = useI18n()
+const store = useCheckinStore()
 
-const stats = ref<DashboardStats>({
+const stats = computed(() => store.stats ?? {
   consecutive_days: 0,
   total_days: 0,
   longest_consecutive: 0,
@@ -93,22 +83,12 @@ const stats = ref<DashboardStats>({
   weekly_rate: 0,
   total_accounts: 0,
   checked_in_today: 0,
-  not_checked_in_today: 0
+  not_checked_in_today: 0,
 })
-
-const error = ref<string | null>(null)
-
-const fetchStats = async () => {
-  try {
-    const response = await axios.get('/api/checkin/dashboard/stats')
-    stats.value = response.data
-  } catch (err) {
-    error.value = t('checkin.stats.load_error')
-  }
-}
+const error = computed(() => store.statsError ? t('checkin.stats.load_error') : null)
 
 onMounted(() => {
-  fetchStats()
+  store.fetchStats()
 })
 </script>
 

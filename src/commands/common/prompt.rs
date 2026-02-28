@@ -87,7 +87,7 @@ pub fn prompt_tags() -> Option<Vec<String>> {
 ///
 /// # 返回
 /// 用户是否确认
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub fn confirm(message: &str, default: bool) -> bool {
     ColorOutput::ask_confirmation(message, default)
 }
@@ -99,7 +99,7 @@ pub fn confirm(message: &str, default: bool) -> bool {
 ///
 /// # 返回
 /// 用户是否确认
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub fn confirm_dangerous(message: &str) -> bool {
     println!();
     ColorOutput::warning("⚠️  此操作可能造成数据丢失！");
@@ -121,7 +121,7 @@ pub fn confirm_dangerous(message: &str) -> bool {
 ///
 /// # 返回
 /// 用户是否确认覆盖
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub fn confirm_overwrite(target: &str) -> bool {
     println!();
     ColorOutput::warning(&format!("⚠️  {} 已存在，将被覆盖", target));

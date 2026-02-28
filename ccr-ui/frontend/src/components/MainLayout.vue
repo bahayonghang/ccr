@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen text-text-primary overflow-hidden font-sans selection:bg-accent-primary/30">
     <!-- Background Image Layer -->
-    <BackgroundImage />
+    <BackgroundImage v-if="!route.meta.hideGlobalBackground" />
 
     <!-- Skip Link -->
     <a
@@ -13,6 +13,7 @@
 
     <!-- Sidebar (Glassmorphism + Resize) -->
     <div
+      v-if="!route.meta.hideSidebar"
       class="flex flex-col relative flex-shrink-0 z-40 transition-all duration-300 ease-out will-change-[width] sidebar-glass"
       :class="[isResizing ? 'select-none' : '']"
       :style="{ width: sidebarWidth + 'px' }"
@@ -53,6 +54,30 @@
             <Home class="w-4 h-4" />
             <span>{{ $t('nav.home') }}</span>
           </RouterLink>
+        </div>
+
+        <!-- Section: Skills Hub -->
+        <div>
+          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
+            {{ $t('nav.skillsHub') }}
+            <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
+          </div>
+          <div class="space-y-0.5">
+            <RouterLink
+              to="/skills"
+              class="nav-item group"
+            >
+              <Package class="w-4 h-4 text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors" />
+              <span>{{ $t('nav.skills') }}</span>
+            </RouterLink>
+            <RouterLink
+              to="/skills/add"
+              class="nav-item group"
+            >
+              <PlusCircle class="w-4 h-4 text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors" />
+              <span>{{ $t('nav.addSkill') }}</span>
+            </RouterLink>
+          </div>
         </div>
 
         <!-- Section: Modules -->
@@ -154,7 +179,7 @@
       </nav>
 
       <!-- Footer: User Profile - Neko Kawaii Style -->
-      <div class="p-3 border-t border-pink-200/10 dark:border-pink-300/10">
+      <div class="p-3 pb-6 border-t border-pink-200/10 dark:border-pink-300/10">
         <div class="user-card group relative rounded-2xl overflow-hidden transition-all duration-300">
           <!-- Animated gradient background -->
           <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 via-fuchsia-500/12 to-violet-500/15 opacity-80" />
@@ -167,66 +192,30 @@
           <div class="absolute -inset-1 bg-gradient-to-r from-pink-500/0 via-fuchsia-400/20 to-violet-500/0 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
           <!-- Inner content -->
-          <div class="relative p-3.5 backdrop-blur-sm z-10">
-            <!-- Top Row: Catgirl Avatar & NYA Badge & Toggle -->
-            <div class="flex items-start justify-between mb-3">
-              <!-- Catgirl Avatar with neko glow frame -->
-              <div class="relative">
-                <div class="w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-pink-400/20 via-fuchsia-400/20 to-violet-400/20 shadow-lg shadow-pink-500/40 ring-2 ring-pink-300/30 group-hover:ring-pink-400/50 group-hover:shadow-pink-500/60 transition-all duration-300">
-                  <img
-                    src="/catgirl_avatar.png"
-                    alt="Catgirl"
-                    class="w-full h-full object-cover object-top scale-[1.3] group-hover:scale-[1.4] transition-transform duration-500 drop-shadow-[0_0_8px_rgba(244,114,182,0.5)]"
-                  >
-                </div>
-                <!-- Pulsing status ring -->
-                <div class="absolute -bottom-0.5 -right-0.5">
-                  <div class="w-4 h-4 rounded-full bg-slate-900 flex items-center justify-center ring-2 ring-slate-800">
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,1)] animate-pulse" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- NYA Badge + Theme Toggle -->
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-1 rounded-lg text-[10px] font-bold font-mono tracking-wider bg-gradient-to-br from-pink-400 via-fuchsia-400 to-violet-400 text-white shadow-md shadow-pink-500/30 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]">
-                  NYA
-                </span>
-                <ThemeToggle class="relative z-20 p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-pink-400/30 transition-all duration-200" />
-              </div>
-            </div>
-
-            <!-- User Info -->
-            <div class="space-y-2">
-              <div class="flex items-center gap-2.5">
-                <h3 class="text-sm font-bold text-slate-800 dark:text-white tracking-wide drop-shadow-sm">
-                  {{ $t('nav.user.role') }}
-                </h3>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-pink-500/30 to-fuchsia-500/30 text-pink-300 border border-pink-400/30 shadow-sm shadow-pink-500/20">
-                  Pro
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <p class="text-[11px] font-mono uppercase tracking-wider flex items-center gap-2">
-                  <span class="text-slate-400">Session:</span>
-                  <span class="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                    <span class="relative flex h-2 w-2">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                    </span>
-                    Active
+          <div class="relative p-3.5 backdrop-blur-sm z-10 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <!-- Session Status -->
+              <p class="text-[11px] font-mono uppercase tracking-wider flex items-center gap-2">
+                <span class="text-slate-400">Session:</span>
+                <span class="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                   </span>
-                </p>
-                <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                  CCR UI v4.0.0
+                  Active
                 </span>
-              </div>
+              </p>
+              
+              <!-- Theme Toggle -->
+              <ThemeToggle class="relative z-20 p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200" />
             </div>
 
-            <!-- Decorative corner accents -->
-            <div class="absolute top-2 right-14 w-8 h-[1px] bg-gradient-to-r from-pink-400/50 to-transparent" />
-            <div class="absolute bottom-2 left-2 w-6 h-[1px] bg-gradient-to-r from-transparent to-fuchsia-500/50" />
+            <!-- Version -->
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
+                CCR UI v4.3.0
+              </span>
+            </div>
           </div>
 
           <!-- Bottom accent line -->
@@ -240,13 +229,26 @@
       id="main-content"
       class="flex-1 relative overflow-hidden flex flex-col"
     >
-      <!-- Top Bar (Optional, if needed for breadcrumbs or global search) -->
+      <!-- Top Bar -->
       <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl z-30 sticky top-0 justify-between">
-        <!-- Breadcrumbs Placeholder -->
+        <!-- Left: Breadcrumbs or Back + Title -->
         <div class="flex items-center text-sm text-text-muted">
-          <span class="opacity-50">App</span>
-          <span class="mx-2 opacity-30">/</span>
-          <span class="text-text-primary font-medium">Dashboard</span>
+          <template v-if="route.meta.hideSidebar">
+            <button
+              class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-200"
+              @click="router.back()"
+            >
+              <ArrowLeft class="w-4 h-4" />
+              <span class="text-xs font-medium">返回</span>
+            </button>
+            <span class="mx-2 opacity-30">|</span>
+            <span class="text-text-primary font-semibold">{{ currentPageTitle }}</span>
+          </template>
+          <template v-else>
+            <span class="opacity-50">{{ $t('nav.mainModules') }}</span>
+            <span class="mx-2 opacity-30">/</span>
+            <span class="text-text-primary font-medium">{{ currentPageTitle }}</span>
+          </template>
         </div>
 
         <div class="flex items-center gap-4">
@@ -279,15 +281,25 @@
       </div>
 
       <!-- Scrollable Content with glass effect -->
-      <div class="flex-1 overflow-y-auto scroll-smooth p-6 bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm">
+      <div
+        class="flex-1 overflow-y-auto scroll-smooth p-6"
+        :class="{
+          'bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm': !route.meta.hideGlobalBackground
+        }"
+      >
         <BackendStatusBanner class="mb-6" />
         <RouterView v-slot="{ Component }">
           <transition
-            name="fade-slide"
+            :name="transitionName"
             mode="out-in"
             appear
           >
-            <component :is="Component" />
+            <keep-alive
+              :include="cachedViews"
+              :max="10"
+            >
+              <component :is="Component" />
+            </keep-alive>
           </transition>
         </RouterView>
       </div>
@@ -296,16 +308,55 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Home, Code2, Settings, Sparkles, Zap, Activity,
-  Terminal, Cloud, Bot, ClipboardList, Cat
+  Terminal, Cloud, Bot, ClipboardList, Cat, Package, PlusCircle, ArrowLeft
 } from 'lucide-vue-next'
+import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import BackgroundImage from '@/components/common/BackgroundImage.vue'
 import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
+import { usePageTransition } from '@/composables/usePageTransition'
+
+const route = useRoute()
+const router = useRouter()
+const { t } = useI18n()
+const { transitionName } = usePageTransition()
+
+// keep-alive 缓存列表（仅缓存高频访问页面）
+const cachedViews = [
+  'HomeView', 'ConfigsView', 'CommandsView', 'ClaudeCodeView',
+  'CodexView', 'GeminiCliView', 'QwenView', 'IflowView', 'CheckinView',
+]
+
+// 路由名 → i18n 键映射
+const routeTitleMap: Record<string, string> = {
+  home: 'nav.home',
+  skills: 'nav.skills',
+  'add-skill': 'nav.addSkill',
+  'claude-code': 'nav.claudeCode',
+  codex: 'nav.codex',
+  'gemini-cli': 'nav.gemini',
+  qwen: 'nav.qwen',
+  iflow: 'nav.iflow',
+  droid: 'nav.droid',
+  'ccr-control': 'nav.ccrControl',
+  commands: 'nav.commands',
+  checkin: 'nav.checkin',
+  sync: 'nav.sync',
+  usage: 'nav.usage',
+  'mcp-unified': 'MCP 统一管理',
+}
+
+const currentPageTitle = computed(() => {
+  const name = route.name as string
+  const key = routeTitleMap[name]
+  return key ? t(key) : name || 'Home'
+})
 
 // Sidebar State
 const sidebarWidth = ref(240)
@@ -488,19 +539,4 @@ onUnmounted(() => {
   box-shadow: 0 8px 25px rgb(244 114 182 / 12%);
 }
 
-/* Page Transition */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-5px);
-}
 </style>

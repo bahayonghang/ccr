@@ -98,7 +98,6 @@ impl SyncFolderManager {
     }
 
     /// 📁 获取配置文件路径
-    #[allow(dead_code)]
     pub fn config_path(&self) -> &Path {
         &self.config_path
     }
@@ -270,7 +269,6 @@ impl SyncFolderManager {
     /// - 如果文件夹不存在，返回错误
     /// - 如果新配置无效，返回错误
     /// - 如果保存失败，返回错误
-    #[allow(dead_code)]
     pub fn update_folder(&mut self, name: &str, folder: SyncFolder) -> Result<()> {
         // 验证新配置
         let validation_errors = folder.validate();
@@ -378,7 +376,6 @@ impl SyncFolderManager {
     /// # Errors
     ///
     /// 如果保存失败，返回错误
-    #[allow(dead_code)]
     pub fn update_webdav_config(&mut self, webdav_config: WebDavConfig) -> Result<()> {
         let mut config = self.load_config()?;
         config.webdav = webdav_config;
@@ -427,7 +424,6 @@ impl SyncFolderManager {
     /// # Ok(())
     /// # }
     /// ```
-    #[allow(dead_code)]
     pub fn migrate_from_legacy(&mut self) -> Result<bool> {
         // 1. 检查是否已存在 sync_folders.toml
         if self.config_path.exists() {

@@ -126,8 +126,8 @@ pub fn insert_account(conn: &Connection, account: &CheckinAccount) -> Result<(),
 
     conn.execute(
         "INSERT INTO checkin_accounts (id, provider_id, name, cookies_json_encrypted, api_user,
-         enabled, created_at, updated_at, last_checkin_at, last_balance_check_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+         enabled, created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             account.id,
             account.provider_id,
@@ -139,6 +139,7 @@ pub fn insert_account(conn: &Connection, account: &CheckinAccount) -> Result<(),
             updated_at,
             last_checkin_at,
             last_balance_check_at,
+            account.extra_config,
         ],
     )?;
 
@@ -150,7 +151,7 @@ pub fn insert_account(conn: &Connection, account: &CheckinAccount) -> Result<(),
 pub fn get_all_accounts(conn: &Connection) -> Result<Vec<CheckinAccount>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
-                created_at, updated_at, last_checkin_at, last_balance_check_at
+                created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts
          ORDER BY created_at DESC",
     )?;
@@ -169,7 +170,7 @@ pub fn get_accounts_by_provider(
 ) -> Result<Vec<CheckinAccount>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
-                created_at, updated_at, last_checkin_at, last_balance_check_at
+                created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts
          WHERE provider_id = ?1
          ORDER BY created_at DESC",
@@ -186,7 +187,7 @@ pub fn get_accounts_by_provider(
 pub fn get_enabled_accounts(conn: &Connection) -> Result<Vec<CheckinAccount>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
-                created_at, updated_at, last_checkin_at, last_balance_check_at
+                created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts
          WHERE enabled = 1
          ORDER BY created_at DESC",
@@ -206,7 +207,7 @@ pub fn get_account_by_id(
 ) -> Result<Option<CheckinAccount>, rusqlite::Error> {
     conn.query_row(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
-                created_at, updated_at, last_checkin_at, last_balance_check_at
+                created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts WHERE id = ?1",
         params![id],
         row_to_account,
@@ -226,8 +227,9 @@ pub fn update_account(
     let affected = conn.execute(
         "UPDATE checkin_accounts SET
          provider_id = ?1, name = ?2, cookies_json_encrypted = ?3, api_user = ?4,
-         enabled = ?5, updated_at = ?6, last_checkin_at = ?7, last_balance_check_at = ?8
-         WHERE id = ?9",
+         enabled = ?5, updated_at = ?6, last_checkin_at = ?7, last_balance_check_at = ?8,
+         extra_config = ?9
+         WHERE id = ?10",
         params![
             account.provider_id,
             account.name,
@@ -237,6 +239,7 @@ pub fn update_account(
             updated_at,
             last_checkin_at,
             last_balance_check_at,
+            account.extra_config,
             account.id,
         ],
     )?;
@@ -337,6 +340,273 @@ pub fn get_all_records(
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(records)
+}
+
+/// Get records with SQL-level pagination and optional filters
+/// Returns (records, total_count)
+#[allow(dead_code)]
+pub fn get_records_paginated(
+    conn: &Connection,
+    status: Option<&str>,
+    account_id: Option<&str>,
+    page: usize,
+    page_size: usize,
+) -> Result<(Vec<CheckinRecord>, usize), rusqlite::Error> {
+    // Build dynamic WHERE clause
+    let mut conditions = Vec::new();
+    let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+
+    if let Some(s) = status {
+        conditions.push(format!("status = ?{}", param_values.len() + 1));
+        param_values.push(Box::new(s.to_string()));
+    }
+    if let Some(aid) = account_id {
+        conditions.push(format!("account_id = ?{}", param_values.len() + 1));
+        param_values.push(Box::new(aid.to_string()));
+    }
+
+    let where_clause = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", conditions.join(" AND "))
+    };
+
+    // Count total
+    let count_sql = format!("SELECT COUNT(*) FROM checkin_records {}", where_clause);
+    let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        param_values.iter().map(|p| p.as_ref()).collect();
+    let total: i64 = conn.query_row(&count_sql, params_ref.as_slice(), |row| row.get(0))?;
+    let total = total as usize;
+
+    // Fetch page
+    let offset = (page.saturating_sub(1)) * page_size;
+    let select_sql = format!(
+        "SELECT id, account_id, status, message, reward, balance_before, balance_after, checked_in_at
+         FROM checkin_records {}
+         ORDER BY checked_in_at DESC
+         LIMIT ?{} OFFSET ?{}",
+        where_clause,
+        param_values.len() + 1,
+        param_values.len() + 2,
+    );
+
+    let mut all_params: Vec<Box<dyn rusqlite::types::ToSql>> = param_values;
+    all_params.push(Box::new(page_size as i64));
+    all_params.push(Box::new(offset as i64));
+    let all_params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        all_params.iter().map(|p| p.as_ref()).collect();
+
+    let mut stmt = conn.prepare(&select_sql)?;
+    let records = stmt
+        .query_map(all_params_ref.as_slice(), row_to_record)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok((records, total))
+}
+
+/// Get records with SQL-level pagination and advanced optional filters.
+/// Supports provider_id and keyword search without falling back to in-memory filtering.
+/// Returns (records, total_count).
+pub fn get_records_paginated_advanced(
+    conn: &Connection,
+    status: Option<&str>,
+    account_id: Option<&str>,
+    provider_id: Option<&str>,
+    keyword: Option<&str>,
+    page: usize,
+    page_size: usize,
+) -> Result<(Vec<CheckinRecord>, usize), rusqlite::Error> {
+    let mut conditions = Vec::new();
+    let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+
+    if let Some(s) = status {
+        conditions.push(format!("r.status = ?{}", param_values.len() + 1));
+        param_values.push(Box::new(s.to_string()));
+    }
+    if let Some(aid) = account_id {
+        conditions.push(format!("r.account_id = ?{}", param_values.len() + 1));
+        param_values.push(Box::new(aid.to_string()));
+    }
+    if let Some(pid) = provider_id {
+        conditions.push(format!("a.provider_id = ?{}", param_values.len() + 1));
+        param_values.push(Box::new(pid.to_string()));
+    }
+    if let Some(raw_keyword) = keyword.map(str::trim).filter(|v| !v.is_empty()) {
+        let keyword_pattern = format!("%{}%", raw_keyword.to_lowercase());
+        let p1 = param_values.len() + 1;
+        let p2 = p1 + 1;
+        let p3 = p2 + 1;
+        let p4 = p3 + 1;
+        conditions.push(format!(
+            "(LOWER(r.account_id) LIKE ?{p1} OR LOWER(COALESCE(r.message, '')) LIKE ?{p2} OR LOWER(a.name) LIKE ?{p3} OR LOWER(COALESCE(p.name, '')) LIKE ?{p4})"
+        ));
+        param_values.push(Box::new(keyword_pattern.clone()));
+        param_values.push(Box::new(keyword_pattern.clone()));
+        param_values.push(Box::new(keyword_pattern.clone()));
+        param_values.push(Box::new(keyword_pattern));
+    }
+
+    let from_clause = "FROM checkin_records r
+         LEFT JOIN checkin_accounts a ON a.id = r.account_id
+         LEFT JOIN checkin_providers p ON p.id = a.provider_id";
+    let where_clause = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", conditions.join(" AND "))
+    };
+
+    let count_sql = format!("SELECT COUNT(*) {} {}", from_clause, where_clause);
+    let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        param_values.iter().map(|p| p.as_ref()).collect();
+    let total: i64 = conn.query_row(&count_sql, params_ref.as_slice(), |row| row.get(0))?;
+    let total = total as usize;
+
+    let offset = (page.saturating_sub(1)) * page_size;
+    let select_sql = format!(
+        "SELECT r.id, r.account_id, r.status, r.message, r.reward, r.balance_before, r.balance_after, r.checked_in_at
+         {} {}
+         ORDER BY r.checked_in_at DESC
+         LIMIT ?{} OFFSET ?{}",
+        from_clause,
+        where_clause,
+        param_values.len() + 1,
+        param_values.len() + 2,
+    );
+
+    let mut all_params: Vec<Box<dyn rusqlite::types::ToSql>> = param_values;
+    all_params.push(Box::new(page_size as i64));
+    all_params.push(Box::new(offset as i64));
+    let all_params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        all_params.iter().map(|p| p.as_ref()).collect();
+
+    let mut stmt = conn.prepare(&select_sql)?;
+    let records = stmt
+        .query_map(all_params_ref.as_slice(), row_to_record)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok((records, total))
+}
+
+/// Get all records with advanced optional filters (no pagination).
+pub fn get_records_filtered_advanced(
+    conn: &Connection,
+    status: Option<&str>,
+    account_id: Option<&str>,
+    provider_id: Option<&str>,
+    keyword: Option<&str>,
+) -> Result<Vec<CheckinRecord>, rusqlite::Error> {
+    let mut conditions = Vec::new();
+    let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+
+    if let Some(s) = status {
+        conditions.push(format!("r.status = ?{}", param_values.len() + 1));
+        param_values.push(Box::new(s.to_string()));
+    }
+    if let Some(aid) = account_id {
+        conditions.push(format!("r.account_id = ?{}", param_values.len() + 1));
+        param_values.push(Box::new(aid.to_string()));
+    }
+    if let Some(pid) = provider_id {
+        conditions.push(format!("a.provider_id = ?{}", param_values.len() + 1));
+        param_values.push(Box::new(pid.to_string()));
+    }
+    if let Some(raw_keyword) = keyword.map(str::trim).filter(|v| !v.is_empty()) {
+        let keyword_pattern = format!("%{}%", raw_keyword.to_lowercase());
+        let p1 = param_values.len() + 1;
+        let p2 = p1 + 1;
+        let p3 = p2 + 1;
+        let p4 = p3 + 1;
+        conditions.push(format!(
+            "(LOWER(r.account_id) LIKE ?{p1} OR LOWER(COALESCE(r.message, '')) LIKE ?{p2} OR LOWER(a.name) LIKE ?{p3} OR LOWER(COALESCE(p.name, '')) LIKE ?{p4})"
+        ));
+        param_values.push(Box::new(keyword_pattern.clone()));
+        param_values.push(Box::new(keyword_pattern.clone()));
+        param_values.push(Box::new(keyword_pattern.clone()));
+        param_values.push(Box::new(keyword_pattern));
+    }
+
+    let from_clause = "FROM checkin_records r
+         LEFT JOIN checkin_accounts a ON a.id = r.account_id
+         LEFT JOIN checkin_providers p ON p.id = a.provider_id";
+    let where_clause = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", conditions.join(" AND "))
+    };
+    let sql = format!(
+        "SELECT r.id, r.account_id, r.status, r.message, r.reward, r.balance_before, r.balance_after, r.checked_in_at
+         {} {}
+         ORDER BY r.checked_in_at DESC",
+        from_clause, where_clause
+    );
+
+    let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        param_values.iter().map(|p| p.as_ref()).collect();
+    let mut stmt = conn.prepare(&sql)?;
+    let records = stmt
+        .query_map(params_ref.as_slice(), row_to_record)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(records)
+}
+
+/// Aggregate today's status for a set of accounts in a single query.
+/// Returns (checked_in_count, failed_count).
+pub fn get_today_status_counts(
+    conn: &Connection,
+    account_ids: &[String],
+) -> Result<(usize, usize), rusqlite::Error> {
+    if account_ids.is_empty() {
+        return Ok((0, 0));
+    }
+
+    let today_start = Utc::now()
+        .date_naive()
+        .and_hms_opt(0, 0, 0)
+        .expect("Invalid time: 00:00:00");
+    let today_start_str = today_start.and_utc().to_rfc3339();
+
+    let placeholders = (0..account_ids.len())
+        .map(|idx| format!("?{}", idx + 2))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    let sql = format!(
+        "SELECT r.account_id,
+                MAX(CASE
+                      WHEN r.status IN ('success', 'already_checked_in') THEN 2
+                      WHEN r.status = 'failed' THEN 1
+                      ELSE 0
+                    END) AS state
+         FROM checkin_records r
+         WHERE r.checked_in_at >= ?1
+           AND r.account_id IN ({})
+         GROUP BY r.account_id",
+        placeholders
+    );
+
+    let mut params: Vec<Box<dyn rusqlite::types::ToSql>> =
+        Vec::with_capacity(account_ids.len() + 1);
+    params.push(Box::new(today_start_str));
+    for account_id in account_ids {
+        params.push(Box::new(account_id.clone()));
+    }
+    let params_ref: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt.query_map(params_ref.as_slice(), |row| row.get::<_, i64>(1))?;
+
+    let mut checked_in = 0usize;
+    let mut failed = 0usize;
+    for state in rows {
+        match state? {
+            2 => checked_in += 1,
+            1 => failed += 1,
+            _ => {}
+        }
+    }
+
+    Ok((checked_in, failed))
 }
 
 /// Get today's records for an account
@@ -625,6 +895,9 @@ fn row_to_account(row: &rusqlite::Row) -> Result<CheckinAccount, rusqlite::Error
     let updated_at_str: Option<String> = row.get(7)?;
     let last_checkin_at_str: Option<String> = row.get(8)?;
     let last_balance_check_at_str: Option<String> = row.get(9)?;
+    let extra_config: String = row
+        .get::<_, Option<String>>(10)?
+        .unwrap_or_else(|| "{}".to_string());
 
     let created_at = DateTime::parse_from_rfc3339(&created_at_str)
         .map(|dt| dt.with_timezone(&Utc))
@@ -659,6 +932,7 @@ fn row_to_account(row: &rusqlite::Row) -> Result<CheckinAccount, rusqlite::Error
         updated_at,
         last_checkin_at,
         last_balance_check_at,
+        extra_config,
     })
 }
 

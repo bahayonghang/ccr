@@ -189,18 +189,6 @@ Get cost overview (supports range parameter)
 }
 ```
 
-### GET /api/stats/cost/today
-
-Get today's cost (shortcut)
-
-### GET /api/stats/cost/week
-
-Get this week's cost (shortcut)
-
-### GET /api/stats/cost/month
-
-Get this month's cost (shortcut)
-
 ### GET /api/stats/cost/trend
 
 Get cost trend (supports range parameter)

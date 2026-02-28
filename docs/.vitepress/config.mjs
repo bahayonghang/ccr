@@ -17,7 +17,7 @@ const sharedConfig = {
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   ...sharedConfig,
-  
+
   title: "CCR",
   description: "Claude Code Configuration Switcher",
 
@@ -31,7 +31,7 @@ export default defineConfig({
       lang: 'zh-CN',
       themeConfig: {
         logo: '/logo.svg',
-        
+
         nav: [
           { text: '首页', link: '/' },
           { text: '快速开始', link: '/guide/quick-start' },
@@ -84,6 +84,7 @@ export default defineConfig({
                     { text: 'list - 列出配置', link: '/reference/commands/list' },
                     { text: 'current - 当前配置', link: '/reference/commands/current' },
                     { text: 'switch - 切换配置', link: '/reference/commands/switch' },
+                    { text: 'run - 临时运行', link: '/reference/commands/run' },
                     { text: 'validate - 验证配置', link: '/reference/commands/validate' },
                     { text: 'enable - 启用配置', link: '/reference/commands/enable' },
                     { text: 'disable - 禁用配置', link: '/reference/commands/disable' },
@@ -236,7 +237,7 @@ export default defineConfig({
       link: '/en/',
       themeConfig: {
         logo: '/logo.svg',
-        
+
         nav: [
           { text: 'Home', link: '/en/' },
           { text: 'Quick Start', link: '/en/guide/quick-start' },
@@ -289,6 +290,7 @@ export default defineConfig({
                     { text: 'list - List Profiles', link: '/en/reference/commands/list' },
                     { text: 'current - Current Profile', link: '/en/reference/commands/current' },
                     { text: 'switch - Switch Profile', link: '/en/reference/commands/switch' },
+                    { text: 'run - Temp Run Profile', link: '/en/reference/commands/run' },
                     { text: 'validate - Validate', link: '/en/reference/commands/validate' },
                     { text: 'enable - Enable Profile', link: '/en/reference/commands/enable' },
                     { text: 'disable - Disable Profile', link: '/en/reference/commands/disable' },

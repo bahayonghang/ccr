@@ -2,10 +2,12 @@
 
 ## Overview
 
-CCR 支持管理 Codex CLI 配置与多 profile 切换，并同时兼容两种常见工作模式：
+CCR 支持管理 Codex CLI 配置与多 Profile 切换，采用 **两路分发模式** 处理不同类型的 Provider：
 
-1. **OpenAI 兼容 Provider（推荐）**：写入 `~/.codex/config.toml` 与 `~/.codex/auth.json`
-2. **GitHub Copilot 兼容模式（可选）**：写入 `~/.codex/settings.json`
+1. **官方模式（Official）**：完全重置 `~/.codex/config.toml` 与 `~/.codex/auth.json` 到默认状态
+2. **第三方模式（ThirdParty）**：读取-修改-写入，保留所有非 Provider 相关字段
+
+所有配置写入均使用 **原子操作**（临时文件 + 重命名），并通过 **文件锁** 保证并发安全。
 
 ## Platform Information
 
@@ -20,21 +22,24 @@ CCR 支持管理 Codex CLI 配置与多 profile 切换，并同时兼容两种�
 ## Prerequisites
 
 - Codex CLI 已安装（并使用 `~/.codex/` 配置目录）
-- 你所使用 Provider 的 API Token（如 OpenAI 兼容 key、GitHub Token 等）
+- 你所使用 Provider 的 API Token（如 OpenAI 兼容 key）
+
+## Profile 分类机制
+
+CCR 通过 `provider_type` 字段判断 Profile 类型：
+
+| `provider_type` | 分类 | 切换行为 |
+|-----------------|------|----------|
+| `official_relay` | 官方模式 | 完全重置配置到默认状态 |
+| 其他 / 未设置 | 第三方模式 | 保留现有配置，仅更新 Provider 相关字段 |
+
+**回退逻辑**：若未设置 `provider_type`，则根据 `base_url` 判断 —— 无 `base_url` 或为空视为官方模式。
 
 ## Token Format
 
-### OpenAI 兼容 Provider（推荐）
+### OpenAI 兼容 Provider
 
 通常使用 OpenAI 兼容的 API key（示例：`sk-...`），最终会被写入 `~/.codex/auth.json`。
-
-### GitHub Copilot 兼容模式（可选）
-
-CCR 会校验 GitHub Token 前缀：
-
-- `ghp_`（PAT）
-- `gho_`（OAuth）
-- `github_pat_`（fine-grained PAT）
 
 ## Quick Start
 
@@ -60,7 +65,7 @@ ccr add
 
 ### Configuration Example
 
-Create a profile in `~/.ccr/platforms/codex/profiles.toml`:
+在 `~/.ccr/platforms/codex/profiles.toml` 中创建 Profile：
 
 ```toml
 default_config = "duckcoding"
@@ -69,13 +74,20 @@ current_config = "duckcoding"
 [settings]
 skip_confirmation = false
 
+# 官方模式 - 切换时完全重置配置
+[official]
+description = "Codex 官方默认配置"
+provider = "openai"
+provider_type = "official_relay"
+
+# 第三方模式 - 切换时保留非 Provider 字段
 [duckcoding]
 description = "DuckCoding (OpenAI 兼容)"
 base_url = "https://jp.duckcoding.com/v1"
 auth_token = "sk-...your-token"
 model = "gpt-5.1-codex"
 provider = "duckcoding"
-api_mode = "custom"
+provider_type = "third_party_model"
 wire_api = "responses"
 env_key = "DUCKCODING_API_KEY"
 requires_openai_auth = true
@@ -84,15 +96,33 @@ sandbox_mode = "workspace-write"
 model_reasoning_effort = "high"
 network_access = "enabled"
 disable_response_storage = true
-
-[github]
-description = "GitHub Copilot (legacy)"
-base_url = "https://api.github.com/copilot"
-auth_token = "ghp_...your-github-token"
-model = "gpt-4"
-provider = "github"
-api_mode = "github"
 ```
+
+## 两路分发详解
+
+### 官方模式（Official）
+
+当切换到 `provider_type = "official_relay"` 的 Profile 时：
+
+1. **自动备份** 当前 `config.toml` 和 `auth.json`
+2. **完全重置** `config.toml` 为空 TOML
+3. **完全重置** `auth.json` 为空 JSON
+4. 更新 `profiles.toml` 的 `current_config`
+
+适用场景：恢复 Codex CLI 默认行为，使用 OpenAI 官方服务。
+
+### 第三方模式（ThirdParty）
+
+当切换到非官方 Profile 时：
+
+1. **读取** 现有 `config.toml`（保留所有字段）
+2. **更新** Provider 相关字段：`model`、`model_provider`、`[model_providers.{id}]`
+3. **可选设置** 运行参数：`approval_policy`、`sandbox_mode` 等
+4. **原子写入** `config.toml`
+5. **更新** `auth.json` 中的 API key
+6. 更新 `profiles.toml` 的 `current_config`
+
+适用场景：使用第三方 OpenAI 兼容 Provider，同时保留已有的非 Provider 配置。
 
 ## Profile Management
 
@@ -110,10 +140,10 @@ ccr list
 
 ```bash
 # Switch to specific Codex profile
-ccr switch github-official
+ccr switch duckcoding
 
 # Or use shorthand
-ccr github-official
+ccr duckcoding
 ```
 
 ### Update Profile
@@ -130,15 +160,15 @@ ccr validate
 
 ```bash
 # Interactive deletion with confirmation
-ccr delete github-enterprise
+ccr delete old-profile
 
 # Force deletion (skip confirmation)
-ccr delete github-enterprise --force
+ccr delete old-profile --force
 ```
 
 ## Codex CLI Config / Auth
 
-当激活 **OpenAI 兼容 Provider** profile 时，CCR 会写入：
+当激活 **第三方模式** Profile 时，CCR 会写入：
 
 - `~/.codex/config.toml`（Provider 与运行参数）
 - `~/.codex/auth.json`（API key 存放）
@@ -171,17 +201,34 @@ env_key = "DUCKCODING_API_KEY"
 }
 ```
 
+## 原子写入与并发安全
+
+CCR 使用 `CodexConfigManager` 管理 Codex 配置，提供：
+
+| 特性 | 说明 |
+|------|------|
+| **原子写入** | 通过临时文件 + 重命名，避免写入中断导致配置损坏 |
+| **文件锁** | 跨进程锁防止并发写入冲突（资源名：`codex_config`） |
+| **自动备份** | 切换官方模式前自动备份，保留最近 10 个备份 |
+| **配置缓存** | 30 秒 TTL 缓存，减少重复读取（`CachedCodexConfigManager`） |
+
+备份文件存储在 `~/.codex/backups/`，格式为：
+```
+config.pre_official.20260225_120000.toml.bak
+auth.pre_official.20260225_120000.json.bak
+```
+
 ## Common Use Cases
 
 ### Development Workflow
 
 ```bash
-# Morning: Start with GitHub official
+# Morning: Start with official config
 ccr platform switch codex
-ccr switch github-official
+ccr switch official
 
-# Afternoon: Test with enterprise token
-ccr switch github-enterprise
+# Afternoon: Test with custom provider
+ccr switch duckcoding
 
 # View operation history
 ccr history
@@ -189,7 +236,7 @@ ccr history
 
 ### Multi-Account Management
 
-CCR 为 Codex CLI 提供强大的多账号管理功能，让您可以轻松在不同的 GitHub 账号之间切换。
+CCR 为 Codex CLI 提供强大的多账号管理功能，让您可以轻松在不同的账号之间切换。
 
 #### 保存和管理账号
 
@@ -198,7 +245,7 @@ CCR 为 Codex CLI 提供强大的多账号管理功能，让您可以轻松在�
 ccr codex auth save work
 
 # 保存时添加描述
-ccr codex auth save personal -d "个人 GitHub 账号"
+ccr codex auth save personal -d "个人账号"
 
 # 保存时设置过期时间
 ccr codex auth save temp --expires-at 2026-02-01T00:00:00Z
@@ -272,41 +319,42 @@ ccr codex
 
 ```bash
 # Use temporary token override (doesn't modify profiles.toml)
-ccr temp-token set ghp_test_free_token_xxxxxxxxxxxx \
-  --base-url https://api.github.com/copilot
+ccr temp-token set sk-test-free-token-xxxxxxxxxxxx \
+  --base-url https://api.example.com/v1
 
 # Verify temporary config
 ccr temp-token show
 
 # Apply and auto-clear
-ccr switch github-official
+ccr switch duckcoding
 
 # Next switch uses permanent config
-ccr switch github-official
+ccr switch duckcoding
 ```
 
 ## Platform-Specific Features
 
 ### Token Validation
 
-CCR validates Codex tokens automatically:
+CCR 自动验证 Codex Profile：
 
 ```bash
 # Validate all Codex profiles
 ccr validate
 
 # Output includes:
-# ✅ Valid GitHub token format (ghp_...)
-# ❌ Invalid token format
-# ⚠️ Token format correct but not verified active
+# ✅ 官方模式 Profile 无需验证
+# ✅ 第三方模式 Profile：检查 base_url、auth_token、wire_api
+# ❌ 旧版 api_mode=github Profile 返回弃用错误
 ```
 
 ### Backup and Restore
 
 ```bash
-# Automatic backup before profile switch
-ccr switch new-profile
-# → Creates ~/.ccr/backups/codex/settings_20250125_120000.json.bak
+# Automatic backup before official profile switch
+ccr switch official
+# → Creates ~/.codex/backups/config.pre_official.{timestamp}.toml.bak
+# → Creates ~/.codex/backups/auth.pre_official.{timestamp}.json.bak
 
 # Manual backup
 ccr backup codex
@@ -333,26 +381,23 @@ ccr history -t switch
 
 ## Migration Guide
 
-### From Legacy CCS Configuration
+### From Legacy GitHub Mode
 
-If you were using CCS (shell version) for GitHub Copilot:
+> **Note**: GitHub Copilot 兼容模式（`api_mode: "github"`）已在 v4.2.6 中弃用并移除。
+> 如果你有旧的 GitHub 模式 Profile，切换时会收到明确的弃用错误提示。
+
+迁移步骤：
+
+1. 删除旧的 GitHub 模式 Profile
+2. 根据实际需求创建新的官方模式或第三方模式 Profile
 
 ```bash
-# Old CCS config (before CCR multi-platform)
-# ~/.ccs_config.toml
-[github-copilot]
-description = "GitHub Copilot"
-base_url = "https://api.github.com/copilot"
-auth_token = "ghp_xxx"
-model = "gpt-4"
+# 删除旧的 GitHub 模式 Profile
+ccr delete github-old
 
-# Migrate to CCR Codex platform
-ccr platform init codex
-ccr platform migrate claude codex  # Migrate compatible profiles
-
-# Or manually recreate profiles
-ccr platform switch codex
-ccr add  # Follow interactive prompts
+# 创建新的第三方模式 Profile
+ccr add
+# 按提示输入新的配置信息
 ```
 
 ### From Other Platforms
@@ -367,17 +412,17 @@ ccr platform migrate claude codex
 
 ## Troubleshooting
 
-### Issue: Token Invalid
+### Issue: Legacy GitHub Profile Error
 
 **Symptoms:**
 ```
-❌ Invalid GitHub token format
+❌ GitHub Copilot 兼容模式已弃用，请使用第三方模式替代
 ```
 
 **Solution:**
-1. Verify token starts with `ghp_` and is 40 characters
-2. Regenerate token on GitHub if necessary
-3. Update profile with new token
+1. 删除旧的 `api_mode = "github"` Profile
+2. 按照第三方模式重新创建 Profile
+3. 参见上方"Migration Guide"章节
 
 ### Issue: Codex CLI Not Found
 
@@ -387,14 +432,14 @@ ccr platform migrate claude codex
 ```
 
 **Solution:**
-CCR manages configuration files only. If you need the actual Codex CLI:
-1. Install Codex CLI separately
-2. CCR will still manage your profiles and settings
+CCR 仅管理配置文件。如需 Codex CLI 本体：
+1. 单独安装 Codex CLI
+2. CCR 会继续管理你的 Profile 和配置
 
 ### Issue: Settings Not Updating
 
 **Symptoms:**
-Profile switch command succeeds but `~/.codex/config.toml` unchanged
+Profile 切换成功但 `~/.codex/config.toml` 未变更
 
 **Solution:**
 ```bash
@@ -405,10 +450,10 @@ ls -la ~/.codex/config.toml
 chmod 600 ~/.codex/config.toml
 
 # Verify lock files
-ls -la ~/.claude/.locks/
+ls -la ~/.ccr/.locks/
 
 # Clean stale locks if present
-rm -rf ~/.claude/.locks/*
+rm -rf ~/.ccr/.locks/*
 ```
 
 ### Issue: Profile Conflicts
@@ -435,29 +480,40 @@ ccr add  # Enter unique name
 ### Custom API Endpoints
 
 ```toml
-[github-proxy]
-description = "GitHub via Proxy"
-base_url = "https://github-proxy.example.com/api/copilot"
-auth_token = "ghp_xxx"
+[custom-provider]
+description = "Custom OpenAI-compatible Provider"
+base_url = "https://api.custom-provider.example.com/v1"
+auth_token = "sk-xxx"
 model = "gpt-4"
+provider = "custom"
+provider_type = "third_party_model"
+wire_api = "responses"
+env_key = "CUSTOM_API_KEY"
+requires_openai_auth = true
 ```
 
 ### Model Selection
 
 ```toml
-# Use GPT-4 for main tasks
+# Use high-end model for main tasks
 [premium]
 description = "Premium with GPT-4"
-auth_token = "ghp_xxx"
+base_url = "https://api.example.com/v1"
+auth_token = "sk-xxx"
 model = "gpt-4"
 small_fast_model = "gpt-3.5-turbo"
+provider = "premium"
+provider_type = "third_party_model"
 
-# Use GPT-3.5 for speed
+# Use fast model for speed
 [fast]
 description = "Fast with GPT-3.5"
-auth_token = "ghp_xxx"
+base_url = "https://api.example.com/v1"
+auth_token = "sk-xxx"
 model = "gpt-3.5-turbo"
 small_fast_model = "gpt-3.5-turbo"
+provider = "fast"
+provider_type = "third_party_model"
 ```
 
 ### WebDAV Sync
@@ -477,21 +533,22 @@ ccr sync pull
 
 ## Security Best Practices
 
-1. **Token Storage**: Tokens are stored in plaintext in `~/.ccr/platforms/codex/profiles.toml`
+1. **Token Storage**: Tokens 以明文存储在 `~/.ccr/platforms/codex/profiles.toml`
    ```bash
    # Ensure proper file permissions
    chmod 600 ~/.ccr/platforms/codex/profiles.toml
    ```
 
-2. **Token Masking**: CCR automatically masks tokens in:
-   - Console output
-   - History logs
-   - Error messages
+2. **Token Masking**: CCR 会在以下场景自动掩码 Token：
+   - 控制台输出
+   - 历史日志
+   - 错误消息
 
-3. **Backup Security**: Backups also contain tokens
+3. **Backup Security**: 备份文件同样包含 Token
    ```bash
    # Secure backup directory
    chmod 700 ~/.ccr/backups/codex
+   chmod 700 ~/.codex/backups
    ```
 
 4. **Export Without Secrets**:
@@ -500,7 +557,7 @@ ccr sync pull
    ccr export -o codex-profiles.toml --no-secrets
    ```
 
-5. **Token Rotation**: Regularly rotate GitHub tokens
+5. **Token Rotation**: 定期更换 API Token
    ```bash
    # Update profile with new token
    vim ~/.ccr/platforms/codex/profiles.toml
@@ -545,4 +602,3 @@ ccr restore <file>          # Restore from backup
 - [Migration Guide](./migration.md) - Migrating between platforms
 - [Gemini Platform Guide](./gemini.md) - Gemini CLI configuration
 - [Main README](../../README.md) - CCR overview
-- [GitHub Copilot Docs](https://docs.github.com/en/copilot) - Official GitHub Copilot documentation

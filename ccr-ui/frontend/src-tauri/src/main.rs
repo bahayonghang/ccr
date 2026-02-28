@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tauri::{Manager, RunEvent, State, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-use tauri_plugin_shell::{ShellExt, process::CommandChild};
+use tauri_plugin_shell::{process::CommandChild, ShellExt};
 
 // 🎯 导入 CCR 核心库
 use ccr::{ConfigManager, ConfigService, HistoryService};
@@ -32,6 +32,7 @@ struct AppState {
     backend_ready: Mutex<bool>,
     settings: Mutex<AppSettings>,
     exit_confirmed: AtomicBool,
+    backend_shutdown_requested: AtomicBool,
 }
 
 const BACKEND_HOST: &str = "127.0.0.1";
@@ -52,7 +53,7 @@ fn backend_port() -> u16 {
 async fn wait_for_backend_ready(port: u16) -> bool {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpStream;
-    use tokio::time::{Duration, sleep};
+    use tokio::time::{sleep, Duration};
 
     let deadline = std::time::Instant::now() + Duration::from_secs(BACKEND_STARTUP_TIMEOUT_SECS);
     while std::time::Instant::now() < deadline {
@@ -254,6 +255,27 @@ fn try_spawn_backend_from_repo(app: &tauri::AppHandle, port: u16) -> Result<Comm
     });
 
     Ok(child)
+}
+
+fn terminate_backend_process(app: &tauri::AppHandle, reason: &str) {
+    let child = {
+        let app_state = app.state::<AppState>();
+        let mut guard = app_state.backend_child.lock().unwrap();
+        guard.take()
+    };
+
+    if let Some(child) = child {
+        tracing::info!("[backend] terminating backend process ({reason})...");
+        match child.kill() {
+            Ok(()) => tracing::info!("[backend] backend process terminated successfully"),
+            Err(e) => tracing::error!("[backend] failed to terminate backend: {}", e),
+        }
+    } else {
+        tracing::warn!("[backend] no backend process to terminate ({reason})");
+    }
+
+    let app_state = app.state::<AppState>();
+    *app_state.backend_ready.lock().unwrap() = false;
 }
 
 /// 配置项响应
@@ -479,8 +501,79 @@ async fn sync_pull(force: Option<bool>) -> Result<String, String> {
 /// 获取同步状态
 #[tauri::command]
 async fn sync_status() -> Result<String, String> {
-    // TODO: 实现同步状态查询
-    Ok("Sync status not yet implemented in Tauri".to_string())
+    use ccr::sync::{SyncConfigManager, SyncService};
+
+    let result = tokio::task::spawn_blocking(move || {
+        let manager = SyncConfigManager::with_default()
+            .map_err(|e| format!("Failed to create SyncConfigManager: {}", e))?;
+
+        let config = manager
+            .load()
+            .map_err(|e| format!("Failed to load sync config: {}", e))?;
+
+        if !config.enabled {
+            return Ok("Sync is disabled".to_string());
+        }
+
+        // Return a formatted status string
+        let mut status = String::new();
+        status.push_str(&format!("Server: {}\n", config.webdav_url));
+        status.push_str(&format!("User: {}\n", config.username));
+        status.push_str(&format!("Remote Path: {}\n", config.remote_path));
+        status.push_str(&format!(
+            "Auto Sync: {}\n",
+            if config.auto_sync {
+                "Enabled"
+            } else {
+                "Disabled"
+            }
+        ));
+
+        // We can't easily do async check in this blocking task if we want to be quick,
+        // but SyncService::new is async.
+        // So we need to use a runtime handle or return config info and let frontend check connectivity?
+        // Or better, do the check in the async block outside spawn_blocking if possible.
+        // But SyncConfigManager is blocking (rusqlite/fs).
+
+        Ok::<String, String>(status)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))??;
+
+    // Check connectivity in async context
+    if result != "Sync is disabled" {
+        // We need config again for service. Ideally pass config out.
+        // Let's re-load config in async block for connectivity check? No, minimal overhead.
+        // Actually best is to implement this properly.
+
+        let check_result = async {
+            let manager = SyncConfigManager::with_default()
+                .map_err(|e| format!("Failed to create SyncConfigManager: {}", e))?;
+            let config = manager
+                .load()
+                .map_err(|e| format!("Failed to load sync config: {}", e))?;
+
+            let service = SyncService::new(&config)
+                .await
+                .map_err(|e| format!("Failed to create SyncService: {}", e))?;
+
+            let exists = service
+                .remote_exists()
+                .await
+                .map_err(|e| format!("Check remote failed: {}", e))?;
+
+            Ok::<String, String>(if exists {
+                format!("{}\nRemote Status: Connected (Content Exists)", result)
+            } else {
+                format!("{}\nRemote Status: Connected (Content Missing)", result)
+            })
+        }
+        .await;
+
+        return check_result;
+    }
+
+    Ok(result)
 }
 
 // ============================================================================
@@ -490,11 +583,12 @@ async fn sync_status() -> Result<String, String> {
 /// 列出所有平台
 #[tauri::command]
 async fn list_platforms() -> Result<Vec<String>, String> {
-    // TODO: 实现平台列表
     Ok(vec![
         "claude".to_string(),
         "codex".to_string(),
         "gemini".to_string(),
+        "qwen".to_string(),
+        "iflow".to_string(),
     ])
 }
 
@@ -553,6 +647,7 @@ fn main() {
             backend_ready: Mutex::new(false),
             settings: Mutex::new(AppSettings::default()),
             exit_confirmed: AtomicBool::new(false),
+            backend_shutdown_requested: AtomicBool::new(false),
         })
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -610,6 +705,40 @@ fn main() {
 
                 match child {
                     Ok(child) => {
+                        // 1. 存储前检查 — 若已请求关闭，立即 kill 并返回
+                        {
+                            let state = app_handle.state::<AppState>();
+                            if state.backend_shutdown_requested.load(Ordering::SeqCst) {
+                                tracing::info!(
+                                    "[backend] shutdown requested before storing child, killing"
+                                );
+                                let _ = child.kill();
+                                return;
+                            }
+                        }
+
+                        // 2. 存储 child handle
+                        {
+                            let state = app_handle.state::<AppState>();
+                            *state.backend_child.lock().unwrap() = Some(child);
+                        }
+
+                        // 3. 存储后再次检查 — 处理 check-store 之间的极端窗口
+                        {
+                            let state = app_handle.state::<AppState>();
+                            if state.backend_shutdown_requested.load(Ordering::SeqCst) {
+                                tracing::info!(
+                                    "[backend] shutdown requested after storing child, terminating"
+                                );
+                                terminate_backend_process(
+                                    &app_handle,
+                                    "shutdown_requested_after_store",
+                                );
+                                return;
+                            }
+                        }
+
+                        // 4. 等待 backend 就绪
                         if wait_for_backend_ready(port).await {
                             tracing::info!("[backend] ready at http://{}:{}", BACKEND_HOST, port);
                             let state = app_handle.state::<AppState>();
@@ -617,9 +746,6 @@ fn main() {
                         } else {
                             tracing::warn!("[backend] readiness check timed out");
                         }
-
-                        let state = app_handle.state::<AppState>();
-                        *state.backend_child.lock().unwrap() = Some(child);
                     }
                     Err(err) => {
                         tracing::error!("[backend] failed to start: {}", err);
@@ -652,23 +778,22 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
-    app.run(|app, event| {
-        if let RunEvent::Exit = event {
-            tracing::info!("[app] Application exiting, cleaning up...");
-            let child = {
-                let app_state = app.state::<AppState>();
-                let mut guard = app_state.backend_child.lock().unwrap();
-                guard.take()
-            };
-            if let Some(child) = child {
-                tracing::info!("[backend] Terminating backend process...");
-                match child.kill() {
-                    Ok(()) => tracing::info!("[backend] Backend process terminated successfully"),
-                    Err(e) => tracing::error!("[backend] Failed to terminate backend: {}", e),
-                }
-            } else {
-                tracing::warn!("[backend] No backend process to terminate");
-            }
+    app.run(|app, event| match event {
+        RunEvent::ExitRequested { .. } => {
+            let app_state = app.state::<AppState>();
+            app_state
+                .backend_shutdown_requested
+                .store(true, Ordering::SeqCst);
+            terminate_backend_process(app, "exit_requested");
         }
+        RunEvent::Exit => {
+            tracing::info!("[app] application exiting, cleaning up...");
+            let app_state = app.state::<AppState>();
+            app_state
+                .backend_shutdown_requested
+                .store(true, Ordering::SeqCst);
+            terminate_backend_process(app, "exit");
+        }
+        _ => {}
     });
 }

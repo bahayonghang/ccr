@@ -1,9 +1,10 @@
 // Database schema definitions for unified SQLite storage
-// Schema version: 1
+// Schema version: 2
 // See: openspec/changes/add-unified-sqlite-storage/proposal.md
 
 /// Current schema version for migration tracking
-pub const SCHEMA_VERSION: i32 = 1;
+#[allow(dead_code)]
+pub const SCHEMA_VERSION: i32 = 4;
 
 /// Database file path relative to user home directory
 pub const DB_RELATIVE_PATH: &str = ".ccr-ui/ccr-ui.db";
@@ -74,7 +75,8 @@ CREATE TABLE IF NOT EXISTS checkin_accounts (
     created_at TEXT NOT NULL,
     updated_at TEXT,
     last_checkin_at TEXT,
-    last_balance_check_at TEXT
+    last_balance_check_at TEXT,
+    extra_config TEXT NOT NULL DEFAULT '{}'  -- JSON: CDK credentials, OAuth tokens, etc.
 );
 
 CREATE INDEX IF NOT EXISTS idx_checkin_accounts_provider_id
@@ -180,7 +182,12 @@ CREATE TABLE IF NOT EXISTS usage_records (
     project_path TEXT NOT NULL,
     record_json TEXT NOT NULL,
     recorded_at TEXT NOT NULL,
-    source_id TEXT NOT NULL
+    source_id TEXT NOT NULL,
+    model TEXT,
+    input_tokens INTEGER DEFAULT 0,
+    output_tokens INTEGER DEFAULT 0,
+    cache_read_tokens INTEGER DEFAULT 0,
+    cost_usd REAL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_usage_records_platform_recorded_at
@@ -188,6 +195,30 @@ CREATE INDEX IF NOT EXISTS idx_usage_records_platform_recorded_at
 
 CREATE INDEX IF NOT EXISTS idx_usage_records_source_id
     ON usage_records (source_id);
+
+CREATE INDEX IF NOT EXISTS idx_usage_records_platform_model_recorded_at_id
+    ON usage_records (platform, model, recorded_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_usage_records_platform_recorded_at_id
+    ON usage_records (platform, recorded_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_usage_records_platform_project
+    ON usage_records (platform, project_path, recorded_at DESC);
+
+-- ═══════════════════════════════════════════════════════════
+-- Usage Daily Aggregation Table (pre-computed)
+-- ═══════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS usage_daily_agg (
+    date TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    request_count INTEGER DEFAULT 0,
+    input_tokens INTEGER DEFAULT 0,
+    output_tokens INTEGER DEFAULT 0,
+    cache_read_tokens INTEGER DEFAULT 0,
+    cost_usd REAL DEFAULT 0,
+    PRIMARY KEY (date, platform)
+);
 
 -- ═══════════════════════════════════════════════════════════
 -- Migration Tracking Table

@@ -198,17 +198,7 @@ CCR 使用 Anthropic 官方定价计算成本：
 }
 ```
 
-### GET /api/stats/cost/today
-
-获取今日成本（快捷方式）
-
-### GET /api/stats/cost/week
-
-获取本周成本（快捷方式）
-
-### GET /api/stats/cost/month
-
-获取本月成本（快捷方式）
+> **注意**: 之前的快捷端点 `/api/stats/cost/today`、`/week`、`/month` 已被移除。请使用 `GET /api/stats/cost?range=today|week|month` 替代。
 
 ### GET /api/stats/cost/trend
 

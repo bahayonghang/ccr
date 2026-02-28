@@ -206,10 +206,10 @@ fn prompt_provider_type() -> Option<ProviderType> {
     println!("    2) 第三方模型");
     println!("    留空跳过");
     print!("  请选择 [1/2]: ");
-    io::stdout().flush().expect("无法刷新标准输出");
+    let _ = io::stdout().flush();
 
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("无法读取用户输入");
+    let _ = io::stdin().read_line(&mut input);
     let input = input.trim();
 
     match input {

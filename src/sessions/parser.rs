@@ -15,7 +15,6 @@ use tracing::{debug, trace, warn};
 /// 🔍 Session 解析器
 pub struct SessionParser;
 
-#[allow(dead_code)]
 impl SessionParser {
     /// 解析 session 文件
     ///
@@ -439,6 +438,7 @@ impl SessionParser {
     }
 
     /// 批量解析多个文件
+    #[allow(dead_code)]
     pub fn parse_files(paths: &[PathBuf], platform: Platform) -> (Vec<Session>, IndexStats) {
         let start = std::time::Instant::now();
 

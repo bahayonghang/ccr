@@ -164,7 +164,113 @@ impl CodexConfigManager {
 
     // ============ 基础配置管理 ============
 
-    /// 更新基础配置
+    /// 整体更新配置（读取现有 → 合并非 None 字段 → 写入）
+    /// mcp_servers 和 profiles 不在此方法中覆盖（它们有独立管理接口）
+    pub fn update_full_config(&self, new_config: CodexConfig) -> Result<(), String> {
+        let mut config = self.read_config()?;
+
+        // 模型与推理
+        if new_config.model.is_some() {
+            config.model = new_config.model;
+        }
+        if new_config.model_provider.is_some() {
+            config.model_provider = new_config.model_provider;
+        }
+        if new_config.model_reasoning_effort.is_some() {
+            config.model_reasoning_effort = new_config.model_reasoning_effort;
+        }
+        if new_config.model_reasoning_summary.is_some() {
+            config.model_reasoning_summary = new_config.model_reasoning_summary;
+        }
+        if new_config.model_verbosity.is_some() {
+            config.model_verbosity = new_config.model_verbosity;
+        }
+        if new_config.model_context_window.is_some() {
+            config.model_context_window = new_config.model_context_window;
+        }
+        if new_config.model_auto_compact_token_limit.is_some() {
+            config.model_auto_compact_token_limit = new_config.model_auto_compact_token_limit;
+        }
+        if new_config.personality.is_some() {
+            config.personality = new_config.personality;
+        }
+
+        // 安全与权限
+        if new_config.approval_policy.is_some() {
+            config.approval_policy = new_config.approval_policy;
+        }
+        if new_config.sandbox_mode.is_some() {
+            config.sandbox_mode = new_config.sandbox_mode;
+        }
+        if new_config.disable_response_storage.is_some() {
+            config.disable_response_storage = new_config.disable_response_storage;
+        }
+        if new_config.sandbox_workspace_write.is_some() {
+            config.sandbox_workspace_write = new_config.sandbox_workspace_write;
+        }
+        if new_config.shell_environment_policy.is_some() {
+            config.shell_environment_policy = new_config.shell_environment_policy;
+        }
+
+        // 工具与搜索
+        if new_config.web_search.is_some() {
+            config.web_search = new_config.web_search;
+        }
+        if new_config.file_opener.is_some() {
+            config.file_opener = new_config.file_opener;
+        }
+        if new_config.developer_instructions.is_some() {
+            config.developer_instructions = new_config.developer_instructions;
+        }
+        if new_config.instructions.is_some() {
+            config.instructions = new_config.instructions;
+        }
+        if new_config.tools.is_some() {
+            config.tools = new_config.tools;
+        }
+
+        // TUI 与界面
+        if new_config.tui.is_some() {
+            config.tui = new_config.tui;
+        }
+        if new_config.hide_agent_reasoning.is_some() {
+            config.hide_agent_reasoning = new_config.hide_agent_reasoning;
+        }
+        if new_config.show_raw_agent_reasoning.is_some() {
+            config.show_raw_agent_reasoning = new_config.show_raw_agent_reasoning;
+        }
+        if new_config.check_for_update_on_startup.is_some() {
+            config.check_for_update_on_startup = new_config.check_for_update_on_startup;
+        }
+        if new_config.suppress_unstable_features_warning.is_some() {
+            config.suppress_unstable_features_warning =
+                new_config.suppress_unstable_features_warning;
+        }
+
+        // 功能开关
+        if new_config.experimental_use_rmcp_client.is_some() {
+            config.experimental_use_rmcp_client = new_config.experimental_use_rmcp_client;
+        }
+        if new_config.history.is_some() {
+            config.history = new_config.history;
+        }
+        if new_config.analytics.is_some() {
+            config.analytics = new_config.analytics;
+        }
+        if new_config.feedback.is_some() {
+            config.feedback = new_config.feedback;
+        }
+        if new_config.features.is_some() {
+            config.features = new_config.features;
+        }
+
+        self.write_config(&config)?;
+        info!("已更新 Codex 完整配置");
+        Ok(())
+    }
+
+    /// 更新基础配置（向后兼容）
+    #[allow(dead_code)]
     pub fn update_base_config(
         &self,
         model: Option<String>,

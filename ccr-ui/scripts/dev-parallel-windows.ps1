@@ -236,6 +236,25 @@ for ($i = 0; $i -lt $maxWait; $i++) {
 
 Write-Host ""
 
+# ========== Vite Dep Pre-bundling（noDiscovery 模式下快速完成）==========
+# 在 Vite 服务器启动前预打包 npm 依赖，填充 .vite/deps 缓存
+# 服务器启动时直接命中缓存，跳过优化阶段
+Write-Host "[Frontend] Pre-bundling Vite dependencies..." -ForegroundColor Yellow
+Push-Location "$RootDir/frontend"
+try {
+    $prebundleResult = & cmd /c "bun run prebundle" 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[Frontend] Pre-bundling complete" -ForegroundColor Green
+    } else {
+        Write-Host "[WARN] Vite pre-bundling had warnings (non-fatal), continuing..." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "[WARN] Vite pre-bundling skipped: $_" -ForegroundColor Yellow
+} finally {
+    Pop-Location
+}
+Write-Host ""
+
 # ========== Start Frontend (Foreground) ==========
 Write-Host "[Frontend] Starting server (foreground, live logs visible)..." -ForegroundColor Yellow
 Write-Host "           Log file: $frontendLogPath" -ForegroundColor Gray

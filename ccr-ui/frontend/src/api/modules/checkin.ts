@@ -31,6 +31,9 @@ import type {
     TestConnectionResponse,
     BuiltinProvidersResponse,
     AddBuiltinProviderRequest,
+    CdkTopupResult,
+    OAuthStateRequest,
+    OAuthStateResponse,
 } from '@/types/checkin'
 
 // ═══════════════════════════════════════════════════════════
@@ -252,5 +255,27 @@ export const importCheckinConfig = async (request: CheckinImportRequest): Promis
 /** 测试账号连接 */
 export const testCheckinConnection = async (id: string): Promise<TestConnectionResponse> => {
     const response = await api.post<TestConnectionResponse>(`/checkin/accounts/${id}/test`)
+    return response.data
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🎰 CDK 充值 (CDK Topup)
+// ═══════════════════════════════════════════════════════════
+
+/** 手动触发 CDK 充值 */
+export const executeCdkTopup = async (accountId: string): Promise<CdkTopupResult> => {
+    const response = await api.post<CdkTopupResult>(`/checkin/accounts/${accountId}/topup`)
+    return response.data
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🔑 OAuth 引导登录 (OAuth Guided Login)
+// ═══════════════════════════════════════════════════════════
+
+/** 获取 OAuth 授权 URL */
+export const getOAuthAuthorizeUrl = async (
+    request: OAuthStateRequest
+): Promise<OAuthStateResponse> => {
+    const response = await api.post<OAuthStateResponse>('/checkin/oauth/authorize-url', request)
     return response.data
 }

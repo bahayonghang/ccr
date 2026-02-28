@@ -98,7 +98,7 @@ pub async fn init_command(force: bool) -> Result<()> {
         claude_paths
             .history_file
             .parent()
-            .expect("无法获取历史文件父目录")
+            .ok_or_else(|| CcrError::FileIoError("无法获取历史文件父目录".into()))?
             .display()
     ));
     ColorOutput::success(&format!(

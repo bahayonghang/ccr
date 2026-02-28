@@ -16,7 +16,6 @@
 use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 
 use crate::core::error::{ApiError, ApiResult};
-use crate::core::executor; // TODO: 逐步移除（export/import 还在使用）
 use crate::models::api::*;
 
 // 🎯 导入 CCR 核心库
@@ -38,8 +37,8 @@ fn mask_token(token: &str) -> String {
 pub async fn list_configs() -> ApiResult<Json<ConfigListResponse>> {
     // 在 spawn_blocking 中运行同步代码
     let result = tokio::task::spawn_blocking(move || {
-        // 使用 CCR 核心库的 ConfigManager
-        let manager = ccr::ConfigManager::with_default()
+        // 使用 CCR 核心库的 ConfigManager（固定 claude 平台）
+        let manager = ccr::ConfigManager::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
         let config = manager
@@ -96,7 +95,8 @@ pub async fn list_configs() -> ApiResult<Json<ConfigListResponse>> {
 pub async fn switch_config(Json(req): Json<SwitchRequest>) -> ApiResult<Json<&'static str>> {
     let config_name = req.config_name.clone();
 
-    match ccr::commands::switch_command(&config_name).await {
+    // Switch command signature: switch_command_for_platform(name: &str, platform: &str)
+    match ccr::commands::switch_command_for_platform(&config_name, "claude").await {
         Ok(_) => Ok(Json("Configuration switched successfully")),
         Err(e) => Err(ApiError::bad_request(e.to_string())),
     }
@@ -107,8 +107,8 @@ pub async fn switch_config(Json(req): Json<SwitchRequest>) -> ApiResult<Json<&'s
 pub async fn validate_configs() -> ApiResult<Json<&'static str>> {
     // 在 spawn_blocking 中运行同步代码（避免阻塞异步执行器）
     let result = tokio::task::spawn_blocking(move || {
-        // 创建 ConfigService 实例（使用默认配置管理器）
-        let service = ConfigService::with_default()
+        // 创建 ConfigService 实例（固定 claude 平台）
+        let service = ConfigService::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
         // 调用验证方法
@@ -165,71 +165,64 @@ pub async fn clean_backups(Json(req): Json<CleanRequest>) -> impl IntoResponse {
 
 /// POST /api/configs/export - Export configurations
 pub async fn export_config(Json(req): Json<ExportRequest>) -> impl IntoResponse {
-    let mut args = vec!["export".to_string()];
+    let result = tokio::task::spawn_blocking(move || {
+        let service = ConfigService::for_platform("claude")
+            .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
-    if !req.include_secrets {
-        args.push("--no-secrets".to_string());
-    }
+        let content = service
+            .export_config(req.include_secrets)
+            .map_err(|e| format!("Failed to export config: {}", e))?;
 
-    let result = executor::execute_command(args).await;
+        Ok::<String, String>(content)
+    })
+    .await;
 
     match result {
-        Ok(output) if output.success => {
-            // Read the exported file (CCR writes to a file)
-            // For simplicity, we'll return the stdout
+        Ok(Ok(content)) => {
             let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
             let response = ExportResponse {
-                content: output.stdout,
+                content,
                 filename: format!("ccs_config_export_{}.toml", timestamp),
             };
             ApiResponse::success(response)
         }
-        Ok(output) => ApiResponse::<ExportResponse>::error(output.stderr),
+        Ok(Err(e)) => ApiResponse::<ExportResponse>::error(e),
         Err(e) => ApiResponse::<ExportResponse>::error(e.to_string()),
     }
 }
 
 /// POST /api/configs/import - Import configurations
 pub async fn import_config(Json(req): Json<ImportRequest>) -> impl IntoResponse {
-    // Write the content to a temporary file
-    let temp_file = match tempfile::NamedTempFile::new() {
-        Ok(f) => f,
-        Err(e) => {
-            return ApiResponse::<ImportResponse>::error(format!(
-                "Failed to create temp file: {}",
-                e
-            ));
-        }
-    };
+    use ccr::services::config_service::ImportMode;
 
-    if let Err(e) = std::fs::write(temp_file.path(), &req.content) {
-        return ApiResponse::<ImportResponse>::error(format!("Failed to write temp file: {}", e));
-    }
+    let result = tokio::task::spawn_blocking(move || {
+        let mode = match req.mode.to_lowercase().as_str() {
+            "merge" => ImportMode::Merge,
+            "replace" => ImportMode::Replace,
+            _ => return Err(format!("Invalid import mode: {}", req.mode)),
+        };
 
-    let mut args = vec![
-        "import".to_string(),
-        temp_file.path().to_string_lossy().to_string(),
-        "--mode".to_string(),
-        req.mode.clone(),
-    ];
+        let service = ConfigService::for_platform("claude")
+            .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
-    if !req.backup {
-        args.push("--no-backup".to_string());
-    }
+        let result = service
+            .import_config(&req.content, mode, req.backup)
+            .map_err(|e| format!("Import failed: {}", e))?;
 
-    let result = executor::execute_command(args).await;
+        Ok::<_, String>(result)
+    })
+    .await;
 
     match result {
-        Ok(output) if output.success => {
-            // Parse output for import statistics (simplified)
+        Ok(Ok(result)) => {
             let response = ImportResponse {
-                added: 0,
-                updated: 0,
-                skipped: 0,
+                added: result.added,
+                updated: result.updated,
+                skipped: result.skipped,
             };
             ApiResponse::success(response)
         }
-        Ok(output) => ApiResponse::<ImportResponse>::error(output.stderr),
+        Ok(Err(e)) => ApiResponse::<ImportResponse>::error(e),
         Err(e) => ApiResponse::<ImportResponse>::error(e.to_string()),
     }
 }
@@ -283,8 +276,8 @@ pub async fn get_history() -> ApiResult<Json<HistoryResponse>> {
 /// GET /api/configs/:name - Get a specific configuration
 pub async fn get_config(Path(name): Path<String>) -> ApiResult<Json<ConfigItem>> {
     let result = tokio::task::spawn_blocking(move || {
-        // 使用 CCR 核心库的 ConfigManager
-        let manager = ccr::ConfigManager::with_default()
+        // 使用 CCR 核心库的 ConfigManager（固定 claude 平台）
+        let manager = ccr::ConfigManager::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
         let config = manager
@@ -340,8 +333,8 @@ pub async fn add_config(Json(req): Json<UpdateConfigRequest>) -> impl IntoRespon
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
 
-        // 加载配置
-        let manager = ccr::ConfigManager::with_default()
+        // 加载配置（固定 claude 平台）
+        let manager = ccr::ConfigManager::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
         let mut config = manager
@@ -412,8 +405,8 @@ pub async fn update_config(
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
 
-        // 加载配置
-        let manager = ccr::ConfigManager::with_default()
+        // 加载配置（固定 claude 平台，与 list/get 保持一致）
+        let manager = ccr::ConfigManager::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
         let mut config = manager
@@ -431,21 +424,21 @@ pub async fn update_config(
         let old_enabled = old_section.enabled;
         let old_other = old_section.other.clone();
 
-        // 更新配置节
+        // 更新配置节（保留请求中的所有字段）
         let section = ConfigSection {
             description: req.description,
             base_url: Some(req.base_url),
             auth_token: Some(req.auth_token),
             model: req.model,
-            small_fast_model: None,
-            provider: None,
+            small_fast_model: req.small_fast_model,
+            provider: req.provider,
             provider_type: req.provider_type.as_ref().and_then(|s| match s.as_str() {
                 "official_relay" => Some(ProviderType::OfficialRelay),
                 "third_party_model" => Some(ProviderType::ThirdPartyModel),
                 _ => None,
             }),
-            account: None,
-            tags: None,
+            account: req.account,
+            tags: req.tags,
             usage_count: old_usage_count,
             enabled: old_enabled,
             other: old_other,
@@ -486,8 +479,8 @@ pub async fn delete_config(Path(name): Path<String>) -> impl IntoResponse {
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
 
-        // 加载配置
-        let manager = ccr::ConfigManager::with_default()
+        // 加载配置（固定 claude 平台，与 list/get 保持一致）
+        let manager = ccr::ConfigManager::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
 
         let mut config = manager
@@ -531,8 +524,8 @@ pub async fn delete_config(Path(name): Path<String>) -> impl IntoResponse {
 pub async fn enable_config(Path(name): Path<String>) -> impl IntoResponse {
     let name_clone = name.clone(); // Clone for use in response message
     let result = tokio::task::spawn_blocking(move || {
-        // 使用 ConfigService 启用配置
-        let service = ConfigService::with_default()
+        // 使用 ConfigService 启用配置（固定 claude 平台）
+        let service = ConfigService::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
         service
@@ -561,8 +554,8 @@ pub async fn enable_config(Path(name): Path<String>) -> impl IntoResponse {
 pub async fn disable_config(Path(name): Path<String>) -> impl IntoResponse {
     let name_clone = name.clone(); // Clone for use in response message
     let result = tokio::task::spawn_blocking(move || {
-        // 使用 ConfigService 禁用配置
-        let service = ConfigService::with_default()
+        // 使用 ConfigService 禁用配置（固定 claude 平台）
+        let service = ConfigService::for_platform("claude")
             .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
 
         service

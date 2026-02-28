@@ -201,3 +201,168 @@ const props = defineProps<Props>()
 - **LoadingOverlay.vue**: 全局加载遮罩
 - **ToastContainer.vue**: 全局消息通知容器
 - **ConfirmModal.vue**: 危险操作确认对话框
+
+## 🛠️ 技能管理组件 (v4.0+)
+
+技能管理模块采用页面组件 + 业务组件 + Composable 架构，支持懒加载优化。
+
+> 📖 **功能指南**：[技能管理详细指南](/guide/skills)
+
+### 页面组件
+
+#### UnifiedSkillsView (技能管理主页)
+
+**文件**: `src/views/skills/UnifiedSkillsView.vue`
+
+技能管理的核心页面，采用两栏布局。
+
+**功能**:
+- 左侧筛选面板（平台、来源、分类、标签过滤）
+- 右侧主内容区（统计卡片 + 三标签页切换）
+- 已安装 / 市场 / 仓库三个标签页
+- 移动端适配（侧滑抽屉式筛选）
+
+**依赖 Composable**: `useUnifiedSkills`
+
+```vue
+<UnifiedSkillsView />
+<!-- 路由: /skills -->
+```
+
+#### AddSkillView (添加技能页面)
+
+**文件**: `src/views/skills/AddSkillView.vue`
+
+提供市场浏览和手动多源安装两大区域。
+
+**功能**:
+- 市场热门浏览（搜索、排序、分页、批量选择）
+- 手动安装（GitHub URL / 本地文件夹 / npx 三种来源标签页切换）
+- 目标平台选择器（自动检测、快捷选择）
+- 安装进度 Toast 反馈
+
+```vue
+<AddSkillView />
+<!-- 路由: /skills/add -->
+```
+
+### 业务组件
+
+#### SkillsFilterPanel (筛选面板)
+
+**文件**: `src/components/skills/SkillsFilterPanel.vue`
+
+桌面端左侧固定筛选面板，支持折叠。
+
+**Props**:
+
+| Prop | 类型 | 说明 |
+|------|------|------|
+| `modelValue` | `SkillFilters` | 筛选条件（v-model） |
+| `platforms` | `PlatformSummary[]` | 平台列表 |
+| `categories` | `string[]` | 可用分类 |
+| `tags` | `string[]` | 可用标签 |
+| `collapsed` | `boolean` | 是否折叠 |
+
+#### SkillsStatsCards (统计卡片)
+
+**文件**: `src/components/skills/SkillsStatsCards.vue`
+
+展示已安装数量、市场可用数和活跃平台信息。
+
+**Props**:
+
+| Prop | 类型 | 说明 |
+|------|------|------|
+| `stats` | `SkillsStats` | 统计数据 |
+| `platforms` | `PlatformSummary[]` | 平台列表 |
+| `cached` | `boolean` | 市场数据是否缓存 |
+| `activePlatform` | `Platform \| 'all'` | 当前选中平台 |
+
+#### SkillsInstalledTab (已安装标签页)
+
+**文件**: `src/components/skills/SkillsInstalledTab.vue`
+
+已安装技能的列表视图，支持查看、编辑、删除操作。
+
+**Events**: `edit`, `delete`, `click`
+
+#### SkillsMarketplaceTab (市场标签页)
+
+**文件**: `src/components/skills/SkillsMarketplaceTab.vue` _(懒加载)_
+
+市场浏览、搜索和批量安装功能。
+
+**Events**: `install`, `search`, `batch-install`
+
+#### MarketplaceSkillCard (市场技能卡片)
+
+**文件**: `src/components/skills/MarketplaceSkillCard.vue`
+
+单个市场技能展示卡片，显示所有者、描述、星标、安装按钮。
+
+**Props**:
+
+| Prop | 类型 | 说明 |
+|------|------|------|
+| `item` | `MarketplaceItem` | 市场技能数据 |
+| `isInstalled` | `boolean` | 是否已安装 |
+| `isInstalling` | `boolean` | 是否安装中 |
+| `batchMode` | `boolean` | 批量模式 |
+| `isSelected` | `boolean` | 批量模式下是否选中 |
+
+#### MarketplacePagination (市场分页)
+
+**文件**: `src/components/skills/MarketplacePagination.vue`
+
+市场列表分页组件。
+
+### 模态框组件（均为懒加载）
+
+| 组件 | 文件 | 说明 |
+|------|------|------|
+| `SkillInstallModal` | `SkillInstallModal.vue` | 安装确认模态框，选择目标平台 |
+| `SkillDetailModal` | `SkillDetailModal.vue` | 技能详情查看和编辑模态框 |
+| `SkillDeleteConfirmModal` | `SkillDeleteConfirmModal.vue` | 删除确认对话框 |
+| `SkillOperationLogModal` | `SkillOperationLogModal.vue` | 操作日志查看模态框 |
+
+### 反馈组件
+
+#### SkillInstallToast (安装进度提示)
+
+**文件**: `src/components/skills/SkillInstallToast.vue`
+
+浮动 Toast 组件，实时显示安装进度和状态。
+
+**Props**:
+
+| Prop | 类型 | 说明 |
+|------|------|------|
+| `progress` | `InstallProgress \| null` | 安装进度状态 |
+
+**进度阶段**: `idle` → `downloading` → `installing` → `done` / `error`
+
+### Composable
+
+#### useUnifiedSkills
+
+**文件**: `src/composables/useUnifiedSkills.ts`
+
+统一技能管理的核心状态和方法。
+
+**提供的状态**:
+- `platforms` — 平台列表
+- `skills` / `filteredSkills` — 已安装技能（含筛选）
+- `marketplaceItems` — 市场技能列表
+- `filters` / `activeTab` — 筛选和标签页状态
+- `stats` — 统计数据
+- `installProgress` — 安装进度
+- `npxStatus` — npx 可用性状态
+
+**提供的方法**:
+- `initialize()` / `refresh()` — 初始化和刷新
+- `installSkill()` / `removeSkill()` — 安装/卸载
+- `importFromGithub()` / `importFromLocal()` / `importViaNpx()` — 多源导入
+- `batchInstall()` — 批量安装
+- `fetchMarketplaceTrending()` / `searchMarketplace()` — 市场操作
+- `checkNpxStatus()` / `browseFolder()` — 工具方法

@@ -93,6 +93,7 @@ pub struct PlatformRegistry {
     platforms: Vec<Platform>,
 }
 
+#[allow(dead_code)]
 impl PlatformRegistry {
     /// 创建新的平台注册表
     pub fn new() -> Self {
@@ -108,13 +109,11 @@ impl PlatformRegistry {
     }
 
     /// 获取已实现的平台
-    #[allow(dead_code)]
     pub fn implemented_platforms(&self) -> Vec<Platform> {
         Platform::implemented()
     }
 
     /// 检查平台是否已实现
-    #[allow(dead_code)]
     pub fn is_implemented(&self, platform: Platform) -> bool {
         platform.is_implemented()
     }
@@ -152,6 +151,7 @@ impl Default for PlatformRegistry {
 
 /// 📊 平台状态枚举
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum PlatformStatus {
     /// ✅ 已实现且可用
     Implemented,
@@ -161,10 +161,10 @@ pub enum PlatformStatus {
     #[allow(dead_code)]
     Configured,
     /// 📭 可用但未配置
-    #[allow(dead_code)]
     Available,
 }
 
+#[allow(dead_code)]
 impl PlatformStatus {
     /// 获取状态的显示文本
     #[allow(dead_code)]
@@ -178,7 +178,6 @@ impl PlatformStatus {
     }
 
     /// 获取状态的英文文本
-    #[allow(dead_code)]
     pub fn english_text(&self) -> &str {
         match self {
             PlatformStatus::Implemented => "Implemented",
@@ -191,6 +190,7 @@ impl PlatformStatus {
 
 /// 📋 平台信息结构
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PlatformInfo {
     /// 平台类型
     #[allow(dead_code)]
@@ -200,13 +200,10 @@ pub struct PlatformInfo {
     /// 短名称（文件系统用）
     pub short_name: String,
     /// 图标
-    #[allow(dead_code)]
     pub icon: String,
     /// 是否已实现
-    #[allow(dead_code)]
     pub is_implemented: bool,
     /// 平台状态
-    #[allow(dead_code)]
     pub status: PlatformStatus,
 }
 
@@ -218,6 +215,7 @@ pub struct PlatformDetector {
     registry: PlatformRegistry,
 }
 
+#[allow(dead_code)]
 impl PlatformDetector {
     /// 创建新的平台检测器
     #[allow(dead_code)]
@@ -230,7 +228,6 @@ impl PlatformDetector {
     /// 检测所有已配置的平台
     ///
     /// 通过检查配置文件是否存在来判断平台是否已配置
-    #[allow(dead_code)]
     pub fn detect_configured_platforms(&self) -> Result<Vec<Platform>> {
         use crate::models::PlatformPaths;
 
@@ -250,7 +247,6 @@ impl PlatformDetector {
     /// 检测当前平台
     ///
     /// 读取 ~/.ccr/config.toml 中的 current_platform 字段
-    #[allow(dead_code)]
     pub fn detect_current_platform(&self) -> Result<Option<Platform>> {
         use crate::models::PlatformPaths;
         use std::fs;
@@ -280,7 +276,6 @@ impl PlatformDetector {
     }
 
     /// 获取平台注册表
-    #[allow(dead_code)]
     pub fn registry(&self) -> &PlatformRegistry {
         &self.registry
     }

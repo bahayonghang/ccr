@@ -76,6 +76,7 @@ impl PricingConfig {
     }
 
     /// 设置默认定价
+    #[allow(dead_code)]
     pub fn set_default_pricing(&mut self, pricing: ModelPricing) {
         self.default_pricing = Some(pricing);
         self.last_updated = Utc::now();

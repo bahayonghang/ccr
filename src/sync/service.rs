@@ -18,13 +18,11 @@ use tokio::fs;
 /// ☁️ WebDAV 同步服务
 ///
 /// 封装 reqwest_dav 客户端，提供配置文件的云端同步功能
-#[allow(dead_code)]
 pub struct SyncService {
     client: Client,
     remote_path: String,
 }
 
-#[allow(dead_code)]
 impl SyncService {
     /// 🏗️ 从配置创建同步服务
     ///
@@ -481,7 +479,6 @@ impl SyncService {
 /// 优先级：
 /// 1. CCR_ROOT 环境变量
 /// 2. ~/.ccr/
-#[allow(dead_code)]
 pub fn get_ccr_sync_path() -> Result<PathBuf> {
     // 1. 检查 CCR_ROOT 环境变量
     if let Ok(ccr_root) = std::env::var("CCR_ROOT") {
@@ -526,7 +523,6 @@ fn extract_filename(href: &str) -> String {
 /// - CCR 内部目录 (.locks)
 /// - 备份目录 (backups, history 中的 .bak 文件)
 /// - 隐藏文件 (以 . 开头)
-#[allow(dead_code)]
 fn should_exclude_from_sync(name: &str) -> bool {
     // 📝 排除规则列表
     let exclude_patterns = [

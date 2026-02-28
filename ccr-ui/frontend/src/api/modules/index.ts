@@ -11,10 +11,7 @@ export { api, isTauriEnvironment, resolveApiBaseUrl, getBackendHealth } from '..
 export {
     // 成本统计
     getCostOverview,
-    getCostToday,
-    getCostWeek,
-    getCostMonth,
-    getCostTrend,
+getCostTrend,
     getCostByModel,
     getCostByProject,
     getProviderUsage,
@@ -31,7 +28,6 @@ export {
     removePricing,
     resetPricing,
     // 使用分析
-    getUsageRecords,
     getDailyStats,
     // 类型
     type HeatmapData,
@@ -63,6 +59,7 @@ export {
     getVersion,
     checkUpdate,
     updateCCR,
+    getCliVersions,
 } from './config'
 
 // MCP - MCP 服务器管理、预设、同步、内置提示词
@@ -354,3 +351,38 @@ export {
     deleteDroidPlugin,
     type DroidPlugin,
 } from './droid'
+
+// OpenCode Platform
+export {
+    listOpenCodeProviders,
+    addOpenCodeProvider,
+    updateOpenCodeProvider,
+    deleteOpenCodeProvider,
+    listOpenCodeMcpServers,
+    addOpenCodeMcpServer,
+    updateOpenCodeMcpServer,
+    deleteOpenCodeMcpServer,
+    listOpenCodePlugins,
+    addOpenCodePlugin,
+    deleteOpenCodePlugin,
+    getOpenCodeConfig,
+} from './opencode'
+
+// Unified MCP - 统一 MCP 管理
+export {
+    listUnifiedMcp,
+    addUnifiedMcp,
+    updateUnifiedMcp,
+    deleteUnifiedMcp,
+    toggleUnifiedMcp,
+} from './unifiedMcp'
+
+// Claude Code Settings - 全局设置
+export {
+    getClaudeSettings,
+    updateClaudeSettings,
+    type ClaudeSettingsData,
+    type PermissionsData,
+    type SandboxData,
+    type AttributionData,
+} from './claudeSettings'

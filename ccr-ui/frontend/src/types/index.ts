@@ -19,6 +19,8 @@ export * from './gemini'
 export * from './qwen'
 export * from './iflow'
 export * from './droid'
+export * from './opencode'
+export * from './unifiedMcp'
 export * from './sync'
 export * from './claude'
 

@@ -14,7 +14,6 @@ use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 /// 💰 成本追踪管理器
-#[allow(dead_code)]
 pub struct CostTracker {
     /// 📁 存储目录
     storage_dir: PathBuf,
@@ -61,13 +60,11 @@ impl CostTracker {
     }
 
     /// 设置价格表管理器
-    #[allow(dead_code)]
     pub fn set_pricing_manager(&mut self, manager: PricingManager) {
         self.pricing_manager = Some(manager);
     }
 
     /// 获取价格表管理器的引用
-    #[allow(dead_code)]
     pub fn pricing_manager(&self) -> Option<&PricingManager> {
         self.pricing_manager.as_ref()
     }
@@ -410,7 +407,6 @@ impl CostTracker {
     /// 按时间范围筛选
     ///
     /// 🔧 **辅助方法**: 现在主要使用 `read_by_time_range` 进行流式过滤
-    #[allow(dead_code)]
     pub fn filter_by_time_range(
         &self,
         records: &[CostRecord],
@@ -432,7 +428,7 @@ impl CostTracker {
         let start = now
             .date_naive()
             .and_hms_opt(0, 0, 0)
-            .expect("无效的日期时间")
+            .ok_or_else(|| CcrError::ConfigError("无效的日期时间".into()))?
             .and_utc();
         let end = now;
 
@@ -459,9 +455,9 @@ impl CostTracker {
         let start = now
             .date_naive()
             .with_day(1)
-            .expect("无法设置日期为每月第一天")
+            .ok_or_else(|| CcrError::ConfigError("无法设置日期为每月第一天".into()))?
             .and_hms_opt(0, 0, 0)
-            .expect("无效的日期时间")
+            .ok_or_else(|| CcrError::ConfigError("无效的日期时间".into()))?
             .and_utc();
 
         let records = self.read_by_time_range(start, now)?;

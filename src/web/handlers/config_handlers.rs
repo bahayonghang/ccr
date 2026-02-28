@@ -1,8 +1,11 @@
 // ⚙️ 配置管理处理器
 // 处理配置的 CRUD 操作、导入导出等请求
 
+use crate::application::{SwitchProfileRequest, switch_profile};
 use crate::core::error::CcrError;
 use crate::managers::config::ConfigSection;
+use crate::models::ProfileConfig;
+use crate::platforms::base::profile_to_section;
 use crate::services::ConfigService;
 use crate::web::{
     error_utils::{spawn_blocking_string, *},
@@ -54,28 +57,16 @@ pub async fn handle_get_config(
 
 /// 处理切换配置请求
 pub async fn handle_switch_config(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<SwitchRequest>,
 ) -> Response {
-    let config_name = req.config_name.clone();
+    let request = SwitchProfileRequest {
+        config_name: req.config_name.clone(),
+        platform_name: None,
+    };
 
-    let result = crate::commands::switch_command(&config_name).await;
-
-    match result {
-        Ok(_) => {
-            // 切换成功后，给文件系统一点时间确保历史记录写入完成
-            // 这对于某些文件系统（特别是网络文件系统）可能是必要的
-            tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-
-            // 验证历史记录已成功写入
-            match state.history_service.get_recent_async(1).await {
-                Ok(_) => success_response("配置切换成功"),
-                Err(e) => {
-                    tracing::warn!("历史记录可能未正确保存: {}", e);
-                    success_response("配置切换成功（历史记录可能延迟）")
-                }
-            }
-        }
+    match switch_profile(request).await {
+        Ok(_) => success_response("配置切换成功"),
         Err(e) => internal_server_error(e.to_string()),
     }
 }
@@ -85,7 +76,10 @@ pub async fn handle_add_config(
     State(state): State<AppState>,
     Json(req): Json<UpdateConfigRequest>,
 ) -> Response {
-    let section = req.to_config_section();
+    let section = match req.to_config_section() {
+        Ok(section) => section,
+        Err(e) => return bad_request(e.to_string()),
+    };
     let config_service = Arc::clone(&state.config_service);
     let name = req.name.clone();
 
@@ -103,7 +97,10 @@ pub async fn handle_update_config(
     Path(old_name): Path<String>,
     Json(req): Json<UpdateConfigRequest>,
 ) -> Response {
-    let section = req.to_config_section();
+    let section = match req.to_config_section() {
+        Ok(section) => section,
+        Err(e) => return bad_request(e.to_string()),
+    };
     let new_name = req.name.clone();
     let config_service = Arc::clone(&state.config_service);
 
@@ -360,25 +357,25 @@ fn get_single_config_legacy(name: &str) -> Result<ConfigItem, CcrError> {
 
 // 🎯 为 UpdateConfigRequest 实现 to_config_section 方法
 impl UpdateConfigRequest {
-    fn to_config_section(&self) -> ConfigSection {
-        ConfigSection {
+    fn to_profile_config(&self) -> ProfileConfig {
+        ProfileConfig {
             description: self.description.clone(),
             base_url: Some(self.base_url.clone()),
             auth_token: Some(self.auth_token.clone()),
             model: self.model.clone(),
             small_fast_model: self.small_fast_model.clone(),
             provider: self.provider.clone(),
-            provider_type: self.provider_type.as_ref().and_then(|t| match t.as_str() {
-                "official_relay" => Some(crate::managers::config::ProviderType::OfficialRelay),
-                "third_party_model" => Some(crate::managers::config::ProviderType::ThirdPartyModel),
-                _ => None,
-            }),
+            provider_type: self.provider_type.clone(),
             account: self.account.clone(),
             tags: self.tags.clone(),
             usage_count: Some(0),
             enabled: Some(true),
-            other: IndexMap::new(),
+            platform_data: IndexMap::new(),
         }
+    }
+
+    fn to_config_section(&self) -> Result<ConfigSection, CcrError> {
+        profile_to_section(&self.to_profile_config())
     }
 }
 

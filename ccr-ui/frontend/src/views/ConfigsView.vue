@@ -177,8 +177,10 @@ import {
 } from '@/api'
 import { getProviderUsage } from '@/api/client'
 import type { ConfigItem, HistoryEntry } from '@/types'
+import { useUIStore } from '@/stores/ui'
 
 const { t } = useI18n()
+const uiStore = useUIStore()
 
 // Data
 const configs = ref<ConfigItem[]>([])
@@ -243,7 +245,10 @@ const loadConfigs = async () => {
   try {
     const data = await listConfigs()
     configs.value = data.configs
-  } catch (e: any) { error.value = e.message }
+  } catch (e: any) { 
+    error.value = e.message 
+    uiStore.showError(t('configs.operationFailed') + ': ' + e.message)
+  }
   finally { loading.value = false }
 }
 
@@ -252,7 +257,10 @@ const loadHistory = async () => {
   try {
     const data = await getHistory()
     historyEntries.value = data.entries
-  } catch (e) { console.error(e) }
+  } catch (e: any) { 
+    console.error(e) 
+    uiStore.showError('Failed to load history: ' + e.message)
+  }
   finally { historyLoading.value = false }
 }
 
@@ -273,15 +281,49 @@ const refreshData = async () => {
 // Handlers (Simplified for brevity, logic same as before)
 const handleSwitch = async (name: string) => {
   if (confirm(`Switch to ${name}?`)) {
-    await switchConfig(name)
-    refreshData()
+    try {
+      await switchConfig(name)
+      uiStore.showSuccess(`Switched to configuration ${name}`)
+      refreshData()
+    } catch (e: any) {
+      uiStore.showError(e.message || 'Failed to switch configuration')
+    }
   }
 }
 
 const handleEdit = (name: string) => { editingConfigName.value = name; isEditModalOpen.value = true }
-const handleDelete = async (name: string) => { if(confirm('Delete?')) { await deleteConfig(name); refreshData() } }
-const handleEnable = async (name: string) => { await enableConfig(name); refreshData() }
-const handleDisable = async (name: string) => { await disableConfig(name); refreshData() }
+
+const handleDelete = async (name: string) => { 
+  if(confirm('Delete?')) { 
+    try {
+      await deleteConfig(name); 
+      uiStore.showSuccess(`Configuration ${name} deleted`)
+      refreshData() 
+    } catch (e: any) {
+      uiStore.showError(e.message || 'Failed to delete configuration')
+    }
+  } 
+}
+
+const handleEnable = async (name: string) => { 
+  try {
+    await enableConfig(name); 
+    uiStore.showSuccess(`Configuration ${name} enabled`)
+    refreshData() 
+  } catch (e: any) {
+    uiStore.showError(e.message || 'Failed to enable configuration')
+  }
+}
+
+const handleDisable = async (name: string) => { 
+  try {
+    await disableConfig(name); 
+    uiStore.showSuccess(`Configuration ${name} disabled`)
+    refreshData() 
+  } catch (e: any) {
+    uiStore.showError(e.message || 'Failed to disable configuration')
+  }
+}
 const handleConfigClick = async (name: string) => {
   await nextTick()
 

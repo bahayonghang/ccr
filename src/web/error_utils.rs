@@ -41,7 +41,6 @@ pub fn bad_request<E: Into<String>>(message: E) -> Response {
 }
 
 /// 🎯 创建未找到错误响应 (404)
-#[allow(dead_code)]
 pub fn not_found<E: Into<String>>(message: E) -> Response {
     create_error_response(StatusCode::NOT_FOUND, message)
 }

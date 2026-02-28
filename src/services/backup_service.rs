@@ -9,14 +9,12 @@ use tokio::fs as async_fs;
 
 /// 🧹 清理结果
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CleanResult {
     pub deleted_count: usize,
     pub skipped_count: usize,
     pub total_size: u64,
 }
 
-/// 📦 备份文件信息
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct BackupFileInfo {
@@ -28,12 +26,10 @@ pub struct BackupFileInfo {
 /// 🧹 备份服务
 ///
 /// 封装备份文件清理相关的业务逻辑
-#[allow(dead_code)]
 pub struct BackupService {
     backup_dir: PathBuf,
 }
 
-#[allow(dead_code)]
 impl BackupService {
     /// 🏗️ 创建新的备份服务
     ///
@@ -91,12 +87,7 @@ impl BackupService {
         self.scan_and_clean_async(cutoff_time, dry_run).await
     }
 
-    /// 📂 扫描备份目录
-    ///
-    /// # Returns
-    /// 所有 .bak 文件的信息列表
-    ///
-    /// 🎯 优化：使用 rayon 并行扫描文件，提升大量备份文件时的性能
+    #[allow(dead_code)]
     pub fn scan_backup_directory(&self) -> Result<Vec<BackupFileInfo>> {
         use rayon::prelude::*;
 
@@ -104,19 +95,16 @@ impl BackupService {
             return Ok(Vec::new());
         }
 
-        // 🚀 收集所有目录项
         let entries: Vec<_> = fs::read_dir(&self.backup_dir)
             .map_err(|e| CcrError::ConfigError(format!("读取备份目录失败: {}", e)))?
             .filter_map(|e| e.ok())
             .collect();
 
-        // 🚀 并行处理每个文件，收集备份信息
         let mut backups: Vec<BackupFileInfo> = entries
             .par_iter()
             .filter_map(|entry| {
                 let path = entry.path();
 
-                // 只处理 .bak 文件
                 if !path.is_file() || path.extension()?.to_str()? != "bak" {
                     return None;
                 }
@@ -132,10 +120,7 @@ impl BackupService {
             })
             .collect();
 
-        // 按修改时间倒序排列(最新的在前)
-        // 注意：排序仍需串行，但扫描部分已并行化
         backups.sort_by(|a, b| b.modified.cmp(&a.modified));
-
         Ok(backups)
     }
 

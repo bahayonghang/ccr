@@ -8,13 +8,10 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::application::profile_switch::switch_profile_for_platform as run_switch_profile_for_platform;
 use crate::core::error::{CcrError, Result};
 use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
-use crate::managers::config::ConfigSection;
-use crate::managers::history::{
-    HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
-};
 use crate::managers::settings::SettingsManager;
 use crate::models::Platform;
 use crate::platforms::create_platform;
@@ -23,165 +20,50 @@ use colored::Colorize;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
-use std::collections::HashMap;
-use std::str::FromStr;
 
 /// 🔄 切换到指定配置
 ///
 /// 这是一个原子性操作,确保配置切换的完整性和可追溯性
 pub async fn switch_command(config_name: &str) -> Result<()> {
-    ColorOutput::title(&format!("切换配置: {}", config_name));
-    println!();
-
     // 🔍 加载平台配置
     let platform_config_mgr = PlatformConfigManager::with_default()?;
     let unified_config = platform_config_mgr.load()?;
-    let platform_name = &unified_config.current_platform;
-    let platform = Platform::from_str(platform_name)?;
+    switch_command_for_platform(config_name, &unified_config.current_platform).await
+}
 
-    // 📖 步骤 1: 读取并校验目标配置
-    ColorOutput::step("步骤 1/3: 读取配置文件");
-
-    ColorOutput::info(&format!("使用平台: {}", platform_name.bright_yellow()));
-
-    // 从平台配置加载 profile
-    let platform_config = create_platform(platform)
-        .map_err(|e| CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e)))?;
-
-    // 加载所有 profiles（后续会复用并更新 usage_count）
-    let mut profiles = platform_config.load_profiles()?;
-
-    // 查找目标 profile
-    let profile = profiles.get(config_name).ok_or_else(|| {
-        ColorOutput::error(&format!(
-            "配置 '{}' 在平台 {} 中不存在",
-            config_name, platform_name
-        ));
-        println!();
-        ColorOutput::info("💡 提示:");
-        println!("  • 运行 'ccr list' 查看可用配置");
-        println!("  • 运行 'ccr add <配置名>' 添加新配置");
-        println!(
-            "  • 或编辑配置文件: ~/.ccr/platforms/{}/profiles.toml",
-            platform_name
-        );
-        CcrError::ConfigSectionNotFound(config_name.to_string())
-    })?;
-
-    // 转换 ProfileConfig 为 ConfigSection
-    let target_section = ConfigSection {
-        description: profile.description.clone(),
-        base_url: profile.base_url.clone(),
-        auth_token: profile.auth_token.clone(),
-        model: profile.model.clone(),
-        small_fast_model: profile.small_fast_model.clone(),
-        provider: profile.provider.clone(),
-        provider_type: profile.provider_type.as_ref().and_then(|pt| {
-            use crate::managers::config::ProviderType;
-            match pt.as_str() {
-                "official_relay" => Some(ProviderType::OfficialRelay),
-                "third_party_model" => Some(ProviderType::ThirdPartyModel),
-                _ => None,
-            }
-        }),
-        account: profile.account.clone(),
-        tags: profile.tags.clone(),
-        usage_count: profile.usage_count,
-        enabled: profile.enabled,
-        other: indexmap::IndexMap::new(),
-    };
-
-    // 验证目标配置
-    target_section.validate().map_err(|e| {
-        ColorOutput::error(&format!("目标配置验证失败: {}", e));
-        e
-    })?;
-
-    ColorOutput::success(&format!("✅ 目标配置 '{}' 验证通过", config_name));
+/// 🔄 在指定平台内切换到配置
+///
+/// 用于需要固定平台上下文的调用方（如 Web API）。
+pub async fn switch_command_for_platform(config_name: &str, platform_name: &str) -> Result<()> {
+    ColorOutput::title(&format!("切换配置: {}", config_name));
     println!();
 
-    // 📊 记录旧的环境变量状态（仅 Claude 平台，无副作用）
-    let (old_env, new_env_display): (
-        HashMap<String, Option<String>>,
-        HashMap<String, Option<String>>,
-    ) = if platform == Platform::Claude {
-        let settings_manager = SettingsManager::with_default()?;
-        let old_settings = settings_manager.load().ok();
-        let old = old_settings
-            .as_ref()
-            .map(|s| s.anthropic_env_status())
-            .unwrap_or_default();
+    // 📖 步骤 1: 读取并校验目标配置（由统一用例执行）
+    ColorOutput::step("步骤 1/3: 读取配置文件");
+    ColorOutput::info(&format!("使用平台: {}", platform_name.bright_yellow()));
+    let result = run_switch_profile_for_platform(config_name, platform_name).await?;
+    let platform = result.platform;
+    let target_section = result.target_section;
+    let old_env = result.old_env;
+    let new_env_display = result.new_env;
+    let old_current = result.previous_profile.unwrap_or_default();
 
-        // 使用无副作用的方法获取新状态（不会打印日志）
-        let new = target_section.to_anthropic_env_status();
-        (old, new)
-    } else {
-        (HashMap::new(), HashMap::new())
-    };
-
-    // ✏️ 步骤 2: 应用配置
+    // ✏️ 步骤 2: 应用配置（已在用例中执行）
     ColorOutput::step("步骤 2/3: 应用配置");
-
-    let old_current = platform_config.get_current_profile()?.unwrap_or_else(|| {
-        tracing::debug!("无法获取当前 profile 名称");
-        String::new()
-    });
-
-    // 📊 递增目标 profile 的使用次数（复用已加载的 profiles）
-    if let Some(profile) = profiles.get_mut(config_name) {
-        profile.usage_count = Some(profile.usage_count.unwrap_or(0) + 1);
-        tracing::debug!(
-            "📊 递增 profile '{}' 的使用次数: {}",
-            config_name,
-            profile.usage_count.unwrap_or(0)
-        );
-    }
-    // 保存更新后的 profiles（包含递增的 usage_count）
-    platform_config.save_profile(
-        config_name,
-        profiles.get(config_name).expect("配置名称应该存在"),
-    )?;
-
-    // 应用 profile (这会设置当前profile并保存settings)
-    platform_config.apply_profile(config_name)?;
-
     ColorOutput::success(&format!(
         "✅ 平台 {} 的当前配置已设置为: {}",
-        platform_name, config_name
+        result.platform_name, result.current_profile
     ));
 
     println!();
 
-    // 📚 步骤 3: 记录历史(包含环境变量变化的掩码记录)
+    // 📚 步骤 3: 记录历史（已在用例中执行）
     ColorOutput::step("步骤 3/3: 记录操作历史");
-    let history_manager = HistoryManager::with_default()?;
-
-    let mut history_entry = HistoryEntry::new(
-        OperationType::Switch,
-        OperationDetails {
-            from_config: if old_current.is_empty() {
-                None
-            } else {
-                Some(old_current.clone())
-            },
-            to_config: Some(config_name.to_string()),
-            backup_path: None,
-            extra: None,
-        },
-        OperationResult::Success,
-    );
-
-    // 记录环境变量变化（仅 Claude 平台）
-    if platform == Platform::Claude {
-        for (var_name, new_value) in new_env_display.clone() {
-            let old_value = old_env.get(&var_name).and_then(|v| v.clone());
-            history_entry.add_env_change(var_name, old_value, new_value);
-        }
-    }
-
-    history_manager.add_async(history_entry).await?;
     ColorOutput::success("✅ 操作历史已记录");
     println!();
+
+    let platform_config = create_platform(platform)
+        .map_err(|e| CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e)))?;
 
     // 📋 输出新配置细节与校验结果
     ColorOutput::separator();
@@ -296,91 +178,95 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
     println!();
 
     // === 环境变量变化对比表格 ===
-    ColorOutput::step("🔄 环境变量变化");
-    println!();
-
-    let mut env_changes_table = Table::new();
-    env_changes_table
-        .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
-        .set_header(vec![
-            Cell::new("环境变量")
-                .add_attribute(Attribute::Bold)
-                .fg(TableColor::Cyan),
-            Cell::new("变化")
-                .add_attribute(Attribute::Bold)
-                .fg(TableColor::Cyan),
-        ]);
-
     // 显示环境变量变化（动态获取平台环境变量）
     let env_vars = platform_config.get_env_var_names();
 
-    for var_name in env_vars {
-        let old_val = old_env.get(var_name).and_then(|v| v.as_ref());
-        let new_val = new_env_display.get(var_name).and_then(|v| v.as_ref());
+    if !env_vars.is_empty() {
+        ColorOutput::step("🔄 环境变量变化");
+        println!();
 
-        let is_sensitive = var_name.contains("TOKEN") || var_name.contains("KEY");
+        let mut env_changes_table = Table::new();
+        env_changes_table
+            .load_preset(UTF8_FULL)
+            .set_content_arrangement(ContentArrangement::DynamicFullWidth)
+            .set_header(vec![
+                Cell::new("环境变量")
+                    .add_attribute(Attribute::Bold)
+                    .fg(TableColor::Cyan),
+                Cell::new("变化")
+                    .add_attribute(Attribute::Bold)
+                    .fg(TableColor::Cyan),
+            ]);
 
-        let change_display = match (old_val, new_val) {
-            (None, None) => "-".to_string(),
-            (None, Some(new)) => {
-                let new_display = if is_sensitive {
-                    ColorOutput::mask_sensitive(new)
-                } else if new.len() > 35 {
-                    format!("{}...", &new[..32])
-                } else {
-                    new.to_string()
-                };
-                format!("➕ 新增: {}", new_display)
-            }
-            (Some(old), None) => {
-                let old_display = if is_sensitive {
-                    ColorOutput::mask_sensitive(old)
-                } else if old.len() > 35 {
-                    format!("{}...", &old[..32])
-                } else {
-                    old.to_string()
-                };
-                format!("➖ 删除: {}", old_display)
-            }
-            (Some(old), Some(new)) => {
-                if old == new {
-                    "○ 未变化".to_string()
-                } else {
-                    let old_display = if is_sensitive {
-                        ColorOutput::mask_sensitive(old)
-                    } else if old.len() > 20 {
-                        format!("{}...", &old[..17])
-                    } else {
-                        old.to_string()
-                    };
+        for var_name in &env_vars {
+            let old_val = old_env.get(var_name.as_str()).and_then(|v| v.as_ref());
+            let new_val = new_env_display
+                .get(var_name.as_str())
+                .and_then(|v| v.as_ref());
+
+            let is_sensitive = var_name.contains("TOKEN") || var_name.contains("KEY");
+
+            let change_display = match (old_val, new_val) {
+                (None, None) => "-".to_string(),
+                (None, Some(new)) => {
                     let new_display = if is_sensitive {
                         ColorOutput::mask_sensitive(new)
-                    } else if new.len() > 20 {
-                        format!("{}...", &new[..17])
+                    } else if new.len() > 35 {
+                        format!("{}...", &new[..32])
                     } else {
                         new.to_string()
                     };
-                    format!("🔄 {} → {}", old_display, new_display)
+                    format!("➕ 新增: {}", new_display)
                 }
-            }
-        };
+                (Some(old), None) => {
+                    let old_display = if is_sensitive {
+                        ColorOutput::mask_sensitive(old)
+                    } else if old.len() > 35 {
+                        format!("{}...", &old[..32])
+                    } else {
+                        old.to_string()
+                    };
+                    format!("➖ 删除: {}", old_display)
+                }
+                (Some(old), Some(new)) => {
+                    if old == new {
+                        "○ 未变化".to_string()
+                    } else {
+                        let old_display = if is_sensitive {
+                            ColorOutput::mask_sensitive(old)
+                        } else if old.len() > 20 {
+                            format!("{}...", &old[..17])
+                        } else {
+                            old.to_string()
+                        };
+                        let new_display = if is_sensitive {
+                            ColorOutput::mask_sensitive(new)
+                        } else if new.len() > 20 {
+                            format!("{}...", &new[..17])
+                        } else {
+                            new.to_string()
+                        };
+                        format!("🔄 {} → {}", old_display, new_display)
+                    }
+                }
+            };
 
-        let change_cell = if change_display.starts_with("➕") {
-            Cell::new(change_display).fg(TableColor::Green)
-        } else if change_display.starts_with("➖") {
-            Cell::new(change_display).fg(TableColor::Red)
-        } else if change_display.starts_with("🔄") {
-            Cell::new(change_display).fg(TableColor::Yellow)
-        } else {
-            Cell::new(change_display).fg(TableColor::DarkGrey)
-        };
+            let change_cell = if change_display.starts_with("➕") {
+                Cell::new(change_display).fg(TableColor::Green)
+            } else if change_display.starts_with("➖") {
+                Cell::new(change_display).fg(TableColor::Red)
+            } else if change_display.starts_with("🔄") {
+                Cell::new(change_display).fg(TableColor::Yellow)
+            } else {
+                Cell::new(change_display).fg(TableColor::DarkGrey)
+            };
 
-        env_changes_table.add_row(vec![Cell::new(var_name), change_cell]);
+            env_changes_table.add_row(vec![Cell::new(var_name.as_str()), change_cell]);
+        }
+
+        println!("{}", env_changes_table);
+        println!();
     }
-
-    println!("{}", env_changes_table);
-    println!();
 
     // 最终验证（仅 Claude 平台）
     if platform == Platform::Claude {

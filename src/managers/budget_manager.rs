@@ -11,7 +11,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// 💰 预算管理器
-#[allow(dead_code)]
 pub struct BudgetManager {
     /// 📁 配置文件路径
     config_path: PathBuf,
@@ -20,7 +19,6 @@ pub struct BudgetManager {
     config: BudgetConfig,
 }
 
-#[allow(dead_code)]
 impl BudgetManager {
     /// 创建新的预算管理器
     pub fn new(config_path: PathBuf) -> Result<Self> {
@@ -78,14 +76,6 @@ impl BudgetManager {
     /// 获取当前配置
     pub fn get_config(&self) -> &BudgetConfig {
         &self.config
-    }
-
-    /// 更新配置
-    #[allow(dead_code)]
-    pub fn update_config(&mut self, config: BudgetConfig) -> Result<()> {
-        config.validate().map_err(CcrError::ValidationError)?;
-        self.config = config;
-        self.save_config()
     }
 
     /// 启用预算控制
@@ -200,7 +190,7 @@ impl BudgetManager {
         let today_start = now
             .date_naive()
             .and_hms_opt(0, 0, 0)
-            .expect("无效的日期时间")
+            .ok_or_else(|| CcrError::ConfigError("无效的日期时间".into()))?
             .and_utc();
         let today_stats = tracker.generate_stats(today_start, now)?;
 
@@ -212,9 +202,9 @@ impl BudgetManager {
         let month_start = now
             .date_naive()
             .with_day(1)
-            .expect("无法设置日期为每月第一天")
+            .ok_or_else(|| CcrError::ConfigError("无法设置日期为每月第一天".into()))?
             .and_hms_opt(0, 0, 0)
-            .expect("无效的日期时间")
+            .ok_or_else(|| CcrError::ConfigError("无效的日期时间".into()))?
             .and_utc();
         let month_stats = tracker.generate_stats(month_start, now)?;
 

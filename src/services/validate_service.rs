@@ -52,9 +52,9 @@ pub struct FullValidationReport {
 /// 此服务遵循分层架构原则:
 /// - Web handlers → ValidateService → ConfigService/SettingsService → Managers
 /// - 不直接访问 commands 层
-#[allow(dead_code)]
 pub struct ValidateService {
     config_service: Arc<ConfigService>,
+    #[allow(dead_code)]
     settings_manager: Arc<SettingsManager>,
 }
 
@@ -78,6 +78,7 @@ impl ValidateService {
     /// ✅ 验证所有配置节
     ///
     /// 委托给 ConfigService 执行验证
+    #[allow(dead_code)]
     pub fn validate_configs(&self) -> Result<ValidationReport> {
         self.config_service.validate_all()
     }

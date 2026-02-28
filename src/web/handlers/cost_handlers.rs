@@ -506,12 +506,20 @@ fn get_entries_for_month(
     .ok_or_else(|| CcrError::ValidationError(format!("无法计算月末日期: {}-{}", year, month)))?;
 
     let start = Utc
-        .from_local_datetime(&start_date.and_hms_opt(0, 0, 0).expect("无效的日期时间"))
+        .from_local_datetime(
+            &start_date
+                .and_hms_opt(0, 0, 0)
+                .ok_or_else(|| CcrError::ValidationError("无效的日期时间".to_string()))?,
+        )
         .single()
         .ok_or_else(|| CcrError::ValidationError("无效的起始时间".to_string()))?;
 
     let end = Utc
-        .from_local_datetime(&end_date.and_hms_opt(0, 0, 0).expect("无效的日期时间"))
+        .from_local_datetime(
+            &end_date
+                .and_hms_opt(0, 0, 0)
+                .ok_or_else(|| CcrError::ValidationError("无效的日期时间".to_string()))?,
+        )
         .single()
         .ok_or_else(|| CcrError::ValidationError("无效的结束时间".to_string()))?;
 

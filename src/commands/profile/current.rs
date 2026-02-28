@@ -6,9 +6,10 @@
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
+use crate::managers::ConfigManager;
 use crate::managers::PlatformConfigManager;
 use crate::models::{Platform, PlatformPaths};
-use crate::platforms::create_platform;
+use crate::platforms::{base::profile_to_section, create_platform};
 use crate::services::SettingsService;
 use crate::utils::Validatable;
 use colored::Colorize;
@@ -108,36 +109,54 @@ pub async fn current_command() -> Result<()> {
         crate::core::error::CcrError::ConfigSectionNotFound(current_profile.clone())
     })?;
 
-    // 转换为 ConfigSection
-    let current_section = crate::managers::config::ConfigSection {
-        description: profile.description.clone(),
-        base_url: profile.base_url.clone(),
-        auth_token: profile.auth_token.clone(),
-        model: profile.model.clone(),
-        small_fast_model: profile.small_fast_model.clone(),
-        provider: profile.provider.clone(),
-        provider_type: profile.provider_type.as_ref().and_then(|pt| {
-            use crate::managers::config::ProviderType;
-            match pt.as_str() {
-                "official_relay" => Some(ProviderType::OfficialRelay),
-                "third_party_model" => Some(ProviderType::ThirdPartyModel),
-                _ => None,
+    // 转换为 ConfigSection（统一复用平台公共转换逻辑）
+    let mut current_section = profile_to_section(profile)?;
+
+    if platform == Platform::Codex {
+        use crate::managers::CodexConfigManager;
+        if let Ok(mgr) = CodexConfigManager::with_default()
+            && let Ok(auth) = mgr.load_auth()
+        {
+            let requires_auth = profile
+                .platform_data
+                .get("requires_openai_auth")
+                .and_then(|v| match v {
+                    serde_json::Value::Bool(b) => Some(*b),
+                    serde_json::Value::String(s) => match s.to_lowercase().as_str() {
+                        "true" | "1" => Some(true),
+                        "false" | "0" => Some(false),
+                        _ => None,
+                    },
+                    _ => None,
+                })
+                .unwrap_or(true);
+
+            let env_key_name = if requires_auth {
+                "OPENAI_API_KEY"
+            } else {
+                profile
+                    .platform_data
+                    .get("env_key")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("OPENAI_API_KEY")
+            };
+
+            if let Some(token) = auth.get(env_key_name).and_then(|v| v.as_str()) {
+                current_section.auth_token = Some(token.to_string());
             }
-        }),
-        account: profile.account.clone(),
-        tags: profile.tags.clone(),
-        usage_count: profile.usage_count,
-        enabled: profile.enabled,
-        other: indexmap::IndexMap::new(),
-    };
+        }
+    }
 
     let current_name = current_profile;
     let config_file_path = paths.profiles_file.clone();
-    let default_name = unified_config.default_platform.clone();
+    let default_name = ConfigManager::for_platform(platform_name)
+        .and_then(|m| m.load_with_autofix())
+        .map(|cfg| cfg.default_config)
+        .unwrap_or_else(|_| "-".to_string());
 
     println!();
     ColorOutput::info(&format!("配置文件: {}", config_file_path.display()));
-    ColorOutput::info(&format!("默认配置: {}", default_name.bright_yellow()));
+    ColorOutput::info(&format!("默认 Profile: {}", default_name.bright_yellow()));
     println!();
 
     // === 第一部分：配置详情表格 ===
@@ -317,7 +336,7 @@ pub async fn current_command() -> Result<()> {
         for var_name in &env_vars {
             // 优先从 settings.json 读取，如果没有则从系统环境变量读取
             let value = if let Some(ref env_map) = settings_env {
-                env_map.get(*var_name).cloned()
+                env_map.get(var_name.as_str()).cloned()
             } else {
                 std::env::var(var_name).ok()
             };

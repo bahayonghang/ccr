@@ -156,7 +156,6 @@ impl SyncConfigManager {
     /// ❌ 删除同步配置
     ///
     /// 删除配置文件，等同于禁用同步功能
-    #[allow(dead_code)]
     pub fn delete(&self) -> Result<()> {
         if self.config_path.exists() {
             fs::remove_file(&self.config_path)
@@ -167,7 +166,6 @@ impl SyncConfigManager {
     }
 
     /// 🔍 检查同步配置是否存在且已启用
-    #[allow(dead_code)]
     pub fn is_enabled(&self) -> bool {
         self.load().map(|config| config.enabled).unwrap_or(false)
     }

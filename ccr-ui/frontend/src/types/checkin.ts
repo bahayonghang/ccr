@@ -33,8 +33,28 @@ export interface BuiltinProvider {
   auth_prefix: string
   supports_checkin: boolean
   requires_waf_bypass: boolean
+  requires_cf_clearance: boolean
   checkin_bugged: boolean
   icon: string
+  category: string
+  /** CDK 配置（仅 CDK 站点有） */
+  cdk_config?: CdkProviderConfig
+  /** OAuth 登录配置（支持 GitHub/LinuxDo OAuth 的站点） */
+  oauth_config?: OAuthProviderConfig
+}
+
+/** CDK 提供商配置 */
+export interface CdkProviderConfig {
+  /** CDK 类型: "runawaytime" | "b4u" | "x666" */
+  cdk_type: string
+  /** CDK 来源站点 URL */
+  cdk_source_url: string
+  /** 充值路径 (如 "/api/user/topup")，x666 为 null */
+  topup_path?: string
+  /** 是否需要额外的 CDK cookies */
+  requires_cdk_cookies: boolean
+  /** 是否需要 access_token (x666) */
+  requires_access_token: boolean
 }
 
 /** 内置提供商列表响应 */
@@ -98,6 +118,8 @@ export interface AccountInfo {
   balance_currency?: string
   total_quota?: number
   total_consumed?: number
+  /** 扩展配置 (CDK 凭证等) */
+  extra_config?: string
 }
 
 /** 创建账号请求 */
@@ -106,6 +128,8 @@ export interface CreateAccountRequest {
   name: string
   cookies_json: string
   api_user?: string
+  /** 扩展配置 JSON (CDK 凭证等) */
+  extra_config?: string
 }
 
 /** 更新账号请求 */
@@ -114,6 +138,8 @@ export interface UpdateAccountRequest {
   cookies_json?: string
   api_user?: string
   enabled?: boolean
+  /** 扩展配置 JSON (CDK 凭证等) */
+  extra_config?: string
 }
 
 /** 账号列表响应 */
@@ -432,4 +458,73 @@ export interface CheckinProgressState {
   total: number
   completed: number
   currentAccountName: string
+}
+
+// ═══════════════════════════════════════════════════════════
+// CDK 充值类型
+// ═══════════════════════════════════════════════════════════
+
+/** CDK 充值结果 */
+export interface CdkTopupResult {
+  /** CDK 类型 */
+  cdk_type: string
+  /** 是否整体成功 */
+  success: boolean
+  /** 汇总消息 */
+  message: string
+  /** 获取到的 CDK 码列表 */
+  codes_found: string[]
+  /** 成功充值的数量 */
+  codes_redeemed: number
+  /** 失败的充值详情 */
+  failed_codes: CdkRedeemError[]
+  /** x666 直接奖励金额 (仅 x666) */
+  direct_reward?: string
+}
+
+/** CDK 充值失败详情 */
+export interface CdkRedeemError {
+  code: string
+  error: string
+}
+
+/** CDK 扩展配置 (存储在 account.extra_config JSON 中) */
+export interface CdkExtraConfig {
+  /** fuli.hxi.me cookies (runawaytime) */
+  fuli_cookies?: Record<string, string>
+  /** tw.b4u.qzz.io cookies (b4u) */
+  b4u_cdk_cookies?: Record<string, string>
+  /** up.x666.me JWT access_token (x666) */
+  x666_access_token?: string
+}
+
+// ═══════════════════════════════════════════════════════════
+// OAuth 登录类型
+// ═══════════════════════════════════════════════════════════
+
+/** OAuth 提供商配置 */
+export interface OAuthProviderConfig {
+  /** GitHub OAuth client_id */
+  github_client_id?: string
+  /** LinuxDo OAuth client_id */
+  linuxdo_client_id?: string
+  /** OAuth state 获取路径 */
+  oauth_state_path: string
+}
+
+/** OAuth 授权 URL 请求 */
+export interface OAuthStateRequest {
+  provider_id: string
+  oauth_type: 'github' | 'linuxdo'
+}
+
+/** OAuth 授权 URL 响应 */
+export interface OAuthStateResponse {
+  success: boolean
+  authorize_url?: string
+  provider_name: string
+  oauth_type: string
+  message?: string
+  /** 引导用户提取 cookies 的说明 */
+  extraction_guide: string[]
 }

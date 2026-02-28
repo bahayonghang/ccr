@@ -39,9 +39,71 @@ impl RecordManager {
     }
 
     /// 获取所有签到记录（原始数据）
+    #[allow(dead_code)]
     pub fn get_all_raw(&self) -> Result<Vec<CheckinRecord>> {
         // 获取最近 1000 条记录
         let records = database::with_connection(|conn| checkin_repo::get_all_records(conn, 1000))?;
+        Ok(records)
+    }
+
+    /// 获取分页签到记录（SQL 级分页）
+    /// 返回 (records, total_count)
+    #[allow(dead_code)]
+    pub fn get_paginated(
+        &self,
+        status: Option<&str>,
+        account_id: Option<&str>,
+        page: usize,
+        page_size: usize,
+    ) -> Result<(Vec<CheckinRecord>, usize)> {
+        let (records, total) = database::with_connection(|conn| {
+            checkin_repo::get_records_paginated(conn, status, account_id, page, page_size)
+        })?;
+        Ok((records, total))
+    }
+
+    /// 获取分页签到记录（高级 SQL 过滤）
+    /// 支持 status/account_id/provider_id/keyword 组合过滤
+    pub fn get_paginated_advanced(
+        &self,
+        status: Option<&str>,
+        account_id: Option<&str>,
+        provider_id: Option<&str>,
+        keyword: Option<&str>,
+        page: usize,
+        page_size: usize,
+    ) -> Result<(Vec<CheckinRecord>, usize)> {
+        let (records, total) = database::with_connection(|conn| {
+            checkin_repo::get_records_paginated_advanced(
+                conn,
+                status,
+                account_id,
+                provider_id,
+                keyword,
+                page,
+                page_size,
+            )
+        })?;
+        Ok((records, total))
+    }
+
+    /// 获取全部签到记录（高级 SQL 过滤，无分页）
+    pub fn get_filtered_advanced(
+        &self,
+        status: Option<&str>,
+        account_id: Option<&str>,
+        provider_id: Option<&str>,
+        keyword: Option<&str>,
+    ) -> Result<Vec<CheckinRecord>> {
+        let records = database::with_connection(|conn| {
+            checkin_repo::get_records_filtered_advanced(
+                conn,
+                status,
+                account_id,
+                provider_id,
+                keyword,
+            )
+        })?;
         Ok(records)
     }
 
@@ -102,22 +164,9 @@ impl RecordManager {
 
     /// 获取今日签到统计
     pub fn get_today_stats(&self, account_ids: &[String]) -> Result<TodayStats> {
-        let mut checked_in = 0;
-        let mut failed = 0;
-
-        for account_id in account_ids {
-            let records = database::with_connection(|conn| {
-                checkin_repo::get_today_records(conn, account_id)
-            })?;
-
-            if records.iter().any(|r| {
-                r.status == CheckinStatus::Success || r.status == CheckinStatus::AlreadyCheckedIn
-            }) {
-                checked_in += 1;
-            } else if records.iter().any(|r| r.status == CheckinStatus::Failed) {
-                failed += 1;
-            }
-        }
+        let (checked_in, failed) = database::with_connection(|conn| {
+            checkin_repo::get_today_status_counts(conn, account_ids)
+        })?;
 
         Ok(TodayStats {
             total: account_ids.len(),

@@ -101,7 +101,6 @@ impl Platform {
     }
 
     /// 列出已实现的平台
-    #[allow(dead_code)]
     pub fn implemented() -> Vec<Platform> {
         Self::all()
             .into_iter()
@@ -193,6 +192,7 @@ pub struct ProfileConfig {
     pub platform_data: IndexMap<String, serde_json::Value>,
 }
 
+#[allow(dead_code)]
 impl ProfileConfig {
     /// 创建新的空配置
     pub fn new() -> Self {
@@ -212,13 +212,6 @@ impl ProfileConfig {
         }
     }
 
-    /// 设置描述
-    #[allow(dead_code)]
-    pub fn with_description(mut self, desc: String) -> Self {
-        self.description = Some(desc);
-        self
-    }
-
     /// 设置 base_url
     #[allow(dead_code)]
     pub fn with_base_url(mut self, url: String) -> Self {
@@ -226,15 +219,19 @@ impl ProfileConfig {
         self
     }
 
-    /// 设置认证令牌
     #[allow(dead_code)]
+    pub fn with_description(mut self, desc: String) -> Self {
+        self.description = Some(desc);
+        self
+    }
+
+    /// 设置认证令牌
     pub fn with_auth_token(mut self, token: String) -> Self {
         self.auth_token = Some(token);
         self
     }
 
     /// 设置模型
-    #[allow(dead_code)]
     pub fn with_model(mut self, model: String) -> Self {
         self.model = Some(model);
         self
@@ -243,32 +240,27 @@ impl ProfileConfig {
     // === 🆕 使用统计和状态方法 ===
 
     /// 📊 获取使用次数
-    #[allow(dead_code)]
     pub fn usage_count(&self) -> u32 {
         self.usage_count.unwrap_or(0)
     }
 
     /// 🔘 检查是否启用
-    #[allow(dead_code)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.unwrap_or(true)
     }
 
     /// 📈 递增使用次数
-    #[allow(dead_code)]
     pub fn increment_usage(&mut self) {
         let count = self.usage_count.unwrap_or(0);
         self.usage_count = Some(count + 1);
     }
 
     /// ✅ 启用配置
-    #[allow(dead_code)]
     pub fn enable(&mut self) {
         self.enabled = Some(true);
     }
 
     /// ❌ 禁用配置
-    #[allow(dead_code)]
     pub fn disable(&mut self) {
         self.enabled = Some(false);
     }
@@ -462,7 +454,6 @@ pub trait PlatformConfig: Send + Sync {
     ///
     /// # 参数
     /// - `name`: 要删除的 profile 名称
-    #[allow(dead_code)]
     fn delete_profile(&self, name: &str) -> Result<()>;
 
     /// 获取设置文件路径
@@ -502,7 +493,7 @@ pub trait PlatformConfig: Send + Sync {
     ///
     /// # 返回
     /// 环境变量名称列表
-    fn get_env_var_names(&self) -> Vec<&'static str> {
+    fn get_env_var_names(&self) -> Vec<String> {
         vec![]
     }
 }

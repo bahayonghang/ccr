@@ -160,7 +160,6 @@ pub enum CcrError {
     ValidationError(String),
 
     /// ☁️ 同步错误
-    #[allow(dead_code)]
     #[error("同步错误: {0}")]
     SyncError(String),
 
@@ -343,10 +342,7 @@ impl CcrError {
                 )
             }
             CcrError::UpdateError(msg) => {
-                format!(
-                    "更新失败: {}\n建议: 检查网络连接、Rust 工具链与 cargo 是否可用",
-                    msg
-                )
+                format!("更新失败: {}", msg)
             }
             CcrError::UiError(msg) => {
                 format!(
@@ -394,5 +390,13 @@ mod tests {
         let msg = err.user_message();
         assert!(msg.contains("test_config"));
         assert!(msg.contains("建议"));
+    }
+
+    #[test]
+    fn test_update_error_user_message_without_generic_hint() {
+        let err = CcrError::UpdateError("退出码: 101".into());
+        let msg = err.user_message();
+        assert!(msg.contains("退出码: 101"));
+        assert!(!msg.contains("检查网络连接、Rust 工具链与 cargo 是否可用"));
     }
 }

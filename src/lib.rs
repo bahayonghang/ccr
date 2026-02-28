@@ -127,6 +127,7 @@
 //! 完整的配置示例和故障排除指南请参考 `docs/examples/` 目录。
 
 // 分层模块
+pub mod application;
 pub mod commands;
 pub mod core;
 pub mod managers;

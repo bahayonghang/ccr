@@ -33,10 +33,17 @@ pub struct CheckinAccount {
     /// 最后余额检查时间
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_balance_check_at: Option<DateTime<Utc>>,
+    /// 扩展配置 (JSON 格式: CDK 凭证, OAuth tokens 等)
+    #[serde(default = "default_extra_config")]
+    pub extra_config: String,
 }
 
 fn default_enabled() -> bool {
     true
+}
+
+fn default_extra_config() -> String {
+    "{}".to_string()
 }
 
 impl CheckinAccount {
@@ -58,6 +65,7 @@ impl CheckinAccount {
             updated_at: None,
             last_checkin_at: None,
             last_balance_check_at: None,
+            extra_config: "{}".to_string(),
         }
     }
 
@@ -144,6 +152,9 @@ pub struct AccountInfo {
     /// 历史消耗 (可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_consumed: Option<f64>,
+    /// 扩展配置 (JSON 格式: CDK 凭证, OAuth tokens 等)
+    #[serde(default = "default_extra_config")]
+    pub extra_config: String,
 }
 
 /// 创建账号请求
@@ -159,6 +170,9 @@ pub struct CreateAccountRequest {
     /// API User 标识 (可选，New-Api-User 请求头值)
     #[serde(default)]
     pub api_user: String,
+    /// 扩展配置 JSON (可选，CDK 凭证等)
+    #[serde(default = "default_extra_config")]
+    pub extra_config: String,
 }
 
 /// 更新账号请求
@@ -176,6 +190,9 @@ pub struct UpdateAccountRequest {
     /// 是否启用 (可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
+    /// 扩展配置 JSON (可选，CDK 凭证等)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra_config: Option<String>,
 }
 
 /// 账号列表响应

@@ -4,13 +4,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::{CcrError, Result};
+use crate::application::{SwitchPlatformRequest, switch_platform};
+use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
-use crate::managers::PlatformConfigManager;
-use crate::models::Platform;
-use crate::platforms::create_platform;
 use colored::Colorize;
-use std::str::FromStr;
 
 /// 🔄 切换当前平台
 ///
@@ -37,31 +34,10 @@ use std::str::FromStr;
 pub async fn platform_switch_command(platform_name: &str) -> Result<()> {
     ColorOutput::title(&format!("切换到平台: {}", platform_name));
 
-    let manager = PlatformConfigManager::with_default()?;
-    let mut config = manager.load_or_create_default()?;
-
-    // 验证平台是否存在
-    let platform = Platform::from_str(platform_name)
-        .map_err(|_| CcrError::PlatformNotFound(platform_name.to_string()))?;
-
-    // 如果平台未注册，自动注册
-    if !config.platforms.contains_key(platform_name) {
-        ColorOutput::info(&format!("平台 '{}' 未注册，正在自动注册...", platform_name));
-
-        let platform_impl = create_platform(platform)?;
-        let registry = crate::managers::PlatformConfigEntry {
-            description: Some(platform_impl.platform_name().to_string()),
-            ..Default::default()
-        };
-        config.register_platform(platform_name.to_string(), registry)?;
-    }
-
-    // 切换平台
-    let old_platform = config.current_platform.clone();
-    config.set_current_platform(platform_name)?;
-
-    // 保存配置
-    manager.save(&config)?;
+    let result = switch_platform(SwitchPlatformRequest {
+        platform_name: platform_name.to_string(),
+    })?;
+    let old_platform = result.old_platform;
 
     println!();
     ColorOutput::success(&format!(
@@ -71,11 +47,7 @@ pub async fn platform_switch_command(platform_name: &str) -> Result<()> {
     ));
 
     // 显示当前 profile
-    if let Some(profile) = config
-        .platforms
-        .get(platform_name)
-        .and_then(|e| e.current_profile.as_ref())
-    {
+    if let Some(profile) = result.current_profile.as_ref() {
         println!();
         ColorOutput::info(&format!("当前 profile: {}", profile.bright_cyan()));
     } else {

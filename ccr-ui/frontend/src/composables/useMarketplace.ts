@@ -19,6 +19,8 @@ export interface MarketItem {
     source: MarketItemSource
     tags?: string[]
     homepage?: string
+    requires_api_key?: boolean
+    api_key_env?: string
 }
 
 export interface MarketplaceResponse {
@@ -83,7 +85,7 @@ export function useMarketplace() {
     /**
      * 安装市场项目
      */
-    const installItem = async (item: MarketItem, platforms?: string[]) => {
+    const installItem = async (item: MarketItem, platforms?: string[], env?: Record<string, string>) => {
         const itemId = item.id
         installingItems.value.add(itemId)
         error.value = null
@@ -93,6 +95,7 @@ export function useMarketplace() {
                 item_id: itemId,
                 category: item.category,
                 platforms: platforms || ['claude'],
+                env: env || {},
             }
 
             await api.post('/marketplace/install', request)

@@ -11,6 +11,7 @@
 
 pub mod budget_manager;
 pub mod builtin_prompts;
+pub mod codex_config;
 pub mod config;
 pub mod config_editor;
 pub mod config_file_handler;
@@ -32,6 +33,8 @@ pub mod temp_override;
 // 注意: 这些导出是为了库的公共 API，即使在模块内未使用也需要保留
 #[allow(unused_imports)]
 pub use budget_manager::BudgetManager;
+#[allow(unused_imports)]
+pub use codex_config::{CachedCodexConfigManager, CodexConfigManager};
 #[allow(unused_imports)]
 pub use config::{CcsConfig, ConfigManager, ConfigSection, GlobalSettings, ProviderType};
 #[allow(unused_imports)]

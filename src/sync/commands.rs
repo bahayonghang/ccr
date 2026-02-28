@@ -331,7 +331,7 @@ pub async fn sync_status_command() -> Result<()> {
 
         // 检查远程文件状态
         print!("🔍 正在检查远程状态...");
-        std::io::Write::flush(&mut std::io::stdout()).expect("无法刷新标准输出");
+        std::io::Write::flush(&mut std::io::stdout())?;
 
         let service = SyncService::new(&sync_config).await?;
         let exists = service.remote_exists().await?;
@@ -504,7 +504,8 @@ pub async fn sync_push_command_with_selection(
             sync_path.clone()
         } else {
             // 需要创建临时目录包含选中的内容
-            create_temp_sync_directory(&sync_path, &filtered_paths, is_dir)?
+            create_temp_sync_directory_async(sync_path.clone(), filtered_paths.clone(), is_dir)
+                .await?
         };
 
     print!("🚀 正在上传...");
@@ -513,8 +514,14 @@ pub async fn sync_push_command_with_selection(
     service.push(&temp_sync_path, None).await?;
 
     // 清理临时目录（如果需要）
-    if temp_sync_path != sync_path {
-        std::fs::remove_dir_all(&temp_sync_path).ok();
+    if temp_sync_path != sync_path
+        && let Err(error) = tokio::fs::remove_dir_all(&temp_sync_path).await
+    {
+        tracing::warn!(
+            "清理临时同步目录失败 ({}): {}",
+            temp_sync_path.display(),
+            error
+        );
     }
 
     print!("\r");
@@ -557,8 +564,8 @@ pub async fn sync_pull_command(force: bool) -> Result<()> {
     let mut local_config_backup: Option<(PathBuf, String)> = None;
     if is_dir {
         let config_path = sync_path.join("config.toml");
-        if config_path.exists()
-            && let Ok(content) = std::fs::read_to_string(&config_path)
+        if tokio::fs::try_exists(&config_path).await.unwrap_or(false)
+            && let Ok(content) = tokio::fs::read_to_string(&config_path).await
         {
             local_config_backup = Some((config_path, content));
         }
@@ -618,7 +625,7 @@ pub async fn sync_pull_command(force: bool) -> Result<()> {
     }
 
     // 备份逻辑
-    if sync_path.exists() {
+    if tokio::fs::try_exists(&sync_path).await.unwrap_or(false) {
         print!("💾 正在备份本地内容...");
         let _ = io::stdout().flush();
 
@@ -631,13 +638,15 @@ pub async fn sync_pull_command(force: bool) -> Result<()> {
             let backup = PathBuf::from(backup_name);
 
             // 🔄 如果目标备份路径已存在（极少见），先删除
-            if backup.exists() {
-                std::fs::remove_dir_all(&backup)
+            if tokio::fs::try_exists(&backup).await.unwrap_or(false) {
+                tokio::fs::remove_dir_all(&backup)
+                    .await
                     .map_err(|e| CcrError::SyncError(format!("删除旧备份失败: {}", e)))?;
             }
 
             // 📦 移动目录到备份位置（原子操作）
-            std::fs::rename(&sync_path, &backup)
+            tokio::fs::rename(&sync_path, &backup)
+                .await
                 .map_err(|e| CcrError::SyncError(format!("备份目录失败: {}", e)))?;
             backup
         } else {
@@ -681,9 +690,9 @@ pub async fn sync_pull_command(force: bool) -> Result<()> {
     if let Some((config_path, content)) = local_config_backup
         && let Some(parent) = config_path.parent()
     {
-        if let Err(e) = std::fs::create_dir_all(parent) {
+        if let Err(e) = tokio::fs::create_dir_all(parent).await {
             ColorOutput::warning(&format!("恢复本地 config.toml 目录失败: {}", e));
-        } else if let Err(e) = std::fs::write(&config_path, content) {
+        } else if let Err(e) = tokio::fs::write(&config_path, content).await {
             ColorOutput::warning(&format!("恢复本地 config.toml 失败: {}", e));
         }
     }
@@ -787,6 +796,18 @@ fn create_temp_sync_directory(
     }
 
     Ok(temp_path_clone)
+}
+
+async fn create_temp_sync_directory_async(
+    original_path: PathBuf,
+    filtered_paths: Vec<String>,
+    is_dir: bool,
+) -> Result<PathBuf> {
+    tokio::task::spawn_blocking(move || {
+        create_temp_sync_directory(&original_path, &filtered_paths, is_dir)
+    })
+    .await
+    .map_err(|e| CcrError::SyncError(format!("创建临时同步目录任务失败: {}", e)))?
 }
 
 /// 📁 递归复制目录
@@ -1300,13 +1321,13 @@ pub async fn sync_all_pull_command(force: bool) -> Result<()> {
 }
 
 /// 📊 显示所有文件夹的同步状态
-#[allow(clippy::unused_async)]
 pub async fn sync_all_status_command() -> Result<()> {
     ColorOutput::title("同步文件夹状态");
     println!();
 
     let manager = SyncFolderManager::with_default()?;
     let folders = manager.list_folders()?;
+    let webdav_config = manager.get_webdav_config().ok();
 
     if folders.is_empty() {
         ColorOutput::warning("暂无注册的同步文件夹");
@@ -1342,8 +1363,29 @@ pub async fn sync_all_status_command() -> Result<()> {
             Cell::new("✗").fg(Color::Yellow)
         };
 
-        // TODO: 实际检查同步状态
-        let sync_status = Cell::new("未知").fg(Color::Yellow);
+        let sync_status = if !folder.enabled {
+            Cell::new("已禁用").fg(Color::DarkGrey)
+        } else if let Some(webdav) = &webdav_config {
+            let sync_config = SyncConfig {
+                enabled: true,
+                webdav_url: webdav.url.clone(),
+                username: webdav.username.clone(),
+                password: webdav.password.clone(),
+                remote_path: folder.remote_path.clone(),
+                auto_sync: false,
+            };
+
+            match SyncService::new(&sync_config).await {
+                Ok(service) => match service.remote_exists().await {
+                    Ok(true) => Cell::new("远程存在").fg(Color::Green),
+                    Ok(false) => Cell::new("远程不存在").fg(Color::Yellow),
+                    Err(_) => Cell::new("检查失败").fg(Color::Red),
+                },
+                Err(_) => Cell::new("连接失败").fg(Color::Red),
+            }
+        } else {
+            Cell::new("未配置 WebDAV").fg(Color::Red)
+        };
 
         table.add_row(vec![Cell::new(&folder.name), enabled, exists, sync_status]);
     }
@@ -1556,7 +1598,11 @@ async fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
     }
 
     // ⚠️ 本地路径存在时的警告
-    if local_path.exists() {
+    let local_exists = tokio::fs::try_exists(&local_path)
+        .await
+        .map_err(|e| CcrError::SyncError(format!("检查本地路径失败: {}", e)))?;
+
+    if local_exists {
         println!(
             "{}  {}",
             "⚠".yellow().bold(),
@@ -1584,12 +1630,14 @@ async fn sync_folder_pull_command(folder_name: &str) -> Result<()> {
         let backup_name = format!("{}.{}.bak", local_path.display(), timestamp);
         let backup_path = PathBuf::from(backup_name);
 
-        if backup_path.exists() {
-            std::fs::remove_dir_all(&backup_path)
+        if tokio::fs::try_exists(&backup_path).await.unwrap_or(false) {
+            tokio::fs::remove_dir_all(&backup_path)
+                .await
                 .map_err(|e| CcrError::SyncError(format!("删除旧备份失败: {}", e)))?;
         }
 
-        std::fs::rename(&local_path, &backup_path)
+        tokio::fs::rename(&local_path, &backup_path)
+            .await
             .map_err(|e| CcrError::SyncError(format!("备份失败: {}", e)))?;
 
         print!("\r");
@@ -1790,23 +1838,29 @@ async fn sync_folder_pull_internal(
     }
 
     // ⚠️ 本地路径存在时的警告（仅在非强制模式下）
-    if local_path.exists() && !force {
+    let local_exists = tokio::fs::try_exists(&local_path)
+        .await
+        .map_err(|e| CcrError::SyncError(format!("检查本地路径失败: {}", e)))?;
+
+    if local_exists && !force {
         // 在批量模式下直接跳过已存在的
         return Err(CcrError::SyncError("本地已存在，使用 --force 覆盖".into()));
     }
 
     // 💾 备份本地文件夹（如果存在）
-    if local_path.exists() {
+    if local_exists {
         let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
         let backup_name = format!("{}.{}.bak", local_path.display(), timestamp);
         let backup_path = PathBuf::from(backup_name);
 
-        if backup_path.exists() {
-            std::fs::remove_dir_all(&backup_path)
+        if tokio::fs::try_exists(&backup_path).await.unwrap_or(false) {
+            tokio::fs::remove_dir_all(&backup_path)
+                .await
                 .map_err(|e| CcrError::SyncError(format!("删除旧备份失败: {}", e)))?;
         }
 
-        std::fs::rename(&local_path, &backup_path)
+        tokio::fs::rename(&local_path, &backup_path)
+            .await
             .map_err(|e| CcrError::SyncError(format!("备份失败: {}", e)))?;
     }
 

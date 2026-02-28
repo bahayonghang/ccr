@@ -1,0 +1,69 @@
+# System & IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Dependencies
+node_modules/
+**/node_modules/
+target/
+**/target/
+src-tauri/target/
+
+# Build Outputs
+dist/
+build/
+.out/
+.next/
+coverage/
+src-tauri/gen/
+**/*.exe
+**/*.dll
+**/*.so
+**/*.dylib
+
+# Lock Files (Optimize Token Usage)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+Cargo.lock
+
+# Environment & Private Keys
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Generated Types (Noise)
+components.d.ts
+auto-imports.d.ts
+typed-router.d.ts
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Other AI/Tooling Contexts (Low value for this agent)
+.cursor/
+.windsurf/
+.claude/
+.spec-workflow/
+.factory/
+.trae/
+.kiro/
+.codex/
+.agent/
+.gemini/
+.agents/
+.serena/
+.auto-claude/
+.omc/

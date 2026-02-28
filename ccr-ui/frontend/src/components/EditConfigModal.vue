@@ -288,6 +288,7 @@ import { getConfig, updateConfig } from '@/api'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Spinner from '@/components/ui/Spinner.vue'
+import { useUIStore } from '@/stores/ui'
 
 // typed
 import type { UpdateConfigRequest, ConfigItem } from '@/types'
@@ -319,6 +320,8 @@ useEscapeKey(handleClose, isOpenRef)
 
 watch(isOpenRef, (open) => { if(open) setTimeout(() => focusFirstElement(), 100) })
 
+const uiStore = useUIStore()
+
 const loading = ref(false)
 const saving = ref(false)
 const tagsInput = ref('')
@@ -332,7 +335,9 @@ const loadConfig = async () => {
     const data = await getConfig(props.configName)
     formData.value = { ...data }
     tagsInput.value = Array.isArray(data.tags) ? data.tags.join(', ') : ''
-  } catch (e: any) { alert(e.message) }
+  } catch (e: any) { 
+    uiStore.showError(e.message || 'Failed to load configuration')
+  }
   finally { loading.value = false }
 }
 
@@ -354,9 +359,12 @@ const handleSave = async () => {
        tags: tags.length ? tags : undefined
     }
     await updateConfig(props.configName, payload)
+    uiStore.showSuccess('Configuration saved successfully')
     emit('saved')
     handleClose()
-  } catch (e: any) { alert(e.message) }
+  } catch (e: any) { 
+    uiStore.showError(e.message || 'Failed to save configuration')
+  }
   finally { saving.value = false }
 }
 

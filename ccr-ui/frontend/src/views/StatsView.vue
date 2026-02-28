@@ -532,8 +532,12 @@ const loadData = async () => {
   error.value = null
   
   try {
-    stats.value = await getCostOverview(selectedRange.value)
-    providerUsage.value = await getProviderUsage()
+    const [statsData, providerData] = await Promise.all([
+      getCostOverview(selectedRange.value),
+      getProviderUsage(),
+    ])
+    stats.value = statsData
+    providerUsage.value = providerData
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : t('stats.states.loadFailedMessage')
     error.value = errorMessage

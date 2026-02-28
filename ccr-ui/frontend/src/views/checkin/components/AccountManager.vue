@@ -62,28 +62,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { listCheckinAccounts, deleteCheckinAccount } from '@/api/client'
-import type { AccountInfo } from '@/types/checkin'
+import { deleteCheckinAccount } from '@/api/client'
+import { useCheckinStore } from '@/stores/checkin'
 
-const accounts = ref<AccountInfo[]>([])
-const loading = ref(true)
-const error = ref<string | null>(null)
+const store = useCheckinStore()
 const router = useRouter()
 const { t } = useI18n()
 
-const fetchAccounts = async () => {
-  try {
-    const response = await listCheckinAccounts()
-    accounts.value = response.accounts
-  } catch (err) {
-    error.value = t('checkin.account_manager.load_error')
-  } finally {
-    loading.value = false
-  }
-}
+const accounts = computed(() => store.accounts)
+const loading = computed(() => store.accountsLoading)
+const error = computed(() => store.accountsError ? t('checkin.account_manager.load_error') : null)
 
 const openAccountDashboard = (accountId: string) => {
   router.push({ name: 'checkin-account-dashboard', params: { accountId } })
@@ -93,7 +84,8 @@ const deleteAccount = async (id: string) => {
   if (!confirm(t('checkin.account_manager.delete_confirm'))) return
   try {
     await deleteCheckinAccount(id)
-    accounts.value = accounts.value.filter(account => account.id !== id)
+    store.accounts = store.accounts.filter(account => account.id !== id)
+    store.invalidate()
   } catch (err) {
     alert(t('checkin.account_manager.delete_fail'))
   }
@@ -104,7 +96,7 @@ const goToCheckinManage = () => {
 }
 
 onMounted(() => {
-  fetchAccounts()
+  store.fetchAccounts()
 })
 </script>
 

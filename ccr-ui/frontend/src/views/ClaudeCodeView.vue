@@ -171,7 +171,7 @@
           <div class="h-px flex-1 bg-border-subtle" />
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           <RouterLink
             to="/mcp"
             class="group"
@@ -301,6 +301,32 @@
               </div>
             </Card>
           </RouterLink>
+
+          <RouterLink
+            to="/claude-code/settings"
+            class="group"
+          >
+            <Card
+              variant="elevated"
+              hover
+              class="h-full p-4 flex flex-col gap-4"
+            >
+              <div class="flex items-center justify-between">
+                <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500 group-hover:scale-110 transition-transform">
+                  <SlidersHorizontal class="w-5 h-5" />
+                </div>
+                <span class="text-[10px] font-bold uppercase text-text-muted bg-bg-base px-2 py-1 rounded">CFG</span>
+              </div>
+              <div>
+                <h3 class="font-bold text-text-primary group-hover:text-violet-500 transition-colors mb-1">
+                  {{ $t('claudeCode.modules.settings.title') }}
+                </h3>
+                <p class="text-xs text-text-muted line-clamp-2">
+                  {{ $t('claudeCode.modules.settings.desc') }}
+                </p>
+              </div>
+            </Card>
+          </RouterLink>
         </div>
       </section>
 
@@ -392,7 +418,7 @@ import { RouterLink } from 'vue-router'
 import { 
   Settings, Cloud, Server, Terminal, Users, Puzzle, Home,
   Code2, Boxes, BookOpen, ExternalLink, Info, Book,
-  ShoppingBag, Zap, Bot, ArrowRight, Copy, Github
+  ShoppingBag, Zap, Bot, ArrowRight, Copy, Github, SlidersHorizontal
 } from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'

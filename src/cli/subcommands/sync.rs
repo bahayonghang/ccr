@@ -73,7 +73,6 @@ pub enum SyncAction {
     /// 示例: ccr sync gemini pull
     /// 示例: ccr sync conf status
     #[command(external_subcommand)]
-    #[allow(dead_code)]
     FolderSync(Vec<String>),
 }
 

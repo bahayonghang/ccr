@@ -100,6 +100,7 @@ pub struct CodexAuthItem {
     pub saved_at: Option<DateTime<Utc>>,
 
     /// 最后使用时间
+    #[allow(dead_code)]
     pub last_used: Option<DateTime<Utc>>,
 
     /// 最后刷新时间

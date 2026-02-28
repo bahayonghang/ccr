@@ -361,6 +361,24 @@ pub struct UpdateExecutionResponse {
     pub exit_code: i32,
 }
 
+// ===== CLI Version Detection Models =====
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CliVersionEntry {
+    pub platform: String,
+    pub installed: bool,
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub elapsed_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CliVersionsResponse {
+    pub versions: Vec<CliVersionEntry>,
+}
+
 // ===== MCP Server Management Models =====
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -724,4 +742,85 @@ pub struct StatuslineConfig {
     pub command: Option<String>,
     #[serde(default)]
     pub enabled: bool,
+}
+
+// ===== Unified MCP Management Models =====
+
+/// 统一 MCP 服务器响应（跨平台归一化）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnifiedMcpServer {
+    pub platform: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub args: Vec<String>,
+    #[serde(default, skip_serializing_if = "std::collections::HashMap::is_empty")]
+    pub env: std::collections::HashMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub headers: Option<std::collections::HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u64>,
+    #[serde(default)]
+    pub disabled: bool,
+    // 平台特有可选字段
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trust: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_tools: Option<Vec<String>>,
+}
+
+/// 统一 MCP 服务器创建/更新请求
+#[derive(Debug, Deserialize)]
+pub struct UnifiedMcpRequest {
+    pub platform: String,
+    pub name: String,
+    #[serde(default)]
+    pub command: Option<String>,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub args: Option<Vec<String>>,
+    #[serde(default)]
+    pub env: Option<std::collections::HashMap<String, String>>,
+    #[serde(default)]
+    pub headers: Option<std::collections::HashMap<String, String>>,
+    #[serde(default)]
+    pub timeout: Option<u64>,
+    #[serde(default)]
+    pub disabled: Option<bool>,
+    #[serde(default)]
+    pub cwd: Option<String>,
+    #[serde(default)]
+    pub trust: Option<bool>,
+    #[serde(default)]
+    pub include_tools: Option<Vec<String>>,
+    /// 可选 profile 指定（默认使用 current profile，预留字段）
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub profile: Option<String>,
+}
+
+/// 平台 MCP 能力矩阵
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformMcpCapability {
+    pub platform: String,
+    pub supports_toggle: bool,
+    pub supports_url: bool,
+    pub supports_headers: bool,
+    pub supports_timeout: bool,
+    pub supports_cwd: bool,
+    pub supports_trust: bool,
+    pub supports_include_tools: bool,
+}
+
+/// 统一 MCP 列表响应
+#[derive(Debug, Serialize)]
+pub struct UnifiedMcpListResponse {
+    pub servers: Vec<UnifiedMcpServer>,
+    pub capabilities: Vec<PlatformMcpCapability>,
 }

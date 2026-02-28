@@ -9,12 +9,222 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ✨ 新功能
 
+- **TUI 鼠标支持**：
+  - 新增 `SelectAt(usize)` 动作，支持鼠标点击直接选中列表项
+  - 实现 `list_hit_test` / `tab_hit_test` 命中检测辅助函数（纯函数，可测试）
+  - 主应用与 CodexAuth 子应用均支持鼠标左键点击交互
+  - 支持鼠标点击标签栏（Tab bar）切换平台
+  - 使用 `Cell<Option<Rect>>` 缓存布局区域以提升命中精度
+
 - **Codex Auth 导入增强**：
   - `ccr codex auth import` 新增 `--force` 选项
   - 支持在合并模式下强制覆盖已存在的账号
   - 导入结果显示被覆盖账号的详细列表
   - 添加文件权限检查，防止覆盖只读文件
   - 新增 5 个测试用例覆盖强制导入功能
+
+### 🔧 改进
+
+- **后端架构优化**：
+  - `config` / `stats` handler 移除对 executor 的直接依赖，改用 Service 层
+  - `sync_status` 实现真实平台状态查询并补全全部平台列表
+
+- **前端交互升级**：
+  - 新增智能路由过渡动画系统，提升页面切换体验（基于 CSS transition + Vue router hooks）
+
+### 📦 依赖更新
+
+- `toml`、`uuid`、`sysinfo`、`clap` 等核心依赖升级至最新版本
+
+### 🐛 修复
+
+- **CI Linux 构建依赖补齐**：
+  - 为 CI 的 `clippy`、`build`、`test`（Linux 分支）补充 `pkg-config` 与 `libwayland-dev`
+  - 为 Release 的 Linux Tauri 构建补充相同依赖基线
+  - 新增 `pkg-config` 与 `wayland-client` 版本探测，提升失败诊断效率
+
+- **跨平台链接参数修复**：
+  - 将 `/DEBUG:FASTLINK` 从全局 `rustflags` 调整为 `x86_64-pc-windows-msvc` 目标专属
+  - 修复 Linux/macOS Release 流程中链接器误用 Windows 参数导致的构建失败
+
+---
+
+## [4.3.0] - 2026-02-28
+
+### ✨ 新功能
+
+- **统一 MCP 跨平台管理**：
+  - 新增 MCP 全栈管理能力，支持多平台统一配置与操作
+
+- **构建链路自动化增强**：
+  - 新增 `build.rs` 自动构建并嵌入 Web 前端资源
+  - `install/reinstall` 前自动执行嵌入式前端构建，降低安装后运行异常风险
+
+- **Codex 平台能力升级**：
+  - 重构 Codex 平台，引入 `CodexConfigManager` 双路分发架构
+  - TUI 新增 Codex Auth 独立标签页与 `TabVariant` 枚举
+
+### 🔧 改进
+
+- **核心与平台架构优化**：
+  - 收紧 Web 默认暴露面，抽离切换用例，优化核心模块边界
+  - `get_env_var_names` 返回类型调整为 `Vec<String>`，统一平台层抽象
+
+- **发布与工程流程优化**：
+  - 升级至 `v4.3.0` 并优化发布构建配置
+  - 清理过时 GEMINI 项目上下文文档与部分历史文档噪音
+
+### 🐛 修复
+
+- **平台与配置稳定性修复**：
+  - `current` 命令改为从 `auth.json` 读取 Codex 实际 token
+  - 自动补全未注册平台并增强 current profile 容错读取
+  - 修复 `codex_handlers` 以适配新 `CodexConfigManager` 架构
+
+- **前端与桌面端修复**：
+  - 修复 `render.js` 无效 ES module 导入
+  - 修复 Tauri backend 进程关闭时序问题并引入优雅关闭机制
+  - 修复 `run` 命令相关 Clippy 警告（合并嵌套 if-let 链并替换 unwrap）
+
+---
+
+## [4.1.1] - 2026-02-18
+
+### ✨ 新功能
+
+- **CLI 版本检测**：
+  - 新增后端 CLI 版本检测 API（`GET /api/cli/version`）
+  - 前端首页和 Codex 视图集成 CLI 版本检测与展示
+  - 支持自动检测本地安装的 CCR 版本信息
+
+- **市场模块完善**：
+  - MarketView 全面重构，新增安装弹窗、卸载功能和统计面板
+  - 完善安装状态与卸载状态的完整生命周期管理
+  - `marketplace` handler 提取辅助函数，提升代码可维护性
+
+- **国际化（i18n）扩展**：
+  - 添加市场模块完整国际化文案（中英文）
+  - 添加 CLI 版本相关国际化文案
+
+### 🔧 改进
+
+- **前端样式统一**：
+  - 各平台视图统一使用 `AnimatedBackground` 组件，强化视觉一致性
+  - 优化暗色模式背景效果
+  - 全局背景控制重构：移入 `MainLayout`，支持路由级 `hideGlobalBackground` 配置
+  - `BaseSlashCommands` 布局与组件主题变量统一重构
+
+- **构建工具**：
+  - justfile 新增完整 CI 流程命令集（format、clippy、test、build 一键运行）
+
+### 🐛 修复
+
+- **ccr-types**：修复 Hooks 配置反序列化兼容性问题，新增 MCP URL 模式支持
+
+---
+
+## [4.1.0] - 2026-02-15
+
+### ✨ 新功能
+
+- **Codex 完整设置管理**：
+  - 新增 Codex 设置读取与写入 API（`GET/PUT /api/codex/settings`）
+  - 前端 Codex Settings 配置页完整实现
+  - 支持 API Key、模型选择、Provider 端点等核心参数的可视化配置
+
+---
+
+## [4.0.9] - 2026-02-14
+
+### ✨ 新功能
+
+- **Claude Code 全局设置管理**：
+  - 新增 Claude Code 全局 `settings.json` 读取与写入 API
+  - 前端 Claude Settings 配置页完整实现
+  - 支持全局设置的可视化编辑与保存
+
+---
+
+## [4.0.8] - 2026-02-14
+
+### 🔧 改进
+
+- **历史记录存储迁移**：
+  - 将历史记录存储从 JSON 文件全面迁移至 SQLite 数据库
+  - 提升历史查询性能，降低大量历史记录时的内存占用
+  - 支持更复杂的历史记录过滤与统计分析
+
+---
+
+## [4.0.4] - 2026-02-14
+
+### ✨ 新功能
+
+- **使用量分析 V2（Usage Dashboard V2）**：
+  - 全新 Usage Dashboard V2 页面，集成 ApexCharts 可视化图表
+  - 添加 Dashboard V2 国际化文案与面包屑动态导航
+  - 新增 Usage V2 聚合 API，支持按日/周/月维度统计
+
+### ⚡ 性能优化
+
+- **后端**：新增 `usage_daily_agg` 预聚合表，大幅提升使用量查询性能
+- **前端**：`StatsView` 串行请求改为 `Promise.all` 并行请求，加速页面加载
+
+### 🔧 改进
+
+- **API 清理与重构**：
+  - 移除旧 V1 `usage` / `records` 端点及相关前端调用
+  - 移除 stats 快捷端点，逻辑内联到 `stats_summary`
+  - 清理已废弃的前端 `UsageView` 组件
+
+---
+
+## [4.0.3] - 2026-02-14
+
+### ⚡ 性能优化
+
+- **后端**：
+  - 优化签到模块架构与性能，减少不必要的数据库操作
+  - 技能模块添加服务端缓存，降低重复 I/O 开销
+
+- **前端**：
+  - 签到前端状态管理重构，减少不必要的组件重渲染
+  - 技能模块前端性能优化
+  - `AddSkillView` 安装状态计算逻辑优化
+
+---
+
+## [4.0.2] - 2026-02-13
+
+### ✨ 新功能
+
+- **跨平台统一技能管理中心**：
+  - 新增统一技能管理 API，支持 Claude / Codex / Gemini 等多平台
+  - 前端新增技能管理中心，支持跨平台技能浏览与一键安装
+  - 新增技能多源导入 API（GitHub、本地、市场）与市场增强功能
+  - 新增技能添加页面（`AddSkillView`），支持从市场直接安装
+
+- **签到功能增强（CDK 与 OAuth）**：
+  - 后端扩展签到支持 CDK 充值码与 Cloudflare WAF 绕过
+  - 前端新增签到 OAuth 向导与 CDK 配置界面
+
+---
+
+## [4.0.1] - 2026-02-13
+
+### 🔧 改进
+
+- **代码质量**：
+  - 清理死代码和冗余 `#[allow(dead_code)]` 属性标注
+  - 消除所有 `unwrap()` / `expect()` 调用，符合严格 Clippy 检查（`-W clippy::unwrap_used`）
+
+---
+
+## [4.0.0] - 2026-02-11
+
+> **重大版本发布** — v4.x 系列正式启动。
+
+此版本将 v3.x 开发分支合并至 main，包含 v3.x 系列所有成熟特性，并作为 v4.x 主线的起始版本对外发布。详细功能参见 [3.19.0] 及更早版本记录。
 
 ---
 
@@ -287,10 +497,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[4.3.0]: https://github.com/bahayonghang/ccr/compare/v4.1.1...v4.3.0
+[4.1.1]: https://github.com/bahayonghang/ccr/compare/v4.1.0...v4.1.1
+[4.1.0]: https://github.com/bahayonghang/ccr/compare/v4.0.9...v4.1.0
+[4.0.9]: https://github.com/bahayonghang/ccr/compare/v4.0.8...v4.0.9
+[4.0.8]: https://github.com/bahayonghang/ccr/compare/v4.0.7...v4.0.8
+[4.0.4]: https://github.com/bahayonghang/ccr/compare/v4.0.3...v4.0.4
+[4.0.3]: https://github.com/bahayonghang/ccr/compare/v4.0.2...v4.0.3
+[4.0.2]: https://github.com/bahayonghang/ccr/compare/v4.0.1...v4.0.2
+[4.0.1]: https://github.com/bahayonghang/ccr/compare/v4.0.0...v4.0.1
+[4.0.0]: https://github.com/bahayonghang/ccr/releases/tag/v4.0.0
+[3.19.0]: https://github.com/bahayonghang/ccr/compare/v3.18.0...v3.19.0
+[3.18.0]: https://github.com/bahayonghang/ccr/compare/v3.17.3...v3.18.0
+[3.17.3]: https://github.com/bahayonghang/ccr/compare/v3.16.0...v3.17.3
+[3.16.0]: https://github.com/bahayonghang/ccr/compare/v3.15.0...v3.16.0
+[3.15.0]: https://github.com/bahayonghang/ccr/compare/v3.14.0...v3.15.0
 [3.14.0]: https://github.com/bahayonghang/ccr/compare/v3.13.0...v3.14.0
 [3.13.0]: https://github.com/bahayonghang/ccr/releases/tag/v3.13.0
 [3.11.0]: https://github.com/bahayonghang/ccr/releases/tag/v3.11.0
-[3.15.0]: https://github.com/bahayonghang/ccr/compare/v3.14.0...v3.15.0
-[3.16.0]: https://github.com/bahayonghang/ccr/compare/v3.15.0...v3.16.0
-[3.17.3]: https://github.com/bahayonghang/ccr/compare/v3.16.0...v3.17.3
-[3.18.0]: https://github.com/bahayonghang/ccr/compare/v3.17.3...v3.18.0

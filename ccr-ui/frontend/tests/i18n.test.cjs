@@ -269,6 +269,75 @@ function calculateOverlap(arr1, arr2) {
   return ((intersection.size / union.size) * 100).toFixed(2);
 }
 
+/**
+ * Decode common JS string escapes for static checks
+ */
+function decodeStringLiteral(raw, quote) {
+  let value = raw;
+
+  if (quote === "'") {
+    value = value.replace(/\\'/g, "'");
+  } else if (quote === '"') {
+    value = value.replace(/\\"/g, '"');
+  }
+
+  return value.replace(/\\\\/g, '\\');
+}
+
+/**
+ * Whether an @ usage is explicitly safe in vue-i18n message strings
+ */
+function isAllowedAtUsage(value, atIndex) {
+  // Explicit literal @ for vue-i18n: {'@'}
+  if (value.slice(atIndex - 2, atIndex + 3) === "{'@'}") {
+    return true;
+  }
+
+  // Allow linked syntax if ever intentionally used in future: @:foo / @.upper:foo
+  const nextChar = value[atIndex + 1] || '';
+  if (nextChar === ':' || nextChar === '.') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Find unsafe bare @ symbols in translation string literals
+ */
+function findUnsafeAtSymbols(content) {
+  const issues = [];
+  const lines = content.split('\n');
+  const stringPattern = /(['"])((?:\\.|(?!\1).)*)\1/g;
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    const lineNumber = index + 1;
+    const keyMatch = line.match(/^\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/);
+    const key = keyMatch ? keyMatch[1] : '(unknown)';
+
+    let match;
+    while ((match = stringPattern.exec(line)) !== null) {
+      const quote = match[1];
+      const rawValue = match[2];
+      const value = decodeStringLiteral(rawValue, quote);
+
+      for (let i = 0; i < value.length; i++) {
+        if (value[i] !== '@') continue;
+        if (isAllowedAtUsage(value, i)) continue;
+
+        issues.push({
+          line: lineNumber,
+          key,
+          value
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
 // ============================================================================
 // Test Suites
 // ============================================================================
@@ -533,10 +602,54 @@ function testSyntax() {
 }
 
 /**
- * Test 7: Coverage Statistics
+ * Test 7: Vue-i18n @ Literal Safety
+ */
+function testAtLiteralSafety() {
+  printHeader('Test 7: Vue-i18n @ Literal Safety');
+
+  const localeFiles = [
+    { name: 'zh-CN.ts', path: ZH_CN_FILE },
+    { name: 'en-US.ts', path: EN_US_FILE }
+  ];
+
+  for (const localeFile of localeFiles) {
+    const content = readFileSafe(localeFile.path);
+    if (!content) {
+      printTest(`Read ${localeFile.name}`, false, 'Cannot read file content', true);
+      continue;
+    }
+
+    const issues = findUnsafeAtSymbols(content);
+    const hasUnsafeAt = issues.length > 0;
+
+    printTest(
+      `${localeFile.name} has no unsafe bare @`,
+      !hasUnsafeAt,
+      hasUnsafeAt
+        ? `Found ${issues.length} unsafe @ usage(s)`
+        : 'All @ usages are explicit literals or linked syntax',
+      true
+    );
+
+    if (hasUnsafeAt) {
+      const maxPreview = 10;
+      issues.slice(0, maxPreview).forEach((issue) => {
+        console.log(error(
+          `    line ${issue.line}, key ${issue.key}: ${issue.value}`
+        ));
+      });
+      if (issues.length > maxPreview) {
+        console.log(error(`    ... and ${issues.length - maxPreview} more`));
+      }
+    }
+  }
+}
+
+/**
+ * Test 8: Coverage Statistics
  */
 function testCoverageStats() {
-  printHeader('Test 7: Coverage Statistics');
+  printHeader('Test 8: Coverage Statistics');
 
   const zhContent = readFileSafe(ZH_CN_FILE);
   const enContent = readFileSafe(EN_US_FILE);
@@ -606,6 +719,7 @@ function main() {
   testRequiredNamespaces(namespaceData);
   testPlaceholders();
   testSyntax();
+  testAtLiteralSafety();
   testCoverageStats();
 
   // Print summary

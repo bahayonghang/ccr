@@ -40,7 +40,6 @@ pub const BORDER_DEFAULT: Color = Color::Rgb(71, 85, 105); // #475569
 // Aliases (kept for semantic clarity)
 // ═══════════════════════════════════════════════════════════
 
-#[allow(dead_code)]
 pub const ACCENT: Color = CODEX_PRIMARY;
 pub const BORDER: Color = BORDER_DEFAULT;
 

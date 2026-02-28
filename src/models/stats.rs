@@ -66,17 +66,6 @@ pub struct TokenUsage {
     pub cache_read_tokens: Option<u32>,
 }
 
-impl TokenUsage {
-    /// 计算总 Token 数
-    #[allow(dead_code)]
-    pub fn total(&self) -> u32 {
-        self.input_tokens
-            + self.output_tokens
-            + self.cache_creation_tokens.unwrap_or(0)
-            + self.cache_read_tokens.unwrap_or(0)
-    }
-}
-
 /// 💵 成本信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cost {
@@ -181,7 +170,6 @@ impl ModelPricing {
     }
 
     /// 计算成本
-    #[allow(dead_code)]
     pub fn calculate_cost(&self, usage: &TokenUsage) -> Cost {
         let input_cost = (usage.input_tokens as f64) * self.input_price / 1_000_000.0;
         let output_cost = (usage.output_tokens as f64) * self.output_price / 1_000_000.0;
@@ -215,7 +203,6 @@ impl ModelPricing {
 
 /// 📊 成本统计汇总
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CostStats {
     /// 💰 总成本
     pub total_cost: f64,
@@ -243,7 +230,6 @@ pub struct CostStats {
 
 /// 🔢 Token 使用统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TokenStats {
     /// 📥 总输入 Token
     pub total_input_tokens: u64,
@@ -269,154 +255,6 @@ pub struct DailyCost {
 
     /// 🔢 记录数
     pub count: usize,
-}
-
-// ============================================================
-// 使用统计模型
-// ============================================================
-
-/// 📈 会话记录
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct SessionRecord {
-    /// 🆔 会话 ID
-    pub session_id: String,
-
-    /// 📁 项目路径
-    pub project: String,
-
-    /// ⏰ 开始时间
-    pub start_time: DateTime<Utc>,
-
-    /// ⏱️ 结束时间（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_time: Option<DateTime<Utc>>,
-
-    /// 💬 消息数量
-    pub message_count: usize,
-
-    /// 🤖 使用的模型
-    pub model: String,
-
-    /// 💰 总成本
-    pub total_cost: f64,
-
-    /// 🏷️ 平台
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub platform: Option<String>,
-}
-
-/// 📊 使用统计
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct UsageStats {
-    /// 📝 总会话数
-    pub total_sessions: usize,
-
-    /// 💬 总消息数
-    pub total_messages: usize,
-
-    /// ⏱️ 平均会话时长（秒）
-    pub avg_session_duration: f64,
-
-    /// 📊 按项目分组
-    pub by_project: HashMap<String, ProjectUsage>,
-
-    /// 🤖 按模型分组
-    pub by_model: HashMap<String, ModelUsage>,
-}
-
-/// 📁 项目使用统计
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct ProjectUsage {
-    /// 📝 会话数
-    pub sessions: usize,
-
-    /// 💬 消息数
-    pub messages: usize,
-
-    /// 💰 成本
-    pub cost: f64,
-}
-
-/// 🤖 模型使用统计
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct ModelUsage {
-    /// 📊 请求次数
-    pub requests: usize,
-
-    /// 🎫 Token 数
-    pub tokens: u64,
-
-    /// 💰 成本
-    pub cost: f64,
-
-    /// 📊 占比
-    pub percentage: f32,
-}
-
-// ============================================================
-// 代码统计模型
-// ============================================================
-
-/// 📝 代码变更记录
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct CodeChangeRecord {
-    /// 🆔 记录 ID
-    pub id: String,
-
-    /// ⏰ 时间戳
-    pub timestamp: DateTime<Utc>,
-
-    /// 📝 会话 ID（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub session_id: Option<String>,
-
-    /// 📁 项目路径
-    pub project: String,
-
-    /// 📊 文件统计
-    pub file_stats: FileStats,
-
-    /// 🔤 语言分布
-    pub language_stats: HashMap<String, LanguageStats>,
-}
-
-/// 📊 文件统计
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct FileStats {
-    /// ✨ 创建文件数
-    pub files_created: usize,
-
-    /// 📝 修改文件数
-    pub files_modified: usize,
-
-    /// 🗑️ 删除文件数
-    pub files_deleted: usize,
-
-    /// ➕ 新增代码行数
-    pub lines_added: usize,
-
-    /// ➖ 删除代码行数
-    pub lines_deleted: usize,
-}
-
-/// 🔤 语言统计
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct LanguageStats {
-    /// 📄 文件数
-    pub files: usize,
-
-    /// ➕ 新增行数
-    pub lines_added: usize,
-
-    /// ➖ 删除行数
-    pub lines_deleted: usize,
 }
 
 // ============================================================

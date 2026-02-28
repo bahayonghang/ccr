@@ -16,6 +16,7 @@ pub struct ConfigManager {
     file_handler: crate::managers::config_file_handler::ConfigFileHandler,
 }
 
+#[allow(dead_code)]
 impl ConfigManager {
     /// 🏗️ 创建新的配置管理器
     pub fn new<P: AsRef<Path>>(config_path: P) -> Self {
@@ -29,8 +30,32 @@ impl ConfigManager {
     }
 
     /// 🏠 使用默认配置路径创建管理器 (Unified 模式)
+    ///
+    /// 根据 `current_platform` 自动选择平台配置
     pub fn with_default() -> Result<Self> {
-        // 🔍 检测 Unified 模式配置路径
+        let (unified_root, unified_path) = Self::resolve_unified_root()?;
+
+        let platform_config_manager = crate::managers::PlatformConfigManager::new(unified_path);
+        let unified_config = platform_config_manager.load_or_create_default()?;
+
+        let platform = &unified_config.current_platform;
+        Self::build_for_platform(&unified_root, platform)
+    }
+
+    /// 🎯 为指定平台创建 ConfigManager
+    ///
+    /// 直接加载指定平台的 profiles.toml，不依赖 `current_platform`。
+    /// 适用于 UI 等需要按平台独立展示配置的场景。
+    ///
+    /// # 参数
+    /// - `platform_name`: 平台名称 ("claude", "codex", "gemini" 等)
+    pub fn for_platform(platform_name: &str) -> Result<Self> {
+        let (unified_root, _) = Self::resolve_unified_root()?;
+        Self::build_for_platform(&unified_root, platform_name)
+    }
+
+    /// 🔍 解析 Unified 模式根目录
+    fn resolve_unified_root() -> Result<(PathBuf, PathBuf)> {
         let (is_unified, unified_config_path) = Self::detect_unified_mode();
 
         if !is_unified {
@@ -44,13 +69,14 @@ impl ConfigManager {
 
         let unified_root = unified_path
             .parent()
-            .ok_or_else(|| CcrError::ConfigError("无法获取 CCR 根目录".into()))?;
+            .ok_or_else(|| CcrError::ConfigError("无法获取 CCR 根目录".into()))?
+            .to_path_buf();
 
-        let platform_config_manager =
-            crate::managers::PlatformConfigManager::new(unified_path.clone());
-        let unified_config = platform_config_manager.load_or_create_default()?;
+        Ok((unified_root, unified_path))
+    }
 
-        let platform = &unified_config.current_platform;
+    /// 🏗️ 根据平台名称构建 ConfigManager（内部共用逻辑）
+    fn build_for_platform(unified_root: &Path, platform: &str) -> Result<Self> {
         let platform_profiles_path = unified_root
             .join("platforms")
             .join(platform)
@@ -113,7 +139,6 @@ impl ConfigManager {
     }
 
     /// 📋 列出所有配置备份文件
-    #[allow(dead_code)]
     pub fn list_backups(&self) -> Result<Vec<PathBuf>> {
         self.file_handler.list_backups()
     }

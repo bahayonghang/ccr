@@ -33,7 +33,11 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     render_header(f, app, chunks[0]);
 
-    if app.is_codex_tab() {
+    // 🖱️ 缓存区域信息供鼠标点击使用
+    app.header_area.set(Some(chunks[0]));
+    app.list_area.set(Some(chunks[1]));
+
+    if app.is_codex_auth_tab() {
         // Codex tab: delegate content + footer to codex_auth embedded renderer
         if let Some(ref codex_app) = app.codex_auth_app {
             codex_auth::ui::draw_embedded(f, codex_app, chunks[1], chunks[2], compact);
@@ -118,7 +122,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
             Line::from(vec![
                 Span::styled(indicator, style),
                 Span::raw(format!("{} ", tab.platform.icon())),
-                Span::styled(tab.platform.display_name(), style),
+                Span::styled(&tab.label, style),
             ])
         })
         .collect();
@@ -350,6 +354,9 @@ fn render_shortcuts(f: &mut Frame, app: &App, area: Rect) {
         sep.clone(),
         Span::styled("r", theme::shortcut_key_style()),
         Span::styled(" Reload", theme::shortcut_desc_style()),
+        sep.clone(),
+        Span::styled("🖱️", theme::shortcut_key_style()),
+        Span::styled(" Mouse", theme::shortcut_desc_style()),
         sep,
         Span::styled("q", theme::shortcut_key_style()),
         Span::styled(" Quit", theme::shortcut_desc_style()),

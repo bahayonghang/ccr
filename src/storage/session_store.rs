@@ -82,7 +82,6 @@ pub struct SessionStore<'a> {
     db: &'a Database,
 }
 
-#[allow(dead_code)]
 impl<'a> SessionStore<'a> {
     /// 创建新的 SessionStore
     pub fn new(db: &'a Database) -> Self {
@@ -301,45 +300,6 @@ impl<'a> SessionStore<'a> {
         }
     }
 
-    /// 根据文件路径获取 Session
-    pub fn get_by_file_path(&self, file_path: &str) -> Result<Option<Session>> {
-        let conn = self.db.conn()?;
-
-        let result = conn.query_row(
-            r#"
-            SELECT id, platform, title, cwd, file_path, file_hash,
-                   created_at, updated_at, message_count,
-                   user_message_count, assistant_message_count, tool_use_count, indexed_at
-            FROM sessions
-            WHERE file_path = ?1
-            "#,
-            [file_path],
-            |row| {
-                Ok(Session {
-                    id: row.get(0)?,
-                    platform: Platform::from_str_safe(&row.get::<_, String>(1)?),
-                    title: row.get(2)?,
-                    cwd: PathBuf::from(row.get::<_, String>(3)?),
-                    file_path: PathBuf::from(row.get::<_, String>(4)?),
-                    file_hash: row.get(5)?,
-                    created_at: parse_datetime(&row.get::<_, String>(6)?),
-                    updated_at: parse_datetime(&row.get::<_, String>(7)?),
-                    message_count: row.get::<_, i64>(8)? as u32,
-                    user_message_count: row.get::<_, i64>(9)? as u32,
-                    assistant_message_count: row.get::<_, i64>(10)? as u32,
-                    tool_use_count: row.get::<_, i64>(11)? as u32,
-                    indexed_at: parse_datetime(&row.get::<_, String>(12)?),
-                })
-            },
-        );
-
-        match result {
-            Ok(session) => Ok(Some(session)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(CcrError::DatabaseError(format!("查询 session 失败: {}", e))),
-        }
-    }
-
     /// 获取文件哈希（用于增量更新检查）
     pub fn get_file_hash(&self, file_path: &str) -> Result<Option<String>> {
         let conn = self.db.conn()?;
@@ -424,7 +384,6 @@ impl<'a> SessionStore<'a> {
     }
 
     /// 删除所有 Session
-    #[allow(dead_code)]
     pub fn clear_all(&self) -> Result<usize> {
         let conn = self.db.conn()?;
         let count = conn

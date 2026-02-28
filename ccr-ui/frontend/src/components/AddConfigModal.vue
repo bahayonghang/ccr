@@ -240,6 +240,7 @@ import { addConfig } from '@/api'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
+import { useUIStore } from '@/stores/ui'
 import type { UpdateConfigRequest } from '@/types'
 
 const props = defineProps<{ isOpen: boolean }>()
@@ -258,6 +259,7 @@ useEscapeKey(handleClose, isOpenRef)
 watch(isOpenRef, val => val && setTimeout(() => focusFirstElement(), 100))
 
 // Form Logic
+const uiStore = useUIStore()
 const saving = ref(false)
 const selectedTemplate = ref<string | null>(null)
 const tagsInput = ref('')
@@ -291,9 +293,12 @@ const handleSave = async () => {
   try {
     const tags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean)
     await addConfig({ ...formData.value, tags: tags.length ? tags : undefined })
+    uiStore.showSuccess('Configuration added successfully')
     emit('saved')
     handleClose()
-  } catch (e: any) { alert(e.message) }
+  } catch (e: any) { 
+    uiStore.showError(e.message || 'Failed to add configuration')
+  }
   finally { saving.value = false }
 }
 

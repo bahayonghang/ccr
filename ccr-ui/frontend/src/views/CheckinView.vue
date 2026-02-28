@@ -660,6 +660,14 @@
             </svg>
             <span>添加账号</span>
           </button>
+          <button
+            :disabled="builtinProviders.filter(p => p.oauth_config).length === 0"
+            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="showOAuthWizard = true"
+          >
+            <Shield class="w-5 h-5" />
+            <span>OAuth 登录</span>
+          </button>
         </div>
 
         <!-- 账号列表 -->
@@ -1411,7 +1419,72 @@
               通常为 5 位数字，可在 Network 标签的请求头中找到 "New-Api-User"
             </p>
           </div>
-          
+
+          <!-- CDK 配置区域（仅当提供商支持 CDK 时显示） -->
+          <div
+            v-if="selectedProviderCdkConfig"
+            class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4 space-y-4"
+          >
+            <p class="text-sm font-medium text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+              🎰 CDK 充值配置
+              <span class="text-xs font-normal text-amber-600 dark:text-amber-400">
+                ({{ selectedProviderCdkConfig.cdk_type }} - 可选)
+              </span>
+            </p>
+            <p class="text-xs text-amber-700 dark:text-amber-300/80">
+              此提供商支持 CDK 充值码自动获取，签到后会自动尝试获取并充值。
+              需要配置对应福利站的登录凭证。
+            </p>
+
+            <!-- runawaytime: fuli cookies -->
+            <div v-if="selectedProviderCdkConfig.cdk_type === 'runawaytime'">
+              <label class="block text-sm font-medium text-amber-800 dark:text-amber-300 mb-1">
+                fuli.hxi.me Cookies
+              </label>
+              <textarea
+                v-model="accountForm.fuli_cookies"
+                rows="3"
+                class="block w-full px-3 py-2 border border-amber-300 dark:border-amber-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-xs resize-y placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                placeholder="{&quot;session&quot;: &quot;xxx&quot;, &quot;token&quot;: &quot;xxx&quot;}"
+              />
+              <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                输入 fuli.hxi.me 的登录 Cookies（JSON 格式）
+              </p>
+            </div>
+
+            <!-- b4u: cdk cookies -->
+            <div v-if="selectedProviderCdkConfig.cdk_type === 'b4u'">
+              <label class="block text-sm font-medium text-amber-800 dark:text-amber-300 mb-1">
+                tw.b4u.qzz.io Cookies
+              </label>
+              <textarea
+                v-model="accountForm.b4u_cdk_cookies"
+                rows="3"
+                class="block w-full px-3 py-2 border border-amber-300 dark:border-amber-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-xs resize-y placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                placeholder="{&quot;session&quot;: &quot;xxx&quot;}"
+              />
+              <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                输入 tw.b4u.qzz.io 的登录 Cookies（JSON 格式）
+              </p>
+            </div>
+
+            <!-- x666: access_token -->
+            <div v-if="selectedProviderCdkConfig.cdk_type === 'x666'">
+              <label class="block text-sm font-medium text-amber-800 dark:text-amber-300 mb-1">
+                Access Token (JWT)
+              </label>
+              <input
+                v-model="accountForm.x666_access_token"
+                type="text"
+                class="block w-full px-3 py-2 border border-amber-300 dark:border-amber-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-xs placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                placeholder="eyJhbGciOiJIUzI1NiIs..."
+              >
+              <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                输入 up.x666.me 的 JWT Access Token
+              </p>
+            </div>
+          </div>
+
           <!-- 帮助提示 -->
           <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4">
             <p class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1.5">
@@ -1498,6 +1571,15 @@
     :is-finished="isCheckinFinished"
     @close="closeCheckinModal"
   />
+
+  <!-- OAuth 引导登录弹窗 -->
+  <OAuthWizardModal
+    :is-open="showOAuthWizard"
+    :builtin-providers="builtinProviders"
+    @update:is-open="showOAuthWizard = $event"
+    @close="showOAuthWizard = false"
+    @success="handleOAuthSuccess"
+  />
 </template>
 
 <script setup lang="ts">
@@ -1520,6 +1602,7 @@ import {
 } from 'lucide-vue-next'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import CheckinProgressModal from '@/components/CheckinProgressModal.vue'
+import OAuthWizardModal from '@/views/checkin/components/OAuthWizardModal.vue'
 import {
   listCheckinProviders,
   createCheckinProvider,
@@ -1552,6 +1635,7 @@ import type {
   ImportPreviewResponse,
   BuiltinProvider,
   CheckinLogEntry,
+  CdkExtraConfig,
 } from '@/types/checkin'
 
 // 状态
@@ -1567,6 +1651,7 @@ const searchQuery = ref('')
 const providerFilter = ref<string>('all')
 const showCheckinConfirm = ref(false)
 const showProgressModal = ref(false)
+const showOAuthWizard = ref(false)
 const isCheckinFinished = ref(false)
 const checkinProgress = ref({ total: 0, completed: 0, currentAccountName: '' })
 const checkinLogs = ref<CheckinLogEntry[]>([])
@@ -1714,6 +1799,19 @@ const accountForm = ref({
   session: '', // 简化：只需要输入 session 值，后台自动转换成 {"session": "xxx"}
   api_user: '',
   enabled: true,
+  // CDK 扩展配置
+  fuli_cookies: '',       // runawaytime: fuli.hxi.me cookies JSON
+  b4u_cdk_cookies: '',    // b4u: tw.b4u.qzz.io cookies JSON
+  x666_access_token: '',  // x666: JWT access_token
+})
+
+// CDK 配置：根据选中的提供商查找对应的内置 CDK 配置
+const selectedProviderCdkConfig = computed(() => {
+  if (!accountForm.value.provider_id) return null
+  const provider = providers.value.find(p => p.id === accountForm.value.provider_id)
+  if (!provider) return null
+  const builtin = builtinProviders.value.find(bp => bp.name === provider.name)
+  return builtin?.cdk_config || null
 })
 
 // 导入导出
@@ -1753,6 +1851,80 @@ const loadAllData = async () => {
   }
 }
 
+interface CheckinRefreshOptions {
+  reloadProviders?: boolean
+  reloadAccounts?: boolean
+  reloadRecords?: boolean
+  reloadStats?: boolean
+  reloadBuiltin?: boolean
+  reloadFailedHistory?: boolean
+}
+
+const applyBalanceSnapshot = (snapshot: {
+  account_id: string
+  remaining_quota: number
+  total_quota: number
+  used_quota: number
+  currency: string
+  recorded_at: string
+}) => {
+  const index = accounts.value.findIndex(a => a.id === snapshot.account_id)
+  if (index < 0) return
+  const account = accounts.value[index]
+  accounts.value[index] = {
+    ...account,
+    latest_balance: snapshot.remaining_quota,
+    total_quota: snapshot.total_quota,
+    total_consumed: snapshot.used_quota,
+    balance_currency: snapshot.currency,
+    last_balance_check_at: snapshot.recorded_at,
+  }
+}
+
+const refreshCheckinData = async (options: CheckinRefreshOptions = {}) => {
+  const {
+    reloadProviders = false,
+    reloadAccounts = true,
+    reloadRecords = true,
+    reloadStats = true,
+    reloadBuiltin = false,
+    reloadFailedHistory = true,
+  } = options
+
+  const tasks: Promise<any>[] = []
+
+  if (reloadProviders) {
+    tasks.push(listCheckinProviders().then((res) => {
+      providers.value = res.providers
+    }))
+  }
+  if (reloadAccounts) {
+    tasks.push(listCheckinAccounts().then((res) => {
+      accounts.value = res.accounts
+    }))
+  }
+  if (reloadRecords) {
+    tasks.push(listCheckinRecords({ page: 1, page_size: 100 }).then((res) => {
+      records.value = res.records
+    }))
+  }
+  if (reloadStats) {
+    tasks.push(getTodayCheckinStats().then((res) => {
+      todayStats.value = res
+    }))
+  }
+  if (reloadBuiltin) {
+    tasks.push(listBuiltinProviders().then((res) => {
+      builtinProviders.value = res.providers
+    }))
+  }
+
+  await Promise.all(tasks)
+  if (reloadFailedHistory) {
+    await loadFailedHistory()
+  }
+}
+
 // 添加内置提供商
 const addBuiltinProvider = async (builtinId: string) => {
   try {
@@ -1776,6 +1948,12 @@ const closeCheckinModal = () => {
   setTimeout(() => {
     isCheckinFinished.value = false
   }, 300)
+}
+
+// OAuth 登录成功后刷新数据
+const handleOAuthSuccess = async () => {
+  showOAuthWizard.value = false
+  await loadAllData()
 }
 
 // 执行全部签到（逐个签到模式，实现实时进度）
@@ -1882,9 +2060,12 @@ const executeCheckinAll = async () => {
     // 标记签到完成
     isCheckinFinished.value = true
 
-    await loadAllData()
-    // 签到完成后自动刷新余额
-    await refreshAllBalances()
+    await refreshCheckinData({
+      reloadAccounts: true,
+      reloadRecords: true,
+      reloadStats: true,
+      reloadFailedHistory: true,
+    })
 
     // 如果有失败的签到，自动滚动到结果区域确保用户能看到详情
     if (failedCount > 0) {
@@ -1908,10 +2089,20 @@ const refreshAllBalances = async () => {
   const enabledAccounts = accounts.value.filter(a => a.enabled)
   
   try {
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       enabledAccounts.map(account => queryCheckinBalance(account.id))
     )
-    await loadAllData()
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        applyBalanceSnapshot(result.value)
+      }
+    }
+    await refreshCheckinData({
+      reloadAccounts: false,
+      reloadRecords: true,
+      reloadStats: true,
+      reloadFailedHistory: true,
+    })
   } catch (e: any) {
     console.error('Batch refresh failed:', e)
   } finally {
@@ -1923,8 +2114,14 @@ const refreshAllBalances = async () => {
 const refreshAccountBalance = async (accountId: string) => {
   openMenuAccountId.value = null
   try {
-    await queryCheckinBalance(accountId)
-    await loadAllData()
+    const snapshot = await queryCheckinBalance(accountId)
+    applyBalanceSnapshot(snapshot)
+    await refreshCheckinData({
+      reloadAccounts: false,
+      reloadRecords: false,
+      reloadStats: true,
+      reloadFailedHistory: false,
+    })
   } catch (e: any) {
     alert('刷新余额失败: ' + (e.message || '未知错误'))
   }
@@ -1934,7 +2131,12 @@ const refreshAccountBalance = async (accountId: string) => {
 const executeCheckinSingle = async (accountId: string) => {
   try {
     await checkinAccount(accountId)
-    await loadAllData()
+    await refreshCheckinData({
+      reloadAccounts: true,
+      reloadRecords: true,
+      reloadStats: true,
+      reloadFailedHistory: true,
+    })
   } catch (e: any) {
     alert('签到失败: ' + (e.message || '未知错误'))
     console.error('Single checkin failed:', e)
@@ -2036,6 +2238,12 @@ const openAccountModal = async (account?: AccountInfo) => {
   
   if (account) {
     // 编辑已有账号：从后端获取解密后的 cookies
+    // 解析已有的 extra_config
+    let existingExtra: CdkExtraConfig = {}
+    try {
+      existingExtra = account.extra_config ? JSON.parse(account.extra_config) : {}
+    } catch { /* ignore */ }
+
     try {
       const { getCheckinAccountCookies } = await import('@/api/client')
       const cookiesData = await getCheckinAccountCookies(account.id)
@@ -2045,6 +2253,9 @@ const openAccountModal = async (account?: AccountInfo) => {
         session: extractSessionFromJson(cookiesData.cookies_json), // 提取 session 值
         api_user: cookiesData.api_user || '',
         enabled: account.enabled,
+        fuli_cookies: existingExtra.fuli_cookies ? JSON.stringify(existingExtra.fuli_cookies) : '',
+        b4u_cdk_cookies: existingExtra.b4u_cdk_cookies ? JSON.stringify(existingExtra.b4u_cdk_cookies) : '',
+        x666_access_token: existingExtra.x666_access_token || '',
       }
     } catch (e: any) {
       console.error('Failed to get cookies:', e)
@@ -2055,6 +2266,9 @@ const openAccountModal = async (account?: AccountInfo) => {
         session: '',
         api_user: account.api_user || '',
         enabled: account.enabled,
+        fuli_cookies: existingExtra.fuli_cookies ? JSON.stringify(existingExtra.fuli_cookies) : '',
+        b4u_cdk_cookies: existingExtra.b4u_cdk_cookies ? JSON.stringify(existingExtra.b4u_cdk_cookies) : '',
+        x666_access_token: existingExtra.x666_access_token || '',
       }
     }
   } else {
@@ -2065,6 +2279,9 @@ const openAccountModal = async (account?: AccountInfo) => {
       session: '',
       api_user: '',
       enabled: true,
+      fuli_cookies: '',
+      b4u_cdk_cookies: '',
+      x666_access_token: '',
     }
   }
   showAccountModal.value = true
@@ -2074,11 +2291,35 @@ const saveAccount = async () => {
   try {
     // 将 session 值转换为 cookies_json 格式
     const cookiesJson = sessionToCookiesJson(accountForm.value.session)
-    
+
+    // 构建 extra_config JSON
+    const extraConfig: CdkExtraConfig = {}
+    if (accountForm.value.fuli_cookies) {
+      try {
+        extraConfig.fuli_cookies = JSON.parse(accountForm.value.fuli_cookies)
+      } catch {
+        alert('fuli cookies JSON 格式错误')
+        return
+      }
+    }
+    if (accountForm.value.b4u_cdk_cookies) {
+      try {
+        extraConfig.b4u_cdk_cookies = JSON.parse(accountForm.value.b4u_cdk_cookies)
+      } catch {
+        alert('b4u cookies JSON 格式错误')
+        return
+      }
+    }
+    if (accountForm.value.x666_access_token) {
+      extraConfig.x666_access_token = accountForm.value.x666_access_token
+    }
+    const extraConfigJson = Object.keys(extraConfig).length > 0 ? JSON.stringify(extraConfig) : '{}'
+
     if (editingAccount.value) {
-      const updateData: { name?: string; cookies_json?: string; api_user?: string; enabled?: boolean } = {
+      const updateData: { name?: string; cookies_json?: string; api_user?: string; enabled?: boolean; extra_config?: string } = {
         name: accountForm.value.name,
         enabled: accountForm.value.enabled,
+        extra_config: extraConfigJson,
       }
       if (cookiesJson) {
         updateData.cookies_json = cookiesJson
@@ -2097,6 +2338,7 @@ const saveAccount = async () => {
         name: accountForm.value.name,
         cookies_json: cookiesJson,
         api_user: accountForm.value.api_user || '',
+        extra_config: extraConfigJson,
       })
     }
     showAccountModal.value = false

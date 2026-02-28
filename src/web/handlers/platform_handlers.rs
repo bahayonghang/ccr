@@ -1,6 +1,7 @@
 // 🆕 平台管理处理器 (Unified Mode)
 // 处理多平台配置管理请求
 
+use crate::application::{SwitchPlatformRequest as AppSwitchPlatformRequest, switch_platform};
 use crate::managers::{ConfigManager, PlatformConfigManager};
 use crate::web::{
     error_utils::{spawn_blocking_string, *},
@@ -85,37 +86,17 @@ pub async fn handle_switch_platform(Json(req): Json<SwitchPlatformRequest>) -> R
         return bad_request("平台切换仅在 Unified 模式下可用");
     }
 
-    let unified_path = match unified_config_path {
+    let _unified_path = match unified_config_path {
         Some(path) => path,
         None => return internal_server_error("无法获取统一配置路径"),
     };
 
     let platform_name = req.platform_name.clone();
     let result = spawn_blocking_string(move || {
-        let platform_manager = PlatformConfigManager::new(unified_path);
-
-        // 读取配置
-        let mut unified_config = platform_manager.load()?;
-
-        // 检查平台是否存在
-        if !unified_config.platforms.contains_key(&platform_name) {
-            return Err(crate::core::error::CcrError::ConfigSectionNotFound(
-                format!("平台 '{}'", platform_name),
-            ));
-        }
-
-        // 切换平台
-        unified_config.current_platform = platform_name.clone();
-
-        // 更新 last_used
-        if let Some(entry) = unified_config.platforms.get_mut(&platform_name) {
-            entry.last_used = Some(chrono::Utc::now().to_rfc3339());
-        }
-
-        // 保存配置
-        platform_manager.save(&unified_config)?;
-
-        Ok::<String, crate::core::error::CcrError>(platform_name)
+        let result = switch_platform(AppSwitchPlatformRequest {
+            platform_name: platform_name.clone(),
+        })?;
+        Ok::<String, crate::core::error::CcrError>(result.new_platform)
     })
     .await;
 

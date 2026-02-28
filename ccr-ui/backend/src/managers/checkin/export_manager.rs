@@ -273,6 +273,7 @@ impl ExportManager {
                     updated_at: None,
                     last_checkin_at: None,
                     last_balance_check_at: None,
+                    extra_config: "{}".to_string(),
                 });
             }
 

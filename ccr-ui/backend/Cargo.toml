@@ -1,6 +1,6 @@
 [package]
 name = "ccr-ui-backend"
-version = "4.0.0"
+version = "4.3.0"
 edition = "2024"
 
 [dependencies]
@@ -38,7 +38,18 @@ tower-http = { version = "0.6.8", features = [
 futures-util = "0.3" # 异步编程工具集 (Stream/Future 扩展)
 
 # Async runtime
-tokio = { version = "1.49.0", features = ["full"] } # 异步运行时 (全功能版)
+tokio = { version = "1.49.0", features = [
+    "rt-multi-thread",
+    "fs",
+    "io-util",
+    "macros",
+    "net",
+    "signal",
+    "sync",
+    "time",
+    "process",
+] } # 异步运行时（显式功能，避免编译无用子系统）
+tokio-util = { version = "0.7", features = ["rt"] } # 异步工具 (CancellationToken)
 
 # Serialization
 serde = { version = "1.0.228", features = ["derive"] } # 序列化框架
@@ -90,11 +101,14 @@ sysinfo = "0.38.1"  # 系统状态监控 (统一版本)
 
 # HTTP client for checking updates and checkin API calls
 # NOTE: Enable `gzip` to transparently decode provider responses (see NeuraDock).
-reqwest = { version = "0.13.1", features = [
+# Note: default-features = false disables rustls + aws-lc-rs (needs cmake/C build).
+# native-tls uses the OS TLS stack (SChannel on Windows), much faster to compile.
+reqwest = { version = "0.13.1", default-features = false, features = [
     "blocking",
     "json",
     "cookies",
     "gzip",
+    "native-tls",
 ] } # HTTP 客户端 (支持 Cookie/Gzip)
 
 # YAML support (for special cases)
@@ -105,6 +119,7 @@ tempfile = "3.24.0" # 临时文件处理
 
 # File system utilities
 walkdir = "2.5" # 递归目录遍历
+rfd = "0.15"    # 原生文件对话框 (文件夹选择器)
 
 # UUID generation
 uuid = { version = "1.18", features = ["v4", "serde"] } # UUID 生成

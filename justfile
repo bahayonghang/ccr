@@ -182,6 +182,7 @@ _help-linux:
     @printf '%s\n' "                                → 测试 → 构建 → 安全审计"
     @printf '%s\n' "                                → 前端完整检查"
     @printf '%s\n' ""
+
     @printf '\n'
 
 [private]
@@ -217,6 +218,7 @@ _help-macos:
     @printf '%s\n' "                                → 测试 → 构建 → 安全审计"
     @printf '%s\n' "                                → 前端完整检查"
     @printf '%s\n' ""
+
     @printf '\n'
 
 # ═══════════════════════════════════════════════════════════
@@ -412,8 +414,15 @@ frontend-check-quick: frontend-typecheck frontend-lint
 # 📦 安装与管理命令
 # ═══════════════════════════════════════════════════════════
 
+# 🌐 构建嵌入式 Web 前端 (ccr-ui/web)
+web-build:
+    @just header "🌐 构建嵌入式 Web 前端"
+    @just info "📍 项目路径: ccr-ui/web"
+    cd ccr-ui/web && npm install --silent && npm run build
+    @just success "Web 前端构建完成 → ccr-ui/web/dist/"
+
 # 📦 安装到本地 (~/.cargo/bin)
-install:
+install: web-build
     @just header "📦 安装到本地"
     @just info "📍 目标路径: ~/.cargo/bin/{{BIN}}"
     @just info "🔒 模式: 锁定依赖版本 (--locked)"
@@ -421,7 +430,7 @@ install:
     @just success "安装完成"
 
 # ♻️ 强制重新安装
-reinstall:
+reinstall: web-build
     @just info "♻️ 强制重新安装"
     @just warn "模式: 覆盖现有安装"
     cargo install --path . --locked --force

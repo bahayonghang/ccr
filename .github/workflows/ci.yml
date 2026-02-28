@@ -35,6 +35,13 @@ jobs:
         with:
           components: clippy
 
+      - name: Install Linux native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libwayland-dev
+          pkg-config --version
+          pkg-config --modversion wayland-client
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
@@ -70,6 +77,14 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+
+      - name: Install Linux native dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libwayland-dev
+          pkg-config --version
+          pkg-config --modversion wayland-client
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -108,6 +123,13 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libwayland-dev
+          pkg-config --version
+          pkg-config --modversion wayland-client
 
       - name: Cache cargo registry
         uses: actions/cache@v4

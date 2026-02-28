@@ -9,7 +9,7 @@ use std::path::Path;
 use tracing::{debug, error, info, warn};
 
 use super::repositories::{checkin_repo, ui_state_repo};
-use super::schema::{CREATE_TABLES_SQL, INSERT_MIGRATION_SQL, SCHEMA_VERSION};
+use super::schema::{CREATE_TABLES_SQL, INSERT_MIGRATION_SQL};
 use crate::models::checkin::balance::BalanceSnapshot;
 use crate::models::checkin::{CheckinAccount, CheckinProvider, CheckinRecord};
 use crate::models::ui_state::FavoriteCommand;
@@ -58,19 +58,13 @@ pub fn is_migration_applied(conn: &Connection, version: i32) -> MigrationResult<
 /// Run initial schema migration (version 1)
 /// Creates all tables and indexes as defined in schema.rs
 pub fn run_initial_migration(conn: &Connection) -> MigrationResult<()> {
-    // Check if already applied
-    if is_migration_applied(conn, SCHEMA_VERSION)? {
-        info!(
-            "Migration version {} already applied, skipping",
-            SCHEMA_VERSION
-        );
+    // Check if already applied (always version 1 for initial schema)
+    if is_migration_applied(conn, 1)? {
+        info!("Migration version 1 (initial_schema) already applied, skipping");
         return Ok(());
     }
 
-    info!(
-        "Running initial schema migration (version {})",
-        SCHEMA_VERSION
-    );
+    info!("Running initial schema migration (version 1)");
 
     // Execute schema creation in a transaction
     conn.execute_batch(CREATE_TABLES_SQL)?;
@@ -79,7 +73,7 @@ pub fn run_initial_migration(conn: &Connection) -> MigrationResult<()> {
     let now = Utc::now().to_rfc3339();
     conn.execute(
         INSERT_MIGRATION_SQL,
-        rusqlite::params![SCHEMA_VERSION, "initial_schema", now],
+        rusqlite::params![1, "initial_schema", now],
     )?;
 
     info!("Initial schema migration completed successfully");
@@ -478,11 +472,284 @@ fn import_waf_cookies(_conn: &Connection, home_dir: &Path) -> MigrationResult<us
     Ok(0)
 }
 
+/// Run migration v2: Add extra_config column to checkin_accounts
+/// Stores CDK credentials, OAuth tokens, and other extensible config as JSON
+pub fn run_migration_v2(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 2)? {
+        debug!("Migration v2 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v2: add extra_config to checkin_accounts");
+
+    // ALTER TABLE to add extra_config column for existing databases
+    // New databases already have this column from CREATE_TABLES_SQL
+    conn.execute_batch(
+        "ALTER TABLE checkin_accounts ADD COLUMN extra_config TEXT NOT NULL DEFAULT '{}'",
+    )
+    .or_else(|e| {
+        // Column may already exist if DB was freshly created with v2 schema
+        if e.to_string().contains("duplicate column name") {
+            debug!("Column extra_config already exists, skipping ALTER TABLE");
+            Ok(())
+        } else {
+            Err(e)
+        }
+    })?;
+
+    // Record migration
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![2, "add_extra_config", now],
+    )?;
+
+    info!("Migration v2 completed successfully");
+    Ok(())
+}
+
+/// Run migration v3: Add extracted columns to usage_records + model_pricing table
+/// Enables efficient aggregation queries without JSON parsing
+pub fn run_migration_v3(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 3)? {
+        debug!("Migration v3 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v3: usage_records extracted columns + model_pricing");
+
+    // 为 usage_records 添加提取列（幂等：忽略 duplicate column 错误）
+    let alter_stmts = [
+        "ALTER TABLE usage_records ADD COLUMN model TEXT",
+        "ALTER TABLE usage_records ADD COLUMN input_tokens INTEGER DEFAULT 0",
+        "ALTER TABLE usage_records ADD COLUMN output_tokens INTEGER DEFAULT 0",
+        "ALTER TABLE usage_records ADD COLUMN cache_read_tokens INTEGER DEFAULT 0",
+        "ALTER TABLE usage_records ADD COLUMN cost_usd REAL DEFAULT 0",
+    ];
+    for stmt in &alter_stmts {
+        conn.execute_batch(stmt).or_else(|e| {
+            if e.to_string().contains("duplicate column name") {
+                debug!("Column already exists, skipping: {}", stmt);
+                Ok(())
+            } else {
+                Err(e)
+            }
+        })?;
+    }
+
+    // 创建索引
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_usage_records_model ON usage_records (model);
+         CREATE INDEX IF NOT EXISTS idx_usage_records_recorded_at ON usage_records (recorded_at);",
+    )?;
+
+    // 创建 model_pricing 表
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS model_pricing (
+            model_id TEXT PRIMARY KEY,
+            display_name TEXT NOT NULL,
+            input_cost_per_million REAL NOT NULL,
+            output_cost_per_million REAL NOT NULL,
+            cache_read_cost_per_million REAL NOT NULL DEFAULT 0
+        );",
+    )?;
+
+    // 预置模型价格
+    conn.execute_batch(
+        "INSERT OR IGNORE INTO model_pricing VALUES ('claude-sonnet-4-20250514','Claude Sonnet 4',3,15,0.3);
+         INSERT OR IGNORE INTO model_pricing VALUES ('claude-opus-4-20250514','Claude Opus 4',15,75,1.5);
+         INSERT OR IGNORE INTO model_pricing VALUES ('claude-haiku-3-5-20241022','Claude Haiku 3.5',0.8,4,0.08);
+         INSERT OR IGNORE INTO model_pricing VALUES ('gpt-4.1','GPT-4.1',2,8,0.5);
+         INSERT OR IGNORE INTO model_pricing VALUES ('gemini-2.5-pro','Gemini 2.5 Pro',1.25,10,0.315);
+         INSERT OR IGNORE INTO model_pricing VALUES ('gemini-2.5-flash','Gemini 2.5 Flash',0.15,0.6,0.0375);",
+    )?;
+
+    // 回填现有记录：从 record_json 提取字段
+    backfill_usage_records(conn)?;
+
+    // 记录迁移
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![3, "usage_extracted_columns", now],
+    )?;
+
+    info!("Migration v3 completed successfully");
+    Ok(())
+}
+
+/// 回填 usage_records 的提取列（从 record_json 解析）
+fn backfill_usage_records(conn: &Connection) -> MigrationResult<()> {
+    // 读取所有需要回填的记录（model 为 NULL 的）
+    let mut select_stmt =
+        conn.prepare("SELECT id, record_json FROM usage_records WHERE model IS NULL")?;
+
+    let rows: Vec<(String, String)> = select_stmt
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    if rows.is_empty() {
+        return Ok(());
+    }
+
+    info!(
+        "Backfilling {} usage records with extracted fields",
+        rows.len()
+    );
+
+    // 加载定价表
+    let mut pricing_stmt = conn.prepare(
+        "SELECT model_id, input_cost_per_million, output_cost_per_million, cache_read_cost_per_million FROM model_pricing",
+    )?;
+    let pricing: std::collections::HashMap<String, (f64, f64, f64)> = pricing_stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                (
+                    row.get::<_, f64>(1)?,
+                    row.get::<_, f64>(2)?,
+                    row.get::<_, f64>(3)?,
+                ),
+            ))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    let mut update_stmt = conn.prepare(
+        "UPDATE usage_records SET model=?1, input_tokens=?2, output_tokens=?3, cache_read_tokens=?4, cost_usd=?5 WHERE id=?6",
+    )?;
+
+    for (id, json_str) in &rows {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(json_str) {
+            // 提取 model
+            let model = json
+                .get("model")
+                .or_else(|| json.get("message").and_then(|m| m.get("model")))
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown");
+
+            // 提取 usage
+            let usage = json
+                .get("usage")
+                .or_else(|| json.get("message").and_then(|m| m.get("usage")));
+
+            let (input, output, cache) = if let Some(u) = usage {
+                (
+                    u.get("input_tokens").and_then(|v| v.as_i64()).unwrap_or(0),
+                    u.get("output_tokens").and_then(|v| v.as_i64()).unwrap_or(0),
+                    u.get("cache_read_input_tokens")
+                        .and_then(|v| v.as_i64())
+                        .unwrap_or(0),
+                )
+            } else {
+                (0, 0, 0)
+            };
+
+            // 计算费用：匹配定价表（模糊匹配前缀）
+            let cost = pricing
+                .iter()
+                .find(|(k, _)| model.starts_with(k.as_str()) || k.starts_with(model))
+                .map(|(_, (ic, oc, cc))| {
+                    (input as f64 * ic + output as f64 * oc + cache as f64 * cc) / 1_000_000.0
+                })
+                .unwrap_or(0.0);
+
+            let _ = update_stmt.execute(rusqlite::params![model, input, output, cache, cost, id]);
+        }
+    }
+
+    info!("Backfill complete");
+    Ok(())
+}
+
+/// Run migration v4: Add composite indexes for usage analytics pagination/filtering
+pub fn run_migration_v4(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 4)? {
+        debug!("Migration v4 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v4: add usage composite indexes");
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_usage_records_platform_model_recorded_at_id
+             ON usage_records (platform, model, recorded_at DESC, id DESC);
+         CREATE INDEX IF NOT EXISTS idx_usage_records_platform_recorded_at_id
+             ON usage_records (platform, recorded_at DESC, id DESC);",
+    )?;
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![4, "usage_composite_indexes", now],
+    )?;
+
+    info!("Migration v4 completed successfully");
+    Ok(())
+}
+
+/// Run migration v5: Create usage_daily_agg pre-aggregation table
+/// Enables fast heatmap and trend queries without scanning usage_records
+pub fn run_migration_v5(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 5)? {
+        debug!("Migration v5 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v5: usage_daily_agg pre-aggregation table");
+
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS usage_daily_agg (
+            date TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            request_count INTEGER DEFAULT 0,
+            input_tokens INTEGER DEFAULT 0,
+            output_tokens INTEGER DEFAULT 0,
+            cache_read_tokens INTEGER DEFAULT 0,
+            cost_usd REAL DEFAULT 0,
+            PRIMARY KEY (date, platform)
+        );",
+    )?;
+
+    // Backfill from existing usage_records
+    conn.execute_batch(
+        "INSERT OR REPLACE INTO usage_daily_agg (date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd)
+         SELECT DATE(recorded_at), platform, COUNT(*),
+                COALESCE(SUM(input_tokens),0), COALESCE(SUM(output_tokens),0),
+                COALESCE(SUM(cache_read_tokens),0), COALESCE(SUM(cost_usd),0)
+         FROM usage_records
+         GROUP BY DATE(recorded_at), platform;",
+    )?;
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![5, "usage_daily_agg", now],
+    )?;
+
+    info!("Migration v5 completed successfully");
+    Ok(())
+}
+
 /// Run all migrations (schema + legacy data import)
 /// This is the main entry point called during initialization
 pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult<()> {
-    // Step 1: Run schema migration
+    // Step 1: Run schema migration (v1 - initial tables)
     run_initial_migration(conn)?;
+
+    // Step 1.5: Run v2 migration (extra_config column)
+    run_migration_v2(conn)?;
+
+    // Step 1.6: Run v3 migration (usage extracted columns + model_pricing)
+    run_migration_v3(conn)?;
+
+    // Step 1.7: Run v4 migration (usage composite indexes)
+    run_migration_v4(conn)?;
+
+    // Step 1.8: Run v5 migration (usage daily aggregation table)
+    run_migration_v5(conn)?;
 
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {
@@ -556,6 +823,63 @@ mod tests {
         let count: i32 = conn
             .query_row(
                 "SELECT COUNT(*) FROM migrations WHERE version = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_migration_v2() {
+        let conn = Connection::open_in_memory().unwrap();
+
+        // Run v1 first
+        run_initial_migration(&conn).unwrap();
+
+        // Run v2
+        run_migration_v2(&conn).unwrap();
+
+        // Verify v2 migration recorded
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 2",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+
+        // Verify extra_config column exists by inserting a test account
+        conn.execute(
+            "INSERT INTO checkin_accounts (id, provider_id, name, cookies_json_encrypted, api_user, enabled, created_at, extra_config)
+             VALUES ('test', 'p1', 'Test', 'enc', 'user', 1, '2024-01-01T00:00:00Z', '{\"cdk_type\":\"test\"}')",
+            [],
+        )
+        .unwrap();
+
+        let extra: String = conn
+            .query_row(
+                "SELECT extra_config FROM checkin_accounts WHERE id = 'test'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(extra, r#"{"cdk_type":"test"}"#);
+    }
+
+    #[test]
+    fn test_migration_v2_idempotent() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+
+        // Run v2 twice - should not fail
+        run_migration_v2(&conn).unwrap();
+        run_migration_v2(&conn).unwrap();
+
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 2",
                 [],
                 |row| row.get(0),
             )

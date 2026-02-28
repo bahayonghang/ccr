@@ -7,7 +7,7 @@ CCR supports managing configurations for multiple AI CLI platforms from a single
 | Platform | Status | Description | Settings Path |
 |----------|--------|-------------|---------------|
 | [**Claude Code**](./claude) | ✅ Fully Implemented | Anthropic's official CLI | `~/.claude/settings.json` |
-| [**Codex**](./codex) | ✅ Fully Implemented | Codex CLI (OpenAI-compatible providers + GitHub Copilot compatible mode) | `~/.codex/config.toml` |
+| [**Codex**](./codex) | ✅ Fully Implemented | Codex CLI (Official / ThirdParty two-way dispatch, atomic writes) | `~/.codex/config.toml` |
 | [**Gemini CLI**](./gemini) | ✅ Fully Implemented | Google Gemini CLI | `~/.gemini/settings.json` |
 | **Qwen CLI** | 🚧 Planned | Alibaba Qwen CLI | `~/.qwen/settings.json` |
 | **iFlow CLI** | 🚧 Planned | iFlow AI CLI | `~/.iflow/settings.json` |
@@ -41,7 +41,7 @@ Each platform has its own:
 # Claude Code (default platform)
 ccr platform init claude
 
-# GitHub Copilot
+# Codex CLI
 ccr platform init codex
 
 # Google Gemini CLI
@@ -60,7 +60,7 @@ ccr platform switch codex
 # Now all commands operate on Codex
 ccr add                    # Add Codex profile
 ccr list                   # List Codex profiles
-ccr switch my-github-token # Switch to Codex profile
+ccr switch my-profile     # Switch to Codex profile
 
 # Switch back to Claude
 ccr platform switch claude
@@ -90,7 +90,7 @@ ccr platform info gemini
 │   │   ├── profiles.toml    # Claude profiles
 │   │   ├── history.json     # Claude operations
 │   │   └── backups/         # Claude backups
-│   ├── codex/               # GitHub Copilot platform
+│   ├── codex/               # Codex CLI platform
 │   │   ├── profiles.toml
 │   │   ├── history.json
 │   │   └── backups/

@@ -12,6 +12,7 @@ use crate::models::checkin::{
     CheckinDashboardTrendPoint, CheckinProvider, CheckinRecord, CheckinRecordsResponse,
     CheckinStatus, CookieCredentials,
 };
+use crate::services::cf_bypass::CfBypassService;
 use crate::services::waf_bypass::WafBypassService;
 use chrono::{Datelike, Duration as ChronoDuration, NaiveDate, Utc};
 use once_cell::sync::Lazy;
@@ -88,10 +89,13 @@ fn truncate_string(s: &str, max_chars: usize) -> String {
 }
 
 /// 默认 User-Agent
-const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
+pub(crate) const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
 
 /// WAF cookies 刷新锁（避免并发触发多次浏览器启动）
 static WAF_REFRESH_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+
+/// CF cookies 刷新锁（避免并发触发多次浏览器启动）
+static CF_REFRESH_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 fn get_proxy_url_from_env() -> Option<String> {
     for key in [
@@ -216,10 +220,25 @@ fn get_proxy_url() -> Option<String> {
 }
 
 fn is_waf_challenge(text: &str) -> bool {
-    let trimmed = text.trim();
-    trimmed.starts_with('<')
-        || trimmed.contains("acw_sc__v2")
-        || trimmed.contains("<script>var arg1=")
+    // 阿里云 WAF 特征检测
+    // 注意：不能用 starts_with('<') — 会误判 Cloudflare 等其他 HTML 页面
+    text.contains("acw_sc__v2")
+        || text.contains("<script>var arg1=")
+        || text.contains("anti_spider")
+        || text.contains("acw_tc")
+}
+
+/// 检测 Cloudflare 挑战页面
+/// CF 挑战通常返回 403/503 + 包含特征标记的 HTML
+fn is_cf_challenge(status: reqwest::StatusCode, body: &str) -> bool {
+    let is_cf_status =
+        status == reqwest::StatusCode::FORBIDDEN || status.as_u16() == 503 || !status.is_success();
+    let has_cf_markers = body.contains("Just a moment")
+        || body.contains("cf-browser-verification")
+        || body.contains("_cf_chl")
+        || body.contains("cf-challenge-running")
+        || body.contains("cf_clearance");
+    is_cf_status && has_cf_markers
 }
 
 fn merge_cookies(
@@ -243,6 +262,7 @@ fn cookie_header_string(cookies: &HashMap<String, String>) -> String {
 
 impl CheckinService {
     /// 创建新的签到服务（默认使用系统代理）
+    #[allow(dead_code)]
     pub fn new(checkin_dir: PathBuf) -> Self {
         let proxy_url = get_proxy_url();
 
@@ -289,7 +309,6 @@ impl CheckinService {
     /// # Note
     /// 使用此方法时，代理配置由传入的 client 决定，
     /// `proxy_url` 字段仅用于 WAF bypass 时的浏览器代理配置。
-    #[allow(dead_code)] // Phase 2: 将在 Handler 迁移时使用
     pub fn with_client(checkin_dir: PathBuf, client: Client) -> Self {
         let proxy_url = get_proxy_url();
         Self {
@@ -340,6 +359,46 @@ impl CheckinService {
             .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))?;
 
         Ok(waf_cookies)
+    }
+
+    /// CF cookies 缓存 key：使用 `cf-` 前缀区分 WAF cookies
+    fn cf_cache_key(provider_id: &str) -> String {
+        format!("cf-{}", provider_id)
+    }
+
+    fn get_cached_cf_cookies(&self, provider_id: &str) -> Result<Option<HashMap<String, String>>> {
+        let manager = WafCookieManager::new();
+        manager
+            .get_valid(&Self::cf_cache_key(provider_id))
+            .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))
+    }
+
+    async fn refresh_cf_cookies(
+        &self,
+        provider: &CheckinProvider,
+        account_name: &str,
+    ) -> Result<HashMap<String, String>> {
+        let _guard = CF_REFRESH_LOCK.lock().await;
+
+        // 强制刷新：先删除旧缓存
+        let manager = WafCookieManager::new();
+        let cache_key = Self::cf_cache_key(&provider.id);
+        let _ = manager.delete(&cache_key);
+
+        let target_url = format!("{}/login", provider.base_url.trim_end_matches('/'));
+        let cf_service =
+            CfBypassService::new(true, self.proxy_url.clone(), DEFAULT_USER_AGENT.to_string());
+
+        let cf_cookies = cf_service
+            .get_cf_cookies(&target_url, account_name)
+            .await
+            .map_err(|e| CheckinServiceError::ApiError(format!("CF Clearance 绕过失败: {}", e)))?;
+
+        manager
+            .save(&cache_key, cf_cookies.clone())
+            .map_err(|e| CheckinServiceError::BalanceError(e.to_string()))?;
+
+        Ok(cf_cookies)
     }
 
     async fn send_balance_request(
@@ -486,6 +545,45 @@ impl CheckinService {
                 CheckinServiceError::CryptoError(format!("Invalid cookies JSON: {}", e))
             })?;
 
+        // 签到前远程状态预查：通过 /api/user/self 检查是否已签到
+        // 如果远程已签到，直接返回，避免冗余请求
+        if let Some(true) = self
+            .check_remote_checkin_status(&provider, &credentials, &account.name)
+            .await
+        {
+            tracing::info!(
+                "⏭️ [远程预查] 账号: {} | 提供商: {} | 状态: 远程已签到，跳过",
+                account.name,
+                provider.name
+            );
+
+            let record = CheckinRecord::already_checked_in(
+                account_id.to_string(),
+                Some("今日已签到（远程预查）".to_string()),
+            );
+            record_manager
+                .add(record)
+                .map_err(|e| CheckinServiceError::RecordError(e.to_string()))?;
+
+            // 更新签到时间
+            let _ = account_manager.update_checkin_time(account_id);
+
+            let result = CheckinExecutionResult {
+                account_id: account_id.to_string(),
+                account_name: account.name.clone(),
+                provider_name: provider.name.clone(),
+                status: CheckinStatus::AlreadyCheckedIn,
+                message: Some("今日已签到（远程预查）".to_string()),
+                reward: None,
+                balance: None,
+            };
+
+            // 即使已签到，仍尝试 CDK 充值
+            self.try_cdk_topup(&provider, &account, &cookies_json).await;
+
+            return Ok(result);
+        }
+
         // 执行签到请求
         let checkin_result = self
             .do_checkin(&provider, &credentials, &account.name)
@@ -553,7 +651,171 @@ impl CheckinService {
         // 更新账号最后签到时间
         let _ = account_manager.update_checkin_time(account_id);
 
+        // CDK 充值：签到完成后，检查是否有 CDK 需要处理
+        // CDK 失败不影响签到结果
+        if result.status == CheckinStatus::Success
+            || result.status == CheckinStatus::AlreadyCheckedIn
+        {
+            self.try_cdk_topup(&provider, &account, &cookies_json).await;
+        }
+
         Ok(result)
+    }
+
+    /// 远程签到状态预查：通过 /api/user/self 检查账号是否今天已签到
+    /// 返回 Some(true) 表示已签到，Some(false) 表示未签到，None 表示无法判断
+    async fn check_remote_checkin_status(
+        &self,
+        provider: &CheckinProvider,
+        credentials: &CookieCredentials,
+        account_name: &str,
+    ) -> Option<bool> {
+        let url = format!(
+            "{}{}",
+            provider.base_url.trim_end_matches('/'),
+            provider.user_info_path
+        );
+
+        let domain = provider.base_url.trim_end_matches('/');
+
+        let mut cookies = credentials.cookies.clone();
+        if let Ok(Some(waf_cookies)) = self.get_cached_waf_cookies(&provider.id) {
+            cookies = merge_cookies(&cookies, &waf_cookies);
+        }
+        if let Ok(Some(cf_cookies)) = self.get_cached_cf_cookies(&provider.id) {
+            cookies = merge_cookies(&cookies, &cf_cookies);
+        }
+        let cookie_string = cookie_header_string(&cookies);
+
+        let result = self
+            .send_balance_request(&url, domain, credentials, &cookie_string)
+            .await;
+
+        let (_status, body) = match result {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::debug!(
+                    "[{}] Remote checkin status pre-check failed: {}",
+                    account_name,
+                    e
+                );
+                return None;
+            }
+        };
+
+        // 尝试从 JSON 响应中提取签到状态字段
+        let json: serde_json::Value = serde_json::from_str(&body).ok()?;
+
+        // 优先检查顶层 data 对象
+        let data = json.get("data").unwrap_or(&json);
+
+        // 尝试多种常见字段名
+        // 1. check_in_today (boolean) — 部分 NewAPI 站点
+        if let Some(checked) = data.get("check_in_today").and_then(|v| v.as_bool()) {
+            tracing::debug!(
+                "[{}] Remote pre-check: check_in_today = {}",
+                account_name,
+                checked
+            );
+            return Some(checked);
+        }
+
+        // 2. is_checked_in (boolean)
+        if let Some(checked) = data.get("is_checked_in").and_then(|v| v.as_bool()) {
+            tracing::debug!(
+                "[{}] Remote pre-check: is_checked_in = {}",
+                account_name,
+                checked
+            );
+            return Some(checked);
+        }
+
+        // 3. checkin_status (string: "checked_in" / "not_checked_in")
+        if let Some(status_str) = data.get("checkin_status").and_then(|v| v.as_str()) {
+            let checked = status_str.contains("checked") && !status_str.contains("not");
+            tracing::debug!(
+                "[{}] Remote pre-check: checkin_status = {} -> {}",
+                account_name,
+                status_str,
+                checked
+            );
+            return Some(checked);
+        }
+
+        // 无法判断
+        tracing::debug!(
+            "[{}] Remote pre-check: no checkin status field found in user info",
+            account_name
+        );
+        None
+    }
+
+    /// 尝试执行 CDK 充值（签到后自动触发）
+    async fn try_cdk_topup(
+        &self,
+        provider: &CheckinProvider,
+        account: &crate::models::checkin::CheckinAccount,
+        cookies_json: &str,
+    ) {
+        use crate::managers::checkin::builtin_providers::get_builtin_providers;
+        use crate::services::cdk_service::{CdkExtraConfig, CdkService};
+
+        // 查找内置提供商的 CDK 配置
+        let builtin_providers = get_builtin_providers();
+        let cdk_config = builtin_providers
+            .iter()
+            .find(|bp| bp.name == provider.name)
+            .and_then(|bp| bp.cdk_config.as_ref());
+
+        let cdk_config = match cdk_config {
+            Some(config) => config,
+            None => return, // 没有 CDK 配置，跳过
+        };
+
+        tracing::info!(
+            "🎰 [CDK] Provider {} supports CDK (type: {}), starting topup...",
+            provider.name,
+            cdk_config.cdk_type
+        );
+
+        // 解析 extra_config
+        let extra_config = CdkExtraConfig::from_json(&account.extra_config);
+
+        // 解析 cookies 为 HashMap
+        let topup_cookies: std::collections::HashMap<String, String> =
+            serde_json::from_str(cookies_json).unwrap_or_default();
+
+        // 构造 topup URL
+        let topup_url = cdk_config
+            .topup_path
+            .as_ref()
+            .map(|path| format!("{}{}", provider.base_url.trim_end_matches('/'), path));
+
+        // 创建 CDK 服务并执行
+        let cdk_service = CdkService::new(self.proxy_url.clone());
+        let cdk_result = cdk_service
+            .fetch_and_topup(
+                &cdk_config.cdk_type,
+                &extra_config,
+                topup_url.as_deref(),
+                &topup_cookies,
+                &account.api_user,
+            )
+            .await;
+
+        if cdk_result.success {
+            tracing::info!(
+                "✅ [CDK] {} topup completed: {}",
+                cdk_config.cdk_type,
+                cdk_result.message
+            );
+        } else {
+            tracing::warn!(
+                "⚠️ [CDK] {} topup issue: {}",
+                cdk_config.cdk_type,
+                cdk_result.message
+            );
+        }
     }
 
     /// 执行签到 HTTP 请求（使用 Cookie 认证）
@@ -574,6 +836,9 @@ impl CheckinService {
         let mut cookies = credentials.cookies.clone();
         if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
             cookies = merge_cookies(&cookies, &waf_cookies);
+        }
+        if let Some(cf_cookies) = self.get_cached_cf_cookies(&provider.id)? {
+            cookies = merge_cookies(&cookies, &cf_cookies);
         }
         let mut cookie_string = cookie_header_string(&cookies);
 
@@ -606,10 +871,43 @@ impl CheckinService {
             tracing::info!("Checkin retry response: {}", truncate_string(&body, 500));
         }
 
+        // 检测 Cloudflare 挑战页面：自动获取 cf_clearance 后重试一次
+        if is_cf_challenge(status, &body) {
+            tracing::warn!(
+                "[{}] Detected CF challenge, attempting auto bypass...",
+                account_name
+            );
+
+            let cf_cookies = self.refresh_cf_cookies(provider, account_name).await?;
+            let mut merged = merge_cookies(&credentials.cookies, &cf_cookies);
+            // 同时保留 WAF cookies（如有）
+            if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
+                merged = merge_cookies(&merged, &waf_cookies);
+            }
+            cookie_string = cookie_header_string(&merged);
+
+            let (retry_status, retry_body) = self
+                .send_checkin_request(&url, domain, credentials, &cookie_string)
+                .await?;
+
+            status = retry_status;
+            body = retry_body;
+
+            tracing::info!("Checkin CF retry status: {}", status);
+            tracing::info!("Checkin CF retry response: {}", truncate_string(&body, 500));
+        }
+
         if !status.is_success() {
             if is_waf_challenge(&body) {
                 return Err(CheckinServiceError::ApiError(
                     "检测到 WAF 挑战页面，已尝试自动获取 WAF cookies 但仍失败。请检查代理/出口是否一致，或稍后重试。"
+                        .to_string(),
+                ));
+            }
+
+            if is_cf_challenge(status, &body) {
+                return Err(CheckinServiceError::ApiError(
+                    "检测到 Cloudflare 挑战页面，已尝试自动获取 cf_clearance 但仍失败。请检查网络环境，或在有 GUI 的环境中重试。"
                         .to_string(),
                 ));
             }
@@ -773,6 +1071,9 @@ impl CheckinService {
         if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
             cookies = merge_cookies(&cookies, &waf_cookies);
         }
+        if let Some(cf_cookies) = self.get_cached_cf_cookies(&provider.id)? {
+            cookies = merge_cookies(&cookies, &cf_cookies);
+        }
         let mut cookie_string = cookie_header_string(&cookies);
 
         let (mut status, mut body) = self
@@ -807,10 +1108,45 @@ impl CheckinService {
             );
         }
 
+        // 检测 Cloudflare 挑战页面：自动获取 cf_clearance 后重试一次
+        if is_cf_challenge(status, &body) {
+            tracing::warn!(
+                "[{}] Detected CF challenge in balance query, attempting auto bypass...",
+                account_name
+            );
+
+            let cf_cookies = self.refresh_cf_cookies(provider, account_name).await?;
+            let mut merged = merge_cookies(&credentials.cookies, &cf_cookies);
+            if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
+                merged = merge_cookies(&merged, &waf_cookies);
+            }
+            cookie_string = cookie_header_string(&merged);
+
+            let (retry_status, retry_body) = self
+                .send_balance_request(&url, domain, credentials, &cookie_string)
+                .await?;
+
+            status = retry_status;
+            body = retry_body;
+
+            tracing::info!("Balance query CF retry status: {}", status);
+            tracing::info!(
+                "Balance query CF retry response: {}",
+                truncate_string(&body, 500)
+            );
+        }
+
         if !status.is_success() {
             if is_waf_challenge(&body) {
                 return Err(CheckinServiceError::ApiError(
                     "检测到 WAF 挑战页面，已尝试自动获取 WAF cookies 但仍失败。请检查代理/出口是否一致，或稍后重试。"
+                        .to_string(),
+                ));
+            }
+
+            if is_cf_challenge(status, &body) {
+                return Err(CheckinServiceError::ApiError(
+                    "检测到 Cloudflare 挑战页面，已尝试自动获取 cf_clearance 但仍失败。请检查网络环境，或在有 GUI 的环境中重试。"
                         .to_string(),
                 ));
             }
@@ -912,29 +1248,44 @@ impl CheckinService {
         )))
     }
 
-    /// 批量签到
+    /// 批量签到（并发执行，最多 5 个同时）
     pub async fn batch_checkin(&self, account_ids: &[String]) -> Vec<CheckinExecutionResult> {
-        let mut results = Vec::with_capacity(account_ids.len());
+        use std::sync::Arc;
+        use tokio::sync::Semaphore;
 
-        for account_id in account_ids {
-            let result = self.checkin(account_id).await;
-            match result {
-                Ok(r) => results.push(r),
-                Err(e) => {
-                    results.push(CheckinExecutionResult {
-                        account_id: account_id.clone(),
-                        account_name: "Unknown".to_string(),
-                        provider_name: "Unknown".to_string(),
-                        status: CheckinStatus::Failed,
-                        message: Some(e.to_string()),
-                        reward: None,
-                        balance: None,
-                    });
+        let semaphore = Arc::new(Semaphore::new(5));
+        let futures: Vec<_> = account_ids
+            .iter()
+            .map(|account_id| {
+                let sem = semaphore.clone();
+                let id = account_id.clone();
+                let client = self.client.clone();
+                let checkin_dir = self.checkin_dir.clone();
+                let proxy_url = self.proxy_url.clone();
+                async move {
+                    let _permit = sem.acquire().await.expect("semaphore closed");
+                    let svc = CheckinService {
+                        checkin_dir,
+                        client,
+                        proxy_url,
+                    };
+                    match svc.checkin(&id).await {
+                        Ok(r) => r,
+                        Err(e) => CheckinExecutionResult {
+                            account_id: id,
+                            account_name: "Unknown".to_string(),
+                            provider_name: "Unknown".to_string(),
+                            status: CheckinStatus::Failed,
+                            message: Some(e.to_string()),
+                            reward: None,
+                            balance: None,
+                        },
+                    }
                 }
-            }
-        }
+            })
+            .collect();
 
-        results
+        futures::future::join_all(futures).await
     }
 
     /// 签到所有启用的账号
@@ -1116,12 +1467,16 @@ impl CheckinService {
         if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
             cookies = merge_cookies(&cookies, &waf_cookies);
         }
+        if let Some(cf_cookies) = self.get_cached_cf_cookies(&provider.id)? {
+            cookies = merge_cookies(&cookies, &cf_cookies);
+        }
         let mut cookie_string = cookie_header_string(&cookies);
 
         let (mut status, mut body) = self
             .send_balance_request(&url, domain, &credentials, &cookie_string)
             .await?;
 
+        // WAF 挑战检测与自动绕过
         if is_waf_challenge(&body) {
             let waf_cookies = self.refresh_waf_cookies(&provider, &account.name).await?;
             let merged = merge_cookies(&credentials.cookies, &waf_cookies);
@@ -1135,7 +1490,24 @@ impl CheckinService {
             body = retry_body;
         }
 
-        Ok(status.is_success() && !is_waf_challenge(&body))
+        // CF 挑战检测与自动绕过
+        if is_cf_challenge(status, &body) {
+            let cf_cookies = self.refresh_cf_cookies(&provider, &account.name).await?;
+            let mut merged = merge_cookies(&credentials.cookies, &cf_cookies);
+            if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
+                merged = merge_cookies(&merged, &waf_cookies);
+            }
+            cookie_string = cookie_header_string(&merged);
+
+            let (retry_status, retry_body) = self
+                .send_balance_request(&url, domain, &credentials, &cookie_string)
+                .await?;
+
+            status = retry_status;
+            body = retry_body;
+        }
+
+        Ok(status.is_success() && !is_waf_challenge(&body) && !is_cf_challenge(status, &body))
     }
 }
 

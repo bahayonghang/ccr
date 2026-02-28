@@ -179,6 +179,7 @@ pub struct SettingsManager {
     lock_manager: LockManager,
 }
 
+#[allow(dead_code)]
 impl SettingsManager {
     /// 🏗️ 创建新的设置管理器
     pub fn new<P: AsRef<Path>, Q: AsRef<Path>>(
@@ -366,6 +367,7 @@ impl SettingsManager {
     /// 文件名格式:
     /// - 有配置名: settings.{config_name}.{timestamp}.json.bak
     /// - 无配置名: settings.{timestamp}.json.bak
+    #[allow(dead_code)]
     pub fn backup(&self, config_name: Option<&str>) -> Result<PathBuf> {
         // ✅ 验证源文件存在
         if !self.settings_path.exists() {
@@ -479,7 +481,6 @@ impl SettingsManager {
     /// 5. 📋 复制备份文件到目标位置
     ///
     /// ⚠️ 注意: 恢复前会自动备份当前设置
-    #[allow(dead_code)]
     pub fn restore<P: AsRef<Path>>(&self, backup_path: P) -> Result<()> {
         let backup_path = backup_path.as_ref();
 
@@ -512,7 +513,6 @@ impl SettingsManager {
     }
 
     /// 🔄 异步从备份恢复设置文件
-    #[allow(dead_code)]
     pub async fn restore_async<P: AsRef<Path>>(&self, backup_path: P) -> Result<()> {
         let backup_path = backup_path.as_ref();
 
@@ -550,7 +550,6 @@ impl SettingsManager {
     /// 📋 列出所有备份文件
     ///
     /// 返回所有 .bak 扩展名的备份文件,按修改时间倒序排列(最新的在前)
-    #[allow(dead_code)]
     pub fn list_backups(&self) -> Result<Vec<PathBuf>> {
         if !self.backup_dir.exists() {
             return Ok(vec![]);
@@ -583,7 +582,6 @@ impl SettingsManager {
     }
 
     /// 📋 异步列出所有备份文件
-    #[allow(dead_code)]
     pub async fn list_backups_async(&self) -> Result<Vec<PathBuf>> {
         let exists = async_fs::try_exists(&self.backup_dir)
             .await
@@ -632,7 +630,6 @@ impl SettingsManager {
     ///
     /// 注意: 此方法假设统一模式已启用。对于 Claude 平台，
     /// 如果在 legacy 模式下，应使用 `SettingsManager::with_default()`
-    #[allow(dead_code)]
     pub fn for_platform(platform_name: &str) -> Result<Self> {
         let (settings_path, backup_dir) = Self::get_platform_paths(platform_name)?;
         let lock_manager = LockManager::with_default_path()?;
@@ -649,7 +646,6 @@ impl SettingsManager {
     /// 📁 获取平台特定的路径
     ///
     /// 返回 (settings_path, backup_dir)
-    #[allow(dead_code)]
     pub fn get_platform_paths(platform_name: &str) -> Result<(PathBuf, PathBuf)> {
         // 特殊处理 Claude (支持 legacy 模式)
         if platform_name == "claude" {
@@ -712,7 +708,6 @@ impl SettingsManager {
     /// 🔍 检测当前平台的配置模式
     ///
     /// 返回 "Legacy" 或 "Unified"
-    #[allow(dead_code)]
     pub fn detect_mode(&self) -> &'static str {
         // 如果设置路径包含 ".ccr/platforms"，则为统一模式
         if self
@@ -755,17 +750,20 @@ impl SettingsManager {
 /// // 保存后缓存自动失效
 /// manager.save_atomic(&settings)?;
 /// ```
+#[allow(dead_code)]
 pub struct CachedSettingsManager {
     inner: SettingsManager,
     cache: ConfigCache<ClaudeSettings>,
 }
 
+#[allow(dead_code)]
 impl CachedSettingsManager {
     /// 🏗️ 创建新的缓存设置管理器
     ///
     /// # 参数
     /// - `inner`: 内部 SettingsManager
     /// - `ttl`: 缓存有效期
+    #[allow(dead_code)]
     pub fn new(inner: SettingsManager, ttl: Duration) -> Self {
         Self {
             inner,
@@ -776,21 +774,18 @@ impl CachedSettingsManager {
     /// 🏠 使用默认路径和 TTL 创建管理器
     ///
     /// 默认 TTL: 30 秒
-    #[allow(dead_code)]
     pub fn with_default() -> Result<Self> {
         let inner = SettingsManager::with_default()?;
         Ok(Self::new(inner, Duration::from_secs(30)))
     }
 
     /// 🎯 为指定平台创建缓存管理器
-    #[allow(dead_code)]
     pub fn for_platform(platform_name: &str) -> Result<Self> {
         let inner = SettingsManager::for_platform(platform_name)?;
         Ok(Self::new(inner, Duration::from_secs(30)))
     }
 
     /// 📁 获取设置文件路径
-    #[allow(dead_code)]
     pub fn settings_path(&self) -> &Path {
         self.inner.settings_path()
     }
@@ -799,7 +794,6 @@ impl CachedSettingsManager {
     ///
     /// 如果缓存有效，直接返回缓存数据
     /// 如果缓存无效或过期，从磁盘加载并缓存
-    #[allow(dead_code)]
     pub fn load(&self) -> Result<ClaudeSettings> {
         self.cache.get_or_load(|| self.inner.load())
     }
@@ -807,7 +801,6 @@ impl CachedSettingsManager {
     /// 💾 原子保存设置文件并失效缓存
     ///
     /// 保存后自动失效缓存，下次 load() 将重新从磁盘加载
-    #[allow(dead_code)]
     pub fn save_atomic(&self, settings: &ClaudeSettings) -> Result<()> {
         // 先保存
         self.inner.save_atomic(settings)?;
@@ -817,13 +810,11 @@ impl CachedSettingsManager {
     }
 
     /// 💾 备份设置文件
-    #[allow(dead_code)]
     pub fn backup(&self, config_name: Option<&str>) -> Result<PathBuf> {
         self.inner.backup(config_name)
     }
 
     /// 🔄 从备份恢复设置文件并失效缓存
-    #[allow(dead_code)]
     pub fn restore<P: AsRef<Path>>(&self, backup_path: P) -> Result<()> {
         self.inner.restore(backup_path)?;
         self.cache.invalidate();
@@ -831,7 +822,6 @@ impl CachedSettingsManager {
     }
 
     /// 📋 列出所有备份文件
-    #[allow(dead_code)]
     pub fn list_backups(&self) -> Result<Vec<PathBuf>> {
         self.inner.list_backups()
     }
@@ -839,19 +829,16 @@ impl CachedSettingsManager {
     /// 🧹 手动失效缓存
     ///
     /// 强制下次 load() 从磁盘读取
-    #[allow(dead_code)]
     pub fn invalidate_cache(&self) {
         self.cache.invalidate();
     }
 
     /// 🔍 检查缓存是否有效
-    #[allow(dead_code)]
     pub fn is_cache_valid(&self) -> bool {
         self.cache.is_valid()
     }
 
     /// 🔍 检测当前平台的配置模式
-    #[allow(dead_code)]
     pub fn detect_mode(&self) -> &'static str {
         self.inner.detect_mode()
     }
@@ -859,7 +846,6 @@ impl CachedSettingsManager {
     /// 📊 获取内部 SettingsManager 引用
     ///
     /// 用于需要直接访问底层功能的场景
-    #[allow(dead_code)]
     pub fn inner(&self) -> &SettingsManager {
         &self.inner
     }
