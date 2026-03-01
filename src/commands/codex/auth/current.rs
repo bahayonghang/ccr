@@ -72,6 +72,14 @@ pub async fn current_command() -> Result<()> {
             println!("  • 使用 'ccr codex auth list' 查看所有账号");
             println!("  • 使用 'ccr codex auth switch <名称>' 切换账号");
         }
+        LoginState::Unknown { type_name, .. } => {
+            ColorOutput::warning(&format!("登录状态: 未知 ({})", type_name));
+
+            if let Ok(info) = service.get_current_auth_info() {
+                println!();
+                display_auth_info(&service, &info, None);
+            }
+        }
     }
 
     Ok(())
@@ -97,11 +105,11 @@ fn display_auth_info(
     ));
 
     // Token 新鲜度
-    let freshness_str = match info.freshness {
+    let freshness_str = match &info.freshness {
         TokenFreshness::Fresh => "🟢 新鲜 (< 1 天)".green().to_string(),
         TokenFreshness::Stale => "🟡 陈旧 (1-7 天)".yellow().to_string(),
         TokenFreshness::Old => "🔴 过期 (> 7 天)".red().to_string(),
-        TokenFreshness::Unknown => "⚪ 未知".white().to_string(),
+        TokenFreshness::Unknown(_) => "⚪ 未知".white().to_string(),
     };
     ColorOutput::info(&format!("Token 状态: {}", freshness_str));
 

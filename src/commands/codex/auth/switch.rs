@@ -49,11 +49,11 @@ pub async fn switch_command(name: &str) -> Result<()> {
                 }
 
                 // 显示 Token 新鲜度
-                let freshness_str = match info.freshness {
+                let freshness_str = match &info.freshness {
                     crate::models::TokenFreshness::Fresh => "🟢 新鲜 (< 1 天)".green(),
                     crate::models::TokenFreshness::Stale => "🟡 陈旧 (1-7 天)".yellow(),
                     crate::models::TokenFreshness::Old => "🔴 过期 (> 7 天)".red(),
-                    crate::models::TokenFreshness::Unknown => "⚪ 未知".white(),
+                    crate::models::TokenFreshness::Unknown(_) => "⚪ 未知".white(),
                 };
                 ColorOutput::info(&format!("Token 状态: {}", freshness_str));
             }

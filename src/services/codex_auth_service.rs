@@ -245,7 +245,7 @@ impl CodexAuthService {
         };
 
         // 如果已登录但未保存，添加虚拟 "default" 项
-        if let LoginState::LoggedInUnsaved = login_state
+        if matches!(&login_state, LoginState::LoggedInUnsaved)
             && let Some(info) = &current_info
         {
             items.push(CodexAuthItem {
@@ -257,7 +257,7 @@ impl CodexAuthService {
                 saved_at: None,
                 last_used: None,
                 last_refresh: info.last_refresh,
-                freshness: info.freshness,
+                freshness: info.freshness.clone(),
                 expires_at: None, // 虚拟项没有过期时间
             });
         }
@@ -507,7 +507,7 @@ impl CodexAuthService {
     /// 计算 Token 新鲜度
     pub fn calculate_freshness(&self, last_refresh: Option<DateTime<Utc>>) -> TokenFreshness {
         let Some(refresh_time) = last_refresh else {
-            return TokenFreshness::Unknown;
+            return TokenFreshness::unknown();
         };
 
         let now = Utc::now();
@@ -526,17 +526,17 @@ impl CodexAuthService {
     fn get_account_freshness(&self, name: &str) -> TokenFreshness {
         let auth_path = self.account_auth_path(name);
         if !auth_path.exists() {
-            return TokenFreshness::Unknown;
+            return TokenFreshness::unknown();
         }
 
         let content = match fs::read_to_string(&auth_path) {
             Ok(c) => c,
-            Err(_) => return TokenFreshness::Unknown,
+            Err(_) => return TokenFreshness::unknown(),
         };
 
         let auth: CodexAuthJson = match serde_json::from_str(&content) {
             Ok(a) => a,
-            Err(_) => return TokenFreshness::Unknown,
+            Err(_) => return TokenFreshness::unknown(),
         };
 
         let last_refresh = auth
@@ -1026,7 +1026,7 @@ mod tests {
         );
 
         // Unknown
-        assert_eq!(service.calculate_freshness(None), TokenFreshness::Unknown);
+        assert_eq!(service.calculate_freshness(None), TokenFreshness::unknown());
     }
 
     #[test]

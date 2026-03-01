@@ -194,7 +194,7 @@ impl CodexAuthApp {
                 }
             }
             KeyCode::Char('s') => {
-                if matches!(self.login_state, LoginState::LoggedInUnsaved) {
+                if matches!(&self.login_state, LoginState::LoggedInUnsaved) {
                     self.overlay = Some(Overlay::save_input());
                 } else {
                     self.toasts.push(Toast::warning("当前登录已保存或未登录"));
@@ -399,7 +399,7 @@ impl CodexAuthApp {
             TokenFreshness::Fresh => "🟢 新鲜",
             TokenFreshness::Stale => "🟡 陈旧",
             TokenFreshness::Old => "🔴 过期",
-            TokenFreshness::Unknown => "⚪ 未知",
+            TokenFreshness::Unknown(_) => "⚪ 未知",
         }
     }
 }

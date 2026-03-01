@@ -271,7 +271,7 @@ mod tests {
         assert_eq!(TokenFreshness::Fresh.icon(), "🟢");
         assert_eq!(TokenFreshness::Stale.icon(), "🟡");
         assert_eq!(TokenFreshness::Old.icon(), "🔴");
-        assert_eq!(TokenFreshness::Unknown.icon(), "⚪");
+        assert_eq!(TokenFreshness::unknown().icon(), "⚪");
     }
 
     #[test]
