@@ -18,7 +18,18 @@ pub fn default_true() -> bool {
     true
 }
 
-/// Deserialize hooks: accept both array and object (treat object as empty array)
+fn value_type_name(value: &Value) -> &'static str {
+    match value {
+        Value::Null => "null",
+        Value::Bool(_) => "boolean",
+        Value::Number(_) => "number",
+        Value::String(_) => "string",
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
+    }
+}
+
+/// Deserialize hooks: only accepts arrays to avoid silent data loss.
 fn deserialize_hooks<'de, D>(deserializer: D) -> Result<Vec<Hook>, D::Error>
 where
     D: Deserializer<'de>,
@@ -26,7 +37,10 @@ where
     let value = Value::deserialize(deserializer)?;
     match value {
         Value::Array(_) => serde_json::from_value(value).map_err(serde::de::Error::custom),
-        _ => Ok(Vec::new()),
+        other => Err(serde::de::Error::custom(format!(
+            "invalid type for hooks: expected array, got {}",
+            value_type_name(&other)
+        ))),
     }
 }
 
@@ -40,8 +54,14 @@ pub struct ClaudeSettings {
     #[serde(default)]
     pub env: HashMap<String, String>,
 
-    /// Output style
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Output style.
+    ///
+    /// Serializes as `outputStyle`, accepts legacy `output_style` on input.
+    #[serde(
+        rename = "outputStyle",
+        alias = "output_style",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub output_style: Option<String>,
 
     /// Permissions
@@ -72,7 +92,9 @@ pub struct ClaudeSettings {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub plugins: Vec<Plugin>,
 
-    /// Hooks
+    /// Hooks.
+    ///
+    /// Must be an array when provided; invalid types return deserialization errors.
     #[serde(
         default,
         skip_serializing_if = "Vec::is_empty",
@@ -211,6 +233,8 @@ mod tests {
 
         let json = serde_json::to_string_pretty(&settings).unwrap();
         let parsed: ClaudeSettings = serde_json::from_str(&json).unwrap();
+        assert!(json.contains("outputStyle"));
+        assert!(!json.contains("output_style"));
 
         assert_eq!(
             parsed.env.get("ANTHROPIC_BASE_URL").unwrap(),
@@ -224,7 +248,7 @@ mod tests {
         // JSON with unknown fields at root level
         let json = r#"{
             "env": {},
-            "output_style": "test",
+            "outputStyle": "test",
             "future_field": "should be preserved",
             "another_unknown": 42
         }"#;
@@ -243,6 +267,29 @@ mod tests {
         let serialized = serde_json::to_string(&settings).unwrap();
         assert!(serialized.contains("future_field"));
         assert!(serialized.contains("another_unknown"));
+    }
+
+    #[test]
+    fn test_output_style_alias_deserialization() {
+        let json = r#"{
+            "env": {},
+            "output_style": "legacy-style"
+        }"#;
+
+        let settings: ClaudeSettings = serde_json::from_str(json).unwrap();
+        assert_eq!(settings.output_style, Some("legacy-style".to_string()));
+    }
+
+    #[test]
+    fn test_output_style_duplicate_keys_rejected() {
+        let json = r#"{
+            "env": {},
+            "outputStyle": "new-style",
+            "output_style": "legacy-style"
+        }"#;
+
+        let err = serde_json::from_str::<ClaudeSettings>(json).unwrap_err();
+        assert!(err.to_string().contains("duplicate field"));
     }
 
     #[test]
@@ -384,5 +431,55 @@ mod tests {
         assert!(!json.contains("agents"));
         assert!(!json.contains("plugins"));
         assert!(!json.contains("hooks"));
+    }
+
+    #[test]
+    fn test_hooks_missing_defaults_to_empty() {
+        let json = r#"{"env": {}}"#;
+        let settings: ClaudeSettings = serde_json::from_str(json).unwrap();
+        assert!(settings.hooks.is_empty());
+    }
+
+    #[test]
+    fn test_hooks_invalid_type_rejected() {
+        let object_json = r#"{"env": {}, "hooks": {}}"#;
+        let object_err = serde_json::from_str::<ClaudeSettings>(object_json).unwrap_err();
+        assert!(
+            object_err
+                .to_string()
+                .contains("invalid type for hooks: expected array, got object")
+        );
+
+        let string_json = r#"{"env": {}, "hooks": "run"}"#;
+        let string_err = serde_json::from_str::<ClaudeSettings>(string_json).unwrap_err();
+        assert!(
+            string_err
+                .to_string()
+                .contains("invalid type for hooks: expected array, got string")
+        );
+
+        let null_json = r#"{"env": {}, "hooks": null}"#;
+        let null_err = serde_json::from_str::<ClaudeSettings>(null_json).unwrap_err();
+        assert!(
+            null_err
+                .to_string()
+                .contains("invalid type for hooks: expected array, got null")
+        );
+
+        let number_json = r#"{"env": {}, "hooks": 1}"#;
+        let number_err = serde_json::from_str::<ClaudeSettings>(number_json).unwrap_err();
+        assert!(
+            number_err
+                .to_string()
+                .contains("invalid type for hooks: expected array, got number")
+        );
+
+        let bool_json = r#"{"env": {}, "hooks": true}"#;
+        let bool_err = serde_json::from_str::<ClaudeSettings>(bool_json).unwrap_err();
+        assert!(
+            bool_err
+                .to_string()
+                .contains("invalid type for hooks: expected array, got boolean")
+        );
     }
 }
