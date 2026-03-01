@@ -7,7 +7,7 @@ import {
   updateDroidPlugin,
   deleteDroidPlugin,
   type DroidPlugin
-} from '@/api/client'
+} from '@/api/modules/droid'
 
 // ============ Types ============
 

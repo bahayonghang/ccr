@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { api } from '@/api/client'
+import { api } from '@/api/core'
 
 // ===== Types =====
 

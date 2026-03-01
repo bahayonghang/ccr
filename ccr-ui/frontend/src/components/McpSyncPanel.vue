@@ -183,7 +183,7 @@ import {
   syncAllMcpServers,
   type McpServerInfo,
   type SyncResult
-} from '@/api/client'
+} from '@/api/modules/mcp'
 
 const { t } = useI18n({ useScope: 'global' })
 

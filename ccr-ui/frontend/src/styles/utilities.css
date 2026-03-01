@@ -850,3 +850,53 @@
     .delay-400 { animation-delay: 400ms; }
     .delay-500 { animation-delay: 500ms; }
 }
+
+/* ========== 无障碍: 减少动画 & 性能降级 ========== */
+
+/* 当用户偏好减少动画时，禁用 backdrop-filter（GPU 密集型）并简化视觉效果。
+ * 同时降级所有过渡动画，仅保留透明度过渡以维持基本反馈。 */
+@media (prefers-reduced-motion: reduce) {
+    .glass-surface,
+    .glass-effect,
+    .glass-effect-strong,
+    .glass-elevated,
+    .glass-modal,
+    .liquid-glass,
+    .config-card-active,
+    .nav-item-active-glow,
+    .nav-item-inactive {
+        backdrop-filter: none !important;
+    }
+
+    /* 降级过渡动画：仅保留 opacity */
+    .neo-card,
+    .neo-card-interactive,
+    .nav-item,
+    .btn,
+    .hover-lift,
+    .hover-scale,
+    .hover-glow {
+        transition: opacity var(--duration-fast) var(--ease-out) !important;
+    }
+
+    /* 禁用入场动画 */
+    .animate-fade-in,
+    .animate-slide-up,
+    .animate-scale-in {
+        animation: none !important;
+        opacity: 1 !important;
+    }
+
+    /* 禁用悬停位移/缩放 */
+    .hover-lift:hover {
+        transform: none !important;
+    }
+
+    .hover-scale:hover {
+        transform: none !important;
+    }
+
+    .neo-card-interactive:hover {
+        transform: none !important;
+    }
+}

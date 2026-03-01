@@ -180,7 +180,7 @@ import {
   FileCode,
   Shield
 } from 'lucide-vue-next'
-import { listBuiltinPrompts, type BuiltinPrompt } from '@/api/client'
+import { listBuiltinPrompts, type BuiltinPrompt } from '@/api/modules/mcp'
 import { copyToClipboard } from '@/utils/codexHelpers'
 
 const { t } = useI18n({ useScope: 'global' })

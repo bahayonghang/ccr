@@ -515,7 +515,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getCostOverview, getProviderUsage } from '@/api/client'
+import { getCostOverview, getProviderUsage } from '@/api/modules/stats'
 import type { CostStats } from '@/types'
 
 const { t } = useI18n()

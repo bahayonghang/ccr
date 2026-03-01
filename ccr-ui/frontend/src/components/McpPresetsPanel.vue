@@ -241,7 +241,7 @@ import {
   listMcpPresets,
   installMcpPreset,
   type McpPreset
-} from '@/api/client'
+} from '@/api/modules/mcp'
 
 const { t } = useI18n({ useScope: 'global' })
 

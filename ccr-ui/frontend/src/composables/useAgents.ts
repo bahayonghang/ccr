@@ -1,13 +1,11 @@
 import { ref } from 'vue'
-import {
-    listCodexAgents, addCodexAgent, updateCodexAgent, deleteCodexAgent, toggleCodexAgent,
-    listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent,
-    listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent,
-    listIflowAgents, addIflowAgent, updateIflowAgent, deleteIflowAgent, toggleIflowAgent,
-    listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent,
-    listConfigs, getHistory,
-    listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent
-} from '@/api/client'
+import { listCodexAgents, addCodexAgent, updateCodexAgent, deleteCodexAgent, toggleCodexAgent } from '@/api/modules/codex'
+import { listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent } from '@/api/modules/gemini'
+import { listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent } from '@/api/modules/qwen'
+import { listIflowAgents, addIflowAgent, updateIflowAgent, deleteIflowAgent, toggleIflowAgent } from '@/api/modules/iflow'
+import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api/modules/droid'
+import { listConfigs, getHistory } from '@/api/modules/config'
+import { listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent } from '@/api/modules/agents'
 import type { Agent, AgentRequest } from '@/types'
 
 type ModuleType = 'codex' | 'gemini' | 'qwen' | 'iflow' | 'droid' | 'agents'

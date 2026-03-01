@@ -215,7 +215,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted } from 'vue'
 import {
   Activity,
   Cpu,
@@ -225,9 +225,10 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-vue-next'
-import { getSystemInfo } from '@/api/client'
+import { getSystemInfo } from '@/api/modules/config'
 import type { SystemInfo as SystemInfoType } from '@/types'
 import VersionManager from './VersionManager.vue'
+import { usePolledData } from '@/composables/usePolledData'
 
 interface Props {
   currentConfig: string
@@ -237,9 +238,17 @@ interface Props {
 
 defineProps<Props>()
 
-const systemInfo = ref<SystemInfoType | null>(null)
 const isCollapsed = ref(false)
-let refreshInterval: number | null = null
+
+const { data: systemInfo } = usePolledData<SystemInfoType>(
+  getSystemInfo,
+  {
+    intervalMs: 5000,
+    pauseWhenHidden: true,
+    pauseWhen: isCollapsed,
+    onError: (err) => console.error('Failed to load system info:', err),
+  }
+)
 
 onMounted(() => {
   // 从 localStorage 读取折叠状态
@@ -247,31 +256,11 @@ onMounted(() => {
   if (saved === 'true') {
     isCollapsed.value = true
   }
-
-  // 加载系统信息
-  loadSystemInfo()
-  // 每 5 秒刷新
-  refreshInterval = window.setInterval(loadSystemInfo, 5000)
-})
-
-onBeforeUnmount(() => {
-  if (refreshInterval) {
-    clearInterval(refreshInterval)
-  }
 })
 
 const toggleCollapsed = () => {
   isCollapsed.value = !isCollapsed.value
   localStorage.setItem('ccr-status-header-collapsed', String(isCollapsed.value))
-}
-
-const loadSystemInfo = async () => {
-  try {
-    const data = await getSystemInfo()
-    systemInfo.value = data
-  } catch (err) {
-    console.error('Failed to load system info:', err)
-  }
 }
 
 const formatUptime = (seconds: number): string => {

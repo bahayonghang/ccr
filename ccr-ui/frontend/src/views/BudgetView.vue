@@ -270,7 +270,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getBudgetStatus, setBudget, resetBudget } from '@/api/client'
+import { getBudgetStatus, setBudget, resetBudget } from '@/api/modules/stats'
 import type { BudgetStatus, SetBudgetRequest } from '@/types'
 
 const budgetStatus = ref<BudgetStatus | null>(null)

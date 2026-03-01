@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Loader2, CheckCircle2, AlertTriangle, Download } from 'lucide-vue-next'
-import { getVersion } from '@/api/client'
+import { getVersion } from '@/api/modules/config'
 
 const loading = ref(true)
 const installed = ref(false)

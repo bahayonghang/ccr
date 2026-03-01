@@ -788,7 +788,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { api } from '@/api/client'
+import { api } from '@/api/core'
 
 const { t } = useI18n()
 import {

@@ -59,11 +59,15 @@ export async function getSkillHubAgentSkills(agent: string) {
 }
 
 export async function installSkillHubSkill(payload: { package: string; agents?: string[]; force?: boolean }) {
-  const response = await api.post('/skill_hub/install', payload)
+  const response = await api.post('/skill_hub/install', payload, {
+    timeout: 120000, // 安装技能可能需要下载，耗时较长
+  })
   return (response.data?.data ?? response.data) as SkillHubOperationResponse
 }
 
 export async function removeSkillHubSkill(payload: { skill: string; agents?: string[] }) {
-  const response = await api.post('/skill_hub/remove', payload)
+  const response = await api.post('/skill_hub/remove', payload, {
+    timeout: 120000, // 移除技能可能耗时较长
+  })
   return (response.data?.data ?? response.data) as SkillHubOperationResponse
 }

@@ -26,6 +26,10 @@ export const useSkillsStore = defineStore('skills', () => {
   const marketplaceError = ref<string | null>(null)
   const marketplaceCached = ref(false)
 
+  // 缓存时间戳（0 表示从未加载）
+  const skillsLastFetchedAt = ref(0)
+  const marketplaceLastFetchedAt = ref(0)
+
   // === 新增状态 ===
   // 安装状态
   const isInstalling = ref(false)
@@ -137,6 +141,18 @@ export const useSkillsStore = defineStore('skills', () => {
     }
   })
 
+  // Computed: skills 缓存是否有效（5分钟 TTL）
+  const isSkillsCacheValid = computed(() => {
+    if (skills.value.length === 0 || skillsLastFetchedAt.value === 0) return false
+    return Date.now() - skillsLastFetchedAt.value < 5 * 60 * 1000
+  })
+
+  // Computed: marketplace 缓存是否有效（5分钟 TTL）
+  const isMarketplaceCacheValid = computed(() => {
+    if (marketplaceItems.value.length === 0 || marketplaceLastFetchedAt.value === 0) return false
+    return Date.now() - marketplaceLastFetchedAt.value < 5 * 60 * 1000
+  })
+
   // Computed: skills grouped by platform
   const skillsByPlatform = computed(() => {
     const grouped = new Map<string, UnifiedSkill[]>()
@@ -181,6 +197,7 @@ export const useSkillsStore = defineStore('skills', () => {
 
   function setSkills(newSkills: UnifiedSkill[]) {
     skills.value = newSkills
+    skillsLastFetchedAt.value = Date.now()
   }
 
   function setPlatforms(newPlatforms: PlatformSummary[]) {
@@ -190,6 +207,7 @@ export const useSkillsStore = defineStore('skills', () => {
   function setMarketplaceItems(items: MarketplaceItem[], cached: boolean) {
     marketplaceItems.value = items
     marketplaceCached.value = cached
+    marketplaceLastFetchedAt.value = Date.now()
   }
 
   function setLoading(loading: boolean) {
@@ -277,6 +295,12 @@ export const useSkillsStore = defineStore('skills', () => {
     marketplacePage,
     marketplaceTotal,
     marketplacePageSize,
+
+    // 缓存时间戳与有效性
+    skillsLastFetchedAt,
+    marketplaceLastFetchedAt,
+    isSkillsCacheValid,
+    isMarketplaceCacheValid,
 
     // Computed
     filteredSkills,

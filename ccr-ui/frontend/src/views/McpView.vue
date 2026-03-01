@@ -344,7 +344,7 @@ import {
   updateMcpServer,
   deleteMcpServer,
   toggleMcpServer
-} from '@/api/client'
+} from '@/api/modules/mcp'
 import type { McpServer, McpServerRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import { Breadcrumb } from '@/components/ui'

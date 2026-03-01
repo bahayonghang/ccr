@@ -15,7 +15,7 @@ import {
   type CcrCommand,
   type AddFavoriteRequest
 } from '@/api/ccr-control'
-import { getVersion, checkUpdate } from '@/api/client'
+import { getVersion, checkUpdate } from '@/api/modules/config'
 import type { VersionInfo, UpdateCheckResponse } from '@/types'
 
 export function useCcrControl() {

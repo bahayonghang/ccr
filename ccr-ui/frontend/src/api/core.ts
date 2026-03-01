@@ -43,7 +43,7 @@ export const getBackendHealth = async (): Promise<void> => {
 function createApiClient(): AxiosInstance {
     const instance = axios.create({
         baseURL: resolveApiBaseUrl(),
-        timeout: 600000, // 10分钟超时，支持长时间编译更新
+        timeout: 15000, // 15秒默认超时
         headers: {
             'Content-Type': 'application/json',
         },

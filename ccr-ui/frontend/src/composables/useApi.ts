@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { api } from '@/api/client'
+import { api } from '@/api/core'
 import type { AxiosRequestConfig } from 'axios'
 
 /**
@@ -60,14 +60,24 @@ export async function del<T = any>(url: string, config?: AxiosRequestConfig): Pr
 export async function withRetry<T>(
   fn: () => Promise<T>,
   retries = 3,
-  delay = 1000
+  delay = 1000,
+  signal?: AbortSignal
 ): Promise<T> {
   try {
     return await fn()
   } catch (error) {
+    if (signal?.aborted) {
+      throw error // 已取消，不再重试
+    }
     if (retries > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay))
-      return withRetry(fn, retries - 1, delay * 2) // 指数退避
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, delay)
+        signal?.addEventListener('abort', () => {
+          clearTimeout(timer)
+          reject(new DOMException('Aborted', 'AbortError'))
+        }, { once: true })
+      })
+      return withRetry(fn, retries - 1, delay * 2, signal) // 指数退避
     }
     throw error
   }

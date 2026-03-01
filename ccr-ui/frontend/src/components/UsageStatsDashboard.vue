@@ -258,7 +258,7 @@ import { onMounted, ref } from 'vue'
 import { BarChart3, Hash, Clock, Activity, MessageSquare, Timer, Layers } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import UsageStatsChart from '@/components/UsageStatsChart.vue'
-import { getDailyStats } from '@/api/client'
+import { getDailyStats } from '@/api/modules/stats'
 import type { DailyStatsResponse, StatsViewMode } from '@/types'
 
 // 视图模式

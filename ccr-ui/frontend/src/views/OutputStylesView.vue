@@ -373,7 +373,7 @@ import {
   createOutputStyle,
   updateOutputStyle,
   deleteOutputStyle
-} from '@/api/client'
+} from '@/api/modules/outputStyles'
 import { useUIStore } from '@/store'
 import type { OutputStyle } from '@/types'
 

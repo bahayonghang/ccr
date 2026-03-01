@@ -71,7 +71,10 @@ export function useUnifiedSkills() {
     npxStatus,
     marketplacePage,
     marketplaceTotal,
-    marketplacePageSize
+    marketplacePageSize,
+    // 缓存状态
+    isSkillsCacheValid,
+    isMarketplaceCacheValid
   } = storeToRefs(store)
 
   // Transform backend response to frontend format
@@ -129,7 +132,10 @@ export function useUnifiedSkills() {
   }
 
   // Fetch all skills from all platforms
-  async function fetchAllSkills() {
+  async function fetchAllSkills(force = false) {
+    // 缓存有效且不是强制刷新，直接返回
+    if (!force && isSkillsCacheValid.value) return
+
     store.setLoading(true)
     store.setError(null)
 
@@ -177,7 +183,10 @@ export function useUnifiedSkills() {
   }
 
   // Fetch marketplace trending
-  async function fetchMarketplaceTrending(limit: number = 30, page: number = 1) {
+  async function fetchMarketplaceTrending(limit: number = 30, page: number = 1, force = false) {
+    // 缓存有效且不是强制刷新，直接返回
+    if (!force && isMarketplaceCacheValid.value) return
+
     store.setMarketplaceLoading(true)
     store.setMarketplaceError(null)
 
@@ -286,9 +295,11 @@ export function useUnifiedSkills() {
     }
   }
 
-  // Initialize - fetch all data (deduplicated)
+  // Initialize - fetch all data（若缓存有效则跳过，deduplicated）
   let initPromise: Promise<void> | null = null
   async function initialize() {
+    // 两项缓存均有效时直接返回，无需请求
+    if (isSkillsCacheValid.value && isMarketplaceCacheValid.value) return
     if (initPromise) return initPromise
     initPromise = Promise.all([
       fetchAllSkills(),
@@ -297,10 +308,13 @@ export function useUnifiedSkills() {
     return initPromise
   }
 
-  // Refresh all data (force re-fetch)
+  // Refresh all data（强制忽略缓存重新拉取）
   async function refresh() {
     initPromise = null
-    return initialize()
+    await Promise.all([
+      fetchAllSkills(true),
+      fetchMarketplaceTrending(30, 1, true)
+    ])
   }
 
   // 手动清除市场缓存并重新拉取

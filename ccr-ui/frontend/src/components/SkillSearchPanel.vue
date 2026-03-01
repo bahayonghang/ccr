@@ -217,7 +217,7 @@ import {
   Trash2,
   X
 } from 'lucide-vue-next'
-import { listSkills, deleteSkill as apiDeleteSkill, type Skill } from '@/api/client'
+import { listSkills, deleteSkill as apiDeleteSkill, type Skill } from '@/api/modules/skills'
 
 const { t } = useI18n({ useScope: 'global' })
 

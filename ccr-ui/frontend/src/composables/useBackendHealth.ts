@@ -1,6 +1,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { getBackendHealth } from '@/api/client'
-import { isTauriEnvironment } from '@/api'
+import { getBackendHealth } from '@/api/core'
+import { isTauriEnvironment } from '@/api/core'
+import { usePolledData } from './usePolledData'
 
 export type BackendHealthStatus = 'unsupported' | 'unknown' | 'checking' | 'ok' | 'error'
 
@@ -8,9 +9,10 @@ const status = ref<BackendHealthStatus>('unknown')
 const errorMessage = ref<string | null>(null)
 const lastCheckedAt = ref<Date | null>(null)
 
-let timer: ReturnType<typeof setInterval> | null = null
 let subscribers = 0
-let inFlight = false
+
+// 内部轮询实例（单例，在组件外创建以供手动管理）
+let pollerStarted = false
 
 const checkHealth = async () => {
   if (!isTauriEnvironment()) {
@@ -18,8 +20,6 @@ const checkHealth = async () => {
     return
   }
 
-  if (inFlight) return
-  inFlight = true
   status.value = 'checking'
   errorMessage.value = null
 
@@ -31,21 +31,31 @@ const checkHealth = async () => {
     errorMessage.value = error instanceof Error ? error.message : '无法连接后端'
   } finally {
     lastCheckedAt.value = new Date()
-    inFlight = false
   }
 }
 
-const startPolling = (intervalMs: number) => {
-  if (timer) return
-  timer = setInterval(() => {
-    void checkHealth()
-  }, intervalMs)
-}
+// 单例轮询器：在组件外创建，由 subscribers 计数控制生命周期
+let pollerInstance: ReturnType<typeof usePolledData> | null = null
 
-const stopPolling = () => {
-  if (!timer) return
-  clearInterval(timer)
-  timer = null
+const getPoller = (intervalMs: number) => {
+  if (!pollerInstance) {
+    pollerInstance = usePolledData(
+      async () => {
+        await checkHealth()
+        return true
+      },
+      {
+        intervalMs,
+        pauseWhenHidden: true,
+        immediate: false,
+        onError: () => {
+          status.value = 'error'
+        },
+      }
+    )
+    pollerStarted = false
+  }
+  return pollerInstance
 }
 
 export const useBackendHealth = (options?: { auto?: boolean; intervalMs?: number }) => {
@@ -56,16 +66,19 @@ export const useBackendHealth = (options?: { auto?: boolean; intervalMs?: number
     if (!auto) return
     subscribers += 1
     if (subscribers === 1) {
-      void checkHealth()
-      startPolling(intervalMs)
+      const poller = getPoller(intervalMs)
+      if (!pollerStarted) {
+        pollerStarted = true
+        poller.resume()
+      }
     }
   })
 
   onBeforeUnmount(() => {
     if (!auto) return
     subscribers = Math.max(0, subscribers - 1)
-    if (subscribers === 0) {
-      stopPolling()
+    if (subscribers === 0 && pollerInstance) {
+      pollerInstance.pause()
     }
   })
 

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { api } from '@/api/core'
-import { listCheckinAccounts, listCheckinRecords } from '@/api/client'
+import { listCheckinAccounts, listCheckinRecords } from '@/api/modules/checkin'
 import type { AccountInfo, CheckinRecordInfo, CheckinRecordsQuery } from '@/types/checkin'
 
 const CACHE_TTL = 30 * 1000 // 30s

@@ -108,7 +108,9 @@ export const getUsageLogsV2 = async (
 }
 
 export const importUsageV2 = async (platform: string): Promise<ImportResult> => {
-  return unwrap(await api.post(`/usage/import?platform=${platform}`))
+  return unwrap(await api.post(`/usage/import?platform=${platform}`, null, {
+    timeout: 120000, // 使用量导入扫描文件系统，耗时较长
+  }))
 }
 
 export const importAllUsageV2 = async (): Promise<ImportResult[]> => {

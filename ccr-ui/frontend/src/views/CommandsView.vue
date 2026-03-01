@@ -360,7 +360,7 @@ import markdown from 'highlight.js/lib/languages/markdown'
 import plaintext from 'highlight.js/lib/languages/plaintext'
 import 'highlight.js/styles/atom-one-dark.css'
 
-import { listCommands, executeCommand, listConfigs } from '@/api/client'
+import { listCommands, executeCommand, listConfigs } from '@/api/modules/config'
 import type { CommandInfo, CommandResponse, ConfigItem } from '@/types'
 import { normalizeCliClient, type CliClient } from '@/types/router'
 import Navbar from '@/components/Navbar.vue'

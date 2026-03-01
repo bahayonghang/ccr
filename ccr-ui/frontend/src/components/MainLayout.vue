@@ -213,7 +213,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                CCR UI v4.3.0
+                CCR UI v4.3.1
               </span>
             </div>
           </div>
@@ -298,7 +298,15 @@
               :include="cachedViews"
               :max="10"
             >
-              <component :is="Component" />
+              <!-- 懒加载路由 Suspense 边界，防止异步组件加载时出现空白闪烁 -->
+              <Suspense>
+                <component :is="Component" />
+                <template #fallback>
+                  <div class="flex items-center justify-center min-h-[200px]">
+                    <div class="loading-spinner w-8 h-8 border-accent-primary/30 border-t-accent-primary" />
+                  </div>
+                </template>
+              </Suspense>
             </keep-alive>
           </transition>
         </RouterView>
@@ -330,7 +338,7 @@ const { transitionName } = usePageTransition()
 // keep-alive 缓存列表（仅缓存高频访问页面）
 const cachedViews = [
   'HomeView', 'ConfigsView', 'CommandsView', 'ClaudeCodeView',
-  'CodexView', 'GeminiCliView', 'QwenView', 'IflowView', 'CheckinView',
+  'CodexView', 'GeminiCliView', 'QwenView', 'IflowView',
 ]
 
 // 路由名 → i18n 键映射

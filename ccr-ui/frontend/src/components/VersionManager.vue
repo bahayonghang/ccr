@@ -140,7 +140,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RefreshCw, Zap } from 'lucide-vue-next'
-import { getVersion, checkUpdate, updateCCR } from '@/api/client'
+import { getVersion, checkUpdate, updateCCR } from '@/api/modules/config'
 import type { VersionInfo, UpdateCheckResponse } from '@/types'
 import UpdateModal from './UpdateModal.vue'
 

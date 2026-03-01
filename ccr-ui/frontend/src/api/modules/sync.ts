@@ -24,11 +24,15 @@ export const getSyncInfo = async (): Promise<SyncInfoResponse> => {
 }
 
 export const pushSync = async (req: SyncOperationRequest): Promise<SyncOperationResponse> => {
-    const response = await api.post<ApiResponse<SyncOperationResponse>>('/sync/push', req)
+    const response = await api.post<ApiResponse<SyncOperationResponse>>('/sync/push', req, {
+        timeout: 600000, // 同步推送可能耗时较长
+    })
     return response.data.data!
 }
 
 export const pullSync = async (req: SyncOperationRequest): Promise<SyncOperationResponse> => {
-    const response = await api.post<ApiResponse<SyncOperationResponse>>('/sync/pull', req)
+    const response = await api.post<ApiResponse<SyncOperationResponse>>('/sync/pull', req, {
+        timeout: 600000, // 同步拉取可能耗时较长
+    })
     return response.data.data!
 }

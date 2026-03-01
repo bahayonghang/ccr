@@ -1,6 +1,6 @@
 import type { PlatformConfig } from '@/types/platform'
 
-import { api } from '@/api/client'
+import { api } from '@/api/core'
 
 // Claude Code 平台配置
 export const claudeCodeConfig: PlatformConfig = {

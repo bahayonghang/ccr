@@ -336,7 +336,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getPricingList, setPricing, removePricing, resetPricing } from '@/api/client'
+import { getPricingList, setPricing, removePricing, resetPricing } from '@/api/modules/stats'
 import type { PricingListResponse, ModelPricing, SetPricingRequest } from '@/types'
 
 const pricingData = ref<PricingListResponse | null>(null)
