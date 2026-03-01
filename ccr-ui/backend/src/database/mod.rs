@@ -16,7 +16,6 @@ pub mod schema;
 use once_cell::sync::OnceCell;
 use rusqlite::Connection;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 use tracing::info;
 
 use migrations::MigrationError;
@@ -27,11 +26,7 @@ use schema::DB_RELATIVE_PATH;
 #[allow(unused_imports)]
 pub use pool::{DbPool, PoolConfig, PoolError, PooledConn};
 
-/// Global database connection holder (legacy, for backward compatibility)
-/// Uses Arc<Mutex<Connection>> for thread-safe access
-static DB_CONNECTION: OnceCell<Arc<Mutex<Connection>>> = OnceCell::new();
-
-/// Global connection pool holder (new, preferred)
+/// Global connection pool holder
 static DB_POOL: OnceCell<DbPool> = OnceCell::new();
 
 /// Database initialization error
@@ -40,6 +35,7 @@ pub enum DatabaseError {
     #[error("Failed to create database directory: {0}")]
     DirectoryCreation(std::io::Error),
 
+    #[allow(dead_code)]
     #[error("Failed to open database: {0}")]
     ConnectionOpen(rusqlite::Error),
 
@@ -48,9 +44,6 @@ pub enum DatabaseError {
 
     #[error("Database not initialized")]
     NotInitialized,
-
-    #[error("Lock poisoned")]
-    LockPoisoned,
 
     #[error("Query error: {0}")]
     Query(#[from] rusqlite::Error),
@@ -82,7 +75,7 @@ pub fn initialize() -> Result<(), DatabaseError> {
 
     info!("Initializing database at: {}", db_path.display());
 
-    // Create connection pool (new approach)
+    // Create connection pool
     let db_pool = pool::create_pool(&db_path, None)?;
 
     // Run migrations using a connection from the pool
@@ -99,21 +92,7 @@ pub fn initialize() -> Result<(), DatabaseError> {
         info!("Database pool already initialized");
     }
 
-    // Also initialize legacy connection for backward compatibility
-    let conn = Connection::open(&db_path).map_err(DatabaseError::ConnectionOpen)?;
-    conn.execute_batch(
-        "PRAGMA journal_mode = WAL;
-         PRAGMA synchronous = NORMAL;
-         PRAGMA foreign_keys = ON;
-         PRAGMA busy_timeout = 5000;",
-    )
-    .map_err(DatabaseError::ConnectionOpen)?;
-
-    if DB_CONNECTION.set(Arc::new(Mutex::new(conn))).is_err() {
-        info!("Legacy database connection already initialized");
-    }
-
-    info!("Database initialization complete (pool + legacy)");
+    info!("Database initialization complete");
     Ok(())
 }
 
@@ -143,12 +122,8 @@ pub fn create_app_pool() -> Result<DbPool, DatabaseError> {
     Ok(db_pool)
 }
 
-/// Execute a function with a pooled connection (new, preferred)
-/// Uses the connection pool for better concurrency
-///
-/// NOTE: 当前为 Phase 1 基础设施，Phase 2 会替代 with_connection 使用
-#[allow(dead_code)]
-pub fn with_pooled_connection<F, T>(f: F) -> Result<T, DatabaseError>
+/// Execute a function with a pooled connection
+pub fn with_connection<F, T>(f: F) -> Result<T, DatabaseError>
 where
     F: FnOnce(&Connection) -> Result<T, rusqlite::Error>,
 {
@@ -159,57 +134,18 @@ where
     f(&conn).map_err(DatabaseError::Query)
 }
 
-/// Get a reference to the database connection (legacy)
-/// Returns an Arc<Mutex<Connection>> for thread-safe access
-///
-/// # Panics
-/// Panics if database was not initialized
-#[allow(dead_code)]
-pub fn get_connection() -> Arc<Mutex<Connection>> {
-    DB_CONNECTION
-        .get()
-        .cloned()
-        .expect("Database not initialized - call initialize() first")
-}
-
-/// Try to get a reference to the database connection (legacy)
-/// Returns None if not initialized
-pub fn try_get_connection() -> Option<Arc<Mutex<Connection>>> {
-    DB_CONNECTION.get().cloned()
-}
-
-/// Execute a function with the database connection
-/// Handles locking and error conversion
-///
-/// Note: Prefer `with_pooled_connection` for new code
-pub fn with_connection<F, T>(f: F) -> Result<T, DatabaseError>
-where
-    F: FnOnce(&Connection) -> Result<T, rusqlite::Error>,
-{
-    // Try pool first, fall back to legacy connection
-    if let Some(pool) = DB_POOL.get() {
-        let conn = pool
-            .get()
-            .map_err(|e| DatabaseError::PoolGet(e.to_string()))?;
-        return f(&conn).map_err(DatabaseError::Query);
-    }
-
-    // Legacy fallback
-    let conn = try_get_connection().ok_or(DatabaseError::NotInitialized)?;
-    let guard = conn.lock().map_err(|_| DatabaseError::LockPoisoned)?;
-    f(&guard).map_err(DatabaseError::Query)
-}
-
-/// Execute a function with mutable access to the database connection (legacy)
+/// Execute a function with mutable access to the database connection
 /// Use this for transactions or batch operations
 #[allow(dead_code)]
 pub fn with_connection_mut<F, T>(f: F) -> Result<T, DatabaseError>
 where
     F: FnOnce(&mut Connection) -> Result<T, rusqlite::Error>,
 {
-    let conn = try_get_connection().ok_or(DatabaseError::NotInitialized)?;
-    let mut guard = conn.lock().map_err(|_| DatabaseError::LockPoisoned)?;
-    f(&mut guard).map_err(DatabaseError::Query)
+    let pool = DB_POOL.get().ok_or(DatabaseError::NotInitialized)?;
+    let mut conn = pool
+        .get()
+        .map_err(|e| DatabaseError::PoolGet(e.to_string()))?;
+    f(&mut conn).map_err(DatabaseError::Query)
 }
 
 /// Execute a transaction with automatic commit/rollback
@@ -218,30 +154,30 @@ pub fn transaction<F, T>(f: F) -> Result<T, DatabaseError>
 where
     F: FnOnce(&rusqlite::Transaction<'_>) -> Result<T, rusqlite::Error>,
 {
-    with_connection_mut(|conn| {
-        let tx = conn.transaction()?;
-        let result = f(&tx)?;
-        tx.commit()?;
-        Ok(result)
-    })
+    let pool = DB_POOL.get().ok_or(DatabaseError::NotInitialized)?;
+    let mut conn = pool
+        .get()
+        .map_err(|e| DatabaseError::PoolGet(e.to_string()))?;
+    let tx = conn.transaction().map_err(DatabaseError::Query)?;
+    let result = f(&tx).map_err(DatabaseError::Query)?;
+    tx.commit().map_err(DatabaseError::Query)?;
+    Ok(result)
 }
 
 /// Shutdown the database (for testing or graceful shutdown)
-/// Note: This consumes the global connection
 #[allow(dead_code)]
 pub fn shutdown() {
-    if let Some(conn) = DB_CONNECTION.get()
-        && let Ok(guard) = conn.lock()
+    if let Some(pool) = DB_POOL.get()
+        && let Ok(conn) = pool.get()
     {
-        // Execute checkpoint to flush WAL
-        let _ = guard.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+        let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
         info!("Database shutdown complete");
     }
 }
 
 /// Check if database is initialized
 pub fn is_initialized() -> bool {
-    DB_POOL.get().is_some() || DB_CONNECTION.get().is_some()
+    DB_POOL.get().is_some()
 }
 
 /// Initialize an in-memory database for testing
@@ -253,28 +189,19 @@ pub fn initialize_for_test() -> Result<(), DatabaseError> {
         return Ok(());
     }
 
-    // Open in-memory connection
-    let conn = Connection::open_in_memory().map_err(DatabaseError::ConnectionOpen)?;
+    // Create an in-memory pool using the existing test helper
+    let pool = pool::create_memory_pool().map_err(DatabaseError::Pool)?;
 
-    // Configure SQLite for performance
-    conn.execute_batch(
-        "PRAGMA journal_mode = MEMORY;
-         PRAGMA synchronous = OFF;
-         PRAGMA foreign_keys = ON;",
-    )
-    .map_err(DatabaseError::ConnectionOpen)?;
-
-    // Run schema creation
-    conn.execute_batch(schema::CREATE_TABLES_SQL)
-        .map_err(DatabaseError::ConnectionOpen)?;
-
-    // Store connection globally
-    let result = DB_CONNECTION.set(Arc::new(Mutex::new(conn)));
-    if result.is_err() {
-        // Already initialized - this is fine
-        return Ok(());
+    // Run schema creation on a connection from the pool
+    {
+        let conn = pool
+            .get()
+            .map_err(|e| DatabaseError::PoolGet(e.to_string()))?;
+        conn.execute_batch(schema::CREATE_TABLES_SQL)
+            .map_err(DatabaseError::ConnectionOpen)?;
     }
 
+    let _ = DB_POOL.set(pool);
     Ok(())
 }
 

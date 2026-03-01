@@ -143,59 +143,92 @@ fn get_string_array(other: &HashMap<String, Value>, key: &str) -> Option<Vec<Str
     })
 }
 
+fn set_opt_str(m: &mut HashMap<String, Value>, k: &str, v: &Option<String>) {
+    match v {
+        Some(s) => {
+            m.insert(k.into(), Value::String(s.clone()));
+        }
+        None => {
+            m.remove(k);
+        }
+    }
+}
+
+fn set_opt_bool(m: &mut HashMap<String, Value>, k: &str, v: &Option<bool>) {
+    match v {
+        Some(b) => {
+            m.insert(k.into(), Value::Bool(*b));
+        }
+        None => {
+            m.remove(k);
+        }
+    }
+}
+
+fn set_opt_u64(m: &mut HashMap<String, Value>, k: &str, v: &Option<u64>) {
+    match v {
+        Some(n) => {
+            m.insert(k.into(), serde_json::json!(*n));
+        }
+        None => {
+            m.remove(k);
+        }
+    }
+}
+
 // ===== Handlers =====
 
 /// GET /api/claude-settings
 pub async fn get_settings() -> ApiResult<ApiSuccess<ClaudeSettingsData>> {
-    let settings = GLOBAL_SETTINGS_CACHE
-        .load()
-        .map_err(|e| ApiError::internal(format!("Failed to load settings: {e}")))?;
+    tokio::task::spawn_blocking(move || {
+        let settings = GLOBAL_SETTINGS_CACHE
+            .load()
+            .map_err(|e| ApiError::internal(format!("Failed to load settings: {e}")))?;
 
-    let other = &settings.other;
+        let other = &settings.other;
 
-    // 从 env 提取特殊字段
-    let env = &settings.env;
-    let max_thinking_tokens = env.get("MAX_THINKING_TOKENS").cloned();
-    let max_output_tokens = env.get("CLAUDE_CODE_MAX_OUTPUT_TOKENS").cloned();
-    let effort_level = env.get("CLAUDE_CODE_EFFORT_LEVEL").cloned();
+        // 从 env 提取特殊字段
+        let env = &settings.env;
+        let max_thinking_tokens = env.get("MAX_THINKING_TOKENS").cloned();
+        let max_output_tokens = env.get("CLAUDE_CODE_MAX_OUTPUT_TOKENS").cloned();
+        let effort_level = env.get("CLAUDE_CODE_EFFORT_LEVEL").cloned();
 
-    // 解析 permissions (存储为 serde_json::Value)
-    let permissions = settings.permissions.as_ref().map(|v| PermissionsData {
-        allow: v
-            .get("allow")
-            .and_then(|a| a.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        deny: v
-            .get("deny")
-            .and_then(|a| a.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        default_mode: v
-            .get("defaultMode")
-            .and_then(|v| v.as_str())
-            .map(String::from),
-        additional_directories: v
-            .get("additionalDirectories")
-            .and_then(|v| v.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            }),
-    });
+        // 解析 permissions (存储为 serde_json::Value)
+        let permissions = settings.permissions.as_ref().map(|v| PermissionsData {
+            allow: v
+                .get("allow")
+                .and_then(|a| a.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            deny: v
+                .get("deny")
+                .and_then(|a| a.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            default_mode: v
+                .get("defaultMode")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            additional_directories: v
+                .get("additionalDirectories")
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                }),
+        });
 
-    // 解析 sandbox
-    let sandbox =
-        other.get("sandbox").and_then(|v| {
+        // 解析 sandbox
+        let sandbox = other.get("sandbox").and_then(|v| {
             let obj = v.as_object()?;
             let network = obj.get("network").and_then(|n| {
                 let nobj = n.as_object()?;
@@ -226,211 +259,190 @@ pub async fn get_settings() -> ApiResult<ApiSuccess<ClaudeSettingsData>> {
             })
         });
 
-    // 解析 attribution
-    let attribution = other.get("attribution").and_then(|v| {
-        let obj = v.as_object()?;
-        Some(AttributionData {
-            commit: obj.get("commit").and_then(|v| v.as_str()).map(String::from),
-            pr: obj.get("pr").and_then(|v| v.as_str()).map(String::from),
-        })
-    });
+        // 解析 attribution
+        let attribution = other.get("attribution").and_then(|v| {
+            let obj = v.as_object()?;
+            Some(AttributionData {
+                commit: obj.get("commit").and_then(|v| v.as_str()).map(String::from),
+                pr: obj.get("pr").and_then(|v| v.as_str()).map(String::from),
+            })
+        });
 
-    // 读取 .claude.json
-    let claude_config = ClaudeConfigManager::default()
-        .and_then(|mgr| mgr.read())
-        .ok();
-    let claude_other = claude_config.as_ref().map(|c| &c.other);
+        // 读取 .claude.json
+        let claude_config = ClaudeConfigManager::default()
+            .and_then(|mgr| mgr.read())
+            .ok();
+        let claude_other = claude_config.as_ref().map(|c| &c.other);
 
-    // 构建用户可见的 env（排除已提取为独立字段的变量）
-    let visible_env: HashMap<String, String> = env
-        .iter()
-        .filter(|(k, _)| {
-            !matches!(
-                k.as_str(),
-                "MAX_THINKING_TOKENS"
-                    | "CLAUDE_CODE_MAX_OUTPUT_TOKENS"
-                    | "CLAUDE_CODE_EFFORT_LEVEL"
-            )
-        })
-        .map(|(k, v)| (k.clone(), v.clone()))
-        .collect();
+        // 构建用户可见的 env（排除已提取为独立字段的变量）
+        let visible_env: HashMap<String, String> = env
+            .iter()
+            .filter(|(k, _)| {
+                !matches!(
+                    k.as_str(),
+                    "MAX_THINKING_TOKENS"
+                        | "CLAUDE_CODE_MAX_OUTPUT_TOKENS"
+                        | "CLAUDE_CODE_EFFORT_LEVEL"
+                )
+            })
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
 
-    let data = ClaudeSettingsData {
-        model: get_str(other, "model"),
-        available_models: get_string_array(other, "availableModels"),
-        always_thinking_enabled: get_bool(other, "alwaysThinkingEnabled"),
-        max_thinking_tokens,
-        max_output_tokens,
-        effort_level,
-        permissions,
-        skip_dangerous_mode_permission_prompt: get_bool(other, "skipDangerousModePermissionPrompt"),
-        env: visible_env,
-        theme: claude_other.and_then(|o| get_str(o, "theme")),
-        language: get_str(other, "language"),
-        show_turn_duration: get_bool(other, "showTurnDuration"),
-        prefers_reduced_motion: get_bool(other, "prefersReducedMotion"),
-        spinner_tips_enabled: get_bool(other, "spinnerTipsEnabled"),
-        terminal_progress_bar_enabled: get_bool(other, "terminalProgressBarEnabled"),
-        show_spinner_tree: claude_other.and_then(|o| get_bool(o, "showSpinnerTree")),
-        sandbox,
-        attribution,
-        include_co_authored_by: get_bool(other, "includeCoAuthoredBy"),
-        auto_updates: claude_other.and_then(|o| get_bool(o, "autoUpdates")),
-        auto_updates_channel: get_str(other, "autoUpdatesChannel"),
-        cleanup_period_days: get_u64(other, "cleanupPeriodDays"),
-        respect_gitignore: get_bool(other, "respectGitignore"),
-    };
+        let data = ClaudeSettingsData {
+            model: get_str(other, "model"),
+            available_models: get_string_array(other, "availableModels"),
+            always_thinking_enabled: get_bool(other, "alwaysThinkingEnabled"),
+            max_thinking_tokens,
+            max_output_tokens,
+            effort_level,
+            permissions,
+            skip_dangerous_mode_permission_prompt: get_bool(
+                other,
+                "skipDangerousModePermissionPrompt",
+            ),
+            env: visible_env,
+            theme: claude_other.and_then(|o| get_str(o, "theme")),
+            language: get_str(other, "language"),
+            show_turn_duration: get_bool(other, "showTurnDuration"),
+            prefers_reduced_motion: get_bool(other, "prefersReducedMotion"),
+            spinner_tips_enabled: get_bool(other, "spinnerTipsEnabled"),
+            terminal_progress_bar_enabled: get_bool(other, "terminalProgressBarEnabled"),
+            show_spinner_tree: claude_other.and_then(|o| get_bool(o, "showSpinnerTree")),
+            sandbox,
+            attribution,
+            include_co_authored_by: get_bool(other, "includeCoAuthoredBy"),
+            auto_updates: claude_other.and_then(|o| get_bool(o, "autoUpdates")),
+            auto_updates_channel: get_str(other, "autoUpdatesChannel"),
+            cleanup_period_days: get_u64(other, "cleanupPeriodDays"),
+            respect_gitignore: get_bool(other, "respectGitignore"),
+        };
 
-    Ok(ApiSuccess(data))
+        Ok(ApiSuccess(data))
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?
 }
 
 /// PUT /api/claude-settings
 pub async fn update_settings(
     Json(req): Json<ClaudeSettingsData>,
 ) -> ApiResult<ApiSuccess<&'static str>> {
-    let mut settings = GLOBAL_SETTINGS_CACHE
-        .load()
-        .map_err(|e| ApiError::internal(format!("Failed to load settings: {e}")))?;
+    tokio::task::spawn_blocking(move || {
+        let mut settings = GLOBAL_SETTINGS_CACHE
+            .load()
+            .map_err(|e| ApiError::internal(format!("Failed to load settings: {e}")))?;
 
-    // --- 写入 settings.json ---
+        // --- 写入 settings.json ---
 
-    // env: 合并用户 env + 特殊字段
-    let mut env = req.env;
-    if let Some(v) = &req.max_thinking_tokens {
-        env.insert("MAX_THINKING_TOKENS".into(), v.clone());
-    }
-    if let Some(v) = &req.max_output_tokens {
-        env.insert("CLAUDE_CODE_MAX_OUTPUT_TOKENS".into(), v.clone());
-    }
-    if let Some(v) = &req.effort_level {
-        env.insert("CLAUDE_CODE_EFFORT_LEVEL".into(), v.clone());
-    }
-    settings.env = env;
-
-    // permissions
-    if let Some(p) = &req.permissions {
-        let mut perm = serde_json::Map::new();
-        perm.insert(
-            "allow".into(),
-            serde_json::to_value(&p.allow).unwrap_or_default(),
-        );
-        perm.insert(
-            "deny".into(),
-            serde_json::to_value(&p.deny).unwrap_or_default(),
-        );
-        if let Some(dm) = &p.default_mode {
-            perm.insert("defaultMode".into(), Value::String(dm.clone()));
+        // env: 合并用户 env + 特殊字段
+        let mut env = req.env;
+        if let Some(v) = &req.max_thinking_tokens {
+            env.insert("MAX_THINKING_TOKENS".into(), v.clone());
         }
-        if let Some(ad) = &p.additional_directories {
+        if let Some(v) = &req.max_output_tokens {
+            env.insert("CLAUDE_CODE_MAX_OUTPUT_TOKENS".into(), v.clone());
+        }
+        if let Some(v) = &req.effort_level {
+            env.insert("CLAUDE_CODE_EFFORT_LEVEL".into(), v.clone());
+        }
+        settings.env = env;
+
+        // permissions
+        if let Some(p) = &req.permissions {
+            let mut perm = serde_json::Map::new();
             perm.insert(
-                "additionalDirectories".into(),
-                serde_json::to_value(ad).unwrap_or_default(),
+                "allow".into(),
+                serde_json::to_value(&p.allow).unwrap_or_default(),
             );
+            perm.insert(
+                "deny".into(),
+                serde_json::to_value(&p.deny).unwrap_or_default(),
+            );
+            if let Some(dm) = &p.default_mode {
+                perm.insert("defaultMode".into(), Value::String(dm.clone()));
+            }
+            if let Some(ad) = &p.additional_directories {
+                perm.insert(
+                    "additionalDirectories".into(),
+                    serde_json::to_value(ad).unwrap_or_default(),
+                );
+            }
+            settings.permissions = Some(Value::Object(perm));
         }
-        settings.permissions = Some(Value::Object(perm));
-    }
 
-    // other 字段的 set/remove helper
-    let other = &mut settings.other;
+        // other 字段的 set/remove
+        let other = &mut settings.other;
 
-    fn set_opt_str(m: &mut HashMap<String, Value>, k: &str, v: &Option<String>) {
-        match v {
-            Some(s) => {
-                m.insert(k.into(), Value::String(s.clone()));
-            }
-            None => {
-                m.remove(k);
-            }
+        set_opt_str(other, "model", &req.model);
+        if let Some(am) = &req.available_models {
+            other.insert(
+                "availableModels".into(),
+                serde_json::to_value(am).unwrap_or_default(),
+            );
+        } else {
+            other.remove("availableModels");
         }
-    }
-    fn set_opt_bool(m: &mut HashMap<String, Value>, k: &str, v: &Option<bool>) {
-        match v {
-            Some(b) => {
-                m.insert(k.into(), Value::Bool(*b));
-            }
-            None => {
-                m.remove(k);
-            }
-        }
-    }
-    fn set_opt_u64(m: &mut HashMap<String, Value>, k: &str, v: &Option<u64>) {
-        match v {
-            Some(n) => {
-                m.insert(k.into(), serde_json::json!(*n));
-            }
-            None => {
-                m.remove(k);
-            }
-        }
-    }
-
-    set_opt_str(other, "model", &req.model);
-    if let Some(am) = &req.available_models {
-        other.insert(
-            "availableModels".into(),
-            serde_json::to_value(am).unwrap_or_default(),
+        set_opt_bool(other, "alwaysThinkingEnabled", &req.always_thinking_enabled);
+        set_opt_bool(
+            other,
+            "skipDangerousModePermissionPrompt",
+            &req.skip_dangerous_mode_permission_prompt,
         );
-    } else {
-        other.remove("availableModels");
-    }
-    set_opt_bool(other, "alwaysThinkingEnabled", &req.always_thinking_enabled);
-    set_opt_bool(
-        other,
-        "skipDangerousModePermissionPrompt",
-        &req.skip_dangerous_mode_permission_prompt,
-    );
-    set_opt_str(other, "language", &req.language);
-    set_opt_bool(other, "showTurnDuration", &req.show_turn_duration);
-    set_opt_bool(other, "prefersReducedMotion", &req.prefers_reduced_motion);
-    set_opt_bool(other, "spinnerTipsEnabled", &req.spinner_tips_enabled);
-    set_opt_bool(
-        other,
-        "terminalProgressBarEnabled",
-        &req.terminal_progress_bar_enabled,
-    );
-    set_opt_str(other, "autoUpdatesChannel", &req.auto_updates_channel);
-    set_opt_u64(other, "cleanupPeriodDays", &req.cleanup_period_days);
-    set_opt_bool(other, "respectGitignore", &req.respect_gitignore);
-    set_opt_bool(other, "includeCoAuthoredBy", &req.include_co_authored_by);
-
-    // sandbox
-    if let Some(sb) = &req.sandbox {
-        other.insert(
-            "sandbox".into(),
-            serde_json::to_value(sb).unwrap_or_default(),
+        set_opt_str(other, "language", &req.language);
+        set_opt_bool(other, "showTurnDuration", &req.show_turn_duration);
+        set_opt_bool(other, "prefersReducedMotion", &req.prefers_reduced_motion);
+        set_opt_bool(other, "spinnerTipsEnabled", &req.spinner_tips_enabled);
+        set_opt_bool(
+            other,
+            "terminalProgressBarEnabled",
+            &req.terminal_progress_bar_enabled,
         );
-    } else {
-        other.remove("sandbox");
-    }
+        set_opt_str(other, "autoUpdatesChannel", &req.auto_updates_channel);
+        set_opt_u64(other, "cleanupPeriodDays", &req.cleanup_period_days);
+        set_opt_bool(other, "respectGitignore", &req.respect_gitignore);
+        set_opt_bool(other, "includeCoAuthoredBy", &req.include_co_authored_by);
 
-    // attribution
-    if let Some(attr) = &req.attribution {
-        other.insert(
-            "attribution".into(),
-            serde_json::to_value(attr).unwrap_or_default(),
-        );
-    } else {
-        other.remove("attribution");
-    }
+        // sandbox
+        if let Some(sb) = &req.sandbox {
+            other.insert(
+                "sandbox".into(),
+                serde_json::to_value(sb).unwrap_or_default(),
+            );
+        } else {
+            other.remove("sandbox");
+        }
 
-    GLOBAL_SETTINGS_CACHE
-        .save_atomic(&settings)
-        .map_err(|e| ApiError::internal(format!("Failed to save settings: {e}")))?;
+        // attribution
+        if let Some(attr) = &req.attribution {
+            other.insert(
+                "attribution".into(),
+                serde_json::to_value(attr).unwrap_or_default(),
+            );
+        } else {
+            other.remove("attribution");
+        }
 
-    // --- 写入 .claude.json ---
-    let mgr = ClaudeConfigManager::default()
-        .map_err(|e| ApiError::internal(format!("Failed to init ClaudeConfigManager: {e}")))?;
-    let mut claude_config = mgr
-        .read()
-        .map_err(|e| ApiError::internal(format!("Failed to read .claude.json: {e}")))?;
+        GLOBAL_SETTINGS_CACHE
+            .save_atomic(&settings)
+            .map_err(|e| ApiError::internal(format!("Failed to save settings: {e}")))?;
 
-    let co = &mut claude_config.other;
-    set_opt_str(co, "theme", &req.theme);
-    set_opt_bool(co, "autoUpdates", &req.auto_updates);
-    set_opt_bool(co, "showSpinnerTree", &req.show_spinner_tree);
+        // --- 写入 .claude.json ---
+        let mgr = ClaudeConfigManager::default()
+            .map_err(|e| ApiError::internal(format!("Failed to init ClaudeConfigManager: {e}")))?;
+        let mut claude_config = mgr
+            .read()
+            .map_err(|e| ApiError::internal(format!("Failed to read .claude.json: {e}")))?;
 
-    mgr.write(&claude_config)
-        .map_err(|e| ApiError::internal(format!("Failed to save .claude.json: {e}")))?;
+        let co = &mut claude_config.other;
+        set_opt_str(co, "theme", &req.theme);
+        set_opt_bool(co, "autoUpdates", &req.auto_updates);
+        set_opt_bool(co, "showSpinnerTree", &req.show_spinner_tree);
 
-    Ok(ApiSuccess("Settings updated successfully"))
+        mgr.write(&claude_config)
+            .map_err(|e| ApiError::internal(format!("Failed to save .claude.json: {e}")))?;
+
+        Ok(ApiSuccess("Settings updated successfully"))
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?
 }

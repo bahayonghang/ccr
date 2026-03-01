@@ -157,194 +157,222 @@ fn build_dashboard_cache_key(params: &DashboardQueryParams) -> String {
 pub async fn get_usage_dashboard(
     Query(params): Query<DashboardQueryParams>,
 ) -> ApiResult<ApiSuccess<UsageDashboardResponse>> {
-    let start = Instant::now();
-    let use_cache = usage_dashboard_aggregated_api_enabled();
-    let cache_key = build_dashboard_cache_key(&params);
+    tokio::task::spawn_blocking(move || {
+        let start = Instant::now();
+        let use_cache = usage_dashboard_aggregated_api_enabled();
+        let cache_key = build_dashboard_cache_key(&params);
 
-    if use_cache {
-        let cache = USAGE_DASHBOARD_CACHE
-            .lock()
-            .expect("无法获取 dashboard 缓存锁");
-        if let Some(cached) = cache.get(&cache_key)
-            && cached.timestamp.elapsed() < DASHBOARD_CACHE_TTL
-        {
-            debug!("Using cached usage dashboard: {}", cache_key);
-            return Ok(ApiSuccess(cached.response.clone()));
-        }
-    }
-
-    let response = database::with_connection(|conn| {
-        let summary =
-            usage_repo::get_usage_summary(conn, &params.platform, &params.start, &params.end)?;
-        let trends =
-            usage_repo::get_daily_trends(conn, &params.platform, &params.start, &params.end)?;
-        let model_stats =
-            usage_repo::get_model_stats(conn, &params.platform, &params.start, &params.end)?;
-        let project_stats =
-            usage_repo::get_project_stats(conn, &params.platform, &params.start, &params.end)?;
-        let heatmap = if params.include_heatmap {
-            let data = usage_repo::get_heatmap_data(conn, &params.platform, params.days)?;
-            HeatmapResponse { data }
-        } else {
-            HeatmapResponse {
-                data: HashMap::new(),
+        if use_cache {
+            let cache = USAGE_DASHBOARD_CACHE
+                .lock()
+                .expect("无法获取 dashboard 缓存锁");
+            if let Some(cached) = cache.get(&cache_key)
+                && cached.timestamp.elapsed() < DASHBOARD_CACHE_TTL
+            {
+                debug!("Using cached usage dashboard: {}", cache_key);
+                return Ok(ApiSuccess(cached.response.clone()));
             }
-        };
+        }
 
-        Ok::<UsageDashboardResponse, rusqlite::Error>(UsageDashboardResponse {
-            summary,
-            trends,
-            model_stats,
-            project_stats,
-            heatmap,
-            generated_at: Utc::now().to_rfc3339(),
-        })
-    })?;
+        let response = database::with_connection(|conn| {
+            let summary =
+                usage_repo::get_usage_summary(conn, &params.platform, &params.start, &params.end)?;
+            let trends =
+                usage_repo::get_daily_trends(conn, &params.platform, &params.start, &params.end)?;
+            let model_stats =
+                usage_repo::get_model_stats(conn, &params.platform, &params.start, &params.end)?;
+            let project_stats =
+                usage_repo::get_project_stats(conn, &params.platform, &params.start, &params.end)?;
+            let heatmap = if params.include_heatmap {
+                let data = usage_repo::get_heatmap_data(conn, &params.platform, params.days)?;
+                HeatmapResponse { data }
+            } else {
+                HeatmapResponse {
+                    data: HashMap::new(),
+                }
+            };
 
-    if use_cache {
-        let mut cache = USAGE_DASHBOARD_CACHE
-            .lock()
-            .expect("无法获取 dashboard 缓存锁");
-        cache.insert(
-            cache_key,
-            CachedDashboardData {
-                response: response.clone(),
-                timestamp: Instant::now(),
-            },
+            Ok::<UsageDashboardResponse, rusqlite::Error>(UsageDashboardResponse {
+                summary,
+                trends,
+                model_stats,
+                project_stats,
+                heatmap,
+                generated_at: Utc::now().to_rfc3339(),
+            })
+        })?;
+
+        if use_cache {
+            let mut cache = USAGE_DASHBOARD_CACHE
+                .lock()
+                .expect("无法获取 dashboard 缓存锁");
+            cache.insert(
+                cache_key,
+                CachedDashboardData {
+                    response: response.clone(),
+                    timestamp: Instant::now(),
+                },
+            );
+        }
+
+        info!(
+            "usage dashboard generated in {} ms (platform={:?}, include_heatmap={})",
+            start.elapsed().as_millis(),
+            params.platform,
+            params.include_heatmap
         );
-    }
 
-    info!(
-        "usage dashboard generated in {} ms (platform={:?}, include_heatmap={})",
-        start.elapsed().as_millis(),
-        params.platform,
-        params.include_heatmap
-    );
-
-    Ok(ApiSuccess(response))
+        Ok(ApiSuccess(response))
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?
 }
 
 /// GET /api/usage/summary
 pub async fn get_usage_summary(
     Query(params): Query<UsageQueryParams>,
 ) -> ApiResult<ApiSuccess<usage_repo::UsageSummary>> {
-    let start = Instant::now();
-    let summary = database::with_connection(|conn| {
-        usage_repo::get_usage_summary(conn, &params.platform, &params.start, &params.end)
-    })?;
-    info!(
-        "usage summary query done in {} ms (platform={:?})",
-        start.elapsed().as_millis(),
-        params.platform
-    );
-    Ok(ApiSuccess(summary))
+    tokio::task::spawn_blocking(move || {
+        let start = Instant::now();
+        let summary = database::with_connection(|conn| {
+            usage_repo::get_usage_summary(conn, &params.platform, &params.start, &params.end)
+        })?;
+        info!(
+            "usage summary query done in {} ms (platform={:?})",
+            start.elapsed().as_millis(),
+            params.platform
+        );
+        Ok(ApiSuccess(summary))
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?
 }
 
 /// GET /api/usage/trends
 pub async fn get_usage_trends(
     Query(params): Query<UsageQueryParams>,
 ) -> ApiResult<ApiSuccess<Vec<usage_repo::DailyTrend>>> {
-    let start = Instant::now();
-    let trends = database::with_connection(|conn| {
-        usage_repo::get_daily_trends(conn, &params.platform, &params.start, &params.end)
-    })?;
-    info!(
-        "usage trends query done in {} ms (platform={:?})",
-        start.elapsed().as_millis(),
-        params.platform
-    );
-    Ok(ApiSuccess(trends))
+    tokio::task::spawn_blocking(move || {
+        let start = Instant::now();
+        let trends = database::with_connection(|conn| {
+            usage_repo::get_daily_trends(conn, &params.platform, &params.start, &params.end)
+        })?;
+        info!(
+            "usage trends query done in {} ms (platform={:?})",
+            start.elapsed().as_millis(),
+            params.platform
+        );
+        Ok(ApiSuccess(trends))
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?
 }
 
 /// GET /api/usage/by-model
 pub async fn get_usage_by_model(
     Query(params): Query<UsageQueryParams>,
 ) -> ApiResult<ApiSuccess<Vec<usage_repo::ModelStat>>> {
-    let start = Instant::now();
-    let stats = database::with_connection(|conn| {
-        usage_repo::get_model_stats(conn, &params.platform, &params.start, &params.end)
-    })?;
-    info!(
-        "usage by-model query done in {} ms (platform={:?})",
-        start.elapsed().as_millis(),
-        params.platform
-    );
-    Ok(ApiSuccess(stats))
+    tokio::task::spawn_blocking(move || {
+        let start = Instant::now();
+        let stats = database::with_connection(|conn| {
+            usage_repo::get_model_stats(conn, &params.platform, &params.start, &params.end)
+        })?;
+        info!(
+            "usage by-model query done in {} ms (platform={:?})",
+            start.elapsed().as_millis(),
+            params.platform
+        );
+        Ok(ApiSuccess(stats))
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?
 }
 
 /// GET /api/usage/by-project
 pub async fn get_usage_by_project(
     Query(params): Query<UsageQueryParams>,
 ) -> ApiResult<ApiSuccess<Vec<usage_repo::ProjectStat>>> {
-    let start = Instant::now();
-    let stats = database::with_connection(|conn| {
-        usage_repo::get_project_stats(conn, &params.platform, &params.start, &params.end)
-    })?;
-    info!(
-        "usage by-project query done in {} ms (platform={:?})",
-        start.elapsed().as_millis(),
-        params.platform
-    );
-    Ok(ApiSuccess(stats))
+    tokio::task::spawn_blocking(move || {
+        let start = Instant::now();
+        let stats = database::with_connection(|conn| {
+            usage_repo::get_project_stats(conn, &params.platform, &params.start, &params.end)
+        })?;
+        info!(
+            "usage by-project query done in {} ms (platform={:?})",
+            start.elapsed().as_millis(),
+            params.platform
+        );
+        Ok(ApiSuccess(stats))
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?
 }
 
 /// GET /api/usage/heatmap
 pub async fn get_usage_heatmap(
     Query(params): Query<HeatmapQueryParams>,
 ) -> ApiResult<ApiSuccess<HeatmapResponse>> {
-    let start = Instant::now();
-    let data = database::with_connection(|conn| {
-        usage_repo::get_heatmap_data(conn, &params.platform, params.days)
-    })?;
-    info!(
-        "usage heatmap query done in {} ms (platform={:?}, days={})",
-        start.elapsed().as_millis(),
-        params.platform,
-        params.days
-    );
-    Ok(ApiSuccess(HeatmapResponse { data }))
+    tokio::task::spawn_blocking(move || {
+        let start = Instant::now();
+        let data = database::with_connection(|conn| {
+            usage_repo::get_heatmap_data(conn, &params.platform, params.days)
+        })?;
+        info!(
+            "usage heatmap query done in {} ms (platform={:?}, days={})",
+            start.elapsed().as_millis(),
+            params.platform,
+            params.days
+        );
+        Ok(ApiSuccess(HeatmapResponse { data }))
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?
 }
 
 /// GET /api/usage/logs
 pub async fn get_usage_logs(
     Query(params): Query<LogsQueryParams>,
 ) -> ApiResult<ApiSuccess<usage_repo::PaginatedLogs>> {
-    let start = Instant::now();
-    let page = params.page.max(1);
-    let page_size = params.page_size.clamp(1, 500);
+    tokio::task::spawn_blocking(move || {
+        let start = Instant::now();
+        let page = params.page.max(1);
+        let page_size = params.page_size.clamp(1, 500);
 
-    let logs = database::with_connection(|conn| {
-        if usage_logs_cursor_paging_enabled() && params.cursor.is_some() {
-            usage_repo::get_logs_by_cursor(
-                conn,
-                &params.platform,
-                page_size,
-                &params.model,
-                &params.cursor,
-                params.include_total,
-            )
-        } else {
-            usage_repo::get_paginated_logs(
-                conn,
-                &params.platform,
-                page,
-                page_size,
-                &params.model,
-                params.include_total,
-            )
-        }
-    })?;
+        let logs = database::with_connection(|conn| {
+            if usage_logs_cursor_paging_enabled() && params.cursor.is_some() {
+                usage_repo::get_logs_by_cursor(
+                    conn,
+                    &params.platform,
+                    page_size,
+                    &params.model,
+                    &params.cursor,
+                    params.include_total,
+                )
+            } else {
+                usage_repo::get_paginated_logs(
+                    conn,
+                    &params.platform,
+                    page,
+                    page_size,
+                    &params.model,
+                    params.include_total,
+                )
+            }
+        })?;
 
-    info!(
-        "usage logs query done in {} ms (page={}, page_size={}, cursor={}, include_total={})",
-        start.elapsed().as_millis(),
-        page,
-        page_size,
-        params.cursor.is_some(),
-        params.include_total
-    );
+        info!(
+            "usage logs query done in {} ms (page={}, page_size={}, cursor={}, include_total={})",
+            start.elapsed().as_millis(),
+            page,
+            page_size,
+            params.cursor.is_some(),
+            params.include_total
+        );
 
-    Ok(ApiSuccess(logs))
+        Ok(ApiSuccess(logs))
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?
 }
 
 /// POST /api/usage/import
@@ -361,15 +389,19 @@ pub async fn import_usage(
         )));
     }
 
-    let service = UsageImportService::new(ImportConfig::default());
-    let result = service.import_platform(&params.platform).map_err(|e| {
-        error!("Import failed for {}: {}", params.platform, e);
-        ApiError::internal(format!("Import failed: {}", e))
-    })?;
+    tokio::task::spawn_blocking(move || {
+        let service = UsageImportService::new(ImportConfig::default());
+        let result = service.import_platform(&params.platform).map_err(|e| {
+            error!("Import failed for {}: {}", params.platform, e);
+            ApiError::internal(format!("Import failed: {}", e))
+        })?;
 
-    let message = format!(
-        "Imported {} records from {} files for {}",
-        result.records_imported, result.files_processed, result.platform
-    );
-    Ok(ApiSuccess(ImportResponse { result, message }))
+        let message = format!(
+            "Imported {} records from {} files for {}",
+            result.records_imported, result.files_processed, result.platform
+        );
+        Ok(ApiSuccess(ImportResponse { result, message }))
+    })
+    .await
+    .map_err(|e| ApiError::internal(format!("Task join error: {}", e)))?
 }

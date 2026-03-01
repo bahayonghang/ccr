@@ -127,105 +127,21 @@ async fn main() -> std::io::Result<()> {
     let usage_import_initial_delay_secs = env_u64("USAGE_IMPORT_INITIAL_DELAY_SECS", 25);
     let session_index_initial_delay_secs = env_u64("SESSION_INDEX_INITIAL_DELAY_SECS", 30);
 
-    // 后台使用数据导入调度（每 60s 增量导入各平台 JSONL）
-    let usage_token = cancel_token.clone();
-    tokio::spawn(async move {
-        use services::usage_import_service::{ImportConfig, UsageImportService};
-        use tokio::time::{Duration, interval, sleep};
-
-        // 默认延迟 25s，避免与首批前端请求争抢 I/O 和阻塞线程
-        tokio::select! {
-            _ = usage_token.cancelled() => {
-                info!("[background] usage import cancelled during initial delay");
-                return;
-            }
-            _ = sleep(Duration::from_secs(usage_import_initial_delay_secs)) => {}
-        }
-
-        // 启动时执行一次导入（使用 spawn_blocking 避免阻塞异步工作线程）
-        let _ = tokio::task::spawn_blocking(|| {
-            let svc = UsageImportService::new(ImportConfig::default());
-            for platform in &["claude", "codex", "gemini"] {
-                if let Err(e) = svc.import_platform(platform) {
-                    warn!("Initial usage import for {} failed: {}", platform, e);
-                }
-            }
-            info!("Initial usage data import complete");
-        })
-        .await;
-
-        // 每 60s 增量导入
-        let mut tick = interval(Duration::from_secs(60));
-        loop {
-            tokio::select! {
-                _ = usage_token.cancelled() => {
-                    info!("[background] usage import task cancelled, exiting");
-                    break;
-                }
-                _ = tick.tick() => {
-                    let _ = tokio::task::spawn_blocking(|| {
-                        let svc = UsageImportService::new(ImportConfig::default());
-                        for platform in &["claude", "codex", "gemini"] {
-                            let _ = svc.import_platform(platform);
-                        }
-                    })
-                    .await;
-                }
-            }
-        }
-    });
-
-    if env_flag("SESSIONS_DAILY_CACHE", true) {
-        let session_token = cancel_token.clone();
-        tokio::spawn(async move {
-            use ccr::sessions::SessionIndexer;
-            use tokio::time::{Duration, interval, sleep};
-
-            // 默认延迟 30s，降低冷启动阶段的资源竞争
-            tokio::select! {
-                _ = session_token.cancelled() => {
-                    info!("[background] session indexer cancelled during initial delay");
-                    return;
-                }
-                _ = sleep(Duration::from_secs(session_index_initial_delay_secs)) => {}
-            }
-
-            // 初始索引（使用 spawn_blocking 避免阻塞异步工作线程）
-            let _ = tokio::task::spawn_blocking(|| {
-                if let Ok(indexer) = SessionIndexer::new() {
-                    let _ = indexer.index_all();
-                }
-            })
-            .await;
-
-            let mut tick = interval(Duration::from_secs(60));
-            loop {
-                tokio::select! {
-                    _ = session_token.cancelled() => {
-                        info!("[background] session indexer task cancelled, exiting");
-                        break;
-                    }
-                    _ = tick.tick() => {
-                        let _ = tokio::task::spawn_blocking(|| match SessionIndexer::new() {
-                            Ok(indexer) => {
-                                let _ = indexer.index_all();
-                            }
-                            Err(e) => {
-                                warn!(
-                                    "Failed to create SessionIndexer for background refresh: {}",
-                                    e
-                                );
-                            }
-                        })
-                        .await;
-                    }
-                }
-            }
-        });
+    let enable_session_cache = env_flag("SESSIONS_DAILY_CACHE", true);
+    if enable_session_cache {
         info!("Session daily cache background index refresh enabled");
     } else {
         info!("Session daily cache background index refresh disabled");
     }
+
+    // 将两个周期性后台任务迁移到独立的 OS 线程 + 单线程 tokio 运行时，
+    // 避免与主运行时的阻塞线程池（API 请求所用）产生竞争
+    spawn_background_workers(
+        cancel_token.clone(),
+        usage_import_initial_delay_secs,
+        session_index_initial_delay_secs,
+        enable_session_cache,
+    );
 
     // 启动后 1s 预热 CLI 版本缓存（fast 模式，非阻塞）
     tokio::spawn(async {
@@ -266,6 +182,138 @@ async fn main() -> std::io::Result<()> {
         })
         .await
         .map_err(std::io::Error::other)
+}
+
+/// 在独立 OS 线程 + 单线程 tokio 运行时中运行两个周期性后台任务：
+/// 1. 使用数据导入（每 60s 增量导入各平台 JSONL）
+/// 2. 会话索引刷新（每 60s 重建会话索引，可通过环境变量禁用）
+///
+/// 这样可避免后台任务与主运行时的阻塞线程池（API 请求所用）相互竞争。
+fn spawn_background_workers(
+    cancel_token: CancellationToken,
+    usage_delay_secs: u64,
+    session_delay_secs: u64,
+    enable_session_cache: bool,
+) {
+    std::thread::Builder::new()
+        .name("bg-workers".to_string())
+        .spawn(move || {
+            // 为后台任务创建独立的单线程 tokio 运行时
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("Failed to build background worker runtime");
+
+            rt.block_on(async move {
+                // 后台使用数据导入任务
+                let usage_token = cancel_token.clone();
+                let usage_task = tokio::spawn(async move {
+                    use services::usage_import_service::{ImportConfig, UsageImportService};
+                    use tokio::time::{Duration, interval, sleep};
+
+                    // 默认延迟 25s，避免与首批前端请求争抢 I/O 和阻塞线程
+                    tokio::select! {
+                        _ = usage_token.cancelled() => {
+                            info!("[background] usage import cancelled during initial delay");
+                            return;
+                        }
+                        _ = sleep(Duration::from_secs(usage_delay_secs)) => {}
+                    }
+
+                    // 启动时执行一次导入（使用 spawn_blocking 避免阻塞异步工作线程）
+                    let _ = tokio::task::spawn_blocking(|| {
+                        let svc = UsageImportService::new(ImportConfig::default());
+                        for platform in &["claude", "codex", "gemini"] {
+                            if let Err(e) = svc.import_platform(platform) {
+                                warn!("Initial usage import for {} failed: {}", platform, e);
+                            }
+                        }
+                        info!("Initial usage data import complete");
+                    })
+                    .await;
+
+                    // 每 60s 增量导入
+                    let mut tick = interval(Duration::from_secs(60));
+                    loop {
+                        tokio::select! {
+                            _ = usage_token.cancelled() => {
+                                info!("[background] usage import task cancelled, exiting");
+                                break;
+                            }
+                            _ = tick.tick() => {
+                                let _ = tokio::task::spawn_blocking(|| {
+                                    let svc = UsageImportService::new(ImportConfig::default());
+                                    for platform in &["claude", "codex", "gemini"] {
+                                        let _ = svc.import_platform(platform);
+                                    }
+                                })
+                                .await;
+                            }
+                        }
+                    }
+                });
+
+                // 后台会话索引任务（可通过环境变量禁用）
+                let session_task = if enable_session_cache {
+                    let session_token = cancel_token.clone();
+                    Some(tokio::spawn(async move {
+                        use ccr::sessions::SessionIndexer;
+                        use tokio::time::{Duration, interval, sleep};
+
+                        // 默认延迟 30s，降低冷启动阶段的资源竞争
+                        tokio::select! {
+                            _ = session_token.cancelled() => {
+                                info!("[background] session indexer cancelled during initial delay");
+                                return;
+                            }
+                            _ = sleep(Duration::from_secs(session_delay_secs)) => {}
+                        }
+
+                        // 初始索引（使用 spawn_blocking 避免阻塞异步工作线程）
+                        let _ = tokio::task::spawn_blocking(|| {
+                            if let Ok(indexer) = SessionIndexer::new() {
+                                let _ = indexer.index_all();
+                            }
+                        })
+                        .await;
+
+                        let mut tick = interval(Duration::from_secs(60));
+                        loop {
+                            tokio::select! {
+                                _ = session_token.cancelled() => {
+                                    info!("[background] session indexer task cancelled, exiting");
+                                    break;
+                                }
+                                _ = tick.tick() => {
+                                    let _ = tokio::task::spawn_blocking(|| match SessionIndexer::new() {
+                                        Ok(indexer) => {
+                                            let _ = indexer.index_all();
+                                        }
+                                        Err(e) => {
+                                            warn!(
+                                                "Failed to create SessionIndexer for background refresh: {}",
+                                                e
+                                            );
+                                        }
+                                    })
+                                    .await;
+                                }
+                            }
+                        }
+                    }))
+                } else {
+                    None
+                };
+
+                // 等待使用数据导入任务完成（取消后退出）
+                let _ = usage_task.await;
+                // 等待会话索引任务完成（若已启用）
+                if let Some(t) = session_task {
+                    let _ = t.await;
+                }
+            });
+        })
+        .expect("Failed to spawn background worker thread");
 }
 
 /// Setup logging with daily rotation and configurable retention
