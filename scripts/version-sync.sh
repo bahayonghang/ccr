@@ -11,6 +11,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 
 ROOT_CARGO="$ROOT_DIR/Cargo.toml"
+CCR_TYPES_CARGO="$ROOT_DIR/ccr-types/Cargo.toml"
 BACKEND_CARGO="$ROOT_DIR/ccr-ui/backend/Cargo.toml"
 FRONTEND_PKG="$ROOT_DIR/ccr-ui/frontend/package.json"
 TAURI_CARGO="$ROOT_DIR/ccr-ui/frontend/src-tauri/Cargo.toml"
@@ -45,6 +46,7 @@ require_file() {
 }
 
 require_file "$ROOT_CARGO"
+require_file "$CCR_TYPES_CARGO"
 require_file "$BACKEND_CARGO"
 require_file "$FRONTEND_PKG"
 require_file "$TAURI_CARGO"
@@ -84,6 +86,20 @@ done
 ROOT_VER="$(extract_root_version)"
 
 [[ "$VERBOSE" == true ]] && echo "🔧 根版本: $ROOT_VER"
+
+extract_ccr_types_version() {
+  local pkg_block
+  pkg_block="$(awk 'BEGIN{p=0} /^\[package\]/{p=1;print;next} /^\[/{if(p){exit};} p{print}' "$CCR_TYPES_CARGO")"
+  [[ -n "$pkg_block" ]] || die "ccr-types Cargo.toml 中缺少 [package] 区块"
+  local ver
+  ver="$(printf "%s" "$pkg_block" | sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' | head -n1)"
+  [[ -n "$ver" ]] || die "ccr-types Cargo.toml 的 [package] 区块中没有 version 字段"
+  ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  printf "%s" "$ver"
+}
+
+CCR_TYPES_VER="$(extract_ccr_types_version)"
+[[ "$VERBOSE" == true ]] && echo "📦 ccr-types 版本: $CCR_TYPES_VER"
 
 # 获取当前后端版本
 extract_backend_version() {
@@ -164,12 +180,13 @@ UI_LEGACY_LAYOUT_VER="$(extract_ui_footer_version "$LEGACY_MAIN_LAYOUT")"
 [[ "$VERBOSE" == true ]] && echo "📐 MainLayout.vue (layouts) 版本: $UI_LEGACY_LAYOUT_VER"
 
 if [[ "$CHECK_ONLY" == true ]]; then
-  if [[ "$ROOT_VER" == "$BACKEND_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_LEGACY_LAYOUT_VER" ]]; then
+  if [[ "$ROOT_VER" == "$CCR_TYPES_VER" && "$ROOT_VER" == "$BACKEND_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_LEGACY_LAYOUT_VER" ]]; then
     echo "✅ 版本一致性检查通过"
     exit 0
   else
     echo "❌ 版本不一致："
     echo "  root Cargo.toml:                        $ROOT_VER"
+    echo "  ccr-types/Cargo.toml:                   $CCR_TYPES_VER"
     echo "  ccr-ui/backend/Cargo.toml:              $BACKEND_VER"
     echo "  ccr-ui/frontend/package.json:           $FRONTEND_VER"
     echo "  ccr-ui/frontend/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
@@ -180,12 +197,31 @@ if [[ "$CHECK_ONLY" == true ]]; then
   fi
 fi
 
-if [[ "$ROOT_VER" == "$BACKEND_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_LEGACY_LAYOUT_VER" ]]; then
+if [[ "$ROOT_VER" == "$CCR_TYPES_VER" && "$ROOT_VER" == "$BACKEND_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_LEGACY_LAYOUT_VER" ]]; then
   echo "✅ 版本一致，无需同步"
   exit 0
 fi
 
 echo "♻️  开始同步版本到 UI 文件..."
+
+# 更新 ccr-types Cargo.toml 的 [package] 区块 version
+update_ccr_types_version() {
+  local tmp
+  tmp="$(mktemp)"
+  awk -v NEWVER="$ROOT_VER" '
+    BEGIN{p=0;done=0}
+    /^\[package\]/{p=1;print;next}
+    /^\[/{if(p){p=0};}
+    {
+      if(p && !done && $0 ~ /^[[:space:]]*version[[:space:]]*=[[:space:]]*"[^"]*"/) {
+        sub(/"[^"]*"/, "\"" NEWVER "\"");
+        done=1;
+      }
+      print;
+    }
+  ' "$CCR_TYPES_CARGO" > "$tmp" || die "更新 ccr-types 版本失败"
+  mv "$tmp" "$CCR_TYPES_CARGO"
+}
 
 # 更新后端 Cargo.toml 的 [package] 区块 version
 update_backend_version() {
@@ -252,6 +288,11 @@ update_tauri_conf_version() {
     rm -f "$TAURI_CONF.bak"
   fi
 }
+
+if [[ "$CCR_TYPES_VER" != "$ROOT_VER" ]]; then
+  echo "  - ccr-types: $CCR_TYPES_VER -> $ROOT_VER"
+  update_ccr_types_version
+fi
 
 if [[ "$BACKEND_VER" != "$ROOT_VER" ]]; then
   echo "  - 后端: $BACKEND_VER -> $ROOT_VER"
