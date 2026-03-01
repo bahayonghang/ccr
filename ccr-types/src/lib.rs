@@ -10,6 +10,8 @@
 //! - All nested types preserve unknown fields via `#[serde(flatten)] other`
 //! - Use `#[serde(default)]` for backward compatibility
 //! - Use `#[serde(skip_serializing_if = "...")]` for clean JSON output
+//! - `ClaudeSettings.output_style` serializes as `outputStyle` and accepts legacy `output_style`
+//! - `hooks` must be an array; invalid types return deserialization errors
 
 mod claude_settings;
 mod codex_auth;
