@@ -2044,7 +2044,8 @@ export default {
       loginState: {
         loggedInSaved: '已登录 ({name})',
         loggedInUnsaved: '已登录 (未保存)',
-        notLoggedIn: '未登录'
+        notLoggedIn: '未登录',
+        unknown: '未知状态 ({type})'
       },
       fields: {
         accountId: '账户 ID',

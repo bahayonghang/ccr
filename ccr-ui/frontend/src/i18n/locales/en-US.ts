@@ -2032,7 +2032,8 @@ export default {
       loginState: {
         loggedInSaved: 'Logged in ({name})',
         loggedInUnsaved: 'Logged in (Unsaved)',
-        notLoggedIn: 'Not logged in'
+        notLoggedIn: 'Not logged in',
+        unknown: 'Unknown state ({type})'
       },
       fields: {
         accountId: 'Account ID',
