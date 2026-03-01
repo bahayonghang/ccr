@@ -76,7 +76,7 @@
           <button
             v-if="selectedProvider.oauth_config?.linuxdo_client_id"
             :class="[
-              'flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-all',
+              'flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-colors',
               selectedOAuthType === 'linuxdo'
                 ? 'border-blue-500 bg-blue-500/10 text-blue-400'
                 : 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-500',
@@ -89,7 +89,7 @@
           <button
             v-if="selectedProvider.oauth_config?.github_client_id"
             :class="[
-              'flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-all',
+              'flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-colors',
               selectedOAuthType === 'github'
                 ? 'border-blue-500 bg-blue-500/10 text-blue-400'
                 : 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-500',

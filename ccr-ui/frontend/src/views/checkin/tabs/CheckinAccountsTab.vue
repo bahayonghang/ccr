@@ -113,7 +113,7 @@
           <tr
             v-for="account in filteredAccounts"
             :key="account.id"
-            class="hover:bg-gray-50/60 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
+            class="hover:bg-gray-50/60 dark:hover:bg-gray-700/50 transition-colors duration-200 cursor-pointer"
             @click="emit('navigate', account.id)"
           >
             <!-- 账号名 + 提供商 -->
@@ -183,7 +183,7 @@
             >
               <div class="flex items-center justify-center gap-2">
                 <button
-                  class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm transition-all duration-200"
+                  class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm transition-colors duration-200"
                   @click="emit('checkin', account.id)"
                 >
                   <Calendar class="w-3 h-3 mr-1 inline" /> 签到

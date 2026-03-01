@@ -15,7 +15,7 @@
         <div
           v-for="bp in availableBuiltinProviders"
           :key="bp.id"
-          class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-sm p-4 border border-blue-100 dark:border-gray-600 hover:shadow-md transition-all"
+          class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-sm p-4 border border-blue-100 dark:border-gray-600 hover:shadow-md transition-[box-shadow]"
         >
           <div class="flex items-start justify-between">
             <div class="flex items-center space-x-3">
