@@ -21,6 +21,7 @@ import type {
     CodexAuthSaveRequest,
     CodexAuthProcessResponse,
     CodexUsageResponse,
+    LoginState,
     Plugin,
     PlatformAgentsResponse,
     PlatformAgentRequest,
@@ -125,14 +126,45 @@ export const updateCodexConfig = async (config: CodexConfig): Promise<string> =>
 // 🔑 Codex Auth Management
 // ═══════════════════════════════════════════════════════════
 
+const normalizeLoginState = (value: unknown): LoginState => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return { type: 'Unknown', raw_type: 'InvalidShape', raw: {} }
+    }
+
+    const raw = value as Record<string, unknown>
+    const stateType = typeof raw.type === 'string' ? raw.type : '<missing>'
+
+    switch (stateType) {
+        case 'NotLoggedIn':
+            return { type: 'NotLoggedIn' }
+        case 'LoggedInUnsaved':
+            return { type: 'LoggedInUnsaved' }
+        case 'LoggedInSaved':
+            if (typeof raw.account_name === 'string') {
+                return { type: 'LoggedInSaved', account_name: raw.account_name }
+            }
+            return { type: 'Unknown', raw_type: stateType, raw }
+        default:
+            return { type: 'Unknown', raw_type: stateType, raw }
+    }
+}
+
 export const listCodexAuthAccounts = async (): Promise<CodexAuthListResponse> => {
     const response = await api.get<ApiResponse<CodexAuthListResponse>>('/codex/auth/accounts')
-    return response.data.data!
+    const data = response.data.data!
+    return {
+        ...data,
+        login_state: normalizeLoginState(data.login_state),
+    }
 }
 
 export const getCodexAuthCurrent = async (): Promise<CodexAuthCurrentResponse> => {
     const response = await api.get<ApiResponse<CodexAuthCurrentResponse>>('/codex/auth/current')
-    return response.data.data!
+    const data = response.data.data!
+    return {
+        ...data,
+        login_state: normalizeLoginState(data.login_state),
+    }
 }
 
 export const saveCodexAuth = async (request: CodexAuthSaveRequest): Promise<string> => {

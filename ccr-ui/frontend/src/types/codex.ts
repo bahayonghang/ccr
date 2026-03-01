@@ -131,13 +131,14 @@ export interface CodexConfigResponse {
 // ============ Codex Auth Management Types ============
 
 /** Token 新鲜度 */
-export type TokenFreshness = 'Fresh' | 'Stale' | 'Old' | 'Unknown'
+export type TokenFreshness = 'Fresh' | 'Stale' | 'Old' | 'Unknown' | (string & {})
 
 /** 登录状态 (tagged union) */
 export type LoginState =
   | { type: 'NotLoggedIn' }
   | { type: 'LoggedInUnsaved' }
   | { type: 'LoggedInSaved'; account_name: string }
+  | { type: 'Unknown'; raw_type: string; raw: Record<string, unknown> }
 
 /** Codex Auth 账号列表项 */
 export interface CodexAuthAccountItem {
