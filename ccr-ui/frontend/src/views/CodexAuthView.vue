@@ -502,6 +502,7 @@ const loginStateColor = computed(() => {
   switch (loginState.value.type) {
     case 'LoggedInSaved': return 'success'
     case 'LoggedInUnsaved': return 'warning'
+    case 'Unknown': return 'warning'
     default: return 'danger'
   }
 })
@@ -510,6 +511,7 @@ const loginStateIcon = computed(() => {
   switch (loginState.value.type) {
     case 'LoggedInSaved': return UserCheck
     case 'LoggedInUnsaved': return LogIn
+    case 'Unknown': return AlertTriangle
     default: return LogOut
   }
 })
@@ -518,6 +520,7 @@ const loginStateIconClass = computed(() => {
   switch (loginState.value.type) {
     case 'LoggedInSaved': return 'bg-emerald-500/10 text-emerald-500'
     case 'LoggedInUnsaved': return 'bg-yellow-500/10 text-yellow-500'
+    case 'Unknown': return 'bg-yellow-500/10 text-yellow-500'
     default: return 'bg-red-500/10 text-red-500'
   }
 })
@@ -528,6 +531,8 @@ const loginStateText = computed(() => {
       return t('codex.auth.loginState.loggedInSaved', { name: loginState.value.account_name })
     case 'LoggedInUnsaved':
       return t('codex.auth.loginState.loggedInUnsaved')
+    case 'Unknown':
+      return t('codex.auth.loginState.unknown', { type: loginState.value.raw_type })
     default:
       return t('codex.auth.loginState.notLoggedIn')
   }
