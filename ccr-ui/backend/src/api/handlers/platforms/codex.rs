@@ -460,6 +460,8 @@ pub async fn list_codex_auth_accounts() -> impl IntoResponse {
             .into_iter()
             .map(|item| {
                 let freshness = item.freshness;
+                let freshness_icon = freshness.icon().to_string();
+                let freshness_description = freshness.description().to_string();
                 let is_expired = CodexAuthService::is_expired(item.expires_at);
                 CodexAuthAccountItem {
                     name: item.name,
@@ -470,8 +472,8 @@ pub async fn list_codex_auth_accounts() -> impl IntoResponse {
                     last_used: item.last_used.map(|dt| dt.to_rfc3339()),
                     last_refresh: item.last_refresh.map(|dt| dt.to_rfc3339()),
                     freshness,
-                    freshness_icon: freshness.icon().to_string(),
-                    freshness_description: freshness.description().to_string(),
+                    freshness_icon,
+                    freshness_description,
                     expires_at: item.expires_at.map(|dt| dt.to_rfc3339()),
                     is_expired,
                 }
@@ -506,6 +508,8 @@ pub async fn get_codex_auth_current() -> impl IntoResponse {
         let info = match service.get_current_auth_info() {
             Ok(current) => {
                 let freshness = current.freshness;
+                let freshness_icon = freshness.icon().to_string();
+                let freshness_description = freshness.description().to_string();
                 let expires_at = service.load_registry().ok().and_then(|reg| {
                     reg.current_auth
                         .and_then(|name| reg.accounts.get(&name).and_then(|a| a.expires_at))
@@ -516,8 +520,8 @@ pub async fn get_codex_auth_current() -> impl IntoResponse {
                     email: current.email,
                     last_refresh: current.last_refresh.map(|dt| dt.to_rfc3339()),
                     freshness,
-                    freshness_icon: freshness.icon().to_string(),
-                    freshness_description: freshness.description().to_string(),
+                    freshness_icon,
+                    freshness_description,
                     expires_at: expires_at.map(|dt| dt.to_rfc3339()),
                     is_expired,
                 })
