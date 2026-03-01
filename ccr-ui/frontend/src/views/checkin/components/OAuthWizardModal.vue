@@ -371,7 +371,7 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import BaseModal from '@/components/common/BaseModal.vue'
-import { getOAuthAuthorizeUrl, createCheckinAccount } from '@/api/client'
+import { getOAuthAuthorizeUrl, createCheckinAccount } from '@/api/modules/checkin'
 import type { BuiltinProvider } from '@/types/checkin'
 
 const props = defineProps<{

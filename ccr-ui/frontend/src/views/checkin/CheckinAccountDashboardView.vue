@@ -235,7 +235,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, CheckCircle2, RefreshCw, Wallet, TrendingUp, History, CalendarDays, Flame, Trophy, Calendar } from 'lucide-vue-next'
-import { checkinAccount, getCheckinAccountDashboard, queryCheckinBalance } from '@/api/client'
+import { checkinAccount, getCheckinAccountDashboard, queryCheckinBalance } from '@/api/modules/checkin'
 import type { CheckinAccountDashboardResponse } from '@/types/checkin'
 import { extractStringParam } from '@/types/router'
 import AccountDashboardCalendar from './components/AccountDashboardCalendar.vue'
