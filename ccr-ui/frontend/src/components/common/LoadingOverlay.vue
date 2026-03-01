@@ -125,16 +125,6 @@ const overlayStyle = computed(() => {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* 加载文本 */
 .loading-text {
   font-size: var(--font-size-base);

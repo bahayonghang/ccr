@@ -1,13 +1,17 @@
 <template>
-  <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-bg-base transition-colors duration-500">
+  <div
+    ref="bgRef"
+    class="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-bg-base transition-colors duration-500"
+    :style="{ '--animation-state': shouldAnimate ? 'running' : 'paused' }"
+  >
     <!-- Variant: Default / Complex - Multi-layer mesh gradient -->
-    <template v-if="variant === 'default' || variant === 'complex'">
+    <template v-if="effectiveVariant === 'default' || effectiveVariant === 'complex'">
       <!-- 1. Base Mesh Gradient (Subtle shifting colors) -->
       <div class="absolute inset-0 opacity-30 dark:opacity-20">
         <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,var(--color-accent-primary)_0%,transparent_50%)] animate-pulse-slow" />
         <div class="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,var(--color-accent-secondary)_0%,transparent_50%)] animate-pulse-slow delay-1000" />
         <div
-          v-if="variant === 'complex'"
+          v-if="effectiveVariant === 'complex'"
           class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_50%_50%,var(--color-info)_0%,transparent_60%)] opacity-50 animate-pulse-slower"
         />
       </div>
@@ -20,7 +24,7 @@
     </template>
 
     <!-- Variant: Aurora - Northern lights effect -->
-    <template v-else-if="variant === 'aurora'">
+    <template v-else-if="effectiveVariant === 'aurora'">
       <div class="absolute inset-0">
         <!-- Aurora waves -->
         <div class="aurora-wave aurora-wave-1" />
@@ -31,7 +35,7 @@
     </template>
 
     <!-- Variant: Spotlight - Single focused glow -->
-    <template v-else-if="variant === 'spotlight'">
+    <template v-else-if="effectiveVariant === 'spotlight'">
       <div
         class="absolute inset-0"
         :class="spotlightColorClass"
@@ -41,13 +45,13 @@
     </template>
 
     <!-- Variant: Mesh - Multi-point gradient mesh -->
-    <template v-else-if="variant === 'mesh'">
+    <template v-else-if="effectiveVariant === 'mesh'">
       <div class="absolute inset-0 mesh-gradient animate-mesh-shift" />
       <div class="noise-overlay" />
     </template>
 
     <!-- Variant: Orbs - Floating gradient orbs -->
-    <template v-else-if="variant === 'orbs'">
+    <template v-else-if="effectiveVariant === 'orbs'">
       <div class="absolute inset-0">
         <div class="orb orb-1" />
         <div class="orb orb-2" />
@@ -58,7 +62,7 @@
     </template>
 
     <!-- Variant: Minimal - Subtle single gradient -->
-    <template v-else-if="variant === 'minimal'">
+    <template v-else-if="effectiveVariant === 'minimal'">
       <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgb(var(--color-accent-primary-rgb)/12%),transparent)]" />
       <div class="noise-overlay opacity-[0.02]" />
     </template>
@@ -66,7 +70,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import { useAnimationVisibility } from '@/composables/useAnimationVisibility'
 
 type BackgroundVariant = 'default' | 'complex' | 'aurora' | 'spotlight' | 'mesh' | 'orbs' | 'minimal'
 type SpotlightColor = 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info'
@@ -84,10 +89,19 @@ const props = withDefaults(defineProps<{
   complex: false
 })
 
-// Computed variant considering legacy 'complex' prop
+const bgRef = ref<HTMLElement | null>(null)
+const { shouldAnimate, prefersReducedMotion } = useAnimationVisibility(bgRef)
+
+// Computed variant considering legacy 'complex' prop and reduced motion preference
 const variant = computed(() => {
   if (props.complex) return 'complex'
   return props.variant
+})
+
+// 当用户偏好 reduced motion 时，降级为 minimal 变体
+const effectiveVariant = computed<BackgroundVariant>(() => {
+  if (prefersReducedMotion.value) return 'minimal'
+  return variant.value
 })
 
 // Spotlight color class mapping
@@ -108,14 +122,17 @@ const spotlightColorClass = computed(() => {
 /* ========== Animation Keyframes ========== */
 .animate-pulse-slow {
   animation: pulse-glow 8s ease-in-out infinite;
+  animation-play-state: var(--animation-state);
 }
 
 .animate-pulse-slower {
   animation: pulse-glow 12s ease-in-out infinite;
+  animation-play-state: var(--animation-state);
 }
 
 .animate-mesh-shift {
   animation: mesh-shift 20s ease-in-out infinite;
+  animation-play-state: var(--animation-state);
 }
 
 @keyframes pulse-glow {
@@ -233,8 +250,9 @@ const spotlightColorClass = computed(() => {
   height: 60%;
   top: -20%;
   left: -50%;
-  filter: blur(60px);
+  filter: blur(40px);
   animation: aurora-flow 8s ease-in-out infinite;
+  animation-play-state: var(--animation-state);
 }
 
 .aurora-wave-1 {
@@ -276,34 +294,37 @@ const spotlightColorClass = computed(() => {
 .orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(50px);
 }
 
 .orb-1 {
   top: -10%;
   left: -10%;
-  width: 50vw;
-  height: 50vw;
+  width: 35vw;
+  height: 35vw;
   background: rgb(var(--color-accent-primary-rgb) / 15%);
   animation: orb-float-1 20s ease-in-out infinite;
+  animation-play-state: var(--animation-state);
 }
 
 .orb-2 {
   bottom: -10%;
   right: -10%;
-  width: 45vw;
-  height: 45vw;
+  width: 30vw;
+  height: 30vw;
   background: rgb(var(--color-accent-secondary-rgb) / 12%);
   animation: orb-float-2 25s ease-in-out infinite;
+  animation-play-state: var(--animation-state);
 }
 
 .orb-3 {
   top: 40%;
   left: 40%;
-  width: 30vw;
-  height: 30vw;
+  width: 20vw;
+  height: 20vw;
   background: rgb(var(--color-info-rgb) / 10%);
   animation: orb-float-3 30s linear infinite;
+  animation-play-state: var(--animation-state);
 }
 
 [data-theme="dark"] .orb-1 {

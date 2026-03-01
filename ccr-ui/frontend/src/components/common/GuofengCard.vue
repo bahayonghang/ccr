@@ -1,6 +1,6 @@
 <template>
   <div
-    class="guofeng-card group relative overflow-hidden transition-all duration-300"
+    class="guofeng-card group relative overflow-hidden transition-[color,background-color,border-color,box-shadow,transform] duration-300"
     :class="[
       interactive && !disabled ? 'hover:-translate-y-1 cursor-pointer' : '',
       variant === 'glass' ? 'glass-effect' : 'bg-[var(--bg-secondary)]',
@@ -43,7 +43,7 @@
     <!-- Iconified Entry Indicator (Top Right) -->
     <div
       v-if="interactive && !disabled"
-      class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"
+      class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-[opacity,transform] duration-300 transform translate-x-2 group-hover:translate-x-0"
     >
       <div class="p-1.5 rounded-full bg-white/10 backdrop-blur-sm text-[var(--color-text-primary)]">
         <svg
@@ -215,7 +215,6 @@ const onMouseLeave = (e: MouseEvent) => {
 
   /* 性能优化 */
   transform: var(--hardware-acceleration);
-  will-change: var(--will-change-auto);
 }
 
 .guofeng-card::before {
