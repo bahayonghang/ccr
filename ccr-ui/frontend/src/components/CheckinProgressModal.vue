@@ -107,7 +107,7 @@ watch(
               stroke="currentColor"
               stroke-width="6"
               fill="none"
-              class="text-accent-primary transition-all duration-300"
+              class="text-accent-primary transition-[stroke-dashoffset,stroke-dasharray] duration-300"
               :stroke-dasharray="circumference"
               :stroke-dashoffset="progressOffset"
               stroke-linecap="round"

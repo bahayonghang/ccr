@@ -31,7 +31,7 @@ const tooltip = computed(() => {
 <template>
   <button
     v-if="isTauri"
-    class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-90"
+    class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-medium transition-opacity hover:opacity-90"
     :class="badgeClass"
     :title="tooltip"
     @click="checkHealth"

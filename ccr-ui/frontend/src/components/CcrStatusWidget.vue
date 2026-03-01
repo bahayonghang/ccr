@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center gap-3 bg-bg-secondary/40 p-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-sm transition-all duration-300">
+  <div class="flex items-center gap-3 bg-bg-secondary/40 p-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-sm transition-colors duration-300">
     <!-- Loading State -->
     <div
       v-if="loading"

@@ -17,7 +17,7 @@
     <div
       v-for="command in commands"
       :key="command.name"
-      class="rounded-xl p-4 transition-all duration-200 hover:shadow-md flex"
+      class="rounded-xl p-4 transition-[box-shadow] duration-200 hover:shadow-md flex"
       :style="{
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-color)'

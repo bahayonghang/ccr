@@ -16,7 +16,7 @@
         </div>
       </div>
       <button
-        class="text-xs px-3 py-1.5 rounded-lg bg-guofeng-bg-tertiary hover:bg-guofeng-indigo/10 text-guofeng-text-secondary hover:text-guofeng-indigo transition-all flex items-center gap-1.5"
+        class="text-xs px-3 py-1.5 rounded-lg bg-guofeng-bg-tertiary hover:bg-guofeng-indigo/10 text-guofeng-text-secondary hover:text-guofeng-indigo transition-colors flex items-center gap-1.5"
         @click="showPresetsPanel = !showPresetsPanel"
       >
         <component
@@ -45,7 +45,7 @@
         v-for="preset in presets"
         v-else
         :key="preset.id"
-        class="group relative rounded-2xl p-4 border border-white/10 bg-gradient-to-br from-white/5 to-white/10 hover:border-guofeng-indigo/30 hover:shadow-lg transition-all duration-300 cursor-pointer"
+        class="group relative rounded-2xl p-4 border border-white/10 bg-gradient-to-br from-white/5 to-white/10 hover:border-guofeng-indigo/30 hover:shadow-lg transition-[border-color,box-shadow] duration-300 cursor-pointer"
         @click="handlePresetClick(preset)"
       >
         <!-- Tags Badge -->
@@ -128,7 +128,7 @@
             <button
               v-for="platform in platforms"
               :key="platform.id"
-              class="px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all border"
+              class="px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors border"
               :class="selectedPlatforms.includes(platform.id)
                 ? 'bg-guofeng-indigo/20 text-guofeng-indigo border-guofeng-indigo/30'
                 : 'bg-guofeng-bg-tertiary text-guofeng-text-muted border-transparent hover:border-guofeng-border'"
@@ -152,7 +152,7 @@
           <input
             v-model="apiKeyValue"
             type="password"
-            class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-all font-mono text-sm"
+            class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-[border-color,box-shadow] font-mono text-sm"
             :placeholder="`${$t('mcp.presets.enterApiKey')} ${selectedPreset.api_key_env}`"
           >
           <p class="text-xs text-guofeng-text-muted mt-2">
@@ -198,13 +198,13 @@
         <!-- Actions -->
         <div class="flex gap-4">
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border"
             @click="closeInstallModal"
           >
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-guofeng-indigo text-white shadow-lg shadow-guofeng-indigo/20 hover:shadow-xl hover:shadow-guofeng-indigo/30 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[box-shadow,transform] bg-guofeng-indigo text-white shadow-lg shadow-guofeng-indigo/20 hover:shadow-xl hover:shadow-guofeng-indigo/30 hover:-translate-y-0.5 flex items-center justify-center gap-2"
             :disabled="installing || selectedPlatforms.length === 0"
             @click="confirmInstall"
           >

@@ -17,7 +17,7 @@
       </div>
       <div class="flex items-center gap-2">
         <button
-          class="text-xs px-3 py-1.5 rounded-lg bg-guofeng-bg-tertiary hover:bg-guofeng-emerald/10 text-guofeng-text-secondary hover:text-guofeng-emerald transition-all flex items-center gap-1.5"
+          class="text-xs px-3 py-1.5 rounded-lg bg-guofeng-bg-tertiary hover:bg-guofeng-emerald/10 text-guofeng-text-secondary hover:text-guofeng-emerald transition-colors flex items-center gap-1.5"
           :disabled="loading"
           @click="loadSourceServers"
         >
@@ -28,7 +28,7 @@
           {{ $t('common.refresh') }}
         </button>
         <button
-          class="px-4 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all hover:scale-105 bg-guofeng-emerald shadow-lg shadow-guofeng-emerald/20"
+          class="px-4 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-transform hover:scale-105 bg-guofeng-emerald shadow-lg shadow-guofeng-emerald/20"
           :disabled="syncing || sourceServers.length === 0"
           @click="handleSyncAll"
         >
@@ -54,7 +54,7 @@
         <button
           v-for="platform in platforms"
           :key="platform.id"
-          class="px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-all border"
+          class="px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors border"
           :class="selectedPlatforms.includes(platform.id)
             ? 'bg-guofeng-emerald/20 text-guofeng-emerald border-guofeng-emerald/30'
             : 'bg-guofeng-bg-tertiary text-guofeng-text-muted border-transparent hover:border-guofeng-border'"
@@ -107,7 +107,7 @@
         <div
           v-for="server in sourceServers"
           :key="server.name"
-          class="group p-4 rounded-2xl bg-guofeng-bg-tertiary/50 border border-guofeng-border/50 hover:border-guofeng-emerald/30 transition-all"
+          class="group p-4 rounded-2xl bg-guofeng-bg-tertiary/50 border border-guofeng-border/50 hover:border-guofeng-emerald/30 transition-colors"
         >
           <div class="flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -125,7 +125,7 @@
               </div>
             </div>
             <button
-              class="ml-4 px-3 py-2 rounded-xl text-xs font-medium bg-guofeng-emerald/10 text-guofeng-emerald hover:bg-guofeng-emerald/20 transition-all flex items-center gap-1.5"
+              class="ml-4 px-3 py-2 rounded-xl text-xs font-medium bg-guofeng-emerald/10 text-guofeng-emerald hover:bg-guofeng-emerald/20 transition-colors flex items-center gap-1.5"
               :disabled="syncing"
               @click="handleSyncServer(server.name)"
             >

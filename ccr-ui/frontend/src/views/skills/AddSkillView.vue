@@ -918,7 +918,7 @@ onMounted(async () => {
          text-xs font-medium text-text-secondary
          bg-bg-surface border border-border-subtle
          hover:text-text-primary hover:border-border-default
-         disabled:opacity-50 transition-all;
+         disabled:opacity-50 transition-colors;
 }
 
 /* Browse Controls */
@@ -935,7 +935,7 @@ onMounted(async () => {
          text-text-primary
          pl-12 pr-4 py-3 text-sm font-medium
          focus:outline-none focus:ring-2 focus:ring-accent-primary/30
-         focus:border-accent-primary/50 transition-all;
+         focus:border-accent-primary/50 transition-[border-color,box-shadow];
 
   &::placeholder {
     color: rgb(var(--color-text-muted-rgb) / 50%);
@@ -979,7 +979,7 @@ onMounted(async () => {
          text-sm font-medium text-text-secondary
          bg-bg-surface border border-border-subtle
          hover:text-text-primary hover:border-border-default
-         transition-all;
+         transition-colors;
 }
 
 .btn-batch--active {
@@ -1069,7 +1069,7 @@ onMounted(async () => {
   @apply flex items-center gap-1.5 px-4 py-2.5 rounded-xl
          text-sm font-medium text-text-secondary
          hover:text-text-primary hover:bg-bg-surface
-         transition-all duration-200;
+         transition-colors duration-200;
 }
 
 .manual-tab--active {
@@ -1157,7 +1157,7 @@ onMounted(async () => {
   @apply flex items-center gap-2 px-5 py-2.5 rounded-xl
          text-sm font-semibold text-white
          bg-accent-primary hover:bg-accent-primary/90
-         disabled:opacity-50 disabled:cursor-not-allowed transition-all;
+         disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
 }
 
 .btn-cancel {

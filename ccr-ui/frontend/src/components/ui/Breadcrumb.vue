@@ -11,7 +11,7 @@
       <template v-if="index < items.length - 1">
         <RouterLink
           :to="item.path"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all hover:scale-105 text-text-secondary bg-transparent text-sm font-medium hover:bg-bg-secondary hover:text-text-primary"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-[color,background-color,transform] hover:scale-105 text-text-secondary bg-transparent text-sm font-medium hover:bg-bg-secondary hover:text-text-primary"
         >
           <component
             :is="item.icon"

@@ -19,7 +19,7 @@
 
         <main class="min-w-0">
           <!-- Header -->
-          <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-xl shadow-sm">
+          <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-sm shadow-sm">
             <div class="flex items-center gap-4">
               <div class="p-3 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 border border-violet-500/30">
                 <Server class="w-6 h-6 text-violet-400" />
@@ -40,7 +40,7 @@
             </div>
             
             <button
-              class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all hover:scale-105 bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40"
+              class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-[color,background-color,border-color,transform] hover:scale-105 bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40"
               @click="handleAdd"
             >
               <Plus class="w-5 h-5" />
@@ -81,7 +81,7 @@
             <div
               v-for="server in servers"
               :key="server.name"
-              class="group glass-effect rounded-2xl p-5 border border-white/20 transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/10 hover:border-violet-500/30"
+              class="group glass-effect rounded-2xl p-5 border border-white/20 transition-[color,background-color,box-shadow] duration-300 hover:shadow-lg hover:shadow-violet-500/10 hover:border-violet-500/30"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -130,7 +130,7 @@
 
                 <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <button
-                    class="p-2 rounded-lg transition-all hover:scale-110 border border-transparent"
+                    class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 border border-transparent"
                     :class="server.disabled ? 'text-text-muted hover:text-success hover:bg-success/10' : 'text-success hover:text-text-muted hover:bg-bg-surface'"
                     :title="server.disabled ? $t('mcp.enable') : $t('mcp.disable')"
                     @click="handleToggle(server.name)"
@@ -145,14 +145,14 @@
                     />
                   </button>
                   <button
-                    class="p-2 rounded-lg transition-all hover:scale-110 text-text-secondary hover:text-violet-400 hover:bg-violet-500/10"
+                    class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-text-secondary hover:text-violet-400 hover:bg-violet-500/10"
                     :title="$t('mcp.edit')"
                     @click="handleEdit(server)"
                   >
                     <Edit2 class="w-4 h-4" />
                   </button>
                   <button
-                    class="p-2 rounded-lg transition-all hover:scale-110 text-text-secondary hover:text-danger hover:bg-danger/10"
+                    class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-text-secondary hover:text-danger hover:bg-danger/10"
                     :title="$t('mcp.delete')"
                     @click="handleDelete(server.name)"
                   >
@@ -166,7 +166,7 @@
           <!-- Add/Edit Form Modal -->
           <div
             v-if="showAddForm"
-            class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-all"
+            class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-colors"
             @click="showAddForm = false"
           >
             <div
@@ -198,7 +198,7 @@
                   <input
                     v-model="formData.name"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-text-primary"
+                    class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-text-primary"
                     :placeholder="$t('mcp.namePlaceholder')"
                   >
                 </div>
@@ -210,7 +210,7 @@
                   <input
                     v-model="formData.command"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-text-primary"
+                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-text-primary"
                     :placeholder="$t('mcp.commandPlaceholder')"
                   >
                 </div>
@@ -222,7 +222,7 @@
                   <input
                     v-model="argInput"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-text-primary"
+                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-text-primary"
                     :placeholder="$t('mcp.argsPlaceholder')"
                   >
                   <div class="text-xs mt-1.5 text-text-muted">
@@ -238,13 +238,13 @@
                     <input
                       v-model="envKey"
                       type="text"
-                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-text-primary"
+                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-text-primary"
                       :placeholder="$t('mcp.envKey')"
                     >
                     <input
                       v-model="envValue"
                       type="text"
-                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-text-primary"
+                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-text-primary"
                       :placeholder="$t('mcp.envValue')"
                     >
                     <button
@@ -291,13 +291,13 @@
 
               <div class="flex gap-4 mt-8 pt-6 border-t border-border-subtle">
                 <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-bg-surface text-text-secondary hover:bg-bg-overlay border border-border-default"
+                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-bg-surface text-text-secondary hover:bg-bg-overlay border border-border-default"
                   @click="showAddForm = false"
                 >
                   {{ $t('mcp.cancel') }}
                 </button>
                 <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/35 hover:-translate-y-0.5"
+                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/35 hover:-translate-y-0.5"
                   @click="handleSubmit"
                 >
                   {{ editingServer ? $t('mcp.update') : $t('mcp.add') }}

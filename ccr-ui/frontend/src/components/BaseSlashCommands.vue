@@ -17,7 +17,7 @@
       <!-- 主内容区 -->
       <main class="min-w-0">
         <!-- Sticky Header: 标题 + 添加按钮 -->
-        <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-xl shadow-sm">
+        <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-sm shadow-sm">
           <div class="flex items-center gap-4">
             <div
               class="p-3 rounded-xl border"
@@ -67,7 +67,7 @@
           <div class="flex items-center gap-3">
             <!-- 刷新按钮 -->
             <button
-              class="px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all hover:scale-105"
+              class="px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-transform hover:scale-105"
               :style="{
                 background: 'var(--bg-tertiary)',
                 color: 'var(--text-primary)',
@@ -84,7 +84,7 @@
             </button>
             <!-- 添加按钮 -->
             <button
-              class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all hover:scale-105 shadow-lg"
+              class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-transform hover:scale-105 shadow-lg"
               :style="{
                 background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
                 boxShadow: '0 0 20px var(--glow-primary)'
@@ -218,7 +218,7 @@
             <button
               v-for="folder in folderOptions"
               :key="folder.value"
-              class="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-all"
+              class="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-colors"
               :style="{
                 background: selectedFolder === folder.value
                   ? 'color-mix(in srgb, var(--accent-primary) 15%, transparent)'

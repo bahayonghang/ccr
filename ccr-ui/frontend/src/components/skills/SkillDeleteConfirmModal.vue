@@ -220,7 +220,7 @@ function shortenPath(path: string): string {
   @apply flex-1 flex items-center justify-center gap-2
          px-5 py-3 rounded-xl
          text-sm font-bold text-white
-         transition-all duration-200;
+         transition-colors duration-200;
 
   background: rgb(var(--color-accent-primary-rgb));
 }
@@ -235,7 +235,7 @@ function shortenPath(path: string): string {
   @apply px-4 py-3 rounded-xl
          text-sm font-medium text-text-muted
          border border-border-subtle
-         transition-all duration-200;
+         transition-colors duration-200;
 
   background: transparent;
 }

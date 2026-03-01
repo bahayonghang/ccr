@@ -21,7 +21,7 @@
           </span>
         </div>
         <button
-          class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-guofeng-red text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
+          class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-guofeng-red text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
           aria-label="Add new hook"
           @click="handleAdd"
         >
@@ -43,7 +43,7 @@
           :key="type"
           role="tab"
           :aria-selected="selectedType === type"
-          class="px-4 py-2 rounded-lg font-medium text-sm transition-all min-h-[44px] whitespace-nowrap flex-shrink-0"
+          class="px-4 py-2 rounded-lg font-medium text-sm transition-colors min-h-[44px] whitespace-nowrap flex-shrink-0"
           :class="selectedType === type ? 'bg-guofeng-red text-white shadow-md' : 'bg-guofeng-bg-secondary text-guofeng-text-secondary border border-guofeng-border hover:bg-guofeng-bg-tertiary'"
           @click="selectedType = type"
         >
@@ -191,7 +191,7 @@
       <div
         v-if="showModal"
         ref="modalOverlay"
-        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-all"
+        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-colors"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="editingHook ? 'modal-title-edit' : 'modal-title-add'"
@@ -239,7 +239,7 @@
                 v-model="formData.name"
                 type="text"
                 :disabled="!!editingHook"
-                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 placeholder="my-hook"
                 aria-required="true"
               >
@@ -253,7 +253,7 @@
               <select
                 id="hook-type"
                 v-model="formData.hook_type"
-                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all"
+                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors"
                 aria-required="true"
               >
                 <option
@@ -275,7 +275,7 @@
                 id="hook-command"
                 v-model="formData.command"
                 type="text"
-                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all font-mono text-sm"
+                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors font-mono text-sm"
                 placeholder="/usr/bin/notify-send"
                 aria-required="true"
               >
@@ -290,7 +290,7 @@
                 id="hook-args"
                 v-model="argsText"
                 rows="4"
-                class="w-full px-4 py-3 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all resize-y font-mono text-sm"
+                class="w-full px-4 py-3 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors resize-y font-mono text-sm"
                 placeholder="--urgency=normal&#10;Tool executed"
                 aria-describedby="hook-args-hint"
               />
@@ -318,14 +318,14 @@
 
           <div class="flex gap-4 mt-8 pt-6 border-t border-guofeng-border">
             <button
-              class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-guofeng-bg-tertiary text-guofeng-text-secondary hover:bg-guofeng-bg-secondary border border-guofeng-border min-h-[44px]"
+              class="flex-1 px-6 py-3 rounded-lg font-medium transition-colors bg-guofeng-bg-tertiary text-guofeng-text-secondary hover:bg-guofeng-bg-secondary border border-guofeng-border min-h-[44px]"
               @click="closeModal"
             >
               Cancel
             </button>
             <button
               ref="lastButton"
-              class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-guofeng-red text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 min-h-[44px]"
+              class="flex-1 px-6 py-3 rounded-lg font-medium transition-[color,background-color,border-color,transform] bg-guofeng-red text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 min-h-[44px]"
               :disabled="saving"
               @click="handleSubmit"
             >

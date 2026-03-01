@@ -73,7 +73,7 @@
                 >
                   <div class="flex items-center gap-2">
                     <div
-                      class="w-3 h-3 rounded-full border-2 transition-all"
+                      class="w-3 h-3 rounded-full border-2 transition-colors"
                       :class="selectedPlatforms.includes(platform.id)
                         ? 'border-accent-primary bg-accent-primary'
                         : 'border-border-default'"
@@ -297,7 +297,7 @@ async function handleInstall() {
   @apply flex items-center justify-between p-3 rounded-xl
          border border-border-subtle
          text-sm text-text-secondary
-         transition-all duration-200 cursor-pointer
+         transition-colors duration-200 cursor-pointer
          hover:border-border-default hover:text-text-primary;
 
   background: rgb(var(--color-bg-surface-rgb) / 50%);

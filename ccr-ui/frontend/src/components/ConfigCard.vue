@@ -1,7 +1,7 @@
 <template>
   <div
     v-bind="{ 'data-config-name': config.name }"
-    class="config-row group relative flex items-stretch transition-all duration-300 rounded-xl overflow-hidden"
+    class="config-row group relative flex items-stretch transition-colors duration-300 rounded-xl overflow-hidden"
     :class="{
       'config-row--current': config.is_current,
       'config-row--disabled': config.enabled === false,
@@ -10,7 +10,7 @@
   >
     <!-- Left Accent Bar -->
     <div
-      class="accent-bar w-[3px] shrink-0 transition-all duration-300"
+      class="accent-bar w-[3px] shrink-0 transition-colors duration-300"
       :class="accentBarClass"
     />
 
@@ -102,7 +102,7 @@
       <!-- Switch Button -->
       <button
         v-if="!config.is_current"
-        class="switch-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+        class="switch-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-[color,background-color,opacity] duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
         @click.stop="$emit('switch', config.name)"
       >
         <ArrowRightLeft class="w-3.5 h-3.5 mr-1 inline-block" />
@@ -118,7 +118,7 @@
 
       <!-- Edit Button -->
       <button
-        class="edit-btn p-2 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+        class="edit-btn p-2 rounded-lg transition-[color,background-color,opacity] duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
         :class="config.is_current ? 'opacity-60' : ''"
         @click.stop="$emit('edit', config.name)"
       >

@@ -9,7 +9,7 @@
       class="flex justify-end mb-2"
     >
       <button
-        class="p-1.5 rounded-lg text-text-muted hover:text-accent-primary hover:bg-bg-surface/80 transition-all duration-200"
+        class="p-1.5 rounded-lg text-text-muted hover:text-accent-primary hover:bg-bg-surface/80 transition-colors duration-200"
         title="收起侧边栏"
         @click="$emit('toggleCollapse')"
       >
@@ -49,7 +49,7 @@
         <div 
           v-for="config in filteredConfigs.slice(0, 8)" 
           :key="config.name"
-          class="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer hover:bg-bg-surface/50 transition-all duration-200 group relative"
+          class="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer hover:bg-bg-surface/50 transition-colors duration-200 group relative"
           :class="config.is_current ? 'bg-accent-primary/10' : ''"
           @click="$emit('configClick', config.name)"
         >
@@ -94,7 +94,7 @@
           v-model="searchQuery"
           type="text"
           placeholder="搜索配置..."
-          class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-bg-surface/50 border border-border-default focus:border-accent-primary/50 focus:bg-bg-surface transition-all duration-200 outline-none placeholder:text-text-disabled"
+          class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-bg-surface/50 border border-border-default focus:border-accent-primary/50 focus:bg-bg-surface transition-colors duration-200 outline-none placeholder:text-text-disabled"
         >
       </div>
 
@@ -105,7 +105,7 @@
         <button
           v-for="category in categories"
           :key="category.key"
-          class="relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs border transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] cursor-pointer overflow-hidden group"
+          class="relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs border transition-[color,background-color,border-color,transform] duration-200 hover:scale-[1.01] active:scale-[0.99] cursor-pointer overflow-hidden group"
           :class="expandedCategory === category.key ? 'shadow-md' : 'hover:border-border-default hover:bg-bg-surface/30'"
           :style="{
             background: expandedCategory === category.key ? category.activeBackground : 'transparent',

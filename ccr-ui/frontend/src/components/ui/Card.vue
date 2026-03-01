@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative overflow-hidden transition-all duration-500 will-change-transform"
+    class="relative overflow-hidden transition-[transform,box-shadow] duration-500"
     :class="[
       variantClasses,
       hover ? 'hover:scale-[1.01] hover:shadow-glow-primary/20' : '',

@@ -96,7 +96,7 @@
                 <div
                   v-for="type in cliTypes"
                   :key="type.value"
-                  class="p-4 rounded-lg cursor-pointer transition-all"
+                  class="p-4 rounded-lg cursor-pointer transition-colors"
                   :style="{
                     border:
                       sourceFormat === type.value
@@ -162,7 +162,7 @@
                 <div
                   v-for="type in cliTypes"
                   :key="type.value"
-                  class="p-4 rounded-lg cursor-pointer transition-all"
+                  class="p-4 rounded-lg cursor-pointer transition-colors"
                   :style="{
                     border:
                       targetFormat === type.value && sourceFormat !== type.value

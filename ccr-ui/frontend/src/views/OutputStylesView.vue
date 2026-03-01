@@ -22,7 +22,7 @@
           </span>
         </div>
         <button
-          class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-guofeng-indigo text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
+          class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-guofeng-indigo text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
           :aria-label="$t('outputStyles.addStyle')"
           @click="handleAdd"
         >
@@ -45,11 +45,11 @@
             type="search"
             :placeholder="$t('outputStyles.searchPlaceholder')"
             :aria-label="$t('outputStyles.searchPlaceholder')"
-            class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-guofeng-indigo/20 bg-guofeng-bg-tertiary/50 border border-guofeng-border hover:bg-guofeng-bg-tertiary text-guofeng-text-primary placeholder-guofeng-text-muted text-sm"
+            class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-guofeng-indigo/20 bg-guofeng-bg-tertiary/50 border border-guofeng-border hover:bg-guofeng-bg-tertiary text-guofeng-text-primary placeholder-guofeng-text-muted text-sm"
           >
           <button
             v-if="searchQuery"
-            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-black/10 text-guofeng-text-muted transition-all min-h-[28px] min-w-[28px] flex items-center justify-center"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-black/10 text-guofeng-text-muted transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
             :aria-label="$t('common.clearSearch')"
             @click="searchQuery = ''"
           >
@@ -185,7 +185,7 @@
     <Teleport to="body">
       <div
         v-if="showViewModal && viewingStyle"
-        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-all p-4"
+        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-colors p-4"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="'view-modal-title'"
@@ -219,7 +219,7 @@
               {{ viewingStyle.name }}
             </h3>
             <button
-              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-guofeng-bg-tertiary hover:bg-guofeng-bg-secondary text-guofeng-text-secondary flex items-center gap-1.5 min-h-[44px]"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-guofeng-bg-tertiary hover:bg-guofeng-bg-secondary text-guofeng-text-secondary flex items-center gap-1.5 min-h-[44px]"
               :aria-label="copied ? $t('common.copied') : $t('common.copy')"
               @click="copyContent"
             >
@@ -237,7 +237,7 @@
 
           <div class="flex gap-3 mt-6 pt-4 border-t border-guofeng-border/50">
             <button
-              class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-all bg-guofeng-blue/10 text-guofeng-blue hover:bg-guofeng-blue/20 flex items-center justify-center gap-2 min-h-[44px]"
+              class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors bg-guofeng-blue/10 text-guofeng-blue hover:bg-guofeng-blue/20 flex items-center justify-center gap-2 min-h-[44px]"
               @click="handleEditFromView"
             >
               <Edit2
@@ -247,7 +247,7 @@
               {{ $t('common.edit') }}
             </button>
             <button
-              class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-all bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border min-h-[44px]"
+              class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border min-h-[44px]"
               @click="showViewModal = false"
             >
               {{ $t('common.close') }}
@@ -262,7 +262,7 @@
       <div
         v-if="showModal"
         ref="editModalOverlay"
-        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-all p-4"
+        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-colors p-4"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="editingStyle ? 'edit-modal-title' : 'add-modal-title'"
@@ -309,7 +309,7 @@
                 v-model="formData.name"
                 type="text"
                 :disabled="!!editingStyle"
-                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-indigo focus:ring-1 focus:ring-guofeng-indigo outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-indigo focus:ring-1 focus:ring-guofeng-indigo outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 :placeholder="$t('outputStyles.namePlaceholder')"
                 aria-required="true"
               >
@@ -324,7 +324,7 @@
                 id="style-content"
                 v-model="formData.content"
                 rows="15"
-                class="w-full px-4 py-3 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-indigo focus:ring-1 focus:ring-guofeng-indigo outline-none transition-all resize-y font-mono text-sm leading-relaxed"
+                class="w-full px-4 py-3 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-indigo focus:ring-1 focus:ring-guofeng-indigo outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
                 :placeholder="$t('outputStyles.contentPlaceholder')"
                 aria-required="true"
               />
@@ -333,13 +333,13 @@
 
           <div class="flex gap-4 mt-8 pt-6 border-t border-guofeng-border/50">
             <button
-              class="flex-1 px-6 py-3 rounded-xl font-bold transition-all bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border min-h-[44px]"
+              class="flex-1 px-6 py-3 rounded-xl font-bold transition-colors bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border min-h-[44px]"
               @click="closeEditModal"
             >
               {{ $t('common.cancel') }}
             </button>
             <button
-              class="flex-1 px-6 py-3 rounded-xl font-bold transition-all bg-guofeng-indigo text-white shadow-lg shadow-guofeng-indigo/20 hover:shadow-xl hover:shadow-guofeng-indigo/30 hover:-translate-y-0.5 min-h-[44px]"
+              class="flex-1 px-6 py-3 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-guofeng-indigo text-white shadow-lg shadow-guofeng-indigo/20 hover:shadow-xl hover:shadow-guofeng-indigo/30 hover:-translate-y-0.5 min-h-[44px]"
               :disabled="saving"
               @click="handleSubmit"
             >

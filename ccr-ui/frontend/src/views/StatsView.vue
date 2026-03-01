@@ -29,7 +29,7 @@
         <!-- Time Range Selector -->
         <select
           v-model="selectedRange"
-          class="px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-white text-sm font-medium shadow-sm hover:border-orange-300 dark:hover:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer"
+          class="px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-white text-sm font-medium shadow-sm hover:border-orange-300 dark:hover:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-[border-color,box-shadow] cursor-pointer"
           @change="loadData"
         >
           <option value="today">
@@ -45,7 +45,7 @@
 
         <!-- Provider Stats Button -->
         <button
-          class="px-4 py-2.5 border border-orange-200 dark:border-orange-700 text-orange-600 dark:text-orange-300 rounded-xl flex items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-900/30 font-medium text-sm transition-all shadow-sm"
+          class="px-4 py-2.5 border border-orange-200 dark:border-orange-700 text-orange-600 dark:text-orange-300 rounded-xl flex items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-900/30 font-medium text-sm transition-colors shadow-sm"
           @click="showProvidersModal = true"
         >
           <svg
@@ -67,7 +67,7 @@
         <!-- Refresh Button -->
         <button
           :disabled="loading"
-          class="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl flex items-center gap-2 disabled:opacity-50 font-medium text-sm shadow-lg shadow-orange-500/25 transition-all"
+          class="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl flex items-center gap-2 disabled:opacity-50 font-medium text-sm shadow-lg shadow-orange-500/25 transition-colors"
           @click="loadData"
         >
           <svg
@@ -494,7 +494,7 @@
               </div>
               <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
                 <div
-                  class="h-2 rounded-full bg-gradient-to-r from-orange-400 to-red-500 transition-all"
+                  class="h-2 rounded-full bg-gradient-to-r from-orange-400 to-red-500 transition-[width]"
                   :style="{ width: `${getProviderBarWidth(count)}%` }"
                 />
               </div>

@@ -74,7 +74,7 @@
             <div
               v-for="server in servers"
               :key="getServerIdentifier(server)"
-              class="group rounded-lg p-4 transition-all duration-300"
+              class="group rounded-lg p-4 transition-[box-shadow,border-color] duration-300"
               :style="{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', outline: 'none', cursor: 'default' }"
               @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
               @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
@@ -138,7 +138,7 @@
                 </div>
                 <div class="flex gap-2">
                   <button
-                    class="p-2 rounded-lg transition-all hover:scale-110"
+                    class="p-2 rounded-lg transition-transform hover:scale-110"
                     :style="{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', color: 'var(--color-accent-primary)' }"
                     :title="$t('common.edit')"
                     @click="openEditForm(server)"
@@ -146,7 +146,7 @@
                     <Edit2 class="w-4 h-4" />
                   </button>
                   <button
-                    class="p-2 rounded-lg transition-all hover:scale-110"
+                    class="p-2 rounded-lg transition-transform hover:scale-110"
                     :style="{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', color: 'var(--color-danger)' }"
                     :title="$t('common.delete')"
                     @click="deleteServer(server)"

@@ -17,7 +17,7 @@
               <div
                 v-for="folder in folderOptions"
                 :key="folder.value"
-                class="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer text-sm transition-all duration-200 group"
+                class="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer text-sm transition-colors duration-200 group"
                 :class="[
                   selectedFolder === folder.value 
                     ? 'bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)] font-medium shadow-sm border border-[var(--color-accent-primary)]/20' 
@@ -43,7 +43,7 @@
 
           <!-- Stats Card -->
           <div class="glass-effect rounded-2xl p-5 border border-white/20 shadow-sm relative overflow-hidden group">
-            <div class="absolute top-0 right-0 w-24 h-24 bg-[var(--color-accent-primary)]/10 rounded-full blur-2xl -mr-8 -mt-8 transition-all group-hover:bg-[var(--color-accent-primary)]/20" />
+            <div class="absolute top-0 right-0 w-24 h-24 bg-[var(--color-accent-primary)]/10 rounded-full blur-2xl -mr-8 -mt-8 transition-colors group-hover:bg-[var(--color-accent-primary)]/20" />
             <h4 class="text-sm font-bold text-[var(--color-text-primary)] mb-1">
               Agent Status
             </h4>
@@ -71,7 +71,7 @@
         <!-- Main Content -->
         <div class="flex-1 min-w-0">
           <!-- Header Bar -->
-          <div class="glass-effect rounded-2xl p-4 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-xl shadow-sm">
+          <div class="glass-effect rounded-2xl p-4 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-sm shadow-sm">
             <div class="flex items-center gap-3 w-full md:w-auto">
               <div class="relative flex-1 md:w-80">
                 <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
@@ -79,11 +79,11 @@
                   v-model="searchQuery"
                   type="text"
                   :placeholder="$t(`${tPrefix}.searchPlaceholder`)"
-                  class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/20 bg-[var(--color-bg-surface)]/50 border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm"
+                  class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/20 bg-[var(--color-bg-surface)]/50 border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm"
                 >
                 <button
                   v-if="searchQuery"
-                  class="absolute right-3 top-1/2 transform -translate-y-1/2 p-0.5 rounded-full hover:bg-black/10 text-[var(--color-text-muted)] transition-all"
+                  class="absolute right-3 top-1/2 transform -translate-y-1/2 p-0.5 rounded-full hover:bg-black/10 text-[var(--color-text-muted)] transition-colors"
                   @click="searchQuery = ''"
                 >
                   <X class="w-3 h-3" />
@@ -93,7 +93,7 @@
 
             <div class="flex items-center gap-3 w-full md:w-auto justify-end">
               <button
-                class="px-4 py-2.5 rounded-xl font-medium transition-all hover:scale-105 bg-[var(--color-accent-primary)] text-white shadow-lg shadow-[var(--color-accent-primary)]/20 hover:shadow-[var(--color-accent-primary)]/30 flex items-center text-sm"
+                class="px-4 py-2.5 rounded-xl font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-[var(--color-accent-primary)] text-white shadow-lg shadow-[var(--color-accent-primary)]/20 hover:shadow-[var(--color-accent-primary)]/30 flex items-center text-sm"
                 @click="handleAdd"
               >
                 <Plus class="w-4 h-4 mr-2" />{{ $t(`${tPrefix}.addAgent`) }}
@@ -270,7 +270,7 @@
     <!-- Add/Edit Modal -->
     <div
       v-if="showAddForm"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-sm transition-all p-4"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-sm transition-colors p-4"
       @click="showAddForm = false"
     >
       <div
@@ -301,7 +301,7 @@
               <input
                 v-model="formData.name"
                 type="text"
-                class="w-full px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-all"
+                class="w-full px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-colors"
                 :placeholder="$t(`${tPrefix}.namePlaceholder` || 'Agent Name')"
               >
             </div>
@@ -311,7 +311,7 @@
               <div class="relative">
                 <select
                   v-model="formData.model"
-                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-all appearance-none"
+                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-colors appearance-none"
                 >
                   <option value="claude-sonnet-4-5-20250929">
                     Claude Sonnet 4.5
@@ -337,7 +337,7 @@
                 v-model="toolInput"
                 type="text"
                 :placeholder="$t(`${tPrefix}.toolPlaceholder`)"
-                class="flex-1 px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-all"
+                class="flex-1 px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-colors"
                 @keyup.enter="addTool"
               >
               <button
@@ -371,7 +371,7 @@
             <textarea
               v-model="formData.system_prompt"
               rows="6"
-              class="w-full px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-all resize-y font-mono text-sm leading-relaxed"
+              class="w-full px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
               :placeholder="$t(`${tPrefix}.systemPromptPlaceholder` || 'Enter system prompt...')"
             />
           </div>
@@ -379,13 +379,13 @@
 
         <div class="flex gap-4 mt-10 pt-6 border-t border-[var(--color-border-default)]/50">
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-white text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] border border-[var(--color-border-default)]"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] border border-[var(--color-border-default)]"
             @click="showAddForm = false"
           >
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-[var(--color-accent-primary)] text-white shadow-lg shadow-[var(--color-accent-primary)]/20 hover:shadow-xl hover:shadow-[var(--color-accent-primary)]/30 hover:-translate-y-0.5"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-[var(--color-accent-primary)] text-white shadow-lg shadow-[var(--color-accent-primary)]/20 hover:shadow-xl hover:shadow-[var(--color-accent-primary)]/30 hover:-translate-y-0.5"
             @click="handleSubmit"
           >
             {{ editingAgent ? $t(`${tPrefix}.save`) : $t(`${tPrefix}.add`) }}

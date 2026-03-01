@@ -36,7 +36,7 @@
               v-model="searchQuery"
               type="text"
               :placeholder="$t('market.searchPlaceholder')"
-              class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-all text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)]"
+              class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-[border-color,box-shadow] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)]"
             >
           </div>
         </div>
@@ -47,7 +47,7 @@
         <button
           v-for="stat in statCards"
           :key="stat.tab"
-          class="glass-effect rounded-xl p-4 border transition-all text-left hover:-translate-y-0.5"
+          class="glass-effect rounded-xl p-4 border transition-[border-color,box-shadow,transform] text-left hover:-translate-y-0.5"
           :class="activeTab === stat.tab
             ? 'border-[var(--color-accent-primary)]/50 shadow-md shadow-[var(--color-accent-primary)]/10'
             : 'border-[var(--color-border-default)] hover:border-[var(--color-accent-primary)]/30'"
@@ -69,7 +69,7 @@
         <button
           v-for="tab in tabs"
           :key="tab.id"
-          class="px-4 py-2.5 rounded-xl font-medium whitespace-nowrap transition-all border flex items-center gap-2 text-sm"
+          class="px-4 py-2.5 rounded-xl font-medium whitespace-nowrap transition-colors border flex items-center gap-2 text-sm"
           :class="activeTab === tab.id
             ? 'bg-[var(--color-accent-primary)]/15 text-[var(--color-accent-primary)] border-[var(--color-accent-primary)]/30'
             : 'bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] border-transparent hover:border-[var(--color-border-default)]'"
@@ -204,7 +204,7 @@
             <div class="flex items-center gap-2">
               <button
                 v-if="item.installed && item.source !== 'builtin'"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 border border-[var(--color-danger)]/20"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 border border-[var(--color-danger)]/20"
                 :disabled="isInstalling(item.id)"
                 @click="handleUninstall(item)"
               >
@@ -212,7 +212,7 @@
                 {{ $t('market.uninstall') }}
               </button>
               <button
-                class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
+                class="px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
                 :class="item.installed
                   ? 'bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/20 cursor-default'
                   : isInstalling(item.id)
@@ -277,7 +277,7 @@
               <label
                 v-for="p in availablePlatforms"
                 :key="p.id"
-                class="flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all text-sm"
+                class="flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors text-sm"
                 :class="selectedPlatforms.includes(p.id)
                   ? 'border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)]'
                   : 'border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent-primary)]/30'"
@@ -318,7 +318,7 @@
               {{ $t('common.cancel') || 'Cancel' }}
             </button>
             <button
-              class="px-5 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] text-white shadow-md hover:shadow-lg transition-all"
+              class="px-5 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] text-white shadow-md hover:shadow-lg transition-[box-shadow]"
               :disabled="selectedPlatforms.length === 0"
               @click="confirmInstall"
             >

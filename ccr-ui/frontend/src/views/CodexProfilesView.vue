@@ -136,7 +136,7 @@
               <button
                 v-for="profile in profiles"
                 :key="profile.name"
-                class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 border flex items-center gap-2.5"
+                class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-colors duration-300 border flex items-center gap-2.5"
                 :class="[
                   profile.name === currentProfile
                     ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]'
@@ -200,7 +200,7 @@
             <GuofengCard 
               v-for="profile in profiles" 
               :key="profile.name"
-              class="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+              class="group relative overflow-hidden transition-[box-shadow,transform] duration-300 hover:-translate-y-1 hover:shadow-xl"
               :class="{ 'ring-1 ring-platform-codex/50': currentProfile && profile.name === currentProfile }"
               :glow-color="currentProfile && profile.name === currentProfile ? 'warning' : 'primary'"
               padding="lg"

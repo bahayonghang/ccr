@@ -464,7 +464,7 @@ async function handleInstall() {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
          text-sm font-medium text-text-secondary
          hover:text-text-primary hover:bg-bg-surface
-         transition-all duration-200;
+         transition-colors duration-200;
 }
 
 .add-skill-tab--active {
@@ -600,7 +600,7 @@ async function handleInstall() {
          text-sm font-semibold text-white
          bg-accent-primary hover:bg-accent-primary/90
          disabled:opacity-50 disabled:cursor-not-allowed
-         transition-all;
+         transition-colors;
 }
 
 /* Modal 动画 */

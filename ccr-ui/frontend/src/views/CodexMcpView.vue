@@ -73,7 +73,7 @@
             <div
               v-for="server in servers"
               :key="server.name"
-              class="group rounded-lg p-4 transition-all duration-300"
+              class="group rounded-lg p-4 transition-[color,background-color,border-color,box-shadow] duration-300"
               :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(var(--color-accent-primary-rgb), 0.12)', outline: 'none', cursor: 'default' }"
               @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
               @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
@@ -137,7 +137,7 @@
                 </div>
                 <div class="flex gap-2">
                   <button
-                    class="p-2 rounded-lg transition-all hover:scale-110"
+                    class="p-2 rounded-lg transition-transform hover:scale-110"
                     :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-primary)' }"
                     :title="$t('codex.actions.edit')"
                     @click="handleEdit(server)"
@@ -145,7 +145,7 @@
                     <Edit2 class="w-4 h-4" />
                   </button>
                   <button
-                    class="p-2 rounded-lg transition-all hover:scale-110"
+                    class="p-2 rounded-lg transition-transform hover:scale-110"
                     :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
                     :title="$t('codex.actions.delete')"
                     @click="handleDelete(server.name)"

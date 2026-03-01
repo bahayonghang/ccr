@@ -279,7 +279,7 @@ function formatRelativeTime(timestamp: number): string {
   @apply relative flex flex-row items-start gap-4 p-4 pl-5 rounded-2xl cursor-pointer
          backdrop-blur-sm
          border border-border-subtle
-         transition-all duration-200 ease-out
+         transition-[color,background-color,border-color,box-shadow] duration-200 ease-out
          overflow-hidden;
 
   background: rgb(var(--color-bg-elevated-rgb) / 50%);
@@ -406,7 +406,7 @@ function formatRelativeTime(timestamp: number): string {
 /* Subtle left accent line - platform color indicator */
 .skill-card__accent {
   @apply absolute left-0 top-3 bottom-3 w-[3px] rounded-full
-         transition-all duration-200 pointer-events-none;
+         transition-opacity duration-200 pointer-events-none;
 
   background: var(--accent-color, #A78BFA);
   opacity: 0.25;

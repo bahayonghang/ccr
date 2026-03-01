@@ -283,7 +283,7 @@
       <!-- 统计卡片（NeuraDock 风格） -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- 当前余额 -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
           <div>
             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
               当前余额
@@ -309,7 +309,7 @@
           </div>
         </div>
         <!-- 总额度 -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
           <div>
             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
               总额度
@@ -335,7 +335,7 @@
           </div>
         </div>
         <!-- 历史消耗 -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
           <div>
             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
               历史消耗

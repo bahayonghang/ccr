@@ -326,7 +326,7 @@ function handleViewSource(item: MarketplaceItem) {
          text-text-primary
          pl-12 pr-4 py-3 text-sm font-medium
          focus:outline-none focus:ring-2 focus:ring-accent-primary/30
-         focus:border-accent-primary/50 transition-all;
+         focus:border-accent-primary/50 transition-[border-color,box-shadow];
 
   &::placeholder {
     color: rgb(var(--color-text-muted-rgb) / 50%);
@@ -374,7 +374,7 @@ function handleViewSource(item: MarketplaceItem) {
          text-sm font-medium text-text-secondary
          bg-bg-surface border border-border-subtle
          hover:text-text-primary hover:border-border-default
-         transition-all;
+         transition-colors;
 }
 
 .btn-batch--active {

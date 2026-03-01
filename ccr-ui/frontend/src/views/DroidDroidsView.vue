@@ -22,7 +22,7 @@
           <div class="flex items-center gap-4">
             <RouterLink
               to="/droid"
-              class="p-3 rounded-2xl glass-card hover:scale-105 transition-all duration-300"
+              class="p-3 rounded-2xl glass-card hover:scale-105 transition-transform duration-300"
               :style="{ background: 'rgba(139, 92, 246, 0.1)' }"
             >
               <ArrowLeft
@@ -45,7 +45,7 @@
             </div>
           </div>
           <button
-            class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300"
+            class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-transform duration-300"
             :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
             @click="showAddModal = true"
           >
@@ -74,7 +74,7 @@
         <div
           v-for="droid in droids"
           :key="droid.name"
-          class="glass-card p-6 hover:scale-105 transition-all duration-300"
+          class="glass-card p-6 hover:scale-105 transition-transform duration-300"
         >
           <!-- Droid 头部 -->
           <div class="flex items-start justify-between mb-4">
@@ -400,7 +400,7 @@
             <div class="flex gap-3 pt-4">
               <button
                 type="button"
-                class="flex-1 px-4 py-2 rounded-lg glass-card hover:scale-105 transition-all duration-300"
+                class="flex-1 px-4 py-2 rounded-lg glass-card hover:scale-105 transition-transform duration-300"
                 :style="{ color: 'var(--text-secondary)' }"
                 @click="closeModal"
               >
@@ -409,7 +409,7 @@
               <button
                 type="submit"
                 :disabled="saving"
-                class="flex-1 px-4 py-2 rounded-lg glass-card hover:scale-105 transition-all duration-300"
+                class="flex-1 px-4 py-2 rounded-lg glass-card hover:scale-105 transition-transform duration-300"
                 :style="{ background: 'rgba(139, 92, 246, 0.2)', color: '#8b5cf6' }"
               >
                 {{ saving ? '保存中...' : '保存' }}

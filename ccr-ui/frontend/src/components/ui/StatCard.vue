@@ -163,7 +163,7 @@ const variantColors = {
 // 卡片类
 const cardClasses = computed(() => [
   'flex items-start gap-4 p-4 rounded-xl bg-bg-elevated',
-  'transition-all duration-200 ease-out',
+  'transition-colors duration-200 ease-out',
   props.bordered ? 'border border-border-subtle hover:border-border-default' : '',
 ])
 

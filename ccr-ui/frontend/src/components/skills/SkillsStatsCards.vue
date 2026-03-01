@@ -150,7 +150,7 @@ function formatNumber(num: number): string {
   @apply relative flex items-center gap-3 px-4 py-3 rounded-xl
          backdrop-blur-sm
          border border-border-subtle
-         transition-all duration-300
+         transition-[border-color,box-shadow] duration-300
          hover:border-border-default hover:shadow-lg;
 
   background: rgb(var(--color-bg-elevated-rgb) / 50%);
@@ -230,7 +230,7 @@ function formatNumber(num: number): string {
   @apply flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
          text-xs font-medium text-text-secondary
          border border-border-subtle
-         transition-all duration-200;
+         transition-colors duration-200;
 
   background: rgb(var(--color-bg-surface-rgb) / 50%);
 }

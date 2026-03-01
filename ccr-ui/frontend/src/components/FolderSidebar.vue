@@ -26,7 +26,7 @@
         v-for="folder in folders"
         :key="folder.value"
         type="button"
-        class="w-full flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer text-sm transition-all duration-200 group"
+        class="w-full flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer text-sm transition-colors duration-200 group"
         :style="folderStyle(folder.value)"
         :aria-selected="selectedFolder === folder.value"
         role="option"

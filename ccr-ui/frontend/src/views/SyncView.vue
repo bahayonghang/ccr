@@ -31,7 +31,7 @@
           </div>
           <RouterLink
             to="/"
-            class="group glass-effect flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300 border border-border-subtle hover:border-cyan-500/30"
+            class="group glass-effect flex items-center gap-2 px-5 py-3 hover:scale-105 transition-[color,background-color,border-color,transform] duration-300 border border-border-subtle hover:border-cyan-500/30"
           >
             <Home class="w-5 h-5 text-text-muted group-hover:text-cyan-400 transition-colors" />
             <span class="font-medium text-text-secondary group-hover:text-text-primary transition-colors">{{ $t('sync.backHome') }}</span>
@@ -75,7 +75,7 @@
         <!-- 左侧主内容区 (2 columns) -->
         <div class="lg:col-span-2 space-y-6">
           <!-- Platform selection -->
-          <div class="glass-effect p-6 hover:scale-[1.01] transition-all duration-300 rounded-2xl border border-border-subtle hover:border-cyan-500/30">
+          <div class="glass-effect p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300 rounded-2xl border border-border-subtle hover:border-cyan-500/30">
             <!-- Header -->
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
@@ -88,7 +88,7 @@
               </div>
               <button
                 :disabled="applying || !hasChanges"
-                class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-effect font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border"
+                class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-effect font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border"
                 :class="applying || !hasChanges
                   ? 'bg-bg-surface text-text-muted border-border-subtle'
                   : 'bg-success/15 text-success border-success/30 hover:bg-success/20'"
@@ -135,7 +135,7 @@
               <div
                 v-for="(item, index) in optionalItems"
                 :key="item.key"
-                class="p-5 rounded-xl glass-card cursor-pointer hover:scale-[1.02] transition-all duration-300"
+                class="p-5 rounded-xl glass-card cursor-pointer hover:scale-[1.02] transition-[transform,box-shadow] duration-300"
                 :style="{
                   background: item.selected ? 'rgba(var(--color-accent-primary-rgb), 0.05)' : 'transparent',
                   animationDelay: `${index * 0.05}s`
@@ -145,7 +145,7 @@
                 <div class="flex items-start gap-4">
                   <div class="flex-shrink-0">
                     <div
-                      class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300"
+                      class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors duration-300"
                       :style="{
                         background: item.selected ? 'rgba(var(--color-accent-primary-rgb), 0.15)' : 'rgba(var(--color-gray-rgb), 0.1)',
                         border: item.selected ? '2px solid var(--color-accent-primary)' : '2px solid var(--border-color)'
@@ -274,7 +274,7 @@
               </div>
               <button
                 :disabled="!customFolder.name || !customFolder.localPath || addingCustom"
-                class="w-full px-4 py-2.5 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                class="w-full px-4 py-2.5 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
                 @click="addCustomFolder"
               >
@@ -285,7 +285,7 @@
           </div>
 
           <!-- Enabled folders list -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
+          <div class="glass-card p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300">
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
                 <div
@@ -305,7 +305,7 @@
                 </h2>
               </div>
               <button
-                class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card transition-all duration-300 hover:scale-105"
+                class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card transition-[color,background-color,border-color,transform] duration-300 hover:scale-105"
                 :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
                 @click="refreshFolders"
               >
@@ -350,7 +350,7 @@
               <div
                 v-for="(folder, index) in enabledFolders"
                 :key="folder.name"
-                class="p-5 rounded-xl glass-card hover:scale-[1.01] transition-all duration-300"
+                class="p-5 rounded-xl glass-card hover:scale-[1.01] transition-[transform,box-shadow] duration-300"
                 :style="{ animationDelay: `${index * 0.05}s` }"
               >
                 <div class="flex items-start justify-between mb-4">
@@ -401,7 +401,7 @@
                 <!-- Action buttons -->
                 <div class="flex flex-wrap gap-2">
                   <button
-                    class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
+                    class="px-4 py-2 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 flex items-center gap-2"
                     :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)', color: 'var(--accent-primary)' }"
                     @click="toggleFolder(folder.name, folder.enabled)"
                   >
@@ -410,7 +410,7 @@
                   </button>
                   <button
                     :disabled="!folder.enabled"
-                    class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    class="px-4 py-2 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', color: 'var(--accent-success)' }"
                     @click="pushFolder(folder.name)"
                   >
@@ -419,7 +419,7 @@
                   </button>
                   <button
                     :disabled="!folder.enabled"
-                    class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    class="px-4 py-2 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
                     @click="pullFolder(folder.name)"
                   >
@@ -427,7 +427,7 @@
                     {{ $t('sync.operations.download') }}
                   </button>
                   <button
-                    class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
+                    class="px-4 py-2 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 flex items-center gap-2"
                     :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
                     @click="getFolderStatus(folder.name)"
                   >
@@ -435,7 +435,7 @@
                     {{ $t('sync.operations.status') }}
                   </button>
                   <button
-                    class="px-4 py-2 rounded-lg glass-card font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
+                    class="px-4 py-2 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 flex items-center gap-2"
                     :style="{ background: 'rgba(var(--color-danger-rgb), 0.1)', color: 'var(--accent-danger)' }"
                     @click="removeFolder(folder.name)"
                   >
@@ -448,7 +448,7 @@
           </div>
 
           <!-- Batch operations card -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
+          <div class="glass-card p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300">
             <div class="flex items-center gap-3 mb-4">
               <div
                 class="p-3 rounded-2xl"
@@ -476,7 +476,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button
                 :disabled="batchOperating || enabledFolders.length === 0"
-                class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                class="px-6 py-4 rounded-xl glass-card font-bold transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', color: 'var(--accent-success)' }"
                 @click="pushAllFolders"
               >
@@ -485,7 +485,7 @@
               </button>
               <button
                 :disabled="batchOperating || enabledFolders.length === 0"
-                class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                class="px-6 py-4 rounded-xl glass-card font-bold transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
                 @click="pullAllFolders"
               >
@@ -494,7 +494,7 @@
               </button>
               <button
                 :disabled="batchOperating || enabledFolders.length === 0"
-                class="px-6 py-4 rounded-xl glass-card font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                class="px-6 py-4 rounded-xl glass-card font-bold transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
                 @click="getAllFoldersStatus"
               >
@@ -528,7 +528,7 @@
                 </h2>
               </div>
               <button
-                class="p-2 rounded-lg glass-card transition-all duration-300 hover:scale-110"
+                class="p-2 rounded-lg glass-card transition-[color,background-color,border-color,transform] duration-300 hover:scale-110"
                 :style="{ background: 'rgba(var(--color-gray-rgb), 0.1)' }"
                 @click="operationOutput = ''"
               >
@@ -548,7 +548,7 @@
         <!-- 右侧信息区 (1 column) -->
         <div class="space-y-6">
           <!-- WebDAV configuration status -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
+          <div class="glass-card p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300">
             <div class="flex items-center gap-3 mb-6">
               <div
                 class="p-3 rounded-2xl"
@@ -662,7 +662,7 @@
           </div>
 
           <!-- Features description -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
+          <div class="glass-card p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300">
             <div class="flex items-center gap-3 mb-6">
               <div
                 class="p-3 rounded-2xl"
@@ -725,7 +725,7 @@
           </div>
 
           <!-- Supported services -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-all duration-300">
+          <div class="glass-card p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300">
             <div class="flex items-center gap-3 mb-6">
               <div
                 class="p-3 rounded-2xl"

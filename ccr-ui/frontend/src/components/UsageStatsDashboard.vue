@@ -26,7 +26,7 @@
             <button
               v-for="range in dateRanges"
               :key="range.days"
-              class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200"
+              class="px-3 py-1 text-xs font-medium rounded-md transition-colors duration-200"
               :class="selectedDays === range.days
                 ? 'bg-guofeng-indigo text-white shadow-sm'
                 : 'text-guofeng-text-secondary hover:text-guofeng-text-primary hover:bg-guofeng-bg-secondary/50'"
@@ -41,7 +41,7 @@
             <button
               v-for="mode in viewModes"
               :key="mode.value"
-              class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200"
+              class="px-4 py-1.5 text-sm font-medium rounded-md transition-colors duration-200"
               :class="viewMode === mode.value
                 ? 'bg-guofeng-jade text-white shadow-sm'
                 : 'text-guofeng-text-secondary hover:text-guofeng-text-primary hover:bg-guofeng-bg-secondary/50'"
@@ -76,7 +76,7 @@
       <!-- 汇总卡片网格 -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <!-- Sessions 卡片 -->
-        <div class="relative p-4 rounded-xl bg-guofeng-bg-secondary/30 border border-guofeng-border/30 hover:border-emerald-500/30 transition-all duration-300 overflow-hidden group">
+        <div class="relative p-4 rounded-xl bg-guofeng-bg-secondary/30 border border-guofeng-border/30 hover:border-emerald-500/30 transition-[color,background-color,box-shadow] duration-300 overflow-hidden group">
           <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500/60 rounded-r" />
           <div class="flex items-start gap-3 ml-1">
             <div class="p-2 rounded-lg bg-emerald-500/10 shrink-0 group-hover:bg-emerald-500/20 transition-colors">
@@ -97,7 +97,7 @@
         </div>
 
         <!-- Messages 卡片 -->
-        <div class="relative p-4 rounded-xl bg-guofeng-bg-secondary/30 border border-guofeng-border/30 hover:border-blue-500/30 transition-all duration-300 overflow-hidden group">
+        <div class="relative p-4 rounded-xl bg-guofeng-bg-secondary/30 border border-guofeng-border/30 hover:border-blue-500/30 transition-[color,background-color,box-shadow] duration-300 overflow-hidden group">
           <div class="absolute top-0 left-0 w-1 h-full bg-blue-500/60 rounded-r" />
           <div class="flex items-start gap-3 ml-1">
             <div class="p-2 rounded-lg bg-blue-500/10 shrink-0 group-hover:bg-blue-500/20 transition-colors">
@@ -118,7 +118,7 @@
         </div>
 
         <!-- Active Time 卡片 -->
-        <div class="relative p-4 rounded-xl bg-guofeng-bg-secondary/30 border border-guofeng-border/30 hover:border-amber-500/30 transition-all duration-300 overflow-hidden group">
+        <div class="relative p-4 rounded-xl bg-guofeng-bg-secondary/30 border border-guofeng-border/30 hover:border-amber-500/30 transition-[color,background-color,box-shadow] duration-300 overflow-hidden group">
           <div class="absolute top-0 left-0 w-1 h-full bg-amber-500/60 rounded-r" />
           <div class="flex items-start gap-3 ml-1">
             <div class="p-2 rounded-lg bg-amber-500/10 shrink-0 group-hover:bg-amber-500/20 transition-colors">
@@ -139,7 +139,7 @@
         </div>
 
         <!-- Platforms 卡片 -->
-        <div class="relative p-4 rounded-xl bg-guofeng-bg-secondary/30 border border-guofeng-border/30 hover:border-purple-500/30 transition-all duration-300 overflow-hidden group">
+        <div class="relative p-4 rounded-xl bg-guofeng-bg-secondary/30 border border-guofeng-border/30 hover:border-purple-500/30 transition-[color,background-color,box-shadow] duration-300 overflow-hidden group">
           <div class="absolute top-0 left-0 w-1 h-full bg-purple-500/60 rounded-r" />
           <div class="flex items-start gap-3 ml-1">
             <div class="p-2 rounded-lg bg-purple-500/10 shrink-0 group-hover:bg-purple-500/20 transition-colors">
@@ -166,7 +166,7 @@
       <!-- 平台分项统计 -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <!-- All 卡片 -->
-        <div class="p-4 rounded-xl bg-guofeng-bg-secondary/40 border border-guofeng-border/50 hover:bg-guofeng-bg-secondary/60 transition-all duration-300">
+        <div class="p-4 rounded-xl bg-guofeng-bg-secondary/40 border border-guofeng-border/50 hover:bg-guofeng-bg-secondary/60 transition-[color,background-color,box-shadow] duration-300">
           <div class="flex items-center gap-2 mb-3">
             <div class="w-2.5 h-2.5 rounded-full bg-guofeng-text-secondary ring-2 ring-guofeng-text-secondary/20" />
             <span class="font-semibold text-guofeng-text-primary">All</span>
@@ -187,7 +187,7 @@
         </div>
 
         <!-- Codex 卡片 -->
-        <div class="p-4 rounded-xl bg-orange-500/5 border border-orange-500/20 hover:border-orange-500/40 hover:bg-orange-500/10 transition-all duration-300">
+        <div class="p-4 rounded-xl bg-orange-500/5 border border-orange-500/20 hover:border-orange-500/40 hover:bg-orange-500/10 transition-[color,background-color,box-shadow] duration-300">
           <div class="flex items-center gap-2 mb-3">
             <div class="w-2.5 h-2.5 rounded-full bg-orange-500 ring-2 ring-orange-500/20" />
             <span class="font-semibold text-orange-400">Codex</span>
@@ -208,7 +208,7 @@
         </div>
 
         <!-- Claude 卡片 -->
-        <div class="p-4 rounded-xl bg-pink-500/5 border border-pink-500/20 hover:border-pink-500/40 hover:bg-pink-500/10 transition-all duration-300">
+        <div class="p-4 rounded-xl bg-pink-500/5 border border-pink-500/20 hover:border-pink-500/40 hover:bg-pink-500/10 transition-[color,background-color,box-shadow] duration-300">
           <div class="flex items-center gap-2 mb-3">
             <div class="w-2.5 h-2.5 rounded-full bg-pink-400 ring-2 ring-pink-400/20" />
             <span class="font-semibold text-pink-400">Claude</span>
@@ -229,7 +229,7 @@
         </div>
 
         <!-- Gemini 卡片 -->
-        <div class="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10 transition-all duration-300">
+        <div class="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10 transition-[color,background-color,box-shadow] duration-300">
           <div class="flex items-center gap-2 mb-3">
             <div class="w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-blue-500/20" />
             <span class="font-semibold text-blue-400">Gemini</span>

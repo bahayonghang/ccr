@@ -17,7 +17,7 @@
         <div class="flex gap-3">
           <RouterLink to="/claude-code">
             <button
-              class="px-4 py-2 rounded-lg font-medium transition-all bg-guofeng-bg-secondary text-guofeng-text-secondary border border-guofeng-border hover:bg-guofeng-bg-tertiary min-h-[44px] flex items-center"
+              class="px-4 py-2 rounded-lg font-medium transition-colors bg-guofeng-bg-secondary text-guofeng-text-secondary border border-guofeng-border hover:bg-guofeng-bg-tertiary min-h-[44px] flex items-center"
             >
               <ArrowLeft
                 class="w-4 h-4 mr-2"
@@ -27,7 +27,7 @@
             </button>
           </RouterLink>
           <button
-            class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-guofeng-red text-white shadow-md hover:shadow-lg flex items-center min-h-[44px]"
+            class="px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-guofeng-red text-white shadow-md hover:shadow-lg flex items-center min-h-[44px]"
             :disabled="saving"
             @click="handleSave"
           >
@@ -60,7 +60,7 @@
             :key="tab.key"
             role="tab"
             :aria-selected="activeTab === tab.key"
-            class="px-4 py-2 rounded-lg font-medium text-sm transition-all min-h-[44px] whitespace-nowrap flex-shrink-0 flex items-center gap-2"
+            class="px-4 py-2 rounded-lg font-medium text-sm transition-colors min-h-[44px] whitespace-nowrap flex-shrink-0 flex items-center gap-2"
             :class="activeTab === tab.key ? 'bg-guofeng-red text-white shadow-md' : 'bg-guofeng-bg-secondary text-guofeng-text-secondary border border-guofeng-border hover:bg-guofeng-bg-tertiary'"
             @click="activeTab = tab.key"
           >
@@ -90,7 +90,7 @@
                 <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-primary">{{ $t('claudeSettings.model.defaultModel') }}</label>
                 <select
                   v-model="form.model"
-                  class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                  class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                 >
                   <option value="">
                     {{ $t('claudeSettings.model.noOverride') }}
@@ -109,7 +109,7 @@
                 <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-primary">{{ $t('claudeSettings.model.effortLevel') }}</label>
                 <select
                   v-model="form.effortLevel"
-                  class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                  class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                 >
                   <option value="">
                     {{ $t('claudeSettings.model.noOverride') }}
@@ -143,7 +143,7 @@
                     v-model="form.maxThinkingTokens"
                     type="text"
                     placeholder="31999"
-                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                   >
                 </div>
                 <div>
@@ -152,7 +152,7 @@
                     v-model="form.maxOutputTokens"
                     type="text"
                     placeholder="64000"
-                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                   >
                 </div>
               </div>
@@ -180,11 +180,11 @@
                   <input
                     v-model="tagInputs.availableModels"
                     :placeholder="$t('claudeSettings.model.addModel')"
-                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary text-sm"
+                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary text-sm"
                     @keydown.enter.prevent="addTag('availableModels', form.availableModels)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-all"
+                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('availableModels', form.availableModels)"
                   >
                     <Plus class="w-4 h-4" />
@@ -213,7 +213,7 @@
                 <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-primary">{{ $t('claudeSettings.permissions.defaultMode') }}</label>
                 <select
                   v-model="permDefaultMode"
-                  class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                  class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                 >
                   <option value="">
                     {{ $t('claudeSettings.model.noOverride') }}
@@ -263,11 +263,11 @@
                   <input
                     v-model="tagInputs.permAllow"
                     placeholder="Bash, Read, Write..."
-                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary text-sm"
+                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary text-sm"
                     @keydown.enter.prevent="addTag('permAllow', permAllow)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-all"
+                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('permAllow', permAllow)"
                   >
                     <Plus class="w-4 h-4" />
@@ -298,11 +298,11 @@
                   <input
                     v-model="tagInputs.permDeny"
                     placeholder="mcp__dangerous..."
-                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary text-sm"
+                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary text-sm"
                     @keydown.enter.prevent="addTag('permDeny', permDeny)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-all"
+                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('permDeny', permDeny)"
                   >
                     <Plus class="w-4 h-4" />
@@ -333,11 +333,11 @@
                   <input
                     v-model="tagInputs.permAdditionalDirs"
                     placeholder="/path/to/dir"
-                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary text-sm"
+                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary text-sm"
                     @keydown.enter.prevent="addTag('permAdditionalDirs', permAdditionalDirs)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-all"
+                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('permAdditionalDirs', permAdditionalDirs)"
                   >
                     <Plus class="w-4 h-4" />
@@ -363,7 +363,7 @@
                   {{ $t('claudeSettings.tabs.env') }}
                 </h3>
                 <button
-                  class="px-3 py-1.5 rounded-lg text-sm font-medium bg-guofeng-red text-white hover:scale-105 transition-all flex items-center gap-1"
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium bg-guofeng-red text-white hover:scale-105 transition-[color,background-color,border-color,transform] flex items-center gap-1"
                   @click="addEnvVar"
                 >
                   <Plus class="w-4 h-4" /> {{ $t('claudeSettings.env.add') }}
@@ -385,16 +385,16 @@
                 <input
                   v-model="entry.key"
                   placeholder="KEY"
-                  class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary text-sm font-mono"
+                  class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary text-sm font-mono"
                 >
                 <input
                   v-model="entry.value"
                   placeholder="value"
                   :type="entry.key.includes('TOKEN') || entry.key.includes('KEY') || entry.key.includes('SECRET') ? 'password' : 'text'"
-                  class="flex-[2] px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary text-sm font-mono"
+                  class="flex-[2] px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary text-sm font-mono"
                 >
                 <button
-                  class="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  class="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
                   @click="envEntries.splice(idx, 1)"
                 >
                   <Trash2 class="w-4 h-4" />
@@ -425,7 +425,7 @@
                     v-model="form.theme"
                     type="text"
                     placeholder="dark, light, dark-daltonized..."
-                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                   >
                 </div>
                 <div>
@@ -434,7 +434,7 @@
                     v-model="form.language"
                     type="text"
                     placeholder="zh-CN, en, ja..."
-                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                   >
                 </div>
               </div>
@@ -497,7 +497,7 @@
                   <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-primary">{{ $t('claudeSettings.ui.updateChannel') }}</label>
                   <select
                     v-model="form.autoUpdatesChannel"
-                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                   >
                     <option value="">
                       {{ $t('claudeSettings.model.noOverride') }}
@@ -516,7 +516,7 @@
                     v-model.number="form.cleanupPeriodDays"
                     type="number"
                     placeholder="30"
-                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                   >
                 </div>
               </div>
@@ -602,11 +602,11 @@
                   <input
                     v-model="tagInputs.sandboxAllowedDomains"
                     placeholder="api.anthropic.com"
-                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary text-sm"
+                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary text-sm"
                     @keydown.enter.prevent="addTag('sandboxAllowedDomains', sandboxAllowedDomains)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-all"
+                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('sandboxAllowedDomains', sandboxAllowedDomains)"
                   >
                     <Plus class="w-4 h-4" />
@@ -637,11 +637,11 @@
                   <input
                     v-model="tagInputs.sandboxExcludedCmds"
                     placeholder="docker, npm..."
-                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary text-sm"
+                    class="flex-1 px-3 py-2 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary text-sm"
                     @keydown.enter.prevent="addTag('sandboxExcludedCmds', sandboxExcludedCmds)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-all"
+                    class="px-3 py-2 rounded-lg bg-guofeng-red text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('sandboxExcludedCmds', sandboxExcludedCmds)"
                   >
                     <Plus class="w-4 h-4" />
@@ -671,7 +671,7 @@
                   <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-primary">{{ $t('claudeSettings.git.commitAttribution') }}</label>
                   <select
                     v-model="attrCommit"
-                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                   >
                     <option value="">
                       {{ $t('claudeSettings.model.noOverride') }}
@@ -691,7 +691,7 @@
                   <label class="block mb-1.5 text-sm font-semibold text-guofeng-text-primary">{{ $t('claudeSettings.git.prAttribution') }}</label>
                   <select
                     v-model="attrPr"
-                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-all text-guofeng-text-primary"
+                    class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors text-guofeng-text-primary"
                   >
                     <option value="">
                       {{ $t('claudeSettings.model.noOverride') }}

@@ -24,7 +24,7 @@
       <!-- Legend -->
       <div class="flex items-center space-x-3">
         <button
-          class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all hover:scale-105 border-2"
+          class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-105 border-2"
           :class="activeSeriesSet.has('input') ? 'bg-blue-500/20 dark:bg-blue-400/20 ring-2 ring-blue-500/50 border-blue-500/50' : 'opacity-50 hover:opacity-70 border-transparent'"
           @click="toggleSeries('input')"
         >
@@ -33,7 +33,7 @@
         </button>
 
         <button
-          class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all hover:scale-105 border-2"
+          class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-105 border-2"
           :class="activeSeriesSet.has('output') ? 'bg-green-500/20 dark:bg-green-400/20 ring-2 ring-green-500/50 border-green-500/50' : 'opacity-50 hover:opacity-70 border-transparent'"
           @click="toggleSeries('output')"
         >
@@ -42,7 +42,7 @@
         </button>
 
         <button
-          class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all hover:scale-105 border-2"
+          class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-105 border-2"
           :class="activeSeriesSet.has('cache') ? 'bg-amber-500/20 dark:bg-amber-400/20 ring-2 ring-amber-500/50 border-amber-500/50' : 'opacity-50 hover:opacity-70 border-transparent'"
           @click="toggleSeries('cache')"
         >
@@ -156,7 +156,7 @@
             fill="url(#cacheGradient)"
             stroke="#f59e0b"
             stroke-width="2"
-            class="transition-all duration-300 ease-out"
+            class="transition-[color,background-color,border-color,transform] duration-300 ease-out"
           />
 
           <!-- Output Area (middle layer) -->
@@ -166,7 +166,7 @@
             fill="url(#outputGradient)"
             stroke="#10b981"
             stroke-width="2"
-            class="transition-all duration-300 ease-out"
+            class="transition-[color,background-color,border-color,transform] duration-300 ease-out"
           />
 
           <!-- Input Area (top layer) -->
@@ -176,7 +176,7 @@
             fill="url(#inputGradient)"
             stroke="#3b82f6"
             stroke-width="2"
-            class="transition-all duration-300 ease-out"
+            class="transition-[color,background-color,border-color,transform] duration-300 ease-out"
           />
         </g>
 
@@ -278,7 +278,7 @@
       <!-- Tooltip HTML Overlay -->
       <div
         v-if="hoveredIndex !== -1 && hoveredData"
-        class="absolute pointer-events-none z-10 p-3 rounded-xl backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 shadow-xl text-sm transition-all duration-100"
+        class="absolute pointer-events-none z-10 p-3 rounded-xl backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 shadow-xl text-sm transition-[color,background-color,border-color,transform] duration-100"
         :style="{
           left: `${tooltipPos.x}px`,
           top: `${tooltipPos.y}px`,

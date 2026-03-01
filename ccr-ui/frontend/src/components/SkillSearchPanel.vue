@@ -45,7 +45,7 @@
         <button
           v-for="repo in availableRepos"
           :key="repo"
-          class="px-2.5 py-1 text-xs rounded-lg transition-all"
+          class="px-2.5 py-1 text-xs rounded-lg transition-colors"
           :class="selectedRepo === repo 
             ? 'bg-guofeng-purple/20 text-guofeng-purple border border-guofeng-purple/30' 
             : 'bg-guofeng-bg-tertiary text-guofeng-text-muted hover:text-guofeng-text-primary border border-transparent'"
@@ -64,7 +64,7 @@
         <button
           v-for="tag in availableTags.slice(0, 8)"
           :key="tag"
-          class="px-2.5 py-1 text-xs rounded-lg transition-all"
+          class="px-2.5 py-1 text-xs rounded-lg transition-colors"
           :class="selectedTags.includes(tag) 
             ? 'bg-guofeng-indigo/20 text-guofeng-indigo border border-guofeng-indigo/30' 
             : 'bg-guofeng-bg-tertiary text-guofeng-text-muted hover:text-guofeng-text-primary border border-transparent'"
@@ -114,7 +114,7 @@
       <div
         v-for="skill in filteredSkills"
         :key="skill.name"
-        class="group p-4 rounded-xl bg-guofeng-bg-tertiary/50 border border-transparent hover:border-guofeng-purple/30 cursor-pointer transition-all"
+        class="group p-4 rounded-xl bg-guofeng-bg-tertiary/50 border border-transparent hover:border-guofeng-purple/30 cursor-pointer transition-colors"
         @click="selectSkill(skill)"
       >
         <div class="flex items-start justify-between mb-2">
@@ -128,7 +128,7 @@
           </div>
           <button
             v-if="!skill.is_remote"
-            class="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-guofeng-red/10 text-guofeng-text-muted hover:text-guofeng-red transition-all"
+            class="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-guofeng-red/10 text-guofeng-text-muted hover:text-guofeng-red transition-[color,background-color,opacity]"
             @click.stop="deleteSkill(skill.name)"
           >
             <Trash2 class="w-3.5 h-3.5" />

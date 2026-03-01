@@ -54,7 +54,7 @@
       <div
         v-for="repo in repositories"
         :key="repo.name"
-        class="group p-4 rounded-xl bg-guofeng-bg-tertiary/50 border border-transparent hover:border-guofeng-emerald/30 transition-all"
+        class="group p-4 rounded-xl bg-guofeng-bg-tertiary/50 border border-transparent hover:border-guofeng-emerald/30 transition-colors"
       >
         <div class="flex items-start justify-between">
           <div class="flex items-center gap-3">

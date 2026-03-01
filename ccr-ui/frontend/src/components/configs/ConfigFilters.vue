@@ -5,7 +5,7 @@
       <button
         v-for="filter in filters"
         :key="filter.type"
-        class="filter-btn flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
+        class="filter-btn flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors duration-300 flex items-center justify-center gap-2"
         :class="{ 'filter-btn-active': currentFilter === filter.type }"
         @click="$emit('update:currentFilter', filter.type)"
       >
@@ -28,7 +28,7 @@
         <div class="relative">
           <select
             :value="currentSort"
-            class="sort-select appearance-none pl-9 pr-8 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer outline-none"
+            class="sort-select appearance-none pl-9 pr-8 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer outline-none"
             @change="$emit('update:currentSort', ($event.target as HTMLSelectElement).value as SortType)"
           >
             <option value="name">
@@ -51,7 +51,7 @@
 
       <!-- 提供商统计按钮 -->
       <button
-        class="stats-btn px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-200"
+        class="stats-btn px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors duration-200"
         @click="$emit('showProviderStats')"
       >
         <BarChart3 class="w-4 h-4" />
@@ -60,7 +60,7 @@
 
       <!-- 添加配置按钮 -->
       <button
-        class="add-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-white transition-all duration-200 hover:scale-105"
+        class="add-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-white transition-[background-color,transform] duration-200 hover:scale-105"
         @click="$emit('addConfig')"
       >
         <PlusCircle class="w-4 h-4" />

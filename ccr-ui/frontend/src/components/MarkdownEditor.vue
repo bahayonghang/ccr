@@ -6,7 +6,7 @@
         <button
           v-for="mode in viewModes"
           :key="mode.value"
-          class="px-3 py-1.5 text-xs rounded-lg transition-all"
+          class="px-3 py-1.5 text-xs rounded-lg transition-colors"
           :class="currentMode === mode.value 
             ? 'bg-guofeng-indigo/20 text-guofeng-indigo border border-guofeng-indigo/30' 
             : 'bg-guofeng-bg-tertiary text-guofeng-text-muted hover:text-guofeng-text-primary border border-transparent'"

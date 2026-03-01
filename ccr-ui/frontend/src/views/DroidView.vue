@@ -32,7 +32,7 @@
           </div>
           <RouterLink
             to="/"
-            class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300"
+            class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-transform duration-300"
           >
             <Home
               class="w-5 h-5"
@@ -91,7 +91,7 @@
             to="/droid/mcp"
             class="block group"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
               <div class="flex items-start gap-4">
                 <div
                   class="p-3 rounded-2xl"
@@ -133,7 +133,7 @@
             to="/droid/agents"
             class="block group"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
               <div class="flex items-start gap-4">
                 <div
                   class="p-3 rounded-2xl"
@@ -175,7 +175,7 @@
             to="/droid/plugins"
             class="block group"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
               <div class="flex items-start gap-4">
                 <div
                   class="p-3 rounded-2xl"
@@ -217,7 +217,7 @@
             to="/droid/slash-commands"
             class="block group"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
               <div class="flex items-start gap-4">
                 <div
                   class="p-3 rounded-2xl"
@@ -259,7 +259,7 @@
             to="/droid/models"
             class="block group"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
               <div class="flex items-start gap-4">
                 <div
                   class="p-3 rounded-2xl"
@@ -301,7 +301,7 @@
             to="/droid/profiles"
             class="block group"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
               <div class="flex items-start gap-4">
                 <div
                   class="p-3 rounded-2xl"
@@ -343,7 +343,7 @@
             to="/droid/droids"
             class="block group"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-all duration-300">
+            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
               <div class="flex items-start gap-4">
                 <div
                   class="p-3 rounded-2xl"

@@ -22,7 +22,7 @@
             {{ isConnected ? $t('monitoring.connected') : $t('monitoring.disconnected') }}
           </div>
           <button
-            class="text-xs px-3 py-1.5 rounded-lg bg-guofeng-bg-tertiary hover:bg-guofeng-indigo/10 text-guofeng-text-secondary hover:text-guofeng-indigo transition-all flex items-center gap-1.5"
+            class="text-xs px-3 py-1.5 rounded-lg bg-guofeng-bg-tertiary hover:bg-guofeng-indigo/10 text-guofeng-text-secondary hover:text-guofeng-indigo transition-colors flex items-center gap-1.5"
             @click="clearLogs"
           >
             <Trash2 class="w-3.5 h-3.5" />

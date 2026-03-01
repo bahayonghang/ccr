@@ -19,7 +19,7 @@
 
         <main class="min-w-0">
           <!-- Header -->
-          <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-xl shadow-sm">
+          <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-sm shadow-sm">
             <div class="flex items-center gap-4">
               <div class="p-3 rounded-xl bg-guofeng-indigo/10 text-guofeng-indigo">
                 <Puzzle class="w-6 h-6" />
@@ -44,7 +44,7 @@
             
             <div class="flex items-center gap-3">
               <button
-                class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all hover:scale-105 bg-guofeng-indigo shadow-lg shadow-guofeng-indigo/20 hover:shadow-guofeng-indigo/30"
+                class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-[color,background-color,border-color,transform] hover:scale-105 bg-guofeng-indigo shadow-lg shadow-guofeng-indigo/20 hover:shadow-guofeng-indigo/30"
                 @click="handleAdd"
               >
                 <Plus class="w-5 h-5" />
@@ -80,7 +80,7 @@
             <div
               v-for="plugin in plugins"
               :key="plugin.id"
-              class="group glass-effect rounded-2xl p-5 border border-white/20 transition-all duration-300 hover:shadow-md hover:border-guofeng-indigo/30 flex flex-col"
+              class="group glass-effect rounded-2xl p-5 border border-white/20 transition-[color,background-color,box-shadow] duration-300 hover:shadow-md hover:border-guofeng-indigo/30 flex flex-col"
             >
               <div class="flex items-start justify-between mb-3">
                 <div class="flex-1 min-w-0">
@@ -113,7 +113,7 @@
 
               <div class="flex gap-2 pt-3 border-t border-guofeng-border/30">
                 <button
-                  class="flex-1 px-3 py-2 rounded-lg transition-all hover:scale-105 flex items-center justify-center gap-2 text-sm font-medium border"
+                  class="flex-1 px-3 py-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-105 flex items-center justify-center gap-2 text-sm font-medium border"
                   :class="plugin.enabled ? 'bg-guofeng-red/10 text-guofeng-red border-guofeng-red/20 hover:bg-guofeng-red/20' : 'bg-guofeng-green/10 text-guofeng-green border-guofeng-green/20 hover:bg-guofeng-green/20'"
                   :title="plugin.enabled ? $t('plugins.disable') : $t('plugins.enable')"
                   @click="handleToggle(plugin.id)"
@@ -129,14 +129,14 @@
                   <span>{{ plugin.enabled ? $t('plugins.disable') : $t('plugins.enable') }}</span>
                 </button>
                 <button
-                  class="p-2 rounded-lg transition-all hover:scale-110 text-guofeng-text-secondary hover:text-guofeng-indigo hover:bg-guofeng-indigo/10"
+                  class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-guofeng-text-secondary hover:text-guofeng-indigo hover:bg-guofeng-indigo/10"
                   :title="$t('plugins.edit')"
                   @click="handleEdit(plugin)"
                 >
                   <Edit2 class="w-4 h-4" />
                 </button>
                 <button
-                  class="p-2 rounded-lg transition-all hover:scale-110 text-guofeng-text-secondary hover:text-guofeng-red hover:bg-guofeng-red/10"
+                  class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-guofeng-text-secondary hover:text-guofeng-red hover:bg-guofeng-red/10"
                   :title="$t('plugins.delete')"
                   @click="handleDelete(plugin.id)"
                 >
@@ -149,7 +149,7 @@
           <!-- Add/Edit Form Modal -->
           <div
             v-if="showAddForm"
-            class="fixed inset-0 bg-guofeng-ink/20 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-all"
+            class="fixed inset-0 bg-guofeng-ink/20 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-colors"
             @click="showAddForm = false"
           >
             <div
@@ -181,7 +181,7 @@
                   <input
                     v-model="formData.id"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-all"
+                    class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-colors"
                     :placeholder="$t('plugins.form.idPlaceholder')"
                   >
                 </div>
@@ -193,7 +193,7 @@
                   <input
                     v-model="formData.name"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-all"
+                    class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-colors"
                     :placeholder="$t('plugins.form.namePlaceholder')"
                   >
                 </div>
@@ -205,7 +205,7 @@
                   <input
                     v-model="formData.version"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-all"
+                    class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-colors"
                     :placeholder="$t('plugins.form.versionPlaceholder')"
                   >
                 </div>
@@ -217,7 +217,7 @@
                   <textarea
                     v-model="configJson"
                     rows="8"
-                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-all"
+                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-colors"
                     :placeholder="$t('plugins.form.configPlaceholder')"
                   />
                   <div class="text-xs mt-1.5 text-guofeng-text-muted">
@@ -243,13 +243,13 @@
 
               <div class="flex gap-4 mt-8 pt-6 border-t border-guofeng-border/50">
                 <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border"
+                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border"
                   @click="showAddForm = false"
                 >
                   {{ $t('plugins.form.cancel') }}
                 </button>
                 <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-guofeng-indigo text-white shadow-lg shadow-guofeng-indigo/20 hover:shadow-xl hover:shadow-guofeng-indigo/30 hover:-translate-y-0.5"
+                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-guofeng-indigo text-white shadow-lg shadow-guofeng-indigo/20 hover:shadow-xl hover:shadow-guofeng-indigo/30 hover:-translate-y-0.5"
                   @click="handleSubmit"
                 >
                   {{ editingPlugin ? $t('plugins.form.update') : $t('plugins.form.add') }}

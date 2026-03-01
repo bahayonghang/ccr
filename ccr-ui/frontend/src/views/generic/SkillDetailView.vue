@@ -69,14 +69,14 @@
 
             <div class="flex items-center gap-2">
               <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-[var(--color-info)]/10 text-[var(--color-info)] hover:bg-[var(--color-info)]/20 flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-info)]/10 text-[var(--color-info)] hover:bg-[var(--color-info)]/20 flex items-center gap-2"
                 @click="handleEdit"
               >
                 <Edit2 class="w-4 h-4" />
                 {{ $t('common.edit') }}
               </button>
               <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 flex items-center gap-2"
                 @click="handleDelete"
               >
                 <Trash2 class="w-4 h-4" />
@@ -94,7 +94,7 @@
               {{ $t('skills.instructionLabel') }}
             </h2>
             <button
-              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-[var(--color-bg-surface)] hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-[var(--color-bg-surface)] hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] flex items-center gap-1.5"
               @click="copyInstruction"
             >
               <Copy class="w-3.5 h-3.5" />
@@ -114,7 +114,7 @@
     <!-- Edit Modal -->
     <div
       v-if="showEditModal"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-sm transition-all"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-sm transition-opacity"
       @click="showEditModal = false"
     >
       <div
@@ -149,20 +149,20 @@
             <textarea
               v-model="editInstruction"
               rows="12"
-              class="w-full px-4 py-3 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] focus:border-[var(--color-danger)] focus:ring-1 focus:ring-[var(--color-danger)] outline-none transition-all resize-y font-mono text-sm"
+              class="w-full px-4 py-3 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] focus:border-[var(--color-danger)] focus:ring-1 focus:ring-[var(--color-danger)] outline-none transition-[border-color,box-shadow] resize-y font-mono text-sm"
             />
           </div>
         </div>
 
         <div class="flex gap-4 mt-8 pt-6 border-t border-[var(--color-border-default)]">
           <button
-            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)]"
+            class="flex-1 px-6 py-3 rounded-lg font-medium transition-colors bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)]"
             @click="showEditModal = false"
           >
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all bg-[var(--color-danger)] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
+            class="flex-1 px-6 py-3 rounded-lg font-medium transition-[box-shadow,transform] bg-[var(--color-danger)] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
             :disabled="saving"
             @click="handleSave"
           >

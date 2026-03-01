@@ -51,12 +51,12 @@
               <button
                 v-for="client in CLI_CLIENTS"
                 :key="client.id"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all relative group"
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative group"
                 :class="selectedClient === client.id ? 'bg-guofeng-bg-secondary' : 'hover:bg-guofeng-bg-secondary/50'"
                 @click="setSelectedClient(client.id)"
               >
                 <div 
-                  class="absolute left-0 top-2 bottom-2 w-1 rounded-full transition-all"
+                  class="absolute left-0 top-2 bottom-2 w-1 rounded-full transition-[background-color,opacity]"
                   :style="{ 
                     background: selectedClient === client.id ? client.color.replace('0.2', '1') : 'transparent',
                     opacity: selectedClient === client.id ? 1 : 0
@@ -106,12 +106,12 @@
               <button
                 v-for="cmd in commands"
                 :key="cmd.name"
-                class="w-full text-left px-4 py-3 rounded-lg transition-all group relative overflow-hidden"
+                class="w-full text-left px-4 py-3 rounded-lg transition-colors group relative overflow-hidden"
                 :class="selectedCommand === cmd.name ? 'bg-guofeng-bg-secondary' : 'hover:bg-guofeng-bg-secondary/50'"
                 @click="setSelectedCommand(cmd.name)"
               >
                 <div 
-                  class="absolute left-0 top-0 bottom-0 w-1 transition-all bg-guofeng-jade"
+                  class="absolute left-0 top-0 bottom-0 w-1 transition-opacity bg-guofeng-jade"
                   :style="{ 
                     opacity: selectedCommand === cmd.name ? 1 : 0
                   }"
@@ -165,7 +165,7 @@
 
             <!-- 终端输入框 -->
             <div 
-              class="rounded-lg p-4 font-mono text-sm transition-all bg-[#1e1e1e] border border-guofeng-border/50 shadow-inner"
+              class="rounded-lg p-4 font-mono text-sm transition-colors bg-[#1e1e1e] border border-guofeng-border/50 shadow-inner"
             >
               <div class="flex items-center gap-2 mb-2 text-xs opacity-50 select-none text-gray-400">
                 <Terminal class="w-3 h-3" />
@@ -220,7 +220,7 @@
             <!-- 执行按钮 -->
             <div class="mt-4 flex justify-end">
               <button
-                class="px-8 py-2.5 rounded-lg font-semibold text-sm text-white transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 bg-gradient-to-r from-guofeng-jade to-guofeng-jade-dark shadow-lg shadow-guofeng-jade/20"
+                class="px-8 py-2.5 rounded-lg font-semibold text-sm text-white transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 bg-gradient-to-r from-guofeng-jade to-guofeng-jade-dark shadow-lg shadow-guofeng-jade/20"
                 :class="{ 'opacity-70 cursor-not-allowed': loading }"
                 :disabled="loading"
                 @click="handleExecute"

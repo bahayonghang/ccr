@@ -487,10 +487,6 @@ const formatNumber = (num: number): string => {
   animation-duration: 0.6s;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .loading-text {
   font-size: var(--text-sm);
   color: var(--color-text-muted);

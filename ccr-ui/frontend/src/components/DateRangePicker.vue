@@ -1,7 +1,7 @@
 <template>
   <div class="date-range-picker relative">
     <button
-      class="px-4 py-2 rounded-lg glass-card hover:scale-105 transition-all duration-200 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300"
+      class="px-4 py-2 rounded-lg glass-card hover:scale-105 transition-[color,background-color,border-color,transform] duration-200 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300"
       @click="togglePicker"
     >
       <Calendar class="w-4 h-4" />
@@ -76,7 +76,7 @@
         <!-- Action Buttons -->
         <div class="flex gap-2 pt-2">
           <button
-            class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105"
+            class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg text-sm font-medium transition-transform duration-300 hover:scale-105"
             @click="applyCustomRange"
           >
             Apply

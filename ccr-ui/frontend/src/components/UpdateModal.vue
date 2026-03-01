@@ -75,7 +75,7 @@
 
             <button
               v-if="stage !== 'updating'"
-              class="p-2 rounded-lg transition-all hover:scale-110"
+              class="p-2 rounded-lg transition-transform hover:scale-110"
               :style="{
                 background: 'var(--bg-tertiary)',
                 color: 'var(--text-secondary)'
@@ -315,7 +315,7 @@
             <!-- 确认阶段 -->
             <template v-if="stage === 'confirm'">
               <button
-                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-all hover:scale-105"
+                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform hover:scale-105"
                 :style="{
                   background: 'var(--bg-tertiary)',
                   color: 'var(--text-primary)',
@@ -326,7 +326,7 @@
                 取消
               </button>
               <button
-                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-all text-white hover:scale-105"
+                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform text-white hover:scale-105"
                 :style="{
                   background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
                   boxShadow: '0 0 20px var(--glow-primary)'
@@ -349,7 +349,7 @@
             <!-- 成功或错误 -->
             <template v-if="stage === 'success' || stage === 'error'">
               <button
-                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-all hover:scale-105"
+                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform hover:scale-105"
                 :style="{
                   background: 'var(--bg-tertiary)',
                   color: 'var(--text-primary)',
@@ -361,7 +361,7 @@
               </button>
               <button
                 v-if="stage === 'success'"
-                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-all text-white hover:scale-105"
+                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform text-white hover:scale-105"
                 :style="{
                   background: 'linear-gradient(135deg, var(--accent-success), var(--accent-primary))',
                   boxShadow: '0 0 20px var(--glow-success)'

@@ -17,7 +17,7 @@
         导航菜单
       </div>
       <button
-        class="p-2 rounded-lg transition-all hover:scale-110"
+        class="p-2 rounded-lg transition-transform hover:scale-110"
         :style="{
           background: 'var(--bg-tertiary)',
           border: '1px solid var(--border-color)',
@@ -58,7 +58,7 @@
 
         <!-- 分组头部 -->
         <button
-          class="w-full flex items-center rounded-lg transition-all hover:scale-[1.02]"
+          class="w-full flex items-center rounded-lg transition-transform hover:scale-[1.02]"
           :class="collapsed ? 'justify-center' : 'justify-between'"
           :style="{
             padding: collapsed ? '12px' : '12px 16px',
@@ -106,7 +106,7 @@
             v-for="(item, itemIndex) in group.items"
             :key="item.href"
             :to="item.href"
-            class="flex items-center space-x-3 px-4 py-3 ml-2 rounded-lg transition-all duration-300 relative overflow-hidden group"
+            class="flex items-center space-x-3 px-4 py-3 ml-2 rounded-lg transition-[color,background-color,border-color,transform] duration-300 relative overflow-hidden group"
             :class="isActive(item.href) ? 'scale-[1.02] nav-item-active-glow' : 'hover:translate-x-1 nav-item-inactive'"
             :style="{
               marginTop: itemIndex > 0 ? '4px' : '0',
@@ -132,7 +132,7 @@
 
             <!-- 左侧发光指示器 -->
             <span
-              class="absolute left-0 top-0 w-1 h-full transition-all duration-300"
+              class="absolute left-0 top-0 w-1 h-full transition-[transform,opacity] duration-300"
               :class="isActive(item.href) ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0 group-hover:scale-y-75 group-hover:opacity-50'"
               :style="{
                 background: isActive(item.href)
@@ -153,7 +153,7 @@
               }"
             />
             <span
-              class="font-medium text-sm transition-all duration-300"
+              class="font-medium text-sm transition-colors duration-300"
               :class="isActive(item.href) ? 'tracking-wide' : ''"
             >
               {{ item.name }}
@@ -181,7 +181,7 @@
             v-for="(item, itemIndex) in group.items"
             :key="item.href"
             :to="item.href"
-            class="flex items-center justify-center px-4 py-3 rounded-lg transition-all duration-300 relative overflow-hidden group"
+            class="flex items-center justify-center px-4 py-3 rounded-lg transition-[color,background-color,border-color,transform] duration-300 relative overflow-hidden group"
             :class="isActive(item.href) ? 'scale-110 nav-item-active-glow' : 'hover:scale-105 nav-item-inactive'"
             :style="{
               color: isActive(item.href) ? 'white' : 'var(--text-secondary)',
@@ -234,7 +234,7 @@
       class="mt-4 text-center"
     >
       <button
-        class="p-2 rounded-lg transition-all hover:scale-110"
+        class="p-2 rounded-lg transition-transform hover:scale-110"
         :style="{
           background: 'var(--bg-tertiary)',
           border: '1px solid var(--border-color)',

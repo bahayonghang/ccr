@@ -95,7 +95,7 @@
                 id="statusline-command"
                 v-model="config.command"
                 type="text"
-                class="w-full px-4 py-3 rounded-lg bg-white/50 border border-guofeng-border focus:border-guofeng-orange focus:ring-2 focus:ring-guofeng-orange/20 outline-none transition-all font-mono text-sm"
+                class="w-full px-4 py-3 rounded-lg bg-white/50 border border-guofeng-border focus:border-guofeng-orange focus:ring-2 focus:ring-guofeng-orange/20 outline-none transition-[border-color,box-shadow] font-mono text-sm"
                 :placeholder="$t('statusline.commandPlaceholder')"
                 aria-describedby="command-description command-help"
               >
@@ -111,7 +111,7 @@
           <!-- Save Button -->
           <div class="flex justify-end mt-6 pt-4 border-t border-guofeng-border/30">
             <button
-              class="px-6 py-2.5 rounded-lg font-medium transition-all bg-guofeng-orange text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center min-h-[44px]"
+              class="px-6 py-2.5 rounded-lg font-medium transition-[box-shadow,transform] bg-guofeng-orange text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center min-h-[44px]"
               :disabled="saving"
               :aria-busy="saving"
               @click="handleSave"

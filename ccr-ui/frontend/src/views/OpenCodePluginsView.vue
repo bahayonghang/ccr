@@ -22,7 +22,7 @@
           </div>
         </div>
         <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
           style="background: var(--accent-primary); color: white;"
           @click="showAddDialog = true"
         >
@@ -70,7 +70,7 @@
           添加 npm 插件包来扩展 OpenCode 功能
         </p>
         <button
-          class="px-4 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105"
+          class="px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
           style="background: var(--accent-primary); color: white;"
           @click="showAddDialog = true"
         >
@@ -159,7 +159,7 @@
           </button>
           <button
             :disabled="!newNpm.trim() || saving"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
             style="background: var(--accent-primary); color: white;"
             @click="doAdd"
           >

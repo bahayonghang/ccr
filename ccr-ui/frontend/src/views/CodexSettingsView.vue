@@ -15,7 +15,7 @@
         </div>
         <div class="flex gap-3">
           <RouterLink to="/codex">
-            <button class="px-4 py-2 rounded-lg font-medium transition-all bg-bg-elevated text-text-secondary border border-border-default hover:bg-bg-surface min-h-[44px] flex items-center">
+            <button class="px-4 py-2 rounded-lg font-medium transition-colors bg-bg-elevated text-text-secondary border border-border-default hover:bg-bg-surface min-h-[44px] flex items-center">
               <ArrowLeft
                 class="w-4 h-4 mr-2"
                 aria-hidden="true"
@@ -24,7 +24,7 @@
             </button>
           </RouterLink>
           <button
-            class="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-emerald-500 text-white shadow-md hover:shadow-lg flex items-center min-h-[44px]"
+            class="px-4 py-2 rounded-lg font-medium transition-[box-shadow,transform] hover:scale-105 bg-emerald-500 text-white shadow-md hover:shadow-lg flex items-center min-h-[44px]"
             :disabled="saving"
             @click="handleSave"
           >
@@ -57,7 +57,7 @@
             :key="tab.key"
             role="tab"
             :aria-selected="activeTab === tab.key"
-            class="px-4 py-2 rounded-lg font-medium text-sm transition-all min-h-[44px] whitespace-nowrap flex-shrink-0 flex items-center gap-2"
+            class="px-4 py-2 rounded-lg font-medium text-sm transition-colors min-h-[44px] whitespace-nowrap flex-shrink-0 flex items-center gap-2"
             :class="activeTab === tab.key ? 'bg-emerald-500 text-white shadow-md' : 'bg-bg-elevated text-text-secondary border border-border-default hover:bg-bg-surface'"
             @click="activeTab = tab.key"
           >
@@ -682,7 +682,7 @@ export default { components: { ToggleField } }
 
 <style scoped>
 .settings-input {
-  @apply w-full px-4 py-2.5 rounded-lg bg-bg-elevated border border-border-default focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all text-text-primary;
+  @apply w-full px-4 py-2.5 rounded-lg bg-bg-elevated border border-border-default focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-[border-color,box-shadow] text-text-primary;
 }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

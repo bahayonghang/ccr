@@ -29,8 +29,8 @@
     <header class="flex-none px-6 py-4 flex items-center justify-between border-b border-border-color bg-bg-primary/80 backdrop-blur-md z-10 animate-fade-in-down">
       <div class="flex items-center gap-4">
         <div class="relative group">
-          <div class="absolute inset-0 bg-accent-primary/30 blur-xl rounded-full group-hover:bg-accent-primary/50 transition-all duration-500 animate-pulse-glow" />
-          <div class="relative w-10 h-10 rounded-xl glass-effect flex items-center justify-center border border-accent-primary/30 shadow-neon-jade group-hover:scale-110 group-hover:border-accent-primary/60 transition-all duration-300">
+          <div class="absolute inset-0 bg-accent-primary/30 blur-xl rounded-full group-hover:bg-accent-primary/50 transition-colors duration-500 animate-pulse-glow" />
+          <div class="relative w-10 h-10 rounded-xl glass-effect flex items-center justify-center border border-accent-primary/30 shadow-neon-jade group-hover:scale-110 group-hover:border-accent-primary/60 transition-[color,background-color,border-color,transform] duration-300">
             <Terminal class="w-5 h-5 text-accent-primary drop-shadow-neon" />
           </div>
         </div>
@@ -75,7 +75,7 @@
             <button
               v-for="tab in sidebarTabs"
               :key="tab.id"
-              class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all duration-300 relative overflow-hidden group"
+              class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-colors duration-300 relative overflow-hidden group"
               :class="activeTab === tab.id 
                 ? 'bg-accent-primary/10 text-accent-primary shadow-neon-jade-sm' 
                 : 'text-text-muted hover:bg-bg-hover hover:text-text-primary'"
@@ -112,7 +112,7 @@
                     <button
                       v-for="mod in modules"
                       :key="mod.id"
-                      class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-transparent"
+                      class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-transparent"
                       :class="selectedModuleId === mod.id
                         ? 'bg-accent-primary/20 text-accent-primary border-accent-primary/30'
                         : 'bg-bg-secondary text-text-muted hover:bg-bg-hover hover:text-text-primary'"
@@ -128,7 +128,7 @@
                   <div
                     v-for="cmd in selectedModule?.commands"
                     :key="cmd.command"
-                    class="cursor-pointer group relative p-3 rounded-xl border border-transparent hover:bg-bg-hover hover:border-accent-primary/20 transition-all duration-300"
+                    class="cursor-pointer group relative p-3 rounded-xl border border-transparent hover:bg-bg-hover hover:border-accent-primary/20 transition-colors duration-300"
                     :class="selectedCommand?.command === cmd.command ? 'bg-accent-primary/10 border-accent-primary/40 shadow-neon-jade-sm' : ''"
                     @click="selectCommand(cmd)"
                   >
@@ -151,7 +151,7 @@
                               class="w-3 h-3 text-accent-danger animate-pulse"
                             />
                             <Star 
-                              class="w-3 h-3 transition-all cursor-pointer hover:scale-125" 
+                              class="w-3 h-3 transition-transform cursor-pointer hover:scale-125"
                               :class="isFavorite(cmd.command) ? 'text-accent-warning fill-accent-warning' : 'text-transparent stroke-text-muted hover:stroke-accent-warning'"
                               @click.stop="toggleFavorite(cmd)"
                             />
@@ -185,7 +185,7 @@
                 <div
                   v-for="fav in favorites"
                   :key="fav.id"
-                  class="p-3 rounded-xl bg-bg-secondary border border-border-color hover:border-accent-warning/30 hover:shadow-neon-gold-sm transition-all cursor-pointer group"
+                  class="p-3 rounded-xl bg-bg-secondary border border-border-color hover:border-accent-warning/30 hover:shadow-neon-gold-sm transition-[border-color,box-shadow] cursor-pointer group"
                   @click="executeFromFavorite(fav)"
                 >
                   <div class="flex items-center justify-between mb-2">
@@ -201,7 +201,7 @@
                     ccr {{ fav.command }}
                   </div>
                   <div class="flex justify-end">
-                    <button class="p-1.5 rounded-lg bg-accent-warning/10 text-accent-warning hover:bg-accent-warning hover:text-white transition-all">
+                    <button class="p-1.5 rounded-lg bg-accent-warning/10 text-accent-warning hover:bg-accent-warning hover:text-white transition-colors">
                       <Play class="w-3 h-3 fill-current" />
                     </button>
                   </div>
@@ -217,7 +217,7 @@
                 <div class="p-2 border-b border-border-color flex justify-end">
                   <button 
                     v-if="history.length > 0"
-                    class="text-[10px] flex items-center gap-1 text-text-muted hover:text-accent-danger px-2 py-1 hover:bg-bg-hover rounded transition-all"
+                    class="text-[10px] flex items-center gap-1 text-text-muted hover:text-accent-danger px-2 py-1 hover:bg-bg-hover rounded transition-colors"
                     @click="clearHistoryData"
                   >
                     <Trash2 class="w-3 h-3" />
@@ -235,7 +235,7 @@
                   <div
                     v-for="item in history"
                     :key="item.id"
-                    class="p-2.5 rounded-lg bg-bg-secondary border border-border-color hover:bg-bg-hover transition-all cursor-pointer flex items-center gap-3 group"
+                    class="p-2.5 rounded-lg bg-bg-secondary border border-border-color hover:bg-bg-hover transition-colors cursor-pointer flex items-center gap-3 group"
                     @click="executeFromHistory(item)"
                   >
                     <div
@@ -251,7 +251,7 @@
                         <span>{{ item.duration_ms }}ms</span>
                       </div>
                     </div>
-                    <Play class="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-100 transition-all" />
+                    <Play class="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
               </div>
@@ -282,7 +282,7 @@
                   ccr {{ selectedCommand.command }}
                 </div>
                 <button
-                  class="flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold text-sm text-white shadow-lg transition-all active:scale-95"
+                  class="flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold text-sm text-white shadow-lg transition-[color,background-color,border-color,transform] active:scale-95"
                   :class="selectedCommand.dangerous
                     ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-neon-danger'
                     : 'bg-gradient-to-r from-accent-primary to-accent-secondary hover:from-accent-secondary hover:to-accent-primary shadow-neon-jade'"
@@ -320,12 +320,12 @@
                     v-model="commandArgs[arg.name]"
                     type="text"
                     :placeholder="arg.placeholder"
-                    class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-text-primary focus:border-accent-primary focus:bg-bg-hover transition-all font-mono"
+                    class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-text-primary focus:border-accent-primary focus:bg-bg-hover transition-colors font-mono"
                   >
                   <select
                     v-else
                     v-model="commandArgs[arg.name]"
-                    class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-text-primary focus:border-accent-primary transition-all font-mono"
+                    class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-text-primary focus:border-accent-primary transition-colors font-mono"
                   >
                     <option
                       value=""
@@ -372,7 +372,7 @@
                       <input 
                         v-model="commandFlags[flag.name]" 
                         :type="flag.type === 'number' ? 'number' : 'text'"
-                        class="w-full px-2 py-1 rounded bg-bg-tertiary border border-border-color text-xs font-mono text-text-primary focus:border-accent-secondary transition-all"
+                        class="w-full px-2 py-1 rounded bg-bg-tertiary border border-border-color text-xs font-mono text-text-primary focus:border-accent-secondary transition-colors"
                       >
                     </div>
                   </template>
@@ -393,7 +393,7 @@
         </GuofengCard>
 
         <!-- 2. 终端输出区 (剩余空间全部占满) -->
-        <div class="flex-1 flex flex-col overflow-hidden min-h-0 rounded-xl border border-border-color bg-bg-primary/50 backdrop-blur-md shadow-2xl relative transition-all duration-300 hover:shadow-neon-jade-sm group">
+        <div class="flex-1 flex flex-col overflow-hidden min-h-0 rounded-xl border border-border-color bg-bg-primary/50 backdrop-blur-md shadow-2xl relative transition-[box-shadow] duration-300 hover:shadow-neon-jade-sm group">
           <!-- Terminal Header -->
           <div class="flex-none px-4 py-3 border-b border-border-color bg-bg-secondary/50 flex items-center justify-between backdrop-blur-sm">
             <div class="flex items-center gap-2">
@@ -407,7 +407,7 @@
               <!-- Exit Code Badge -->
               <div
                 v-if="lastExitCode !== null"
-                class="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono font-bold border transition-all animate-fade-in"
+                class="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono font-bold border transition-colors animate-fade-in"
                 :class="lastExitCode === 0 ? 'bg-accent-success/10 text-accent-success border-accent-success/30' : 'bg-accent-danger/10 text-accent-danger border-accent-danger/30'"
               >
                 <component
@@ -418,7 +418,7 @@
               </div>
               <!-- Clear Button -->
               <button 
-                class="p-1.5 rounded-lg hover:bg-bg-hover text-text-muted hover:text-accent-danger transition-all active:scale-95"
+                class="p-1.5 rounded-lg hover:bg-bg-hover text-text-muted hover:text-accent-danger transition-[color,background-color,transform] active:scale-95"
                 :title="$t('ccrControl.clearOutput')"
                 @click="clearOutput"
               >

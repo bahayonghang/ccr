@@ -21,7 +21,7 @@ onMounted(async () => {
 
 <template>
   <div
-    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
     :class="[
       isTauri
         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'

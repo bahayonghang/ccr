@@ -168,7 +168,7 @@
               <div class="progress-bar-track">
                 <div 
                   class="progress-bar-fill"
-                  :style="{ width: `${dashboard.calendar.month_stats.check_in_rate}%` }"
+                  :style="{ transform: `scaleX(${dashboard.calendar.month_stats.check_in_rate / 100})` }"
                 />
               </div>
               <div class="progress-days">
@@ -600,7 +600,9 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   height: 100%;
   background: linear-gradient(90deg, var(--accent-success), var(--platform-iflow));
   border-radius: inherit;
-  transition: width 0.3s ease;
+  width: 100%;
+  transform-origin: left center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .progress-bar.accent {
@@ -1186,7 +1188,9 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   height: 100%;
   background: linear-gradient(90deg, var(--platform-gemini), var(--accent-info));
   border-radius: 3px;
-  transition: width 0.3s ease;
+  width: 100%;
+  transform-origin: left center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .progress-days {

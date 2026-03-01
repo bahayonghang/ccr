@@ -111,7 +111,7 @@ const badgeVariants = {
 const itemClasses = computed(() => [
   // 基础样式
   'group relative flex items-center gap-3 px-4 py-3 rounded-lg',
-  'transition-all duration-200 ease-out',
+  'transition-colors duration-200 ease-out',
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30',
   
   // 活跃状态

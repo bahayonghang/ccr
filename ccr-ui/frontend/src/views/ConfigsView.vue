@@ -20,7 +20,7 @@
           v-for="navItem in moduleNavItems"
           :key="navItem.path"
           :to="navItem.path"
-          class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border border-transparent"
+          class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors duration-300 border border-transparent"
           :class="$route.path === navItem.path 
             ? 'bg-accent-primary/20 text-accent-primary border-accent-primary/20 shadow-glow-primary' 
             : 'text-text-secondary hover:text-text-primary hover:bg-white/5'"
@@ -60,7 +60,7 @@
             <button
               v-for="tab in tabs"
               :key="tab.id"
-              class="flex items-center gap-2 pb-2 px-2 text-sm font-bold border-b-2 transition-all duration-300"
+              class="flex items-center gap-2 pb-2 px-2 text-sm font-bold border-b-2 transition-colors duration-300"
               :class="activeTab === tab.id 
                 ? 'border-accent-primary text-accent-primary' 
                 : 'border-transparent text-text-muted hover:text-text-secondary'"

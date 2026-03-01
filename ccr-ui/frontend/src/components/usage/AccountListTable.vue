@@ -27,7 +27,7 @@
       <div
         v-for="(account, index) in accounts"
         :key="account.name"
-        class="group relative grid items-center gap-4 px-4 py-3 transition-all duration-200 hover:bg-bg-overlay/50"
+        class="group relative grid items-center gap-4 px-4 py-3 transition-colors duration-200 hover:bg-bg-overlay/50"
         :class="[
           account.is_current ? 'bg-platform-codex/5 hover:bg-platform-codex/10' : '',
           index === accounts.length - 1 ? 'rounded-b-xl' : ''
@@ -114,7 +114,7 @@
           <!-- Quick Switch Button (non-current, non-expired accounts) -->
           <button
             v-if="!account.is_current && !account.is_expired"
-            class="p-2 rounded-lg text-text-muted hover:text-accent-success hover:bg-accent-success/10 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+            class="p-2 rounded-lg text-text-muted hover:text-accent-success hover:bg-accent-success/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
             :title="$t('codex.auth.switch')"
             @click="$emit('switch', account.name)"
           >
@@ -142,7 +142,7 @@
           <!-- Delete Button (non-virtual accounts) -->
           <button
             v-if="!account.is_virtual"
-            class="p-2 rounded-lg text-text-muted hover:text-accent-danger hover:bg-accent-danger/10 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+            class="p-2 rounded-lg text-text-muted hover:text-accent-danger hover:bg-accent-danger/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
             :title="$t('codex.actions.delete')"
             @click="$emit('delete', account.name)"
           >

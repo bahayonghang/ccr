@@ -22,7 +22,7 @@
           <div class="flex items-center gap-4">
             <RouterLink
               to="/droid"
-              class="p-3 rounded-2xl glass-card hover:scale-105 transition-all duration-300"
+              class="p-3 rounded-2xl glass-card hover:scale-105 transition-transform duration-300"
               :style="{ background: 'rgba(59, 130, 246, 0.1)' }"
             >
               <ArrowLeft
@@ -45,7 +45,7 @@
             </div>
           </div>
           <button
-            class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-all duration-300"
+            class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-transform duration-300"
             :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
             @click="showAddModal = true"
           >
@@ -74,7 +74,7 @@
         <div
           v-for="profile in profiles"
           :key="profile.name"
-          class="glass-card p-6 hover:scale-105 transition-all duration-300"
+          class="glass-card p-6 hover:scale-105 transition-transform duration-300"
           :class="{ 'ring-2 ring-blue-500': profile.enabled }"
         >
           <!-- Profile 头部 -->
@@ -164,7 +164,7 @@
           <!-- 切换按钮 -->
           <button
             v-if="!profile.enabled"
-            class="w-full px-4 py-2 rounded-lg glass-card hover:scale-105 transition-all duration-300"
+            class="w-full px-4 py-2 rounded-lg glass-card hover:scale-105 transition-transform duration-300"
             :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
             @click="switchProfile(profile.name)"
           >
@@ -434,7 +434,7 @@
             <div class="flex gap-3 pt-4">
               <button
                 type="button"
-                class="flex-1 px-4 py-2 rounded-lg glass-card hover:scale-105 transition-all duration-300"
+                class="flex-1 px-4 py-2 rounded-lg glass-card hover:scale-105 transition-transform duration-300"
                 :style="{ color: 'var(--text-secondary)' }"
                 @click="closeModal"
               >
@@ -443,7 +443,7 @@
               <button
                 type="submit"
                 :disabled="saving"
-                class="flex-1 px-4 py-2 rounded-lg glass-card hover:scale-105 transition-all duration-300"
+                class="flex-1 px-4 py-2 rounded-lg glass-card hover:scale-105 transition-transform duration-300"
                 :style="{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6' }"
               >
                 {{ saving ? '保存中...' : '保存' }}

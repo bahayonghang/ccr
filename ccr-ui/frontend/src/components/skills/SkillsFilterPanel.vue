@@ -40,7 +40,7 @@
           v-for="platform in platforms"
           :key="platform.id"
           class="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer
-                 hover:bg-bg-surface/50 transition-all duration-200 group relative"
+                 hover:bg-bg-surface/50 transition-colors duration-200 group relative"
           :class="selectedPlatform === platform.id ? 'bg-accent-primary/10' : ''"
           @click="selectPlatform(platform.id)"
         >
@@ -71,7 +71,7 @@
         </h2>
         <button
           class="p-1.5 rounded-lg text-text-muted hover:text-accent-primary
-                 hover:bg-bg-surface/80 transition-all duration-200"
+                 hover:bg-bg-surface/80 transition-colors duration-200"
           :title="$t('skills.collapsePanel')"
           @click="$emit('toggle-collapse')"
         >
@@ -93,7 +93,7 @@
                  text-text-primary placeholder:text-text-muted/50
                  focus:border-accent-primary/50 focus:bg-bg-surface
                  focus:outline-none focus:ring-2 focus:ring-accent-primary/20
-                 transition-all duration-200"
+                 transition-[border-color,box-shadow] duration-200"
           @input="debouncedSearchUpdate"
         >
         <button
@@ -123,7 +123,7 @@
           >
             <div class="flex items-center gap-2">
               <div
-                class="w-3 h-3 rounded-full border-2 transition-all"
+                class="w-3 h-3 rounded-full border-2 transition-colors"
                 :class="selectedPlatform === 'all'
                   ? 'border-accent-primary bg-accent-primary'
                   : 'border-border-default'"
@@ -148,7 +148,7 @@
           >
             <div class="flex items-center gap-2">
               <div
-                class="w-3 h-3 rounded-full border-2 transition-all"
+                class="w-3 h-3 rounded-full border-2 transition-colors"
                 :class="selectedPlatform === platform.id
                   ? 'border-accent-primary bg-accent-primary'
                   : 'border-border-default'"
@@ -527,7 +527,7 @@ watch(() => props.modelValue, (newVal) => {
 .platform-item {
   @apply w-full flex items-center justify-between px-3 py-2 rounded-xl
          text-sm text-text-secondary cursor-pointer
-         transition-all duration-200;
+         transition-colors duration-200;
 }
 
 .platform-item:hover {
@@ -563,7 +563,7 @@ watch(() => props.modelValue, (newVal) => {
 /* Source Button */
 .source-btn {
   @apply flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold
-         text-text-secondary transition-all duration-200;
+         text-text-secondary transition-colors duration-200;
 }
 
 .source-btn:hover {
@@ -578,7 +578,7 @@ watch(() => props.modelValue, (newVal) => {
 .category-item {
   @apply w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium
          text-text-secondary hover:text-text-primary
-         transition-all duration-200;
+         transition-colors duration-200;
 }
 
 .category-item:hover {
@@ -594,7 +594,7 @@ watch(() => props.modelValue, (newVal) => {
   @apply px-2 py-1 rounded-md text-xs font-medium
          bg-bg-surface text-text-secondary
          hover:bg-bg-elevated hover:text-text-primary
-         transition-all duration-200;
+         transition-colors duration-200;
 }
 
 .tag-item--active {
@@ -605,7 +605,7 @@ watch(() => props.modelValue, (newVal) => {
 .clear-filters-btn {
   @apply w-full flex items-center justify-center gap-2 mt-4 px-4 py-2.5
          rounded-xl text-sm font-semibold border
-         transition-all duration-200;
+         transition-colors duration-200;
 
   color: var(--color-danger);
   background: rgb(var(--color-danger-rgb) / 10%);

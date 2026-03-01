@@ -45,7 +45,7 @@
           <div class="flex items-center space-x-2">
             <!-- Theme Toggle Button -->
             <button
-              class="w-10 h-10 rounded-full transition-all hover:rotate-180 hover:scale-110 flex items-center justify-center"
+              class="w-10 h-10 rounded-full transition-[color,background-color,border-color,transform] hover:rotate-180 hover:scale-110 flex items-center justify-center"
               :style="{
                 background: 'var(--bg-tertiary)',
                 border: '1px solid var(--border-color)',

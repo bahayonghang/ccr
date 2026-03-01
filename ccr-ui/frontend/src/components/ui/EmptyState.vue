@@ -25,7 +25,7 @@
     </p>
     <button
       v-if="actionText && onAction"
-      class="inline-flex items-center justify-center gap-2 px-4 py-2 text-base font-medium text-white bg-accent-primary border-none rounded-md cursor-pointer transition-all duration-200 ease-out hover:bg-accent-primary-hover hover:-translate-y-px hover:shadow-glow-primary active:translate-y-0 min-h-[44px]"
+      class="inline-flex items-center justify-center gap-2 px-4 py-2 text-base font-medium text-white bg-accent-primary border-none rounded-md cursor-pointer transition-[background-color,transform,box-shadow] duration-200 ease-out hover:bg-accent-primary-hover hover:-translate-y-px hover:shadow-glow-primary active:translate-y-0 min-h-[44px]"
       @click="onAction"
     >
       <component

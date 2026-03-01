@@ -1,6 +1,6 @@
 <template>
   <div
-    class="stat-card group relative overflow-hidden rounded-2xl p-5 transition-all duration-300"
+    class="stat-card group relative overflow-hidden rounded-2xl p-5 transition-[box-shadow,transform] duration-300"
     :class="[
       'backdrop-blur-xl border',
       'bg-gradient-to-br from-white/90 to-white/70 dark:from-gray-800/80 dark:to-gray-900/60',
@@ -19,7 +19,7 @@
 
     <!-- Top accent line -->
     <div
-      class="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-all duration-300"
+      class="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
       :style="{ background: `linear-gradient(90deg, transparent, ${glowColor}, transparent)` }"
     />
 
@@ -100,7 +100,7 @@
 
       <!-- Right: Icon -->
       <div
-        class="flex-shrink-0 p-3 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
+        class="flex-shrink-0 p-3 rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
         :class="iconBgClasses"
       >
         <slot name="icon">

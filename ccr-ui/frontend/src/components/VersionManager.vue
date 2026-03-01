@@ -95,7 +95,7 @@
     <div class="grid grid-cols-2 gap-2">
       <button
         :disabled="isCheckingUpdate"
-        class="px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center space-x-1.5 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-3 py-2 rounded-lg font-semibold text-xs transition-transform flex items-center justify-center space-x-1.5 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
         :style="{
           background: 'var(--bg-secondary)',
           color: 'var(--text-primary)',
@@ -108,7 +108,7 @@
       </button>
 
       <button
-        class="px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center space-x-1.5 text-white hover:scale-105"
+        class="px-3 py-2 rounded-lg font-semibold text-xs transition-transform flex items-center justify-center space-x-1.5 text-white hover:scale-105"
         :class="{ 'animate-pulse-subtle': updateInfo?.has_update }"
         :style="{
           background: updateInfo?.has_update

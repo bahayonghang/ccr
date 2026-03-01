@@ -219,7 +219,7 @@
               <button
                 v-for="account in accounts"
                 :key="account.name"
-                class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 border flex items-center gap-2.5"
+                class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-colors duration-300 border flex items-center gap-2.5"
                 :class="[
                   account.is_expired
                     ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60'

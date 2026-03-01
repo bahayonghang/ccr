@@ -46,7 +46,7 @@
 
       <!-- SEARCH & FILTERS -->
       <section 
-        class="sticky top-4 z-40 bg-bg-base/60 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-2xl animate-slide-up flex flex-col xl:flex-row gap-2"
+        class="sticky top-4 z-40 bg-bg-base/85 backdrop-blur-sm border border-white/10 p-2 rounded-2xl shadow-2xl animate-slide-up flex flex-col xl:flex-row gap-2"
         style="animation-delay: 100ms;"
       >
         <div class="relative flex-1 group min-w-[200px]">
@@ -82,7 +82,7 @@
             <button
               v-for="opt in sourceOptions" 
               :key="opt.value"
-              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all relative"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors relative"
               :class="selectedSource === opt.value ? 'text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'"
               @click="selectedSource = opt.value"
             >
@@ -99,7 +99,7 @@
             <button
               v-for="cat in availableCategories"
               :key="cat"
-              class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap"
               :class="selectedCategory === cat 
                 ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary shadow-[0_0_10px_rgba(var(--color-accent-primary-rgb),0.2)]' 
                 : 'bg-bg-surface/30 border-transparent hover:bg-bg-surface text-text-secondary'"
@@ -115,7 +115,7 @@
             class="relative group ml-2"
           >
             <button 
-              class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
               :class="selectedTags.length > 0
                 ? 'bg-accent-secondary/10 border-accent-secondary/30 text-accent-secondary'
                 : 'bg-bg-surface/30 border-transparent hover:bg-bg-surface text-text-secondary'"
@@ -215,7 +215,7 @@
           variant="glass"
           hover
           glow
-          class="group min-h-[280px] flex flex-col p-0 overflow-visible transition-all duration-300 relative border-white/5"
+          class="group min-h-[280px] flex flex-col p-0 overflow-visible transition-colors duration-300 relative border-white/5"
           :style="{ animationDelay: `${index * 50}ms` }"
           @click="navigateToDetail(skill.name)"
         >
@@ -243,7 +243,7 @@
               </div>
               <div>
                 <h3
-                  class="text-xl font-bold text-text-primary line-clamp-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent-primary group-hover:to-accent-secondary transition-all"
+                  class="text-xl font-bold text-text-primary line-clamp-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent-primary group-hover:to-accent-secondary transition-colors"
                   :title="skill.name"
                 >
                   {{ skill.name }}
@@ -267,7 +267,7 @@
             </div>
 
             <!-- Actions (Visible on hover) -->
-            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-[opacity,transform] duration-200 translate-x-2 group-hover:translate-x-0">
               <button
                 v-if="!skill.repository"
                 class="p-1.5 rounded-lg hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
@@ -362,7 +362,7 @@
                   :disabled="!!editingSkill"
                   type="text" 
                   placeholder="e.g. data-analysis-pro"
-                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/50 border border-border-default focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-all font-mono text-sm"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/50 border border-border-default focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors font-mono text-sm"
                 >
               </div>
 
@@ -374,7 +374,7 @@
                 <textarea 
                   v-model="formData.instruction"
                   rows="12"
-                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/50 border border-border-default focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-all font-mono text-sm leading-relaxed custom-scrollbar"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/50 border border-border-default focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors font-mono text-sm leading-relaxed custom-scrollbar"
                   placeholder="# Skill Name..."
                 />
               </div>

@@ -76,7 +76,7 @@
 
             <div class="flex items-center gap-2">
               <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
                 :class="agent.disabled ? 'bg-guofeng-jade/10 text-guofeng-jade hover:bg-guofeng-jade/20' : 'bg-guofeng-text-muted/10 text-guofeng-text-muted hover:bg-guofeng-text-muted/20'"
                 @click="handleToggle"
               >
@@ -91,14 +91,14 @@
                 {{ agent.disabled ? $t('agents.enable') : $t('agents.disable') }}
               </button>
               <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-guofeng-blue/10 text-guofeng-blue hover:bg-guofeng-blue/20 flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-guofeng-blue/10 text-guofeng-blue hover:bg-guofeng-blue/20 flex items-center gap-2"
                 @click="handleEdit"
               >
                 <Edit2 class="w-4 h-4" />
                 {{ $t('common.edit') }}
               </button>
               <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-guofeng-red/10 text-guofeng-red hover:bg-guofeng-red/20 flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-guofeng-red/10 text-guofeng-red hover:bg-guofeng-red/20 flex items-center gap-2"
                 @click="handleDelete"
               >
                 <Trash2 class="w-4 h-4" />
@@ -138,7 +138,7 @@
             </h2>
             <button
               v-if="agent.system_prompt"
-              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-guofeng-bg-tertiary hover:bg-guofeng-bg-secondary text-guofeng-text-secondary flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-guofeng-bg-tertiary hover:bg-guofeng-bg-secondary text-guofeng-text-secondary flex items-center gap-1.5"
               @click="copySystemPrompt"
             >
               <Copy class="w-3.5 h-3.5" />
@@ -168,7 +168,7 @@
     <!-- Edit Modal -->
     <div
       v-if="showEditModal"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-all p-4"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-colors p-4"
       @click="showEditModal = false"
     >
       <div
@@ -206,7 +206,7 @@
               <div class="relative">
                 <select
                   v-model="formData.model"
-                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-jade focus:ring-4 focus:ring-guofeng-jade/10 outline-none transition-all appearance-none"
+                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-jade focus:ring-4 focus:ring-guofeng-jade/10 outline-none transition-colors appearance-none"
                 >
                   <option value="claude-sonnet-4-5-20250929">
                     Claude Sonnet 4.5
@@ -232,7 +232,7 @@
                 v-model="toolInput"
                 type="text"
                 :placeholder="$t('agents.toolPlaceholder')"
-                class="flex-1 px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-jade focus:ring-4 focus:ring-guofeng-jade/10 outline-none transition-all"
+                class="flex-1 px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-jade focus:ring-4 focus:ring-guofeng-jade/10 outline-none transition-colors"
                 @keyup.enter="addTool"
               >
               <button
@@ -266,7 +266,7 @@
             <textarea
               v-model="formData.system_prompt"
               rows="8"
-              class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-jade focus:ring-4 focus:ring-guofeng-jade/10 outline-none transition-all resize-y font-mono text-sm leading-relaxed"
+              class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-jade focus:ring-4 focus:ring-guofeng-jade/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
               :placeholder="$t('agents.systemPromptPlaceholder')"
             />
           </div>
@@ -274,13 +274,13 @@
 
         <div class="flex gap-4 mt-10 pt-6 border-t border-guofeng-border/50">
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border"
             @click="showEditModal = false"
           >
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-all bg-guofeng-jade text-white shadow-lg shadow-guofeng-jade/20 hover:shadow-xl hover:shadow-guofeng-jade/30 hover:-translate-y-0.5"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-guofeng-jade text-white shadow-lg shadow-guofeng-jade/20 hover:shadow-xl hover:shadow-guofeng-jade/30 hover:-translate-y-0.5"
             :disabled="saving"
             @click="handleSave"
           >

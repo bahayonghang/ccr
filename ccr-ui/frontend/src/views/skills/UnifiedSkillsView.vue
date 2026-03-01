@@ -521,28 +521,28 @@ watch(activeTab, (newTab) => {
   @apply p-2 rounded-xl bg-bg-surface hover:bg-bg-elevated
          text-text-secondary hover:text-text-primary
          border border-border-subtle hover:border-border-default
-         transition-all duration-200 disabled:opacity-50;
+         transition-colors duration-200 disabled:opacity-50;
 }
 
 .btn-add {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-xl
          text-sm font-semibold text-white
          bg-accent-primary hover:bg-accent-primary/90
-         transition-all duration-200;
+         transition-colors duration-200;
 }
 
 .btn-log {
   @apply p-2 rounded-xl bg-bg-surface hover:bg-bg-elevated
          text-text-secondary hover:text-text-primary
          border border-border-subtle hover:border-border-default
-         transition-all duration-200;
+         transition-colors duration-200;
 }
 
 .btn-filter {
   @apply relative p-2 rounded-xl bg-bg-surface hover:bg-bg-elevated
          text-text-secondary hover:text-text-primary
          border border-border-subtle hover:border-border-default
-         transition-all duration-200;
+         transition-colors duration-200;
 }
 
 .filter-badge {
@@ -577,7 +577,7 @@ watch(activeTab, (newTab) => {
   @apply flex items-center gap-2 px-4 py-2 rounded-lg
          text-sm font-medium text-text-secondary
          hover:text-text-primary
-         transition-all duration-200;
+         transition-colors duration-200;
 }
 
 .content-tab:hover {

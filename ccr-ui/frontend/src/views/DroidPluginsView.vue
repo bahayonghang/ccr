@@ -77,7 +77,7 @@
             <div
               v-for="plugin in plugins"
               :key="plugin.id"
-              class="group rounded-lg p-5 transition-all duration-300"
+              class="group rounded-lg p-5 transition-[box-shadow,border-color] duration-300"
               :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(139, 92, 246, 0.12)', outline: 'none', cursor: 'default' }"
               @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
               @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
@@ -120,7 +120,7 @@
               <!-- Actions -->
               <div class="flex gap-2">
                 <button
-                  class="flex-1 p-2 rounded-lg transition-all hover:scale-105 flex items-center justify-center gap-1 text-sm font-medium"
+                  class="flex-1 p-2 rounded-lg transition-transform hover:scale-105 flex items-center justify-center gap-1 text-sm font-medium"
                   :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }"
                   :title="$t('common.expand')"
                   @click="toggleExpanded(plugin)"
@@ -128,7 +128,7 @@
                   <Eye class="w-4 h-4" />
                 </button>
                 <button
-                  class="p-2 rounded-lg transition-all hover:scale-110"
+                  class="p-2 rounded-lg transition-transform hover:scale-110"
                   :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-primary)' }"
                   :title="$t('common.edit')"
                   @click="openEditForm(plugin)"
@@ -136,7 +136,7 @@
                   <Edit2 class="w-4 h-4" />
                 </button>
                 <button
-                  class="p-2 rounded-lg transition-all hover:scale-110"
+                  class="p-2 rounded-lg transition-transform hover:scale-110"
                   :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
                   :title="$t('common.delete')"
                   @click="deletePlugin(plugin)"

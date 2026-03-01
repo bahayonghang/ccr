@@ -113,7 +113,7 @@
           >
             <Card
               variant="glass"
-              class="p-4 flex flex-col gap-3 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border border-transparent hover:border-violet-500/30"
+              class="p-4 flex flex-col gap-3 cursor-pointer transition-[box-shadow,border-color,transform] duration-300 hover:scale-[1.02] hover:shadow-lg border border-transparent hover:border-violet-500/30"
             >
               <div
                 class="w-10 h-10 rounded-lg flex items-center justify-center"

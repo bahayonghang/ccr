@@ -154,7 +154,7 @@
               </p>
 
               <div
-                class="mt-2 flex items-center text-sm font-bold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
+                class="mt-2 flex items-center text-sm font-bold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-[opacity,transform] duration-300"
                 :class="module.textClass"
               >
                 Open Module <ArrowRight class="w-4 h-4 ml-1" />

@@ -65,7 +65,7 @@
             <Card 
               variant="glass" 
               hover 
-              class="p-4 group transition-all duration-300 border-l-4"
+              class="p-4 group transition-colors duration-300 border-l-4"
               :style="{ borderLeftColor: getOperationColor(entries[virtualRow.index].operation) }"
             >
               <!-- Timeline Line -->

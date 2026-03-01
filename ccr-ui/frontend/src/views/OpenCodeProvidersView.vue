@@ -22,7 +22,7 @@
           </div>
         </div>
         <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
           style="background: var(--accent-primary); color: white;"
           @click="showAddDialog = true"
         >
@@ -70,7 +70,7 @@
           添加 npm AI SDK Provider 来开始使用 OpenCode
         </p>
         <button
-          class="px-4 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105"
+          class="px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
           style="background: var(--accent-primary); color: white;"
           @click="showAddDialog = true"
         >
@@ -194,7 +194,7 @@
             <button
               v-for="preset in OPENCODE_PROVIDER_PRESETS"
               :key="preset.npm"
-              class="px-3 py-2 rounded-lg text-xs text-left transition-all border"
+              class="px-3 py-2 rounded-lg text-xs text-left transition-colors border"
               :class="form.npm === preset.npm
                 ? 'bg-violet-500/20 border-violet-500 text-violet-400'
                 : 'bg-bg-elevated border-border-default text-text-muted hover:border-violet-500/50'"
@@ -251,7 +251,7 @@
           </button>
           <button
             :disabled="!form.id || !form.npm || saving"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
             style="background: var(--accent-primary); color: white;"
             @click="saveProvider"
           >

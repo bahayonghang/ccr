@@ -22,7 +22,7 @@
           </div>
         </div>
         <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
           style="background: var(--accent-primary); color: white;"
           @click="showAddDialog = true"
         >
@@ -70,7 +70,7 @@
           添加 local（本地命令）或 remote（HTTP/SSE）MCP 服务器
         </p>
         <button
-          class="px-4 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105"
+          class="px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
           style="background: var(--accent-primary); color: white;"
           @click="showAddDialog = true"
         >
@@ -207,7 +207,7 @@
           <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">服务器类型 *</label>
           <div class="flex gap-3">
             <button
-              class="flex-1 py-2 rounded-lg text-sm font-medium border transition-all"
+              class="flex-1 py-2 rounded-lg text-sm font-medium border transition-colors"
               :class="form.type === 'local'
                 ? 'bg-green-500/20 border-green-500 text-green-400'
                 : 'bg-bg-elevated border-border-default text-text-muted hover:border-green-500/50'"
@@ -217,7 +217,7 @@
               local（本地命令）
             </button>
             <button
-              class="flex-1 py-2 rounded-lg text-sm font-medium border transition-all"
+              class="flex-1 py-2 rounded-lg text-sm font-medium border transition-colors"
               :class="form.type === 'remote'
                 ? 'bg-blue-500/20 border-blue-500 text-blue-400'
                 : 'bg-bg-elevated border-border-default text-text-muted hover:border-blue-500/50'"
@@ -264,7 +264,7 @@
           </button>
           <button
             :disabled="!isFormValid || saving"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
             style="background: var(--accent-primary); color: white;"
             @click="saveServer"
           >

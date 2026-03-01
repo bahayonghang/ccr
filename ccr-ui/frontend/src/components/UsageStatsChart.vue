@@ -42,11 +42,11 @@
           />
 
           <!-- 堆叠柱子 -->
-          <div class="w-full max-w-[80%] flex flex-col-reverse items-center relative z-10 transition-all duration-300">
+          <div class="w-full max-w-[80%] flex flex-col-reverse items-center relative z-10 transition-transform duration-300">
             <!-- Gemini (蓝色) - Top -->
             <div
               v-if="getValue(item, 'gemini') > 0"
-              class="w-full bg-blue-500 transition-all duration-500 ease-out"
+              class="w-full bg-blue-500 transition-[height] duration-500 ease-out"
               :style="{ height: getBarHeight(item, 'gemini') + 'px' }"
               :class="[
                 { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
@@ -56,7 +56,7 @@
             <!-- Claude (粉色) - Middle -->
             <div
               v-if="getValue(item, 'claude') > 0"
-              class="w-full bg-pink-400 transition-all duration-500 ease-out"
+              class="w-full bg-pink-400 transition-[height] duration-500 ease-out"
               :style="{ height: getBarHeight(item, 'claude') + 'px' }"
               :class="[
                 { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
@@ -66,7 +66,7 @@
             <!-- Codex (橙色) - Bottom -->
             <div
               v-if="getValue(item, 'codex') > 0"
-              class="w-full bg-orange-500 transition-all duration-500 ease-out"
+              class="w-full bg-orange-500 transition-[height] duration-500 ease-out"
               :style="{ height: getBarHeight(item, 'codex') + 'px' }"
               :class="[
                 { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },

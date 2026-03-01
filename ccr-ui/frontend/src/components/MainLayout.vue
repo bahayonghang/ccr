@@ -180,7 +180,7 @@
 
       <!-- Footer: User Profile - Neko Kawaii Style -->
       <div class="p-3 pb-6 border-t border-pink-200/10 dark:border-pink-300/10">
-        <div class="user-card group relative rounded-2xl overflow-hidden transition-all duration-300">
+        <div class="user-card group relative rounded-2xl overflow-hidden transition-[color,background-color,box-shadow] duration-300">
           <!-- Animated gradient background -->
           <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 via-fuchsia-500/12 to-violet-500/15 opacity-80" />
           <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(244,114,182,0.12),transparent_50%)]" />
@@ -207,7 +207,7 @@
               </p>
               
               <!-- Theme Toggle -->
-              <ThemeToggle class="relative z-20 p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200" />
+              <ThemeToggle class="relative z-20 p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200" />
             </div>
 
             <!-- Version -->
@@ -230,12 +230,12 @@
       class="flex-1 relative overflow-hidden flex flex-col"
     >
       <!-- Top Bar -->
-      <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl z-30 sticky top-0 justify-between">
+      <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/85 dark:bg-slate-900/85 backdrop-blur-sm z-30 sticky top-0 justify-between">
         <!-- Left: Breadcrumbs or Back + Title -->
         <div class="flex items-center text-sm text-text-muted">
           <template v-if="route.meta.hideSidebar">
             <button
-              class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-200"
+              class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-200"
               @click="router.back()"
             >
               <ArrowLeft class="w-4 h-4" />
@@ -260,7 +260,7 @@
           <!-- Exit Toggle -->
           <button
             v-if="isTauri"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 border"
             :class="[
               showExitConfirm 
                 ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' 
@@ -294,11 +294,11 @@
             mode="out-in"
             appear
           >
+            <!-- 懒加载路由 Suspense 边界，防止异步组件加载时出现空白闪烁 -->
             <keep-alive
               :include="cachedViews"
               :max="10"
             >
-              <!-- 懒加载路由 Suspense 边界，防止异步组件加载时出现空白闪烁 -->
               <Suspense>
                 <component :is="Component" />
                 <template #fallback>
@@ -463,7 +463,7 @@ onUnmounted(() => {
 /* Nav Item Styles - Light Mode (Neko Pink) */
 .nav-item {
   @apply flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600
-         transition-all duration-200 relative overflow-hidden;
+         transition-colors duration-200 relative overflow-hidden;
 }
 
 .nav-item:hover {

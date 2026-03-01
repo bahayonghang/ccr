@@ -16,7 +16,7 @@
         </div>
       </div>
       <button
-        class="text-xs px-3 py-1.5 flex items-center gap-1.5 rounded-lg transition-all"
+        class="text-xs px-3 py-1.5 flex items-center gap-1.5 rounded-lg transition-colors"
         :class="isExpanded 
           ? 'bg-guofeng-indigo/10 text-guofeng-indigo' 
           : 'bg-guofeng-bg-tertiary text-guofeng-text-secondary hover:text-guofeng-indigo'"
@@ -46,7 +46,7 @@
       <div
         v-for="prompt in prompts"
         :key="prompt.id"
-        class="group p-3 rounded-xl bg-guofeng-bg-tertiary/50 border border-transparent hover:border-guofeng-indigo/30 cursor-pointer transition-all"
+        class="group p-3 rounded-xl bg-guofeng-bg-tertiary/50 border border-transparent hover:border-guofeng-indigo/30 cursor-pointer transition-colors"
         @click="selectPrompt(prompt)"
       >
         <div class="flex items-center gap-2 mb-1.5">
@@ -71,7 +71,7 @@
         <div
           v-for="prompt in prompts"
           :key="prompt.id"
-          class="group p-4 rounded-xl bg-guofeng-bg-tertiary/50 border border-transparent hover:border-guofeng-indigo/30 cursor-pointer transition-all"
+          class="group p-4 rounded-xl bg-guofeng-bg-tertiary/50 border border-transparent hover:border-guofeng-indigo/30 cursor-pointer transition-colors"
           @click="selectPrompt(prompt)"
         >
           <div class="flex items-center justify-between mb-2">

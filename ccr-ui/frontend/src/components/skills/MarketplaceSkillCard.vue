@@ -174,7 +174,7 @@ function handleClick() {
 .mp-card {
   @apply relative flex flex-col gap-3 p-4 rounded-2xl cursor-default
          border border-border-subtle
-         transition-all duration-200 ease-out
+         transition-[color,background-color,border-color,box-shadow] duration-200 ease-out
          overflow-hidden;
 
   background: rgb(var(--color-bg-elevated-rgb) / 50%);
@@ -210,7 +210,7 @@ function handleClick() {
 .mp-card__check {
   @apply flex items-center justify-center w-5 h-5 rounded-md
          border-2 border-border-default
-         transition-all duration-150 cursor-pointer;
+         transition-colors duration-150 cursor-pointer;
 }
 
 .mp-card__check--active {
@@ -275,7 +275,7 @@ function handleClick() {
          text-xs font-semibold
          bg-accent-primary/10 text-accent-primary
          hover:bg-accent-primary hover:text-white
-         transition-all duration-200;
+         transition-colors duration-200;
 }
 
 .mp-card__status {

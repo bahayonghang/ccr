@@ -60,7 +60,7 @@
               variant="elevated"
               hover
               glow
-              class="h-full p-4 flex flex-col items-start gap-4 transition-all"
+              class="h-full p-4 flex flex-col items-start gap-4 transition-colors"
             >
               <div 
                 class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-300"
@@ -80,7 +80,7 @@
                   {{ action.desc }}
                 </p>
               </div>
-              <ArrowRight class="w-4 h-4 text-text-muted mt-auto self-end opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+              <ArrowRight class="w-4 h-4 text-text-muted mt-auto self-end opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-[opacity,transform]" />
             </Card>
           </RouterLink>
         </div>

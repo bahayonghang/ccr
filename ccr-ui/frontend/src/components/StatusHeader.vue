@@ -19,7 +19,7 @@
 
     <!-- 折叠按钮和标题栏 -->
     <div
-      class="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-opacity-50 transition-all"
+      class="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-opacity-50 transition-colors"
       :style="{
         borderBottom: isCollapsed ? 'none' : '1px solid var(--border-color)'
       }"
@@ -51,7 +51,7 @@
         </span>
       </div>
       <button
-        class="p-2 rounded-lg transition-all hover:bg-opacity-20 hover:scale-110"
+        class="p-2 rounded-lg transition-transform hover:bg-opacity-20 hover:scale-110"
         :style="{
           background: 'rgba(var(--color-accent-secondary-rgb), 0.1)',
           color: 'var(--accent-primary)'
@@ -351,7 +351,7 @@ const SystemMetric = defineComponent({
     }
 
     return () => h('div', {
-      class: 'rounded-lg p-3 space-y-2 transition-all duration-300 hover:scale-[1.02]',
+      class: 'rounded-lg p-3 space-y-2 transition-transform duration-300 hover:scale-[1.02]',
       style: {
         background: 'linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary))',
         border: `1.5px solid ${getBorderColor()}`,
@@ -377,7 +377,7 @@ const SystemMetric = defineComponent({
         'aria-valuemax': 100
       }, [
         h('div', {
-          class: 'h-full rounded-full transition-all duration-500',
+          class: 'h-full rounded-full transition-[width] duration-500',
           style: {
             width: `${Math.min(props.progress, 100)}%`,
             background: getProgressBackground(),

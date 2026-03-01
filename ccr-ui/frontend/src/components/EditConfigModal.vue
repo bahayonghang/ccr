@@ -119,7 +119,7 @@
                 <!-- Toggle visibility button -->
                 <button
                   type="button"
-                  class="absolute right-3 top-[34px] p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-white/10 transition-all duration-200"
+                  class="absolute right-3 top-[34px] p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-white/10 transition-colors duration-200"
                   :title="showToken ? 'Hide token' : 'Show token'"
                   @click="showToken = !showToken"
                 >
@@ -188,7 +188,7 @@
                     </div>
                     <select
                       v-model="formData.provider_type"
-                      class="w-full bg-bg-surface border border-border-default rounded-lg pl-10 pr-8 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary appearance-none transition-all duration-300 hover:border-border-strong shadow-sm"
+                      class="w-full bg-bg-surface border border-border-default rounded-lg pl-10 pr-8 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary appearance-none transition-[border-color,box-shadow] duration-300 hover:border-border-strong shadow-sm"
                     >
                       <option value="">
                         Uncategorized

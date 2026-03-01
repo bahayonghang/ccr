@@ -51,7 +51,7 @@
               <button
                 v-for="agent in agents"
                 :key="agent.id"
-                class="w-full text-left px-3 py-3 rounded-lg border transition-all duration-200"
+                class="w-full text-left px-3 py-3 rounded-lg border transition-colors duration-200"
                 :class="selectedAgent === agent.id ? 'bg-[var(--color-accent-primary)]/10 border-[var(--color-accent-primary)]/30' : 'bg-[var(--color-bg-elevated)] border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)]'"
                 @click="selectAgent(agent.id)"
               >
@@ -90,12 +90,12 @@
                   v-model="searchQuery"
                   type="text"
                   placeholder="搜索 skills.sh（owner/repo 或 skill 名）"
-                  class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[var(--color-bg-surface)]/50 border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)] focus:bg-[var(--color-bg-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--color-success)]/20 text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm transition-all"
+                  class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[var(--color-bg-surface)]/50 border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)] focus:bg-[var(--color-bg-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--color-success)]/20 text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm transition-[border-color,box-shadow,background-color]"
                   @keydown.enter="runSearch"
                 >
                 <button
                   v-if="searchQuery"
-                  class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-all"
+                  class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-colors"
                   @click="clearSearch"
                 >
                   <X class="w-4 h-4" />
@@ -110,7 +110,7 @@
                   刷新
                 </button>
                 <button
-                  class="px-4 py-2 rounded-lg font-semibold transition-all duration-200 bg-[var(--color-success)] text-white shadow-md hover:shadow-lg text-sm"
+                  class="px-4 py-2 rounded-lg font-semibold transition-[box-shadow] duration-200 bg-[var(--color-success)] text-white shadow-md hover:shadow-lg text-sm"
                   :disabled="marketplaceLoading || installLoading"
                   @click="runSearch"
                 >
@@ -206,7 +206,7 @@
                   </span>
 
                   <button
-                    class="px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 border"
+                    class="px-3 py-2 rounded-lg text-sm font-semibold transition-colors duration-200 border"
                     :class="item.skill ? 'border-[var(--color-success)]/30 text-white bg-[var(--color-success)] hover:bg-[var(--color-success-hover)]' : 'border-[var(--color-border-default)] text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)] cursor-not-allowed'"
                     :disabled="installLoading || !item.skill"
                     @click="item.skill && installItem(item.package)"

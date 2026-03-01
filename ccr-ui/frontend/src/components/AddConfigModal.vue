@@ -17,7 +17,7 @@
       class="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto p-0 shadow-2xl animate-scale-in bg-bg-elevated"
     >
       <!-- Header -->
-      <div class="sticky top-0 z-10 px-6 py-4 border-b border-border-subtle bg-bg-elevated backdrop-blur-xl flex items-center justify-between">
+      <div class="sticky top-0 z-10 px-6 py-4 border-b border-border-subtle bg-bg-elevated backdrop-blur-sm flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="p-2 rounded-lg bg-accent-success/10 text-accent-success">
             <Plus class="w-5 h-5" />
@@ -53,13 +53,13 @@
             <button
               v-for="template in templates"
               :key="template.id"
-              class="group relative p-3 rounded-xl border transition-all duration-300 text-left hover:shadow-lg hover:-translate-y-1"
+              class="group relative p-3 rounded-xl border transition-[color,background-color,border-color,box-shadow,transform] duration-300 text-left hover:shadow-lg hover:-translate-y-1"
               :class="selectedTemplate === template.id 
                 ? 'bg-accent-primary/10 border-accent-primary ring-1 ring-accent-primary/50' 
                 : 'bg-bg-surface/50 border-border-default hover:border-accent-primary/50'"
               @click="applyTemplate(template)"
             >
-              <div class="text-2xl mb-2 grayscale group-hover:grayscale-0 transition-all">
+              <div class="text-2xl mb-2 grayscale group-hover:grayscale-0 transition-[filter]">
                 {{ template.icon }}
               </div>
               <h3
@@ -211,7 +211,7 @@
       </div>
 
       <!-- Footer -->
-      <div class="sticky bottom-0 z-10 px-6 py-4 border-t border-border-subtle bg-bg-elevated backdrop-blur-xl flex gap-3 justify-end">
+      <div class="sticky bottom-0 z-10 px-6 py-4 border-t border-border-subtle bg-bg-elevated backdrop-blur-sm flex gap-3 justify-end">
         <Button
           variant="ghost"
           @click="handleClose"
