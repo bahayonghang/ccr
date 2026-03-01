@@ -40,7 +40,7 @@
         <!-- Dropdown -->
         <div
           v-if="isMenuOpen"
-          class="absolute top-full left-0 mt-1 w-48 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-lg shadow-2xl py-1 z-[100] overflow-hidden transform origin-top-left transition-all"
+          class="absolute top-full left-0 mt-1 w-48 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-lg shadow-2xl py-1 z-[100] overflow-hidden transform origin-top-left transition-[opacity,transform]"
         >
           <button
             class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center"
@@ -163,15 +163,15 @@
       >
         <div
           v-if="showAboutDialog"
-          class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-sm"
           @click.self="showAboutDialog = false"
         >
-          <div class="relative bg-surface-800/90 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden overflow-y-auto">
+          <div class="relative bg-white/95 dark:bg-surface-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden overflow-y-auto">
             <!-- Glitch / Cyber effect top bar -->
             <div class="h-1 w-full bg-gradient-to-r from-primary-500 via-secondary-500 to-cyan-500" />
             
             <div class="p-6 flex flex-col items-center">
-              <div class="w-24 h-24 rounded-2xl mb-4 relative overflow-hidden shadow-lg border border-white/5 ring-4 ring-white/5">
+              <div class="w-24 h-24 rounded-2xl mb-4 relative overflow-hidden shadow-lg border border-slate-100 dark:border-white/5 ring-4 ring-slate-50 dark:ring-white/5">
                 <img
                   src="/icons/icon.png"
                   alt="CCR Desktop Logo"
@@ -180,31 +180,31 @@
                 <div class="absolute inset-0 bg-gradient-to-tr from-primary-500/20 to-transparent mix-blend-overlay" />
               </div>
               
-              <h2 class="text-2xl font-bold text-white tracking-tight mb-1">
+              <h2 class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight mb-1">
                 CCR Desktop
               </h2>
               <div class="flex items-center space-x-2 text-xs mb-4">
-                <span class="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 border border-primary-500/30">Neko Console</span>
-                <span class="text-secondary-400">v4.1.4</span>
+                <span class="px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-500/20 text-primary-600 dark:text-primary-300 border border-primary-200 dark:border-primary-500/30">Neko Console</span>
+                <span class="text-slate-500 dark:text-secondary-400">v4.1.4</span>
               </div>
               
-              <p class="text-secondary-300 text-sm text-center mb-6 leading-relaxed">
+              <p class="text-slate-600 dark:text-secondary-300 text-sm text-center mb-6 leading-relaxed">
                 A sleek, powerful configuration manager for Claude Code, Codex, and Gemini. Designed with cyber-glass aesthetics and cat girl energy. (*/ω＼*)
               </p>
               
               <div class="w-full space-y-2 mb-6">
-                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-white/5 border border-white/5">
-                  <span class="text-secondary-400">Owner</span>
-                  <span class="text-white font-medium">李永航</span>
+                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                  <span class="text-slate-500 dark:text-secondary-400">Owner</span>
+                  <span class="text-slate-800 dark:text-white font-medium">李永航</span>
                 </div>
-                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-white/5 border border-white/5">
-                  <span class="text-secondary-400">Engine</span>
-                  <span class="text-white font-medium">Tauri 2.0 & Vue 3</span>
+                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                  <span class="text-slate-500 dark:text-secondary-400">Engine</span>
+                  <span class="text-slate-800 dark:text-white font-medium">Tauri 2.0 & Vue 3</span>
                 </div>
               </div>
 
               <button 
-                class="w-full py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm font-medium text-white transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center focus:outline-none"
+                class="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-800 dark:text-white transition-[color,background-color,transform] transform hover:scale-[1.02] active:scale-95 flex items-center justify-center focus:outline-none"
                 @click="showAboutDialog = false"
               >
                 我知道了喵～
@@ -212,7 +212,7 @@
             </div>
             
             <button
-              class="absolute top-3 right-3 p-1.5 rounded-full text-secondary-400 hover:text-white hover:bg-white/10 transition-colors"
+              class="absolute top-3 right-3 p-1.5 rounded-full text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:text-secondary-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors"
               @click="showAboutDialog = false"
             >
               <svg
