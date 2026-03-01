@@ -1146,6 +1146,42 @@ mod tests {
         assert_eq!(state, LoginState::LoggedInUnsaved);
     }
 
+    #[test]
+    fn test_save_current_only_when_logged_in() {
+        let (service, _ccr, _codex) = create_test_service();
+
+        let result = service.save_current("no-login", None, None, false);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("未登录"));
+    }
+
+    #[test]
+    fn test_get_login_state_unsaved_to_saved_transition() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        let auth_content = create_test_auth_json("transition-id", "2026-01-08T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content).unwrap();
+
+        let before = service.get_login_state().unwrap();
+        assert_eq!(before, LoginState::LoggedInUnsaved);
+
+        service
+            .save_current(
+                "transition-account",
+                Some("Transition".to_string()),
+                None,
+                false,
+            )
+            .unwrap();
+
+        let after = service.get_login_state().unwrap();
+        assert_eq!(
+            after,
+            LoginState::LoggedInSaved("transition-account".to_string())
+        );
+    }
+
     // ==================== 账号管理工作流测试 ====================
 
     #[test]
