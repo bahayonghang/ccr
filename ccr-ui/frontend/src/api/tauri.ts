@@ -1,3 +1,5 @@
+/* eslint-disable no-console -- Tauri API client, console output for debugging */
+
 // Tauri API Client for CCR Desktop
 // 使用 Tauri invoke 调用 Rust backend 命令
 
@@ -95,7 +97,7 @@ export const validateConfigs = async (): Promise<string> => {
 export const getHistory = async (limit?: number): Promise<HistoryEntry[]> => {
   try {
     const history = await invoke<HistoryEntry[]>('get_history', {
-      limit: limit || 100
+      limit: limit || 100,
     })
     return history
   } catch (error) {

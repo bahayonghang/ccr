@@ -5,10 +5,10 @@
 import { storeToRefs } from 'pinia'
 import { useSkillsStore } from '@/stores/skills'
 import api from '@/api/core'
+import { logger } from '@/utils/logger'
 import type {
   Platform,
   UnifiedSkill,
-  UnifiedSkillsResponse,
   InstallRequest,
   RemoveRequest,
   OperationResponse,
@@ -20,13 +20,29 @@ import type {
   NpxInstallResponse,
   BatchInstallRequest,
   BatchInstallResponse,
-  NpxStatus
+  NpxStatus,
 } from '@/types/skills'
 
 // API endpoints
 const SKILL_HUB_BASE = '/skill_hub'
 
 // Backend response types (snake_case)
+interface BackendSkillItem {
+  name: string
+  description?: string
+  skill_dir: string
+  platform: string
+  platform_name: string
+  category?: string
+  tags?: string[]
+  version?: string
+  author?: string
+  source?: string
+  source_url?: string
+  install_date?: number
+  commit_hash?: string
+}
+
 interface BackendMarketplaceItem {
   package: string
   owner: string
@@ -43,6 +59,16 @@ interface BackendMarketplaceResponse {
   items: BackendMarketplaceItem[]
   total: number
   cached: boolean
+}
+
+interface BackendSkillContentData {
+  name: string
+  description?: string
+  category?: string
+  tags?: string[]
+  content: string
+  raw: string
+  skill_dir: string
 }
 
 export function useUnifiedSkills() {
@@ -74,11 +100,11 @@ export function useUnifiedSkills() {
     marketplacePageSize,
     // 缓存状态
     isSkillsCacheValid,
-    isMarketplaceCacheValid
+    isMarketplaceCacheValid,
   } = storeToRefs(store)
 
   // Transform backend response to frontend format
-  function transformSkill(skill: any): UnifiedSkill {
+  function transformSkill(skill: BackendSkillItem): UnifiedSkill {
     return {
       name: skill.name,
       description: skill.description,
@@ -97,13 +123,13 @@ export function useUnifiedSkills() {
     }
   }
 
-  function transformPlatform(platform: any): PlatformSummary {
+  function transformPlatform(platform: PlatformSummary): PlatformSummary {
     return {
       id: platform.id,
       display_name: platform.display_name,
       global_skills_dir: platform.global_skills_dir,
       detected: platform.detected,
-      installed_count: platform.installed_count
+      installed_count: platform.installed_count,
     }
   }
 
@@ -140,14 +166,17 @@ export function useUnifiedSkills() {
     store.setError(null)
 
     try {
-      const response = await api.get<{ data: UnifiedSkillsResponse }>(`${SKILL_HUB_BASE}/unified`)
+      const response = await api.get<{
+        data: { skills: BackendSkillItem[]; platforms: PlatformSummary[] }
+      }>(`${SKILL_HUB_BASE}/unified`)
       const data = response.data.data
 
       store.setSkills(data.skills.map(transformSkill))
       store.setPlatforms(data.platforms.map(transformPlatform))
-    } catch (err: any) {
-      store.setError(err.message || 'Failed to fetch skills')
-      console.error('Failed to fetch unified skills:', err)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch skills'
+      store.setError(errorMessage)
+      logger.error('Failed to fetch unified skills', err)
     } finally {
       store.setLoading(false)
     }
@@ -159,24 +188,28 @@ export function useUnifiedSkills() {
     store.setError(null)
 
     try {
-      const response = await api.get<{ data: UnifiedSkillsResponse }>(`${SKILL_HUB_BASE}/unified/${platform}`)
+      const response = await api.get<{
+        data: { skills: BackendSkillItem[]; platforms: PlatformSummary[] }
+      }>(`${SKILL_HUB_BASE}/unified/${platform}`)
       const data = response.data.data
 
       // Merge with existing skills (replace platform-specific skills)
-      const otherSkills = skills.value.filter(s => s.platform !== platform)
+      const otherSkills = skills.value.filter((s) => s.platform !== platform)
       const newSkills = data.skills.map(transformSkill)
       store.setSkills([...otherSkills, ...newSkills])
 
       // Update platform info
       if (data.platforms.length > 0) {
-        const updatedPlatforms = platforms.value.map(p =>
+        const updatedPlatforms = platforms.value.map((p) =>
           p.id === platform ? transformPlatform(data.platforms[0]) : p
         )
         store.setPlatforms(updatedPlatforms)
       }
-    } catch (err: any) {
-      store.setError(err.message || `Failed to fetch skills for ${platform}`)
-      console.error(`Failed to fetch skills for ${platform}:`, err)
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : `Failed to fetch skills for ${platform}`
+      store.setError(errorMessage)
+      logger.error(`platform`, err)
     } finally {
       store.setLoading(false)
     }
@@ -205,14 +238,16 @@ export function useUnifiedSkills() {
           skill: item.skill,
           skillsShUrl: item.skills_sh_url,
           description: item.description,
-          authorAvatar: item.author_avatar || `https://avatars.githubusercontent.com/${item.owner}?s=64`,
+          authorAvatar:
+            item.author_avatar || `https://avatars.githubusercontent.com/${item.owner}?s=64`,
           stars: item.stars,
         })),
         data.cached
       )
-    } catch (err: any) {
-      store.setMarketplaceError(err.message || 'Failed to fetch marketplace')
-      console.error('Failed to fetch marketplace:', err)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch marketplace'
+      store.setMarketplaceError(errorMessage)
+      logger.error('Failed to fetch marketplace', err)
     } finally {
       store.setMarketplaceLoading(false)
     }
@@ -238,14 +273,16 @@ export function useUnifiedSkills() {
           skill: item.skill,
           skillsShUrl: item.skills_sh_url,
           description: item.description,
-          authorAvatar: item.author_avatar || `https://avatars.githubusercontent.com/${item.owner}?s=64`,
+          authorAvatar:
+            item.author_avatar || `https://avatars.githubusercontent.com/${item.owner}?s=64`,
           stars: item.stars,
         })),
         data.cached
       )
-    } catch (err: any) {
-      store.setMarketplaceError(err.message || 'Failed to search marketplace')
-      console.error('Failed to search marketplace:', err)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to search marketplace'
+      store.setMarketplaceError(errorMessage)
+      logger.error('Failed to search marketplace', err)
     } finally {
       store.setMarketplaceLoading(false)
     }
@@ -262,8 +299,8 @@ export function useUnifiedSkills() {
       await scheduleMutationRefresh()
 
       return response.data.data
-    } catch (err: any) {
-      console.error('Failed to install skill:', err)
+    } catch (err) {
+      logger.error('Failed to install skill', err)
       throw err
     }
   }
@@ -279,8 +316,8 @@ export function useUnifiedSkills() {
       await scheduleMutationRefresh()
 
       return response.data.data
-    } catch (err: any) {
-      console.error('Failed to remove skill:', err)
+    } catch (err) {
+      logger.error('Failed to remove skill', err)
       throw err
     }
   }
@@ -290,8 +327,8 @@ export function useUnifiedSkills() {
     try {
       const response = await api.get<{ data: PlatformSummary[] }>(`${SKILL_HUB_BASE}/agents`)
       store.setPlatforms(response.data.data.map(transformPlatform))
-    } catch (err: any) {
-      console.error('Failed to fetch platforms:', err)
+    } catch (err) {
+      logger.error('Failed to fetch platforms', err)
     }
   }
 
@@ -301,20 +338,14 @@ export function useUnifiedSkills() {
     // 两项缓存均有效时直接返回，无需请求
     if (isSkillsCacheValid.value && isMarketplaceCacheValid.value) return
     if (initPromise) return initPromise
-    initPromise = Promise.all([
-      fetchAllSkills(),
-      fetchMarketplaceTrending()
-    ]).then(() => {})
+    initPromise = Promise.all([fetchAllSkills(), fetchMarketplaceTrending()]).then(() => {})
     return initPromise
   }
 
   // Refresh all data（强制忽略缓存重新拉取）
   async function refresh() {
     initPromise = null
-    await Promise.all([
-      fetchAllSkills(true),
-      fetchMarketplaceTrending(30, 1, true)
-    ])
+    await Promise.all([fetchAllSkills(true), fetchMarketplaceTrending(30, 1, true)])
   }
 
   // 手动清除市场缓存并重新拉取
@@ -323,9 +354,10 @@ export function useUnifiedSkills() {
     try {
       await api.post(`${SKILL_HUB_BASE}/marketplace/refresh-cache`)
       await fetchMarketplaceTrending()
-    } catch (err: any) {
-      store.setMarketplaceError(err.message || 'Failed to refresh cache')
-      console.error('Failed to refresh marketplace cache:', err)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to refresh cache'
+      store.setMarketplaceError(errorMessage)
+      logger.error('Failed to refresh marketplace cache', err)
     } finally {
       store.setMarketplaceLoading(false)
     }
@@ -333,9 +365,12 @@ export function useUnifiedSkills() {
 
   // Fetch skill content (full SKILL.md with frontmatter + body)
   async function fetchSkillContent(skillDir: string): Promise<SkillContent> {
-    const response = await api.get<{ data: any }>(`${SKILL_HUB_BASE}/skill/content`, {
-      params: { skill_dir: skillDir }
-    })
+    const response = await api.get<{ data: BackendSkillContentData }>(
+      `${SKILL_HUB_BASE}/skill/content`,
+      {
+        params: { skill_dir: skillDir },
+      }
+    )
     const d = response.data.data
     return {
       name: d.name,
@@ -344,7 +379,7 @@ export function useUnifiedSkills() {
       tags: d.tags || [],
       content: d.content,
       raw: d.raw,
-      skillDir: d.skill_dir
+      skillDir: d.skill_dir,
     }
   }
 
@@ -352,11 +387,11 @@ export function useUnifiedSkills() {
   async function saveSkillContent(skillDir: string, content: string): Promise<void> {
     await api.post(`${SKILL_HUB_BASE}/skill/content`, {
       skill_dir: skillDir,
-      content
+      content,
     })
     // Refresh skills list after save to reflect any metadata changes
     // 从 store 中查找 skill 所属平台进行精准刷新
-    const skill = store.skills.find(s => s.skillDir === skillDir)
+    const skill = store.skills.find((s) => s.skillDir === skillDir)
     if (skill) {
       await fetchSkillsByPlatform(skill.platform as Platform)
     } else {
@@ -375,8 +410,8 @@ export function useUnifiedSkills() {
       )
       await scheduleMutationRefresh()
       return response.data.data
-    } catch (err: any) {
-      console.error('Failed to import from GitHub:', err)
+    } catch (err) {
+      logger.error('Failed to import from GitHub', err)
       throw err
     }
   }
@@ -390,8 +425,8 @@ export function useUnifiedSkills() {
       )
       await scheduleMutationRefresh()
       return response.data.data
-    } catch (err: any) {
-      console.error('Failed to import from local:', err)
+    } catch (err) {
+      logger.error('Failed to import from local', err)
       throw err
     }
   }
@@ -405,8 +440,8 @@ export function useUnifiedSkills() {
       )
       await scheduleMutationRefresh()
       return response.data.data
-    } catch (err: any) {
-      console.error('Failed to install via npx:', err)
+    } catch (err) {
+      logger.error('Failed to install via npx', err)
       throw err
     }
   }
@@ -420,8 +455,8 @@ export function useUnifiedSkills() {
       )
       await scheduleMutationRefresh()
       return response.data.data
-    } catch (err: any) {
-      console.error('Failed to batch install:', err)
+    } catch (err) {
+      logger.error('Failed to batch install', err)
       throw err
     }
   }
@@ -432,8 +467,8 @@ export function useUnifiedSkills() {
       const response = await api.get<{ data: NpxStatus }>(`${SKILL_HUB_BASE}/npx/status`)
       store.setNpxStatus(response.data.data)
       return response.data.data
-    } catch (err: any) {
-      console.error('Failed to check npx status:', err)
+    } catch (err) {
+      logger.error('Failed to check npx status', err)
       return { available: false }
     }
   }
@@ -511,6 +546,6 @@ export function useUnifiedSkills() {
     importViaNpx,
     batchInstall,
     checkNpxStatus,
-    browseFolder
+    browseFolder,
   }
 }

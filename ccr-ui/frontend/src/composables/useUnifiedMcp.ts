@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 /**
  * useUnifiedMcp - 统一 MCP 服务器管理 Composable
  *

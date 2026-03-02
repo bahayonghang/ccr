@@ -1,3 +1,5 @@
+/* eslint-disable no-console -- Error handling utility, console output for debugging */
+
 import { useUIStore } from '@/stores/ui'
 import { getErrorMessage } from '@/types/api'
 

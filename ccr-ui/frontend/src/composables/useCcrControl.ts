@@ -13,30 +13,31 @@ import {
   type CommandHistory,
   type CcrModule,
   type CcrCommand,
-  type AddFavoriteRequest
+  type AddFavoriteRequest,
 } from '@/api/ccr-control'
 import { getVersion, checkUpdate } from '@/api/modules/config'
 import type { VersionInfo, UpdateCheckResponse } from '@/types'
+import { logger } from '@/utils/logger'
 
 export function useCcrControl() {
   // ===== 状态 =====
-  
+
   // 版本信息
   const versionInfo = ref<VersionInfo | null>(null)
   const updateInfo = ref<UpdateCheckResponse | null>(null)
   const loadingVersion = ref(false)
-  
+
   // 模块和命令
   const modules = ref<CcrModule[]>(CCR_MODULES)
   const selectedModuleId = ref<string>('config')
   const selectedCommand = ref<CcrCommand | null>(null)
-  
+
   // 收藏和历史
   const favorites = ref<FavoriteCommand[]>([])
   const history = ref<CommandHistory[]>([])
   const loadingFavorites = ref(false)
   const loadingHistory = ref(false)
-  
+
   // 命令执行
   const isExecuting = ref(false)
   const outputLines = ref<string[]>([])
@@ -46,115 +47,111 @@ export function useCcrControl() {
   // 命令参数
   const commandArgs = ref<Record<string, string>>({})
   const commandFlags = ref<Record<string, unknown>>({})
-  
+
   // ===== 计算属性 =====
-  
-  const selectedModule = computed(() => 
-    modules.value.find(m => m.id === selectedModuleId.value)
-  )
-  
-  const currentCommands = computed(() => 
-    selectedModule.value?.commands || []
-  )
-  
+
+  const selectedModule = computed(() => modules.value.find((m) => m.id === selectedModuleId.value))
+
+  const currentCommands = computed(() => selectedModule.value?.commands || [])
+
   // ===== 版本管理 =====
-  
+
   const loadVersionInfo = async () => {
     loadingVersion.value = true
     try {
       versionInfo.value = await getVersion()
     } catch (err) {
-      console.error('Failed to load version info:', err)
+      logger.error('Failed to load version info', err)
     } finally {
       loadingVersion.value = false
     }
   }
-  
+
   const checkForUpdate = async () => {
     loadingVersion.value = true
     try {
       updateInfo.value = await checkUpdate()
     } catch (err) {
-      console.error('Failed to check update:', err)
+      logger.error('Failed to check update', err)
     } finally {
       loadingVersion.value = false
     }
   }
-  
+
   // ===== 收藏管理 =====
-  
+
   const loadFavorites = async () => {
     loadingFavorites.value = true
     try {
       favorites.value = await getFavorites()
     } catch (err) {
-      console.error('Failed to load favorites:', err)
+      logger.error('Failed to load favorites', err)
     } finally {
       loadingFavorites.value = false
     }
   }
-  
+
   const addToFavorites = async (command: CcrCommand, args: string[] = []) => {
     const req: AddFavoriteRequest = {
       command: command.command,
       args,
       display_name: command.name,
-      module: selectedModuleId.value
+      module: selectedModuleId.value,
     }
     try {
       const fav = await addFavorite(req)
       favorites.value.push(fav)
       return true
     } catch (err) {
-      console.error('Failed to add favorite:', err)
+      logger.error('Failed to add favorite', err)
       return false
     }
   }
-  
+
   const removeFromFavorites = async (id: string) => {
     try {
       await removeFavorite(id)
-      favorites.value = favorites.value.filter(f => f.id !== id)
+      favorites.value = favorites.value.filter((f) => f.id !== id)
       return true
     } catch (err) {
-      console.error('Failed to remove favorite:', err)
+      logger.error('Failed to remove favorite', err)
       return false
     }
   }
-  
+
   const isFavorite = (command: string) => {
-    return favorites.value.some(f => f.command === command)
+    return favorites.value.some((f) => f.command === command)
   }
-  
+
   // ===== 历史管理 =====
-  
+
   const loadHistory = async () => {
     loadingHistory.value = true
     try {
       history.value = await getHistory(50)
     } catch (err) {
-      console.error('Failed to load history:', err)
+      logger.error('Failed to load history', err)
     } finally {
       loadingHistory.value = false
     }
   }
-  
+
   const clearHistory = async () => {
     try {
       await clearHistoryApi()
       history.value = []
       return true
     } catch (err) {
-      console.error('Failed to clear history:', err)
+      logger.error('Failed to clear history', err)
       return false
     }
   }
-  
+
   // ===== 命令执行 =====
-  
+
   const buildCommandArgs = (command: CcrCommand): string[] => {
     const args: string[] = []
-    
+
     // 添加位置参数
     if (command.args) {
       for (const arg of command.args) {
@@ -166,7 +163,7 @@ export function useCcrControl() {
         }
       }
     }
-    
+
     // 添加标志参数
     if (command.flags) {
       for (const flag of command.flags) {
@@ -180,10 +177,10 @@ export function useCcrControl() {
         }
       }
     }
-    
+
     return args
   }
-  
+
   const executeCommand = async (command: CcrCommand) => {
     if (isExecuting.value) return
 
@@ -210,7 +207,7 @@ export function useCcrControl() {
       outputLines.value.push(`$ ccr ${fullCommand}${args.length ? ' ' + args.join(' ') : ''}`)
       outputLines.value.push('')
 
-      console.log('[CCR] Executing command:', mainCommand, fullArgs)
+      logger.debug('[CCR] Executing command', { command: mainCommand, args: fullArgs })
 
       // 使用流式 API 执行（支持取消）
       const response = await fetch('/api/command/execute/stream', {
@@ -218,12 +215,15 @@ export function useCcrControl() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           command: mainCommand,
-          args: fullArgs
+          args: fullArgs,
         }),
-        signal: abortController.value.signal
+        signal: abortController.value.signal,
       })
 
-      console.log('[CCR] Response status:', response.status, response.headers.get('content-type'))
+      logger.debug('[CCR] Response status', {
+        status: response.status,
+        contentType: response.headers.get('content-type'),
+      })
 
       if (!response.ok) {
         throw new Error(`请求失败: ${response.status}`)
@@ -241,44 +241,44 @@ export function useCcrControl() {
         if (line.startsWith('data:')) {
           try {
             const data = JSON.parse(line.slice(5).trim())
-            console.log('[CCR] Parsed SSE data:', data)
+            logger.debug('[CCR] Parsed SSE data', data)
             // 处理 StreamChunk 格式
             if (data.type === 'stdout' && data.data != null) {
               outputLines.value.push(data.data)
-              console.log('[CCR] Added stdout line, total lines:', outputLines.value.length)
+              logger.debug('[CCR] Added stdout line', { totalLines: outputLines.value.length })
             } else if (data.type === 'stderr' && data.data != null) {
               outputLines.value.push(`[stderr] ${data.data}`)
             } else if (data.type === 'completion') {
               lastExitCode.value = data.exit_code ?? 0
-              console.log('[CCR] Command completed with exit code:', data.exit_code)
+              logger.info('[CCR] Command completed', { exitCode: data.exit_code })
             } else if (data.type === 'error' && data.message) {
               outputLines.value.push(`[error] ${data.message}`)
               lastExitCode.value = 1
             }
           } catch (e) {
-            console.error('[CCR] Failed to parse SSE line:', line, e)
+            logger.error('[CCR] Failed to parse SSE line', { line, error: e })
           }
         }
       }
 
       while (true) {
         const { value, done } = await reader.read()
-        
+
         if (done) {
-           console.log('[CCR] Stream ended, processing remaining buffer')
-           // 处理剩余 buffer
-           buffer += decoder.decode()
-           if (buffer) {
-             const lines = buffer.split('\n')
-             for (const line of lines) {
-               processSseLine(line)
-             }
-           }
-           break
+          logger.debug('[CCR] Stream ended, processing remaining buffer')
+          // 处理剩余 buffer
+          buffer += decoder.decode()
+          if (buffer) {
+            const lines = buffer.split('\n')
+            for (const line of lines) {
+              processSseLine(line)
+            }
+          }
+          break
         }
 
         const chunk = decoder.decode(value, { stream: true })
-        console.log('[CCR] Received chunk:', chunk.substring(0, 100))
+        logger.debug('[CCR] Received chunk', { chunk: chunk.substring(0, 100) })
         buffer += chunk
 
         // 处理 SSE 格式数据
@@ -294,21 +294,22 @@ export function useCcrControl() {
       const success = lastExitCode.value === 0
 
       outputLines.value.push('')
-      outputLines.value.push(success
-        ? `✅ 命令执行成功 (${duration}ms)`
-        : `❌ 命令执行失败，退出码: ${lastExitCode.value}`)
+      outputLines.value.push(
+        success
+          ? `✅ 命令执行成功 (${duration}ms)`
+          : `❌ 命令执行失败，退出码: ${lastExitCode.value}`
+      )
 
       // 记录历史
       await addHistory({
         command: fullCommand,
         args,
         success,
-        duration_ms: duration
+        duration_ms: duration,
       })
 
       // 刷新历史列表
       await loadHistory()
-
     } catch (err: unknown) {
       const duration = Date.now() - startTime
 
@@ -327,7 +328,7 @@ export function useCcrControl() {
           command: command.command,
           args: [],
           success: false,
-          duration_ms: duration
+          duration_ms: duration,
         })
 
         await loadHistory()
@@ -344,12 +345,12 @@ export function useCcrControl() {
       outputLines.value.push('⏹️ 正在取消命令...')
     }
   }
-  
+
   const executeFromFavorite = async (favorite: FavoriteCommand) => {
     // 找到对应的命令定义
-    const module = modules.value.find(m => m.id === favorite.module)
-    const command = module?.commands.find(c => c.command === favorite.command)
-    
+    const module = modules.value.find((m) => m.id === favorite.module)
+    const command = module?.commands.find((c) => c.command === favorite.command)
+
     if (command) {
       // 设置参数
       if (command.args && favorite.args.length > 0) {
@@ -359,15 +360,15 @@ export function useCcrControl() {
           }
         })
       }
-      
+
       await executeCommand(command)
     }
   }
-  
+
   const executeFromHistory = async (historyItem: CommandHistory) => {
     // 找到对应的命令定义
     for (const module of modules.value) {
-      const command = module.commands.find(c => c.command === historyItem.command)
+      const command = module.commands.find((c) => c.command === historyItem.command)
       if (command) {
         // 设置参数
         if (command.args && historyItem.args.length > 0) {
@@ -377,27 +378,27 @@ export function useCcrControl() {
             }
           })
         }
-        
+
         await executeCommand(command)
         return
       }
     }
   }
-  
+
   // ===== 命令选择 =====
-  
+
   const selectModule = (moduleId: string) => {
     selectedModuleId.value = moduleId
     selectedCommand.value = null
     commandArgs.value = {}
     commandFlags.value = {}
   }
-  
+
   const selectCommand = (command: CcrCommand) => {
     selectedCommand.value = command
     commandArgs.value = {}
     commandFlags.value = {}
-    
+
     // 设置默认值
     if (command.flags) {
       for (const flag of command.flags) {
@@ -407,22 +408,18 @@ export function useCcrControl() {
       }
     }
   }
-  
+
   const clearOutput = () => {
     outputLines.value = []
     lastExitCode.value = null
   }
-  
+
   // ===== 生命周期 =====
-  
+
   onMounted(async () => {
-    await Promise.all([
-      loadVersionInfo(),
-      loadFavorites(),
-      loadHistory()
-    ])
+    await Promise.all([loadVersionInfo(), loadFavorites(), loadHistory()])
   })
-  
+
   return {
     // 版本
     versionInfo,
@@ -465,6 +462,6 @@ export function useCcrControl() {
     cancelCommand,
     executeFromFavorite,
     executeFromHistory,
-    clearOutput
+    clearOutput,
   }
 }

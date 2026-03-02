@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 /**
  * usePlatformPlugins - 通用平台插件管理 Composable
  *

@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref } from 'vue'
 import { listCodexAgents, addCodexAgent, updateCodexAgent, deleteCodexAgent, toggleCodexAgent } from '@/api/modules/codex'
 import { listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent } from '@/api/modules/gemini'

@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref } from 'vue'
 import { api } from '@/api/core'
 

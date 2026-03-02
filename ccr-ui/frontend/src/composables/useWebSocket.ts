@@ -2,6 +2,7 @@
 // 提供自动重连、消息分发等功能
 
 import { ref, onMounted, onUnmounted, type Ref } from 'vue'
+import { logger } from '@/utils/logger'
 
 export interface LogMessage {
     id: string
@@ -58,7 +59,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     const connect = () => {
         if (ws?.readyState === WebSocket.OPEN) return
         if (document.hidden) {
-            console.log('[WebSocket] Page hidden, skipping connect')
+            logger.debug('[WebSocket] Page hidden, skipping connect')
             return
         }
 
@@ -68,7 +69,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             ws.onopen = () => {
                 isConnected.value = true
                 reconnectAttempts.value = 0
-                console.log('[WebSocket] Connected')
+                logger.debug('[WebSocket] Connected')
                 startHeartbeat()
             }
 
@@ -77,23 +78,23 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
                     const message: WsMessage = JSON.parse(event.data)
                     handleMessage(message)
                 } catch (e) {
-                    console.error('[WebSocket] Failed to parse message:', e)
+                    logger.error('[WebSocket] Failed to parse message', e)
                 }
             }
 
             ws.onclose = () => {
                 isConnected.value = false
                 stopHeartbeat()
-                console.log('[WebSocket] Disconnected')
+                logger.debug('[WebSocket] Disconnected')
                 scheduleReconnect()
             }
 
             ws.onerror = (error) => {
-                console.error('[WebSocket] Error:', error)
+                logger.error('[WebSocket] Error', error)
                 onError?.('WebSocket connection error')
             }
         } catch (e) {
-            console.error('[WebSocket] Failed to connect:', e)
+            logger.error('[WebSocket] Failed to connect', e)
             scheduleReconnect()
         }
     }
@@ -116,10 +117,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         isVisible.value = !document.hidden
 
         if (document.hidden) {
-            console.log('[WebSocket] Page hidden, pausing connection')
+            logger.debug('[WebSocket] Page hidden, pausing connection')
             disconnect()
         } else {
-            console.log('[WebSocket] Page visible, resuming connection')
+            logger.debug('[WebSocket] Page visible, resuming connection')
             reconnectAttempts.value = 0 // 重置重连计数
             connect()
         }
@@ -167,12 +168,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     const scheduleReconnect = () => {
         if (reconnectAttempts.value >= maxReconnectAttempts) {
-            console.log('[WebSocket] Max reconnect attempts reached')
+            logger.debug('[WebSocket] Max reconnect attempts reached')
             return
         }
 
         if (document.hidden) {
-            console.log('[WebSocket] Page hidden, skipping reconnect')
+            logger.debug('[WebSocket] Page hidden, skipping reconnect')
             return
         }
 
@@ -182,7 +183,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
         reconnectTimer = setTimeout(() => {
             reconnectAttempts.value++
-            console.log(`[WebSocket] Reconnecting... (attempt ${reconnectAttempts.value})`)
+            logger.debug(`[WebSocket] Reconnecting... (attempt ${reconnectAttempts.value})`)
             connect()
         }, reconnectInterval)
     }

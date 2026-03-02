@@ -1,3 +1,5 @@
+/* eslint-disable no-console -- SSE streaming utility, console output for debugging */
+
 import { ref, onUnmounted } from 'vue'
 
 /**
@@ -7,8 +9,8 @@ import { ref, onUnmounted } from 'vue'
 export async function* sse(url: string): AsyncGenerator<string> {
   const response = await fetch(url, {
     headers: {
-      Accept: 'text/event-stream'
-    }
+      Accept: 'text/event-stream',
+    },
   })
 
   if (!response.ok) {
@@ -67,9 +69,9 @@ export function useStream(url: string, maxLines = 2000) {
     try {
       const response = await fetch(url, {
         headers: {
-          Accept: 'text/event-stream'
+          Accept: 'text/event-stream',
         },
-        signal: abortController.signal
+        signal: abortController.signal,
       })
 
       if (!response.ok) {
@@ -85,20 +87,20 @@ export function useStream(url: string, maxLines = 2000) {
 
       while (true) {
         const { value, done } = await reader.read()
-        
+
         if (done) {
           isComplete.value = true
           break
         }
 
         const chunk = decoder.decode(value, { stream: true })
-        
+
         // 按行分割
-        const newLines = chunk.split('\n').filter(line => line.trim())
-        
+        const newLines = chunk.split('\n').filter((line) => line.trim())
+
         for (const line of newLines) {
           lines.value.push(line)
-          
+
           // 限制行数，移除最旧的行
           if (lines.value.length > maxLines) {
             lines.value.splice(0, lines.value.length - maxLines)
@@ -148,7 +150,7 @@ export function useStream(url: string, maxLines = 2000) {
     error,
     start,
     stop,
-    clear
+    clear,
   }
 }
 
@@ -172,8 +174,8 @@ export function useTextStream(url: string, maxLines = 2000) {
 
     try {
       for await (const chunk of sse(url)) {
-        const newLines = chunk.split('\n').filter(line => line.trim())
-        
+        const newLines = chunk.split('\n').filter((line) => line.trim())
+
         for (const line of newLines) {
           lines.value.push(line)
           if (lines.value.length > maxLines) {
@@ -212,6 +214,6 @@ export function useTextStream(url: string, maxLines = 2000) {
     error,
     start,
     stop,
-    clear
+    clear,
   }
 }
