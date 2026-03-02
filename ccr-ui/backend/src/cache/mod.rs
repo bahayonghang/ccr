@@ -62,10 +62,7 @@ impl<T: Send + Sync + 'static> TtlCache<T> {
     pub fn get_or_load<E>(&self, loader: impl FnOnce() -> Result<T, E>) -> Result<Arc<T>, E> {
         // 先尝试读取缓存（持有读锁期间不调用 loader，避免锁内阻塞）
         {
-            let guard = self
-                .data
-                .read()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let guard = crate::core::lock_utils::recover_rwlock_read(self.data.read());
             if let Some((ref cached, cached_at)) = *guard
                 && cached_at.elapsed() < self.ttl
             {
@@ -79,10 +76,7 @@ impl<T: Send + Sync + 'static> TtlCache<T> {
 
         // 写入缓存
         {
-            let mut guard = self
-                .data
-                .write()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let mut guard = crate::core::lock_utils::recover_rwlock_write(self.data.write());
             *guard = Some((Arc::clone(&new_value), Instant::now()));
         }
 
@@ -92,19 +86,13 @@ impl<T: Send + Sync + 'static> TtlCache<T> {
     /// 将指定值写入缓存（用于写后更新，避免立即从磁盘重新加载）
     #[allow(dead_code)]
     pub fn set(&self, value: T) {
-        let mut guard = self
-            .data
-            .write()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut guard = crate::core::lock_utils::recover_rwlock_write(self.data.write());
         *guard = Some((Arc::new(value), Instant::now()));
     }
 
     /// 失效缓存，强制下次 `get_or_load` 重新调用 loader
     pub fn invalidate(&self) {
-        let mut guard = self
-            .data
-            .write()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut guard = crate::core::lock_utils::recover_rwlock_write(self.data.write());
         *guard = None;
     }
 }

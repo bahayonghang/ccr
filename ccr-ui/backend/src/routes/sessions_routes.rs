@@ -104,7 +104,7 @@ pub struct DailyStatsItem {
 }
 
 /// 汇总统计
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct StatsSummary {
     pub total_sessions: u64,
     pub total_messages: u64,
@@ -214,9 +214,18 @@ async fn get_daily_stats(
     let days = query.days.unwrap_or(30).clamp(1, 3650);
 
     if sessions_daily_cache_enabled() {
-        let cache = DAILY_STATS_CACHE
-            .lock()
-            .expect("daily stats cache poisoned");
+        let cache = match DAILY_STATS_CACHE.lock() {
+            Ok(guard) => guard,
+            Err(e) => {
+                tracing::error!("Failed to acquire daily stats cache lock: {}", e);
+                let error_response = DailyStatsResponse {
+                    daily_stats: vec![],
+                    summary: StatsSummary::default(),
+                    last_updated: chrono::Local::now().to_rfc3339(),
+                };
+                return Json(error_response);
+            }
+        };
         if let Some(cached) = cache.get(&days)
             && cached.timestamp.elapsed() < DAILY_STATS_CACHE_TTL
         {
@@ -232,9 +241,13 @@ async fn get_daily_stats(
     let response = build_daily_stats_response(days, !sessions_daily_cache_enabled());
 
     if sessions_daily_cache_enabled() {
-        let mut cache = DAILY_STATS_CACHE
-            .lock()
-            .expect("daily stats cache poisoned");
+        let mut cache = match DAILY_STATS_CACHE.lock() {
+            Ok(guard) => guard,
+            Err(e) => {
+                tracing::error!("Failed to acquire daily stats cache lock for insert: {}", e);
+                return Json(response);
+            }
+        };
         cache.insert(
             days,
             CachedDailyStats {
@@ -398,9 +411,19 @@ async fn reindex() -> Json<ReindexResponse> {
     };
 
     if sessions_daily_cache_enabled() {
-        let mut cache = DAILY_STATS_CACHE
-            .lock()
-            .expect("daily stats cache poisoned");
+        let mut cache = match DAILY_STATS_CACHE.lock() {
+            Ok(guard) => guard,
+            Err(e) => {
+                tracing::error!("Failed to acquire daily stats cache lock for clear: {}", e);
+                return Json(ReindexResponse {
+                    files_scanned: stats.files_scanned,
+                    sessions_added: stats.sessions_added,
+                    sessions_updated: stats.sessions_updated,
+                    errors: stats.errors + 1,
+                    duration_ms: stats.duration_ms,
+                });
+            }
+        };
         cache.clear();
     }
 

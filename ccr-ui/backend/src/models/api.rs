@@ -65,6 +65,7 @@ impl<T> ApiResponse<T> {
             ApiError::UnprocessableEntity(msg) => (StatusCode::UNPROCESSABLE_ENTITY, msg.clone()),
             ApiError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
             ApiError::ServiceUnavailable(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg.clone()),
+            ApiError::InitializationFailed(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg.clone()),
         };
 
         Self {

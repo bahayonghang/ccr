@@ -53,20 +53,22 @@ pub enum DatabaseError {
 
     #[error("Failed to get connection from pool: {0}")]
     PoolGet(String),
+
+    #[error("Home directory not found")]
+    HomeDirectoryNotFound,
 }
 
 /// Get the database file path
 /// Returns: ~/.ccr-ui/ccr-ui.db
-pub fn get_db_path() -> PathBuf {
-    dirs::home_dir()
-        .expect("Failed to get home directory")
-        .join(DB_RELATIVE_PATH)
+pub fn get_db_path() -> Result<PathBuf, DatabaseError> {
+    let home = dirs::home_dir().ok_or(DatabaseError::HomeDirectoryNotFound)?;
+    Ok(home.join(DB_RELATIVE_PATH))
 }
 
 /// Initialize the database with connection pool and run migrations
 /// This should be called once during application startup
 pub fn initialize() -> Result<(), DatabaseError> {
-    let db_path = get_db_path();
+    let db_path = get_db_path()?;
 
     // Ensure parent directory exists
     if let Some(parent) = db_path.parent() {
@@ -83,7 +85,7 @@ pub fn initialize() -> Result<(), DatabaseError> {
         let conn = db_pool
             .get()
             .map_err(|e| DatabaseError::PoolGet(e.to_string()))?;
-        let home_dir = dirs::home_dir().expect("Failed to get home directory");
+        let home_dir = dirs::home_dir().ok_or(DatabaseError::HomeDirectoryNotFound)?;
         migrations::run_all_migrations(&conn, &home_dir)?;
     }
 
@@ -111,7 +113,7 @@ pub fn get_pool() -> Option<DbPool> {
 /// NOTE: 当前为 Phase 1 基础设施，Phase 2 会在 main.rs 中使用
 #[allow(dead_code)]
 pub fn create_app_pool() -> Result<DbPool, DatabaseError> {
-    let db_path = get_db_path();
+    let db_path = get_db_path()?;
 
     // Ensure parent directory exists
     if let Some(parent) = db_path.parent() {
@@ -234,7 +236,7 @@ mod tests {
 
     #[test]
     fn test_db_path() {
-        let path = get_db_path();
+        let path = get_db_path().unwrap();
         assert!(path.ends_with(".ccr-ui/ccr-ui.db"));
     }
 

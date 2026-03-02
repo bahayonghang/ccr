@@ -91,13 +91,23 @@ async fn main() -> std::io::Result<()> {
             warn!("Failed to initialize AppState: {}", e);
             warn!("Using fallback initialization");
             // Fallback: 创建最小化的 AppState
+            let db_pool = match database::create_app_pool() {
+                Ok(pool) => pool,
+                Err(err) => {
+                    return Err(std::io::Error::other(format!(
+                        "Database pool creation failed: {}",
+                        err
+                    )));
+                }
+            };
+            let checkin_dir = services::checkin_service::CheckinService::default_checkin_dir()
+                .unwrap_or_else(|_| std::path::PathBuf::from(".ccr/checkin"));
             state::AppState::new(
-                database::create_app_pool().expect("Database pool required"),
+                db_pool,
                 reqwest::Client::new(),
                 std::sync::Arc::new(services::websocket::WsState::new()),
                 cache::GLOBAL_SETTINGS_CACHE.clone(),
-                services::checkin_service::CheckinService::default_checkin_dir()
-                    .unwrap_or_else(|_| std::path::PathBuf::from(".ccr/checkin")),
+                checkin_dir,
             )
         }
     };
@@ -107,7 +117,12 @@ async fn main() -> std::io::Result<()> {
 
     let bind_addr: SocketAddr = format!("{}:{}", args.host, args.port)
         .parse()
-        .expect("Failed to parse bind address");
+        .map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("Invalid bind address: {}", e),
+            )
+        })?;
 
     info!("Starting CCR UI Backend Server");
     info!("Server binding to: {}", bind_addr);
