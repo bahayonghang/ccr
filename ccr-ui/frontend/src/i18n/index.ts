@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { createI18n } from 'vue-i18n'
 import zhCN from './locales/zh-CN'
 import enUS from './locales/en-US'
