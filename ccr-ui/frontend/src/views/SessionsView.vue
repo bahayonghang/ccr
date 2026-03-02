@@ -301,6 +301,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 
 interface SessionSummary {
@@ -349,8 +350,8 @@ const loadSessions = async () => {
     
     sessions.value = await sessionsRes.json()
     stats.value = await statsRes.json()
-  } catch (e: any) {
-    error.value = e.message || '加载失败'
+  } catch (e) {
+    error.value = (e instanceof Error ? e.message : "Error") || '加载失败'
     console.error('Failed to load sessions:', e)
   } finally {
     loading.value = false
@@ -363,8 +364,8 @@ const reindex = async () => {
     const res = await fetch(`${API_BASE}/sessions/reindex`, { method: 'POST' })
     if (!res.ok) throw new Error('Reindex failed')
     await loadSessions()
-  } catch (e: any) {
-    error.value = e.message || '重建索引失败'
+  } catch (e) {
+    error.value = (e instanceof Error ? e.message : "Error") || '重建索引失败'
   } finally {
     reindexing.value = false
   }

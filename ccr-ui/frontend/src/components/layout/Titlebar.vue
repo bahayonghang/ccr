@@ -231,6 +231,8 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
+
 import { ref, onMounted, onUnmounted } from 'vue'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 

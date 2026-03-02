@@ -125,13 +125,14 @@ import { ref, watch, nextTick, onMounted } from 'vue'
 import { useStream } from '@/composables/useStream'
 import { useUIStore } from '@/store'
 import { AnsiUp } from 'ansi_up'
-import { 
-  Terminal, 
-  CheckCircle, 
-  Square, 
-  Trash2, 
-  Copy, 
-  AlertTriangle 
+import { sanitizeTerminal } from '@/utils/sanitize'
+import {
+  Terminal,
+  CheckCircle,
+  Square,
+  Trash2,
+  Copy,
+  AlertTriangle
 } from 'lucide-vue-next'
 
 interface Props {
@@ -167,7 +168,8 @@ const { lines, isStreaming, isComplete, error, start, stop, clear } = useStream(
 const renderAnsi = (text: string) => {
   const ansiUp = new AnsiUp()
   ansiUp.use_classes = true
-  return ansiUp.ansi_to_html(text)
+  const html = ansiUp.ansi_to_html(text)
+  return sanitizeTerminal(html)
 }
 
 // 自动启动流式读取

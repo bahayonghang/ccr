@@ -198,6 +198,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { computed, ref, onMounted } from 'vue'
 import { getHeatmapData, type HeatmapData } from '@/api/modules/stats'
 

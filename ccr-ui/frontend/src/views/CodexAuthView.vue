@@ -431,6 +431,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'

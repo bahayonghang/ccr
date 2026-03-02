@@ -335,8 +335,9 @@ async function loadAgents() {
     if (!agents.value.some(a => a.id === selectedAgent.value) && agents.value.length > 0) {
       selectedAgent.value = agents.value[0].id
     }
-  } catch (e: any) {
-    ui.showError(e?.message || '加载 Agents 失败')
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '加载 Agents 失败'
+    ui.showError(message)
   } finally {
     agentsLoading.value = false
   }
@@ -346,9 +347,10 @@ async function loadInstalled() {
   installedLoading.value = true
   try {
     installedSkills.value = await getSkillHubAgentSkills(selectedAgent.value)
-  } catch (e: any) {
+  } catch (e) {
     installedSkills.value = []
-    ui.showError(e?.message || '加载已安装技能失败')
+    const message = e instanceof Error ? e.message : '加载已安装技能失败'
+    ui.showError(message)
   } finally {
     installedLoading.value = false
   }
@@ -358,9 +360,10 @@ async function loadTrending() {
   marketplaceLoading.value = true
   try {
     marketplace.value = await getSkillHubTrending({ limit: 50, page: 1 })
-  } catch (e: any) {
+  } catch (e) {
     marketplace.value = { items: [], total: 0, cached: false }
-    ui.showError(e?.message || '加载 Marketplace 失败')
+    const message = e instanceof Error ? e.message : '加载 Marketplace 失败'
+    ui.showError(message)
   } finally {
     marketplaceLoading.value = false
   }
@@ -374,9 +377,10 @@ async function runSearch() {
   marketplaceLoading.value = true
   try {
     marketplace.value = await searchSkillHubMarketplace({ q: searchQuery.value.trim(), limit: 50, page: 1 })
-  } catch (e: any) {
+  } catch (e) {
     marketplace.value = { items: [], total: 0, cached: false }
-    ui.showError(e?.message || '搜索失败')
+    const message = e instanceof Error ? e.message : '搜索失败'
+    ui.showError(message)
   } finally {
     marketplaceLoading.value = false
   }
@@ -407,8 +411,9 @@ async function installItem(pkg: string) {
     }
     ui.showSuccess('安装完成')
     await Promise.all([loadAgents(), loadInstalled()])
-  } catch (e: any) {
-    ui.showError(e?.message || '安装失败')
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '安装失败'
+    ui.showError(message)
   } finally {
     installLoading.value = false
   }
@@ -424,8 +429,9 @@ async function removeInstalledSkill(skillName: string) {
     }
     ui.showSuccess('已卸载')
     await Promise.all([loadAgents(), loadInstalled()])
-  } catch (e: any) {
-    ui.showError(e?.message || '卸载失败')
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '卸载失败'
+    ui.showError(message)
   } finally {
     removeLoading.value = false
   }

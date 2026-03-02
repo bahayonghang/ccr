@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 /**
  * Usage Analytics Store (V2)
  *

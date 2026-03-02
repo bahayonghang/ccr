@@ -345,12 +345,13 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { 
-  Zap, Sparkles, Gem, Workflow, 
-  Play, Copy, Trash2, Terminal, 
+import {
+  Zap, Sparkles, Gem, Workflow,
+  Play, Copy, Trash2, Terminal,
   ChevronRight, Loader2, Code2
 } from 'lucide-vue-next'
 import hljs from 'highlight.js/lib/core'
@@ -365,6 +366,7 @@ import type { CommandInfo, CommandResponse, ConfigItem } from '@/types'
 import { normalizeCliClient, type CliClient } from '@/types/router'
 import Navbar from '@/components/Navbar.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
+import { sanitizeTerminal } from '@/utils/sanitize'
 
 // Register languages
 hljs.registerLanguage('bash', bash)
@@ -405,18 +407,18 @@ const highlightedContent = computed(() => {
   // Prefer streamingOutput during active streaming
   const content = streamingOutput.value || (output.value?.output || output.value?.error) || ''
   if (!content) return ''
-  
+
   try {
     // If it's an error, just return plain text or wrap in error style
     if (output.value && !output.value.success) {
-      return `<span class="text-red-300">${content}</span>`
+      return `<span class="text-red-300">${sanitizeTerminal(content)}</span>`
     }
-    
-    // Auto-detect language
+
+    // Auto-detect language and sanitize
     const result = hljs.highlightAuto(content)
-    return result.value
+    return sanitizeTerminal(result.value)
   } catch (e) {
-    return content
+    return sanitizeTerminal(content)
   }
 })
 

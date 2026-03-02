@@ -242,6 +242,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -423,8 +424,8 @@ async function confirmDeleteSkill(skill: UnifiedSkill) {
     })
     showDeleteModal.value = false
     uiStore.showSuccess(t('skills.deleteSuccess'))
-  } catch (err: any) {
-    uiStore.showError(t('skills.deleteFailed') + ': ' + (err.message || ''))
+  } catch (err) {
+    uiStore.showError(t('skills.deleteFailed') + ': ' + ((err instanceof Error ? err.message : "Error") || ''))
   }
 }
 
@@ -469,8 +470,8 @@ async function handleBatchInstall(packages: string[]) {
       force: false
     })
     uiStore.showSuccess(t('skills.donePhase'))
-  } catch (err: any) {
-    uiStore.showError(err.message || 'Batch install failed')
+  } catch (err) {
+    uiStore.showError((err instanceof Error ? err.message : "Error") || 'Batch install failed')
   }
 }
 

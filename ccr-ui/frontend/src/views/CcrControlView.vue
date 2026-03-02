@@ -502,6 +502,7 @@ import GuofengCard from '@/components/common/GuofengCard.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useCcrControl } from '@/composables/useCcrControl'
 import type { CcrCommand } from '@/api/ccr-control'
+import { sanitizeTerminal } from '@/utils/sanitize'
 
 // Use Composables
 const {
@@ -545,7 +546,8 @@ const sidebarTabs: { id: 'commands' | 'favorites' | 'history'; label: string; ic
 // Render ANSI
 const ansiUp = new AnsiUp()
 const renderAnsi = (text: string) => {
-  return ansiUp.ansi_to_html(text || '')
+  const html = ansiUp.ansi_to_html(text || '')
+  return sanitizeTerminal(html)
 }
 
 // Toggle Favorite

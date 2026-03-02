@@ -514,6 +514,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Settings2, ArrowLeft, Save, Brain, Shield, Wrench, Monitor, Zap } from 'lucide-vue-next'

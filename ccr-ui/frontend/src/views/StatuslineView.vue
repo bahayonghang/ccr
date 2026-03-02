@@ -183,6 +183,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Monitor, Settings, Save, Info, Home, Code2 } from 'lucide-vue-next'

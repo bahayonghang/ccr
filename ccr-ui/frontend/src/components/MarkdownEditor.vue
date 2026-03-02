@@ -81,6 +81,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Code, Eye, Columns } from 'lucide-vue-next'
 import { marked } from 'marked'
+import { sanitizeMarkdown } from '@/utils/sanitize'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -134,7 +135,8 @@ const renderedHtml = computed(() => {
   )
 
   // 使用 marked 渲染 Markdown
-  return marked(content, { breaks: true, gfm: true })
+  const html = marked(content, { breaks: true, gfm: true }) as string
+  return sanitizeMarkdown(html)
 })
 
 // 同步外部值到内部

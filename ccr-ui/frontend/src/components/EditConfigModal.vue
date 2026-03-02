@@ -335,8 +335,8 @@ const loadConfig = async () => {
     const data = await getConfig(props.configName)
     formData.value = { ...data }
     tagsInput.value = Array.isArray(data.tags) ? data.tags.join(', ') : ''
-  } catch (e: any) { 
-    uiStore.showError(e.message || 'Failed to load configuration')
+  } catch (e) { 
+    uiStore.showError((e instanceof Error ? e.message : "Error") || 'Failed to load configuration')
   }
   finally { loading.value = false }
 }
@@ -362,8 +362,8 @@ const handleSave = async () => {
     uiStore.showSuccess('Configuration saved successfully')
     emit('saved')
     handleClose()
-  } catch (e: any) { 
-    uiStore.showError(e.message || 'Failed to save configuration')
+  } catch (e) { 
+    uiStore.showError((e instanceof Error ? e.message : "Error") || 'Failed to save configuration')
   }
   finally { saving.value = false }
 }

@@ -316,6 +316,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Home, Code2, Settings, Sparkles, Zap, Activity,

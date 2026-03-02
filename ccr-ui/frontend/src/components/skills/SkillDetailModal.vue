@@ -311,6 +311,7 @@ import {
   ExternalLink
 } from 'lucide-vue-next'
 import { marked } from 'marked'
+import { sanitizeMarkdown } from '@/utils/sanitize'
 // highlight.js: 仅导入 core + 常用语言（从 ~900 kB 降至 ~60 kB）
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -401,7 +402,8 @@ const platformIcon = computed(() => {
 // Rendered markdown HTML
 const renderedHtml = computed(() => {
   if (!skillContent.value?.content) return ''
-  return marked.parse(skillContent.value.content) as string
+  const html = marked.parse(skillContent.value.content) as string
+  return sanitizeMarkdown(html)
 })
 
 // Watch for modal open

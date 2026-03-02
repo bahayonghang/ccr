@@ -335,6 +335,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Server, Plus, Edit2, Trash2, Power, PowerOff, Home, Code2, X } from 'lucide-vue-next'

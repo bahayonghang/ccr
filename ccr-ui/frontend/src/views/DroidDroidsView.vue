@@ -423,6 +423,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { ArrowLeft, Plus, Edit2, Trash2, Cpu, Zap, Wrench, Inbox, X } from 'lucide-vue-next'
 import axios from 'axios'

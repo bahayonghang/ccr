@@ -269,6 +269,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted } from 'vue'
 import { getBudgetStatus, setBudget, resetBudget } from '@/api/modules/stats'
 import type { BudgetStatus, SetBudgetRequest } from '@/types'
@@ -314,8 +315,8 @@ const loadData = async () => {
     form.value.weekly_limit = budgetStatus.value.weekly_limit
     form.value.monthly_limit = budgetStatus.value.monthly_limit
     form.value.warn_threshold = budgetStatus.value.warn_threshold
-  } catch (e: any) {
-    error.value = e.message || '加载失败'
+  } catch (e) {
+    error.value = (e instanceof Error ? e.message : "Error") || '加载失败'
     console.error('Failed to load budget:', e)
   } finally {
     loading.value = false
@@ -338,8 +339,8 @@ const saveBudget = async () => {
     await loadData()
 
     alert('配置已保存')
-  } catch (e: any) {
-    alert('保存失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    alert('保存失败: ' + ((e instanceof Error ? e.message : "Error") || '未知错误'))
     console.error('Failed to save budget:', e)
   } finally {
     saving.value = false
@@ -356,8 +357,8 @@ const handleReset = async () => {
     await loadData()
 
     alert('预算限制已重置')
-  } catch (e: any) {
-    alert('重置失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    alert('重置失败: ' + ((e instanceof Error ? e.message : "Error") || '未知错误'))
     console.error('Failed to reset budget:', e)
   } finally {
     saving.value = false

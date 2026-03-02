@@ -349,6 +349,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { Webhook, Plus, Edit2, Trash2, X, Power } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'

@@ -503,6 +503,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -667,11 +668,11 @@ async function confirmMarketplaceInstall() {
       })
       batchSelected.clear()
       batchMode.value = false
-    } catch (err: any) {
+    } catch (err) {
       setInstallProgress({
         phase: 'error',
         package: `${pendingBatchPackages.value.length} skills`,
-        message: err.message || 'Batch install failed',
+        message: (err instanceof Error ? err.message : "Error") || 'Batch install failed',
         startedAt: Date.now()
       })
     }
@@ -699,11 +700,11 @@ async function confirmMarketplaceInstall() {
       package: item.package,
       startedAt: Date.now()
     })
-  } catch (err: any) {
+  } catch (err) {
     setInstallProgress({
       phase: 'error',
       package: item.package,
-      message: err.message || 'Install failed',
+      message: (err instanceof Error ? err.message : "Error") || 'Install failed',
       startedAt: Date.now()
     })
   } finally {
@@ -821,14 +822,14 @@ async function handleManualInstall() {
         break
       }
     }
-  } catch (err: any) {
+  } catch (err) {
     const pkg = activeSource.value === 'github' ? githubUrl.value
               : activeSource.value === 'local' ? localPath.value
               : npxPackage.value
     setInstallProgress({
       phase: 'error',
       package: pkg,
-      message: err.message || 'Installation failed',
+      message: (err instanceof Error ? err.message : "Error") || 'Installation failed',
       startedAt: Date.now()
     })
   } finally {

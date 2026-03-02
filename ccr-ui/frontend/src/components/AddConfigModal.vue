@@ -296,8 +296,8 @@ const handleSave = async () => {
     uiStore.showSuccess('Configuration added successfully')
     emit('saved')
     handleClose()
-  } catch (e: any) { 
-    uiStore.showError(e.message || 'Failed to add configuration')
+  } catch (e) { 
+    uiStore.showError((e instanceof Error ? e.message : "Error") || 'Failed to add configuration')
   }
   finally { saving.value = false }
 }

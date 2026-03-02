@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { defineStore } from 'pinia'
 
 type SortKey = 'name' | 'usage' | 'modified'

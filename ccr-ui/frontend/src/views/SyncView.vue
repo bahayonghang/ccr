@@ -789,6 +789,7 @@ import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { api } from '@/api/core'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 import {
@@ -946,7 +947,7 @@ const applySelection = async () => {
       try {
         await api.post('/sync/folders', payload)
       } catch (err: any) {
-        console.error(`添加文件夹 ${item.name} 失败:`, err)
+        logger.error(`添加文件夹 ${item.name} 失败:`, err)
         // 继续添加其他文件夹
       }
     }
@@ -999,10 +1000,10 @@ const fetchSyncStatus = async () => {
     if (response.data.success) {
       syncStatus.value = response.data.data
     } else {
-      console.warn('Sync status returned unsuccessful:', response.data)
+      logger.warn('Sync status returned unsuccessful:', response.data)
     }
   } catch (err: any) {
-    console.error('Failed to fetch sync status:', err)
+    logger.error('Failed to fetch sync status:', err)
     // Don't throw error, just log it - let the page continue loading
   }
 }
@@ -1015,12 +1016,12 @@ const fetchFolders = async () => {
       // 解析 CLI 输出获取文件夹列表
       parseFoldersList(response.data.data.output)
     } else {
-      console.warn('Fetch folders returned unsuccessful:', response.data)
+      logger.warn('Fetch folders returned unsuccessful:', response.data)
       // Set to empty array if no folders registered
       enabledFolders.value = []
     }
   } catch (err: any) {
-    console.error('Failed to fetch folders:', err)
+    logger.error('Failed to fetch folders:', err)
     // Set to empty array on error
     enabledFolders.value = []
   }
@@ -1040,7 +1041,7 @@ const parseFoldersList = (output: string) => {
     // 暂时设置为空数组
     enabledFolders.value = []
   } catch (err) {
-    console.error('Failed to parse folders list:', err)
+    logger.error('Failed to parse folders list:', err)
     enabledFolders.value = []
   }
 }

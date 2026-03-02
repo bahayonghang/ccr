@@ -335,6 +335,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { getPricingList, setPricing, removePricing, resetPricing } from '@/api/modules/stats'
 import type { PricingListResponse, ModelPricing, SetPricingRequest } from '@/types'
@@ -366,8 +367,8 @@ const loadData = async () => {
 
   try {
     pricingData.value = await getPricingList()
-  } catch (e: any) {
-    error.value = e.message || '加载失败'
+  } catch (e) {
+    error.value = (e instanceof Error ? e.message : "Error") || '加载失败'
     console.error('Failed to load pricing:', e)
   } finally {
     loading.value = false
@@ -415,8 +416,8 @@ const savePricing = async () => {
     showForm.value = false
 
     alert(isEditing.value ? '定价已更新' : '定价已添加')
-  } catch (e: any) {
-    alert('保存失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    alert('保存失败: ' + ((e instanceof Error ? e.message : "Error") || '未知错误'))
     console.error('Failed to save pricing:', e)
   } finally {
     saving.value = false
@@ -433,8 +434,8 @@ const deletePricing = async (model: string) => {
     await loadData()
 
     alert('定价已删除')
-  } catch (e: any) {
-    alert('删除失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    alert('删除失败: ' + ((e instanceof Error ? e.message : "Error") || '未知错误'))
     console.error('Failed to delete pricing:', e)
   } finally {
     saving.value = false
@@ -455,8 +456,8 @@ const handleReset = async () => {
     await loadData()
 
     alert('所有定价已重置为默认值')
-  } catch (e: any) {
-    alert('重置失败: ' + (e.message || '未知错误'))
+  } catch (e) {
+    alert('重置失败: ' + ((e instanceof Error ? e.message : "Error") || '未知错误'))
     console.error('Failed to reset pricing:', e)
   } finally {
     saving.value = false

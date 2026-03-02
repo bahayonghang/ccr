@@ -254,6 +254,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { onMounted, ref } from 'vue'
 import { BarChart3, Hash, Clock, Activity, MessageSquare, Timer, Layers } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'
