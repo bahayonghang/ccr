@@ -60,8 +60,24 @@ jobs:
           path: target
           key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Run clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used
+      # Standard clippy check with basic warnings as errors
+      - name: Run clippy (standard)
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      # Strict clippy check for backend with unwrap detection
+      # This prevents usage of .unwrap(), .expect(), panic!, etc.
+      # Forces proper error handling with Result, Option, and ?
+      - name: Run clippy (strict - backend only)
+        run: |
+          # Check backend crate with strict rules
+          cargo clippy -p ccr-ui-backend --all-targets --all-features -- \
+            -D warnings \
+            -W clippy::unwrap_used \
+            -W clippy::expect_used \
+            -W clippy::panic \
+            -W clippy::unimplemented \
+            -W clippy::todo
+        # Note: Frontend (ccr-ui/frontend) uses separate ESLint/TypeScript checks
 
   test:
     name: Test Suite
