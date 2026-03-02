@@ -49,6 +49,8 @@ pub enum ExecutorError {
     Timeout(u64),
     #[error("CCR binary not found in PATH")]
     BinaryNotFound,
+    #[error("Stdio handle not available")]
+    StdioHandleMissing,
 }
 
 pub type Result<T> = std::result::Result<T, ExecutorError>;
@@ -88,8 +90,14 @@ pub async fn execute_binary_with_timeout(
         })?;
 
     // Get stdout and stderr handles
-    let stdout = child.stdout.take().expect("Failed to capture stdout");
-    let stderr = child.stderr.take().expect("Failed to capture stderr");
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or(ExecutorError::StdioHandleMissing)?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or(ExecutorError::StdioHandleMissing)?;
 
     // Read output in parallel
     let stdout_handle = tokio::spawn(async move {
@@ -183,8 +191,24 @@ pub fn execute_binary_stream(binary: String, args: Vec<String>) -> impl Stream<I
         };
 
         // Get stdout and stderr handles
-        let stdout = child.stdout.take().expect("Failed to capture stdout");
-        let stderr = child.stderr.take().expect("Failed to capture stderr");
+        let stdout = match child.stdout.take() {
+            Some(handle) => handle,
+            None => {
+                yield StreamChunk::Error {
+                    message: "Failed to capture stdout".to_string(),
+                };
+                return;
+            }
+        };
+        let stderr = match child.stderr.take() {
+            Some(handle) => handle,
+            None => {
+                yield StreamChunk::Error {
+                    message: "Failed to capture stderr".to_string(),
+                };
+                return;
+            }
+        };
 
         // Create async readers
         let mut stdout_lines = BufReader::new(stdout).lines();

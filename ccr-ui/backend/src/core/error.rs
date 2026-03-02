@@ -46,6 +46,8 @@ pub enum ApiError {
     Internal(String),
     /// 503 Service Unavailable - 服务不可用
     ServiceUnavailable(String),
+    /// 503 Initialization Failed - 初始化失败
+    InitializationFailed(String),
 }
 
 impl ApiError {
@@ -93,6 +95,12 @@ impl ApiError {
         ApiError::ServiceUnavailable(msg.into())
     }
 
+    /// 创建 InitializationFailed 错误
+    #[allow(dead_code)]
+    pub fn initialization_failed(msg: impl Into<String>) -> Self {
+        ApiError::InitializationFailed(msg.into())
+    }
+
     /// 获取 HTTP 状态码和错误消息
     fn status_and_message(&self) -> (StatusCode, String) {
         match self {
@@ -104,6 +112,7 @@ impl ApiError {
             ApiError::UnprocessableEntity(msg) => (StatusCode::UNPROCESSABLE_ENTITY, msg.clone()),
             ApiError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
             ApiError::ServiceUnavailable(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg.clone()),
+            ApiError::InitializationFailed(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg.clone()),
         }
     }
 }
