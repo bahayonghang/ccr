@@ -29,8 +29,7 @@ fn qwen_config_path() -> Result<PathBuf, String> {
     let proj_cfg = proj_dir.join("settings.json");
     if proj_dir.exists() || proj_cfg.exists() {
         if !proj_dir.exists() {
-            std::fs::create_dir_all(&proj_dir)
-                .map_err(|e| format!("创建 .qwen 目录失败: {e}"))?;
+            std::fs::create_dir_all(&proj_dir).map_err(|e| format!("创建 .qwen 目录失败: {e}"))?;
         }
         return Ok(proj_cfg);
     }
@@ -38,8 +37,7 @@ fn qwen_config_path() -> Result<PathBuf, String> {
     let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
     let user_dir = home.join(".qwen");
     if !user_dir.exists() {
-        std::fs::create_dir_all(&user_dir)
-            .map_err(|e| format!("创建 .qwen 目录失败: {e}"))?;
+        std::fs::create_dir_all(&user_dir).map_err(|e| format!("创建 .qwen 目录失败: {e}"))?;
     }
     Ok(user_dir.join("settings.json"))
 }
@@ -50,8 +48,8 @@ fn read_qwen_config() -> Result<Value, String> {
     if !path.exists() {
         return Ok(json!({}));
     }
-    let content = std::fs::read_to_string(&path)
-        .map_err(|e| format!("读取 Qwen 配置文件失败: {e}"))?;
+    let content =
+        std::fs::read_to_string(&path).map_err(|e| format!("读取 Qwen 配置文件失败: {e}"))?;
     serde_json::from_str(&content).map_err(|e| format!("解析 Qwen JSON 失败: {e}"))
 }
 
@@ -59,10 +57,10 @@ fn read_qwen_config() -> Result<Value, String> {
 fn write_qwen_config(config: &Value) -> Result<(), String> {
     let path = qwen_config_path()?;
     let parent = path.parent().ok_or_else(|| "无法获取父目录".to_string())?;
-    let json_str = serde_json::to_string_pretty(config)
-        .map_err(|e| format!("序列化 Qwen 配置失败: {e}"))?;
-    let mut tmp = tempfile::NamedTempFile::new_in(parent)
-        .map_err(|e| format!("创建临时文件失败: {e}"))?;
+    let json_str =
+        serde_json::to_string_pretty(config).map_err(|e| format!("序列化 Qwen 配置失败: {e}"))?;
+    let mut tmp =
+        tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {e}"))?;
     tmp.write_all(json_str.as_bytes())
         .map_err(|e| format!("写入临时文件失败: {e}"))?;
     tmp.persist(&path)
@@ -124,8 +122,8 @@ fn list_toml_commands(project_dir: &PathBuf, user_dir: &PathBuf) -> Result<Value
     let mut commands = Vec::new();
     let mut folders_set = std::collections::HashSet::new();
     for (key, path) in &chosen {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("读取命令文件失败: {e}"))?;
+        let content =
+            std::fs::read_to_string(path).map_err(|e| format!("读取命令文件失败: {e}"))?;
         let value: toml::Value =
             toml::from_str(&content).map_err(|e| format!("解析 TOML 失败: {e}"))?;
         let prompt = value
@@ -160,7 +158,10 @@ fn list_toml_commands(project_dir: &PathBuf, user_dir: &PathBuf) -> Result<Value
         }));
     }
     commands.sort_by(|a, b| {
-        a["name"].as_str().unwrap_or("").cmp(b["name"].as_str().unwrap_or(""))
+        a["name"]
+            .as_str()
+            .unwrap_or("")
+            .cmp(b["name"].as_str().unwrap_or(""))
     });
     let folders: Vec<String> = folders_set.into_iter().collect();
     Ok(json!({ "commands": commands, "folders": folders }))
@@ -345,8 +346,7 @@ pub async fn qwen_add_slash_command(name: String, config: Value) -> Result<Value
         if !folder.is_empty() {
             target = target.join(&folder);
         }
-        std::fs::create_dir_all(&target)
-            .map_err(|e| format!("创建目录失败: {e}"))?;
+        std::fs::create_dir_all(&target).map_err(|e| format!("创建目录失败: {e}"))?;
         let description = config
             .get("description")
             .and_then(|v| v.as_str())
@@ -363,8 +363,7 @@ pub async fn qwen_add_slash_command(name: String, config: Value) -> Result<Value
             toml::Value::String(command),
         );
         let file_path = target.join(format!("{name}.toml"));
-        std::fs::write(&file_path, toml_content)
-            .map_err(|e| format!("写入命令文件失败: {e}"))?;
+        std::fs::write(&file_path, toml_content).map_err(|e| format!("写入命令文件失败: {e}"))?;
         Ok(json!({ "message": format!("斜杠命令 '{name}' 添加成功") }))
     })
     .await
@@ -392,8 +391,7 @@ pub async fn qwen_update_slash_command(name: String, config: Value) -> Result<Va
             toml::Value::String(description),
             toml::Value::String(command),
         );
-        std::fs::write(&target, toml_content)
-            .map_err(|e| format!("写入命令文件失败: {e}"))?;
+        std::fs::write(&target, toml_content).map_err(|e| format!("写入命令文件失败: {e}"))?;
         Ok(json!({ "message": format!("斜杠命令 '{name}' 更新成功") }))
     })
     .await
@@ -406,8 +404,7 @@ pub async fn qwen_delete_slash_command(name: String) -> Result<String, String> {
         let (proj, user) = qwen_commands_dirs()?;
         let target = find_command_file(&proj, &user, &name)?
             .ok_or_else(|| format!("斜杠命令 '{name}' 不存在"))?;
-        std::fs::remove_file(&target)
-            .map_err(|e| format!("删除命令文件失败: {e}"))?;
+        std::fs::remove_file(&target).map_err(|e| format!("删除命令文件失败: {e}"))?;
         Ok(format!("斜杠命令 '{name}' 删除成功"))
     })
     .await

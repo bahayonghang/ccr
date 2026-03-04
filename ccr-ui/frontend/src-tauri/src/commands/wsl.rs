@@ -5,10 +5,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::platform::wsl::{
-    detect_wsl_distros, sync_config_blocking, SyncDirection, WslDistroInfo, WslEnvironment,
-};
 use crate::platform::ExecutionEnvironment;
+use crate::platform::wsl::{
+    SyncDirection, WslDistroInfo, WslEnvironment, detect_wsl_distros, sync_config_blocking,
+};
 
 // ── 响应类型 ────────────────────────────────────────────────────────────────
 
@@ -117,12 +117,10 @@ pub async fn wsl_sync_config(
     platform: String,
     direction: SyncDirection,
 ) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        sync_config_blocking(&distro, &platform, &direction)
-    })
-    .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
-    .map_err(|e| format!("同步配置失败: {e}"))
+    tokio::task::spawn_blocking(move || sync_config_blocking(&distro, &platform, &direction))
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
+        .map_err(|e| format!("同步配置失败: {e}"))
 }
 
 // ── 内部辅助 ─────────────────────────────────────────────────────────────────

@@ -28,8 +28,6 @@ pub struct SshHostConfig {
     pub remote_home: Option<String>,
 }
 
-
-
 pub struct SshEnvironment {
     config: SshHostConfig,
 }
@@ -92,7 +90,10 @@ impl SshEnvironment {
     }
 
     fn shell_escape_single(value: &str) -> String {
-        value.replace('"', "\\\"").replace('`', "\\`").replace('$', "\\$")
+        value
+            .replace('"', "\\\"")
+            .replace('`', "\\`")
+            .replace('$', "\\$")
     }
 
     async fn run_ssh(&self, remote_cmd: &str) -> Result<std::process::Output, EnvError> {
@@ -161,9 +162,7 @@ impl ExecutionEnvironment for SshEnvironment {
         };
 
         let escaped = Self::shell_escape_single(&remote_path);
-        let output = self
-            .run_ssh(&format!("cat \"{escaped}\""))
-            .await?;
+        let output = self.run_ssh(&format!("cat \"{escaped}\"")).await?;
 
         if !output.status.success() {
             let err = String::from_utf8_lossy(&output.stderr);
@@ -232,7 +231,9 @@ impl ExecutionEnvironment for SshEnvironment {
 
         if !output.status.success() {
             let err = String::from_utf8_lossy(&output.stderr);
-            return Err(EnvError::Other(format!("远程写入失败 ({remote_path}): {err}")));
+            return Err(EnvError::Other(format!(
+                "远程写入失败 ({remote_path}): {err}"
+            )));
         }
 
         Ok(())
@@ -243,9 +244,7 @@ impl ExecutionEnvironment for SshEnvironment {
         let mut result = Vec::new();
 
         for tool in tools {
-            let output = self
-                .run_ssh(&format!("command -v {tool} || true"))
-                .await?;
+            let output = self.run_ssh(&format!("command -v {tool} || true")).await?;
 
             let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
             result.push(CliStatus {

@@ -7,15 +7,15 @@ mod platform;
 mod ssh;
 mod state;
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use tauri::{Manager, RunEvent, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tokio::sync::Notify;
 
 use platform::local::LocalEnvironment;
-use state::AppState;
+use state::{AppState, DEFAULT_SSH_PASSWORD_TTL_SECS, DEFAULT_SSH_STATE_TTL_SECS};
 
 /// 应用退出信号 — 用于通知后台任务停止
 static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
@@ -76,7 +76,7 @@ fn main() {
                 // Phase C1 — 自动检测 WSL 发行版并注册（仅 Windows）
                 #[cfg(target_os = "windows")]
                 {
-                    use platform::wsl::{detect_wsl_distros, WslEnvironment};
+                    use platform::wsl::{WslEnvironment, detect_wsl_distros};
                     match tokio::task::spawn_blocking(detect_wsl_distros).await {
                         Ok(Ok(distros)) => {
                             for distro in distros {
@@ -244,6 +244,12 @@ async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify
                 // 定期清理过期缓存
                 let state = app_handle.state::<AppState>();
                 state.cache_cleanup().await;
+                state
+                    .cleanup_ssh_runtime_states(DEFAULT_SSH_STATE_TTL_SECS)
+                    .await;
+                state
+                    .cleanup_ssh_password_cache(DEFAULT_SSH_PASSWORD_TTL_SECS)
+                    .await;
 
                 // 用量数据导入（静默，失败不阻塞）
                 if let Err(e) = import_usage_data().await {
@@ -263,8 +269,8 @@ async fn import_usage_data() -> Result<(), String> {
     // CostTracker 的数据由 CLI 工具自行记录到 ~/.ccr/costs/
     // 这里仅验证 storage dir 可用性作为健康检查
     tokio::task::spawn_blocking(|| {
-        let _storage_dir = ccr::CostTracker::default_storage_dir()
-            .map_err(|e| format!("Storage dir: {e}"))?;
+        let _storage_dir =
+            ccr::CostTracker::default_storage_dir().map_err(|e| format!("Storage dir: {e}"))?;
         Ok(())
     })
     .await

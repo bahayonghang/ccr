@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
+use tokio::time::{Duration, timeout};
 
 use crate::state::AppState;
 
@@ -23,6 +24,19 @@ pub struct VersionInfo {
     pub current: String,
     pub latest: Option<String>,
     pub update_available: bool,
+}
+
+/// 运行时指标
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RuntimeMetricsResponse {
+    pub cache_entries: usize,
+    pub event_log_entries: usize,
+    pub event_log_memory_bytes: usize,
+    pub ssh_state_count: usize,
+    pub ssh_password_cache_count: usize,
+    pub process_rss_bytes: u64,
+    pub command_p95_ms: Option<f64>,
+    pub db_query_p95_ms: Option<f64>,
 }
 
 #[tauri::command]
@@ -76,12 +90,48 @@ pub async fn get_recent_events(
 }
 
 #[tauri::command]
+pub async fn get_runtime_metrics(
+    state: State<'_, AppState>,
+) -> Result<RuntimeMetricsResponse, String> {
+    let snapshot = state.runtime_metrics_snapshot().await;
+
+    Ok(RuntimeMetricsResponse {
+        cache_entries: snapshot.cache_entries,
+        event_log_entries: snapshot.event_log_entries,
+        event_log_memory_bytes: snapshot.event_log_memory_bytes,
+        ssh_state_count: snapshot.ssh_state_count,
+        ssh_password_cache_count: snapshot.ssh_password_cache_count,
+        process_rss_bytes: current_process_rss_bytes(),
+        command_p95_ms: snapshot.command_p95_ms,
+        db_query_p95_ms: snapshot.db_query_p95_ms,
+    })
+}
+
+fn current_process_rss_bytes() -> u64 {
+    use sysinfo::{Pid, ProcessesToUpdate, System};
+
+    let mut system = System::new();
+    system.refresh_processes(ProcessesToUpdate::All, true);
+    let pid = Pid::from_u32(std::process::id());
+    system.process(pid).map(|p| p.memory()).unwrap_or(0)
+}
+
+async fn run_command_with_timeout(
+    program: &str,
+    args: &[&str],
+    timeout_secs: u64,
+) -> Result<std::process::Output, String> {
+    let mut cmd = tokio::process::Command::new(program);
+    cmd.args(args);
+    match timeout(Duration::from_secs(timeout_secs), cmd.output()).await {
+        Ok(result) => result.map_err(|e| format!("Failed to spawn command: {e}")),
+        Err(_) => Err(format!("Command timeout after {timeout_secs}s")),
+    }
+}
+
+#[tauri::command]
 pub async fn update_ccr() -> Result<serde_json::Value, String> {
-    let output = tokio::process::Command::new("cargo")
-        .args(["install", "ccr"])
-        .output()
-        .await
-        .map_err(|e| format!("Failed to spawn cargo install: {e}"))?;
+    let output = run_command_with_timeout("cargo", &["install", "ccr"], 60).await?;
 
     let success = output.status.success();
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
@@ -101,10 +151,7 @@ pub async fn get_cli_versions() -> Result<serde_json::Value, String> {
     let mut versions = serde_json::Map::new();
 
     for tool in tools {
-        let result = tokio::process::Command::new(tool)
-            .arg("--version")
-            .output()
-            .await;
+        let result = run_command_with_timeout(tool, &["--version"], 10).await;
 
         let version = match result {
             Ok(output) if output.status.success() => {
@@ -115,7 +162,11 @@ pub async fn get_cli_versions() -> Result<serde_json::Value, String> {
                 // 某些工具将版本输出到 stderr
                 let raw = String::from_utf8_lossy(&output.stderr).to_string();
                 let line = raw.lines().next().unwrap_or("").trim().to_string();
-                if line.is_empty() { "not found".to_string() } else { line }
+                if line.is_empty() {
+                    "not found".to_string()
+                } else {
+                    line
+                }
             }
             Err(_) => "not found".to_string(),
         };

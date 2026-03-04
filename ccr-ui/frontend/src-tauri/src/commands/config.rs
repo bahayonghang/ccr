@@ -247,7 +247,9 @@ pub async fn rename_config(old_name: String, new_name: String) -> Result<String,
             .save(&config)
             .map_err(|e| format!("Failed to save config: {e}"))?;
 
-        Ok(format!("Configuration '{old_name}' renamed to '{new_name}'"))
+        Ok(format!(
+            "Configuration '{old_name}' renamed to '{new_name}'"
+        ))
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?
@@ -288,9 +290,7 @@ pub async fn duplicate_config(source: String, target: String) -> Result<String, 
             .save(&config)
             .map_err(|e| format!("Failed to save config: {e}"))?;
 
-        Ok(format!(
-            "Configuration '{source}' duplicated as '{target}'"
-        ))
+        Ok(format!("Configuration '{source}' duplicated as '{target}'"))
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?
@@ -485,8 +485,8 @@ pub async fn set_skip_exit_confirm(skip: bool, state: State<'_, AppState>) -> Re
 pub async fn clean_backups() -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         // CCR 配置文件位于 ~/.ccr/ 目录下
-        let home = dirs::home_dir()
-            .ok_or_else(|| "Unable to determine home directory".to_string())?;
+        let home =
+            dirs::home_dir().ok_or_else(|| "Unable to determine home directory".to_string())?;
         let ccr_dir = home.join(".ccr");
 
         if !ccr_dir.exists() {

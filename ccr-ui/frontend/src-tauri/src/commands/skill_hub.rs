@@ -51,8 +51,7 @@ fn scan_platform_skills(
         }
 
         let instruction = std::fs::read_to_string(&skill_file).unwrap_or_default();
-        let (metadata, description) =
-            ccr::models::skill::Skill::parse_with_fallback(&instruction);
+        let (metadata, description) = ccr::models::skill::Skill::parse_with_fallback(&instruction);
 
         // 可选：读取 .skill-meta.json 元数据
         let meta_path = path.join(".skill-meta.json");
@@ -122,8 +121,11 @@ fn write_skill_meta(
         "install_date": chrono::Utc::now().timestamp_millis(),
     });
     let meta_path = skill_dir.join(".skill-meta.json");
-    std::fs::write(&meta_path, serde_json::to_string_pretty(&meta).unwrap_or_default())
-        .map_err(|e| format!("写入 .skill-meta.json 失败: {e}"))
+    std::fs::write(
+        &meta_path,
+        serde_json::to_string_pretty(&meta).unwrap_or_default(),
+    )
+    .map_err(|e| format!("写入 .skill-meta.json 失败: {e}"))
 }
 
 // ── Step 1: 平台摘要（重写） ──
@@ -168,8 +170,8 @@ pub async fn skill_hub_agent_skills(agent_name: String) -> Result<Value, String>
     let platform_id = agent_name;
 
     let skills = tokio::task::spawn_blocking(move || {
-        let (id, name, rel_path) = find_platform(&platform_id)
-            .ok_or_else(|| format!("未知平台: {platform_id}"))?;
+        let (id, name, rel_path) =
+            find_platform(&platform_id).ok_or_else(|| format!("未知平台: {platform_id}"))?;
         let home = dirs::home_dir().ok_or_else(|| "无法获取主目录".to_string())?;
         let dir = home.join(rel_path);
 
@@ -236,8 +238,8 @@ pub async fn skill_hub_skill_content(skill_dir: String) -> Result<Value, String>
             return Err(format!("SKILL.md 不存在: {}", skill_file.display()));
         }
 
-        let raw = std::fs::read_to_string(&skill_file)
-            .map_err(|e| format!("读取 SKILL.md 失败: {e}"))?;
+        let raw =
+            std::fs::read_to_string(&skill_file).map_err(|e| format!("读取 SKILL.md 失败: {e}"))?;
         let (metadata, description) = ccr::models::skill::Skill::parse_with_fallback(&raw);
 
         // 提取 frontmatter 后的 body 内容
@@ -292,8 +294,7 @@ pub async fn skill_hub_save_skill_content(
         let temp_dir = dir;
         let temp_file = tempfile::NamedTempFile::new_in(temp_dir)
             .map_err(|e| format!("创建临时文件失败: {e}"))?;
-        std::fs::write(temp_file.path(), &content)
-            .map_err(|e| format!("写入临时文件失败: {e}"))?;
+        std::fs::write(temp_file.path(), &content).map_err(|e| format!("写入临时文件失败: {e}"))?;
         // persist 会自动 rename（Windows 上如果目标存在则先删除）
         temp_file
             .persist(&skill_file)
@@ -322,23 +323,22 @@ pub async fn skill_hub_check_npx() -> Result<Value, String> {
     if result.status.success() {
         let version = String::from_utf8_lossy(&result.stdout).trim().to_string();
         // 获取 npx 路径
-        let path_result = tokio::process::Command::new(if cfg!(windows) {
-            "cmd"
-        } else {
-            "sh"
-        })
-        .args(if cfg!(windows) {
-            vec!["/C", "where", "npx"]
-        } else {
-            vec!["-c", "which npx"]
-        })
-        .output()
-        .await;
+        let path_result = tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
+            .args(if cfg!(windows) {
+                vec!["/C", "where", "npx"]
+            } else {
+                vec!["-c", "which npx"]
+            })
+            .output()
+            .await;
 
-        let path = path_result
-            .ok()
-            .filter(|r| r.status.success())
-            .map(|r| String::from_utf8_lossy(&r.stdout).lines().next().unwrap_or("").to_string());
+        let path = path_result.ok().filter(|r| r.status.success()).map(|r| {
+            String::from_utf8_lossy(&r.stdout)
+                .lines()
+                .next()
+                .unwrap_or("")
+                .to_string()
+        });
 
         Ok(serde_json::json!({
             "available": true,
@@ -519,10 +519,8 @@ pub async fn skill_hub_import_local(
                 for entry in std::fs::read_dir(src).map_err(|e| e.to_string())?.flatten() {
                     let ep = entry.path();
                     if ep.is_file() {
-                        let dest_file =
-                            dest_dir.join(ep.file_name().unwrap_or_default());
-                        std::fs::copy(&ep, &dest_file)
-                            .map_err(|e| format!("复制文件失败: {e}"))?;
+                        let dest_file = dest_dir.join(ep.file_name().unwrap_or_default());
+                        std::fs::copy(&ep, &dest_file).map_err(|e| format!("复制文件失败: {e}"))?;
                     }
                 }
                 Ok(())
@@ -638,9 +636,7 @@ pub async fn skill_hub_batch_install(
 
     for pkg in &packages {
         // 将 GitHub URL 转换为 raw URL
-        let raw_url = if pkg.contains("github.com")
-            && !pkg.contains("raw.githubusercontent.com")
-        {
+        let raw_url = if pkg.contains("github.com") && !pkg.contains("raw.githubusercontent.com") {
             let converted = pkg
                 .replace("github.com", "raw.githubusercontent.com")
                 .replace("/tree/", "/")
@@ -764,10 +760,7 @@ pub async fn skill_hub_trending(state: State<'_, AppState>) -> Result<Value, Str
 }
 
 #[tauri::command]
-pub async fn skill_hub_search(
-    query: String,
-    category: Option<String>,
-) -> Result<Value, String> {
+pub async fn skill_hub_search(query: String, category: Option<String>) -> Result<Value, String> {
     let results = tokio::task::spawn_blocking(move || {
         let home = dirs::home_dir().ok_or_else(|| "无法获取主目录".to_string())?;
         let q_lower = query.to_lowercase();
@@ -832,15 +825,14 @@ pub async fn skill_hub_install(
 ) -> Result<Value, String> {
     let client = state.http_client.clone();
 
-    let raw_url = if skill_url.contains("github.com")
-        && !skill_url.contains("raw.githubusercontent.com")
-    {
-        skill_url
-            .replace("github.com", "raw.githubusercontent.com")
-            .replace("/blob/", "/")
-    } else {
-        skill_url.clone()
-    };
+    let raw_url =
+        if skill_url.contains("github.com") && !skill_url.contains("raw.githubusercontent.com") {
+            skill_url
+                .replace("github.com", "raw.githubusercontent.com")
+                .replace("/blob/", "/")
+        } else {
+            skill_url.clone()
+        };
 
     let content = client
         .get(&raw_url)
@@ -860,8 +852,7 @@ pub async fn skill_hub_install(
     };
 
     if !install_dir.exists() {
-        std::fs::create_dir_all(&install_dir)
-            .map_err(|e| format!("创建目录失败: {e}"))?;
+        std::fs::create_dir_all(&install_dir).map_err(|e| format!("创建目录失败: {e}"))?;
     }
 
     let file_name = skill_url
@@ -876,8 +867,7 @@ pub async fn skill_hub_install(
     };
 
     let installed_path = install_dir.join(&file_name);
-    std::fs::write(&installed_path, &content)
-        .map_err(|e| format!("写入文件失败: {e}"))?;
+    std::fs::write(&installed_path, &content).map_err(|e| format!("写入文件失败: {e}"))?;
 
     Ok(serde_json::json!({
         "success": true,
@@ -895,11 +885,9 @@ pub async fn skill_hub_remove(skill_path: String) -> Result<Value, String> {
         }
         // 如果是目录则递归删除，如果是文件则删除文件
         if path.is_dir() {
-            std::fs::remove_dir_all(path)
-                .map_err(|e| format!("删除目录失败: {e}"))?;
+            std::fs::remove_dir_all(path).map_err(|e| format!("删除目录失败: {e}"))?;
         } else {
-            std::fs::remove_file(path)
-                .map_err(|e| format!("删除文件失败: {e}"))?;
+            std::fs::remove_file(path).map_err(|e| format!("删除文件失败: {e}"))?;
         }
         Ok(serde_json::json!({ "success": true }))
     })

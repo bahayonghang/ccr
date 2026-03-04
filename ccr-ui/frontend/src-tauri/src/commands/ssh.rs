@@ -15,8 +15,8 @@ use ccr_db::models::ssh::{SshHost, SshKnownHost};
 
 use crate::platform::local::LocalEnvironment;
 use crate::platform::ssh::{SshEnvironment, SshHostConfig};
-use crate::ssh::{auth, auth::SshKeyInfo, connection::SshConnectionManager, sftp};
 use crate::ssh::connection::SshConnectResult;
+use crate::ssh::{auth, auth::SshKeyInfo, connection::SshConnectionManager, sftp};
 use crate::state::AppState;
 
 fn db_host_to_config(host: SshHost) -> SshHostConfig {
@@ -81,7 +81,6 @@ struct ProbeTarget {
     host: String,
     port: u16,
 }
-
 
 async fn resolve_probe_target(
     state: &AppState,
@@ -317,15 +316,13 @@ pub async fn ssh_add_host(
                 .unwrap_or_default(),
             identity_file: config_for_db.identity_file.clone(),
             remote_home: config_for_db.remote_home.clone(),
-            created_at: existing
-                .as_ref()
-                .map(|v| v.created_at)
-                .unwrap_or(now),
+            created_at: existing.as_ref().map(|v| v.created_at).unwrap_or(now),
             updated_at: now,
             last_connected_at: existing.and_then(|v| v.last_connected_at),
         };
 
-        if ssh_repo::update_host(&conn, &db_host).map_err(|e| format!("更新 SSH 主机失败: {e}"))? {
+        if ssh_repo::update_host(&conn, &db_host).map_err(|e| format!("更新 SSH 主机失败: {e}"))?
+        {
             Ok(())
         } else {
             ssh_repo::insert_host(&conn, &db_host).map_err(|e| format!("新增 SSH 主机失败: {e}"))
@@ -483,7 +480,8 @@ pub async fn ssh_confirm_host_fingerprint(
         let conn = db_pool
             .get()
             .map_err(|e| format!("获取数据库连接失败: {e}"))?;
-        ssh_repo::upsert_known_host(&conn, &entry).map_err(|e| format!("写入 known_hosts 失败: {e}"))
+        ssh_repo::upsert_known_host(&conn, &entry)
+            .map_err(|e| format!("写入 known_hosts 失败: {e}"))
     })
     .await
     .map_err(|e| format!("写入 known_hosts 任务失败: {e}"))??;

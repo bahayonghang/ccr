@@ -5,30 +5,44 @@ use tokio::process::Command;
 
 /// 允许执行的 CCR 子命令白名单
 const ALLOWED_COMMANDS: &[&str] = &[
-    "list", "switch", "add", "delete", "rename", "duplicate",
-    "show", "validate", "export", "import", "history", "version",
-    "help", "backup", "restore", "diff", "status",
+    "list",
+    "switch",
+    "add",
+    "delete",
+    "rename",
+    "duplicate",
+    "show",
+    "validate",
+    "export",
+    "import",
+    "history",
+    "version",
+    "help",
+    "backup",
+    "restore",
+    "diff",
+    "status",
 ];
 
 /// 每个白名单命令的简要描述
 const COMMAND_DESCRIPTIONS: &[(&str, &str)] = &[
-    ("list",      "列出所有配置"),
-    ("switch",    "切换到指定配置"),
-    ("add",       "添加新配置"),
-    ("delete",    "删除配置"),
-    ("rename",    "重命名配置"),
+    ("list", "列出所有配置"),
+    ("switch", "切换到指定配置"),
+    ("add", "添加新配置"),
+    ("delete", "删除配置"),
+    ("rename", "重命名配置"),
     ("duplicate", "复制配置"),
-    ("show",      "显示配置内容"),
-    ("validate",  "校验配置文件"),
-    ("export",    "导出配置"),
-    ("import",    "导入配置"),
-    ("history",   "查看操作历史"),
-    ("version",   "显示版本信息"),
-    ("help",      "显示帮助信息"),
-    ("backup",    "备份配置"),
-    ("restore",   "恢复配置"),
-    ("diff",      "比较配置差异"),
-    ("status",    "显示当前状态"),
+    ("show", "显示配置内容"),
+    ("validate", "校验配置文件"),
+    ("export", "导出配置"),
+    ("import", "导入配置"),
+    ("history", "查看操作历史"),
+    ("version", "显示版本信息"),
+    ("help", "显示帮助信息"),
+    ("backup", "备份配置"),
+    ("restore", "恢复配置"),
+    ("diff", "比较配置差异"),
+    ("status", "显示当前状态"),
 ];
 
 /// 校验子命令是否在白名单中
@@ -60,16 +74,13 @@ pub async fn execute_ccr_command(
         cmd.args(&extra_args);
     }
 
-    let output = cmd
-        .output()
-        .await
-        .map_err(|e| {
-            if e.kind() == std::io::ErrorKind::NotFound {
-                "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string()
-            } else {
-                format!("执行失败: {e}")
-            }
-        })?;
+    let output = cmd.output().await.map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string()
+        } else {
+            format!("执行失败: {e}")
+        }
+    })?;
 
     let exit_code = output.status.code().unwrap_or(-1);
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();

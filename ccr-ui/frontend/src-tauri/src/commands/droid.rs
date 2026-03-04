@@ -30,8 +30,7 @@ async fn read_settings() -> Result<Value, String> {
         }
         let content = std::fs::read_to_string(&path)
             .map_err(|e| format!("读取 Droid settings.json 失败: {e}"))?;
-        serde_json::from_str(&content)
-            .map_err(|e| format!("解析 Droid settings.json 失败: {e}"))
+        serde_json::from_str(&content).map_err(|e| format!("解析 Droid settings.json 失败: {e}"))
     })
     .await
     .map_err(|e| format!("spawn_blocking 失败: {e}"))?
@@ -50,10 +49,8 @@ async fn write_settings(settings: Value) -> Result<(), String> {
         let tmp_path = path.with_extension("json.tmp");
         let content = serde_json::to_string_pretty(&settings)
             .map_err(|e| format!("序列化 Droid settings 失败: {e}"))?;
-        std::fs::write(&tmp_path, &content)
-            .map_err(|e| format!("写入临时文件失败: {e}"))?;
-        std::fs::rename(&tmp_path, &path)
-            .map_err(|e| format!("原子重命名失败: {e}"))?;
+        std::fs::write(&tmp_path, &content).map_err(|e| format!("写入临时文件失败: {e}"))?;
+        std::fs::rename(&tmp_path, &path).map_err(|e| format!("原子重命名失败: {e}"))?;
         Ok(())
     })
     .await

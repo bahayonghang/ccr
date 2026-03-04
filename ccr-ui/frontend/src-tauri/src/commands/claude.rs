@@ -270,8 +270,8 @@ pub async fn claude_add_agent(name: String, config: Value) -> Result<Value, Stri
     tokio::task::spawn_blocking(move || {
         let mut settings = load_settings()?;
 
-        let mut agent: ccr_types::Agent = serde_json::from_value(config)
-            .map_err(|e| format!("Invalid agent config: {}", e))?;
+        let mut agent: ccr_types::Agent =
+            serde_json::from_value(config).map_err(|e| format!("Invalid agent config: {}", e))?;
         // Ensure the name from the parameter takes precedence
         agent.name = name;
 
@@ -297,8 +297,8 @@ pub async fn claude_update_agent(name: String, config: Value) -> Result<Value, S
             .position(|a| a.name == name)
             .ok_or_else(|| format!("Agent '{}' not found", name))?;
 
-        let updated: ccr_types::Agent = serde_json::from_value(config)
-            .map_err(|e| format!("Invalid agent config: {}", e))?;
+        let updated: ccr_types::Agent =
+            serde_json::from_value(config).map_err(|e| format!("Invalid agent config: {}", e))?;
         settings.agents[pos] = updated;
 
         save_settings(&settings)?;
@@ -431,8 +431,8 @@ pub async fn claude_add_plugin(name: String, config: Value) -> Result<Value, Str
     tokio::task::spawn_blocking(move || {
         let mut settings = load_settings()?;
 
-        let mut plugin: ccr_types::Plugin = serde_json::from_value(config)
-            .map_err(|e| format!("Invalid plugin config: {}", e))?;
+        let mut plugin: ccr_types::Plugin =
+            serde_json::from_value(config).map_err(|e| format!("Invalid plugin config: {}", e))?;
         plugin.name = name;
 
         settings.plugins.push(plugin);
@@ -457,8 +457,8 @@ pub async fn claude_update_plugin(name: String, config: Value) -> Result<Value, 
             .position(|p| p.name == name)
             .ok_or_else(|| format!("Plugin '{}' not found", name))?;
 
-        let updated: ccr_types::Plugin = serde_json::from_value(config)
-            .map_err(|e| format!("Invalid plugin config: {}", e))?;
+        let updated: ccr_types::Plugin =
+            serde_json::from_value(config).map_err(|e| format!("Invalid plugin config: {}", e))?;
         settings.plugins[pos] = updated;
 
         save_settings(&settings)?;
@@ -503,8 +503,8 @@ struct OutputStyle {
 #[tauri::command]
 pub async fn claude_get_output_styles() -> Result<Value, String> {
     tokio::task::spawn_blocking(|| {
-        let dir =
-            output_styles_dir().map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
+        let dir = output_styles_dir()
+            .map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
 
         if !dir.exists() {
             return Ok(serde_json::json!({ "styles": [] }));
@@ -544,8 +544,8 @@ pub async fn claude_get_output_styles() -> Result<Value, String> {
 #[tauri::command]
 pub async fn claude_update_output_styles(styles: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let dir =
-            output_styles_dir().map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
+        let dir = output_styles_dir()
+            .map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
 
         fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create output-styles dir: {}", e))?;
@@ -622,8 +622,8 @@ pub async fn claude_update_hooks(hooks: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
         let mut settings = load_settings()?;
 
-        let new_hooks: Vec<ccr_types::Hook> = serde_json::from_value(hooks)
-            .map_err(|e| format!("Invalid hooks payload: {}", e))?;
+        let new_hooks: Vec<ccr_types::Hook> =
+            serde_json::from_value(hooks).map_err(|e| format!("Invalid hooks payload: {}", e))?;
         settings.hooks = new_hooks;
 
         save_settings(&settings)?;
@@ -643,13 +643,13 @@ pub async fn claude_update_hooks(hooks: Value) -> Result<Value, String> {
 #[tauri::command]
 pub async fn claude_get_budgets() -> Result<Value, String> {
     tokio::task::spawn_blocking(|| {
-        let budget_manager =
-            BudgetManager::with_default().map_err(|e| format!("BudgetManager init error: {}", e))?;
+        let budget_manager = BudgetManager::with_default()
+            .map_err(|e| format!("BudgetManager init error: {}", e))?;
 
         let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("CostTracker storage dir error: {}", e))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("CostTracker init error: {}", e))?;
+        let tracker =
+            CostTracker::new(storage_dir).map_err(|e| format!("CostTracker init error: {}", e))?;
 
         let status = budget_manager
             .check_status(&tracker)
@@ -684,8 +684,8 @@ pub async fn claude_get_budgets() -> Result<Value, String> {
 #[tauri::command]
 pub async fn claude_update_budgets(budgets: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let mut budget_manager =
-            BudgetManager::with_default().map_err(|e| format!("BudgetManager init error: {}", e))?;
+        let mut budget_manager = BudgetManager::with_default()
+            .map_err(|e| format!("BudgetManager init error: {}", e))?;
 
         if let Some(enabled) = budgets.get("enabled").and_then(|v| v.as_bool()) {
             if enabled {

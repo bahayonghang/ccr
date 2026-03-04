@@ -40,7 +40,14 @@ pub struct SshKeyInfo {
 }
 
 /// 标准密钥文件名（不含扩展名）
-const STANDARD_KEY_NAMES: &[&str] = &["id_rsa", "id_ed25519", "id_ecdsa", "id_dsa", "id_ecdsa_sk", "id_ed25519_sk"];
+const STANDARD_KEY_NAMES: &[&str] = &[
+    "id_rsa",
+    "id_ed25519",
+    "id_ecdsa",
+    "id_dsa",
+    "id_ecdsa_sk",
+    "id_ed25519_sk",
+];
 
 /// 根据私钥文件头部内容检测密钥类型
 fn detect_key_type(header: &str) -> &'static str {
@@ -100,10 +107,7 @@ async fn get_fingerprint(path: &str) -> Option<String> {
     let stdout = String::from_utf8_lossy(&output.stdout);
     // 输出格式：`2048 SHA256:xxxx user@host (RSA)`
     // 第二个空白分隔的字段即为指纹
-    stdout
-        .split_whitespace()
-        .nth(1)
-        .map(|s| s.to_string())
+    stdout.split_whitespace().nth(1).map(|s| s.to_string())
 }
 
 /// 扫描 `~/.ssh/` 目录，收集所有可读的私钥文件信息。

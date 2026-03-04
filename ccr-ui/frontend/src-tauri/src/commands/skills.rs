@@ -36,8 +36,7 @@ fn scan_skills_dir(base: &std::path::Path) -> Vec<ccr::models::skill::Skill> {
             continue;
         }
         let instruction = std::fs::read_to_string(&skill_file).unwrap_or_default();
-        let (metadata, description) =
-            ccr::models::skill::Skill::parse_with_fallback(&instruction);
+        let (metadata, description) = ccr::models::skill::Skill::parse_with_fallback(&instruction);
         skills.push(ccr::models::skill::Skill {
             name,
             description,
@@ -59,7 +58,9 @@ pub async fn list_skills() -> Result<Value, String> {
         let manager = make_manager()?;
 
         // 1) 用户全局技能 (~/.claude/skills/)
-        let mut all_skills = manager.list_skills().map_err(|e| format!("Failed to list skills: {e}"))?;
+        let mut all_skills = manager
+            .list_skills()
+            .map_err(|e| format!("Failed to list skills: {e}"))?;
 
         // 2) 项目本地技能 (./.claude/skills/)
         let project_skills: Vec<ccr::models::skill::Skill> = (|| {

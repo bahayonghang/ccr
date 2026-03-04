@@ -14,8 +14,7 @@ fn iflow_config_path() -> Result<PathBuf, String> {
     let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
     let dir = home.join(".iflow");
     if !dir.exists() {
-        std::fs::create_dir_all(&dir)
-            .map_err(|e| format!("创建 .iflow 目录失败: {e}"))?;
+        std::fs::create_dir_all(&dir).map_err(|e| format!("创建 .iflow 目录失败: {e}"))?;
     }
     Ok(dir.join("settings.json"))
 }
@@ -26,8 +25,8 @@ fn read_iflow_config() -> Result<Value, String> {
     if !path.exists() {
         return Ok(json!({}));
     }
-    let content = std::fs::read_to_string(&path)
-        .map_err(|e| format!("读取 iFlow 配置文件失败: {e}"))?;
+    let content =
+        std::fs::read_to_string(&path).map_err(|e| format!("读取 iFlow 配置文件失败: {e}"))?;
     serde_json::from_str(&content).map_err(|e| format!("解析 iFlow JSON 失败: {e}"))
 }
 
@@ -35,10 +34,10 @@ fn read_iflow_config() -> Result<Value, String> {
 fn write_iflow_config(config: &Value) -> Result<(), String> {
     let path = iflow_config_path()?;
     let parent = path.parent().ok_or_else(|| "无法获取父目录".to_string())?;
-    let json_str = serde_json::to_string_pretty(config)
-        .map_err(|e| format!("序列化 iFlow 配置失败: {e}"))?;
-    let mut tmp = tempfile::NamedTempFile::new_in(parent)
-        .map_err(|e| format!("创建临时文件失败: {e}"))?;
+    let json_str =
+        serde_json::to_string_pretty(config).map_err(|e| format!("序列化 iFlow 配置失败: {e}"))?;
+    let mut tmp =
+        tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {e}"))?;
     tmp.write_all(json_str.as_bytes())
         .map_err(|e| format!("写入临时文件失败: {e}"))?;
     tmp.persist(&path)

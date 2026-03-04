@@ -6,7 +6,7 @@ use chrono::Utc;
 use tokio::process::Command;
 use tokio::time::{Duration, timeout};
 
-use crate::state::{AppState, SshRuntimeState};
+use crate::state::{AppState, DEFAULT_SSH_PASSWORD_TTL_SECS, SshPasswordEntry, SshRuntimeState};
 
 /// SSH 连接测试结果。
 #[derive(Debug, Clone, serde::Serialize)]
@@ -28,7 +28,13 @@ impl SshConnectionManager {
             return;
         }
         let mut passwords = state.ssh_password_cache.write().await;
-        passwords.insert(env_id.to_string(), password);
+        passwords.insert(
+            env_id.to_string(),
+            SshPasswordEntry {
+                value: password,
+                cached_at: Instant::now(),
+            },
+        );
     }
 
     /// 清理指定环境的密码缓存。
@@ -39,8 +45,19 @@ impl SshConnectionManager {
 
     /// 检查指定环境是否存在密码缓存。
     pub async fn has_password(state: &AppState, env_id: &str) -> bool {
-        let passwords = state.ssh_password_cache.read().await;
-        passwords.get(env_id).is_some()
+        let ttl = Duration::from_secs(DEFAULT_SSH_PASSWORD_TTL_SECS);
+        let mut passwords = state.ssh_password_cache.write().await;
+        match passwords.get(env_id) {
+            Some(entry) if entry.cached_at.elapsed() <= ttl => {
+                let _is_empty = entry.value.trim().is_empty();
+                !_is_empty
+            }
+            Some(_) => {
+                passwords.remove(env_id);
+                false
+            }
+            None => false,
+        }
     }
 
     /// 写入/覆盖连接状态。

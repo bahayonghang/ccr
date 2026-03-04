@@ -97,7 +97,9 @@ impl ExecutionEnvironment for LocalEnvironment {
         let full_path = resolve_config_path(platform, path)?;
         // 确保父目录存在
         if let Some(parent) = full_path.parent() {
-            tokio::fs::create_dir_all(parent).await.map_err(EnvError::Io)?;
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(EnvError::Io)?;
         }
         tokio::fs::write(&full_path, content)
             .await
@@ -127,8 +129,8 @@ fn resolve_config_path(
     platform: &str,
     relative_path: &str,
 ) -> Result<std::path::PathBuf, EnvError> {
-    let home = dirs::home_dir()
-        .ok_or_else(|| EnvError::Other("home directory not found".to_string()))?;
+    let home =
+        dirs::home_dir().ok_or_else(|| EnvError::Other("home directory not found".to_string()))?;
 
     let base = match platform {
         "claude" => home.join(".claude"),
@@ -166,11 +168,7 @@ async fn which_tool(name: &str) -> Option<String> {
                 .unwrap_or("")
                 .trim()
                 .to_string();
-            if path.is_empty() {
-                None
-            } else {
-                Some(path)
-            }
+            if path.is_empty() { None } else { Some(path) }
         }
         _ => None,
     }

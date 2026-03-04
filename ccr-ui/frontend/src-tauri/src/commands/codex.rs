@@ -119,8 +119,7 @@ fn read_codex_config(path: &PathBuf) -> Result<CodexConfig, String> {
     if !path.exists() {
         return Ok(CodexConfig::default());
     }
-    let content =
-        fs::read_to_string(path).map_err(|e| format!("读取 Codex 配置失败: {e}"))?;
+    let content = fs::read_to_string(path).map_err(|e| format!("读取 Codex 配置失败: {e}"))?;
     toml::from_str(&content).map_err(|e| format!("解析 Codex 配置失败: {e}"))
 }
 
@@ -132,10 +131,11 @@ fn write_codex_config(path: &PathBuf, config: &CodexConfig) -> Result<(), String
         toml::to_string_pretty(config).map_err(|e| format!("序列化 Codex 配置失败: {e}"))?;
     // 原子写入: 写到同目录临时文件再 rename
     let parent = path.parent().ok_or("无效的文件路径")?;
-    let tmp = tempfile::NamedTempFile::new_in(parent)
-        .map_err(|e| format!("创建临时文件失败: {e}"))?;
+    let tmp =
+        tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {e}"))?;
     fs::write(tmp.path(), &content).map_err(|e| format!("写入临时文件失败: {e}"))?;
-    tmp.persist(path).map_err(|e| format!("持久化配置文件失败: {e}"))?;
+    tmp.persist(path)
+        .map_err(|e| format!("持久化配置文件失败: {e}"))?;
     Ok(())
 }
 
@@ -390,8 +390,7 @@ pub async fn codex_list_agents() -> Result<Value, String> {
         }
 
         let mut agents: Vec<Value> = Vec::new();
-        for entry in fs::read_dir(&agents_dir)
-            .map_err(|e| format!("读取 agents 目录失败: {e}"))?
+        for entry in fs::read_dir(&agents_dir).map_err(|e| format!("读取 agents 目录失败: {e}"))?
         {
             let entry = entry.map_err(|e| format!("遍历 agents 目录失败: {e}"))?;
             let path = entry.path();
@@ -422,8 +421,7 @@ pub async fn codex_list_agents() -> Result<Value, String> {
 pub async fn codex_add_agent(name: String, config: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
         let agents_dir = codex_agents_dir()?;
-        fs::create_dir_all(&agents_dir)
-            .map_err(|e| format!("创建 agents 目录失败: {e}"))?;
+        fs::create_dir_all(&agents_dir).map_err(|e| format!("创建 agents 目录失败: {e}"))?;
 
         let file_path = agents_dir.join(format!("{name}.md"));
         if file_path.exists() {
@@ -431,8 +429,7 @@ pub async fn codex_add_agent(name: String, config: Value) -> Result<Value, Strin
         }
 
         let content = build_agent_markdown(&config);
-        fs::write(&file_path, &content)
-            .map_err(|e| format!("写入 agent '{name}' 失败: {e}"))?;
+        fs::write(&file_path, &content).map_err(|e| format!("写入 agent '{name}' 失败: {e}"))?;
 
         Ok(json!({ "message": format!("Agent '{name}' 已添加") }))
     })
@@ -451,8 +448,7 @@ pub async fn codex_update_agent(name: String, config: Value) -> Result<Value, St
         }
 
         let content = build_agent_markdown(&config);
-        fs::write(&file_path, &content)
-            .map_err(|e| format!("更新 agent '{name}' 失败: {e}"))?;
+        fs::write(&file_path, &content).map_err(|e| format!("更新 agent '{name}' 失败: {e}"))?;
 
         Ok(json!({ "message": format!("Agent '{name}' 已更新") }))
     })
@@ -470,8 +466,7 @@ pub async fn codex_delete_agent(name: String) -> Result<String, String> {
             return Err(format!("Agent '{name}' 不存在"));
         }
 
-        fs::remove_file(&file_path)
-            .map_err(|e| format!("删除 agent '{name}' 失败: {e}"))?;
+        fs::remove_file(&file_path).map_err(|e| format!("删除 agent '{name}' 失败: {e}"))?;
 
         Ok(format!("Agent '{name}' 已删除"))
     })
@@ -571,10 +566,7 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
 
 /// 保存当前登录到命名账号
 #[tauri::command]
-pub async fn codex_save_auth(
-    name: String,
-    description: Option<String>,
-) -> Result<Value, String> {
+pub async fn codex_save_auth(name: String, description: Option<String>) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
@@ -597,9 +589,7 @@ pub async fn codex_switch_auth(name: String) -> Result<Value, String> {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
 
-        service
-            .switch_account(&name)
-            .map_err(|e| format!("{e}"))?;
+        service.switch_account(&name).map_err(|e| format!("{e}"))?;
 
         Ok::<_, String>(())
     })
@@ -617,9 +607,7 @@ pub async fn codex_delete_auth(name: String) -> Result<Value, String> {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
 
-        service
-            .delete_account(&name)
-            .map_err(|e| format!("{e}"))?;
+        service.delete_account(&name).map_err(|e| format!("{e}"))?;
 
         Ok::<_, String>(())
     })
@@ -741,9 +729,7 @@ fn parse_mcp_server(v: &Value) -> Result<CodexMcpServer, String> {
                 .collect()
         }),
         cwd: v.get("cwd").and_then(|x| x.as_str()).map(String::from),
-        startup_timeout_ms: v
-            .get("startup_timeout_ms")
-            .and_then(|x| x.as_u64()),
+        startup_timeout_ms: v.get("startup_timeout_ms").and_then(|x| x.as_u64()),
         url: v.get("url").and_then(|x| x.as_str()).map(String::from),
         bearer_token: v
             .get("bearer_token")
@@ -762,7 +748,8 @@ fn extract_frontmatter_description(content: &str) -> (Option<String>, String) {
         let body = rest[end + 5..].to_string();
         let description = frontmatter.lines().find_map(|line| {
             let line = line.trim();
-            line.strip_prefix("description:").map(|v| v.trim().to_string())
+            line.strip_prefix("description:")
+                .map(|v| v.trim().to_string())
         });
         return (description, body);
     }
@@ -775,10 +762,7 @@ fn build_agent_markdown(config: &Value) -> String {
         .get("description")
         .and_then(|v| v.as_str())
         .unwrap_or("");
-    let content = config
-        .get("content")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let content = config.get("content").and_then(|v| v.as_str()).unwrap_or("");
 
     if description.is_empty() {
         content.to_string()

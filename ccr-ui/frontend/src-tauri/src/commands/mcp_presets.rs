@@ -116,8 +116,8 @@ pub async fn install_mcp_preset_single(
     env_vars: Option<Value>,
 ) -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(move || {
-        let target = parse_platform(&platform)
-            .ok_or_else(|| format!("Unknown platform: {platform}"))?;
+        let target =
+            parse_platform(&platform).ok_or_else(|| format!("Unknown platform: {platform}"))?;
 
         let custom_env: Option<std::collections::HashMap<String, String>> = match env_vars {
             Some(v) => {

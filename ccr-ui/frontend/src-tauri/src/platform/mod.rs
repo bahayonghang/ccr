@@ -4,9 +4,9 @@
 //! `EnvironmentRegistry` 管理多个环境实例并支持运行时切换。
 
 pub mod local;
+pub mod ssh;
 #[cfg(target_os = "windows")]
 pub mod wsl;
-pub mod ssh;
 
 use std::sync::Arc;
 
@@ -93,12 +93,8 @@ pub trait ExecutionEnvironment: Send + Sync {
     async fn read_config(&self, platform: &str, path: &str) -> Result<String, EnvError>;
 
     /// 写入指定平台的配置文件
-    async fn write_config(
-        &self,
-        platform: &str,
-        path: &str,
-        content: &str,
-    ) -> Result<(), EnvError>;
+    async fn write_config(&self, platform: &str, path: &str, content: &str)
+    -> Result<(), EnvError>;
 
     /// 检测已安装的 CLI 工具状态
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError>;

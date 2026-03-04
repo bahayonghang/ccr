@@ -93,10 +93,7 @@ fn list_claude_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
                 .get("env")
                 .and_then(|e| serde_json::from_value(e.clone()).ok())
                 .unwrap_or_default(),
-            disabled: v
-                .get("disabled")
-                .and_then(|d| d.as_bool())
-                .unwrap_or(false),
+            disabled: v.get("disabled").and_then(|d| d.as_bool()).unwrap_or(false),
         })
         .collect())
 }
@@ -107,12 +104,9 @@ fn list_codex_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
         return Ok(vec![]);
     }
     let content = fs::read_to_string(&path).map_err(|e| format!("Read codex config: {e}"))?;
-    let config: Value =
-        toml::from_str::<toml::Value>(&content)
-            .map_err(|e| format!("Parse codex config: {e}"))
-            .and_then(|v| {
-                serde_json::to_value(v).map_err(|e| format!("Convert codex config: {e}"))
-            })?;
+    let config: Value = toml::from_str::<toml::Value>(&content)
+        .map_err(|e| format!("Parse codex config: {e}"))
+        .and_then(|v| serde_json::to_value(v).map_err(|e| format!("Convert codex config: {e}")))?;
 
     let Some(servers) = config.get("mcp_servers").and_then(|v| v.as_object()) else {
         return Ok(vec![]);
@@ -342,7 +336,9 @@ pub async fn unified_list_mcp_servers(
 
 /// 添加 MCP 服务器到指定平台（分发到对应平台的 config 文件）
 #[tauri::command]
-pub async fn unified_add_mcp_server(request: UnifiedMcpRequest) -> Result<serde_json::Value, String> {
+pub async fn unified_add_mcp_server(
+    request: UnifiedMcpRequest,
+) -> Result<serde_json::Value, String> {
     if request.name.is_empty() {
         return Err("name cannot be empty".to_string());
     }
@@ -367,8 +363,8 @@ pub async fn unified_add_mcp_server(request: UnifiedMcpRequest) -> Result<serde_
         match platform.as_str() {
             "claude" => {
                 let mut cc = read_claude_config_for_unified()?;
-                let entry: serde_json::Map<String, Value> = serde_json::from_value(config)
-                    .map_err(|e| format!("Invalid config: {e}"))?;
+                let entry: serde_json::Map<String, Value> =
+                    serde_json::from_value(config).map_err(|e| format!("Invalid config: {e}"))?;
                 cc.as_object_mut()
                     .and_then(|o| o.get_mut("mcpServers").and_then(|s| s.as_object_mut()))
                     .map(|servers| servers.insert(name.clone(), Value::Object(entry)));
@@ -401,10 +397,7 @@ pub async fn unified_add_mcp_server(request: UnifiedMcpRequest) -> Result<serde_
 
 /// 删除指定平台的 MCP 服务器
 #[tauri::command]
-pub async fn unified_delete_mcp_server(
-    platform: String,
-    name: String,
-) -> Result<String, String> {
+pub async fn unified_delete_mcp_server(platform: String, name: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         match platform.as_str() {
             "claude" => {
@@ -443,10 +436,22 @@ pub async fn unified_delete_mcp_server(
 fn platform_config_info(platform: &str) -> Result<(PathBuf, String), String> {
     let home = home_dir()?;
     match platform {
-        "codex" => Ok((home.join(".codex").join("config.toml"), "mcp_servers".into())),
-        "gemini" => Ok((home.join(".gemini").join("settings.json"), "mcpServers".into())),
-        "qwen" => Ok((home.join(".qwen").join("settings.json"), "mcpServers".into())),
-        "droid" => Ok((home.join(".factory").join("settings.json"), "mcpServers".into())),
+        "codex" => Ok((
+            home.join(".codex").join("config.toml"),
+            "mcp_servers".into(),
+        )),
+        "gemini" => Ok((
+            home.join(".gemini").join("settings.json"),
+            "mcpServers".into(),
+        )),
+        "qwen" => Ok((
+            home.join(".qwen").join("settings.json"),
+            "mcpServers".into(),
+        )),
+        "droid" => Ok((
+            home.join(".factory").join("settings.json"),
+            "mcpServers".into(),
+        )),
         _ => Err(format!("Unknown platform: {platform}")),
     }
 }

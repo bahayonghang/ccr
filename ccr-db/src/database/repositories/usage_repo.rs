@@ -422,6 +422,46 @@ fn build_where_clause(
     (where_sql, bind_params)
 }
 
+/// 构建日志分页查询的 WHERE 子句和参数
+fn build_logs_where_clause(
+    platform: &Option<String>,
+    model_filter: &Option<String>,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> (String, Vec<Box<dyn rusqlite::types::ToSql>>) {
+    let mut conditions: Vec<String> = Vec::new();
+    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+
+    if let Some(p) = platform {
+        bind_params.push(Box::new(p.clone()));
+        conditions.push(format!("platform = ?{}", bind_params.len()));
+    }
+    if let Some(m) = model_filter {
+        bind_params.push(Box::new(m.clone()));
+        conditions.push(format!("model = ?{}", bind_params.len()));
+    }
+    if let Some(s) = start {
+        bind_params.push(Box::new(s.clone()));
+        conditions.push(format!("recorded_at >= ?{}", bind_params.len()));
+    }
+    if let Some(e) = end {
+        let end_val = if e.len() == 10 && !e.contains('T') {
+            format!("{}T23:59:59Z", e)
+        } else {
+            e.clone()
+        };
+        bind_params.push(Box::new(end_val));
+        conditions.push(format!("recorded_at <= ?{}", bind_params.len()));
+    }
+
+    let where_sql = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", conditions.join(" AND "))
+    };
+    (where_sql, bind_params)
+}
+
 /// 获取使用量汇总
 #[allow(dead_code)]
 pub fn get_usage_summary(
@@ -627,33 +667,18 @@ pub fn get_heatmap_data(
 }
 
 /// 获取分页日志
-#[allow(dead_code)]
+#[allow(dead_code, clippy::too_many_arguments)]
 pub fn get_paginated_logs(
     conn: &Connection,
     platform: &Option<String>,
+    start: &Option<String>,
+    end: &Option<String>,
     page: i64,
     page_size: i64,
     model_filter: &Option<String>,
     include_total: bool,
 ) -> Result<PaginatedLogs, rusqlite::Error> {
-    // 构建 WHERE
-    let mut conditions: Vec<String> = Vec::new();
-    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-
-    if let Some(p) = platform {
-        bind_params.push(Box::new(p.clone()));
-        conditions.push(format!("platform = ?{}", bind_params.len()));
-    }
-    if let Some(m) = model_filter {
-        bind_params.push(Box::new(m.clone()));
-        conditions.push(format!("model = ?{}", bind_params.len()));
-    }
-
-    let where_sql = if conditions.is_empty() {
-        String::new()
-    } else {
-        format!(" WHERE {}", conditions.join(" AND "))
-    };
+    let (where_sql, mut bind_params) = build_logs_where_clause(platform, model_filter, start, end);
 
     let total = if include_total {
         let count_sql = format!("SELECT COUNT(*) FROM usage_records{}", where_sql);
@@ -669,7 +694,7 @@ pub fn get_paginated_logs(
     bind_params.push(Box::new(page_size));
     bind_params.push(Box::new(offset));
     let data_sql = format!(
-        "SELECT {} FROM usage_records{} ORDER BY recorded_at DESC LIMIT ?{} OFFSET ?{}",
+        "SELECT {} FROM usage_records{} ORDER BY recorded_at DESC, id DESC LIMIT ?{} OFFSET ?{}",
         USAGE_RECORD_COLUMNS,
         where_sql,
         bind_params.len() - 1,
@@ -708,27 +733,23 @@ fn format_cursor(record: &UsageRecord) -> String {
 }
 
 /// 基于游标分页日志（Keyset Pagination）
-#[allow(dead_code)]
+#[allow(dead_code, clippy::too_many_arguments)]
 pub fn get_logs_by_cursor(
     conn: &Connection,
     platform: &Option<String>,
+    start: &Option<String>,
+    end: &Option<String>,
     page_size: i64,
     model_filter: &Option<String>,
     cursor: &Option<String>,
     include_total: bool,
 ) -> Result<PaginatedLogs, rusqlite::Error> {
-    let mut conditions: Vec<String> = Vec::new();
-    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-
-    if let Some(p) = platform {
-        bind_params.push(Box::new(p.clone()));
-        conditions.push(format!("platform = ?{}", bind_params.len()));
-    }
-
-    if let Some(m) = model_filter {
-        bind_params.push(Box::new(m.clone()));
-        conditions.push(format!("model = ?{}", bind_params.len()));
-    }
+    let (base_where, mut bind_params) = build_logs_where_clause(platform, model_filter, start, end);
+    let mut conditions = if base_where.is_empty() {
+        Vec::new()
+    } else {
+        vec![base_where.trim_start_matches(" WHERE ").to_string()]
+    };
 
     if let Some(raw_cursor) = cursor
         && let Some((recorded_at, id)) = parse_cursor(raw_cursor)
@@ -752,21 +773,8 @@ pub fn get_logs_by_cursor(
     };
 
     let total = if include_total {
-        let mut count_conditions: Vec<String> = Vec::new();
-        let mut count_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-        if let Some(p) = platform {
-            count_params.push(Box::new(p.clone()));
-            count_conditions.push(format!("platform = ?{}", count_params.len()));
-        }
-        if let Some(m) = model_filter {
-            count_params.push(Box::new(m.clone()));
-            count_conditions.push(format!("model = ?{}", count_params.len()));
-        }
-        let count_where = if count_conditions.is_empty() {
-            String::new()
-        } else {
-            format!(" WHERE {}", count_conditions.join(" AND "))
-        };
+        let (count_where, count_params) =
+            build_logs_where_clause(platform, model_filter, start, end);
         let count_sql = format!("SELECT COUNT(*) FROM usage_records{}", count_where);
         let count_params_ref: Vec<&dyn rusqlite::types::ToSql> =
             count_params.iter().map(|p| p.as_ref()).collect();
@@ -952,5 +960,129 @@ mod tests {
             cost_usd: 0.0,
         };
         insert_record(&conn, &record).unwrap();
+    }
+
+    #[test]
+    fn test_paginated_logs_respects_date_and_model_filters() {
+        let conn = setup_test_db();
+        let source_id = Uuid::new_v4().to_string();
+
+        let records = vec![
+            UsageRecord {
+                id: "r1".to_string(),
+                platform: "codex".to_string(),
+                project_path: "/p1".to_string(),
+                record_json: "{}".to_string(),
+                recorded_at: DateTime::parse_from_rfc3339("2026-01-01T10:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+                source_id: source_id.clone(),
+                model: Some("gpt-3.5".to_string()),
+                input_tokens: 10,
+                output_tokens: 10,
+                cache_read_tokens: 0,
+                cost_usd: 0.1,
+            },
+            UsageRecord {
+                id: "r2".to_string(),
+                platform: "codex".to_string(),
+                project_path: "/p2".to_string(),
+                record_json: "{}".to_string(),
+                recorded_at: DateTime::parse_from_rfc3339("2026-01-02T12:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+                source_id: source_id.clone(),
+                model: Some("gpt-4o".to_string()),
+                input_tokens: 20,
+                output_tokens: 20,
+                cache_read_tokens: 0,
+                cost_usd: 0.2,
+            },
+            UsageRecord {
+                id: "r3".to_string(),
+                platform: "claude".to_string(),
+                project_path: "/p3".to_string(),
+                record_json: "{}".to_string(),
+                recorded_at: DateTime::parse_from_rfc3339("2026-01-02T15:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+                source_id,
+                model: Some("claude-3.7-sonnet".to_string()),
+                input_tokens: 30,
+                output_tokens: 30,
+                cache_read_tokens: 0,
+                cost_usd: 0.3,
+            },
+        ];
+
+        insert_records_batch(&conn, &records).unwrap();
+
+        let page = get_paginated_logs(
+            &conn,
+            &Some("codex".to_string()),
+            &Some("2026-01-02".to_string()),
+            &Some("2026-01-02".to_string()),
+            1,
+            20,
+            &Some("gpt-4o".to_string()),
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(page.records.len(), 1);
+        assert_eq!(page.records[0].id, "r2");
+        assert_eq!(page.total, Some(1));
+    }
+
+    #[test]
+    fn test_cursor_and_offset_first_page_consistency() {
+        let conn = setup_test_db();
+        let source_id = Uuid::new_v4().to_string();
+
+        let mut records = Vec::new();
+        for i in 0..30 {
+            records.push(UsageRecord {
+                id: format!("rid-{i:02}"),
+                platform: "codex".to_string(),
+                project_path: "/bulk".to_string(),
+                record_json: "{}".to_string(),
+                recorded_at: Utc::now() + chrono::Duration::seconds(i),
+                source_id: source_id.clone(),
+                model: Some("gpt-4o".to_string()),
+                input_tokens: i,
+                output_tokens: i,
+                cache_read_tokens: 0,
+                cost_usd: i as f64 / 100.0,
+            });
+        }
+        insert_records_batch(&conn, &records).unwrap();
+
+        let offset_page = get_paginated_logs(
+            &conn,
+            &Some("codex".to_string()),
+            &None,
+            &None,
+            1,
+            10,
+            &Some("gpt-4o".to_string()),
+            true,
+        )
+        .unwrap();
+        let cursor_page = get_logs_by_cursor(
+            &conn,
+            &Some("codex".to_string()),
+            &None,
+            &None,
+            10,
+            &Some("gpt-4o".to_string()),
+            &None,
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(offset_page.records.len(), cursor_page.records.len());
+        let offset_ids: Vec<&str> = offset_page.records.iter().map(|r| r.id.as_str()).collect();
+        let cursor_ids: Vec<&str> = cursor_page.records.iter().map(|r| r.id.as_str()).collect();
+        assert_eq!(offset_ids, cursor_ids);
     }
 }

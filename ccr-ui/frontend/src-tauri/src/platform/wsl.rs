@@ -125,14 +125,10 @@ pub fn get_wsl_username(distro: &str) -> Result<String, EnvError> {
         )));
     }
 
-    let username = String::from_utf8_lossy(&output.stdout)
-        .trim()
-        .to_string();
+    let username = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
     if username.is_empty() {
-        return Err(EnvError::Other(format!(
-            "WSL 用户名为空 ({distro})"
-        )));
+        return Err(EnvError::Other(format!("WSL 用户名为空 ({distro})")));
     }
 
     Ok(username)
@@ -277,7 +273,11 @@ impl WslEnvironment {
         // linux_path 形如 /home/user/.claude/settings.json
         // UNC 形如 \\wsl$\Ubuntu-22.04\home\user\.claude\settings.json
         let win_path = linux_path.replace('/', "\\");
-        format!("\\\\wsl$\\{}\\{}", self.distro.name, win_path.trim_start_matches('\\'))
+        format!(
+            "\\\\wsl$\\{}\\{}",
+            self.distro.name,
+            win_path.trim_start_matches('\\')
+        )
     }
 
     /// 将平台名转换为 Linux home 下的配置目录前缀。
@@ -375,9 +375,7 @@ impl ExecutionEnvironment for WslEnvironment {
 
                     if !output.status.success() {
                         let stderr = String::from_utf8_lossy(&output.stderr);
-                        return Err(EnvError::ConfigNotFound(format!(
-                            "{lp}: {stderr}"
-                        )));
+                        return Err(EnvError::ConfigNotFound(format!("{lp}: {stderr}")));
                     }
                     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
                 })
@@ -472,9 +470,7 @@ impl ExecutionEnvironment for WslEnvironment {
 
             let (installed, path) = match result {
                 Ok(output) if output.status.success() => {
-                    let p = String::from_utf8_lossy(&output.stdout)
-                        .trim()
-                        .to_string();
+                    let p = String::from_utf8_lossy(&output.stdout).trim().to_string();
                     (true, if p.is_empty() { None } else { Some(p) })
                 }
                 _ => (false, None),
@@ -513,8 +509,8 @@ pub fn sync_config_blocking(
     direction: &SyncDirection,
 ) -> Result<String, EnvError> {
     // 获取本地 home 目录
-    let local_home = dirs::home_dir()
-        .ok_or_else(|| EnvError::Other("本地 home 目录未找到".to_string()))?;
+    let local_home =
+        dirs::home_dir().ok_or_else(|| EnvError::Other("本地 home 目录未找到".to_string()))?;
 
     let local_dir = match platform {
         "claude" => local_home.join(".claude"),
@@ -544,9 +540,7 @@ pub fn sync_config_blocking(
 
             let mut count = 0u32;
             if local_dir.exists() {
-                for entry in std::fs::read_dir(&local_dir)
-                    .map_err(EnvError::Io)?
-                {
+                for entry in std::fs::read_dir(&local_dir).map_err(EnvError::Io)? {
                     let entry = entry.map_err(EnvError::Io)?;
                     let file_name = entry.file_name();
                     let dest = format!("{}\\{}", unc_dir, file_name.to_string_lossy());

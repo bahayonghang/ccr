@@ -41,12 +41,10 @@ async fn write_json_file(path: PathBuf, value: Value) -> Result<(), String> {
                 .map_err(|e| format!("创建目录失败 {}: {e}", parent.display()))?;
         }
         let tmp_path = path.with_extension("json.tmp");
-        let content = serde_json::to_string_pretty(&value)
-            .map_err(|e| format!("序列化 JSON 失败: {e}"))?;
-        std::fs::write(&tmp_path, &content)
-            .map_err(|e| format!("写入临时文件失败: {e}"))?;
-        std::fs::rename(&tmp_path, &path)
-            .map_err(|e| format!("原子重命名失败: {e}"))?;
+        let content =
+            serde_json::to_string_pretty(&value).map_err(|e| format!("序列化 JSON 失败: {e}"))?;
+        std::fs::write(&tmp_path, &content).map_err(|e| format!("写入临时文件失败: {e}"))?;
+        std::fs::rename(&tmp_path, &path).map_err(|e| format!("原子重命名失败: {e}"))?;
         Ok(())
     })
     .await

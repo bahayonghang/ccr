@@ -12,8 +12,8 @@ use ccr_db::models::checkin::{
     CreateAccountRequest, CreateProviderRequest, ExportOptions, UpdateAccountRequest,
     UpdateProviderRequest,
 };
-use ccr_db::services::checkin_service::CheckinService;
 use ccr_db::services::cdk_service::{CdkExtraConfig, CdkService};
+use ccr_db::services::checkin_service::CheckinService;
 
 use chrono::Datelike;
 
@@ -52,7 +52,9 @@ fn checkin_dir_str() -> Result<std::path::PathBuf, String> {
 #[tauri::command]
 pub async fn list_providers(_state: State<'_, AppState>) -> Result<Value, String> {
     let manager = ProviderManager::new();
-    let response = manager.list().map_err(|e| format!("Failed to list providers: {}", e))?;
+    let response = manager
+        .list()
+        .map_err(|e| format!("Failed to list providers: {}", e))?;
     serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
 }
 
@@ -61,7 +63,9 @@ pub async fn add_provider(_state: State<'_, AppState>, data: Value) -> Result<Va
     let req: CreateProviderRequest =
         serde_json::from_value(data).map_err(|e| format!("Invalid request data: {}", e))?;
     let manager = ProviderManager::new();
-    let provider = manager.create(req).map_err(|e| format!("Failed to create provider: {}", e))?;
+    let provider = manager
+        .create(req)
+        .map_err(|e| format!("Failed to create provider: {}", e))?;
     serde_json::to_value(provider).map_err(|e| format!("Serialization error: {}", e))
 }
 
@@ -74,8 +78,9 @@ pub async fn update_provider(
     let req: UpdateProviderRequest =
         serde_json::from_value(data).map_err(|e| format!("Invalid request data: {}", e))?;
     let manager = ProviderManager::new();
-    let provider =
-        manager.update(&id, req).map_err(|e| format!("Failed to update provider: {}", e))?;
+    let provider = manager
+        .update(&id, req)
+        .map_err(|e| format!("Failed to update provider: {}", e))?;
     serde_json::to_value(provider).map_err(|e| format!("Serialization error: {}", e))
 }
 
@@ -103,8 +108,9 @@ pub async fn test_provider_connection(
 ) -> Result<Value, String> {
     // Validate the provider exists and return its configuration as a test result
     let provider_manager = ProviderManager::new();
-    let provider =
-        provider_manager.get(&id).map_err(|e| format!("Provider not found: {}", e))?;
+    let provider = provider_manager
+        .get(&id)
+        .map_err(|e| format!("Provider not found: {}", e))?;
 
     let result = serde_json::json!({
         "success": true,
@@ -171,8 +177,9 @@ pub async fn add_account(_state: State<'_, AppState>, data: Value) -> Result<Val
     let req: CreateAccountRequest =
         serde_json::from_value(data).map_err(|e| format!("Invalid request data: {}", e))?;
     let account_manager = AccountManager::new(&checkin_dir);
-    let account =
-        account_manager.create(req).map_err(|e| format!("Failed to create account: {}", e))?;
+    let account = account_manager
+        .create(req)
+        .map_err(|e| format!("Failed to create account: {}", e))?;
     let info = account_manager
         .get_info(&account.id)
         .map_err(|e| format!("Failed to get account info: {}", e))?;
@@ -189,8 +196,9 @@ pub async fn update_account(
     let req: UpdateAccountRequest =
         serde_json::from_value(data).map_err(|e| format!("Invalid request data: {}", e))?;
     let account_manager = AccountManager::new(&checkin_dir);
-    let account =
-        account_manager.update(&id, req).map_err(|e| format!("Failed to update account: {}", e))?;
+    let account = account_manager
+        .update(&id, req)
+        .map_err(|e| format!("Failed to update account: {}", e))?;
     let info = account_manager
         .get_info(&account.id)
         .map_err(|e| format!("Failed to get account info: {}", e))?;
@@ -242,7 +250,11 @@ pub async fn batch_delete_accounts(
     if errors.is_empty() {
         Ok(format!("Deleted {} accounts", deleted))
     } else {
-        Err(format!("Deleted {} accounts, errors: {}", deleted, errors.join("; ")))
+        Err(format!(
+            "Deleted {} accounts, errors: {}",
+            deleted,
+            errors.join("; ")
+        ))
     }
 }
 
@@ -351,8 +363,9 @@ pub async fn get_balance_history(
 #[tauri::command]
 pub async fn get_balance_stats(_state: State<'_, AppState>) -> Result<Value, String> {
     let balance_manager = BalanceManager::new();
-    let balance_map =
-        balance_manager.get_latest_map().map_err(|e| format!("Failed to get balances: {}", e))?;
+    let balance_map = balance_manager
+        .get_latest_map()
+        .map_err(|e| format!("Failed to get balances: {}", e))?;
 
     let total_accounts = balance_map.len();
     let total_remaining: f64 = balance_map.values().map(|b| b.remaining_quota).sum();
@@ -381,8 +394,9 @@ pub async fn export_checkin_data(
     let opts: ExportOptions =
         serde_json::from_value(options).map_err(|e| format!("Invalid export options: {}", e))?;
     let export_manager = ExportManager::new(&checkin_dir);
-    let data =
-        export_manager.export(&opts).map_err(|e| format!("Failed to export data: {}", e))?;
+    let data = export_manager
+        .export(&opts)
+        .map_err(|e| format!("Failed to export data: {}", e))?;
     serde_json::to_value(data).map_err(|e| format!("Serialization error: {}", e))
 }
 
@@ -391,8 +405,9 @@ pub async fn export_checkin_stats(_state: State<'_, AppState>) -> Result<Value, 
     let checkin_dir = checkin_dir_str()?;
     let service = CheckinService::new(checkin_dir);
 
-    let stats =
-        service.get_today_stats().map_err(|e| format!("Failed to get stats: {}", e))?;
+    let stats = service
+        .get_today_stats()
+        .map_err(|e| format!("Failed to get stats: {}", e))?;
 
     serde_json::to_value(stats).map_err(|e| format!("Serialization error: {}", e))
 }
@@ -409,8 +424,9 @@ pub async fn execute_cdk_recharge(
     let account_manager = AccountManager::new(&checkin_dir);
     let provider_manager = ProviderManager::new();
 
-    let account =
-        account_manager.get(&account_id).map_err(|e| format!("Account not found: {}", e))?;
+    let account = account_manager
+        .get(&account_id)
+        .map_err(|e| format!("Account not found: {}", e))?;
     let provider = provider_manager
         .get(&account.provider_id)
         .map_err(|e| format!("Provider not found: {}", e))?;
@@ -421,15 +437,17 @@ pub async fn execute_cdk_recharge(
     let cdk_config = builtin_providers
         .iter()
         .find(|bp| {
-            bp.name == provider.name
-                || bp.id == format!("builtin-{}", provider.name.to_lowercase())
+            bp.name == provider.name || bp.id == format!("builtin-{}", provider.name.to_lowercase())
         })
         .and_then(|bp| bp.cdk_config.as_ref());
 
     let cdk_config = match cdk_config {
         Some(config) => config,
         None => {
-            return Err(format!("Provider {} does not support CDK recharge", provider.name));
+            return Err(format!(
+                "Provider {} does not support CDK recharge",
+                provider.name
+            ));
         }
     };
 
@@ -573,8 +591,7 @@ pub async fn add_waf_cookie(
     let mut cookies: std::collections::HashMap<String, String> = std::collections::HashMap::new();
 
     // Try JSON first
-    if let Ok(parsed) = serde_json::from_str::<std::collections::HashMap<String, String>>(&cookie)
-    {
+    if let Ok(parsed) = serde_json::from_str::<std::collections::HashMap<String, String>>(&cookie) {
         cookies = parsed;
     } else {
         // Parse as key=value; pairs
@@ -605,10 +622,7 @@ pub async fn add_waf_cookie(
 }
 
 #[tauri::command]
-pub async fn delete_waf_cookie(
-    _state: State<'_, AppState>,
-    id: String,
-) -> Result<String, String> {
+pub async fn delete_waf_cookie(_state: State<'_, AppState>, id: String) -> Result<String, String> {
     // `id` is treated as provider_id for WAF cookies
     let waf_manager = WafCookieManager::new();
     let deleted = waf_manager
@@ -653,7 +667,9 @@ pub async fn add_builtin_provider(provider_id: String) -> Result<Value, String> 
         auth_header: Some(checkin_provider.auth_header),
         auth_prefix: Some(checkin_provider.auth_prefix),
     };
-    let provider = manager.create(req).map_err(|e| format!("Failed to create provider: {}", e))?;
+    let provider = manager
+        .create(req)
+        .map_err(|e| format!("Failed to create provider: {}", e))?;
     serde_json::to_value(provider).map_err(|e| format!("Serialization error: {}", e))
 }
 
@@ -665,8 +681,9 @@ pub async fn get_checkin_account_cookies(
     let checkin_dir = checkin_dir_str()?;
     let account_manager = AccountManager::new(&checkin_dir);
 
-    let account =
-        account_manager.get(&account_id).map_err(|e| format!("Account not found: {}", e))?;
+    let account = account_manager
+        .get(&account_id)
+        .map_err(|e| format!("Account not found: {}", e))?;
 
     use ccr_db::core::crypto::CryptoManager;
     let crypto = CryptoManager::new(&checkin_dir)
@@ -690,8 +707,9 @@ pub async fn export_checkin_config(options: Option<Value>) -> Result<Value, Stri
         ccr_db::models::checkin::ExportOptions::default()
     };
     let export_manager = ExportManager::new(&checkin_dir);
-    let data =
-        export_manager.export(&opts).map_err(|e| format!("Failed to export config: {}", e))?;
+    let data = export_manager
+        .export(&opts)
+        .map_err(|e| format!("Failed to export config: {}", e))?;
     serde_json::to_value(data).map_err(|e| format!("Serialization error: {}", e))
 }
 

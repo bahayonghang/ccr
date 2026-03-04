@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "4.4.0"
+version = "4.4.1"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2024"
@@ -82,6 +82,7 @@ tempfile = "3"
 
 # Error handling
 thiserror = "2"
+lru = "0.12"
 
 # Platform detection
 [target.'cfg(windows)'.dependencies]

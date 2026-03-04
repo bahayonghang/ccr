@@ -212,6 +212,7 @@ pub fn generate_handler() -> impl Fn(tauri::ipc::Invoke) -> bool {
         unified_mcp::unified_delete_mcp_server,
         // ── 事件查询 ──
         system::get_recent_events,
+        system::get_runtime_metrics,
         // ── 环境管理 ──
         environment::list_environments,
         environment::get_current_environment,
@@ -498,6 +499,7 @@ pub fn generate_handler() -> impl Fn(tauri::ipc::Invoke) -> bool {
         unified_mcp::unified_delete_mcp_server,
         // ── 事件查询 ──
         system::get_recent_events,
+        system::get_runtime_metrics,
         // ── 环境管理 ──
         environment::list_environments,
         environment::get_current_environment,

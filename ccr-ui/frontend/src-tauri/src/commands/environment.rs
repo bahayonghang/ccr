@@ -10,11 +10,11 @@ use tauri::{Emitter, Manager, State};
 use ccr_db::database::repositories::ssh_repo;
 
 use crate::events::{AppEvent, EnvironmentEventPayload};
+use crate::platform::EnvironmentInfo;
 use crate::platform::local::LocalEnvironment;
 use crate::platform::ssh::{SshEnvironment, SshHostConfig};
 #[cfg(target_os = "windows")]
-use crate::platform::wsl::{detect_wsl_distros, WslEnvironment};
-use crate::platform::EnvironmentInfo;
+use crate::platform::wsl::{WslEnvironment, detect_wsl_distros};
 use crate::state::AppState;
 
 /// 列出所有已注册的执行环境
