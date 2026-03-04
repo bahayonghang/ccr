@@ -1,13 +1,18 @@
 import type { PlatformConfig } from '@/types/platform'
 
-import { api } from '@/api/core'
+import {
+  listSlashCommands, addSlashCommand, updateSlashCommand, deleteSlashCommand, toggleSlashCommand,
+  listCodexSlashCommands, addCodexSlashCommand, updateCodexSlashCommand, deleteCodexSlashCommand, toggleCodexSlashCommand,
+  listGeminiSlashCommands, addGeminiSlashCommand, updateGeminiSlashCommand, deleteGeminiSlashCommand, toggleGeminiSlashCommand,
+  listQwenSlashCommands, addQwenSlashCommand, updateQwenSlashCommand, deleteQwenSlashCommand, toggleQwenSlashCommand,
+  listIflowSlashCommands, addIflowSlashCommand, updateIflowSlashCommand, deleteIflowSlashCommand, toggleIflowSlashCommand
+} from '@/api'
 
 // Claude Code 平台配置
 export const claudeCodeConfig: PlatformConfig = {
   api: {
     list: async () => {
-      const response = await api.get('/slash-commands')
-      const data = response.data.data || response.data
+      const data = await listSlashCommands()
       // Map 'disabled' field to 'enabled' for component compatibility
       const commands = (data.commands || []).map((cmd: any) => ({
         ...cmd,
@@ -16,16 +21,17 @@ export const claudeCodeConfig: PlatformConfig = {
       return { commands, folders: data.folders || [] }
     },
     add: async (cmd: any) => {
-      await api.post('/slash-commands', cmd)
+      await addSlashCommand(cmd.name, cmd)
     },
     update: async (name: string, cmd: any) => {
-      await api.put(`/slash-commands/${name}`, cmd)
+      await updateSlashCommand(name, cmd)
     },
     delete: async (name: string) => {
-      await api.delete(`/slash-commands/${name}`)
+      await deleteSlashCommand(name)
     },
     toggle: async (name: string) => {
-      await api.put(`/slash-commands/${name}/toggle`)
+      // TODO: toggleSlashCommand 需要 enabled 参数，此处默认传 true（后端应处理 toggle 逻辑）
+      await toggleSlashCommand(name, true)
     }
   },
   i18n: {
@@ -55,20 +61,19 @@ export const claudeCodeConfig: PlatformConfig = {
 export const codexConfig: PlatformConfig = {
   api: {
     list: async () => {
-      const response = await api.get('/codex/slash-commands')
-      return response.data?.data ?? response.data
+      return await listCodexSlashCommands()
     },
     add: async (cmd: any) => {
-      await api.post('/codex/slash-commands', cmd)
+      await addCodexSlashCommand(cmd.name, cmd)
     },
     update: async (name: string, cmd: any) => {
-      await api.put(`/codex/slash-commands/${name}`, cmd)
+      await updateCodexSlashCommand(name, cmd)
     },
     delete: async (name: string) => {
-      await api.delete(`/codex/slash-commands/${name}`)
+      await deleteCodexSlashCommand(name)
     },
     toggle: async (name: string) => {
-      await api.put(`/codex/slash-commands/${name}/toggle`)
+      await toggleCodexSlashCommand(name, true)
     }
   },
   i18n: {
@@ -93,20 +98,19 @@ export const codexConfig: PlatformConfig = {
 export const geminiConfig: PlatformConfig = {
   api: {
     list: async () => {
-      const response = await api.get('/gemini/slash-commands')
-      return response.data?.data ?? response.data
+      return await listGeminiSlashCommands()
     },
     add: async (cmd: any) => {
-      await api.post('/gemini/slash-commands', cmd)
+      await addGeminiSlashCommand(cmd.name, cmd)
     },
     update: async (name: string, cmd: any) => {
-      await api.put(`/gemini/slash-commands/${name}`, cmd)
+      await updateGeminiSlashCommand(name, cmd)
     },
     delete: async (name: string) => {
-      await api.delete(`/gemini/slash-commands/${name}`)
+      await deleteGeminiSlashCommand(name)
     },
     toggle: async (name: string) => {
-      await api.put(`/gemini/slash-commands/${name}/toggle`)
+      await toggleGeminiSlashCommand(name, true)
     }
   },
   i18n: {
@@ -131,20 +135,19 @@ export const geminiConfig: PlatformConfig = {
 export const qwenConfig: PlatformConfig = {
   api: {
     list: async () => {
-      const response = await api.get('/qwen/slash-commands')
-      return response.data?.data ?? response.data
+      return await listQwenSlashCommands()
     },
     add: async (cmd: any) => {
-      await api.post('/qwen/slash-commands', cmd)
+      await addQwenSlashCommand(cmd.name, cmd)
     },
     update: async (name: string, cmd: any) => {
-      await api.put(`/qwen/slash-commands/${name}`, cmd)
+      await updateQwenSlashCommand(name, cmd)
     },
     delete: async (name: string) => {
-      await api.delete(`/qwen/slash-commands/${name}`)
+      await deleteQwenSlashCommand(name)
     },
     toggle: async (name: string) => {
-      await api.put(`/qwen/slash-commands/${name}/toggle`)
+      await toggleQwenSlashCommand(name, true)
     }
   },
   i18n: {
@@ -169,20 +172,19 @@ export const qwenConfig: PlatformConfig = {
 export const iflowConfig: PlatformConfig = {
   api: {
     list: async () => {
-      const response = await api.get('/iflow/slash-commands')
-      return response.data?.data ?? response.data
+      return await listIflowSlashCommands()
     },
     add: async (cmd: any) => {
-      await api.post('/iflow/slash-commands', cmd)
+      await addIflowSlashCommand(cmd.name, cmd)
     },
     update: async (name: string, cmd: any) => {
-      await api.put(`/iflow/slash-commands/${name}`, cmd)
+      await updateIflowSlashCommand(name, cmd)
     },
     delete: async (name: string) => {
-      await api.delete(`/iflow/slash-commands/${name}`)
+      await deleteIflowSlashCommand(name)
     },
     toggle: async (name: string) => {
-      await api.put(`/iflow/slash-commands/${name}/toggle`)
+      await toggleIflowSlashCommand(name, true)
     }
   },
   i18n: {

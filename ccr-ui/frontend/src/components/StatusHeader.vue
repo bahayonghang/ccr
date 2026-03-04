@@ -226,7 +226,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-vue-next'
-import { getSystemInfo } from '@/api/modules/config'
+import { getSystemInfo } from '@/api'
 import type { SystemInfo as SystemInfoType } from '@/types'
 import VersionManager from './VersionManager.vue'
 import { usePolledData } from '@/composables/usePolledData'

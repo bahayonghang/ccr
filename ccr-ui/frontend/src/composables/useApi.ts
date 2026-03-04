@@ -1,6 +1,4 @@
 import { ref } from 'vue'
-import { api } from '@/api/core'
-import type { AxiosRequestConfig } from 'axios'
 
 /**
  * API 错误接口
@@ -9,46 +7,6 @@ export interface ApiError {
   code: number
   message: string
   details?: any
-}
-
-/**
- * 通用 GET 请求
- */
-export async function get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-  const response = await api.get<T>(url, config)
-  return response.data
-}
-
-/**
- * 通用 POST 请求
- */
-export async function post<T = any>(
-  url: string,
-  data?: any,
-  config?: AxiosRequestConfig
-): Promise<T> {
-  const response = await api.post<T>(url, data, config)
-  return response.data
-}
-
-/**
- * 通用 PUT 请求
- */
-export async function put<T = any>(
-  url: string,
-  data?: any,
-  config?: AxiosRequestConfig
-): Promise<T> {
-  const response = await api.put<T>(url, data, config)
-  return response.data
-}
-
-/**
- * 通用 DELETE 请求
- */
-export async function del<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-  const response = await api.delete<T>(url, config)
-  return response.data
 }
 
 /**
@@ -84,8 +42,8 @@ export async function withRetry<T>(
 }
 
 /**
- * useApi composable
- * 提供响应式的加载状态管理
+ * useApiRequest composable
+ * 提供响应式的加载状态管理（与 Tauri invoke 兼容）
  */
 export function useApiRequest<T>() {
   const loading = ref(false)
@@ -114,6 +72,3 @@ export function useApiRequest<T>() {
     execute
   }
 }
-
-// Re-export for convenience
-export { api as default }

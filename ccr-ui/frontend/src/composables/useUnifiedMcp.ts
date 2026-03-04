@@ -17,7 +17,7 @@ import {
     updateUnifiedMcp,
     deleteUnifiedMcp,
     toggleUnifiedMcp,
-} from '@/api/modules/unifiedMcp'
+} from '@/api'
 import type {
     UnifiedMcpServer,
     UnifiedMcpRequest,

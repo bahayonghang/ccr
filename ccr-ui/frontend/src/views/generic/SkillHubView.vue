@@ -304,7 +304,7 @@ import {
   type SkillHubAgentSummary,
   type SkillHubInstalledSkill,
   type SkillHubMarketplaceResponse
-} from '@/api/modules'
+} from '@/api'
 import { Book, Boxes, Clock, Package, Search, ShieldCheck, Store, X, Zap } from 'lucide-vue-next'
 
 const ui = useUIStore()
@@ -359,7 +359,7 @@ async function loadInstalled() {
 async function loadTrending() {
   marketplaceLoading.value = true
   try {
-    marketplace.value = await getSkillHubTrending({ limit: 50, page: 1 })
+    marketplace.value = await getSkillHubTrending()
   } catch (e) {
     marketplace.value = { items: [], total: 0, cached: false }
     const message = e instanceof Error ? e.message : '加载 Marketplace 失败'
@@ -376,7 +376,7 @@ async function runSearch() {
   }
   marketplaceLoading.value = true
   try {
-    marketplace.value = await searchSkillHubMarketplace({ q: searchQuery.value.trim(), limit: 50, page: 1 })
+    marketplace.value = await searchSkillHubMarketplace(searchQuery.value.trim())
   } catch (e) {
     marketplace.value = { items: [], total: 0, cached: false }
     const message = e instanceof Error ? e.message : '搜索失败'
@@ -422,7 +422,7 @@ async function installItem(pkg: string) {
 async function removeInstalledSkill(skillName: string) {
   removeLoading.value = true
   try {
-    const res = await removeSkillHubSkill({ skill: skillName, agents: [selectedAgent.value] })
+    const res = await removeSkillHubSkill(skillName)
     const r = res.results?.[0]
     if (r && !r.ok) {
       throw new Error(r.message || '卸载失败')

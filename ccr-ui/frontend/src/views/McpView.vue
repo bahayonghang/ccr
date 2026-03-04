@@ -107,7 +107,7 @@
                     <div class="flex items-start gap-2">
                       <span class="text-text-muted w-20 mt-1">{{ $t('mcp.args') }}:</span>
                       <code class="px-2 py-1 rounded font-mono bg-bg-surface text-text-primary border border-border-subtle break-all">
-                        {{ server.args.join(' ') }}
+                        {{ (server.args || []).join(' ') }}
                       </code>
                     </div>
                     <div
@@ -345,7 +345,7 @@ import {
   updateMcpServer,
   deleteMcpServer,
   toggleMcpServer
-} from '@/api/modules/mcp'
+} from '@/api'
 import type { McpServer, McpServerRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import { Breadcrumb } from '@/components/ui'
@@ -417,7 +417,7 @@ const handleEdit = (server: McpServer) => {
     env: server.env || {},
     disabled: server.disabled || false
   }
-  argInput.value = server.args.join(' ')
+  argInput.value = server.args?.join(' ') ?? ''
 }
 
 const handleSubmit = async () => {

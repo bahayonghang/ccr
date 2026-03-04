@@ -8,62 +8,98 @@
 
 ### 模块职责
 
-CCR UI 是一个完整的全栈 Web 应用，为多个 AI CLI 工具提供可视化管理界面。
+CCR UI 是基于 **Tauri v2** 的原生桌面应用，为多个 AI CLI 工具提供可视化管理界面。
 
 **核心组成**:
-1. **Backend** (`backend/`) - Axum REST API 服务器 (129 端点, Rust)
+1. **Tauri Backend** (`frontend/src-tauri/`) - Rust 原生后端，通过 `#[tauri::command]` IPC 提供 141+ 命令
 2. **Frontend** (`frontend/`) - Vue.js 3 单页应用 (Liquid Glass 设计)
+3. **ccr-db** (`../ccr-db/`) - 独立 workspace crate，提供 SQLite 数据库、CheckIn、加密等服务
 
 **支持平台**:
-- **Claude Code** - MCP 服务器、Agents、斜杠命令、插件
-- **Codex** - 配置文件、MCP、Agents、斜杠命令、插件
-- **Gemini CLI** - 配置、MCP、Agents、斜杠命令、插件
-- **Qwen** - 配置、MCP、Agents、斜杠命令、插件
-- **iFlow** - 基础支持 (stub 实现)
+- **Claude Code** - MCP 服务器、Agents、斜杠命令、插件、Settings、Hooks
+- **Codex** - Profiles、MCP、Agents、斜杠命令、插件、Auth
+- **Gemini CLI** - Settings、MCP、Agents、斜杠命令、插件
+- **Qwen** - Settings、MCP、Agents、斜杠命令、插件
+- **iFlow** - Settings、MCP、斜杠命令
+- **Droid** - Settings、MCP、Agents、Plugins、Models、Profiles
+- **OpenCode** - Settings、Keybindings、Themes、Providers、MCP
 
 ### 架构总览
 
 ```
 ccr-ui/
-├── backend/                    # Rust 后端 (Axum + Tokio)
-│   ├── API Layer               - 141 REST 端点
-│   ├── Services Layer          - 业务逻辑编排
-│   ├── Managers Layer          - 数据访问与文件 I/O
-│   ├── Models Layer            - 数据结构
-│   ├── Core Layer              - 错误处理、命令执行
-│   └── Utils Layer             - 工具函数
+├── frontend/
+│   ├── src-tauri/                  # Tauri v2 Rust 后端 (原生嵌入)
+│   │   ├── src/
+│   │   │   ├── main.rs            # 应用入口 (AppState 初始化、后台任务)
+│   │   │   ├── state.rs           # AppState (SQLite 连接池、缓存、环境注册表)
+│   │   │   ├── events.rs          # Tauri Event 系统 (替代 WebSocket)
+│   │   │   ├── commands/          # 141+ Tauri IPC 命令 (13 个子模块)
+│   │   │   │   ├── config.rs      # 配置管理
+│   │   │   │   ├── claude.rs      # Claude Code 平台
+│   │   │   │   ├── codex.rs       # Codex 平台
+│   │   │   │   ├── gemini.rs      # Gemini 平台
+│   │   │   │   ├── qwen.rs        # Qwen 平台
+│   │   │   │   ├── iflow.rs       # iFlow 平台
+│   │   │   │   ├── droid.rs       # Droid 平台
+│   │   │   │   ├── opencode.rs    # OpenCode 平台
+│   │   │   │   ├── checkin.rs     # CheckIn 签到
+│   │   │   │   ├── stats.rs       # 统计与费用
+│   │   │   │   ├── sync.rs        # WebDAV 同步
+│   │   │   │   ├── system.rs      # 系统信息
+│   │   │   │   ├── converter.rs   # 配置转换
+│   │   │   │   ├── ui_state.rs    # UI 收藏/历史
+│   │   │   │   ├── waf.rs         # WAF WebView Bypass
+│   │   │   │   ├── unified_mcp.rs # 跨平台 MCP 管理
+│   │   │   │   ├── environment.rs # 执行环境管理
+│   │   │   │   └── wsl.rs         # WSL 管理 (Windows only)
+│   │   │   └── platform/          # 执行环境抽象层
+│   │   │       ├── mod.rs         # ExecutionEnvironment trait + EnvironmentRegistry
+│   │   │       ├── local.rs       # 本地环境 (委托 ccr 核心库)
+│   │   │       └── wsl.rs         # WSL 环境 (Windows only)
+│   │   ├── Cargo.toml             # Tauri 依赖
+│   │   └── tauri.conf.json        # Tauri 配置
+│   │
+│   ├── src/                        # Vue.js 3 前端 (SPA)
+│   │   ├── views/                  # 40+ 页面组件
+│   │   ├── components/             # 20+ 可复用组件
+│   │   ├── composables/            # Vue Composables
+│   │   ├── stores/                 # Pinia 状态管理
+│   │   ├── api/                    # Tauri invoke() 封装
+│   │   │   ├── tauri.ts            # 141+ invoke() 包装函数
+│   │   │   └── index.ts            # 统一导出
+│   │   ├── router/                 # Vue Router
+│   │   ├── types/                  # TypeScript 类型
+│   │   └── styles/                 # 全局样式
+│   ├── package.json
+│   └── vite.config.ts
 │
-├── frontend/                   # Vue.js 3 前端 (SPA)
-│   ├── Views                   - 40+ 页面组件
-│   ├── Components              - 15+ 可复用组件
-│   ├── Router                  - Vue Router 路由
-│   ├── Store                   - Pinia 状态管理
-│   └── API Client              - Axios HTTP 客户端
-│
-├── docs/                       # VitePress 文档站点
-└── justfile                    # 开发任务自动化
+├── docs/                           # VitePress 文档站点
+└── CLAUDE.md                       # 本文件
 ```
 
 **设计哲学**:
-- **前后端分离**: 完全解耦，独立部署
-- **RESTful API**: 标准 HTTP + JSON 通信
-- **原子操作**: 后端所有文件写入使用原子操作
-- **类型安全**: 后端 Rust + 前端 TypeScript
-- **现代化 UI**: Liquid Glass 设计风格
+- **原生嵌入**: 后端编译进 Tauri 二进制，无需独立进程
+- **IPC 通信**: 前端通过 `invoke()` 直接调用 Rust 函数，零网络开销
+- **事件驱动**: 后端通过 `app_handle.emit()` 推送事件，前端 `listen()` 接收
+- **原子操作**: 所有文件写入使用 tempfile + rename 原子操作
+- **类型安全**: Rust `#[tauri::command]` + TypeScript `invoke()` 双端类型安全
+- **环境抽象**: `ExecutionEnvironment` trait 支持 Local/WSL/SSH 多环境
 
 ---
 
 ## 项目技术栈
 
-### 后端技术栈 (Rust)
+### Tauri 后端技术栈 (Rust)
 
-| 类别 | 技术 | 版本 | 用途 |
-|------|------|------|------|
-| **框架** | Axum | 0.7+ | Web 框架 |
-| **运行时** | Tokio | 1.42+ | 异步运行时 |
-| **序列化** | Serde | 1.0+ | JSON/TOML/YAML |
-| **日志** | Tracing | 0.1+ | 结构化日志 |
-| **错误** | Anyhow + Thiserror | 1.0+ / 2.0+ | 错误处理 |
+| 类别 | 技术 | 用途 |
+|------|------|------|
+| **框架** | Tauri v2 | 桌面应用框架 |
+| **运行时** | Tokio | 异步运行时 |
+| **数据库** | SQLite (r2d2 连接池) | 本地数据存储 |
+| **序列化** | Serde | JSON/TOML/YAML |
+| **核心库** | ccr (workspace) | 配置管理核心 |
+| **数据库服务** | ccr-db (workspace) | CheckIn、加密、用量导入 |
 
 ### 前端技术栈 (TypeScript/Vue)
 
@@ -74,168 +110,53 @@ ccr-ui/
 | **路由** | Vue Router | 4.4 | 路由管理 |
 | **状态** | Pinia | 2.2.6 | 状态管理 |
 | **样式** | Tailwind CSS | 3.4.17 | CSS 框架 |
-| **HTTP** | Axios | 1.7.9 | API 客户端 |
+| **IPC** | @tauri-apps/api | 2.x | Tauri invoke() 通信 |
 | **类型** | TypeScript | 5.7.3 | 类型安全 |
 
 ---
 
-## 项目模块划分
+## 关键设计模式
 
-### 目录结构
+### IPC 通信模式
 
-```
-ccr-ui/
-├── backend/
-│   ├── src/
-│   │   ├── main.rs                      # 后端入口
-│   │   ├── api/handlers/                # API 处理器 (16+ 文件)
-│   │   ├── services/                    # 服务层
-│   │   ├── managers/                    # 管理层
-│   │   ├── models/                      # 数据模型
-│   │   ├── core/                        # 核心层
-│   │   └── utils/                       # 工具层
-│   ├── Cargo.toml                       # Rust 依赖
-│   └── logs/                            # 日志文件
-│
-├── frontend/
-│   ├── src/
-│   │   ├── main.ts                      # 前端入口
-│   │   ├── views/                       # 页面组件 (40+)
-│   │   ├── components/                  # 可复用组件 (15+)
-│   │   ├── router/                      # Vue Router
-│   │   ├── store/                       # Pinia Store
-│   │   ├── api/                         # API 客户端
-│   │   ├── types/                       # TypeScript 类型
-│   │   └── styles/                      # 全局样式
-│   ├── package.json                     # NPM 依赖
-│   ├── vite.config.ts                   # Vite 配置
-│   └── dist/                            # 构建输出
-│
-├── docs/                                # VitePress 文档
-├── justfile                             # Just 任务定义
-├── README.md                            # 项目说明
-└── CLAUDE.md                            # 本文件
+前端所有 API 调用通过 `@tauri-apps/api/core` 的 `invoke()` 函数：
+
+```typescript
+// frontend/src/api/tauri.ts
+import { invoke } from '@tauri-apps/api/core'
+export const listConfigs = async () => invoke('list_configs')
+export const switchConfig = async (name: string) => invoke('switch_config', { name })
 ```
 
-### 核心入口点
+### 事件推送模式
 
-| 模块 | 入口文件 | 默认端口 | 职责 |
-|------|----------|----------|------|
-| **后端** | `backend/src/main.rs` | 8081 | REST API 服务器 |
-| **前端** | `frontend/src/main.ts` | 3000 (dev) | Vue.js SPA |
+后端通过 Tauri Event 系统替代 WebSocket：
 
----
-
-## 项目业务模块
-
-### 1. CCR 配置管理
-
-**功能**:
-- 列出/切换/创建/更新/删除配置
-- 导入/导出配置
-- 验证配置
-- 查看操作历史
-
-**涉及组件**:
-- 前端: `ConfigsView.vue`
-- 后端: `handlers/config.rs`
-
-### 2. 平台管理
-
-#### Claude Code
-- **MCP 服务器**: 管理 MCP 服务器配置
-- **Agents**: AI Agent 配置
-- **斜杠命令**: 自定义命令
-- **插件**: 插件管理
-
-#### Codex
-- **配置文件**: Profile 管理
-- **MCP/Agents/斜杠命令/插件**: 同 Claude
-
-#### Gemini CLI / Qwen / iFlow
-- 类似结构，平台特定功能
-
-### 3. WebDAV 同步
-
-**功能**:
-- WebDAV 配置
-- 多文件夹管理
-- 推送/拉取操作
-- 同步状态显示
-
-**涉及组件**:
-- 前端: `SyncView.vue`
-- 后端: `handlers/sync.rs`
-
-### 4. 配置转换
-
-**功能**:
-- Claude ↔ Codex 转换
-- Claude ↔ Gemini 转换
-- 格式验证
-
-**涉及组件**:
-- 前端: `ConverterView.vue`
-- 后端: `handlers/converter.rs`
-
----
-
-## 项目代码风格与规范
-
-### 后端代码规范 (Rust)
-
-- **命名**: `snake_case` 函数/变量, `PascalCase` 类型
-- **格式化**: 使用 `cargo fmt`
-- **检查**: 通过 `cargo clippy` 无警告
-- **错误处理**: 使用 `Result` 与自定义错误类型
-- **日志**: 使用 `tracing` 结构化日志
-- **文档**: `///` 注释公开 API
-
-详见: [backend/CLAUDE.md](backend/CLAUDE.md)
-
-### 前端代码规范 (TypeScript/Vue)
-
-- **命名**: `camelCase` 变量/函数, `PascalCase` 组件/类型
-- **格式化**: ESLint + Prettier
-- **组件**: `<script setup>` Composition API
-- **样式**: Tailwind CSS 优先，减少自定义 CSS
-- **类型**: TypeScript 严格模式
-- **状态**: Pinia Store 集中管理
-
-详见: [frontend/CLAUDE.md](frontend/CLAUDE.md)
-
----
-
-## 测试与质量
-
-### 后端测试
-
-```bash
-cd backend
-cargo test              # 运行测试
-cargo clippy            # 代码检查
-cargo fmt --check       # 格式检查
+```rust
+// 后端发送事件
+app_handle.emit("app-log", log_payload)?;
+app_handle.emit("token-stats", stats)?;
 ```
 
-**质量目标**:
-- ✅ 零编译错误
-- ✅ 零 Clippy 警告
-- 🚧 单元测试覆盖率 80%+
-
-### 前端测试
-
-```bash
-cd frontend
-npm run type-check      # TypeScript 检查
-npm run lint            # ESLint 检查
-npm run build           # 构建验证
+```typescript
+// 前端监听事件
+import { listen } from '@tauri-apps/api/event'
+const unlisten = await listen<LogMessage>('app-log', (event) => { ... })
 ```
 
-**质量目标**:
-- ✅ 零 TypeScript 错误
-- ✅ 零 ESLint 警告
-- ✅ 成功构建
-- 🚧 单元测试覆盖率 80%+
+### 执行环境抽象
+
+```rust
+// platform/mod.rs
+pub trait ExecutionEnvironment: Send + Sync {
+    fn name(&self) -> &str;
+    fn env_type(&self) -> &str;  // "local" | "wsl" | "ssh"
+    fn list_platforms(&self) -> Result<Vec<String>>;
+    fn read_config(&self, platform: &str, path: &str) -> Result<String>;
+    fn write_config(&self, platform: &str, path: &str, content: &str) -> Result<()>;
+    fn detect_cli_status(&self) -> Result<Vec<CliStatus>>;
+}
+```
 
 ---
 
@@ -245,116 +166,73 @@ npm run build           # 构建验证
 
 - **Rust**: 1.88+ (Edition 2024)
 - **Node.js**: 18.x+
-- **Cargo**: 最新稳定版
-- **npm/yarn/pnpm**: 9.x+
+- **Tauri CLI**: `cargo install tauri-cli`
 
-### 快速启动
-
-#### 方式一: 使用 Just (推荐)
+### 开发命令
 
 ```bash
-cd ccr-ui
+cd ccr-ui/frontend
 
-# 安装依赖
-just i
+# 安装前端依赖
+npm install
 
-# 启动开发环境 (后端 + 前端)
-just s
+# Tauri 开发模式 (启动桌面应用 + 热重载)
+npm run tauri dev
+# 或
+cargo tauri dev
 
-# 构建生产版本
-just b
+# 前端独立开发 (仅 Web 预览，无 Tauri IPC)
+npm run dev
 
-# 运行测试
-just t
+# 类型检查
+npm run type-check
 
-# 代码检查
-just c
+# Lint 检查
+npm run lint
+
+# Tauri Rust 编译检查
+cd src-tauri && cargo check
+
+# 生产构建 (打包桌面应用)
+npm run tauri build
+# 或
+cargo tauri build
 ```
 
-#### 方式二: 手动启动
-
-**后端**:
-```bash
-cd backend
-cargo run                # 启动后端 (127.0.0.1:8081)
-```
-
-**前端**:
-```bash
-cd frontend
-npm install              # 安装依赖
-npm run dev              # 启动前端 (localhost:3000)
-```
-
-### 生产构建
-
-```bash
-# 后端构建
-cd backend
-cargo build --release
-# 输出: target/release/ccr-ui-backend
-
-# 前端构建
-cd frontend
-npm run build
-# 输出: dist/
-
-# 运行生产版本
-./backend/target/release/ccr-ui-backend --port 8081
-# 前端部署 dist/ 到静态服务器 (Nginx/Vercel/Netlify)
-```
-
-### Just 命令参考
+### Just 命令 (从根目录)
 
 | 命令 | 说明 |
 |------|------|
-| `just i` | 安装所有依赖 (后端 + 前端) |
-| `just s` | 启动开发环境 (后端 + 前端并行) |
-| `just b` | 构建生产版本 |
-| `just c` | 代码检查 (clippy + lint) |
-| `just t` | 运行测试 |
-| `just clean` | 清理构建产物 |
-| `just quick-start` | 首次设置 + 启动 |
+| `just tauri-dev` | 启动 Tauri 开发模式 |
+| `just tauri-build` | 构建桌面应用安装包 |
+| `just tauri-check` | Tauri Rust 编译检查 |
+| `just tauri-clippy` | Tauri Rust Clippy 检查 |
+| `just frontend-typecheck` | 前端 TypeScript 检查 |
+| `just frontend-lint` | 前端 ESLint 检查 |
 
 ---
 
-## Git 工作流程
+## 代码规范
 
-### 分支策略
+### Tauri 命令 (Rust)
 
-- **main**: 生产环境代码
-- **dev**: 开发环境代码
-- **feature/***: 功能开发
-- **bugfix/***: Bug 修复
+- 所有命令函数使用 `#[tauri::command]`
+- 文件 I/O 使用 `tokio::task::spawn_blocking`
+- 返回 `Result<T, String>` 格式
+- 命名: `snake_case` (如 `list_configs`, `switch_config`)
 
-### 提交规范
+### 前端 (TypeScript/Vue)
 
-遵循 Conventional Commits:
-
-```bash
-# 功能开发
-git commit -m "feat(UI): 添加预算管理界面"
-git commit -m "feat(后端): 实现预算 API"
-
-# Bug 修复
-git commit -m "fix(UI): 修复暗黑模式样式问题"
-git commit -m "fix(后端): 修复配置解析错误"
-
-# 文档
-git commit -m "docs(UI): 更新部署指南"
-
-# 重构
-git commit -m "refactor(后端): 重构为分层架构"
-```
+- 组件: `<script setup lang="ts">` Composition API
+- API 调用: 统一通过 `@/api` 导入
+- 样式: Tailwind CSS 优先
+- 注释: 中文注释
 
 ---
 
 ## 文档目录
 
-### 文档存储规范
-
 - **模块文档**: `/ccr-ui/CLAUDE.md` (本文件)
-- **后端文档**: `/ccr-ui/backend/CLAUDE.md`
 - **前端文档**: `/ccr-ui/frontend/CLAUDE.md`
 - **根文档**: `/CLAUDE.md` (项目总览)
 

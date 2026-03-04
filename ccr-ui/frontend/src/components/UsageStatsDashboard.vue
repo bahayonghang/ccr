@@ -16,7 +16,7 @@
           </h2>
           <p class="text-sm text-guofeng-text-muted mt-1">
             {{ $t('usageStats.updated') }} {{ formatLastUpdated(dailyStats?.last_updated) }}
-            · {{ $t('usageStats.cacheEntries', { count: dailyStats?.summary.total_sessions || 0 }) }}
+            · {{ $t('usageStats.cacheEntries', { count: dailyStats?.summary?.total_sessions || 0 }) }}
           </p>
         </div>
 
@@ -56,7 +56,7 @@
       <!-- 柱状图 -->
       <div v-if="!loading && dailyStats">
         <UsageStatsChart
-          :data="dailyStats.daily_stats"
+          :data="dailyStats?.daily_stats ?? []"
           :view-mode="viewMode"
         />
       </div>
@@ -87,7 +87,7 @@
                 {{ $t('usageStats.sessions') }}
               </p>
               <p class="text-2xl font-bold text-guofeng-text-primary mt-0.5 tabular-nums">
-                {{ dailyStats?.summary.total_sessions || 0 }}
+                {{ dailyStats?.summary?.total_sessions || 0 }}
               </p>
               <p class="text-[11px] text-guofeng-text-secondary mt-1">
                 {{ $t('usageStats.inSelectedRange') }}
@@ -108,7 +108,7 @@
                 {{ $t('usageStats.messages') }}
               </p>
               <p class="text-2xl font-bold text-guofeng-text-primary mt-0.5 tabular-nums">
-                {{ formatNumber(dailyStats?.summary.total_messages || 0) }}
+                {{ formatNumber(dailyStats?.summary?.total_messages || 0) }}
               </p>
               <p class="text-[11px] text-guofeng-text-secondary mt-1">
                 {{ $t('usageStats.userAssistant') }}
@@ -129,7 +129,7 @@
                 {{ $t('usageStats.activeTime') }}
               </p>
               <p class="text-2xl font-bold text-guofeng-text-primary mt-0.5 tabular-nums">
-                {{ formatDuration(dailyStats?.summary.total_duration_seconds || 0) }}
+                {{ formatDuration(dailyStats?.summary?.total_duration_seconds || 0) }}
               </p>
               <p class="text-[11px] text-guofeng-text-secondary mt-1">
                 {{ $t('usageStats.totalTime') }}
@@ -150,7 +150,7 @@
                 {{ $t('usageStats.platforms') }}
               </p>
               <p class="text-2xl font-bold text-guofeng-text-primary mt-0.5 tabular-nums">
-                {{ Object.keys(dailyStats?.summary.by_platform || {}).length }}
+                {{ Object.keys(dailyStats?.summary?.by_platform || {}).length }}
               </p>
               <p class="text-[11px] text-guofeng-text-secondary mt-1">
                 {{ $t('usageStats.trackedPlatforms') }}
@@ -171,17 +171,17 @@
             <div class="w-2.5 h-2.5 rounded-full bg-guofeng-text-secondary ring-2 ring-guofeng-text-secondary/20" />
             <span class="font-semibold text-guofeng-text-primary">All</span>
             <span class="ml-auto text-xs text-guofeng-text-muted font-mono tabular-nums">
-              {{ dailyStats?.summary.total_sessions || 0 }}
+              {{ dailyStats?.summary?.total_sessions || 0 }}
             </span>
           </div>
           <div class="space-y-1.5 text-xs text-guofeng-text-secondary">
             <div class="flex items-center gap-1.5">
               <Hash class="w-3 h-3 opacity-40" />
-              <span>{{ formatNumber(dailyStats?.summary.total_messages || 0) }} messages</span>
+              <span>{{ formatNumber(dailyStats?.summary?.total_messages || 0) }} messages</span>
             </div>
             <div class="flex items-center gap-1.5">
               <Clock class="w-3 h-3 opacity-40" />
-              <span>{{ formatAvgDuration(dailyStats?.summary.total_duration_seconds || 0, dailyStats?.summary.total_sessions || 1) }}</span>
+              <span>{{ formatAvgDuration(dailyStats?.summary?.total_duration_seconds || 0, dailyStats?.summary?.total_sessions || 1) }}</span>
             </div>
           </div>
         </div>
@@ -259,7 +259,7 @@ import { onMounted, ref } from 'vue'
 import { BarChart3, Hash, Clock, Activity, MessageSquare, Timer, Layers } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import UsageStatsChart from '@/components/UsageStatsChart.vue'
-import { getDailyStats } from '@/api/modules/stats'
+import { getDailyStats } from '@/api'
 import type { DailyStatsResponse, StatsViewMode } from '@/types'
 
 // 视图模式
@@ -296,8 +296,10 @@ const loadDailyStats = async (days: number, force: boolean = false) => {
   loading.value = true
   try {
     const data = await getDailyStats(days)
-    dailyStats.value = data
-    dailyStatsCache.set(days, { data, ts: now })
+    if (data && data.daily_stats && data.summary) {
+      dailyStats.value = data
+      dailyStatsCache.set(days, { data, ts: now })
+    }
   } catch (error) {
     console.error('Failed to load daily stats:', error)
   } finally {
@@ -319,15 +321,15 @@ onMounted(async () => {
 
 // 获取平台统计
 const getPlatformSessions = (platform: string): number => {
-  return dailyStats.value?.summary.by_platform[platform]?.sessions || 0
+  return dailyStats.value?.summary?.by_platform?.[platform]?.sessions || 0
 }
 
 const getPlatformMessages = (platform: string): number => {
-  return dailyStats.value?.summary.by_platform[platform]?.messages || 0
+  return dailyStats.value?.summary?.by_platform?.[platform]?.messages || 0
 }
 
 const getPlatformDuration = (platform: string): number => {
-  return dailyStats.value?.summary.by_platform[platform]?.duration_seconds || 0
+  return dailyStats.value?.summary?.by_platform?.[platform]?.duration_seconds || 0
 }
 
 // 格式化函数

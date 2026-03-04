@@ -181,7 +181,7 @@ import {
   FileCode,
   Shield
 } from 'lucide-vue-next'
-import { listBuiltinPrompts, type BuiltinPrompt } from '@/api/modules/mcp'
+import { listBuiltinPrompts, type BuiltinPrompt } from '@/api'
 import { copyToClipboard } from '@/utils/codexHelpers'
 
 const { t } = useI18n({ useScope: 'global' })

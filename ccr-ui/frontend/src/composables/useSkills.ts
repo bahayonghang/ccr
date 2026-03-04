@@ -1,6 +1,12 @@
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref } from 'vue'
-import { api } from '@/api/core'
+import {
+  addSkill as addSkillApi,
+  deleteSkill as deleteSkillApi,
+  listSkills as listSkillsApi,
+  getSkillDetail,
+  updateSkillContent,
+} from '@/api'
 
 export interface SkillMetadata {
     author?: string
@@ -41,16 +47,12 @@ export function useSkills() {
         loading.value = true
         error.value = null
         try {
-            const response = await api.get('/skills')
-            // API returns ApiResponse<Skill[]> format: { success: true, data: [...] }
-            const rawData = response.data
-            if (rawData && typeof rawData === 'object' && 'data' in rawData && Array.isArray(rawData.data)) {
-                skills.value = rawData.data
-            } else if (Array.isArray(rawData)) {
-                skills.value = rawData
+            const result = await listSkillsApi()
+            if (Array.isArray(result)) {
+                skills.value = result
             } else {
                 skills.value = []
-                console.warn('[useSkills] Unexpected response format:', rawData)
+                console.warn('[useSkills] Unexpected response format:', result)
             }
         } catch (err: any) {
             error.value = err.message || 'Failed to load skills'
@@ -64,19 +66,12 @@ export function useSkills() {
         loading.value = true
         error.value = null
         try {
-            const response = await api.get(`/skills/${encodeURIComponent(name)}`)
-            // API returns ApiResponse<Skill> format: { success: true, data: {...} }
-            const rawData = response.data
-            let skill: Skill | null = null
-            if (rawData && typeof rawData === 'object' && 'data' in rawData && rawData.data) {
-                skill = rawData.data as Skill
-            } else if (rawData && 'name' in rawData) {
-                skill = rawData as Skill
-            }
-            currentSkill.value = skill
-            return skill
+            const result = await getSkillDetail(name)
+            currentSkill.value = result as Skill
+            return result as Skill
         } catch (err: any) {
             error.value = err.message || 'Failed to load skill'
+            currentSkill.value = null
             throw err
         } finally {
             loading.value = false
@@ -87,7 +82,7 @@ export function useSkills() {
         loading.value = true
         error.value = null
         try {
-            await api.post('/skills', req)
+            await addSkillApi(req)
             await listSkills()
         } catch (err: any) {
             error.value = err.message || 'Failed to add skill'
@@ -101,7 +96,7 @@ export function useSkills() {
         loading.value = true
         error.value = null
         try {
-            await api.put(`/skills/${encodeURIComponent(name)}`, req)
+            await updateSkillContent(name, req.instruction)
             await listSkills()
         } catch (err: any) {
             error.value = err.message || 'Failed to update skill'
@@ -115,7 +110,7 @@ export function useSkills() {
         loading.value = true
         error.value = null
         try {
-            await api.delete(`/skills/${encodeURIComponent(name)}`)
+            await deleteSkillApi(name)
             await listSkills()
         } catch (err: any) {
             error.value = err.message || 'Failed to delete skill'

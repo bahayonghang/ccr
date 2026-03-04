@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { listCommands, executeCommand } from '@/api/modules/config'
+import { listCommands, executeCommand } from '@/api'
 import type { CommandInfo, CommandRequest, CommandResponse } from '@/types'
 import { getErrorMessage } from '@/types'
 

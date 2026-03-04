@@ -11,10 +11,10 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
-import { listGeminiMcpServers, addGeminiMcpServer, updateGeminiMcpServer, deleteGeminiMcpServer } from '@/api/modules/gemini'
-import { listQwenMcpServers, addQwenMcpServer, updateQwenMcpServer, deleteQwenMcpServer } from '@/api/modules/qwen'
-import { listIflowMcpServers, addIflowMcpServer, updateIflowMcpServer, deleteIflowMcpServer } from '@/api/modules/iflow'
-import { listDroidMcpServers, addDroidMcpServer, updateDroidMcpServer, deleteDroidMcpServer } from '@/api/modules/droid'
+import { listGeminiMcpServers, addGeminiMcpServer, updateGeminiMcpServer, deleteGeminiMcpServer } from '@/api'
+import { listQwenMcpServers, addQwenMcpServer, updateQwenMcpServer, deleteQwenMcpServer } from '@/api'
+import { listIflowMcpServers, addIflowMcpServer, updateIflowMcpServer, deleteIflowMcpServer } from '@/api'
+import { listDroidMcpServers, addDroidMcpServer, updateDroidMcpServer, deleteDroidMcpServer } from '@/api'
 import type {
     GeminiMcpServer,
     GeminiMcpServerRequest,

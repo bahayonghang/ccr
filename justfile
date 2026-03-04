@@ -124,7 +124,6 @@ _help-windows:
     @Write-Host "   🔧 版本相关命令（跨平台）："
     @Write-Host "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
     @Write-Host "                            → 更新 ccr-types/Cargo.toml"
-    @Write-Host "                              和 ccr-ui/backend/Cargo.toml"
     @Write-Host "                              和 ccr-ui/frontend/package.json"
     @Write-Host "                              和 ccr-ui/frontend/src-tauri/*"
     @Write-Host "                            → Windows: 使用 version-sync.ps1"
@@ -160,7 +159,6 @@ _help-linux:
     @printf '%s\n' "   🔧 版本相关命令（跨平台）："
     @printf '%s\n' "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
     @printf '%s\n' "                            → 更新 ccr-types/Cargo.toml"
-    @printf '%s\n' "                              和 ccr-ui/backend/Cargo.toml"
     @printf '%s\n' "                              和 ccr-ui/frontend/package.json"
     @printf '%s\n' "                              和 ccr-ui/frontend/src-tauri/*"
     @printf '%s\n' "                            → Windows: 使用 version-sync.ps1"
@@ -197,7 +195,6 @@ _help-macos:
     @printf '%s\n' "   🔧 版本相关命令（跨平台）："
     @printf '%s\n' "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
     @printf '%s\n' "                            → 更新 ccr-types/Cargo.toml"
-    @printf '%s\n' "                              和 ccr-ui/backend/Cargo.toml"
     @printf '%s\n' "                              和 ccr-ui/frontend/package.json"
     @printf '%s\n' "                              和 ccr-ui/frontend/src-tauri/*"
     @printf '%s\n' "                            → Windows: 使用 version-sync.ps1"
@@ -491,7 +488,7 @@ deep-clean: clean
 # 🔧 版本号同步命令
 # ═══════════════════════════════════════════════════════════
 
-# 同步版本号到 UI 后端与前端（以根 Cargo.toml 为主）
+# 同步版本号到前端与 Tauri（以根 Cargo.toml 为主）
 version-sync:
     @just _version-sync-{{os()}}
 
@@ -531,3 +528,212 @@ _version-check-linux:
 _version-check-macos:
     @just info "🔍 检查版本号一致性"
     bash scripts/version-sync.sh --check --verbose
+
+# ===== CCR UI Commands (migrated from ccr-ui/justfile) =====
+
+# CCR UI 子 justfile 路径
+CCR_UI_JUSTFILE := "ccr-ui/justfile"
+
+# 内部执行器：在根目录转发到 ccr-ui/justfile
+[private]
+[no-cd]
+_ui-run recipe:
+    just --justfile {{CCR_UI_JUSTFILE}} {{recipe}}
+
+# 迁移后的命令：统一使用 ui- 前缀，避免与根命令冲突
+ui-default:
+    @just _ui-run default
+
+ui-bench-backend:
+    @just _ui-run bench-backend
+
+ui-build:
+    @just _ui-run build
+
+ui-build-backend:
+    @just _ui-run build-backend
+
+ui-build-frontend:
+    @just _ui-run build-frontend
+
+ui-check:
+    @just _ui-run check
+
+ui-check-backend:
+    @just _ui-run check-backend
+
+ui-check-frontend:
+    @just _ui-run check-frontend
+
+ui-check-frontend-lint:
+    @just _ui-run check-frontend-lint
+
+ui-check-frontend-types:
+    @just _ui-run check-frontend-types
+
+ui-check-prereqs:
+    @just _ui-run check-prereqs
+
+ui-check-security:
+    @just _ui-run check-security
+
+ui-ci:
+    @just _ui-run ci
+
+ui-ci-security:
+    @just _ui-run ci-security
+
+ui-clean:
+    @just _ui-run clean
+
+ui-clean-all:
+    @just _ui-run clean-all
+
+ui-clean-backend:
+    @just _ui-run clean-backend
+
+ui-clean-frontend:
+    @just _ui-run clean-frontend
+
+ui-clean-logs:
+    @just _ui-run clean-logs
+
+ui-clippy:
+    @just _ui-run clippy
+
+ui-dev:
+    @just _ui-run dev
+
+ui-dev-backend:
+    @just _ui-run dev-backend
+
+ui-dev-clean:
+    @just _ui-run dev-clean
+
+ui-dev-fast:
+    @just _ui-run dev-fast
+
+ui-dev-fast-parallel:
+    @just _ui-run dev-fast-parallel
+
+ui-dev-frontend:
+    @just _ui-run dev-frontend
+
+ui-dev-parallel:
+    @just _ui-run dev-parallel
+
+ui-dev-react-frontend:
+    @just _ui-run dev-react-frontend
+
+ui-doc-backend:
+    @just _ui-run doc-backend
+
+ui-fmt:
+    @just _ui-run fmt
+
+ui-fmt-backend:
+    @just _ui-run fmt-backend
+
+ui-fmt-frontend:
+    @just _ui-run fmt-frontend
+
+ui-help:
+    @just _ui-run help
+
+ui-info:
+    @just _ui-run info
+
+ui-install:
+    @just _ui-run install
+
+ui-install-backend:
+    @just _ui-run install-backend
+
+ui-install-frontend:
+    @just _ui-run install-frontend
+
+ui-logs-backend:
+    @just _ui-run logs-backend
+
+ui-logs-frontend:
+    @just _ui-run logs-frontend
+
+ui-prepare-release:
+    @just _ui-run prepare-release
+
+ui-quick-start:
+    @just _ui-run quick-start
+
+ui-run-prod:
+    @just _ui-run run-prod
+
+ui-serve-frontend:
+    @just _ui-run serve-frontend
+
+tauri-build:
+    @just _ui-run tauri-build
+
+tauri-build-debug:
+    @just _ui-run tauri-build-debug
+
+tauri-check:
+    @just _ui-run tauri-check
+
+tauri-check-all:
+    @just _ui-run tauri-check-all
+
+tauri-check-rust:
+    @just _ui-run tauri-check-rust
+
+tauri-clean:
+    @just _ui-run tauri-clean
+
+tauri-clippy:
+    @just _ui-run tauri-clippy
+
+tauri-dev:
+    @just _ui-run tauri-dev
+
+tauri-fmt:
+    @just _ui-run tauri-fmt
+
+tauri-test:
+    @just _ui-run tauri-test
+
+ui-test:
+    @just _ui-run test
+
+ui-test-backend:
+    @just _ui-run test-backend
+
+ui-test-frontend:
+    @just _ui-run test-frontend
+
+ui-update:
+    @just _ui-run update
+
+ui-update-backend:
+    @just _ui-run update-backend
+
+ui-update-frontend:
+    @just _ui-run update-frontend
+
+ui-watch-backend:
+    @just _ui-run watch-backend
+
+# 迁移后的快捷别名（对应 ccr-ui/justfile 中的别名）
+alias ui-s := ui-dev
+alias ui-i := ui-install
+alias ui-b := ui-build
+alias ui-c := ui-check
+alias ui-t := ui-test
+alias ui-f := ui-fmt
+
+# Tauri 快捷别名（无 ui 前缀）
+alias tdev := tauri-dev
+alias tbuild := tauri-build
+alias tcheck := tauri-check
+alias tclean := tauri-clean
+alias ttest := tauri-test
+
+# ===== End CCR UI Commands =====

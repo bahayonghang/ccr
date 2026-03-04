@@ -284,7 +284,7 @@ import {
 import {
   listCheckinRecords,
   exportCheckinRecords,
-} from '@/api/modules/checkin'
+} from '@/api'
 import type {
   CheckinRecordInfo,
   CheckinProvider,

@@ -329,7 +329,7 @@ import {
   addOpenCodeMcpServer,
   updateOpenCodeMcpServer,
   deleteOpenCodeMcpServer,
-} from '@/api/modules/opencode'
+} from '@/api'
 import type { OpenCodeMcpServer } from '@/types/opencode'
 
 const servers = ref<OpenCodeMcpServer[]>([])

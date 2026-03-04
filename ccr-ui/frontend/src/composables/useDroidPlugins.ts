@@ -8,7 +8,7 @@ import {
   updateDroidPlugin,
   deleteDroidPlugin,
   type DroidPlugin
-} from '@/api/modules/droid'
+} from '@/api'
 
 // ============ Types ============
 
@@ -55,7 +55,7 @@ export function useDroidPlugins() {
     loading.value = true
     try {
       const data = await listDroidPlugins()
-      plugins.value = data.map((p) => ({ ...p, _expanded: false }))
+      plugins.value = data.map((p: DroidPlugin) => ({ ...p, _expanded: false }))
     } catch (error) {
       uiStore.showError(t('droid.plugins.loadFailed'))
       console.error('Failed to load Droid plugins:', error)

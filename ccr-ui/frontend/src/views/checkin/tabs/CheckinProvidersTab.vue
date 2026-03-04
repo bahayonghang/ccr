@@ -323,7 +323,7 @@ import {
   createCheckinProvider,
   updateCheckinProvider,
   deleteCheckinProvider as apiDeleteProvider,
-} from '@/api/modules/checkin'
+} from '@/api'
 import type { CheckinProvider, BuiltinProvider } from '@/types/checkin'
 
 const props = defineProps<{

@@ -78,7 +78,7 @@
         <!-- Command Preview -->
         <div class="flex items-center gap-1.5 text-[10px] font-mono text-guofeng-text-muted bg-guofeng-bg-tertiary/50 rounded-lg px-2 py-1.5 overflow-hidden">
           <Terminal class="w-3 h-3 flex-shrink-0" />
-          <span class="truncate">{{ preset.command }} {{ preset.args.join(' ') }}</span>
+          <span class="truncate">{{ preset.command }} {{ (preset.args || []).join(' ') }}</span>
         </div>
 
         <!-- Hover Install Button -->
@@ -166,7 +166,7 @@
             {{ $t('mcp.presets.commandPreview') }}
           </div>
           <code class="text-sm font-mono text-guofeng-indigo break-all">
-            {{ selectedPreset.command }} {{ selectedPreset.args.join(' ') }}
+            {{ selectedPreset.command }} {{ (selectedPreset.args || []).join(' ') }}
           </code>
         </div>
 
@@ -241,8 +241,9 @@ import {
 import {
   listMcpPresets,
   installMcpPreset,
-  type McpPreset
-} from '@/api/modules/mcp'
+  type McpPreset,
+  type SyncResult
+} from '@/api'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -336,9 +337,9 @@ const confirmInstall = async () => {
     )
 
     // Check results
-    const failed = result.results.filter(r => !r.success)
+    const failed = (result.results as SyncResult[]).filter((r: SyncResult) => !r.success)
     if (failed.length > 0) {
-      const failedPlatforms = failed.map(f => `${f.platform}: ${f.message}`).join('\n')
+      const failedPlatforms = failed.map((f: SyncResult) => `${f.platform}: ${f.message}`).join('\n')
       alert(`${t('mcp.presets.installPartialFailed')}\n\n${failedPlatforms}`)
     } else {
       alert(t('mcp.presets.installSuccess'))

@@ -2,10 +2,11 @@
 
 [package]
 name = "ccr-desktop"
-version = "4.3.1"
+version = "4.4.0"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
-edition = "2021"
+edition = "2024"
+rust-version = "1.88"
 
 [build-dependencies]
 tauri-build = { version = "2.5.2", features = [] }
@@ -14,9 +15,14 @@ tauri-build = { version = "2.5.2", features = [] }
 # 🎯 CCR 核心库 - 直接使用服务层
 ccr = { path = "../../../", default-features = false }
 
+# 📦 CCR 类型定义 - Claude Settings 子类型 (Agent, Plugin, Hook 等)
+ccr-types = { path = "../../../ccr-types" }
+
+# 📦 CCR 数据库层 - SQLite 存储、CheckIn 服务
+ccr-db = { path = "../../../ccr-db" }
+
 # Tauri framework
 tauri = { version = "2.9.3", features = [] }
-tauri-plugin-shell = "2.0"
 tauri-plugin-dialog = "2"
 
 # Serialization
@@ -24,16 +30,66 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Async runtime
-tokio = { version = "1.42", features = [
+tokio = { version = "1.49", features = [
     "rt-multi-thread",
     "io-util",
     "net",
     "time",
+    "sync",
+    "fs",
+    "process",
+] }
+
+# HTTP client
+reqwest = { version = "0.13.2", default-features = false, features = [
+    "json",
+    "cookies",
+    "gzip",
+    "native-tls",
 ] }
 
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# System info
+sysinfo = "0.34"
+
+# Encryption (for checkin account credentials)
+aes-gcm = "0.10"
+
+# UUID
+uuid = { version = "1.21", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Database (direct access for AppState)
+r2d2 = "0.8"
+
+# Async trait support
+async-trait = "0.1"
+
+# Home directory detection
+dirs = "6"
+
+# TOML parsing (for slash commands)
+toml = "0.8"
+
+# Directory walking (for slash commands)
+walkdir = "2"
+
+# Atomic file writes
+tempfile = "3"
+
+# Error handling
+thiserror = "2"
+
+# Platform detection
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
+
+# SSH remote support (Phase C2 — 暂未启用，russh 0.57 的 rand_core 预发布版与 ccr-db 冲突)
+# russh = "0.57.1"
+# russh-sftp = "2.1.1"
 
 [features]
 default = []

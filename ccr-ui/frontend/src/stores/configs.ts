@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { listConfigs } from '@/api/modules/config'
+import { listConfigs } from '@/api'
 import type { ConfigListResponse } from '@/types'
 import { getErrorMessage } from '@/types'
 

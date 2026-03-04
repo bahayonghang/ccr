@@ -140,7 +140,7 @@ import {
   Activity
 } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
-import api from '@/api/core'
+import { getRecentEvents } from '@/api'
 
 const { t } = useI18n()
 
@@ -191,12 +191,16 @@ async function fetchLogs() {
   loadError.value = null
 
   try {
-    const response = await api.get<{
-      data: { logs: LogEntry[]; total: number }
-    }>('/logs', {
-      params: { limit: 100 }
-    })
-    logs.value = response.data.data.logs
+    const events = await getRecentEvents(100)
+    // 将 Tauri 事件映射为日志格式
+    logs.value = (events || []).map((e: any, i: number) => ({
+      id: String(i),
+      timestamp: e.timestamp || new Date().toISOString(),
+      level: e.level || 'info',
+      source: e.source || 'SkillHub',
+      message: e.message || '',
+      metadata: e.metadata || null,
+    }))
   } catch (err: any) {
     loadError.value = err.message || 'Failed to fetch logs'
   } finally {

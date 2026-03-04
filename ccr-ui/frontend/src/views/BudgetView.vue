@@ -271,7 +271,7 @@
 <script setup lang="ts">
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted } from 'vue'
-import { getBudgetStatus, setBudget, resetBudget } from '@/api/modules/stats'
+import { getBudgetStatus, setBudget, resetBudget } from '@/api'
 import type { BudgetStatus, SetBudgetRequest } from '@/types'
 
 const budgetStatus = ref<BudgetStatus | null>(null)
@@ -307,14 +307,15 @@ const loadData = async () => {
   error.value = null
 
   try {
-    budgetStatus.value = await getBudgetStatus()
+    const status = await getBudgetStatus()
+    budgetStatus.value = status
 
     // 更新表单
-    form.value.enabled = budgetStatus.value.enabled
-    form.value.daily_limit = budgetStatus.value.daily_limit
-    form.value.weekly_limit = budgetStatus.value.weekly_limit
-    form.value.monthly_limit = budgetStatus.value.monthly_limit
-    form.value.warn_threshold = budgetStatus.value.warn_threshold
+    form.value.enabled = status.enabled
+    form.value.daily_limit = status.daily_limit
+    form.value.weekly_limit = status.weekly_limit
+    form.value.monthly_limit = status.monthly_limit
+    form.value.warn_threshold = status.warn_threshold
   } catch (e) {
     error.value = (e instanceof Error ? e.message : "Error") || '加载失败'
     console.error('Failed to load budget:', e)

@@ -184,7 +184,7 @@ import {
   syncAllMcpServers,
   type McpServerInfo,
   type SyncResult
-} from '@/api/modules/mcp'
+} from '@/api'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -239,7 +239,7 @@ const handleSyncServer = async (serverName: string) => {
 
   try {
     syncingServer.value = serverName
-    const response = await syncMcpServer(serverName, selectedPlatforms.value)
+    const response = await syncMcpServer(serverName, selectedPlatforms.value) as { results: SyncResult[] }
     syncResults.value[serverName] = response.results
     emit('synced')
   } catch (err) {
@@ -259,8 +259,10 @@ const handleSyncAll = async () => {
 
   try {
     syncing.value = true
-    const response = await syncAllMcpServers(selectedPlatforms.value)
-    
+    const response = await syncAllMcpServers(selectedPlatforms.value) as {
+      servers: Record<string, SyncResult[]>
+    }
+
     // Update results for each server
     for (const [serverName, results] of Object.entries(response.servers)) {
       syncResults.value[serverName] = results

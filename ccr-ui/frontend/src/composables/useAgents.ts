@@ -1,12 +1,12 @@
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref } from 'vue'
-import { listCodexAgents, addCodexAgent, updateCodexAgent, deleteCodexAgent, toggleCodexAgent } from '@/api/modules/codex'
-import { listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent } from '@/api/modules/gemini'
-import { listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent } from '@/api/modules/qwen'
-import { listIflowAgents, addIflowAgent, updateIflowAgent, deleteIflowAgent, toggleIflowAgent } from '@/api/modules/iflow'
-import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api/modules/droid'
-import { listConfigs, getHistory } from '@/api/modules/config'
-import { listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent } from '@/api/modules/agents'
+import { listCodexAgents, addCodexAgent, updateCodexAgent, deleteCodexAgent, toggleCodexAgent } from '@/api'
+import { listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent } from '@/api'
+import { listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent } from '@/api'
+import { listIflowAgents, addIflowAgent, updateIflowAgent, deleteIflowAgent, toggleIflowAgent } from '@/api'
+import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api'
+import { listConfigs, getHistory } from '@/api'
+import { listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent } from '@/api'
 import type { Agent, AgentRequest } from '@/types'
 
 type ModuleType = 'codex' | 'gemini' | 'qwen' | 'iflow' | 'droid' | 'agents'
@@ -105,8 +105,12 @@ export function useAgents(module: ModuleType) {
         try {
             // For now, only Claude Code (agents module) has the getAgent API
             if (module === 'agents') {
-                currentAgent.value = await apiGetAgent(name)
-                return currentAgent.value
+                const fetchedAgent = await apiGetAgent(name)
+                if (!fetchedAgent) {
+                    throw new Error(`Agent '${name}' not found`)
+                }
+                currentAgent.value = fetchedAgent
+                return fetchedAgent
             }
             // For other platforms, find from loaded list
             const agent = agents.value.find(a => a.name === name)

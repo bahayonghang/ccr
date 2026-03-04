@@ -730,8 +730,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Settings2, ArrowLeft, Save, Plus, Trash2, X as XIcon, Brain, Shield, Terminal, Palette, Lock, GitBranch } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'
-import { getClaudeSettings, updateClaudeSettings } from '@/api/modules/claudeSettings'
-import type { ClaudeSettingsData } from '@/api/modules/claudeSettings'
+import { getClaudeSettings, updateClaudeSettings } from '@/api'
+import type { ClaudeSettingsData } from '@/api'
 import { useUIStore } from '@/store'
 
 const { t } = useI18n()
@@ -847,7 +847,10 @@ async function loadSettings() {
     permDefaultMode.value = data.permissions?.defaultMode || ''
     permAdditionalDirs.value = data.permissions?.additionalDirectories || []
 
-    envEntries.value = Object.entries(data.env || {}).map(([key, value]) => ({ key, value }))
+    envEntries.value = Object.entries(data.env || {}).map(([key, value]) => ({
+      key,
+      value: typeof value === 'string' ? value : String(value ?? ''),
+    }))
 
     sandboxEnabled.value = data.sandbox?.enabled
     sandboxAutoAllow.value = data.sandbox?.autoAllowBashIfSandboxed

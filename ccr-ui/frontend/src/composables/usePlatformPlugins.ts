@@ -11,9 +11,9 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
-import { listGeminiPlugins, addGeminiPlugin, updateGeminiPlugin, deleteGeminiPlugin, toggleGeminiPlugin } from '@/api/modules/gemini'
-import { listQwenPlugins, addQwenPlugin, updateQwenPlugin, deleteQwenPlugin, toggleQwenPlugin } from '@/api/modules/qwen'
-import { listIflowPlugins, addIflowPlugin, updateIflowPlugin, deleteIflowPlugin, toggleIflowPlugin } from '@/api/modules/iflow'
+import { listGeminiPlugins, addGeminiPlugin, updateGeminiPlugin, deleteGeminiPlugin, toggleGeminiPlugin } from '@/api'
+import { listQwenPlugins, addQwenPlugin, updateQwenPlugin, deleteQwenPlugin, toggleQwenPlugin } from '@/api'
+import { listIflowPlugins, addIflowPlugin, updateIflowPlugin, deleteIflowPlugin, toggleIflowPlugin } from '@/api'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 
 // ============ 类型定义 ============

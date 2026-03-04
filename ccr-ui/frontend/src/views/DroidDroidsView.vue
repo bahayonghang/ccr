@@ -426,7 +426,7 @@
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { ArrowLeft, Plus, Edit2, Trash2, Cpu, Zap, Wrench, Inbox, X } from 'lucide-vue-next'
-import axios from 'axios'
+import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api'
 
 // 类型定义
 interface Droid {
@@ -460,20 +460,30 @@ const toolsMode = ref<'all' | 'category' | 'custom'>('all')
 const toolsCategory = ref('read-only')
 const toolsCustom = ref('')
 
-// API 基础 URL
-const API_BASE = 'http://localhost:8081/api/droid'
+const normalizeDroids = (data: any): Droid[] => {
+  if (Array.isArray(data)) {
+    return data as Droid[]
+  }
+
+  if (data && typeof data === 'object') {
+    return Object.entries(data).map(([name, config]) => ({
+      name,
+      ...(config as Omit<Droid, 'name'>)
+    }))
+  }
+
+  return []
+}
 
 // 加载 Droids 列表
 const loadDroids = async () => {
   loading.value = true
   try {
-    const response = await axios.get(`${API_BASE}/droids`)
-    if (response.data.success) {
-      droids.value = response.data.data
-    }
+    const data = await listDroidAgents()
+    droids.value = normalizeDroids(data)
   } catch (error) {
     console.error('加载 Droids 失败:', error)
-    alert('加载 Droids 失败，请检查后端服务是否运行')
+    alert('加载 Droids 失败，请检查配置文件是否可访问')
   } finally {
     loading.value = false
   }
@@ -483,7 +493,7 @@ const loadDroids = async () => {
 const editDroid = (droid: Droid) => {
   editingDroid.value = droid
   formData.value = { ...droid }
-  
+
   // 设置工具模式
   if (!droid.tools) {
     toolsMode.value = 'all'
@@ -494,7 +504,7 @@ const editDroid = (droid: Droid) => {
     toolsMode.value = 'custom'
     toolsCustom.value = JSON.stringify(droid.tools)
   }
-  
+
   showAddModal.value = true
 }
 
@@ -524,18 +534,18 @@ const saveDroid = async () => {
 
     if (editingDroid.value) {
       // 更新
-      await axios.put(`${API_BASE}/droids/${editingDroid.value.name}`, droidData)
+      await updateDroidAgent(editingDroid.value.name, droidData)
       alert('Droid 更新成功！')
     } else {
       // 添加
-      await axios.post(`${API_BASE}/droids`, droidData)
+      await addDroidAgent(formData.value.name, droidData)
       alert('Droid 添加成功！')
     }
     closeModal()
     await loadDroids()
   } catch (error: any) {
     console.error('保存 Droid 失败:', error)
-    alert(error.response?.data?.message || '保存 Droid 失败')
+    alert(error?.message || '保存 Droid 失败')
   } finally {
     saving.value = false
   }
@@ -548,12 +558,12 @@ const deleteDroid = async (name: string) => {
   }
 
   try {
-    await axios.delete(`${API_BASE}/droids/${name}`)
+    await deleteDroidAgent(name)
     alert('Droid 删除成功！')
     await loadDroids()
   } catch (error: any) {
     console.error('删除 Droid 失败:', error)
-    alert(error.response?.data?.message || '删除 Droid 失败')
+    alert(error?.message || '删除 Droid 失败')
   }
 }
 

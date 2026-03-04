@@ -481,7 +481,7 @@ import {
   updateCheckinAccount,
   deleteCheckinAccount as apiDeleteAccount,
   getCheckinAccountCookies,
-} from '@/api/modules/checkin'
+} from '@/api'
 import type {
   CheckinProvider,
   AccountInfo,

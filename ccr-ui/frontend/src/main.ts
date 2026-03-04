@@ -28,3 +28,10 @@ app.config.errorHandler = (err, _instance, info) => {
 }
 
 app.mount('#app')
+
+// Tauri 模式：Vue 挂载完成后再显示窗口，避免启动黑屏
+if (window.__TAURI_INTERNALS__) {
+  import('@tauri-apps/api/window')
+    .then(({ getCurrentWindow }) => getCurrentWindow().show())
+    .catch(() => {})
+}

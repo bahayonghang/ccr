@@ -213,7 +213,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                CCR UI v4.3.1
+                CCR UI v4.4.0
               </span>
             </div>
           </div>
@@ -252,6 +252,8 @@
         </div>
 
         <div class="flex items-center gap-4">
+          <!-- 环境切换器 (仅 Tauri 桌面模式) -->
+          <EnvironmentSwitcher v-if="isTauri" />
           <LanguageSwitcher />
           <div
             v-if="isTauri"
@@ -260,7 +262,7 @@
           <!-- Exit Toggle -->
           <button
             v-if="isTauri"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 border"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 border whitespace-nowrap flex-shrink-0"
             :class="[
               showExitConfirm 
                 ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' 
@@ -328,6 +330,7 @@ import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import BackgroundImage from '@/components/common/BackgroundImage.vue'
+import EnvironmentSwitcher from '@/components/EnvironmentSwitcher.vue'
 import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
 import { usePageTransition } from '@/composables/usePageTransition'
 
@@ -346,7 +349,7 @@ const cachedViews = [
 const routeTitleMap: Record<string, string> = {
   home: 'nav.home',
   skills: 'nav.skills',
-  'add-skill': 'nav.addSkill',
+  'skills-add': 'nav.addSkill',
   'claude-code': 'nav.claudeCode',
   codex: 'nav.codex',
   'gemini-cli': 'nav.gemini',

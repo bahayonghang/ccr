@@ -4,7 +4,23 @@
  */
 import { storeToRefs } from 'pinia'
 import { useSkillsStore } from '@/stores/skills'
-import api from '@/api/core'
+import {
+  getSkillHubTrending,
+  searchSkillHubMarketplace,
+  getSkillHubAgents,
+  getSkillHubAgentSkills,
+  installSkillHubSkill,
+  removeSkillHubSkill,
+  getSkillHubUnified,
+  getSkillHubSkillContent,
+  saveSkillHubSkillContent,
+  importSkillFromGithub,
+  importSkillFromLocal,
+  importSkillViaNpx,
+  batchInstallSkills,
+  checkNpxAvailability,
+  browseForFolder,
+} from '@/api'
 import { logger } from '@/utils/logger'
 import type {
   Platform,
@@ -22,9 +38,6 @@ import type {
   BatchInstallResponse,
   NpxStatus,
 } from '@/types/skills'
-
-// API endpoints
-const SKILL_HUB_BASE = '/skill_hub'
 
 // Backend response types (snake_case)
 interface BackendSkillItem {
@@ -48,8 +61,7 @@ interface BackendMarketplaceItem {
   owner: string
   repo: string
   skill?: string
-  skills_sh_url: string
-  // 新增（从 skills.sh HTML 解析）
+  skills_sh_url?: string
   description?: string
   author_avatar?: string
   stars?: number
@@ -57,18 +69,8 @@ interface BackendMarketplaceItem {
 
 interface BackendMarketplaceResponse {
   items: BackendMarketplaceItem[]
-  total: number
-  cached: boolean
-}
-
-interface BackendSkillContentData {
-  name: string
-  description?: string
-  category?: string
-  tags?: string[]
-  content: string
-  raw: string
-  skill_dir: string
+  total?: number
+  cached?: boolean
 }
 
 export function useUnifiedSkills() {
@@ -89,7 +91,6 @@ export function useUnifiedSkills() {
     availableTags,
     stats,
     skillsByPlatform,
-    // 新增状态
     isInstalling,
     installProgress,
     batchMode,
@@ -98,22 +99,29 @@ export function useUnifiedSkills() {
     marketplacePage,
     marketplaceTotal,
     marketplacePageSize,
-    // 缓存状态
     isSkillsCacheValid,
     isMarketplaceCacheValid,
   } = storeToRefs(store)
 
-  // Transform backend response to frontend format
+  function normalizePlatformId(value: string): Platform {
+    const normalized = value.toLowerCase()
+    if (normalized === 'claude' || normalized === 'claude-code') return 'claude-code'
+    if (normalized === 'codex') return 'codex'
+    if (normalized === 'gemini') return 'gemini'
+    if (normalized === 'qwen') return 'qwen'
+    if (normalized === 'iflow') return 'iflow'
+    return 'droid'
+  }
+
   function transformSkill(skill: BackendSkillItem): UnifiedSkill {
     return {
       name: skill.name,
       description: skill.description,
       skillDir: skill.skill_dir,
-      platform: skill.platform as Platform,
+      platform: normalizePlatformId(skill.platform),
       platformName: skill.platform_name,
       category: skill.category,
       tags: skill.tags || [],
-      // Metadata fields (snake_case → camelCase)
       version: skill.version,
       author: skill.author,
       source: skill.source,
@@ -123,17 +131,39 @@ export function useUnifiedSkills() {
     }
   }
 
-  function transformPlatform(platform: PlatformSummary): PlatformSummary {
+  function transformPlatform(raw: any): PlatformSummary {
+    const id = normalizePlatformId(raw?.id || raw?.platform || '')
     return {
-      id: platform.id,
-      display_name: platform.display_name,
-      global_skills_dir: platform.global_skills_dir,
-      detected: platform.detected,
-      installed_count: platform.installed_count,
+      id,
+      display_name: raw?.display_name || raw?.displayName || raw?.name || id,
+      global_skills_dir: raw?.global_skills_dir || raw?.globalSkillsDir || '',
+      detected: Boolean(raw?.detected ?? true),
+      installed_count: Number(raw?.installed_count ?? raw?.installedCount ?? 0),
     }
   }
 
-  // Collapse bursty mutation refreshes into a single full reload.
+  function toOperationResponse(raw: any): OperationResponse {
+    if (Array.isArray(raw?.results)) return raw as OperationResponse
+    if (Array.isArray(raw)) {
+      return {
+        results: raw.map((item: any) => ({
+          agent: item?.agent || item?.platform || 'unknown',
+          ok: Boolean(item?.ok ?? item?.success ?? true),
+          message: item?.message,
+        })),
+      }
+    }
+    return {
+      results: [
+        {
+          agent: 'unknown',
+          ok: Boolean(raw?.ok ?? raw?.success ?? true),
+          message: raw?.message,
+        },
+      ],
+    }
+  }
+
   let mutationRefreshTimer: ReturnType<typeof setTimeout> | null = null
   let mutationRefreshPromise: Promise<void> | null = null
   let mutationRefreshResolve: (() => void) | null = null
@@ -157,54 +187,73 @@ export function useUnifiedSkills() {
     return mutationRefreshPromise
   }
 
-  // Fetch all skills from all platforms
   async function fetchAllSkills(force = false) {
-    // 缓存有效且不是强制刷新，直接返回
     if (!force && isSkillsCacheValid.value) return
 
     store.setLoading(true)
     store.setError(null)
 
     try {
-      const response = await api.get<{
-        data: { skills: BackendSkillItem[]; platforms: PlatformSummary[] }
-      }>(`${SKILL_HUB_BASE}/unified`)
-      const data = response.data.data
+      // 使用 unified 命令一次性获取所有平台数据，避免 N+1 查询
+      const response = await getSkillHubUnified()
+      const platformList = Array.isArray(response?.platforms)
+        ? response.platforms
+        : []
+      const normalizedPlatforms = platformList.map(transformPlatform)
+      store.setPlatforms(normalizedPlatforms)
 
-      store.setSkills(data.skills.map(transformSkill))
-      store.setPlatforms(data.platforms.map(transformPlatform))
+      const skillsRaw = Array.isArray(response?.skills)
+        ? response.skills
+        : []
+      const allSkills: UnifiedSkill[] = skillsRaw.map((s: BackendSkillItem) => transformSkill(s))
+      store.setSkills(allSkills)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch skills'
-      store.setError(errorMessage)
-      logger.error('Failed to fetch unified skills', err)
+      // unified 命令失败时回退到 N+1 模式
+      logger.warn('[useUnifiedSkills] unified 查询失败，回退到逐平台查询', err)
+      try {
+        const platformRows = await getSkillHubAgents()
+        const platformList = Array.isArray(platformRows)
+          ? platformRows
+          : (platformRows?.platforms || platformRows?.agents || [])
+        const normalizedPlatforms = platformList.map(transformPlatform)
+        store.setPlatforms(normalizedPlatforms)
+
+        const allSkills: UnifiedSkill[] = []
+        for (const p of normalizedPlatforms) {
+          try {
+            const rows = await getSkillHubAgentSkills(p.id)
+            const skillsRaw = Array.isArray(rows)
+              ? rows
+              : (rows?.skills || rows?.data?.skills || [])
+            allSkills.push(...skillsRaw.map((s: BackendSkillItem) => transformSkill(s)))
+          } catch (innerErr) {
+            logger.warn(`[useUnifiedSkills] 拉取平台 ${p.id} 的 skills 失败`, innerErr)
+          }
+        }
+        store.setSkills(allSkills)
+      } catch (fallbackErr) {
+        const errorMessage = fallbackErr instanceof Error ? fallbackErr.message : 'Failed to fetch skills'
+        store.setError(errorMessage)
+        logger.error('Failed to fetch unified skills', fallbackErr)
+      }
     } finally {
       store.setLoading(false)
     }
   }
 
-  // Fetch skills for a specific platform
   async function fetchSkillsByPlatform(platform: Platform) {
     store.setLoading(true)
     store.setError(null)
 
     try {
-      const response = await api.get<{
-        data: { skills: BackendSkillItem[]; platforms: PlatformSummary[] }
-      }>(`${SKILL_HUB_BASE}/unified/${platform}`)
-      const data = response.data.data
+      const rows = await getSkillHubAgentSkills(platform)
+      const skillsRaw = Array.isArray(rows)
+        ? rows
+        : (rows?.skills || rows?.data?.skills || [])
 
-      // Merge with existing skills (replace platform-specific skills)
       const otherSkills = skills.value.filter((s) => s.platform !== platform)
-      const newSkills = data.skills.map(transformSkill)
+      const newSkills = skillsRaw.map((s: BackendSkillItem) => transformSkill(s))
       store.setSkills([...otherSkills, ...newSkills])
-
-      // Update platform info
-      if (data.platforms.length > 0) {
-        const updatedPlatforms = platforms.value.map((p) =>
-          p.id === platform ? transformPlatform(data.platforms[0]) : p
-        )
-        store.setPlatforms(updatedPlatforms)
-      }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : `Failed to fetch skills for ${platform}`
@@ -215,34 +264,34 @@ export function useUnifiedSkills() {
     }
   }
 
-  // Fetch marketplace trending
   async function fetchMarketplaceTrending(limit: number = 30, page: number = 1, force = false) {
-    // 缓存有效且不是强制刷新，直接返回
     if (!force && isMarketplaceCacheValid.value) return
 
     store.setMarketplaceLoading(true)
     store.setMarketplaceError(null)
 
     try {
-      const response = await api.get<{ data: BackendMarketplaceResponse }>(
-        `${SKILL_HUB_BASE}/marketplace/trending`,
-        { params: { limit, page } }
-      )
-      const data = response.data.data
+      const response = await getSkillHubTrending()
+      // TODO: 当前 Tauri API 不支持 limit/page，先使用后端默认分页
+      void limit
+      void page
+      const data: BackendMarketplaceResponse = Array.isArray(response)
+        ? { items: response as BackendMarketplaceItem[] }
+        : response
 
       store.setMarketplaceItems(
-        data.items.map((item: BackendMarketplaceItem) => ({
+        (data.items || []).map((item: BackendMarketplaceItem) => ({
           package: item.package,
           owner: item.owner,
           repo: item.repo,
           skill: item.skill,
-          skillsShUrl: item.skills_sh_url,
+          skillsShUrl: item.skills_sh_url || '',
           description: item.description,
           authorAvatar:
             item.author_avatar || `https://avatars.githubusercontent.com/${item.owner}?s=64`,
           stars: item.stars,
         })),
-        data.cached
+        Boolean(data.cached)
       )
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch marketplace'
@@ -253,31 +302,32 @@ export function useUnifiedSkills() {
     }
   }
 
-  // Search marketplace
   async function searchMarketplace(query: string, limit: number = 30, page: number = 1) {
     store.setMarketplaceLoading(true)
     store.setMarketplaceError(null)
 
     try {
-      const response = await api.get<{ data: BackendMarketplaceResponse }>(
-        `${SKILL_HUB_BASE}/marketplace/search`,
-        { params: { q: query, limit, page } }
-      )
-      const data = response.data.data
+      const response = await searchSkillHubMarketplace(query)
+      // TODO: 当前 Tauri API 不支持 limit/page，先使用后端默认分页
+      void limit
+      void page
+      const data: BackendMarketplaceResponse = Array.isArray(response)
+        ? { items: response as BackendMarketplaceItem[] }
+        : response
 
       store.setMarketplaceItems(
-        data.items.map((item: BackendMarketplaceItem) => ({
+        (data.items || []).map((item: BackendMarketplaceItem) => ({
           package: item.package,
           owner: item.owner,
           repo: item.repo,
           skill: item.skill,
-          skillsShUrl: item.skills_sh_url,
+          skillsShUrl: item.skills_sh_url || '',
           description: item.description,
           authorAvatar:
             item.author_avatar || `https://avatars.githubusercontent.com/${item.owner}?s=64`,
           stars: item.stars,
         })),
-        data.cached
+        Boolean(data.cached)
       )
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to search marketplace'
@@ -288,205 +338,147 @@ export function useUnifiedSkills() {
     }
   }
 
-  // Install skill to platforms
   async function installSkill(request: InstallRequest): Promise<OperationResponse> {
     try {
-      const response = await api.post<{ data: OperationResponse }>(
-        `${SKILL_HUB_BASE}/install`,
-        request
-      )
-
+      const result = await installSkillHubSkill(request)
       await scheduleMutationRefresh()
-
-      return response.data.data
+      return toOperationResponse(result)
     } catch (err) {
       logger.error('Failed to install skill', err)
       throw err
     }
   }
 
-  // Remove skill from platforms
   async function removeSkill(request: RemoveRequest): Promise<OperationResponse> {
     try {
-      const response = await api.post<{ data: OperationResponse }>(
-        `${SKILL_HUB_BASE}/remove`,
-        request
-      )
-
+      const result = await removeSkillHubSkill(request.skill)
       await scheduleMutationRefresh()
-
-      return response.data.data
+      return toOperationResponse(result)
     } catch (err) {
       logger.error('Failed to remove skill', err)
       throw err
     }
   }
 
-  // Fetch platforms list
   async function fetchPlatforms() {
     try {
-      const response = await api.get<{ data: PlatformSummary[] }>(`${SKILL_HUB_BASE}/agents`)
-      store.setPlatforms(response.data.data.map(transformPlatform))
+      const response = await getSkillHubAgents()
+      const platformList = Array.isArray(response)
+        ? response
+        : (response?.platforms || response?.agents || [])
+      store.setPlatforms(platformList.map(transformPlatform))
     } catch (err) {
       logger.error('Failed to fetch platforms', err)
     }
   }
 
-  // Initialize - fetch all data（若缓存有效则跳过，deduplicated）
   let initPromise: Promise<void> | null = null
   async function initialize() {
-    // 两项缓存均有效时直接返回，无需请求
     if (isSkillsCacheValid.value && isMarketplaceCacheValid.value) return
     if (initPromise) return initPromise
     initPromise = Promise.all([fetchAllSkills(), fetchMarketplaceTrending()]).then(() => {})
     return initPromise
   }
 
-  // Refresh all data（强制忽略缓存重新拉取）
   async function refresh() {
     initPromise = null
     await Promise.all([fetchAllSkills(true), fetchMarketplaceTrending(30, 1, true)])
   }
 
-  // 手动清除市场缓存并重新拉取
   async function refreshMarketplaceCache() {
-    store.setMarketplaceLoading(true)
-    try {
-      await api.post(`${SKILL_HUB_BASE}/marketplace/refresh-cache`)
-      await fetchMarketplaceTrending()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to refresh cache'
-      store.setMarketplaceError(errorMessage)
-      logger.error('Failed to refresh marketplace cache', err)
-    } finally {
-      store.setMarketplaceLoading(false)
-    }
+    // TODO: @/api 暂无 refresh marketplace cache 命令，回退为强制刷新
+    await fetchMarketplaceTrending(30, 1, true)
   }
 
-  // Fetch skill content (full SKILL.md with frontmatter + body)
   async function fetchSkillContent(skillDir: string): Promise<SkillContent> {
-    const response = await api.get<{ data: BackendSkillContentData }>(
-      `${SKILL_HUB_BASE}/skill/content`,
-      {
-        params: { skill_dir: skillDir },
-      }
-    )
-    const d = response.data.data
+    const result = await getSkillHubSkillContent(skillDir)
     return {
-      name: d.name,
-      description: d.description,
-      category: d.category,
-      tags: d.tags || [],
-      content: d.content,
-      raw: d.raw,
-      skillDir: d.skill_dir,
+      name: result?.name || '',
+      description: result?.description,
+      category: result?.category,
+      tags: result?.tags || [],
+      content: result?.content || '',
+      raw: result?.raw || '',
+      skillDir: result?.skill_dir || skillDir,
     }
   }
 
-  // Save skill content (write full SKILL.md)
   async function saveSkillContent(skillDir: string, content: string): Promise<void> {
-    await api.post(`${SKILL_HUB_BASE}/skill/content`, {
-      skill_dir: skillDir,
-      content,
-    })
-    // Refresh skills list after save to reflect any metadata changes
-    // 从 store 中查找 skill 所属平台进行精准刷新
-    const skill = store.skills.find((s) => s.skillDir === skillDir)
-    if (skill) {
-      await fetchSkillsByPlatform(skill.platform as Platform)
-    } else {
-      await fetchAllSkills()
-    }
+    await saveSkillHubSkillContent(skillDir, content)
   }
 
-  // === 新增 API 方法 ===
-
-  // 从 GitHub URL 导入
   async function importFromGithub(request: ImportGithubRequest): Promise<OperationResponse> {
-    try {
-      const response = await api.post<{ data: OperationResponse }>(
-        `${SKILL_HUB_BASE}/import/github`,
-        { url: request.url, agents: request.agents, force: request.force ?? false }
-      )
-      await scheduleMutationRefresh()
-      return response.data.data
-    } catch (err) {
-      logger.error('Failed to import from GitHub', err)
-      throw err
-    }
+    const result = await importSkillFromGithub(request.url, request.agents, request.force)
+    const response = toOperationResponse(result)
+    await scheduleMutationRefresh()
+    return response
   }
 
-  // 从本地文件夹导入
   async function importFromLocal(request: ImportLocalRequest): Promise<OperationResponse> {
-    try {
-      const response = await api.post<{ data: OperationResponse }>(
-        `${SKILL_HUB_BASE}/import/local`,
-        { source_path: request.sourcePath, agents: request.agents, skill_name: request.skillName }
-      )
-      await scheduleMutationRefresh()
-      return response.data.data
-    } catch (err) {
-      logger.error('Failed to import from local', err)
-      throw err
-    }
+    const result = await importSkillFromLocal(request.sourcePath, request.agents, request.skillName)
+    const response = toOperationResponse(result)
+    await scheduleMutationRefresh()
+    return response
   }
 
-  // 通过 npx skills 安装
   async function importViaNpx(request: NpxInstallRequest): Promise<NpxInstallResponse> {
-    try {
-      const response = await api.post<{ data: NpxInstallResponse }>(
-        `${SKILL_HUB_BASE}/import/npx`,
-        { package: request.package, agents: request.agents, global: request.global ?? false }
-      )
-      await scheduleMutationRefresh()
-      return response.data.data
-    } catch (err) {
-      logger.error('Failed to install via npx', err)
-      throw err
+    const result = await importSkillViaNpx(request.package, request.agents, request.global)
+    await scheduleMutationRefresh()
+    return {
+      success: Boolean(result?.success),
+      method: result?.method || 'npx',
+      stdout: result?.stdout,
+      stderr: result?.stderr,
+      results: (result?.results || []).map((r: any) => ({
+        agent: r?.agent || 'unknown',
+        ok: Boolean(r?.ok ?? r?.success),
+        message: r?.message,
+      })),
     }
   }
 
-  // 批量安装
   async function batchInstall(request: BatchInstallRequest): Promise<BatchInstallResponse> {
-    try {
-      const response = await api.post<{ data: BatchInstallResponse }>(
-        `${SKILL_HUB_BASE}/batch-install`,
-        { packages: request.packages, agents: request.agents, force: request.force ?? false }
-      )
-      await scheduleMutationRefresh()
-      return response.data.data
-    } catch (err) {
-      logger.error('Failed to batch install', err)
-      throw err
+    const result = await batchInstallSkills(request.packages, request.agents, request.force)
+    await scheduleMutationRefresh()
+    return {
+      total: result?.total || 0,
+      successCount: result?.success_count || 0,
+      failCount: result?.fail_count || 0,
+      results: (result?.results || []).map((r: any) => ({
+        package: r?.package || '',
+        ok: Boolean(r?.ok),
+        message: r?.message,
+      })),
     }
   }
 
-  // 检查 npx 可用性
   async function checkNpxStatus(): Promise<NpxStatus> {
     try {
-      const response = await api.get<{ data: NpxStatus }>(`${SKILL_HUB_BASE}/npx/status`)
-      store.setNpxStatus(response.data.data)
-      return response.data.data
-    } catch (err) {
-      logger.error('Failed to check npx status', err)
-      return { available: false }
+      const result = await checkNpxAvailability()
+      const status: NpxStatus = {
+        available: Boolean(result?.available),
+        version: result?.version,
+        path: result?.path,
+      }
+      store.setNpxStatus(status)
+      return status
+    } catch {
+      const status: NpxStatus = { available: false }
+      store.setNpxStatus(status)
+      return status
     }
   }
 
-  // 浏览文件夹（桌面端 Tauri 原生对话框）
   async function browseFolder(): Promise<string | null> {
     try {
-      const response = await api.post<{ data: { path: string | null } }>(
-        `${SKILL_HUB_BASE}/browse-folder`
-      )
-      return response.data.data.path
+      const result = await browseForFolder()
+      return result?.path ?? null
     } catch {
       return null
     }
   }
 
   return {
-    // State (reactive refs from store)
     skills,
     platforms,
     marketplaceItems,
@@ -497,7 +489,6 @@ export function useUnifiedSkills() {
     marketplaceCached,
     filters,
     activeTab,
-    // 新增状态
     isInstalling,
     installProgress,
     batchMode,
@@ -507,18 +498,15 @@ export function useUnifiedSkills() {
     marketplaceTotal,
     marketplacePageSize,
 
-    // Computed
     filteredSkills,
     availableCategories,
     availableTags,
     stats,
     skillsByPlatform,
 
-    // Actions from store
     setFilter: store.setFilter,
     resetFilters: store.resetFilters,
     setActiveTab: store.setActiveTab,
-    // 新增 store actions
     toggleBatchMode: store.toggleBatchMode,
     toggleBatchSelection: store.toggleBatchSelection,
     selectAllBatch: store.selectAllBatch,
@@ -527,7 +515,6 @@ export function useUnifiedSkills() {
     setInstalling: store.setInstalling,
     setInstallProgress: store.setInstallProgress,
 
-    // API actions
     fetchAllSkills,
     fetchSkillsByPlatform,
     fetchMarketplaceTrending,
@@ -540,7 +527,6 @@ export function useUnifiedSkills() {
     initialize,
     refresh,
     refreshMarketplaceCache,
-    // 新增 API actions
     importFromGithub,
     importFromLocal,
     importViaNpx,

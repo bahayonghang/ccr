@@ -1,7 +1,9 @@
-// WebSocket 连接管理 composable
-// 提供自动重连、消息分发等功能
+// Tauri 事件监听 composable（替代原 WebSocket 连接）
+// 使用 Tauri listen() API 接收后端事件推送
 
 import { ref, onMounted, onUnmounted, type Ref } from 'vue'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
 import { logger } from '@/utils/logger'
 
 export interface LogMessage {
@@ -22,6 +24,7 @@ export interface TokenStats {
     last_updated: string
 }
 
+// 保留旧接口以兼容已有代码
 export interface WsMessage {
     type: 'Log' | 'TokenStats' | 'ProxyState' | 'Ping' | 'Pong' | 'Error' | 'LogBatch'
     data?: LogMessage | TokenStats | LogMessage[] | { message: string }
@@ -36,181 +39,81 @@ export interface UseWebSocketOptions {
     onError?: (error: string) => void
 }
 
+/**
+ * 使用 Tauri 事件系统替代 WebSocket 连接
+ *
+ * 后端通过 `app_handle.emit()` 发送事件，前端通过 `listen()` 接收。
+ * 保持与旧 useWebSocket 相同的返回接口，确保上层代码无需修改。
+ */
 export function useWebSocket(options: UseWebSocketOptions = {}) {
-    const {
-        url = `ws://${window.location.hostname}:48081/ws`,
-        reconnectInterval = 3000,
-        maxReconnectAttempts = 5,
-        onLog,
-        onTokenStats,
-        onError
-    } = options
+    const { onLog, onTokenStats, onError } = options
 
-    const isConnected: Ref<boolean> = ref(false)
+    const isConnected: Ref<boolean> = ref(true) // Tauri 模式下始终"连接"
     const logs: Ref<LogMessage[]> = ref([])
     const tokenStats: Ref<TokenStats | null> = ref(null)
     const reconnectAttempts = ref(0)
     const isVisible = ref(!document.hidden)
 
-    let ws: WebSocket | null = null
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
-    let heartbeatInterval: ReturnType<typeof setInterval> | null = null
+    const unlisteners: UnlistenFn[] = []
+
+    const setupListeners = async () => {
+        try {
+            // 监听日志事件
+            const unLog = await listen<LogMessage>('app-log', (event) => {
+                const log = event.payload
+                logs.value.push(log)
+                if (logs.value.length > 500) {
+                    logs.value.shift()
+                }
+                onLog?.(log)
+            })
+            unlisteners.push(unLog)
+
+            // 监听 token 统计事件
+            const unStats = await listen<TokenStats>('token-stats', (event) => {
+                tokenStats.value = event.payload
+                onTokenStats?.(tokenStats.value)
+            })
+            unlisteners.push(unStats)
+
+            // 监听错误事件
+            const unErr = await listen<{ message: string }>('app-error', (event) => {
+                onError?.(event.payload.message)
+            })
+            unlisteners.push(unErr)
+
+            // 加载最近事件
+            try {
+                const recent = await invoke<LogMessage[]>('get_recent_events')
+                if (recent && recent.length > 0) {
+                    logs.value = recent
+                }
+            } catch {
+                logger.debug('[TauriEvents] No recent events available')
+            }
+
+            isConnected.value = true
+            logger.debug('[TauriEvents] Event listeners registered')
+        } catch (e) {
+            logger.error('[TauriEvents] Failed to setup listeners', e)
+            isConnected.value = false
+        }
+    }
 
     const connect = () => {
-        if (ws?.readyState === WebSocket.OPEN) return
-        if (document.hidden) {
-            logger.debug('[WebSocket] Page hidden, skipping connect')
-            return
-        }
-
-        try {
-            ws = new WebSocket(url)
-
-            ws.onopen = () => {
-                isConnected.value = true
-                reconnectAttempts.value = 0
-                logger.debug('[WebSocket] Connected')
-                startHeartbeat()
-            }
-
-            ws.onmessage = (event) => {
-                try {
-                    const message: WsMessage = JSON.parse(event.data)
-                    handleMessage(message)
-                } catch (e) {
-                    logger.error('[WebSocket] Failed to parse message', e)
-                }
-            }
-
-            ws.onclose = () => {
-                isConnected.value = false
-                stopHeartbeat()
-                logger.debug('[WebSocket] Disconnected')
-                scheduleReconnect()
-            }
-
-            ws.onerror = (error) => {
-                logger.error('[WebSocket] Error', error)
-                onError?.('WebSocket connection error')
-            }
-        } catch (e) {
-            logger.error('[WebSocket] Failed to connect', e)
-            scheduleReconnect()
-        }
-    }
-
-    const startHeartbeat = () => {
-        stopHeartbeat()
-        heartbeatInterval = setInterval(() => {
-            send({ type: 'Ping' })
-        }, 30000) // 30秒心跳
-    }
-
-    const stopHeartbeat = () => {
-        if (heartbeatInterval) {
-            clearInterval(heartbeatInterval)
-            heartbeatInterval = null
-        }
-    }
-
-    const handleVisibilityChange = () => {
-        isVisible.value = !document.hidden
-
-        if (document.hidden) {
-            logger.debug('[WebSocket] Page hidden, pausing connection')
-            disconnect()
-        } else {
-            logger.debug('[WebSocket] Page visible, resuming connection')
-            reconnectAttempts.value = 0 // 重置重连计数
-            connect()
-        }
-    }
-
-    const handleMessage = (message: WsMessage) => {
-        switch (message.type) {
-            case 'Log':
-                if (message.data) {
-                    const log = message.data as LogMessage
-                    logs.value.push(log)
-                    // Keep max 500 logs
-                    if (logs.value.length > 500) {
-                        logs.value.shift()
-                    }
-                    onLog?.(log)
-                }
-                break
-
-            case 'LogBatch':
-                if (message.data && Array.isArray(message.data)) {
-                    logs.value = message.data as LogMessage[]
-                }
-                break
-
-            case 'TokenStats':
-                if (message.data) {
-                    tokenStats.value = message.data as TokenStats
-                    onTokenStats?.(tokenStats.value)
-                }
-                break
-
-            case 'Error':
-                if (message.data && 'message' in message.data) {
-                    onError?.(message.data.message)
-                }
-                break
-
-            case 'Ping':
-                // Respond with Pong
-                send({ type: 'Pong' })
-                break
-        }
-    }
-
-    const scheduleReconnect = () => {
-        if (reconnectAttempts.value >= maxReconnectAttempts) {
-            logger.debug('[WebSocket] Max reconnect attempts reached')
-            return
-        }
-
-        if (document.hidden) {
-            logger.debug('[WebSocket] Page hidden, skipping reconnect')
-            return
-        }
-
-        if (reconnectTimer) {
-            clearTimeout(reconnectTimer)
-        }
-
-        reconnectTimer = setTimeout(() => {
-            reconnectAttempts.value++
-            logger.debug(`[WebSocket] Reconnecting... (attempt ${reconnectAttempts.value})`)
-            connect()
-        }, reconnectInterval)
-    }
-
-    const send = (message: WsMessage) => {
-        if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify(message))
-        }
+        // 兼容旧接口 — Tauri 模式下自动设置监听
+        setupListeners()
     }
 
     const disconnect = () => {
-        // 清理重连定时器
-        if (reconnectTimer) {
-            clearTimeout(reconnectTimer)
-            reconnectTimer = null
-        }
-
-        // 清理心跳定时器
-        stopHeartbeat()
-
-        // 关闭 WebSocket
-        if (ws) {
-            ws.close()
-            ws = null
-        }
-
+        unlisteners.forEach(fn => fn())
+        unlisteners.length = 0
         isConnected.value = false
+    }
+
+    const send = (_message: WsMessage) => {
+        // Tauri 模式下不需要发送消息到后端（后端内嵌）
+        logger.debug('[TauriEvents] send() is no-op in native mode')
     }
 
     const clearLogs = () => {
@@ -218,18 +121,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
 
     onMounted(() => {
-        // 监听页面可见性变化
-        document.addEventListener('visibilitychange', handleVisibilityChange)
-
-        // 初始连接
-        connect()
+        setupListeners()
     })
 
     onUnmounted(() => {
-        // 移除事件监听器
-        document.removeEventListener('visibilitychange', handleVisibilityChange)
-
-        // 完全断开连接
         disconnect()
     })
 

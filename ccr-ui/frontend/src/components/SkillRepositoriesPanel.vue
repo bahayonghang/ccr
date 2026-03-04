@@ -230,7 +230,7 @@ import {
   Clock,
   X
 } from 'lucide-vue-next'
-import { listSkillRepositories, addSkillRepository, removeSkillRepository, type SkillRepository } from '@/api/modules/skills'
+import { listSkillRepositories, addSkillRepository, removeSkillRepository, type SkillRepository } from '@/api'
 
 const { t } = useI18n({ useScope: 'global' })
 

@@ -172,7 +172,7 @@ import {
   listOpenCodeProviders,
   listOpenCodeMcpServers,
   listOpenCodePlugins,
-} from '@/api/modules/opencode'
+} from '@/api'
 
 const providersCount = ref(0)
 const mcpCount = ref(0)

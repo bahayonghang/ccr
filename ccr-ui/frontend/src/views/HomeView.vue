@@ -189,7 +189,7 @@ import {
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import UsageStatsDashboard from '@/components/UsageStatsDashboard.vue'
-import { getSystemInfo, getCliVersions } from '@/api/modules/config'
+import { getSystemInfo, getCliVersions } from '@/api'
 import type { CliVersionEntry } from '@/types'
 
 const { t } = useI18n()

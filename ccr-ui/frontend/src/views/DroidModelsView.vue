@@ -357,7 +357,7 @@
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { ArrowLeft, Plus, Edit2, Trash2, Server, Globe, Zap, Inbox, X } from 'lucide-vue-next'
-import axios from 'axios'
+import { listDroidModels, addDroidModel, updateDroidModel, deleteDroidModel } from '@/api'
 
 // 类型定义
 interface DroidCustomModel {
@@ -386,20 +386,14 @@ const formData = ref<DroidCustomModel>({
   maxOutputTokens: undefined
 })
 
-// API 基础 URL
-const API_BASE = 'http://localhost:8081/api/droid'
-
-// 加载模型列表
 const loadModels = async () => {
   loading.value = true
   try {
-    const response = await axios.get(`${API_BASE}/models`)
-    if (response.data.success) {
-      models.value = response.data.data
-    }
+    const data = await listDroidModels()
+    models.value = Array.isArray(data) ? (data as DroidCustomModel[]) : []
   } catch (error) {
     console.error('加载模型失败:', error)
-    alert('加载模型失败，请检查后端服务是否运行')
+    alert('加载模型失败，请检查配置文件是否可访问')
   } finally {
     loading.value = false
   }
@@ -417,19 +411,18 @@ const saveModel = async () => {
   saving.value = true
   try {
     if (editingModel.value) {
-      // 更新
-      await axios.put(`${API_BASE}/models/${editingModel.value.model}`, formData.value)
+      await updateDroidModel(editingModel.value.model, formData.value)
       alert('模型更新成功！')
     } else {
-      // 添加
-      await axios.post(`${API_BASE}/models`, formData.value)
+      await addDroidModel(formData.value)
       alert('模型添加成功！')
     }
+
     closeModal()
     await loadModels()
   } catch (error: any) {
     console.error('保存模型失败:', error)
-    alert(error.response?.data?.message || '保存模型失败')
+    alert(error?.message || '保存模型失败')
   } finally {
     saving.value = false
   }
@@ -442,12 +435,12 @@ const deleteModel = async (modelId: string) => {
   }
 
   try {
-    await axios.delete(`${API_BASE}/models/${modelId}`)
+    await deleteDroidModel(modelId)
     alert('模型删除成功！')
     await loadModels()
   } catch (error: any) {
     console.error('删除模型失败:', error)
-    alert(error.response?.data?.message || '删除模型失败')
+    alert(error?.message || '删除模型失败')
   }
 }
 

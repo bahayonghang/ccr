@@ -223,7 +223,7 @@ import {
   listOpenCodePlugins,
   addOpenCodePlugin,
   deleteOpenCodePlugin,
-} from '@/api/modules/opencode'
+} from '@/api'
 import type { OpenCodePlugin } from '@/types/opencode'
 
 const plugins = ref<OpenCodePlugin[]>([])

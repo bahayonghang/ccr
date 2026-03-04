@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
-import { api } from '@/api/core'
-import { listCheckinAccounts, listCheckinRecords } from '@/api/modules/checkin'
+import { listCheckinAccounts, listCheckinRecords, getTodayCheckinStats } from '@/api'
 import type { AccountInfo, CheckinRecordInfo, CheckinRecordsQuery } from '@/types/checkin'
 
 const CACHE_TTL = 30 * 1000 // 30s
@@ -68,8 +67,7 @@ export const useCheckinStore = defineStore('checkin', {
       this.statsLoading = true
       this.statsError = null
       try {
-        const response = await api.get<DashboardStats>('/checkin/dashboard/stats')
-        this.stats = response.data
+        this.stats = await getTodayCheckinStats()
         this.statsLastFetchedAt = Date.now()
         return this.stats
       } catch (err: unknown) {

@@ -353,7 +353,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { Webhook, Plus, Edit2, Trash2, X, Power } from 'lucide-vue-next'
 import GuofengCard from '@/components/common/GuofengCard.vue'
-import { listHooks, addHook, updateHook, deleteHook, toggleHook } from '@/api/modules/hooks'
+import { listHooks, addHook, updateHook, deleteHook, toggleHook } from '@/api'
 import { useUIStore } from '@/store'
 import type { Hook, HookType } from '@/types'
 

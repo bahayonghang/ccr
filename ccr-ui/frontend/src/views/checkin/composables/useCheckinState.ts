@@ -14,7 +14,7 @@ import {
   addBuiltinProvider as apiAddBuiltinProvider,
   queryCheckinBalance,
   checkinAccount,
-} from '@/api/modules/checkin'
+} from '@/api'
 import type {
   CheckinProvider,
   AccountInfo,
@@ -139,7 +139,7 @@ export function useCheckinState() {
     error.value = null
 
     try {
-      const [providersRes, accountsRes, recordsRes, statsRes, builtinRes] = await Promise.all([
+      const results = await Promise.allSettled([
         listCheckinProviders(),
         listCheckinAccounts(),
         listCheckinRecords({ page: 1, page_size: 100 }),
@@ -147,11 +147,27 @@ export function useCheckinState() {
         listBuiltinProviders(),
       ])
 
-      providers.value = providersRes.providers
-      accounts.value = accountsRes.accounts
-      records.value = recordsRes.records
-      todayStats.value = statsRes
-      builtinProviders.value = builtinRes.providers
+      if (results[0].status === 'fulfilled') {
+        providers.value = results[0].value.providers ?? []
+      }
+      if (results[1].status === 'fulfilled') {
+        accounts.value = results[1].value.accounts ?? []
+      }
+      if (results[2].status === 'fulfilled') {
+        records.value = results[2].value.records ?? []
+      }
+      if (results[3].status === 'fulfilled') {
+        todayStats.value = results[3].value
+      }
+      if (results[4].status === 'fulfilled') {
+        builtinProviders.value = results[4].value.providers ?? results[4].value ?? []
+      }
+
+      // 如果全部失败，显示错误
+      const allFailed = results.every(r => r.status === 'rejected')
+      if (allFailed) {
+        error.value = '加载签到数据失败'
+      }
     } catch (e: any) {
       error.value = e.message || '加载失败'
       console.error('Failed to load checkin data:', e)

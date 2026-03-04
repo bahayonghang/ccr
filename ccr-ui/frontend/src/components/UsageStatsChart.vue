@@ -150,28 +150,32 @@
 import { computed, ref } from 'vue'
 import type { DailyStatsItem, StatsViewMode } from '@/types'
 
-const props = defineProps<{
-  data: DailyStatsItem[]
-  viewMode: StatsViewMode
-}>()
+const props = withDefaults(defineProps<{
+  data?: DailyStatsItem[]
+  viewMode?: StatsViewMode
+}>(), {
+  data: () => [],
+  viewMode: 'sessions',
+})
 
 const hoveredIndex = ref<number | null>(null)
 
-// 获取当前视图模式下的值
+// 获取当前视图模式下的值 (防御性访问: item[platform] 可能不存在)
 const getValue = (item: DailyStatsItem, platform: 'claude' | 'codex' | 'gemini'): number => {
-  const stats = item[platform]
+  const stats = item?.[platform]
+  if (!stats) return 0
   switch (props.viewMode) {
-    case 'sessions': return stats.sessions
-    case 'duration': return stats.duration_seconds
-    case 'tokens': return stats.tokens || 0
-    default: return stats.sessions
+    case 'sessions': return stats.sessions ?? 0
+    case 'duration': return stats.duration_seconds ?? 0
+    case 'tokens': return stats.tokens ?? 0
+    default: return stats.sessions ?? 0
   }
 }
 
 // 计算最大值用于缩放
 const maxValue = computed(() => {
   let max = 0
-  for (const item of props.data) {
+  for (const item of (props.data ?? [])) {
     const total = getValue(item, 'claude') + getValue(item, 'codex') + getValue(item, 'gemini')
     if (total > max) max = total
   }
@@ -275,7 +279,7 @@ const getCornerClass = (item: DailyStatsItem, platform: 'claude' | 'codex' | 'ge
 
 // 展示的图表数据 (最近30天)
 const chartData = computed(() => {
-  return props.data.slice(-30)
+  return (props.data ?? []).slice(-30)
 })
 
 // 日期标签逻辑 (显示日期数字)

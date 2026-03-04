@@ -205,7 +205,7 @@
                 {{ $t('stats.summaryCards.inputToken') }}
               </p>
               <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-                {{ formatNumber(stats.token_stats.total_input_tokens) }}
+                {{ formatNumber(stats.token_stats?.total_input_tokens ?? 0) }}
               </p>
             </div>
             <div class="p-3 rounded-xl bg-gradient-to-br from-purple-100 to-violet-100 dark:from-purple-900/30 dark:to-violet-900/30">
@@ -234,7 +234,7 @@
                 {{ $t('stats.summaryCards.outputToken') }}
               </p>
               <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-                {{ formatNumber(stats.token_stats.total_output_tokens) }}
+                {{ formatNumber(stats.token_stats?.total_output_tokens ?? 0) }}
               </p>
             </div>
             <div class="p-3 rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30">
@@ -280,7 +280,7 @@
               {{ $t('stats.tokenDetails.cacheToken') }}
             </p>
             <p class="text-xl font-bold text-gray-900 dark:text-white mt-1">
-              {{ formatNumber(stats.token_stats.total_cache_tokens) }}
+              {{ formatNumber(stats.token_stats?.total_cache_tokens ?? 0) }}
             </p>
           </div>
           <div class="p-4 rounded-xl bg-gray-50/50 dark:bg-gray-700/30">
@@ -288,7 +288,7 @@
               {{ $t('stats.tokenDetails.cacheEfficiency') }}
             </p>
             <p class="text-xl font-bold text-gray-900 dark:text-white mt-1">
-              {{ formatPercent(stats.token_stats.cache_efficiency) }}%
+              {{ formatPercent(stats.token_stats?.cache_efficiency ?? 0) }}%
             </p>
           </div>
           <div class="p-4 rounded-xl bg-gray-50/50 dark:bg-gray-700/30">
@@ -332,7 +332,7 @@
               <span class="text-sm font-bold text-gray-900 dark:text-white">${{ formatCost(cost) }}</span>
             </div>
             <div
-              v-if="Object.keys(stats.by_model).length === 0"
+              v-if="Object.keys(stats.by_model || {}).length === 0"
               class="text-center text-gray-500 dark:text-gray-400 py-8"
             >
               {{ $t('stats.states.noData') }}
@@ -368,7 +368,7 @@
               <span class="text-sm font-bold text-gray-900 dark:text-white">${{ formatCost(cost) }}</span>
             </div>
             <div
-              v-if="Object.keys(stats.by_project).length === 0"
+              v-if="Object.keys(stats.by_project || {}).length === 0"
               class="text-center text-gray-500 dark:text-gray-400 py-8"
             >
               {{ $t('stats.states.noData') }}
@@ -516,7 +516,7 @@
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getCostOverview, getProviderUsage } from '@/api/modules/stats'
+import { getCostOverview, getProviderUsage } from '@/api'
 import type { CostStats } from '@/types'
 
 const { t } = useI18n()
@@ -537,8 +537,8 @@ const loadData = async () => {
       getCostOverview(selectedRange.value),
       getProviderUsage(),
     ])
-    stats.value = statsData
-    providerUsage.value = providerData
+    stats.value = statsData ?? null
+    providerUsage.value = providerData ?? {}
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : t('stats.states.loadFailedMessage')
     error.value = errorMessage
@@ -555,7 +555,7 @@ onMounted(() => {
 // Computed
 const sortedModels = computed(() => {
   if (!stats.value) return []
-  return Object.entries(stats.value.by_model).sort((a, b) => b[1] - a[1])
+  return Object.entries(stats.value.by_model || {}).sort((a, b) => b[1] - a[1])
 })
 
 const sortedProviders = computed(() => {
@@ -569,7 +569,7 @@ const maxProviderCount = computed(() => {
 
 const sortedProjects = computed(() => {
   if (!stats.value) return []
-  return Object.entries(stats.value.by_project).sort((a, b) => b[1] - a[1])
+  return Object.entries(stats.value.by_project || {}).sort((a, b) => b[1] - a[1])
 })
 
 // Utility functions
@@ -588,7 +588,7 @@ const formatPercent = (num: number): string => {
 }
 
 const getTotalTokens = (): number => {
-  if (!stats.value) return 0
+  if (!stats.value?.token_stats) return 0
   return (
     stats.value.token_stats.total_input_tokens +
     stats.value.token_stats.total_output_tokens +

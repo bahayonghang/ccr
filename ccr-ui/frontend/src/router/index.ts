@@ -429,6 +429,19 @@ const router = createRouter({
           name: 'opencode-plugins',
           component: () => import('@/views/OpenCodePluginsView.vue'),
           meta: { hideGlobalBackground: true, depth: 2, group: 'opencode' }
+        },
+        // 环境管理 (depth: 1, group: 'environment')
+        {
+          path: 'wsl',
+          name: 'wsl-management',
+          component: () => import('@/views/WslManagementView.vue'),
+          meta: { hideGlobalBackground: true, depth: 1, group: 'environment' }
+        },
+        {
+          path: 'ssh',
+          name: 'ssh-management',
+          component: () => import('@/views/SshManagementView.vue'),
+          meta: { hideGlobalBackground: true, depth: 1, group: 'environment' }
         }
       ]
     }

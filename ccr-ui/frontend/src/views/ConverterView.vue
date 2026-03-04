@@ -617,7 +617,7 @@ import {
   Copy,
   Download,
 } from 'lucide-vue-next'
-import { convertConfig } from '@/api/modules/converter'
+import { convertConfig } from '@/api'
 import type { ConverterRequest, ConverterResponse, CliType } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'

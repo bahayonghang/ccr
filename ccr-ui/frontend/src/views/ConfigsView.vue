@@ -175,7 +175,7 @@ import {
   listConfigs, switchConfig,
   getHistory, deleteConfig, enableConfig, disableConfig
 } from '@/api'
-import { getProviderUsage } from '@/api/modules/stats'
+import { getProviderUsage } from '@/api'
 import type { ConfigItem, HistoryEntry } from '@/types'
 import { useUIStore } from '@/stores/ui'
 

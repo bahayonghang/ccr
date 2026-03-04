@@ -1,7 +1,7 @@
 // CCR Control API - 收藏命令和命令历史管理
+// 使用 Tauri invoke() 调用 Rust 后端命令
 
-import { api } from './client'
-import type { ApiResponse } from '@/types'
+import { invoke } from '@tauri-apps/api/core'
 
 // ===== 类型定义 =====
 
@@ -57,59 +57,46 @@ export interface AddHistoryRequest {
 
 /** 获取所有收藏命令 */
 export const getFavorites = async (): Promise<FavoriteCommand[]> => {
-  const response = await api.get<ApiResponse<FavoritesResponse>>('/ui-state/favorites')
-  if (response.data.success && response.data.data) {
-    return response.data.data.favorites
-  }
-  throw new Error(response.data.message || '获取收藏列表失败')
+  return invoke<FavoriteCommand[]>('get_favorites')
 }
 
 /** 添加收藏命令 */
 export const addFavorite = async (req: AddFavoriteRequest): Promise<FavoriteCommand> => {
-  const response = await api.post<ApiResponse<FavoriteCommand>>('/ui-state/favorites', req)
-  if (response.data.success && response.data.data) {
-    return response.data.data
-  }
-  throw new Error(response.data.message || '添加收藏失败')
+  return invoke<FavoriteCommand>('add_favorite', {
+    command: req.command,
+    args: req.args,
+    displayName: req.display_name,
+    module: req.module,
+  })
 }
 
 /** 删除收藏命令 */
 export const removeFavorite = async (id: string): Promise<boolean> => {
-  const response = await api.delete<ApiResponse<boolean>>(`/ui-state/favorites/${id}`)
-  if (response.data.success) {
-    return true
-  }
-  throw new Error(response.data.message || '删除收藏失败')
+  await invoke('remove_favorite', { id })
+  return true
 }
 
 // ===== 命令历史 API =====
 
 /** 获取命令历史 */
 export const getHistory = async (limit?: number): Promise<CommandHistory[]> => {
-  const params = limit ? `?limit=${limit}` : ''
-  const response = await api.get<ApiResponse<HistoryResponse>>(`/ui-state/history${params}`)
-  if (response.data.success && response.data.data) {
-    return response.data.data.history
-  }
-  throw new Error(response.data.message || '获取历史记录失败')
+  return invoke<CommandHistory[]>('get_recent_items', { limit })
 }
 
 /** 添加命令历史 */
 export const addHistory = async (req: AddHistoryRequest): Promise<CommandHistory> => {
-  const response = await api.post<ApiResponse<CommandHistory>>('/ui-state/history', req)
-  if (response.data.success && response.data.data) {
-    return response.data.data
-  }
-  throw new Error(response.data.message || '添加历史记录失败')
+  return invoke<CommandHistory>('add_recent_item', {
+    command: req.command,
+    args: req.args,
+    success: req.success,
+    durationMs: req.duration_ms,
+  })
 }
 
 /** 清空命令历史 */
 export const clearHistory = async (): Promise<boolean> => {
-  const response = await api.delete<ApiResponse<boolean>>('/ui-state/history')
-  if (response.data.success) {
-    return true
-  }
-  throw new Error(response.data.message || '清空历史记录失败')
+  await invoke('clear_recent_items')
+  return true
 }
 
 // ===== CCR 功能模块定义 =====

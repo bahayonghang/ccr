@@ -28,7 +28,7 @@ import {
   getUsageTrendsV2,
   importAllUsageV2,
   importUsageV2,
-} from '@/api/modules/usageV2'
+} from '@/api'
 
 const REFRESH_INTERVAL = 30_000 // 30s
 const HEATMAP_REFRESH_INTERVAL = 10 * 60_000 // 10min
@@ -131,21 +131,17 @@ export const useUsageStore = defineStore('usage', () => {
       includeHeatmap ? 'heatmap' : 'core',
     ].join('|')
 
+   
   const applyDashboardPayload = (
-    data: {
-      summary: UsageSummary
-      trends: DailyTrend[]
-      model_stats: ModelStat[]
-      project_stats: ProjectStat[]
-      heatmap: HeatmapResponse
-    },
+    data: Record<string, any>,
     includeHeatmap: boolean,
   ) => {
-    summary.value = data.summary
-    trends.value = data.trends
-    modelStats.value = data.model_stats
-    projectStats.value = data.project_stats
-    if (includeHeatmap) {
+    summary.value = data.summary ?? null
+    trends.value = data.trends ?? []
+    // 兼容后端 "by_model" / "model_stats" 两种字段名
+    modelStats.value = data.model_stats ?? data.by_model ?? []
+    projectStats.value = data.project_stats ?? data.by_project ?? []
+    if (includeHeatmap && data.heatmap) {
       heatmap.value = data.heatmap
     }
   }
@@ -196,10 +192,10 @@ export const useUsageStore = defineStore('usage', () => {
             getUsageByProjectV2(platform.value, timeRange.value.start, timeRange.value.end),
           ])
           if (requestId !== requestSerial) return
-          summary.value = summaryData
-          trends.value = trendsData
-          modelStats.value = modelData
-          projectStats.value = projectData
+          summary.value = summaryData ?? null
+          trends.value = trendsData ?? []
+          modelStats.value = modelData ?? []
+          projectStats.value = projectData ?? []
           if (includeHeatmap) {
             await fetchHeatmap(reason)
           }

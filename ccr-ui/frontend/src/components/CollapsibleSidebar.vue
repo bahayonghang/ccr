@@ -253,7 +253,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import api from '@/api/core'
 import type { PlatformCapabilitiesResponse, PlatformModuleCapabilities } from '@/types/platform'
 import {
   Settings,
@@ -479,14 +478,8 @@ const navigationGroups = computed(() => {
 })
 
 onMounted(() => {
-  api.get('/platforms/capabilities')
-    .then((response) => {
-      const data = response.data?.data ?? response.data
-      capabilities.value = data
-    })
-    .catch(() => {
-      capabilities.value = null
-    })
+  // TODO: 平台能力检测待迁移到 Tauri command
+  // 当前默认所有功能可用（capabilities = null 时 isItemEnabled 返回 true）
 
   // 初始化展开状态
   navigationGroups.value.forEach(group => {

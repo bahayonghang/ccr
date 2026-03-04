@@ -98,7 +98,7 @@ import {
   exportCheckinConfig,
   previewCheckinImport,
   importCheckinConfig,
-} from '@/api/modules/checkin'
+} from '@/api'
 import type { ExportData, ImportPreviewResponse } from '@/types/checkin'
 
 const emit = defineEmits<{

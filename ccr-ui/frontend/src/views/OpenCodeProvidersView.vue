@@ -319,7 +319,7 @@ import {
   addOpenCodeProvider,
   updateOpenCodeProvider,
   deleteOpenCodeProvider,
-} from '@/api/modules/opencode'
+} from '@/api'
 import { OPENCODE_PROVIDER_PRESETS } from '@/types/opencode'
 import type { OpenCodeProvider, OpenCodeProviderPreset } from '@/types/opencode'
 

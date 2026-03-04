@@ -6,14 +6,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CCR UI - AI CLI Configuration Manager</title>
     <meta name="description" content="Modern web console for managing AI CLI tool configurations">
-    
-    <!-- Fonts: Preconnect and Async Load -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- 主题预初始化：在任何 CSS 加载前同步设置，消除 FOUC -->
+    <script>
+      (function(){
+        var t=localStorage.getItem('ccr-theme')||'light';
+        document.documentElement.classList.toggle('dark',t==='dark');
+        document.documentElement.setAttribute('data-theme',t);
+      })();
+    </script>
+
+    <!-- 关键内联样式：首帧即可见，不依赖任何外部资源 -->
+    <style>
+      body { margin:0; }
+      #app-loader {
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        height:100vh; gap:16px;
+        background:#FFF5F7; color:#6B4C6E;
+        font-family:system-ui,-apple-system,sans-serif;
+        transition: background 0.3s, color 0.3s;
+      }
+      [data-theme="dark"] #app-loader {
+        background:#1A0A20; color:#F9A8D4;
+      }
+      .loader-spinner {
+        width:36px; height:36px;
+        border:3px solid #F9D4E2; border-top-color:#F472B6;
+        border-radius:50%; animation:spin .8s linear infinite;
+      }
+      [data-theme="dark"] .loader-spinner {
+        border-color:#44225A; border-top-color:#F9A8D4;
+      }
+      .loader-text { font-size:14px; opacity:0.7; }
+      @keyframes spin { to { transform:rotate(360deg) } }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div id="app-loader">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">CCR Desktop</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

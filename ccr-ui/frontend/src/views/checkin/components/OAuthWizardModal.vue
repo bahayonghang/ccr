@@ -371,7 +371,7 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import BaseModal from '@/components/common/BaseModal.vue'
-import { getOAuthAuthorizeUrl, createCheckinAccount } from '@/api/modules/checkin'
+import { getOAuthAuthorizeUrl, createCheckinAccount } from '@/api'
 import type { BuiltinProvider } from '@/types/checkin'
 
 const props = defineProps<{
@@ -491,7 +491,7 @@ async function goToStep1() {
 
     if (response.success && response.authorize_url) {
       authorizeUrl.value = response.authorize_url
-      extractionGuide.value = response.extraction_guide
+      extractionGuide.value = response.extraction_guide || []
     } else {
       oauthError.value = response.message || '获取授权链接失败'
     }

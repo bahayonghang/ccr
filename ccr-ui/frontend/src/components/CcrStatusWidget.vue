@@ -53,7 +53,7 @@
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { Loader2, CheckCircle2, AlertTriangle, Download } from 'lucide-vue-next'
-import { getVersion } from '@/api/modules/config'
+import { getVersion } from '@/api'
 
 const loading = ref(true)
 const installed = ref(false)

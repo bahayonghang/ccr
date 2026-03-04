@@ -188,7 +188,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Monitor, Settings, Save, Info, Home, Code2 } from 'lucide-vue-next'
 import Breadcrumb from '@/components/common/Breadcrumb.vue'
-import { getStatusline, updateStatusline } from '@/api/modules/statusline'
+import { getStatusline, updateStatusline } from '@/api'
 import { useUIStore } from '@/store'
 import type { StatuslineConfig } from '@/types'
 

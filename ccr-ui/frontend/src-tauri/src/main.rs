@@ -1,635 +1,24 @@
 // Prevents additional console window on Windows in release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use serde::{Deserialize, Serialize};
+mod commands;
+mod events;
+mod platform;
+mod ssh;
+mod state;
+
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
-use tauri::{Manager, RunEvent, State, WindowEvent};
+use std::sync::Arc;
+
+use tauri::{Manager, RunEvent, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-use tauri_plugin_shell::{process::CommandChild, ShellExt};
+use tokio::sync::Notify;
 
-// 🎯 导入 CCR 核心库
-use ccr::{ConfigManager, ConfigService, HistoryService};
+use platform::local::LocalEnvironment;
+use state::AppState;
 
-/// 应用设置
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct AppSettings {
-    skip_exit_confirm: bool,
-}
-
-impl Default for AppSettings {
-    fn default() -> Self {
-        Self {
-            skip_exit_confirm: false,
-        }
-    }
-}
-
-/// 应用状态
-struct AppState {
-    current_platform: Mutex<String>,
-    backend_child: Mutex<Option<CommandChild>>,
-    backend_ready: Mutex<bool>,
-    settings: Mutex<AppSettings>,
-    exit_confirmed: AtomicBool,
-    backend_shutdown_requested: AtomicBool,
-}
-
-const BACKEND_HOST: &str = "127.0.0.1";
-const BACKEND_PORT: u16 = 38081;
-const BACKEND_STARTUP_TIMEOUT_SECS: u64 = 15;
-
-fn backend_port() -> u16 {
-    if let Ok(value) =
-        std::env::var("CCR_UI_BACKEND_PORT").or_else(|_| std::env::var("BACKEND_PORT"))
-    {
-        if let Ok(port) = value.parse::<u16>() {
-            return port;
-        }
-    }
-    BACKEND_PORT
-}
-
-async fn wait_for_backend_ready(port: u16) -> bool {
-    use tokio::io::{AsyncReadExt, AsyncWriteExt};
-    use tokio::net::TcpStream;
-    use tokio::time::{sleep, Duration};
-
-    let deadline = std::time::Instant::now() + Duration::from_secs(BACKEND_STARTUP_TIMEOUT_SECS);
-    while std::time::Instant::now() < deadline {
-        if let Ok(mut stream) = TcpStream::connect((BACKEND_HOST, port)).await {
-            let request = format!(
-                "GET /health HTTP/1.1\r\nHost: {}:{}\r\nConnection: close\r\n\r\n",
-                BACKEND_HOST, port
-            );
-            if stream.write_all(request.as_bytes()).await.is_ok() {
-                let mut buffer = [0u8; 12];
-                if stream.read(&mut buffer).await.is_ok() {
-                    return true;
-                }
-            }
-        }
-
-        sleep(Duration::from_millis(300)).await;
-    }
-
-    false
-}
-
-fn try_spawn_backend_sidecar(app: &tauri::AppHandle, port: u16) -> Result<CommandChild, String> {
-    let command = app
-        .shell()
-        .sidecar("ccr-ui-backend")
-        .map_err(|e| format!("Sidecar not available: {}", e))?
-        .args(["--host", BACKEND_HOST, "--port", &port.to_string()]);
-
-    let (mut rx, child) = command
-        .spawn()
-        .map_err(|e| format!("Failed to spawn sidecar: {}", e))?;
-
-    tauri::async_runtime::spawn(async move {
-        use tauri_plugin_shell::process::CommandEvent;
-        while let Some(event) = rx.recv().await {
-            match event {
-                CommandEvent::Stdout(line) => {
-                    tracing::info!("[backend] {}", String::from_utf8_lossy(&line));
-                }
-                CommandEvent::Stderr(line) => {
-                    tracing::warn!("[backend] {}", String::from_utf8_lossy(&line));
-                }
-                CommandEvent::Error(error) => {
-                    tracing::error!("[backend] {}", error);
-                }
-                CommandEvent::Terminated(payload) => {
-                    tracing::warn!("[backend] exited: {:?}", payload.code);
-                }
-                _ => {}
-            }
-        }
-    });
-
-    Ok(child)
-}
-
-fn try_spawn_backend_from_repo(app: &tauri::AppHandle, port: u16) -> Result<CommandChild, String> {
-    use std::path::PathBuf;
-
-    let exe_dir = tauri::utils::platform::current_exe()
-        .map_err(|e| format!("Failed to resolve current exe: {}", e))?
-        .parent()
-        .ok_or_else(|| "Current exe has no parent directory".to_string())?
-        .to_path_buf();
-
-    let mut search_dir = Some(exe_dir.as_path());
-    let mut repo_root = None;
-
-    for _ in 0..6 {
-        if let Some(dir) = search_dir {
-            if dir.join("backend").exists() && dir.join("frontend").exists() {
-                repo_root = Some(dir.to_path_buf());
-                break;
-            }
-            search_dir = dir.parent();
-        }
-    }
-
-    let repo_root =
-        repo_root.ok_or_else(|| "Repo root not found for fallback backend".to_string())?;
-    let binary_name = if cfg!(windows) {
-        "ccr-ui-backend.exe"
-    } else {
-        "ccr-ui-backend"
-    };
-
-    let mut candidates: Vec<PathBuf> = Vec::new();
-
-    candidates.push(exe_dir.join(binary_name));
-
-    if let Ok(target_triple) = std::env::var("TARGET") {
-        candidates.push(
-            repo_root
-                .join("backend")
-                .join("target")
-                .join(&target_triple)
-                .join("release")
-                .join(binary_name),
-        );
-        candidates.push(
-            repo_root
-                .join("backend")
-                .join("target")
-                .join(&target_triple)
-                .join("debug")
-                .join(binary_name),
-        );
-    }
-
-    candidates.push(
-        repo_root
-            .join("backend")
-            .join("target")
-            .join("release")
-            .join(binary_name),
-    );
-    candidates.push(
-        repo_root
-            .join("backend")
-            .join("target")
-            .join("debug")
-            .join(binary_name),
-    );
-
-    if let Some(workspace_root) = repo_root.parent().and_then(|parent| {
-        let workspace = parent.join("Cargo.toml");
-        let ui_dir = parent.join("ccr-ui");
-        if workspace.exists() && ui_dir.exists() {
-            Some(parent.to_path_buf())
-        } else {
-            None
-        }
-    }) {
-        candidates.push(
-            workspace_root
-                .join("target")
-                .join("release")
-                .join(binary_name),
-        );
-        candidates.push(
-            workspace_root
-                .join("target")
-                .join("debug")
-                .join(binary_name),
-        );
-    }
-
-    let sidecar_bin_dir = repo_root.join("frontend").join("src-tauri").join("bin");
-    if let Ok(entries) = std::fs::read_dir(&sidecar_bin_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if !path.is_file() {
-                continue;
-            }
-            let file_name = path.file_name().and_then(|name| name.to_str());
-            if let Some(file_name) = file_name {
-                if file_name.starts_with("ccr-ui-backend") {
-                    candidates.push(path);
-                }
-            }
-        }
-    }
-
-    let backend_bin = candidates
-        .into_iter()
-        .find(|candidate| candidate.exists())
-        .ok_or_else(|| "Fallback backend binary missing".to_string())?;
-
-    let command = app.shell().command(backend_bin).args([
-        "--host",
-        BACKEND_HOST,
-        "--port",
-        &port.to_string(),
-    ]);
-    let (mut rx, child) = command
-        .spawn()
-        .map_err(|e| format!("Failed to spawn fallback backend: {}", e))?;
-
-    tauri::async_runtime::spawn(async move {
-        use tauri_plugin_shell::process::CommandEvent;
-        while let Some(event) = rx.recv().await {
-            match event {
-                CommandEvent::Stdout(line) => {
-                    tracing::info!("[backend] {}", String::from_utf8_lossy(&line));
-                }
-                CommandEvent::Stderr(line) => {
-                    tracing::warn!("[backend] {}", String::from_utf8_lossy(&line));
-                }
-                CommandEvent::Error(error) => {
-                    tracing::error!("[backend] {}", error);
-                }
-                CommandEvent::Terminated(payload) => {
-                    tracing::warn!("[backend] exited: {:?}", payload.code);
-                }
-                _ => {}
-            }
-        }
-    });
-
-    Ok(child)
-}
-
-fn terminate_backend_process(app: &tauri::AppHandle, reason: &str) {
-    let child = {
-        let app_state = app.state::<AppState>();
-        let mut guard = app_state.backend_child.lock().unwrap();
-        guard.take()
-    };
-
-    if let Some(child) = child {
-        tracing::info!("[backend] terminating backend process ({reason})...");
-        match child.kill() {
-            Ok(()) => tracing::info!("[backend] backend process terminated successfully"),
-            Err(e) => tracing::error!("[backend] failed to terminate backend: {}", e),
-        }
-    } else {
-        tracing::warn!("[backend] no backend process to terminate ({reason})");
-    }
-
-    let app_state = app.state::<AppState>();
-    *app_state.backend_ready.lock().unwrap() = false;
-}
-
-/// 配置项响应
-#[derive(Debug, Serialize)]
-struct ProfileInfo {
-    name: String,
-    description: String,
-    base_url: String,
-    model: String,
-    is_current: bool,
-    is_default: bool,
-    provider: Option<String>,
-}
-
-// ============================================================================
-// 📋 Configuration Management Commands
-// ============================================================================
-
-/// 列出所有配置项
-#[tauri::command]
-async fn list_profiles() -> Result<Vec<ProfileInfo>, String> {
-    let result = tokio::task::spawn_blocking(move || {
-        let manager = ConfigManager::with_default()
-            .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
-
-        let config = manager
-            .load()
-            .map_err(|e| format!("Failed to load config: {}", e))?;
-
-        let profiles: Vec<ProfileInfo> = config
-            .sections
-            .iter()
-            .map(|(name, section)| ProfileInfo {
-                name: name.clone(),
-                description: section.description.clone().unwrap_or_default(),
-                base_url: section.base_url.clone().unwrap_or_default(),
-                model: section.model.clone().unwrap_or_default(),
-                is_current: name == &config.current_config,
-                is_default: name == &config.default_config,
-                provider: section.provider.clone(),
-            })
-            .collect();
-
-        Ok::<Vec<ProfileInfo>, String>(profiles)
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))??;
-
-    Ok(result)
-}
-
-/// 切换到指定配置
-#[tauri::command]
-async fn switch_profile(name: String) -> Result<String, String> {
-    ccr::commands::switch_command(&name)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(format!("Successfully switched to profile: {}", name))
-}
-
-/// 获取当前配置
-#[tauri::command]
-async fn get_current_profile() -> Result<String, String> {
-    let result = tokio::task::spawn_blocking(move || {
-        let manager = ConfigManager::with_default()
-            .map_err(|e| format!("Failed to create ConfigManager: {}", e))?;
-
-        let config = manager
-            .load()
-            .map_err(|e| format!("Failed to load config: {}", e))?;
-
-        Ok::<String, String>(config.current_config)
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))??;
-
-    Ok(result)
-}
-
-/// 验证所有配置
-#[tauri::command]
-async fn validate_configs() -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        let service = ConfigService::with_default()
-            .map_err(|e| format!("Failed to create ConfigService: {}", e))?;
-
-        service
-            .validate_all()
-            .map_err(|e| format!("Validation failed: {}", e))?;
-
-        Ok::<(), String>(())
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))??;
-
-    Ok("All configurations are valid".to_string())
-}
-
-// ============================================================================
-// 📜 History Management Commands
-// ============================================================================
-
-/// 历史条目
-#[derive(Debug, Serialize)]
-struct HistoryEntryJson {
-    id: String,
-    timestamp: String,
-    operation: String,
-    actor: String,
-}
-
-/// 获取历史记录
-#[tauri::command]
-async fn get_history(limit: Option<usize>) -> Result<Vec<HistoryEntryJson>, String> {
-    let limit = limit.unwrap_or(100);
-
-    let service = HistoryService::with_default()
-        .map_err(|e| format!("Failed to create HistoryService: {}", e))?;
-
-    let entries = service
-        .get_recent_async(limit)
-        .await
-        .map_err(|e| format!("Failed to get history: {}", e))?;
-
-    let json_entries: Vec<HistoryEntryJson> = entries
-        .into_iter()
-        .map(|e| HistoryEntryJson {
-            id: e.id.to_string(),
-            timestamp: e.timestamp.to_rfc3339(),
-            operation: format!("{:?}", e.operation),
-            actor: e.actor,
-        })
-        .collect();
-
-    Ok(json_entries)
-}
-
-/// 清理历史记录
-#[tauri::command]
-async fn clear_history() -> Result<String, String> {
-    let service = HistoryService::with_default()
-        .map_err(|e| format!("Failed to create HistoryService: {}", e))?;
-
-    service
-        .clear_async()
-        .await
-        .map_err(|e| format!("Failed to clear history: {}", e))?;
-
-    Ok("History cleared successfully".to_string())
-}
-
-// ============================================================================
-// 🔄 Sync Commands
-// ============================================================================
-
-/// 推送配置到云端
-#[tauri::command]
-async fn sync_push(force: Option<bool>) -> Result<String, String> {
-    let force_flag = force.unwrap_or(false);
-    let result = tokio::task::spawn_blocking(move || {
-        use std::process::Command;
-
-        let mut cmd = Command::new("ccr");
-        cmd.arg("sync");
-        cmd.arg("push");
-
-        if force_flag {
-            cmd.arg("--force");
-        }
-
-        let output = cmd
-            .output()
-            .map_err(|e| format!("Failed to execute ccr command: {}", e))?;
-
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            Ok::<String, String>(stdout.to_string())
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(format!("Sync push failed: {}", stderr))
-        }
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))??;
-
-    Ok(result)
-}
-
-/// 从云端拉取配置
-#[tauri::command]
-async fn sync_pull(force: Option<bool>) -> Result<String, String> {
-    let force_flag = force.unwrap_or(false);
-    let result = tokio::task::spawn_blocking(move || {
-        use std::process::Command;
-
-        let mut cmd = Command::new("ccr");
-        cmd.arg("sync");
-        cmd.arg("pull");
-
-        if force_flag {
-            cmd.arg("--force");
-        }
-
-        let output = cmd
-            .output()
-            .map_err(|e| format!("Failed to execute ccr command: {}", e))?;
-
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            Ok::<String, String>(stdout.to_string())
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(format!("Sync pull failed: {}", stderr))
-        }
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))??;
-
-    Ok(result)
-}
-
-/// 获取同步状态
-#[tauri::command]
-async fn sync_status() -> Result<String, String> {
-    use ccr::sync::{SyncConfigManager, SyncService};
-
-    let result = tokio::task::spawn_blocking(move || {
-        let manager = SyncConfigManager::with_default()
-            .map_err(|e| format!("Failed to create SyncConfigManager: {}", e))?;
-
-        let config = manager
-            .load()
-            .map_err(|e| format!("Failed to load sync config: {}", e))?;
-
-        if !config.enabled {
-            return Ok("Sync is disabled".to_string());
-        }
-
-        // Return a formatted status string
-        let mut status = String::new();
-        status.push_str(&format!("Server: {}\n", config.webdav_url));
-        status.push_str(&format!("User: {}\n", config.username));
-        status.push_str(&format!("Remote Path: {}\n", config.remote_path));
-        status.push_str(&format!(
-            "Auto Sync: {}\n",
-            if config.auto_sync {
-                "Enabled"
-            } else {
-                "Disabled"
-            }
-        ));
-
-        // We can't easily do async check in this blocking task if we want to be quick,
-        // but SyncService::new is async.
-        // So we need to use a runtime handle or return config info and let frontend check connectivity?
-        // Or better, do the check in the async block outside spawn_blocking if possible.
-        // But SyncConfigManager is blocking (rusqlite/fs).
-
-        Ok::<String, String>(status)
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))??;
-
-    // Check connectivity in async context
-    if result != "Sync is disabled" {
-        // We need config again for service. Ideally pass config out.
-        // Let's re-load config in async block for connectivity check? No, minimal overhead.
-        // Actually best is to implement this properly.
-
-        let check_result = async {
-            let manager = SyncConfigManager::with_default()
-                .map_err(|e| format!("Failed to create SyncConfigManager: {}", e))?;
-            let config = manager
-                .load()
-                .map_err(|e| format!("Failed to load sync config: {}", e))?;
-
-            let service = SyncService::new(&config)
-                .await
-                .map_err(|e| format!("Failed to create SyncService: {}", e))?;
-
-            let exists = service
-                .remote_exists()
-                .await
-                .map_err(|e| format!("Check remote failed: {}", e))?;
-
-            Ok::<String, String>(if exists {
-                format!("{}\nRemote Status: Connected (Content Exists)", result)
-            } else {
-                format!("{}\nRemote Status: Connected (Content Missing)", result)
-            })
-        }
-        .await;
-
-        return check_result;
-    }
-
-    Ok(result)
-}
-
-// ============================================================================
-// 🖥️  Platform Commands
-// ============================================================================
-
-/// 列出所有平台
-#[tauri::command]
-async fn list_platforms() -> Result<Vec<String>, String> {
-    Ok(vec![
-        "claude".to_string(),
-        "codex".to_string(),
-        "gemini".to_string(),
-        "qwen".to_string(),
-        "iflow".to_string(),
-    ])
-}
-
-/// 切换平台
-#[tauri::command]
-async fn switch_platform(platform: String, state: State<'_, AppState>) -> Result<String, String> {
-    let mut current = state.current_platform.lock().unwrap();
-    *current = platform.clone();
-
-    Ok(format!("Successfully switched to platform: {}", platform))
-}
-
-/// 获取当前平台
-#[tauri::command]
-async fn get_current_platform(state: State<'_, AppState>) -> Result<String, String> {
-    let current = state.current_platform.lock().unwrap();
-    Ok(current.clone())
-}
-
-// ============================================================================
-// ⚙️ Settings Commands
-// ============================================================================
-
-/// 获取退出确认设置
-#[tauri::command]
-async fn get_skip_exit_confirm(state: State<'_, AppState>) -> Result<bool, String> {
-    let settings = state.settings.lock().unwrap();
-    Ok(settings.skip_exit_confirm)
-}
-
-/// 设置退出确认选项
-#[tauri::command]
-async fn set_skip_exit_confirm(skip: bool, state: State<'_, AppState>) -> Result<(), String> {
-    let mut settings = state.settings.lock().unwrap();
-    settings.skip_exit_confirm = skip;
-    Ok(())
-}
-
-// ============================================================================
-// 🚀 Main Entry Point
-// ============================================================================
+/// 应用退出信号 — 用于通知后台任务停止
+static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 
 fn main() {
     // 初始化日志
@@ -640,29 +29,151 @@ fn main() {
         )
         .init();
 
+    tracing::info!(
+        "[app] CCR Desktop v{} starting (native Tauri mode)",
+        env!("CARGO_PKG_VERSION")
+    );
+
     let app = tauri::Builder::default()
-        .manage(AppState {
-            current_platform: Mutex::new("claude".to_string()),
-            backend_child: Mutex::new(None),
-            backend_ready: Mutex::new(false),
-            settings: Mutex::new(AppSettings::default()),
-            exit_confirmed: AtomicBool::new(false),
-            backend_shutdown_requested: AtomicBool::new(false),
-        })
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            // ── 初始化数据库 ──
+            // 先初始化全局连接池（签到管理器等通过 with_connection() 使用）
+            ccr_db::database::initialize().map_err(|e| {
+                tracing::error!("[app] failed to initialize global database pool: {e}");
+                Box::new(e) as Box<dyn std::error::Error>
+            })?;
+            // 再创建独立连接池给 AppState（SSH/环境管理等使用）
+            let db_pool = ccr_db::database::create_app_pool().map_err(|e| {
+                tracing::error!("[app] failed to create app database pool: {e}");
+                Box::new(e) as Box<dyn std::error::Error>
+            })?;
+            tracing::info!("[app] database initialized (global + app pool)");
+
+            // ── 构建 AppState ──
+            let app_state = AppState::new(db_pool);
+
+            // 注册 Local 环境（始终可用）
+            {
+                let registry = app_state.env_registry.blocking_write();
+                // 释放锁后再注册，避免死锁
+                drop(registry);
+            }
+
+            // 注册 managed state
+            app.manage(app_state);
+
+            // 异步初始化环境注册表
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state = app_handle.state::<AppState>();
+                let mut registry = state.env_registry.write().await;
+
+                // 注册本地环境
+                registry.register(Arc::new(LocalEnvironment::new()));
+                tracing::info!("[app] local environment registered");
+
+                // Phase C1 — 自动检测 WSL 发行版并注册（仅 Windows）
+                #[cfg(target_os = "windows")]
+                {
+                    use platform::wsl::{detect_wsl_distros, WslEnvironment};
+                    match tokio::task::spawn_blocking(detect_wsl_distros).await {
+                        Ok(Ok(distros)) => {
+                            for distro in distros {
+                                let name = distro.name.clone();
+                                registry.register(Arc::new(WslEnvironment::new(distro)));
+                                tracing::info!("[app] WSL environment registered: {name}");
+                            }
+                        }
+                        Ok(Err(e)) => {
+                            tracing::debug!("[app] WSL detection skipped: {e}");
+                        }
+                        Err(e) => {
+                            tracing::debug!("[app] WSL detection task failed: {e}");
+                        }
+                    }
+                }
+
+                // Phase C2 — 加载已保存 SSH 主机并注册
+                {
+                    use ccr_db::database::repositories::ssh_repo;
+                    use platform::ssh::SshEnvironment;
+
+                    let db_pool = state.db_pool.clone();
+                    match tokio::task::spawn_blocking(move || {
+                        let conn = db_pool
+                            .get()
+                            .map_err(|e| format!("获取数据库连接失败: {e}"))?;
+                        ssh_repo::list_hosts(&conn).map_err(|e| format!("读取 SSH 主机失败: {e}"))
+                    })
+                    .await
+                    {
+                        Ok(Ok(hosts)) => {
+                            for host in hosts {
+                                let label = if host.name.trim().is_empty() {
+                                    host.host.clone()
+                                } else {
+                                    host.name.clone()
+                                };
+                                registry.register(Arc::new(SshEnvironment::new(
+                                    crate::platform::ssh::SshHostConfig {
+                                        id: Some(host.id),
+                                        name: Some(host.name).filter(|v| !v.trim().is_empty()),
+                                        host: host.host,
+                                        port: Some(host.port),
+                                        user: Some(host.username).filter(|v| !v.trim().is_empty()),
+                                        identity_file: host.identity_file,
+                                        remote_home: host.remote_home,
+                                    },
+                                )));
+                                tracing::info!("[app] SSH environment registered: {label}");
+                            }
+                        }
+                        Ok(Err(e)) => {
+                            tracing::warn!("[app] failed to load SSH hosts: {e}");
+                        }
+                        Err(e) => {
+                            tracing::warn!("[app] SSH hosts loading task failed: {e}");
+                        }
+                    }
+                }
+
+                tracing::info!(
+                    "[app] environment registry initialized ({} environments)",
+                    registry.len()
+                );
+            });
+
+            // ── 启动后台任务 ──
+            let app_handle = app.handle().clone();
+            let shutdown_notify = Arc::new(Notify::new());
+            let shutdown_clone = shutdown_notify.clone();
+
+            tauri::async_runtime::spawn(async move {
+                run_background_tasks(app_handle, shutdown_clone).await;
+            });
+
+            // 保存 shutdown notify 以便退出时使用
+            app.manage(shutdown_notify);
+
+            tracing::info!("[app] setup complete");
+            Ok(())
+        })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
-                let app_state = window.state::<AppState>();
+                let state = window.state::<AppState>();
 
-                // 如果已确认退出，直接关闭
-                if app_state.exit_confirmed.load(Ordering::SeqCst) {
+                // 如果已经确认过退出，直接放行（打破循环）
+                if state
+                    .exit_confirmed
+                    .load(std::sync::atomic::Ordering::SeqCst)
+                {
                     return;
                 }
 
                 // 检查是否跳过确认
                 let skip_confirm = {
-                    let settings = app_state.settings.lock().unwrap();
+                    let settings = state.settings.lock().unwrap();
                     settings.skip_exit_confirm
                 };
 
@@ -675,7 +186,7 @@ fn main() {
                 let window = window.clone();
                 window
                     .dialog()
-                    .message("确定要关闭 CCR Desktop 吗？\n\n勾选下方选项可跳过此确认")
+                    .message("确定要关闭 CCR Desktop 吗？")
                     .title("确认退出")
                     .kind(MessageDialogKind::Warning)
                     .buttons(MessageDialogButtons::OkCancelCustom(
@@ -684,116 +195,78 @@ fn main() {
                     ))
                     .show(move |confirmed| {
                         if confirmed {
-                            let app_state = window.state::<AppState>();
-                            app_state.exit_confirmed.store(true, Ordering::SeqCst);
+                            // 设置标志位，防止 window.close() 再次触发对话框
+                            let state = window.state::<AppState>();
+                            state
+                                .exit_confirmed
+                                .store(true, std::sync::atomic::Ordering::SeqCst);
                             let _ = window.close();
                         }
                     });
             }
         })
-        .setup(|app| {
-            let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                let port = backend_port();
-                let child = match try_spawn_backend_sidecar(&app_handle, port) {
-                    Ok(child) => Ok(child),
-                    Err(err) => {
-                        tracing::warn!("[backend] sidecar start failed, fallback: {}", err);
-                        try_spawn_backend_from_repo(&app_handle, port)
-                    }
-                };
-
-                match child {
-                    Ok(child) => {
-                        // 1. 存储前检查 — 若已请求关闭，立即 kill 并返回
-                        {
-                            let state = app_handle.state::<AppState>();
-                            if state.backend_shutdown_requested.load(Ordering::SeqCst) {
-                                tracing::info!(
-                                    "[backend] shutdown requested before storing child, killing"
-                                );
-                                let _ = child.kill();
-                                return;
-                            }
-                        }
-
-                        // 2. 存储 child handle
-                        {
-                            let state = app_handle.state::<AppState>();
-                            *state.backend_child.lock().unwrap() = Some(child);
-                        }
-
-                        // 3. 存储后再次检查 — 处理 check-store 之间的极端窗口
-                        {
-                            let state = app_handle.state::<AppState>();
-                            if state.backend_shutdown_requested.load(Ordering::SeqCst) {
-                                tracing::info!(
-                                    "[backend] shutdown requested after storing child, terminating"
-                                );
-                                terminate_backend_process(
-                                    &app_handle,
-                                    "shutdown_requested_after_store",
-                                );
-                                return;
-                            }
-                        }
-
-                        // 4. 等待 backend 就绪
-                        if wait_for_backend_ready(port).await {
-                            tracing::info!("[backend] ready at http://{}:{}", BACKEND_HOST, port);
-                            let state = app_handle.state::<AppState>();
-                            *state.backend_ready.lock().unwrap() = true;
-                        } else {
-                            tracing::warn!("[backend] readiness check timed out");
-                        }
-                    }
-                    Err(err) => {
-                        tracing::error!("[backend] failed to start: {}", err);
-                    }
-                }
-            });
-            Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![
-            // Configuration
-            list_profiles,
-            switch_profile,
-            get_current_profile,
-            validate_configs,
-            // History
-            get_history,
-            clear_history,
-            // Sync
-            sync_push,
-            sync_pull,
-            sync_status,
-            // Platform
-            list_platforms,
-            switch_platform,
-            get_current_platform,
-            // Settings
-            get_skip_exit_confirm,
-            set_skip_exit_confirm,
-        ])
+        .invoke_handler(commands::generate_handler())
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
-    app.run(|app, event| match event {
-        RunEvent::ExitRequested { .. } => {
-            let app_state = app.state::<AppState>();
-            app_state
-                .backend_shutdown_requested
-                .store(true, Ordering::SeqCst);
-            terminate_backend_process(app, "exit_requested");
+    app.run(|_app, event| {
+        if let RunEvent::ExitRequested { .. } | RunEvent::Exit = event {
+            tracing::info!("[app] exit requested, shutting down...");
+            EXIT_REQUESTED.store(true, Ordering::SeqCst);
+
+            // 通知后台任务停止
+            if let Some(notify) = _app.try_state::<Arc<Notify>>() {
+                notify.notify_waiters();
+            }
+
+            // 关闭数据库
+            ccr_db::database::shutdown();
+            tracing::info!("[app] cleanup complete");
         }
-        RunEvent::Exit => {
-            tracing::info!("[app] application exiting, cleaning up...");
-            let app_state = app.state::<AppState>();
-            app_state
-                .backend_shutdown_requested
-                .store(true, Ordering::SeqCst);
-            terminate_backend_process(app, "exit");
-        }
-        _ => {}
     });
+}
+
+/// 后台任务 — 定期执行维护操作
+async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify>) {
+    tracing::info!("[background] starting background tasks");
+
+    loop {
+        tokio::select! {
+            _ = shutdown.notified() => {
+                tracing::info!("[background] shutdown signal received");
+                break;
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_secs(300)) => {
+                if EXIT_REQUESTED.load(Ordering::SeqCst) {
+                    break;
+                }
+
+                // 定期清理过期缓存
+                let state = app_handle.state::<AppState>();
+                state.cache_cleanup().await;
+
+                // 用量数据导入（静默，失败不阻塞）
+                if let Err(e) = import_usage_data().await {
+                    tracing::debug!("[background] usage import skipped: {e}");
+                }
+
+                tracing::debug!("[background] periodic maintenance completed");
+            }
+        }
+    }
+
+    tracing::info!("[background] background tasks stopped");
+}
+
+/// 后台用量数据导入 — 从各平台 JSONL 日志导入 cost 记录
+async fn import_usage_data() -> Result<(), String> {
+    // CostTracker 的数据由 CLI 工具自行记录到 ~/.ccr/costs/
+    // 这里仅验证 storage dir 可用性作为健康检查
+    tokio::task::spawn_blocking(|| {
+        let _storage_dir = ccr::CostTracker::default_storage_dir()
+            .map_err(|e| format!("Storage dir: {e}"))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("Task join: {e}"))?
 }

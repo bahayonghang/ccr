@@ -1,4 +1,4 @@
-import DOMPurify from 'isomorphic-dompurify'
+import DOMPurify from 'dompurify'
 
 /**
  * Sanitize terminal output to prevent XSS attacks

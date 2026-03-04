@@ -460,7 +460,13 @@
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { ArrowLeft, Plus, Edit2, Trash2, Server, Globe, Zap, Inbox, X } from 'lucide-vue-next'
-import axios from 'axios'
+import {
+  listDroidProfiles,
+  addDroidProfile,
+  updateDroidProfile,
+  deleteDroidProfile,
+  switchDroidProfile,
+} from '@/api'
 
 // 类型定义
 interface DroidProfile {
@@ -502,20 +508,15 @@ const formData = ref<DroidProfile>({
 // 标签输入 (逗号分隔字符串)
 const tagsInput = ref('')
 
-// API 基础 URL
-const API_BASE = 'http://localhost:8081/api/droid'
-
 // 加载 Profile 列表
 const loadProfiles = async () => {
   loading.value = true
   try {
-    const response = await axios.get(`${API_BASE}/profiles`)
-    if (response.data.success) {
-      profiles.value = response.data.data
-    }
+    const data = await listDroidProfiles()
+    profiles.value = Array.isArray(data) ? (data as DroidProfile[]) : []
   } catch (error) {
     console.error('加载 Profiles 失败:', error)
-    alert('加载 Profiles 失败，请检查后端服务是否运行')
+    alert('加载 Profiles 失败，请检查配置文件是否可访问')
   } finally {
     loading.value = false
   }
@@ -546,18 +547,18 @@ const saveProfile = async () => {
 
     if (editingProfile.value) {
       // 更新
-      await axios.put(`${API_BASE}/profiles/${editingProfile.value.name}`, profileData)
+      await updateDroidProfile(editingProfile.value.name, profileData)
       alert('Profile 更新成功！')
     } else {
       // 添加
-      await axios.post(`${API_BASE}/profiles`, profileData)
+      await addDroidProfile(formData.value.name, profileData)
       alert('Profile 添加成功！')
     }
     closeModal()
     await loadProfiles()
   } catch (error: any) {
     console.error('保存 Profile 失败:', error)
-    alert(error.response?.data?.message || '保存 Profile 失败')
+    alert(error?.message || '保存 Profile 失败')
   } finally {
     saving.value = false
   }
@@ -570,24 +571,24 @@ const deleteProfile = async (name: string) => {
   }
 
   try {
-    await axios.delete(`${API_BASE}/profiles/${name}`)
+    await deleteDroidProfile(name)
     alert('Profile 删除成功！')
     await loadProfiles()
   } catch (error: any) {
     console.error('删除 Profile 失败:', error)
-    alert(error.response?.data?.message || '删除 Profile 失败')
+    alert(error?.message || '删除 Profile 失败')
   }
 }
 
 // 切换 Profile
 const switchProfile = async (name: string) => {
   try {
-    await axios.post(`${API_BASE}/profiles/${name}/switch`)
+    await switchDroidProfile(name)
     alert(`已切换到 Profile "${name}"！`)
     await loadProfiles()
   } catch (error: any) {
     console.error('切换 Profile 失败:', error)
-    alert(error.response?.data?.message || '切换 Profile 失败')
+    alert(error?.message || '切换 Profile 失败')
   }
 }
 

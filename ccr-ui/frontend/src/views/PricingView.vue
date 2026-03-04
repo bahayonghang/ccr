@@ -337,7 +337,7 @@
 <script setup lang="ts">
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
-import { getPricingList, setPricing, removePricing, resetPricing } from '@/api/modules/stats'
+import { getPricingList, setPricing, removePricing, resetPricing } from '@/api'
 import type { PricingListResponse, ModelPricing, SetPricingRequest } from '@/types'
 
 const pricingData = ref<PricingListResponse | null>(null)

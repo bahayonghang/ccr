@@ -65,7 +65,7 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { deleteCheckinAccount } from '@/api/modules/checkin'
+import { deleteCheckinAccount } from '@/api'
 import { useCheckinStore } from '@/stores/checkin'
 
 const store = useCheckinStore()

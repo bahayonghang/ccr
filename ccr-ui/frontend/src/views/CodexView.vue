@@ -485,7 +485,7 @@ onMounted(async () => {
     
     // Fetch Codex version
     const versions = await getCliVersions({ mode: 'fast', timeout: 3500 })
-    const codex = versions.versions.find(v => v.platform === 'codex')
+    const codex = versions.versions.find((v: CliVersionEntry) => v.platform === 'codex')
     applyCodexVersionEntry(codex)
   } catch (error) {
     console.error('Failed to load profile status or version:', error)

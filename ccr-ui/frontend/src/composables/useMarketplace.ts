@@ -1,6 +1,5 @@
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref } from 'vue'
-import { api } from '@/api/core'
 
 // ===== Types =====
 
@@ -46,18 +45,14 @@ export function useMarketplace() {
 
     /**
      * 获取所有市场项目
+     * TODO: Marketplace 功能尚未迁移到 Tauri command，当前返回空数据
      */
-    const fetchMarketItems = async (category?: MarketItemCategory) => {
+    const fetchMarketItems = async (_category?: MarketItemCategory) => {
         loading.value = true
         error.value = null
         try {
-            const endpoint = category
-                ? `/marketplace/category/${category}`
-                : '/marketplace'
-            // API 返回 ApiResponse<MarketplaceResponse>
-            const response = await api.get<{ success: boolean; data: MarketplaceResponse; message?: string }>(endpoint)
-            // Axios response.data 包含 ApiResponse，再从中取 data
-            items.value = response.data.data?.items || []
+            console.warn('[useMarketplace] fetchMarketItems: Marketplace 尚未迁移到 Tauri')
+            items.value = []
         } catch (err: any) {
             error.value = err.message || 'Failed to load marketplace items'
             console.error('Marketplace fetch error:', err)
@@ -68,13 +63,14 @@ export function useMarketplace() {
 
     /**
      * 获取已安装的项目
+     * TODO: Marketplace 功能尚未迁移到 Tauri command
      */
     const fetchInstalledItems = async () => {
         loading.value = true
         error.value = null
         try {
-            const response = await api.get<{ success: boolean; data: MarketplaceResponse; message?: string }>('/marketplace/installed')
-            items.value = response.data.data?.items || []
+            console.warn('[useMarketplace] fetchInstalledItems: Marketplace 尚未迁移到 Tauri')
+            items.value = []
         } catch (err: any) {
             error.value = err.message || 'Failed to load installed items'
             console.error('Installed items fetch error:', err)
@@ -85,29 +81,16 @@ export function useMarketplace() {
 
     /**
      * 安装市场项目
+     * TODO: Marketplace 功能尚未迁移到 Tauri command
      */
-    const installItem = async (item: MarketItem, platforms?: string[], env?: Record<string, string>) => {
+    const installItem = async (item: MarketItem, _platforms?: string[], _env?: Record<string, string>) => {
         const itemId = item.id
         installingItems.value.add(itemId)
         error.value = null
 
         try {
-            const request: InstallRequest = {
-                item_id: itemId,
-                category: item.category,
-                platforms: platforms || ['claude'],
-                env: env || {},
-            }
-
-            await api.post('/marketplace/install', request)
-
-            // 更新本地状态
-            const index = items.value.findIndex(i => i.id === itemId)
-            if (index !== -1) {
-                items.value[index].installed = true
-            }
-
-            return true
+            console.warn('[useMarketplace] installItem: Marketplace 尚未迁移到 Tauri')
+            return false
         } catch (err: any) {
             error.value = err.message || `Failed to install ${item.name}`
             console.error('Install error:', err)
@@ -119,6 +102,7 @@ export function useMarketplace() {
 
     /**
      * 卸载市场项目
+     * TODO: Marketplace 功能尚未迁移到 Tauri command
      */
     const uninstallItem = async (item: MarketItem) => {
         const itemId = item.id
@@ -126,15 +110,8 @@ export function useMarketplace() {
         error.value = null
 
         try {
-            await api.delete(`/marketplace/uninstall/${encodeURIComponent(itemId)}`)
-
-            // 更新本地状态
-            const index = items.value.findIndex(i => i.id === itemId)
-            if (index !== -1) {
-                items.value[index].installed = false
-            }
-
-            return true
+            console.warn('[useMarketplace] uninstallItem: Marketplace 尚未迁移到 Tauri')
+            return false
         } catch (err: any) {
             error.value = err.message || `Failed to uninstall ${item.name}`
             console.error('Uninstall error:', err)
