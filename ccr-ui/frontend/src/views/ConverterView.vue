@@ -695,7 +695,7 @@ const handleConvert = async () => {
       convert_agents: convertAgents.value
     }
 
-    const response = await convertConfig(request)
+    const response = await convertConfig<ConverterResponse>(request)
     result.value = response
     successMessage.value = t('converter.convertSuccess')
   } catch (err) {

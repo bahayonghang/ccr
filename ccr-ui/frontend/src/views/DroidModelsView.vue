@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="min-h-screen relative">
     <!-- 🎨 彩色背景装饰 -->
@@ -358,6 +359,7 @@
 import { ref, onMounted } from 'vue'
 import { ArrowLeft, Plus, Edit2, Trash2, Server, Globe, Zap, Inbox, X } from 'lucide-vue-next'
 import { listDroidModels, addDroidModel, updateDroidModel, deleteDroidModel } from '@/api'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 // 类型定义
 interface DroidCustomModel {
@@ -420,9 +422,9 @@ const saveModel = async () => {
 
     closeModal()
     await loadModels()
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('保存模型失败:', error)
-    alert(error?.message || '保存模型失败')
+    alert(getErrorMessage(error) || '保存模型失败')
   } finally {
     saving.value = false
   }
@@ -438,9 +440,9 @@ const deleteModel = async (modelId: string) => {
     await deleteDroidModel(modelId)
     alert('模型删除成功！')
     await loadModels()
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('删除模型失败:', error)
-    alert(error?.message || '删除模型失败')
+    alert(getErrorMessage(error) || '删除模型失败')
   }
 }
 

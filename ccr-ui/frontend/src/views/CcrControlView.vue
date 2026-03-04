@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="h-screen w-full bg-bg-primary text-text-primary overflow-hidden flex flex-col relative transition-colors duration-300">
     <!-- 🎨 赛博朋克动态背景装饰 -->
@@ -536,7 +537,7 @@ const activeTab = ref<'commands' | 'favorites' | 'history'>('commands')
 const outputContainer = ref<HTMLElement | null>(null)
 
 // Sidebar Tabs Configuration
-const sidebarTabs: { id: 'commands' | 'favorites' | 'history'; label: string; icon: any }[] = [
+const sidebarTabs: { id: 'commands' | 'favorites' | 'history'; label: string; icon: unknown }[] = [
   { id: 'commands', label: 'Commands', icon: List },
   { id: 'favorites', label: 'Favorites', icon: Star },
   { id: 'history', label: 'History', icon: History }

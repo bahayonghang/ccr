@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="stats-container">
     <!-- Left: Summary Cards -->
@@ -117,7 +118,7 @@ const platformIndicators = computed(() => {
 })
 
 function getPlatformIcon(platformId: string) {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, unknown> = {
     'claude-code': Code2,
     'codex': Settings,
     'gemini': GeminiIcon,

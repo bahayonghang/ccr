@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div
     class="skill-card group"
@@ -213,7 +214,7 @@ const platformColor = computed(() => {
 })
 
 const platformIcon = computed(() => {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, unknown> = {
     'claude-code': Code2,
     'codex': Settings,
     'gemini': GeminiIcon,

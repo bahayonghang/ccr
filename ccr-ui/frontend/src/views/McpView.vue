@@ -379,7 +379,7 @@ const serverToToggle = ref<{ name: string; currentlyDisabled: boolean } | null>(
 const loadServers = async () => {
   try {
     loading.value = true
-    const data = await listMcpServers()
+    const data = await listMcpServers<McpServer[]>()
     servers.value = data || []
   } catch (err) {
     console.error('Failed to load MCP servers:', err)

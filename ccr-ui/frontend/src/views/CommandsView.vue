@@ -422,9 +422,34 @@ const highlightedContent = computed(() => {
   }
 })
 
+const isCommandResponse = (value: unknown): value is CommandResponse => {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  const record = value as Record<string, unknown>
+  return typeof record.success === 'boolean'
+    && typeof record.output === 'string'
+    && typeof record.error === 'string'
+    && typeof record.exit_code === 'number'
+    && typeof record.duration_ms === 'number'
+}
+
+const normalizeCommandResponse = (value: unknown): CommandResponse => {
+  if (isCommandResponse(value)) {
+    return value
+  }
+  return {
+    success: false,
+    output: '',
+    error: t('commands.unknownError'),
+    exit_code: -1,
+    duration_ms: 0
+  }
+}
+
 const loadConfigs = async () => {
   try {
-    const response = await listConfigs()
+    const response = await listConfigs<{ configs: ConfigItem[] }>()
     configs.value = response.configs
   } catch (err) {
     console.error('Failed to load configs:', err)
@@ -434,7 +459,7 @@ const loadConfigs = async () => {
 const loadCommands = async () => {
   try {
     if (selectedClient.value === 'ccr') {
-      const data = await listCommands()
+      const data = await listCommands<CommandInfo[]>()
       commands.value = data
       if (data.length > 0 && !selectedCommand.value) {
         selectedCommand.value = data[0].name
@@ -523,7 +548,7 @@ const handleExecute = async () => {
         command: selectedCommand.value,
         args: argsArray
       })
-      output.value = result
+      output.value = normalizeCommandResponse(result)
     } else {
       // For other clients, map selected command to args if needed
       const finalArgs = [...argsArray]
@@ -541,7 +566,7 @@ const handleExecute = async () => {
         command: selectedClient.value,
         args: finalArgs
       })
-      output.value = result
+      output.value = normalizeCommandResponse(result)
     }
   } catch (err) {
     output.value = {

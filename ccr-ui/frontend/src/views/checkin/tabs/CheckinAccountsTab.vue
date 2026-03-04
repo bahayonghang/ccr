@@ -1,3 +1,4 @@
+<!-- eslint-disable no-console -->
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-4">
@@ -474,6 +475,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Users, Shield, Calendar } from 'lucide-vue-next'
 import {
@@ -502,6 +504,11 @@ const emit = defineEmits<{
   (e: 'navigate', accountId: string): void
   (e: 'show-oauth-wizard'): void
 }>()
+
+interface CheckinAccountCookiesResponse {
+  cookies_json: string
+  api_user?: string | null
+}
 
 // 本地状态
 const showAccountModal = ref(false)
@@ -559,6 +566,9 @@ const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString('zh-CN')
 }
 
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback
+
 // 切换账号菜单
 const toggleAccountMenu = (accountId: string) => {
   if (openMenuAccountId.value === accountId) {
@@ -571,8 +581,12 @@ const toggleAccountMenu = (accountId: string) => {
 // 从 cookies JSON 中提取 session 值
 const extractSessionFromJson = (json: string): string => {
   try {
-    const parsed = JSON.parse(json)
-    return parsed.session || ''
+    const parsed: unknown = JSON.parse(json)
+    if (typeof parsed === 'object' && parsed !== null && 'session' in parsed) {
+      const session = (parsed as Record<string, unknown>).session
+      return typeof session === 'string' ? session : ''
+    }
+    return ''
   } catch {
     return ''
   }
@@ -609,18 +623,18 @@ const openAccountModal = async (account?: AccountInfo) => {
     } catch { /* ignore */ }
 
     try {
-      const cookiesData = await getCheckinAccountCookies(account.id)
+      const cookiesData = await getCheckinAccountCookies<CheckinAccountCookiesResponse>(account.id)
       accountForm.value = {
         provider_id: account.provider_id,
         name: account.name,
         session: extractSessionFromJson(cookiesData.cookies_json),
-        api_user: cookiesData.api_user || '',
+        api_user: typeof cookiesData.api_user === 'string' ? cookiesData.api_user : '',
         enabled: account.enabled,
         fuli_cookies: existingExtra.fuli_cookies ? JSON.stringify(existingExtra.fuli_cookies) : '',
         b4u_cdk_cookies: existingExtra.b4u_cdk_cookies ? JSON.stringify(existingExtra.b4u_cdk_cookies) : '',
         x666_access_token: existingExtra.x666_access_token || '',
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Failed to get cookies:', e)
       accountForm.value = {
         provider_id: account.provider_id,
@@ -703,8 +717,8 @@ const saveAccount = async () => {
     }
     showAccountModal.value = false
     emit('refresh')
-  } catch (e: any) {
-    alert('保存失败: ' + (e.message || '未知错误'))
+  } catch (e: unknown) {
+    alert('保存失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 
@@ -713,8 +727,8 @@ const deleteAccount = async (id: string) => {
   try {
     await apiDeleteAccount(id)
     emit('refresh')
-  } catch (e: any) {
-    alert('删除失败: ' + (e.message || '未知错误'))
+  } catch (e: unknown) {
+    alert('删除失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 

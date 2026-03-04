@@ -534,8 +534,8 @@ const loadData = async () => {
   
   try {
     const [statsData, providerData] = await Promise.all([
-      getCostOverview(selectedRange.value),
-      getProviderUsage(),
+      getCostOverview<CostStats>(selectedRange.value),
+      getProviderUsage<Record<string, number>>(),
     ])
     stats.value = statsData ?? null
     providerUsage.value = providerData ?? {}

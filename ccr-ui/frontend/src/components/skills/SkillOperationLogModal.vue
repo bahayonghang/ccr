@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
@@ -141,6 +142,7 @@ import {
 } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { getRecentEvents } from '@/api'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 const { t } = useI18n()
 
@@ -159,6 +161,14 @@ interface LogEntry {
   source: string
   message: string
   metadata?: LogMetadata | null
+}
+
+type UnknownRecord = Record<string, unknown>
+
+function asRecord(value: unknown): UnknownRecord {
+  return typeof value === 'object' && value !== null
+    ? (value as UnknownRecord)
+    : {}
 }
 
 const props = defineProps<{
@@ -191,18 +201,20 @@ async function fetchLogs() {
   loadError.value = null
 
   try {
-    const events = await getRecentEvents(100)
+    const events = await getRecentEvents<unknown[]>(100)
     // 将 Tauri 事件映射为日志格式
-    logs.value = (events || []).map((e: any, i: number) => ({
+    logs.value = (events || []).map((event, i: number) => {
+      const e = asRecord(event)
+      return {
       id: String(i),
-      timestamp: e.timestamp || new Date().toISOString(),
-      level: e.level || 'info',
-      source: e.source || 'SkillHub',
-      message: e.message || '',
-      metadata: e.metadata || null,
-    }))
-  } catch (err: any) {
-    loadError.value = err.message || 'Failed to fetch logs'
+      timestamp: typeof e.timestamp === 'string' ? e.timestamp : new Date().toISOString(),
+      level: typeof e.level === 'string' ? e.level : 'info',
+      source: typeof e.source === 'string' ? e.source : 'SkillHub',
+      message: typeof e.message === 'string' ? e.message : '',
+      metadata: (typeof e.metadata === 'object' && e.metadata !== null ? e.metadata : null) as LogMetadata | null,
+    }})
+  } catch (err: unknown) {
+    loadError.value = getErrorMessage(err) || 'Failed to fetch logs'
   } finally {
     isLoading.value = false
   }

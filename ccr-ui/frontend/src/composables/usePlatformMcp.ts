@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 /**
  * usePlatformMcp - 通用平台 MCP 服务器管理 Composable
  * 
@@ -15,6 +14,7 @@ import { listGeminiMcpServers, addGeminiMcpServer, updateGeminiMcpServer, delete
 import { listQwenMcpServers, addQwenMcpServer, updateQwenMcpServer, deleteQwenMcpServer } from '@/api'
 import { listIflowMcpServers, addIflowMcpServer, updateIflowMcpServer, deleteIflowMcpServer } from '@/api'
 import { listDroidMcpServers, addDroidMcpServer, updateDroidMcpServer, deleteDroidMcpServer } from '@/api'
+import { logger } from '@/utils/logger'
 import type {
     GeminiMcpServer,
     GeminiMcpServerRequest,
@@ -78,7 +78,7 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
         i18nPrefix: 'gemini.mcp',
         parentPath: '/gemini-cli',
         listApi: async () => {
-            const servers = await listGeminiMcpServers()
+            const servers = await listGeminiMcpServers<GeminiMcpServer[]>()
             return servers.map(normalizeServer)
         },
         addApi: async (req) => {
@@ -116,7 +116,7 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
         i18nPrefix: 'qwen.mcp',
         parentPath: '/qwen',
         listApi: async () => {
-            const servers = await listQwenMcpServers()
+            const servers = await listQwenMcpServers<QwenMcpServer[]>()
             return servers.map(normalizeServer)
         },
         addApi: async (req) => {
@@ -150,7 +150,7 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
         i18nPrefix: 'iflow.mcp',
         parentPath: '/iflow',
         listApi: async () => {
-            const servers = await listIflowMcpServers()
+            const servers = await listIflowMcpServers<IflowMcpServer[]>()
             return servers.map((s: IflowMcpServer) => ({
                 name: s.command || s.url || 'unknown',
                 command: s.command,
@@ -184,7 +184,7 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
         i18nPrefix: 'droid.mcp',
         parentPath: '/droid',
         listApi: async () => {
-            const servers = await listDroidMcpServers()
+            const servers = await listDroidMcpServers<DroidMcpServer[]>()
             return servers.map((s: DroidMcpServer) => ({
                 name: s.name,
                 command: s.command,
@@ -280,7 +280,7 @@ export function usePlatformMcp(platform: PlatformType) {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Unknown error'
             error.value = errorMessage
-            console.error(`Failed to load ${platform} MCP servers:`, err)
+            logger.error(`Failed to load ${platform} MCP servers: ${errorMessage}`, err)
             uiStore.showError(t(`${config.value.i18nPrefix}.loadFailed`, { error: errorMessage }))
         } finally {
             loading.value = false

@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/no-template-shadow -->
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
     <AnimatedBackground variant="aurora" />
@@ -383,56 +384,61 @@
           </button>
         </div>
         <div class="glass-panel rounded-xl overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-border-default text-text-muted text-left">
-                <th class="p-3">
-                  {{ $t('usage.dashboard.table.time') }}
-                </th>
-                <th class="p-3">
-                  {{ $t('usage.dashboard.table.platform') }}
-                </th>
-                <th class="p-3">
-                  {{ $t('usage.dashboard.table.model') }}
-                </th>
-                <th class="p-3 text-right">
-                  {{ $t('usage.dashboard.table.input') }}
-                </th>
-                <th class="p-3 text-right">
-                  {{ $t('usage.dashboard.table.output') }}
-                </th>
-                <th class="p-3 text-right">
-                  {{ $t('usage.dashboard.table.cost') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="r in store.logs?.records"
-                :key="r.id"
-                class="border-b border-border-default/50 hover:bg-white/5 transition-colors"
+          <div class="grid grid-cols-[2fr,1fr,2fr,1fr,1fr,1fr] border-b border-border-default text-text-muted text-left text-sm">
+            <div class="p-3">
+              {{ $t('usage.dashboard.table.time') }}
+            </div>
+            <div class="p-3">
+              {{ $t('usage.dashboard.table.platform') }}
+            </div>
+            <div class="p-3">
+              {{ $t('usage.dashboard.table.model') }}
+            </div>
+            <div class="p-3 text-right">
+              {{ $t('usage.dashboard.table.input') }}
+            </div>
+            <div class="p-3 text-right">
+              {{ $t('usage.dashboard.table.output') }}
+            </div>
+            <div class="p-3 text-right">
+              {{ $t('usage.dashboard.table.cost') }}
+            </div>
+          </div>
+          <div
+            ref="logsScrollRef"
+            class="max-h-[420px] overflow-auto"
+          >
+            <div
+              class="relative"
+              :style="{ height: `${logsVirtualizer.getTotalSize()}px` }"
+            >
+              <div
+                v-for="virtualRow in logsVirtualizer.getVirtualItems()"
+                :key="logsRecords[virtualRow.index]?.id ?? virtualRow.index"
+                class="absolute left-0 right-0 grid grid-cols-[2fr,1fr,2fr,1fr,1fr,1fr] border-b border-border-default/50 hover:bg-white/5 transition-colors text-sm"
+                :style="{ transform: `translateY(${virtualRow.start}px)` }"
               >
-                <td class="p-3 text-text-muted text-xs whitespace-nowrap">
-                  {{ new Date(r.recorded_at).toLocaleString() }}
-                </td>
-                <td class="p-3 text-text-secondary">
-                  {{ r.platform }}
-                </td>
-                <td class="p-3 text-text-primary font-medium">
-                  {{ r.model || '-' }}
-                </td>
-                <td class="p-3 text-right text-text-secondary">
-                  {{ formatTokens(r.input_tokens) }}
-                </td>
-                <td class="p-3 text-right text-text-secondary">
-                  {{ formatTokens(r.output_tokens) }}
-                </td>
-                <td class="p-3 text-right text-text-secondary">
-                  {{ formatCost(r.cost_usd) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <div class="p-3 text-text-muted text-xs whitespace-nowrap">
+                  {{ new Date(logsRecords[virtualRow.index].recorded_at).toLocaleString() }}
+                </div>
+                <div class="p-3 text-text-secondary">
+                  {{ logsRecords[virtualRow.index].platform }}
+                </div>
+                <div class="p-3 text-text-primary font-medium truncate">
+                  {{ logsRecords[virtualRow.index].model || '-' }}
+                </div>
+                <div class="p-3 text-right text-text-secondary">
+                  {{ formatTokens(logsRecords[virtualRow.index].input_tokens) }}
+                </div>
+                <div class="p-3 text-right text-text-secondary">
+                  {{ formatTokens(logsRecords[virtualRow.index].output_tokens) }}
+                </div>
+                <div class="p-3 text-right text-text-secondary">
+                  {{ formatCost(logsRecords[virtualRow.index].cost_usd) }}
+                </div>
+              </div>
+            </div>
+          </div>
           <div
             v-if="!store.logs?.records?.length"
             class="p-6 text-center text-text-muted text-sm"
@@ -477,6 +483,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import VueApexCharts from 'vue3-apexcharts'
+import { useVirtualizer } from '@tanstack/vue-virtual'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import { useUsageStore } from '@/stores/usage'
 import type { Platform } from '@/types/usage'
@@ -493,6 +500,7 @@ const selectedPlatform = ref('')
 const selectedDays = ref(30)
 const importing = ref(false)
 const logModelFilter = ref('')
+const logsScrollRef = ref<HTMLElement | null>(null)
 
 // 格式化工具
 const formatTokens = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : n.toString()
@@ -596,6 +604,14 @@ const pieOptions = computed(() => ({
   dataLabels: { enabled: true, formatter: (_: number, opts: { seriesIndex: number; w: { globals: { series: number[] } } }) => formatCost(opts.w.globals.series[opts.seriesIndex]) },
   tooltip: { theme: 'dark' },
 }))
+
+const logsRecords = computed(() => store.logs?.records ?? [])
+const logsVirtualizer = useVirtualizer(computed(() => ({
+  count: logsRecords.value.length,
+  getScrollElement: () => logsScrollRef.value,
+  estimateSize: () => 44,
+  overscan: 10,
+})))
 
 // 生命周期
 onMounted(async () => {

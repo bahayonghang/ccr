@@ -295,7 +295,7 @@ const loadDailyStats = async (days: number, force: boolean = false) => {
 
   loading.value = true
   try {
-    const data = await getDailyStats(days)
+    const data = await getDailyStats<DailyStatsResponse>(days)
     if (data && data.daily_stats && data.summary) {
       dailyStats.value = data
       dailyStatsCache.set(days, { data, ts: now })

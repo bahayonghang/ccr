@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <aside
     class="rounded-xl p-4 h-fit sticky top-5 transition-all duration-300 glass-effect"
@@ -282,12 +283,12 @@ import {
 interface NavItem {
   name: string
   href: string
-  icon: any
+  icon: unknown
 }
 
 interface NavGroup {
   title: string
-  icon: any
+  icon: unknown
   defaultExpanded: boolean
   items: NavItem[]
   module?: string  // 添加模块标识

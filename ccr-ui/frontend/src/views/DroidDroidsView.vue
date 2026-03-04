@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="min-h-screen relative">
     <!-- 🎨 彩色背景装饰 -->
@@ -427,6 +428,7 @@
 import { ref, onMounted } from 'vue'
 import { ArrowLeft, Plus, Edit2, Trash2, Cpu, Zap, Wrench, Inbox, X } from 'lucide-vue-next'
 import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 // 类型定义
 interface Droid {
@@ -434,7 +436,7 @@ interface Droid {
   description?: string
   model: string
   reasoningEffort?: string
-  tools?: any
+  tools?: unknown
   systemPrompt: string
 }
 
@@ -460,7 +462,7 @@ const toolsMode = ref<'all' | 'category' | 'custom'>('all')
 const toolsCategory = ref('read-only')
 const toolsCustom = ref('')
 
-const normalizeDroids = (data: any): Droid[] => {
+const normalizeDroids = (data: unknown): Droid[] => {
   if (Array.isArray(data)) {
     return data as Droid[]
   }
@@ -513,7 +515,7 @@ const saveDroid = async () => {
   saving.value = true
   try {
     // 处理工具配置
-    let tools: any = undefined
+    let tools: unknown = undefined
     if (toolsMode.value === 'category') {
       tools = toolsCategory.value
     } else if (toolsMode.value === 'custom') {
@@ -543,9 +545,9 @@ const saveDroid = async () => {
     }
     closeModal()
     await loadDroids()
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('保存 Droid 失败:', error)
-    alert(error?.message || '保存 Droid 失败')
+    alert(getErrorMessage(error) || '保存 Droid 失败')
   } finally {
     saving.value = false
   }
@@ -561,14 +563,14 @@ const deleteDroid = async (name: string) => {
     await deleteDroidAgent(name)
     alert('Droid 删除成功！')
     await loadDroids()
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('删除 Droid 失败:', error)
-    alert(error?.message || '删除 Droid 失败')
+    alert(getErrorMessage(error) || '删除 Droid 失败')
   }
 }
 
 // 格式化工具显示
-const formatTools = (tools: any): string => {
+const formatTools = (tools: unknown): string => {
   if (!tools) return '所有工具'
   if (typeof tools === 'string') return tools
   if (Array.isArray(tools)) return tools.join(', ')

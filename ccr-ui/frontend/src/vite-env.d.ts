@@ -9,6 +9,7 @@ interface ImportMetaEnv {
     readonly VITE_API_BASE_URL: string
     readonly VITE_USAGE_DASHBOARD_AGGREGATED_API?: string
     readonly VITE_USAGE_LOGS_CURSOR_PAGING?: string
+    readonly VITE_PERF_HEATMAP_LAZY_LOAD?: string
     // more env variables...
 }
 

@@ -15,7 +15,20 @@ export function getErrorMessage(error: unknown): string {
   return '发生未知错误'
 }
 
-export function showErrorSafe(ui: any, error: unknown, fallbackMessage: string): void {
+interface ErrorUi {
+  showError: (message: string) => void
+}
+
+function isErrorUi(value: unknown): value is ErrorUi {
+  return typeof value === 'object' &&
+    value !== null &&
+    'showError' in value &&
+    typeof value.showError === 'function'
+}
+
+export function showErrorSafe(ui: unknown, error: unknown, fallbackMessage: string): void {
   const message = getErrorMessage(error)
-  ui?.showError(message || fallbackMessage)
+  if (isErrorUi(ui)) {
+    ui.showError(message || fallbackMessage)
+  }
 }

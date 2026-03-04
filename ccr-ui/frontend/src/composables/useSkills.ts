@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref } from 'vue'
 import {
   addSkill as addSkillApi,
@@ -7,6 +6,7 @@ import {
   getSkillDetail,
   updateSkillContent,
 } from '@/api'
+import { logger } from '@/utils/logger'
 
 export interface SkillMetadata {
     author?: string
@@ -37,6 +37,10 @@ export interface UpdateSkillRequest {
     instruction: string
 }
 
+function getErrorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err)
+}
+
 export function useSkills() {
     const skills = ref<Skill[]>([])
     const currentSkill = ref<Skill | null>(null)
@@ -47,15 +51,15 @@ export function useSkills() {
         loading.value = true
         error.value = null
         try {
-            const result = await listSkillsApi()
+            const result = await listSkillsApi<Skill[]>()
             if (Array.isArray(result)) {
                 skills.value = result
             } else {
                 skills.value = []
-                console.warn('[useSkills] Unexpected response format:', result)
+                logger.warn('[useSkills] Unexpected response format', result)
             }
-        } catch (err: any) {
-            error.value = err.message || 'Failed to load skills'
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to load skills'
             skills.value = []
         } finally {
             loading.value = false
@@ -66,11 +70,11 @@ export function useSkills() {
         loading.value = true
         error.value = null
         try {
-            const result = await getSkillDetail(name)
-            currentSkill.value = result as Skill
-            return result as Skill
-        } catch (err: any) {
-            error.value = err.message || 'Failed to load skill'
+            const result = await getSkillDetail<Skill>(name)
+            currentSkill.value = result
+            return result
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to load skill'
             currentSkill.value = null
             throw err
         } finally {
@@ -84,8 +88,8 @@ export function useSkills() {
         try {
             await addSkillApi(req)
             await listSkills()
-        } catch (err: any) {
-            error.value = err.message || 'Failed to add skill'
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to add skill'
             throw err
         } finally {
             loading.value = false
@@ -98,8 +102,8 @@ export function useSkills() {
         try {
             await updateSkillContent(name, req.instruction)
             await listSkills()
-        } catch (err: any) {
-            error.value = err.message || 'Failed to update skill'
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to update skill'
             throw err
         } finally {
             loading.value = false
@@ -112,8 +116,8 @@ export function useSkills() {
         try {
             await deleteSkillApi(name)
             await listSkills()
-        } catch (err: any) {
-            error.value = err.message || 'Failed to delete skill'
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to delete skill'
             throw err
         } finally {
             loading.value = false

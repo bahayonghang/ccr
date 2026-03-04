@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="min-h-screen relative">
     <!-- 🎨 彩色背景装饰 -->
@@ -467,6 +468,7 @@ import {
   deleteDroidProfile,
   switchDroidProfile,
 } from '@/api'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 // 类型定义
 interface DroidProfile {
@@ -556,9 +558,9 @@ const saveProfile = async () => {
     }
     closeModal()
     await loadProfiles()
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('保存 Profile 失败:', error)
-    alert(error?.message || '保存 Profile 失败')
+    alert(getErrorMessage(error) || '保存 Profile 失败')
   } finally {
     saving.value = false
   }
@@ -574,9 +576,9 @@ const deleteProfile = async (name: string) => {
     await deleteDroidProfile(name)
     alert('Profile 删除成功！')
     await loadProfiles()
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('删除 Profile 失败:', error)
-    alert(error?.message || '删除 Profile 失败')
+    alert(getErrorMessage(error) || '删除 Profile 失败')
   }
 }
 
@@ -586,9 +588,9 @@ const switchProfile = async (name: string) => {
     await switchDroidProfile(name)
     alert(`已切换到 Profile "${name}"！`)
     await loadProfiles()
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('切换 Profile 失败:', error)
-    alert(error?.message || '切换 Profile 失败')
+    alert(getErrorMessage(error) || '切换 Profile 失败')
   }
 }
 

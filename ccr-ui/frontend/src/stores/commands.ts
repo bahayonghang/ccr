@@ -63,7 +63,7 @@ export const useCommandsStore = defineStore('commands', {
       }
 
       try {
-        this.list = await listCommands()
+        this.list = await listCommands<CommandInfo[]>()
         this.lastFetchedAt = Date.now()
         return this.list
       } catch (err: unknown) {
@@ -91,7 +91,7 @@ export const useCommandsStore = defineStore('commands', {
       this.error = null
 
       try {
-        const result = await executeCommand(payload)
+        const result = await executeCommand(payload) as CommandResponse
         this.lastOutput = result
         return result
       } catch (err: unknown) {

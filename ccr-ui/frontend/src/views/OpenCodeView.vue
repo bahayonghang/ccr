@@ -173,6 +173,7 @@ import {
   listOpenCodeMcpServers,
   listOpenCodePlugins,
 } from '@/api'
+import type { OpenCodeProvider, OpenCodeMcpServer, OpenCodePlugin } from '@/types'
 
 const providersCount = ref(0)
 const mcpCount = ref(0)
@@ -217,9 +218,9 @@ const modules = [
 onMounted(async () => {
   try {
     const [providers, mcpServers, plugins] = await Promise.all([
-      listOpenCodeProviders(),
-      listOpenCodeMcpServers(),
-      listOpenCodePlugins(),
+      listOpenCodeProviders<OpenCodeProvider[]>(),
+      listOpenCodeMcpServers<OpenCodeMcpServer[]>(),
+      listOpenCodePlugins<OpenCodePlugin[]>(),
     ])
     providersCount.value = providers.length
     mcpCount.value = mcpServers.length

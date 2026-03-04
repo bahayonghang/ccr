@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <aside
     class="skills-filter-panel transition-all duration-300"
@@ -392,7 +393,7 @@ const hasActiveFilters = computed(() => {
 
 // Get platform icon component
 function getPlatformIcon(platformId: string) {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, unknown> = {
     'claude-code': Code2,
     'codex': Settings,
     'gemini': Sparkles,

@@ -1,6 +1,15 @@
-/* eslint-disable no-console -- SSE streaming utility, console output for debugging */
-
 import { ref, onUnmounted } from 'vue'
+import { logger } from '@/utils/logger'
+
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException
+    ? err.name === 'AbortError'
+    : err instanceof Error && err.name === 'AbortError'
+}
 
 /**
  * SSE (Server-Sent Events) 流式读取
@@ -55,7 +64,7 @@ export function useStream(url: string, maxLines = 2000) {
    */
   const start = async () => {
     if (isStreaming.value) {
-      console.warn('Stream is already running')
+      logger.warn('Stream is already running')
       return
     }
 
@@ -107,10 +116,10 @@ export function useStream(url: string, maxLines = 2000) {
           }
         }
       }
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        error.value = err.message || 'Stream error'
-        console.error('[Stream]', err)
+    } catch (err: unknown) {
+      if (!isAbortError(err)) {
+        error.value = getErrorMessage(err) || 'Stream error'
+        logger.error('[Stream]', err)
       }
     } finally {
       isStreaming.value = false
@@ -183,9 +192,9 @@ export function useTextStream(url: string, maxLines = 2000) {
           }
         }
       }
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        error.value = err.message || 'Stream error'
+    } catch (err: unknown) {
+      if (!isAbortError(err)) {
+        error.value = getErrorMessage(err) || 'Stream error'
       }
     } finally {
       isStreaming.value = false

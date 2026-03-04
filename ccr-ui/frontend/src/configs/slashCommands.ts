@@ -1,4 +1,5 @@
 import type { PlatformConfig } from '@/types/platform'
+import type { SlashCommand, SlashCommandRequest } from '@/types/platform'
 
 import {
   listSlashCommands, addSlashCommand, updateSlashCommand, deleteSlashCommand, toggleSlashCommand,
@@ -8,22 +9,52 @@ import {
   listIflowSlashCommands, addIflowSlashCommand, updateIflowSlashCommand, deleteIflowSlashCommand, toggleIflowSlashCommand
 } from '@/api'
 
+type UnknownRecord = Record<string, unknown>
+
+function asRecord(value: unknown): UnknownRecord {
+  return typeof value === 'object' && value !== null ? (value as UnknownRecord) : {}
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function normalizeSlashCommand(value: unknown): SlashCommand {
+  const source = asRecord(value)
+  const enabled = typeof source.enabled === 'boolean'
+    ? source.enabled
+    : !(typeof source.disabled === 'boolean' ? source.disabled : false)
+
+  return {
+    name: String(source.name ?? ''),
+    command: String(source.command ?? ''),
+    description: String(source.description ?? ''),
+    folder: String(source.folder ?? ''),
+    enabled,
+  }
+}
+
+function getRequestName(cmd: SlashCommandRequest): string {
+  if (!cmd.name.trim()) {
+    throw new Error('Slash command name is required')
+  }
+  return cmd.name
+}
+
 // Claude Code 平台配置
 export const claudeCodeConfig: PlatformConfig = {
   api: {
     list: async () => {
-      const data = await listSlashCommands()
-      // Map 'disabled' field to 'enabled' for component compatibility
-      const commands = (data.commands || []).map((cmd: any) => ({
-        ...cmd,
-        enabled: cmd.enabled !== undefined ? cmd.enabled : !cmd.disabled
-      }))
-      return { commands, folders: data.folders || [] }
+      const data = await listSlashCommands<{ commands?: unknown[]; folders?: unknown }>()
+      return {
+        commands: (data.commands ?? []).map(normalizeSlashCommand),
+        folders: asStringArray(data.folders),
+      }
     },
-    add: async (cmd: any) => {
-      await addSlashCommand(cmd.name, cmd)
+    add: async (cmd: SlashCommandRequest) => {
+      await addSlashCommand(getRequestName(cmd), cmd)
     },
-    update: async (name: string, cmd: any) => {
+    update: async (name: string, cmd: SlashCommandRequest) => {
       await updateSlashCommand(name, cmd)
     },
     delete: async (name: string) => {
@@ -61,12 +92,12 @@ export const claudeCodeConfig: PlatformConfig = {
 export const codexConfig: PlatformConfig = {
   api: {
     list: async () => {
-      return await listCodexSlashCommands()
+      return await listCodexSlashCommands<{ commands: SlashCommand[]; folders: string[] }>()
     },
-    add: async (cmd: any) => {
-      await addCodexSlashCommand(cmd.name, cmd)
+    add: async (cmd: SlashCommandRequest) => {
+      await addCodexSlashCommand(getRequestName(cmd), cmd)
     },
-    update: async (name: string, cmd: any) => {
+    update: async (name: string, cmd: SlashCommandRequest) => {
       await updateCodexSlashCommand(name, cmd)
     },
     delete: async (name: string) => {
@@ -98,12 +129,12 @@ export const codexConfig: PlatformConfig = {
 export const geminiConfig: PlatformConfig = {
   api: {
     list: async () => {
-      return await listGeminiSlashCommands()
+      return await listGeminiSlashCommands<{ commands: SlashCommand[]; folders: string[] }>()
     },
-    add: async (cmd: any) => {
-      await addGeminiSlashCommand(cmd.name, cmd)
+    add: async (cmd: SlashCommandRequest) => {
+      await addGeminiSlashCommand(getRequestName(cmd), cmd)
     },
-    update: async (name: string, cmd: any) => {
+    update: async (name: string, cmd: SlashCommandRequest) => {
       await updateGeminiSlashCommand(name, cmd)
     },
     delete: async (name: string) => {
@@ -135,12 +166,12 @@ export const geminiConfig: PlatformConfig = {
 export const qwenConfig: PlatformConfig = {
   api: {
     list: async () => {
-      return await listQwenSlashCommands()
+      return await listQwenSlashCommands<{ commands: SlashCommand[]; folders: string[] }>()
     },
-    add: async (cmd: any) => {
-      await addQwenSlashCommand(cmd.name, cmd)
+    add: async (cmd: SlashCommandRequest) => {
+      await addQwenSlashCommand(getRequestName(cmd), cmd)
     },
-    update: async (name: string, cmd: any) => {
+    update: async (name: string, cmd: SlashCommandRequest) => {
       await updateQwenSlashCommand(name, cmd)
     },
     delete: async (name: string) => {
@@ -172,12 +203,12 @@ export const qwenConfig: PlatformConfig = {
 export const iflowConfig: PlatformConfig = {
   api: {
     list: async () => {
-      return await listIflowSlashCommands()
+      return await listIflowSlashCommands<{ commands: SlashCommand[]; folders: string[] }>()
     },
-    add: async (cmd: any) => {
-      await addIflowSlashCommand(cmd.name, cmd)
+    add: async (cmd: SlashCommandRequest) => {
+      await addIflowSlashCommand(getRequestName(cmd), cmd)
     },
-    update: async (name: string, cmd: any) => {
+    update: async (name: string, cmd: SlashCommandRequest) => {
       await updateIflowSlashCommand(name, cmd)
     },
     delete: async (name: string) => {

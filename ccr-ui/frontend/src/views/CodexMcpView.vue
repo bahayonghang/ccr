@@ -331,7 +331,13 @@ import { RouterLink } from 'vue-router'
 import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Boxes } from 'lucide-vue-next'
 import { listCodexMcpServers, addCodexMcpServer, updateCodexMcpServer, deleteCodexMcpServer } from '@/api'
 import { listConfigs, getHistory } from '@/api'
-import type { CodexMcpServer, CodexMcpServerRequest } from '@/types'
+import type {
+  CodexMcpServer,
+  CodexMcpServersResponse,
+  CodexMcpServerRequest,
+  ConfigListResponse,
+  HistoryResponse
+} from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import { Breadcrumb } from '@/components/ui'
 import { useI18n } from 'vue-i18n'
@@ -354,14 +360,14 @@ const envValue = ref('')
 const loadServers = async () => {
   try {
     loading.value = true
-    const data = await listCodexMcpServers()
-    servers.value = data || []
+    const data = await listCodexMcpServers<CodexMcpServersResponse>()
+    servers.value = Array.isArray(data.servers) ? data.servers : []
 
     try {
-      const configData = await listConfigs()
+      const configData = await listConfigs<ConfigListResponse>()
       currentConfig.value = configData.current_config
-      totalConfigs.value = configData.configs.length
-      const historyData = await getHistory()
+      totalConfigs.value = Array.isArray(configData.configs) ? configData.configs.length : 0
+      const historyData = await getHistory<HistoryResponse>()
       historyCount.value = historyData.total
     } catch (err) { console.error('Failed to load system info:', err) }
   } catch (err) {

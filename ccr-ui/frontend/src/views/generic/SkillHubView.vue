@@ -323,6 +323,15 @@ const searchQuery = ref('')
 const installLoading = ref(false)
 const removeLoading = ref(false)
 
+interface SkillHubOperationEntry {
+  ok?: boolean
+  message?: string
+}
+
+interface SkillHubOperationResult {
+  results?: SkillHubOperationEntry[]
+}
+
 const installedSkillNames = computed(() => {
   return new Set(installedSkills.value.map(s => s.name))
 })
@@ -330,7 +339,7 @@ const installedSkillNames = computed(() => {
 async function loadAgents() {
   agentsLoading.value = true
   try {
-    const data = await getSkillHubAgents()
+    const data = await getSkillHubAgents<SkillHubAgentSummary[]>()
     agents.value = data
     if (!agents.value.some(a => a.id === selectedAgent.value) && agents.value.length > 0) {
       selectedAgent.value = agents.value[0].id
@@ -346,7 +355,7 @@ async function loadAgents() {
 async function loadInstalled() {
   installedLoading.value = true
   try {
-    installedSkills.value = await getSkillHubAgentSkills(selectedAgent.value)
+    installedSkills.value = await getSkillHubAgentSkills<SkillHubInstalledSkill[]>(selectedAgent.value)
   } catch (e) {
     installedSkills.value = []
     const message = e instanceof Error ? e.message : '加载已安装技能失败'
@@ -359,7 +368,7 @@ async function loadInstalled() {
 async function loadTrending() {
   marketplaceLoading.value = true
   try {
-    marketplace.value = await getSkillHubTrending()
+    marketplace.value = await getSkillHubTrending<SkillHubMarketplaceResponse>()
   } catch (e) {
     marketplace.value = { items: [], total: 0, cached: false }
     const message = e instanceof Error ? e.message : '加载 Marketplace 失败'
@@ -376,7 +385,7 @@ async function runSearch() {
   }
   marketplaceLoading.value = true
   try {
-    marketplace.value = await searchSkillHubMarketplace(searchQuery.value.trim())
+    marketplace.value = await searchSkillHubMarketplace<SkillHubMarketplaceResponse>(searchQuery.value.trim())
   } catch (e) {
     marketplace.value = { items: [], total: 0, cached: false }
     const message = e instanceof Error ? e.message : '搜索失败'
@@ -404,7 +413,7 @@ async function selectAgent(agentId: string) {
 async function installItem(pkg: string) {
   installLoading.value = true
   try {
-    const res = await installSkillHubSkill({ package: pkg, agents: [selectedAgent.value], force: false })
+    const res = await installSkillHubSkill<SkillHubOperationResult>({ package: pkg, agents: [selectedAgent.value], force: false })
     const r = res.results?.[0]
     if (r && !r.ok) {
       throw new Error(r.message || '安装失败')
@@ -422,7 +431,7 @@ async function installItem(pkg: string) {
 async function removeInstalledSkill(skillName: string) {
   removeLoading.value = true
   try {
-    const res = await removeSkillHubSkill(skillName)
+    const res = await removeSkillHubSkill<SkillHubOperationResult>(skillName)
     const r = res.results?.[0]
     if (r && !r.ok) {
       throw new Error(r.message || '卸载失败')

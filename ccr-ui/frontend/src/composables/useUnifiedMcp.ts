@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 /**
  * useUnifiedMcp - 统一 MCP 服务器管理 Composable
  *
@@ -18,13 +17,28 @@ import {
     deleteUnifiedMcp,
     toggleUnifiedMcp,
 } from '@/api'
+import { logger } from '@/utils/logger'
 import type {
     UnifiedMcpServer,
     UnifiedMcpRequest,
     PlatformMcpCapability,
     UnifiedMcpPlatform,
     PlatformMeta,
+    UnifiedMcpListResponse,
 } from '@/types/unifiedMcp'
+
+type UnknownRecord = Record<string, unknown>
+
+function asRecord(value: unknown): UnknownRecord {
+    return typeof value === 'object' && value !== null ? (value as UnknownRecord) : {}
+}
+
+function toSuccessMessage(raw: unknown, fallback: string): string {
+    if (typeof raw === 'string' && raw) return raw
+    const source = asRecord(raw)
+    if (typeof source.message === 'string' && source.message) return source.message
+    return fallback
+}
 
 // ============ 平台元信息 ============
 
@@ -124,13 +138,13 @@ export function useUnifiedMcp() {
         loading.value = true
         error.value = null
         try {
-            const resp = await listUnifiedMcp(platform)
+            const resp = await listUnifiedMcp<UnifiedMcpListResponse>(platform)
             servers.value = resp.servers
             capabilities.value = resp.capabilities
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'Unknown error'
             error.value = msg
-            console.error('Failed to load unified MCP servers:', err)
+            logger.error('Failed to load unified MCP servers', err)
             uiStore.showError(`加载 MCP 服务器失败: ${msg}`)
         } finally {
             loading.value = false
@@ -142,8 +156,8 @@ export function useUnifiedMcp() {
         if (!validateForm()) return false
         const request = buildRequest()
         try {
-            const message = await addUnifiedMcp(request)
-            uiStore.showSuccess(message)
+            const message = await addUnifiedMcp<string | UnknownRecord>(request)
+            uiStore.showSuccess(toSuccessMessage(message, '添加成功'))
             await loadServers()
             closeForm()
             return true
@@ -160,8 +174,8 @@ export function useUnifiedMcp() {
         const { platform, name } = editingServer.value
         const request = buildRequest()
         try {
-            const message = await updateUnifiedMcp(platform, name, request)
-            uiStore.showSuccess(message)
+            const message = await updateUnifiedMcp<string | UnknownRecord>(platform, name, request)
+            uiStore.showSuccess(toSuccessMessage(message, '更新成功'))
             await loadServers()
             closeForm()
             return true
@@ -175,8 +189,8 @@ export function useUnifiedMcp() {
     /** 删除服务器 */
     async function deleteServer(server: UnifiedMcpServer): Promise<boolean> {
         try {
-            const message = await deleteUnifiedMcp(server.platform, server.name)
-            uiStore.showSuccess(message)
+            const message = await deleteUnifiedMcp<string | UnknownRecord>(server.platform, server.name)
+            uiStore.showSuccess(toSuccessMessage(message, '删除成功'))
             await loadServers()
             return true
         } catch (err) {
@@ -189,8 +203,8 @@ export function useUnifiedMcp() {
     /** 切换服务器启停 */
     async function toggleServer(server: UnifiedMcpServer): Promise<boolean> {
         try {
-            const result = await toggleUnifiedMcp(server.platform, server.name)
-            uiStore.showSuccess(result.message)
+            const result = await toggleUnifiedMcp<string | UnknownRecord>(server.platform, server.name)
+            uiStore.showSuccess(toSuccessMessage(result, '状态已更新'))
             await loadServers()
             return true
         } catch (err) {

@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
@@ -238,6 +239,7 @@ import {
 } from 'lucide-vue-next'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import type { ImportSource, PlatformSummary } from '@/types/skills'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 const props = defineProps<{
   modelValue: boolean
@@ -288,7 +290,10 @@ const npxPackage = ref('')
 const npxGlobal = ref(false)
 
 // Tauri 环境检测
-const isTauri = computed(() => !!(window as any).__TAURI__)
+const isTauri = computed(() => {
+  const tauriWindow = window as Window & { __TAURI__?: unknown }
+  return Boolean(tauriWindow.__TAURI__)
+})
 
 // npx 状态
 const npxAvailable = computed(() => npxStatus.value?.available ?? false)
@@ -409,13 +414,13 @@ async function handleInstall() {
 
     emit('installed')
     close()
-  } catch (err: any) {
+  } catch (err: unknown) {
     setInstallProgress({
       phase: 'error',
       package: activeSource.value === 'github' ? githubUrl.value :
                activeSource.value === 'local' ? localPath.value :
                npxPackage.value,
-      message: err.message || 'Installation failed',
+      message: getErrorMessage(err) || 'Installation failed',
       startedAt: Date.now()
     })
   } finally {

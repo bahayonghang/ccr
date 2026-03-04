@@ -58,6 +58,20 @@ export interface PaginatedLogs {
   page: number
   page_size: number
   next_cursor?: string | null
+  mode?: 'cursor' | 'offset'
+}
+
+/** 日志查询参数 */
+export interface UsageLogsQuery {
+  platform?: string
+  model?: string
+  start_date?: string
+  end_date?: string
+  page?: number
+  page_size?: number
+  cursor?: string
+  include_total?: boolean
+  mode?: 'cursor' | 'offset'
 }
 
 /** 热力图响应 */

@@ -469,6 +469,10 @@ import {
 import type {
   CodexAuthAccountItem,
   CodexAuthCurrentInfo,
+  CodexAuthCurrentResponse,
+  CodexAuthListResponse,
+  CodexAuthProcessResponse,
+  CodexAuthSaveRequest,
   LoginState,
   TokenFreshness
 } from '@/types'
@@ -562,7 +566,7 @@ const formatExpiryDate = (dateStr: string) => {
 const loadAccounts = async () => {
   try {
     loading.value = true
-    const data = await listCodexAuthAccounts()
+    const data = await listCodexAuthAccounts<CodexAuthListResponse>()
     accounts.value = data.accounts || []
     loginState.value = data.login_state
   } catch (error) {
@@ -575,7 +579,7 @@ const loadAccounts = async () => {
 
 const loadCurrentInfo = async () => {
   try {
-    const data = await getCodexAuthCurrent()
+    const data = await getCodexAuthCurrent<CodexAuthCurrentResponse>()
     if (data.logged_in && data.info) {
       currentInfo.value = data.info
     } else {
@@ -594,7 +598,7 @@ const handleRefresh = async () => {
 const handleSave = async () => {
   // Check for running Codex processes
   try {
-    const processInfo = await detectCodexProcess()
+    const processInfo = await detectCodexProcess<CodexAuthProcessResponse>()
     if (processInfo.has_running_process) {
       processWarning.value = processInfo.warning || t('codex.auth.processDetected', { pids: processInfo.pids.join(', ') })
     } else {
@@ -632,12 +636,13 @@ const handleConfirmSave = async () => {
       expiresAt = localDate.toISOString()
     }
 
-    await saveCodexAuth({
+    const payload: CodexAuthSaveRequest = {
       name: saveForm.name.trim(),
       description: saveForm.description.trim() || undefined,
       expires_at: expiresAt,
       force: saveForm.force,
-    })
+    }
+    await saveCodexAuth(payload)
     handleCloseSaveForm()
     await handleRefresh()
   } catch (error) {

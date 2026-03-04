@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
@@ -9,6 +8,7 @@ import {
   deleteDroidPlugin,
   type DroidPlugin
 } from '@/api'
+import { logger } from '@/utils/logger'
 
 // ============ Types ============
 
@@ -21,6 +21,22 @@ export interface DroidPluginItem extends DroidPlugin {
 interface DroidPluginFormData {
   id: string
   data: string // JSON 字符串格式
+}
+
+type UnknownRecord = Record<string, unknown>
+
+function asRecord(value: unknown): UnknownRecord {
+  return typeof value === 'object' && value !== null ? (value as UnknownRecord) : {}
+}
+
+function toErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message
+  const record = asRecord(error)
+  const response = asRecord(record.response)
+  const responseData = asRecord(response.data)
+  if (typeof responseData.error === 'string' && responseData.error) return responseData.error
+  if (typeof record.message === 'string' && record.message) return record.message
+  return fallback
 }
 
 // ============ Composable ============
@@ -58,7 +74,7 @@ export function useDroidPlugins() {
       plugins.value = data.map((p: DroidPlugin) => ({ ...p, _expanded: false }))
     } catch (error) {
       uiStore.showError(t('droid.plugins.loadFailed'))
-      console.error('Failed to load Droid plugins:', error)
+      logger.error('Failed to load Droid plugins', error)
     } finally {
       loading.value = false
     }
@@ -123,8 +139,8 @@ export function useDroidPlugins() {
       }
       closeForm()
       await loadPlugins()
-    } catch (error: any) {
-      uiStore.showError(error.response?.data?.error || t('droid.plugins.saveFailed'))
+    } catch (error: unknown) {
+      uiStore.showError(toErrorMessage(error, t('droid.plugins.saveFailed')))
     }
   }
 
@@ -138,8 +154,8 @@ export function useDroidPlugins() {
       await deleteDroidPlugin(plugin.id)
       uiStore.showSuccess(t('droid.plugins.deleteSuccess'))
       await loadPlugins()
-    } catch (error: any) {
-      uiStore.showError(error.response?.data?.error || t('droid.plugins.deleteFailed'))
+    } catch (error: unknown) {
+      uiStore.showError(toErrorMessage(error, t('droid.plugins.deleteFailed')))
     }
   }
 

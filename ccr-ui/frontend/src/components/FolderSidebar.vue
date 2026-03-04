@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div
     class="rounded-2xl p-4 shadow-sm sticky top-6 self-start hidden lg:block w-64"
@@ -55,7 +56,7 @@
 interface FolderOption {
   label: string
   value: string
-  icon: any
+  icon: unknown
   count: number
 }
 

@@ -29,6 +29,34 @@
 
 import { invoke } from '@tauri-apps/api/core'
 
+type UnknownRecord = Record<string, unknown>
+
+const isRecord = (value: unknown): value is UnknownRecord => {
+  return typeof value === 'object' && value !== null
+}
+
+const asRecord = (value: unknown): UnknownRecord => {
+  return isRecord(value) ? value : {}
+}
+
+const asArray = (value: unknown): unknown[] => {
+  return Array.isArray(value) ? value : []
+}
+
+const pickArray = (value: unknown, key: string): unknown[] => {
+  if (!isRecord(value)) {
+    return []
+  }
+  return asArray(value[key])
+}
+
+const pickRecord = (value: unknown, key: string): UnknownRecord => {
+  if (!isRecord(value)) {
+    return {}
+  }
+  return asRecord(value[key])
+}
+
 // ════════════════════════════════════════════════════════════
 // 类型导出（兼容历史 `@/api` 类型导入）
 // ════════════════════════════════════════════════════════════
@@ -78,6 +106,45 @@ export interface Skill {
 }
 
 export interface ClaudeSettingsData {
+  model?: string
+  availableModels?: string[]
+  alwaysThinkingEnabled?: boolean
+  maxThinkingTokens?: number
+  maxOutputTokens?: number
+  effortLevel?: string
+  skipDangerousModePermissionPrompt?: boolean
+  theme?: string
+  language?: string
+  showTurnDuration?: boolean
+  prefersReducedMotion?: boolean
+  spinnerTipsEnabled?: boolean
+  terminalProgressBarEnabled?: boolean
+  showSpinnerTree?: boolean
+  includeCoAuthoredBy?: boolean
+  autoUpdates?: boolean
+  autoUpdatesChannel?: string
+  cleanupPeriodDays?: number
+  respectGitignore?: boolean
+  env?: Record<string, string>
+  permissions?: {
+    allow?: string[]
+    deny?: string[]
+    defaultMode?: string
+    additionalDirectories?: string[]
+  }
+  sandbox?: {
+    enabled?: boolean
+    autoAllowBashIfSandboxed?: boolean
+    network?: {
+      allowLocalBinding?: boolean
+      allowedDomains?: string[]
+    }
+    excludedCommands?: string[]
+  }
+  attribution?: {
+    commit?: string
+    pr?: string
+  }
   [key: string]: unknown
 }
 
@@ -135,15 +202,53 @@ export interface DroidPlugin {
   data: Record<string, unknown>
 }
 
+export interface SyncFolderItem {
+  name: string
+  enabled: boolean
+  localPath: string
+  remotePath: string
+  description?: string
+}
+
+export interface SyncStatusResponse {
+  configured?: boolean
+  config?: {
+    webdav_url?: string
+    username?: string
+    remote_path?: string
+  }
+  [key: string]: unknown
+}
+
+export interface CommandResultLike {
+  success?: boolean
+  message?: string
+  output?: string
+  data?: {
+    output?: string
+  }
+}
+
+export interface VersionInfoResponse {
+  current_version?: string
+  build_time?: string
+  git_commit?: string
+  latest_version?: string
+  has_update?: boolean
+  release_url?: string
+  release_notes?: string
+  published_at?: string
+}
+
 function resolveNameAndConfig(
-  arg1: string | Record<string, any>,
-  arg2?: Record<string, any>,
-): { name: string; config: Record<string, any> } {
+  arg1: string | object,
+  arg2?: unknown,
+): { name: string; config: UnknownRecord } {
   if (typeof arg1 === 'string') {
-    return { name: arg1, config: arg2 ?? {} }
+    return { name: arg1, config: asRecord(arg2) }
   }
 
-  const request = { ...arg1 }
+  const request = { ...asRecord(arg1) }
   const name = String(request.name ?? request.id ?? '')
   delete request.name
   delete request.id
@@ -152,13 +257,14 @@ function resolveNameAndConfig(
 }
 
 function resolveName(
-  arg1: string | Record<string, any>,
+  arg1: string | object,
 ): string {
   if (typeof arg1 === 'string') {
     return arg1
   }
 
-  return String(arg1.name ?? arg1.id ?? '')
+  const request = asRecord(arg1)
+  return String(request.name ?? request.id ?? '')
 }
 
 
@@ -220,64 +326,64 @@ export const TauriAPI = {
 // ════════════════════════════════════════════════════════════
 
 /** 列出所有配置（包装为 { configs: [...] } 格式供前端消费） */
-export const listConfigs = async (): Promise<any> => {
+export const listConfigs = async <T = UnknownRecord>(): Promise<T> => {
   const configs = await invoke('list_configs')
-  return { configs }
+  return { configs } as T
 }
 
 /** 切换到指定配置 */
-export const switchConfig = async (name: string): Promise<any> => {
+export const switchConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('switch_config', { name })
 }
 
 /** 添加新配置（兼容 addConfig(name, config) 与 addConfig({name,...})） */
-export const addConfig = async (nameOrData: string | Record<string, any>, config?: any): Promise<any> => {
+export const addConfig = async <T = UnknownRecord>(nameOrData: string | object, config?: unknown): Promise<T> => {
   if (typeof nameOrData === 'string') {
     return invoke('add_config', { name: nameOrData, config })
   }
-  const data = nameOrData || {}
+  const data = asRecord(nameOrData)
   const { name, ...rest } = data
   return invoke('add_config', { name, config: rest })
 }
 
 /** 删除指定配置 */
-export const deleteConfig = async (name: string): Promise<any> => {
+export const deleteConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('delete_config', { name })
 }
 
 /** 重命名配置 */
-export const renameConfig = async (oldName: string, newName: string): Promise<any> => {
+export const renameConfig = async <T = UnknownRecord>(oldName: string, newName: string): Promise<T> => {
   return invoke('rename_config', { oldName, newName })
 }
 
 /** 复制配置 */
-export const duplicateConfig = async (name: string, newName: string): Promise<any> => {
+export const duplicateConfig = async <T = UnknownRecord>(name: string, newName: string): Promise<T> => {
   return invoke('duplicate_config', { name, newName })
 }
 
 /** 验证所有配置 */
-export const validateConfigs = async (): Promise<any> => {
+export const validateConfigs = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('validate_configs')
 }
 
 /** 导入配置 */
-export const importConfig = async (data: any): Promise<any> => {
+export const importConfig = async <T = UnknownRecord>(data: unknown): Promise<T> => {
   return invoke('import_config', { data })
 }
 
 /** 导出配置 */
-export const exportConfig = async (name?: string): Promise<any> => {
+export const exportConfig = async <T = UnknownRecord>(name?: string): Promise<T> => {
   return invoke('export_config', { name })
 }
 
 /** 获取历史记录（包装为 { entries: [...] } 格式供前端消费） */
-export const getHistory = async (limit?: number): Promise<any> => {
+export const getHistory = async <T = UnknownRecord>(limit?: number): Promise<T> => {
   const entries = await invoke('get_history', { limit: limit ?? 100 })
-  return { entries }
+  return { entries } as T
 }
 
 /** 清理历史记录 */
-export const clearHistory = async (): Promise<any> => {
+export const clearHistory = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('clear_history')
 }
 
@@ -286,17 +392,17 @@ export const clearHistory = async (): Promise<any> => {
 // ════════════════════════════════════════════════════════════
 
 /** 推送配置到远端 */
-export const pushSync = async (force?: boolean): Promise<any> => {
+export const pushSync = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
   return invoke('sync_push', { force })
 }
 
 /** 从远端拉取配置 */
-export const pullSync = async (force?: boolean): Promise<any> => {
+export const pullSync = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
   return invoke('sync_pull', { force })
 }
 
 /** 获取同步状态 */
-export const getSyncStatus = async (): Promise<any> => {
+export const getSyncStatus = async <T = SyncStatusResponse>(): Promise<T> => {
   return invoke('sync_status')
 }
 
@@ -304,30 +410,30 @@ export const getSyncStatus = async (): Promise<any> => {
 export const getSyncInfo = getSyncStatus
 
 /** 列出同步文件夹 */
-export const listSyncFolders = async (): Promise<any> => {
+export const listSyncFolders = async <T = SyncFolderItem[] | CommandResultLike>(): Promise<T> => {
   return invoke('list_sync_folders')
 }
 
 /** 添加同步文件夹 */
-export const addSyncFolder = async (
+export const addSyncFolder = async <T = UnknownRecord>(
   name: string,
   localPath: string,
   remotePath: string,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('add_sync_folder', { name, localPath, remotePath })
 }
 
 /** 更新同步文件夹 */
-export const updateSyncFolder = async (
+export const updateSyncFolder = async <T = UnknownRecord>(
   id: string,
   name?: string,
   enabled?: boolean,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('update_sync_folder', { id, name, enabled })
 }
 
 /** 删除同步文件夹 */
-export const deleteSyncFolder = async (id: string): Promise<any> => {
+export const deleteSyncFolder = async <T = UnknownRecord>(id: string): Promise<T> => {
   return invoke('delete_sync_folder', { id })
 }
 
@@ -338,60 +444,61 @@ export const deleteSyncFolder = async (id: string): Promise<any> => {
 // ── Claude Settings ──
 
 /** 获取 Claude Code 全局设置 */
-export const getClaudeSettings = async (): Promise<any> => {
+export const getClaudeSettings = async <T = ClaudeSettingsData>(): Promise<T> => {
   return invoke('claude_get_settings')
 }
 
 /** 更新 Claude Code 全局设置 */
-export const updateClaudeSettings = async (settings: any): Promise<any> => {
+export const updateClaudeSettings = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
   return invoke('claude_update_settings', { settings })
 }
 
 // ── Claude MCP Servers ──
 
 /** 列出 Claude Code MCP 服务器 */
-export const listMcpServers = async (): Promise<any> => {
+export const listMcpServers = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_list_mcp_servers')
 }
 
 /** 添加 Claude Code MCP 服务器 */
-export const addMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('claude_add_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 更新 Claude Code MCP 服务器 */
-export const updateMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('claude_update_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 删除 Claude Code MCP 服务器 */
-export const deleteMcpServer = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteMcpServer = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
   return invoke('claude_delete_mcp_server', { name })
 }
 
 /** 切换 Claude Code MCP 服务器启用/禁用状态（通过更新 disabled 字段实现） */
-export const toggleMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
+export const toggleMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
   disabled?: boolean,
-): Promise<any> => {
+): Promise<T> => {
   if (typeof nameOrRequest === 'string') {
     return invoke('claude_update_mcp_server', { name: nameOrRequest, config: { disabled: !!disabled } })
   }
   const name = resolveName(nameOrRequest)
+  const request = asRecord(nameOrRequest)
   const resolvedDisabled =
     typeof disabled === 'boolean'
       ? disabled
-      : typeof nameOrRequest.disabled === 'boolean'
-        ? nameOrRequest.disabled
+      : typeof request.disabled === 'boolean'
+        ? request.disabled
         : true
   return invoke('claude_update_mcp_server', { name, config: { disabled: resolvedDisabled } })
 }
@@ -399,52 +506,59 @@ export const toggleMcpServer = async (
 // ── Claude Agents ──
 
 /** 列出 Claude Code Agents */
-export const listAgents = async (): Promise<any> => {
+export const listAgents = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_list_agents')
 }
 
 /** 获取单个 Agent 详情（通过列表后过滤实现） */
-export const getAgent = async (name: string): Promise<any> => {
-  const result: any = await invoke('claude_list_agents')
-  const agents = result?.agents || result || []
-  return agents.find((a: any) => a.name === name) ?? null
+export const getAgent = async <T = UnknownRecord>(name: string): Promise<T> => {
+  const result = await invoke<unknown>('claude_list_agents')
+  const agents = Array.isArray(result) ? result : pickArray(result, 'agents')
+  const found = agents.find((item) => {
+    if (!isRecord(item)) {
+      return false
+    }
+    return String(item.name ?? '') === name
+  })
+  return (found ?? null) as T
 }
 
 /** 添加 Claude Code Agent */
-export const addAgent = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('claude_add_agent', { name, config: resolvedConfig })
 }
 
 /** 更新 Claude Code Agent */
-export const updateAgent = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('claude_update_agent', { name, config: resolvedConfig })
 }
 
 /** 删除 Claude Code Agent */
-export const deleteAgent = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteAgent = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
   return invoke('claude_delete_agent', { name })
 }
 
 /** 切换 Agent 启用/禁用状态 */
-export const toggleAgent = async (
-  nameOrRequest: string | Record<string, any>,
+export const toggleAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
   enabled?: boolean,
-): Promise<any> => {
+): Promise<T> => {
   const name = resolveName(nameOrRequest)
+  const request = asRecord(nameOrRequest)
   const resolvedEnabled =
     typeof enabled === 'boolean'
       ? enabled
-      : typeof nameOrRequest === 'object' && typeof nameOrRequest.enabled === 'boolean'
-        ? nameOrRequest.enabled
+      : typeof request.enabled === 'boolean'
+        ? request.enabled
         : true
   return invoke('claude_update_agent', { name, config: { enabled: resolvedEnabled } })
 }
@@ -452,67 +566,68 @@ export const toggleAgent = async (
 // ── Claude Slash Commands ──
 
 /** 列出 Claude Code 斜杠命令 */
-export const listSlashCommands = async (): Promise<any> => {
+export const listSlashCommands = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_list_slash_commands')
 }
 
 /** 添加 Claude Code 斜杠命令 */
-export const addSlashCommand = async (name: string, config: any): Promise<any> => {
+export const addSlashCommand = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
   return invoke('claude_add_slash_command', { name, config })
 }
 
 /** 更新 Claude Code 斜杠命令 */
-export const updateSlashCommand = async (name: string, config: any): Promise<any> => {
+export const updateSlashCommand = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
   return invoke('claude_update_slash_command', { name, config })
 }
 
 /** 删除 Claude Code 斜杠命令 */
-export const deleteSlashCommand = async (name: string): Promise<any> => {
+export const deleteSlashCommand = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('claude_delete_slash_command', { name })
 }
 
 /** 切换斜杠命令启用/禁用状态 */
-export const toggleSlashCommand = async (name: string, enabled: boolean): Promise<any> => {
+export const toggleSlashCommand = async <T = UnknownRecord>(name: string, enabled: boolean): Promise<T> => {
   return invoke('claude_update_slash_command', { name, config: { enabled } })
 }
 
 // ── Claude Plugins ──
 
 /** 列出 Claude Code 插件 */
-export const listPlugins = async (): Promise<any> => {
+export const listPlugins = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_list_plugins')
 }
 
 /** 添加 Claude Code 插件 */
-export const addPlugin = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addPlugin = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('claude_add_plugin', { name, config: resolvedConfig })
 }
 
 /** 更新 Claude Code 插件 */
-export const updatePlugin = async (name: string, config: any): Promise<any> => {
+export const updatePlugin = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
   return invoke('claude_update_plugin', { name, config })
 }
 
 /** 删除 Claude Code 插件 */
-export const deletePlugin = async (name: string): Promise<any> => {
+export const deletePlugin = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('claude_delete_plugin', { name })
 }
 
 /** 切换插件启用/禁用状态 */
-export const togglePlugin = async (
-  nameOrRequest: string | Record<string, any>,
+export const togglePlugin = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
   enabled?: boolean,
-): Promise<any> => {
+): Promise<T> => {
   const name = resolveName(nameOrRequest)
+  const request = asRecord(nameOrRequest)
   const resolvedEnabled =
     typeof enabled === 'boolean'
       ? enabled
-      : typeof nameOrRequest === 'object' && typeof nameOrRequest.enabled === 'boolean'
-        ? nameOrRequest.enabled
+      : typeof request.enabled === 'boolean'
+        ? request.enabled
         : true
   return invoke('claude_update_plugin', { name, config: { enabled: resolvedEnabled } })
 }
@@ -520,7 +635,7 @@ export const togglePlugin = async (
 // ── Claude Output Styles ──
 
 /** 获取输出样式列表 */
-export const listOutputStyles = async (): Promise<any> => {
+export const listOutputStyles = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_get_output_styles')
 }
 
@@ -528,15 +643,15 @@ export const listOutputStyles = async (): Promise<any> => {
 export const getOutputStyle = listOutputStyles
 
 /** 创建输出样式（通过 update 实现） */
-export const createOutputStyle = async (styles: any): Promise<any> => {
+export const createOutputStyle = async <T = UnknownRecord>(styles: unknown): Promise<T> => {
   return invoke('claude_update_output_styles', { styles })
 }
 
 /** 更新输出样式 */
-export const updateOutputStyle = async (
-  nameOrStyles: string | Record<string, any>,
-  patch?: Record<string, any>,
-): Promise<any> => {
+export const updateOutputStyle = async <T = UnknownRecord>(
+  nameOrStyles: string | object,
+  patch?: Record<string, unknown>,
+): Promise<T> => {
   if (typeof nameOrStyles === 'string') {
     return invoke('claude_update_output_styles', { styles: { [nameOrStyles]: patch } })
   }
@@ -544,80 +659,84 @@ export const updateOutputStyle = async (
 }
 
 /** 删除输出样式（通过 update 清空实现） */
-export const deleteOutputStyle = async (_name: string): Promise<any> => {
+export const deleteOutputStyle = async <T = UnknownRecord>(_name: string): Promise<T> => {
   return invoke('claude_update_output_styles', { styles: {} })
 }
 
 // ── Claude Statusline ──
 
 /** 获取状态栏配置 */
-export const getStatusline = async (): Promise<any> => {
+export const getStatusline = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_get_statusline')
 }
 
 /** 更新状态栏配置 */
-export const updateStatusline = async (statusline: any): Promise<any> => {
+export const updateStatusline = async <T = UnknownRecord>(statusline: unknown): Promise<T> => {
   return invoke('claude_update_statusline', { statusline })
 }
 
 // ── Claude Hooks ──
 
 /** 列出 Claude Code Hooks */
-export const listHooks = async (): Promise<any> => {
+export const listHooks = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_list_hooks')
 }
 
 /** 更新 Claude Code Hooks（批量更新） */
-export const updateHooks = async (hooks: any): Promise<any> => {
+export const updateHooks = async <T = UnknownRecord>(hooks: unknown): Promise<T> => {
   return invoke('claude_update_hooks', { hooks })
 }
 
 /** 添加单个 Hook（通过读取后合并实现） */
-export const addHook = async (
-  nameOrConfig: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
-  const payload = typeof nameOrConfig === 'string' ? { [nameOrConfig]: config } : nameOrConfig
-  const current: any = await invoke('claude_list_hooks')
+export const addHook = async <T = UnknownRecord>(
+  nameOrConfig: string | object,
+  config?: unknown,
+): Promise<T> => {
+  const payload = typeof nameOrConfig === 'string'
+    ? { [nameOrConfig]: config ?? null }
+    : nameOrConfig
+  const current = asRecord(await invoke<unknown>('claude_list_hooks'))
   const merged = { ...current, ...payload }
   return invoke('claude_update_hooks', { hooks: merged })
 }
 
 /** 更新单个 Hook（通过读取后合并实现） */
-export const updateHook = async (
-  nameOrConfig: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
-  const payload = typeof nameOrConfig === 'string' ? { [nameOrConfig]: config } : nameOrConfig
-  const current: any = await invoke('claude_list_hooks')
+export const updateHook = async <T = UnknownRecord>(
+  nameOrConfig: string | object,
+  config?: unknown,
+): Promise<T> => {
+  const payload = typeof nameOrConfig === 'string'
+    ? { [nameOrConfig]: config ?? null }
+    : nameOrConfig
+  const current = asRecord(await invoke<unknown>('claude_list_hooks'))
   const merged = { ...current, ...payload }
   return invoke('claude_update_hooks', { hooks: merged })
 }
 
 /** 删除单个 Hook */
-export const deleteHook = async (name: string): Promise<any> => {
-  const current: any = await invoke('claude_list_hooks')
-  if (current && typeof current === 'object') {
-    delete current[name]
-  }
+export const deleteHook = async <T = UnknownRecord>(name: string): Promise<T> => {
+  const current = asRecord(await invoke<unknown>('claude_list_hooks'))
+  delete current[name]
   return invoke('claude_update_hooks', { hooks: current })
 }
 
 /** 切换 Hook 启用/禁用状态 */
-export const toggleHook = async (
-  nameOrRequest: string | Record<string, any>,
+export const toggleHook = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
   enabled?: boolean,
-): Promise<any> => {
+): Promise<T> => {
   const name = resolveName(nameOrRequest)
+  const request = asRecord(nameOrRequest)
   const resolvedEnabled =
     typeof enabled === 'boolean'
       ? enabled
-      : typeof nameOrRequest === 'object' && typeof nameOrRequest.enabled === 'boolean'
-        ? nameOrRequest.enabled
+      : typeof request.enabled === 'boolean'
+        ? request.enabled
         : true
-  const current: any = await invoke('claude_list_hooks')
-  if (current && current[name]) {
-    current[name].enabled = resolvedEnabled
+  const current = asRecord(await invoke<unknown>('claude_list_hooks'))
+  const target = asRecord(current[name])
+  if (Object.keys(target).length > 0) {
+    current[name] = { ...target, enabled: resolvedEnabled }
   }
   return invoke('claude_update_hooks', { hooks: current })
 }
@@ -625,29 +744,29 @@ export const toggleHook = async (
 // ── Claude Budgets ──
 
 /** 获取预算配置 */
-export const getBudgetStatus = async (): Promise<any> => {
+export const getBudgetStatus = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_get_budgets')
 }
 
 /** 设置预算 */
-export const setBudget = async (budgets: any): Promise<any> => {
+export const setBudget = async <T = UnknownRecord>(budgets: unknown): Promise<T> => {
   return invoke('claude_update_budgets', { budgets })
 }
 
 /** 重置预算 */
-export const resetBudget = async (): Promise<any> => {
+export const resetBudget = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_update_budgets', { budgets: {} })
 }
 
 // ── Claude Prompts ──
 
 /** 列出提示词 */
-export const listPrompts = async (): Promise<any> => {
+export const listPrompts = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_list_prompts')
 }
 
 /** 更新提示词 */
-export const updatePrompts = async (prompts: any): Promise<any> => {
+export const updatePrompts = async <T = UnknownRecord>(prompts: unknown): Promise<T> => {
   return invoke('claude_update_prompts', { prompts })
 }
 
@@ -656,89 +775,90 @@ export const updatePrompts = async (prompts: any): Promise<any> => {
 // ════════════════════════════════════════════════════════════
 
 /** 列出 Codex Profiles */
-export const listCodexProfiles = async (): Promise<any> => {
+export const listCodexProfiles = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_list_profiles')
 }
 
 /** 获取 Codex 配置 */
-export const getCodexConfig = async (): Promise<any> => {
+export const getCodexConfig = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_get_settings')
 }
 
 /** 更新 Codex 配置 */
-export const updateCodexConfig = async (settings: any): Promise<any> => {
+export const updateCodexConfig = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
   return invoke('codex_update_settings', { settings })
 }
 
 /** 列出 Codex MCP 服务器 */
-export const listCodexMcpServers = async (): Promise<any> => {
+export const listCodexMcpServers = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_list_mcp_servers')
 }
 
 /** 添加 Codex MCP 服务器 */
-export const addCodexMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addCodexMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('codex_add_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 更新 Codex MCP 服务器 */
-export const updateCodexMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateCodexMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('codex_update_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 删除 Codex MCP 服务器 */
-export const deleteCodexMcpServer = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteCodexMcpServer = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
   return invoke('codex_delete_mcp_server', { name })
 }
 
 /** 列出 Codex Agents */
-export const listCodexAgents = async (): Promise<any> => {
+export const listCodexAgents = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_list_agents')
 }
 
 /** 添加 Codex Agent */
-export const addCodexAgent = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addCodexAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('codex_add_agent', { name, config: resolvedConfig })
 }
 
 /** 更新 Codex Agent */
-export const updateCodexAgent = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateCodexAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('codex_update_agent', { name, config: resolvedConfig })
 }
 
 /** 删除 Codex Agent */
-export const deleteCodexAgent = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteCodexAgent = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
   return invoke('codex_delete_agent', { name })
 }
 
 /** 切换 Codex Agent 启用/禁用状态 */
-export const toggleCodexAgent = async (
-  nameOrRequest: string | Record<string, any>,
+export const toggleCodexAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
   enabled?: boolean,
-): Promise<any> => {
+): Promise<T> => {
   const name = resolveName(nameOrRequest)
+  const request = asRecord(nameOrRequest)
   const resolvedEnabled =
     typeof enabled === 'boolean'
       ? enabled
-      : typeof nameOrRequest === 'object' && typeof nameOrRequest.enabled === 'boolean'
-        ? nameOrRequest.enabled
+      : typeof request.enabled === 'boolean'
+        ? request.enabled
         : true
   return invoke('codex_update_agent', { name, config: { enabled: resolvedEnabled } })
 }
@@ -746,154 +866,160 @@ export const toggleCodexAgent = async (
 // ── Codex Profile 组合实现（通过 get/update settings） ──
 
 /** 添加 Codex Profile */
-export const addCodexProfile = async (
-  profileOrName: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addCodexProfile = async <T = UnknownRecord>(
+  profileOrName: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(profileOrName, config)
-  const settings = await getCodexConfig()
-  const profiles = settings?.profiles ?? {}
+  const settings = await getCodexConfig<UnknownRecord>()
+  const profiles = pickRecord(settings, 'profiles')
   if (profiles[name]) throw new Error(`Profile '${name}' 已存在`)
   profiles[name] = resolvedConfig
   await updateCodexConfig({ profiles })
-  return { name, ...resolvedConfig }
+  return { name, ...resolvedConfig } as T
 }
 
 /** 更新 Codex Profile */
-export const updateCodexProfile = async (
-  profileOrName: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateCodexProfile = async <T = UnknownRecord>(
+  profileOrName: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(profileOrName, config)
-  const settings = await getCodexConfig()
-  const profiles = settings?.profiles ?? {}
+  const settings = await getCodexConfig<UnknownRecord>()
+  const profiles = pickRecord(settings, 'profiles')
   if (!profiles[name]) throw new Error(`Profile '${name}' 不存在`)
-  profiles[name] = { ...profiles[name], ...resolvedConfig }
+  profiles[name] = { ...asRecord(profiles[name]), ...resolvedConfig }
   await updateCodexConfig({ profiles })
-  return { name, ...profiles[name] }
+  return { name, ...asRecord(profiles[name]) } as T
 }
 
 /** 删除 Codex Profile */
-export const deleteCodexProfile = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteCodexProfile = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
-  const settings = await getCodexConfig()
-  const profiles = settings?.profiles ?? {}
+  const settings = await getCodexConfig<UnknownRecord>()
+  const profiles = pickRecord(settings, 'profiles')
   if (!profiles[name]) throw new Error(`Profile '${name}' 不存在`)
   delete profiles[name]
   await updateCodexConfig({ profiles })
-  return name
+  return name as T
 }
 
 /** 获取 Codex Profile 详情 */
-export const getCodexProfile = async (name: string): Promise<any> => {
-  const profiles = await listCodexProfiles()
-  const arr = Array.isArray(profiles) ? profiles : profiles?.profiles ?? []
-  return arr.find((p: any) => p.name === name) ?? null
+export const getCodexProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
+  const profiles = await listCodexProfiles<unknown>()
+  const arr = Array.isArray(profiles) ? profiles : pickArray(profiles, 'profiles')
+  const found = arr.find((item) => {
+    if (!isRecord(item)) {
+      return false
+    }
+    return String(item.name ?? '') === name
+  })
+  return (found ?? null) as T
 }
 
 /** 应用 Codex Profile */
-export const applyCodexProfile = async (name: string): Promise<any> => {
-  const settings = await getCodexConfig()
-  const profiles = settings?.profiles ?? {}
+export const applyCodexProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
+  const settings = await getCodexConfig<UnknownRecord>()
+  const profiles = pickRecord(settings, 'profiles')
   if (!profiles[name]) throw new Error(`Profile '${name}' 不存在`)
   Object.keys(profiles).forEach((k) => {
-    profiles[k] = { ...profiles[k], enabled: k === name }
+    profiles[k] = { ...asRecord(profiles[k]), enabled: k === name }
   })
   await updateCodexConfig({ profiles, currentProfile: name })
-  return { name, ...profiles[name] }
+  return { name, ...asRecord(profiles[name]) } as T
 }
 
 // ── Codex Auth 管理 ──
 
 /** 列出 Codex Auth 账号 */
-export const listCodexAuthAccounts = async (): Promise<any> => {
+export const listCodexAuthAccounts = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_list_auth_accounts')
 }
 
 /** 获取 Codex Auth 当前账号 */
-export const getCodexAuthCurrent = async (): Promise<any> => {
+export const getCodexAuthCurrent = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_get_auth_current')
 }
 
 /** 保存 Codex Auth */
-export const saveCodexAuth = async (data: any): Promise<any> => {
-  return invoke('codex_save_auth', data)
+export const saveCodexAuth = async <T = UnknownRecord>(data: unknown): Promise<T> => {
+  return invoke('codex_save_auth', asRecord(data))
 }
 
 /** 切换 Codex Auth */
-export const switchCodexAuth = async (name: string): Promise<any> => {
+export const switchCodexAuth = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('codex_switch_auth', { name })
 }
 
 /** 删除 Codex Auth */
-export const deleteCodexAuth = async (name: string): Promise<any> => {
+export const deleteCodexAuth = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('codex_delete_auth', { name })
 }
 
 /** 检测 Codex 进程 */
-export const detectCodexProcess = async (): Promise<any> => {
+export const detectCodexProcess = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_detect_process')
 }
 
 /** 获取 Codex 使用量 */
-export const getCodexUsage = async (): Promise<any> => {
+export const getCodexUsage = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_get_usage')
 }
 
 /** 列出 Codex 斜杠命令（Codex 不支持） */
-export const listCodexSlashCommands = async (): Promise<any> => {
-  return { commands: [], folders: [] }
+export const listCodexSlashCommands = async <T = UnknownRecord>(): Promise<T> => {
+  return { commands: [], folders: [] } as T
 }
 
 /** 添加 Codex 斜杠命令（Codex 不支持） */
-export const addCodexSlashCommand = async (_name: string, _config: any): Promise<any> => {
-  return { success: false, message: 'Codex 平台不支持斜杠命令' }
+export const addCodexSlashCommand = async <T = UnknownRecord>(_name: string, _config: unknown): Promise<T> => {
+  return { success: false, message: 'Codex 平台不支持斜杠命令' } as T
 }
 
 /** 更新 Codex 斜杠命令（Codex 不支持） */
-export const updateCodexSlashCommand = async (_name: string, _config: any): Promise<any> => {
-  return { success: false, message: 'Codex 平台不支持斜杠命令' }
+export const updateCodexSlashCommand = async <T = UnknownRecord>(_name: string, _config: unknown): Promise<T> => {
+  return { success: false, message: 'Codex 平台不支持斜杠命令' } as T
 }
 
 /** 删除 Codex 斜杠命令（Codex 不支持） */
-export const deleteCodexSlashCommand = async (_name: string): Promise<any> => {
-  return { success: false, message: 'Codex 平台不支持斜杠命令' }
+export const deleteCodexSlashCommand = async <T = UnknownRecord>(_name: string): Promise<T> => {
+  return { success: false, message: 'Codex 平台不支持斜杠命令' } as T
 }
 
 /** 切换 Codex 斜杠命令启用/禁用（Codex 不支持） */
-export const toggleCodexSlashCommand = async (
+export const toggleCodexSlashCommand = async <T = UnknownRecord>(
   _name: string,
   _enabled: boolean,
-): Promise<any> => {
-  return { success: false, message: 'Codex 平台不支持斜杠命令' }
+): Promise<T> => {
+  return { success: false, message: 'Codex 平台不支持斜杠命令' } as T
 }
 
 /** 列出 Codex 插件（Codex 不支持） */
-export const listCodexPlugins = async (): Promise<any> => {
-  return { plugins: [] }
+export const listCodexPlugins = async <T = UnknownRecord>(): Promise<T> => {
+  return { plugins: [] } as T
 }
 
 /** 添加 Codex 插件（Codex 不支持） */
-export const addCodexPlugin = async (_name: string, _config: any): Promise<any> => {
-  return { success: false, message: 'Codex 平台不支持插件' }
+export const addCodexPlugin = async <T = UnknownRecord>(_name: string, _config: unknown): Promise<T> => {
+  return { success: false, message: 'Codex 平台不支持插件' } as T
 }
 
 /** 更新 Codex 插件（Codex 不支持） */
-export const updateCodexPlugin = async (
-  _pluginOrName: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'Codex 平台不支持插件' }
+export const updateCodexPlugin = async <T = UnknownRecord>(
+  _pluginOrName: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'Codex 平台不支持插件' } as T
 }
 
 /** 删除 Codex 插件（Codex 不支持） */
-export const deleteCodexPlugin = async (_name: string): Promise<any> => {
-  return { success: false, message: 'Codex 平台不支持插件' }
+export const deleteCodexPlugin = async <T = UnknownRecord>(_name: string): Promise<T> => {
+  return { success: false, message: 'Codex 平台不支持插件' } as T
 }
 
 /** 切换 Codex 插件启用/禁用（Codex 不支持） */
-export const toggleCodexPlugin = async (_name: string, _enabled: boolean): Promise<any> => {
-  return { success: false, message: 'Codex 平台不支持插件' }
+export const toggleCodexPlugin = async <T = UnknownRecord>(_name: string, _enabled: boolean): Promise<T> => {
+  return { success: false, message: 'Codex 平台不支持插件' } as T
 }
 
 // ════════════════════════════════════════════════════════════
@@ -901,145 +1027,145 @@ export const toggleCodexPlugin = async (_name: string, _enabled: boolean): Promi
 // ════════════════════════════════════════════════════════════
 
 /** 获取 Gemini 配置 */
-export const getGeminiConfig = async (): Promise<any> => {
+export const getGeminiConfig = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('gemini_get_settings')
 }
 
 /** 更新 Gemini 配置 */
-export const updateGeminiConfig = async (settings: any): Promise<any> => {
+export const updateGeminiConfig = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
   return invoke('gemini_update_settings', { settings })
 }
 
 /** 列出 Gemini MCP 服务器 */
-export const listGeminiMcpServers = async (): Promise<any> => {
+export const listGeminiMcpServers = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('gemini_list_mcp_servers')
 }
 
 /** 添加 Gemini MCP 服务器 */
-export const addGeminiMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addGeminiMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('gemini_add_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 更新 Gemini MCP 服务器 */
-export const updateGeminiMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateGeminiMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('gemini_update_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 删除 Gemini MCP 服务器 */
-export const deleteGeminiMcpServer = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteGeminiMcpServer = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
   return invoke('gemini_delete_mcp_server', { name })
 }
 
 /** 列出 Gemini 斜杠命令 */
-export const listGeminiSlashCommands = async (): Promise<any> => {
+export const listGeminiSlashCommands = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('gemini_list_slash_commands')
 }
 
 /** 添加 Gemini 斜杠命令 */
-export const addGeminiSlashCommand = async (name: string, config: any): Promise<any> => {
+export const addGeminiSlashCommand = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
   return invoke('gemini_add_slash_command', { name, config })
 }
 
 /** 更新 Gemini 斜杠命令 */
-export const updateGeminiSlashCommand = async (name: string, config: any): Promise<any> => {
+export const updateGeminiSlashCommand = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
   return invoke('gemini_update_slash_command', { name, config })
 }
 
 /** 删除 Gemini 斜杠命令 */
-export const deleteGeminiSlashCommand = async (name: string): Promise<any> => {
+export const deleteGeminiSlashCommand = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('gemini_delete_slash_command', { name })
 }
 
 /** 切换 Gemini 斜杠命令启用/禁用 */
-export const toggleGeminiSlashCommand = async (
+export const toggleGeminiSlashCommand = async <T = UnknownRecord>(
   name: string,
   enabled: boolean,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('gemini_update_slash_command', { name, config: { enabled } })
 }
 
 /** 列出 Gemini Extensions */
-export const listGeminiExtensions = async (): Promise<any> => {
+export const listGeminiExtensions = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('gemini_list_extensions')
 }
 
 // ── Gemini 平台限制 — 安全默认值 ──
 
 /** 列出 Gemini Agents（暂不支持） */
-export const listGeminiAgents = async (): Promise<any> => {
-  return { agents: [] }
+export const listGeminiAgents = async <T = UnknownRecord>(): Promise<T> => {
+  return { agents: [] } as T
 }
 
 /** 添加 Gemini Agent（暂不支持） */
-export const addGeminiAgent = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Agents' }
+export const addGeminiAgent = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'Gemini 平台暂不支持 Agents' } as T
 }
 
 /** 更新 Gemini Agent（暂不支持） */
-export const updateGeminiAgent = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Agents' }
+export const updateGeminiAgent = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'Gemini 平台暂不支持 Agents' } as T
 }
 
 /** 删除 Gemini Agent（暂不支持） */
-export const deleteGeminiAgent = async (_nameOrRequest: string | Record<string, any>): Promise<any> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Agents' }
+export const deleteGeminiAgent = async <T = UnknownRecord>(_nameOrRequest: string | object): Promise<T> => {
+  return { success: false, message: 'Gemini 平台暂不支持 Agents' } as T
 }
 
 /** 切换 Gemini Agent（暂不支持） */
-export const toggleGeminiAgent = async (
-  _nameOrRequest: string | Record<string, any>,
+export const toggleGeminiAgent = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
   _enabled?: boolean,
-): Promise<any> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Agents' }
+): Promise<T> => {
+  return { success: false, message: 'Gemini 平台暂不支持 Agents' } as T
 }
 
 /** 列出 Gemini 插件（暂不支持） */
-export const listGeminiPlugins = async (): Promise<any> => {
-  return { plugins: [] }
+export const listGeminiPlugins = async <T = UnknownRecord>(): Promise<T> => {
+  return { plugins: [] } as T
 }
 
 /** 添加 Gemini 插件（暂不支持） */
-export const addGeminiPlugin = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Plugins' }
+export const addGeminiPlugin = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'Gemini 平台暂不支持 Plugins' } as T
 }
 
 /** 更新 Gemini 插件（暂不支持） */
-export const updateGeminiPlugin = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Plugins' }
+export const updateGeminiPlugin = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'Gemini 平台暂不支持 Plugins' } as T
 }
 
 /** 删除 Gemini 插件（暂不支持） */
-export const deleteGeminiPlugin = async (_nameOrRequest: string | Record<string, any>): Promise<any> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Plugins' }
+export const deleteGeminiPlugin = async <T = UnknownRecord>(_nameOrRequest: string | object): Promise<T> => {
+  return { success: false, message: 'Gemini 平台暂不支持 Plugins' } as T
 }
 
 /** 切换 Gemini 插件（暂不支持） */
-export const toggleGeminiPlugin = async (
-  _nameOrRequest: string | Record<string, any>,
+export const toggleGeminiPlugin = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
   _enabled?: boolean,
-): Promise<any> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Plugins' }
+): Promise<T> => {
+  return { success: false, message: 'Gemini 平台暂不支持 Plugins' } as T
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1047,140 +1173,140 @@ export const toggleGeminiPlugin = async (
 // ════════════════════════════════════════════════════════════
 
 /** 获取 Qwen 配置 */
-export const getQwenConfig = async (): Promise<any> => {
+export const getQwenConfig = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('qwen_get_settings')
 }
 
 /** 更新 Qwen 配置 */
-export const updateQwenConfig = async (settings: any): Promise<any> => {
+export const updateQwenConfig = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
   return invoke('qwen_update_settings', { settings })
 }
 
 /** 列出 Qwen MCP 服务器 */
-export const listQwenMcpServers = async (): Promise<any> => {
+export const listQwenMcpServers = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('qwen_list_mcp_servers')
 }
 
 /** 添加 Qwen MCP 服务器 */
-export const addQwenMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addQwenMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('qwen_add_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 更新 Qwen MCP 服务器 */
-export const updateQwenMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateQwenMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('qwen_update_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 删除 Qwen MCP 服务器 */
-export const deleteQwenMcpServer = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteQwenMcpServer = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
   return invoke('qwen_delete_mcp_server', { name })
 }
 
 /** 列出 Qwen 斜杠命令 */
-export const listQwenSlashCommands = async (): Promise<any> => {
+export const listQwenSlashCommands = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('qwen_list_slash_commands')
 }
 
 /** 添加 Qwen 斜杠命令 */
-export const addQwenSlashCommand = async (name: string, config: any): Promise<any> => {
+export const addQwenSlashCommand = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
   return invoke('qwen_add_slash_command', { name, config })
 }
 
 /** 更新 Qwen 斜杠命令 */
-export const updateQwenSlashCommand = async (name: string, config: any): Promise<any> => {
+export const updateQwenSlashCommand = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
   return invoke('qwen_update_slash_command', { name, config })
 }
 
 /** 删除 Qwen 斜杠命令 */
-export const deleteQwenSlashCommand = async (name: string): Promise<any> => {
+export const deleteQwenSlashCommand = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('qwen_delete_slash_command', { name })
 }
 
 /** 切换 Qwen 斜杠命令启用/禁用 */
-export const toggleQwenSlashCommand = async (
+export const toggleQwenSlashCommand = async <T = UnknownRecord>(
   name: string,
   enabled: boolean,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('qwen_update_slash_command', { name, config: { enabled } })
 }
 
 // ── Qwen 平台限制 — 安全默认值 ──
 
 /** 列出 Qwen Agents（暂不支持） */
-export const listQwenAgents = async (): Promise<any> => {
-  return { agents: [] }
+export const listQwenAgents = async <T = UnknownRecord>(): Promise<T> => {
+  return { agents: [] } as T
 }
 
 /** 添加 Qwen Agent（暂不支持） */
-export const addQwenAgent = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'Qwen 平台暂不支持 Agents' }
+export const addQwenAgent = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'Qwen 平台暂不支持 Agents' } as T
 }
 
 /** 更新 Qwen Agent（暂不支持） */
-export const updateQwenAgent = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'Qwen 平台暂不支持 Agents' }
+export const updateQwenAgent = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'Qwen 平台暂不支持 Agents' } as T
 }
 
 /** 删除 Qwen Agent（暂不支持） */
-export const deleteQwenAgent = async (_nameOrRequest: string | Record<string, any>): Promise<any> => {
-  return { success: false, message: 'Qwen 平台暂不支持 Agents' }
+export const deleteQwenAgent = async <T = UnknownRecord>(_nameOrRequest: string | object): Promise<T> => {
+  return { success: false, message: 'Qwen 平台暂不支持 Agents' } as T
 }
 
 /** 切换 Qwen Agent（暂不支持） */
-export const toggleQwenAgent = async (
-  _nameOrRequest: string | Record<string, any>,
+export const toggleQwenAgent = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
   _enabled?: boolean,
-): Promise<any> => {
-  return { success: false, message: 'Qwen 平台暂不支持 Agents' }
+): Promise<T> => {
+  return { success: false, message: 'Qwen 平台暂不支持 Agents' } as T
 }
 
 /** 列出 Qwen 插件（暂不支持） */
-export const listQwenPlugins = async (): Promise<any> => {
-  return { plugins: [] }
+export const listQwenPlugins = async <T = UnknownRecord>(): Promise<T> => {
+  return { plugins: [] } as T
 }
 
 /** 添加 Qwen 插件（暂不支持） */
-export const addQwenPlugin = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'Qwen 平台暂不支持 Plugins' }
+export const addQwenPlugin = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'Qwen 平台暂不支持 Plugins' } as T
 }
 
 /** 更新 Qwen 插件（暂不支持） */
-export const updateQwenPlugin = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'Qwen 平台暂不支持 Plugins' }
+export const updateQwenPlugin = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'Qwen 平台暂不支持 Plugins' } as T
 }
 
 /** 删除 Qwen 插件（暂不支持） */
-export const deleteQwenPlugin = async (_nameOrRequest: string | Record<string, any>): Promise<any> => {
-  return { success: false, message: 'Qwen 平台暂不支持 Plugins' }
+export const deleteQwenPlugin = async <T = UnknownRecord>(_nameOrRequest: string | object): Promise<T> => {
+  return { success: false, message: 'Qwen 平台暂不支持 Plugins' } as T
 }
 
 /** 切换 Qwen 插件（暂不支持） */
-export const toggleQwenPlugin = async (
-  _nameOrRequest: string | Record<string, any>,
+export const toggleQwenPlugin = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
   _enabled?: boolean,
-): Promise<any> => {
-  return { success: false, message: 'Qwen 平台暂不支持 Plugins' }
+): Promise<T> => {
+  return { success: false, message: 'Qwen 平台暂不支持 Plugins' } as T
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1188,140 +1314,140 @@ export const toggleQwenPlugin = async (
 // ════════════════════════════════════════════════════════════
 
 /** 获取 iFlow 设置 */
-export const getIflowConfig = async (): Promise<any> => {
+export const getIflowConfig = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('iflow_get_settings')
 }
 
 /** 更新 iFlow 设置 */
-export const updateIflowConfig = async (settings: any): Promise<any> => {
+export const updateIflowConfig = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
   return invoke('iflow_update_settings', { settings })
 }
 
 /** 列出 iFlow MCP 服务器 */
-export const listIflowMcpServers = async (): Promise<any> => {
+export const listIflowMcpServers = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('iflow_list_mcp_servers')
 }
 
 /** 添加 iFlow MCP 服务器 */
-export const addIflowMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addIflowMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('iflow_add_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 更新 iFlow MCP 服务器 */
-export const updateIflowMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateIflowMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('iflow_update_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 删除 iFlow MCP 服务器 */
-export const deleteIflowMcpServer = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteIflowMcpServer = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
   return invoke('iflow_delete_mcp_server', { name })
 }
 
 /** 列出 iFlow 斜杠命令 */
-export const listIflowSlashCommands = async (): Promise<any> => {
+export const listIflowSlashCommands = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('iflow_list_slash_commands')
 }
 
 // ── iFlow 平台限制 — 安全默认值 ──
 
 /** 添加 iFlow 斜杠命令（暂不支持） */
-export const addIflowSlashCommand = async (_name: string, _config: any): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持此操作' }
+export const addIflowSlashCommand = async <T = UnknownRecord>(_name: string, _config: unknown): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持此操作' } as T
 }
 
 /** 更新 iFlow 斜杠命令（暂不支持） */
-export const updateIflowSlashCommand = async (_name: string, _config: any): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持此操作' }
+export const updateIflowSlashCommand = async <T = UnknownRecord>(_name: string, _config: unknown): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持此操作' } as T
 }
 
 /** 删除 iFlow 斜杠命令（暂不支持） */
-export const deleteIflowSlashCommand = async (_name: string): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持此操作' }
+export const deleteIflowSlashCommand = async <T = UnknownRecord>(_name: string): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持此操作' } as T
 }
 
 /** 切换 iFlow 斜杠命令（暂不支持） */
-export const toggleIflowSlashCommand = async (
+export const toggleIflowSlashCommand = async <T = UnknownRecord>(
   _name: string,
   _enabled: boolean,
-): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持此操作' }
+): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持此操作' } as T
 }
 
 /** 列出 iFlow Agents（暂不支持） */
-export const listIflowAgents = async (): Promise<any> => {
-  return { agents: [] }
+export const listIflowAgents = async <T = UnknownRecord>(): Promise<T> => {
+  return { agents: [] } as T
 }
 
 /** 添加 iFlow Agent（暂不支持） */
-export const addIflowAgent = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Agents' }
+export const addIflowAgent = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持 Agents' } as T
 }
 
 /** 更新 iFlow Agent（暂不支持） */
-export const updateIflowAgent = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Agents' }
+export const updateIflowAgent = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持 Agents' } as T
 }
 
 /** 删除 iFlow Agent（暂不支持） */
-export const deleteIflowAgent = async (_nameOrRequest: string | Record<string, any>): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Agents' }
+export const deleteIflowAgent = async <T = UnknownRecord>(_nameOrRequest: string | object): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持 Agents' } as T
 }
 
 /** 切换 iFlow Agent（暂不支持） */
-export const toggleIflowAgent = async (
-  _nameOrRequest: string | Record<string, any>,
+export const toggleIflowAgent = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
   _enabled?: boolean,
-): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Agents' }
+): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持 Agents' } as T
 }
 
 /** 列出 iFlow 插件（暂不支持） */
-export const listIflowPlugins = async (): Promise<any> => {
-  return { plugins: [] }
+export const listIflowPlugins = async <T = UnknownRecord>(): Promise<T> => {
+  return { plugins: [] } as T
 }
 
 /** 添加 iFlow 插件（暂不支持） */
-export const addIflowPlugin = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Plugins' }
+export const addIflowPlugin = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持 Plugins' } as T
 }
 
 /** 更新 iFlow 插件（暂不支持） */
-export const updateIflowPlugin = async (
-  _nameOrRequest: string | Record<string, any>,
-  _config?: any,
-): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Plugins' }
+export const updateIflowPlugin = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
+  _config?: unknown,
+): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持 Plugins' } as T
 }
 
 /** 删除 iFlow 插件（暂不支持） */
-export const deleteIflowPlugin = async (_nameOrRequest: string | Record<string, any>): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Plugins' }
+export const deleteIflowPlugin = async <T = UnknownRecord>(_nameOrRequest: string | object): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持 Plugins' } as T
 }
 
 /** 切换 iFlow 插件（暂不支持） */
-export const toggleIflowPlugin = async (
-  _nameOrRequest: string | Record<string, any>,
+export const toggleIflowPlugin = async <T = UnknownRecord>(
+  _nameOrRequest: string | object,
   _enabled?: boolean,
-): Promise<any> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Plugins' }
+): Promise<T> => {
+  return { success: false, message: 'iFlow 平台暂不支持 Plugins' } as T
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1329,177 +1455,179 @@ export const toggleIflowPlugin = async (
 // ════════════════════════════════════════════════════════════
 
 /** 获取 Droid 设置 */
-export const getDroidSettings = async (): Promise<any> => {
+export const getDroidSettings = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('droid_get_settings')
 }
 
 /** 更新 Droid 设置 */
-export const updateDroidSettings = async (settings: any): Promise<any> => {
+export const updateDroidSettings = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
   return invoke('droid_update_settings', { settings })
 }
 
 /** 列出 Droid MCP 服务器 */
-export const listDroidMcpServers = async (): Promise<any> => {
+export const listDroidMcpServers = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('droid_list_mcp_servers')
 }
 
 /** 添加 Droid MCP 服务器 */
-export const addDroidMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addDroidMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('droid_add_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 更新 Droid MCP 服务器 */
-export const updateDroidMcpServer = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateDroidMcpServer = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('droid_update_mcp_server', { name, config: resolvedConfig })
 }
 
 /** 删除 Droid MCP 服务器 */
-export const deleteDroidMcpServer = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteDroidMcpServer = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
   return invoke('droid_delete_mcp_server', { name })
 }
 
 /** 列出 Droid Agents */
-export const listDroidAgents = async (): Promise<any> => {
+export const listDroidAgents = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('droid_list_agents')
 }
 
 /** 获取 Droid Agent 详情 */
-export const getDroidAgent = async (name: string): Promise<any> => {
-  const agents: any = await invoke('droid_list_agents')
-  if (agents && typeof agents === 'object' && agents[name]) {
-    return { name, ...agents[name] }
+export const getDroidAgent = async <T = UnknownRecord>(name: string): Promise<T> => {
+  const agents = asRecord(await invoke<unknown>('droid_list_agents'))
+  const target = asRecord(agents[name])
+  if (Object.keys(target).length > 0) {
+    return { name, ...target } as T
   }
-  return null
+  return null as T
 }
 
 /** 添加 Droid Agent */
-export const addDroidAgent = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addDroidAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('droid_add_agent', { name, config: resolvedConfig })
 }
 
 /** 更新 Droid Agent */
-export const updateDroidAgent = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateDroidAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('droid_update_agent', { name, config: resolvedConfig })
 }
 
 /** 删除 Droid Agent */
-export const deleteDroidAgent = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteDroidAgent = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
   return invoke('droid_delete_agent', { name })
 }
 
 /** 列出 Droid 插件 */
 export const listDroidPlugins = async (): Promise<DroidPlugin[]> => {
-  const result = await invoke<any>('droid_list_plugins')
+  const result = await invoke<unknown>('droid_list_plugins')
   if (Array.isArray(result)) {
     return result as DroidPlugin[]
   }
-  if (result && typeof result === 'object' && Array.isArray(result.plugins)) {
-    return result.plugins as DroidPlugin[]
+  const plugins = pickArray(result, 'plugins')
+  if (plugins.length > 0) {
+    return plugins as DroidPlugin[]
   }
   return []
 }
 
 /** 添加 Droid 插件 */
-export const addDroidPlugin = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addDroidPlugin = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('droid_add_plugin', { name, config: resolvedConfig })
 }
 
 /** 更新 Droid 插件 */
-export const updateDroidPlugin = async (
-  nameOrRequest: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateDroidPlugin = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
   return invoke('droid_update_plugin', { name, config: resolvedConfig })
 }
 
 /** 删除 Droid 插件 */
-export const deleteDroidPlugin = async (nameOrRequest: string | Record<string, any>): Promise<any> => {
+export const deleteDroidPlugin = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
   return invoke('droid_delete_plugin', { name })
 }
 
 /** 列出 Droid 斜杠命令 */
-export const listDroidSlashCommands = async (): Promise<any> => {
+export const listDroidSlashCommands = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('droid_list_slash_commands')
 }
 
 /** 添加 Droid 斜杠命令 */
-export const addDroidSlashCommand = async (name: string, config: any): Promise<any> => {
+export const addDroidSlashCommand = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
   return invoke('droid_add_slash_command', { name, config })
 }
 
 /** 更新 Droid 斜杠命令 */
-export const updateDroidSlashCommand = async (name: string, config: any): Promise<any> => {
+export const updateDroidSlashCommand = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
   return invoke('droid_update_slash_command', { name, config })
 }
 
 /** 删除 Droid 斜杠命令 */
-export const deleteDroidSlashCommand = async (name: string): Promise<any> => {
+export const deleteDroidSlashCommand = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('droid_delete_slash_command', { name })
 }
 
 /** 列出 Droid 模型 */
-export const listDroidModels = async (): Promise<any> => {
+export const listDroidModels = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('droid_list_models')
 }
 
 /** 添加 Droid 模型 */
-export const addDroidModel = async (model: Record<string, any>): Promise<any> => {
-  const settings = await getDroidSettings()
-  const models = Array.isArray(settings?.customModels) ? [...settings.customModels] : []
+export const addDroidModel = async <T = UnknownRecord>(model: Record<string, unknown>): Promise<T> => {
+  const settings = await getDroidSettings<UnknownRecord>()
+  const models = [...pickArray(settings, 'customModels')]
 
-  if (models.some((item: any) => item?.model === model?.model)) {
+  if (models.some((item) => isRecord(item) && item.model === model.model)) {
     throw new Error(`模型 '${model?.model || ''}' 已存在`)
   }
 
   models.push(model)
   await updateDroidSettings({ customModels: models })
-  return model
+  return model as T
 }
 
 /** 更新 Droid 模型 */
-export const updateDroidModel = async (modelId: string, model: Record<string, any>): Promise<any> => {
-  const settings = await getDroidSettings()
-  const models = Array.isArray(settings?.customModels) ? [...settings.customModels] : []
-  const index = models.findIndex((item: any) => item?.model === modelId)
+export const updateDroidModel = async <T = UnknownRecord>(modelId: string, model: Record<string, unknown>): Promise<T> => {
+  const settings = await getDroidSettings<UnknownRecord>()
+  const models = [...pickArray(settings, 'customModels')]
+  const index = models.findIndex((item) => isRecord(item) && item.model === modelId)
 
   if (index === -1) {
     throw new Error(`模型 '${modelId}' 不存在`)
   }
 
-  models[index] = { ...models[index], ...model }
+  models[index] = { ...asRecord(models[index]), ...model }
   await updateDroidSettings({ customModels: models })
-  return models[index]
+  return models[index] as T
 }
 
 /** 删除 Droid 模型 */
 export const deleteDroidModel = async (modelId: string): Promise<string> => {
-  const settings = await getDroidSettings()
-  const models = Array.isArray(settings?.customModels) ? [...settings.customModels] : []
-  const nextModels = models.filter((item: any) => item?.model !== modelId)
+  const settings = await getDroidSettings<UnknownRecord>()
+  const models = [...pickArray(settings, 'customModels')]
+  const nextModels = models.filter((item) => !isRecord(item) || item.model !== modelId)
 
   if (nextModels.length === models.length) {
     throw new Error(`模型 '${modelId}' 不存在`)
@@ -1509,12 +1637,14 @@ export const deleteDroidModel = async (modelId: string): Promise<string> => {
   return modelId
 }
 
-const normalizeDroidProfiles = (profiles: any): Record<string, any> => {
+const normalizeDroidProfiles = (profiles: unknown): Record<string, unknown> => {
   if (Array.isArray(profiles)) {
-    return profiles.reduce((acc: Record<string, any>, profile: any) => {
-      if (profile?.name) {
-        acc[profile.name] = { ...profile }
-        delete acc[profile.name].name
+    return profiles.reduce((acc: Record<string, unknown>, profile) => {
+      if (isRecord(profile) && profile.name) {
+        const profileName = String(profile.name)
+        const profileData = { ...profile }
+        delete profileData.name
+        acc[profileName] = profileData
       }
       return acc
     }, {})
@@ -1528,20 +1658,20 @@ const normalizeDroidProfiles = (profiles: any): Record<string, any> => {
 }
 
 /** 列出 Droid Profiles */
-export const listDroidProfiles = async (): Promise<any[]> => {
-  const settings = await getDroidSettings()
+export const listDroidProfiles = async (): Promise<unknown[]> => {
+  const settings = await getDroidSettings<UnknownRecord>()
   const profiles = normalizeDroidProfiles(settings?.profiles)
 
   return Object.entries(profiles).map(([name, config]) => ({
     name,
-    ...(config as Record<string, any>),
+    ...(config as Record<string, unknown>),
   }))
 }
 
 /** 添加 Droid Profile */
-export const addDroidProfile = async (nameOrRequest: string | Record<string, any>, config?: any): Promise<any> => {
+export const addDroidProfile = async <T = UnknownRecord>(nameOrRequest: string | object, config?: unknown): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
-  const settings = await getDroidSettings()
+  const settings = await getDroidSettings<UnknownRecord>()
   const profiles = normalizeDroidProfiles(settings?.profiles)
 
   if (profiles[name]) {
@@ -1550,28 +1680,28 @@ export const addDroidProfile = async (nameOrRequest: string | Record<string, any
 
   profiles[name] = resolvedConfig
   await updateDroidSettings({ profiles })
-  return { name, ...resolvedConfig }
+  return { name, ...resolvedConfig } as T
 }
 
 /** 更新 Droid Profile */
-export const updateDroidProfile = async (nameOrRequest: string | Record<string, any>, config?: any): Promise<any> => {
+export const updateDroidProfile = async <T = UnknownRecord>(nameOrRequest: string | object, config?: unknown): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
-  const settings = await getDroidSettings()
+  const settings = await getDroidSettings<UnknownRecord>()
   const profiles = normalizeDroidProfiles(settings?.profiles)
 
   if (!profiles[name]) {
     throw new Error(`Profile '${name}' 不存在`)
   }
 
-  profiles[name] = { ...profiles[name], ...resolvedConfig }
+  profiles[name] = { ...asRecord(profiles[name]), ...resolvedConfig }
   await updateDroidSettings({ profiles })
-  return { name, ...profiles[name] }
+  return { name, ...asRecord(profiles[name]) } as T
 }
 
 /** 删除 Droid Profile */
-export const deleteDroidProfile = async (nameOrRequest: string | Record<string, any>): Promise<string> => {
+export const deleteDroidProfile = async (nameOrRequest: string | object): Promise<string> => {
   const name = resolveName(nameOrRequest)
-  const settings = await getDroidSettings()
+  const settings = await getDroidSettings<UnknownRecord>()
   const profiles = normalizeDroidProfiles(settings?.profiles)
 
   if (!profiles[name]) {
@@ -1584,8 +1714,8 @@ export const deleteDroidProfile = async (nameOrRequest: string | Record<string, 
 }
 
 /** 切换 Droid Profile */
-export const switchDroidProfile = async (name: string): Promise<any> => {
-  const settings = await getDroidSettings()
+export const switchDroidProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
+  const settings = await getDroidSettings<UnknownRecord>()
   const profiles = normalizeDroidProfiles(settings?.profiles)
 
   if (!profiles[name]) {
@@ -1594,13 +1724,13 @@ export const switchDroidProfile = async (name: string): Promise<any> => {
 
   Object.keys(profiles).forEach((profileName) => {
     profiles[profileName] = {
-      ...profiles[profileName],
+      ...asRecord(profiles[profileName]),
       enabled: profileName === name,
     }
   })
 
   await updateDroidSettings({ profiles, currentProfile: name })
-  return { name, ...profiles[name] }
+  return { name, ...asRecord(profiles[name]) } as T
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1608,143 +1738,149 @@ export const switchDroidProfile = async (name: string): Promise<any> => {
 // ════════════════════════════════════════════════════════════
 
 /** 获取 OpenCode 配置 */
-export const getOpenCodeConfig = async (): Promise<any> => {
+export const getOpenCodeConfig = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('opencode_get_settings')
 }
 
 /** 更新 OpenCode 配置 */
-export const updateOpenCodeConfig = async (settings: any): Promise<any> => {
+export const updateOpenCodeConfig = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
   return invoke('opencode_update_settings', { settings })
 }
 
 /** 获取 OpenCode 快捷键 */
-export const getOpenCodeKeybindings = async (): Promise<any> => {
+export const getOpenCodeKeybindings = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('opencode_get_keybindings')
 }
 
 /** 更新 OpenCode 快捷键 */
-export const updateOpenCodeKeybindings = async (keybindings: any): Promise<any> => {
+export const updateOpenCodeKeybindings = async <T = UnknownRecord>(keybindings: unknown): Promise<T> => {
   return invoke('opencode_update_keybindings', { keybindings })
 }
 
 /** 列出 OpenCode 主题 */
-export const listOpenCodeThemes = async (): Promise<any> => {
+export const listOpenCodeThemes = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('opencode_list_themes')
 }
 
 // ── OpenCode 组合实现（通过 get/update settings） ──
 
 /** 列出 OpenCode Providers */
-export const listOpenCodeProviders = async (): Promise<any> => {
-  const settings = await getOpenCodeConfig()
-  const providers = settings?.providers ?? {}
-  return { providers: Object.entries(providers).map(([id, config]) => ({ id, ...(config as Record<string, any>) })) }
+export const listOpenCodeProviders = async <T = UnknownRecord>(): Promise<T> => {
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const providers = pickRecord(settings, 'providers')
+  return {
+    providers: Object.entries(providers).map(([id, config]) => ({ id, ...asRecord(config) })),
+  } as T
 }
 
 /** 添加 OpenCode Provider */
-export const addOpenCodeProvider = async (
-  providerOrName: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addOpenCodeProvider = async <T = UnknownRecord>(
+  providerOrName: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(providerOrName, config)
-  const settings = await getOpenCodeConfig()
-  const providers = settings?.providers ?? {}
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const providers = pickRecord(settings, 'providers')
   providers[name] = resolvedConfig
   await updateOpenCodeConfig({ providers })
-  return { id: name, ...resolvedConfig }
+  return { id: name, ...resolvedConfig } as T
 }
 
 /** 更新 OpenCode Provider */
-export const updateOpenCodeProvider = async (
-  providerOrName: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateOpenCodeProvider = async <T = UnknownRecord>(
+  providerOrName: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(providerOrName, config)
-  const settings = await getOpenCodeConfig()
-  const providers = settings?.providers ?? {}
-  providers[name] = { ...providers[name], ...resolvedConfig }
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const providers = pickRecord(settings, 'providers')
+  providers[name] = { ...asRecord(providers[name]), ...resolvedConfig }
   await updateOpenCodeConfig({ providers })
-  return { id: name, ...providers[name] }
+  return { id: name, ...asRecord(providers[name]) } as T
 }
 
 /** 删除 OpenCode Provider */
-export const deleteOpenCodeProvider = async (name: string): Promise<any> => {
-  const settings = await getOpenCodeConfig()
-  const providers = settings?.providers ?? {}
+export const deleteOpenCodeProvider = async <T = UnknownRecord>(name: string): Promise<T> => {
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const providers = pickRecord(settings, 'providers')
   delete providers[name]
   await updateOpenCodeConfig({ providers })
-  return name
+  return name as T
 }
 
 /** 列出 OpenCode MCP 服务器 */
-export const listOpenCodeMcpServers = async (): Promise<any> => {
-  const settings = await getOpenCodeConfig()
-  const servers = settings?.mcpServers ?? settings?.mcp_servers ?? {}
-  return { servers: Object.entries(servers).map(([name, config]) => ({ name, ...(config as Record<string, any>) })) }
+export const listOpenCodeMcpServers = async <T = UnknownRecord>(): Promise<T> => {
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const servers = asRecord(settings.mcpServers ?? settings.mcp_servers)
+  return {
+    servers: Object.entries(servers).map(([name, config]) => ({ name, ...asRecord(config) })),
+  } as T
 }
 
 /** 添加 OpenCode MCP 服务器 */
-export const addOpenCodeMcpServer = async (
-  serverOrName: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addOpenCodeMcpServer = async <T = UnknownRecord>(
+  serverOrName: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(serverOrName, config)
-  const settings = await getOpenCodeConfig()
-  const servers = settings?.mcpServers ?? settings?.mcp_servers ?? {}
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const servers = asRecord(settings.mcpServers ?? settings.mcp_servers)
   servers[name] = resolvedConfig
   await updateOpenCodeConfig({ mcpServers: servers })
-  return { name, ...resolvedConfig }
+  return { name, ...resolvedConfig } as T
 }
 
 /** 更新 OpenCode MCP 服务器 */
-export const updateOpenCodeMcpServer = async (
-  serverOrName: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const updateOpenCodeMcpServer = async <T = UnknownRecord>(
+  serverOrName: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(serverOrName, config)
-  const settings = await getOpenCodeConfig()
-  const servers = settings?.mcpServers ?? settings?.mcp_servers ?? {}
-  servers[name] = { ...servers[name], ...resolvedConfig }
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const servers = asRecord(settings.mcpServers ?? settings.mcp_servers)
+  servers[name] = { ...asRecord(servers[name]), ...resolvedConfig }
   await updateOpenCodeConfig({ mcpServers: servers })
-  return { name, ...servers[name] }
+  return { name, ...asRecord(servers[name]) } as T
 }
 
 /** 删除 OpenCode MCP 服务器 */
-export const deleteOpenCodeMcpServer = async (name: string): Promise<any> => {
-  const settings = await getOpenCodeConfig()
-  const servers = settings?.mcpServers ?? settings?.mcp_servers ?? {}
+export const deleteOpenCodeMcpServer = async <T = UnknownRecord>(name: string): Promise<T> => {
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const servers = asRecord(settings.mcpServers ?? settings.mcp_servers)
   delete servers[name]
   await updateOpenCodeConfig({ mcpServers: servers })
-  return name
+  return name as T
 }
 
 /** 列出 OpenCode 插件 */
-export const listOpenCodePlugins = async (): Promise<any> => {
-  const settings = await getOpenCodeConfig()
-  const plugins = settings?.plugins ?? {}
-  return { plugins: Object.entries(plugins).map(([name, config]) => ({ name, ...(config as Record<string, any>) })) }
+export const listOpenCodePlugins = async <T = UnknownRecord>(): Promise<T> => {
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const plugins = pickRecord(settings, 'plugins')
+  return {
+    plugins: Object.entries(plugins).map(([name, config]) => ({ name, ...asRecord(config) })),
+  } as T
 }
 
 /** 添加 OpenCode 插件 */
-export const addOpenCodePlugin = async (
-  pluginOrName: string | Record<string, any>,
-  config?: any,
-): Promise<any> => {
+export const addOpenCodePlugin = async <T = UnknownRecord>(
+  pluginOrName: string | object,
+  config?: unknown,
+): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(pluginOrName, config)
-  const settings = await getOpenCodeConfig()
-  const plugins = settings?.plugins ?? {}
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const plugins = pickRecord(settings, 'plugins')
   plugins[name] = resolvedConfig
   await updateOpenCodeConfig({ plugins })
-  return { name, ...resolvedConfig }
+  return { name, ...resolvedConfig } as T
 }
 
 /** 删除 OpenCode 插件 */
-export const deleteOpenCodePlugin = async (name: string): Promise<any> => {
-  const settings = await getOpenCodeConfig()
-  const plugins = settings?.plugins ?? {}
+export const deleteOpenCodePlugin = async <T = UnknownRecord>(name: string): Promise<T> => {
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const plugins = pickRecord(settings, 'plugins')
   delete plugins[name]
   await updateOpenCodeConfig({ plugins })
-  return name
+  return name as T
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1752,54 +1888,56 @@ export const deleteOpenCodePlugin = async (name: string): Promise<any> => {
 // ════════════════════════════════════════════════════════════
 
 /** 列出签到 Provider */
-export const listCheckinProviders = async (): Promise<any> => {
+export const listCheckinProviders = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('list_providers')
 }
 
 /** 获取签到 Provider 详情 */
-export const getCheckinProvider = async (id: string): Promise<any> => {
-  const result: any = await invoke('list_providers')
-  const providers = result?.providers || result || []
-  return providers.find((p: any) => p.id === id || String(p.id) === id) ?? null
+export const getCheckinProvider = async <T = UnknownRecord>(id: string): Promise<T> => {
+  const result = await invoke<unknown>('list_providers')
+  const providers = Array.isArray(result) ? result : pickArray(result, 'providers')
+  const found = providers.find((item) => isRecord(item) && (String(item.id ?? '') === id))
+  return (found ?? null) as T
 }
 
 /** 创建签到 Provider */
-export const createCheckinProvider = async (data: any): Promise<any> => {
+export const createCheckinProvider = async <T = UnknownRecord>(data: unknown): Promise<T> => {
   return invoke('add_provider', { data })
 }
 
 /** 更新签到 Provider */
-export const updateCheckinProvider = async (id: string, data: any): Promise<any> => {
+export const updateCheckinProvider = async <T = UnknownRecord>(id: string, data: unknown): Promise<T> => {
   return invoke('update_provider', { id, data })
 }
 
 /** 删除签到 Provider */
-export const deleteCheckinProvider = async (id: string): Promise<any> => {
+export const deleteCheckinProvider = async <T = UnknownRecord>(id: string): Promise<T> => {
   return invoke('delete_provider', { id })
 }
 
 /** 测试签到连接 */
-export const testCheckinConnection = async (id: string): Promise<any> => {
+export const testCheckinConnection = async <T = UnknownRecord>(id: string): Promise<T> => {
   return invoke('test_provider_connection', { id })
 }
 
 /** 列出签到账号 */
-export const listCheckinAccounts = async (providerId?: string): Promise<any> => {
+export const listCheckinAccounts = async <T = UnknownRecord>(providerId?: string): Promise<T> => {
   return invoke('list_accounts', { providerId })
 }
 
 /** 获取签到账号详情 */
-export const getCheckinAccount = async (id: string): Promise<any> => {
-  const result: any = await invoke('list_accounts', { providerId: null })
-  const accounts = result?.accounts || result || []
-  return accounts.find((a: any) => a.id === id || String(a.id) === id) ?? null
+export const getCheckinAccount = async <T = UnknownRecord>(id: string): Promise<T> => {
+  const result = await invoke<unknown>('list_accounts', { providerId: null })
+  const accounts = Array.isArray(result) ? result : pickArray(result, 'accounts')
+  const found = accounts.find((item) => isRecord(item) && (String(item.id ?? '') === id))
+  return (found ?? null) as T
 }
 
 /** 获取签到账号仪表盘（完整 dashboard 数据：account + streak + calendar + trend） */
-export const getCheckinAccountDashboard = async (
+export const getCheckinAccountDashboard = async <T = UnknownRecord>(
   id: string,
   query?: { year?: number; month?: number; days?: number },
-): Promise<any> => {
+): Promise<T> => {
   return invoke('get_account_dashboard', {
     accountId: id,
     year: query?.year ?? null,
@@ -1809,27 +1947,27 @@ export const getCheckinAccountDashboard = async (
 }
 
 /** 创建签到账号 */
-export const createCheckinAccount = async (data: any): Promise<any> => {
+export const createCheckinAccount = async <T = UnknownRecord>(data: unknown): Promise<T> => {
   return invoke('add_account', { data })
 }
 
 /** 更新签到账号 */
-export const updateCheckinAccount = async (id: string, data: any): Promise<any> => {
+export const updateCheckinAccount = async <T = UnknownRecord>(id: string, data: unknown): Promise<T> => {
   return invoke('update_account', { id, data })
 }
 
 /** 删除签到账号 */
-export const deleteCheckinAccount = async (id: string): Promise<any> => {
+export const deleteCheckinAccount = async <T = UnknownRecord>(id: string): Promise<T> => {
   return invoke('delete_account', { id })
 }
 
 /** 批量删除签到账号 */
-export const batchDeleteAccounts = async (ids: string[]): Promise<any> => {
+export const batchDeleteAccounts = async <T = UnknownRecord>(ids: string[]): Promise<T> => {
   return invoke('batch_delete_accounts', { ids })
 }
 
 /** 执行签到 */
-export const executeCheckin = async (accountId: string): Promise<any> => {
+export const executeCheckin = async <T = UnknownRecord>(accountId: string): Promise<T> => {
   return invoke('execute_checkin', { accountId })
 }
 
@@ -1837,32 +1975,32 @@ export const executeCheckin = async (accountId: string): Promise<any> => {
 export const checkinAccount = executeCheckin
 
 /** 批量签到 */
-export const batchCheckin = async (accountIds: string[]): Promise<any> => {
+export const batchCheckin = async <T = UnknownRecord>(accountIds: string[]): Promise<T> => {
   return invoke('batch_checkin', { accountIds })
 }
 
 /** 查询签到余额 */
-export const queryCheckinBalance = async (accountId: string): Promise<any> => {
+export const queryCheckinBalance = async <T = UnknownRecord>(accountId: string): Promise<T> => {
   return invoke('get_balance', { accountId })
 }
 
 /** 获取余额历史 */
-export const getCheckinBalanceHistory = async (
+export const getCheckinBalanceHistory = async <T = UnknownRecord>(
   accountId: string,
   days?: number,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('get_balance_history', { accountId, days })
 }
 
 /** 获取余额统计 */
-export const getBalanceStats = async (): Promise<any> => {
+export const getBalanceStats = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('get_balance_stats')
 }
 
 /** 列出签到记录 */
-export const listCheckinRecords = async (
+export const listCheckinRecords = async <T = UnknownRecord>(
   params?: number | { page?: number; page_size?: number; account_id?: string },
-): Promise<any> => {
+): Promise<T> => {
   if (typeof params === 'number') {
     return invoke('get_checkin_records', { accountId: null, limit: params })
   }
@@ -1876,80 +2014,80 @@ export const listCheckinRecords = async (
 }
 
 /** 获取指定账号签到记录 */
-export const getAccountCheckinRecords = async (
+export const getAccountCheckinRecords = async <T = UnknownRecord>(
   accountId: string,
   limit?: number,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('get_checkin_records', { accountId, limit })
 }
 
 /** 导出签到记录 */
-export const exportCheckinRecords = async (options: any): Promise<any> => {
+export const exportCheckinRecords = async <T = UnknownRecord>(options: unknown): Promise<T> => {
   return invoke('export_checkin_data', { options })
 }
 
 /** 获取今日签到统计 */
-export const getTodayCheckinStats = async (): Promise<any> => {
+export const getTodayCheckinStats = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('export_checkin_stats')
 }
 
 /** 执行 CDK 充值 */
-export const executeCdkRecharge = async (
+export const executeCdkRecharge = async <T = UnknownRecord>(
   accountId: string,
   cdkCode: string,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('execute_cdk_recharge', { accountId, cdkCode })
 }
 
 /** 获取 CDK 历史 */
-export const getCdkHistory = async (accountId?: string): Promise<any> => {
+export const getCdkHistory = async <T = UnknownRecord>(accountId?: string): Promise<T> => {
   return invoke('get_cdk_history', { accountId })
 }
 
 /** 列出 WAF Cookies */
-export const listWafCookies = async (): Promise<any> => {
+export const listWafCookies = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('list_waf_cookies')
 }
 
 /** 添加 WAF Cookie */
-export const addWafCookie = async (providerId: string, cookie: string): Promise<any> => {
+export const addWafCookie = async <T = UnknownRecord>(providerId: string, cookie: string): Promise<T> => {
   return invoke('add_waf_cookie', { providerId, cookie })
 }
 
 /** 删除 WAF Cookie */
-export const deleteWafCookie = async (id: string): Promise<any> => {
+export const deleteWafCookie = async <T = UnknownRecord>(id: string): Promise<T> => {
   return invoke('delete_waf_cookie', { id })
 }
 
 // ── CheckIn 扩展 ──
 
 /** 获取签到账号 Cookies */
-export const getCheckinAccountCookies = async (accountId: string): Promise<any> => {
+export const getCheckinAccountCookies = async <T = UnknownRecord>(accountId: string): Promise<T> => {
   return invoke('get_checkin_account_cookies', { accountId })
 }
 
 /** 导出签到配置 */
-export const exportCheckinConfig = async (options?: Record<string, any>): Promise<any> => {
+export const exportCheckinConfig = async <T = UnknownRecord>(options?: Record<string, unknown>): Promise<T> => {
   return invoke('export_checkin_config', { options: options ?? null })
 }
 
 /** 预览签到导入 */
-export const previewCheckinImport = async (data: any): Promise<any> => {
+export const previewCheckinImport = async <T = UnknownRecord>(data: unknown): Promise<T> => {
   return invoke('preview_checkin_import', { data })
 }
 
 /** 导入签到配置 */
-export const importCheckinConfig = async (data: any, options?: any): Promise<any> => {
+export const importCheckinConfig = async <T = UnknownRecord>(data: unknown, options?: unknown): Promise<T> => {
   return invoke('import_checkin_config', { data, options: options ?? null })
 }
 
 /** 列出内置 Provider */
-export const listBuiltinProviders = async (): Promise<any> => {
+export const listBuiltinProviders = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('list_builtin_providers')
 }
 
 /** 添加内置 Provider */
-export const addBuiltinProvider = async (providerId: string): Promise<any> => {
+export const addBuiltinProvider = async <T = UnknownRecord>(providerId: string): Promise<T> => {
   return invoke('add_builtin_provider', { providerId })
 }
 
@@ -1968,155 +2106,180 @@ export const getOAuthAuthorizeUrl = async (
 // ════════════════════════════════════════════════════════════
 
 /** 获取费用概览 */
-export const getCostOverview = async (period?: string): Promise<any> => {
+export const getCostOverview = async <T = UnknownRecord>(period?: string): Promise<T> => {
   return invoke('get_cost_overview', { period })
 }
 
 /** 获取热力图数据 */
-export const getHeatmapData = async (
+export const getHeatmapData = async <T = UnknownRecord>(
   platform?: string,
   days?: number,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('get_heatmap_data', { platform, days })
 }
 
 /** V2: 获取使用量汇总 */
-export const getUsageSummaryV2 = async (
+export const getUsageSummaryV2 = async <T = UnknownRecord>(
   platform?: string,
   startDate?: string,
   endDate?: string,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('get_usage_summary_v2', { platform, startDate, endDate })
 }
 
 /** V2: 获取每日趋势 */
-export const getUsageTrendsV2 = async (
+export const getUsageTrendsV2 = async <T = UnknownRecord>(
   platform?: string,
   startDate?: string,
   endDate?: string,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('get_usage_trends_v2', { platform, startDate, endDate })
 }
 
 /** V2: 获取模型统计 */
-export const getUsageByModelV2 = async (
+export const getUsageByModelV2 = async <T = UnknownRecord>(
   platform?: string,
   startDate?: string,
   endDate?: string,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('get_usage_by_model_v2', { platform, startDate, endDate })
 }
 
 /** V2: 获取项目统计 */
-export const getUsageByProjectV2 = async (
+export const getUsageByProjectV2 = async <T = UnknownRecord>(
   platform?: string,
   startDate?: string,
   endDate?: string,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('get_usage_by_project_v2', { platform, startDate, endDate })
 }
 
 /** V2: 获取热力图（兼容映射到现有命令） */
-export const getUsageHeatmapV2 = async (
+export const getUsageHeatmapV2 = async <T = UnknownRecord>(
   platform?: string,
   days?: number,
-): Promise<any> => {
+): Promise<T> => {
   return getHeatmapData(platform, days)
 }
 
 /** V2: 获取日志 */
-export const getUsageLogsV2 = async (
-  platform?: string,
+export interface UsageLogsQuery {
+  platform?: string
+  model?: string
+  start_date?: string
+  end_date?: string
+  page?: number
+  page_size?: number
+  cursor?: string
+  include_total?: boolean
+  mode?: 'cursor' | 'offset'
+}
+
+export const getUsageLogsV2 = async <T = UnknownRecord>(
+  platformOrQuery?: string | UsageLogsQuery,
   page?: number,
   pageSize?: number,
-  _model?: string,
-  _cursor?: string,
-  _includeTotal?: boolean,
-): Promise<any> => {
-  return invoke('get_usage_logs_v2', { platform, page, pageSize })
+  model?: string,
+  cursor?: string,
+  includeTotal?: boolean,
+  mode?: 'cursor' | 'offset',
+): Promise<T> => {
+  const query: UsageLogsQuery = typeof platformOrQuery === 'object'
+    ? platformOrQuery
+    : {
+        platform: platformOrQuery,
+        page,
+        page_size: pageSize,
+        model,
+        cursor,
+        include_total: includeTotal,
+        mode,
+      }
+  return invoke('get_usage_logs_v2', { query })
 }
 
 /** V2: 获取仪表盘聚合 */
-export const getUsageDashboardV2 = async (
+export const getUsageDashboardV2 = async <T = UnknownRecord>(
   platform?: string,
   startDate?: string,
   endDate?: string,
   _heatmapDays?: number,
   _includeHeatmap?: boolean,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('get_usage_dashboard_v2', { platform, startDate, endDate })
 }
 
 /** V2: 导入单平台 usage */
-export const importUsageV2 = async (platform: string): Promise<any> => {
+export const importUsageV2 = async <T = UnknownRecord>(platform: string): Promise<T> => {
   return invoke('import_usage_v2', { platform })
 }
 
 /** V2: 导入全部 usage */
-export const importAllUsageV2 = async (): Promise<any> => {
+export const importAllUsageV2 = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('import_all_usage_v2')
 }
 
 /** 获取会话统计 */
-export const getSessionStats = async (platform?: string): Promise<any> => {
+export const getSessionStats = async <T = UnknownRecord>(platform?: string): Promise<T> => {
   return invoke('get_session_stats', { platform })
 }
 
 // ── Stats 扩展 ──
 
 /** 获取费用趋势 */
-export const getCostTrend = async (period?: string): Promise<any> => {
+export const getCostTrend = async <T = UnknownRecord>(period?: string): Promise<T> => {
   return invoke('get_cost_trend', { period })
 }
 
 /** 按模型统计费用 */
-export const getCostByModel = async (_period?: string): Promise<any> => {
+export const getCostByModel = async <T = UnknownRecord>(_period?: string): Promise<T> => {
   return invoke('get_cost_by_model')
 }
 
 /** 按项目统计费用 */
-export const getCostByProject = async (_period?: string): Promise<any> => {
+export const getCostByProject = async <T = UnknownRecord>(_period?: string): Promise<T> => {
   return invoke('get_cost_by_project')
 }
 
 /** 获取提供商使用量 */
-export const getProviderUsage = async (): Promise<any> => {
+export const getProviderUsage = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('get_provider_usage')
 }
 
 /** 获取 Top Sessions */
-export const getTopSessions = async (limit?: number): Promise<any> => {
+export const getTopSessions = async <T = UnknownRecord>(limit?: number): Promise<T> => {
   return invoke('get_top_sessions', { limit })
 }
 
 /** 获取统计摘要 */
-export const getStatsSummary = async (): Promise<any> => {
+export const getStatsSummary = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('get_stats_summary')
 }
 
 /** 设置定价 */
-export const setPricing = async (data: any): Promise<any> => {
-  const model = data?.model ?? data?.name ?? ''
+export const setPricing = async <T = UnknownRecord>(data: unknown): Promise<T> => {
+  const source = asRecord(data)
+  const model = String(source.model ?? source.name ?? '')
   return invoke('set_pricing', { model, pricing: data })
 }
 
 /** 获取定价列表 */
-export const getPricingList = async (): Promise<any> => {
+export const getPricingList = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('get_pricing_list')
 }
 
 /** 移除定价 */
-export const removePricing = async (model: string): Promise<any> => {
+export const removePricing = async <T = UnknownRecord>(model: string): Promise<T> => {
   return invoke('remove_pricing', { model })
 }
 
 /** 重置定价 */
-export const resetPricing = async (): Promise<any> => {
+export const resetPricing = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('reset_pricing')
 }
 
 /** 获取每日统计 */
-export const getDailyStats = async (days?: number): Promise<any> => {
+export const getDailyStats = async <T = UnknownRecord>(days?: number): Promise<T> => {
   return invoke('get_daily_stats', { days })
 }
 
@@ -2125,22 +2288,22 @@ export const getDailyStats = async (days?: number): Promise<any> => {
 // ════════════════════════════════════════════════════════════
 
 /** 获取系统信息 */
-export const getSystemInfo = async (): Promise<any> => {
+export const getSystemInfo = async <T = VersionInfoResponse>(): Promise<T> => {
   return invoke('get_system_info')
 }
 
 /** 检查版本更新 */
-export const checkVersion = async (): Promise<any> => {
+export const checkVersion = async <T = VersionInfoResponse>(): Promise<T> => {
   return invoke('check_version')
 }
 
 /** 健康检查 */
-export const healthCheck = async (): Promise<any> => {
+export const healthCheck = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('health_check')
 }
 
 /** 获取版本号（通过 check_version 实现） */
-export const getVersion = async (): Promise<any> => {
+export const getVersion = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('check_version')
 }
 
@@ -2148,12 +2311,12 @@ export const getVersion = async (): Promise<any> => {
 export const checkUpdate = checkVersion
 
 /** 执行 CCR 更新 */
-export const updateCCR = async (_branch?: string): Promise<any> => {
+export const updateCCR = async <T = UnknownRecord>(_branch?: string): Promise<T> => {
   return invoke('update_ccr')
 }
 
 /** 获取 CLI 版本 */
-export const getCliVersions = async (_options?: Record<string, any>): Promise<any> => {
+export const getCliVersions = async <T = UnknownRecord>(_options?: Record<string, unknown>): Promise<T> => {
   return invoke('get_cli_versions')
 }
 
@@ -2162,7 +2325,7 @@ export const getCliVersions = async (_options?: Record<string, any>): Promise<an
 // ════════════════════════════════════════════════════════════
 
 /** 转换配置格式 */
-export const convertConfig = async (request: any): Promise<any> => {
+export const convertConfig = async <T = UnknownRecord>(request: unknown): Promise<T> => {
   return invoke('convert_config', { request })
 }
 
@@ -2171,42 +2334,42 @@ export const convertConfig = async (request: any): Promise<any> => {
 // ════════════════════════════════════════════════════════════
 
 /** 获取收藏列表 */
-export const getFavorites = async (): Promise<any> => {
+export const getFavorites = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('get_favorites')
 }
 
 /** 添加收藏 */
-export const addFavorite = async (
+export const addFavorite = async <T = UnknownRecord>(
   command: string,
   args: string[],
   displayName: string | undefined,
   module: string,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('add_favorite', { command, args, displayName, module })
 }
 
 /** 移除收藏 */
-export const removeFavorite = async (id: string): Promise<any> => {
+export const removeFavorite = async <T = UnknownRecord>(id: string): Promise<T> => {
   return invoke('remove_favorite', { id })
 }
 
 /** 获取最近项目 */
-export const getRecentItems = async (limit?: number): Promise<any> => {
+export const getRecentItems = async <T = UnknownRecord>(limit?: number): Promise<T> => {
   return invoke('get_recent_items', { limit })
 }
 
 /** 添加最近项目 */
-export const addRecentItem = async (
+export const addRecentItem = async <T = UnknownRecord>(
   command: string,
   args: string[],
   success: boolean,
   durationMs: number,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('add_recent_item', { command, args, success, durationMs })
 }
 
 /** 清空最近项目 */
-export const clearRecentItems = async (): Promise<any> => {
+export const clearRecentItems = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('clear_recent_items')
 }
 
@@ -2215,15 +2378,15 @@ export const clearRecentItems = async (): Promise<any> => {
 // ════════════════════════════════════════════════════════════
 
 /** 打开 WAF 登录窗口 */
-export const openWafLogin = async (
+export const openWafLogin = async <T = UnknownRecord>(
   loginUrl: string,
   providerId: number,
-): Promise<any> => {
+): Promise<T> => {
   return invoke('open_waf_login', { loginUrl, providerId })
 }
 
 /** 获取 WAF Cookie 状态 */
-export const getWafCookieStatus = async (providerId: number): Promise<any> => {
+export const getWafCookieStatus = async <T = UnknownRecord>(providerId: number): Promise<T> => {
   return invoke('get_waf_cookie_status', { providerId })
 }
 
@@ -2232,26 +2395,27 @@ export const getWafCookieStatus = async (providerId: number): Promise<any> => {
 // ════════════════════════════════════════════════════════════
 
 /** 列出所有平台的 MCP 服务器（统一视图） */
-export const listUnifiedMcp = async (platforms?: string[] | string): Promise<any> => {
+export const listUnifiedMcp = async <T = UnknownRecord>(platforms?: string[] | string): Promise<T> => {
   const normalized = typeof platforms === 'string' ? [platforms] : platforms
   return invoke('unified_list_mcp_servers', { platforms: normalized })
 }
 
 /** 添加统一 MCP 服务器 */
-export const addUnifiedMcp = async (request: any): Promise<any> => {
+export const addUnifiedMcp = async <T = UnknownRecord>(request: unknown): Promise<T> => {
   return invoke('unified_add_mcp_server', { request })
 }
 
 /** 更新统一 MCP 服务器（通过删除+添加实现） */
-export const updateUnifiedMcp = async (
-  platformOrRequest: string | Record<string, any>,
+export const updateUnifiedMcp = async <T = UnknownRecord>(
+  platformOrRequest: string | object,
   name?: string,
-  request?: any,
-): Promise<any> => {
+  request?: unknown,
+): Promise<T> => {
+  const requestRecord = asRecord(request)
   const mergedRequest =
     typeof platformOrRequest === 'string'
-      ? { ...(request ?? {}), platform: platformOrRequest, name }
-      : platformOrRequest
+      ? { ...requestRecord, platform: platformOrRequest, name }
+      : asRecord(platformOrRequest)
 
   try {
     await invoke('unified_delete_mcp_server', {
@@ -2266,16 +2430,16 @@ export const updateUnifiedMcp = async (
 }
 
 /** 删除统一 MCP 服务器 */
-export const deleteUnifiedMcp = async (platform: string, name: string): Promise<any> => {
+export const deleteUnifiedMcp = async <T = UnknownRecord>(platform: string, name: string): Promise<T> => {
   return invoke('unified_delete_mcp_server', { platform, name })
 }
 
 /** 切换统一 MCP 服务器启用/禁用 */
-export const toggleUnifiedMcp = async (
+export const toggleUnifiedMcp = async <T = UnknownRecord>(
   platform: string,
   name: string,
   disabled?: boolean,
-): Promise<any> => {
+): Promise<T> => {
   if (platform === 'claude') {
     return invoke('claude_update_mcp_server', { name, config: { disabled: disabled ?? true } })
   }
@@ -2287,8 +2451,13 @@ export const toggleUnifiedMcp = async (
 // ════════════════════════════════════════════════════════════
 
 /** 获取最近事件 */
-export const getRecentEvents = async (count?: number): Promise<any> => {
+export const getRecentEvents = async <T = UnknownRecord>(count?: number): Promise<T> => {
   return invoke('get_recent_events', { count })
+}
+
+/** 获取运行时性能指标 */
+export const getRuntimeMetrics = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('get_runtime_metrics')
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2296,32 +2465,32 @@ export const getRecentEvents = async (count?: number): Promise<any> => {
 // ════════════════════════════════════════════════════════════
 
 /** 列出所有执行环境 */
-export const listEnvironments = async (): Promise<any> => {
+export const listEnvironments = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('list_environments')
 }
 
 /** 获取当前活跃环境 */
-export const getCurrentEnvironment = async (): Promise<any> => {
+export const getCurrentEnvironment = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('get_current_environment')
 }
 
 /** 切换活跃环境 */
-export const switchEnvironment = async (envId: string): Promise<any> => {
+export const switchEnvironment = async <T = UnknownRecord>(envId: string): Promise<T> => {
   return invoke('switch_environment', { envId })
 }
 
 /** 刷新环境列表 */
-export const refreshEnvironments = async (): Promise<any> => {
+export const refreshEnvironments = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('refresh_environments')
 }
 
 /** 通过环境列出平台 */
-export const envListPlatforms = async (): Promise<any> => {
+export const envListPlatforms = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('env_list_platforms')
 }
 
 /** 通过环境检测 CLI */
-export const envDetectCli = async (): Promise<any> => {
+export const envDetectCli = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('env_detect_cli')
 }
 
@@ -2417,7 +2586,7 @@ export const sshWriteConfig = async (
   return invoke('ssh_write_config', { envId, platform, path, content, enableBackup })
 }
 
-export const sshDetectCli = async (envId: string): Promise<any> => {
+export const sshDetectCli = async <T = UnknownRecord>(envId: string): Promise<T> => {
   return invoke('ssh_detect_cli', { envId })
 }
 
@@ -2450,239 +2619,260 @@ export const sshListKeys = async (): Promise<SshKeyInfo[]> => {
 export const executeCommand = async (
   commandOrPayload: string | { command: string; args?: string[] },
   args?: string[],
-): Promise<any> => {
+): Promise<unknown> => {
   const command = typeof commandOrPayload === 'string' ? commandOrPayload : commandOrPayload.command
   const resolvedArgs = typeof commandOrPayload === 'string' ? args : commandOrPayload.args
   return invoke('execute_ccr_command', { command, args: resolvedArgs })
 }
 
 /** 列出可用命令 */
-export const listCommands = async (_client?: string): Promise<any> => {
+export const listCommands = async <T = UnknownRecord>(_client?: string): Promise<T> => {
   return invoke('list_ccr_commands')
 }
 
 /** 获取命令帮助 */
-export const getCommandHelp = async (command: string): Promise<any> => {
+export const getCommandHelp = async <T = UnknownRecord>(command: string): Promise<T> => {
   return invoke('get_ccr_command_help', { command })
 }
 
 /** 启用配置（通过 switchConfig 实现） */
-export const enableConfig = async (name: string): Promise<any> => {
+export const enableConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
   return switchConfig(name)
 }
 
 /** 禁用配置（通过 update_config 设置 enabled=false） */
-export const disableConfig = async (name: string): Promise<any> => {
+export const disableConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('update_config', { name, data: { enabled: false } })
 }
 
 /** 获取单个配置详情（通过列表后过滤实现） */
-export const getConfig = async (name: string): Promise<any> => {
-  const result: any = await invoke('list_configs')
-  const configs = result?.configs || result || []
-  return configs.find((c: any) => c.name === name) ?? null
+export const getConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
+  const result = await invoke<unknown>('list_configs')
+  const configs = Array.isArray(result) ? result : pickArray(result, 'configs')
+  const found = configs.find((item) => isRecord(item) && String(item.name ?? '') === name)
+  return (found ?? null) as T
 }
 
 /** 更新配置 */
-export const updateConfig = async (name: string, config: any): Promise<any> => {
+export const updateConfig = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
   return invoke('update_config', { name, data: config })
 }
 
 /** 清理备份 */
-export const cleanBackups = async (_days?: number): Promise<any> => {
+export const cleanBackups = async <T = UnknownRecord>(_days?: number): Promise<T> => {
   return invoke('clean_backups')
 }
 
 // ── MCP 预设 / 同步 / 内置提示词 ──
 
 /** 列出 MCP 预设 */
-export const listMcpPresets = async (): Promise<any> => {
+export const listMcpPresets = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('list_mcp_presets')
 }
 
 /** 获取 MCP 预设详情 */
-export const getMcpPreset = async (id: string): Promise<any> => {
+export const getMcpPreset = async <T = UnknownRecord>(id: string): Promise<T> => {
   return invoke('get_mcp_preset', { id })
 }
 
 /** 安装 MCP 预设 */
-export const installMcpPreset = async (
-  presetIdOrRequest: string | Record<string, any>,
+export const installMcpPreset = async <T = UnknownRecord>(
+  presetIdOrRequest: string | object,
   platforms?: string[],
   env?: Record<string, string>,
-): Promise<any> => {
-  const presetId = typeof presetIdOrRequest === 'string' ? presetIdOrRequest : presetIdOrRequest.preset_id ?? presetIdOrRequest.id ?? ''
-  const envVars = env ?? (typeof presetIdOrRequest === 'object' ? presetIdOrRequest.env : undefined)
+): Promise<T> => {
+  const request = asRecord(presetIdOrRequest)
+  const presetId = typeof presetIdOrRequest === 'string' ? presetIdOrRequest : String(request.preset_id ?? request.id ?? '')
+  const envValue = env ?? request.env
+  const envVars = isRecord(envValue)
+    ? Object.entries(envValue).reduce<Record<string, string>>((acc, [key, value]) => {
+      if (typeof value === 'string') {
+        acc[key] = value
+      }
+      return acc
+    }, {})
+    : undefined
   return invoke('install_mcp_preset', { presetId, platforms, envVars })
 }
 
 /** 安装单个 MCP 预设 */
-export const installMcpPresetSingle = async (
-  presetIdOrRequest: string | Record<string, any>,
+export const installMcpPresetSingle = async <T = UnknownRecord>(
+  presetIdOrRequest: string | object,
   platform?: string,
   env?: Record<string, string>,
-): Promise<any> => {
-  const presetId = typeof presetIdOrRequest === 'string' ? presetIdOrRequest : presetIdOrRequest.preset_id ?? presetIdOrRequest.id ?? ''
-  const resolvedPlatform = platform ?? (typeof presetIdOrRequest === 'object' ? presetIdOrRequest.platform : undefined)
-  const envVars = env ?? (typeof presetIdOrRequest === 'object' ? presetIdOrRequest.env : undefined)
+): Promise<T> => {
+  const request = asRecord(presetIdOrRequest)
+  const presetId = typeof presetIdOrRequest === 'string' ? presetIdOrRequest : String(request.preset_id ?? request.id ?? '')
+  const resolvedPlatform = platform ?? (typeof request.platform === 'string' ? request.platform : undefined)
+  const envValue = env ?? request.env
+  const envVars = isRecord(envValue)
+    ? Object.entries(envValue).reduce<Record<string, string>>((acc, [key, value]) => {
+      if (typeof value === 'string') {
+        acc[key] = value
+      }
+      return acc
+    }, {})
+    : undefined
   return invoke('install_mcp_preset_single', { platform: resolvedPlatform, presetId, envVars })
 }
 
 /** 列出来源 MCP 服务器 */
-export const listSourceMcpServers = async (): Promise<any> => {
+export const listSourceMcpServers = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('list_source_mcp_servers')
 }
 
 /** 同步 MCP 服务器 */
-export const syncMcpServer = async (name: string, platforms?: string[]): Promise<any> => {
+export const syncMcpServer = async <T = UnknownRecord>(name: string, platforms?: string[]): Promise<T> => {
   return invoke('sync_mcp_server', { name, platforms })
 }
 
 /** 同步所有 MCP 服务器 */
-export const syncAllMcpServers = async (platforms?: string[]): Promise<any> => {
+export const syncAllMcpServers = async <T = UnknownRecord>(platforms?: string[]): Promise<T> => {
   return invoke('sync_all_mcp_servers', { platforms })
 }
 
 /** 列出内置提示词 */
-export const listBuiltinPrompts = async (): Promise<any> => {
+export const listBuiltinPrompts = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('list_builtin_prompts')
 }
 
 /** 获取内置提示词 */
-export const getBuiltinPrompt = async (id: string): Promise<any> => {
+export const getBuiltinPrompt = async <T = UnknownRecord>(id: string): Promise<T> => {
   return invoke('get_builtin_prompt', { id })
 }
 
 /** 按分类获取内置提示词 */
-export const getBuiltinPromptsByCategory = async (category: string): Promise<any> => {
+export const getBuiltinPromptsByCategory = async <T = UnknownRecord>(category: string): Promise<T> => {
   return invoke('get_builtin_prompts_by_category', { category })
 }
 
 // ── Skills ──
 
 /** 列出技能 */
-export const listSkills = async (): Promise<any> => {
+export const listSkills = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('list_skills')
 }
 
 /** 添加技能 */
-export const addSkill = async (data: any): Promise<any> => {
-  const name = data?.name ?? ''
-  const instruction = data?.instruction ?? data?.content ?? ''
+export const addSkill = async <T = UnknownRecord>(data: unknown): Promise<T> => {
+  const payload = asRecord(data)
+  const name = String(payload.name ?? '')
+  const instruction = String(payload.instruction ?? payload.content ?? '')
   return invoke('add_skill', { name, instruction })
 }
 
 /** 删除技能 */
-export const deleteSkill = async (name: string): Promise<any> => {
+export const deleteSkill = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('delete_skill', { name })
 }
 
 /** 列出技能仓库 */
-export const listSkillRepositories = async (): Promise<any> => {
+export const listSkillRepositories = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('list_skill_repositories')
 }
 
 /** 添加技能仓库 */
-export const addSkillRepository = async (data: any): Promise<any> => {
+export const addSkillRepository = async <T = UnknownRecord>(data: unknown): Promise<T> => {
   return invoke('add_skill_repository', { repo: data })
 }
 
 /** 移除技能仓库 */
-export const removeSkillRepository = async (name: string): Promise<any> => {
+export const removeSkillRepository = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('remove_skill_repository', { name })
 }
 
 /** 扫描技能仓库 */
-export const scanSkillRepository = async (urlOrName: string): Promise<any> => {
+export const scanSkillRepository = async <T = UnknownRecord>(urlOrName: string): Promise<T> => {
   return invoke('scan_skill_repository', { url: urlOrName })
 }
 
 // ── Skill Hub ──
 
 /** 获取 SkillHub 趋势 */
-export const getSkillHubTrending = async (): Promise<any> => {
+export const getSkillHubTrending = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('skill_hub_trending')
 }
 
 /** 搜索 SkillHub 市场 */
-export const searchSkillHubMarketplace = async (query: string, category?: string): Promise<any> => {
+export const searchSkillHubMarketplace = async <T = UnknownRecord>(query: string, category?: string): Promise<T> => {
   return invoke('skill_hub_search', { query, category })
 }
 
 /** 获取 SkillHub Agents */
-export const getSkillHubAgents = async (): Promise<any> => {
+export const getSkillHubAgents = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('skill_hub_agents')
 }
 
 /** 获取 SkillHub Agent 技能 */
-export const getSkillHubAgentSkills = async (agentName: string): Promise<any> => {
+export const getSkillHubAgentSkills = async <T = UnknownRecord>(agentName: string): Promise<T> => {
   return invoke('skill_hub_agent_skills', { agentName })
 }
 
 /** 安装 SkillHub 技能 */
-export const installSkillHubSkill = async (data: any): Promise<any> => {
-  const skillUrl = data?.url ?? data?.skill_url ?? data?.package ?? ''
-  const targetDir = data?.target_dir ?? undefined
+export const installSkillHubSkill = async <T = UnknownRecord>(data: unknown): Promise<T> => {
+  const payload = asRecord(data)
+  const skillUrl = String(payload.url ?? payload.skill_url ?? payload.package ?? '')
+  const targetDir = typeof payload.target_dir === 'string' ? payload.target_dir : undefined
   return invoke('skill_hub_install', { skillUrl, targetDir })
 }
 
 /** 移除 SkillHub 技能 */
-export const removeSkillHubSkill = async (skillPath: string): Promise<any> => {
+export const removeSkillHubSkill = async <T = UnknownRecord>(skillPath: string): Promise<T> => {
   return invoke('skill_hub_remove', { skillPath })
 }
 
 /** 获取所有平台的 skills（统一查询） */
-export const getSkillHubUnified = async (platform?: string): Promise<any> => {
+export const getSkillHubUnified = async <T = UnknownRecord>(platform?: string): Promise<T> => {
   return invoke('skill_hub_unified', { platform: platform ?? null })
 }
 
 /** 读取 Skill 内容 */
-export const getSkillHubSkillContent = async (skillDir: string): Promise<any> => {
+export const getSkillHubSkillContent = async <T = UnknownRecord>(skillDir: string): Promise<T> => {
   return invoke('skill_hub_skill_content', { skillDir })
 }
 
 /** 保存 Skill 内容 */
-export const saveSkillHubSkillContent = async (skillDir: string, content: string): Promise<any> => {
+export const saveSkillHubSkillContent = async <T = UnknownRecord>(skillDir: string, content: string): Promise<T> => {
   return invoke('skill_hub_save_skill_content', { skillDir, content })
 }
 
 /** 从 GitHub 导入技能 */
-export const importSkillFromGithub = async (url: string, agents: string[], force?: boolean): Promise<any> => {
+export const importSkillFromGithub = async <T = UnknownRecord>(url: string, agents: string[], force?: boolean): Promise<T> => {
   return invoke('skill_hub_import_github', { url, agents, force: force ?? false })
 }
 
 /** 从本地目录导入技能 */
-export const importSkillFromLocal = async (sourcePath: string, agents: string[], skillName?: string): Promise<any> => {
+export const importSkillFromLocal = async <T = UnknownRecord>(sourcePath: string, agents: string[], skillName?: string): Promise<T> => {
   return invoke('skill_hub_import_local', { sourcePath, agents, skillName: skillName ?? null })
 }
 
 /** 通过 npx 安装技能 */
-export const importSkillViaNpx = async (packageName: string, agents: string[], global?: boolean): Promise<any> => {
+export const importSkillViaNpx = async <T = UnknownRecord>(packageName: string, agents: string[], global?: boolean): Promise<T> => {
   return invoke('skill_hub_import_npx', { packageName, agents, global: global ?? false })
 }
 
 /** 批量安装技能 */
-export const batchInstallSkills = async (packages: string[], agents: string[], force?: boolean): Promise<any> => {
+export const batchInstallSkills = async <T = UnknownRecord>(packages: string[], agents: string[], force?: boolean): Promise<T> => {
   return invoke('skill_hub_batch_install', { packages, agents, force: force ?? false })
 }
 
 /** 检查 npx 可用性 */
-export const checkNpxAvailability = async (): Promise<any> => {
+export const checkNpxAvailability = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('skill_hub_check_npx')
 }
 
 /** 打开文件夹选择对话框 */
-export const browseForFolder = async (): Promise<any> => {
+export const browseForFolder = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('skill_hub_browse_folder')
 }
 
 /** 获取单个技能详情 */
-export const getSkillDetail = async (name: string): Promise<any> => {
+export const getSkillDetail = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('get_skill', { name })
 }
 
 /** 更新技能内容 */
-export const updateSkillContent = async (name: string, instruction: string): Promise<any> => {
+export const updateSkillContent = async <T = UnknownRecord>(name: string, instruction: string): Promise<T> => {
   return invoke('update_skill', { name, instruction })
 }
 
@@ -2694,6 +2884,6 @@ export const resolveApiBaseUrl = (): string => {
 }
 
 /** 后端健康检查（使用 Tauri invoke 实现） */
-export const getBackendHealth = async (): Promise<any> => {
+export const getBackendHealth = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('health_check')
 }

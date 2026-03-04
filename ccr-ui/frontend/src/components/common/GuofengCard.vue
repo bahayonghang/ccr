@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div
     class="guofeng-card group relative overflow-hidden transition-[color,background-color,border-color,box-shadow,transform] duration-300"
@@ -112,7 +113,7 @@ interface Props {
   /** 额外的 CSS 类名 */
   className?: string
   /** 额外的内联样式 */
-  style?: Record<string, any>
+  style?: Record<string, unknown>
   /** 内容区域的额外类名 */
   bodyClass?: string
   /** 内边距大小 */

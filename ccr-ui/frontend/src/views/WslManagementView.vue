@@ -1,3 +1,4 @@
+<!-- eslint-disable no-console -->
 <script setup lang="ts">
 /**
  * WSL 管理视图 — WSL 发行版列表、配置浏览、同步操作

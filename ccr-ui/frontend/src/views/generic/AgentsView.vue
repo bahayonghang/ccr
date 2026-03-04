@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="min-h-screen p-6 transition-colors duration-300">
     <div class="max-w-[1800px] mx-auto">
@@ -399,6 +400,7 @@
 <script setup lang="ts">
 /* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, watch } from 'vue'
+import type { Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, ChevronDown, Code2, Sparkles, Workflow, Eye } from 'lucide-vue-next'
@@ -434,7 +436,7 @@ const toolInput = ref('')
 
 // Breadcrumbs
 const breadcrumbs = computed(() => {
-  const items: { label: string; to?: string; icon?: any }[] = [
+  const items: { label: string; to?: string; icon?: Component }[] = [
     { label: t('common.home'), to: '/', icon: Home }
   ]
 

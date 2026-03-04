@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="overflow-x-auto rounded-xl glass-effect border border-border-color">
     <table class="min-w-full divide-y divide-border-color">
@@ -23,7 +24,7 @@
       <tbody class="divide-y divide-border-color">
         <tr
           v-for="(item, index) in data"
-          :key="item[keyField] || index"
+          :key="getRowKey(item, index)"
           class="transition-colors hover:bg-bg-secondary"
         >
           <td
@@ -59,18 +60,25 @@
 interface Column {
   key: string;
   title: string;
-  render?: (value: any, item: any) => string;
+  render?: (value: unknown, item: unknown) => string;
 }
 
 interface Props {
   columns: Column[];
-  data: any[];
+  data: Array<Record<string, unknown>>;
   keyField?: string;
   hasActions?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   keyField: 'id',
   hasActions: false,
 })
+
+function getRowKey(item: Record<string, unknown>, index: number): string | number {
+  const value = item[props.keyField] ?? index
+  return (typeof value === 'string' || typeof value === 'number')
+    ? value
+    : index
+}
 </script>

@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="min-h-screen relative">
     <!-- Enhanced Animated Background -->
@@ -831,11 +832,57 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 
 // 使用 Tauri invoke API
 
+interface SyncFolder {
+  name: string
+  enabled: boolean
+  description?: string
+  localPath: string
+  remotePath: string
+}
+
+interface SyncStatusConfig {
+  webdav_url?: string
+  username?: string
+  remote_path?: string
+}
+
+interface SyncStatus {
+  configured?: boolean
+  config?: SyncStatusConfig
+}
+
+interface CommandResultLike {
+  success?: boolean
+  message?: string
+  output?: string
+  data?: {
+    output?: string
+  }
+}
+
+const asRecord = (value: unknown): Record<string, unknown> => {
+  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
+}
+
+const toErrorMessage = (error: unknown, fallback = 'unknown error'): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
+  const message = asRecord(asRecord(error).response).data
+  if (typeof message === 'object' && message !== null && typeof (message as Record<string, unknown>).message === 'string') {
+    return String((message as Record<string, unknown>).message)
+  }
+  return fallback
+}
+
 // 状态
 const loading = ref(true)
 const error = ref('')
-const syncStatus = ref<any>(null)
-const enabledFolders = ref<any[]>([])
+const syncStatus = ref<SyncStatus | null>(null)
+const enabledFolders = ref<SyncFolder[]>([])
 const operationOutput = ref('')
 
 // 操作状态
@@ -939,15 +986,15 @@ const applySelection = async () => {
 
       try {
         await addSyncFolder(item.key, item.localPath, item.remotePath || '')
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error(`添加文件夹 ${item.name} 失败:`, err)
       }
     }
 
     operationOutput.value = '✓ 同步配置已应用'
     await refreshFolders()
-  } catch (err: any) {
-    operationOutput.value = `✗ 应用失败: ${err.message || 'unknown error'}`
+  } catch (err: unknown) {
+    operationOutput.value = `✗ 应用失败: ${toErrorMessage(err)}`
   } finally {
     applying.value = false
   }
@@ -967,8 +1014,8 @@ const addCustomFolder = async () => {
     operationOutput.value = `${t('sync.messages.addSuccess')}: ${customFolder.value.name}`
     customFolder.value = { name: '', localPath: '', remotePath: '', description: '' }
     await refreshFolders()
-  } catch (err: any) {
-    operationOutput.value = `${t('sync.messages.addFailed')}: ${err.message || 'unknown error'}`
+  } catch (err: unknown) {
+    operationOutput.value = `${t('sync.messages.addFailed')}: ${toErrorMessage(err)}`
   } finally {
     addingCustom.value = false
   }
@@ -977,8 +1024,8 @@ const addCustomFolder = async () => {
 // 获取同步状态
 const fetchSyncStatus = async () => {
   try {
-    syncStatus.value = await getSyncStatus()
-  } catch (err: any) {
+    syncStatus.value = await getSyncStatus<SyncStatus>()
+  } catch (err: unknown) {
     logger.error('Failed to fetch sync status:', err)
   }
 }
@@ -986,9 +1033,9 @@ const fetchSyncStatus = async () => {
 // 获取文件夹列表
 const fetchFolders = async () => {
   try {
-    const response = await listSyncFolders()
+    const response = await listSyncFolders<SyncFolder[] | { output?: string; data?: { output?: string } }>()
     if (Array.isArray(response)) {
-      enabledFolders.value = response as any[]
+      enabledFolders.value = response
       return
     }
 
@@ -1001,7 +1048,7 @@ const fetchFolders = async () => {
     } else {
       enabledFolders.value = []
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error('Failed to fetch folders:', err)
     enabledFolders.value = []
   }
@@ -1043,7 +1090,7 @@ const removeFolder = async (name: string) => {
   }
 
   try {
-    const result = await deleteSyncFolder(name)
+    const result = await deleteSyncFolder<CommandResultLike>(name)
     if (result?.success === false) {
       operationOutput.value = `${t('sync.messages.deleteFailed')}: ${result?.message || 'unknown error'}`
       return
@@ -1051,8 +1098,8 @@ const removeFolder = async (name: string) => {
 
     operationOutput.value = `${t('sync.messages.deleteSuccess')}: ${name}`
     await refreshFolders()
-  } catch (err: any) {
-    operationOutput.value = `${t('sync.messages.deleteFailed')}: ${err.message || 'unknown error'}`
+  } catch (err: unknown) {
+    operationOutput.value = `${t('sync.messages.deleteFailed')}: ${toErrorMessage(err)}`
   }
 }
 
@@ -1060,7 +1107,7 @@ const removeFolder = async (name: string) => {
 const toggleFolder = async (name: string, currentEnabled: boolean) => {
   const actionText = currentEnabled ? t('sync.messages.disabled') : t('sync.messages.enabled')
   try {
-    const result = await updateSyncFolder(name, undefined, !currentEnabled)
+    const result = await updateSyncFolder<CommandResultLike>(name, undefined, !currentEnabled)
     if (result?.success === false) {
       operationOutput.value = `${t('sync.messages.toggleFailed')}: ${result?.message || 'unknown error'}`
       return
@@ -1068,8 +1115,8 @@ const toggleFolder = async (name: string, currentEnabled: boolean) => {
 
     operationOutput.value = t('sync.messages.toggleSuccess', { action: actionText }) + `: ${name}`
     await refreshFolders()
-  } catch (err: any) {
-    operationOutput.value = `${t('sync.messages.toggleFailed')}: ${err.message || 'unknown error'}`
+  } catch (err: unknown) {
+    operationOutput.value = `${t('sync.messages.toggleFailed')}: ${toErrorMessage(err)}`
   }
 }
 
@@ -1077,11 +1124,11 @@ const toggleFolder = async (name: string, currentEnabled: boolean) => {
 const pushFolder = async (name: string) => {
   try {
     // TODO: 当前 Tauri API 仅支持全局 pushSync，尚无按文件夹推送命令
-    const result = await pushSync(false)
+    const result = await pushSync<CommandResultLike>(false)
     const output = result?.data?.output || result?.output || result?.message || '操作已执行（全局）'
     operationOutput.value = `[${name}] ${output}`
-  } catch (err: any) {
-    operationOutput.value = `${t('sync.messages.uploadFailed')}: ${err.message || 'unknown error'}`
+  } catch (err: unknown) {
+    operationOutput.value = `${t('sync.messages.uploadFailed')}: ${toErrorMessage(err)}`
   }
 }
 
@@ -1089,11 +1136,11 @@ const pushFolder = async (name: string) => {
 const pullFolder = async (name: string) => {
   try {
     // TODO: 当前 Tauri API 仅支持全局 pullSync，尚无按文件夹拉取命令
-    const result = await pullSync(false)
+    const result = await pullSync<CommandResultLike>(false)
     const output = result?.data?.output || result?.output || result?.message || '操作已执行（全局）'
     operationOutput.value = `[${name}] ${output}`
-  } catch (err: any) {
-    operationOutput.value = `${t('sync.messages.downloadFailed')}: ${err.message || 'unknown error'}`
+  } catch (err: unknown) {
+    operationOutput.value = `${t('sync.messages.downloadFailed')}: ${toErrorMessage(err)}`
   }
 }
 
@@ -1101,10 +1148,10 @@ const pullFolder = async (name: string) => {
 const getFolderStatus = async (name: string) => {
   try {
     // TODO: 当前 Tauri API 暂无按文件夹状态查询，回退为全局状态
-    const status = await getSyncStatus()
+    const status = await getSyncStatus<SyncStatus>()
     operationOutput.value = `[${name}] ${JSON.stringify(status, null, 2)}`
-  } catch (err: any) {
-    operationOutput.value = `${t('sync.messages.statusFailed')}: ${err.message || 'unknown error'}`
+  } catch (err: unknown) {
+    operationOutput.value = `${t('sync.messages.statusFailed')}: ${toErrorMessage(err)}`
   }
 }
 
@@ -1112,15 +1159,15 @@ const getFolderStatus = async (name: string) => {
 const pushAllFolders = async () => {
   batchOperating.value = true
   try {
-    const result = await pushSync(false)
+    const result = await pushSync<CommandResultLike>(false)
     if (result?.success === false) {
       operationOutput.value = `${t('sync.messages.batchUploadFailed')}: ${result?.message || 'unknown error'}`
       return
     }
 
     operationOutput.value = result?.data?.output || result?.output || result?.message || '批量上传完成'
-  } catch (err: any) {
-    operationOutput.value = `${t('sync.messages.batchUploadFailed')}: ${err.message || 'unknown error'}`
+  } catch (err: unknown) {
+    operationOutput.value = `${t('sync.messages.batchUploadFailed')}: ${toErrorMessage(err)}`
   } finally {
     batchOperating.value = false
   }
@@ -1130,15 +1177,15 @@ const pushAllFolders = async () => {
 const pullAllFolders = async () => {
   batchOperating.value = true
   try {
-    const result = await pullSync(false)
+    const result = await pullSync<CommandResultLike>(false)
     if (result?.success === false) {
       operationOutput.value = `${t('sync.messages.batchDownloadFailed')}: ${result?.message || 'unknown error'}`
       return
     }
 
     operationOutput.value = result?.data?.output || result?.output || result?.message || '批量下载完成'
-  } catch (err: any) {
-    operationOutput.value = `${t('sync.messages.batchDownloadFailed')}: ${err.message || 'unknown error'}`
+  } catch (err: unknown) {
+    operationOutput.value = `${t('sync.messages.batchDownloadFailed')}: ${toErrorMessage(err)}`
   } finally {
     batchOperating.value = false
   }
@@ -1148,10 +1195,10 @@ const pullAllFolders = async () => {
 const getAllFoldersStatus = async () => {
   batchOperating.value = true
   try {
-    const status = await getSyncStatus()
+    const status = await getSyncStatus<SyncStatus>()
     operationOutput.value = JSON.stringify(status, null, 2)
-  } catch (err: any) {
-    operationOutput.value = `${t('sync.messages.statusFailed')}: ${err.message || 'unknown error'}`
+  } catch (err: unknown) {
+    operationOutput.value = `${t('sync.messages.statusFailed')}: ${toErrorMessage(err)}`
   } finally {
     batchOperating.value = false
   }
@@ -1165,8 +1212,8 @@ onMounted(async () => {
       fetchSyncStatus(),
       fetchFolders()
     ])
-  } catch (err: any) {
-    error.value = err.response?.data?.message || err.message || t('sync.loadFailed')
+  } catch (err: unknown) {
+    error.value = toErrorMessage(err, t('sync.loadFailed'))
   } finally {
     loading.value = false
   }

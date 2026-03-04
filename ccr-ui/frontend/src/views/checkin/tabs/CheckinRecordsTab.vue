@@ -1,3 +1,4 @@
+<!-- eslint-disable no-console -->
 <template>
   <div class="space-y-4">
     <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
@@ -275,6 +276,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console */
 import { ref, computed, onMounted, watch } from 'vue'
 import {
   XCircle,
@@ -291,7 +293,13 @@ import type {
   AccountInfo,
   TodayCheckinStats,
   CheckinRecordsQuery,
+  CheckinRecordsResponse,
 } from '@/types/checkin'
+
+interface CheckinRecordsExportResponse {
+  blob: Blob
+  filename: string
+}
 
 const props = defineProps<{
   records: CheckinRecordInfo[]
@@ -311,6 +319,8 @@ const failedHistoryPage = ref(1)
 const failedHistoryPageSize = ref(5)
 const failedHistoryProviderFilter = ref<string>('all')
 const failedHistoryKeyword = ref('')
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback
 
 const failedHistoryTotalPages = computed(() => {
   const total = Math.ceil(failedHistoryTotal.value / failedHistoryPageSize.value)
@@ -403,10 +413,10 @@ const loadFailedHistory = async () => {
     if (failedHistoryKeyword.value.trim()) {
       params.keyword = failedHistoryKeyword.value.trim()
     }
-    const response = await listCheckinRecords(params)
+    const response = await listCheckinRecords<CheckinRecordsResponse>(params)
     failedHistoryRecords.value = response.records
     failedHistoryTotal.value = response.total
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Failed to load failed history:', e)
   } finally {
     failedHistoryLoading.value = false
@@ -441,7 +451,7 @@ const exportFailedHistory = async () => {
     if (failedHistoryKeyword.value.trim()) {
       params.keyword = failedHistoryKeyword.value.trim()
     }
-    const { blob, filename } = await exportCheckinRecords(params)
+    const { blob, filename } = await exportCheckinRecords<CheckinRecordsExportResponse>(params)
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -450,8 +460,8 @@ const exportFailedHistory = async () => {
     link.click()
     link.remove()
     URL.revokeObjectURL(url)
-  } catch (e: any) {
-    alert('导出失败: ' + (e.message || '未知错误'))
+  } catch (e: unknown) {
+    alert('导出失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 

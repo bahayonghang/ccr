@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="space-y-6">
     <!-- 内置中转站区域 -->
@@ -336,6 +337,9 @@ const emit = defineEmits<{
   (e: 'refresh'): void
 }>()
 
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback
+
 // 计算属性：过滤出尚未添加的内置提供商
 const availableBuiltinProviders = computed(() => {
   const addedNames = new Set(props.providers.map(p => p.name))
@@ -393,8 +397,8 @@ const saveProvider = async () => {
     }
     showProviderModal.value = false
     emit('refresh')
-  } catch (e: any) {
-    alert('保存失败: ' + (e.message || '未知错误'))
+  } catch (e: unknown) {
+    alert('保存失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 
@@ -403,8 +407,8 @@ const deleteProvider = async (id: string) => {
   try {
     await apiDeleteProvider(id)
     emit('refresh')
-  } catch (e: any) {
-    alert('删除失败: ' + (e.message || '未知错误'))
+  } catch (e: unknown) {
+    alert('删除失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 </script>

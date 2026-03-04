@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="min-h-screen bg-bg-base p-6">
     <div class="max-w-[1800px] mx-auto">
@@ -536,7 +537,7 @@ import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import { addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexProfiles, updateCodexProfile } from '@/api'
-import type { CodexProfile, CodexProfileRequest } from '@/types'
+import type { CodexProfile, CodexProfileRequest, CodexProfilesResponse } from '@/types'
 
 const { t } = useI18n()
 
@@ -582,7 +583,7 @@ const form = reactive<Required<Pick<CodexProfileRequest, 'name' | 'base_url' | '
 const loadProfiles = async () => {
   try {
     loading.value = true
-    const data = await listCodexProfiles()
+    const data = await listCodexProfiles<CodexProfilesResponse>()
     profiles.value = data.profiles || []
     currentProfile.value = data.current_profile ?? null
   } catch (error) {
@@ -622,7 +623,7 @@ const handleEdit = async (name: string) => {
     resetForm()
     showForm.value = true
 
-    const profile = await getCodexProfile(name)
+    const profile = await getCodexProfile<CodexProfile>(name)
     form.name = profile.name
     form.description = profile.description || ''
     form.base_url = profile.base_url || ''
@@ -658,7 +659,7 @@ const parseTags = (raw: string): string[] | undefined => {
   return tags.length > 0 ? tags : undefined
 }
 
-const parseExtraJson = (raw: string): Record<string, any> | undefined => {
+const parseExtraJson = (raw: string): Record<string, unknown> | undefined => {
   const trimmed = raw.trim()
   if (!trimmed) return undefined
   const parsed = JSON.parse(trimmed)
@@ -686,7 +687,7 @@ const handleSave = async () => {
     return
   }
 
-  let extra: Record<string, any> | undefined
+  let extra: Record<string, unknown> | undefined
   try {
     extra = parseExtraJson(extraText.value) || undefined
   } catch {

@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="min-h-screen p-5 transition-colors duration-300">
     <div class="max-w-[1200px] mx-auto">
@@ -305,6 +306,7 @@ import Breadcrumb from '@/components/common/Breadcrumb.vue'
 import { useAgents } from '@/composables/useAgents'
 import type { Agent, AgentRequest } from '@/types'
 import { extractStringParam } from '@/types/router'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 const route = useRoute()
 const router = useRouter()
@@ -332,9 +334,9 @@ onMounted(async () => {
   if (name) {
     try {
       agent.value = await getAgent(name)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load agent:', err)
-      error.value = err.message || 'Failed to load agent'
+      error.value = getErrorMessage(err) || 'Failed to load agent'
     }
   } else {
     error.value = 'Invalid agent name parameter'

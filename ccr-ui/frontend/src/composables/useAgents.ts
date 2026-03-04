@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref } from 'vue'
 import { listCodexAgents, addCodexAgent, updateCodexAgent, deleteCodexAgent, toggleCodexAgent } from '@/api'
 import { listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent } from '@/api'
@@ -7,7 +6,9 @@ import { listIflowAgents, addIflowAgent, updateIflowAgent, deleteIflowAgent, tog
 import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api'
 import { listConfigs, getHistory } from '@/api'
 import { listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent } from '@/api'
+import { logger } from '@/utils/logger'
 import type { Agent, AgentRequest } from '@/types'
+import type { ConfigListResponse, HistoryResponse } from '@/types'
 
 type ModuleType = 'codex' | 'gemini' | 'qwen' | 'iflow' | 'droid' | 'agents'
 
@@ -17,6 +18,10 @@ interface AgentApi {
     update: (name: string, req: AgentRequest) => Promise<string>
     delete: (name: string) => Promise<string>
     toggle: (name: string) => Promise<string>
+}
+
+function getErrorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err)
 }
 
 const apiMap: Record<ModuleType, AgentApi> = {
@@ -84,16 +89,16 @@ export function useAgents(module: ModuleType) {
 
             // Load system info (optional, but kept for consistency with original views)
             try {
-                const configData = await listConfigs()
+                const configData = await listConfigs<ConfigListResponse>()
                 currentConfig.value = configData.current_config
                 totalConfigs.value = configData.configs.length
-                const historyData = await getHistory()
+                const historyData = await getHistory<HistoryResponse>()
                 historyCount.value = historyData.total
             } catch (err) {
-                console.error('Failed to load system info:', err)
+                logger.error('Failed to load system info', err)
             }
         } catch (err) {
-            console.error(`Failed to load ${module} agents:`, err)
+            logger.error(`Failed to load ${module} agents: ${getErrorMessage(err)}`, err)
             // alert(t(`${module}.agents.messages.loadFailed`)) // Let the view handle alerts
         } finally {
             loading.value = false
@@ -105,7 +110,7 @@ export function useAgents(module: ModuleType) {
         try {
             // For now, only Claude Code (agents module) has the getAgent API
             if (module === 'agents') {
-                const fetchedAgent = await apiGetAgent(name)
+                const fetchedAgent = await apiGetAgent<Agent>(name)
                 if (!fetchedAgent) {
                     throw new Error(`Agent '${name}' not found`)
                 }

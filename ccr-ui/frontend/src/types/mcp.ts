@@ -77,7 +77,7 @@ export interface Plugin {
   name: string;
   version: string;
   enabled: boolean;
-  config?: Record<string, any>;
+  config?: Record<string, unknown>;
 }
 
 export interface PluginRequest {
@@ -85,7 +85,7 @@ export interface PluginRequest {
   name: string;
   version: string;
   enabled?: boolean;
-  config?: Record<string, any>;
+  config?: Record<string, unknown>;
 }
 
 export interface PluginsResponse {

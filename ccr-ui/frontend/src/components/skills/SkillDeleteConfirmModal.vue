@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
@@ -116,7 +117,7 @@ const platformColor = computed(() => {
 })
 
 const platformIcon = computed(() => {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, unknown> = {
     'claude-code': Code2,
     'codex': Settings,
     'gemini': Sparkles,

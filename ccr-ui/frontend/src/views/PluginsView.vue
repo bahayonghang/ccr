@@ -286,7 +286,7 @@ const configJson = ref('')
 const loadPlugins = async () => {
   try {
     loading.value = true
-    const data = await listPlugins()
+    const data = await listPlugins<PluginType[]>()
     plugins.value = data || []
   } catch (err) {
     console.error('Failed to load plugins:', err)

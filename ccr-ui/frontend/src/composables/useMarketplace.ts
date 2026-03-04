@@ -1,5 +1,5 @@
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref } from 'vue'
+import { logger } from '@/utils/logger'
 
 // ===== Types =====
 
@@ -35,6 +35,10 @@ export interface InstallRequest {
     env?: Record<string, string>
 }
 
+function getErrorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err)
+}
+
 // ===== Composable =====
 
 export function useMarketplace() {
@@ -51,11 +55,11 @@ export function useMarketplace() {
         loading.value = true
         error.value = null
         try {
-            console.warn('[useMarketplace] fetchMarketItems: Marketplace 尚未迁移到 Tauri')
+            logger.warn('[useMarketplace] fetchMarketItems: Marketplace 尚未迁移到 Tauri')
             items.value = []
-        } catch (err: any) {
-            error.value = err.message || 'Failed to load marketplace items'
-            console.error('Marketplace fetch error:', err)
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to load marketplace items'
+            logger.error('Marketplace fetch error', err)
         } finally {
             loading.value = false
         }
@@ -69,11 +73,11 @@ export function useMarketplace() {
         loading.value = true
         error.value = null
         try {
-            console.warn('[useMarketplace] fetchInstalledItems: Marketplace 尚未迁移到 Tauri')
+            logger.warn('[useMarketplace] fetchInstalledItems: Marketplace 尚未迁移到 Tauri')
             items.value = []
-        } catch (err: any) {
-            error.value = err.message || 'Failed to load installed items'
-            console.error('Installed items fetch error:', err)
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to load installed items'
+            logger.error('Installed items fetch error', err)
         } finally {
             loading.value = false
         }
@@ -89,11 +93,11 @@ export function useMarketplace() {
         error.value = null
 
         try {
-            console.warn('[useMarketplace] installItem: Marketplace 尚未迁移到 Tauri')
+            logger.warn('[useMarketplace] installItem: Marketplace 尚未迁移到 Tauri')
             return false
-        } catch (err: any) {
-            error.value = err.message || `Failed to install ${item.name}`
-            console.error('Install error:', err)
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || `Failed to install ${item.name}`
+            logger.error('Install error', err)
             return false
         } finally {
             installingItems.value.delete(itemId)
@@ -110,11 +114,11 @@ export function useMarketplace() {
         error.value = null
 
         try {
-            console.warn('[useMarketplace] uninstallItem: Marketplace 尚未迁移到 Tauri')
+            logger.warn('[useMarketplace] uninstallItem: Marketplace 尚未迁移到 Tauri')
             return false
-        } catch (err: any) {
-            error.value = err.message || `Failed to uninstall ${item.name}`
-            console.error('Uninstall error:', err)
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || `Failed to uninstall ${item.name}`
+            logger.error('Uninstall error', err)
             return false
         } finally {
             installingItems.value.delete(itemId)

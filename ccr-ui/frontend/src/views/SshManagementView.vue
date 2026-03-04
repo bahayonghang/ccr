@@ -1,3 +1,4 @@
+<!-- -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import {
@@ -61,7 +62,7 @@ async function loadHosts() {
   error.value = ''
   try {
     hosts.value = await sshListHosts()
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = e?.toString?.() || '加载 SSH 主机失败'
   } finally {
     loading.value = false
@@ -86,7 +87,7 @@ async function addHost() {
     await refreshEnvironments()
     await loadHosts()
     form.value = { host: '', port: 22, user: '', name: '', identity_file: '' }
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = e?.toString?.() || '新增 SSH 主机失败'
   }
 }
@@ -107,7 +108,7 @@ async function connectHost(host: SshHostConfig) {
     activeEnvId.value = envId
     cliStatusText.value = ''
     configContent.value = ''
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = e?.toString?.() || '连接 SSH 主机失败'
   }
 }
@@ -124,7 +125,7 @@ async function confirmFingerprintAndConnect() {
     )
     activeConnectionState.value = await sshConnect(activeEnvId.value, connectPassword.value || undefined)
     pendingFingerprint.value = null
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = e?.toString?.() || '确认指纹失败'
   }
 }
@@ -134,7 +135,7 @@ async function reconnectHost() {
   error.value = ''
   try {
     activeConnectionState.value = await sshReconnect(activeEnvId.value, connectPassword.value || undefined)
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = e?.toString?.() || '重连失败'
   }
 }
@@ -157,7 +158,7 @@ async function disconnectHost() {
     activeConnectionState.value = await sshDisconnect()
     activeEnvId.value = ''
     pendingFingerprint.value = null
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = e?.toString?.() || '断开连接失败'
   }
 }
@@ -168,7 +169,7 @@ async function detectCli() {
   try {
     const data = await sshDetectCli(activeEnvId.value)
     cliStatusText.value = JSON.stringify(data, null, 2)
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = e?.toString?.() || 'CLI 检测失败'
   }
 }
@@ -178,7 +179,7 @@ async function readConfig() {
   error.value = ''
   try {
     configContent.value = await sshReadConfig(activeEnvId.value, platform.value, configPath.value)
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = e?.toString?.() || '读取配置失败'
   }
 }
@@ -188,7 +189,7 @@ async function writeConfig() {
   error.value = ''
   try {
     await sshWriteConfig(activeEnvId.value, platform.value, configPath.value, configContent.value, true)
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = e?.toString?.() || '写入配置失败'
   }
 }
@@ -199,7 +200,7 @@ async function testConnect(host: SshHostConfig) {
   try {
     const result = await sshTestConnection(envId)
     testResults.value = { ...testResults.value, [envId]: result }
-  } catch (e: any) {
+  } catch (e: unknown) {
     testResults.value = {
       ...testResults.value,
       [envId]: { success: false, latency_ms: 0, error: e?.toString?.() || '测试失败' },

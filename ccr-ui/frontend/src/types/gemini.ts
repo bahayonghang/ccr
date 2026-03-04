@@ -34,16 +34,16 @@ export interface GeminiMcpServersResponse {
 
 export interface GeminiConfig {
   mcpServers?: Record<string, Omit<GeminiMcpServer, 'name'>>;
-  general?: Record<string, any>;
-  output?: Record<string, any>;
-  ui?: Record<string, any>;
-  model?: Record<string, any>;
-  context?: Record<string, any>;
-  tools?: Record<string, any>;
-  mcp?: Record<string, any>;
-  security?: Record<string, any>;
-  advanced?: Record<string, any>;
-  experimental?: Record<string, any>;
+  general?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  ui?: Record<string, unknown>;
+  model?: Record<string, unknown>;
+  context?: Record<string, unknown>;
+  tools?: Record<string, unknown>;
+  mcp?: Record<string, unknown>;
+  security?: Record<string, unknown>;
+  advanced?: Record<string, unknown>;
+  experimental?: Record<string, unknown>;
 }
 
 export interface GeminiConfigResponse {

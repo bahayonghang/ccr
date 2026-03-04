@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
@@ -174,6 +175,7 @@ import {
 } from 'lucide-vue-next'
 import type { UnifiedSkill, MarketplaceItem, Platform, PlatformSummary } from '@/types/skills'
 import { PLATFORM_CONFIG } from '@/types/skills'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 const props = defineProps<{
   modelValue: boolean
@@ -231,7 +233,7 @@ function getPlatformColor(platformId: string): string {
 }
 
 function getPlatformIcon(platformId: string) {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, unknown> = {
     'claude-code': Code2,
     'codex': Settings,
     'gemini': Sparkles,
@@ -251,8 +253,8 @@ async function handleInstall() {
   try {
     emit('install', [...selectedPlatforms.value])
     close()
-  } catch (err: any) {
-    error.value = err.message || 'Installation failed'
+  } catch (err: unknown) {
+    error.value = getErrorMessage(err) || 'Installation failed'
   } finally {
     isInstalling.value = false
   }

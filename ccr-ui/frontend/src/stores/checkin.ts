@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import { listCheckinAccounts, listCheckinRecords, getTodayCheckinStats } from '@/api'
-import type { AccountInfo, CheckinRecordInfo, CheckinRecordsQuery } from '@/types/checkin'
+import type {
+  AccountInfo,
+  AccountsResponse,
+  CheckinRecordInfo,
+  CheckinRecordsQuery,
+  CheckinRecordsResponse,
+} from '@/types/checkin'
 
 const CACHE_TTL = 30 * 1000 // 30s
 
@@ -83,7 +89,7 @@ export const useCheckinStore = defineStore('checkin', {
       this.accountsLoading = true
       this.accountsError = null
       try {
-        const response = await listCheckinAccounts()
+        const response = await listCheckinAccounts<AccountsResponse>()
         this.accounts = response.accounts
         this.accountsLastFetchedAt = Date.now()
         return this.accounts
@@ -101,7 +107,7 @@ export const useCheckinStore = defineStore('checkin', {
       this.recordsError = null
       try {
         const query = params || { page: 1, page_size: 20 }
-        const response = await listCheckinRecords(query)
+        const response = await listCheckinRecords<CheckinRecordsResponse>(query)
         this.records = response.records
         this.recordsTotal = response.total
         this.recordsLastFetchedAt = Date.now()

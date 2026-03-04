@@ -16,7 +16,7 @@ export interface SlashCommandRequest {
 export interface FolderOption {
   label: string
   value: string
-  icon: any
+  icon: unknown
   count: number
 }
 

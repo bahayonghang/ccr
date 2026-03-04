@@ -145,6 +145,12 @@ import { getVersion, checkUpdate, updateCCR } from '@/api'
 import type { VersionInfo, UpdateCheckResponse } from '@/types'
 import UpdateModal from './UpdateModal.vue'
 
+interface UpdateResult {
+  success: boolean
+  output?: string
+  error?: string
+}
+
 const versionInfo = ref<VersionInfo | null>(null)
 const updateInfo = ref<UpdateCheckResponse | null>(null)
 const isCheckingUpdate = ref(false)
@@ -159,7 +165,7 @@ onMounted(() => {
 
 const loadVersionInfo = async () => {
   try {
-    const data = await getVersion()
+    const data = await getVersion<VersionInfo>()
     versionInfo.value = data
   } catch (err) {
     console.error('Failed to load version info:', err)
@@ -169,7 +175,7 @@ const loadVersionInfo = async () => {
 const handleCheckUpdate = async () => {
   isCheckingUpdate.value = true
   try {
-    const data = await checkUpdate()
+    const data = await checkUpdate<UpdateCheckResponse>()
     updateInfo.value = data
   } catch (err) {
     console.error('Failed to check for updates:', err)
@@ -190,7 +196,7 @@ const handleConfirmUpdate = async () => {
   updateOutput.value = '开始更新 CCR...\n'
 
   try {
-    const result = await updateCCR()
+    const result = await updateCCR<UpdateResult>()
 
     if (result.success) {
       updateOutput.value = result.output || '更新完成！'

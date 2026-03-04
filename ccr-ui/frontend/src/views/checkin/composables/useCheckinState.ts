@@ -15,15 +15,21 @@ import {
   queryCheckinBalance,
   checkinAccount,
 } from '@/api'
+import { logger } from '@/utils/logger'
 import type {
+  AccountsResponse,
+  BalanceSnapshot,
+  BuiltinProvidersResponse,
   CheckinProvider,
   AccountInfo,
   CheckinRecordInfo,
+  CheckinRecordsResponse,
   TodayCheckinStats,
   CheckinResponse,
   CheckinExecutionResult,
   BuiltinProvider,
   CheckinLogEntry,
+  ProvidersResponse,
 } from '@/types/checkin'
 
 /** 签到数据刷新选项 */
@@ -41,6 +47,9 @@ export interface CheckinRefreshOptions {
  * 提供所有 tab 组件共享的状态、计算属性和操作函数
  */
 export function useCheckinState() {
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
+
   // ═══════════════════════════════════════════════════════════
   // 状态
   // ═══════════════════════════════════════════════════════════
@@ -140,11 +149,11 @@ export function useCheckinState() {
 
     try {
       const results = await Promise.allSettled([
-        listCheckinProviders(),
-        listCheckinAccounts(),
-        listCheckinRecords({ page: 1, page_size: 100 }),
-        getTodayCheckinStats(),
-        listBuiltinProviders(),
+        listCheckinProviders<ProvidersResponse>(),
+        listCheckinAccounts<AccountsResponse>(),
+        listCheckinRecords<CheckinRecordsResponse>({ page: 1, page_size: 100 }),
+        getTodayCheckinStats<TodayCheckinStats>(),
+        listBuiltinProviders<BuiltinProvidersResponse>(),
       ])
 
       if (results[0].status === 'fulfilled') {
@@ -160,7 +169,7 @@ export function useCheckinState() {
         todayStats.value = results[3].value
       }
       if (results[4].status === 'fulfilled') {
-        builtinProviders.value = results[4].value.providers ?? results[4].value ?? []
+        builtinProviders.value = results[4].value.providers ?? []
       }
 
       // 如果全部失败，显示错误
@@ -168,9 +177,9 @@ export function useCheckinState() {
       if (allFailed) {
         error.value = '加载签到数据失败'
       }
-    } catch (e: any) {
-      error.value = e.message || '加载失败'
-      console.error('Failed to load checkin data:', e)
+    } catch (e: unknown) {
+      error.value = getErrorMessage(e, '加载失败')
+      logger.error('Failed to load checkin data', e)
     } finally {
       loading.value = false
     }
@@ -208,30 +217,30 @@ export function useCheckinState() {
       reloadBuiltin = false,
     } = options
 
-    const tasks: Promise<any>[] = []
+    const tasks: Promise<unknown>[] = []
 
     if (reloadProviders) {
-      tasks.push(listCheckinProviders().then((res) => {
+      tasks.push(listCheckinProviders<ProvidersResponse>().then((res) => {
         providers.value = res.providers
       }))
     }
     if (reloadAccounts) {
-      tasks.push(listCheckinAccounts().then((res) => {
+      tasks.push(listCheckinAccounts<AccountsResponse>().then((res) => {
         accounts.value = res.accounts
       }))
     }
     if (reloadRecords) {
-      tasks.push(listCheckinRecords({ page: 1, page_size: 100 }).then((res) => {
+      tasks.push(listCheckinRecords<CheckinRecordsResponse>({ page: 1, page_size: 100 }).then((res) => {
         records.value = res.records
       }))
     }
     if (reloadStats) {
-      tasks.push(getTodayCheckinStats().then((res) => {
+      tasks.push(getTodayCheckinStats<TodayCheckinStats>().then((res) => {
         todayStats.value = res
       }))
     }
     if (reloadBuiltin) {
-      tasks.push(listBuiltinProviders().then((res) => {
+      tasks.push(listBuiltinProviders<BuiltinProvidersResponse>().then((res) => {
         builtinProviders.value = res.providers
       }))
     }
@@ -310,7 +319,7 @@ export function useCheckinState() {
         }
 
         try {
-          const result = await checkinAccount(account.id)
+          const result = await checkinAccount<CheckinExecutionResult>(account.id)
           results.push(result)
 
           // 更新日志
@@ -333,11 +342,12 @@ export function useCheckinState() {
             checkinLogs.value[logIndex].balance = result.balance
             checkinLogs.value[logIndex].reward = result.reward
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
+          const message = getErrorMessage(e, '请求失败')
           // 单个账号签到失败
           if (logIndex >= 0) {
             checkinLogs.value[logIndex].status = 'failed'
-            checkinLogs.value[logIndex].message = e.message || '请求失败'
+            checkinLogs.value[logIndex].message = message
           }
           failedCount++
           results.push({
@@ -345,7 +355,7 @@ export function useCheckinState() {
             account_name: account.name,
             provider_name: account.provider_name || '未知',
             status: 'failed',
-            message: e.message || '请求失败'
+            message,
           })
         }
 
@@ -378,10 +388,10 @@ export function useCheckinState() {
         await nextTick()
         checkinResultRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       showProgressModal.value = false
-      alert('签到失败: ' + (e.message || '未知错误'))
-      console.error('Checkin failed:', e)
+      alert('签到失败: ' + getErrorMessage(e, '未知错误'))
+      logger.error('Checkin failed', e)
     } finally {
       checkinLoading.value = false
     }
@@ -396,9 +406,9 @@ export function useCheckinState() {
         reloadRecords: true,
         reloadStats: true,
       })
-    } catch (e: any) {
-      alert('签到失败: ' + (e.message || '未知错误'))
-      console.error('Single checkin failed:', e)
+    } catch (e: unknown) {
+      alert('签到失败: ' + getErrorMessage(e, '未知错误'))
+      logger.error('Single checkin failed', e)
     }
   }
 
@@ -415,7 +425,7 @@ export function useCheckinState() {
 
     try {
       const results = await Promise.allSettled(
-        enabledAccs.map(account => queryCheckinBalance(account.id))
+        enabledAccs.map(account => queryCheckinBalance<BalanceSnapshot>(account.id))
       )
       for (const result of results) {
         if (result.status === 'fulfilled') {
@@ -427,8 +437,8 @@ export function useCheckinState() {
         reloadRecords: true,
         reloadStats: true,
       })
-    } catch (e: any) {
-      console.error('Batch refresh failed:', e)
+    } catch (e: unknown) {
+      logger.error('Batch refresh failed', e)
     } finally {
       balanceRefreshing.value = false
     }
@@ -437,15 +447,15 @@ export function useCheckinState() {
   // 刷新单个账号余额
   const refreshAccountBalance = async (accountId: string) => {
     try {
-      const snapshot = await queryCheckinBalance(accountId)
+      const snapshot = await queryCheckinBalance<BalanceSnapshot>(accountId)
       applyBalanceSnapshot(snapshot)
       await refreshCheckinData({
         reloadAccounts: false,
         reloadRecords: false,
         reloadStats: true,
       })
-    } catch (e: any) {
-      alert('刷新余额失败: ' + (e.message || '未知错误'))
+    } catch (e: unknown) {
+      alert('刷新余额失败: ' + getErrorMessage(e, '未知错误'))
     }
   }
 
@@ -457,9 +467,9 @@ export function useCheckinState() {
     try {
       await apiAddBuiltinProvider(builtinId)
       await loadAllData()
-    } catch (e: any) {
-      alert('添加失败: ' + (e.message || '未知错误'))
-      console.error('Failed to add builtin provider:', e)
+    } catch (e: unknown) {
+      alert('添加失败: ' + getErrorMessage(e, '未知错误'))
+      logger.error('Failed to add builtin provider', e)
     }
   }
 

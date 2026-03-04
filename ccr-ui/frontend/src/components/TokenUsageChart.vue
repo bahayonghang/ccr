@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="token-usage-chart glass-card rounded-2xl p-6 backdrop-blur-xl bg-white/70 dark:bg-gray-800/70 border border-white/20 dark:border-gray-700/50 shadow-xl">
     <!-- Header -->
@@ -351,6 +352,14 @@ interface Props {
   selectedModel: string
 }
 
+interface ChartPoint {
+  input: number
+  output: number
+  cache: number
+  time: string
+  timestamp: number
+}
+
 const props = defineProps<Props>()
 
 const activeSeries = ref<Set<string>>(new Set(['input', 'output']))
@@ -437,7 +446,7 @@ const formatNumber = (num: number): string => {
 
 // Aggregate data
 const chartData = computed(() => {
-  const intervals: Record<string, { input: number; output: number; cache: number; time: string; timestamp: number }> = {}
+  const intervals: Record<string, ChartPoint> = {}
   let format: string
 
   if (props.timeRange === 'all' || props.timeRange === 'month') {
@@ -547,7 +556,7 @@ const yStepSize = computed(() => {
 })
 
 // Smooth Path Generator (Catmull-Rom spline or Bezier)
-const generatePath = (getValue: (d: any) => number): string => {
+const generatePath = (getValue: (d: ChartPoint) => number): string => {
   const data = chartData.value
   if (data.length === 0) return ''
 

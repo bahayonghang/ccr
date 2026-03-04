@@ -73,6 +73,43 @@ interface BackendMarketplaceResponse {
   cached?: boolean
 }
 
+type UnknownRecord = Record<string, unknown>
+
+function asRecord(value: unknown): UnknownRecord {
+  return typeof value === 'object' && value !== null ? (value as UnknownRecord) : {}
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function pickArray(value: unknown, key: string): unknown[] {
+  return asArray(asRecord(value)[key])
+}
+
+function toStringArray(value: unknown): string[] {
+  return asArray(value).filter((item): item is string => typeof item === 'string')
+}
+
+function toBackendSkillItem(raw: unknown): BackendSkillItem {
+  const source = asRecord(raw)
+  return {
+    name: String(source.name ?? ''),
+    description: typeof source.description === 'string' ? source.description : undefined,
+    skill_dir: String(source.skill_dir ?? source.skillDir ?? ''),
+    platform: String(source.platform ?? ''),
+    platform_name: String(source.platform_name ?? source.platformName ?? source.platform ?? ''),
+    category: typeof source.category === 'string' ? source.category : undefined,
+    tags: toStringArray(source.tags),
+    version: typeof source.version === 'string' ? source.version : undefined,
+    author: typeof source.author === 'string' ? source.author : undefined,
+    source: typeof source.source === 'string' ? source.source : undefined,
+    source_url: typeof source.source_url === 'string' ? source.source_url : undefined,
+    install_date: typeof source.install_date === 'number' ? source.install_date : undefined,
+    commit_hash: typeof source.commit_hash === 'string' ? source.commit_hash : undefined,
+  }
+}
+
 export function useUnifiedSkills() {
   const store = useSkillsStore()
   const {
@@ -131,34 +168,40 @@ export function useUnifiedSkills() {
     }
   }
 
-  function transformPlatform(raw: any): PlatformSummary {
-    const id = normalizePlatformId(raw?.id || raw?.platform || '')
+  function transformPlatform(raw: unknown): PlatformSummary {
+    const source = asRecord(raw)
+    const id = normalizePlatformId(String(source.id ?? source.platform ?? ''))
     return {
       id,
-      display_name: raw?.display_name || raw?.displayName || raw?.name || id,
-      global_skills_dir: raw?.global_skills_dir || raw?.globalSkillsDir || '',
-      detected: Boolean(raw?.detected ?? true),
-      installed_count: Number(raw?.installed_count ?? raw?.installedCount ?? 0),
+      display_name: String(source.display_name ?? source.displayName ?? source.name ?? id),
+      global_skills_dir: String(source.global_skills_dir ?? source.globalSkillsDir ?? ''),
+      detected: Boolean(source.detected ?? true),
+      installed_count: Number(source.installed_count ?? source.installedCount ?? 0),
     }
   }
 
-  function toOperationResponse(raw: any): OperationResponse {
-    if (Array.isArray(raw?.results)) return raw as OperationResponse
+  function toOperationResponse(raw: unknown): OperationResponse {
+    const source = asRecord(raw)
+    const rawResults = source.results
+    if (Array.isArray(rawResults)) return raw as OperationResponse
     if (Array.isArray(raw)) {
       return {
-        results: raw.map((item: any) => ({
-          agent: item?.agent || item?.platform || 'unknown',
-          ok: Boolean(item?.ok ?? item?.success ?? true),
-          message: item?.message,
-        })),
+        results: raw.map((item) => {
+          const row = asRecord(item)
+          return {
+            agent: String(row.agent ?? row.platform ?? 'unknown'),
+            ok: Boolean(row.ok ?? row.success ?? true),
+            message: typeof row.message === 'string' ? row.message : undefined,
+          }
+        }),
       }
     }
     return {
       results: [
         {
           agent: 'unknown',
-          ok: Boolean(raw?.ok ?? raw?.success ?? true),
-          message: raw?.message,
+          ok: Boolean(source.ok ?? source.success ?? true),
+          message: typeof source.message === 'string' ? source.message : undefined,
         },
       ],
     }
@@ -195,37 +238,33 @@ export function useUnifiedSkills() {
 
     try {
       // 使用 unified 命令一次性获取所有平台数据，避免 N+1 查询
-      const response = await getSkillHubUnified()
-      const platformList = Array.isArray(response?.platforms)
-        ? response.platforms
-        : []
+      const response = await getSkillHubUnified<UnknownRecord>()
+      const platformList = pickArray(response, 'platforms')
       const normalizedPlatforms = platformList.map(transformPlatform)
       store.setPlatforms(normalizedPlatforms)
 
-      const skillsRaw = Array.isArray(response?.skills)
-        ? response.skills
-        : []
-      const allSkills: UnifiedSkill[] = skillsRaw.map((s: BackendSkillItem) => transformSkill(s))
+      const skillsRaw = pickArray(response, 'skills')
+      const allSkills: UnifiedSkill[] = skillsRaw.map((s) => transformSkill(toBackendSkillItem(s)))
       store.setSkills(allSkills)
     } catch (err) {
       // unified 命令失败时回退到 N+1 模式
       logger.warn('[useUnifiedSkills] unified 查询失败，回退到逐平台查询', err)
       try {
-        const platformRows = await getSkillHubAgents()
+        const platformRows = await getSkillHubAgents<unknown>()
         const platformList = Array.isArray(platformRows)
           ? platformRows
-          : (platformRows?.platforms || platformRows?.agents || [])
+          : (pickArray(platformRows, 'platforms').length > 0 ? pickArray(platformRows, 'platforms') : pickArray(platformRows, 'agents'))
         const normalizedPlatforms = platformList.map(transformPlatform)
         store.setPlatforms(normalizedPlatforms)
 
         const allSkills: UnifiedSkill[] = []
         for (const p of normalizedPlatforms) {
           try {
-            const rows = await getSkillHubAgentSkills(p.id)
+            const rows = await getSkillHubAgentSkills<unknown>(p.id)
             const skillsRaw = Array.isArray(rows)
               ? rows
-              : (rows?.skills || rows?.data?.skills || [])
-            allSkills.push(...skillsRaw.map((s: BackendSkillItem) => transformSkill(s)))
+              : (pickArray(rows, 'skills').length > 0 ? pickArray(rows, 'skills') : pickArray(asRecord(rows).data, 'skills'))
+            allSkills.push(...skillsRaw.map((s) => transformSkill(toBackendSkillItem(s))))
           } catch (innerErr) {
             logger.warn(`[useUnifiedSkills] 拉取平台 ${p.id} 的 skills 失败`, innerErr)
           }
@@ -246,13 +285,13 @@ export function useUnifiedSkills() {
     store.setError(null)
 
     try {
-      const rows = await getSkillHubAgentSkills(platform)
+      const rows = await getSkillHubAgentSkills<unknown>(platform)
       const skillsRaw = Array.isArray(rows)
         ? rows
-        : (rows?.skills || rows?.data?.skills || [])
+        : (pickArray(rows, 'skills').length > 0 ? pickArray(rows, 'skills') : pickArray(asRecord(rows).data, 'skills'))
 
       const otherSkills = skills.value.filter((s) => s.platform !== platform)
-      const newSkills = skillsRaw.map((s: BackendSkillItem) => transformSkill(s))
+      const newSkills = skillsRaw.map((s) => transformSkill(toBackendSkillItem(s)))
       store.setSkills([...otherSkills, ...newSkills])
     } catch (err) {
       const errorMessage =
@@ -271,13 +310,17 @@ export function useUnifiedSkills() {
     store.setMarketplaceError(null)
 
     try {
-      const response = await getSkillHubTrending()
+      const response = await getSkillHubTrending<unknown>()
       // TODO: 当前 Tauri API 不支持 limit/page，先使用后端默认分页
       void limit
       void page
       const data: BackendMarketplaceResponse = Array.isArray(response)
         ? { items: response as BackendMarketplaceItem[] }
-        : response
+        : {
+          items: pickArray(response, 'items') as BackendMarketplaceItem[],
+          total: Number(asRecord(response).total ?? 0),
+          cached: Boolean(asRecord(response).cached ?? false),
+        }
 
       store.setMarketplaceItems(
         (data.items || []).map((item: BackendMarketplaceItem) => ({
@@ -307,13 +350,17 @@ export function useUnifiedSkills() {
     store.setMarketplaceError(null)
 
     try {
-      const response = await searchSkillHubMarketplace(query)
+      const response = await searchSkillHubMarketplace<unknown>(query)
       // TODO: 当前 Tauri API 不支持 limit/page，先使用后端默认分页
       void limit
       void page
       const data: BackendMarketplaceResponse = Array.isArray(response)
         ? { items: response as BackendMarketplaceItem[] }
-        : response
+        : {
+          items: pickArray(response, 'items') as BackendMarketplaceItem[],
+          total: Number(asRecord(response).total ?? 0),
+          cached: Boolean(asRecord(response).cached ?? false),
+        }
 
       store.setMarketplaceItems(
         (data.items || []).map((item: BackendMarketplaceItem) => ({
@@ -362,10 +409,10 @@ export function useUnifiedSkills() {
 
   async function fetchPlatforms() {
     try {
-      const response = await getSkillHubAgents()
+      const response = await getSkillHubAgents<unknown>()
       const platformList = Array.isArray(response)
         ? response
-        : (response?.platforms || response?.agents || [])
+        : (pickArray(response, 'platforms').length > 0 ? pickArray(response, 'platforms') : pickArray(response, 'agents'))
       store.setPlatforms(platformList.map(transformPlatform))
     } catch (err) {
       logger.error('Failed to fetch platforms', err)
@@ -391,15 +438,16 @@ export function useUnifiedSkills() {
   }
 
   async function fetchSkillContent(skillDir: string): Promise<SkillContent> {
-    const result = await getSkillHubSkillContent(skillDir)
+    const result = await getSkillHubSkillContent<unknown>(skillDir)
+    const source = asRecord(result)
     return {
-      name: result?.name || '',
-      description: result?.description,
-      category: result?.category,
-      tags: result?.tags || [],
-      content: result?.content || '',
-      raw: result?.raw || '',
-      skillDir: result?.skill_dir || skillDir,
+      name: String(source.name ?? ''),
+      description: typeof source.description === 'string' ? source.description : undefined,
+      category: typeof source.category === 'string' ? source.category : undefined,
+      tags: asArray(source.tags) as string[],
+      content: String(source.content ?? ''),
+      raw: String(source.raw ?? ''),
+      skillDir: String(source.skill_dir ?? skillDir),
     }
   }
 
@@ -422,43 +470,54 @@ export function useUnifiedSkills() {
   }
 
   async function importViaNpx(request: NpxInstallRequest): Promise<NpxInstallResponse> {
-    const result = await importSkillViaNpx(request.package, request.agents, request.global)
+    const result = await importSkillViaNpx<unknown>(request.package, request.agents, request.global)
+    const source = asRecord(result)
+    const resultRows = asArray(source.results)
     await scheduleMutationRefresh()
     return {
-      success: Boolean(result?.success),
-      method: result?.method || 'npx',
-      stdout: result?.stdout,
-      stderr: result?.stderr,
-      results: (result?.results || []).map((r: any) => ({
-        agent: r?.agent || 'unknown',
-        ok: Boolean(r?.ok ?? r?.success),
-        message: r?.message,
-      })),
+      success: Boolean(source.success),
+      method: String(source.method ?? 'npx'),
+      stdout: typeof source.stdout === 'string' ? source.stdout : undefined,
+      stderr: typeof source.stderr === 'string' ? source.stderr : undefined,
+      results: resultRows.map((r) => {
+        const row = asRecord(r)
+        return {
+          agent: String(row.agent ?? 'unknown'),
+          ok: Boolean(row.ok ?? row.success),
+          message: typeof row.message === 'string' ? row.message : undefined,
+        }
+      }),
     }
   }
 
   async function batchInstall(request: BatchInstallRequest): Promise<BatchInstallResponse> {
-    const result = await batchInstallSkills(request.packages, request.agents, request.force)
+    const result = await batchInstallSkills<unknown>(request.packages, request.agents, request.force)
+    const source = asRecord(result)
+    const resultRows = asArray(source.results)
     await scheduleMutationRefresh()
     return {
-      total: result?.total || 0,
-      successCount: result?.success_count || 0,
-      failCount: result?.fail_count || 0,
-      results: (result?.results || []).map((r: any) => ({
-        package: r?.package || '',
-        ok: Boolean(r?.ok),
-        message: r?.message,
-      })),
+      total: Number(source.total ?? 0),
+      successCount: Number(source.success_count ?? 0),
+      failCount: Number(source.fail_count ?? 0),
+      results: resultRows.map((r) => {
+        const row = asRecord(r)
+        return {
+          package: String(row.package ?? ''),
+          ok: Boolean(row.ok),
+          message: typeof row.message === 'string' ? row.message : undefined,
+        }
+      }),
     }
   }
 
   async function checkNpxStatus(): Promise<NpxStatus> {
     try {
-      const result = await checkNpxAvailability()
+      const result = await checkNpxAvailability<unknown>()
+      const source = asRecord(result)
       const status: NpxStatus = {
-        available: Boolean(result?.available),
-        version: result?.version,
-        path: result?.path,
+        available: Boolean(source.available),
+        version: typeof source.version === 'string' ? source.version : undefined,
+        path: typeof source.path === 'string' ? source.path : undefined,
       }
       store.setNpxStatus(status)
       return status
@@ -471,8 +530,9 @@ export function useUnifiedSkills() {
 
   async function browseFolder(): Promise<string | null> {
     try {
-      const result = await browseForFolder()
-      return result?.path ?? null
+      const result = await browseForFolder<unknown>()
+      const source = asRecord(result)
+      return typeof source.path === 'string' ? source.path : null
     } catch {
       return null
     }

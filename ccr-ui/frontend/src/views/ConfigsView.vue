@@ -1,3 +1,4 @@
+<!-- eslint-disable no-console -->
 <template>
   <div class="min-h-screen relative p-6">
     <AnimatedBackground complex />
@@ -64,7 +65,7 @@
               :class="activeTab === tab.id 
                 ? 'border-accent-primary text-accent-primary' 
                 : 'border-transparent text-text-muted hover:text-text-secondary'"
-              @click="activeTab = tab.id as any"
+              @click="activeTab = tab.id"
             >
               <component
                 :is="tab.icon"
@@ -151,6 +152,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable no-console */
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -176,8 +178,13 @@ import {
   getHistory, deleteConfig, enableConfig, disableConfig
 } from '@/api'
 import { getProviderUsage } from '@/api'
-import type { ConfigItem, HistoryEntry } from '@/types'
+import type { ConfigItem, ConfigListResponse, HistoryEntry, HistoryResponse } from '@/types'
 import { useUIStore } from '@/stores/ui'
+
+type FilterType = 'all' | 'official_relay' | 'third_party_model' | 'uncategorized'
+type SortType = 'name' | 'usage_count' | 'recent'
+type SortMode = 'count_desc' | 'count_asc' | 'name_asc'
+type TabId = 'configs' | 'history'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -188,9 +195,9 @@ const historyEntries = ref<HistoryEntry[]>([])
 const loading = ref(true)
 const historyLoading = ref(false)
 const error = ref<string | null>(null)
-const activeTab = ref<'configs' | 'history'>('configs')
-const currentFilter = ref<any>('all')
-const currentSort = ref('name') as any
+const activeTab = ref<TabId>('configs')
+const currentFilter = ref<FilterType>('all')
+const currentSort = ref<SortType>('name')
 const sidebarCollapsed = ref(false)
 
 // Modals
@@ -198,12 +205,12 @@ const isEditModalOpen = ref(false)
 const editingConfigName = ref('')
 const isAddModalOpen = ref(false)
 const showProviderModal = ref(false)
-const providerUsage = ref({})
+const providerUsage = ref<Record<string, number>>({})
 const providerLoading = ref(false)
-const providerError = ref(null)
-const providerSortMode = ref('count_desc') as any
+const providerError = ref<string | null>(null)
+const providerSortMode = ref<SortMode>('count_desc')
 
-const tabs = [
+const tabs: Array<{ id: TabId; label: string; icon: typeof Settings | typeof History }> = [
   { id: 'configs', label: t('configs.tabs.configList'), icon: Settings },
   { id: 'history', label: t('configs.tabs.history'), icon: History },
 ]
@@ -223,7 +230,7 @@ const filteredConfigs = computed(() => {
   if (currentFilter.value !== 'all') {
     list = list.filter(c => {
        if (currentFilter.value === 'official_relay') return c.provider_type?.toLowerCase().includes('official')
-       if (currentFilter.value === 'third_party') return c.provider_type?.toLowerCase().includes('third')
+       if (currentFilter.value === 'third_party_model') return c.provider_type?.toLowerCase().includes('third')
        return true
     })
   }
@@ -243,11 +250,12 @@ const filteredConfigs = computed(() => {
 const loadConfigs = async () => {
   loading.value = true
   try {
-    const data = await listConfigs()
+    const data = await listConfigs<ConfigListResponse>()
     configs.value = data.configs
-  } catch (e: any) { 
-    error.value = e.message 
-    uiStore.showError(t('configs.operationFailed') + ': ' + e.message)
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    error.value = message
+    uiStore.showError(`${t('configs.operationFailed')}: ${message}`)
   }
   finally { loading.value = false }
 }
@@ -255,11 +263,12 @@ const loadConfigs = async () => {
 const loadHistory = async () => {
   historyLoading.value = true
   try {
-    const data = await getHistory()
+    const data = await getHistory<HistoryResponse>()
     historyEntries.value = data.entries
-  } catch (e: any) { 
-    console.error(e) 
-    uiStore.showError('Failed to load history: ' + e.message)
+  } catch (e: unknown) {
+    console.error(e)
+    const message = e instanceof Error ? e.message : String(e)
+    uiStore.showError(`Failed to load history: ${message}`)
   }
   finally { historyLoading.value = false }
 }
@@ -267,8 +276,10 @@ const loadHistory = async () => {
 const loadProviderUsage = async () => {
   providerLoading.value = true
   try {
-    providerUsage.value = await getProviderUsage() || {}
-  } catch (e: any) { providerError.value = e.message }
+    providerUsage.value = (await getProviderUsage<Record<string, number>>()) || {}
+  } catch (e: unknown) {
+    providerError.value = e instanceof Error ? e.message : String(e)
+  }
   finally { providerLoading.value = false }
 }
 
@@ -285,8 +296,8 @@ const handleSwitch = async (name: string) => {
       await switchConfig(name)
       uiStore.showSuccess(`Switched to configuration ${name}`)
       refreshData()
-    } catch (e: any) {
-      uiStore.showError(e.message || 'Failed to switch configuration')
+    } catch (e: unknown) {
+      uiStore.showError(e instanceof Error ? e.message : 'Failed to switch configuration')
     }
   }
 }
@@ -299,8 +310,8 @@ const handleDelete = async (name: string) => {
       await deleteConfig(name); 
       uiStore.showSuccess(`Configuration ${name} deleted`)
       refreshData() 
-    } catch (e: any) {
-      uiStore.showError(e.message || 'Failed to delete configuration')
+    } catch (e: unknown) {
+      uiStore.showError(e instanceof Error ? e.message : 'Failed to delete configuration')
     }
   } 
 }
@@ -310,8 +321,8 @@ const handleEnable = async (name: string) => {
     await enableConfig(name); 
     uiStore.showSuccess(`Configuration ${name} enabled`)
     refreshData() 
-  } catch (e: any) {
-    uiStore.showError(e.message || 'Failed to enable configuration')
+  } catch (e: unknown) {
+    uiStore.showError(e instanceof Error ? e.message : 'Failed to enable configuration')
   }
 }
 
@@ -320,8 +331,8 @@ const handleDisable = async (name: string) => {
     await disableConfig(name); 
     uiStore.showSuccess(`Configuration ${name} disabled`)
     refreshData() 
-  } catch (e: any) {
-    uiStore.showError(e.message || 'Failed to disable configuration')
+  } catch (e: unknown) {
+    uiStore.showError(e instanceof Error ? e.message : 'Failed to disable configuration')
   }
 }
 const handleConfigClick = async (name: string) => {

@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
@@ -327,6 +328,7 @@ import go from 'highlight.js/lib/languages/go'
 import sql from 'highlight.js/lib/languages/sql'
 import markdown from 'highlight.js/lib/languages/markdown'
 import diff from 'highlight.js/lib/languages/diff'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 // 注册语言
 hljs.registerLanguage('javascript', javascript)
@@ -388,7 +390,7 @@ const platformColor = computed(() => {
 })
 
 const platformIcon = computed(() => {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, unknown> = {
     'claude-code': Code2,
     'codex': Settings,
     'gemini': GeminiIcon,
@@ -438,8 +440,8 @@ async function loadContent() {
   try {
     skillContent.value = await fetchSkillContent(props.skill.skillDir)
     editBuffer.value = skillContent.value.raw
-  } catch (err: any) {
-    contentError.value = err.message || 'Failed to load skill content'
+  } catch (err: unknown) {
+    contentError.value = getErrorMessage(err) || 'Failed to load skill content'
   } finally {
     isContentLoading.value = false
   }
@@ -476,8 +478,8 @@ async function handleSave() {
     editBuffer.value = skillContent.value.raw
     isEditMode.value = false
     emit('saved')
-  } catch (err: any) {
-    contentError.value = err.message || 'Failed to save'
+  } catch (err: unknown) {
+    contentError.value = getErrorMessage(err) || 'Failed to save'
   } finally {
     isSaving.value = false
   }
@@ -494,7 +496,7 @@ function shortenPath(path: string): string {
 }
 
 // Source display helpers
-const sourceIconMap: Record<string, any> = {
+const sourceIconMap: Record<string, unknown> = {
   marketplace: Store,
   github: Github,
   local: HardDrive,

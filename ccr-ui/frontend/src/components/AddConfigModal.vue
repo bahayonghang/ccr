@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div
     v-if="isOpen"
@@ -277,11 +278,13 @@ const templates = [
   { id: 'qwen', label: 'Qwen', description: 'Tongyi Qianwen', icon: '☁️', base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-max', provider_type: 'third_party_model' }
 ]
 
+type ConfigTemplate = (typeof templates)[number]
+
 const isFormValid = computed(() => 
   formData.value.name.trim() && formData.value.base_url.trim() && formData.value.auth_token.trim()
 )
 
-const applyTemplate = (tpl: any) => {
+const applyTemplate = (tpl: ConfigTemplate) => {
   selectedTemplate.value = tpl.id
   formData.value = { ...formData.value, ...tpl }
   if(!formData.value.name) formData.value.name = tpl.id.replace(/_/g, '-')

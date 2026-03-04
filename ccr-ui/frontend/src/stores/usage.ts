@@ -16,6 +16,8 @@ import type {
   PaginatedLogs,
   Platform,
   ProjectStat,
+  UsageDashboardResponse,
+  UsageLogsQuery,
   UsageSummary,
 } from '@/types/usage'
 import {
@@ -45,6 +47,7 @@ const USE_DASHBOARD_API = parseEnvFlag(
   true,
 )
 const USE_CURSOR_LOGS = parseEnvFlag(import.meta.env.VITE_USAGE_LOGS_CURSOR_PAGING, true)
+const LAZY_HEATMAP_LOAD = parseEnvFlag(import.meta.env.VITE_PERF_HEATMAP_LAZY_LOAD, true)
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 
@@ -65,6 +68,16 @@ const recordPerfMetric = (
 interface FetchOptions {
   includeHeatmap?: boolean
   reason?: string
+}
+
+type UsageDashboardPayload = Omit<UsageDashboardResponse, 'heatmap' | 'generated_at'> & {
+  heatmap?: HeatmapResponse
+  by_model?: ModelStat[]
+  by_project?: ProjectStat[]
+}
+
+type IdleCapableWindow = Window & {
+  requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
 }
 
 export const useUsageStore = defineStore('usage', () => {
@@ -132,10 +145,7 @@ export const useUsageStore = defineStore('usage', () => {
     ].join('|')
 
    
-  const applyDashboardPayload = (
-    data: Record<string, any>,
-    includeHeatmap: boolean,
-  ) => {
+  const applyDashboardPayload = (data: UsageDashboardPayload, includeHeatmap: boolean) => {
     summary.value = data.summary ?? null
     trends.value = data.trends ?? []
     // 兼容后端 "by_model" / "model_stats" 两种字段名
@@ -149,13 +159,25 @@ export const useUsageStore = defineStore('usage', () => {
   // ═══ Actions ═══
   async function fetchHeatmap(reason: string = 'manual') {
     const startedAt = nowMs()
-    heatmap.value = await getUsageHeatmapV2(platform.value, HEATMAP_DAYS)
+    heatmap.value = await getUsageHeatmapV2<HeatmapResponse>(platform.value, HEATMAP_DAYS)
     recordPerfMetric('usage_heatmap_load_ms', nowMs() - startedAt, { reason })
+  }
+
+  function scheduleHeatmapLoad(reason: string) {
+    if (!LAZY_HEATMAP_LOAD) return
+    const win = typeof window !== 'undefined' ? (window as IdleCapableWindow) : null
+    if (typeof win?.requestIdleCallback === 'function') {
+      win.requestIdleCallback(() => { void fetchHeatmap(reason) }, { timeout: 1000 })
+    } else {
+      setTimeout(() => {
+        void fetchHeatmap(reason)
+      }, 200)
+    }
   }
 
   /** 拉取汇总、趋势、模型、项目和热力图 */
   async function fetchAll(options: FetchOptions = {}) {
-    const includeHeatmap = options.includeHeatmap ?? true
+    const includeHeatmap = options.includeHeatmap ?? !LAZY_HEATMAP_LOAD
     const reason = options.reason ?? 'manual'
     const startedAt = nowMs()
     const key = buildFetchKey(includeHeatmap)
@@ -174,7 +196,7 @@ export const useUsageStore = defineStore('usage', () => {
 
         if (USE_DASHBOARD_API) {
           requestCount = 1
-          const data = await getUsageDashboardV2(
+          const data = await getUsageDashboardV2<UsageDashboardPayload>(
             platform.value,
             timeRange.value.start,
             timeRange.value.end,
@@ -183,13 +205,16 @@ export const useUsageStore = defineStore('usage', () => {
           )
           if (requestId !== requestSerial) return
           applyDashboardPayload(data, includeHeatmap)
+          if (LAZY_HEATMAP_LOAD && !includeHeatmap) {
+            scheduleHeatmapLoad(`${reason}-lazy-heatmap`)
+          }
         } else {
           requestCount = includeHeatmap ? 5 : 4
           const [summaryData, trendsData, modelData, projectData] = await Promise.all([
-            getUsageSummaryV2(platform.value, timeRange.value.start, timeRange.value.end),
-            getUsageTrendsV2(platform.value, timeRange.value.start, timeRange.value.end),
-            getUsageByModelV2(platform.value, timeRange.value.start, timeRange.value.end),
-            getUsageByProjectV2(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageSummaryV2<UsageSummary>(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageTrendsV2<DailyTrend[]>(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageByModelV2<ModelStat[]>(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageByProjectV2<ProjectStat[]>(platform.value, timeRange.value.start, timeRange.value.end),
           ])
           if (requestId !== requestSerial) return
           summary.value = summaryData ?? null
@@ -198,6 +223,8 @@ export const useUsageStore = defineStore('usage', () => {
           projectStats.value = projectData ?? []
           if (includeHeatmap) {
             await fetchHeatmap(reason)
+          } else if (LAZY_HEATMAP_LOAD) {
+            scheduleHeatmapLoad(`${reason}-lazy-heatmap`)
           }
         }
 
@@ -236,7 +263,20 @@ export const useUsageStore = defineStore('usage', () => {
     logsLoading.value = true
     error.value = null
     try {
-      if (USE_CURSOR_LOGS) {
+      const preferredMode: 'cursor' | 'offset' = USE_CURSOR_LOGS ? 'cursor' : 'offset'
+      const prepareQuery = (mode: 'cursor' | 'offset', includeTotal: boolean): UsageLogsQuery => ({
+        platform: platform.value,
+        model: logsModelFilter.value,
+        start_date: timeRange.value.start,
+        end_date: timeRange.value.end,
+        page: logsPage.value,
+        page_size: logsPageSize.value,
+        cursor: mode === 'cursor' ? logsCursor.value : undefined,
+        include_total: includeTotal,
+        mode,
+      })
+
+      if (preferredMode === 'cursor') {
         if (direction === 'reset') {
           logsPage.value = 1
           logsCursor.value = undefined
@@ -254,27 +294,26 @@ export const useUsageStore = defineStore('usage', () => {
           logsPage.value = Math.max(1, logsPage.value - 1)
         }
 
-        const result = await getUsageLogsV2(
-          platform.value,
-          logsPage.value,
-          logsPageSize.value,
-          logsModelFilter.value,
-          logsCursor.value,
-          false,
-        )
-        logs.value = { ...result, page: logsPage.value, page_size: logsPageSize.value }
+        try {
+          const result = await getUsageLogsV2<PaginatedLogs>(prepareQuery('cursor', false))
+          logs.value = { ...result, page: logsPage.value, page_size: logsPageSize.value, mode: 'cursor' }
+        } catch (cursorError) {
+          // 兼容兜底：cursor 失败时退回 offset 模式
+          const offsetResult = await getUsageLogsV2<PaginatedLogs>({
+            ...prepareQuery('offset', true),
+            cursor: undefined,
+          })
+          logs.value = { ...offsetResult, page: logsPage.value, page_size: logsPageSize.value, mode: 'offset' }
+          if (import.meta.env.DEV) {
+            console.warn('[usage] cursor logs failed, fallback to offset', cursorError)
+          }
+        }
       } else {
         if (direction === 'next') logsPage.value += 1
         if (direction === 'prev') logsPage.value = Math.max(1, logsPage.value - 1)
         if (direction === 'reset') logsPage.value = 1
-        logs.value = await getUsageLogsV2(
-          platform.value,
-          logsPage.value,
-          logsPageSize.value,
-          logsModelFilter.value,
-          undefined,
-          true,
-        )
+        const result = await getUsageLogsV2<PaginatedLogs>(prepareQuery('offset', true))
+        logs.value = { ...result, mode: 'offset' }
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e)
@@ -296,10 +335,10 @@ export const useUsageStore = defineStore('usage', () => {
   /** 触发数据导入 */
   async function triggerImport(p?: string): Promise<ImportResult[]> {
     if (p) {
-      const r = await importUsageV2(p)
+      const r = await importUsageV2<ImportResult>(p)
       return [r]
     }
-    return importAllUsageV2()
+    return importAllUsageV2<ImportResult[]>()
   }
 
   /** 设置筛选条件并刷新（300ms 防抖） */
@@ -314,7 +353,7 @@ export const useUsageStore = defineStore('usage', () => {
 
     const startedAt = nowMs()
     filterDebounceTimer = setTimeout(async () => {
-      await fetchAll({ includeHeatmap: true, reason: 'filter' })
+      await fetchAll({ includeHeatmap: !LAZY_HEATMAP_LOAD, reason: 'filter' })
       recordPerfMetric('usage_filter_apply_ms', nowMs() - startedAt)
       filterDebounceTimer = null
     }, FILTER_DEBOUNCE_MS)
@@ -326,9 +365,11 @@ export const useUsageStore = defineStore('usage', () => {
     coreRefreshTimer = setInterval(() => {
       fetchAll({ includeHeatmap: false, reason: 'auto-refresh-core' })
     }, REFRESH_INTERVAL)
-    heatmapRefreshTimer = setInterval(() => {
-      fetchHeatmap('auto-refresh-heatmap')
-    }, HEATMAP_REFRESH_INTERVAL)
+    if (!LAZY_HEATMAP_LOAD) {
+      heatmapRefreshTimer = setInterval(() => {
+        fetchHeatmap('auto-refresh-heatmap')
+      }, HEATMAP_REFRESH_INTERVAL)
+    }
   }
 
   /** 停止自动刷新 */

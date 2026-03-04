@@ -334,7 +334,12 @@ import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import { listCodexProfiles, getCodexUsage, getCliVersions } from '@/api'
-import type { CliVersionEntry, CodexUsageResponse } from '@/types'
+import type {
+  CliVersionEntry,
+  CliVersionsResponse,
+  CodexProfilesResponse,
+  CodexUsageResponse
+} from '@/types'
 
 const { t } = useI18n()
 
@@ -377,7 +382,7 @@ const refreshUsage = async () => {
   usageLoading.value = true
   usageError.value = false
   try {
-    usageData.value = await getCodexUsage()
+    usageData.value = await getCodexUsage<CodexUsageResponse>()
   } catch (error) {
     console.error('Failed to load usage data:', error)
     usageError.value = true
@@ -477,14 +482,14 @@ const applyCodexVersionEntry = (entry?: CliVersionEntry) => {
 
 onMounted(async () => {
   try {
-    const data = await listCodexProfiles()
-    if (data.profiles) {
+    const data = await listCodexProfiles<CodexProfilesResponse>()
+    if (Array.isArray(data.profiles)) {
       profilesCount.value = data.profiles.length
       currentProfile.value = data.current_profile ?? null
     }
     
     // Fetch Codex version
-    const versions = await getCliVersions({ mode: 'fast', timeout: 3500 })
+    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeout: 3500 })
     const codex = versions.versions.find((v: CliVersionEntry) => v.platform === 'codex')
     applyCodexVersionEntry(codex)
   } catch (error) {

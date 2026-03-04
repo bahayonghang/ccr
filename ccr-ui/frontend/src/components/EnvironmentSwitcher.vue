@@ -1,3 +1,4 @@
+<!-- eslint-disable no-console -->
 <script setup lang="ts">
 /**
  * 环境切换器 — 显示当前执行环境，支持切换 Local/WSL/SSH

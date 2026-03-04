@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
     <div class="max-w-7xl mx-auto space-y-10">
@@ -190,11 +191,11 @@ import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import UsageStatsDashboard from '@/components/UsageStatsDashboard.vue'
 import { getSystemInfo, getCliVersions } from '@/api'
-import type { CliVersionEntry } from '@/types'
+import type { CliVersionEntry, CliVersionsResponse, SystemInfo } from '@/types'
 
 const { t } = useI18n()
 
-const systemInfo = ref<any>(null)
+const systemInfo = ref<SystemInfo | null>(null)
 const cliVersions = ref<Map<string, CliVersionEntry>>(new Map())
 
 const markPerf = (name: string) => {
@@ -211,7 +212,7 @@ const applyCliVersions = (entries: CliVersionEntry[]) => {
 
 const loadSystemInfo = async () => {
   try {
-    const sysInfo = await getSystemInfo().catch(() => null)
+    const sysInfo = await getSystemInfo<SystemInfo>().catch(() => null)
     systemInfo.value = sysInfo
     markPerf('home:system-ready')
   } catch (e) {
@@ -221,7 +222,7 @@ const loadSystemInfo = async () => {
 
 const loadCliVersions = async () => {
   try {
-    const versions = await getCliVersions({ mode: 'fast', timeout: 3500 }).catch(() => null)
+    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeout: 3500 }).catch(() => null)
     if (versions) {
       applyCliVersions(versions.versions)
     }

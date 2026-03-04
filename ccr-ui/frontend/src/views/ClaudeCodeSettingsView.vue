@@ -816,17 +816,26 @@ function addTag(field: string, targetArray: string[]) {
   }
 }
 
+function parseOptionalInteger(value?: string): number | undefined {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return undefined
+  }
+  const parsed = Number.parseInt(trimmed, 10)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
 // --- Load ---
 async function loadSettings() {
   loading.value = true
   try {
-    const data = await getClaudeSettings()
+    const data = await getClaudeSettings<ClaudeSettingsData>()
 
     form.model = data.model || ''
     form.availableModels = data.availableModels || []
     form.alwaysThinkingEnabled = data.alwaysThinkingEnabled
-    form.maxThinkingTokens = data.maxThinkingTokens
-    form.maxOutputTokens = data.maxOutputTokens
+    form.maxThinkingTokens = data.maxThinkingTokens != null ? String(data.maxThinkingTokens) : ''
+    form.maxOutputTokens = data.maxOutputTokens != null ? String(data.maxOutputTokens) : ''
     form.effortLevel = data.effortLevel || ''
     form.skipDangerousModePermissionPrompt = data.skipDangerousModePermissionPrompt
     form.theme = data.theme
@@ -882,8 +891,8 @@ async function handleSave() {
       model: form.model || undefined,
       availableModels: form.availableModels.length > 0 ? form.availableModels : undefined,
       alwaysThinkingEnabled: form.alwaysThinkingEnabled,
-      maxThinkingTokens: form.maxThinkingTokens || undefined,
-      maxOutputTokens: form.maxOutputTokens || undefined,
+      maxThinkingTokens: parseOptionalInteger(form.maxThinkingTokens),
+      maxOutputTokens: parseOptionalInteger(form.maxOutputTokens),
       effortLevel: form.effortLevel || undefined,
       permissions: {
         allow: permAllow.value,

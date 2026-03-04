@@ -6,7 +6,7 @@ import { ref } from 'vue'
 export interface ApiError {
   code: number
   message: string
-  details?: any
+  details?: unknown
 }
 
 /**

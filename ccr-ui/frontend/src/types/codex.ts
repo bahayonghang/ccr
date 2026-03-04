@@ -45,7 +45,7 @@ export interface CodexProfile {
   tags?: string[];
   usage_count?: number;
   enabled?: boolean;
-  extra?: Record<string, any>;
+  extra?: Record<string, unknown>;
 }
 
 export interface CodexProfileRequest {
@@ -60,7 +60,7 @@ export interface CodexProfileRequest {
   account?: string;
   tags?: string[];
   enabled?: boolean;
-  extra?: Record<string, any>;
+  extra?: Record<string, unknown>;
 }
 
 export interface CodexProfilesResponse {
@@ -80,7 +80,7 @@ export interface CodexCliProfile {
   approval_policy?: string;
   sandbox_mode?: string;
   model_reasoning_effort?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CodexConfig {

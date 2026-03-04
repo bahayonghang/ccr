@@ -236,7 +236,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, CheckCircle2, RefreshCw, Wallet, TrendingUp, History, CalendarDays, Flame, Trophy, Calendar } from 'lucide-vue-next'
 import { checkinAccount, getCheckinAccountDashboard, queryCheckinBalance } from '@/api'
-import type { CheckinAccountDashboardResponse } from '@/types/checkin'
+import type { BalanceSnapshot, CheckinAccountDashboardResponse } from '@/types/checkin'
 import { extractStringParam } from '@/types/router'
 import AccountDashboardCalendar from './components/AccountDashboardCalendar.vue'
 import AccountDashboardTrend from './components/AccountDashboardTrend.vue'
@@ -258,6 +258,8 @@ const trendDays = ref(30)
 const trendOptions = [7, 30, 90]
 
 const accountEnabled = computed(() => dashboard.value?.account.enabled ?? false)
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback
 
 const loadDashboard = async () => {
   if (!accountId.value) return
@@ -270,8 +272,8 @@ const loadDashboard = async () => {
       month: calendarMonth.value,
       days: trendDays.value,
     })
-  } catch (e: any) {
-    error.value = e.message || '加载失败'
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, '加载失败')
   } finally {
     loading.value = false
   }
@@ -285,8 +287,8 @@ const handleCheckin = async () => {
     // 注意：后端使用 snake_case 序列化枚举
     alert(`签到${result.status === 'success' ? '成功' : result.status === 'already_checked_in' ? '：今日已签到' : '失败'}: ${result.message || ''}`)
     await loadDashboard()
-  } catch (e: any) {
-    alert('签到失败: ' + (e.message || '未知错误'))
+  } catch (e: unknown) {
+    alert('签到失败: ' + getErrorMessage(e, '未知错误'))
   } finally {
     checkinLoading.value = false
   }
@@ -296,11 +298,11 @@ const handleBalanceRefresh = async () => {
   if (!accountId.value) return
   balanceLoading.value = true
   try {
-    const result = await queryCheckinBalance(accountId.value)
+    const result = await queryCheckinBalance<BalanceSnapshot>(accountId.value)
     alert(`余额: ${result.currency}${result.remaining_quota.toFixed(2)} (已用: ${result.usage_percentage.toFixed(1)}%)`)
     await loadDashboard()
-  } catch (e: any) {
-    alert('刷新余额失败: ' + (e.message || '未知错误'))
+  } catch (e: unknown) {
+    alert('刷新余额失败: ' + getErrorMessage(e, '未知错误'))
   } finally {
     balanceLoading.value = false
   }

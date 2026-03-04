@@ -1,3 +1,4 @@
+<!-- -->
 <template>
   <div class="space-y-6">
     <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
@@ -99,7 +100,7 @@ import {
   previewCheckinImport,
   importCheckinConfig,
 } from '@/api'
-import type { ExportData, ImportPreviewResponse } from '@/types/checkin'
+import type { ExportData, ImportPreviewResponse, ImportResult } from '@/types/checkin'
 
 const emit = defineEmits<{
   (e: 'refresh'): void
@@ -115,11 +116,13 @@ const exportOptions = ref({
 const importData = ref<ExportData | null>(null)
 const importPreview = ref<ImportPreviewResponse | null>(null)
 const importConflictStrategy = ref<'skip' | 'overwrite'>('skip')
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback
 
 // 导出操作
 const handleExport = async () => {
   try {
-    const data = await exportCheckinConfig(exportOptions.value)
+    const data = await exportCheckinConfig<ExportData>({ ...exportOptions.value })
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -127,8 +130,8 @@ const handleExport = async () => {
     a.download = `checkin-config-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-  } catch (e: any) {
-    alert('导出失败: ' + (e.message || '未知错误'))
+  } catch (e: unknown) {
+    alert('导出失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 
@@ -141,9 +144,9 @@ const handleFileSelect = async (event: Event) => {
     const text = await file.text()
     const data = JSON.parse(text) as ExportData
     importData.value = data
-    importPreview.value = await previewCheckinImport(data)
-  } catch (e: any) {
-    alert('解析文件失败: ' + (e.message || '未知错误'))
+    importPreview.value = await previewCheckinImport<ImportPreviewResponse>(data)
+  } catch (e: unknown) {
+    alert('解析文件失败: ' + getErrorMessage(e, '未知错误'))
     importData.value = null
     importPreview.value = null
   }
@@ -154,16 +157,16 @@ const handleImport = async () => {
   if (!importData.value) return
 
   try {
-    const result = await importCheckinConfig({
-      data: importData.value,
-      options: { conflict_strategy: importConflictStrategy.value },
-    })
+    const result = await importCheckinConfig<ImportResult>(
+      importData.value,
+      { conflict_strategy: importConflictStrategy.value },
+    )
     alert(`导入完成: 提供商 ${result.providers_imported} 个, 账号 ${result.accounts_imported} 个`)
     importData.value = null
     importPreview.value = null
     emit('refresh')
-  } catch (e: any) {
-    alert('导入失败: ' + (e.message || '未知错误'))
+  } catch (e: unknown) {
+    alert('导入失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 </script>

@@ -50,10 +50,14 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { Loader2, CheckCircle2, AlertTriangle, Download } from 'lucide-vue-next'
 import { getVersion } from '@/api'
+import { logger } from '@/utils/logger'
+
+interface VersionInfo {
+  current_version?: string
+}
 
 const loading = ref(true)
 const installed = ref(false)
@@ -62,7 +66,7 @@ const version = ref('')
 const checkStatus = async () => {
   loading.value = true
   try {
-    const info = await getVersion()
+    const info = await getVersion<VersionInfo>()
     if (info && info.current_version) {
       version.value = info.current_version
       installed.value = true
@@ -70,7 +74,7 @@ const checkStatus = async () => {
       installed.value = false
     }
   } catch (error) {
-    console.warn('CCR check failed:', error)
+    logger.warn('CCR check failed:', error)
     installed.value = false
   } finally {
     loading.value = false
