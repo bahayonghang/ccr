@@ -178,6 +178,11 @@ fn write_disk_cache(cache: &WslDistrosCache) -> Result<(), EnvError> {
             .map_err(|e| EnvError::Other(format!("释放文件锁失败: {e}")))?;
     }
 
+    // Windows 上 rename 不覆盖已存在文件，需先删除目标文件
+    if cache_path.exists() {
+        std::fs::remove_file(&cache_path)
+            .map_err(|e| EnvError::Other(format!("删除旧缓存文件失败: {e}")))?;
+    }
     std::fs::rename(&tmp_path, &cache_path)
         .map_err(|e| EnvError::Other(format!("重命名缓存文件失败: {e}")))?;
 
@@ -451,6 +456,12 @@ impl WslEnvironment {
 
         std::fs::write(&tmp_path, content)
             .map_err(|e| EnvError::Other(format!("写入临时文件失败 ({tmp_path}): {e}")))?;
+
+        // Windows 上 rename 不覆盖已存在文件，需先删除目标文件
+        if std::path::Path::new(&unc_path).exists() {
+            std::fs::remove_file(&unc_path)
+                .map_err(|e| EnvError::Other(format!("删除旧文件失败 ({unc_path}): {e}")))?;
+        }
 
         std::fs::rename(&tmp_path, &unc_path)
             .map_err(|e| EnvError::Other(format!("原子重命名失败: {e}")))?;
