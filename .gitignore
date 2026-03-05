@@ -65,6 +65,7 @@ cmake-build-*/
 .agent/
 .gemini/
 .agents/
+.omcodex/
 
 openspec/
 .serena/
@@ -84,3 +85,8 @@ ref/
 .omc/
 .omx/
 .workflow/
+
+# planning with files
+task_plan.md
+findings.md
+progress.md
