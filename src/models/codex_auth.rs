@@ -13,6 +13,133 @@ use serde::{Deserialize, Serialize};
 // Re-export shared types from ccr-types
 pub use ccr_types::{LoginState, TokenFreshness};
 
+/// OpenAI 认证方式
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum OpenAiAuthMethod {
+    Chatgpt,
+    Api,
+}
+
+/// 认证意图
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum AuthIntent {
+    /// OpenAI 认证（ChatGPT 登录 / API Key）
+    OpenAiAuth { method: OpenAiAuthMethod },
+    /// 自定义 provider 的 env_key 认证
+    ProviderEnvKey { env_key: String },
+    /// 无认证（本地模型等）
+    NoAuth,
+}
+
+/// 凭据存储类型（对齐 Codex cli_auth_credentials_store）
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CredentialStoreKind {
+    File,
+    Keyring,
+    Auto,
+}
+
+impl CredentialStoreKind {
+    pub fn from_config_value(value: Option<&str>) -> Self {
+        match value.unwrap_or("auto").to_ascii_lowercase().as_str() {
+            "file" => Self::File,
+            "keyring" => Self::Keyring,
+            _ => Self::Auto,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CredentialStoreKind::File => "file",
+            CredentialStoreKind::Keyring => "keyring",
+            CredentialStoreKind::Auto => "auto",
+        }
+    }
+}
+
+/// 认证状态
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthStateStatus {
+    Valid,
+    Invalid,
+    Missing,
+}
+
+/// 认证状态快照
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AuthState {
+    pub intent: AuthIntent,
+    pub store: CredentialStoreKind,
+    pub status: AuthStateStatus,
+    pub reason: String,
+}
+
+/// 认证迁移策略
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AuthTransitionPolicy {
+    pub from: AuthIntent,
+    pub to: AuthIntent,
+    pub clear_openai_tokens: bool,
+    pub clear_openai_api_key: bool,
+    pub clear_provider_keys: bool,
+    pub keep_provider_key: Option<String>,
+    pub require_relogin: bool,
+}
+
+impl AuthTransitionPolicy {
+    pub fn between(from: AuthIntent, to: AuthIntent) -> Self {
+        let mut policy = Self {
+            from: from.clone(),
+            to: to.clone(),
+            clear_openai_tokens: false,
+            clear_openai_api_key: false,
+            clear_provider_keys: false,
+            keep_provider_key: None,
+            require_relogin: false,
+        };
+
+        match (&from, &to) {
+            (AuthIntent::ProviderEnvKey { .. }, AuthIntent::OpenAiAuth { .. })
+            | (AuthIntent::NoAuth, AuthIntent::OpenAiAuth { .. }) => {
+                policy.clear_openai_tokens = true;
+                policy.clear_openai_api_key = true;
+                policy.clear_provider_keys = true;
+                policy.require_relogin = true;
+            }
+            (AuthIntent::OpenAiAuth { .. }, AuthIntent::ProviderEnvKey { env_key }) => {
+                policy.clear_openai_tokens = true;
+                policy.clear_openai_api_key = true;
+                policy.clear_provider_keys = true;
+                policy.keep_provider_key = Some(env_key.clone());
+            }
+            (AuthIntent::ProviderEnvKey { .. }, AuthIntent::ProviderEnvKey { env_key }) => {
+                policy.clear_openai_tokens = true;
+                policy.clear_openai_api_key = true;
+                policy.clear_provider_keys = true;
+                policy.keep_provider_key = Some(env_key.clone());
+            }
+            (_, AuthIntent::NoAuth) => {
+                policy.clear_openai_tokens = true;
+                policy.clear_openai_api_key = true;
+                policy.clear_provider_keys = true;
+            }
+            (AuthIntent::OpenAiAuth { .. }, AuthIntent::OpenAiAuth { .. }) => {
+                // OpenAI -> OpenAI：保持 tokens，不做强制清理
+            }
+            (AuthIntent::NoAuth, AuthIntent::ProviderEnvKey { env_key }) => {
+                policy.clear_provider_keys = true;
+                policy.keep_provider_key = Some(env_key.clone());
+            }
+        }
+
+        policy
+    }
+}
+
 /// Codex 账号元数据
 ///
 /// 存储在 auth_registry.toml 中的账号信息

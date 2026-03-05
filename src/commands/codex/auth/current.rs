@@ -6,7 +6,7 @@
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
-use crate::models::{LoginState, TokenFreshness};
+use crate::models::{AuthIntent, AuthState, LoginState, TokenFreshness};
 use crate::services::CodexAuthService;
 use chrono::{DateTime, Local, Utc};
 use colored::Colorize;
@@ -24,6 +24,7 @@ pub async fn current_command() -> Result<()> {
 
     // 检查登录状态
     let login_state = service.get_login_state()?;
+    let auth_state = service.get_auth_state();
 
     println!();
     ColorOutput::title("Codex 当前账号");
@@ -32,6 +33,12 @@ pub async fn current_command() -> Result<()> {
     match login_state {
         LoginState::NotLoggedIn => {
             ColorOutput::warning("未登录 Codex");
+            ColorOutput::info(&format!(
+                "认证状态: {} / {}",
+                render_intent(&auth_state.intent),
+                auth_state.store.as_str()
+            ));
+            ColorOutput::info(&format!("原因: {}", auth_state.reason));
             println!();
             ColorOutput::info("请先运行以下命令登录:");
             println!("  codex login");
@@ -42,7 +49,7 @@ pub async fn current_command() -> Result<()> {
             // 显示详细信息
             if let Ok(info) = service.get_current_auth_info() {
                 println!();
-                display_auth_info(&service, &info, None); // 未保存的账号没有过期时间
+                display_auth_info(&service, &info, &auth_state, None); // 未保存的账号没有过期时间
 
                 println!();
                 ColorOutput::warning("当前登录尚未保存");
@@ -64,7 +71,7 @@ pub async fn current_command() -> Result<()> {
                     .and_then(|reg| reg.accounts.get(&name).and_then(|a| a.expires_at));
 
                 println!();
-                display_auth_info(&service, &info, expires_at);
+                display_auth_info(&service, &info, &auth_state, expires_at);
             }
 
             println!();
@@ -89,8 +96,13 @@ pub async fn current_command() -> Result<()> {
 fn display_auth_info(
     service: &CodexAuthService,
     info: &crate::models::CurrentAuthInfo,
+    auth_state: &AuthState,
     expires_at: Option<DateTime<Utc>>,
 ) {
+    ColorOutput::info(&format!("认证意图: {}", render_intent(&auth_state.intent)));
+    ColorOutput::info(&format!("凭据存储: {}", auth_state.store.as_str()));
+    ColorOutput::info(&format!("状态说明: {}", auth_state.reason));
+
     // 邮箱
     if let Some(email) = &info.email {
         ColorOutput::info(&format!("邮箱: {}", service.mask_email(email)));
@@ -136,6 +148,17 @@ fn display_auth_info(
         } else {
             ColorOutput::info(&label);
         }
+    }
+}
+
+fn render_intent(intent: &AuthIntent) -> String {
+    match intent {
+        AuthIntent::OpenAiAuth { method } => match method {
+            crate::models::OpenAiAuthMethod::Chatgpt => "OpenAI / ChatGPT".to_string(),
+            crate::models::OpenAiAuthMethod::Api => "OpenAI / API Key".to_string(),
+        },
+        AuthIntent::ProviderEnvKey { env_key } => format!("Provider / {env_key}"),
+        AuthIntent::NoAuth => "No Auth".to_string(),
     }
 }
 
