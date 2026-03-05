@@ -19,17 +19,16 @@
                 <Download class="w-5 h-5" />
               </div>
               <div>
-                <h2 class="text-lg font-bold text-text-primary">
+                <h2 class="text-lg font-bold text-white">
                   {{ $t('skills.installSkill') }}
                 </h2>
-                <p class="text-sm text-text-secondary">
+                <p class="text-sm text-white/80">
                   {{ skill?.name || marketplaceItem?.package }}
                 </p>
               </div>
             </div>
             <button
-              class="p-2 rounded-lg text-text-muted hover:text-text-primary
-                     hover:bg-bg-surface transition-colors"
+              class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
               @click="close"
             >
               <X class="w-5 h-5" />
@@ -43,7 +42,7 @@
               v-if="marketplaceItem"
               class="skill-info"
             >
-              <div class="flex items-center gap-2 text-sm text-text-secondary">
+              <div class="flex items-center gap-2 text-sm text-white/80">
                 <Github class="w-4 h-4" />
                 <a
                   :href="`https://github.com/${marketplaceItem.owner}/${marketplaceItem.repo}`"
@@ -57,7 +56,7 @@
 
             <!-- Platform Selection -->
             <div class="platform-selection">
-              <label class="text-sm font-semibold text-text-primary mb-3 block">
+              <label class="text-sm font-semibold text-white mb-3 block">
                 {{ $t('skills.selectPlatforms') }}
               </label>
               <div class="grid grid-cols-2 gap-2">
@@ -65,19 +64,14 @@
                   v-for="platform in availablePlatforms"
                   :key="platform.id"
                   class="platform-option"
-                  :class="{
-                    'platform-option--selected': selectedPlatforms.includes(platform.id),
-                    'platform-option--disabled': !platform.detected
-                  }"
+                  :class="{ 'platform-option--selected': selectedPlatforms.includes(platform.id), 'platform-option--disabled': !platform.detected }"
                   :disabled="!platform.detected"
                   @click="togglePlatform(platform)"
                 >
                   <div class="flex items-center gap-2">
                     <div
                       class="w-3 h-3 rounded-full border-2 transition-colors"
-                      :class="selectedPlatforms.includes(platform.id)
-                        ? 'border-accent-primary bg-accent-primary'
-                        : 'border-border-default'"
+                      :class="selectedPlatforms.includes(platform.id) ? 'border-accent-primary bg-accent-primary' : 'border-white/10'"
                     />
                     <component
                       :is="getPlatformIcon(platform.id)"
@@ -263,13 +257,13 @@ async function handleInstall() {
 
 <style scoped>
 .modal-content {
-  @apply bg-bg-base border border-border-default rounded-2xl
+  @apply bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl
          shadow-2xl overflow-hidden;
 }
 
 .modal-header {
   @apply flex items-center justify-between p-4
-         border-b border-border-subtle;
+         border-b border-white/5;
 }
 
 .modal-icon {
@@ -284,36 +278,36 @@ async function handleInstall() {
 }
 
 .skill-info {
-  @apply p-3 rounded-xl border border-border-subtle;
+  @apply p-3 rounded-xl border border-white/5;
 
-  background: rgb(var(--color-bg-surface-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .platform-selection {
-  @apply p-4 rounded-xl border border-border-subtle;
+  @apply p-4 rounded-xl border border-white/5;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .platform-option {
   @apply flex items-center justify-between p-3 rounded-xl
-         border border-border-subtle
-         text-sm text-text-secondary
+         border border-white/5
+         text-sm text-white/80
          transition-colors duration-200 cursor-pointer
-         hover:border-border-default hover:text-text-primary;
+         hover:border-white/10 hover:text-white;
 
-  background: rgb(var(--color-bg-surface-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .platform-option--selected {
-  @apply text-text-primary;
+  @apply text-white;
 
   border-color: rgb(var(--color-accent-primary-rgb) / 50%);
   background: rgb(var(--color-accent-primary-rgb) / 5%);
 }
 
 .platform-option--disabled {
-  @apply opacity-50 cursor-not-allowed hover:border-border-subtle;
+  @apply opacity-50 cursor-not-allowed hover:border-white/5;
 }
 
 .quick-actions {
@@ -322,8 +316,8 @@ async function handleInstall() {
 
 .quick-action {
   @apply flex items-center gap-2 px-3 py-2 rounded-lg
-         text-xs font-medium text-text-secondary
-         bg-bg-surface hover:bg-bg-elevated
+         text-xs font-medium text-white/80
+         bg-white/5 hover:bg-white/5
          transition-colors;
 }
 
@@ -336,15 +330,15 @@ async function handleInstall() {
 
 .modal-footer {
   @apply flex items-center justify-end gap-2 p-4
-         border-t border-border-subtle;
+         border-t border-white/5;
 
-  background: rgb(var(--color-bg-surface-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary {
   @apply px-4 py-2 rounded-xl text-sm font-semibold
-         text-text-secondary hover:text-text-primary
-         hover:bg-bg-elevated transition-colors;
+         text-white/80 hover:text-white
+         hover:bg-white/5 transition-colors;
 }
 
 .btn-primary {

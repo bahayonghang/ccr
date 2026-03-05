@@ -11,7 +11,7 @@
       <template v-if="index < items.length - 1">
         <RouterLink
           :to="item.path"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-[color,background-color,transform] hover:scale-105 text-text-secondary bg-transparent text-sm font-medium hover:bg-bg-secondary hover:text-text-primary"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-[color,background-color,transform] hover:scale-105 text-white/80 bg-transparent text-sm font-medium hover:bg-bg-secondary hover:text-white"
         >
           <component
             :is="item.icon"
@@ -23,14 +23,14 @@
         
         <!-- 分隔符 -->
         <ChevronRight
-          class="w-4 h-4 text-text-muted opacity-50"
+          class="w-4 h-4 text-white/50 opacity-50"
         />
       </template>
       
       <!-- 最后一项：当前页面，不可点击 -->
       <template v-else>
         <div
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-text-primary text-sm font-semibold border"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-sm font-semibold border"
           :class="moduleColor ? '' : 'bg-bg-tertiary border-border-color'"
           :style="moduleColor ? {
             background: `${moduleColor}15`,

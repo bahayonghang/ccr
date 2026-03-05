@@ -47,7 +47,7 @@
               <slot name="header">
                 <h2
                   :id="titleId"
-                  class="text-lg font-semibold text-text-primary"
+                  class="text-lg font-semibold text-white"
                 >
                   {{ title }}
                 </h2>
@@ -57,8 +57,8 @@
               <button
                 v-if="showClose"
                 type="button"
-                class="absolute top-4 right-4 p-1.5 rounded-lg text-text-muted
-                       hover:text-text-primary hover:bg-bg-hover
+                class="absolute top-4 right-4 p-1.5 rounded-lg text-white/50
+                       hover:text-white hover:bg-bg-hover
                        focus:outline-none focus:ring-2 focus:ring-accent-primary/30
                        transition-colors duration-150"
                 aria-label="关闭"

@@ -93,14 +93,14 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Variant classes
 const variantClasses = {
-  default: 'bg-bg-tertiary text-text-secondary border-border-color',
+  default: 'bg-bg-tertiary text-white/80 border-border-color',
   primary: 'bg-accent-primary/10 text-accent-primary border-accent-primary/20',
   secondary: 'bg-accent-secondary/10 text-accent-secondary border-accent-secondary/20',
   success: 'bg-accent-success/10 text-accent-success border-accent-success/20',
   warning: 'bg-accent-warning/10 text-accent-warning border-accent-warning/20',
   danger: 'bg-accent-danger/10 text-accent-danger border-accent-danger/20',
   info: 'bg-accent-info/10 text-accent-info border-accent-info/20',
-  outline: 'bg-transparent text-text-secondary border-border-color',
+  outline: 'bg-transparent text-white/80 border-border-color',
 }
 
 // Platform-specific classes

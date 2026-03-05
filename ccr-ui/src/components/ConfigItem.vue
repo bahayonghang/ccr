@@ -21,7 +21,7 @@
         <div class="flex items-center gap-1.5">
           <span
             class="text-xs font-semibold truncate transition-colors duration-200"
-            :class="config.is_current ? 'text-accent-primary' : 'text-text-primary group-hover:text-text-primary'"
+            :class="config.is_current ? 'text-accent-primary' : 'text-white group-hover:text-white'"
             :title="config.name"
           >
             {{ config.name }}
@@ -35,7 +35,7 @@
         <!-- Provider 信息 -->
         <p
           v-if="config.provider"
-          class="text-[10px] text-text-muted truncate mt-0.5 leading-tight"
+          class="text-[10px] text-white/50 truncate mt-0.5 leading-tight"
         >
           {{ config.provider }}
         </p>
@@ -56,7 +56,7 @@
           默认
         </span>
         <ChevronRight
-          class="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-70 transition-opacity shrink-0"
+          class="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-70 transition-opacity shrink-0"
         />
       </div>
     </div>

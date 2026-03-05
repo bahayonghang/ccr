@@ -33,7 +33,7 @@
                     {{ $t('mcp.badge') }}
                   </span>
                 </div>
-                <p class="text-sm mt-1 text-text-secondary">
+                <p class="text-sm mt-1 text-white/80">
                   {{ $t('mcp.subtitle') }}
                 </p>
               </div>
@@ -70,10 +70,10 @@
               v-if="!servers || servers.length === 0"
               class="text-center py-16 glass-effect rounded-3xl border border-white/20 border-dashed"
             >
-              <div class="bg-bg-surface w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Server class="w-10 h-10 opacity-30 text-text-muted" />
+              <div class="bg-white/5 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Server class="w-10 h-10 opacity-30 text-white/50" />
               </div>
-              <p class="text-lg font-bold text-text-primary">
+              <p class="text-lg font-bold text-white">
                 {{ $t('mcp.noServers') }}
               </p>
             </div>
@@ -86,7 +86,7 @@
               <div class="flex items-start justify-between">
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-3">
-                    <h3 class="text-lg font-bold font-mono text-text-primary group-hover:text-violet-400 transition-colors">
+                    <h3 class="text-lg font-bold font-mono text-white group-hover:text-violet-400 transition-colors">
                       {{ server.name }}
                     </h3>
                     <span
@@ -99,14 +99,14 @@
 
                   <div class="space-y-2 text-sm">
                     <div class="flex items-center gap-2">
-                      <span class="text-text-muted w-20">{{ $t('mcp.command') }}:</span>
-                      <code class="px-2 py-1 rounded font-mono bg-bg-surface text-violet-400 border border-border-subtle">
+                      <span class="text-white/50 w-20">{{ $t('mcp.command') }}:</span>
+                      <code class="px-2 py-1 rounded font-mono bg-white/5 text-violet-400 border border-white/5">
                         {{ server.command }}
                       </code>
                     </div>
                     <div class="flex items-start gap-2">
-                      <span class="text-text-muted w-20 mt-1">{{ $t('mcp.args') }}:</span>
-                      <code class="px-2 py-1 rounded font-mono bg-bg-surface text-text-primary border border-border-subtle break-all">
+                      <span class="text-white/50 w-20 mt-1">{{ $t('mcp.args') }}:</span>
+                      <code class="px-2 py-1 rounded font-mono bg-white/5 text-white border border-white/5 break-all">
                         {{ (server.args || []).join(' ') }}
                       </code>
                     </div>
@@ -114,14 +114,14 @@
                       v-if="server.env && Object.keys(server.env).length > 0"
                       class="flex items-start gap-2"
                     >
-                      <span class="text-text-muted w-20 mt-1">{{ $t('mcp.envVars') }}:</span>
+                      <span class="text-white/50 w-20 mt-1">{{ $t('mcp.envVars') }}:</span>
                       <div class="space-y-1">
                         <div
                           v-for="[key, value] in Object.entries(server.env)"
                           :key="key"
-                          class="text-xs font-mono px-2 py-1 rounded bg-bg-surface border border-border-subtle"
+                          class="text-xs font-mono px-2 py-1 rounded bg-white/5 border border-white/5"
                         >
-                          <span class="text-violet-400">{{ key }}</span>=<span class="text-text-primary">{{ value }}</span>
+                          <span class="text-violet-400">{{ key }}</span>=<span class="text-white">{{ value }}</span>
                         </div>
                       </div>
                     </div>
@@ -131,7 +131,7 @@
                 <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <button
                     class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 border border-transparent"
-                    :class="server.disabled ? 'text-text-muted hover:text-success hover:bg-success/10' : 'text-success hover:text-text-muted hover:bg-bg-surface'"
+                    :class="server.disabled ? 'text-white/50 hover:text-success hover:bg-success/10' : 'text-success hover:text-white/50 hover:bg-white/5'"
                     :title="server.disabled ? $t('mcp.enable') : $t('mcp.disable')"
                     @click="handleToggle(server.name)"
                   >
@@ -145,14 +145,14 @@
                     />
                   </button>
                   <button
-                    class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-text-secondary hover:text-violet-400 hover:bg-violet-500/10"
+                    class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-white/80 hover:text-violet-400 hover:bg-violet-500/10"
                     :title="$t('mcp.edit')"
                     @click="handleEdit(server)"
                   >
                     <Edit2 class="w-4 h-4" />
                   </button>
                   <button
-                    class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-text-secondary hover:text-danger hover:bg-danger/10"
+                    class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-white/80 hover:text-danger hover:bg-danger/10"
                     :title="$t('mcp.delete')"
                     @click="handleDelete(server.name)"
                   >
@@ -174,13 +174,13 @@
               @click.stop
             >
               <button
-                class="absolute top-4 right-4 p-2 rounded-full hover:bg-bg-surface text-text-muted transition-colors"
+                class="absolute top-4 right-4 p-2 rounded-full hover:bg-white/5 text-white/50 transition-colors"
                 @click="showAddForm = false"
               >
                 <X class="w-5 h-5" />
               </button>
 
-              <h2 class="text-2xl font-bold mb-6 text-text-primary flex items-center gap-3">
+              <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 flex items-center justify-center text-violet-400 border border-violet-500/30">
                   <component
                     :is="editingServer ? Edit2 : Plus"
@@ -192,59 +192,59 @@
 
               <div class="space-y-5">
                 <div>
-                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                  <label class="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
                     {{ $t('mcp.serverName') }} <span class="text-danger">*</span>
                   </label>
                   <input
                     v-model="formData.name"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-text-primary"
+                    class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-white"
                     :placeholder="$t('mcp.namePlaceholder')"
                   >
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                  <label class="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
                     {{ $t('mcp.command') }} <span class="text-danger">*</span>
                   </label>
                   <input
                     v-model="formData.command"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-text-primary"
+                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-white/5 border border-white/10 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-white"
                     :placeholder="$t('mcp.commandPlaceholder')"
                   >
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                  <label class="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
                     {{ $t('mcp.args') }} <span class="text-danger">*</span>
                   </label>
                   <input
                     v-model="argInput"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-text-primary"
+                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-white/5 border border-white/10 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-white"
                     :placeholder="$t('mcp.argsPlaceholder')"
                   >
-                  <div class="text-xs mt-1.5 text-text-muted">
+                  <div class="text-xs mt-1.5 text-white/50">
                     {{ $t('mcp.argsHint') }}
                   </div>
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                  <label class="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
                     {{ $t('mcp.envVars') }}
                   </label>
                   <div class="flex gap-2 mb-3">
                     <input
                       v-model="envKey"
                       type="text"
-                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-text-primary"
+                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-white/5 border border-white/10 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-white"
                       :placeholder="$t('mcp.envKey')"
                     >
                     <input
                       v-model="envValue"
                       type="text"
-                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-text-primary"
+                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm bg-white/5 border border-white/10 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-white"
                       :placeholder="$t('mcp.envValue')"
                     >
                     <button
@@ -258,13 +258,13 @@
                     <div
                       v-for="[key, value] in Object.entries(formData.env || {})"
                       :key="key"
-                      class="flex items-center justify-between px-4 py-2 rounded-lg bg-bg-surface border border-border-subtle"
+                      class="flex items-center justify-between px-4 py-2 rounded-lg bg-white/5 border border-white/5"
                     >
-                      <code class="text-sm font-mono text-text-primary">
+                      <code class="text-sm font-mono text-white">
                         <span class="text-violet-400">{{ key }}</span>=<span>{{ value }}</span>
                       </code>
                       <button
-                        class="text-text-muted hover:text-danger transition-colors"
+                        class="text-white/50 hover:text-danger transition-colors"
                         @click="removeEnvVar(key)"
                       >
                         <X class="w-4 h-4" />
@@ -273,25 +273,25 @@
                   </div>
                 </div>
 
-                <div class="flex items-center gap-3 p-4 rounded-xl bg-bg-surface/50 border border-border-subtle">
+                <div class="flex items-center gap-3 p-4 rounded-xl bg-white/5/50 border border-white/5">
                   <input
                     id="disabled"
                     v-model="formData.disabled"
                     type="checkbox"
-                    class="w-5 h-5 rounded text-violet-500 focus:ring-violet-500/20 border-border-default"
+                    class="w-5 h-5 rounded text-violet-500 focus:ring-violet-500/20 border-white/10"
                   >
                   <label
                     for="disabled"
-                    class="text-sm font-medium text-text-secondary cursor-pointer"
+                    class="text-sm font-medium text-white/80 cursor-pointer"
                   >
                     {{ $t('mcp.disableServer') }}
                   </label>
                 </div>
               </div>
 
-              <div class="flex gap-4 mt-8 pt-6 border-t border-border-subtle">
+              <div class="flex gap-4 mt-8 pt-6 border-t border-white/5">
                 <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-bg-surface text-text-secondary hover:bg-bg-overlay border border-border-default"
+                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white/5 text-white/80 hover:bg-white/10 border border-white/10"
                   @click="showAddForm = false"
                 >
                   {{ $t('mcp.cancel') }}

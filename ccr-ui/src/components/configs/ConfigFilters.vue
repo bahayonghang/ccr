@@ -22,7 +22,7 @@
     <div class="flex items-center gap-3">
       <!-- 排序下拉菜单 -->
       <div class="flex items-center gap-2">
-        <label class="text-sm font-medium whitespace-nowrap text-text-secondary">
+        <label class="text-sm font-medium whitespace-nowrap text-white/80">
           {{ $t('configs.sort.label') }}
         </label>
         <div class="relative">
@@ -45,7 +45,7 @@
             :is="sortIcons[currentSort]"
             class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-primary pointer-events-none"
           />
-          <ChevronDown class="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+          <ChevronDown class="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none" />
         </div>
       </div>
 

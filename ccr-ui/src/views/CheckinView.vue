@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-text-primary flex items-center gap-3">
+        <h1 class="text-3xl font-bold text-white flex items-center gap-3">
           <ClipboardList class="w-8 h-8 text-accent-primary" />
           签到管理
         </h1>
@@ -371,7 +371,7 @@
             class="py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2"
             :class="activeTab === tab.id
               ? 'border-accent-primary text-accent-primary'
-              : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border-default'"
+              : 'border-transparent text-white/80 hover:text-white hover:border-white/10'"
             @click="activeTab = tab.id"
           >
             <component

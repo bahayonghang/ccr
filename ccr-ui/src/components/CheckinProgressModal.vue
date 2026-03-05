@@ -59,7 +59,7 @@ const getLogTextClass = (status: CheckinLogEntry['status']) => {
     case 'processing':
       return 'text-blue-400'
     default:
-      return 'text-text-secondary'
+      return 'text-white/80'
   }
 }
 
@@ -113,7 +113,7 @@ watch(
               stroke-linecap="round"
             />
           </svg>
-          <span class="absolute text-2xl font-bold text-text-primary">
+          <span class="absolute text-2xl font-bold text-white">
             <template v-if="isFinished">
               <CheckCircle class="w-10 h-10 text-green-500" />
             </template>
@@ -125,7 +125,7 @@ watch(
 
         <!-- 进度文本 -->
         <div class="space-y-1">
-          <p class="text-sm text-text-secondary">
+          <p class="text-sm text-white/80">
             {{ current }} / {{ total }} 账号
           </p>
           <p
@@ -145,7 +145,7 @@ watch(
 
       <!-- 签到日志 -->
       <div class="space-y-2">
-        <h4 class="text-sm font-medium text-text-secondary flex items-center gap-2">
+        <h4 class="text-sm font-medium text-white/80 flex items-center gap-2">
           <FileText class="w-4 h-4" />
           签到日志
         </h4>
@@ -178,7 +178,7 @@ watch(
               />
               <Circle
                 v-else
-                class="w-4 h-4 text-text-muted"
+                class="w-4 h-4 text-white/50"
               />
             </span>
             <div class="flex-1 min-w-0">
@@ -188,13 +188,13 @@ watch(
               >
                 {{ log.accountName }}
               </span>
-              <span class="text-text-muted ml-1">
+              <span class="text-white/50 ml-1">
                 ({{ log.providerName }})
               </span>
               <p
                 v-if="log.message"
                 class="text-xs mt-0.5 break-all"
-                :class="log.status === 'failed' ? 'text-red-400' : 'text-text-muted'"
+                :class="log.status === 'failed' ? 'text-red-400' : 'text-white/50'"
               >
                 {{ log.message }}
               </p>
@@ -202,7 +202,7 @@ watch(
           </div>
           <div
             v-if="logs.length === 0"
-            class="flex items-center justify-center h-full text-text-muted text-sm"
+            class="flex items-center justify-center h-full text-white/50 text-sm"
           >
             等待开始签到...
           </div>

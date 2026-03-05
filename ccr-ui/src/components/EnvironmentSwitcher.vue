@@ -92,7 +92,7 @@ onMounted(async () => {
   <div class="env-switcher relative">
     <!-- 触发按钮 -->
     <button
-      class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 border bg-bg-surface border-border-default text-text-secondary hover:text-text-primary hover:border-accent-primary/30 hover:bg-bg-elevated"
+      class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 border bg-white/5 border-white/10 text-white/80 hover:text-white hover:border-accent-primary/30 hover:bg-white/5"
       @click.stop="isOpen = !isOpen"
     >
       <component
@@ -120,21 +120,21 @@ onMounted(async () => {
     >
       <div
         v-if="isOpen"
-        class="absolute right-0 top-full mt-1 w-64 rounded-xl border border-border-default bg-bg-elevated/95 backdrop-blur-lg shadow-xl z-50 overflow-hidden"
+        class="absolute right-0 top-full mt-1 w-64 rounded-xl border border-white/10 bg-white/5/95 backdrop-blur-lg shadow-xl z-50 overflow-hidden"
       >
         <!-- 标题栏 -->
-        <div class="flex items-center justify-between px-3 py-2 border-b border-border-subtle">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+        <div class="flex items-center justify-between px-3 py-2 border-b border-white/5">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-white/50">
             执行环境
           </span>
           <button
-            class="p-1 rounded-md hover:bg-bg-surface transition-colors"
+            class="p-1 rounded-md hover:bg-white/5 transition-colors"
             :disabled="isRefreshing"
             title="刷新环境列表"
             @click.stop="refreshEnvs"
           >
             <RefreshCw
-              class="w-3 h-3 text-text-muted"
+              class="w-3 h-3 text-white/50"
               :class="{ 'animate-spin': isRefreshing }"
             />
           </button>
@@ -149,7 +149,7 @@ onMounted(async () => {
             :class="[
               env.is_active
                 ? 'bg-accent-primary/10 text-accent-primary'
-                : 'text-text-secondary hover:bg-bg-surface hover:text-text-primary'
+                : 'text-white/80 hover:bg-white/5 hover:text-white'
             ]"
             :disabled="isLoading"
             @click.stop="switchEnv(env.id)"
@@ -163,7 +163,7 @@ onMounted(async () => {
               <div class="font-medium truncate">
                 {{ env.name }}
               </div>
-              <div class="text-[10px] text-text-muted truncate">
+              <div class="text-[10px] text-white/50 truncate">
                 {{ env.description }}
               </div>
             </div>
@@ -176,7 +176,7 @@ onMounted(async () => {
 
           <div
             v-if="environments.length === 0"
-            class="px-3 py-4 text-center text-xs text-text-muted"
+            class="px-3 py-4 text-center text-xs text-white/50"
           >
             未检测到可用环境
           </div>

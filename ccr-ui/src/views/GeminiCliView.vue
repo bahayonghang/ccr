@@ -16,7 +16,7 @@
               <h1 class="text-4xl font-bold font-display bg-gradient-to-r from-platform-gemini via-platform-iflow to-accent-success bg-clip-text text-transparent tracking-tight">
                 Gemini CLI
               </h1>
-              <p class="text-text-secondary text-lg mt-1 max-w-xl">
+              <p class="text-white/80 text-lg mt-1 max-w-xl">
                 {{ $t('gemini.overview.description') }}
               </p>
             </div>
@@ -57,7 +57,7 @@
       >
         <div class="flex items-center gap-3 mb-6">
           <Boxes class="w-5 h-5 text-platform-gemini" />
-          <h2 class="text-lg font-bold uppercase tracking-widest text-text-muted">
+          <h2 class="text-lg font-bold uppercase tracking-widest text-white/50">
             {{ $t('common.modules') }}
           </h2>
           <div class="h-px flex-1 bg-border-subtle" />
@@ -79,10 +79,10 @@
                 <Server class="w-6 h-6" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-platform-gemini transition-colors">
+                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-gemini transition-colors">
                   {{ $t('gemini.mcp.title') }}
                 </h3>
-                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                <p class="text-sm text-white/80 mb-3 leading-relaxed">
                   {{ $t('gemini.mcp.subtitle') }}
                 </p>
                 <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-gemini/10 text-platform-gemini border border-platform-gemini/20">MCP</span>
@@ -105,10 +105,10 @@
                 <Bot class="w-6 h-6" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-accent-success transition-colors">
+                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-accent-success transition-colors">
                   {{ $t('gemini.agents.title') }}
                 </h3>
-                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                <p class="text-sm text-white/80 mb-3 leading-relaxed">
                   {{ $t('gemini.agents.subtitle') }}
                 </p>
                 <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-accent-success/10 text-accent-success border border-accent-success/20">AI Agents</span>
@@ -131,10 +131,10 @@
                 <Puzzle class="w-6 h-6" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-platform-claude transition-colors">
+                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-claude transition-colors">
                   {{ $t('gemini.plugins.title') }}
                 </h3>
-                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                <p class="text-sm text-white/80 mb-3 leading-relaxed">
                   {{ $t('gemini.plugins.subtitle') }}
                 </p>
                 <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-claude/10 text-platform-claude border border-platform-claude/20">Plugins</span>
@@ -157,10 +157,10 @@
                 <Command class="w-6 h-6" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-platform-iflow transition-colors">
+                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-iflow transition-colors">
                   {{ $t('gemini.slashCommands.title') }}
                 </h3>
-                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                <p class="text-sm text-white/80 mb-3 leading-relaxed">
                   {{ $t('gemini.slashCommands.subtitle') }}
                 </p>
                 <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-iflow/10 text-platform-iflow border border-platform-iflow/20">Commands</span>
@@ -184,25 +184,25 @@
               <Info class="w-6 h-6" />
             </div>
             <div class="space-y-4">
-              <h3 class="text-lg font-bold text-text-primary">
+              <h3 class="text-lg font-bold text-white">
                 💡 {{ $t('gemini.overview.welcome') }}
               </h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
                   <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
-                  <span class="text-sm text-text-secondary">{{ $t('gemini.overview.feature1') }}</span>
+                  <span class="text-sm text-white/80">{{ $t('gemini.overview.feature1') }}</span>
                 </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
                   <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
-                  <span class="text-sm text-text-secondary">{{ $t('gemini.overview.feature2') }}</span>
+                  <span class="text-sm text-white/80">{{ $t('gemini.overview.feature2') }}</span>
                 </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
                   <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
-                  <span class="text-sm text-text-secondary">{{ $t('gemini.overview.feature3') }}</span>
+                  <span class="text-sm text-white/80">{{ $t('gemini.overview.feature3') }}</span>
                 </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
                   <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
-                  <span class="text-sm text-text-secondary">{{ $t('gemini.overview.feature4') }}</span>
+                  <span class="text-sm text-white/80">{{ $t('gemini.overview.feature4') }}</span>
                 </div>
               </div>
             </div>

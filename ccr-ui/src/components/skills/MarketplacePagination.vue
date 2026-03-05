@@ -142,7 +142,7 @@ function goTo(page: number) {
 }
 
 .mp-pagination__info {
-  @apply text-xs text-text-muted;
+  @apply text-xs text-white/50;
 }
 
 .mp-pagination__controls {
@@ -150,15 +150,15 @@ function goTo(page: number) {
 }
 
 .mp-pagination__btn {
-  @apply p-1.5 rounded-lg text-text-muted
-         hover:text-text-primary hover:bg-bg-surface
+  @apply p-1.5 rounded-lg text-white/50
+         hover:text-white hover:bg-white/5
          disabled:opacity-30 disabled:cursor-not-allowed
          transition-colors;
 }
 
 .mp-pagination__page {
-  @apply min-w-[32px] h-8 rounded-lg text-sm font-medium text-text-secondary
-         hover:text-text-primary hover:bg-bg-surface
+  @apply min-w-[32px] h-8 rounded-lg text-sm font-medium text-white/80
+         hover:text-white hover:bg-white/5
          transition-colors;
 }
 
@@ -167,6 +167,6 @@ function goTo(page: number) {
 }
 
 .mp-pagination__ellipsis {
-  @apply min-w-[32px] h-8 text-sm text-text-muted cursor-default;
+  @apply min-w-[32px] h-8 text-sm text-white/50 cursor-default;
 }
 </style>

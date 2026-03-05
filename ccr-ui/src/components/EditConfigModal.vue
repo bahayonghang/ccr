@@ -16,10 +16,10 @@
       role="dialog"
       :aria-modal="true"
       :aria-labelledby="titleId"
-      class="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-xl bg-bg-elevated/60 backdrop-blur-xl border border-white/5 shadow-2xl animate-scale-in"
+      class="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-xl bg-white/5/60 backdrop-blur-xl border border-white/5 shadow-2xl animate-scale-in"
     >
       <!-- Header -->
-      <div class="shrink-0 px-8 py-6 border-b border-border-subtle bg-bg-elevated rounded-t-xl flex items-center justify-between">
+      <div class="shrink-0 px-8 py-6 border-b border-white/5 bg-white/5 rounded-t-xl flex items-center justify-between">
         <div class="flex items-center gap-4">
           <div class="p-3 rounded-xl bg-accent-primary/10 text-accent-primary">
             <Settings class="w-6 h-6" />
@@ -31,7 +31,7 @@
             >
               Edit Configuration
             </h2>
-            <p class="text-xs text-text-secondary font-mono flex items-center gap-1">
+            <p class="text-xs text-white/80 font-mono flex items-center gap-1">
               <span>ID:</span> {{ configName }}
             </p>
           </div>
@@ -119,7 +119,7 @@
                 <!-- Toggle visibility button -->
                 <button
                   type="button"
-                  class="absolute right-3 top-[34px] p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-white/10 transition-colors duration-200"
+                  class="absolute right-3 top-[34px] p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-colors duration-200"
                   :title="showToken ? 'Hide token' : 'Show token'"
                   @click="showToken = !showToken"
                 >
@@ -181,14 +181,14 @@
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Provider Type Select -->
                 <div class="w-full">
-                  <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5 ml-1">Provider Type</label>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-white/50 mb-1.5 ml-1">Provider Type</label>
                   <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Tag class="w-4 h-4 text-orange-400" />
                     </div>
                     <select
                       v-model="formData.provider_type"
-                      class="w-full bg-bg-surface border border-border-default rounded-lg pl-10 pr-8 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary appearance-none transition-[border-color,box-shadow] duration-300 hover:border-border-strong shadow-sm"
+                      class="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-8 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary appearance-none transition-[border-color,box-shadow] duration-300 hover:border-border-strong shadow-sm"
                     >
                       <option value="">
                         Uncategorized
@@ -201,7 +201,7 @@
                       </option>
                     </select>
                     <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                      <ChevronDown class="w-3.5 h-3.5 text-text-muted" />
+                      <ChevronDown class="w-3.5 h-3.5 text-white/50" />
                     </div>
                   </div>
                 </div>
@@ -256,7 +256,7 @@
       </div>
 
       <!-- Footer -->
-      <div class="shrink-0 px-8 py-6 border-t border-border-subtle bg-bg-elevated rounded-b-xl flex gap-4">
+      <div class="shrink-0 px-8 py-6 border-t border-white/5 bg-white/5 rounded-b-xl flex gap-4">
         <Button
           variant="ghost"
           class="flex-1"

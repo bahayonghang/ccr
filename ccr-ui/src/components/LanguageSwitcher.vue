@@ -2,19 +2,19 @@
   <div class="relative w-full">
     <!-- Language Switcher Button -->
     <button
-      class="w-full px-3 py-2 rounded-lg font-semibold text-sm transition-[color,background-color,border-color,transform] flex items-center justify-between gap-2 hover:scale-[1.02] bg-bg-surface border border-border-subtle hover:border-accent-primary/50"
+      class="w-full px-3 py-2 rounded-lg font-semibold text-sm transition-[color,background-color,border-color,transform] flex items-center justify-between gap-2 hover:scale-[1.02] bg-white/5 border border-white/5 hover:border-accent-primary/50"
       :aria-label="$t('common.language.switchLanguage')"
       :title="$t('common.language.switchLanguage')"
       @click="toggleDropdown"
     >
-      <span class="flex items-center gap-2 min-w-0 text-text-primary">
+      <span class="flex items-center gap-2 min-w-0 text-white">
         <Languages class="w-4 h-4" />
         <span class="text-left whitespace-normal break-words">
           {{ currentLanguageName }} / {{ targetLanguageName }}
         </span>
       </span>
       <ChevronDown
-        class="w-3 h-3 transition-transform text-text-muted"
+        class="w-3 h-3 transition-transform text-white/50"
         :class="{ 'rotate-180': showDropdown }"
       />
     </button>
@@ -30,7 +30,7 @@
     >
       <div
         v-if="showDropdown"
-        class="absolute left-0 mt-2 w-44 rounded-xl overflow-hidden z-50 bg-bg-elevated border border-border-subtle shadow-2xl"
+        class="absolute left-0 mt-2 w-44 rounded-xl overflow-hidden z-50 bg-white/5 border border-white/5 shadow-2xl"
       >
         <button
           v-for="lang in languages"
@@ -124,7 +124,7 @@ const switchLanguage = (langCode: string) => {
 }
 
 .lang-inactive {
-  @apply text-text-secondary hover:bg-bg-surface hover:text-text-primary;
+  @apply text-white/80 hover:bg-white/5 hover:text-white;
 }
 </style>
 

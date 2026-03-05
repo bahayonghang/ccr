@@ -5,7 +5,7 @@
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
-          <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex items-center">
+          <h2 class="text-xl sm:text-2xl font-bold text-white flex items-center">
             <Settings2
               class="w-6 h-6 sm:w-7 sm:h-7 mr-2 text-emerald-500"
               aria-hidden="true"
@@ -15,7 +15,7 @@
         </div>
         <div class="flex gap-3">
           <RouterLink to="/codex">
-            <button class="px-4 py-2 rounded-lg font-medium transition-colors bg-bg-elevated text-text-secondary border border-border-default hover:bg-bg-surface min-h-[44px] flex items-center">
+            <button class="px-4 py-2 rounded-lg font-medium transition-colors bg-white/5 text-white/80 border border-white/10 hover:bg-white/5 min-h-[44px] flex items-center">
               <ArrowLeft
                 class="w-4 h-4 mr-2"
                 aria-hidden="true"
@@ -40,7 +40,7 @@
       <!-- Loading -->
       <div
         v-if="loading"
-        class="text-center py-20 text-text-muted"
+        class="text-center py-20 text-white/50"
       >
         <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-emerald-500/30 border-t-emerald-500" />
         <span>{{ $t('common.loading') }}</span>
@@ -58,7 +58,7 @@
             role="tab"
             :aria-selected="activeTab === tab.key"
             class="px-4 py-2 rounded-lg font-medium text-sm transition-colors min-h-[44px] whitespace-nowrap flex-shrink-0 flex items-center gap-2"
-            :class="activeTab === tab.key ? 'bg-emerald-500 text-white shadow-md' : 'bg-bg-elevated text-text-secondary border border-border-default hover:bg-bg-surface'"
+            :class="activeTab === tab.key ? 'bg-emerald-500 text-white shadow-md' : 'bg-white/5 text-white/80 border border-white/10 hover:bg-white/5'"
             @click="activeTab = tab.key"
           >
             <component
@@ -78,12 +78,12 @@
             variant="glass"
             class="p-5 space-y-5"
           >
-            <h3 class="text-lg font-bold text-text-primary">
+            <h3 class="text-lg font-bold text-white">
               {{ $t('codex.settings.tabs.model') }}
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.model.model') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.model') }}</label>
               <input
                 v-model="form.model"
                 type="text"
@@ -93,7 +93,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.model.modelProvider') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.modelProvider') }}</label>
               <input
                 v-model="form.model_provider"
                 type="text"
@@ -103,7 +103,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.model.reasoningEffort') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.reasoningEffort') }}</label>
               <select
                 v-model="form.model_reasoning_effort"
                 class="settings-input"
@@ -122,7 +122,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.model.reasoningSummary') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.reasoningSummary') }}</label>
               <select
                 v-model="form.model_reasoning_summary"
                 class="settings-input"
@@ -141,7 +141,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.model.verbosity') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.verbosity') }}</label>
               <select
                 v-model="form.model_verbosity"
                 class="settings-input"
@@ -161,7 +161,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.model.contextWindow') }}</label>
+                <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.contextWindow') }}</label>
                 <input
                   v-model.number="form.model_context_window"
                   type="number"
@@ -170,7 +170,7 @@
                 >
               </div>
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.model.autoCompactLimit') }}</label>
+                <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.autoCompactLimit') }}</label>
                 <input
                   v-model.number="form.model_auto_compact_token_limit"
                   type="number"
@@ -181,7 +181,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.model.personality') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.personality') }}</label>
               <select
                 v-model="form.personality"
                 class="settings-input"
@@ -210,12 +210,12 @@
             variant="glass"
             class="p-5 space-y-5"
           >
-            <h3 class="text-lg font-bold text-text-primary">
+            <h3 class="text-lg font-bold text-white">
               {{ $t('codex.settings.tabs.security') }}
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.security.approvalPolicy') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.security.approvalPolicy') }}</label>
               <select
                 v-model="form.approval_policy"
                 class="settings-input"
@@ -234,7 +234,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.security.sandboxMode') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.security.sandboxMode') }}</label>
               <input
                 v-model="form.sandbox_mode"
                 type="text"
@@ -249,14 +249,14 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.security.writableRoots') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.security.writableRoots') }}</label>
               <input
                 v-model="writableRootsStr"
                 type="text"
                 :placeholder="$t('codex.settings.security.writableRootsPlaceholder')"
                 class="settings-input"
               >
-              <p class="text-xs text-text-muted mt-1">
+              <p class="text-xs text-white/50 mt-1">
                 {{ $t('codex.settings.security.writableRootsHint') }}
               </p>
             </div>
@@ -267,14 +267,14 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.security.shellIncludeOnly') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.security.shellIncludeOnly') }}</label>
               <input
                 v-model="shellIncludeOnlyStr"
                 type="text"
                 :placeholder="$t('codex.settings.security.shellIncludeOnlyPlaceholder')"
                 class="settings-input"
               >
-              <p class="text-xs text-text-muted mt-1">
+              <p class="text-xs text-white/50 mt-1">
                 {{ $t('codex.settings.security.shellIncludeOnlyHint') }}
               </p>
             </div>
@@ -290,12 +290,12 @@
             variant="glass"
             class="p-5 space-y-5"
           >
-            <h3 class="text-lg font-bold text-text-primary">
+            <h3 class="text-lg font-bold text-white">
               {{ $t('codex.settings.tabs.tools') }}
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.tools.webSearch') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.tools.webSearch') }}</label>
               <select
                 v-model="form.web_search"
                 class="settings-input"
@@ -314,7 +314,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.tools.fileOpener') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.tools.fileOpener') }}</label>
               <select
                 v-model="form.file_opener"
                 class="settings-input"
@@ -342,7 +342,7 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.tools.developerInstructions') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.tools.developerInstructions') }}</label>
               <textarea
                 v-model="form.developer_instructions"
                 rows="3"
@@ -352,7 +352,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.tools.instructions') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.tools.instructions') }}</label>
               <textarea
                 v-model="form.instructions"
                 rows="3"
@@ -372,12 +372,12 @@
             variant="glass"
             class="p-5 space-y-5"
           >
-            <h3 class="text-lg font-bold text-text-primary">
+            <h3 class="text-lg font-bold text-white">
               {{ $t('codex.settings.tabs.ui') }}
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.ui.alternateScreen') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.ui.alternateScreen') }}</label>
               <select
                 v-model="tuiAlternateScreen"
                 class="settings-input"
@@ -435,7 +435,7 @@
             variant="glass"
             class="p-5 space-y-5"
           >
-            <h3 class="text-lg font-bold text-text-primary">
+            <h3 class="text-lg font-bold text-white">
               {{ $t('codex.settings.tabs.features') }}
             </h3>
 
@@ -445,7 +445,7 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.features.historyPersistence') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.features.historyPersistence') }}</label>
               <select
                 v-model="historyPersistence"
                 class="settings-input"
@@ -464,7 +464,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('codex.settings.features.historyMaxBytes') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.features.historyMaxBytes') }}</label>
               <input
                 v-model.number="historyMaxBytes"
                 type="number"
@@ -484,7 +484,7 @@
 
             <!-- Dynamic features map -->
             <div v-if="form.features && Object.keys(form.features).length > 0">
-              <label class="block mb-2 text-sm font-semibold text-text-primary">{{ $t('codex.settings.features.featureFlags') }}</label>
+              <label class="block mb-2 text-sm font-semibold text-white">{{ $t('codex.settings.features.featureFlags') }}</label>
               <div class="space-y-2">
                 <ToggleField
                   v-for="(val, key) in form.features"
@@ -670,10 +670,10 @@ const ToggleField = defineComponent({
       h('input', {
         type: 'checkbox',
         checked: props.modelValue ?? false,
-        class: 'w-4 h-4 rounded border-border-default text-emerald-500 focus:ring-emerald-500',
+        class: 'w-4 h-4 rounded border-white/10 text-emerald-500 focus:ring-emerald-500',
         onChange: (e: Event) => emit('update:modelValue', (e.target as HTMLInputElement).checked),
       }),
-      h('span', { class: 'text-sm font-semibold text-text-primary' }, props.label),
+      h('span', { class: 'text-sm font-semibold text-white' }, props.label),
     ])
   }
 })
@@ -683,7 +683,7 @@ export default { components: { ToggleField } }
 
 <style scoped>
 .settings-input {
-  @apply w-full px-4 py-2.5 rounded-lg bg-bg-elevated border border-border-default focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-[border-color,box-shadow] text-text-primary;
+  @apply w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-[border-color,box-shadow] text-white;
 }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

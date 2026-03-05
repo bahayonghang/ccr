@@ -11,7 +11,7 @@
     <template v-if="collapsed">
       <div class="flex flex-col items-center gap-3 pt-1">
         <button
-          class="p-2 rounded-lg text-text-muted hover:text-accent-primary hover:bg-bg-surface/50 transition-colors"
+          class="p-2 rounded-lg text-white/50 hover:text-accent-primary hover:bg-white/5/50 transition-colors"
           :title="$t('skills.expandPanel')"
           @click="$emit('toggle-collapse')"
         >
@@ -21,14 +21,14 @@
         <div class="w-8 h-px bg-border-subtle" />
 
         <button
-          class="p-2 rounded-lg hover:bg-bg-surface/50 transition-colors"
+          class="p-2 rounded-lg hover:bg-white/5/50 transition-colors"
           :title="$t('skills.searchPlaceholder')"
         >
-          <Search class="w-4 h-4 text-text-muted" />
+          <Search class="w-4 h-4 text-white/50" />
         </button>
 
         <button
-          class="p-2 rounded-lg hover:bg-bg-surface/50 transition-colors"
+          class="p-2 rounded-lg hover:bg-white/5/50 transition-colors"
           :title="$t('skills.platforms')"
         >
           <Layers class="w-4 h-4 text-fuchsia-400" />
@@ -41,7 +41,7 @@
           v-for="platform in platforms"
           :key="platform.id"
           class="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer
-                 hover:bg-bg-surface/50 transition-colors duration-200 group relative"
+                 hover:bg-white/5/50 transition-colors duration-200 group relative"
           :class="selectedPlatform === platform.id ? 'bg-accent-primary/10' : ''"
           @click="selectPlatform(platform.id)"
         >
@@ -52,7 +52,7 @@
           />
           <!-- Tooltip -->
           <div
-            class="absolute left-full ml-2 px-2 py-1 bg-bg-overlay border border-border-subtle
+            class="absolute left-full ml-2 px-2 py-1 bg-white/10 border border-white/5
                       rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100
                       pointer-events-none transition-opacity z-50"
           >
@@ -66,13 +66,13 @@
     <template v-else>
       <!-- Header with collapse button -->
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-sm font-bold flex items-center gap-2 text-text-primary">
+        <h2 class="text-sm font-bold flex items-center gap-2 text-white">
           <Layers class="w-4 h-4 text-fuchsia-400" />
           {{ $t('skills.filters') }}
         </h2>
         <button
-          class="p-1.5 rounded-lg text-text-muted hover:text-accent-primary
-                 hover:bg-bg-surface/80 transition-colors duration-200"
+          class="p-1.5 rounded-lg text-white/50 hover:text-accent-primary
+                 hover:bg-white/5/80 transition-colors duration-200"
           :title="$t('skills.collapsePanel')"
           @click="$emit('toggle-collapse')"
         >
@@ -83,16 +83,16 @@
       <!-- Search Input -->
       <div class="relative mb-4">
         <Search
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50"
         />
         <input
           v-model="localSearch"
           type="text"
           :placeholder="$t('skills.searchPlaceholder')"
           class="w-full pl-10 pr-8 py-2.5 text-sm rounded-xl
-                 bg-bg-surface/50 border border-border-subtle
-                 text-text-primary placeholder:text-text-muted/50
-                 focus:border-accent-primary/50 focus:bg-bg-surface
+                 bg-white/5/50 border border-white/5
+                 text-white placeholder:text-white/50/50
+                 focus:border-accent-primary/50 focus:bg-white/5
                  focus:outline-none focus:ring-2 focus:ring-accent-primary/20
                  transition-[border-color,box-shadow] duration-200"
           @input="debouncedSearchUpdate"
@@ -100,7 +100,7 @@
         <button
           v-if="localSearch"
           class="absolute right-3 top-1/2 -translate-y-1/2 p-1
-                 hover:bg-bg-elevated rounded-full text-text-muted transition-colors"
+                 hover:bg-white/5 rounded-full text-white/50 transition-colors"
           @click="clearSearch"
         >
           <X class="w-3 h-3" />
@@ -127,7 +127,7 @@
                 class="w-3 h-3 rounded-full border-2 transition-colors"
                 :class="selectedPlatform === 'all'
                   ? 'border-accent-primary bg-accent-primary'
-                  : 'border-border-default'"
+                  : 'border-white/10'"
               />
               <LayoutGrid class="w-4 h-4 text-emerald-400" />
               <span>{{ $t('skills.allPlatforms') }}</span>
@@ -152,7 +152,7 @@
                 class="w-3 h-3 rounded-full border-2 transition-colors"
                 :class="selectedPlatform === platform.id
                   ? 'border-accent-primary bg-accent-primary'
-                  : 'border-border-default'"
+                  : 'border-white/10'"
               />
               <component
                 :is="getPlatformIcon(platform.id)"
@@ -181,7 +181,7 @@
           <span>{{ $t('skills.source') }}</span>
         </div>
 
-        <div class="flex gap-1 p-1 rounded-xl bg-bg-surface/30 border border-border-subtle">
+        <div class="flex gap-1 p-1 rounded-xl bg-white/5/30 border border-white/5">
           <button
             v-for="opt in sourceOptions"
             :key="opt.value"
@@ -228,7 +228,7 @@
             </button>
             <button
               v-if="categories.length > maxDisplayCategories"
-              class="text-xs text-text-muted hover:text-accent-primary
+              class="text-xs text-white/50 hover:text-accent-primary
                      px-2 py-1 transition-colors"
               @click="showAllCategories = !showAllCategories"
             >
@@ -277,7 +277,7 @@
             </button>
             <button
               v-if="tags.length > maxDisplayTags"
-              class="text-xs text-text-muted hover:text-accent-primary
+              class="text-xs text-white/50 hover:text-accent-primary
                      px-2 py-1 transition-colors"
               @click="showAllTags = !showAllTags"
             >
@@ -511,34 +511,34 @@ watch(() => props.modelValue, (newVal) => {
 
 /* Filter Section */
 .filter-section {
-  @apply py-3 border-b border-border-subtle last:border-b-0;
+  @apply py-3 border-b border-white/5 last:border-b-0;
 }
 
 .filter-section__header {
   @apply flex items-center gap-2 text-xs font-bold uppercase tracking-wide
-         text-text-secondary mb-2 select-none;
+         text-white/80 mb-2 select-none;
 }
 
 .filter-section__count {
   @apply px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         bg-bg-surface text-text-muted;
+         bg-white/5 text-white/50;
 }
 
 /* Platform Item */
 .platform-item {
   @apply w-full flex items-center justify-between px-3 py-2 rounded-xl
-         text-sm text-text-secondary cursor-pointer
+         text-sm text-white/80 cursor-pointer
          transition-colors duration-200;
 }
 
 .platform-item:hover {
-  @apply text-text-primary;
+  @apply text-white;
 
-  background: rgb(var(--color-bg-surface-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .platform-item--active {
-  @apply text-text-primary;
+  @apply text-white;
 
   background: rgb(var(--color-accent-primary-rgb) / 8%);
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 20%);
@@ -549,12 +549,12 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .platform-item--disabled:hover {
-  @apply bg-transparent text-text-secondary;
+  @apply bg-transparent text-white/80;
 }
 
 .platform-item__count {
   @apply text-xs font-mono font-bold px-1.5 py-0.5 rounded
-         bg-bg-surface text-text-muted;
+         bg-white/5 text-white/50;
 }
 
 .platform-item--active .platform-item__count {
@@ -564,26 +564,26 @@ watch(() => props.modelValue, (newVal) => {
 /* Source Button */
 .source-btn {
   @apply flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold
-         text-text-secondary transition-colors duration-200;
+         text-white/80 transition-colors duration-200;
 }
 
 .source-btn:hover {
-  @apply text-text-primary;
+  @apply text-white;
 }
 
 .source-btn--active {
-  @apply text-text-primary bg-bg-elevated shadow-sm;
+  @apply text-white bg-white/5 shadow-sm;
 }
 
 /* Category Item */
 .category-item {
   @apply w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium
-         text-text-secondary hover:text-text-primary
+         text-white/80 hover:text-white
          transition-colors duration-200;
 }
 
 .category-item:hover {
-  background: rgb(var(--color-bg-surface-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .category-item--active {
@@ -593,8 +593,8 @@ watch(() => props.modelValue, (newVal) => {
 /* Tag Item */
 .tag-item {
   @apply px-2 py-1 rounded-md text-xs font-medium
-         bg-bg-surface text-text-secondary
-         hover:bg-bg-elevated hover:text-text-primary
+         bg-white/5 text-white/80
+         hover:bg-white/5 hover:text-white
          transition-colors duration-200;
 }
 

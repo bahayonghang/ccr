@@ -5,7 +5,7 @@
     <div v-if="availableBuiltinProviders.length > 0">
       <div class="flex items-center space-x-2 mb-4">
         <Store class="w-5 h-5 text-accent-primary" />
-        <h2 class="text-lg font-semibold text-text-primary">
+        <h2 class="text-lg font-semibold text-white">
           内置中转站
         </h2>
         <span class="text-sm text-gray-500 dark:text-gray-400">
@@ -94,7 +94,7 @@
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center space-x-2">
           <Building2 class="w-5 h-5 text-accent-secondary" />
-          <h2 class="text-lg font-semibold text-text-primary">
+          <h2 class="text-lg font-semibold text-white">
             已添加的提供商
           </h2>
           <span class="text-sm text-gray-500 dark:text-gray-400">
@@ -128,7 +128,7 @@
         class="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
       >
         <p class="text-4xl mb-3">
-          <Package class="w-12 h-12 mx-auto text-text-muted" />
+          <Package class="w-12 h-12 mx-auto text-white/50" />
         </p>
         <p>暂无提供商配置</p>
         <p class="text-sm mt-1">

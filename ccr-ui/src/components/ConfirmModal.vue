@@ -23,12 +23,12 @@
       </div>
 
       <!-- 标题 -->
-      <h3 class="mt-4 text-lg font-semibold text-text-primary">
+      <h3 class="mt-4 text-lg font-semibold text-white">
         {{ title }}
       </h3>
 
       <!-- 消息 -->
-      <p class="mt-2 text-sm text-text-secondary leading-relaxed">
+      <p class="mt-2 text-sm text-white/80 leading-relaxed">
         {{ message }}
       </p>
     </div>
@@ -39,8 +39,8 @@
         <button
           type="button"
           class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium
-                 bg-bg-tertiary text-text-secondary
-                 hover:bg-bg-hover hover:text-text-primary
+                 bg-bg-tertiary text-white/80
+                 hover:bg-bg-hover hover:text-white
                  focus:outline-none focus:ring-2 focus:ring-accent-primary/30
                  transition-colors duration-150"
           @click="handleCancel"

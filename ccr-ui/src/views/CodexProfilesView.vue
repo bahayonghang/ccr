@@ -1,6 +1,6 @@
 <!-- -->
 <template>
-  <div class="min-h-screen bg-bg-base p-6">
+  <div class="min-h-screen p-6">
     <div class="max-w-[1800px] mx-auto">
       <Breadcrumb
         :items="[
@@ -22,10 +22,10 @@
                 <Settings class="w-6 h-6 text-platform-codex" />
               </div>
               <div>
-                <h1 class="text-2xl font-bold text-text-primary">
+                <h1 class="text-2xl font-bold text-white">
                   {{ $t('codex.profiles.title') }}
                 </h1>
-                <p class="text-sm text-text-secondary mt-1">
+                <p class="text-sm text-white/80 mt-1">
                   {{ $t('codex.profiles.subtitle') }}
                 </p>
               </div>
@@ -63,10 +63,10 @@
                   <Zap class="w-6 h-6" />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
+                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
                     {{ $t('codex.status.currentConfig') }}
                   </p>
-                  <p class="text-xl font-bold text-text-primary truncate">
+                  <p class="text-xl font-bold text-white truncate">
                     {{ currentProfile || $t('codex.status.notSet') }}
                   </p>
                 </div>
@@ -84,10 +84,10 @@
                   <Layers class="w-6 h-6" />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
+                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
                     {{ $t('codex.status.totalProfiles') }}
                   </p>
-                  <p class="text-xl font-bold text-text-primary">
+                  <p class="text-xl font-bold text-white">
                     {{ profiles.length }}
                   </p>
                 </div>
@@ -111,10 +111,10 @@
                   />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
+                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
                     {{ $t('codex.status.configMode') }}
                   </p>
-                  <p class="text-xl font-bold text-text-primary">
+                  <p class="text-xl font-bold text-white">
                     {{ currentConfigMode === 'official' ? $t('codex.profiles.officialConfig') : $t('codex.profiles.customRelay') }}
                   </p>
                 </div>
@@ -129,7 +129,7 @@
           >
             <div class="flex items-center gap-2 mb-4">
               <Shuffle class="w-5 h-5 text-platform-codex" />
-              <h3 class="text-base font-semibold text-text-primary">
+              <h3 class="text-base font-semibold text-white">
                 {{ $t('codex.profiles.quickSwitch') }}
               </h3>
             </div>
@@ -138,11 +138,7 @@
                 v-for="profile in profiles"
                 :key="profile.name"
                 class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-colors duration-300 border flex items-center gap-2.5"
-                :class="[
-                  profile.name === currentProfile
-                    ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                    : 'bg-bg-surface border-border-default text-text-secondary hover:border-platform-codex/30 hover:bg-bg-overlay'
-                ]"
+                :class="[ profile.name === currentProfile ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-white/5 border-white/10 text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
                 @click="handleApply(profile.name)"
               >
                 <Star
@@ -166,7 +162,7 @@
 
           <!-- Profile List Title -->
           <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-text-primary flex items-center gap-2">
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
               <ListFilter class="w-5 h-5 text-platform-codex" />
               {{ $t('codex.profiles.listTitle') }}
             </h2>
@@ -183,12 +179,12 @@
           <!-- Empty State -->
           <div
             v-else-if="profiles.length === 0"
-            class="empty-state bg-bg-elevated rounded-2xl border border-border-subtle"
+            class="empty-state bg-white/5 rounded-2xl border border-white/5"
           >
-            <div class="p-4 rounded-full bg-bg-surface mb-4">
-              <Boxes class="w-8 h-8 text-text-muted" />
+            <div class="p-4 rounded-full bg-white/5 mb-4">
+              <Boxes class="w-8 h-8 text-white/50" />
             </div>
-            <p class="text-text-secondary">
+            <p class="text-white/80">
               {{ $t('codex.profiles.emptyState') }}
             </p>
           </div>
@@ -216,12 +212,12 @@
                 <div class="flex items-start justify-between gap-4 mb-4">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-2">
-                      <h3 class="text-lg font-bold font-mono text-text-primary truncate">
+                      <h3 class="text-lg font-bold font-mono text-white truncate">
                         {{ profile.name }}
                       </h3>
                       <span 
                         v-if="currentProfile && profile.name === currentProfile"
-                        class=" badge badge-primary"
+                        class="badge badge-primary"
                       >
                         {{ $t('codex.profiles.currentBadge') }}
                       </span>
@@ -240,7 +236,7 @@
                     </div>
                     <p
                       v-if="profile.description"
-                      class="text-sm text-text-secondary line-clamp-1"
+                      class="text-sm text-white/80 line-clamp-1"
                     >
                       {{ profile.description }}
                     </p>
@@ -249,21 +245,21 @@
                   <!-- Actions -->
                   <div class="flex items-center gap-1 opacity-100 xl:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button 
-                      class="p-2 rounded-lg hover:bg-bg-overlay text-accent-success transition-colors"
+                      class="p-2 rounded-lg hover:bg-white/10 text-accent-success transition-colors"
                       :title="$t('codex.profiles.apply')"
                       @click.stop="handleApply(profile.name)"
                     >
                       <Check class="w-4 h-4" />
                     </button>
                     <button 
-                      class="p-2 rounded-lg hover:bg-bg-overlay text-accent-primary transition-colors"
+                      class="p-2 rounded-lg hover:bg-white/10 text-accent-primary transition-colors"
                       :title="$t('codex.actions.edit')"
                       @click.stop="handleEdit(profile.name)"
                     >
                       <Edit2 class="w-4 h-4" />
                     </button>
                     <button 
-                      class="p-2 rounded-lg hover:bg-bg-overlay text-accent-danger transition-colors"
+                      class="p-2 rounded-lg hover:bg-white/10 text-accent-danger transition-colors"
                       :title="$t('codex.actions.delete')"
                       @click.stop="handleDelete(profile.name)"
                     >
@@ -275,16 +271,16 @@
                 <!-- Info Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
                   <div class="flex flex-col gap-1">
-                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                    <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.baseUrl') }}
                     </span>
-                    <code class="font-mono text-text-primary truncate px-2 py-1 rounded bg-bg-surface border border-border-subtle">
+                    <code class="font-mono text-white truncate px-2 py-1 rounded bg-white/5 border border-white/5">
                       {{ profile.base_url }}
                     </code>
                   </div>
 
                   <div class="flex flex-col gap-1">
-                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                    <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.model') }}
                     </span>
                     <div class="flex items-center gap-2">
@@ -297,19 +293,19 @@
                  
                 <div
                   v-if="profile.tags?.length || profile.provider"
-                  class="mt-4 flex items-center justify-between border-t border-border-subtle pt-3"
+                  class="mt-4 flex items-center justify-between border-t border-white/5 pt-3"
                 >
                   <div class="flex flex-wrap gap-1.5">
                     <span 
                       v-if="profile.provider"
-                      class="px-2 py-0.5 rounded-md text-xs font-medium bg-bg-surface text-text-secondary border border-border-subtle"
+                      class="px-2 py-0.5 rounded-md text-xs font-medium bg-white/5 text-white/80 border border-white/5"
                     >
                       {{ profile.provider }}
                     </span>
                     <span 
                       v-for="tag in profile.tags" 
                       :key="tag"
-                      class="px-2 py-0.5 rounded-md text-xs font-medium bg-bg-surface text-text-muted border border-border-subtle"
+                      class="px-2 py-0.5 rounded-md text-xs font-medium bg-white/5 text-white/50 border border-white/5"
                     >
                       #{{ tag }}
                     </span>
@@ -317,7 +313,7 @@
                    
                   <div
                     v-if="profile.extra && Object.keys(profile.extra).length > 0"
-                    class="text-xs text-text-muted font-mono bg-bg-surface px-2 py-1 rounded"
+                    class="text-xs text-white/50 font-mono bg-white/5 px-2 py-1 rounded"
                   >
                     +{{ Object.keys(profile.extra).length }} extras
                   </div>
@@ -336,12 +332,12 @@
               :padding="'none'"
             >
               <!-- Modal Header -->
-              <div class="px-6 py-4 border-b border-border-subtle flex items-center justify-between sticky top-0 bg-bg-elevated/95 backdrop-blur z-10">
-                <h2 class="text-xl font-bold text-text-primary">
+              <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between sticky top-0 bg-white/5/95 backdrop-blur z-10">
+                <h2 class="text-xl font-bold text-white">
                   {{ editingName ? $t('codex.profiles.editProfile') : $t('codex.profiles.addProfile') }}
                 </h2>
                 <button
-                  class="p-1 rounded-lg hover:bg-bg-overlay text-text-muted transition-colors"
+                  class="p-1 rounded-lg hover:bg-white/10 text-white/50 transition-colors"
                   @click="handleCloseForm"
                 >
                   <X class="w-5 h-5" />
@@ -355,7 +351,7 @@
                   <!-- Name & Desc -->
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-text-secondary">
+                      <label class="text-sm font-semibold text-white/80">
                         {{ $t('codex.profiles.fields.name') }} <span class="text-red-500">*</span>
                       </label>
                       <input
@@ -367,7 +363,7 @@
                       >
                     </div>
                     <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-text-secondary">
+                      <label class="text-sm font-semibold text-white/80">
                         {{ $t('codex.profiles.fields.description') }}
                       </label>
                       <input
@@ -381,7 +377,7 @@
                        
                   <!-- URL & Token -->
                   <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-text-secondary">
+                    <label class="text-sm font-semibold text-white/80">
                       {{ $t('codex.profiles.fields.baseUrl') }} <span class="text-red-500">*</span>
                     </label>
                     <input
@@ -393,7 +389,7 @@
                   </div>
 
                   <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-text-secondary">
+                    <label class="text-sm font-semibold text-white/80">
                       {{ $t('codex.profiles.fields.authToken') }} <span class="text-red-500">*</span>
                     </label>
                     <input
@@ -407,7 +403,7 @@
                   <!-- Models -->
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-text-secondary">
+                      <label class="text-sm font-semibold text-white/80">
                         {{ $t('codex.profiles.fields.model') }} <span class="text-red-500">*</span>
                       </label>
                       <input
@@ -418,7 +414,7 @@
                       >
                     </div>
                     <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-text-secondary">
+                      <label class="text-sm font-semibold text-white/80">
                         {{ $t('codex.profiles.fields.smallFastModel') }}
                       </label>
                       <input
@@ -433,7 +429,7 @@
                   <!-- Metadata -->
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-text-secondary">
+                      <label class="text-sm font-semibold text-white/80">
                         {{ $t('codex.profiles.fields.provider') }}
                       </label>
                       <input
@@ -444,7 +440,7 @@
                       >
                     </div>
                     <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-text-secondary">
+                      <label class="text-sm font-semibold text-white/80">
                         {{ $t('codex.profiles.fields.providerType') }}
                       </label>
                       <input
@@ -455,7 +451,7 @@
                       >
                     </div>
                     <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-text-secondary">
+                      <label class="text-sm font-semibold text-white/80">
                         {{ $t('codex.profiles.fields.tags') }}
                       </label>
                       <input
@@ -467,16 +463,16 @@
                     </div>
                   </div>
                        
-                  <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface border border-border-subtle">
+                  <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
                     <input
                       id="profileEnabled"
                       v-model="form.enabled"
                       type="checkbox"
-                      class="w-5 h-5 rounded border-border-default text-accent-primary focus:ring-accent-primary/20"
+                      class="w-5 h-5 rounded border-white/10 text-accent-primary focus:ring-accent-primary/20"
                     >
                     <label
                       for="profileEnabled"
-                      class="text-sm font-medium text-text-primary cursor-pointer select-none"
+                      class="text-sm font-medium text-white cursor-pointer select-none"
                     >
                       {{ $t('codex.profiles.fields.enabled') }}
                     </label>
@@ -484,9 +480,9 @@
                        
                   <!-- Extra JSON -->
                   <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-text-secondary flex justify-between">
+                    <label class="text-sm font-semibold text-white/80 flex justify-between">
                       <span>{{ $t('codex.profiles.fields.extraJson') }}</span>
-                      <span class="text-xs font-normal text-text-muted">{{ $t('codex.profiles.extraHint') }}</span>
+                      <span class="text-xs font-normal text-white/50">{{ $t('codex.profiles.extraHint') }}</span>
                     </label>
                     <textarea
                       v-model="extraText"
@@ -499,7 +495,7 @@
               </div>
 
               <!-- Footer -->
-              <div class="px-6 py-4 border-t border-border-subtle flex justify-end gap-3 bg-bg-surface/50">
+              <div class="px-6 py-4 border-t border-white/5 flex justify-end gap-3 bg-white/5/50">
                 <button
                   class="btn btn-secondary"
                   @click="handleCloseForm"

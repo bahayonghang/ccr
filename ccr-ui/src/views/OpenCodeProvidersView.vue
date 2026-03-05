@@ -8,15 +8,15 @@
         <div class="flex items-center gap-3">
           <RouterLink
             to="/opencode"
-            class="p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
+            class="p-2 rounded-lg text-white/50 hover:text-white transition-colors"
           >
             <ChevronLeft class="w-5 h-5" />
           </RouterLink>
           <div>
-            <h1 class="text-2xl font-bold text-text-primary">
+            <h1 class="text-2xl font-bold text-white">
               Provider 管理
             </h1>
-            <p class="text-text-muted text-sm">
+            <p class="text-white/50 text-sm">
               管理 OpenCode npm AI SDK Provider 配置
             </p>
           </div>
@@ -62,11 +62,11 @@
         variant="glass"
         class="p-10 text-center"
       >
-        <Layers class="w-12 h-12 text-text-muted mx-auto mb-4" />
-        <h3 class="text-lg font-bold text-text-primary mb-2">
+        <Layers class="w-12 h-12 text-white/50 mx-auto mb-4" />
+        <h3 class="text-lg font-bold text-white mb-2">
           暂无 Provider
         </h3>
-        <p class="text-text-muted text-sm mb-4">
+        <p class="text-white/50 text-sm mb-4">
           添加 npm AI SDK Provider 来开始使用 OpenCode
         </p>
         <button
@@ -99,7 +99,7 @@
               <!-- Provider 信息 -->
               <div class="min-w-0">
                 <div class="flex items-center gap-2 mb-1">
-                  <h3 class="font-bold text-text-primary truncate">
+                  <h3 class="font-bold text-white truncate">
                     {{ provider.id }}
                   </h3>
                   <span class="px-2 py-0.5 rounded text-xs bg-violet-500/10 text-violet-400 font-mono shrink-0">
@@ -107,7 +107,7 @@
                   </span>
                 </div>
 
-                <div class="flex flex-wrap gap-3 text-xs text-text-muted">
+                <div class="flex flex-wrap gap-3 text-xs text-white/50">
                   <span
                     v-if="provider.options?.apiKey"
                     class="flex items-center gap-1"
@@ -133,14 +133,14 @@
             <!-- 操作按钮 -->
             <div class="flex items-center gap-2 shrink-0">
               <button
-                class="p-2 rounded-lg text-text-muted hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
+                class="p-2 rounded-lg text-white/50 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
                 title="编辑"
                 @click="editProvider(provider)"
               >
                 <Pencil class="w-4 h-4" />
               </button>
               <button
-                class="p-2 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                class="p-2 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                 title="删除"
                 @click="confirmDelete(provider)"
               >
@@ -164,11 +164,11 @@
         class="w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
       >
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-text-primary">
+          <h2 class="text-lg font-bold text-white">
             {{ editingProvider ? '编辑 Provider' : '添加 Provider' }}
           </h2>
           <button
-            class="p-1 rounded text-text-muted hover:text-text-primary transition-colors"
+            class="p-1 rounded text-white/50 hover:text-white transition-colors"
             @click="closeDialog"
           >
             <X class="w-5 h-5" />
@@ -177,19 +177,19 @@
 
         <!-- Provider ID -->
         <div>
-          <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Provider ID *</label>
+          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">Provider ID *</label>
           <input
             v-model="form.id"
             :disabled="!!editingProvider"
             type="text"
             placeholder="例：my-claude"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-violet-500 disabled:opacity-50"
+            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500 disabled:opacity-50"
           >
         </div>
 
         <!-- npm 包名（预设选择） -->
         <div>
-          <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">npm 包 *</label>
+          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">npm 包 *</label>
           <div class="grid grid-cols-2 gap-2 mb-2">
             <button
               v-for="preset in OPENCODE_PROVIDER_PRESETS"
@@ -197,7 +197,7 @@
               class="px-3 py-2 rounded-lg text-xs text-left transition-colors border"
               :class="form.npm === preset.npm
                 ? 'bg-violet-500/20 border-violet-500 text-violet-400'
-                : 'bg-bg-elevated border-border-default text-text-muted hover:border-violet-500/50'"
+                : 'bg-white/5 border-white/10 text-white/50 hover:border-violet-500/50'"
               @click="selectPreset(preset)"
             >
               <div class="font-bold truncate">
@@ -212,39 +212,39 @@
             v-model="form.npm"
             type="text"
             placeholder="或输入自定义 npm 包名"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-violet-500"
+            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
           >
         </div>
 
         <!-- API Key -->
         <div>
-          <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">API Key</label>
+          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">API Key</label>
           <input
             v-model="form.apiKey"
             type="password"
             placeholder="sk-... 或 {env:VAR_NAME}"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-violet-500"
+            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
           >
-          <p class="text-xs text-text-muted mt-1">
+          <p class="text-xs text-white/50 mt-1">
             支持环境变量格式：{env:MY_API_KEY}
           </p>
         </div>
 
         <!-- Base URL -->
         <div>
-          <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Base URL（可选）</label>
+          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">Base URL（可选）</label>
           <input
             v-model="form.baseURL"
             type="text"
             placeholder="https://api.example.com/v1"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-violet-500"
+            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
           >
         </div>
 
         <!-- 操作按钮 -->
         <div class="flex justify-end gap-3 pt-2">
           <button
-            class="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary transition-colors"
+            class="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white transition-colors"
             @click="closeDialog"
           >
             取消
@@ -276,15 +276,15 @@
         variant="glass"
         class="w-full max-w-sm p-6 space-y-4"
       >
-        <h2 class="text-lg font-bold text-text-primary">
+        <h2 class="text-lg font-bold text-white">
           确认删除
         </h2>
-        <p class="text-text-secondary text-sm">
+        <p class="text-white/80 text-sm">
           确定要删除 Provider <strong>{{ deletingProvider.id }}</strong>（{{ deletingProvider.npm }}）吗？此操作无法撤销。
         </p>
         <div class="flex justify-end gap-3">
           <button
-            class="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary"
+            class="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white"
             @click="deletingProvider = null"
           >
             取消

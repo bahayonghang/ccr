@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-bg-base p-6">
+  <div class="min-h-screen p-6">
     <div class="max-w-[1800px] mx-auto">
       <Breadcrumb
         :items="[
@@ -21,10 +21,10 @@
                 <KeyRound class="w-6 h-6 text-platform-codex" />
               </div>
               <div>
-                <h1 class="text-2xl font-bold text-text-primary">
+                <h1 class="text-2xl font-bold text-white">
                   {{ $t('codex.auth.title') }}
                 </h1>
-                <p class="text-sm text-text-secondary mt-1">
+                <p class="text-sm text-white/80 mt-1">
                   {{ $t('codex.auth.subtitle') }}
                 </p>
               </div>
@@ -69,10 +69,10 @@
                   />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
+                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
                     {{ $t('codex.auth.status.loginState') }}
                   </p>
-                  <p class="text-xl font-bold text-text-primary truncate">
+                  <p class="text-xl font-bold text-white truncate">
                     {{ loginStateText }}
                   </p>
                 </div>
@@ -90,10 +90,10 @@
                   <Users class="w-6 h-6" />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
+                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
                     {{ $t('codex.auth.status.totalAccounts') }}
                   </p>
-                  <p class="text-xl font-bold text-text-primary">
+                  <p class="text-xl font-bold text-white">
                     {{ accounts.length }}
                   </p>
                 </div>
@@ -114,10 +114,10 @@
                   <UserCheck class="w-6 h-6" />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
+                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
                     {{ $t('codex.auth.status.currentAccount') }}
                   </p>
-                  <p class="text-xl font-bold text-text-primary truncate">
+                  <p class="text-xl font-bold text-white truncate">
                     {{ currentAccount?.name || $t('codex.auth.status.noAccount') }}
                   </p>
                 </div>
@@ -132,29 +132,29 @@
           >
             <div class="flex items-center gap-2 mb-4">
               <Info class="w-5 h-5 text-platform-codex" />
-              <h3 class="text-base font-semibold text-text-primary">
+              <h3 class="text-base font-semibold text-white">
                 {{ $t('codex.auth.currentSession') }}
               </h3>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                   {{ $t('codex.auth.fields.accountId') }}
                 </span>
-                <code class="font-mono text-text-primary truncate px-2 py-1 rounded bg-bg-surface border border-border-subtle">
+                <code class="font-mono text-white truncate px-2 py-1 rounded bg-white/5 border border-white/5">
                   {{ currentInfo.account_id }}
                 </code>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                   {{ $t('codex.auth.fields.email') }}
                 </span>
-                <span class="text-text-primary truncate">
+                <span class="text-white truncate">
                   {{ currentInfo.email || $t('codex.auth.status.notAvailable') }}
                 </span>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                   {{ $t('codex.auth.fields.tokenFreshness') }}
                 </span>
                 <div class="flex items-center gap-2">
@@ -168,15 +168,15 @@
                 </div>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                   {{ $t('codex.auth.fields.lastRefresh') }}
                 </span>
-                <span class="text-text-secondary text-sm">
+                <span class="text-white/80 text-sm">
                   {{ currentInfo.last_refresh || $t('codex.auth.status.notAvailable') }}
                 </span>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
+                <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                   {{ $t('codex.auth.fields.expiresAt') }}
                 </span>
                 <div class="flex items-center gap-2">
@@ -189,13 +189,13 @@
                   </span>
                   <span
                     v-else-if="currentInfo.expires_at"
-                    class="text-text-secondary text-sm"
+                    class="text-white/80 text-sm"
                   >
                     {{ formatExpiryDate(currentInfo.expires_at) }}
                   </span>
                   <span
                     v-else
-                    class="text-text-muted text-sm"
+                    class="text-white/50 text-sm"
                   >
                     {{ $t('codex.auth.noExpiry') }}
                   </span>
@@ -211,7 +211,7 @@
           >
             <div class="flex items-center gap-2 mb-4">
               <Shuffle class="w-5 h-5 text-platform-codex" />
-              <h3 class="text-base font-semibold text-text-primary">
+              <h3 class="text-base font-semibold text-white">
                 {{ $t('codex.auth.quickSwitch') }}
               </h3>
             </div>
@@ -220,13 +220,7 @@
                 v-for="account in accounts"
                 :key="account.name"
                 class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-colors duration-300 border flex items-center gap-2.5"
-                :class="[
-                  account.is_expired
-                    ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60'
-                    : account.is_current
-                      ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                      : 'bg-bg-surface border-border-default text-text-secondary hover:border-platform-codex/30 hover:bg-bg-overlay'
-                ]"
+                :class="[ account.is_expired ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60' : account.is_current ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-white/5 border-white/10 text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
                 :disabled="account.is_expired"
                 @click="!account.is_expired && handleSwitch(account.name)"
               >
@@ -234,7 +228,7 @@
                 <span>{{ account.name }}</span>
                 <span
                   v-if="account.is_virtual"
-                  class="text-xs text-text-muted"
+                  class="text-xs text-white/50"
                 >
                   ({{ $t('codex.auth.virtual') }})
                 </span>
@@ -259,7 +253,7 @@
 
           <!-- Account List Title -->
           <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-text-primary flex items-center gap-2">
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
               <ListFilter class="w-5 h-5 text-platform-codex" />
               {{ $t('codex.auth.listTitle') }}
             </h2>
@@ -286,15 +280,15 @@
           <!-- Empty State -->
           <div
             v-else-if="accounts.length === 0"
-            class="empty-state bg-bg-elevated rounded-2xl border border-border-subtle"
+            class="empty-state bg-white/5 rounded-2xl border border-white/5"
           >
-            <div class="p-4 rounded-full bg-bg-surface mb-4">
-              <KeyRound class="w-8 h-8 text-text-muted" />
+            <div class="p-4 rounded-full bg-white/5 mb-4">
+              <KeyRound class="w-8 h-8 text-white/50" />
             </div>
-            <p class="text-text-secondary">
+            <p class="text-white/80">
               {{ $t('codex.auth.emptyState') }}
             </p>
-            <p class="text-sm text-text-muted mt-2">
+            <p class="text-sm text-white/50 mt-2">
               {{ $t('codex.auth.emptyStateHint') }}
             </p>
           </div>
@@ -317,12 +311,12 @@
               :padding="'none'"
             >
               <!-- Modal Header -->
-              <div class="px-6 py-4 border-b border-border-subtle flex items-center justify-between sticky top-0 bg-bg-elevated/95 backdrop-blur z-10">
-                <h2 class="text-xl font-bold text-text-primary">
+              <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between sticky top-0 bg-white/5/95 backdrop-blur z-10">
+                <h2 class="text-xl font-bold text-white">
                   {{ $t('codex.auth.saveAccount') }}
                 </h2>
                 <button
-                  class="p-1 rounded-lg hover:bg-bg-overlay text-text-muted transition-colors"
+                  class="p-1 rounded-lg hover:bg-white/10 text-white/50 transition-colors"
                   @click="handleCloseSaveForm"
                 >
                   <X class="w-5 h-5" />
@@ -351,7 +345,7 @@
 
                 <div class="space-y-4">
                   <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-text-secondary">
+                    <label class="text-sm font-semibold text-white/80">
                       {{ $t('codex.auth.fields.accountName') }} <span class="text-red-500">*</span>
                     </label>
                     <input
@@ -362,7 +356,7 @@
                     >
                   </div>
                   <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-text-secondary">
+                    <label class="text-sm font-semibold text-white/80">
                       {{ $t('codex.auth.fields.description') }}
                     </label>
                     <input
@@ -373,7 +367,7 @@
                     >
                   </div>
                   <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-text-secondary">
+                    <label class="text-sm font-semibold text-white/80">
                       {{ $t('codex.auth.fields.expiresAt') }}
                     </label>
                     <input
@@ -381,20 +375,20 @@
                       type="datetime-local"
                       class="input"
                     >
-                    <p class="text-xs text-text-muted mt-1">
+                    <p class="text-xs text-white/50 mt-1">
                       {{ $t('codex.auth.expiresAtHint') }}
                     </p>
                   </div>
-                  <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface border border-border-subtle">
+                  <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
                     <input
                       id="forceOverwrite"
                       v-model="saveForm.force"
                       type="checkbox"
-                      class="w-5 h-5 rounded border-border-default text-accent-primary focus:ring-accent-primary/20"
+                      class="w-5 h-5 rounded border-white/10 text-accent-primary focus:ring-accent-primary/20"
                     >
                     <label
                       for="forceOverwrite"
-                      class="text-sm font-medium text-text-primary cursor-pointer select-none"
+                      class="text-sm font-medium text-white cursor-pointer select-none"
                     >
                       {{ $t('codex.auth.forceOverwrite') }}
                     </label>
@@ -403,7 +397,7 @@
               </div>
 
               <!-- Footer -->
-              <div class="px-6 py-4 border-t border-border-subtle flex justify-end gap-3 bg-bg-surface/50">
+              <div class="px-6 py-4 border-t border-white/5 flex justify-end gap-3 bg-white/5/50">
                 <button
                   class="btn btn-secondary"
                   @click="handleCloseSaveForm"

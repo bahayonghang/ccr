@@ -63,7 +63,7 @@ const colors = {
 
 // 背景颜色映射
 const bgColors = {
-  default: 'bg-bg-surface',
+  default: 'bg-white/5',
   primary: 'bg-accent-primary/10',
   secondary: 'bg-accent-secondary/10',
   success: 'bg-accent-success/10',

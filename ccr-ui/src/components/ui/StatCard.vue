@@ -17,7 +17,7 @@
     <!-- 内容区域 -->
     <div class="flex-1 min-w-0">
       <!-- 标签 -->
-      <p class="text-sm text-text-muted truncate">
+      <p class="text-sm text-white/50 truncate">
         <slot name="label">
           {{ label }}
         </slot>
@@ -25,7 +25,7 @@
       
       <!-- 数值 -->
       <div class="flex items-baseline gap-2 mt-1">
-        <span class="text-2xl font-bold text-text-primary tabular-nums">
+        <span class="text-2xl font-bold text-white tabular-nums">
           <slot name="value">{{ formattedValue }}</slot>
         </span>
         
@@ -70,7 +70,7 @@
       <!-- 附加描述 -->
       <p
         v-if="description || $slots.description"
-        class="text-xs text-text-muted mt-1 truncate"
+        class="text-xs text-white/50 mt-1 truncate"
       >
         <slot name="description">
           {{ description }}
@@ -135,8 +135,8 @@ const formattedValue = computed(() => {
 // 变体颜色映射
 const variantColors = {
   default: {
-    container: 'bg-bg-surface',
-    icon: 'text-text-secondary',
+    container: 'bg-white/5',
+    icon: 'text-white/80',
   },
   primary: {
     container: 'bg-accent-primary/10',
@@ -162,9 +162,9 @@ const variantColors = {
 
 // 卡片类
 const cardClasses = computed(() => [
-  'flex items-start gap-4 p-4 rounded-xl bg-bg-elevated',
+  'flex items-start gap-4 p-4 rounded-xl bg-white/5',
   'transition-colors duration-200 ease-out',
-  props.bordered ? 'border border-border-subtle hover:border-border-default' : '',
+  props.bordered ? 'border border-white/5 hover:border-white/10' : '',
 ])
 
 // 图标容器类
@@ -180,6 +180,6 @@ const changeClasses = computed(() => {
     ? 'text-accent-success'
     : props.change < 0
       ? 'text-accent-danger'
-      : 'text-text-muted'
+      : 'text-white/50'
 })
 </script>

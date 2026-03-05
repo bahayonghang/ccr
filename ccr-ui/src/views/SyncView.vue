@@ -25,17 +25,17 @@
               <h1 class="text-4xl md:text-5xl font-bold mb-2 text-gradient-cyan">
                 {{ $t('sync.title') }}
               </h1>
-              <p class="text-lg text-text-secondary">
+              <p class="text-lg text-white/80">
                 {{ $t('sync.subtitle') }}
               </p>
             </div>
           </div>
           <RouterLink
             to="/"
-            class="group glass-effect flex items-center gap-2 px-5 py-3 hover:scale-105 transition-[color,background-color,border-color,transform] duration-300 border border-border-subtle hover:border-cyan-500/30"
+            class="group glass-effect flex items-center gap-2 px-5 py-3 hover:scale-105 transition-[color,background-color,border-color,transform] duration-300 border border-white/5 hover:border-cyan-500/30"
           >
-            <Home class="w-5 h-5 text-text-muted group-hover:text-cyan-400 transition-colors" />
-            <span class="font-medium text-text-secondary group-hover:text-text-primary transition-colors">{{ $t('sync.backHome') }}</span>
+            <Home class="w-5 h-5 text-white/50 group-hover:text-cyan-400 transition-colors" />
+            <span class="font-medium text-white/80 group-hover:text-white transition-colors">{{ $t('sync.backHome') }}</span>
           </RouterLink>
         </div>
       </div>
@@ -59,10 +59,10 @@
           <XCircle class="w-7 h-7 text-danger" />
         </div>
         <div class="flex-1">
-          <h3 class="font-bold text-xl mb-2 text-text-primary">
+          <h3 class="font-bold text-xl mb-2 text-white">
             {{ $t('sync.loadFailed') }}
           </h3>
-          <p class="text-base text-text-secondary">
+          <p class="text-base text-white/80">
             {{ error }}
           </p>
         </div>
@@ -76,14 +76,14 @@
         <!-- 左侧主内容区 (2 columns) -->
         <div class="lg:col-span-2 space-y-6">
           <!-- Platform selection -->
-          <div class="glass-effect p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300 rounded-2xl border border-border-subtle hover:border-cyan-500/30">
+          <div class="glass-effect p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300 rounded-2xl border border-white/5 hover:border-cyan-500/30">
             <!-- Header -->
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
                 <div class="p-3 rounded-2xl bg-success/15 border border-success/30">
                   <CheckSquare class="w-6 h-6 text-success" />
                 </div>
-                <h2 class="text-2xl font-bold text-text-primary">
+                <h2 class="text-2xl font-bold text-white">
                   {{ $t('sync.platformSelection.title') }}
                 </h2>
               </div>
@@ -91,7 +91,7 @@
                 :disabled="applying || !hasChanges"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-effect font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border"
                 :class="applying || !hasChanges
-                  ? 'bg-bg-surface text-text-muted border-border-subtle'
+                  ? 'bg-white/5 text-white/50 border-white/5'
                   : 'bg-success/15 text-success border-success/30 hover:bg-success/20'"
                 @click="applySelection"
               >
@@ -108,22 +108,22 @@
                 </div>
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
-                    <h3 class="text-lg font-bold text-text-primary">
+                    <h3 class="text-lg font-bold text-white">
                       {{ $t('sync.platformSelection.configRequired') }}
                     </h3>
                     <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-warning/20 text-warning border border-warning/30">
                       {{ $t('sync.platformSelection.configRequiredBadge') }}
                     </span>
                   </div>
-                  <p class="text-sm mb-3 text-text-secondary">
+                  <p class="text-sm mb-3 text-white/80">
                     {{ $t('sync.platformSelection.configDescription') }}
                   </p>
                   <div class="flex items-center gap-2">
-                    <Folder class="w-4 h-4 text-text-muted" />
+                    <Folder class="w-4 h-4 text-white/50" />
                     <input
                       v-model="presetItems.config.localPath"
                       type="text"
-                      class="flex-1 px-3 py-2 rounded-lg glass-effect text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-bg-surface border border-border-subtle text-text-primary"
+                      class="flex-1 px-3 py-2 rounded-lg glass-effect text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-white/5 border border-white/5 text-white"
                       :placeholder="$t('sync.customFolder.localPathPlaceholder')"
                     >
                   </div>

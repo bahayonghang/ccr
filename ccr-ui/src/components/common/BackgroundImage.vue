@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 -z-20 overflow-hidden bg-bg-base">
+  <div class="fixed inset-0 -z-20 overflow-hidden">
     <!-- Dark mode - multi-point radial gradient mesh -->
     <template v-if="isDarkMode">
       <div class="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/85 to-slate-900/70" />

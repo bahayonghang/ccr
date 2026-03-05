@@ -25,10 +25,10 @@
                 />
               </div>
               <div class="min-w-0">
-                <h2 class="text-lg font-bold text-text-primary truncate">
+                <h2 class="text-lg font-bold text-white truncate">
                   {{ skillContent?.name || skill?.name }}
                 </h2>
-                <p class="text-xs text-text-muted truncate">
+                <p class="text-xs text-white/50 truncate">
                   {{ skill?.platformName }}
                 </p>
               </div>
@@ -36,8 +36,7 @@
             <div class="flex items-center gap-1 shrink-0">
               <!-- Mode Toggle -->
               <button
-                class="p-2 rounded-lg text-text-muted hover:text-text-primary
-                       hover:bg-bg-surface transition-colors"
+                class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
                 :title="isEditMode ? $t('skills.previewMode') : $t('skills.editMode')"
                 @click="toggleMode"
               >
@@ -52,8 +51,7 @@
               </button>
               <!-- Close -->
               <button
-                class="p-2 rounded-lg text-text-muted hover:text-text-primary
-                       hover:bg-bg-surface transition-colors"
+                class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
                 @click="close"
               >
                 <X class="w-5 h-5" />
@@ -69,7 +67,7 @@
               class="flex flex-col items-center justify-center py-16"
             >
               <Loader2 class="w-8 h-8 animate-spin text-accent-primary" />
-              <p class="text-text-secondary text-sm mt-3">
+              <p class="text-white/80 text-sm mt-3">
                 {{ $t('skills.loadingContent') }}
               </p>
             </div>
@@ -101,7 +99,7 @@
                 <!-- Description -->
                 <p
                   v-if="skillContent.description"
-                  class="text-sm text-text-secondary leading-relaxed"
+                  class="text-sm text-white/80 leading-relaxed"
                 >
                   {{ skillContent.description }}
                 </p>
@@ -113,7 +111,7 @@
                     v-if="skillContent.category"
                     class="meta-item"
                   >
-                    <Folder class="w-3.5 h-3.5 text-text-muted shrink-0" />
+                    <Folder class="w-3.5 h-3.5 text-white/50 shrink-0" />
                     <span class="meta-label">{{ $t('skills.categoryLabel') }}</span>
                     <span class="meta-value">{{ skillContent.category }}</span>
                   </div>
@@ -134,7 +132,7 @@
                     v-if="skill?.version"
                     class="meta-item"
                   >
-                    <Tag class="w-3.5 h-3.5 text-text-muted shrink-0" />
+                    <Tag class="w-3.5 h-3.5 text-white/50 shrink-0" />
                     <span class="meta-label">{{ $t('skills.version') }}</span>
                     <span class="meta-value">v{{ skill.version }}</span>
                   </div>
@@ -144,7 +142,7 @@
                     v-if="skill?.author"
                     class="meta-item"
                   >
-                    <User class="w-3.5 h-3.5 text-text-muted shrink-0" />
+                    <User class="w-3.5 h-3.5 text-white/50 shrink-0" />
                     <span class="meta-label">{{ $t('skills.author') }}</span>
                     <span class="meta-value">{{ skill.author }}</span>
                   </div>
@@ -156,7 +154,7 @@
                   >
                     <component
                       :is="sourceIconMap[skill.source] || HardDrive"
-                      class="w-3.5 h-3.5 text-text-muted shrink-0"
+                      class="w-3.5 h-3.5 text-white/50 shrink-0"
                     />
                     <span class="meta-label">{{ $t('skills.sourceLabel') }}</span>
                     <span class="meta-value flex items-center gap-1">
@@ -179,14 +177,14 @@
                     v-if="skill?.installDate"
                     class="meta-item"
                   >
-                    <Clock class="w-3.5 h-3.5 text-text-muted shrink-0" />
+                    <Clock class="w-3.5 h-3.5 text-white/50 shrink-0" />
                     <span class="meta-label">{{ $t('skills.installedAt') }}</span>
                     <span class="meta-value">{{ formatDate(skill.installDate) }}</span>
                   </div>
 
                   <!-- Directory -->
                   <div class="meta-item">
-                    <FolderOpen class="w-3.5 h-3.5 text-text-muted shrink-0" />
+                    <FolderOpen class="w-3.5 h-3.5 text-white/50 shrink-0" />
                     <span class="meta-label">{{ $t('skills.directory') }}</span>
                     <span
                       class="meta-value font-mono text-[11px]"
@@ -232,7 +230,7 @@
                 />
                 <p
                   v-else
-                  class="text-sm text-text-muted italic py-8 text-center"
+                  class="text-sm text-white/50 italic py-8 text-center"
                 >
                   {{ $t('skills.noContent') }}
                 </p>
@@ -519,13 +517,13 @@ function formatDate(timestamp: number): string {
 
 <style scoped>
 .modal-content {
-  @apply bg-bg-base border border-border-default rounded-2xl
+  @apply bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl
          shadow-2xl overflow-hidden;
 }
 
 .modal-header {
   @apply flex items-center justify-between p-4
-         border-b border-border-subtle shrink-0;
+         border-b border-white/5 shrink-0;
 }
 
 .modal-icon {
@@ -538,9 +536,9 @@ function formatDate(timestamp: number): string {
 
 /* Metadata */
 .metadata-section {
-  @apply p-4 rounded-xl border border-border-subtle space-y-3;
+  @apply p-4 rounded-xl border border-white/5 space-y-3;
 
-  background: rgb(var(--color-bg-surface-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .meta-grid {
@@ -552,16 +550,16 @@ function formatDate(timestamp: number): string {
 }
 
 .meta-label {
-  @apply text-text-muted text-xs;
+  @apply text-white/50 text-xs;
 }
 
 .meta-value {
-  @apply text-text-primary font-medium text-xs;
+  @apply text-white font-medium text-xs;
 }
 
 .tag-badge {
   @apply px-2 py-0.5 rounded-md text-[10px] font-medium
-         bg-bg-surface text-text-muted;
+         bg-white/5 text-white/50;
 }
 
 /* Content Divider */
@@ -570,7 +568,7 @@ function formatDate(timestamp: number): string {
 }
 
 .content-divider__label {
-  @apply text-xs font-bold uppercase tracking-wide text-text-muted whitespace-nowrap;
+  @apply text-xs font-bold uppercase tracking-wide text-white/50 whitespace-nowrap;
 }
 
 .content-divider::after {
@@ -583,25 +581,25 @@ function formatDate(timestamp: number): string {
 
 /* Markdown Content */
 .markdown-content {
-  @apply rounded-xl border border-border-subtle p-4 overflow-x-auto;
+  @apply rounded-xl border border-white/5 p-4 overflow-x-auto;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .markdown-content .prose {
-  @apply text-sm text-text-primary leading-relaxed max-w-none;
+  @apply text-sm text-white leading-relaxed max-w-none;
 }
 
 .markdown-content .prose :deep(h1) {
-  @apply text-xl font-bold text-text-primary mt-4 mb-2;
+  @apply text-xl font-bold text-white mt-4 mb-2;
 }
 
 .markdown-content .prose :deep(h2) {
-  @apply text-lg font-bold text-text-primary mt-4 mb-2;
+  @apply text-lg font-bold text-white mt-4 mb-2;
 }
 
 .markdown-content .prose :deep(h3) {
-  @apply text-base font-semibold text-text-primary mt-3 mb-1.5;
+  @apply text-base font-semibold text-white mt-3 mb-1.5;
 }
 
 .markdown-content .prose :deep(p) {
@@ -619,21 +617,21 @@ function formatDate(timestamp: number): string {
 
 .markdown-content .prose :deep(code) {
   @apply px-1.5 py-0.5 rounded text-xs font-mono
-         bg-bg-surface text-accent-primary;
+         bg-white/5 text-accent-primary;
 }
 
 .markdown-content .prose :deep(pre) {
   @apply my-3 p-3 rounded-lg overflow-x-auto text-xs;
 
-  background: rgb(var(--color-bg-base-rgb) / 80%);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .markdown-content .prose :deep(pre code) {
-  @apply bg-transparent p-0 text-text-primary;
+  @apply bg-transparent p-0 text-white;
 }
 
 .markdown-content .prose :deep(blockquote) {
-  @apply my-3 pl-4 border-l-2 text-text-secondary italic;
+  @apply my-3 pl-4 border-l-2 text-white/80 italic;
 
   border-color: rgb(var(--color-accent-primary-rgb) / 30%);
 }
@@ -653,23 +651,23 @@ function formatDate(timestamp: number): string {
 }
 
 .markdown-content .prose :deep(th) {
-  @apply px-3 py-2 text-left font-semibold border-b border-border-subtle;
+  @apply px-3 py-2 text-left font-semibold border-b border-white/5;
 }
 
 .markdown-content .prose :deep(td) {
-  @apply px-3 py-2 border-b border-border-subtle;
+  @apply px-3 py-2 border-b border-white/5;
 }
 
 /* Edit Mode */
 .edit-content {
-  @apply rounded-xl border border-border-subtle overflow-hidden;
+  @apply rounded-xl border border-white/5 overflow-hidden;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .edit-textarea {
   @apply w-full min-h-[400px] p-4 text-sm font-mono leading-relaxed
-         text-text-primary bg-transparent
+         text-white bg-transparent
          border-0 outline-none resize-y;
 }
 
@@ -680,15 +678,15 @@ function formatDate(timestamp: number): string {
 /* Footer */
 .modal-footer {
   @apply flex items-center justify-end gap-2 p-4
-         border-t border-border-subtle shrink-0;
+         border-t border-white/5 shrink-0;
 
-  background: rgb(var(--color-bg-surface-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary {
   @apply px-4 py-2 rounded-xl text-sm font-semibold
-         text-text-secondary hover:text-text-primary
-         hover:bg-bg-elevated transition-colors;
+         text-white/80 hover:text-white
+         hover:bg-white/5 transition-colors;
 }
 
 .btn-primary {

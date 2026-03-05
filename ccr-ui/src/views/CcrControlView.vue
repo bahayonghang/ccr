@@ -1,6 +1,6 @@
 <!-- -->
 <template>
-  <div class="h-screen w-full bg-bg-primary text-text-primary overflow-hidden flex flex-col relative transition-colors duration-300">
+  <div class="h-screen w-full bg-bg-primary text-white overflow-hidden flex flex-col relative transition-colors duration-300">
     <!-- 🎨 赛博朋克动态背景装饰 -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none -z-10">
       <!-- 径向渐变光晕 -->
@@ -36,7 +36,7 @@
           </div>
         </div>
         <div>
-          <h1 class="text-xl font-bold text-text-primary tracking-tight neon-text-glow flex items-center gap-3">
+          <h1 class="text-xl font-bold text-white tracking-tight neon-text-glow flex items-center gap-3">
             {{ $t('ccrControl.title') }}
             <span
               v-if="versionInfo?.current_version"
@@ -45,7 +45,7 @@
               v{{ versionInfo.current_version }}
             </span>
           </h1>
-          <p class="text-xs text-text-secondary">
+          <p class="text-xs text-white/80">
             {{ $t('ccrControl.description') }}
           </p>
         </div>
@@ -53,7 +53,7 @@
 
       <!-- 右侧装饰或状态 -->
       <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2 text-xs font-mono text-text-muted">
+        <div class="flex items-center gap-2 text-xs font-mono text-white/50">
           <span class="w-2 h-2 rounded-full bg-accent-primary animate-pulse" />
           System Online
         </div>
@@ -79,7 +79,7 @@
               class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-colors duration-300 relative overflow-hidden group"
               :class="activeTab === tab.id 
                 ? 'bg-accent-primary/10 text-accent-primary shadow-neon-jade-sm' 
-                : 'text-text-muted hover:bg-bg-hover hover:text-text-primary'"
+                : 'text-white/50 hover:bg-bg-hover hover:text-white'"
               @click="activeTab = tab.id"
             >
               <component
@@ -116,7 +116,7 @@
                       class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-transparent"
                       :class="selectedModuleId === mod.id
                         ? 'bg-accent-primary/20 text-accent-primary border-accent-primary/30'
-                        : 'bg-bg-secondary text-text-muted hover:bg-bg-hover hover:text-text-primary'"
+                        : 'bg-bg-secondary text-white/50 hover:bg-bg-hover hover:text-white'"
                       @click="selectModule(mod.id)"
                     >
                       {{ mod.name }}
@@ -136,7 +136,7 @@
                     <div class="flex items-start gap-3">
                       <div
                         class="mt-0.5 w-7 h-7 rounded-lg bg-bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform"
-                        :class="selectedCommand?.command === cmd.command ? 'bg-accent-primary text-white' : 'text-text-muted group-hover:text-accent-primary'"
+                        :class="selectedCommand?.command === cmd.command ? 'bg-accent-primary text-white' : 'text-white/50 group-hover:text-accent-primary'"
                       >
                         <Terminal class="w-4 h-4" />
                       </div>
@@ -144,7 +144,7 @@
                         <div class="flex items-center justify-between mb-0.5">
                           <span
                             class="text-sm font-bold truncate"
-                            :class="selectedCommand?.command === cmd.command ? 'text-accent-primary' : 'text-text-primary'"
+                            :class="selectedCommand?.command === cmd.command ? 'text-accent-primary' : 'text-white'"
                           >{{ cmd.name }}</span>
                           <div class="flex gap-1">
                             <AlertTriangle
@@ -158,10 +158,10 @@
                             />
                           </div>
                         </div>
-                        <div class="text-[10px] font-mono opacity-60 mb-1 text-text-secondary">
+                        <div class="text-[10px] font-mono opacity-60 mb-1 text-white/80">
                           ccr {{ cmd.command }}
                         </div>
-                        <p class="text-[10px] text-text-muted line-clamp-2 leading-relaxed">
+                        <p class="text-[10px] text-white/50 line-clamp-2 leading-relaxed">
                           {{ cmd.description }}
                         </p>
                       </div>
@@ -178,7 +178,7 @@
               >
                 <div
                   v-if="favorites.length === 0"
-                  class="h-full flex flex-col items-center justify-center text-text-muted"
+                  class="h-full flex flex-col items-center justify-center text-white/50"
                 >
                   <Star class="w-8 h-8 opacity-20 mb-2" />
                   <span class="text-xs">{{ $t('ccrControl.noFavorites') }}</span>
@@ -192,13 +192,13 @@
                   <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-bold text-accent-warning">{{ fav.display_name || fav.command }}</span>
                     <button
-                      class="text-text-muted hover:text-accent-danger transition-colors"
+                      class="text-white/50 hover:text-accent-danger transition-colors"
                       @click.stop="removeFromFavorites(fav.id)"
                     >
                       <X class="w-3 h-3" />
                     </button>
                   </div>
-                  <div class="text-[10px] font-mono text-text-secondary mb-2">
+                  <div class="text-[10px] font-mono text-white/80 mb-2">
                     ccr {{ fav.command }}
                   </div>
                   <div class="flex justify-end">
@@ -218,7 +218,7 @@
                 <div class="p-2 border-b border-border-color flex justify-end">
                   <button 
                     v-if="history.length > 0"
-                    class="text-[10px] flex items-center gap-1 text-text-muted hover:text-accent-danger px-2 py-1 hover:bg-bg-hover rounded transition-colors"
+                    class="text-[10px] flex items-center gap-1 text-white/50 hover:text-accent-danger px-2 py-1 hover:bg-bg-hover rounded transition-colors"
                     @click="clearHistoryData"
                   >
                     <Trash2 class="w-3 h-3" />
@@ -228,7 +228,7 @@
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
                   <div
                     v-if="history.length === 0"
-                    class="h-full flex flex-col items-center justify-center text-text-muted"
+                    class="h-full flex flex-col items-center justify-center text-white/50"
                   >
                     <History class="w-8 h-8 opacity-20 mb-2" />
                     <span class="text-xs">{{ $t('ccrControl.noHistory') }}</span>
@@ -244,15 +244,15 @@
                       :class="item.success ? 'bg-accent-success shadow-neon-jade-sm' : 'bg-accent-danger shadow-neon-danger-sm'"
                     />
                     <div class="flex-1 min-w-0">
-                      <div class="text-xs font-mono font-bold truncate text-text-primary">
+                      <div class="text-xs font-mono font-bold truncate text-white">
                         {{ item.command }}
                       </div>
-                      <div class="text-[10px] text-text-muted flex items-center gap-2">
+                      <div class="text-[10px] text-white/50 flex items-center gap-2">
                         <span>{{ formatTime(item.executed_at) }}</span>
                         <span>{{ item.duration_ms }}ms</span>
                       </div>
                     </div>
-                    <Play class="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Play class="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
               </div>
@@ -271,7 +271,7 @@
         >
           <div class="p-3 border-b border-border-color bg-gradient-to-r from-accent-primary/5 to-transparent flex items-center gap-2">
             <Settings class="w-4 h-4 text-accent-primary" />
-            <span class="text-xs font-bold text-text-primary">{{ selectedCommand ? $t('ccrControl.commandParams') : $t('ccrControl.selectCommandFirst') }}</span>
+            <span class="text-xs font-bold text-white">{{ selectedCommand ? $t('ccrControl.commandParams') : $t('ccrControl.selectCommandFirst') }}</span>
           </div>
            
           <div class="p-4">
@@ -279,7 +279,7 @@
               <!-- 命令预览 & 执行按钮行 -->
               <div class="flex items-center gap-4 mb-4">
                 <div class="flex-1 px-4 py-2.5 rounded-lg bg-bg-secondary border border-accent-primary/20 font-mono text-sm text-accent-primary flex items-center gap-2 shadow-inner">
-                  <span class="text-text-muted select-none">$</span>
+                  <span class="text-white/50 select-none">$</span>
                   ccr {{ selectedCommand.command }}
                 </div>
                 <button
@@ -312,7 +312,7 @@
                   v-for="arg in selectedCommand.args"
                   :key="arg.name"
                 >
-                  <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">{{ arg.name }} <span
+                  <label class="block text-[10px] font-bold text-white/80 mb-1 ml-1 uppercase">{{ arg.name }} <span
                     v-if="arg.required"
                     class="text-accent-danger"
                   >*</span></label>
@@ -321,12 +321,12 @@
                     v-model="commandArgs[arg.name]"
                     type="text"
                     :placeholder="arg.placeholder"
-                    class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-text-primary focus:border-accent-primary focus:bg-bg-hover transition-colors font-mono"
+                    class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-white focus:border-accent-primary focus:bg-bg-hover transition-colors font-mono"
                   >
                   <select
                     v-else
                     v-model="commandArgs[arg.name]"
-                    class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-text-primary focus:border-accent-primary transition-colors font-mono"
+                    class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-white focus:border-accent-primary transition-colors font-mono"
                   >
                     <option
                       value=""
@@ -361,19 +361,19 @@
                       :for="`flag-${flag.name}`"
                       class="cursor-pointer flex-1"
                     >
-                      <div class="text-xs font-medium text-text-primary">{{ flag.name }}</div>
-                      <div class="text-[10px] font-mono text-text-muted">{{ flag.flag }}</div>
+                      <div class="text-xs font-medium text-white">{{ flag.name }}</div>
+                      <div class="text-[10px] font-mono text-white/50">{{ flag.flag }}</div>
                     </label>
                   </template>
                   <template v-else>
                     <div class="flex-1">
-                      <div class="text-[10px] text-text-muted mb-1">
+                      <div class="text-[10px] text-white/50 mb-1">
                         {{ flag.name }} <code class="bg-bg-tertiary px-1 rounded">{{ flag.flag }}</code>
                       </div>
                       <input 
                         v-model="commandFlags[flag.name]" 
                         :type="flag.type === 'number' ? 'number' : 'text'"
-                        class="w-full px-2 py-1 rounded bg-bg-tertiary border border-border-color text-xs font-mono text-text-primary focus:border-accent-secondary transition-colors"
+                        class="w-full px-2 py-1 rounded bg-bg-tertiary border border-border-color text-xs font-mono text-white focus:border-accent-secondary transition-colors"
                       >
                     </div>
                   </template>
@@ -383,7 +383,7 @@
               
             <div
               v-else
-              class="py-8 flex flex-col items-center justify-center text-text-muted opacity-50"
+              class="py-8 flex flex-col items-center justify-center text-white/50 opacity-50"
             >
               <Terminal class="w-12 h-12 mb-2" />
               <p class="text-xs">
@@ -401,8 +401,8 @@
               <div class="p-1 rounded bg-accent-primary/10">
                 <Monitor class="w-4 h-4 text-accent-primary" />
               </div>
-              <span class="text-xs font-bold text-text-primary">{{ $t('ccrControl.output') }}</span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-bg-tertiary text-text-muted font-mono">{{ outputLines.length }} lines</span>
+              <span class="text-xs font-bold text-white">{{ $t('ccrControl.output') }}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-bg-tertiary text-white/50 font-mono">{{ outputLines.length }} lines</span>
             </div>
             <div class="flex items-center gap-3">
               <!-- Exit Code Badge -->
@@ -419,7 +419,7 @@
               </div>
               <!-- Clear Button -->
               <button 
-                class="p-1.5 rounded-lg hover:bg-bg-hover text-text-muted hover:text-accent-danger transition-[color,background-color,transform] active:scale-95"
+                class="p-1.5 rounded-lg hover:bg-bg-hover text-white/50 hover:text-accent-danger transition-[color,background-color,transform] active:scale-95"
                 :title="$t('ccrControl.clearOutput')"
                 @click="clearOutput"
               >

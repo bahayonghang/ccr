@@ -5,7 +5,7 @@
     aria-live="polite"
   >
     <div
-      class="flex items-center justify-center w-20 h-20 mb-4 rounded-full bg-bg-surface text-text-muted"
+      class="flex items-center justify-center w-20 h-20 mb-4 rounded-full bg-white/5 text-white/50"
       aria-hidden="true"
     >
       <component
@@ -14,12 +14,12 @@
         :stroke-width="1.5"
       />
     </div>
-    <h3 class="text-xl font-semibold text-text-primary mb-2">
+    <h3 class="text-xl font-semibold text-white mb-2">
       {{ title }}
     </h3>
     <p
       v-if="description"
-      class="text-base text-text-secondary max-w-[480px] mb-4"
+      class="text-base text-white/80 max-w-[480px] mb-4"
     >
       {{ description }}
     </p>

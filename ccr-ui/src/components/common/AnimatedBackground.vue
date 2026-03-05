@@ -1,7 +1,7 @@
 <template>
   <div
     ref="bgRef"
-    class="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-bg-base transition-colors duration-500"
+    class="fixed inset-0 overflow-hidden pointer-events-none -z-10 transition-colors duration-500"
     :style="{ '--animation-state': shouldAnimate ? 'running' : 'paused' }"
   >
     <!-- Variant: Default / Complex - Multi-layer mesh gradient -->

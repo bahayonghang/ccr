@@ -16,7 +16,7 @@
               <h1 class="text-4xl font-bold font-display bg-gradient-to-r from-purple-500 via-pink-500 to-amber-500 bg-clip-text text-transparent tracking-tight">
                 {{ $t('qwen.overview.title') }}
               </h1>
-              <p class="text-text-secondary text-lg mt-1 max-w-xl">
+              <p class="text-white/80 text-lg mt-1 max-w-xl">
                 {{ $t('qwen.overview.description') }}
               </p>
             </div>
@@ -57,7 +57,7 @@
       >
         <div class="flex items-center gap-3 mb-6">
           <Boxes class="w-5 h-5 text-purple-500" />
-          <h2 class="text-lg font-bold uppercase tracking-widest text-text-muted">
+          <h2 class="text-lg font-bold uppercase tracking-widest text-white/50">
             {{ $t('qwen.overview.features') }}
           </h2>
           <div class="h-px flex-1 bg-border-subtle" />
@@ -79,10 +79,10 @@
                 <Server class="w-6 h-6" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-purple-500 transition-colors">
+                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-purple-500 transition-colors">
                   {{ $t('qwen.mcp.title') }}
                 </h3>
-                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                <p class="text-sm text-white/80 mb-3 leading-relaxed">
                   {{ $t('qwen.mcp.description') }}
                 </p>
                 <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-purple-500/10 text-purple-500 border border-purple-500/20">{{ $t('qwen.mcp.badge') }}</span>
@@ -105,10 +105,10 @@
                 <Bot class="w-6 h-6" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-pink-500 transition-colors">
+                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-pink-500 transition-colors">
                   {{ $t('qwen.agents.title') }}
                 </h3>
-                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                <p class="text-sm text-white/80 mb-3 leading-relaxed">
                   {{ $t('qwen.agents.description') }}
                 </p>
                 <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-pink-500/10 text-pink-500 border border-pink-500/20">{{ $t('qwen.agents.badge') }}</span>
@@ -131,10 +131,10 @@
                 <Puzzle class="w-6 h-6" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-amber-500 transition-colors">
+                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-amber-500 transition-colors">
                   {{ $t('qwen.plugins.title') }}
                 </h3>
-                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                <p class="text-sm text-white/80 mb-3 leading-relaxed">
                   {{ $t('qwen.plugins.description') }}
                 </p>
                 <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">{{ $t('qwen.plugins.badge') }}</span>
@@ -157,10 +157,10 @@
                 <Command class="w-6 h-6" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-text-primary mb-1 group-hover:text-red-500 transition-colors">
+                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-red-500 transition-colors">
                   {{ $t('qwen.slashCommands.title') }}
                 </h3>
-                <p class="text-sm text-text-secondary mb-3 leading-relaxed">
+                <p class="text-sm text-white/80 mb-3 leading-relaxed">
                   {{ $t('qwen.slashCommands.description') }}
                 </p>
                 <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-red-500/10 text-red-500 border border-red-500/20">{{ $t('qwen.slashCommands.badge') }}</span>
@@ -184,25 +184,25 @@
               <Info class="w-6 h-6" />
             </div>
             <div class="space-y-4">
-              <h3 class="text-lg font-bold text-text-primary">
+              <h3 class="text-lg font-bold text-white">
                 💡 {{ $t('qwen.overview.featureTitle') }}
               </h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
                   <div class="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                  <span class="text-sm text-text-secondary">{{ $t('qwen.overview.feature1') }}</span>
+                  <span class="text-sm text-white/80">{{ $t('qwen.overview.feature1') }}</span>
                 </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
                   <div class="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                  <span class="text-sm text-text-secondary">{{ $t('qwen.overview.feature2') }}</span>
+                  <span class="text-sm text-white/80">{{ $t('qwen.overview.feature2') }}</span>
                 </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
                   <div class="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                  <span class="text-sm text-text-secondary">{{ $t('qwen.overview.feature3') }}</span>
+                  <span class="text-sm text-white/80">{{ $t('qwen.overview.feature3') }}</span>
                 </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-bg-surface/30 border border-border-subtle/50">
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
                   <div class="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                  <span class="text-sm text-text-secondary">{{ $t('qwen.overview.feature4') }}</span>
+                  <span class="text-sm text-white/80">{{ $t('qwen.overview.feature4') }}</span>
                 </div>
               </div>
             </div>

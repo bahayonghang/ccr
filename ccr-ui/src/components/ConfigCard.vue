@@ -60,7 +60,7 @@
         </div>
 
         <!-- Description -->
-        <p class="text-xs text-text-secondary truncate leading-relaxed">
+        <p class="text-xs text-white/80 truncate leading-relaxed">
           {{ config.description || 'No description provided.' }}
         </p>
       </div>

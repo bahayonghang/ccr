@@ -5,10 +5,10 @@
       <!-- HEADER SECTION -->
       <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 animate-slide-up">
         <div class="space-y-1">
-          <h1 class="text-4xl font-bold font-display tracking-tight text-text-primary">
+          <h1 class="text-4xl font-bold font-display tracking-tight text-white">
             {{ $t('home.welcomeBack') }}, <span class="bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">{{ $t('home.roleEngineer') }}</span>
           </h1>
-          <p class="text-text-secondary text-lg">
+          <p class="text-white/80 text-lg">
             {{ $t('home.statusMsg') }}
           </p>
         </div>
@@ -21,8 +21,8 @@
           >
             <div class="w-2 h-2 rounded-full bg-accent-success shadow-glow-success animate-pulse" />
             <div class="text-xs font-mono">
-              <span class="text-text-muted">{{ $t('home.cpuUsage') }}</span>
-              <span class="ml-2 text-text-primary font-bold">{{ systemInfo?.cpu_usage?.toFixed(1) || '12.4' }}%</span>
+              <span class="text-white/50">{{ $t('home.cpuUsage') }}</span>
+              <span class="ml-2 text-white font-bold">{{ systemInfo?.cpu_usage?.toFixed(1) || '12.4' }}%</span>
             </div>
           </Card>
           <Card
@@ -31,8 +31,8 @@
           >
             <div class="w-2 h-2 rounded-full bg-accent-info shadow-glow-info" />
             <div class="text-xs font-mono">
-              <span class="text-text-muted">{{ $t('home.memoryUsage') }}</span>
-              <span class="ml-2 text-text-primary font-bold">{{ systemInfo?.memory_usage_percent?.toFixed(1) || '42.8' }}%</span>
+              <span class="text-white/50">{{ $t('home.memoryUsage') }}</span>
+              <span class="ml-2 text-white font-bold">{{ systemInfo?.memory_usage_percent?.toFixed(1) || '42.8' }}%</span>
             </div>
           </Card>
         </div>
@@ -45,7 +45,7 @@
       >
         <div class="flex items-center gap-2 mb-4">
           <Terminal class="w-4 h-4 text-accent-primary" />
-          <h2 class="text-xs font-bold uppercase tracking-widest text-text-muted">
+          <h2 class="text-xs font-bold uppercase tracking-widest text-white/50">
             {{ $t('home.quickActions') }}
           </h2>
         </div>
@@ -74,14 +74,14 @@
                 />
               </div>
               <div>
-                <h3 class="font-bold text-text-primary mb-1">
+                <h3 class="font-bold text-white mb-1">
                   {{ action.title }}
                 </h3>
-                <p class="text-xs text-text-muted leading-relaxed line-clamp-2">
+                <p class="text-xs text-white/50 leading-relaxed line-clamp-2">
                   {{ action.desc }}
                 </p>
               </div>
-              <ArrowRight class="w-4 h-4 text-text-muted mt-auto self-end opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-[opacity,transform]" />
+              <ArrowRight class="w-4 h-4 text-white/50 mt-auto self-end opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-[opacity,transform]" />
             </Card>
           </RouterLink>
         </div>
@@ -94,7 +94,7 @@
       >
         <div class="flex items-center gap-2 mb-4">
           <Grid class="w-4 h-4 text-accent-secondary" />
-          <h2 class="text-xs font-bold uppercase tracking-widest text-text-muted">
+          <h2 class="text-xs font-bold uppercase tracking-widest text-white/50">
             {{ $t('home.platformModules') }}
           </h2>
         </div>
@@ -119,7 +119,7 @@
               />
               
               <div class="flex justify-between items-start z-10">
-                <div class="p-3 rounded-xl bg-bg-surface/50 border border-white/5 backdrop-blur-sm">
+                <div class="p-3 rounded-xl bg-white/5/50 border border-white/5 backdrop-blur-sm">
                   <component
                     :is="module.icon"
                     class="w-6 h-6"
@@ -138,12 +138,12 @@
 
               <div class="z-10">
                 <h3
-                  class="text-xl font-bold text-text-primary mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r"
+                  class="text-xl font-bold text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r"
                   :class="module.gradientClass"
                 >
                   {{ module.title }}
                 </h3>
-                <p class="text-sm text-text-secondary leading-relaxed">
+                <p class="text-sm text-white/80 leading-relaxed">
                   {{ module.desc }}
                 </p>
               </div>
@@ -160,7 +160,7 @@
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
             <Activity class="w-4 h-4 text-accent-info" />
-            <h2 class="text-xs font-bold uppercase tracking-widest text-text-muted">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-white/50">
               {{ $t('home.systemActivity') }}
             </h2>
           </div>
@@ -291,11 +291,11 @@ const getVersionLabel = (platformKey: string) => {
 
 const getVersionClass = (platformKey: string) => {
   const entry = cliVersions.value.get(platformKey)
-  if (!entry) return 'bg-bg-surface text-text-muted'
+  if (!entry) return 'bg-white/5 text-white/50'
   if (entry.status === 'timeout') return 'bg-amber-500/10 text-amber-400'
   if (entry.status === 'error') return 'bg-orange-500/10 text-orange-400'
   if (entry.status === 'not_installed' || !entry.installed) return 'bg-red-500/10 text-red-400'
-  return 'bg-bg-surface text-text-muted'
+  return 'bg-white/5 text-white/50'
 }
 
 const quickActions = computed(() => [

@@ -18,10 +18,10 @@
                 <TerminalSquare class="w-6 h-6 text-violet-500" />
               </div>
               <div>
-                <h1 class="text-3xl font-bold font-display text-text-primary tracking-tight">
+                <h1 class="text-3xl font-bold font-display text-white tracking-tight">
                   OpenCode
                 </h1>
-                <p class="text-text-secondary text-base max-w-md">
+                <p class="text-white/80 text-base max-w-md">
                   基于 npm AI SDK 的叠加式 Provider 配置管理
                 </p>
               </div>
@@ -49,10 +49,10 @@
               <Layers class="w-5 h-5" />
             </div>
             <div>
-              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">
+              <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
                 Providers
               </p>
-              <p class="text-base font-bold text-text-primary">
+              <p class="text-base font-bold text-white">
                 {{ providersCount }}
               </p>
             </div>
@@ -67,10 +67,10 @@
               <Server class="w-5 h-5" />
             </div>
             <div>
-              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">
+              <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
                 MCP 服务器
               </p>
-              <p class="text-base font-bold text-text-primary">
+              <p class="text-base font-bold text-white">
                 {{ mcpCount }}
               </p>
             </div>
@@ -85,10 +85,10 @@
               <Puzzle class="w-5 h-5" />
             </div>
             <div>
-              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">
+              <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
                 插件
               </p>
-              <p class="text-base font-bold text-text-primary">
+              <p class="text-base font-bold text-white">
                 {{ pluginsCount }}
               </p>
             </div>
@@ -101,7 +101,7 @@
         class="animate-slide-up"
         style="animation-delay: 0.1s"
       >
-        <h2 class="text-lg font-bold text-text-primary mb-3">
+        <h2 class="text-lg font-bold text-white mb-3">
           功能模块
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -126,10 +126,10 @@
                 />
               </div>
               <div>
-                <h3 class="font-bold text-text-primary text-sm mb-1">
+                <h3 class="font-bold text-white text-sm mb-1">
                   {{ mod.title }}
                 </h3>
-                <p class="text-text-muted text-xs leading-relaxed">
+                <p class="text-white/50 text-xs leading-relaxed">
                   {{ mod.description }}
                 </p>
               </div>
@@ -148,12 +148,12 @@
           variant="elevated"
           class="p-4 flex items-center gap-3"
         >
-          <FileJson class="w-5 h-5 text-text-muted shrink-0" />
+          <FileJson class="w-5 h-5 text-white/50 shrink-0" />
           <div>
-            <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">
+            <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
               配置文件路径
             </p>
-            <p class="text-sm font-mono text-text-secondary">
+            <p class="text-sm font-mono text-white/80">
               ~/.config/opencode/opencode.json
             </p>
           </div>

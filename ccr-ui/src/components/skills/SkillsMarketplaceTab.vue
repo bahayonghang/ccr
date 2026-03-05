@@ -5,7 +5,7 @@
       <div class="marketplace-search">
         <div class="relative flex-1">
           <Search
-            class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted"
+            class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50"
           />
           <input
             v-model="searchQuery"
@@ -48,7 +48,7 @@
         <div class="toolbar-right">
           <!-- Sort Dropdown -->
           <div class="sort-select">
-            <ArrowUpDown class="w-3.5 h-3.5 text-text-muted" />
+            <ArrowUpDown class="w-3.5 h-3.5 text-white/50" />
             <select
               v-model="sortBy"
               class="sort-dropdown"
@@ -91,11 +91,11 @@
       v-else-if="!isLoading && sortedItems.length === 0"
       class="empty-state"
     >
-      <Store class="w-12 h-12 text-text-muted" />
-      <h3 class="text-lg font-semibold text-text-primary mt-4">
+      <Store class="w-12 h-12 text-white/50" />
+      <h3 class="text-lg font-semibold text-white mt-4">
         {{ $t('skills.noMarketplaceResults') }}
       </h3>
-      <p class="text-sm text-text-secondary mt-1">
+      <p class="text-sm text-white/80 mt-1">
         {{ $t('skills.tryDifferentSearch') }}
       </p>
     </div>
@@ -322,8 +322,8 @@ function handleViewSource(item: MarketplaceItem) {
 }
 
 .search-input {
-  @apply w-full bg-bg-surface border border-border-subtle rounded-xl
-         text-text-primary
+  @apply w-full bg-white/5 border border-white/5 rounded-xl
+         text-white
          pl-12 pr-4 py-3 text-sm font-medium
          focus:outline-none focus:ring-2 focus:ring-accent-primary/30
          focus:border-accent-primary/50 transition-[border-color,box-shadow];
@@ -360,20 +360,20 @@ function handleViewSource(item: MarketplaceItem) {
 
 .sort-select {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         bg-bg-surface border border-border-subtle
-         text-sm text-text-secondary;
+         bg-white/5 border border-white/5
+         text-sm text-white/80;
 }
 
 .sort-dropdown {
   @apply bg-transparent border-none outline-none text-sm
-         text-text-primary cursor-pointer;
+         text-white cursor-pointer;
 }
 
 .btn-batch {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         text-sm font-medium text-text-secondary
-         bg-bg-surface border border-border-subtle
-         hover:text-text-primary hover:border-border-default
+         text-sm font-medium text-white/80
+         bg-white/5 border border-white/5
+         hover:text-white hover:border-white/10
          transition-colors;
 }
 
@@ -387,9 +387,9 @@ function handleViewSource(item: MarketplaceItem) {
 .error-state,
 .empty-state {
   @apply flex flex-col items-center justify-center py-16
-         rounded-2xl border border-border-subtle;
+         rounded-2xl border border-white/5;
 
-  background: rgb(var(--color-bg-surface-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* Grid Layout */
@@ -402,9 +402,9 @@ function handleViewSource(item: MarketplaceItem) {
 /* Skeleton Styles */
 .skeleton-card {
   @apply flex flex-col gap-3 p-4 rounded-2xl
-         border border-border-subtle;
+         border border-white/5;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .skeleton-header {
@@ -412,19 +412,19 @@ function handleViewSource(item: MarketplaceItem) {
 }
 
 .skeleton-avatar {
-  @apply w-6 h-6 rounded-full bg-bg-surface animate-pulse;
+  @apply w-6 h-6 rounded-full bg-white/5 animate-pulse;
 }
 
 .skeleton-owner {
-  @apply w-16 h-4 rounded bg-bg-surface animate-pulse;
+  @apply w-16 h-4 rounded bg-white/5 animate-pulse;
 }
 
 .skeleton-stars {
-  @apply w-12 h-4 rounded bg-bg-surface animate-pulse;
+  @apply w-12 h-4 rounded bg-white/5 animate-pulse;
 }
 
 .skeleton-name {
-  @apply w-32 h-5 rounded bg-bg-surface animate-pulse;
+  @apply w-32 h-5 rounded bg-white/5 animate-pulse;
 }
 
 .skeleton-desc {
@@ -432,34 +432,34 @@ function handleViewSource(item: MarketplaceItem) {
 }
 
 .skeleton-line {
-  @apply h-3.5 rounded bg-bg-surface animate-pulse;
+  @apply h-3.5 rounded bg-white/5 animate-pulse;
 }
 
 .skeleton-footer {
   @apply flex items-center justify-between mt-auto pt-3
-         border-t border-border-subtle;
+         border-t border-white/5;
 }
 
 .skeleton-link {
-  @apply w-20 h-4 rounded bg-bg-surface animate-pulse;
+  @apply w-20 h-4 rounded bg-white/5 animate-pulse;
 }
 
 .skeleton-btn {
-  @apply w-16 h-7 rounded-lg bg-bg-surface animate-pulse;
+  @apply w-16 h-7 rounded-lg bg-white/5 animate-pulse;
 }
 
 /* Batch Bar */
 .batch-bar {
   @apply fixed bottom-6 left-1/2 -translate-x-1/2 z-40
          flex items-center gap-4 px-6 py-3 rounded-2xl
-         border border-border-subtle shadow-2xl;
+         border border-white/5 shadow-2xl;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 95%);
+  background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(16px);
 }
 
 .batch-bar__count {
-  @apply text-sm font-semibold text-text-primary;
+  @apply text-sm font-semibold text-white;
 }
 
 .batch-bar__actions {
@@ -467,8 +467,8 @@ function handleViewSource(item: MarketplaceItem) {
 }
 
 .batch-bar__clear {
-  @apply px-3 py-1.5 rounded-lg text-sm text-text-secondary
-         hover:text-text-primary hover:bg-bg-surface
+  @apply px-3 py-1.5 rounded-lg text-sm text-white/80
+         hover:text-white hover:bg-white/5
          transition-colors;
 }
 

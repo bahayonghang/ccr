@@ -16,7 +16,7 @@
       </div>
 
       <!-- Module Navigation (Glass Pills) -->
-      <nav class="flex flex-wrap gap-2 p-1.5 rounded-full bg-bg-elevated/40 backdrop-blur-md border border-white/10 w-fit">
+      <nav class="flex flex-wrap gap-2 p-1.5 rounded-full bg-white/5/40 backdrop-blur-md border border-white/10 w-fit">
         <RouterLink
           v-for="navItem in moduleNavItems"
           :key="navItem.path"
@@ -24,7 +24,7 @@
           class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors duration-300 border border-transparent"
           :class="$route.path === navItem.path 
             ? 'bg-accent-primary/20 text-accent-primary border-accent-primary/20 shadow-glow-primary' 
-            : 'text-text-secondary hover:text-text-primary hover:bg-white/5'"
+            : 'text-white/80 hover:text-white hover:bg-white/5'"
         >
           <component
             :is="navItem.icon"
@@ -57,14 +57,14 @@
           class="p-6 h-fit min-h-[600px] flex flex-col lg:order-last"
         >
           <!-- Tab Navigation -->
-          <div class="flex gap-4 border-b border-border-subtle pb-4 mb-6">
+          <div class="flex gap-4 border-b border-white/5 pb-4 mb-6">
             <button
               v-for="tab in tabs"
               :key="tab.id"
               class="flex items-center gap-2 pb-2 px-2 text-sm font-bold border-b-2 transition-colors duration-300"
               :class="activeTab === tab.id 
                 ? 'border-accent-primary text-accent-primary' 
-                : 'border-transparent text-text-muted hover:text-text-secondary'"
+                : 'border-transparent text-white/50 hover:text-white/80'"
               @click="activeTab = tab.id"
             >
               <component

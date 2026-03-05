@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div
       v-if="loading"
-      class="flex flex-col items-center justify-center py-20 text-text-muted"
+      class="flex flex-col items-center justify-center py-20 text-white/50"
     >
       <Spinner
         size="xl"
@@ -24,9 +24,9 @@
     <!-- Empty State -->
     <div
       v-else-if="configs.length === 0"
-      class="py-20 flex flex-col items-center justify-center text-text-muted"
+      class="py-20 flex flex-col items-center justify-center text-white/50"
     >
-      <div class="w-16 h-16 rounded-2xl bg-bg-surface flex items-center justify-center mb-4">
+      <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
         <Settings class="w-8 h-8 opacity-20" />
       </div>
       <p>{{ $t('configs.noConfigsInCategory') }}</p>

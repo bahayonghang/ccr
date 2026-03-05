@@ -12,11 +12,11 @@
               Skills Hub
             </span>
           </div>
-          <h1 class="text-4xl md:text-5xl font-bold font-display tracking-tight text-text-primary flex items-center gap-4">
+          <h1 class="text-4xl md:text-5xl font-bold font-display tracking-tight text-white flex items-center gap-4">
             {{ $t('skills.title') }}
             <span class="w-3 h-3 rounded-full bg-accent-secondary animate-pulse mt-2" />
           </h1>
-          <p class="text-text-secondary text-lg max-w-2xl">
+          <p class="text-white/80 text-lg max-w-2xl">
             {{ $t('skills.help.description') }}
           </p>
         </div>
@@ -46,27 +46,27 @@
 
       <!-- SEARCH & FILTERS -->
       <section 
-        class="sticky top-4 z-40 bg-bg-base/85 backdrop-blur-sm border border-white/10 p-2 rounded-2xl shadow-2xl animate-slide-up flex flex-col xl:flex-row gap-2"
+        class="sticky top-4 z-40 /85 backdrop-blur-sm border border-white/10 p-2 rounded-2xl shadow-2xl animate-slide-up flex flex-col xl:flex-row gap-2"
         style="animation-delay: 100ms;"
       >
         <div class="relative flex-1 group min-w-[200px]">
-          <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent-primary transition-colors" />
+          <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 group-focus-within:text-accent-primary transition-colors" />
           <input 
             v-model="searchQuery"
             type="text"
-            class="w-full bg-transparent border-none text-text-primary placeholder:text-text-muted/50 pl-12 pr-4 py-3 focus:outline-none focus:ring-0 text-sm font-medium"
+            class="w-full bg-transparent border-none text-white placeholder:text-white/50/50 pl-12 pr-4 py-3 focus:outline-none focus:ring-0 text-sm font-medium"
             :placeholder="$t('skills.searchPlaceholder')"
           >
           <div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
             <span 
               v-if="filteredSkills.length"
-              class="text-[10px] font-mono px-2 py-0.5 rounded bg-bg-elevated text-text-muted border border-border-default"
+              class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50 border border-white/10"
             >
               {{ filteredSkills.length }}
             </span>
             <button 
               v-if="searchQuery"
-              class="p-1 hover:bg-bg-elevated rounded-full text-text-muted transition-colors"
+              class="p-1 hover:bg-white/5 rounded-full text-white/50 transition-colors"
               @click="searchQuery = ''"
             >
               <X class="w-3 h-3" />
@@ -78,31 +78,29 @@
 
         <div class="flex flex-col md:flex-row gap-2 overflow-x-auto no-scrollbar items-start md:items-center px-2">
           <!-- Source Toggle -->
-          <div class="flex bg-bg-surface/50 p-1 rounded-xl border border-border-subtle shrink-0">
+          <div class="flex bg-white/5/50 p-1 rounded-xl border border-white/5 shrink-0">
             <button
               v-for="opt in sourceOptions" 
               :key="opt.value"
               class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors relative"
-              :class="selectedSource === opt.value ? 'text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'"
+              :class="selectedSource === opt.value ? 'text-white shadow-sm' : 'text-white/80 hover:text-white'"
               @click="selectedSource = opt.value"
             >
               <div
                 v-if="selectedSource === opt.value"
-                class="absolute inset-0 bg-bg-elevated rounded-lg shadow-sm -z-10"
+                class="absolute inset-0 bg-white/5 rounded-lg shadow-sm -z-10"
               />
               {{ opt.label }}
             </button>
           </div>
 
           <!-- Category Pills -->
-          <div class="flex gap-2 pl-2 border-l border-border-subtle shrink-0 overflow-x-auto no-scrollbar max-w-[400px]">
+          <div class="flex gap-2 pl-2 border-l border-white/5 shrink-0 overflow-x-auto no-scrollbar max-w-[400px]">
             <button
               v-for="cat in availableCategories"
               :key="cat"
               class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap"
-              :class="selectedCategory === cat 
-                ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary shadow-[0_0_10px_rgba(var(--color-accent-primary-rgb),0.2)]' 
-                : 'bg-bg-surface/30 border-transparent hover:bg-bg-surface text-text-secondary'"
+              :class="selectedCategory === cat ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary shadow-[0_0_10px_rgba(var(--color-accent-primary-rgb),0.2)]' : 'bg-white/5/30 border-transparent hover:bg-white/5 text-white/80'"
               @click="toggleCategory(cat)"
             >
               {{ formatCategory(cat) }}
@@ -116,9 +114,7 @@
           >
             <button 
               class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
-              :class="selectedTags.length > 0
-                ? 'bg-accent-secondary/10 border-accent-secondary/30 text-accent-secondary'
-                : 'bg-bg-surface/30 border-transparent hover:bg-bg-surface text-text-secondary'"
+              :class="selectedTags.length > 0 ? 'bg-accent-secondary/10 border-accent-secondary/30 text-accent-secondary' : 'bg-white/5/30 border-transparent hover:bg-white/5 text-white/80'"
               @click="showTagsFilter = !showTagsFilter"
             >
               <Filter class="w-3.5 h-3.5" />
@@ -134,10 +130,10 @@
             <!-- Tags Dropdown -->
             <div 
               v-if="showTagsFilter"
-              class="absolute top-full right-0 mt-2 w-64 p-3 bg-bg-elevated/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl z-50 grid grid-cols-2 gap-2"
+              class="absolute top-full right-0 mt-2 w-64 p-3 bg-white/5/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl z-50 grid grid-cols-2 gap-2"
             >
               <div class="col-span-2 flex justify-between items-center mb-1 px-1">
-                <span class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Select Tags</span>
+                <span class="text-[10px] font-bold text-white/50 uppercase tracking-wider">Select Tags</span>
                 <button 
                   v-if="selectedTags.length" 
                   class="text-[10px] text-accent-primary hover:text-accent-primary-hover" 
@@ -150,9 +146,7 @@
                 v-for="tag in availableTags" 
                 :key="tag"
                 class="text-xs px-2 py-1.5 rounded-lg text-left truncate transition-colors border"
-                :class="selectedTags.includes(tag) 
-                  ? 'bg-accent-secondary/20 border-accent-secondary/30 text-accent-secondary' 
-                  : 'bg-bg-surface/50 border-transparent text-text-secondary hover:bg-bg-surface'"
+                :class="selectedTags.includes(tag) ? 'bg-accent-secondary/20 border-accent-secondary/30 text-accent-secondary' : 'bg-white/5/50 border-transparent text-white/80 hover:bg-white/5'"
                 @click="toggleTag(tag)"
               >
                 #{{ tag }}
@@ -181,16 +175,16 @@
         v-else-if="filteredSkills.length === 0"
         class="py-20 text-center animate-fade-in"
       >
-        <div class="w-20 h-20 rounded-full bg-bg-elevated/50 flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/5">
+        <div class="w-20 h-20 rounded-full bg-white/5/50 flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/5">
           <component
             :is="searchQuery ? Search : Book"
-            class="w-8 h-8 text-text-muted"
+            class="w-8 h-8 text-white/50"
           />
         </div>
-        <h3 class="text-lg font-bold text-text-primary">
+        <h3 class="text-lg font-bold text-white">
           {{ searchQuery ? $t('skills.noSearchResults') : $t('skills.noSkills') }}
         </h3>
-        <p class="text-text-secondary text-sm mt-1 mb-4">
+        <p class="text-white/80 text-sm mt-1 mb-4">
           {{ searchQuery ? $t('skills.noSearchResultsHint') : $t('skills.noSkillsHint') }}
         </p>
         <Button
@@ -235,15 +229,13 @@
             <div class="flex items-center gap-4">
               <div
                 class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold font-mono shadow-inner transition-colors duration-300"
-                :class="skill.repository 
-                  ? 'bg-accent-warning/10 text-accent-warning border border-accent-warning/20 group-hover:bg-accent-warning/20' 
-                  : 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20 group-hover:bg-accent-primary/20'"
+                :class="skill.repository ? 'bg-accent-warning/10 text-accent-warning border border-accent-warning/20 group-hover:bg-accent-warning/20' : 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20 group-hover:bg-accent-primary/20'"
               >
                 {{ skill.name.charAt(0).toUpperCase() }}
               </div>
               <div>
                 <h3
-                  class="text-xl font-bold text-text-primary line-clamp-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent-primary group-hover:to-accent-secondary transition-colors"
+                  class="text-xl font-bold text-white line-clamp-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent-primary group-hover:to-accent-secondary transition-colors"
                   :title="skill.name"
                 >
                   {{ skill.name }}
@@ -270,14 +262,14 @@
             <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-[opacity,transform] duration-200 translate-x-2 group-hover:translate-x-0">
               <button
                 v-if="!skill.repository"
-                class="p-1.5 rounded-lg hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
+                class="p-1.5 rounded-lg hover:bg-white/5 text-white/50 hover:text-white transition-colors"
                 @click.stop="handleEdit(skill)"
               >
                 <Edit2 class="w-4 h-4" />
               </button>
               <button
                 v-if="!skill.repository"
-                class="p-1.5 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-colors"
+                class="p-1.5 rounded-lg hover:bg-red-500/10 text-white/50 hover:text-red-500 transition-colors"
                 @click.stop="handleDelete(skill.name)"
               >
                 <Trash2 class="w-4 h-4" />
@@ -287,7 +279,7 @@
 
           <!-- Card Body -->
           <div class="p-6 flex-1 relative z-10 flex flex-col">
-            <p class="text-sm text-text-secondary leading-relaxed line-clamp-4 mb-4 flex-1">
+            <p class="text-sm text-white/80 leading-relaxed line-clamp-4 mb-4 flex-1">
               {{ skill.description || $t('skills.search.noDescription') }}
             </p>
 
@@ -296,13 +288,13 @@
               <span 
                 v-for="tag in (skill.metadata?.tags || []).slice(0, 4)"
                 :key="tag"
-                class="text-[10px] px-2 py-1 rounded bg-bg-surface border border-border-default text-text-muted hover:text-text-primary transition-colors"
+                class="text-[10px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/50 hover:text-white transition-colors"
               >
                 #{{ tag }}
               </span>
               <span
                 v-if="(skill.metadata?.tags || []).length > 4"
-                class="text-[10px] text-text-muted px-1 self-center"
+                class="text-[10px] text-white/50 px-1 self-center"
               >
                 +{{ (skill.metadata?.tags?.length || 0) - 4 }}
               </span>
@@ -310,7 +302,7 @@
           </div>
 
           <!-- Card Footer (Path) -->
-          <div class="px-6 py-3 border-t border-white/5 bg-transparent backdrop-blur-sm text-[10px] text-text-muted font-mono truncate opacity-40 group-hover:opacity-80 transition-opacity">
+          <div class="px-6 py-3 border-t border-white/5 bg-transparent backdrop-blur-sm text-[10px] text-white/50 font-mono truncate opacity-40 group-hover:opacity-80 transition-opacity">
             {{ skill.path }}
           </div>
         </Card>
@@ -335,9 +327,9 @@
             @click="showModal = false"
           />
           
-          <div class="relative w-full max-w-2xl bg-bg-base/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div class="relative w-full max-w-2xl /90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="p-6 border-b border-white/5 flex items-center justify-center justify-between">
-              <h3 class="text-xl font-bold text-text-primary flex items-center gap-3">
+              <h3 class="text-xl font-bold text-white flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary">
                   <component
                     :is="editingSkill ? Edit2 : Plus"
@@ -347,7 +339,7 @@
                 {{ editingSkill ? $t('skills.editSkill') : $t('skills.addSkill') }}
               </h3>
               <button
-                class="text-text-muted hover:text-text-primary transition-colors"
+                class="text-white/50 hover:text-white transition-colors"
                 @click="showModal = false"
               >
                 <X class="w-5 h-5" />
@@ -356,31 +348,31 @@
 
             <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar">
               <div class="space-y-2">
-                <label class="text-sm font-semibold text-text-secondary">{{ $t('skills.nameLabel') }}</label>
+                <label class="text-sm font-semibold text-white/80">{{ $t('skills.nameLabel') }}</label>
                 <input 
                   v-model="formData.name" 
                   :disabled="!!editingSkill"
                   type="text" 
                   placeholder="e.g. data-analysis-pro"
-                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/50 border border-border-default focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors font-mono text-sm"
+                  class="w-full px-4 py-3 rounded-xl bg-white/5/50 border border-white/10 focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors font-mono text-sm"
                 >
               </div>
 
               <div class="space-y-2">
                 <div class="flex justify-between">
-                  <label class="text-sm font-semibold text-text-secondary">{{ $t('skills.instructionLabel') }}</label>
-                  <span class="text-xs text-text-muted">Markdown supported</span>
+                  <label class="text-sm font-semibold text-white/80">{{ $t('skills.instructionLabel') }}</label>
+                  <span class="text-xs text-white/50">Markdown supported</span>
                 </div>
                 <textarea 
                   v-model="formData.instruction"
                   rows="12"
-                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/50 border border-border-default focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors font-mono text-sm leading-relaxed custom-scrollbar"
+                  class="w-full px-4 py-3 rounded-xl bg-white/5/50 border border-white/10 focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors font-mono text-sm leading-relaxed custom-scrollbar"
                   placeholder="# Skill Name..."
                 />
               </div>
             </div>
 
-            <div class="p-6 border-t border-white/5 bg-bg-surface/30 flex justify-end gap-3">
+            <div class="p-6 border-t border-white/5 bg-white/5/30 flex justify-end gap-3">
               <Button
                 variant="ghost"
                 @click="showModal = false"

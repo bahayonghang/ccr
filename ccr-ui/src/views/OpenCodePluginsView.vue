@@ -8,15 +8,15 @@
         <div class="flex items-center gap-3">
           <RouterLink
             to="/opencode"
-            class="p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
+            class="p-2 rounded-lg text-white/50 hover:text-white transition-colors"
           >
             <ChevronLeft class="w-5 h-5" />
           </RouterLink>
           <div>
-            <h1 class="text-2xl font-bold text-text-primary">
+            <h1 class="text-2xl font-bold text-white">
               插件管理
             </h1>
-            <p class="text-text-muted text-sm">
+            <p class="text-white/50 text-sm">
               管理 OpenCode npm 插件包
             </p>
           </div>
@@ -62,11 +62,11 @@
         variant="glass"
         class="p-10 text-center"
       >
-        <Package class="w-12 h-12 text-text-muted mx-auto mb-4" />
-        <h3 class="text-lg font-bold text-text-primary mb-2">
+        <Package class="w-12 h-12 text-white/50 mx-auto mb-4" />
+        <h3 class="text-lg font-bold text-white mb-2">
           暂无插件
         </h3>
-        <p class="text-text-muted text-sm mb-4">
+        <p class="text-white/50 text-sm mb-4">
           添加 npm 插件包来扩展 OpenCode 功能
         </p>
         <button
@@ -95,17 +95,17 @@
                 <Package class="w-4 h-4 text-emerald-500" />
               </div>
               <div class="min-w-0">
-                <p class="font-mono font-medium text-text-primary truncate text-sm">
+                <p class="font-mono font-medium text-white truncate text-sm">
                   {{ plugin.npm }}
                 </p>
-                <p class="text-xs text-text-muted">
+                <p class="text-xs text-white/50">
                   npm 包
                 </p>
               </div>
             </div>
 
             <button
-              class="p-2 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+              class="p-2 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
               title="删除"
               @click="confirmDelete(plugin.npm)"
             >
@@ -128,11 +128,11 @@
         class="w-full max-w-md p-6 space-y-4"
       >
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-text-primary">
+          <h2 class="text-lg font-bold text-white">
             添加插件
           </h2>
           <button
-            class="p-1 rounded text-text-muted hover:text-text-primary"
+            class="p-1 rounded text-white/50 hover:text-white"
             @click="showAddDialog = false"
           >
             <X class="w-5 h-5" />
@@ -140,19 +140,19 @@
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">npm 包名 *</label>
+          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">npm 包名 *</label>
           <input
             v-model="newNpm"
             type="text"
             placeholder="例：@opencode-ai/omo"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-bg-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-emerald-500"
+            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-emerald-500"
             @keyup.enter="doAdd"
           >
         </div>
 
         <div class="flex justify-end gap-3">
           <button
-            class="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary"
+            class="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white"
             @click="showAddDialog = false"
           >
             取消
@@ -184,15 +184,15 @@
         variant="glass"
         class="w-full max-w-sm p-6 space-y-4"
       >
-        <h2 class="text-lg font-bold text-text-primary">
+        <h2 class="text-lg font-bold text-white">
           确认删除
         </h2>
-        <p class="text-text-secondary text-sm">
+        <p class="text-white/80 text-sm">
           确定要删除插件 <strong class="font-mono">{{ deletingNpm }}</strong> 吗？
         </p>
         <div class="flex justify-end gap-3">
           <button
-            class="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary"
+            class="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white"
             @click="deletingNpm = ''"
           >
             取消

@@ -225,15 +225,15 @@ defineExpose({ sshListKeys, discoveredKeys })
   <div class="space-y-6">
     <div class="flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-xl font-bold text-text-primary">
+        <h1 class="text-xl font-bold text-white">
           SSH 远程管理
         </h1>
-        <p class="text-sm text-text-muted">
+        <p class="text-sm text-white/50">
           添加主机并连接后执行配置读写和 CLI 检测
         </p>
       </div>
       <button
-        class="px-3 py-2 rounded-lg border border-border-default"
+        class="px-3 py-2 rounded-lg border border-white/10"
         :disabled="loading"
         @click="loadHosts"
       >
@@ -249,46 +249,46 @@ defineExpose({ sshListKeys, discoveredKeys })
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <section class="rounded-xl border border-border-default bg-bg-surface p-4 space-y-3">
-        <h2 class="text-base font-semibold text-text-primary">
+      <section class="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+        <h2 class="text-base font-semibold text-white">
           新增 SSH 主机
         </h2>
         <div class="grid grid-cols-2 gap-3">
           <input
             v-model="form.name"
-            class="rounded-md bg-bg-base border border-border-default px-3 py-2"
+            class="rounded-md border border-white/10 px-3 py-2"
             placeholder="名称（可选）"
           >
           <input
             v-model="form.id"
-            class="rounded-md bg-bg-base border border-border-default px-3 py-2"
+            class="rounded-md border border-white/10 px-3 py-2"
             placeholder="ID（可选）"
           >
           <input
             v-model="form.host"
-            class="rounded-md bg-bg-base border border-border-default px-3 py-2 col-span-2"
+            class="rounded-md border border-white/10 px-3 py-2 col-span-2"
             placeholder="主机地址"
           >
           <input
             v-model.number="form.port"
             type="number"
-            class="rounded-md bg-bg-base border border-border-default px-3 py-2"
+            class="rounded-md border border-white/10 px-3 py-2"
             placeholder="端口"
           >
           <input
             v-model="form.user"
-            class="rounded-md bg-bg-base border border-border-default px-3 py-2"
+            class="rounded-md border border-white/10 px-3 py-2"
             placeholder="用户名"
           >
           <input
             v-model="connectPassword"
             type="password"
-            class="rounded-md bg-bg-base border border-border-default px-3 py-2 col-span-2"
+            class="rounded-md border border-white/10 px-3 py-2 col-span-2"
             placeholder="密码（仅内存，可选）"
           >
           <input
             v-model="form.identity_file"
-            class="rounded-md bg-bg-base border border-border-default px-3 py-2 col-span-2"
+            class="rounded-md border border-white/10 px-3 py-2 col-span-2"
             placeholder="私钥路径（可选）"
           >
         </div>
@@ -300,40 +300,40 @@ defineExpose({ sshListKeys, discoveredKeys })
         </button>
       </section>
 
-      <section class="rounded-xl border border-border-default bg-bg-surface p-4 space-y-3">
-        <h2 class="text-base font-semibold text-text-primary">
+      <section class="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+        <h2 class="text-base font-semibold text-white">
           主机列表
         </h2>
         <div
           v-if="hosts.length === 0"
-          class="text-sm text-text-muted"
+          class="text-sm text-white/50"
         >
           暂无 SSH 主机
         </div>
         <div
           v-for="host in hosts"
           :key="buildEnvId(host)"
-          class="rounded-lg border border-border-default p-3"
+          class="rounded-lg border border-white/10 p-3"
         >
           <div class="flex items-center justify-between gap-3">
             <div>
-              <div class="text-sm font-medium text-text-primary">
+              <div class="text-sm font-medium text-white">
                 {{ host.name || host.host }}
               </div>
-              <div class="text-xs text-text-muted">
+              <div class="text-xs text-white/50">
                 {{ host.user || 'user' }}@{{ host.host }}:{{ host.port || 22 }}
               </div>
             </div>
             <div class="flex items-center gap-1">
               <button
-                class="px-2 py-1 rounded border border-border-default text-xs"
+                class="px-2 py-1 rounded border border-white/10 text-xs"
                 :disabled="testingHosts.has(buildEnvId(host))"
                 @click="testConnect(host)"
               >
                 {{ testingHosts.has(buildEnvId(host)) ? '测试中…' : '测试连接' }}
               </button>
               <button
-                class="px-2 py-1 rounded border border-border-default text-xs"
+                class="px-2 py-1 rounded border border-white/10 text-xs"
                 @click="connectHost(host)"
               >
                 连接
@@ -360,28 +360,28 @@ defineExpose({ sshListKeys, discoveredKeys })
       </section>
     </div>
 
-    <section class="rounded-xl border border-border-default bg-bg-surface p-4 space-y-3">
+    <section class="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
       <div class="flex items-center justify-between gap-3">
-        <h2 class="text-base font-semibold text-text-primary">
+        <h2 class="text-base font-semibold text-white">
           已连接主机
         </h2>
         <div class="flex items-center gap-2">
           <button
-            class="px-2 py-1 rounded border border-border-default text-xs"
+            class="px-2 py-1 rounded border border-white/10 text-xs"
             :disabled="!activeEnvId"
             @click="refreshConnectionState"
           >
             刷新状态
           </button>
           <button
-            class="px-2 py-1 rounded border border-border-default text-xs"
+            class="px-2 py-1 rounded border border-white/10 text-xs"
             :disabled="!activeEnvId"
             @click="reconnectHost"
           >
             重连
           </button>
           <button
-            class="px-2 py-1 rounded border border-border-default text-xs"
+            class="px-2 py-1 rounded border border-white/10 text-xs"
             :disabled="!activeEnvId"
             @click="disconnectHost"
           >
@@ -389,12 +389,12 @@ defineExpose({ sshListKeys, discoveredKeys })
           </button>
         </div>
       </div>
-      <div class="text-sm text-text-muted">
+      <div class="text-sm text-white/50">
         {{ selectedHost ? `${selectedHost.user || 'user'}@${selectedHost.host}` : '未连接' }}
       </div>
       <div
         v-if="activeConnectionState"
-        class="rounded-md border border-border-default bg-bg-base p-2 text-xs text-text-muted"
+        class="rounded-md border border-white/10 p-2 text-xs text-white/50"
       >
         连接状态：{{ activeConnectionState.connected ? '已连接' : '未连接' }}
         <span v-if="activeConnectionState.last_checked_at">（{{ activeConnectionState.last_checked_at }}）</span>
@@ -422,7 +422,7 @@ defineExpose({ sshListKeys, discoveredKeys })
       <div class="flex flex-wrap items-center gap-2">
         <select
           v-model="platform"
-          class="rounded-md bg-bg-base border border-border-default px-2 py-1 text-sm"
+          class="rounded-md border border-white/10 px-2 py-1 text-sm"
         >
           <option value="claude">
             claude
@@ -448,25 +448,25 @@ defineExpose({ sshListKeys, discoveredKeys })
         </select>
         <input
           v-model="configPath"
-          class="rounded-md bg-bg-base border border-border-default px-2 py-1 text-sm min-w-[220px]"
+          class="rounded-md border border-white/10 px-2 py-1 text-sm min-w-[220px]"
           placeholder="配置路径"
         >
         <button
-          class="px-2 py-1 rounded border border-border-default text-xs"
+          class="px-2 py-1 rounded border border-white/10 text-xs"
           :disabled="!activeEnvId"
           @click="readConfig"
         >
           读取配置
         </button>
         <button
-          class="px-2 py-1 rounded border border-border-default text-xs"
+          class="px-2 py-1 rounded border border-white/10 text-xs"
           :disabled="!activeEnvId"
           @click="writeConfig"
         >
           写入配置
         </button>
         <button
-          class="px-2 py-1 rounded border border-border-default text-xs"
+          class="px-2 py-1 rounded border border-white/10 text-xs"
           :disabled="!activeEnvId"
           @click="detectCli"
         >
@@ -476,13 +476,13 @@ defineExpose({ sshListKeys, discoveredKeys })
 
       <textarea
         v-model="configContent"
-        class="w-full min-h-[220px] rounded-md bg-bg-base border border-border-default p-3 text-xs font-mono"
+        class="w-full min-h-[220px] rounded-md border border-white/10 p-3 text-xs font-mono"
         placeholder="读取后的配置内容会显示在这里"
       />
 
       <pre
         v-if="cliStatusText"
-        class="rounded-md bg-bg-base border border-border-default p-3 text-xs overflow-x-auto"
+        class="rounded-md border border-white/10 p-3 text-xs overflow-x-auto"
       >{{ cliStatusText }}</pre>
     </section>
   </div>

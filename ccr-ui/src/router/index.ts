@@ -33,43 +33,43 @@ const router = createRouter({
           path: 'claude-code',
           name: 'claude-code',
           component: () => import('@/views/ClaudeCodeView.vue'),
-          meta: { hideGlobalBackground: true, depth: 1, group: 'claude-code' }
+          meta: { depth: 1, group: 'claude-code' }
         },
         {
           path: 'claude-code/settings',
           name: 'claude-code-settings',
           component: () => import('@/views/ClaudeCodeSettingsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'claude-code' }
+          meta: { depth: 2, group: 'claude-code' }
         },
         {
           path: 'codex',
           name: 'codex',
           component: () => import('@/views/CodexView.vue'),
-          meta: { hideGlobalBackground: true, depth: 1, group: 'codex' }
+          meta: { depth: 1, group: 'codex' }
         },
         {
           path: 'gemini-cli',
           name: 'gemini-cli',
           component: () => import('@/views/GeminiCliView.vue'),
-          meta: { hideGlobalBackground: true, depth: 1, group: 'gemini' }
+          meta: { depth: 1, group: 'gemini' }
         },
         {
           path: 'qwen',
           name: 'qwen',
           component: () => import('@/views/QwenView.vue'),
-          meta: { hideGlobalBackground: true, depth: 1, group: 'qwen' }
+          meta: { depth: 1, group: 'qwen' }
         },
         {
           path: 'iflow',
           name: 'iflow',
           component: () => import('@/views/IflowView.vue'),
-          meta: { hideGlobalBackground: true, depth: 1, group: 'iflow' }
+          meta: { depth: 1, group: 'iflow' }
         },
         {
           path: 'droid',
           name: 'droid',
           component: () => import('@/views/DroidView.vue'),
-          meta: { hideGlobalBackground: true, depth: 1, group: 'droid' }
+          meta: { depth: 1, group: 'droid' }
         },
         // 工具中心 (depth: 1, group: 'tools')
         {
@@ -94,14 +94,14 @@ const router = createRouter({
           path: 'sync',
           name: 'sync',
           component: () => import('@/views/SyncView.vue'),
-          meta: { hideGlobalBackground: true, depth: 1, group: 'tools' }
+          meta: { depth: 1, group: 'tools' }
         },
         // 配置组 (depth: 1, group: 'config')
         {
           path: 'configs',
           name: 'configs',
           component: () => import('@/views/ConfigsView.vue'),
-          meta: { cache: true, hideGlobalBackground: true, depth: 1, group: 'config' }
+          meta: { cache: true, depth: 1, group: 'config' }
         },
         {
           path: 'stats',
@@ -124,7 +124,7 @@ const router = createRouter({
           path: 'usage',
           name: 'usage',
           component: () => import('@/views/UsageDashboardView.vue'),
-          meta: { cache: true, hideGlobalBackground: true, depth: 1, group: 'data' }
+          meta: { cache: true, depth: 1, group: 'data' }
         },
         {
           path: 'monitoring',
@@ -143,7 +143,7 @@ const router = createRouter({
           path: 'mcp/unified',
           name: 'mcp-unified',
           component: () => import('@/views/mcp/UnifiedMcpView.vue'),
-          meta: { cache: true, hideGlobalBackground: true, hideSidebar: true, depth: 1, group: 'config' }
+          meta: { cache: true, hideSidebar: true, depth: 1, group: 'config' }
         },
         {
           path: 'slash-commands',
@@ -169,7 +169,7 @@ const router = createRouter({
           path: 'skills',
           name: 'skills',
           component: () => import('@/views/skills/UnifiedSkillsView.vue'),
-          meta: { cache: true, hideGlobalBackground: true, depth: 1, group: 'skills' }
+          meta: { cache: true, depth: 1, group: 'skills' }
         },
         {
           path: 'skills/add',
@@ -250,31 +250,31 @@ const router = createRouter({
           path: 'codex/mcp',
           name: 'codex-mcp',
           component: () => import('@/views/CodexMcpView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'codex' }
+          meta: { depth: 2, group: 'codex' }
         },
         {
           path: 'codex/profiles',
           name: 'codex-profiles',
           component: () => import('@/views/CodexProfilesView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'codex' }
+          meta: { depth: 2, group: 'codex' }
         },
         {
           path: 'codex/slash-commands',
           name: 'codex-slash-commands',
           component: () => import('@/views/CodexSlashCommandsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'codex' }
+          meta: { depth: 2, group: 'codex' }
         },
         {
           path: 'codex/auth',
           name: 'codex-auth',
           component: () => import('@/views/CodexAuthView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'codex' }
+          meta: { depth: 2, group: 'codex' }
         },
         {
           path: 'codex/settings',
           name: 'codex-settings',
           component: () => import('@/views/CodexSettingsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'codex' }
+          meta: { depth: 2, group: 'codex' }
         },
         // Gemini CLI 子页面 (depth: 2, group: 'gemini')
         {
@@ -282,27 +282,27 @@ const router = createRouter({
           name: 'gemini-mcp',
           component: () => import('@/views/generic/PlatformMcpView.vue'),
           props: { platform: 'gemini' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'gemini' }
+          meta: { depth: 2, group: 'gemini' }
         },
         {
           path: 'gemini-cli/agents',
           name: 'gemini-agents',
           component: () => import('@/views/generic/AgentsView.vue'),
           props: { module: 'gemini' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'gemini' }
+          meta: { depth: 2, group: 'gemini' }
         },
         {
           path: 'gemini-cli/slash-commands',
           name: 'gemini-slash-commands',
           component: () => import('@/views/GeminiSlashCommandsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'gemini' }
+          meta: { depth: 2, group: 'gemini' }
         },
         {
           path: 'gemini-cli/plugins',
           name: 'gemini-plugins',
           component: () => import('@/views/generic/PlatformPluginsView.vue'),
           props: { platform: 'gemini' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'gemini' }
+          meta: { depth: 2, group: 'gemini' }
         },
         // Qwen 子页面 (depth: 2, group: 'qwen')
         {
@@ -310,27 +310,27 @@ const router = createRouter({
           name: 'qwen-mcp',
           component: () => import('@/views/generic/PlatformMcpView.vue'),
           props: { platform: 'qwen' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'qwen' }
+          meta: { depth: 2, group: 'qwen' }
         },
         {
           path: 'qwen/agents',
           name: 'qwen-agents',
           component: () => import('@/views/generic/AgentsView.vue'),
           props: { module: 'qwen' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'qwen' }
+          meta: { depth: 2, group: 'qwen' }
         },
         {
           path: 'qwen/slash-commands',
           name: 'qwen-slash-commands',
           component: () => import('@/views/QwenSlashCommandsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'qwen' }
+          meta: { depth: 2, group: 'qwen' }
         },
         {
           path: 'qwen/plugins',
           name: 'qwen-plugins',
           component: () => import('@/views/generic/PlatformPluginsView.vue'),
           props: { platform: 'qwen' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'qwen' }
+          meta: { depth: 2, group: 'qwen' }
         },
         // iFlow 子页面 (depth: 2, group: 'iflow')
         {
@@ -338,27 +338,27 @@ const router = createRouter({
           name: 'iflow-mcp',
           component: () => import('@/views/generic/PlatformMcpView.vue'),
           props: { platform: 'iflow' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'iflow' }
+          meta: { depth: 2, group: 'iflow' }
         },
         {
           path: 'iflow/agents',
           name: 'iflow-agents',
           component: () => import('@/views/generic/AgentsView.vue'),
           props: { module: 'iflow' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'iflow' }
+          meta: { depth: 2, group: 'iflow' }
         },
         {
           path: 'iflow/slash-commands',
           name: 'iflow-slash-commands',
           component: () => import('@/views/IflowSlashCommandsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'iflow' }
+          meta: { depth: 2, group: 'iflow' }
         },
         {
           path: 'iflow/plugins',
           name: 'iflow-plugins',
           component: () => import('@/views/generic/PlatformPluginsView.vue'),
           props: { platform: 'iflow' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'iflow' }
+          meta: { depth: 2, group: 'iflow' }
         },
         // Droid 子页面 (depth: 2, group: 'droid')
         {
@@ -366,82 +366,82 @@ const router = createRouter({
           name: 'droid-mcp',
           component: () => import('@/views/generic/PlatformMcpView.vue'),
           props: { platform: 'droid' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'droid' }
+          meta: { depth: 2, group: 'droid' }
         },
         {
           path: 'droid/agents',
           name: 'droid-agents',
           component: () => import('@/views/generic/AgentsView.vue'),
           props: { module: 'droid' },
-          meta: { hideGlobalBackground: true, depth: 2, group: 'droid' }
+          meta: { depth: 2, group: 'droid' }
         },
         {
           path: 'droid/slash-commands',
           name: 'droid-slash-commands',
           component: () => import('@/views/DroidSlashCommandsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'droid' }
+          meta: { depth: 2, group: 'droid' }
         },
         {
           path: 'droid/plugins',
           name: 'droid-plugins',
           component: () => import('@/views/DroidPluginsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'droid' }
+          meta: { depth: 2, group: 'droid' }
         },
         {
           path: 'droid/models',
           name: 'droid-models',
           component: () => import('@/views/DroidModelsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'droid' }
+          meta: { depth: 2, group: 'droid' }
         },
         {
           path: 'droid/profiles',
           name: 'droid-profiles',
           component: () => import('@/views/DroidProfilesView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'droid' }
+          meta: { depth: 2, group: 'droid' }
         },
         {
           path: 'droid/droids',
           name: 'droid-droids',
           component: () => import('@/views/DroidDroidsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'droid' }
+          meta: { depth: 2, group: 'droid' }
         },
         // OpenCode 子页面 (depth: 2, group: 'opencode')
         {
           path: 'opencode',
           name: 'opencode',
           component: () => import('@/views/OpenCodeView.vue'),
-          meta: { hideGlobalBackground: true, depth: 1, group: 'opencode' }
+          meta: { depth: 1, group: 'opencode' }
         },
         {
           path: 'opencode/providers',
           name: 'opencode-providers',
           component: () => import('@/views/OpenCodeProvidersView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'opencode' }
+          meta: { depth: 2, group: 'opencode' }
         },
         {
           path: 'opencode/mcp',
           name: 'opencode-mcp',
           component: () => import('@/views/OpenCodeMcpView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'opencode' }
+          meta: { depth: 2, group: 'opencode' }
         },
         {
           path: 'opencode/plugins',
           name: 'opencode-plugins',
           component: () => import('@/views/OpenCodePluginsView.vue'),
-          meta: { hideGlobalBackground: true, depth: 2, group: 'opencode' }
+          meta: { depth: 2, group: 'opencode' }
         },
         // 环境管理 (depth: 1, group: 'environment')
         {
           path: 'wsl',
           name: 'wsl-management',
           component: () => import('@/views/WslManagementView.vue'),
-          meta: { hideGlobalBackground: true, depth: 1, group: 'environment' }
+          meta: { depth: 1, group: 'environment' }
         },
         {
           path: 'ssh',
           name: 'ssh-management',
           component: () => import('@/views/SshManagementView.vue'),
-          meta: { hideGlobalBackground: true, depth: 1, group: 'environment' }
+          meta: { depth: 1, group: 'environment' }
         }
       ]
     }

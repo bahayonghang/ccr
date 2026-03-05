@@ -125,7 +125,7 @@
                     {{ npxAvailable ? $t('skills.npxAvailable') : $t('skills.npxNotAvailable') }}
                     <span
                       v-if="npxVersion"
-                      class="text-text-muted"
+                      class="text-white/50"
                     >(v{{ npxVersion }})</span>
                   </span>
                 </div>
@@ -438,7 +438,7 @@ async function handleInstall() {
 
 .add-skill-modal {
   @apply flex flex-col w-full max-w-lg mx-4 rounded-2xl
-         border border-border-subtle shadow-2xl
+         border border-white/5 shadow-2xl
          overflow-hidden;
 
   max-height: 85vh;
@@ -447,16 +447,16 @@ async function handleInstall() {
 
 .add-skill-modal__header {
   @apply flex items-center justify-between px-6 py-4
-         border-b border-border-subtle;
+         border-b border-white/5;
 }
 
 .add-skill-modal__title {
-  @apply flex items-center gap-2 text-lg font-bold text-text-primary;
+  @apply flex items-center gap-2 text-lg font-bold text-white;
 }
 
 .add-skill-modal__close {
-  @apply p-2 rounded-lg text-text-muted
-         hover:text-text-primary hover:bg-bg-surface
+  @apply p-2 rounded-lg text-white/50
+         hover:text-white hover:bg-white/5
          transition-colors;
 }
 
@@ -467,13 +467,13 @@ async function handleInstall() {
 
 .add-skill-tab {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         text-sm font-medium text-text-secondary
-         hover:text-text-primary hover:bg-bg-surface
+         text-sm font-medium text-white/80
+         hover:text-white hover:bg-white/5
          transition-colors duration-200;
 }
 
 .add-skill-tab--active {
-  @apply text-text-primary;
+  @apply text-white;
 
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   color: rgb(var(--color-accent-primary-rgb));
@@ -493,33 +493,33 @@ async function handleInstall() {
 }
 
 .input-icon {
-  @apply absolute left-3 w-4 h-4 text-text-muted pointer-events-none;
+  @apply absolute left-3 w-4 h-4 text-white/50 pointer-events-none;
 }
 
 .text-input {
   @apply w-full pl-10 pr-4 py-2.5 rounded-xl
-         text-sm text-text-primary
-         bg-bg-surface border border-border-subtle
+         text-sm text-white
+         bg-white/5 border border-white/5
          focus:border-accent-primary focus:outline-none
-         placeholder:text-text-muted
+         placeholder:text-white/50
          transition-colors;
 }
 
 .browse-btn {
   @apply ml-2 flex items-center gap-1.5 px-3 py-2.5 rounded-xl shrink-0
-         text-sm font-medium text-text-secondary
-         bg-bg-surface border border-border-subtle
-         hover:border-border-default hover:text-text-primary
+         text-sm font-medium text-white/80
+         bg-white/5 border border-white/5
+         hover:border-white/10 hover:text-white
          transition-colors;
 }
 
 .tab-hint {
-  @apply text-xs text-text-muted leading-relaxed;
+  @apply text-xs text-white/50 leading-relaxed;
 }
 
 /* npx 状态 */
 .npx-status {
-  @apply flex items-center gap-2 px-3 py-2 rounded-lg bg-bg-surface;
+  @apply flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5;
 }
 
 .npx-indicator {
@@ -537,17 +537,17 @@ async function handleInstall() {
 
 /* Checkbox */
 .checkbox-label {
-  @apply flex items-center gap-2 text-sm text-text-secondary cursor-pointer;
+  @apply flex items-center gap-2 text-sm text-white/80 cursor-pointer;
 }
 
 .checkbox-input {
-  @apply rounded border-border-default text-accent-primary
+  @apply rounded border-white/10 text-accent-primary
          focus:ring-accent-primary/20;
 }
 
 /* Platform 选择 */
 .platform-section {
-  @apply flex flex-col gap-3 pt-3 border-t border-border-subtle;
+  @apply flex flex-col gap-3 pt-3 border-t border-white/5;
 }
 
 .platform-section__header {
@@ -555,7 +555,7 @@ async function handleInstall() {
 }
 
 .platform-section__title {
-  @apply text-sm font-semibold text-text-primary;
+  @apply text-sm font-semibold text-white;
 }
 
 .platform-section__actions {
@@ -572,8 +572,8 @@ async function handleInstall() {
 
 .platform-item {
   @apply flex items-center gap-2 px-3 py-2 rounded-lg
-         bg-bg-surface text-sm cursor-pointer
-         hover:bg-bg-elevated transition-colors;
+         bg-white/5 text-sm cursor-pointer
+         hover:bg-white/5 transition-colors;
 }
 
 .platform-item--disabled {
@@ -581,23 +581,23 @@ async function handleInstall() {
 }
 
 .platform-item__name {
-  @apply text-text-primary font-medium;
+  @apply text-white font-medium;
 }
 
 .platform-item__badge {
-  @apply ml-auto text-[10px] text-text-muted;
+  @apply ml-auto text-[10px] text-white/50;
 }
 
 /* Footer */
 .add-skill-modal__footer {
   @apply flex items-center justify-end gap-3 px-6 py-4
-         border-t border-border-subtle;
+         border-t border-white/5;
 }
 
 .btn-cancel {
   @apply px-4 py-2 rounded-xl text-sm font-medium
-         text-text-secondary hover:text-text-primary
-         hover:bg-bg-surface transition-colors;
+         text-white/80 hover:text-white
+         hover:bg-white/5 transition-colors;
 }
 
 .btn-install {

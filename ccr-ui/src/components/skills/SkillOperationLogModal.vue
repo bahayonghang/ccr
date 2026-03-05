@@ -18,13 +18,12 @@
               <div class="header-icon">
                 <ScrollText class="w-5 h-5" />
               </div>
-              <h2 class="text-lg font-bold text-text-primary">
+              <h2 class="text-lg font-bold text-white">
                 {{ $t('skills.operationLog') }}
               </h2>
             </div>
             <button
-              class="p-2 rounded-lg text-text-muted hover:text-text-primary
-                     hover:bg-bg-surface transition-colors"
+              class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
               @click="close"
             >
               <X class="w-5 h-5" />
@@ -39,7 +38,7 @@
               class="flex flex-col items-center justify-center py-16"
             >
               <Loader2 class="w-8 h-8 animate-spin text-accent-primary" />
-              <p class="text-text-secondary text-sm mt-3">
+              <p class="text-white/80 text-sm mt-3">
                 {{ $t('common.loading') }}
               </p>
             </div>
@@ -72,8 +71,8 @@
               v-else-if="filteredLogs.length === 0"
               class="flex flex-col items-center justify-center py-16"
             >
-              <Inbox class="w-12 h-12 text-text-muted opacity-40" />
-              <p class="text-sm text-text-muted mt-3">
+              <Inbox class="w-12 h-12 text-white/50 opacity-40" />
+              <p class="text-sm text-white/50 mt-3">
                 {{ $t('skills.noOperationLog') }}
               </p>
             </div>
@@ -278,13 +277,13 @@ function formatTime(timestamp: string): string {
 
 <style scoped>
 .modal-content {
-  @apply bg-bg-base border border-border-default rounded-2xl
+  @apply bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl
          shadow-2xl overflow-hidden;
 }
 
 .modal-header {
   @apply flex items-center justify-between p-4
-         border-b border-border-subtle shrink-0;
+         border-b border-white/5 shrink-0;
 }
 
 .header-icon {
@@ -309,7 +308,7 @@ function formatTime(timestamp: string): string {
 }
 
 .log-item:hover {
-  background: rgb(var(--color-bg-surface-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* Action Icon */
@@ -338,7 +337,7 @@ function formatTime(timestamp: string): string {
 }
 
 .log-message {
-  @apply text-sm text-text-primary leading-snug;
+  @apply text-sm text-white leading-snug;
 }
 
 .log-action-label {
@@ -350,11 +349,11 @@ function formatTime(timestamp: string): string {
 }
 
 .log-preposition {
-  @apply text-text-muted;
+  @apply text-white/50;
 }
 
 .log-agent-name {
-  @apply font-medium text-text-secondary;
+  @apply font-medium text-white/80;
 }
 
 .log-time {

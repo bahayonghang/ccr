@@ -1,7 +1,5 @@
 <template>
-  <div class="flex h-screen text-text-primary overflow-hidden font-sans selection:bg-accent-primary/30">
-    <!-- Background Image Layer -->
-    <BackgroundImage v-if="!route.meta.hideGlobalBackground" />
+  <div class="flex h-screen text-white overflow-hidden font-sans selection:bg-accent-primary/30">
 
     <!-- Skip Link -->
     <a
@@ -230,24 +228,24 @@
       class="flex-1 relative overflow-hidden flex flex-col"
     >
       <!-- Top Bar -->
-      <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/85 dark:bg-slate-900/85 backdrop-blur-sm z-30 sticky top-0 justify-between">
+      <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm z-30 sticky top-0 justify-between">
         <!-- Left: Breadcrumbs or Back + Title -->
-        <div class="flex items-center text-sm text-text-muted">
+        <div class="flex items-center text-sm text-white/50">
           <template v-if="route.meta.hideSidebar">
             <button
-              class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-200"
+              class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-white/80 hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-200"
               @click="router.back()"
             >
               <ArrowLeft class="w-4 h-4" />
               <span class="text-xs font-medium">返回</span>
             </button>
             <span class="mx-2 opacity-30">|</span>
-            <span class="text-text-primary font-semibold">{{ currentPageTitle }}</span>
+            <span class="text-white font-semibold">{{ currentPageTitle }}</span>
           </template>
           <template v-else>
             <span class="opacity-50">{{ $t('nav.mainModules') }}</span>
             <span class="mx-2 opacity-30">/</span>
-            <span class="text-text-primary font-medium">{{ currentPageTitle }}</span>
+            <span class="text-white font-medium">{{ currentPageTitle }}</span>
           </template>
         </div>
 
@@ -266,7 +264,7 @@
             :class="[
               showExitConfirm 
                 ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' 
-                : 'bg-bg-surface border-border-default text-text-secondary hover:text-text-primary hover:border-accent-primary/30 hover:bg-bg-elevated'
+                : 'bg-white/5 border-white/10 text-white/80 hover:text-white hover:border-accent-primary/30 hover:bg-white/5'
             ]"
             :title="showExitConfirm ? $t('common.yes') : $t('common.no')"
             @click="toggleExitConfirm"
@@ -282,12 +280,9 @@
         </div>
       </div>
 
-      <!-- Scrollable Content with glass effect -->
+      <!-- Scrollable Content -->
       <div
         class="flex-1 overflow-y-auto scroll-smooth p-6"
-        :class="{
-          'bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm': !route.meta.hideGlobalBackground
-        }"
       >
         <BackendStatusBanner class="mb-6" />
         <RouterView v-slot="{ Component }">
@@ -433,79 +428,38 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Sidebar Glass Effect - Dark Mode (Neko Purple Night) */
+/* Sidebar Glass Effect - Unified Transparent Mode */
 :root[data-theme="dark"] .sidebar-glass,
-.dark .sidebar-glass {
-  background: linear-gradient(
-    180deg,
-    rgb(26 10 32 / 88%) 0%,
-    rgb(38 18 50 / 90%) 50%,
-    rgb(26 10 32 / 95%) 100%
-  );
-  backdrop-filter: blur(20px) saturate(180%);
-  border-right: 1px solid rgb(249 168 212 / 8%);
-  box-shadow:
-    4px 0 24px rgb(0 0 0 / 30%),
-    inset -1px 0 0 rgb(249 168 212 / 5%);
-}
-
-/* Sidebar Glass Effect - Light Mode (Neko Pink Glass) */
+.dark .sidebar-glass,
 .sidebar-glass {
-  background: linear-gradient(
-    180deg,
-    rgb(255 240 245 / 40%) 0%,
-    rgb(255 245 247 / 50%) 50%,
-    rgb(255 255 255 / 55%) 100%
-  );
-  backdrop-filter: blur(12px) saturate(150%);
-  border-right: 1px solid rgb(244 114 182 / 10%);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
-    4px 0 16px rgb(244 114 182 / 5%),
-    inset -1px 0 0 rgb(255 255 255 / 50%);
+    4px 0 24px rgba(0, 0, 0, 0.3),
+    inset -1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
-/* Nav Item Styles - Light Mode (Neko Pink) */
+/* Nav Item Styles */
 .nav-item {
-  @apply flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600
+  @apply flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-white/70
          transition-colors duration-200 relative overflow-hidden;
 }
 
 .nav-item:hover {
-  @apply bg-pink-50 text-pink-900;
+  @apply bg-white/10 text-white;
 }
 
 .nav-item.router-link-active {
-  @apply bg-accent-primary/10 text-accent-primary shadow-sm;
-}
-
-/* Nav Item Styles - Dark Mode (Neko Purple Night) */
-:root[data-theme="dark"] .nav-item,
-.dark .nav-item {
-  @apply text-pink-200/80;
-}
-
-:root[data-theme="dark"] .nav-item:hover,
-.dark .nav-item:hover {
-  @apply bg-pink-300/10 text-pink-100;
-}
-
-:root[data-theme="dark"] .nav-item.router-link-active,
-.dark .nav-item.router-link-active {
-  @apply bg-accent-primary/20 text-accent-primary;
-
-  box-shadow: 0 0 20px rgb(var(--color-accent-primary-rgb) / 15%);
+  @apply bg-accent-primary/20 text-accent-primary shadow-sm;
+  box-shadow: 0 0 20px rgba(var(--color-accent-primary-rgb), 0.15);
 }
 
 /* Active indicator strip */
 .nav-item.router-link-active::before {
   content: '';
-
   @apply absolute left-0 top-1/2 -translate-y-1/2 h-4 w-1 bg-accent-primary rounded-r-full;
-}
-
-:root[data-theme="dark"] .nav-item.router-link-active::before,
-.dark .nav-item.router-link-active::before {
-  box-shadow: 0 0 8px rgb(var(--color-accent-primary-rgb) / 60%);
+  box-shadow: 0 0 8px rgba(var(--color-accent-primary-rgb), 0.6);
 }
 
 /* User Card - Neko Kawaii Style */

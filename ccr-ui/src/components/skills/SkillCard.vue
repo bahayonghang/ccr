@@ -278,19 +278,18 @@ function formatRelativeTime(timestamp: number): string {
 <style scoped>
 .skill-card {
   @apply relative flex flex-row items-start gap-4 p-4 pl-5 rounded-2xl cursor-pointer
-         backdrop-blur-sm
-         border border-border-subtle
-         transition-[color,background-color,border-color,box-shadow] duration-200 ease-out
+         backdrop-blur-xl border border-white/10 text-white
+         transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out
          overflow-hidden;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .skill-card:hover {
-  @apply border-border-default;
+  @apply border-white/20 transform scale-[1.01];
 
-  background: rgb(var(--color-bg-elevated-rgb) / 75%);
-  box-shadow: 0 2px 12px rgb(0 0 0 / 6%);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 /* Platform column */
@@ -318,21 +317,21 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .skill-card__name {
-  @apply text-base font-bold text-text-primary;
+  @apply text-base font-bold text-white;
 }
 
 .skill-card__category {
   @apply flex items-center gap-1 px-2 py-0.5 rounded-md
-         text-[10px] font-medium text-text-secondary
-         bg-bg-surface;
+         text-[10px] font-medium text-white/80
+         bg-white/10;
 }
 
 .skill-card__category--empty {
-  @apply text-text-muted italic;
+  @apply text-white/50 italic;
 }
 
 .skill-card__description {
-  @apply text-sm text-text-secondary leading-relaxed;
+  @apply text-sm text-white/80 leading-relaxed;
 }
 
 .skill-card__tags {
@@ -341,7 +340,7 @@ function formatRelativeTime(timestamp: number): string {
 
 .skill-card__tag {
   @apply px-2 py-0.5 rounded-md text-[10px] font-medium
-         bg-bg-surface text-text-muted;
+         bg-white/5 text-white/70 border border-white/5;
 }
 
 .skill-card__tag--more {
@@ -354,7 +353,7 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .skill-card__meta-item {
-  @apply flex items-center gap-1.5 text-xs text-text-muted font-mono;
+  @apply flex items-center gap-1.5 text-xs text-white/50 font-mono;
 }
 
 /* Source badge */
@@ -374,7 +373,7 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .skill-card__source--local {
-  @apply bg-bg-surface text-text-muted;
+  @apply bg-white/10 text-white/70 border border-white/10;
 }
 
 /* Actions column */
@@ -385,8 +384,8 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .skill-card__action {
-  @apply p-2 rounded-lg text-text-muted
-         hover:bg-bg-surface hover:text-text-primary
+  @apply p-2 rounded-lg text-white/50
+         hover:bg-white/10 hover:text-white
          transition-colors;
 }
 

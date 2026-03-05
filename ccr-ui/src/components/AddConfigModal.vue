@@ -7,7 +7,7 @@
   >
     <!-- Background Backdrop -->
     <div
-      class="absolute inset-0 bg-bg-base/95 backdrop-blur-md"
+      class="absolute inset-0 /95 backdrop-blur-md"
       @click="handleClose"
     />
 
@@ -15,10 +15,10 @@
     <Card 
       ref="modalRef" 
       variant="elevated"
-      class="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto p-0 shadow-2xl animate-scale-in bg-bg-elevated"
+      class="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto p-0 shadow-2xl animate-scale-in bg-white/5"
     >
       <!-- Header -->
-      <div class="sticky top-0 z-10 px-6 py-4 border-b border-border-subtle bg-bg-elevated backdrop-blur-sm flex items-center justify-between">
+      <div class="sticky top-0 z-10 px-6 py-4 border-b border-white/5 bg-white/5 backdrop-blur-sm flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="p-2 rounded-lg bg-accent-success/10 text-accent-success">
             <Plus class="w-5 h-5" />
@@ -26,11 +26,11 @@
           <div>
             <h2
               :id="titleId"
-              class="text-lg font-bold text-text-primary"
+              class="text-lg font-bold text-white"
             >
               {{ $t('configs.addConfig.title') }}
             </h2>
-            <p class="text-xs text-text-secondary">
+            <p class="text-xs text-white/80">
               {{ $t('configs.addConfig.subtitle') }}
             </p>
           </div>
@@ -47,7 +47,7 @@
       <div class="p-6">
         <!-- Template Selection -->
         <section class="mb-8">
-          <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-4">
+          <label class="block text-xs font-bold uppercase tracking-wider text-white/50 mb-4">
             🚀 {{ $t('configs.addConfig.selectTemplate') }}
           </label>
           <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -55,21 +55,19 @@
               v-for="template in templates"
               :key="template.id"
               class="group relative p-3 rounded-xl border transition-[color,background-color,border-color,box-shadow,transform] duration-300 text-left hover:shadow-lg hover:-translate-y-1"
-              :class="selectedTemplate === template.id 
-                ? 'bg-accent-primary/10 border-accent-primary ring-1 ring-accent-primary/50' 
-                : 'bg-bg-surface/50 border-border-default hover:border-accent-primary/50'"
+              :class="selectedTemplate === template.id ? 'bg-accent-primary/10 border-accent-primary ring-1 ring-accent-primary/50' : 'bg-white/5/50 border-white/10 hover:border-accent-primary/50'"
               @click="applyTemplate(template)"
             >
               <div class="text-2xl mb-2 grayscale group-hover:grayscale-0 transition-[filter]">
                 {{ template.icon }}
               </div>
               <h3
-                class="font-bold text-sm text-text-primary"
+                class="font-bold text-sm text-white"
                 :class="selectedTemplate === template.id ? 'text-accent-primary' : ''"
               >
                 {{ template.label }}
               </h3>
-              <p class="text-[10px] text-text-secondary line-clamp-2 mt-1 opacity-80">
+              <p class="text-[10px] text-white/80 line-clamp-2 mt-1 opacity-80">
                 {{ template.description }}
               </p>
             </button>
@@ -91,7 +89,7 @@
               :placeholder="$t('configs.addConfig.namePlaceholder')"
             >
               <template #leading>
-                <span class="text-text-muted">#</span>
+                <span class="text-white/50">#</span>
               </template>
             </Input>
 
@@ -151,13 +149,13 @@
             </Input>
 
             <div class="w-full">
-              <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5 ml-1">
+              <label class="block text-xs font-bold uppercase tracking-wider text-white/50 mb-1.5 ml-1">
                 {{ $t('configs.addConfig.providerType') }}
               </label>
               <div class="relative">
                 <select
                   v-model="formData.provider_type"
-                  class="w-full bg-bg-surface border border-border-default rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20 appearance-none shadow-sm hover:border-border-strong cursor-pointer"
+                  class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-primary/20 appearance-none shadow-sm hover:border-border-strong cursor-pointer"
                 >
                   <option value="">
                     {{ $t('configs.addConfig.providerUncategorized') }}
@@ -169,7 +167,7 @@
                     {{ $t('configs.addConfig.providerThirdParty') }}
                   </option>
                 </select>
-                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted">
+                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/50">
                   ▼
                 </div>
               </div>
@@ -212,7 +210,7 @@
       </div>
 
       <!-- Footer -->
-      <div class="sticky bottom-0 z-10 px-6 py-4 border-t border-border-subtle bg-bg-elevated backdrop-blur-sm flex gap-3 justify-end">
+      <div class="sticky bottom-0 z-10 px-6 py-4 border-t border-white/5 bg-white/5 backdrop-blur-sm flex gap-3 justify-end">
         <Button
           variant="ghost"
           @click="handleClose"

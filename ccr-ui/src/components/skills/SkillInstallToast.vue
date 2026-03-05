@@ -95,10 +95,10 @@ function dismiss() {
 .install-toast {
   @apply fixed bottom-6 right-6 z-50 flex items-start gap-3
          px-4 py-3 rounded-2xl
-         border border-border-subtle
+         border border-white/5
          shadow-2xl max-w-sm;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 90%);
+  background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(16px);
 }
 
@@ -113,20 +113,20 @@ function dismiss() {
 }
 
 .install-toast__title {
-  @apply text-sm font-semibold text-text-primary;
+  @apply text-sm font-semibold text-white;
 }
 
 .install-toast__package {
-  @apply text-xs text-text-secondary font-mono truncate;
+  @apply text-xs text-white/80 font-mono truncate;
 }
 
 .install-toast__message {
-  @apply text-xs text-text-muted mt-1;
+  @apply text-xs text-white/50 mt-1;
 }
 
 .install-toast__close {
-  @apply shrink-0 p-1 rounded-lg text-text-muted
-         hover:text-text-primary hover:bg-bg-surface
+  @apply shrink-0 p-1 rounded-lg text-white/50
+         hover:text-white hover:bg-white/5
          transition-colors;
 }
 

@@ -1,12 +1,8 @@
 <!-- -->
 <template>
   <aside
-    class="rounded-xl p-4 h-fit sticky top-5 transition-all duration-300 glass-effect"
+    class="rounded-xl p-4 h-fit sticky top-5 transition-all duration-300 bg-black/40 backdrop-blur-xl shadow-2xl border border-white/10"
     :class="collapsed ? 'w-16' : 'w-64'"
-    :style="{
-      border: '1px solid var(--border-color)',
-      boxShadow: 'var(--shadow-small)'
-    }"
   >
     <!-- 切换按钮 -->
     <div class="flex items-center justify-between mb-4">
@@ -18,12 +14,7 @@
         导航菜单
       </div>
       <button
-        class="p-2 rounded-lg transition-transform hover:scale-110"
-        :style="{
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-color)',
-          color: 'var(--text-secondary)'
-        }"
+        class="p-2 rounded-lg transition-transform hover:scale-110 bg-white/5 border border-white/10 text-white/70 hover:text-white"
         :title="collapsed ? '展开菜单' : '收起菜单'"
         :aria-label="collapsed ? '展开菜单' : '收起菜单'"
         @click="toggleCollapsed"
@@ -64,10 +55,10 @@
           :style="{
             padding: collapsed ? '12px' : '12px 16px',
             background: hasActiveChild(group.items)
-              ? 'linear-gradient(135deg, rgba(var(--color-accent-secondary-rgb), 0.2), rgba(var(--color-accent-secondary-rgb), 0.2))'
-              : 'var(--bg-tertiary)',
-            border: `1px solid ${hasActiveChild(group.items) ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-            color: hasActiveChild(group.items) ? 'var(--accent-primary)' : 'var(--text-primary)'
+              ? 'rgba(255, 255, 255, 0.15)'
+              : 'rgba(255, 255, 255, 0.05)',
+            border: `1px solid ${hasActiveChild(group.items) ? 'rgba(244, 114, 182, 0.5)' : 'rgba(255, 255, 255, 0.1)'}`,
+            color: hasActiveChild(group.items) ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.9)'
           }"
           :title="collapsed ? group.title : undefined"
           :aria-expanded="!collapsed && expandedGroups[group.title]"
@@ -235,12 +226,7 @@
       class="mt-4 text-center"
     >
       <button
-        class="p-2 rounded-lg transition-transform hover:scale-110"
-        :style="{
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-color)',
-          color: 'var(--text-muted)'
-        }"
+        class="p-2 rounded-lg transition-transform hover:scale-110 bg-white/5 border border-white/10 text-white/70 hover:text-white"
         title="展开菜单"
         aria-label="展开菜单"
         @click="toggleCollapsed"

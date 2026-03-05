@@ -2,7 +2,7 @@
   <div class="account-list-table">
     <!-- Table Header -->
     <div
-      class="grid items-center gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border-subtle bg-bg-surface/50 rounded-t-xl"
+      class="grid items-center gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-white/50 border-b border-white/5 bg-white/5/50 rounded-t-xl"
       :style="gridTemplateStyle"
     >
       <div class="flex items-center gap-2">
@@ -27,7 +27,7 @@
       <div
         v-for="(account, index) in accounts"
         :key="account.name"
-        class="group relative grid items-center gap-4 px-4 py-3 transition-colors duration-200 hover:bg-bg-overlay/50"
+        class="group relative grid items-center gap-4 px-4 py-3 transition-colors duration-200 hover:bg-white/10/50"
         :class="[
           account.is_current ? 'bg-platform-codex/5 hover:bg-platform-codex/10' : '',
           index === accounts.length - 1 ? 'rounded-b-xl' : ''
@@ -45,7 +45,7 @@
           <span class="text-lg flex-shrink-0">{{ account.freshness_icon }}</span>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-mono font-semibold text-text-primary truncate">
+              <span class="font-mono font-semibold text-white truncate">
                 {{ account.name }}
               </span>
               <span
@@ -78,7 +78,7 @@
             </div>
             <p
               v-if="account.description"
-              class="text-xs text-text-muted truncate mt-0.5"
+              class="text-xs text-white/50 truncate mt-0.5"
             >
               {{ account.description }}
             </p>
@@ -86,7 +86,7 @@
         </div>
 
         <!-- Email Column -->
-        <div class="hidden sm:block text-sm text-text-secondary truncate">
+        <div class="hidden sm:block text-sm text-white/80 truncate">
           {{ account.email || '—' }}
         </div>
 
@@ -105,7 +105,7 @@
         </div>
 
         <!-- Last Used Column -->
-        <div class="hidden lg:block text-sm text-text-muted">
+        <div class="hidden lg:block text-sm text-white/50">
           {{ account.last_used || '—' }}
         </div>
 
@@ -114,7 +114,7 @@
           <!-- Quick Switch Button (non-current, non-expired accounts) -->
           <button
             v-if="!account.is_current && !account.is_expired"
-            class="p-2 rounded-lg text-text-muted hover:text-accent-success hover:bg-accent-success/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+            class="p-2 rounded-lg text-white/50 hover:text-accent-success hover:bg-accent-success/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
             :title="$t('codex.auth.switch')"
             @click="$emit('switch', account.name)"
           >
@@ -142,7 +142,7 @@
           <!-- Delete Button (non-virtual accounts) -->
           <button
             v-if="!account.is_virtual"
-            class="p-2 rounded-lg text-text-muted hover:text-accent-danger hover:bg-accent-danger/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+            class="p-2 rounded-lg text-white/50 hover:text-accent-danger hover:bg-accent-danger/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
             :title="$t('codex.actions.delete')"
             @click="$emit('delete', account.name)"
           >
@@ -157,13 +157,13 @@
       v-if="accounts.length === 0"
       class="flex flex-col items-center justify-center py-12 text-center"
     >
-      <div class="p-4 rounded-full bg-bg-surface mb-4">
-        <KeyRound class="w-8 h-8 text-text-muted" />
+      <div class="p-4 rounded-full bg-white/5 mb-4">
+        <KeyRound class="w-8 h-8 text-white/50" />
       </div>
-      <p class="text-text-secondary">
+      <p class="text-white/80">
         {{ $t('codex.auth.emptyState') }}
       </p>
-      <p class="text-sm text-text-muted mt-2">
+      <p class="text-sm text-white/50 mt-2">
         {{ $t('codex.auth.emptyStateHint') }}
       </p>
     </div>
@@ -228,7 +228,7 @@ const freshnessDotClass = (freshness: TokenFreshness) => {
 
 <style scoped>
 .account-list-table {
-  @apply bg-bg-elevated rounded-xl border border-border-subtle overflow-hidden;
+  @apply bg-white/5 rounded-xl border border-white/5 overflow-hidden;
 }
 
 /* Responsive grid adjustments */

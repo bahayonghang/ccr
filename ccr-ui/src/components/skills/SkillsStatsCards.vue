@@ -44,8 +44,8 @@
     <!-- Right: Platform Overview -->
     <div class="platform-overview">
       <div class="platform-overview__header">
-        <Cpu class="w-3.5 h-3.5 text-text-muted" />
-        <span class="text-xs font-bold uppercase tracking-wide text-text-secondary">
+        <Cpu class="w-3.5 h-3.5 text-white/50" />
+        <span class="text-xs font-bold uppercase tracking-wide text-white/80">
           {{ $t('skills.allPlatformStats') }}
         </span>
         <span class="platform-overview__count">
@@ -150,11 +150,11 @@ function formatNumber(num: number): string {
 .stats-card {
   @apply relative flex items-center gap-3 px-4 py-3 rounded-xl
          backdrop-blur-sm
-         border border-border-subtle
+         border border-white/5
          transition-[border-color,box-shadow] duration-300
-         hover:border-border-default hover:shadow-lg;
+         hover:border-white/10 hover:shadow-lg;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.3);
   min-width: 140px;
 }
 
@@ -189,11 +189,11 @@ function formatNumber(num: number): string {
 }
 
 .stats-card__value {
-  @apply text-xl font-bold text-text-primary leading-tight;
+  @apply text-xl font-bold text-white leading-tight;
 }
 
 .stats-card__label {
-  @apply text-[10px] text-text-secondary uppercase tracking-wide;
+  @apply text-[10px] text-white/80 uppercase tracking-wide;
 }
 
 .stats-card__trend {
@@ -203,15 +203,15 @@ function formatNumber(num: number): string {
 .stats-card__badge {
   @apply absolute top-2 right-2 flex items-center gap-1
          px-1.5 py-0.5 rounded-full text-[9px] font-medium
-         bg-bg-surface text-text-muted;
+         bg-white/5 text-white/50;
 }
 
 /* Right platform overview */
 .platform-overview {
   @apply flex-1 flex flex-col gap-2 px-4 py-3 rounded-xl
-         backdrop-blur-sm border border-border-subtle;
+         backdrop-blur-sm border border-white/5;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .platform-overview__header {
@@ -220,7 +220,7 @@ function formatNumber(num: number): string {
 
 .platform-overview__count {
   @apply ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         bg-bg-surface text-text-muted;
+         bg-white/5 text-white/50;
 }
 
 .platform-chips {
@@ -229,15 +229,15 @@ function formatNumber(num: number): string {
 
 .platform-chip {
   @apply flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
-         text-xs font-medium text-text-secondary
-         border border-border-subtle
+         text-xs font-medium text-white/80
+         border border-white/5
          transition-colors duration-200;
 
-  background: rgb(var(--color-bg-surface-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .platform-chip--active {
-  @apply text-text-primary;
+  @apply text-white;
 
   border-color: rgb(var(--color-accent-primary-rgb) / 40%);
   background: rgb(var(--color-accent-primary-rgb) / 8%);
@@ -245,10 +245,10 @@ function formatNumber(num: number): string {
 }
 
 .platform-chip--all-active {
-  @apply text-text-primary;
+  @apply text-white;
 
   border-color: rgb(var(--color-success-rgb) / 30%);
-  background: rgb(var(--color-bg-surface-rgb) / 80%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .platform-chip--inactive {
@@ -261,7 +261,7 @@ function formatNumber(num: number): string {
 
 .platform-chip__count {
   @apply px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         bg-bg-surface text-text-muted;
+         bg-white/5 text-white/50;
 }
 
 .platform-chip__count--highlight {

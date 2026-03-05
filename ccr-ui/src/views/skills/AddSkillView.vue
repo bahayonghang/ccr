@@ -57,7 +57,7 @@
         <div class="browse-search">
           <div class="relative flex-1">
             <Search
-              class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted"
+              class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50"
             />
             <input
               v-model="searchQuery"
@@ -96,7 +96,7 @@
           </div>
           <div class="toolbar-right">
             <div class="sort-select">
-              <ArrowUpDown class="w-3.5 h-3.5 text-text-muted" />
+              <ArrowUpDown class="w-3.5 h-3.5 text-white/50" />
               <select
                 v-model="sortBy"
                 class="sort-dropdown"
@@ -138,11 +138,11 @@
         v-else-if="!isMarketplaceLoading && sortedItems.length === 0"
         class="state-box"
       >
-        <Store class="w-12 h-12 text-text-muted" />
-        <h3 class="text-lg font-semibold text-text-primary mt-4">
+        <Store class="w-12 h-12 text-white/50" />
+        <h3 class="text-lg font-semibold text-white mt-4">
           {{ $t('skills.noMarketplaceResults') }}
         </h3>
-        <p class="text-sm text-text-secondary mt-1">
+        <p class="text-sm text-white/80 mt-1">
           {{ $t('skills.tryDifferentSearch') }}
         </p>
       </div>
@@ -315,7 +315,7 @@
               {{ npxAvailable ? $t('skills.npxAvailable') : $t('skills.npxNotAvailable') }}
               <span
                 v-if="npxVersion"
-                class="text-text-muted"
+                class="text-white/50"
               >(v{{ npxVersion }})</span>
             </span>
           </div>
@@ -864,25 +864,25 @@ onMounted(async () => {
 }
 
 .add-skill-header__back {
-  @apply flex items-center gap-1.5 text-sm text-text-muted
-         hover:text-text-primary transition-colors w-fit;
+  @apply flex items-center gap-1.5 text-sm text-white/50
+         hover:text-white transition-colors w-fit;
 }
 
 .add-skill-header__title {
-  @apply flex items-center gap-2 text-2xl font-bold text-text-primary mt-1;
+  @apply flex items-center gap-2 text-2xl font-bold text-white mt-1;
 }
 
 .add-skill-header__subtitle {
-  @apply text-sm text-text-secondary;
+  @apply text-sm text-white/80;
 }
 
 /* Section */
 .browse-section,
 .manual-section {
   @apply flex flex-col gap-4 p-5 rounded-2xl
-         border border-border-subtle;
+         border border-white/5;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 40%);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .section-header {
@@ -898,11 +898,11 @@ onMounted(async () => {
 }
 
 .section-title {
-  @apply flex items-center gap-2 text-lg font-bold text-text-primary;
+  @apply flex items-center gap-2 text-lg font-bold text-white;
 }
 
 .section-hint {
-  @apply text-xs text-text-muted;
+  @apply text-xs text-white/50;
 }
 
 /* Cache Badge */
@@ -916,9 +916,9 @@ onMounted(async () => {
 
 .btn-refresh {
   @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-         text-xs font-medium text-text-secondary
-         bg-bg-surface border border-border-subtle
-         hover:text-text-primary hover:border-border-default
+         text-xs font-medium text-white/80
+         bg-white/5 border border-white/5
+         hover:text-white hover:border-white/10
          disabled:opacity-50 transition-colors;
 }
 
@@ -932,8 +932,8 @@ onMounted(async () => {
 }
 
 .search-input {
-  @apply w-full bg-bg-surface border border-border-subtle rounded-xl
-         text-text-primary
+  @apply w-full bg-white/5 border border-white/5 rounded-xl
+         text-white
          pl-12 pr-4 py-3 text-sm font-medium
          focus:outline-none focus:ring-2 focus:ring-accent-primary/30
          focus:border-accent-primary/50 transition-[border-color,box-shadow];
@@ -966,20 +966,20 @@ onMounted(async () => {
 
 .sort-select {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         bg-bg-surface border border-border-subtle
-         text-sm text-text-secondary;
+         bg-white/5 border border-white/5
+         text-sm text-white/80;
 }
 
 .sort-dropdown {
   @apply bg-transparent border-none outline-none text-sm
-         text-text-primary cursor-pointer;
+         text-white cursor-pointer;
 }
 
 .btn-batch {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         text-sm font-medium text-text-secondary
-         bg-bg-surface border border-border-subtle
-         hover:text-text-primary hover:border-border-default
+         text-sm font-medium text-white/80
+         bg-white/5 border border-white/5
+         hover:text-white hover:border-white/10
          transition-colors;
 }
 
@@ -992,9 +992,9 @@ onMounted(async () => {
 /* State boxes */
 .state-box {
   @apply flex flex-col items-center justify-center py-16
-         rounded-2xl border border-border-subtle;
+         rounded-2xl border border-white/5;
 
-  background: rgb(var(--color-bg-surface-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* Grid Layout */
@@ -1006,38 +1006,38 @@ onMounted(async () => {
 
 /* Skeleton */
 .skeleton-card {
-  @apply flex flex-col gap-3 p-4 rounded-2xl border border-border-subtle;
+  @apply flex flex-col gap-3 p-4 rounded-2xl border border-white/5;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .skeleton-header { @apply flex items-center justify-between; }
-.skeleton-avatar { @apply w-6 h-6 rounded-full bg-bg-surface animate-pulse; }
-.skeleton-owner { @apply w-16 h-4 rounded bg-bg-surface animate-pulse; }
-.skeleton-stars { @apply w-12 h-4 rounded bg-bg-surface animate-pulse; }
-.skeleton-name { @apply w-32 h-5 rounded bg-bg-surface animate-pulse; }
+.skeleton-avatar { @apply w-6 h-6 rounded-full bg-white/5 animate-pulse; }
+.skeleton-owner { @apply w-16 h-4 rounded bg-white/5 animate-pulse; }
+.skeleton-stars { @apply w-12 h-4 rounded bg-white/5 animate-pulse; }
+.skeleton-name { @apply w-32 h-5 rounded bg-white/5 animate-pulse; }
 .skeleton-desc { @apply flex flex-col gap-1.5; }
-.skeleton-line { @apply h-3.5 rounded bg-bg-surface animate-pulse; }
-.skeleton-footer { @apply flex items-center justify-between mt-auto pt-3 border-t border-border-subtle; }
-.skeleton-link { @apply w-20 h-4 rounded bg-bg-surface animate-pulse; }
-.skeleton-btn { @apply w-16 h-7 rounded-lg bg-bg-surface animate-pulse; }
+.skeleton-line { @apply h-3.5 rounded bg-white/5 animate-pulse; }
+.skeleton-footer { @apply flex items-center justify-between mt-auto pt-3 border-t border-white/5; }
+.skeleton-link { @apply w-20 h-4 rounded bg-white/5 animate-pulse; }
+.skeleton-btn { @apply w-16 h-7 rounded-lg bg-white/5 animate-pulse; }
 
 /* Batch Bar */
 .batch-bar {
   @apply fixed bottom-6 left-1/2 -translate-x-1/2 z-40
          flex items-center gap-4 px-6 py-3 rounded-2xl
-         border border-border-subtle shadow-2xl;
+         border border-white/5 shadow-2xl;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 95%);
+  background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(16px);
 }
 
-.batch-bar__count { @apply text-sm font-semibold text-text-primary; }
+.batch-bar__count { @apply text-sm font-semibold text-white; }
 .batch-bar__actions { @apply flex items-center gap-2; }
 
 .batch-bar__clear {
-  @apply px-3 py-1.5 rounded-lg text-sm text-text-secondary
-         hover:text-text-primary hover:bg-bg-surface transition-colors;
+  @apply px-3 py-1.5 rounded-lg text-sm text-white/80
+         hover:text-white hover:bg-white/5 transition-colors;
 }
 
 .batch-bar__install {
@@ -1068,13 +1068,13 @@ onMounted(async () => {
 
 .manual-tab {
   @apply flex items-center gap-1.5 px-4 py-2.5 rounded-xl
-         text-sm font-medium text-text-secondary
-         hover:text-text-primary hover:bg-bg-surface
+         text-sm font-medium text-white/80
+         hover:text-white hover:bg-white/5
          transition-colors duration-200;
 }
 
 .manual-tab--active {
-  @apply text-text-primary;
+  @apply text-white;
 
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   color: rgb(var(--color-accent-primary-rgb));
@@ -1089,29 +1089,29 @@ onMounted(async () => {
 .input-group { @apply relative flex items-center; }
 
 .input-icon {
-  @apply absolute left-3 w-4 h-4 text-text-muted pointer-events-none;
+  @apply absolute left-3 w-4 h-4 text-white/50 pointer-events-none;
 }
 
 .text-input {
   @apply w-full pl-10 pr-4 py-2.5 rounded-xl
-         text-sm text-text-primary
-         bg-bg-surface border border-border-subtle
+         text-sm text-white
+         bg-white/5 border border-white/5
          focus:border-accent-primary focus:outline-none
-         placeholder:text-text-muted transition-colors;
+         placeholder:text-white/50 transition-colors;
 }
 
 .browse-btn {
   @apply ml-2 flex items-center gap-1.5 px-3 py-2.5 rounded-xl shrink-0
-         text-sm font-medium text-text-secondary
-         bg-bg-surface border border-border-subtle
-         hover:border-border-default hover:text-text-primary transition-colors;
+         text-sm font-medium text-white/80
+         bg-white/5 border border-white/5
+         hover:border-white/10 hover:text-white transition-colors;
 }
 
-.tab-hint { @apply text-xs text-text-muted leading-relaxed; }
+.tab-hint { @apply text-xs text-white/50 leading-relaxed; }
 
 /* npx */
 .npx-status {
-  @apply flex items-center gap-2 px-3 py-2 rounded-lg bg-bg-surface;
+  @apply flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5;
 }
 
 .npx-indicator { @apply w-2 h-2 rounded-full; }
@@ -1123,35 +1123,35 @@ onMounted(async () => {
 .npx-indicator--no { background: rgb(var(--color-danger-rgb)); }
 
 .checkbox-label {
-  @apply flex items-center gap-2 text-sm text-text-secondary cursor-pointer;
+  @apply flex items-center gap-2 text-sm text-white/80 cursor-pointer;
 }
 
 .checkbox-input {
-  @apply rounded border-border-default text-accent-primary focus:ring-accent-primary/20;
+  @apply rounded border-white/10 text-accent-primary focus:ring-accent-primary/20;
 }
 
 /* Platform Selection */
 .platform-section {
-  @apply flex flex-col gap-3 pt-3 border-t border-border-subtle;
+  @apply flex flex-col gap-3 pt-3 border-t border-white/5;
 }
 .platform-section__header { @apply flex items-center justify-between; }
-.platform-section__title { @apply text-sm font-semibold text-text-primary; }
+.platform-section__title { @apply text-sm font-semibold text-white; }
 .platform-section__actions { @apply flex items-center gap-2; }
 .platform-action { @apply text-xs text-accent-primary hover:underline cursor-pointer; }
 .platform-grid { @apply grid grid-cols-2 sm:grid-cols-3 gap-2; }
 
 .platform-item {
   @apply flex items-center gap-2 px-3 py-2 rounded-lg
-         bg-bg-surface text-sm cursor-pointer
-         hover:bg-bg-elevated transition-colors;
+         bg-white/5 text-sm cursor-pointer
+         hover:bg-white/5 transition-colors;
 }
 .platform-item--disabled { @apply opacity-50; }
-.platform-item__name { @apply text-text-primary font-medium; }
-.platform-item__badge { @apply ml-auto text-[10px] text-text-muted; }
+.platform-item__name { @apply text-white font-medium; }
+.platform-item__badge { @apply ml-auto text-[10px] text-white/50; }
 
 /* Manual footer */
 .manual-footer {
-  @apply flex justify-end pt-3 border-t border-border-subtle;
+  @apply flex justify-end pt-3 border-t border-white/5;
 }
 
 .btn-install {
@@ -1163,8 +1163,8 @@ onMounted(async () => {
 
 .btn-cancel {
   @apply px-4 py-2 rounded-xl text-sm font-medium
-         text-text-secondary hover:text-text-primary
-         hover:bg-bg-surface transition-colors;
+         text-white/80 hover:text-white
+         hover:bg-white/5 transition-colors;
 }
 
 /* Platform Modal */
@@ -1175,26 +1175,26 @@ onMounted(async () => {
 
 .platform-modal {
   @apply flex flex-col gap-4 w-full max-w-md mx-4 p-6 rounded-2xl
-         border border-border-subtle shadow-2xl;
+         border border-white/5 shadow-2xl;
 
   background: rgb(var(--color-bg-base-rgb));
 }
 
 .platform-modal__header { @apply flex items-center justify-between; }
-.platform-modal__title { @apply text-lg font-bold text-text-primary; }
+.platform-modal__title { @apply text-lg font-bold text-white; }
 
 .platform-modal__close {
-  @apply p-2 rounded-lg text-text-muted
-         hover:text-text-primary hover:bg-bg-surface transition-colors;
+  @apply p-2 rounded-lg text-white/50
+         hover:text-white hover:bg-white/5 transition-colors;
 }
 
 .platform-modal__pkg {
-  @apply text-sm text-text-secondary font-mono truncate
-         px-3 py-2 rounded-lg bg-bg-surface;
+  @apply text-sm text-white/80 font-mono truncate
+         px-3 py-2 rounded-lg bg-white/5;
 }
 
 .platform-modal__footer {
-  @apply flex items-center justify-end gap-3 pt-3 border-t border-border-subtle;
+  @apply flex items-center justify-end gap-3 pt-3 border-t border-white/5;
 }
 
 /* Modal animations */

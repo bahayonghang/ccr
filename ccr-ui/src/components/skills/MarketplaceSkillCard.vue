@@ -173,20 +173,18 @@ function handleClick() {
 <style scoped>
 .mp-card {
   @apply relative flex flex-col gap-3 p-4 rounded-2xl cursor-default
-         border border-border-subtle
-         transition-[color,background-color,border-color,box-shadow] duration-200 ease-out
+         border border-white/10 text-white backdrop-blur-xl
+         transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out
          overflow-hidden;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 50%);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .mp-card:hover {
-  @apply border-border-default;
+  @apply border-white/20 transform scale-[1.01];
 
-  background: rgb(var(--color-bg-elevated-rgb) / 75%);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
-  transform: translateY(-1px);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .mp-card--selected {
@@ -209,7 +207,7 @@ function handleClick() {
 
 .mp-card__check {
   @apply flex items-center justify-center w-5 h-5 rounded-md
-         border-2 border-border-default
+         border-2 border-white/20 bg-black/20
          transition-colors duration-150 cursor-pointer;
 }
 
@@ -227,11 +225,11 @@ function handleClick() {
 }
 
 .mp-card__avatar {
-  @apply w-6 h-6 rounded-full bg-bg-surface shrink-0;
+  @apply w-6 h-6 rounded-full bg-white/10 shrink-0;
 }
 
 .mp-card__owner {
-  @apply text-xs font-medium text-text-secondary truncate;
+  @apply text-xs font-medium text-white/70 truncate;
 }
 
 .mp-card__stars {
@@ -242,12 +240,11 @@ function handleClick() {
 
 /* 标题 */
 .mp-card__name {
-  @apply text-base font-bold text-text-primary truncate;
+  @apply text-base font-bold text-white truncate;
 }
 
-/* 描述 */
 .mp-card__description {
-  @apply text-sm text-text-secondary leading-relaxed flex-1;
+  @apply text-sm text-white/80 leading-relaxed flex-1;
 
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -256,18 +253,17 @@ function handleClick() {
 }
 
 .mp-card__description--empty {
-  @apply text-text-muted italic;
+  @apply text-white/50 italic;
 }
 
-/* 底部 */
 .mp-card__footer {
   @apply flex items-center justify-between mt-auto pt-2
-         border-t border-border-subtle;
+         border-t border-white/10;
 }
 
 .mp-card__source-link {
-  @apply flex items-center gap-1.5 text-xs text-text-muted
-         hover:text-text-primary transition-colors;
+  @apply flex items-center gap-1.5 text-xs text-white/50
+         hover:text-white transition-colors;
 }
 
 .mp-card__install-btn {
@@ -289,6 +285,6 @@ function handleClick() {
 }
 
 .mp-card__status--installing {
-  @apply text-text-secondary bg-bg-surface;
+  @apply text-white/70 bg-white/10;
 }
 </style>

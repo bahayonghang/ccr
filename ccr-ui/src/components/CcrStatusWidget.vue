@@ -7,8 +7,8 @@
     >
       <Loader2 class="w-4 h-4 animate-spin text-accent-primary" />
       <div class="flex flex-col">
-        <span class="text-[10px] uppercase text-text-muted font-bold">STATUS</span>
-        <span class="text-xs font-bold text-text-secondary">Checking...</span>
+        <span class="text-[10px] uppercase text-white/50 font-bold">STATUS</span>
+        <span class="text-xs font-bold text-white/80">Checking...</span>
       </div>
     </div>
 
@@ -21,7 +21,7 @@
         <CheckCircle2 class="w-5 h-5 text-green-500" />
       </div>
       <div class="flex flex-col">
-        <span class="text-[10px] uppercase text-text-muted font-bold">CCR INSTALLED</span>
+        <span class="text-[10px] uppercase text-white/50 font-bold">CCR INSTALLED</span>
         <span class="text-sm font-bold text-green-600 dark:text-green-400 font-mono">{{ version }}</span>
       </div>
     </div>

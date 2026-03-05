@@ -20,10 +20,10 @@
                 <Code2 class="w-6 h-6 text-pink-500" />
               </div>
               <div>
-                <h1 class="text-3xl font-bold font-display text-text-primary tracking-tight">
+                <h1 class="text-3xl font-bold font-display text-white tracking-tight">
                   Codex
                 </h1>
-                <p class="text-text-secondary text-base max-w-md">
+                <p class="text-white/80 text-base max-w-md">
                   {{ $t('codex.overview.subtitle') }}
                 </p>
               </div>
@@ -51,11 +51,11 @@
               <Zap class="w-5 h-5" />
             </div>
             <div class="min-w-0">
-              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">
+              <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
                 {{ $t('codex.status.currentConfig') }}
               </p>
               <p
-                class="text-base font-bold text-text-primary truncate"
+                class="text-base font-bold text-white truncate"
                 :title="currentProfile || ''"
               >
                 {{ currentProfile || $t('codex.status.notSet') }}
@@ -72,10 +72,10 @@
               <Settings class="w-5 h-5" />
             </div>
             <div>
-              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">
+              <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
                 {{ $t('codex.status.totalProfiles') }}
               </p>
-              <p class="text-base font-bold text-text-primary">
+              <p class="text-base font-bold text-white">
                 {{ profilesCount }}
               </p>
             </div>
@@ -90,10 +90,10 @@
               <Activity class="w-5 h-5" />
             </div>
             <div>
-              <p class="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">
+              <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
                 System Status
               </p>
-              <p class="text-base font-bold text-text-primary">
+              <p class="text-base font-bold text-white">
                 Online
               </p>
             </div>
@@ -108,7 +108,7 @@
       >
         <div class="flex items-center gap-3 mb-3">
           <Boxes class="w-5 h-5 text-pink-500" />
-          <h2 class="text-lg font-bold uppercase tracking-widest text-text-muted">
+          <h2 class="text-lg font-bold uppercase tracking-widest text-white/50">
             {{ $t('codex.overview.modulesTitle') }}
           </h2>
           <div class="h-px flex-1 bg-border-subtle" />
@@ -139,17 +139,17 @@
                   />
                 </div>
                 <span
-                  class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border bg-bg-base/50"
+                  class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border /50"
                   :class="module.badgeBorderClass"
                 >
                   {{ module.badge }}
                 </span>
               </div>
                   
-              <h3 class="text-base font-bold text-text-primary mb-1 group-hover:text-pink-500 transition-colors">
+              <h3 class="text-base font-bold text-white mb-1 group-hover:text-pink-500 transition-colors">
                 {{ module.title }}
               </h3>
-              <p class="text-sm text-text-secondary leading-relaxed flex-grow">
+              <p class="text-sm text-white/80 leading-relaxed flex-grow">
                 {{ module.description }}
               </p>
 
@@ -179,7 +179,7 @@
               <div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
                 <BarChart3 class="w-5 h-5" />
               </div>
-              <h3 class="text-base font-bold text-text-primary">
+              <h3 class="text-base font-bold text-white">
                 {{ $t('codex.overview.usageTitle') }}
               </h3>
             </div>
@@ -200,16 +200,16 @@
             v-if="usageLoading"
             class="space-y-4"
           >
-            <div class="h-20 bg-bg-elevated animate-pulse rounded-xl" />
-            <div class="h-20 bg-bg-elevated animate-pulse rounded-xl" />
+            <div class="h-20 bg-white/5 animate-pulse rounded-xl" />
+            <div class="h-20 bg-white/5 animate-pulse rounded-xl" />
           </div>
 
           <div
             v-else-if="usageError"
             class="text-center py-6"
           >
-            <AlertCircle class="w-10 h-10 text-text-muted mx-auto mb-3" />
-            <p class="text-sm text-text-muted mb-3">
+            <AlertCircle class="w-10 h-10 text-white/50 mx-auto mb-3" />
+            <p class="text-sm text-white/50 mb-3">
               {{ $t('codex.overview.usageError') }}
             </p>
             <Button
@@ -225,8 +225,8 @@
             v-else-if="!usageData || usageData.all_time.total_requests === 0"
             class="text-center py-6"
           >
-            <Clock class="w-10 h-10 text-text-muted mx-auto mb-3" />
-            <p class="text-sm text-text-muted">
+            <Clock class="w-10 h-10 text-white/50 mx-auto mb-3" />
+            <p class="text-sm text-white/50">
               {{ $t('codex.overview.noUsageData') }}
             </p>
           </div>
@@ -236,16 +236,16 @@
             class="space-y-3"
           >
             <!-- 5H Usage -->
-            <div class="p-3 rounded-xl bg-bg-surface/50 border border-border-subtle">
+            <div class="p-3 rounded-xl bg-white/5/50 border border-white/5">
               <div class="flex justify-between items-center mb-2">
-                <span class="text-xs font-bold text-text-muted uppercase tracking-wider">{{ $t('codex.overview.usage5h') }}</span>
-                <span class="text-xs font-mono text-text-secondary">{{ usageData.five_hour.total_requests }} reqs</span>
+                <span class="text-xs font-bold text-white/50 uppercase tracking-wider">{{ $t('codex.overview.usage5h') }}</span>
+                <span class="text-xs font-mono text-white/80">{{ usageData.five_hour.total_requests }} reqs</span>
               </div>
               <div class="flex items-baseline gap-2">
-                <span class="text-xl font-bold text-text-primary font-mono">{{ formatTokens(usageData.five_hour.total_input_tokens + usageData.five_hour.total_output_tokens) }}</span>
-                <span class="text-xs text-text-muted">tokens</span>
+                <span class="text-xl font-bold text-white font-mono">{{ formatTokens(usageData.five_hour.total_input_tokens + usageData.five_hour.total_output_tokens) }}</span>
+                <span class="text-xs text-white/50">tokens</span>
               </div>
-              <div class="w-full bg-bg-base rounded-full h-1.5 mt-2 overflow-hidden">
+              <div class="w-full rounded-full h-1.5 mt-2 overflow-hidden">
                 <div
                   class="bg-pink-500 h-full rounded-full"
                   style="width: 45%"
@@ -254,16 +254,16 @@
             </div>
                
             <!-- 7D Usage -->
-            <div class="p-3 rounded-xl bg-bg-surface/50 border border-border-subtle">
+            <div class="p-3 rounded-xl bg-white/5/50 border border-white/5">
               <div class="flex justify-between items-center mb-2">
-                <span class="text-xs font-bold text-text-muted uppercase tracking-wider">{{ $t('codex.overview.usage7d') }}</span>
-                <span class="text-xs font-mono text-text-secondary">{{ usageData.seven_day.total_requests }} reqs</span>
+                <span class="text-xs font-bold text-white/50 uppercase tracking-wider">{{ $t('codex.overview.usage7d') }}</span>
+                <span class="text-xs font-mono text-white/80">{{ usageData.seven_day.total_requests }} reqs</span>
               </div>
               <div class="flex items-baseline gap-2">
-                <span class="text-xl font-bold text-text-primary font-mono">{{ formatTokens(usageData.seven_day.total_input_tokens + usageData.seven_day.total_output_tokens) }}</span>
-                <span class="text-xs text-text-muted">tokens</span>
+                <span class="text-xl font-bold text-white font-mono">{{ formatTokens(usageData.seven_day.total_input_tokens + usageData.seven_day.total_output_tokens) }}</span>
+                <span class="text-xs text-white/50">tokens</span>
               </div>
-              <div class="w-full bg-bg-base rounded-full h-1.5 mt-2 overflow-hidden">
+              <div class="w-full rounded-full h-1.5 mt-2 overflow-hidden">
                 <div
                   class="bg-purple-500 h-full rounded-full"
                   style="width: 75%"
@@ -283,7 +283,7 @@
               <div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
                 <Cpu class="w-5 h-5" />
               </div>
-              <h3 class="text-base font-bold text-text-primary">
+              <h3 class="text-base font-bold text-white">
                 System Capabilities
               </h3>
             </div>
@@ -291,10 +291,10 @@
               <div
                 v-for="(feature, index) in features"
                 :key="index"
-                class="flex items-center gap-2 p-2 rounded-lg bg-bg-surface/30 border border-border-subtle/50"
+                class="flex items-center gap-2 p-2 rounded-lg bg-white/5/30 border border-white/5/50"
               >
                 <div class="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]" />
-                <span class="text-sm text-text-secondary">{{ feature }}</span>
+                <span class="text-sm text-white/80">{{ feature }}</span>
               </div>
             </div>
           </Card>
@@ -309,7 +309,7 @@
                 <h4 class="text-sm font-bold text-amber-500">
                   {{ $t('codex.overview.tipsTitle') }}
                 </h4>
-                <p class="text-xs text-text-secondary leading-relaxed opacity-80">
+                <p class="text-xs text-white/80 leading-relaxed opacity-80">
                   {{ $t('codex.overview.tips.mcpConnection') }}
                 </p>
               </div>

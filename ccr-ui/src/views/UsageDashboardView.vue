@@ -7,10 +7,10 @@
       <!-- 顶部工具栏 -->
       <div class="flex flex-wrap items-center gap-3 justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-text-primary">
+          <h1 class="text-2xl font-bold text-white">
             {{ $t('usage.title') }}
           </h1>
-          <p class="text-sm text-text-muted mt-1">
+          <p class="text-sm text-white/50 mt-1">
             {{ $t('usage.subtitle') }}
           </p>
         </div>
@@ -60,7 +60,7 @@
           </button>
           <span
             v-if="store.lastUpdated"
-            class="text-[10px] text-text-muted"
+            class="text-[10px] text-white/50"
           >
             {{ store.lastUpdated.toLocaleTimeString() }}
           </span>
@@ -68,12 +68,12 @@
       </div>
 
       <!-- 标签页 -->
-      <div class="flex gap-1 border-b border-border-default">
+      <div class="flex gap-1 border-b border-white/10">
         <button
           v-for="t in tabKeys"
           :key="t"
           class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px"
-          :class="activeTab === t ? 'border-accent-primary text-accent-primary' : 'border-transparent text-text-muted hover:text-text-primary'"
+          :class="activeTab === t ? 'border-accent-primary text-accent-primary' : 'border-transparent text-white/50 hover:text-white'"
           @click="activeTab = t"
         >
           {{ $t(`usage.dashboard.tabs.${t}`) }}
@@ -83,7 +83,7 @@
       <!-- 加载/错误 -->
       <div
         v-if="store.loading"
-        class="text-center py-12 text-text-muted"
+        class="text-center py-12 text-white/50"
       >
         {{ $t('usage.states.loading') }}
       </div>
@@ -103,10 +103,10 @@
             :key="card.label"
             class="glass-panel p-5 rounded-xl"
           >
-            <div class="text-xs text-text-muted mb-1.5">
+            <div class="text-xs text-white/50 mb-1.5">
               {{ card.label }}
             </div>
-            <div class="text-2xl font-bold text-text-primary">
+            <div class="text-2xl font-bold text-white">
               {{ card.value }}
             </div>
           </div>
@@ -115,7 +115,7 @@
         <!-- 趋势 + 饼图并排 -->
         <div class="grid lg:grid-cols-3 gap-4">
           <div class="lg:col-span-2 glass-panel p-4 rounded-xl">
-            <h3 class="text-sm font-medium text-text-secondary mb-3">
+            <h3 class="text-sm font-medium text-white/80 mb-3">
               {{ $t('usage.dashboard.chart.trendTitle') }}
             </h3>
             <apexchart
@@ -127,13 +127,13 @@
             />
             <div
               v-else
-              class="flex items-center justify-center h-[320px] text-text-muted text-sm"
+              class="flex items-center justify-center h-[320px] text-white/50 text-sm"
             >
               {{ $t('usage.dashboard.chart.noTrend') }}
             </div>
           </div>
           <div class="glass-panel p-4 rounded-xl">
-            <h3 class="text-sm font-medium text-text-secondary mb-3">
+            <h3 class="text-sm font-medium text-white/80 mb-3">
               {{ $t('usage.dashboard.chart.costByModel') }}
             </h3>
             <apexchart
@@ -145,7 +145,7 @@
             />
             <div
               v-else
-              class="flex items-center justify-center h-[320px] text-text-muted text-sm"
+              class="flex items-center justify-center h-[320px] text-white/50 text-sm"
             >
               {{ $t('usage.dashboard.table.noData') }}
             </div>
@@ -155,12 +155,12 @@
         <!-- 模型 + 项目 Top5 并排 -->
         <div class="grid lg:grid-cols-2 gap-4">
           <div class="glass-panel rounded-xl overflow-hidden">
-            <div class="px-4 py-3 border-b border-border-default/50 text-sm font-medium text-text-secondary">
+            <div class="px-4 py-3 border-b border-white/10/50 text-sm font-medium text-white/80">
               Top {{ $t('usage.dashboard.tabs.models') }}
             </div>
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-border-default text-text-muted text-left">
+                <tr class="border-b border-white/10 text-white/50 text-left">
                   <th class="p-3">
                     {{ $t('usage.dashboard.table.model') }}
                   </th>
@@ -176,15 +176,15 @@
                 <tr
                   v-for="m in store.modelStats.slice(0, 5)"
                   :key="m.model"
-                  class="border-b border-border-default/50 hover:bg-white/5 transition-colors"
+                  class="border-b border-white/10/50 hover:bg-white/5 transition-colors"
                 >
-                  <td class="p-3 text-text-primary font-medium">
+                  <td class="p-3 text-white font-medium">
                     {{ m.model }}
                   </td>
-                  <td class="p-3 text-right text-text-secondary">
+                  <td class="p-3 text-right text-white/80">
                     {{ m.request_count }}
                   </td>
-                  <td class="p-3 text-right text-text-secondary">
+                  <td class="p-3 text-right text-white/80">
                     {{ formatCost(m.total_cost) }}
                   </td>
                 </tr>
@@ -192,18 +192,18 @@
             </table>
             <div
               v-if="!store.modelStats.length"
-              class="p-6 text-center text-text-muted text-sm"
+              class="p-6 text-center text-white/50 text-sm"
             >
               {{ $t('usage.dashboard.table.noData') }}
             </div>
           </div>
           <div class="glass-panel rounded-xl overflow-hidden">
-            <div class="px-4 py-3 border-b border-border-default/50 text-sm font-medium text-text-secondary">
+            <div class="px-4 py-3 border-b border-white/10/50 text-sm font-medium text-white/80">
               Top {{ $t('usage.dashboard.tabs.projects') }}
             </div>
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-border-default text-text-muted text-left">
+                <tr class="border-b border-white/10 text-white/50 text-left">
                   <th class="p-3">
                     {{ $t('usage.dashboard.table.project') }}
                   </th>
@@ -219,18 +219,18 @@
                 <tr
                   v-for="p in store.projectStats.slice(0, 5)"
                   :key="p.project_path"
-                  class="border-b border-border-default/50 hover:bg-white/5 transition-colors"
+                  class="border-b border-white/10/50 hover:bg-white/5 transition-colors"
                 >
                   <td
-                    class="p-3 text-text-primary font-medium truncate max-w-[200px]"
+                    class="p-3 text-white font-medium truncate max-w-[200px]"
                     :title="p.project_path"
                   >
                     {{ shortenPath(p.project_path) }}
                   </td>
-                  <td class="p-3 text-right text-text-secondary">
+                  <td class="p-3 text-right text-white/80">
                     {{ formatTokens(p.total_tokens) }}
                   </td>
-                  <td class="p-3 text-right text-text-secondary">
+                  <td class="p-3 text-right text-white/80">
                     {{ formatCost(p.total_cost) }}
                   </td>
                 </tr>
@@ -238,7 +238,7 @@
             </table>
             <div
               v-if="!store.projectStats.length"
-              class="p-6 text-center text-text-muted text-sm"
+              class="p-6 text-center text-white/50 text-sm"
             >
               {{ $t('usage.dashboard.table.noData') }}
             </div>
@@ -249,7 +249,7 @@
       <!-- Models -->
       <template v-else-if="activeTab === 'models'">
         <div class="glass-panel p-4 rounded-xl">
-          <h3 class="text-sm font-medium text-text-secondary mb-3">
+          <h3 class="text-sm font-medium text-white/80 mb-3">
             {{ $t('usage.dashboard.chart.costByModel') }}
           </h3>
           <apexchart
@@ -261,7 +261,7 @@
           />
           <div
             v-else
-            class="flex items-center justify-center h-[280px] text-text-muted text-sm"
+            class="flex items-center justify-center h-[280px] text-white/50 text-sm"
           >
             {{ $t('usage.dashboard.table.noData') }}
           </div>
@@ -269,7 +269,7 @@
         <div class="glass-panel rounded-xl overflow-hidden">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-border-default text-text-muted text-left">
+              <tr class="border-b border-white/10 text-white/50 text-left">
                 <th class="p-3">
                   {{ $t('usage.dashboard.table.model') }}
                 </th>
@@ -288,18 +288,18 @@
               <tr
                 v-for="m in store.modelStats"
                 :key="m.model"
-                class="border-b border-border-default/50 hover:bg-white/5 transition-colors"
+                class="border-b border-white/10/50 hover:bg-white/5 transition-colors"
               >
-                <td class="p-3 text-text-primary font-medium">
+                <td class="p-3 text-white font-medium">
                   {{ m.model }}
                 </td>
-                <td class="p-3 text-right text-text-secondary">
+                <td class="p-3 text-right text-white/80">
                   {{ m.request_count }}
                 </td>
-                <td class="p-3 text-right text-text-secondary">
+                <td class="p-3 text-right text-white/80">
                   {{ formatTokens(m.total_tokens) }}
                 </td>
-                <td class="p-3 text-right text-text-secondary">
+                <td class="p-3 text-right text-white/80">
                   {{ formatCost(m.total_cost) }}
                 </td>
               </tr>
@@ -307,7 +307,7 @@
           </table>
           <div
             v-if="!store.modelStats.length"
-            class="p-6 text-center text-text-muted text-sm"
+            class="p-6 text-center text-white/50 text-sm"
           >
             {{ $t('usage.dashboard.table.noData') }}
           </div>
@@ -319,7 +319,7 @@
         <div class="glass-panel rounded-xl overflow-hidden">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-border-default text-text-muted text-left">
+              <tr class="border-b border-white/10 text-white/50 text-left">
                 <th class="p-3">
                   {{ $t('usage.dashboard.table.project') }}
                 </th>
@@ -338,21 +338,21 @@
               <tr
                 v-for="p in store.projectStats"
                 :key="p.project_path"
-                class="border-b border-border-default/50 hover:bg-white/5 transition-colors"
+                class="border-b border-white/10/50 hover:bg-white/5 transition-colors"
               >
                 <td
-                  class="p-3 text-text-primary font-medium truncate max-w-xs"
+                  class="p-3 text-white font-medium truncate max-w-xs"
                   :title="p.project_path"
                 >
                   {{ shortenPath(p.project_path) }}
                 </td>
-                <td class="p-3 text-right text-text-secondary">
+                <td class="p-3 text-right text-white/80">
                   {{ p.request_count }}
                 </td>
-                <td class="p-3 text-right text-text-secondary">
+                <td class="p-3 text-right text-white/80">
                   {{ formatTokens(p.total_tokens) }}
                 </td>
-                <td class="p-3 text-right text-text-secondary">
+                <td class="p-3 text-right text-white/80">
                   {{ formatCost(p.total_cost) }}
                 </td>
               </tr>
@@ -360,7 +360,7 @@
           </table>
           <div
             v-if="!store.projectStats.length"
-            class="p-6 text-center text-text-muted text-sm"
+            class="p-6 text-center text-white/50 text-sm"
           >
             {{ $t('usage.dashboard.table.noData') }}
           </div>
@@ -384,7 +384,7 @@
           </button>
         </div>
         <div class="glass-panel rounded-xl overflow-x-auto">
-          <div class="grid grid-cols-[2fr,1fr,2fr,1fr,1fr,1fr] border-b border-border-default text-text-muted text-left text-sm">
+          <div class="grid grid-cols-[2fr,1fr,2fr,1fr,1fr,1fr] border-b border-white/10 text-white/50 text-left text-sm">
             <div class="p-3">
               {{ $t('usage.dashboard.table.time') }}
             </div>
@@ -415,25 +415,25 @@
               <div
                 v-for="virtualRow in logsVirtualizer.getVirtualItems()"
                 :key="logsRecords[virtualRow.index]?.id ?? virtualRow.index"
-                class="absolute left-0 right-0 grid grid-cols-[2fr,1fr,2fr,1fr,1fr,1fr] border-b border-border-default/50 hover:bg-white/5 transition-colors text-sm"
+                class="absolute left-0 right-0 grid grid-cols-[2fr,1fr,2fr,1fr,1fr,1fr] border-b border-white/10/50 hover:bg-white/5 transition-colors text-sm"
                 :style="{ transform: `translateY(${virtualRow.start}px)` }"
               >
-                <div class="p-3 text-text-muted text-xs whitespace-nowrap">
+                <div class="p-3 text-white/50 text-xs whitespace-nowrap">
                   {{ new Date(logsRecords[virtualRow.index].recorded_at).toLocaleString() }}
                 </div>
-                <div class="p-3 text-text-secondary">
+                <div class="p-3 text-white/80">
                   {{ logsRecords[virtualRow.index].platform }}
                 </div>
-                <div class="p-3 text-text-primary font-medium truncate">
+                <div class="p-3 text-white font-medium truncate">
                   {{ logsRecords[virtualRow.index].model || '-' }}
                 </div>
-                <div class="p-3 text-right text-text-secondary">
+                <div class="p-3 text-right text-white/80">
                   {{ formatTokens(logsRecords[virtualRow.index].input_tokens) }}
                 </div>
-                <div class="p-3 text-right text-text-secondary">
+                <div class="p-3 text-right text-white/80">
                   {{ formatTokens(logsRecords[virtualRow.index].output_tokens) }}
                 </div>
-                <div class="p-3 text-right text-text-secondary">
+                <div class="p-3 text-right text-white/80">
                   {{ formatCost(logsRecords[virtualRow.index].cost_usd) }}
                 </div>
               </div>
@@ -441,7 +441,7 @@
           </div>
           <div
             v-if="!store.logs?.records?.length"
-            class="p-6 text-center text-text-muted text-sm"
+            class="p-6 text-center text-white/50 text-sm"
           >
             {{ $t('usage.dashboard.logs.noLogs') }}
           </div>
@@ -452,7 +452,7 @@
           class="flex items-center justify-center gap-2"
         >
           <button
-            class="px-3 py-1 rounded text-xs bg-bg-elevated text-text-secondary hover:text-text-primary disabled:opacity-40 transition-colors"
+            class="px-3 py-1 rounded text-xs bg-white/5 text-white/80 hover:text-white disabled:opacity-40 transition-colors"
             :disabled="!store.canPrevLogs"
             @click="loadLogs('prev')"
           >
@@ -460,14 +460,14 @@
           </button>
           <span
             v-if="store.logs.total"
-            class="text-xs text-text-muted"
+            class="text-xs text-white/50"
           >{{ store.logsPage }} / {{ store.logsTotalPages }}</span>
           <span
             v-else
-            class="text-xs text-text-muted"
+            class="text-xs text-white/50"
           >{{ store.logsPage }}</span>
           <button
-            class="px-3 py-1 rounded text-xs bg-bg-elevated text-text-secondary hover:text-text-primary disabled:opacity-40 transition-colors"
+            class="px-3 py-1 rounded text-xs bg-white/5 text-white/80 hover:text-white disabled:opacity-40 transition-colors"
             :disabled="!store.canNextLogs"
             @click="loadLogs('next')"
           >

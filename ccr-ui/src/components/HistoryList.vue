@@ -3,10 +3,10 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-4 flex-shrink-0">
       <div>
-        <h2 class="text-xl font-bold text-text-primary">
+        <h2 class="text-xl font-bold text-white">
           Operation History
         </h2>
-        <p class="text-sm text-text-secondary">
+        <p class="text-sm text-white/80">
           {{ entries.length }} records found
         </p>
       </div>
@@ -26,12 +26,12 @@
     <!-- Empty State -->
     <div
       v-else-if="entries.length === 0"
-      class="flex-1 flex flex-col items-center justify-center text-text-muted"
+      class="flex-1 flex flex-col items-center justify-center text-white/50"
     >
-      <div class="p-6 rounded-full bg-bg-surface mb-4">
+      <div class="p-6 rounded-full bg-white/5 mb-4">
         <History class="w-8 h-8 opacity-20" />
       </div>
-      <p class="text-lg font-medium text-text-secondary">
+      <p class="text-lg font-medium text-white/80">
         No history records
       </p>
       <p class="text-sm">
@@ -94,10 +94,10 @@
                 <div class="flex-1 min-w-0">
                   <div class="flex justify-between items-start mb-2">
                     <div>
-                      <h3 class="font-bold text-text-primary">
+                      <h3 class="font-bold text-white">
                         {{ getOperationLabel(entries[virtualRow.index].operation) }}
                       </h3>
-                      <div class="flex items-center gap-3 text-xs text-text-secondary mt-1">
+                      <div class="flex items-center gap-3 text-xs text-white/80 mt-1">
                         <span class="flex items-center gap-1"><Clock class="w-3 h-3" /> {{ formatRelativeTime(entries[virtualRow.index].timestamp) }}</span>
                         <span class="flex items-center gap-1"><User class="w-3 h-3" /> {{ entries[virtualRow.index].actor }}</span>
                       </div>
@@ -116,10 +116,10 @@
                   <!-- Config Change -->
                   <div
                     v-if="entries[virtualRow.index].from_config && entries[virtualRow.index].to_config"
-                    class="flex items-center gap-2 p-2 rounded bg-bg-surface/50 border border-border-default mb-2"
+                    class="flex items-center gap-2 p-2 rounded bg-white/5/50 border border-white/10 mb-2"
                   >
                     <code class="text-xs text-accent-danger bg-accent-danger/10 px-1.5 py-0.5 rounded">{{ entries[virtualRow.index].from_config }}</code>
-                    <ArrowRight class="w-3 h-3 text-text-muted" />
+                    <ArrowRight class="w-3 h-3 text-white/50" />
                     <code class="text-xs text-accent-success bg-accent-success/10 px-1.5 py-0.5 rounded">{{ entries[virtualRow.index].to_config }}</code>
                   </div>
 
@@ -131,13 +131,13 @@
                     <div
                       v-for="change in entries[virtualRow.index].changes.slice(0, 3)"
                       :key="change.key"
-                      class="text-xs font-mono p-1.5 rounded bg-bg-surface/30 border border-border-subtle grid grid-cols-[auto_1fr] gap-2"
+                      class="text-xs font-mono p-1.5 rounded bg-white/5/30 border border-white/5 grid grid-cols-[auto_1fr] gap-2"
                     >
-                      <span class="font-bold text-text-primary">{{ change.key }}</span>
-                      <div class="flex items-center gap-1 truncate text-text-muted">
+                      <span class="font-bold text-white">{{ change.key }}</span>
+                      <div class="flex items-center gap-1 truncate text-white/50">
                         <span class="truncate">{{ change.old_value || '_' }}</span>
                         <span>→</span>
-                        <span class="text-text-primary truncate">{{ change.new_value || '_' }}</span>
+                        <span class="text-white truncate">{{ change.new_value || '_' }}</span>
                       </div>
                     </div>
                     <button
@@ -148,7 +148,7 @@
                     </button>
                   </div>
                     
-                  <div class="mt-2 pt-2 border-t border-border-subtle text-[10px] text-text-muted font-mono">
+                  <div class="mt-2 pt-2 border-t border-white/5 text-[10px] text-white/50 font-mono">
                     ID: {{ entries[virtualRow.index].id }}
                   </div>
                 </div>

@@ -149,10 +149,10 @@ function shortenPath(path: string): string {
 .modal-content {
   @apply flex flex-col items-center gap-4 p-6 rounded-2xl
          backdrop-blur-xl
-         border border-border-subtle
+         border border-white/5
          shadow-2xl;
 
-  background: rgb(var(--color-bg-base-rgb) / 95%);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 /* Warning icon */
@@ -169,19 +169,19 @@ function shortenPath(path: string): string {
 
 /* Title */
 .modal-title {
-  @apply text-lg font-bold text-text-primary text-center;
+  @apply text-lg font-bold text-white text-center;
 }
 
 /* Skill info card */
 .skill-info {
   @apply w-full flex flex-col gap-2 p-3 rounded-xl
-         border border-border-subtle;
+         border border-white/5;
 
-  background: rgb(var(--color-bg-surface-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .skill-info__name {
-  @apply text-base font-bold text-text-primary text-center;
+  @apply text-base font-bold text-white text-center;
 }
 
 .skill-info__meta {
@@ -189,11 +189,11 @@ function shortenPath(path: string): string {
 }
 
 .skill-info__platform {
-  @apply flex items-center gap-1.5 text-xs text-text-secondary;
+  @apply flex items-center gap-1.5 text-xs text-white/80;
 }
 
 .skill-info__dir {
-  @apply flex items-center gap-1.5 text-xs text-text-muted font-mono truncate max-w-full;
+  @apply flex items-center gap-1.5 text-xs text-white/50 font-mono truncate max-w-full;
 }
 
 /* Warning message */
@@ -202,7 +202,7 @@ function shortenPath(path: string): string {
 }
 
 .warning-message__desc {
-  @apply text-sm text-text-secondary;
+  @apply text-sm text-white/80;
 }
 
 .warning-message__danger {
@@ -234,8 +234,8 @@ function shortenPath(path: string): string {
 /* Delete button - small, de-emphasized */
 .btn-delete {
   @apply px-4 py-3 rounded-xl
-         text-sm font-medium text-text-muted
-         border border-border-subtle
+         text-sm font-medium text-white/50
+         border border-white/5
          transition-colors duration-200;
 
   background: transparent;

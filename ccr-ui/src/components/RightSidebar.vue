@@ -9,7 +9,7 @@
       class="flex justify-end mb-2"
     >
       <button
-        class="p-1.5 rounded-lg text-text-muted hover:text-accent-primary hover:bg-bg-surface/80 transition-colors duration-200"
+        class="p-1.5 rounded-lg text-white/50 hover:text-accent-primary hover:bg-white/5/80 transition-colors duration-200"
         title="收起侧边栏"
         @click="$emit('toggleCollapse')"
       >
@@ -21,7 +21,7 @@
     <template v-if="collapsed">
       <div class="flex flex-col items-center space-y-3 pt-1">
         <button
-          class="p-2 rounded-lg text-text-muted hover:text-accent-primary hover:bg-bg-surface/50 transition-colors"
+          class="p-2 rounded-lg text-white/50 hover:text-accent-primary hover:bg-white/5/50 transition-colors"
           title="展开侧边栏"
           @click="$emit('toggleCollapse')"
         >
@@ -31,13 +31,13 @@
         <div class="w-8 h-[1px] bg-border-subtle" />
 
         <button
-          class="p-2 rounded-lg hover:bg-bg-surface/50 transition-colors"
+          class="p-2 rounded-lg hover:bg-white/5/50 transition-colors"
           :title="'搜索'"
         >
-          <Search class="w-4 h-4 text-text-muted" />
+          <Search class="w-4 h-4 text-white/50" />
         </button>
         <button
-          class="p-2 rounded-lg hover:bg-bg-surface/50 transition-colors"
+          class="p-2 rounded-lg hover:bg-white/5/50 transition-colors"
           :title="'筛选'"
         >
           <Layers class="w-4 h-4 text-emerald-500" />
@@ -49,19 +49,19 @@
         <div 
           v-for="config in filteredConfigs.slice(0, 8)" 
           :key="config.name"
-          class="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer hover:bg-bg-surface/50 transition-colors duration-200 group relative"
+          class="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer hover:bg-white/5/50 transition-colors duration-200 group relative"
           :class="config.is_current ? 'bg-accent-primary/10' : ''"
           @click="$emit('configClick', config.name)"
         >
           <div 
             class="w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center"
-            :class="config.is_current ? 'bg-accent-primary text-white' : 'bg-bg-surface text-text-muted group-hover:text-text-primary'"
+            :class="config.is_current ? 'bg-accent-primary text-white' : 'bg-white/5 text-white/50 group-hover:text-white'"
           >
             {{ config.name[0]?.toUpperCase() }}
           </div>
           
           <!-- Tooltip (Left side) -->
-          <div class="absolute left-full ml-2 px-2 py-1 bg-bg-overlay border border-border-subtle rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+          <div class="absolute left-full ml-2 px-2 py-1 bg-white/10 border border-white/5 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
             {{ config.name }}
           </div>
         </div>
@@ -79,22 +79,22 @@
           配置列表
         </h2>
         <div class="flex items-center gap-1.5 text-xs">
-          <span class="text-text-secondary font-mono">{{ filteredConfigs.length }}</span>
+          <span class="text-white/80 font-mono">{{ filteredConfigs.length }}</span>
           <span class="text-border-default">/</span>
-          <span class="text-text-muted font-mono">{{ configs.length }}</span>
+          <span class="text-white/50 font-mono">{{ configs.length }}</span>
         </div>
       </div>
 
       <!-- 🔍 搜索框 -->
       <div class="relative mb-4">
         <Search
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted"
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/50"
         />
         <input
           v-model="searchQuery"
           type="text"
           placeholder="搜索配置..."
-          class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-bg-surface/50 border border-border-default focus:border-accent-primary/50 focus:bg-bg-surface transition-colors duration-200 outline-none placeholder:text-text-disabled"
+          class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-white/5/50 border border-white/10 focus:border-accent-primary/50 focus:bg-white/5 transition-colors duration-200 outline-none placeholder:text-white/30"
         >
       </div>
 
@@ -106,7 +106,7 @@
           v-for="category in categories"
           :key="category.key"
           class="relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs border transition-[color,background-color,border-color,transform] duration-200 hover:scale-[1.01] active:scale-[0.99] cursor-pointer overflow-hidden group"
-          :class="expandedCategory === category.key ? 'shadow-md' : 'hover:border-border-default hover:bg-bg-surface/30'"
+          :class="expandedCategory === category.key ? 'shadow-md' : 'hover:border-white/10 hover:bg-white/5/30'"
           :style="{
             background: expandedCategory === category.key ? category.activeBackground : 'transparent',
             borderColor: expandedCategory === category.key ? category.activeBorder : 'var(--color-border-subtle)',
@@ -376,10 +376,12 @@ const categories = computed(() => [
 <style scoped>
 /* 侧边栏 - 轻量玻璃容器 */
 .sidebar-container {
-  background: var(--glass-bg-light);
-  backdrop-filter: var(--glass-blur-sm);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   max-height: calc(100vh - 160px);
   overflow-y: auto;
+  color: white;
 }
 
 /* Text utility classes */

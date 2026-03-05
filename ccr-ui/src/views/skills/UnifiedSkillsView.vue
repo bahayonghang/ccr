@@ -109,7 +109,7 @@
             class="loading-state"
           >
             <Loader2 class="w-8 h-8 animate-spin text-accent-primary" />
-            <p class="text-text-secondary mt-2">
+            <p class="text-white/80 mt-2">
               {{ $t('common.loading') }}
             </p>
           </div>
@@ -158,8 +158,8 @@
             v-else-if="activeTab === 'repositories'"
             class="repositories-placeholder"
           >
-            <FolderGit2 class="w-12 h-12 text-text-muted" />
-            <p class="text-text-secondary mt-2">
+            <FolderGit2 class="w-12 h-12 text-white/50" />
+            <p class="text-white/80 mt-2">
               {{ $t('skills.repositoriesComingSoon') }}
             </p>
           </div>
@@ -181,12 +181,11 @@
               class="mobile-filter-drawer"
             >
               <div class="mobile-filter-header">
-                <h3 class="text-lg font-bold text-text-primary">
+                <h3 class="text-lg font-bold text-white">
                   {{ $t('skills.filters') }}
                 </h3>
                 <button
-                  class="p-2 rounded-lg text-text-muted hover:text-text-primary
-                         hover:bg-bg-surface transition-colors"
+                  class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
                   @click="showMobileFilter = false"
                 >
                   <X class="w-5 h-5" />
@@ -502,7 +501,7 @@ watch(activeTab, (newTab) => {
 }
 
 .skills-header__title {
-  @apply flex items-center gap-2 text-2xl font-bold text-text-primary;
+  @apply flex items-center gap-2 text-2xl font-bold text-white;
 }
 
 .skills-header__badge {
@@ -511,7 +510,7 @@ watch(activeTab, (newTab) => {
 }
 
 .skills-header__subtitle {
-  @apply text-sm text-text-secondary;
+  @apply text-sm text-white/80;
 }
 
 .skills-header__actions {
@@ -519,9 +518,9 @@ watch(activeTab, (newTab) => {
 }
 
 .btn-refresh {
-  @apply p-2 rounded-xl bg-bg-surface hover:bg-bg-elevated
-         text-text-secondary hover:text-text-primary
-         border border-border-subtle hover:border-border-default
+  @apply p-2 rounded-xl bg-white/5 hover:bg-white/5
+         text-white/80 hover:text-white
+         border border-white/5 hover:border-white/10
          transition-colors duration-200 disabled:opacity-50;
 }
 
@@ -533,16 +532,16 @@ watch(activeTab, (newTab) => {
 }
 
 .btn-log {
-  @apply p-2 rounded-xl bg-bg-surface hover:bg-bg-elevated
-         text-text-secondary hover:text-text-primary
-         border border-border-subtle hover:border-border-default
+  @apply p-2 rounded-xl bg-white/5 hover:bg-white/5
+         text-white/80 hover:text-white
+         border border-white/5 hover:border-white/10
          transition-colors duration-200;
 }
 
 .btn-filter {
-  @apply relative p-2 rounded-xl bg-bg-surface hover:bg-bg-elevated
-         text-text-secondary hover:text-text-primary
-         border border-border-subtle hover:border-border-default
+  @apply relative p-2 rounded-xl bg-white/5 hover:bg-white/5
+         text-white/80 hover:text-white
+         border border-white/5 hover:border-white/10
          transition-colors duration-200;
 }
 
@@ -569,24 +568,24 @@ watch(activeTab, (newTab) => {
 }
 
 .content-tabs {
-  @apply flex gap-2 p-1 rounded-xl border border-border-subtle;
+  @apply flex gap-2 p-1 rounded-xl border border-white/5;
 
-  background: rgb(var(--color-bg-surface-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .content-tab {
   @apply flex items-center gap-2 px-4 py-2 rounded-lg
-         text-sm font-medium text-text-secondary
-         hover:text-text-primary
+         text-sm font-medium text-white/80
+         hover:text-white
          transition-colors duration-200;
 }
 
 .content-tab:hover {
-  background: rgb(var(--color-bg-elevated-rgb) / 50%);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .content-tab--active {
-  @apply text-text-primary bg-bg-elevated shadow-sm;
+  @apply text-white bg-white/5 shadow-sm;
 }
 
 .content-tab__count {
@@ -617,13 +616,13 @@ watch(activeTab, (newTab) => {
 
 .mobile-filter-drawer {
   @apply fixed left-0 top-0 bottom-0 w-[300px] max-w-[85vw]
-         bg-bg-base border-r border-border-default
+          border-r border-white/10
          shadow-2xl flex flex-col;
 }
 
 .mobile-filter-header {
   @apply flex items-center justify-between p-4
-         border-b border-border-subtle;
+         border-b border-white/5;
 }
 
 .mobile-filter-content {

@@ -5,11 +5,11 @@
       v-if="!isLoading && skills.length === 0"
       class="empty-state"
     >
-      <Package class="w-12 h-12 text-text-muted" />
-      <h3 class="text-lg font-semibold text-text-primary mt-4">
+      <Package class="w-12 h-12 text-white/50" />
+      <h3 class="text-lg font-semibold text-white mt-4">
         {{ $t('skills.noSkillsInstalled') }}
       </h3>
-      <p class="text-sm text-text-secondary mt-1">
+      <p class="text-sm text-white/80 mt-1">
         {{ $t('skills.noSkillsInstalledHint') }}
       </p>
     </div>
@@ -92,9 +92,9 @@ defineEmits<{
 
 .empty-state {
   @apply flex flex-col items-center justify-center py-16
-         rounded-2xl border border-border-subtle;
+         rounded-2xl border border-white/5;
 
-  background: rgb(var(--color-bg-surface-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .skills-list {
@@ -103,9 +103,9 @@ defineEmits<{
 
 /* Skeleton Styles - horizontal row layout */
 .skeleton-row {
-  @apply flex flex-row items-start gap-4 p-4 rounded-2xl border border-border-subtle;
+  @apply flex flex-row items-start gap-4 p-4 rounded-2xl border border-white/5;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 30%);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .skeleton-platform {
@@ -113,11 +113,11 @@ defineEmits<{
 }
 
 .skeleton-icon {
-  @apply w-12 h-12 rounded-xl bg-bg-surface animate-pulse;
+  @apply w-12 h-12 rounded-xl bg-white/5 animate-pulse;
 }
 
 .skeleton-badge {
-  @apply w-14 h-4 rounded-full bg-bg-surface animate-pulse;
+  @apply w-14 h-4 rounded-full bg-white/5 animate-pulse;
 }
 
 .skeleton-body {
@@ -129,15 +129,15 @@ defineEmits<{
 }
 
 .skeleton-name {
-  @apply w-36 h-5 rounded bg-bg-surface animate-pulse;
+  @apply w-36 h-5 rounded bg-white/5 animate-pulse;
 }
 
 .skeleton-category {
-  @apply w-20 h-4 rounded-md bg-bg-surface animate-pulse;
+  @apply w-20 h-4 rounded-md bg-white/5 animate-pulse;
 }
 
 .skeleton-description {
-  @apply w-full h-10 rounded bg-bg-surface animate-pulse;
+  @apply w-full h-10 rounded bg-white/5 animate-pulse;
 }
 
 .skeleton-tags {
@@ -145,11 +145,11 @@ defineEmits<{
 }
 
 .skeleton-tag {
-  @apply w-14 h-5 rounded-md bg-bg-surface animate-pulse;
+  @apply w-14 h-5 rounded-md bg-white/5 animate-pulse;
 }
 
 .skeleton-path {
-  @apply w-48 h-4 rounded bg-bg-surface animate-pulse;
+  @apply w-48 h-4 rounded bg-white/5 animate-pulse;
 }
 
 .skeleton-actions {
@@ -157,6 +157,6 @@ defineEmits<{
 }
 
 .skeleton-action-btn {
-  @apply w-8 h-8 rounded-lg bg-bg-surface animate-pulse;
+  @apply w-8 h-8 rounded-lg bg-white/5 animate-pulse;
 }
 </style>

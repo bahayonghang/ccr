@@ -1,6 +1,6 @@
 <!-- -->
 <template>
-  <div class="token-usage-chart glass-card rounded-2xl p-6 backdrop-blur-xl bg-white/70 dark:bg-gray-800/70 border border-white/20 dark:border-gray-700/50 shadow-xl">
+  <div class="token-usage-chart glass-card rounded-2xl p-6">
     <!-- Header -->
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div class="flex items-center gap-4">
