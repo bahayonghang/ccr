@@ -1,0 +1,252 @@
+@layer base {
+  :root {
+    /* ========================================================================
+       NEKOMATA KAWAII DESIGN SYSTEM v1.0
+       Sakura Pink + Lavender Purple + Cream
+       ======================================================================== */
+
+    /* --- Color Palette: Light Mode (Kawaii Light) --- */
+
+    /* Background Hierarchy */
+    --color-bg-base: #FFF5F7;
+
+    /* Faint sakura pink */
+    --color-bg-elevated: #FFF;
+
+    /* Pure white */
+    --color-bg-surface: #FFF0F5;
+
+    /* Light pink surface */
+    --color-bg-overlay: #FFE4ED;
+
+    /* Pink overlay */
+
+    /* Text Hierarchy */
+    --color-text-primary: #2D1B30;
+
+    /* Deep purple-brown */
+    --color-text-secondary: #6B4C6E;
+
+    /* Soft purple */
+    --color-text-muted: #B591B8;
+
+    /* Light purple */
+    --color-text-ghost: #D4B8D8;
+
+    /* Faint purple */
+    --color-text-disabled: #E8D0EC;
+
+    /* Disabled grey-purple */
+    --color-text-inverted: #FFF;
+
+    /* Border */
+    --color-border-subtle: #FFF0F5;
+
+    /* Lavender blush */
+    --color-border-default: #F9D4E2;
+
+    /* Soft pink */
+    --color-border-strong: #F0B4CC;
+
+    /* Medium pink */
+    --color-border-interactive: #F472B6;
+
+    /* Focus pink */
+
+    /* Brand Accents */
+    --color-accent-primary: #F472B6;
+
+    /* Neko pink (pink-400) */
+    --color-accent-secondary: #A78BFA;
+
+    /* Lavender purple (violet-400) */
+    --color-success: #34D399;
+
+    /* Emerald-400 */
+    --color-warning: #FBBF24;
+
+    /* Amber-400 */
+    --color-danger: #FB7185;
+
+    /* Rose-400 */
+    --color-info: #C084FC;
+
+    /* Purple-400 */
+
+    /* RGB Values for Opacity Manipulation */
+    --color-accent-primary-rgb: 244 114 182;
+    --color-accent-secondary-rgb: 167 139 250;
+    --color-success-rgb: 52 211 153;
+    --color-warning-rgb: 251 191 36;
+    --color-danger-rgb: 251 113 133;
+    --color-info-rgb: 192 132 252;
+
+    /* --- Spacing System --- */
+    --space-1: 0.25rem;
+
+    /* 4px */
+    --space-2: 0.5rem;
+
+    /* 8px */
+    --space-3: 0.75rem;
+
+    /* 12px */
+    --space-4: 1rem;
+
+    /* 16px */
+    --space-5: 1.25rem;
+
+    /* 20px */
+    --space-6: 1.5rem;
+
+    /* 24px */
+    --space-8: 2rem;
+
+    /* 32px */
+    --space-10: 2.5rem;
+
+    /* 40px */
+    --space-12: 3rem;
+
+    /* 48px */
+    --space-16: 4rem;
+
+    /* 64px */
+    --space-20: 5rem;
+
+    /* 80px */
+
+    /* --- Radius System --- */
+    --radius-sm: 0.25rem;
+
+    /* 4px */
+    --radius-md: 0.5rem;
+
+    /* 8px */
+    --radius-lg: 0.75rem;
+
+    /* 12px */
+    --radius-xl: 1rem;
+
+    /* 16px */
+    --radius-full: 9999px;
+
+    /* --- Shadow System --- */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 5%);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 8%), 0 2px 4px -2px rgb(0 0 0 / 5%);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 8%), 0 4px 6px -4px rgb(0 0 0 / 5%);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 8%), 0 8px 10px -6px rgb(0 0 0 / 5%);
+
+    /* Glows (Light mode - subtle pink) */
+    --shadow-glow-primary: 0 0 15px rgb(244 114 182 / 20%);
+    --shadow-glow-success: 0 0 15px rgb(52 211 153 / 15%);
+    --shadow-glow-danger: 0 0 15px rgb(251 113 133 / 15%);
+
+    /* --- Typography --- */
+    --font-sans: "Inter", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "Fira Code", monospace;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+
+    /* --- Animation --- */
+    --duration-fast: 150ms;
+    --duration-normal: 300ms;
+    --duration-slow: 500ms;
+    --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* --- Dark Mode (Kawaii Dark - Deep Purple Night) --- */
+  :root[class~="dark"],
+  [data-theme="dark"] {
+    /* Background Hierarchy */
+    --color-bg-base: #1A0A20;
+
+    /* Deep purple night */
+    --color-bg-elevated: #261232;
+
+    /* Dark purple */
+    --color-bg-surface: #321A40;
+
+    /* Medium purple */
+    --color-bg-overlay: #44225A;
+
+    /* Light purple overlay */
+
+    /* Text Hierarchy */
+    --color-text-primary: #FDF2F8;
+
+    /* Pink-white */
+    --color-text-secondary: #F9A8D4;
+
+    /* Pink-300 */
+    --color-text-muted: #C084FC;
+
+    /* Purple-400 */
+    --color-text-ghost: #7E4C8A;
+
+    /* Dark purple */
+    --color-text-disabled: #5A3268;
+
+    /* Disabled dark purple */
+    --color-text-inverted: #1A0A20;
+
+    /* Border */
+    --color-border-subtle: #321A40;
+
+    /* Medium purple */
+    --color-border-default: #44225A;
+
+    /* Light purple */
+    --color-border-strong: #5A3268;
+
+    /* Strong purple */
+    --color-border-interactive: #F9A8D4;
+
+    /* Pink-300 */
+
+    /* Brand Accents (Brighter for dark mode) */
+    --color-accent-primary: #F9A8D4;
+
+    /* Neko pink bright (pink-300) */
+    --color-accent-secondary: #C4B5FD;
+
+    /* Lavender bright (violet-300) */
+    --color-success: #6EE7B7;
+
+    /* Emerald-300 */
+    --color-warning: #FCD34D;
+
+    /* Amber-300 */
+    --color-danger: #FDA4AF;
+
+    /* Rose-300 */
+    --color-info: #D8B4FE;
+
+    /* Purple-300 */
+
+    --color-accent-primary-rgb: 249 168 212;
+    --color-accent-secondary-rgb: 196 181 253;
+    --color-success-rgb: 110 231 183;
+    --color-warning-rgb: 252 211 77;
+    --color-danger-rgb: 253 164 175;
+    --color-info-rgb: 216 180 254;
+
+    /* Glows (Stronger in dark mode) */
+    --shadow-glow-primary: 0 0 20px rgb(249 168 212 / 30%);
+    --shadow-glow-success: 0 0 20px rgb(110 231 183 / 25%);
+    --shadow-glow-danger: 0 0 20px rgb(253 164 175 / 25%);
+
+    /* Stronger Shadows for depth */
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 30%), 0 2px 4px -2px rgb(0 0 0 / 30%);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 40%), 0 4px 6px -4px rgb(0 0 0 / 40%);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 50%), 0 8px 10px -6px rgb(0 0 0 / 50%);
+  }
+}

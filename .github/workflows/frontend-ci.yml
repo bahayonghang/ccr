@@ -4,14 +4,14 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'ccr-ui/frontend/**'
+      - 'ccr-ui/**'
       - 'ccr-ui/docs/**'
       - 'docs/**'
       - '.github/workflows/frontend-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'ccr-ui/frontend/**'
+      - 'ccr-ui/**'
       - 'ccr-ui/docs/**'
       - 'docs/**'
       - '.github/workflows/frontend-ci.yml'
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ccr-ui/frontend
+        working-directory: ccr-ui
     steps:
       - uses: actions/checkout@v4
 
@@ -35,7 +35,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('ccr-ui/frontend/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('ccr-ui/bun.lockb') }}
           restore-keys: |
             ${{ runner.os }}-bun-
 
@@ -54,7 +54,7 @@ jobs:
     needs: lint-and-typecheck
     defaults:
       run:
-        working-directory: ccr-ui/frontend
+        working-directory: ccr-ui
     steps:
       - uses: actions/checkout@v4
 
@@ -67,7 +67,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('ccr-ui/frontend/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('ccr-ui/bun.lockb') }}
           restore-keys: |
             ${{ runner.os }}-bun-
 
@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
-          path: ccr-ui/frontend/dist
+          path: ccr-ui/dist
           retention-days: 7
 
   build-docs:
@@ -119,7 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ccr-ui/frontend
+        working-directory: ccr-ui
     steps:
       - uses: actions/checkout@v4
 

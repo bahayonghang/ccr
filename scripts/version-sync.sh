@@ -4,19 +4,19 @@ set -euo pipefail
 # 版本同步脚本（以根 Cargo.toml 为主）
 # 同步到：
 # - ccr-types/Cargo.toml
-# - ccr-ui/frontend/package.json
-# - ccr-ui/frontend/src-tauri/Cargo.toml
-# - ccr-ui/frontend/src-tauri/tauri.conf.json
+# - ccr-ui/package.json
+# - ccr-ui/src-tauri/Cargo.toml
+# - ccr-ui/src-tauri/tauri.conf.json
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 
 ROOT_CARGO="$ROOT_DIR/Cargo.toml"
 CCR_TYPES_CARGO="$ROOT_DIR/ccr-types/Cargo.toml"
-FRONTEND_PKG="$ROOT_DIR/ccr-ui/frontend/package.json"
-TAURI_CARGO="$ROOT_DIR/ccr-ui/frontend/src-tauri/Cargo.toml"
-TAURI_CONF="$ROOT_DIR/ccr-ui/frontend/src-tauri/tauri.conf.json"
-COMPONENT_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/frontend/src/components/MainLayout.vue"
-LEGACY_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/frontend/src/layouts/MainLayout.vue"
+FRONTEND_PKG="$ROOT_DIR/ccr-ui/package.json"
+TAURI_CARGO="$ROOT_DIR/ccr-ui/src-tauri/Cargo.toml"
+TAURI_CONF="$ROOT_DIR/ccr-ui/src-tauri/tauri.conf.json"
+COMPONENT_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/src/components/MainLayout.vue"
+LEGACY_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/src/layouts/MainLayout.vue"
 
 die() {
   echo "❌ $1" >&2
@@ -170,11 +170,11 @@ if [[ "$CHECK_ONLY" == true ]]; then
     echo "❌ 版本不一致："
     echo "  root Cargo.toml:                        $ROOT_VER"
     echo "  ccr-types/Cargo.toml:                   $CCR_TYPES_VER"
-    echo "  ccr-ui/frontend/package.json:           $FRONTEND_VER"
-    echo "  ccr-ui/frontend/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
-    echo "  ccr-ui/frontend/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
-    echo "  ccr-ui/frontend/src/components/MainLayout.vue: $UI_COMPONENT_VER"
-    echo "  ccr-ui/frontend/src/layouts/MainLayout.vue:   $UI_LEGACY_LAYOUT_VER"
+    echo "  ccr-ui/package.json:           $FRONTEND_VER"
+    echo "  ccr-ui/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
+    echo "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
+    echo "  ccr-ui/src/components/MainLayout.vue: $UI_COMPONENT_VER"
+    echo "  ccr-ui/src/layouts/MainLayout.vue:   $UI_LEGACY_LAYOUT_VER"
     exit 1
   fi
 fi

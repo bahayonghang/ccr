@@ -41,10 +41,10 @@ just ci             # Full CI pipeline
 just install        # Install to ~/.cargo/bin
 ```
 
-### Frontend (ccr-ui/frontend)
+### Frontend (ccr-ui)
 
 ```bash
-cd ccr-ui/frontend
+cd ccr-ui
 npm install                    # Install dependencies
 npm run dev                    # Dev server (localhost:3000)
 npm run build                  # Production build

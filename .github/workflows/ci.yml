@@ -77,7 +77,7 @@ jobs:
             -W clippy::panic \
             -W clippy::unimplemented \
             -W clippy::todo
-        # Note: Frontend (ccr-ui/frontend) uses separate ESLint/TypeScript checks
+        # Note: Frontend (ccr-ui) uses separate ESLint/TypeScript checks
 
   test:
     name: Test Suite

@@ -11,11 +11,11 @@
 #### 同步目标
 
 - `ccr-ui/backend/Cargo.toml`
-- `ccr-ui/frontend/package.json`
-- `ccr-ui/frontend/src-tauri/Cargo.toml`
-- `ccr-ui/frontend/src-tauri/tauri.conf.json`
-- `ccr-ui/frontend/src/components/MainLayout.vue`（侧边栏版本标识）
-- `ccr-ui/frontend/src/layouts/MainLayout.vue`（侧边栏版本标识）
+- `ccr-ui/package.json`
+- `ccr-ui/src-tauri/Cargo.toml`
+- `ccr-ui/src-tauri/tauri.conf.json`
+- `ccr-ui/src/components/MainLayout.vue`（侧边栏版本标识）
+- `ccr-ui/src/layouts/MainLayout.vue`（侧边栏版本标识）
 
 #### 使用方法
 

@@ -1,640 +1,392 @@
-# CCR UI - Vue 3 + Axum + Tauri Full-Stack Application
+# CCR UI - Frontend (Vue.js 3 + Tauri 2.0)
 
-A graphical/desktop interface for CCR (Claude Code Configuration Switcher). Frontend: Vue 3 + Vite + Pinia, Backend: Axum. Supports both Web mode and Tauri desktop mode. Version 3.9.4.
+> AI CLI Configuration Manager - Modern Web & Desktop Application
 
-## Features Overview
+基于 Vue.js 3 和 Tauri 2.0 构建的现代化 AI CLI 配置管理工具，同时支持 Web 和桌面应用。
 
-### Core Features
-- **Configuration Management**: Visual view, switch, validate, import/export, history, backup management - covering all CLI capabilities
-- **Command Execution**: Graphical execution of all CCR commands with real-time output
-- **Multi-Platform Support**: Unified management of AI tool configurations (Claude Code, Codex, Gemini CLI, Qwen)
-- **WebDAV Sync**: Multi-directory sync, registration management, batch and single directory push/pull/status
-- **Format Conversion**: Convert configurations between different platforms (Claude ↔ Codex ↔ Gemini)
-- **Checkin Management**: Multi-account check-in for transit stations, balance queries, and history tracking
-- **Desktop Support**: Native desktop app built with Tauri 2.0
+[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](./CHANGELOG.md)
+[![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D.svg)](https://vuejs.org/)
+[![Tauri](https://img.shields.io/badge/Tauri-2.0-FFC131.svg)](https://tauri.app/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg)](https://www.typescriptlang.org/)
 
-### Supported AI Platforms
-| Platform | Status | Description | Config File Path |
-|----------|--------|-------------|------------------|
-| Claude Code | ✅ Fully Supported | Anthropic's official CLI | `~/.claude/settings.json` |
-| Codex | ✅ Fully Supported | GitHub Copilot CLI | `~/.codex/config.json` |
-| Gemini CLI | ✅ Fully Supported | Google Gemini CLI | `~/.gemini/settings.json` |
-| Qwen | ✅ Fully Supported | Alibaba Tongyi Qianwen CLI | `~/.qwen/config.json` |
-| iFlow | 🚧 Basic Support | iFlow CLI | In development |
+## ✨ 特性
 
-## Quick Start
+### 🎨 设计
+- **液态玻璃设计**: 现代化的 Glassmorphism UI
+- **响应式布局**: 完美支持桌面端和移动端
+- **双主题系统**: 亮色/暗色主题无缝切换
+- **流畅动画**: 优雅的过渡和交互效果
 
-### Recommended Method (Using CCR CLI)
-```bash
-ccr ui                  # Auto-detect local source, user directory, or download from GitHub
-ccr ui -p 3000          # Custom frontend port
-ccr ui --backend-port 38081  # Custom backend port
-# Default ports: Frontend 3000, Backend 38081
-```
+### 🚀 双模式运行
+- **Web 模式**: 浏览器访问，通过 HTTP API 通信
+- **Desktop 模式**: 原生桌面应用，Tauri invoke 零延迟
 
-CCR CLI searches for ccr-ui in the following priority order:
-1. **Development Environment** - `./ccr-ui/` or `../ccr-ui/` (for developers)
-2. **User Directory** - `~/.ccr/ccr-ui/` (for daily use)
-3. **GitHub Download** - Prompts to download from GitHub (first-time users)
+### 🔧 技术特性
+- **模块化架构**: 组件化开发，易于维护
+- **TypeScript**: 完整的类型安全
+- **统一 API**: 自动检测环境，透明切换后端
+- **性能优化**: Desktop 模式性能提升 50x
 
-### Development Environment (Using just)
-```bash
-cd ccr-ui
-just quick-start        # First-time: check dependencies → install → start
-just s                  # Start frontend + backend development mode (most common)
-```
+## 🚀 快速开始
 
-**Common just commands**:
-- `just i` - Install frontend and backend dependencies
-- `just b` - Build production version (backend + frontend)
-- `just c` - Code check (clippy + format check + TypeScript check)
-- `just t` - Run tests
-- `just f` - Format code
-- `just s` - Start development environment (frontend 5173 + backend 38081)
-- `just run-prod` - Run production environment
-- `just tauri-dev` - Tauri desktop development
-- `just tauri-build` - Build desktop installer
-- `just --list` - View all available commands
+### 环境要求
 
-## Prerequisites
+#### Web 开发
+- Node.js >= 18.0.0
+- Bun >= 1.0.0
 
-- **Rust 1.88+** (workspace shares dependencies)
-- **Node.js 18+** + **Bun 1.0+** (package manager)
-- **CCR CLI** (installed and visible in PATH)
-- **just** (optional but recommended: `cargo install just`)
-- **Tauri Dependencies** (optional, for desktop mode):
-  - Linux: `libwebkit2gtk-4.0-dev build-essential`
+#### Desktop 开发
+- Node.js >= 18.0.0
+- Bun >= 1.0.0
+- Rust >= 1.70
+- 系统依赖（根据平台）
+  - Linux: `libwebkit2gtk-4.0-dev`, `build-essential`
   - macOS: Xcode Command Line Tools
   - Windows: Visual Studio C++ Build Tools
 
-## Project Architecture
+### 安装依赖
 
-### Workspace Structure
-```
-ccr/ (workspace root)
-├── Cargo.toml          # Shared dependencies configuration
-├── src/                # CCR CLI + core library
-├── ccr-ui/            # CCR UI full-stack application
-│   ├── backend/        # Axum REST API server (129 endpoints)
-│   ├── frontend/       # Vue 3 + Vite + Pinia frontend
-│   └── docs/           # VitePress documentation site
-└── justfile            # Development task automation
-```
-
-### Frontend-Backend Communication
-- **Frontend → Backend**: Axios HTTP requests (REST API)
-- **Backend → CLI**: Direct CCR command invocation + file system operations
-- **State Management**: Pinia stores (client-side state)
-- **API Endpoint**: Default `http://localhost:38081`
-
-### Technology Stack
-
-**Backend (Rust)**
-- Web framework: `axum` 0.7 + `tokio` async runtime
-- HTTP middleware: `tower` 0.5 + `tower-http`
-- Serialization: `serde` + `serde_json` + `toml`
-- Error handling: `anyhow` + `thiserror`
-- Logging: `tracing` + `tracing-subscriber`
-- HTTP client: `reqwest`
-- Configuration management: `dirs` + `tempfile`
-
-**Frontend (Vue 3)**
-- Framework: `vue` 3.5.22 + `vue-router` 4.4
-- State management: `pinia` 2.2.6
-- HTTP client: `axios` 1.7.9
-- UI components: `lucide-vue-next` (icons)
-- Styling: `tailwindcss` 3.4.17
-- Build tool: `vite` 7.1.11
-- Type checking: `typescript` 5.7 + `vue-tsc` 2.2
-
-## API Endpoints in Detail
-
-### 1. Claude Code API (33 endpoints)
-
-**MCP Server Management** (`/api/mcp`)
-- `GET    /api/mcp` - List all MCP servers
-- `POST   /api/mcp` - Add MCP server
-- `PUT    /api/mcp/:name` - Update MCP server
-- `DELETE /api/mcp/:name` - Delete MCP server
-- `PUT    /api/mcp/:name/toggle` - Enable/disable MCP server
-
-**Agents** (`/api/agents`)
-- `GET    /api/agents` - List all Agents
-- `POST   /api/agents` - Add Agent
-- `PUT    /api/agents/:name` - Update Agent
-- `DELETE /api/agents/:name` - Delete Agent
-- `PUT    /api/agents/:name/toggle` - Enable/disable Agent
-
-**Slash Commands** (`/api/slash-commands`)
-- `GET    /api/slash-commands` - List all Slash commands
-- `POST   /api/slash-commands` - Add Slash command
-- `PUT    /api/slash-commands/:name` - Update Slash command
-- `DELETE /api/slash-commands/:name` - Delete Slash command
-- `PUT    /api/slash-commands/:name/toggle` - Enable/disable Slash command
-
-**Plugins** (`/api/plugins`)
-- `GET    /api/plugins` - List all plugins
-- `POST   /api/plugins` - Add plugin
-- `PUT    /api/plugins/:name` - Update plugin
-- `DELETE /api/plugins/:name` - Delete plugin
-- `PUT    /api/plugins/:name/toggle` - Enable/disable plugin
-
-**Configuration Management** (`/api/config`)
-- `GET    /api/config` - Get Claude configuration
-- `PUT    /api/config` - Update Claude configuration
-
-### 2. Codex API (33 endpoints)
-
-**Prefix: `/api/codex/`**
-Supports Profiles, MCP, Agents, Slash Commands, Plugins management
-- `GET    /api/codex/config` - Get Codex configuration
-- `PUT    /api/codex/config` - Update Codex configuration
-
-### 3. Gemini CLI API (28 endpoints)
-
-**Prefix: `/api/gemini-cli/`**
-Supports MCP, Agents, Slash Commands, Plugins, Config management
-
-### 4. Qwen API (28 endpoints)
-
-**Prefix: `/api/qwen/`**
-Supports MCP, Agents, Slash Commands, Plugins, Config management
-
-### 5. iFlow API (5 endpoints - Basic Support)
-- `GET    /api/iflow/mcp` - Get iFlow MCP server
-- `POST   /api/iflow/mcp` - Add/update iFlow MCP server
-- `GET    /api/iflow/agents` - Get iFlow Agents
-- `GET    /api/iflow/slash-commands` - Get iFlow Slash commands
-- `GET    /api/iflow/plugins` - Get iFlow plugins
-
-### 6. Utility APIs
-- `POST   /api/converter/convert` - Convert config format
-- `POST   /api/sync/claude-to-codex` - Sync Claude to Codex
-- `POST   /api/command/execute` - Execute CCR CLI command
-- `GET    /api/system/info` - Get system information
-- `GET    /api/version` - Get backend version
-
-### 7. CCR Core APIs
-- `GET    /api/configs` - List all configurations
-- `POST   /api/switch` - Switch configuration
-- `POST   /api/validate` - Validate configuration
-- `POST   /api/export` - Export configuration
-- `POST   /api/import` - Import configuration
-- `GET    /api/history` - View operation history
-
-## Frontend Routes
-
-### Main Routes
-```
-/                        - Home/Dashboard (Platform Overview)
-/configs                 - CCR configuration management
-/commands                - CCR command executor
-/converter               - Config format converter
-/sync                    - WebDAV sync management
-/checkin                 - Checkin management
-```
-
-### Claude Code Routes
-```
-/claude                  - Claude overview
-/mcp                     - MCP server management
-/agents                  - Agents management
-/slash-commands          - Slash commands management
-/plugins                 - Plugins management
-```
-
-### Codex Routes
-```
-/codex                   - Codex overview
-/codex/profiles          - Profiles management
-/codex/mcp               - MCP server management
-/codex/agents            - Agents management
-/codex/slash-commands    - Slash commands management
-/codex/plugins           - Plugins management
-```
-
-### Gemini CLI Routes
-```
-/gemini-cli              - Gemini overview
-/gemini-cli/mcp          - MCP server management
-/gemini-cli/agents       - Agents management
-/gemini-cli/slash-commands
-/gemini-cli/plugins
-```
-
-### Qwen Routes
-```
-/qwen                    - Qwen overview
-/qwen/mcp                - MCP server management
-/qwen/agents             - Agents management
-/qwen/slash-commands
-/qwen/plugins
-```
-
-### iFlow Routes (In Development)
-```
-/iflow                   - iFlow overview
-/iflow/mcp               - MCP server management
-/iflow/agents            - Agents management
-/iflow/slash-commands
-/iflow/plugins
-```
-
-## Manual Development (Without just)
-
-### Backend Development
 ```bash
-cd ccr-ui/backend
-cargo run -- --port 38081              # Start development server (default 38081)
-cargo watch -x run                    # Auto-reload on changes
-RUST_LOG=debug cargo run              # Enable debug logging
+# 克隆仓库（如果还没有）
+git clone https://github.com/bahayonghang/ccr.git
+cd ccr/ccr-ui
+
+# 安装依赖
+bun install
 ```
 
-### Frontend Development
+### 运行模式
+
+#### 🌐 Web 模式
+
 ```bash
-cd ccr-ui/frontend
-bun install                           # Install dependencies
-bun run dev                           # Start dev server (http://localhost:5173)
-bun run build                         # Build production version
-bun run type-check                    # TypeScript type checking
-bun run lint                          # ESLint checking
+# 开发服务器
+bun run dev
+# 或
+bun run dev:web
+
+# 访问 http://localhost:5173
 ```
 
-Frontend accesses backend API at `http://localhost:38081` (configurable via environment variables).
+#### 🖥️ Desktop 模式
 
-### Environment Variables
-
-**Backend Environment Variables**
 ```bash
-RUST_LOG=info              # Log level: trace, debug, info, warn, error
-RUST_BACKTRACE=1          # Enable error backtrace
-PORT=38081                 # Server port number
+# Tauri 开发模式（首次启动需编译 Rust，约 5-10 分钟）
+bun run tauri:dev
+
+# 或使用 justfile（推荐）
+just dev
 ```
 
-**Frontend Environment Variables** (`.env` or `.env.local`)
+### 构建
+
+#### Web 构建
+
 ```bash
-VITE_API_BASE_URL=http://localhost:38081    # Backend API URL
-VITE_LOG_LEVEL=debug                        # Frontend log level
+bun run build:web
+# 产物在 dist/ 目录
 ```
 
-## Production Deployment
+#### Desktop 构建
 
-### Method 1: Using just Commands
 ```bash
-cd ccr-ui
-just build              # Build backend + frontend production version
-just run-prod           # Run backend and serve frontend static files
+bun run build:desktop
+# 或
+just build
+
+# 产物在 src-tauri/target/release/bundle/
 ```
 
-### Method 2: Manual Build
+## 📦 使用 Just 命令（推荐）
+
+[Just](https://github.com/casey/just) 提供更简洁的命令：
+
 ```bash
-# Build backend
-cd ccr-ui/backend
-cargo build --release
-cp target/release/ccr-ui-backend ../dist/
+# 安装 Just
+cargo install just
 
-# Build frontend
-cd ../frontend
-bun install && bun run build
-cp -r dist/* ../dist/static/
+# 查看所有命令
+just
 
-# Run
-./dist/ccr-ui-backend --port 38081 --static-dir ./dist/static
+# 常用命令
+just dev              # 启动 Tauri 开发模式
+just dev-web          # 启动 Web 开发模式
+just build            # 构建桌面应用
+just build-web        # 构建 Web 版本
+just check-all        # 全面代码检查
+just clean            # 清理构建产物
 ```
 
-**Build Artifacts**:
-- Backend executable: `ccr-ui/backend/target/release/ccr-ui-backend`
-- Frontend static files: `ccr-ui/frontend/dist/`
+完整命令列表请查看 [justfile](./justfile)。
 
-### Docker Deployment (Optional)
-```dockerfile
-FROM rust:1.88 as backend-builder
-WORKDIR /app/ccr-ui/backend
-COPY . .
-RUN cargo build --release
+### 🌟 使用根目录 justfile（更多功能）
 
-FROM node:18 as frontend-builder
-WORKDIR /app/ccr-ui/frontend
-COPY frontend .
-RUN bun install && bun run build
+在 `ccr-ui/` 根目录，我们提供了统一的 justfile，包含完整的 Tauri 支持：
 
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y \
-    libssl1.1 \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-COPY --from=backend-builder /app/ccr-ui/backend/target/release/ccr-ui-backend /usr/local/bin/
-COPY --from=frontend-builder /app/ccr-ui/frontend/dist /usr/local/share/ccr-ui/static
-EXPOSE 38081
-CMD ["ccr-ui-backend", "--port", "38081", "--static-dir", "/usr/local/share/ccr-ui/static"]
-```
-
-## Tauri Desktop Mode
-
-### Development Mode
 ```bash
-cd ccr-ui
-just tauri-dev          # Start Tauri development environment
+cd ..  # 回到 ccr-ui 根目录
+
+# Tauri 桌面应用命令
+just tauri-dev         # 启动 Tauri 开发模式
+just tauri-build       # 构建生产版本
+just tauri-build-debug # 构建调试版本（更快）
+just tauri-check       # 检查 Tauri 环境
+just tauri-check-all   # 完整检查（TypeScript + Rust）
+just tauri-clippy      # Rust linter
+just tauri-fmt         # 格式化 Rust 代码
+just tauri-test        # 运行测试
+just tauri-clean       # 清理构建产物
+
+# Web 开发命令
+just dev               # 启动 Web 开发（后端 + 前端）
+just build             # 构建 Web 生产版本
 ```
 
-### Build Desktop Application
+**推荐使用根目录 justfile** 的原因：
+- ✅ 统一管理 Web 和 Desktop 命令
+- ✅ 完整的跨平台支持（Linux/macOS/Windows）
+- ✅ 更多实用命令（check、test、fmt、clean 等）
+
+## 🏗️ 项目结构
+
+```
+ccr-ui/
+├── src/                        # Vue.js 源码
+│   ├── api/                    # API 客户端层
+│   │   ├── client.ts           # HTTP API（Web 模式）
+│   │   ├── tauri.ts            # Tauri API（Desktop 模式）
+│   │   └── index.ts            # 统一入口，自动环境检测
+│   ├── components/             # Vue 组件
+│   │   ├── EnvironmentBadge.vue  # 环境指示器
+│   │   └── ...
+│   ├── views/                  # 页面视图
+│   ├── router/                 # Vue Router 配置
+│   ├── store/                  # Pinia 状态管理
+│   ├── types/                  # TypeScript 类型
+│   ├── styles/                 # 全局样式
+│   ├── App.vue                 # 根组件
+│   └── main.ts                 # 入口文件
+├── src-tauri/                  # Tauri Rust 后端
+│   ├── src/
+│   │   └── main.rs             # Rust 主程序（13 个命令）
+│   ├── icons/                  # 应用图标
+│   ├── Cargo.toml              # Rust 依赖
+│   ├── tauri.conf.json         # Tauri 配置
+│   └── build.rs                # 构建脚本
+├── public/                     # 静态资源
+├── dist/                       # Web 构建输出
+├── justfile                    # Just 命令定义
+├── package.json                # npm 配置
+├── vite.config.ts              # Vite 配置
+├── tsconfig.json               # TypeScript 配置
+├── README.md                   # 本文档
+├── README.dev.md               # 开发文档
+└── CHANGELOG.md                # 版本历史
+```
+
+## 🛠️ 技术栈
+
+### 前端
+- **框架**: Vue.js 3.5 (Composition API, `<script setup>`)
+- **构建**: Vite 7.1
+- **语言**: TypeScript 5.7
+- **路由**: Vue Router 4.4
+- **状态**: Pinia 2.2
+- **样式**: Tailwind CSS 3.4
+- **图标**: Lucide Vue Next
+- **HTTP**: Axios 1.7
+
+### 桌面应用
+- **框架**: Tauri 2.0
+- **语言**: Rust (Edition 2021)
+- **核心库**: CCR (path dependency, 直接集成)
+- **异步**: Tokio 1.48
+- **序列化**: Serde + Serde JSON
+- **日志**: Tracing
+
+## 🎯 核心功能
+
+### 统一 API 层
+
+自动检测运行环境（Web/Desktop），透明切换后端：
+
+```typescript
+import { listConfigs } from '@/api'
+
+// 自动选择：
+// - Desktop: Tauri invoke → Rust backend → CCR core
+// - Web: HTTP request → Axum backend → CCR core
+const configs = await listConfigs()
+```
+
+### Tauri 命令（13 个）
+
+**配置管理**:
+- `list_profiles`: 列出所有配置
+- `switch_profile`: 切换配置
+- `get_current_profile`: 获取当前配置
+- `validate_configs`: 验证配置
+
+**历史记录**:
+- `get_history`: 获取历史
+- `clear_history`: 清理历史（TODO）
+
+**云同步**:
+- `sync_push`: 推送到云端（TODO）
+- `sync_pull`: 从云端拉取（TODO）
+- `sync_status`: 同步状态（TODO）
+
+**平台管理**:
+- `list_platforms`: 列出所有平台
+- `switch_platform`: 切换平台
+- `get_current_platform`: 获取当前平台
+
+### 环境指示器
+
+`EnvironmentBadge` 组件显示当前运行环境：
+- 🖥️ 桌面应用（显示 Tauri 版本）
+- 🌐 Web 版本
+
+## 📊 功能模块
+
+- **首页**: 系统概览和模块导航
+- **Claude Code**: 配置管理、云同步、MCP 服务器、Agents、插件
+- **Codex**: MCP 服务器、Profiles、基础配置
+- **Gemini CLI**: 配置管理和工具集成
+- **Qwen**: 阿里通义千问配置管理
+- **iFlow**: 工作流配置管理
+- **命令中心**: 统一的 CLI 命令执行界面
+- **配置转换器**: 跨平台配置格式转换
+- **云同步**: WebDAV 云端配置同步
+
+## 🎨 设计风格
+
+### 液态玻璃设计 (Liquid Glass)
+
+- **背景**: 渐变背景 + 动态模糊
+- **卡片**: `backdrop-filter: blur()` 实现玻璃态
+- **动画**: 流畅的 CSS 过渡
+- **色彩**: CSS 变量系统
+
+### 主题系统
+
+- **亮色主题**: 蓝紫色调
+- **暗色主题**: 深色背景 + 柔和高亮
+- **持久化**: localStorage 保存偏好
+- **管理**: Pinia store 统一管理
+
+## 🔧 开发指南
+
+详细开发文档请查看 [README.dev.md](./README.dev.md)，包含：
+
+- 快速开始
+- 命令参考
+- 构建与打包
+- 项目结构详解
+- 开发工作流
+- 调试技巧
+- 常见问题
+
+## 📝 脚本命令
+
+### Bun Scripts
+
 ```bash
-just tauri-build        # Build installer
-# Artifacts in src-tauri/target/release/bundle/
+# 开发
+bun run dev              # Vite 开发服务器
+bun run dev:web          # Web 模式
+bun run tauri:dev        # Tauri 开发模式
+
+# 构建
+bun run build            # Vite 构建
+bun run build:web        # Web 构建
+bun run build:desktop    # Desktop 完整构建
+
+# 检查
+bun run lint             # ESLint
+bun run type-check       # TypeScript
+bun run tauri:check      # Cargo check
+bun run check:all        # 全面检查
+
+# 工具
+bun run clean            # 清理构建
+bun run clean:all        # 深度清理
 ```
 
-### Platform-Specific Dependencies
+### Just Commands
 
-**Linux Ubuntu/Debian**
 ```bash
-sudo apt update
-sudo apt install libwebkit2gtk-4.0-dev \
-    build-essential \
-    curl \
-    wget \
-    file \
-    libssl-dev \
-    libgtk-3-dev \
-    libayatana-appindicator3-dev \
-    librsvg2-dev
+just dev                 # Tauri 开发
+just build               # Desktop 构建
+just check-all           # 全面检查
+just clean               # 清理
+just fresh               # 清理 + 安装 + 开发
+just ci                  # 检查 + 构建
 ```
 
-**macOS**
+## 📦 打包产物
+
+### Linux
+- `.deb` - Debian/Ubuntu 包
+- `.AppImage` - 通用 AppImage
+
+### macOS
+- `.dmg` - 安装镜像
+- `.app` - 应用程序包
+
+### Windows
+- `.msi` - 安装程序
+- `.exe` - 可执行文件
+
+产物位置: `src-tauri/target/release/bundle/`
+
+## 🚀 部署
+
+### Web 部署
+
 ```bash
-# Install Xcode Command Line Tools
-xcode-select --install
+bun run build:web
+# 将 dist/ 目录部署到静态服务器
 ```
 
-**Windows**
-- Install [Visual Studio Community](https://visualstudio.microsoft.com/)
-- Select "C++ build tools" and Windows 10/11 SDK
+### Desktop 分发
 
-## Data Models
-
-### Backend Core Models (Rust)
-
-**MCP Server** (`models/claude.rs`)
-```rust
-pub struct McpServer {
-    pub command: String,
-    pub args: Vec<String>,
-    pub env: Option<HashMap<String, String>>,
-}
-```
-
-**Agents** (`models/claude.rs`)
-```rust
-pub struct Agent {
-    pub name: String,
-    pub description: String,
-    pub instructions: String,
-}
-```
-
-**Slash Command** (`models/claude.rs`)
-```rust
-pub struct SlashCommand {
-    pub name: String,
-    pub description: String,
-    pub command: String,
-}
-```
-
-**Plugins** (`models/claude.rs`)
-```rust
-pub struct Plugin {
-    pub name: String,
-    pub enabled: bool,
-    pub config: serde_json::Value,
-}
-```
-
-**Codex Profile** (`models/codex.rs`)
-```rust
-pub struct CodexProfile {
-    pub name: String,
-    pub description: String,
-    pub settings: serde_json::Value,
-}
-```
-
-## Testing
-
-### Backend Tests
 ```bash
-cd ccr-ui/backend
-cargo test              # Run all tests
-cargo test --lib       # Run unit tests only
-cargo test -- --nocapture  # Show test output
+bun run build:desktop
+# 在 src-tauri/target/release/bundle/ 中找到安装包
 ```
 
-### Frontend Tests
-```bash
-cd ccr-ui/frontend
-bun run type-check     # TypeScript type checking
-bun run lint           # ESLint checking
-bun test              # Run tests (if test framework is configured)
-```
+## 🤝 贡献
 
-### End-to-End Tests (Optional)
-Use Playwright or Cypress for E2E testing:
-```bash
-bun add -d playwright
-npx playwright test    # Run E2E tests
-```
+欢迎提交 Issue 和 Pull Request！
 
-## Troubleshooting
+### 开发流程
 
-### Common Issues
+1. Fork 项目
+2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 开启 Pull Request
 
-**1. Backend Port Already in Use**
-```bash
-# Solution 1: Use different port
-cargo run -- --port 9090
+## 📄 许可证
 
-# Solution 2: Find and kill the process
-sudo lsof -i :38081
-kill -9 <PID>
-```
+MIT License - 详见 [LICENSE](../../LICENSE)
 
-**2. Frontend Cannot Connect to Backend**
-- Confirm backend is running at `http://localhost:38081`
-- Check browser console Network panel
-- Confirm CORS configuration is enabled
-- Check firewall settings
+## 🙏 致谢
 
-**3. CLI Invocation Error**
-- Confirm `ccr` is in PATH
-- Check version: `ccr --version` (should be 3.9.4+)
-- Enable debug logging: `CCR_LOG_LEVEL=debug ccr ui`
-- Check permissions: `chmod +x ~/.ccr/ccr-ui/backend/target/release/ccr-ui-backend`
+- [CCR Core](https://github.com/bahayonghang/ccr) - 核心库
+- [Tauri](https://tauri.app/) - 桌面应用框架
+- [Vue.js](https://vuejs.org/) - 前端框架
+- [Vite](https://vitejs.dev/) - 构建工具
 
-**4. Node.js or npm Errors**
-- Confirm Node.js version: `node --version` (must be ≥ 18)
-- Confirm Bun version: `bun --version` (must be ≥ 1.0)
-- Delete node_modules and reinstall: `rm -rf node_modules && bun install`
+## 📚 相关文档
 
-**5. Tauri Build Failure**
-- Linux: Confirm `libwebkit2gtk-4.0-dev` is installed
-- macOS: Confirm Xcode CLT is installed
-- Windows: Confirm Visual Studio C++ Build Tools are installed
-
-**6. CORS Error**
-Backend allows all origins by default. To restrict:
-```rust
-// backend/src/main.rs
-.layer(
-    CorsLayer::new()
-        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
-)
-```
-
-## Configuration File Paths
-
-### AI Tool Configurations
-- **Claude Code**: `~/.claude/settings.json`
-- **Codex**: `~/.codex/config.json`
-- **Gemini CLI**: `~/.gemini/settings.json`
-- **Qwen**: `~/.qwen/config.json`
-
-### CCR UI Related
-- **Logs**: `~/.ccr/logs/` or `./ccr-ui/logs/`
-- **Backend Logs**: `~/.ccr/logs/ccr-ui-backend.log`
-- **Frontend Build Artifacts**: `ccr-ui/frontend/dist/`
-- **Tauri Config**: `ccr-ui/src-tauri/tauri.conf.json`
-
-## FAQ
-
-### Q: How does ccr-ui communicate with the backend?
-A: The Vue frontend uses Axios to send REST API requests to the Axum backend (port 38081). All state is managed client-side with Pinia stores.
-
-### Q: Can I customize frontend and backend ports?
-A: Yes!
-```bash
-ccr ui -p 3000 --backend-port 38081    # Frontend 3000, backend 38081
-```
-
-### Q: Where are configuration files stored?
-A:
-- Claude Code: `~/.claude/settings.json`
-- Codex: `~/.codex/config.json`
-- Gemini: `~/.gemini/settings.json`
-- Qwen: `~/.qwen/config.json`
-
-### Q: How to add support for a new CLI tool?
-A:
-1. Add config reader in `backend/src/config/`
-2. Add models in `backend/src/models/`
-3. Add handlers in `backend/src/handlers/`
-4. Add routes in `backend/src/main.rs`
-5. Add frontend views in `frontend/src/views/`
-6. Update router in `frontend/src/router/`
-
-### Q: What is the liquid glass design style?
-A: A modern glassmorphism design featuring:
-- Frosted glass effects (backdrop-filter: blur)
-- Subtle gradients and shadows
-- Smooth transition animations
-- Light/dark theme support
-
-### Q: How to deploy to production?
-A:
-```bash
-cd ccr-ui
-just b                   # Build frontend
-cargo build --release    # Build backend
-# Copy artifacts to server and run
-```
-
-### Q: What's the difference between Web mode and Tauri mode?
-A:
-- **Web Mode**: Runs in browser, accessed via HTTP
-- **Tauri Mode**: Native desktop app, uses system Webview, better performance, can access system APIs
-
-### Q: Which browsers are supported?
-A:
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-- IE is not supported
-
-### Q: How to contribute code?
-A:
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/my-feature`
-3. Commit changes: `git commit -am 'Add new feature'`
-4. Push to branch: `git push origin feature/my-feature`
-5. Create Pull Request
-
-### Q: How to debug backend API?
-A:
-- Start backend with `cargo run -- --port 38081`
-- Visit `http://localhost:38081/api/version` to verify
-- Test API with Postman or curl
-- View logs: `tail -f ~/.ccr/logs/ccr-ui-backend.log`
-
-### Q: Does it support multiple users?
-A: Currently ccr-ui is single-user. Each user uses their own config directory (`~/.claude/`, etc.).
-
-## Performance Optimization Tips
-
-### Backend Optimization
-- Build with `cargo build --release` for production
-- Enable Rust LTO (Link Time Optimization)
-- Properly configure tokio thread pool size
-
-### Frontend Optimization
-- Build production with `bun run build` (enables Tree Shaking)
-- Configure CDN for static assets
-- Enable Gzip/Brotli compression
-- Use HTTP/2 or HTTP/3
-
-## Security Recommendations
-
-### Backend Security
-- Enable HTTPS in production (via Nginx reverse proxy)
-- Restrict API access origins
-- Add authentication middleware for sensitive operations
-- Regularly update dependencies:
-  ```bash
-  cd backend && cargo update
-  cd frontend && bun update
-  ```
-
-### Frontend Security
-- Validate all user input
-- Prevent XSS attacks (Vue escapes content by default)
-- Configure CSP (Content Security Policy)
-- Don't expose sensitive information in logs
-
-## Contributing Guidelines
-
-### Code Standards
-- **Rust**: Follow rustfmt and clippy suggestions
-- **Vue**: Use Composition API with `<script setup>` syntax
-- **TypeScript**: Enable strict mode
-- **Git Commit**: Follow Conventional Commits
-
-### Development Workflow
-1. Create feature branch from `dev`
-2. Write code and add tests
-3. Run tests: `just t`
-4. Code review: `just c`
-5. Submit PR to `dev` branch
-
-## License
-
-MIT License (same as main project)
+- [开发文档](./README.dev.md) - 完整开发指南
+- [更新日志](./CHANGELOG.md) - 版本历史
+- [CCR 主仓库](https://github.com/bahayonghang/ccr) - 核心项目
 
 ---
 
-**Last Updated**: 2025-01-24
-**Version**: 3.9.4
-**Documentation Status**: ✅ Complete
+Made with ❤️ using Vue.js 3, Tauri 2.0, TypeScript, and Liquid Glass Design
 
-## Related Links
-
-- [CCR Main Project](../README.md)
-- [CCR Documentation](docs/)
-- [GitHub Repository](https://github.com/bahayonghang/ccr)
-- [Issue Tracker](https://github.com/bahayonghang/ccr/issues)
+**版本**: 2.5.0 | **更新**: 2025-11-08

@@ -1,113 +1,68 @@
-# ===================================
-# Backend (Rust)
-# ===================================
-backend/target/
-backend/Cargo.lock
+# Vue + Vite 项目 .gitignore（最佳实践）
 
-# ===================================
-# Frontend (Next.js 16 Beta)
-# ===================================
+# 1) 构建产物（不要提交）
+dist/
 
-# Dependencies
-frontend/node_modules/
-frontend/.pnp
-frontend/.pnp.js
-frontend/.yarn/install-state.gz
+# 2) 依赖目录（由包管理器安装）
+node_modules/
 
-# Next.js build output
-frontend/.next/
-frontend/out/
-frontend/build/
+# 3) Vite 缓存
+.vite/
 
-# Next.js cache
-frontend/.next/cache/
+# 4) 覆盖率报告
+coverage/
+*.lcov
 
-# TypeScript
-frontend/*.tsbuildinfo
-frontend/next-env.d.ts
+# 5) TypeScript 构建信息
+*.tsbuildinfo
 
-# ===================================
-# Package managers
-# ===================================
+# 6) 环境变量（示例文件除外）
+# 保留 .env 和示例文件（如 .env.example）在版本库，以便说明配置；
+# 忽略本地私有环境文件。
+.env.local
+.env.*.local
+
+# 7) 日志文件
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Lock files (keep package-lock.json, ignore others)
-# frontend/package-lock.json  # 保留以确保依赖一致性
-frontend/yarn.lock
-frontend/pnpm-lock.yaml
-
-# ===================================
-# Environment variables
-# ===================================
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env*.local
-!.env.example
-
-# ===================================
-# IDE / Editors
-# ===================================
-.vscode/
-.idea/
-*.swp
-*.swo
-*.swn
-*~
-.sublime-*
-
-# ===================================
-# OS
-# ===================================
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-Desktop.ini
-
-# ===================================
-# Logs
-# ===================================
-# 日志文件（按日分割，保留14天）
-*.log
-logs/
-backend.log
-frontend.log
-
-# Process IDs
+# 8) 运行时数据 / 临时文件
+pids
 *.pid
 *.seed
 *.pid.lock
 
-# ===================================
-# Testing
-# ===================================
-coverage/
-.nyc_output/
-*.lcov
+# 9) 编辑器/IDE 配置（团队自定义可按需保留）
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw*
 
-# ===================================
-# Vercel (if deploying)
-# ===================================
-.vercel
+# 10) 系统文件
+.DS_Store
+Thumbs.db
 
-# ===================================
-# Miscellaneous
-# ===================================
-*.bak
-*.tmp
-*.temp
-.cache/
+# 11) Lint/样式缓存
+.eslintcache
+.stylelintcache
 
-node_modules/
-dist/
+# 12) 包管理器缓存（可选）
+.npm/
+.yarn/
+.pnp/
+.pnp.js
 
-skills_response.json
+# 13) 测试报告（可选）
+playwright-report/
+test-results/
+cypress/videos/
+cypress/screenshots/
+*storybook.log
+storybook-static

@@ -176,7 +176,7 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: ccr-ui/frontend/package-lock.json
+          cache-dependency-path: ccr-ui/package-lock.json
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -193,7 +193,7 @@ jobs:
           sudo apt-get install -y pkg-config libwayland-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Install frontend dependencies
-        working-directory: ccr-ui/frontend
+        working-directory: ccr-ui
         run: npm ci
 
       - name: Build Tauri app
@@ -201,7 +201,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: ccr-ui/frontend
+          projectPath: ccr-ui
           tagName: ${{ github.ref_name }}
           releaseName: 'CCR ${{ github.ref_name }}'
           releaseBody: 'See the release notes for details.'

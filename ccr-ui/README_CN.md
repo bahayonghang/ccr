@@ -252,7 +252,7 @@ RUST_LOG=debug cargo run              # 开启 debug 日志
 
 ### 前端开发
 ```bash
-cd ccr-ui/frontend
+cd ccr-ui
 bun install                           # 安装依赖
 bun run dev                           # 启动开发服务器（http://localhost:5173）
 bun run build                         # 构建生产版本
@@ -304,7 +304,7 @@ cp -r dist/* ../dist/static/
 
 **构建产物**：
 - 后端可执行文件：`ccr-ui/backend/target/release/ccr-ui-backend`
-- 前端静态文件：`ccr-ui/frontend/dist/`
+- 前端静态文件：`ccr-ui/dist/`
 
 ### Docker 部署（可选）
 ```dockerfile
@@ -314,7 +314,7 @@ COPY . .
 RUN cargo build --release
 
 FROM node:18 as frontend-builder
-WORKDIR /app/ccr-ui/frontend
+WORKDIR /app/ccr-ui
 COPY frontend .
 RUN bun install && bun run build
 
@@ -324,7 +324,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=backend-builder /app/ccr-ui/backend/target/release/ccr-ui-backend /usr/local/bin/
-COPY --from=frontend-builder /app/ccr-ui/frontend/dist /usr/local/share/ccr-ui/static
+COPY --from=frontend-builder /app/ccr-ui/dist /usr/local/share/ccr-ui/static
 EXPOSE 38081
 CMD ["ccr-ui-backend", "--port", "38081", "--static-dir", "/usr/local/share/ccr-ui/static"]
 ```
@@ -430,7 +430,7 @@ cargo test -- --nocapture  # 显示测试输出
 
 ### 前端测试
 ```bash
-cd ccr-ui/frontend
+cd ccr-ui
 bun run type-check     # TypeScript 类型检查
 bun run lint           # ESLint 检查
 bun test              # 运行测试（如果配置了测试框架）
@@ -500,7 +500,7 @@ kill -9 <PID>
 ### CCR UI 相关
 - **日志**: `~/.ccr/logs/` 或 `./ccr-ui/logs/`
 - **后端日志**: `~/.ccr/logs/ccr-ui-backend.log`
-- **前端构建产物**: `ccr-ui/frontend/dist/`
+- **前端构建产物**: `ccr-ui/dist/`
 - **Tauri 配置**: `ccr-ui/src-tauri/tauri.conf.json`
 
 ## FAQ

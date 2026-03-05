@@ -124,8 +124,8 @@ _help-windows:
     @Write-Host "   🔧 版本相关命令（跨平台）："
     @Write-Host "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
     @Write-Host "                            → 更新 ccr-types/Cargo.toml"
-    @Write-Host "                              和 ccr-ui/frontend/package.json"
-    @Write-Host "                              和 ccr-ui/frontend/src-tauri/*"
+    @Write-Host "                              和 ccr-ui/package.json"
+    @Write-Host "                              和 ccr-ui/src-tauri/*"
     @Write-Host "                            → Windows: 使用 version-sync.ps1"
     @Write-Host "                            → Linux/macOS: 使用 version-sync.sh"
     @Write-Host "     • just version-check  仅检查版本一致性（不修改文件）"
@@ -159,8 +159,8 @@ _help-linux:
     @printf '%s\n' "   🔧 版本相关命令（跨平台）："
     @printf '%s\n' "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
     @printf '%s\n' "                            → 更新 ccr-types/Cargo.toml"
-    @printf '%s\n' "                              和 ccr-ui/frontend/package.json"
-    @printf '%s\n' "                              和 ccr-ui/frontend/src-tauri/*"
+    @printf '%s\n' "                              和 ccr-ui/package.json"
+    @printf '%s\n' "                              和 ccr-ui/src-tauri/*"
     @printf '%s\n' "                            → Windows: 使用 version-sync.ps1"
     @printf '%s\n' "                            → Linux/macOS: 使用 version-sync.sh"
     @printf '%s\n' "     • just version-check  仅检查版本一致性（不修改文件）"
@@ -195,8 +195,8 @@ _help-macos:
     @printf '%s\n' "   🔧 版本相关命令（跨平台）："
     @printf '%s\n' "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
     @printf '%s\n' "                            → 更新 ccr-types/Cargo.toml"
-    @printf '%s\n' "                              和 ccr-ui/frontend/package.json"
-    @printf '%s\n' "                              和 ccr-ui/frontend/src-tauri/*"
+    @printf '%s\n' "                              和 ccr-ui/package.json"
+    @printf '%s\n' "                              和 ccr-ui/src-tauri/*"
     @printf '%s\n' "                            → Windows: 使用 version-sync.ps1"
     @printf '%s\n' "                            → Linux/macOS: 使用 version-sync.sh"
     @printf '%s\n' "     • just version-check  仅检查版本一致性（不修改文件）"
@@ -378,19 +378,19 @@ _ci-done-macos:
 # 🔍 前端 TypeScript 类型检查
 frontend-typecheck:
     @just header "🔍 前端 TypeScript 类型检查"
-    cd ccr-ui/frontend && npm install --silent && npm run type-check
+    cd ccr-ui && npm install --silent && npm run type-check
     @just success "前端类型检查通过"
 
 # 🎨 前端 Lint 检查
 frontend-lint:
     @just header "🎨 前端 Lint 检查"
-    cd ccr-ui/frontend && npm install --silent && npm run lint
+    cd ccr-ui && npm install --silent && npm run lint
     @just success "前端 Lint 检查通过"
 
 # 🏗️ 前端构建
 frontend-build:
     @just header "🏗️ 前端构建"
-    cd ccr-ui/frontend && npm install --silent && npm run build
+    cd ccr-ui && npm install --silent && npm run build
     @just success "前端构建完成"
 
 # 📚 文档构建检查 (VitePress) - 可选，有 dead links 时可能失败

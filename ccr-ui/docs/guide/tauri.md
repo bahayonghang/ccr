@@ -100,7 +100,7 @@ npm run tauri:dev
 ### 📝 手动启动
 
 ```bash
-cd ccr-ui/frontend
+cd ccr-ui
 
 # 1. 安装依赖（首次运行）
 npm install
@@ -371,7 +371,7 @@ sudo cp squashfs-root/usr/share/applications/*.desktop /usr/share/applications/
 
 ### Tauri 配置文件
 
-**位置**: `ccr-ui/frontend/src-tauri/tauri.conf.json`
+**位置**: `ccr-ui/src-tauri/tauri.conf.json`
 
 **核心配置**:
 
@@ -411,7 +411,7 @@ sudo cp squashfs-root/usr/share/applications/*.desktop /usr/share/applications/
 
 ### Cargo 配置
 
-**位置**: `ccr-ui/frontend/src-tauri/Cargo.toml`
+**位置**: `ccr-ui/src-tauri/Cargo.toml`
 
 **关键依赖**:
 

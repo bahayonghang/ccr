@@ -1,0 +1,209 @@
+<template>
+  <div class="checkin-history">
+    <div class="section-header">
+      <h2>{{ t('checkin.history.title') }}</h2>
+      <button
+        class="refresh-button"
+        @click="fetchRecords"
+      >
+        {{ t('common.refresh') }}
+      </button>
+    </div>
+
+    <div
+      v-if="loading"
+      class="loading"
+    >
+      {{ t('common.loading') }}
+    </div>
+    <div
+      v-else-if="error"
+      class="error"
+    >
+      {{ error }}
+    </div>
+    <div v-else>
+      <div
+        v-if="records.length === 0"
+        class="empty"
+      >
+        {{ t('checkin.history.no_history') }}
+      </div>
+      <table
+        v-else
+        class="history-table"
+      >
+        <thead>
+          <tr>
+            <th>{{ t('checkin.history.account') }}</th>
+            <th>{{ t('checkin.history.status') }}</th>
+            <th>{{ t('checkin.history.time') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="record in records"
+            :key="record.id"
+          >
+            <td>{{ record.account_name || record.account_id }}</td>
+            <td>
+              <span :class="statusClass(record.status)">
+                {{ statusText(record.status) }}
+              </span>
+            </td>
+            <td>{{ formatDate(record.checked_in_at) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useCheckinStore } from '@/stores/checkin'
+
+const store = useCheckinStore()
+const { t } = useI18n()
+
+const records = computed(() => store.records)
+const loading = computed(() => store.recordsLoading)
+const error = computed(() => store.recordsError ? t('checkin.history.load_error') : null)
+
+const fetchRecords = () => {
+  store.fetchRecords({ page: 1, page_size: 20 }, true)
+}
+
+const statusText = (status: string) => {
+  switch (status) {
+    case 'success':
+      return t('checkin.status.success')
+    case 'already_checked_in':
+      return t('checkin.status.already_checked_in')
+    case 'failed':
+      return t('checkin.status.failed')
+    default:
+      return status
+  }
+}
+
+const statusClass = (status: string) => {
+  switch (status) {
+    case 'success':
+      return 'status success'
+    case 'already_checked_in':
+      return 'status warning'
+    case 'failed':
+      return 'status danger'
+    default:
+      return 'status'
+  }
+}
+
+const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString()
+
+onMounted(() => {
+  store.fetchRecords({ page: 1, page_size: 20 })
+})
+</script>
+
+<style scoped>
+.checkin-history {
+  width: 100%;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.refresh-button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.refresh-button:hover {
+  background: var(--bg-secondary);
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.history-table th,
+.history-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--glass-border-medium);
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.history-table th {
+  color: var(--text-secondary);
+}
+
+.status {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.status.success {
+  background: rgb(var(--color-success-rgb), 0.15);
+  color: var(--accent-success);
+}
+
+.status.warning {
+  background: rgb(var(--color-warning-rgb), 0.15);
+  color: var(--accent-warning);
+}
+
+.status.danger {
+  background: rgb(var(--color-danger-rgb), 0.15);
+  color: var(--accent-danger);
+}
+
+.loading,
+.error,
+.empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--accent-danger);
+}
+
+:global(.dark) .refresh-button {
+  background: rgb(var(--color-slate-dark-rgb), 0.8);
+  border-color: rgb(var(--color-slate-rgb), 0.6);
+}
+
+:global(.dark) .refresh-button:hover {
+  background: rgb(var(--color-slate-rgb), 0.6);
+}
+
+:global(.dark) .history-table th,
+:global(.dark) .history-table td {
+  border-color: rgb(var(--color-slate-rgb), 0.4);
+}
+</style>

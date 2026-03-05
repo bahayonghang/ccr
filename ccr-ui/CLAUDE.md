@@ -11,8 +11,8 @@
 CCR UI 是基于 **Tauri v2** 的原生桌面应用，为多个 AI CLI 工具提供可视化管理界面。
 
 **核心组成**:
-1. **Tauri Backend** (`frontend/src-tauri/`) - Rust 原生后端，通过 `#[tauri::command]` IPC 提供 141+ 命令
-2. **Frontend** (`frontend/`) - Vue.js 3 单页应用 (Liquid Glass 设计)
+1. **Tauri Backend** (`src-tauri/`) - Rust 原生后端，通过 `#[tauri::command]` IPC 提供 141+ 命令
+2. **Frontend** (`src/`) - Vue.js 3 单页应用 (Liquid Glass 设计)
 3. **ccr-db** (`../ccr-db/`) - 独立 workspace crate，提供 SQLite 数据库、CheckIn、加密等服务
 
 **支持平台**:
@@ -28,52 +28,50 @@ CCR UI 是基于 **Tauri v2** 的原生桌面应用，为多个 AI CLI 工具提
 
 ```
 ccr-ui/
-├── frontend/
-│   ├── src-tauri/                  # Tauri v2 Rust 后端 (原生嵌入)
-│   │   ├── src/
-│   │   │   ├── main.rs            # 应用入口 (AppState 初始化、后台任务)
-│   │   │   ├── state.rs           # AppState (SQLite 连接池、缓存、环境注册表)
-│   │   │   ├── events.rs          # Tauri Event 系统 (替代 WebSocket)
-│   │   │   ├── commands/          # 141+ Tauri IPC 命令 (13 个子模块)
-│   │   │   │   ├── config.rs      # 配置管理
-│   │   │   │   ├── claude.rs      # Claude Code 平台
-│   │   │   │   ├── codex.rs       # Codex 平台
-│   │   │   │   ├── gemini.rs      # Gemini 平台
-│   │   │   │   ├── qwen.rs        # Qwen 平台
-│   │   │   │   ├── iflow.rs       # iFlow 平台
-│   │   │   │   ├── droid.rs       # Droid 平台
-│   │   │   │   ├── opencode.rs    # OpenCode 平台
-│   │   │   │   ├── checkin.rs     # CheckIn 签到
-│   │   │   │   ├── stats.rs       # 统计与费用
-│   │   │   │   ├── sync.rs        # WebDAV 同步
-│   │   │   │   ├── system.rs      # 系统信息
-│   │   │   │   ├── converter.rs   # 配置转换
-│   │   │   │   ├── ui_state.rs    # UI 收藏/历史
-│   │   │   │   ├── waf.rs         # WAF WebView Bypass
-│   │   │   │   ├── unified_mcp.rs # 跨平台 MCP 管理
-│   │   │   │   ├── environment.rs # 执行环境管理
-│   │   │   │   └── wsl.rs         # WSL 管理 (Windows only)
-│   │   │   └── platform/          # 执行环境抽象层
-│   │   │       ├── mod.rs         # ExecutionEnvironment trait + EnvironmentRegistry
-│   │   │       ├── local.rs       # 本地环境 (委托 ccr 核心库)
-│   │   │       └── wsl.rs         # WSL 环境 (Windows only)
-│   │   ├── Cargo.toml             # Tauri 依赖
-│   │   └── tauri.conf.json        # Tauri 配置
-│   │
-│   ├── src/                        # Vue.js 3 前端 (SPA)
-│   │   ├── views/                  # 40+ 页面组件
-│   │   ├── components/             # 20+ 可复用组件
-│   │   ├── composables/            # Vue Composables
-│   │   ├── stores/                 # Pinia 状态管理
-│   │   ├── api/                    # Tauri invoke() 封装
-│   │   │   ├── tauri.ts            # 141+ invoke() 包装函数
-│   │   │   └── index.ts            # 统一导出
-│   │   ├── router/                 # Vue Router
-│   │   ├── types/                  # TypeScript 类型
-│   │   └── styles/                 # 全局样式
-│   ├── package.json
-│   └── vite.config.ts
+├── src-tauri/                      # Tauri v2 Rust 后端 (原生嵌入)
+│   ├── src/
+│   │   ├── main.rs                # 应用入口 (AppState 初始化、后台任务)
+│   │   ├── state.rs               # AppState (SQLite 连接池、缓存、环境注册表)
+│   │   ├── events.rs              # Tauri Event 系统 (替代 WebSocket)
+│   │   ├── commands/              # 141+ Tauri IPC 命令 (13 个子模块)
+│   │   │   ├── config.rs          # 配置管理
+│   │   │   ├── claude.rs          # Claude Code 平台
+│   │   │   ├── codex.rs           # Codex 平台
+│   │   │   ├── gemini.rs          # Gemini 平台
+│   │   │   ├── qwen.rs            # Qwen 平台
+│   │   │   ├── iflow.rs           # iFlow 平台
+│   │   │   ├── droid.rs           # Droid 平台
+│   │   │   ├── opencode.rs        # OpenCode 平台
+│   │   │   ├── checkin.rs         # CheckIn 签到
+│   │   │   ├── stats.rs           # 统计与费用
+│   │   │   ├── sync.rs            # WebDAV 同步
+│   │   │   ├── system.rs          # 系统信息
+│   │   │   ├── converter.rs       # 配置转换
+│   │   │   ├── ui_state.rs        # UI 收藏/历史
+│   │   │   ├── waf.rs             # WAF WebView Bypass
+│   │   │   ├── unified_mcp.rs     # 跨平台 MCP 管理
+│   │   │   ├── environment.rs     # 执行环境管理
+│   │   │   └── wsl.rs             # WSL 管理 (Windows only)
+│   │   └── platform/              # 执行环境抽象层
+│   │       ├── mod.rs             # ExecutionEnvironment trait + EnvironmentRegistry
+│   │       ├── local.rs           # 本地环境 (委托 ccr 核心库)
+│   │       └── wsl.rs             # WSL 环境 (Windows only)
+│   ├── Cargo.toml                 # Tauri 依赖
+│   └── tauri.conf.json            # Tauri 配置
 │
+├── src/                            # Vue.js 3 前端 (SPA)
+│   ├── views/                      # 40+ 页面组件
+│   ├── components/                 # 20+ 可复用组件
+│   ├── composables/                # Vue Composables
+│   ├── stores/                     # Pinia 状态管理
+│   ├── api/                        # Tauri invoke() 封装
+│   │   ├── tauri.ts                # 141+ invoke() 包装函数
+│   │   └── index.ts                # 统一导出
+│   ├── router/                     # Vue Router
+│   ├── types/                      # TypeScript 类型
+│   └── styles/                     # 全局样式
+├── package.json
+├── vite.config.ts
 ├── docs/                           # VitePress 文档站点
 └── CLAUDE.md                       # 本文件
 ```
@@ -122,7 +120,7 @@ ccr-ui/
 前端所有 API 调用通过 `@tauri-apps/api/core` 的 `invoke()` 函数：
 
 ```typescript
-// frontend/src/api/tauri.ts
+// src/api/tauri.ts
 import { invoke } from '@tauri-apps/api/core'
 export const listConfigs = async () => invoke('list_configs')
 export const switchConfig = async (name: string) => invoke('switch_config', { name })
@@ -171,7 +169,7 @@ pub trait ExecutionEnvironment: Send + Sync {
 ### 开发命令
 
 ```bash
-cd ccr-ui/frontend
+cd ccr-ui
 
 # 安装前端依赖
 npm install
@@ -233,7 +231,7 @@ cargo tauri build
 ## 文档目录
 
 - **模块文档**: `/ccr-ui/CLAUDE.md` (本文件)
-- **前端文档**: `/ccr-ui/frontend/CLAUDE.md`
+- **前端文档**: `/ccr-ui/CLAUDE.md`（本文件）
 - **根文档**: `/CLAUDE.md` (项目总览)
 
 ---
