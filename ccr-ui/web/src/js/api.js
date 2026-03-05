@@ -1,7 +1,7 @@
 import { appState } from './state.js';
-import { handleApiError, showNotification, closeNotification } from './ui-notifications.js';
+import { handleApiError, showNotification } from './ui-notifications.js';
 import { renderConfigs, renderConfigNav, renderHistory, renderProviderStats, renderPlatformNavigation, renderPlatformStatus } from './render.js';
-import { updatePlatformUI, updateSyncActions, toggleCodexFieldsSection, resetCodexFields, populateCodexFields, closeModal, closeCleanModal, closeExportModal, closeImportModal } from './ui.js';
+import { updatePlatformUI, updateSyncActions, toggleCodexFieldsSection, populateCodexFields, closeModal, closeCleanModal, closeExportModal, closeImportModal } from './ui.js';
 import { setButtonLoading, setButtonsDisabled, formatUptime } from './utils.js';
 import { isCodexPlatformActive } from './main.js';
 
@@ -36,6 +36,7 @@ export async function loadSystemInfo() {
             document.getElementById('sysUptime').textContent = formatUptime(data.uptime_seconds);
         }
     } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('加载系统信息失败:', error);
     }
 }
@@ -49,11 +50,13 @@ export async function loadConfigs() {
         if (appState.platformInfo.mode === 'unified' && appState.platformInfo.currentPlatform) {
             const platformEndpoints = { 'codex': '/api/codex/profiles' };
             endpoint = platformEndpoints[appState.platformInfo.currentPlatform] || '/api/configs';
+            // eslint-disable-next-line no-console
             console.log(`加载平台配置: ${appState.platformInfo.currentPlatform} -> ${endpoint}`);
         }
 
         let response = await fetch(endpoint);
         if (!response.ok && endpoint !== '/api/configs') {
+            // eslint-disable-next-line no-console
             console.warn(`平台端点 ${endpoint} 返回 ${response.status}，回退到 /api/configs`);
             response = await fetch('/api/configs');
         }
@@ -309,6 +312,7 @@ export async function loadHistory() {
             renderHistory(data.data.entries);
         }
     } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('加载历史记录失败:', error);
     }
 }
@@ -365,6 +369,7 @@ export async function loadPlatformInfo(initial = false) {
         }
         return true;
     } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('加载平台信息失败:', error);
         if (initial) {
             appState.platformInfo = { mode: 'legacy', currentPlatform: null, availablePlatforms: [] };
@@ -409,6 +414,7 @@ export async function editConfig(name) {
             if (config.auth_token) document.getElementById('configAuthToken').value = config.auth_token;
         }
     } catch (error) {
+        // eslint-disable-next-line no-console
         console.warn('获取完整配置失败，使用缓存数据:', error);
     }
 }
@@ -725,6 +731,7 @@ export async function loadProviderStats(range = 'month') {
         await new Promise(resolve => setTimeout(resolve, 300));
         renderProviderStats(appState.providerStatsCache || {});
     } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('加载提供商统计失败:', error);
         if (body) body.innerHTML = `<div class="empty-state"><div>加载失败</div></div>`;
     }

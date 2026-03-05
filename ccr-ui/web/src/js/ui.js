@@ -1,8 +1,5 @@
 import { appState } from './state.js';
-import { loadSyncStatus, loadProviderStats, loadData } from './api.js'; // Imports from API
-import { renderProviderStats } from './render.js';
-import { setButtonLoading } from './utils.js';
-import { showNotification } from './ui-notifications.js';
+import { loadSyncStatus, loadProviderStats } from './api.js'; // Imports from API
 import { isCodexPlatformActive } from './main.js';
 
 export function initTheme() {

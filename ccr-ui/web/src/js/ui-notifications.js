@@ -67,6 +67,7 @@ export function closeNotification() {
 }
 
 export function handleApiError(error, context = '') {
+    // eslint-disable-next-line no-console
     console.error(`API Error in ${context}:`, error);
 
     let message = '';

@@ -325,7 +325,7 @@ export function renderProviderStats(providerMap) {
     const body = document.getElementById('providerStatsBody');
     if (!body) return;
 
-    let entries = Object.entries(providerMap);
+    const entries = Object.entries(providerMap);
     if (appState.providerSortMode === 'count_asc') {
         entries.sort((a, b) => a[1] - b[1]);
     } else if (appState.providerSortMode === 'name_asc') {

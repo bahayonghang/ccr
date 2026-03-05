@@ -8,7 +8,7 @@ import {
 import { 
     initTheme, toggleTheme, switchTab, openModal, closeModal, openAddModal, openCleanModal, closeCleanModal,
     openExportModal, closeExportModal, openImportModal, closeImportModal, openProviderStatsModal, closeProviderModal,
-    toggleCodexFieldsSection, resetCodexFields, updateCleanDaysDisplay
+    toggleCodexFieldsSection, updateCleanDaysDisplay
 } from './ui.js';
 import { renderConfigs, renderConfigNav, renderPlatformStatus, renderPlatformNavigation } from './render.js';
 import { showNotification } from './ui-notifications.js';
@@ -44,11 +44,13 @@ window.executeImport = executeImport;
 window.openProviderStatsModal = openProviderStatsModal;
 window.closeProviderModal = closeProviderModal;
 window.loadProviderStats = loadProviderStats;
-window.retryLastOperation = function(context) {
+window.retryLastOperation = function(_context) {
     if (appState.lastOperation && appState.lastOperation.func) {
+        // eslint-disable-next-line no-console
         console.log(`Retrying ${appState.lastOperation.context}...`);
         appState.lastOperation.func();
     } else {
+        // eslint-disable-next-line no-console
         console.warn('No operation to retry');
     }
 };
@@ -133,6 +135,7 @@ window.activateCurrentPlatform = async function() {
             showNotification(data.message || '激活失败', 'error');
         }
     } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Activate platform error:', error);
         showNotification('激活平台失败', 'error');
     } finally {
@@ -172,8 +175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const codexApiMode = document.getElementById('codexApiMode');
     if (codexApiMode) {
-        codexApiMode.addEventListener('change', (e) => {
-            const isCustom = e.target.value === 'custom';
+        codexApiMode.addEventListener('change', () => {
             // Logic to show/hide custom fields if needed, currently all shown
         });
     }
