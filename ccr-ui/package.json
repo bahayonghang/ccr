@@ -83,5 +83,8 @@
     "vitest": "^4.0.18",
     "vue-eslint-parser": "^10.2.0",
     "vue-tsc": "^2.2.12"
+  },
+  "overrides": {
+    "balanced-match": "1.0.2"
   }
 }

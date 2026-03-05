@@ -143,8 +143,13 @@
     --shadow-glow-danger: 0 0 15px rgb(251 113 133 / 15%);
 
     /* --- Typography --- */
-    --font-sans: "Inter", system-ui, sans-serif;
-    --font-mono: "JetBrains Mono", "Fira Code", monospace;
+    --font-sans: "MapleBright", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    --font-mono: "MapleBright", "JetBrains Mono", "Fira Code", monospace;
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 500;
+    --font-bold: 500;
+    --font-extrabold: 500;
     --text-xs: 0.75rem;
     --text-sm: 0.875rem;
     --text-base: 1rem;

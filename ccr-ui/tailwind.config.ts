@@ -12,6 +12,18 @@ export default {
       sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui'],
       mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
     },
+    // MapleBright currently provides 400/500 for the app design system.
+    fontWeight: {
+      thin: '400',
+      extralight: '400',
+      light: '400',
+      normal: '400',
+      medium: '500',
+      semibold: '500',
+      bold: '500',
+      extrabold: '500',
+      black: '500',
+    },
     extend: {
       colors: {
         bg: {

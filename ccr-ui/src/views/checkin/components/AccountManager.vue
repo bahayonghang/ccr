@@ -150,7 +150,7 @@ onMounted(() => {
 }
 
 .account-name {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary);
 }
 

@@ -240,8 +240,8 @@
 /* ========== 字体系统 ========== */
 :root:where(:root):where(:root) {
     /* --- 字体族 --- */
-    --font-sans: 'Inter', -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
-    --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', consolas, monospace;
+    --font-sans: 'MapleBright', 'PingFang SC', 'Microsoft YaHei', -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
+    --font-mono: 'MapleBright', 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', consolas, monospace;
 
     /* --- 字号 --- */
     --text-xs: 0.75rem;
@@ -278,9 +278,9 @@
     /* --- 字重 --- */
     --font-normal: 400;
     --font-medium: 500;
-    --font-semibold: 600;
-    --font-bold: 700;
-    --font-extrabold: 800;
+    --font-semibold: 500;
+    --font-bold: 500;
+    --font-extrabold: 500;
 
     /* --- 行高 --- */
     --leading-none: 1;

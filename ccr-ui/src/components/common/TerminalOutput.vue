@@ -245,7 +245,7 @@ defineExpose({
   height: 100%;
   border-radius: 12px;
   overflow: hidden;
-  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-family: var(--font-mono, monospace);
 }
 
 .terminal-toolbar {

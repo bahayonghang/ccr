@@ -407,7 +407,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .header-title h1 {
   margin: 0;
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-primary);
 }
 
@@ -427,7 +427,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   background: rgb(var(--color-accent-primary-rgb), 0.1);
   color: var(--platform-gemini);
 }
@@ -481,7 +481,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   background: var(--glass-bg-heavy);
   color: var(--text-primary);
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 500;
   transition: all 0.2s ease;
 }
 
@@ -547,7 +547,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .metric-value {
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .metric-green {
@@ -752,14 +752,14 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .row-header h2 {
   margin: 0;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
   flex: 1;
 }
 
 .row-rate {
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--accent-success);
   background: rgb(var(--color-success-rgb), 0.1);
   padding: 0.2rem 0.5rem;
@@ -825,7 +825,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .row-value {
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-primary);
 }
 
@@ -915,7 +915,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .stats-header h2 {
   margin: 0;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
@@ -988,7 +988,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .stat-value {
   font-size: 1.35rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-primary);
 }
 
@@ -1081,7 +1081,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .vertical-header h2 {
   margin: 0;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
@@ -1143,7 +1143,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .vertical-value {
   font-size: 1.35rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-primary);
 }
 
@@ -1175,7 +1175,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 .progress-percent {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--accent-success);
 }
 
@@ -1223,7 +1223,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .calendar-card .card-header h2 {
   margin: 0;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
@@ -1294,7 +1294,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .trend-title h2 {
   margin: 0;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
@@ -1304,7 +1304,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   background: rgb(var(--color-accent-primary-rgb), 0.1);
   color: var(--platform-gemini);
 }

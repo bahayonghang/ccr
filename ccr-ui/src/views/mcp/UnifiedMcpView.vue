@@ -687,7 +687,7 @@ onMounted(() => {
 
 .command-bar__title {
   font-size: 1.125rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
@@ -698,7 +698,7 @@ onMounted(() => {
 
 .command-bar__badge {
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 500;
   background: var(--color-accent-primary);
   color: white;
   padding: 1px 7px;
@@ -777,7 +777,7 @@ onMounted(() => {
   gap: var(--space-1);
   padding: 8px 16px;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   border-radius: var(--radius-md);
   background: var(--color-accent-primary);
   color: white;
@@ -931,7 +931,7 @@ onMounted(() => {
 }
 
 .server-card__name {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.9375rem;
   color: var(--color-text-primary);
   word-break: break-all;
@@ -939,7 +939,7 @@ onMounted(() => {
 
 .server-card__disabled-badge {
   font-size: 0.625rem;
-  font-weight: 600;
+  font-weight: 500;
   text-transform: uppercase;
   padding: 1px 6px;
   border-radius: var(--radius-full);
@@ -969,7 +969,7 @@ onMounted(() => {
 }
 
 .server-card__code {
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--font-mono, monospace);
   font-size: 0.75rem;
   word-break: break-all;
   background: var(--glass-bg-medium);
@@ -1066,7 +1066,7 @@ onMounted(() => {
 
 .modal-header h2 {
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-primary);
 }
 
@@ -1101,7 +1101,7 @@ onMounted(() => {
 
 .form-label {
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-secondary);
 }
 
@@ -1256,7 +1256,7 @@ onMounted(() => {
 .btn-submit {
   padding: 8px 20px;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   border-radius: var(--radius-md);
   background: var(--color-accent-primary);
   color: white;
@@ -1268,7 +1268,7 @@ onMounted(() => {
 .btn-danger {
   padding: 8px 20px;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   border-radius: var(--radius-md);
   background: var(--color-danger);
   color: white;

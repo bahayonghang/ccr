@@ -149,7 +149,7 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 
 .day-number {
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary);
   line-height: 1;
 }

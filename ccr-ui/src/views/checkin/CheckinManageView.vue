@@ -85,7 +85,7 @@ const goBack = () => {
 
 .page-title {
   font-size: 1.875rem;
-  font-weight: 700;
+  font-weight: 500;
   color: white;
   margin: 0;
 }

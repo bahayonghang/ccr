@@ -242,7 +242,7 @@ const tooltipStyle = computed(() => {
 }
 
 .tooltip-date {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 0.6rem;
   padding-bottom: 0.4rem;
@@ -257,12 +257,12 @@ const tooltipStyle = computed(() => {
 }
 
 .tooltip-value {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--accent-info);
 }
 
 .tooltip-increment {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--accent-success);
 }
 

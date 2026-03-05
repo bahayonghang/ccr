@@ -127,7 +127,7 @@ onMounted(() => {
 
 .stat-value {
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1;
 }
 
