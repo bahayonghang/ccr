@@ -266,7 +266,7 @@ pub async fn current_command() -> Result<()> {
     }
 
     // 验证状态
-    let validation_status = match current_section.validate() {
+    let validation_status = match platform_config.validate_profile(profile) {
         Ok(_) => Cell::new("✓ 配置完整")
             .fg(TableColor::Green)
             .add_attribute(Attribute::Bold),

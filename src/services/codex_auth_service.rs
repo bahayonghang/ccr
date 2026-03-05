@@ -10,8 +10,9 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::models::{
-    CodexAuthAccount, CodexAuthExport, CodexAuthExportAccount, CodexAuthItem, CodexAuthJson,
-    CodexAuthRegistry, CurrentAuthInfo, ImportMode, ImportResult, LoginState, TokenFreshness,
+    AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount, CodexAuthExport,
+    CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CredentialStoreKind,
+    CurrentAuthInfo, ImportMode, ImportResult, LoginState, OpenAiAuthMethod, TokenFreshness,
 };
 use chrono::{DateTime, Duration, Utc};
 use std::path::PathBuf;
@@ -82,25 +83,203 @@ impl CodexAuthService {
         self.auth_storage_dir().join(format!("{}.json", name))
     }
 
+    /// 读取 auth.json 原始 JSON Map
+    fn load_auth_raw_map(
+        &self,
+        path: &PathBuf,
+    ) -> Result<serde_json::Map<String, serde_json::Value>> {
+        let content = fs::read_to_string(path)
+            .map_err(|e| CcrError::ConfigError(format!("读取 auth.json 失败: {}", e)))?;
+
+        serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&content)
+            .map_err(|e| CcrError::ConfigError(format!("解析 auth.json 失败: {}", e)))
+    }
+
+    /// 检测 Codex 凭据存储模式
+    fn detect_credential_store(&self) -> CredentialStoreKind {
+        let config_path = self.codex_dir.join("config.toml");
+        if !config_path.exists() {
+            return CredentialStoreKind::Auto;
+        }
+
+        let content = match fs::read_to_string(&config_path) {
+            Ok(content) => content,
+            Err(_) => return CredentialStoreKind::Auto,
+        };
+
+        let parsed: toml::Value = match toml::from_str(&content) {
+            Ok(value) => value,
+            Err(_) => return CredentialStoreKind::Auto,
+        };
+
+        let store = parsed
+            .as_table()
+            .and_then(|table| table.get("cli_auth_credentials_store"))
+            .and_then(|value| value.as_str());
+
+        CredentialStoreKind::from_config_value(store)
+    }
+
+    fn find_provider_api_key(
+        raw: &serde_json::Map<String, serde_json::Value>,
+    ) -> Option<(&str, &str)> {
+        raw.iter().find_map(|(key, value)| {
+            if key == "OPENAI_API_KEY" || !key.ends_with("_API_KEY") {
+                return None;
+            }
+
+            value
+                .as_str()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+                .map(|v| (key.as_str(), v))
+        })
+    }
+
+    fn infer_auth_intent(
+        raw: &serde_json::Map<String, serde_json::Value>,
+    ) -> (AuthIntent, AuthStateStatus, String) {
+        if raw.is_empty() {
+            return (
+                AuthIntent::NoAuth,
+                AuthStateStatus::Missing,
+                "auth.json 为空".to_string(),
+            );
+        }
+
+        let tokens = raw.get("tokens").and_then(|v| v.as_object());
+        let has_tokens = tokens.is_some_and(|t| {
+            t.get("id_token")
+                .and_then(|v| v.as_str())
+                .is_some_and(|s| !s.trim().is_empty())
+                || t.get("access_token")
+                    .and_then(|v| v.as_str())
+                    .is_some_and(|s| !s.trim().is_empty())
+                || t.get("refresh_token")
+                    .and_then(|v| v.as_str())
+                    .is_some_and(|s| !s.trim().is_empty())
+        });
+
+        if has_tokens {
+            return (
+                AuthIntent::OpenAiAuth {
+                    method: OpenAiAuthMethod::Chatgpt,
+                },
+                AuthStateStatus::Valid,
+                "检测到 OpenAI ChatGPT 会话令牌".to_string(),
+            );
+        }
+
+        if raw
+            .get("OPENAI_API_KEY")
+            .and_then(|v| v.as_str())
+            .is_some_and(|s| !s.trim().is_empty())
+        {
+            return (
+                AuthIntent::OpenAiAuth {
+                    method: OpenAiAuthMethod::Api,
+                },
+                AuthStateStatus::Valid,
+                "检测到 OPENAI_API_KEY".to_string(),
+            );
+        }
+
+        if let Some((env_key, _)) = Self::find_provider_api_key(raw) {
+            return (
+                AuthIntent::ProviderEnvKey {
+                    env_key: env_key.to_string(),
+                },
+                AuthStateStatus::Valid,
+                format!("检测到 provider API key: {env_key}"),
+            );
+        }
+
+        (
+            AuthIntent::NoAuth,
+            AuthStateStatus::Invalid,
+            "auth.json 存在但缺少可识别凭据".to_string(),
+        )
+    }
+
+    fn key_fingerprint(value: &str) -> String {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            return "empty".to_string();
+        }
+
+        let len = trimmed.len();
+        if len <= 6 {
+            return format!("len{len}");
+        }
+
+        let prefix = &trimmed[..3];
+        let suffix = &trimmed[len - 3..];
+        format!("{prefix}..{suffix}:len{len}")
+    }
+
+    fn is_known_auth_field(field: &str) -> bool {
+        field == "OPENAI_API_KEY"
+            || field == "tokens"
+            || field == "last_refresh"
+            || field.ends_with("_API_KEY")
+    }
+
+    fn merge_auth_fields(
+        current: &mut serde_json::Map<String, serde_json::Value>,
+        incoming: &serde_json::Map<String, serde_json::Value>,
+    ) {
+        current.retain(|key, _| !Self::is_known_auth_field(key));
+        for (key, value) in incoming {
+            current.insert(key.clone(), value.clone());
+        }
+    }
+
+    /// 获取当前认证状态快照
+    pub fn get_auth_state(&self) -> AuthState {
+        let store = self.detect_credential_store();
+        let auth_path = self.auth_json_path();
+
+        if !auth_path.exists() {
+            return AuthState {
+                intent: AuthIntent::NoAuth,
+                store,
+                status: AuthStateStatus::Missing,
+                reason: format!("{} 模式下未找到 auth.json", store.as_str()),
+            };
+        }
+
+        let raw = match self.load_auth_raw_map(&auth_path) {
+            Ok(raw) => raw,
+            Err(e) => {
+                return AuthState {
+                    intent: AuthIntent::NoAuth,
+                    store,
+                    status: AuthStateStatus::Invalid,
+                    reason: format!("auth.json 无法解析: {e}"),
+                };
+            }
+        };
+
+        let (intent, status, reason) = Self::infer_auth_intent(&raw);
+        AuthState {
+            intent,
+            store,
+            status,
+            reason,
+        }
+    }
+
     // ==================== 登录状态检测 ====================
 
     /// 检查用户是否已登录 Codex
     pub fn is_logged_in(&self) -> bool {
-        let auth_path = self.auth_json_path();
-        if !auth_path.exists() {
-            return false;
-        }
-
-        // 尝试解析 auth.json 验证其有效性
-        match fs::read_to_string(&auth_path) {
-            Ok(content) => serde_json::from_str::<CodexAuthJson>(&content).is_ok(),
-            Err(_) => false,
-        }
+        matches!(self.get_auth_state().status, AuthStateStatus::Valid)
     }
 
     /// 获取当前登录状态
     pub fn get_login_state(&self) -> Result<LoginState> {
-        if !self.is_logged_in() {
+        let auth_state = self.get_auth_state();
+        if auth_state.status != AuthStateStatus::Valid {
             return Ok(LoginState::NotLoggedIn);
         }
 
@@ -120,6 +299,14 @@ impl CodexAuthService {
 
     /// 获取当前 auth.json 的解析信息
     pub fn get_current_auth_info(&self) -> Result<CurrentAuthInfo> {
+        let auth_state = self.get_auth_state();
+        if auth_state.status != AuthStateStatus::Valid {
+            return Err(CcrError::ConfigError(format!(
+                "未检测到有效登录状态: {}",
+                auth_state.reason
+            )));
+        }
+
         let auth_path = self.auth_json_path();
         if !auth_path.exists() {
             return Err(CcrError::ConfigError(
@@ -130,15 +317,32 @@ impl CodexAuthService {
         let content = fs::read_to_string(&auth_path)
             .map_err(|e| CcrError::ConfigError(format!("读取 auth.json 失败: {}", e)))?;
 
+        let raw: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&content)
+            .map_err(|e| CcrError::ConfigError(format!("解析 auth.json 失败: {}", e)))?;
+
         let auth: CodexAuthJson = serde_json::from_str(&content)
             .map_err(|e| CcrError::ConfigError(format!("解析 auth.json 失败: {}", e)))?;
 
         // 提取 account_id
-        let account_id = auth
+        let mut account_id = auth
             .tokens
             .as_ref()
             .and_then(|t| t.account_id.clone())
             .unwrap_or_else(|| "unknown".to_string());
+
+        if account_id == "unknown" {
+            if let Some(openai_key) = raw.get("OPENAI_API_KEY").and_then(|v| v.as_str())
+                && !openai_key.trim().is_empty()
+            {
+                account_id = format!("api:{}", Self::key_fingerprint(openai_key));
+            }
+
+            if account_id == "unknown"
+                && let Some((env_key, provider_key)) = Self::find_provider_api_key(&raw)
+            {
+                account_id = format!("provider:{env_key}:{}", Self::key_fingerprint(provider_key));
+            }
+        }
 
         // 从 JWT 提取邮箱
         let email = self.extract_email_from_jwt(&auth);
@@ -316,9 +520,10 @@ impl CodexAuthService {
             self.backup_current_auth()?;
         }
 
-        // 复制保存的 auth 到 ~/.codex/auth.json
+        // 策略化迁移：按认证字段更新，避免整文件覆盖
         let src = self.account_auth_path(name);
         let dst = self.auth_json_path();
+        let incoming = self.load_auth_raw_map(&src)?;
 
         // 确保目标目录存在
         if let Some(parent) = dst.parent() {
@@ -326,7 +531,18 @@ impl CodexAuthService {
                 .map_err(|e| CcrError::ConfigError(format!("创建 Codex 目录失败: {}", e)))?;
         }
 
-        fs::copy(&src, &dst).map_err(|e| CcrError::ConfigError(format!("切换账号失败: {}", e)))?;
+        let mut current = if dst.exists() {
+            self.load_auth_raw_map(&dst)?
+        } else {
+            serde_json::Map::new()
+        };
+
+        Self::merge_auth_fields(&mut current, &incoming);
+
+        let merged = serde_json::to_string_pretty(&serde_json::Value::Object(current))
+            .map_err(|e| CcrError::ConfigError(format!("序列化切换后的 auth 失败: {}", e)))?;
+        fs::write(&dst, merged)
+            .map_err(|e| CcrError::ConfigError(format!("切换账号失败: {}", e)))?;
 
         // 更新注册表
         let mut registry = self.load_registry()?;
@@ -1127,6 +1343,18 @@ mod tests {
     }
 
     #[test]
+    fn test_is_logged_in_with_empty_object() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(&auth_path, "{}").unwrap();
+
+        assert!(!service.is_logged_in());
+        let state = service.get_auth_state();
+        assert_eq!(state.status, AuthStateStatus::Missing);
+    }
+
+    #[test]
     fn test_get_login_state_not_logged_in() {
         let (service, _ccr, _codex) = create_test_service();
         let state = service.get_login_state().unwrap();
@@ -1144,6 +1372,25 @@ mod tests {
 
         let state = service.get_login_state().unwrap();
         assert_eq!(state, LoginState::LoggedInUnsaved);
+    }
+
+    #[test]
+    fn test_get_current_auth_info_api_key_identity() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            r#"{
+                "OPENAI_API_KEY": "sk-test-api-key-123456",
+                "last_refresh": "2026-01-08T03:09:53.894843900Z"
+            }"#,
+        )
+        .unwrap();
+
+        let info = service.get_current_auth_info().unwrap();
+        assert!(info.account_id.starts_with("api:"));
+        assert_ne!(info.account_id, "unknown");
     }
 
     // ==================== 账号管理工作流测试 ====================
@@ -1246,6 +1493,45 @@ mod tests {
         let result = service.switch_account("nonexistent");
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("不存在"));
+    }
+
+    #[test]
+    fn test_switch_account_merges_without_overwriting_unrelated_fields() {
+        let (service, _ccr, codex) = create_test_service();
+
+        // 当前 auth.json 包含非认证字段
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            r#"{
+                "OPENAI_API_KEY": "sk-old",
+                "custom_meta": "keep-me"
+            }"#,
+        )
+        .unwrap();
+
+        // 保存账号文件
+        service
+            .save_current("merged", Some("merge test".to_string()), None, false)
+            .unwrap();
+
+        // 修改保存账号文件为 provider key 模式
+        let account_path = service.account_auth_path("merged");
+        fs::write(
+            &account_path,
+            r#"{
+                "MISTRAL_API_KEY": "mistral-new",
+                "last_refresh": "2026-01-08T03:09:53.894843900Z"
+            }"#,
+        )
+        .unwrap();
+
+        service.switch_account("merged").unwrap();
+
+        let merged = fs::read_to_string(&auth_path).unwrap();
+        assert!(merged.contains("MISTRAL_API_KEY"));
+        assert!(!merged.contains("\"OPENAI_API_KEY\""));
+        assert!(merged.contains("custom_meta"));
     }
 
     #[test]

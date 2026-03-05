@@ -6,6 +6,7 @@
 
 use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
+use crate::models::AuthIntent;
 use crate::services::CodexAuthService;
 use chrono::Local;
 use comfy_table::{
@@ -23,10 +24,17 @@ use comfy_table::{
 /// * `Err(CcrError)` - 执行失败
 pub async fn list_command() -> Result<()> {
     let service = CodexAuthService::new()?;
+    let auth_state = service.get_auth_state();
 
     // 检查登录状态
     if !service.is_logged_in() {
         ColorOutput::warning("未登录 Codex");
+        ColorOutput::info(&format!(
+            "认证状态: {} / {}",
+            render_intent(&auth_state.intent),
+            auth_state.store.as_str()
+        ));
+        ColorOutput::info(&format!("原因: {}", auth_state.reason));
         println!();
         ColorOutput::info("请先运行以下命令登录:");
         println!("  codex login");
@@ -50,6 +58,11 @@ pub async fn list_command() -> Result<()> {
     // 显示标题
     println!();
     ColorOutput::title("Codex 账号列表");
+    ColorOutput::info(&format!(
+        "当前认证: {} / {}",
+        render_intent(&auth_state.intent),
+        auth_state.store.as_str()
+    ));
     println!();
 
     // 创建表格
@@ -193,4 +206,15 @@ pub async fn list_command() -> Result<()> {
     println!("  • 使用 'ccr codex auth delete <名称>' 删除账号");
 
     Ok(())
+}
+
+fn render_intent(intent: &AuthIntent) -> String {
+    match intent {
+        AuthIntent::OpenAiAuth { method } => match method {
+            crate::models::OpenAiAuthMethod::Chatgpt => "OpenAI / ChatGPT".to_string(),
+            crate::models::OpenAiAuthMethod::Api => "OpenAI / API Key".to_string(),
+        },
+        AuthIntent::ProviderEnvKey { env_key } => format!("Provider / {env_key}"),
+        AuthIntent::NoAuth => "No Auth".to_string(),
+    }
 }

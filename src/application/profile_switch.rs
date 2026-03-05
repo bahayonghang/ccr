@@ -7,7 +7,6 @@ use crate::managers::history::{
 use crate::managers::settings::SettingsManager;
 use crate::models::Platform;
 use crate::platforms::{base::profile_to_section, create_platform};
-use crate::utils::Validatable;
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -39,8 +38,8 @@ pub async fn switch_profile_for_platform(
         .get(config_name)
         .ok_or_else(|| CcrError::ConfigSectionNotFound(config_name.to_string()))?;
 
+    platform_config.validate_profile(profile)?;
     let target_section = profile_to_section(profile)?;
-    target_section.validate()?;
 
     let (old_env, new_env): (
         HashMap<String, Option<String>>,

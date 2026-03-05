@@ -9,7 +9,10 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::managers::codex_config::CodexConfigManager;
-use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use crate::models::{
+    AuthIntent, AuthTransitionPolicy, CredentialStoreKind, OpenAiAuthMethod, Platform,
+    PlatformConfig, PlatformPaths, ProfileConfig,
+};
 use crate::platforms::base;
 use indexmap::IndexMap;
 use serde_json::Value as JsonValue;
@@ -156,13 +159,232 @@ impl CodexPlatform {
             .ok_or_else(|| CcrError::ConfigError("TOML table expected".into()))
     }
 
+    fn resolve_openai_auth_method(profile: &ProfileConfig) -> OpenAiAuthMethod {
+        let raw_method = Self::platform_string(profile, "openai_auth_method")
+            .or_else(|| Self::platform_string(profile, "login_method"))
+            .or_else(|| Self::platform_string(profile, "forced_login_method"))
+            .unwrap_or_else(|| "chatgpt".to_string());
+
+        match raw_method.to_ascii_lowercase().as_str() {
+            "api" | "api_key" => OpenAiAuthMethod::Api,
+            _ => OpenAiAuthMethod::Chatgpt,
+        }
+    }
+
+    fn resolve_auth_intent(profile: &ProfileConfig) -> AuthIntent {
+        let env_key = Self::platform_string(profile, "env_key");
+        let requires_openai_auth = Self::platform_bool(profile, "requires_openai_auth")
+            .unwrap_or_else(|| env_key.is_none());
+
+        if requires_openai_auth {
+            return AuthIntent::OpenAiAuth {
+                method: Self::resolve_openai_auth_method(profile),
+            };
+        }
+
+        if let Some(env_key) = env_key {
+            return AuthIntent::ProviderEnvKey { env_key };
+        }
+
+        AuthIntent::NoAuth
+    }
+
+    fn detect_auth_store(config: &toml::Value) -> CredentialStoreKind {
+        let store = config
+            .as_table()
+            .and_then(|t| t.get("cli_auth_credentials_store"))
+            .and_then(|v| v.as_str());
+        CredentialStoreKind::from_config_value(store)
+    }
+
+    fn parse_current_auth_intent(config: &toml::Value) -> AuthIntent {
+        let root = match config.as_table() {
+            Some(root) => root,
+            None => {
+                return AuthIntent::OpenAiAuth {
+                    method: OpenAiAuthMethod::Chatgpt,
+                };
+            }
+        };
+
+        let provider_id = match root.get("model_provider").and_then(|v| v.as_str()) {
+            Some(id) if !id.trim().is_empty() => id,
+            _ => {
+                return AuthIntent::OpenAiAuth {
+                    method: OpenAiAuthMethod::Chatgpt,
+                };
+            }
+        };
+
+        let providers = match root.get("model_providers").and_then(|v| v.as_table()) {
+            Some(p) => p,
+            None => {
+                return AuthIntent::OpenAiAuth {
+                    method: OpenAiAuthMethod::Chatgpt,
+                };
+            }
+        };
+
+        let provider = match providers.get(provider_id).and_then(|v| v.as_table()) {
+            Some(provider) => provider,
+            None => {
+                return AuthIntent::OpenAiAuth {
+                    method: OpenAiAuthMethod::Chatgpt,
+                };
+            }
+        };
+
+        let requires_openai_auth = provider
+            .get("requires_openai_auth")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
+        if requires_openai_auth {
+            let forced = root
+                .get("forced_login_method")
+                .and_then(|v| v.as_str())
+                .map(str::to_string)
+                .unwrap_or_else(|| "chatgpt".to_string());
+            let method = match forced.to_ascii_lowercase().as_str() {
+                "api" => OpenAiAuthMethod::Api,
+                _ => OpenAiAuthMethod::Chatgpt,
+            };
+            return AuthIntent::OpenAiAuth { method };
+        }
+
+        if let Some(env_key) = provider.get("env_key").and_then(|v| v.as_str()) {
+            return AuthIntent::ProviderEnvKey {
+                env_key: env_key.to_string(),
+            };
+        }
+
+        AuthIntent::NoAuth
+    }
+
+    fn parse_auth_intent_from_auth_map(
+        auth: &serde_json::Map<String, serde_json::Value>,
+    ) -> Option<AuthIntent> {
+        let has_oauth_tokens =
+            auth.get("tokens")
+                .and_then(|v| v.as_object())
+                .is_some_and(|tokens| {
+                    tokens
+                        .get("id_token")
+                        .and_then(|v| v.as_str())
+                        .is_some_and(|s| !s.trim().is_empty())
+                        || tokens
+                            .get("access_token")
+                            .and_then(|v| v.as_str())
+                            .is_some_and(|s| !s.trim().is_empty())
+                        || tokens
+                            .get("refresh_token")
+                            .and_then(|v| v.as_str())
+                            .is_some_and(|s| !s.trim().is_empty())
+                });
+
+        if has_oauth_tokens {
+            return Some(AuthIntent::OpenAiAuth {
+                method: OpenAiAuthMethod::Chatgpt,
+            });
+        }
+
+        if auth
+            .get("OPENAI_API_KEY")
+            .and_then(|v| v.as_str())
+            .is_some_and(|v| !v.trim().is_empty())
+        {
+            return Some(AuthIntent::OpenAiAuth {
+                method: OpenAiAuthMethod::Api,
+            });
+        }
+
+        auth.iter().find_map(|(key, value)| {
+            if !Self::is_provider_api_key_field(key) {
+                return None;
+            }
+            value
+                .as_str()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+                .map(|_| AuthIntent::ProviderEnvKey {
+                    env_key: key.clone(),
+                })
+        })
+    }
+
+    fn resolve_current_auth_intent(
+        config: &toml::Value,
+        auth: &serde_json::Map<String, serde_json::Value>,
+    ) -> AuthIntent {
+        Self::parse_auth_intent_from_auth_map(auth)
+            .unwrap_or_else(|| Self::parse_current_auth_intent(config))
+    }
+
+    fn is_provider_api_key_field(key: &str) -> bool {
+        key.ends_with("_API_KEY") && key != "OPENAI_API_KEY"
+    }
+
+    fn apply_auth_transition_policy(
+        auth: &mut serde_json::Map<String, serde_json::Value>,
+        policy: &AuthTransitionPolicy,
+    ) {
+        if policy.clear_openai_tokens {
+            auth.remove("tokens");
+            auth.remove("last_refresh");
+        }
+
+        if policy.clear_openai_api_key {
+            auth.remove("OPENAI_API_KEY");
+        }
+
+        if policy.clear_provider_keys {
+            let keep_provider_key = policy.keep_provider_key.as_deref();
+            auth.retain(|key, _| {
+                if Self::is_provider_api_key_field(key) {
+                    return Some(key.as_str()) == keep_provider_key;
+                }
+                true
+            });
+        }
+    }
+
+    fn persist_auth_with_store(
+        &self,
+        store: CredentialStoreKind,
+        auth: &serde_json::Map<String, serde_json::Value>,
+    ) -> Result<()> {
+        match store {
+            CredentialStoreKind::File => self.config_manager.save_auth_atomic(auth),
+            CredentialStoreKind::Keyring | CredentialStoreKind::Auto => {
+                tracing::warn!(
+                    "检测到凭据存储模式为 {}，CCR 采用 auth.json 文件回退写入",
+                    store.as_str()
+                );
+                self.config_manager.save_auth_atomic(auth)
+            }
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════
     // 🏛️ 官方模式 - 完全重置
     // ═══════════════════════════════════════════════════════════
 
     /// 🏛️ 应用官方配置（备份后完全重置）
     fn apply_official_profile(&self) -> Result<()> {
+        let current_config = self.config_manager.load_config()?;
+        let store = Self::detect_auth_store(&current_config);
         self.config_manager.reset_to_defaults("pre_official")?;
+
+        if matches!(
+            store,
+            CredentialStoreKind::Keyring | CredentialStoreKind::Auto
+        ) {
+            tracing::warn!(
+                "⚠️ 当前认证存储为 {}，已清空 auth.json；如系统钥匙串仍缓存凭据，请执行 codex logout",
+                store.as_str()
+            );
+        }
+
         tracing::info!("✅ 已切换到 Codex 官方配置（完全重置）");
         Ok(())
     }
@@ -184,21 +406,26 @@ impl CodexPlatform {
             String::new()
         });
         let wire_api = Self::resolve_wire_api(profile)?;
-        let requires_auth = Self::platform_bool(profile, "requires_openai_auth").unwrap_or(true);
-        let env_key = Self::platform_string(profile, "env_key");
+        let target_intent = Self::resolve_auth_intent(profile);
+        let requires_auth = matches!(target_intent, AuthIntent::OpenAiAuth { .. });
+        let env_key = match &target_intent {
+            AuthIntent::ProviderEnvKey { env_key } => Some(env_key.clone()),
+            _ => None,
+        };
         // provider_model: 仅当用户在 platform_data 中显式设置时才写入 provider 表
         // 不回退到 profile.model，避免 model 在 root 和 provider 表中重复
         let provider_model = Self::platform_string(profile, "provider_model");
         let token = profile
             .auth_token
             .as_ref()
-            .ok_or_else(|| {
-                CcrError::ValidationError("Codex profile 缺少 auth_token (API key)".into())
-            })?
-            .clone();
+            .map(|t| t.trim().to_string())
+            .filter(|t| !t.is_empty());
 
         // 读取现有配置（保留所有非 provider 字段）
         let mut config = self.config_manager.load_config()?;
+        let mut auth = self.config_manager.load_auth()?;
+        let current_intent = Self::resolve_current_auth_intent(&config, &auth);
+        let auth_store = Self::detect_auth_store(&config);
         let root = Self::ensure_toml_table(&mut config)?;
 
         // 仅修改 provider 相关字段
@@ -259,16 +486,10 @@ impl CodexPlatform {
             toml::Value::Boolean(requires_auth),
         );
 
-        // env_key: 告诉 Codex 从哪个环境变量读取 API key（如 MISTRAL_API_KEY）
-        // 原理说明：
-        // 官方原生流程推荐用户在系统的环境变量中配置此 key。
-        // 但 CCR 采用一种更优雅的「免环境污染」方案：我们不仅在此定义 env_key，
-        // 后续还会将这个 token 也就是 API Key 直接注入到底层的 auth.json 中，
-        // 键名采用此处的 env_key 名称。Codex CLI 在遇到自定义 Provider 时，可以成功从 auth.json 匹配该名称。
         if let Some(ref ek) = env_key {
             provider_table.insert("env_key".into(), toml::Value::String(ek.clone()));
         } else {
-            // 切换到未设置 env_key 的 profile 时，清理历史残留
+            // requires_openai_auth=true 时必须忽略 env_key
             provider_table.remove("env_key");
         }
 
@@ -282,31 +503,41 @@ impl CodexPlatform {
         // 原子写入 config.toml
         self.config_manager.save_config_atomic(&config)?;
 
-        // 更新 auth.json（read-modify-write）
-        // 核心机制：
-        // 1. 确定 auth key 名称：
-        //    - requires_openai_auth=true 或无 env_key 时，强制复用 OpenAI 默认的 OPENAI_API_KEY
-        //    - 否则使用上面配置的 env_key 值作为 JSON key（例如 "MISTRAL_API_KEY"）
-        // 2. 将此键值原子性写入 auth.json：
-        //    此操作绕过了环境变量的配置阶段，为系统实现了环境隔离。
-        //    只要在 config.toml 的 [model_providers.<id>] 块指定了 env_key，
-        //    并在 auth.json 配置同名的键，CodexCLI 的解析器仍能正确读取。
-        let auth_key_name = if requires_auth {
-            "OPENAI_API_KEY".to_string()
-        } else {
-            env_key
-                .clone()
-                .unwrap_or_else(|| "OPENAI_API_KEY".to_string())
-        };
+        // 按迁移策略更新 auth.json（字段级迁移，避免整文件覆盖）
+        let transition_policy =
+            AuthTransitionPolicy::between(current_intent.clone(), target_intent.clone());
+        Self::apply_auth_transition_policy(&mut auth, &transition_policy);
+        let mut require_relogin_notice = transition_policy.require_relogin;
 
-        let mut auth = self.config_manager.load_auth()?;
-        auth.insert(auth_key_name, JsonValue::String(token));
-        self.config_manager.save_auth_atomic(&auth)?;
+        match &target_intent {
+            AuthIntent::OpenAiAuth { .. } => {
+                if let Some(token) = token {
+                    auth.insert("OPENAI_API_KEY".to_string(), JsonValue::String(token));
+                    require_relogin_notice = false;
+                }
+            }
+            AuthIntent::ProviderEnvKey { env_key } => {
+                let provider_token = token.ok_or_else(|| {
+                    CcrError::ValidationError(format!(
+                        "Codex profile 缺少 auth_token（env_key={env_key} 对应的 API key）"
+                    ))
+                })?;
+                auth.insert(env_key.clone(), JsonValue::String(provider_token));
+            }
+            AuthIntent::NoAuth => {}
+        }
+
+        self.persist_auth_with_store(auth_store, &auth)?;
 
         tracing::info!(
             "✅ 已写入 Codex config ({}) 并更新 auth.json",
             self.config_manager.config_path().display()
         );
+
+        if require_relogin_notice {
+            tracing::warn!("⚠️ 认证已按策略清理，请重新执行 codex login 完成 OpenAI 认证");
+        }
+
         Ok(())
     }
 
@@ -417,19 +648,34 @@ impl PlatformConfig for CodexPlatform {
             ));
         }
 
-        // 检查 auth_token
-        let token = profile.auth_token.as_ref().ok_or_else(|| {
-            CcrError::ValidationError("Codex profile 缺少 auth_token (API key/token)".into())
-        })?;
-
-        if token.trim().is_empty() {
-            return Err(CcrError::ValidationError(
-                "Codex profile 缺少有效的 API key".into(),
-            ));
-        }
-
         // 验证 wire_api
         Self::resolve_wire_api(profile)?;
+
+        // 认证约束按意图判断
+        match Self::resolve_auth_intent(profile) {
+            AuthIntent::ProviderEnvKey { env_key } => {
+                let token = profile.auth_token.as_ref().ok_or_else(|| {
+                    CcrError::ValidationError(format!(
+                        "Codex profile 缺少 auth_token（env_key={env_key}）"
+                    ))
+                })?;
+
+                if token.trim().is_empty() {
+                    return Err(CcrError::ValidationError(
+                        "Codex profile 缺少有效的 API key".into(),
+                    ));
+                }
+            }
+            AuthIntent::OpenAiAuth { .. } | AuthIntent::NoAuth => {
+                if let Some(token) = profile.auth_token.as_ref()
+                    && token.trim().is_empty()
+                {
+                    return Err(CcrError::ValidationError(
+                        "auth_token 不能为空字符串".into(),
+                    ));
+                }
+            }
+        }
 
         Ok(())
     }
@@ -1027,6 +1273,89 @@ mod tests {
             provider.get("model").is_none(),
             "stale provider model should be removed, got: {:?}",
             provider
+        );
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
+    fn test_requires_openai_auth_ignores_env_key_and_clears_provider_token() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+
+        let config_manager = CodexConfigManager::with_default().unwrap();
+
+        // 初始 auth.json 模拟第三方 env_key 模式
+        let mut auth = serde_json::Map::new();
+        auth.insert(
+            "MISTRAL_API_KEY".to_string(),
+            serde_json::Value::String("mistral-old-key".to_string()),
+        );
+        config_manager.save_auth_atomic(&auth).unwrap();
+
+        let platform = CodexPlatform::new().unwrap();
+
+        // 切换到 requires_openai_auth=true（不提供 auth_token）
+        let mut profile = ProfileConfig {
+            description: Some("OpenAI Auth Provider".to_string()),
+            base_url: Some("https://api.proxy.example/v1".to_string()),
+            auth_token: None,
+            model: Some("gpt-5".to_string()),
+            small_fast_model: None,
+            provider: Some("proxy".to_string()),
+            provider_type: None,
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        profile
+            .platform_data
+            .insert("requires_openai_auth".into(), json!(true));
+        profile
+            .platform_data
+            .insert("env_key".into(), json!("SHOULD_BE_IGNORED"));
+
+        platform
+            .apply_third_party_profile("proxy", &profile)
+            .unwrap();
+
+        // auth.json: 第三方 key 被清理，且未写入 OPENAI_API_KEY（需要重新登录）
+        let auth = config_manager.load_auth().unwrap();
+        assert!(
+            !auth.contains_key("MISTRAL_API_KEY"),
+            "provider key should be cleared when switching to openai auth"
+        );
+        assert!(
+            !auth.contains_key("OPENAI_API_KEY"),
+            "OPENAI_API_KEY should not be auto-populated when profile has no auth_token"
+        );
+
+        // config.toml: env_key 被移除
+        let config = config_manager.load_config().unwrap();
+        let root = config.as_table().unwrap();
+        let providers = root
+            .get("model_providers")
+            .and_then(|v| v.as_table())
+            .unwrap();
+        let provider = providers.get("proxy").and_then(|v| v.as_table()).unwrap();
+        assert_eq!(
+            provider
+                .get("requires_openai_auth")
+                .and_then(|v| v.as_bool()),
+            Some(true)
+        );
+        assert!(
+            provider.get("env_key").is_none(),
+            "env_key should be ignored/removed when requires_openai_auth=true"
         );
 
         unsafe {
