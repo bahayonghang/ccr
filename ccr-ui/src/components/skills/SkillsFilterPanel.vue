@@ -534,7 +534,7 @@ watch(() => props.modelValue, (newVal) => {
 .platform-item:hover {
   @apply text-white;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .platform-item--active {
@@ -583,7 +583,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .category-item:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .category-item--active {

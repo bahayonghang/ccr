@@ -308,7 +308,7 @@ function formatTime(timestamp: string): string {
 }
 
 .log-item:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 /* Action Icon */

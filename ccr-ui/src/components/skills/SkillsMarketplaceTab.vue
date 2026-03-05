@@ -389,7 +389,7 @@ function handleViewSource(item: MarketplaceItem) {
   @apply flex flex-col items-center justify-center py-16
          rounded-2xl border border-white/5;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 /* Grid Layout */
@@ -404,7 +404,7 @@ function handleViewSource(item: MarketplaceItem) {
   @apply flex flex-col gap-3 p-4 rounded-2xl
          border border-white/5;
 
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
 }
 
 .skeleton-header {
@@ -454,7 +454,7 @@ function handleViewSource(item: MarketplaceItem) {
          flex items-center gap-4 px-6 py-3 rounded-2xl
          border border-white/5 shadow-2xl;
 
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
   backdrop-filter: blur(16px);
 }
 

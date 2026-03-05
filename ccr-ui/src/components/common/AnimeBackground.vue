@@ -5,17 +5,17 @@
       v-show="isLoaded && bgUrl"
       class="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
       :style="{ backgroundImage: `url(${bgUrl})`, opacity: isLoaded ? 1 : 0 }"
-    ></div>
+    />
     
     <!-- Gradient fallback -->
     <div
       v-show="!isLoaded || hasError"
       class="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-900 via-slate-900 to-black transition-opacity duration-1000"
       :class="{ 'opacity-100': !isLoaded || hasError, 'opacity-0': isLoaded && !hasError }"
-    ></div>
+    />
 
     <!-- Dark Overlay for readablity -->
-    <div class="absolute inset-0 w-full h-full bg-black/60 z-0 pointer-events-none"></div>
+    <div class="absolute inset-0 w-full h-full bg-black/60 z-0 pointer-events-none" />
   </div>
 </template>
 

@@ -94,7 +94,7 @@ defineEmits<{
   @apply flex flex-col items-center justify-center py-16
          rounded-2xl border border-white/5;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .skills-list {
@@ -105,7 +105,7 @@ defineEmits<{
 .skeleton-row {
   @apply flex flex-row items-start gap-4 p-4 rounded-2xl border border-white/5;
 
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
 }
 
 .skeleton-platform {

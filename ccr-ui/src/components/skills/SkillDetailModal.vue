@@ -538,7 +538,7 @@ function formatDate(timestamp: number): string {
 .metadata-section {
   @apply p-4 rounded-xl border border-white/5 space-y-3;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .meta-grid {
@@ -583,7 +583,7 @@ function formatDate(timestamp: number): string {
 .markdown-content {
   @apply rounded-xl border border-white/5 p-4 overflow-x-auto;
 
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
 }
 
 .markdown-content .prose {
@@ -623,7 +623,7 @@ function formatDate(timestamp: number): string {
 .markdown-content .prose :deep(pre) {
   @apply my-3 p-3 rounded-lg overflow-x-auto text-xs;
 
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(0 0 0 / 40%);
 }
 
 .markdown-content .prose :deep(pre code) {
@@ -662,7 +662,7 @@ function formatDate(timestamp: number): string {
 .edit-content {
   @apply rounded-xl border border-white/5 overflow-hidden;
 
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
 }
 
 .edit-textarea {
@@ -680,7 +680,7 @@ function formatDate(timestamp: number): string {
   @apply flex items-center justify-end gap-2 p-4
          border-t border-white/5 shrink-0;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .btn-secondary {

@@ -280,13 +280,13 @@ async function handleInstall() {
 .skill-info {
   @apply p-3 rounded-xl border border-white/5;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .platform-selection {
   @apply p-4 rounded-xl border border-white/5;
 
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
 }
 
 .platform-option {
@@ -296,7 +296,7 @@ async function handleInstall() {
          transition-colors duration-200 cursor-pointer
          hover:border-white/10 hover:text-white;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .platform-option--selected {
@@ -332,7 +332,7 @@ async function handleInstall() {
   @apply flex items-center justify-end gap-2 p-4
          border-t border-white/5;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .btn-secondary {

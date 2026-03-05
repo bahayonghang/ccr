@@ -376,9 +376,9 @@ const categories = computed(() => [
 <style scoped>
 /* 侧边栏 - 轻量玻璃容器 */
 .sidebar-container {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(0 0 0 / 40%);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgb(255 255 255 / 10%);
   max-height: calc(100vh - 160px);
   overflow-y: auto;
   color: white;

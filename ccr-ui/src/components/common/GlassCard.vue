@@ -31,6 +31,7 @@ const paddingClass = computed(() => {
 <style scoped>
 .glass-card {
   transform: translateZ(0);
+
   /* 强制硬件加速并避免子元素复杂重绘 */
 }
 </style>

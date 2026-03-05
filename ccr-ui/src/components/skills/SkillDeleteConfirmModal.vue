@@ -152,7 +152,7 @@ function shortenPath(path: string): string {
          border border-white/5
          shadow-2xl;
 
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(0 0 0 / 40%);
 }
 
 /* Warning icon */
@@ -177,7 +177,7 @@ function shortenPath(path: string): string {
   @apply w-full flex flex-col gap-2 p-3 rounded-xl
          border border-white/5;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .skill-info__name {

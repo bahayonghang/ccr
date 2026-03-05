@@ -1,6 +1,5 @@
 <template>
   <div class="flex h-screen text-white overflow-hidden font-sans selection:bg-accent-primary/30">
-
     <!-- Skip Link -->
     <a
       href="#main-content"
@@ -211,7 +210,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                CCR UI v4.4.1
+                CCR UI v4.4.2
               </span>
             </div>
           </div>
@@ -324,7 +323,6 @@ import { useI18n } from 'vue-i18n'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import BackgroundImage from '@/components/common/BackgroundImage.vue'
 import EnvironmentSwitcher from '@/components/EnvironmentSwitcher.vue'
 import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
 import { usePageTransition } from '@/composables/usePageTransition'
@@ -432,12 +430,12 @@ onUnmounted(() => {
 :root[data-theme="dark"] .sidebar-glass,
 .dark .sidebar-glass,
 .sidebar-glass {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(0 0 0 / 40%);
   backdrop-filter: blur(20px) saturate(180%);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgb(255 255 255 / 10%);
   box-shadow:
-    4px 0 24px rgba(0, 0, 0, 0.3),
-    inset -1px 0 0 rgba(255, 255, 255, 0.05);
+    4px 0 24px rgb(0 0 0 / 30%),
+    inset -1px 0 0 rgb(255 255 255 / 5%);
 }
 
 /* Nav Item Styles */
@@ -452,14 +450,17 @@ onUnmounted(() => {
 
 .nav-item.router-link-active {
   @apply bg-accent-primary/20 text-accent-primary shadow-sm;
-  box-shadow: 0 0 20px rgba(var(--color-accent-primary-rgb), 0.15);
+
+  box-shadow: 0 0 20px rgb(var(--color-accent-primary-rgb), 0.15);
 }
 
 /* Active indicator strip */
 .nav-item.router-link-active::before {
   content: '';
+
   @apply absolute left-0 top-1/2 -translate-y-1/2 h-4 w-1 bg-accent-primary rounded-r-full;
-  box-shadow: 0 0 8px rgba(var(--color-accent-primary-rgb), 0.6);
+
+  box-shadow: 0 0 8px rgb(var(--color-accent-primary-rgb), 0.6);
 }
 
 /* User Card - Neko Kawaii Style */

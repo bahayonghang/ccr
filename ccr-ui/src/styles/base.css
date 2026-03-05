@@ -5,7 +5,6 @@
 
 /* ========== CSS Reset & Base Styles ========== */
 @layer base {
-
     *,
     *::before,
     *::after {
@@ -165,7 +164,6 @@
 
 /* ========== 工具类 (Utilities) ========== */
 @layer utilities {
-
     /* 屏幕阅读器专用 */
     .sr-only {
         position: absolute;
@@ -199,11 +197,11 @@
 
     /* 统一玻璃卡片样式 (全局可用) */
     .glass-card {
-        background-color: rgba(0, 0, 0, 0.4);
+        background-color: rgb(0 0 0 / 40%);
         backdrop-filter: blur(20px) saturate(180%);
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgb(255 255 255 / 10%);
+        box-shadow: 0 8px 32px 0 rgb(0 0 0 / 30%);
         border-radius: var(--radius-2xl);
         overflow: hidden;
         color: white;
@@ -277,7 +275,6 @@
 
 /* ========== 禁用动画（无障碍） ========== */
 @media (prefers-reduced-motion: reduce) {
-
     *,
     *::before,
     *::after {

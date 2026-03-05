@@ -570,7 +570,7 @@ watch(activeTab, (newTab) => {
 .content-tabs {
   @apply flex gap-2 p-1 rounded-xl border border-white/5;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .content-tab {
@@ -581,7 +581,7 @@ watch(activeTab, (newTab) => {
 }
 
 .content-tab:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
 }
 
 .content-tab--active {

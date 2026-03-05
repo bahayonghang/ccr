@@ -98,7 +98,7 @@ function dismiss() {
          border border-white/5
          shadow-2xl max-w-sm;
 
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
   backdrop-filter: blur(16px);
 }
 

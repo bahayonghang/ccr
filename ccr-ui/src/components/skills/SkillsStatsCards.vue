@@ -154,7 +154,7 @@ function formatNumber(num: number): string {
          transition-[border-color,box-shadow] duration-300
          hover:border-white/10 hover:shadow-lg;
 
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
   min-width: 140px;
 }
 
@@ -211,7 +211,7 @@ function formatNumber(num: number): string {
   @apply flex-1 flex flex-col gap-2 px-4 py-3 rounded-xl
          backdrop-blur-sm border border-white/5;
 
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
 }
 
 .platform-overview__header {
@@ -233,7 +233,7 @@ function formatNumber(num: number): string {
          border border-white/5
          transition-colors duration-200;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .platform-chip--active {
@@ -248,7 +248,7 @@ function formatNumber(num: number): string {
   @apply text-white;
 
   border-color: rgb(var(--color-success-rgb) / 30%);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
 }
 
 .platform-chip--inactive {

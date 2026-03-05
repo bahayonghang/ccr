@@ -177,14 +177,14 @@ function handleClick() {
          transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out
          overflow-hidden;
 
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(0 0 0 / 40%);
 }
 
 .mp-card:hover {
   @apply border-white/20 transform scale-[1.01];
 
-  background: rgba(0, 0, 0, 0.5);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 50%);
+  box-shadow: 0 4px 20px rgb(0 0 0 / 20%);
 }
 
 .mp-card--selected {
