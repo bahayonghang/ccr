@@ -65,13 +65,14 @@ cmake-build-*/
 .agent/
 .gemini/
 .agents/
+.omcodex/
 
 openspec/
 .serena/
 
 
-ccr-ui/frontend/src-tauri/gen
-ccr-ui/frontend/src-tauri/bin
+ccr-ui/src-tauri/gen/
+ccr-ui/src-tauri/bin/
 
 ref/
 
