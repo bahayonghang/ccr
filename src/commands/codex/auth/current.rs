@@ -84,7 +84,7 @@ pub async fn current_command() -> Result<()> {
 
             if let Ok(info) = service.get_current_auth_info() {
                 println!();
-                display_auth_info(&service, &info, None);
+                display_auth_info(&service, &info, &auth_state, None);
             }
         }
     }
