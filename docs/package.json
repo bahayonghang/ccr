@@ -1,16 +1,17 @@
 {
   "name": "ccr-docs",
   "version": "1.0.0",
-  "description": "Documentation for CCR - Claude Code Configuration Switcher",
+  "description": "Documentation for CCR - unified configuration registry for modern AI CLIs",
   "type": "module",
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",
-    "preview": "vitepress preview"
+    "preview": "vitepress preview",
+    "audit": "node ./scripts/audit-docs.mjs"
   },
   "keywords": [
     "ccr",
-    "claude",
+    "ai-cli",
     "configuration",
     "documentation"
   ],
