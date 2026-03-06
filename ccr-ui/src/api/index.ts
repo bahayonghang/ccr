@@ -7,3 +7,10 @@
 
 export * from './tauri'
 export type { McpPreset, McpServerInfo, McpSyncResult as SyncResult } from '@/types/api'
+
+// Domain-first modular API (new), while keeping legacy named exports above for compatibility.
+export * as configApi from './domains/config'
+export * as syncApi from './domains/sync'
+export * as platformApi from './domains/platforms'
+export * as usageApi from './domains/usage'
+export * as systemApi from './domains/system'

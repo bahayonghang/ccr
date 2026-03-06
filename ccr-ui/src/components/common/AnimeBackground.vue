@@ -21,6 +21,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { logger } from '@/utils/logger'
 
 const bgUrl = ref('')
 const isLoaded = ref(false)
@@ -64,7 +65,7 @@ const loadBackground = async () => {
       throw new Error('Invalid API response format')
     }
   } catch (err) {
-    console.error('[AnimeBackground] Failed to load:', err)
+    logger.error('[AnimeBackground] failed to load', err)
     hasError.value = true
     isLoaded.value = true // stop loading state
   }
