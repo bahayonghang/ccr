@@ -1,4 +1,4 @@
 {
-  "OPENAI_API_KEY": "paste-your-codex-token-here",
-  "DUCKCODING_API_KEY": "paste-your-codex-token-here"
+  "OPENAI_API_KEY": "sk-openai-or-proxy-token",
+  "DUCKCODING_API_KEY": "sk-provider-token"
 }

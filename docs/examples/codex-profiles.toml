@@ -7,35 +7,43 @@ current_config = "duckcoding"
 [settings]
 skip_confirmation = false
 
-# GitHub Copilot（兼容模式）
-[github]
-description = "GitHub Copilot (legacy)"
-base_url = "https://api.github.com/copilot"
-auth_token = "ghp_...your-github-token"
-model = "gpt-4"
-provider = "github"
+# 官方模式：切换时重置 ~/.codex/config.toml 和 ~/.codex/auth.json
+[official]
+description = "Codex 官方模式"
+provider = "openai"
 provider_type = "official_relay"
-api_mode = "github"
 usage_count = 0
 enabled = true
 
-# OpenAI 兼容 Provider（与你截图一致）
+# 第三方模式（Provider API key）
 [duckcoding]
-description = "DuckCoding (OpenAI 兼容) - gpt-5.1-codex"
+description = "DuckCoding OpenAI 兼容"
 base_url = "https://jp.duckcoding.com/v1"
-auth_token = "sk-...your-duckcoding-codex-token"
-model = "gpt-5.1-codex"
+auth_token = "sk-...your-duckcoding-token"
+model = "gpt-5-codex"
 provider = "duckcoding"
-provider_type = "official_relay"
-api_mode = "custom"
+provider_type = "third_party_model"
 wire_api = "responses"
 env_key = "DUCKCODING_API_KEY"
-requires_openai_auth = true
+requires_openai_auth = false
+model_reasoning_effort = "high"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
-model_reasoning_effort = "high"
 network_access = "enabled"
 disable_response_storage = true
 usage_count = 0
 enabled = true
 
+# 第三方模式（OpenAI 认证语义）
+# 注意：requires_openai_auth=true 时 env_key 会被忽略
+[openai-proxy]
+description = "Proxy with OpenAI auth"
+base_url = "https://proxy.example.com/v1"
+model = "gpt-5-codex"
+provider = "proxy"
+provider_type = "third_party_model"
+wire_api = "responses"
+requires_openai_auth = true
+model_reasoning_effort = "medium"
+usage_count = 0
+enabled = true

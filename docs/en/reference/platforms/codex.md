@@ -1,116 +1,158 @@
-# Codex Platform
+# Codex Platform Configuration Guide
 
 ## Overview
 
-CCR provides comprehensive management for Codex CLI configurations with a **two-way dispatch** model:
+In CCR, Codex platform profiles are translated into Codex CLI runtime files.
 
-1. **Official Mode**: Fully resets `~/.codex/config.toml` and `~/.codex/auth.json` to defaults
-2. **ThirdParty Mode**: Read-modify-write, preserving all non-provider fields
+- Input: `~/.ccr/platforms/codex/profiles.toml`
+- Output: `~/.codex/config.toml` and `~/.codex/auth.json`
 
-All configuration writes use **atomic operations** (temp file + rename) with **file locking** for concurrent safety.
+Switching uses two modes:
 
-## Quick Start
+1. `official_relay` (Official mode): reset `config.toml` and `auth.json`
+2. Any other type (Third-party mode): read-modify-write; only provider-related keys are updated
 
-```bash
-ccr platform init codex
-ccr platform switch codex
-ccr add
-```
+## Configuration Flow
 
-## Profile Classification
+### 1. Profile -> Codex write path
 
-CCR uses the `provider_type` field to determine profile behavior:
+After `ccr switch <profile>`, CCR writes:
 
-| `provider_type` | Classification | Switch Behavior |
-|-----------------|---------------|-----------------|
-| `official_relay` | Official | Full config reset to defaults |
-| Other / unset | ThirdParty | Read-modify-write, preserving existing fields |
+- Top-level keys in `~/.codex/config.toml`: `model`, `model_provider`, `model_reasoning_effort`, `approval_policy`, `sandbox_mode`, etc.
+- Provider table in `[model_providers.<id>]`: `name`, `base_url`, `wire_api`, `requires_openai_auth`, `env_key`
+- Secrets in `~/.codex/auth.json`: `OPENAI_API_KEY` or `<env_key>`
 
-**Fallback**: If `provider_type` is not set, profiles without a `base_url` (or with an empty one) are treated as Official.
+### 2. Provider ID resolution
 
-## Two-Way Dispatch
+`model_provider` is resolved by priority:
 
-### Official Mode
+1. `provider_id` (platform_data)
+2. `provider`
+3. profile name
 
-When switching to a profile with `provider_type = "official_relay"`:
+The resolved id is normalized (lowercase + non-alphanumeric converted to `-`).
 
-1. **Auto-backup** current `config.toml` and `auth.json`
-2. **Full reset** `config.toml` to empty TOML
-3. **Full reset** `auth.json` to empty JSON
-4. Update `profiles.toml` `current_config`
+## Key Fields (model / effort / url / key)
 
-Use case: Restore Codex CLI to default behavior with the official OpenAI service.
+### model
 
-### ThirdParty Mode
+| Field | Location | Type | Required | Description |
+|------|------|------|----------|------|
+| `model` | profile top-level | string | No | Primary model; written to top-level `model` in `~/.codex/config.toml` |
 
-When switching to a non-official profile:
-
-1. **Read** existing `config.toml` (preserving all fields)
-2. **Update** provider fields: `model`, `model_provider`, `[model_providers.{id}]`
-3. **Optionally set** runtime params: `approval_policy`, `sandbox_mode`, etc.
-4. **Atomic write** `config.toml`
-5. **Update** API key in `auth.json`
-6. Update `profiles.toml` `current_config`
-
-Use case: Use third-party OpenAI-compatible providers while preserving existing non-provider configuration.
-
-## Atomic Writes & Concurrent Safety
-
-CCR uses `CodexConfigManager` for all Codex config operations:
-
-| Feature | Description |
-|---------|-------------|
-| **Atomic writes** | Temp file + rename prevents corruption from interrupted writes |
-| **File locking** | Cross-process locks prevent concurrent write conflicts (resource: `codex_config`) |
-| **Auto-backup** | Automatic backup before official mode reset, keeps last 10 backups |
-| **Config caching** | 30s TTL cache reduces redundant reads (`CachedCodexConfigManager`) |
-
-Backup files are stored in `~/.codex/backups/`:
-```
-config.pre_official.20260225_120000.toml.bak
-auth.pre_official.20260225_120000.json.bak
-```
-
-## Configuration
-
-### Example profiles.toml
+Example:
 
 ```toml
-default_config = "duckcoding"
-current_config = "duckcoding"
+model = "gpt-5-codex"
+```
 
-[settings]
-skip_confirmation = false
+### model_reasoning_effort
 
-# Official mode - full config reset on switch
+| Field | Location | Type | Required | Allowed values |
+|------|------|------|----------|--------|
+| `model_reasoning_effort` | platform_data (flattened profile key) | string | No | `minimal` / `low` / `medium` / `high` / `xhigh` |
+
+Behavior:
+
+- Strict enum validation during profile validation.
+- Case-insensitive input; written in lowercase.
+
+Example:
+
+```toml
+model_reasoning_effort = "high"
+```
+
+### base_url
+
+| Field | Location | Type | Required | Description |
+|------|------|------|----------|------|
+| `base_url` | profile top-level | string | Required in third-party mode | Provider endpoint; must start with `http://` or `https://` |
+
+Example:
+
+```toml
+base_url = "https://api.example.com/v1"
+```
+
+### key (auth_token / env_key / OPENAI_API_KEY)
+
+| Field | Location | Type | Required | Description |
+|------|------|------|----------|------|
+| `auth_token` | profile top-level | string | Depends on auth intent | Source token used when writing `auth.json` |
+| `env_key` | platform_data | string | Required for provider-key mode | Key name written into `auth.json` |
+| `OPENAI_API_KEY` | `~/.codex/auth.json` | string | Written in OpenAI API-key flow | OpenAI key entry |
+
+Auth intent rules:
+
+- If `requires_openai_auth = true`: OpenAI-auth semantics; `env_key` is ignored.
+- If `requires_openai_auth = false` and `env_key` is set: `auth_token` is required and written to `auth.json[env_key]`.
+- If `requires_openai_auth` is omitted: inferred from `env_key` presence.
+
+## Other Common Fields
+
+| Field | Location | Description |
+|------|------|------|
+| `wire_api` | platform_data | `responses` or `chat`; default is `responses` |
+| `provider_type` | profile top-level | `official_relay` => official mode; otherwise third-party mode |
+| `approval_policy` | platform_data | passed through to top-level `config.toml` |
+| `sandbox_mode` | platform_data | passed through to top-level `config.toml` |
+| `network_access` | platform_data | passed through to top-level `config.toml` |
+| `disable_response_storage` | platform_data | passed through to top-level `config.toml` (bool) |
+| `provider_model` | platform_data | optional; writes `[model_providers.<id>].model` |
+
+## Recommended Profiles
+
+### Official mode (reset to Codex defaults)
+
+```toml
 [official]
-description = "Codex official default config"
+description = "Codex official mode"
 provider = "openai"
 provider_type = "official_relay"
+```
 
-# ThirdParty mode - preserves non-provider fields on switch
+### Third-party mode (provider env key)
+
+```toml
 [duckcoding]
-description = "DuckCoding (OpenAI compatible)"
+description = "DuckCoding OpenAI compatible"
 base_url = "https://jp.duckcoding.com/v1"
-auth_token = "sk-...your-token"
-model = "gpt-5.1-codex"
+auth_token = "sk-..."
+model = "gpt-5-codex"
 provider = "duckcoding"
 provider_type = "third_party_model"
 wire_api = "responses"
 env_key = "DUCKCODING_API_KEY"
-requires_openai_auth = true
+requires_openai_auth = false
+model_reasoning_effort = "high"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
-model_reasoning_effort = "high"
 network_access = "enabled"
 disable_response_storage = true
 ```
 
-### Generated config.toml (ThirdParty mode)
+### Third-party mode (OpenAI-auth semantics)
+
+```toml
+[openai-proxy]
+description = "OpenAI auth via proxy"
+base_url = "https://proxy.example.com/v1"
+model = "gpt-5-codex"
+provider = "proxy"
+provider_type = "third_party_model"
+wire_api = "responses"
+requires_openai_auth = true
+model_reasoning_effort = "medium"
+```
+
+## Generated Output Example
+
+For the `duckcoding` profile, expected `~/.codex/config.toml`:
 
 ```toml
 model_provider = "duckcoding"
-model = "gpt-5.1-codex"
+model = "gpt-5-codex"
 model_reasoning_effort = "high"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
@@ -118,198 +160,59 @@ network_access = "enabled"
 disable_response_storage = true
 
 [model_providers.duckcoding]
-name = "duckcoding"
+name = "DuckCoding OpenAI compatible"
 base_url = "https://jp.duckcoding.com/v1"
 wire_api = "responses"
-requires_openai_auth = true
+requires_openai_auth = false
 env_key = "DUCKCODING_API_KEY"
 ```
 
-### Generated auth.json
+Expected `~/.codex/auth.json`:
 
 ```json
 {
-  "OPENAI_API_KEY": "paste-your-token-here",
-  "DUCKCODING_API_KEY": "paste-your-token-here"
+  "DUCKCODING_API_KEY": "sk-..."
 }
 ```
 
-## Multi-Account Management
+## Validation and Troubleshooting
 
-CCR provides comprehensive multi-account management for Codex CLI.
+### Common validation failures
 
-### Basic Commands
+1. Invalid `wire_api`
+- Only `responses` / `chat` are allowed.
 
-```bash
-# Save current login as a named account
-ccr codex auth save work
+2. Invalid `model_reasoning_effort`
+- Only `minimal/low/medium/high/xhigh` are allowed.
 
-# Save with description
-ccr codex auth save personal -d "Personal account"
+3. Missing `base_url` in third-party profile
+- URL must start with `http://` or `https://`.
 
-# Save with expiry time
-ccr codex auth save temp --expires-at 2026-02-01T00:00:00Z
+4. Missing `auth_token` in provider-key mode
+- When `env_key` is active, `auth_token` is required.
 
-# Force overwrite existing account
-ccr codex auth save work --force
-
-# List all saved accounts
-ccr codex auth list
-
-# Switch to a specific account
-ccr codex auth switch work
-
-# Show current account info
-ccr codex auth current
-
-# Delete an account
-ccr codex auth delete old-account
-
-# Delete without confirmation
-ccr codex auth delete old-account --force
-```
-
-### Export & Import
+### Useful commands
 
 ```bash
-# Export all accounts to Downloads folder
-ccr codex auth export
-
-# Export without sensitive data (tokens)
-ccr codex auth export --no-secrets
-
-# Import accounts from file (interactive)
-ccr codex auth import
-
-# Import in replace mode (overwrite existing accounts)
-ccr codex auth import --replace
-
-# Import with force (overwrite in merge mode)
-ccr codex auth import --force
-```
-
-**Import Modes:**
-- **Merge (default)**: Skip existing accounts, only add new ones
-- **Merge + --force**: Overwrite existing accounts with imported data
-- **Replace (--replace)**: Always overwrite accounts with the same name
-
-**Features:**
-- 🟢 Token freshness indicators: Fresh (<1 day) | 🟡 Stale (1-7 days) | 🔴 Old (>7 days)
-- 📧 Email masking for privacy (e.g., `use***@example.com`)
-- 🔒 Automatic backup rotation, keeps last 10 backups
-- ⚠️ Process detection warnings before switching
-- 🔐 Auto-set auth file permissions to 0600 on Unix systems
-
-### Interactive TUI
-
-Launch the Codex account management interface:
-```bash
-ccr codex
-```
-
-**Keyboard Shortcuts:**
-| Key | Action |
-|-----|--------|
-| `↑` / `↓` / `j` / `k` | Select account |
-| `Enter` | Switch to selected account and exit |
-| `Space` | Switch to selected account (stay in TUI) |
-| `q` / `Esc` | Quit |
-
-## Validation
-
-```bash
+ccr platform switch codex
+ccr list
 ccr validate
-
-# Output includes:
-# ✅ Official mode profiles: no validation needed
-# ✅ ThirdParty mode profiles: checks base_url, auth_token, wire_api
-# ❌ Legacy api_mode=github profiles: returns deprecation error
+ccr switch <profile>
 ```
 
-## Migration from Legacy GitHub Mode
+## Security Notes
 
-> **Note**: GitHub Copilot compatible mode (`api_mode: "github"`) was deprecated and removed in v4.2.6.
-> Switching to a legacy GitHub mode profile will return a clear deprecation error.
-
-Migration steps:
-
-1. Delete old GitHub mode profiles
-2. Create new Official or ThirdParty profiles as needed
+1. Never commit real tokens to Git.
+2. Use `--no-secrets` when exporting shareable configs.
+3. Protect local permissions:
 
 ```bash
-# Delete old GitHub mode profile
-ccr delete github-old
-
-# Create a new ThirdParty profile
-ccr add
-# Follow the prompts
-```
-
-## Troubleshooting
-
-### Issue: Legacy GitHub Profile Error
-
-**Symptoms:**
-```
-❌ GitHub Copilot compatible mode is deprecated, use ThirdParty mode instead
-```
-
-**Solution:**
-Delete old `api_mode = "github"` profiles and recreate using Official or ThirdParty mode.
-
-### Issue: Settings Not Updating
-
-**Symptoms:**
-Profile switch succeeds but `~/.codex/config.toml` unchanged.
-
-**Solution:**
-```bash
-# Check file permissions
-ls -la ~/.codex/config.toml
-
-# Fix permissions if needed
-chmod 600 ~/.codex/config.toml
-
-# Verify lock files
-ls -la ~/.ccr/.locks/
-
-# Clean stale locks if present
-rm -rf ~/.ccr/.locks/*
-```
-
-## Related Commands
-
-```bash
-# Platform management
-ccr platform list           # List all platforms
-ccr platform switch codex   # Switch to Codex
-ccr platform current        # Show current platform
-
-# Profile management
-ccr list                    # List Codex profiles
-ccr switch <name>           # Switch Codex profile
-ccr add                     # Add new profile
-ccr delete <name>           # Delete profile
-
-# Multi-account management
-ccr codex auth save <name>   # Save current login as named account
-ccr codex auth list          # List all saved accounts
-ccr codex auth switch <name> # Switch to specific account
-ccr codex auth current       # Show current account info
-ccr codex auth delete <name> # Delete account
-ccr codex auth export        # Export accounts to file
-ccr codex auth import        # Import accounts from file
-ccr codex                    # Launch interactive TUI
-
-# Validation and diagnostics
-ccr validate                # Validate all profiles
-ccr history                 # View operation history
+chmod 600 ~/.ccr/platforms/codex/profiles.toml
+chmod 600 ~/.codex/auth.json
 ```
 
 ## See Also
 
-- [Platform Overview](./index) - All supported platforms
-- [Claude Code Platform](./claude) - Claude Code configuration
-- [Gemini Platform](./gemini) - Gemini CLI configuration
-- [Migration Guide](./migration) - Migrating between platforms
-- [Multi-Platform Setup](../../examples/multi-platform-setup) - Setup examples
+- [Platform Overview](./index)
+- [Platform Migration](./migration)
+- [Examples](../../examples/)
