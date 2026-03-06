@@ -449,7 +449,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "4.4.2"
+version = "4.4.3"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -520,7 +520,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "4.4.2"
+version = "4.4.3"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -552,7 +552,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "4.4.2"
+version = "4.4.3"
 dependencies = [
  "serde",
  "serde_json",

@@ -371,7 +371,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "4.4.2"
+version = "4.4.3"
 dependencies = [
  "anyhow",
  "axum",
@@ -449,7 +449,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "4.4.2"
+version = "4.4.3"
 dependencies = [
  "serde",
  "serde_json",
