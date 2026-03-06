@@ -1,43 +1,39 @@
-# Migration Guide
+# Repository Layout Migration Guide
 
-> **Note:** This documentation is being translated. Please refer to the [Chinese version](./migration) for complete information.
+This page maps the legacy repository layout to the current Rust workspace layout.
 
-## Overview
+## Path Mapping
 
-Guide for migrating from CCS to CCR and between different CCR versions.
+| Legacy path | Current path | Notes |
+|---|---|---|
+| `src/` | `crates/ccr/src/` | Main CLI, TUI, Web API, and service layers |
+| `tests/` | `crates/ccr/tests/` | CLI integration tests |
+| `build.rs` | `crates/ccr/build.rs` | Main package build script |
+| `ccr-db/` | `crates/ccr-db/` | Database crate |
+| `ccr-types/` | `crates/ccr-types/` | Shared types crate |
+| `ccr-ui/backend/` | `ccr-ui/src-tauri/` | Tauri desktop shell |
+| `ccr-ui/frontend/` | `ccr-ui/src/` | Vue frontend source |
+| No unified artifact directory | `outputs/` | Final collected artifacts without changing native build outputs |
 
-## From CCS to CCR
+## Command Mapping
 
-CCR is fully compatible with CCS:
+| Legacy command | Current command |
+|---|---|
+| `cargo install --path .` | `cargo install --path crates/ccr` |
+| `cargo run -- ...` | `cargo run -p ccr -- ...` |
+| `cargo build --release` | `cargo build -p ccr --release` |
+| `cd ccr-ui/backend && cargo build --release` | `cd ccr-ui/src-tauri && cargo build --release` |
+| `cd ccr-ui/frontend && bun run build` | `cd ccr-ui && bun run build` |
 
-```bash
-# Both tools share the same config file
-~/.ccs_config.toml
+## Build Outputs
 
-# Use either tool
-ccs list      # Shell-based CCS
-ccr list      # Rust-based CCR
-```
-
-## From Legacy to Unified Mode
-
-```bash
-# Check migration status
-ccr migrate --check
-
-# Perform migration
-ccr migrate
-
-# Migrate specific platform
-ccr migrate --platform claude
-```
+- Native CLI binaries still build into `target/`.
+- Frontend static assets still build into `ccr-ui/dist/`.
+- Tauri desktop artifacts still build into `ccr-ui/src-tauri/target/`.
+- Use root `just outputs-collect` to copy final deliverables into `outputs/`.
 
 ## See Also
 
-- [Quick Start](./quick-start)
-- [Configuration Guide](./configuration)
-- [Platform Migration](./platforms/migration)
-
----
-
-**Translation in progress.** See [Chinese version](./migration) for complete migration guide.
+- [Quick Start](/en/guide/quick-start)
+- [Architecture](/en/reference/architecture)
+- [Command Reference](/en/reference/commands/)

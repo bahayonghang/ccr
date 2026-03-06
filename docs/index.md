@@ -96,6 +96,12 @@ const quickLinks = [
     title: '架构设计',
     details: '了解 CCR 的分层架构。',
     link: '/reference/architecture'
+  },
+  {
+    icon: '🔁',
+    title: '迁移指南',
+    details: '查看旧路径与新布局的对照关系。',
+    link: '/reference/migration'
   }
 ]
 </script>
@@ -106,7 +112,7 @@ const quickLinks = [
 
 ## 版本与安装
 - 当前版本：3.20.11（Rust 2024）
-- 需求：Rust 1.88+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
+- 需求：Rust 1.90+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
 
 ```bash
 # 推荐：直接安装
@@ -115,8 +121,10 @@ cargo install --git https://github.com/bahayonghang/ccr ccr
 # 源码安装
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
-cargo install --path .
+cargo install --path crates/ccr
 ```
+
+> 工作区说明：可安装的 CLI crate 位于 `crates/ccr`。`crates/ccr-db` 与 `crates/ccr-types` 负责数据库服务与共享类型；`docs/`、`scripts/`、`examples/` 仍在仓库根目录；`outputs/` 用于汇总产物（如存在）。
 
 ## 快速使用
 ```bash
@@ -175,10 +183,16 @@ ccr pricing set my-model --input 3.0 --output 15.0   # 设置自定义定价
 ## 目录结构（工作区）
 ```
 ccr/
-|-- src/                # CLI + 库（平台、服务、同步、web、tui）
-|-- ccr-ui/             # 完整 UI（backend: Axum；frontend: Vue 3 + Tauri）
+|-- Cargo.toml          # workspace manifest + shared dependencies
+|-- crates/
+|   |-- ccr/            # CLI + 库（平台、服务、同步、web、tui）
+|   |-- ccr-db/         # 数据库服务与数据模型
+|   `-- ccr-types/      # 共享类型定义
+|-- ccr-ui/             # 完整 UI（Vue 3 + Tauri）
 |-- docs/               # 本文档
-|-- tests/              # 集成测试
+|-- scripts/            # 维护脚本
+|-- examples/           # 示例配置
+|-- outputs/            # 汇总/生成产物（如存在）
 `-- justfile            # 通用开发任务
 ```
 

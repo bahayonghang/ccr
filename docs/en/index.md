@@ -48,7 +48,8 @@ features:
 
 ## Installation
 
-Current version: **3.20.11** (Rust 2024). Requirements: Rust 1.88+; optional Node.js 18+ + Bun 1.0+ for CCR UI development, `just` for scripts.
+Current version: **3.20.11** (Rust 2024). Requirements: Rust 1.90+; optional Node.js 18+ + Bun 1.0+ for CCR UI development, `just` for scripts.
+Current workspace note: the installable CLI crate lives in `crates/ccr`; `crates/ccr-db` and `crates/ccr-types` provide supporting crates for the refactored layout.
 
 ### Quick Install
 
@@ -61,8 +62,26 @@ cargo install --git https://github.com/bahayonghang/ccr ccr
 ```bash
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
-cargo build --release
-cargo install --path .
+cargo build --release -p ccr
+cargo install --path crates/ccr
+```
+
+Need the old-to-new path map? See the [Migration Guide](/en/reference/migration).
+
+## Workspace Layout
+
+```text
+ccr/
+├── Cargo.toml              # workspace manifest + shared dependencies
+├── crates/
+│   ├── ccr/                # installable CLI crate + shared runtime logic
+│   ├── ccr-db/             # database services and models
+│   └── ccr-types/          # shared types
+├── ccr-ui/                 # Vue 3 + Tauri application root
+├── docs/                   # VitePress documentation
+├── scripts/                # automation and maintenance helpers
+├── examples/               # sample configs
+└── outputs/                # collected/generated artifacts (when present)
 ```
 
 ## Quick Usage

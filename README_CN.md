@@ -35,8 +35,10 @@ cargo install --git https://github.com/bahayonghang/ccr --branch dev ccr
 ```bash
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
-cargo install --path .
+cargo install --path crates/ccr
 ```
+
+> 工作区说明：当前可安装的 CLI crate 位于 `crates/ccr`。旧路径到新路径的映射请参考 `docs/reference/migration.md`。
 
 ### 构建要求
 - **Rust**: 1.88+ (2024 版本)
@@ -233,9 +235,16 @@ just lint
 ## 📂 项目结构
 ```text
 ccr/
-├── src/            # 核心 Rust 逻辑 (CLI, TUI, Web API)
+├── Cargo.toml      # Workspace 清单 + 共享依赖
+├── crates/
+│   ├── ccr/        # 可安装的 CLI crate + 库
+│   ├── ccr-db/     # 数据库服务与数据模型
+│   └── ccr-types/  # 共享类型定义
 ├── ccr-ui/         # 全栈 Web/桌面应用 (Vue 3 + Tauri)
-├── tests/          # 集成测试
+├── docs/           # VitePress 文档
+├── scripts/        # 仓库自动化与维护脚本
+├── examples/       # 示例配置与用法
+├── outputs/        # 汇总/生成产物（如存在）
 └── justfile        # 任务运行配置
 ```
 

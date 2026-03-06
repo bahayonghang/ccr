@@ -1,6 +1,6 @@
 # 版本同步脚本（PowerShell 版本）
-# 以根 Cargo.toml 为主，同步到：
-# - ccr-types/Cargo.toml
+# 以 crates/ccr/Cargo.toml 为主，同步到：
+# - crates/ccr-types/Cargo.toml
 # - ccr-ui/package.json
 # - ccr-ui/src-tauri/Cargo.toml
 # - ccr-ui/src-tauri/tauri.conf.json
@@ -22,8 +22,8 @@ $ErrorActionPreference = "Stop"
 $ROOT_DIR = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 
 # 配置文件路径
-$ROOT_CARGO = Join-Path $ROOT_DIR "Cargo.toml"
-$CCR_TYPES_CARGO = Join-Path $ROOT_DIR "ccr-types\Cargo.toml"
+$ROOT_CARGO = Join-Path $ROOT_DIR "crates\ccr\Cargo.toml"
+$CCR_TYPES_CARGO = Join-Path $ROOT_DIR "crates\ccr-types\Cargo.toml"
 $FRONTEND_PKG = Join-Path $ROOT_DIR "ccr-ui\package.json"
 $TAURI_CARGO = Join-Path $ROOT_DIR "ccr-ui\src-tauri\Cargo.toml"
 $TAURI_CONF = Join-Path $ROOT_DIR "ccr-ui\src-tauri\tauri.conf.json"
@@ -161,7 +161,7 @@ if ($Check) {
     } else {
         Write-Host "❌ 版本不一致："
         Write-Host "  root Cargo.toml:                        $ROOT_VER"
-        Write-Host "  ccr-types/Cargo.toml:                   $CCR_TYPES_VER"
+        Write-Host "  crates/ccr-types/Cargo.toml:            $CCR_TYPES_VER"
         Write-Host "  ccr-ui/package.json:           $FRONTEND_VER"
         Write-Host "  ccr-ui/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
         Write-Host "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"

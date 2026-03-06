@@ -1,68 +1,105 @@
-# Architecture (v3.20.11)
+# Architecture
 
-CCR is a Rust 2024 workspace with a strict layered design and dual config modes (Unified by default, Legacy compatible). It ships CLI/TUI/legacy Web API and powers the full CCR UI app.
+> Canonical guide for the current workspace layout. CCR now uses a Rust 2024 workspace with core crates under `crates/`, while `ccr-ui`, `docs`, `scripts`, and `examples` remain at the repository root.
 
-## Workspace & Modes
+## Overview
 
-```
-ccr/                  # workspace root
-├─ Cargo.toml         # workspace deps (clap/serde/tokio/axum/...)
-├─ src/               # core CLI + library
-├─ ccr-ui/
-│  ├─ backend/        # Axum REST server, reuses ccr crate (default-features = false)
-│  └─ frontend/       # Vue3 + Vite + Pinia + Tailwind + Tauri
-├─ docs/              # VitePress docs (zh/en)
-└─ tests/             # integration tests
-```
+- **Core CLI crate**: `crates/ccr`
+- **Database crate**: `crates/ccr-db`
+- **Shared types crate**: `crates/ccr-types`
+- **UI app root**: `ccr-ui`
+- **Root utilities**: `docs/`, `scripts/`, `examples/`
+- **Collected artifacts**: optional root `outputs/`
 
-- **Unified mode (default)**: `~/.ccr/config.toml` + `platforms/<name>/profiles.toml`, history/backups per platform.
-- **Legacy mode**: `~/.ccs_config.toml` (CCS compatible).
-- **Settings target**: writes directly to `~/.claude/settings.json` (atomic + locked).
+## Workspace Layout
 
-## Layered Architecture
-
-```
-CLI / Web API / TUI
-        │
-        ▼
-   Services (orchestration)
-        │
-        ▼
-  Managers (data access)
-        │
-        ▼
- Core & Utils (infrastructure)
+```text
+ccr/
+├── Cargo.toml                # workspace manifest + shared dependencies
+├── crates/
+│   ├── ccr/                  # installable CLI crate + shared runtime logic
+│   │   ├── src/              # cli / commands / services / managers / sync / web / tui
+│   │   └── tests/            # integration tests for the CLI crate
+│   ├── ccr-db/               # database-facing services and models
+│   └── ccr-types/            # shared types reused across crates and desktop shell
+├── ccr-ui/
+│   ├── src/                  # Vue 3 application
+│   ├── src-tauri/            # Tauri desktop shell
+│   └── dist/                 # generated frontend assets after `ccr-ui` build
+├── docs/                     # VitePress docs (zh/en)
+├── scripts/                  # repository automation and maintenance helpers
+├── examples/                 # sample configs and workflows
+└── outputs/                  # collected/generated artifacts (optional)
 ```
 
-- **CLI (`src/commands/`)**: domain submodules `platform/`, `profile/`, `lifecycle/`, `data/`, `common/` plus `sync_cmd`, `ui`, `skills_cmd`, `prompts_cmd`, `check_cmd`, `update`. Clap routing lives in `main.rs`, supports shortcut `ccr <profile>`.
-- **Services (`src/services/`)**: `ConfigService`, `SettingsService`, `HistoryService`, `BackupService` & `MultiBackupService`, `SyncService` (WebDAV), `UiService` (CCR UI bootstrap).
-- **Managers (`src/managers/`)**: `ConfigManager` (Legacy), `PlatformConfigManager` (Unified registry), `SyncConfigManager`/`SyncFolderManager`, `TempOverrideManager`, `SettingsManager`, `HistoryManager`, `CostTracker`, `PromptsManager`, `SkillsManager`, `ConflictChecker`.
-- **Core (`src/core/`)**: unified `CcrError`, file locks + in-process mutex, `atomic_writer`, `fileio`, `file_manager`, `logging` (tracing + colored output).
-- **Platforms/Models**: `Platform`/`PlatformPaths`/`ProfileConfig` traits and impls for Claude, Codex, Gemini (Qwen/iFlow stubs), plus `PlatformRegistry`/`PlatformDetector`.
-- **Sync (`src/sync/`)**: `SyncService` on `reqwest_dav` with recursion, filtering, allow-list, and remote directory guards; `content_selector` for interactive choices; `commands` for folder/all/dynamic subcommands.
-- **Interfaces**: `web/` (Axum legacy API, cached system info, JSON/error helpers); `tui/` (Ratatui views/themes, feature gated).
+## Layering
 
-### Dependency Direction
+```text
+CLI / Web API / TUI / Desktop shell
+                ↓
+         Commands / UI bridge
+                ↓
+          Services (orchestration)
+                ↓
+          Managers (persistence)
+                ↓
+         Core / Utils / Models
+```
 
-Interfaces → Services → Managers → Core/Utils. Models/Platforms/Utils are shared; `ccr-ui/backend` consumes the `ccr` crate directly to reuse service/manager logic.
+- **CLI entrypoints** live in `crates/ccr/src/cli/` and `crates/ccr/src/main.rs`.
+- **Command handlers** live in `crates/ccr/src/commands/`.
+- **Service orchestration** lives in `crates/ccr/src/services/`.
+- **Persistence and data access** live in `crates/ccr/src/managers/`.
+- **Platform implementations** live in `crates/ccr/src/platforms/`.
+- **Infrastructure helpers** live in `crates/ccr/src/core/` and `crates/ccr/src/utils/`.
+- **Desktop integration** in `ccr-ui/src-tauri` depends directly on `crates/ccr`, `crates/ccr-db`, and `crates/ccr-types`.
+
+## Dependency Direction
+
+- Interfaces depend on Commands.
+- Commands depend on Services.
+- Services depend on Managers.
+- Managers depend on Core/Utils.
+- Shared models/platform traits can be reused upward, but UI code does not own the business logic.
 
 ## Key Flows
 
-- **Profile switch (Unified)**: CLI → `ConfigService` reads `config.toml` & `profiles.toml` → `SettingsService` locks + backups + atomic write to `settings.json` → `HistoryService` records masked diffs; optional `TempOverrideManager` applies ephemeral token/base_url/model.
-- **Platform management**: `platform list/current/info/init/switch` operate on `config.toml` via `PlatformConfigManager`; platform impls satisfy `PlatformConfig`.
-- **WebDAV sync**: `sync config` stores connection; `sync folder ...` registers/enables directories; `sync push/pull/all` uses `SyncService` recursion with filters (`backups/`, `history/`, `.locks/`, `ccr-ui/` etc.), `--force`, interactive allow-list, single folder or batch.
-- **CCR UI launch**: `UiService` probes `./ccr-ui` → `~/.ccr/ccr-ui` → GitHub download (prompted) before starting frontend/backend; ports override via `-p/--backend-port`.
+### Profile switching
 
-## Reliability & Performance
+1. `crates/ccr/src/cli/` parses a command or shorthand `ccr <name>`.
+2. `ConfigService` loads `~/.ccr/config.toml` and `platforms/<name>/profiles.toml`.
+3. `SettingsService` acquires locks, creates backups, and atomically writes the target `settings.json`.
+4. `HistoryService` records masked diffs.
+5. `TempOverrideManager` applies temporary token/base_url/model overrides when requested.
 
-- File locks + in-process mutex; atomic writes.
-- Automatic backups before destructive operations; `MultiBackupService` cleans per-platform.
-- Tracing logger with `CCR_LOG_LEVEL`; colored console + daily logs under `~/.ccr/logs/`.
-- Rayon parallel validation; shared `fileio`; dev profile `opt-level=1` (deps at `opt-level=2`); Axum caches system info.
+### WebDAV sync
 
-## Testing & Contribution
+1. `sync config` stores connection data.
+2. `sync folder ...` registers and enables sync targets.
+3. `SyncService` handles push/pull/all recursion while filtering backups, history, lock files, and UI cache.
 
-- Unit tests for platforms/managers/locks; integration tests under `tests/` use temp dirs.
-- No `panic!` in production paths; errors centralized in `CcrError` with exit codes.
-- Add commands under `src/commands/<domain>/`, export in `mod.rs`, wire in `main.rs`.
-- Add platforms by implementing `PlatformConfig` and registering in `platforms::create_platform`.
+### CCR UI bootstrap
+
+1. `UiService` probes local `./ccr-ui` first.
+2. It falls back to `~/.ccr/ccr-ui` if needed.
+3. It can finally prompt for a GitHub download.
+
+## Reliability & Quality
+
+- File locks, in-process mutexes, and atomic writes protect config files.
+- Destructive operations create backups first.
+- Logs are controlled via `CCR_LOG_LEVEL` and stored under `~/.ccr/logs/`.
+- CLI integration tests live under `crates/ccr/tests/`.
+- New commands and platform work should extend `crates/ccr/src/`, not the workspace root.
+
+## Extension Paths
+
+- Add commands under `crates/ccr/src/commands/<domain>/`.
+- Wire CLI definitions in `crates/ccr/src/cli/definitions.rs` and routing in `crates/ccr/src/cli/dispatch.rs`.
+- Add platforms under `crates/ccr/src/platforms/` and register them in `crates/ccr/src/platforms/mod.rs`.
+
+## See Also
+
+- [Quick Start](/en/guide/quick-start)
+- [Command Reference](/en/reference/commands/)
+- [Migration Guide](/en/reference/migration)

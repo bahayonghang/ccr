@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This repository is a Rust workspace with a Vue/Tauri UI. `src/` contains the main CLI, TUI, web API, and service layers. `ccr-db/` holds database-facing services and models, while `ccr-types/` provides shared types used across crates. `tests/` stores workspace integration tests, organized by feature areas such as commands, managers, platforms, and workflows. `ccr-ui/` contains the Vue 3 frontend, Tauri shell in `ccr-ui/src-tauri/`, and lightweight frontend tests in `ccr-ui/tests/`. Use `docs/` for VitePress documentation, `examples/` for sample configs, and `scripts/` for repo automation such as version sync.
+This repository is a Rust workspace with a Vue/Tauri UI. `crates/ccr/src/` contains the main CLI, TUI, web API, and service layers. `crates/ccr-db/` holds database-facing services and models, while `crates/ccr-types/` provides shared types used across crates. `crates/ccr/tests/` stores workspace integration tests, organized by feature areas such as commands, managers, platforms, and workflows. `ccr-ui/` contains the Vue 3 frontend, Tauri shell in `ccr-ui/src-tauri/`, and lightweight frontend tests in `ccr-ui/tests/`. Keep `docs/`, `scripts/`, and `examples/` at the repository root; `outputs/` is a collected-artifacts directory and should not be used as a native build output.
 
 ## Build, Test, and Development Commands
 Prefer root `just` recipes so local checks match CI:
@@ -18,7 +18,7 @@ Prefer root `just` recipes so local checks match CI:
 Rust follows `rustfmt`; use `snake_case` for modules/functions and `PascalCase` for types. Prefer `Result`-based error handling and avoid `unwrap`/`expect` in production code. Keep internal implementation comments in Chinese and public API docs in English. Frontend code uses TypeScript, Vue 3, and `<script setup lang="ts">`; keep 2-space indentation, no semicolons, single quotes, and follow `ccr-ui/.prettierrc`, `ccr-ui/eslint.config.js`, and `ccr-ui/.stylelintrc.json`. Name Vue components `PascalCase.vue`; use `camelCase` for composables, stores, and utilities.
 
 ## Testing Guidelines
-Add tests close to the changed surface. Put Rust integration coverage in `tests/` and keep frontend checks in `ccr-ui/tests/`. Run focused checks first, then broader suites. Use `cargo test --workspace --all-features -- --test-threads=1` for Rust and `cd ccr-ui && npm test` for frontend smoke tests. No fixed coverage threshold is defined, but each behavior change should include a regression test or a short rationale.
+Add tests close to the changed surface. Put Rust integration coverage in `crates/ccr/tests/` and keep frontend checks in `ccr-ui/tests/`. Run focused checks first, then broader suites. Use `cargo test --workspace --all-features -- --test-threads=1` for Rust and `cd ccr-ui && npm test` for frontend smoke tests. No fixed coverage threshold is defined, but each behavior change should include a regression test or a short rationale.
 
 ## Commit & Pull Request Guidelines
 Git history follows Conventional Commits with scope and optional emoji, for example `feat(tauri): ✨ add profile switch` or `fix(core): 🐛 handle missing config`. Keep commits scoped to one concern when possible. PRs should include a concise summary, impacted areas, verification commands, linked issues, and screenshots or GIFs for `ccr-ui`/Tauri changes. Call out config, schema, or migration impacts explicitly.

@@ -1,341 +1,114 @@
-# CCR 架构设计（v3.20.11）
+# CCR 架构设计
 
-> 面向 Rust 2024 Edition 的分层架构；默认开启 `web` + `tui` 特性。CCR 本身提供 CLI/TUI/轻量 Web API，同时作为 CCR UI 后端的核心依赖。
+> 面向当前 workspace 布局的权威说明。CCR 采用 Rust 2024 workspace，核心逻辑拆分到 `crates/`，UI、文档、脚本与示例保留在仓库根目录。
 
 ## 总览
 
-- **工作区 (Workspace)**：根 crate `ccr` + `ccr-ui/backend`（Axum 服务）+ `ccr-ui/frontend`（Vue3+Vite+Pinia）+ `docs`（VitePress）
-- **配置模式**：`Unified`（默认，`~/.ccr/config.toml` + `platforms/<name>/profiles.toml`）与 `Legacy`（兼容 `~/.ccs_config.toml`）并存
-- **接口形态**：CLI（Clap 解析）、TUI（Ratatui）、轻量 Web API (`ccr web`，Axum) 与完整 CCR UI (`ccr ui`，自动检测本地/用户目录/远程下载)
-- **核心能力**：多平台注册表与切换、配置 CRUD、审计与备份、临时覆盖、WebDAV 多目录同步、技能/提示词/MCP 预设管理、成本追踪、预算控制、Provider 健康检查
+- **核心 crate**：`crates/ccr`（可安装 CLI + 共享核心逻辑）
+- **数据库层**：`crates/ccr-db`（SQLite、CheckIn、加密与相关服务）
+- **共享类型**：`crates/ccr-types`（跨 crate/桌面端复用的数据结构）
+- **UI 工程**：根 `ccr-ui/`（Vue 3 前端 + Tauri 桌面壳）
+- **仓库根目录**：`docs/`、`scripts/`、`examples/` 保持根级；`outputs/` 用于汇总产物（如存在）
 
 ## 工作区结构
 
-```
-ccr/                     # Workspace root
-├── Cargo.toml           # workspace + shared deps (clap/serde/tokio/axum/...)
-├── src/                 # 核心 CLI/库
-│   ├── cli/             # CLI 结构定义和命令分发
-│   ├── commands/        # 命令实现（分类组织）
-│   ├── services/        # 业务逻辑和编排层
-│   ├── managers/        # 数据访问和持久化层
-│   ├── models/          # 数据模型定义
-│   ├── platforms/       # 平台实现（Claude/Codex/Gemini/Qwen/iFlow）
-│   ├── core/            # 核心基础设施
-│   ├── utils/           # 工具函数
-│   ├── web/             # Web API（可选 feature）
-│   ├── tui/             # TUI 界面（可选 feature）
-│   ├── sync/            # WebDAV 同步（可选 feature）
-│   ├── sessions/        # Session 管理
-│   └── storage/         # 数据存储
+```text
+ccr/
+├── Cargo.toml                # workspace manifest + shared dependencies
+├── crates/
+│   ├── ccr/                  # installable CLI crate + shared runtime logic
+│   │   ├── Cargo.toml
+│   │   ├── src/              # cli / commands / services / managers / sync / web / tui
+│   │   └── tests/            # integration tests for the CLI crate
+│   ├── ccr-db/               # database-facing services and models
+│   └── ccr-types/            # shared types reused across crates and desktop shell
 ├── ccr-ui/
-│   ├── backend/         # Axum 后端，直接依赖 ccr crate
-│   └── frontend/        # Vue3 + Vite + Pinia + Tailwind
-├── docs/                # VitePress 文档（中/英）
-├── examples/            # 配置示例
-└── tests/               # 集成测试
+│   ├── src/                  # Vue 3 application
+│   ├── src-tauri/            # Tauri desktop shell
+│   └── dist/                 # generated frontend assets after `ccr-ui` build
+├── docs/                     # VitePress docs (zh/en)
+├── scripts/                  # repository automation and maintenance helpers
+├── examples/                 # sample configs and workflows
+└── outputs/                  # collected/generated artifacts (optional)
 ```
 
-### 配置与数据路径
+## 分层设计
 
-```
-~/.ccr/                      # Unified 模式（默认）
-  ├── config.toml            # 平台注册表（current_platform 等）
-  ├── platforms/
-  │   ├── claude/
-  │   │   ├── profiles.toml      # Profile 配置
-  │   │   └── settings.json      # Settings 配置
-  │   ├── codex/profiles.toml
-  │   ├── gemini/profiles.toml
-  │   ├── qwen/profiles.toml     # Stub（未实现）
-  │   └── iflow/profiles.toml    # Stub（未实现）
-  ├── history/               # 审计历史
-  │   ├── claude.json
-  │   ├── codex.json
-  │   └── gemini.json
-  ├── backups/               # 自动备份
-  │   ├── claude/
-  │   ├── codex/
-  │   └── gemini/
-  ├── sync/                  # WebDAV 同步配置
-  │   └── folders.json
-  ├── sessions.db            # Session 数据库
-  ├── costs.json             # 成本追踪
-  ├── budget.json            # 预算配置
-  ├── pricing.json           # 定价配置
-  ├── prompts/               # 提示词预设
-  ├── skills/                # 技能管理
-  ├── logs/                  # 日志文件（按天轮转）
-  └── ccr-ui/                # UI 依赖/缓存
-
-~/.ccs_config.toml           # Legacy 模式（兼容 CCS）
-~/.claude/settings.json      # Claude Code 设置（直接写入）
-~/.codex/settings.json       # Codex 设置（直接写入）
-~/.gemini/settings.json      # Gemini 设置（直接写入）
+```text
+CLI / Web API / TUI / Desktop shell
+                ↓
+         Commands / UI bridge
+                ↓
+          Services (编排)
+                ↓
+          Managers (持久化)
+                ↓
+         Core / Utils / Models
 ```
 
-## 分层架构
+- **CLI 入口**：`crates/ccr/src/cli/` 与 `crates/ccr/src/main.rs`
+- **命令实现**：`crates/ccr/src/commands/`
+- **服务编排**：`crates/ccr/src/services/`
+- **数据访问与持久化**：`crates/ccr/src/managers/`
+- **平台实现**：`crates/ccr/src/platforms/`
+- **基础设施**：`crates/ccr/src/core/`、`crates/ccr/src/utils/`
+- **桌面壳集成**：`ccr-ui/src-tauri` 直接依赖 `crates/ccr`、`crates/ccr-db`、`crates/ccr-types`
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  CLI / Web API / TUI / CCR UI                           │
-│  • cli/definitions.rs - CLI 结构定义（Clap）            │
-│  • cli/dispatch.rs - 命令分发逻辑                       │
-│  • web/routes.rs - Web API 路由                         │
-│  • tui/app.rs - TUI 应用                                │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  Commands Layer（命令实现层）                           │
-│  ├── common/        - 公共工具（模式检测、表格、提示）  │
-│  ├── platform/      - 平台管理（list/current/info/      │
-│  │                     init/switch）                     │
-│  ├── profile/       - Profile 管理（add/list/current/   │
-│  │                     switch/delete/enable/disable）    │
-│  ├── lifecycle/     - 生命周期（init/clean/clear/       │
-│  │                     validate/optimize/migrate）       │
-│  ├── data/          - 数据操作（export/import/history/  │
-│  │                     stats/budget/pricing）            │
-│  └── 独立命令       - sync/tui/web/ui/temp-token/temp/  │
-│                       check/skills/prompts/sessions/     │
-│                       provider/update                     │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  Services Layer（服务层 - 业务逻辑编排）               │
-│  • config_service      - 配置操作（切换/导入/导出/验证）│
-│  • settings_service    - settings.json 管理             │
-│  • history_service     - 审计日志                       │
-│  • backup_service      - 备份操作                       │
-│  • multi_backup_service - 多平台备份清理                │
-│  • validate_service    - 验证操作                       │
-│  • sync_service        - WebDAV 同步                    │
-│  • ui_service          - CCR UI 启动编排                │
-│  • health_check        - Provider 健康检查              │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  Managers Layer（管理层 - 数据访问与持久化）           │
-│  ├── config/            - 配置管理（Legacy/Unified）    │
-│  │   ├── manager.rs    - 配置管理器                    │
-│  │   ├── ccs_config.rs - Legacy 配置                   │
-│  │   ├── types.rs      - Unified 配置类型              │
-│  │   └── migration.rs  - 迁移逻辑                      │
-│  ├── platform_config    - 平台注册表管理                │
-│  ├── settings           - Settings.json 管理            │
-│  ├── history            - 历史记录管理                  │
-│  ├── cost_tracker       - 成本追踪                      │
-│  ├── budget_manager     - 预算控制                      │
-│  ├── pricing_manager    - 价格表管理                    │
-│  ├── prompts_manager    - 提示词管理                    │
-│  ├── builtin_prompts    - 内置提示词                    │
-│  ├── skills_manager     - 技能管理                      │
-│  ├── mcp_preset_manager - MCP 预设管理                  │
-│  ├── sync_config        - 同步配置                      │
-│  ├── sync_folder_manager - 同步文件夹管理               │
-│  ├── temp_override      - 临时覆盖                      │
-│  ├── config_editor      - 配置编辑                      │
-│  ├── config_file_handler - 配置文件处理                 │
-│  ├── config_validator   - 配置验证                      │
-│  └── conflict_checker   - 冲突检测                      │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  Models Layer（数据模型层）                             │
-│  • platform        - 平台类型和配置 trait               │
-│  • budget          - 预算模型                            │
-│  • pricing         - 定价模型                            │
-│  • stats           - 统计模型                            │
-│  • sync_folder     - 同步文件夹模型                      │
-│  • prompt          - 提示词模型                          │
-│  • skill           - 技能模型                            │
-│  • mcp_preset      - MCP 预设模型                       │
-└─────────────────────────────────────────────────────────┘
+## 依赖方向
 
-┌─────────────────────────────────────────────────────────┐
-│  Platforms Layer（平台实现层）                          │
-│  • base            - 基础功能（公共辅助函数）            │
-│  • claude          - Claude Code 平台（✅ 已实现）       │
-│  • codex           - Codex CLI 平台（✅ 已实现）         │
-│  • gemini          - Gemini CLI 平台（✅ 已实现）        │
-│  • qwen            - Qwen CLI 平台（🚧 Stub）           │
-│  • iflow           - iFlow CLI 平台（🚧 Stub）          │
-│  • PlatformRegistry - 平台注册表                        │
-│  • PlatformDetector - 平台检测器                        │
-└─────────────────────────────────────────────────────────┘
+- **严格单向**：接口层 → Commands → Services → Managers → Core/Utils
+- **共享模块**：Models、Platforms、Utils 可被上层复用，但不反向依赖 UI
+- **特性隔离**：`web` 与 `tui` 仍由 `crates/ccr` 的 feature flags 控制
+- **桌面端复用**：Tauri 壳通过 crate 依赖复用核心逻辑，而不是依赖旧的 `ccr-ui/backend`
 
-┌─────────────────────────────────────────────────────────┐
-│  Core & Utils Layer（核心基础设施层）                  │
-│  ├── core/                                              │
-│  │   ├── error          - 统一错误处理（CcrError）     │
-│  │   ├── lock           - 文件锁 + 进程内互斥          │
-│  │   ├── logging        - tracing + 彩色输出           │
-│  │   ├── atomic_writer  - 原子文件写入                 │
-│  │   ├── file_manager   - 文件管理抽象                 │
-│  │   ├── fileio         - 统一文件 I/O                 │
-│  │   ├── cache          - 配置缓存                     │
-│  │   └── http           - HTTP 客户端                  │
-│  └── utils/                                             │
-│      ├── validation     - 验证辅助                     │
-│      ├── mask           - 敏感数据掩码                 │
-│      ├── toml_json      - TOML/JSON 转换               │
-│      └── auto_complete  - 自动完成                     │
-└─────────────────────────────────────────────────────────┘
-```
+## 关键流程
 
-### 依赖方向
+### Profile 切换
 
-- **严格单向依赖**：CLI/Web/TUI → Commands → Services → Managers → Core/Utils
-- **共享层**：Models、Platforms、Utils 可被上层共享
-- **特性隔离**：`web`、`tui` 特性可选编译
-- **UI 集成**：`ccr-ui/backend` 直接复用 `ccr` crate（关闭默认特性），在自身层实现路由/节流/中间件
+1. `crates/ccr/src/cli/` 解析命令或快捷调用 `ccr <name>`
+2. `ConfigService` 读取 `~/.ccr/config.toml` 与 `platforms/<name>/profiles.toml`
+3. `SettingsService` 获取文件锁、执行备份并原子写入目标 `settings.json`
+4. `HistoryService` 记录掩码后的差异
+5. 需要时由 `TempOverrideManager` 注入临时 token/base_url/model
 
-## 核心流程
+### WebDAV 同步
 
-### Profile 切换（Unified 默认）
-
-1. **CLI 解析**：`commands::switch_command` 或快捷 `ccr <name>`
-2. **配置加载**：
-   - `ConfigService`：读取 `~/.ccr/config.toml` → 定位当前平台
-   - 加载 `~/.ccr/platforms/<platform>/profiles.toml`
-3. **设置更新**：
-   - `SettingsService`：获取文件锁 → 备份现有 `settings.json`
-   - 原子写入新配置
-4. **历史记录**：
-   - `HistoryService`：记录操作、环境变量差异（自动掩码敏感信息）
-5. **临时覆盖**（可选）：
-   - `TempOverrideManager`：注入临时 token/base_url/model
-
-### 平台管理
-
-- **平台命令**：`platform list/current/info/init/switch`
-- **管理器**：通过 `PlatformConfigManager` 维护 `config.toml` 中的注册表与当前平台指针
-- **平台实现**：
-  - 实现 `PlatformConfig` trait，暴露路径与 profile 读写
-  - 未实现的平台返回 `PlatformNotSupported` 错误
-
-### WebDAV 多目录同步
-
-1. **配置同步**：`sync config` 写入 WebDAV 连接信息（`SyncConfigManager`）
-2. **文件夹注册**：`sync folder ...` 注册/启用目录（默认挂载 `~/.ccr`、`platforms/*` 等）
-3. **推送/拉取**：
-   - `SyncService` 递归遍历，过滤备份/历史/locks/UI
-   - 支持 `--force`、交互式内容选择、单目录或 `sync all`
+1. `sync config` 写入连接信息
+2. `sync folder ...` 注册和启用同步目录
+3. `SyncService` 递归处理 push/pull/all，过滤备份、历史、锁文件与 UI 缓存
 
 ### CCR UI 启动
 
-- **检测顺序**：`UiService` 依序检查：
-  1. `./ccr-ui`（本地源码）
-  2. `~/.ccr/ccr-ui`（用户安装）
-  3. GitHub 下载（交互确认）
-- **端口配置**：通过 `-p/--backend-port` 覆盖
-- **进程管理**：自动启动前后端，监控进程状态
+1. `UiService` 优先探测本地 `./ccr-ui`
+2. 若缺失则回退到用户目录 `~/.ccr/ccr-ui`
+3. 仍不可用时，再提示从 GitHub 下载
 
-### Session 管理
+## 可靠性与质量
 
-- **存储**：SQLite 数据库 (`~/.ccr/sessions.db`)
-- **功能**：
-  - 会话列表、搜索、统计
-  - 全文索引、重建索引
-  - 会话分析（成本、Token 使用）
-
-### 成本追踪与预算控制
-
-- **成本追踪**：
-  - `CostTracker`：记录和统计 API 调用成本
-  - 支持按时间范围、模型、平台统计
-  - 存储到 `~/.ccr/costs.json`
-- **预算控制**：
-  - `BudgetManager`：管理预算限制（日/周/月）
-  - 支持预算警告、超限动作
-  - 存储到 `~/.ccr/budget.json`
-- **定价管理**：
-  - `PricingManager`：管理模型定价
-  - 存储到 `~/.ccr/pricing.json`
-
-### Provider 健康检查
-
-- **端点测试**：测试 Provider API 连通性
-- **认证验证**：验证 API Key 有效性
-- **响应时间**：测量 API 响应延迟
-- **错误诊断**：提供详细的错误信息
-
-## 可靠性与性能
-
-### 并发安全
-
-- **文件锁**：`fs4` 提供跨进程文件锁定
-- **进程内互斥**：`CONFIG_LOCK` 全局静态锁
-- **原子写入**：临时文件 + 原子重命名，避免损坏
-
-### 备份策略
-
-- **自动备份**：切换/导入前自动备份配置
-- **多平台支持**：`MultiBackupService` 支持多平台备份清理
-- **过期清理**：`clean` 命令清理过期备份
-
-### 日志系统
-
-- **日志级别**：`CCR_LOG_LEVEL` 环境变量控制
-- **输出位置**：终端彩色输出 + `~/.ccr/logs/` 文件
-- **日志轮转**：按天轮转，保留 14 天
-
-### 性能优化
-
-- **并行验证**：`rayon` 并行验证配置
-- **统一 I/O**：`fileio` 统一文件读写
-- **编译优化**：dev profile `opt-level=1` + 依赖 `opt-level=2`
-- **缓存机制**：
-  - Axum 层缓存系统信息
-  - `ConfigCache` 缓存配置文件
-
-## 测试与质量
-
-### 测试策略
-
-- **单元测试**：覆盖平台/管理器/锁等核心模块
-- **集成测试**：`tests/` 进行端到端测试（临时目录隔离）
-- **测试覆盖**：95%+ 核心代码覆盖率
-
-### 质量保证
-
-- **零 panic**：默认零 `panic!`，使用 `Result` 类型
-- **错误集中**：统一 `CcrError` 错误类型
-- **退出码**：命令返回标准退出码
-- **Clippy**：通过严格的 Clippy 检查
-  - 标准：`-D warnings`
-  - 严格（CI）：`-D warnings -W clippy::unwrap_used`
-- **格式化**：`cargo fmt` 统一格式
+- **并发安全**：文件锁 + 进程内互斥 + 原子写入
+- **可恢复性**：切换、导入等破坏性操作前自动备份
+- **日志**：`CCR_LOG_LEVEL` 控制，日志落在 `~/.ccr/logs/`
+- **测试**：CLI 集成测试位于 `crates/ccr/tests/`
+- **扩展性**：新增命令、平台与同步逻辑都以 `crates/ccr/src/` 为准扩展
 
 ## 扩展指南
 
 ### 新增命令
 
-1. 在 `src/commands/<domain>/` 创建命令模块
-2. 在 `src/commands/mod.rs` 导出命令函数
-3. 在 `src/cli/definitions.rs` 添加 CLI 定义
-4. 在 `src/cli/dispatch.rs` 添加命令路由
+1. 在 `crates/ccr/src/commands/<domain>/` 创建模块
+2. 在对应 `mod.rs` 导出命令函数
+3. 在 `crates/ccr/src/cli/definitions.rs` 添加 CLI 定义
+4. 在 `crates/ccr/src/cli/dispatch.rs` 接入路由
 
 ### 新增平台
 
-1. 在 `src/platforms/` 创建平台模块（如 `new_platform.rs`）
+1. 在 `crates/ccr/src/platforms/` 添加平台模块
 2. 实现 `PlatformConfig` trait
-3. 在 `src/models/platform.rs` 的 `Platform` 枚举中添加平台类型
-4. 在 `src/platforms/mod.rs` 的 `create_platform` 函数中注册
-
-### 新增同步源
-
-1. 扩展 `SyncService` 实现新的同步协议
-2. 在 `sync::commands` 中增加内容选择器策略
-3. 更新 `SyncConfig` 模型以支持新配置
+3. 在 `crates/ccr/src/models/platform.rs` 中补充平台类型
+4. 在 `crates/ccr/src/platforms/mod.rs` 注册工厂方法
 
 ## 参考文档
 
-- [命令参考](/reference/commands/index.md)
-- [平台支持](/reference/platforms/)
-- [配置指南](/guide/configuration.md)
-- [迁移指南](/reference/platforms/migration.md)
+- [快速开始](/guide/quick-start)
+- [命令参考](/reference/commands/)
+- [迁移指南](/reference/migration)

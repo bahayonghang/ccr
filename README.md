@@ -35,8 +35,10 @@ cargo install --git https://github.com/bahayonghang/ccr --branch dev ccr
 ```bash
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
-cargo install --path .
+cargo install --path crates/ccr
 ```
+
+> Workspace note: the installable CLI crate now lives in `crates/ccr`. See `docs/reference/migration.md` for the old-to-new path map.
 
 ### Build Requirements
 - **Rust**: 1.88+ (Edition 2024)
@@ -234,9 +236,16 @@ just lint
 overview
 ```text
 ccr/
-├── src/            # Core Rust logic (CLI, TUI, Web API)
+├── Cargo.toml      # Workspace manifest + shared dependencies
+├── crates/
+│   ├── ccr/        # Installable CLI crate + library
+│   ├── ccr-db/     # Database services and models
+│   └── ccr-types/  # Shared type definitions
 ├── ccr-ui/         # Full-stack Web/Desktop App (Vue 3 + Tauri)
-├── tests/          # Integration tests
+├── docs/           # VitePress documentation
+├── scripts/        # Repository automation and maintenance helpers
+├── examples/       # Sample configs and usage examples
+├── outputs/        # Collected/generated artifacts (when present)
 └── justfile        # Task runner configuration
 ```
 

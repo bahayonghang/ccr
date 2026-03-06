@@ -70,7 +70,7 @@ jobs:
           key: ${{ matrix.target }}-release-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }} --all-features
+        run: cargo build -p ccr --release --target ${{ matrix.target }} --all-features
         shell: bash
 
       - name: Prepare release assets (Unix)

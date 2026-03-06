@@ -69,8 +69,8 @@ jobs:
       # Forces proper error handling with Result, Option, and ?
       - name: Run clippy (strict - backend only)
         run: |
-          # Check backend crate with strict rules
-          cargo clippy -p ccr-ui-backend --all-targets --all-features -- \
+          # Check main CLI crate with strict rules
+          cargo clippy -p ccr --all-targets --all-features -- \
             -D warnings \
             -W clippy::unwrap_used \
             -W clippy::expect_used \
@@ -128,12 +128,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        features:
-          - "--no-default-features"
-          - "--features web"
-          - "--features tui"
-          - "--all-features"
-          - "--workspace"  # Test workspace build
+        include:
+          - name: no-default-features
+            command: cargo build -p ccr --no-default-features
+          - name: web
+            command: cargo build -p ccr --features web
+          - name: tui
+            command: cargo build -p ccr --features tui
+          - name: all-features
+            command: cargo build -p ccr --all-features
+          - name: workspace
+            command: cargo build --workspace
     steps:
       - uses: actions/checkout@v4
 
@@ -163,10 +168,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: target
-          key: ${{ runner.os }}-build-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-build-${{ matrix.name }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build with features
-        run: cargo build ${{ matrix.features }}
+        run: ${{ matrix.command }}
 
   security:
     name: Security Audit

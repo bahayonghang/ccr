@@ -37,6 +37,8 @@ ccr update [OPTIONS] [BRANCH]
 cargo install --git https://github.com/bahayonghang/ccr ccr --force
 ```
 
+> 如果你在本地 checkout 的重构后工作区中手动安装，请使用 `cargo install --path crates/ccr`。
+
 ## 示例
 
 ### 1. 检查更新(推荐先使用)
@@ -286,7 +288,7 @@ ccr update
 # 5. 或手动克隆并安装
 git clone https://github.com/bahayonghang/ccr
 cd ccr
-cargo install --path . --locked
+cargo install --path crates/ccr --locked
 ```
 
 ### 问题 3: 编译失败
@@ -314,7 +316,7 @@ ccr update
 git clone https://github.com/bahayonghang/ccr
 cd ccr
 cargo build --release --locked
-cargo install --path .
+cargo install --path crates/ccr
 ```
 
 ### 问题 4: 权限错误

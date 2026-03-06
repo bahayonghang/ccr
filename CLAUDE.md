@@ -15,11 +15,14 @@ CCR (Claude Code Configuration Switcher) is a high-performance, multi-platform c
 cargo build                    # Debug build
 cargo build --release          # Release build (LTO enabled)
 
+# Install CLI from a local checkout
+cargo install --path crates/ccr
+
 # Test (use --test-threads=1 to avoid concurrent conflicts)
 cargo test --workspace --all-features -- --test-threads=1
 
 # Single test file
-cargo test --test manager_tests
+cargo test -p ccr --test managers
 
 # Lint (CI standard)
 cargo fmt --all                # Format code
@@ -52,11 +55,12 @@ npm run type-check             # TypeScript check
 npm run lint                   # ESLint check
 ```
 
-### UI Backend (ccr-ui/backend)
+### Desktop Shell (ccr-ui/src-tauri)
 
 ```bash
-cd ccr-ui/backend
-cargo run                      # Start backend (127.0.0.1:8081)
+cd ccr-ui
+npm run tauri:dev              # Start the full desktop development flow
+npm run tauri:check            # Check the Tauri/Rust shell
 ```
 
 ## Architecture
@@ -65,17 +69,24 @@ cargo run                      # Start backend (127.0.0.1:8081)
 
 ```
 ccr/
-├── src/                    # Core CLI crate (ccr binary + library)
-├── ccr-types/              # Shared type definitions crate
+├── Cargo.toml              # Workspace manifest + shared dependencies
+├── crates/
+│   ├── ccr/                # Core CLI crate (ccr binary + library)
+│   │   ├── src/            # CLI, services, managers, sync, web, tui
+│   │   └── tests/          # Integration tests for the CLI crate
+│   ├── ccr-db/             # Database-facing services and models
+│   └── ccr-types/          # Shared type definitions crate
 ├── ccr-ui/                 # Full-stack Web/Desktop App
-│   ├── backend/            # Axum REST API server
-│   └── frontend/           # Vue 3 + Vite + Tauri
-├── tests/                  # Integration tests
+│   ├── src/                # Vue 3 application
+│   └── src-tauri/          # Tauri desktop shell
 ├── docs/                   # VitePress documentation
+├── scripts/                # Repo automation helpers
+├── examples/               # Sample configurations
+├── outputs/                # Collected/generated artifacts (when present)
 └── justfile                # Task runner
 ```
 
-### Core CLI Architecture (src/)
+### Core CLI Architecture (`crates/ccr/src/`)
 
 Layered architecture with strict separation of concerns:
 
@@ -107,7 +118,7 @@ web = ["dep:axum", "dep:tower", ...]        # Web API server
 ## Code Style
 
 ### Rust
-- Edition 2024 (requires Rust 1.88+)
+- Edition 2024 (the installable CLI crate currently requires Rust 1.90+)
 - Format: `cargo fmt` (default rustfmt)
 - Naming: `snake_case` modules/functions, `PascalCase` types
 - Error handling: Custom `CcrError` type with `thiserror`
@@ -136,17 +147,17 @@ chore: update dependencies
 ## Module Documentation
 
 Detailed module-specific guidance is available in:
-- `src/CLAUDE.md` - Core CLI module details
+- `crates/ccr/src/CLAUDE.md` - Core CLI module details
 - `ccr-ui/CLAUDE.md` - UI module details
 - `AGENTS.md` - OpenSpec instructions for proposals/specs
 
 ## Testing
 
-Integration tests in `/tests/`:
-- `manager_tests.rs` - Manager layer tests
-- `service_workflow_tests.rs` - Service layer tests
-- `concurrent_tests.rs` - Concurrency & locking tests
-- `end_to_end_tests.rs` - Full workflow tests
+Integration tests in `crates/ccr/tests/`:
+- `commands.rs` - Command behavior coverage
+- `managers.rs` - Manager layer tests
+- `platforms.rs` - Platform integration coverage
+- `workflows.rs` - End-to-end workflow checks
 
-Run specific test: `cargo test --test <file_stem>`
+Run specific test: `cargo test -p ccr --test <file_stem>`
 Run by name: `cargo test <keyword>`

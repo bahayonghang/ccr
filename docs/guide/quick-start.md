@@ -1,9 +1,9 @@
 # 快速开始
 
-面向 CCR v3.20.11 的安装、初始化与日常使用指引。
+面向当前 workspace 布局的安装、初始化与日常使用指引。
 
 ## 环境要求
-- Rust 1.88+（含 Cargo）
+- Rust 1.90+（含 Cargo）
 - 可选：Node.js 18+（仅当开发 CCR UI 前端时）
 - 建议：`just` 任务工具（`cargo install just`）
 
@@ -15,8 +15,10 @@ cargo install --git https://github.com/bahayonghang/ccr ccr
 # 或源码安装
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
-cargo install --path .
+cargo install --path crates/ccr
 ```
+
+> 工作区说明：可安装的 CLI crate 已迁移到 `crates/ccr`；`docs/`、`scripts/`、`examples/` 保持根目录，`outputs/` 用于汇总产物（如存在）。旧路径映射见 [迁移指南](/reference/migration)。
 
 构建特性：`--no-default-features`（仅 CLI）、`--features web`（API/同步/UI 入口）、`--features tui`（TUI）、`--all-features`。
 
@@ -86,3 +88,4 @@ ccr web --host 0.0.0.0 -p 19527 --no-browser    # 轻量 API/兼容场景
 - Unified Mode 配置在 `~/.ccr/`，平台 profiles/history/backups 分目录存放。
 - Legacy 模式为单文件 `~/.ccs_config.toml`，与 CCS 兼容。
 - CLI 与 CCR UI 共用同一配置与日志/备份体系。
+- 本地源码安装与定向调试时，优先使用 `crates/ccr`、`crates/ccr-db`、`crates/ccr-types` 三个 crate 路径。

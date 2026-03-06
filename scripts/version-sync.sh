@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 版本同步脚本（以根 Cargo.toml 为主）
+# 版本同步脚本（以 crates/ccr/Cargo.toml 为主）
 # 同步到：
-# - ccr-types/Cargo.toml
+# - crates/ccr-types/Cargo.toml
 # - ccr-ui/package.json
 # - ccr-ui/src-tauri/Cargo.toml
 # - ccr-ui/src-tauri/tauri.conf.json
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 
-ROOT_CARGO="$ROOT_DIR/Cargo.toml"
-CCR_TYPES_CARGO="$ROOT_DIR/ccr-types/Cargo.toml"
+ROOT_CARGO="$ROOT_DIR/crates/ccr/Cargo.toml"
+CCR_TYPES_CARGO="$ROOT_DIR/crates/ccr-types/Cargo.toml"
 FRONTEND_PKG="$ROOT_DIR/ccr-ui/package.json"
 TAURI_CARGO="$ROOT_DIR/ccr-ui/src-tauri/Cargo.toml"
 TAURI_CONF="$ROOT_DIR/ccr-ui/src-tauri/tauri.conf.json"
@@ -169,7 +169,7 @@ if [[ "$CHECK_ONLY" == true ]]; then
   else
     echo "❌ 版本不一致："
     echo "  root Cargo.toml:                        $ROOT_VER"
-    echo "  ccr-types/Cargo.toml:                   $CCR_TYPES_VER"
+    echo "  crates/ccr-types/Cargo.toml:            $CCR_TYPES_VER"
     echo "  ccr-ui/package.json:           $FRONTEND_VER"
     echo "  ccr-ui/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
     echo "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"

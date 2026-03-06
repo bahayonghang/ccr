@@ -22,13 +22,15 @@ git clone https://github.com/bahayonghang/ccr.git
 cd ccr
 
 # Build release version
-cargo build --release
+cargo build --release -p ccr
 
 # Install to system path (optional)
-cargo install --path .
+cargo install --path crates/ccr
 ```
 
-**Requirements:** Rust 1.88+ (for edition 2024 features)
+**Requirements:** Rust 1.90+ (the installable CLI crate in `crates/ccr` requires it)
+
+> Workspace note: the installable CLI crate now lives in `crates/ccr`. Repository-root folders such as `docs/`, `scripts/`, and `examples/` stay in place, and `outputs/` is reserved for collected artifacts when present. See the [Migration Guide](/en/reference/migration).
 
 ## First Time Use
 
@@ -258,6 +260,7 @@ Creates `~/.ccs_config.toml` (compatible with shell-based CCS)
 - 🔧 [Configuration Guide](/en/configuration) - Advanced configuration options
 - 💡 [Examples](/en/examples/) - Real-world usage examples
 - 🚀 [Multi-Platform Setup](/en/examples/multi-platform-setup) - Detailed multi-platform guide
+- 🔁 [Migration Guide](/en/reference/migration) - Old-to-new path and command map
 
 ## Troubleshooting
 
