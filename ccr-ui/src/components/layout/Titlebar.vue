@@ -231,10 +231,9 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
-
 import { ref, onMounted, onUnmounted } from 'vue'
-import { getCurrentWindow } from '@tauri-apps/api/window'
+import { logger } from '@/utils/logger'
+import { getCurrentWindowSafe } from '@/utils/tauriWindow'
 
 const isMaximized = ref(false)
 const isFocused = ref(true)
@@ -244,15 +243,18 @@ const menuRef = ref<HTMLElement | null>(null)
 
 // Actions
 const minimizeWindow = async () => {
-  try {
-    const win = getCurrentWindow()
-    await win.minimize()
-  } catch (e) { console.warn('Not in Tauri context') }
+  const win = await getCurrentWindowSafe()
+  if (!win) return
+  await win.minimize()
 }
 
 const toggleMaximize = async () => {
   try {
-    const win = getCurrentWindow()
+    const win = await getCurrentWindowSafe()
+    if (!win) {
+      isMaximized.value = !isMaximized.value
+      return
+    }
     if (await win.isMaximized()) {
       await win.unmaximize()
       isMaximized.value = false
@@ -267,10 +269,9 @@ const toggleMaximize = async () => {
 }
 
 const closeWindow = async () => {
-  try {
-    const win = getCurrentWindow()
-    await win.close()
-  } catch (e) { console.warn('Not in Tauri context') }
+  const win = await getCurrentWindowSafe()
+  if (!win) return
+  await win.close()
 }
 
 const toggleMenu = () => {
@@ -291,15 +292,16 @@ const handleClickOutside = (e: MouseEvent) => {
 
 // Listen to window state
 let unlistenMaximized: (() => void) | undefined
-let unlistenUnmaximized: (() => void) | undefined
 let unlistenFocused: (() => void) | undefined
-let unlistenBlurred: (() => void) | undefined
 
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
   
   try {
-    const win = getCurrentWindow()
+    const win = await getCurrentWindowSafe()
+    if (!win) {
+      return
+    }
     isMaximized.value = await win.isMaximized()
     
     unlistenMaximized = await win.onResized(async () => {
@@ -310,16 +312,14 @@ onMounted(async () => {
       isFocused.value = focused
     })
   } catch (e) {
-    console.log('Running in browser, skipping Tauri listeners')
+    logger.debug('[Titlebar] skip tauri listeners in browser runtime', e)
   }
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   if (unlistenMaximized) unlistenMaximized()
-  if (unlistenUnmaximized) unlistenUnmaximized()
   if (unlistenFocused) unlistenFocused()
-  if (unlistenBlurred) unlistenBlurred()
 })
 </script>
 

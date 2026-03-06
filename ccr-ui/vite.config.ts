@@ -32,6 +32,8 @@ export default defineConfig({
           'vue-vendor': ['vue', 'vue-router', 'pinia'],
           // 将 UI 库单独打包
           'ui-vendor': ['lucide-vue-next'],
+          // 将图表库单独打包，避免业务路由 chunk 膨胀
+          'charts-vendor': ['apexcharts', 'vue3-apexcharts'],
           // 将 i18n 单独打包
           'i18n-vendor': ['vue-i18n']
         }

@@ -119,7 +119,7 @@
               {{ $t('usage.dashboard.chart.trendTitle') }}
             </h3>
             <apexchart
-              v-if="trendSeries[0]?.data?.length"
+              v-if="shouldLoadCharts && trendSeries[0]?.data?.length"
               type="area"
               height="320"
               :options="trendOptions"
@@ -137,7 +137,7 @@
               {{ $t('usage.dashboard.chart.costByModel') }}
             </h3>
             <apexchart
-              v-if="store.modelStats.length"
+              v-if="shouldLoadCharts && store.modelStats.length"
               type="donut"
               height="320"
               :options="pieOptions"
@@ -253,7 +253,7 @@
             {{ $t('usage.dashboard.chart.costByModel') }}
           </h3>
           <apexchart
-            v-if="store.modelStats.length"
+            v-if="shouldLoadCharts && store.modelStats.length"
             type="donut"
             height="280"
             :options="pieOptions"
@@ -480,9 +480,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import VueApexCharts from 'vue3-apexcharts'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import { useUsageStore } from '@/stores/usage'
@@ -490,8 +489,11 @@ import type { Platform } from '@/types/usage'
 
 const { t } = useI18n()
 
-// 注册 apexchart 组件
-const apexchart = VueApexCharts
+// 图表仅在需要时按需加载，避免把 apexcharts 打进初始路由 chunk
+const apexchart = defineAsyncComponent(async () => {
+  const module = await import('vue3-apexcharts')
+  return module.default
+})
 
 const store = useUsageStore()
 const tabKeys = ['overview', 'models', 'projects', 'logs'] as const
@@ -501,6 +503,7 @@ const selectedDays = ref(30)
 const importing = ref(false)
 const logModelFilter = ref('')
 const logsScrollRef = ref<HTMLElement | null>(null)
+const shouldLoadCharts = computed(() => activeTab.value === 'overview' || activeTab.value === 'models')
 
 // 格式化工具
 const formatTokens = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : n.toString()

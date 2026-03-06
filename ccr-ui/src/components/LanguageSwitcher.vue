@@ -64,10 +64,11 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Languages, ChevronDown, Check } from 'lucide-vue-next'
+import { setLocale } from '@/i18n'
+import { logger } from '@/utils/logger'
 
 const { locale, t: _t } = useI18n({ useScope: 'global' })
 
@@ -100,14 +101,12 @@ const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value
 }
 
-const switchLanguage = (langCode: string) => {
-  locale.value = langCode
-
-  // Save to localStorage
+const switchLanguage = async (langCode: string) => {
   try {
-    localStorage.setItem('ccr-ui-locale', langCode)
+    await setLocale(langCode)
+    locale.value = langCode
   } catch (error) {
-    console.warn('Failed to save locale preference:', error)
+    logger.warn('[LanguageSwitcher] failed to switch locale', error)
   }
 
   showDropdown.value = false
@@ -127,4 +126,3 @@ const switchLanguage = (langCode: string) => {
   @apply text-white/80 hover:bg-white/5 hover:text-white;
 }
 </style>
-
