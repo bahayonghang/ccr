@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import plugin from 'tailwindcss/plugin'
 
 export default {
   darkMode: ['class', '[data-theme="dark"]'],
@@ -140,5 +141,15 @@ export default {
       }
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(({ addComponents }) => {
+      addComponents({
+        '.glass-surface': {
+          background: 'var(--glass-bg-light)',
+          'backdrop-filter': 'var(--glass-blur-md)',
+          border: '1px solid var(--glass-border-light)',
+        },
+      })
+    }),
+  ],
 } satisfies Config

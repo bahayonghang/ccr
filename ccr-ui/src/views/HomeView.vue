@@ -119,7 +119,7 @@
               />
               
               <div class="flex justify-between items-start z-10">
-                <div class="p-3 rounded-xl bg-white/5/50 border border-white/5 backdrop-blur-sm">
+                <div class="p-3 rounded-xl bg-white/5/50 border border-white/5 backdrop-blur-md">
                   <component
                     :is="module.icon"
                     class="w-6 h-6"
@@ -291,11 +291,11 @@ const getVersionLabel = (platformKey: string) => {
 
 const getVersionClass = (platformKey: string) => {
   const entry = cliVersions.value.get(platformKey)
-  if (!entry) return 'bg-white/5 text-white/50'
+  if (!entry) return 'glass-surface text-white/50'
   if (entry.status === 'timeout') return 'bg-amber-500/10 text-amber-400'
   if (entry.status === 'error') return 'bg-orange-500/10 text-orange-400'
   if (entry.status === 'not_installed' || !entry.installed) return 'bg-red-500/10 text-red-400'
-  return 'bg-white/5 text-white/50'
+  return 'glass-surface text-white/50'
 }
 
 const quickActions = computed(() => [

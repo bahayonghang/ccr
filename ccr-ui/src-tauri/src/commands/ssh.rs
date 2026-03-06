@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{Emitter, State};
 use tokio::io::AsyncWriteExt;
-use tokio::process::Command;
 use tokio::time::{Duration, timeout};
 
 use ccr_db::database::repositories::ssh_repo;
@@ -15,6 +14,7 @@ use ccr_db::models::ssh::{SshHost, SshKnownHost};
 
 use crate::platform::local::LocalEnvironment;
 use crate::platform::ssh::{SshEnvironment, SshHostConfig};
+use crate::process::tokio_command;
 use crate::ssh::connection::SshConnectResult;
 use crate::ssh::{auth, auth::SshKeyInfo, connection::SshConnectionManager, sftp};
 use crate::state::AppState;
@@ -120,7 +120,7 @@ async fn resolve_probe_target(
 }
 
 async fn collect_host_fingerprint(host: &str, port: u16) -> Result<(String, String), String> {
-    let mut keyscan_cmd = Command::new("ssh-keyscan");
+    let mut keyscan_cmd = tokio_command("ssh-keyscan");
     keyscan_cmd
         .arg("-T")
         .arg("5")
@@ -155,7 +155,7 @@ async fn collect_host_fingerprint(host: &str, port: u16) -> Result<(String, Stri
         .unwrap_or("unknown")
         .to_string();
 
-    let mut keygen_cmd = Command::new("ssh-keygen");
+    let mut keygen_cmd = tokio_command("ssh-keygen");
     keygen_cmd.arg("-lf").arg("-");
     keygen_cmd.stdin(std::process::Stdio::piped());
     keygen_cmd.stdout(std::process::Stdio::piped());

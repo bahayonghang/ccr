@@ -14,7 +14,7 @@
         导航菜单
       </div>
       <button
-        class="p-2 rounded-lg transition-transform hover:scale-110 bg-white/5 border border-white/10 text-white/70 hover:text-white"
+        class="p-2 rounded-lg transition-transform hover:scale-110 glass-surface border border-white/20 text-white/70 hover:text-white"
         :title="collapsed ? '展开菜单' : '收起菜单'"
         :aria-label="collapsed ? '展开菜单' : '收起菜单'"
         @click="toggleCollapsed"
@@ -226,7 +226,7 @@
       class="mt-4 text-center"
     >
       <button
-        class="p-2 rounded-lg transition-transform hover:scale-110 bg-white/5 border border-white/10 text-white/70 hover:text-white"
+        class="p-2 rounded-lg transition-transform hover:scale-110 glass-surface border border-white/20 text-white/70 hover:text-white"
         title="展开菜单"
         aria-label="展开菜单"
         @click="toggleCollapsed"

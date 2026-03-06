@@ -88,7 +88,7 @@
       class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
     >
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead class="bg-gray-50/80 dark:bg-gray-700/50 backdrop-blur-sm sticky top-0 rounded-t-xl">
+        <thead class="bg-gray-50/80 dark:bg-gray-700/50 backdrop-blur-md sticky top-0 rounded-t-xl">
           <tr>
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
               账号名
@@ -238,7 +238,7 @@
   <!-- 账号编辑弹窗 -->
   <div
     v-if="showAccountModal"
-    class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+    class="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50"
     @click.self="showAccountModal = false"
   >
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">

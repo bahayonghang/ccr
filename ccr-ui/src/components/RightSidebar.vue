@@ -55,7 +55,7 @@
         >
           <div 
             class="w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center"
-            :class="config.is_current ? 'bg-accent-primary text-white' : 'bg-white/5 text-white/50 group-hover:text-white'"
+            :class="config.is_current ? 'bg-accent-primary text-white' : 'glass-surface text-white/50 group-hover:text-white'"
           >
             {{ config.name[0]?.toUpperCase() }}
           </div>

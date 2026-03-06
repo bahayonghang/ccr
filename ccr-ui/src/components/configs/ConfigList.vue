@@ -26,7 +26,7 @@
       v-else-if="configs.length === 0"
       class="py-20 flex flex-col items-center justify-center text-white/50"
     >
-      <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+      <div class="w-16 h-16 rounded-2xl glass-surface flex items-center justify-center mb-4">
         <Settings class="w-8 h-8 opacity-20" />
       </div>
       <p>{{ $t('configs.noConfigsInCategory') }}</p>

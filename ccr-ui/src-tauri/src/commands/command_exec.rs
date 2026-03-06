@@ -1,7 +1,7 @@
 //! 命令执行模块 — CCR CLI 命令白名单执行。
 
 use serde_json::Value;
-use tokio::process::Command;
+use crate::process::tokio_command;
 
 /// 允许执行的 CCR 子命令白名单
 const ALLOWED_COMMANDS: &[&str] = &[
@@ -68,7 +68,7 @@ pub async fn execute_ccr_command(
 ) -> Result<Value, String> {
     validate_command(&command)?;
 
-    let mut cmd = Command::new("ccr");
+    let mut cmd = tokio_command("ccr");
     cmd.arg(&command);
     if let Some(extra_args) = args {
         cmd.args(&extra_args);
@@ -117,7 +117,7 @@ pub async fn list_ccr_commands() -> Result<Value, String> {
 pub async fn get_ccr_command_help(command: String) -> Result<Value, String> {
     validate_command(&command)?;
 
-    let output = Command::new("ccr")
+    let output = tokio_command("ccr")
         .args(["help", &command])
         .output()
         .await

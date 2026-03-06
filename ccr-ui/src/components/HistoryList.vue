@@ -28,7 +28,7 @@
       v-else-if="entries.length === 0"
       class="flex-1 flex flex-col items-center justify-center text-white/50"
     >
-      <div class="p-6 rounded-full bg-white/5 mb-4">
+      <div class="p-6 rounded-full glass-surface mb-4">
         <History class="w-8 h-8 opacity-20" />
       </div>
       <p class="text-lg font-medium text-white/80">

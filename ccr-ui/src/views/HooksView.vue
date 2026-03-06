@@ -191,7 +191,7 @@
       <div
         v-if="showModal"
         ref="modalOverlay"
-        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-colors"
+        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-md transition-colors"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="editingHook ? 'modal-title-edit' : 'modal-title-add'"

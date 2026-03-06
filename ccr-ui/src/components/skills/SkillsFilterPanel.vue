@@ -521,7 +521,7 @@ watch(() => props.modelValue, (newVal) => {
 
 .filter-section__count {
   @apply px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         bg-white/5 text-white/50;
+         glass-surface text-white/50;
 }
 
 /* Platform Item */
@@ -554,7 +554,7 @@ watch(() => props.modelValue, (newVal) => {
 
 .platform-item__count {
   @apply text-xs font-mono font-bold px-1.5 py-0.5 rounded
-         bg-white/5 text-white/50;
+         glass-surface text-white/50;
 }
 
 .platform-item--active .platform-item__count {
@@ -572,7 +572,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .source-btn--active {
-  @apply text-white bg-white/5 shadow-sm;
+  @apply text-white glass-surface shadow-sm;
 }
 
 /* Category Item */
@@ -593,7 +593,7 @@ watch(() => props.modelValue, (newVal) => {
 /* Tag Item */
 .tag-item {
   @apply px-2 py-1 rounded-md text-xs font-medium
-         bg-white/5 text-white/80
+         glass-surface text-white/80
          hover:bg-white/5 hover:text-white
          transition-colors duration-200;
 }

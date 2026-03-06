@@ -54,6 +54,7 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Current Config -->
             <GuofengCard
+              variant="glass"
               :gradient-border="true"
               glow-color="warning"
               class="relative overflow-hidden group"
@@ -75,6 +76,7 @@
 
             <!-- Total Profiles -->
             <GuofengCard
+              variant="glass"
               :interactive="true"
               glow-color="primary"
               class="group"
@@ -96,6 +98,7 @@
 
             <!-- Config Mode -->
             <GuofengCard
+              variant="glass"
               :interactive="true"
               :glow-color="currentConfigMode === 'official' ? 'success' : 'secondary'"
               class="group"
@@ -125,6 +128,7 @@
           <!-- Quick Switch -->
           <GuofengCard
             v-if="profiles.length > 0"
+            variant="glass"
             padding="lg"
           >
             <div class="flex items-center gap-2 mb-4">
@@ -137,8 +141,8 @@
               <button
                 v-for="profile in profiles"
                 :key="profile.name"
-                class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-colors duration-300 border flex items-center gap-2.5"
-                :class="[ profile.name === currentProfile ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-white/5 border-white/10 text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
+                class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 flex items-center gap-2.5"
+                :class="[ profile.name === currentProfile ? 'glass-effect-strong border border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-effect text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
                 @click="handleApply(profile.name)"
               >
                 <Star
@@ -179,9 +183,9 @@
           <!-- Empty State -->
           <div
             v-else-if="profiles.length === 0"
-            class="empty-state bg-white/5 rounded-2xl border border-white/5"
+            class="empty-state glass-effect rounded-2xl border border-white/5"
           >
-            <div class="p-4 rounded-full bg-white/5 mb-4">
+            <div class="p-4 rounded-full glass-surface mb-4">
               <Boxes class="w-8 h-8 text-white/50" />
             </div>
             <p class="text-white/80">
@@ -197,8 +201,9 @@
             <GuofengCard 
               v-for="profile in profiles" 
               :key="profile.name"
+              variant="glass"
               class="group relative overflow-hidden transition-[box-shadow,transform] duration-300 hover:-translate-y-1 hover:shadow-xl"
-              :class="{ 'ring-1 ring-platform-codex/50': currentProfile && profile.name === currentProfile }"
+              :class="[currentProfile && profile.name === currentProfile ? 'config-card-active' : '']"
               :glow-color="currentProfile && profile.name === currentProfile ? 'warning' : 'primary'"
               padding="lg"
             >
@@ -274,7 +279,7 @@
                     <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.baseUrl') }}
                     </span>
-                    <code class="font-mono text-white truncate px-2 py-1 rounded bg-white/5 border border-white/5">
+                    <code class="font-mono text-white truncate px-2 py-1 rounded glass-surface">
                       {{ profile.base_url }}
                     </code>
                   </div>
@@ -298,14 +303,14 @@
                   <div class="flex flex-wrap gap-1.5">
                     <span 
                       v-if="profile.provider"
-                      class="px-2 py-0.5 rounded-md text-xs font-medium bg-white/5 text-white/80 border border-white/5"
+                      class="px-2 py-0.5 rounded-md text-xs font-medium glass-surface text-white/80"
                     >
                       {{ profile.provider }}
                     </span>
                     <span 
                       v-for="tag in profile.tags" 
                       :key="tag"
-                      class="px-2 py-0.5 rounded-md text-xs font-medium bg-white/5 text-white/50 border border-white/5"
+                      class="px-2 py-0.5 rounded-md text-xs font-medium glass-surface text-white/50"
                     >
                       #{{ tag }}
                     </span>
@@ -313,7 +318,7 @@
                    
                   <div
                     v-if="profile.extra && Object.keys(profile.extra).length > 0"
-                    class="text-xs text-white/50 font-mono bg-white/5 px-2 py-1 rounded"
+                    class="text-xs text-white/50 font-mono glass-surface px-2 py-1 rounded"
                   >
                     +{{ Object.keys(profile.extra).length }} extras
                   </div>
@@ -325,14 +330,15 @@
           <!-- Add/Edit Modal -->
           <div
             v-if="showForm"
-            class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50"
           >
             <GuofengCard
-              class="w-full max-w-3xl max-h-[90vh] overflow-y-auto !p-0 shadow-2xl animate-in zoom-in-95 duration-200"
+              variant="glass"
+              class="w-full max-w-3xl max-h-[90vh] overflow-y-auto !p-0 shadow-2xl animate-in zoom-in-95 duration-200 glass-modal"
               :padding="'none'"
             >
               <!-- Modal Header -->
-              <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between sticky top-0 bg-white/5/95 backdrop-blur z-10">
+              <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between sticky top-0 glass-effect-strong z-10">
                 <h2 class="text-xl font-bold text-white">
                   {{ editingName ? $t('codex.profiles.editProfile') : $t('codex.profiles.addProfile') }}
                 </h2>
@@ -463,7 +469,7 @@
                     </div>
                   </div>
                        
-                  <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                  <div class="flex items-center gap-3 p-3 rounded-lg glass-surface border border-white/5">
                     <input
                       id="profileEnabled"
                       v-model="form.enabled"
@@ -495,7 +501,7 @@
               </div>
 
               <!-- Footer -->
-              <div class="px-6 py-4 border-t border-white/5 flex justify-end gap-3 bg-white/5/50">
+              <div class="px-6 py-4 border-t border-white/5 flex justify-end gap-3 glass-surface">
                 <button
                   class="btn btn-secondary"
                   @click="handleCloseForm"

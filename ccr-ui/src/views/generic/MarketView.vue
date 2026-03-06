@@ -257,7 +257,7 @@
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
         <div
-          class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          class="absolute inset-0 bg-black/40 backdrop-blur-md"
           @click="showInstallModal = false"
         />
         <div class="relative bg-[var(--color-bg-elevated)] rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in border border-[var(--color-border-default)]">

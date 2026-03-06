@@ -15,7 +15,7 @@
         </div>
         <div class="flex gap-3">
           <RouterLink to="/codex">
-            <button class="px-4 py-2 rounded-lg font-medium transition-colors bg-white/5 text-white/80 border border-white/10 hover:bg-white/5 min-h-[44px] flex items-center">
+            <button class="px-4 py-2 rounded-lg font-medium transition-colors glass-surface text-white/80 border border-white/20 hover:bg-white/5 min-h-[44px] flex items-center">
               <ArrowLeft
                 class="w-4 h-4 mr-2"
                 aria-hidden="true"
@@ -58,7 +58,7 @@
             role="tab"
             :aria-selected="activeTab === tab.key"
             class="px-4 py-2 rounded-lg font-medium text-sm transition-colors min-h-[44px] whitespace-nowrap flex-shrink-0 flex items-center gap-2"
-            :class="activeTab === tab.key ? 'bg-emerald-500 text-white shadow-md' : 'bg-white/5 text-white/80 border border-white/10 hover:bg-white/5'"
+            :class="activeTab === tab.key ? 'bg-emerald-500 text-white shadow-md' : 'glass-surface text-white/80 border border-white/20 hover:bg-white/5'"
             @click="activeTab = tab.key"
           >
             <component
@@ -683,7 +683,7 @@ export default { components: { ToggleField } }
 
 <style scoped>
 .settings-input {
-  @apply w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-[border-color,box-shadow] text-white;
+  @apply w-full px-4 py-2.5 rounded-lg glass-surface border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-[border-color,box-shadow] text-white;
 }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

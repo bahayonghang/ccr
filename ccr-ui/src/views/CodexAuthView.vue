@@ -54,6 +54,7 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Login State -->
             <GuofengCard
+              variant="glass"
               :gradient-border="true"
               :glow-color="loginStateColor"
               class="relative overflow-hidden group"
@@ -81,6 +82,7 @@
 
             <!-- Total Accounts -->
             <GuofengCard
+              variant="glass"
               :interactive="true"
               glow-color="primary"
               class="group"
@@ -102,6 +104,7 @@
 
             <!-- Current Account -->
             <GuofengCard
+              variant="glass"
               :interactive="true"
               :glow-color="currentAccount ? 'success' : 'secondary'"
               class="group"
@@ -128,6 +131,7 @@
           <!-- Current Session Info -->
           <GuofengCard
             v-if="currentInfo"
+            variant="glass"
             padding="lg"
           >
             <div class="flex items-center gap-2 mb-4">
@@ -141,7 +145,7 @@
                 <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                   {{ $t('codex.auth.fields.accountId') }}
                 </span>
-                <code class="font-mono text-white truncate px-2 py-1 rounded bg-white/5 border border-white/5">
+                <code class="font-mono text-white truncate px-2 py-1 rounded glass-surface border border-white/5">
                   {{ currentInfo.account_id }}
                 </code>
               </div>
@@ -207,6 +211,7 @@
           <!-- Quick Switch -->
           <GuofengCard
             v-if="accounts.length > 0"
+            variant="glass"
             padding="lg"
           >
             <div class="flex items-center gap-2 mb-4">
@@ -220,7 +225,7 @@
                 v-for="account in accounts"
                 :key="account.name"
                 class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-colors duration-300 border flex items-center gap-2.5"
-                :class="[ account.is_expired ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60' : account.is_current ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-white/5 border-white/10 text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
+                :class="[ account.is_expired ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60' : account.is_current ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-surface border-white/20 text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
                 :disabled="account.is_expired"
                 @click="!account.is_expired && handleSwitch(account.name)"
               >
@@ -280,9 +285,9 @@
           <!-- Empty State -->
           <div
             v-else-if="accounts.length === 0"
-            class="empty-state bg-white/5 rounded-2xl border border-white/5"
+            class="empty-state glass-effect rounded-2xl border border-white/5"
           >
-            <div class="p-4 rounded-full bg-white/5 mb-4">
+            <div class="p-4 rounded-full glass-surface mb-4">
               <KeyRound class="w-8 h-8 text-white/50" />
             </div>
             <p class="text-white/80">
@@ -304,9 +309,10 @@
           <!-- Save Modal -->
           <div
             v-if="showSaveForm"
-            class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50"
           >
             <GuofengCard
+              variant="glass"
               class="w-full max-w-lg max-h-[90vh] overflow-y-auto !p-0 shadow-2xl animate-in zoom-in-95 duration-200"
               :padding="'none'"
             >
@@ -379,7 +385,7 @@
                       {{ $t('codex.auth.expiresAtHint') }}
                     </p>
                   </div>
-                  <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                  <div class="flex items-center gap-3 p-3 rounded-lg glass-surface border border-white/5">
                     <input
                       id="forceOverwrite"
                       v-model="saveForm.force"

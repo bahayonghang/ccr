@@ -5,7 +5,8 @@
 //! - 当前阶段聚焦配置管理场景（读取/写入配置文件、检测 CLI）
 
 use tokio::io::AsyncWriteExt;
-use tokio::process::Command;
+
+use crate::process::tokio_command;
 
 use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
 
@@ -97,7 +98,7 @@ impl SshEnvironment {
     }
 
     async fn run_ssh(&self, remote_cmd: &str) -> Result<std::process::Output, EnvError> {
-        let mut cmd = Command::new("ssh");
+        let mut cmd = tokio_command("ssh");
         cmd.arg("-o").arg("BatchMode=yes");
         cmd.arg("-o").arg("ConnectTimeout=5");
 
@@ -190,7 +191,7 @@ impl ExecutionEnvironment for SshEnvironment {
             .map(|p| p.to_string_lossy().into_owned())
             .unwrap_or_default();
 
-        let mut cmd = Command::new("ssh");
+        let mut cmd = tokio_command("ssh");
         cmd.arg("-o").arg("BatchMode=yes");
         cmd.arg("-o").arg("ConnectTimeout=5");
 

@@ -917,7 +917,7 @@ onMounted(async () => {
 .btn-refresh {
   @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg
          text-xs font-medium text-white/80
-         bg-white/5 border border-white/5
+         glass-surface border border-white/5
          hover:text-white hover:border-white/10
          disabled:opacity-50 transition-colors;
 }
@@ -932,7 +932,7 @@ onMounted(async () => {
 }
 
 .search-input {
-  @apply w-full bg-white/5 border border-white/5 rounded-xl
+  @apply w-full glass-surface border border-white/5 rounded-xl
          text-white
          pl-12 pr-4 py-3 text-sm font-medium
          focus:outline-none focus:ring-2 focus:ring-accent-primary/30
@@ -966,7 +966,7 @@ onMounted(async () => {
 
 .sort-select {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         bg-white/5 border border-white/5
+         glass-surface border border-white/5
          text-sm text-white/80;
 }
 
@@ -978,7 +978,7 @@ onMounted(async () => {
 .btn-batch {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
          text-sm font-medium text-white/80
-         bg-white/5 border border-white/5
+         glass-surface border border-white/5
          hover:text-white hover:border-white/10
          transition-colors;
 }
@@ -1012,15 +1012,15 @@ onMounted(async () => {
 }
 
 .skeleton-header { @apply flex items-center justify-between; }
-.skeleton-avatar { @apply w-6 h-6 rounded-full bg-white/5 animate-pulse; }
-.skeleton-owner { @apply w-16 h-4 rounded bg-white/5 animate-pulse; }
-.skeleton-stars { @apply w-12 h-4 rounded bg-white/5 animate-pulse; }
-.skeleton-name { @apply w-32 h-5 rounded bg-white/5 animate-pulse; }
+.skeleton-avatar { @apply w-6 h-6 rounded-full glass-surface animate-pulse; }
+.skeleton-owner { @apply w-16 h-4 rounded glass-surface animate-pulse; }
+.skeleton-stars { @apply w-12 h-4 rounded glass-surface animate-pulse; }
+.skeleton-name { @apply w-32 h-5 rounded glass-surface animate-pulse; }
 .skeleton-desc { @apply flex flex-col gap-1.5; }
-.skeleton-line { @apply h-3.5 rounded bg-white/5 animate-pulse; }
+.skeleton-line { @apply h-3.5 rounded glass-surface animate-pulse; }
 .skeleton-footer { @apply flex items-center justify-between mt-auto pt-3 border-t border-white/5; }
-.skeleton-link { @apply w-20 h-4 rounded bg-white/5 animate-pulse; }
-.skeleton-btn { @apply w-16 h-7 rounded-lg bg-white/5 animate-pulse; }
+.skeleton-link { @apply w-20 h-4 rounded glass-surface animate-pulse; }
+.skeleton-btn { @apply w-16 h-7 rounded-lg glass-surface animate-pulse; }
 
 /* Batch Bar */
 .batch-bar {
@@ -1095,7 +1095,7 @@ onMounted(async () => {
 .text-input {
   @apply w-full pl-10 pr-4 py-2.5 rounded-xl
          text-sm text-white
-         bg-white/5 border border-white/5
+         glass-surface border border-white/5
          focus:border-accent-primary focus:outline-none
          placeholder:text-white/50 transition-colors;
 }
@@ -1103,7 +1103,7 @@ onMounted(async () => {
 .browse-btn {
   @apply ml-2 flex items-center gap-1.5 px-3 py-2.5 rounded-xl shrink-0
          text-sm font-medium text-white/80
-         bg-white/5 border border-white/5
+         glass-surface border border-white/5
          hover:border-white/10 hover:text-white transition-colors;
 }
 
@@ -1111,7 +1111,7 @@ onMounted(async () => {
 
 /* npx */
 .npx-status {
-  @apply flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5;
+  @apply flex items-center gap-2 px-3 py-2 rounded-lg glass-surface;
 }
 
 .npx-indicator { @apply w-2 h-2 rounded-full; }
@@ -1142,7 +1142,7 @@ onMounted(async () => {
 
 .platform-item {
   @apply flex items-center gap-2 px-3 py-2 rounded-lg
-         bg-white/5 text-sm cursor-pointer
+         glass-surface text-sm cursor-pointer
          hover:bg-white/5 transition-colors;
 }
 .platform-item--disabled { @apply opacity-50; }
@@ -1170,7 +1170,7 @@ onMounted(async () => {
 /* Platform Modal */
 .platform-modal-overlay {
   @apply fixed inset-0 z-50 flex items-center justify-center
-         bg-black/50 backdrop-blur-sm;
+         bg-black/50 backdrop-blur-md;
 }
 
 .platform-modal {
@@ -1190,7 +1190,7 @@ onMounted(async () => {
 
 .platform-modal__pkg {
   @apply text-sm text-white/80 font-mono truncate
-         px-3 py-2 rounded-lg bg-white/5;
+         px-3 py-2 rounded-lg glass-surface;
 }
 
 .platform-modal__footer {

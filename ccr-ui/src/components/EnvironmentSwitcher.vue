@@ -92,7 +92,7 @@ onMounted(async () => {
   <div class="env-switcher relative">
     <!-- 触发按钮 -->
     <button
-      class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 border bg-white/5 border-white/10 text-white/80 hover:text-white hover:border-accent-primary/30 hover:bg-white/5"
+      class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 border glass-surface border-white/20 text-white/80 hover:text-white hover:border-accent-primary/30 hover:bg-white/5"
       @click.stop="isOpen = !isOpen"
     >
       <component

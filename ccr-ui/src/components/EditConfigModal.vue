@@ -19,7 +19,7 @@
       class="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-xl bg-white/5/60 backdrop-blur-xl border border-white/5 shadow-2xl animate-scale-in"
     >
       <!-- Header -->
-      <div class="shrink-0 px-8 py-6 border-b border-white/5 bg-white/5 rounded-t-xl flex items-center justify-between">
+      <div class="shrink-0 px-8 py-6 border-b border-white/5 glass-surface rounded-t-xl flex items-center justify-between">
         <div class="flex items-center gap-4">
           <div class="p-3 rounded-xl bg-accent-primary/10 text-accent-primary">
             <Settings class="w-6 h-6" />
@@ -188,7 +188,7 @@
                     </div>
                     <select
                       v-model="formData.provider_type"
-                      class="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-8 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary appearance-none transition-[border-color,box-shadow] duration-300 hover:border-border-strong shadow-sm"
+                      class="w-full glass-surface border border-white/20 rounded-lg pl-10 pr-8 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary appearance-none transition-[border-color,box-shadow] duration-300 hover:border-border-strong shadow-sm"
                     >
                       <option value="">
                         Uncategorized
@@ -256,7 +256,7 @@
       </div>
 
       <!-- Footer -->
-      <div class="shrink-0 px-8 py-6 border-t border-white/5 bg-white/5 rounded-b-xl flex gap-4">
+      <div class="shrink-0 px-8 py-6 border-t border-white/5 glass-effect rounded-b-xl flex gap-4">
         <Button
           variant="ghost"
           class="flex-1"

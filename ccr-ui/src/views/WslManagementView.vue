@@ -187,7 +187,7 @@ onMounted(() => fetchDistros())
       </div>
       <div class="flex items-center gap-2">
         <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:text-white hover:border-accent-primary/30 transition-colors text-sm"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg glass-surface border border-white/20 text-white/80 hover:text-white hover:border-accent-primary/30 transition-colors text-sm"
           :disabled="isRefreshing"
           @click="refresh"
         >
@@ -214,7 +214,7 @@ onMounted(() => fetchDistros())
     <!-- 缓存状态 -->
     <div
       v-if="cacheStatus"
-      class="flex items-center justify-between px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
+      class="flex items-center justify-between px-4 py-2 rounded-lg glass-surface border border-white/20 text-sm"
     >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
@@ -261,7 +261,7 @@ onMounted(() => fetchDistros())
     <!-- 无发行版 -->
     <div
       v-else-if="distros.length === 0"
-      class="rounded-xl border border-white/10 bg-white/5 p-8 text-center"
+      class="rounded-xl border border-white/10 glass-surface p-8 text-center"
     >
       <Terminal class="w-12 h-12 mx-auto text-white/50 mb-3" />
       <p class="text-white/80 font-medium">
@@ -287,7 +287,7 @@ onMounted(() => fetchDistros())
             v-for="distro in distros"
             :key="distro.name"
             class="w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left"
-            :class="[ selectedDistro === distro.name ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' : 'bg-white/5 border-white/10 text-white/80 hover:text-white hover:border-border-accent' ]"
+            :class="[ selectedDistro === distro.name ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' : 'glass-surface border-white/20 text-white/80 hover:text-white hover:border-border-accent' ]"
             @click="selectDistro(distro.name)"
           >
             <Terminal class="w-5 h-5 flex-shrink-0" />
@@ -313,7 +313,7 @@ onMounted(() => fetchDistros())
       <!-- 右侧：详情面板 -->
       <div class="col-span-8 space-y-6">
         <!-- CLI 工具检测 -->
-        <div class="rounded-xl border border-white/10 bg-white/5 p-4">
+        <div class="rounded-xl border border-white/10 glass-surface p-4">
           <h3 class="text-sm font-semibold text-white mb-3">
             AI CLI 工具状态
           </h3>
@@ -339,7 +339,7 @@ onMounted(() => fetchDistros())
         </div>
 
         <!-- 配置浏览 -->
-        <div class="rounded-xl border border-white/10 bg-white/5 p-4">
+        <div class="rounded-xl border border-white/10 glass-surface p-4">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold text-white flex items-center gap-2">
               <FileText class="w-4 h-4" />
@@ -363,7 +363,7 @@ onMounted(() => fetchDistros())
         </div>
 
         <!-- 同步操作 -->
-        <div class="rounded-xl border border-white/10 bg-white/5 p-4">
+        <div class="rounded-xl border border-white/10 glass-surface p-4">
           <h3 class="text-sm font-semibold text-white mb-3">
             配置同步
           </h3>

@@ -168,7 +168,7 @@
     <Teleport to="body">
       <div
         v-if="selectedSkillData"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
         @click.self="selectedSkillData = null"
       >
         <div class="w-full max-w-2xl max-h-[80vh] m-4 bg-guofeng-bg-secondary rounded-2xl border border-white/10 overflow-hidden flex flex-col">

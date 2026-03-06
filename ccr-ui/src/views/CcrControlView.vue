@@ -396,7 +396,7 @@
         <!-- 2. 终端输出区 (剩余空间全部占满) -->
         <div class="flex-1 flex flex-col overflow-hidden min-h-0 rounded-xl border border-border-color bg-bg-primary/50 backdrop-blur-md shadow-2xl relative transition-[box-shadow] duration-300 hover:shadow-neon-jade-sm group">
           <!-- Terminal Header -->
-          <div class="flex-none px-4 py-3 border-b border-border-color bg-bg-secondary/50 flex items-center justify-between backdrop-blur-sm">
+          <div class="flex-none px-4 py-3 border-b border-border-color bg-bg-secondary/50 flex items-center justify-between backdrop-blur-md">
             <div class="flex items-center gap-2">
               <div class="p-1 rounded bg-accent-primary/10">
                 <Monitor class="w-4 h-4 text-accent-primary" />

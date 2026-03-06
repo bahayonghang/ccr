@@ -163,7 +163,7 @@
       >
         <div
           v-if="showAboutDialog"
-          class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-sm"
+          class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md"
           @click.self="showAboutDialog = false"
         >
           <div class="relative bg-white/95 dark:bg-surface-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden overflow-y-auto">
@@ -193,11 +193,11 @@
               </p>
               
               <div class="w-full space-y-2 mb-6">
-                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50 dark:glass-surface border border-slate-100 dark:border-white/5">
                   <span class="text-slate-500 dark:text-secondary-400">Owner</span>
                   <span class="text-slate-800 dark:text-white font-medium">李永航</span>
                 </div>
-                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50 dark:glass-surface border border-slate-100 dark:border-white/5">
                   <span class="text-slate-500 dark:text-secondary-400">Engine</span>
                   <span class="text-slate-800 dark:text-white font-medium">Tauri 2.0 & Vue 3</span>
                 </div>

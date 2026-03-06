@@ -91,7 +91,7 @@
                 :disabled="applying || !hasChanges"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-effect font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border"
                 :class="applying || !hasChanges
-                  ? 'bg-white/5 text-white/50 border-white/5'
+                  ? 'glass-surface text-white/50 border-white/5'
                   : 'bg-success/15 text-success border-success/30 hover:bg-success/20'"
                 @click="applySelection"
               >
@@ -123,7 +123,7 @@
                     <input
                       v-model="presetItems.config.localPath"
                       type="text"
-                      class="flex-1 px-3 py-2 rounded-lg glass-effect text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-white/5 border border-white/5 text-white"
+                      class="flex-1 px-3 py-2 rounded-lg glass-effect text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30 glass-surface border border-white/5 text-white"
                       :placeholder="$t('sync.customFolder.localPathPlaceholder')"
                     >
                   </div>

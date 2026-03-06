@@ -8,7 +8,7 @@
         @click.self="close"
       >
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-md" />
 
         <!-- Modal Content -->
         <div class="modal-content relative w-full max-w-md">

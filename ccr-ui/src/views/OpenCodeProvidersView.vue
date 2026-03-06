@@ -183,7 +183,7 @@
             :disabled="!!editingProvider"
             type="text"
             placeholder="例：my-claude"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500 disabled:opacity-50"
+            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500 disabled:opacity-50"
           >
         </div>
 
@@ -197,7 +197,7 @@
               class="px-3 py-2 rounded-lg text-xs text-left transition-colors border"
               :class="form.npm === preset.npm
                 ? 'bg-violet-500/20 border-violet-500 text-violet-400'
-                : 'bg-white/5 border-white/10 text-white/50 hover:border-violet-500/50'"
+                : 'glass-surface border-white/20 text-white/50 hover:border-violet-500/50'"
               @click="selectPreset(preset)"
             >
               <div class="font-bold truncate">
@@ -212,7 +212,7 @@
             v-model="form.npm"
             type="text"
             placeholder="或输入自定义 npm 包名"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
+            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
           >
         </div>
 
@@ -223,7 +223,7 @@
             v-model="form.apiKey"
             type="password"
             placeholder="sk-... 或 {env:VAR_NAME}"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
+            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
           >
           <p class="text-xs text-white/50 mt-1">
             支持环境变量格式：{env:MY_API_KEY}
@@ -237,7 +237,7 @@
             v-model="form.baseURL"
             type="text"
             placeholder="https://api.example.com/v1"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
+            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
           >
         </div>
 

@@ -518,7 +518,7 @@ watch(activeTab, (newTab) => {
 }
 
 .btn-refresh {
-  @apply p-2 rounded-xl bg-white/5 hover:bg-white/5
+  @apply p-2 rounded-xl glass-surface hover:bg-white/5
          text-white/80 hover:text-white
          border border-white/5 hover:border-white/10
          transition-colors duration-200 disabled:opacity-50;
@@ -532,14 +532,14 @@ watch(activeTab, (newTab) => {
 }
 
 .btn-log {
-  @apply p-2 rounded-xl bg-white/5 hover:bg-white/5
+  @apply p-2 rounded-xl glass-surface hover:bg-white/5
          text-white/80 hover:text-white
          border border-white/5 hover:border-white/10
          transition-colors duration-200;
 }
 
 .btn-filter {
-  @apply relative p-2 rounded-xl bg-white/5 hover:bg-white/5
+  @apply relative p-2 rounded-xl glass-surface hover:bg-white/5
          text-white/80 hover:text-white
          border border-white/5 hover:border-white/10
          transition-colors duration-200;
@@ -585,7 +585,7 @@ watch(activeTab, (newTab) => {
 }
 
 .content-tab--active {
-  @apply text-white bg-white/5 shadow-sm;
+  @apply text-white glass-surface shadow-sm;
 }
 
 .content-tab__count {
@@ -611,7 +611,7 @@ watch(activeTab, (newTab) => {
 
 /* Mobile Filter Drawer */
 .mobile-filter-overlay {
-  @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-sm;
+  @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-md;
 }
 
 .mobile-filter-drawer {

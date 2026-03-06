@@ -80,17 +80,17 @@ install-frontend:
 
 _install-frontend-linux:
     @echo "📦 安装前端依赖..."
-    cd frontend && bun install
+    bun install
     @echo "✅ 前端依赖安装完成"
 
 _install-frontend-macos:
     @echo "📦 安装前端依赖..."
-    cd frontend && bun install
+    bun install
     @echo "✅ 前端依赖安装完成"
 
 _install-frontend-windows:
     @Write-Output '📦 安装前端依赖...'
-    @Set-Location frontend; bun install
+    @bun install
     @Write-Output '✅ 前端依赖安装完成'
 
 # 安装后端依赖（构建一次以下载依赖）
@@ -99,17 +99,17 @@ install-backend:
 
 _install-backend-linux:
     @echo "📦 安装后端依赖..."
-    cd backend && cargo build
+    cd src-tauri && cargo build
     @echo "✅ 后端依赖安装完成"
 
 _install-backend-macos:
     @echo "📦 安装后端依赖..."
-    cd backend && cargo build
+    cd src-tauri && cargo build
     @echo "✅ 后端依赖安装完成"
 
 _install-backend-windows:
     @Write-Output '📦 安装后端依赖...'
-    @Set-Location backend; cargo build
+    @Set-Location src-tauri; cargo build
     @Write-Output '✅ 后端依赖安装完成'
 
 # ===== 简化命令（别名） =====
@@ -179,7 +179,7 @@ _dev-parallel-linux:
 
     # ========== 预编译后端（避免健康检查超时） ==========
     echo "🔧 [Backend] Pre-compiling..."
-    cd "$JDIR/backend" && cargo build
+    cd "$JDIR/src-tauri" && cargo build
     if [ $? -ne 0 ]; then
       echo "❌ [ERROR] Backend compilation failed"
       exit 1
@@ -187,7 +187,7 @@ _dev-parallel-linux:
     echo "✅ [Backend] Compilation successful"
 
     # ========== 启动后端（已预编译，直接运行） ==========
-    cd "$JDIR/backend" && cargo run -- --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    cd "$JDIR/src-tauri" && cargo run -- --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
     BACK_PID=$!
 
     # ========== 等待后端就绪（固定 30 秒超时） ==========
@@ -223,11 +223,11 @@ _dev-parallel-linux:
 
     # ========== Vite 依赖预打包（noDiscovery 模式，填充 .vite/deps 缓存）==========
     echo "⚡ [Frontend] Pre-bundling Vite dependencies..."
-    cd "$JDIR/frontend" && bun run prebundle 2>/dev/null || echo "⚠️ [WARN] Vite pre-bundling had warnings (non-fatal)"
+    cd "$JDIR" && bun run prebundle 2>/dev/null || echo "⚠️ [WARN] Vite pre-bundling had warnings (non-fatal)"
     echo "✅ [Frontend] Pre-bundling complete"
 
     # ========== 启动前端 ==========
-    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
+    cd "$JDIR" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
       frontend_port=$(printf '%s\n' "$line" | sed -n 's/.*Local:[[:space:]]*http:\/\/localhost:\([0-9][0-9]*\)\/.*/\1/p')
       if [ -n "$frontend_port" ] && [ "$frontend_port" != "$frontend_port_announced" ]; then
         frontend_port_announced="$frontend_port"
@@ -251,7 +251,7 @@ _dev-parallel-macos:
 
     # ========== 预编译后端（避免健康检查超时） ==========
     echo "🔧 [Backend] Pre-compiling..."
-    cd "$JDIR/backend" && cargo build
+    cd "$JDIR/src-tauri" && cargo build
     if [ $? -ne 0 ]; then
       echo "❌ [ERROR] Backend compilation failed"
       exit 1
@@ -259,7 +259,7 @@ _dev-parallel-macos:
     echo "✅ [Backend] Compilation successful"
 
     # ========== 启动后端（已预编译，直接运行） ==========
-    cd "$JDIR/backend" && cargo run -- --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    cd "$JDIR/src-tauri" && cargo run -- --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
     BACK_PID=$!
 
     # ========== 等待后端就绪（固定 30 秒超时） ==========
@@ -295,11 +295,11 @@ _dev-parallel-macos:
 
     # ========== Vite 依赖预打包（noDiscovery 模式，填充 .vite/deps 缓存）==========
     echo "⚡ [Frontend] Pre-bundling Vite dependencies..."
-    cd "$JDIR/frontend" && bun run prebundle 2>/dev/null || echo "⚠️ [WARN] Vite pre-bundling had warnings (non-fatal)"
+    cd "$JDIR" && bun run prebundle 2>/dev/null || echo "⚠️ [WARN] Vite pre-bundling had warnings (non-fatal)"
     echo "✅ [Frontend] Pre-bundling complete"
 
     # ========== 启动前端 ==========
-    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
+    cd "$JDIR" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
       frontend_port=$(printf '%s\n' "$line" | sed -n 's/.*Local:[[:space:]]*http:\/\/localhost:\([0-9][0-9]*\)\/.*/\1/p')
       if [ -n "$frontend_port" ] && [ "$frontend_port" != "$frontend_port_announced" ]; then
         frontend_port_announced="$frontend_port"
@@ -362,7 +362,7 @@ _dev-clean-linux:
         done
     fi
     # 清理缓存目录
-    rm -rf "$JDIR/frontend/.next" 2>/dev/null || true
+    rm -rf "$JDIR/node_modules/.vite" 2>/dev/null || true
     echo "✅ 清理完成"
 
 # 清理开发环境 - macOS
@@ -407,7 +407,7 @@ _dev-clean-macos:
         done
     fi
     # 清理缓存目录
-    rm -rf "$JDIR/frontend/.next" 2>/dev/null || true
+    rm -rf "$JDIR/node_modules/.vite" 2>/dev/null || true
     echo "✅ 清理完成"
 
 # 清理开发环境 - Windows
@@ -416,7 +416,7 @@ _dev-clean-windows:
     @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '🧹 开始清理开发环境...' -ForegroundColor Cyan"
     @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1 -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}"
     @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '... 清理前端构建目录...' -ForegroundColor Gray"
-    @if (Test-Path 'frontend/.next') { Remove-Item -Recurse -Force 'frontend/.next' }
+    @if (Test-Path 'node_modules/.vite') { Remove-Item -Recurse -Force 'node_modules/.vite' }
     @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '✅ 清理完成' -ForegroundColor Green"
 
 # 启动前清理（端口 + 缓存 + 残留进程）
@@ -426,15 +426,15 @@ dev-backend:
 
 _dev-backend-linux:
     @echo "🦀 启动后端开发服务器..."
-    cd backend && cargo run
+    cd src-tauri && cargo run
 
 _dev-backend-macos:
     @echo "🦀 启动后端开发服务器..."
-    cd backend && cargo run
+    cd src-tauri && cargo run
 
 _dev-backend-windows:
     @Write-Output '🦀 启动后端开发服务器...'
-    @Set-Location backend; cargo run
+    @Set-Location src-tauri; cargo run
 
 # 仅启动前端开发服务器（Vue）
 dev-frontend:
@@ -442,15 +442,15 @@ dev-frontend:
 
 _dev-frontend-linux:
     @echo "⚛️  启动 Vue 前端开发服务器..."
-    cd frontend && bun run dev
+    bun run dev
 
 _dev-frontend-macos:
     @echo "⚛️  启动 Vue 前端开发服务器..."
-    cd frontend && bun run dev
+    bun run dev
 
 _dev-frontend-windows:
     @Write-Output '⚛️  启动 Vue 前端开发服务器...'
-    @Set-Location frontend; bun run dev
+    @bun run dev
 
 # 仅启动 React 前端开发服务器（Next.js）
 dev-react-frontend:
@@ -458,15 +458,15 @@ dev-react-frontend:
 
 _dev-react-frontend-linux:
     @echo "⚛️  启动 React 前端开发服务器..."
-    cd frontend && bun run dev
+    bun run dev
 
 _dev-react-frontend-macos:
     @echo "⚛️  启动 React 前端开发服务器..."
-    cd frontend && bun run dev
+    bun run dev
 
 _dev-react-frontend-windows:
     @Write-Output '⚛️  启动 React 前端开发服务器...'
-    @Set-Location frontend; bun run dev
+    @bun run dev
 
 # ===== 构建 =====
 
@@ -476,18 +476,18 @@ build: build-backend build-frontend
 
 _build-summary-linux:
     @echo "✅ 生产构建完成"
-    @echo "📦 后端二进制: backend/target/release/ccr-ui-backend"
-    @echo "📦 前端静态文件: frontend/dist/"
+    @echo "📦 后端二进制: src-tauri/target/release/ccr-desktop"
+    @echo "📦 前端静态文件: dist/"
 
 _build-summary-macos:
     @echo "✅ 生产构建完成"
-    @echo "📦 后端二进制: backend/target/release/ccr-ui-backend"
-    @echo "📦 前端静态文件: frontend/dist/"
+    @echo "📦 后端二进制: src-tauri/target/release/ccr-desktop"
+    @echo "📦 前端静态文件: dist/"
 
 _build-summary-windows:
     @Write-Output '✅ 生产构建完成'
-    @Write-Output '📦 后端二进制: backend/target/release/ccr-ui-backend.exe'
-    @Write-Output '📦 前端静态文件: frontend/dist'
+    @Write-Output '📦 后端二进制: src-tauri/target/release/ccr-desktop.exe'
+    @Write-Output '📦 前端静态文件: dist'
 
 # 构建后端生产版本
 build-backend:
@@ -495,17 +495,17 @@ build-backend:
 
 _build-backend-linux:
     @echo "🏗️  构建后端（Release）..."
-    cd backend && cargo build --release
+    cd src-tauri && cargo build --release
     @echo "✅ 后端构建完成"
 
 _build-backend-macos:
     @echo "🏗️  构建后端（Release）..."
-    cd backend && cargo build --release
+    cd src-tauri && cargo build --release
     @echo "✅ 后端构建完成"
 
 _build-backend-windows:
     @Write-Output '🏗️  构建后端（Release）...'
-    @Set-Location backend; cargo build --release
+    @Set-Location src-tauri; cargo build --release
     @Write-Output '✅ 后端构建完成'
 
 # 构建前端生产版本
@@ -514,17 +514,17 @@ build-frontend:
 
 _build-frontend-linux:
     @echo "🏗️  构建前端..."
-    cd frontend && bun run build
+    bun run build
     @echo "✅ 前端构建完成"
 
 _build-frontend-macos:
     @echo "🏗️  构建前端..."
-    cd frontend && bun run build
+    bun run build
     @echo "✅ 前端构建完成"
 
 _build-frontend-windows:
     @Write-Output '🏗️  构建前端...'
-    @Set-Location frontend; bun run build
+    @bun run build
     @Write-Output '✅ 前端构建完成'
 
 # ===== 快速开发模式（使用 Release 构建） =====
@@ -569,13 +569,13 @@ _dev-fast-parallel-linux:
     echo "$VITE_PORT" > "$FRONTEND_PORT_FILE"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
     # 检查是否已有 Release 构建，没有则先构建
-    if [ ! -f "$JDIR/backend/target/release/ccr-ui-backend" ]; then
+    if [ ! -f "$JDIR/src-tauri/target/release/ccr-desktop" ]; then
         echo "🏗️  首次运行，正在构建 Release 版本..."
-        cd "$JDIR/backend" && cargo build --release
+        cd "$JDIR/src-tauri" && cargo build --release
         echo "✅ Release 构建完成"
     fi
     # 启动后端（直接运行二进制，无需编译）
-    cd "$JDIR/backend" && ./target/release/ccr-ui-backend --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    cd "$JDIR/src-tauri" && ./target/release/ccr-desktop --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
     BACK_PID=$!
     echo "⏳ 等待后端就绪 (http://127.0.0.1:$BACKEND_PORT/health)..."
     for i in $(seq 1 15); do
@@ -594,7 +594,7 @@ _dev-fast-parallel-linux:
         fi
     done
     # 启动前端
-    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
+    cd "$JDIR" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
         frontend_port=$(printf '%s\n' "$line" | sed -n 's/.*Local:[[:space:]]*http:\/\/localhost:\([0-9][0-9]*\)\/.*/\1/p')
         if [ -n "$frontend_port" ] && [ "$frontend_port" != "$frontend_port_announced" ]; then
             frontend_port_announced="$frontend_port"
@@ -616,13 +616,13 @@ _dev-fast-parallel-macos:
     echo "$VITE_PORT" > "$FRONTEND_PORT_FILE"
     trap 'kill $(jobs -p) 2>/dev/null' EXIT
     # 检查是否已有 Release 构建，没有则先构建
-    if [ ! -f "$JDIR/backend/target/release/ccr-ui-backend" ]; then
+    if [ ! -f "$JDIR/src-tauri/target/release/ccr-desktop" ]; then
         echo "🏗️  首次运行，正在构建 Release 版本..."
-        cd "$JDIR/backend" && cargo build --release
+        cd "$JDIR/src-tauri" && cargo build --release
         echo "✅ Release 构建完成"
     fi
     # 启动后端（直接运行二进制，无需编译）
-    cd "$JDIR/backend" && ./target/release/ccr-ui-backend --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
+    cd "$JDIR/src-tauri" && ./target/release/ccr-desktop --port "$BACKEND_PORT" 2>&1 | tee -a "$JDIR/logs/backend-console.log" &
     BACK_PID=$!
     echo "⏳ 等待后端就绪 (http://127.0.0.1:$BACKEND_PORT/health)..."
     for i in $(seq 1 15); do
@@ -641,7 +641,7 @@ _dev-fast-parallel-macos:
         fi
     done
     # 启动前端
-    cd "$JDIR/frontend" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
+    cd "$JDIR" && bun run dev -- --host 0.0.0.0 --port "$VITE_PORT" 2>&1 | tee -a "$JDIR/logs/frontend.log" | while IFS= read -r line; do
         frontend_port=$(printf '%s\n' "$line" | sed -n 's/.*Local:[[:space:]]*http:\/\/localhost:\([0-9][0-9]*\)\/.*/\1/p')
         if [ -n "$frontend_port" ] && [ "$frontend_port" != "$frontend_port_announced" ]; then
             frontend_port_announced="$frontend_port"
@@ -664,16 +664,16 @@ run-prod:
 # 运行生产版本 - Unix/Linux/macOS
 _run-prod-linux:
     @echo "🚀 启动生产版本后端..."
-    ./backend/target/release/ccr-ui-backend
+    ./src-tauri/target/release/ccr-desktop
 
 _run-prod-macos:
     @echo "🚀 启动生产版本后端..."
-    ./backend/target/release/ccr-ui-backend
+    ./src-tauri/target/release/ccr-desktop
 
 # 运行生产版本 - Windows
 _run-prod-windows:
     @Write-Output '🚀 启动生产版本后端...'
-    @backend/target/release/ccr-ui-backend.exe
+    @src-tauri/target/release/ccr-desktop.exe
 
 # 使用Python服务器运行前端静态文件
 serve-frontend:
@@ -682,16 +682,16 @@ serve-frontend:
 # 启动前端静态服务 - Unix/Linux/macOS
 _serve-frontend-linux:
     @echo "🌐 启动前端静态文件服务器（端口5173）..."
-    cd frontend/dist && python3 -m http.server 5173
+    cd dist && python3 -m http.server 5173
 
 _serve-frontend-macos:
     @echo "🌐 启动前端静态文件服务器（端口5173）..."
-    cd frontend/dist && python3 -m http.server 5173
+    cd dist && python3 -m http.server 5173
 
 # 启动前端静态服务 - Windows
 _serve-frontend-windows:
     @Write-Output '🌐 启动前端静态文件服务器（端口5173）...'
-    @Set-Location frontend/dist; python -m http.server 5173
+    @Set-Location dist; python -m http.server 5173
 
 # ===== 检查和测试 =====
 
@@ -714,15 +714,15 @@ check-backend:
 
 _check-backend-linux:
     @echo "🔍 检查后端代码..."
-    cd backend && cargo check
+    cd src-tauri && cargo check
 
 _check-backend-macos:
     @echo "🔍 检查后端代码..."
-    cd backend && cargo check
+    cd src-tauri && cargo check
 
 _check-backend-windows:
     @Write-Output '🔍 检查后端代码...'
-    @Set-Location backend; cargo check
+    @Set-Location src-tauri; cargo check
 
 # 检查前端代码（Lint + TypeScript）
 check-frontend: check-frontend-lint check-frontend-types
@@ -743,15 +743,15 @@ check-frontend-lint:
 
 _check-frontend-lint-linux:
     @echo "🔍 检查前端代码 (ESLint)..."
-    cd frontend && bun run lint
+    bun run lint
 
 _check-frontend-lint-macos:
     @echo "🔍 检查前端代码 (ESLint)..."
-    cd frontend && bun run lint
+    bun run lint
 
 _check-frontend-lint-windows:
     @Write-Output '🔍 检查前端代码 (ESLint)...'
-    @Set-Location frontend; bun run lint
+    @bun run lint
 
 # 检查前端代码 - TypeScript 类型
 check-frontend-types:
@@ -759,15 +759,15 @@ check-frontend-types:
 
 _check-frontend-types-linux:
     @echo "🔍 检查前端类型 (TypeScript)..."
-    cd frontend && bun run type-check
+    bun run type-check
 
 _check-frontend-types-macos:
     @echo "🔍 检查前端类型 (TypeScript)..."
-    cd frontend && bun run type-check
+    bun run type-check
 
 _check-frontend-types-windows:
     @Write-Output '🔍 检查前端类型 (TypeScript)...'
-    @Set-Location frontend; bun run type-check
+    @bun run type-check
 
 # 检查前端安全漏洞
 check-security:
@@ -775,19 +775,19 @@ check-security:
 
 _check-security-linux:
     @echo "🔒 检查前端安全漏洞..."
-    cd frontend && bunx better-npm-audit audit
+    bunx better-npm-audit audit
     @echo ""
     @echo "✅ 安全检查完成"
 
 _check-security-macos:
     @echo "🔒 检查前端安全漏洞..."
-    cd frontend && bunx better-npm-audit audit
+    bunx better-npm-audit audit
     @echo ""
     @echo "✅ 安全检查完成"
 
 _check-security-windows:
     @Write-Output '🔒 检查前端安全漏洞...'
-    @Set-Location frontend; bunx better-npm-audit audit
+    @bunx better-npm-audit audit
     @Write-Output ''
     @Write-Output '✅ 安全检查完成'
 
@@ -810,15 +810,15 @@ test-backend:
 
 _test-backend-linux:
     @echo "🧪 运行后端测试..."
-    cd backend && cargo test
+    cd src-tauri && cargo test
 
 _test-backend-macos:
     @echo "🧪 运行后端测试..."
-    cd backend && cargo test
+    cd src-tauri && cargo test
 
 _test-backend-windows:
     @Write-Output '🧪 运行后端测试...'
-    @Set-Location backend; cargo test
+    @Set-Location src-tauri; cargo test
 
 # 运行前端测试
 test-frontend:
@@ -826,15 +826,15 @@ test-frontend:
 
 _test-frontend-linux:
     @echo "🧪 运行前端测试..."
-    cd frontend && bun run test || echo "ℹ️  前端测试跳过（未配置测试框架）"
+    bun run test || echo "ℹ️  前端测试跳过（未配置测试框架）"
 
 _test-frontend-macos:
     @echo "🧪 运行前端测试..."
-    cd frontend && bun run test || echo "ℹ️  前端测试跳过（未配置测试框架）"
+    bun run test || echo "ℹ️  前端测试跳过（未配置测试框架）"
 
 _test-frontend-windows:
     @Write-Output '🧪 运行前端测试...'
-    @Set-Location frontend; bun run test; if (-not $?) { Write-Host 'ℹ️  前端测试跳过（未配置测试框架）' -ForegroundColor Cyan }
+    @bun run test; if (-not $?) { Write-Host 'ℹ️  前端测试跳过（未配置测试框架）' -ForegroundColor Cyan }
 
 # ===== 代码质量 =====
 
@@ -857,15 +857,15 @@ fmt-backend:
 
 _fmt-backend-linux:
     @echo "💅 格式化后端代码..."
-    cd backend && cargo fmt
+    cd src-tauri && cargo fmt
 
 _fmt-backend-macos:
     @echo "💅 格式化后端代码..."
-    cd backend && cargo fmt
+    cd src-tauri && cargo fmt
 
 _fmt-backend-windows:
     @Write-Output '💅 格式化后端代码...'
-    @Set-Location backend; cargo fmt
+    @Set-Location src-tauri; cargo fmt
 
 # 格式化前端代码
 fmt-frontend:
@@ -873,15 +873,15 @@ fmt-frontend:
 
 _fmt-frontend-linux:
     @echo "💅 格式化前端代码..."
-    cd frontend && bun run lint --fix || true
+    bun run lint --fix || true
 
 _fmt-frontend-macos:
     @echo "💅 格式化前端代码..."
-    cd frontend && bun run lint --fix || true
+    bun run lint --fix || true
 
 _fmt-frontend-windows:
     @Write-Output '💅 格式化前端代码...'
-    @Set-Location frontend; bun run lint --fix; if (-not $?) { Write-Host '⚠️ 前端格式化遇到问题，但继续流程' -ForegroundColor Yellow }
+    @bun run lint --fix; if (-not $?) { Write-Host '⚠️ 前端格式化遇到问题，但继续流程' -ForegroundColor Yellow }
 
 # Clippy 检查后端
 clippy:
@@ -889,15 +889,15 @@ clippy:
 
 _clippy-linux:
     @echo "📎 运行 Clippy..."
-    cd backend && cargo clippy -- -D warnings
+    cd src-tauri && cargo clippy -- -D warnings
 
 _clippy-macos:
     @echo "📎 运行 Clippy..."
-    cd backend && cargo clippy -- -D warnings
+    cd src-tauri && cargo clippy -- -D warnings
 
 _clippy-windows:
     @Write-Output '📎 运行 Clippy...'
-    @Set-Location backend; cargo clippy -- -D warnings
+    @Set-Location src-tauri; cargo clippy -- -D warnings
 
 # ===== 清理 =====
 
@@ -910,15 +910,15 @@ clean-backend:
 
 _clean-backend-linux:
     @echo "🧹 清理后端..."
-    cd backend && cargo clean
+    cd src-tauri && cargo clean
 
 _clean-backend-macos:
     @echo "🧹 清理后端..."
-    cd backend && cargo clean
+    cd src-tauri && cargo clean
 
 _clean-backend-windows:
     @Write-Output '🧹 清理后端...'
-    @Set-Location backend; cargo clean
+    @Set-Location src-tauri; cargo clean
 
 # 清理前端构建产物
 clean-frontend:
@@ -927,17 +927,17 @@ clean-frontend:
 # 清理前端 - Unix/Linux/macOS
 _clean-frontend-linux:
     @echo "🧹 清理前端..."
-    cd frontend && rm -rf dist node_modules
+    rm -rf dist node_modules
 
 _clean-frontend-macos:
     @echo "🧹 清理前端..."
-    cd frontend && rm -rf dist node_modules
+    rm -rf dist node_modules
 
 # 清理前端 - Windows
 _clean-frontend-windows:
     @Write-Output '🧹 清理前端...'
-    @if (Test-Path 'frontend/dist') { Remove-Item -Recurse -Force 'frontend/dist' }
-    @if (Test-Path 'frontend/node_modules') { Remove-Item -Recurse -Force 'frontend/node_modules' }
+    @if (Test-Path 'dist') { Remove-Item -Recurse -Force 'dist' }
+    @if (Test-Path 'node_modules') { Remove-Item -Recurse -Force 'node_modules' }
 
 # 清理旧日志文件（保留14天）
 clean-logs:
@@ -967,17 +967,17 @@ clean-all: clean
 # 深度清理 - Unix/Linux/macOS
 _clean-all-linux:
     @echo "🧹 深度清理（包括依赖）..."
-    cd frontend && rm -rf node_modules package-lock.json
+    rm -rf node_modules package-lock.json
 
 _clean-all-macos:
     @echo "🧹 深度清理（包括依赖）..."
-    cd frontend && rm -rf node_modules package-lock.json
+    rm -rf node_modules package-lock.json
 
 # 深度清理 - Windows
 _clean-all-windows:
     @Write-Output '🧹 深度清理（包括依赖）...'
-    @if (Test-Path 'frontend/node_modules') { Remove-Item -Recurse -Force 'frontend/node_modules' }
-    @if (Test-Path 'frontend/package-lock.json') { Remove-Item -Force 'frontend/package-lock.json' }
+    @if (Test-Path 'node_modules') { Remove-Item -Recurse -Force 'node_modules' }
+    @if (Test-Path 'package-lock.json') { Remove-Item -Force 'package-lock.json' }
     @Write-Output '✅ 深度清理完成'
 
 # ===== 工具 =====
@@ -1086,8 +1086,8 @@ _info-linux:
     @echo "💻 当前系统: Linux"
     @echo ""
     @echo "📁 项目结构:"
-    @echo "  - backend/  : Actix Web (Rust)"
-    @echo "  - frontend/ : Next.js 16 Beta (TypeScript + Turbopack)"
+    @echo "  - src-tauri/: Tauri + Rust"
+    @echo "  - src/ + dist/: Vue 3 + Vite"
     @echo "  - logs/     : 日志文件（按日分割，保留14天）"
     @echo ""
     @echo "🌐 开发端口:"
@@ -1096,7 +1096,7 @@ _info-linux:
     @echo "  - React 前端: http://localhost:3000 (Next.js, 使用 just dev-react)"
     @echo ""
     @echo "📝 日志文件:"
-    @echo "  - logs/backend.log  : 后端日志（自动按日分割）"
+    @echo "  - logs/backend-console.log  : 后端日志（自动按日分割）"
     @echo "  - logs/frontend.log : 前端日志"
     @echo "  - just clean-logs   : 清理14天前的日志"
     @echo ""
@@ -1117,8 +1117,8 @@ _info-macos:
     @echo "💻 当前系统: macOS"
     @echo ""
     @echo "📁 项目结构:"
-    @echo "  - backend/  : Actix Web (Rust)"
-    @echo "  - frontend/ : Next.js 16 Beta (TypeScript + Turbopack)"
+    @echo "  - src-tauri/: Tauri + Rust"
+    @echo "  - src/ + dist/: Vue 3 + Vite"
     @echo "  - logs/     : 日志文件（按日分割，保留14天）"
     @echo ""
     @echo "🌐 开发端口:"
@@ -1127,7 +1127,7 @@ _info-macos:
     @echo "  - React 前端: http://localhost:3000 (Next.js, 使用 just dev-react)"
     @echo ""
     @echo "📝 日志文件:"
-    @echo "  - logs/backend.log  : 后端日志（自动按日分割）"
+    @echo "  - logs/backend-console.log  : 后端日志（自动按日分割）"
     @echo "  - logs/frontend.log : 前端日志"
     @echo "  - just clean-logs   : 清理14天前的日志"
     @echo ""
@@ -1149,8 +1149,8 @@ _info-windows:
     @Write-Output '💻 当前系统: Windows'
     @Write-Output ''
     @Write-Output '📁 项目结构:'
-    @Write-Output '  - backend/  : Actix Web (Rust)'
-    @Write-Output '  - frontend/ : Next.js 16 Beta (TypeScript + Turbopack)'
+    @Write-Output '  - src-tauri/: Tauri + Rust'
+    @Write-Output '  - src/ + dist/: Vue 3 + Vite'
     @Write-Output '  - logs/     : 日志文件（按日分割，保留14天）'
     @Write-Output ''
     @Write-Output '🌐 开发端口:'
@@ -1159,7 +1159,7 @@ _info-windows:
     @Write-Output '  - React 前端: http://localhost:3000 (Next.js, 使用 just dev-react)'
     @Write-Output ''
     @Write-Output '📝 日志文件:'
-    @Write-Output '  - logs/backend.log  : 后端日志（自动按日分割）'
+    @Write-Output '  - logs/backend-console.log  : 后端日志（自动按日分割）'
     @Write-Output '  - logs/frontend.log : 前端日志'
     @Write-Output '  - just clean-logs   : 清理14天前的日志'
     @Write-Output ''
@@ -1183,12 +1183,12 @@ update: update-backend update-frontend
 # 更新后端依赖
 update-backend:
     @echo "⬆️  更新后端依赖..."
-    cd backend && cargo update
+    cd src-tauri && cargo update
 
 # 更新前端依赖
 update-frontend:
     @echo "⬆️  更新前端依赖..."
-    cd frontend && bun update
+    bun update
 
 # ===== 辅助命令 =====
 
@@ -1205,17 +1205,17 @@ logs-frontend:
 # 监视文件变化并自动重启后端
 watch-backend:
     @echo "👀 监视后端文件变化..."
-    cd backend && cargo watch -x run
+    cd src-tauri && cargo watch -x run
 
 # 运行后端性能测试
 bench-backend:
     @echo "⚡ 运行后端性能测试..."
-    cd backend && cargo bench
+    cd src-tauri && cargo bench
 
 # 生成后端文档
 doc-backend:
     @echo "📚 生成后端文档..."
-    cd backend && cargo doc --no-deps --open
+    cd src-tauri && cargo doc --no-deps --open
 
 # ===== 部署相关 =====
 
@@ -1229,7 +1229,7 @@ _ci-summary-linux:
     @echo "   - 后端: cargo check + clippy + test"
     @echo "   - 前端: lint + type-check + test"
     @echo "   - 安全: better-npm-audit"
-    @echo "   - 构建: backend release + frontend dist"
+    @echo "   - 构建: src-tauri release + root dist"
 
 _ci-summary-macos:
     @echo ""
@@ -1237,7 +1237,7 @@ _ci-summary-macos:
     @echo "   - 后端: cargo check + clippy + test"
     @echo "   - 前端: lint + type-check + test"
     @echo "   - 安全: better-npm-audit"
-    @echo "   - 构建: backend release + frontend dist"
+    @echo "   - 构建: src-tauri release + root dist"
 
 _ci-summary-windows:
     @Write-Output ''
@@ -1245,7 +1245,7 @@ _ci-summary-windows:
     @Write-Output '   - 后端: cargo check + clippy + test'
     @Write-Output '   - 前端: lint + type-check + test'
     @Write-Output '   - 安全: better-npm-audit'
-    @Write-Output '   - 构建: backend release + frontend dist'
+    @Write-Output '   - 构建: src-tauri release + root dist'
 
 # CI 安全检查（不阻断 CI）
 ci-security:
@@ -1253,23 +1253,23 @@ ci-security:
 
 _ci-security-linux:
     @echo "🔒 检查安全漏洞..."
-    cd frontend && bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"
+    bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"
 
 _ci-security-macos:
     @echo "🔒 检查安全漏洞..."
-    cd frontend && bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"
+    bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"
 
 _ci-security-windows:
     @Write-Output '🔒 检查安全漏洞...'
-    @Set-Location frontend; bunx better-npm-audit audit; if (-not $?) { Write-Host '⚠️  安全检查有警告，但不阻断 CI' -ForegroundColor Yellow }
+    @bunx better-npm-audit audit; if (-not $?) { Write-Host '⚠️  安全检查有警告，但不阻断 CI' -ForegroundColor Yellow }
 
 # 准备发布
 prepare-release: clean build
     @echo "✅ 发布准备完成"
     @echo ""
     @echo "📦 发布文件:"
-    @echo "  - backend/target/release/ccr-ui-backend"
-    @echo "  - frontend/dist/"
+    @echo "  - src-tauri/target/release/ccr-desktop"
+    @echo "  - dist/"
 
 # ===== Tauri 桌面应用 =====
 
@@ -1282,21 +1282,21 @@ _tauri-dev-linux:
     @echo "📍 Frontend: http://localhost:5173 (自动加载)"
     @echo "📍 Desktop: Tauri 窗口将自动打开"
     @echo ""
-    cd frontend && bun run tauri:dev
+    bun run tauri:dev
 
 _tauri-dev-macos:
     @echo "🖥️  启动 Tauri 桌面应用开发模式..."
     @echo "📍 Frontend: http://localhost:5173 (自动加载)"
     @echo "📍 Desktop: Tauri 窗口将自动打开"
     @echo ""
-    cd frontend && bun run tauri:dev
+    bun run tauri:dev
 
 _tauri-dev-windows:
     @Write-Output '🖥️  启动 Tauri 桌面应用开发模式...'
     @Write-Output '📍 Frontend: http://localhost:5173 (自动加载)'
     @Write-Output '📍 Desktop: Tauri 窗口将自动打开'
     @Write-Output ''
-    @Set-Location frontend; bun run tauri:dev
+    @bun run tauri:dev
 
 # 构建 Tauri 生产版本（桌面应用）
 tauri-build: _ensure-frontend-deps
@@ -1308,9 +1308,9 @@ _ensure-frontend-deps:
 
 _ensure-frontend-deps-linux:
     #!/usr/bin/env bash
-    if [ ! -d "frontend/node_modules" ] || [ ! -d "frontend/node_modules/vue-i18n" ]; then
+    if [ ! -d "node_modules" ] || [ ! -d "node_modules/vue-i18n" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
-        cd frontend && bun install
+        bun install
         echo "✅ 前端依赖安装完成"
     else
         echo "✅ 前端依赖已就绪"
@@ -1318,44 +1318,44 @@ _ensure-frontend-deps-linux:
 
 _ensure-frontend-deps-macos:
     #!/usr/bin/env bash
-    if [ ! -d "frontend/node_modules" ] || [ ! -d "frontend/node_modules/vue-i18n" ]; then
+    if [ ! -d "node_modules" ] || [ ! -d "node_modules/vue-i18n" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
-        cd frontend && bun install
+        bun install
         echo "✅ 前端依赖安装完成"
     else
         echo "✅ 前端依赖已就绪"
     fi
 
 _ensure-frontend-deps-windows:
-    @if (-not (Test-Path 'frontend/node_modules') -or -not (Test-Path 'frontend/node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; Set-Location frontend; bun install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
+    @if (-not (Test-Path 'node_modules') -or -not (Test-Path 'node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; bun install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
 
 _tauri-build-linux:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
-    cd frontend && bun run build:desktop
+    bun run build:desktop
     @echo ""
     @echo "✅ Tauri 构建完成"
-    @echo "📦 产物位置: frontend/src-tauri/target/release/bundle/"
+    @echo "📦 产物位置: src-tauri/target/release/bundle/"
     @echo "   - .deb (Debian/Ubuntu)"
     @echo "   - .AppImage (通用 Linux)"
 
 _tauri-build-macos:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
-    cd frontend && bun run build:desktop
+    bun run build:desktop
     @echo ""
     @echo "🧹 清理自动挂载的 DMG..."
     @hdiutil detach "/Volumes/CCR Desktop" 2>/dev/null || true
     @echo ""
     @echo "✅ Tauri 构建完成"
-    @echo "📦 产物位置: frontend/src-tauri/target/release/bundle/"
+    @echo "📦 产物位置: src-tauri/target/release/bundle/"
     @echo "   - .dmg (安装镜像)"
     @echo "   - .app (应用程序包)"
 
 _tauri-build-windows:
     @Write-Output '🏗️  构建 Tauri 桌面应用（生产版本）...'
-    @Set-Location frontend; bun run build:desktop
+    @bun run build:desktop
     @Write-Output ''
     @Write-Output '✅ Tauri 构建完成'
-    @Write-Output '📦 产物位置: frontend/src-tauri/target/release/bundle/'
+    @Write-Output '📦 产物位置: src-tauri/target/release/bundle/'
     @Write-Output '   - .msi (安装程序)'
     @Write-Output '   - .exe (可执行文件)'
 
@@ -1365,24 +1365,24 @@ tauri-build-debug:
 
 _tauri-build-debug-linux:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
-    cd frontend && bun run tauri:build:debug
+    bun run tauri:build:debug
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
-    @echo "📦 产物位置: frontend/src-tauri/target/debug/bundle/"
+    @echo "📦 产物位置: src-tauri/target/debug/bundle/"
 
 _tauri-build-debug-macos:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
-    cd frontend && bun run tauri:build:debug
+    bun run tauri:build:debug
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
-    @echo "📦 产物位置: frontend/src-tauri/target/debug/bundle/"
+    @echo "📦 产物位置: src-tauri/target/debug/bundle/"
 
 _tauri-build-debug-windows:
     @Write-Output '🏗️  构建 Tauri 桌面应用（调试版本）...'
-    @Set-Location frontend; bun run tauri:build:debug
+    @bun run tauri:build:debug
     @Write-Output ''
     @Write-Output '✅ Tauri 调试版本构建完成'
-    @Write-Output '📦 产物位置: frontend/src-tauri/target/debug/bundle/'
+    @Write-Output '📦 产物位置: src-tauri/target/debug/bundle/'
 
 # 检查 Tauri 环境和配置
 tauri-check:
@@ -1391,17 +1391,17 @@ tauri-check:
 _tauri-check-linux:
     @echo "🔍 检查 Tauri 环境和配置..."
     @echo ""
-    cd frontend && bunx tauri info
+    bunx tauri info
 
 _tauri-check-macos:
     @echo "🔍 检查 Tauri 环境和配置..."
     @echo ""
-    cd frontend && bunx tauri info
+    bunx tauri info
 
 _tauri-check-windows:
     @Write-Output '🔍 检查 Tauri 环境和配置...'
     @Write-Output ''
-    @Set-Location frontend; bunx tauri info
+    @bunx tauri info
 
 # 检查 Tauri Rust 代码
 tauri-check-rust:
@@ -1409,15 +1409,15 @@ tauri-check-rust:
 
 _tauri-check-rust-linux:
     @echo "🔍 检查 Tauri Rust 代码..."
-    cd frontend && bun run tauri:check
+    bun run tauri:check
 
 _tauri-check-rust-macos:
     @echo "🔍 检查 Tauri Rust 代码..."
-    cd frontend && bun run tauri:check
+    bun run tauri:check
 
 _tauri-check-rust-windows:
     @Write-Output '🔍 检查 Tauri Rust 代码...'
-    @Set-Location frontend; bun run tauri:check
+    @bun run tauri:check
 
 # 运行 Tauri Clippy（Rust linter）
 tauri-clippy:
@@ -1425,15 +1425,15 @@ tauri-clippy:
 
 _tauri-clippy-linux:
     @echo "📎 运行 Tauri Clippy..."
-    cd frontend && bun run tauri:clippy
+    bun run tauri:clippy
 
 _tauri-clippy-macos:
     @echo "📎 运行 Tauri Clippy..."
-    cd frontend && bun run tauri:clippy
+    bun run tauri:clippy
 
 _tauri-clippy-windows:
     @Write-Output '📎 运行 Tauri Clippy...'
-    @Set-Location frontend; bun run tauri:clippy
+    @bun run tauri:clippy
 
 # 格式化 Tauri Rust 代码
 tauri-fmt:
@@ -1441,15 +1441,15 @@ tauri-fmt:
 
 _tauri-fmt-linux:
     @echo "💅 格式化 Tauri Rust 代码..."
-    cd frontend && bun run tauri:fmt
+    bun run tauri:fmt
 
 _tauri-fmt-macos:
     @echo "💅 格式化 Tauri Rust 代码..."
-    cd frontend && bun run tauri:fmt
+    bun run tauri:fmt
 
 _tauri-fmt-windows:
     @Write-Output '💅 格式化 Tauri Rust 代码...'
-    @Set-Location frontend; bun run tauri:fmt
+    @bun run tauri:fmt
 
 # 运行 Tauri 测试
 tauri-test:
@@ -1457,15 +1457,15 @@ tauri-test:
 
 _tauri-test-linux:
     @echo "🧪 运行 Tauri 测试..."
-    cd frontend && bun run tauri:test
+    bun run tauri:test
 
 _tauri-test-macos:
     @echo "🧪 运行 Tauri 测试..."
-    cd frontend && bun run tauri:test
+    bun run tauri:test
 
 _tauri-test-windows:
     @Write-Output '🧪 运行 Tauri 测试...'
-    @Set-Location frontend; bun run tauri:test
+    @bun run tauri:test
 
 # 清理 Tauri 构建产物
 tauri-clean:
@@ -1473,17 +1473,17 @@ tauri-clean:
 
 _tauri-clean-linux:
     @echo "🧹 清理 Tauri 构建产物..."
-    cd frontend/src-tauri && cargo clean
+    cd src-tauri && cargo clean
     @echo "✅ Tauri 清理完成"
 
 _tauri-clean-macos:
     @echo "🧹 清理 Tauri 构建产物..."
-    cd frontend/src-tauri && cargo clean
+    cd src-tauri && cargo clean
     @echo "✅ Tauri 清理完成"
 
 _tauri-clean-windows:
     @Write-Output '🧹 清理 Tauri 构建产物...'
-    @Set-Location frontend/src-tauri; cargo clean
+    @Set-Location src-tauri; cargo clean
     @Write-Output '✅ Tauri 清理完成'
 
 # Tauri 完整检查（TypeScript + Rust）
@@ -1492,15 +1492,15 @@ tauri-check-all:
 
 _tauri-check-all-linux:
     @echo "🔍 运行 Tauri 完整检查..."
-    cd frontend && bun run check:all
+    bun run check:all
     @echo "✅ 所有检查通过"
 
 _tauri-check-all-macos:
     @echo "🔍 运行 Tauri 完整检查..."
-    cd frontend && bun run check:all
+    bun run check:all
     @echo "✅ 所有检查通过"
 
 _tauri-check-all-windows:
     @Write-Output '🔍 运行 Tauri 完整检查...'
-    @Set-Location frontend; bun run check:all
+    @bun run check:all
     @Write-Output '✅ 所有检查通过'

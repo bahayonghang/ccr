@@ -5,7 +5,7 @@
     aria-live="polite"
   >
     <div
-      class="flex items-center justify-center w-20 h-20 mb-4 rounded-full bg-white/5 text-white/50"
+      class="flex items-center justify-center w-20 h-20 mb-4 rounded-full glass-surface text-white/50"
       aria-hidden="true"
     >
       <component

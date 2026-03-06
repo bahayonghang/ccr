@@ -4,7 +4,7 @@
     :class="{ streaming: isStreaming }"
   >
     <!-- 工具栏 -->
-    <div class="terminal-toolbar border-b border-white/5 bg-white/5 backdrop-blur-sm">
+    <div class="terminal-toolbar border-b border-white/5 glass-surface backdrop-blur-md">
       <div class="terminal-status">
         <span
           v-if="isStreaming"
@@ -106,7 +106,7 @@
     <!-- 行数提示 -->
     <div
       v-if="lines.length > 0"
-      class="terminal-footer border-t border-white/5 bg-white/5 backdrop-blur-sm text-xs text-[var(--color-text-muted)]"
+      class="terminal-footer border-t border-white/5 glass-surface backdrop-blur-md text-xs text-[var(--color-text-muted)]"
     >
       <span class="line-count">{{ lines.length }} lines</span>
       <span

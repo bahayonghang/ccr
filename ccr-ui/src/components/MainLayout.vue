@@ -189,7 +189,7 @@
           <div class="absolute -inset-1 bg-gradient-to-r from-pink-500/0 via-fuchsia-400/20 to-violet-500/0 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
           <!-- Inner content -->
-          <div class="relative p-3.5 backdrop-blur-sm z-10 flex flex-col gap-3">
+          <div class="relative p-3.5 backdrop-blur-md z-10 flex flex-col gap-3">
             <div class="flex items-center justify-between">
               <!-- Session Status -->
               <p class="text-[11px] font-mono uppercase tracking-wider flex items-center gap-2">
@@ -204,13 +204,13 @@
               </p>
               
               <!-- Theme Toggle -->
-              <ThemeToggle class="relative z-20 p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200" />
+              <ThemeToggle class="relative z-20 p-1.5 rounded-xl glass-surface hover:bg-white/10 border border-white/20 transition-colors duration-200" />
             </div>
 
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                CCR UI v4.4.3
+                CCR UI v5.0.0
               </span>
             </div>
           </div>
@@ -227,7 +227,7 @@
       class="flex-1 relative overflow-hidden flex flex-col"
     >
       <!-- Top Bar -->
-      <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm z-30 sticky top-0 justify-between">
+      <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md z-30 sticky top-0 justify-between">
         <!-- Left: Breadcrumbs or Back + Title -->
         <div class="flex items-center text-sm text-white/50">
           <template v-if="route.meta.hideSidebar">
@@ -263,7 +263,7 @@
             :class="[
               showExitConfirm 
                 ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' 
-                : 'bg-white/5 border-white/10 text-white/80 hover:text-white hover:border-accent-primary/30 hover:bg-white/5'
+                : 'glass-surface border-white/20 text-white/80 hover:text-white hover:border-accent-primary/30 hover:bg-white/5'
             ]"
             :title="showExitConfirm ? $t('common.yes') : $t('common.no')"
             @click="toggleExitConfirm"

@@ -185,7 +185,7 @@
     <Teleport to="body">
       <div
         v-if="showViewModal && viewingStyle"
-        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-colors p-4"
+        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-md transition-colors p-4"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="'view-modal-title'"
@@ -262,7 +262,7 @@
       <div
         v-if="showModal"
         ref="editModalOverlay"
-        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-colors p-4"
+        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-md transition-colors p-4"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="editingStyle ? 'edit-modal-title' : 'add-modal-title'"

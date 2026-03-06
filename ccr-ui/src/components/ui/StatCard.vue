@@ -135,7 +135,7 @@ const formattedValue = computed(() => {
 // 变体颜色映射
 const variantColors = {
   default: {
-    container: 'bg-white/5',
+    container: 'glass-surface',
     icon: 'text-white/80',
   },
   primary: {
@@ -162,7 +162,7 @@ const variantColors = {
 
 // 卡片类
 const cardClasses = computed(() => [
-  'flex items-start gap-4 p-4 rounded-xl bg-white/5',
+  'flex items-start gap-4 p-4 rounded-xl glass-surface',
   'transition-colors duration-200 ease-out',
   props.bordered ? 'border border-white/5 hover:border-white/10' : '',
 ])

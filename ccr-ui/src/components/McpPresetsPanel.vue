@@ -97,7 +97,7 @@
     <!-- Install Modal -->
     <div
       v-if="showInstallModal && selectedPreset"
-      class="fixed inset-0 bg-guofeng-ink/40 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      class="fixed inset-0 bg-guofeng-ink/40 backdrop-blur-md flex items-center justify-center p-4 z-50"
       @click="closeInstallModal"
     >
       <div

@@ -322,7 +322,7 @@ function handleViewSource(item: MarketplaceItem) {
 }
 
 .search-input {
-  @apply w-full bg-white/5 border border-white/5 rounded-xl
+  @apply w-full glass-surface border border-white/5 rounded-xl
          text-white
          pl-12 pr-4 py-3 text-sm font-medium
          focus:outline-none focus:ring-2 focus:ring-accent-primary/30
@@ -360,7 +360,7 @@ function handleViewSource(item: MarketplaceItem) {
 
 .sort-select {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         bg-white/5 border border-white/5
+         glass-surface border border-white/5
          text-sm text-white/80;
 }
 
@@ -372,7 +372,7 @@ function handleViewSource(item: MarketplaceItem) {
 .btn-batch {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
          text-sm font-medium text-white/80
-         bg-white/5 border border-white/5
+         glass-surface border border-white/5
          hover:text-white hover:border-white/10
          transition-colors;
 }
@@ -412,19 +412,19 @@ function handleViewSource(item: MarketplaceItem) {
 }
 
 .skeleton-avatar {
-  @apply w-6 h-6 rounded-full bg-white/5 animate-pulse;
+  @apply w-6 h-6 rounded-full glass-surface animate-pulse;
 }
 
 .skeleton-owner {
-  @apply w-16 h-4 rounded bg-white/5 animate-pulse;
+  @apply w-16 h-4 rounded glass-surface animate-pulse;
 }
 
 .skeleton-stars {
-  @apply w-12 h-4 rounded bg-white/5 animate-pulse;
+  @apply w-12 h-4 rounded glass-surface animate-pulse;
 }
 
 .skeleton-name {
-  @apply w-32 h-5 rounded bg-white/5 animate-pulse;
+  @apply w-32 h-5 rounded glass-surface animate-pulse;
 }
 
 .skeleton-desc {
@@ -432,7 +432,7 @@ function handleViewSource(item: MarketplaceItem) {
 }
 
 .skeleton-line {
-  @apply h-3.5 rounded bg-white/5 animate-pulse;
+  @apply h-3.5 rounded glass-surface animate-pulse;
 }
 
 .skeleton-footer {
@@ -441,11 +441,11 @@ function handleViewSource(item: MarketplaceItem) {
 }
 
 .skeleton-link {
-  @apply w-20 h-4 rounded bg-white/5 animate-pulse;
+  @apply w-20 h-4 rounded glass-surface animate-pulse;
 }
 
 .skeleton-btn {
-  @apply w-16 h-7 rounded-lg bg-white/5 animate-pulse;
+  @apply w-16 h-7 rounded-lg glass-surface animate-pulse;
 }
 
 /* Batch Bar */

@@ -1,6 +1,7 @@
 //! 本地执行环境 — 直接委托到 `ccr` 核心库。
 
 use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
+use crate::process::tokio_command;
 
 /// 本地环境实现 — 始终可用，委托到 ccr 核心库。
 pub struct LocalEnvironment;
@@ -149,15 +150,9 @@ fn resolve_config_path(
 /// 检测 CLI 工具是否可用（通过 PATH 查找）
 async fn which_tool(name: &str) -> Option<String> {
     let cmd = if cfg!(windows) {
-        tokio::process::Command::new("where")
-            .arg(name)
-            .output()
-            .await
+        tokio_command("where").arg(name).output().await
     } else {
-        tokio::process::Command::new("which")
-            .arg(name)
-            .output()
-            .await
+        tokio_command("which").arg(name).output().await
     };
 
     match cmd {

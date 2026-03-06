@@ -75,8 +75,8 @@ ccr/ (workspace root)
 ├── Cargo.toml          # 共享依赖配置
 ├── src/                # CCR CLI + 核心库
 ├── ccr-ui/            # CCR UI 全栈应用
-│   ├── backend/        # Axum REST API 服务器（129 个端点）
-│   ├── frontend/       # Vue 3 + Vite + Pinia 前端
+│   ├── src-tauri/      # Tauri 桌面壳与 Rust 命令层
+│   ├── src/            # Vue 3 + Vite + Pinia 前端源码
 │   └── docs/           # VitePress 文档站点
 └── justfile            # 开发任务自动化
 ```
@@ -242,10 +242,10 @@ ccr/ (workspace root)
 
 ## 手动开发（不依赖 just）
 
-### 后端开发
+### Rust 壳开发
 ```bash
-cd ccr-ui/backend
-cargo run -- --port 38081              # 启动开发服务器（默认 38081）
+cd ccr-ui/src-tauri
+cargo run -- --port 38081             # 启动开发版桌面壳（默认 38081）
 cargo watch -x run                    # 监听文件变更自动重启
 RUST_LOG=debug cargo run              # 开启 debug 日志
 ```
@@ -264,7 +264,7 @@ bun run lint                          # ESLint 检查
 
 ### 环境变量配置
 
-**后端环境变量**
+**Rust 壳环境变量**
 ```bash
 RUST_LOG=info              # 日志级别：trace, debug, info, warn, error
 RUST_BACKTRACE=1          # 启用错误回溯
@@ -282,52 +282,33 @@ VITE_LOG_LEVEL=debug                        # 前端日志级别
 ### 方式 1：使用 just 命令
 ```bash
 cd ccr-ui
-just build              # 构建后端 + 前端生产版本
-just run-prod           # 运行后端并服务前端静态文件
+just build              # 构建 Rust 壳 + 前端生产版本
+just run-prod           # 运行生产模式桌面壳并加载前端静态资源
 ```
 
 ### 方式 2：手动构建
 ```bash
-# 构建后端
-cd ccr-ui/backend
+# 构建 Tauri Rust 壳
+cd ccr-ui/src-tauri
 cargo build --release
-cp target/release/ccr-ui-backend ../dist/
 
-# 构建前端
-cd ../frontend
+# 构建前端静态资源
+cd ..
 bun install && bun run build
-cp -r dist/* ../dist/static/
 
-# 运行
-./dist/ccr-ui-backend --port 38081 --static-dir ./dist/static
+# 运行桌面端后端壳（开发排障用）
+./src-tauri/target/release/ccr-desktop --port 38081
 ```
 
 **构建产物**：
-- 后端可执行文件：`ccr-ui/backend/target/release/ccr-ui-backend`
+- 后端可执行文件：`ccr-ui/src-tauri/target/release/ccr-desktop`
 - 前端静态文件：`ccr-ui/dist/`
 
 ### Docker 部署（可选）
-```dockerfile
-FROM rust:1.88 as backend-builder
-WORKDIR /app/ccr-ui/backend
-COPY . .
-RUN cargo build --release
 
-FROM node:18 as frontend-builder
-WORKDIR /app/ccr-ui
-COPY frontend .
-RUN bun install && bun run build
+当前 `ccr-ui/src-tauri` 通过 workspace 依赖复用仓库根目录下的 `crates/*`，因此如果需要容器化构建，必须从仓库根目录作为 Docker build context 进行构建，并显式使用 `ccr-ui/src-tauri/Cargo.toml` 作为 Rust manifest。
 
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y \
-    libssl1.1 \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-COPY --from=backend-builder /app/ccr-ui/backend/target/release/ccr-ui-backend /usr/local/bin/
-COPY --from=frontend-builder /app/ccr-ui/dist /usr/local/share/ccr-ui/static
-EXPOSE 38081
-CMD ["ccr-ui-backend", "--port", "38081", "--static-dir", "/usr/local/share/ccr-ui/static"]
-```
+旧版基于 `ccr-ui/backend` 与 `ccr-ui/frontend` 的双阶段 Docker 示例已不再适用。
 
 ## Tauri 桌面模式
 
@@ -420,9 +401,9 @@ pub struct CodexProfile {
 
 ## 测试
 
-### 后端测试
+### Rust 壳测试
 ```bash
-cd ccr-ui/backend
+cd ccr-ui/src-tauri
 cargo test              # 运行所有测试
 cargo test --lib       # 仅运行单元测试
 cargo test -- --nocapture  # 显示测试输出
@@ -467,7 +448,7 @@ kill -9 <PID>
 - 确认 `ccr` 已在 PATH 中
 - 检查版本：`ccr --version`（应为 3.9.4+）
 - 开启调试日志：`CCR_LOG_LEVEL=debug ccr ui`
-- 检查权限：`chmod +x ~/.ccr/ccr-ui/backend/target/release/ccr-ui-backend`
+- 检查权限：`chmod +x ~/.ccr/ccr-ui/src-tauri/target/release/ccr-desktop`
 
 **4. Node.js 或 npm 相关错误**
 - 确认 Node.js 版本：`node --version`（需 ≥ 18）
@@ -482,7 +463,7 @@ kill -9 <PID>
 **6. CORS 错误**
 后端默认允许所有来源，如需限制：
 ```rust
-// backend/src/main.rs
+// src-tauri/src/main.rs
 .layer(
     CorsLayer::new()
         .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
@@ -499,7 +480,7 @@ kill -9 <PID>
 
 ### CCR UI 相关
 - **日志**: `~/.ccr/logs/` 或 `./ccr-ui/logs/`
-- **后端日志**: `~/.ccr/logs/ccr-ui-backend.log`
+- **后端日志**: `ccr-ui/logs/backend-console.log`
 - **前端构建产物**: `ccr-ui/dist/`
 - **Tauri 配置**: `ccr-ui/src-tauri/tauri.conf.json`
 
@@ -523,12 +504,11 @@ A:
 
 ### Q: 如何添加新的 CLI 工具支持？
 A:
-1. 在 `backend/src/config/` 添加配置读取器
-2. 在 `backend/src/models/` 添加数据模型
-3. 在 `backend/src/handlers/` 添加 API 处理器
-4. 在 `backend/src/main.rs` 添加路由
-5. 在 `frontend/src/views/` 添加前端视图
-6. 在 `frontend/src/router/` 更新路由配置
+1. 在 `src-tauri/src/commands/` 添加新的 Tauri 命令
+2. 在 `src-tauri/src/` 的状态或模型层补充数据结构
+3. 在 `src/api/tauri.ts` 添加前端 `invoke()` 封装
+4. 在 `src/views/` 添加前端视图
+5. 在 `src/router/` 更新路由配置
 
 ### Q: 什么是 liquid glass 设计风格？
 A: 现代毛玻璃（glassmorphism）设计风格，特点包括：
@@ -571,7 +551,7 @@ A:
 - 使用 `cargo run -- --port 38081` 启动后端
 - 访问 `http://localhost:38081/api/version` 验证
 - 使用 Postman 或 curl 测试 API
-- 查看日志：`tail -f ~/.ccr/logs/ccr-ui-backend.log`
+- 查看日志：`tail -f ccr-ui/logs/backend-console.log`
 
 ### Q: 支持多用户吗？
 A: 目前 ccr-ui 是单用户应用，每个用户使用自己的配置目录（`~/.claude/` 等）。

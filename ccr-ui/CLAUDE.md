@@ -13,7 +13,7 @@ CCR UI 是基于 **Tauri v2** 的原生桌面应用，为多个 AI CLI 工具提
 **核心组成**:
 1. **Tauri Backend** (`src-tauri/`) - Rust 原生后端，通过 `#[tauri::command]` IPC 提供 141+ 命令
 2. **Frontend** (`src/`) - Vue.js 3 单页应用 (Liquid Glass 设计)
-3. **ccr-db** (`../ccr-db/`) - 独立 workspace crate，提供 SQLite 数据库、CheckIn、加密等服务
+3. **ccr-db** (`../crates/ccr-db/`) - 独立 workspace crate，提供 SQLite 数据库、CheckIn、加密等服务
 
 **支持平台**:
 - **Claude Code** - MCP 服务器、Agents、斜杠命令、插件、Settings、Hooks

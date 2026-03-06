@@ -6,12 +6,7 @@
 @layer components {
     /* ========== 玻璃拟态效果 (主题感知) ========== */
 
-    /* 基础玻璃效果 - 轻量级 */
-    .glass-surface {
-        background: var(--glass-bg-light);
-        backdrop-filter: var(--glass-blur-md);
-        border: 1px solid var(--glass-border-light);
-    }
+    /* `glass-surface` 由 Tailwind plugin 注册，避免与 SFC `@apply` 出现双重维护 */
 
     /* 中等玻璃效果 */
     .glass-effect {

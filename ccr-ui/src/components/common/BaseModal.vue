@@ -17,7 +17,7 @@
       >
         <!-- 背景遮罩 -->
         <div
-          class="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm"
+          class="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-md"
           aria-hidden="true"
         />
 

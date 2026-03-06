@@ -198,7 +198,7 @@
             :disabled="!!editingServer"
             type="text"
             placeholder="例：my-mcp-server"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-blue-500 disabled:opacity-50"
           >
         </div>
 
@@ -210,7 +210,7 @@
               class="flex-1 py-2 rounded-lg text-sm font-medium border transition-colors"
               :class="form.type === 'local'
                 ? 'bg-green-500/20 border-green-500 text-green-400'
-                : 'bg-white/5 border-white/10 text-white/50 hover:border-green-500/50'"
+                : 'glass-surface border-white/20 text-white/50 hover:border-green-500/50'"
               @click="form.type = 'local'"
             >
               <Terminal class="w-4 h-4 mx-auto mb-1" />
@@ -220,7 +220,7 @@
               class="flex-1 py-2 rounded-lg text-sm font-medium border transition-colors"
               :class="form.type === 'remote'
                 ? 'bg-blue-500/20 border-blue-500 text-blue-400'
-                : 'bg-white/5 border-white/10 text-white/50 hover:border-blue-500/50'"
+                : 'glass-surface border-white/20 text-white/50 hover:border-blue-500/50'"
               @click="form.type = 'remote'"
             >
               <Globe class="w-4 h-4 mx-auto mb-1" />
@@ -236,7 +236,7 @@
             v-model="form.commandStr"
             type="text"
             placeholder="例：npx -y @modelcontextprotocol/server-everything"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-blue-500"
+            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-blue-500"
           >
           <p class="text-xs text-white/50 mt-1">
             命令将被拆分为数组：["npx", "-y", "@modelcontextprotocol/server-everything"]
@@ -250,7 +250,7 @@
             v-model="form.url"
             type="text"
             placeholder="例：https://mcp.example.com/sse"
-            class="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-blue-500"
+            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-blue-500"
           >
         </div>
 

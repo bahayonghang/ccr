@@ -200,8 +200,8 @@
             v-if="usageLoading"
             class="space-y-4"
           >
-            <div class="h-20 bg-white/5 animate-pulse rounded-xl" />
-            <div class="h-20 bg-white/5 animate-pulse rounded-xl" />
+            <div class="h-20 glass-surface animate-pulse rounded-xl" />
+            <div class="h-20 glass-surface animate-pulse rounded-xl" />
           </div>
 
           <div

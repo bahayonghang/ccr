@@ -283,7 +283,7 @@
             <div class="flex-1 p-4 font-mono text-sm overflow-y-auto custom-scrollbar relative">
               <div
                 v-if="loading"
-                class="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm"
+                class="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-md"
               >
                 <div class="flex flex-col items-center gap-3">
                   <Loader2 class="w-8 h-8 text-guofeng-jade animate-spin" />

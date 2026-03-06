@@ -149,7 +149,7 @@ function formatNumber(num: number): string {
 
 .stats-card {
   @apply relative flex items-center gap-3 px-4 py-3 rounded-xl
-         backdrop-blur-sm
+         backdrop-blur-md
          border border-white/5
          transition-[border-color,box-shadow] duration-300
          hover:border-white/10 hover:shadow-lg;
@@ -203,13 +203,13 @@ function formatNumber(num: number): string {
 .stats-card__badge {
   @apply absolute top-2 right-2 flex items-center gap-1
          px-1.5 py-0.5 rounded-full text-[9px] font-medium
-         bg-white/5 text-white/50;
+         glass-surface text-white/50;
 }
 
 /* Right platform overview */
 .platform-overview {
   @apply flex-1 flex flex-col gap-2 px-4 py-3 rounded-xl
-         backdrop-blur-sm border border-white/5;
+         backdrop-blur-md border border-white/5;
 
   background: rgb(0 0 0 / 30%);
 }
@@ -220,7 +220,7 @@ function formatNumber(num: number): string {
 
 .platform-overview__count {
   @apply ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         bg-white/5 text-white/50;
+         glass-surface text-white/50;
 }
 
 .platform-chips {
@@ -261,7 +261,7 @@ function formatNumber(num: number): string {
 
 .platform-chip__count {
   @apply px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         bg-white/5 text-white/50;
+         glass-surface text-white/50;
 }
 
 .platform-chip__count--highlight {

@@ -1,5 +1,5 @@
 # CCR UI - Windows Development Server Parallel Launcher
-# Uses PowerShell background jobs to run backend/frontend in current window
+# Uses PowerShell background jobs to run Rust/Vite processes in current window
 # Avoids opening new popup windows
 
 param(
@@ -135,15 +135,14 @@ Write-Host ""
 # ========== Pre-compile Backend (避免健康检查超时) ==========
 Write-Host "[Backend] Pre-compiling..." -ForegroundColor Yellow
 
-# Workspace root is parent of ccr-ui
-$workspaceRoot = Split-Path -Parent $RootDir
-$backendDir = Join-Path $RootDir "backend"
-$backendBinary = Join-Path $workspaceRoot "target/debug/ccr-ui-backend.exe"
-Push-Location $workspaceRoot
+# Native target now lives in src-tauri under ccr-ui
+$backendDir = Join-Path $RootDir "src-tauri"
+$backendBinary = Join-Path $backendDir "target/debug/ccr-desktop.exe"
+Push-Location $backendDir
 try {
-    # 从 workspace root 编译，确保二进制文件输出到正确位置
+    # 在 src-tauri 中编译，确保二进制文件输出到当前结构位置
     # 使用 & 执行 cargo，让输出直接显示
-    & cargo build -p ccr-ui-backend
+    & cargo build
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] Backend compilation failed (exit code: $LASTEXITCODE)" -ForegroundColor Red
         Pop-Location
@@ -165,11 +164,11 @@ Write-Host "[Backend] Starting server (background job)..." -ForegroundColor Yell
 $backendJob = Start-Job -ScriptBlock {
     param($workDir, $binary, $port, $logPath)
     # Set working directory to backend folder for correct relative paths
-    Set-Location "$workDir/backend"
+    Set-Location $workDir
 
     # Run pre-compiled backend binary (传递端口参数)
     & "$binary" --port $port 2>&1 | Tee-Object -FilePath $logPath -Append
-} -ArgumentList $RootDir, $backendBinary, $BackendPort, $backendConsoleLogPath
+} -ArgumentList $backendDir, $backendBinary, $BackendPort, $backendConsoleLogPath
 
 # Save job ID for Ctrl+C handler
 $script:BackendJobId = $backendJob.Id
@@ -240,7 +239,7 @@ Write-Host ""
 # 在 Vite 服务器启动前预打包 npm 依赖，填充 .vite/deps 缓存
 # 服务器启动时直接命中缓存，跳过优化阶段
 Write-Host "[Frontend] Pre-bundling Vite dependencies..." -ForegroundColor Yellow
-Push-Location "$RootDir/frontend"
+Push-Location $RootDir
 try {
     $prebundleResult = & cmd /c "bun run prebundle" 2>&1
     if ($LASTEXITCODE -eq 0) {
@@ -266,7 +265,7 @@ Write-Host ""
 # Use try/catch/finally to handle Ctrl+C gracefully
 $exitCode = 0
 try {
-    Set-Location "$RootDir/frontend"
+    Set-Location $RootDir
 
     # Suppress PowerShell treating stderr as error (bun/vite outputs to stderr)
     $ErrorActionPreference = "Continue"
@@ -284,7 +283,7 @@ try {
 
     # Use cmd /c to wrap the command - this keeps stdin open properly
     # Also use bun which is the project's package manager
-    $viteProcess = Start-Process -FilePath "cmd" -ArgumentList "/c", "bun run dev -- --host 0.0.0.0 --port $VitePort" -NoNewWindow -PassThru -WorkingDirectory "$RootDir/frontend"
+    $viteProcess = Start-Process -FilePath "cmd" -ArgumentList "/c", "bun run dev -- --host 0.0.0.0 --port $VitePort" -NoNewWindow -PassThru -WorkingDirectory $RootDir
     $script:FrontendPid = $viteProcess.Id
     if ($script:FrontendPidFile) {
         Set-Content -Path $script:FrontendPidFile -Value $script:FrontendPid -Encoding ASCII -ErrorAction SilentlyContinue

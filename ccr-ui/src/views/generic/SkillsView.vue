@@ -46,7 +46,7 @@
 
       <!-- SEARCH & FILTERS -->
       <section 
-        class="sticky top-4 z-40 /85 backdrop-blur-sm border border-white/10 p-2 rounded-2xl shadow-2xl animate-slide-up flex flex-col xl:flex-row gap-2"
+        class="sticky top-4 z-40 /85 backdrop-blur-md border border-white/10 p-2 rounded-2xl shadow-2xl animate-slide-up flex flex-col xl:flex-row gap-2"
         style="animation-delay: 100ms;"
       >
         <div class="relative flex-1 group min-w-[200px]">
@@ -60,7 +60,7 @@
           <div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
             <span 
               v-if="filteredSkills.length"
-              class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50 border border-white/10"
+              class="text-[10px] font-mono px-2 py-0.5 rounded glass-surface text-white/50 border border-white/20"
             >
               {{ filteredSkills.length }}
             </span>
@@ -88,7 +88,7 @@
             >
               <div
                 v-if="selectedSource === opt.value"
-                class="absolute inset-0 bg-white/5 rounded-lg shadow-sm -z-10"
+                class="absolute inset-0 glass-surface rounded-lg shadow-sm -z-10"
               />
               {{ opt.label }}
             </button>
@@ -288,7 +288,7 @@
               <span 
                 v-for="tag in (skill.metadata?.tags || []).slice(0, 4)"
                 :key="tag"
-                class="text-[10px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/50 hover:text-white transition-colors"
+                class="text-[10px] px-2 py-1 rounded glass-surface border border-white/20 text-white/50 hover:text-white transition-colors"
               >
                 #{{ tag }}
               </span>
@@ -302,7 +302,7 @@
           </div>
 
           <!-- Card Footer (Path) -->
-          <div class="px-6 py-3 border-t border-white/5 bg-transparent backdrop-blur-sm text-[10px] text-white/50 font-mono truncate opacity-40 group-hover:opacity-80 transition-opacity">
+          <div class="px-6 py-3 border-t border-white/5 bg-transparent backdrop-blur-md text-[10px] text-white/50 font-mono truncate opacity-40 group-hover:opacity-80 transition-opacity">
             {{ skill.path }}
           </div>
         </Card>
@@ -323,7 +323,7 @@
           class="fixed inset-0 z-50 flex items-center justify-center p-4"
         >
           <div
-            class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            class="absolute inset-0 bg-black/60 backdrop-blur-md"
             @click="showModal = false"
           />
           

@@ -2,7 +2,7 @@
   <div class="relative w-full">
     <!-- Language Switcher Button -->
     <button
-      class="w-full px-3 py-2 rounded-lg font-semibold text-sm transition-[color,background-color,border-color,transform] flex items-center justify-between gap-2 hover:scale-[1.02] bg-white/5 border border-white/5 hover:border-accent-primary/50"
+      class="w-full px-3 py-2 rounded-lg font-semibold text-sm transition-[color,background-color,border-color,transform] flex items-center justify-between gap-2 hover:scale-[1.02] glass-surface border border-white/5 hover:border-accent-primary/50"
       :aria-label="$t('common.language.switchLanguage')"
       :title="$t('common.language.switchLanguage')"
       @click="toggleDropdown"
@@ -30,7 +30,7 @@
     >
       <div
         v-if="showDropdown"
-        class="absolute left-0 mt-2 w-44 rounded-xl overflow-hidden z-50 bg-white/5 border border-white/5 shadow-2xl"
+        class="absolute left-0 mt-2 w-44 rounded-xl overflow-hidden z-50 glass-surface border border-white/5 shadow-2xl"
       >
         <button
           v-for="lang in languages"

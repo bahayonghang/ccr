@@ -2,7 +2,7 @@
   <div class="account-list-table">
     <!-- Table Header -->
     <div
-      class="grid items-center gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-white/50 border-b border-white/5 bg-white/5/50 rounded-t-xl"
+      class="grid items-center gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-white/50 border-b border-white/5 glass-effect/50 rounded-t-xl"
       :style="gridTemplateStyle"
     >
       <div class="flex items-center gap-2">
@@ -157,7 +157,7 @@
       v-if="accounts.length === 0"
       class="flex flex-col items-center justify-center py-12 text-center"
     >
-      <div class="p-4 rounded-full bg-white/5 mb-4">
+      <div class="p-4 rounded-full glass-surface mb-4">
         <KeyRound class="w-8 h-8 text-white/50" />
       </div>
       <p class="text-white/80">
@@ -228,7 +228,7 @@ const freshnessDotClass = (freshness: TokenFreshness) => {
 
 <style scoped>
 .account-list-table {
-  @apply bg-white/5 rounded-xl border border-white/5 overflow-hidden;
+  @apply glass-surface rounded-xl border border-white/5 overflow-hidden;
 }
 
 /* Responsive grid adjustments */

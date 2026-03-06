@@ -19,7 +19,7 @@
 
         <main class="min-w-0">
           <!-- Header -->
-          <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-sm shadow-sm">
+          <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-md shadow-sm">
             <div class="flex items-center gap-4">
               <div class="p-3 rounded-xl bg-guofeng-indigo/10 text-guofeng-indigo">
                 <Puzzle class="w-6 h-6" />
@@ -149,7 +149,7 @@
           <!-- Add/Edit Form Modal -->
           <div
             v-if="showAddForm"
-            class="fixed inset-0 bg-guofeng-ink/20 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-colors"
+            class="fixed inset-0 bg-guofeng-ink/20 backdrop-blur-md flex items-center justify-center p-4 z-50 transition-colors"
             @click="showAddForm = false"
           >
             <div

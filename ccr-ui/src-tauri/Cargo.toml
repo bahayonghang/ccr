@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "4.4.3"
+version = "5.0.0"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2024"
@@ -13,13 +13,13 @@ tauri-build = { version = "2.5.2", features = [] }
 
 [dependencies]
 # 🎯 CCR 核心库 - 直接使用服务层
-ccr = { path = "../../", default-features = false }
+ccr = { path = "../../crates/ccr", default-features = false }
 
 # 📦 CCR 类型定义 - Claude Settings 子类型 (Agent, Plugin, Hook 等)
-ccr-types = { path = "../../ccr-types" }
+ccr-types = { path = "../../crates/ccr-types" }
 
 # 📦 CCR 数据库层 - SQLite 存储、CheckIn 服务
-ccr-db = { path = "../../ccr-db" }
+ccr-db = { path = "../../crates/ccr-db" }
 
 # Tauri framework
 tauri = { version = "2.9.3", features = [] }

@@ -340,7 +340,7 @@ function formatRelativeTime(timestamp: number): string {
 
 .skill-card__tag {
   @apply px-2 py-0.5 rounded-md text-[10px] font-medium
-         bg-white/5 text-white/70 border border-white/5;
+         glass-surface text-white/70 border border-white/5;
 }
 
 .skill-card__tag--more {

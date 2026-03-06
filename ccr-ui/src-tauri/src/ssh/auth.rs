@@ -7,9 +7,9 @@
 //! - 不依赖 russh 库，仅使用系统 OpenSSH 工具
 
 use serde::{Deserialize, Serialize};
-use tokio::process::Command;
 
 use crate::platform::ssh::SshHostConfig;
+use crate::process::tokio_command;
 
 /// SSH 认证方式
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,7 +93,7 @@ fn parse_key_header(content: &str) -> (String, bool) {
 
 /// 通过 `ssh-keygen -lf` 获取密钥指纹
 async fn get_fingerprint(path: &str) -> Option<String> {
-    let output = Command::new("ssh-keygen")
+    let output = tokio_command("ssh-keygen")
         .arg("-lf")
         .arg(path)
         .output()

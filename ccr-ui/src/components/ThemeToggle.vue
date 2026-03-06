@@ -1,6 +1,6 @@
 <template>
   <button
-    class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors bg-white/5 hover:bg-white/5 border border-white/10 hover:border-accent-primary/30 text-white/80 hover:text-accent-primary"
+    class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors glass-surface hover:bg-white/5 border border-white/20 hover:border-accent-primary/30 text-white/80 hover:text-accent-primary"
     :title="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
     :aria-label="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
     @click.stop="toggleTheme"

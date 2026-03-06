@@ -169,7 +169,7 @@
     <!-- Edit Modal -->
     <div
       v-if="showEditModal"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-sm transition-colors p-4"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-md transition-colors p-4"
       @click="showEditModal = false"
     >
       <div

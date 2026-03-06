@@ -318,7 +318,7 @@
     <!-- Empty state -->
     <div
       v-if="chartData.length === 0"
-      class="absolute inset-6 flex items-center justify-center bg-gradient-to-br from-gray-50/80 to-gray-100/80 dark:from-gray-900/50 dark:to-gray-800/50 rounded-xl backdrop-blur-sm"
+      class="absolute inset-6 flex items-center justify-center bg-gradient-to-br from-gray-50/80 to-gray-100/80 dark:from-gray-900/50 dark:to-gray-800/50 rounded-xl backdrop-blur-md"
     >
       <div class="text-center">
         <svg

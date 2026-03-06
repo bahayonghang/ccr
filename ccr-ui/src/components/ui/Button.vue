@@ -85,13 +85,13 @@ const classes = computed(() => {
   ]
 
   const variants = {
-    primary: 'bg-accent-primary/90 text-white hover:bg-accent-primary shadow-glow-primary border border-white/10 backdrop-blur-sm',
+    primary: 'bg-accent-primary/90 text-white hover:bg-accent-primary shadow-glow-primary border border-white/10 backdrop-blur-md',
     secondary: 'bg-white/10 text-white border border-white/10 hover:bg-white/20 backdrop-blur-md shadow-sm',
-    accent: 'bg-accent-secondary/90 text-white hover:bg-accent-secondary shadow-glow-primary border border-white/10 backdrop-blur-sm',
-    outline: 'border border-white/30 text-white hover:border-white/60 hover:bg-white/10 backdrop-blur-sm',
+    accent: 'bg-accent-secondary/90 text-white hover:bg-accent-secondary shadow-glow-primary border border-white/10 backdrop-blur-md',
+    outline: 'border border-white/30 text-white hover:border-white/60 hover:bg-white/10 backdrop-blur-md',
     ghost: 'text-white/70 hover:text-white hover:bg-white/10',
     glass: 'bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 shadow-lg',
-    danger: 'bg-accent-danger/90 text-white hover:bg-accent-danger shadow-glow-danger border border-white/10 backdrop-blur-sm',
+    danger: 'bg-accent-danger/90 text-white hover:bg-accent-danger shadow-glow-danger border border-white/10 backdrop-blur-md',
   }
 
   const sizes = {

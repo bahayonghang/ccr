@@ -46,7 +46,7 @@
       v-if="interactive && !disabled"
       class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-[opacity,transform] duration-300 transform translate-x-2 group-hover:translate-x-0"
     >
-      <div class="p-1.5 rounded-full bg-white/10 backdrop-blur-sm text-[var(--color-text-primary)]">
+      <div class="p-1.5 rounded-full bg-white/10 backdrop-blur-md text-[var(--color-text-primary)]">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="16"

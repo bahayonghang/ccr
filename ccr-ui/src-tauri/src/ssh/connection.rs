@@ -3,9 +3,9 @@
 use std::time::Instant;
 
 use chrono::Utc;
-use tokio::process::Command;
 use tokio::time::{Duration, timeout};
 
+use crate::process::tokio_command;
 use crate::state::{AppState, DEFAULT_SSH_PASSWORD_TTL_SECS, SshPasswordEntry, SshRuntimeState};
 
 /// SSH 连接测试结果。
@@ -113,7 +113,7 @@ impl SshConnectionManager {
         user: Option<&str>,
         identity_file: Option<&str>,
     ) -> Result<SshConnectResult, String> {
-        let mut cmd = Command::new("ssh");
+        let mut cmd = tokio_command("ssh");
         cmd.arg("-o").arg("BatchMode=yes");
         cmd.arg("-o").arg("ConnectTimeout=10");
         cmd.arg("-o").arg("StrictHostKeyChecking=accept-new");

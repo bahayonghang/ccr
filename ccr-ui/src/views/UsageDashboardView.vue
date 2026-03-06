@@ -452,7 +452,7 @@
           class="flex items-center justify-center gap-2"
         >
           <button
-            class="px-3 py-1 rounded text-xs bg-white/5 text-white/80 hover:text-white disabled:opacity-40 transition-colors"
+            class="px-3 py-1 rounded text-xs glass-surface text-white/80 hover:text-white disabled:opacity-40 transition-colors"
             :disabled="!store.canPrevLogs"
             @click="loadLogs('prev')"
           >
@@ -467,7 +467,7 @@
             class="text-xs text-white/50"
           >{{ store.logsPage }}</span>
           <button
-            class="px-3 py-1 rounded text-xs bg-white/5 text-white/80 hover:text-white disabled:opacity-40 transition-colors"
+            class="px-3 py-1 rounded text-xs glass-surface text-white/80 hover:text-white disabled:opacity-40 transition-colors"
             :disabled="!store.canNextLogs"
             @click="loadLogs('next')"
           >

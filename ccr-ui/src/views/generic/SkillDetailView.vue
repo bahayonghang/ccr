@@ -114,7 +114,7 @@
     <!-- Edit Modal -->
     <div
       v-if="showEditModal"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-sm transition-opacity"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-md transition-opacity"
       @click="showEditModal = false"
     >
       <div

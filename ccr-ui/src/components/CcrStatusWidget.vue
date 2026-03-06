@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div
       v-if="loading"
-      class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20"
+      class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:glass-surface border border-white/20"
     >
       <Loader2 class="w-4 h-4 animate-spin text-accent-primary" />
       <div class="flex flex-col">
@@ -15,7 +15,7 @@
     <!-- Installed State -->
     <div
       v-else-if="installed && version"
-      class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:bg-white/5 border border-white/20"
+      class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:glass-surface border border-white/20"
     >
       <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
         <CheckCircle2 class="w-5 h-5 text-green-500" />

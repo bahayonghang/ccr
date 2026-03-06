@@ -72,7 +72,7 @@
         <!-- Main Content -->
         <div class="flex-1 min-w-0">
           <!-- Header Bar -->
-          <div class="glass-effect rounded-2xl p-4 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-sm shadow-sm">
+          <div class="glass-effect rounded-2xl p-4 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-md shadow-sm">
             <div class="flex items-center gap-3 w-full md:w-auto">
               <div class="relative flex-1 md:w-80">
                 <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
@@ -271,7 +271,7 @@
     <!-- Add/Edit Modal -->
     <div
       v-if="showAddForm"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-sm transition-colors p-4"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-md transition-colors p-4"
       @click="showAddForm = false"
     >
       <div

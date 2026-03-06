@@ -8,7 +8,7 @@
         @click.self="close"
       >
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-md" />
 
         <!-- Modal Content -->
         <div class="modal-content relative w-full max-w-3xl max-h-[85vh] flex flex-col">
@@ -559,7 +559,7 @@ function formatDate(timestamp: number): string {
 
 .tag-badge {
   @apply px-2 py-0.5 rounded-md text-[10px] font-medium
-         bg-white/5 text-white/50;
+         glass-surface text-white/50;
 }
 
 /* Content Divider */
@@ -617,7 +617,7 @@ function formatDate(timestamp: number): string {
 
 .markdown-content .prose :deep(code) {
   @apply px-1.5 py-0.5 rounded text-xs font-mono
-         bg-white/5 text-accent-primary;
+         glass-surface text-accent-primary;
 }
 
 .markdown-content .prose :deep(pre) {

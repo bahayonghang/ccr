@@ -433,7 +433,7 @@ async function handleInstall() {
 <style scoped>
 .add-skill-overlay {
   @apply fixed inset-0 z-50 flex items-center justify-center
-         bg-black/50 backdrop-blur-sm;
+         bg-black/50 backdrop-blur-md;
 }
 
 .add-skill-modal {
@@ -499,7 +499,7 @@ async function handleInstall() {
 .text-input {
   @apply w-full pl-10 pr-4 py-2.5 rounded-xl
          text-sm text-white
-         bg-white/5 border border-white/5
+         glass-surface border border-white/5
          focus:border-accent-primary focus:outline-none
          placeholder:text-white/50
          transition-colors;
@@ -508,7 +508,7 @@ async function handleInstall() {
 .browse-btn {
   @apply ml-2 flex items-center gap-1.5 px-3 py-2.5 rounded-xl shrink-0
          text-sm font-medium text-white/80
-         bg-white/5 border border-white/5
+         glass-surface border border-white/5
          hover:border-white/10 hover:text-white
          transition-colors;
 }
@@ -519,7 +519,7 @@ async function handleInstall() {
 
 /* npx 状态 */
 .npx-status {
-  @apply flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5;
+  @apply flex items-center gap-2 px-3 py-2 rounded-lg glass-surface;
 }
 
 .npx-indicator {
@@ -572,7 +572,7 @@ async function handleInstall() {
 
 .platform-item {
   @apply flex items-center gap-2 px-3 py-2 rounded-lg
-         bg-white/5 text-sm cursor-pointer
+         glass-surface text-sm cursor-pointer
          hover:bg-white/5 transition-colors;
 }
 

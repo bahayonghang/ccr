@@ -105,7 +105,7 @@
     <!-- Error State -->
     <div
       v-if="error"
-      class="rounded-2xl bg-red-50/80 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-6 backdrop-blur-sm"
+      class="rounded-2xl bg-red-50/80 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-6 backdrop-blur-md"
     >
       <div class="flex items-start gap-4">
         <div class="p-2 rounded-lg bg-red-100 dark:bg-red-800/30">
@@ -140,7 +140,7 @@
       <!-- Overview Cards Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Total Cost -->
-        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-sm hover:shadow-md transition-shadow">
+        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md hover:shadow-md transition-shadow">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -169,7 +169,7 @@
         </div>
 
         <!-- Record Count -->
-        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-sm hover:shadow-md transition-shadow">
+        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md hover:shadow-md transition-shadow">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -198,7 +198,7 @@
         </div>
 
         <!-- Input Tokens -->
-        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-sm hover:shadow-md transition-shadow">
+        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md hover:shadow-md transition-shadow">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -227,7 +227,7 @@
         </div>
 
         <!-- Output Tokens -->
-        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-sm hover:shadow-md transition-shadow">
+        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md hover:shadow-md transition-shadow">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -257,7 +257,7 @@
       </div>
 
       <!-- Token Details Card -->
-      <div class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-sm">
+      <div class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md">
         <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <svg
             class="w-5 h-5 text-orange-500"
@@ -305,7 +305,7 @@
       <!-- Two Column Layout: By Model & By Project -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- By Model -->
-        <div class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-sm">
+        <div class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md">
           <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <svg
               class="w-5 h-5 text-blue-500"
@@ -341,7 +341,7 @@
         </div>
 
         <!-- By Project -->
-        <div class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-sm">
+        <div class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md">
           <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <svg
               class="w-5 h-5 text-green-500"
@@ -380,7 +380,7 @@
       <!-- Cost Trend -->
       <div
         v-if="stats.trend && stats.trend.length > 0"
-        class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-sm"
+        class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md"
       >
         <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <svg
@@ -421,7 +421,7 @@
     <!-- Empty State -->
     <div
       v-if="!loading && !error && stats && stats.record_count === 0"
-      class="p-16 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-sm text-center"
+      class="p-16 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md text-center"
     >
       <div class="p-4 rounded-full bg-gray-100 dark:bg-gray-700 w-16 h-16 mx-auto flex items-center justify-center mb-4">
         <svg
@@ -450,7 +450,7 @@
     <Teleport to="body">
       <div
         v-if="showProvidersModal"
-        class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+        class="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50"
         @click.self="showProvidersModal = false"
       >
         <div class="w-full max-w-xl bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl m-4 border border-gray-200/50 dark:border-gray-700/50">

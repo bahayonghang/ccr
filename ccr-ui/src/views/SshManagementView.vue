@@ -249,7 +249,7 @@ defineExpose({ sshListKeys, discoveredKeys })
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <section class="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+      <section class="rounded-xl border border-white/10 glass-surface p-4 space-y-3">
         <h2 class="text-base font-semibold text-white">
           新增 SSH 主机
         </h2>
@@ -300,7 +300,7 @@ defineExpose({ sshListKeys, discoveredKeys })
         </button>
       </section>
 
-      <section class="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+      <section class="rounded-xl border border-white/10 glass-surface p-4 space-y-3">
         <h2 class="text-base font-semibold text-white">
           主机列表
         </h2>
@@ -360,7 +360,7 @@ defineExpose({ sshListKeys, discoveredKeys })
       </section>
     </div>
 
-    <section class="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+    <section class="rounded-xl border border-white/10 glass-surface p-4 space-y-3">
       <div class="flex items-center justify-between gap-3">
         <h2 class="text-base font-semibold text-white">
           已连接主机

@@ -131,7 +131,7 @@
     <Teleport to="body">
       <div
         v-if="showAddModal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
         @click.self="showAddModal = false"
       >
         <div class="w-full max-w-md m-4 bg-guofeng-bg-secondary rounded-2xl border border-white/10 overflow-hidden">

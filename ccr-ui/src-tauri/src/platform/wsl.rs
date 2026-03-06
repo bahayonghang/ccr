@@ -7,10 +7,11 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::process::Command;
 
 use chrono::{DateTime, Utc};
 use fs4::fs_std::FileExt;
+
+use crate::process::std_command;
 
 use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
 
@@ -266,7 +267,7 @@ pub fn detect_wsl_distros_with_cache(force_refresh: bool) -> Result<Vec<WslDistr
 
 /// 内部实现：实际执行 WSL 检测
 fn detect_wsl_distros_internal() -> Result<Vec<WslDistroInfo>, EnvError> {
-    let output = Command::new("wsl")
+    let output = std_command("wsl")
         .args(["-l", "-v"])
         .output()
         .map_err(|e| EnvError::Other(format!("无法运行 wsl.exe: {e}")))?;
@@ -351,7 +352,7 @@ pub fn get_wsl_username(distro: &str) -> Result<String, EnvError> {
 
 /// 内部实现：实际执行 whoami 命令
 fn get_wsl_username_internal(distro: &str) -> Result<String, EnvError> {
-    let output = Command::new("wsl")
+    let output = std_command("wsl")
         .args(["-d", distro, "--", "whoami"])
         .output()
         .map_err(|e| EnvError::Other(format!("无法运行 whoami in {distro}: {e}")))?;
@@ -424,7 +425,7 @@ impl WslEnvironment {
     /// 通过 `wsl -d <distro> -- cat <path>` 读取文件（UNC 回退方案）。
     #[allow(dead_code)]
     fn read_via_wsl_cat(&self, linux_path: &str) -> Result<String, EnvError> {
-        let output = Command::new("wsl")
+        let output = std_command("wsl")
             .args(["-d", &self.distro.name, "--", "cat", linux_path])
             .output()
             .map_err(|e| EnvError::Other(format!("wsl cat 失败: {e}")))?;
@@ -479,12 +480,12 @@ impl WslEnvironment {
             .unwrap_or_default();
 
         if !parent.is_empty() {
-            let _ = Command::new("wsl")
+            let _ = std_command("wsl")
                 .args(["-d", &self.distro.name, "--", "mkdir", "-p", &parent])
                 .output();
         }
 
-        let mut child = Command::new("wsl")
+        let mut child = std_command("wsl")
             .args(["-d", &self.distro.name, "--", "tee", linux_path])
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
@@ -560,7 +561,7 @@ impl ExecutionEnvironment for WslEnvironment {
 
         // 在阻塞线程中运行 wsl 命令
         let output = tokio::task::spawn_blocking(move || {
-            Command::new("wsl")
+            std_command("wsl")
                 .args([
                     "-d", &distro,
                     "--",
@@ -612,7 +613,7 @@ impl ExecutionEnvironment for WslEnvironment {
                 let distro = self.distro.name.clone();
                 let lp = linux_path.clone();
                 tokio::task::spawn_blocking(move || {
-                    let output = Command::new("wsl")
+                    let output = std_command("wsl")
                         .args(["-d", &distro, "--", "cat", &lp])
                         .output()
                         .map_err(|e| EnvError::Other(format!("wsl cat 失败: {e}")))?;
@@ -657,12 +658,12 @@ impl ExecutionEnvironment for WslEnvironment {
                         .map(|p| p.to_string_lossy().into_owned())
                         .unwrap_or_default();
                     if !parent.is_empty() {
-                        let _ = Command::new("wsl")
+                        let _ = std_command("wsl")
                             .args(["-d", &distro, "--", "mkdir", "-p", &parent])
                             .output();
                     }
 
-                    let mut child = Command::new("wsl")
+                    let mut child = std_command("wsl")
                         .args(["-d", &distro, "--", "tee", &lp])
                         .stdin(Stdio::piped())
                         .stdout(Stdio::null())
@@ -705,7 +706,7 @@ impl ExecutionEnvironment for WslEnvironment {
             let tool_str = tool.to_string();
 
             let result = tokio::task::spawn_blocking(move || {
-                Command::new("wsl")
+                std_command("wsl")
                     .args(["-d", &distro_clone, "--", "which", &tool_str])
                     .output()
             })

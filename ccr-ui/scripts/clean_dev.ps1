@@ -145,19 +145,19 @@ foreach ($port in $ports) {
             $isCcrDevProcess = $false
             if ($cmd) {
                 if ($port -eq [int]$BackendPort) {
-                    if ($cmd -match '(?i)(ccr-ui-backend|ccr-ui\\backend)') { $isCcrDevProcess = $true }
+                    if ($cmd -match '(?i)(ccr-desktop|ccr-ui\\src-tauri|src-tauri\\target)') { $isCcrDevProcess = $true }
                 } else {
-                    if ($cmd -match '(?i)(vite|ccr-ui\\frontend)') { $isCcrDevProcess = $true }
+                    if ($cmd -match '(?i)(vite|ccr-ui\\src|ccr-ui\\dist)') { $isCcrDevProcess = $true }
                 }
             }
             if (-not $isCcrDevProcess -and $exe) {
                 if ($port -eq [int]$BackendPort) {
-                    if ($exe -match '(?i)(ccr-ui\\backend|ccr-ui-backend)') { $isCcrDevProcess = $true }
+                    if ($exe -match '(?i)(ccr-ui\\src-tauri|src-tauri\\target|ccr-desktop)') { $isCcrDevProcess = $true }
                 } else {
-                    if ($exe -match '(?i)(ccr-ui\\frontend)') { $isCcrDevProcess = $true }
+                    if ($exe -match '(?i)(ccr-ui\\src|ccr-ui\\dist|vite)') { $isCcrDevProcess = $true }
                 }
             }
-            if (-not $isCcrDevProcess -and ($procName -match '(?i)^ccr-ui-backend$')) { $isCcrDevProcess = $true }
+            if (-not $isCcrDevProcess -and ($procName -match '(?i)^ccr-desktop$')) { $isCcrDevProcess = $true }
 
             if ($isVscodeRelated) {
                 Write-Output ("  - Skipping port " + $port + " (VS Code related process: " + $procName + ", PID: " + $procId + ")")

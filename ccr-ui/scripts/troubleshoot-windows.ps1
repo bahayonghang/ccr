@@ -34,10 +34,10 @@ foreach ($port in $ports) {
 Write-Host ""
 
 # 2. Check for crashed processes
-Write-Host "[2] Checking for crashed backend/frontend processes..." -ForegroundColor Cyan
+Write-Host "[2] Checking for crashed Rust/Vite processes..." -ForegroundColor Cyan
 $crashedProcs = @()
-$crashedProcs += Get-Process -Name "ccr-ui-backend" -ErrorAction SilentlyContinue
-$crashedProcs += Get-Process -Name "cargo" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*ccr-ui*" }
+$crashedProcs += Get-Process -Name "ccr-desktop" -ErrorAction SilentlyContinue
+$crashedProcs += Get-Process -Name "cargo" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*src-tauri*" -or $_.CommandLine -like "*ccr-ui*" }
 $crashedProcs += Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*vite*" }
 $crashedProcs += Get-Process -Name "bun" -ErrorAction SilentlyContinue
 

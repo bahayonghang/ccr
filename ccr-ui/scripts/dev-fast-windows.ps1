@@ -43,10 +43,10 @@ Write-Host "[CCR] Fast development mode (Release build)..." -ForegroundColor Cya
 Write-Host ""
 
 # ========== Check/Build Release Binary ==========
-$backendBinary = "$RootDir/backend/target/release/ccr-ui-backend.exe"
+$backendBinary = "$RootDir/src-tauri/target/release/ccr-desktop.exe"
 if (-not (Test-Path $backendBinary)) {
     Write-Host "[Backend] Release binary not found, building..." -ForegroundColor Yellow
-    Set-Location "$RootDir/backend"
+    Set-Location "$RootDir/src-tauri"
     cargo build --release
     if (-not $?) {
         Write-Host "[ERROR] Failed to build Release binary" -ForegroundColor Red
@@ -128,7 +128,7 @@ Write-Host "====================================================================
 Write-Host ""
 
 try {
-    Set-Location "$RootDir/frontend"
+    Set-Location "$RootDir"
 
     # Suppress PowerShell treating stderr as error
     $ErrorActionPreference = "Continue"

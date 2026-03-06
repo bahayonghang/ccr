@@ -4,6 +4,7 @@
 mod commands;
 mod events;
 mod platform;
+mod process;
 mod ssh;
 mod state;
 

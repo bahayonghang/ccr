@@ -6,6 +6,7 @@ use serde_json::Value;
 use tauri::State;
 use tokio::{sync::Semaphore, task::JoinSet};
 
+use crate::process::tokio_command;
 use crate::state::AppState;
 
 /// 6 大平台的 skills 目录配置：(id, display_name, relative_path)
@@ -313,7 +314,7 @@ pub async fn skill_hub_save_skill_content(
 
 #[tauri::command]
 pub async fn skill_hub_check_npx() -> Result<Value, String> {
-    let result = tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
+    let result = tokio_command(if cfg!(windows) { "cmd" } else { "sh" })
         .args(if cfg!(windows) {
             vec!["/C", "npx", "--version"]
         } else {
@@ -326,7 +327,7 @@ pub async fn skill_hub_check_npx() -> Result<Value, String> {
     if result.status.success() {
         let version = String::from_utf8_lossy(&result.stdout).trim().to_string();
         // 获取 npx 路径
-        let path_result = tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
+        let path_result = tokio_command(if cfg!(windows) { "cmd" } else { "sh" })
             .args(if cfg!(windows) {
                 vec!["/C", "where", "npx"]
             } else {
@@ -608,7 +609,7 @@ pub async fn skill_hub_import_npx(
     let _global = global.unwrap_or(false);
 
     // 先检查 npx 可用性
-    let check = tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
+    let check = tokio_command(if cfg!(windows) { "cmd" } else { "sh" })
         .args(if cfg!(windows) {
             vec!["/C", "npx", "--version"]
         } else {
@@ -635,7 +636,7 @@ pub async fn skill_hub_import_npx(
         cmd_args.push(&agents_str);
     }
 
-    let result = tokio::process::Command::new("npx")
+    let result = tokio_command("npx")
         .args(&cmd_args)
         .output()
         .await

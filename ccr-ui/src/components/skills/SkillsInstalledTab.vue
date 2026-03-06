@@ -113,11 +113,11 @@ defineEmits<{
 }
 
 .skeleton-icon {
-  @apply w-12 h-12 rounded-xl bg-white/5 animate-pulse;
+  @apply w-12 h-12 rounded-xl glass-surface animate-pulse;
 }
 
 .skeleton-badge {
-  @apply w-14 h-4 rounded-full bg-white/5 animate-pulse;
+  @apply w-14 h-4 rounded-full glass-surface animate-pulse;
 }
 
 .skeleton-body {
@@ -129,15 +129,15 @@ defineEmits<{
 }
 
 .skeleton-name {
-  @apply w-36 h-5 rounded bg-white/5 animate-pulse;
+  @apply w-36 h-5 rounded glass-surface animate-pulse;
 }
 
 .skeleton-category {
-  @apply w-20 h-4 rounded-md bg-white/5 animate-pulse;
+  @apply w-20 h-4 rounded-md glass-surface animate-pulse;
 }
 
 .skeleton-description {
-  @apply w-full h-10 rounded bg-white/5 animate-pulse;
+  @apply w-full h-10 rounded glass-surface animate-pulse;
 }
 
 .skeleton-tags {
@@ -145,11 +145,11 @@ defineEmits<{
 }
 
 .skeleton-tag {
-  @apply w-14 h-5 rounded-md bg-white/5 animate-pulse;
+  @apply w-14 h-5 rounded-md glass-surface animate-pulse;
 }
 
 .skeleton-path {
-  @apply w-48 h-4 rounded bg-white/5 animate-pulse;
+  @apply w-48 h-4 rounded glass-surface animate-pulse;
 }
 
 .skeleton-actions {
@@ -157,6 +157,6 @@ defineEmits<{
 }
 
 .skeleton-action-btn {
-  @apply w-8 h-8 rounded-lg bg-white/5 animate-pulse;
+  @apply w-8 h-8 rounded-lg glass-surface animate-pulse;
 }
 </style>

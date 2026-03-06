@@ -6,6 +6,7 @@ use tauri::State;
 use tokio::sync::Semaphore;
 use tokio::time::{Duration, timeout};
 
+use crate::process::tokio_command;
 use crate::state::AppState;
 
 /// 系统信息
@@ -181,7 +182,7 @@ async fn run_command_with_timeout(
     args: &[&str],
     timeout_secs: u64,
 ) -> Result<std::process::Output, String> {
-    let mut cmd = tokio::process::Command::new(program);
+    let mut cmd = tokio_command(program);
     cmd.args(args);
     match timeout(Duration::from_secs(timeout_secs), cmd.output()).await {
         Ok(result) => result.map_err(|e| format!("Failed to spawn command: {e}")),
@@ -203,7 +204,7 @@ fn extract_version_line(output: &std::process::Output) -> Option<String> {
 
 async fn probe_cli_version(tool: &'static str, timeout_ms: u64) -> CliVersionEntry {
     let started_at = Instant::now();
-    let mut cmd = tokio::process::Command::new(tool);
+    let mut cmd = tokio_command(tool);
     cmd.args(["--version"]);
 
     let result = timeout(Duration::from_millis(timeout_ms), cmd.output()).await;

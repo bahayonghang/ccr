@@ -8,7 +8,7 @@
         @click.self="close"
       >
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-md" />
 
         <!-- Modal Content -->
         <div class="modal-content relative w-full max-w-lg">
@@ -317,7 +317,7 @@ async function handleInstall() {
 .quick-action {
   @apply flex items-center gap-2 px-3 py-2 rounded-lg
          text-xs font-medium text-white/80
-         bg-white/5 hover:bg-white/5
+         glass-surface hover:bg-white/5
          transition-colors;
 }
 
