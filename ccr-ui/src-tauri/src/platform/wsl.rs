@@ -152,8 +152,8 @@ fn read_disk_cache() -> Option<WslDistrosCache> {
 
 /// 写入磁盘缓存
 fn write_disk_cache(cache: &WslDistrosCache) -> Result<(), EnvError> {
-    let cache_dir = get_wsl_cache_dir()
-        .ok_or_else(|| EnvError::Other("无法获取缓存目录".to_string()))?;
+    let cache_dir =
+        get_wsl_cache_dir().ok_or_else(|| EnvError::Other("无法获取缓存目录".to_string()))?;
 
     std::fs::create_dir_all(&cache_dir)
         .map_err(|e| EnvError::Other(format!("创建缓存目录失败: {e}")))?;
@@ -219,10 +219,10 @@ pub fn get_wsl_cache_status() -> WslCacheStatus {
 /// 检测所有已安装的 WSL 发行版。
 ///
 /// 运行 `wsl -l -v` 并解析输出，返回发行版列表。
-/// 
+///
 /// # 参数
 /// - `force_refresh`: 是否强制刷新（跳过缓存）
-/// 
+///
 /// # 缓存策略
 /// - 内存缓存：5 分钟 TTL
 /// - 磁盘缓存：24 小时 TTL
@@ -234,10 +234,7 @@ pub fn detect_wsl_distros_with_cache(force_refresh: bool) -> Result<Vec<WslDistr
     } else {
         if let Some(cache) = read_disk_cache() {
             if !cache.is_expired() {
-                tracing::debug!(
-                    "[wsl-cache] disk cache hit (age: {}s)",
-                    cache.age_secs()
-                );
+                tracing::debug!("[wsl-cache] disk cache hit (age: {}s)", cache.age_secs());
                 return Ok(cache.distros);
             } else {
                 tracing::debug!(

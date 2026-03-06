@@ -322,7 +322,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -334,6 +333,7 @@ import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import { listCodexProfiles, getCodexUsage, getCliVersions } from '@/api'
+import { logger } from '@/utils/logger'
 import type {
   CliVersionEntry,
   CliVersionsResponse,
@@ -384,7 +384,7 @@ const refreshUsage = async () => {
   try {
     usageData.value = await getCodexUsage<CodexUsageResponse>()
   } catch (error) {
-    console.error('Failed to load usage data:', error)
+    logger.error('[CodexView] failed to load usage data', error)
     usageError.value = true
   } finally {
     usageLoading.value = false
@@ -489,11 +489,11 @@ onMounted(async () => {
     }
     
     // Fetch Codex version
-    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeout: 3500 })
+    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeoutMs: 3500, parallelism: 4 })
     const codex = versions.versions.find((v: CliVersionEntry) => v.platform === 'codex')
     applyCodexVersionEntry(codex)
   } catch (error) {
-    console.error('Failed to load profile status or version:', error)
+    logger.error('[CodexView] failed to load profile status or version', error)
     codexVersionStatus.value = 'error'
   }
   refreshUsage()

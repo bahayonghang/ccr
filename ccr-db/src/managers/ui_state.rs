@@ -15,7 +15,7 @@ pub struct UiStateManager {
 
 impl UiStateManager {
     /// 创建新的管理器实例
-    pub async fn new() -> Result<Self, String> {
+    pub fn new() -> Result<Self, String> {
         // Ensure database is initialized
         if !database::is_initialized() {
             return Err("Database not initialized".to_string());
@@ -27,7 +27,7 @@ impl UiStateManager {
     // ===== 收藏命令操作 =====
 
     /// 获取所有收藏命令
-    pub async fn get_favorites(&self) -> Vec<FavoriteCommand> {
+    pub fn get_favorites(&self) -> Vec<FavoriteCommand> {
         match database::with_connection(ui_state_repo::get_all_favorites) {
             Ok(favorites) => favorites,
             Err(e) => {
@@ -38,7 +38,7 @@ impl UiStateManager {
     }
 
     /// 添加收藏命令
-    pub async fn add_favorite(&self, req: AddFavoriteRequest) -> Result<FavoriteCommand, String> {
+    pub fn add_favorite(&self, req: AddFavoriteRequest) -> Result<FavoriteCommand, String> {
         // Check for duplicate
         let existing = database::with_connection(|conn| {
             ui_state_repo::find_favorite_by_command_args(conn, &req.command, &req.args)
@@ -68,7 +68,7 @@ impl UiStateManager {
     }
 
     /// 删除收藏命令
-    pub async fn remove_favorite(&self, id: &str) -> Result<bool, String> {
+    pub fn remove_favorite(&self, id: &str) -> Result<bool, String> {
         let deleted = database::with_connection(|conn| ui_state_repo::delete_favorite(conn, id))
             .map_err(|e| format!("Database error: {}", e))?;
 
@@ -81,7 +81,7 @@ impl UiStateManager {
     // ===== 命令历史操作 =====
 
     /// 获取命令历史
-    pub async fn get_history(&self, limit: Option<usize>) -> Vec<CommandHistory> {
+    pub fn get_history(&self, limit: Option<usize>) -> Vec<CommandHistory> {
         let limit = limit.unwrap_or(50);
         match database::with_connection(|conn| ui_state_repo::get_history(conn, limit)) {
             Ok(history) => history,
@@ -93,7 +93,7 @@ impl UiStateManager {
     }
 
     /// 添加命令历史
-    pub async fn add_history(
+    pub fn add_history(
         &self,
         command: String,
         args: Vec<String>,
@@ -124,7 +124,7 @@ impl UiStateManager {
     }
 
     /// 清空命令历史
-    pub async fn clear_history(&self) -> Result<(), String> {
+    pub fn clear_history(&self) -> Result<(), String> {
         let count = database::with_connection(ui_state_repo::clear_history)
             .map_err(|e| format!("Database error: {}", e))?;
 
@@ -140,16 +140,7 @@ use std::sync::Arc;
 static UI_STATE_MANAGER: OnceCell<Arc<UiStateManager>> = OnceCell::new();
 
 /// 获取全局 UI 状态管理器实例
-pub async fn get_ui_state_manager() -> Result<Arc<UiStateManager>, String> {
-    if let Some(manager) = UI_STATE_MANAGER.get() {
-        return Ok(Arc::clone(manager));
-    }
-
-    let manager = UiStateManager::new().await?;
-    let manager = Arc::new(manager);
-
-    // 尝试设置全局实例（忽略竞争条件）
-    let _ = UI_STATE_MANAGER.set(Arc::clone(&manager));
-
-    Ok(UI_STATE_MANAGER.get().map(Arc::clone).unwrap_or(manager))
+pub fn get_ui_state_manager() -> Result<Arc<UiStateManager>, String> {
+    let manager = UI_STATE_MANAGER.get_or_try_init(|| UiStateManager::new().map(Arc::new))?;
+    Ok(Arc::clone(manager))
 }

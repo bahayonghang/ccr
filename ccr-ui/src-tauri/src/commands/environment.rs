@@ -84,31 +84,30 @@ pub async fn refresh_environments(
     force_refresh: Option<bool>,
 ) -> Result<Vec<EnvironmentInfo>, String> {
     let force = force_refresh.unwrap_or(false);
-    let mut registry = state.env_registry.write().await;
-    let current_active_id = registry.active().map(|env| env.env_id());
+    #[cfg(not(target_os = "windows"))]
+    let _ = force;
 
-    registry.clear();
-    registry.register(Arc::new(LocalEnvironment::new()));
+    let current_active_id = {
+        let registry = state.env_registry.read().await;
+        registry.active().map(|env| env.env_id())
+    };
 
     #[cfg(target_os = "windows")]
-    {
+    let distros =
         match tokio::task::spawn_blocking(move || detect_wsl_distros_with_cache(force)).await {
-            Ok(Ok(distros)) => {
-                for distro in distros {
-                    registry.register(Arc::new(WslEnvironment::new(distro)));
-                }
-            }
+            Ok(Ok(distros)) => distros,
             Ok(Err(e)) => {
                 tracing::debug!("[environment] WSL refresh skipped: {e}");
+                Vec::new()
             }
             Err(e) => {
                 tracing::debug!("[environment] WSL refresh task failed: {e}");
+                Vec::new()
             }
-        }
-    }
+        };
 
     let db_pool = state.db_pool.clone();
-    match tokio::task::spawn_blocking(move || {
+    let hosts = match tokio::task::spawn_blocking(move || {
         let conn = db_pool
             .get()
             .map_err(|e| format!("获取数据库连接失败: {e}"))?;
@@ -116,25 +115,36 @@ pub async fn refresh_environments(
     })
     .await
     {
-        Ok(Ok(hosts)) => {
-            for host in hosts {
-                registry.register(Arc::new(SshEnvironment::new(SshHostConfig {
-                    id: Some(host.id),
-                    name: Some(host.name).filter(|v| !v.trim().is_empty()),
-                    host: host.host,
-                    port: Some(host.port),
-                    user: Some(host.username).filter(|v| !v.trim().is_empty()),
-                    identity_file: host.identity_file,
-                    remote_home: host.remote_home,
-                })));
-            }
-        }
+        Ok(Ok(hosts)) => hosts,
         Ok(Err(e)) => {
             tracing::warn!("[environment] SSH hosts refresh failed: {e}");
+            Vec::new()
         }
         Err(e) => {
             tracing::warn!("[environment] SSH hosts refresh task failed: {e}");
+            Vec::new()
         }
+    };
+
+    let mut registry = state.env_registry.write().await;
+    registry.clear();
+    registry.register(Arc::new(LocalEnvironment::new()));
+
+    #[cfg(target_os = "windows")]
+    for distro in distros {
+        registry.register(Arc::new(WslEnvironment::new(distro)));
+    }
+
+    for host in hosts {
+        registry.register(Arc::new(SshEnvironment::new(SshHostConfig {
+            id: Some(host.id),
+            name: Some(host.name).filter(|v| !v.trim().is_empty()),
+            host: host.host,
+            port: Some(host.port),
+            user: Some(host.username).filter(|v| !v.trim().is_empty()),
+            identity_file: host.identity_file,
+            remote_home: host.remote_home,
+        })));
     }
 
     if let Some(active_id) = current_active_id {

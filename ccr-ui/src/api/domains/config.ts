@@ -1,0 +1,15 @@
+export {
+  listConfigs,
+  switchConfig,
+  addConfig,
+  deleteConfig,
+  renameConfig,
+  duplicateConfig,
+  validateConfigs,
+  importConfig,
+  exportConfig,
+  getHistory,
+  clearHistory,
+  updateConfig,
+  cleanBackups,
+} from '../tauri'

@@ -276,20 +276,20 @@ pub async fn scan_skill_repository(url: String) -> Result<Value, String> {
 
     if let Some(array) = contents.as_array() {
         for item in array {
-            if item["type"].as_str() == Some("dir") {
-                if let Some(name) = item["name"].as_str() {
-                    let raw_url = format!(
-                        "https://raw.githubusercontent.com/{}/{}/{}/{}/SKILL.md",
-                        owner, repo_name, branch, name
-                    );
-                    skills.push(serde_json::json!({
-                        "name": name,
-                        "description": format!("Remote skill from {}/{}", owner, repo_name),
-                        "path": raw_url,
-                        "is_remote": true,
-                        "repository": format!("{}/{}", owner, repo_name),
-                    }));
-                }
+            if item["type"].as_str() == Some("dir")
+                && let Some(name) = item["name"].as_str()
+            {
+                let raw_url = format!(
+                    "https://raw.githubusercontent.com/{}/{}/{}/{}/SKILL.md",
+                    owner, repo_name, branch, name
+                );
+                skills.push(serde_json::json!({
+                    "name": name,
+                    "description": format!("Remote skill from {}/{}", owner, repo_name),
+                    "path": raw_url,
+                    "is_remote": true,
+                    "repository": format!("{}/{}", owner, repo_name),
+                }));
             }
         }
     }

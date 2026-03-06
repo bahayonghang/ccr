@@ -1,7 +1,10 @@
 //! SkillHub 市场命令 — 技能市场浏览、搜索、安装与多平台管理。
 
+use std::{collections::HashMap, sync::Arc};
+
 use serde_json::Value;
 use tauri::State;
+use tokio::{sync::Semaphore, task::JoinSet};
 
 use crate::state::AppState;
 
@@ -417,54 +420,98 @@ pub async fn skill_hub_import_github(
         .to_string();
 
     // 对每个 agent（平台）安装
-    let mut results: Vec<Value> = Vec::new();
     let home = dirs::home_dir().ok_or_else(|| "无法获取主目录".to_string())?;
+    let semaphore = Arc::new(Semaphore::new(4));
+    let mut jobs = JoinSet::new();
 
-    for agent in &agents {
-        let (_, _, rel_path) = match find_platform(agent) {
-            Some(p) => p,
-            None => {
-                results.push(serde_json::json!({
+    for agent in agents {
+        let permit_pool = Arc::clone(&semaphore);
+        let home = home.clone();
+        let skill_name = skill_name.clone();
+        let content = content.clone();
+        let source_url = url.clone();
+        jobs.spawn(async move {
+            let permit = match permit_pool.acquire_owned().await {
+                Ok(permit) => permit,
+                Err(e) => {
+                    return serde_json::json!({
+                        "agent": agent,
+                        "ok": false,
+                        "message": format!("并发控制失败: {e}"),
+                    });
+                }
+            };
+
+            let agent_for_join_error = agent.clone();
+            let result = tokio::task::spawn_blocking(move || {
+                let (_, _, rel_path) = match find_platform(&agent) {
+                    Some(p) => p,
+                    None => {
+                        return serde_json::json!({
+                            "agent": agent,
+                            "ok": false,
+                            "message": format!("未知平台: {agent}"),
+                        });
+                    }
+                };
+
+                let skill_dir = home.join(rel_path).join(&skill_name);
+                if skill_dir.exists() && !force {
+                    return serde_json::json!({
+                        "agent": agent,
+                        "ok": false,
+                        "message": format!("技能已存在: {}（使用 force 覆盖）", skill_dir.display()),
+                    });
+                }
+
+                if let Err(e) = std::fs::create_dir_all(&skill_dir) {
+                    return serde_json::json!({
+                        "agent": agent,
+                        "ok": false,
+                        "message": format!("创建目录失败: {e}"),
+                    });
+                }
+                if let Err(e) = std::fs::write(skill_dir.join("SKILL.md"), &content) {
+                    return serde_json::json!({
+                        "agent": agent,
+                        "ok": false,
+                        "message": format!("写入 SKILL.md 失败: {e}"),
+                    });
+                }
+
+                let _ = write_skill_meta(&skill_dir, "github", Some(&source_url));
+
+                serde_json::json!({
                     "agent": agent,
+                    "ok": true,
+                    "message": format!("已安装到 {}", skill_dir.display()),
+                })
+            })
+            .await;
+
+            drop(permit);
+
+            match result {
+                Ok(value) => value,
+                Err(e) => serde_json::json!({
+                    "agent": agent_for_join_error,
                     "ok": false,
-                    "message": format!("未知平台: {agent}"),
-                }));
-                continue;
+                    "message": format!("安装任务失败: {e}"),
+                }),
             }
-        };
+        });
+    }
 
-        let skill_dir = home.join(rel_path).join(&skill_name);
-        if skill_dir.exists() && !force {
-            results.push(serde_json::json!({
-                "agent": agent,
+    let mut results: Vec<Value> = Vec::new();
+    while let Some(job) = jobs.join_next().await {
+        match job {
+            Ok(value) => results.push(value),
+            Err(e) => results.push(serde_json::json!({
+                "agent": "unknown",
                 "ok": false,
-                "message": format!("技能已存在: {}（使用 force 覆盖）", skill_dir.display()),
-            }));
-            continue;
+                "message": format!("安装任务 join 失败: {e}"),
+            })),
         }
-
-        // 创建目录并写入
-        if let Err(e) = std::fs::create_dir_all(&skill_dir) {
-            results.push(serde_json::json!({
-                "agent": agent, "ok": false, "message": format!("创建目录失败: {e}"),
-            }));
-            continue;
-        }
-        if let Err(e) = std::fs::write(skill_dir.join("SKILL.md"), &content) {
-            results.push(serde_json::json!({
-                "agent": agent, "ok": false, "message": format!("写入 SKILL.md 失败: {e}"),
-            }));
-            continue;
-        }
-
-        // 写入安装元数据
-        let _ = write_skill_meta(&skill_dir, "github", Some(&url));
-
-        results.push(serde_json::json!({
-            "agent": agent,
-            "ok": true,
-            "message": format!("已安装到 {}", skill_dir.display()),
-        }));
     }
 
     Ok(serde_json::json!({ "results": results }))
@@ -629,10 +676,17 @@ pub async fn skill_hub_batch_install(
     let force = force.unwrap_or(false);
     let client = state.http_client.clone();
     let mut all_results: Vec<Value> = Vec::new();
+    let mut install_details: Vec<Value> = Vec::new();
     let mut success_count = 0usize;
     let mut fail_count = 0usize;
+    let mut package_stats: HashMap<String, (usize, usize)> = HashMap::new();
+    let semaphore = Arc::new(Semaphore::new(4));
+    let mut jobs = JoinSet::new();
 
     let home = dirs::home_dir().ok_or_else(|| "无法获取主目录".to_string())?;
+    for pkg in &packages {
+        package_stats.insert(pkg.clone(), (0, 0));
+    }
 
     for pkg in &packages {
         // 将 GitHub URL 转换为 raw URL
@@ -662,17 +716,27 @@ pub async fn skill_hub_batch_install(
             Ok(resp) => match resp.text().await {
                 Ok(text) => text,
                 Err(e) => {
-                    fail_count += 1;
-                    all_results.push(serde_json::json!({
-                        "package": pkg, "ok": false, "message": format!("读取响应失败: {e}"),
+                    if let Some(stats) = package_stats.get_mut(pkg) {
+                        stats.1 += agents.len().max(1);
+                    }
+                    install_details.push(serde_json::json!({
+                        "package": pkg,
+                        "agent": "download",
+                        "ok": false,
+                        "message": format!("读取响应失败: {e}"),
                     }));
                     continue;
                 }
             },
             Err(e) => {
-                fail_count += 1;
-                all_results.push(serde_json::json!({
-                    "package": pkg, "ok": false, "message": format!("下载失败: {e}"),
+                if let Some(stats) = package_stats.get_mut(pkg) {
+                    stats.1 += agents.len().max(1);
+                }
+                install_details.push(serde_json::json!({
+                    "package": pkg,
+                    "agent": "download",
+                    "ok": false,
+                    "message": format!("下载失败: {e}"),
                 }));
                 continue;
             }
@@ -687,41 +751,147 @@ pub async fn skill_hub_batch_install(
             .unwrap_or("imported-skill")
             .to_string();
 
-        // 对每个平台安装
-        let mut pkg_ok = true;
         for agent in &agents {
-            let (_, _, rel_path) = match find_platform(agent) {
-                Some(p) => p,
-                None => {
-                    pkg_ok = false;
-                    continue;
+            let permit_pool = Arc::clone(&semaphore);
+            let home = home.clone();
+            let agent = agent.clone();
+            let package = pkg.clone();
+            let source_url = pkg.clone();
+            let skill_name = skill_name.clone();
+            let content = content.clone();
+
+            jobs.spawn(async move {
+                let permit = match permit_pool.acquire_owned().await {
+                    Ok(permit) => permit,
+                    Err(e) => {
+                        return serde_json::json!({
+                            "package": package,
+                            "agent": agent,
+                            "ok": false,
+                            "message": format!("并发控制失败: {e}"),
+                        });
+                    }
+                };
+
+                let package_for_join_error = package.clone();
+                let agent_for_join_error = agent.clone();
+                let result = tokio::task::spawn_blocking(move || {
+                    let (_, _, rel_path) = match find_platform(&agent) {
+                        Some(p) => p,
+                        None => {
+                            return serde_json::json!({
+                                "package": package,
+                                "agent": agent,
+                                "ok": false,
+                                "message": format!("未知平台: {agent}"),
+                            });
+                        }
+                    };
+
+                    let skill_dir = home.join(rel_path).join(&skill_name);
+                    if skill_dir.exists() && !force {
+                        return serde_json::json!({
+                            "package": package,
+                            "agent": agent,
+                            "ok": false,
+                            "message": format!("技能已存在: {}（使用 force 覆盖）", skill_dir.display()),
+                        });
+                    }
+                    if let Err(e) = std::fs::create_dir_all(&skill_dir) {
+                        return serde_json::json!({
+                            "package": package,
+                            "agent": agent,
+                            "ok": false,
+                            "message": format!("创建目录失败: {e}"),
+                        });
+                    }
+                    if let Err(e) = std::fs::write(skill_dir.join("SKILL.md"), &content) {
+                        return serde_json::json!({
+                            "package": package,
+                            "agent": agent,
+                            "ok": false,
+                            "message": format!("写入 SKILL.md 失败: {e}"),
+                        });
+                    }
+
+                    let _ = write_skill_meta(&skill_dir, "github", Some(&source_url));
+
+                    serde_json::json!({
+                        "package": package,
+                        "agent": agent,
+                        "ok": true,
+                        "message": format!("已安装到 {}", skill_dir.display()),
+                    })
+                })
+                .await;
+
+                drop(permit);
+
+                match result {
+                    Ok(value) => value,
+                    Err(e) => serde_json::json!({
+                        "package": package_for_join_error,
+                        "agent": agent_for_join_error,
+                        "ok": false,
+                        "message": format!("安装任务失败: {e}"),
+                    }),
                 }
-            };
-            let skill_dir = home.join(rel_path).join(&skill_name);
-            if skill_dir.exists() && !force {
-                pkg_ok = false;
-                continue;
-            }
-            if std::fs::create_dir_all(&skill_dir).is_err() {
-                pkg_ok = false;
-                continue;
-            }
-            if std::fs::write(skill_dir.join("SKILL.md"), &content).is_err() {
-                pkg_ok = false;
-                continue;
-            }
-            let _ = write_skill_meta(&skill_dir, "github", Some(pkg));
+            });
         }
+    }
+
+    while let Some(job) = jobs.join_next().await {
+        let detail = match job {
+            Ok(value) => value,
+            Err(e) => serde_json::json!({
+                "package": "unknown",
+                "agent": "unknown",
+                "ok": false,
+                "message": format!("安装任务 join 失败: {e}"),
+            }),
+        };
+
+        let package = detail
+            .get("package")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+        let ok = detail.get("ok").and_then(|v| v.as_bool()).unwrap_or(false);
+
+        let stats = package_stats.entry(package).or_insert((0, 0));
+        if ok {
+            stats.0 += 1;
+        } else {
+            stats.1 += 1;
+        }
+
+        install_details.push(detail);
+    }
+
+    for pkg in &packages {
+        let (success_agents, failed_agents) = package_stats.get(pkg).copied().unwrap_or((0, 1));
+        let pkg_ok = success_agents > 0 && failed_agents == 0;
 
         if pkg_ok {
             success_count += 1;
         } else {
             fail_count += 1;
         }
+
+        let message = if agents.is_empty() {
+            "未指定安装平台"
+        } else if pkg_ok {
+            "安装成功"
+        } else {
+            "部分平台安装失败"
+        };
+
         all_results.push(serde_json::json!({
             "package": pkg,
             "ok": pkg_ok,
-            "message": if pkg_ok { "安装成功" } else { "部分平台安装失败" },
+            "message": message,
+            "success_agents": success_agents,
+            "failed_agents": failed_agents,
         }));
     }
 
@@ -730,6 +900,7 @@ pub async fn skill_hub_batch_install(
         "success_count": success_count,
         "fail_count": fail_count,
         "results": all_results,
+        "details": install_details,
     }))
 }
 

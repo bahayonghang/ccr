@@ -520,7 +520,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "4.4.1"
+version = "4.4.2"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -552,7 +552,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "4.4.1"
+version = "4.4.2"
 dependencies = [
  "serde",
  "serde_json",
