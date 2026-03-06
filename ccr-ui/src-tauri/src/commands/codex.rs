@@ -7,13 +7,13 @@
 //! Usage:        通过 `ccr::services::CodexUsageService` 管理
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
 use ccr::services::{CodexAuthService, CodexUsageService};
-use ccr::{Platform, create_platform};
+use ccr::{Platform, ProfileConfig, create_platform};
 
 // ── 内部辅助类型 ──
 
@@ -139,43 +139,327 @@ fn write_codex_config(path: &PathBuf, config: &CodexConfig) -> Result<(), String
     Ok(())
 }
 
+fn parse_string_field(raw: &Value, field_name: &str) -> Result<Option<String>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::String(text) => {
+            let trimmed = text.trim();
+            if trimmed.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(trimmed.to_string()))
+            }
+        }
+        _ => Err(format!("字段 '{field_name}' 必须是字符串")),
+    }
+}
+
+fn parse_tags_field(raw: &Value) -> Result<Option<Vec<String>>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::String(text) => {
+            let tags: Vec<String> = text
+                .split(',')
+                .map(|item| item.trim())
+                .filter(|item| !item.is_empty())
+                .map(ToString::to_string)
+                .collect();
+            if tags.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(tags))
+            }
+        }
+        Value::Array(items) => {
+            let mut tags: Vec<String> = Vec::new();
+            for item in items {
+                let Value::String(tag) = item else {
+                    return Err("字段 'tags' 必须是字符串数组".to_string());
+                };
+                let trimmed = tag.trim();
+                if !trimmed.is_empty() {
+                    tags.push(trimmed.to_string());
+                }
+            }
+            if tags.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(tags))
+            }
+        }
+        _ => Err("字段 'tags' 必须是字符串或字符串数组".to_string()),
+    }
+}
+
+fn parse_bool_field(raw: &Value, field_name: &str) -> Result<Option<bool>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::Bool(flag) => Ok(Some(*flag)),
+        _ => Err(format!("字段 '{field_name}' 必须是布尔值")),
+    }
+}
+
+fn parse_usage_count_field(raw: &Value) -> Result<Option<u32>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::Number(number) => {
+            let value = number
+                .as_u64()
+                .ok_or_else(|| "字段 'usage_count' 必须是非负整数".to_string())?;
+            let count =
+                u32::try_from(value).map_err(|_| "字段 'usage_count' 超出范围".to_string())?;
+            Ok(Some(count))
+        }
+        _ => Err("字段 'usage_count' 必须是数字".to_string()),
+    }
+}
+
+fn parse_extra_field(
+    raw: &Value,
+    field_name: &str,
+) -> Result<Option<serde_json::Map<String, Value>>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::Object(map) => Ok(Some(map.clone())),
+        _ => Err(format!("字段 '{field_name}' 必须是对象")),
+    }
+}
+
+fn parse_platform_data_update(obj: &Map<String, Value>) -> Result<Option<Map<String, Value>>, String> {
+    let has_extra = obj.contains_key("extra");
+    let has_platform_data = obj.contains_key("platform_data");
+
+    if !has_extra && !has_platform_data {
+        return Ok(None);
+    }
+
+    let mut platform_data = Map::new();
+
+    if let Some(raw) = obj.get("extra")
+        && let Some(extra) = parse_extra_field(raw, "extra")?
+    {
+        platform_data.extend(extra);
+    }
+
+    if let Some(raw) = obj.get("platform_data")
+        && let Some(extra) = parse_extra_field(raw, "platform_data")?
+    {
+        platform_data.extend(extra);
+    }
+
+    Ok(Some(platform_data))
+}
+
+fn build_profile_from_config(config: &Value) -> Result<ProfileConfig, String> {
+    let obj = config
+        .as_object()
+        .ok_or_else(|| "profile config 必须是对象".to_string())?;
+
+    let mut profile = ProfileConfig::new();
+
+    if let Some(raw) = obj.get("description") {
+        profile.description = parse_string_field(raw, "description")?;
+    }
+    if let Some(raw) = obj.get("base_url") {
+        profile.base_url = parse_string_field(raw, "base_url")?;
+    }
+    if let Some(raw) = obj.get("auth_token") {
+        profile.auth_token = parse_string_field(raw, "auth_token")?;
+    }
+    if let Some(raw) = obj.get("model") {
+        profile.model = parse_string_field(raw, "model")?;
+    }
+    if let Some(raw) = obj.get("small_fast_model") {
+        profile.small_fast_model = parse_string_field(raw, "small_fast_model")?;
+    }
+    if let Some(raw) = obj.get("provider") {
+        profile.provider = parse_string_field(raw, "provider")?;
+    }
+    if let Some(raw) = obj.get("provider_type") {
+        profile.provider_type = parse_string_field(raw, "provider_type")?;
+    }
+    if let Some(raw) = obj.get("account") {
+        profile.account = parse_string_field(raw, "account")?;
+    }
+    if let Some(raw) = obj.get("tags") {
+        profile.tags = parse_tags_field(raw)?;
+    }
+    if let Some(raw) = obj.get("usage_count") {
+        profile.usage_count = parse_usage_count_field(raw)?;
+    }
+    if let Some(raw) = obj.get("enabled") {
+        profile.enabled = parse_bool_field(raw, "enabled")?;
+    }
+
+    if let Some(platform_data) = parse_platform_data_update(obj)? {
+        profile.platform_data = platform_data.into_iter().collect();
+    }
+
+    Ok(profile)
+}
+
+fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Result<(), String> {
+    let obj = config
+        .as_object()
+        .ok_or_else(|| "profile config 必须是对象".to_string())?;
+
+    if let Some(raw) = obj.get("description") {
+        profile.description = parse_string_field(raw, "description")?;
+    }
+    if let Some(raw) = obj.get("base_url") {
+        profile.base_url = parse_string_field(raw, "base_url")?;
+    }
+    if let Some(raw) = obj.get("auth_token") {
+        profile.auth_token = parse_string_field(raw, "auth_token")?;
+    }
+    if let Some(raw) = obj.get("model") {
+        profile.model = parse_string_field(raw, "model")?;
+    }
+    if let Some(raw) = obj.get("small_fast_model") {
+        profile.small_fast_model = parse_string_field(raw, "small_fast_model")?;
+    }
+    if let Some(raw) = obj.get("provider") {
+        profile.provider = parse_string_field(raw, "provider")?;
+    }
+    if let Some(raw) = obj.get("provider_type") {
+        profile.provider_type = parse_string_field(raw, "provider_type")?;
+    }
+    if let Some(raw) = obj.get("account") {
+        profile.account = parse_string_field(raw, "account")?;
+    }
+    if let Some(raw) = obj.get("tags") {
+        profile.tags = parse_tags_field(raw)?;
+    }
+    if let Some(raw) = obj.get("usage_count") {
+        profile.usage_count = parse_usage_count_field(raw)?;
+    }
+    if let Some(raw) = obj.get("enabled") {
+        profile.enabled = parse_bool_field(raw, "enabled")?;
+    }
+
+    if let Some(platform_data) = parse_platform_data_update(obj)? {
+        profile.platform_data = platform_data.into_iter().collect();
+    }
+
+    Ok(())
+}
+
+fn profile_to_json(name: String, profile: ProfileConfig) -> Value {
+    json!({
+        "name": name,
+        "description": profile.description,
+        "base_url": profile.base_url.unwrap_or_default(),
+        "auth_token": profile.auth_token.unwrap_or_default(),
+        "model": profile.model.unwrap_or_default(),
+        "small_fast_model": profile.small_fast_model,
+        "provider": profile.provider,
+        "provider_type": profile.provider_type,
+        "account": profile.account,
+        "tags": profile.tags,
+        "usage_count": profile.usage_count.unwrap_or(0),
+        "enabled": profile.enabled.unwrap_or(true),
+        "extra": profile.platform_data,
+    })
+}
+
 // ── Profiles ──
 
-/// 列出 Codex config.toml 中的 [profiles] 段
+/// 列出 CCR Codex profiles（~/.ccr/platforms/codex/profiles.toml）
 #[tauri::command]
 pub async fn codex_list_profiles() -> Result<Value, String> {
     tokio::task::spawn_blocking(|| {
-        let path = codex_config_path()?;
-        let config = read_codex_config(&path)?;
-
-        // 查找当前 profile (enabled=true 或 currentProfile 字段)
-        let current_profile = config
-            .other
-            .get("currentProfile")
-            .and_then(|v| v.as_str())
-            .map(String::from)
-            .or_else(|| {
-                // 在 CCR 平台层查找当前 profile
-                create_platform(Platform::Codex)
-                    .ok()
-                    .and_then(|p| p.get_current_profile().ok().flatten())
-            });
-
-        let profiles: Vec<Value> = config
-            .profiles
-            .unwrap_or_default()
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        let current_profile = platform
+            .get_current_profile()
+            .map_err(|e| format!("读取当前 Codex profile 失败: {e}"))?;
+        let profiles: Vec<Value> = platform
+            .load_profiles()
+            .map_err(|e| format!("读取 Codex profiles 失败: {e}"))?
             .into_iter()
-            .map(|(name, profile)| {
-                json!({
-                    "name": name,
-                    "model": profile.model,
-                    "approval_policy": profile.approval_policy,
-                    "sandbox_mode": profile.sandbox_mode,
-                    "model_reasoning_effort": profile.model_reasoning_effort,
-                })
-            })
+            .map(|(name, profile)| profile_to_json(name, profile))
             .collect();
+
         Ok(json!({ "profiles": profiles, "current_profile": current_profile }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+/// 新增 Codex profile（写入 CCR profiles.toml）
+#[tauri::command]
+pub async fn codex_add_profile(name: String, config: Value) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        let profiles = platform
+            .load_profiles()
+            .map_err(|e| format!("读取 Codex profiles 失败: {e}"))?;
+        if profiles.contains_key(&name) {
+            return Err(format!("Codex Profile '{name}' 已存在"));
+        }
+
+        let profile = build_profile_from_config(&config)?;
+        platform
+            .save_profile(&name, &profile)
+            .map_err(|e| format!("保存 Codex Profile 失败: {e}"))?;
+
+        Ok(json!({ "message": format!("Codex Profile '{name}' 已添加") }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+/// 更新 Codex profile（核心字段覆盖 + extra/platform_data 整体替换）
+#[tauri::command]
+pub async fn codex_update_profile(name: String, config: Value) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        let profiles = platform
+            .load_profiles()
+            .map_err(|e| format!("读取 Codex profiles 失败: {e}"))?;
+        let mut profile = profiles
+            .get(&name)
+            .cloned()
+            .ok_or_else(|| format!("Codex Profile '{name}' 不存在"))?;
+
+        patch_profile_with_config(&mut profile, &config)?;
+        platform
+            .save_profile(&name, &profile)
+            .map_err(|e| format!("更新 Codex Profile 失败: {e}"))?;
+
+        Ok(json!({ "message": format!("Codex Profile '{name}' 已更新") }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+/// 删除 Codex profile
+#[tauri::command]
+pub async fn codex_delete_profile(name: String) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        platform
+            .delete_profile(&name)
+            .map_err(|e| format!("删除 Codex Profile 失败: {e}"))?;
+        Ok(json!({ "message": format!("Codex Profile '{name}' 已删除") }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+/// 应用 Codex profile
+#[tauri::command]
+pub async fn codex_apply_profile(name: String) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let platform =
+            create_platform(Platform::Codex).map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        platform
+            .apply_profile(&name)
+            .map_err(|e| format!("应用 Codex Profile 失败: {e}"))?;
+        Ok(json!({ "message": format!("Codex Profile '{name}' 已应用") }))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
@@ -768,5 +1052,163 @@ fn build_agent_markdown(config: &Value) -> String {
         content.to_string()
     } else {
         format!("---\ndescription: {description}\n---\n{content}")
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use std::sync::{LazyLock, Mutex};
+
+    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+    fn restore_env_var(key: &str, previous: Option<String>) {
+        unsafe {
+            match previous {
+                Some(value) => std::env::set_var(key, value),
+                None => std::env::remove_var(key),
+            }
+        }
+    }
+
+    #[test]
+    fn patch_profile_with_config_removes_missing_platform_data_keys() {
+        let mut profile = ProfileConfig::new();
+        profile
+            .platform_data
+            .insert("env_key".into(), json!("OPENAI_API_KEY"));
+        profile
+            .platform_data
+            .insert("provider_model".into(), json!("gpt-5"));
+
+        patch_profile_with_config(&mut profile, &json!({
+            "extra": {
+                "provider_model": "gpt-4.1"
+            }
+        }))
+        .unwrap();
+
+        assert_eq!(profile.platform_data.len(), 1);
+        assert_eq!(
+            profile.platform_data.get("provider_model"),
+            Some(&json!("gpt-4.1"))
+        );
+        assert!(!profile.platform_data.contains_key("env_key"));
+    }
+
+    #[test]
+    fn patch_profile_with_config_clears_platform_data_when_extra_is_empty_object() {
+        let mut profile = ProfileConfig::new();
+        profile
+            .platform_data
+            .insert("provider_model".into(), json!("gpt-5"));
+
+        patch_profile_with_config(&mut profile, &json!({
+            "extra": {}
+        }))
+        .unwrap();
+
+        assert!(profile.platform_data.is_empty());
+    }
+
+    #[test]
+    fn patch_profile_with_config_clears_platform_data_when_extra_is_null() {
+        let mut profile = ProfileConfig::new();
+        profile
+            .platform_data
+            .insert("provider_model".into(), json!("gpt-5"));
+
+        patch_profile_with_config(&mut profile, &json!({
+            "extra": null
+        }))
+        .unwrap();
+
+        assert!(profile.platform_data.is_empty());
+    }
+
+    #[test]
+    fn patch_profile_with_config_prefers_platform_data_over_extra() {
+        let mut profile = ProfileConfig::new();
+
+        patch_profile_with_config(&mut profile, &json!({
+            "extra": {
+                "provider_model": "gpt-4.1",
+                "wire_api": "responses"
+            },
+            "platform_data": {
+                "provider_model": "gpt-5",
+                "model_reasoning_effort": "high"
+            }
+        }))
+        .unwrap();
+
+        assert_eq!(
+            profile.platform_data.get("provider_model"),
+            Some(&json!("gpt-5"))
+        );
+        assert_eq!(
+            profile.platform_data.get("wire_api"),
+            Some(&json!("responses"))
+        );
+        assert_eq!(
+            profile.platform_data.get("model_reasoning_effort"),
+            Some(&json!("high"))
+        );
+    }
+
+    #[tokio::test]
+    async fn codex_list_profiles_reads_only_ccr_profiles_source() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let ccr_root = temp_dir.path().join("ccr-root");
+        let codex_dir = temp_dir.path().join("official-codex");
+        fs::create_dir_all(&ccr_root).unwrap();
+        fs::create_dir_all(&codex_dir).unwrap();
+
+        let previous_root = std::env::var("CCR_ROOT").ok();
+        let previous_codex_dir = std::env::var("CCR_CODEX_DIR").ok();
+
+        unsafe {
+            std::env::set_var("CCR_ROOT", &ccr_root);
+            std::env::set_var("CCR_CODEX_DIR", &codex_dir);
+        }
+
+        let result = async {
+            fs::write(
+                codex_dir.join("config.toml"),
+                r#"[profiles.legacy]
+model = "legacy-model"
+"#,
+            )
+            .map_err(|e| format!("写入官方 config.toml 失败: {e}"))?;
+
+            let platform = create_platform(Platform::Codex)
+                .map_err(|e| format!("创建 Codex 平台失败: {e}"))?;
+            let mut profile = ProfileConfig::new();
+            profile.model = Some("real-model".to_string());
+            platform
+                .save_profile("real", &profile)
+                .map_err(|e| format!("写入 CCR profiles.toml 失败: {e}"))?;
+
+            let payload = codex_list_profiles().await?;
+            let profiles = payload
+                .get("profiles")
+                .and_then(Value::as_array)
+                .ok_or_else(|| "profiles 字段缺失".to_string())?;
+
+            assert_eq!(profiles.len(), 1);
+            assert_eq!(profiles[0].get("name").and_then(Value::as_str), Some("real"));
+            assert!(profiles.iter().all(|entry| {
+                entry.get("name").and_then(Value::as_str) != Some("legacy")
+            }));
+
+            Ok::<(), String>(())
+        }
+        .await;
+
+        restore_env_var("CCR_ROOT", previous_root);
+        restore_env_var("CCR_CODEX_DIR", previous_codex_dir);
+        result.unwrap();
     }
 }

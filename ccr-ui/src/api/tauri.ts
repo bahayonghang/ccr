@@ -863,7 +863,7 @@ export const toggleCodexAgent = async <T = UnknownRecord>(
   return invoke('codex_update_agent', { name, config: { enabled: resolvedEnabled } })
 }
 
-// ── Codex Profile 组合实现（通过 get/update settings） ──
+// ── Codex Profile 管理（CCR profiles.toml） ──
 
 /** 添加 Codex Profile */
 export const addCodexProfile = async <T = UnknownRecord>(
@@ -871,12 +871,7 @@ export const addCodexProfile = async <T = UnknownRecord>(
   config?: unknown,
 ): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(profileOrName, config)
-  const settings = await getCodexConfig<UnknownRecord>()
-  const profiles = pickRecord(settings, 'profiles')
-  if (profiles[name]) throw new Error(`Profile '${name}' 已存在`)
-  profiles[name] = resolvedConfig
-  await updateCodexConfig({ profiles })
-  return { name, ...resolvedConfig } as T
+  return invoke('codex_add_profile', { name, config: resolvedConfig })
 }
 
 /** 更新 Codex Profile */
@@ -885,23 +880,13 @@ export const updateCodexProfile = async <T = UnknownRecord>(
   config?: unknown,
 ): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(profileOrName, config)
-  const settings = await getCodexConfig<UnknownRecord>()
-  const profiles = pickRecord(settings, 'profiles')
-  if (!profiles[name]) throw new Error(`Profile '${name}' 不存在`)
-  profiles[name] = { ...asRecord(profiles[name]), ...resolvedConfig }
-  await updateCodexConfig({ profiles })
-  return { name, ...asRecord(profiles[name]) } as T
+  return invoke('codex_update_profile', { name, config: resolvedConfig })
 }
 
 /** 删除 Codex Profile */
 export const deleteCodexProfile = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
-  const settings = await getCodexConfig<UnknownRecord>()
-  const profiles = pickRecord(settings, 'profiles')
-  if (!profiles[name]) throw new Error(`Profile '${name}' 不存在`)
-  delete profiles[name]
-  await updateCodexConfig({ profiles })
-  return name as T
+  return invoke('codex_delete_profile', { name })
 }
 
 /** 获取 Codex Profile 详情 */
@@ -919,14 +904,7 @@ export const getCodexProfile = async <T = UnknownRecord>(name: string): Promise<
 
 /** 应用 Codex Profile */
 export const applyCodexProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
-  const settings = await getCodexConfig<UnknownRecord>()
-  const profiles = pickRecord(settings, 'profiles')
-  if (!profiles[name]) throw new Error(`Profile '${name}' 不存在`)
-  Object.keys(profiles).forEach((k) => {
-    profiles[k] = { ...asRecord(profiles[k]), enabled: k === name }
-  })
-  await updateCodexConfig({ profiles, currentProfile: name })
-  return { name, ...asRecord(profiles[name]) } as T
+  return invoke('codex_apply_profile', { name })
 }
 
 // ── Codex Auth 管理 ──

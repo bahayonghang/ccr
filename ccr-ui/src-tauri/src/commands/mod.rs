@@ -87,6 +87,10 @@ macro_rules! generate_handler_common {
         claude::claude_update_prompts,
         // ── Codex ──
         codex::codex_list_profiles,
+        codex::codex_add_profile,
+        codex::codex_update_profile,
+        codex::codex_delete_profile,
+        codex::codex_apply_profile,
         codex::codex_get_settings,
         codex::codex_update_settings,
         codex::codex_list_mcp_servers,
