@@ -430,7 +430,7 @@ cargo install --git https://github.com/bahayonghang/ccr ccr
 # 从源码构建
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
-cargo install --path .
+cargo install --path crates/ccr
 
 # 初始化配置
 ccr init

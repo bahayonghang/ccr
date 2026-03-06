@@ -325,14 +325,20 @@ impl WebServer {
 
     /// 📦 提供 HTML 页面（从原来的 handlers.rs 移过来）
     pub async fn serve_html() -> Html<&'static str> {
-        Html(include_str!("../../ccr-ui/web/dist/index.html"))
+        Html(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../ccr-ui/web/dist/index.html"
+        )))
     }
 
     /// 📦 提供 CSS 样式文件（从原来的 handlers.rs 移过来）
     pub async fn serve_css() -> impl IntoResponse {
         (
             [(axum::http::header::CONTENT_TYPE, "text/css; charset=utf-8")],
-            include_str!("../../ccr-ui/web/dist/style.css"),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../ccr-ui/web/dist/style.css"
+            )),
         )
     }
 
@@ -343,7 +349,10 @@ impl WebServer {
                 axum::http::header::CONTENT_TYPE,
                 "application/javascript; charset=utf-8",
             )],
-            include_str!("../../ccr-ui/web/dist/script.js"),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../ccr-ui/web/dist/script.js"
+            )),
         )
     }
 

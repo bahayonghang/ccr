@@ -52,7 +52,8 @@ impl UiService {
     ///
     /// 优先级:
     /// 1. 当前目录下的 ccr-ui/
-    /// 2. CCR 项目根目录下的 ccr-ui/（父目录）
+    /// 2. 父目录下的 ccr-ui/
+    /// 3. 从 crates/ccr 回退到工作区根目录后的 ccr-ui/
     fn detect_ccr_ui_path() -> Option<PathBuf> {
         // 只调用一次 current_dir()，避免重复系统调用
         let current_dir = std::env::current_dir().ok()?;
@@ -67,6 +68,11 @@ impl UiService {
                     tracing::trace!("当前目录没有父目录");
                     PathBuf::new()
                 }),
+            current_dir
+                .parent()
+                .and_then(|path| path.parent())
+                .map(|p| p.join("ccr-ui"))
+                .unwrap_or_else(PathBuf::new),
         ];
 
         // 查找第一个有效的 ccr-ui 目录
@@ -201,10 +207,10 @@ impl UiService {
         Ok(())
     }
 
-    /// 📖 获取本地 UI 版本（从 backend/Cargo.toml 读取）
+    /// 📖 获取本地 UI 版本（从 src-tauri/Cargo.toml 读取）
     fn get_local_ui_version(&self) -> Option<String> {
         // 优先检查用户目录
-        let cargo_toml_path = self.ui_dir.join("backend/Cargo.toml");
+        let cargo_toml_path = self.ui_dir.join("src-tauri/Cargo.toml");
         if cargo_toml_path.exists()
             && let Ok(content) = fs::read_to_string(&cargo_toml_path)
         {
@@ -212,7 +218,7 @@ impl UiService {
         }
 
         // 检查旧版目录
-        let legacy_cargo_toml = self.legacy_ui_dir.join("backend/Cargo.toml");
+        let legacy_cargo_toml = self.legacy_ui_dir.join("src-tauri/Cargo.toml");
         if legacy_cargo_toml.exists()
             && let Ok(content) = fs::read_to_string(&legacy_cargo_toml)
         {
@@ -222,11 +228,11 @@ impl UiService {
         None
     }
 
-    /// 🌐 获取远程版本（从 GitHub Cargo.toml 读取）
+    /// 🌐 获取远程版本（从 GitHub ccr-ui/src-tauri/Cargo.toml 读取）
     async fn fetch_remote_version(&self) -> Result<String> {
         let client = &*HTTP_CLIENT;
         let cargo_toml_url = format!(
-            "https://raw.githubusercontent.com/{}/{}/Cargo.toml",
+            "https://raw.githubusercontent.com/{}/{}/ccr-ui/src-tauri/Cargo.toml",
             GITHUB_REPO, GITHUB_BRANCH
         );
         let response = client
@@ -248,7 +254,7 @@ impl UiService {
             .map_err(|e| CcrError::UiError(format!("读取响应内容失败: {}", e)))?;
 
         Self::parse_version_from_cargo_toml(&content)
-            .ok_or_else(|| CcrError::UiError("无法从 Cargo.toml 解析版本号".to_string()))
+            .ok_or_else(|| CcrError::UiError("无法从 src-tauri/Cargo.toml 解析版本号".to_string()))
     }
 
     /// 📝 从 Cargo.toml 内容解析版本号
@@ -385,20 +391,20 @@ impl UiService {
         ColorOutput::info("🔍 检查项目依赖...");
 
         // 检查前端依赖
-        let frontend_node_modules = ccr_ui_path.join("frontend/node_modules");
+        let frontend_node_modules = ccr_ui_path.join("node_modules");
         let needs_frontend_install = !frontend_node_modules.exists();
 
         // 检查后端是否构建过
-        let backend_target = ccr_ui_path.join("backend/target");
+        let backend_target = ccr_ui_path.join("src-tauri/target");
         let needs_backend_build = !backend_target.exists();
 
         if needs_frontend_install || needs_backend_build {
             ColorOutput::warning("⚠️  检测到未安装的依赖,开始安装...");
             if needs_frontend_install {
-                ColorOutput::info("  - 缺少前端依赖: frontend/node_modules");
+                ColorOutput::info("  - 缺少前端依赖: node_modules");
             }
             if needs_backend_build {
-                ColorOutput::info("  - 缺少后端构建产物: backend/target");
+                ColorOutput::info("  - 缺少后端构建产物: src-tauri/target");
             }
             println!();
 
@@ -530,13 +536,10 @@ impl UiService {
 
             ColorOutput::success("✅ 生产构建完成");
             ColorOutput::info(&format!(
-                "📦 后端: {}/backend/target/release/ccr-ui-backend",
+                "📦 桌面端后端: {}/src-tauri/target/release/ccr-desktop",
                 ccr_ui_path.display()
             ));
-            ColorOutput::info(&format!(
-                "📦 前端: {}/frontend/dist/",
-                ccr_ui_path.display()
-            ));
+            ColorOutput::info(&format!("📦 前端静态资源: {}/dist/", ccr_ui_path.display()));
 
             Ok(())
         } else {
@@ -554,7 +557,7 @@ impl UiService {
             return Ok(true);
         }
 
-        ColorOutput::info("💡 提示: CCR UI 是一个完整的 Next.js + Actix Web 应用");
+        ColorOutput::info("💡 提示: CCR UI 是一个完整的 Vue 3 + Tauri 应用");
         ColorOutput::info("   可以从 GitHub 下载到用户目录:");
         ColorOutput::info(&format!("   {}", self.ui_dir.display()));
         println!();
@@ -656,8 +659,8 @@ impl UiService {
             println!();
             ColorOutput::warning("⚠️  检测到已安装的 CCR UI，将执行更新并覆盖源码文件");
             ColorOutput::info("默认会尽量保留以下缓存目录以避免重复安装：");
-            ColorOutput::info("  - frontend/node_modules");
-            ColorOutput::info("  - backend/target");
+            ColorOutput::info("  - node_modules");
+            ColorOutput::info("  - src-tauri/target");
             println!();
 
             let confirmed = Confirm::new()
@@ -677,7 +680,7 @@ impl UiService {
         self.copy_dir_recursive(src_ui_dir, staging_dir.path())?;
 
         // 需要保留的缓存目录（相对 ui_dir）
-        let preserve_rel_paths = ["frontend/node_modules", "backend/target"];
+        let preserve_rel_paths = ["node_modules", "src-tauri/target"];
         let preserve_dir = TempDir::new_in(parent_dir)
             .map_err(|e| CcrError::UiError(format!("创建临时目录失败: {}", e)))?;
 
@@ -829,7 +832,7 @@ mod tests {
     fn test_parse_version_from_cargo_toml() {
         let cargo_toml = r#"
 [package]
-name = "ccr-ui-backend"
+name = "ccr-desktop"
 version = "3.12.5"
 edition = "2024"
 
@@ -847,7 +850,7 @@ version = "3.12.5"
 edition = "2024"
 
 [workspace]
-members = [".", "ccr-ui/backend"]
+members = ["crates/ccr"]
 
 [workspace.dependencies]
 tokio = { version = "1.0" }

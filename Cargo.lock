@@ -449,7 +449,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "4.4.3"
+version = "5.0.0"
 dependencies = [
  "serde",
  "serde_json",

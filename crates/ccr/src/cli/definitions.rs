@@ -39,7 +39,6 @@ use clap::{Parser, Subcommand};
 
 {all-args}{after-help}",
     override_usage = "ccr [选项] [配置名称] [命令]",
-    disable_help_flag = true,
     disable_version_flag = true,
     disable_help_subcommand = true
 )]

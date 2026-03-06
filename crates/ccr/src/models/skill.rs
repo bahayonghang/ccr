@@ -37,7 +37,7 @@ pub struct Skill {
 impl Skill {
     /// Parse frontmatter and inline metadata from SKILL.md content.
     /// Returns (metadata, description_from_frontmatter)
-    // Used by ccr-ui-backend crate
+    // Used by the desktop UI crate
     pub fn parse_frontmatter(content: &str) -> (SkillMetadata, Option<String>) {
         let mut metadata = SkillMetadata::default();
         let mut description = None;

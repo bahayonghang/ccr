@@ -2,7 +2,7 @@
 //!
 //! CCR Desktop 数据库层 — 提供 SQLite 统一存储、CheckIn 服务和数据模型。
 //!
-//! 本 crate 从 `ccr-ui-backend` 提取，封装所有与 SQLite 数据库相关的功能，
+//! 本 crate 从原先的 UI 后端实现中提取，封装所有与 SQLite 数据库相关的功能，
 //! 使 Tauri 应用和未来的其他消费者可以共享数据访问逻辑。
 //!
 //! ## 模块结构

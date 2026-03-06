@@ -13,6 +13,8 @@
 
 # 二进制名称(与 Cargo.toml [[bin]] 保持一致)
 BIN := "ccr"
+CLI_CRATE_PATH := "crates/ccr"
+OUTPUTS_DIR := "outputs"
 
 # 🧭 跨平台 Shell 配置
 # Windows 使用 PowerShell with UTF-8 encoding
@@ -123,7 +125,7 @@ _help-windows:
     @Write-Host ""
     @Write-Host "   🔧 版本相关命令（跨平台）："
     @Write-Host "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
-    @Write-Host "                            → 更新 ccr-types/Cargo.toml"
+    @Write-Host "                            → 更新 crates/ccr-types/Cargo.toml"
     @Write-Host "                              和 ccr-ui/package.json"
     @Write-Host "                              和 ccr-ui/src-tauri/*"
     @Write-Host "                            → Windows: 使用 version-sync.ps1"
@@ -158,7 +160,7 @@ _help-linux:
     @printf '%s\n' ""
     @printf '%s\n' "   🔧 版本相关命令（跨平台）："
     @printf '%s\n' "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
-    @printf '%s\n' "                            → 更新 ccr-types/Cargo.toml"
+    @printf '%s\n' "                            → 更新 crates/ccr-types/Cargo.toml"
     @printf '%s\n' "                              和 ccr-ui/package.json"
     @printf '%s\n' "                              和 ccr-ui/src-tauri/*"
     @printf '%s\n' "                            → Windows: 使用 version-sync.ps1"
@@ -194,7 +196,7 @@ _help-macos:
     @printf '%s\n' ""
     @printf '%s\n' "   🔧 版本相关命令（跨平台）："
     @printf '%s\n' "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
-    @printf '%s\n' "                            → 更新 ccr-types/Cargo.toml"
+    @printf '%s\n' "                            → 更新 crates/ccr-types/Cargo.toml"
     @printf '%s\n' "                              和 ccr-ui/package.json"
     @printf '%s\n' "                              和 ccr-ui/src-tauri/*"
     @printf '%s\n' "                            → Windows: 使用 version-sync.ps1"
@@ -229,21 +231,21 @@ _help-macos:
 build:
     @just header "🔨 开始调试构建"
     @just info "📌 模式: Debug (包含调试符号)"
-    cargo build
+    cargo build -p {{BIN}}
     @just success "构建完成 → target/debug/{{BIN}}"
 
 # ⚡ 发布构建 (Release 优化)
 release:
     @just header "⚡ 开始发布构建"
     @just info "📌 模式: Release (LTO优化 + 符号剥离)"
-    cargo build --release
+    cargo build -p {{BIN}} --release
     @just success "构建完成 → target/release/{{BIN}}"
 
 # 🔍 快速类型检查 (不生成可执行文件)
 check:
     @just info "🔍 运行类型检查..."
     @just info "💡 快速验证模式 (不生成二进制文件)"
-    cargo check
+    cargo check -p {{BIN}}
     @just success "类型检查通过"
 
 # ═══════════════════════════════════════════════════════════
@@ -254,18 +256,18 @@ check:
 run *args:
     @just info "▶️ 运行 Debug 版本"
     @just info "📝 参数: {{args}}"
-    cargo run -- {{args}}
+    cargo run -p {{BIN}} -- {{args}}
 
 # 🚀 运行程序 (Release版本)
 run-release *args:
     @just info "🚀 运行 Release 版本"
     @just info "📝 参数: {{args}}"
-    cargo run --release -- {{args}}
+    cargo run -p {{BIN}} --release -- {{args}}
 
 # 🏷️ 查看版本信息
 version:
     @just info "🏷️ 获取版本信息"
-    @cargo run -- --version
+    @cargo run -p {{BIN}} -- --version
 
 # ═══════════════════════════════════════════════════════════
 # ✅ 测试命令
@@ -290,7 +292,7 @@ test-all:
 # 📊 运行基准测试
 bench:
     @just info "📊 运行基准测试"
-    cargo bench
+    cargo bench -p {{BIN}}
     @just success "基准测试完成"
 
 # ═══════════════════════════════════════════════════════════
@@ -378,28 +380,28 @@ _ci-done-macos:
 # 🔍 前端 TypeScript 类型检查
 frontend-typecheck:
     @just header "🔍 前端 TypeScript 类型检查"
-    cd ccr-ui && npm install --silent && npm run type-check
+    cd ccr-ui && bun install --frozen-lockfile && bun run type-check
     @just success "前端类型检查通过"
 
 # 🎨 前端 Lint 检查
 frontend-lint:
     @just header "🎨 前端 Lint 检查"
-    cd ccr-ui && npm install --silent && npm run lint
+    cd ccr-ui && bun install --frozen-lockfile && bun run lint
     @just success "前端 Lint 检查通过"
 
 # 🏗️ 前端构建
 frontend-build:
     @just header "🏗️ 前端构建"
-    cd ccr-ui && npm install --silent && npm run build
+    cd ccr-ui && bun install --frozen-lockfile && bun run build
     @just success "前端构建完成"
 
 # 📚 文档构建检查 (VitePress) - 可选，有 dead links 时可能失败
 docs-check:
     @just header "📚 文档构建检查"
     @just warn "注意: 若有 dead links 会失败，可在 .vitepress/config 中配置 ignoreDeadLinks"
-    cd docs && npm install --silent && npm run build
+    cd docs && bun install --frozen-lockfile && bun run build
     @just info "⏭️  跳过 ccr-ui/docs 构建 (VitePress+Mermaid 插件问题)"
-    # cd ccr-ui/docs && npm install --silent && npm run build
+    # cd ccr-ui/docs && bun install && bun run build
     @just success "文档构建检查完成"
 
 # 🌐 前端完整检查 (类型检查 + Lint + 构建 + 文档构建)
@@ -418,7 +420,7 @@ frontend-check-quick: frontend-typecheck frontend-lint
 web-build:
     @just header "🌐 构建嵌入式 Web 前端"
     @just info "📍 项目路径: ccr-ui/web"
-    cd ccr-ui/web && npm install --silent && npm run build
+    cd ccr-ui/web && bun install --no-save && bun run build
     @just success "Web 前端构建完成 → ccr-ui/web/dist/"
 
 # 📦 安装到本地 (~/.cargo/bin)
@@ -426,14 +428,14 @@ install: web-build
     @just header "📦 安装到本地"
     @just info "📍 目标路径: ~/.cargo/bin/{{BIN}}"
     @just info "🔒 模式: 锁定依赖版本 (--locked)"
-    cargo install --path . --locked
+    cargo install --path {{CLI_CRATE_PATH}} --locked
     @just success "安装完成"
 
 # ♻️ 强制重新安装
 reinstall: web-build
     @just info "♻️ 强制重新安装"
     @just warn "模式: 覆盖现有安装"
-    cargo install --path . --locked --force
+    cargo install --path {{CLI_CRATE_PATH}} --locked --force
     @just success "重新安装完成"
 
 # 🗑️ 卸载已安装的二进制
@@ -450,14 +452,68 @@ uninstall:
 doc:
     @just info "📚 生成文档"
     @just info "📌 模式: 仅本项目代码 (--no-deps)"
-    cargo doc --no-deps
+    cargo doc -p {{BIN}} --no-deps
     @just success "文档生成完成"
 
 # 🌐 构建并在浏览器中打开文档
 doc-open:
     @just info "🌐 生成并打开文档"
     @just info "📖 将在默认浏览器中打开"
-    cargo doc --no-deps --open
+    cargo doc -p {{BIN}} --no-deps --open
+
+outputs-collect: outputs-collect-cli outputs-collect-ui
+    @just success "Outputs collection completed"
+
+outputs-collect-cli: release
+    @just _outputs-collect-cli-{{os()}}
+
+[private]
+_outputs-collect-cli-linux:
+    @mkdir -p {{OUTPUTS_DIR}}/ccr
+    cp target/release/{{BIN}} {{OUTPUTS_DIR}}/ccr/
+    @just success "CLI artifacts collected to {{OUTPUTS_DIR}}/ccr/"
+
+[private]
+_outputs-collect-cli-macos:
+    @mkdir -p {{OUTPUTS_DIR}}/ccr
+    cp target/release/{{BIN}} {{OUTPUTS_DIR}}/ccr/
+    @just success "CLI artifacts collected to {{OUTPUTS_DIR}}/ccr/"
+
+[private]
+_outputs-collect-cli-windows:
+    @New-Item -ItemType Directory -Force -Path "{{OUTPUTS_DIR}}/ccr" | Out-Null
+    @Copy-Item "target/release/{{BIN}}.exe" "{{OUTPUTS_DIR}}/ccr/" -Force
+    @just success "CLI artifacts collected to {{OUTPUTS_DIR}}/ccr/"
+
+outputs-collect-ui: ui-build
+    @just _outputs-collect-ui-{{os()}}
+
+[private]
+_outputs-collect-ui-linux:
+    @mkdir -p {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release
+    rm -rf {{OUTPUTS_DIR}}/ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/bundle
+    cp -R ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/
+    cp ccr-ui/src-tauri/target/release/ccr-desktop {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/
+    if [ -d ccr-ui/src-tauri/target/release/bundle ]; then cp -R ccr-ui/src-tauri/target/release/bundle {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/; fi
+    @just success "CCR UI artifacts collected to {{OUTPUTS_DIR}}/ccr-ui/"
+
+[private]
+_outputs-collect-ui-macos:
+    @mkdir -p {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release
+    rm -rf {{OUTPUTS_DIR}}/ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/bundle
+    cp -R ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/
+    cp ccr-ui/src-tauri/target/release/ccr-desktop {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/
+    if [ -d ccr-ui/src-tauri/target/release/bundle ]; then cp -R ccr-ui/src-tauri/target/release/bundle {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/; fi
+    @just success "CCR UI artifacts collected to {{OUTPUTS_DIR}}/ccr-ui/"
+
+[private]
+_outputs-collect-ui-windows:
+    @New-Item -ItemType Directory -Force -Path "{{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release" | Out-Null
+    @if (Test-Path "{{OUTPUTS_DIR}}/ccr-ui/dist") { Remove-Item "{{OUTPUTS_DIR}}/ccr-ui/dist" -Recurse -Force }
+    @Copy-Item "ccr-ui/dist" "{{OUTPUTS_DIR}}/ccr-ui/" -Recurse -Force
+    @Copy-Item "ccr-ui/src-tauri/target/release/ccr-desktop.exe" "{{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/" -Force
+    @if (Test-Path "ccr-ui/src-tauri/target/release/bundle") { Copy-Item "ccr-ui/src-tauri/target/release/bundle" "{{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/" -Recurse -Force }
+    @just success "CCR UI artifacts collected to {{OUTPUTS_DIR}}/ccr-ui/"
 
 # ═══════════════════════════════════════════════════════════
 # 🧹 清理与维护命令
@@ -470,6 +526,25 @@ clean:
     cargo clean
     @just success "清理完成"
 
+# 🗂️ 清理归档产物
+outputs-clean:
+    @just _outputs-clean-{{os()}}
+
+[private]
+_outputs-clean-linux:
+    rm -rf {{OUTPUTS_DIR}}
+    @just success "Collected outputs cleaned"
+
+[private]
+_outputs-clean-macos:
+    rm -rf {{OUTPUTS_DIR}}
+    @just success "Collected outputs cleaned"
+
+[private]
+_outputs-clean-windows:
+    @if (Test-Path "{{OUTPUTS_DIR}}") { Remove-Item "{{OUTPUTS_DIR}}" -Recurse -Force }
+    @just success "Collected outputs cleaned"
+
 # 📦 检查依赖更新
 update-deps:
     @just info "📦 检查依赖更新"
@@ -477,7 +552,7 @@ update-deps:
     cargo outdated
 
 # 💣 深度清理 (包括 Cargo 缓存和目标文件)
-deep-clean: clean
+deep-clean: clean outputs-clean
     @just header "💣 深度清理"
     @just warn "警告：将清理 Cargo 缓存"
     @just info "🗑️  清理 Cargo 注册表缓存"
