@@ -2315,9 +2315,54 @@ export const updateCCR = async <T = UnknownRecord>(_branch?: string): Promise<T>
   return invoke('update_ccr')
 }
 
+export interface CliVersionsCommandOptions {
+  mode?: 'fast' | 'full'
+  timeoutMs?: number
+  parallelism?: number
+  // 兼容历史调用参数
+  timeout?: number
+}
+
 /** 获取 CLI 版本 */
-export const getCliVersions = async <T = UnknownRecord>(_options?: Record<string, unknown>): Promise<T> => {
-  return invoke('get_cli_versions')
+export const getCliVersions = async <T = UnknownRecord>(options?: CliVersionsCommandOptions): Promise<T> => {
+  const normalizedOptions = options
+    ? {
+        mode: options.mode,
+        timeoutMs: options.timeoutMs ?? options.timeout,
+        parallelism: options.parallelism,
+      }
+    : undefined
+
+  const raw = await invoke<unknown>('get_cli_versions', { options: normalizedOptions })
+  if (!isRecord(raw)) {
+    return raw as T
+  }
+
+  const entries = Array.isArray(raw.entries)
+    ? raw.entries
+    : Array.isArray(raw.versions)
+      ? raw.versions
+      : Object.entries(pickRecord(raw, 'versions')).map(([platform, value]) => {
+          const text = String(value ?? '')
+          if (!text || text === 'not found') {
+            return {
+              platform,
+              installed: false,
+              status: 'not_installed',
+            }
+          }
+          return {
+            platform,
+            installed: true,
+            version: text,
+            status: 'ok',
+          }
+        })
+
+  return {
+    ...raw,
+    versions: entries,
+  } as T
 }
 
 // ════════════════════════════════════════════════════════════

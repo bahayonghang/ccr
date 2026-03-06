@@ -47,26 +47,42 @@ fn checkin_dir_str() -> Result<std::path::PathBuf, String> {
     get_checkin_dir().map_err(|e| format!("Failed to get checkin dir: {}", e))
 }
 
+async fn run_blocking<T, F>(task: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    tokio::task::spawn_blocking(task)
+        .await
+        .map_err(|e| format!("Blocking task failed: {e}"))?
+}
+
 // ── Provider 管理 ──
 
 #[tauri::command]
 pub async fn list_providers(_state: State<'_, AppState>) -> Result<Value, String> {
-    let manager = ProviderManager::new();
-    let response = manager
-        .list()
-        .map_err(|e| format!("Failed to list providers: {}", e))?;
-    serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(|| {
+        let manager = ProviderManager::new();
+        let response = manager
+            .list()
+            .map_err(|e| format!("Failed to list providers: {}", e))?;
+        serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn add_provider(_state: State<'_, AppState>, data: Value) -> Result<Value, String> {
     let req: CreateProviderRequest =
         serde_json::from_value(data).map_err(|e| format!("Invalid request data: {}", e))?;
-    let manager = ProviderManager::new();
-    let provider = manager
-        .create(req)
-        .map_err(|e| format!("Failed to create provider: {}", e))?;
-    serde_json::to_value(provider).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(move || {
+        let manager = ProviderManager::new();
+        let provider = manager
+            .create(req)
+            .map_err(|e| format!("Failed to create provider: {}", e))?;
+        serde_json::to_value(provider).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -77,28 +93,34 @@ pub async fn update_provider(
 ) -> Result<Value, String> {
     let req: UpdateProviderRequest =
         serde_json::from_value(data).map_err(|e| format!("Invalid request data: {}", e))?;
-    let manager = ProviderManager::new();
-    let provider = manager
-        .update(&id, req)
-        .map_err(|e| format!("Failed to update provider: {}", e))?;
-    serde_json::to_value(provider).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(move || {
+        let manager = ProviderManager::new();
+        let provider = manager
+            .update(&id, req)
+            .map_err(|e| format!("Failed to update provider: {}", e))?;
+        serde_json::to_value(provider).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn delete_provider(_state: State<'_, AppState>, id: String) -> Result<String, String> {
     let checkin_dir = checkin_dir_str()?;
-    let provider_manager = ProviderManager::new();
-    let account_manager = AccountManager::new(&checkin_dir);
+    run_blocking(move || {
+        let provider_manager = ProviderManager::new();
+        let account_manager = AccountManager::new(&checkin_dir);
 
-    let has_accounts = account_manager
-        .has_accounts_for_provider(&id)
-        .map_err(|e| format!("Failed to check accounts: {}", e))?;
+        let has_accounts = account_manager
+            .has_accounts_for_provider(&id)
+            .map_err(|e| format!("Failed to check accounts: {}", e))?;
 
-    provider_manager
-        .delete(&id, has_accounts)
-        .map_err(|e| format!("Failed to delete provider: {}", e))?;
+        provider_manager
+            .delete(&id, has_accounts)
+            .map_err(|e| format!("Failed to delete provider: {}", e))?;
 
-    Ok(format!("Provider {} deleted", id))
+        Ok(format!("Provider {} deleted", id))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -106,21 +128,22 @@ pub async fn test_provider_connection(
     _state: State<'_, AppState>,
     id: String,
 ) -> Result<Value, String> {
-    // Validate the provider exists and return its configuration as a test result
-    let provider_manager = ProviderManager::new();
-    let provider = provider_manager
-        .get(&id)
-        .map_err(|e| format!("Provider not found: {}", e))?;
+    run_blocking(move || {
+        // Validate the provider exists and return its configuration as a test result
+        let provider_manager = ProviderManager::new();
+        let provider = provider_manager
+            .get(&id)
+            .map_err(|e| format!("Provider not found: {}", e))?;
 
-    let result = serde_json::json!({
-        "success": true,
-        "provider_id": provider.id,
-        "provider_name": provider.name,
-        "base_url": provider.base_url,
-        "message": "Provider configuration is valid"
-    });
-
-    Ok(result)
+        Ok(serde_json::json!({
+            "success": true,
+            "provider_id": provider.id,
+            "provider_name": provider.name,
+            "base_url": provider.base_url,
+            "message": "Provider configuration is valid"
+        }))
+    })
+    .await
 }
 
 // ── Account 管理 ──
@@ -131,44 +154,46 @@ pub async fn list_accounts(
     provider_id: Option<String>,
 ) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
-    let account_manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new();
-    let balance_manager = BalanceManager::new();
+    run_blocking(move || {
+        let account_manager = AccountManager::new(&checkin_dir);
+        let provider_manager = ProviderManager::new();
+        let balance_manager = BalanceManager::new();
 
-    // Get accounts
-    let mut accounts = if let Some(pid) = provider_id.as_deref() {
-        account_manager
-            .list_by_provider(pid)
-            .map_err(|e| format!("Failed to list accounts: {}", e))?
-    } else {
-        account_manager
-            .list()
-            .map_err(|e| format!("Failed to list accounts: {}", e))?
-            .accounts
-    };
+        // Get accounts
+        let mut accounts = if let Some(pid) = provider_id.as_deref() {
+            account_manager
+                .list_by_provider(pid)
+                .map_err(|e| format!("Failed to list accounts: {}", e))?
+        } else {
+            account_manager
+                .list()
+                .map_err(|e| format!("Failed to list accounts: {}", e))?
+                .accounts
+        };
 
-    // Enrich with provider names and balance data
-    let providers = provider_manager.load_all().unwrap_or_default();
-    let provider_map: std::collections::HashMap<String, String> =
-        providers.into_iter().map(|p| (p.id, p.name)).collect();
+        // Enrich with provider names and balance data
+        let providers = provider_manager.load_all().unwrap_or_default();
+        let provider_map: std::collections::HashMap<String, String> =
+            providers.into_iter().map(|p| (p.id, p.name)).collect();
 
-    let balance_map = balance_manager.get_latest_map().unwrap_or_default();
+        let balance_map = balance_manager.get_latest_map().unwrap_or_default();
 
-    for account in &mut accounts {
-        if let Some(name) = provider_map.get(&account.provider_id) {
-            account.provider_name = Some(name.clone());
+        for account in &mut accounts {
+            if let Some(name) = provider_map.get(&account.provider_id) {
+                account.provider_name = Some(name.clone());
+            }
+            if let Some(balance) = balance_map.get(&account.id) {
+                account.latest_balance = Some(balance.remaining_quota);
+                account.balance_currency = Some(balance.currency.clone());
+                account.total_quota = Some(balance.total_quota);
+                account.total_consumed = Some(balance.used_quota);
+            }
         }
-        if let Some(balance) = balance_map.get(&account.id) {
-            account.latest_balance = Some(balance.remaining_quota);
-            account.balance_currency = Some(balance.currency.clone());
-            account.total_quota = Some(balance.total_quota);
-            account.total_consumed = Some(balance.used_quota);
-        }
-    }
 
-    let total = accounts.len();
-    let response = serde_json::json!({ "accounts": accounts, "total": total });
-    Ok(response)
+        let total = accounts.len();
+        Ok(serde_json::json!({ "accounts": accounts, "total": total }))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -176,14 +201,17 @@ pub async fn add_account(_state: State<'_, AppState>, data: Value) -> Result<Val
     let checkin_dir = checkin_dir_str()?;
     let req: CreateAccountRequest =
         serde_json::from_value(data).map_err(|e| format!("Invalid request data: {}", e))?;
-    let account_manager = AccountManager::new(&checkin_dir);
-    let account = account_manager
-        .create(req)
-        .map_err(|e| format!("Failed to create account: {}", e))?;
-    let info = account_manager
-        .get_info(&account.id)
-        .map_err(|e| format!("Failed to get account info: {}", e))?;
-    serde_json::to_value(info).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(move || {
+        let account_manager = AccountManager::new(&checkin_dir);
+        let account = account_manager
+            .create(req)
+            .map_err(|e| format!("Failed to create account: {}", e))?;
+        let info = account_manager
+            .get_info(&account.id)
+            .map_err(|e| format!("Failed to get account info: {}", e))?;
+        serde_json::to_value(info).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -195,32 +223,38 @@ pub async fn update_account(
     let checkin_dir = checkin_dir_str()?;
     let req: UpdateAccountRequest =
         serde_json::from_value(data).map_err(|e| format!("Invalid request data: {}", e))?;
-    let account_manager = AccountManager::new(&checkin_dir);
-    let account = account_manager
-        .update(&id, req)
-        .map_err(|e| format!("Failed to update account: {}", e))?;
-    let info = account_manager
-        .get_info(&account.id)
-        .map_err(|e| format!("Failed to get account info: {}", e))?;
-    serde_json::to_value(info).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(move || {
+        let account_manager = AccountManager::new(&checkin_dir);
+        let account = account_manager
+            .update(&id, req)
+            .map_err(|e| format!("Failed to update account: {}", e))?;
+        let info = account_manager
+            .get_info(&account.id)
+            .map_err(|e| format!("Failed to get account info: {}", e))?;
+        serde_json::to_value(info).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn delete_account(_state: State<'_, AppState>, id: String) -> Result<String, String> {
     let checkin_dir = checkin_dir_str()?;
-    let account_manager = AccountManager::new(&checkin_dir);
-    let record_manager = RecordManager::new();
-    let balance_manager = BalanceManager::new();
+    run_blocking(move || {
+        let account_manager = AccountManager::new(&checkin_dir);
+        let record_manager = RecordManager::new();
+        let balance_manager = BalanceManager::new();
 
-    account_manager
-        .delete(&id)
-        .map_err(|e| format!("Failed to delete account: {}", e))?;
+        account_manager
+            .delete(&id)
+            .map_err(|e| format!("Failed to delete account: {}", e))?;
 
-    // Clean up associated records and balance snapshots
-    let _ = record_manager.delete_by_account(&id);
-    let _ = balance_manager.delete_by_account(&id);
+        // Clean up associated records and balance snapshots
+        let _ = record_manager.delete_by_account(&id);
+        let _ = balance_manager.delete_by_account(&id);
 
-    Ok(format!("Account {} deleted", id))
+        Ok(format!("Account {} deleted", id))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -229,33 +263,36 @@ pub async fn batch_delete_accounts(
     ids: Vec<String>,
 ) -> Result<String, String> {
     let checkin_dir = checkin_dir_str()?;
-    let account_manager = AccountManager::new(&checkin_dir);
-    let record_manager = RecordManager::new();
-    let balance_manager = BalanceManager::new();
+    run_blocking(move || {
+        let account_manager = AccountManager::new(&checkin_dir);
+        let record_manager = RecordManager::new();
+        let balance_manager = BalanceManager::new();
 
-    let mut deleted = 0usize;
-    let mut errors: Vec<String> = Vec::new();
+        let mut deleted = 0usize;
+        let mut errors: Vec<String> = Vec::new();
 
-    for id in &ids {
-        match account_manager.delete(id) {
-            Ok(()) => {
-                deleted += 1;
-                let _ = record_manager.delete_by_account(id);
-                let _ = balance_manager.delete_by_account(id);
+        for id in &ids {
+            match account_manager.delete(id) {
+                Ok(()) => {
+                    deleted += 1;
+                    let _ = record_manager.delete_by_account(id);
+                    let _ = balance_manager.delete_by_account(id);
+                }
+                Err(e) => errors.push(format!("{}: {}", id, e)),
             }
-            Err(e) => errors.push(format!("{}: {}", id, e)),
         }
-    }
 
-    if errors.is_empty() {
-        Ok(format!("Deleted {} accounts", deleted))
-    } else {
-        Err(format!(
-            "Deleted {} accounts, errors: {}",
-            deleted,
-            errors.join("; ")
-        ))
-    }
+        if errors.is_empty() {
+            Ok(format!("Deleted {} accounts", deleted))
+        } else {
+            Err(format!(
+                "Deleted {} accounts, errors: {}",
+                deleted,
+                errors.join("; ")
+            ))
+        }
+    })
+    .await
 }
 
 // ── 签到执行 ──
@@ -317,19 +354,22 @@ pub async fn get_checkin_records(
     account_id: Option<String>,
     limit: Option<usize>,
 ) -> Result<Value, String> {
-    let record_manager = RecordManager::new();
+    run_blocking(move || {
+        let record_manager = RecordManager::new();
 
-    let response = if let Some(aid) = account_id.as_deref() {
-        record_manager
-            .get_by_account(aid, limit)
-            .map_err(|e| format!("Failed to get records: {}", e))?
-    } else {
-        record_manager
-            .get_all(limit)
-            .map_err(|e| format!("Failed to get records: {}", e))?
-    };
+        let response = if let Some(aid) = account_id.as_deref() {
+            record_manager
+                .get_by_account(aid, limit)
+                .map_err(|e| format!("Failed to get records: {}", e))?
+        } else {
+            record_manager
+                .get_all(limit)
+                .map_err(|e| format!("Failed to get records: {}", e))?
+        };
 
-    serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+        serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 // ── Balance ──
@@ -353,34 +393,38 @@ pub async fn get_balance_history(
     account_id: String,
     days: Option<usize>,
 ) -> Result<Value, String> {
-    let balance_manager = BalanceManager::new();
-    let history = balance_manager
-        .get_history(&account_id, days)
-        .map_err(|e| format!("Failed to get balance history: {}", e))?;
-    serde_json::to_value(history).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(move || {
+        let balance_manager = BalanceManager::new();
+        let history = balance_manager
+            .get_history(&account_id, days)
+            .map_err(|e| format!("Failed to get balance history: {}", e))?;
+        serde_json::to_value(history).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn get_balance_stats(_state: State<'_, AppState>) -> Result<Value, String> {
-    let balance_manager = BalanceManager::new();
-    let balance_map = balance_manager
-        .get_latest_map()
-        .map_err(|e| format!("Failed to get balances: {}", e))?;
+    run_blocking(|| {
+        let balance_manager = BalanceManager::new();
+        let balance_map = balance_manager
+            .get_latest_map()
+            .map_err(|e| format!("Failed to get balances: {}", e))?;
 
-    let total_accounts = balance_map.len();
-    let total_remaining: f64 = balance_map.values().map(|b| b.remaining_quota).sum();
-    let total_quota: f64 = balance_map.values().map(|b| b.total_quota).sum();
-    let total_used: f64 = balance_map.values().map(|b| b.used_quota).sum();
+        let total_accounts = balance_map.len();
+        let total_remaining: f64 = balance_map.values().map(|b| b.remaining_quota).sum();
+        let total_quota: f64 = balance_map.values().map(|b| b.total_quota).sum();
+        let total_used: f64 = balance_map.values().map(|b| b.used_quota).sum();
 
-    let response = serde_json::json!({
-        "total_accounts": total_accounts,
-        "total_remaining_quota": total_remaining,
-        "total_quota": total_quota,
-        "total_used_quota": total_used,
-        "balances": balance_map.values().collect::<Vec<_>>()
-    });
-
-    Ok(response)
+        Ok(serde_json::json!({
+            "total_accounts": total_accounts,
+            "total_remaining_quota": total_remaining,
+            "total_quota": total_quota,
+            "total_used_quota": total_used,
+            "balances": balance_map.values().collect::<Vec<_>>()
+        }))
+    })
+    .await
 }
 
 // ── Export ──
@@ -393,23 +437,29 @@ pub async fn export_checkin_data(
     let checkin_dir = checkin_dir_str()?;
     let opts: ExportOptions =
         serde_json::from_value(options).map_err(|e| format!("Invalid export options: {}", e))?;
-    let export_manager = ExportManager::new(&checkin_dir);
-    let data = export_manager
-        .export(&opts)
-        .map_err(|e| format!("Failed to export data: {}", e))?;
-    serde_json::to_value(data).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(move || {
+        let export_manager = ExportManager::new(&checkin_dir);
+        let data = export_manager
+            .export(&opts)
+            .map_err(|e| format!("Failed to export data: {}", e))?;
+        serde_json::to_value(data).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn export_checkin_stats(_state: State<'_, AppState>) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
-    let service = CheckinService::new(checkin_dir);
+    run_blocking(move || {
+        let service = CheckinService::new(checkin_dir);
 
-    let stats = service
-        .get_today_stats()
-        .map_err(|e| format!("Failed to get stats: {}", e))?;
+        let stats = service
+            .get_today_stats()
+            .map_err(|e| format!("Failed to get stats: {}", e))?;
 
-    serde_json::to_value(stats).map_err(|e| format!("Serialization error: {}", e))
+        serde_json::to_value(stats).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 // ── CDK 充值 ──
@@ -421,63 +471,80 @@ pub async fn execute_cdk_recharge(
     cdk_code: String,
 ) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
-    let account_manager = AccountManager::new(&checkin_dir);
-    let provider_manager = ProviderManager::new();
-
-    let account = account_manager
-        .get(&account_id)
-        .map_err(|e| format!("Account not found: {}", e))?;
-    let provider = provider_manager
-        .get(&account.provider_id)
-        .map_err(|e| format!("Provider not found: {}", e))?;
-
-    // Look up builtin provider CDK config
-    use ccr_db::managers::checkin::builtin_providers::get_builtin_providers;
-    let builtin_providers = get_builtin_providers();
-    let cdk_config = builtin_providers
-        .iter()
-        .find(|bp| {
-            bp.name == provider.name || bp.id == format!("builtin-{}", provider.name.to_lowercase())
-        })
-        .and_then(|bp| bp.cdk_config.as_ref());
-
-    let cdk_config = match cdk_config {
-        Some(config) => config,
-        None => {
-            return Err(format!(
-                "Provider {} does not support CDK recharge",
-                provider.name
-            ));
+    let context = run_blocking(move || {
+        struct CdkRechargeContext {
+            provider_name: String,
+            cdk_type: String,
+            extra_config: CdkExtraConfig,
+            topup_cookies: std::collections::HashMap<String, String>,
+            topup_url: Option<String>,
+            api_user: String,
         }
-    };
 
-    // Parse account extra_config for CDK credentials
-    let extra_config = CdkExtraConfig::from_json(&account.extra_config);
+        let account_manager = AccountManager::new(&checkin_dir);
+        let provider_manager = ProviderManager::new();
 
-    // Decrypt cookies for topup request
-    use ccr_db::core::crypto::CryptoManager;
-    let crypto = CryptoManager::new(&checkin_dir)
-        .map_err(|e| format!("Crypto initialization error: {}", e))?;
-    let cookies_json = crypto
-        .decrypt(&account.cookies_json_encrypted)
-        .map_err(|e| format!("Failed to decrypt cookies: {}", e))?;
+        let account = account_manager
+            .get(&account_id)
+            .map_err(|e| format!("Account not found: {}", e))?;
+        let provider = provider_manager
+            .get(&account.provider_id)
+            .map_err(|e| format!("Provider not found: {}", e))?;
 
-    let topup_cookies: std::collections::HashMap<String, String> =
-        serde_json::from_str(&cookies_json).unwrap_or_default();
+        // Look up builtin provider CDK config
+        use ccr_db::managers::checkin::builtin_providers::get_builtin_providers;
+        let builtin_providers = get_builtin_providers();
+        let cdk_config = builtin_providers
+            .iter()
+            .find(|bp| {
+                bp.name == provider.name
+                    || bp.id == format!("builtin-{}", provider.name.to_lowercase())
+            })
+            .and_then(|bp| bp.cdk_config.as_ref())
+            .ok_or_else(|| format!("Provider {} does not support CDK recharge", provider.name))?;
 
-    // Build topup URL and include the provided CDK code
-    let topup_url = cdk_config
-        .topup_path
-        .as_ref()
-        .map(|path| format!("{}{}", provider.base_url.trim_end_matches('/'), path));
+        // Parse account extra_config for CDK credentials
+        let extra_config = CdkExtraConfig::from_json(&account.extra_config);
+
+        // Decrypt cookies for topup request
+        use ccr_db::core::crypto::CryptoManager;
+        let crypto = CryptoManager::new(&checkin_dir)
+            .map_err(|e| format!("Crypto initialization error: {}", e))?;
+        let cookies_json = crypto
+            .decrypt(&account.cookies_json_encrypted)
+            .map_err(|e| format!("Failed to decrypt cookies: {}", e))?;
+
+        let topup_cookies: std::collections::HashMap<String, String> =
+            serde_json::from_str(&cookies_json).unwrap_or_default();
+
+        // Build topup URL and include the provided CDK code
+        let topup_url = cdk_config
+            .topup_path
+            .as_ref()
+            .map(|path| format!("{}{}", provider.base_url.trim_end_matches('/'), path));
+
+        Ok::<_, String>(CdkRechargeContext {
+            provider_name: provider.name,
+            cdk_type: cdk_config.cdk_type.clone(),
+            extra_config,
+            topup_cookies,
+            topup_url,
+            api_user: account.api_user,
+        })
+    })
+    .await?;
 
     // If a specific cdk_code is provided, use it directly as a topup key
     if !cdk_code.is_empty() {
-        let topup_url = topup_url
-            .as_deref()
-            .ok_or_else(|| format!("No topup URL configured for provider {}", provider.name))?;
+        let topup_url = context.topup_url.as_deref().ok_or_else(|| {
+            format!(
+                "No topup URL configured for provider {}",
+                context.provider_name
+            )
+        })?;
 
-        let cookie_str = topup_cookies
+        let cookie_str = context
+            .topup_cookies
             .iter()
             .map(|(k, v)| format!("{}={}", k, v))
             .collect::<Vec<_>>()
@@ -493,8 +560,8 @@ pub async fn execute_cdk_recharge(
         if !cookie_str.is_empty() {
             req = req.header("Cookie", cookie_str);
         }
-        if !account.api_user.is_empty() {
-            req = req.header("new-api-user", &account.api_user);
+        if !context.api_user.is_empty() {
+            req = req.header("new-api-user", &context.api_user);
         }
 
         let resp = req
@@ -520,11 +587,11 @@ pub async fn execute_cdk_recharge(
     let cdk_service = CdkService::new(None);
     let result = cdk_service
         .fetch_and_topup(
-            &cdk_config.cdk_type,
-            &extra_config,
-            topup_url.as_deref(),
-            &topup_cookies,
-            &account.api_user,
+            &context.cdk_type,
+            &context.extra_config,
+            context.topup_url.as_deref(),
+            &context.topup_cookies,
+            &context.api_user,
         )
         .await;
 
@@ -536,49 +603,53 @@ pub async fn get_cdk_history(
     _state: State<'_, AppState>,
     account_id: Option<String>,
 ) -> Result<Value, String> {
-    // CDK history is not separately stored; return checkin records as a proxy
-    let record_manager = RecordManager::new();
+    run_blocking(move || {
+        // CDK history is not separately stored; return checkin records as a proxy
+        let record_manager = RecordManager::new();
 
-    let response = if let Some(aid) = account_id.as_deref() {
-        record_manager
-            .get_by_account(aid, Some(50))
-            .map_err(|e| format!("Failed to get CDK history: {}", e))?
-    } else {
-        record_manager
-            .get_all(Some(50))
-            .map_err(|e| format!("Failed to get CDK history: {}", e))?
-    };
+        let response = if let Some(aid) = account_id.as_deref() {
+            record_manager
+                .get_by_account(aid, Some(50))
+                .map_err(|e| format!("Failed to get CDK history: {}", e))?
+        } else {
+            record_manager
+                .get_all(Some(50))
+                .map_err(|e| format!("Failed to get CDK history: {}", e))?
+        };
 
-    serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+        serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 // ── WAF Cookie 管理 ──
 
 #[tauri::command]
 pub async fn list_waf_cookies(_state: State<'_, AppState>) -> Result<Value, String> {
-    // WafCookieManager provides per-provider lookup; list all by getting all providers
-    let provider_manager = ProviderManager::new();
-    let providers = provider_manager.load_all().unwrap_or_default();
+    run_blocking(|| {
+        // WafCookieManager provides per-provider lookup; list all by getting all providers
+        let provider_manager = ProviderManager::new();
+        let providers = provider_manager.load_all().unwrap_or_default();
 
-    let waf_manager = WafCookieManager::new();
-    let mut waf_entries: Vec<Value> = Vec::new();
+        let waf_manager = WafCookieManager::new();
+        let mut waf_entries: Vec<Value> = Vec::new();
 
-    for provider in &providers {
-        if let Ok(Some(cookies)) = waf_manager.get_valid(&provider.id) {
-            waf_entries.push(serde_json::json!({
-                "provider_id": provider.id,
-                "provider_name": provider.name,
-                "cookies": cookies
-            }));
+        for provider in &providers {
+            if let Ok(Some(cookies)) = waf_manager.get_valid(&provider.id) {
+                waf_entries.push(serde_json::json!({
+                    "provider_id": provider.id,
+                    "provider_name": provider.name,
+                    "cookies": cookies
+                }));
+            }
         }
-    }
 
-    let response = serde_json::json!({
-        "waf_cookies": waf_entries,
-        "total": waf_entries.len()
-    });
-
-    Ok(response)
+        Ok(serde_json::json!({
+            "waf_cookies": waf_entries,
+            "total": waf_entries.len()
+        }))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -607,70 +678,80 @@ pub async fn add_waf_cookie(
         return Err("No valid cookies provided".to_string());
     }
 
-    let waf_manager = WafCookieManager::new();
-    waf_manager
-        .save(&provider_id, cookies.clone())
-        .map_err(|e| format!("Failed to save WAF cookie: {}", e))?;
+    run_blocking(move || {
+        let waf_manager = WafCookieManager::new();
+        waf_manager
+            .save(&provider_id, cookies.clone())
+            .map_err(|e| format!("Failed to save WAF cookie: {}", e))?;
 
-    let result = serde_json::json!({
-        "provider_id": provider_id,
-        "cookies_count": cookies.len(),
-        "message": "WAF cookies saved successfully"
-    });
-
-    Ok(result)
+        Ok(serde_json::json!({
+            "provider_id": provider_id,
+            "cookies_count": cookies.len(),
+            "message": "WAF cookies saved successfully"
+        }))
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn delete_waf_cookie(_state: State<'_, AppState>, id: String) -> Result<String, String> {
-    // `id` is treated as provider_id for WAF cookies
-    let waf_manager = WafCookieManager::new();
-    let deleted = waf_manager
-        .delete(&id)
-        .map_err(|e| format!("Failed to delete WAF cookie: {}", e))?;
+    run_blocking(move || {
+        // `id` is treated as provider_id for WAF cookies
+        let waf_manager = WafCookieManager::new();
+        let deleted = waf_manager
+            .delete(&id)
+            .map_err(|e| format!("Failed to delete WAF cookie: {}", e))?;
 
-    if deleted {
-        Ok(format!("WAF cookies for provider {} deleted", id))
-    } else {
-        Ok(format!("No WAF cookies found for provider {}", id))
-    }
+        if deleted {
+            Ok(format!("WAF cookies for provider {} deleted", id))
+        } else {
+            Ok(format!("No WAF cookies found for provider {}", id))
+        }
+    })
+    .await
 }
 
 // ── 内置 Provider + 导入导出扩展 ──
 
 #[tauri::command]
 pub async fn list_builtin_providers() -> Result<Value, String> {
-    use ccr_db::managers::checkin::builtin_providers::get_builtin_providers;
-    let providers = get_builtin_providers();
-    serde_json::to_value(providers).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(|| {
+        use ccr_db::managers::checkin::builtin_providers::get_builtin_providers;
+        let providers = get_builtin_providers();
+        serde_json::to_value(providers).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn add_builtin_provider(provider_id: String) -> Result<Value, String> {
-    use ccr_db::managers::checkin::builtin_providers::get_builtin_providers;
+    run_blocking(move || {
+        use ccr_db::managers::checkin::builtin_providers::get_builtin_providers;
 
-    let providers = get_builtin_providers();
-    let builtin = providers
-        .iter()
-        .find(|p| p.id == provider_id)
-        .ok_or_else(|| format!("Builtin provider '{}' not found", provider_id))?;
+        let providers = get_builtin_providers();
+        let builtin = providers
+            .iter()
+            .find(|p| p.id == provider_id)
+            .ok_or_else(|| format!("Builtin provider '{}' not found", provider_id))?;
 
-    let checkin_provider = builtin.to_checkin_provider();
+        let checkin_provider = builtin.to_checkin_provider();
 
-    let manager = ProviderManager::new();
-    let req = CreateProviderRequest {
-        name: checkin_provider.name,
-        base_url: checkin_provider.base_url,
-        checkin_path: Some(checkin_provider.checkin_path),
-        balance_path: Some(checkin_provider.balance_path),
-        user_info_path: Some(checkin_provider.user_info_path),
-        auth_header: Some(checkin_provider.auth_header),
-        auth_prefix: Some(checkin_provider.auth_prefix),
-    };
-    let provider = manager
-        .create(req)
-        .map_err(|e| format!("Failed to create provider: {}", e))?;
-    serde_json::to_value(provider).map_err(|e| format!("Serialization error: {}", e))
+        let manager = ProviderManager::new();
+        let req = CreateProviderRequest {
+            name: checkin_provider.name,
+            base_url: checkin_provider.base_url,
+            checkin_path: Some(checkin_provider.checkin_path),
+            balance_path: Some(checkin_provider.balance_path),
+            user_info_path: Some(checkin_provider.user_info_path),
+            auth_header: Some(checkin_provider.auth_header),
+            auth_prefix: Some(checkin_provider.auth_prefix),
+        };
+        let provider = manager
+            .create(req)
+            .map_err(|e| format!("Failed to create provider: {}", e))?;
+        serde_json::to_value(provider).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -679,23 +760,26 @@ pub async fn get_checkin_account_cookies(
     account_id: String,
 ) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
-    let account_manager = AccountManager::new(&checkin_dir);
+    run_blocking(move || {
+        let account_manager = AccountManager::new(&checkin_dir);
 
-    let account = account_manager
-        .get(&account_id)
-        .map_err(|e| format!("Account not found: {}", e))?;
+        let account = account_manager
+            .get(&account_id)
+            .map_err(|e| format!("Account not found: {}", e))?;
 
-    use ccr_db::core::crypto::CryptoManager;
-    let crypto = CryptoManager::new(&checkin_dir)
-        .map_err(|e| format!("Crypto initialization error: {}", e))?;
-    let cookies_json = crypto
-        .decrypt(&account.cookies_json_encrypted)
-        .map_err(|e| format!("Failed to decrypt cookies: {}", e))?;
+        use ccr_db::core::crypto::CryptoManager;
+        let crypto = CryptoManager::new(&checkin_dir)
+            .map_err(|e| format!("Crypto initialization error: {}", e))?;
+        let cookies_json = crypto
+            .decrypt(&account.cookies_json_encrypted)
+            .map_err(|e| format!("Failed to decrypt cookies: {}", e))?;
 
-    Ok(serde_json::json!({
-        "account_id": account_id,
-        "cookies_json": cookies_json,
-    }))
+        Ok(serde_json::json!({
+            "account_id": account_id,
+            "cookies_json": cookies_json,
+        }))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -706,11 +790,14 @@ pub async fn export_checkin_config(options: Option<Value>) -> Result<Value, Stri
     } else {
         ccr_db::models::checkin::ExportOptions::default()
     };
-    let export_manager = ExportManager::new(&checkin_dir);
-    let data = export_manager
-        .export(&opts)
-        .map_err(|e| format!("Failed to export config: {}", e))?;
-    serde_json::to_value(data).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(move || {
+        let export_manager = ExportManager::new(&checkin_dir);
+        let data = export_manager
+            .export(&opts)
+            .map_err(|e| format!("Failed to export config: {}", e))?;
+        serde_json::to_value(data).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -718,11 +805,14 @@ pub async fn preview_checkin_import(data: Value) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
     let export_data: ccr_db::models::checkin::ExportData =
         serde_json::from_value(data).map_err(|e| format!("Invalid import data: {}", e))?;
-    let export_manager = ExportManager::new(&checkin_dir);
-    let preview = export_manager
-        .preview_import(&export_data)
-        .map_err(|e| format!("Failed to preview import: {}", e))?;
-    serde_json::to_value(preview).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(move || {
+        let export_manager = ExportManager::new(&checkin_dir);
+        let preview = export_manager
+            .preview_import(&export_data)
+            .map_err(|e| format!("Failed to preview import: {}", e))?;
+        serde_json::to_value(preview).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -735,11 +825,14 @@ pub async fn import_checkin_config(data: Value, options: Option<Value>) -> Resul
     } else {
         ccr_db::models::checkin::ImportOptions::default()
     };
-    let export_manager = ExportManager::new(&checkin_dir);
-    let result = export_manager
-        .import(export_data, &import_opts)
-        .map_err(|e| format!("Failed to import config: {}", e))?;
-    serde_json::to_value(result).map_err(|e| format!("Serialization error: {}", e))
+    run_blocking(move || {
+        let export_manager = ExportManager::new(&checkin_dir);
+        let result = export_manager
+            .import(export_data, &import_opts)
+            .map_err(|e| format!("Failed to import config: {}", e))?;
+        serde_json::to_value(result).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }
 
 // ── Dashboard ──
@@ -753,16 +846,19 @@ pub async fn get_account_dashboard(
     days: Option<u32>,
 ) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
-    let service = CheckinService::new(checkin_dir);
+    run_blocking(move || {
+        let service = CheckinService::new(checkin_dir);
 
-    let now = chrono::Local::now();
-    let y = year.unwrap_or(now.year());
-    let m = month.unwrap_or(now.month());
-    let d = days.unwrap_or(30);
+        let now = chrono::Local::now();
+        let y = year.unwrap_or(now.year());
+        let m = month.unwrap_or(now.month());
+        let d = days.unwrap_or(30);
 
-    let dashboard = service
-        .get_account_dashboard(&account_id, y, m, d)
-        .map_err(|e| format!("Failed to get dashboard: {}", e))?;
+        let dashboard = service
+            .get_account_dashboard(&account_id, y, m, d)
+            .map_err(|e| format!("Failed to get dashboard: {}", e))?;
 
-    serde_json::to_value(dashboard).map_err(|e| format!("Serialization error: {}", e))
+        serde_json::to_value(dashboard).map_err(|e| format!("Serialization error: {}", e))
+    })
+    .await
 }

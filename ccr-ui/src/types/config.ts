@@ -181,3 +181,9 @@ export interface CliVersionsResponse {
 }
 
 export type CliVersionsMode = 'fast' | 'full';
+
+export interface CliVersionsOptions {
+  mode?: CliVersionsMode;
+  timeoutMs?: number;
+  parallelism?: number;
+}

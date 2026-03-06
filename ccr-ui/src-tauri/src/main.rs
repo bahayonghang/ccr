@@ -54,12 +54,6 @@ fn main() {
             let app_state = AppState::new(db_pool);
 
             // 注册 Local 环境（始终可用）
-            {
-                let registry = app_state.env_registry.blocking_write();
-                // 释放锁后再注册，避免死锁
-                drop(registry);
-            }
-
             // 注册 managed state
             app.manage(app_state);
 
@@ -67,75 +61,82 @@ fn main() {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let state = app_handle.state::<AppState>();
+
+                // Phase C1 — 自动检测 WSL 发行版并注册（仅 Windows）
+                #[cfg(target_os = "windows")]
+                let distros = {
+                    use platform::wsl::detect_wsl_distros_with_cache;
+                    match tokio::task::spawn_blocking(|| detect_wsl_distros_with_cache(false)).await
+                    {
+                        Ok(Ok(distros)) => distros,
+                        Ok(Err(e)) => {
+                            tracing::debug!("[app] WSL detection skipped: {e}");
+                            Vec::new()
+                        }
+                        Err(e) => {
+                            tracing::debug!("[app] WSL detection task failed: {e}");
+                            Vec::new()
+                        }
+                    }
+                };
+
+                // Phase C2 — 加载已保存 SSH 主机并注册
+                use ccr_db::database::repositories::ssh_repo;
+                let db_pool = state.db_pool.clone();
+                let hosts = match tokio::task::spawn_blocking(move || {
+                    let conn = db_pool
+                        .get()
+                        .map_err(|e| format!("获取数据库连接失败: {e}"))?;
+                    ssh_repo::list_hosts(&conn).map_err(|e| format!("读取 SSH 主机失败: {e}"))
+                })
+                .await
+                {
+                    Ok(Ok(hosts)) => hosts,
+                    Ok(Err(e)) => {
+                        tracing::warn!("[app] failed to load SSH hosts: {e}");
+                        Vec::new()
+                    }
+                    Err(e) => {
+                        tracing::warn!("[app] SSH hosts loading task failed: {e}");
+                        Vec::new()
+                    }
+                };
+
                 let mut registry = state.env_registry.write().await;
 
                 // 注册本地环境
                 registry.register(Arc::new(LocalEnvironment::new()));
                 tracing::info!("[app] local environment registered");
 
-                // Phase C1 — 自动检测 WSL 发行版并注册（仅 Windows）
                 #[cfg(target_os = "windows")]
                 {
-                    use platform::wsl::{WslEnvironment, detect_wsl_distros_with_cache};
-                    match tokio::task::spawn_blocking(|| detect_wsl_distros_with_cache(false)).await {
-                        Ok(Ok(distros)) => {
-                            for distro in distros {
-                                let name = distro.name.clone();
-                                registry.register(Arc::new(WslEnvironment::new(distro)));
-                                tracing::info!("[app] WSL environment registered: {name}");
-                            }
-                        }
-                        Ok(Err(e)) => {
-                            tracing::debug!("[app] WSL detection skipped: {e}");
-                        }
-                        Err(e) => {
-                            tracing::debug!("[app] WSL detection task failed: {e}");
-                        }
+                    use platform::wsl::WslEnvironment;
+                    for distro in distros {
+                        let name = distro.name.clone();
+                        registry.register(Arc::new(WslEnvironment::new(distro)));
+                        tracing::info!("[app] WSL environment registered: {name}");
                     }
                 }
 
-                // Phase C2 — 加载已保存 SSH 主机并注册
-                {
-                    use ccr_db::database::repositories::ssh_repo;
-                    use platform::ssh::SshEnvironment;
-
-                    let db_pool = state.db_pool.clone();
-                    match tokio::task::spawn_blocking(move || {
-                        let conn = db_pool
-                            .get()
-                            .map_err(|e| format!("获取数据库连接失败: {e}"))?;
-                        ssh_repo::list_hosts(&conn).map_err(|e| format!("读取 SSH 主机失败: {e}"))
-                    })
-                    .await
-                    {
-                        Ok(Ok(hosts)) => {
-                            for host in hosts {
-                                let label = if host.name.trim().is_empty() {
-                                    host.host.clone()
-                                } else {
-                                    host.name.clone()
-                                };
-                                registry.register(Arc::new(SshEnvironment::new(
-                                    crate::platform::ssh::SshHostConfig {
-                                        id: Some(host.id),
-                                        name: Some(host.name).filter(|v| !v.trim().is_empty()),
-                                        host: host.host,
-                                        port: Some(host.port),
-                                        user: Some(host.username).filter(|v| !v.trim().is_empty()),
-                                        identity_file: host.identity_file,
-                                        remote_home: host.remote_home,
-                                    },
-                                )));
-                                tracing::info!("[app] SSH environment registered: {label}");
-                            }
-                        }
-                        Ok(Err(e)) => {
-                            tracing::warn!("[app] failed to load SSH hosts: {e}");
-                        }
-                        Err(e) => {
-                            tracing::warn!("[app] SSH hosts loading task failed: {e}");
-                        }
-                    }
+                use platform::ssh::SshEnvironment;
+                for host in hosts {
+                    let label = if host.name.trim().is_empty() {
+                        host.host.clone()
+                    } else {
+                        host.name.clone()
+                    };
+                    registry.register(Arc::new(SshEnvironment::new(
+                        crate::platform::ssh::SshHostConfig {
+                            id: Some(host.id),
+                            name: Some(host.name).filter(|v| !v.trim().is_empty()),
+                            host: host.host,
+                            port: Some(host.port),
+                            user: Some(host.username).filter(|v| !v.trim().is_empty()),
+                            identity_file: host.identity_file,
+                            remote_home: host.remote_home,
+                        },
+                    )));
+                    tracing::info!("[app] SSH environment registered: {label}");
                 }
 
                 tracing::info!(

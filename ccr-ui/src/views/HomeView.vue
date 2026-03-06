@@ -179,7 +179,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -191,6 +190,7 @@ import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import UsageStatsDashboard from '@/components/UsageStatsDashboard.vue'
 import { getSystemInfo, getCliVersions } from '@/api'
+import { logger } from '@/utils/logger'
 import type { CliVersionEntry, CliVersionsResponse, SystemInfo } from '@/types'
 
 const { t } = useI18n()
@@ -216,18 +216,18 @@ const loadSystemInfo = async () => {
     systemInfo.value = sysInfo
     markPerf('home:system-ready')
   } catch (e) {
-    console.error(e)
+    logger.error('[HomeView] failed to load system info', e)
   }
 }
 
 const loadCliVersions = async () => {
   try {
-    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeout: 3500 }).catch(() => null)
+    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeoutMs: 3500, parallelism: 4 }).catch(() => null)
     if (versions) {
       applyCliVersions(versions.versions)
     }
   } catch (e) {
-    console.error(e)
+    logger.error('[HomeView] failed to load CLI versions', e)
   }
 }
 
@@ -268,7 +268,7 @@ const logHomePerfSnapshot = () => {
     const badgeMarks = performance.getEntriesByName('home:cli-badges-updated')
     const lastBadgeMark = badgeMarks.length > 0 ? Math.round(badgeMarks[badgeMarks.length - 1].startTime) : null
 
-    console.info('[HomePerf]', {
+    logger.info('[HomePerf]', {
       apiResponses: relevant,
       cliBadgeUpdatedAt: lastBadgeMark,
     })

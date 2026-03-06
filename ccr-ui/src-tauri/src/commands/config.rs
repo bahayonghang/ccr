@@ -505,10 +505,8 @@ pub async fn clean_backups() -> Result<String, String> {
                 continue;
             }
             let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-            if ext == "bak" || ext == "backup" {
-                if std::fs::remove_file(path).is_ok() {
-                    deleted += 1;
-                }
+            if (ext == "bak" || ext == "backup") && std::fs::remove_file(path).is_ok() {
+                deleted += 1;
             }
         }
 

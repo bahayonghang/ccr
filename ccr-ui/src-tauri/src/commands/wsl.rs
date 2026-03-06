@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::platform::ExecutionEnvironment;
 use crate::platform::wsl::{
-    SyncDirection, WslCacheStatus, WslDistroInfo, WslEnvironment, 
-    clear_wsl_cache, detect_wsl_distros_with_cache, get_wsl_cache_status, sync_config_blocking,
+    SyncDirection, WslCacheStatus, WslDistroInfo, WslEnvironment, clear_wsl_cache,
+    detect_wsl_distros_with_cache, get_wsl_cache_status, sync_config_blocking,
 };
 
 // ── 响应类型 ────────────────────────────────────────────────────────────────
