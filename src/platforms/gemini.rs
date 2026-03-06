@@ -194,7 +194,8 @@ impl PlatformConfig for GeminiPlatform {
             return Err(CcrError::ProfileNotFound(name.to_string()));
         }
 
-        self.save_profiles_to_file(&profiles)
+        self.save_profiles_to_file(&profiles)?;
+        base::reconcile_registry_current_profile_after_delete("gemini", name, &profiles)
     }
 
     fn get_settings_path(&self) -> PathBuf {

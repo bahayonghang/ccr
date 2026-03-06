@@ -206,7 +206,8 @@ impl PlatformConfig for DroidPlatform {
         if profiles.shift_remove(name).is_none() {
             return Err(CcrError::ProfileNotFound(name.to_string()));
         }
-        self.save_profiles(&profiles)
+        self.save_profiles(&profiles)?;
+        base::reconcile_registry_current_profile_after_delete("droid", name, &profiles)
     }
 
     fn get_settings_path(&self) -> PathBuf {

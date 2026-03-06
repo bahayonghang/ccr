@@ -141,6 +141,20 @@ impl CodexPlatform {
         }
     }
 
+    fn resolve_model_reasoning_effort(profile: &ProfileConfig) -> Result<Option<String>> {
+        let Some(effort) = Self::platform_string(profile, "model_reasoning_effort") else {
+            return Ok(None);
+        };
+
+        let normalized = effort.to_ascii_lowercase();
+        match normalized.as_str() {
+            "minimal" | "low" | "medium" | "high" | "xhigh" => Ok(Some(normalized)),
+            _ => Err(CcrError::ValidationError(format!(
+                "model_reasoning_effort 必须为 minimal/low/medium/high/xhigh，当前值: {effort}"
+            ))),
+        }
+    }
+
     fn resolve_provider_id(name: &str, profile: &ProfileConfig) -> String {
         let candidate = Self::platform_string(profile, "provider_id")
             .or_else(|| profile.provider.clone())
@@ -406,6 +420,7 @@ impl CodexPlatform {
             String::new()
         });
         let wire_api = Self::resolve_wire_api(profile)?;
+        let reasoning_effort = Self::resolve_model_reasoning_effort(profile)?;
         let target_intent = Self::resolve_auth_intent(profile);
         let requires_auth = matches!(target_intent, AuthIntent::OpenAiAuth { .. });
         let env_key = match &target_intent {
@@ -447,7 +462,7 @@ impl CodexPlatform {
             root.insert("sandbox_mode".into(), toml::Value::String(sandbox));
         }
 
-        if let Some(reasoning) = Self::platform_string(profile, "model_reasoning_effort") {
+        if let Some(reasoning) = reasoning_effort {
             root.insert(
                 "model_reasoning_effort".into(),
                 toml::Value::String(reasoning),
@@ -590,7 +605,8 @@ impl PlatformConfig for CodexPlatform {
             return Err(CcrError::ProfileNotFound(name.to_string()));
         }
 
-        self.save_profiles_to_file(&profiles)
+        self.save_profiles_to_file(&profiles)?;
+        base::reconcile_registry_current_profile_after_delete("codex", name, &profiles)
     }
 
     fn get_settings_path(&self) -> PathBuf {
@@ -650,6 +666,7 @@ impl PlatformConfig for CodexPlatform {
 
         // 验证 wire_api
         Self::resolve_wire_api(profile)?;
+        Self::resolve_model_reasoning_effort(profile)?;
 
         // 认证约束按意图判断
         match Self::resolve_auth_intent(profile) {
@@ -796,7 +813,33 @@ mod tests {
             .insert("wire_api".into(), json!("responses"));
         assert!(platform.validate_profile(&custom_profile).is_ok());
 
+        // model_reasoning_effort 支持合法枚举（大小写不敏感）
+        for effort in ["minimal", "low", "medium", "high", "xhigh", "HIGH"] {
+            custom_profile
+                .platform_data
+                .insert("model_reasoning_effort".into(), json!(effort));
+            assert!(
+                platform.validate_profile(&custom_profile).is_ok(),
+                "expected valid effort: {effort}"
+            );
+        }
+
+        // model_reasoning_effort 非法值
+        custom_profile
+            .platform_data
+            .insert("model_reasoning_effort".into(), json!("ultra"));
+        let err = platform.validate_profile(&custom_profile).unwrap_err();
+        let err_msg = err.to_string();
+        assert!(
+            err_msg.contains("model_reasoning_effort"),
+            "should mention model_reasoning_effort, got: {}",
+            err_msg
+        );
+
         // wire_api 无效值
+        custom_profile
+            .platform_data
+            .shift_remove("model_reasoning_effort");
         custom_profile
             .platform_data
             .insert("wire_api".into(), json!("invalid"));
@@ -950,6 +993,9 @@ mod tests {
         profile
             .platform_data
             .insert("wire_api".into(), json!("responses"));
+        profile
+            .platform_data
+            .insert("model_reasoning_effort".into(), json!("HIGH"));
 
         let result = platform.apply_third_party_profile("packy", &profile);
         if result.is_ok() {
@@ -965,6 +1011,11 @@ mod tests {
                     root.get("model").and_then(|v| v.as_str()),
                     Some("gpt-4.1-mini"),
                     "model should be at root level"
+                );
+                assert_eq!(
+                    root.get("model_reasoning_effort").and_then(|v| v.as_str()),
+                    Some("high"),
+                    "model_reasoning_effort should be normalized to lowercase"
                 );
 
                 // Verify: model NOT inside provider table (no provider_model set)

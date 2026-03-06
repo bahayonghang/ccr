@@ -310,6 +310,35 @@ pub fn update_registry_current_profile(platform_name: &str, profile_name: &str) 
 /// 🔍 获取当前 profile (从注册表)
 ///
 /// 如果平台未在注册表中注册，返回 None 而非报错
+pub fn reconcile_registry_current_profile_after_delete(
+    platform_name: &str,
+    deleted_profile_name: &str,
+    remaining_profiles: &IndexMap<String, ProfileConfig>,
+) -> Result<()> {
+    let platform_config_mgr = PlatformConfigManager::with_default()?;
+    let mut unified_config = platform_config_mgr.load()?;
+
+    let current_profile = match unified_config.get_platform(platform_name) {
+        Ok(entry) => entry.current_profile.clone(),
+        Err(_) => return Ok(()),
+    };
+
+    if current_profile.as_deref() != Some(deleted_profile_name) {
+        return Ok(());
+    }
+
+    if let Some(next_profile_name) = remaining_profiles.keys().next().cloned() {
+        unified_config.set_platform_profile(platform_name, &next_profile_name)?;
+    } else {
+        let registry = unified_config.get_platform_mut(platform_name)?;
+        registry.current_profile = None;
+        registry.last_used = Some(chrono::Utc::now().to_rfc3339());
+    }
+
+    platform_config_mgr.save(&unified_config)?;
+    Ok(())
+}
+
 pub fn get_current_profile_from_registry(platform_name: &str) -> Result<Option<String>> {
     let platform_config_mgr = PlatformConfigManager::with_default()?;
     let unified_config = platform_config_mgr.load()?;
@@ -328,6 +357,19 @@ pub fn get_current_profile_from_registry(platform_name: &str) -> Result<Option<S
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::managers::{PlatformConfigEntry, UnifiedConfig};
+    use std::sync::{LazyLock, Mutex};
+
+    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+    fn restore_env_var(key: &str, previous: Option<String>) {
+        unsafe {
+            match previous {
+                Some(value) => std::env::set_var(key, value),
+                None => std::env::remove_var(key),
+            }
+        }
+    }
 
     #[test]
     fn test_section_to_profile_roundtrip() {
@@ -375,5 +417,76 @@ mod tests {
         profile.provider_type = Some("invalid".to_string());
         let section3 = profile_to_section(&profile).unwrap();
         assert_eq!(section3.provider_type, None);
+    }
+
+    #[test]
+    fn test_reconcile_registry_current_profile_after_delete_repoints_to_first_remaining() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let previous_root = std::env::var("CCR_ROOT").ok();
+
+        unsafe {
+            std::env::set_var("CCR_ROOT", temp_dir.path());
+        }
+
+        let result = (|| -> Result<()> {
+            let manager = PlatformConfigManager::with_default()?;
+            let mut unified_config = UnifiedConfig::default();
+            unified_config.register_platform("codex".into(), PlatformConfigEntry::default())?;
+            unified_config.set_platform_profile("codex", "obsolete")?;
+            manager.save(&unified_config)?;
+
+            let mut remaining_profiles = IndexMap::new();
+            remaining_profiles.insert("replacement".to_string(), ProfileConfig::new());
+
+            reconcile_registry_current_profile_after_delete(
+                "codex",
+                "obsolete",
+                &remaining_profiles,
+            )?;
+
+            let reloaded = manager.load()?;
+            assert_eq!(
+                reloaded.get_platform("codex")?.current_profile.as_deref(),
+                Some("replacement")
+            );
+            Ok(())
+        })();
+
+        restore_env_var("CCR_ROOT", previous_root);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_reconcile_registry_current_profile_after_delete_clears_when_empty() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let previous_root = std::env::var("CCR_ROOT").ok();
+
+        unsafe {
+            std::env::set_var("CCR_ROOT", temp_dir.path());
+        }
+
+        let result = (|| -> Result<()> {
+            let manager = PlatformConfigManager::with_default()?;
+            let mut unified_config = UnifiedConfig::default();
+            unified_config.register_platform("gemini".into(), PlatformConfigEntry::default())?;
+            unified_config.set_platform_profile("gemini", "obsolete")?;
+            manager.save(&unified_config)?;
+
+            let remaining_profiles = IndexMap::new();
+            reconcile_registry_current_profile_after_delete(
+                "gemini",
+                "obsolete",
+                &remaining_profiles,
+            )?;
+
+            let reloaded = manager.load()?;
+            assert_eq!(reloaded.get_platform("gemini")?.current_profile, None);
+            Ok(())
+        })();
+
+        restore_env_var("CCR_ROOT", previous_root);
+        result.unwrap();
     }
 }

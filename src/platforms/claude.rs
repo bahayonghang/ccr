@@ -101,7 +101,8 @@ impl PlatformConfig for ClaudePlatform {
         if profiles.shift_remove(name).is_none() {
             return Err(CcrError::ProfileNotFound(name.to_string()));
         }
-        self.save_profiles(&profiles)
+        self.save_profiles(&profiles)?;
+        base::reconcile_registry_current_profile_after_delete("claude", name, &profiles)
     }
 
     fn get_settings_path(&self) -> PathBuf {
