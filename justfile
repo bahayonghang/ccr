@@ -399,7 +399,7 @@ frontend-build:
 docs-check:
     @just header "📚 文档构建检查"
     @just warn "注意: 若有 dead links 会失败，可在 .vitepress/config 中配置 ignoreDeadLinks"
-    cd docs && bun install --frozen-lockfile && bun run build
+    cd docs && npm install && npm run build
     @just info "⏭️  跳过 ccr-ui/docs 构建 (VitePress+Mermaid 插件问题)"
     # cd ccr-ui/docs && bun install && bun run build
     @just success "文档构建检查完成"
@@ -448,12 +448,12 @@ uninstall:
 # 📚 文档命令
 # ═══════════════════════════════════════════════════════════
 
-# 📚 构建文档 (不包含依赖)
-doc:
-    @just info "📚 生成文档"
-    @just info "📌 模式: 仅本项目代码 (--no-deps)"
-    cargo doc -p {{BIN}} --no-deps
-    @just success "文档生成完成"
+# 🌐 启动 VitePress 文档站
+docs:
+    @just header "🌐 启动文档站"
+    @just info "📍 项目路径: docs"
+    @just info "📝 将转到 docs/ 并执行 npm run dev"
+    cd docs && npm install && npm run dev
 
 # 🌐 构建并在浏览器中打开文档
 doc-open:
