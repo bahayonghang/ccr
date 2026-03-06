@@ -50,11 +50,11 @@ const props = withDefaults(defineProps<Props>(), {
 
 const variantClasses = computed(() => {
   const map = {
-    base: 'rounded-xl bg-black/40 border border-white/10 backdrop-blur-xl',
-    elevated: 'rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl shadow-2xl',
+    base: 'rounded-xl bg-black/20 dark:bg-black/40 border border-white/10 backdrop-blur-xl',
+    elevated: 'rounded-2xl bg-black/20 dark:bg-black/40 border border-white/10 backdrop-blur-xl shadow-2xl',
     glass: 'rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md shadow-xl text-white',
     outline: 'rounded-xl bg-transparent border border-white/20 backdrop-blur-sm',
-    neko: 'rounded-2xl bg-black/50 border border-accent-primary/20 backdrop-blur-xl shadow-lg overflow-visible mt-4 neko-border-glow',
+    neko: 'rounded-2xl bg-black/30 dark:bg-black/50 border border-accent-primary/20 backdrop-blur-xl shadow-lg overflow-visible mt-4 neko-border-glow',
   }
   return map[props.variant]
 })

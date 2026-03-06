@@ -1,96 +1,178 @@
 <template>
   <div class="fixed inset-0 w-full h-full -z-50 overflow-hidden transition-colors duration-1000 bg-black">
-    <!-- Image layer -->
+    <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-900 via-slate-900 to-black" />
+
     <div
-      v-show="isLoaded && bgUrl"
+      v-if="bgUrl"
       class="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
       :style="{ backgroundImage: `url(${bgUrl})`, opacity: isLoaded ? 1 : 0 }"
     />
-    
-    <!-- Gradient fallback -->
-    <div
-      v-show="!isLoaded || hasError"
-      class="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-900 via-slate-900 to-black transition-opacity duration-1000"
-      :class="{ 'opacity-100': !isLoaded || hasError, 'opacity-0': isLoaded && !hasError }"
-    />
 
-    <!-- Dark Overlay for readablity -->
     <div class="absolute inset-0 w-full h-full bg-black/60 z-0 pointer-events-none" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import fallbackBackgroundUrl from '@/assets/anime-background-fallback.svg'
+import {
+  clearBackgroundCache,
+  consumeBackgroundRefreshAttempt,
+  createBackgroundObjectUrl,
+  isBackgroundCacheExpired,
+  loadBackgroundCache,
+  revokeBackgroundObjectUrl,
+  saveBackgroundCache,
+  type BackgroundCacheRecord,
+} from '@/utils/backgroundCache'
 import { logger } from '@/utils/logger'
+
+interface LoliApiResponse {
+  url?: string
+}
+
+const LOLI_API_URL = 'https://www.loliapi.com/acg/?type=json'
 
 const bgUrl = ref('')
 const isLoaded = ref(false)
-const hasError = ref(false)
 
-const SESSION_KEY = 'anime_bg_cache'
-const CACHE_EXPIRE_MS = 15 * 60 * 1000 // 15 minutes
+let currentObjectUrl: string | null = null
+let isUnmounted = false
 
-interface BgCache {
-  url: string
-  timestamp: number
+const releaseCurrentObjectUrl = () => {
+  revokeBackgroundObjectUrl(currentObjectUrl)
+  currentObjectUrl = null
 }
 
-const loadBackground = async () => {
+const preloadBackground = (url: string, nextObjectUrl: string | null = null): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const img = new Image()
+
+    img.onload = () => {
+      if (isUnmounted) {
+        revokeBackgroundObjectUrl(nextObjectUrl)
+        resolve(false)
+        return
+      }
+
+      releaseCurrentObjectUrl()
+      currentObjectUrl = nextObjectUrl
+      bgUrl.value = url
+      isLoaded.value = true
+      resolve(true)
+    }
+
+    img.onerror = () => {
+      revokeBackgroundObjectUrl(nextObjectUrl)
+      resolve(false)
+    }
+
+    img.src = url
+  })
+}
+
+const displayFallbackBackground = async (): Promise<void> => {
+  const displayed = await preloadBackground(fallbackBackgroundUrl)
+
+  if (!displayed && !isUnmounted) {
+    bgUrl.value = fallbackBackgroundUrl
+    isLoaded.value = true
+  }
+}
+
+const displayCachedBackground = async (record: Pick<BackgroundCacheRecord, 'blob'>): Promise<boolean> => {
+  const objectUrl = createBackgroundObjectUrl(record)
+  return preloadBackground(objectUrl, objectUrl)
+}
+
+const fetchBackgroundRecord = async (): Promise<BackgroundCacheRecord> => {
+  const apiResponse = await fetch(LOLI_API_URL, { cache: 'no-store' })
+  if (!apiResponse.ok) {
+    throw new Error(`Background API request failed with status ${apiResponse.status}`)
+  }
+
+  const data = await apiResponse.json() as LoliApiResponse
+  if (!data.url || typeof data.url !== 'string') {
+    throw new Error('Background API returned an invalid payload')
+  }
+
+  const imageResponse = await fetch(data.url, { cache: 'no-store' })
+  if (!imageResponse.ok) {
+    throw new Error(`Background image request failed with status ${imageResponse.status}`)
+  }
+
+  const blob = await imageResponse.blob()
+  const contentType = imageResponse.headers.get('content-type') ?? blob.type ?? 'image/*'
+
+  return {
+    sourceUrl: data.url,
+    contentType,
+    fetchedAt: Date.now(),
+    blob: blob.type === contentType ? blob : new Blob([blob], { type: contentType }),
+  }
+}
+
+const refreshBackground = async (): Promise<void> => {
+  if (!consumeBackgroundRefreshAttempt()) {
+    return
+  }
+
   try {
-    // 1. Check cache
-    const cachedData = sessionStorage.getItem(SESSION_KEY)
-    if (cachedData) {
-      const cache: BgCache = JSON.parse(cachedData)
-      const now = Date.now()
-      if (now - cache.timestamp < CACHE_EXPIRE_MS) {
-        preloadImage(cache.url)
+    const record = await fetchBackgroundRecord()
+
+    try {
+      await saveBackgroundCache(record)
+    } catch (error) {
+      logger.warn('[AnimeBackground] failed to persist background cache', error)
+    }
+
+    const displayed = await displayCachedBackground(record)
+    if (!displayed) {
+      await clearBackgroundCache().catch(() => undefined)
+      throw new Error('Downloaded background could not be displayed')
+    }
+  } catch (error) {
+    logger.warn('[AnimeBackground] failed to refresh background image', error)
+  }
+}
+
+const initializeBackground = async () => {
+  try {
+    const cached = await loadBackgroundCache()
+
+    if (cached) {
+      const displayed = await displayCachedBackground(cached)
+
+      if (!displayed) {
+        logger.warn('[AnimeBackground] cached background is invalid, clearing cache')
+        await clearBackgroundCache().catch(() => undefined)
+      } else {
+        if (isBackgroundCacheExpired(cached)) {
+          void refreshBackground()
+        }
+
         return
       }
     }
+  } catch (error) {
+    logger.warn('[AnimeBackground] failed to load background cache', error)
+  }
 
-    // 2. Fetch new API
-    // type=json returns { "code": 200, "url": "...", "width": ..., "height": ... }
-    const res = await fetch('https://www.loliapi.com/acg/?type=json')
-    if (!res.ok) throw new Error('API request failed')
-    const data = await res.json()
-    
-    if (data && data.url) {
-      // 3. Update cache
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-        url: data.url,
-        timestamp: Date.now()
-      }))
-      preloadImage(data.url)
-    } else {
-      throw new Error('Invalid API response format')
-    }
-  } catch (err) {
-    logger.error('[AnimeBackground] failed to load', err)
-    hasError.value = true
-    isLoaded.value = true // stop loading state
-  }
-}
-
-const preloadImage = (url: string) => {
-  const img = new Image()
-  img.src = url
-  img.onload = () => {
-    bgUrl.value = url
-    isLoaded.value = true
-  }
-  img.onerror = () => {
-    hasError.value = true
-    isLoaded.value = true
-  }
+  await displayFallbackBackground()
+  void refreshBackground()
 }
 
 onMounted(() => {
-  loadBackground()
+  void initializeBackground()
+})
+
+onUnmounted(() => {
+  isUnmounted = true
+  releaseCurrentObjectUrl()
 })
 </script>
 
 <style scoped>
-/* 确保图层不参与主页面重排，且能享用 GPU 加速 */
 .bg-cover {
   transform: translateZ(0);
   will-change: opacity;

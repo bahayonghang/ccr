@@ -1,7 +1,7 @@
 <!-- -->
 <template>
   <aside
-    class="rounded-xl p-4 h-fit sticky top-5 transition-all duration-300 bg-black/40 backdrop-blur-xl shadow-2xl border border-white/10"
+    class="rounded-xl p-4 h-fit sticky top-5 transition-all duration-300 bg-black/20 dark:bg-black/40 backdrop-blur-xl shadow-2xl border border-white/10"
     :class="collapsed ? 'w-16' : 'w-64'"
   >
     <!-- 切换按钮 -->

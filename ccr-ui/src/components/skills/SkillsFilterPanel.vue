@@ -487,7 +487,7 @@ watch(() => props.modelValue, (newVal) => {
 .skills-filter-panel {
   @apply sticky top-6 h-fit rounded-2xl overflow-hidden;
 
-  background: var(--glass-bg-light, rgb(255 255 255 / 60%));
+  background: var(--glass-bg-light, rgb(255 255 255 / 25%));
   backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgb(244 114 182 / 15%);
   max-height: calc(100vh - 180px);
@@ -499,14 +499,14 @@ watch(() => props.modelValue, (newVal) => {
 .dark .skills-filter-panel {
   background: linear-gradient(
     180deg,
-    rgb(26 10 32 / 85%) 0%,
-    rgb(38 18 50 / 88%) 50%,
-    rgb(26 10 32 / 90%) 100%
+    rgb(26 10 32 / 30%) 0%,
+    rgb(38 18 50 / 25%) 50%,
+    rgb(26 10 32 / 35%) 100%
   );
-  border-color: rgb(249 168 212 / 10%);
+  border-color: rgb(249 168 212 / 15%);
   box-shadow:
-    4px 0 24px rgb(0 0 0 / 20%),
-    inset 0 1px 0 rgb(249 168 212 / 5%);
+    4px 0 24px rgb(0 0 0 / 25%),
+    inset 0 1px 0 rgb(249 168 212 / 10%);
 }
 
 /* Filter Section */

@@ -17,7 +17,7 @@
       >
         <!-- 背景遮罩 -->
         <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          class="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm"
           aria-hidden="true"
         />
 
@@ -190,7 +190,7 @@ const modalClasses = computed(() => [
   // 基础样式
   'relative w-full overflow-hidden rounded-2xl',
   // 玻璃态效果
-  'bg-bg-card/95 backdrop-blur-xl backdrop-saturate-150',
+  'bg-white/80 dark:bg-bg-card/90 backdrop-blur-xl backdrop-saturate-150',
   'border border-border-color/50',
   'shadow-xl shadow-black/10',
   // 暗黑模式调整

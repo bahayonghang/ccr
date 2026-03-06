@@ -466,18 +466,24 @@ onUnmounted(() => {
 /* User Card - Neko Kawaii Style */
 .user-card {
   background: linear-gradient(135deg,
-    rgb(120 40 90 / 85%) 0%,
-    rgb(140 60 130 / 75%) 50%,
-    rgb(100 50 150 / 70%) 100%
+    rgb(120 40 90 / 25%) 0%,
+    rgb(140 60 130 / 15%) 50%,
+    rgb(100 50 150 / 20%) 100%
   );
+  backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgb(244 114 182 / 25%);
   box-shadow:
-    0 4px 20px rgb(0 0 0 / 25%),
-    inset 0 1px 0 rgb(255 255 255 / 8%);
+    0 4px 24px rgb(0 0 0 / 20%),
+    inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .user-card:hover {
   border-color: rgb(244 114 182 / 45%);
+  background: linear-gradient(135deg,
+    rgb(120 40 90 / 35%) 0%,
+    rgb(140 60 130 / 25%) 50%,
+    rgb(100 50 150 / 30%) 100%
+  );
   box-shadow:
     0 8px 32px rgb(244 114 182 / 15%),
     0 4px 20px rgb(0 0 0 / 25%),
@@ -487,11 +493,12 @@ onUnmounted(() => {
 /* User Card - Light Mode Override */
 [data-theme="light"] .user-card {
   background: linear-gradient(135deg,
-    rgb(255 240 245 / 50%) 0%,
-    rgb(255 228 237 / 60%) 50%,
-    rgb(243 232 255 / 50%) 100%
+    rgb(255 240 245 / 30%) 0%,
+    rgb(255 228 237 / 40%) 50%,
+    rgb(243 232 255 / 30%) 100%
   );
-  border: 1px solid rgb(244 114 182 / 20%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgb(244 114 182 / 30%);
   box-shadow:
     0 4px 15px rgb(244 114 182 / 8%),
     inset 0 1px 0 rgb(255 255 255 / 80%);
