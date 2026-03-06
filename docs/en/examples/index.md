@@ -6,12 +6,12 @@ This directory contains copy-ready CCR configuration examples, including Codex-f
 
 | File | Purpose |
 |------|---------|
-| [`config.toml`](../../examples/config.toml) | Unified platform registry |
-| [`claude-profiles.toml`](../../examples/claude-profiles.toml) | Claude profile examples |
-| [`codex-profiles.toml`](../../examples/codex-profiles.toml) | Codex profiles (official + third-party) |
-| [`codex-cli-config.toml`](../../examples/codex-cli-config.toml) | Example `~/.codex/config.toml` |
-| [`codex-auth.example.json`](../../examples/codex-auth.example.json) | Example `~/.codex/auth.json` |
-| [`gemini-profiles.toml`](../../examples/gemini-profiles.toml) | Gemini profile examples |
+| [`config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/config.toml) | Unified platform registry |
+| [`claude-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/claude-profiles.toml) | Claude profile examples |
+| [`codex-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-profiles.toml) | Codex profiles (official + third-party) |
+| [`codex-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-cli-config.toml) | Example `~/.codex/config.toml` |
+| [`codex-auth.example.json`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-auth.example.json) | Example `~/.codex/auth.json` |
+| [`gemini-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/gemini-profiles.toml) | Gemini profile examples |
 | [`troubleshooting.md`](./troubleshooting) | Common troubleshooting |
 
 ## Codex Quick Reference

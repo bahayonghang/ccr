@@ -1,36 +1,48 @@
-# `ccr web`
+# web - Legacy Web API
 
-> **Note:** This documentation is being translated. For now, please refer to the [Chinese version](../commands/web).
-
-## Overview
-
-Command: `ccr web`
-
-This command starts the **legacy** lightweight web API server. It is kept for compatibility and programmatic access. For normal browser-based management, prefer the `ccr ui` command (CCR UI application).
+`ccr web` starts CCR's lightweight built-in HTTP service. Its role is compatibility and programmatic access, not the main graphical experience.
 
 ## Usage
 
 ```bash
-ccr web [OPTIONS]
+ccr web [--host <host>] [--port <port>] [--no-browser]
 ```
 
-## Options
+## Defaults
 
-Run `ccr web --help` for detailed options.
+- host: `127.0.0.1`
+- port: `19527`
 
 ## Examples
 
 ```bash
-# Basic usage
+# default localhost-only listener
 ccr web
+
+# explicit host / port
+ccr web --host 127.0.0.1 --port 19527 --no-browser
+
+# expose on a trusted LAN
+ccr web --host 0.0.0.0 --port 19527 --no-browser
 ```
 
-## See Also
+## Best Use Cases
 
-- [Command Reference](./index)
-- [Quick Start](../quick-start)
-- [Configuration Guide](../configuration)
+- `curl`, CI, and shell automation
+- legacy HTTP integrations
+- lightweight API usage without the full `ccr-ui` surface
 
----
+## What It No Longer Represents
 
-**Translation in progress.** Contributions welcome! See the [Chinese version](../commands/web) for complete documentation.
+This page should not describe:
+
+- a “modern full web UI”
+- the `ccr-ui` module map
+- desktop-shell workflows
+
+Those belong in [UI Overview](/en/guide/ui-overview) and [UI Module Map](/en/guide/ui-modules).
+
+## Related Docs
+
+- [Web API Reference](/en/reference/api)
+- [Choosing `ccr ui` vs `ccr web`](/en/guide/web-guide)

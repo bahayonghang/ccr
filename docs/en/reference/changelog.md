@@ -1,10 +1,10 @@
 # Changelog
 
-> **Note:** This documentation is being translated. Please refer to the [Chinese version](./changelog) for complete version history.
+> The English changelog is intentionally compact. Use the Chinese changelog for the full release history until the detailed mirror is expanded.
 
 ## Version History
 
-See the [Chinese changelog](./changelog) for detailed version history.
+See the [Chinese changelog](/reference/changelog) for the full release history.
 
 ## Latest Releases
 
@@ -26,10 +26,10 @@ Major optimizations for performance, code quality, and maintainability:
 
 ## See Also
 
-- [Quick Start](./quick-start)
-- [Migration Guide](./migration)
+- [Quick Start](/en/guide/quick-start)
+- [Migration Guide](/en/reference/migration)
 - [GitHub Releases](https://github.com/bahayonghang/ccr/releases)
 
 ---
 
-**Translation in progress.** See [Chinese version](./changelog) for complete changelog.
+Use [the Chinese changelog](/reference/changelog) when you need the complete entry-by-entry history.

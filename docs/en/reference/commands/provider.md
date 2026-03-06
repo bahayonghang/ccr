@@ -1,147 +1,53 @@
-# provider
+# provider - Provider Health Checks
 
-Provider health check commands for testing API endpoint connectivity and validating API Keys.
+`ccr provider` validates whether configured providers are reachable and whether their API keys are valid.
 
-## Overview
+## Usage
 
-The `ccr provider` command group provides health check functionality for configured Providers:
-
-- **Connectivity Test**: Check if API endpoint is reachable
-- **API Key Validation**: Verify if the key is valid
-- **Latency Measurement**: Measure API response time
-- **Model Availability**: Check if configured model is available
+```bash
+ccr provider test <name> [--verbose]
+ccr provider test --all [--verbose]
+ccr provider verify <name>
+```
 
 ## Subcommands
 
 ### test
 
-Test Provider connectivity.
+- `ccr provider test <name>`: test one configuration
+- `ccr provider test --all`: test all configurations
+- `--verbose`: include more model-level detail
 
-```bash
-ccr provider test <NAME|--all> [OPTIONS]
-```
+Typical output fields:
 
-**Arguments:**
-
-| Argument | Description |
-|----------|-------------|
-| `<NAME>` | Name of configuration to test |
-
-**Options:**
-
-| Option | Description |
-|--------|-------------|
-| `-a, --all` | Test all configurations |
-| `-v, --verbose` | Show detailed information |
-
-**Output Information:**
-
-- Provider name
+- status (Healthy / Degraded / Unhealthy / Unknown)
 - Base URL
-- Health status (Healthy/Degraded/Unhealthy/Unknown)
-- Latency (milliseconds)
-- Error message (if any)
-
-**Examples:**
-
-```bash
-# Test single configuration
-ccr provider test my-provider
-
-# Test all configurations
-ccr provider test --all
-
-# Show detailed information
-ccr provider test my-provider --verbose
-```
+- latency
+- error text
 
 ### verify
 
-Verify API Key validity.
-
 ```bash
-ccr provider verify <NAME>
+ccr provider verify <name>
 ```
 
-Verifies API Key validity by calling the `/v1/models` endpoint and lists available models.
+Checks whether the configured API key is valid for the chosen provider.
 
-**Output:**
-
-- Key validity status
-- Available models list
-- Whether configured model is in the list
-
-**Examples:**
+## Examples
 
 ```bash
-# Verify API Key
-ccr provider verify my-provider
+ccr provider test work --verbose
+ccr provider test --all
+ccr provider verify work
 ```
-
-## Health Status Description
-
-| Status | Description |
-|--------|-------------|
-| `Healthy` | Endpoint reachable, API Key valid |
-| `Degraded` | Endpoint reachable but slow response or limited functionality |
-| `Unhealthy` | Endpoint unreachable or API Key invalid |
-| `Unknown` | Unable to determine status |
-
-## Test Flow
-
-1. **Connectivity Test**: Request `{base_url}/v1/models` endpoint
-2. **Authentication Test**: Check HTTP status code (401/403 = authentication failed)
-3. **Latency Test**: Record request round-trip time
-4. **Model Validation**: Confirm configured model is in returned list
 
 ## Use Cases
 
-### Diagnose Connection Issues
+- validate a freshly created profile
+- run a batch health check over all saved configurations
+- diagnose model, token, or base URL issues
 
-```bash
-# Test specific configuration
-ccr provider test my-provider --verbose
+## Notes
 
-# View detailed error information
-```
-
-### Batch Check All Configurations
-
-```bash
-# Test all configuration status at once
-ccr provider test --all
-```
-
-### Verify New Configuration
-
-```bash
-# Verify after adding new configuration
-ccr add
-ccr provider verify new-config
-```
-
-### CI/CD Integration
-
-```bash
-# Check Provider status in scripts
-if ccr provider test my-provider; then
-    echo "Provider is healthy"
-else
-    echo "Provider check failed"
-    exit 1
-fi
-```
-
-## Web API
-
-Provider health check is also accessible via Web API:
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/provider-health/test` | POST | Test single Provider |
-| `/api/provider-health/test-all` | GET | Test all Providers |
-
-## Version Information
-
-- **Introduced in**: v3.12.0
-- **Feature Dependency**: Requires `web` feature (network requests)
+- This is a CLI diagnostics surface, not a standalone `provider-health` HTTP API.
+- If you want a browser-oriented summary, use the Provider Health page in `ccr-ui`; it is backed by the same underlying capability set.

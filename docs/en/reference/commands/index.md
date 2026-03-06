@@ -1,102 +1,103 @@
-# Command Reference
+# Command Overview
 
-CCR commands are grouped by domain. All commands support `--help` for detailed usage.
+CCR's CLI currently falls into five groups: platform and initialization, profiles and temporary overrides, data and sync, interfaces and cost controls, and extensions and maintenance.
 
 ## Command List
 
-| Command | Aliases | Description | Version |
-|---------|---------|-------------|---------|
-| [init](./init) | - | Initialize config (Unified default, Legacy compatible) | v1.0+ |
-| [platform](./platform) | - | Platform registry management (list/switch/current/info/init) | v3.6+ |
-| [migrate](./migrate) | - | Legacy → Unified migration | v3.6+ |
-| [list](./list) | `ls` | List profiles of current platform | v1.0+ |
-| [current](./current) | `status`, `show` | Show current profile | v1.0+ |
-| [switch](./switch) | - | Switch profile (supports shortcut `ccr <name>`) | v1.0+ |
-| [add](./add) | - | Add new profile interactively | v1.0+ |
-| [delete](./delete) | - | Delete profile | v1.0+ |
-| enable | - | Enable profile (current platform) | v1.0+ |
-| disable | - | Disable profile (`--force` supported) | v1.0+ |
-| [validate](./validate) | `check` | Validate config and settings | v1.0+ |
-| optimize | - | Reorder profiles | v1.0+ |
-| clear | - | Clear CCR writes from settings.json | v2.0+ |
-| [temp-token](./temp-token) | - | Temporary token/base_url/model override | v2.0+ |
-| [history](./history) | - | Operation history | v1.0+ |
-| [stats](./stats) | - | Cost/usage stats (web feature) | v2.0+ |
-| [budget](./budget) | - | Budgeting (web feature) | v3.16+ |
-| [pricing](./pricing) | - | Model pricing (web feature) | v3.16+ |
-| [export](./export) | - | Export configuration | v1.0+ |
-| [import](./import) | - | Import configuration (merge/replace) | v1.0+ |
-| [clean](./clean) | - | Clean old backups | v2.0+ |
-| [sync](./sync) | - | WebDAV sync (folder registry/batch/interactive) | v2.0+ |
-| [ui](./ui) | - | Launch full CCR UI | v1.4+ |
-| [tui](./tui) | - | Terminal UI (tui feature) | v2.0+ |
-| [web](./web) | - | Lightweight Web API (compatibility/scripts) | v2.0+ |
-| [skills](./skills) | - | Skills management | v3.5+ |
-| [prompts](./prompts) | - | Prompt preset management | v3.5+ |
-| [check](./check) | - | Config conflict detection | v3.6+ |
-| [update](./update) | - | Self update | v1.0+ |
-| [version](./version) | `ver` | Show version info | v1.0+ |
+| Command | Purpose | Notes |
+|---------|---------|-------|
+| [`init`](./init) | Initialize the configuration root | Default entry for Unified Mode |
+| [`platform`](./platform) | Manage the platform registry | list / switch / current / info / init |
+| [`codex`](./codex) | Manage Codex multi-account auth | `ccr codex auth *` |
+| [`migrate`](./migrate) | Legacy → Unified migration | Multi-platform migration entry |
+| [`add`](./add) / [`delete`](./delete) | Create or remove profiles | Operates on the current platform |
+| [`list`](./list) / [`current`](./current) / [`switch`](./switch) | Inspect or switch profiles | `ccr <name>` is the shortcut form of `switch` |
+| [`temp`](./temp) / [`temp-token`](./temp-token) | Temporary overrides for the active settings | `temp` is interactive, `temp-token` is command-line driven |
+| [`validate`](./validate) / [`enable`](./enable) / [`disable`](./disable) / [`clear`](./clear) / [`optimize`](./optimize) | Validate and tidy configuration | |
+| [`history`](./history) / [`export`](./export) / [`import`](./import) / [`clean`](./clean) | Audit, export, import, cleanup | |
+| [`sync`](./sync) | WebDAV sync | folder registry, push/pull/status |
+| [`sessions`](./sessions) / [`provider`](./provider) / [`check`](./check) | Session search, provider health, conflict checks | Diagnostic command groups |
+| [`ui`](./ui) / [`web`](./web) / [`tui`](./tui) | Full UI, legacy web API, terminal UI | `ui` is the recommended browser entry |
+| [`stats`](./stats) / [`budget`](./budget) / [`pricing`](./pricing) | Cost and budget controls | Built on usage and pricing data |
+| [`skills`](./skills) / [`prompts`](./prompts) | Extension management | |
+| [`update`](./update) / [`version`](./version) | Version maintenance | |
 
-## Categories
-
-### Init & Platform
-
-- **[init](./init)** - Initialize (Unified by default)
-- **[platform](./platform)** - Platform registry management
-- **[migrate](./migrate)** - Legacy → Unified migration
-
-### Profile Management
-
-- **[list](./list)** / **[current](./current)** / **[switch](./switch)** - View & switch
-- **[add](./add)** / **[delete](./delete)** - CRUD profiles
-- enable/disable - Enable or disable profiles
-- **[validate](./validate)** / optimize / clear - Validate, reorder, clear writes
-- **[temp-token](./temp-token)** - Temporary token/base_url/model override
-
-### Data & Sync
-
-- **[export](./export)** / **[import](./import)** / **[clean](./clean)** - Export/import/cleanup
-- **[sync](./sync)** - WebDAV sync (registry, batch/single, interactive filter)
-- **[history](./history)** / **[stats](./stats)** - Audit & metrics
-- **[budget](./budget)** / **[pricing](./pricing)** - Budgeting & model pricing (web feature)
-
-### Interfaces
-
-- **[ui](./ui)** - Full CCR UI
-- **[tui](./tui)** - Terminal UI (feature gated)
-- **[web](./web)** - Lightweight Web API
-
-### Extensions & Maintenance
-
-- **[skills](./skills)** / **[prompts](./prompts)** - Extensions management
-- **[check](./check)** - Conflict detection
-- **[update](./update)** / **[version](./version)** - Updates & version info
-
-## Quick Snippets
+## Recommended Starting Sequence
 
 ```bash
-# Init & platform
 ccr init
 ccr platform list
-ccr platform switch codex
-
-# Profile lifecycle
-ccr add && ccr list && ccr switch <name>
+ccr add
+ccr list
+ccr switch <name>
 ccr validate
-ccr export --no-secrets
-ccr import configs.toml --merge
+```
 
-# Sync
-ccr sync config
-ccr sync folder add claude ~/.claude
-ccr sync push -i
+If you prefer a browser entrypoint:
 
-# Launch CCR UI (full web app)
-ccr ui
+```bash
+ccr ui -p 15173 --backend-port 38081
+```
 
-# Launch legacy Web API (scripting/CI)
-ccr web --host 0.0.0.0 --port 19527
+If you only need the compatibility API:
 
-# Budget & pricing (web feature)
-ccr budget status
-ccr pricing list --verbose
+```bash
+ccr web --host 127.0.0.1 --port 19527 --no-browser
+```
+
+## Commands by Task
+
+### Platform and init
+
+- [`init`](./init)
+- [`platform`](./platform)
+- [`migrate`](./migrate)
+
+### Profiles and overrides
+
+- [`add`](./add)
+- [`delete`](./delete)
+- [`list`](./list)
+- [`current`](./current)
+- [`switch`](./switch)
+- [`temp`](./temp)
+- [`temp-token`](./temp-token)
+- [`validate`](./validate)
+- [`enable`](./enable)
+- [`disable`](./disable)
+- [`clear`](./clear)
+- [`optimize`](./optimize)
+
+### Data, sync, and diagnostics
+
+- [`history`](./history)
+- [`export`](./export)
+- [`import`](./import)
+- [`clean`](./clean)
+- [`sync`](./sync)
+- [`sessions`](./sessions)
+- [`provider`](./provider)
+- [`check`](./check)
+
+### Interfaces and cost controls
+
+- [`ui`](./ui)
+- [`web`](./web)
+- [`tui`](./tui)
+- [`stats`](./stats)
+- [`budget`](./budget)
+- [`pricing`](./pricing)
+
+### Extensions and maintenance
+
+- [`codex`](./codex)
+- [`skills`](./skills)
+- [`prompts`](./prompts)
+- [`update`](./update)
+- [`version`](./version)
+
+## Related Docs
+
+- [CLI Workflows](/en/guide/cli-workflows)
+- [Choosing `ccr ui` vs `ccr web`](/en/guide/web-guide)
+- [Web API Reference](/en/reference/api)

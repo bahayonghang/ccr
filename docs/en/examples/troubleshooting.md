@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-> **Note:** This documentation is being translated. Please refer to the [Chinese version](../examples/troubleshooting) for complete information.
+> This page lists a few quick recovery paths. For the main onboarding flow, start with the English quick start guide.
 
 ## Common Issues
 
@@ -30,9 +30,9 @@ chmod 644 ~/.ccs_config.toml
 ## See Also
 
 - [Examples Overview](./index)
-- [Quick Start](../quick-start)
-- [Configuration Guide](../configuration)
+- [Quick Start](/en/guide/quick-start)
+- [Configuration Guide](/en/guide/configuration)
 
 ---
 
-**Translation in progress.** See [Chinese version](../examples/troubleshooting) for complete troubleshooting guide.
+For platform-specific details, continue with [Platform Support](/en/reference/platforms/).

@@ -1,69 +1,76 @@
-# platform - 多平台管理
+# platform - 平台注册表
 
-管理平台注册表 (`~/.ccr/config.toml`)，支持列出、切换、查看、初始化平台。
+管理 `~/.ccr/config.toml` 中的平台状态、当前平台指针和平台初始化。
 
-**支持版本**：v3.6.0+
+## 用法
+
+```bash
+ccr platform <ACTION> [OPTIONS]
+```
 
 ## 子命令
 
 ### list
 
-列出所有支持的平台，并标记当前平台。
-
 ```bash
 ccr platform list [--json]
 ```
 
-- `--json`：以 JSON 输出，便于脚本。
+列出当前已知平台和状态。
 
 ### switch
-
-切换当前使用的平台（不会修改各平台 profiles 内容，只更新注册表指针）。
 
 ```bash
 ccr platform switch <platform>
 ```
 
-示例：
-```bash
-ccr platform switch codex
-ccr platform switch gemini
-```
+切换当前活动平台，但不会修改其他平台的 profile 内容。
 
 ### current
-
-查看当前平台。
 
 ```bash
 ccr platform current [--json]
 ```
 
-### info
+显示当前平台。
 
-查看指定平台的详细信息（实现状态、路径等）。
+### info
 
 ```bash
 ccr platform info <platform> [--json]
 ```
 
-### init
+查看指定平台的状态、路径与说明。
 
-为指定平台创建目录结构与 `profiles.toml` 模板（若不存在）。
+### init
 
 ```bash
 ccr platform init <platform>
 ```
 
-## 平台标识
+为平台创建目录结构与模板文件。
 
-- 已实现：`claude`、`codex`、`gemini`
-- 预留/Stub：`qwen`、`iflow`
+## 当前平台键
 
-## 常用组合
+| 平台键 | 状态 | 备注 |
+|--------|------|------|
+| `claude` | 已实现 | 默认主线平台 |
+| `codex` | 已实现 | 支持 `ccr codex auth` |
+| `gemini` | 已实现 | Unified Mode 管理 |
+| `droid` | 已实现 | 写入 `~/.factory/settings.json` |
+| `qwen` | 预留 / Stub | 当前核心实现返回未支持 |
+| `iflow` | 预留 / Stub | 当前核心实现返回未支持 |
+
+## 常见命令
 
 ```bash
 ccr platform list
 ccr platform switch claude
-ccr add                     # 在当前平台新增 profile
-ccr list && ccr switch xxx  # 针对当前平台的 profile 列表与切换
+ccr platform info droid
+ccr platform init gemini
 ```
+
+## 相关文档
+
+- [平台支持](/reference/platforms/)
+- [快速开始](/guide/quick-start)

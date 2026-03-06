@@ -676,4 +676,4 @@ ccr current
 - [Codex Platform Guide](./codex.md) - GitHub Copilot CLI configuration
 - [Gemini Platform Guide](./gemini.md) - Gemini CLI configuration
 - [Main README](../../README.md) - CCR overview
-- [CLAUDE.md](../../CLAUDE.md) - Multi-platform architecture details
+- [架构设计](/reference/architecture) - 当前 workspace 的多平台结构说明

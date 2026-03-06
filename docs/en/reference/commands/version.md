@@ -1,7 +1,5 @@
 # `ccr version`
 
-> **Note:** This documentation is being translated. For now, please refer to the [Chinese version](../commands/version).
-
 ## Overview
 
 Command: `ccr version`
@@ -26,9 +24,5 @@ ccr version
 ## See Also
 
 - [Command Reference](./index)
-- [Quick Start](../quick-start)
-- [Configuration Guide](../configuration)
-
----
-
-**Translation in progress.** Contributions welcome! See the [Chinese version](../commands/version) for complete documentation.
+- [Quick Start](/en/guide/quick-start)
+- [Configuration Guide](/en/guide/configuration)

@@ -1,29 +1,43 @@
-# ui - 启动 CCR UI 全量界面
+# ui - 启动 CCR UI
 
-启动完整的 CCR UI（前端 Vue3+Vite+Pinia+Tauri，后端 Axum）。命令会自动检测或下载 UI 资源。
-
-**支持版本**：v1.4.0+
+`ccr ui` 是当前推荐的浏览器入口，用于启动完整 CCR UI 栈。
 
 ## 用法
 
 ```bash
 ccr ui [-p <frontend-port>] [--backend-port <port>]
+ccr ui update
+ccr ui help
 ```
 
-- `-p, --port`：前端端口，默认 `3000`
-- `--backend-port`：后端端口，默认 `38081`
+## 默认值
+
+- 前端端口：`15173`
+- 后端端口：`38081`
 
 ## 启动顺序
 
-1) `./ccr-ui/` 或 `../ccr-ui/`（开发者本地源码）  
-2) `~/.ccr/ccr-ui/`（用户目录缓存）  
-3) 询问是否从 GitHub 下载并解压（首次使用）
+1. 当前目录或父目录中的 `ccr-ui/`
+2. `~/.ccr/ccr-ui/`
+3. 首次使用时提示从 GitHub 下载
 
-## 典型流程
+## 常见示例
 
 ```bash
-ccr ui                     # 自动检测或下载，端口默认 3000/38081
-ccr ui -p 3100 --backend-port 39000
+ccr ui
+ccr ui -p 15173 --backend-port 38081
+ccr ui update
 ```
 
-> 如果需要浏览器内使用轻量 API，请使用 `ccr web`；`ccr ui` 提供完整图形界面与命令执行、同步、成本等能力。
+## 适用场景
+
+- 用浏览器查看完整模块地图
+- 集中管理 skills、sessions、monitoring、statusline、provider health 等 UI 能力
+- 本地存在 `ccr-ui/` 时，希望直接走开发版
+
+## 与 `ccr web` 的区别
+
+- `ccr ui`：推荐入口，指向完整 `ccr-ui` 产品面
+- `ccr web`：legacy/programmatic path，保留为兼容和脚本场景
+
+参见：[接口选择：ccr ui vs ccr web](/guide/web-guide)

@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "CCR"
-  text: "Claude Code Configuration Switcher"
-  tagline: "Rust 多平台配置管理 · CLI/TUI/Web/API/UI 一体化"
+  text: "统一管理 AI CLI 配置与工作入口"
+  tagline: "CLI 主线，配套 TUI、Legacy Web API 与完整 CCR UI"
   image:
     src: /logo.svg
     alt: CCR
@@ -13,200 +13,137 @@ hero:
       text: 快速开始
       link: /guide/quick-start
     - theme: alt
-      text: 命令参考
-      link: /reference/commands/
+      text: CLI 工作流
+      link: /guide/cli-workflows
     - theme: alt
-      text: English
-      link: /en/
+      text: CCR UI
+      link: /guide/ui-overview
 ---
 
 <script setup>
-const coreFeatures = [
+const choosePaths = [
   {
     icon: '⚡',
-    title: '多接口一体',
-    details: 'CLI 为主，内置 TUI、轻量 Web API，推荐完整 CCR UI。',
-    link: '/guide/quick-start'
+    title: 'CLI 为主线',
+    details: '统一入口覆盖 profile 生命周期、平台切换、同步、预算、历史与会话。',
+    link: '/guide/cli-workflows'
   },
   {
-    icon: '🛡️',
-    title: '并发安全',
-    details: '文件锁 + 进程内互斥 + 原子写入，保护配置文件。',
-    link: '/reference/architecture'
+    icon: '🖥️',
+    title: 'CCR UI 为推荐浏览器入口',
+    details: '完整 Vue 3 + Axum + Tauri 体验，适合日常图形化管理和模块浏览。',
+    link: '/guide/ui-overview'
   },
+  {
+    icon: '🌐',
+    title: '`ccr web` 为 Legacy API',
+    details: '保留给脚本、CI 与兼容场景，不再作为默认浏览器管理入口。',
+    link: '/guide/web-guide'
+  }
+]
+
+const capabilityCards = [
   {
     icon: '🔀',
-    title: '多平台注册表',
-    details: '支持 Claude、Codex、Gemini、Qwen、iFlow 等平台。',
+    title: '统一平台注册表',
+    details: '围绕 claude、codex、gemini、droid 等平台管理独立 profile、历史与备份。',
     link: '/reference/platforms/'
   },
   {
-    icon: '🧭',
-    title: '配置直写',
-    details: '直接写入 settings.json，自动备份与审计。',
-    link: '/reference/commands/switch'
-  },
-  {
     icon: '☁️',
-    title: 'WebDAV 同步',
-    details: '多目录注册、批量 push/pull，智能过滤。',
+    title: 'WebDAV 多目录同步',
+    details: '支持目录注册、交互式过滤、单目录与批量 push/pull。',
     link: '/reference/commands/sync'
   },
   {
     icon: '📚',
-    title: 'Session 管理',
-    details: '解析索引 Claude/Codex/Gemini 会话历史，支持搜索恢复。',
-    link: '/reference/commands/sessions'
-  },
-  {
-    icon: '💚',
-    title: 'Provider 健康检查',
-    details: '检测 API 端点连通性、验证 Key、测量延迟。',
-    link: '/reference/commands/provider'
-  },
-  {
-    icon: '📊',
-    title: '成本统计',
-    details: '提供调用统计与成本分析，支持 JSON 输出。',
-    link: '/reference/commands/stats'
-  }
-]
-
-const quickLinks = [
-  {
-    icon: '📖',
-    title: '快速开始',
-    details: '5 分钟上手 CCR 配置管理。',
-    link: '/guide/quick-start'
-  },
-  {
-    icon: '🖥️',
-    title: 'CCR UI',
-    details: 'Vue3 + Axum + Tauri 全栈界面。',
-    link: '/reference/commands/ui'
-  },
-  {
-    icon: '⌨️',
-    title: '命令参考',
-    details: '全部 CLI 命令详细文档。',
+    title: 'Sessions / Provider / Skills',
+    details: '会话索引、Provider 健康检查、技能与提示词管理共用一套 CLI 入口。',
     link: '/reference/commands/'
   },
   {
-    icon: '🏗️',
-    title: '架构设计',
-    details: '了解 CCR 的分层架构。',
-    link: '/reference/architecture'
+    icon: '📊',
+    title: '成本与预算',
+    details: '围绕 stats、budget、pricing 三组命令管理用量、成本和预算阈值。',
+    link: '/reference/commands/stats'
   },
   {
-    icon: '🔁',
-    title: '迁移指南',
-    details: '查看旧路径与新布局的对照关系。',
-    link: '/reference/migration'
+    icon: '🛡️',
+    title: '安全写入',
+    details: '文件锁、进程内互斥、原子写入与备份链路共同保证配置切换安全。',
+    link: '/guide/quick-start'
+  },
+  {
+    icon: '🏗️',
+    title: '架构与集成参考',
+    details: 'workspace 分层、Legacy Web API 路由、平台结构和迁移路径集中在参考文档。',
+    link: '/reference/architecture'
   }
 ]
 </script>
 
-<HomeFeatures badge="核心功能" title="为什么选择 CCR？" :features="coreFeatures" />
+<HomeFeatures badge="入口选择" title="如何使用 CCR" :features="choosePaths" />
+<HomeFeatures badge="能力概览" badge-type="info" title="当前项目覆盖范围" :features="capabilityCards" />
 
-<HomeFeatures badge="快速导航" badge-type="info" title="开始使用" :features="quickLinks" />
-
-## 版本与安装
-- 当前版本：3.20.11（Rust 2024）
-- 需求：Rust 1.90+；可选 Node.js 18+ + Bun 1.0+（CCR UI 开发），`just`（便捷脚本）
+## 快速安装
+- Rust 1.90+
+- 可选：Node.js 18+ 与 Bun 1.0+（仅在开发 `ccr-ui` 时需要）
+- 推荐：`just`
 
 ```bash
-# 推荐：直接安装
 cargo install --git https://github.com/bahayonghang/ccr ccr
-
-# 源码安装
-git clone https://github.com/bahayonghang/ccr.git
-cd ccr
-cargo install --path crates/ccr
 ```
 
-> 工作区说明：可安装的 CLI crate 位于 `crates/ccr`。`crates/ccr-db` 与 `crates/ccr-types` 负责数据库服务与共享类型；`docs/`、`scripts/`、`examples/` 仍在仓库根目录；`outputs/` 用于汇总产物（如存在）。
+源码安装与工作区说明见 [快速开始](/guide/quick-start)。
 
-## 快速使用
+## 5 分钟起步
+
 ```bash
-ccr init                        # 初始化 Unified Mode (~/.ccr)
-ccr platform list               # 查看平台，支持 claude/codex/gemini/qwen/iflow
-ccr add                         # 引导创建配置
-ccr list && ccr switch <name>   # 查看与切换（也可直接 ccr <name>）
-ccr validate                    # 校验配置与 settings
-ccr history -l 50               # 查看历史
-ccr export --no-secrets         # 导出配置（可选去除敏感信息）
-ccr import configs.toml --merge # 合并导入，自动备份
-ccr clean --days 30             # 清理旧备份
-ccr temp-token set sk-xxx       # 临时覆盖 token，不改 TOML
+ccr init
+ccr platform list
+ccr add
+ccr list
+ccr switch <name>
+ccr validate
 ```
 
-### 同步与多目录
+下一步：
+- 日常 CLI 路径：[`CLI 工作流`](/guide/cli-workflows)
+- 浏览器与桌面路径：[`UI 概览`](/guide/ui-overview)
+- `ccr ui` vs `ccr web`：[`Web 指南`](/guide/web-guide)
+- 所有命令：[`命令参考`](/reference/commands/)
+
+## 支持矩阵
+
+| 平台 | 状态 | 说明 |
+|------|------|------|
+| Claude Code | ✅ Implemented | 默认主线平台，直接写入 `~/.claude/settings.json` |
+| Codex | ✅ Implemented | 支持 profile、auth、MCP 等工作流 |
+| Gemini CLI | ✅ Implemented | 独立 profile / history / backup |
+| Factory Droid | ✅ Implemented | 平台页与模块页已进入 CCR UI |
+| Qwen CLI | 🚧 Reserved / Partial | 代码中保留平台键与 UI 分组，文档按保留能力说明 |
+| iFlow CLI | 🚧 Reserved / Partial | 代码中保留平台键与 UI 分组，文档按保留能力说明 |
+
+详细平台说明见 [`平台支持`](/reference/platforms/)。
+
+## 常用入口
+
 ```bash
-# 开启 WebDAV 配置
+ccr ui -p 15173 --backend-port 38081
+ccr web --host 127.0.0.1 --port 19527
 ccr sync config
-# 目录注册与启用
-ccr sync folder add claude ~/.claude -r /ccr-sync/claude
-ccr sync folder enable claude
-# 单目录或全量操作
-ccr sync claude push
-ccr sync all status
-ccr sync all pull --force
-# 交互式选择同步内容
-ccr sync push -i
+ccr sessions list
+ccr provider test --all
+ccr stats summary --range week --details
 ```
 
-### 界面与服务
-```bash
-ccr ui -p 3000 --backend-port 38081  # 完整 CCR UI（自动检测或下载）
-ccr tui                              # 需启用 tui 特性
-ccr web --host 0.0.0.0 -p 19527 --no-browser   # 轻量 API/兼容用途
-```
-
-### Sessions 与 Provider
-```bash
-ccr sessions list                    # 列出会话历史
-ccr sessions search "keyword"        # 搜索会话
-ccr sessions resume <id>             # 恢复会话
-ccr provider test --all              # 测试所有 Provider 连通性
-ccr provider verify <name>           # 验证 API Key
-```
-
-### 成本与预算
-```bash
-ccr stats summary --range week --by-model --details  # 成本/用量统计（web 特性）
-ccr budget status                                    # 查看预算
-ccr budget set --monthly 200 --warn-at 90 --enable   # 配置预算
-ccr pricing list --verbose                           # 查看/校验模型定价
-ccr pricing set my-model --input 3.0 --output 15.0   # 设置自定义定价
-```
-
-## 目录结构（工作区）
-```
-ccr/
-|-- Cargo.toml          # workspace manifest + shared dependencies
-|-- crates/
-|   |-- ccr/            # CLI + 库（平台、服务、同步、web、tui）
-|   |-- ccr-db/         # 数据库服务与数据模型
-|   `-- ccr-types/      # 共享类型定义
-|-- ccr-ui/             # 完整 UI（Vue 3 + Tauri）
-|-- docs/               # 本文档
-|-- scripts/            # 维护脚本
-|-- examples/           # 示例配置
-|-- outputs/            # 汇总/生成产物（如存在）
-`-- justfile            # 通用开发任务
-```
-
-## 对比 CCS
-| 能力 | CCS (Shell) | CCR (Rust) |
-|------|-------------|------------|
-| 配置切换/写入 | ✔️ | ✔️ |
-| 直接写 settings.json | ❌ | ✔️ |
-| 文件锁/原子写 | ❌ | ✔️ |
-| 审计历史 | 基础 | 完整 |
-| 自动/手动备份 | ❌ | ✔️ |
-| 校验/优化 | 基础 | 完整 |
-| Web/TUI/UI | Web 简易 | Web API + TUI + CCR UI |
-| 多平台 | 单 Claude | 多平台 |
+## 文档地图
+- [`快速开始`](/guide/quick-start)：安装、初始化、首个 profile
+- [`CLI 工作流`](/guide/cli-workflows)：按日常任务组织命令
+- [`UI 概览`](/guide/ui-overview)：`ccr ui` 的运行模式与推荐使用方式
+- [`UI 模块地图`](/guide/ui-modules)：平台模块与工具模块的能力分组
+- [`Web API 参考`](/reference/api)：`ccr web` 的 Legacy 路由面
+- [`架构设计`](/reference/architecture)：workspace 与分层设计
 
 ## 许可证与贡献
 MIT。欢迎通过 Issue/PR 反馈与贡献：https://github.com/bahayonghang/ccr

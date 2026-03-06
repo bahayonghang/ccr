@@ -1,70 +1,76 @@
 # platform - Platform Registry
 
-Manage the platform registry (`~/.ccr/config.toml`): list, switch, inspect, and initialize platforms.
+Manage platform state, the current-platform pointer, and platform initialization in `~/.ccr/config.toml`.
 
-**Version**: v3.6.0+
+## Usage
+
+```bash
+ccr platform <ACTION> [OPTIONS]
+```
 
 ## Subcommands
 
 ### list
 
-List all supported platforms and highlight the current one.
-
 ```bash
 ccr platform list [--json]
 ```
 
-- `--json`: JSON output for scripting.
+Lists known platforms and their status.
 
 ### switch
-
-Switch the active platform (does not modify profiles; only updates the registry pointer).
 
 ```bash
 ccr platform switch <platform>
 ```
 
-Examples:
-
-```bash
-ccr platform switch codex
-ccr platform switch gemini
-```
+Switches the active platform without modifying profiles on other platforms.
 
 ### current
-
-Show the current platform.
 
 ```bash
 ccr platform current [--json]
 ```
 
-### info
+Shows the active platform.
 
-Show detailed info of a specific platform (status, paths, profiles).
+### info
 
 ```bash
 ccr platform info <platform> [--json]
 ```
 
-### init
+Shows status, paths, and descriptive metadata for the requested platform.
 
-Create directory structure and `profiles.toml` template for a platform (if missing).
+### init
 
 ```bash
 ccr platform init <platform>
 ```
 
-## Platform Keys
+Creates the directory structure and template files for a platform.
 
-- Implemented: `claude`, `codex`, `gemini`
-- Stub/Reserved: `qwen`, `iflow`
+## Current Platform Keys
 
-## Typical Workflow
+| Key | Status | Notes |
+|-----|--------|-------|
+| `claude` | Implemented | Mainline default platform |
+| `codex` | Implemented | Also exposes `ccr codex auth` |
+| `gemini` | Implemented | Managed in Unified Mode |
+| `droid` | Implemented | Writes to `~/.factory/settings.json` |
+| `qwen` | Reserved / Stub | Core implementation currently reports unsupported |
+| `iflow` | Reserved / Stub | Core implementation currently reports unsupported |
+
+## Common Examples
 
 ```bash
 ccr platform list
 ccr platform switch claude
-ccr add                     # add profile for current platform
-ccr list && ccr switch xxx  # list/switch within current platform
+ccr platform info droid
+ccr platform init gemini
 ```
+
+## Related Docs
+
+- [Platform Support](/en/reference/platforms/)
+- [Quick Start](/en/guide/quick-start)

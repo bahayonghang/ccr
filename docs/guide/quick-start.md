@@ -1,91 +1,93 @@
 # 快速开始
 
-面向当前 workspace 布局的安装、初始化与日常使用指引。
+本页只做第一次上手必需的事情：安装、初始化、创建首个 profile，并明确 `ccr ui` 与 `ccr web` 的定位。
 
 ## 环境要求
-- Rust 1.90+（含 Cargo）
-- 可选：Node.js 18+（仅当开发 CCR UI 前端时）
-- 建议：`just` 任务工具（`cargo install just`）
+- Rust 1.90+
+- 可选：Node.js 18+ 与 Bun 1.0+（仅在开发 `ccr-ui` 时需要）
+- 建议：`just`
 
 ## 安装
-```bash
-# 推荐：直接安装
-cargo install --git https://github.com/bahayonghang/ccr ccr
 
-# 或源码安装
+### 直接安装
+
+```bash
+cargo install --git https://github.com/bahayonghang/ccr ccr
+```
+
+### 源码安装
+
+```bash
 git clone https://github.com/bahayonghang/ccr.git
 cd ccr
 cargo install --path crates/ccr
 ```
 
-> 工作区说明：可安装的 CLI crate 已迁移到 `crates/ccr`；`docs/`、`scripts/`、`examples/` 保持根目录，`outputs/` 用于汇总产物（如存在）。旧路径映射见 [迁移指南](/reference/migration)。
+工作区说明：
+- 可安装 CLI crate 位于 `crates/ccr`
+- `crates/ccr-db` 与 `crates/ccr-types` 提供配套服务和共享类型
+- `docs/`、`scripts/`、`examples/` 保持仓库根目录
 
-构建特性：`--no-default-features`（仅 CLI）、`--features web`（API/同步/UI 入口）、`--features tui`（TUI）、`--all-features`。
+## 初始化
 
-## 初始化与模式
-默认使用 Unified Mode（多平台）：
+CCR 默认使用 Unified Mode：
+
 ```bash
 ccr init
 ```
-生成：
-```
+
+初始化后的核心结构：
+
+```text
 ~/.ccr/
-|-- config.toml          # 平台注册
-|-- platforms/
-|   |-- claude/  # profiles/history/backups
-|   |-- codex/
-|   |-- gemini/
-|   |-- qwen/
-|   `-- iflow/
-|-- history/             # 全局历史
-`-- backups/             # 全局备份
+├── config.toml
+├── platforms/
+│   ├── claude/
+│   ├── codex/
+│   ├── gemini/
+│   ├── qwen/
+│   ├── iflow/
+│   └── droid/
+├── history/
+└── backups/
 ```
 
-需继续使用单文件模式时，在运行前设置 `CCR_LEGACY_MODE=1`，使用 `~/.ccs_config.toml`。
+如果必须继续使用 Legacy 单文件模式：
 
-## 常用操作
 ```bash
-ccr platform list                    # 查看平台
-ccr add                              # 引导创建配置
-ccr list && ccr switch <name>        # 查看/切换；可直接 ccr <name>
-ccr enable <name> | ccr disable <name> [--force]
-ccr validate                         # 校验配置与 settings
-ccr history -l 50                    # 查看历史
-ccr optimize                         # 排序与清理
+export CCR_LEGACY_MODE=1
+ccr init
 ```
 
-导入/导出与备份：
+## 创建首个 profile
+
 ```bash
-ccr export -o configs.toml --no-secrets
-ccr import configs.toml --merge --backup
-ccr clean --days 30 --dry-run
+ccr platform list
+ccr add
+ccr list
+ccr switch <name>
 ```
 
-## WebDAV 多目录同步（web 特性）
+日常最小闭环：
+
 ```bash
-ccr sync config                           # 配置 WebDAV
-ccr sync folder add claude ~/.claude -r /ccr-sync/claude
-ccr sync folder enable claude
-ccr sync claude push                      # 单目录
-ccr sync all status
-ccr sync all pull --force                 # 批量
+ccr current
+ccr validate
+ccr history -l 20
 ```
 
-## 界面与服务
+## 浏览器与桌面入口
+
 ```bash
-ccr ui -p 3000 --backend-port 8081   # 完整 CCR UI（Vue 3 + Axum + Tauri）
-ccr tui                              # 需开启 tui 特性
-ccr web --host 0.0.0.0 -p 19527 --no-browser    # 轻量 API/兼容场景
+ccr ui -p 15173 --backend-port 38081
+ccr web --host 127.0.0.1 --port 19527 --no-browser
 ```
 
-## 日常调试
-- 日志级别：`export CCR_LOG_LEVEL=debug`（trace/debug/info/warn/error）
-- 日志文件：`~/.ccr/logs/ccr.YYYY-MM-DD.log`（按天轮转，保留14天）
-- 检查：`cargo fmt --all --check`，`cargo clippy --workspace --all-targets --all-features -- -D warnings`
-- 测试：`cargo test --workspace`
+- `ccr ui`：推荐浏览器入口，适合日常可视化管理
+- `ccr web`：Legacy 轻量 API，适合脚本、CI、兼容场景
 
-## 目录与配置提示
-- Unified Mode 配置在 `~/.ccr/`，平台 profiles/history/backups 分目录存放。
-- Legacy 模式为单文件 `~/.ccs_config.toml`，与 CCS 兼容。
-- CLI 与 CCR UI 共用同一配置与日志/备份体系。
-- 本地源码安装与定向调试时，优先使用 `crates/ccr`、`crates/ccr-db`、`crates/ccr-types` 三个 crate 路径。
+## 接下来读什么
+- 日常命令组织：[`CLI 工作流`](/guide/cli-workflows)
+- 图形界面运行方式：[`UI 概览`](/guide/ui-overview)
+- `ccr ui` vs `ccr web`：[`Web 指南`](/guide/web-guide)
+- 全量命令：[`命令参考`](/reference/commands/)

@@ -217,9 +217,9 @@ http://localhost:3000/checkin
 ### 🔗 相关资源
 
 - **GitHub Release**: [v3.14.0](https://github.com/bahayonghang/ccr/releases/tag/v3.14.0)
-- **项目文档**: 详见 [CLAUDE.md](../../CLAUDE.md)
-- **前端文档**: 详见 [ccr-ui/frontend/CLAUDE.md](../../ccr-ui/frontend/CLAUDE.md)
-- **后端文档**: 详见 [ccr-ui/backend/CLAUDE.md](../../ccr-ui/backend/CLAUDE.md)
+- **项目文档**: 详见 [架构设计](/reference/architecture)
+- **前端文档**: 详见 [ccr-ui/README.md](https://github.com/bahayonghang/ccr/blob/main/ccr-ui/README.md)
+- **后端文档**: 详见 [crates/ccr/README.md](https://github.com/bahayonghang/ccr/blob/main/crates/ccr/README.md)
 
 ### 📦 版本信息
 
@@ -922,4 +922,3 @@ ccr update            # 执行更新
 [0.2.2]: https://github.com/bahayonghang/ccr/compare/v0.2.0...v0.2.2
 [0.2.0]: https://github.com/bahayonghang/ccr/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/bahayonghang/ccr/releases/tag/v0.1.0
-

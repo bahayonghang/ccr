@@ -51,5 +51,5 @@ ccr update --check dev
 ## See Also
 
 - [Command Reference](./index)
-- [Quick Start](../quick-start)
+- [Quick Start](/en/guide/quick-start)
 - [Version Command](./version)

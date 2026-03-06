@@ -1,309 +1,116 @@
 # Web API Reference
 
-CCR includes a lightweight REST API server (launched via `ccr web`), listening on port **19527** by default.
+This page only covers the legacy HTTP routes exposed by `ccr web`. For the main graphical product surface, see [UI Overview](/en/guide/ui-overview).
 
-> ⚠️ `ccr web` is the legacy lightweight API, primarily for scripting/CI programmatic access. For browser-based management, use `ccr ui` instead.
-
-## Starting the Server
+## Start the Service
 
 ```bash
-# Default (0.0.0.0:19527)
 ccr web
-
-# Custom port
-ccr web --port 9000
-
-# Don't auto-open browser
-ccr web --no-browser
+ccr web --host 127.0.0.1 --port 19527 --no-browser
 ```
 
-## API Endpoints Overview
+Current defaults:
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | Home page (Web UI) |
-| GET | `/api/configs` | List all configurations |
-| POST | `/api/switch` | Switch configuration |
-| POST | `/api/config` | Add configuration |
-| PUT | `/api/config/:name` | Update configuration |
-| DELETE | `/api/config/:name` | Delete configuration |
-| PATCH | `/api/config/:name/enable` | Enable configuration |
-| PATCH | `/api/config/:name/disable` | Disable configuration |
-| GET | `/api/history` | Get operation history |
-| POST | `/api/validate` | Validate configurations |
-| POST | `/api/clean` | Clean backups |
-| GET | `/api/settings` | Get settings |
-| GET | `/api/settings/backups` | Get backup list |
-| POST | `/api/settings/restore` | Restore settings |
-| POST | `/api/export` | Export configurations |
-| POST | `/api/import` | Import configurations |
-| GET | `/api/sync/status` | Get sync status |
-| POST | `/api/sync/config` | Set sync configuration |
-| POST | `/api/sync/push` | Push to cloud |
-| POST | `/api/sync/pull` | Pull from cloud |
+- Host: `127.0.0.1`
+- Port: `19527`
 
-## Endpoint Details
+## Route Groups
 
-### Configuration Management
+### Static Surface
 
-#### GET /api/configs
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/` | Legacy HTML shell |
+| GET | `/style.css` | Static stylesheet |
+| GET | `/script.js` | Static script |
 
-List all configurations.
+### Configuration
+
+| Method | Path |
+|--------|------|
+| GET | `/api/configs` |
+| POST | `/api/switch` |
+| POST | `/api/config` |
+| GET | `/api/config/{name}` |
+| PUT | `/api/config/{name}` |
+| DELETE | `/api/config/{name}` |
+| PATCH | `/api/config/{name}/enable` |
+| PATCH | `/api/config/{name}/disable` |
+| POST | `/api/export` |
+| POST | `/api/import` |
+
+### Codex Profiles
+
+| Method | Path |
+|--------|------|
+| GET | `/api/codex/profiles` |
+| POST | `/api/codex/profiles` |
+| PUT | `/api/codex/profiles/{name}` |
+| DELETE | `/api/codex/profiles/{name}` |
+
+### System and Settings
+
+| Method | Path |
+|--------|------|
+| GET | `/api/history` |
+| POST | `/api/validate` |
+| POST | `/api/clean` |
+| GET | `/api/settings` |
+| GET | `/api/settings/backups` |
+| POST | `/api/settings/restore` |
+| GET | `/api/system` |
+| POST | `/api/reload` |
+
+### Stats and Cost
+
+| Method | Path |
+|--------|------|
+| GET | `/api/stats/provider-usage` |
+| GET | `/api/stats/cost/summary` |
+| GET | `/api/stats/cost/details` |
+| GET | `/api/stats/cost/export` |
+| GET | `/api/stats/cost/by-model` |
+| GET | `/api/budget/status` |
+| POST | `/api/budget/set` |
+| POST | `/api/budget/reset` |
+| GET | `/api/pricing/list` |
+| POST | `/api/pricing/set` |
+| DELETE | `/api/pricing/remove/{model}` |
+| POST | `/api/pricing/reset` |
+
+### Platforms and Sync
+
+| Method | Path |
+|--------|------|
+| GET | `/api/platforms` |
+| POST | `/api/platforms/switch` |
+| GET | `/api/sync/status` |
+| POST | `/api/sync/config` |
+| POST | `/api/sync/push` |
+| POST | `/api/sync/pull` |
+
+## Minimal Examples
+
+### List configurations
 
 ```bash
-curl http://localhost:19527/api/configs
+curl http://127.0.0.1:19527/api/configs
 ```
 
-**Response:**
-
-```json
-{
-  "configs": [
-    {
-      "name": "anthropic",
-      "description": "Anthropic Official API",
-      "base_url": "https://api.anthropic.com",
-      "auth_token": "sk-a...key",
-      "model": "claude-sonnet-4-5-20250929",
-      "small_fast_model": "claude-3-5-haiku-20241022",
-      "is_current": true,
-      "is_complete": true
-    }
-  ]
-}
-```
-
-#### POST /api/switch
-
-Switch the active configuration.
+### Switch platform
 
 ```bash
-curl -X POST http://localhost:19527/api/switch \
-  -H "Content-Type: application/json" \
-  -d '{"config_name": "anyrouter"}'
+curl -X POST http://127.0.0.1:19527/api/platforms/switch
 ```
 
-**Request body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `config_name` | string | Yes | Target configuration name |
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Configuration switched successfully"
-}
-```
-
-#### POST /api/config
-
-Add a new configuration.
+### Read system info
 
 ```bash
-curl -X POST http://localhost:19527/api/config \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "newconfig",
-    "description": "New Configuration",
-    "base_url": "https://api.example.com",
-    "auth_token": "your-token",
-    "model": "claude-sonnet-4-5-20250929"
-  }'
+curl http://127.0.0.1:19527/api/system
 ```
 
-#### PUT /api/config/:name
+## Notes
 
-Update an existing configuration.
-
-```bash
-curl -X PUT http://localhost:19527/api/config/anthropic \
-  -H "Content-Type: application/json" \
-  -d '{
-    "description": "Updated Description",
-    "auth_token": "new-token"
-  }'
-```
-
-#### DELETE /api/config/:name
-
-Delete a configuration.
-
-```bash
-curl -X DELETE http://localhost:19527/api/config/oldconfig
-```
-
-#### PATCH /api/config/:name/enable
-
-Enable a configuration.
-
-```bash
-curl -X PATCH http://localhost:19527/api/config/myconfig/enable
-```
-
-#### PATCH /api/config/:name/disable
-
-Disable a configuration.
-
-```bash
-curl -X PATCH http://localhost:19527/api/config/myconfig/disable
-```
-
-### History & Validation
-
-#### GET /api/history
-
-Get operation history.
-
-```bash
-curl http://localhost:19527/api/history?limit=20
-```
-
-**Query parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `limit` | number | 20 | Number of records to return |
-| `type` | string | - | Filter by operation type |
-
-#### POST /api/validate
-
-Validate all configurations.
-
-```bash
-curl -X POST http://localhost:19527/api/validate
-```
-
-**Response:**
-
-```json
-{
-  "valid": true,
-  "errors": [],
-  "warnings": []
-}
-```
-
-#### POST /api/clean
-
-Clean old backup files.
-
-```bash
-curl -X POST http://localhost:19527/api/clean \
-  -H "Content-Type: application/json" \
-  -d '{"days": 7, "dry_run": false}'
-```
-
-**Request body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `days` | number | Yes | Days to retain |
-| `dry_run` | boolean | No | Preview only, don't delete |
-
-### Settings Management
-
-#### GET /api/settings
-
-Get current settings.
-
-```bash
-curl http://localhost:19527/api/settings
-```
-
-#### GET /api/settings/backups
-
-Get settings backup list.
-
-```bash
-curl http://localhost:19527/api/settings/backups
-```
-
-#### POST /api/settings/restore
-
-Restore settings from a backup.
-
-```bash
-curl -X POST http://localhost:19527/api/settings/restore \
-  -H "Content-Type: application/json" \
-  -d '{"backup_name": "settings_20250101_120000.json"}'
-```
-
-### Import & Export
-
-#### POST /api/export
-
-Export configurations.
-
-```bash
-curl -X POST http://localhost:19527/api/export
-```
-
-#### POST /api/import
-
-Import configurations.
-
-```bash
-curl -X POST http://localhost:19527/api/import \
-  -H "Content-Type: application/json" \
-  -d '{"merge": true, "backup": true}'
-```
-
-### Cloud Sync
-
-#### GET /api/sync/status
-
-Get WebDAV sync status.
-
-```bash
-curl http://localhost:19527/api/sync/status
-```
-
-#### POST /api/sync/config
-
-Set WebDAV sync configuration.
-
-```bash
-curl -X POST http://localhost:19527/api/sync/config \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://dav.example.com/dav/",
-    "username": "user",
-    "password": "pass",
-    "remote_path": "/ccr/"
-  }'
-```
-
-#### POST /api/sync/push
-
-Push local configurations to cloud.
-
-```bash
-curl -X POST http://localhost:19527/api/sync/push
-```
-
-#### POST /api/sync/pull
-
-Pull configurations from cloud.
-
-```bash
-curl -X POST http://localhost:19527/api/sync/pull
-```
-
-## Security Notes
-
-::: warning Security
-The Web API listens on `0.0.0.0:19527` by default. For production use:
-- Use `--host 127.0.0.1` to restrict to local access
-- Use SSH port forwarding or VPN for remote access
-- Use a reverse proxy (nginx/caddy) with HTTPS
-- Restrict access IPs via firewall
-:::
-
-## Related Documentation
-
-- [web command](/en/reference/commands/web) - Web server launch options
-- [ui command](/en/reference/commands/ui) - Recommended full-stack web interface
-- [Architecture](/en/reference/architecture) - CCR layered architecture
+- This page intentionally does not document nonexistent `/api/provider-health/*` routes.
+- The route source of truth is `crates/ccr/src/web/server.rs`.
+- If you need page-level UX guidance, go back to [UI Overview](/en/guide/ui-overview); if you need startup semantics, see [`ccr web`](/en/reference/commands/web).

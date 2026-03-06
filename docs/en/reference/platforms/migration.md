@@ -1,7 +1,5 @@
 # Platform Migration Guide
 
-> **Note:** This documentation is being translated. Please refer to the [Chinese version](../platforms/migration) for complete information.
-
 ## Overview
 
 Guide for migrating configurations between platforms and modes.
@@ -30,9 +28,9 @@ ccr import claude-profiles.toml --merge
 ## See Also
 
 - [Platform Overview](./index)
-- [Configuration Guide](../configuration)
-- [Migration Guide](../migration)
+- [Configuration Guide](/en/guide/configuration)
+- [Migration Guide](/en/reference/migration)
 
 ---
 
-**Translation in progress.** See [Chinese version](../platforms/migration) for details.
+Continue with [Platform Support](/en/reference/platforms/) for the current support matrix.

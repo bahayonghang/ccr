@@ -1,96 +1,112 @@
-# 配置指南
+# 配置模型
 
-基于 CCR v3.20.11 的配置模型、存储结构与平台支持。
+本页说明 CCR 当前的配置模式、目录结构、平台状态与共享资源位置。
 
-## 模式与目录
+## 模式总览
 
-### Unified Mode（默认，多平台）
-```
+| 模式 | 适用场景 | 主目录 | 说明 |
+|------|----------|--------|------|
+| Unified Mode | 多平台、推荐默认模式 | `~/.ccr/` | 平台注册、profiles、历史、备份、日志全部按平台组织。 |
+| Legacy Mode | 兼容旧 CCS / 单平台 Claude 工作流 | `~/.ccs_config.toml` | 保留单文件配置路径。 |
+
+模式判定顺序：
+
+1. 设置了 `CCR_ROOT`
+2. 存在 `~/.ccr/config.toml`
+3. 否则回退到 Legacy Mode
+
+## Unified Mode 目录结构
+
+```text
 ~/.ccr/
-|-- config.toml          # 平台注册
-|-- platforms/
-|   |-- claude/          # profiles.toml + history/ + backups/
-|   |-- codex/
-|   |-- gemini/
-|   |-- qwen/
-|   `-- iflow/
-|-- history/             # 全局历史
-|-- backups/             # 全局备份
-`-- logs/                # 日志文件（按天轮转，保留14天）
+├── config.toml
+├── platforms/
+│   ├── claude/
+│   ├── codex/
+│   ├── gemini/
+│   ├── droid/
+│   ├── qwen/
+│   └── iflow/
+├── history/
+├── backups/
+├── logs/
+└── ccr-ui/
 ```
-特点：多平台共存、独立历史与备份、与 CCR UI/CLI 同步使用。
 
-### Legacy Mode（兼容单平台）
-```
-~/.ccs_config.toml       # 单文件配置
-~/.claude/settings.json  # Claude settings
-```
-在命令前设置环境变量开启：`CCR_LEGACY_MODE=1`，保持与 CCS 兼容。
+关键说明：
 
-### 模式判定
-1. 若设置 `CCR_ROOT` 或存在 `~/.ccr/config.toml` → Unified Mode
-2. 否则使用 Legacy `~/.ccs_config.toml`
+- `config.toml`：平台注册表与当前平台指针。
+- `platforms/<name>/profiles.toml`：该平台的 profile 集合。
+- `history/` 与 `backups/`：全局记录与回滚资源。
+- `ccr-ui/`：`ccr ui` 下载或缓存的前端项目目录。
 
-### 迁移
+## 平台状态
+
+| 平台 | 状态 | 配置文件 | 设置目标 |
+|------|------|----------|----------|
+| Claude | 已实现 | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` |
+| Codex | 已实现 | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` |
+| Gemini | 已实现 | `~/.ccr/platforms/gemini/profiles.toml` | `~/.ccr/platforms/gemini/settings.json` |
+| Droid | 已实现 | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` |
+| Qwen | 预留 / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` |
+| iFlow | 预留 / Stub | `~/.ccr/platforms/iflow/profiles.toml` | `~/.ccr/platforms/iflow/settings.json` |
+
+> `Qwen` 和 `iFlow` 在 UI 中可能出现入口，但当前核心平台实现仍返回未支持错误，文档统一视为“预留 / Stub”。
+
+## 常见生命周期
+
+### 初始化与切换
+
 ```bash
-ccr migrate --check
-ccr migrate               # 迁移到 Unified
-ccr migrate --platform claude
-```
-
-## 平台支持与命令
-
-支持的平台：Claude、Codex (GitHub Copilot)、Gemini CLI、Qwen、iFlow。
-
-常用命令：
-```bash
+ccr init
 ccr platform list
-ccr platform switch codex
-ccr platform current --json
-ccr platform info claude
-ccr platform init gemini
+ccr platform switch claude
 ```
 
-## 配置生命周期
+### Profile 管理
 
-创建与切换：
 ```bash
-ccr add                         # 向导式创建
+ccr add
 ccr list
-ccr switch <name>               # 或直接 ccr <name>
-ccr enable <name> | ccr disable <name> [--force]
+ccr switch <name>
+ccr enable <name>
+ccr disable <name> --force
 ```
 
-校验与优化：
+### 校验、历史与清理
+
 ```bash
 ccr validate
+ccr history --limit 20
 ccr optimize
-```
-
-导入/导出与备份：
-```bash
-ccr export -o configs.toml --no-secrets
-ccr import configs.toml --merge --backup
 ccr clean --days 30 --dry-run
 ```
 
-历史与审计：
+### 导入、导出与恢复
+
 ```bash
-ccr history -l 50
+ccr export -o configs.toml --no-secrets
+ccr import configs.toml --merge --backup
 ```
 
-## 配置文件片段（示例）
-Unified Mode `~/.ccr/platforms/claude/profiles.toml` 中的 profile 结构示例：
-```toml
-[profiles.default]
-name = "anthropic"
-api_key = "sk-***"
-base_url = "https://api.anthropic.com"
-model = "claude-3-5-sonnet"
-```
-导出文件可选择剥离敏感字段 (`--no-secrets`)，导入支持 Merge/Replace 并自动备份。
+## 临时覆盖与即时写入
 
-## CCR UI 协同
-- CLI 与 CCR UI 共享同一配置/历史/备份目录。
-- `ccr ui` 会自动检测本地源码或 `~/.ccr/ccr-ui`，不足时从 GitHub 下载。
-- WebDAV 同步、导入导出、平台切换等操作可在 UI 中可视化完成。
+CCR 区分三类写入：
+
+- `ccr switch`：从 profile 读取并写入目标 settings。
+- `ccr temp`：不依赖现有 profile，交互式写入当前 settings。
+- `ccr temp-token`：对当前 settings 做临时 token / base_url / model 覆盖。
+
+这些命令都不会改变“命令定义层”的默认值，但会影响当前活动 settings 文件。
+
+## 与 CCR UI 的关系
+
+- CLI 与 `ccr-ui` 共享同一套 profiles、历史、备份和日志目录。
+- `ccr ui` 负责把浏览器入口连到这套共享状态。
+- UI 页面多于 CLI 命令面，但其事实源仍应回到同一配置模型。
+
+## 相关文档
+
+- [CLI 工作流](/guide/cli-workflows)
+- [UI 概览](/guide/ui-overview)
+- [平台支持](/reference/platforms/)

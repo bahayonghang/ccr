@@ -1,7 +1,5 @@
 # Gemini CLI Platform
 
-> **Note:** This documentation is being translated. Please refer to the [Chinese version](../platforms/gemini) for complete information.
-
 ## Overview
 
 Gemini CLI platform support for Google's Gemini AI configuration management.
@@ -28,8 +26,8 @@ provider = "google"
 
 - [Platform Overview](./index)
 - [Claude Code Platform](./claude)
-- [Multi-Platform Setup](../examples/multi-platform-setup)
+- [Multi-Platform Setup](/en/examples/multi-platform-setup)
 
 ---
 
-**Translation in progress.** See [Chinese version](../platforms/gemini) for details.
+For platform-wide status and current support levels, see [Platform Support](/en/reference/platforms/).

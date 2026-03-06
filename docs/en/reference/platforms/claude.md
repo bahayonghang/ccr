@@ -343,6 +343,6 @@ ccr switch production
 ## See Also
 
 - [Platform Overview](./index) - All supported platforms
-- [Quick Start](../quick-start) - Getting started guide
+- [Quick Start](/en/guide/quick-start) - Getting started guide
 - [Command Reference](../commands/) - All commands
-- [Configuration Guide](../configuration) - Advanced configuration
+- [Configuration Guide](/en/guide/configuration) - Advanced configuration

@@ -1,32 +1,55 @@
-# `ccr web` 轻量 Web API 指南
+# Web 指南
 
-> 提示：浏览器场景推荐使用 `ccr ui`（Vue 3 + Axum + Tauri，全功能界面）。`ccr web` 保留为兼容/自动化用途的轻量 API 服务器，不包含现代 UI。
+CCR 有两个与浏览器相关的入口，但它们不是同一等级：
 
-## 启动
+| 命令 | 角色 | 推荐程度 |
+|------|------|----------|
+| `ccr ui` | 完整图形界面 | 默认推荐 |
+| `ccr web` | Legacy 轻量 API / 兼容界面 | 仅在脚本、CI、兼容场景使用 |
+
+## 首选：`ccr ui`
+
 ```bash
-# 默认地址 0.0.0.0 + 默认端口 19527，自动打开浏览器
-ccr web
-# 仅本机访问
-ccr web --host 127.0.0.1
-# 自定义端口
-ccr web --port 3000
-# 不打开浏览器（CI/远程）
-ccr web --no-browser
+ccr ui -p 15173 --backend-port 38081
 ```
-若端口被占用会自动向上递增，日志会提示实际端口。
 
-## 提供的 API（简要）
-- 配置：`GET /api/configs`，`POST /api/switch`，`POST /api/config`，`DELETE /api/config/{name}`，`POST /api/validate`
-- 历史与备份：`GET /api/history`，`POST /api/clean`，`GET /api/settings/backups`，`POST /api/settings/restore`
-- 导入导出：`POST /api/export`，`POST /api/import`
-- 系统：`GET /api/system`
+适合：
+- 日常浏览器管理
+- 平台模块导航
+- usage / monitoring / skills / provider health 一类可视化能力
+- 需要完整模块地图时
 
-## 适用场景
-- 脚本/CI：调用 REST 接口完成切换、校验、导出导入。
-- 兼容旧流程：需要与早期 Web 接口对接的脚本。
-- 避免 UI 依赖：在无桌面或无前端环境下用浏览器/HTTP 调试。
+更多见 [`UI 概览`](/guide/ui-overview)。
 
-## 安全与限制
-- 服务默认绑定 0.0.0.0（内网可访问）；如需仅本机访问请使用 `--host 127.0.0.1`。
-- API 参数严格传递，不做 shell 拼接；仍建议在可信环境运行。
-- 如需实时输出、可视化同步与平台信息，请使用 `ccr ui`。
+## 次选：`ccr web`
+
+```bash
+ccr web --host 127.0.0.1 --port 19527 --no-browser
+```
+
+适合：
+- 脚本化调用 REST API
+- CI / 自动化
+- 兼容旧流程
+
+默认行为：
+- 默认 host：`127.0.0.1`
+- 默认 port：`19527`
+- 端口占用时会尝试自动回退
+
+## 如何选择
+
+选择 `ccr ui`：
+- 你想在浏览器中把 CCR 当作主界面使用
+- 你需要完整模块导航和可视化页面
+
+选择 `ccr web`：
+- 你只需要 HTTP API
+- 你在 CI、shell、远程机器上运行
+- 你在兼容已有脚本
+
+## 相关页面
+- [`UI 概览`](/guide/ui-overview)
+- [`UI 模块地图`](/guide/ui-modules)
+- [`Web API 参考`](/reference/api)
+- [`web 命令`](/reference/commands/web)

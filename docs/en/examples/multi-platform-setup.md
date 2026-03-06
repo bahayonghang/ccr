@@ -1,6 +1,6 @@
 # Multi-Platform Setup Guide
 
-> **Note:** This documentation is being translated. Please refer to the [Chinese version](../examples/multi-platform-setup) for complete information.
+> This page focuses on the CLI setup path for running multiple platforms under one CCR registry.
 
 ## Overview
 
@@ -27,10 +27,10 @@ ccr add  # Add Gemini profile
 
 ## See Also
 
-- [Platform Overview](../platforms/)
+- [Platform Overview](/en/reference/platforms/)
 - [Examples Overview](./index)
-- [Quick Start](../quick-start)
+- [Quick Start](/en/guide/quick-start)
 
 ---
 
-**Translation in progress.** See [Chinese version](../examples/multi-platform-setup) for complete documentation.
+For UI-specific module coverage, continue with [UI Overview](/en/guide/ui-overview).

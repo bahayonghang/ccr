@@ -6,12 +6,12 @@
 
 | 文件 | 用途 |
 |------|------|
-| [`config.toml`](./config.toml) | Unified 平台注册配置 |
-| [`claude-profiles.toml`](./claude-profiles.toml) | Claude profiles 示例 |
-| [`codex-profiles.toml`](./codex-profiles.toml) | Codex profiles（官方 + 第三方） |
-| [`codex-cli-config.toml`](./codex-cli-config.toml) | `~/.codex/config.toml` 示例 |
-| [`codex-auth.example.json`](./codex-auth.example.json) | `~/.codex/auth.json` 示例 |
-| [`gemini-profiles.toml`](./gemini-profiles.toml) | Gemini profiles 示例 |
+| [`config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/config.toml) | Unified 平台注册配置 |
+| [`claude-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/claude-profiles.toml) | Claude profiles 示例 |
+| [`codex-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-profiles.toml) | Codex profiles（官方 + 第三方） |
+| [`codex-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-cli-config.toml) | `~/.codex/config.toml` 示例 |
+| [`codex-auth.example.json`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-auth.example.json) | `~/.codex/auth.json` 示例 |
+| [`gemini-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/gemini-profiles.toml) | Gemini profiles 示例 |
 | [`troubleshooting.md`](./troubleshooting.md) | 常见故障排查 |
 
 ## Codex 配置速查
