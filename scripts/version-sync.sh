@@ -10,7 +10,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 
-ROOT_CARGO="$ROOT_DIR/crates/ccr/Cargo.toml"
+ROOT_CARGO="$ROOT_DIR/Cargo.toml"
 CCR_TYPES_CARGO="$ROOT_DIR/crates/ccr-types/Cargo.toml"
 FRONTEND_PKG="$ROOT_DIR/ccr-ui/package.json"
 TAURI_CARGO="$ROOT_DIR/ccr-ui/src-tauri/Cargo.toml"
@@ -58,11 +58,11 @@ extract_root_version() {
   content="$(cat "$ROOT_CARGO")" || die "无法读取 $ROOT_CARGO"
   # 找到 [package] 区块并在其中匹配 version = "..."
   local pkg_block
-  pkg_block="$(awk 'BEGIN{p=0} /^\[package\]/{p=1;print;next} /^\[/{if(p){exit};} p{print}' "$ROOT_CARGO")"
-  [[ -n "$pkg_block" ]] || die "根 Cargo.toml 中缺少 [package] 区块"
+  pkg_block="$(awk 'BEGIN{p=0} /^\[(workspace\.)?package\]/{p=1;print;next} /^\[/{if(p){exit};} p{print}' "$ROOT_CARGO")"
+  [[ -n "$pkg_block" ]] || die "根 Cargo.toml 中缺少 [workspace.package] 或 [package] 区块"
   local ver
   ver="$(printf "%s" "$pkg_block" | sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' | head -n1)"
-  [[ -n "$ver" ]] || die "根 Cargo.toml 的 [package] 区块中没有 version 字段"
+  [[ -n "$ver" ]] || die "根 Cargo.toml 的 [workspace.package] 区块中没有 version 字段"
   # 去除可能的 CR/LF 和首尾空白
   ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
   printf "%s" "$ver"
@@ -89,11 +89,16 @@ extract_ccr_types_version() {
   local pkg_block
   pkg_block="$(awk 'BEGIN{p=0} /^\[package\]/{p=1;print;next} /^\[/{if(p){exit};} p{print}' "$CCR_TYPES_CARGO")"
   [[ -n "$pkg_block" ]] || die "ccr-types Cargo.toml 中缺少 [package] 区块"
-  local ver
-  ver="$(printf "%s" "$pkg_block" | sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' | head -n1)"
-  [[ -n "$ver" ]] || die "ccr-types Cargo.toml 的 [package] 区块中没有 version 字段"
-  ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-  printf "%s" "$ver"
+  
+  if echo "$pkg_block" | grep -q "version.workspace[[:space:]]*=[[:space:]]*true"; then
+    printf "%s" "$ROOT_VER"
+  else
+    local ver
+    ver="$(printf "%s" "$pkg_block" | sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' | head -n1)"
+    [[ -n "$ver" ]] || die "ccr-types Cargo.toml 的 [package] 区块中没有 version 字段"
+    ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    printf "%s" "$ver"
+  fi
 }
 
 CCR_TYPES_VER="$(extract_ccr_types_version)"
@@ -120,11 +125,16 @@ extract_tauri_cargo_version() {
   local pkg_block
   pkg_block="$(awk 'BEGIN{p=0} /^\[package\]/{p=1;print;next} /^\[/{if(p){exit};} p{print}' "$TAURI_CARGO")"
   [[ -n "$pkg_block" ]] || die "Tauri Cargo.toml 中缺少 [package] 区块"
-  local ver
-  ver="$(printf "%s" "$pkg_block" | sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' | head -n1)"
-  [[ -n "$ver" ]] || die "Tauri Cargo.toml 的 [package] 区块中没有 version 字段"
-  ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-  printf "%s" "$ver"
+  
+  if echo "$pkg_block" | grep -q "version.workspace[[:space:]]*=[[:space:]]*true"; then
+    printf "%s" "$ROOT_VER"
+  else
+    local ver
+    ver="$(printf "%s" "$pkg_block" | sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' | head -n1)"
+    [[ -n "$ver" ]] || die "Tauri Cargo.toml 的 [package] 区块中没有 version 字段"
+    ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    printf "%s" "$ver"
+  fi
 }
 
 TAURI_CARGO_VER="$(extract_tauri_cargo_version)"
@@ -186,76 +196,6 @@ fi
 
 echo "♻️  开始同步版本到 UI 文件..."
 
-# 更新 ccr-types Cargo.toml 的 [package] 区块 version
-update_ccr_types_version() {
-  local tmp
-  tmp="$(mktemp)"
-  awk -v NEWVER="$ROOT_VER" '
-    BEGIN{p=0;done=0}
-    /^\[package\]/{p=1;print;next}
-    /^\[/{if(p){p=0};}
-    {
-      if(p && !done && $0 ~ /^[[:space:]]*version[[:space:]]*=[[:space:]]*"[^"]*"/) {
-        sub(/"[^"]*"/, "\"" NEWVER "\"");
-        done=1;
-      }
-      print;
-    }
-  ' "$CCR_TYPES_CARGO" > "$tmp" || die "更新 ccr-types 版本失败"
-  mv "$tmp" "$CCR_TYPES_CARGO"
-}
-
-# 更新前端 package.json 的 version 字段
-update_frontend_version() {
-  if command -v jq >/dev/null 2>&1; then
-    tmp="$(mktemp)"
-    jq --arg v "$ROOT_VER" '.version = $v' "$FRONTEND_PKG" > "$tmp" || die "更新前端版本失败(jq)"
-    mv "$tmp" "$FRONTEND_PKG"
-  else
-    # 无 jq 时用 sed 简单替换
-    sed -i.bak -E "s/(\"version\"[[:space:]]*:[[:space:]]*)\"[^\"]*\"/\1\"$ROOT_VER\"/" "$FRONTEND_PKG" || die "更新前端版本失败(sed)"
-    rm -f "$FRONTEND_PKG.bak"
-  fi
-}
-
-# 更新 Tauri Cargo.toml 的 [package] 区块 version
-update_tauri_cargo_version() {
-  local tmp
-  tmp="$(mktemp)"
-  # 在 [package] 区块内替换第一条 version = "..."
-  awk -v NEWVER="$ROOT_VER" '
-    BEGIN{p=0;done=0}
-    /^\[package\]/{p=1;print;next}
-    /^\[/{if(p){p=0};}
-    {
-      if(p && !done && $0 ~ /^[[:space:]]*version[[:space:]]*=[[:space:]]*"[^"]*"/) {
-        sub(/"[^"]*"/, "\"" NEWVER "\"");
-        done=1;
-      }
-      print;
-    }
-  ' "$TAURI_CARGO" > "$tmp" || die "更新 Tauri Cargo.toml 版本失败"
-  mv "$tmp" "$TAURI_CARGO"
-}
-
-# 更新 Tauri tauri.conf.json 的 version 字段
-update_tauri_conf_version() {
-  if command -v jq >/dev/null 2>&1; then
-    tmp="$(mktemp)"
-    jq --arg v "$ROOT_VER" '.version = $v' "$TAURI_CONF" > "$tmp" || die "更新 Tauri tauri.conf.json 版本失败(jq)"
-    mv "$tmp" "$TAURI_CONF"
-  else
-    # 无 jq 时用 sed 简单替换
-    sed -i.bak -E "s/(\"version\"[[:space:]]*:[[:space:]]*)\"[^\"]*\"/\1\"$ROOT_VER\"/" "$TAURI_CONF" || die "更新 Tauri tauri.conf.json 版本失败(sed)"
-    rm -f "$TAURI_CONF.bak"
-  fi
-}
-
-if [[ "$CCR_TYPES_VER" != "$ROOT_VER" ]]; then
-  echo "  - ccr-types: $CCR_TYPES_VER -> $ROOT_VER"
-  update_ccr_types_version
-fi
-
 if [[ "$FRONTEND_VER" != "$ROOT_VER" ]]; then
   echo "  - 前端: $FRONTEND_VER -> $ROOT_VER"
   update_frontend_version
@@ -263,7 +203,12 @@ fi
 
 if [[ "$TAURI_CARGO_VER" != "$ROOT_VER" ]]; then
   echo "  - Tauri Cargo.toml: $TAURI_CARGO_VER -> $ROOT_VER"
-  update_tauri_cargo_version
+  tmp="$(mktemp)"
+  sed -E "s/^([[:space:]]*version[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$ROOT_VER\"/" "$TAURI_CARGO" > "$tmp" || {
+    rm -f "$tmp"
+    die "更新 Tauri Cargo.toml 版本失败"
+  }
+  mv "$tmp" "$TAURI_CARGO"
 fi
 
 if [[ "$TAURI_CONF_VER" != "$ROOT_VER" ]]; then

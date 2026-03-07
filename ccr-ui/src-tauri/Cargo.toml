@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "5.0.0"
+version = "5.0.1"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2024"
@@ -12,13 +12,13 @@ rust-version = "1.88"
 tauri-build = { version = "2.5.2", features = [] }
 
 [dependencies]
-# 🎯 CCR 核心库 - 直接使用服务层
+# CCR ??? - ???????
 ccr = { path = "../../crates/ccr", default-features = false }
 
-# 📦 CCR 类型定义 - Claude Settings 子类型 (Agent, Plugin, Hook 等)
+# 馃摝 CCR 绫诲瀷瀹氫箟 - Claude Settings 瀛愮被鍨?(Agent, Plugin, Hook 绛?
 ccr-types = { path = "../../crates/ccr-types" }
 
-# 📦 CCR 数据库层 - SQLite 存储、CheckIn 服务
+# 馃摝 CCR 鏁版嵁搴撳眰 - SQLite 瀛樺偍銆丆heckIn 鏈嶅姟
 ccr-db = { path = "../../crates/ccr-db" }
 
 # Tauri framework
@@ -91,7 +91,7 @@ fs4 = "0.13"
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
 
-# SSH remote support (Phase C2 — 暂未启用，russh 0.57 的 rand_core 预发布版与 ccr-db 冲突)
+# SSH remote support (Phase C2 鈥?鏆傛湭鍚敤锛宺ussh 0.57 鐨?rand_core 棰勫彂甯冪増涓?ccr-db 鍐茬獊)
 # russh = "0.57.1"
 # russh-sftp = "2.1.1"
 
@@ -99,3 +99,8 @@ winreg = "0.55"
 default = []
 # Custom protocol for production builds
 custom-protocol = ["tauri/custom-protocol"]
+
+
+
+
+

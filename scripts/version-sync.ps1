@@ -1,4 +1,4 @@
-# 版本同步脚本（PowerShell 版本）
+﻿# 版本同步脚本（PowerShell 版本）
 # 以 crates/ccr/Cargo.toml 为主，同步到：
 # - crates/ccr-types/Cargo.toml
 # - ccr-ui/package.json
@@ -22,7 +22,7 @@ $ErrorActionPreference = "Stop"
 $ROOT_DIR = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 
 # 配置文件路径
-$ROOT_CARGO = Join-Path $ROOT_DIR "crates\ccr\Cargo.toml"
+$ROOT_CARGO = Join-Path $ROOT_DIR "Cargo.toml"
 $CCR_TYPES_CARGO = Join-Path $ROOT_DIR "crates\ccr-types\Cargo.toml"
 $FRONTEND_PKG = Join-Path $ROOT_DIR "ccr-ui\package.json"
 $TAURI_CARGO = Join-Path $ROOT_DIR "ccr-ui\src-tauri\Cargo.toml"
@@ -49,16 +49,30 @@ Test-RequiredFile $LEGACY_MAIN_LAYOUT
 
 # 从 Cargo.toml 提取 [package] 区块中的 version
 function Get-CargoVersion {
-    param([string]$Path)
-    
+    param(
+        [string]$Path,
+        [string]$WorkspaceVersion = ""
+    )
+
     $content = Get-Content $Path -Raw
-    $packageBlock = $content -match '(?s)\[package\](.*?)(\[|$)' | Out-Null
+    $packageBlock = $content -match '(?ms)^\[(?:workspace\.)?package\]\s*(.*?)(?=^\[|\z)' | Out-Null
     if ($matches) {
         $block = $matches[1]
-        if ($block -match 'version\s*=\s*"([^"]+)"') {
+
+        if ($block -match '(?m)^\s*version\.workspace\s*=\s*true\s*$') {
+            if (-not [string]::IsNullOrWhiteSpace($WorkspaceVersion)) {
+                return $WorkspaceVersion.Trim()
+            }
+
+            Write-Error "❌ $Path 使用 version.workspace = true，但未提供工作区版本"
+            exit 1
+        }
+
+        if ($block -match '(?m)^\s*version\s*=\s*"([^"]+)"\s*$') {
             return $matches[1].Trim()
         }
     }
+
     Write-Error "❌ 无法从 $Path 提取版本号"
     exit 1
 }
@@ -131,9 +145,9 @@ function Set-UiVersion {
 
 # 提取版本号
 $ROOT_VER = Get-CargoVersion $ROOT_CARGO
-$CCR_TYPES_VER = Get-CargoVersion $CCR_TYPES_CARGO
+$CCR_TYPES_VER = Get-CargoVersion $CCR_TYPES_CARGO $ROOT_VER
 $FRONTEND_VER = Get-JsonVersion $FRONTEND_PKG
-$TAURI_CARGO_VER = Get-CargoVersion $TAURI_CARGO
+$TAURI_CARGO_VER = Get-CargoVersion $TAURI_CARGO $ROOT_VER
 $TAURI_CONF_VER = Get-JsonVersion $TAURI_CONF
 $UI_COMPONENT_VER = Get-UiVersion $COMPONENT_MAIN_LAYOUT
 $UI_LEGACY_VER = Get-UiVersion $LEGACY_MAIN_LAYOUT
