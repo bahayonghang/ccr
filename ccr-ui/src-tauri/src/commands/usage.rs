@@ -1,4 +1,4 @@
-//! Usage V2 命令 — SQLite 用量统计查询与导入。
+//! Usage V2 閸涙垝鎶?閳?SQLite 閻劑鍣虹紒鐔活吀閺屻儴顕楁稉搴☆嚤閸忋儯鈧?
 
 use std::time::Instant;
 
@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::State;
 
+use crate::events::{self, UsageImportPayload};
+use crate::monitoring::{emit_and_record_monitoring_event, should_persist, usage_import_entry};
 use crate::state::AppState;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -56,7 +58,7 @@ fn record_db_duration(state: &AppState, db_ms: f64) {
     state.record_db_query_duration_ms(db_ms);
 }
 
-/// 获取使用量汇总
+/// 閼惧嘲褰囨担璺ㄦ暏闁插繑鐪归幀?
 #[tauri::command]
 pub async fn get_usage_summary_v2(
     state: State<'_, AppState>,
@@ -87,7 +89,7 @@ pub async fn get_usage_summary_v2(
     serde_json::to_value(summary).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 获取每日趋势
+/// 閼惧嘲褰囧В蹇旀）鐡掑濞?
 #[tauri::command]
 pub async fn get_usage_trends_v2(
     state: State<'_, AppState>,
@@ -118,7 +120,7 @@ pub async fn get_usage_trends_v2(
     serde_json::to_value(trends).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 获取模型统计
+/// 閼惧嘲褰囧Ο鈥崇€风紒鐔活吀
 #[tauri::command]
 pub async fn get_usage_by_model_v2(
     state: State<'_, AppState>,
@@ -149,7 +151,7 @@ pub async fn get_usage_by_model_v2(
     serde_json::to_value(stats).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 获取项目统计
+/// 閼惧嘲褰囨い鍦窗缂佺喕顓?
 #[tauri::command]
 pub async fn get_usage_by_project_v2(
     state: State<'_, AppState>,
@@ -180,7 +182,7 @@ pub async fn get_usage_by_project_v2(
     serde_json::to_value(stats).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 获取分页日志（统一查询契约）
+/// 閼惧嘲褰囬崚鍡涖€夐弮銉ョ箶閿涘牏绮烘稉鈧弻銉嚄婵傛垹瀹抽敍?
 #[tauri::command]
 pub async fn get_usage_logs_v2(
     state: State<'_, AppState>,
@@ -258,7 +260,7 @@ pub async fn get_usage_logs_v2(
     serde_json::to_value(normalized).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 获取聚合仪表板（汇总 + 趋势 + 模型 + 项目）
+/// 閼惧嘲褰囬懕姘値娴狀亣銆冮弶鍖＄礄濮瑰洦鈧?+ 鐡掑濞?+ 濡€崇€?+ 妞ゅ湱娲伴敍?
 #[tauri::command]
 pub async fn get_usage_dashboard_v2(
     state: State<'_, AppState>,
@@ -322,28 +324,46 @@ pub async fn get_usage_dashboard_v2(
     Ok(dashboard)
 }
 
-/// 从 JSONL 文件导入指定平台的用量数据
+/// 娴?JSONL 閺傚洣娆㈢€电厧鍙嗛幐鍥х暰楠炲啿褰撮惃鍕暏闁插繑鏆熼幑?
 #[tauri::command]
 pub async fn import_usage_v2(
+    app_handle: tauri::AppHandle,
     _state: State<'_, AppState>,
     platform: String,
 ) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || {
         let service = ccr_db::services::usage_import_service::UsageImportService::new(
             ccr_db::services::usage_import_service::ImportConfig::default(),
         );
-        let result = service
+        service
             .import_platform(&platform)
-            .map_err(|e| format!("Import error: {e}"))?;
-        serde_json::to_value(result).map_err(|e| format!("Serialize error: {e}"))
+            .map_err(|e| format!("Import error: {e}"))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))?
-}
+    .map_err(|e| format!("Task join error: {e}"))??;
 
-/// 导入所有平台（claude / codex / gemini）的用量数据
+    let payload = UsageImportPayload {
+        imported_count: result.records_imported,
+        platform: result.platform.clone(),
+    };
+    let entry = usage_import_entry(&payload);
+    let persist = should_persist(entry.level, &entry.event_type);
+    emit_and_record_monitoring_event(
+        &app_handle,
+        events::channels::USAGE_IMPORT,
+        &payload,
+        entry,
+        persist,
+    )
+    .await;
+
+    serde_json::to_value(result).map_err(|e| format!("Serialize error: {e}"))
+}
 #[tauri::command]
-pub async fn import_all_usage_v2(_state: State<'_, AppState>) -> Result<Value, String> {
+pub async fn import_all_usage_v2(
+    app_handle: tauri::AppHandle,
+    _state: State<'_, AppState>,
+) -> Result<Value, String> {
     use std::sync::Arc;
     use tokio::sync::Semaphore;
 
@@ -366,7 +386,6 @@ pub async fn import_all_usage_v2(_state: State<'_, AppState>) -> Result<Value, S
             })
             .await
             .map_err(|e| format!("Task join error: {e}"))?
-            .map(|result| serde_json::to_value(result).unwrap_or(Value::Null))
             .map_err(|e| e.to_string())
         });
     }
@@ -374,7 +393,24 @@ pub async fn import_all_usage_v2(_state: State<'_, AppState>) -> Result<Value, S
     let mut results = Vec::new();
     while let Some(result) = tasks.join_next().await {
         match result {
-            Ok(Ok(value)) => results.push(value),
+            Ok(Ok(import_result)) => {
+                let payload = UsageImportPayload {
+                    imported_count: import_result.records_imported,
+                    platform: import_result.platform.clone(),
+                };
+                let entry = usage_import_entry(&payload);
+                let persist = should_persist(entry.level, &entry.event_type);
+                emit_and_record_monitoring_event(
+                    &app_handle,
+                    events::channels::USAGE_IMPORT,
+                    &payload,
+                    entry,
+                    persist,
+                )
+                .await;
+
+                results.push(serde_json::to_value(import_result).unwrap_or(Value::Null));
+            }
             Ok(Err(e)) => {
                 results.push(serde_json::json!({ "error": e }));
             }
@@ -386,7 +422,6 @@ pub async fn import_all_usage_v2(_state: State<'_, AppState>) -> Result<Value, S
 
     Ok(serde_json::json!({ "results": results }))
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

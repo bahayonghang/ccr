@@ -1,6 +1,6 @@
-//! Tauri 命令聚合模块 — 按域分组的 18 个命令子模块。
+//! Tauri 鍛戒护鑱氬悎妯″潡 鈥?鎸夊煙鍒嗙粍鐨?18 涓懡浠ゅ瓙妯″潡銆?
 //!
-//! 每个子模块对应一个平台或功能域，包含 `#[tauri::command]` 函数。
+//! 姣忎釜瀛愭ā鍧楀搴斾竴涓钩鍙版垨鍔熻兘鍩燂紝鍖呭惈 `#[tauri::command]` 鍑芥暟銆?
 
 pub mod builtin_prompts;
 pub mod checkin;
@@ -30,13 +30,13 @@ pub mod waf;
 #[cfg(target_os = "windows")]
 pub mod wsl;
 
-/// 生成包含所有命令的 `invoke_handler`。
+/// 鐢熸垚鍖呭惈鎵€鏈夊懡浠ょ殑 `invoke_handler`銆?
 ///
-/// 用法：`tauri::Builder::default().invoke_handler(commands::generate_handler())`
+/// 鐢ㄦ硶锛歚tauri::Builder::default().invoke_handler(commands::generate_handler())`
 macro_rules! generate_handler_common {
     ($($extra:path),* $(,)?) => {
         tauri::generate_handler![
-        // ── 配置管理 ──
+        // 鈹€鈹€ 閰嶇疆绠＄悊 鈹€鈹€
         config::list_configs,
         config::switch_config,
         config::add_config,
@@ -48,7 +48,7 @@ macro_rules! generate_handler_common {
         config::export_config,
         config::get_history,
         config::clear_history,
-        // ── 同步 ──
+        // 鈹€鈹€ 鍚屾 鈹€鈹€
         sync::sync_push,
         sync::sync_pull,
         sync::sync_status,
@@ -56,7 +56,7 @@ macro_rules! generate_handler_common {
         sync::add_sync_folder,
         sync::update_sync_folder,
         sync::delete_sync_folder,
-        // ── Claude Code ──
+        // 鈹€鈹€ Claude Code 鈹€鈹€
         claude::claude_get_settings,
         claude::claude_update_settings,
         claude::claude_list_mcp_servers,
@@ -85,7 +85,7 @@ macro_rules! generate_handler_common {
         claude::claude_update_budgets,
         claude::claude_list_prompts,
         claude::claude_update_prompts,
-        // ── Codex ──
+        // 鈹€鈹€ Codex 鈹€鈹€
         codex::codex_list_profiles,
         codex::codex_add_profile,
         codex::codex_update_profile,
@@ -108,7 +108,7 @@ macro_rules! generate_handler_common {
         codex::codex_switch_auth,
         codex::codex_delete_auth,
         codex::codex_detect_process,
-        // ── Gemini ──
+        // 鈹€鈹€ Gemini 鈹€鈹€
         gemini::gemini_get_settings,
         gemini::gemini_update_settings,
         gemini::gemini_list_mcp_servers,
@@ -120,7 +120,7 @@ macro_rules! generate_handler_common {
         gemini::gemini_update_slash_command,
         gemini::gemini_delete_slash_command,
         gemini::gemini_list_extensions,
-        // ── Qwen ──
+        // 鈹€鈹€ Qwen 鈹€鈹€
         qwen::qwen_get_settings,
         qwen::qwen_update_settings,
         qwen::qwen_list_mcp_servers,
@@ -131,7 +131,7 @@ macro_rules! generate_handler_common {
         qwen::qwen_add_slash_command,
         qwen::qwen_update_slash_command,
         qwen::qwen_delete_slash_command,
-        // ── iFlow ──
+        // 鈹€鈹€ iFlow 鈹€鈹€
         iflow::iflow_get_settings,
         iflow::iflow_update_settings,
         iflow::iflow_list_mcp_servers,
@@ -139,7 +139,7 @@ macro_rules! generate_handler_common {
         iflow::iflow_update_mcp_server,
         iflow::iflow_delete_mcp_server,
         iflow::iflow_list_slash_commands,
-        // ── Droid ──
+        // 鈹€鈹€ Droid 鈹€鈹€
         droid::droid_get_settings,
         droid::droid_update_settings,
         droid::droid_list_mcp_servers,
@@ -159,13 +159,13 @@ macro_rules! generate_handler_common {
         droid::droid_update_slash_command,
         droid::droid_delete_slash_command,
         droid::droid_list_models,
-        // ── OpenCode ──
+        // 鈹€鈹€ OpenCode 鈹€鈹€
         opencode::opencode_get_settings,
         opencode::opencode_update_settings,
         opencode::opencode_get_keybindings,
         opencode::opencode_update_keybindings,
         opencode::opencode_list_themes,
-        // ── CheckIn ──
+        // 鈹€鈹€ CheckIn 鈹€鈹€
         checkin::list_providers,
         checkin::add_provider,
         checkin::update_provider,
@@ -178,6 +178,8 @@ macro_rules! generate_handler_common {
         checkin::batch_delete_accounts,
         checkin::execute_checkin,
         checkin::batch_checkin,
+        checkin::start_checkin_job,
+        checkin::get_checkin_job_status,
         checkin::get_checkin_records,
         checkin::get_balance,
         checkin::get_balance_history,
@@ -189,42 +191,44 @@ macro_rules! generate_handler_common {
         checkin::list_waf_cookies,
         checkin::add_waf_cookie,
         checkin::delete_waf_cookie,
-        // ── 统计 ──
+        // 鈹€鈹€ 缁熻 鈹€鈹€
         stats::get_cost_overview,
         stats::get_heatmap_data,
         stats::get_session_stats,
-        // ── 系统 ──
+        // 鈹€鈹€ 绯荤粺 鈹€鈹€
         system::get_system_info,
         system::check_version,
         system::health_check,
-        // ── 转换器 ──
+        // 鈹€鈹€ 杞崲鍣?鈹€鈹€
         converter::convert_config,
-        // ── UI 状态 ──
+        // 鈹€鈹€ UI 鐘舵€?鈹€鈹€
         ui_state::get_favorites,
         ui_state::add_favorite,
         ui_state::remove_favorite,
         ui_state::get_recent_items,
         ui_state::add_recent_item,
         ui_state::clear_recent_items,
-        // ── WAF ──
+        // 鈹€鈹€ WAF 鈹€鈹€
         waf::open_waf_login,
         waf::get_waf_cookie_status,
         waf::waf_deliver_cookie,
-        // ── 统一 MCP ──
+        // 鈹€鈹€ 缁熶竴 MCP 鈹€鈹€
         unified_mcp::unified_list_mcp_servers,
         unified_mcp::unified_add_mcp_server,
         unified_mcp::unified_delete_mcp_server,
-        // ── 事件查询 ──
+        // 鈹€鈹€ 浜嬩欢鏌ヨ 鈹€鈹€
         system::get_recent_events,
+        system::get_monitoring_feed,
+        system::append_frontend_logs,
         system::get_runtime_metrics,
-        // ── 环境管理 ──
+        // 鈹€鈹€ 鐜绠＄悊 鈹€鈹€
         environment::list_environments,
         environment::get_current_environment,
         environment::switch_environment,
         environment::refresh_environments,
         environment::env_list_platforms,
         environment::env_detect_cli,
-        // ── SSH ──
+        // 鈹€鈹€ SSH 鈹€鈹€
         ssh::ssh_list_hosts,
         ssh::ssh_add_host,
         ssh::ssh_connect,
@@ -238,16 +242,16 @@ macro_rules! generate_handler_common {
         ssh::ssh_detect_cli,
         ssh::ssh_test_connection,
         ssh::ssh_list_keys,
-        // ── 内置提示词 ──
+        // 鈹€鈹€ 鍐呯疆鎻愮ず璇?鈹€鈹€
         builtin_prompts::list_builtin_prompts,
         builtin_prompts::get_builtin_prompt,
         builtin_prompts::get_builtin_prompts_by_category,
-        // ── 定价管理 ──
+        // 鈹€鈹€ 瀹氫环绠＄悊 鈹€鈹€
         pricing::set_pricing,
         pricing::get_pricing_list,
         pricing::remove_pricing,
         pricing::reset_pricing,
-        // ── MCP 预设 ──
+        // 鈹€鈹€ MCP 棰勮 鈹€鈹€
         mcp_presets::list_mcp_presets,
         mcp_presets::get_mcp_preset,
         mcp_presets::install_mcp_preset,
@@ -255,7 +259,7 @@ macro_rules! generate_handler_common {
         mcp_presets::list_source_mcp_servers,
         mcp_presets::sync_mcp_server,
         mcp_presets::sync_all_mcp_servers,
-        // ── 技能管理 ──
+        // 鈹€鈹€ 鎶€鑳界鐞?鈹€鈹€
         skills::list_skills,
         skills::add_skill,
         skills::delete_skill,
@@ -263,7 +267,7 @@ macro_rules! generate_handler_common {
         skills::add_skill_repository,
         skills::remove_skill_repository,
         skills::scan_skill_repository,
-        // ── Usage V2 ──
+        // 鈹€鈹€ Usage V2 鈹€鈹€
         usage::get_usage_summary_v2,
         usage::get_usage_trends_v2,
         usage::get_usage_by_model_v2,
@@ -272,14 +276,14 @@ macro_rules! generate_handler_common {
         usage::get_usage_dashboard_v2,
         usage::import_usage_v2,
         usage::import_all_usage_v2,
-        // ── 命令执行 ──
+        // 鈹€鈹€ 鍛戒护鎵ц 鈹€鈹€
         command_exec::execute_ccr_command,
         command_exec::list_ccr_commands,
         command_exec::get_ccr_command_help,
-        // ── 技能管理（扩展） ──
+        // 鈹€鈹€ 鎶€鑳界鐞嗭紙鎵╁睍锛?鈹€鈹€
         skills::get_skill,
         skills::update_skill,
-        // ── SkillHub 市场 ──
+        // 鈹€鈹€ SkillHub 甯傚満 鈹€鈹€
         skill_hub::skill_hub_trending,
         skill_hub::skill_hub_search,
         skill_hub::skill_hub_agents,
@@ -295,7 +299,7 @@ macro_rules! generate_handler_common {
         skill_hub::skill_hub_batch_install,
         skill_hub::skill_hub_check_npx,
         skill_hub::skill_hub_browse_folder,
-        // ── 统计扩展 ──
+        // 鈹€鈹€ 缁熻鎵╁睍 鈹€鈹€
         stats::get_cost_trend,
         stats::get_cost_by_model,
         stats::get_cost_by_project,
@@ -303,7 +307,7 @@ macro_rules! generate_handler_common {
         stats::get_top_sessions,
         stats::get_stats_summary,
         stats::get_daily_stats,
-        // ── 签到扩展 ──
+        // 鈹€鈹€ 绛惧埌鎵╁睍 鈹€鈹€
         checkin::list_builtin_providers,
         checkin::add_builtin_provider,
         checkin::get_checkin_account_cookies,
@@ -311,13 +315,13 @@ macro_rules! generate_handler_common {
         checkin::preview_checkin_import,
         checkin::import_checkin_config,
         checkin::get_account_dashboard,
-        // ── 配置扩展 ──
+        // 鈹€鈹€ 閰嶇疆鎵╁睍 鈹€鈹€
         config::update_config,
         config::clean_backups,
-        // ── 退出确认 ──
+        // 鈹€鈹€ 閫€鍑虹‘璁?鈹€鈹€
         config::get_skip_exit_confirm,
         config::set_skip_exit_confirm,
-        // ── 系统扩展 ──
+        // 鈹€鈹€ 绯荤粺鎵╁睍 鈹€鈹€
         system::update_ccr,
         system::get_cli_versions,
         $($extra,)*
@@ -330,7 +334,7 @@ pub fn generate_handler() -> impl Fn(tauri::ipc::Invoke) -> bool {
     generate_handler_common!()
 }
 
-/// Windows 版本：包含 WSL 命令的 `invoke_handler`。
+/// Windows 鐗堟湰锛氬寘鍚?WSL 鍛戒护鐨?`invoke_handler`銆?
 #[cfg(target_os = "windows")]
 pub fn generate_handler() -> impl Fn(tauri::ipc::Invoke) -> bool {
     generate_handler_common!(
@@ -344,3 +348,4 @@ pub fn generate_handler() -> impl Fn(tauri::ipc::Invoke) -> bool {
         wsl::wsl_sync_config,
     )
 }
+

@@ -1957,6 +1957,14 @@ export const batchCheckin = async <T = UnknownRecord>(accountIds: string[]): Pro
   return invoke('batch_checkin', { accountIds })
 }
 
+export const startCheckinJob = async <T = UnknownRecord>(accountIds: string[]): Promise<T> => {
+  return invoke('start_checkin_job', { accountIds })
+}
+
+export const getCheckinJobStatus = async <T = UnknownRecord>(jobId: string): Promise<T> => {
+  return invoke('get_checkin_job_status', { jobId })
+}
+
 /** 查询签到余额 */
 export const queryCheckinBalance = async <T = UnknownRecord>(accountId: string): Promise<T> => {
   return invoke('get_balance', { accountId })

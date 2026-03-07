@@ -183,15 +183,18 @@ import {
 } from 'lucide-vue-next'
 import Navbar from '@/components/Navbar.vue'
 import { Breadcrumb } from '@/components/ui'
-import { useWebSocket, type LogMessage } from '@/composables/useWebSocket'
+import {
+  useMonitoringFeed,
+  type MonitoringEntry,
+  type MonitoringLevel,
+} from '@/composables/useMonitoringFeed'
 
 const { t } = useI18n({ useScope: 'global' })
 
-// WebSocket connection
-const { isConnected, logs, tokenStats, clearLogs } = useWebSocket()
+const { isConnected, logs, tokenStats, clearLogs } = useMonitoringFeed()
 
 // Filter state
-const filterLevel = ref('all')
+const filterLevel = ref<'all' | MonitoringLevel>('all')
 const logContainer = ref<HTMLElement | null>(null)
 
 // Breadcrumbs
@@ -203,7 +206,7 @@ const breadcrumbs = computed(() => [
 // Filtered logs
 const filteredLogs = computed(() => {
   if (filterLevel.value === 'all') return logs.value
-  return logs.value.filter((log: LogMessage) => log.level === filterLevel.value)
+  return logs.value.filter((log: MonitoringEntry) => log.level === filterLevel.value)
 })
 
 // Auto-scroll to bottom on new logs

@@ -11,9 +11,9 @@ pub const DB_RELATIVE_PATH: &str = ".ccr-ui/ccr-ui.db";
 
 /// SQL statements for creating all tables
 pub const CREATE_TABLES_SQL: &str = r#"
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 -- UI State Tables
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 
 -- UI Favorites: stored favorite commands
 CREATE TABLE IF NOT EXISTS ui_favorites (
@@ -42,9 +42,9 @@ CREATE TABLE IF NOT EXISTS ui_history (
 CREATE INDEX IF NOT EXISTS idx_ui_history_executed_at
     ON ui_history (executed_at DESC);
 
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 -- Checkin Tables
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 
 -- Checkin Providers: service provider configurations
 CREATE TABLE IF NOT EXISTS checkin_providers (
@@ -135,17 +135,20 @@ CREATE TABLE IF NOT EXISTS checkin_waf_cookies (
 CREATE INDEX IF NOT EXISTS idx_checkin_waf_cookies_expires_at
     ON checkin_waf_cookies (expires_at);
 
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 -- Log Tables
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 
 -- Log Entries: application log storage
 CREATE TABLE IF NOT EXISTS log_entries (
     id TEXT PRIMARY KEY,
     timestamp TEXT NOT NULL,
     level TEXT NOT NULL,
+    channel TEXT,
+    event_type TEXT,
     source TEXT NOT NULL,
     message TEXT NOT NULL,
+    correlation_id TEXT,
     metadata_json TEXT
 );
 
@@ -155,9 +158,12 @@ CREATE INDEX IF NOT EXISTS idx_log_entries_timestamp
 CREATE INDEX IF NOT EXISTS idx_log_entries_level
     ON log_entries (level);
 
--- ═══════════════════════════════════════════════════════════
+CREATE INDEX IF NOT EXISTS idx_log_entries_channel
+    ON log_entries (channel);
+
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 -- Usage Tracking Tables
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 
 -- Usage Sources: tracks imported files with offsets
 CREATE TABLE IF NOT EXISTS usage_sources (
@@ -205,9 +211,9 @@ CREATE INDEX IF NOT EXISTS idx_usage_records_platform_recorded_at_id
 CREATE INDEX IF NOT EXISTS idx_usage_records_platform_project
     ON usage_records (platform, project_path, recorded_at DESC);
 
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 -- Usage Daily Aggregation Table (pre-computed)
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 
 CREATE TABLE IF NOT EXISTS usage_daily_agg (
     date TEXT NOT NULL,
@@ -220,9 +226,9 @@ CREATE TABLE IF NOT EXISTS usage_daily_agg (
     PRIMARY KEY (date, platform)
 );
 
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 -- SSH Host Management Tables
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 
 -- SSH Hosts: saved remote host profiles
 CREATE TABLE IF NOT EXISTS ssh_hosts (
@@ -257,9 +263,9 @@ CREATE TABLE IF NOT EXISTS ssh_known_hosts (
 CREATE INDEX IF NOT EXISTS idx_ssh_known_hosts_confirmed_at
     ON ssh_known_hosts (confirmed_at DESC);
 
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 -- Migration Tracking Table
--- ═══════════════════════════════════════════════════════════
+-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 
 -- Migrations: tracks applied schema migrations
 CREATE TABLE IF NOT EXISTS migrations (

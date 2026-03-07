@@ -166,9 +166,9 @@ pub fn has_legacy_data(home_dir: &Path) -> bool {
     false
 }
 
-// ═══════════════════════════════════════════════════════════
+// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 // Legacy Data Structures (for JSON deserialization)
-// ═══════════════════════════════════════════════════════════
+// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 
 /// Legacy UI State JSON structure
 #[derive(Debug, Deserialize)]
@@ -213,9 +213,9 @@ struct LegacyWafCookie {
     expires_at: DateTime<Utc>,
 }
 
-// ═══════════════════════════════════════════════════════════
+// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 // Legacy Data Import Functions
-// ═══════════════════════════════════════════════════════════
+// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 
 /// Import legacy JSON data into SQLite
 /// Skips UI history per design.md requirement
@@ -508,7 +508,7 @@ pub fn run_migration_v3(conn: &Connection) -> MigrationResult<()> {
 
     info!("Running migration v3: usage_records extracted columns + model_pricing");
 
-    // 为 usage_records 添加提取列（幂等：忽略 duplicate column 错误）
+    // 涓?usage_records 娣诲姞鎻愬彇鍒楋紙骞傜瓑锛氬拷鐣?duplicate column 閿欒锛?
     let alter_stmts = [
         "ALTER TABLE usage_records ADD COLUMN model TEXT",
         "ALTER TABLE usage_records ADD COLUMN input_tokens INTEGER DEFAULT 0",
@@ -529,14 +529,14 @@ pub fn run_migration_v3(conn: &Connection) -> MigrationResult<()> {
             .map_err(|e| MigrationError::Database(e.to_string()))?;
     }
 
-    // 创建索引
+    // 鍒涘缓绱㈠紩
     conn.execute_batch(
         "CREATE INDEX IF NOT EXISTS idx_usage_records_model ON usage_records (model);
          CREATE INDEX IF NOT EXISTS idx_usage_records_recorded_at ON usage_records (recorded_at);",
     )
     .map_err(|e| MigrationError::Database(e.to_string()))?;
 
-    // 创建 model_pricing 表
+    // 鍒涘缓 model_pricing 琛?
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS model_pricing (
             model_id TEXT PRIMARY KEY,
@@ -548,7 +548,7 @@ pub fn run_migration_v3(conn: &Connection) -> MigrationResult<()> {
     )
     .map_err(|e| MigrationError::Database(e.to_string()))?;
 
-    // 预置模型价格
+    // 棰勭疆妯″瀷浠锋牸
     conn.execute_batch(
         "INSERT OR IGNORE INTO model_pricing VALUES ('claude-sonnet-4-20250514','Claude Sonnet 4',3,15,0.3);
          INSERT OR IGNORE INTO model_pricing VALUES ('claude-opus-4-20250514','Claude Opus 4',15,75,1.5);
@@ -559,10 +559,10 @@ pub fn run_migration_v3(conn: &Connection) -> MigrationResult<()> {
     )
     .map_err(|e| MigrationError::Database(e.to_string()))?;
 
-    // 回填现有记录：从 record_json 提取字段
+    // 鍥炲～鐜版湁璁板綍锛氫粠 record_json 鎻愬彇瀛楁
     backfill_usage_records(conn)?;
 
-    // 记录迁移
+    // 璁板綍杩佺Щ
     let now = Utc::now().to_rfc3339();
     conn.execute(
         INSERT_MIGRATION_SQL,
@@ -574,9 +574,9 @@ pub fn run_migration_v3(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
-/// 回填 usage_records 的提取列（从 record_json 解析）
+/// 鍥炲～ usage_records 鐨勬彁鍙栧垪锛堜粠 record_json 瑙ｆ瀽锛?
 fn backfill_usage_records(conn: &Connection) -> MigrationResult<()> {
-    // 读取所有需要回填的记录（model 为 NULL 的）
+    // 璇诲彇鎵€鏈夐渶瑕佸洖濉殑璁板綍锛坢odel 涓?NULL 鐨勶級
     let mut select_stmt = conn
         .prepare("SELECT id, record_json FROM usage_records WHERE model IS NULL")
         .map_err(|e| MigrationError::Database(e.to_string()))?;
@@ -598,7 +598,7 @@ fn backfill_usage_records(conn: &Connection) -> MigrationResult<()> {
         rows.len()
     );
 
-    // 加载定价表
+    // 鍔犺浇瀹氫环琛?
     let mut pricing_stmt = conn
         .prepare(
             "SELECT model_id, input_cost_per_million, output_cost_per_million, cache_read_cost_per_million FROM model_pricing",
@@ -627,14 +627,14 @@ fn backfill_usage_records(conn: &Connection) -> MigrationResult<()> {
 
     for (id, json_str) in &rows {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(json_str) {
-            // 提取 model
+            // 鎻愬彇 model
             let model = json
                 .get("model")
                 .or_else(|| json.get("message").and_then(|m| m.get("model")))
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown");
 
-            // 提取 usage
+            // 鎻愬彇 usage
             let usage = json
                 .get("usage")
                 .or_else(|| json.get("message").and_then(|m| m.get("usage")));
@@ -651,7 +651,7 @@ fn backfill_usage_records(conn: &Connection) -> MigrationResult<()> {
                 (0, 0, 0)
             };
 
-            // 计算费用：匹配定价表（模糊匹配前缀）
+            // 璁＄畻璐圭敤锛氬尮閰嶅畾浠疯〃锛堟ā绯婂尮閰嶅墠缂€锛?
             let cost = pricing
                 .iter()
                 .find(|(k, _)| model.starts_with(k.as_str()) || k.starts_with(model))
@@ -795,6 +795,70 @@ pub fn run_migration_v6(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+fn table_has_column(
+    conn: &Connection,
+    table_name: &str,
+    column_name: &str,
+) -> MigrationResult<bool> {
+    let mut stmt = conn
+        .prepare(&format!("PRAGMA table_info({table_name})"))
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+    let mut rows = stmt
+        .query([])
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    while let Some(row) = rows
+        .next()
+        .map_err(|e| MigrationError::Database(e.to_string()))?
+    {
+        let name: String = row
+            .get(1)
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+        if name == column_name {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+/// Run migration v7: extend log_entries for monitoring feed
+pub fn run_migration_v7(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 7)? {
+        debug!("Migration v7 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v7: monitoring log columns");
+
+    if !table_has_column(conn, "log_entries", "channel")? {
+        conn.execute("ALTER TABLE log_entries ADD COLUMN channel TEXT", [])
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+    if !table_has_column(conn, "log_entries", "event_type")? {
+        conn.execute("ALTER TABLE log_entries ADD COLUMN event_type TEXT", [])
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+    if !table_has_column(conn, "log_entries", "correlation_id")? {
+        conn.execute("ALTER TABLE log_entries ADD COLUMN correlation_id TEXT", [])
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_log_entries_channel ON log_entries (channel)",
+        [],
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![7, "monitoring_log_columns", now],
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    info!("Migration v7 completed successfully");
+    Ok(())
+}
 /// Run all migrations (schema + legacy data import)
 /// This is the main entry point called during initialization
 pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult<()> {
@@ -815,6 +879,9 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
 
     // Step 1.9: Run v6 migration (ssh host and known_hosts tables)
     run_migration_v6(conn)?;
+
+    // Step 1.10: Run v7 migration (monitoring log columns)
+    run_migration_v7(conn)?;
 
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {
@@ -952,6 +1019,52 @@ mod tests {
         assert_eq!(count, 1);
     }
 
+    #[test]
+    fn test_migration_v7_handles_fresh_schema() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+
+        run_migration_v7(&conn).unwrap();
+
+        let columns: Vec<String> = conn
+            .prepare("PRAGMA table_info(log_entries)")
+            .unwrap()
+            .query_map([], |row| row.get(1))
+            .unwrap()
+            .map(|row| row.unwrap())
+            .collect();
+
+        assert!(columns.contains(&"channel".to_string()));
+        assert!(columns.contains(&"event_type".to_string()));
+        assert!(columns.contains(&"correlation_id".to_string()));
+
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 7",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_migration_v7_idempotent() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+
+        run_migration_v7(&conn).unwrap();
+        run_migration_v7(&conn).unwrap();
+
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 7",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
     #[test]
     fn test_legacy_migration_marker() {
         let conn = Connection::open_in_memory().unwrap();

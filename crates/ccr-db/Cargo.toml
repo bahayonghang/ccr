@@ -6,6 +6,7 @@ rust-version = "1.88"
 description = "CCR Desktop database layer - SQLite storage, CheckIn services, and data models"
 
 [dependencies]
+ccr-types = { path = "../ccr-types" }
 # ═══════════════════════════════════════════════════════════
 # 📦 数据库
 # ═══════════════════════════════════════════════════════════

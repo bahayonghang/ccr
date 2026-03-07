@@ -15,8 +15,10 @@
 
 mod claude_settings;
 mod codex_auth;
+mod monitoring;
 
 pub use claude_settings::{
     Agent, ClaudeSettings, Hook, McpServer, Plugin, SlashCommand, default_true, is_false,
 };
 pub use codex_auth::{LoginState, TokenFreshness};
+pub use monitoring::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery, MonitoringLevel};

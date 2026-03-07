@@ -371,7 +371,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.0.0"
+version = "5.0.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -423,6 +423,7 @@ dependencies = [
  "anyhow",
  "async-stream",
  "base64",
+ "ccr-types",
  "chrono",
  "dirs",
  "futures",
@@ -449,10 +450,12 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "5.0.0"
+version = "5.0.1"
 dependencies = [
+ "chrono",
  "serde",
  "serde_json",
+ "uuid",
 ]
 
 [[package]]

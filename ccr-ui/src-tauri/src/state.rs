@@ -1,6 +1,6 @@
-//! AppState — Tauri 应用全局状态。
+//! AppState 鈥?Tauri 搴旂敤鍏ㄥ眬鐘舵€併€?
 //!
-//! 持有 SQLite 连接池、HTTP 客户端、内存缓存和执行环境注册表。
+//! 鎸佹湁 SQLite 杩炴帴姹犮€丠TTP 瀹㈡埛绔€佸唴瀛樼紦瀛樺拰鎵ц鐜娉ㄥ唽琛ㄣ€?
 
 use std::collections::{HashMap, VecDeque};
 use std::num::NonZeroUsize;
@@ -9,10 +9,12 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
 use ccr_db::database::pool::DbPool;
+use ccr_db::services::log_persistence::{LogPersistenceService, LogStorageConfig};
 use chrono::{DateTime, Utc};
 use lru::LruCache;
 use tokio::sync::RwLock;
 
+use crate::checkin_jobs::CheckinJobSnapshot;
 use crate::events::{EventLog, EventLogStats};
 use crate::platform::EnvironmentRegistry;
 
@@ -21,7 +23,7 @@ pub const DEFAULT_SSH_STATE_TTL_SECS: i64 = 30 * 60;
 pub const DEFAULT_SSH_PASSWORD_TTL_SECS: u64 = 10 * 60;
 const METRIC_SAMPLE_CAPACITY: usize = 2048;
 
-/// SSH 连接运行时状态（仅内存持有，不持久化）
+/// SSH 杩炴帴杩愯鏃剁姸鎬侊紙浠呭唴瀛樻寔鏈夛紝涓嶆寔涔呭寲锛?
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SshRuntimeState {
     pub env_id: String,
@@ -31,62 +33,67 @@ pub struct SshRuntimeState {
     pub last_error: Option<String>,
 }
 
-/// SSH 密码缓存条目（仅内存）
+/// SSH 瀵嗙爜缂撳瓨鏉＄洰锛堜粎鍐呭瓨锛?
 #[derive(Debug, Clone)]
 pub struct SshPasswordEntry {
     pub value: String,
     pub cached_at: Instant,
 }
 
-/// Tauri managed state — 通过 `app.manage(AppState::new(...))` 注册。
+/// Tauri managed state 鈥?閫氳繃 `app.manage(AppState::new(...))` 娉ㄥ唽銆?
 pub struct AppState {
-    /// SQLite 连接池（来自 ccr-db）
+    /// SQLite 杩炴帴姹狅紙鏉ヨ嚜 ccr-db锛?
     pub db_pool: DbPool,
 
-    /// HTTP 客户端（复用连接池，用于 CheckIn 等外部请求）
+    /// HTTP 瀹㈡埛绔紙澶嶇敤杩炴帴姹狅紝鐢ㄤ簬 CheckIn 绛夊閮ㄨ姹傦級
     pub http_client: reqwest::Client,
 
-    /// 内存缓存层（LRU + TTL）
+    /// 鍐呭瓨缂撳瓨灞傦紙LRU + TTL锛?
     pub cache: RwLock<LruCache<String, CacheEntry>>,
 
-    /// 执行环境注册表（Local / WSL / SSH）
+    /// 鎵ц鐜娉ㄥ唽琛紙Local / WSL / SSH锛?
     pub env_registry: RwLock<EnvironmentRegistry>,
 
-    /// SSH 连接运行时状态（仅内存）
+    /// SSH 杩炴帴杩愯鏃剁姸鎬侊紙浠呭唴瀛橈級
     pub ssh_runtime_states: RwLock<HashMap<String, SshRuntimeState>>,
 
-    /// SSH 密码缓存（仅内存，不持久化）
+    /// SSH 瀵嗙爜缂撳瓨锛堜粎鍐呭瓨锛屼笉鎸佷箙鍖栵級
     pub ssh_password_cache: RwLock<HashMap<String, SshPasswordEntry>>,
 
-    /// 应用设置
+    pub monitoring_logs: LogPersistenceService,
+
+    /// ????????
+    pub checkin_jobs: RwLock<HashMap<String, CheckinJobSnapshot>>,
+
+    /// 搴旂敤璁剧疆
     pub settings: Mutex<AppSettings>,
 
-    /// 退出确认标志 — 用于打破 CloseRequested 事件的循环
+    /// 閫€鍑虹‘璁ゆ爣蹇?鈥?鐢ㄤ簬鎵撶牬 CloseRequested 浜嬩欢鐨勫惊鐜?
     pub exit_confirmed: AtomicBool,
 
-    /// 事件日志环形缓冲区
+    /// 浜嬩欢鏃ュ織鐜舰缂撳啿鍖?
     pub event_log: EventLog,
 
-    /// 命令耗时采样（毫秒）
+    /// 鍛戒护鑰楁椂閲囨牱锛堟绉掞級
     command_durations_ms: Mutex<VecDeque<f64>>,
 
-    /// DB 查询耗时采样（毫秒）
+    /// DB 鏌ヨ鑰楁椂閲囨牱锛堟绉掞級
     db_query_durations_ms: Mutex<VecDeque<f64>>,
 }
 
-/// 缓存条目
+/// 缂撳瓨鏉＄洰
 pub struct CacheEntry {
     pub value: serde_json::Value,
     pub expires_at: Instant,
 }
 
-/// 应用设置
+/// 搴旂敤璁剧疆
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct AppSettings {
     pub skip_exit_confirm: bool,
 }
 
-/// 运行时指标快照
+/// 杩愯鏃舵寚鏍囧揩鐓?
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct RuntimeMetricsSnapshot {
     pub cache_entries: usize,
@@ -99,7 +106,7 @@ pub struct RuntimeMetricsSnapshot {
 }
 
 impl AppState {
-    /// 创建新的应用状态实例
+    /// 鍒涘缓鏂扮殑搴旂敤鐘舵€佸疄渚?
     pub fn new(db_pool: DbPool) -> Self {
         let http_client = reqwest::Client::builder()
             .cookie_store(true)
@@ -117,6 +124,8 @@ impl AppState {
             env_registry: RwLock::new(EnvironmentRegistry::new()),
             ssh_runtime_states: RwLock::new(HashMap::new()),
             ssh_password_cache: RwLock::new(HashMap::new()),
+            monitoring_logs: LogPersistenceService::new(LogStorageConfig::default()),
+            checkin_jobs: RwLock::new(HashMap::new()),
             settings: Mutex::new(AppSettings::default()),
             exit_confirmed: AtomicBool::new(false),
             event_log: EventLog::with_limits(500, 10 * 1024, 5 * 1024 * 1024),
@@ -125,7 +134,7 @@ impl AppState {
         }
     }
 
-    /// 从缓存获取值（未过期时返回 Some）
+    /// 浠庣紦瀛樿幏鍙栧€硷紙鏈繃鏈熸椂杩斿洖 Some锛?
     #[allow(dead_code)]
     pub async fn cache_get(&self, key: &str) -> Option<serde_json::Value> {
         let now = Instant::now();
@@ -143,7 +152,7 @@ impl AppState {
         }
     }
 
-    /// 设置缓存值（指定 TTL 秒数）
+    /// 璁剧疆缂撳瓨鍊硷紙鎸囧畾 TTL 绉掓暟锛?
     #[allow(dead_code)]
     pub async fn cache_set(&self, key: String, value: serde_json::Value, ttl_secs: u64) {
         let mut cache = self.cache.write().await;
@@ -156,7 +165,7 @@ impl AppState {
         );
     }
 
-    /// 清理过期缓存
+    /// 娓呯悊杩囨湡缂撳瓨
     pub async fn cache_cleanup(&self) {
         let now = Instant::now();
         let mut cache = self.cache.write().await;
@@ -169,7 +178,7 @@ impl AppState {
         }
     }
 
-    /// 清理过期 SSH 运行时状态
+    /// 娓呯悊杩囨湡 SSH 杩愯鏃剁姸鎬?
     pub async fn cleanup_ssh_runtime_states(&self, max_age_secs: i64) {
         let mut states = self.ssh_runtime_states.write().await;
         if max_age_secs <= 0 {
@@ -188,7 +197,7 @@ impl AppState {
         });
     }
 
-    /// 清理过期 SSH 密码缓存
+    /// 娓呯悊杩囨湡 SSH 瀵嗙爜缂撳瓨
     pub async fn cleanup_ssh_password_cache(&self, max_age_secs: u64) {
         let mut passwords = self.ssh_password_cache.write().await;
         if max_age_secs == 0 {
@@ -200,21 +209,41 @@ impl AppState {
         passwords.retain(|_, entry| entry.cached_at.elapsed() <= max_age);
     }
 
-    /// 记录命令耗时（毫秒）
+    /// 璁板綍鍛戒护鑰楁椂锛堟绉掞級
+    pub async fn insert_checkin_job(&self, snapshot: CheckinJobSnapshot) {
+        let mut jobs = self.checkin_jobs.write().await;
+        jobs.insert(snapshot.job_id.clone(), snapshot);
+    }
+
+    pub async fn get_checkin_job(&self, job_id: &str) -> Option<CheckinJobSnapshot> {
+        let jobs = self.checkin_jobs.read().await;
+        jobs.get(job_id).cloned()
+    }
+
+    pub async fn update_checkin_job<F>(&self, job_id: &str, mutator: F) -> Option<CheckinJobSnapshot>
+    where
+        F: FnOnce(&mut CheckinJobSnapshot),
+    {
+        let mut jobs = self.checkin_jobs.write().await;
+        let snapshot = jobs.get_mut(job_id)?;
+        mutator(snapshot);
+        Some(snapshot.clone())
+    }
+
     pub fn record_command_duration_ms(&self, duration_ms: f64) {
         if let Ok(mut samples) = self.command_durations_ms.lock() {
             push_sample(&mut samples, duration_ms);
         }
     }
 
-    /// 记录 DB 查询耗时（毫秒）
+    /// 璁板綍 DB 鏌ヨ鑰楁椂锛堟绉掞級
     pub fn record_db_query_duration_ms(&self, duration_ms: f64) {
         if let Ok(mut samples) = self.db_query_durations_ms.lock() {
             push_sample(&mut samples, duration_ms);
         }
     }
 
-    /// 获取运行时指标快照
+    /// 鑾峰彇杩愯鏃舵寚鏍囧揩鐓?
     pub async fn runtime_metrics_snapshot(&self) -> RuntimeMetricsSnapshot {
         let cache_entries = self.cache.read().await.len();
         let ssh_state_count = self.ssh_runtime_states.read().await.len();
@@ -265,3 +294,6 @@ fn percentile_95(samples: &VecDeque<f64>) -> Option<f64> {
     let idx = idx.saturating_sub(1).min(sorted.len() - 1);
     Some(sorted[idx])
 }
+
+
+

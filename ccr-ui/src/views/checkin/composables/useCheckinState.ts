@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import {
   Building2,
   Users,
@@ -13,8 +13,10 @@ import {
   listBuiltinProviders,
   addBuiltinProvider as apiAddBuiltinProvider,
   queryCheckinBalance,
-  checkinAccount,
+  startCheckinJob,
+  getCheckinJobStatus,
 } from '@/api'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { logger } from '@/utils/logger'
 import type {
   AccountsResponse,
@@ -28,8 +30,11 @@ import type {
   CheckinResponse,
   CheckinExecutionResult,
   BuiltinProvider,
+  CheckinJobLogEntryPayload,
+  CheckinJobSnapshot,
   CheckinLogEntry,
   ProvidersResponse,
+  StartCheckinJobResponse,
 } from '@/types/checkin'
 
 /** 签到数据刷新选项 */
@@ -75,6 +80,64 @@ export function useCheckinState() {
   const todayStats = ref<TodayCheckinStats | null>(null)
   const checkinResult = ref<CheckinResponse | null>(null)
   const builtinProviders = ref<BuiltinProvider[]>([])
+
+  const activeCheckinJobId = ref<string | null>(null)
+  const checkinJobUnlisteners: UnlistenFn[] = []
+
+  const cleanupCheckinJobListeners = async () => {
+    const unlisteners = checkinJobUnlisteners.splice(0)
+    await Promise.all(unlisteners.map(unlisten => unlisten()))
+  }
+
+  const mapJobLogEntry = (entry: CheckinJobLogEntryPayload): CheckinLogEntry => ({
+    accountId: entry.account_id,
+    accountName: entry.account_name,
+    providerName: entry.provider_name,
+    status: entry.status,
+    message: entry.message,
+    reward: entry.reward,
+    balance: entry.balance,
+    timestamp: new Date(entry.timestamp),
+  })
+
+  const applyCheckinJobSnapshot = (snapshot: CheckinJobSnapshot) => {
+    checkinProgress.value = {
+      total: snapshot.total,
+      completed: snapshot.completed,
+      currentAccountName: snapshot.current_account_name,
+    }
+    checkinLogs.value = snapshot.logs.map(mapJobLogEntry)
+
+    const isTerminal = snapshot.status === 'finished' || snapshot.status === 'timed_out'
+    isCheckinFinished.value = isTerminal
+
+    if (isTerminal) {
+      checkinResult.value = {
+        results: snapshot.results,
+        summary: snapshot.summary,
+      }
+    }
+  }
+
+  const finalizeCheckinJob = async (snapshot: CheckinJobSnapshot) => {
+    if (activeCheckinJobId.value !== snapshot.job_id) return
+
+    applyCheckinJobSnapshot(snapshot)
+    checkinLoading.value = false
+    activeCheckinJobId.value = null
+    await cleanupCheckinJobListeners()
+
+    await refreshCheckinData({
+      reloadAccounts: true,
+      reloadRecords: true,
+      reloadStats: true,
+    })
+
+    if (snapshot.summary.failed > 0) {
+      await nextTick()
+      checkinResultRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════
   // 计算属性
@@ -273,150 +336,78 @@ export function useCheckinState() {
   }
 
   // 执行全部签到（逐个签到模式，实现实时进度）
-  const executeCheckinAll = async () => {
-    const accountsToCheckin = enabledAccounts.value
-    if (accountsToCheckin.length === 0) return
+  const startAndTrackCheckinJob = async (accountIds: string[]) => {
+    if (accountIds.length === 0) return
 
     checkinLoading.value = true
     checkinResult.value = null
     showProgressModal.value = true
     isCheckinFinished.value = false
-
-    // 初始化进度
     checkinProgress.value = {
-      total: accountsToCheckin.length,
+      total: accountIds.length,
       completed: 0,
-      currentAccountName: ''
+      currentAccountName: '',
     }
+    checkinLogs.value = []
 
-    // 初始化日志
-    checkinLogs.value = accountsToCheckin.map(acc => ({
-      accountId: acc.id,
-      accountName: acc.name,
-      providerName: acc.provider_name || '未知',
-      status: 'pending' as const,
-      timestamp: new Date()
-    }))
-
-    // 收集结果用于最终汇总
-    const results: CheckinExecutionResult[] = []
-    let successCount = 0
-    let alreadyCheckedInCount = 0
-    let failedCount = 0
+    await cleanupCheckinJobListeners()
 
     try {
-      for (let i = 0; i < accountsToCheckin.length; i++) {
-        const account = accountsToCheckin[i]
+      const response = await startCheckinJob<StartCheckinJobResponse>(accountIds)
+      activeCheckinJobId.value = response.job_id
+      applyCheckinJobSnapshot(response.snapshot)
 
-        // 更新当前进度
-        checkinProgress.value.currentAccountName = account.name
-
-        // 更新日志状态为处理中
-        const logIndex = checkinLogs.value.findIndex(l => l.accountId === account.id)
-        if (logIndex >= 0) {
-          checkinLogs.value[logIndex].status = 'processing'
-          checkinLogs.value[logIndex].timestamp = new Date()
-        }
-
-        try {
-          const result = await checkinAccount<CheckinExecutionResult>(account.id)
-          results.push(result)
-
-          // 更新日志
-          // 注意：后端使用 #[serde(rename_all = "snake_case")] 序列化枚举
-          // 因此 status 值为 'success' / 'already_checked_in' / 'failed'（小写 snake_case）
-          if (logIndex >= 0) {
-            if (result.status === 'success') {
-              checkinLogs.value[logIndex].status = 'success'
-              checkinLogs.value[logIndex].message = result.reward ? `签到成功，获得 ${result.reward}` : '签到成功'
-              successCount++
-            } else if (result.status === 'already_checked_in') {
-              checkinLogs.value[logIndex].status = 'already_checked_in'
-              checkinLogs.value[logIndex].message = '今日已签到'
-              alreadyCheckedInCount++
-            } else {
-              checkinLogs.value[logIndex].status = 'failed'
-              checkinLogs.value[logIndex].message = result.message || '签到失败'
-              failedCount++
-            }
-            checkinLogs.value[logIndex].balance = result.balance
-            checkinLogs.value[logIndex].reward = result.reward
-          }
-        } catch (e: unknown) {
-          const message = getErrorMessage(e, '请求失败')
-          // 单个账号签到失败
-          if (logIndex >= 0) {
-            checkinLogs.value[logIndex].status = 'failed'
-            checkinLogs.value[logIndex].message = message
-          }
-          failedCount++
-          results.push({
-            account_id: account.id,
-            account_name: account.name,
-            provider_name: account.provider_name || '未知',
-            status: 'failed',
-            message,
-          })
-        }
-
-        // 更新完成进度
-        checkinProgress.value.completed = i + 1
+      const handleProgressSnapshot = (snapshot: CheckinJobSnapshot) => {
+        if (activeCheckinJobId.value !== snapshot.job_id) return
+        applyCheckinJobSnapshot(snapshot)
       }
 
-      // 构建签到结果
-      checkinResult.value = {
-        results,
-        summary: {
-          total: accountsToCheckin.length,
-          success: successCount,
-          already_checked_in: alreadyCheckedInCount,
-          failed: failedCount
-        }
+      const handleTerminalSnapshot = (snapshot: CheckinJobSnapshot) => {
+        void finalizeCheckinJob(snapshot)
       }
 
-      // 标记签到完成
-      isCheckinFinished.value = true
+      checkinJobUnlisteners.push(
+        await listen<CheckinJobSnapshot>('checkin:job-progress', event => {
+          handleProgressSnapshot(event.payload)
+        })
+      )
+      checkinJobUnlisteners.push(
+        await listen<CheckinJobSnapshot>('checkin:job-finished', event => {
+          handleTerminalSnapshot(event.payload)
+        })
+      )
+      checkinJobUnlisteners.push(
+        await listen<CheckinJobSnapshot>('checkin:job-timeout', event => {
+          handleTerminalSnapshot(event.payload)
+        })
+      )
 
-      await refreshCheckinData({
-        reloadAccounts: true,
-        reloadRecords: true,
-        reloadStats: true,
-      })
-
-      // 如果有失败的签到，自动滚动到结果区域确保用户能看到详情
-      if (failedCount > 0) {
-        await nextTick()
-        checkinResultRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const latestSnapshot = await getCheckinJobStatus<CheckinJobSnapshot>(response.job_id)
+      if (latestSnapshot.job_id === response.job_id) {
+        if (latestSnapshot.status === 'finished' || latestSnapshot.status === 'timed_out') {
+          await finalizeCheckinJob(latestSnapshot)
+        } else {
+          applyCheckinJobSnapshot(latestSnapshot)
+        }
       }
     } catch (e: unknown) {
-      showProgressModal.value = false
-      alert('签到失败: ' + getErrorMessage(e, '未知错误'))
-      logger.error('Checkin failed', e)
-    } finally {
       checkinLoading.value = false
-    }
-  }
-
-  // 单账号签到
-  const executeCheckinSingle = async (accountId: string) => {
-    try {
-      await checkinAccount(accountId)
-      await refreshCheckinData({
-        reloadAccounts: true,
-        reloadRecords: true,
-        reloadStats: true,
-      })
-    } catch (e: unknown) {
+      showProgressModal.value = false
+      activeCheckinJobId.value = null
+      await cleanupCheckinJobListeners()
       alert('签到失败: ' + getErrorMessage(e, '未知错误'))
-      logger.error('Single checkin failed', e)
+      logger.error('Checkin job failed', e)
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 余额操作
-  // ═══════════════════════════════════════════════════════════
+  const executeCheckinAll = async () => {
+    await startAndTrackCheckinJob(enabledAccounts.value.map(account => account.id))
+  }
 
-  // 批量刷新所有账号余额
+  const executeCheckinSingle = async (accountId: string) => {
+    await startAndTrackCheckinJob([accountId])
+  }
+
   const refreshAllBalances = async () => {
     if (accounts.value.length === 0) return
 
@@ -542,6 +533,10 @@ export function useCheckinState() {
 
   onMounted(() => {
     loadAllData()
+  })
+
+  onUnmounted(() => {
+    void cleanupCheckinJobListeners()
   })
 
   return {

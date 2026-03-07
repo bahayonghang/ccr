@@ -100,30 +100,52 @@ impl BuiltinProvider {
     }
 }
 
-/// 创建标准 NewAPI 公益站提供商的辅助宏
-macro_rules! standard_provider {
-    ($id:expr, $name:expr, $desc:expr, $domain:expr, $base_url:expr, $icon:expr) => {
-        BuiltinProvider {
-            id: $id.to_string(),
-            name: $name.to_string(),
-            description: $desc.to_string(),
-            domain: $domain.to_string(),
-            base_url: $base_url.to_string(),
-            checkin_path: Some("/api/user/checkin".to_string()),
-            balance_path: "/api/user/self".to_string(),
-            user_info_path: "/api/user/self".to_string(),
-            auth_header: "Authorization".to_string(),
-            auth_prefix: "Bearer".to_string(),
-            supports_checkin: true,
-            requires_waf_bypass: false,
-            requires_cf_clearance: false,
-            checkin_bugged: false,
-            icon: $icon.to_string(),
-            category: "standard".to_string(),
-            cdk_config: None,
-            oauth_config: None,
-        }
-    };
+/// 构造 OAuth 配置（仅在存在 OAuth 元数据时返回）
+fn oauth_provider_config(
+    github_client_id: Option<&str>,
+    linuxdo_client_id: Option<&str>,
+    oauth_state_path: &str,
+) -> Option<OAuthProviderConfig> {
+    if github_client_id.is_none() && linuxdo_client_id.is_none() {
+        return None;
+    }
+
+    Some(OAuthProviderConfig {
+        github_client_id: github_client_id.map(str::to_string),
+        linuxdo_client_id: linuxdo_client_id.map(str::to_string),
+        oauth_state_path: oauth_state_path.to_string(),
+    })
+}
+
+/// 创建标准 NewAPI 公益站提供商
+fn standard_provider(
+    id: &str,
+    name: &str,
+    domain: &str,
+    base_url: &str,
+    icon: &str,
+    oauth_config: Option<OAuthProviderConfig>,
+) -> BuiltinProvider {
+    BuiltinProvider {
+        id: id.to_string(),
+        name: name.to_string(),
+        description: format!("{name} 公益 AI 中转站"),
+        domain: domain.to_string(),
+        base_url: base_url.to_string(),
+        checkin_path: Some("/api/user/checkin".to_string()),
+        balance_path: "/api/user/self".to_string(),
+        user_info_path: "/api/user/self".to_string(),
+        auth_header: "Authorization".to_string(),
+        auth_prefix: "Bearer".to_string(),
+        supports_checkin: true,
+        requires_waf_bypass: false,
+        requires_cf_clearance: false,
+        checkin_bugged: false,
+        icon: icon.to_string(),
+        category: "standard".to_string(),
+        cdk_config: None,
+        oauth_config,
+    }
 }
 
 /// 获取所有内置提供商
@@ -336,202 +358,175 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             oauth_config: None,
         },
         // ═══════════════════════════════════════════════════════════
-        // 标准 NewAPI 公益站 (来自 config.py)
+        // 标准 NewAPI 公益站 (同步自 PROVIDERS.json)
         // ═══════════════════════════════════════════════════════════
-        standard_provider!(
-            "builtin-wong",
-            "Wong",
-            "Wong 公益 AI 中转站",
-            "wzw.pp.ua",
-            "https://wzw.pp.ua",
-            "🦢"
-        ),
-        standard_provider!(
-            "builtin-huan666",
-            "Huan666",
-            "Huan666 公益 AI 中转站",
-            "ai.huan666.de",
-            "https://ai.huan666.de",
-            "🎯"
-        ),
-        standard_provider!(
-            "builtin-kfc",
-            "KFC",
-            "KFC 公益 AI 中转站",
-            "kfc-api.sxxe.net",
-            "https://kfc-api.sxxe.net",
-            "🍗"
-        ),
-        standard_provider!(
-            "builtin-neb",
-            "Neb",
-            "Neb 公益 AI 中转站",
-            "ai.zzhdsgsss.xyz",
-            "https://ai.zzhdsgsss.xyz",
-            "🌌"
-        ),
-        standard_provider!(
-            "builtin-lightllm",
-            "LightLLM",
-            "LightLLM 公益 AI 中转站",
-            "lightllm.online",
-            "https://lightllm.online",
-            "💡"
-        ),
-        standard_provider!(
-            "builtin-takeapi",
-            "TakeAPI",
-            "TakeAPI 公益 AI 中转站",
-            "codex.661118.xyz",
-            "https://codex.661118.xyz",
-            "📦"
-        ),
-        standard_provider!(
-            "builtin-thatapi",
-            "ThatAPI",
-            "ThatAPI 公益 AI 中转站",
-            "gyapi.zxiaoruan.cn",
-            "https://gyapi.zxiaoruan.cn",
-            "🎪"
-        ),
-        standard_provider!(
-            "builtin-duckcoding",
-            "DuckCoding",
-            "DuckCoding 公益 AI 中转站",
-            "duckcoding.com",
-            "https://duckcoding.com",
-            "🦆"
-        ),
-        standard_provider!(
-            "builtin-free-duckcoding",
-            "Free DuckCoding",
-            "Free DuckCoding 公益 AI 中转站",
-            "free.duckcoding.com",
-            "https://free.duckcoding.com",
-            "🦆"
-        ),
-        standard_provider!(
-            "builtin-taizi",
-            "Taizi",
-            "Taizi 公益 AI 中转站",
-            "api.codeme.me",
-            "https://api.codeme.me",
-            "👑"
-        ),
-        standard_provider!(
-            "builtin-openai-test",
-            "OpenAI Test",
-            "OpenAI Test 公益 AI 中转站",
-            "openai.api-test.us.ci",
-            "https://openai.api-test.us.ci",
-            "🧪"
-        ),
-        standard_provider!(
-            "builtin-chengtx",
-            "ChengTX",
-            "ChengTX 公益 AI 中转站",
-            "api.chengtx.vip",
-            "https://api.chengtx.vip",
-            "🏗️"
-        ),
-        // ═══════════════════════════════════════════════════════════
-        // 标准 NewAPI 公益站 (来自 PROVIDERS.json)
-        // ═══════════════════════════════════════════════════════════
-        standard_provider!(
+        standard_provider(
             "builtin-codex-cab",
             "Codex.cab",
-            "Codex.cab 公益 AI 中转站",
             "codex.cab",
             "https://codex.cab",
-            "📝"
+            "📝",
+            oauth_provider_config(
+                None,
+                Some("nYxyCYi7VDrfjNn2rBM8VkPaKNKxWEx1"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-clove",
             "Clove",
-            "Clove 公益 AI 中转站",
             "clove.cc.cd",
             "https://clove.cc.cd",
-            "🍀"
+            "🍀",
+            oauth_provider_config(
+                None,
+                Some("Lr8C2Ny7JPr7c4YqysaDtVEqkO1a9eL7"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-npcodex",
             "NPCodex",
-            "NPCodex 公益 AI 中转站",
             "npcodex.kiroxubei.tech",
             "https://npcodex.kiroxubei.tech",
-            "🔮"
+            "🔮",
+            oauth_provider_config(
+                None,
+                Some("APUcB3LChvSGi3FmkODZx6Ij2038mkHY"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-muapi",
             "MuAPI",
-            "MuAPI 公益 AI 中转站",
             "ai.muapi.cn",
             "https://ai.muapi.cn",
-            "🎵"
+            "🎵",
+            oauth_provider_config(
+                None,
+                Some("WKD07GTaaAQcPi15BAfmIHMMCg1BG95t"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-feisakura",
             "Feisakura",
-            "Feisakura 公益 AI 中转站",
             "api.feisakura.fun",
             "https://api.feisakura.fun",
-            "🌸"
+            "🌸",
+            oauth_provider_config(
+                None,
+                Some("XPXmWksr3NcH2aiz0MgqK5jtEmfdfZ0Q"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-xionger",
             "Xionger",
-            "Xionger 公益 AI 中转站",
             "api.xionger.ccwu.cc",
             "https://api.xionger.ccwu.cc",
-            "🐻"
+            "🐻",
+            oauth_provider_config(
+                None,
+                Some("SYU8YV8Dd0PHmBnNCcjmGIhYfDnmPtBc"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-einzieg",
             "Einzieg",
-            "Einzieg 公益 AI 中转站",
             "api.einzieg.site",
             "https://api.einzieg.site",
-            "⚡"
+            "⚡",
+            oauth_provider_config(
+                None,
+                Some("aBambSqvDqCgTW8fCarJBeQji8M5RATf"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-2020111",
             "2020111",
-            "2020111 公益 AI 中转站",
             "api.2020111.xyz",
             "https://api.2020111.xyz",
-            "🔢"
+            "🔢",
+            oauth_provider_config(
+                None,
+                Some("gnyvfmAfXrnYrt9ierq3Onj1ADvdVmmm"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-361888",
             "361888",
-            "361888 公益 AI 中转站",
             "api.361888.xyz",
             "https://api.361888.xyz",
-            "🎰"
+            "🎰",
+            oauth_provider_config(
+                None,
+                Some("ze9QLEoERDgCdFnlBJeB0uASPwOTVyfM"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-yyds",
             "YYDS",
-            "YYDS 公益 AI 中转站",
             "yyds.215.im",
             "https://yyds.215.im",
-            "🏆"
+            "🏆",
+            oauth_provider_config(
+                None,
+                Some("BvCzH7KoNBVpQIfdWCgUMIGaPMOpgbwI"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-anthorpic",
             "Anthorpic",
-            "Anthorpic 公益 AI 中转站",
             "anthorpic.us.ci",
             "https://anthorpic.us.ci",
-            "🤖"
+            "🤖",
+            oauth_provider_config(
+                None,
+                Some("nNzrggkmAew2bJYxCgC2iaU6IYcaWt8S"),
+                "/api/oauth/state",
+            ),
         ),
-        standard_provider!(
+        standard_provider(
             "builtin-nanohajimi",
             "Nanohajimi",
-            "Nanohajimi 公益 AI 中转站",
             "free.nanohajimi.mom",
             "https://free.nanohajimi.mom",
-            "🌟"
+            "🌟",
+            oauth_provider_config(
+                None,
+                Some("svkUqtRyhOJMULQ1Zfnfhvv9ALSnANhf"),
+                "/api/oauth/state",
+            ),
+        ),
+        standard_provider(
+            "builtin-zapi-aicc0",
+            "ZAPI",
+            "zapi.aicc0.com",
+            "https://zapi.aicc0.com",
+            "🧩",
+            oauth_provider_config(
+                Some("Ov23linrAuNoCCMoztG7"),
+                Some("Tm30iXRcGTM9oyVreW3edvCNGO5kPEWX"),
+                "/api/oauth/state",
+            ),
+        ),
+        standard_provider(
+            "builtin-llmapi-vhuds",
+            "LLMAPI",
+            "llmapi.vhuds.com",
+            "https://llmapi.vhuds.com",
+            "💡",
+            oauth_provider_config(
+                None,
+                Some("aiepRPewQgwTPbUIq8Z4muSYw76NFSUZ"),
+                "/api/oauth/state",
+            ),
         ),
     ]
 }
@@ -555,7 +550,14 @@ mod tests {
     #[test]
     fn test_get_builtin_providers() {
         let providers = get_builtin_providers();
-        assert_eq!(providers.len(), 32);
+        assert_eq!(providers.len(), 22);
+        assert_eq!(
+            providers
+                .iter()
+                .filter(|p| p.category == "standard")
+                .count(),
+            14
+        );
 
         let anyrouter = providers.iter().find(|p| p.name == "AnyRouter").unwrap();
         assert!(anyrouter.supports_checkin);
@@ -576,10 +578,42 @@ mod tests {
         assert!(!hotaru.requires_waf_bypass);
         assert_eq!(hotaru.category, "cf_required");
 
-        let lightllm = providers.iter().find(|p| p.name == "LightLLM").unwrap();
-        assert!(lightllm.supports_checkin);
-        assert!(!lightllm.requires_waf_bypass);
-        assert_eq!(lightllm.category, "standard");
+        let llmapi = providers.iter().find(|p| p.name == "LLMAPI").unwrap();
+        assert!(llmapi.supports_checkin);
+        assert!(!llmapi.requires_waf_bypass);
+        assert_eq!(llmapi.category, "standard");
+    }
+
+    #[test]
+    fn test_standard_providers_include_oauth_metadata() {
+        let providers = get_builtin_providers();
+        assert!(
+            providers
+                .iter()
+                .filter(|p| p.category == "standard")
+                .all(|p| p.oauth_config.is_some())
+        );
+
+        let codex_cab = get_builtin_provider_by_id("builtin-codex-cab").unwrap();
+        let codex_cab_oauth = codex_cab.oauth_config.as_ref().unwrap();
+        assert_eq!(codex_cab_oauth.github_client_id, None);
+        assert_eq!(
+            codex_cab_oauth.linuxdo_client_id.as_deref(),
+            Some("nYxyCYi7VDrfjNn2rBM8VkPaKNKxWEx1")
+        );
+        assert_eq!(codex_cab_oauth.oauth_state_path, "/api/oauth/state");
+
+        let zapi = get_builtin_provider_by_id("builtin-zapi-aicc0").unwrap();
+        let zapi_oauth = zapi.oauth_config.as_ref().unwrap();
+        assert_eq!(
+            zapi_oauth.github_client_id.as_deref(),
+            Some("Ov23linrAuNoCCMoztG7")
+        );
+        assert_eq!(
+            zapi_oauth.linuxdo_client_id.as_deref(),
+            Some("Tm30iXRcGTM9oyVreW3edvCNGO5kPEWX")
+        );
+        assert_eq!(zapi_oauth.oauth_state_path, "/api/oauth/state");
     }
 
     #[test]
@@ -618,6 +652,7 @@ mod tests {
     #[test]
     fn test_get_builtin_provider_by_id() {
         assert!(get_builtin_provider_by_id("builtin-anyrouter").is_some());
+        assert!(get_builtin_provider_by_id("builtin-zapi-aicc0").is_some());
         assert!(get_builtin_provider_by_id("builtin-nonexistent").is_none());
     }
 }

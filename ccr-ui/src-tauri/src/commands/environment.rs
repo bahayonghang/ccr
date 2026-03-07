@@ -1,15 +1,16 @@
-//! 环境管理命令 — 执行环境列表、切换、刷新。
+//! 閻滎垰顣ㄧ粻锛勬倞閸涙垝鎶?閳?閹笛嗩攽閻滎垰顣ㄩ崚妤勩€冮妴浣稿瀼閹诡潿鈧礁鍩涢弬鑸偓?
 //!
-//! 通过 AppState 中的 EnvironmentRegistry 管理 Local/WSL/SSH 环境。
+//! 闁俺绻?AppState 娑擃厾娈?EnvironmentRegistry 缁狅紕鎮?Local/WSL/SSH 閻滎垰顣ㄩ妴?
 
 use std::sync::Arc;
 
 use serde_json::Value;
-use tauri::{Emitter, Manager, State};
+use tauri::State;
 
 use ccr_db::database::repositories::ssh_repo;
 
-use crate::events::{AppEvent, EnvironmentEventPayload};
+use crate::events::{self, EnvironmentEventPayload};
+use crate::monitoring::{emit_and_record_monitoring_event, environment_changed_entry, should_persist};
 use crate::platform::EnvironmentInfo;
 use crate::platform::local::LocalEnvironment;
 use crate::platform::ssh::{SshEnvironment, SshHostConfig};
@@ -17,14 +18,14 @@ use crate::platform::ssh::{SshEnvironment, SshHostConfig};
 use crate::platform::wsl::{WslEnvironment, detect_wsl_distros_with_cache};
 use crate::state::AppState;
 
-/// 列出所有已注册的执行环境
+/// 閸掓鍤幍鈧張澶婂嚒濞夈劌鍞介惃鍕⒔鐞涘瞼骞嗘晶?
 #[tauri::command]
 pub async fn list_environments(state: State<'_, AppState>) -> Result<Vec<EnvironmentInfo>, String> {
     let registry = state.env_registry.read().await;
     Ok(registry.list())
 }
 
-/// 获取当前活跃环境
+/// 閼惧嘲褰囪ぐ鎾冲濞叉槒绌悳顖氼暔
 #[tauri::command]
 pub async fn get_current_environment(
     state: State<'_, AppState>,
@@ -36,7 +37,7 @@ pub async fn get_current_environment(
         .ok_or_else(|| "No active environment".to_string())
 }
 
-/// 切换活跃环境（按 ID）
+/// 閸掑洦宕插ú鏄忕┈閻滎垰顣ㄩ敍鍫熷瘻 ID閿?
 #[tauri::command]
 pub async fn switch_environment(
     app_handle: tauri::AppHandle,
@@ -56,28 +57,30 @@ pub async fn switch_environment(
 
     drop(registry);
 
-    // 广播环境切换事件（失败仅记录，不影响主流程）
+    // 楠炴寧鎸遍悳顖氼暔閸掑洦宕叉禍瀣╂閿涘牆銇戠拹銉ょ矌鐠佹澘缍嶉敍灞肩瑝瑜板崬鎼锋稉缁樼ウ缁嬪绱?
     let payload = EnvironmentEventPayload {
         env_id: active_env.id.clone(),
         env_type: format!("{:?}", active_env.env_type).to_lowercase(),
         status: "active".to_string(),
     };
-    if let Err(e) = app_handle.emit("env:changed", payload.clone()) {
-        tracing::debug!("[environment] emit env:changed failed: {e}");
-    }
-    let state_ref = app_handle.state::<AppState>();
-    state_ref
-        .event_log
-        .push(AppEvent::EnvironmentChanged(payload))
-        .await;
+    let entry = environment_changed_entry(&payload);
+    let persist = should_persist(entry.level, &entry.event_type);
+    emit_and_record_monitoring_event(
+        &app_handle,
+        events::channels::ENVIRONMENT_CHANGED,
+        &payload,
+        entry,
+        persist,
+    )
+    .await;
 
     Ok(active_env)
 }
 
-/// 刷新环境列表 — 重新检测可用的 WSL/SSH 环境
+/// 閸掗攱鏌婇悳顖氼暔閸掓銆?閳?闁插秵鏌婂Λ鈧ù瀣讲閻劎娈?WSL/SSH 閻滎垰顣?
 ///
-/// # 参数
-/// - `force_refresh`: 是否强制刷新 WSL 缓存
+/// # 閸欏倹鏆?
+/// - `force_refresh`: 閺勵垰鎯佸鍝勫煑閸掗攱鏌?WSL 缂傛挸鐡?
 #[tauri::command]
 pub async fn refresh_environments(
     state: State<'_, AppState>,
@@ -110,8 +113,8 @@ pub async fn refresh_environments(
     let hosts = match tokio::task::spawn_blocking(move || {
         let conn = db_pool
             .get()
-            .map_err(|e| format!("获取数据库连接失败: {e}"))?;
-        ssh_repo::list_hosts(&conn).map_err(|e| format!("读取 SSH 主机失败: {e}"))
+            .map_err(|e| format!("閼惧嘲褰囬弫鐗堝祦鎼存捁绻涢幒銉ャ亼鐠? {e}"))?;
+        ssh_repo::list_hosts(&conn).map_err(|e| format!("鐠囪褰?SSH 娑撶粯婧€婢惰精瑙? {e}"))
     })
     .await
     {
@@ -154,7 +157,7 @@ pub async fn refresh_environments(
     Ok(registry.list())
 }
 
-/// 通过当前活跃环境列出平台
+/// 闁俺绻冭ぐ鎾冲濞叉槒绌悳顖氼暔閸掓鍤獮鍐插酱
 #[tauri::command]
 pub async fn env_list_platforms(state: State<'_, AppState>) -> Result<Value, String> {
     let registry = state.env_registry.read().await;
@@ -171,7 +174,7 @@ pub async fn env_list_platforms(state: State<'_, AppState>) -> Result<Value, Str
     serde_json::to_value(&platforms).map_err(|e| format!("Serialization error: {e}"))
 }
 
-/// 通过当前活跃环境检测 CLI 工具状态
+/// 闁俺绻冭ぐ鎾冲濞叉槒绌悳顖氼暔濡偓濞?CLI 瀹搞儱鍙块悩鑸碘偓?
 #[tauri::command]
 pub async fn env_detect_cli(state: State<'_, AppState>) -> Result<Value, String> {
     let registry = state.env_registry.read().await;
@@ -187,3 +190,4 @@ pub async fn env_detect_cli(state: State<'_, AppState>) -> Result<Value, String>
 
     serde_json::to_value(&status).map_err(|e| format!("Serialization error: {e}"))
 }
+

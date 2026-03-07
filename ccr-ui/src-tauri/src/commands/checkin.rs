@@ -1,25 +1,36 @@
-//! CheckIn 命令 — Provider/Account/执行/Balance/Export/CDK/WAF Cookie。
+//! CheckIn 閸涙垝鎶?閳?Provider/Account/閹笛嗩攽/Balance/Export/CDK/WAF Cookie閵?
+
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tauri::State;
+use tauri::{AppHandle, Emitter, Manager, State};
+use tokio::sync::Semaphore;
+use tokio::task::JoinSet;
+use tokio::time::timeout;
+use uuid::Uuid;
 
 use ccr_db::managers::checkin::{
     AccountManager, BalanceManager, ExportManager, ProviderManager, RecordManager,
     WafCookieManager, get_checkin_dir,
 };
 use ccr_db::models::checkin::{
-    CreateAccountRequest, CreateProviderRequest, ExportOptions, UpdateAccountRequest,
-    UpdateProviderRequest,
+    CheckinStatus, CreateAccountRequest, CreateProviderRequest, ExportOptions,
+    UpdateAccountRequest, UpdateProviderRequest,
 };
 use ccr_db::services::cdk_service::{CdkExtraConfig, CdkService};
-use ccr_db::services::checkin_service::CheckinService;
+use ccr_db::services::checkin_service::{CheckinExecutionResult, CheckinService};
 
 use chrono::Datelike;
 
+use crate::checkin_jobs::{CheckinJobLogEntry, CheckinJobSnapshot, CheckinJobStatus};
+use crate::monitoring::{checkin_job_entry, record_monitoring_entry, should_persist};
 use crate::state::AppState;
 
-/// Provider 概要
+/// Provider 濮掑倽顩?
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub struct ProviderInfo {
@@ -29,7 +40,7 @@ pub struct ProviderInfo {
     pub enabled: bool,
 }
 
-/// Account 概要
+/// Account 濮掑倽顩?
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub struct AccountInfo {
@@ -41,7 +52,7 @@ pub struct AccountInfo {
     pub last_checkin: Option<String>,
 }
 
-// ── 辅助函数 ──
+// 閳光偓閳光偓 鏉堝懎濮崙鑺ユ殶 閳光偓閳光偓
 
 fn checkin_dir_str() -> Result<std::path::PathBuf, String> {
     get_checkin_dir().map_err(|e| format!("Failed to get checkin dir: {}", e))
@@ -57,7 +68,236 @@ where
         .map_err(|e| format!("Blocking task failed: {e}"))?
 }
 
-// ── Provider 管理 ──
+#[derive(Debug, Clone, Serialize)]
+pub struct StartCheckinJobResponse {
+    pub job_id: String,
+    pub snapshot: CheckinJobSnapshot,
+}
+
+#[derive(Debug, Clone)]
+struct CheckinJobAccountMeta {
+    account_id: String,
+    account_name: String,
+    provider_name: String,
+}
+
+fn build_failed_checkin_result(
+    meta: &CheckinJobAccountMeta,
+    message: impl Into<String>,
+) -> CheckinExecutionResult {
+    CheckinExecutionResult {
+        account_id: meta.account_id.clone(),
+        account_name: meta.account_name.clone(),
+        provider_name: meta.provider_name.clone(),
+        status: CheckinStatus::Failed,
+        message: Some(message.into()),
+        reward: None,
+        balance: None,
+    }
+}
+
+async fn load_checkin_job_accounts(
+    account_ids: Vec<String>,
+) -> Result<Vec<CheckinJobAccountMeta>, String> {
+    let checkin_dir = checkin_dir_str()?;
+    run_blocking(move || {
+        let account_manager = AccountManager::new(&checkin_dir);
+        let provider_manager = ProviderManager::new();
+
+        let mut deduped_ids = Vec::new();
+        let mut seen = HashSet::new();
+        for account_id in account_ids {
+            if seen.insert(account_id.clone()) {
+                deduped_ids.push(account_id);
+            }
+        }
+
+        let accounts = account_manager
+            .load_all()
+            .map_err(|e| format!("Failed to load accounts: {}", e))?;
+        let account_map: HashMap<String, _> =
+            accounts.into_iter().map(|account| (account.id.clone(), account)).collect();
+
+        let providers = provider_manager
+            .load_all()
+            .map_err(|e| format!("Failed to load providers: {}", e))?;
+        let provider_map: HashMap<String, String> =
+            providers.into_iter().map(|provider| (provider.id, provider.name)).collect();
+
+        let mut metas = Vec::with_capacity(deduped_ids.len());
+        let mut missing = Vec::new();
+
+        for account_id in deduped_ids {
+            if let Some(account) = account_map.get(&account_id) {
+                let provider_name = provider_map
+                    .get(&account.provider_id)
+                    .cloned()
+                    .unwrap_or_else(|| account.provider_id.clone());
+                metas.push(CheckinJobAccountMeta {
+                    account_id: account.id.clone(),
+                    account_name: account.name.clone(),
+                    provider_name,
+                });
+            } else {
+                missing.push(account_id);
+            }
+        }
+
+        if !missing.is_empty() {
+            return Err(format!("Accounts not found: {}", missing.join(", ")));
+        }
+
+        Ok(metas)
+    })
+    .await
+}
+
+async fn emit_checkin_job_snapshot(
+    app_handle: &AppHandle,
+    event: &str,
+    snapshot: &CheckinJobSnapshot,
+) {
+    if let Err(error) = app_handle.emit(event, snapshot.clone()) {
+        tracing::warn!(event, ?error, job_id = %snapshot.job_id, "Failed to emit checkin job event");
+    }
+
+    let entry = checkin_job_entry(event, snapshot);
+    let persist = should_persist(entry.level, &entry.event_type);
+    record_monitoring_entry(app_handle, entry, persist).await;
+}
+async fn execute_checkin_job_accounts(
+    app_handle: AppHandle,
+    job_id: String,
+    account_metas: Vec<CheckinJobAccountMeta>,
+    checkin_dir: PathBuf,
+    http_client: reqwest::Client,
+) -> Result<(), String> {
+    let semaphore = Arc::new(Semaphore::new(5));
+    let mut join_set = JoinSet::new();
+
+    for meta in account_metas {
+        let app_handle = app_handle.clone();
+        let job_id = job_id.clone();
+        let checkin_dir = checkin_dir.clone();
+        let http_client = http_client.clone();
+        let semaphore = semaphore.clone();
+
+        join_set.spawn(async move {
+            let _permit = semaphore
+                .acquire_owned()
+                .await
+                .map_err(|e| format!("Failed to acquire checkin permit: {}", e))?;
+
+            let state = app_handle.state::<AppState>();
+            if let Some(snapshot) = state
+                .update_checkin_job(&job_id, |job| job.mark_processing(&meta.account_id))
+                .await
+            {
+                emit_checkin_job_snapshot(&app_handle, "checkin:job-progress", &snapshot).await;
+            }
+
+            let service = CheckinService::with_client(checkin_dir, http_client);
+            let result = match timeout(Duration::from_secs(90), service.checkin(&meta.account_id)).await {
+                Ok(Ok(result)) => result,
+                Ok(Err(error)) => build_failed_checkin_result(&meta, format!("Checkin failed: {}", error)),
+                Err(_) => build_failed_checkin_result(&meta, "????"),
+            };
+
+            let state = app_handle.state::<AppState>();
+            if let Some(snapshot) = state
+                .update_checkin_job(&job_id, |job| job.apply_result(result))
+                .await
+            {
+                emit_checkin_job_snapshot(&app_handle, "checkin:job-progress", &snapshot).await;
+            }
+
+            Ok::<(), String>(())
+        });
+    }
+
+    let mut task_failed = false;
+    while let Some(joined) = join_set.join_next().await {
+        match joined {
+            Ok(Ok(())) => {}
+            Ok(Err(error)) => {
+                task_failed = true;
+                tracing::warn!(job_id = %job_id, ?error, "Checkin account task failed");
+            }
+            Err(error) => {
+                task_failed = true;
+                tracing::warn!(job_id = %job_id, ?error, "Checkin account task join failed");
+            }
+        }
+    }
+
+    if task_failed {
+        let state = app_handle.state::<AppState>();
+        if let Some(snapshot) = state
+            .update_checkin_job(&job_id, |job| {
+                job.mark_pending_failed("????????");
+                if !matches!(job.status, CheckinJobStatus::Finished | CheckinJobStatus::TimedOut) {
+                    job.mark_finished(CheckinJobStatus::Finished);
+                }
+            })
+            .await
+        {
+            emit_checkin_job_snapshot(&app_handle, "checkin:job-progress", &snapshot).await;
+        }
+    }
+
+    Ok(())
+}
+
+async fn run_checkin_job(
+    app_handle: AppHandle,
+    job_id: String,
+    account_metas: Vec<CheckinJobAccountMeta>,
+    checkin_dir: PathBuf,
+    http_client: reqwest::Client,
+) {
+    let execution = execute_checkin_job_accounts(
+        app_handle.clone(),
+        job_id.clone(),
+        account_metas,
+        checkin_dir,
+        http_client,
+    );
+
+    match timeout(Duration::from_secs(600), execution).await {
+        Ok(Ok(())) => {
+            if let Some(snapshot) = app_handle.state::<AppState>().get_checkin_job(&job_id).await {
+                emit_checkin_job_snapshot(&app_handle, "checkin:job-finished", &snapshot).await;
+            }
+        }
+        Ok(Err(error)) => {
+            tracing::error!(job_id = %job_id, ?error, "Checkin job failed");
+            if let Some(snapshot) = app_handle
+                .state::<AppState>()
+                .update_checkin_job(&job_id, |job| {
+                    job.mark_pending_failed("????????");
+                    if !matches!(job.status, CheckinJobStatus::Finished | CheckinJobStatus::TimedOut) {
+                        job.mark_finished(CheckinJobStatus::Finished);
+                    }
+                })
+                .await
+            {
+                emit_checkin_job_snapshot(&app_handle, "checkin:job-finished", &snapshot).await;
+            }
+        }
+        Err(_) => {
+            tracing::warn!(job_id = %job_id, "Checkin job timed out");
+            if let Some(snapshot) = app_handle
+                .state::<AppState>()
+                .update_checkin_job(&job_id, |job| job.mark_timed_out())
+                .await
+            {
+                emit_checkin_job_snapshot(&app_handle, "checkin:job-timeout", &snapshot).await;
+            }
+        }
+    }
+}
+
+// 閳光偓閳光偓 Provider 缁狅紕鎮?閳光偓閳光偓
 
 #[tauri::command]
 pub async fn list_providers(_state: State<'_, AppState>) -> Result<Value, String> {
@@ -146,7 +386,7 @@ pub async fn test_provider_connection(
     .await
 }
 
-// ── Account 管理 ──
+// 閳光偓閳光偓 Account 缁狅紕鎮?閳光偓閳光偓
 
 #[tauri::command]
 pub async fn list_accounts(
@@ -295,7 +535,7 @@ pub async fn batch_delete_accounts(
     .await
 }
 
-// ── 签到执行 ──
+// 閳光偓閳光偓 缁涙儳鍩岄幍褑顢?閳光偓閳光偓
 
 #[tauri::command]
 pub async fn execute_checkin(
@@ -349,6 +589,62 @@ pub async fn batch_checkin(
 }
 
 #[tauri::command]
+pub async fn start_checkin_job(
+    app_handle: AppHandle,
+    state: State<'_, AppState>,
+    account_ids: Vec<String>,
+) -> Result<Value, String> {
+    let account_metas = load_checkin_job_accounts(account_ids).await?;
+    if account_metas.is_empty() {
+        return Err("No accounts selected for checkin".to_string());
+    }
+
+    let job_id = format!("checkin-{}", Uuid::new_v4());
+    let logs = account_metas
+        .iter()
+        .map(|meta| {
+            CheckinJobLogEntry::pending(
+                meta.account_id.clone(),
+                meta.account_name.clone(),
+                meta.provider_name.clone(),
+            )
+        })
+        .collect();
+    let snapshot = CheckinJobSnapshot::new(job_id.clone(), logs);
+    state.insert_checkin_job(snapshot.clone()).await;
+
+    let response = StartCheckinJobResponse {
+        job_id: job_id.clone(),
+        snapshot: snapshot.clone(),
+    };
+
+    let checkin_dir = checkin_dir_str()?;
+    let http_client = state.http_client.clone();
+    tauri::async_runtime::spawn(run_checkin_job(
+        app_handle,
+        job_id,
+        account_metas,
+        checkin_dir,
+        http_client,
+    ));
+
+    serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+}
+
+#[tauri::command]
+pub async fn get_checkin_job_status(
+    state: State<'_, AppState>,
+    job_id: String,
+) -> Result<Value, String> {
+    let snapshot = state
+        .get_checkin_job(&job_id)
+        .await
+        .ok_or_else(|| format!("Checkin job '{}' not found", job_id))?;
+
+    serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {}", e))
+}
+
+#[tauri::command]
 pub async fn get_checkin_records(
     _state: State<'_, AppState>,
     account_id: Option<String>,
@@ -372,7 +668,7 @@ pub async fn get_checkin_records(
     .await
 }
 
-// ── Balance ──
+// 閳光偓閳光偓 Balance 閳光偓閳光偓
 
 #[tauri::command]
 pub async fn get_balance(state: State<'_, AppState>, account_id: String) -> Result<Value, String> {
@@ -427,7 +723,7 @@ pub async fn get_balance_stats(_state: State<'_, AppState>) -> Result<Value, Str
     .await
 }
 
-// ── Export ──
+// 閳光偓閳光偓 Export 閳光偓閳光偓
 
 #[tauri::command]
 pub async fn export_checkin_data(
@@ -462,7 +758,7 @@ pub async fn export_checkin_stats(_state: State<'_, AppState>) -> Result<Value, 
     .await
 }
 
-// ── CDK 充值 ──
+// 閳光偓閳光偓 CDK 閸忓懎鈧?閳光偓閳光偓
 
 #[tauri::command]
 pub async fn execute_cdk_recharge(
@@ -622,7 +918,7 @@ pub async fn get_cdk_history(
     .await
 }
 
-// ── WAF Cookie 管理 ──
+// 閳光偓閳光偓 WAF Cookie 缁狅紕鎮?閳光偓閳光偓
 
 #[tauri::command]
 pub async fn list_waf_cookies(_state: State<'_, AppState>) -> Result<Value, String> {
@@ -711,14 +1007,18 @@ pub async fn delete_waf_cookie(_state: State<'_, AppState>, id: String) -> Resul
     .await
 }
 
-// ── 内置 Provider + 导入导出扩展 ──
+// 閳光偓閳光偓 閸愬懐鐤?Provider + 鐎电厧鍙嗙€电厧鍤幍鈺佺潔 閳光偓閳光偓
 
 #[tauri::command]
 pub async fn list_builtin_providers() -> Result<Value, String> {
     run_blocking(|| {
         use ccr_db::managers::checkin::builtin_providers::get_builtin_providers;
         let providers = get_builtin_providers();
-        serde_json::to_value(providers).map_err(|e| format!("Serialization error: {}", e))
+        let total = providers.len();
+        Ok(serde_json::json!({
+            "providers": providers,
+            "total": total,
+        }))
     })
     .await
 }
@@ -835,7 +1135,7 @@ pub async fn import_checkin_config(data: Value, options: Option<Value>) -> Resul
     .await
 }
 
-// ── Dashboard ──
+// 閳光偓閳光偓 Dashboard 閳光偓閳光偓
 
 #[tauri::command]
 pub async fn get_account_dashboard(

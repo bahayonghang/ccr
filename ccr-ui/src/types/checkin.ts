@@ -185,6 +185,37 @@ export interface CheckinResponse {
   summary: CheckinSummary
 }
 
+export type CheckinJobStatus = 'pending' | 'running' | 'finished' | 'timed_out'
+
+export interface CheckinJobLogEntryPayload {
+  account_id: string
+  account_name: string
+  provider_name: string
+  status: CheckinLogStatus
+  message?: string
+  reward?: string
+  balance?: number
+  timestamp: string
+}
+
+export interface CheckinJobSnapshot {
+  job_id: string
+  status: CheckinJobStatus
+  total: number
+  completed: number
+  current_account_name: string
+  logs: CheckinJobLogEntryPayload[]
+  results: CheckinExecutionResult[]
+  summary: CheckinSummary
+  started_at: string
+  finished_at?: string
+}
+
+export interface StartCheckinJobResponse {
+  job_id: string
+  snapshot: CheckinJobSnapshot
+}
+
 // ═══════════════════════════════════════════════════════════
 // 签到记录类型
 // ═══════════════════════════════════════════════════════════

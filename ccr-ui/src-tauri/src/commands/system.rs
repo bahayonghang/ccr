@@ -1,4 +1,6 @@
-//! 系统命令 — 系统信息、版本检查、健康检查、事件查询。
+//! 缂備緡鍨靛畷鐢靛垝濞差亜宸濋柟瀛樺笚婵?闂?缂備緡鍨靛畷鐢靛垝閻戞鈹嶉柍鈺佸暕缁辨牠鏌曢崱鏇″厡濠⒀勵殜瀵敻顢楁笟鍥ㄢ挄闂佸搫琚崕顖炲焵椤戣法顦﹀ù鐘茬摠閹棃鏌ㄧ€ｅ灚鈷曢梺鍝勮閸庮垶鍩€椤戞寧顦风紒銊ｅ妽缁傛帡鎳滈悽闈涘绩闁荤姴娴傚鍧楀焵?
+
+use ccr_types::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery};
 
 use serde::{Deserialize, Serialize};
 use std::{io::ErrorKind, sync::Arc, time::Instant};
@@ -6,10 +8,11 @@ use tauri::State;
 use tokio::sync::Semaphore;
 use tokio::time::{Duration, timeout};
 
+use crate::monitoring::{event_to_monitoring_entry, frontend_log_entry, record_monitoring_entry, should_persist};
 use crate::process::tokio_command;
 use crate::state::AppState;
 
-/// 系统信息
+/// 缂備緡鍨靛畷鐢靛垝閻戞鈹嶉柍鈺佸暕缁?
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemInfo {
     pub os_name: String,
@@ -21,7 +24,7 @@ pub struct SystemInfo {
     pub ccr_version: String,
 }
 
-/// 版本检查结果
+/// 闂佺粯顨呴悧濠傦耿閺夎娑㈠焵椤掑嫬钃熼柕澹懏灏濋梺?
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionInfo {
     pub current: String,
@@ -29,7 +32,7 @@ pub struct VersionInfo {
     pub update_available: bool,
 }
 
-/// 运行时指标
+/// 闁哄鏅滈崝姗€銆侀幋锕€绫嶉柤鎼佹涧閻﹀綊鏌?
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuntimeMetricsResponse {
     pub cache_entries: usize,
@@ -121,7 +124,7 @@ pub async fn get_system_info() -> Result<SystemInfo, String> {
 #[tauri::command]
 pub async fn check_version() -> Result<VersionInfo, String> {
     let current = env!("CARGO_PKG_VERSION").to_string();
-    // TODO: Phase B4 — 查询 GitHub releases API
+    // TODO: Phase B4 闂?闂佸搫琚崕鎾敋?GitHub releases API
     Ok(VersionInfo {
         current,
         latest: None,
@@ -131,7 +134,7 @@ pub async fn check_version() -> Result<VersionInfo, String> {
 
 #[tauri::command]
 pub async fn health_check(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    // 检查数据库连接
+    // 濠碘槅鍋€閸嬫捇鏌＄仦璇插姕闁哄棛鍠栭獮鎴︻敊閼测晜鐨戦柡澶嗘櫇閸嬬偟鏁?
     let db_ok = state.db_pool.get().map(|_| true).unwrap_or(false);
 
     Ok(serde_json::json!({
@@ -141,6 +144,65 @@ pub async fn health_check(state: State<'_, AppState>) -> Result<serde_json::Valu
     }))
 }
 
+
+fn monitoring_matches_query(entry: &MonitoringEntry, query: &MonitoringFeedQuery) -> bool {
+    let level_matches = query
+        .level
+        .map(|level| entry.level == level)
+        .unwrap_or(true);
+    let channel_matches = query
+        .channel
+        .as_deref()
+        .map(|channel| entry.channel == channel)
+        .unwrap_or(true);
+    level_matches && channel_matches
+}
+
+#[tauri::command]
+pub async fn get_monitoring_feed(
+    state: State<'_, AppState>,
+    query: Option<MonitoringFeedQuery>,
+) -> Result<Vec<MonitoringEntry>, String> {
+    let query = query.unwrap_or_default();
+    let count = query.count.unwrap_or(100).clamp(1, 500);
+    let level = query.level.map(|item| item.as_str().to_string());
+    let channel = query.channel.clone();
+
+    let mut entries = state
+        .monitoring_logs
+        .query_logs(level.as_deref(), channel.as_deref(), count)
+        .await;
+
+    let recent = state.event_log.recent(count).await;
+    for item in recent {
+        if let Some(entry) = event_to_monitoring_entry(&item.event) {
+            entries.push(entry);
+        }
+    }
+
+    entries.retain(|entry| monitoring_matches_query(entry, &query));
+    entries.sort_by(|left, right| right.timestamp.cmp(&left.timestamp));
+
+    let mut seen = std::collections::HashSet::new();
+    entries.retain(|entry| seen.insert(entry.id.clone()));
+    entries.truncate(count);
+
+    Ok(entries)
+}
+
+#[tauri::command]
+pub async fn append_frontend_logs(
+    app_handle: tauri::AppHandle,
+    entries: Vec<FrontendLogInput>,
+) -> Result<(), String> {
+    for input in entries {
+        let entry = frontend_log_entry(input);
+        let persist = should_persist(entry.level, &entry.event_type);
+        record_monitoring_entry(&app_handle, entry, persist).await;
+    }
+
+    Ok(())
+}
 #[tauri::command]
 pub async fn get_recent_events(
     state: State<'_, AppState>,
@@ -360,7 +422,64 @@ mod tests {
         assert_eq!(payload.get("versions").and_then(|v| v.as_object()).map(|m| m.len()), Some(4));
         assert_eq!(payload.get("entries").and_then(|v| v.as_array()).map(|a| a.len()), Some(4));
 
-        // fast 模式下即使存在超时，也不应超过一个可接受的壁钟阈值
+        // fast 濠碘槅鍨埀顒€纾涵鈧繛鎴炴尭椤戝懎鐣甸崱妯诲闁割煈鍠氶幗鐘绘煕閿斿搫濮€缂佸鎸冲顔炬媼閸︻厾顦繛鎴炴⒒閸犲秶绮径瀣劅闁哄啫娲ㄥ瓭闁哄鏅涘ú锝囩博鐎涙鈻旀い蹇撳鐠佹煡鏌熼幁鎺戝姎鐟滄澘鐗撻幆鍐礋椤愵偅鈷栭梻浣烘櫕閸犳牕危閸ヮ剙纾?
         assert!(started_at.elapsed() <= Duration::from_millis(5_000));
+    }
+}
+
+
+
+#[cfg(test)]
+mod monitoring_query_tests {
+    use super::*;
+    use ccr_types::MonitoringLevel;
+
+    #[test]
+    fn monitoring_matches_query_accepts_empty_query() {
+        let entry = MonitoringEntry::new(
+            MonitoringLevel::Info,
+            "system",
+            "runtime.started",
+            "desktop",
+            "started",
+        );
+
+        assert!(monitoring_matches_query(&entry, &MonitoringFeedQuery::default()));
+    }
+
+    #[test]
+    fn monitoring_matches_query_filters_level_and_channel() {
+        let entry = MonitoringEntry::new(
+            MonitoringLevel::Error,
+            "frontend",
+            "frontend.error",
+            "frontend",
+            "boom",
+        );
+
+        assert!(monitoring_matches_query(
+            &entry,
+            &MonitoringFeedQuery {
+                count: None,
+                level: Some(MonitoringLevel::Error),
+                channel: Some("frontend".to_string()),
+            }
+        ));
+        assert!(!monitoring_matches_query(
+            &entry,
+            &MonitoringFeedQuery {
+                count: None,
+                level: Some(MonitoringLevel::Warn),
+                channel: Some("frontend".to_string()),
+            }
+        ));
+        assert!(!monitoring_matches_query(
+            &entry,
+            &MonitoringFeedQuery {
+                count: None,
+                level: Some(MonitoringLevel::Error),
+                channel: Some("usage".to_string()),
+            }
+        ));
     }
 }
